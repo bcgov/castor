@@ -6,31 +6,35 @@ output: html_document
 ---
 
 # Keyrings and keys
-
-Inside the credential store, there are keyrings that contain multiple keys. A keyring is secured with a single password, which then grants access to all of its keys. In the case of accessing a database this means we first create a key ring that holds all the information about the database (i.e., the keys). Second we unlock the key ring only once at the start of an R session. Lastly, in the code we then use `key_get()` to return the needed information like the host, dbname, user, password, etc. Note this can be started for any project.
+In the Windows "Credentials Manager" you can create 'keyrings' that contain multiple 'keys' that allow you to access, for example, websites, databases or network computers. A keyring is secured with a single password, which then grants access to all of its keys. In the case of accessing a database, this means we first create a keyring that holds all of the credentials to login to the database (i.e., each credential is a key). Second we unlock the keyring only once at the start of an R session. Lastly, in the code we then use `key_get()` to return the needed credentials, like the host, dbname, user, password, etc. Note this can be started for any project. Below outlines the steps to do this.
 
 ```{r, install_keyring}
 #install.packages("keyring")
 library(keyring)
 ```
 
-## 1. Create the keyring
+### 1. Create the keyring
+First, you will create a keyring. This information gets put into the Windows "Credentials Manager". Name the keyring "postgreSQL", so that it is consistent with other CLUS users, and because we "hard code" this name into the CLUS code.
 
-You will be prompted to add a password that will be used to open the keyring. This will be the password you use at the start of an R session. I kept mine simple as I will be the primary user on my machine.
+When you run the *keyring_create()* function you will be prompted to add a password that will be used to open the keyring. This will be the password you use at the start of an R session. You can keep this simple as you will be the primary, and likley only user on your computer.
 
 ```{r, create}
-keyring_create("postgreSQL") # I named this keyring postgreSQL which is the postgreSQL server information on my local machine. It is important to keep these names the same so we can hard code them in the CLUS code.
+keyring_create("postgreSQL") 
 ```
 
-## 2. Unlock the keyring before your session
+### 2. Unlock the keyring before your session
+Next, you will need to 'unlock' the keyring that you just created. You will be prompted for the password you created in step 1.
+
 ```{r, unlock}
-#you will be prompted for your newly created password which opens the keyring
 keyring_unlock("postgreSQL")
 ```
 
-## 3. Set the Credentials
+### 3. Set the Credentials
+Here we set the "keys" in the postgreSQL "keyring". These keys contain the credentials for accessing the postgreSQL databases (i.e., database name, host, user name and password). You will need to get the credentials to access two databases from Kyle Lochhead (Kyle.Lochhead@gov.bc.ca). Our 'main' database is hosted on a government network computer. We also have a 'virtual machine' that stores our model outputs on a cloud-based computer. 
 
-Here we set the keys (i.e., dbname, host, password, etc). A prompt will ask you for each of these values. It is important that we keep these keys to have the same name -- so we can hard code their calls in the CLUS code. When you run key_set()), the prompt will ask you for a 'password' each time, but you don't enter a password, you enter the corresponding value, e.g., for key_set("vmdbhost", keyring ="postgreSQL"), enter the host into the prompt.
+Again, it is important to use the same naming convention that we use here, as these "key" names are "hard coded" into CLUS code. Use "dbhost" to identify the name of the  government network computer postgreSQL database host, "dbname' to identify the database name on dbhost, "dbuser" to identify your user name for accessing the database on dbhost, and "dbpass" to identify your password for accessing the database on dbhost. Similarly, use "vmdbhost" to identify the name of the 'virtual machine' postgreSQL database host, 'vmdbname' to identify the database name on vmdbhost, "vmdbuser" to identify your user name for accessing the database on vmdbhost, and "vmdbpass" to identify your password for accessing the database on vmdbhost. 
+
+When you run the *key_set()* function, it will open a new window with a text box prompting you for a 'password'. You *do not* enter a password into the text box, but rather, you enter the value you want to set for that parameter, e.g., for key_set("vmdbhost", keyring ="postgreSQL"), enter the host into the text box.
 
 ```{r, set}
 key_set("dbhost", keyring ="postgreSQL") 
@@ -49,8 +53,8 @@ key_set("vmdbpass", keyring = "postgreSQL")
 
 ```
 ## Use the keyring in code
+Now, when you need to access data in the PostgreSQL database, you can connect using the keyring function calls below to get credentials in place of writing them in the code. You can also now test whether the functions are calling the correct credentials using the code below. 
 
-To get the values of the keys use:
 ```{r, use, echo =FALSE}
 key_get("dbhost", keyring="postgreSQL")
 key_get("dbuser", keyring="postgreSQL")

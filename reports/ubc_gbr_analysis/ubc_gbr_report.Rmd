@@ -1,0 +1,146 @@
+---
+title: "Great Bear Rainforest analysis for UBC cummulative effects study"
+author: "Elizabeth Kleynhans, Kyle Lochhead and Tyler Muhly"
+date: "2021-02-26"
+output: html_document
+---
+<style> 
+p.caption {
+  font-size: 1.2em;
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require (kableExtra)
+require (data.table)
+require (DBI)
+require (RPostgreSQL)
+require (dplyr)
+require (ggplot2)
+```
+
+## Introduction
+
+Here we describe a preliminary analysis that looks at the impacts of maintaining landscape level biodiversity within the Great Bear Rainforest. The 2016 GBR order says that landscape level biodiversity must be achieved by maintaining a distribution of forest stand ages  (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/timber-pricing/coast-timber-pricing/maps-and-graphics/great_bear_rainforest_order_-_jan_21_2016.pdf). 
+
+These retention targets differ by BEC zone and landscape unit and site series group. See:
+
+https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/westcoast-region/great-bear-rainforest/gbr_old_forest_targets_landscape_unit.pdf
+
+https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/westcoast-region/great-bear-rainforest/gbr_schedule_f_site_series_group_minimum_old_forest_retention_levels_less_than_twenty_percent_by_landscape_unit.pdf
+
+https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/westcoast-region/great-bear-rainforest/gbr_schedule_g_old_forest_targets_order_area.pdf
+
+For ease, the UBC team decided to aggregate the average retention targets in 10% increments (.25,.35,.45 etc.) for each dominant site series group (ssg). Then they clipped those to the THLB polygons and dissolved them by retention target across the study area. This avoids the need to include data on LU and BEC variants. I incorporated these average retention targets in our model as a harvest constraint. I also included other constraints that were relevant to GBR. In particular I included :
+
+* Important fisheries watersheds: For identified Important fisheries watershed I included these with the constraint of an Equivalent Clearcut Area of less than 20% allowed (Schedule E). 
+There is also high value fish habitat where 100% of the forest needs to be preserved. These areas include the Kimsquit River, Klinaklini River, and Viner Creek Reserve Zones . See Part 3 of (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/westcoast-region/northislandcentralcoast-lu/coast_lud_centralandnorth_luor_13jun2013consolidated.pdf); and schedule P of 2016 Great Bear Rainforest (GBR) Order. I added the high value fish habitat to the important fisheries watershed layer and included both as constraints to harvest.
+
+* Wildlife habitat areas: 100% of class 1 and 50% of class 2 grizzly bear habitat needs to be maintained (Schedule D). Thus I included these as a wildlife habitat constraint. Kermode habitat was not included but I should possibly add this.
+
+* Biodiversity, mining and tourism Areas in GBR. I included these as a no harvest constraints i.e. 100% of these areas needed to be maintained. See https://www.bclaws.gov.bc.ca/civix/document/id/oic/arc_oic/0002_2009 and https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/westcoast-region/great-bear-rainforest/bmtas/north_coast_bmtas_overview_map.pdf
+
+Other constraints such as Aquatic habitat Type I and II, and Red and Blue listed plant communities were not included in the harvest constraints because they are difficult to implement.
+
+To examine how much of an impact including the average retention targets might have on forestry I ran a business as usual (bau) scenario which included important fisheries watersheds, wildlife habitat areas, and biodiversity, mining and tourism areas as constraints. I then compared the bau scenario to a new simulation run with the above constraints and average retention targets. These simulations were run for 200 years (2018 - 2218) and stands were prioritized for harvest based on age (oldest first). Also, we set an adjacency constrain of 3m and a minimum harvest volume of 250 m3 per ha. The 250 m3 minimum harvest volume is what has been set in other coastal jurisdictions e.g. Sunshine Coast TSA, which is why I set it here. 
+
+Overall, we found that the average annual volume of timber harvested in the bau scenario was 409944 m3/year. In contrast including the average retention targets in the run lowered the average volume of timber harvested each year to 209286 m3/year which is a 49% reduction. Additional results are presented in the figures below.
+
+## Figures
+
+```{r, echo=FALSE, fig.cap = "Figure 1. Annual total volume of harvest timber (m3) simulated over 200 years. ubc_gbrn_bau = fisheries sensitive watersheds, wildlife habitat areas, and biodiversity, mining and tourism areas included as constraints. ubc_gbrn_with_art = fisheries sensitive watersheds, wildlife habitat areas, biodiversity, mining and tourism areas, and average retention targets"}
+
+connvm<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+                     host='206.12.91.188', 
+                     dbname = 'clus', 
+                     port='5432', 
+                     user='appuser', 
+                     password='sHcL5w9RTn8ZN3kc')
+harvest<- dbGetQuery(connvm, 'SELECT * FROM ubc_gbr_study.harvest') 
+dbDisconnect (connvm) # connKyle
+
+
+# Volume harvested
+p1 = ggplot(harvest, aes(x=timeperiod, y=volume, color=scenario)) + 
+  theme_classic() +
+  geom_line(size=1.5) +
+  ylim(0, 450000) +
+  labs(x="Future year", y= "Volume harvested (m3)")
+p1
+```
+
+```{r, echo = F, fig.cap = "Figure 2. Annual total area harvested (ha) simulated over 200 years."}
+
+# Area harvested
+p2 = ggplot(harvest, aes(x=timeperiod, y=area, color=scenario)) + 
+  theme_classic() +
+  geom_line(size=1.5) +
+  ylim(0, 1100) +
+  labs(x="Future year", y= "Area harvested (ha)")
+p2
+```
+
+```{r, echo = F, fig.cap = "Figure 3: Area of managed forest harvested over time (ha)."}
+## Transition Area
+# Managed Area harvested
+p3 = ggplot(harvest, aes(x=timeperiod, y=transition_area, color=scenario)) + 
+  theme_classic() +
+  geom_line(size=1.5) +
+  #ylim(0, 1800) +
+  labs(x="Future year", y= "Managed area harvested (ha)")
+p3
+
+```
+
+```{r, echo = F, fig.cap = "Figure 4: Area of managed volume harvested over time."}
+
+# Managed Volume harvested
+p4 = ggplot(harvest, aes(x=timeperiod, y=transition_volume, color=scenario)) + 
+  theme_classic() +
+  geom_line(size=1.5) +
+  #ylim(0, 1800) +
+  labs(x="Future year", y= "Managed volume harvested (m3)")
+p4
+```
+
+```{r, echo = F, fig.cap = "Figure 5: Average age of trees harvested."}
+# Available THLB
+p5 = ggplot(harvest, aes(x=timeperiod, y=age, color=scenario)) + 
+  theme_classic() +
+  geom_line(size=1.5) +
+  ylim(0, 350) +
+  labs(x="Future year", y= "Average harvest age")
+p5
+```
+
+```{r, echo = F, fig.cap = "Figure 6: Area of available timber harvest landbase (THLB) available for harvest  ."}
+# Available THLB
+p6 = ggplot(harvest, aes(x=timeperiod, y=avail_thlb, color=scenario)) + 
+  theme_classic() +
+  geom_line(size=1.5) +
+  #ylim(0, 400000) +
+  labs(x="Future year", y= "Available THLB (ha)")
+p6
+
+```
+
+```{r, echo = F, fig.cap = "Figure 6: Area of available timber harvest landbase (THLB) available for harvest  ."}
+# Growing Stock
+connvm<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+                     host='206.12.91.188', 
+                     dbname = 'clus', 
+                     port='5432', 
+                     user='appuser', 
+                     password='sHcL5w9RTn8ZN3kc')
+gs<- dbGetQuery(connvm, 'SELECT * FROM ubc_gbr_study.growingstock') 
+dbDisconnect (connvm) # connKyle
+
+p7 = ggplot(gs, aes(x=timeperiod, y=m_gs, color=scenario)) + 
+  theme_classic() +
+  geom_line(size=2) +
+  #ylim(0, 43000000) +
+  labs(x="Future year", y= "Growing stock (m3)")
+
+p7
+```
