@@ -48,7 +48,7 @@ The following steps are used:
 2. Calculate the weights between pixels (i.e., edges) as a multivarate distance (e.g., [mahalanobis](https://en.wikipedia.org/wiki/Mahalanobis_distance))
 3. Solve the minimum spanning tree of the graph to get a list of edges (i.e., ridge lines)
 4. Sort the edgelist according to a metric of similarity (i.e., multivariate distance)
-5. Starting with the pixel with the largest [degree](https://en.wikipedia.org/wiki/Degree_(graph_theory)), cluster surounding pixels
+5. Starting with the pixel with the largest [degree](https://en.wikipedia.org/wiki/Degree_(graph_theory)), cluster surrounding pixels
 6. When there are no more adjacent pixels or the size has been met or till the allowable amount of variation within the block has been exceeded, go on to the next block
 7. Complete 5-6 until the target distribution is achieved
 
