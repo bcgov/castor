@@ -276,7 +276,7 @@ To compare the three approaches (snap, LCP and MST), based on accuracy and compu
 1. Developed a schedule of historical harvest locations or landings queried (starting from 1980 to 2018) from the consolidated cutblocks polygon spatial data for British Columbia conditional on the boundary of the selected study area representing, a caribou herd boundary (_n_=24);
 2. Identified the putative road network in 1980 and spatially queried it based on the bounding box of these study areas;
 3. Simulated road development using each of the three approaches over an estimated cost surface from 1980 to 2018; 
-4.Compared the resulting simulated road density to the current (2018) desnity of 'forest tenure' roads. 
+4.Compared the resulting simulated road density to the current (2018) density of 'forest tenure' roads. 
 
 This comparison was coded using the [SpaDES](http://predictiveecology.org/SpaDES/) package in R with a Intel(R) Xeon(R) CPU-1620 @ 3.5GHz and 64 GB of RAM. A description of the datasets is provided in the methods.
 
