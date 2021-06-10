@@ -992,5 +992,292 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
+
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'public',
+                        table_name = 'corepolys_pinkmnt_diss', 
+                        type = 'polygon', 
+                        script = 'ogr', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate the core habitat areas for the Pink Mtn caribou herd.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'public',
+                        table_name = 'fn_aoi', 
+                        type = 'polygon', 
+                        script = 'ogr', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate First Nations areas of interest.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data3 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'public',
+                        table_name = 'graham_core_20200623', 
+                        type = 'polygon', 
+                        script = 'ogr', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate the core habitat areas for the Graham caribou herd.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data4 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'public',
+                        table_name = 'fsj_old_vri_diss', 
+                        type = 'polygon', 
+                        script = 'ogr', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate old forest areas, as defined by old growth report recommendations', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data5 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'public',
+                        table_name = 'BRFNProtectionRestorationMay2021', 
+                        type = 'polygon', 
+                        script = 'ogr', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate old Blueberry River First Nations protection and restoration areas.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data6 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'rast',
+                        table_name = 'pink_mtn_habitat', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate the core habitat areas for the Pink Mtn caribou herd.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data7 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'public',
+                        table_name = 'pink_mtn_caribou_habitat_vat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate the core habitat areas for the Pink Mtn caribou herd.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data8 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'zone',
+                        table_name = 'pink_mtn_caribou_habitat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate the core habitat areas for the Pink Mtn caribou herd.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data9 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'rast',
+                        table_name = 'fn_aoi_fsj_tsa', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate First Nations areas of interest.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data10 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'public',
+                        table_name = 'fn_aoi_fsj_tsa_vat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate First Nations areas of interest.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data11 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'zone',
+                        table_name = 'fn_aoi_fsj_tsa', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate First Nations areas of interest.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data12 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'rast',
+                        table_name = 'graham_caribou_core_habitat', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate the core habitat areas for the Graham caribou herd.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data13 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'public',
+                        table_name = 'graham_core_caribou_habitat_vat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate the core habitat areas for the Graham caribou herd.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data14 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'zone',
+                        table_name = 'graham_core_caribou_habitat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate the core habitat areas for the Graham caribou herd.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data15 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'rast',
+                        table_name = 'old_growth_fsj_tsa', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate old forest areas, as defined by old growth report recommendations', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data16 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'zone',
+                        table_name = 'old_growth_fsj_tsa', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate old forest areas, as defined by old growth report recommendations', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data17 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'rast',
+                        table_name = 'brfn_areas_fsj', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate old Blueberry River First Nations protection and restoration areas.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data18 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'zone',
+                        table_name = 'brfn_areas_fsj', 
+                        type = 'tables', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate old Blueberry River First Nations protection and restoration areas.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3, new_data4, new_data5, new_data6,
+                                     new_data7, new_data8, new_data9, new_data10, new_data11, new_data12, new_data13,
+                                     new_data14, new_data15, new_data16, new_data17, new_data18))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+
+
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'public',
+                        table_name = 'boreal_caribou_zones_2019', 
+                        type = 'polygon', 
+                        script = 'ogr', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate the proposed management areas for the boreal caribou herds.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'rast',
+                        table_name = 'boreal_caribou_zones_2019', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate the proposed management areas for the boreal caribou herds.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data3 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'public',
+                        table_name = 'boreal_caribou_zones_2019_vat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate the proposed management areas for the boreal caribou herds.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data4 <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'zone',
+                        table_name = 'boreal_caribou_zones_2019_vat', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'Iaian Mcdougall, data compiled to complete timber impact assessment of multiple management areas in Fort St. John TSA, as requested by Shane Ford; these data delineate the proposed management areas for the boreal caribou herds.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3, new_data4))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
 ```
 
