@@ -44,7 +44,7 @@ In blockingCLUS, we leverage ideas from image based segementation (Felzenszwalb 
 
 The following steps are used:
 
-1. Convert the raster image into a undirected weighted graph
+1. Convert the raster image into an undirected weighted graph
 2. Calculate the weights between pixels (i.e., edges) as a multivarate distance (e.g., [mahalanobis](https://en.wikipedia.org/wiki/Mahalanobis_distance))
 3. Solve the minimum spanning tree of the graph to get a list of edges (i.e., ridge lines)
 4. Sort the edgelist according to a metric of similarity (i.e., multivariate distance)
