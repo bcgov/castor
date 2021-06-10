@@ -127,6 +127,7 @@ Here we will use the app to draw a polygon, download it and then create a parame
 
 ![](images/scen_tool_cn.jpg)
 
+
 Now 'zoom in' to a portion of the map where you can see cutblocks around the UWRs. Within that area, draw a new polygon (click on the button with a pentagon shape on the left side of the map) in an area between the UWRs, preferably that is forested and where you can see some forestry activity. Once you are done, name the polygon and click on the "Drawn" drop down box; this should display it on the map. You can also edit this polygon by clicking on the button with the box with a pen in it on the left side of the map. 
 
 ![](images/scen_tool_cn2.jpg)
