@@ -57,7 +57,7 @@ Zone constraints included in hypothetical management area scenario only:
 * hypothetical management area: rast.raster_test
 
 ### Harvest Priority Queue
-Oldest first, which was similar to what was used in teh timber supply review analysis.
+Oldest first, which was similar to what was used in the timber supply review analysis.
 * harvestPriority = 'age DESC'
 
 ### Harvest Simulation Duration and Target Volume
