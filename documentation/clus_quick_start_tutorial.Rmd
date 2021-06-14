@@ -190,6 +190,7 @@ library (sf)
 library (DBI)
 library (here)
 library(data.table)
+library(keyring) #Might need to add this to access keyring?
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 # 1. Connect to the database and get polygon data
 conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
@@ -243,7 +244,7 @@ DBI::dbWriteTable (conn, c("zone", "zone_test"), # commit tables to pg
                    value = zone_test, 
                    row.names = FALSE, 
                    overwrite = TRUE) 
-dbExecute(conn, "Alter Table zone_test add column denom VARCHAR")
+dbExecute(conn, "Alter Table zone.zone_test add column denom VARCHAR")
 dbExecute (conn, paste0("ALTER TABLE zone.zone_test INHERIT zone.constraints"))
 dbDisconnect (conn)
 ```
