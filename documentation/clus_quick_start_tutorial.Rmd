@@ -30,12 +30,12 @@ In summary, the first step of working with CLUS is to download the following sof
 * [OSGeo4W](https://trac.osgeo.org/osgeo4w/)
 
 ### 1.1 R Packages
-When working with R you will soon find that you need to download various [packages](https://rstudio.com/products/rpackages/). Packages are essentially bundles of specialized, self-contained code functions to manipulate, analyze or visualize information. Packages are written by R developers and stored on the [Comprehensive R Archive Network (CRAN) repository](https://cran.r-project.org/web/packages/available_packages_by_name.html). These packagaes must meet certain QA/QC
+When working with R you will soon find that you need to download various [packages](https://rstudio.com/products/rpackages/). Packages are essentially bundles of specialized, self-contained code functions to manipulate, analyze or visualize information. Packages are written by R developers and stored on the [Comprehensive R Archive Network (CRAN) repository](https://cran.r-project.org/web/packages/available_packages_by_name.html). These packages must meet certain QA/QC
 standards, and are typically reliable and stable. 
 
 Here we do not list all of the R Packages needed to use the CLUS model. There are many packages, they will vary depending on what aspects of CLUS are used, and they will likely evolve over time. Instead, here I provide a brief description of how to download R packages from RStudio.
 
-Within the RStudio interface you will see in the bottom-right window a "Packages" tab, with a button to "Install", and beneath that a list of packages downloaded in your package library. If you click on the "Install" button it will open a window where you can enter the package name to install it from CRAN. Once a pacakge is downloaded, you don't need to download it again (unless an update is required).  
+Within the RStudio interface you will see in the bottom-right window a "Packages" tab, with a button to "Install", and beneath that a list of packages downloaded in your package library. If you click on the "Install" button it will open a window where you can enter the package name to install it from CRAN. Once a package is downloaded, you don't need to download it again (unless an update is required).  
 
 ![](images/rstudio_pakages.jpg)
 
@@ -50,7 +50,7 @@ You can now use your PAT token as the password to clone the GitHub. Instead of m
 
 ![](images/creds.jpg)
 
-In the "Internet or network address" box enter *git:https://github.com*, then add your username and the PAT as your password. Repeat this process (i.e., create anotehr credential), but with *GitHub - https://api.github.com/xxxxxx* as the "Internet or network address" (note: replaces xxxxxx with your username). This should tell your computer to use these stored credentials when connecting to GitHub.
+In the "Internet or network address" box enter *git:https://github.com*, then add your username and the PAT as your password. Repeat this process (i.e., create another credential), but with *GitHub - https://api.github.com/xxxxxx* as the "Internet or network address" (note: replaces xxxxxx with your username). This should tell your computer to use these stored credentials when connecting to GitHub.
 
 The CLUS repository is located [here](https://github.com/bcgov/clus.git). You will notice the GitHub webpage contains a 'folder' structure with all the code. This can be considered as a 'master' copy of the code. GitHub allows for multiple people to work with the code simultaneously. You will work with a local copy of the code. In the next section we will describe more how to use Git and GitHub.
 
@@ -67,7 +67,7 @@ Once you create the repository, it will copy the code to the folder directory yo
 In your RStudio console, the bottom-right window "Files" tab shows the directory for the code repository. We will describe later how to navigate these folders to run CLUS. 
 
 ## 3. Version Control and Working with GitHub
-In the top-right window or RStudio you will see a "Git" tab. If you click on that you will see a series of buttons beneath it, including: "Diff", "Commit", "Pull", and "Push". You will also see that above the tab in the the top-right there is some text beside an "R-box" symbol. This indicates the repository you are currently using. It should say "clus". You will also notice a symbol with two purple rectangles, beside some text that says "master". This indicates the 'branch' of the repository that you are working in.
+In the top-right window of RStudio you will see a "Git" tab. If you click on that you will see a series of buttons beneath it, including: "Diff", "Commit", "Pull", and "Push". You will also see that above the tab in the the top-right there is some text beside an "R-box" symbol. This indicates the repository you are currently using. It should say "clus". You will also notice a symbol with two purple rectangles, beside some text that says "master". This indicates the 'branch' of the repository that you are working in.
 
 ![](images/git_rstudio.jpg)
 
@@ -93,7 +93,7 @@ Now, in the "File" tab of the bottom-right window of RStudio, click on the "READ
 
 Scroll down to the "Contributors" section of the README.md file and add your name and contact details to the list of contributors. Save the edits (you can click the floppy disk symbol in the top left of the window), and then click on the "Git" tab in the top-right window of RStudio. You should see the README.md file show up in the window under "Path". 
 
-Click on the "Commit" button and it opens a new window with three windows in it. This window is used to commit changes to the code to the repository. In the top-left you will see the file name under "Path", with a check box (under 'staged') and a blue box with 'M' in it under "Status". Beneath that window you will see a window with the 'code' (simple text in this case), and the code you added highlighted in green. In the top-right is a window where you an add text to add a message to the commit (e.g., a description of the changes you made to the code).  
+Click on the "Commit" button and it opens a new window with three windows in it. This window is used to commit changes to the code to the repository. In the top-left you will see the file name under "Path", with a check box (under 'staged') and a blue box with 'M' in it under "Status". Beneath that window you will see a window with the 'code' (simple text in this case), and the code you added highlighted in green. In the top-right is a window where you can add text to add a message to the commit (e.g., a description of the changes you made to the code).  
 
 ![](images/git_commit.jpg)
 
@@ -749,7 +749,7 @@ Here you will see a stack of green boxes with a title on the left side and plus 
 
 ![](images/clus_explorer_harvestflow.jpg) 
 
-Click on the various boxes to explore the outputs. The "Transition Harvest" box illustrates the amount of volume harvested from managed stands at each time interval. The "Available THLB" box illustrates how much area of THLB is available and the "Growing Stock" illustrates how much volume is available at each time interval. You can also explore some of the other tabs, but note that some of these may not function, as he information may not be output for the scenario. Also note that the web application should be considered as a 'beta version', and requires some improvements.
+Click on the various boxes to explore the outputs. The "Transition Harvest" box illustrates the amount of volume harvested from managed stands at each time interval. The "Available THLB" box illustrates how much area of THLB is available and the "Growing Stock" illustrates how much volume is available at each time interval. You can also explore some of the other tabs, but note that some of these may not function, as the information may not be output for the scenario. Also note that the web application should be considered as a 'beta version', and requires some improvements.
 
 Also note that you can visualize some spatial outputs (i.e., rasters of cutblocks, roads and constraint areas) from each scenario. To do this, click on "Map Viewer" tab on the left hand side of the page. This will open a "Map Query" box in the middle of the page with a drop down box. From the drop down box you can select the raster outputs specific to the scenarios you checked. These raster names correspond to the rasters output from the simulation. Click on the raster ending with "_cutblocks" and click on "Load" and you will see a raster layer colour-coded to the year that a block was last harvested.
 
