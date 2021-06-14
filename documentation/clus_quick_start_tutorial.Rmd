@@ -127,7 +127,7 @@ Here we will use the app to draw a polygon, download it and then create a parame
 
 ![](images/scen_tool_cn.jpg)
 
-Now 'zoom in' to a portion of the map where you can see cutblocks around the UWRs. Draw a large (in the 100's of km^2^)  polygon (click on the button with a pentagon shape on the left side of the map) in an area between the UWRs, preferably that is forested and where you can see some forestry activity. Once you are done, name the polygon and click on the "Drawn" drop down box; this should display it on the map. You can also edit this polygon by clicking on the button with the box with a pen in it on the left side of the map. 
+Now 'zoom in' to a portion of the map where you can see cutblocks around the UWRs. Draw a large (in the 100's of km^2^) polygon (click on the button with a pentagon shape on the left side of the map) in an area between the UWRs, preferably that is forested and where you can see some forestry activity. Once you are done, name the polygon and click on the "Drawn" drop down box (from the top right corner of the map); this should display it on the map. You can also edit this polygon by clicking on the button with the box with a pen in it on the left side of the map. 
 
 ![](images/scen_tool_cn2.jpg)
 
@@ -140,7 +140,7 @@ To create a spatial parameter for the CLUS model, you will need to upload this p
 Below we provide a chunk of code to upload a shapefile to the PostgreSQL database using gdal functionality (the *ogr2ogr* command) through the OSGeo4W command line interface. Here, if you have not already done so, you will also need to contact the CLUS core team to get database credentials. Within this chunk of code:
 
 * *-f* declares the output file format (here we use PostgreSQL)
-* *PG:"dbname=xxxx port=xxxx user=xxxx password=xxxx host=xxxx"* are the credentials needed to access the database
+* *PG:"dbname=xxxx port=xxxx user=xxxx password=xxxx host=xxxx"* are the credentials needed to access the database (replace the "xxxx"s with your credentials)
 * *C:\\Work\\shapefile_name.shp* is the location of the shapefile on your hard drive (edit as needed)
 * *-overwrite* allows you to delete and recreate any existing data
 * *-a_srs* refers to the spatial reference system, and here we use *EPSG:3500* (which is NAD83/BC Albers, the provincial standard for spatial data)
