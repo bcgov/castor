@@ -1,27 +1,27 @@
 ---
 title: "CLUS Quick Start Tutorial"
 author: "Tyler Muhly"
-date: "05/19/2020"
+date: "02/12/2020"
 output: 
   html_document:
     keep_md: true
 ---
 
 # Caribou and Land Use Simulator (CLUS) Quick Start Tutorial
-The CLUS quick-start tutorial provides step-by-step instructions on how to use CLUS. It takes you through all the steps needed to set-up and run CLUS from scratch. It is designed to familiarize you with creating and running a simple forest harvest scenario analysis.
+The CLUS quick-start tutorial provides step-by-step instructions on how to use CLUS. It is designed to familiarize you with creating and running a simple forest harvest scenario analysis with CLUS. It takes you through all the steps needed to set-up and run CLUS from scratch.
 
 For an overview of how the CLUS model works, we recommend reading our [wiki](https://github.com/bcgov/clus/wiki). This provides an introduction to the framework and components of CLUS that may facilitate understanding this tutorial. 
 
 ## 1. Download Software
-CLUS is primarily built using the [R programming language](https://www.r-project.org/), and thus requires you to install R software. You can download the installation for program R for Windows [here](https://cran.r-project.org/bin/windows/base/). Program R has a very simple graphical user interface, and therefore we also recommend that you download and install the free version of [RStudio](https://rstudio.com/products/rstudio/download/). RStudio is an integrated development environment for working with R code. It provides various windows and tabs for interacting with and running R code, downloading and loading R packages, interfacing with GitHub (more on that below), and managing R ['objects'](https://www.datacamp.com/community/tutorials/data-types-in-r). We also recommend that you download ['git' software](https://gitforwindows.org/) to support version control when working with the model code. 
+CLUS is primarily built using the [R programming language](https://www.r-project.org/), and thus requires you to install R software. You can download program R for Windows [here](https://cran.r-project.org/bin/windows/base/). Program R has a very simple graphical user interface, and therefore we also recommend that you download the free version of [RStudio](https://rstudio.com/products/rstudio/download/). RStudio is an integrated development environment for working with R code. It provides various windows and tabs for interacting with and running R code, downloading and loading R packages, interfacing with GitHub (more on that below), and managing R ['objects'](https://www.datacamp.com/community/tutorials/data-types-in-r). We also recommend you download ['git' software](https://gitforwindows.org/) to interface and work with the model code. 
 
-To work with our databases, you will also need to download [pgAdmin](https://www.pgadmin.org/) software. This software will allow you to connect to and work with [PostgreSQL databases](https://www.postgresql.org/), which are the key data structure used by CLUS. You do not need to install PostgreSQL software locally to use the CLUS database since the CLUS databases are located on network computers, but you can [install](https://www.postgresql.org/download/windows/) it if you'd like to use it to manage your own data locally. If you do install it, make sure to also install the [PostGIS](https://postgis.net/) extension. This software allows you to use spatial data in the database. 
+To work with our databases, you will also need to download [pgAdmin](https://www.pgadmin.org/) software. This software will allow you to connect to and work with PostgreSQL databases, which are the key data structure used by CLUS. 
 
 To manage and work with spatial data, you will also need to download [OSGeo4W](https://trac.osgeo.org/osgeo4w/). This contains QGIS, GDAL/OGR, and GRASS open source software programs that are needed to do some spatial data manipulation.
 
 If you are a government employee, you may want to download these software as approved by your information technology department.
 
-In summary, the first step of working with CLUS is to download the following software:
+In summary, the first step of working with CLUS is to download the following software
 
 * [program R](https://cran.r-project.org/bin/windows/base/)
 * [RStudio](https://rstudio.com/products/rstudio/download/)
@@ -30,35 +30,44 @@ In summary, the first step of working with CLUS is to download the following sof
 * [OSGeo4W](https://trac.osgeo.org/osgeo4w/)
 
 ### 1.1 R Packages
-When working with R you will soon find that you need to download various [packages](https://rstudio.com/products/rpackages/). Packages are essentially bundles of specialized, self-contained code functions to manipulate, analyze or visualize R objects. Packages are written by R developers and stored on the [Comprehensive R Archive Network (CRAN) repository](https://cran.r-project.org/web/packages/available_packages_by_name.html). These packages must meet certain QA/QC standards, and are typically reliable and stable. 
+When working with R you will soon find that you need to download various [packages](https://rstudio.com/products/rpackages/). Packages are essentially bundles of specialized, self-contained code functions to manipulate, analyze or visualize information. Packages are written by R developers and stored on the [Comprehensive R Archive Network (CRAN) repository](https://cran.r-project.org/web/packages/available_packages_by_name.html). These packagaes must meet certain QA/QC
+standards, and are typically reliable and stable. 
 
-Here we do not list all of the R Packages needed to use the CLUS model. There are many packages used within CLUS, and they will vary depending on what aspects of CLUS are used, and they will likely evolve over time. Instead, here we provide a brief example of how to download R packages from RStudio so that you know how to install packages as you need them.
+Here we do not list all of the R Packages needed to use the CLUS model. There are many packages, they will vary depending on what aspects of CLUS are used, and they will likely evolve over time. Instead, here I provide a brief description of how to download R packages from RStudio.
 
-To download packages within the RStudio interface, you will see in the bottom-right window a "Packages" tab, with a button to "Install", and beneath that a list of packages downloaded in your package library. If you click on the "Install" button it will open a window where you can enter the package name to install it from CRAN. Once a package is downloaded, you don't need to download it again (unless an update is required).  
+Within the RStudio interface you will see in the bottom-right window a "Packages" tab, with a button to "Install", and beneath that a list of packages downloaded in your package library. If you click on the "Install" button it will open a window where you can enter the package name to install it from CRAN. Once a pacakge is downloaded, you don't need to download it again (unless an update is required).  
 
 ![](images/rstudio_pakages.jpg)
 
 Packages that you will need to run CLUS are typically listed within specific CLUS model scripts, so you can download them as you need them. Packages you need are called using the *library()* or *require()* commands in the script. You'll also find that you will get an error if you are missing a package needed to run a specific R function. In this case, check which function is getting the error and download the necessary package. 
 
 ## 2. Download the Model Code from GitHub
-Once you are up and running with R Studio you can 'clone' the CLUS model code (i.e., make local copy of it) so you can run it from your computer. We store the CLUS model code in the [BC government GitHub repositories](https://github.com/bcgov). If you are a BC government employee, we recommend that you sign-up for a GitHub account, and review the [BC government policies](https://github.com/bcgov/BC-Policy-Framework-For-GitHub/blob/master/BC-Open-Source-Development-Employee-Guide/README.md) on its use. 
+Once you are up and running with R Studio you can 'clone' the CLUS model code (i.e., make local copy of it) so you can run it from your computer. We store the CLUS model code in the [BC government GitHub repositories](https://github.com/bcgov). If you are a BC government employee, we recommend that you sign-up for a GitHub account, and review the [BC government policies](https://github.com/bcgov/BC-Policy-Framework-For-GitHub/blob/master/BC-Open-Source-Development-Employee-Guide/README.md) for instructions on how to do this, and to review the government policies on the use of GitHub. As part of this process you will be asked to create two-factor authentication.
 
-The CLUS repository is located [here](https://github.com/bcgov/clus.git). You will notice the GitHub webpage contains a 'folder' structure with all the code. This can be considered as a 'master' copy of the code. GitHub allows for multiple people to work with the code simultaneously. You will work with a local copy of the code. In the next section we will describe more how to use Git and GitHub. These are version control software for collaborative work flows, and you can learn some more about git [here](https://git-scm.com/book/en/v2).
+Once you have completed this, you will need to request permission to have 'admin' access to the repository. Contact the CLUS team with your GitHub ID to request this access. Once this access is granted you should be able to read, clone, and push code to the repository. Note that the GitHub password may only work temporarily, in which case, after you have created an authenticated GitHub account you will also need to set-up a ['personal access token' (PAT)](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token). Follow [these inrstuctions](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token). Select the scopes, or permissions, you'd like to grant this token as everything except *admin:org_hook*. Note that there is no need to complete step 10 in the instructions. 
+
+You can now use your PAT token as the password to clone the GitHub. Instead of manually entering your PAT for every HTTPS Git operation, you can set the username and password using the Windows Credential Manager. Open the Windows Credential Manager by searching for "Credential Manager" on your Windows search bar. Once open, click on "Windows Credential Manager", then "Add a generic credential". 
+
+![](images/creds.jpg)
+
+In the "Internet or network address" box enter *git:https://github.com*, then add your username and the PAT as your password. Repeat this process (i.e., create anotehr credential), but with *GitHub - https://api.github.com/xxxxxx* as the "Internet or network address" (note: replaces xxxxxx with your username). This should tell your computer to use these stored credentials when connecting to GitHub.
+
+The CLUS repository is located [here](https://github.com/bcgov/clus.git). You will notice the GitHub webpage contains a 'folder' structure with all the code. This can be considered as a 'master' copy of the code. GitHub allows for multiple people to work with the code simultaneously. You will work with a local copy of the code. In the next section we will describe more how to use Git and GitHub.
 
 To clone the CLUS repository, open RStudio, click on the "File" tab in the top left and then click "New Project". This will open a new window:
 
 ![](images/git.jpg)
 
-In this window, select "Version Control" and then select "Git". This will open a window where you enter the Repository URL (https://github.com/bcgov/clus.git), the name of the directory (clus) and then a location where you want to save a copy of the repository. We recommend copying the code to a local folder (not a network folder) on your C: drive (e.g., *C:\work\clus\*. Do not copy it into a user specific directory (e.g., *C:\Users\name\*).
+In this window, select "Version Control" and then select "Git". This will open a window where you enter the Repository URL (https://github.com/bcgov/clus.git), the name of the directory (clus) and then location where you want to save a copy of the repository. We recommend copying the code to a local folder (not a network folder).
 
 ![](images/git_repo.jpg)
 
-Once you create the repository, it will copy the code to the folder directory you created. You will notice it has the same folder structure as the website. In your RStudio console, the bottom-right window "Files" tab shows the directory for the code repository. We will describe later how to navigate these folders to run CLUS. 
+Once you create the repository, it will copy the code to the folder directory you created. You will notice it has the same folder structure as the website. 
+
+In your RStudio console, the bottom-right window "Files" tab shows the directory for the code repository. We will describe later how to navigate these folders to run CLUS. 
 
 ## 3. Version Control and Working with GitHub
-The CLUS team uses Git and Github to manage version control of the CLUS program code. This software allows users to 'save' versions of code (called a "Commit") and 'merge' coding done by team members independently. 
-
-In the top-right window or RStudio you will see a "Git" tab. If you click on that you will see a series of buttons beneath it, including: "Diff", "Commit", "Pull", and "Push". You will also see that above the tab in the the top-right there is some text beside an "R-in-a-box" symbol. This indicates the repository you are currently using. It should say "clus". You will also notice a symbol with two purple rectangles, beside some text that says "master". This indicates the 'branch' of the repository that you are working in.
+In the top-right window or RStudio you will see a "Git" tab. If you click on that you will see a series of buttons beneath it, including: "Diff", "Commit", "Pull", and "Push". You will also see that above the tab in the the top-right there is some text beside an "R-box" symbol. This indicates the repository you are currently using. It should say "clus". You will also notice a symbol with two purple rectangles, beside some text that says "master". This indicates the 'branch' of the repository that you are working in.
 
 ![](images/git_rstudio.jpg)
 
@@ -66,7 +75,15 @@ GitHub branches can be considered as 'working copies' of code (see image below).
 
 ![](images/github_branch.png)
 
-For now, we will create a new branch of the master code for you to work in. This will minimize the potential for creating errors in the model code. To create a new branch click on the symbol with two purple rectangles. This will open a new window called "New Branch" where you can enter a branch name (we recommend you use your last name for now). Leave the Remote as "origin" and "Sync branch with remote" checked.
+For now, we will create a new branch of the master code for you to work in. This will minimize the potential for creating errors in the model code. Below we describe two different methods for creating a branch. Note that you can also run git commands from the Windows command line, but we do not cover those here.
+
+One way you can create a new branch is by going to the [github webpage](https://github.com/bcgov/clus), and under the *<>Code* tab, click on the *'master'* button, put in a name for your new branch, and click on "Create branch: new_branch_name from master". 
+
+![](images/github_newbranch.jpg)
+
+Switch back to your RStudio window, and click on the "Git" tab in the top-right window and then click the "Pull" button. This should pull the new branch to your local repo. 
+
+Alternatively, you can create a new branch from RStudio. First, in the "Git" tab in the top-right window, click on the symbol with two purple rectangles. This will open a new window called "New Branch" where you can enter a branch name (we recommend you use your last name for now). Make sure to set the Remote as "origin" and check the "Sync branch with remote" box if not already done.
 
 ![](images/git_branch2.jpg)
 
@@ -80,9 +97,11 @@ Click on the "Commit" button and it opens a new window with three windows in it.
 
 ![](images/git_commit.jpg)
 
-In this window, click the "Staged" box; this defines the files that you want to 'commit' to change. Add a message (e.g., "added Dwight Schrute to list of contributors"), then click the "Commit" button. Another window will open with the command line git code that was run to make the commit, and the result of the commit (e.g., "1 file changed, 1 insertion(+)"). This means you have saved a version of the code with you latest changes. The nice thing about Git is that you can later 'revert' back to this version (or any "commit'), for example, if you made some coding errors and need to go back to a previous version. Close that box, then click the "Push" button. Another window will open, again with command line git code that was run to push the commit to the GitHub repository. This 'saves' the 'commit' changes to your branch of the file to the GitHub repository. Note that if other people are working in the same branch of the repository, it is good to get in the habit of clicking the "Pull" button (top right window of RStudio). This will integrate changes to the code made by others into your local copy of the code. 
+In this window, click the "Staged" box; this defines the files that you want to change. Add a message (e.g., "added Dwight Schrute to list of contributors"), then click the "Commit" button. Another window will open with the command line git code that was run to make the commit, and the result of the commit (e.g., "1 file changed, 1 insertion(+)").
 
-Since you are working in an independent branch, you will be committing changes to your own version of the model code. However, at some point you will likely want to integrate your code back to the "Master" branch, or integrate changes made to the "Master" branch of code into your branch of code. These are managed through "Pull Requests". Pull Requests can easily be managed through the [CLUS GitHub website](https://github.com/bcgov/clus). You will see a tab called "Pull Request" on the main page of the website. Click on this tab and you will see a green button on the middle-right of the page labeled "New pull request". 
+Close that box, then click the "Push" button. Another window will open, again with command line git code that was run to push the commit to the GitHub repository. This 'saves' the changes to your branch of the file to the GitHub repository. Note that if other people are working in the same branch of the repository, it is good to get in the habit of clicking the "Pull" button (top right window of RStudio). This will integrate changes to the code made by others into your code. 
+
+Since you are working in an independent branch, you will be committing changes to your own version of the model code. However, at some point you will likely want to integrate your code back to the "Master" branch, or integrate changes made to the "Master" branch of code into your branch of code. These are managed through "Pull Requests". Pull Requests are managed through the [CLUS GitHub website](https://github.com/bcgov/clus). You will see a tab called "Pull Request" on the main page of the website. Click on this tab and you will see a green button on the middle-right of the page labeled "New pull request". 
 
 ![](images/github_pull1.jpg)
 
@@ -91,11 +110,11 @@ Click on the "New pull request" button. This will open a new page with "Comparin
 ![](images/github_pull2.jpg)
 
 ## 4. Set-up a Keyring
-CLUS uses networked PostgreSQL databases to store and manage data. To keep these databases and the network secure, we do not post the database access credentials (e.g., password) in the CLUS code. Instead we use the [R package "keyring"](https://cran.r-project.org/web/packages/keyring/keyring.pdf) to store credentials locally and use the "keyring" function to call those credentials from R scripts. 
+CLUS uses networked PostgreSQL databases to store and manage data. To keep these databases and the network secure, we do not post the database access credentials (e.g., user names and passwords) in the CLUS code. Instead we use the [R package "keyring"](https://cran.r-project.org/web/packages/keyring/keyring.pdf) to store credentials locally in the Windows "Credentials Manager" and use the "keyring" function to call those credentials from R scripts. 
 
-We have developed an R markdown document for setting up a keyring. In the CLUS repository, navigate to R-> functions->keyring_init.Rmd and open the file. Follow the instructions in the document to set-up the keyring on your local computer. But first, contact the CLUS core team (Kyle.Lochhead@gov.bc.ca or Elizabeth.Kleynhans@gov.bc.ca or Tyler.Muhly@gov.bc.ca) to obtain the credentials for the PostgreSQL databases. 
+We have developed an R markdown document for setting up a keyring. In the CLUS repository, navigate to R-> functions->keyring_init.Rmd and open the file. Follow the instructions in the document to set-up the keyring on your local computer. Prior to creating the keyring, you will need to contact the CLUS core team (Kyle.Lochhead@gov.bc.ca or Elizabeth.Kleynhans@gov.bc.ca or Tyler.Muhly@gov.bc.ca) to obtain a user name and password credentials for accessing the PostgreSQL databases. Note that these are different then the credentials used to set-up GitHub. GitHub and PostrgeSQL are independent components of the CLUS framework.
 
-Once you are set-up with keyring, you can also use the credentials information to connect to the PostgreSQL databases using PGAdmin software. You may want to connect to the databases using PGAdmin to familiarize yourself with the data. In particular, within the 'clus' database, in the "public" schema, there is a table called "pgdbs_data_list". This table describes the majority of the data in the PostgreSQL databases. In addition, within the 'documentation' folder of CLUS, you can familiarize yourself with the "data_management_guide.Rmd", which describes the "pgdbs_data_list" table and instructions on how to add and update the table, in the event that you need to add or modify data in the database. 
+Once you are set-up with keyring, you can also use the credentials information to connect to the PostgreSQL databases using PGAdmin software. You may want to connect to the databases using PGAdmin to familiarize yourself with the data. In the 'clus' database on our local network computer, within the "public" schema, there is a table called "pgdbs_data_list". This table describes all the data in the PostgreSQL databases. In addition, within the 'documentation' folder of CLUS, there is a "data_management_guide.Rmd" that describes the "pgdbs_data_list" table and instructions on how to add and update the table, in the event that you need to do so. 
 
 ## 5. Create a Shapefile for a Hypothetical Forest Harvest Scenario
 Now that you are familiar with the software, some of the model code and some of the CLUS data, we want to introduce you to the process of developing a model to address a hypothetical forest management scenario. To do that, you will use one of CLUS' web applications to create a [shapefile](https://desktop.arcgis.com/en/arcmap/10.3/manage-data/shapefiles/what-is-a-shapefile.htm), then develop a hypothetical land use constraint parameter from this shapefile that you will use in the model you are going to build and run.
@@ -745,5 +764,4 @@ Congratulations! You have completed the tutorial and are well on your way to bec
 
 We are always looking for ways to improve the CLUS framework, so please contact us via our GitHub page with any issues or requests, or go ahead and start a new branch and make some suggestions by editing the code directly. Happy modeling!
 
-  
   
