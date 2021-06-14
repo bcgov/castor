@@ -30,12 +30,12 @@ In summary, the first step of working with CLUS is to download the following sof
 * [OSGeo4W](https://trac.osgeo.org/osgeo4w/)
 
 ### 1.1 R Packages
-When working with R you will soon find that you need to download various [packages](https://rstudio.com/products/rpackages/). Packages are essentially bundles of specialized, self-contained code functions to manipulate, analyze or visualize information. Packages are written by R developers and stored on the [Comprehensive R Archive Network (CRAN) repository](https://cran.r-project.org/web/packages/available_packages_by_name.html). These packagaes must meet certain QA/QC
+When working with R you will soon find that you need to download various [packages](https://rstudio.com/products/rpackages/). Packages are essentially bundles of specialized, self-contained code functions to manipulate, analyze or visualize information. Packages are written by R developers and stored on the [Comprehensive R Archive Network (CRAN) repository](https://cran.r-project.org/web/packages/available_packages_by_name.html). These packages must meet certain QA/QC
 standards, and are typically reliable and stable. 
 
 Here we do not list all of the R Packages needed to use the CLUS model. There are many packages, they will vary depending on what aspects of CLUS are used, and they will likely evolve over time. Instead, here I provide a brief description of how to download R packages from RStudio.
 
-Within the RStudio interface you will see in the bottom-right window a "Packages" tab, with a button to "Install", and beneath that a list of packages downloaded in your package library. If you click on the "Install" button it will open a window where you can enter the package name to install it from CRAN. Once a pacakge is downloaded, you don't need to download it again (unless an update is required).  
+Within the RStudio interface you will see in the bottom-right window a "Packages" tab, with a button to "Install", and beneath that a list of packages downloaded in your package library. If you click on the "Install" button it will open a window where you can enter the package name to install it from CRAN. Once a package is downloaded, you don't need to download it again (unless an update is required).  
 
 ![](images/rstudio_pakages.jpg)
 
@@ -50,7 +50,7 @@ You can now use your PAT token as the password to clone the GitHub. Instead of m
 
 ![](images/creds.jpg)
 
-In the "Internet or network address" box enter *git:https://github.com*, then add your username and the PAT as your password. Repeat this process (i.e., create anotehr credential), but with *GitHub - https://api.github.com/xxxxxx* as the "Internet or network address" (note: replaces xxxxxx with your username). This should tell your computer to use these stored credentials when connecting to GitHub.
+In the "Internet or network address" box enter *git:https://github.com*, then add your username and the PAT as your password. Repeat this process (i.e., create another credential), but with *GitHub - https://api.github.com/xxxxxx* as the "Internet or network address" (note: replaces xxxxxx with your username). This should tell your computer to use these stored credentials when connecting to GitHub.
 
 The CLUS repository is located [here](https://github.com/bcgov/clus.git). You will notice the GitHub webpage contains a 'folder' structure with all the code. This can be considered as a 'master' copy of the code. GitHub allows for multiple people to work with the code simultaneously. You will work with a local copy of the code. In the next section we will describe more how to use Git and GitHub.
 
@@ -67,7 +67,7 @@ Once you create the repository, it will copy the code to the folder directory yo
 In your RStudio console, the bottom-right window "Files" tab shows the directory for the code repository. We will describe later how to navigate these folders to run CLUS. 
 
 ## 3. Version Control and Working with GitHub
-In the top-right window or RStudio you will see a "Git" tab. If you click on that you will see a series of buttons beneath it, including: "Diff", "Commit", "Pull", and "Push". You will also see that above the tab in the the top-right there is some text beside an "R-box" symbol. This indicates the repository you are currently using. It should say "clus". You will also notice a symbol with two purple rectangles, beside some text that says "master". This indicates the 'branch' of the repository that you are working in.
+In the top-right window of RStudio you will see a "Git" tab. If you click on that you will see a series of buttons beneath it, including: "Diff", "Commit", "Pull", and "Push". You will also see that above the tab in the the top-right there is some text beside an "R-box" symbol. This indicates the repository you are currently using. It should say "clus". You will also notice a symbol with two purple rectangles, beside some text that says "master". This indicates the 'branch' of the repository that you are working in.
 
 ![](images/git_rstudio.jpg)
 

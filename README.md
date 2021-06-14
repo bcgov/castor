@@ -9,7 +9,7 @@ The code in this github is open-source and provides a transparent record of the 
 ### Getting Help or Reporting an Issue
 We've developed a [Wiki page](https://github.com/bcgov/clus/wiki) to help you with understanding the structure and functions of the CLUS model. We are also working on a [tutorial](https://github.com/bcgov/clus/blob/master/documentation/clus_quick_start_tutorial.md) that will describe the steps to get a basic CLUS model up and running. 
 
-Once you are familiar with CLUS, if you have find any errors with the code, please submit them via the github  ["Issues"](https://github.com/bcgov/clus/issues) tab.
+Once you are familiar with CLUS, if you find any errors with the code, please submit them via the github  ["Issues"](https://github.com/bcgov/clus/issues) tab.
 
 For more information on working with the CLUS team to use the CLUS model for a forest management problem, please don't hesitate to contact Tyler Muhly (tyler.muhly@gov.bc.ca), Acting Team Lead, Strategic Analysis, Forest Analysis and Inventory Branch, Office of the Chief Forester, Ministry of Forests, Lands, Natural Resource Operations and Rural Development.  
 
