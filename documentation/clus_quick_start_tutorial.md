@@ -42,7 +42,15 @@ Within the RStudio interface you will see in the bottom-right window a "Packages
 Packages that you will need to run CLUS are typically listed within specific CLUS model scripts, so you can download them as you need them. Packages you need are called using the *library()* or *require()* commands in the script. You'll also find that you will get an error if you are missing a package needed to run a specific R function. In this case, check which function is getting the error and download the necessary package. 
 
 ## 2. Download the Model Code from GitHub
-Once you are up and running with R Studio you can 'clone' the CLUS model code (i.e., make local copy of it) so you can run it from your computer. We store the CLUS model code in the [BC government GitHub repositories](https://github.com/bcgov). If you are a BC government employee, we recommend that you sign-up for a GitHub account, and review the [BC government policies](https://github.com/bcgov/BC-Policy-Framework-For-GitHub/blob/master/BC-Open-Source-Development-Employee-Guide/README.md) on its use. 
+Once you are up and running with R Studio you can 'clone' the CLUS model code (i.e., make local copy of it) so you can run it from your computer. We store the CLUS model code in the [BC government GitHub repositories](https://github.com/bcgov). If you are a BC government employee, we recommend that you sign-up for a GitHub account, and review the [BC government policies](https://github.com/bcgov/BC-Policy-Framework-For-GitHub/blob/master/BC-Open-Source-Development-Employee-Guide/README.md) for instructions on how to do this, and to review the government policies on the use of GitHub. As part of this process you will be asked to create two-factor authentication.
+
+Once you have completed this, you will need to request permission to have 'admin' access to the repository. Contact the CLUS team with your GitHub ID to request this access. Once this access is granted you should be able to read, clone, and push code to the repository. Note that the GitHub password may only work temporarily, in which case, after you have created an authenticated GitHub account you will also need to set-up a ['personal access token' (PAT)](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token). Follow [these inrstuctions](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token). Select the scopes, or permissions, you'd like to grant this token as everything except *admin:org_hook*. Note that there is no need to complete step 10 in the instructions. 
+
+You can now use your PAT token as the password to clone the GitHub. Instead of manually entering your PAT for every HTTPS Git operation, you can set the username and password using the Windows Credential Manager. Open the Windows Credential Manager by searching for "Credential Manager" on your Windows search bar. Once open, click on "Windows Credential Manager", then "Add a generic credential". 
+
+![](images/creds.jpg)
+
+In the "Internet or network address" box enter *git:https://github.com*, then add your username and the PAT as your password. Repeat this process (i.e., create anotehr credential), but with *GitHub - https://api.github.com/xxxxxx* as the "Internet or network address" (note: replaces xxxxxx with your username). This should tell your computer to use these stored credentials when connecting to GitHub.
 
 The CLUS repository is located [here](https://github.com/bcgov/clus.git). You will notice the GitHub webpage contains a 'folder' structure with all the code. This can be considered as a 'master' copy of the code. GitHub allows for multiple people to work with the code simultaneously. You will work with a local copy of the code. In the next section we will describe more how to use Git and GitHub.
 
@@ -67,7 +75,15 @@ GitHub branches can be considered as 'working copies' of code (see image below).
 
 ![](images/github_branch.png)
 
-For now, we will create a new branch of the master code for you to work in. This will minimize the potential for creating errors in the model code. To create a new branch click on the symbol with two purple rectangles. This will open a new window called "New Branch" where you can enter a branch name (we recommend you use your last name for now). Leave the Remote as "origin" and "Sync branch with remote" checked.
+For now, we will create a new branch of the master code for you to work in. This will minimize the potential for creating errors in the model code. 
+
+You can create a new branch go to the [github webpage](https://github.com/bcgov/clus), under the *<>Code* tab, click on the *'master'* button and put in a name for your branch and click on "Create branch: xxxxx from master". 
+
+![](images/github_newbranch.jpg)
+
+Switch back to your RStudio window, and click on the "Git" tab in the top-right window and then click the "Pull" button. This should pull the new branch to your local repo. 
+
+Alternatively, you can create a new branch from RStudio. First, in the "Git" tab in the top-right window, click on the symbol with two purple rectangles. This will open a new window called "New Branch" where you can enter a branch name (we recommend you use your last name for now). Leave the Remote as "origin" and "Sync branch with remote" checked.
 
 ![](images/git_branch2.jpg)
 
@@ -81,7 +97,9 @@ Click on the "Commit" button and it opens a new window with three windows in it.
 
 ![](images/git_commit.jpg)
 
-In this window, click the "Staged" box; this defines the files that you want to change. Add a message (e.g., "added Dwight Schrute to list of contributors"), then click the "Commit" button. Another window will open with the command line git code that was run to make the commit, and the result fo the commit (e.g., "1 file changed, 1 insertion(+)"). Close that box, then click the "Push" button. Another window will open, again with command line git code that was run to push the commit to the GitHub repository. This 'saves' the changes to your branch of the file to the GitHub repository. Note that if other people are working in the same branch of the repository, it is good to get in the habit of clicking the "Pull" button (top right window of RStudio). This will integrate changes to the code made by others into your code. 
+In this window, click the "Staged" box; this defines the files that you want to change. Add a message (e.g., "added Dwight Schrute to list of contributors"), then click the "Commit" button. Another window will open with the command line git code that was run to make the commit, and the result of the commit (e.g., "1 file changed, 1 insertion(+)").
+
+Close that box, then click the "Push" button. Another window will open, again with command line git code that was run to push the commit to the GitHub repository. This 'saves' the changes to your branch of the file to the GitHub repository. Note that if other people are working in the same branch of the repository, it is good to get in the habit of clicking the "Pull" button (top right window of RStudio). This will integrate changes to the code made by others into your code. 
 
 Since you are working in an independent branch, you will be committing changes to your own version of the model code. However, at some point you will likely want to integrate your code back to the "Master" branch, or integrate changes made to the "Master" branch of code into your branch of code. These are managed through "Pull Requests". Pull Requests are managed through the [CLUS GitHub website](https://github.com/bcgov/clus). You will see a tab called "Pull Request" on the main page of the website. Click on this tab and you will see a green button on the middle-right of the page labeled "New pull request". 
 
@@ -105,7 +123,7 @@ To create the shapefile, go to the [FAIB apps webpage](http://206.12.91.188:8787
 
 ![](images/scen_tool.jpg)
 
-Here we will use the app to draw a polygon, download it and then create a parameter from it to apply in the CLUS model. We will use the Columbia North caribou herd and the Revelstoke timebr supply area (TSA) as our 'example'. Click on the "Columbia North" herd boundary (located north of Revelstoke). The app will zoom into that herd area. In the top right box of the map, turn on the world imagery, ungulate winter ranges (UWRs) and wildlife habitat areas (WHAs). 
+Here we will use the app to draw a polygon, download it and then create a parameter from it to apply in the CLUS model. We will use the Columbia North caribou herd and the Revelstoke timber supply area (TSA) as our 'example'. Click on the "Columbia North" herd boundary (located north of Revelstoke). The app will zoom into that herd area. In the top right box of the map, turn on the world imagery, ungulate winter ranges (UWRs) and wildlife habitat areas (WHAs). 
 
 ![](images/scen_tool_cn.jpg)
 
@@ -129,6 +147,7 @@ ogr2ogr -f PostgreSQL PG:"dbname=xxxx port=xxxx user=xxxx password=xxxx host=xxx
 ```
 
 Once the command has finished running, open the pgAdmin application. You will need to use the same credentials to connect to the database using pgAdmin. To do this, right click on "Servers", select "Create", "Server" and then enter the credentials in the "Connection" tab of the window that opens. You will then see the "clus" server in the list of servers.     
+
 ![](images/pgadmin.jpg)
 
 Click on the "clus" server and it opens up a series of drop down menus. Click on "Schemas", then "Public" and "Tables". This is where much of the CLUS data is stored, and you should be able to navigate to and view the data table you just created. 
@@ -216,11 +235,11 @@ zone_test <- data.table (zoneid = 1,
                          percentage = 90, 
                          ndt = as.integer(0), 
                          multi_condition = as.character(NA))
-DBI::dbWriteTable (conn, c("public", "zone_test"), # commit tables to pg
+DBI::dbWriteTable (conn, c("zone", "zone_test"), # commit tables to pg
                    value = zone_test, 
                    row.names = FALSE, 
                    overwrite = TRUE) 
-dbExecute (conn, paste0("ALTER TABLE zone_test INHERIT zone_constraints"))
+dbExecute (conn, paste0("ALTER TABLE zone.zone_test INHERIT zone.constraints"))
 dbDisconnect (conn)
 ```
 
@@ -238,7 +257,7 @@ Fifth, you create a 'look-up table' that links each raster integer zone to a zon
 
 In the sixth and final step, you create a table that defines a forest harvest constraint for each zone. In this example, you create a zone constraint that requires 90% of the forest within the zone to be greater than or equal to 80 years old. Within the table, you need to define several fields, including: *reference_zone*, which is the name of the raster in the PostgreSQL database that you want to apply the constraint (note that the schema is also included); *zoneid*, which is the integer id for the zone in the raster that you want to assign the constraint; *variable*, which is the variable in the database that defines the constraint (equivalent clearcut area ("eca"), disturbance ("dist") and "height" are other examples); *threshold* is the value variable at which to apply the threshold; *type* defines whether the threshold is greater than or equal to (i.e., 'ge') or less than or equal to (i.e., 'le'); *percentage* is the percent of the zone that must meet the variable threshold; *ndt* is the natural disturbance threshold to apply to the zone (typically 0); *multi_condition* is a field that can be used to develop more complicated criteria for constraints, e.g., "crown_closure >= 30 & basal_area >= 30" would apply the constraint where crown closure and basal area of the forest stand meet the defined, specific characteristics. Note that in this example we are creating a constraint for a single zone (i.e., one row). For more complicated zoning schemes, constraints for multiple rows (i.e., unique zoneid's) may need to be created.
 
-Once the table is created in R, you will save it to the database. Then, you will send an SQL command to the PostgreSQL database using the "dbExecute" function. This command will incorporate the new table into the a 'zone_constraints' table in the database. The 'zone_constraints' table contains all the data for each zone that was created as a parameter. You will see later that this table is used to define all zone constraints to be applied in a simulator model, thus it is critical to ensure that any zone constraint you create gets incorporated into this table. 
+Once the table is created in R, you will save it to the database. Then, you will send an SQL command to the PostgreSQL database using the "dbExecute" function. This command will incorporate the new table into the a 'constraints' table in the database. You may have noticed all of the constraint tables are uploaded to their own schema called *zone*, in the database. The 'constraints' table contains all the data for each zone that was created as a parameter. You will see later that this table is used to define all zone constraints to be applied in a simulator model, thus it is critical to ensure that any zone constraint you create gets incorporated into this table. 
 
 ## 7. Use dataLoaderCLUS to Create a CLUS SQLite Database
 The CLUS simulator model does not run directly off of the PostgreSQL database. Instead CLUS has a module called *dataLoaderCLUS* that consolidates data from the PostgreSQL database into a portable SQLite database. The SQLite database contains all the data needed to run the simulator modules for the area and constraints of interest. This approach has a great degree of flexibility, as it creates a self-contained, realtively low memory database that can be easily shared among users. One way to think about the CLUS data structure, is that the PostgreSQL database serves as the repository for provincial-scale and comprehensive datasets, such as for example, the forest inventory. The SQLite database typically applies to a subset of the province and is designed to compile data for a specific group of similar scenarios.  
@@ -335,7 +354,7 @@ parameters <-  list( # list of all parameters in the model, by module
                                              "rast.zone_cond_cw",
                                              "rast.raster_test" # the raster you created and uploaded to the Postgres database
                           ), 
-                         nameZoneTable = "zone_constraints", 
+                         nameZoneTable = "zone.constraints", 
                         # nameZonePriorityRaster = "rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp", 
                          nameYieldTable = "yc_vdyp", 
@@ -423,11 +442,9 @@ Several of the parameters were created in the [prov_manage_objs.Rmd](https://git
 
 Wildlife-specific parameters, including wildlife habitat areas (WHAs) and ungulate winter ranges (UWRs) are defined in separate scripts. WHAs are spatially defined as *rast.zone_cond_wha* in the [wha_cond_harvest.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/wha_cond_harvest.Rmd). UWRs are spatially defined as *rast.zone_cond_uwr* in the [wha_cond_harvest.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/uwr_cond_harvest.Rmd). 
 
-As standard practice we recommend including all of these in the "business-as-usual" or "base case" scenarios. These are existing land use orders that should be incorporated in scenarios that are meant to represent current management. 
+As standard practice we recommend including all of these in the "business-as-usual" or "base case" scenarios. These are existing land use orders that should be incorporated in scenarios that are meant to represent current management. Here you will also want to include the hypothetical constraint you created (i.e., *rast.raster_test*) 
 
-In teh *nameZoneRasters* list you will also want to include the hypothetical constraint you created (i.e., *rast.raster_test*, or however you named it, with the *rast.* prefix to indicate the schema of the postgreSQL data it is stored). 
-
-The *nameZoneTable* is the table that defines all of the constraints for the rasters included in *nameZoneRasters*. You will notice this is a single table called *zone_constraints*, rather than a unique table for each raster. This is because the *zone_constraints* table is an amalgamation of tables created for each raster. You may remember this step from when you created *rast.raster_test*. 
+The *nameZoneTable* is the table that defines all of the constraints for the rasters included in *nameZoneRasters*. You will notice this is a single table called *constraints* in the *zone* schema, rather than a unique table for each raster. This is because the *zone.constraints* table is an amalgamation of tables created for each raster. You may remember this step from when you created *rast.raster_test*. 
 
 The next set of *dataLoaderCLUS* parameters are related to forest inventory and growth and yield data. The *nameForestInventoryRaster* parameter is a raster with an integer identifier created from the *feature_id* field, for each unique polygon in the forest inventory. The raster is created in the [raster_data.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/raster_data.Rmd) in the "Params" folder, and you will notice it has the year of the inventory in the raster name. Related, the *nameForestInventoryTable* is the polygonal forest inventory data from which you will draw the forest inventory data. Notably, the *nameForestInventoryKey* is the *feature_id* that is used to link the raster to forest attributes, i.e., the integer identifier is consistent between the raster and polygonal data. The *nameForestInventoryAge*, *nameForestInventoryHeight*, *nameForestInventoryCrownClosure*, *nameForestInventoryTreed* and *nameForestInventorySiteIndex* parameters are all related to information that is extracted from the polygonal forest inventory data, including age, height, crown closure, treed and site index, respectively. These are extracted for each hectare of the rates by each feature_id. Growth and yield data is obtained from [variable density yield projection (VDYP)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/variable-density-yield-projection-vdyp) and [table interpolation program for stand yields (TIPSY)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/table-interpolation-program-for-stand-yields-tipsy) stand development models.
 
@@ -581,6 +598,7 @@ The *outputs()* function is a SpaDES function for declaring the objects within t
 Finally, you can save the SpaDES simulation (in this case the *mySim* object) run with the *spades()* function. Note that here we embed that function in the *system.time()* function to obtain the total time the model took to finish the simulation. 
 
 
+
 ```r
 library (SpaDES.core)
 library (data.table)
@@ -615,7 +633,7 @@ parameters <- list(
                                              "rast.zone_cond_cw"
                                              # "rast.raster_test"
                                                ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -728,79 +746,39 @@ output:
 ---
 ```
 
-Below the yaml header you will see some text. Here you can describe the specific module being developed. Our general approach has been to save unique .Rmd files for each unique harvest unit (e.g., TSA or TFL) being analyzed, but there may be other reasons for creating a unique file. Typically in this text portion of the file we provide an overview of the *foretryCLUS* module, followed by details on the harvest unit being simulated. For example, in the *forestryCLUS_tutorial.Rmd* we describe the Revelstoke TSA, including referencing the webpage where additional information can be obtained. 
+Below the yaml header you will see some text. Here you can describe the spefici modeul beign developed
 
-We also describe each scenario simulated within the harvest unit (i.e., in a *Scenarios* section). This will typically consist of a description of the BAU scenario and alternative scenarios to the BAU. These should generally describe the modification to the BAU, for example, any additional constraints or changes to harvest flow. We also describe the *Key Parameters* used in the scenarios, including BAU and the alternatives. These include description of the zone constraints, details on the harvest priority queue and harvest flow, minimum harvest criteria and adjacency constraints. It is good practice to include as much detail as possible here. 
 
-Below the text is the 'code chunk' to 'run' or initiate the simulation, and you can 'run' it by pressing the green 'Play' button at the top-right of the chunk. This will read and action the code in the chunk, which will action all of the code in the .R modules referenced in the chunk. 
-
-To run the BAU, make sure to have all of the *nameZoneRasters* listed except *rast.raster_test*, which can be 'commented out' with a # symbol (note: make sure there is no comma at the end of the list).  You can leave all of the remaining parameters as they are, but confirm that the harvest flow is described as above, to ensure a maximum non-declining harvest yield. For the BAU scenario, we recommend using "revelstoke_bau" as the *name*. The description should provide a little bit of information about the scenario, including constraints, harvest flow and queue, adjacency and minimum harvest criteria.
-
-Also confirm that in the *uploaderCLUS* module parameters that *aoiName* = 'tutorial'. This will be the name of the schema in the PostgreSQL database where the scenario outputs will be uploaded and saved (more on that below).  
-
-Run the scenario and you will see a green 'line' down the side of the code chunk, and in the console window you will see outputs messages from the modules. You will notice that model progress output is provided, including time elapsed, the time interval of the model (in this case between 0 and 40), and the module currently being run by the model. 
-
-![](images/scen_run.jpg) 
-
-At the end of the run the progress meter will stop and you will see some white text with the time elapsed to complete the simulation run. 
-
-![](images/scen_end.jpg) 
-
-## 9. Running Alternative Scenarios in forestryCLUS
-Next, you can run the alternative scenario. In the *forestryCLUS_tutorial.Rmd* you can now include the raster you created (i.e., *rast.raster_test*, or whatever name you used; note: remember to include the *rast.* prefix, which refers to the schema in the PostgreSQL database where the raster data is stored) in the list of *nameZoneRasters*. 
-
-Also, copy the *scenario* object and paste it below the existing object. 'Comment out' the previously used BAU scenario object and edit the scenario you copied. It is good practice to keep the previously used *scenario* objects so you can see which scenarios were completed, and re-use them, if corrections or changes are necessary later. 
-
-Change the name of the copied *scenario* object to identify your alternative scenario. You may want to include details of the constraint, for example, "revelstoke_alt_agelt40_t30p", could indicate that for the alternate constraint area had an age less than 40 (agelt40) at a threshold of 30 percent of the area (t30p) constraint. You can use the *description* parameter to describe the scenario in more detail. 
-
-Once, that is done, click the 'Play' arrow again in the code chunk and let the simulation complete. 
-
-You are welcome to try additional scenarios here if you like, for example, adjusting the harvest queue, but remember to use unique *scenario* parameters for each, or else you will copy over previous results. 
-
-## 10. Checking Scenario Outputs
-As described above, the *uploaderCLUS* module is where you define the parameters for where simulation outputs are stored. We currently store this output data in a PostgreSQL database deployed on a virtual machine under a Compute Canada account. You can use the PGAdmin software to connect to the database and navigate to the outputs. You will need to obtain the credentials from the CLUS team to make the connection. 
-
-If you can make the connection to the database, navigate to the "tutorial" schema, and open it, then click and open the "Tables". This will open a directory list of the outputs saved by *uploaderCLUS*. You will see several tables, including  "growing stock", "harvest", "scenarios", and "state", which are all data tables, and some tables that end with "_constraint", "_cutblocks", and "_roads", which are raster outputs from each scenario, and thus have the scenario name and harvest unit as their prefix (we won't discuss the other tables here).
-
-![](images/pgadmin_output.jpg) 
-
-Navigate to the "growing stock" table, right click on it, click on "View/Edit Data", then "All Rows". This will open the table in the lower right of the PGAdmin viewer. This table provides information on how much volume is available (gs), including within the timber harvest land base (m_gs), and percentage that is deciduous (m_dec_gs) for each time interval (timeperiod), timber harvest unit (compartment) and scenario (scenario). This can be used to track the 'stock' of volume available to be harvested at each time interval.   
-
-![](images/pgadmin_table.jpg) 
-
-Similarly, open the "harvest" table and explore the data. For each scenario (scenario), time interval (timeperiod), and harvest unit (compartment), this table provides the amount of volume (volume) of timber harvested in m^3^. It also provides the area harvested (area), and the area (transition_area) and volume (transition_volume) harvested from 'managed stands', i.e., stands that have been previously harvested and replanted. In addition, it provides the area-weighted age of the harvested stands (age), and the area of THLB that is unconstrained, available to harvest. 
-
-Finally, the "scenarios" table documents the scenario name and description parameters for each simulated scenario, and the "state" table describes the initial state of the simulated landscape, including the area of road (i.e., pixels with a road), old (>139 year old), mature (41 to 139 year old) and early (< 41 year old) seral forest and THLB, by harvest unit (compartment). 
-
-Alternatively, much of this information can be accessed in summary form using the "CLUS Explorer" web application. Similar to the "CLUS Scenario" app, you can access it by going to the [FAIB apps webpage](http://206.12.91.188:8787/login). Note if you haven't already done so, you will need to contact Kyle.Lochhead@gov.bc.ca for a username and password. Once you log in, click on the "CLUS Explorer Tool" link. This will take you to a simple webpage with a list of tabs on the left side of the page. Click on the "Dashboard" tab, and it will open a list tabs specific to indicators tracked by the model (e.g., "Forestry" and "Caribou"). Click on the "Scenario" tab, and it will open two boxes in the main window: "Area of interest" and "Scenarios".
-
-![](images/clus_explorer_home.jpg) 
-In the "Area of interest" box you can click the arrow on the right side to select from a drop down list of the harvest units (e.g., TSAs and TFLs) where simulations were run. These consist of the names of the 'schemas' in the PostgreSQL database, and you should see the "tutorial" area of interest/schema. Select it, and you will see some check boxes appear in the "Scenarios" box, and a "Current State" display will appear on the right side of the main window. 
-
-The check boxes correspond to the scenario names that were simulated for the harvest unit, by reading the "scenarios" table in the PostgreSQL database. The "Current State" display shows the characteristics of the landscape of the harvest unit, at the start of the simulation. It reads the "state" table in the PostgreSQL database and provides information on things such as the age structure of the forest, the amount THLB and roaded area and the average volume/ha of available stands. Click on the "tutorial" text box to mark it with a check, and then click the "forestry" tab on the left side.  
-
-![](images/clus_explorer_aoi.jpg) 
-
-Here you will see a stack of green boxes with a title on the left side and plus sign non the right side. Each of these boxes can be opened to obtain a figure of a forest harvest characteristics of the simulation. Click on the plus sign on the "Harvest Flow" box and you will get a figure showing the area (top) and volume (bottom) of forest harvested at each time interval. You will notice the BAU scenario harvest volume is a flat line, indicating the maximum non-declining harvest yield.
-
-![](images/clus_explorer_harvestflow.jpg) 
-
-Click on the various boxes to explore the outputs. The "Transition Harvest" box illustrates the amount of volume harvested from managed stands at each time interval. The "Available THLB" box illustrates how much area of THLB is available and the "Growing Stock" illustrates how much volume is available at each time interval. You can also explore some of the other tabs, but note that some of these may not function, as he information may not be output for the scenario. Also note that the web application should be considered as a 'beta version', and requires some improvements.
-
-Also note that you can visualize some spatial outputs (i.e., rasters of cutblocks, roads and constraint areas) from each scenario. To do this, click on "Map Viewer" tab on the left hand side of the page. This will open a "Map Query" box in the middle of the page with a drop down box. From the drop down box you can select the raster outputs specific to the scenarios you checked. These raster names correspond to the rasters output from the simulation. Click on the raster ending with "_cutblocks" and click on "Load" and you will see a raster layer colour-coded to the year that a blockwas last harvested.
-
-![](images/clus_explorer_map.jpg) 
-
-Also note that there is a "Query Builder" tab on the left side of the page, that you can use to build SQL queries of data in the PostgeSQL database, by selecting the Table, Tables and Columns, and data summary type. 
-
-The above provides you with some tools and examples of how to download and illustrate the data to explore simulation scenarios. There is a high degree of flexibility in that you can use the tools provided in the web app, download the data yourself and create your own figures and tables, modify the web app to include different ouptuts and even design your own output "reports" in the CLUS modules.
-
-## 11. Conclusion
-Congratulations! You have completed the tutorial and are well on your way to becoming an expert in the CLUS model. Feel free to contact the CLUS team with questions or comments. 
-
-We are always looking for ways to improve the CLUS framework, so please contact us via our GitHub page with any issues or requests, or go ahead and start a new branch and make some suggestions by editing the code directly. Happy modeling!
+our convention has been to save unique .Rmd files for the hartvest unit being analyzed
 
 
 
 
+
+
+
+
+### Running Scenarios (forestryCLUS)
+- to run sceanrios, satrt with teh forestryCLUS module
+  - this module estalshises forest harvest queue and harvest objectives from which forestry activity 
+  is simulated
+
+
+#### Outputs
+- define where table ouputs get uploaded (via 'uploaderCLUS')
+- currently we upload to a postgres on a VM server; 
+  -  define the area of interest name that (aoiName); this sets the name of the schema wehre tables get uploaded to postgres
+
+- decalre in outputs(mySim) which 'reports', i.e., tables to save and uplaod to the vritual machine
+  - "harvestReport" = reports inforamtion on harvest volume and area harvested, age of harvested stand, by time interval and comaprtment
+  - "growingStockReport" = reports on growing stock (forest stand ????) by time interval adn compartment
+  - "tableSurvival" = 
+  - "disturbanceReport"
+  - "volumebyareaReport" = reports volume harvested by the model within a specified area 
+    - the 'specified area(s)' can be defined using the Params -> areaofinterestRaster.Rmd
+        - this create a raster and vat table for the area(s) of interest based 
+    - does nto need to be implemented as part of teh sql lite db; can be included after the fact, because it referes to       the data in the CLUS db
+    - then, need to identify the report in the parameter list, modules list and outputs within the forestryCLUS.Rmd    
+      (can see 'forestryCLUS_tfl48_volumebyarea_example.Rmd' for an example)
+      
   
