@@ -21,7 +21,8 @@ Like any quantitative model, the caribou and land use simulator (CLUS) has a spe
 Spatial and aspatial data and parameters used in CLUS are stored in [PostgreSQL databases](https://www.postgresql.org/). We uploaded a data tracking table called 'pgdbs_data_list' to a CLUS PostgreSQL database that describes each 'table' (i.e., dataset) in each PostgreSQL database used by the CLUS model or CLUS web applications. This tracking table is intended to help CLUS users understand the origin, status and appropriate end-use of datasets in the CLUS model.  
 
 ```{r, write original spreadsheet to postgres, eval = F, echo = F, warning = F, message = F}
-# Example script to delete row in tracking table
+# Below is the original script to upload the data list to the database; this is just an example
+# DO NOT RUN THIS unless you need to re-create the data form scratch
 pgdbs_data_list <- read.csv ("C:\\Work\\pgdbs_data_list.csv",
                                header = T,
                                sep = ",") 
@@ -58,7 +59,7 @@ pgdbs_data_list <- getTableQuery("SELECT * from public.pgdbs_data_list;")
 #Create new row for table
 new_data <- data.table (computer = 'test', # e.g., 206.12.91.188 or DC052586 
                         database = 'test', # clus
-                        schema = 'test', # caribou, public or rast
+                        schema = 'test', # caribou, public, vat, zone or rast
                         table_name = 'test', # add year adn month if relevant
                         type = 'test', # polygon, point, line, raster or table
                         script = 'test', # name and location of script to produce the data
@@ -70,6 +71,10 @@ new_data <- data.table (computer = 'test', # e.g., 206.12.91.188 or DC052586
                         )
 # merge tables
 pgdbs_data_list_new <- merge (pgdbs_data_list, new_data, all = T)
+# OR
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3, new_data4))
 # re-upload data to postgres
 DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
                   value = pgdbs_data_list_new, 
@@ -1278,6 +1283,250 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   value = pgdbs_data_list_new, 
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
+
+
+
+
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'public', 
+                        table_name = 'oldgrwth_def_rec_6_3_a', 
+                        type = 'polygon', 
+                        script = 'ogr', 
+                        source = 'Adrian Walton, data compiled for old growth area deferal recommendations. This defines the location of proposed old growth deferral as old growth in BEC zones with <10% old forest (recommendation 6.3a).', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data1 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'public', 
+                        table_name = 'oldgrwth_def_rec_6_3_c', 
+                        type = 'polygon', 
+                        script = 'ogr', 
+                        source = 'Adrian Walton, data compiled for old growth area deferal recommendations. This defines the location of proposed old growth deferral as ancient forest (>300 year old), defined as the probaility on old stands is ancient, based on BEC zone (recommendation 6.3c).', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'public', 
+                        table_name = 'oldgrwth_def_rec_6_3_e', 
+                        type = 'polygon', 
+                        script = 'ogr', 
+                        source = 'Adrian Walton, data compiled for old growth area deferal recommendations. This defines the location of proposed old growth deferral as forest stands with a site productivity >20 (using provicial site productivity layer) (recommendation 6.3e).', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data3 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = 'oldgrwth_def_rec63a', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\proposed_old_growth_deferal_areas.Rmd', 
+                        source = 'Adrian Walton, data compiled for old growth area deferal recommendations. This defines the location of proposed old growth deferral as old growth in BEC zones with <10% old forest (recommendation 6.3a).', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data4 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'zone', 
+                        table_name = 'oldgrwth_def_rec63a', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\proposed_old_growth_deferal_areas.Rmd', 
+                        source = 'Adrian Walton, data compiled for old growth area deferal recommendations. This defines the location of proposed old growth deferral as old growth in BEC zones with <10% old forest (recommendation 6.3a).', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data5 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = 'oldgrwth_def_rec63c', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\proposed_old_growth_deferal_areas.Rmd', 
+                        source = 'Adrian Walton, data compiled for old growth area deferal recommendations. This defines the location of proposed old growth deferral as ancient forest (>300 year old), defined as the probaility on old stands is ancient, based on BEC zone (recommendation 6.3c).', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data6 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'zone', 
+                        table_name = 'oldgrwth_def_rec63c', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\proposed_old_growth_deferal_areas.Rmd', 
+                        source = 'Adrian Walton, data compiled for old growth area deferal recommendations. This defines the location of proposed old growth deferral as ancient forest (>300 year old), defined as the probaility on old stands is ancient, based on BEC zone (recommendation 6.3c).', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data7 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'vat', 
+                        table_name = 'oldgrwth_def_rec63c', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\proposed_old_growth_deferal_areas.Rmd', 
+                        source = 'Adrian Walton, data compiled for old growth area deferal recommendations. This defines the location of proposed old growth deferral as ancient forest (>300 year old), defined as the probaility on old stands is ancient, based on BEC zone (recommendation 6.3c).', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data8 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = 'oldgrwth_def_rec63e', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\proposed_old_growth_deferal_areas.Rmd', 
+                        source = 'Adrian Walton, data compiled for old growth area deferal recommendations. This defines the location of proposed old growth deferral as forest stands with a site productivity >20 (using provicial site productivity layer) (recommendation 6.3e).', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data9 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'zone', 
+                        table_name = 'oldgrwth_def_rec63e', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\proposed_old_growth_deferal_areas.Rmd', 
+                        source = 'Adrian Walton, data compiled for old growth area deferal recommendations. This defines the location of proposed old growth deferral as forest stands with a site productivity >20 (using provicial site productivity layer) (recommendation 6.3e).', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3, new_data4, 
+                                     new_data5, new_data6, new_data7, new_data8, new_data9))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+
+dbDisconnect(conn)
+
+
+
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = 'boreal_caribou_old', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'overlaps between old growth area deferral recommendations (recommendation 6.3a, c and e) and boreal caribou management zones.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data1 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = 'graham_caribou_old ', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'overlaps between old growth area deferral recommendations (recommendation 6.3a, c and e) and Graham caribou core habitat.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = 'pink_mtn_caribou_old ', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'overlaps between old growth area deferral recommendations (recommendation 6.3a, c and e) and Pink Mountain caribou core habitat.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data3 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = 'fn_aoi_caribou ', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'overlaps between select First Nations areas of interest (Chowade River Valley, Crying Girl, Hackney Hills, North Road, and Old Many Lily) and caribou habitat (boreal, Graham and Pink Mtn)', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data4 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'zone', 
+                        table_name = 'boreal_caribou_old', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'overlaps between old growth area deferral recommendations (recommendation 6.3a, c and e) and boreal caribou management zones.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data5 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'zone', 
+                        table_name = 'graham_caribou_old', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'overlaps between old growth area deferral recommendations (recommendation 6.3a, c and e) and Graham caribou core habitat.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data6 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'zone', 
+                        table_name = 'pink_mtn_caribou_old', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'overlaps between old growth area deferral recommendations (recommendation 6.3a, c and e) and Pink Mountain caribou core habitat.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+new_data7 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'zone', 
+                        table_name = 'fn_aoi_caribou', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\fsj_management_areas.Rmd', 
+                        source = 'overlaps between select First Nations areas of interest (Chowade River Valley, Crying Girl, Hackney Hills, North Road, and Old Many Lily) and caribou habitat (boreal, Graham and Pink Mtn)', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataloaderCLUS' 
+                        )
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data1, new_data2, new_data3, new_data4, 
+                                     new_data5, new_data6, new_data7))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+
+dbDisconnect(conn)
+
 
 ```
 
