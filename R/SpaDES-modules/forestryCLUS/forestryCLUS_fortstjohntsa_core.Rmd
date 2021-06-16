@@ -79,14 +79,20 @@ The allowable annual cut (AAC) is 2,115,000 cubic metres, as of May 10, 2018. Th
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Fort_St_John_Core_TSA_clusdb.sqlite")) #  Fort_St_John_Core_TSA_clusdb.sqlite  Fort_St_John_TSA_clusdb.sqlite
 
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.graham_caribou_core_habitat'") 
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneconstraints where reference_zone = 'rast.fn_aoi_fsj_tsa'") 
+
+
 
 
 # Multi-planning Zone Scenarios
 ## High effort; 
 ### MAke RSEA zones no harvest
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.brfn_areas_fsj'")
-### Make all caribou zones no harvest
+### MAke Graham caribou habitat no harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.graham_caribou_core_habitat'")
+## Make Pink Mtn caribou core habitat no harvest
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.pink_mtn_habitat' AND (zoneid = 2) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5)") 
+### Make all boreal caribou zones A and B no harvest
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.boreal_caribou_zone_2019' AND (zoneid = 1)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.boreal_caribou_zone_2019' AND (zoneid = 2) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.pink_mtn_habitat' AND (zoneid = 2) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5)") 
@@ -94,9 +100,6 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = '
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.graham_caribou_core_habitat'") 
 ### MAke FN AOIs  no harvest
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.fn_aoi_fsj_tsa'") 
-
-
-
 
 
 ## Moderate effort; 
@@ -108,6 +111,7 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone =
 ### Moderate effort; Make select FN AOI's available to harvest where only constraining in caribou zones (i.e., rast.fn_aoi_caribou)
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.fn_aoi_fsj_tsa' AND (zoneid = 2) OR (zoneid = 3) OR (zoneid = 6) OR (zoneid = 8) OR (zoneid = 10) OR (zoneid = 11) OR (zoneid = 12)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.fn_aoi_fsj_tsa' AND (zoneid = 1) OR (zoneid = 4) OR (zoneid = 5) OR (zoneid = 9) OR (zoneid = 13) OR (zoneid = 14) OR (zoneid = 15)") 
+
 
 ## Low effort; 
 ### Make Chinchaga zone B, C available to harvest, zone A no harvest
@@ -210,9 +214,9 @@ parameters <- list(
                                              #"rast.old_growth_fsj_tsa",
                                              "rast.brfn_areas_fsj",
                                              "rast.boreal_caribou_zone_2019"
-                                              # "rast.oldgrwth_def_rec63a",
-                                              # "rast.oldgrwth_def_rec63c",
-                                              # "rast.oldgrwth_def_rec63e"
+                                               #"rast.oldgrwth_def_rec63a",
+                                               #"rast.oldgrwth_def_rec63c",
+                                               #"rast.oldgrwth_def_rec63e"
                                              #"rast.boreal_caribou_old",
                                              #"rast.graham_caribou_old",
                                              #"rast.pink_mtn_caribou_old",
@@ -295,14 +299,19 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest priority stands in all priority zones in Graham HEWSR and LESR critical habitat; harvest allowed in all priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest flow = 1,700,000m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "fsj_core_graham_hi_priority",
 #                        description = "No harvest in priority stands in high priority zones in Graham HEWSR and LESR critical habitat; harvest allowed in high priority zones in LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. Harvest allowed in low priority zones. There are no medium zone sin this unit. Harvest flow = 1,700,000m3/yr. Adjacency = 3m. Oldest first.")
-
-scenario = data.table (name = "fsj_core_multi_plan",
-                       description = "No harvest in multiple planning areas, including: old growth deferrals A, C and E (that overlap caribou and RSEA zones only), Chinchaga caribou zones A and B, Pink Mtn caribou core habitat, Graham caribou core habitat, First Nations AOIs, and RSEA/Blueberry River First Nations protection and restoration areas. Harvest flow = 1,700,000m3/yr. Adjacency = 3m. Oldest first.")
-
+# scenario = data.table (name = "fsj_core_multi_plan",
+#                        description = "No harvest in multiple planning areas, including: old growth deferrals A, C and E (that overlap caribou and RSEA zones only), Chinchaga caribou zones A and B, Pink Mtn caribou core habitat, Graham caribou core habitat, First Nations AOIs, and RSEA/Blueberry River First Nations protection and restoration areas. Harvest flow = 1,700,000m3/yr. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "fsj_core_multi_plan_mod",
 #                        description = "No harvest in Chinchaga caribou zone A, select First Nations AOIs (Cameron River Valley, Cypress Creek Valley,	Dancing Grounds, Dunlevy, Kihtsaa?dze and Pink Mountain), and RSEA/Blueberry River First Nations protection and restoration areas, and no harvest in old growth deferrals A, C and E that overlap caribou zones and select First Nations AOIs (Chowade River Valley, Crying Girl, Hackney Hills, North Road and Old Many Lily). Harvest flow = 1,550,000m3/yr. Adjacency = 3m. Oldest first.")
-# scenario = data.table (name = "fsj_core_multi_plan_low",
-#                        description = "No harvest in Chinchaga caribou zone A, old growth deferrals A, C and E and select First Nations AOIs (Dancing Grounds, Dunlevy, Kihtsaa?dze and Pink Mountain). Constrained to 33% >140 year old forest in select First Nations AOIs (Cameron River Valley, Cypress Creek Valley, Chowade River Valley, Crying Girl, Hackney Hills, North Road and Old Many Lily) and RSEA/Blueberry River First Nations protection and restoration areas. Harvest flow = 1,550,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "fsj_core_multi_plan_low,
+#                        description = "No harvest in Chinchaga caribou zone A, old growth deferrals A, C and E and select First Nations AOIs (Dancing Grounds, Dunlevy, Kihtsaa?dze and Pink Mountain). Constrained to 33% >140 year old forest in select First Nations AOIs (Cameron River Valley, Cypress Creek Valley, Chowade River Valley, Crying Girl, Hackney Hills, North Road and Old Many Lily) and RSEA/Blueberry River First Nations protection and restoration areas. Harvest flow = 1,550,000m3/yr.  Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "fsj_core_multi_plan_low_aac",
+#                        description = "No harvest in Chinchaga caribou zone A, old growth deferrals A, C and E and select First Nations AOIs (Dancing Grounds, Dunlevy, Kihtsaa?dze and Pink Mountain). Constrained to 33% >140 year old forest in select First Nations AOIs (Cameron River Valley, Cypress Creek Valley, Chowade River Valley, Crying Girl, Hackney Hills, North Road and Old Many Lily) and RSEA/Blueberry River First Nations protection and restoration areas. Harvest flow (AAC) = 1,184,000m3/yr. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "fsj_core_multi_plan_mod_aac",
+#                        description = "No harvest in Chinchaga caribou zone A, select First Nations AOIs (Cameron River Valley, Cypress Creek Valley,	Dancing Grounds, Dunlevy, Kihtsaa?dze and Pink Mountain), and RSEA/Blueberry River First Nations protection and restoration areas, and no harvest in old growth deferrals A, C and E that overlap caribou zones and select First Nations AOIs (Chowade River Valley, Crying Girl, Hackney Hills, North Road and Old Many Lily). Harvest flow (AAC) = 1,184,000m3/yr. Adjacency = 3m. Oldest first.")
+
+scenario = data.table (name = "fsj_core_multi_plan_aac",
+                       description = "No harvest in multiple planning areas, including: old growth deferrals A, C and E (that overlap caribou and RSEA zones only), Chinchaga caribou zones A and B, Pink Mtn caribou core habitat, Graham caribou core habitat, First Nations AOIs, and RSEA/Blueberry River First Nations protection and restoration areas. Harvest flow (AAC) = 1,184,000m3/yr.  Adjacency = 3m. Oldest first.")
 
 
 
@@ -312,7 +321,8 @@ harvestFlow <- rbindlist(list(data.table(compartment = "Fort_St_John_Core_TSA", 
                                                       to = 2222, 
                                                       by = 5),
                                                 1), 
-                                     flow = 8500000) #1,700,000m3/yr
+                                     flow = 5920000) #BAU = 8500000 / 1,700,000m3/yr //
+                                                      # AAC = 1,184,000 / 5920000
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))
