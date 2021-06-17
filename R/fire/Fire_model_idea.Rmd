@@ -100,3 +100,18 @@ Also see Andrews PL (2018) The Rothermel Surface Fire Spread Model and Associate
 
 
 
+
+##Addtional thoughts and considerations added by Cora Skaien
+1. Liz captures most of my initial thoughts above (lightening versus human caused fires may need to be modelled separate at least initially, projecting climate and vegetation change into the future for the models, )
+2. How to best combine human and lightening predicted fire data once complete? Additive effects in some areas that may have medium to high probabilities for both.
+3. Do we have data on where thunderstorms are most likely to occur (e.g., specific mountain ranges and how weather patterns interact with them)?
+4. recently burned areas less like to burn again: create probability map for areas where prescribed burns occurred. Could use data where prescribed burns occurred over last 20+ years and data where natural foprest fires occurred and create probability map using each pixel, considering occurence and intensity of wildfires (if any) after prescribed burns. Compare to control pixels randomly selected but with similar environmental variables to areas that were selected for prescribed burn.
+5. Current models being run assume all fires and stand replacing. Consider lower intensity fires as well for relevant BEC zones?
+6. Some models in Marchal et al. 2020 are already available in SPaDES. Check these out and see if any are relevant and useful?
+7. We need to determine how to best model how our forest composition changes after disturbance given different forest types compared to Quebec.
+
+
+
+##Notes on Pariesen et al. 2019. Applications of simulation-based burn probability modelling: a review
+
+
