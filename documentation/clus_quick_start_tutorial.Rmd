@@ -10,22 +10,23 @@ output:
 # Caribou and Land Use Simulator (CLUS) Quick Start Tutorial
 The CLUS quick-start tutorial provides step-by-step instructions on how to use CLUS. It is designed to familiarize you with creating and running a simple forest harvest scenario analysis with CLUS. It takes you through all the steps needed to set-up and run CLUS from scratch.
 
-For an overview of how the CLUS model works, we recommend reading our [wiki](https://github.com/bcgov/clus/wiki). This provides an introduction to the framework and components of CLUS that may facilitate understanding this tutorial. 
+For an overview of how the CLUS model works, we recommend reading our [wiki](https://github.com/bcgov/clus/wiki). The wiki provides an introduction to the framework and components of CLUS that may facilitate understanding this tutorial. 
 
 ## 1. Download Software
 CLUS is primarily built using the [R programming language](https://www.r-project.org/), and thus requires you to install R software. You can download program R for Windows [here](https://cran.r-project.org/bin/windows/base/). Program R has a very simple graphical user interface, and therefore we also recommend that you download the free version of [RStudio](https://rstudio.com/products/rstudio/download/). RStudio is an integrated development environment for working with R code. It provides various windows and tabs for interacting with and running R code, downloading and loading R packages, interfacing with GitHub (more on that below), and managing R ['objects'](https://www.datacamp.com/community/tutorials/data-types-in-r). We also recommend you download ['git' software](https://gitforwindows.org/) to interface and work with the model code. 
 
-To work with our databases, you will also need to download [pgAdmin](https://www.pgadmin.org/) software. This software will allow you to connect to and work with PostgreSQL databases, which are the key data structure used by CLUS. 
+To work with our databases, you will need to download [PostgreSQL](https://www.postgresql.org/download/) and [pgAdmin](https://www.pgadmin.org/) software. This software will allow you to connect to and work with PostgreSQL databases, which are the key data structure used by CLUS. 
 
 To manage and work with spatial data, you will also need to download [OSGeo4W](https://trac.osgeo.org/osgeo4w/). This contains QGIS, GDAL/OGR, and GRASS open source software programs that are needed to do some spatial data manipulation.
 
 If you are a government employee, you may want to download these software as approved by your information technology department.
 
-In summary, the first step of working with CLUS is to download the following software
+In summary, the first step of working with CLUS is to download the following software (or check that it is already installed on your computer):
 
 * [program R](https://cran.r-project.org/bin/windows/base/)
 * [RStudio](https://rstudio.com/products/rstudio/download/)
 * [git](https://gitforwindows.org/)
+* [PostgreSQL](https://www.postgresql.org/download/)
 * [pgAdmin](https://www.pgadmin.org/)
 * [OSGeo4W](https://trac.osgeo.org/osgeo4w/)
 
@@ -33,38 +34,51 @@ In summary, the first step of working with CLUS is to download the following sof
 When working with R you will soon find that you need to download various [packages](https://rstudio.com/products/rpackages/). Packages are essentially bundles of specialized, self-contained code functions to manipulate, analyze or visualize information. Packages are written by R developers and stored on the [Comprehensive R Archive Network (CRAN) repository](https://cran.r-project.org/web/packages/available_packages_by_name.html). These packages must meet certain QA/QC
 standards, and are typically reliable and stable. 
 
-Here we do not list all of the R Packages needed to use the CLUS model. There are many packages, they will vary depending on what aspects of CLUS are used, and they will likely evolve over time. Instead, here I provide a brief description of how to download R packages from RStudio.
+Here we do not list all of the R Packages needed to use the CLUS model. There are many packages, they will vary depending on what aspects of CLUS are used, and they will likely evolve over time. Instead, here we provide a brief description of how to download R packages from RStudio.
 
 Within the RStudio interface you will see in the bottom-right window a "Packages" tab, with a button to "Install", and beneath that a list of packages downloaded in your package library. If you click on the "Install" button it will open a window where you can enter the package name to install it from CRAN. Once a package is downloaded, you don't need to download it again (unless an update is required).  
 
 ![](images/rstudio_pakages.jpg)
 
-Packages that you will need to run CLUS are typically listed within specific CLUS model scripts, so you can download them as you need them. Packages you need are called using the *library()* or *require()* commands in the script. You'll also find that you will get an error if you are missing a package needed to run a specific R function. In this case, check which function is getting the error and download the necessary package. 
+Packages that you will need to run CLUS are typically listed within specific CLUS model scripts, so you can download them as you need them. Packages that you need to run a particular script are typically called using the *library()* or *require()* commands at the start of the script. You'll find that you will get an error if you are missing a package needed to run a specific function. In this case, check which function is getting the error and download the necessary package. 
+
+### 1.2 System Variables
+After you have downloaded the PGAdmin software, you will need to set a system variable on your computer. Type "edit the system environment variables" into the search bar in Windows, and press enter to open the" System Properties" window. Click on the "Advanced" tab, and then the "Environment Variables" button.  
+
+![](images/system_prop.jpg)
+
+This will open a new window with "User variables" and "System variables" boxes. Click on the "Path" variable in the "System variables" box and click "Edit". 
+
+![](images/system_vars.jpg)
+
+You should see a list of file paths (e.g., *C:\\Program Files\\....* ). Click on the "New" button and enter the directory where the PostgreSQL "bin" folder is located; in this example it is located at *C:\\Program Files\\PostgreSQL\\11\\bin*. Enter the correct directory location and click 'Ok'. This will add PostGreSQL to your environment variables and allow you to run the software correctly. 
+
+![](images/system_edit.jpg)
 
 ## 2. Download the Model Code from GitHub
-Once you are up and running with R Studio you can 'clone' the CLUS model code (i.e., make local copy of it) so you can run it from your computer. We store the CLUS model code in the [BC government GitHub repositories](https://github.com/bcgov). If you are a BC government employee, we recommend that you sign-up for a GitHub account, and review the [BC government policies](https://github.com/bcgov/BC-Policy-Framework-For-GitHub/blob/master/BC-Open-Source-Development-Employee-Guide/README.md) for instructions on how to do this, and to review the government policies on the use of GitHub. As part of this process you will be asked to create two-factor authentication.
+Once you are up and running with R Studio you can 'clone' the CLUS model code (i.e., make a local copy of it) so you can run and edit it from your computer. We store the CLUS model code in the [BC government GitHub repositories](https://github.com/bcgov). If you are a BC government employee, we recommend that you sign-up for a GitHub account, and review the [BC government policies](https://github.com/bcgov/BC-Policy-Framework-For-GitHub/blob/master/BC-Open-Source-Development-Employee-Guide/README.md) on the use of GitHub. As part of this process you will be asked to create two-factor authentication.
 
-Once you have completed this, you will need to request permission to have 'admin' access to the repository. Contact the CLUS team with your GitHub ID to request this access. Once this access is granted you should be able to read, clone, and push code to the repository. Note that the GitHub password may only work temporarily, in which case, after you have created an authenticated GitHub account you will also need to set-up a ['personal access token' (PAT)](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token). Follow [these inrstuctions](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token). Select the scopes, or permissions, you'd like to grant this token as everything except *admin:org_hook*. Note that there is no need to complete step 10 in the instructions. 
+Once you have created and verified your account this, you will need to request permission to have 'admin' access to the CLUS repository. Contact the CLUS team with your GitHub ID to request this access. Once this access is granted you should be able to read, clone, and push code to the repository. Note that the GitHub password may only work temporarily, in which case, after you have created an authenticated GitHub account you will also need to set-up a ['personal access token' (PAT)](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token). Follow [these inrstuctions](https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token) to set up a PAT. Select the scopes, or permissions, you'd like to grant this token as everything except *admin:org_hook*. Note that there is no need to complete step 10 in the instructions. 
 
-You can now use your PAT token as the password to clone the GitHub. Instead of manually entering your PAT for every HTTPS Git operation, you can set the username and password using the Windows Credential Manager. Open the Windows Credential Manager by searching for "Credential Manager" on your Windows search bar. Once open, click on "Windows Credential Manager", then "Add a generic credential". 
+You can now use your PAT token as the password to clone the CLUS repository from GitHub. Instead of manually entering your PAT for every HTTPS Git operation, you can set the username and password using the Windows Credential Manager. Open the Windows Credential Manager by searching for "Credential Manager" on your Windows search bar. Once open, click on "Windows Credential Manager", then "Add a generic credential". 
 
 ![](images/creds.jpg)
 
-In the "Internet or network address" box enter *git:https://github.com*, then add your username and the PAT as your password. Repeat this process (i.e., create another credential), but with *GitHub - https://api.github.com/xxxxxx* as the "Internet or network address" (note: replaces xxxxxx with your username). This should tell your computer to use these stored credentials when connecting to GitHub.
+In the "Internet or network address" box enter *git:https://github.com*, then add your username and the PAT as your password. Repeat this process (i.e., create another credential), but with *GitHub - https://api.github.com/xxxxxx* as the "Internet or network address" (note: replace xxxxxx with your username). This will tell your computer to use the PAT credentials when connecting to GitHub.
 
-The CLUS repository is located [here](https://github.com/bcgov/clus.git). You will notice the GitHub webpage contains a 'folder' structure with all the code. This can be considered as a 'master' copy of the code. GitHub allows for multiple people to work with the code simultaneously. You will work with a local copy of the code. In the next section we will describe more how to use Git and GitHub.
+The CLUS repository is located [here](https://github.com/bcgov/clus.git). You will notice the GitHub webpage contains a 'folder' structure with all the code. This can be considered as a 'master' copy of the code for all of the repository users. GitHub allows for multiple people to work with the code simultaneously, with the GitHub version housing a stable and recent version of the code. Cloning the repository enables you to work with a local copy of the code. 
 
 To clone the CLUS repository, open RStudio, click on the "File" tab in the top left and then click "New Project". This will open a new window:
 
 ![](images/git.jpg)
 
-In this window, select "Version Control" and then select "Git". This will open a window where you enter the Repository URL (https://github.com/bcgov/clus.git), the name of the directory (clus) and then location where you want to save a copy of the repository. We recommend copying the code to a local folder (not a network folder).
+In this window, select "Version Control" and then select "Git". This will open a window where you enter the Repository URL (https://github.com/bcgov/clus.git), the name of the directory (clus) and specify the location where you want to save a copy of the repository. We recommend copying the code to a local folder (not a network folder).
 
 ![](images/git_repo.jpg)
 
 Once you create the repository, it will copy the code to the folder directory you created. You will notice it has the same folder structure as the website. 
 
-In your RStudio console, the bottom-right window "Files" tab shows the directory for the code repository. We will describe later how to navigate these folders to run CLUS. 
+In your RStudio console, the bottom-right window "Files" tab shows the directory for the code repository. We will describe later how to navigate these folders to run CLUS. In the next section we will describe more how to use Git and GitHub.
 
 ## 3. Version Control and Working with GitHub
 In the top-right window of RStudio you will see a "Git" tab. If you click on that you will see a series of buttons beneath it, including: "Diff", "Commit", "Pull", and "Push". You will also see that above the tab in the the top-right there is some text beside an "R-box" symbol. This indicates the repository you are currently using. It should say "clus". You will also notice a symbol with two purple rectangles, beside some text that says "master". This indicates the 'branch' of the repository that you are working in.
@@ -109,17 +123,22 @@ Click on the "New pull request" button. This will open a new page with "Comparin
 
 ![](images/github_pull2.jpg)
 
+### 3.1 GitHub Work Flow Description
+Our general approach to using Git/GitHub version control is to: create a new independent branch; regularly save and commit to that branch locally and push/pull to the GitHub version; and integrate with the 'master' branch (a 'pull request') when larger pieces of work are completed. 
+
+To clarify this process, an independent branch is a working copy of the code. As you work within this branch, you make changes to it independent of the master, or any other branch. When you open, edit and then save a script (e.g., a .Rmd or .R file) within your working branch, you are overwriting the script file, similar to how you work with a local text file, like a Word document. When you do a Git 'commit' of a script file, you are saving a specific version of the file that you are working on locally, similar to saving a text file with a different name then the original (e.g., file_version2.doc), because you want to preserve the original and new version. Each new "commit' is therefore like saving a specific version of the script. You can also save these commits remotely, in the GitHub repository, by doing a "Push" after you commit. This is similar to backing up a text file on an external hard drive. You can also "Pull" from the GitHub, which will take the version of the file on GitHub and update your local version with any changes. However, if you are the only person working in a branch, a "Pull" is not necessary, as there should be no changes, with the exception of when you do a "Pull Request". You do a "Pull Request" when you want to integrate the work of others into your branch, and vice-versa. This is similar to saving edits to scripts from other users into your version of the scripts, and saving the changes you made into other peoples files. Pull requests don't need to be done as regularly as 'commits', and it is good practice to complete Pull Requests when you have completed specific scripting tasks (e.g., when you create a new script, change the process for how data is analyzed within a script, etc.).
+
 ## 4. Set-up a Keyring
 CLUS uses networked PostgreSQL databases to store and manage data. To keep these databases and the network secure, we do not post the database access credentials (e.g., user names and passwords) in the CLUS code. Instead we use the [R package "keyring"](https://cran.r-project.org/web/packages/keyring/keyring.pdf) to store credentials locally in the Windows "Credentials Manager" and use the "keyring" function to call those credentials from R scripts. 
 
 We have developed an R markdown document for setting up a keyring. In the CLUS repository, navigate to R-> functions->keyring_init.Rmd and open the file. Follow the instructions in the document to set-up the keyring on your local computer. Prior to creating the keyring, you will need to contact the CLUS core team (Kyle.Lochhead@gov.bc.ca or Elizabeth.Kleynhans@gov.bc.ca or Tyler.Muhly@gov.bc.ca) to obtain a user name and password credentials for accessing the PostgreSQL databases. Note that these are different then the credentials used to set-up GitHub. GitHub and PostrgeSQL are independent components of the CLUS framework.
 
-Once you are set-up with keyring, you can also use the credentials information to connect to the PostgreSQL databases using PGAdmin software. You may want to connect to the databases using PGAdmin to familiarize yourself with the data. In the 'clus' database on our local network computer, within the "public" schema, there is a table called "pgdbs_data_list". This table describes all the data in the PostgreSQL databases. In addition, within the 'documentation' folder of CLUS, there is a "data_management_guide.Rmd" that describes the "pgdbs_data_list" table and instructions on how to add and update the table, in the event that you need to do so. 
+Once you are set-up with keyring, you can also use the credentials information to connect to the PostgreSQL databases using PGAdmin software. You may want to connect to the databases using PGAdmin to familiarize yourself with the data. For example, in the 'clus' database on our government network computer, within the "public" schema, there is a table called "pgdbs_data_list". This table describes all the data in the PostgreSQL databases. In addition, within the 'documentation' folder of CLUS, there is a "data_management_guide.Rmd" that describes the "pgdbs_data_list" table and instructions on how to add and update the table, in the event that you need to do so. 
 
 ## 5. Create a Shapefile for a Hypothetical Forest Harvest Scenario
 Now that you are familiar with the software, some of the model code and some of the CLUS data, we want to introduce you to the process of developing a model to address a hypothetical forest management scenario. To do that, you will use one of CLUS' web applications to create a [shapefile](https://desktop.arcgis.com/en/arcmap/10.3/manage-data/shapefiles/what-is-a-shapefile.htm), then develop a hypothetical land use constraint parameter from this shapefile that you will use in the model you are going to build and run.
 
-To create the shapefile, go to the [FAIB apps webpage](http://206.12.91.188:8787/login). Note that you will need to contact Kyle.Lochhead@gov.bc.ca for a username and password. Once you log in, click on the "CLUS Scenario Tool" link. This will take you to a web application with a map on it, and several tabs at the bottom. Note that the app was designed for caribou recovery planning, and thus much of the information within it is tailored to support that. Nevertheless, the app can be used to support any spatial forest management planning problem, i.e., to implement a hypothetical management regime requires a location (e.g., polygon) and a land use order (i.e., the constraint to apply within the defined location).
+To create the shapefile, go to the [FAIB apps webpage](http://206.12.91.188:8787/login). Note that you will need to contact Kyle.Lochhead@gov.bc.ca for a username and password to access the applications (these are different then the credentials to access GitHub and the postgreSQL database). Once you log in, click on the "CLUS Scenario Tool" link. This will take you to a web application with a map on it, and several tabs at the bottom. Note that the app was designed for caribou recovery planning, and thus much of the information within it is tailored to support that. Nevertheless, the app can be used to support any spatial forest management planning problem, i.e., to implement a hypothetical management regime requires a location (e.g., polygon) and a land use order (i.e., the constraint to apply within the defined location).
 
 ![](images/scen_tool.jpg)
 
@@ -239,14 +258,15 @@ zone_test <- data.table (zoneid = as.integer(1),
                          reference_zone = 'rast.raster_test', 
                          percentage = 90, 
                          ndt = as.integer(0), 
-                         multi_condition = as.character(NA))
+                         multi_condition = as.character(NA),
+                         denom = as.character(NA))
 DBI::dbWriteTable (conn, c("zone", "zone_test"), # commit tables to pg
                    value = zone_test, 
                    row.names = FALSE, 
                    overwrite = TRUE) 
 dbExecute(conn, "Alter Table zone.zone_test add column denom VARCHAR")
 dbExecute (conn, paste0("ALTER TABLE zone.zone_test INHERIT zone.constraints"))
-dbDisconnect (conn)
+dbDisconnect (conn) # disconnect from the database
 ```
 
 To run the script, you will need the [raster](https://cran.r-project.org/web/packages/raster/raster.pdf), [fasterize](https://cran.r-project.org/web/packages/fasterize/fasterize.pdf), [sf](https://cran.r-project.org/web/packages/sf/sf.pdf), [here](https://cran.r-project.org/web/packages/here/here.pdf), [data.table](https://cran.r-project.org/web/packages/data.table/data.table.pdf) and [DBI](https://cran.r-project.org/web/packages/DBI/DBI.pdf) packages; these can be downloaded via RStudio if you do not already have them. You will also need to load our R_Postgres.R script, using the *source ()* command. This script contains specific functions created for querying PostgreSQL data from R (the script is located in the "R->functions" folder).
@@ -261,7 +281,7 @@ Fourth, you will convert the polygon to a raster across the extent of BC, using 
 
 Fifth, you create a 'look-up table' that links each raster integer zone to a zone name. In the example here, we create a name for the 'zone'. In the Params folder you will find examples with polygonal data that have multiple zones and zone names (e.g., caribou herds). Once the table is created, you upload it to the PostgreSQL database.
 
-In the sixth and final step, you create a table that defines a forest harvest constraint for each zone. In this example, you create a zone constraint that requires 90% (percentage = 90) of the forest within the zone (zoneid = 1) to be greater than or equal (type = 'ge') to 80 (threshold = as.numeric(80)) years old (variable = 'age'). Within the table, you need to define several fields, including: *reference_zone*, which is the name of the raster in the PostgreSQL database that you want to apply the constraint (note that the schema is also included); *zoneid*, which is the integer id for the zone in the raster that you want to assign the constraint; *variable*, which is the variable in the database that defines the constraint (equivalent clearcut area ("eca"), disturbance ("dist") and "height" are other examples); *threshold* is the value at which to apply the threshold; *type* defines whether the threshold is greater than or equal to (i.e., 'ge') or less than or equal to (i.e., 'le'); *percentage* is the percent of the zone that must meet the variable threshold; *ndt* is the natural disturbance threshold to apply to the zone (here we use 0, as these are specific to certain constraint type); *multi_condition* is a field that can be used to develop more complicated criteria for constraints, e.g., "crown_closure >= 30 & basal_area >= 30" would apply the constraint where crown closure and basal area of the forest stand meet the defined, specific characteristics. Note that in this example we are creating a constraint for a single zone (i.e., one row). For more complicated zoning schemes, constraints for multiple rows (i.e., unique zoneid's) may need to be created.
+In the sixth and final step, you create a table that defines a forest harvest constraint for each zone. In this example, you create a zone constraint that requires 90% (percentage = 90) of the forest within the zone (zoneid = 1) to be greater than or equal (type = 'ge') to 80 (threshold = as.numeric(80)) years old (variable = 'age'). Within the table, you need to define several fields, including: *reference_zone*, which is the name of the raster in the PostgreSQL database that you want to apply the constraint (note that the 'rast.' schema is also included); *zoneid*, which is the integer id for the zone in the raster that you want to assign the constraint; *variable*, which is the variable in the database that defines the constraint (equivalent clearcut area ("eca"), disturbance ("dist") and "height" are other examples); *threshold* is the value at which to apply the threshold; *type* defines whether the threshold is greater than or equal to (i.e., 'ge') or less than or equal to (i.e., 'le'); *percentage* is the percent of the zone that must meet the variable threshold; *ndt* is the natural disturbance threshold to apply to the zone (here we use 0, as these are specific to certain constraint types); *multi_condition* is a field that can be used to develop several criteria for constraints, e.g., "crown_closure >= 30 & basal_area >= 30" would apply a constraint where both crown closure and basal area of the forest stand must be over 30 for the defined area threshold; *denom* is a field that allows you to define the area over which to apply a constraint, i.e., to set the area denominator as total area of the zone, or treed area within the zone; the default value (*NA*) sets the denominator to total area, whereas *' treed > 0 '* sets it to treed area. Note that in this example we are creating a constraint for a single zone (i.e., one row). For more complicated zoning schemes, constraints for multiple rows (i.e., unique zoneid's) may need to be created.
 
 Once the table is created in R, you will save it to the database. Then, you will send an SQL command to the PostgreSQL database using the "dbExecute" function. This command will incorporate the new table into the 'constraints' table in the database. You may have noticed all of the constraint tables are uploaded to their own schema in the database called *zone*. The *constraints* table in the *zone* schema contains all of the constraints data (i.e., "inherits" the data) from all of the zones that were created as a parameter. You will see later that this table is used to define all zone constraints to be applied in the CLUS model, thus it is critical to ensure that any zone constraint you create gets incorporated into this table. 
 
@@ -458,7 +478,9 @@ Now that you've parameterized the module, you can run it! Click on the green "Pl
 
 ![](images/dataloader_run.jpg)
 
-At the end of the analysis, you should see a .sqlite database object created in the *dataLoaderCLUS* folder of your local copy of the CLUS code. The database will have the name of the *nameBoundary* parameter, in this case, *Revelstoke_TSA_clusdb.sqlite*. You will also notice some raster files, including *hu.tif*, *Revelstoke_TSA_pre_0.tif* and *roads_0.tif*. These are intermediary outputs from the modules (the same data is saved in .sqlite database tables), and can be viewed to check for any errors, or deleted. The *hu.tif* is the harvest units output from *blockingCLUS*, and  *Revelstoke_TSA_pre_0.tif* and *roads_0.tif* are the simulated roads outputs from *roadCLUS*. 
+At the end of the analysis, you should see a .sqlite database object created in the *dataLoaderCLUS* folder of your local copy of the CLUS code (i,e, within clus/R/SpaDES-modules/dataLoaderCLUS/). The database will have the name of the *nameBoundary* parameter, in this case, *Revelstoke_TSA_clusdb.sqlite*. You will also notice some raster files, including *hu.tif*, *Revelstoke_TSA_pre_0.tif* and *roads_0.tif*. These are intermediary outputs from the modules (the same data is saved in .sqlite database tables), and can be viewed to check for any errors, or deleted. The *hu.tif* is the harvest units output from *blockingCLUS*, and  *Revelstoke_TSA_pre_0.tif* and *roads_0.tif* are the simulated roads outputs from *roadCLUS*. 
+
+Note that if you run *dataLoaderCLUS* more than once with the same *nameBoundary* parameter, you will overwrite previous versions of the database. Therefore, to avoid potential issues with overwriting files, we recommend that you delete or move/archive the previous version of the .sqlite database ouput before re-running *dataLoaderCLUS*.
 
 Below are some scripts (in the following code chunk) you can use to query the .sqlite database and familiarize yourself with its contents. First, connect to the database using the *dbConnect* function in the DBI package. You can then list the tables using the *dbListTables*. You will notice there are seven tables in the database including: 
 
@@ -500,11 +522,13 @@ roadslist <- dbGetQuery (clusdb, "SELECT * from roadslist")
 yields <- dbGetQuery (clusdb, "SELECT * from yields")
 zone <- dbGetQuery (clusdb, "SELECT * from zone")
 zoneConstraints <- dbGetQuery (clusdb, "SELECT * from zoneConstraints")
-# To remove R objects from memory
-rm (adjacentBlocks)
+
+rm (adjacentBlocks) # To remove R objects from memory
 gc () # 'garbage collection' command; useful command for freeing computer memory after removing an R object
+
 #  To view the constraints of a specific zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.raster_test'") # Note: the reference_zone is the name of the raster in the rast schema. Use the name of the raster you created
+dbDisconnect(clusdb) # Disconnect from the database
 ```
 
 The forestry simulation essentially queries and updates the tables within the SQlite database, which simplifies the data management process. If you want to take a deep dive into how the data are used and modified by the forestry simulation model, you can open up the [forestryCLUS](https://github.com/bcgov/clus/blob/master/R/SpaDES-modules/forestryCLUS/forestryCLUS.R) module and look at the queries of the SQlite database. 
@@ -712,7 +736,11 @@ Also confirm that in the *uploaderCLUS* module parameters that *aoiName* = 'tuto
 Now you can 'Run' the scenario and you will see a green 'line' down the side of the code chunk, and in the console window you will see outputs messages from the modules. You will notice that model progress output is provided, including time elapsed, the time interval of the model (in this case between 0 and 40), and the module currently being run by the model. 
 
 ## 9. Running Alternative Scenarios in forestryCLUS
-Once you complete the BAU scenario, you can run an alternative scenario. In the *forestryCLUS_tutorial.Rmd* you can now include the raster you created (i.e., *rast.raster_test*, or whatever name you used; note: remember to include the *rast.* prefix, which refers to the schema in the PostgreSQL database where the raster data is stored) in the list of *nameZoneRasters*. 
+Once you complete the BAU scenario, you can run an alternative scenario. The CLUS framework is designed to facilitate this process, by allowing you to include or remove zone rasters (the *nameZoneRasters* parameters) in a given scenario, equivalent to turning management zones "off" or "on" to estimate their effects on the indicators of interest. 
+
+We include many zones in a scenario that represent legal land use orders that are applied provincially, including, for example, visual quality objectives (rast.zone_cond_vqo), ungulate winter ranges (rast.zone_cond_uwr) and community watersheds (rast.zone_cond_cw). Within these rasters are integer identifiers that identify the spatial location of a zone. Thus, there can be and often are multiple zones in a raster, each represented by a unique integer. These integers are equivalent to the *zoneid* in the *zone.constraints* table where a specific constraint is defined for each zone. No harvest ('nh') constraint types are simple, in that the CLUS model does not allow any forest harvest to occur in these zones throughout the duration of the simulation. Area-based constraints are slightly more complicated, as they require specific conditions to be met for forest harvest to be permitted by the model in the zone. Thus, at each time interval, CLUS evaluates the constraint criteria that you specified for each zone, and if it's met, the remainder of the zone can be harvested, whereas if it's not met, it is not harvested until the criteria is met in the future. For example, if you require a zone to be 33% greater than 140 year old forest, at each time interval CLUS will identify and add up the pixels in the zone that meet the >140 year old age criteria, and restrict harvest in those pixels, up until the total number of pixels is above the identified threshold (33%). The remainder of the zone will be available to harvest. If the threshold is not met, the zone is not harvested.        
+
+Here we go through an example where you are adding the 'no harvest' zone that you created to a scenario. In the *forestryCLUS_tutorial.Rmd* you can now include the raster you created (i.e., *rast.raster_test*, or whatever name you used; note: remember to include the *rast.* prefix, which refers to the schema in the PostgreSQL database where the raster data is stored) in the list of *nameZoneRasters*. 
 
 Also, copy the *scenario* object and paste it below the existing object. 'Comment out' the previously used BAU scenario object and edit the scenario you copied. It is good practice to keep the previously used *scenario* objects so you can see which scenarios were completed, and re-use them, if corrections or changes are necessary later. 
 
@@ -722,6 +750,27 @@ Once, that is done, click the 'Play' arrow again in the code chunk and let the s
 
 You are welcome to try additional scenarios here if you like, for example, adjusting the harvest queue, but remember to use unique *scenario* parameter *names* for each, or else you will copy over previous results. 
 
+### 9.1 Modfying Constraints in Raster Zones
+You can also change the constraints that are being applied within a raster zone. Recall that the *zoneConstraints* table in the SQLite database is a copy of the zone.constraints table (the *nameZoneTable* parameter in *dataLoaderCLUS*) in the CLUS database that applies to your area and scenarios of interest. You can query and importantly modify the *zoneConstraints* table after you create a SQLite database in *dataLoaderCLUS*. For example, if you want to change a raster zone from 'no harvest' (nh), to a zone that allows for harvest, but within some limits, you can use an SQL query to UPDATE the table. For example, below we modify the *zoneConstraints* table (UPDATE zoneconstraints) for the *raster_test* zone that you created (WHERE reference_zone = 'rast.raster_test') to an age based area constraint. Here we change (i.e., "SET") the *type* from no harvest ('nh') to allow for harvest up to 33% of the zone ("percentage = 33"), where 33% of the zone must be greater than or equal to (type = 'ge'), 140 year old forest ("threshold = 140" and variable = 'age'). Note that if you have multiple zones (*zoneid*) in a raster zone you can add an 'AND' statement to teh query to apply the modification to a specific zone in your raster (e.g., zoneid = 1). 
+
+```{r, modify zone constraints,  message = F, echo = T, eval = F}
+require (DBI)
+# 1. Connect to the SQLite database
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite")) # insert your database name here
+
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 33 reference_zone = 'rast.raster_test' AND zoneid = 1") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.raster_test' AND zoneid = 1") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 140 where reference_zone = 'rast.raster_test' AND zoneid = 1") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.raster_test' AND zoneid = 1") 
+
+# Could also be written as:
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 33, type = 'ge', threshold = 140, variable = 'age' WHERE reference_zone = 'rast.raster_test' AND zoneid = 1") 
+
+dbDisconnect(clusdb)
+```
+
+If you can experiment with modifying constraints to see their effect on various indicators. However, note that if you make a change to an SQLite table, it will be permanent, and you will have to run another UPDATE query to change it back to the original setting.
+
 ## 10. Checking Scenario Outputs
 As described above, the *uploaderCLUS* module is where you define the parameters for where simulation outputs are stored. We currently store this output data in a PostgreSQL database deployed on a virtual machine under a Compute Canada account. You can use the PGAdmin software to connect to the database and navigate to the outputs. You will need to obtain the credentials from the CLUS team to make the connection. 
 
@@ -729,7 +778,7 @@ If you can make the connection to the database, navigate to the "tutorial" schem
 
 ![](images/pgadmin_output.jpg)
 
-Navigate to the "growing stock" table, right click on it, click on "View/Edit Data", then "All Rows". This will open the table in the lower right of the PGAdmin viewer. This table provides information on how much volume is available (gs), including within the timber harvest land base (m_gs), and percentage that is deciduous (m_dec_gs) for each time interval (timeperiod), timber harvest unit (compartment) and scenario (scenario). This can be used to track the 'stock' of volume available to be harvested at each time interval.   
+Navigate to the "growing stock" table, right click on it, click on "View/Edit Data", then "All Rows". This will open the table in the lower right of the PGAdmin viewer. This table provides information on how much volume is available (gs), including within the timber harvest land base (m_gs), and within the deciduous portion of the timber harvest land base  (m_dec_gs) for each time interval (timeperiod), timber harvest unit (compartment) and scenario (scenario). This can be used to track the 'stock' of volume available to be harvested at each time interval.   
 
 ![](images/pgadmin_table.jpg) 
 
@@ -743,7 +792,7 @@ Alternatively, much of this information can be accessed in summary form using th
 
 In the "Area of interest" box you can click the arrow on the right side to select from a drop down list of the harvest units (e.g., TSAs and TFLs) where simulations were run. These consist of the names of the 'schemas' in the PostgreSQL database, and you should see the "tutorial" area of interest/schema. Select it, and you will see some check boxes appear in the "Scenarios" box, and a "Current State" display will appear on the right side of the main window. 
 
-The check boxes correspond to the scenario names that were simulated for the harvest unit, by reading the "scenarios" table in the PostgreSQL database. The "Current State" display shows the characteristics of the landscape of the harvest unit, at the start of the simulation. It reads the "state" table in the PostgreSQL database and provides information on things such as the age structure of the forest, the amount THLB and roaded area and the average volume/ha of available stands. Click on the "revelstoke_bau" text box to mark it with a check, and then click the "forestry" tab on the left side.  
+The check boxes correspond to the scenario names that were simulated for the harvest unit, by reading the "scenarios" table in the PostgreSQL database. The "Current State" display shows the characteristics of the landscape of the harvest unit, at the start of the simulation. It reads the "state" table in the PostgreSQL database and provides information on things such as the age structure of the forest, the amount THLB and roaded area and the average volume/ha of available stands. Click on the "revelstoke_bau" (or whichever scenario name that you used) text box to mark it with a check, and then click the "forestry" tab on the left side.  
 
 ![](images/clus_explorer_aoi.jpg) 
 

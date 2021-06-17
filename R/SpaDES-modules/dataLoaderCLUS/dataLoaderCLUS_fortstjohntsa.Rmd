@@ -12,7 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 ---
-title: "Database creation for Dawson Creek TSA Analyses Version 1.0"
+title: "Database creation for Fort St. John TSA Analyses Version 1.0"
 author: "Kyle Lochhead"
 date: "23 June 2020"
 output: pdf_document
@@ -49,7 +49,7 @@ parameters <-  list(
                          save_clusdb = TRUE,
                          nameBoundaryFile = "tsa_aac_bounds", # name of the (TSA) boundary data in postgres
                          nameBoundaryColumn = "tsa_name", 
-                         nameBoundary = "Fort_St_John_TSA", # "Fort_St_John_Core_TSA"  Fort_St_John_TSA
+                         nameBoundary = "Fort_St_John_Core_TSA", # "Fort_St_John_Core_TSA"  Fort_St_John_TSA
                          nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
                          nameCompartmentRaster = "rast.tsa_aac_boundary", 
                          nameCompartmentTable = "tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
@@ -82,7 +82,14 @@ parameters <-  list(
                                              "rast.graham_caribou_core_habitat",
                                              "rast.old_growth_fsj_tsa",
                                              "rast.brfn_areas_fsj",
-                                             "rast.boreal_caribou_zone_2019"
+                                             "rast.boreal_caribou_zone_2019",
+                                             "rast.oldgrwth_def_rec63a",
+                                             "rast.oldgrwth_def_rec63c",
+                                             "rast.oldgrwth_def_rec63e",
+                                             "rast.boreal_caribou_old",
+                                             "rast.graham_caribou_old",
+                                             "rast.pink_mtn_caribou_old",
+                                             "rast.fn_aoi_caribou"
                                            ), 
                          nameZoneTable = "zone.constraints", 
                          nameYieldsRaster = "rast.ycid_vdyp", 
@@ -131,7 +138,7 @@ parameters <-  list(
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU8' and  species = 'caribou' and season IN ('A')")) # use annual caribou RSF model coefficients for DU7
 #rsf_model_coeff[, population := 'Tweedsmuir'] 
 
-scenario = data.table(name="load_data_fsj_nocore", # load_data_fsj_nocore  load_data_fsj_core
+scenario = data.table(name="load_data_fsj_core", # load_data_fsj_nocore  load_data_fsj_core
                       description = "dataloader")
 
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
