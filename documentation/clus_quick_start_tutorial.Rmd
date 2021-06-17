@@ -263,7 +263,7 @@ DBI::dbWriteTable (conn, c("zone", "zone_test"), # commit tables to pg
                    row.names = FALSE, 
                    overwrite = TRUE) 
 dbExecute (conn, paste0("ALTER TABLE zone.zone_test INHERIT zone.constraints"))
-dbDisconnect (conn)
+dbDisconnect (conn) # disconnect from the database
 ```
 
 To run the script, you will need the [raster](https://cran.r-project.org/web/packages/raster/raster.pdf), [fasterize](https://cran.r-project.org/web/packages/fasterize/fasterize.pdf), [sf](https://cran.r-project.org/web/packages/sf/sf.pdf), [here](https://cran.r-project.org/web/packages/here/here.pdf), [data.table](https://cran.r-project.org/web/packages/data.table/data.table.pdf) and [DBI](https://cran.r-project.org/web/packages/DBI/DBI.pdf) packages; these can be downloaded via RStudio if you do not already have them. You will also need to load our R_Postgres.R script, using the *source ()* command. This script contains specific functions created for querying PostgreSQL data from R (the script is located in the "R->functions" folder).
@@ -474,7 +474,9 @@ Now that you've parameterized the module, you can run it! Click on the green "Pl
 
 ![](images/dataloader_run.jpg)
 
-At the end of the analysis, you should see a .sqlite database object created in the *dataLoaderCLUS* folder of your local copy of the CLUS code. The database will have the name of the *nameBoundary* parameter, in this case, *Revelstoke_TSA_clusdb.sqlite*. You will also notice some raster files, including *hu.tif*, *Revelstoke_TSA_pre_0.tif* and *roads_0.tif*. These are intermediary outputs from the modules (the same data is saved in .sqlite database tables), and can be viewed to check for any errors, or deleted. The *hu.tif* is the harvest units output from *blockingCLUS*, and  *Revelstoke_TSA_pre_0.tif* and *roads_0.tif* are the simulated roads outputs from *roadCLUS*. 
+At the end of the analysis, you should see a .sqlite database object created in the *dataLoaderCLUS* folder of your local copy of the CLUS code (i,e, within clus/R/SpaDES-modules/dataLoaderCLUS/). The database will have the name of the *nameBoundary* parameter, in this case, *Revelstoke_TSA_clusdb.sqlite*. You will also notice some raster files, including *hu.tif*, *Revelstoke_TSA_pre_0.tif* and *roads_0.tif*. These are intermediary outputs from the modules (the same data is saved in .sqlite database tables), and can be viewed to check for any errors, or deleted. The *hu.tif* is the harvest units output from *blockingCLUS*, and  *Revelstoke_TSA_pre_0.tif* and *roads_0.tif* are the simulated roads outputs from *roadCLUS*. 
+
+Note that if you run *dataLoaderCLUS* more than once with the same *nameBoundary* parameter, you will overwrite previous versions of the database. Therefore, to avoid potential issues with overwriting files, we recommend that you delete or move/archive the previous version of the .sqlite database ouput before re-running *dataLoaderCLUS*.
 
 Below are some scripts (in the following code chunk) you can use to query the .sqlite database and familiarize yourself with its contents. First, connect to the database using the *dbConnect* function in the DBI package. You can then list the tables using the *dbListTables*. You will notice there are seven tables in the database including: 
 
@@ -516,11 +518,13 @@ roadslist <- dbGetQuery (clusdb, "SELECT * from roadslist")
 yields <- dbGetQuery (clusdb, "SELECT * from yields")
 zone <- dbGetQuery (clusdb, "SELECT * from zone")
 zoneConstraints <- dbGetQuery (clusdb, "SELECT * from zoneConstraints")
-# To remove R objects from memory
-rm (adjacentBlocks)
+
+rm (adjacentBlocks) # To remove R objects from memory
 gc () # 'garbage collection' command; useful command for freeing computer memory after removing an R object
+
 #  To view the constraints of a specific zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.raster_test'") # Note: the reference_zone is the name of the raster in the rast schema. Use the name of the raster you created
+dbDisconnect(clusdb) # Disconnect from the database
 ```
 
 The forestry simulation essentially queries and updates the tables within the sqlite database, which simplifies the data management process. If you want to take a deep dive into how the data are used and modified by the forestry simulation model, you can open up the [forestryCLUS](https://github.com/bcgov/clus/blob/master/R/SpaDES-modules/forestryCLUS/forestryCLUS.R) module and look at the queries of the sqlite database. 
@@ -728,7 +732,11 @@ Also confirm that in the *uploaderCLUS* module parameters that *aoiName* = 'tuto
 Now you can 'Run' the scenario and you will see a green 'line' down the side of the code chunk, and in the console window you will see outputs messages from the modules. You will notice that model progress output is provided, including time elapsed, the time interval of the model (in this case between 0 and 40), and the module currently being run by the model. 
 
 ## 9. Running Alternative Scenarios in forestryCLUS
-Once you complete the BAU scenario, you can run an alternative scenario. In the *forestryCLUS_tutorial.Rmd* you can now include the raster you created (i.e., *rast.raster_test*, or whatever name you used; note: remember to include the *rast.* prefix, which refers to the schema in the PostgreSQL database where the raster data is stored) in the list of *nameZoneRasters*. 
+Once you complete the BAU scenario, you can run an alternative scenario. The CLUS framework is designed to facilitate this process, by allowing you to include or remove zone rasters (the *nameZoneRasters* parameters) in a given scenario, equivalent to turning management zones "off" or "on" to estimate their effects on the indicators of interest. 
+
+We include many zones in a scenario that represent legal land use orders that are applied provincially, including, for example, visual quality objectives (rast.zone_cond_vqo), ungulate winter ranges (rast.zone_cond_uwr) and community watersheds (rast.zone_cond_cw). Within these rasters are integer identifiers that identify the spatial location of a zone. Thus, there can be and often are multiple zones in a raster, each represented by a unique integer. These integers are equivalent to the *zoneid* in the *zone.constraints* table where a specific constraint is defined for each zone. No harvest ('nh') constraint types are simple, in that the CLUS model does not allow any forest harvest to occur in these zones throughout the duration of the simulation. Area-based constraints are slightly more complicated, as they require specific conditions to be met for forest harvest to be permitted by the model in the zone. Thus, at each time interval, CLUS evaluates the constraint criteria that you specified for each zone, and if it's met, the remainder of the zone can be harvested, whereas if it's not met, it is not harvested until the criteria is met in the future. For example, if you require a zone to be 33% greater than 140 year old forest, at each time interval CLUS will identify and add up the pixels in the zone that meet the >140 year old age criteria, and restrict harvest in those pixels, up until the total number of pixels is above the identified threshold (33%). The remainder of the zone will be available to harvest. If the threshold is not met, the zone is not harvested.        
+
+Here we go through an example where you are adding the 'no harvest' zone that you created to a scenario. In the *forestryCLUS_tutorial.Rmd* you can now include the raster you created (i.e., *rast.raster_test*, or whatever name you used; note: remember to include the *rast.* prefix, which refers to the schema in the PostgreSQL database where the raster data is stored) in the list of *nameZoneRasters*. 
 
 Also, copy the *scenario* object and paste it below the existing object. 'Comment out' the previously used BAU scenario object and edit the scenario you copied. It is good practice to keep the previously used *scenario* objects so you can see which scenarios were completed, and re-use them, if corrections or changes are necessary later. 
 
@@ -737,6 +745,27 @@ Change the *name* parameter in the copied *scenario* object to identify your alt
 Once, that is done, click the 'Play' arrow again in the code chunk and let the simulation complete. 
 
 You are welcome to try additional scenarios here if you like, for example, adjusting the harvest queue, but remember to use unique *scenario* parameter *names* for each, or else you will copy over previous results. 
+
+### 9.1 Modfying Constraints in Raster Zones
+You can also change the constraints that are being applied within a raster zone. Recall that the *zoneConstraints* table in the SQLite database is a copy of the zone.constraints table (the *nameZoneTable* parameter in *dataLoaderCLUS*) in the CLUS database that applies to your area and scenarios of interest. You can query and importantly modify the *zoneConstraints* table after you create a SQLite database in *dataLoaderCLUS*. For example, if you want to change a raster zone from 'no harvest' (nh), to a zone that allows for harvest, but within some limits, you can use an SQL query to UPDATE the table. For example, below we modify the *zoneConstraints* table (UPDATE zoneconstraints) for the *raster_test* zone that you created (WHERE reference_zone = 'rast.raster_test') to an age based area constraint. Here we change (i.e., "SET") the *type* from no harvest ('nh') to allow for harvest up to 33% of the zone ("percentage = 33"), where 33% of the zone must be greater than or equal to (type = 'ge'), 140 year old forest ("threshold = 140" and variable = 'age'). Note that if you have multiple zones (*zoneid*) in a raster zone you can add an 'AND' statement to teh query to apply the modification to a specific zone in your raster (e.g., zoneid = 1). 
+
+```{r, modify zone constraints,  message = F, echo = T, eval = F}
+require (DBI)
+# 1. Connect to the SQLite database
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite")) # insert your database name here
+
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 33 reference_zone = 'rast.raster_test' AND zoneid = 1") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.raster_test' AND zoneid = 1") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 140 where reference_zone = 'rast.raster_test' AND zoneid = 1") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.raster_test' AND zoneid = 1") 
+
+# Could also be written as:
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 33, type = 'ge', threshold = 140, variable = 'age' WHERE reference_zone = 'rast.raster_test' AND zoneid = 1") 
+
+dbDisconnect(clusdb)
+```
+
+If you can experiment with modifying constraints to see their effect on various indicators. However, note that if you make a change to an SQLite table, it will be permanent, and you will have to run another UPDATE query to change it back to the original setting.
 
 ## 10. Checking Scenario Outputs
 As described above, the *uploaderCLUS* module is where you define the parameters for where simulation outputs are stored. We currently store this output data in a PostgreSQL database deployed on a virtual machine under a Compute Canada account. You can use the PGAdmin software to connect to the database and navigate to the outputs. You will need to obtain the credentials from the CLUS team to make the connection. 
