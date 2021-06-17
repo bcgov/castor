@@ -16,7 +16,7 @@ library(keyring)
 ### 1. Create the keyring
 First, you will create a keyring. This information gets put into the Windows "Credentials Manager". Name the keyring "postgreSQL", so that it is consistent with other CLUS users, and because we "hard code" this name into the CLUS code.
 
-When you run the *keyring_create()* function you will be prompted to add a password that will be used to open the keyring. This will be the password you use at the start of an R session. You can keep this simple as you will be the primary, and likley only user on your computer.
+When you run the *keyring_create()* function you will be prompted to add a password that will be used to open the keyring. This will be the password you use at the start of an R session. You can keep this simple as you will be the primary, and likely only user on your computer.
 
 ```{r, create}
 keyring_create("postgreSQL") 

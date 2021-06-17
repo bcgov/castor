@@ -166,7 +166,7 @@ setConstraints<- function(sim) {
     
     if(nrow(numConstraints) > 0){
       for(k in 1:nrow(numConstraints)){
-        query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, multi_condition, 
+        query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, multi_condition, denom,
                                                         CASE WHEN type = 'ge' THEN ROUND((percentage*1.0/100)*t_area, 0)
                                                              ELSE ROUND((1-(percentage*1.0/100))*t_area, 0)
                                                         END AS limits
@@ -180,7 +180,7 @@ setConstraints<- function(sim) {
               if(as.character(query_parms[1, "variable"]) == 'dist' ){
                 sql<-paste0("UPDATE pixels SET zone_const = 1
                         WHERE pixelid IN ( 
-                        SELECT pixelid FROM pixels WHERE own = 1 and treed=1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                        SELECT pixelid FROM pixels WHERE own = 1 and treed = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
                         " ORDER BY CASE WHEN ", as.character(query_parms[1, "variable"]),">= :threshold then 0 else 1 end, ",as.character(query_parms[1, "variable"])," DESC,  age DESC
                         LIMIT :limits);")
                 dbBegin(sim$clusdb)

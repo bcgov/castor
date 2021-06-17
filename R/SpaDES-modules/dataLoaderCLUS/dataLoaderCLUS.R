@@ -104,6 +104,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         sim <- createCLUSdb(sim) # function (below) that creates an SQLLite database
         #populate clusdb tables
         sim <- setTablesCLUSdb(sim)
+        sim <- setZoneConstraints(sim)
         sim <- setIndexesCLUSdb(sim) # creates index to facilitate db querying?
         sim <- updateGS(sim) # update the forest attributes
         sim <- scheduleEvent(sim, eventTime = 0,  "dataLoaderCLUS", "forestStateNetdown", eventPriority=90)
@@ -190,7 +191,7 @@ createCLUSdb <- function(sim) {
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, dec_pcnt numeric, height numeric, eca numeric)")
   #Note Zone table is created as a JOIN with zoneConstraints and zone
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, denom TEXT DEFAULT '', multi_condition text, t_area numeric)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, denom text, multi_condition text, t_area numeric)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
 own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, treed integer, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric, dist numeric DEFAULT 0,
 crownclosure numeric, height numeric, siteindex numeric, dec_pcnt numeric, eca numeric, roadyear integer)")
@@ -310,36 +311,6 @@ setTablesCLUSdb <- function(sim) {
       } else{
         stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameZoneRasters")))
       }
-    }
-    # zone_constraint table
-    if(!P(sim)$nameZoneTable == '99999'){
-      zone<-dbGetQuery(sim$clusdb, "SELECT * FROM zone") # select the name of the raster and its column name in pixels
-      #Select only those constraints that pertain to the study area
-      zone_const<-getTableQuery(paste0("SELECT * FROM ", P(sim)$nameZoneTable, " WHERE reference_zone IN('",
-                                       paste(zone$reference_zone, sep ="", collapse ="','" ),"');")) # get all zones across the province from the zone table in the pgdb
-      
-      zone_const<-merge(zone_const, zone, by = 'reference_zone') #merge the two together so that the provincial constraints include the zonecolumn from pixels
-    
-      #for each constraint zone estimate the total area from which to apply the constraint
-      zones<-lapply(zone$zone_column, function (x){ 
-        distinct_zones<-pixels[own == 1, .(t_area=uniqueN(pixelid)), by = x]
-        distinct_zones[, zone_column:= x]
-        setnames(distinct_zones, x, "zoneid")
-        distinct_zones
-      })
-      zones<-rbindlist(zones) #unlist the list of data.tables
-      
-      zones<-zones[!is.na(zoneid),] #remove the NA (border pixels)
-      zones<-merge(zones, zone_const, by.x = c("zone_column", "zoneid"), by.y = c("zone_column", "zoneid"))
-
-      dbBegin(sim$clusdb)
-      rs<-dbSendQuery(sim$clusdb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, multi_condition, t_area ) 
-                      values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :multi_condition, :t_area)", zones)
-      dbClearResult(rs)
-      dbCommit(sim$clusdb)
-      
-    }else{
-      stop(paste0(P(sim)$nameZoneTable, "...nameZoneTable not supplied"))
     }
   } else{
     message('.....zone ids: default 1')
@@ -750,25 +721,6 @@ setTablesCLUSdb <- function(sim) {
   
   rm(pixels)
   gc()
-  
-  #Update the t_area column to be the area forested for "dist" variable constraints
-  t_area2for_area<-dbGetQuery(sim$clusdb, "SELECT  zoneid, zone_column FROM zoneConstraints WHERE variable = 'dist'")
-  if(nrow(t_area2for_area) > 0){
-    for_Area<-lapply(unique(t_area2for_area$zone_column), function (x){
-      dbGetQuery(sim$clusdb, paste0("SELECT  count() as t_area, ",x," as zoneid, '",x,"' as zone_column FROM pixels WHERE treed = 1 AND ", x," is not NULL group by ",x))
-    })
-    for_Area<-rbindlist(for_Area)
-    
-    #merge
-    for_area_parms<-merge(t_area2for_area, for_Area, all.x = TRUE)
-    dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE zoneConstraints set t_area = :t_area WHERE zoneid = :zoneid AND zone_column =:zone_column", for_area_parms)
-    dbClearResult(rs)
-    dbCommit(sim$clusdb)
-    
-    #For NA t_Area in zoneConstraints set to 0
-    dbExecute(sim$clusdb, "Update zoneConstraints set t_area = 0 where t_area is NULL;")
-  }
   return(invisible(sim))
 }
 setIndexesCLUSdb <- function(sim) {
@@ -802,7 +754,64 @@ setIndexesCLUSdb <- function(sim) {
 #   #writeRaster(thlb.ras, "thlb.tif")
 #   return(invisible(sim))
 # }
-
+setZoneConstraints<-function(sim){
+  message("... setting ZoneConstraints table")
+  # zone_constraint table
+  if(!P(sim)$nameZoneTable == '99999'){
+    zone<-dbGetQuery(sim$clusdb, "SELECT * FROM zone") # select the name of the raster and its column name in pixels
+    zone_const<-rbindlist(lapply(split(zone, seq(nrow(zone))) , function(x){
+      if(nrow(dbGetQuery(sim$clusdb, paste0("SELECT distinct(", x$zone_column,") from pixels where ", x$zone_column, " is not null")))>0){
+        getTableQuery(paste0("SELECT * FROM ", P(sim)$nameZoneTable, " WHERE reference_zone = '", x$reference_zone,
+                           "' AND zoneid IN(",paste(dbGetQuery(sim$clusdb, paste0("SELECT distinct(", x$zone_column,") as zoneid from pixels where ", x$zone_column, " is not null"))$zoneid, sep ="", collapse ="," ),");"))
+      }
+    }))
+    
+    zone_list<-merge(zone_const, zone, by.x = 'reference_zone',by.y = 'reference_zone')
+    
+    
+    #Split into two sections: one for denom values, the other for default denom which is the total area of the zone
+    zone_const_default<-zone_list[is.na(denom),]
+    zone_const_denom<-zone_list[!is.na(denom),]
+    
+    #Get total area of the zone
+    if(nrow(zone_const_default)>0){
+      t_area_default<-rbindlist(lapply(unique(zone_const_default$zone_column), function (x){
+        dbGetQuery(sim$clusdb, paste0("SELECT count() as t_area, ", x, " as zoneid, '", paste0(x), "' as zone_column from pixels where ", x, " is not null group by ", x)) 
+      }))
+    }else{
+      t_area_default<-data.table( t_area=as.numeric(), zoneid=as.integer(),zone_column=as.character())
+    }
+    #Get total area where some inequality holds
+    if(nrow(zone_const_denom)>0){
+      t_area_denomt<-rbindlist(lapply(split(zone_const_denom, seq(nrow(zone_const_denom))), function (x){
+        dbGetQuery(sim$clusdb, paste0("SELECT count() as t_area, ", x$zone_column, " as zoneid, '", paste0(x$zone_column), "' as zone_column from pixels where ", x$denom, " and ", x$zone_column, " = ", x$zoneid)) 
+      })) 
+    }else{
+      t_area_denomt<-data.table( t_area=as.numeric(), zoneid=as.integer(),zone_column=as.character())
+    }
+    
+    t_area<<-rbindlist(list(t_area_denomt,t_area_default))
+    zones<-merge(zone_list, t_area, by.x = c("zone_column", "zoneid"), by.y = c("zone_column", "zoneid"))
+    
+    #TODO:REMOVE THIS
+    if(nrow(t_area_denomt) > 0){
+      dbBegin(sim$clusdb)
+      rs<-dbSendQuery(sim$clusdb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, multi_condition, t_area, denom ) 
+                      values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :multi_condition, :t_area, :denom)", zones)
+      dbClearResult(rs)
+      dbCommit(sim$clusdb)
+    }else{
+        dbBegin(sim$clusdb)
+        rs<-dbSendQuery(sim$clusdb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, multi_condition, t_area) 
+                      values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :multi_condition, :t_area)", zones[,c('zoneid', 'zone_column', 'reference_zone', 'ndt','variable', 'threshold', 'type', 'percentage', 'multi_condition', 't_area')])
+        dbClearResult(rs)
+        dbCommit(sim$clusdb)
+      }
+  }else{
+    stop(paste0(P(sim)$nameZoneTable, "...nameZoneTable not supplied"))
+  }
+  return(invisible(sim))
+}
 calcForestState<-function(sim){
 sim$foreststate<- data.table(dbGetQuery(sim$clusdb, paste0("SELECT compartid as compartment, sum(case when compartid is not null then 1 else 0 end) as total, 
            sum(thlb) as thlb, sum(case when age <= 40 and age >= 0 then 1 else 0 end) as early,
