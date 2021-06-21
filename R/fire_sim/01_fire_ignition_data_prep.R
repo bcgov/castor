@@ -27,6 +27,8 @@ require (RPostgreSQL)
 require (rpostgis)
 require (fasterize)
 require (dplyr)
+library(keyring)
+library(gdal)
 
 source(here::here("R/functions/R_Postgres.R"))
 
@@ -50,17 +52,21 @@ current.ignit<- current.ignit %>%
 ignition<- rbind(historic.ignit, current.ignit)
 
 ignition1 <- ignition %>% 
-  filter(FIRE_YEAR>2001) %>%
-  filter(FIRE_TYPE == "Fire" | FIRE_TYPE=="Nuisance Fire") 
+  filter(FIRE_YEAR>2001) %>% ##Select for years 2002 beyond
+  filter(FIRE_TYPE == "Fire" | FIRE_TYPE=="Nuisance Fire") #Select fire type for ones desired
 
 st_write(ignition1, dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp")
+##Open in QGis to assess; see one physical outlier in middle of ocean
 
 
 ## Load ignition data into postgres (either my local one or Kyles)
-host=keyring::key_get('dbhost', keyring = 'postgreSQL')
-user=keyring::key_get('dbuser', keyring = 'postgreSQL')
-dbname=keyring::key_get('dbname', keyring = 'postgreSQL')
-password=keyring::key_get('dbpass', keyring = 'postgreSQL')
+#host=keyring::key_get('dbhost', keyring = 'postgreSQL')
+#user=keyring::key_get('dbuser', keyring = 'postgreSQL')
+#dbname=keyring::key_get('dbname', keyring = 'postgreSQL')
+#password=keyring::key_get('dbpass', keyring = 'postgreSQL')
 
-ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
+ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
 # I wrote this to both places KylesClus and my local postgres
+# https://gdal.org/programs/ogr2ogr.html
