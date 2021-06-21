@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 #=================================
-#  Script Name: 01_climate_data_prep.R
+#  Script Name: 02_climate_data_prep.R
 #  Script Version: 1.0
 #  Script Purpose: This script obtains the lat, long coordinates of fire ignition locations and samples locations where fires were not observed to start. It then creates a csv file with these locations that can be used to manually extract monthly average climate variables from climateBC (http://climatebc.ca/) for all years 2002 to 2020. This range of dates was chosen because it is the years that we have VRI data for. To extract the climate data I use the app that climateBC provides. The version I used of the app is climateBC_v700. This version was released on 27 April 2021 and includes 13 General Circulation Models from the CMIP6. It also has a different normal period (1991 - 2020).  After the climate data has been extracted from climateBC this data is reimported into this script and the mean monthly drought code for the months  May - September is calculated for each year. From this script I get the maximum temperature, minimum temperature, average temperature, total precipitation, and mean monthly drought code for the months May - September for each year 2002 - 2020 for all fire ignition locations and randomly sampled (available fire ignition locations (fire absence)) points on the landscape 
 #  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
