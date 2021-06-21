@@ -79,6 +79,7 @@ pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRU
 DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
                   value = pgdbs_data_list_new, 
                   row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
 ```
 
 If an existing dataset is updated in the database, the *last_updated* and *next_update* fields needs to be updated and documented in the tracking table (pgdbs_data_list).  
@@ -1525,6 +1526,66 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   value = pgdbs_data_list_new, 
                   row.names = FALSE, overwrite = TRUE)
 
+dbDisconnect(conn)
+
+
+
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'public', 
+                        table_name = 'uwr_20210621', 
+                        type = 'polygon', 
+                        script = 'ogr2ogr', 
+                        source = 'https://catalogue.data.gov.bc.ca/dataset/ungulate-winter-range-approved', 
+                        public = 'Yes', 
+                        last_updated = '2021', 
+                        next_update = '2022', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+# merge tables
+pgdbs_data_list_new <- merge (pgdbs_data_list, new_data, all = T)
+# OR
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+
+
+new_data <- data.table (computer = 'DC052586',  
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = 'zone_uwr_2021', 
+                        type = 'raster',
+                        script = 'clus\\R\\Params\\uwr_cond_harvest.Rmd', 
+                        source = 'unglate winter ranges: https://catalogue.data.gov.bc.ca/dataset/ungulate-winter-range-approved', 
+                        public = 'Yes', 
+                        last_updated = '2021', 
+                        next_update = '2022', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+new_data1 <- data.table (computer = 'DC052586',  
+                        database = 'clus', 
+                        schema = 'zone', 
+                        table_name = 'uwr_2021', 
+                        type = 'table',
+                        script = 'clus\\R\\Params\\uwr_cond_harvest.Rmd', 
+                        source = 'unglate winter ranges: https://catalogue.data.gov.bc.ca/dataset/ungulate-winter-range-approved', 
+                        public = 'Yes', 
+                        last_updated = '2021', 
+                        next_update = '2022', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data1))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
 

@@ -365,7 +365,7 @@ parameters <-  list( # list of all parameters in the model, by module
                          nameZoneRasters = c("rast.zone_cond_beo", 
                                              "rast.zone_cond_vqo", 
                                              "rast.zone_cond_wha", 
-                                             "rast.zone_cond_uwr",
+                                             "rast.zone_uwr_2021", # "rast.zone_cond_uwr"
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", 
                                              "rast.zone_cond_cw",
@@ -441,7 +441,7 @@ The next set of parameters are the *nameZoneRasters* and *nameZoneTable*. In the
 * rast.zone_cond_beo 
 * rast.zone_cond_vqo
 * rast.zone_cond_wha 
-* rast.zone_cond_uwr
+* rast.zone_uwr_2021; NOTE: previous version is called rast.zone_cond_uwr
 * rast.zone_cond_fsw 
 * rast.zone_cond_nharv 
 * rast.zone_cond_cw
@@ -450,7 +450,7 @@ You will notice each of these are in the "rast" schema of the database and have 
 
 Several of the parameters were created in the [prov_manage_objs.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/prov_manage_objs.Rmd). Specifically, biodiversity emphasis option (BEO) zones (i.e., landscape units) are spatially defined as *rast.zone_cond_beo*, using the [Biodiversity Guidebook](https://www.for.gov.bc.ca/ftp/hfp/external/!publish/FPC%20archive/old%20web%20site%20contents/fpc/fpcguide/BIODIV/chap1.htm#bid), visual quality constraints are spatially defined as *rast.zone_cond_vqo*, fisheries sensitive watersheds and equivalent clearcut area are spatially defined as *rast.zone_cond_fsw*, spatial "no harvest" areas, including spatial old growth management areas (OGMAs) and parks and protected areas, are spatially defined as *rast.zone_cond_nharv* and community watershed areas are spatially defined as *rast.zone_cond_cw*. 
 
-Wildlife-specific parameters, including wildlife habitat areas (WHAs) and ungulate winter ranges (UWRs) are defined in separate scripts. WHAs are spatially defined as *rast.zone_cond_wha* in the [wha_cond_harvest.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/wha_cond_harvest.Rmd). UWRs are spatially defined as *rast.zone_cond_uwr* in the [wha_cond_harvest.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/uwr_cond_harvest.Rmd). 
+Wildlife-specific parameters, including wildlife habitat areas (WHAs) and ungulate winter ranges (UWRs) are defined in separate scripts. WHAs are spatially defined as *rast.zone_cond_wha* in the [wha_cond_harvest.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/wha_cond_harvest.Rmd). UWRs are spatially defined as *rast.zone_uwr_2021* (NOTE: previous version called *rast.zone_cond_uwr*) in the [uwr_cond_harvest.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/uwr_cond_harvest.Rmd). 
 
 As standard practice we typically include all of these in the "business-as-usual" or "base case" forestry simulation scenarios. These are existing land use orders that should be incorporated in scenarios that are meant to represent current forest management. 
 
@@ -614,7 +614,7 @@ parameters <- list(
                            nameZoneRasters = c("rast.zone_cond_beo", 
                                              "rast.zone_cond_vqo", 
                                              "rast.zone_cond_wha", 
-                                             "rast.zone_cond_uwr",
+                                             "rast.zone_uwr_2021", # "rast.zone_cond_uwr"
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", 
                                              "rast.zone_cond_cw"
@@ -738,7 +738,7 @@ Now you can 'Run' the scenario and you will see a green 'line' down the side of 
 ## 9. Running Alternative Scenarios in forestryCLUS
 Once you complete the BAU scenario, you can run an alternative scenario. The CLUS framework is designed to facilitate this process, by allowing you to include or remove zone rasters (the *nameZoneRasters* parameters) in a given scenario, equivalent to turning management zones "off" or "on" to estimate their effects on the indicators of interest. 
 
-We include many zones in a scenario that represent legal land use orders that are applied provincially, including, for example, visual quality objectives (rast.zone_cond_vqo), ungulate winter ranges (rast.zone_cond_uwr) and community watersheds (rast.zone_cond_cw). Within these rasters are integer identifiers that identify the spatial location of a zone. Thus, there can be and often are multiple zones in a raster, each represented by a unique integer. These integers are equivalent to the *zoneid* in the *zone.constraints* table where a specific constraint is defined for each zone. No harvest ('nh') constraint types are simple, in that the CLUS model does not allow any forest harvest to occur in these zones throughout the duration of the simulation. Area-based constraints are slightly more complicated, as they require specific conditions to be met for forest harvest to be permitted by the model in the zone. Thus, at each time interval, CLUS evaluates the constraint criteria that you specified for each zone, and if it's met, the remainder of the zone can be harvested, whereas if it's not met, it is not harvested until the criteria is met in the future. For example, if you require a zone to be 33% greater than 140 year old forest, at each time interval CLUS will identify and add up the pixels in the zone that meet the >140 year old age criteria, and restrict harvest in those pixels, up until the total number of pixels is above the identified threshold (33%). The remainder of the zone will be available to harvest. If the threshold is not met, the zone is not harvested.        
+We include many zones in a scenario that represent legal land use orders that are applied provincially, including, for example, visual quality objectives (rast.zone_cond_vqo), ungulate winter ranges (rast.zone_uwr_2021 or rast.zone_cond_uwr) and community watersheds (rast.zone_cond_cw). Within these rasters are integer identifiers that identify the spatial location of a zone. Thus, there can be and often are multiple zones in a raster, each represented by a unique integer. These integers are equivalent to the *zoneid* in the *zone.constraints* table where a specific constraint is defined for each zone. No harvest ('nh') constraint types are simple, in that the CLUS model does not allow any forest harvest to occur in these zones throughout the duration of the simulation. Area-based constraints are slightly more complicated, as they require specific conditions to be met for forest harvest to be permitted by the model in the zone. Thus, at each time interval, CLUS evaluates the constraint criteria that you specified for each zone, and if it's met, the remainder of the zone can be harvested, whereas if it's not met, it is not harvested until the criteria is met in the future. For example, if you require a zone to be 33% greater than 140 year old forest, at each time interval CLUS will identify and add up the pixels in the zone that meet the >140 year old age criteria, and restrict harvest in those pixels, up until the total number of pixels is above the identified threshold (33%). The remainder of the zone will be available to harvest. If the threshold is not met, the zone is not harvested.        
 
 Here we go through an example where you are adding the 'no harvest' zone that you created to a scenario. In the *forestryCLUS_tutorial.Rmd* you can now include the raster you created (i.e., *rast.raster_test*, or whatever name you used; note: remember to include the *rast.* prefix, which refers to the schema in the PostgreSQL database where the raster data is stored) in the list of *nameZoneRasters*. 
 
