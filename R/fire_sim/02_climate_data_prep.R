@@ -29,30 +29,33 @@ library(ggplot2)
 
 source(here::here("R/functions/R_Postgres.R"))
 
+#Get BEC data
 bec<-getSpatialQuery("SELECT objectid, feature_class_skey, zone, subzone, natural_disturbance, zone_name, wkb_geometry FROM public.bec_zone")
 
-bec<-st_transform(bec, 3005)
+bec<-st_transform(bec, 3005) #transform coordinate system to 3005, which refers to BC, Canada
+# EPSG:3005 Projected coordinate system for Canada - British Columbia. This CRS name may sometimes be used as an alias for NAD83(CSRS) / BC Albers.
 #plot(bec[, "zone"]) # check we got the whole province
 
 # import fire ignition data
 fire.ignition<-getSpatialQuery("SELECT * FROM public.bc_fire_ignition")# this file has historic and current year fires joined together. 
-fire.ignition<-st_transform(fire.ignition, 3005)
+fire.ignition<-st_transform(fire.ignition, 3005) #transform coordinate system to 3005 - that for BC, Canada
 
-prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T)
-st_crs(prov.bnd)
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
 prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
-bc.bnd <- st_transform (prov.bnd, 3005)
+bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system
 fire.ignition.clipped<-fire.ignition[bc.bnd,] # making sure all fire ignitions have coordinates within BC boundary
 # note clipping the fire locations to the BC boundary removes a few ignition points in several of the years
 
 
-bec_sf<-st_as_sf(bec)
-bec_sf_buf<- st_buffer(bec_sf, 0)
-fire.ignition_sf<-st_as_sf(fire.ignition.clipped)
+bec_sf<-st_as_sf(bec) #Convert foreign object to an sf object (collection of simple features that includes attributes and geometries in the form of a data frame. In other words, it is a data frame (or tibble) with rows of features, columns of attributes, and a special geometry column that contains the spatial aspects of the features)
+bec_sf_buf<- st_buffer(bec_sf, 0) # encircles a geometry object at a specified distance and returns a geometry object that is the buffer that surrounds the source object. Set buffer to 0 here.
+fire.ignition_sf<-st_as_sf(fire.ignition.clipped) #convert to sf object
 
 #doing st_intersection with the whole bec and fire ignition files is very very slow! 
 
-fire.igni.bec<- st_intersection(fire.ignition_sf, bec_sf_buf)
+fire.igni.bec<- st_intersection(fire.ignition_sf, bec_sf_buf) # ST_Intersects is a function that takes two geometries and returns true if any part of those geometries is shared between the 2
+# ST_Intersection in conjunction with ST_Intersects is very useful for clipping geometries such as in bounding box, buffer, region queries where you only want to return that portion of a geometry that sits in a country or region of interest
 
 #write samp_locations_df to file because it takes so long to make
 # save data 

@@ -30,7 +30,7 @@ require (dplyr)
 
 source(here::here("R/functions/R_Postgres.R"))
 
-
+#Below is currently on the D-drive of my computer. Will need to be in clusdb eventually.
 historic.ignit <- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Ignition_point_locations\\PROT_HISTORICAL_INCIDENTS_SP\\H_FIRE_PNT_point.shp", stringsAsFactors = T)
 
 current.ignit <- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\Current_Fire_Ignition_point_locations\\PROT_CURRENT_FIRE_PNTS_SP\\C_FIRE_PNT_point.shp", stringsAsFactors = T)
@@ -56,7 +56,7 @@ ignition1 <- ignition %>%
 st_write(ignition1, dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp")
 
 
-## Load ignigition data into postgres (either my local one or Kyles)
+## Load ignition data into postgres (either my local one or Kyles)
 host=keyring::key_get('dbhost', keyring = 'postgreSQL')
 user=keyring::key_get('dbuser', keyring = 'postgreSQL')
 dbname=keyring::key_get('dbname', keyring = 'postgreSQL')

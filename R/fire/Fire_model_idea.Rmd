@@ -104,12 +104,15 @@ Also see Andrews PL (2018) The Rothermel Surface Fire Spread Model and Associate
 ##Addtional thoughts and considerations added by Cora Skaien
 1. Liz captures most of my initial thoughts above (lightening versus human caused fires may need to be modelled separate at least initially, projecting climate and vegetation change into the future for the models, )
 2. How to best combine human and lightening predicted fire data once complete? Additive effects in some areas that may have medium to high probabilities for both.
-3. Do we have data on where thunderstorms are most likely to occur (e.g., specific mountain ranges and how weather patterns interact with them)?
-4. recently burned areas less like to burn again: create probability map for areas where prescribed burns occurred. Could use data where prescribed burns occurred over last 20+ years and data where natural foprest fires occurred and create probability map using each pixel, considering occurence and intensity of wildfires (if any) after prescribed burns. Compare to control pixels randomly selected but with similar environmental variables to areas that were selected for prescribed burn.
-5. Current models being run assume all fires and stand replacing. Consider lower intensity fires as well for relevant BEC zones?
+   # See STSM2020_p5_AdvancedComponents file for section 1.5 for parameter table for how to incorporate mutiple influences (0/1)
+3. Do we have data on where thunderstorms are most likely to occur (e.g., specific mountain ranges and how weather patterns interact with them)? Lightning strike data --> Tyler thinks this might already be incorporated.
+4. recently burned areas less like to burn again: create probability map for areas where prescribed burns occurred. Could use data where prescribed burns occurred over last 20+ years and data where natural forest fires occurred and create probability map using each pixel, considering occurrence and intensity of wildfires (if any) after prescribed burns. Compare to control pixels randomly selected but with similar environmental variables to areas that were selected for prescribed burn.
+5. Current models being run assume all fires and stand replacing. Consider lower intensity fires as well for relevant BEC zones? Find any sources or data that indicate fire severity.
 6. Some models in Marchal et al. 2020 are already available in SPaDES. Check these out and see if any are relevant and useful?
-7. We need to determine how to best model how our forest composition changes after disturbance given different forest types compared to Quebec.
-
+7. We need to determine how to best model how our forest composition changes after disturbance given different forest types compared to Quebec. Often we have deciduous pop up I believe still in the interior --> is this true for all BEC zones?
+8. Is there any data on rates of conversion of wetlands to forest? Much of the open water part is exclusively open water, so maybe this is not a concern, but wetlands are likely ot burn less unless converted I assume.
+9. Consider (semi-)natural fire breaks, such as roads, when considering spread. Logging roads vs paved roads as fire breaks? Look into. This will be important for the spread model.
+10. Predicted climate change (monthly drought index, etc) with Web app to explore CMIP6 projections for BC if not already incorporated.
 
 
 ##Notes on Pariesen et al. 2019. Applications of simulation-based burn probability modelling: a review
