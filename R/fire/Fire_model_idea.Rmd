@@ -139,4 +139,6 @@ Four key types of outputs: (1) ignition points; (2) associated fire perimeter; (
 
 Three key purposes of BP models: (1) direct examination; (2) neighbourhood processes; (3) hazard and risk. Direct examination is often a direct comparison, with fire maps side by side for different scenarios, or a 'difference' map that represents differences between two scenarios. Neighbourhood processes tell us where fires arecoming from relaive to an area of concewrn, and can also assess "source-sink" ratio to describe each pixel's propensity for producing or receiving a fire -- potential applications for between regions such as BEC zones too. Fire hazard combined fire probability and a quantitative assessment of fire behaviour; wildland fire risk is a product of fire likelihood and potential impacts of wildfire (positive and negative). This can apply to estimating expected financial losses, ecological habitat change and carbon emissions. 
 
+An element not included in any models in Canada is long distance spotting events, and they suggest that making fuel breaks partially flammable can help partially account for this short-fall.
+
 
