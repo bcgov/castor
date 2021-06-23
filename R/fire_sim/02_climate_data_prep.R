@@ -313,12 +313,16 @@ table(samp_locations_sf$fire_year, samp_locations_sf$fire_type) # There are 10% 
 
 # If an error message appears when you run these csv files in climateBC make sure that when the csv was written an extra column was not added. row.names=FALSE should prevent this.
 
+
+
+
 ########### Acquiring and Appending Climate Data ########
 # Each time the above is ran, below will need to be repated.
 ### See http://climatebc.ca/Help for how to use ClimateBC to get the climate data. 
 # You will need to download ClimateBC (http://climatebc.ca/downloads/download.html) and use the files generated in the first code chunk below.
-# In the Multi-Location section, select "Annual Data" and select the appropriate year for each individual file. Then upload each year, one at a time, and specify an output file location.
-## Note that 2007 and 2008 each have 200-300 points whereas other years have 15,000. This might be something to think about.
+# In the Multi-Location section, select "Annual Data" and select the appropriate year for each individual file. In the bootm drop down menu, select "monthly variables". 
+# Then upload each year, one at a time, and specify an output file location.
+## Note that 2007 and 2008 each have 200-300 points whereas other years have 15,000. This is becausemost fires in these 2 years were designated as human caused as opposed to lightning.
 # 2007 and 2008 have almost exclusively nuisance fires, which makes me think that data is missing
 
 
@@ -422,32 +426,21 @@ samp_locations_sf$fire_year <- as.numeric(as.character(samp_locations_sf$fire_ye
 
 # Now join DC.ignitions back with the original fire ignition dataset
 ignition_weather<-left_join(DC.ignitions1, samp_locations_sf) #This is the step where we end up with 2 different lat/longs per row
-#Idno between two have different lat long
-head(ignition_weather) #Lat -Longs do not match
+head(ignition_weather) #Lat -Longs match
 dim(ignition_weather) 
 st_crs(ignition_weather) #Answer NA
 head(ignition_weather) #Note, there are 2 Lat/Long columns, and they have different values for some reason
 ignition_weather_crs <- st_as_sf(ignition_weather)
 crs(ignition_weather_crs)
 ignition_weather_crs<- st_transform(ignition_weather_crs, 3005)
+crs(ignition_weather_crs)
 
 # Check the points line up with BC boundaries!
 ggplot() +
   geom_sf(data=bc.bnd, col='red') +
-  geom_sf(data=ignition_weather_crs, col='black') # looks good!
-#If open on QGIS, however, one outlier in middle of ocean. This first occurs at end of intersect near start of code.
+  geom_sf(data=ignition_weather_crs, col='black') #looks good
+#If orandom points appear in middle of ocean, open in QGIS to get points.
 
-##If in above, get outlier datapoints, we may need to exclude them (despite the GPS coordinates looking correct)
-# Remove ID: 48187, 79319, 79320, 79321, 79322, 79323, 79326, 79327, 79329, 79330, 79333, 156933, 156934, 171019
-ignition_weather_crs2<-subset(ignition_weather_crs, ignition_weather_crs$idno!="48187")
-ignition_weather_crs2<-subset(ignition_weather_crs2, ignition_weather_crs2$idno!="79319")
-# ... and so forth
-
-
-#
-ggplot() +
-  geom_sf(data=bc.bnd, col='red') +
-  geom_sf(data=ignition_weather_crs, col='black')
 
 # A check of the fire ignition counts per year line up with the original data. So the number of fire ignitions seem good. 
 
