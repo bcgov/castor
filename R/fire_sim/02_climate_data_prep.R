@@ -435,7 +435,7 @@ ignition_weather_crs<- st_transform(ignition_weather_crs, 3005)
 ggplot() +
   geom_sf(data=bc.bnd, col='red') +
   geom_sf(data=ignition_weather_crs, col='black') # looks good!
-#If open on QGIS, however, one outlier in middle of ocean. This also occurs in layer at end of 01 file.
+#If open on QGIS, however, one outlier in middle of ocean. This first occurs at end of intersect near start of code.
 
 ##If in above, get outlier datapoints, we may need to exclude them (despite the GPS coordinates looking correct)
 # Remove ID: 48187, 79319, 79320, 79321, 79322, 79323, 79326, 79327, 79329, 79330, 79333, 156933, 156934, 171019
