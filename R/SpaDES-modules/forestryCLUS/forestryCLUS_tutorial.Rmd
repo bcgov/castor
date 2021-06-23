@@ -93,7 +93,7 @@ parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list (  dbName='clus',
-                           save_clusdb = TRUE,
+                           save_clusdb = FALSE,
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite"),
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
@@ -212,72 +212,5 @@ system.time({mysimout<-spades(mySim)})
 ```
 
 
-
-## Modify Constraints
-
-```{r, zone_update}
-library (DBI)
-# STEP 1: Connect to the clusdb.sqlite database for the AOI
-clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
-
-# STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_columbia_north_crithab_or_herd'")
-
-
-# COLUMBIA NORTH Update the constraints available to a zone as specified in the scenario
-# Below makes the matrix habitat available to harvest
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_eccc_columbia_north_crithab_or_herd' AND zoneid = 1") 
-
-
-# COLUMBIA NORTH Update the constraints available to a zone as specified in the scenario
-#Below will set Columbia North old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 19) OR (zoneid = 34) OR (zoneid = 48)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 63) OR (zoneid = 64)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 63) OR (zoneid = 64)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 5) OR (zoneid = 6) OR (zoneid = 20) OR (zoneid = 21) OR (zoneid = 35) OR (zoneid = 36) OR (zoneid = 61) OR (zoneid = 65) OR (zoneid = 66) OR (zoneid = 67) OR (zoneid = 69)") 
-#Below will set Columbia North old and recruit as no harvest and matrix as 35% disturbance (no buffer)
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 19) ")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 63) OR (zoneid = 64)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 63) OR (zoneid = 64)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 5) OR (zoneid = 6) OR (zoneid = 20) OR (zoneid = 21) OR (zoneid = 35) OR (zoneid = 36) OR (zoneid = 61) OR (zoneid = 65) OR (zoneid = 66) OR (zoneid = 67) OR (zoneid = 69) OR (zoneid = 34) OR (zoneid = 48)") 
-
-
-# COLUMBIA SOUTH 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 5) OR (zoneid = 20) OR (zoneid = 35) OR (zoneid = 49)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 65") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 65")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 6) OR (zoneid = 19) OR (zoneid = 21) OR (zoneid = 34) OR (zoneid = 36) OR (zoneid = 61) OR (zoneid = 64) OR (zoneid = 66) OR (zoneid = 67) OR (zoneid = 69)") 
-#Below will set Columbia SOuth old and recruit as no harvest and matrix as 35% disturbance (no buffer)
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 5) OR (zoneid = 20)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 65") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 65")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 6) OR (zoneid = 19) OR (zoneid = 21) OR (zoneid = 34) OR (zoneid = 35) OR (zoneid = 36) OR (zoneid = 49) OR (zoneid = 61) OR (zoneid = 64) OR (zoneid = 66) OR (zoneid = 67) OR (zoneid = 69)") 
-
-
-# Frisby-Boulder
-#Below will set Frisby-Boulder old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 6) OR (zoneid = 21) OR (zoneid = 36) OR (zoneid = 50)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 66") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 66")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 19) OR (zoneid = 20) OR (zoneid = 34) OR (zoneid = 35) OR (zoneid = 61) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 67) OR (zoneid = 69)") 
-#Below will set Frisby-Boulder  old and recruit as no harvest and matrix as 35% disturbance (no buffer)
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 6) OR (zoneid = 21)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 66") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 66")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 19) OR (zoneid = 20) OR (zoneid = 34) OR (zoneid = 35) OR (zoneid = 61) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 67) OR (zoneid = 69) OR (zoneid = 36) OR (zoneid = 50)") 
-
-
-# MONASHEE
-#Below will set Monashee old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 8) OR (zoneid = 23) OR (zoneid = 38) OR (zoneid = 52)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 69") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 69")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 5) OR (zoneid = 6) OR (zoneid = 19) OR (zoneid = 20) OR (zoneid = 21) OR (zoneid = 34) OR (zoneid = 35) OR (zoneid = 36) OR (zoneid = 61) OR (zoneid = 64) OR (zoneid = 65) OR (zoneid = 66) OR (zoneid = 67)") 
-
-
-
-dbDisconnect(clusdb)
-```
 
 
