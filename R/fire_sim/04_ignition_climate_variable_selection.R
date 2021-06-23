@@ -15,6 +15,7 @@
 #  Script Version: 1.0
 #  Script Purpose: Run logistic regression models to determine the top candidate climate variable to use in the final analysis of fire ignitions.
 #  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#  Script Contributor: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #=================================
 
 
@@ -82,7 +83,7 @@ hist(fire_ignitions1_person$month, xlab="Month", main="Histogram of person cause
 
 table(fire_ignitions1_new$fire_year, fire_ignitions1_new$fire_cause)
 table(fire_veg_data$fire_yr, fire_veg_data$fire_cs)
-# some fire ignition locations get lost in the data processing. I checked this and it seems some of them fall outside the BC boundary so when I clip the locations to BC it removes a bunch. Also, when I link my fire locations to the VRI some spots disappear. Im not sure why this happens though.
+# some fire ignition locations get lost in the data processing. I checked this and it seems some of them fall outside the BC boundary so when I clip the locations to BC it removes a bunch. Also, when I link my fire locations to the VRI some spots disappear. I'm not sure why this happens though.
 
 fire_veg_data$fire_cs<- as.factor(fire_veg_data$fire_cs)
 dim(fire_veg_data)
