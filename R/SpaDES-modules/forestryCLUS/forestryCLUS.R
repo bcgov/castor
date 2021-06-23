@@ -109,15 +109,6 @@ Init <- function(sim) {
   #Remove zones as a scenario
   dbExecute(sim$clusdb, paste0("DELETE FROM zoneConstraints WHERE reference_zone not in ('",paste(P(sim, "dataLoaderCLUS", "nameZoneRasters"), sep= ' ', collapse = "', '"),"')"))
   
-  #For the zone constraints of type 'nh' set thlb to zero so that they are removed from harvesting -- yet they will still contribute to other zonal constraints
-  nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh'")),
-                       dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
-                       by.x = "reference_zone", by.y = "reference_zone"))
-  
-  if(nrow(nhConstraints) > 0 ){
-    nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
-    dbExecute(sim$clusdb, paste0("UPDATE pixels SET thlb = 0 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
-  }
  
   #Create the zoneManagement table used for reporting the harvesting constraints throughout the simulation
   if(P(sim, "forestryCLUS", "reportHarvestConstraints")){
@@ -154,33 +145,54 @@ saveForestry<- function(sim) {
 }
 
 setConstraints<- function(sim) {
-  message("...setting constraints")
+  message("...re-setting zone_const")
   dbExecute(sim$clusdb, "UPDATE pixels SET zone_const = 0 WHERE zone_const = 1")
   
-  message("....assigning zone_const")
-  #Get the zones that are listed
+  message("...assigning zone_const")
+  #For the zone constraints of type 'nh' set zone_const =1 so they are removed from harvesting -- yet they will still contribute to other zonal constraints
+  nhConstraints<-data.table(merge(dbGetQuery(sim$clusdb, paste0("SELECT  zoneid, reference_zone FROM zoneConstraints WHERE type ='nh' and start <= ", time(sim)*sim$updateInterval, " and stop >= ", time(sim)*sim$updateInterval)),
+                                  dbGetQuery(sim$clusdb, "SELECT zone_column, reference_zone FROM zone"), 
+                                  by.x = "reference_zone", by.y = "reference_zone"))
+  
+  if(nrow(nhConstraints) > 0 ){
+    nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
+    dbExecute(sim$clusdb, paste0("UPDATE pixels SET zone_const = 1 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
+  }
+  #Get the zones that are listed for this specific scenario
   zones<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone WHERE reference_zone in ('",paste(P(sim, "dataLoaderCLUS", "nameZoneRasters"), sep= ' ', collapse = "', '"),"')"))
   for(i in 1:nrow(zones)){ #for each of the specified zone rasters
-    numConstraints<-dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT variable, type FROM zoneConstraints WHERE
-                               zone_column = '",  zones[[1]][i] ,"' AND type IN ('ge', 'le')"))
-    
+    numConstraints<-dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT variable, type, denom FROM zoneConstraints WHERE
+                               zone_column = '",  zones[[1]][i] ,"' AND type IN ('ge', 'le') and start <= ", time(sim)*sim$updateInterval, " and stop >= ", time(sim)*sim$updateInterval ))
+    #numConstraints contains unqiue combinations of variable, type and denom (as the columns)
     if(nrow(numConstraints) > 0){
       for(k in 1:nrow(numConstraints)){
-        query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, multi_condition, denom,
+        if(is.na(numConstraints[[3]][k])){ #colum 3 is the denom column
+          query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, multi_condition, denom,
                                                         CASE WHEN type = 'ge' THEN ROUND((percentage*1.0/100)*t_area, 0)
                                                              ELSE ROUND((1-(percentage*1.0/100))*t_area, 0)
                                                         END AS limits
                                                         FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"' AND variable = '", 
-                                                            numConstraints[[1]][k],"' AND type = '",numConstraints[[2]][k] ,"';")))
-        query_parms<-query_parms[!is.na(limits) | limits > 0, ]
-    
+                                                                 numConstraints[[1]][k],"' AND type = '",numConstraints[[2]][k] ,"' and denom is null and start <= ", time(sim)*sim$updateInterval, " and stop >= ", time(sim)*sim$updateInterval )))
+          query_parms<-query_parms[is.na(denom), denom := ''] #Add a blank so that the denom is not used in teh query string
+        }else{ #when the denom column is not blank--meaning there is a change in the denominator
+          query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, zone_column, percentage, threshold, multi_condition, denom,
+                                                        CASE WHEN type = 'ge' THEN ROUND((percentage*1.0/100)*t_area, 0)
+                                                             ELSE ROUND((1-(percentage*1.0/100))*t_area, 0)
+                                                        END AS limits
+                                                        FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"' AND variable = '", 
+                                                                 numConstraints[[1]][k],"' AND type = '",numConstraints[[2]][k] ,"' and denom = '",numConstraints[[3]][k] ,"' and start <= ", time(sim)*sim$updateInterval, " and stop >= ", time(sim)*sim$updateInterval )))
+          query_parms<-query_parms[!is.na(denom), denom := paste(denom, " AND ")] #Add an 'AND' so that the query will be seemlessly added to the sql
+        }
+ 
+       query_parms<-query_parms[!is.na(limits) | limits > 0, ] #remove any constraints that don't have any limits or cells to constrain on
+       #The query_parms object can have many zoneid's wihtin a zone that have the 'same' structure of the query - lets take advantage of that and set up all the queries in a single transaction --aka 'a parameterized query'
        switch(
           as.character(query_parms[1, "type"]),
             ge = {
               if(as.character(query_parms[1, "variable"]) == 'dist' ){
                 sql<-paste0("UPDATE pixels SET zone_const = 1
                         WHERE pixelid IN ( 
-                        SELECT pixelid FROM pixels WHERE own = 1 and treed = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                        SELECT pixelid FROM pixels WHERE ",as.character(query_parms[1, "denom"])," own = 1 and treed = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
                         " ORDER BY CASE WHEN ", as.character(query_parms[1, "variable"]),">= :threshold then 0 else 1 end, ",as.character(query_parms[1, "variable"])," DESC,  age DESC
                         LIMIT :limits);")
                 dbBegin(sim$clusdb)
@@ -190,7 +202,7 @@ setConstraints<- function(sim) {
               }else if(!is.na(query_parms[1, "multi_condition"])){ #Allow user to write own constraints according to many fields - right now only one variable
                 sql<-paste0("UPDATE pixels SET zone_const = 1
                         WHERE pixelid IN ( 
-                        SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                        SELECT pixelid FROM pixels WHERE ",as.character(query_parms[1, "denom"])," own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
                             " ORDER BY CASE WHEN ", as.character(query_parms[1, "multi_condition"])," then 0 ELSE 1 END,  thlb, zone_const DESC, age DESC
                         LIMIT :limits);")
                 dbBegin(sim$clusdb)
@@ -201,7 +213,7 @@ setConstraints<- function(sim) {
                 sql<-paste0("UPDATE pixels 
                         SET zone_const = 1
                         WHERE pixelid IN ( 
-                        SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                        SELECT pixelid FROM pixels WHERE ",as.character(query_parms[1, "denom"])," own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
                             " ORDER BY CASE WHEN ",as.character(query_parms[1, "variable"])," > :threshold  THEN 0 ELSE 1 END, thlb, zone_const DESC, ", as.character(query_parms[1, "variable"])," DESC
                         LIMIT :limits);")
                 dbBegin(sim$clusdb)
@@ -224,7 +236,7 @@ setConstraints<- function(sim) {
                 sql<-paste0("UPDATE pixels 
                       SET zone_const = 1
                             WHERE pixelid IN ( 
-                            SELECT pixelid FROM pixels WHERE own = 1 AND ",  as.character(query_parms[1, "zone_column"])," = :zoneid",
+                            SELECT pixelid FROM pixels WHERE ",as.character(query_parms[1, "denom"])," own = 1 AND ",  as.character(query_parms[1, "zone_column"])," = :zoneid",
                             " ORDER BY thlb, zone_const DESC, eca DESC 
                             LIMIT :limits);") #limits = the area that needs preservation 
                 
@@ -238,7 +250,7 @@ setConstraints<- function(sim) {
               }else if(as.character(query_parms[1, "variable"]) == 'dist' ){
                 sql<-paste0("UPDATE pixels SET zone_const = 1
                         WHERE pixelid IN ( 
-                        SELECT pixelid FROM pixels WHERE own = 1 AND treed = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                        SELECT pixelid FROM pixels WHERE ",as.character(query_parms[1, "denom"])," own = 1 AND treed = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
                             " ORDER BY CASE WHEN dist <= :threshold then 1 else 0 end, thlb, zone_const DESC, dist DESC
                         LIMIT :limits);")
                 dbBegin(sim$clusdb)
@@ -248,7 +260,7 @@ setConstraints<- function(sim) {
               }else if(!is.na(query_parms[1, "multi_condition"])){ #Allow user to write own constraints according to many fields - right now only one variable
                   sql<-paste0("UPDATE pixels SET zone_const = 1
                         WHERE pixelid IN ( 
-                        SELECT pixelid FROM pixels WHERE own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
+                        SELECT pixelid FROM pixels WHERE ",as.character(query_parms[1, "denom"])," own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid", 
                               " ORDER BY CASE WHEN ", as.character(query_parms[1, "multi_condition"])," then 1 ELSE 0 END,  thlb, zone_const DESC, age
                         LIMIT :limits);")
     
@@ -260,10 +272,9 @@ setConstraints<- function(sim) {
                 sql<-paste0("UPDATE pixels 
                       SET zone_const = 1
                       WHERE pixelid IN ( 
-                      SELECT pixelid FROM pixels WHERE own = 1 AND ",  as.character(query_parms[1, "zone_column"])," = :zoneid",
+                      SELECT pixelid FROM pixels WHERE ",as.character(query_parms[1, "denom"])," own = 1 AND ",  as.character(query_parms[1, "zone_column"])," = :zoneid",
                       " ORDER BY CASE WHEN ",as.character(query_parms[1, "variable"])," < :threshold THEN 1 ELSE 0 END, thlb, zone_const DESC,", as.character(query_parms[1, "variable"])," 
                       LIMIT :limits);") 
-                
                 #Update pixels in clusdb for zonal constraints
                 dbBegin(sim$clusdb)
                 rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "threshold", "limits")])
@@ -271,7 +282,7 @@ setConstraints<- function(sim) {
                 dbCommit(sim$clusdb)
               }
             }, 
-            warning(paste0("Undefined 'type' in zoneConstraints: ", query_parms[1, "type"]))
+            warning(paste0("Undefined 'type' in zoneConstraints: ", as.character(query_parms[1, "type"])))
         )
       } 
     } 
