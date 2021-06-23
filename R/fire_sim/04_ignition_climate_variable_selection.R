@@ -57,6 +57,15 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    dbname = "postgres",
                    password = "postgres",
                    port = "5432")
+
+## or use keyring
+conn <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                      host = key_get('dbhost', keyring = 'postgreSQL'),
+                      user = key_get('dbuser', keyring = 'postgreSQL'),
+                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+                      password = key_get('dbpass', keyring = 'postgreSQL'),
+                      port = "5432")
+
 fire_ignitions <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.bc_fire_ignition")
 dbDisconnect (conn) # connKyle
@@ -89,7 +98,7 @@ fire_veg_data$fire_cs<- as.factor(fire_veg_data$fire_cs)
 dim(fire_veg_data)
 
 fire_veg_data2<- st_set_geometry(fire_veg_data, NULL)
-# Im removing locations that land on water as fires wont start here also I removing locations that have not been classified. This removes quite a few fire ignition locations (1166 to be precise, which seems like a lot)
+# Im removing locations that land on water as fires wont start here also I am removing locations that have not been classified. This removes quite a few fire ignition locations (1166 to be precise, which seems like a lot)
 ignition_pres_abs3 <-fire_veg_data2 %>%
   filter(bclcs_level_2!="W") %>%
   filter(bclcs_level_2!=" ")
@@ -154,15 +163,15 @@ abs_match <- ignition_pres_abs4 %>%
   nest() %>%              # --> one row per yr and vegtype
   ungroup()
 
-df<-left_join(check, abs_match) # make sure there are not veg year combinations taht are not also in the fire_pres==1 file
+df<-left_join(check, abs_match) # make sure there are not veg year combinations that are not also in the fire_pres==1 file
 
 
-# there are several year, zone, subzone combinations with no data in the tibble.  This code below removes the Null values. I should increase my sample of fire abscences so that I dont have any combinations with zero data or sample it in a different way. TO DO!
+# there are several year, zone, subzone combinations with no data in the tibble.  This code below removes the Null values. I should increase my sample of fire absences so that I don't have any combinations with zero data or sample it in a different way. TO DO!
 df2 <- df %>% 
   filter(lengths(data)>0)
 
-# here I sample from the tibble the number of data points I want for the abscences
-# I should probably have replace = false but there are a few rows where there are more fire ignitions in that subzone than randomly sampled locations which is causing issues with this code. For now Ill leave it like this.
+# here I sample from the tibble the number of data points I want for the absences
+# I should probably have replace = false but there are a few rows where there are more fire ignitions in that subzone than randomly sampled locations which is causing issues with this code. For now I'll leave it like this.
   sampled_df<- df2 %>% 
     mutate(samp = map2(data, ceiling(fire_n*2), sample_n, replace=TRUE)) %>%
     dplyr::select(-data) %>%
@@ -173,10 +182,10 @@ df2 <- df %>%
 pre1<- ignition_pres_abs4 %>%
   filter(fire==1)
 dim(sampled_df) # 22715 rows
-dim(pre1) # 14958 rows
+dim(pre1) # 14958 rows; Cora on June 23: has 15268 rows
 
 dat<- rbind(pre1, as.data.frame(sampled_df))
-dim(dat) # 37673 rows good this worked I think
+dim(dat) # 37673 rows good this worked I think; Cora June 23 has 45680 rows. This is fewer than the >180,000 rows of the data at the end of file 01
 
 #dat<-ignition_pres_abs4 # 
 
