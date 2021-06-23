@@ -60,8 +60,10 @@ ignition1 <- ignition %>%
   filter(FIRE_YEAR>2001) %>% ##Select for years 2002 beyond
   filter(FIRE_TYPE == "Fire" | FIRE_TYPE=="Nuisance Fire") #Select fire type for ones desired
 
-st_write(ignition1, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp", delete_dsn = TRUE)
+st_crs(ignition1)
 
+st_write(ignition1, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp", delete_dsn = TRUE)
+table(ignition1$FIRE_YEAR) #2007 and 2008 have 1455-1690 fires, but in file 02, these are almost all lost
 
 ## Load ignition data into postgres (either my local one or Kyles)
 #host=keyring::key_get('dbhost', keyring = 'postgreSQL')
