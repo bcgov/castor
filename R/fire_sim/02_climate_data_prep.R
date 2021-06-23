@@ -20,7 +20,7 @@
 
 #Overview:
  # In this file (02), we determine determine the BEC boundaries and match this with our fire location data within the BC boundary, 
-  # created 500 m buffer, seleted GPS locations where fires did not start, combined fire and nonfire location data,
+  # created 500 m buffer, selected GPS locations where fires did not start, combined fire and non-fire location data,
   # acquire the lat and long data to get ClimateBC information for each location, 
   # calculate the monthly drought code for each dataset, and then upload files to clus database.
 
@@ -38,13 +38,16 @@ source(here::here("R/functions/R_Postgres.R"))
 
 #Get BEC data
 bec<-getSpatialQuery("SELECT objectid, feature_class_skey, zone, subzone, natural_disturbance, zone_name, wkb_geometry FROM public.bec_zone")
+st_crs(bec)
 
 bec<-st_transform(bec, 3005) #transform coordinate system to 3005, which refers to BC, Canada
 # EPSG:3005 Projected coordinate system for Canada - British Columbia. This CRS name may sometimes be used as an alias for NAD83(CSRS) / BC Albers.
 #plot(bec[, "zone"]) # check we got the whole province
+st_crs(bec)
 
 # import fire ignition data
 fire.ignition<-getSpatialQuery("SELECT * FROM public.bc_fire_ignition")# this file has historic and current year fires joined together. 
+st_crs(fire.ignition)
 fire.ignition<-st_transform(fire.ignition, 3005) #transform coordinate system to 3005 - that for BC, Canada
 
 prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
@@ -52,20 +55,56 @@ st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
 prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
 bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system
 fire.ignition.clipped<-fire.ignition[bc.bnd,] # making sure all fire ignitions have coordinates within BC boundary
-# note clipping the fire locations to the BC boundary removes a few ignition points in several of the years
+table(fire.ignition.clipped$fire_year) #Still have correct number for 2007 and 2008
 
+st_write(fire.ignition.clipped, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition_clipped.shp", delete_dsn = TRUE)
+##Check clipped data on QGis. Clipped data has no physical outliers
+# note clipping the fire locations to the BC boundary removes a few ignition points in several of the years
 
 bec_sf<-st_as_sf(bec) #Convert foreign object to an sf object (collection of simple features that includes attributes and geometries in the form of a data frame. In other words, it is a data frame (or tibble) with rows of features, columns of attributes, and a special geometry column that contains the spatial aspects of the features)
 bec_sf_buf<- st_buffer(bec_sf, 0) # encircles a geometry object at a specified distance and returns a geometry object that is the buffer that surrounds the source object. Set buffer to 0 here.
+st_crs(bec_sf_buf)
+st_write(bec_sf_buf, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bec_sf_buf.shp", delete_dsn = TRUE)
+#Boundaries look good
+
 fire.ignition_sf<-st_as_sf(fire.ignition.clipped) #convert to sf object
+st_crs(fire.ignition_sf)
+st_write(fire.ignition_sf, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition_sf.shp", delete_dsn = TRUE)
+#Boundaries look good
+table(fire.ignition_sf$fire_year)
 
 #doing st_intersection with the whole bec and fire ignition files is very very slow! 
 
 fire.igni.bec<- st_intersection(fire.ignition_sf, bec_sf_buf) # ST_Intersects is a function that takes two geometries and returns true if any part of those geometries is shared between the 2
+#fire.igni.bec<- st_intersection(fire.ignition_sf, st_buffer(bec_sf, 0)) #Alternative code
 # ST_Intersection in conjunction with ST_Intersects is very useful for clipping geometries such as in bounding box, buffer, region queries where you only want to return that portion of a geometry that sits in a country or region of interest
+# Note: on June 21, 2021, when the above is run, 10 points get physically placed in the middle of the ocean despite having correct GPS points. Unknown why.
+table(fire.igni.bec$fire_year)
 
-#write samp_locations_df to file because it takes so long to make
-# I think above is referring to fire.igni.bec
+##TROUBLESHOOT: subset the problem numbers and try above again
+head(fire.ignition_sf) #See head, and get ogc_fid from QGis Identify function
+# ogc_fid: 1908, 3623, 5665, 9105, 10586, 12385, 18293,20622, 21705, 27417, 29456, 33720,34729, 36589, 39422, 40848, 41383, 45045, 23292, 44250
+
+fire.ignition_sf.test<-subset(fire.ignition_sf, fire.ignition_sf$ogc_fid == 1908 | ogc_fid == 3623 | ogc_fid == 5665 | ogc_fid == 9105 | ogc_fid == 10586 | ogc_fid == 12385 | ogc_fid == 18293 |ogc_fid == 20622 | ogc_fid == 21705 | ogc_fid == 27417 | ogc_fid == 29456 | ogc_fid == 33720 | ogc_fid == 34729 | ogc_fid == 36589 | ogc_fid == 39422 | ogc_fid == 40848 | ogc_fid == 41383 | ogc_fid == 45045 | ogc_fid == 23292 | ogc_fid == 44250)
+#Visualize (note that BC outline may be created below)
+ggplot() +
+  geom_sf(data=bc.bnd, col='red') +
+  geom_sf(data=fire.ignition_sf.test, col='black') #Correct locations
+
+fire.igni.bec.test<- st_intersection(fire.ignition_sf.test, bec_sf_buf) # test where located now
+ggplot() +
+  geom_sf(data=bc.bnd, col='red') +
+  geom_sf(data=fire.igni.bec.test, col='black') #Now some are in right place, some in middle of ocean
+
+st_write(fire.igni.bec.test, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition_BEC_TEST.shp", delete_dsn = TRUE)
+
+
+
+#write fire.igni.bec to file because it takes so long to make
+st_write(fire.igni.bec, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition_BEC.shp", delete_dsn = TRUE)
+
+
+
 # save data 
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
                    host = "",
@@ -135,6 +174,7 @@ fire_igni_bec_new$longitude<-fire_igni_bec3$longitude
 fire_igni_bec_new$latitude<-fire_igni_bec3$latitude
 
 # Now I'll buffer each fire location by 500m and then within each BEC Zone I'll sample locations where fires did not start and combine those locations with locations where the fires did start.
+# Buffer is so that the area is less likely to have been fire affected.
 
 years<-c("2002", "2003", "2004", "2005", "2006", "2007","2008","2009","2010","2011","2012","2013","2014","2015","2016","2017","2018", "2019", "2020")
 beczone<- c("SWB", "SBS", "ICH", "ESSF", "MH", "CWH", "BAFA", "CMA", "SBPS", "IMA", "MS", "PP", "IDF", "BWBS", "BG", "CDF")
@@ -218,6 +258,7 @@ for (i in 1:length(years)) {
 
 sampled_points_2020<- sampled_points_2020 %>% filter(fire_year==2020)
 
+
 mkFrameList <- function(nfiles) {
   d <- lapply(seq_len(nfiles),function(i) {
     eval(parse(text=filenames[i]))
@@ -229,14 +270,19 @@ n<-length(filenames)
 samp_locations<-mkFrameList(n) 
 samp_locations$idno<-1:length(samp_locations$fire_year)
 samp_locations_sf<-st_as_sf(samp_locations)
+st_crs(samp_locations_sf)
+head(samp_locations_sf) #Note, wkb_geometry is in different coordinate system for this data
 
 ##Check data
-table(samp_locations_sf$ign_date) #Lots of NAs though, paeticularly in early years
-table(samp_locations_sf$fire_cause) #Half are lightening, half are NA
+table(samp_locations_sf$fire_cause) #Half are lightning, half are NA
 table(samp_locations_sf$fire_type) #Half are Fire and Nuisance Fire, half are NA
 table(samp_locations_sf$subzone)
-table(samp_locations_sf$zone)
-##Why all the NAs? These are the control sites without fire I believe
+table(samp_locations$fire_year) #now the fires from 2007 and 2008 are missing
+table(h$zone)
+
+table(fire_igni_bec_new$fire_year, fire_igni_bec_new$fire_cause) #Most 2007 and 2008 were people caused and not lightning!
+# low numbers 2007 and 2008 are correct
+
 
 # save data - not working with "overwrite" included, but can work without it.
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
@@ -254,10 +300,6 @@ conn <- DBI::dbConnect (dbDriver ("PostgreSQL"),
                         user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
                         password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
-st_write (obj = samp_locations_sf, 
-          dsn = conn, 
-          layer = c ("public", "samp_locations_fire"),
-          overwrite=TRUE)
 
 st_write (obj = samp_locations_sf, 
           dsn = conn, 
@@ -266,10 +308,22 @@ st_write (obj = samp_locations_sf,
 dbDisconnect (conn)
 
 # or save it as a shape file
-st_write(samp_locations_sf, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\samp_locations_fire.shp")
+st_write(samp_locations_sf, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\samp_locations_fire.shp", delete_dsn = TRUE, overwrite = TRUE)
+table(samp_locations_sf$fire_year, samp_locations_sf$fire_type) # There are 10% as many fires as no fire locations
 
 # If an error message appears when you run these csv files in climateBC make sure that when the csv was written an extra column was not added. row.names=FALSE should prevent this.
 
+
+
+
+########### Acquiring and Appending Climate Data ########
+# Each time the above is ran, below will need to be repated.
+### See http://climatebc.ca/Help for how to use ClimateBC to get the climate data. 
+# You will need to download ClimateBC (http://climatebc.ca/downloads/download.html) and use the files generated in the first code chunk below.
+# In the Multi-Location section, select "Annual Data" and select the appropriate year for each individual file. In the bootm drop down menu, select "monthly variables". 
+# Then upload each year, one at a time, and specify an output file location.
+## Note that 2007 and 2008 each have 200-300 points whereas other years have 15,000. This is becausemost fires in these 2 years were designated as human caused as opposed to lightning.
+# 2007 and 2008 have almost exclusively nuisance fires, which makes me think that data is missing
 
 
 for (i in 1: length(years)) {
@@ -289,15 +343,17 @@ for (i in 1: length(years)) {
 
 
 # after these files are written, manually extract the monthly climate data for each of the relevant years at each of the fire ignition and sample locations from climate BC (http://climatebc.ca/) and save the files as .csv's. Here I import them again. Or use the downscaled climate data and extract that (I have not done this, I probably should!)
+## this is as per above instructions for CLimateBC
 
 
 ###############################
 #Import climate data per ignition and sample location
 ###############################
 
-file.list1<-list.files("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output", pattern="sampled.points", all.files=FALSE, full.names=FALSE)
+#Depending on where you saved your output, you may need to update the directory below
+file.list1<-list.files("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output_ClimateBC", pattern="sampled.points", all.files=FALSE, full.names=FALSE)
 y1<-gsub(".csv","",file.list1)
-the_dir <- "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output"
+the_dir <- "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output_ClimateBC"
 
 for (i in 1:length(file.list1)){
   assign(paste0(y1[i]),read.csv (file=paste0(the_dir, "\\", file.list1[i])))
@@ -369,19 +425,22 @@ samp_locations_sf$idno <- as.factor(as.character(samp_locations_sf$idno))
 samp_locations_sf$fire_year <- as.numeric(as.character(samp_locations_sf$fire_year))
 
 # Now join DC.ignitions back with the original fire ignition dataset
-ignition_weather<-left_join(DC.ignitions1, samp_locations_sf)
-head(ignition_weather)
+ignition_weather<-left_join(DC.ignitions1, samp_locations_sf) #This is the step where we end up with 2 different lat/longs per row
+head(ignition_weather) #Lat -Longs match
 dim(ignition_weather) 
 st_crs(ignition_weather) #Answer NA
+head(ignition_weather) #Note, there are 2 Lat/Long columns, and they have different values for some reason
 ignition_weather_crs <- st_as_sf(ignition_weather)
 crs(ignition_weather_crs)
 ignition_weather_crs<- st_transform(ignition_weather_crs, 3005)
+crs(ignition_weather_crs)
 
 # Check the points line up with BC boundaries!
 ggplot() +
   geom_sf(data=bc.bnd, col='red') +
-  geom_sf(data=ignition_weather_crs, col='black') # looks good!
-#If open on QGIS, however, one outlier in middle of ocean
+  geom_sf(data=ignition_weather_crs, col='black') #looks good
+#If orandom points appear in middle of ocean, open in QGIS to get points.
+
 
 # A check of the fire ignition counts per year line up with the original data. So the number of fire ignitions seem good. 
 

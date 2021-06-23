@@ -18,8 +18,13 @@
 #  Script Contributor: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #=================================
 
+#Overview:
+   # in this file, we acquire the VRI (Vegetation Resources Inventory) for each year from 2002 to 2020. This is likely already uploaded onto a network and may not need to be redone.
+   # The final product will be a file with veg data along with ignition data and climate data (vegetation, climate and presence/absence of fire data).
+
 
 #### VEGETATION DATA #### 
+### The below code has already been ran and uploaded to the clus server. Please check the clus serve for relevant files before running again. If present, do not run again as the gdb is very large. Note also that some table names have changed.
 #downloaded for years 2002 to 2019. These are the only years that VRI data exists, there is no earlier data.
 #from https://catalogue.data.gov.bc.ca/dataset/vri-historical-vegetation-resource-inventory-2002-2019-
 # I then extracted this data and uploaded it into my local postgres database by running the command below in terminal. If running it in the R terminal does not work try run it in here: 
@@ -114,6 +119,8 @@
 # USING ST_Force_2D(geometry);
 
 library(dplyr)
+library(keyring)
+library(sf)
 
 source(here::here("R/functions/R_Postgres.R"))
 
@@ -189,8 +196,10 @@ fire_veg_2020$proj_age_1<-NA
 fire_veg_2020$live_stand_volume_125<-NA
 
 ###################################
-#### Check that my solution to calculating volume for 2007 and 2008 is ligitimate. Ill do this by comparing the sum of vol_per_ha_spp1_125 + vol_per_ha_spp2_125 + vol_per_ha_spp3_125 + vol_per_ha_spp4_125 + vol_per_ha_spp5_125 + vol_per_ha_spp6_125 is similar to the values in the column live_stand_volume_125
+#### Check that my solution to calculating volume for 2007 and 2008 is legitimate. Ill do this by comparing the sum of vol_per_ha_spp1_125 + vol_per_ha_spp2_125 + vol_per_ha_spp3_125 + vol_per_ha_spp4_125 + vol_per_ha_spp5_125 + vol_per_ha_spp6_125 is similar to the values in the column live_stand_volume_125
 ###################################
+
+#Must create test file for below to work (fire_veg_2009_test does not yet exist)
 
 names(fire_veg_2009_test)
 plot(fire_veg_2009_test$live_stand_volume_125, fire_veg_2009_test$live_stand_volume_125_try)
@@ -218,8 +227,10 @@ fire_veg_data<-mkFrameList(n)
 table(fire_veg_data$fire_yr, fire_veg_data$fire_cs)
 # hmmmm, a few fire ignition locations seem to have been thrown out when I joined the VRI data to the climate and fire ignition data. WHY?
 # e.g. numbers to check 2002 -> 876 lightning strikes
-#                       2007 -> 22
-#                       2008 -> 29
+#                       2007 -> 22 (all others were indicated as human caused)
+#                       2008 -> 29 (all others were indicated as human caused)
+
+
 
 # write final fire ignitions, weather and vegetation types to postgres
 # save data 
@@ -233,3 +244,6 @@ st_write (obj = fire_veg_data,
           dsn = connKyle, 
           layer = c ("public", "fire_ignitions_veg_climate"))
 dbDisconnect (connKyle)
+
+
+############## Now move on to file 04_ignition_climate_variable_selection#############

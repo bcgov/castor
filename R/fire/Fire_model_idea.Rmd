@@ -101,7 +101,7 @@ Also see Andrews PL (2018) The Rothermel Surface Fire Spread Model and Associate
 
 
 
-##Addtional thoughts and considerations added by Cora Skaien
+##Additional thoughts and considerations added by Cora Skaien
 1. Liz captures most of my initial thoughts above (lightening versus human caused fires may need to be modelled separate at least initially, projecting climate and vegetation change into the future for the models, )
 2. How to best combine human and lightening predicted fire data once complete? Additive effects in some areas that may have medium to high probabilities for both.
    # See STSM2020_p5_AdvancedComponents file for section 1.5 for parameter table for how to incorporate mutiple influences (0/1)
@@ -129,7 +129,7 @@ Examples of inputs:
    
 Suggested considerations include:
    - classifying areas into fuel types (e.g., BEC zone)
-   - different causes (human vs. lightening)
+   - different causes (human vs. lightning)
    - If fires will burn for days, incorporate realistic day to day variability in weather, or drawing sequential fire-conductive conditions from historical data
    - can account for topographic relief on wind speed and wind direction (e.g., WindNinja grids)
    
@@ -137,7 +137,7 @@ This paper also discusses the importance of model calibration: generally via heu
 
 Four key types of outputs: (1) ignition points; (2) associated fire perimeter; (3) BP maps; (4) fire behaviour maps.
 
-Three key purposes of BP models: (1) direct examination; (2) neighbourhood processes; (3) hazard and risk. Direct examination is often a direct comparison, with fire maps side by side for different scenarios, or a 'difference' map that represents differences between two scenarios. Neighbourhood processes tell us where fires arecoming from relaive to an area of concewrn, and can also assess "source-sink" ratio to describe each pixel's propensity for producing or receiving a fire -- potential applications for between regions such as BEC zones too. Fire hazard combined fire probability and a quantitative assessment of fire behaviour; wildland fire risk is a product of fire likelihood and potential impacts of wildfire (positive and negative). This can apply to estimating expected financial losses, ecological habitat change and carbon emissions. 
+Three key purposes of BP models: (1) direct examination; (2) neighbourhood processes; (3) hazard and risk. Direct examination is often a direct comparison, with fire maps side by side for different scenarios, or a 'difference' map that represents differences between two scenarios. Neighbourhood processes tell us where fires arecoming from relaive to an area of concern, and can also assess "source-sink" ratio to describe each pixel's propensity for producing or receiving a fire -- potential applications for between regions such as BEC zones too. Fire hazard combined fire probability and a quantitative assessment of fire behaviour; wildland fire risk is a product of fire likelihood and potential impacts of wildfire (positive and negative). This can apply to estimating expected financial losses, ecological habitat change and carbon emissions. 
 
 An element not included in any models in Canada is long distance spotting events, and they suggest that making fuel breaks partially flammable can help partially account for this short-fall.
 
