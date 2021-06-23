@@ -15,6 +15,7 @@ library (fasterize)
 library (sf)
 library (DBI)
 library (data.table)
+library (dplyr)
 
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 ```
@@ -200,25 +201,149 @@ prov.rast <- raster::raster (nrows = 15744, ncols = 17216,
                              crs = st_crs(poly.boreal)$proj4string, 
                              resolution = c(100, 100), 
                              vals = 0)
-ras.boreal <- fasterize::fasterize (poly.boreal, prov.rast, field = "zoneid")
-writeRaster (ras.boreal, "C:/Work/ras_boreal_zones.tif", overwrite = TRUE)
+proj4ras.boreal <- fasterize::fasterize (poly.boreal, prov.rast, field = "zoneid")
+writeRaster (ras.boreal, paste0 (here::here(), "/R/params/ras_boreal_zones.tif"), overwrite = TRUE)
 system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
                                   here::here(), '/R/params/ras_boreal_zones.tif -t 100x100 rast.boreal_caribou_zone_2019 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 # Create zone constraint table for raster 
 zone_nh <- data.table (zoneid = as.integer (c (2:5)), 
                          type = 'nh', variable = '', threshold = 0, 
-                         reference_zone = 'rast.boreal_caribou_zones_2019', 
+                         reference_zone = 'rast.boreal_caribou_zone_2019', 
                          percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
 zone_other <- data.table (zoneid = as.integer (1), 
                          type = '', variable = '', threshold = 0, 
-                         reference_zone = 'rast.boreal_caribou_zones_2019', 
+                         reference_zone = 'rast.boreal_caribou_zone_2019', 
                          percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
 zone <- rbindlist(list(zone_nh, zone_other))
 
-DBI::dbWriteTable(conn, c("public", "boreal_caribou_zones_2019_vat"), value = poly.boreal.vat, row.names = FALSE, overwrite = TRUE)
-DBI::dbWriteTable(conn, c("zone", "boreal_caribou_zones_2019"), value = zone, row.names = FALSE, overwrite = TRUE)
-dbExecute(conn, paste0("ALTER TABLE zone.boreal_caribou_zones_2019 INHERIT zone.constraints"))
+DBI::dbWriteTable(conn, c("public", "boreal_caribou_zone_2019_vat"), value = poly.boreal.vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "boreal_caribou_zone_2019"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.boreal_caribou_zone_2019 INHERIT zone.constraints"))
+
+dbDisconnect(conn)
+
+```
+
+### Caribou Zone Intersection
+```{r, convert polygon to raster}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+### old growth deferral * caribou
+poly.boreal <- getSpatialQuery("SELECT * FROM public.boreal_caribou_zones_2019")
+poly.graham <- getSpatialQuery("SELECT * FROM public.graham_core_20200623")
+poly.pink.mtn <- getSpatialQuery("SELECT * FROM public.CorePolys_PinkMnt_diss") 
+poly.og63a <- getSpatialQuery("SELECT * FROM oldgrwth_def_rec_6_3_a")
+poly.og63c <- st_make_valid (getSpatialQuery("SELECT * FROM oldgrwth_def_rec_6_3_c"))
+poly.og63e <- getSpatialQuery("SELECT * FROM oldgrwth_def_rec_6_3_e")
+
+## intersection
+isect.boreal.ogc63a <- sf::st_intersection (poly.boreal, poly.og63a) # no overlap (empty)
+isect.boreal.ogc63c <- sf::st_intersection (poly.boreal, st_buffer (poly.og63c,0)) # st_buffer resolves topology self-intersection error; see also st_make_valid() which did not work here
+isect.boreal.ogc63e <- sf::st_intersection (poly.boreal, st_buffer (poly.og63e,0))
+
+isect.graham.ogc63a <- sf::st_intersection (st_buffer (poly.graham,0), st_buffer (poly.og63a,0)) 
+isect.graham.ogc63c <- sf::st_intersection (poly.graham, st_buffer (poly.og63c,0)) 
+isect.graham.ogc63e <- sf::st_intersection (st_buffer (poly.graham,0), st_buffer (poly.og63e,0)) 
+
+isect.pink.ogc63a <- sf::st_intersection (st_buffer (poly.pink.mtn,0), st_buffer (poly.og63a,0)) 
+isect.pink.ogc63c <- sf::st_intersection (st_buffer (poly.pink.mtn,0), st_buffer (poly.og63c,0)) 
+isect.pink.ogc63e <- sf::st_intersection (st_buffer (poly.pink.mtn,0), st_buffer (poly.og63e,0)) 
+
+## union
+union.boreal.old <- st_union (st_zm (isect.boreal.ogc63c), st_zm (isect.boreal.ogc63e), by_feature = FALSE)
+
+union.graham.old <- st_union (st_zm (isect.graham.ogc63a), st_zm (isect.graham.ogc63c), by_feature = FALSE)
+union.graham.old <- st_union (st_zm (union.graham.old), st_zm (isect.graham.ogc63e), by_feature = FALSE)
+
+union.pink.old <- st_union (st_zm (isect.pink.ogc63a), st_zm (isect.pink.ogc63c), by_feature = FALSE)
+union.pink.old <- st_union (st_zm (union.pink.old), st_zm (isect.pink.ogc63e), by_feature = FALSE)
+
+# raster with all zones
+union.boreal.old$zoneid <- 1
+union.graham.old$zoneid <- 1
+union.pink.old$zoneid <- 1
+
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(poly.boreal)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras.union.boreal.old <- fasterize::fasterize (union.boreal.old, prov.rast, field = "zoneid")
+writeRaster (ras.union.boreal.old, paste0 (here::here(), "/R/params/ras_boreal_old_zones.tif"), overwrite = TRUE)
+
+ras.union.graham.old <- fasterize::fasterize (union.graham.old, prov.rast, field = "zoneid")
+writeRaster (ras.union.graham.old, paste0 (here::here(), "/R/params/ras_graham_old_zones.tif"), overwrite = TRUE)
+
+ras.union.pink.old <- fasterize::fasterize (union.pink.old, prov.rast, field = "zoneid")
+writeRaster (ras.union.pink.old, paste0 (here::here(), "/R/params/ras_pink_old_zones.tif"), overwrite = TRUE)
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_boreal_old_zones.tif -t 100x100 rast.boreal_caribou_old | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_graham_old_zones.tif -t 100x100 rast.graham_caribou_old | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_pink_old_zones.tif -t 100x100 rast.pink_mtn_caribou_old | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+# Create zone constraint table for rasters
+zone <- data.table (zoneid = as.integer (1), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.boreal_caribou_old', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+DBI::dbWriteTable(conn, c("zone", "boreal_caribou_old"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.boreal_caribou_old INHERIT zone.constraints"))
+zone <- data.table (zoneid = as.integer (1), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.graham_caribou_old', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+DBI::dbWriteTable(conn, c("zone", "graham_caribou_old"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.graham_caribou_old INHERIT zone.constraints"))
+zone <- data.table (zoneid = as.integer (1), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.pink_mtn_caribou_old', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+DBI::dbWriteTable(conn, c("zone", "pink_mtn_caribou_old"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.pink_mtn_caribou_old INHERIT zone.constraints"))
+
+
+
+
+### FN AOI * caribou
+poly.boreal <- getSpatialQuery("SELECT * FROM public.boreal_caribou_zones_2019")
+poly.graham <- getSpatialQuery("SELECT * FROM public.graham_core_20200623")
+poly.pink.mtn <- getSpatialQuery("SELECT * FROM public.CorePolys_PinkMnt_diss") 
+fn.aoi <- getSpatialQuery("SELECT * FROM public.fn_aoi")
+
+fn.aoi.select <- fn.aoi %>%
+                  filter(name == "Chowade River Valley" | name == "Crying Girl" | name == "Hackney Hills - August 2015" |
+                           name == "Hackney Hills - November 2015" | name == "North Road" | 
+                           name == "Old Man Lily - S.16 Map Reserve" | name == "Old Man Lily - S.17 Designated Use Area" )
+
+## intersection
+isect.boreal.fn <- sf::st_intersection (st_buffer (poly.boreal,0), st_buffer (fn.aoi.select,0)) # empty
+isect.graham.fn <- sf::st_intersection (st_buffer (poly.graham,0), st_buffer (fn.aoi.select,0))
+isect.pink.fn <- sf::st_intersection (st_buffer (poly.pink.mtn,0), st_buffer (fn.aoi.select,0))
+
+## union
+union.caribou.fn <- st_union (st_zm (isect.pink.fn), st_zm (isect.graham.fn), by_feature = FALSE)
+
+# raster with all zones
+union.caribou.fn$zoneid <- 1
+
+ras.union.caribou.fn <- fasterize::fasterize (union.caribou.fn, prov.rast, field = "zoneid")
+writeRaster (ras.union.caribou.fn, paste0 (here::here(), "/R/params/ras_caribou_fn.tif"), overwrite = TRUE)
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_caribou_fn.tif -t 100x100 rast.fn_aoi_caribou | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+# Create zone constraint table for rasters
+zone <- data.table (zoneid = as.integer (1), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.fn_aoi_caribou', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+DBI::dbWriteTable(conn, c("zone", "fn_aoi_caribou"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.fn_aoi_caribou INHERIT zone.constraints"))
 
 dbDisconnect(conn)
 
