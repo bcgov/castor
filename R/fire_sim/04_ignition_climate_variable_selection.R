@@ -478,6 +478,8 @@ aic_bec_summary2<- aic_bec_summary %>%
 
 write.csv(aic_bec_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results_simple.csv")
 
+
+###
 connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
                       host = key_get('dbhost', keyring = 'postgreSQL'),
                       user = key_get('dbuser', keyring = 'postgreSQL'),
@@ -486,7 +488,7 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       port = "5432")
 st_write (obj = dat, 
           dsn = connKyle, 
-          layer = c ("public", "fire_ignitions_veg_climate_clean"))
+          layer = c ("public", "fire_ignitions_veg_climate_clean")) #dbwrite
 dbDisconnect (connKyle)
 
 
