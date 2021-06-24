@@ -488,7 +488,7 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       port = "5432")
 st_write (obj = dat, 
           dsn = connKyle, 
-          layer = c ("public", "fire_ignitions_veg_climate_clean")) #dbwrite
+          layer = c ("public", "fire_ignitions_veg_climate_clean"))
 dbDisconnect (connKyle)
 
 
