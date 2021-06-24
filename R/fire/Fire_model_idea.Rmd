@@ -101,17 +101,44 @@ Also see Andrews PL (2018) The Rothermel Surface Fire Spread Model and Associate
 
 
 
-##Addtional thoughts and considerations added by Cora Skaien
+##Additional thoughts and considerations added by Cora Skaien
 1. Liz captures most of my initial thoughts above (lightening versus human caused fires may need to be modelled separate at least initially, projecting climate and vegetation change into the future for the models, )
 2. How to best combine human and lightening predicted fire data once complete? Additive effects in some areas that may have medium to high probabilities for both.
-3. Do we have data on where thunderstorms are most likely to occur (e.g., specific mountain ranges and how weather patterns interact with them)?
-4. recently burned areas less like to burn again: create probability map for areas where prescribed burns occurred. Could use data where prescribed burns occurred over last 20+ years and data where natural foprest fires occurred and create probability map using each pixel, considering occurence and intensity of wildfires (if any) after prescribed burns. Compare to control pixels randomly selected but with similar environmental variables to areas that were selected for prescribed burn.
-5. Current models being run assume all fires and stand replacing. Consider lower intensity fires as well for relevant BEC zones?
+   # See STSM2020_p5_AdvancedComponents file for section 1.5 for parameter table for how to incorporate mutiple influences (0/1)
+3. Do we have data on where thunderstorms are most likely to occur (e.g., specific mountain ranges and how weather patterns interact with them)? Lightning strike data --> Tyler thinks this might already be incorporated.
+4. recently burned areas less like to burn again: create probability map for areas where prescribed burns occurred. Could use data where prescribed burns occurred over last 20+ years and data where natural forest fires occurred and create probability map using each pixel, considering occurrence and intensity of wildfires (if any) after prescribed burns. Compare to control pixels randomly selected but with similar environmental variables to areas that were selected for prescribed burn. Perhaps fuel reductions are already accounted for in recent aerial photos that will be used, however.
+5. Current models being run assume all fires and stand replacing. Consider lower intensity fires as well for relevant BEC zones? Find any sources or data that indicate fire severity.
 6. Some models in Marchal et al. 2020 are already available in SPaDES. Check these out and see if any are relevant and useful?
-7. We need to determine how to best model how our forest composition changes after disturbance given different forest types compared to Quebec.
-
+7. We need to determine how to best model how our forest composition changes after disturbance given different forest types compared to Quebec. Often we have deciduous pop up I believe still in the interior --> is this true for all BEC zones?
+8. Is there any data on rates of conversion of wetlands to forest? Much of the open water part is exclusively open water, so maybe this is not a concern, but wetlands are likely ot burn less unless converted I assume.
+9. Consider (semi-)natural fire breaks, such as roads, when considering spread. Logging roads vs paved roads as fire breaks? Look into. This will be important for the spread model.
+10. Predicted climate change (monthly drought index, etc) with Web app to explore CMIP6 projections for BC if not already incorporated.
+11. Can we incorporate spread from one BEC type to another?
 
 
 ##Notes on Pariesen et al. 2019. Applications of simulation-based burn probability modelling: a review
+This paper provides a good historical overview of Burn probability Models (BP) and its uses. This paper aims to: (1) describe the inputs and outputs of BP models; (2) provide an overview of applications of these models; (3) demonstrate common applications through case studies; and (4) develop a comprehensive list of published studies using the BP method.
+
+The paper emphasizes the need to first create baseline outputs, which are not necessarily simplistic. But this initial model offers a departure point for alternate scenarios, and can provide a reference state to assess change.
+
+Examples of inputs: 
+   - fuels (e.g., land cover, flammable biomass, unburnable areas)
+   - topography
+   - spatio-temporal patterns of ignition
+   - fire weather
+   
+Suggested considerations include:
+   - classifying areas into fuel types (e.g., BEC zone)
+   - different causes (human vs. lightning)
+   - If fires will burn for days, incorporate realistic day to day variability in weather, or drawing sequential fire-conductive conditions from historical data
+   - can account for topographic relief on wind speed and wind direction (e.g., WindNinja grids)
+   
+This paper also discusses the importance of model calibration: generally via heuristic and iterative manner by adjusting inputs and assessing outputs through comparison of actual and simulated fires.
+
+Four key types of outputs: (1) ignition points; (2) associated fire perimeter; (3) BP maps; (4) fire behaviour maps.
+
+Three key purposes of BP models: (1) direct examination; (2) neighbourhood processes; (3) hazard and risk. Direct examination is often a direct comparison, with fire maps side by side for different scenarios, or a 'difference' map that represents differences between two scenarios. Neighbourhood processes tell us where fires arecoming from relaive to an area of concern, and can also assess "source-sink" ratio to describe each pixel's propensity for producing or receiving a fire -- potential applications for between regions such as BEC zones too. Fire hazard combined fire probability and a quantitative assessment of fire behaviour; wildland fire risk is a product of fire likelihood and potential impacts of wildfire (positive and negative). This can apply to estimating expected financial losses, ecological habitat change and carbon emissions. 
+
+An element not included in any models in Canada is long distance spotting events, and they suggest that making fuel breaks partially flammable can help partially account for this short-fall.
 
 
