@@ -1589,5 +1589,61 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
 dbDisconnect(conn)
 
 
+
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus',  
+                        schema = 'public', 
+                        table_name = 'wha_20210621', 
+                        type = 'polygon', 
+                        script = 'ogr2ogr', 
+                        source = 'https://catalogue.data.gov.bc.ca/dataset/wildlife-habitat-areas-approved', 
+                        public = 'Yes', 
+                        last_updated = '2021', 
+                        next_update = '2022', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+# merge tables
+pgdbs_data_list_new <- merge (pgdbs_data_list, new_data, all = T)
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+
+
+
+new_data <- data.table (computer = 'DC052586',  
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = 'zone_wha_2021', 
+                        type = 'raster',
+                        script = 'clus\\R\\Params\\uwr_cond_harvest.Rmd', 
+                        source = 'wildlife habitat areas: https://www.env.gov.bc.ca/cgi-bin/apps/faw/wharesult.cgi?search=show_approved', 
+                        public = 'Yes', 
+                        last_updated = '2021', 
+                        next_update = '2022', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+new_data1 <- data.table (computer = 'DC052586',  
+                        database = 'clus', 
+                        schema = 'zone', 
+                        table_name = 'wha_2021', 
+                        type = 'table',
+                        script = 'clus\\R\\Params\\uwr_cond_harvest.Rmd', 
+                        source = 'wildlife habitat areas: https://www.env.gov.bc.ca/cgi-bin/apps/faw/wharesult.cgi?search=show_approved', 
+                        public = 'Yes', 
+                        last_updated = '2021', 
+                        next_update = '2022', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data1))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
 ```
 

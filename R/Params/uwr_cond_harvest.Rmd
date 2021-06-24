@@ -17,7 +17,9 @@ Ungulate winter ranges (UWRs) are designated areas that meet the winter habitat 
 
 UWRs can be designated as no harvest or conditional harvest. Conditional harvesting means that there is some level of retention required during harvest operations. This may require a percentage of the harvest unit being retained according to a descriptive class - this can be age, crown closure, height and even species specific.
 
-Below we take the spatial polygon data and assign a constraint to each unique legal zone based on interpretation of the legal order (or assign as 'no harvest' where applicable. )
+Below we take the spatial polygon data and assign a constraint to each unique legal zone based on interpretation of the legal order (or assign as 'no harvest' where applicable).
+
+Updated June 22, 2021.
 
 ## Conditional Harvest Table
 ```{r, UWR_cond_harv}

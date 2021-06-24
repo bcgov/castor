@@ -59,7 +59,7 @@ parameters <-  list(
                          nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018', # THLB raster in postgres
                          nameZoneRasters = c("rast.zone_cond_beo",
                                              "rast.zone_cond_vqo", 
-                                             "rast.zone_cond_wha", 
+                                             "rast.zone_wha_2021", #"rast.zone_cond_wha" 
                                              "rast.zone_uwr_2021", #"rast.zone_cond_uwr"
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", 
