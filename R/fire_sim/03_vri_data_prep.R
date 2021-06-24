@@ -144,8 +144,8 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    dbname = "postgres",
                    password = "postgres",
                    port = "5432")
-fire_veg_2002b <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2002b")
+fire_veg_2002 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2002")
 fire_veg_2003 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2003")
 fire_veg_2004 <- sf::st_read  (dsn = conn, # connKyle
