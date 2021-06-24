@@ -1,6 +1,7 @@
 ---
 title: "Fire ignition model fit by BEC zone"
 author: "Elizabeth Kleynhans"
+contributor: "Cora Skaien"
 date: "20/04/2021"
 output: html_document
 editor_options: 
@@ -30,6 +31,7 @@ library(ggpubr)
 library(arm)
 library(tidyr)
 library(AICcmodavg)
+library(keyring)
 ```
 
 
@@ -49,7 +51,7 @@ See the License for the specific language governing permissions and limitations 
 
 ## Introduction
 
-Here I am running a glm for each separate bec zone to develop a predictive equation so that I can extrapolate fire ignitions into the future. The data that I include in these glms is both vegetation and climate date. The top climate variable for each BEC zone was determined in the script "04_ignition_climate_variable_selection.R". Vegetation data is a little complicated by the fact that the VRI does not have age, height or volume data for any vegetation types that are not classified as treed. Also, it seems like forests on private land lack age, volume and height data. Because I think volume, age and height are likely good predictors of fire severity and occurence I split up this analysis into two parts in each BEC zone. 
+Here I am running a glm for each separate bec zone to develop a predictive equation so that I can extrapolate fire ignitions into the future. The data that I include in these glms is both vegetation and climate date. The top climate variable for each BEC zone was determined in the script "04_ignition_climate_variable_selection.R". When ran by Cora on June 23, 2021, some zones had different top models than when Liz ran code. Vegetation data is a little complicated by the fact that the VRI does not have age, height or volume data for any vegetation types that are not classified as treed. Also, it seems like forests on private land lack age, volume and height data. Because I think volume, age and height are likely good predictors of fire severity and occurrence I split up this analysis into two parts in each BEC zone. 
 Firstly, in each BEC zone I split the data into treed and non-treed then I run a glm with climate and vegetation for areas that are classified as treed in the VRI and then I run another separate analysis for areas that are classified as not treed. The fixed effects I include in these analyses are slightly different, i.e. no age, volume or height data in the non-treed areas, which is why I split them up.  
 
 # climate variable selection
