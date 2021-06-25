@@ -57,7 +57,7 @@ Firstly, in each BEC zone I split the data into treed and non-treed then I run a
 # climate variable selection
 In the script "04_ignition_climate_variable_selection.R" I perform an AIC and ROC analysis for each BEC zone including presence/available fire ignition points and a variety of climate variables. For this analysis I split the data into a training and a validation data set where 75% of the data was used for training and 25% was used for validation. I then fit the model and extracted the AIC and AUC values. This was repeated 100 times and at the end I calculated the average AIC and AUC values. The climate variable that results in the lowest average AIC value I decided to use in this analysis. Table 1 is a summary of which climate variables fitted best for each BEC zone. 
 
-Note: Some climate variables resulted in delta AIC values that were very similar and had much less than 2 points difference. Also, the variable with the smallest AIC value did not always have the best AUC value. Regardless of these two issues I decided to take the climate variable with the smallest average AIC for simplicity. Results can be found in table 1 below.
+Note: Some climate variables resulted in delta AIC values that were very similar and had much less than 2 points difference. Also, the variable with the smallest AIC value did not always have the best AUC value. Regardless of these two issues I decided to take the climate variable with the smallest average AIC for simplicity. Results can be found in table 1 below. This file was manipulated manually and then saved on to the drive before being uploaded (i.e., it is a simplified table from that generated in the last file, 04_ignition_climate_variable_selection; code for uploading not included prior).
 
 ```{r, AIC table, echo = F, message = F, eval = T}
 
@@ -73,7 +73,7 @@ kable (climate.aic,
                  font_size = 11)
 
 ```
-## Pull in the data
+## Pull in the data. Note, this is a cleaned version and also differs slightly from the file saved in the last script. Note: June 24, this file cannot be viewed on PostGre for some reason, but it seems to be brought in ok?
 ```{r}
 connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
                       host = key_get('dbhost', keyring = 'postgreSQL'),
@@ -114,7 +114,7 @@ ggscatter(dat_t, x = "proj_age_1", y = "proj_height_1",
 ## BEC ZONE BG
 ```{r bg figures}
 bg<- dat %>% dplyr::filter(zone =="BG")
-# I will run separate analyses for treed and non-treed areas because the non-treed areas dont have information for forest height, age or volume and so these variables cant be included in the model.
+# I will run separate analyses for treed and non-treed areas because the non-treed areas don't have information for forest height, age or volume and so these variables cant be included in the model.
 bg_t<- bg %>% dplyr::filter(bclcs_level_2=="T") # treed areas
 bg_nt<- bg %>% dplyr::filter(bclcs_level_2!="T") # not treed
 
@@ -302,21 +302,22 @@ table.glm[i,3]<-AICc(glm12)
 table.glm$deltaAIC<- table.glm$AIC-min(table.glm$AIC)
 
 table.glm.bg<- table.glm
-table.glm.bg[order(table.glm.bg$deltaAIC),]
+table.glm.bg[order(table.glm.bg$deltaAIC),] 
+
 # # 
-#    Model                                                   Variable      AIC deltaAIC
-# 3   glm3                                      ppt09 + proj_height_1 46.69131 0.000000
-# 2   glm2                                         ppt09 + proj_age_1 46.99776 0.306443
-# 4   glm4                              ppt09 + live_stand_volume_125 47.89195 1.200636
-# 1   glm1                                                      ppt09 48.27350 1.582185
-# 7   glm7                         ppt09 + proj_age_1 + proj_height_1 48.62752 1.936213
-# 9   glm9                      ppt09 + proj_height_1 + bclcs_level_4 48.74371 2.052398
-# 6   glm6                  ppt09 + live_stand_volume_125 +proj_age_1 48.86550 2.174189
-# 8   glm8                         ppt09 + proj_age_1 + bclcs_level_4 49.60401 2.912703
-# 12 glm12         ppt09 + proj_height_1 + proj_age_1 + bclcs_level_4 50.56154 3.870232
-# 5   glm5                                      ppt09 + bclcs_level_4 51.51365 4.822336
-# 10 glm10              ppt09 + live_stand_volume_125 + bclcs_level_4 51.63845 4.947142
-# 11 glm11 ppt09 + live_stand_volume_125 + proj_age_1 + bclcs_level_4 52.17844 5.487132
+#    Model                                                   Variable      AIC   deltaAIC
+#3   glm3                                      ppt09 + proj_height_1    49.74731 0.000000
+#9   glm9                      ppt09 + proj_height_1 + bclcs_level_4    51.98902 2.241716
+#7   glm7                         ppt09 + proj_age_1 + proj_height_1    52.01726 2.269958
+#2   glm2                                         ppt09 + proj_age_1    54.00719 4.259886
+#4   glm4                              ppt09 + live_stand_volume_125    54.46260 4.715296
+#12 glm12         ppt09 + proj_height_1 + proj_age_1 + bclcs_level_4    54.79458 5.047279
+#1   glm1                                                      ppt09    55.85794 6.110631
+#8   glm8                         ppt09 + proj_age_1 + bclcs_level_4    56.38755 6.640244
+#6   glm6                  ppt09 + live_stand_volume_125 +proj_age_1    56.49051 6.743202
+#10 glm10              ppt09 + live_stand_volume_125 + bclcs_level_4    57.59831 7.851009
+#5   glm5                                      ppt09 + bclcs_level_4    58.75094 9.003635
+#11 glm11 ppt09 + live_stand_volume_125 + proj_age_1 + bclcs_level_4    59.18188 9.434572
 
 #TOP MODEL = glm3    ppt09 + proj_height_1 45.80242 0.0000000
 
@@ -380,6 +381,7 @@ top_mod_table[1,4]<- coef(glm_best)[1]
 top_mod_table[1,5]<- coef(glm_best)[2]
 #top_mod_table[1,6]<- coef(glm_best)[2]
 top_mod_table[1,7]<- coef(glm_best)[3]
+top_mod_table
 
 ```
 
@@ -390,7 +392,7 @@ bwbs<- dat %>% dplyr::filter(zone =="BWBS")
 bwbs_t<- bwbs %>% dplyr::filter(bclcs_level_2=="T") # treed areas
 bwbs_nt<- bwbs %>% dplyr::filter(bclcs_level_2!="T") # not treed
 
-# examining  relationship between top climatic variable (tave07 + ppt07) and ignition for bwbs
+# examining  relationship between top climatic variable (mean_tave06_tave07_tave08) and ignition for bwbs 
 p <- ggplot(bwbs, aes(mean_tave06_tave07_tave08, as.numeric(fire_pres))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
@@ -531,8 +533,8 @@ table.glm[i,2]<-"mean_tave06_tave07_tave08 + proj_age_1 + bclcs_level_4"
 table.glm[i,3]<-AICc(glm8)
 
 glm9<- glm(fire_pres ~ mean_tave06_tave07_tave08 +
-             proj_height_1 + 
-             bclcs_level_4,
+           proj_height_1 + 
+           bclcs_level_4,
            data= bwbs_t,
            family = binomial,
            na.action=na.omit)
@@ -584,22 +586,21 @@ table.glm[i,3]<-AICc(glm12)
 table.glm$deltaAIC<- table.glm$AIC-min(table.glm$AIC)
 
 table.glm.bwbs<- table.glm
-table.glm.bwbs[order(table.glm.bwbs$deltaAIC),]
+table.glm.bwbs[order(table.glm.bwbs$deltaAIC),] 
 
-
-#    Model                                                            Variable      AIC     deltaAIC
-# 10 glm10              tave07 + ppt07 + live_stand_volume_125 + bclcs_level_4 2978.315    0.0000000
-# 11 glm11 tave07 + ppt07 + live_stand_volume_125 + proj_age_1 + bclcs_level_4 2978.591    0.2759201
-# 6   glm6                  tave07 + ppt07 + live_stand_volume_125 +proj_age_1 3037.320   59.0055587
-# 4   glm4                              tave07 + ppt07 + live_stand_volume_125 3054.007   75.6919814
-# 8   glm8                         tave07 + ppt07 + proj_age_1 + bclcs_level_4 3913.293  934.9783335
-# 12 glm12         tave07 + ppt07 + proj_height_1 + proj_age_1 + bclcs_level_4 3915.140  936.8249623
-# 9   glm9                      tave07 + ppt07 + proj_height_1 + bclcs_level_4 3915.469  937.1541952
-# 5   glm5                                      tave07 + ppt07 + bclcs_level_4 3964.378  986.0631628
-# 7   glm7                         tave07 + ppt07 + proj_age_1 + proj_height_1 3983.478 1005.1634768
-# 2   glm2                                         tave07 + ppt07 + proj_age_1 4000.481 1022.1662710
-# 3   glm3                                      tave07 + ppt07 + proj_height_1 4013.383 1035.0685117
-# 1   glm1                                                      tave07 + ppt07 4062.787 1084.4722965
+#Model                                                                       Variable      AIC  deltaAIC
+#10 glm10            mean_tave06_tave07_tave08 + live_stand_volume_125 + bclcs_level_4 3084.607  0.0000000
+#11 glm11 mean_tave06_tave07_tave08 + live_stand_volume_125+proj_age_1+bclcs_level_4  3085.069   0.4616382
+#6   glm6             mean_tave06_tave07_tave08 + live_stand_volume_125 +proj_age_1   3151.168  66.5606752
+#4   glm4                           mean_tave06_tave07_tave08 + live_stand_volume_125 3168.809  84.2018663
+#12 glm12      mean_tave06_tave07_tave08 + proj_height_1 + proj_age_1 + bclcs_level_4 4035.729 951.1215917
+#8   glm8                      mean_tave06_tave07_tave08 + proj_age_1 + bclcs_level_4 4036.915 952.3082287
+#9   glm9                  mean_tave06_tave07_tave08 + proj_height_1 + bclcs_level_4 4038.011  953.4039295
+#5   glm5                                  mean_tave06_tave07_tave08 + bclcs_level_4 4086.511 1001.9040492
+#7   glm7                     mean_tave06_tave07_tave08 + proj_age_1 + proj_height_1 4103.615 1019.0078386
+#3   glm3                                 mean_tave06_tave07_tave08 + proj_height_1 4142.327 1057.7204247
+#2   glm2                                     mean_tave06_tave07_tave08 + proj_age_1 4152.729 1068.1221689
+#1   glm1                                                  mean_tave06_tave07_tave08 4210.062 1125.4547625
 
 ####################################################
 ##### TOP MODEL####
@@ -607,8 +608,8 @@ table.glm.bwbs[order(table.glm.bwbs$deltaAIC),]
 bwbs_t2<-bwbs_t %>% drop_na(live_stand_volume_125)
 
 glm_best<- glm(fire_pres ~ scale(mean_tave06_tave07_tave08)+
-             scale(live_stand_volume_125) + 
-             bclcs_level_4, 
+             scale(live_stand_volume_125) +
+               bclcs_level_4, 
            data= bwbs_t2,
            family = binomial,
            na.action=na.omit)
@@ -641,8 +642,7 @@ binnedplot (bwbs_t2$mean_tave06_tave07_tave08,
             main = paste("Binned Residual Plot - glm", i))
 
 
-
-# Diagnostic plots look ok, not great! Im reluctant to transform variables that are skewed especially stand volume because stand volume might change over time during the clus simulation and I dont know how to implement a changing distribution.
+# Diagnostic plots look ok, not great.
 
 
 ```
@@ -654,9 +654,10 @@ binnedplot (bwbs_t2$mean_tave06_tave07_tave08,
 ################################
 
 cma<- dat %>% dplyr::filter(zone =="CMA")
-# I will run separate analyses for treed and non-treed areas because the non-treed areas dont have information for forest height, age or volume and so these variables cant be included in the model.
-cma_t<- cma %>% dplyr::filter(bclcs_level_2=="T") # treed areas
+# I will run separate analyses for treed and non-treed areas because the non-treed areas don't have information for forest height, age or volume and so these variables cant be included in the model.
+cma_t<- cma %>% dplyr::filter(bclcs_level_2=="T") # treed areas; note, only TC (no TM or TB)
 cma_nt<- cma %>% dplyr::filter(bclcs_level_2!="T") # not treed
+table(cma_t$bclcs_level_4)
 
 
 glm1<- glm(fire_pres ~ tave08 * ppt08, 
@@ -705,132 +706,125 @@ table.glm[i,1]<-paste0("glm",i)
 table.glm[i,2]<-"tave08 * ppt08 + live_stand_volume_125"
 table.glm[i,3]<-AICc(glm4)
 
+#glm5<- glm(fire_pres ~ tave08 * ppt08 +
+#             bclcs_level_4, # classification of tree type in the VRI; cannot do, because only TC 
+#           data= cma_t,
+#           family = binomial,
+#           na.action=na.omit)
+#summary(glm5)
+#i=5
+#table.glm[i,1]<-paste0("glm",i)
+#table.glm[i,2]<-"tave08 * ppt08 + bclcs_level_4"
+#table.glm[i,3]<-AICc(glm5)
+
 glm5<- glm(fire_pres ~ tave08 * ppt08 +
-             bclcs_level_4, # classification of tree type in the VRI 
+             live_stand_volume_125 + 
+             proj_age_1,
            data= cma_t,
            family = binomial,
            na.action=na.omit)
 summary(glm5)
 i=5
 table.glm[i,1]<-paste0("glm",i)
-table.glm[i,2]<-"tave08 * ppt08 + bclcs_level_4"
+table.glm[i,2]<-"tave08 * ppt08 + live_stand_volume_125 +proj_age_1"
 table.glm[i,3]<-AICc(glm5)
 
 glm6<- glm(fire_pres ~ tave08 * ppt08 +
-             live_stand_volume_125 + 
-             proj_age_1,
+             proj_age_1 + 
+             proj_height_1,
            data= cma_t,
            family = binomial,
            na.action=na.omit)
 summary(glm6)
 i=6
 table.glm[i,1]<-paste0("glm",i)
-table.glm[i,2]<-"tave08 * ppt08 + live_stand_volume_125 +proj_age_1"
+table.glm[i,2]<-"tave08 * ppt08 + proj_age_1 + proj_height_1"
 table.glm[i,3]<-AICc(glm6)
 
-glm7<- glm(fire_pres ~ tave08 * ppt08 +
-             proj_age_1 + 
-             proj_height_1,
-           data= cma_t,
-           family = binomial,
-           na.action=na.omit)
-summary(glm7)
-i=7
-table.glm[i,1]<-paste0("glm",i)
-table.glm[i,2]<-"tave08 * ppt08 + proj_age_1 + proj_height_1"
-table.glm[i,3]<-AICc(glm7)
+#glm8<- glm(fire_pres ~ tave08 * ppt08 +
+#             proj_age_1 + 
+#             bclcs_level_4, #When Cora runs this, there is only one level for bclcs_level_4 and thus an error arises
+#           data= cma_t,
+#           family = binomial,
+#           na.action=na.omit)
+#summary(glm8)
+#i=8
+#table.glm[i,1]<-paste0("glm",i)
+#table.glm[i,2]<-"tave08 * ppt08 + proj_age_1 + bclcs_level_4"
+#table.glm[i,3]<-AICc(glm8)
 
-glm8<- glm(fire_pres ~ tave08 * ppt08 +
-             proj_age_1 + 
-             bclcs_level_4,
-           data= cma_t,
-           family = binomial,
-           na.action=na.omit)
-summary(glm8)
-i=8
-table.glm[i,1]<-paste0("glm",i)
-table.glm[i,2]<-"tave08 * ppt08 + proj_age_1 + bclcs_level_4"
-table.glm[i,3]<-AICc(glm8)
+#glm9<- glm(fire_pres ~ tave08 * ppt08 +
+#             proj_height_1 + 
+#             bclcs_level_4, #Only one level 
+#           data= cma_t,
+#           family = binomial,
+#           na.action=na.omit)
+#summary(glm9)
+#i=9
+#table.glm[i,1]<-paste0("glm",i)
+#table.glm[i,2]<-"tave08 * ppt08 + proj_height_1 + bclcs_level_4"
+#table.glm[i,3]<-AICc(glm9)
 
-glm9<- glm(fire_pres ~ tave08 * ppt08 +
-             proj_height_1 + 
-             bclcs_level_4,
-           data= cma_t,
-           family = binomial,
-           na.action=na.omit)
-summary(glm9)
-i=9
-table.glm[i,1]<-paste0("glm",i)
-table.glm[i,2]<-"tave08 * ppt08 + proj_height_1 + bclcs_level_4"
-table.glm[i,3]<-AICc(glm9)
+#glm10<- glm(fire_pres ~ tave08 * ppt08 +
+#             live_stand_volume_125 + 
+#             bclcs_level_4,
+#           data= cma_t,
+#           family = binomial,
+#           na.action=na.omit)
+#summary(glm10)
+#i=10
+#table.glm[i,1]<-paste0("glm",i)
+#table.glm[i,2]<-"tave08 * ppt08 + live_stand_volume_125 + bclcs_level_4"
+#table.glm[i,3]<-AICc(glm10)
 
-glm10<- glm(fire_pres ~ tave08 * ppt08 +
-             live_stand_volume_125 + 
-             bclcs_level_4,
-           data= cma_t,
-           family = binomial,
-           na.action=na.omit)
-summary(glm10)
-i=10
-table.glm[i,1]<-paste0("glm",i)
-table.glm[i,2]<-"tave08 * ppt08 + live_stand_volume_125 + bclcs_level_4"
-table.glm[i,3]<-AICc(glm10)
+#glm11<- glm(fire_pres ~ tave08 * ppt08 +
+#             live_stand_volume_125 + 
+#              proj_age_1 +
+#             bclcs_level_4,
+#           data= cma_t,
+#           family = binomial,
+#           na.action=na.omit)
+#summary(glm11)
+#i=11
+#table.glm[i,1]<-paste0("glm",i)
+#table.glm[i,2]<-"tave08 * ppt08 + live_stand_volume_125 + proj_age_1 + bclcs_level_4"
+#table.glm[i,3]<-AICc(glm11)
 
-glm11<- glm(fire_pres ~ tave08 * ppt08 +
-             live_stand_volume_125 + 
-              proj_age_1 +
-             bclcs_level_4,
-           data= cma_t,
-           family = binomial,
-           na.action=na.omit)
-summary(glm11)
-i=11
-table.glm[i,1]<-paste0("glm",i)
-table.glm[i,2]<-"tave08 * ppt08 + live_stand_volume_125 + proj_age_1 + bclcs_level_4"
-table.glm[i,3]<-AICc(glm11)
-
-glm12<- glm(fire_pres ~ tave08 * ppt08 +
-              proj_height_1 +
-              proj_age_1 +
-             bclcs_level_4,
-           data= cma_t,
-           family = binomial,
-           na.action=na.omit)
-summary(glm12)
-i=12
-table.glm[i,1]<-paste0("glm",i)
-table.glm[i,2]<-"tave08 * ppt08 + proj_height_1 + proj_age_1 + bclcs_level_4"
-table.glm[i,3]<-AICc(glm12)
+#glm12<- glm(fire_pres ~ tave08 * ppt08 +
+#              proj_height_1 +
+#              proj_age_1 +
+#             bclcs_level_4,
+#           data= cma_t,
+#           family = binomial,
+#           na.action=na.omit)
+#summary(glm12)
+#i=12
+#table.glm[i,1]<-paste0("glm",i)
+#table.glm[i,2]<-"tave08 * ppt08 + proj_height_1 + proj_age_1 + bclcs_level_4"
+#table.glm[i,3]<-AICc(glm12)
 
 
 table.glm$deltaAIC<- table.glm$AIC-min(table.glm$AIC)
 
-table.glm.bwbs<- table.glm
-table.glm.bwbs[order(table.glm.bwbs$deltaAIC),]
+table.glm.cma<- table.glm
+table.glm.cma[order(table.glm.cma$deltaAIC),] #
 
 
-#    Model                                                            Variable      AIC     deltaAIC
-# 10 glm10              tave07 + ppt07 + live_stand_volume_125 + bclcs_level_4 2978.315    0.0000000
-# 11 glm11 tave07 + ppt07 + live_stand_volume_125 + proj_age_1 + bclcs_level_4 2978.591    0.2759201
-# 6   glm6                  tave07 + ppt07 + live_stand_volume_125 +proj_age_1 3037.320   59.0055587
-# 4   glm4                              tave07 + ppt07 + live_stand_volume_125 3054.007   75.6919814
-# 8   glm8                         tave07 + ppt07 + proj_age_1 + bclcs_level_4 3913.293  934.9783335
-# 12 glm12         tave07 + ppt07 + proj_height_1 + proj_age_1 + bclcs_level_4 3915.140  936.8249623
-# 9   glm9                      tave07 + ppt07 + proj_height_1 + bclcs_level_4 3915.469  937.1541952
-# 5   glm5                                      tave07 + ppt07 + bclcs_level_4 3964.378  986.0631628
-# 7   glm7                         tave07 + ppt07 + proj_age_1 + proj_height_1 3983.478 1005.1634768
-# 2   glm2                                         tave07 + ppt07 + proj_age_1 4000.481 1022.1662710
-# 3   glm3                                      tave07 + ppt07 + proj_height_1 4013.383 1035.0685117
-# 1   glm1                                                      tave07 + ppt07 4062.787 1084.4722965
+#    Model                                           Variable      AIC  deltaAIC
+#4  glm4             tave08 * ppt08 + live_stand_volume_125 47.99134  0.000000
+#5  glm5 tave08 * ppt08 + live_stand_volume_125 +proj_age_1 50.25766  2.266327
+#2  glm2                        tave08 * ppt08 + proj_age_1 56.95475  8.963410
+#3  glm3                     tave08 * ppt08 + proj_height_1 57.63835  9.647012
+#1  glm1                                     tave08 * ppt08 58.87539 10.884057
+#6  glm6        tave08 * ppt08 + proj_age_1 + proj_height_1 59.16631 11.174974
 
 ####################################################
 ##### TOP MODEL####
 
 cma_t2<-cma_t %>% drop_na(live_stand_volume_125)
 
-glm_best<- glm(fire_pres ~ scale(mean_tave06_tave07_tave08)+
-             scale(live_stand_volume_125) + 
-             bclcs_level_4, 
+glm_best<- glm(fire_pres ~ scale(tave08)+ + scale(ppt08)+
+             scale(live_stand_volume_125),
            data= cma_t2,
            family = binomial,
            na.action=na.omit)
@@ -864,7 +858,7 @@ binnedplot (cma_t2$mean_tave06_tave07_tave08,
 
 
 
-# Diagnostic plots look ok, not great! Im reluctant to transform variables that are skewed especially stand volume because stand volume might change over time during the clus simulation and I dont know how to implement a changing distribution.
+# Diagnostic plots look ok, not great! Fairly small sample size for this zone.
 
 
 ```
@@ -1150,6 +1144,8 @@ binnedplot (essf_red$proj_age_1_scale,
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm", i))
 
+
+### Residual plots are not amazing...
 ```
 
 
