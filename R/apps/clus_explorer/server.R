@@ -260,7 +260,7 @@ ON (foo1.scenario = foo2.scenario) )")))
   
   output$numberFisherTerritory<-renderValueBox({
     valueBoxSpark(
-      value = paste0(as.integer(nrow(reportList()$fisher[timeperiod == input$fisheryear & scenario == input$fisher_scenario_selected & rel_prob_occup > 0.2, "zone"]))),
+      value = paste0(as.integer(nrow(reportList()$fisher[timeperiod == input$fisheryear & scenario == input$fisher_scenario_selected & rel_prob_occup > 0.55, "zone"]))),
       title = toupper("Territories"),
       subtitle = NULL,
       icon = icon("times-circle"),
@@ -332,8 +332,7 @@ ON (foo1.scenario = foo2.scenario) )")))
   output$harvestAgePlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data<-reportList()$harvest
-      data<-data[, lapply(.SD, FUN=weighted.mean, x=volume), by=c("timeperiod", "scenario"), .SDcols='age']
-      print(data)
+      data<-data[, lapply(.SD, FUN=weighted.mean, x=age), by=c("timeperiod", "scenario"), .SDcols='age']
       #data$scenario <- reorder(data$scenario, data$V1, function(x) -max(x) )
       data[,timeperiod:= as.integer(timeperiod)]
       p<-ggplot (data, aes (x=timeperiod, y=age, fill = scenario)) +  
