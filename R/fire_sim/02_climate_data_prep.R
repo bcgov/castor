@@ -430,6 +430,12 @@ ggplot() +
 st_write(ignition_weather_crs, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data.shp", delete_layer=TRUE)
 ##Open in QGis to assess; see one physical outlier in middle of ocean
 
+##Get 2002 data and visualize in QGis
+ignition_weather_crs_2002<-subset(ignition_weather_crs,ignition_weather_crs$fire_year==2002)
+head(ignition_weather_crs_2002)
+st_write(ignition_weather_crs_2002, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_2002.shp", delete_layer=TRUE)
+
+
 # commit the shape file to postgres
 # this works for loading the shape file onto Kyles Postgres. Run these sections of code below in R and fill in the details in the script for command prompt. Then run the ogr2ogr script in command prompt to get the table into postgres
 
