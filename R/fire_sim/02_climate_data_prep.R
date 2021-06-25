@@ -81,24 +81,6 @@ fire.igni.bec<- st_intersection(fire.ignition_sf, bec_sf_buf) # ST_Intersects is
 # Note: on June 21, 2021, when the above is run, 10 points get physically placed in the middle of the ocean despite having correct GPS points. Unknown why.
 table(fire.igni.bec$fire_year)
 
-##TROUBLESHOOT: subset the problem numbers and try above again
-head(fire.ignition_sf) #See head, and get ogc_fid from QGis Identify function
-# ogc_fid: 1908, 3623, 5665, 9105, 10586, 12385, 18293,20622, 21705, 27417, 29456, 33720,34729, 36589, 39422, 40848, 41383, 45045, 23292, 44250
-
-fire.ignition_sf.test<-subset(fire.ignition_sf, fire.ignition_sf$ogc_fid == 1908 | ogc_fid == 3623 | ogc_fid == 5665 | ogc_fid == 9105 | ogc_fid == 10586 | ogc_fid == 12385 | ogc_fid == 18293 |ogc_fid == 20622 | ogc_fid == 21705 | ogc_fid == 27417 | ogc_fid == 29456 | ogc_fid == 33720 | ogc_fid == 34729 | ogc_fid == 36589 | ogc_fid == 39422 | ogc_fid == 40848 | ogc_fid == 41383 | ogc_fid == 45045 | ogc_fid == 23292 | ogc_fid == 44250)
-#Visualize (note that BC outline may be created below)
-ggplot() +
-  geom_sf(data=bc.bnd, col='red') +
-  geom_sf(data=fire.ignition_sf.test, col='black') #Correct locations
-
-fire.igni.bec.test<- st_intersection(fire.ignition_sf.test, bec_sf_buf) # test where located now
-ggplot() +
-  geom_sf(data=bc.bnd, col='red') +
-  geom_sf(data=fire.igni.bec.test, col='black') #Now some are in right place, some in middle of ocean
-
-st_write(fire.igni.bec.test, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition_BEC_TEST.shp", delete_dsn = TRUE)
-
-
 
 #write fire.igni.bec to file because it takes so long to make
 st_write(fire.igni.bec, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition_BEC.shp", delete_dsn = TRUE)
@@ -126,6 +108,7 @@ st_write (obj = fire.igni.bec,
           dsn = conn, 
           layer = c ("public", "fire_ignit_by_bec"))
 dbDisconnect (conn)
+
 
 #import the fire ignition data
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
@@ -272,13 +255,13 @@ samp_locations$idno<-1:length(samp_locations$fire_year)
 samp_locations_sf<-st_as_sf(samp_locations)
 st_crs(samp_locations_sf)
 head(samp_locations_sf) #Note, wkb_geometry is in different coordinate system for this data
+table(is.na(samp_locations_sf$ogc_fid))
 
 ##Check data
 table(samp_locations_sf$fire_cause) #Half are lightning, half are NA
 table(samp_locations_sf$fire_type) #Half are Fire and Nuisance Fire, half are NA
 table(samp_locations_sf$subzone)
-table(samp_locations$fire_year) #now the fires from 2007 and 2008 are missing
-table(h$zone)
+table(samp_locations$fire_year) 
 
 table(fire_igni_bec_new$fire_year, fire_igni_bec_new$fire_cause) #Most 2007 and 2008 were people caused and not lightning!
 # low numbers 2007 and 2008 are correct
@@ -425,7 +408,7 @@ samp_locations_sf$idno <- as.factor(as.character(samp_locations_sf$idno))
 samp_locations_sf$fire_year <- as.numeric(as.character(samp_locations_sf$fire_year))
 
 # Now join DC.ignitions back with the original fire ignition dataset
-ignition_weather<-left_join(DC.ignitions1, samp_locations_sf) #This is the step where we end up with 2 different lat/longs per row
+ignition_weather<-left_join(DC.ignitions1, samp_locations_sf)
 head(ignition_weather) #Lat -Longs match
 dim(ignition_weather) 
 st_crs(ignition_weather) #Answer NA
@@ -457,10 +440,8 @@ st_write(ignition_weather_crs, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_D
 #password=keyring::key_get('dbpass', keyring = 'postgreSQL')
 
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
-ogr2ogr -f PostgreSQL PG:"host= user= dbname= password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host= user= dbname= password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ##Above does not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
-
-
 
 # OR my local machine
 
