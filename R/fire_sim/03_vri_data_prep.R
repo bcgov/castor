@@ -252,6 +252,7 @@ table(fire_veg_data$fire_yr, fire_veg_data$fire_cs)
 
 write.csv(fire_veg_data, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate.csv")
 
+
 # write final fire ignitions, weather and vegetation types to postgres
 # save data 
 connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
