@@ -53,7 +53,8 @@ For climate data I talked to Colin Mahony. Colin suggested I down scale climate 
 Lastly in script C:\Work\caribou\clus\R\fire_sim\07_compile_future_data.R I try to amalgamate the raster data so that I can easily query it. This is not complete though.
 
 
-
+#Spread important files:
+https://catalogue.data.gov.bc.ca/dataset/fire-perimeters-historical/resource/f635b5a6-c810-4623-9286-df9386b1ee75
 
 
 
