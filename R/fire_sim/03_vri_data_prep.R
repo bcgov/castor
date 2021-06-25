@@ -242,7 +242,7 @@ table(fire_veg_data$fire_yr, fire_veg_data$fire_cs)
 # e.g. numbers to check 2002 -> 876 lightning strikes
 #                       2007 -> 22 (all others were indicated as human caused)
 #                       2008 -> 29 (all others were indicated as human caused)
-
+## If we open the DC_data plus the veg 2002 polygons, we see that there was not coverage for the entire province, so these points likely get snipped out
 
 
 ##Check what data points are missing
