@@ -114,6 +114,7 @@ Also see Andrews PL (2018) The Rothermel Surface Fire Spread Model and Associate
 9. Consider (semi-)natural fire breaks, such as roads, when considering spread. Logging roads vs paved roads as fire breaks? Look into. This will be important for the spread model.
 10. Predicted climate change (monthly drought index, etc) with Web app to explore CMIP6 projections for BC if not already incorporated.
 11. Can we incorporate spread from one BEC type to another?
+12. Interesting ideas and resources a bit tangential maybe in this webinar, talking about forest succession after a fire, using LANDSAT to determine fire severity, and fuel breaks (https://www.youtube.com/watch?v=FS7yz1JKdTs)
 
 
 ##Notes on Pariesen et al. 2019. Applications of simulation-based burn probability modelling: a review
