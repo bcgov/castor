@@ -114,7 +114,7 @@ files <- list.files(dir)
 
 for(element in elements){
   files.element <- files[grep(element,files)] # get all tasmax/tasmin/pr files from the specific GCM run  
-  for(year in 1:length(years)){
+  for(year in 1:length(years))}
     
 precip<-read.csv("D:\\Fire\\fire_data\\raw_data\\Future_climate\\outputs\\pr_Quesnel_MPI-ESM1-2-HR_adjusted_values_2001_2100.csv")
 
