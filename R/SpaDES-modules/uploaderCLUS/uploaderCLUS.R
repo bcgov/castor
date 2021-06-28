@@ -115,9 +115,10 @@ Init <- function(sim) {
                                              c10_40r50=numeric(),  c10_40r500=numeric(), cut10_40=numeric()),
                     
                     yielduncertainty = data.table(scenario = character(), compartment = character(), timeperiod = integer(), projvol = numeric(), calibvol = numeric (), prob = numeric(), pred5 = numeric(), pred95 = numeric() ),
-                    fisher=data.table(timeperiod = as.integer(), scenario = as.character(), compartment =  as.character(), openess = as.numeric(), zone = as.integer(), reference_zone = as.character(), rel_prob_occup = as.numeric()))
+                    fisher=data.table(timeperiod = as.integer(), scenario = as.character(), compartment =  as.character(), openess = as.numeric(), zone = as.integer(), reference_zone = as.character(), rel_prob_occup = as.numeric()),
+                    zonemanagement=data.table(scenario = as.character(), zoneid = as.integer(), reference_zone = as.character(), zone_column = as.character(), variable = as.character(), threshold = as.numeric(), type = as.character(), percentage = numeric(), multi_condition = as.character(), t_area = numeric(), denom = as.character(), start = as.integer(), stop = as.integer(), percent = numeric(), timeperiod = as.integer()))
 
-    tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "disturbance", "yielduncertainty", "fisher")
+    tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "disturbance", "yielduncertainty", "fisher", "zonemanagement")
     for(i in 1:length(tablesUpload)){
       dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), tablesUpload[[i]]), tableList[[tablesUpload[i]]], row.names = FALSE)
       dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", tablesUpload[[i]]," to appuser;"))
@@ -201,6 +202,11 @@ save.reports <-function (sim){
   if(!is.null(sim$tableFisherOccupancy)){
     DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'fisher'), 
                       sim$tableFisherOccupancy, append = T, row.names = FALSE)
+  }
+  #zonal constraints
+  if(!is.null(sim$zoneManagement)){
+    DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'zonemanagement'), 
+                      sim$zoneManagement, append = T, row.names = FALSE)
   }
   dbDisconnect(connx)
   return(invisible(sim)) 
