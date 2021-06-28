@@ -35,7 +35,7 @@ library(purrr)
 library(tidyr)
 library(caret)
 library(pROC)
-
+library(keyring)
 
 source(here::here("R/functions/R_Postgres.R"))
 
@@ -222,6 +222,9 @@ dist.cut.corr <- dat [c (24:28, 29:33)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and Tave")
+
+
+
 #################################
 # ANALYSIS OF CLIMATE VARIABLES
 #################################
@@ -308,7 +311,7 @@ variables2<-c("ppt05", "ppt06", "ppt07", "ppt08", "ppt09",
               # "mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09",
               # "ppt05", "ppt06", "ppt07", "ppt08", "ppt09"
 ) 
-# precipitation and MDC and temperature and MDC are quite correlated so Im leaving this combination of variables out. 
+# precipitation and MDC and temperature and MDC are quite correlated so I'm leaving this combination of variables out. 
 
 dat$fire_pres<-as.numeric(dat$fire) 
 table(dat$fire_yr, dat$fire_pres)
@@ -322,7 +325,7 @@ table(dat$fire_yr, dat$fire_cs, dat$zone)
 unique(dat$zone)
 zones<- c("ICH", "ESSF", "CWH", "MH", "CMA", "MS", "PP", "IDF", "SBPS", "IMA", "BWBS", "BG", "SBS", "SWB") #"CDF", "BAFA"
 
-# CDF and BAFA have few fire ignitions (CHECK!), Im going to leave them out for the moment because there are not many fire ignition locations in these two.
+# CDF and BAFA have few fire ignitions (CHECK!), I'm going to leave them out for the moment because there are not many fire ignition locations in these two.
 filenames<-list()
 prop<-0.75
 
@@ -450,7 +453,7 @@ assign(nam1,table.glm.climate.simple)
 filenames<-append(filenames,nam1)
 }
 }
-
+# Common warning message: glm.fit: fitted probabilities numerically 0 or 1 occurred
 
 mkFrameList <- function(nfiles) {
   d <- lapply(seq_len(nfiles),function(i) {
@@ -475,6 +478,8 @@ aic_bec_summary2<- aic_bec_summary %>%
 
 write.csv(aic_bec_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results_simple.csv")
 
+
+###
 connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
                       host = key_get('dbhost', keyring = 'postgreSQL'),
                       user = key_get('dbuser', keyring = 'postgreSQL'),
@@ -486,3 +491,5 @@ st_write (obj = dat,
           layer = c ("public", "fire_ignitions_veg_climate_clean"))
 dbDisconnect (connKyle)
 
+
+############### Complete. Now move on to 05_Fire_ignition_model_fits_by_BEC wherein the results of climate_AIC_results_simple will be utilied###########
