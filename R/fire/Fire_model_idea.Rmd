@@ -115,6 +115,9 @@ Also see Andrews PL (2018) The Rothermel Surface Fire Spread Model and Associate
 10. Predicted climate change (monthly drought index, etc) with Web app to explore CMIP6 projections for BC if not already incorporated.
 11. Can we incorporate spread from one BEC type to another?
 12. Interesting ideas and resources a bit tangential maybe in this webinar, talking about forest succession after a fire, using LANDSAT to determine fire severity, and fuel breaks (https://www.youtube.com/watch?v=FS7yz1JKdTs)
+13. Slope and Aspect likely important. Slope important for spread, and aspect important for ignition?
+- "Because of the local, up-slope winds, wildfires usually burn up-slope. The steeper the slope, the more rapidly the fire will burn up-slope (and more intensely). The reason is because of both greater radiant heat and greater convective heat." "Aspect is the direction that a slope faces.  The direction a slope faces determines how much radiated heat it will receive from the sun.  Slopes facing south to southwest will receive the most solar radiation.  As a result, this slope is warmer than slopes facing a northerly direction.  The warmer slope results in lower relative humidity, higher temperatures and rapid loss of moisture.  The fuel will tend to be dryer flashy-type that ignites and burns readily.  The period that fires will ignite and burn will also be longer on south-facing slopes." http://www.auburn.edu/academic/forestry_wildlife/fire/topos_effect.htm
+- "In northern aspects solar radiation was lower and fuels had less water limitation to growth which, combined with steeper slopes, produced more extreme severity. In topographic fires there was more extreme severity in northern aspects with steeper slopes and in areas with more water availability and high crown biomass" (Lecina-Diaz et al. 2014) 
 
 
 ##Notes on Pariesen et al. 2019. Applications of simulation-based burn probability modelling: a review
@@ -143,3 +146,19 @@ Three key purposes of BP models: (1) direct examination; (2) neighbourhood proce
 An element not included in any models in Canada is long distance spotting events, and they suggest that making fuel breaks partially flammable can help partially account for this short-fall.
 
 
+##Summary of Considerations for modelling burn probability across landscapes with steep environmental gradients: an example from the Columbia Mountains, Canada by Parisien et al. 2012.
+
+In this paper, the authors create a Burn Probability (BP) model for the area around Revelstoke BC, taking into account topography and windspeed. Many elements have been touched on previously, such as modeling separately by fule type (BEC zone) and by ignition type, with human and lightning caused fires modeled separately and incorporating road density into the bhuman-caused fire model. Some other key elements they performed that warrant consideration by us include:
+   1.Fire duration - really important to know fire duration. Can create frequency distributions for duration for each BEC zone. Can also model spread based off of this. Really important for escape and spread.
+   2. Topography - really important to include for fire behaviour (DEM). More important for spread than ignition IMO.
+   3. Wind direction and speed - can be modelled with WindNinja based on DEM. Really important for escape and spread.
+   4. Fire Spread Rate - used satellited-deteced hot spots from 1994-2010 and fancy stats to estimate how big the fire was each day and then estimate spread rate. Could do a simpler model where take fire size and divide by number of burn days and predict a constant rate of spread. If can get daily spread, and correlate to daily fire weather, would be even better. However, future predictions will mostly be climate, so creating a dsitribution of spread rates from ClimateBC data and average spread rate probably sufficient.
+   5. Could assess if seasonality of fires is important by BEC zone
+   6. Solar radiation from aspect and slope - this can be really important to the probability of ignition
+   7. The importance of non-linearity of variables and using quadratic, or other, transformations.
+   8. Fragmented areas - probability of spread was lower in fragmented areas. Account for in spread.
+   9. Test spread rates against historical data because often over-predicted from model and may need a correcting factor.
+   10. Also discuss the need to account for fire suppression activities.
+   
+   
+   
