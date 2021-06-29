@@ -1,0 +1,77 @@
+---
+title: "04_DEM_data_prep"
+author: "Cora Skaien"
+date: "29/06/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Because slope and aspect have been shown to influence both ignition and spread of fires, we will use the provincial DEM layer to acquire the slope and aspect of each location. Later, we may need to know the slope of each adjacent cell as well when we model spread.
+
+Load necessary libraries
+
+```{r}
+library(raster)
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(cleangeo)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+
+The Provincial DEM accessible to us is located here: T:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\dem\all_bc 
+Load in this file and transform projection
+
+```{r}
+
+DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc.tif", stringsAsFactors = T)
+head(DEM_slope)
+
+DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc.tif", stringsAsFactors = T)
+
+##Inspect coordinate systems
+crs(DEM_slope)
+crs(DEM_aspect)
+
+#DEM_slope<-st_transform(DEM_slope, 3005)
+
+```
+
+
+
+
+
+
+
+
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
