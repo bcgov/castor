@@ -22,7 +22,14 @@ This module provides the logic for simulating fire ignitions on the landscape. T
 
 ## Historical data used to obtain logistic regression parameters 
 
-Fire ignition locations for all of BC for the years 2002 to 2020 are obtained from https://catalogue.data.gov.bc.ca/dataset/fire-incident-locations-historical. The script to prepare this data can be found in C:\Work\caribou\clus\R\fire_sim\01_fire_ignition_data_prep.R. The ignition locations include fires started by humans, lightning, and other causes such as prescribed burns. For ease, I focus the analysis on lightning caused fires only, but it might be possible to calculate the probability of ignition due to human caused fires using road densities or something like the human footprint index that could be included in the statistical model in addition to vegetation and climate data. This might be something to add in the future. 
+Fire ignition locations for all of BC for the years 2002 to 2020 are obtained from https://catalogue.data.gov.bc.ca/dataset/fire-incident-locations-historical. The script to prepare this data can be found in C:\Work\caribou\clus\R\fire_sim\01_fire_ignition_data_prep.R. The ignition locations include fires started by humans, lightning, and other causes such as prescribed burns. For ease, I focus the analysis on lightning caused fires only, but it might be possible to calculate the probability of ignition due to human caused fires using road densities or something like the human footprint index that could be included in the statistical model in addition to vegetation and climate data. This might be something to add in the future. Some papers use road density, others use distance to road. Many assume constant road network over time. We have roadclus which can estimate road networks moving backwards and can increase accuracy.
+
+Roads can be found here: public.integrated_roads  --> however, large dataset, likely cannot be brought into R
+Code for roads from Kyle: https://github.com/bcgov/clus/blob/master/R/roads/current_roads.R
+	T:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\Roads\roads_ha_bc\crds_all_roads.tif
+	(Note: each year, roads change)
+	Note: roads data has all roads awarded tenure and they may not have ever been built on the landscape.  https://www.bcauditor.com/pubs/2021/management-forest-service-roads
+	Roadclus module does backcasting across landscape: https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/roadCLUS
 
 Climate data for the locations where fires were and were not observed are obtained from climateBC (http://climatebc.ca/) for all years 2002 to 2020 The script to prepare this data can be found in C:\Work\caribou\clus\R\fire_sim\02_climate_data_prep.R. 
 Briefly, the script obtains the lat, long coordinates of fire ignition locations and samples locations where fires were not observed to start. It then creates a csv file with these locations that is used to manually extract monthly average climate variables from climateBC (http://climatebc.ca/) for all years 2002 to 2020. After the climate data has been extracted from ClimateBC this data is reimported into the script and the mean monthly drought code for the months  May - September is calculated for each year. After running this script I get the maximum temperature, minimum temperature, average temperature, total precipitation, and mean monthly drought code for the months May - September for each year 2002 - 2020 for all fire ignition locations and randomly sampled (available fire ignition locations (fire absence)) locations on the landscape. I save this climate data in postgres so that for the same locations I can query the VRI for vegetation data. 
@@ -46,7 +53,7 @@ I also want to do another analysis for non-treed areas this model will likely on
 
 ## Future climate and vegetation data
 
-For projecting fire ignitions forward I need predicted data collected for the future. For vegetation data I hope to use the CLUS model which pulls volume, height and age data from tipsy curves and I should be able to access this data during a CLUS run. Need to speak to Kyle about this.
+For projecting fire ignitions forward I need predicted data collected for the future. For vegetation data I hope to use the CLUS model which pulls volume, height and age data from tipsy curves and I should be able to access this data during a CLUS run. Need to speak to Kyle about this. Also need to determine accounting for when land might be harvested, changing the land type once again.
 
 For climate data I talked to Colin Mahony. Colin suggested I down scale climate data on the fly. I've not quite done this I did down scale the climate data for one Global Climate change model and generated rasters for each year and month from 2020 to 2100. I need to include more gcm models though. Detailed methods for what I did and the script to do this can be found in the file: C:\Work\caribou\clus\R\fire_sim\06_future_climate_data_prep.Rmd.
 
@@ -56,19 +63,7 @@ Lastly in script C:\Work\caribou\clus\R\fire_sim\07_compile_future_data.R I try 
 #Spread important files:
 https://catalogue.data.gov.bc.ca/dataset/fire-perimeters-historical/resource/f635b5a6-c810-4623-9286-df9386b1ee75
 
+heres where all the elevation data is held: T:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\dem\all_bc 
 
 
 
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
