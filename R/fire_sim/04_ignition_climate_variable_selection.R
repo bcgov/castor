@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 #=================================
-#  Script Name: 02_fire_ignition_analysis.R
+#  Script Name: 05_ignition_climate_variable_selection.R
 #  Script Version: 1.0
 #  Script Purpose: Run logistic regression models to determine the top candidate climate variable to use in the final analysis of fire ignitions.
 #  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
@@ -47,7 +47,7 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
 fire_veg_data <- sf::st_read  (dsn = connKyle, # connKyle
-                               query = "SELECT * FROM public.fire_ignitions_veg_climate")
+                               query = "SELECT * FROM public.fire_ignitions_veg_climate_B")
 dbDisconnect (connKyle)
 
 # Import the fire ignition data
@@ -67,7 +67,7 @@ conn <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       port = "5432")
 
 fire_ignitions <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.bc_fire_ignition")
+                               query = "SELECT * FROM public.bc_fire_ignition_B")
 dbDisconnect (conn) # connKyle
 
 fire_ignitions1<-st_set_geometry(fire_ignitions,NULL) # remove geometry column for dataset
@@ -492,4 +492,4 @@ st_write (obj = dat,
 dbDisconnect (connKyle)
 
 
-############### Complete. Now move on to 05_Fire_ignition_model_fits_by_BEC wherein the results of climate_AIC_results_simple will be utilied###########
+############### Complete. Now move on to 06_Fire_ignition_model_fits_by_BEC wherein the results of climate_AIC_results_simple will be utilied###########

@@ -235,10 +235,10 @@ fire_veg_2020$live_stand_volume_125<-NA
 
 #Must create test file for below to work (fire_veg_2009_test does not yet exist)
 
-names(fire_veg_2009_test)
-plot(fire_veg_2009_test$live_stand_volume_125, fire_veg_2009_test$live_stand_volume_125_try)
-names(fire_veg_2010_test)
-plot(fire_veg_2010_test$live_stand_volume_125, fire_veg_2010_test$live_stand_volume_125_try)
+#names(fire_veg_2009_test)
+#plot(fire_veg_2009_test$live_stand_volume_125, fire_veg_2009_test$live_stand_volume_125_try)
+#names(fire_veg_2010_test)
+#plot(fire_veg_2010_test$live_stand_volume_125, fire_veg_2010_test$live_stand_volume_125_try)
 
 # Excellent! Looks like a perfect correlation! YIPEEE
 
@@ -266,6 +266,11 @@ table(fire_veg_data_B$fire_yr, fire_veg_data_B$fire_cs)
 ## If we open the dc_data_2 plus the veg 2002 polygons, we see that there was not coverage for the entire province, so these points likely get snipped out
 
 
+#Rename columns for ease of use
+head(fire_veg_data_B)
+fire_veg_data_B<- fire_veg_data_B %>% rename(
+  slope=slp_h_b,
+  aspect=aspct__)
 
 
 write.csv(fire_veg_data_B, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_B.csv")
