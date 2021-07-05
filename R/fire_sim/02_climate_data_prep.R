@@ -261,7 +261,7 @@ table(is.na(samp_locations_sf$ogc_fid))
 table(samp_locations_sf$fire_cause) #Half are lightning, half are NA
 table(samp_locations_sf$fire_type) #Half are Fire and Nuisance Fire, half are NA
 table(samp_locations_sf$subzone)
-table(samp_locations$fire_year) 
+table(samp_locations_sf$fire_year) 
 
 table(fire_igni_bec_new$fire_year, fire_igni_bec_new$fire_cause) #Most 2007 and 2008 were people caused and not lightning!
 # low numbers 2007 and 2008 are correct
