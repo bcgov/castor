@@ -422,7 +422,7 @@ crs(ignition_weather_crs)
 ggplot() +
   geom_sf(data=bc.bnd, col='red') +
   geom_sf(data=ignition_weather_crs, col='black') #looks good
-#If orandom points appear in middle of ocean, open in QGIS to get points.
+#If random points appear in middle of ocean, open in QGIS to get points.
 
 
 # A check of the fire ignition counts per year line up with the original data. So the number of fire ignitions seem good. 
@@ -456,5 +456,5 @@ st_write(ignition_weather_crs_2002, dsn = "D:\\Fire\\fire_data\\raw_data\\Climat
 
 
 #########################################
-#### FINISHED NOW GO TO 03_vri_data_prep####
+#### FINISHED NOW GO TO 03_DEM_data_prep####
 #########################################
