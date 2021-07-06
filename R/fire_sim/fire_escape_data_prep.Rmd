@@ -56,4 +56,20 @@ table(fire_veg_DEM_climate_2$escape) #We have 13257 that did not escape, and 306
 
 
 ```
+
+Save datafile to clus database.
+
+```{r}
+connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                      host = key_get('dbhost', keyring = 'postgreSQL'),
+                      user = key_get('dbuser', keyring = 'postgreSQL'),
+                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+                      password = key_get('dbpass', keyring = 'postgreSQL'),
+                      port = "5432")
+st_write (obj = fire_veg_DEM_climate_2, 
+          dsn = connKyle, 
+          layer = c ("public", "Escape_data"))
+dbDisconnect (connKyle)
+```
+
 Data preparations are now complete. Move on to model selection.
