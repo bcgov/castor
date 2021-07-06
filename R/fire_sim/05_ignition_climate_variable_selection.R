@@ -50,6 +50,9 @@ fire_veg_data <- sf::st_read  (dsn = connKyle, # connKyle
                                query = "SELECT * FROM public.fire_ignitions_veg_climate_B")
 dbDisconnect (connKyle)
 
+##If continuing from last script, then can do below instead of bringing data back in:
+# fire_veg_data<-fire_veg_data_B
+
 # Import the fire ignition data
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
                    host = "",
@@ -67,7 +70,7 @@ conn <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       port = "5432")
 
 fire_ignitions <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.bc_fire_ignition_B")
+                               query = "SELECT * FROM public.bc_fire_ignition")
 dbDisconnect (conn) # connKyle
 
 fire_ignitions1<-st_set_geometry(fire_ignitions,NULL) # remove geometry column for dataset
@@ -125,7 +128,7 @@ ignition_pres_abs4$vegtype[which(ignition_pres_abs4$proj_age_1 <16)]<-"D" # dist
 #ignition_pres_abs4<- ignition_pres_abs4 %>% filter(fir_typ!="Nuisance Fire") 
 table(ignition_pres_abs4$vegtype, ignition_pres_abs4$fire_cs)
 
-# look at vegetaton height, volume and age as we track these in CLUS. 
+# look at vegetation height, volume and age as we track these in CLUS. 
 ignition_pres_abs4$proj_age_1<- as.numeric(ignition_pres_abs4$proj_age_1)
 hist(ignition_pres_abs4$proj_age_1)
 hist(ignition_pres_abs4$proj_height_1) # not sure we have height in CLUS, we do have volume though. So maybe I should include age and volume in my model. This might be a surrogate for height
@@ -185,8 +188,9 @@ dim(sampled_df) # 22715 rows
 dim(pre1) # 14958 rows; Cora on June 23: has 15268 rows
 
 dat<- rbind(pre1, as.data.frame(sampled_df))
-dim(dat) # 37673 rows good this worked I think; Cora June 23 has 45680 rows. This is fewer than the >180,000 rows of the data at the end of file 01
+dim(dat) # 37673 rows good this worked I think; Cora July 5 has 45656 rows. This is fewer than the >180,000 rows of the data at the end of file 01
 
+head(dat)
 #dat<-ignition_pres_abs4 # 
 
 ##################
@@ -476,7 +480,9 @@ aic_bec_summary2<- aic_bec_summary %>%
   group_by(Zone) %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-write.csv(aic_bec_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results_simple.csv")
+aic_bec_summary2
+
+write.csv(aic_bec_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results_simple_July5.csv")
 
 
 ###
