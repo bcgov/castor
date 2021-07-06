@@ -90,6 +90,29 @@ dbDisconnect (connKyle)
 head(dat)
 
 ```
+
+
+When doing the below analyses, it was noticed that disturbed areas always get eliminated when NAs are removed from the final data used for the model. Here, we investigate what variables are missing.
+
+```{r}
+dat_Disturbed<-subset(dat, dat$vegtype=="D")
+head(dat_Disturbed)
+dat_Disturbed$live_stand_volume_125
+table(dat_Disturbed$live_stand_volume_125)
+## We see that live_stand_volume does not exist for most disturbed sites (and when it does, it is 0, and one that is 3.103)
+
+hist(dat_Disturbed$proj_age_1) #All under 15 years, as expected given the classification of disturbed if below 15 years
+
+hist(dat_Disturbed$proj_height_1) #When not NA, Mostly all 0-5 m, a small number ~7 m.
+
+##Change all NA for this vegtype to 0
+dat <- within(dat, live_stand_volume_125[is.na(live_stand_volume_125) & vegtype == 'D'] <- 0)
+##Because there will be no effect of stand volume on disturbed veg type, an interaction between these two variables should be included when both are in the model.
+
+```
+
+
+
 ## Examining correlation between stand level variables
 ```{r}
 # Examining the relationship between some stand level variables. Volume and height are fairly correlated (0.67) but age and volume are not (0.28) and neither are age and height (0.44). Because volume and height are very close to 0.7 in correlation I will leave out this combination of variables from my treed models. 
@@ -130,26 +153,6 @@ hist(dat_l$proj_height_1)
 hist(dat_l$proj_age_1)
 hist(dat_l$live_stand_volume_125)
 ## This is ok. Still exclude from models, because majority of polygon will not be treed
-
-```
-
-
-When doing the below analyses, it was noticed that disturbed areas always get eliminated when NAs are removed from the final data used for the model. Here, we investigate what variables are missing.
-
-```{r}
-dat_Disturbed<-subset(dat, dat$vegtype=="D")
-head(dat_Disturbed)
-dat_Disturbed$live_stand_volume_125
-table(dat_Disturbed$live_stand_volume_125)
-## We see that live_stand_volume does not exist for most disturbed sites (and when it does, it is 0, and one that is 3.103)
-
-hist(dat_Disturbed$proj_age_1) #All under 15 years, as expected given the classification of disturbed if below 15 years
-
-hist(dat_Disturbed$proj_height_1) #When not NA, Mostly all 0-5 m, a small number ~7 m.
-
-##Change all NA for this vegtype to 0
-dat <- within(dat, live_stand_volume_125[is.na(live_stand_volume_125) & vegtype == 'D'] <- 0)
-##Because there will be no effect of stand volume on disturbed veg type, an interaction between these two variables should be included when both are in the model.
 
 ```
 
@@ -543,8 +546,26 @@ p <- ggplot(bwbs_t, aes(mean_tave05_tave06_tave07_tave08, as.numeric(fire_pres))
 p
 
 
-
 hist(bwbs_t$mean_tave05_tave06_tave07_tave08)
+
+
+##Check slope and aspect
+p <- ggplot(bwbs, aes(slope, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("slope") + ylab("Pr (ignition)")
+p
+
+
+p <- ggplot(bwbs, aes(aspect, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("aspect") + ylab("Pr (ignition)")
+p
 
 # Examining the relationship between some stand level variables. Volume and height are fairly correlated (0.72) but age and volume are not. 
 ggscatter(bwbs_t, x = "live_stand_volume_125", y = "proj_age_1", 
@@ -3030,6 +3051,42 @@ p <- ggplot(CWH_t, aes((1/ppt08^2), as.numeric(fire_pres))) +
   xlab("1/ppt08^2") + ylab("Pr (ignition)")
 p
 
+hist(1/((CWH_t$ppt08^2)+1))
+min(CWH_t$ppt08)
+max(CWH_t$ppt08)
+#Distribution is not great
+
+hist(CWH$ppt08*CWH$tmax08)
+
+
+##Check slope and aspect
+
+##Check slope and aspect
+p <- ggplot(CWH, aes(slope, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("slope") + ylab("Pr (ignition)")
+p
+
+
+p <- ggplot(CWH, aes(aspect, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("aspect") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(CWH, aes(sin(aspect), as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("aspect") + ylab("Pr (ignition)")
+p
+
 # Examining the relationship between some stand level variables. Volume and height are fairly correlated (0.72) but age and volume are not. 
 ggscatter(CWH_t, x = "live_stand_volume_125", y = "proj_age_1", 
           add = "reg.line", conf.int = TRUE, 
@@ -3046,8 +3103,7 @@ ggscatter(CWH_t, x = "proj_age_1", y = "proj_height_1",
           cor.coef = TRUE, cor.method = "kendall",
           xlab = "proj_age_1", ylab = "Stand height")
 
-table(CWH_t$vegtype) # includes disturbed, so use this instead of bclcs_level4 (but note that most disturbed sites get eliminated when NAs removed in final model)
-table(CWH_t$vegtype)
+table(CWH_t$vegtype) # Check to see if we lose disturbed sites in final model
 
 ```
 
@@ -3822,7 +3878,7 @@ table.glm.CWH[order(table.glm.CWH$deltaAIC),]
 
 
 
-##Best model tmax08 * ppt08 + live_stand_volume_125*vegtype + proj_age_1+ slope
+##Best model tmax08 * ppt08 + live_stand_volume_125*vegtype + proj_age_1 + slope
 ## next best model: tmax08 * ppt08 + proj_height_1 + proj_age_1 + live_stand_volume_125 + vegtype + slope + aspect
 
 ```
@@ -3836,9 +3892,25 @@ CWH_t2<-CWH_t %>% drop_na(live_stand_volume_125, proj_age_1, vegtype)
 table(CWH_t2$vegtype) # 5 disturbed remain from the initial 203
 
 glm_best<- glm(fire_pres ~ scale(tmax08) * scale(ppt08)+
-             scale(live_stand_volume_125) +
+             scale(live_stand_volume_125)*vegtype +
                scale(proj_age_1) +
-               vegtype, 
+               scale(slope), 
+           data= CWH_t2,
+           family = binomial,
+           na.action=na.omit)
+
+summary(glm_best)
+
+##Use second model without interaction since delatAIC < 2
+CWH_t2<-CWH_t %>% drop_na(live_stand_volume_125, proj_age_1, vegtype,proj_height_1, slope, aspect)
+
+glm_best<- glm(fire_pres ~ scale(tmax08) * scale(ppt08)+
+             scale(live_stand_volume_125) + 
+               vegtype +
+               scale(proj_age_1) +
+               scale(proj_height_1) +
+               scale(slope) +
+               scale(aspect), 
            data= CWH_t2,
            family = binomial,
            na.action=na.omit)

@@ -117,7 +117,7 @@ sample_locations2$wkb_geometry
 
 
 ##Compare to DEM layer
-crs(DEM_aspect) #Numbers similar, but these sones missing +datum, and sample_locations missing +ellps
+crs(DEM_aspect) #Numbers similar, but these ones missing +datum, and sample_locations missing +ellps
 crs(DEM_slope)
 
 res(DEM_aspect)

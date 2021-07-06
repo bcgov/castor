@@ -185,7 +185,7 @@ df2 <- df %>%
 pre1<- ignition_pres_abs4 %>%
   filter(fire==1)
 dim(sampled_df) # 22715 rows
-dim(pre1) # 14958 rows; Cora on June 23: has 15268 rows
+dim(pre1) # 14958 rows; Cora on July 5: has 15228 rows
 
 dat<- rbind(pre1, as.data.frame(sampled_df))
 dim(dat) # 37673 rows good this worked I think; Cora July 5 has 45656 rows. This is fewer than the >180,000 rows of the data at the end of file 01

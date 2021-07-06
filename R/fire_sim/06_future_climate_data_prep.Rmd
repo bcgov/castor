@@ -185,7 +185,7 @@ The naming convention of the CMIP6 GCM's is a little confusing but here are some
 
 "The SSPs are divided into the following 5 different pathways depending on their social, economic and environmental development: SSP1 – sustainability, SSP2 - middle-of-the-road, SSP3 – regional rivalry, SSP4 - inequality, SSP5 – fossil fuel development. An assumption about the degree of air pollution control (strong, medium or weak) is included on top of the baseline pathway, with stricter air pollution controls assumed to be tied to economic 125 development (Rao et al., 2016). Weak air pollution controls occur in SSP3 and SSP4, with medium controls in SSP2 and strong air pollution controls in SSP1 and SSP5 (Gidden et al., 2019)."
 
-From the above I will focus my future climate measures on SSP245
+From the above I will focus my future climate measures on SSP2,4,5
 
 ```{r Step2b, echo=FALSE}
 #### This script runs the historical period after the reference period (2002-2015)
