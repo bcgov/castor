@@ -1,13 +1,14 @@
 
 ui <- dashboardPage(skin = "black",
+                    
                     dashboardHeader(title = "CLUS: Explorer Tool"),
-                    dashboardSidebar( 
-                      #shinyjs::useShinyjs(),
+                    dashboardSidebar(
+                    introjsUI(),
                       sidebarMenu(
-                        menuItem("Home", tabName = "home", icon = icon("home")),
-                        menuItem("Scenarios", tabName = "settings", icon = icon("gears")),
+                        menuItem("Home", tabName = "home", icon = icon("home")), 
+                        add_class(menuItem("Scenarios", tabName = "settings", icon = icon("gears")), "settings" ),
                         menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard"),
-                                 menuSubItem("Summary", tabName = "summary", icon = icon("balance-scale")),
+                                 menuSubItem("Summary", tabName = "summary", icon = icon("balance-scale")), 
                                  menuSubItem("Caribou", tabName = "caribou", icon = icon("paw")),
                                  menuSubItem("Climate", tabName = "climate", icon = icon("thermometer-half")),
                                  menuSubItem("Fire", tabName = "fire", icon = icon("fire")),
@@ -18,8 +19,8 @@ ui <- dashboardPage(skin = "black",
                                  menuSubItem("Oil and Gas (planned)", tabName = "oilandgas", icon = icon("bolt")),
                                  menuSubItem("Recreation (planned)", tabName = "recreation", icon = icon("shoe-prints"))
                         ), 
-                        menuItem("Query Builder", tabName = "querybuilder", icon = icon("search")),
-                        menuItem("Map Viewer", tabName = "mapviewer", icon = icon("layer-group"))
+                        add_class(menuItem("Query Builder", tabName = "querybuilder", icon = icon("search")), "querybuilder"),
+                        add_class(menuItem("Map Viewer", tabName = "mapviewer", icon = icon("layer-group")), "mapviewer")
                       )
                     ),
                     dashboardBody(
@@ -28,11 +29,33 @@ ui <- dashboardPage(skin = "black",
                              #fisher_map_control {background-color: rgba(192,192,192,0.2);}'))),
 
                       tabItems(
-                        tabItem(tabName = "home"),
+                          
+                        tabItem(tabName = "home",
+                                box(title="Welcome to the CLUS Explorer App", width =12,
+                                    fluidRow(
+                                        column(width = 10,
+                                           p("This app was designed to interactively compare outputs from the caribou and landuse simulator (CLUS) model. Outputs are formely organized by scenario; represnting a plausible future projection of the landscape.")),
+                                        column(width = 2, align = "center",
+                                                  img(src="clus-logo.png", width =100))
+                                    )
+                                ),
+                                fluidRow(
+                                  column(
+                                    12,
+                                    actionButton("help", "Take a tour")
+                                    , align = "center"
+                                    , style = "margin-bottom: 10px;"
+                                    , style = "margin-top: -10px;"
+                                  ),
+                                  bsTooltip("help", "Press for instructions",
+                                            "right", options = list(container = "body"))
+                                )
+                        ), 
                         tabItem(tabName = "settings",
                                 sidebarLayout(
                                   sidebarPanel( width = 6,
                                                 fluidRow(
+                                                  
                                                   column(width =12,
                                                          box(title = "Area of interest", width = 12, background = "black", solidHeader = TRUE,
                                                              
@@ -85,26 +108,21 @@ ui <- dashboardPage(skin = "black",
                                                                     )
                                                                   ),
                                                                   fluidRow(
-                                                                    box(title = "Caribou Habitat", solidHeader = TRUE, background = "purple", width =12,
-                                                                        valueBoxOutput("statusCritHab"),
-                                                                        valueBoxOutput("statusDist"),
-                                                                        valueBoxOutput("statusDist500"),
-                                                                        
-                                                                        bsTooltip("statusCritHab", "Percentage of the area of interest in critical caribou habitat",
-                                                                                  "top", options = list(container = "body")),
-                                                                        bsTooltip("statusDist", "Percentage of critical caribou habitat disturbed",
-                                                                                  "top", options = list(container = "body")),
-                                                                        bsTooltip("statusDist500", "Percentage of critical caribou habitat disturbed with 500 m buffer",
-                                                                                  "top", options = list(container = "body"))
-                                                                    )
+                                                                    
                                                                   ),
                                                                   fluidRow(
                                                                     column(12,
-                                                                           selectInput("tsa_selected", choices = NULL, label = 'TSA:', width = '100%',
+                                                                           tags$h4("Timber Supply Area(s):"),
+                                                                           selectInput("tsa_selected", choices = NULL, label = '', width = '100%',
                                                                                        multiple = T),
                                                                            bsTooltip("tsa_selected", "Select timber supply area(s).",
                                                                                      "bottom", options = list(container = "body"))
-                                                                    )
+                                                                    ),
+                                                                    column(12,
+                                                                           tags$h4("Scenario Description"),
+                                                                           textOutput("scenario_description")),
+                                                                    bsTooltip("scenario_description", "Description of the last scenario selected",
+                                                                              "bottom", options = list(container = "body"))
                                                                   )
                                                               )#end of current state box
                                              )

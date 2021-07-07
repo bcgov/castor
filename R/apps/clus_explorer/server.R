@@ -1,24 +1,5 @@
 
 server <- function(input, output, session) {
-  #---Functions
-  # buildClimateMap<-function(x){
-  #   dag<-data.table(from = c('Temperature_changes',	'Temperature_changes',	'Temperature_changes',	'Precipitation_changes',	'Precipitation_changes',	'Precipitation_changes',	'Core_habitat',	'Core_habitat',	'Core_habitat',	'Core_habitat',	'Core_habitat',	'Matrix_habitat',	'Matrix_habitat',	'Over_winter_prey_survival',	'Health_risk',	'Health_risk',	'Plant_phenology',	'Accessible_lichen_forage',	'Growing_season_forage',	'Growing_season_forage',	'Early_seral_anthro',	'Current_practice_forestry',	'Land_conversion',	'Primary_prey_density',	'Primary_prey_density',	'Predator_density',	'Linear_feature_density',	'Energy_balance',	'Energy_balance',	'Predation_pressure',	'Predation_pressure',	'Juvenile_recruitment',	'Adult_female_survival', 'Winter_displacement'),
-  #                   to = c('Matrix_habitat',	'Over_winter_prey_survival',	'Core_habitat',	'Matrix_habitat',	'Over_winter_prey_survival',	'Core_habitat',	'Health_risk',	'Plant_phenology',	'Accessible_lichen_forage',	'Predation_pressure',	'Matrix_habitat',	'Over_winter_prey_survival',	'Growing_season_forage',	'Primary_prey_density',	'Juvenile_recruitment',	'Adult_female_survival',	'Energy_balance',	'Energy_balance',	'Energy_balance',	'Primary_prey_density',	'Growing_season_forage',	'Early_seral_anthro',	'Early_seral_anthro',	'Health_risk',	'Predator_density',	'Predation_pressure',	'Predation_pressure',	'Juvenile_recruitment',	'Adult_female_survival',	'Juvenile_recruitment',	'Adult_female_survival',	'Population_trend',	'Population_trend', 'Accessible_lichen_forage')
-  #   ) 
-  #   g<-graph_from_data_frame(dag, directed=TRUE)
-  #   
-  #   V(g)$color <- c("yellow", "yellow", "purple", "purple", "lightblue","red","purple","purple", "purple", "purple",
-  #                   "orange", "orange", "lightblue","lightblue", "orange","pink", "lightblue", "green", "green","orange", "green")
-  #   l <-layout_with_fr(g, niter =5, start.temp = 5.25)
-  #   rownames(l) <- V(g)$name
-  #   test<-data.frame(x=c(   3, 11, 2 , 10, 13, -1, 1, 2.5,  7,  13.5,  17, 17, 8.0, 11,  17, 4, 9, 4, 11, 7, 8),
-  #                    y=c(0.5, -1,4,  1.5,  5, 14,  11, 7.5,  6,   8.5,   9.5,  6.5, 9.5, 11, 14, 13,  13, 16, 16, 4, 19))
-  #   test<-as.matrix(test)
-  #   rownames(test) <- V(g)$name
-  #   return(list(g,test))
-  # }
-  # climateMap <- buildClimateMap()
-  
   
   #---Reactive 
   queryColumnNames <- reactive({
@@ -126,6 +107,20 @@ ON (foo1.scenario = foo2.scenario) )")))
     merge(DT.all, DT.g, by.x = "scenario", by.y = "scenario")
   })
   
+  steps <- reactive(
+    data.frame(
+      element=c(".sidebar-menu", ".settings", ".treeview",  ".querybuilder", ".mapviewer"),
+      intro=c(
+        "This is the navigation sidebar where you can select various features in the app.",
+        "Step 1: This is where you select your area of interest and the various scenarios you wish to compare.",
+        "Step 2: This is where you can view outputs of various indicators by scenario",
+        "Advanced: This is the query builder where you can create output tables",
+        "Advanced: This is where you can interatively view spatial outputs"
+      ),
+      position=c("right", "right", "right", "right", "right")
+    )
+  )
+  
   observeEvent(input$getMapLayersButton, {
     withProgress(message = 'Loading layers', value = 0.1, {
       mapLayersStack <-getRasterQuery(c(input$schema, tolower(input$maplayers)))
@@ -155,6 +150,28 @@ ON (foo1.scenario = foo2.scenario) )")))
       clearShapes() %>%
       addCircles(lat = ~y, lng = ~x, fillColor = ~pal(fisherPointsFilter()$rel_prob_occup), color=~pal(fisherPointsFilter()$rel_prob_occup), radius = fisherPointsFilter()$size*100, popup = ~paste0("ref:",reference_zone, " zone:", zone, " occupancy:", rel_prob_occup))
   })
+  
+  
+  observeEvent(input$help,
+               introjs(session,
+                       options = list(steps=steps(),
+                                      "nextLabel"="Next",
+                                      "prevLabel"="Previous",
+                                      "skipLabel"="Skip"
+                       )
+               )
+  )
+  
+  observeEvent(input$scenario, {
+    if(length(input$scenario)>0){
+    output$scenario_description <- renderText(
+      paste0(scenariosList()[scenario %in% input$scenario, "description"][length(input$scenario)])
+    )
+    }else{
+      output$scenario_description <- renderText(
+        paste0("No scenarios selected"))
+    }
+  }, ignoreInit = TRUE)
   
   #---Observe
   observe({
@@ -231,32 +248,6 @@ ON (foo1.scenario = foo2.scenario) )")))
     )
   })
   
-  output$statusDist<-renderValueBox({
-    data<-statusData()[compartment %in% input$tsa_selected,]
-    valueBox(
-      subtitle = "Disturbed",
-      tags$p(paste0(round((sum(data$c40r50)/sum(data$total_area))*100, 0), '%'), style = "font-size: 110%;"),
-      icon = icon("paw"), color = "purple"
-    )
-  })
-  
-  output$statusCritHab<-renderValueBox({
-    data<-statusData()[compartment %in% input$tsa_selected,]
-    valueBox(
-      subtitle = "Critical habitat",
-      tags$p(paste0(round((sum(data$total_area)/sum(data$total))*100, 0), '%'), style = "font-size: 110%;"),
-      icon = icon("exclamation-triangle"), color = "purple"
-    )
-  })
-  
-  output$statusDist500<-renderValueBox({
-    data<-statusData()[compartment %in% input$tsa_selected,]
-    valueBox(
-      subtitle = "Disturbed 500m",
-      tags$p(paste0(round((sum(data$c40r500)/sum(data$total_area))*100, 0), '%'), style = "font-size: 110%;"),
-      icon = icon("paw"), color = "purple"
-    )
-  })
   
   output$numberFisherTerritory<-renderValueBox({
     valueBoxSpark(
