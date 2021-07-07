@@ -367,10 +367,26 @@ aic_bec_escape_summary2<- aic_bec_escape_summary %>%
 aic_bec_escape_summary2
 
 ```
-Save file
+Save files.
 
 ```{r}
 write.csv(aic_bec_escape_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_climate_AIC_results_July6.csv")
+
+
+
+###
+connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                      host = key_get('dbhost', keyring = 'postgreSQL'),
+                      user = key_get('dbuser', keyring = 'postgreSQL'),
+                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+                      password = key_get('dbpass', keyring = 'postgreSQL'),
+                      port = "5432")
+st_write (obj = Escape_data_2b, 
+          dsn = connKyle, 
+          layer = c ("public", "Escape_data"))
+dbDisconnect (connKyle)
+
+
 
 ```
 
