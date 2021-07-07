@@ -15,6 +15,32 @@ In Marchal et al. 2020, they define escape as "the porbability that a fire will 
 Must think whether or not we want VRI data. These become polygons instead of spatial points.
 
 ```{r}
+#Load relevant libraries. Note, below may not all be needed for this code chunk.
+
+library(sf)
+library(tidyverse)
+library(ggplot2)
+library (ggcorrplot)
+library (RPostgreSQL)
+library (rpostgis)
+library (dplyr)
+library (lme4)
+library (arm)
+library(ggpubr)
+library(mgcv)
+library(nlme)
+library(purrr)
+library(tidyr)
+library(caret)
+library(pROC)
+library(keyring)
+
+source(here::here("R/functions/R_Postgres.R"))
+
+```
+
+
+```{r}
 
 ##Data already prepped at end of ignition model file 04_vri_data_prep.Bring in data from end of this step.
 connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
@@ -27,7 +53,10 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
 fire_veg_data_B <- sf::st_read  (dsn = connKyle, # connKyle
                                query = "SELECT * FROM public.fire_ignitions_veg_climate_B")
 
+
+
 dbDisconnect (connKyle)
+
 
 head(fire_veg_data_B)
 
@@ -53,23 +82,19 @@ fire_veg_DEM_climate_2$escape<- 0
 fire_veg_DEM_climate_2$escape[fire_veg_DEM_climate_2$size_ha >= 1] <- 1
 
 table(fire_veg_DEM_climate_2$escape) #We have 13257 that did not escape, and 3062 that did escape
-
+table(fire_veg_DEM_climate_2$bclcs_level_2) #Remove ones designated as water. This will be done in the next step.
 
 ```
 
-Save datafile to clus database.
+Save datafile to clus database. This needs to be done via OsGeo4 command line.
+
 
 ```{r}
-connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
-                      host = key_get('dbhost', keyring = 'postgreSQL'),
-                      user = key_get('dbuser', keyring = 'postgreSQL'),
-                      dbname = key_get('dbname', keyring = 'postgreSQL'),
-                      password = key_get('dbpass', keyring = 'postgreSQL'),
-                      port = "5432")
-st_write (obj = fire_veg_DEM_climate_2, 
-          dsn = connKyle, 
-          layer = c ("public", "Escape_data"))
-dbDisconnect (connKyle)
+
+st_write(fire_veg_DEM_climate_2, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Escape_data.shp", delete_layer=TRUE)
+
+
 ```
+
 
 Data preparations are now complete. Move on to model selection.

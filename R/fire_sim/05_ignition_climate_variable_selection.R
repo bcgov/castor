@@ -40,19 +40,22 @@ library(keyring)
 source(here::here("R/functions/R_Postgres.R"))
 
 # Import my vegetation, climate and presence/absence of fire data
-connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
-                      host = key_get('dbhost', keyring = 'postgreSQL'),
-                      user = key_get('dbuser', keyring = 'postgreSQL'),
-                      dbname = key_get('dbname', keyring = 'postgreSQL'),
-                      password = key_get('dbpass', keyring = 'postgreSQL'),
-                      port = "5432")
-fire_veg_data <- sf::st_read  (dsn = connKyle, # connKyle
-                               query = "SELECT * FROM public.fire_ignitions_veg_climate_B")
-dbDisconnect (connKyle)
+#connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+#                      host = key_get('dbhost', keyring = 'postgreSQL'),
+#                      user = key_get('dbuser', keyring = 'postgreSQL'),
+#                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+#                      password = key_get('dbpass', keyring = 'postgreSQL'),
+#                      port = "5432")
+#fire_veg_data <- sf::st_read  (dsn = connKyle, # connKyle
+#                               query = "SELECT * FROM public.fire_ignitions_veg_climate_B")
+#dbDisconnect (connKyle)
 
 ##If continuing from last script, then can do below instead of bringing data back in:
-# fire_veg_data<-fire_veg_data_B
+ fire_veg_data<-fire_veg_data_B
 
+ ##Or can bring in from computer
+fire_veg_data<-st.read("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_B.shp")
+  
 # Import the fire ignition data
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
                    host = "",
@@ -192,6 +195,7 @@ dim(dat) # 37673 rows good this worked I think; Cora July 5 has 45656 rows. This
 
 head(dat)
 #dat<-ignition_pres_abs4 # 
+str(dat)
 
 ##################
 #### Analysis ####
@@ -235,7 +239,7 @@ ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
 
 # Loosely following the methods of Marchal et al. (2017) Ecography (https://onlinelibrary.wiley.com/doi/full/10.1111/ecog.01849) Supporting Information Appendix 1 I try to figure out which is the best climate variable or climate variables to include in my model. I run simple models of the form:
 # logb(p/1-p) = B0 + B1x1 or logb(p/1-p) = B0 + B1x1 + B2x2
-#and extract the AIC as a means for comparison. I also calculate the AUC by splitting the data into a training and validation data set. Finally I repeat the analysis calculating the AIC and AUC using traing and validation data sets 10 times taking the average of both the AIC and AUC values. These are the values that I spit out into a csv file so that I can examine which climate variable is best for each BEC zone. 
+#and extract the AIC as a means for comparison. I also calculate the AUC by splitting the data into a training and validation data set. Finally I repeat the analysis calculating the AIC and AUC using training and validation data sets 10 times taking the average of both the AIC and AUC values. These are the values that I spit out into a csv file so that I can examine which climate variable is best for each BEC zone. 
 
 ### creating amalgamations of variables to test different combinations of variables.##
 dat$mean_tmax05_tmax06<- (dat$tmax05+ dat$tmax06)/2
@@ -482,7 +486,7 @@ aic_bec_summary2<- aic_bec_summary %>%
 
 aic_bec_summary2
 
-write.csv(aic_bec_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results_simple_July5.csv")
+write.csv(aic_bec_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results_simple_July6.csv")
 
 
 ###

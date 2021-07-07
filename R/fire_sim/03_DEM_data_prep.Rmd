@@ -163,6 +163,8 @@ st_write(sample_locations_DEM, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_D
 #ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_2.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 
+
+
 ```
 
 

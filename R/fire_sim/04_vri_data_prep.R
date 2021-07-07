@@ -273,21 +273,19 @@ fire_veg_data_B<- fire_veg_data_B %>% rename(
   aspect=aspct__)
 
 
-write.csv(fire_veg_data_B, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_B.csv")
+#write.csv(fire_veg_data_B, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_B.csv")
+st_write(fire_veg_data_B, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_B.shp", delete_layer=TRUE)
 
 
 # write final fire ignitions, weather and vegetation types to postgres
-# save data 
-connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
-                      host = key_get('dbhost', keyring = 'postgreSQL'),
-                      user = key_get('dbuser', keyring = 'postgreSQL'),
-                      dbname = key_get('dbname', keyring = 'postgreSQL'),
-                      password = key_get('dbpass', keyring = 'postgreSQL'),
-                      port = "5432")
-st_write (obj = fire_veg_data_B, 
-          dsn = connKyle, 
-          layer = c ("public", "fire_ignitions_veg_climate_B"))
-dbDisconnect (connKyle)
 
+##TO save to clus, likely need to use command line
+#Modify below with correct credentials and upload on clus as desired
+#ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user= password= host=DC052586" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_B.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI 
+
+
+##You may wish to clear your environment after this portion
+rm(list = ls(all.names = TRUE)) #will clear all objects includes hidden objects.
+gc() #free up memory and report the memory usage.
 
 ############## Now move on to file 05_ignition_climate_variable_selection#############
