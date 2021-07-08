@@ -178,7 +178,7 @@ save.reports <-function (sim){
     dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'rsf'), 
                  sim$rsf, append = T,row.names = FALSE)
   }
-  #survival
+  # caribou survival
   if(!is.null(sim$tableSurvivalReport)){
     dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'survival'), 
                  sim$tableSurvivalReport, append = T,row.names = FALSE)
@@ -207,6 +207,11 @@ save.reports <-function (sim){
   if(!is.null(sim$zoneManagement)){
     DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'zonemanagement'), 
                       sim$zoneManagement, append = T, row.names = FALSE)
+  }
+  # grizzly bear survival
+  if(!is.null(sim$tableGrizzSurvivalReport)){
+    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'grizzly_survival'), 
+                 sim$tableGrizzSurvivalReport, append = T,row.names = FALSE)
   }
   dbDisconnect(connx)
   return(invisible(sim)) 

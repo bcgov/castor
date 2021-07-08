@@ -6,103 +6,40 @@ output: pdf_document
 ---
 
 ## Overview
-The purpose of this module is to model the relationship between grizzly bear survival and forestry
-development. The goal is to develop an understanding of how current and future road development for forestry might influence grizzly bear populations. 
+The purpose of this module is to model the relationship between grizzly bear survival and forestry road
+development. The goal is to develop an indicator to support understanding of how current and future road development for forestry might influence grizzly bear populations. 
 
-Throughout western North America ([McLellan and Shackleton 1988](https://www.jstor.org/stable/2403836); [McLellan 1989](https://cdnsciencepub.com/doi/abs/10.1139/z89-264); [McLellan 1990](https://www.jstor.org/stable/3872902); [Mace et al. 1996](https://www.jstor.org/stable/2404779); [Nielsen et al. 2004](https://www.sciencedirect.com/science/article/pii/S0378112704003457); [Proctor et al. 2004](https://bioone.org/journals/ursus/volume-15/issue-2/1537-6176(2004)015%3C0145:ACAOMO%3E2.0.CO;2/A-comparative-analysis-of-management-options-for-grizzly-bear-conservation/10.2192/1537-6176(2004)015%3C0145:ACAOMO%3E2.0.CO;2.short); [Boulanger and Stenhouse 2014](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535)), research shows that roads facilitate interactions between humans and grizzly bear that can result in grizzly bear mortalities. Grizzly bear mortality rates may reach unsustainable levels (i.e., causing population declines) once road density increases beyond 0.75 km/km^2^ ([Boulanger and Stenhouse 2014](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535)), and a road density less than 0.6 km/km^2^ is a target for grizzly bear conservation units in Alberta (Alberta Grizzly Bear Recovery Plan 2008) and is a recognized threshold of concern in [British  Columbia](http://www.env.gov.bc.ca/soe/indicators/plants-and-animals/grizzly-bears.html).  
+## Module Methods and Parameters
+Here I adapt a model developed by [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) that related grizzly bear survival rates to their exposure to roads in a landscape in Alberta with active forestry. I use this model to estimate the effects of roads on grizzly bear survival.  
 
-## Methods 
-Here I adapt a model developed by [Boulanger and Stenhouse 2014](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) that related grizzly bear survival rates to local exposure to roads in a landscape in Alberta with active forestry to estimate the effects of roads on grizzly bear survival and population trend.  
+The module is broken into two steps:
+1. Estimate the amount of 'roaded' areas in a grizzly bear population unit, and assign a road density to the unit.
+2. Estimate the survival rate of female grizzly bears in a population unit from road density.
 
-The module is broken into four steps:
-1. Estimate the number of female grizzly bears, by reproductive class, in a population unit.
-2. Estimate the amount of 'roaded' areas in a population unit.
-3. Estimate the survival rate of female grizzly bears, by reproductive class, in a population unit.
-4. Estimate the subsequent year population as function of survival, recruitment and reporcutive class transition rates.  
+### Grizzly Bear Population Units
+The module first obtains grizzly bear management units (i.e., [grizzly bear population units, or GBPUs](https://catalogue.data.gov.bc.ca/dataset/caa22f7a-87df-4f31-89e0-d5295ec5c725)) as defined by the government of British Columbia. A raster parameter (*rasterGBPU*) with a corresponding look-up table parameter (*tableGBPU*) define the location and name of GBPUs in the province. 
 
-### Current Population Estimate
-The module first obtains grizzly bear [population estimates](https://catalogue.data.gov.bc.ca/dataset/2bf91935-9158-4f77-9c2c-4310480e6c29) for spatial grizzly bear management units (i.e., [grizzly bear population units, or GBPUs](https://catalogue.data.gov.bc.ca/dataset/caa22f7a-87df-4f31-89e0-d5295ec5c725)) as defined by the government of British Columbia. 
+### Estimate of Road Densities by Grizzly Bear Population Unit
+The [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) model calculated grizzly bear survival as a function of average road density within 300 m of grizzly bear locations for the duration that a bear was tracked with a GPS collar. However, the CLUS model resolution (i.e., pixel size) is 1 ha, and we simply estimate whether a pixel is 'roaded' (i.e., contains a road) or not. Thus, here we assign a road density to 'roaded' pixels, and set the road density of roaded pixels (i.e., the *roadDensity* parameter) to 10km/km^2^.  Obviously, in reality there will be variety of road densities in a roaded pixels, but we believe 10km/km^2^ represents a reasonable 'standard' density. A density of 10km/km^2^ is equivalent to a 100m long road within a 1 ha pixel, which is the minimum length of road needed to traverse a pixel. This parameter can be adjusted by the user if an alternative density is preferred.  
 
-It then estimates the population in specific age and sex classes by setting parameters that identify the proportion of the population in each class. The module focuses on female grizzly bears only, which typically make up 55% of a population ([McLellan 1989](https://cdnsciencepub.com/doi/abs/10.1139/z89-264)). Female grizzly bears were then allocated to reproductive classes using proportions estimated by [McLellan (2015)](https://wildlife.onlinelibrary.wiley.com/doi/abs/10.1002/jwmg.896) in southeast British Columbia, including 40% sub-adult females and adult females without cubs (split 30% and 10%, respectively), 25% adult females with cubs, 18% adult females with yearlings and 16% adult females with two year olds. These allocations are similar to those found in other nearby grizzly bear populations ([Schwartz et al. 2003](https://www.jstor.org/stable/3873012); [Boulanger and Stenhouse 2014](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535)).
+In addition, we do not calculate density in a 300 m radius area, but simply within a single 1 ha pixel. Thus, at a fine scale, our data do not match the resolution of the [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) model. However, [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) estimated grizzly bear survival rates as a function of average road densities at grizzly bear locations, and therefore, while the 'local' road densities we estimate here are likely less precise, ultimately this may not influence the large-scale averages (i.e., average road density encountered by a bear durign it's life) in a significant way. Furthermore, we believe that measuring road density within a distance of 100 m is reasonable given that [McLellan (2015)](https://wildlife.onlinelibrary.wiley.com/doi/abs/10.1002/jwmg.896) found that 84% of human-caused grizzly bear deaths were less than 120 m from a road in southeast British Columbia and [Ciarniello et al. (2009)](https://bioone.org/journals/Wildlife-Biology/volume-15/issue-3/08-080/Comparison-of-Grizzly-Bear-Ursus-arctos-Demographics-in-Wilderness-Mountains/10.2981/08-080.short)
+found that for monitored grizzly bear, seven of nine human caused mortalities in central British Columbia were less than 100 m from a road. Thus, mortality events themselves appear to be related to being in very close proximity to roads. 
 
+To estimate road density in a GBPU, the module counts the number of 'roaded' pixels and multiplies them by the *roadDensity* parameter (10km/km^2^), then divides that by the total number of pixels (roaded + unroaded) in the GBPU.
 
-### ROaded
-The module then estimates the proportion of a GBPU that is 'roaded'. In this case, the CLUS module identifies pixels (i.e., 1 ha squares) with a road in it as a 'roaded' pixel. The [Boulanger and Stenhouse 2014](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) calculates survival as a function of average road density within 300 m of grizzly bear locations for the duration a bear was tracked with a GPS collar. 
+### Estimate of Grizzly Bear Survival Rate
+The module uses the [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) model from Figure 2 to estimate adult female survival rates. Here we focus on adult females because of their importance to population dynamics, but all grizzly bear age and sex classes show a similar negative relationship between survival and road density. The equations for figure 2 are not included in [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535), therefore we approximate it in this module using the equation:
 
-However, since our data are summarized at a 1ha resolution, we estimated density in a 1ha area, and assumed that a roaded pixel was greater than or equal to 1.25km/km^2^ (equivalent to 12.5m of road in a pixel). In addition, we believe that measuring road density within a distance of 100 m is reasonable given that [McLellan (2015)](https://wildlife.onlinelibrary.wiley.com/doi/abs/10.1002/jwmg.896) found that 84% of human-caused grizzly bear deaths were less than 120 m from a road in southeast British Columbia and [Ciarniello et al. (2009)](https://bioone.org/journals/Wildlife-Biology/volume-15/issue-3/08-080/Comparison-of-Grizzly-Bear-Ursus-arctos-Demographics-in-Wilderness-Mountains/10.2981/08-080.short)
-found that for monitored grizzly bear, seven of nine human caused mortalities in central British Columbia were less than 100 m from a road. 
+S = 1 / (1 + exp (-3.9 + (D * 1.06)) 
 
+where S = survival rate and D = road density. Survival rate is 0.980 at a road density of 0km/km^2^, 0.945 at a road density of 1km/km^2^ and 0.856 at a road density of 2km/km^2^.
 
-### Surivial
-A road density of 1.25km/km^2^ was at the upper end of average road densities measured in the [Boulanger and Stenhouse 2014](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) model, therefore we used that as the threshold for estimating grizzly bear survival rates at 'roaded' pixels. We estimated the grizzly bear survival rate of 'unroaded' pixels as the intercept in the [Boulanger and Stenhouse 2014](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) model. For sub-adult females this was 0.98 for unroaded and 0.83 for roaded pixels, for adult females with cubs-of-the-year or yearling cubs this was 0.98 for unroaded and 0.78 for roaded pixels, and for adult females with two year old cubs or no cubs, this was 0.98 for unroaded and 0.91 for roaded pixels. Note that [Boulanger and Stenhouse 2014](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) did not publish their mathematical equation, so these survival rates were estimated from figures and are approximations.  
+### Usage
+The module must be used with the dataLoaderCLUS initially, to identify the GBPUs in the area of interest, and then with forestryCLUS to estimate survival rates over time (i.e., grizzlysurvivalCLUS is a 'child' module of dataLoaderCLUS for creating the database and forestryCLUS for simulating surirval rates over time). The grizzlysurvivalCLUS module will onyl function with forestryCLUS if it was implemented in dataLoaderCLUS.
 
-The module then counts the number of roaded an unroaded pixels in a GBPU, and multiplies each by the corresponding survival rate for each reproductive class to estimate a GBPU survival rate for each reproductive class. 
+### Model Parameters
 
-
-### New Popuatlion Esitamte
-The module then multiplies the survival rate by the population estimate for each reproductive class to estimate the population of bears in each class at the end of a given year. To estimate the subsequent year popualtion size, each reproductive class are multiplied by transition probabilities to 
-
-
-litter size, female 50/50
-
-𝑅 = 𝑓𝑙 × 𝑐𝑠 × ys
-
-Litter size was estimated at 1.8 in southeast British Columbia (McLellan 2015) and 1.9 to
-2.0 cubs in the study area (Ciarniello et al. 2009), and litters typically consist of a 50/50 ratio of females
-and males (Boulanger and Stenhouse 2014; Schwartz and White 2008). Therefore, 𝑓𝑙 was set at 0.95.
-Cub survival and yearling survival were estimated at 0.70 and 0.86, respectively (McLellan 2015). This
-equals a recruitment rate of 0.572 three year old females per adult female with two year olds per year. 
-
-
-
-
-
-
-
-
-## Parameters
-
-
-
-These classes include: 
-
-The default parameters are
-
-
-Grizzly bear
-populations typically have more female adults than male adults, and I assumed grizzly bear population in
-the study area were . T
-
-
-
-
-
-
-
-to consider the effects of road development from forestry on grizzly bear populations.
-
-Grizzly bear population estimates were completed for each GBPU in 2012 by the government of British
-Columbia using DNA-based mark-recapture population inventories, a regression model or expert
-opinion
-
-Female grizzly bear survival rate was calculated for each GBPU based on road density in the GBPU using
-an empirical relationship between grizzly bear survival and the average road density within 300 m of its
-location found 
-
-
-
-## Background
-
-
-
-
-The model was created for grizzly bear population units (GBPUs)
-
-
-
-# Usage
-
-```{r module_usage}
+```{r parameters}
 library (SpaDES.core)
 library (data.table)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
@@ -113,22 +50,32 @@ outputDir <- file.path (paste0 (here(), "/R/SpaDES-modules/grizzlysurvivalCLUS/o
 cacheDir <- file.path (paste0 (here(), "/R/SpaDES-modules/grizzlysurvivalCLUS/outputs"))
 times <- list (start = 0, end = 40)
 
-
 parameters <- list (
   .progress = list (type = NA, interval = NA),
   .globals = list (),
-  grizzlysurvivalCLUS = list (prop_female = 0.55,
-                              
-    
-    
-    
-    
-    caribou_herd_density = 0.05, # assign what is appropriate for the herd
-                             nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
-                             tableCaribouHerd = "public.caribou_herd") # look-up table of herd names
+      dataLoaderCLUS = list (useCLUSdb = "C:\\Work\\caribou\\clus_data\\clusdb.sqlite", # instantiated dbase
+                         dbName = 'clus', # Database connection
+                         save_clusdb = FALSE, # don't save the dbase
+                         # Study Area params below; make sure they are consistent with other modules
+                         nameBoundaryFile = "study_area_compart",
+                         nameBoundaryColumn = "tsb_number",
+                         nameBoundary = c ("26A", "29B", "29C"), # DU7 
+                         nameBoundaryGeom ='wkb_geometry',
+                         nameCompartmentRaster = "rast.forest_tenure",
+                         nameCompartmentTable = "forest_tenure_vat",
+                         nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
+                         nameZoneRasters = c ("rast.zone_cond_beo", "rast.zone_cond_vqo",  "rast.zone_cond_uwr", "rast.zone_cond_fsw", "rast.zone_cond_nharv"),
+                         nameZoneTable = "zone_constraints",
+                         nameAgeRaster = "rast.vri2017_projage1",
+                         nameHeightRaster = "rast.vri2017_projheight1",
+                         nameCrownClosureRaster = "rast.vri2017_crownclosure",
+                         nameYieldTable = "yield_ex"),
+  grizzlysurvivalCLUS = list (rasterGBPU = "rast.gbpu_2021", 
+                              tableGBPU= "vat.gbpu", 
+                              roadDensity = 10) 
 )
 
-modules <- list ("dataLoaderCLUS", "grizzlysurvivalCLUS")
+modules <- list ("dataLoaderCLUS",  "grizzlysurvivalCLUS")
 objects <- list ()
 paths <- list (
   cachePath = cacheDir,
