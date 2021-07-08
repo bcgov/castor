@@ -62,6 +62,8 @@ poly.gbpu$gbpu_integer <- as.integer (as.factor (poly.gbpu$pop_name))
 lu_gbpu <- unique (data.table (cbind (poly.gbpu$gbpu_integer, poly.gbpu$pop_name)))
 lu_gbpu <- lu_gbpu [order(V1)]
 setnames (lu_gbpu, c("V1", "V2"), c("raster_integer", "gbpu_name"))
+lu_gbpu$raster_integer <- as.integer (lu_gbpu$raster_integer)
 DBI::dbWriteTable (conn, c("vat", "gbpu"), value = lu_gbpu, 
                    row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
 ```

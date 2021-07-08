@@ -35,6 +35,7 @@ defineModule (sim, list (
   inputObjects = bind_rows(
     expectsInput (objectName = "clusdb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the model. This module needs the roadyear variable from the pixels table in the clusdb.', sourceURL = NA),
     expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
+    expectsInput(objectName ="roads", objectClass ="RasterLayer", desc = 'A raster of the roads; note I put this here to make sure this module is run AFTER the roadCLUS module', sourceURL = NA),
     expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
     ),
   outputObjects = bind_rows(
@@ -43,18 +44,18 @@ defineModule (sim, list (
   )
 )
 
-doEvent.survivalCLUS = function (sim, eventTime, eventType) {
+doEvent.grizzlysurvivalCLUS = function (sim, eventTime, eventType) {
   switch (
     eventType,
     init = { # identify GBPUs in the study area, calculate survival rate at time 0 for those GBPUs and save the survival rate estimate
       sim <- Init (sim) # identify GBPUs in the study area and calculate survival rate at time 0; instantiate a table to save the survival rate estimates
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "grizzlysurvivalCLUS", "calculateInterval"), "grizzlysurvivalCLUS", "calculateSurvival", 8) # schedule the next survival calculation event 
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "grizzlysurvivalCLUS", "calculateInterval"), "grizzlysurvivalCLUS", "calculateSurvival", 10) # schedule the next survival calculation event; should be after roadCLUS
       #sim <- scheduleEvent (sim, end(sim), "grizzlysurvivalCLUS", "adjustSurvivalTable", 9) 
     },
     
     calculateSurvival = { # calculate survival rate at each time interval 
       sim <- predictSurvival (sim) # this function calculates survival rate
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "grizzlysurvivalCLUS", "calculateInterval"), "grizzlysurvivalCLUS", "calculateSurvival", 8) # schedule the next survival calculation event  
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "grizzlysurvivalCLUS", "calculateInterval"), "grizzlysurvivalCLUS", "calculateSurvival", 10) # schedule the next survival calculation event  
     },
     # adjustSurvivalTable ={ # calucalte the total area from which the survival rate applies
     #   sim <- adjustSurvivalTable (sim)
@@ -84,9 +85,9 @@ Init <- function (sim) { # this function identifies the GBPUs in the 'study area
     gbpubounds [, pixelid := seq_len(.N)] # add pixelid value
     
     vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableGBPU))) # get the GBPU name attribute table that corresponds to the integer values
-    # print(vat_table)
-    # print(herdbounds)
-    gbpubounds <- merge (gbpubounds, vat_table, by.x = "gbpu_name", by.y = "value", all.x = TRUE) # left join the GBPU name to the integer
+    # vat_table <<- vat_table
+    # gbpubounds <<- gbpubounds
+    gbpubounds <- merge (gbpubounds, vat_table, by.x = "gbpu_name", by.y = "raster_integer", all.x = TRUE) # left join the GBPU name to the integer
     gbpubounds [, gbpu_name := NULL] # drop the integer value 
     
     colnames (gbpubounds) <- c("pixelid", "gbpu_name") # rename the herd boundary column
@@ -102,7 +103,7 @@ Init <- function (sim) { # this function identifies the GBPUs in the 'study area
     # 2. Multiplied by the road density parameter (P(sim)$roadDensity)
     # 3. Divided by total area, to calculate GBPU road density
   
-  sim$tableGrizzSurvivalReport <- data.table (dbGetQuery (sim$clusdb, "SELECT (SUM (CASE WHEN roadyear > -1 THEN 1 ELSE 0 END) * P(sim)$roadDensity) AS total_roaded, COUNT(*) AS total_area, gbpu_name FROM pixels WHERE gbpu_name IS NOT NULL GROUP BY gbpu_name;"))
+  sim$tableGrizzSurvivalReport <- data.table (dbGetQuery (sim$clusdb, paste0 ("SELECT (SUM (CASE WHEN roadyear > -1 THEN 1 ELSE 0 END) * ", P(sim)$roadDensity, ") AS total_roaded, COUNT(*) AS total_area, gbpu_name FROM pixels WHERE gbpu_name IS NOT NULL GROUP BY gbpu_name;")))
   sim$tableGrizzSurvivalReport [, road_density := total_roaded / total_area]  
   
    # The following equation calculates the survival rate in the herd area using the Boualnger and Stenhouse (2014) model
@@ -119,7 +120,7 @@ Init <- function (sim) { # this function identifies the GBPUs in the 'study area
 
 predictSurvival <- function (sim) { # this function calculates survival rate at each time interval; same as on init, above
  
-  new_tableGrizzSurvivalReport <- data.table (dbGetQuery (sim$clusdb, "SELECT (SUM (CASE WHEN roadyear > -1 THEN 1 ELSE 0 END) * P(sim)$roadDensity) AS total_roaded, COUNT(*) AS total_area, gbpu_name FROM pixels WHERE gbpu_name IS NOT NULL GROUP BY gbpu_name;"))
+  new_tableGrizzSurvivalReport <- data.table (dbGetQuery (sim$clusdb, paste0 ("SELECT (SUM (CASE WHEN roadyear > -1 THEN 1 ELSE 0 END) * ", P(sim)$roadDensity, ") AS total_roaded, COUNT(*) AS total_area, gbpu_name FROM pixels WHERE gbpu_name IS NOT NULL GROUP BY gbpu_name;")))
   new_tableGrizzSurvivalReport [, road_density := total_roaded / total_area]  
   new_tableGrizzSurvivalReport [, survival_rate := (1/(1+exp(-3.9+(road_density * 1.06))))]
   new_tableGrizzSurvivalReport [, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name,sim$boundaryInfo[[3]]) ] # add the time of the survival calc

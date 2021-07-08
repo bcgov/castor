@@ -86,7 +86,7 @@ Init <- function(sim) {
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios where scenario = '", sim$scenario$name, "';"))
     dbExecute(connx, paste0("INSERT INTO ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios (scenario, description) values ('", sim$scenario$name,"', '", sim$scenario$description, "');"))
     
-    lapply(dbGetQuery(connx, paste0("SELECT table_name FROM information_schema.tables WHERE table_schema  = '", P(sim, "uploaderCLUS", "aoiName") ,"' and table_name in ('disturbance', 'growingstock', 'rsf', 'survival', 'fisher', 'harvest', 'yielduncertainty') ;"))$table_name, function (x){
+    lapply(dbGetQuery(connx, paste0("SELECT table_name FROM information_schema.tables WHERE table_schema  = '", P(sim, "uploaderCLUS", "aoiName") ,"' and table_name in ('disturbance', 'growingstock', 'rsf', 'survival', 'fisher', 'harvest', 'yielduncertainty', 'volumebyarea', 'zonemanagement', 'grizzly_survival') ;"))$table_name, function (x){
       dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".",x," where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
     })
     

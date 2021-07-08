@@ -35,20 +35,22 @@ S = 1 / (1 + exp (-3.9 + (D * 1.06))
 where S = survival rate and D = road density. Survival rate is 0.980 at a road density of 0km/km^2^, 0.945 at a road density of 1km/km^2^ and 0.856 at a road density of 2km/km^2^.
 
 ### Usage
-The module must be used with the dataLoaderCLUS initially, to identify the GBPUs in the area of interest, and then with forestryCLUS to estimate survival rates over time (i.e., grizzlysurvivalCLUS is a 'child' module of dataLoaderCLUS for creating the database and forestryCLUS for simulating surirval rates over time). The grizzlysurvivalCLUS module will onyl function with forestryCLUS if it was implemented in dataLoaderCLUS.
+The module must be used with the dataLoaderCLUS initially, to identify the GBPUs in the area of interest, and then with forestryCLUS to estimate survival rates over time (i.e., grizzlysurvivalCLUS is a 'child' module of dataLoaderCLUS for creating the database and forestryCLUS for simulating surirval rates over time). The grizzlysurvivalCLUS module will only function with forestryCLUS if it was implemented in dataLoaderCLUS.
 
 ### Model Parameters
 
-```{r parameters}
+```{r module_usage}
 library (SpaDES.core)
 library (data.table)
+library (here)
+library (dplyr)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 moduleDir <- file.path (paste0 (here(),"/R/SpaDES-modules"))
 inputDir <- file.path (paste0 (here(), "/R")) %>% reproducible::checkPath (create = TRUE)
 outputDir <- file.path (paste0 (here(), "/R/SpaDES-modules/grizzlysurvivalCLUS/outputs"))
-cacheDir <- file.path (paste0 (here(), "/R/SpaDES-modules/grizzlysurvivalCLUS/outputs"))
-times <- list (start = 0, end = 40)
+cacheDir <- file.path (paste0 (here(), "/R"))
+times <- list (start = 0, end = 1)
 
 parameters <- list (
   .progress = list (type = NA, interval = NA),
@@ -95,19 +97,21 @@ mysimout <- spades (mySim)
 ```
 
 # Events
-This module is pretty simple; there are two event types: 'init' and 'calculateSurvival' . The 'init' event identifies herds in the sim study area, calculates the survival rate in each of those herds at time 0 and saves the survival rate estimates as a data.table in the sim. The 'calculateSurvival' event calculates the survival rate in each herd at each scehduled time interval. 
+This module is pretty simple; there are two event types: 'init' and 'calculateSurvival'.
+
+The 'init' event identifies grizzly bear population units (GBPUs) in the sim study area, calculates the number of 'roaded' pixels and estimates 'average' road densities in each GBPU, then estimates the survival rate in each GBPU at time 0 and saves the survival rate estimates as a data.table in the sim. 
+
+The 'calculateSurvival' event calculates the number of 'roaded' pixels and estimates 'average' road densities in each GBPU, then estimates the survival rate in each GBPU at time 0 and saves the survival rate estimates as a data.table in the sim at each scheduled time interval. 
 
 # Data dependencies
 ## Input data
-This module needs the 'age' field (i.e., age of forest) from the 'pixels' table in the sim RSQLite databases (clusdb) that gets instantiated at the start of the sim in the dataLoaderCLUS. It also requires a density estimate (caribou/km^2^) that is currently set by the user and remains static throughout the scenario run.
+This module needs the 'roadyear' field (i.e., whether a pixel is roaded (>-1)) from the 'pixels' table in the sim RSQLite databases (clusdb) that gets instantiated at the start of the sim in the dataLoaderCLUS. It also requires a raster to represent the location of the GBPUs, an associated table with the GBPU names, and a road density estimate (km/km^2^) for a 'roaded' pixel that is currently set by the user and remains static throughout the scenario run.
 
 ## Output data
-This module outputs a table that has the herd name identifer, proportion of forest area that is 1 to 40 years old in the herd area and the estimated survival rate of the herd at each time interval of the sim.
-
-There was a request to summarize area of mature (prop_mature) and old forest (prtop_old) in caribou ranges, so these indicators were added to this module Dec. 2019. They are not needed to calcualte survival. Mature was defined as 80 to 120 years old and greater than 120 years old, respectively, but these can be modified as needed.  
+This module outputs a table that has the GBPU name identifier and estimated survival rate in the GBPU and at each time interval of the sim.
 
 # Links to other modules
-The module will only work if the dataLoadDerCLUS clusdb is instantiated as part of the CLUS model. Otherwise you won't have the age data needed to make the survival rate calculation. 
+The module will only work if the dataLoadDerCLUS clusdb is instantiated as part of the CLUS model. Otherwise you won't have the data needed to make the survival rate calculation. 
 
 # Future Improvements
-A linkage to a caribou population model so that desnity estimates can be calculated dynamically as a function of changing adult female survival rates estimated here. 
+Could be further developed to estimate a grizzly population trend by applying the survival rate to the population estimate for bears in the GBPU. This requires assumptions on the distribution of reproductive classes in the population, their transition rates to other classes and cub recruitment rates (e.g., see [here](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/wildlife-analysis/pg_grizzly_bear_popn_model_report_20161027.pdf)). Such data exists for grizzly bear populations, but implementing this approach requires many more assumptions and complexities to be integrated into the module. 
