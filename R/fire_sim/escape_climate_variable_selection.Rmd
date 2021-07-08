@@ -55,7 +55,9 @@ Import the data created at the end of the last file (named Escape_data from our 
 
 #dbDisconnect (connKyle)
 
-Escape_data<-fire_veg_DEM_climate_2
+
+Escape_data<-st_read("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Escape_data.shp")
+head(Escape_data)
 
 ```
 
@@ -69,29 +71,29 @@ head(Escape_data)
 #Creating new variable of vegetation type and a description of how open the vegetation is
 # TB =  Treed broadleaf, TC = Treed Conifer, TM = Treed mixed, SL = short shrub, ST = tall shrubs, D = disturbed, O = open. I will combine tall and short shrub. We dont estimate shrub cover in our CLUS model so Im not sure how this will influence our results since I dont think I can track it over time. Maybe I should include it in Open or disturbed?
 
-Escape_data$bclcs_level_4<- as.factor(Escape_data$bclcs_level_4)
-Escape_data_2<- Escape_data %>% drop_na(bclcs_level_4) # this drops (16319-15159) 1160 locations
-unique(Escape_data_2$bclcs_level_4)
+Escape_data$bclc__4<- as.factor(Escape_data$bclc__4)
+Escape_data_2<- Escape_data %>% drop_na(bclc__4) # this drops (16319-15159) 1160 locations
+unique(Escape_data_2$bclc__4)
 
 Escape_data_2$vegtype<-"OP" #setting anything that is not one of the categories below to Open.
 Escape_data_2 <- Escape_data_2 %>%
-  mutate(vegtype = if_else(bclcs_level_4=="TC","TC", # Treed coniferous
-                           if_else(bclcs_level_4=="TM", "TM", # Treed mixed
-                                   if_else(bclcs_level_4== "TB","TB", #Treed broadleaf
-                                           if_else(bclcs_level_4=="SL", "S", # shrub
-                                                   if_else(bclcs_level_4=="ST", "S", vegtype))))))
-Escape_data_2$vegtype[which(Escape_data_2$proj_age_1 <16)]<-"D" # disturbed -  following Marchal et al 2017 I make anything that is younger than 15 years old to disturbed. This might be something I should check whether this assumption is ok.
+  mutate(vegtype = if_else(bclc__4=="TC","TC", # Treed coniferous
+                           if_else(bclc__4=="TM", "TM", # Treed mixed
+                                   if_else(bclc__4== "TB","TB", #Treed broadleaf
+                                           if_else(bclc__4=="SL", "S", # shrub
+                                                   if_else(bclc__4=="ST", "S", vegtype))))))
+Escape_data_2$vegtype[which(Escape_data_2$prj_g_1 <16)]<-"D" # disturbed -  following Marchal et al 2017 I make anything that is younger than 15 years old to disturbed. This might be something I should check whether this assumption is ok.
 
 #Escape_data_2$<- Escape_data_2$ %>% filter(fir_typ!="Nuisance Fire") 
 table(Escape_data_2$vegtype, Escape_data_2$fire_cs)
-table(Escape_data_2$bclcs_level_2) #Unsure what the 2 unclassified ones are...
+table(Escape_data_2$bclc__2) #Unsure what the 2 unclassified ones are...
 
 # look at vegetation height, volume and age as we track these in CLUS. 
-Escape_data_2$proj_age_1<- as.numeric(Escape_data_2$proj_age_1)
-hist(Escape_data_2$proj_age_1)
-hist(Escape_data_2$proj_height_1) 
-hist(Escape_data_2$live_stand_volume_125)
-hist(log(Escape_data_2$live_stand_volume_125))
+Escape_data_2$prj_g_1<- as.numeric(Escape_data_2$prj_g_1) #projected age; naming changed when saved prior
+hist(Escape_data_2$prj_g_1)
+hist(Escape_data_2$prj_h_1) #projected height
+hist(Escape_data_2$l___125) #live_stand_volume_125
+hist(log(Escape_data_2$l___125))
 
 
 ```
@@ -191,8 +193,11 @@ variables2<-c("ppt05", "ppt06", "ppt07", "ppt08", "ppt09",
               # "ppt05", "ppt06", "ppt07", "ppt08", "ppt09"
 ) 
 #
+```
 
+Inspect data and create dataframe
 
+```{r}
 str(Escape_data_2$escape) 
 table(Escape_data_2$fire_yr, Escape_data_2$escape)
 table(Escape_data_2$fire_yr, Escape_data_2$escape, Escape_data_2$zone)
@@ -211,7 +216,7 @@ Escape_data_2b<-subset(Escape_data_2b, select = -(geometry))
 #################################
 # create loop to do variable selection of climate data
 unique(Escape_data_2b$zone)
-zones_escape<- c("ICH", "ESSF", "CWH", "MH", "MS", "PP", "IDF", "SBPS", "BWBS", "SBS") #"CDF", "BAFA", "SWB", "CMA", "IMA", "BG"
+zones_escape<- c("ICH", "ESSF", "CWH", "MH", "MS", "PP", "IDF", "SBPS", "BWBS", "SBS", "IMA") #"CDF", "BAFA", "SWB", "CMA", "BG" #Event though "IMA" is really small, but the ignition data was very consistent for top variable, so we will include it here.
 
 # #"CDF", "BAFA", "SWB", "CMA", "IMA", "BG" have few fire ignitions, I'm going to leave them out for the moment because there are not many fire ignition locations in these two.
 filenames<-list()
@@ -370,8 +375,14 @@ aic_bec_escape_summary2
 Save files.
 
 ```{r}
+
+#Save AIC table
 write.csv(aic_bec_escape_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_climate_AIC_results_July6.csv")
 
+
+#Save csv
+write.csv(Escape_data_2b, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Escape_data_df.csv")
+#tried saving shape file, but could not on account of the name in the file
 
 
 ###
@@ -384,9 +395,27 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
 st_write (obj = Escape_data_2b, 
           dsn = connKyle, 
           layer = c ("public", "Escape_data"))
+
 dbDisconnect (connKyle)
 
+## use this for middle code to loadback in later
+Escape_data_2b <- sf::st_read  (dsn = connKyle, # connKyle
+                               query = "SELECT * FROM public.escape_data")
 
+
+
+```
+
+
+Create frequency distribution of the number of escaped fires per year by each BEC zone.
+
+```{r}
+table(Escape_data_2b$fire_yr, Escape_data_2$escape, Escape_data_2$zone)
+escaped_table_BEC<-table(Escape_data_2b$fire_yr, Escape_data_2$escape, Escape_data_2$zone)
+str(escaped_table_BEC)
+#escaped_table_BEC[3]<-(escaped_table_BEC$[2]/(escaped_table_BEC$[2]+escaped_table_BEC$[1]))
+
+##Create by month? Might be able to do with just the ignition data
 
 ```
 

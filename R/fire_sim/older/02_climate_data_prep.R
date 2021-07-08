@@ -34,6 +34,7 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 
+
 source(here::here("R/functions/R_Postgres.R"))
 
 #Get BEC data
@@ -67,6 +68,24 @@ st_crs(bec_sf_buf)
 st_write(bec_sf_buf, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bec_sf_buf.shp", delete_dsn = TRUE)
 #Boundaries look good
 
+
+##If you bring BEC buffer back in, you may need to do the below for renaming. Remember to open the plyr library, but then ensure it is closed in the packages afterwards
+
+#And we need BEC buffer info
+bec_sf_buf<-st_read(dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bec_sf_buf.shp")
+names(bec_sf_buf)
+
+#Must rename some variables because it was shortened when saved as a shape file
+library(plyr)
+names(bec_sf_buf)
+bec_sf_buf<-rename(bec_sf_buf,
+                   c("objectd"="objectid",
+                     "ftr_cl_"="feature_class_skey",
+                     "ntrl_ds"="natural_disturbance",
+                     "zone_nm"="zone_name"))
+names(bec_sf_buf)
+## NOW UNCHECK PLYR LIBRARY IN PACKAGES WINDOW!
+
 fire.ignition_sf<-st_as_sf(fire.ignition.clipped) #convert to sf object
 st_crs(fire.ignition_sf)
 st_write(fire.ignition_sf, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition_sf.shp", delete_dsn = TRUE)
@@ -83,31 +102,38 @@ table(fire.igni.bec$fire_year)
 
 
 #write fire.igni.bec to file because it takes so long to make
-st_write(fire.igni.bec, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition_BEC.shp", delete_dsn = TRUE)
+st_write(fire.igni.bec, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\fire_ignit_by_bec.shp", delete_dsn = TRUE)
 
 
+##Below will not work because it is a shape file
 
 # save data 
-conn <- dbConnect (dbDriver ("PostgreSQL"), 
-                   host = "",
-                   user = "postgres",
-                   dbname = "postgres",
-                   password = "postgres",
-                   port = "5432")
+#conn <- dbConnect (dbDriver ("PostgreSQL"), 
+#                   host = "",
+#                   user = "postgres",
+#                   dbname = "postgres",
+#                   password = "postgres",
+#                   port = "5432")
 
 ##Can use keyring
-conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
-                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
-                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
-                        port = '5432',
-                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
-                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+#conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
+#                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+#                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+#                        port = '5432',
+#                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+#                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
 
-st_write (obj = fire.igni.bec, 
-          dsn = conn, 
-          layer = c ("public", "fire_ignit_by_bec"))
-dbDisconnect (conn)
+#st_write (obj = fire.igni.bec, 
+#          dsn = conn, 
+#          layer = c ("public", "fire_ignit_by_bec"))
+#dbDisconnect (conn)
+
+
+##Save via OsGeo4W Shell
+##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
+#ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\fire_ignit_by_bec.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
 
 
 #import the fire ignition data
@@ -131,7 +157,12 @@ fire_igni_bec<- st_read (dsn = conn,
           layer = c ("public", "fire_ignit_by_bec"))
 dbDisconnect (conn)
 
+##Or from local device
+# fire_igni_bec <-st.read(dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\fire_ignit_by_bec.shp")
+
 #fire_igni_bec<-fire_igni_bec[bc.bnd,]
+
+head(fire_igni_bec)
 
 #getting long lat info
 #geo.prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0" 
@@ -239,7 +270,7 @@ for (i in 1:length(years)) {
   filenames<-append(filenames,nam1)
 }
 
-sampled_points_2020<- sampled_points_2020 %>% filter(fire_year==2020)
+#sampled_points_2020<- sampled_points_2020 %>% filter(fire_year==2020)
 
 
 mkFrameList <- function(nfiles) {
