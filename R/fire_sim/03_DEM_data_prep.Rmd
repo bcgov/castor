@@ -93,7 +93,7 @@ Stack the two rasters. Stacking the two rasters will make extracting slope and a
 
 ```{r}
 ##Stack the two rasters
-rasStack = stack(DEM_slope, DEM_aspect)
+rasStack = stack(DEM_slope, DEM_aspect)#if get error, need to specify raster::stack
 crs(rasStack)
 
 ```
@@ -125,7 +125,7 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
 sample_locations2 <- sf::st_read  (dsn = connKyle, # connKyle
-                               query = "SELECT * FROM public.DC_data_July")
+                               query = "SELECT * FROM public.DC_data_5x")
 dbDisconnect (connKyle)
 
 head(sample_locations2)
@@ -180,13 +180,13 @@ Save this file and use for next R Markdpwn file (04_vri_data_prep). Make sure yo
 
 ```{r}
 
-st_write(sample_locations_DEM, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM.shp", delete_layer=TRUE)
+st_write(sample_locations_DEM, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM_5x.shp", delete_layer=TRUE)
 
 #Also write to local machine on OSGeo4W
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM_5x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM_5x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ##Above may not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
 
 #key_get('dbpass', keyring = 'postgreSQL')
