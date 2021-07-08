@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 #=================================
-#  Script Name: 02_fire_ignition_analysis.R
+#  Script Name: 05_ignition_climate_variable_selection.R
 #  Script Version: 1.0
 #  Script Purpose: Run logistic regression models to determine the top candidate climate variable to use in the final analysis of fire ignitions.
 #  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
@@ -40,16 +40,22 @@ library(keyring)
 source(here::here("R/functions/R_Postgres.R"))
 
 # Import my vegetation, climate and presence/absence of fire data
-connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
-                      host = key_get('dbhost', keyring = 'postgreSQL'),
-                      user = key_get('dbuser', keyring = 'postgreSQL'),
-                      dbname = key_get('dbname', keyring = 'postgreSQL'),
-                      password = key_get('dbpass', keyring = 'postgreSQL'),
-                      port = "5432")
-fire_veg_data <- sf::st_read  (dsn = connKyle, # connKyle
-                               query = "SELECT * FROM public.fire_ignitions_veg_climate")
-dbDisconnect (connKyle)
+#connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+#                      host = key_get('dbhost', keyring = 'postgreSQL'),
+#                      user = key_get('dbuser', keyring = 'postgreSQL'),
+#                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+#                      password = key_get('dbpass', keyring = 'postgreSQL'),
+#                      port = "5432")
+#fire_veg_data <- sf::st_read  (dsn = connKyle, # connKyle
+#                               query = "SELECT * FROM public.fire_ignitions_veg_climate_B")
+#dbDisconnect (connKyle)
 
+##If continuing from last script, then can do below instead of bringing data back in:
+ fire_veg_data<-fire_veg_data_B
+
+ ##Or can bring in from computer
+fire_veg_data<-st.read("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_B.shp")
+  
 # Import the fire ignition data
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
                    host = "",
@@ -125,7 +131,7 @@ ignition_pres_abs4$vegtype[which(ignition_pres_abs4$proj_age_1 <16)]<-"D" # dist
 #ignition_pres_abs4<- ignition_pres_abs4 %>% filter(fir_typ!="Nuisance Fire") 
 table(ignition_pres_abs4$vegtype, ignition_pres_abs4$fire_cs)
 
-# look at vegetaton height, volume and age as we track these in CLUS. 
+# look at vegetation height, volume and age as we track these in CLUS. 
 ignition_pres_abs4$proj_age_1<- as.numeric(ignition_pres_abs4$proj_age_1)
 hist(ignition_pres_abs4$proj_age_1)
 hist(ignition_pres_abs4$proj_height_1) # not sure we have height in CLUS, we do have volume though. So maybe I should include age and volume in my model. This might be a surrogate for height
@@ -182,12 +188,14 @@ df2 <- df %>%
 pre1<- ignition_pres_abs4 %>%
   filter(fire==1)
 dim(sampled_df) # 22715 rows
-dim(pre1) # 14958 rows; Cora on June 23: has 15268 rows
+dim(pre1) # 14958 rows; Cora on July 5: has 15228 rows
 
 dat<- rbind(pre1, as.data.frame(sampled_df))
-dim(dat) # 37673 rows good this worked I think; Cora June 23 has 45680 rows. This is fewer than the >180,000 rows of the data at the end of file 01
+dim(dat) # 37673 rows good this worked I think; Cora July 5 has 45656 rows. This is fewer than the >180,000 rows of the data at the end of file 01
 
+head(dat)
 #dat<-ignition_pres_abs4 # 
+str(dat)
 
 ##################
 #### Analysis ####
@@ -231,7 +239,7 @@ ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
 
 # Loosely following the methods of Marchal et al. (2017) Ecography (https://onlinelibrary.wiley.com/doi/full/10.1111/ecog.01849) Supporting Information Appendix 1 I try to figure out which is the best climate variable or climate variables to include in my model. I run simple models of the form:
 # logb(p/1-p) = B0 + B1x1 or logb(p/1-p) = B0 + B1x1 + B2x2
-#and extract the AIC as a means for comparison. I also calculate the AUC by splitting the data into a training and validation data set. Finally I repeat the analysis calculating the AIC and AUC using traing and validation data sets 10 times taking the average of both the AIC and AUC values. These are the values that I spit out into a csv file so that I can examine which climate variable is best for each BEC zone. 
+#and extract the AIC as a means for comparison. I also calculate the AUC by splitting the data into a training and validation data set. Finally I repeat the analysis calculating the AIC and AUC using training and validation data sets 10 times taking the average of both the AIC and AUC values. These are the values that I spit out into a csv file so that I can examine which climate variable is best for each BEC zone. 
 
 ### creating amalgamations of variables to test different combinations of variables.##
 dat$mean_tmax05_tmax06<- (dat$tmax05+ dat$tmax06)/2
@@ -476,7 +484,9 @@ aic_bec_summary2<- aic_bec_summary %>%
   group_by(Zone) %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-write.csv(aic_bec_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results_simple.csv")
+aic_bec_summary2
+
+write.csv(aic_bec_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results_simple_July6.csv")
 
 
 ###
@@ -492,4 +502,4 @@ st_write (obj = dat,
 dbDisconnect (connKyle)
 
 
-############### Complete. Now move on to 05_Fire_ignition_model_fits_by_BEC wherein the results of climate_AIC_results_simple will be utilied###########
+############### Complete. Now move on to 06_Fire_ignition_model_fits_by_BEC wherein the results of climate_AIC_results_simple will be utilied###########

@@ -1,0 +1,392 @@
+---
+title: "escape_climate_variable_selection"
+author: "Cora Skaien"
+date: "06/07/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+We will do the same method we did for selecting climate variables for the ignition model for the escape model. We will start by using the data that was generated at the end of 04_vri_data_prep.
+
+```{r}
+#Load relevant libraries.
+
+library(sf)
+library(tidyverse)
+library(ggplot2)
+library (ggcorrplot)
+library (RPostgreSQL)
+library (rpostgis)
+library (dplyr)
+library (lme4)
+library (arm)
+library(ggpubr)
+library(mgcv)
+library(nlme)
+library(purrr)
+library(tidyr)
+library(caret)
+library(pROC)
+library(keyring)
+
+source(here::here("R/functions/R_Postgres.R"))
+
+```
+
+Import the data created at the end of the last file (named Escape_data from our fire_veg_DEM_climate_2)
+
+```{r}
+#Can use below if working straight from last file. Otherwise bring in from clus.
+#Escape_data<-fire_veg_DEM_climate_2
+
+#connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+#                      host = key_get('dbhost', keyring = 'postgreSQL'),
+#                      user = key_get('dbuser', keyring = 'postgreSQL'),
+#                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+#                      password = key_get('dbpass', keyring = 'postgreSQL'),
+#                      port = "5432")
+
+#Escape_data <- sf::st_read  (dsn = connKyle, # connKyle
+ #                              query = "SELECT * FROM public.escape_data")
+
+#dbDisconnect (connKyle)
+
+Escape_data<-fire_veg_DEM_climate_2
+
+```
+
+Inspect the data. Make necessary changes.
+
+
+```{r}
+head(Escape_data)
+
+
+#Creating new variable of vegetation type and a description of how open the vegetation is
+# TB =  Treed broadleaf, TC = Treed Conifer, TM = Treed mixed, SL = short shrub, ST = tall shrubs, D = disturbed, O = open. I will combine tall and short shrub. We dont estimate shrub cover in our CLUS model so Im not sure how this will influence our results since I dont think I can track it over time. Maybe I should include it in Open or disturbed?
+
+Escape_data$bclcs_level_4<- as.factor(Escape_data$bclcs_level_4)
+Escape_data_2<- Escape_data %>% drop_na(bclcs_level_4) # this drops (16319-15159) 1160 locations
+unique(Escape_data_2$bclcs_level_4)
+
+Escape_data_2$vegtype<-"OP" #setting anything that is not one of the categories below to Open.
+Escape_data_2 <- Escape_data_2 %>%
+  mutate(vegtype = if_else(bclcs_level_4=="TC","TC", # Treed coniferous
+                           if_else(bclcs_level_4=="TM", "TM", # Treed mixed
+                                   if_else(bclcs_level_4== "TB","TB", #Treed broadleaf
+                                           if_else(bclcs_level_4=="SL", "S", # shrub
+                                                   if_else(bclcs_level_4=="ST", "S", vegtype))))))
+Escape_data_2$vegtype[which(Escape_data_2$proj_age_1 <16)]<-"D" # disturbed -  following Marchal et al 2017 I make anything that is younger than 15 years old to disturbed. This might be something I should check whether this assumption is ok.
+
+#Escape_data_2$<- Escape_data_2$ %>% filter(fir_typ!="Nuisance Fire") 
+table(Escape_data_2$vegtype, Escape_data_2$fire_cs)
+table(Escape_data_2$bclcs_level_2) #Unsure what the 2 unclassified ones are...
+
+# look at vegetation height, volume and age as we track these in CLUS. 
+Escape_data_2$proj_age_1<- as.numeric(Escape_data_2$proj_age_1)
+hist(Escape_data_2$proj_age_1)
+hist(Escape_data_2$proj_height_1) 
+hist(Escape_data_2$live_stand_volume_125)
+hist(log(Escape_data_2$live_stand_volume_125))
+
+
+```
+
+Now create variables for means of different months.
+
+```{r}
+#################################
+# ANALYSIS OF CLIMATE VARIABLES
+#################################
+
+# Loosely following the methods of Marchal et al. (2020).  We try to figure out which is the best climate variable or climate variables to include in the models. 
+#We then  extract the AIC as a means for comparison. We also calculate the AUC by splitting the data into a training and validation data set. Finally, we repeat the analysis calculating the AIC and AUC using training and validation data sets 10 times taking the average of both the AIC and AUC values. These are the values that I spit out into a csv file so that I can examine which climate variable is best for each BEC zone. 
+
+### creating amalgamations of variables to test different combinations of variables.##
+Escape_data_2$mean_tmax05_tmax06<- (Escape_data_2$tmax05+ Escape_data_2$tmax06)/2
+Escape_data_2$mean_tmax06_tmax07<- (Escape_data_2$tmax06+ Escape_data_2$tmax07)/2
+Escape_data_2$mean_tmax07_tmax08<- (Escape_data_2$tmax07+ Escape_data_2$tmax08)/2
+Escape_data_2$mean_tmax08_tmax09<- (Escape_data_2$tmax08+ Escape_data_2$tmax09)/2
+Escape_data_2$mean_tmax05_tmax06_tmax07<- (Escape_data_2$tmax05+ Escape_data_2$tmax06 + Escape_data_2$tmax07)/3
+Escape_data_2$mean_tmax06_tmax07_tmax08<- (Escape_data_2$tmax06+ Escape_data_2$tmax07 + Escape_data_2$tmax08)/3
+Escape_data_2$mean_tmax07_tmax08_tmax09<- (Escape_data_2$tmax07+ Escape_data_2$tmax08 + Escape_data_2$tmax09)/3
+Escape_data_2$mean_tmax05_tmax06_tmax07_tmax08<- (Escape_data_2$tmax05 + Escape_data_2$tmax06+ Escape_data_2$tmax07 + Escape_data_2$tmax08)/4
+Escape_data_2$mean_tmax06_tmax07_tmax08_tmax09<- (Escape_data_2$tmax06 + Escape_data_2$tmax07+ Escape_data_2$tmax08 + Escape_data_2$tmax09)/4
+Escape_data_2$mean_tmax05_tmax06_tmax07_tmax08_tmax09<- (Escape_data_2$tmax05 + Escape_data_2$tmax06 + Escape_data_2$tmax07+ Escape_data_2$tmax08 + Escape_data_2$tmax09)/5
+
+Escape_data_2$mean_tave05_tave06<- (Escape_data_2$tave05+ Escape_data_2$tave06)/2
+Escape_data_2$mean_tave06_tave07<- (Escape_data_2$tave06+ Escape_data_2$tave07)/2
+Escape_data_2$mean_tave07_tave08<- (Escape_data_2$tave07+ Escape_data_2$tave08)/2
+Escape_data_2$mean_tave08_tave09<- (Escape_data_2$tave08+ Escape_data_2$tave09)/2
+Escape_data_2$mean_tave05_tave06_tave07<- (Escape_data_2$tave05+ Escape_data_2$tave06 + Escape_data_2$tave07)/3
+Escape_data_2$mean_tave06_tave07_tave08<- (Escape_data_2$tave06+ Escape_data_2$tave07 + Escape_data_2$tave08)/3
+Escape_data_2$mean_tave07_tave08_tave09<- (Escape_data_2$tave07+ Escape_data_2$tave08 + Escape_data_2$tave09)/3
+Escape_data_2$mean_tave05_tave06_tave07_tave08<- (Escape_data_2$tave05 + Escape_data_2$tave06+ Escape_data_2$tave07 + Escape_data_2$tave08)/4
+Escape_data_2$mean_tave06_tave07_tave08_tave09<- (Escape_data_2$tave06 + Escape_data_2$tave07+ Escape_data_2$tave08 + Escape_data_2$tave09)/4
+Escape_data_2$mean_tave05_tave06_tave07_tave08_tave09<- (Escape_data_2$tave05 + Escape_data_2$tave06 + Escape_data_2$tave07+ Escape_data_2$tave08 + Escape_data_2$tave09)/5
+
+
+Escape_data_2$mean_ppt05_ppt06<- (Escape_data_2$ppt05+ Escape_data_2$ppt06)/2
+Escape_data_2$mean_ppt06_ppt07<- (Escape_data_2$ppt06+ Escape_data_2$ppt07)/2
+Escape_data_2$mean_ppt07_ppt08<- (Escape_data_2$ppt07+ Escape_data_2$ppt08)/2
+Escape_data_2$mean_ppt08_ppt09<- (Escape_data_2$ppt08+ Escape_data_2$ppt09)/2
+Escape_data_2$mean_ppt05_ppt06_ppt07<- (Escape_data_2$ppt05+ Escape_data_2$ppt06 + Escape_data_2$ppt07)/3
+Escape_data_2$mean_ppt06_ppt07_ppt08<- (Escape_data_2$ppt06+ Escape_data_2$ppt07 + Escape_data_2$ppt08)/3
+Escape_data_2$mean_ppt07_ppt08_ppt09<- (Escape_data_2$ppt07+ Escape_data_2$ppt08 + Escape_data_2$ppt09)/3
+Escape_data_2$mean_ppt05_ppt06_ppt07_ppt08<- (Escape_data_2$ppt05+ Escape_data_2$ppt06 + Escape_data_2$ppt07 + Escape_data_2$ppt08)/4
+Escape_data_2$mean_ppt06_ppt07_ppt08_ppt09<- (Escape_data_2$ppt06+ Escape_data_2$ppt07 + Escape_data_2$ppt08 + Escape_data_2$ppt09)/4
+Escape_data_2$mean_ppt05_ppt06_ppt07_ppt08_ppt09<- (Escape_data_2$ppt05 + Escape_data_2$ppt06 + Escape_data_2$ppt07 + Escape_data_2$ppt08 + Escape_data_2$ppt09)/5
+
+Escape_data_2$mean_mdc05_mdc06<- (Escape_data_2$mdc_05+ Escape_data_2$mdc_06)/2
+Escape_data_2$mean_mdc06_mdc07<- (Escape_data_2$mdc_06+ Escape_data_2$mdc_07)/2
+Escape_data_2$mean_mdc07_mdc08<- (Escape_data_2$mdc_07+ Escape_data_2$mdc_08)/2
+Escape_data_2$mean_mdc08_mdc09<- (Escape_data_2$mdc_08+ Escape_data_2$mdc_09)/2
+Escape_data_2$mean_mdc05_mdc06_mdc07<- (Escape_data_2$mdc_05+ Escape_data_2$mdc_06 + Escape_data_2$mdc_07)/3
+Escape_data_2$mean_mdc06_mdc07_mdc08<- (Escape_data_2$mdc_06+ Escape_data_2$mdc_07 + Escape_data_2$mdc_08)/3
+Escape_data_2$mean_mdc07_mdc08_mdc09<- (Escape_data_2$mdc_07+ Escape_data_2$mdc_08 + Escape_data_2$mdc_09)/3
+Escape_data_2$mean_mdc05_mdc06_mdc07_mdc08<- (Escape_data_2$mdc_05+ Escape_data_2$mdc_06 + Escape_data_2$mdc_07 + Escape_data_2$mdc_08)/4
+Escape_data_2$mean_mdc06_mdc07_mdc08_mdc09<- (Escape_data_2$mdc_06+ Escape_data_2$mdc_07 + Escape_data_2$mdc_08 + Escape_data_2$mdc_09)/4
+Escape_data_2$mean_mdc05_mdc06_mdc07_mdc08_mdc09<- (Escape_data_2$mdc_05 + Escape_data_2$mdc_06+ Escape_data_2$mdc_07 + Escape_data_2$mdc_08 + Escape_data_2$mdc_09)/5
+
+head(Escape_data_2)
+
+```
+Now we create variable categories for model selection on climate variables
+
+```{r}
+variables<- c("tmax05","tmax06", "tmax07", "tmax08", "tmax09", 
+              "mean_tmax05_tmax06","mean_tmax06_tmax07", "mean_tmax07_tmax08", "mean_tmax08_tmax09", 
+              "mean_tmax05_tmax06_tmax07", "mean_tmax06_tmax07_tmax08","mean_tmax07_tmax08_tmax09", 
+              "mean_tmax05_tmax06_tmax07_tmax08", "mean_tmax06_tmax07_tmax08_tmax09", "mean_tmax05_tmax06_tmax07_tmax08_tmax09",
+              
+              "tave05","tave06", "tave07", "tave08", "tave09", 
+              "mean_tave05_tave06","mean_tave06_tave07", "mean_tave07_tave08", "mean_tave08_tave09", 
+              "mean_tave05_tave06_tave07", "mean_tave06_tave07_tave08","mean_tave07_tave08_tave09", 
+              "mean_tave05_tave06_tave07_tave08", "mean_tave06_tave07_tave08_tave09", "mean_tave05_tave06_tave07_tave08_tave09",
+              
+              "ppt05","ppt06", "ppt07", "ppt08", "ppt09",
+              "mean_ppt05_ppt06", "mean_ppt06_ppt07", "mean_ppt07_ppt08", "mean_ppt08_ppt09", 
+              "mean_ppt05_ppt06_ppt07","mean_ppt06_ppt07_ppt08", "mean_ppt07_ppt08_ppt09",
+              "mean_ppt05_ppt06_ppt07_ppt08", "mean_ppt06_ppt07_ppt08_ppt09",
+              "mean_ppt05_ppt06_ppt07_ppt08_ppt09",
+              
+              "mdc_05","mdc_06", "mdc_07", "mdc_08", "mdc_09",
+              "mean_mdc05_mdc06", "mean_mdc06_mdc07", "mean_mdc07_mdc08", "mean_mdc08_mdc09", 
+              "mean_mdc05_mdc06_mdc07", "mean_mdc06_mdc07_mdc08", "mean_mdc07_mdc08_mdc09", 
+              "mean_mdc05_mdc06_mdc07_mdc08", "mean_mdc06_mdc07_mdc08_mdc09",
+              "mean_mdc05_mdc06_mdc07_mdc08_mdc09")
+
+ variables1<-c("tmax05", "tmax06", "tmax07", "tmax08", "tmax09",
+               "tave05", "tave06", "tave07", "tave08", "tave09"
+#               "tmax05","tmax06", "tmax07", "tmax08", "tmax09",
+#               "mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09"
+)
+variables2<-c("ppt05", "ppt06", "ppt07", "ppt08", "ppt09",
+              "ppt05", "ppt06", "ppt07", "ppt08", "ppt09"
+              # "mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09",
+              # "ppt05", "ppt06", "ppt07", "ppt08", "ppt09"
+) 
+#
+
+
+str(Escape_data_2$escape) 
+table(Escape_data_2$fire_yr, Escape_data_2$escape)
+table(Escape_data_2$fire_yr, Escape_data_2$escape, Escape_data_2$zone)
+##Some zones have very little data, such as BAFA and CDF. IMA and SWB also pretty low.
+str(Escape_data_2)
+Escape_data_2b<-data.frame(Escape_data_2)
+str(Escape_data_2b)
+Escape_data_2b<-subset(Escape_data_2b, select = -(geometry))
+
+```
+
+
+```{r}
+#################################
+#### Running simple logistic regression model
+#################################
+# create loop to do variable selection of climate data
+unique(Escape_data_2b$zone)
+zones_escape<- c("ICH", "ESSF", "CWH", "MH", "MS", "PP", "IDF", "SBPS", "BWBS", "SBS") #"CDF", "BAFA", "SWB", "CMA", "IMA", "BG"
+
+# #"CDF", "BAFA", "SWB", "CMA", "IMA", "BG" have few fire ignitions, I'm going to leave them out for the moment because there are not many fire ignition locations in these two.
+filenames<-list()
+prop<-0.75
+
+for (g in 1:100){
+
+for (h in 1:length(zones_escape)) {
+  dat2<- Escape_data_2b %>% dplyr::filter(zone ==zones_escape[h])
+  
+#Create frame of AIC table
+# summary table
+table.glm.climate.simple <- data.frame (matrix (ncol = 4, nrow = 0))
+colnames (table.glm.climate.simple) <- c ("Zone", "Variable", "AIC", "AUC")
+
+model_dat<- dat2 %>% dplyr::select(escape)
+trainIndex <- createDataPartition(model_dat$escape, p = prop,
+                                  list = FALSE,
+                                  times = 1)
+dat1 <- as.data.frame(model_dat[ trainIndex,])
+names(dat1)[1] <- "escape"
+Valid <- as.data.frame(model_dat[-trainIndex,])
+names(Valid)[1] <- "escape"
+
+
+model1 <- glm (escape ~ 1 ,
+               data=dat1,
+               family = binomial (link = "logit"))
+
+table.glm.climate.simple[1,1]<-zones_escape[h]
+table.glm.climate.simple[1,2]<-"intercept"
+table.glm.climate.simple[1,3]<-extractAIC(model1)[2]
+
+# lets look at fit of the Valid (validation) dataset
+Valid$model1_predict <- predict.glm(model1,newdata = Valid,type="response")
+roc_obj <- roc(Valid$escape, Valid$model1_predict)
+auc(roc_obj)
+table.glm.climate.simple[1,4]<-auc(roc_obj)
+
+rm(model_dat,dat1,Valid)
+
+for (i in 1: length(variables)){
+  print(paste((variables[i]), (zones_escape[h]), sep=" "))
+  
+  model_dat<- dat2 %>% dplyr::select(escape, variables[i])
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  dat1 <- model_dat[ trainIndex,]
+  Valid <- model_dat[-trainIndex,]
+  
+  model1 <- glm (escape ~ . ,
+                 data=dat1,
+                 family = binomial (link = "logit"))
+  
+  table.glm.climate.simple[i+1,1]<-zones_escape[h]
+  table.glm.climate.simple[i+1,2]<-variables[i]
+  table.glm.climate.simple[i+1,3]<-extractAIC(model1)[2]
+  
+  # lets look at fit of the Valid (validation) dataset
+  Valid$model1_predict <- predict.glm(model1,newdata = Valid,type="response")
+  roc_obj <- roc(Valid$escape, Valid$model1_predict)
+  auc(roc_obj)
+  table.glm.climate.simple[i+1,4]<-auc(roc_obj)
+  
+}
+
+# This is an addition to the table above allowing combinations of temperature and precipitation
+
+for (i in 1: length(variables1)){
+  print(paste((variables1[i]), variables2[i], (zones_escape[h]), sep=" "))
+  model_dat<- dat2 %>% dplyr::select(escape, variables1[i], variables2[i])
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  dat1 <- model_dat[ trainIndex,]
+  Valid <- model_dat[-trainIndex,]
+  
+  model2 <- glm (escape ~ . ,
+                 data=dat1,
+                 family = binomial (link = "logit"))
+  
+  table.glm.climate.simple[(i+length(variables))+1,1]<-zones_escape[h]
+  table.glm.climate.simple[(i+length(variables))+1,2]<-paste0(variables1[i],"+", variables2[i])
+  table.glm.climate.simple[(i+length(variables))+1,3]<-extractAIC(model2)[2]
+  
+  Valid$model2_predict <- predict.glm(model2,newdata = Valid,type="response")
+  roc_obj <- roc(Valid$escape, Valid$model2_predict)
+  auc(roc_obj)
+  table.glm.climate.simple[(i+length(variables))+1,4]<-auc(roc_obj)
+  
+}
+
+for (i in 1: length(variables1)){
+  print(paste((variables1[i]), "x",variables2[i], (zones_escape[h]), sep=" "))
+
+  model_dat<- dat2 %>% dplyr::select(escape, variables1[i], variables2[i])
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  dat1 <- model_dat[ trainIndex,]
+  Valid <- model_dat[-trainIndex,]
+
+  model2 <- glm (escape ~ (.)^2,
+                 data=dat1,
+                 family = binomial (link = "logit"))
+
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones_escape[h]
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-extractAIC(model2)[2]
+
+  Valid$model2_predict <- predict.glm(model2,newdata = Valid,type="response")
+  roc_obj <- roc(Valid$escape, Valid$model2_predict)
+  auc(roc_obj)
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),4]<-auc(roc_obj)
+
+}
+table.glm.climate1<-table.glm.climate.simple %>% drop_na(AIC)
+
+
+#assign file names to the work
+nam1<-paste("AIC",zones_escape[h],"run",g,sep="_") #defining the name
+assign(nam1,table.glm.climate.simple)
+filenames<-append(filenames,nam1)
+}
+}
+##
+
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(filenames)
+aic_bec_escape<-mkFrameList(n) 
+
+aic_bec_escape_summary<- aic_bec_escape %>%
+  group_by(Zone, Variable) %>%
+  summarise(meanAIC=mean(AIC),
+            meanAUC=mean(AUC),
+            sdAUC=sd(AUC),
+            )
+
+aic_bec_escape_summary2<- aic_bec_escape_summary %>%
+  group_by(Zone) %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+aic_bec_escape_summary2
+
+```
+Save files.
+
+```{r}
+write.csv(aic_bec_escape_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_climate_AIC_results_July6.csv")
+
+
+
+###
+connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                      host = key_get('dbhost', keyring = 'postgreSQL'),
+                      user = key_get('dbuser', keyring = 'postgreSQL'),
+                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+                      password = key_get('dbpass', keyring = 'postgreSQL'),
+                      port = "5432")
+st_write (obj = Escape_data_2b, 
+          dsn = connKyle, 
+          layer = c ("public", "Escape_data"))
+dbDisconnect (connKyle)
+
+
+
+```
+

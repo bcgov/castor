@@ -63,7 +63,7 @@ ignition1 <- ignition %>%
 st_crs(ignition1)
 
 st_write(ignition1, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp", delete_dsn = TRUE)
-table(ignition1$FIRE_YEAR) #2007 and 2008 have 1455-1690 fires, but in file 02, these are almost all lost
+table(ignition1$FIRE_YEAR) 
 
 ## Load ignition data into postgres (either my local one or Kyles)
 #host=keyring::key_get('dbhost', keyring = 'postgreSQL')
@@ -72,7 +72,7 @@ table(ignition1$FIRE_YEAR) #2007 and 2008 have 1455-1690 fires, but in file 02, 
 #password=keyring::key_get('dbpass', keyring = 'postgreSQL')
 
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
-ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 # I wrote this to both places KylesClus and my local postgres
 # https://gdal.org/programs/ogr2ogr.html

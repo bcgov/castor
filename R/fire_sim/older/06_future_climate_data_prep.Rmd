@@ -36,7 +36,7 @@ source (paste0(here(),"/R/functions/R_Postgres.R"))
 
 ## Introduction
 
-Here I am trying to downscale global climate change models to a 800 x 800m scale (or finer) so that they can be used to predict fire occurrence in the future. ClimateBC has a little program that you can use to extract future climate values for any number of locations within BC, but manually extracting millions of locations for each year (2019 - 2100) and for multiple difference gcm's is time consuming and repetitive. Also, CMIP 5 is shortly going to be replaced with CMIP 6 but this data has not come out on ClimateBC yet. I chatted to Colin Mahony and he suggested I do the downscaling myself. He outlined the steps I should take and its pretty straight forward so that's the path I'm following. 
+Here I am trying to downscale global climate change models to a 800 x 800m scale (or finer) so that they can be used to predict fire occurence in the future. ClimateBC has a little program that you can use to extract future climate values for any number of locations within BC, but manually extracting millions of locations for each year (2019 - 2100) and for multiple difference gcm's is time consuming and repetitive. Also, CMIP 5 is shortly going to be replaced with CMIP 6 but this data has not come out on climateBC yet. I chatted to Colin Mahony and he suggested I do the downscaling myself. He outlined the steps I should take and its pretty straight forward so that's the path Im following. 
 
 ## Methods
 
@@ -116,7 +116,7 @@ gcms[select]
       
       for(year in 1:length(years)){
         files.years<-files.element[grep(years[year], files.element)] # get the 
-       #did this rather than stack import because it preserves the variable (month) names
+       #did this rather than stack import becuase it preserves the variable (month) names
         temp2 <- brick(paste(dir, files.years, sep="\\"))
         temp <- if(year==1) temp2 else brick(c(temp, temp2))
         #print(year)
