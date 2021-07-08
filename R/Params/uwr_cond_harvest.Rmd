@@ -1282,6 +1282,7 @@ DBI::dbWriteTable(conn, c("zone", "uwr_2021"), value= df, row.names = FALSE, ove
 
 dbExecute(conn, "Alter Table zone.uwr_2021 add column denom VARCHAR")
 dbExecute(conn, "Alter Table zone.uwr_2021 set denom = null where denom is not null;")
+dbExecute(conn, "Alter Table zone.uwr_2021 set multi_condition = null where multi_condition is not null;")
 dbExecute(conn, "ALTER TABLE zone.uwr_2021 ADD column start INT")
 dbExecute(conn, "ALTER TABLE zone.uwr_2021 ADD column stop INT")
 dbExecute(conn, "ALTER TABLE zone.uwr_2021 SET start = 0 WHERE start IS not null;")
