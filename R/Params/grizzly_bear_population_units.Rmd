@@ -1,0 +1,69 @@
+---
+title: "Grizzly Bear Popualtion Units"
+author: "Tyler Muhly"
+date: "07/07/2021"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library (raster)
+library (fasterize)
+library (sf)
+library (DBI)
+library (data.table)
+
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
+```
+
+## Purpose
+The scripts here produce rasters and tables that specify grizzly bear population units (GBPUs) in British Columbia. These can also be used in the CLUS model to estimate grizzly bear survival rates as a function of road density, or to sumamrize data by each unit. 
+
+All spatial polygon files are converted to rasters following the provincial hectares BC raster convention that we are using in the CLUS model to ensure all rasters overlap.
+
+## Grizzly Bear Population Unit (GBPU) Boundaries
+Grizzly bear population units (GBPUs) are spatial boundaries identifying similar behavioural ecotypes and sub-populations of grizzly bears. They are used to manage sub-popuatlions of grizzly bear in BC. The boundaries are publicaly available data and can be downloaded form DataBCW (located [here](https://catalogue.data.gov.bc.ca/dataset/caa22f7a-87df-4f31-89e0-d5295ec5c725)).
+
+
+### Create Raster
+```{r, convert polygon to raster}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+poly.gbpu <- getSpatialQuery("SELECT * FROM public.gbpu_bc_polygon") 
+
+prov.rast <- raster::raster ( # standardized provincial raster with no data in it
+                              nrows = 15744, ncols = 17216, 
+                              xmn = 159587.5, xmx = 1881187.5, 
+                              ymn = 173787.5, ymx = 1748187.5, 
+                              crs = st_crs(poly.gbpu)$proj4string, resolution = c(100, 100), 
+                              vals = 0)
+poly.gbpu$gbpu_integer <- as.integer (as.factor (poly.gbpu$pop_name)) 
+ras.gbpu <-fasterize::fasterize (poly.gbpu, prov.rast, field = "gbpu_integer") # polygon to raster
+plot (ras.gbpu) # make sure the raster looks good
+writeRaster (ras.gbpu, file = "gbpu.tif", format = "GTiff", overwrite = TRUE)
+#upload to db
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here (), '/R/params/gbpu.tif -t 100x100 rast.gbpu_2021 | psql postgresql://clus_project:clus@DC052586:5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+dbDisconnect(conn)
+```
+
+### Create Look-up Table
+```{r, create look-up table for raster}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                        port='5432' ,
+                        user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                        password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+poly.gbpu <- getSpatialQuery("SELECT * FROM public.gbpu_bc_polygon") 
+poly.gbpu$gbpu_integer <- as.integer (as.factor (poly.gbpu$pop_name)) 
+lu_gbpu <- unique (data.table (cbind (poly.gbpu$gbpu_integer, poly.gbpu$pop_name)))
+lu_gbpu <- lu_gbpu [order(V1)]
+setnames (lu_gbpu, c("V1", "V2"), c("raster_integer", "gbpu_name"))
+lu_gbpu$raster_integer <- as.integer (lu_gbpu$raster_integer)
+DBI::dbWriteTable (conn, c("vat", "gbpu"), value = lu_gbpu, 
+                   row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+```

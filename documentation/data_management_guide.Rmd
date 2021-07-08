@@ -1645,5 +1645,46 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
+
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'public', 
+                        table_name = 'gbpu_bc_polygon', 
+                        type = 'polygon', 
+                        script = 'ogr2ogr', 
+                        source = 'DataBC: https://catalogue.data.gov.bc.ca/dataset/caa22f7a-87df-4f31-89e0-d5295ec5c725',                         public = 'Yes', 
+                        last_updated = '2021', 
+                        next_update = '2025', 
+                        where_used = 'grizzly_bear_population_units.Rmd')
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = 'gbpu_2021 ', 
+                        type = 'raster', 
+                        script = 'grizzly_bear_population_units.Rmd', 
+                        source = 'DataBC: https://catalogue.data.gov.bc.ca/dataset/caa22f7a-87df-4f31-89e0-d5295ec5c725',                         public = 'Yes', 
+                        last_updated = '2021', 
+                        next_update = '2025', 
+                        where_used = 'grizzlysurvivalCLUS')
+new_data3 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'vat', 
+                        table_name = 'gbpu ', 
+                        type = 'table', 
+                        script = 'grizzly_bear_population_units.Rmd', 
+                        source = 'DataBC: https://catalogue.data.gov.bc.ca/dataset/caa22f7a-87df-4f31-89e0-d5295ec5c725',                         public = 'Yes', 
+                        last_updated = '2021', 
+                        next_update = '2025', 
+                        where_used = 'grizzlysurvivalCLUS')
+
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
 ```
 
