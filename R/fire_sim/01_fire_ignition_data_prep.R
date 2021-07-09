@@ -76,3 +76,4 @@ table(ignition1$FIRE_YEAR)
 
 # I wrote this to both places KylesClus and my local postgres
 # https://gdal.org/programs/ogr2ogr.html
+

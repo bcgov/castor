@@ -1,0 +1,233 @@
+---
+title: "fire_ignition_data_inspection"
+author: "Cora Skaien"
+date: "09/07/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Overview
+In this file, we assess the distribution of number of fires over time to create frequency distributions for number of fires that ignited and that escaped. Initially we do it all combined, but later we will also do it by BEC zone. We will bring in the data, similar to the ignition data prep, but this time we will keep more fire years than 2002 onwards. Here, we assess fire information from 1950-2020.
+
+```{r}
+
+library(raster)
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(bcmaps)
+library(ggplot2)
+require (RPostgreSQL)
+require (rpostgis)
+require (fasterize)
+require (dplyr)
+library(keyring)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+We will bring in the historic and current fire shape files and combine them.
+
+```{r}
+
+historic.ignit <- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Ignition_point_locations\\PROT_HISTORICAL_INCIDENTS_SP\\H_FIRE_PNT_point.shp", stringsAsFactors = T)
+
+current.ignit <- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\Current_Fire_Ignition_point_locations\\PROT_CURRENT_FIRE_PNTS_SP\\C_FIRE_PNT_point.shp", stringsAsFactors = T)
+
+head(historic.ignit)
+head(current.ignit)
+
+#Ensure they are both in the same coordinate system
+historic.ignit <- st_transform (historic.ignit, 3005)
+current.ignit <- st_transform (current.ignit, 3005)
+
+historic.ignit<- historic.ignit %>% 
+  dplyr::select(FIRE_NO, FIRE_YEAR, IGN_DATE, FIRE_CAUSE, FIRE_ID, FIRE_TYPE, LATITUDE, LONGITUDE, SIZE_HA, geometry)
+
+current.ignit<- current.ignit %>% 
+  dplyr::select(FIRE_NO, FIRE_YEAR, IGN_DATE, FIRE_CAUSE, FIRE_ID, FIRE_TYPE, LATITUDE, LONGITUDE, SIZE_HA, geometry)
+
+ignition<- rbind(historic.ignit, current.ignit)
+```
+
+Now, let's inspect some of the elements of this file.
+
+```{r}
+table(ignition$FIRE_TYPE) #We will want Fire and Nuisance Fire types. Admittedly, I am unsure what some of these other ones are.
+
+table(ignition$FIRE_YEAR) #We have data from 1950-2020. For now, let's keep all of them in. We will assess if there are obvious trends over time that may suggest detection bias and not just different numbers of fires.
+
+ignition_ <- ignition %>% 
+  filter(FIRE_TYPE == "Fire" | FIRE_TYPE=="Nuisance Fire") #Select fire type for ones desired
+
+ignition_ <- ignition_ %>% 
+  filter(FIRE_CAUSE == "Lightning" | FIRE_CAUSE=="Person")
+
+ignition_$FIRE_CAUSE<-as.factor(as.character(ignition_$FIRE_CAUSE))
+
+
+```
+
+Visualize by lightning and person caused fires
+
+```{r}
+counts<-table(ignition_$FIRE_YEAR, ignition_$FIRE_CAUSE)
+counts
+
+barplot(counts, beside = TRUE, legend = TRUE)
+```
+
+
+```{r}
+##Make df to get dataframe
+counts_df<-as.data.frame(counts)
+counts_df
+
+#Filter to get lightning and person caused separate
+counts_lightning <- counts_df %>% 
+  filter(Var2 == "Lightning")
+
+hist(counts_lightning$Freq)
+
+counts_person <- counts_df %>% 
+  filter(Var2 == "Person")
+
+hist(counts_person$Freq) #interestingly, this is more of a normal distribution than Poisson-like. 
+```
+
+
+
+ Likely may not need below chunk
+Separate by lightning and person caused fires
+```{r}
+ignition_lightning<-ignition_ %>% 
+  filter(FIRE_CAUSE == "Lightning")
+
+ignition_person<-ignition_ %>% 
+  filter(FIRE_CAUSE == "Person")
+
+
+```
+
+Now let's repeat for number of escaped fires
+
+In Marchal et al. 2020, they define escape as "the probability that a fire will reach a size of at least 1 ha". We will inspect the ignition data and see the size of each fire. We will then separate them into those that are <1 ha in size, and those that are > 1 ha in size. From this, we can use logistic regression, including climate variables, topography (aspect and slope), and VRI data. Below currently only accounts for lightning caused fires. Human caused fires will be modelled down the road.
+
+Note: Other papers use 3 ha (e.g., Wang et al. 2016, International Journal of Wildland Fire) and others use 10 ha (e.g., Parisien et al. 2013, Natural Hazards) for their definition of escape.
+
+```{r}
+#We will start with ignition_ file
+
+ignition_$escape<- 0
+ignition_$escape[ignition_$SIZE_HA >= 1] <- 1
+
+table(ignition_$escape) #We have 136471 that did not escape, and 28125 that did escape.
+
+#Compare to a 3 ha threshold
+ignition_$escape3<- 0
+ignition_$escape3[ignition_$SIZE_HA >= 3] <- 1
+
+table(ignition_$escape3) #146825 that did not escape and 17771 that did.
+
+
+#Compare to a 10 ha threshold
+ignition_$escape10<- 0
+ignition_$escape10[ignition_$SIZE_HA >= 10] <- 1
+
+table(ignition_$escape10) #153748 that did not escape and 10848 that did.
+
+```
+Create files for escaped fires at 1 ha, 3 ha and 10 ha
+```{r}
+escape_1ha<-subset(ignition_, ignition_$escape==1)
+head(escape_1ha)
+
+escape_3ha<-subset(ignition_, ignition_$escape3==1)
+head(escape_3ha)
+
+escape_10ha<-subset(ignition_, ignition_$escape10==1)
+head(escape_10ha)
+
+```
+
+Visualize by lightning and person caused fires
+
+```{r}
+counts_1ha<-table(escape_1ha$FIRE_YEAR, escape_1ha$FIRE_CAUSE)
+counts_1ha
+
+barplot(counts_1ha, beside = TRUE, legend = TRUE)
+```
+```{r}
+counts_3ha<-table(escape_3ha$FIRE_YEAR, escape_3ha$FIRE_CAUSE)
+counts_3ha
+
+barplot(counts_3ha, beside = TRUE, legend = TRUE)
+```
+
+```{r}
+counts_10ha<-table(escape_10ha$FIRE_YEAR, escape_10ha$FIRE_CAUSE)
+counts_10ha
+
+barplot(counts_10ha, beside = TRUE, legend = TRUE)
+```
+
+
+```{r}
+##Make df to get dataframe
+counts_1ha_df<-as.data.frame(counts_1ha)
+counts_1ha_df
+
+#Filter to get lightning and person caused separate
+counts_1ha_lightning <- counts_1ha_df %>% 
+  filter(Var2 == "Lightning")
+
+hist(counts_1ha_lightning$Freq)
+
+counts_1ha_person <- counts_1ha_df %>% 
+  filter(Var2 == "Person")
+
+hist(counts_1ha_person$Freq) #interestingly, this is more of a normal distribution than Poisson-like. 
+```
+
+
+```{r}
+##Make df to get dataframe
+counts_3ha_df<-as.data.frame(counts_3ha)
+counts_3ha_df
+
+#Filter to get lightning and person caused separate
+counts_3ha_lightning <- counts_3ha_df %>% 
+  filter(Var2 == "Lightning")
+
+hist(counts_3ha_lightning$Freq, n=30)
+
+counts_3ha_person <- counts_3ha_df %>% 
+  filter(Var2 == "Person")
+
+hist(counts_3ha_person$Freq) #interestingly, this is more of a normal distribution than Poisson-like. 
+```
+
+
+```{r}
+##Make df to get dataframe
+counts_10ha_df<-as.data.frame(counts_10ha)
+counts_10ha_df
+
+#Filter to get lightning and person caused separate
+counts_10ha_lightning <- counts_10ha_df %>% 
+  filter(Var2 == "Lightning")
+
+hist(counts_10ha_lightning$Freq, n=20)
+
+counts_10ha_person <- counts_10ha_df %>% 
+  filter(Var2 == "Person")
+
+hist(counts_10ha_person$Freq, n=10) #interestingly, this is more of a normal distribution than Poisson-like. 
+```
+```
+

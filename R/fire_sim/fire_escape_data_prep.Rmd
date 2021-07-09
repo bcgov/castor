@@ -112,6 +112,14 @@ table(dat_lightning_escape_2$escape3) #Not a huge change; ~850 difference: 13074
 
 table(dat_lightning_escape_2$bclcs_level_2) 
 
+#Compare to a 10 ha threshold
+dat_lightning_escape_2$escape10<- 0
+dat_lightning_escape_2$escape10[dat_lightning_escape_2$size_ha >= 10] <- 1
+
+table(dat_lightning_escape_2$escape10) #Not a huge change; 13641 that did not escape and 1516 that did.
+
+table(dat_lightning_escape_2$bclcs_level_2) 
+
 
 ```
 

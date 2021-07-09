@@ -97,6 +97,18 @@ hist(fire_ignitions1_person$month, xlab="Month", main="Histogram of person cause
 
 
 table(fire_ignitions1_new$fire_year, fire_ignitions1_new$fire_cause)
+
+
+
+
+
+
+
+
+
+
+
+
 table(fire_veg_data$fire_yr, fire_veg_data$fire_cs)
 # some fire ignition locations get lost in the data processing. I checked this and it seems some of them fall outside the BC boundary so when I clip the locations to BC it removes a bunch. Also, when I link my fire locations to the VRI some spots disappear. This is because the VRI polygons are not complete for all years, so some fires occurred in areas with no VRI polygon.
 
