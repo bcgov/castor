@@ -179,7 +179,5 @@ write.csv(dat_person_escape_2, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\e
 
 ```
 
-```
-
 
 Data preparations are now complete. Move on to model selection.
