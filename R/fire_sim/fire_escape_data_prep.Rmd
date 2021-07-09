@@ -168,6 +168,15 @@ table(dat_person_escape_2$bclcs_level_2)
 
 ```
 
+Determine if all fires adequately have dates
+```{r}
+head(dat_person_escape_2)
+names(dat_person_escape_2)
+dat_person_escape_2$
+
+```
+
+
 Save data on local machine.
 
 ```{r}
