@@ -37,7 +37,7 @@ source(here::here("R/functions/R_Postgres.R"))
 
 ```
 
-Import the data created at the end of the last file (named Escape_data from our fire_veg_DEM_climate_2)
+Import the data created at the end of the last file (named escape_data_lightning and escape_data_person)
 
 ```{r}
 #Can use below if working straight from last file. Otherwise bring in from clus.

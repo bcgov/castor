@@ -60,9 +60,9 @@ Above is run or each year 2002 to 2020 separately from the data. This is already
 #ALTER TABLE veg_comp_lyr_r1_poly2019 RENAME COLUMN shape TO geometry;
 
 #### Join ignition data to VRI data ####
-Run following query in postgres for all years 2002-2019 except 2007 and 2008. 2020 also has slightly different code. This will need to be done each time new data is generated for random points in file 02. This below code is fast
+Run following query in postgres for all years 2002-2019 except 2007 and 2008. 2020 also has slightly different code. This will need to be done each time new data is generated for random points in file 02. This below code is fast. Note, there are 5 locations in the below code for which to update the year.
 
-CREATE TABLE fire_veg_2002_B AS
+CREATE TABLE fire_veg_2002_C AS
 (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
   harvest_date, proj_age_1, proj_height_1, live_stand_volume_125,
   fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.size_ha, fire.fire,
@@ -74,7 +74,7 @@ CREATE TABLE fire_veg_2002_B AS
   (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, size_ha, fire, zone,
    subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
    tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
-   mdc_09, slp_h_b, aspct__ from dc_data_DEM where fire_yr = '2002') as fire where st_contains
+   mdc_09, slp_h_b, aspct__ from dc_data_DEM_5x where fire_yr = '2002') as fire where st_contains
   (veg_comp_lyr_r1_poly2002.geometry, fire.wkb_geometry))
 
 
@@ -92,7 +92,7 @@ bclcs_level_5: Classifies the vegetation density classes and Non-Vegetated categ
 ############## 
 #For 2020, run this code because no projected age, height or stand volume 
 ##############
-CREATE TABLE fire_veg_2020_B AS
+CREATE TABLE fire_veg_2020_C AS
 (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
   harvest_date,
   fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.size_ha, fire.fire,
@@ -117,7 +117,7 @@ CREATE TABLE fire_veg_2020_B AS
 #harvest_date = upd_htdate
 # live_stand_volume_125 does not exist
 
- CREATE TABLE fire_veg_2007_B AS
+ CREATE TABLE fire_veg_2007_C AS
  (SELECT feature_id, bclcs_lv_2, bclcs_lv_3, bclcs_lv_4, bclcs_lv_5,
   upd_htdate, proj_age_1, proj_ht_1, COALESCE(volsp1_125,0)+COALESCE(volsp2_125,0)+COALESCE(volsp3_125,0)+COALESCE(volsp4_125,0)+COALESCE(volsp5_125,0) AS live_stand_volume_125,
   fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.size_ha, fire.fire,
@@ -136,7 +136,7 @@ CREATE TABLE fire_veg_2020_B AS
 ##############################
 # FOR 2008 Run this code:
 ##############################
- CREATE TABLE fire_veg_2008_B AS
+ CREATE TABLE fire_veg_2008_C AS
  (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
    harvest_date, proj_age_1, proj_height_1, COALESCE(vol_per_ha_spp1_125,0)+
      COALESCE(vol_per_ha_spp2_125,0)+COALESCE(vol_per_ha_spp3_125,0)+COALESCE(vol_per_ha_spp4_125,0)
@@ -155,19 +155,20 @@ CREATE TABLE fire_veg_2020_B AS
 
 
 # note that the VRI for 2008 does not have live_stand_volume so I also tried to extract it from the 2009 VRI and put it in here -  assuming that a year would not make much difference to volume. Below is the code i used to try and do this (but note this does not seem to work.... )
+### July 2021, when ran, there already is a column for live_stand_volume_125, so this may not be necessary
 
-ALTER TABLE fire_veg_2008_B
-ADD COLUMN live_stand_volume_125 double precision;
+#ALTER TABLE fire_veg_2008_C
+#ADD COLUMN live_stand_volume_125 double precision;
 
- INSERT INTO fire_veg_2008_B
- SELECT live_stand_volume_125
- FROM veg_comp_lyr_r1_poly2009,
- (SELECT wkb_geometry from dc_data_dem_5x where fire_yr = '2008') as fire where st_contains
- (veg_comp_lyr_r1_poly2009.geometry, fire.wkb_geometry)
+# INSERT INTO fire_veg_2008_C
+# SELECT live_stand_volume_125
+# FROM veg_comp_lyr_r1_poly2009,
+# (SELECT wkb_geometry from dc_data_DEM_5x_5x where fire_yr = '2008') as fire where st_contains
+# (veg_comp_lyr_r1_poly2009.geometry, fire.wkb_geometry)
 
 
 # Another problem is that fire_veg_2011 has a geometry column that is type MultiPolygonZ instead of MultiPolygon so this needs to be changed with the following query in postgres
- ALTER TABLE fire_veg_2011_B  
+ ALTER TABLE fire_veg_2011_C  
  ALTER COLUMN geometry TYPE geometry(MULTIPOLYGON, 3005) 
  USING ST_Force2D(geometry);
 
@@ -199,43 +200,43 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    password = "postgres",
                    port = "5432")
 fire_veg_2002 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2002_B")
+                               query = "SELECT * FROM public.fire_veg_2002_C")
 fire_veg_2003 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2003_B")
+                               query = "SELECT * FROM public.fire_veg_2003_C")
 fire_veg_2004 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2004_B")
+                               query = "SELECT * FROM public.fire_veg_2004_C")
 fire_veg_2005 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2005_B")
+                               query = "SELECT * FROM public.fire_veg_2005_C")
 fire_veg_2006 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2006_B")
+                               query = "SELECT * FROM public.fire_veg_2006_C")
 fire_veg_2007 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2007_B")
+                               query = "SELECT * FROM public.fire_veg_2007_C")
 fire_veg_2008 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2008_B")
+                               query = "SELECT * FROM public.fire_veg_2008_C")
 fire_veg_2009 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2009_B")
+                               query = "SELECT * FROM public.fire_veg_2009_C")
 fire_veg_2010 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2010_B")
+                               query = "SELECT * FROM public.fire_veg_2010_C")
 fire_veg_2011 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2011_B")
+                               query = "SELECT * FROM public.fire_veg_2011_C")
 fire_veg_2012 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2012_B")
+                               query = "SELECT * FROM public.fire_veg_2012_C")
 fire_veg_2013 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2013_B")
+                               query = "SELECT * FROM public.fire_veg_2013_C")
 fire_veg_2014 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2014_B")
+                               query = "SELECT * FROM public.fire_veg_2014_C")
 fire_veg_2015 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2015_B")
+                               query = "SELECT * FROM public.fire_veg_2015_C")
 fire_veg_2016 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2016_B")
+                               query = "SELECT * FROM public.fire_veg_2016_C")
 fire_veg_2017 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2017_B")
+                               query = "SELECT * FROM public.fire_veg_2017_C")
 fire_veg_2018 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2018_B")
+                               query = "SELECT * FROM public.fire_veg_2018_C")
 fire_veg_2019 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2019_B")
+                               query = "SELECT * FROM public.fire_veg_2019_C")
 fire_veg_2020 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2020_B")
+                               query = "SELECT * FROM public.fire_veg_2020_C")
 
 
 dbDisconnect (conn) # connKyle
@@ -299,6 +300,11 @@ fire_veg_data_B<- fire_veg_data_B %>% rename(
 names(fire_veg_data_B)
 
 ```
+Try saving file, but you will note that it is too large.
+
+```{r}
+st_write(fire_veg_data_B, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_ALL_5x.shp", delete_layer=TRUE)
+```
 
 Because we have many large objects open in R, we will close some that we no longer need
 
@@ -314,8 +320,6 @@ rm(fire_veg_2002, fire_veg_2003, fire_veg_2004,fire_veg_2005, fire_veg_2006, fir
 Files are too large to save. So we will subsample here before moving on to next file. Some processing must occur first. We will remove all sites that are predominately water, for example.
 
 ```{r}
-
-
 ##1. Remove all sites that are predominately water
 str(fire_veg_data_B)
 ignition_pres_abs3 <-fire_veg_data_B %>%
@@ -351,12 +355,15 @@ hist(ignition_pres_abs4$proj_height_1) # not sure we have height in CLUS, we do 
 hist(ignition_pres_abs4$live_stand_volume_125)
 hist(log(ignition_pres_abs4$live_stand_volume_125))
 ```
-
-
+Try saving file again
 
 ```{r}
-#st_write(fire_veg_data_B, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_ALL.shp", delete_layer=TRUE) #File very large > 2 GB, so having saving issues. Perhaps now is a good time to separate the file into lightning, person caused, etc.
+st_write(fire_veg_data_B, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_ALL_5x_NoW.shp", delete_layer=TRUE) #File very large > 2 GB, so having saving issues. Perhaps now is a good time to separate the file into lightning, person caused, etc.
+```
 
+We will separate into component parts and try to save smaller files as the file is still too big.
+
+```{r}
 #fire_veg_data_B_df<-as.data.frame(fire_veg_data_B)
 #write.csv(fire_veg_data_B_df, #file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_ALL_df.csv")
 
@@ -378,23 +385,23 @@ fire_veg_data_person_NA_5x<-rbind(fire_veg_data_person_5x, fire_veg_data_NA_5x)
 table(fire_veg_data_person_NA_5x$fire_cs)
 
 ##Write individual files
-st_write(fire_veg_data_lightning_5x, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_lightning_5x.shp", delete_layer=TRUE)
+st_write(fire_veg_data_lightning_5x, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_lightning_5x_NoW.shp", delete_layer=TRUE)
 
-st_write(fire_veg_data_person_5x, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_person_5x.shp", delete_layer=TRUE)
+st_write(fire_veg_data_person_5x, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_person_5x_NoW.shp", delete_layer=TRUE)
 
-st_write(fire_veg_data_NA_5x, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_NA_5x.shp", delete_layer=TRUE) #Get error
+st_write(fire_veg_data_NA_5x, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_NA_5x_NoW.shp", delete_layer=TRUE) #Get error
 
 ##Write aggregated files for lightning and person caused
-st_write(fire_veg_data_lightning_NA_5x, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_lightning_NA_5x.shp", delete_layer=TRUE) #Get error
+st_write(fire_veg_data_lightning_NA_5x, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_lightning_NA_5x_NoW.shp", delete_layer=TRUE) #Get error
 
-st_write(fire_veg_data_person_NA_5x, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_person_NA_5x.shp", delete_layer=TRUE) #Get error
+st_write(fire_veg_data_person_NA_5x, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_person_NA_5x_NoW.shp", delete_layer=TRUE) #Get error
 
 # write final fire ignitions, weather and vegetation types to postgres
 
-##TO save to clus, likely need to use command line
+##To save to clus, need OsGeo4W
 #Modify below with correct credentials and upload on clus as desired
-#ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user= password= host=DC052586" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_person_NA_5x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI 
-#ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user= password= host=DC052586" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_lightning_NA_5x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI 
+#ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user= password= host=DC052586" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_person_NA_5x_NoW.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI 
+#ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user= password= host=DC052586" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_lightning_NA_5x_NoW.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI 
 
 
 
@@ -417,7 +424,7 @@ gc(TRUE)
 ```
 
 
-Let's sub-sample the NAs here before saving
+
 
 ```{r}
 
@@ -433,14 +440,14 @@ Let's sub-sample the NAs here before saving
 
 
 ##Lightning caused
-pre<- fire_veg_data_lightning_NA %>%
+pre<- fire_veg_data_lightning_NA_5x %>%
   filter(fire==1) %>%
   dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
   group_by(fire_yr, zone, bclcs_level_2) %>%
   summarize(fire_n=n())
 
 ##Below code with a large number of random points may take a few hours to run
-pre_checkpre<- fire_veg_data_lightning_NA %>%
+pre_checkpre<- fire_veg_data_lightning_NA_5x %>%
   filter(fire==0) %>%
   dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
   group_by(fire_yr, zone, bclcs_level_2) %>%
@@ -450,7 +457,7 @@ pre_checkpre<- fire_veg_data_lightning_NA %>%
 check<-st_join(pre, pre_checkpre)
 check %>% print(n=100) # hmm there are some NA's in the 0 column. I should probably correct that.
 
-abs_match <- fire_veg_data_lightning_NA %>%
+abs_match <- fire_veg_data_lightning_NA_5x %>%
   filter(fire == 0) %>%
   group_by(fire_yr, zone, bclcs_level_2) %>%   # prep for work by yr and veg type
   nest() %>%              # --> one row per yr and vegtype
@@ -472,7 +479,7 @@ df2 <- df %>%
     dplyr::select(fire_yr, zone, subzone, bclcs_level_2, feature_id:vegtype)
  
 # joining my subsampled absence data back to the fire ignition presence data
-pre1<- fire_veg_data_lightning_NA %>%
+pre1<- fire_veg_data_lightning_NA_5x %>%
   filter(fire==1)
 dim(sampled_df) # 22715 rows
 dim(pre1) #  15228 rows
@@ -488,14 +495,14 @@ st_write(dat_lightning, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_V
 
 
 ##Person caused
-pre<- fire_veg_data_person_NA %>%
+pre<- fire_veg_data_person_NA_5x %>%
   filter(fire==1) %>%
   dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
   group_by(fire_yr, zone, bclcs_level_2) %>%
   summarize(fire_n=n())
 
 #See if we can use results from pre_checkpre from the lightning file for this one too since they are the same NAs. Might not work because of initial naming differences?
-#pre_checkpre<- fire_veg_data_person_NA %>%
+#pre_checkpre<- fire_veg_data_person_NA_5x %>%
 #  filter(fire==0) %>%
 #  dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
 #  group_by(fire_yr, zone, bclcs_level_2) %>%
@@ -504,7 +511,7 @@ pre<- fire_veg_data_person_NA %>%
 check<-left_join(pre, pre_checkpre)
 check %>% print(n=100) # hmm there are some NA's in the 0 column. I should probably correct that.
 
-abs_match <- fire_veg_data_person_NA %>%
+abs_match <- fire_veg_data_person_NA_5x %>%
   filter(fire == 0) %>%
   group_by(fire_yr, zone, bclcs_level_2) %>%   # prep for work by yr and veg type
   nest() %>%              # --> one row per yr and vegtype
@@ -526,7 +533,7 @@ df2 <- df %>%
     dplyr::select(fire_yr, zone, subzone, bclcs_level_2, feature_id:vegtype)
  
 # joining my subsampled absence data back to the fire ignition presence data
-pre1<- fire_veg_data_person_NA %>%
+pre1<- fire_veg_data_person_NA_5x %>%
   filter(fire==1)
 dim(sampled_df) # 22715 rows
 dim(pre1) #  15228 rows
@@ -543,6 +550,40 @@ st_write(dat_person, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_
  
 ```
 
+Upload these files to the clus database
+
+```{r}
+##Lightning Caused
+connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                      host = key_get('dbhost', keyring = 'postgreSQL'),
+                      user = key_get('dbuser', keyring = 'postgreSQL'),
+                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+                      password = key_get('dbpass', keyring = 'postgreSQL'),
+                      port = "5432")
+
+st_write (obj = dat_lightning, 
+          dsn = connKyle, 
+          layer = c ("public", "dat_lightning_for_analysis"))
+
+
+dbDisconnect (connKyle)
+
+
+#Person caused
+connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                      host = key_get('dbhost', keyring = 'postgreSQL'),
+                      user = key_get('dbuser', keyring = 'postgreSQL'),
+                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+                      password = key_get('dbpass', keyring = 'postgreSQL'),
+                      port = "5432")
+
+st_write (obj = dat_person, 
+          dsn = connKyle, 
+          layer = c ("public", "dat_person_for_analysis"))
+
+
+dbDisconnect (connKyle)
+```
 
 
 

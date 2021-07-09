@@ -23,20 +23,18 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #===================
 
-This script is adapted from the below script. The initial script separates lightning caused fires before subsampling, and this one is updated to subsample before human and lightning caused fires are separated, to ensure that "no fire" locations do not occur where a fire occured of the opposite type (lightning vs. human, but also nuisance).
+This script is adapted from an earlier script. The initial script separates lightning caused fires before subsampling, and this one is updated to subsample before human and lightning caused fires (and those of unknown origin) are separated, to ensure that "no fire" locations do not occur where a fire occurred with another designation (lightning, human, unknown).
 
-Script Purpose: This script obtains the lat, long coordinates of fire ignition locations and samples locations where fires were not observed to start. It then creates a csv file with these locations that can be used to manually extract monthly average climate variables from climateBC (http://climatebc.ca/) for all years 2002 to 2020. This range of dates was chosen because it is the years that we have VRI data for. To extract the climate data I use the app that climateBC provides. The version I used of the app is climateBC_v700. This version was released on 27 April 2021 and includes 13 General Circulation Models from the CMIP6. It also has a different normal period (1991 - 2020).  After the climate data has been extracted from climateBC this data is reimported into this script and the mean monthly drought code for the months  May - September is calculated for each year. From this script I get the maximum temperature, minimum temperature, average temperature, total precipitation, and mean monthly drought code for the months May - September for each year 2002 - 2020 for all fire ignition locations and randomly sampled (available fire ignition locations (fire absence)) points on the landscape 
+Script Purpose: This script obtains the lat, long coordinates of fire ignition locations and samples locations where fires were not observed to start. It then creates a csv file with these locations that can be used to manually extract monthly average climate variables from climateBC (http://climatebc.ca/) for all years 2002 to 2020. This range of dates was chosen because it is the years that we have VRI data for. To extract the climate data I use the app that climateBC provides. The version I used of the app is climateBC_v710. This version was released on 06 June 2021 and includes 13 General Circulation Models from the CMIP6. It also has a different normal period (1991 - 2020).  After the climate data has been extracted from climateBC this data is reimported into this script and the mean monthly drought code for the months  May - September is calculated for each year. From this script I get the maximum temperature, minimum temperature, average temperature, total precipitation, and mean monthly drought code for the months May - September for each year 2002 - 2020 for all fire ignition locations and randomly sampled (available fire ignition locations (fire absence)) points on the landscape 
 #  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #  Script Contributor: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #=================================
 
-```{r}
 
 #Overview:
- # In this file (02), we determine determine the BEC boundaries and match this with our fire location data within the BC boundary, 
-  # created 500 m buffer, selected GPS locations where fires did not start, combined fire and non-fire location data,
-  # acquire the lat and long data to get ClimateBC information for each location, 
-  # calculate the monthly drought code for each dataset, and then upload files to clus database.
+In this file, we determine the BEC boundaries and match this with our fire location data within the BC boundary, create 500 m buffers around points, select GPS locations where fires did not start, combine fire and non-fire location data, acquire the lat and long data to get ClimateBC information for each location, calculate the monthly drought code for each dataset, and then upload files to clus database.
+
+```{r}
 
 library(raster)
 library(data.table)
@@ -97,7 +95,7 @@ table(fire.ignition_sf$fire_year)
 
 ```
 
-Note, that if you bring this BEC Buffer data back in, the names may have been shortened given column name limitations for shape files. You may need to run the below chunk to rename appropriately, but remember to REMOVE THE PLYR PACKAGE AFTER! If you are continuing from the code chunk above, then no need to run the below chunk as you will already have the file ready to go in your R environment.
+Note, that if you bring this BEC Buffer data back in, the names may have been shortened given column name limitations for shape files. You may need to run the below chunk to rename appropriately, but remember you may need to REMOVE THE PLYR PACKAGE AFTER! This is because of conflicts with other packages for language. If you are continuing from the code chunk above, then no need to run the below chunk as you will already have the file ready to go in your R environment.
 
 This may occur for the fire.ignition_sf file as well. So check the naming and update as necessary.
 
@@ -121,7 +119,6 @@ names(bec_sf_buf)
 ## NOW UNCHECK PLYR LIBRARY IN PACKAGES WINDOW!
 ```
 
-
 The below code chunk is VERY slow! So be prepared to go do other work for a while. Once it is complete, save the file and avoid doing this step again unless necessary.
 
 ```{r}
@@ -131,11 +128,10 @@ The below code chunk is VERY slow! So be prepared to go do other work for a whil
 fire.igni.bec<- st_intersection(fire.ignition_sf, bec_sf_buf) # ST_Intersects is a function that takes two geometries and returns true if any part of those geometries is shared between the 2
 #fire.igni.bec<- st_intersection(fire.ignition_sf, st_buffer(bec_sf, 0)) #Alternative code
 # ST_Intersection in conjunction with ST_Intersects is very useful for clipping geometries such as in bounding box, buffer, region queries where you only want to return that portion of a geometry that sits in a country or region of interest
-# Note: on June 21, 2021, when the above is run, 10 points get physically placed in the middle of the ocean despite having correct GPS points. Unknown why.
 table(fire.igni.bec$fire_year)
 ```
 
-write fire.igni.bec to file because it takes so long to make
+Write fire.igni.bec to file because it takes so long to make.
 
 ```{r}
 st_write(fire.igni.bec, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\fire_ignit_by_bec.shp", delete_dsn = TRUE)
@@ -169,8 +165,7 @@ dbDisconnect (conn)
 head(fire_igni_bec)
 ```
 
-
-Now we will get the lat-long into separate columns
+Now we will get the lat-long into separate columns for processing downstream.
 
 ```{r}
 
@@ -200,9 +195,9 @@ fire_igni_bec_new$latitude<-fire_igni_bec3$latitude
 
 Now let's buffer each fire location by 500m, and within each BEC Zone, we'll sample locations where fires did not start and combine those locations with locations where the fires did start. In the initial code, this was done for only lightning caused fires. Here, we will do for all fires to avoid accidentally selecting a location where fires occurred for another cause and have it accidentally designated as an area without fire.
 
-Buffer is so that the area is less likely to have been fire affected.
+Buffer is so that the areas selected as non-fire locations are less likely to have been fire affected.
 
-Each time you run the loop below, you will get new coordinates for areas not affected by fire. As a result, you will need to re-run the ClimateBC stuff manually each time you run the below chunk. Once you have ran it once, and acquired ClimateBC data for the locations, you can avoid running it again by saving the file and starting on the next script from that file onwards.
+Each time you run the loop below, you will get new coordinates for areas not affected by fire. As a result, you will need to re-run the ClimateBC stuff manually each time you run the below chunk. Once you have ran it once, and acquired ClimateBC data for the locations, you can avoid running it again by saving the file and starting on the next script from that file onward.
 
 This loop will take a while to run, so have other work plans while it is running.
 
@@ -238,7 +233,8 @@ for (i in 1:length(years)) {
     #clipped<-rmapshaper::ms_erase(target=bec_foo, erase=foo.ignit.buffered) # clips out buffered areas I think.But it crashes a lot!
     
     ##Below we sample 10x as many points for where fires do not occur 
-    sample_size<-dim(foo_ignit_small)[1]*10 # here 10 is the number of points I sample in correlation with the number of ignition points in that BEC zone. 
+    #sample_size<-dim(foo_ignit_small)[1]*10 # here 10 is the number of points I sample in correlation with the number of ignition points in that BEC zone. 
+    sample_size<-dim(foo_ignit_small)[1]*5 # here 5 is the number of points I sample in correlation with the number of ignition points in that BEC zone.
     samp_points <- st_sample(clipped, size=sample_size)
     samp_points_sf = st_sf(samp_points)
     samp_joined = st_join(samp_points_sf, clipped) # joining attributes back to the sample points
@@ -294,9 +290,9 @@ for (i in 1:length(years)) {
 
 ```
 In the above code, when ran for just lightning fires (see old code in "old" folder), we do not get the following error. However, when not filtering by lightning, we get this error for every BEC zone:
-"attribute variables are assumed to be spatially constant throughout all geometries". I am unsure if this is of concern. This is odd, as this typically arises without an st_intersect, which we have performed between the layers being used (or were part of the steps to make the layer we areusing). We have done the intersect and are using that resultant file, so I am unsure why this is occurring.
+"attribute variables are assumed to be spatially constant throughout all geometries". I am unsure if this is of concern. This is odd, as this typically arises without an st_intersect, which we have performed between the layers being used (or were part of the steps to make the layer we are using). We have done the intersect and are using that resultant file, so I am unsure why this is occurring, but suspect that we can ignore the warning. Something to investigate perhaps, however.
 
-Now that we have completed the loop, save as an R Object.
+Now that we have completed the loop, save the output as an R Object.
 
 ```{r}
 
@@ -341,11 +337,7 @@ table(samp_locations_sf$fire_year, samp_locations_sf$fire_type)
 
 ########### Acquiring and Appending Climate Data ########
 
-This next step needs to be conducted outside of R and then the resultant files can be brought back in to R.
-
-Each time the above is ran, below will need to be repeated.
-
-First, we will generate separate files from above code for each year.
+First, we will generate separate files from above code for each year to input into ClimateBC.
 
 ```{r}
 for (i in 1: length(years)) {
@@ -365,6 +357,9 @@ for (i in 1: length(years)) {
 
 ```
 
+This next step needs to be conducted outside of R and then the resultant files can be brought back in to R.
+
+Each time the code in this file is run up to this point, below will need to be repeated.
 
 Next, see http://climatebc.ca/Help for how to use ClimateBC to get the climate data. 
 You will need to download ClimateBC (http://climatebc.ca/downloads/download.html) and use the files you generate as input to the first code chunk below.
@@ -386,9 +381,9 @@ Once the above has been completed for the random points and known fire locations
 ###############################
 
 #Depending on where you saved your output, you may need to update the directory below
-file.list1<-list.files("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output_July2021", pattern="sampled.points.all", all.files=FALSE, full.names=FALSE)
+file.list1<-list.files("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output_July2021_5x", pattern="sampled.points.all", all.files=FALSE, full.names=FALSE)
 y1<-gsub(".csv","",file.list1)
-the_dir <- "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output_July2021"
+the_dir <- "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output_July2021_5x"
 
 for (i in 1:length(file.list1)){
   assign(paste0(y1[i]),read.csv (file=paste0(the_dir, "\\", file.list1[i])))
@@ -402,7 +397,6 @@ Because much literature suggests that the monthly drought code (MDC) is an impor
 
 ```{r}
 # FOR EACH DATASET CALCULATE THE MONTHLY DROUGHT CODE
-
 
 #############################################
 #### Equations to calculate drought code ####
@@ -493,7 +487,6 @@ ggplot() +
 # A check of the fire ignition counts per year line up with the original data. So the number of fire ignitions seem good.
 ```
 
-
 If data looks good, then save file.
 
 ```{r}
@@ -517,9 +510,6 @@ dbDisconnect (conn)
 
 ```{r}
 
-
-
-
 st_write(ignition_weather_crs, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_5x.shp", delete_layer=TRUE)
 ##Can also open in QGis to assess for any physical outliers and their information.
 
@@ -528,19 +518,17 @@ st_write(ignition_weather_crs, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_D
 #ignition_weather_crs<-st_as_sf(ignition_weather_crs)
 
 
-
-
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
 #ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_5x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ##Above may not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
 
+#key_get('dbpass', keyring = 'postgreSQL')
 
 # OR my local machine
 
 # ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_5x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ```
-
 
 Note, we lose a lot of data in 2002 when clipping with VRI later. Upon inspection, we can see that this is because there are empty spaces in VRi data for 2002. This will make more sense later, but if you would like to inspect this for yourself, create the 2002 points data now.
 

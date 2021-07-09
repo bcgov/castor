@@ -23,6 +23,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #===================
 
+#Overview
 Because slope and aspect have been shown to influence both ignition and spread of fires, we will use the provincial DEM layer to acquire the slope and aspect of each location. The provincial DEM has already had the slope and aspect extracted for the entire province at 1 ha resolution. We will bring in these layers (100 m x 100 m resolution), and then extract the slope and aspect for each of the sample location points that we have generated at the end of file 02_climate_data.prep.
 
 Later, we may need to know the slope of each adjacent cell as well when we model spread.
@@ -55,20 +56,20 @@ DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\
 plot(DEM_slope)
 
 GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc.tif")
-DEM_slope
+#DEM_slope
 
-DEM_slope_df <- as.data.frame(DEM_slope, xy = TRUE) #Dataframe created for mapping; but we see later that the files is >2GB and thus too large to map in R
-str(DEM_slope_df)
+#DEM_slope_df <- as.data.frame(DEM_slope, xy = TRUE) #Dataframe created for mapping; but we see later that the files is >2GB and thus too large to map in R
+#str(DEM_slope_df)
 
 ##Aspect
 DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc.tif")
 plot(DEM_aspect)
 
 GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc.tif")
-DEM_aspect
+#DEM_aspect
 
-DEM_aspect_df <- as.data.frame(DEM_aspect, xy = TRUE)#Dataframe created for mapping; but we see later that the files is >2GB and thus too large to map in R
-str(DEM_aspect_df)
+#DEM_aspect_df <- as.data.frame(DEM_aspect, xy = TRUE)#Dataframe created for mapping; but we see later that the files is >2GB and thus too large to map in R
+#str(DEM_aspect_df)
 
 ##Determine resolution
 res(DEM_aspect)
@@ -93,7 +94,7 @@ Stack the two rasters. Stacking the two rasters will make extracting slope and a
 
 ```{r}
 ##Stack the two rasters
-rasStack = stack(DEM_slope, DEM_aspect)#if get error, need to specify raster::stack
+rasStack = stack(DEM_slope, DEM_aspect)
 crs(rasStack)
 
 ```
@@ -161,7 +162,7 @@ head(test)
 
 pointCoordinates<-data.frame(test$X, test$Y)
 head(pointCoordinates)
-crs(pointCoordinates) #No CRS when a dataframe
+#crs(pointCoordinates) #No CRS when a dataframe
 
 ##Extract DEM values from stacked layer
 rasValue2=raster::extract(rasStack, pointCoordinates)
