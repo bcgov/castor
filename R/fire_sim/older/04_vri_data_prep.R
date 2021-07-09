@@ -155,6 +155,7 @@
 library(dplyr)
 library(keyring)
 library(sf)
+library(DBI)
 
 source(here::here("R/functions/R_Postgres.R"))
 
@@ -166,7 +167,7 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    password = "postgres",
                    port = "5432")
 fire_veg_2002 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2002_C")
+                               query = "SELECT * FROM public.fire_veg_2002_B")
 fire_veg_2003 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2003_B")
 fire_veg_2004 <- sf::st_read  (dsn = conn, # connKyle

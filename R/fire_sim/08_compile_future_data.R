@@ -80,7 +80,7 @@ for(element in elements){
   files.element <- files[grep(element,files)] # get all tasmax/tasmin/pr files from the specific GCM run  
   for(year in 1:length(years)){
     files.years<-files.element[grep(years[year], files.element)] # get the 
-    #did this rather than stack import becuase it preserves the variable (month) names
+    #did this rather than stack import because it preserves the variable (month) names
     temp2 <- brick(paste(dir, files.years[1], sep="\\"))
     temp3 <- projectRaster(temp2,crs = crs(ras.forest.tenure))
     
