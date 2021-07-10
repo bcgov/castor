@@ -78,13 +78,15 @@ Init <- function(sim) {
   if(length(dbGetQuery(connx, paste0("SELECT schema_name FROM information_schema.schemata WHERE schema_name = '", P(sim, "uploaderCLUS", "aoiName") ,"';"))) > 0){
     message("...remove old information")
     #remove all the rows that have the scenario name in them
-    if(length(sim$foreststate) > 0){
+    if(!is.null(sim$foreststate)){
       message("...Add new forest state")
       dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".state where aoi = '", P(sim, "uploaderCLUS", "aoiName"), "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
     }
     
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios where scenario = '", sim$scenario$name, "';"))
     dbExecute(connx, paste0("INSERT INTO ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios (scenario, description) values ('", sim$scenario$name,"', '", sim$scenario$description, "');"))
+    
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".zonemanagement where scenario = '", sim$scenario$name, "';"))
     
     lapply(dbGetQuery(connx, paste0("SELECT table_name FROM information_schema.tables WHERE table_schema  = '", P(sim, "uploaderCLUS", "aoiName") ,"' and table_name in ('disturbance', 'growingstock', 'rsf', 'survival', 'fisher', 'harvest', 'yielduncertainty') ;"))$table_name, function (x){
       dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".",x," where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
@@ -132,7 +134,7 @@ Init <- function(sim) {
 }
 
 save.currentState<- function(sim){
-  if(length(sim$foreststate)>0){
+  if(!is.null(sim$foreststate)){
     connx<-DBI::dbConnect(dbDriver("PostgreSQL"), 
                           host=P(sim, "uploaderCLUS", 
                                  "dbInfo")[[1]], 
