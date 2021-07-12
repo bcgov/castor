@@ -74,7 +74,7 @@ CREATE TABLE fire_veg_2002_C AS
   (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, size_ha, fire, zone,
    subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
    tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
-   mdc_09, slp_h_b, aspct__ from dc_data_DEM_5x where fire_yr = '2002') as fire where st_contains
+   mdc_09, slp_h_b, aspct__ from Data_climate_DEM_roads where fire_yr = '2002') as fire where st_contains
   (veg_comp_lyr_r1_poly2002.geometry, fire.wkb_geometry))
 
 
@@ -104,7 +104,7 @@ CREATE TABLE fire_veg_2020_C AS
   (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, size_ha, fire, zone,
    subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
    tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
-   mdc_09, slp_h_b, aspct__ from dc_data_DEM_5x where fire_yr = '2020') as fire where st_contains
+   mdc_09, slp_h_b, aspct__ from Data_climate_DEM_roads where fire_yr = '2020') as fire where st_contains
   (veg_comp_lyr_r1_poly2020.geometry, fire.wkb_geometry))
 
 
@@ -129,7 +129,7 @@ CREATE TABLE fire_veg_2020_C AS
   (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, size_ha, fire, zone,
    subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
    tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
-   mdc_09, slp_h_b, aspct__ from dc_data_DEM_5x where fire_yr = '2007') as fire where st_contains
+   mdc_09, slp_h_b, aspct__ from Data_climate_DEM_roads where fire_yr = '2007') as fire where st_contains
   (veg_comp_lyr_r1_poly2007.geometry, fire.wkb_geometry))
 
 
@@ -150,7 +150,7 @@ CREATE TABLE fire_veg_2020_C AS
    (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, size_ha, fire, zone,
     subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
     tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
-    mdc_09, slp_h_b, aspct__ from dc_data_DEM_5x where fire_yr = '2008') as fire where st_contains
+    mdc_09, slp_h_b, aspct__ from Data_climate_DEM_roads where fire_yr = '2008') as fire where st_contains
    (veg_comp_lyr_r1_poly2008.geometry, fire.wkb_geometry))
 
 
@@ -163,7 +163,7 @@ CREATE TABLE fire_veg_2020_C AS
 # INSERT INTO fire_veg_2008_C
 # SELECT live_stand_volume_125
 # FROM veg_comp_lyr_r1_poly2009,
-# (SELECT wkb_geometry from dc_data_DEM_5x_5x where fire_yr = '2008') as fire where st_contains
+# (SELECT wkb_geometry from Data_climate_DEM_roads_5x where fire_yr = '2008') as fire where st_contains
 # (veg_comp_lyr_r1_poly2009.geometry, fire.wkb_geometry)
 
 
@@ -596,4 +596,4 @@ rm(list = ls(all.names = TRUE)) #will clear all objects includes hidden objects.
 gc() #free up memory and report the memory usage.
 ```
 
-############## Now move on to file 05_ignition_climate_variable_selection#############
+############## Now move on to file 06_ignition_climate_variable_selection#############
