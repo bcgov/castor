@@ -108,7 +108,15 @@ Init <- function (sim) { # this function identifies the GBPUs in the 'study area
    # The following equation calculates the survival rate in the herd area using the Boualnger and Stenhouse (2014) model
       # Note that this equation approximates the relationship; waiting on Boulanger for the model parameters 
   
-  sim$tableGrizzSurvivalReport [, survival_rate := (1/(1+exp(-3.9+(road_density * 1.06))))]
+  sim$tableGrizzSurvivalReport [, survival_rate := exp(3.0767687 + 0.9808839 + (-1.1737111 * road_density)) / (1 + exp(3.0767687 + 0.9808839 + (-1.1737111 * road_density)))] # adult female
+  
+  # if want to add other age/sex classes later:
+  # sim$tableGrizzSurvivalReport [, survival_rate_am := exp(3.0767687  + (-1.1737111 * road_density)) / (1 + exp(3.0767687 + (-1.1737111 * road_density)))] # adult male
+  # sim$tableGrizzSurvivalReport [, survival_rate_sf := exp(3.0767687 + 0.9808839 + (-2.0042394 * road_density)) / (1 + exp(3.0767687 + 0.9808839 + (-2.0042394 * road_density)))] # sub-adult female
+  # sim$tableGrizzSurvivalReport [, survival_rate_sm := exp(3.0767687 + (-2.0042394 * road_density)) / (1 + exp(3.0767687 + (-2.0042394 * road_density)))] # sub-adult male
+  # sim$tableGrizzSurvivalReport [, survival_rate_f2 := 1 - (exp(-5.0519645 + (2.1568961 * road_density)) / (1 + exp(-5.0519645 + (2.1568961 * road_density))))] # female wo cubs or 2yo cubs
+  # sim$tableGrizzSurvivalReport [, survival_rate_fc := 1 - (exp(-3.9222632 + (2.1568961 * road_density)) / (1 + exp(-3.92226325 + (2.1568961 * road_density))))] # female w coy or yearling cubs
+  
   sim$tableGrizzSurvivalReport [, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name, sim$boundaryInfo[[3]]) ] # add the time of the survival calc
 
   #print(sim$tableGrizzSurvivalReport)
@@ -121,7 +129,15 @@ predictSurvival <- function (sim) { # this function calculates survival rate at 
  
   new_tableGrizzSurvivalReport <- data.table (dbGetQuery (sim$clusdb, "SELECT SUM (CASE WHEN roadyear > -1 THEN 1 ELSE 0 END) AS total_roaded, COUNT(*) AS total_area, gbpu_name FROM pixels WHERE gbpu_name IS NOT NULL GROUP BY gbpu_name;"))
   new_tableGrizzSurvivalReport [, road_density := (total_roaded * P(sim)$roadDensity) / total_area]  
-  new_tableGrizzSurvivalReport [, survival_rate := (1/(1+exp(-3.9+(road_density * 1.06))))]
+  new_tableGrizzSurvivalReport [, survival_rate := exp(3.0767687 + 0.9808839 + (-1.1737111 * road_density)) / (1 + exp(3.0767687 + 0.9808839 + (-1.1737111 * road_density)))] 
+  
+  # if want to add other age/sex classes later:
+  # new_tableGrizzSurvivalReport [, survival_rate_am := exp(3.0767687  + (-1.1737111 * road_density)) / (1 + exp(3.0767687 + (-1.1737111 * road_density)))] # adult male
+  # new_tableGrizzSurvivalReport [, survival_rate_sf := exp(3.0767687 + 0.9808839 + (-2.0042394 * road_density)) / (1 + exp(3.0767687 + 0.9808839 + (-2.0042394 * road_density)))] # sub-adult female
+  # new_tableGrizzSurvivalReport [, survival_rate_sm := exp(3.0767687 + (-2.0042394 * road_density)) / (1 + exp(3.0767687 + (-2.0042394 * road_density)))] # sub-adult male
+  # new_tableGrizzSurvivalReport [, survival_rate_f2 := 1 - (exp(-5.0519645 + (2.1568961 * road_density)) / (1 + exp(-5.0519645 + (2.1568961 * road_density))))] # female wo cubs or 2yo cubs
+  # new_tableGrizzSurvivalReport [, survival_rate_fc := 1 - (exp(-3.9222632 + (2.1568961 * road_density)) / (1 + exp(-3.92226325 + (2.1568961 * road_density))))] # female w coy or yearling cubs
+  
   new_tableGrizzSurvivalReport [, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name,sim$boundaryInfo[[3]]) ] # add the time of the survival calc
   
   
