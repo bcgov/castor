@@ -12,9 +12,10 @@ ui <- dashboardPage(skin = "black",
                                  menuSubItem("Caribou", tabName = "caribou", icon = icon("paw")),
                                  menuSubItem("Climate", tabName = "climate", icon = icon("thermometer-half")),
                                  menuSubItem("Fire", tabName = "fire", icon = icon("fire")),
-                                 menuSubItem("Fisher", tabName = "fisher", icon = icon("leaf")),
+                                 menuSubItem("Fisher", tabName = "fisher", icon = icon("otter")),
                                  menuSubItem("Forestry", tabName = "forestry", icon = icon("tree")),
-                                 menuSubItem("Insects (planned)", tabName = "insects", icon = icon("bug")),
+                                 menuSubItem("Grizzly Bear", tabName = "grizzly_bear", icon = icon("leaf")),
+                                 menuSubItem("Insects (planned)", tabName = "insects", icon = icon("bug")), 
                                  menuSubItem("Mining (planned)", tabName = "mining", icon = icon("gem")),
                                  menuSubItem("Oil and Gas (planned)", tabName = "oilandgas", icon = icon("bolt")),
                                  menuSubItem("Recreation (planned)", tabName = "recreation", icon = icon("shoe-prints"))
@@ -244,7 +245,7 @@ ui <- dashboardPage(skin = "black",
                                   ),
                                   box(title = "Territory", collapsible = FALSE,  collapsed = FALSE, solidHeader = TRUE,background = "purple", width =6,
                                       tags$style(" .irs-bar, .irs-bar-edge, .irs-single, .irs {max-height: 50px;}, .irs-grid-pol { background:blue; border-color: blue;}"),
-                                      sliderInput("fisherTerritoryYear", "Year", 0, 200,value = 0, step = 5, animate = TRUE),
+                                      sliderInput("fisherTerritoryYear", "Year", 0, 200, value = 0, step = 5, animate = TRUE),
                                       plotOutput(outputId = "fisherTerritoryPlot", height = "200px")
                                       )
                                 ),
@@ -258,6 +259,18 @@ ui <- dashboardPage(skin = "black",
                                               valueBoxOutput("numberFisherTerritory", width = 12),
                                               bsTooltip("numberFisherTerritory", "Number of fisher territories with relative probability of occupancy > 0.55", "bottom")
                                   )
+                                )
+                        ),
+                        tabItem(tabName = "grizzly_bear",
+                                fluidRow(
+                                        box(title = "Adult Female Survival", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+                                        sliderInput("grizzlyYear", label = "Enter Year Range to Plot", 
+                                                    0, 200, value = c (0, 50), step = 5),
+                                        plotlyOutput(outputId = "survival_grizzly_af_Plot", height = "900px"))
+                                  ),
+                                fluidRow(
+                                  box(title = "Grizzly Bear Population Unit Road Density", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+                                      plotlyOutput(outputId = "road_density_grizzly_Plot", height = "900px"))
                                 )
                         ),
                         tabItem(tabName = "insects",
