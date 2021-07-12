@@ -10,7 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-In Marchal et al. 2020, they define escape as "the porbability that a fire will reach a size of at least 1 ha". We will inspect the ignition data and see the size of each fire. We will then separate them into those that are <1 ha in size, and those that are > 1 ha in size. From this, we can use logistic regression, including climate variables, topography (aspect and slope), and VRI data. Below currently only accounts for lightning caused fires. Human caused fires will be modelled down the road.
+In Marchal et al. 2020, they define escape as "the probability that a fire will reach a size of at least 1 ha". We will inspect the ignition data and see the size of each fire. We will then separate them into those that are <1 ha in size, and those that are > 1 ha in size. From this, we can use logistic regression, including climate variables, topography (aspect and slope), and VRI data. Below currently only accounts for lightning caused fires. Human caused fires will be modelled down the road.
+
+Note: Other papers use 3 ha (e.g., Wang et al. 2016, International Journal of Wildland Fire) and others use 10 ha (e.g., Parisien et al. 2013, Natural Hazards) for their definition of escape.
 
 Must think whether or not we want VRI data. These become polygons instead of spatial points.
 
@@ -50,49 +52,139 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
 
-fire_veg_data_B <- sf::st_read  (dsn = connKyle, # connKyle
-                               query = "SELECT * FROM public.fire_ignitions_veg_climate_B")
+dat_lightning <- sf::st_read  (dsn = connKyle, # connKyle
+                               query = "SELECT * FROM public.dat_lightning_for_analysis")
+
+
+
+dbDisconnect (connKyle)
+
+head(dat_lightning)
+
+##Person caused fires
+connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                      host = key_get('dbhost', keyring = 'postgreSQL'),
+                      user = key_get('dbuser', keyring = 'postgreSQL'),
+                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+                      password = key_get('dbpass', keyring = 'postgreSQL'),
+                      port = "5432")
+
+dat_person <- st_read  (dsn = connKyle, # connKyle
+                               query = "SELECT * FROM public.dat_person_for_analysis")
 
 
 
 dbDisconnect (connKyle)
 
 
-head(fire_veg_data_B)
+head(dat_person)
 
 ```
 
 Now, select only those locations where a fire did occur. And then create a new category where if < 1 ha, then have 0, and if > 1 ha, have 1 value.
 
 ```{r}
-table(fire_veg_data_B$fire)
+table(dat_lightning$fire)
 
-fire_veg_DEM_climate<-subset(fire_veg_data_B, fire_veg_data_B$fire=="1")
-head(fire_veg_DEM_climate)
+dat_lightning_escape<-subset(dat_lightning, dat_lightning$fire=="1")
+head(dat_lightning_escape)
 
-str(fire_veg_DEM_climate$size_ha)
-fire_veg_DEM_climate$size_ha<-as.numeric(fire_veg_DEM_climate$size_ha)
-hist(fire_veg_DEM_climate$size_ha) #lots of little fires
-fire_veg_DEM_climate_2<- fire_veg_DEM_climate %>% drop_na(size_ha)
-str(fire_veg_DEM_climate_2) #16319 obs
-min(fire_veg_DEM_climate_2$size_ha) #How is min size 0? Odd.
-max(fire_veg_DEM_climate_2$size_ha) 
+str(dat_lightning_escape$size_ha)
+dat_lightning_escape$size_ha<-as.numeric(dat_lightning_escape$size_ha)
+hist(dat_lightning_escape$size_ha) #lots of little fires
+dat_lightning_escape_2<- dat_lightning_escape %>% drop_na(size_ha)
+str(dat_lightning_escape_2) #16319 
+min(dat_lightning_escape_2$size_ha) #How is min size 0? Odd.
+max(dat_lightning_escape_2$size_ha) 
+mean(dat_lightning_escape_2$size_ha) #262.2081 hectares for mean size
+table(dat_lightning_escape_2$fire_cs)
 
-fire_veg_DEM_climate_2$escape<- 0
-fire_veg_DEM_climate_2$escape[fire_veg_DEM_climate_2$size_ha >= 1] <- 1
+dat_lightning_escape_2$escape<- 0
+dat_lightning_escape_2$escape[dat_lightning_escape_2$size_ha >= 1] <- 1
 
-table(fire_veg_DEM_climate_2$escape) #We have 13257 that did not escape, and 3062 that did escape
-table(fire_veg_DEM_climate_2$bclcs_level_2) #Remove ones designated as water. This will be done in the next step.
+table(dat_lightning_escape_2$escape) #We have 12256 that did not escape, and 2911 that did escape. So ~23% escaped. Is this too high?
+
+#Compare to a 3 ha threshold
+dat_lightning_escape_2$escape3<- 0
+dat_lightning_escape_2$escape3[dat_lightning_escape_2$size_ha >= 3] <- 1
+
+table(dat_lightning_escape_2$escape3) #Not a huge change; ~850 difference: 13074 that did not escape and 2083 that did.
+
+table(dat_lightning_escape_2$bclcs_level_2) 
+
+#Compare to a 10 ha threshold
+dat_lightning_escape_2$escape10<- 0
+dat_lightning_escape_2$escape10[dat_lightning_escape_2$size_ha >= 10] <- 1
+
+table(dat_lightning_escape_2$escape10) #Not a huge change; 13641 that did not escape and 1516 that did.
+
+table(dat_lightning_escape_2$bclcs_level_2) 
+
 
 ```
 
-Save datafile to clus database. This needs to be done via OsGeo4 command line.
-
+Save data on local machine.
 
 ```{r}
 
-st_write(fire_veg_DEM_climate_2, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Escape_data.shp", delete_layer=TRUE)
+#st_write(dat_lightning_escape_2, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning.shp", delete_layer=TRUE)
 
+#Loaded in as df and not a shape file
+write.csv(dat_lightning_escape_2, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning.csv")
+
+```
+
+Repeat for person caused fires
+
+```{r}
+table(dat_person$fire)
+
+dat_person_escape<-subset(dat_person, dat_person$fire=="1")
+head(dat_person_escape)
+
+str(dat_person_escape$size_ha)
+dat_person_escape$size_ha<-as.numeric(dat_person_escape$size_ha)
+hist(dat_person_escape$size_ha) #lots of little fires
+dat_person_escape_2<- dat_person_escape %>% drop_na(size_ha)
+str(dat_person_escape_2) #20973 obs
+min(dat_person_escape_2$size_ha) #How is min size 0? Odd.
+max(dat_person_escape_2$size_ha) 
+mean(dat_person_escape_2$size_ha) #24.82 hectares for mean size (1/10 the size for lightning caused average!)
+table(dat_person_escape_2$fire_cs)
+
+dat_person_escape_2$escape<- 0
+dat_person_escape_2$escape[dat_person_escape_2$size_ha >= 1] <- 1
+
+table(dat_person_escape_2$escape) #We have 18435 that did not escape, and 2538 that did escape. Is this too high?
+
+#Compare to a 3 ha threshold
+dat_person_escape_2$escape3<- 0
+dat_person_escape_2$escape3[dat_person_escape_2$size_ha >= 3] <- 1
+
+table(dat_person_escape_2$escape3) #~1000 difference: 19411 that did not escape and 1562 that did.
+
+table(dat_person_escape_2$bclcs_level_2) 
+
+
+```
+
+Determine if all fires adequately have dates
+```{r}
+head(dat_person_escape_2)
+names(dat_person_escape_2)
+dat_person_escape_2$
+
+```
+
+
+Save data on local machine.
+
+```{r}
+
+#st_write(dat_person_escape_2, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person.shp", delete_layer=TRUE)
+
+#Loaded in as df and not a shape file
+write.csv(dat_person_escape_2, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person.csv")
 
 ```
 
