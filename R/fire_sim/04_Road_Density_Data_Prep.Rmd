@@ -162,7 +162,6 @@ max(sample_locations_DEM_roads$shape_length_km) #max is 207 km of road per km sq
 
 ```
 
-
 Now that we have the roads data appended to our data, we can save the file and move on to the next step.
 
 ```{r}
@@ -174,6 +173,8 @@ st_write(sample_locations_DEM_roads, dsn = "D:\\Fire\\fire_data\\raw_data\\Clima
 #head(ignition_weather_crs)
 #ignition_weather_crs<-st_as_sf(ignition_weather_crs)
 
+##Save to personal drive
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_climate_DEM_roads.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
 #ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_climate_DEM_roads.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI

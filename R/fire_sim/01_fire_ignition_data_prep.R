@@ -66,6 +66,8 @@ st_write(ignition1, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\
 table(ignition1$FIRE_YEAR) 
 
 
+
+
 ## Load ignition data into postgres (either my local one or Kyles)
 #host=keyring::key_get('dbhost', keyring = 'postgreSQL')
 #user=keyring::key_get('dbuser', keyring = 'postgreSQL')

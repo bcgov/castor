@@ -460,55 +460,32 @@ See https://jennybc.github.io/purrr-tutorial/ls12_different-sized-samples.html f
 This will be done separately for lightning and person caused fires. 
 
 
-We must subsample the data since the sample sizes for the zeros are too large. At least two different papers used 1.5 times the number of presence points as absences. See:
-   - Chang et al (2013) Predicting fire occurrence patterns with logistic regression in Heilongjiang Province, China. Landscape Ecology 28, 1989-2004 and
-   - Catry et al. (2009) Modeling and mapping wildfire ignition risk in Portugal. International Journal of Wildland Fire 18, 921-931.
-
-# Steps for subsampling:
-First, get sample sizes per habitat type and year for the 1's. 
-Then sample 2x or some amount more than that value in each of those vegetation, year categories. 
-See https://jennybc.github.io/purrr-tutorial/ls12_different-sized-samples.html for an idea on how to do this.
-
-This will be done separately for lightning and person caused fires. We will first prepare the tables for both lightning and person caused fires, and then we will perform for each separately.
-
 ```{r}
-#Set geometry to null for processing below
-fire_veg_data_lightning_NA_5x_<-st_set_geometry(fire_veg_data_lightning_NA_5x, NULL)
-fire_veg_data_person_NA_5x_<-st_set_geometry(fire_veg_data_person_NA_5x, NULL)
-```
+#Lightning caused fires
 
+#Remove geometry
+fire_veg_data_lightning_NA_5x_df<- st_set_geometry(fire_veg_data_lightning_NA_5x, NULL)
 
-The step preparing the tables can take a very long time for the NAs since there are a few hundred thousand. Once you prepare these tables, you do not need to prepare them again as long as they are still saved in your R environment. Once geometry is set to null, however, the processing should be really fast.
-
-```{r}
-##Lightning caused - preparing the tables
-pre<- fire_veg_data_lightning_NA_5x_ %>%
+##Lightning caused
+pre<- fire_veg_data_lightning_NA_5x_df %>%
   filter(fire==1) %>%
   dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
   group_by(fire_yr, zone, bclcs_level_2) %>%
   summarize(fire_n=n())
-head(pre)
 
-##Get NA points
-pre_checkpre<- fire_veg_data_lightning_NA_5x_ %>%
+##Change to dataframe otherwise code will take a few hours to run
+pre_checkpre<- fire_veg_data_lightning_NA_5x_df %>%
   filter(fire==0) %>%
   dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
   group_by(fire_yr, zone, bclcs_level_2) %>%
   summarize(abs_n=n())
-head(pre_checkpre)
-```
 
-This next chunk also takes quite a bit of time.
-
-```{r}
+#check<-left_join(pre, pre_checkpre)
+#check<-st_join(pre, pre_checkpre)
 check<-left_join(pre, pre_checkpre)
 check %>% print(n=100) # hmm there are some NA's in the 0 column. I should probably correct that.
-```
 
-
-```{r}
-
-abs_match <- fire_veg_data_lightning_NA_5x_ %>%
+abs_match <- fire_veg_data_lightning_NA_5x_df %>%
   filter(fire == 0) %>%
   group_by(fire_yr, zone, bclcs_level_2) %>%   # prep for work by yr and veg type
   nest() %>%              # --> one row per yr and vegtype
@@ -520,11 +497,7 @@ df<-left_join(check, abs_match) # make sure there are not veg year combinations 
 # there are several year, zone, subzone combinations with no data in the tibble.  This code below removes the Null values. I should increase my sample of fire absences so that I don't have any combinations with zero data or sample it in a different way. TO DO!
 df2 <- df %>% 
   filter(lengths(data)>0)
-```
 
-Note: each time you subsample with the code below, you will end up with different random points where fires did not occur. As a result, the results of the subsequent model selection may differ. You may wish to create different random points each a few times to ensure that the same climate variables come out as the top ones for each BEC zone, especially for those with small sample sizes for where fires occurred.
-
-```{r}
 # here I sample from the tibble the number of data points I want for the absences
 # I should probably have replace = false but there are a few rows where there are more fire ignitions in that subzone than randomly sampled locations which is causing issues with this code. For now I'll leave it like this.
   sampled_df<- df2 %>% 
@@ -534,7 +507,7 @@ Note: each time you subsample with the code below, you will end up with differen
     dplyr::select(fire_yr, zone, subzone, bclcs_level_2, feature_id:vegtype)
  
 # joining my subsampled absence data back to the fire ignition presence data
-pre1<- fire_veg_data_lightning_NA_5x_ %>%
+pre1<- fire_veg_data_lightning_NA_5x_df %>%
   filter(fire==1)
 dim(sampled_df) # 22715 rows
 dim(pre1) #  15228 rows
@@ -544,55 +517,48 @@ dim(dat_lightning) # 37673 rows good this worked I think; Cora July 5 has 45656 
 
 head(dat_lightning)
 str(dat_lightning)
-table(dat_lightning$fire_cs)
-```
 
-If all looks good from above, then save data.
-
-```{r}
 #Write file
-st_write(dat_lightning, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis.shp", delete_layer=TRUE)
-
-write.csv(dat_lightning, "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis.csv")
-
+st_write(dat_lightning, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis_.shp", delete_layer=TRUE)
 ```
-
-Now we will repeat the process for person-caused fires.
+Repeat for person-caused fires
 
 ```{r}
-##Person caused fires: table preparations
-pre2<- fire_veg_data_person_NA_5x_ %>%
+############ Repeat abovw for person-caused fires
+##Person caused
+
+#Make as dataframe to increase processing speed
+fire_veg_data_person_NA_5x_df<- st_set_geometry(fire_veg_data_person_NA_5x, NULL)
+
+#Prepare tables
+pre<- fire_veg_data_person_NA_5x_df %>%
   filter(fire==1) %>%
   dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
   group_by(fire_yr, zone, bclcs_level_2) %>%
   summarize(fire_n=n())
 
-pre_checkpre<- fire_veg_data_person_NA_5x_ %>%
+pre_checkpre<- fire_veg_data_person_NA_5x_df %>%
   filter(fire==0) %>%
   dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
   group_by(fire_yr, zone, bclcs_level_2) %>%
   summarize(abs_n=n())
 
-check2<-left_join(pre2, pre_checkpre)
-check2 %>% print(n=100) # hmm there are some NA's in the 0 column. I should probably correct that.
+check<-left_join(pre, pre_checkpre)
+check %>% print(n=100) # hmm there are some NA's in the 0 column. I should probably correct that.
 
-abs_match2 <- fire_veg_data_person_NA_5x_ %>%
+abs_match <- fire_veg_data_person_NA_5x_df %>%
   filter(fire == 0) %>%
   group_by(fire_yr, zone, bclcs_level_2) %>%   # prep for work by yr and veg type
   nest() %>%              # --> one row per yr and vegtype
   ungroup()
 
-dfp<-left_join(check2, abs_match2) # make sure there are not veg year combinations that are not also in the fire_pres==1 file
+df<-left_join(check, abs_match) # make sure there are not veg year combinations that are not also in the fire_pres==1 file
 
 
 # there are several year, zone, subzone combinations with no data in the tibble.  This code below removes the Null values. I should increase my sample of fire absences so that I don't have any combinations with zero data or sample it in a different way. TO DO!
-df2 <- dfp %>% 
+df2 <- df %>% 
   filter(lengths(data)>0)
-```
 
-Now subsample from the created tables. Once again, if the above tables remain in your R Environment, you can subsample a few times to run the climate variable selection analyses.
-
-```{r}
 # here I sample from the tibble the number of data points I want for the absences
 # I should probably have replace = false but there are a few rows where there are more fire ignitions in that subzone than randomly sampled locations which is causing issues with this code. For now I'll leave it like this.
   sampled_df<- df2 %>% 
@@ -602,30 +568,22 @@ Now subsample from the created tables. Once again, if the above tables remain in
     dplyr::select(fire_yr, zone, subzone, bclcs_level_2, feature_id:vegtype)
  
 # joining my subsampled absence data back to the fire ignition presence data
-pre2<- fire_veg_data_person_NA_5x_ %>%
+pre1<- fire_veg_data_person_NA_5x_df %>%
   filter(fire==1)
-dim(sampled_df) #  rows
-dim(pre2) #   rows
+dim(sampled_df) # 22715 rows
+dim(pre1) #  15228 rows
 
-dat_person<- rbind(pre2, as.data.frame(sampled_df))
-dim(dat_person) # 
+dat_person<- rbind(pre1, as.data.frame(sampled_df))
+dim(dat_person) # 37673 rows good this worked I think; Cora July 5 has 45656 rows. This is fewer than the >180,000 rows of the data at the end of file 01
 
 head(dat_person)
 str(dat_person)
-table(dat_person$fire_cs)
-```
 
-If data looks good, save file.
-
-```{r}
 #Write file
-#st_write(dat_person, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis.shp", delete_layer=TRUE) 
+st_write(dat_person, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis_.shp", delete_layer=TRUE) 
 
-write.csv(dat_person,"D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis.csv")
-
+ 
 ```
-
-
 
 Upload these files to the clus database
 

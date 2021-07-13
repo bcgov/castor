@@ -66,8 +66,8 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       dbname = key_get('dbname', keyring = 'postgreSQL'),
                       password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
-dat_lightning <- sf::st_read  (dsn = connKyle, # connKyle
-                               query = "SELECT * FROM public.dat_lightning_for_analysis")
+fire_veg_data_lightning_NA_5x <- sf::st_read  (dsn = connKyle, # connKyle
+                               query = "SELECT * FROM public.fire_veg_data_lightning_NA_5x_NoW")
 dbDisconnect (connKyle)
 
 #Bring in person-caused fire data
@@ -77,8 +77,8 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       dbname = key_get('dbname', keyring = 'postgreSQL'),
                       password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
-dat_person <- sf::st_read  (dsn = connKyle, # connKyle
-                               query = "SELECT * FROM public.dat_person_for_analysis")
+fire_veg_data_person_NA_5x <- sf::st_read  (dsn = connKyle, # connKyle
+                               query = "SELECT * FROM public.fire_veg_data_person_NA_5x_NoW")
 dbDisconnect (connKyle)
 
 #Bring in fire ignition data from end of 01 file  
@@ -122,7 +122,173 @@ table(fire_ignitions1_new$fire_year, fire_ignitions1_new$fire_cause)
 table(fire_ignitions1_person$fire_year, fire_ignitions1_person$fire_cause)
 ```
 
-Now that the data is prepped from 05_VRI_data_prep, we can move on to the analysis for selecting the best climatic variable(s) for each BEC zone. The loop below will be run first for lightning caused fires, and then for person-caused fires.
+We must subsample the data since the sample sizes for the zeros are too large. At least two different papers used 1.5 times the number of presence points as absences. See:
+   - Chang et al (2013) Predicting fire occurrence patterns with logistic regression in Heilongjiang Province, China. Landscape Ecology 28, 1989-2004 and
+   - Catry et al. (2009) Modeling and mapping wildfire ignition risk in Portugal. International Journal of Wildland Fire 18, 921-931.
+
+# Steps for subsampling:
+First, get sample sizes per habitat type and year for the 1's. 
+Then sample 2x or some amount more than that value in each of those vegetation, year categories. 
+See https://jennybc.github.io/purrr-tutorial/ls12_different-sized-samples.html for an idea on how to do this.
+
+This will be done separately for lightning and person caused fires. We will first prepare the tables for both lightning and person caused fires, and then we will perform for each separately.
+
+```{r}
+#Set geometry to null for processing below
+fire_veg_data_lightning_NA_5x_<-st_set_geometry(fire_veg_data_lightning_NA_5x, NULL)
+fire_veg_data_person_NA_5x_<-st_set_geometry(fire_veg_data_person_NA_5x, NULL)
+```
+
+
+The step preparing the tables can take a very long time for the NAs since there are a few hundred thousand. Once you prepare these tables, you do not need to prepare them again as long as they are still saved in your R environment.
+
+```{r}
+##Lightning caused - preparing the tables
+pre<- fire_veg_data_lightning_NA_5x_ %>%
+  filter(fire==1) %>%
+  dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
+  group_by(fire_yr, zone, bclcs_level_2) %>%
+  summarize(fire_n=n())
+head(pre)
+
+##Get NA points
+pre_checkpre<- fire_veg_data_lightning_NA_5x_ %>%
+  filter(fire==0) %>%
+  dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
+  group_by(fire_yr, zone, bclcs_level_2) %>%
+  summarize(abs_n=n())
+head(pre_checkpre)
+```
+
+This next chunk also takes quite a bit of time.
+
+```{r}
+check<-left_join(pre, pre_checkpre)
+check %>% print(n=100) # hmm there are some NA's in the 0 column. I should probably correct that.
+```
+
+
+```{r}
+
+abs_match <- fire_veg_data_lightning_NA_5x_ %>%
+  filter(fire == 0) %>%
+  group_by(fire_yr, zone, bclcs_level_2) %>%   # prep for work by yr and veg type
+  nest() %>%              # --> one row per yr and vegtype
+  ungroup()
+
+df<-left_join(check, abs_match) # make sure there are not veg year combinations that are not also in the fire_pres==1 file
+
+
+# there are several year, zone, subzone combinations with no data in the tibble.  This code below removes the Null values. I should increase my sample of fire absences so that I don't have any combinations with zero data or sample it in a different way. TO DO!
+df2 <- df %>% 
+  filter(lengths(data)>0)
+```
+
+Note: each time you subsample with the code below, you will end up with different random points where fires did not occur. As a result, the results of the subsequent model selection may differ. You may wish to create different random points each a few times to ensure that the same climate variables come out as the top ones for each BEC zone, especially for those with small sample sizes for where fires occurred.
+
+```{r}
+# here I sample from the tibble the number of data points I want for the absences
+# I should probably have replace = false but there are a few rows where there are more fire ignitions in that subzone than randomly sampled locations which is causing issues with this code. For now I'll leave it like this.
+  sampled_df<- df2 %>% 
+    mutate(samp = map2(data, ceiling(fire_n*2), sample_n, replace=TRUE)) %>%
+    dplyr::select(-data) %>%
+    unnest(samp) %>%
+    dplyr::select(fire_yr, zone, subzone, bclcs_level_2, feature_id:vegtype)
+ 
+# joining my subsampled absence data back to the fire ignition presence data
+pre1<- fire_veg_data_lightning_NA_5x_ %>%
+  filter(fire==1)
+dim(sampled_df) # 22715 rows
+dim(pre1) #  15228 rows
+
+dat_lightning<- rbind(pre1, as.data.frame(sampled_df))
+dim(dat_lightning) # 37673 rows good this worked I think; Cora July 5 has 45656 rows. This is fewer than the >180,000 rows of the data at the end of file 01
+
+head(dat_lightning)
+str(dat_lightning)
+table(dat_lightning$fire_cs)
+```
+
+If all looks good from above, then save data.
+
+```{r}
+#Write file
+st_write(dat_lightning, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis.shp", delete_layer=TRUE)
+
+write.csv(dat_lightning, "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis.csv")
+
+```
+
+Now we will repeat the process for person-caused fires.
+
+```{r}
+##Person caused fires: table preparations
+pre2<- fire_veg_data_person_NA_5x_ %>%
+  filter(fire==1) %>%
+  dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
+  group_by(fire_yr, zone, bclcs_level_2) %>%
+  summarize(fire_n=n())
+
+pre_checkpre<- fire_veg_data_person_NA_5x_ %>%
+  filter(fire==0) %>%
+  dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
+  group_by(fire_yr, zone, bclcs_level_2) %>%
+  summarize(abs_n=n())
+
+check2<-left_join(pre2, pre_checkpre)
+check2 %>% print(n=100) # hmm there are some NA's in the 0 column. I should probably correct that.
+
+abs_match2 <- fire_veg_data_person_NA_5x_ %>%
+  filter(fire == 0) %>%
+  group_by(fire_yr, zone, bclcs_level_2) %>%   # prep for work by yr and veg type
+  nest() %>%              # --> one row per yr and vegtype
+  ungroup()
+
+dfp<-left_join(check2, abs_match2) # make sure there are not veg year combinations that are not also in the fire_pres==1 file
+
+
+# there are several year, zone, subzone combinations with no data in the tibble.  This code below removes the Null values. I should increase my sample of fire absences so that I don't have any combinations with zero data or sample it in a different way. TO DO!
+df2 <- dfp %>% 
+  filter(lengths(data)>0)
+```
+
+Now subsample from the created tables. Once again, if the above tables remain in your R Environment, you can subsample a few times to run the climate variable selection analyses.
+
+```{r}
+# here I sample from the tibble the number of data points I want for the absences
+# I should probably have replace = false but there are a few rows where there are more fire ignitions in that subzone than randomly sampled locations which is causing issues with this code. For now I'll leave it like this.
+  sampled_df<- df2 %>% 
+    mutate(samp = map2(data, ceiling(fire_n*2), sample_n, replace=TRUE)) %>%
+    dplyr::select(-data) %>%
+    unnest(samp) %>%
+    dplyr::select(fire_yr, zone, subzone, bclcs_level_2, feature_id:vegtype)
+ 
+# joining my subsampled absence data back to the fire ignition presence data
+pre2<- fire_veg_data_person_NA_5x_ %>%
+  filter(fire==1)
+dim(sampled_df) #  rows
+dim(pre2) #   rows
+
+dat_person<- rbind(pre2, as.data.frame(sampled_df))
+dim(dat_person) # 
+
+head(dat_person)
+str(dat_person)
+table(dat_person$fire_cs)
+```
+
+If data looks good, save file.
+
+```{r}
+#Write file
+#st_write(dat_person, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis.shp", delete_layer=TRUE) 
+
+write.csv(dat_person,"D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis.csv")
+
+```
+
+
+Now that the data is prepped, we can move on to the analysis for selecting the best climatic variable(s) for each BEC zone. The loop below will be run first for lightning caused fires, and then for person-caused fires.
 
 To select the best single fire weather covariate we first conducted exploratory graphical analyses of the correlations between fire frequency and various fire weather variables. Then we fit generalized linear models for each fire weather variable (Eq. 1) using a binomial error structure with logarithmic link. Candidate variables were monthly average temperature, monthly maximum temperature, monthly precipitations and the six mean drought codes (MDC’s). We also added various two, three or fourth-month means of these values (e.g. for May, June, July and August) to test for seasonal effects (e.g. spring vs. summer).
 
@@ -135,19 +301,19 @@ Before we begin the analyses, we will look at some correlations.
 ####1. Lightning ########
 
 # correlation between max T and MDC. Across all the data MDC and Tmax are correlated with values ranging between 0.78 and 0.15
-dist.cut.corr <- dat_lightning [c (20:24, 35:39)]
+dist.cut.corr <- dat_lightning [c (19:23, 34:38)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between maximum temperature and MDC")
 
 # Correlation between total precipitation and MDC. This is also pretty correlated with values between -0.75 and -0.18
-dist.cut.corr <- dat_lightning [c (30:34, 35:39)]
+dist.cut.corr <- dat_lightning [c (29:33, 34:38)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and MDC")
 
 # Correlation between Tmax and total precipitation. The correlation is very low, as would be expected (-0.02 to -0.57) 
-dist.cut.corr <- dat_lightning [c (20:24, 30:34)]
+dist.cut.corr <- dat_lightning [c (19:23, 29:33)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and Tmax")
@@ -164,14 +330,15 @@ ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
 ```{r}
 ######## Person Caused Fires #############
 
+
 # correlation between max T and MDC. Across all the data MDC and Tmax are correlated with values ranging between 0.78 and 0.15
-dist.cut.corr <- dat_person [c (20:24, 35:39)]
+dist.cut.corr <- dat_person [c (19:23, 34:38)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between maximum temperature and MDC")
 
 # Correlation between total precipitation and MDC. This is also pretty correlated with values between -0.75 and -0.18
-dist.cut.corr <- dat_person [c (30:34, 35:39)]
+dist.cut.corr <- dat_person [c (29:33, 34:38)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and MDC")
@@ -184,7 +351,7 @@ ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
 
 
 # Correlation between Tave and total precipitation. The correlation is very low, as would be expected (-0.03 to -0.43) 
-dist.cut.corr <- dat_person [c (25:29, 30:34)]
+dist.cut.corr <- dat_person [c (24:28, 29:33)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and Tave")
@@ -256,31 +423,9 @@ dat_lightning$mean_mdc05_mdc06_mdc07_mdc08_mdc09<- (dat_lightning$mdc_05 + dat_l
 
 ```
 
-For each fire, let's extract the MDC in the specific month that fire began. Note that some fires actually began in months other than 05-09. For these, for now, we will select the nearest time (05 for January to April, and 09 for October and November). We may wish to get the actual values.
+For each firer, let's extract the MDC in the specific month that fire began.
 
 ```{r}
-
-names(dat_lightning)
-table(dat_lightning$ign_month) #Some of these fires were started in October, November, January, February and March. Very unexpected.
-
-dat_lightning$mdc_atfire<-0
-dat_lightning$ign_month<-as.numeric(dat_lightning$ign_month)
-head(dat_lightning)
-dat_lightning_<-dat_lightning %>%
-    mutate(mdc_atfire = case_when(ign_month == 5 ~ mdc_05,
-                                  ign_month == 6 ~ mdc_06,
-                                  ign_month == 7 ~ mdc_07,
-                                  ign_month == 8 ~ mdc_08,
-                                  ign_month == 9 ~ mdc_09,
-                                  ign_month == 10 ~ mdc_09,
-                                  ign_month == 11 ~ mdc_09,
-                                  ign_month == 4 ~ mdc_05,
-                                  ign_month == 3 ~ mdc_05,
-                                  ign_month == 2 ~ mdc_05,
-                                  ign_month == 1 ~ mdc_05,
-                                  TRUE ~ mean_mdc05_mdc06_mdc07_mdc08_mdc09)) #Those areas without fire will receive the mean value for the season. These MDC values may be most accurately used for the escape and spread data, wherein we only assess those areas where fires began.
-
-head(dat_lightning_)
 
 ```
 
@@ -335,35 +480,7 @@ dat_person$mean_mdc06_mdc07_mdc08_mdc09<- (dat_person$mdc_06+ dat_person$mdc_07 
 dat_person$mean_mdc05_mdc06_mdc07_mdc08_mdc09<- (dat_person$mdc_05 + dat_person$mdc_06+ dat_person$mdc_07 + dat_person$mdc_08 + dat_person$mdc_09)/5
 ```
 
-
-For each fire, let's extract the MDC in the specific month that fire began. Note that some fires actually began in months other than 05-09. For these, for now, we will select the nearest time (05 for January to April, and 09 for October and November). We may wish to get the actual values.
-
-```{r}
-
-names(dat_person)
-table(dat_person$ign_month) #Some of these fires were started in October, November, January, February and March. Very unexpected.
-
-dat_person$mdc_atfire<-0
-dat_person$ign_month<-as.numeric(dat_person$ign_month)
-head(dat_person)
-dat_person_<-dat_person %>%
-    mutate(mdc_atfire = case_when(ign_month == 5 ~ mdc_05,
-                                  ign_month == 6 ~ mdc_06,
-                                  ign_month == 7 ~ mdc_07,
-                                  ign_month == 8 ~ mdc_08,
-                                  ign_month == 9 ~ mdc_09,
-                                  ign_month == 10 ~ mdc_09,
-                                  ign_month == 11 ~ mdc_09,
-                                  ign_month == 4 ~ mdc_05,
-                                  ign_month == 3 ~ mdc_05,
-                                  ign_month == 2 ~ mdc_05,
-                                  ign_month == 1 ~ mdc_05,
-                                  TRUE ~ mean_mdc05_mdc06_mdc07_mdc08_mdc09)) #Those areas without fire will receive the mean value for the season. These MDC values may be most accurately used for the escape and spread data, wherein we only assess those areas where fires began.
-
-head(dat_person_)
-```
-
-Create groupings of variables to put into model selection loop.
+Create variable groupings to put into model selection loop.
 
 ```{r}
 
