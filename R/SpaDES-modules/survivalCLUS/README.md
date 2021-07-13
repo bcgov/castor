@@ -16,8 +16,8 @@ We caution against using the model outside of the southern mountain caribou popu
 
 * *calculateInterval*. The interval from which to calculate the RSF(s). Default = 1 (yearly).
 * *caribou_herd_density*. Caribou herd density for adjusting the Wittmer et al. survival model.
-* *nameRasCaribouHerd*. Name of the raster of the caribou herd boundaries raster that is stored in the psql clusdb. see [here](https://github.com/bcgov/clus/blob/master/R/Params/caribou_management_areas.Rmd) 
-* *tableCaribouHerd*.The look up table to convert raster values to caribou herd name labels. The two values required are value and herd_name. see [here](https://github.com/bcgov/clus/blob/master/R/Params/caribou_management_areas.Rmd)
+* *nameRasCaribouHerd*. Name of the raster of the caribou herd boundaries raster that is stored in the psql clusdb. see [here](https://github.com/bcgov/clus/blob/master/R/Params/caribou_herd_raster.Rmd) 
+* *tableCaribouHerd*.The look up table to convert raster values to caribou herd name labels. The two values required are value and herd_name. see [here](https://github.com/bcgov/clus/blob/master/R/Params/caribou_herd_raster.Rmd)
 
 #### Data Needs
 

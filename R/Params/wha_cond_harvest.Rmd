@@ -1041,14 +1041,9 @@ df$percentage<-as.numeric(df$percentage)#assign integer
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
 DBI::dbWriteTable(conn, c("zone", "wha_2021"), value= df, row.names = FALSE, overwrite = TRUE) 
-dbExecute(conn, "ALTER TABLE zone.wha_2021 ADD column start INT")
-dbExecute(conn, "ALTER TABLE zone.wha_2021 ADD column stop INT")
+dbExecute(conn, "Alter Table zone.wha_2021 add column start INT")
+dbExecute(conn, "Alter Table zone.wha_2021 add column stop INT")
 dbExecute(conn, "ALTER TABLE zone.wha_2021 ALTER COLUMN denom TYPE VARCHAR;")
-dbExecute(conn, "Alter Table zone.wha_2021 set denom = null where denom is not null;")
-dbExecute(conn, "Alter Table zone.wha_2021 set multi_condition = null where multi_condition is not null;")
-dbExecute(conn, "ALTER TABLE zone.wha_2021 SET start = 0 WHERE start IS not null;")
-dbExecute(conn, "ALTER TABLE zone.wha_2021 SET stop = 250 WHERE stop IS not null;")
-
 dbExecute (conn, paste0("ALTER TABLE zone.wha_2021 INHERIT zone.constraints"))
 
 dbDisconnect(conn)

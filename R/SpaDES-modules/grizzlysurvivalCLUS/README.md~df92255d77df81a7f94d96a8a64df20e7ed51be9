@@ -34,21 +34,6 @@ Throughout western North America ([McLellan and Shackleton 1988](https://www.jst
     limitations under the License.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## Module Methods and Parameters
 Here I adapt a model developed by [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) that related grizzly bear survival rates to their exposure to roads in a landscape in Alberta with active forestry to estimate the effects of roads on grizzly bear survival and population trend.  
 
@@ -68,21 +53,8 @@ found that for monitored grizzly bear, seven of nine human caused mortalities in
 To estimate road density in a GBPU, the module counts the number of 'roaded' pixels and multiplies them by the *roadDensity* parameter (10km/km^2^), then divides that by the total number of pixels (roaded + unroaded) in the GBPU.
 
 ### Estimate of Grizzly Bear Survival Rate
-The module uses the [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) model from Figure 2 to estimate adult female survival rates. Here we focus on adult females because of their importance to population dynamics, but all grizzly bear age and sex classes show a similar negative relationship between survival and road density. The equations for figure 2 are not included in [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535), therefore we approximate it in this module using the equation:
+The module uses the [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) model from Figure 2 to estimate adult female survival rates. Here we focus on adult females because of their importance to population dynamics, but all grizzly bear age and sex classes show a similar negative relationship between survival and road density. The equations for figure 2 are not included in [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535), but were provided by email and use the equation:
 
-S = 1 / (1 + exp (-3.9 + (D * 1.06)) 
+S = exp(3.1 + (F * 1.0) + (R * -1.2)) / (1 + exp(3.1 + (F * 1.0) + (R * -1.2)))
 
-where S = survival rate and D = road density. Survival rate  is 0.980 at 0km/km^2^ road density, 0.945 at a road density of 1km/km^2^ and 0.856 at a road density of 2km/km^2^.
-
-
-
-
-
-
-
-
-
-
-
-
-
+where S = survival rate, F = a categorical variable for sex (female = 1, male = 0) and R = road density. Survival rate for adult female bears is 0.983 at 0km/km^2^ road density, 0.947 at a road density of 1km/km^2^ and 0.847 at a road density of 2km/km^2^.

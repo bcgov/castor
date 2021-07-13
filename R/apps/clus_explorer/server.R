@@ -39,7 +39,6 @@ ON c.compartment = a.compartment;")))
   reportList<-reactive({
     req(input$schema)
     req(input$scenario)
-    
     if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
       data.survival<-data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, herd_bounds, timeperiod;")))
       data.survival<-data.survival[,lapply(.SD, weighted.mean, w =area), by =c("scenario",  "herd_bounds", "timeperiod"), .SDcols = c("prop_age", "prop_mature", "prop_old", "survival_rate")]
@@ -56,12 +55,6 @@ ON c.compartment = a.compartment;")))
       data.disturbance<-NULL
     }
 
-    if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".grizzly_survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
-      data.grizzly_survival<-data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".grizzly_survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, gbpu_name, timeperiod;")))
-      data.grizzly_survival<-data.grizzly_survival[,lapply(.SD, weighted.mean, w = total_area), by =c("scenario",  "gbpu_name", "timeperiod"), .SDcols = c("road_density", "survival_rate")]
-    }else{
-      data.grizzly_survival<-NULL
-    }
     
     data.fire<- getTableQuery(paste0("SELECT * FROM fire where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
     data.fire2<- getTableQuery(paste0("SELECT herd_name, habitat,  round(cast(mean_ha2 as numeric),1) as mean,  round(cast(mean_area_percent as numeric),1) as percent, 
@@ -88,10 +81,9 @@ ON c.compartment = a.compartment;")))
          survival = data.survival,
          disturbance = data.disturbance,
          fire = data.fire,
-         fire2 = data.fire2,
+         fire2=data.fire2,
          fisher = data.fisherOccupancy,
-         fisherPts = data.fisherPoints,
-         grizzly_survival = data.grizzly_survival)
+         fisherPts= data.fisherPoints)
   })
   
   fisherPointsFilter<-reactive({
@@ -434,50 +426,6 @@ ON (foo1.scenario = foo2.scenario) )")))
         scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
         theme_bw()+
         theme (legend.title = element_blank())
-      ggplotly(p, height = 900) %>% 
-        layout (legend = list (orientation = "h", y = -0.1),
-                margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
-    })
-  }) 
-  
-  output$survival_grizzly_af_Plot <- renderPlotly ({
-    withProgress(message = 'Making Plots', value = 0.1, {
-      data<-reportList()$grizzly_survival
-      
-      # if want to look at difference:
-      # grizzly_data[, survival_rate_change := survival_rate - first(survival_rate), by = .(scenario, gbpu_name)]  # replace first() with shift() to get difference with previous year value instead of first year value
-      
-      p<-ggplot(data, aes (x = timeperiod, y = survival_rate, color = scenario)) +
-        facet_grid (rows = vars(gbpu_name))+
-        geom_line() +
-        xlab ("Future year") +
-        ylab ("Adult Female Survival Rate") +
-        theme_bw() +
-        theme (legend.title = element_blank()) +
-        scale_x_continuous(limits = c (input$grizzlyYear[1], input$grizzlyYear[2]))
-      
-      ggplotly(p, height = 900) %>% 
-        layout (legend = list (orientation = "h", y = -0.1),
-                margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
-    })
-  }) 
-  
-  output$road_density_grizzly_Plot <- renderPlotly ({
-    withProgress(message = 'Making Plots', value = 0.1, {
-      data<-reportList()$grizzly_survival
-      
-      # if want to look at difference:
-      # grizzly_data[, survival_rate_change := survival_rate - first(survival_rate), by = .(scenario, gbpu_name)]  # replace first() with shift() to get difference with previous year value instead of first year value
-      
-      p<-ggplot(data, aes (x = timeperiod, y = road_density, color = scenario)) +
-        facet_grid (rows = vars(gbpu_name))+
-        geom_line() +
-        xlab ("Future year") +
-        ylab ("Grizzly Bear Population Unit Road Density (km/km2)") +
-        theme_bw() +
-        theme (legend.title = element_blank()) +
-        scale_x_continuous(limits = c (input$grizzlyYear[1], input$grizzlyYear[2]))
-      
       ggplotly(p, height = 900) %>% 
         layout (legend = list (orientation = "h", y = -0.1),
                 margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
