@@ -1,0 +1,186 @@
+---
+title: "Road_Density_Data_prep"
+author: "Cora Skaien"
+date: "12/07/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Overview
+Many studies have shown that road density is highly correlated with person-caused fires (e.g., Marchal et al. 2017), and they often use km of road per km^2 area. Here, we will attempt to bring in the roads layer from clus, investigate differences in number of roads present between 2002-2020, consider using the road clus to back-cast where roads were from 2002 to 2020, and then determine annual road density per km^2. This data will be utilized only in the person-caused fire model, and not in the lightning caused fire model. 
+
+```{r}
+#Libraries
+library(keyring)
+library(sf)
+library(raster)
+library(dplyr)
+library(spData)
+library(spDataLarge)
+
+```
+
+
+Bring in the data. This is a very large file and R may have a hard time bringing it in. This data was created in 2018 and represents the road network as of 2017/2018. It is possible to use the road clus to back-cast with other files. For now and for simplicity, we will assume constant road density from 2002-2018 and into the future, but future refinements may wish to alter this and get more accurate road data annually.
+
+```{r}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+roads_layer<- st_read (dsn = conn, 
+          layer = c ("public", "integrated_roads"))
+dbDisconnect (conn)
+
+```
+Inspect the file. Check the coordinate system. Determine the names of items in the file.
+
+```{r}
+crs(roads_layer)
+head(roads_layer)
+names(roads_layer)
+
+```
+
+Bring in the BC boundary, transform, and inspec - plot the provincial boundary with the roads layer to ensure that they align properly.
+
+```{r}
+
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
+prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
+bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system
+
+ggplot() +
+  geom_sf(data=bc.bnd, col='red') +
+  geom_sf(data=roads_layer, col='black') #Looks good! Roads are all contained within the BC Boundary
+
+```
+
+Now we will then bring in the data layer from the DEM_data_prep file. 
+
+```{r}
+sample_locations_DEM <- st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM_5x.shp")
+
+```
+Inspect the data. See what the names of columns are, geometry type, etc. We will also plot this one again to ensure that it falls within the BC Boundary properly.
+
+```{r}
+head(sample_locations_DEM)
+
+ggplot() +
+  geom_sf(data=bc.bnd, col='red') +
+  geom_sf(data=sample_locations_DEM, col='black')
+```
+
+Now, we need to buffer each point from the sample_locations_DEM file by 0.564 km or 564 m to get a 1 km^2 area. Once we have this buffer, we can then perform an intersect to determine how many km of road we have per km^2 of area for each data point. This will involve summing over multiple rows because each road segment will create a new row within the dataframe but the same polygon id may appear multiple times.
+
+```{r}
+sample_locations_DEM_buf<- st_buffer(sample_locations_DEM, 564) #Set the buffer to 564 m to get a circle with a radous of 564 m and an area of 1 km2
+
+crs(sample_locations_DEM_buf)
+head(sample_locations_DEM_buf) #Note, now these are polygon features instead of point features because we have buffers.
+
+```
+Because 'idno' have caused issues in previous files, duplicate this column as 'oid' to be safe.
+
+```{r}
+sample_locations_DEM_buf$oid<-sample_locations_DEM_buf$idno
+
+```
+
+Perform st_intersection between the roads layer and our buffered layer to get roads clipped to the area of the polygons.
+
+```{r}
+roads_100ha_buffers<-st_intersection(sample_locations_DEM_buf, roads_layer)
+head(roads_100ha_buffers)
+table(roads_100ha_buffers$idno) #Quick inspection to see that multiple roads do indeed return multiple reports for each idno
+
+#Check what the distirbution of shape length is
+hist(roads_100ha_buffers$shape_length)
+mean(roads_100ha_buffers$shape_length) #Mean shape length is 548 m
+
+```
+
+Once we have the roads intersected with the polygon, we can then get the sums for each. Note, however, that if there are no roads for a location, that a 0 will be returned for those polygons (buffered circles) and that a special match will need to be performed to get the correct points appended back to the original data. Ensure you change the file to a data frame first so that it takes < 5 seconds to run instead of 4 hours.
+
+```{r}
+str(roads_100ha_buffers)
+roads_100ha_buffers_df<-as.data.frame(roads_100ha_buffers)
+
+road_sums_df<- roads_100ha_buffers_df %>%
+  group_by(idno) %>%
+  summarize(
+    shape_length = sum(shape_length)
+  )
+
+table(road_sums_df$idno)
+head(road_sums)
+str(road_sums)#Check how many rows there are in the data and compare to our initial data
+#181,356
+str(sample_locations_DEM) # 274594 obs
+
+```
+
+Now we will append this new data back to our original sample_locations_DEM data. We also need to replace all of the NA values with 0s, as an NA indicates that there were no roads present in that polygon buffer.
+
+```{r}
+crs(road_sums_df) #Check if it has a coordinate system - no (as expected)
+
+sample_locations_DEM_roads<- merge(sample_locations_DEM, road_sums_df, by = 'idno', all=TRUE)
+crs(sample_locations_DEM_roads) #has coordinate system as expected
+head(sample_locations_DEM_roads) #check if you can see any with NA in the 
+
+str(sample_locations_DEM_roads)
+#Check if need this below?
+#sample_locations_DEM_roads_sf<-st_as_sf(sample_locations_DEM_roads)
+
+#Replace NAs in shape_length column with 0s
+sample_locations_DEM_roads$shape_length[is.na(sample_locations_DEM_roads$shape_length)] <- 0
+head(sample_locations_DEM_roads) #We can see that NAs have not been switched to 0
+
+```
+
+Inspect the results to ensure nothing seems too crazy
+
+```{r}
+hist(sample_locations_DEM_roads$shape_length)
+mean(sample_locations_DEM_roads$shape_length) #Mean is 3841.987 m of road per km square
+max(sample_locations_DEM_roads$shape_length) #Max is 207,868.7 m of road per km square. This seems impossible.
+
+##Convert to kms worth of road
+sample_locations_DEM_roads$shape_length_km<-(sample_locations_DEM_roads$shape_length/1000)
+hist(sample_locations_DEM_roads$shape_length_km, n=100)
+mean(sample_locations_DEM_roads$shape_length_km) #Mean is 3.8 km of road per km square
+max(sample_locations_DEM_roads$shape_length_km) #max is 207 km of road per km square... seems unlikely!
+
+```
+
+Now that we have the roads data appended to our data, we can save the file and move on to the next step.
+
+```{r}
+
+st_write(sample_locations_DEM_roads, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_climate_DEM_roads.shp", delete_layer=TRUE)
+##Can also open in QGis to assess for any physical outliers and their information.
+
+#str(ignition_weather_crs)
+#head(ignition_weather_crs)
+#ignition_weather_crs<-st_as_sf(ignition_weather_crs)
+
+##Save to personal drive
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_climate_DEM_roads.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_climate_DEM_roads.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+##Above may not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
+
+#key_get('dbpass', keyring = 'postgreSQL')
+```
+
+############## Now move on to file 05_VRI_data_prep#############

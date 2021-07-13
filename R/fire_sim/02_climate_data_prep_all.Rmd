@@ -487,6 +487,16 @@ ggplot() +
 # A check of the fire ignition counts per year line up with the original data. So the number of fire ignitions seem good.
 ```
 
+Prepare ignition month information for later use. Note, locations without fires (and a few locations with fires too) will have NAs or blanks, and this is ok.
+
+```{r}
+ignition_weather_crs$ign_dat
+ignition_weather_crs$ign_month<-stri_sub(ignition_weather_crs$ign_dat,5,6)
+head(ignition_weather_crs)
+ignition_weather_crs$ign_month
+```
+
+
 If data looks good, then save file.
 
 ```{r}

@@ -1,5 +1,5 @@
 ---
-title: "05_ignition_climate_variable_selection"
+title: "06_ignition_climate_variable_selection"
 author: "Elizabeth Kleynhans"
 date: "08/07/2021"
 output: html_document
@@ -56,7 +56,7 @@ library(ggcorrplot)
 source(here::here("R/functions/R_Postgres.R"))
 ```
 
-Now we must bring in the data that we created at the end of 04_VRI_data_prep. We need only the lightning + NA and the person + NA data sets here. We also need the fire ignition data from the end of our first file (01_fire_ignition_data_prep)
+Now we must bring in the data that we created at the end of 05_VRI_data_prep. We need only the lightning + NA and the person + NA data sets here. We also need the fire ignition data from the end of our first file (01_fire_ignition_data_prep)
 
 ```{r}
 #bring in lightning caused fire data
@@ -266,11 +266,11 @@ Now subsample from the created tables. Once again, if the above tables remain in
 # joining my subsampled absence data back to the fire ignition presence data
 pre2<- fire_veg_data_person_NA_5x_ %>%
   filter(fire==1)
-dim(sampled_df) # 22715 rows
-dim(pre2) #  15228 rows
+dim(sampled_df) #  rows
+dim(pre2) #   rows
 
 dat_person<- rbind(pre2, as.data.frame(sampled_df))
-dim(dat_person) # 37673 rows good this worked I think; Cora July 5 has 45656 rows. This is fewer than the >180,000 rows of the data at the end of file 01
+dim(dat_person) # 
 
 head(dat_person)
 str(dat_person)
@@ -422,6 +422,13 @@ dat_lightning$mean_mdc05_mdc06_mdc07_mdc08_mdc09<- (dat_lightning$mdc_05 + dat_l
 
 
 ```
+
+For each firer, let's extract the MDC in the specific month that fire began.
+
+```{r}
+
+```
+
 
 ```{r}
 #Climate variable creation for person-caused fire data
@@ -721,9 +728,11 @@ Repeat for person-caused fires:
 ##Different zones need to be excluded
 unique(dat_person$zone)
 
-zones<- c("ICH", "ESSF", "CWH", "MH", "CMA", "MS", "PP", "IDF", "SBPS", "SWBS", "BG", "SBS", "CDF") #BAFA", "IMA", "SWB"
-
 zones<- c("SBS", "ICH", "ESSF", "MH",  "CWH", "CMA", "SBPS", "MS", "PP", "IDF", "BWBS","BG", "CDF") #"BAFA", "IMA", "SWB"
+
+
+filenames<-list()
+prop<-0.75
 
 ##Run loop
 for (g in 1:100){
@@ -885,7 +894,7 @@ head(aic_bec_person_summary2)
 Save file to local computer:
 
 ```{r}
-write.csv(aic_bec_person_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results_person_July8.csv")
+write.csv(aic_bec_person_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_AIC_results_person_July9b.csv")
 
 ```
 
