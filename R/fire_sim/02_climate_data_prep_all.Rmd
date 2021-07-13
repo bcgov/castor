@@ -1,3 +1,14 @@
+---
+title: "02_climate_data_prep_all"
+author: "Elizabeth Kleynhans and Cora Skaien"
+date: "07/07/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
 # Copyright 2021 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -10,19 +21,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
-#=================================
-#  Script Name: 02_climate_data_prep.R
-#  Script Version: 1.0
-#  Script Purpose: This script obtains the lat, long coordinates of fire ignition locations and samples locations where fires were not observed to start. It then creates a csv file with these locations that can be used to manually extract monthly average climate variables from climateBC (http://climatebc.ca/) for all years 2002 to 2020. This range of dates was chosen because it is the years that we have VRI data for. To extract the climate data I use the app that climateBC provides. The version I used of the app is climateBC_v700. This version was released on 27 April 2021 and includes 13 General Circulation Models from the CMIP6. It also has a different normal period (1991 - 2020).  After the climate data has been extracted from climateBC this data is reimported into this script and the mean monthly drought code for the months  May - September is calculated for each year. From this script I get the maximum temperature, minimum temperature, average temperature, total precipitation, and mean monthly drought code for the months May - September for each year 2002 - 2020 for all fire ignition locations and randomly sampled (available fire ignition locations (fire absence)) points on the landscape 
+#===================
+
+This script is adapted from an earlier script. The initial script separates lightning caused fires before subsampling, and this one is updated to subsample before human and lightning caused fires (and those of unknown origin) are separated, to ensure that "no fire" locations do not occur where a fire occurred with another designation (lightning, human, unknown).
+
+Script Purpose: This script obtains the lat, long coordinates of fire ignition locations and samples locations where fires were not observed to start. It then creates a csv file with these locations that can be used to manually extract monthly average climate variables from climateBC (http://climatebc.ca/) for all years 2002 to 2020. This range of dates was chosen because it is the years that we have VRI data for. To extract the climate data I use the app that climateBC provides. The version I used of the app is climateBC_v710. This version was released on 06 June 2021 and includes 13 General Circulation Models from the CMIP6. It also has a different normal period (1991 - 2020).  After the climate data has been extracted from climateBC this data is reimported into this script and the mean monthly drought code for the months  May - September is calculated for each year. From this script I get the maximum temperature, minimum temperature, average temperature, total precipitation, and mean monthly drought code for the months May - September for each year 2002 - 2020 for all fire ignition locations and randomly sampled (available fire ignition locations (fire absence)) points on the landscape 
 #  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #  Script Contributor: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #=================================
 
+
 #Overview:
- # In this file (02), we determine determine the BEC boundaries and match this with our fire location data within the BC boundary, 
-  # created 500 m buffer, selected GPS locations where fires did not start, combined fire and non-fire location data,
-  # acquire the lat and long data to get ClimateBC information for each location, 
-  # calculate the monthly drought code for each dataset, and then upload files to clus database.
+In this file, we determine the BEC boundaries and match this with our fire location data within the BC boundary, create 500 m buffers around points, select GPS locations where fires did not start, combine fire and non-fire location data, acquire the lat and long data to get ClimateBC information for each location, calculate the monthly drought code for each dataset, and then upload files to clus database.
+
+```{r}
 
 library(raster)
 library(data.table)
@@ -34,7 +46,13 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 
+
 source(here::here("R/functions/R_Postgres.R"))
+```
+
+Now we must bring in the relevant data
+
+```{r}
 
 #Get BEC data
 bec<-getSpatialQuery("SELECT objectid, feature_class_skey, zone, subzone, natural_disturbance, zone_name, wkb_geometry FROM public.bec_zone")
@@ -64,8 +82,10 @@ st_write(fire.ignition.clipped, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_
 bec_sf<-st_as_sf(bec) #Convert foreign object to an sf object (collection of simple features that includes attributes and geometries in the form of a data frame. In other words, it is a data frame (or tibble) with rows of features, columns of attributes, and a special geometry column that contains the spatial aspects of the features)
 bec_sf_buf<- st_buffer(bec_sf, 0) # encircles a geometry object at a specified distance and returns a geometry object that is the buffer that surrounds the source object. Set buffer to 0 here.
 st_crs(bec_sf_buf)
+names(bec_sf_buf)
 st_write(bec_sf_buf, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bec_sf_buf.shp", delete_dsn = TRUE)
 #Boundaries look good
+
 
 fire.ignition_sf<-st_as_sf(fire.ignition.clipped) #convert to sf object
 st_crs(fire.ignition_sf)
@@ -73,52 +93,60 @@ st_write(fire.ignition_sf, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\
 #Boundaries look good
 table(fire.ignition_sf$fire_year)
 
+```
+
+Note, that if you bring this BEC Buffer data back in, the names may have been shortened given column name limitations for shape files. You may need to run the below chunk to rename appropriately, but remember you may need to REMOVE THE PLYR PACKAGE AFTER! This is because of conflicts with other packages for language. If you are continuing from the code chunk above, then no need to run the below chunk as you will already have the file ready to go in your R environment.
+
+This may occur for the fire.ignition_sf file as well. So check the naming and update as necessary.
+
+```{r}
+
+##If you bring BEC buffer back in, you may need to do the below for renaming. Remember to open the plyr library, but then ensure it is closed in the packages afterwards
+
+#And we need BEC buffer info
+bec_sf_buf<-st_read(dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bec_sf_buf.shp")
+names(bec_sf_buf)
+
+#Must rename some variables because it was shortened when saved as a shape file
+library(plyr)
+names(bec_sf_buf)
+bec_sf_buf<-rename(bec_sf_buf,
+                   c("objectd"="objectid",
+                     "ftr_cl_"="feature_class_skey",
+                     "ntrl_ds"="natural_disturbance",
+                     "zone_nm"="zone_name"))
+names(bec_sf_buf)
+## NOW UNCHECK PLYR LIBRARY IN PACKAGES WINDOW!
+```
+
+The below code chunk is VERY slow! So be prepared to go do other work for a while. Once it is complete, save the file and avoid doing this step again unless necessary.
+
+```{r}
+
 #doing st_intersection with the whole bec and fire ignition files is very very slow! 
 
 fire.igni.bec<- st_intersection(fire.ignition_sf, bec_sf_buf) # ST_Intersects is a function that takes two geometries and returns true if any part of those geometries is shared between the 2
 #fire.igni.bec<- st_intersection(fire.ignition_sf, st_buffer(bec_sf, 0)) #Alternative code
 # ST_Intersection in conjunction with ST_Intersects is very useful for clipping geometries such as in bounding box, buffer, region queries where you only want to return that portion of a geometry that sits in a country or region of interest
-# Note: on June 21, 2021, when the above is run, 10 points get physically placed in the middle of the ocean despite having correct GPS points. Unknown why.
 table(fire.igni.bec$fire_year)
+```
 
+Write fire.igni.bec to file because it takes so long to make.
 
-#write fire.igni.bec to file because it takes so long to make
-st_write(fire.igni.bec, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition_BEC.shp", delete_dsn = TRUE)
+```{r}
+st_write(fire.igni.bec, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\fire_ignit_by_bec.shp", delete_dsn = TRUE)
 
+##Save via OsGeo4W Shell
+##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
+#ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\fire_ignit_by_bec.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
+```
 
-# save data 
-conn <- dbConnect (dbDriver ("PostgreSQL"), 
-                   host = "",
-                   user = "postgres",
-                   dbname = "postgres",
-                   password = "postgres",
-                   port = "5432")
+Run the below code chunk to bring the data back in if you are starting from this portion of the code. This way, you can avoid losing time running the above again if you have already created it.
 
-##Can use keyring
-conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
-                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
-                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
-                        port = '5432',
-                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
-                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
-
-
-st_write (obj = fire.igni.bec, 
-          dsn = conn, 
-          layer = c ("public", "fire_ignit_by_bec"))
-dbDisconnect (conn)
-
+```{r}
 
 #import the fire ignition data
-conn <- dbConnect (dbDriver ("PostgreSQL"), 
-                   host = "",
-                   user = "postgres",
-                   dbname = "postgres",
-                   password = "postgres",
-                   port = "5432")
-
-
 ##Can use keyring
 conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
                         host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
@@ -131,7 +159,15 @@ fire_igni_bec<- st_read (dsn = conn,
           layer = c ("public", "fire_ignit_by_bec"))
 dbDisconnect (conn)
 
-#fire_igni_bec<-fire_igni_bec[bc.bnd,]
+##Or from local device; e.g. below
+# fire_igni_bec <-st.read(dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\fire_ignit_by_bec.shp")
+
+head(fire_igni_bec)
+```
+
+Now we will get the lat-long into separate columns for processing downstream.
+
+```{r}
 
 #getting long lat info
 #geo.prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0" 
@@ -155,17 +191,26 @@ fire_igni_bec_new<-fire_igni_bec %>% dplyr::select(ogc_fid: fire_type, size_ha: 
 
 fire_igni_bec_new$longitude<-fire_igni_bec3$longitude
 fire_igni_bec_new$latitude<-fire_igni_bec3$latitude
+```
 
-# Now I'll buffer each fire location by 500m and then within each BEC Zone I'll sample locations where fires did not start and combine those locations with locations where the fires did start.
-# Buffer is so that the area is less likely to have been fire affected.
+Now let's buffer each fire location by 500m, and within each BEC Zone, we'll sample locations where fires did not start and combine those locations with locations where the fires did start. In the initial code, this was done for only lightning caused fires. Here, we will do for all fires to avoid accidentally selecting a location where fires occurred for another cause and have it accidentally designated as an area without fire.
 
+Buffer is so that the areas selected as non-fire locations are less likely to have been fire affected.
+
+Each time you run the loop below, you will get new coordinates for areas not affected by fire. As a result, you will need to re-run the ClimateBC stuff manually each time you run the below chunk. Once you have ran it once, and acquired ClimateBC data for the locations, you can avoid running it again by saving the file and starting on the next script from that file onward.
+
+This loop will take a while to run, so have other work plans while it is running.
+
+```{r}
 years<-c("2002", "2003", "2004", "2005", "2006", "2007","2008","2009","2010","2011","2012","2013","2014","2015","2016","2017","2018", "2019", "2020")
 beczone<- c("SWB", "SBS", "ICH", "ESSF", "MH", "CWH", "BAFA", "CMA", "SBPS", "IMA", "MS", "PP", "IDF", "BWBS", "BG", "CDF")
 filenames<-list()
 
+##Run loop below. This loop will take some time.
+
 for (i in 1:length(years)) {
   print(years[i])
-  foo<- fire_igni_bec_new %>% filter(fire_year==years[i], fire_cause=="Lightning")
+  foo<- fire_igni_bec_new %>% filter(fire_year==years[i])
   foo_ignit_sf<- st_as_sf(foo)
   
   all_sample_points <- data.frame (matrix (ncol = 18, nrow = 0)) # add 'data' to the points
@@ -187,7 +232,9 @@ for (i in 1:length(years)) {
     clipped<-st_difference(bec_foo, foo.ignit.buf.union)
     #clipped<-rmapshaper::ms_erase(target=bec_foo, erase=foo.ignit.buffered) # clips out buffered areas I think.But it crashes a lot!
     
-    sample_size<-dim(foo_ignit_small)[1]*10 # here 10 is the number of points I sample in correlation with the number of ignition points in that BEC zone. 
+    ##Below we sample 10x as many points for where fires do not occur 
+    #sample_size<-dim(foo_ignit_small)[1]*10 # here 10 is the number of points I sample in correlation with the number of ignition points in that BEC zone. 
+    sample_size<-dim(foo_ignit_small)[1]*5 # here 5 is the number of points I sample in correlation with the number of ignition points in that BEC zone.
     samp_points <- st_sample(clipped, size=sample_size)
     samp_points_sf = st_sf(samp_points)
     samp_joined = st_join(samp_points_sf, clipped) # joining attributes back to the sample points
@@ -239,8 +286,15 @@ for (i in 1:length(years)) {
   filenames<-append(filenames,nam1)
 }
 
-sampled_points_2020<- sampled_points_2020 %>% filter(fire_year==2020)
 
+
+```
+In the above code, when ran for just lightning fires (see old code in "old" folder), we do not get the following error. However, when not filtering by lightning, we get this error for every BEC zone:
+"attribute variables are assumed to be spatially constant throughout all geometries". I am unsure if this is of concern. This is odd, as this typically arises without an st_intersect, which we have performed between the layers being used (or were part of the steps to make the layer we are using). We have done the intersect and are using that resultant file, so I am unsure why this is occurring, but suspect that we can ignore the warning. Something to investigate perhaps, however.
+
+Now that we have completed the loop, save the output as an R Object.
+
+```{r}
 
 mkFrameList <- function(nfiles) {
   d <- lapply(seq_len(nfiles),function(i) {
@@ -258,92 +312,91 @@ head(samp_locations_sf) #Note, wkb_geometry is in different coordinate system fo
 table(is.na(samp_locations_sf$ogc_fid))
 
 ##Check data
-table(samp_locations_sf$fire_cause) #Half are lightning, half are NA
-table(samp_locations_sf$fire_type) #Half are Fire and Nuisance Fire, half are NA
+table(samp_locations_sf$fire_cause) 
+table(samp_locations_sf$fire_type) 
 table(samp_locations_sf$subzone)
-table(samp_locations$fire_year) 
+table(samp_locations_sf$fire_year) 
 
-table(fire_igni_bec_new$fire_year, fire_igni_bec_new$fire_cause) #Most 2007 and 2008 were people caused and not lightning!
-# low numbers 2007 and 2008 are correct
+table(samp_locations_sf$fire_year, samp_locations_sf$fire_cause) # We see that we have oue 3 original categories, but now we also have our NA locations.
+```
 
+Now we must save this file locally and on clus so that we do not need to create it again.
 
-# save data - not working with "overwrite" included, but can work without it.
-conn <- dbConnect (dbDriver ("PostgreSQL"), 
-                   host = "",
-                   user = "postgres",
-                   dbname = "postgres",
-                   password = "postgres",
-                   port = "5432")
-
-##Can use keyring
-conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
-                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
-                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
-                        port = '5432',
-                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
-                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
-
-
-st_write (obj = samp_locations_sf, 
-          dsn = conn, 
-          layer = c ("public", "samp_locations_fire"))
-
-dbDisconnect (conn)
-
+```{r}
 # or save it as a shape file
-st_write(samp_locations_sf, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\samp_locations_fire.shp", delete_dsn = TRUE, overwrite = TRUE)
-table(samp_locations_sf$fire_year, samp_locations_sf$fire_type) # There are 10% as many fires as no fire locations
+st_write(samp_locations_sf, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\samp_locations_fire_all_5x.shp", delete_dsn = TRUE, overwrite = TRUE)
 
-# If an error message appears when you run these csv files in climateBC make sure that when the csv was written an extra column was not added. row.names=FALSE should prevent this.
+table(samp_locations_sf$fire_year, samp_locations_sf$fire_type) 
+
+#Because it is a shape file, we will need OsGeo4W Shell to save it to clus
+##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
+#ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\samp_locations_fire_all_5x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 
-
+```
 
 ########### Acquiring and Appending Climate Data ########
-# Each time the above is ran, below will need to be repated.
-### See http://climatebc.ca/Help for how to use ClimateBC to get the climate data. 
-# You will need to download ClimateBC (http://climatebc.ca/downloads/download.html) and use the files generated in the first code chunk below.
-# In the Multi-Location section, select "Annual Data" and select the appropriate year for each individual file. In the bootm drop down menu, select "monthly variables". 
-# Then upload each year, one at a time, and specify an output file location.
-## Note that 2007 and 2008 each have 200-300 points whereas other years have 15,000. This is becausemost fires in these 2 years were designated as human caused as opposed to lightning.
-# 2007 and 2008 have almost exclusively nuisance fires, which makes me think that data is missing
 
+First, we will generate separate files from above code for each year to input into ClimateBC.
 
+```{r}
 for (i in 1: length(years)) {
   dat<- samp_locations_sf %>% filter(fire_year==years[i])
-  sample.pts <- data.frame (matrix (ncol = 5, nrow = nrow (dat)))
-  colnames (sample.pts) <- c ("ID1","ID2", "lat", "long", "el")
-  sample.pts$ID1<- dat$idno
-  sample.pts$ID2 <- dat$fire_year
-  sample.pts$lat <-as.numeric(dat$latitude)
-  sample.pts$long <- as.numeric(dat$longitude)
-  sample.pts$el <- "."
+  sample.pts.all <- data.frame (matrix (ncol = 5, nrow = nrow (dat)))
+  colnames (sample.pts.all) <- c ("ID1","ID2", "lat", "long", "el")
+  sample.pts.all$ID1<- dat$idno
+  sample.pts.all$ID2 <- dat$fire_year
+  sample.pts.all$lat <-as.numeric(dat$latitude)
+  sample.pts.all$long <- as.numeric(dat$longitude)
+  sample.pts.all$el <- "."
   
-  nam1<-paste("sampled.points",years[i], "csv",sep=".")
+  nam1<-paste("sampled.points.all",years[i], "csv",sep=".")
   the_dir <- "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data"
-  write.csv(sample.pts, file = paste0(the_dir, "\\", basename(nam1)), row.names=FALSE)
+  write.csv(sample.pts.all, file = paste0(the_dir, "\\", basename(nam1)), row.names=FALSE)
 }
 
+```
 
-# after these files are written, manually extract the monthly climate data for each of the relevant years at each of the fire ignition and sample locations from climate BC (http://climatebc.ca/) and save the files as .csv's. Here I import them again. Or use the downscaled climate data and extract that (I have not done this, I probably should!)
-## this is as per above instructions for CLimateBC
+This next step needs to be conducted outside of R and then the resultant files can be brought back in to R.
 
+Each time the code in this file is run up to this point, below will need to be repeated.
+
+Next, see http://climatebc.ca/Help for how to use ClimateBC to get the climate data. 
+You will need to download ClimateBC (http://climatebc.ca/downloads/download.html) and use the files you generate as input to the first code chunk below.
+
+##To acquire ClimateBC Data for your sampled Locations##
+1. Open ClimateBC on your computer.
+2. In the Multi-Location section, select "Annual Data" and select the appropriate year for each individual file. 
+3. In the bottom drop down menu, select "monthly primary variables". 
+4. Upload each year, one at a time, and specify an output file location. Name the output files as the default suggested, but create a folder specifically for your outputs for each run.
+5. Once all things are set up, click the "Start" button
+6. Repeat for each year
+
+Once the above has been completed for the random points and known fire locations you have created in code earlier in this R Markdown file, proceed to the next code chunk.
+
+```{r}
 
 ###############################
 #Import climate data per ignition and sample location
 ###############################
 
 #Depending on where you saved your output, you may need to update the directory below
-file.list1<-list.files("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output_ClimateBC", pattern="sampled.points", all.files=FALSE, full.names=FALSE)
+file.list1<-list.files("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output_July2021_5x", pattern="sampled.points.all", all.files=FALSE, full.names=FALSE)
 y1<-gsub(".csv","",file.list1)
-the_dir <- "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output_ClimateBC"
+the_dir <- "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output_July2021_5x"
 
 for (i in 1:length(file.list1)){
   assign(paste0(y1[i]),read.csv (file=paste0(the_dir, "\\", file.list1[i])))
 }
 
-# FOR EACH DATASET CALCULATE THE MONTHLY DROUGHT CODE
 
+
+```
+
+Because much literature suggests that the monthly drought code (MDC) is an important factor, we will use information acquired from ClimateBC to get MDC values.
+
+```{r}
+# FOR EACH DATASET CALCULATE THE MONTHLY DROUGHT CODE
 
 #############################################
 #### Equations to calculate drought code ####
@@ -412,49 +465,84 @@ ignition_weather<-left_join(DC.ignitions1, samp_locations_sf)
 head(ignition_weather) #Lat -Longs match
 dim(ignition_weather) 
 st_crs(ignition_weather) #Answer NA
-head(ignition_weather) #Note, there are 2 Lat/Long columns, and they have different values for some reason
+head(ignition_weather) #Note, there are 2 Lat/Long columns: ensure that they are the same; otherwise, you may be using the incorrect climate csvs that were manually created.
 ignition_weather_crs <- st_as_sf(ignition_weather)
 crs(ignition_weather_crs)
 ignition_weather_crs<- st_transform(ignition_weather_crs, 3005)
 crs(ignition_weather_crs)
 
+
+```
+
+We want to ensure that everything lines up with the BC Boundaries, so perform below
+
+```{r}
 # Check the points line up with BC boundaries!
 ggplot() +
   geom_sf(data=bc.bnd, col='red') +
   geom_sf(data=ignition_weather_crs, col='black') #looks good
-#If orandom points appear in middle of ocean, open in QGIS to get points.
+#If random points appear in middle of ocean, open in QGIS to get points and see what has happened.
 
 
-# A check of the fire ignition counts per year line up with the original data. So the number of fire ignitions seem good. 
+# A check of the fire ignition counts per year line up with the original data. So the number of fire ignitions seem good.
+```
 
-st_write(ignition_weather_crs, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data.shp", delete_layer=TRUE)
-##Open in QGis to assess; see one physical outlier in middle of ocean
+If data looks good, then save file.
+
+```{r}
+
+##Can use keyring
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+
+st_write (obj = ignition_weather_crs, 
+          dsn = conn, 
+          layer = c ("public", "DC_data_ALL_5x"))
+
+dbDisconnect (conn)
+```
+
+
+```{r}
+
+st_write(ignition_weather_crs, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_5x.shp", delete_layer=TRUE)
+##Can also open in QGis to assess for any physical outliers and their information.
+
+#str(ignition_weather_crs)
+#head(ignition_weather_crs)
+#ignition_weather_crs<-st_as_sf(ignition_weather_crs)
+
+
+##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_5x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+##Above may not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
+
+#key_get('dbpass', keyring = 'postgreSQL')
+
+# OR my local machine
+
+# ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_5x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+```
+
+Note, we lose a lot of data in 2002 when clipping with VRI later. Upon inspection, we can see that this is because there are empty spaces in VRi data for 2002. This will make more sense later, but if you would like to inspect this for yourself, create the 2002 points data now.
+
+```{r}
 
 ##Get 2002 data and visualize in QGis
 ignition_weather_crs_2002<-subset(ignition_weather_crs,ignition_weather_crs$fire_year==2002)
 head(ignition_weather_crs_2002)
 st_write(ignition_weather_crs_2002, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_2002.shp", delete_layer=TRUE)
 
-
-# commit the shape file to postgres
-# this works for loading the shape file onto Kyles Postgres. Run these sections of code below in R and fill in the details in the script for command prompt. Then run the ogr2ogr script in command prompt to get the table into postgres
-
-# To Kyles Clus
-#host=keyring::key_get('dbhost', keyring = 'postgreSQL')
-#user=keyring::key_get('dbuser', keyring = 'postgreSQL')
-#dbname=keyring::key_get('dbname', keyring = 'postgreSQL')
-#password=keyring::key_get('dbpass', keyring = 'postgreSQL')
-
-##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
-#ogr2ogr -f PostgreSQL PG:"host= user= dbname= password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
-##Above does not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
-
-# OR my local machine
-
-# ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+```
 
 
 
 #########################################
-#### FINISHED NOW GO TO 03_vri_data_prep####
+#### FINISHED NOW GO TO 03_DEM_data_prep####
 #########################################
