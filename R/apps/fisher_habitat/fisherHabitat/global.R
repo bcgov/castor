@@ -59,17 +59,10 @@ myDrawPolygonOptions <- function(allowIntersection = FALSE,
 #----------------
 #Spatial---------
 ##Get a connection to the postgreSQL server (local instance)
-#sp_samplePoints <- getSpatialQueryIaian("SELECTobjectid,samp_id,sampletype,species_class,bgc_zone,tsa_desc,species_class, beclabel,project_design,meas_dt,no_meas,spc_label_live,stemsha_liv,baha_liv,wsvha_liv,tot_stand_age,geom, samp_sts from sample_plots_unique_final where geom is not null")
-#tsa_sp <- st_transform(getSpatialQueryIaian("SELECT * from tsa_boundaries where shape is not null"), 4326)
 fetaPoly<-st_transform(st_read("www/feta_v0.shp"), 4326)
 fetaTSA<-readRDS("www/tsa_fids.rds")
 #----------------
 #Non-Spatial 
-#sampleTypes <-  as.list(unique(sp_samplePoints$sampletype) )
-#tsaBnds <- as.list(unique(sp_samplePoints$tsa_desc ))
-#speciesLst <- as.list(unique(sp_samplePoints$species_class ))
-#becLst <- as.list(unique(sp_samplePoints$bgc_zone ))
-#prjdes <- as.list(unique(sp_samplePoints$project_design ))
+tsaBnds <- as.list(unique(fetaTSA$tsa))
 
-#dummyData <- head(subset(as.data.frame(sp_samplePoints), select = c(tot_stand_age, wsvha_liv)),1)
-#dummyData[,c("tot_stand_age", "wsvha_liv" )] <- 0
+

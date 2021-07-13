@@ -2,7 +2,7 @@
 # Define UI
 ui <- tagList(dashboardPage(
     dashboardHeader(
-        title = "FETA Scenario"),
+        title = "FETA Mapper"),
     #sidebar content
     dashboardSidebar(disable = TRUE 
     ),
@@ -22,9 +22,12 @@ ui <- tagList(dashboardPage(
                               leafletOutput("map", height = 670)),
                               boxPlus(height = 390, width=NULL,
                               tabBox(width = NULL, id = "tabset1", height = "0",
-                              tabPanel("Fisher Habtiat Quality" , 
+                              tabPanel("Fisher Density" , 
+                                       plotlyOutput('fisherDensity', height = "300px")
+                              ),
+                              tabPanel("Rel. Prob. Occupancy" , 
                                        plotlyOutput('fisherQuality', height = "300px")
-                    )
+                              )
                ))
         ),
         
@@ -38,6 +41,21 @@ ui <- tagList(dashboardPage(
                                           overflow-y: auto;}
                                          "))),
             width = 3,height = 400,
+            
+            boxPlus( 
+              title = "Change Colour",  
+              closable = FALSE, 
+              status = "primary", 
+              solidHeader = TRUE, 
+              collapsible = FALSE,
+              collapsed = FALSE,
+              width = NULL,
+              radioButtons("colorFilt",
+                           "Select Attribute",
+                           choices = c("n_fish","p_occ", "hab_den_x", "hab_mov_y", "hab_rus_y", "hab_cwd_y", "hab_cav_y"),
+                           selected = "n_fish",
+                           inline = FALSE)
+            ),
             boxPlus(width=NULL,
                     title = "Filter Data ",  
                     closable = FALSE, 
@@ -45,25 +63,24 @@ ui <- tagList(dashboardPage(
                     solidHeader = TRUE, 
                     collapsible = FALSE,
                     collapsed = FALSE,
-                    actionButton("fb", "Filter", width = "100%"),
-                    radioButtons("shapeFilt",
-                                 "Select Shape Filter",
-                                 choices = c("None","Drawn Polygon", "Shapefile", "Both"),
-                                 selected = "None",
-                                 inline = FALSE),
                     selectizeInput(
-                        "tsa",
-                        "Select TSA Filter",
-                        choices = c("Clear All","Select All", tsaBnds),
-                        selected = tsaBnds,
-                        multiple = TRUE, 
-                        options = list('plugins' = list('remove_button'), placeholder = 'Select a Timber Supply Area', 'persist' = TRUE))
-                  
-                   
+                      "tsa",
+                      "Select by TSA",
+                      choices = c("Clear All","Select All", tsaBnds),
+                      selected = tsaBnds,
+                      multiple = TRUE, 
+                      options = list('plugins' = list('remove_button'), placeholder = 'Select a Timber Supply Area', 'persist' = TRUE)),
+                    radioButtons(
+                      "shapeFilt",
+                      "Select by Shape",
+                      choices = c("None","Drawn Polygon", "Shapefile", "Both"),
+                      selected = "None",
+                      inline = FALSE),
+                    actionButton("fb", "Filter", width = "100%")
             ),
-            
+          
             boxPlus( 
-                title = "Export Data as a CSV ",  
+                title = "Export Data",  
                 closable = FALSE, 
                 status = "primary", 
                 solidHeader = TRUE, 
@@ -98,5 +115,5 @@ tags$head(tags$script(HTML('
                            function(message) {
                            eval(message.value);
                            });'
-))), downloadLink("downloadCSV",label="")
+))), downloadLink("downloadSHP",label="")
 )
