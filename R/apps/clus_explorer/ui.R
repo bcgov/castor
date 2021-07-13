@@ -262,6 +262,10 @@ ui <- dashboardPage(skin = "black",
                                 )
                         ),
                         tabItem(tabName = "grizzly_bear",
+                                tags$div("Click on the boxes below to obtain information on estimated road density and adult female  survival. Esitmates are provided for grizzly bear population units (GBPUs). Survival estimates are calculated by adapting a model developed by ",
+                                         tags$a(href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535", "Boulanger and Stenhouse (2014).")
+                                  ),
+                                br(), # line break
                                 fluidRow(
                                         box(title = "Adult Female Survival", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
                                         sliderInput("grizzlyYear", label = "Enter Year Range to Plot", 
