@@ -826,6 +826,6 @@ gc(TRUE)
 ```
 
 
-############### Complete. Now move on to 06_Fire_ignition_model_fits_by_BEC wherein the results of these AIC tests will be utilized###########
+############### Complete. Now move on to 07_Fire_ignition_model_fits_by_BEC wherein the results of these AIC tests will be utilized###########
 
 Note: for person-caused fires, we still need to load the roads map and decide whether to use the roads clus to predict road occurence back in time to 2002, or keep as is.
