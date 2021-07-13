@@ -1,7 +1,6 @@
 ---
 title: "06a_Fire ignition model fit by BEC zone"
-author: "Elizabeth Kleynhans"
-contributor: "Cora Skaien"
+author: "Elizabeth Kleynhans and Cora Skaien"
 date: "20/04/2021"
 output: html_document
 editor_options: 
@@ -32,6 +31,8 @@ library(arm)
 library(tidyr)
 library(AICcmodavg)
 library(keyring)
+library(caret)
+library(pROC)
 ```
 
 
@@ -51,22 +52,38 @@ See the License for the specific language governing permissions and limitations 
 
 ## Introduction
 
-Here I am running a glm for each separate bec zone to develop a predictive equation so that I can extrapolate fire ignitions into the future. The data that I include in these glms is both vegetation and climate date. The top climate variable for each BEC zone was determined in the script "04_ignition_climate_variable_selection.R". When ran by Cora on June 23, 2021, some zones had different top models than when Liz ran code. Vegetation data is a little complicated by the fact that the VRI does not have age, height or volume data for any vegetation types that are not classified as treed. Also, it seems like forests on private land lack age, volume and height data. Because I think volume, age and height are likely good predictors of fire severity and occurrence I split up this analysis into two parts in each BEC zone. 
-Firstly, in each BEC zone I split the data into treed and non-treed then I run a glm with climate and vegetation for areas that are classified as treed in the VRI and then I run another separate analysis for areas that are classified as not treed. The fixed effects I include in these analyses are slightly different, i.e. no age, volume or height data in the non-treed areas, which is why I split them up.  
+Here, we are running a glm for each separate bec zone to develop a predictive equation so that we can extrapolate fire ignitions into the future. The data that we include in these glms is both vegetation and climate date. The top climate variable for each BEC zone was determined in the script "06_ignition_climate_variable_selection.R". 
+
+Liz note: Vegetation data is a little complicated by the fact that the VRI does not have age, height or volume data for any vegetation types that are not classified as treed (although sometimes it does). Also, it seems like forests on private land lack age, volume and height data. Because I think volume, age and height are likely good predictors of fire severity and occurrence, I split up this analysis into two parts in each BEC zone. 
+
+Firstly, in each BEC zone, we split the data into treed and non-treed then run a glm with climate and vegetation for areas that are classified as treed in the VRI and another separate analysis for areas that are classified as not treed. The fixed effects we include in these analyses are slightly different, i.e. no age, volume or height data in the non-treed areas, which is why we split the analyses up.  
 
 # climate variable selection
-In the script "05_ignition_climate_variable_selection.R" I perform an AIC and ROC analysis for each BEC zone including presence/available fire ignition points and a variety of climate variables. For this analysis I split the data into a training and a validation data set where 75% of the data was used for training and 25% was used for validation. I then fit the model and extracted the AIC and AUC values. This was repeated 100 times and at the end I calculated the average AIC and AUC values. The climate variable that results in the lowest average AIC value I decided to use in this analysis. Table 1 is a summary of which climate variables fitted best for each BEC zone. 
+In the script "06_ignition_climate_variable_selection.R", we performed an AIC and ROC analysis for each BEC zone including presence/available fire ignition points and a variety of climate variables. For this analysis, we split the data into a training and a validation data set where 75% of the data was used for training and 25% was used for validation. We then fit the model and extracted the AIC and AUC values. This was repeated 100 times and at the end we calculated the average AIC and AUC values. We then also used a different subset of non-fire locations from the initial pruned numbers and repeated the previous step 3-5 times to get consistent results per BEC zone. The climate variable that consistently resulted in the lowest average AIC value is used in this analysis. We will load tables for person and lightning caused is a summary of which climate variables fitted best for each BEC zone. 
 
-Note: Some climate variables resulted in delta AIC values that were very similar and had much less than 2 points difference. Also, the variable with the smallest AIC value did not always have the best AUC value. Regardless of these two issues I decided to take the climate variable with the smallest average AIC for simplicity. Results can be found in table 1 below. This file was manipulated manually and then saved on to the drive before being uploaded (i.e., it is a simplified table from that generated in the last file, 04_ignition_climate_variable_selection; code for uploading not included prior).
+Note: Some climate variables resulted in delta AIC values that were very similar and had much less than 2 points difference. Also, the variable with the smallest AIC value did not always have the best AUC value. Regardless of these two issues, we decided to take the climate variable with the smallest average AIC for simplicity. Results will be loaded in for each AIC table. These files were manipulated manually and then saved on to the drive before being uploaded (i.e., it is a simplified table from that generated in the last file, 06_ignition_climate_variable_selection; code for uploading not included prior).
 
-Note: when the rows with NAs are removed, the distutbed ("D") vegtype is removed from the data set and we are losing information on disturbed sites.
+Note: when the rows with NAs are removed, the disturbed ("D") vegtype is removed from the data set and we are losing information on disturbed sites.
 
 ```{r, AIC table, echo = F, message = F, eval = T}
 
- climate.aic <- read.csv ("D:/Fire/fire_data/raw_data/ClimateBC_Data/AIC_table.csv")
+climate_variables_lightning<-read.csv("D:/Fire/fire_data/raw_data/ClimateBC_Data/Final_Selected_Climate_Variables_Lightning.csv")
+climate_variables_person<-read.csv("D://Fire//fire_data//raw_data//ClimateBC_Data//Final_Selected_Climate_Variables_Person.csv")
 
-kable (climate.aic,
-       caption = "<b>Table 1. Top candidate climate variables as selected through an AIC analysis for each BEC zone.<b>",
+head(climate_variables_lightning) 
+head(climate_variables_person) 
+
+kable (climate_variables_lightning,
+       caption = "<b>Table 1. Top candidate climate variables for lightning caused fires as selected through an AIC analysis for each BEC zone.<b>",
+       digits = 2) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
+
+kable (climate_variables_person,
+       caption = "<b>Table 2. Top candidate climate variables for person caused fires as selected through an AIC analysis for each BEC zone.<b>",
        digits = 2) %>%
   kable_styling (position = "left",
                  bootstrap_options = c("striped", "hover"),
@@ -75,7 +92,9 @@ kable (climate.aic,
                  font_size = 11)
 
 ```
-## Pull in the data. 
+
+## Pull in the data for both lightning and person caused fires. 
+
 ```{r}
 connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
                       host = key_get('dbhost', keyring = 'postgreSQL'),
@@ -88,6 +107,22 @@ dat_lightning_ <- sf::st_read  (dsn = connKyle, # connKyle
 dbDisconnect (connKyle)
 
 head(dat_lightning_)
+
+```
+
+
+```{r}
+connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+                      host = key_get('dbhost', keyring = 'postgreSQL'),
+                      user = key_get('dbuser', keyring = 'postgreSQL'),
+                      dbname = key_get('dbname', keyring = 'postgreSQL'),
+                      password = key_get('dbpass', keyring = 'postgreSQL'),
+                      port = "5432")
+dat_person_ <- sf::st_read  (dsn = connKyle, # connKyle
+                               query = "SELECT * FROM Data_Person")
+dbDisconnect (connKyle)
+
+head(dat_person_)
 
 ```
 
@@ -107,7 +142,137 @@ hist(dat_Disturbed$proj_height_1) #When not NA, Mostly all 0-5 m, a small number
 
 ##Change all NA for this vegtype to 0
 dat_lightning_ <- within(dat_lightning_, live_stand_volume_125[is.na(live_stand_volume_125) & vegtype == 'D'] <- 0)
+dat_person_ <- within(dat_person_, live_stand_volume_125[is.na(live_stand_volume_125) & vegtype == 'D'] <- 0)
 ##Because there will be no effect of stand volume on disturbed veg type, an interaction between these two variables should be included when both are in the model.
+
+```
+
+
+Now we will create additional columns that have the climate1 and climate2 variables indicated as the top variables for climate. 
+
+```{r}
+#View top variable
+climate_variables_lightning
+names(dat_lightning_)
+unique(dat_lightning_$zone)
+dat_lightning_$zone<-as.factor(dat_lightning_$zone)
+dat_lightning_$zone_numeric<-as.numeric(dat_lightning_$zone)
+table(dat_lightning_$zone_numeric)
+
+dat_lightning_$zone_codes<-paste(dat_lightning_$zone, dat_lightning_$zone_numeric)
+unique(dat_lightning_$zone_codes)
+
+## Create empty vector
+dat_lightning_$climate1<-0
+head(dat_lightning_)
+
+dat_lightning_<-dat_lightning_ %>%
+    mutate(climate1 = case_when(zone_numeric == 6 ~ tmax08, # CWH
+                                zone_numeric == 3 ~ mean_tave05_tave06_tave07_tave08, #BWBS
+                                zone_numeric == 7 ~ mean_tave07_tave08, #ESSF
+                                zone_numeric == 8 ~ tmax08, # ICH
+                                zone_numeric == 12 ~ mean_tave07_tave08, # MS
+                                zone_numeric == 13 ~ tave06, #PP
+                                zone_numeric == 5 ~ mean_mdc07_mdc08, #CMA
+                                zone_numeric == 16 ~ tmax05, #SWB
+                                zone_numeric == 15 ~ mean_tmax07_tmax08, # SBS
+                                zone_numeric == 14 ~ mean_tmax05_tmax06_tmax07_tmax08, #SBPS
+                                zone_numeric == 11 ~ mean_ppt07_ppt08_ppt09, #MH
+                                zone_numeric == 10 ~ tave06, #IMA
+                                zone_numeric == 2 ~ mean_mdc07_mdc08_mdc09, #BG
+                                TRUE ~ NA_real_))
+
+#Repeat for climate 2
+dat_lightning_$climate2<-0
+
+#Perform mutate to get the applicable variable for each row
+dat_lightning_<-dat_lightning_ %>%
+    mutate(climate2 = case_when(zone_numeric == 6 ~ ppt08, # CWH
+                                #zone_numeric == 3 ~ , #BWBS
+                                #zone_numeric == 7 ~ , #ESSF
+                                zone_numeric == 8 ~ ppt08, # ICH
+                                #zone_numeric == 12 ~ , # MS
+                                zone_numeric == 13 ~ ppt06, #PP
+                                #zone_numeric == 5 ~ , #CMA
+                                #zone_numeric == 16 ~ , #SWB
+                                #zone_numeric == 15 ~ , # SBS
+                                #zone_numeric == 14 ~ , #SBPS
+                                #zone_numeric == 11 ~ , #MH
+                                zone_numeric == 10 ~ ppt06, #IMA
+                                zone_numeric == 2 ~ mean_ppt05_ppt06_ppt07_ppt08, #BG
+                                TRUE ~ NA_real_))
+
+head(dat_lightning_)
+
+##Change vegtype to factor
+dat_lightning_$vegtype<-as.factor(dat_lightning_$vegtype)
+```
+
+Repeat for person-caused fires.
+
+
+```{r}
+#View top variable
+climate_variables_person
+names(dat_person_)
+unique(dat_person_$zone)
+dat_person_$zone<-as.factor(dat_person_$zone)
+dat_person_$zone_numeric<-as.numeric(dat_person_$zone)
+table(dat_person_$zone_numeric)
+
+dat_person_$zone_codes<-paste(dat_person_$zone, dat_person_$zone_numeric)
+unique(dat_person_$zone_codes)
+#Compare codes to lightning
+unique(dat_lightning_$zone_codes) #they are the same
+
+## Create empty vector
+dat_person_$climate1<-0
+head(dat_person_)
+
+dat_person_<-dat_person_ %>%
+    mutate(climate1 = case_when(zone_numeric == 6 ~ tave08, # CWH
+                                zone_numeric == 3 ~ tmax08, #BWBS
+                                zone_numeric == 7 ~ tave08, #ESSF
+                                zone_numeric == 8 ~ mean_tave05_tave06_tave07_tave08_tave09, # ICH
+                                zone_numeric == 12 ~ mean_tave05_tave06_tave07_tave08_tave09, # MS
+                                zone_numeric == 13 ~ tmax08, #PP
+                                zone_numeric == 5 ~ tave09, #CMA
+                                #zone_numeric == 16 ~ , #SWB insufficient data at this time
+                                zone_numeric == 15 ~ mean_tave05_tave06_tave07_tave08_tave09, # SBS
+                                zone_numeric == 14 ~ mean_mdc05_mdc06, #SBPS
+                                zone_numeric == 11 ~ tave08, #MH
+                                #zone_numeric == 10 ~ , #IMA insufficient data at this time
+                                zone_numeric == 2 ~ tmax08, #BG
+                                zone_numeric == 4 ~ tave05, #CDF
+                                zone_numeric == 9 ~ mean_tave05_tave06_tave07_tave08_tave09, #IDF
+                                TRUE ~ NA_real_))
+
+#Repeat for climate 2
+dat_person_$climate2<-0
+
+#Perform mutate to get the applicable variable for each row
+dat_person_<-dat_person_ %>%
+    mutate(climate2 = case_when(zone_numeric == 6 ~ ppt08, # CWH
+                                zone_numeric == 3 ~ ppt08, #BWBS
+                                zone_numeric == 7 ~ ppt08, #ESSF
+                               # zone_numeric == 8 ~ , # ICH
+                                #zone_numeric == 12 ~ , # MS
+                                zone_numeric == 13 ~ ppt08, #PP
+                                zone_numeric == 5 ~ ppt09, #CMA
+                                #zone_numeric == 16 ~ , #SWB -- insufficient data at this time
+                                #zone_numeric == 15 ~ , # SBS
+                                #zone_numeric == 14 ~ , #SBPS
+                                zone_numeric == 11 ~ ppt08, #MH
+                                #zone_numeric == 10 ~ , #IMA -- insufficient data at this time
+                                zone_numeric == 2 ~ ppt08, #BG
+                                zone_numeric == 4 ~ ppt05, #CDF
+                                #zone_numeric == 9 ~ , #IDF
+                                TRUE ~ NA_real_))
+
+head(dat_person_)
+
+##Change vegtype to factor
+dat_person_$vegtype<-as.factor(dat_person_$vegtype)
 
 ```
 
@@ -143,7 +308,7 @@ ggscatter(dat_lightning_t, x = "proj_age_1", y = "proj_height_1",
           xlab = "proj_age_1", ylab = "Stand height")
 
 
-##Note that n0 tree areas also have tree attributes. This is likely because the majority of the polygon has no trees, but part of the polygon might have trees which are given attributes.
+##Note that some no tree areas also have tree attributes. This is likely because the majority of the polygon has no trees, but part of the polygon might have trees which are given attributes.
 hist(dat_lightning_nt$proj_height_1)
 hist(dat_lightning_nt$proj_age_1)
 hist(dat_lightning_nt$live_stand_volume_125) #Pretty much all NAs. Can likely assume 0.
@@ -156,6 +321,363 @@ hist(dat_lightning_l$live_stand_volume_125)
 ## This is ok. Still exclude from models, because majority of polygon will not be treed
 
 ```
+
+
+#Repeat for person caused fires
+
+
+## Examining correlation between stand level variables
+```{r}
+# Examining the relationship between some stand level variables. Volume and height are fairly correlated (0.67) but age and volume are not (0.28) and neither are age and height (0.44). Because volume and height are very close to 0.7 in correlation I will leave out this combination of variables from my treed models. 
+table(dat_person_$bclcs_level_2) ##What is L? It is Land, exclude and do not use.
+dat_person_$fire_pres<-as.numeric(dat_person_$fire)
+
+dat_person_t<- dat_person_ %>% dplyr::filter(bclcs_level_2=="T")
+dat_person_nt<- dat_person_ %>% dplyr::filter(bclcs_level_2=="N")
+dat_person_l<- dat_person_ %>% dplyr::filter(bclcs_level_2=="L")
+
+table(dat_person_$vegtype)
+table(dat_person_t$vegtype) #either disturbed, open, treed broadleaf, treed conifer, or treed mixed broadleaf and conifer
+table(dat_person_nt$vegtype) #either disturbed, open or shrub
+
+ggscatter(dat_person_t, x = "live_stand_volume_125", y = "proj_age_1", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "live stand volume", ylab = "Stand age")
+
+ggscatter(dat_person_t, x = "live_stand_volume_125", y = "proj_height_1", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "live stand volume", ylab = "Stand height")
+
+ggscatter(dat_person_t, x = "proj_age_1", y = "proj_height_1", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "proj_age_1", ylab = "Stand height")
+
+
+##Note that some no tree areas also have tree attributes. This is likely because the majority of the polygon has no trees, but part of the polygon might have trees which are given attributes.
+hist(dat_person_nt$proj_height_1)
+hist(dat_person_nt$proj_age_1)
+hist(dat_person_nt$live_stand_volume_125) #Pretty much all NAs. Can likely assume 0.
+dat_person_nt$proj_height_1 #Also many NAs. 
+dat_person_nt$proj_age_1 # Also many NAs. 
+
+hist(dat_person_l$proj_height_1)
+hist(dat_person_l$proj_age_1)
+hist(dat_person_l$live_stand_volume_125)
+## This is ok. Still exclude from models, because majority of polygon will not be treed
+
+```
+
+
+
+Now, we will make a loop that does something very similar to our last loop, but with the selected climate variable plus other variables of interest. For lightning caused fires, the variables of interest include:
+
+1. Climate variable(s)
+2. Projected Height (proj_height_1)
+3. projected age (proj_age_1)  
+4. live_stand_volume_125
+5. vegtype
+6. slope
+7. aspect
+
+This will be done separatey for trees and non-treed areas. 
+
+First, let's do this for treed areas.
+
+
+```{r}
+#Select the zones for which we have the best climate variables for
+unique(dat_lightning_t$zone)
+zones<- c("ICH", "ESSF", "CWH", "MH", "CMA", "MS", "PP", "SBPS", "IMA", "BWBS", "BG", "SBS", "SWB") #"CDF", "BAFA", "IDF"
+
+#We will separate for those with one climate variable, and those with two
+climate_variables_lightning
+
+zones1<-c("ESSF", "MH", "CMA", "MS", "SBPS", "BWBS", "SBS", "SWB") #"CDF", "BAFA", "IDF"
+zones2<-c("ICH", "CWH",   "PP",  "IMA",  "BG") #"CDF", "BAFA", "IDF"
+
+##Select the proportion to test on so that we have a training dataset and a testing data set
+filenames<-list()
+prop<-0.75
+
+
+```
+
+
+Create variable lists
+
+```{r}
+#Variables_0 will have the baseline climate variable. Variables will contain all of the other variables of interest. 
+variables_0<-c("climate1")
+
+
+
+variables_02<-c("climate1", "climate1", "climate1", "climate1", "climate1")
+variables<-c("proj_height_1", "proj_age_1", "live_stand_volume_125", "slope", "aspect") #remove vegtype
+
+##For demo
+variables_02<-c("climate1", "climate1", "climate1", "climate1", "climate1", "climate1")
+variables<-c("proj_height_1", "proj_age_1", "live_stand_volume_125", "slope", "aspect", "vegtype") #remove vegtype
+
+##vegtype issue is that training and validation data sets have different levels. Find a way to subset these to ensure that levels of each level are included in both data sets.
+#https://rdrr.io/cran/caret/man/createDataPartition.html
+
+
+
+variable_climate<-c("climate1")
+variable_projH<-c("proj_height_1")
+variable_projA<-c("proj_age_1")
+variable_vol<-c("live_stand_volume_125")
+variable_slope<-c("slope")
+variable_aspect<-c("aspect")
+variable_veg<-c("vegtype")
+
+
+
+
+
+
+
+```
+
+
+```{r}
+for (g in 1:100){
+
+for (h in 1:length(zones1)) {
+  dat2<- dat_lightning_t %>% dplyr::filter(zone ==zones1[h])
+  
+#Create frame of AIC table
+# summary table
+table.glm.bec.models <- data.frame (matrix (ncol = 4, nrow = 0))
+colnames (table.glm.bec.models) <- c ("Zone", "Variable", "AIC", "AUC")
+
+model_dat<- dat2 %>% dplyr::select(fire_pres)
+trainIndex <- createDataPartition(model_dat$fire_pres, p = prop,
+                                  list = FALSE,
+                                  times = 1)
+dat1 <- as.data.frame(model_dat[ trainIndex,])
+names(dat1)[1] <- "fire_pres"
+Valid <- as.data.frame(model_dat[-trainIndex,])
+names(Valid)[1] <- "fire_pres"
+
+
+model1 <- glm (fire_pres ~ 1 ,
+               data=dat1,
+               family = binomial (link = "logit"), 
+               na.action=na.omit)
+
+table.glm.bec.models[1,1]<-zones1[h]
+table.glm.bec.models[1,2]<-"intercept"
+table.glm.bec.models[1,3]<-extractAIC(model1)[2]
+
+# lets look at fit of the Valid (validation) dataset
+Valid$model1_predict <- predict.glm(model1,newdata = Valid,type="response")
+roc_obj <- roc(Valid$fire_pres, Valid$model1_predict)
+auc(roc_obj)
+table.glm.bec.models[1,4]<-auc(roc_obj)
+
+rm(model_dat,dat1,Valid)
+
+for (i in 1: length(variables_0)){
+  print(paste((variables_0[i]), (zones1[h]), sep=" "))
+  
+  model_dat<- dat2 %>% dplyr::select(fire_pres, variables_0[i])
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$fire_pres, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  dat1 <- model_dat[ trainIndex,]
+  Valid <- model_dat[-trainIndex,]
+  
+  model1 <- glm (fire_pres ~ . ,
+                 data=dat1,
+                 family = binomial (link = "logit"),
+                 na.action=na.omit)
+  
+  table.glm.bec.models[i+1,1]<-zones1[h]
+  table.glm.bec.models[i+1,2]<-variables_0[i]
+  table.glm.bec.models[i+1,3]<-extractAIC(model1)[2]
+  
+  # lets look at fit of the Valid (validation) dataset
+  Valid$model1_predict <- predict.glm(model1,newdata = Valid,type="response")
+  roc_obj <- roc(Valid$fire_pres, Valid$model1_predict)
+  auc(roc_obj)
+  table.glm.bec.models[i+1,4]<-auc(roc_obj)
+  
+}
+
+# This is an addition to the table above allowing for combinations of the climate variable of interest and of other variables added
+
+for (i in 1: length(variables_02)){
+  print(paste((variables_02[i]), variables[i], (zones1[h]), sep=" "))
+  model_dat<- dat2 %>% dplyr::select(fire_pres, variables_02[i], variables[i])
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$fire_pres, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  dat1 <- model_dat[ trainIndex,]
+  Valid <- model_dat[-trainIndex,]
+  
+  model2 <- glm (fire_pres ~ . ,
+                 data=dat1,
+                 family = binomial (link = "logit"),
+                 na.action=na.omit)
+  
+  table.glm.bec.models[(i+length(variables))+1,1]<-zones1[h]
+  table.glm.bec.models[(i+length(variables))+1,2]<-paste0(variables_02[i],"+", variables[i])
+  table.glm.bec.models[(i+length(variables))+1,3]<-extractAIC(model2)[2]
+  
+  Valid$model2_predict <- predict.glm(model2,newdata = Valid,type="response")
+  roc_obj <- roc(Valid$fire_pres, Valid$model2_predict)
+  auc(roc_obj)
+  table.glm.bec.models[(i+length(variables))+1,4]<-auc(roc_obj)
+  
+}
+#This is where interaction term will be included
+
+
+##Add larger combinations
+
+for (i in 1: length(variable_climate)){
+  print(paste((variable_climate[i]), variable_projH, variable_projA[i], (zones1[h]), sep=" "))
+  model_dat<- dat2 %>% dplyr::select(fire_pres, variable_climate[i], variable_projH[i], variable_projA[i])
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$fire_pres, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  dat1 <- model_dat[ trainIndex,]
+  Valid <- model_dat[-trainIndex,]
+  
+  model2 <- glm (fire_pres ~ . ,
+                 data=dat1,
+                 family = binomial (link = "logit"),
+                 na.action=na.omit)
+  
+  table.glm.bec.models[(i+length(variables))+1,1]<-zones1[h]
+  table.glm.bec.models[(i+length(variables))+1,2]<-paste0(variable_climate[i],"+", variable_projH[i], "+", variable_projA[i])
+  table.glm.bec.models[(i+length(variables))+1,3]<-extractAIC(model2)[2]
+  
+  Valid$model2_predict <- predict.glm(model2,newdata = Valid,type="response")
+  roc_obj <- roc(Valid$fire_pres, Valid$model2_predict)
+  auc(roc_obj)
+  table.glm.bec.models[(i+length(variables))+1,4]<-auc(roc_obj)
+  
+}
+
+#Need to determine how to get full factoral of variables_0 and variables
+table.glm.climate1<-table.glm.bec.models %>% drop_na(AIC)
+
+
+#assign file names to the work
+nam1<-paste("AIC",zones1[h],"run",g,sep="_") #defining the name
+assign(nam1,table.glm.bec.models)
+filenames<-append(filenames,nam1)
+}
+}
+```
+
+
+variable_climate<-c("climate1")
+variable_projH<-c("proj_height_1")
+variable_projA<-c("proj_age_1")
+variable_vol<-c("live_stand_volume_125")
+variable_slope<-c("slope")
+variable_aspect<-c("aspect")
+variable_veg<-c("vegtype")
+
+Save output:
+
+```{r}
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(filenames)
+aic_lightning<-mkFrameList(n) 
+
+aic_lightning_summary<- aic_lightning %>%
+  group_by(Zone, Variable) %>%
+  summarise(meanAIC=mean(AIC),
+            meanAUC=mean(AUC),
+            sdAUC=sd(AUC),
+            )
+
+aic_lightning_summary2<- aic_lightning_summary %>%
+  group_by(Zone) %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+aic_lightning_summary2
+
+
+
+```
+
+
+```{r}
+##Include variation of below for when interactions occur
+
+for (i in 1: length(variables1)){
+  print(paste((variables1[i]), "x",variables2[i], (zones1[h]), sep=" "))
+
+  model_dat<- dat2 %>% dplyr::select(fire_pres, variables1[i], variables2[i])
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$fire_pres, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  dat1 <- model_dat[ trainIndex,]
+  Valid <- model_dat[-trainIndex,]
+
+  model2 <- glm (fire_pres ~ (.)^2,
+                 data=dat1,
+                 family = binomial (link = "logit"),
+                 na.action=na.omit)
+
+  table.glm.bec.models[(i+length(variables) +length(variables1) + 1),1]<-zones1[h]
+  table.glm.bec.models[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
+  table.glm.bec.models[(i+length(variables) +length(variables1) + 1),3]<-extractAIC(model2)[2]
+
+  Valid$model2_predict <- predict.glm(model2,newdata = Valid,type="response")
+  roc_obj <- roc(Valid$fire_pres, Valid$model2_predict)
+  auc(roc_obj)
+  table.glm.bec.models[(i+length(variables) +length(variables1) + 1),4]<-auc(roc_obj)
+
+}
+table.glm.climate1<-table.glm.bec.models %>% drop_na(AIC)
+
+
+#assign file names to the work
+nam1<-paste("AIC",zones1[h],"run",g,sep="_") #defining the name
+assign(nam1,table.glm.bec.models)
+filenames<-append(filenames,nam1)
+}
+}
+```
+
+
+Now repeat for person-caused fires. For person caused fires, the variables of interest include:
+
+1. Climate variable(s)
+2. vegtype
+3. slope
+4. aspect
+5. road density (roads_km)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
