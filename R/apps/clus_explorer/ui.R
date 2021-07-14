@@ -1,8 +1,9 @@
 
 ui <- dashboardPage(skin = "black",
-                    
+            
                     dashboardHeader(title = "CLUS: Explorer Tool"),
                     dashboardSidebar(
+                      tags$style("@import url(https://use.fontawesome.com/releases/v5.7.2/css/all.css);"),
                     introjsUI(),
                       sidebarMenu(
                         menuItem("Home", tabName = "home", icon = icon("home")), 
