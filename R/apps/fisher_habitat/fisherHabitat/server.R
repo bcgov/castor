@@ -216,10 +216,25 @@ server <- function(input, output, session) {
     
     #--------  
     # Outputs 
-    ## Create scatterplot object the plotOutput function is expecting
-    ## set the pallet for mapping
-    #pal <- colorNumeric(palette = "Blues",  domain = fetaPoly$n_fish)
+    output$numberFisher<-renderValueBox({
+        data<-masterTable()
+        numDenning<-nrow(data[data$hab_den > 232, ])
+        numMovement<-nrow(data[data$hab_mov > 1634, ])
+        numRust<-nrow(data[data$hab_rus > 420, ])
+        numCWD<-nrow(data[data$hab_cwd > 450, ])
+        numCavity<-nrow(data[data$hab_cav > 10, ])
+        valueBox(
+            tags$p("Status", style = "font-size: 50%;"),
+            fluidRow(
+                column(HTML(paste0("Abundance:&nbsp ", paste0(round(sum(data$abund),0))," <br> Denning:&nbsp ",paste0(numDenning)," <br> Movement:&nbsp ",paste0(numMovement)," <br> Rust:&nbsp ",paste0(numRust)," <br> CWD:&nbsp ",paste0(numCWD)," <br> Cavity:&nbsp ",paste0(numCavity))), status = "primary", 
+                       title = "O",  width = 12 , 
+                       height = 120)
+                ), color = 'blue'
+        )
+    })
+ 
     
+    #pal <- colorNumeric(palette = "Blues",  domain = fetaPoly$n_fish)
     ## render the leaflet map  
     output$map = renderLeaflet({ 
         req(input$colorFilt)
@@ -249,11 +264,11 @@ server <- function(input, output, session) {
                             paste(paste("<b>FID</b> : ", data$fid, "<br/>"),
                             paste("<b>Density</b> : ", round(data$n_fish,2), "<br/>"),
                             paste("<b>Rel. Prob. Occup</b> : ", round(data$p_occ,2), "<br/>"),
-                            paste("<b>Movement</b> : ", round(data$hab_mov_x,0), "ha <br/>"),
-                            paste("<b>Denning</b> : ", round(data$hab_den_y,0), "ha <br/>"),
-                            paste("<b>Rest. Rust</b> : ", round(data$hab_rus_y, 0), "ha <br/>"),
-                            paste("<b>Rest. CWD</b> : ", round(data$hab_cwd_y,0), "ha <br/>"),
-                            paste("<b>Rest. Cavity</b> : ", round(data$hab_cav_y,0), "ha <br/>")))
+                            paste("<b>Movement</b> : ", round(data$hab_mov,0), "ha <br/>"),
+                            paste("<b>Denning</b> : ", round(data$hab_den,0), "ha <br/>"),
+                            paste("<b>Rest. Rust</b> : ", round(data$hab_rus, 0), "ha <br/>"),
+                            paste("<b>Rest. CWD</b> : ", round(data$hab_cwd,0), "ha <br/>"),
+                            paste("<b>Rest. Cavity</b> : ", round(data$hab_cav,0), "ha <br/>")))
                     )%>%
             addScaleBar(position = "bottomright") %>%
             addControl(filemap,position="bottomleft") %>%
@@ -286,7 +301,37 @@ server <- function(input, output, session) {
     
     
     plotData <- function(data){
-        output$fisherQuality <- renderPlotly({
+        output$fisherAbundance <- renderPlotly({
+            if (!is.null(data)){
+                key <- data$fid
+                
+                p <- plot_ly(data,
+                             x = data$abund,
+                             hoverinfo = 'text',
+                             text = data$fid,
+                             key = ~key ,
+                             type = "histogram")
+                
+                p %>%
+                    layout(  autosize=TRUE, dragmode = 'lasso', xaxis = (list(autorange = TRUE, title = "Distribution of Rel. Prob. Occupancy", automargin = TRUE)),
+                             legend = list(orientation = 'h',  y = 100), margin = list(r = 20, b = 50, t = 50, pad = 4),
+                             yaxis = (list(title = "Abundance Indicator")))%>%
+                    config(displayModeBar = F)}
+            
+            else{
+                
+                
+                p <- plot_ly(x = runif(100,0,1),
+                             type = "histogram") %>%
+                    layout(  autosize=TRUE, dragmode = 'lasso', xaxis = (list(autorange = TRUE, title = "Distribution of Rel. Prob. Occupancy", automargin = TRUE)),
+                             legend = list(orientation = 'h',  y = 100), margin = list(r = 20, b = 50, t = 50, pad = 4),
+                             yaxis = (list(title = "Rel. Prob Occupancy")))%>%
+                    config(displayModeBar = F)
+                
+            }
+            p
+        })
+        output$fisherOccupancy <- renderPlotly({
             if (!is.null(data)){
                 key <- data$fid
                 
@@ -371,11 +416,11 @@ server <- function(input, output, session) {
                                               paste(paste("<b>FID</b> : ", row$fid, "<br/>"),
                                                     paste("<b>Density</b> : ", round(row$n_fish,2), "<br/>"),
                                                     paste("<b>Rel. Prob. Occup</b> : ", round(row$p_occ,2), "<br/>"),
-                                                    paste("<b>Movement</b> : ", round(row$hab_mov_x,0), "ha <br/>"),
-                                                    paste("<b>Denning</b> : ", round(row$hab_den_y,0), "ha <br/>"),
-                                                    paste("<b>Rest. Rust</b> : ", round(row$hab_rus_y, 0), "ha <br/>"),
-                                                    paste("<b>Rest. CWD</b> : ", round(row$hab_cwd_y,0), "ha <br/>"),
-                                                    paste("<b>Rest. Cavity</b> : ", round(row$hab_cav_y,0), "ha <br/>")))
+                                                    paste("<b>Movement</b> : ", round(row$hab_mov,0), "ha <br/>"),
+                                                    paste("<b>Denning</b> : ", round(row$hab_den,0), "ha <br/>"),
+                                                    paste("<b>Rest. Rust</b> : ", round(row$hab_rus, 0), "ha <br/>"),
+                                                    paste("<b>Rest. CWD</b> : ", round(row$hab_cwd,0), "ha <br/>"),
+                                                    paste("<b>Rest. Cavity</b> : ", round(row$hab_cav,0), "ha <br/>")))
                     )
             }
         })
@@ -463,11 +508,11 @@ Forest Analysis and Inventory Branch
             proxy %>%
                 clearGroup(group='Shapefile') %>%
                 addPolygons( data=impShp(), group='Shapefile',stroke = TRUE, color = "#03F", weight = 5, opacity = 0.5) %>%
-                addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery" ), overlayGroups = c('TSA Boundaries','Shapefile'), options = layersControlOptions(collapsed = FALSE))%>%
+                addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery",'TSA Boundaries' ), overlayGroups = c('FETA', 'Shapefile'), options = layersControlOptions(collapsed = FALSE))%>%
                 showGroup(c('Shapefile'))
             if(length(input$map_draw_all_features$features) > 0){
                 proxy %>%
-                    addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery" ), overlayGroups = c('TSA Boundaries','Shapefile', 'Drawn'), options = layersControlOptions(collapsed = FALSE))
+                    addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery",'TSA Boundaries' ), overlayGroups = c('FETA','Shapefile', 'Drawn'), options = layersControlOptions(collapsed = FALSE))
             }
         }
     })
@@ -480,11 +525,11 @@ Forest Analysis and Inventory Branch
         removeModal()
         proxy <- leafletProxy('map')
         proxy %>%
-            addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery" ), overlayGroups = c('TSA Boundaries','Drawn'), options = layersControlOptions(collapsed = FALSE))%>%
+            addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery" , "TSA Boundaries"), overlayGroups = c('FETA','Drawn'), options = layersControlOptions(collapsed = FALSE))%>%
             showGroup(c('Drawn'))
         if(length(impShp()) > 0){
             proxy %>%
-                addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery" ), overlayGroups = c('TSA Boundaries','Shapefile','Drawn'), options = layersControlOptions(collapsed = FALSE))
+                addLayersControl(baseGroups = c("OpenStreetMap","WorldImagery" ,"TSA Boundaries"), overlayGroups = c('FETA','Shapefile','Drawn'), options = layersControlOptions(collapsed = FALSE))
         }
     })
     # 
@@ -534,11 +579,11 @@ Forest Analysis and Inventory Branch
                                           paste(paste("<b>FID</b> : ", data$fid, "<br/>"),
                                                 paste("<b>Density</b> : ", round(data$n_fish,2), "<br/>"),
                                                 paste("<b>Rel. Prob. Occup</b> : ", round(data$p_occ,2), "<br/>"),
-                                                paste("<b>Movement</b> : ", round(data$hab_mov_x,0), "ha <br/>"),
-                                                paste("<b>Denning</b> : ", round(data$hab_den_y,0), "ha <br/>"),
-                                                paste("<b>Rest. Rust</b> : ", round(data$hab_rus_y, 0), "ha <br/>"),
-                                                paste("<b>Rest. CWD</b> : ", round(data$hab_cwd_y,0), "ha <br/>"),
-                                                paste("<b>Rest. Cavity</b> : ", round(data$hab_cav_y,0), "ha <br/>")))
+                                                paste("<b>Movement</b> : ", round(data$hab_mov,0), "ha <br/>"),
+                                                paste("<b>Denning</b> : ", round(data$hab_den,0), "ha <br/>"),
+                                                paste("<b>Rest. Rust</b> : ", round(data$hab_rus, 0), "ha <br/>"),
+                                                paste("<b>Rest. CWD</b> : ", round(data$hab_cwd,0), "ha <br/>"),
+                                                paste("<b>Rest. Cavity</b> : ", round(data$hab_cav,0), "ha <br/>")))
                 )
             
         }

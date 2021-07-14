@@ -19,14 +19,22 @@ ui <- tagList(dashboardPage(
             tags$style(HTML('#Help{color:black}'))
         ),
         column(width = 9, box(width=NULL,
-                              leafletOutput("map", height = 670)),
+                              leafletOutput("map", height = 670),
+                              absolutePanel(id = "fisher_map_control", class = "panel panel-default", draggable = T, top = 270, left = 20, fixed = FALSE, width = "15%", height = "30%",
+                                valueBoxOutput("numberFisher", width = 12)
+                              )
+                              ),
+               
                               boxPlus(height = 390, width=NULL,
                               tabBox(width = NULL, id = "tabset1", height = "0",
-                              tabPanel("Fisher Density" , 
+                              tabPanel("Abundance" , 
+                                              plotlyOutput('fisherAbundance', height = "300px")
+                                     ),
+                              tabPanel("Density" , 
                                        plotlyOutput('fisherDensity', height = "300px")
                               ),
                               tabPanel("Rel. Prob. Occupancy" , 
-                                       plotlyOutput('fisherQuality', height = "300px")
+                                       plotlyOutput('fisherOccupancy', height = "300px")
                               )
                ))
         ),
@@ -52,8 +60,8 @@ ui <- tagList(dashboardPage(
               width = NULL,
               radioButtons("colorFilt",
                            "Select Attribute",
-                           choices = c("n_fish","p_occ", "hab_den_x", "hab_mov_y", "hab_rus_y", "hab_cwd_y", "hab_cav_y"),
-                           selected = "n_fish",
+                           choices = c("abund","n_fish","p_occ", "hab_den", "hab_mov", "hab_rus", "hab_cwd", "hab_cav"),
+                           selected = "abund",
                            inline = FALSE)
             ),
             boxPlus(width=NULL,
