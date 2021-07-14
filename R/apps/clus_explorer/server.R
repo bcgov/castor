@@ -40,25 +40,40 @@ ON c.compartment = a.compartment;")))
     req(input$schema)
     req(input$scenario)
     
-    if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
+    if(nrow(getTableQuery(paste0("SELECT * FROM information_schema.tables 
+       WHERE table_schema = '",input$schema ,"' and table_name = 'survival'")))> 0){
+      if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
       data.survival<-data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, herd_bounds, timeperiod;")))
       data.survival<-data.survival[,lapply(.SD, weighted.mean, w =area), by =c("scenario",  "herd_bounds", "timeperiod"), .SDcols = c("prop_age", "prop_mature", "prop_old", "survival_rate")]
+      }else{
+        data.survival<-NULL
+      }
     }else{
       data.survival<-NULL
     }
     
-    if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
+    if(nrow(getTableQuery(paste0("SELECT * FROM information_schema.tables 
+       WHERE table_schema = '",input$schema ,"' and table_name = 'disturbance'")))> 0){
+      if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
       data.disturbance<-data.table (getTableQuery(paste0("SELECT scenario,timeperiod,critical_hab,
     sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(total_area) as total_area FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
       # c40r50 = dist; c40r500 = dist500 }
       data.disturbance<-data.disturbance[, dist_per:= c40r50/total_area][, dist500_per:= c40r500/total_area]
+      }else{
+        data.disturbance<-NULL
+      }
     }else{
       data.disturbance<-NULL
     }
-
-    if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".grizzly_survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
+    
+        if(nrow(getTableQuery(paste0("SELECT * FROM information_schema.tables 
+       WHERE table_schema = '",input$schema ,"' and table_name = 'grizzly_survival'")))> 0){
+      if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".grizzly_survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
       data.grizzly_survival<-data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".grizzly_survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, gbpu_name, timeperiod;")))
       data.grizzly_survival<-data.grizzly_survival[,lapply(.SD, weighted.mean, w = total_area), by =c("scenario",  "gbpu_name", "timeperiod"), .SDcols = c("road_density", "survival_rate")]
+      }else{
+        data.grizzly_survival<-NULL
+      }
     }else{
       data.grizzly_survival<-NULL
     }
