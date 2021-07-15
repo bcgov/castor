@@ -201,20 +201,20 @@ parameters <- list(
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
-                           nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
+                           nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', #'rast.bc_thlb2018' 
                            nameZoneRasters = c("rast.zone_cond_beo", 
                                              "rast.zone_cond_vqo", 
-                                             "rast.zone_cond_wha", 
+                                             "rast.zone_wha_2021", #"rast.zone_cond_wha"  
                                              "rast.zone_uwr_2021", #"rast.zone_cond_uwr"
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", 
-                                             "rast.zone_cond_cw",
+                                             "rast.zone_cond_cw"
                             # "rast.zone_cond_noharvest_monashee_crithab_or_herd"
                             # "rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd"
                             # "rast.zone_cond_noharvest_columbia_south_crithab_or_herd"
                             # "rast.zone_cond_noharvest_central_rockies_crithab_or_herd"
                             # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd"
-                             "rast.zone_cond_eccc_monashee_crithab_or_herd"
+                            # "rast.zone_cond_eccc_monashee_crithab_or_herd"
                             # "rast.zone_cond_eccc_frisby_boulder_crithab_or_herd"
                             # "rast.zone_cond_eccc_columbia_south_crithab_or_herd"
                             # "rast.zone_cond_eccc_central_rockies_crithab_or_herd"
@@ -374,10 +374,11 @@ modules <- list("dataLoaderCLUS",
 # scenario = data.table (name = "revelstoke_frisby_boulder_hi_med_lo",
 #                        description = "No harvest in high priority stands and all priority areas in Frisby Boulder high elevation critical habitat; harvest allowed in matrix all priority areas up to 15% forest disturbance (no buffer) in forested area.  Adjacency = 3m. Oldest first. Flow = 210,000m^3^/year.")
 
-scenario = data.table (name = "revelstoke_monashee_he0d_m12d",
-                       description = "No harvest in Monashee high elevation critical habitat; harvest allowed in matrix critical habitat up to 12% disturbance (no buffer) in forested area. Note: no core here. Adjacency = 3m. Oldest first. Flow = 210,000m^3^/year.")
+# scenario = data.table (name = "revelstoke_monashee_he0d_m12d",
+#                        description = "No harvest in Monashee high elevation critical habitat; harvest allowed in matrix critical habitat up to 12% disturbance (no buffer) in forested area. Note: no core here. Adjacency = 3m. Oldest first. Flow = 210,000m^3^/year.")
 
-
+scenario = data.table (name = "thlb_test",
+                       description = "Test 2020 THLB.")
 
 
 
