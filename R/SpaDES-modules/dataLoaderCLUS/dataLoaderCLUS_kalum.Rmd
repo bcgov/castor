@@ -60,7 +60,7 @@ parameters <-  list(
                          nameBoundaryGeom='wkb_geometry',
                          nameCompartmentRaster = "rast.tsa_aac_bound_nw_coast",
                          nameCompartmentTable = "tsa_aac_bounds_nw_coast_vat",
-                         nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
+                         nameMaskHarvestLandbaseRaster='rast.thlb_2020', #'rast.bc_thlb2018'
                          nameZoneRasters=c("rast.zone_cond_beo", 
                                            "rast.zone_cond_vqo", 
                                            "rast.zone_wha_2021", #"rast.zone_cond_wha"  

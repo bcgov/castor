@@ -53,7 +53,7 @@ parameters <-  list(
                          nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
                          nameCompartmentRaster = "rast.tsa_aac_boundary", 
                          nameCompartmentTable = "tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
-                         nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018', # THLB raster in postgres
+                         nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', #'rast.bc_thlb2018'
                          nameZoneRasters = c("rast.zone_cond_beo", # rasters of the zone constraints to include
                                              "rast.zone_cond_vqo", 
                                              "rast.zone_wha_2021", #"rast.zone_cond_wha" 
