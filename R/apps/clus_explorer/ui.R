@@ -1,8 +1,9 @@
 
 ui <- dashboardPage(skin = "black",
-                    
+            
                     dashboardHeader(title = "CLUS: Explorer Tool"),
                     dashboardSidebar(
+                      tags$style("@import url(https://use.fontawesome.com/releases/v5.15.3/css/all.css);"),
                     introjsUI(),
                       sidebarMenu(
                         menuItem("Home", tabName = "home", icon = icon("home")), 
@@ -15,10 +16,10 @@ ui <- dashboardPage(skin = "black",
                                  menuSubItem("Fisher", tabName = "fisher", icon = icon("otter",lib = "font-awesome")),
                                  menuSubItem("Forestry", tabName = "forestry", icon = icon("tree")),
                                  menuSubItem("Grizzly Bear", tabName = "grizzly_bear", icon = icon("leaf")),
-                                 menuSubItem("Insects (planned)", tabName = "insects", icon = icon("bug")), 
-                                 menuSubItem("Mining (planned)", tabName = "mining", icon = icon("gem")),
-                                 menuSubItem("Oil and Gas (planned)", tabName = "oilandgas", icon = icon("bolt")),
-                                 menuSubItem("Recreation (planned)", tabName = "recreation", icon = icon("shoe-prints"))
+                                 menuSubItem("Insects", tabName = "insects", icon = icon("bug")), 
+                                 menuSubItem("Mining", tabName = "mining", icon = icon("gem")),
+                                 menuSubItem("Oil and Gas", tabName = "oilandgas", icon = icon("bolt")),
+                                 menuSubItem("Recreation", tabName = "recreation", icon = icon("shoe-prints"))
                         ), 
                         add_class(menuItem("Query Builder", tabName = "querybuilder", icon = icon("search")), "querybuilder"),
                         add_class(menuItem("Map Viewer", tabName = "mapviewer", icon = icon("layer-group")), "mapviewer")
