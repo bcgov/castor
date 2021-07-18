@@ -148,6 +148,7 @@ updateGS<- function(sim) {
   message("...update yields")
   if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")) > 0){
     #tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, dat[yieldid == .BY]$eca,  xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
+    #Note that this query uses the 'current' estimate of yield as the floor when interpolating
     tab1<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t.pixelid,
     (((k.tvol - t.vol*1.0)/(round(t.age/10+0.5)*10-(t.age - ", sim$updateInterval,")))*(t.age - CAST(t.age/10 AS INT)*10))+ t.vol as vol,
     (((k.height - t.height*1.0)/(round(t.age/10+0.5)*10-(t.age-", sim$updateInterval,")))*(t.age - CAST(t.age/10 AS INT)*10))+ t.height as ht,
