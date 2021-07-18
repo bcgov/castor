@@ -53,7 +53,7 @@ Load in the relevant files and inspect.
 ```{r}
 ##Slope
 DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc.tif")
-plot(DEM_slope)
+plot(DEM_slope) #you may wish to plot this to inspect
 
 GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc.tif")
 #DEM_slope
@@ -63,7 +63,7 @@ GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc
 
 ##Aspect
 DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc.tif")
-plot(DEM_aspect)
+plot(DEM_aspect) #you may wish to plot this to inspect
 
 GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc.tif")
 #DEM_aspect
@@ -71,9 +71,16 @@ GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_b
 #DEM_aspect_df <- as.data.frame(DEM_aspect, xy = TRUE)#Dataframe created for mapping; but we see later that the files is >2GB and thus too large to map in R
 #str(DEM_aspect_df)
 
+DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+plot(DEM_slope)
+
+GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+#DEM_slope
+
 ##Determine resolution
 res(DEM_aspect)
 res(DEM_slope)
+res(DEM)
 
 ##Plot (must use dataframe version for plotting)
 ## Files too large to plot; view in QGis
@@ -93,13 +100,16 @@ res(DEM_slope)
 Stack the two rasters. Stacking the two rasters will make extracting slope and aspect values for our data points easier downstream (https://gisday.wordpress.com/2014/03/24/extract-raster-values-from-points-using-r/comment-page-1/)
 
 ```{r}
-##Stack the two rasters
-rasStack = stack(DEM_slope, DEM_aspect)
+##Stack the three rasters
+#rasStack = stack(DEM_slope, DEM_aspect)
+rasStack = stack(DEM_slope, DEM_aspect, DEM)
 crs(rasStack)
+head(rasStack)
+str(rasStack)
 
 ```
 
-Bring in data points for which we want data for slope and aspect (i.e, sample locations). This is the data that we uploaded at the end of the 02_climate_data_prep_all. If you are contuning from this file immediately, you may not need to bring it back in again. 
+Bring in data points for which we want data for slope and aspect (i.e, sample locations). This is the data that we uploaded at the end of the 02_climate_data_prep_all. If you are continuing from this file immediately, you may not need to bring it back in again. 
 
 Be aware that when being saved prior, some of the column names may have been shortened. If so, then renaming may need to occur. Here are the names you want:
 
@@ -143,6 +153,7 @@ crs(sample_locations2)
 ##Compare to DEM layer
 crs(DEM_aspect) #Numbers similar, but these ones missing +datum, and sample_locations missing +ellps
 crs(DEM_slope)
+crs(DEM)
 
 res(DEM_aspect)
 res(DEM_slope)
@@ -167,8 +178,8 @@ head(pointCoordinates)
 ##Extract DEM values from stacked layer
 rasValue2=raster::extract(rasStack, pointCoordinates)
 head(rasValue2)
-str(rasValue2) #501353 values
-str(sample_locations2)#501353 values
+str(rasValue2) #274594 values
+str(sample_locations2)#274594 values
 
 #Append new information
 sample_locations_DEM<-cbind(sample_locations2, rasValue2)
