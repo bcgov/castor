@@ -53,4 +53,4 @@ Forest succession after clear cutting stages (4):
 
 Grizzly bear density is positively related to non-forested areas.
 
-'Selection' reflects an animal choosing to use a habitat, and 'pr
+'Selection' reflects an animal choosing to use a habitat, and 'preference' reflects the likelihood of an animal choosing to use a habitat if offered on an equal basis with other habitats.
