@@ -203,8 +203,6 @@ library(nlme)
 library(caret)
 library(pROC)
 
-
-
 source(here::here("R/functions/R_Postgres.R"))
 
 ```

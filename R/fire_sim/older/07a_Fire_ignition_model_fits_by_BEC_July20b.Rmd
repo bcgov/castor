@@ -34,6 +34,8 @@ library(AICcmodavg)
 library(keyring)
 library(caret)
 library(pROC)
+
+source(here::here("R/functions/R_Postgres.R"))
 ```
 
 
@@ -507,61 +509,23 @@ This will be done separately for trees and non-treed areas.
 
 First, let's do this for treed areas (with the lightning-caused fires dataset).
 
+##We will do each loop separately for each BEC zone given the large number of possible models for just one zone (>2 million).
 
 ```{r}
-#Select the zones for which we have the best climate variables for. Note, some zones had too few datapoints. Need to decide what to do with those zones still. 
-unique(dat_lightning_t$zone)
-zones<- c("ICH", "ESSF", "CWH", "MH", "CMA", "MS", "PP", "SBPS", "IMA", "BWBS", "BG", "SBS", "SWB") #"CDF", "BAFA", "IDF"
 
-#We will separate for those with one climate variable, and those with two
-climate_variables_lightning
-
-zones1<-c("ESSF", "MH", "MS", "SBPS", "BWBS", "SBS", "SWB") #These are the zones with only one climate variable from previous climate selection models.
-#CMA must be assessed separately because no vegtype variaiton
-cma_t<-subset(dat_lightning_t, dat_lightning_t$zone=="CMA")
-table(cma_t$vegtype)
-
-#  D  OP   S  TB  TC  TM 
- # 0   0   0   1 135   0 
-
-zones1b<-c("CMA")
-
-zones2<-c("ICH", "CWH",   "PP",  "IMA",  "BG") #These are the models with two climate variables from previous climate selection models.
+##prepare the data for all that have variability in vegtype and only one climate variable
 
 ##Select the proportion to test on so that we have a training dataset and a testing data set
 filenames<-list()
 prop<-0.75
 
-
-```
-
-
-Create variable lists to be used in the model loop.
-
-```{r}
-#Variables_0 will have the baseline climate variable. Variables will contain all of the other variables of interest. 
-variables_0<-c("climate1")
-
-
-##Create variables to get climate plus each variable independently
-variables_02<-c("climate1", "climate1", "climate1", "climate1", "climate1", "climate1")
-variables<-c("proj_height_1", "proj_age_1", "live_stand_volume_125", "slope", "aspect", "vegtype") 
-#Will need to add elevation to above
-
-#Variable prep
+##Create variable lists to be used in the model loop.
 variables_all<-c(climate1 = "climate1", proj_height_1 = "proj_height_1", proj_age_1 = "proj_age_1", live_stand_volume_125 = "live_stand_volume_125", slope = "slope", aspect = "aspect", vegtype = "vegtype") 
-
 vars.clim<-c("climate1")
 vars.oth<-c("proj_height_1", "proj_age_1", "live_stand_volume_125", "slope", "aspect", "vegtype") 
-#Will need to add elevation to above
+
 inputs.me <- c(vars.clim, vars.oth)
 
-
-```
-
-Create a list of all possible two-way interactions between all the variables.
-
-```{r}
 #get the names of all possible two-way interactions
 twoway.ints <- NULL
 for (i in 1:(length(inputs.me)-1)) {
@@ -609,97 +573,191 @@ for (i in 1: length(mods.twoway)) {
 
 
 #the list of all possible model RHSs. 
-all.poss.mods <- c(1, mods.me, mods.inter)
+all.poss.mods <- c(1, vars.clim, mods.me, mods.inter)
 all.poss.mods
+all.poss.mods[2]
+length(all.poss.mods) #2,310, 534 possible models
 
 #Check
-paste(all.poss.mods[[36]], collapse=" + ") #assessing the 36th element for the test
-paste(all.poss.mods[[1]], collapse=" + ")
-paste(all.poss.mods[[2]], collapse=" + ")
-paste(all.poss.mods[[3]], collapse=" + ")
+#paste(all.poss.mods[[36]], collapse=" + ") #assessing the 36th element for the test
 
-length(all.poss.mods) #2,310,533 possible models... this is a problem. This will get larger once elevation is added in.
-
-##Smaller set to start with
+#------------keeping only the first 20 models for testing purposes---------;
+all.poss.mods20 <- all.poss.mods[1:20]
 all.poss.mods10 <- all.poss.mods[1:10]
 
-```
-
-Now that we have the data prepped, we can run the loop. We will select a training dataset and a validation dataset to test the results against to get AIC and AUC values that will be appended to a table.
-
-```{r}
-for (g in 1:100){
-
-for (h in 1:length(zones1)) {
-  dat2<- dat_lightning_t %>% dplyr::filter(zone ==zones1[h])
-  
-#Create frame of AIC table
-# summary table
-table.glm.bec.models <- data.frame (matrix (ncol = 4, nrow = 0))
-colnames (table.glm.bec.models) <- c ("Zone", "Variable", "AIC", "AUC")
-
-
-for (i in 1: length(all.poss.mods10)){
-  print(paste((all.poss.mods10[i]), (zones1[h]), sep=" "))
-  
- # model_dat<- dat2 %>% dplyr::select(fire_pres, fire_veg, variables_all[i])
-  model_dat<- dat2 %>% dplyr::select(fire_pres, fire_veg, !!variables_all)
-  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(model_dat$fire_veg, p = prop,
-                                    list = FALSE,
-                                    times = 1)
-  
-   dat1 <- model_dat[ trainIndex,]
-   Valid <- model_dat[-trainIndex,]
-
-big.mod <- function(mods.in, df.train, df.test, dep.var="fire_pres") {
-   rhs <- paste(mods.in, collapse=" + ")
-   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
-   mod.fit <- glm(form, family=binomial, data=df.train)
-   mod.stuff <- summary(mod.fit)
-   mod.aic <- extractAIC(mod.fit)
-   mod.valid <- predict.glm(mod.fit, newdata=df.test, type="response")
-   roc_obj <- roc(df.test[,dep.var], mod.valid)
-   mod.auc <- auc(roc_obj)
-   return(list(mod.stuff, mod.aic, mod.auc))
-}
-
-#mods.fit <- lapply(all.poss.mods10, big.mod, df.train=dat1, df.test=Valid)
-
-  
-  #table.glm.bec.models[i+1,1]<-zones1[h]
-  #table.glm.bec.models[i+1,2]<-all.poss.mods10[i]
-  #table.glm.bec.models[i+1,3]<-extractAIC(mod.fit)[2]
-  
-  # lets look at fit of the Valid (validation) dataset
-  #Valid$model1_predict <- predict.glm(big.mod,newdata = Valid,type="response")
-  #roc_obj <- roc(Valid$fire_pres, Valid$model1_predict)
-  #auc(roc_obj)
-  #table.glm.bec.models[i+1,4]<-auc(roc_obj)
-  
-}
-
-
-#Need to determine how to get full factoral of variables_0 and variables
-table.glm.climate1<-table.glm.bec.models %>% drop_na(AIC)
-
-
-#assign file names to the work
-nam1<-paste("AIC",zones1[h],"run",g,sep="_") #defining the name
-assign(nam1,table.glm.bec.models)
-filenames<-append(filenames,nam1)
-}
-}
+#Create sets for after testing purposes over
+all.poss.mods1000<-all.poss.mods[1:1000]
 
 ```
 
+Let's work with one BEC zone at a time. Let's first do all of tyhe BEC zones with one climate variable, and then later with 2.
 
+zones1<-c("ESSF", "MH", "MS", "SBPS", "BWBS", "SBS", "SWB", "CMA") #these are the models with one climate variable
+#Note: CMA must be assessed without vegtype because no vegtype variation
 
+cma_t<-subset(dat_lightning_t, dat_lightning_t$zone=="CMA")
+table(cma_t$vegtype)
 
+#  D  OP   S  TB  TC  TM 
+ # 0   0   0   1 135   0 
+
+zones2<-c("ICH", "CWH",   "PP",  "IMA",  "BG") #These are the models with two climate variables from previous climate selection models.
+
+Other zones had insufficient information to determine top climate variables. These other zones will need to be assessed at a later time. Investigate with below.
 
 
 
 ```{r}
+##Create variable lists to be used in the model loop.
+variables_all<-c(climate1 = "climate1", proj_height_1 = "proj_height_1", proj_age_1 = "proj_age_1", live_stand_volume_125 = "live_stand_volume_125", slope = "slope", aspect = "aspect", vegtype = "vegtype") 
+#vars.clim<-c("climate1")
+vars.clim.vegtype<-c("climate1", "vegtype")
+vars.oth<-c("proj_height_1", "proj_age_1", "live_stand_volume_125") 
+#vars.oth<-c("proj_height_1", "proj_age_1", "live_stand_volume_125", "vegtype")
+#vars.topo<-c("slope", "aspect") #"elevation")
+vars.topo<-c("slope", "aspect", "elevation")
+
+
+inputs.me <- c(vars.clim.vegtype)
+
+
+#get the names of all possible two-way interactions for climate and the first set of variables
+twoway.ints <- NULL
+for (i in 1:(length(inputs.me)-1)) {
+  for (j in (i+1):length(inputs.me)) {
+     twoway.ints <- cbind(twoway.ints, paste(inputs.me[i], inputs.me[j], sep=":"))
+  }
+}
+twoway.ints
+length(twoway.ints)
+
+#Create function to determine Powerset for any vector of variable names
+#powerSet <- function(x) {
+#   z.list <- NULL
+#   for(i in 1:length(x)) {
+#      z.list <- append(z.list, combn(x, m=i, simplify=F))
+#   }    
+#   return(z.list)
+#}
+
+#complete list of models using non-cimate vars
+#mods.me.tmp <- powerSet(vars.oth) 
+#add climate vars to all of the above
+#mods.me <- list()
+#for (i in 1: length(mods.me.tmp)) {
+#   mods.me[[i]] <- c(vars.clim, mods.me.tmp[[i]])
+#}
+
+#complete list of two-way interactions
+#mods.twoway <- powerSet(twoway.ints)
+#length(mods.twoway)
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+#should really use lapply instead of loop but being lazy
+#mods.inter <- list()
+#counter <- 0
+#for (i in 1: length(mods.twoway)) {
+#   s1 <- unique(unlist( strsplit(mods.twoway[[i]], split=':', fixed=TRUE) ) )
+#   for (j in 1: length(mods.me)) {
+#      if (all(s1 %in% mods.me[[j]])==TRUE) {
+#        counter <- counter + 1
+#        both <-  c(mods.me[[j]], mods.twoway[[i]])
+#        mods.inter[[counter]] <- both
+#      }
+#   }
+#}
+
+#length(mods.inter)
+
+
+
+
+#get the names of all possible two-way interactions
+twoway.ints2 <- NULL
+for (i in 1:(length(vars.topo)-1)) {
+  for (j in (i+1):length(vars.topo)) {
+     twoway.ints2 <- cbind(twoway.ints2, paste(vars.topo[i], vars.topo[j], sep=":"))
+  }
+}
+twoway.ints2
+length(twoway.ints2)
+
+#Create function to determine Powerset for any vector of variable names
+powerSet <- function(x) {
+   z.list <- NULL
+   for(i in 1:length(x)) {
+      z.list <- append(z.list, combn(x, m=i, simplify=F))
+   }    
+   return(z.list)
+}
+
+#complete list of models using non-climate vars
+mods.me.tmp <- powerSet(vars.topo) 
+#add climate vars to all of the above
+mods.me2 <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.me2[[i]] <- c(mods.me.tmp[[i]])
+}
+
+#complete list of two-way interactions
+mods.twoway2 <- powerSet(twoway.ints2)
+length(mods.twoway2) #7
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+#should really use lapply instead of loop but being lazy
+mods.inter2 <- list()
+counter <- 0
+for (i in 1: length(mods.twoway2)) {
+   s1 <- unique(unlist( strsplit(mods.twoway2[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.me2)) {
+      if (all(s1 %in% mods.me2[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.me2[[j]], mods.twoway2[[i]])
+        mods.inter2[[counter]] <- both
+      }
+   }
+}
+
+length(mods.inter2)
+
+
+
+##For other VRI data, get without interactions
+mods.inter2 <- list()
+counter <- 0
+for (i in 1: length(mods.twoway2)) {
+   s1 <- unique(unlist( strsplit(mods.twoway2[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.me2)) {
+      if (all(s1 %in% mods.me2[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.me2[[j]], mods.twoway2[[i]])
+        mods.inter2[[counter]] <- both
+      }
+   }
+}
+
+length(mods.inter2)
+
+
+#the list of all possible model RHSs. 
+all.poss.mods <- c(1, vars.clim, twoway.ints, mods.me2, mods.inter2)
+all.poss.mods
+all.poss.mods[2]
+length(all.poss.mods) #20 models with new alterations - this is a reasonable number to cycle through
+```
+
+
+
+```{r}
+unique(dat_lightning_t$zone)
+# Zones without climate variables as of July 2021:  BAFA, CDF,IDF
+```
+
+Select first zones: SBS
+
+```{r}
+zones1<-c("SBS") #Do one zones at a time
+
 for (g in 1:100){
 
 for (h in 1:length(zones1)) {
@@ -711,8 +769,8 @@ for (h in 1:length(zones1)) {
 #colnames (table.glm.bec.models) <- c ("Zone", "Variable", "AIC", "AUC")
 
 
-for (i in 1: length(all.poss.mods10)){
-  print(paste((all.poss.mods10[i]), (zones1[h]), sep=" "))
+for (i in 1: length(all.poss.mods1000)){
+  print(paste((all.poss.mods1000[i]), (zones1[h]), sep=" "))
   
  # model_dat<- dat2 %>% dplyr::select(fire_pres, fire_veg, variables_all[i])
   model_dat<- dat2 %>% dplyr::select(fire_pres, fire_veg, !!variables_all)
@@ -727,128 +785,75 @@ for (i in 1: length(all.poss.mods10)){
 big.mod <- function(mods.in, df.train, df.test, dep.var="fire_pres") {
    rhs <- paste(mods.in, collapse=" + ")
    form <- as.formula(paste(noquote(dep.var), " ~", rhs))
-   mod.fit <- glm(form, family=binomial, data=df.train)
-   mod.stuff <- summary(mod.fit)
-   mod.aic <- extractAIC(mod.fit)
-   mod.valid <- predict.glm(mod.fit, newdata=df.test, type="response")
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
    roc_obj <- roc(df.test[,dep.var], mod.valid)
    mod.auc <- auc(roc_obj)
    return(list(mod.stuff, mod.aic, mod.auc))
+   
 }
 
-mods.fit <- lapply(all.poss.mods10, big.mod, df.train=dat1, df.test=Valid)
+mods.fit <- lapply(all.poss.mods1000, big.mod, df.train=dat1, df.test=Valid)
 
   
- # table.glm.bec.models[i+1,1]<-zones1[h]
-#  table.glm.bec.models[i+1,2]<-all.poss.mods10[i]
-#  table.glm.bec.models[i+1,3]<-extractAIC(big.mod)[2]
-  
-  # lets look at fit of the Valid (validation) dataset
-#  Valid$model1_predict <- predict.glm(big.mod,newdata = Valid,type="response")
-#  roc_obj <- roc(Valid$fire_pres, Valid$model1_predict)
-##  auc(roc_obj)
-#  table.glm.bec.models[i+1,4]<-auc(roc_obj)
+}
   
 }
-
-
-#Need to determine how to get full factoral of variables_0 and variables
-#table.glm.climate1<-table.glm.bec.models %>% drop_na(AIC)
-
-
-#assign file names to the work
-#nam1<-paste("AIC",zones1[h],"run",g,sep="_") #defining the name
-#assign(nam1,table.glm.bec.models)
-#filenames<-append(filenames,nam1)
 }
-}
+
 
 ```
 
-
-
-
-
-
-
-
-
-
+Now extract elements from the output.
 
 ```{r}
-for (g in 1:100){
 
-for (h in 1:length(zones1)) {
-  dat2<- dat_lightning_t %>% dplyr::filter(zone ==zones1[h])
-  
-#Create frame of AIC table
-# summary table
-table.glm.bec.models <- data.frame (matrix (ncol = 4, nrow = 0))
-colnames (table.glm.bec.models) <- c ("Zone", "Variable", "AIC", "AUC")
-
-
-for (i in 1: length(all.poss.mods)){
-  print(paste((all.poss.mods[i]), (zones1[h]), sep=" "))
-  
- # model_dat<- dat2 %>% dplyr::select(fire_pres, fire_veg, variables_all[i])
-  model_dat<- dat2 %>% dplyr::select(fire_pres, fire_veg, !!variables_all)
-  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(model_dat$fire_veg, p = prop,
-                                    list = FALSE,
-                                    times = 1)
-  
-   dat1 <- model_dat[ trainIndex,]
-   Valid <- model_dat[-trainIndex,]
-
-  mods.fit <- list()
-for (i in 1: length(all.poss.mods)) {
-   rhs <- paste(all.poss.mods[[i]], collapse=" + ")
-   form <- as.formula(paste("fire_pres ~", rhs))
-   mods.fit[[i]] <- summary(glm(form, family=binomial, data=dat1))
-   #print(form)
-}
-  
-
-#  big.mod <- function(mods.in, df, dep.var="fire_pres"){
-#   rhs <- paste(mods.in, collapse=" + ")
-#   form <- as.formula(paste(fire_pres, " ~", rhs))
-#   return(summary(glm(form, family=binomial, data=dat1)))
-#}
-
-#mods.fit <- lapply(all.poss.mods, big.mod, df=dat1)
-
-  
-  
- # model1 <- glm (fire_pres ~ . ,
-  #               data=dat1,
-   #              family = binomial (link = "logit"),
-    #             na.action=na.omit)
-  
-  table.glm.bec.models[i+1,1]<-zones1[h]
-  table.glm.bec.models[i+1,2]<-all.poss.mods[i]
-  table.glm.bec.models[i+1,3]<-extractAIC(model1)[2]
-  
-  # lets look at fit of the Valid (validation) dataset
-  Valid$model1_predict <- predict.glm(model1,newdata = Valid,type="response")
-  roc_obj <- roc(Valid$fire_pres, Valid$model1_predict)
-  auc(roc_obj)
-  table.glm.bec.models[i+1,4]<-auc(roc_obj)
-  
-}
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+#summary of each model
+x2.tmp <- sapply(mods.fit, '[', 2) 
+#deviances
+x2 <- unlist(sapply(x2.tmp, deviance))
+#edf and aic
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+#auc from validation data
+x4 <- unlist(sapply(mods.fit, '[', 4))
+#combining all as df
+tab.sum <- cbind.data.frame(model=x1, dev=x2, edf=x3[,1], aic=x3[,2], auc.valid=x4)
 
 
-#Need to determine how to get full factoral of variables_0 and variables
-table.glm.climate1<-table.glm.bec.models %>% drop_na(AIC)
+
+#terms in each model
+x1 <- unlist(sapply(mods.fit2, '[', 1))
+#summary of each model
+x2.tmp <- sapply(mods.fit2, '[', 2) 
+#deviances
+x2 <- unlist(sapply(x2.tmp, deviance))
+#edf and aic
+x3 <- matrix(unlist(sapply(mods.fit2, '[', 3)), ncol=2, byrow=TRUE)
+#auc from validation data
+x4 <- unlist(sapply(mods.fit2, '[', 4))
+#combining all as df
+tab.sum <- cbind.data.frame(model=x1, dev=x2, edf=x3[,1], aic=x3[,2], auc.valid=x4)
+tab.sum
+
+tab.sum$delta.aic<- tab.sum$aic - (min(tab.sum$aic))
+tab.sum
 
 
-#assign file names to the work
-nam1<-paste("AIC",zones1[h],"run",g,sep="_") #defining the name
-assign(nam1,table.glm.bec.models)
-filenames<-append(filenames,nam1)
-}
-}
 
 ```
+
+
+
+
+
+
+
+
+
 
 
 
