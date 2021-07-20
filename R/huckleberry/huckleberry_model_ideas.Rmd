@@ -21,6 +21,8 @@ Questions I have:
   2. Check for information on burning - is it in the data?
   3. Data also for buffaloberry?
   4. What other elements for grizzly bear model do we already have? Forest service road and human disturbance elements?
+  5. Do we have information on cutblock treatment in the data? Check.
+  6. Cutblock size info?
 
 
 See some initial exploration of the data here by Tyler Muhly:
@@ -59,5 +61,7 @@ Stratified by season: spring (hypophagia), summer (early hyperphagia) and autumn
 Researchers found evidence cut block use all seasons, selection most consistent in summer and then autumn, with spring highly variable. Dominant ecological factor was the abundance of berries from shrubs (as well as roots, ants and other forage.
 Avoidance was associated with accelerated re-growth (including post-harvest mechanical site prep, planting, seeding and herbicides), poor forage in cut blocks (from accelerated re-growth or salvage logging) and human presence.
 
+Extremely variable results from different studies for grizzly bear preference, selection, avoidance and neutral for cutblocks across all seasons. Grizzly bears prefer natural openings, but will select clearcuts when natural openings are sparse, especially if human access is reduced. Grizzly bears prefer larger cutblocks to smaller ones, but are more often found near the forest edges. Forestry practices that maximize heterogeneity, security and cover, whileconsidering human impacts (roads) are optimal. 
 
+Silviculture: artificially accelerated cutblock re-growth can reduce grizzly bear forage. Scarification often damages shrub roots and reduces forage regrowth, resulting in grizzly bears not selecting these sites.
  

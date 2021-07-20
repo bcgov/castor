@@ -283,7 +283,57 @@ dat_lightning_<-dat_lightning %>%
 head(dat_lightning_)
 
 ```
+Inspect how MDC for time of fire influences probability of ignition. This can be included in the modelling for monthly predictions.
 
+```{r}
+p <- ggplot(dat_lightning_, aes(mdc_atfire, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("MDC at fire") + ylab("Pr (ignition)")
+p
+
+#MDC at time of fire is hugely important for ignitions. However, need to remember, that these 0 points are created by taking the mean for the season... so biased. Matches intuition though and could be explored.
+```
+Create a second mdc_atfire metric setting the default to August MDC when no fire
+
+```{r}
+dat_lightning_$mdc_atfire_2<-0
+head(dat_lightning_)
+dat_lightning_<-dat_lightning_ %>%
+    mutate(mdc_atfire_2 = case_when(ign_month == 5 ~ mdc_05,
+                                  ign_month == 6 ~ mdc_06,
+                                  ign_month == 7 ~ mdc_07,
+                                  ign_month == 8 ~ mdc_08,
+                                  ign_month == 9 ~ mdc_09,
+                                  ign_month == 10 ~ mdc_09,
+                                  ign_month == 11 ~ mdc_09,
+                                  ign_month == 4 ~ mdc_05,
+                                  ign_month == 3 ~ mdc_05,
+                                  ign_month == 2 ~ mdc_05,
+                                  ign_month == 1 ~ mdc_05,
+                                  TRUE ~ mdc_08)) #Those areas without fire will receive MDC of August, which in many years will be the highest value. These MDC values may be most accurately used for the escape and spread data, wherein we only assess those areas where fires began.
+
+head(dat_lightning_)
+```
+
+Inspect how this alters the probability of ignitions graph.
+
+```{r}
+
+p <- ggplot(dat_lightning_, aes(mdc_atfire_2, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("MDC at fire") + ylab("Pr (ignition)")
+p
+
+#This makes the pattern exactly opposite because all locations without fire have a large MDC... not a good solution
+```
+
+#Now repeat for Person Caused fires
 
 ```{r}
 #Climate variable creation for person-caused fire data
