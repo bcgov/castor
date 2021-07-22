@@ -1,0 +1,56 @@
+---
+title: "Huckleberry_Model_Ideas"
+author: "Cora Skaien"
+date: "17/07/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+The goal of this project is to be able to assess whether we can model the abundance and productivity of huckleberry patches and relate this to grizzly bear foraging quality habitat. Some work has been done looking at associations between forest cutblock age and the abundance of both huckleberries and soopalilie (buffaloberry), and some preliminary analyses have been performed to assess the correlations between variables.
+
+Currently, we have data provided by Dr. Clayton Lamb on the abundance of huckleberry plants and berries, along with climate data that accompanies it. We should look into the possibility of acquiring additional data that may be comparable. It has been suggested that we can model canopy closure from models that Kyle has. We can (and should) include climate, but the main questions of interest are stand characteristics (e.g., crown closure, basal area). There will also be some static variables such as topography.
+
+We likely should split the analyses into different BEC zones, and only include those that have huckleberry bushes. 
+
+Questions I have:
+  1. What spatial extent would we like to model this? Across the province? I believe we have data that spans the entire province so this should be possible.
+  2. Check for information on burning - is it in the data?
+  3. Data also for buffaloberry?
+  4. What other elements for grizzly bear model do we already have? Forest service road and human disturbance elements?
+
+
+See some initial exploration of the data here by Tyler Muhly:
+https://github.com/bcgov/FAIB_wildlife/blob/main/berry_model.Rmd
+
+########### Literature Review ###############
+
+##Chandler, J. and Hamilton, E. 2021. Response of Vaccinium membranaceum to logging, prescribed burning, wildfire, and tree cover in the ESSF, ICH and SBS zones in central and norther BC. Technical report.
+ 
+Key findings:
+   - ESSF > cover than SBS and ICH (over 30% cover only found in ESSF zone).
+   - cover peaked 18 years after burn, and at 12 years in unburned plots (all harvested I think); with >30% reached in unburned plots after 3 years but not in burned plots until year 12
+   - No data for unburned plots age 15-28 years.
+   - 70% of ESSF plots with >40% cover were burned
+   - percent cover seems to be much higher in unburned plots, but decreases after 12 years. Burned plots have a steady increase over time, peaking at 18 years at a lower level than the peak for unburned plots.
+
+##Colton, C. P., Coops, N. C., and Burton, C. 2021. Grizzly Bwar (Ursus arctos) responses to forest harvesting: A review of underlying mechanisms and management recommendations. Forest Ecology and Management 497: 119471.
+  
+This paper aimed to assess the use of harvested forest stands (< 40 years old) by grizzly bears. Many studies report use of these harvested forest stands, and some suggest a preference for them. Many elements influenced the response of grizzlies to these stands including: natural forest openings, cut block design, silviculture techniques, age since harvest, grizzly bear food availability, human activity and grizzly bear sex and age.
+
+Coastal vs interior grizzly bears have different feeding patterns. On the coast, grizzlies predominately feed on salmon; in the interior, they predominately feed on berries and occur in burned and alpine and subalpine meadows. On the coast, bears also will eat berries, but to a lesser proportion; here, they feed on vegetative material in mature forests, sedge meadows, south facing avalanche slopes, and alpine and subalpine meadows before relocating to riparian areas for salmon in mid-summer to autumn.
+
+Many changes to harvesting and silviculture practices from the 1950s to now, with two-pass forest harvesting, variable retention and large clearcuts (>800 ha) occurring most often today. Tree planting in harvested plots was not common until the 1990s.
+
+Forest succession after clear cutting stages (4):
+1. Stand initiation or Early Seral Forest Stage: species vigourously re-occupying space with abundant resources and low competition. Often provides a spring food source of grasses, forbs and roots and summer-autumn food sources of roots, herbs, amd berries for grizzly bears. The reduced canopy cover (<30%) in particular increases the abundance of huckleberries.
+2.  Canopy closure and Stem Exclusion: high mortality of understory and sub-dominant plants
+3. Understory re-initiation: mature trees die, forming canopy gaps for mixed-age forest. Very little food source for bears.
+4. Mature forest: provide ungulate prey, denning habitat, resting habitat, and some marginal foraging opportunities.
+
+Grizzly bear density is positively related to non-forested areas.
+
+'Selection' reflects an animal choosing to use a habitat, and 'pr

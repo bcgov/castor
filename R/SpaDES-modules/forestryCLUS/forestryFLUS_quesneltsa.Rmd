@@ -98,7 +98,7 @@ parameters <- list(
                                            "rast.zone_cond_fisher_sb_dry",
                                            "rast.zone_cond_fisher_dry"
                                            ),
-                           nameZoneTable = "zone_constraints",
+                           nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable = "yc_vdyp",
@@ -145,7 +145,7 @@ modules <- list("dataLoaderCLUS",
 
 
 #scenario = data.table (name = "quesnel_bau", description = "Business as usual. Harvest flow = 1,900,000 m3/yr. Adjacency = 3m. Oldest first.")
-scenario = data.table (name = "quesnel_all_terr_10per_max12yrs", description = "bau + maximum 10 % of the territory <= 12 years of age. Harvest flow = 1,900,000 m3/yr. Adjacency = 3m. Oldest first.")
+scenario = data.table (name = "quesnel_all_terr_10per_max12yrs_newyc", description = "bau + maximum 10 % of the territory <= 12 years of age. Harvest flow = 1,900,000 m3/yr. Adjacency = 3m. Oldest first.")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                      partition = ' vol > 150 ', 
