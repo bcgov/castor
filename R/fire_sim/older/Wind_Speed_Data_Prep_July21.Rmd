@@ -1,0 +1,408 @@
+---
+title: "Wind_Speed_Data_Prep"
+author: "Cora Skaien"
+date: "13/07/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Overview
+In this file, we will bring in shape files that indicate wind speed averaged over 43 years to get an idea of the spring and summer wind speeds experienced in an area. 
+
+These files were acquired from the Wind Atlas from the government of Canada:http://www.windatlas.ca/index-en.php
+
+Spring is represented by MAM (March, April, May). Summer is represented by JJA (representing June, July and August). You will also receive the winter, fall and annual values in one folder.
+
+The MIF files are column files and contain seven variables, the first two (E1 and EU) being the results of the statistical processing and the five others being related to the input data:
+
+E1 (W/m2), mean wind power,
+EU (m/s), mean wind speed,
+ME (m), topography,
+MG, land/water mask (1=land, 0=water),
+2B (m), rugosity length,
+LA, latitude,
+LO, longitude given between 0 and 360°.
+
+I believe that any values of -1 for EU represent missing data.
+
+############# Step 1: Download files and convert to Shape files ################
+These files were downloaded as mif. files and converted to shape files using OsGeo4W. Sample code is provided below:
+
+ogr2ogr -f 'ESRI Shapefile' output.shp input.mif
+
+Specific example:
+ogr2ogr -f “ESRI Shapefile” D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\064_30\\JJA\\7\\4_30_we_dos.shp D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\064_30\\JJA\\7\\4_30_we_dos.mif
+
+
+################### Step 2: Use QGIS to set coordinate system and merge together ############
+You will need to bring in each of the files separately for summer and for spring. Bring in all of the summer layers first to merge into one larger file.
+
+In QGis, bring in all of the files and visualize them.
+
+The crs for the mif file is :CoordSys Earth Projection 20, 999, 12, 0, 0, 0, 7, -100.0000 , 90, 0.9330127, 0, 0
+
+This can be input as espg 3996 in QGIS. Set the coordinate system for all layers.
+
+Next, once all layers are in QGIS and have had their coordinate systems set, we select the first 2 overlapping layers. We will use the "Difference" function under Vector --> Geoprocessing Tools. Then, take this difference and the relevant original tile and use "Merge" function fromVector --> Data Management Tools. Now, select your merged object and the next overlapping layer and repeat. Do this for all layers until you have one element. Save/Export as a shape file.
+
+
+################## Step 3: Bring into R #################
+Once all files were combined in QGIS, then analysis in R can begin. We will bring in the created shape file, then convert crs to 3005, then clip to BC boundary, then use location of sample points to determine the mean wind speed for both spring and summer for each location. 
+
+#Load libraries
+
+```{r}
+library(raster)
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(bcmaps)
+library(ggplot2)
+require (RPostgreSQL)
+require (rpostgis)
+require (fasterize)
+require (dplyr)
+library(keyring)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+Load shape files for both the created summer file, and for BC Boundaries.
+
+```{r}
+wind_data<- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\BC_Wind_summer.shp", stringsAsFactors = T)
+
+st_crs(wind_data) #Check crs
+wind_data2 <- st_transform (wind_data, 3005)
+st_crs(wind_data2)
+head(wind_data2)
+
+```
+
+Graph.
+
+```{r}
+ggplot() +
+  geom_sf(data=wind_data2, col='red') 
+
+ggplot() +
+  geom_sf(data=wind_data, col='red') 
+
+```
+
+We see with the above projections that the appropriate rotation did not come in. So we will set the crs and then transform.
+
+```{r}
+wind_data.sf <- st_set_crs(wind_data, "+proj=stere +lat_0=90 +lat_ts=60 +lon_0=-100 +x_0=0 +y_0=0 +a= 6371000 +units=m +no_defs")
+
+wind_data2b <- st_transform (wind_data.sf , 3005)
+
+ggplot() +
+  geom_sf(data=wind_data.sf, col='red') 
+
+ggplot() +
+  geom_sf(data=wind_data2b, col='red') 
+```
+
+```{r}
+st_write(wind_data2b, overwrite = TRUE,  dsn="D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\BC_Wind_summer_3005.shp", delete_dsn = TRUE)
+```
+
+
+Now let's bring in the provincial boundary layer and change the crs.
+
+```{r}
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
+prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
+bc.bnd <- st_transform (prov.bnd, 3005)
+```
+```{r}
+st_write(bc.bnd, overwrite = TRUE,  dsn="D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\bc.bnd.shp", delete_dsn = TRUE)
+```
+
+Graph.
+
+```{r}
+ggplot() +
+  geom_sf(data=bc.bnd, col='red') 
+```
+Ensure overlap.
+
+```{r}
+ggplot() +
+  geom_sf(data=wind_data2b, col='pink') +
+  geom_sf(data=bc.bnd, col='red') 
+
+```
+At a glance, the above looks good, but hard to tell without a basemap if the alignment is correct or not.
+
+Next, we will clip the Canadian Wind Atlas aggregated layer to the BC Boundaries. This will take quite a long time, so have other work ready to work on or go for lunch.
+
+```{r}
+#Clip the wind layer to the BC Boundaries.
+wind.clipped<-wind_data2b[bc.bnd,]
+str(wind.clipped)
+head(wind.clipped)
+wind.clipped$EU_1200
+
+```
+
+Check the clipped file.
+
+```{r}
+ggplot() +
+  geom_sf(wind.clipped, col='pink')
+
+```
+
+Save file.
+
+```{r}
+st_write(wind.clipped, overwrite = TRUE,  dsn="D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\BC_Wind_summer_clipped.shp", delete_dsn = TRUE)
+```
+
+
+Repeat the above for the spring file. Note, here, I did not set the CRS in QGIS.
+
+```{r}
+wind_data_spring<- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\BC_Wind_spring.shp", stringsAsFactors = T)
+
+wind_data.spring.sf <- st_set_crs(wind_data_spring, "+proj=stere +lat_0=90 +lat_ts=60 +lon_0=-100 +x_0=0 +y_0=0 +a= 6371000 +units=m +no_defs")
+
+wind_data.spring2 <- st_transform (wind_data.spring.sf , 3005)
+
+ggplot() +
+  geom_sf(data=wind_data.spring2, col='pink') +
+  geom_sf(data=bc.bnd, col='red')
+
+```
+
+```{r}
+st_write(wind_data.spring2, overwrite = TRUE,  dsn="D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\BC_Wind_spring_3005.shp", delete_dsn = TRUE)
+```
+
+If maps look good, clip layers.
+
+```{r}
+#Clip the wind layer to the BC Boundaries
+wind.clipped.spring<-wind_data.spring2[bc.bnd,]
+str(wind.clipped.spring)
+head(wind.clipped.spring)
+```
+
+Check the clipped file.
+
+```{r}
+ggplot() +
+  geom_sf(wind.clipped.spring, col='pink')
+
+```
+
+Save file.
+
+```{r}
+st_write(wind.clipped.spring, overwrite = TRUE,  dsn="D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\BC_Wind_spring_clipped.shp", delete_dsn = TRUE)
+```
+
+
+One could consider making rasters of wind direction by time period for thousands of points with this: http://www.atlaseolien.ca/series/variables-en.php. 
+
+The thinking I (Cora) have is that you could get the values for specific hour and dates across multiple dates in a season, and multiple years. Then take an average for a specified time period (perhaps 4 different intervals per day is adequate) and then get those rasters to cycle through daily for modelling. For now, we will keep it simple and not have wind direction.
+
+```{r}
+
+```
+
+
+```{r}
+max(summer1.sf$EU_12007_J)
+min(summer1.sf$EU_12007_J) # I do not know how to interpret -1. Missing data? I will assume it is missing data.
+table(summer1.sf$EU_12007_J) #3654 -1s present from 30276 observations
+hist(summer1.sf$EU_12007_J)
+str(summer1.sf)
+
+#Inspect second element
+hist(summer1.sf$EU2_12007_)
+
+#Check histograms some other areas
+hist(summer2.sf$EU_12007_J)
+hist(summer3.sf$EU_12007_J)
+hist(summer4.sf$EU_12007_J)
+
+```
+
+Plot the rasters to ensure all looks well
+
+```{r}
+
+ggplot() +
+  geom_sf(data=summer1.sf, col='red') +
+  geom_sf(data=summer2.sf, col='blue') +
+  geom_sf(data=summer3.sf, col='green') +
+  geom_sf(data=summer4.sf, col='pink') +
+  geom_sf(data=summer5.sf, col='black') +
+  geom_sf(data=summer6.sf, col='red') +
+  geom_sf(data=summer7.sf, col='blue') +
+  geom_sf(data=summer8.sf, col='purple') +
+  geom_sf(data=summer9.sf, col='green') +
+  geom_sf(data=summer10.sf, col='pink') +
+  geom_sf(data=summer11.sf, col='black') +
+  geom_sf(data=summer12.sf, col='red') +
+  geom_sf(data=summer13.sf, col='blue')
+
+
+```
+
+
+Project in 3005 crs with BC map
+
+```{r}
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
+prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
+bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system
+```
+
+
+```{r}
+ggplot() + 
+  geom_sf(data=summer2.sf2, col='blue') +
+  geom_sf(data=summer3.sf2, col='green') +
+  geom_sf(data=summer4.sf2, col='pink') +
+  geom_sf(data=summer5.sf2, col='black') +
+  geom_sf(data=summer6.sf2, col='red') +
+  geom_sf(data=summer7.sf2, col='blue') +
+  geom_sf(data=summer8.sf2, col='purple') +
+  geom_sf(data=summer9.sf2, col='green') +
+  geom_sf(data=summer10.sf2, col='pink') +
+  geom_sf(data=summer11.sf2, col='black') +
+  geom_sf(data=summer12.sf2, col='red') +
+  geom_sf(data=summer13.sf2, col='blue') +
+  geom_sf(data=summer1.sf2, col='red') +
+  geom_sf(data=bc.bnd, col='red')
+```
+At a glance, looks approximately right? Will need to spot check some GPS locations by entering them online once we have them.
+
+Given substantial overlap, we may not need all the files. Try to see which we might consider dropping.
+
+```{r}
+ggplot() +
+  geom_sf(data=summer1.sf, col='red') +
+  geom_sf(data=summer2.sf, col='blue') +
+  geom_sf(data=summer3.sf, col='green') +
+  geom_sf(data=summer4.sf, col='pink') +
+  #geom_sf(data=summer5.sf, col='black') + # we lose a tiny bit here
+  #geom_sf(data=summer6.sf, col='red') +
+  geom_sf(data=summer7.sf, col='blue') +
+  geom_sf(data=summer8.sf, col='purple') +
+  geom_sf(data=summer9.sf, col='green') +
+  #geom_sf(data=summer10.sf, col='pink') +
+  geom_sf(data=summer11.sf, col='black') +
+  geom_sf(data=summer12.sf, col='red') +
+  geom_sf(data=summer13.sf, col='blue')
+
+#Conclusion: need all polygons!
+```
+
+Now that we see we have the coverage we need, we can bind all of the shape files together. We may need to buffer the polygon before proceeding (buffer by 0), like we did with the bec zones in file 02_climate_data_prep_all.
+
+Now that the files have a coordinate system, we may also want to bring the files into QGis to combine to make one layer and then bring it back into R. 
+
+In QGis, bring in all of the files and visualize them. Start in one corner and visualize wherew they are overlapping. Now choose two at a time and use the "Difference" function under Vector --> Geoprocessing Tools. Then, take this difference and the relevant original tile and use "union" from the same window to combine them. Do this for all layers until you have one element. Now, we might need to use "Dissolve" to ensure it is one polygon.
+
+
+#Save files with projection and manage in QGis. R and the computer crash each time we try to do it here.
+
+```{r}
+
+st_write(summer1.sf, dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\withCRS\\summer1.shp", delete_layer=TRUE)
+
+st_write(summer2.sf, dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\withCRS\\summer2.shp", delete_layer=TRUE)
+
+st_write(summer3.sf, dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\withCRS\\summer3.shp", delete_layer=TRUE)
+
+st_write(summer4.sf, dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\withCRS\\summer4.shp", delete_layer=TRUE)
+
+st_write(summer5.sf, dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\withCRS\\summer5.shp", delete_layer=TRUE)
+
+st_write(summer6.sf, dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\withCRS\\summer6.shp", delete_layer=TRUE)
+
+st_write(summer7.sf, dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\withCRS\\summer7.shp", delete_layer=TRUE)
+
+st_write(summer8.sf, dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\withCRS\\summer8.shp", delete_layer=TRUE)
+
+st_write(summer9.sf, dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\withCRS\\summer9.shp", delete_layer=TRUE)
+
+st_write(summer10.sf, dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\withCRS\\summer10.shp", delete_layer=TRUE)
+
+st_write(summer11.sf, dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\withCRS\\summer11.shp", delete_layer=TRUE)
+
+st_write(summer12.sf, dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\withCRS\\summer12.shp", delete_layer=TRUE)
+
+st_write(summer13.sf, dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\withCRS\\summer13.shp", delete_layer=TRUE)
+
+
+```
+
+st_write(summer1, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_ALL_5x.shp", delete_layer=TRUE)
+
+
+
+
+```{r}
+str(summer1.sf)
+str(summer2.sf)
+
+summer.moasic<-raster::mosaic(summer1.sf, summer1.sf, fun=mean)
+```
+
+
+```{r}
+#The code below crashed R. Need a different solution.
+summer_bind<-bind(summer1.sf, summer2.sf)
+
+test2 <- gDifference(summer1.sf, summer2.sf)
+plot(test2)
+plot(test2, add = T, col = 'red')
+
+
+summer_union<-st_union(summer1.sf, summer2.sf)
+summer_union<-st_union(summer_union, summer3.sf)
+summer_union<-st_union(summer_union, summer4.sf)
+summer_union<-st_union(summer_union, summer5.sf)
+summer_union<-st_union(summer_union, summer6.sf)
+summer_union<-st_union(summer_union, summer7.sf)
+summer_union<-st_union(summer_union, summer8.sf)
+summer_union<-st_union(summer_union, summer9.sf)
+summer_union<-st_union(summer_union, summer10.sf)
+summer_union<-st_union(summer_union, summer11.sf)
+summer_union<-st_union(summer_union, summer12.sf)
+summer_union<-st_union(summer_union, summer13.sf)
+
+
+summer_union<-union(summer1.sf, summer2.sf)
+summer_union<-union(summer_union, summer3.sf)
+summer_union<-union(summer_union, summer4.sf)
+summer_union<-union(summer_union, summer5.sf)
+summer_union<-union(summer_union, summer6.sf)
+summer_union<-union(summer_union, summer7.sf)
+summer_union<-union(summer_union, summer8.sf)
+summer_union<-union(summer_union, summer9.sf)
+summer_union<-union(summer_union, summer10.sf)
+summer_union<-union(summer_union, summer11.sf)
+summer_union<-union(summer_union, summer12.sf)
+summer_union<-union(summer_union, summer13.sf)
+
+str(summer_union)
+
+
+ggplot() +
+  geom_sf(data=summer_union, col='green')
+
+```
+
