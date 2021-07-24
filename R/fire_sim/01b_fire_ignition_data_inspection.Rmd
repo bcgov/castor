@@ -26,6 +26,7 @@ require (rpostgis)
 require (fasterize)
 require (dplyr)
 library(keyring)
+library(stringi)
 
 source(here::here("R/functions/R_Postgres.R"))
 ```
@@ -59,6 +60,8 @@ Now, let's inspect some of the elements of this file.
 ```{r}
 table(ignition$FIRE_TYPE) #We will want Fire and Nuisance Fire types. Admittedly, I am unsure what some of these other ones are.
 
+table(ignition$FIRE_CAUSE)
+
 table(ignition$FIRE_YEAR) #We have data from 1950-2020. For now, let's keep all of them in. We will assess if there are obvious trends over time that may suggest detection bias and not just different numbers of fires.
 
 ignition_ <- ignition %>% 
@@ -68,6 +71,22 @@ ignition_ <- ignition_ %>%
   filter(FIRE_CAUSE == "Lightning" | FIRE_CAUSE=="Person")
 
 ignition_$FIRE_CAUSE<-as.factor(as.character(ignition_$FIRE_CAUSE))
+```
+
+
+```{r}
+##Check size of fires
+min(ignition_$SIZE_HA) #There are a lot of 0s and a lot of NAs Why would the fire data have size 0s for fires that existed? Are they THAT small?
+
+ignition_2<-subset(ignition_, ignition_$SIZE_HA!="NA")
+min(ignition_2$SIZE_HA)
+table(ignition_2$SIZE_HA)#14,993 were size 0. What does this mean?
+
+ignition_zeros<-subset(ignition_2, ignition_2$SIZE_HA==0)
+
+table(ignition_zeros$FIRE_CAUSE) #Here, we have 5425 0 in lightning and 9568 in person
+table(ignition_zeros$FIRE_YEAR) #Common since 1989 onwards
+
 ```
 
 We want to extract the month for which the fire began so that we can match that specific MDC (monthly drought code) with that fire for modelling month to month.
@@ -109,8 +128,6 @@ hist(counts_person$Freq) #interestingly, this is more of a normal distribution t
 ```
 
 
-
- Likely may not need below chunk
 Separate by lightning and person caused fires
 ```{r}
 ignition_lightning<-ignition_ %>% 
@@ -119,10 +136,12 @@ ignition_lightning<-ignition_ %>%
 ignition_person<-ignition_ %>% 
   filter(FIRE_CAUSE == "Person")
 
-
 ```
 
-Now let's repeat for number of escaped fires
+
+
+
+#Now let's repeat for number of escaped fires
 
 In Marchal et al. 2020, they define escape as "the probability that a fire will reach a size of at least 1 ha". We will inspect the ignition data and see the size of each fire. We will then separate them into those that are <1 ha in size, and those that are > 1 ha in size. From this, we can use logistic regression, including climate variables, topography (aspect and slope), and VRI data. Below currently only accounts for lightning caused fires. Human caused fires will be modelled down the road.
 

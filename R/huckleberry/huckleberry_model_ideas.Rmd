@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
+#Overview
 The goal of this project is to be able to assess whether we can model the abundance and productivity of huckleberry patches and relate this to grizzly bear foraging quality habitat. Some work has been done looking at associations between forest cutblock age and the abundance of both huckleberries and soopalilie (buffaloberry), and some preliminary analyses have been performed to assess the correlations between variables.
 
 Currently, we have data provided by Dr. Clayton Lamb on the abundance of huckleberry plants and berries, along with climate data that accompanies it. We should look into the possibility of acquiring additional data that may be comparable. It has been suggested that we can model canopy closure from models that Kyle has. We can (and should) include climate, but the main questions of interest are stand characteristics (e.g., crown closure, basal area). There will also be some static variables such as topography.
@@ -21,10 +21,27 @@ Questions I have:
   2. Check for information on burning - is it in the data?
   3. Data also for buffaloberry?
   4. What other elements for grizzly bear model do we already have? Forest service road and human disturbance elements?
+  5. Do we have information on cutblock treatment in the data? Check. RESULTS file on bc gov oage may have info on treatments and silviculture.
+  6. Cutblock size info? I have coordinates and I may be able to match these to online databases.
+  7. Phenology and distribution and abundance?
+  8. In the data, what is MODIS_LC?
 
 
 See some initial exploration of the data here by Tyler Muhly:
 https://github.com/bcgov/FAIB_wildlife/blob/main/berry_model.Rmd
+
+See important layers here:
+1. RESULTS: showing forest regeneration following harvest. https://catalogue.data.gov.bc.ca/dataset/results-forest-cover-inventory
+https://catalogue.data.gov.bc.ca/dataset/results-openings-attribute-only
+https://catalogue.data.gov.bc.ca/dataset/results-planting
+https://catalogue.data.gov.bc.ca/dataset/results-activity-treatment-units
+https://catalogue.data.gov.bc.ca/dataset/results-forest-cover-silviculture
+https://catalogue.data.gov.bc.ca/dataset/results-forest-cover-species-attribute-only
+https://catalogue.data.gov.bc.ca/dataset/results-openings-slope-aspect-and-elevation
+https://catalogue.data.gov.bc.ca/dataset/results-openings-svw
+
+
+
 
 ########### Literature Review ###############
 
@@ -53,4 +70,44 @@ Forest succession after clear cutting stages (4):
 
 Grizzly bear density is positively related to non-forested areas.
 
-'Selection' reflects an animal choosing to use a habitat, and 'pr
+'Selection' reflects an animal choosing to use a habitat, and 'preference' reflects the likelihood of an animal choosing to use a habitat if offered on an equal basis with other habitats.
+
+Stratified by season: spring (hypophagia), summer (early hyperphagia) and autumn (hyperphagia). We may wish to assess seasonality like this too.
+Researchers found evidence cut block use all seasons, selection most consistent in summer and then autumn, with spring highly variable. Dominant ecological factor was the abundance of berries from shrubs (as well as roots, ants and other forage.
+Avoidance was associated with accelerated re-growth (including post-harvest mechanical site prep, planting, seeding and herbicides), poor forage in cut blocks (from accelerated re-growth or salvage logging) and human presence.
+
+Extremely variable results from different studies for grizzly bear preference, selection, avoidance and neutral for cutblocks across all seasons. Grizzly bears prefer natural openings, but will select clearcuts when natural openings are sparse, especially if human access is reduced. Grizzly bears prefer larger cutblocks to smaller ones, but are more often found near the forest edges. Forestry practices that maximize heterogeneity, security and cover, while considering human impacts (roads) are optimal. 
+
+Silviculture: artificially accelerated cutblock re-growth can reduce grizzly bear forage. Scarification often damages shrub roots and reduces forage regrowth, resulting in grizzly bears not selecting these sites. Planting of trees can artificially enhance the speed of canopy closure which negatively impacts berry-producing shrubs. Herbicides accelerate forest regrowth and canopy closure, negatuvely impacting berry-producing shrubs. Pro-active thinning can lead to an increase in shrub biomass in regenerating forests.
+
+Age since harvest: cut blocks in early seral forest stage preferred by bears. In some areas, this is 10-30 years after cutblock (and 20-40 years in others, with 19-20 optimal usage age), with lower usage before and after.
+
+Riparian buffer zones had increased grizzly usage in Marine West Coast Forest (salmon abundant). Interior ecoregions, vegetative forage in cut blocks dominant driver of grizzly bear selection. Huckleberry fruit main driver (but also other berry-producing shrubs), which increase with reduced canopy cover.
+
+Female grizzlies are more likely to use cutblocks, and males more likely to use natural openings (likely result of male dominance). 
+
+Many of the above points are summarized well in Table 3 of paper.
+
+
+##Prevey, J.S., Parker, L.E., Harringtn, C.A., Lamb, C.T. and Proctor, M.F. 2020. Climate change shifts in habitat suitability and phenology of huckleberry (Vaccinium membranaceum). Agricultural and Forest Meteorology, 280: 107803. 
+In this paper, the authors predicted timing of flowering and fruit ripening for huckleberry for the current bioclimatic niche, and for future climate model projections under 2 different scenarios. Under these future projections, suitable habitat for huckleberry was predicted to shrink 5-40% across NW USA by the end of the 21st century (greatest reduction at lowest elevations), but increase of 5-60% at higher elevations and latitudes, and it was predicted that: (1) flowering would advance 23-50 days (mean 35 days), and (2) fruiting would advance 24-52 days (mean 36 days).
+
+Study area extended from California to BC and east to Montana and Alberta.
+
+Data: federal agencies, academic research projects, citizen science data, other publicly-available sources. Removed points located east of 96 ' W longitude (outside species range). Used 1-km grids for climate, using contemporary climate data and a downscaled global climate model.
+
+Used presence-only maximum entropy models (do not have absence data). Extensive details provided on page 4 of paper. For phenology, calculated 'therma sums' (also known as growing-degree days).
+
+See Table 2 for tested climatic variables and top variables, including Annual heat Moisture (AHM) Index, Climate Moisture Index (CMI), EMT, EXT, MAT, MCMT, MSP. Common theme with other papers: huckleberry is limited by winter temperatures, and habitat suitability likely to increase at higher elevations.
+
+Earlier flowering = increased chance frost damage = decreased berry production. Phenology models did not account for timing of snowmelt, photoperiod, cold temperatures over winter, which may influence their phenology.
+
+##Roberts, D.R>, Neilsen, S.E., and Stenhouse, G.B. 2014. Idiosyncratic responses of grizzly bear habitat to climate change based on projected food resource changes. Ecological Applications 24(5): 1144-1154.
+These authors project habitat changes for 17 species considered to be key grizzly bear food resources. They observed a general trend towards uphill migration for berry producing shrubs that grizzly bears feed on, which may result in increased vulnerability to bear populations at lower elevations and increased human-wildlife conflict.
+
+Metrics often used to assess grizzly bear suitable habitat: land cover type, forest crown closure, slope, aspect, elevation, metrics for road density and urbanization. Metrics used here: climate variables, topography variables, forest crown closure. Nine metrics used: mean annual T, average winter T, average summer T, winter precip, summer precip, annual heat moisture, summer heat moisture, number frost free days, number degree days above 5'C. Topography: compound topographic index, topographic heat load index, general slope/aspect topographic radiation aspect (TRASP) index.
+
+Future predictions: 300 m x 300 m resolution. Predicted climate and crown closure into the future. Areas of agricultural use, surface water, and high alpine rock and ice were removed from the species habitat projections.
+
+Found huckleberry projected to increase by 84-112% by 2080. Most species predicted to maintain 94-100% of current habitat by 2080, but some predicted to lose much habitat. All species showed increase in elevation predicted, with one scenario predicting a median decrease of 203 m for huckleberry.
+ 

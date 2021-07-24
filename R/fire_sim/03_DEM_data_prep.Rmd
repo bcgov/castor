@@ -188,7 +188,7 @@ crs(sample_locations_DEM)
 
 ```
 
-Save this file and use for next R Markdpwn file (04_vri_data_prep). Make sure you save it to the local machine via OSGeo4W for use in code in the next file.
+Save this file and use for next R Markdown file (04_vri_data_prep). Make sure you save it to the local machine via OSGeo4W for use in code in the next file.
 
 ```{r}
 
