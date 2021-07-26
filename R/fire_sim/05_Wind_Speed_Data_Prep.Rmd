@@ -9,6 +9,20 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
 #Overview
 In this file, we will bring in shape files that indicate wind speed averaged over 43 years to get an idea of the spring and summer wind speeds experienced in an area. Much of the work in this file will be initially performed in QGIS, and once these layers are created, they do not need to be created again unless you do not have access to the generated layers.
 
@@ -464,4 +478,25 @@ st_write(summer13.sf, dsn = "D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\
 ```
 
 
+If you are missing variables later for some reason, here is some handy code to reappend the missing columns.
+
+```{r}
+sample_locations_DEM_roads_wind2_test<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_clim_DEM_roads_wind.shp")
+
+names(sample_locations_DEM_roads_wind2_test)
+names(dat_lightning_) #elevation, win_sum, wun_spg
+names(dat_person_)#elevation, win_sum, wun_spg
+
+missingcolumns<-sample_locations_DEM_roads_wind2_test[c(1,40,43,44)] #select idno and all other missing columns
+missingcolumns
+
+missingcolumns<- missingcolumns %>% rename(
+  elevation = dm_h_bc)
+
+dat_lightning_<-left_join(dat_lightning_, missingcolumns)
+dat_person_<-left_join(dat_person_, missingcolumns)
+
+head(dat_lightning_)
+
+```
 
