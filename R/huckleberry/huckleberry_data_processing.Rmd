@@ -44,6 +44,9 @@ Bring in the shape file with the coordinates within cutblocks. This data was pro
 This link will be very useful for determing what the codes mean:
 https://www.for.gov.bc.ca/hfp/publications/00026/fs708-14-appendix_d.htm#ad_16
 
+This may also prove useful:
+https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/silviculture/silviculture-reporting-results/technical-documentation
+
 
 ```{r}
 #This first file has ALL of the locations within cutblocks
@@ -70,6 +73,10 @@ table(cutblock_plots$BRSH1_TECH) #Brushing technique; 184 MA (manual); 29 CG (Ch
 table(cutblock_plots$PLNT1_TECH) #Mostly PL (planting)
 hist(cutblock_plots$FEAT_AREA)
 hist(cutblock_plots$PLNT1_AREA) #Also has a Plant2, so could add together for total planting area?
+
+#Variables worth investigating include: DN1_SILSYS, PREP1_TECH
+cutblock_plots_logged<-subset(cutblock_plots, cutblock_plots$DN1_DIS_CD=="L")
+str(cutblock_plots_logged) #806 observations
 
 ```
 Now, load in the productivit data provided from Clayton Lamb, PhD.
@@ -98,6 +105,9 @@ head(berry_data)
 #Compare number observations
 str(cutblock_plots) #852 observations
 str(berry_data) #852 observations
+
+berry_data_logged<-left_join(cutblock_plots_logged,prod_data)
+head(berry_data_logged)
 ```
 Now separate the data by species. We want one dataset for huckleberry (Vaccinium_membranaceum) and one for buffalo berry (Shepherdia_canadensis).
 
@@ -132,6 +142,22 @@ table(huckle_data$BRSH1_TECH) #Brushing technique; 145 MA (manual); 21 CG (Chemi
 table(huckle_data$PLNT1_TECH) #Mostly PL (planting); some FP (Fill Planting); likely not as useful.
 hist(huckle_data$FEAT_AREA)
 hist(huckle_data$PLNT1_AREA) #Also has a Plant2, so could add together for total planting area?
+
+```
+
+If select only logged sites:
+
+```{r}
+huckle_data_logged<-subset(berry_data_logged, berry_data_logged$Species=="Vaccinium_membranaceum")
+
+table(huckle_data_logged$DN1_SILSYS) #May wish to group the smaller groups into an "other" category
+table(huckle_data_logged$PREP1_TECH) #May wish to combine smaller groups into "other"
+
+#Compare above with data
+table(huckle_data_logged$Species.Present) #133 absent, 467 present
+table(huckle_data_logged$Species.Present, huckle_data_logged$PREP1_TECH)
+table(huckle_data_logged$Species.Present, huckle_data_logged$DN1_SILSYS)
+
 ```
 
 
@@ -166,6 +192,23 @@ table(buffalo_data$BRSH1_TECH) #Brushing technique;37 MA (manual); 8 CG (Chemica
 table(buffalo_data$PLNT1_TECH) #Mostly PL (planting); some FP (Fill Planting); likely not as useful.
 hist(buffalo_data$FEAT_AREA)
 hist(buffalo_data$PLNT1_AREA) #Also has a Plant2, so could add together for total planting area?
+
+```
+
+
+
+If select only logged sites:
+
+```{r}
+buffalo_data_logged<-subset(berry_data_logged, berry_data_logged$Species=="Shepherdia_canadensis")
+
+table(buffalo_data_logged$DN1_SILSYS) #May wish to group the smaller groups into an "other" category; or remove
+table(buffalo_data_logged$PREP1_TECH) #May wish to remove the 4 MA.
+
+#Compare above with data
+table(buffalo_data_logged$Species.Present) #93 absent, 103 present
+table(buffalo_data_logged$Species.Present, buffalo_data_logged$PREP1_TECH) #I would remove all small categories
+table(buffalo_data_logged$Species.Present, buffalo_data_logged$DN1_SILSYS) #I would remove all small categories
 
 ```
 
