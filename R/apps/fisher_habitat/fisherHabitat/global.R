@@ -55,12 +55,13 @@ myDrawPolygonOptions <- function(allowIntersection = FALSE,
   )
 }
 
+
 ##Data objects
 #----------------
 #Spatial---------
 ##Get a connection to the postgreSQL server (local instance)
-fetaPoly<-st_transform(st_read("www/feta_v0.shp"), 4326)
-fetaTSA<-readRDS("www/tsa_fids.rds")
+fetaPoly<-st_transform(st_read("www/feta_v1.shp"), 4326)
+fetaTSA<-readRDS("www/tsa_fids_v1.rds")
 #----------------
 #Non-Spatial 
 tsaBnds <- as.list(unique(fetaTSA$tsa))

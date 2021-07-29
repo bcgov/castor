@@ -68,7 +68,7 @@ parameters <- list(
                            nameZoneTable="zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable ="yc_vdyp",
-                           nameYieldsTransitionRaster = "rast.tipsy2018_id",
+                           nameYieldsTransitionRaster = 'rast.thlb_2020', #'rast.bc_thlb2018' 
                            nameYieldTransitionTable ="yc_tipsy",
                            nameForestInventoryRaster ="rast.vri2018_id",
                            nameForestInventoryKey = "feature_id",
