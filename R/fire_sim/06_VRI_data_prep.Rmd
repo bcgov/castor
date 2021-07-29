@@ -73,12 +73,12 @@ CREATE TABLE fire_veg_2002_D AS
   fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
   fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09,
   fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09, fire.slp_h_b, 
-  fire.aspct__, fire.dm_h_bc, fire.shp_ln_, fire.win_sum, fire.win_spg,
+  fire.aspct__, fire.dm_h_bc, fire.heatload, fire.shp_ln_, fire.win_sum, fire.win_spg,
   veg_comp_lyr_r1_poly2002.geometry FROM veg_comp_lyr_r1_poly2002,
   (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, ign_month, size_ha, fire, zone,
    subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
    tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
-   mdc_09, slp_h_b, aspct__, dm_h_bc, shp_ln_, win_sum, win_spg 
+   mdc_09, slp_h_b, aspct__, dm_h_bc, heatload, shp_ln_, win_sum, win_spg 
    from Data_clim_DEM_roads_wind where fire_yr = '2002') as fire where st_contains
   (veg_comp_lyr_r1_poly2002.geometry, fire.wkb_geometry))
 
@@ -105,12 +105,12 @@ CREATE TABLE fire_veg_2020_D AS
   fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
   fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09,
   fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09, fire. slp_h_b, 
-  fire.aspct__, fire.dm_h_bc, fire.shp_ln_, fire.win_sum, fire.win_spg,
+  fire.aspct__, fire.dm_h_bc, fire.heatload, fire.shp_ln_, fire.win_sum, fire.win_spg,
   veg_comp_lyr_r1_poly2020.geometry FROM veg_comp_lyr_r1_poly2020,
   (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, ign_month, size_ha, fire, zone,
    subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
    tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
-   mdc_09, slp_h_b, aspct__,dm_h_bc, shp_ln_, win_sum, win_spg
+   mdc_09, slp_h_b, aspct__,dm_h_bc, heatload, shp_ln_, win_sum, win_spg
    from Data_clim_DEM_roads_wind where fire_yr = '2020') as fire where st_contains
   (veg_comp_lyr_r1_poly2020.geometry, fire.wkb_geometry))
 
@@ -132,12 +132,12 @@ CREATE TABLE fire_veg_2020_D AS
   fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
   fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09,
   fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09, fire. slp_h_b, 
-  fire.aspct__,dm_h_bc,fire.shp_ln_, fire.win_sum, fire.win_spg,
+  fire.aspct__,fire.dm_h_bc, fire.heatload, fire.shp_ln_, fire.win_sum, fire.win_spg,
   veg_comp_lyr_r1_poly2007.geometry FROM veg_comp_lyr_r1_poly2007,
   (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, ign_month, size_ha, fire, zone,
    subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
    tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
-   mdc_09, slp_h_b, aspct__, dm_h_bc, shp_ln_, win_sum, win_spg 
+   mdc_09, slp_h_b, aspct__, dm_h_bc, heatload, shp_ln_, win_sum, win_spg 
    from Data_clim_DEM_roads_wind where fire_yr = '2007') 
    as fire where st_contains (veg_comp_lyr_r1_poly2007.geometry, fire.wkb_geometry))
 
@@ -155,12 +155,12 @@ CREATE TABLE fire_veg_2020_D AS
    fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
    fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09,
    fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09, fire. slp_h_b, 
-   fire.aspct__, fire. dm_h_bc, fire.shp_ln_, fire.win_sum, fire.win_spg,
+   fire.aspct__, fire. dm_h_bc, fire.heatload, fire.shp_ln_, fire.win_sum, fire.win_spg,
    veg_comp_lyr_r1_poly2008.geometry FROM veg_comp_lyr_r1_poly2008,
    (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, ign_month, size_ha, fire, zone,
     subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
     tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
-    mdc_09, slp_h_b, aspct__, dm_h_bc, shp_ln_, win_sum, win_spg 
+    mdc_09, slp_h_b, aspct__, dm_h_bc, heatload, shp_ln_, win_sum, win_spg 
     from Data_clim_DEM_roads_wind where fire_yr = '2008') 
     as fire where st_contains (veg_comp_lyr_r1_poly2008.geometry, fire.wkb_geometry))
 

@@ -858,6 +858,13 @@ write.csv(aic_bec_person_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateB
 ```
 
 Save lightning and person caused fire datasets to clus.
+
+
+```{r}
+write.csv(dat_lightning_,file="D:\\Fire\\fire_data\\raw_data\\Data_Lightning")
+write.csv(dat_person_,file="D:\\Fire\\fire_data\\raw_data\\Data_Person")
+```
+
 #Below is not working. Although I can see the table online, I cannot bring it back in. Sometimes the loaded table is empty/blank, and other times it is there but cannot be called on.
 
 ```{r}
@@ -875,6 +882,7 @@ st_write (obj = dat_lightning_,
 
 dbDisconnect (connKyle)
 ```
+
 
 ```{r}
 connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
