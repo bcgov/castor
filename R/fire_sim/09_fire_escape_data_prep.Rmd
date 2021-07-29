@@ -304,7 +304,6 @@ hist(dat_person_escape_2$mdc_atfire)
 hist(dat_person_escape_2$wind_atfire)
 ```
 
-
 Save data on local machine.
 
 ```{r}

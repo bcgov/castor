@@ -487,7 +487,10 @@ names(sample_locations_DEM_roads_wind2_test)
 names(dat_lightning_) #elevation, win_sum, wun_spg
 names(dat_person_)#elevation, win_sum, wun_spg
 
+names(sample_locations_DEM)
+
 missingcolumns<-sample_locations_DEM_roads_wind2_test[c(1,40,43,44)] #select idno and all other missing columns
+missingcolumns<-sample_locations_DEM[c(2,45)]
 missingcolumns
 
 missingcolumns<- missingcolumns %>% rename(
@@ -497,6 +500,7 @@ dat_lightning_<-left_join(dat_lightning_, missingcolumns)
 dat_person_<-left_join(dat_person_, missingcolumns)
 
 head(dat_lightning_)
+head(dat_person_)
 
 ```
 
