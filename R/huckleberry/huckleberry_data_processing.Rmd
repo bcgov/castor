@@ -1,0 +1,177 @@
+---
+title: "Huckleberry_data_processing"
+author: "Cora Skaien"
+date: "29/07/2021"
+output: html_document
+---
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+#Overview
+We have a dataset provided by Clayton Lamb and Garth Mowat that contains information on numerous shrub species occurrence, cover, fruit phenology, sugar content, etc. Using the consolidated cutblock layer available online (https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-), I was able to use the intersect tool in QGIS to determine which of the plots in the provided data occurred in cutblocks. Here, we will bring in both layers, append the data together between the two files, and then subset the huckleberry (Vaccinium membranaceum) and buffalo berry (Shepherdia canadensis) to see how large our dataset is.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(raster)
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(cleangeo)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(rgdal)
+library(keyring)
+library(DBI)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+Bring in the shape file with the coordinates within cutblocks. This data was processed in QGIS, using the consolidated cutblock layer. This data also has the Relevant Openings data appended to it. Inspect data.
+
+This link will be very useful for determing what the codes mean:
+https://www.for.gov.bc.ca/hfp/publications/00026/fs708-14-appendix_d.htm#ad_16
+
+
+```{r}
+#This first file has ALL of the locations within cutblocks
+cutblock_plots<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Plots_in_cutblocks_FINAL.shp", stringsAsFactors = T)
+
+#This second file has openings data from RESULTS already appended in QGIS, but we lose ~30 datapoints.
+cutblock_plots<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Plots_in_cutblocks_OPENINGSdata2.shp", stringsAsFactors = T)
+
+st_crs(cutblock_plots)
+plot(cutblock_plots)
+table(cutblock_plots$Site_ID) #Some SiteIDs represented multiple times. May need to inspect to ensure that coordinates are correct for given site ID. Cutblock info for given site_ID is hopefully consistent.
+
+#See if worth losing the data points - i.e., do we have consistent good data within this.
+hist(cutblock_plots$OPEN_GRSAR)
+table(cutblock_plots$DN1_DIS_CD) # 23 B (burned wildfire); 806 logged (L); 8 P (pest); 7 S (Salvage); 3 W (windthrow)
+table(cutblock_plots$DN2_DIS_CD) #Additional elements
+table(cutblock_plots$DN1_SILSYS) #232 CCRES (Clearcut with reserves); 382 Clearcut; spattering of others.
+table(cutblock_plots$DN1_SILVAR) # Not many records; not useful
+table(cutblock_plots$PREP1_TECH) # 201 BU (burn), 266 ME (mechanical)
+
+cutblock_plots$PREP1_2<-paste(cutblock_plots$PREP1_TECH,cutblock_plots$PREP2_TECH)
+table(cutblock_plots$PREP1_2) #336 records of NA, lots of combinations otherwise. Maybe make a column that is yes/no for each technique that is considered important?
+table(cutblock_plots$BRSH1_TECH) #Brushing technique; 184 MA (manual); 29 CG (Chemical Ground); 27 CA (Chemical Air); and others
+table(cutblock_plots$PLNT1_TECH) #Mostly PL (planting)
+hist(cutblock_plots$FEAT_AREA)
+hist(cutblock_plots$PLNT1_AREA) #Also has a Plant2, so could add together for total planting area?
+
+```
+Now, load in the productivit data provided from Clayton Lamb, PhD.
+
+```{r}
+prod_data<-read.csv("D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Productivity_Data.csv")
+head(prod_data)
+str(prod_data)
+```
+Now, attempt to combine info from prod_data to cutblock_plots.
+
+```{r}
+names(cutblock_plots)
+names(prod_data)
+
+head(cutblock_plots)
+head(prod_data)
+
+#Make Site_ID same for both files
+prod_data<-prod_data %>% rename(Site_ID=Site.ID)
+
+#Combine to the number of observations in cutblock_plots
+berry_data<-left_join(cutblock_plots,prod_data)
+head(berry_data)
+
+#Compare number observations
+str(cutblock_plots) #852 observations
+str(berry_data) #852 observations
+```
+Now separate the data by species. We want one dataset for huckleberry (Vaccinium_membranaceum) and one for buffalo berry (Shepherdia_canadensis).
+
+```{r}
+huckle_data<-subset(berry_data, berry_data$Species=="Vaccinium_membranaceum")
+str(huckle_data) #644
+hist(huckle_data$CutBlock_Year)
+table(huckle_data$CutBlock_Occurrence) #Suggest that 28 of these were not actually in cutblocks.
+table(huckle_data$CutBlock_Occurrence, huckle_data$CutBlock_Year) #All 28 not in cutblocks were indicated last harvested in 1900 in Clayton's data
+table(huckle_data$CutBlock_Occurrence, huckle_data$HARVESTYR) #appears that 16/28 of the plots not harvested were harvested after CLayton's data. Use Clayton's harvest year data as a result. Some data was even collected in 2014 or 2015, so the patches were likely harvested after. Remove all with cutblock_occurence = 0
+huckle_data<-subset(huckle_data,huckle_data$CutBlock_Occurrence=="1")
+str(huckle_data) #640 observations
+
+#Inspect presence/absence of huckleberries in data
+table(huckle_data$Species.Present) #139 absences and 466 presences
+
+#I am curious about cutblock size, but I acknowledge that it is not fully representative of the greater area given that adjacent cutblocks could occut before or after this cutblock, making the greater connected area far larger than what this value suggests.
+
+hist(huckle_data$AREAHA)
+hist(huckle_data$AREA_SQM)
+
+
+hist(huckle_data$OPEN_GRSAR)
+table(huckle_data$DN1_DIS_CD) # Mostly L (logged). May want to subset so only have logged
+table(huckle_data$DN2_DIS_CD) #Additional elements
+table(huckle_data$DN1_SILSYS) #127 CCRES (Clearcut with reserves); 301 Clearcut; spattering of others.
+table(huckle_data$PREP1_TECH) # 171 BU (burn), 197 ME (mechanical); spattering of others.
+
+huckle_data$PREP1_2<-paste(huckle_data$PREP1_TECH,huckle_data$PREP2_TECH)
+table(huckle_data$PREP1_2) #210 records of NA, lots of combinations otherwise. Maybe make a column that is yes/no for each technique that is considered important?
+table(huckle_data$BRSH1_TECH) #Brushing technique; 145 MA (manual); 21 CG (Chemical Ground); 15 CA (Chemical Air); and others
+table(huckle_data$PLNT1_TECH) #Mostly PL (planting); some FP (Fill Planting); likely not as useful.
+hist(huckle_data$FEAT_AREA)
+hist(huckle_data$PLNT1_AREA) #Also has a Plant2, so could add together for total planting area?
+```
+
+
+```{r}
+buffalo_data<-subset(berry_data, berry_data$Species=="Shepherdia_canadensis")
+str(buffalo_data)#208
+hist(buffalo_data$CutBlock_Year)
+table(buffalo_data$CutBlock_Occurrence) #Suggests that 17 of these were not actually in cutblocks.
+table(buffalo_data$CutBlock_Occurrence, buffalo_data$CutBlock_Year) #All 16 not in cutblocks were indicated last harvested in 1900 in Clayton's data
+table(buffalo_data$CutBlock_Occurrence, buffalo_data$HARVESTYR) #appears that 13/16 of the plots not harvested were harvested after Clayton's data. Use Clayton's harvest year data as a result. Some data was even collected in 2014 or 2015, so the patches were likely harvested after. Remove all with cutblock_occurence = 0
+buffalo_data<-subset(buffalo_data,buffalo_data$CutBlock_Occurrence=="1")
+str(buffalo_data) #191 observations
+
+#Inspect presence/absence of huckleberries in data
+table(buffalo_data$Species.Present) #88 absences and 103 presences
+
+#I am curious about cutblock size, but I acknowledge that it is not fully representative of the greater area given that adjacent cutblocks could occur before or after this cutblock, making the greater connected area far larger than what this value suggests.
+
+hist(buffalo_data$AREAHA)
+hist(buffalo_data$AREA_SQM)
+
+
+hist(buffalo_data$OPEN_GRSAR)
+table(buffalo_data$DN1_DIS_CD) # Mostly L (logged). May want to subset so only have logged
+table(buffalo_data$DN2_DIS_CD) #Additional elements
+table(buffalo_data$DN1_SILSYS) #79 CCRES (Clearcut with reserves); 82 Clearcut; spattering of others.
+table(buffalo_data$PREP1_TECH) # 29 BU (burn), 63 ME (mechanical); spattering of others.
+
+buffalo_data$PREP1_2<-paste(buffalo_data$PREP1_TECH,buffalo_data$PREP2_TECH)
+table(buffalo_data$PREP1_2) #210 records of NA, lots of combinations otherwise. Maybe make a column that is yes/no for each technique that is considered important?
+table(buffalo_data$BRSH1_TECH) #Brushing technique;37 MA (manual); 8 CG (Chemical Ground); 12 CA (Chemical Air); and others
+table(buffalo_data$PLNT1_TECH) #Mostly PL (planting); some FP (Fill Planting); likely not as useful.
+hist(buffalo_data$FEAT_AREA)
+hist(buffalo_data$PLNT1_AREA) #Also has a Plant2, so could add together for total planting area?
+
+```
+
+Now that we know that we have data that we can play around with, we can add additional information to these. We want to find out information on elements of forestry practices, such as planting density, burning, site prep, etc.
+
+
+#Other layers with attributes we may want:
+https://catalogue.data.gov.bc.ca/dataset/results-activity-treatment-units#edc-pow
+https://catalogue.data.gov.bc.ca/dataset/results-forest-cover-silviculture#edc-pow
