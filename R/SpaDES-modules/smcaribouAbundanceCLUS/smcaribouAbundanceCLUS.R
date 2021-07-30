@@ -105,13 +105,14 @@ Init <- function (sim) {
   # a value of 0.4  = AVG (0,0,1,1,0,1,1,0,0,0)
   # it does this by each herd/habitat area ('GROUP BY' statement)
   # the IS NOT NULL statements drop out the non-forested areas from the calculation, i.e., the denominator is the area of forest, not all land
-  table.disturb <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN dist = 0 THEN 1 ELSE 0 END) * 100 AS percent_disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND age Is NOT NULL GROUP BY herd_habitat_name;")) 
+  table.disturb <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN roadyear >= 0 OR blockid > 0 AND age >=0 AND age <= 40 THEN 1 ELSE 0 END) * 100 AS percent_disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND age Is NOT NULL GROUP BY herd_habitat_name;")) 
   
   # The following equation estimates abundance in the subpop/herd area using the Lochhead et al. model 
   message("estimating abundance")
   table.disturb <- dcast(table.disturb, # reshape the table 
                          subpop_name ~ habitat_type, 
                          value.var="percent_disturb")
+  vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableSMCCoeffs))) 
   coeffs <- unique(vat_table, by = "herd_name")
   coeffs <- coeffs [, c ("bc_habitat_type", "herd_hab_name", "value") := NULL]
   table.disturb <- merge (table.disturb , coeffs, by.x = "subpop_name", by.y = "herd_name", all.x = TRUE) # add coeffs
@@ -131,7 +132,7 @@ Init <- function (sim) {
 predictAbundance <- function (sim) { # this function calculates survival rate at each time interval; same as on init, above
   
   message("estimating abundance")
-  new_tableAbundanceReport <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN dist = 0 THEN 1 ELSE 0 END) * 100 AS percent_disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND age Is NOT NULL GROUP BY herd_habitat_name;")) 
+  new_tableAbundanceReport <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN roadyear >= 0 OR blockid > 0 AND age >=0 AND age <= 40 THEN 1 ELSE 0 END) * 100 AS percent_disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND age Is NOT NULL GROUP BY herd_habitat_name;")) 
   new_tableAbundanceReport <- dcast(new_tableAbundanceReport, # reshape the table 
                                      subpop_name ~ habitat_type, 
                                      value.var="percent_disturb")
