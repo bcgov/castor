@@ -1,0 +1,585 @@
+---
+title: "Berry Modeling"
+author: "Tyler Muhly"
+date: "11/01/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library (data.table)
+library (ggplot2)
+library (dplyr)
+```
+
+## Modeling Berry Occurence and Abundance to Support Timber Supply Review
+Here we model occurrence and abundance of berries as a function of stand characteristics to see if we can link to spatial timber supply/forest harvest models.
+
+Berries are important to grizzly bear, and appear to be related to forest stand characteristics, thus forestry may impact distribution and abundance of this important bear food. Can potentially use spatial timber supply models to look at distribution and abundance of berries over space and time under different forest management regimes
+
+## Berry Data
+Data on berry shrub occurrence, cover, fruit presence, and fruit abundance was obtained from Clayton Lamb, UBC. The data consists of two datasets, "VegModData_BEC_CL" and "Productivity_Data".
+
+The "VegModData_BEC_CL" dataset contains berry shrub species occurrence ("species_Occ") and percent cover ("species_Cover") data. Data was obtained from biogeoclimatic ecosystem classification (BEC) plots, and plots collected by Clayton Lamb or Mike Proctor. 
+
+The "Productivity_Data" dataset contains berry shrub species occurrence ("Species.Present"), shrub percent cover ("Species.Cover"), fruit occurrence ("Fruit.Present") and fruit percent cover ("Fruit.Cover") data. Where the species did not occur, or fruit did not occur, it was assigned an "NA" value. 
+
+Both datasets contain a variety of covariates representing large-scale environmental conditions at the vegetation plots. These were typically measured using spatial data in a GIS, and include data on time since cut ("TimeSinceCut") or fire ("TimeSinceFire"). Note that if locations had no documented forest harvest (cutblock) or fire, the "TimeSince" covariates were set to 118 years. Other data includes terrain (e.g., aspect ("aspect_30m_SRTM"), elevation ("DEM_30_bcalb"), ruggedness ("roughness_30m_SRTM"), slope ("slope_30m_SRTM")), landcover ("LandsatCC_2010_Fixed"	and "MODIS_LC"), and a variety of [downscaled climate data](http://raster.climatebc.ca/download/List_of_climate_variables.pdf) from the University of British Columbia 
+
+Here we focus on two key bear foods, huckleberry (*Vaccinium membranaceum*) and soap berry or buffaloberry (*Shepherdia canadensis*). 
+
+```{r, data}
+data.prod <- as.data.table (read.csv ("C:\\Work\\berries\\data\\Productivity_Data.csv")) # productivity data
+data.bec <- as.data.table (read.csv ("C:\\Work\\berries\\data\\VegModData_BEC_CL.csv")) # bec data; VACCMEM and SHEPCAN
+# Huckleberries
+data.prod.huck <-  data.prod [Species == "Vaccinium_membranaceum"]
+# Buffaloberry
+data.prod.buff <-  data.prod [Species == "Shepherdia_canadensis"]
+```
+
+## Data Exploration
+Here I do some basic data exploration of each dataset.
+
+### Huckleberry - Productivity Data
+Below I explore the huckleberry "productivity" data.
+
+#### Data Distributions
+
+##### Stand Origin and Age
+I created some new variables, essentially combining fire (Fire_Occ) and cutblock (CutBlock_Occurrence) occurrence into an 'origin' field, where old stands of 'unknown' origin are class 0, stands that were more recently harvested are class 1 and stands that were more recently burned are class 2. I then created a variable called "origin.age" that is th age of stands of known origin (fire or cutblock). 
+
+```{r, create new stand origin and age variables}
+# make a new variable that is "origin"
+data.prod.huck$origin <- ifelse ((data.prod.huck$CutBlock_Occurrence == 1 & data.prod.huck$TimeSinceCut < data.prod.huck$TimeSinceFire), 1, ifelse ((data.prod.huck$Fire_Occ == 1 & data.prod.huck$TimeSinceCut > data.prod.huck$TimeSinceFire), 2, 0))
+data.prod.huck$origin <- as.factor (data.prod.huck$origin)
+# make a new variable that is age of stands of known origin
+data.prod.huck$origin.age <- ifelse ((data.prod.huck$origin == 1), data.prod.huck$TimeSinceCut, ifelse ((data.prod.huck$origin == 2), data.prod.huck$TimeSinceFire, NA))
+#test <- select (data.prod.huck, origin, TimeSinceCut, TimeSinceFire, origin.age)
+```
+
+I then looked at the relationship between stand origin and occurrence and abudnace of huckleberry shrubs and fruit. 
+
+Huckleberry tend to occur more in fire and harvest origin stands than stands of old, unknown origin. This could be that huckleberry are in younger stands, but there does seem to be a difference between origin type.
+
+```{r, productivity data - huckleberry occurence - burn or harvest origin}
+data.prod.huck.na <-  data.prod.huck [Species.Present != ""] # drop NA values
+data.prod.huck.na.origin <-  data.prod.huck.na [origin != ""] # drop NA values
+data.prod.huck.na.origin$Species.Present <- as.factor (data.prod.huck.na.origin$Species.Present)
+data.prod.huck.na.origin$Species.Present <- as.factor (data.prod.huck.na.origin$Species.Present)
+ggplot (data.prod.huck.na.origin, aes (x = Species.Present, fill = origin)) + 
+  geom_bar (position = "fill") +
+  scale_fill_discrete (name = "Stand Origin", labels = c("Unknown/Old", "Harvest", "Fire"))
+```
+
+Huckleberry fruit tend to occur more in old, unknown origin compared to fire and harvest origin stands.
+
+```{r, productivity data - huckleberry fruit occurence - burn or harvest origin}
+data.prod.huck.na.origin$Fruit.Present <- as.factor (data.prod.huck.na.origin$Fruit.Present)
+data.prod.huck.na.origin <-  data.prod.huck.na.origin [Fruit.Present != ""] # drop NA values
+ggplot (data.prod.huck.na.origin, aes (x = Fruit.Present, fill = origin)) + 
+geom_bar (position = "fill") +
+  scale_fill_discrete (name = "Stand Origin", labels = c("Unknown/Old", "Harvest", "Fire"))
+```
+
+Huckleberry cover was highest in fire origin stands (~20%) compared to harvest origin stands (~15%), and stands of old, unknown origin (~10%).
+
+```{r, productivity data - huckleberry cover - burn or harvest origin}
+ggplot (data.prod.huck.na.origin, aes (x = origin, y = Species.Cover)) +
+  geom_boxplot () +
+  labs (x = "Unknown Origin (0), Harvest Origin (1) and Fire Origin (2) Stands",
+        y = "Huckleberry Cover")
+```
+
+Huckleberry fruit abundance was highest in fire origin stands compared to harvest origin stands, and stands of old, unknown origin. 
+
+```{r, productivity data - huckleberry fruit abundance - burn or harvest origin}
+ggplot (data.prod.huck.na.origin, aes (x = origin, y = Fruit.Abund)) +
+  geom_boxplot () +
+  labs (x = "Unknown Origin (0), Harvest Origin (1) and Fire Origin (2) Stands",
+        y = "Huckleberry Fruit Abundance")
+```
+
+Stand origin appears to influence huckleberry occurrence and cover, and huckleberry fruit occurrence and abundance.  Fire origin appears to positively influence huckleberry occurrence and cover, and fruit abundance. Fire origin may negatively influence fruit occurrence. Cutblock origin appears to negatively influence huckleberry fruit occurrence and abundance, but positively influences huckleberry cover. 
+
+Next I considered the effects of stand age of known origin stands on huckleberry.
+
+Harvest origin stands are on average much younger (~22 years old) than fire origin stands (~75 years old). Thus the effect of stand origin on huckleberry could be related to age (i.e., they are confounded a bit). 
+
+```{r, productivity data - stand origin - age }
+data.prod.huck.known.origin <- data.prod.huck.na.origin [origin != 0] # drop unknown origins
+ggplot (data.prod.huck.known.origin, aes (x = origin, y = origin.age)) +
+  geom_boxplot () +
+  labs (x = "Harvest Origin (1) and Fire Origin (2) Stands",
+        y = "Stand Age")
+```
+
+So let's consider how age may affect huckleberry occurrence. Huckleberry may be more likely to be detected in slightly younger (~35 year old) stands, although the effect is pretty weak.
+
+```{r, productivity data - huckleberry occurence - age }
+ggplot (data.prod.huck.na.origin, aes (x = Species.Present, y = origin.age)) +
+  geom_boxplot () +
+  labs (x = "No Huckleberry (0) and Huckleberry Detected (1) Stands",
+        y = "Stand Age")
+```
+
+If we divide out stand age by origin, huckleberry on average tend to be detected in younger stands in harvest origin stands (detected in stands ~20 years compared to undetected in stands ~26 years) and fire origin stands (detected in stands ~75 years compared to undetected in stands ~80 years). So yes, origin is clearly confounded with age, but the negative effect of age is similar across origins. However, fire origin stands are older in general, so I think with this data we are limited to modeling the effect of age on huckleberry in harvest origin stands. 
+
+```{r, productivity data - huckleberry occurence - age by origin}
+data.prod.huck.known.origin <- data.prod.huck.na.origin [origin != 0] # drop unknown origins
+supp.labs <- c("Harvest", "Fire")
+names(supp.labs) <- c(1, 2)
+ggplot (data.prod.huck.known.origin, aes (x = Species.Present, y = origin.age)) +
+  geom_boxplot () +
+  labs (x = "No Huckleberry (0) and Huckleberry Detected (1) Stands",
+        y = "Stand Age") +
+  facet_grid (cols = vars(origin),
+              labeller = labeller (origin = supp.labs))
+```
+
+Again we see that age and origin are pretty well confounded. Older fire origin stands and younger harvest origin stands tended to be sampled in the data. I think here we can attempt to build an age model using harvest origin data only. 
+
+```{r, productivity data - huckleberry cover - age and origin}
+ggplot (data.prod.huck.known.origin, aes (x = origin.age, y = Species.Cover, colour = factor(origin))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Cover Across stand Ages",
+        x = "Stand Age (years)",
+        y = "Species Cover (%)")  +
+  scale_colour_discrete (name = "Stand Origin", labels = c("Harvest", "Fire"))
+```
+
+
+
+
+
+
+
+
+```{r, productivity data - huckleberry occurence - age by origin}
+data.prod.huck.known.origin <- data.prod.huck.na.origin [origin != 0] # drop unknown origins
+supp.labs <- c("Harvest", "Fire")
+names(supp.labs) <- c(1, 2)
+ggplot (data.prod.huck.known.origin, aes (x = Species.Present, y = origin.age)) +
+  geom_boxplot () +
+  labs (x = "No Huckleberry (0) and Huckleberry Detected (1) Stands",
+        y = "Stand Age") +
+  facet_grid (cols = vars(origin),
+              labeller = labeller (origin = supp.labs))
+```
+
+
+
+
+
+It may be notable though that fire origin stands seem to positively affect huckleberry, despite these stands beign older than harvest origin stands. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##### Stand Age - Cutblocks
+Below I explore distributions of stand age data for huckleberries. 
+
+Huckleberry were more likely to be detected in older (~23 years old) than younger (~19 years old) harvested stands.
+
+```{r, productivity data - huckleberry occurence - cutblock age distributions}
+data.prod.huck.na <-  data.prod.huck [Species.Present != ""] # drop NA values
+data.prod.huck.na.cut <-  data.prod.huck.na [CutBlock_Occurrence == 1] # only harvested origins
+data.prod.huck.na.cut$Species.Present <- as.factor (data.prod.huck.na.cut$Species.Present)
+ ggplot (data.prod.huck.na.cut, aes (x = Species.Present, y = TimeSinceCut)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot Cutblock Stand Age at Sites where Huckleberry were Present (1) 
+or Absent (0)",
+        x = "Absent (0) and Present (1) Locations",
+        y = "Stand Age (years)")
+```
+
+Huckleberry cover was generally consistent across cutblock age. 
+
+```{r, productivity data - huckleberry cover - cutblock age distributions}
+ ggplot (data.prod.huck.na.cut, aes (x = TimeSinceCut, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Stand Age (years)",
+        y = "Species Cover")
+```
+
+Huckleberry fruit were more likely to be detected in older (~25 years old) than younger (~22 years old) harvested stands.
+
+```{r, productivity data - fruit occurence - cutblock age distributions}
+data.prod.huck.fruit.na <-  data.prod.huck [Fruit.Present != ""] # drop NA values
+data.prod.huck.fruit.na.cut <-  data.prod.huck.fruit.na [CutBlock_Occurrence == 1] # only harvested origins
+data.prod.huck.fruit.na.cut$Fruit.Present <- as.factor (data.prod.huck.fruit.na.cut$Fruit.Present)
+ ggplot (data.prod.huck.fruit.na.cut, aes (x = Fruit.Present, y = TimeSinceCut)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot Cutblock Stand Age at Sites where Huckleberry Fruit were Present (1) 
+or Absent (0)",
+        x = "Absent (0) and Present (1) Locations",
+        y = "Stand Age (years)")
+```
+
+Huckleberry fruit abundance was generally consistent across cutblock age, with some weak evidence for an increase between ages 20 and 40. 
+
+```{r, productivity data - fruit abundance - cutblock age distributions}
+data.prod.huck.fruit.na <-  data.prod.huck [Fruit.Abund != ""] # drop NA values
+data.prod.huck.fruit.na.cut <-  data.prod.huck.fruit.na [CutBlock_Occurrence == 1] # only harvested origins
+ggplot (data.prod.huck.fruit.na.cut, aes (x = TimeSinceCut, y = Fruit.Abund)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Fruit Abundance in Cutblocks of Different Ages",
+        x = "Stand Age (years)",
+        y = "Fruit Abundance")
+```
+
+Huckleberry cover was slightly less (~14%) in cutblock origin stands than not (~15%).
+
+```{r, productivity data - huckleberry cover - cutblock occurence}
+data.prod.huck.na <-  data.prod.huck [Species.Present != ""] # drop NA values
+data.prod.huck.na.cut <-  data.prod.huck [CutBlock_Occurrence != ""] # drop NA values
+data.prod.huck.na.cut$CutBlock_Occurrence <- as.factor (data.prod.huck.na.cut$CutBlock_Occurrence)
+ggplot (data.prod.huck.na.cut, aes (x = CutBlock_Occurrence, y = Species.Cover)) +
+  geom_boxplot (data.prod.huck.na.cut = "red") +
+  labs (title = "Boxplot Huckleberry Cover at Cutblock Sites (1) or not (0)",
+        x = "No cutblock (0) and Cutblock (1)",
+        y = "Huckleberry Cover")
+```
+
+Huckleberry fruit abundance was slightly less in cutblock origin stands than not.
+
+```{r, productivity data - huckleberry fruit - cutblock occurence}
+data.prod.huck.na <-  data.prod.huck [Species.Present != ""] # drop NA values
+data.prod.huck.na.cut <-  data.prod.huck [CutBlock_Occurrence != ""] # drop NA values
+data.prod.huck.na.cut$CutBlock_Occurrence <- as.factor (data.prod.huck.na.cut$CutBlock_Occurrence)
+ggplot (data.prod.huck.na.cut, aes (x = CutBlock_Occurrence, y = Fruit.Abund)) +
+  geom_boxplot (data.prod.huck.na.cut = "red") +
+  labs (title = "Boxplot Huckleberry Fruit Abundance at Cutblock Sites (1) or not (0)",
+        x = "No cutblock (0) and Cutblock (1)",
+        y = "Huckleberry Fruit Abundance")
+```
+
+Cutblock age may have a weak effect on huckleberry occurrence at a macro scale, but does not appear to affect huckleberry cover. Cutblock age did not appear to effect huckleberry fruit occurrence, but there may be a slight increase in fruit abundance in cutblocks 20 to 40 years old. Cutblocks may reduce huckleberry percent cover and fruit abundance. 
+
+##### Stand Age - Burns
+
+Huckleberry were more likely to be detected in slightly older (~75 years old) than younger (~73 years old) burned stands.
+
+```{r, productivity data - huckleberry occurence - burn age distributions}
+data.prod.huck.na <-  data.prod.huck [Species.Present != ""] # drop NA values
+data.prod.huck.na.fire <-  data.prod.huck.na [Fire_Occ == 1] # only harvested origins
+data.prod.huck.na.fire$Species.Present <- as.factor (data.prod.huck.na.fire$Species.Present)
+ggplot (data.prod.huck.na.fire, aes (x = Species.Present, y = TimeSinceFire
+)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot Burned Stand Age at Sites where Huckleberry were Present (1) 
+or Absent (0)",
+        x = "Absent (0) and Present (1) Locations",
+        y = "Stand Age (years)")
+```
+
+Huckleberry cover was generally consistent across burn age. 
+
+```{r, productivity data - huckleberry cover - burn age distributions}
+ ggplot (data.prod.huck.na.fire, aes (x = TimeSinceCut, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Burns of Different Ages",
+        x = "Stand Age (years)",
+        y = "Species Cover")
+```
+
+Huckleberry fruit ere more likely to be detected in slightly younger (~75 years old) than older (~78 years old) burned stands.
+
+```{r, productivity data - fruit occurence - burn age distributions}
+data.prod.huck.fruit.na <-  data.prod.huck [Fruit.Present != ""] # drop NA values
+data.prod.huck.fruit.na.fire <-  data.prod.huck.fruit.na [Fire_Occ == 1] # only harvested origins
+data.prod.huck.fruit.na.fire$Fruit.Present <- as.factor (data.prod.huck.fruit.na.fire$Fruit.Present)
+ggplot (data.prod.huck.fruit.na.fire, aes (x = Fruit.Present, y = TimeSinceFire)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "BoxplotBurn Age at Sites where Huckleberry Fruit were Present (1) 
+or Absent (0)",
+        x = "Absent (0) and Present (1) Locations",
+        y = "Stand Age (years)")
+```
+
+Huckleberry fruit abundance appeared to peak at age 60, although the distribution of fruit abundance was highly variable at age 60. 
+
+```{r, productivity data - fruit abundance - burn age distributions}
+data.prod.huck.fruit.na <-  data.prod.huck [Fruit.Present != ""] # drop NA values
+data.prod.huck.fruit.na.fire <-  data.prod.huck.fruit.na [Fire_Occ == 1] # only harvested origins
+ggplot (data.prod.huck.fruit.na.fire, aes (x = TimeSinceFire, y = Fruit.Abund)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Fruit Abundance in Burns of Different Ages",
+        x = "Stand Age (years)",
+        y = "Fruit Abundance")
+```
+
+There was no notable effect of burn age on huckleberry occurrence at a macro scale. There was no notable evidence that burn age affected fruit occurrence, but there was some weak evidence that fruit abundance may peak in burned stands ~60 years old.
+
+Huckleberry cover was slightly higher (~20) in fire origin stands than not (~15%).
+
+```{r, productivity data - huckleberry cover - burn occurence}
+data.prod.huck.na <-  data.prod.huck [Species.Present != ""] # drop NA values
+data.prod.huck.na.fire <-  data.prod.huck [Fire_Occ != ""] # drop NA values
+data.prod.huck.na.fire$Fire_Occ <- as.factor (data.prod.huck.na.fire$Fire_Occ)
+ggplot (data.prod.huck.na.fire, aes (x = Fire_Occ, y = Species.Cover)) +
+  geom_boxplot (data.prod.huck.na.fire = "red") +
+  labs (title = "Boxplot Huckleberry Cover in Fire Origin Stands (1) or not (0)",
+        x = "No Burn (0) and Burn (1)",
+        y = "Huckleberry Cover")
+```
+
+Huckleberry fruit abundance was slightly higher in fire origin stands than not.
+
+```{r, productivity data - fruit abundance - burn occurence}
+data.prod.huck.na <-  data.prod.huck [Species.Present != ""] # drop NA values
+data.prod.huck.na.fire <-  data.prod.huck [Fire_Occ != ""] # drop NA values
+data.prod.huck.na.fire$Fire_Occ <- as.factor (data.prod.huck.na.fire$Fire_Occ)
+ggplot (data.prod.huck.na.fire, aes (x = Fire_Occ, y = Fruit.Abund)) +
+  geom_boxplot (data.prod.huck.na.fire = "red") +
+  labs (title = "Boxplot Huckleberry Fruit Abundance at Burned Sites (1) or not (0)",
+        x = "No Burn (0) and Burned (1)",
+        y = "Huckleberry Fruit Abundance")
+```
+
+
+
+
+
+
+
+Overall, I don't see compelling evidence that stand age, whether harvest or burn origin, influences huckleberry shrubs or fruit on those shrubs. However, there was some weak evidence that huckleberry cover and fruit abundance was less in harvest origin, but greater in fire origin stands. 
+
+It seems harvest age and fire age don't appear to play a big role in huckleberry distribution or abundance, but the orgifn of the satnd, whetehr it be cutblock or fire, may play an important role
+
+the most promising models here are:
+
+f(Huck~occ~) = Cut~age~
+
+f(Huck~cover~) = Cut + Fire
+
+f(Huck~fruitabun~) = Cut + Fire
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##### Topographic 
+Below I explore distributions of topographic data for huckleberries. 
+
+Huckleberry were generally detected at higher (~1,750M) than lower (~1,250m) elevations.
+
+```{r, productivity data - huckleberry occurence - elevation distributions}
+data.prod.huck.na <-  data.prod.huck [Species.Present != ""] # drop NA values
+# elevation, by species presence/absence
+data.prod.huck.na$Species.Present <- as.factor (data.prod.huck.na$Species.Present)
+ ggplot (data.prod.huck.na, aes (x = Species.Present, y = DEM_30_bcalb)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot Elevation at Sites where Huckleberry were Present (1) or Absent (0)",
+        x = "Absent (0) and Present (1) Locations",
+        y = "Elevation (m)")
+```
+
+Huckleberry cover was generally highest at intermediate-high (~1,850m) elevations. 
+
+```{r, productivity data - huckleberry cover - elevation distributions}
+data.prod.huck.na <-  data.prod.huck [Species.Present != ""] # drop NA values
+ ggplot (data.prod.huck.na, aes (x = DEM_30_bcalb, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover Across Elevation",
+        x = "Elevation (m)",
+        y = "Species Cover")
+```
+
+Elevation appears to be important for huckleberry occurrence and cover at macro scale, and is a quadratic relationship for cover.
+
+Huckleberry were generally detected on steeper (~15 degrees) than flatter (~10 degrees) slopes.
+
+```{r, productivity data - huckleberry occurence - slope distributions}
+# slope, by species presence/absence
+ ggplot (data.prod.huck.na, aes (x = Species.Present, y = slope_30m_SRTM)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot Slope at Sites where Huckleberry were Present (1) or Absent (0)",
+        x = "Absent (0) and Present (1) Locations",
+        y = "Slope (degrees)")
+```
+
+Huckleberry cover was generally highest at intermediate (~20 degree) slopes. 
+
+```{r, productivity data - huckleberry cover - slope distributions}
+ ggplot (data.prod.huck.na, aes (x = slope_30m_SRTM, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover Across Slopes",
+        x = "Slope (degrees)",
+        y = "Species Cover")
+```
+Slope appears to be weakly influence huckleberry occurrence and cover at macro scale, and is a quadratic relationship for cover.
+
+Huckleberry were generally detected at more south-westerly (~180 degree) aspects, although the effect appeared to be small.
+
+```{r, productivity data - huckleberry occurence - aspect distributions}
+ ggplot (data.prod.huck.na, aes (x = Species.Present, y = aspect_30m_SRTM)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot Aspect at Sites where Huckleberry were Present (1) or Absent (0)",
+        x = "Absent (0) and Present (1) Locations",
+        y = "Aspect (Degrees)")
+```
+
+Huckleberry cover was generally highest at south-westerly (~150 degree) aspects. 
+
+```{r, productivity data - huckleberry cover - aspect distributions}
+ ggplot (data.prod.huck.na, aes (x = aspect_30m_SRTM, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover Across Aspect",
+        x = "Aspect (degrees)",
+        y = "Species Cover")
+```
+
+Aspect appears to  weakly influence huckleberry occurrence and cover at macro scale, and is a quadratic relationship for cover.
+
+
+
+
+
+
+
+
+
+```{r}
+TPI= Topographic position index
+TRI= Terrain Ruggedness Index
+CTI= compound topographic index, 90m downscaled to 30m
+Heatload= Heat load index, 90m downscaled to 30m
+Roughness= terrain roughness, standard deviation of dem
+Surfarea= surface area index 
+rsf.data.du6$wetland_demars <- relevel (rsf.data.du6$wetland_demars,
+                                        ref = "Upland Conifer") # upland conifer as referencce, as per Demars 2018
+rsf.data.du6$pttype <- as.factor (rsf.data.du6$pttype)
+### OUTLIERS ###
+ggplot (rsf.data.du6, aes (x = pttype, y = distance_to_resource_road)) +
+  geom_boxplot (outlier.colour = "red") +
+  labs (title = "Boxplot DU6, Distance to Resource Roads at Available (0) and Used (1) Locations",
+        x = "Available (0) and Used (1) Locations",
+        y = "Distance to Resource Road")
+     
+ggplot (rsf.data.du8, aes (x = distance_to_cut_5to9yo, fill = pttype)) + 
+  geom_histogram (position = "dodge", binwidth = 100) +
+  labs (title = "Histogram du8, Distance to  Cutblock 5 to 9 Years Old at Available (0) and Used (1) Locations",
+        x = "Distance to  Cutblock 5 to 9 Years Old",
+        y = "Count") +
+  scale_fill_discrete (name = "Location Type")
+```
+
+
+
+
+
+
+elev*age
+
+
+
+
+
+
+
+
+
+```{r, covariate correlations}
+dist.cut.1.10.corr.du.6 <- dist.cut.corr.du.6 [c (10:19)]
+corr.1.10.du6 <- round (cor (dist.cut.1.10.corr.du.6, method = "spearman"), 3)
+p.mat.1.10 <- round (cor_pmat (corr.1.10.du6), 2)
+ggcorrplot (corr.1.10.du6, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3, 
+            title = "DU6 Distance to Cutblock Correlation Years 1 to 10")
+ggsave ("C:\\Work\\caribou\\clus_github\\R\\caribou_habitat\\plots\\plot_dist_cut_corr_1_10_du6.png")
+```
+
+
+
+```{r, simple glm}
+### VIF 
+glm.du8 <- glm (pttype ~ distance_to_cut_1to4yo + distance_to_cut_5to9yo +
+                  distance_to_cut_10to29yo + distance_to_cut_30orOveryo +
+                  distance_to_resource_road + bec_label_reclass, 
+                data = rsf.data.du8,
+                family = binomial (link = 'logit'))
+car::vif (glm.du8)
+```
+
+
+
+```{r, glmer models}
+model.lme.du6.ew <- glmer (pttype ~ std.distance_to_cut_1to4yo + std.distance_to_cut_5to9yo + 
+                            std.distance_to_cut_10yoorOver + 
+                            (std.distance_to_cut_1to4yo | uniqueID) + 
+                            (std.distance_to_cut_5to9yo | uniqueID) +
+                            (std.distance_to_cut_10yoorOver | uniqueID), 
+                          data = dist.cut.data.du.6.ew, 
+                          family = binomial (link = "logit"),
+                          verbose = T,
+                          control = glmerControl (calc.derivs = FALSE, # these settings should provide results quicker
+                                                  optimizer = "nloptwrap", # these settings should provide results quicker
+                                                  optCtrl = list (maxfun = 2e5))) # 20,000 iterations)
+summary (model.lme.du6.ew)
+anova (model.lme.du6.ew)
+plot (model.lme.du6.ew) # should be mostly a straight line
+dist.cut.data.du.6.ew$preds.lme.re <- predict (model.lme.du6.ew, type = 'response') 
+dist.cut.data.du.6.ew$preds.lme.re.fe <- predict (model.lme.du6.ew, type = 'response', 
+                                                  re.form = NA,
+                                                  newdata = dist.cut.data.du.6.ew) 
+plot (dist.cut.data.du.6.ew$distance_to_cut_1to4yo, dist.cut.data.du.6.ew$preds.lme.re.fe) # fixed effect predictions against covariate value
+plot (dist.cut.data.du.6.ew$std.distance_to_cut_5to9yo, dist.cut.data.du.6.ew$preds.lme.re.fe) 
+plot (dist.cut.data.du.6.ew$std.distance_to_cut_10yoorOver, dist.cut.data.du.6.ew$preds.lme.re.fe) 
+AIC (model.lme.du6.ew)
+```
+
+
+

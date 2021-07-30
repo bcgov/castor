@@ -10,6 +10,21 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+#Overview
 In Marchal et al. 2020, they define escape as "the probability that a fire will reach a size of at least 1 ha". We will inspect the ignition data and see the size of each fire. We will then separate them into those that are <1 ha in size, and those that are > 1 ha in size. From this, we can use logistic regression, including climate variables, topography (aspect and slope), and VRI data. Below currently only accounts for lightning caused fires. Human caused fires will be modelled down the road.
 
 Note: Other papers use 3 ha (e.g., Wang et al. 2016, International Journal of Wildland Fire) and others use 10 ha (e.g., Parisien et al. 2013, Natural Hazards) for their definition of escape.
@@ -52,14 +67,14 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
 
-dat_lightning <- sf::st_read  (dsn = connKyle, # connKyle
+dat_lightning_ <- sf::st_read  (dsn = connKyle, # connKyle
                                query = "SELECT * FROM public.dat_lightning_for_analysis")
 
 
 
 dbDisconnect (connKyle)
 
-head(dat_lightning)
+head(dat_lightning_)
 
 ##Person caused fires
 connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
@@ -69,7 +84,7 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
 
-dat_person <- st_read  (dsn = connKyle, # connKyle
+dat_person_ <- st_read  (dsn = connKyle, # connKyle
                                query = "SELECT * FROM public.dat_person_for_analysis")
 
 
@@ -77,16 +92,18 @@ dat_person <- st_read  (dsn = connKyle, # connKyle
 dbDisconnect (connKyle)
 
 
-head(dat_person)
+head(dat_person_)
 
 ```
 
 Now, select only those locations where a fire did occur. And then create a new category where if < 1 ha, then have 0, and if > 1 ha, have 1 value.
 
-```{r}
-table(dat_lightning$fire)
+#NOTE: in below, it is determined that both lightning and person caused fires have exactly 3989 fires of size 0 hectares... this is concerning...
 
-dat_lightning_escape<-subset(dat_lightning, dat_lightning$fire=="1")
+```{r}
+table(dat_lightning_$fire)
+
+dat_lightning_escape<-subset(dat_lightning_, dat_lightning_$fire=="1")
 head(dat_lightning_escape)
 
 str(dat_lightning_escape$size_ha)
@@ -95,6 +112,7 @@ hist(dat_lightning_escape$size_ha) #lots of little fires
 dat_lightning_escape_2<- dat_lightning_escape %>% drop_na(size_ha)
 str(dat_lightning_escape_2) #16319 
 min(dat_lightning_escape_2$size_ha) #How is min size 0? Odd.
+table(dat_lightning_escape_2$size_ha) #3989
 max(dat_lightning_escape_2$size_ha) 
 mean(dat_lightning_escape_2$size_ha) #262.2081 hectares for mean size
 table(dat_lightning_escape_2$fire_cs)
@@ -123,6 +141,75 @@ table(dat_lightning_escape_2$bclcs_level_2)
 
 ```
 
+Append wind speed to timing of fire
+
+```{r}
+dat_lightning_escape_2$wind_atfire<-0
+dat_lightning_escape_2$ign_month<-as.numeric(dat_lightning_escape_2$ign_month)
+head(dat_lightning_escape_2)
+dat_lightning_escape_2<-dat_lightning_escape_2 %>%
+    mutate(wind_atfire = case_when(ign_month == 1 ~ win_spg, #even though not quite accurate
+                                  ign_month == 2 ~ win_spg, #even though not quite accurate
+                                  ign_month == 3 ~ win_spg,
+                                  ign_month == 4 ~ win_spg,
+                                  ign_month == 5 ~ win_spg,
+                                  ign_month == 6 ~ win_sum,
+                                  ign_month == 7 ~ win_sum,
+                                  ign_month == 8 ~ win_sum,
+                                  ign_month == 9 ~ win_sum,#even though not quite accurate
+                                  ign_month == 10 ~ win_sum,#even though not quite accurate
+                                  ign_month == 11 ~ win_spg,#even though not quite accurate
+                                  ign_month == 12 ~ win_spg,#even though not quite accurate
+                                  TRUE ~ win_spg))
+
+dat_lightning_escape_2$wind_atfire
+hist(dat_lightning_escape_2$wind_atfire)
+
+```
+
+
+Inspect number of fires by MDC
+
+```{r}
+hist(dat_lightning_escape$mdc_atfire)
+str(dat_lightning_escape_2$escape)
+
+p <- ggplot(dat_lightning_escape_2, aes(mdc_atfire, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("MDC at fire") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_lightning_escape_2, aes(mdc_atfire, as.numeric(escape3))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("MDC at fire") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_lightning_escape_2, aes(mdc_atfire, as.numeric(escape10))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("MDC at fire") + ylab("Pr (ignition)")
+p
+
+#Of just ignition
+
+p <- ggplot(dat_lightning_, aes(mdc_atfire, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("MDC at fire") + ylab("Pr (ignition)")
+p
+
+```
+
 Save data on local machine.
 
 ```{r}
@@ -137,9 +224,9 @@ write.csv(dat_lightning_escape_2, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data
 Repeat for person caused fires
 
 ```{r}
-table(dat_person$fire)
+table(dat_person_$fire)
 
-dat_person_escape<-subset(dat_person, dat_person$fire=="1")
+dat_person_escape<-subset(dat_person_, dat_person_$fire=="1")
 head(dat_person_escape)
 
 str(dat_person_escape$size_ha)
@@ -147,7 +234,9 @@ dat_person_escape$size_ha<-as.numeric(dat_person_escape$size_ha)
 hist(dat_person_escape$size_ha) #lots of little fires
 dat_person_escape_2<- dat_person_escape %>% drop_na(size_ha)
 str(dat_person_escape_2) #20973 obs
-min(dat_person_escape_2$size_ha) #How is min size 0? Odd.
+min(dat_person_escape_2$size_ha) #How is min size 0? Odd. There are a LOT of 0s...
+table(dat_person_escape_2$size_ha) #3989 size 0 fires to be exact...
+table(dat_person_escape_2$fire_pres) #Claims all are fire present locations...
 max(dat_person_escape_2$size_ha) 
 mean(dat_person_escape_2$size_ha) #24.82 hectares for mean size (1/10 the size for lightning caused average!)
 table(dat_person_escape_2$fire_cs)
@@ -165,6 +254,38 @@ table(dat_person_escape_2$escape3) #~1000 difference: 19411 that did not escape 
 
 table(dat_person_escape_2$bclcs_level_2) 
 
+#Because one large fire, remove
+dat_person_escape_2b<-subset(dat_person_escape_2, dat_person_escape_2$size_ha<50000)
+hist(dat_person_escape_2b$size_ha, n=50) 
+
+dat_person_escape_2c<-subset(dat_person_escape_2, dat_person_escape_2$size_ha<500)
+hist(dat_person_escape_2c$size_ha, n=50) 
+
+```
+
+Append wind speed to timing of fire
+
+```{r}
+dat_person_escape_2$wind_atfire<-0
+dat_person_escape_2$ign_month<-as.numeric(dat_person_escape_2$ign_month)
+head(dat_person_escape_2)
+dat_person_escape_2<-dat_person_escape_2 %>%
+    mutate(wind_atfire = case_when(ign_month == 1 ~ win_spg, #even though not quite accurate
+                                  ign_month == 2 ~ win_spg, #even though not quite accurate
+                                  ign_month == 3 ~ win_spg,
+                                  ign_month == 4 ~ win_spg,
+                                  ign_month == 5 ~ win_spg,
+                                  ign_month == 6 ~ win_sum,
+                                  ign_month == 7 ~ win_sum,
+                                  ign_month == 8 ~ win_sum,
+                                  ign_month == 9 ~ win_sum,#even though not quite accurate
+                                  ign_month == 10 ~ win_sum,#even though not quite accurate
+                                  ign_month == 11 ~ win_spg,#even though not quite accurate
+                                  ign_month == 12 ~ win_spg,#even though not quite accurate
+                                  TRUE ~ win_spg))
+
+dat_person_escape_2$wind_atfire
+str(dat_person_escape_2$wind_atfire)
 
 ```
 
@@ -172,10 +293,16 @@ Determine if all fires adequately have dates
 ```{r}
 head(dat_person_escape_2)
 names(dat_person_escape_2)
-dat_person_escape_2$
+table(dat_person_escape_2$ign_month)
 
 ```
 
+Inspect number of fires by MDC
+
+```{r}
+hist(dat_person_escape_2$mdc_atfire)
+hist(dat_person_escape_2$wind_atfire)
+```
 
 Save data on local machine.
 

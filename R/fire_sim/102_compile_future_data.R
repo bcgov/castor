@@ -9,7 +9,7 @@ library(ggplot2)
 source(here::here("R/functions/R_Postgres.R"))
 
 
-# Assemble future data for province. Im going to do this at a scale of 800 x 800m. This is what Colin suggested was about the smallest size that would work for the climate data. He thought going smaller than this was not a great idea. I can always scale it smaller later through interpolation or something.
+# Assemble future data for province. I'm going to do this at a scale of 800 x 800m. This is what Colin suggested was about the smallest size that would work for the climate data. He thought going smaller than this was not a great idea. I can always scale it smaller later through interpolation or something.
 
 # Get boundary of the area, e.g. a TSA,  that you are interested in 
 

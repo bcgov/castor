@@ -9,22 +9,59 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+#Overview
+The goal of this project is to be able to assess whether we can model the abundance and productivity of huckleberry and soopalilie (bufallo berry) patches and relate this to grizzly bear foraging quality habitat. Some work has been done looking at associations between forest cutblock age and the abundance of both huckleberries and soopalilie, and some preliminary analyses have been performed to assess the correlations between variables.
 
-The goal of this project is to be able to assess whether we can model the abundance and productivity of huckleberry patches and relate this to grizzly bear foraging quality habitat. Some work has been done looking at associations between forest cutblock age and the abundance of both huckleberries and soopalilie (buffaloberry), and some preliminary analyses have been performed to assess the correlations between variables.
+Currently, we have data provided by Dr. Clayton Lamb on the abundance of huckleberry plants and berries, along with accompanying data on climate, soils, DEM, etc. We should look into the possibility of acquiring additional data that may be comparable that may cover more areas of BC. It has been suggested that we can model canopy closure from models that Kyle has. We can (and should) include climate, but the main questions of interest are stand characteristics (e.g., crown closure, basal area). There will also be some static variables such as topography.
 
-Currently, we have data provided by Dr. Clayton Lamb on the abundance of huckleberry plants and berries, along with climate data that accompanies it. We should look into the possibility of acquiring additional data that may be comparable. It has been suggested that we can model canopy closure from models that Kyle has. We can (and should) include climate, but the main questions of interest are stand characteristics (e.g., crown closure, basal area). There will also be some static variables such as topography.
+We likely should split the analyses into different BEC zones, and only include those that have huckleberry or soopalilie. Maybe this does not matter, but when projecting forward, only BEC zones that contain these species should be mapped. 
 
-We likely should split the analyses into different BEC zones, and only include those that have huckleberry bushes. 
+#Questions I have:
+  1. What spatial extent would we like to model this? Across the province?  The huckleberry data is only in SE BC. Buffalo Berry in clumps across the province.
+  2. What other elements for grizzly bear model do we already have? Forest service road and human disturbance elements? Likely not important for this element of the work, but curious.
+  3. Do we have information on cutblock treatment in the data? Check. RESULTS file on bc gov page may have info on treatments and silviculture. This likely needs to be added. (scarification, planting density, timing of harvest - winter vs summer)
+  4. Cutblock size info? I have coordinates and I may be able to match these to online databases. https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks- Note: retention patch sizes may not be adequately captured here.
+  5. Phenology and distribution and abundance? And energetics! Perhaps: P/A, percent cover focus. Then phenology and energetics. Energetics priority before phenology for our aims. Negative binomial (counts and P/A --> model occurrence and then count for it; regression models--> zero inflated models--> look into! Talk to Peter)
+  6. What is the projection for the coordinates provided in the productivity data file? UTM 10? ESPG 3005?
+  7. ifelse statement to determine if fire after logging or not. Tyler has done something similar.
+  8. If extent BC, how to create a raster for soil pH across the province to be able to include it in the predictive model. Or even over a smaller area. May need to create 2 models, one with and one without?
+  9. Is the data I have access to the same as that from Proctor et al.2017?
+  10. In VegModData, what is the difference between 0 and NA?
+  11. Other data available? Data from Chandler and Hamilton have much lower stand age results than Tyler's preliminary analyses.
+  12. BEC zone or subzone: Could also include provenance of planted stand (species). Ensure using only BEC zones that could contain huckleberries.
+  13. Only use plots that have been harvested before.
+  
+#Key variables to acquire and/or investigate:
+1. Canopy closure/cover -- could consider applying 50% canopy rule but investigate without first (Can acquire, I believe, from VRI or other means; otherwise here https://landcover.usgs.gov/glc/TreeCoverDescriptionAndDownloads.php)
+   Note: LandSatCC_2010 likely the canopy cover as of 2010.
+2. Cut block harvesting techniques and Silviculture (I believe I can get this from RESULTS files)
+3. Whether cutblock planted after or not (I suspect this will be confounded with age since this became common practice after 1990s)
+4. Cut block size (can get this data from cutblock layer)
+5. ClimateBC data (already in dataset: Annual heat Moisture (AHM) Index, Climate Moisture Index (CMI), EMT, EXT, MAT, MCMT, MSP)--> winter snow seems REALLY important for huckleberry; summer metrics more important for buffaloberry
+6. land cover type (MODIS in the dataset - categorical)
+7. Solar heat load (acquire from DEM info?) - otherwise use slope, elevation, aspect. Can be calculated from DEM in ArcGIS. I see note of this in metadata but do not see in data file.
+8. Soil pH?? But how to scale up when we likely do not have a province wide soil pH layer? (Or do we??? Need to figure out how to use this and see if useful: https://www.env.gov.bc.ca/esd/distdata/ecosystems/Soil_Data/SOIL_DATA_FGDB/) Data has this, but for projecting, need layer.
+9. Soil properties (sandiness, course materials, etc.) - Do we have this across BC? Maybe this is what link above can give us. Data has this, but for projecting, we need layer.
 
-Questions I have:
-  1. What spatial extent would we like to model this? Across the province? I believe we have data that spans the entire province so this should be possible.
-  2. Check for information on burning - is it in the data?
-  3. Data also for buffaloberry?
-  4. What other elements for grizzly bear model do we already have? Forest service road and human disturbance elements?
+Clayton's climate models found best predictors:(1) percent of area burned, (2) percent sand, (3) average winter temperature, (4) precipitation as snow, (5) canopy cover, (6) average pH, (7) slope and (8) solar heat load
 
+**Assess whether linear or non-linear for each. Canopy cover should be quadratic - upside down u-shaped with long tail.
 
-See some initial exploration of the data here by Tyler Muhly:
+#See some initial exploration of the data here by Tyler Muhly:
 https://github.com/bcgov/FAIB_wildlife/blob/main/berry_model.Rmd
+
+#See important layers here:
+1. RESULTS: showing forest regeneration following harvest. https://catalogue.data.gov.bc.ca/dataset/results-forest-cover-inventory
+https://catalogue.data.gov.bc.ca/dataset/results-openings-attribute-only
+https://catalogue.data.gov.bc.ca/dataset/results-planting
+https://catalogue.data.gov.bc.ca/dataset/results-activity-treatment-units
+https://catalogue.data.gov.bc.ca/dataset/results-forest-cover-silviculture
+https://catalogue.data.gov.bc.ca/dataset/results-forest-cover-species-attribute-only
+https://catalogue.data.gov.bc.ca/dataset/results-openings-slope-aspect-and-elevation
+https://catalogue.data.gov.bc.ca/dataset/results-openings-svw
+
+
+
 
 ########### Literature Review ###############
 
@@ -41,16 +78,125 @@ Key findings:
   
 This paper aimed to assess the use of harvested forest stands (< 40 years old) by grizzly bears. Many studies report use of these harvested forest stands, and some suggest a preference for them. Many elements influenced the response of grizzlies to these stands including: natural forest openings, cut block design, silviculture techniques, age since harvest, grizzly bear food availability, human activity and grizzly bear sex and age.
 
-Coastal vs interior grizzly bears have different feeding patterns. On the coast, grizzlies predominately feed on salmon; in the interior, they predominately feed on berries and occur in burned and alpine and subalpine meadows. On the coast, bears also will eat berries, but to a lesser proportion; here, they feed on vegetative material in mature forests, sedge meadows, south facing avalanche slopes, and alpine and subalpine meadows before relocating to riparian areas for salmon in mid-summer to autumn.
+Coastal vs interior grizzly bears have different feeding patterns. On the coast, grizzlies predominately feed on salmon; in the interior, they predominately feed on berries and occur in burned and alpine and subalpine meadows. On the coast, bears also will eat berries, but to a lesser proportion; in interior BC, they feed on vegetative material in mature forests, sedge meadows, south facing avalanche slopes, and alpine and subalpine meadows before relocating to riparian areas for salmon in mid-summer to autumn.
 
 Many changes to harvesting and silviculture practices from the 1950s to now, with two-pass forest harvesting, variable retention and large clearcuts (>800 ha) occurring most often today. Tree planting in harvested plots was not common until the 1990s.
 
 Forest succession after clear cutting stages (4):
 1. Stand initiation or Early Seral Forest Stage: species vigourously re-occupying space with abundant resources and low competition. Often provides a spring food source of grasses, forbs and roots and summer-autumn food sources of roots, herbs, amd berries for grizzly bears. The reduced canopy cover (<30%) in particular increases the abundance of huckleberries.
-2.  Canopy closure and Stem Exclusion: high mortality of understory and sub-dominant plants
+2. Canopy closure and Stem Exclusion: high mortality of understory and sub-dominant plants
 3. Understory re-initiation: mature trees die, forming canopy gaps for mixed-age forest. Very little food source for bears.
 4. Mature forest: provide ungulate prey, denning habitat, resting habitat, and some marginal foraging opportunities.
 
 Grizzly bear density is positively related to non-forested areas.
 
-'Selection' reflects an animal choosing to use a habitat, and 'pr
+'Selection' reflects an animal choosing to use a habitat, and 'preference' reflects the likelihood of an animal choosing to use a habitat if offered on an equal basis with other habitats.
+
+Stratified by season: spring (hypophagia), summer (early hyperphagia) and autumn (hyperphagia). We may wish to assess seasonality like this too.
+Researchers found evidence cut block use all seasons, selection most consistent in summer and then autumn, with spring highly variable. Dominant ecological factor was the abundance of berries from shrubs (as well as roots, ants and other forage.
+Avoidance was associated with accelerated re-growth (including post-harvest mechanical site prep, planting, seeding and herbicides), poor forage in cut blocks (from accelerated re-growth or salvage logging) and human presence.
+
+Extremely variable results from different studies for grizzly bear preference, selection, avoidance and neutral for cutblocks across all seasons. Grizzly bears prefer natural openings, but will select clearcuts when natural openings are sparse, especially if human access is reduced. Grizzly bears prefer larger cutblocks to smaller ones, but are more often found near the forest edges. Forestry practices that maximize heterogeneity, security and cover, while considering human impacts (roads) are optimal. 
+
+Silviculture: artificially accelerated cutblock re-growth can reduce grizzly bear forage. Scarification often damages shrub roots and reduces forage regrowth, resulting in grizzly bears not selecting these sites. Planting of trees can artificially enhance the speed of canopy closure which negatively impacts berry-producing shrubs. Herbicides accelerate forest regrowth and canopy closure, negatively impacting berry-producing shrubs. Pro-active thinning can lead to an increase in shrub biomass in regenerating forests.
+
+Age since harvest: cut blocks in early seral forest stage preferred by bears. In some areas, this is 10-30 years after cutblock (and 20-40 years in others, with 19-20 optimal usage age), with lower usage before and after.
+
+Riparian buffer zones had increased grizzly usage in Marine West Coast Forest (salmon abundant). Interior ecoregions, vegetative forage in cut blocks dominant driver of grizzly bear selection. Huckleberry fruit main driver (but also other berry-producing shrubs), which increase with reduced canopy cover.
+
+Female grizzlies are more likely to use cutblocks, and males more likely to use natural openings (likely result of male dominance). 
+
+Many of the above points are summarized well in Table 3 of paper.
+
+
+##Prevey, J.S., Parker, L.E., Harringtn, C.A., Lamb, C.T. and Proctor, M.F. 2020. Climate change shifts in habitat suitability and phenology of huckleberry (Vaccinium membranaceum). Agricultural and Forest Meteorology, 280: 107803. 
+In this paper, the authors predicted timing of flowering and fruit ripening for huckleberry for the current bioclimatic niche, and for future climate model projections under 2 different scenarios. Under these future projections, suitable habitat for huckleberry was predicted to shrink 5-40% across NW USA by the end of the 21st century (greatest reduction at lowest elevations), but increase of 5-60% at higher elevations and latitudes, and it was predicted that: (1) flowering would advance 23-50 days (mean 35 days), and (2) fruiting would advance 24-52 days (mean 36 days).
+
+Study area extended from California to BC and east to Montana and Alberta.
+
+Data: federal agencies, academic research projects, citizen science data, other publicly-available sources. Removed points located east of 96 ' W longitude (outside species range). Used 1-km grids for climate, using contemporary climate data and a downscaled global climate model.
+
+Used presence-only maximum entropy models (do not have absence data). Extensive details provided on page 4 of paper. For phenology, calculated 'therma sums' (also known as growing-degree days).
+
+See Table 2 for tested climatic variables and top variables, including Annual heat Moisture (AHM) Index, Climate Moisture Index (CMI), EMT, EXT, MAT, MCMT, MSP. Common theme with other papers: huckleberry is limited by winter temperatures, and habitat suitability likely to increase at higher elevations.
+
+Earlier flowering = increased chance frost damage = decreased berry production. Phenology models did not account for timing of snowmelt, photoperiod, cold temperatures over winter, which may influence their phenology.
+
+##Roberts, D.R., Neilsen, S.E., and Stenhouse, G.B. 2014. Idiosyncratic responses of grizzly bear habitat to climate change based on projected food resource changes. Ecological Applications 24(5): 1144-1154.
+These authors project habitat changes for 17 species considered to be key grizzly bear food resources. They observed a general trend towards uphill migration for berry producing shrubs that grizzly bears feed on, which may result in increased vulnerability to bear populations at lower elevations and increased human-wildlife conflict.
+
+Metrics often used to assess grizzly bear suitable habitat: land cover type, forest crown closure, slope, aspect, elevation, metrics for road density and urbanization. Metrics used here: climate variables, topography variables, forest crown closure. Nine metrics used: mean annual T, average winter T, average summer T, winter precip, summer precip, annual heat moisture, summer heat moisture, number frost free days, number degree days above 5'C. Topography: compound topographic index, topographic heat load index, general slope/aspect topographic radiation aspect (TRASP) index.
+
+Future predictions: 300 m x 300 m resolution. Predicted climate and crown closure into the future. Areas of agricultural use, surface water, and high alpine rock and ice were removed from the species habitat projections.
+
+Found huckleberry projected to increase by 84-112% by 2080. Most species predicted to maintain 94-100% of current habitat by 2080, but some predicted to lose much habitat. All species showed increase in elevation predicted, with one scenario predicting a median decrease of 203 m for huckleberry.
+
+Huckleberry among the least affected species for elevational shifts. It's habitat range is predicted to remain stable with some additional increase in elevation for new habitat (but less increase than other species)- they mostly saw complete mainteance of present day range for huckleberry.
+
+##Lamb, C.T., Mowat, G., McLellan, B.N., Nielsen, S.E., and Boutin, S. 2017. Forbidden fruit: human settlement and abundant fruit create an ecological trap for an apex omnivore.Journal of Animal Ecology, 86:55-65.
+In this paper, the authors assess habitat suitability, human-influence, grizzly bear occurrence and grizzly bear mortality. They find that valley within their study region, which was high in both berry resources and human density, was more attractive to bears than surrounding areas, despite 17% lower apparent survival in this same region. Despite lower fitness, the detected a net flow of bears into the ET (ecological trap), which contributed to a study-wide population decline.
+
+In their study region, black huckleberry tends to ripen between AUgust 1 and September 15th, and buffalo berry tends to ripen between July 1 and August 15th.
+
+The researchers created occurrence models for both fruiting shrub species (huckleberry and bufalloberry) using multivariate logistic regression (P/A) and occurrence records from 1779 vegetation plots (20 x 20 m) conducted within the study area, using climate, soil, topographic and fire variables. Data was separated into training (85%) and validation (15%) datasets. 
+
+The best huckleberry model included: (1) percent of area burned, (2) percent sand, (3) average winter temperature, (4) precipitation as snow, (5) canopy cover, (6) average pH, (7) slope and (8) solar heat load. "The best buffaloberry model was similar to that found for huckleberry, but the summer climate better explained occurrence for this species. Huckleberry occurrence decreased with latitude, while buffaloberry was more evenly distributed (Fig. S1). Huckleberry and buffaloberry showed very little spatial overlap with <6% of berry occurrence cells containing both species."
+
+Data acquisition: 
+1. SOIL - Soil data was obtained from the BC Ministry of Environment (http://www.env.gov.bc.ca/esd/distdata/ecosystems/Soil_Data/SOIL_DATA_FGDB , more info in Lacelle 1990).
+2. CLIMATE - Climate BC.
+3. FIRE - Spatial information on forest fires was acquired from the Wildfire Management Branch of BC (data from 1920-2014) (https://apps.gov.bc.ca/pub/ geometadata/metadataDetail.do?from=search&edit=true&showall=showall&recordSet=ISO19115&recordUID=57060) and used to calculate time since last fire for each plot, and produce a time since last fire surface.  
+4. CANOPY COVER - The authors gathered information on canopy cover from the Vegetation Resource Information data from the BC government and missing data was filled with cover information from industry partners.  
+5. TOPOGRAPHY - The authors calculated global radiation, compound topographic index (CTI) and slope using a digital elevation model and ArcMap 10.1.
+
+A note on canopy cover: "Canopy cover has been identified as an important driver of berry presence and production for both of these species (Minore 1984; Hamer 1996; Nielsen et al. 2004; Pengelly and Hamer 2014).  Of the studies we examined, nearly all berry production occurred at 50% canopy cover or less. Therefore, we applied a canopy cover rule where occurred sites with less than 50% canopy cover were considered to have fruit producing shrubs, while occurred sites with greater than 50% canopy cover were considered to have negligible fruit."
+
+Peak fruiting- The authors collected Brix readings for huckleberry (Vaccinium membranaceum) and buffaloberry (Sheperdia canadiensis) from early July to early September 2014.BRIX is the sugar content of berries. One complication of using Brix values as measure of ripeness involves the general increase in brix values through the year, even when berries are post ripe.  As a result, we used the subjective ripeness information we collected to determine the range of brix values we could consider the berries as ripe for each species.  In general, the subjective rating for berries followed as such:
+1.	Green
+   a.	Green
+   b.	Hard
+   c.	Generally small
+   d.	Little to no liquid to be extracted
+2.	Mid Ripe 
+   a.	Starting to change color
+   b.	Becoming softer
+   c.	mid size
+   d.	Liquid can be extracted
+3.	Ripe
+   a.	Fully colored
+   b.	Soft
+   c.	Full size
+   d.	Lots of liquid
+4.	Post Ripe
+   a.	Still fully colored, and full size, but,
+   b.	Beginning to dessicate, signs of wrinkling
+   c.	Liquid becoming scarce
+
+##Proctor, M., Lamb, C.T., and MacHutchon, G. 2017. The grizzly dance between berries and bullets: relationships among bottom-up food resources and top-down mortality risk on grizzly bear populations in southeast British Columbia. Trans-border Grizzly Bear Project. Kaslo, BC, Canada.
+In this report, the authors aim to create a huckleberry patch model that was more predictive than a generalized huckleberry occurrence model, and to assess the influences of bottom up and top-down processes.
+
+The authors found that huckleberry patches were consistently the most influential predictor of habitat selection, density and fitness for grizzly bears. Mortality was best predicted by road density. Thus, both bottom up and top down impacts found.
+
+The authors found that the top five predictors in our best huckleberry patch model were, in decreasing importance: 1) canopy cover, 2) coarse fragments in soil, 3) slope, 4) precipitation as snow in winter and, 5) average solar radiation. Overall, areas of low canopy cover, low angle slope, few coarse fragments in soil, north and east aspects, as well as high winter snow load produce huckleberry patches important to grizzly bears.
+
+The authors also found that 74% of huckleberry patches were not in cut blocks. The
+~26% of huckleberry patches that were in cut blocks occurred where the proportion of focal area in cut blocks was only 18%. Mean cut block age with huckleberry patches was ~40 yrs vs ~25 years for cut blocks without patches. They also found that planted cut blocks were less likely to have huckleberry patches. Slash burning didn’t increase the probability of a cut block yielding a huckleberry patch, it was slightly reduced. Fires (not slash burns) were ~3x more likely to yield a huckleberry patch than a cutblock. 
+
+Huckleberry patches were more prevalent in the Englemann Spruce Sub-alpine Fir (ESSF) zone and in the wet mild subzones wm3, wm4, and wmw. Site series that favor huckleberry patches were 103 subxeric (dry), and to a lesser degree 101. Old forests (80-250 years old) and early seral stage dominated by shrubs dominated the structural stages with huckleberry patches.
+
+Environmental variables hypothesized to limit the occurrence of huckleberry (Table 1) include soil pH (Barney 1999; Barney et al. 2006), soil texture (Habitat Management Branch Province of BC 2000; Barney et al. 2006), climate (Holden et al. 2012), forest fires (Nielsen and Nielsen 2010), canopy cover (Minore 1984) and topography (Roberts et al. 2014). For the huckleberry occurrence model, precipitation as snow dominated the variables for influence in our top huckleberry model followed by mean annual precipitation, canopy cover, maximum summer temperature and elevation in order of influence. For the huckleberry patches important to grizzly bear model, the top five predictors were, in decreasing importance: 1) canopy cover, 2) coarse fragments in soil, 3) slope, 4) precipitation as snow in winter, and 5) average annual radiation (Fig. 9). Areas of low canopy cover, low angle slope, few coarse fragments in soil, north and east aspects, as well as high winter snowload produce huckleberry patches important to grizzly bears. In othr studies, growing-degree days across April to June and July temperature range explained 70% of the inter-annual variability in huckleberry productivity. 
+
+Used Boosted Regression Trees (BRT) instead of standard GLMs. "BRT’s were well suited to our application as this method could handle the complex, nonlinear relationships we expected to find with these data, and BRT’s are known to provide greater predictive performance than GLM’s (Elith et al. 2006). In addition, compared to GLM’s, BRT’s do not face the same issues when fitting models with multicollinearity between predictors because trees are fit with recursive partitioning algorithms instead of matrix inversions (Shirley et al.2013). To fit the BRT we used the ‘gbm’ package (Ridgeway 2015) in Program R (R Core Team 2016). Another advantage of BRT’s is that a priori model definitions are not required. Instead BRT’s fit the meaningful ecological variables included to the data, and those variables that predict poorly do not affect results as these variables contribute very little to the model predictions. However, these variables that contribute little to model predictions can be removed from the model using a k-fold cross-validation and iteratively removing variables until an optimum is achieved."
+
+Spatial projections of huckleberry models: Used a cut off from logistic regression values, wherein below that value represented an absense, and above a presence. The final value used for the cut-off was 0.48. Additional restrictions: if present, but canopy cover> 50%, thyen berry production set to 0.
+
+Tested model fit with ROC AUC scores. Training data was 60% of total data and validation data was 40%. AUC > 0.7 considered a good fit.
+
+Authors also explored how harvest cutblock techniques influenced huckleberry production, including  type of cutting, (i.e., clear cut, selective cut), planting, slash burning, time since disturbance, fire disturbed (not slash burned), shrub cover, herb cover, and canopy
+cover. They found that 74% of the patches were not in cutblocks, likely because they preferred elevations of 1500-2100 m which is above the operable harvesting elevation of 1800 m. Huckleberries were 3x more likely to occur in non-harvested sites that recently burned than in sites that did not recently burn. "While canopy cover <30% was the most predictive variable in huckleberry patches that grizzly bears use, there was no difference between cut blocks with or without huckleberry patches in mean canopy cover levels (p = 0.30). This suggests that while canopy cover is an important predictor of a huckleberry patch that grizzly bears use, opening the canopy does not necessarily result in a huckleberry patch. Twenty-six percent of areas predicted to have huckleberry patches important to grizzly
+bears were in a cut block, suggesting that timber harvest can contribute to the regional availability of huckleberry patches for grizzly bears. cut blocks that were planted post timber harvest were 80% less likely to yield a huckleberry patch. We suspect that planting hastens the return to canopy closure that is not conducive to a productive huckleberry patch. Slash burning post timber harvest did not appear to influence whether or not a cut block contained a huckleberry patch; slash burned cut blocks were slightly less likely to have a patch. There was no difference in % shrub cover between sites with and without huckleberry patches (p = 0.27) but herb cover was significantly less in sites with huckleberry patches (p < 0.001)." Results suggest that it may take 20-29 years before huckleberries return in logged sites compared to those not logged (Figure 29). They suggest that canopy cover <30% post-harvesting key for huckleberries for 40-50 years.
+
+Some difficulties were experienced when trying to incorporate BEC zone and subzones, but ESSF seemed to be dominant BEC zone with huckleberries overall.
+
+The authors recommend "that the timber industry test for huckleberry patch genesis in the areas we have identified as good future potential for huckleberry patches when the canopy is opened up (Figs. 21 & 30). [Their] map of important huckleberry patches should be incorporated into current logging planning cycles (or other land uses in the backcountry) to insure that road building and harvest plans be designed to not destroy or provide permanent access to important patches." They also suggest managing access to huckleberry patches and considering decommisioning and blocking off roads to retain high production patches of huckleberry for grizzly bears.
+

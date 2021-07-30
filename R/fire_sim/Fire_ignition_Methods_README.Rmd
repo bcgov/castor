@@ -85,7 +85,18 @@ Lastly in script C:\Work\caribou\clus\R\fire_sim\08_compile_future_data.R I try 
 #Spread important files:
 https://catalogue.data.gov.bc.ca/dataset/fire-perimeters-historical/resource/f635b5a6-c810-4623-9286-df9386b1ee75
 
-heres where all the elevation data is held: T:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\dem\all_bc 
+If we have fire perimeters, could we take values within cells contained within perimeter and assign a 1 for yes did spread, and then also adjacent cells where it did not spread and assign a 0? And can we look at difference in elevation from point before to adjacent cell to get an idea of whether spread more or less likely up or down slope (or flat)?
 
+Here is where all the elevation data is held: T:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\dem\all_bc 
+#Other considerations
+1. Mountain pine beetle:
+https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-health/forest-pests/bark-beetles/mountain-pine-beetle/mpb-projections
 
+Mountain pine beetle killed trees are more likely to ignite and burn. https://www.fs.fed.us/research/highlights/highlights_display.php?in_high_id=395
+
+Useful layers:
+https://catalogue.data.gov.bc.ca/dataset/bark-beetle-susceptibility-rating#edc-pow
+https://catalogue.data.gov.bc.ca/dataset/pest-infestation-polygons-current
+https://catalogue.data.gov.bc.ca/dataset/pest-infestation-polygons-historic
+https://catalogue.data.gov.bc.ca/dataset/vri-2020-forest-vegetation-composite-dead-layer-d-
 
