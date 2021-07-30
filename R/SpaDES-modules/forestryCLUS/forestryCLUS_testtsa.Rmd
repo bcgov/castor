@@ -34,17 +34,17 @@ moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
-times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
+times <- list(start = 0, end = 5) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list(   dbName='clus',
                            save_clusdb = FALSE,
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite"),
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "Quesnel_TSA",
+                           nameBoundary = "Revelstoke_TSA",
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
@@ -96,7 +96,9 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
-  uploaderCLUS = list(aoiName = 'test_tsa', # name of the schema that gets uplaoded to postgres
+  smcaribouAbundanceCLUS = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
+                                  tableSMCCoeffs = "vat.smc_coeffs"),
+  uploaderCLUS = list(aoiName = 'revelstoke_tsa', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -111,23 +113,25 @@ modules <- list("dataLoaderCLUS",
                 "roadCLUS",  
                 "survivalCLUS", 
                 "disturbanceCalcCLUS", 
+                "smcaribouAbundanceCLUS",
                 "uploaderCLUS"
                 )
 
 
-scenario = data.table (name = "quesnel_bau_zone_int2_thlb",
-                        description = "Business as usual (BAU). Adjacency was set to 3m.")
+scenario = data.table (name = "caribou_abundance_test",
+                        description = "Test caribou abundance module")
 
 
 
-harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
-                                     partition = ' vol > 150 ', # yes this is the true value that was used in Morice for modelling AAC
+harvestFlow <- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
+                                     partition = ' vol > 150 ', 
                                      year = rep( seq (from = 2018, 
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 8910000) # 1,700,000 m3/yr 
-))# interestingly the predicted sustainable harvest flow in Quesnel was betweeen 1,617,000 and 2,139,000 (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/quesnel_tsa_discussion_paper.pdf) pg 12
+                                     flow = 1050000) 
+                              )
+                         )
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
 

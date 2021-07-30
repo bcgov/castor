@@ -47,13 +47,13 @@ doEvent.smcaribouAbundanceCLUS = function (sim, eventTime, eventType) {
     eventType,
     init = { 
       sim <- Init (sim) 
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "smcaribouAbundanceCLUS", "calculateInterval"), "smcaribouAbundanceCLUS", "calculateSurvival", 8) 
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "smcaribouAbundanceCLUS", "calculateInterval"), "smcaribouAbundanceCLUS", "calculateAbundance", 8) 
       sim <- scheduleEvent (sim, end(sim), "smcaribouAbundanceCLUS", "adjustAbundanceTable", 9) 
     },
     
     calculateAbundance = { # calculate survival rate at each time interval 
       sim <- predictAbundance (sim) 
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "smcaribouAbundanceCLUS", "calculateInterval"), "smcaribouAbundanceCLUS", "calculateSurvival", 8) 
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "smcaribouAbundanceCLUS", "calculateInterval"), "smcaribouAbundanceCLUS", "calculateAbundance", 8) 
     },
     adjustAbundanceTable ={ 
       sim <- adjustAbundanceTable (sim)
@@ -67,8 +67,9 @@ doEvent.smcaribouAbundanceCLUS = function (sim, eventTime, eventType) {
 
 Init <- function (sim) { 
   if(nrow(data.table(dbGetQuery(sim$clusdb, "PRAGMA table_info(pixels)"))[name == 'herd_habitat_name',])== 0){
-    dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN herd_habitat_name character")  
     dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN subpop_name character")  
+    dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN habitat_type character")
+    dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN herd_habitat_name character")  
     
     herd_hab <- data.table (c (t (raster::as.matrix ( 
                       RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
@@ -87,11 +88,11 @@ Init <- function (sim) {
     herd_hab <- merge (herd_hab, vat_table, by.x = "herd_habitat", by.y = "value", all.x = TRUE) 
     #herd_hab [, herd_habitat := NULL] # drop the integer value 
     #colnames(herd_habitat) <- c("pixelid", "herd_habitat") 
-    herd_hab <- herd_hab [, .(pixelid, herd_name, herd_hab_name)]
+    herd_hab <- herd_hab [, .(pixelid, herd_name, bc_habitat_type, herd_hab_name)]
     setorder (herd_hab, "pixelid") 
     
     dbBegin (sim$clusdb) # add the herd  and habitat boundary values to the pixels table 
-    rs <- dbSendQuery (sim$clusdb, "Update pixels set herd_habitat_name = :herd_hab_name, subpop_name = :herd_name where pixelid = :pixelid", herd_hab) 
+    rs <- dbSendQuery (sim$clusdb, "UPDATE pixels SET herd_habitat_name = :herd_hab_name, subpop_name = :herd_name, habitat_type = :bc_habitat_type WHERE pixelid = :pixelid", herd_hab) 
     dbClearResult (rs)
     dbCommit (sim$clusdb) # commit the new column to the db
   }
@@ -104,44 +105,24 @@ Init <- function (sim) {
   # a value of 0.4  = AVG (0,0,1,1,0,1,1,0,0,0)
   # it does this by each herd/habitat area ('GROUP BY' statement)
   # the IS NOT NULL statements drop out the non-forested areas from the calculation, i.e., the denominator is the area of forest, not all land
-  sim$tableAbundanceReport <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN dist = 0 AND treed > 0 THEN 1 ELSE 0 END) AS prop_dist, herd_habitat FROM pixels WHERE herd_habitat IS NOT NULL AND age Is NOT NULL GROUP BY herd_habitat;")) 
+  table.disturb <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN dist = 0 THEN 1 ELSE 0 END) * 100 AS percent_disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND age Is NOT NULL GROUP BY herd_habitat_name;")) 
   
   # The following equation estimates abundance in the subpop/herd area using the Lochhead et al. model 
   message("estimating abundance")
-  herd_list <- as.list (unique (vat_table$herd_name)) 
+  table.disturb <- dcast(table.disturb, # reshape the table 
+                         subpop_name ~ habitat_type, 
+                         value.var="percent_disturb")
+  coeffs <- unique(vat_table, by = "herd_name")
+  coeffs <- coeffs [, c ("bc_habitat_type", "herd_hab_name", "value") := NULL]
+  table.disturb <- merge (table.disturb , coeffs, by.x = "subpop_name", by.y = "herd_name", all.x = TRUE) # add coeffs
   
+  table.disturb [, abundance_r50 := exp((r50fe_int + r50re_int) + ((r50fe_core + r50fe_core) * Core) + ((r50fe_matrix + r50re_matrix) * Matrix))]
+  table.disturb [, abundance_c80r50 := exp((c80r50fe_int + c80r50re_int) + ((c80r50fe_core + c80r50fe_core) * Core) + ((c80r50fe_matrix + c80r50re_matrix) * Matrix))]
+  table.disturb [, abundance_c80 := exp((c80fe_int + c80re_int) + ((c80fe_core + c80fe_core) * Core) + ((c80fe_matrix + c80re_matrix) * Matrix))]
+  table.disturb [, abundance_avg := (abundance_r50 + abundance_c80r50 +abundance_c80)/3]
+  sim$tableAbundanceReport <- table.disturb 
+  sim$tableAbundanceReport [, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name, sim$boundaryInfo[[3]]) ] # add the time of the survival calc
   
-  for(herd_name in herd_list){
-    
-    
-    
-    
-  }
-  
-  sim$tableAbundanceReport []
-  
-  
-  
-  
-  table_coeff <- herd_habitat
-  
-  
-  
-
-    
-  
-
-  # Model was an exponential function
-  
-  
-  sim$tableAbundanceReport[prop_age < 0.09, survival_rate := (exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))] 
-  sim$tableAbundanceReport[!(prop_age < 0.09), survival_rate := (exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))]
-  sim$tableAbundanceReport[, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name, sim$boundaryInfo[[3]]) ] # add the time of the survival calc
-  
-  #print(sim$tableAbundanceReport)
-  ### Future version could include a table parameter input with caribou number or density by herd 
-  ### that could be used in the model, rather than a single parameter for all herds, as currently 
-  ### done
   
   return(invisible(sim))
 }
@@ -149,20 +130,30 @@ Init <- function (sim) {
 
 predictAbundance <- function (sim) { # this function calculates survival rate at each time interval; same as on init, above
   
-  new_tableAbundanceReport <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN age BETWEEN 0 AND 40 THEN 1  ELSE 0 END) AS prop_age, AVG (CASE WHEN age BETWEEN 80 AND 120 THEN 1  ELSE 0 END) AS prop_mature, AVG (CASE WHEN age > 120 THEN 1  ELSE 0 END) AS prop_old, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
-  new_tableAbundanceReport[prop_age < 0.09, survival_rate := (exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))] # V1 needs to be replaced with whatever the column name is that gets created in the above query
-  new_tableAbundanceReport[!(prop_age  < 0.09), survival_rate := (exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 - (0.59 * (((prop_age * 100) - 9.2220)/3.8932)) + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))]
-  new_tableAbundanceReport[, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name,sim$boundaryInfo[[3]]) ] # add the time of the survival calc
+  message("estimating abundance")
+  new_tableAbundanceReport <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN dist = 0 THEN 1 ELSE 0 END) * 100 AS percent_disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND age Is NOT NULL GROUP BY herd_habitat_name;")) 
+  new_tableAbundanceReport <- dcast(new_tableAbundanceReport, # reshape the table 
+                                     subpop_name ~ habitat_type, 
+                                     value.var="percent_disturb")
+  vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableSMCCoeffs)))
+  coeffs <- unique(vat_table, by = "herd_name")
+  coeffs <- coeffs [, c ("bc_habitat_type", "herd_hab_name", "value") := NULL]
+  new_tableAbundanceReport <- merge (new_tableAbundanceReport , coeffs, by.x = "subpop_name", by.y = "herd_name", all.x = TRUE) # add coeffs
   
+  new_tableAbundanceReport [, abundance_r50 := exp((r50fe_int + r50re_int) + ((r50fe_core + r50fe_core) * Core) + ((r50fe_matrix + r50re_matrix) * Matrix))]
+  new_tableAbundanceReport [, abundance_c80r50 := exp((c80r50fe_int + c80r50re_int) + ((c80r50fe_core + c80r50fe_core) * Core) + ((c80r50fe_matrix + c80r50re_matrix) * Matrix))]
+  new_tableAbundanceReport [, abundance_c80 := exp((c80fe_int + c80re_int) + ((c80fe_core + c80fe_core) * Core) + ((c80fe_matrix + c80re_matrix) * Matrix))]
+  new_tableAbundanceReport [, abundance_avg := (abundance_r50 + abundance_c80r50 +abundance_c80)/3]
+  new_tableAbundanceReport[, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name,sim$boundaryInfo[[3]]) ] # add the time of the calc
   
   sim$tableAbundanceReport <- rbindlist (list(sim$tableAbundanceReport, new_tableAbundanceReport)) # bind the new survival rate table to the existing table
   rm (new_tableAbundanceReport) # is this necessary? -- frees up memory
   return (invisible(sim))
 }
 
-adjustAbundanceTable <- function (sim) { # this function adds the total area of the herd_bounds + compartment area to be used for weighting in the dashboard
-  total_area<-data.table(dbGetQuery (sim$clusdb, "SELECT count(*)as area, herd_bounds FROM pixels WHERE herd_bounds IS NOT NULL AND age Is NOT NULL GROUP BY herd_bounds;"))
-  sim$tableAbundanceReport<-merge(sim$tableAbundanceReport, total_area, by.x = "herd_bounds", by.y = "herd_bounds", all.x = TRUE )
+adjustAbundanceTable <- function (sim) { # this function adds the total area of the herds + compartment area to be used for weighting in the dashboard
+  total_area <- data.table(dbGetQuery (sim$clusdb, "SELECT count(*)as area, subpop_name FROM pixels WHERE subpop_name IS NOT NULL AND age Is NOT NULL GROUP BY subpop_name;"))
+  sim$tableAbundanceReport<-merge(sim$tableAbundanceReport, total_area, by.x = "subpop_name", by.y = "subpop_name", all.x = TRUE )
   return (invisible(sim))
 }
 

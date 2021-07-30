@@ -108,7 +108,9 @@ parameters <-  list(
                              criticalHabitatTable = "public.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail", 
-                             recovery = 40) 
+                             recovery = 40),
+   smcaribouAbundanceCLUS = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
+                                  tableSMCCoeffs = "vat.smc_coeffs") 
   )
 
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')"))
@@ -135,7 +137,8 @@ modules <- list("dataLoaderCLUS",
                 #"yieldUncertaintyCLUS",
                 "uploaderCLUS", 
                 "disturbanceCalcCLUS",
-                "grizzlysurvivalCLUS")
+                "grizzlysurvivalCLUS",
+                "smcaribouAbundanceCLUS")
 
 objects <- list(patchSizeDist = patchSizeDist, 
                 #rsf_model_coeff = rsf_model_coeff,

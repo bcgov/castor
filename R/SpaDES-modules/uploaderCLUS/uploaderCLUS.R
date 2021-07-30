@@ -90,7 +90,7 @@ Init <- function(sim) {
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".zonemanagement where scenario = '", sim$scenario$name, "';"))
     
 
-    lapply(dbGetQuery(connx, paste0("SELECT table_name FROM information_schema.tables WHERE table_schema  = '", P(sim, "uploaderCLUS", "aoiName") ,"' and table_name in ('disturbance', 'growingstock', 'rsf', 'survival', 'fisher', 'harvest', 'yielduncertainty', 'volumebyarea', 'grizzly_survival') ;"))$table_name, function (x){
+    lapply(dbGetQuery(connx, paste0("SELECT table_name FROM information_schema.tables WHERE table_schema  = '", P(sim, "uploaderCLUS", "aoiName") ,"' and table_name in ('disturbance', 'growingstock', 'rsf', 'survival', 'fisher', 'harvest', 'yielduncertainty', 'volumebyarea', 'grizzly_survival', 'caribou_abundance') ;"))$table_name, function (x){
       dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".",x," where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
     })
     
@@ -110,6 +110,15 @@ Init <- function(sim) {
                     rsf = data.table(scenario = character(), compartment = character(), timeperiod = integer(), critical_hab = character() , sum_rsf_hat = numeric() , sum_rsf_hat_75 = numeric(), per_rsf_hat_75 = numeric(), rsf_model= character()), 
 
                     survival = data.table(scenario = character(), compartment = character(), timeperiod = integer(), herd_bounds = character() , prop_age = numeric(), prop_mature = numeric(), prop_old = numeric(), survival_rate= numeric(), area = integer()),
+                    grizzly_survival = data.table(scenario = character(), compartment = character(), timeperiod = integer(), gbpu_name = character(), total_roaded = numeric(), road_density = numeric(), survival_rate= numeric(), total_area = integer()),
+                    caribou_abundance = data.table(scenario = character(), compartment = character(), timeperiod = integer(), subpop_name = character(), Core = numeric(), Matrix = numeric(), 
+                                                   r50fe_int = numeric(), r50fe_core = numeric(), r50fe_matrix = numeric(),
+                                                   c80r50fe_int = numeric(), c80r50fe_core = numeric(), c80r50fe_matrix = numeric(),
+                                                   c80fe_int = numeric(), c80fe_core = numeric(), c80fe_matrix = numeric(),
+                                                   r50re_int = numeric(), r50re_core = numeric(), r50re_matrix = numeric(),
+                                                   c80r50re_int = numeric(), c80r50re_core = numeric(), c80r50re_matrix = numeric(),
+                                                   c80re_int = numeric(), c80re_core = numeric(), c80re_matrix = numeric(),
+                                                   area = integer()),
                     disturbance = data.table(scenario = character(), compartment = character(), timeperiod= integer(),
                                              critical_hab = character(), total_area = numeric(), cut20 = numeric(), cut40 = numeric(), cut80 = numeric(), 
                                              road50 = numeric(), road250 = numeric(), road500 = numeric(),road750 = numeric(),
@@ -122,7 +131,7 @@ Init <- function(sim) {
                     fisher=data.table(timeperiod = as.integer(), scenario = as.character(), compartment =  as.character(), openess = as.numeric(), zone = as.integer(), reference_zone = as.character(), rel_prob_occup = as.numeric()),
                     zonemanagement=data.table(scenario = as.character(), zoneid = as.integer(), reference_zone = as.character(), zone_column = as.character(), variable = as.character(), threshold = as.numeric(), type = as.character(), percentage = numeric(), multi_condition = as.character(), t_area = numeric(), denom = as.character(), start = as.integer(), stop = as.integer(), percent = numeric(), timeperiod = as.integer()))
 
-    tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "disturbance", "yielduncertainty", "fisher", "zonemanagement")
+    tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "disturbance", "yielduncertainty", "fisher", "zonemanagement", "grizzly_survival", "caribou_abundance")
     for(i in 1:length(tablesUpload)){
       dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), tablesUpload[[i]]), tableList[[tablesUpload[i]]], row.names = FALSE)
       dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", tablesUpload[[i]]," to appuser;"))
@@ -216,6 +225,11 @@ save.reports <-function (sim){
   if(!is.null(sim$tableGrizzSurvivalReport)){
     dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'grizzly_survival'), 
                  sim$tableGrizzSurvivalReport, append = T,row.names = FALSE)
+  }
+  # caribou abundance
+  if(!is.null(sim$tableAbundanceReport)){
+    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'caribou_abundance'), 
+                 sim$tableAbundanceReport, append = T,row.names = FALSE)
   }
   dbDisconnect(connx)
   return(invisible(sim)) 
