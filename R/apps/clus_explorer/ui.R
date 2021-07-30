@@ -185,7 +185,12 @@ ui <- dashboardPage(skin = "black",
                                       plotlyOutput(outputId = "propOldPlot", height = "900px"))
                                 ),
                                 fluidRow(
-                                  box(title = "Survival", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+                                  box(title = "Abundance (Southern Group of Southern Mountain Caribou Only)", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+                                      plotlyOutput(outputId = "abundancePlot", height = "900px"),
+                                      "Use abundance estimates with caution. The estimates assume the entire herd is in the area of interest, or forestry development is similar outside the area of interest.")
+                                ), 
+                                fluidRow(
+                                  box(title = "Survival (Southern Group of Southern Mountain Caribou Only)", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
                                       plotlyOutput(outputId = "survivalPlot", height = "900px"))
                                 ),
                                 fluidRow(

@@ -41,6 +41,18 @@ ON c.compartment = a.compartment;")))
     req(input$scenario)
     
     if(nrow(getTableQuery(paste0("SELECT * FROM information_schema.tables 
+       WHERE table_schema = '",input$schema ,"' and table_name = 'caribou_abundance'")))> 0){
+      if(nrow(getTableQuery(paste0("SELECT scenario, subpop_name, timeperiod, compartment, area, core, matrix, abundance_r50, abundance_c80r50, abundance_c80, abundance_avg FROM ", input$schema, ".caribou_abundance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
+        data.abundance <- data.table(getTableQuery(paste0("SELECT scenario, subpop_name, timeperiod, compartment, area, core, matrix, abundance_r50, abundance_c80r50, abundance_c80, abundance_avg FROM ", input$schema, ".caribou_abundance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, subpop_name, timeperiod;")))
+        data.abundance <- data.abundance [,lapply(.SD, weighted.mean, w = area), by = c("scenario",  "subpop_name", "timeperiod"), .SDcols = c("core", "matrix", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")]
+      }else{
+        data.abundance <- NULL
+      }
+    }else{
+      data.abundance <- NULL
+    }
+    
+    if(nrow(getTableQuery(paste0("SELECT * FROM information_schema.tables 
        WHERE table_schema = '",input$schema ,"' and table_name = 'survival'")))> 0){
       if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
       data.survival<-data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, herd_bounds, timeperiod;")))
@@ -66,7 +78,7 @@ ON c.compartment = a.compartment;")))
       data.disturbance<-NULL
     }
     
-        if(nrow(getTableQuery(paste0("SELECT * FROM information_schema.tables 
+     if(nrow(getTableQuery(paste0("SELECT * FROM information_schema.tables 
        WHERE table_schema = '",input$schema ,"' and table_name = 'grizzly_survival'")))> 0){
       if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".grizzly_survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
       data.grizzly_survival<-data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".grizzly_survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, gbpu_name, timeperiod;")))
@@ -106,7 +118,8 @@ ON c.compartment = a.compartment;")))
          fire2 = data.fire2,
          fisher = data.fisherOccupancy,
          fisherPts = data.fisherPoints,
-         grizzly_survival = data.grizzly_survival)
+         grizzly_survival = data.grizzly_survival,
+         abundance = data.abundance)
   })
   
   fisherPointsFilter<-reactive({
@@ -435,6 +448,26 @@ ON (foo1.scenario = foo2.scenario) )")))
     ggplotly(p)
   }) 
   
+  output$abundancePlot <- renderPlotly ({
+    withProgress(message = 'Making Plots', value = 0.1, {
+      data<-reportList()$abundance
+      
+      p <- ggplot(data, aes (x = timeperiod, y = abundance_avg, color = scenario)) +
+              facet_grid (rows = vars(subpop_name))+
+              geom_line () +
+              xlab ("Future year") +
+              ylab ("Abundance") +
+              scale_x_continuous (limits = c(0, 50), breaks = seq (0, 50, by = 10))+
+              theme_bw () +
+              theme (legend.title = element_blank(),
+                     plot.caption = element_text (hjust = 0))
+      ggplotly(p, height = 900) %>% 
+        layout (legend = list (orientation = "h", y = -0.1),
+                margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
+      
+    })
+  }) 
+ 
   output$survivalPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data<-reportList()$survival
@@ -445,7 +478,7 @@ ON (foo1.scenario = foo2.scenario) )")))
         geom_line() +
         geom_hline(yintercept=0, linetype="dashed", color = "black")+
         xlab ("Future year") +
-        ylab ("Change in Annual Adult Female Survival Rate)") +
+        ylab ("Change in Annual Adult Female Survival Rate") +
         scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
         theme_bw()+
         theme (legend.title = element_blank())
