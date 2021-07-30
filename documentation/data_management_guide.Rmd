@@ -1719,5 +1719,37 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   value = pgdbs_data_list_new, 
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
+
+#Create new row for table
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = 'smc_herd_habitat', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\caribou_southern_mtn_pop_model.Rmd', 
+                        source = 'critical habitat as of June 2020; from Nicola Dodd; MoE.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'smcaribouAbundanceCLUS'
+                        )
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus',
+                        schema = 'vat', 
+                        table_name = 'smc_coeffs', 
+                        type = 'table', 
+                        script = 'clus\\R\\Params\\caribou_southern_mtn_pop_model.Rmd', 
+                        source = 'critical habitat as of June 2020; from Nicola Dodd; MoE.', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'smcaribouAbundanceCLUS' 
+                        )
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2))
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
 ```
 
