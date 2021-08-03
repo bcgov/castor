@@ -57,7 +57,7 @@ data.prod.huck$origin.age <- ifelse ((data.prod.huck$origin == 1), data.prod.huc
 #test <- select (data.prod.huck, origin, TimeSinceCut, TimeSinceFire, origin.age)
 ```
 
-I then looked at the relationship between stand origin and occurrence and abudnace of huckleberry shrubs and fruit. 
+I then looked at the relationship between stand origin and occurrence and abundace of huckleberry shrubs and fruit. 
 
 Huckleberry tend to occur more in fire and harvest origin stands than stands of old, unknown origin. This could be that huckleberry are in younger stands, but there does seem to be a difference between origin type. Note, that presence oir absence in harvested areas are similar, but the key difference in proportion is that they are more often present in areas that burned and less present in older forests.
 
