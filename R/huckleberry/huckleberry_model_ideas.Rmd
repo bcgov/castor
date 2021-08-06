@@ -214,4 +214,6 @@ These authors cite literature that demonstrate that several berry species (such 
 
 This paper talks about the effects of mechanical disturbance (i.e., scarification), but also the impacts of herbicide application. Mechanical disturbance and high canopy closure are negatively associated with roots, berries and ungulates - food sources important during hypophagia and hyperphagia; suggesting that clearcuts may favour sources good during mesophagia.
 
-Authors suggest that no one has investigated impacts of silvilculture management practices on grizzly bear food abundance and jabitat selection. Authors recommend that controlled burns could be conducted away from forestry roads to make more favourable for bears. They also suggest avoiding salvage logging and subsequent replanting after low-intensity fires, and to reduce or delay regeneration efforts after harvesting.
+Authors suggest that no one has investigated impacts of silvilculture management practices on grizzly bear food abundance and habitat selection. Authors recommend that controlled burns could be conducted away from forestry roads to make more favourable for bears. They also suggest avoiding salvage logging and subsequent replanting after low-intensity fires, and to reduce or delay regeneration efforts after harvesting.
+
+##McClelland, C.J.R., Denny, C.K., Larsen, T.A., Stenhouse, G.B., Nielsen, S.E. 2021. Landscape estimates of carrying capacity for grizzly bears using nutritional energy supply for management and conservation planning. Journal of Nature Conservation, 62: 126018.
