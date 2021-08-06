@@ -768,19 +768,19 @@ model1 <- glm (Species.Present2 ~ PREP1_TECH_GP + DN1_SILSYS_GP + origin*origin.
                family = binomial (link = "logit"))
 
 library(car)
-Anova(model1, type=3)
+Anova(model1, type=3) #only origin.age significant
 
 model1b <- glm (Species.Present2 ~ PREP_TECH_2_GP + DN1_SILSYS_GP + origin*origin.age,
                data=huckle_data_logged2b,
                family = binomial (link = "logit"))
-Anova(model1b, type=3)
+Anova(model1b, type=3) #Nothing
 
 #Remove interaction
 model2 <- glm (Species.Present2 ~ PREP1_TECH_GP + DN1_SILSYS_GP + origin + origin.age,
                data=huckle_data_logged2b,
                family = binomial (link = "logit"))
 
-Anova(model2, type=3)
+Anova(model2, type=3) #origin.age significant
 summary(model2)
 
 model2b <- glm (Species.Present2 ~ PREP_TECH_2_GP + DN1_SILSYS_GP + origin + origin.age,
@@ -852,7 +852,7 @@ model.3 <- glm (Species.Present2 ~ DN1_SILSYS_GP,
                family = binomial (link = "logit"))
 
 Anova(model.3, type=3) #yes
-summary(model.3) #clearcut higher probability than clearcut with reserves and other
+summary(model.3) #clearcut higher probability to have huckleberry than clearcut with reserves and other
 
 model.4 <- glm (Species.Present2 ~ TimeSinceCut,
                data=huckle_data_logged2b,

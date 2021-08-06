@@ -315,6 +315,80 @@ p <- ggplot(dat_lightning_, aes(elevation, as.numeric(fire_pres))) +
 p
 ```
 
+#Inspect each of the top climate variables for each group. Currently here, combined for all NDTs.
+
+```{r}
+p <- ggplot(dat_lightning_, aes(tmax07, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("tmax07") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_lightning_, aes(tave07, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("tave07") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_lightning_, aes(tave08, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("tave08") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_lightning_, aes(ppt08, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("ppt08") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_lightning_, aes(ppt07, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("ppt07") + ylab("Pr (ignition)")
+p
+```
+
+#VRI variables
+
+```{r}
+p <- ggplot(dat_lightning_, aes(proj_age_1, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("proj_age_1") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_lightning_, aes(proj_height_1, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("proj_height_1") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_lightning_, aes(live_stand_volume_125, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("live_stand_volume_125") + ylab("Pr (ignition)")
+p
+```
+
+
+
 
 ```{r}
 ##########Repeat for person-caused fires
@@ -376,6 +450,7 @@ p <- ggplot(dat_person_, aes(roads_km, as.numeric(fire_pres))) +
 p
 ```
 
+
 Make cos(aspect in degrees) to be the default aspect.
 
 ```{r}
@@ -388,13 +463,90 @@ dat_lightning_$aspect<-dat_lightning_$aspect_cos
 
 ```
 
+#Repeat for top climate variables
+
+```{r}
+p <- ggplot(dat_person_, aes(tmax08, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("tmax08") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_person_, aes(tave08, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("tave08") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_person_, aes(mean_tmax05_tmax06_tmax07_tmax08_tmax09, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_tmax05-09") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_person_, aes(mean_tave08_tave09, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_tave08_tave09") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_person_, aes(ppt08, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("ppt08") + ylab("Pr (ignition)")
+p
+```
 
 #Save data here in case get disconnected from R
+
+#VRI variables
+
+```{r}
+p <- ggplot(dat_person_, aes(proj_age_1, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("proj_age_1") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_person_, aes(proj_height_1, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("proj_height_1") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_person_, aes(live_stand_volume_125, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("live_stand_volume_125") + ylab("Pr (ignition)")
+p
+```
+
 
 ```{r}
 write.csv(dat_lightning_, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_July.csv")
 
 write.csv(dat_person_, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_July.csv")
+
+#Can read the data in
+dat_lightning_<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_July.csv")
+
+dat_person_<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_July.csv")
 ```
 
 
