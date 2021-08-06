@@ -34,21 +34,6 @@ Throughout western North America ([McLellan and Shackleton 1988](https://www.jst
     limitations under the License.
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## Module Methods and Parameters
 Here I adapt a model developed by [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) that related grizzly bear survival rates to their exposure to roads in a landscape in Alberta with active forestry to estimate the effects of roads on grizzly bear survival and population trend.  
 
@@ -73,16 +58,3 @@ The module uses the [Boulanger and Stenhouse (2014)](https://journals.plos.org/p
 S = 1 / (1 + exp (-3.9 + (D * 1.06)) 
 
 where S = survival rate and D = road density. Survival rate  is 0.980 at 0km/km^2^ road density, 0.945 at a road density of 1km/km^2^ and 0.856 at a road density of 2km/km^2^.
-
-
-
-
-
-
-
-
-
-
-
-
-
