@@ -217,3 +217,10 @@ This paper talks about the effects of mechanical disturbance (i.e., scarificatio
 Authors suggest that no one has investigated impacts of silvilculture management practices on grizzly bear food abundance and habitat selection. Authors recommend that controlled burns could be conducted away from forestry roads to make more favourable for bears. They also suggest avoiding salvage logging and subsequent replanting after low-intensity fires, and to reduce or delay regeneration efforts after harvesting.
 
 ##McClelland, C.J.R., Denny, C.K., Larsen, T.A., Stenhouse, G.B., Nielsen, S.E. 2021. Landscape estimates of carrying capacity for grizzly bears using nutritional energy supply for management and conservation planning. Journal of Nature Conservation, 62: 126018.
+
+
+
+##Nielsen, S.E., Boyce, M.S., and Stenhouse, G.B. 2004. Grizzly bears and forestry: I. Selection of clearcuts by grizzly bears in west-central Alberta, Canada. Forest Ecology and Management, 199: 51-65.
+These authors found, using telemetry data, that grizzly bears used cutblocks as available during hypophagia and late hyperphagia,  and selected clearcuts more than expected during early hyperphagia. Grizzly bear's avoided centres of clearcuts and selected those with greater perimeter-to-edge ratios. They also used them more often during crepuscular/noctural periods. During hypophagia, selected for intermediate aged clearcuts (~30 years); during late hyperphagia, selected recent and old clearcuts. They also found some effects by difference in site prep.
+
+
