@@ -36,6 +36,7 @@ library(rgdal)
 library(keyring)
 library(DBI)
 library(rgeos)
+library(car)
 
 source(here::here("R/functions/R_Postgres.R"))
 ```
@@ -1029,6 +1030,34 @@ ggplot (huckle_data_logged2b, aes (x = slope_30m_SRTM, y = Species.Cover)) +
 ```
 
 ```{r}
+ggplot (huckle_data_logged2b, aes (x = SLOPE, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Slope",
+        y = "Species Cover")
+```
+
+```{r}
+ggplot (huckle_data_logged2b, aes (x = aspect_30m_SRTM, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Aspect",
+        y = "Species Cover")
+```
+
+```{r}
+ggplot (huckle_data_logged2b, aes (x = ASPECT, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Aspect",
+        y = "Species Cover")
+```
+
+
+```{r}
 ggplot (huckle_data_logged2b, aes (x = LandsatCC_2010_Fixed, y = Species.Cover)) +
   geom_point () +
   geom_smooth () +
@@ -1087,10 +1116,350 @@ ggplot(huckle_data_logged2b, aes(SAI_rec, as.numeric(Species.Present))) +
 #Maybe slight negative relationship
 ```
 
+```{r}
+ggplot (huckle_data_logged2b, aes (x = SAI_rec, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "SAI by recorded data",
+        y = "Species Cover")
+```
+
+```{r}
+ggplot (huckle_data_logged2b, aes (x = SAI_cb, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "SAI by cutblock data",
+        y = "Species Cover")
+```
+
+
 #Check for colineraity between continuous variables.
 
 
 #Try a model with: canopy cover (%), scarification (0/1), CTI (soil wetness metric the Compound Topographic Index), SAI, and elevation (Nielsen et al. 2004b). Also include burned (0/1).
+
+```{r}
+## Elevation is missing from data! Need to get from DEM
+#Elevation
+DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+plot(DEM)
+crs(DEM)
+crs(huckle_data_logged2b) #Same! Excellent.
+
+pointCoordinates<-data.frame(huckle_data_logged2b$coords.x1, huckle_data_logged2b$coords.x2)
+head(pointCoordinates)
+
+ELEVATION=raster::extract(DEM, pointCoordinates)
+head(ELEVATION)
+
+#Append
+huckle_data_logged2c<-cbind(huckle_data_logged2b, ELEVATION)
+head(huckle_data_logged2c)
+```
+
+```{r}
+hist(huckle_data_logged2c$ELEVATION)
+```
+
+Try model: canopy cover (%), scarification (0/1), CTI (soil wetness metric the Compound Topographic Index), SAI, and elevation (Nielsen et al. 2004b). Also include burned (0/1).
+
+```{r}
+### Assess best model for Species Present/Absence
+
+#Species Present or Absent Huckleberry
+model.new.1 <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + MODIS_LC + PLANTED +AREAHA + ELEVATION,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #426
+
+#Remove least significant: area- this makes sense given previous comment that area may not represent the actual open area as many cutblocks are adjancent. Also could consider area:perimeter ratios.
+model.new.1b <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + MODIS_LC + PLANTED +ELEVATION,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1b, type=3) #
+summary(model.new.1b) #
+AIC(model.new.1b) #424
+
+#Assess land types
+table(huckle_data_logged2c$MODIS_LC) #Most are type 1: evergreen needle leaf forest
+
+
+#Remove landtype
+model.new.1c <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + PLANTED + ELEVATION,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1c, type=3) #
+summary(model.new.1c) #
+AIC(model.new.1c) #423
+
+#Check how many planted vs not
+table(huckle_data_logged2c$PLANTED) #Most planted
+
+#Remove planting
+model.new.1d <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + ELEVATION,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1d, type=3) #
+summary(model.new.1d) #
+AIC(model.new.1d) #421.9328
+
+#Compare to with slope and aspect instead of both sources
+model.new.1e <- glm (Species.Present2 ~ SLOPE + ASPECT + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + ELEVATION,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1e, type=3) #
+summary(model.new.1e) #
+AIC(model.new.1e) #423.997
+
+model.new.1f <- glm (Species.Present2 ~ slope_30m_SRTM + aspect_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + ELEVATION,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1f, type=3) # slope matters now!
+summary(model.new.1f) #
+AIC(model.new.1f) #424.739
+
+model.new.1g <- glm (Species.Present2 ~ SAI_rec+ LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + ELEVATION,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1g, type=3) #SAI from recorded data less good
+summary(model.new.1g) #
+AIC(model.new.1g) #429.83 
+
+##Best AIC had SAI_cb, but it was also the least sig variable.
+model.new.1h <- glm (Species.Present2 ~ LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + ELEVATION,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1h, type=3) #
+summary(model.new.1h) #
+AIC(model.new.1h) #Less good AIC
+
+#Remove interaction
+model.new.1i <- glm (Species.Present2 ~ LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1i, type=3) #
+summary(model.new.1i) #
+AIC(model.new.1i)
+
+
+# Add SAI_cb back in
+model.new.1j <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1j, type=3) #
+summary(model.new.1j) #
+AIC(model.new.1j) #420.597. Best AIC.
+```
+
+Clayton's:(1) percent of area burned, (2) percent sand, (3) average winter temperature, (4) precipitation as snow, (5) canopy cover, (6) average pH, (7) slope and (8) solar heat load.
+
+I would really like CMI (Climate Moisture Index). May need to acquire this.
+
+```{r}
+model.new.1k <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION + TSAND,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1k, type=3) #
+summary(model.new.1k) #
+AIC(model.new.1k) #421.52
+
+model.new.1l <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION + TSAND,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1l, type=3) #
+summary(model.new.1l) #
+AIC(model.new.1l) #421.70
+
+model.new.1m <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION + TSAND + Tave_wt,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1m, type=3) #
+summary(model.new.1m) #
+AIC(model.new.1m) #418.82
+
+#Remove sand
+model.new.1n <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION  + Tave_wt,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1n, type=3) #
+summary(model.new.1n) #
+AIC(model.new.1n) #417.24
+
+#Trade canopy cover with time since intervention
+model.new.1o <- glm (Species.Present2 ~ slope_30m_SRTM + origin.age + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION  + Tave_wt,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1o, type=3) #
+summary(model.new.1o) #
+AIC(model.new.1o) #418.78
+
+#Remove CC and age
+model.new.1p <- glm (Species.Present2 ~ slope_30m_SRTM + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION  + Tave_wt,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1p, type=3) #
+summary(model.new.1p) #
+AIC(model.new.1p) #416.78
+
+#Remove interventions
+model.new.1q <- glm (Species.Present2 ~ slope_30m_SRTM  +  PPT_wt + PH2 + ELEVATION  + Tave_wt,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1q, type=3) #
+summary(model.new.1q) #
+AIC(model.new.1q) #415.56 (better AIC, but not 2 points worth)
+
+#Current model of choice
+model.new.1n <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION  + Tave_wt,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1n, type=3) #
+summary(model.new.1n) #
+AIC(model.new.1n) #417.24
+
+```
+Try some transformations to try and match shape seen in prior graphs.
+
+```{r}
+
+ggplot (huckle_data_logged2c, aes (x = slope_30m_SRTM, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Slope",
+        y = "Species Cover")
+
+huckle_data_logged2c$slope_30m_SRTM_tr<- -((huckle_data_logged2c$slope_30m_SRTM/4)-5)^2+23
+
+ggplot (huckle_data_logged2c, aes (x = slope_30m_SRTM_tr, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Slope Transformed",
+        y = "Species Cover")
+#Maybe kind of worked?
+
+```
+
+```{r}
+model.new.1r <- glm (Species.Present2 ~ slope_30m_SRTM_tr + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION  + Tave_wt,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1r, type=3) #
+summary(model.new.1r) #
+AIC(model.new.1r) #423.82
+#Not better
+```
+```{r}
+ggplot (huckle_data_logged2c, aes (x = PH2, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "pH",
+        y = "Species Cover")
+
+huckle_data_logged2c$PH2_tr<- -((huckle_data_logged2c$PH2)-4)^2+25
+
+ggplot (huckle_data_logged2c, aes (x = PH2_tr, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "pH transformed",
+        y = "Species Cover")
+
+#Not better
+```
+
+```{r}
+model.new.1s <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2_tr + ELEVATION  + Tave_wt,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1s, type=3) #
+summary(model.new.1s) #
+AIC(model.new.1s)
+#Not better
+```
+
+```{r}
+ggplot (huckle_data_logged2c, aes (x = Tave_wt, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Average winter Temp",
+        y = "Species Cover")
+
+huckle_data_logged2c$Tave_wt_tr<- -((huckle_data_logged2c$Tave_wt)+7)^2+7
+
+ggplot (huckle_data_logged2c, aes (x = Tave_wt_tr, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Average winter Temp Transformed",
+        y = "Species Cover")
+```
+
+```{r}
+model.new.1t <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION  + Tave_wt_tr,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1t, type=3) #
+summary(model.new.1t) #
+AIC(model.new.1t) #Not better
+```
+Best model with variables of interest. Try to enhance canopy cover data?
+```{r}
+model.new.1n <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION  + Tave_wt,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1n, type=3) #
+summary(model.new.1n) #
+AIC(model.new.1n) #417.24
+```
+
+
+```{r}
+Species.Height
+
+Species.Cover
+
+Fruit.Present
+
+Fruit.Cover
+
+Fruit.Abund
+
+Fruit.Brix
+
+Fruit.Phenology
+
+```
+
 
 
 ##or berry presence/absence, check which months surveys were done and assess if there is seasonality in the data that needs to be partitioned.
