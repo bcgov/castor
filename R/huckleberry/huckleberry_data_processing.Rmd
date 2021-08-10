@@ -1039,6 +1039,76 @@ ggplot (huckle_data_logged2b, aes (x = LandsatCC_2010_Fixed, y = Species.Cover))
 ```
 
 
+#Because max slope ~40 degrees, can create an SAI (slope-aspect index) value: example = sin(aspect +225) x (slope/45).
+
+```{r}
+names(huckle_data_logged2b)
+hist(huckle_data_logged2b$SLOPE)
+huckle_data_logged2b$SLOPE<-as.numeric(huckle_data_logged2b$SLOPE)
+max(huckle_data_logged2b$SLOPE) #Cannot get max because of NAs
+hist(huckle_data_logged2b$ASPECT)
+
+cor(huckle_data_logged2b$SLOPE, huckle_data_logged2b$slope_30m_SRTM) #cannot get because of NAs
+plot(huckle_data_logged2b$SLOPE ~ huckle_data_logged2b$slope_30m_SRTM) #Quite different. Perhaps use point values and use DEM to get slope and aspect? Or use the cutblock data because it likely takes the average for the cutblock which is probably more representative.
+plot(huckle_data_logged2b$ASPECT ~ huckle_data_logged2b$aspect_30m_SRTM)
+
+#Test for max values
+huckle_data_logged2b_SLOPE<-subset(huckle_data_logged2b, huckle_data_logged2b$SLOPE!="NA")
+max(huckle_data_logged2b_SLOPE$SLOPE) #58.9
+max(huckle_data_logged2b_SLOPE$slope_30m_SRTM) #45
+
+huckle_data_logged2b$SAI_cb<-(sin(huckle_data_logged2b$ASPECT + 225) *(huckle_data_logged2b$SLOPE/58.9)) #SAI (Slope to aspect Index) of cutblock data slope and aspect
+huckle_data_logged2b$SAI_rec<-(sin(huckle_data_logged2b$aspect_30m_SRTM + 225) *(huckle_data_logged2b$slope_30m_SRTM/45)) #SAI of slope and aspect from Clayton's data
+
+hist(huckle_data_logged2b$SAI_cb)
+hist(huckle_data_logged2b$SAI_rec)
+plot(huckle_data_logged2b$SAI_cb ~ huckle_data_logged2b$SAI_rec) # The result is COMPLETELY different, depending on which values are used. No correlation what so ever.
+
+```
+Compare probabilities between values.
+
+```{r}
+ggplot(huckle_data_logged2b, aes(SAI_cb, as.numeric(Species.Present))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("SAI by cutblock data") + ylab("Pr (Species Present)")
+#No relationship
+```
+
+```{r}
+ggplot(huckle_data_logged2b, aes(SAI_rec, as.numeric(Species.Present))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("SAI by recorded data") + ylab("Pr (Species Present)")
+#Maybe slight negative relationship
+```
+
+#Check for colineraity between continuous variables.
+
+
+#Try a model with: canopy cover (%), scarification (0/1), CTI (soil wetness metric the Compound Topographic Index), SAI, and elevation (Nielsen et al. 2004b). Also include burned (0/1).
+
+
+##or berry presence/absence, check which months surveys were done and assess if there is seasonality in the data that needs to be partitioned.
+
+```{r}
+head(huckle_data_logged2b)
+table(huckle_data_logged2b$Date)
+
+#Select month that data was collected
+library(stringi)
+huckle_data_logged2b$Date_month<-stri_sub(huckle_data_logged2b$Date,6,7)
+table(huckle_data_logged2b$Date_month) # Most August, then September, then July, then some in June.
+#hist(huckle_data_logged2b$Date_month)
+
+```
+
+
+#For berry abundance models, plant abundance should be included as a fixed effect (McLelland et al. 2021).
 
 
 
