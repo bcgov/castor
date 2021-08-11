@@ -16,30 +16,33 @@ Currently, we have data provided by Dr. Clayton Lamb on the abundance of huckleb
 
 We likely should split the analyses into different BEC zones, and only include those that have huckleberry or soopalilie. Maybe this does not matter, but when projecting forward, only BEC zones that contain these species should be mapped. 
 
+#Notes:
+1. Ideally predict across province, but only in BEC Zones with huckleberry potential. BEC zone or subzone: Could also include provenance of planted stand (species). Ensure using only BEC zones that could contain huckleberries. Planting dataset sparse.
+
+2. Cutblock size info? I have coordinates and I may be able to match these to online databases. https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks- Note: retention patch sizes may not be adequately captured here. Note: many cutblock sizes only capture that year's cutblock and not adjacent ones. May also wish to consider size:edge ratio. Consider area-to-perimeter ratio. Likely less important for actual berry production (although shading effects could influence), and more important for grizzly bear selection of foraging sites.
+
+3. Cutblock treatment: RESULTS file on bc gov page may have info on treatments and silviculture. (scarification, planting density, timing of harvest - winter vs summer)
+4. Data projection is ESPG 3005.
+5. Generate ifelse statement to determine if fire after logging or not. Tyler has done something similar.
+6. In VegModData, what is the difference between 0 and NA? 0s are when this species was looked for and not found; NA indicates that it was not explicitly sought.
+7.  11. Other data available? Data from Chandler and Hamilton have much lower stand age results than Tyler's preliminary analyses. Garth has already sent some from another student.
+8. Subset so only use plots that have been logged before.
+9. Due to hierarchical nature, could use negative binomial hurdle models.
+10. Current data set too small to look at different types of mechanical treatment, but this is likely important.
+11. Try a model with: canopy cover (%), scarification (0/1), CTI, SAI, and elevation (Nielsen et al. 2004b). Need to get CTI.
+
 #Questions I have and notes:
-  1. What spatial extent would we like to model this? Across the province?  The huckleberry data is only in SE BC. Buffalo Berry in clumps across the province.
-  2. What other elements for grizzly bear model do we already have? Forest service road and human disturbance elements? Likely not important for this element of the work, but curious.
-  3. Do we have information on cutblock treatment in the data? Check. RESULTS file on bc gov page may have info on treatments and silviculture. This likely needs to be added. (scarification, planting density, timing of harvest - winter vs summer)
-  4. Cutblock size info? I have coordinates and I may be able to match these to online databases. https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks- Note: retention patch sizes may not be adequately captured here.
-  5. Phenology and distribution and abundance? And energetics! Perhaps: P/A, percent cover focus. Then phenology and energetics. Energetics priority before phenology for our aims. Negative binomial (counts and P/A --> model occurrence and then count for it; regression models--> zero inflated models--> look into! Talk to Peter)
-  6. What is the projection for the coordinates provided in the productivity data file? UTM 10? ESPG 3005?
-  7. ifelse statement to determine if fire after logging or not. Tyler has done something similar.
-  8. If extent BC, how to create a raster for soil pH across the province to be able to include it in the predictive model. Or even over a smaller area. May need to create 2 models, one with and one without?
-  9. Is the data I have access to the same as that from Proctor et al.2017?
-  10. In VegModData, what is the difference between 0 and NA?
-  11. Other data available? Data from Chandler and Hamilton have much lower stand age results than Tyler's preliminary analyses.
-  12. BEC zone or subzone: Could also include provenance of planted stand (species). Ensure using only BEC zones that could contain huckleberries.
-  13. Only use plots that have been harvested before.
-  14. Due to hierarchical nature, use negative binomial hurdle models.
-  15. Current data set too small to look at different types of mechanical treatment, but this is likely important.
-  16. Consider area-to-perimeter ratio. Likely less important for actual berry production (although shading effects could influence), and more important for grizzly bear selection of foraging sites.
-  17. Try a model with: canopy cover (%), scarification (0/1), CTI, SAI, and elevation (Nielsen et al. 2004b).
-  18. Is there any way to use the ohenology data to extrapolate to a Julian Date for ripened fruit?
+  1. Phenology and distribution and abundance? And energetics! Perhaps: P/A, percent cover focus. Then phenology and energetics. Energetics priority before phenology for our aims. Negative binomial (counts and P/A --> model occurrence and then count for it; regression models--> zero inflated models--> look into! Talk to Peter)
+  2. If extent BC, how to create a raster for soil pH across the province to be able to include it in the predictive model. Or even over a smaller area. May need to create 2 models, one with and one without?
+  3. Is there any way to use the phenology data to extrapolate to a Julian Date for ripened fruit?
+  4.How do we get CMI?
+  5. How do we get percent area burned?
+  6. Best month allocation for season? I am using MAM spring, JJA summer, etc.
   
 #Key variables to acquire and/or investigate:
 1. Canopy closure/cover -- could consider applying 50% canopy rule but investigate without first (Can acquire, I believe, from VRI or other means; otherwise here https://landcover.usgs.gov/glc/TreeCoverDescriptionAndDownloads.php)
    Note: LandSatCC_2010 likely the canopy cover as of 2010.
-2. Cut block harvesting techniques and Silviculture (I believe I can get this from RESULTS files)
+2. Cut block harvesting techniques and Silviculture (I believe I can get this from RESULTS files) - include seasonality.
 3. Whether cutblock planted after or not (I suspect this will be confounded with age since this became common practice after 1990s)
 4. Cut block size (can get this data from cutblock layer)
 5. ClimateBC data (already in dataset: Annual heat Moisture (AHM) Index, Climate Moisture Index (CMI), EMT, EXT, MAT, MCMT, MSP)--> winter snow seems REALLY important for huckleberry; summer metrics more important for buffaloberry

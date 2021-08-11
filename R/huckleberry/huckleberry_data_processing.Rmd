@@ -446,7 +446,7 @@ geom_bar (position = "fill") +
 #No differences
 ```
 
-Assess the percent cover of huckleberry by origin.
+Assess the percent cover of huckleberry.
 
 ```{r}
 ggplot (huckle_data_logged2b, aes (x = PREP_BU_, y = Species.Cover)) +
@@ -549,8 +549,6 @@ ggplot (huckle_data_logged2b, aes (x = TimeSinceCut, y = Species.Cover, colour =
 
 #Burn peaks at 15 years, with a second peak at 35 years; burn and mechanical peaks at 10 years and lowest at 30 years; mechanical peaked at 5 years; no burn and no mechanical peaked at 35 years before data too sparse
 ```
-
-
 
 
 
@@ -1169,7 +1167,7 @@ Try model: canopy cover (%), scarification (0/1), CTI (soil wetness metric the C
 ### Assess best model for Species Present/Absence
 
 #Species Present or Absent Huckleberry
-model.new.1 <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + MODIS_LC + PLANTED +AREAHA + ELEVATION,
+model.new.1 <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PAS_ann + PH2 + MODIS_LC + PLANTED +AREAHA + ELEVATION,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1178,7 +1176,7 @@ summary(model.new.1) #
 AIC(model.new.1) #426
 
 #Remove least significant: area- this makes sense given previous comment that area may not represent the actual open area as many cutblocks are adjancent. Also could consider area:perimeter ratios.
-model.new.1b <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + MODIS_LC + PLANTED +ELEVATION,
+model.new.1b <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PAS_ann + PH2 + MODIS_LC + PLANTED +ELEVATION,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1191,7 +1189,7 @@ table(huckle_data_logged2c$MODIS_LC) #Most are type 1: evergreen needle leaf for
 
 
 #Remove landtype
-model.new.1c <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + PLANTED + ELEVATION,
+model.new.1c <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PAS_ann + PH2 + PLANTED + ELEVATION,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1203,7 +1201,7 @@ AIC(model.new.1c) #423
 table(huckle_data_logged2c$PLANTED) #Most planted
 
 #Remove planting
-model.new.1d <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + ELEVATION,
+model.new.1d <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PAS_ann + PH2 + ELEVATION,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1212,7 +1210,7 @@ summary(model.new.1d) #
 AIC(model.new.1d) #421.9328
 
 #Compare to with slope and aspect instead of both sources
-model.new.1e <- glm (Species.Present2 ~ SLOPE + ASPECT + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + ELEVATION,
+model.new.1e <- glm (Species.Present2 ~ SLOPE + ASPECT + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PAS_ann + PH2 + ELEVATION,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1220,7 +1218,7 @@ Anova(model.new.1e, type=3) #
 summary(model.new.1e) #
 AIC(model.new.1e) #423.997
 
-model.new.1f <- glm (Species.Present2 ~ slope_30m_SRTM + aspect_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + ELEVATION,
+model.new.1f <- glm (Species.Present2 ~ slope_30m_SRTM + aspect_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PAS_ann + PH2 + ELEVATION,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1228,7 +1226,7 @@ Anova(model.new.1f, type=3) # slope matters now!
 summary(model.new.1f) #
 AIC(model.new.1f) #424.739
 
-model.new.1g <- glm (Species.Present2 ~ SAI_rec+ LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + ELEVATION,
+model.new.1g <- glm (Species.Present2 ~ SAI_rec+ LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PAS_ann + PH2 + ELEVATION,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1237,7 +1235,7 @@ summary(model.new.1g) #
 AIC(model.new.1g) #429.83 
 
 ##Best AIC had SAI_cb, but it was also the least sig variable.
-model.new.1h <- glm (Species.Present2 ~ LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PPT_wt + PH2 + ELEVATION,
+model.new.1h <- glm (Species.Present2 ~ LandsatCC_2010_Fixed + PREP_BU_*PREP_ME_ +  PAS_ann + PH2 + ELEVATION,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1246,7 +1244,7 @@ summary(model.new.1h) #
 AIC(model.new.1h) #Less good AIC
 
 #Remove interaction
-model.new.1i <- glm (Species.Present2 ~ LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION,
+model.new.1i <- glm (Species.Present2 ~ LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PAS_ann + PH2 + ELEVATION,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1256,7 +1254,7 @@ AIC(model.new.1i)
 
 
 # Add SAI_cb back in
-model.new.1j <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION,
+model.new.1j <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PAS_ann + PH2 + ELEVATION,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1270,7 +1268,7 @@ Clayton's:(1) percent of area burned, (2) percent sand, (3) average winter tempe
 I would really like CMI (Climate Moisture Index). May need to acquire this.
 
 ```{r}
-model.new.1k <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION + TSAND,
+model.new.1k <- glm (Species.Present2 ~ SAI_cb + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PAS_ann + PH2 + ELEVATION + TSAND,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1278,7 +1276,7 @@ Anova(model.new.1k, type=3) #
 summary(model.new.1k) #
 AIC(model.new.1k) #421.52
 
-model.new.1l <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION + TSAND,
+model.new.1l <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PAS_ann + PH2 + ELEVATION + TSAND,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1286,7 +1284,7 @@ Anova(model.new.1l, type=3) #
 summary(model.new.1l) #
 AIC(model.new.1l) #421.70
 
-model.new.1m <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION + TSAND + Tave_wt,
+model.new.1m <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PAS_ann + PH2 + ELEVATION + TSAND + Tave_wt,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1295,7 +1293,7 @@ summary(model.new.1m) #
 AIC(model.new.1m) #418.82
 
 #Remove sand
-model.new.1n <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION  + Tave_wt,
+model.new.1n <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PAS_ann + PH2 + ELEVATION  + Tave_wt,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1304,7 +1302,7 @@ summary(model.new.1n) #
 AIC(model.new.1n) #417.24
 
 #Trade canopy cover with time since intervention
-model.new.1o <- glm (Species.Present2 ~ slope_30m_SRTM + origin.age + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION  + Tave_wt,
+model.new.1o <- glm (Species.Present2 ~ slope_30m_SRTM + origin.age + PREP_BU_+PREP_ME_ +  PAS_ann + PH2 + ELEVATION  + Tave_wt,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1313,7 +1311,7 @@ summary(model.new.1o) #
 AIC(model.new.1o) #418.78
 
 #Remove CC and age
-model.new.1p <- glm (Species.Present2 ~ slope_30m_SRTM + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION  + Tave_wt,
+model.new.1p <- glm (Species.Present2 ~ slope_30m_SRTM + PREP_BU_+PREP_ME_ +  PAS_ann + PH2 + ELEVATION  + Tave_wt,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1322,7 +1320,7 @@ summary(model.new.1p) #
 AIC(model.new.1p) #416.78
 
 #Remove interventions
-model.new.1q <- glm (Species.Present2 ~ slope_30m_SRTM  +  PPT_wt + PH2 + ELEVATION  + Tave_wt,
+model.new.1q <- glm (Species.Present2 ~ slope_30m_SRTM  +  PAS_ann + PH2 + ELEVATION  + Tave_wt,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1331,7 +1329,7 @@ summary(model.new.1q) #
 AIC(model.new.1q) #415.56 (better AIC, but not 2 points worth)
 
 #Current model of choice
-model.new.1n <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION  + Tave_wt,
+model.new.1n <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PAS_ann + PH2 + ELEVATION  + Tave_wt,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1364,7 +1362,7 @@ ggplot (huckle_data_logged2c, aes (x = slope_30m_SRTM_tr, y = Species.Cover)) +
 ```
 
 ```{r}
-model.new.1r <- glm (Species.Present2 ~ slope_30m_SRTM_tr + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION  + Tave_wt,
+model.new.1r <- glm (Species.Present2 ~ slope_30m_SRTM_tr + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PAS_ann + PH2 + ELEVATION  + Tave_wt,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1394,7 +1392,7 @@ ggplot (huckle_data_logged2c, aes (x = PH2_tr, y = Species.Cover)) +
 ```
 
 ```{r}
-model.new.1s <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2_tr + ELEVATION  + Tave_wt,
+model.new.1s <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PAS_ann + PH2_tr + ELEVATION  + Tave_wt,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1423,7 +1421,7 @@ ggplot (huckle_data_logged2c, aes (x = Tave_wt_tr, y = Species.Cover)) +
 ```
 
 ```{r}
-model.new.1t <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION  + Tave_wt_tr,
+model.new.1t <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PAS_ann + PH2 + ELEVATION  + Tave_wt_tr,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1433,7 +1431,7 @@ AIC(model.new.1t) #Not better
 ```
 Best model with variables of interest. Try to enhance canopy cover data?
 ```{r}
-model.new.1n <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PPT_wt + PH2 + ELEVATION  + Tave_wt,
+model.new.1n <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PREP_BU_+PREP_ME_ +  PAS_ann + PH2 + ELEVATION  + Tave_wt,
                data=huckle_data_logged2c,
                family = binomial (link = "logit"))
 
@@ -1442,13 +1440,587 @@ summary(model.new.1n) #
 AIC(model.new.1n) #417.24
 ```
 
+Determine AUC by splitting into training and validation set (85% and 15% given small sample size).
+
+```{r}
+#Create an 85% proportion
+prop<-0.85
+
+#Create variables
+variables.huck<-c(slope_30m_SRTM = "slope_30m_SRTM", LandsatCC_2010_Fixed = "LandsatCC_2010_Fixed", PREP_BU_ = "PREP_BU_" , PREP_ME_ = "PREP_ME_",  PAS_ann = "PAS_ann", PH2 = "PH2", ELEVATION = "ELEVATION", Tave_wt = "Tave_wt")
+
+variables.huck<-c("slope_30m_SRTM", "LandsatCC_2010_Fixed", "PREP_BU_", "PREP_ME_",  "PAS_ann", "PH2", "ELEVATION", "Tave_wt")
+
+#
+mods.me.tmp <- powerSet(variables.huck)
+mods.me.tmp
+
+# Select models we want to test here. 256 has all, test some without silviculture and site prep, like 241, 242, 243, 244
+mod.to.test.1<-mods.me.tmp[241:244]
+mod.to.test.2<-mod.to.test<-mods.me.tmp[256]
+mod.to.test.3<-mods.me.tmp[225:228]
+
+mod.to.test.subset<-c(1, mod.to.test.1,mod.to.test.2, mod.to.test.3)
+mod.to.test.subset
+
+mod.to.test.all<-c(1,mods.me.tmp)
+mod.to.test.all<-mod.to.test.all[-2]
+
+#Subset the data once into training and validation set
+huckle_data_logged2c_ng<-as.data.frame((huckle_data_logged2c))
+model.data<- huckle_data_logged2c_ng %>% dplyr::select(Species.Present2, variables.huck)
+trainIndex_huck <- createDataPartition(model.data$Species.Present2, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+dat.1 <- model.data[ trainIndex_huck,]
+Valid.1 <- model.data[-trainIndex_huck,]
+
+
+#Create model function
+big.mod <- function(mods.in, df.train, df.test, dep.var="Species.Present2") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(mod.to.test.all, big.mod, df.train=dat.1, df.test=Valid.1)
+mods.fit
+
+
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3
+#auc from validation data
+x4 <- unlist(sapply(mods.fit, '[', 4))
+x4
+#combining all as df
+tab.sum.huckleberry <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2], auc.valid=x4)
+tab.sum.huckleberry$delta.aic<- tab.sum.huckleberry$aic - (min(tab.sum.huckleberry$aic))
+tab.sum.huckleberry 
+
+
+```
+Save as csv
+```{r}
+write.csv(tab.sum.huckleberry, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\model.1.series.AIC.AUC.csv")
+
+```
+
+If going to model selection like above, could include other variables like TSAND, PLANTING. Also determine timing of harvest.
+
+```{r}
+#Determine timing of harvest
+names(huckle_data_logged2c)
+head(huckle_data_logged2c$DST_STR_DT)
+table(huckle_data_logged2c$DST_STR_DT)
+
+huckle_data_logged2c$DST_Start_year<-stri_sub(huckle_data_logged2c$DST_STR_DT,3,4)
+huckle_data_logged2c$DST_Start_year
+huckle_data_logged2c$DST_Start_month<-stri_sub(huckle_data_logged2c$DST_STR_DT,5,6)
+head(huckle_data_logged2c$DST_Start_month)
+huckle_data_logged2c$DST_End_year<-stri_sub(huckle_data_logged2c$DST_END_DT,3,4)
+huckle_data_logged2c$DST_End_year
+huckle_data_logged2c$DST_End_month<-stri_sub(huckle_data_logged2c$DST_END_DT,5,6)
+
+#Make all numeric
+huckle_data_logged2c$DST_Start_year.num<-as.numeric((huckle_data_logged2c$DST_Start_year))
+huckle_data_logged2c$DST_End_year.num<- as.numeric(huckle_data_logged2c$DST_End_year)
+
+huckle_data_logged2c$DST_Start_month.num<-as.numeric((huckle_data_logged2c$DST_Start_month))
+huckle_data_logged2c$DST_End_month.num<- as.numeric(huckle_data_logged2c$DST_End_month)
+
+#Determine length in years
+huckle_data_logged2c$DST_year_length<- huckle_data_logged2c$DST_End_year.num - huckle_data_logged2c$DST_Start_year.num
+table(huckle_data_logged2c$DST_year_length) #Can see that treatment took a long time in some.
+
+#Only look at start month, assuming this is when harvesting and scarification ocurred.
+table(huckle_data_logged2c$DST_Start_month)
+str(huckle_data_logged2c$DST_Start_month)
+huckle_data_logged2c$DST_Start_month<-as.factor(huckle_data_logged2c$DST_Start_month)
+
+#Turn into seasonal months
+huckle_data_logged2c$DIST_SEASON<-0
+huckle_data_logged2c<-huckle_data_logged2c %>%
+    mutate(DIST_SEASON = case_when(DST_Start_month == "01" ~ "Winter",
+                                  DST_Start_month == "02" ~ "Winter",
+                                  DST_Start_month == "03" ~ "Spring",
+                                  DST_Start_month == "04" ~ "Spring",
+                                  DST_Start_month == "05" ~ "Spring",
+                                  DST_Start_month == "06" ~ "Summer",
+                                  DST_Start_month == "07" ~ "Summer",
+                                  DST_Start_month == "08" ~ "Summer",
+                                  DST_Start_month == "09" ~ "Fall",
+                                  DST_Start_month == "10" ~ "Fall",
+                                  DST_Start_month == "11" ~ "Fall",
+                                  DST_Start_month == "12" ~ "Winter",
+                                  TRUE ~ "NA"))
+table(huckle_data_logged2c$DIST_SEASON) # Determine if want different cutoffs for snow months.
+
+```
+
+
+```{r}
+huckle_data_logged2c$PAS_ann<-huckle_data_logged2c$PAS_wt + huckle_data_logged2c$PAS_sm + huckle_data_logged2c$PAS_sp + huckle_data_logged2c$PAS_at
+
+variables.huck<-c("slope_30m_SRTM", "aspect_30m_SRTM", "LandsatCC_2010_Fixed",  "PAS_ann", "PH2", "ELEVATION", "Tave_wt", "TSAND", "MODIS_LC", "Fire_Occ", "PLANTED", "PREP_BU_", "PREP_ME_", "DIST_SEASON", "origin.age")
+
+huckle_data_logged2c$Fire_Occ<-as.factor(huckle_data_logged2c$Fire_Occ)
+huckle_data_logged2c$MODIS_LC<-as.factor(huckle_data_logged2c$MODIS_LC)
+head(huckle_data_logged2c$Fire_Occ)
+
+#
+mods.me.tmp <- powerSet(variables.huck)
+#mods.me.tmp
+
+mod.to.test.all<-c(1,mods.me.tmp)
+mod.to.test.all<-mod.to.test.all[-2]
+
+#Subset the data once into training and validation set
+huckle_data_logged2c_ng<-as.data.frame((huckle_data_logged2c))
+model.data<- huckle_data_logged2c_ng %>% dplyr::select(Species.Present2, variables.huck)
+trainIndex_huck <- createDataPartition(model.data$Species.Present2, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+dat.1 <- model.data[ trainIndex_huck,]
+Valid.1 <- model.data[-trainIndex_huck,]
+
+#Run with big.mod
+mods.fit2 <- lapply(mod.to.test.all, big.mod, df.train=dat.1, df.test=Valid.1)
+#mods.fit2
+
+
+#terms in each model
+x1 <- unlist(sapply(mods.fit2, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit2, '[', 3)), ncol=2, byrow=TRUE)
+#x3
+#auc from validation data
+x4 <- unlist(sapply(mods.fit2, '[', 4))
+#x4
+#combining all as df
+tab.sum.huckleberry2 <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2], auc.valid=x4)
+tab.sum.huckleberry2$delta.aic<- tab.sum.huckleberry2$aic - (min(tab.sum.huckleberry2$aic))
+tab.sum.huckleberry2 
+```
+Save as csv
+```{r}
+write.csv(tab.sum.huckleberry2, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\model.2.series.AIC.AUC_SpeciesPresent_Huck.csv")
+
+```
+
+
+Repeat above, but make it a loop of 100. Upon reflection, I am not certain the below loop gives you anything more in the output than the final run... as opposed to an average...
+
+```{r}
+for (g in 1:100){
+  
+#Subset the data once into training and validation set
+model.data<- huckle_data_logged2c_ng %>% dplyr::select(Species.Present2, variables.huck)
+trainIndex_huck <- createDataPartition(model.data$Species.Present2, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+dat.1 <- model.data[ trainIndex_huck,]
+Valid.1 <- model.data[-trainIndex_huck,]
+
+#Run with big.mod
+mods.fit2 <- lapply(mod.to.test.all, big.mod, df.train=dat.1, df.test=Valid.1)
+mods.fit2
+}
+```
+
+
+```{r}
+#terms in each model
+x1 <- unlist(sapply(mods.fit2, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit2, '[', 3)), ncol=2, byrow=TRUE)
+x3
+#auc from validation data
+x4 <- unlist(sapply(mods.fit2, '[', 4))
+x4
+#combining all as df
+tab.sum.huckleberry2 <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2], auc.valid=x4)
+tab.sum.huckleberry2$delta.aic<- tab.sum.huckleberry2$aic - (min(tab.sum.huckleberry2$aic))
+tab.sum.huckleberry2 
+```
+Save as csv
+```{r}
+write.csv(tab.sum.huckleberry2, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\model.2.series.AIC.AUC.csv")
+
+```
+
+
+##Create new best models
+```{r}
+model.new.2 <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PAS_ann + PH2 + ELEVATION + Tave_wt + Fire_Occ + DIST_SEASON + origin.age,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.2, type=3) #
+summary(model.new.2) # Treatment in Fall is most conducive to have huckleberries
+#positive with slope (transformation desired?)
+#negative with canopy cover 
+#Positive with precip as snow
+#Positive with PH (transformation desired?)
+# Positive with elevation
+# Positive with Temp in winter
+# More likely where natural fires occurred
+#Positive with origin age (transformation desired??)
+AIC(model.new.2) #406.1
+
+model.new.2b <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PAS_ann + PH2 + ELEVATION + Tave_wt + Fire_Occ + DIST_SEASON + origin.age + PREP_ME_,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.2b, type=3) #
+summary(model.new.2b) 
+AIC(model.new.2b) #406.4
+
+model.new.2c <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PAS_ann + PH2 + ELEVATION + Tave_wt + Fire_Occ + DIST_SEASON + origin.age + PREP_ME_ + PREP_BU_,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.2c, type=3) #
+summary(model.new.2c) # 
+AIC(model.new.2c) #407.6
+
+model.new.2d <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PAS_ann + PH2 + ELEVATION + Tave_wt + Fire_Occ + DIST_SEASON + origin.age + PREP_ME_ + PLANTED,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+
+Anova(model.new.2d, type=3) #
+summary(model.new.2d) # 
+AIC(model.new.2d) #407.8
+```
+Current top model:
+
+```{r}
+model.new.2c <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PAS_ann + PH2 + ELEVATION + Tave_wt + Fire_Occ + DIST_SEASON + origin.age + PREP_ME_ + PREP_BU_,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+AIC(model.new.2c) #407.6
+```
+
+
+Check correlation between canopy cover and age of impact.
+
+```{r}
+ggscatter(huckle_data_logged2c, x = "LandsatCC_2010_Fixed", y = "origin.age", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Canopy Cover", ylab = "Age Since Disturbance")
+#Only 0.44 correlation, so ok to have in model together!
+```
+Assess each variable in the model again.
+
+1. DIST_SEASON: We see that spring has substantially lower abundance, and Fall highest.
+
+```{r}
+ggplot (huckle_data_logged2c, aes (x = DIST_SEASON , y = Species.Cover)) +
+  geom_boxplot () +
+  labs (x = "Season",
+        y = "Huckleberry Cover")
+
+```
+
+
+2. SLOPE: We see a positive trend.
+```{r}
+ggplot(huckle_data_logged2c, aes(slope_30m_SRTM, as.numeric(Species.Present))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Slope") + ylab("Pr (Species Present)")
+```
+3. Canopy Cover: we see a negative trend.
+```{r}
+ggplot(huckle_data_logged2c, aes(LandsatCC_2010_Fixed , as.numeric(Species.Present))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Canopy Cover 2010") + ylab("Pr (Species Present)")
+```
+
+4. Precip as Snow: strong positive signmoidal pattern
+
+```{r}
+ggplot(huckle_data_logged2c, aes(PAS_ann, as.numeric(Species.Present))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Precip as Snow") + ylab("Pr (Species Present)")
+```
+
+5. PH: gentle negative pattern. Not strong.
+
+```{r}
+ggplot(huckle_data_logged2c, aes(PH2, as.numeric(Species.Present))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("pH") + ylab("Pr (Species Present)")
+```
+
+6. Elevation: Strong positive trend
+
+```{r}
+ggplot(huckle_data_logged2c, aes(ELEVATION, as.numeric(Species.Present))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Elevation (m)") + ylab("Pr (Species Present)")
+```
+
+7. Average winter Temp: positive trend with increasing temperature
+
+```{r}
+ggplot(huckle_data_logged2c, aes(Tave_wt , as.numeric(Species.Present))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Winter Temp") + ylab("Pr (Species Present)")
+```
+8. Occurence of natural fires
+
+```{r}
+ggplot (huckle_data_logged2c, aes (x = Fire_Occ , y = Species.Cover)) +
+  geom_boxplot () +
+  labs (x = "No Natural Fire (0), Natural Fire (1)",
+        y = "Huckleberry Cover")
+```
+9. Mechanical prep: slightly more common where mechanical prep occurred.
+
+```{r}
+ggplot (huckle_data_logged2c, aes (x = PREP_ME_ , y = Species.Cover)) +
+  geom_boxplot () +
+  labs (x = "No Mechanical TR (0), Mechanical TR (1)",
+        y = "Huckleberry Cover")
+```
+
+10. Burn prep: more likely where burn prep occurred.
+
+```{r}
+ggplot (huckle_data_logged2c, aes (x = PREP_BU_ , y = Species.Cover)) +
+  geom_boxplot () +
+  labs (x = "No Burn Prep (0), Burn Prep (1)",
+        y = "Huckleberry Cover")
+```
+11. origin Age: positive trend, but I suspect it is not linear.
+
+```{r}
+ggplot(huckle_data_logged2c, aes(origin.age , as.numeric(Species.Present))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Time Since Disturbance") + ylab("Pr (Species Present)")
+```
+#Assess BEC zones as well and if that is important to add to model
+
+```{r}
+names(huckle_data_logged2c)
+table(huckle_data_logged2c$G_BGC_ZONE)
+
+model.new.2e <- glm (Species.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PAS_ann +
+                       PH2 + ELEVATION + Tave_wt + Fire_Occ + DIST_SEASON + origin.age +
+                       PREP_ME_ + PREP_BU_ + G_BGC_ZONE,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+AIC(model.new.2e) #402.9
+#HUGE. Keep BEC Zone in for sure.
+Anova(model.new.2e, type=3)
+summary(model.new.2e)
+
+```
+
+
+
+
+############Repeat above for Fruit Presence
+We will explore the same variables as we did for plant abundance.
+
+```{r}
+variables.huck<-c("slope_30m_SRTM", "aspect_30m_SRTM", "LandsatCC_2010_Fixed",  "PAS_ann", "PH2", "ELEVATION", "Tave_wt", "TSAND", "MODIS_LC", "Fire_Occ", "PLANTED", "PREP_BU_", "PREP_ME_", "DIST_SEASON", "origin.age")
+
+
+#
+mods.me.tmp <- powerSet(variables.huck)
+#mods.me.tmp
+
+mod.to.test.all<-c(1,mods.me.tmp)
+mod.to.test.all<-mod.to.test.all[-2]
+
+#Ensure as factor
+huckle_data_logged2c_ng$Fruit.Present2<-as.factor(huckle_data_logged2c_ng$Fruit.Present)
+str(huckle_data_logged2c_ng$Fruit.Present)
+str(huckle_data_logged2c_ng$Fruit.Present2)
+
+#Subset the data once into training and validation set
+model.data2<- huckle_data_logged2c_ng %>% dplyr::select(Fruit.Present2, variables.huck)
+trainIndex_huck <- createDataPartition(model.data2$Fruit.Present2, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+dat.1 <- model.data2[ trainIndex_huck,]
+Valid.1 <- model.data2[-trainIndex_huck,]
+
+#Create function specific for fruit
+#Create model function
+big.mod2 <- function(mods.in, df.train, df.test, dep.var="Fruit.Present2") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+#Run with big.mod2
+mods.fit3 <- lapply(mod.to.test.all, big.mod2, df.train=dat.1, df.test=Valid.1)
+#mods.fit3
+
+
+#terms in each model
+x1 <- unlist(sapply(mods.fit3, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit3, '[', 3)), ncol=2, byrow=TRUE)
+#x3
+#auc from validation data
+x4 <- unlist(sapply(mods.fit3, '[', 4))
+#x4
+#combining all as df
+tab.sum.huckleberry3 <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2], auc.valid=x4)
+tab.sum.huckleberry3$delta.aic<- tab.sum.huckleberry3$aic - (min(tab.sum.huckleberry3$aic))
+tab.sum.huckleberry3 
+```
+Save as csv
+```{r}
+write.csv(tab.sum.huckleberry3, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\model.2.series.AIC.AUC_FruitPresent_Huck.csv")
+
+```
+
+These variables commonly in top models, so start here:
+slope_30m_SRTM + LandsatCC_2010_Fixed + PAS_ann + PH2 + ELEVATION + MODIS_LC
+
+Now, others included in some that are interesting to us now: 
+1. ELEVATION
+2. MODIS_LC
+3. origin.age
+4. Fire_Occ
+
+One model each deltaAIC<2 had PREP_ME_ and PREP_BU_, but not frequent like above factors; one also had aspect, but not others. One model had TSAND, one had winter Temp. One model also had PLANTED.
+
+
+```{r}
+model.fruitPA.1 <- glm (Fruit.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PAS_ann + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1, type=3)
+summary(model.fruitPA.1)
+#Less likely to have fruit where fire occurred
+# Positive corellation with origin age
+# Positive interaction with pH
+# positive interaction with precip as snow
+# negative interaction with canopy cover
+# positive interaction with slope
+AIC(model.fruitPA.1) #565.5
+
+model.fruitPA.1b <- glm (Fruit.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PAS_ann + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + G_BGC_ZONE,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1b, type=3)
+summary(model.fruitPA.1b)
+AIC(model.fruitPA.1b) #568.08-- less good with BEC added!
+
+model.fruitPA.1c <- glm (Fruit.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PAS_ann + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + PLANTED,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1c, type=3)
+summary(model.fruitPA.1c)
+AIC(model.fruitPA.1c) #567.1
+
+model.fruitPA.1c <- glm (Fruit.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PAS_ann + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + PREP_BU_,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1c, type=3)
+summary(model.fruitPA.1c)
+AIC(model.fruitPA.1c) #567.5
+
+
+model.fruitPA.1c <- glm (Fruit.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PAS_ann + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + PREP_ME_,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1c, type=3)
+summary(model.fruitPA.1c)
+AIC(model.fruitPA.1c) #567.4
+
+model.fruitPA.1c <- glm (Fruit.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PAS_ann + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + TSAND,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1c, type=3)
+summary(model.fruitPA.1c)
+AIC(model.fruitPA.1c) #567.3
+
+model.fruitPA.1c <- glm (Fruit.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PAS_ann + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + Tave_wt,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1c, type=3)
+summary(model.fruitPA.1c)
+AIC(model.fruitPA.1c) #567.5
+
+```
+Current best model:
+
+```{r}
+model.fruitPA.1 <- glm (Fruit.Present2 ~ slope_30m_SRTM + LandsatCC_2010_Fixed + PAS_ann + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ,
+               data=huckle_data_logged2c,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1, type=3)
+summary(model.fruitPA.1)
+#Less likely to have fruit where fire occurred
+# Positive corellation with origin age
+# Positive interaction with pH
+# positive interaction with precip as snow
+# negative interaction with canopy cover
+# positive interaction with slope
+AIC(model.fruitPA.1) #565.5
+```
+
+
+
+
+### To do next: Species Cover and Fruit Cover
 
 ```{r}
 Species.Height
 
 Species.Cover
-
-Fruit.Present
 
 Fruit.Cover
 
@@ -1460,6 +2032,13 @@ Fruit.Phenology
 
 ```
 
+
+ggplot (huckle_data_logged2b, aes (x = TSAND, y = Species.Cover)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "% Sand",
+        y = "Species Cover")
 
 
 ##or berry presence/absence, check which months surveys were done and assess if there is seasonality in the data that needs to be partitioned.
