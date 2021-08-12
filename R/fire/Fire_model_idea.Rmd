@@ -148,7 +148,6 @@ An element not included in any models in Canada is long distance spotting events
 
 
 ##Summary of Considerations for modelling burn probability across landscapes with steep environmental gradients: an example from the Columbia Mountains, Canada by Parisien et al. 2012.
-
 In this paper, the authors create a Burn Probability (BP) model for the area around Revelstoke BC, taking into account topography and windspeed. Many elements have been touched on previously, such as modeling separately by fule type (BEC zone) and by ignition type, with human and lightning caused fires modeled separately and incorporating road density into the bhuman-caused fire model. Some other key elements they performed that warrant consideration by us include:
    1.Fire duration - really important to know fire duration. Can create frequency distributions for duration for each BEC zone. Can also model spread based off of this. Really important for escape and spread.
    2. Topography - really important to include for fire behaviour (DEM). More important for spread than ignition IMO.
@@ -199,3 +198,27 @@ key: need daily fire weather metrics, but then can estimate potential spread day
 
 ##Parks. S.A. 2014. Mapping day-of-burning with coarse-resolution satellite fire-detection data. International Journal of Wildfire, 23: 215-223.
 MODIS data is at 1 km-square resolution, so data needs to be downscaled if want an area that is less. This paper presents a method for doing exactly this. The methods in this paper will be particularly important for future models if daily fire weather variables are available.
+
+This paper presents multiple ways (Day 2) to estimate Day of Burning (DOB) for fires of a certains size threshold. MODIS has a 1 km resolution, so some of our 1 ha fires may or may not show up here and this may limit our spread day estimates? DOB was estimated for each pixel within each fire perimeter using several interpolation techniques (Table 2), with code from Parks available with no restrictions. Three step process: (1) All MODIS fire detection data overlapping and within 1 km of final fire perimeter were selected for use in interpolation, and they removed fires <100 ha; (2) estimate DOB for each pixel within each fure perimeter using all 10 interpolation methods in Table 2; (3) reassigned all spatially contiguous interpolated DOB regions that were <=25 ha to DOB values of the nearest regions larger than 25 ha. Parks was able to make a pixel at resolution of 30 m x 30 m, so hopefully it is easy to make interpolation to 100 m x 100 m.
+
+If a fire detection was noted before 12 noon, it was assigned the day before for start date. Of the 10 methods, similar but subtley different results were created. When compared to known data, the weighted by meand and distance (WMD) did best. However, the 6 top performing methods were all similar (IDW, IDW.sq, IDW.half, WMD.sq and AD with WMD).
+
+These methods increase accuracy compared to using sigmoidal growth function as a function of fire duration and final size (which is our other option). Some limitations: ground proofing data hard to come by; smoke, canopy cover and clouds can obscure detections; individual pixels in fast moving or low intensity fires may go undetected. 
+
+The authors suggest that these methods may be inappropriate for small fires <500 ha in size. The average size for our lightning caused fires is 262 ha and for person caused fires is 26 ha... so we may encounter some problems!
+
+Looking at maps (Figure 4), we can see where fires started and ended, which can give us guidance to direction fires travelled. Could we make a raster with this information? It would be very coarse, but hopefully we could correlate it to topography?
+
+##Flannigan, M.D., Logan, K.A., Amiro, B.D., Skinner, W.R., and Stocks, B.J. 2005. Future area burned in Canada. Climate Change 71:1-16.
+Authors here investigated how weather, fire weather index and area burned relate to each other. They found that temperature and fuel moisture were the best variables to relate to historical monthly area burned with 36-64% of variance explained depending on ecozone. Their results predict significant increases in burned area by end of century by 74-118%, but they do not account for changes in vegetation, ignitions, fire season length and human activity.
+
+They highlight four factors that influence fire activity: weather/climate, fuels, ignition agents and humans. They suggest that in Canada, climate/weather is the most significant factor influencing fires. It determined fuel moisture, influences lightning ignitions and contributes to fire growth through wind action. Many factors influence in addition though, including but not limited to: extent of forest, topography, habitat fragmentation, fuel characteristics, season, latitude, fire suppression policies, fire site accessibility, etc.
+
+The data used included start date, location, cause and final size of fire. Log-transformed are burned (size) data. Use weather stations and Environment Canada to get temperature, RH, wind speed and 24-hour precipitation at noon to calculate the Fire Weather Index (FWI). They used a thin-plate cubic-spline technique (Falnnigan and Wooton 1989) between weather stations to interpolate. There was a discrepency between reported precipitation and actual measured precip, so they used a correction factor.
+
+GCMs can come as monthly anomaly data (in which if the value is 5 degrees, then you add 5 degrees to the baseline value), or you can use daily data directly. The daily approach allows daily precip to change, whereas the monthly approach constrains you to historical data, and daily precip is very important for fire behaviour. Most fire spread occurs during a few days that coincide with severe fire weather. They found that larger spatial units (ecozones) had better results than finer spatial units (ecogroups). Authors emphasize the need to include changing fuel type in future studies. They found that the length of the fire season was predicted to increase by 20% or 30 days by the end of the century. But they indicate also that they did not account for habitat fragmentation from agriculture, urban development and trasnporation corridors which should decrease the extent burned. 
+
+Authors emphasize tyhat using daily weather was more accurate than monthly climate averages.
+
+##Beverly, J.L., and McLoughlin, N. 2019. Burn probability simulation and subsequent wildland fire activity in Alberta, Canada - Implications for risk assessment and strategic planning. Forest Ecology and Management 451: 117490.
+Burn probability maps use Monte Carlo methods to create repeated simulations of fire ignition and spread across a study area landscape to identify locations that burn more frequently than others. These authors compared burn probability maps to actual burned area 5 years after creation. Depending on burn probability maps, results were variable from fires occurring where models least predicted them, to reasonable accuracy. Quantile classification was better at predicting actual burned area than Jenks natural breaks, equal interval and defined interval.

@@ -116,6 +116,7 @@ table(dat_lightning_escape_2$size_ha) #3989
 max(dat_lightning_escape_2$size_ha) 
 mean(dat_lightning_escape_2$size_ha) #262.2081 hectares for mean size
 table(dat_lightning_escape_2$fire_cs)
+hist(dat_lightning_escape_2$size_ha, n=100)
 
 dat_lightning_escape_2$escape<- 0
 dat_lightning_escape_2$escape[dat_lightning_escape_2$size_ha >= 1] <- 1
@@ -219,6 +220,9 @@ Save data on local machine.
 #Loaded in as df and not a shape file
 write.csv(dat_lightning_escape_2, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning.csv")
 
+# If need to read back in, use below code, but note that because geometry was not removed, you may need to manually shift the column headings (there is a comma in the geometry cell, causing everything to shift one after the geometry statement).
+#dat_lightning_escape_2<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning.csv")
+
 ```
 
 Repeat for person caused fires
@@ -312,6 +316,9 @@ Save data on local machine.
 
 #Loaded in as df and not a shape file
 write.csv(dat_person_escape_2, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person.csv")
+
+# If need to read back in, use below code, but note that because geometry was not removed, you may need to manually shift the column headings (there is a comma in the geometry cell, causing everything to shift one after the geometry statement).
+#dat_person_escape_2<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person.csv")
 
 ```
 
