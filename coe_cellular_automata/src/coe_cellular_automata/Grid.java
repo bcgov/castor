@@ -15,6 +15,9 @@ public class Grid {
 	public double[] beta = new double[numTimePeriods];
 	public double[] gamma = new double[numTimePeriods];
 	
+	/** 
+	* Class constructor.
+	*/
 	Grid(){
 		//Assign the cellList needed for adjacency 
 		for(int i =0; i < numCells; i++) {
@@ -22,6 +25,9 @@ public class Grid {
 		}
 	};
 	
+	/** 
+	* Sets the global penalties needed to incentivize cell level decisions
+	*/
 	public void setPenalties() {
 		Arrays.fill(lambda, 0.5);
 		Arrays.fill(alpha, 0.0);

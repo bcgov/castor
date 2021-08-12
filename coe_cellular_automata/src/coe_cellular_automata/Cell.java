@@ -17,7 +17,15 @@ public class Cell {
 	ArrayList<LinkedHashMap<String, Double>> yield_trans = new ArrayList<LinkedHashMap<String, Double>>();
 	
 	Random r = new Random();
-
+	
+	/** 
+	* Class constructor.
+	* @param landscape	A grid object containing the necessary attribution about the landscape
+	* @param id			the cells index plus 1
+	* @param age		The initial age of the cell or stand
+	* @param yld		All forest yields for a cell. An ArrayList of LinkedHashMap where the key is a set of forest attributes including volume, height and old growth.
+	* @param yld_trans 	All forest yields for a cell after harvesting. An ArrayList of LinkedHashMap where the key is a set of forest attributes including volume, height and old growth.
+	*/
 	public Cell (Grid landscape, int id, int age, ArrayList<LinkedHashMap<String, Double>> yld, ArrayList<LinkedHashMap<String, Double>> yld_trans){
 		this.id = id;
 		this.age = age;
@@ -34,6 +42,13 @@ public class Cell {
 		//Create a method to call this once for each age, yieldid, yieldid2 combinations and store as an HashMap of double[] arrays. 
 		//Then each key will consist of the age, yieldid, yieldid2. This would only be beneficial when setting up a lattice of cells. 
 		//Running the algorithm as a set of irregular shaped stands would result in a unique yieldid and yieldid2 given the aggregation to a stand/block level.
+	/** 
+	* Generates the plausible set of treatment schedules or states
+	* @param landscape	A grid object containing the necessary attribution about the landscape
+	* @param age		The initial age of the cell or stand
+	* @param yld		All forest yields for a cell. An ArrayList of LinkedHashMap where the key is a set of forest attributes including volume, height and old growth.
+	* @param yld_trans 	All forest yields for a cell after harvesting. An ArrayList of LinkedHashMap where the key is a set of forest attributes including volume, height and old growth.
+	*/
 	public void setStates(Grid landscape, int age, ArrayList<LinkedHashMap<String, Double>> yld, ArrayList<LinkedHashMap<String, Double>> yld_trans ) { // get an arrayList of double arrays that are the length of the planning horizon (ph) 
 			
 			ArrayList<Integer> ageWindow = new ArrayList<Integer>();
@@ -214,6 +229,14 @@ public class Cell {
 			}
 	}
 	
+	
+	/** 
+	* Retrieves spatially adjacent cells aka neighbors
+	* @param id 	the index of the cell whose neighbors are to be found
+	* @param cols	the number of columns in the lattice
+	* @param cells	an array of cell index values
+	* @return an ArrayList of Integers whose elements represent the cell index of adjacent cells
+	*/
 	public ArrayList<Integer> getAdjCells(int id, int cols, int[] cells ) {
 		
 	    ArrayList<Integer> cs = new ArrayList<Integer>(8);
@@ -234,6 +257,13 @@ public class Cell {
 	    return cs;
 	}
 	
+	/** 
+	* Retrieves the late-seral or old growth status of a cell for each time period
+	* @param age			the age of the cell in the initial time period
+	* @param decision 		the vector of length equal to the number of time periods whose elements are the amount of volume harvested
+	* @param ageThreshold	the threshold where a cell is considered late-seral or old growth
+	* @return a vector of ones or zeros representing if the time period is late-seral. The length equal to the number of time periods
+	*/
 	private double[] getOGStatus(int age, double[] decision, int ageThreshold) {
 		int harvYear = -1;
 		double[] ogStatus = decision.clone();

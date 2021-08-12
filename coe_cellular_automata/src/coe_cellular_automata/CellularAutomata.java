@@ -15,11 +15,23 @@ public class CellularAutomata {
 	Grid landscape = new Grid();
 	ArrayList<ArrayList<LinkedHashMap<String, Double>>> yields = new ArrayList<ArrayList<LinkedHashMap<String, Double>>>();
 	
-	
+	/** 
+	* Class constructor.
+	*/
 	public CellularAutomata() {
-
 	}
 	
+	/** 
+	* Simulates the cellular automata. This is the main algorithm for searching the decision space. 
+	* 1. global level penalties are determined which incentivize cell level decisions
+	* 2. a vector with cell indexes of randomly sampled without replacement
+	* 3. the first random cell is tested if its at maximum state which includes context independent values such as
+	* the maximum amount of volume the cell can produce of the planning horizon and context dependent values such as
+	* its contribution, as well as, the surrounding cells contribution to late seral forest targets. 
+	* 4. If already at max state then proceed to the next cell. Else update to its max state.
+	* 5. If there are no more stands to change or the number of iterations has been reached - end.
+	* 
+	*/
 	public void simulate() {
 		
 		landscape.setPenalties();//set penalty parameters - alpha, beta and gamma
@@ -62,7 +74,11 @@ public class CellularAutomata {
 		}
 	}
 	
-
+	 /**
+     * Retrieves the schedule or state with the maximum value for this cell object
+     * @param id	the index of the cell or stand
+     * @return 		an integer representing the maximum state of a cell
+     */
 	public int getMaxState(int id) {
 		double maxValue = 0.0;
 		double stateValue, isf,dsf;
@@ -82,7 +98,12 @@ public class CellularAutomata {
 		return stateMax;
 	}
 		
-
+	 /**
+     * Retrieves a factor between 0 and 1 that is equal to the proportion of stand f's neighbors 
+     * that are also late-seral in planning period t
+     * @param adjCellsList	an ArrayList of integers representing the cells index + 1
+     * @return 		a vector of length equal to the number of time periods
+     */
 	public double[] getNeighborLateSeral(ArrayList<Integer> adjCellsList) {
 		double[] lsn = new double[landscape.numTimePeriods];
 		double lsnTimePeriod = 0.0;
@@ -102,6 +123,13 @@ public class CellularAutomata {
 		return lsn;
 	}
 
+	 /**
+     * Multiplies two vectors together to return the element wise product.
+     * @param vector1	an Array of doubles with length equal to the number of time periods
+     * @param vector2	an Array of doubles with length equal to the number of time periods
+     * @return 		a vector of length equal to the number of time periods
+     * @see divideVector
+     */
 	private double[] multiplyVector (double[] vector1, double[] vector2) {
 		double[] outVector = new double[vector1.length];
 		for(int i =0; i < outVector.length; i++) {
@@ -110,6 +138,13 @@ public class CellularAutomata {
 		return outVector;
 	}
 	
+	 /**
+     * Divides a vectors by a scalar element wise.
+     * @param vector1	an Array of doubles with length equal to the number of time periods
+     * @param scalar	a scalar
+     * @return 		a vector of length equal to the number of time periods
+     * @see multiplyVector
+     */
 	private double[] divideVector (double[] vector1, double scalar) {
 		double[] outVector = new double[vector1.length];
 		for(int i =0; i < outVector.length; i++) {
@@ -118,6 +153,13 @@ public class CellularAutomata {
 		return outVector;
 	}
 	
+	 /**
+     * Subtracts two vectors so that the element wise difference is returned. The first vector is subtracted by the second
+     * @param vector1	an Array of doubles with length equal to the number of time periods
+     * @param vector2	an Array of doubles with length equal to the number of time periods
+     * @return 		a vector of length equal to the number of time periods
+     * @see sumVector
+     */
 	private double[] subtractVector (double[] vector1, double[] vector2) {
 		double[] outVector = new double[vector1.length];
 		for(int i =0; i < outVector.length; i++) {
@@ -126,6 +168,13 @@ public class CellularAutomata {
 		return outVector;
 	}
 	
+	 /**
+     * Adds two vectors so that the element wise sum is returned.
+     * @param vector1	an Array of doubles with length equal to the number of time periods
+     * @param scalar	a scalar
+     * @return 		a vector of length equal to the number of time periods
+     * @see subtractVector
+     */
 	private double[] sumVector(double[] vector1, double[] vector2) {
 		double[] outVector = new double[vector1.length];
 		for(int i =0; i < outVector.length; i++) {
@@ -134,11 +183,16 @@ public class CellularAutomata {
 		return outVector;
 	}
 	
+	 /**
+     * Instantiates java objects developed in R
+     */
 	public void setRParms() {
 		// TODO Auto-generated method stub
 	}
 	
-	
+	 /**
+     * Creates a forest data set used for testing the cellular automata
+     */
 	public void createData() {
 		
 		Random r =	new Random(15); //Random seed for making new grids
