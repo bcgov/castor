@@ -128,3 +128,5 @@ https://catalogue.data.gov.bc.ca/dataset/pest-infestation-polygons-current
 https://catalogue.data.gov.bc.ca/dataset/pest-infestation-polygons-historic
 https://catalogue.data.gov.bc.ca/dataset/vri-2020-forest-vegetation-composite-dead-layer-d-
 
+2. Fire mitigation
+Often burn probability maps are created to compare against mitigation alternatives and different climate scenarios (Beverly and McLouglin 2019). I would REALLY like to include fire mitigation into the probability for each (ignition, escape and spread) down the road and see if there is any difference. 

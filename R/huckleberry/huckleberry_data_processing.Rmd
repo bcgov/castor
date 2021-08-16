@@ -37,6 +37,9 @@ library(keyring)
 library(DBI)
 library(rgeos)
 library(car)
+library(rje)
+library(caret)
+library(pROC)
 
 source(here::here("R/functions/R_Postgres.R"))
 ```
@@ -92,7 +95,7 @@ table(cutblock_plots$PREP2_TECH)
 cutblock_plots$PREP1_TECH<-as.factor(cutblock_plots$PREP1_TECH)
 cutblock_plots$PREP2_TECH<-as.factor(cutblock_plots$PREP2_TECH)
 cutblock_plots$PREP1_2_TECH<- ifelse (is.na(cutblock_plots$PREP1_TECH), cutblock_plots$PREP2_TECH, cutblock_plots$PREP1_TECH)
-table(cutblock_plots$PREP1_2_TECH)# 516; get one additional one, but names messed up
+table(cutblock_plots$PREP1_2_TECH)# 516; get two additional one, but names messed up
 ```
 
 
@@ -401,7 +404,7 @@ ggplot (huckle_data_logged2b, aes (x = Species.Present2, y = origin.age)) +
   geom_boxplot () +
   labs (x = "No Huckleberry (0) and Huckleberry Detected (1) Stands",
         y = "Stand Age")
-#Pattern stronger for huckleberry to be detected in older stands.
+#Pattern stronger for huckleberry to be detected in older stands. May be a hump shaped distribution that is not being captured.
 
 ```
 Assess age between burned and harvested plots with and without.
@@ -1573,7 +1576,7 @@ table(huckle_data_logged2c$DIST_SEASON) # Determine if want different cutoffs fo
 ```{r}
 huckle_data_logged2c$PAS_ann<-huckle_data_logged2c$PAS_wt + huckle_data_logged2c$PAS_sm + huckle_data_logged2c$PAS_sp + huckle_data_logged2c$PAS_at
 
-variables.huck<-c("slope_30m_SRTM", "aspect_30m_SRTM", "LandsatCC_2010_Fixed",  "PAS_ann", "PH2", "ELEVATION", "Tave_wt", "TSAND", "MODIS_LC", "Fire_Occ", "PLANTED", "PREP_BU_", "PREP_ME_", "DIST_SEASON", "origin.age")
+variables.huck<-c("slope_30m_SRTM", "aspect_30m_SRTM", "LandsatCC_2010_Fixed",  "PAS_ann", "PH2", "ELEVATION", "Tave_wt", "TSAND", "MODIS_LC", "Fire_Occ", "PLANTED", "PREP_BU_", "PREP_ME_", "DIST_SEASON", "origin.age", "DN1_SILSYS_GP")
 
 huckle_data_logged2c$Fire_Occ<-as.factor(huckle_data_logged2c$Fire_Occ)
 huckle_data_logged2c$MODIS_LC<-as.factor(huckle_data_logged2c$MODIS_LC)

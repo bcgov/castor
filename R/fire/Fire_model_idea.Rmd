@@ -222,3 +222,5 @@ Authors emphasize tyhat using daily weather was more accurate than monthly clima
 
 ##Beverly, J.L., and McLoughlin, N. 2019. Burn probability simulation and subsequent wildland fire activity in Alberta, Canada - Implications for risk assessment and strategic planning. Forest Ecology and Management 451: 117490.
 Burn probability maps use Monte Carlo methods to create repeated simulations of fire ignition and spread across a study area landscape to identify locations that burn more frequently than others. These authors compared burn probability maps to actual burned area 5 years after creation. Depending on burn probability maps, results were variable from fires occurring where models least predicted them, to reasonable accuracy. Quantile classification was better at predicting actual burned area than Jenks natural breaks, equal interval and defined interval.
+
+Often burn probability maps are created to compare against mitigation alternatives and different climate scenarios. I would REALLY like to include fire mitigation into the probability for each (ignition, escape and spread) down the road and see if there is any difference. 
