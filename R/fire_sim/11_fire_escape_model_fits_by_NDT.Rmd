@@ -68,6 +68,7 @@ Now we must bring in the data that we created at the end of 09_fire_escape_data_
 #Lightning-caused fires
 Escape_data_lightning<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning.csv")
 head(Escape_data_lightning)
+table(Escape_data_lightning$bclcs_level_2)
 
 #If continuing from last file (09_fire_escape_data_prep)
 Escape_data_lightning<-dat_lightning_escape_2
@@ -299,6 +300,85 @@ p
 #Unexpectedly weak and negative relationship
 
 ```
+Also check distance to roads asthis may be related to fire-fighting capabilities and efforts.
+
+```{r}
+p <- ggplot(Escape_data_lightning, aes(roads_km, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Road Density (km/km2)") + ylab("Pr (escape)")
+p
+
+#Fairly weak relationship with a really long tail of more extreme values.
+```
+
+VRI.
+
+```{r}
+p <- ggplot(Escape_data_lightning, aes(proj_age_1, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("proj_age_1") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_lightning, aes(proj_height_1, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("proj_height_1") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_lightning, aes(live_stand_volume_125, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("live_stand_volume_125") + ylab("Pr (escape)")
+p
+
+```
+
+TOp climate variables.
+
+```{r}
+p <- ggplot(Escape_data_lightning, aes(tave09, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("tave09") + ylab("Pr (escape)")
+p #Opposite pattern as expected
+
+p <- ggplot(Escape_data_lightning, aes(ppt09, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("ppt09") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_lightning, aes(mean_tave07_tave08_tave09, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_tave07_tave08_tave09") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_lightning, aes(mean_ppt05_ppt06_ppt07, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_ppt05_ppt06_ppt07") + ylab("Pr (escape)")
+p
+```
+
 
 Repeat for person-caused fires.
 
@@ -378,6 +458,86 @@ p <- ggplot(Escape_data_person, aes(roads_km, as.numeric(escape))) +
 p #as expected, not a huge relationship on probability of escape
 ```
 
+Also check distance to roads asthis may be related to fire-fighting capabilities and efforts.
+
+```{r}
+p <- ggplot(Escape_data_person, aes(roads_km, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Road Density (km/km2)") + ylab("Pr (escape)")
+p
+
+#Very weak relationship with a really long tail of more extreme values.
+```
+
+VRI.
+
+```{r}
+p <- ggplot(Escape_data_person, aes(proj_age_1, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("proj_age_1") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_person, aes(proj_height_1, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("proj_height_1") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_person, aes(live_stand_volume_125, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("live_stand_volume_125") + ylab("Pr (escape)")
+p
+
+```
+
+Climate variables.
+
+```{r}
+p <- ggplot(Escape_data_person, aes(tave09, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("tave09") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_person, aes(ppt09, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("ppt09") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_person, aes(mean_tave08_tave09, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_tave08_tave09") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_person, aes(mean_mdc06_mdc07, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_mdc06_mdc07") + ylab("Pr (escape)")
+p
+
+```
+
 Make cos(aspect in degrees) to be the default aspect in case this did not carry over from previous code.
 
 ```{r}
@@ -396,6 +556,13 @@ Escape_data_lightning$aspect<-Escape_data_lightning$aspect_cos
 write.csv(Escape_data_lightning, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_escape_.csv")
 
 write.csv(Escape_data_person, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_escape_.csv")
+
+#Load back in as needed
+Escape_data_lightning<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_escape_.csv")
+head(Escape_data_lightning)
+
+Escape_data_person<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_escape_.csv")
+head(Escape_data_person)
 ```
 
 ## Examining correlation between stand level variables
@@ -803,27 +970,27 @@ mods.me.oth
 
 all.poss.mods.clim.vegtype<-c(1, mods.me.climate, twoway.ints)
 all.poss.mods.clim.vegtype 
-#all.poss.mods.clim.vegtype<-all.poss.mods.clim.vegtype [-2] #Use this line only if there is an odd character(0) added to list
+all.poss.mods.clim.vegtype<-all.poss.mods.clim.vegtype [-2] #Use this line only if there is an odd character(0) added to list
 all.poss.mods.clim.vegtype2<-c(1, mods.me.climate2, mods.inter2)
 all.poss.mods.clim.vegtype2
-#all.poss.mods.clim.vegtype2<-all.poss.mods.clim.vegtype2[-2]
-#all.poss.mods.clim.vegtype2<-all.poss.mods.clim.vegtype2[-9]
+all.poss.mods.clim.vegtype2<-all.poss.mods.clim.vegtype2[-2]
+all.poss.mods.clim.vegtype2<-all.poss.mods.clim.vegtype2[-9]
 all.poss.mods.clim.vegtype2b<-c(1, mods.me.climate2b, mods.inter2b)
 all.poss.mods.clim.vegtype2b
-#all.poss.mods.clim.vegtype2b<-all.poss.mods.clim.vegtype2b[-6]
-#all.poss.mods.clim.vegtype2b<-all.poss.mods.clim.vegtype2b[-2]
+all.poss.mods.clim.vegtype2b<-all.poss.mods.clim.vegtype2b[-6]
+all.poss.mods.clim.vegtype2b<-all.poss.mods.clim.vegtype2b[-2]
 
 all.poss.mods.VRI<-c(1, mods.me.oth)
 all.poss.mods.VRI
-#all.poss.mods.VRI<-all.poss.mods.VRI[-2]
+all.poss.mods.VRI<-all.poss.mods.VRI[-2]
 all.poss.mods.topo<-c(1, mods.meT, mods.interTb)
 all.poss.mods.topo
-#all.poss.mods.topo<-all.poss.mods.topo[-10]
-#all.poss.mods.topo<-all.poss.mods.topo[-2]
+all.poss.mods.topo<-all.poss.mods.topo[-10]
+all.poss.mods.topo<-all.poss.mods.topo[-2]
 all.poss.mods.topo2<-c(1, mods.meT, mods.interT)
 all.poss.mods.topo2
-#all.poss.mods.topo2<-all.poss.mods.topo2[-10]
-#all.poss.mods.topo2<-all.poss.mods.topo2[-2]
+all.poss.mods.topo2<-all.poss.mods.topo2[-10]
+all.poss.mods.topo2<-all.poss.mods.topo2[-2]
 
 ```
 
@@ -5179,7 +5346,7 @@ top_mod_table ##Determine if better way to represent categories for vegtype, and
 
 
 
-############### Part 2 of 4 Model Series: person Caused Fires, No Trees ##########
+############### Part 4 of 4 Model Series: person Caused Fires, No Trees ##########
 
 For person caused fires with no trees, the variables of interest include:
 

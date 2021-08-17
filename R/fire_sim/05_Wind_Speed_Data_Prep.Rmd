@@ -42,6 +42,8 @@ LO, longitude given between 0 and 360°.
 
 I believe that any values of -1 for EU represent missing data.
 
+#Because the wind ratsers have been created now, skip to Step 5 if you have access to the created rasters.
+
 ############# Step 1: Download files and convert to Shape files ################
 These files were downloaded as mif. files and converted to shape files using OsGeo4W. Sample code is provided below:
 

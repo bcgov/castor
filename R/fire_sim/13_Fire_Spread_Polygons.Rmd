@@ -1,0 +1,17 @@
+---
+title: "13_Fire_Spread_Polygons"
+author: "Cora Skaien"
+date: "16/08/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Overview
+In this file, we will be creating a 100 m buffer around each fire burn polygon, subtract the polygon area from the buffer, and then divide both the buffers and polygons into 1 ha sqaures (approximately). With this, we can attempt to create logistic regressions where the 1 ha squares from the buffers are 0 for spread and the 1 ha squares from the fire polygons receive a 1. I suspect climate will not be able to come out from this, resulting in fire size being important for characterizing how climate impacts fires. Here, we can assess how topography, VRI and land-use impact the probability of spread into neighbouring cells.
+
+We will first need to bring in the perimeter data. Then we will need to create the buffer. Then we can create the 1 ha squares and assign them 0/1. We will not get ClimateBC data since the difference between adjacent cells will be minimal, but we will need to get VRI data for each 1 ha datapoint, including stand volume, age and height, and land-use (bclcs_5).
+
+#Load in fire perimeter polygons
