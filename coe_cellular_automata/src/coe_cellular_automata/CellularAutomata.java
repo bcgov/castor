@@ -1,5 +1,6 @@
 package coe_cellular_automata;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Random;
@@ -7,12 +8,16 @@ import java.util.stream.DoubleStream;
 
 public class CellularAutomata {
 	ArrayList<Cell> cellList = new ArrayList<Cell>();
-	int numIter=10000;
-	double lambda = 0.5;
-	double objValue;
+	ArrayList<Cell> cellListMaximum = new ArrayList<Cell>();
+	int numIter=15000;
+	double lateSeralTarget,harvestMax,harvestMin, objValue, maxObjValue;
 	boolean finalPlan = false;
-	//Create the parameters for the GRID
-	Grid landscape = new Grid();
+	
+	Grid landscape = new Grid();//Instantiate the GRID
+	double[] planHarvestVolume = new double[landscape.numTimePeriods];
+	double[] planLateSeral = new double[landscape.numTimePeriods];
+	double[] maxPlanHarvestVolume = new double[landscape.numTimePeriods];
+	double[] maxPlanLateSeral = new double[landscape.numTimePeriods];
 	ArrayList<ArrayList<LinkedHashMap<String, Double>>> yields = new ArrayList<ArrayList<LinkedHashMap<String, Double>>>();
 	
 	/** 
@@ -24,57 +29,198 @@ public class CellularAutomata {
 	/** 
 	* Simulates the cellular automata. This is the main algorithm for searching the decision space. 
 	* 1. global level penalties are determined which incentivize cell level decisions
-	* 2. a vector with cell indexes of randomly sampled without replacement
+	* 2. create a vector of randomly sampled without replacement cell indexes 
 	* 3. the first random cell is tested if its at maximum state which includes context independent values such as
 	* the maximum amount of volume the cell can produce of the planning horizon and context dependent values such as
-	* its contribution, as well as, the surrounding cells contribution to late seral forest targets. 
+	* its contribution, as well as, the surrounding cells contribution to late-seral forest targets. 
 	* 4. If already at max state then proceed to the next cell. Else update to its max state.
 	* 5. If there are no more stands to change or the number of iterations has been reached - end.
 	* 
 	*/
 	public void simulate() {
+		int block = 0;
+		int numIterSinceFreq = 0;
+		int[] blockParams = {0, 2000, 4000,7000,10000, 1000000}; // add a large number so there's no out of bounds issues
+		int[] freqParams = {0, 300,200,100,1,1};
+		boolean timeToSetPenalties = false;
+		int [] maxStates = new int[cellList.size()];
+		landscape.setPenaltiesBlank();//set penalty parameters - alpha, beta and gamma as zero filled arrays
 		
-		landscape.setPenalties();//set penalty parameters - alpha, beta and gamma
-		for(int i=0; i < numIter; i++) { // Iteration loop		
+		for(int i=0; i < numIter; i++) { // Iteration loop
+					
+			if(i >= blockParams[block+1]) { // Go to the next block
+				block ++;
+			}
+			
+			if(block > 0 && numIterSinceFreq >= freqParams[block]) { // Calculate at the freq level
+				timeToSetPenalties = true;
+				numIterSinceFreq = 0;
+			}
+				
+			numIterSinceFreq ++;
+			
+			Arrays.fill(planHarvestVolume, 0.0); //set the harvestVolume indicator
+			Arrays.fill(planLateSeral, 0.0); //set the late-seral forest indicator
+			objValue = 0.0; //reset the object value;
+			
 			int[] rand = new Random().ints(0, cellList.size()).distinct().limit(cellList.size()).toArray();; // Randomize the stand or cell list
-			objValue =0.0; //reset the object value;
 			
 			for(int j = 0; j < rand.length; j++) { //Stand or cell list loop
 				int maxState = getMaxState(rand[j]);
 				if(cellList.get(rand[j]).state == maxState) { //When the cell is at its max state - go to the next cell
 					//System.out.println("Cell:" + cellList.get(rand[j]).id + " already at max");
-					if(j == cellList.size() -1) {
+					if(j == cellList.size()-1) {
 						finalPlan = true;
 					}
-					continue;
+					continue; // Go to the next cell -- this one is already at its max
 				}else{ // Change the state of the cell to its max state and then exit the stand or cell list loop
-					cellList.get(rand[j]).state = maxState;
-					//System.out.println("Cell:" + cellList.get(rand[j]).id + " change to " + cellList.get(rand[j]).state);
-				    break;
+					System.out.println("Cell:" + cellList.get(rand[j]).id + " change from " + cellList.get(rand[j]).state + " to " + maxState );
+					cellList.get(rand[j]).state = maxState; //transition function - set the new state to the max state
+					break;
 				}
 				
 			}
-			//Report objective function
+			
+			//Output the global indicators (aggregate all cell level values)
 			for(int c =0; c < cellList.size(); c++) {// Iterate through each of the cell and their corresponding state
-					int state = cellList.get(c).state;
-					double isf, dsf;
+				int state = cellList.get(c).state;
+				double isf, dsf;
 					
-					isf = DoubleStream.of(multiplyVector(cellList.get(c).statesPrHV.get(state), sumVector(landscape.lambda, subtractVector(landscape.alpha,landscape.beta)))).sum(); //I s(f) is the context independent component of the obj function			
-					dsf = DoubleStream.of(multiplyVector(divideVector(sumVector(cellList.get(c).statesOG.get(state), getNeighborLateSeral(cellList.get(c).adjCellsList)), landscape.numTimePeriods*2), sumVector(landscape.lambda,landscape.gamma))).sum();
+				//isf = DoubleStream.of(multiplyVector(cellList.get(c).statesPrHV.get(state), sumVector(landscape.lambda, subtractVector(landscape.alpha,landscape.beta)))).sum(); //I s(f) is the context independent component of the obj function			
+				//dsf = DoubleStream.of(multiplyVector(divideScalar(sumVector(cellList.get(c).statesOG.get(state), getNeighborLateSeral(cellList.get(c).adjCellsList)), landscape.numTimePeriods*2), sumVector(landscape.lambda,landscape.gamma))).sum();
+				isf = DoubleStream.of(multiplyVector(landscape.lambda,multiplyVector(cellList.get(c).statesPrHV.get(state), subtractVector(landscape.alpha,landscape.beta)))).sum(); //I s(f) is the context independent component of the obj function			
+				dsf = DoubleStream.of(multiplyVector(landscape.oneMinusLambda, multiplyVector(divideScalar(sumVector(cellList.get(c).statesOG.get(state), getNeighborLateSeral(cellList.get(c).adjCellsList)), landscape.numTimePeriods*2), landscape.gamma))).sum();
 					
-					objValue += isf + dsf;
+				objValue += isf + dsf; //objective value
+				
+				planHarvestVolume = sumVector(planHarvestVolume, cellList.get(c).statesHarvest.get(state)) ;//harvest volume
+				planLateSeral = sumVector(planLateSeral, cellList.get(c).statesOG.get(state));
+			}
+			System.out.println("iter:"+ i + " obj:" + objValue);
+			if(maxObjValue < objValue && i > 14000) {
+				maxObjValue = objValue;
+				maxPlanHarvestVolume = planHarvestVolume.clone();
+				maxPlanLateSeral = planLateSeral.clone();
+				
+				for(int h =0; h < cellList.size(); h++) {
+					maxStates[h] = cellList.get(h).state;
+				}
+			}
+			//Set the global-level penalties
+			if(timeToSetPenalties) {
+				double[] alpha = getAlphaPenalty(planHarvestVolume, harvestMin);
+				double[] beta = getBetaPenalty(planHarvestVolume, harvestMax);
+				double[] gamma = getGammaPenalty(planLateSeral, lateSeralTarget);
+				landscape.setPenalties(alpha, beta, gamma);
+				timeToSetPenalties = false;
 			}
 			
-			System.out.println("iter:"+ i + " obj:" + objValue);
-			
-			if(finalPlan) {
-				System.out.println("All cells at max state" + " iteration:" + i);
+			if(finalPlan || i == numIter-1) {
+				System.out.println("All cells at max state in iteration:" + i);
+				System.out.println("maxObjValue:" + maxObjValue);
+				for(int t= 0; t < planHarvestVolume.length; t++) {
+					System.out.print("HV @ " + t + ": " + planHarvestVolume[t]+", ");
+					System.out.println();
+					System.out.print("HV @ " + t + ": " + maxPlanHarvestVolume[t]+", ");
+					System.out.println();
+					System.out.print("LS @ " + t + ": " + planLateSeral[t]+", ");
+					System.out.println();
+					System.out.print("LS @ " + t + ": " + maxPlanLateSeral[t]+", ");
+					System.out.println();
+				}
+				System.out.println();
+				//print the grid at each time
+				/*for(int g= 0; g < landscape.numTimePeriods; g++) {
+				   System.out.println("Time Period:" + (g + 1));
+				   int rowCounter = 0;
+			        for (int l= 0; l < cellList.size(); l++){
+			            if (cellList.get(l).statesOG.get(cellList.get(l).state)[g] == 0.0) {
+			            	System.out.print(".");
+			            }else {
+			            	System.out.print("*");
+			            }
+			            rowCounter ++;
+			            if(rowCounter == landscape.colSizeLattice) {
+			            	 System.out.println();
+			            	 rowCounter = 0;
+			            }
+			         }
+			        
+			        System.out.println();
+			        System.out.println();
+			        System.out.println(maxObjValue);
+				}*/
 				break;
 			}
 		}
+		
+		//Report final plan indicators
 	}
 	
-	 /**
+	/**
+	* Retrieves the penalty for late-seral forest
+	* @param planLateSeral2	the plan harvest volume
+	* @param lateSeralTarget2	the minimum amount of late-seral needed
+	* @return 		an array of gamma penalties
+	*/
+	 private double[] getGammaPenalty(double[] planLateSeral2, double lateSeralTarget2) {
+			double[] gamma = new double[landscape.numTimePeriods];
+			for(int a = 0; a < planLateSeral2.length; a++ ) {
+				if(planLateSeral2[a] <= lateSeralTarget2) {
+					if(planLateSeral2[a] == 0.0) {//check divisible by zero
+						gamma[a] = lateSeralTarget2/0.00001; //use a small number in lieu of zero
+					}else {
+						gamma[a] = lateSeralTarget2/planLateSeral2[a];
+					}
+				}else {
+					gamma[a] = 0.0;
+				}
+				
+			}
+			return gamma;
+	}
+	 
+	/**
+	* Retrieves the penalty for over harvesting
+	* @param planHarvestVolume2	the plan harvest volume
+	* @param harvestMax2	the maximum harvest volume
+	* @return 		an array of beta penalties
+	*/
+	private double[] getBetaPenalty(double[] planHarvestVolume2, double harvestMax2) {
+			double[] beta = new double[landscape.numTimePeriods];
+			for(int a = 0; a < planHarvestVolume2.length; a++ ) {
+				if(planHarvestVolume2[a] >= harvestMax2) {
+					beta[a] = planHarvestVolume2[a]/harvestMax2;
+				}else {
+					beta[a] = 0.0;
+				}				
+			}
+			return beta;
+	}
+	
+	/**
+     * Retrieves the penalty for under harvesting
+     * @param planHarvestVolume2	the plan harvest volume
+     * @param harvestMin2	the minimum harvest volume
+     * @return 		an array of alpha penalties
+     */
+	private double[] getAlphaPenalty(double[] planHarvestVolume2, double harvestMin2) {
+		double[] alpha = new double[landscape.numTimePeriods];
+		for(int a = 0; a < planHarvestVolume2.length; a++ ) {
+			if(planHarvestVolume2[a] <= harvestMin2) {
+				if(planHarvestVolume2[a] == 0.0) {//check divisible by zero
+					alpha[a] = harvestMin2/0.001; //use a small number in lieu of zero
+				}else {
+					alpha[a] = harvestMin2/planHarvestVolume2[a];
+				}
+			}else {
+				alpha[a] = 0.0;
+			}			
+		}
+		return alpha;
+	}
+
+	/**
      * Retrieves the schedule or state with the maximum value for this cell object
      * @param id	the index of the cell or stand
      * @return 		an integer representing the maximum state of a cell
@@ -83,10 +229,15 @@ public class CellularAutomata {
 		double maxValue = 0.0;
 		double stateValue, isf,dsf;
 		int stateMax =0;
+		double[] lsn = new double[landscape.numTimePeriods];
+		lsn = getNeighborLateSeral(cellList.get(id).adjCellsList);
 		
 		for(int i = 0; i < cellList.get(id).statesPrHV.size(); i++) { // Iterate through each of the plausible treatment schedules also known as states
-			isf = DoubleStream.of(multiplyVector(cellList.get(id).statesPrHV.get(i), sumVector(landscape.lambda, subtractVector(landscape.alpha,landscape.beta)))).sum(); //I s(f) is the context independent component of the obj function			
-			dsf = DoubleStream.of(multiplyVector(divideVector(sumVector(cellList.get(id).statesOG.get(i), getNeighborLateSeral(cellList.get(id).adjCellsList)), landscape.numTimePeriods*2), sumVector(landscape.lambda,landscape.gamma))).sum();
+		
+			//isf = DoubleStream.of(multiplyVector(cellList.get(id).statesPrHV.get(i), sumVector(landscape.lambda, subtractVector(landscape.alpha,landscape.beta)))).sum(); //I s(f) is the context independent component of the obj function			
+			//dsf = DoubleStream.of(multiplyVector(divideScalar(sumVector(cellList.get(id).statesOG.get(i), lsn), landscape.numTimePeriods*2), sumVector(landscape.oneMinusLambda,landscape.gamma))).sum();
+			isf = DoubleStream.of(multiplyVector(landscape.lambda,multiplyVector(cellList.get(id).statesPrHV.get(i), subtractVector(landscape.alpha,landscape.beta)))).sum(); //I s(f) is the context independent component of the obj function			
+			dsf = DoubleStream.of(multiplyVector(landscape.oneMinusLambda, multiplyVector(divideScalar(sumVector(cellList.get(id).statesOG.get(i), lsn), landscape.numTimePeriods*2), landscape.gamma))).sum();
 			
 			stateValue = isf + dsf;
 			if(maxValue < stateValue) {
@@ -145,13 +296,15 @@ public class CellularAutomata {
      * @return 		a vector of length equal to the number of time periods
      * @see multiplyVector
      */
-	private double[] divideVector (double[] vector1, double scalar) {
+	private double[] divideScalar (double[] vector1, double scalar) {
 		double[] outVector = new double[vector1.length];
 		for(int i =0; i < outVector.length; i++) {
 			outVector[i] = vector1[i]/scalar;
 		}
 		return outVector;
 	}
+	
+	
 	
 	 /**
      * Subtracts two vectors so that the element wise difference is returned. The first vector is subtracted by the second
@@ -194,6 +347,10 @@ public class CellularAutomata {
      * Creates a forest data set used for testing the cellular automata
      */
 	public void createData() {
+		//harvest flow
+		lateSeralTarget = Math.round(0.2*landscape.numCells); // 15% of the landscape should be old growth
+		harvestMax = 66000.0;
+		harvestMin = 65000.0;
 		
 		Random r =	new Random(15); //Random seed for making new grids
 		//dummy yields taken from yieldid -203322
@@ -226,6 +383,8 @@ public class CellularAutomata {
 			int age = Math.round(r.nextInt(250)/10)*10;
 			this.cellList.add(new Cell(landscape, k + 1, age, yields.get(0), yields.get(1)));
 		}
+		
+		
 		System.out.println("create data done");
 	}
 

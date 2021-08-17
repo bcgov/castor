@@ -35,6 +35,7 @@ public class Cell {
 		setStates(landscape, age, yld, yld_trans);
 		this.adjCellsList = getAdjCells(id-1, landscape.colSizeLattice, landscape.cellList);
 		this.state = r.nextInt(statesHarvest.size()); //assign a random state to the initial grid
+		//this.state =0;
 	}
 	
 	
