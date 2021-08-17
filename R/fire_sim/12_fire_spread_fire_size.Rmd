@@ -1,0 +1,1543 @@
+---
+title: "Fire_Size_Model_Selection"
+author: "Cora Skaien"
+date: "16/08/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Load relevant libraries.
+
+library(sf)
+library(tidyverse)
+library(ggplot2)
+library (ggcorrplot)
+library (RPostgreSQL)
+library (rpostgis)
+library (dplyr)
+library (lme4)
+library (arm)
+library(ggpubr)
+library(mgcv)
+library(nlme)
+library(purrr)
+library(tidyr)
+library(caret)
+library(pROC)
+library(keyring)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+#Overview
+One important factor for modelling spread is the size of the fire. Here, we will assess what climatic, VRI and topographic variables are associated with increasing fire size to see if we can create a good predictive model for predicting fire size. Some considerations include: should we include ALL ignition points, or just those above our escape threshold? I will likely do both and compare quality of data, but if this is used as a continuation point from our already hierarchical dataset (from probablilty of ignition including locations with and without fires, to probability of escape including all ignition points, to probability of spread including all escaped fires only), then it might make more sense to only include those above our escape size threshold. Also consider that some fires have a size of 0 reported, so if we use all ignitions, these may need to be excluded. Also consider: should person and lightning fires be kept separate for escape and spread? Once the initial ignition has occurred, I feel that they can be grouped.
+
+Otherwise, methodology will be similar as per previous steps, except this time we will not be able to use a logistic regression given that we are predicting fire size according to the variables presented.
+
+#Continue with Data from end of Escape Models
+Escape_data_lightning, Escape_data_lightning_t, Escape_data_lightning_t
+Escape_data_person, Escape_data_person_t, Escape_data_person_t
+
+```{r}
+
+Escape_data_lightning<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_escape_.csv")
+head(Escape_data_lightning)
+
+Escape_data_person<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_escape_.csv")
+head(Escape_data_person)
+
+Escape_data_lightning_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_trees_NDT.csv")
+
+Escape_data_lightning_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_notrees_NDT.csv")
+
+Escape_data_person_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_trees_NDT.csv")
+
+Escape_data_person_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_notrees_NDT.csv")
+```
+
+Create only those fires that escaped
+```{r}
+spread_data_lightning<-subset(Escape_data_lightning, Escape_data_lightning$escape==1)
+head(spread_data_lightning)
+min(spread_data_lightning2$size_ha)
+str(spread_data_lightning)
+table(spread_data_lightning$escape) 
+table(spread_data_lightning$bclcs_level_2) 
+
+
+```
+
+
+```{r}
+spread_data_person<-subset(Escape_data_person, Escape_data_person$escape==1)
+head(spread_data_person)
+str(spread_data_person)
+table(spread_data_person$escape)
+
+
+```
+
+#Check for needed transformations on fire size
+
+```{r}
+hist(spread_data_lightning$size_ha)
+min(spread_data_lightning$size_ha)
+table(spread_data_lightning$size_ha)
+hist(log(spread_data_lightning$size_ha))
+#Neither of the above are normal distributions
+spread_data_lightning$LNsize_ha<-log(spread_data_lightning$size_ha)
+table(spread_data_lightning$LNsize_ha) #Messy but caught an error using this
+
+#One idea could be to multiply fire size by 100 and round to nearest whole number and use Poisson distribution
+spread_data_lightning$size_ha_x100<-spread_data_lightning$size_ha*100
+spread_data_lightning$size_ha_x100<-round(spread_data_lightning$size_ha_x100)
+hist(spread_data_lightning$size_ha_x100) #I still think this willnot work since there are so many small fires
+
+
+```
+
+```{r}
+table(spread_data_lightning$ntrl_ds)
+```
+
+
+##Determine best climate variable for spread
+
+Now we create variable categories for model selection on climate variables
+
+```{r}
+variables<- c("tmax05","tmax06", "tmax07", "tmax08", "tmax09", 
+              "mean_tmax05_tmax06","mean_tmax06_tmax07", "mean_tmax07_tmax08", "mean_tmax08_tmax09", 
+              "mean_tmax05_tmax06_tmax07", "mean_tmax06_tmax07_tmax08","mean_tmax07_tmax08_tmax09", 
+              "mean_tmax05_tmax06_tmax07_tmax08", "mean_tmax06_tmax07_tmax08_tmax09", "mean_tmax05_tmax06_tmax07_tmax08_tmax09",
+              
+              "tave05","tave06", "tave07", "tave08", "tave09", 
+              "mean_tave05_tave06","mean_tave06_tave07", "mean_tave07_tave08", "mean_tave08_tave09", 
+              "mean_tave05_tave06_tave07", "mean_tave06_tave07_tave08","mean_tave07_tave08_tave09", 
+              "mean_tave05_tave06_tave07_tave08", "mean_tave06_tave07_tave08_tave09", "mean_tave05_tave06_tave07_tave08_tave09",
+              
+              "ppt05","ppt06", "ppt07", "ppt08", "ppt09",
+              "mean_ppt05_ppt06", "mean_ppt06_ppt07", "mean_ppt07_ppt08", "mean_ppt08_ppt09", 
+              "mean_ppt05_ppt06_ppt07","mean_ppt06_ppt07_ppt08", "mean_ppt07_ppt08_ppt09",
+              "mean_ppt05_ppt06_ppt07_ppt08", "mean_ppt06_ppt07_ppt08_ppt09",
+              "mean_ppt05_ppt06_ppt07_ppt08_ppt09",
+              
+              "mdc_05","mdc_06", "mdc_07", "mdc_08", "mdc_09",
+              "mean_mdc05_mdc06", "mean_mdc06_mdc07", "mean_mdc07_mdc08", "mean_mdc08_mdc09", 
+              "mean_mdc05_mdc06_mdc07", "mean_mdc06_mdc07_mdc08", "mean_mdc07_mdc08_mdc09", 
+              "mean_mdc05_mdc06_mdc07_mdc08", "mean_mdc06_mdc07_mdc08_mdc09",
+              "mean_mdc05_mdc06_mdc07_mdc08_mdc09")
+
+ variables1<-c("tmax05", "tmax06", "tmax07", "tmax08", "tmax09",
+               "tave05", "tave06", "tave07", "tave08", "tave09"
+#               "tmax05","tmax06", "tmax07", "tmax08", "tmax09",
+#               "mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09"
+)
+variables2<-c("ppt05", "ppt06", "ppt07", "ppt08", "ppt09",
+              "ppt05", "ppt06", "ppt07", "ppt08", "ppt09"
+              # "mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09",
+              # "ppt05", "ppt06", "ppt07", "ppt08", "ppt09"
+) 
+#
+```
+
+
+Run the loop to determine the best climate variable for each of the five Natural Disturbance Types for lightning-caused fires.
+
+```{r}
+#################################
+#### Running simple linear model: lightning-caused fires
+#################################
+# create loop to do variable selection of climate data
+unique(spread_data_lightning$ntrl_ds)
+zones_spread<- c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5")
+
+filenames<-list()
+
+#Begin loop
+for (h in 1:length(zones_spread)) {
+  dat2<- spread_data_lightning %>% dplyr::filter(ntrl_ds ==zones_spread[h])
+  
+#Create frame of AIC table
+# summary table
+table.glm.climate.simple <- data.frame (matrix (ncol = 3, nrow = 0))
+colnames (table.glm.climate.simple) <- c ("Zone", "Variable", "AIC")
+
+model_dat<- dat2 %>% dplyr::select(LNsize_ha)
+
+model1 <- lm (LNsize_ha ~ 1 ,
+               data=model_dat)
+
+table.glm.climate.simple[1,1]<-zones_spread[h]
+table.glm.climate.simple[1,2]<-"intercept"
+table.glm.climate.simple[1,3]<-extractAIC(model1)[2]
+
+
+for (i in 1: length(variables)){
+  print(paste((variables[i]), (zones_spread[h]), sep=" "))
+  
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, variables[i])
+  
+  model1 <- lm (LNsize_ha ~ . ,
+                 data=model_dat)
+  
+  table.glm.climate.simple[i+1,1]<-zones_spread[h]
+  table.glm.climate.simple[i+1,2]<-variables[i]
+  table.glm.climate.simple[i+1,3]<-extractAIC(model1)[2]
+  
+}
+
+# This is an addition to the table above allowing combinations of temperature and precipitation
+
+for (i in 1: length(variables1)){
+  print(paste((variables1[i]), variables2[i], (zones_spread[h]), sep=" "))
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, variables1[i], variables2[i])
+  
+  model2 <- lm (LNsize_ha ~ . ,
+                 data=model_dat)
+  
+  table.glm.climate.simple[(i+length(variables))+1,1]<-zones_spread[h]
+  table.glm.climate.simple[(i+length(variables))+1,2]<-paste0(variables1[i],"+", variables2[i])
+  table.glm.climate.simple[(i+length(variables))+1,3]<-extractAIC(model2)[2]
+  
+  
+}
+
+for (i in 1: length(variables1)){
+  print(paste((variables1[i]), "x",variables2[i], (zones_spread[h]), sep=" "))
+
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, variables1[i], variables2[i])
+ 
+
+  model2 <- lm (LNsize_ha ~ (.)^2,
+                 data=model_dat)
+
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones_spread[h]
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-extractAIC(model2)[2]
+
+
+}
+table.glm.climate1<-table.glm.climate.simple %>% drop_na(AIC)
+
+
+#assign file names to the work
+nam1<-paste("AIC",zones_spread[h],"run",h,sep="_") #defining the name
+assign(nam1,table.glm.climate.simple)
+filenames<-append(filenames,nam1)
+}
+
+##
+
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(filenames)
+aic_bec_spread<-mkFrameList(n) 
+
+aic_bec_spread_summary<- aic_bec_spread %>%
+  group_by(Zone, Variable) 
+
+aic_bec_spread_summary2<- aic_bec_spread_summary %>%
+  group_by(Zone) %>%
+  mutate(deltaAIC=AIC-min(AIC))
+
+aic_bec_spread_summary2
+
+```
+Save to computer.
+```{r}
+write.csv(aic_bec_spread_summary2, file="D:\\Fire\\fire_data\\raw_data\\aic_bec_spread_climate_summary_sizeha.csv")
+```
+
+
+#Now that we know the best variables for fire size, we can update climate 1 and climate 2 for this data.
+
+```{r}
+
+## Create empty vector
+spread_data_lightning$climate1<-0
+head(spread_data_lightning)
+
+spread_data_lightning<-spread_data_lightning %>%
+    mutate(climate1 = case_when(ntrl_ds_numeric == 1 ~ mdc_08, # NDT1
+                                ntrl_ds_numeric == 2 ~ tave05, #NDT2
+                                ntrl_ds_numeric == 3 ~ mean_tave06_tave07_tave08_tave09, #NDT3
+                                ntrl_ds_numeric == 4 ~ mean_ppt05_ppt06_ppt07, # NDT4
+                                ntrl_ds_numeric == 5 ~ mean_tave05_tave06_tave07_tave08, # NDT5
+                                TRUE ~ NA_real_))
+
+#Repeat for climate 2
+spread_data_lightning$climate2<-0
+spread_data_lightning$ppt05<-as.numeric(spread_data_lightning$ppt05)
+
+#Perform mutate to get the applicable variable for each row
+spread_data_lightning<-spread_data_lightning %>%
+    mutate(climate2 = case_when(#ntrl_ds_numeric == 1 ~ ppt08, # NDT1
+                                ntrl_ds_numeric == 2 ~ ppt05, #NDT2
+                                #ntrl_ds_numeric == 3 ~ , #NDT3
+                                #ntrl_ds_numeric == 4 ~ , # NDT4
+                                #ntrl_ds_numeric == 5 ~ , # NDT5
+                                TRUE ~ NA_real_))
+
+head(spread_data_lightning)
+```
+
+
+#Investigate patterns with variables within the dataset
+
+1. VRI data
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "proj_age_1", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "Stand age")
+#Weak positive relationship
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = proj_age_1)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha)",
+        x = "Fire size (ha)",
+        y = "Projected Age")
+```
+
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "proj_height_1", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "Stand Height")
+#No relationship; potential weak positive relationship
+
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = proj_height_1)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha)",
+        x = "Fire size (ha)",
+        y = "Projected Height")
+#Very weak hump-shaped pattern
+```
+
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "live_stand_volume_125", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "Live Stand Volume")
+#No relationship
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = live_stand_volume_125)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fore size (ha)",
+        x = "Fire size (ha)",
+        y = "Live Stand Volume")
+#Slight negative trend if anything
+```
+
+#2. Topography
+
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "slope", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "Slope (degrees)")
+#Negative relationship
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = slope)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by Slope",
+        x = "Fire size (ha)",
+        y = "Slope")
+#More or less linear and negative except one outlier at end
+```
+
+Remember that aspect is now the cos(aspect) bound by -1 and 1
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "aspect", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "aspect (degrees)")
+#positive relationship
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = aspect)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by aspect",
+        x = "Fire size (ha)",
+        y = "aspect")
+#Generally a positive linear trend
+```
+
+
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "elevation", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "elevation (degrees)")
+#Little to no relationship
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = elevation)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by elevation",
+        x = "Fire size (ha)",
+        y = "elevation")
+#Smile shaped but largely only for outlier
+```
+
+#Climate
+For climatic variables, remember that "climate1" and "climate2" are different for the different NDTs, so these should be assessed separately.
+
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "climate1", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "climate1 (degrees)")
+#Negative relationship when all grouped together
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = climate1)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by climate1",
+        x = "Fire size (ha)",
+        y = "climate1")
+#Negative relationship where data is clumped, and then flat line into extreme values. But also all climate2 variables clumped, so may not be best estimate.
+```
+
+
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "climate2", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "climate2 (degrees)")
+#Negative relationship; only one NDT has a second variable here
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = climate2)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by climate2",
+        x = "Fire size (ha)",
+        y = "climate2")
+#Negative relationship where data is clumped. Outlier is misleading for tail end
+```
+
+#Wind speed
+
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "wind_atfire", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "wind_atfire (degrees)")
+#Positive relationship
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = wind_atfire)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by wind_atfire",
+        x = "Fire size (ha)",
+        y = "wind_atfire")
+#Positive relationship where most data is clumped, then mostly flat.
+```
+
+
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "roads_km", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "roads_km (degrees)")
+#Negative relationship but weak
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = roads_km)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        x = "Fire size (ha)",
+        y = "roads_km")
+#Complicated
+```
+
+From the above, I would expect that VRI variables have very little impact on spread, but that topography, climate and wind speed will all influence fire size. Will also need to assess vegetation type.
+
+
+#Separate into treed and not treed
+
+```{r}
+spread_data_lightning_t<-subset(spread_data_lightning, spread_data_lightning$bclcs_level_2=="T")
+spread_data_lightning_nt<-subset(spread_data_lightning, spread_data_lightning$bclcs_level_2=="N")
+
+spread_data_person_t<-subset(spread_data_person, spread_data_person$bclcs_level_2=="T")
+spread_data_person_nt<-subset(spread_data_person, spread_data_person$bclcs_level_2=="N")
+
+
+table(spread_data_lightning_nt$bclcs_level_2)
+```
+
+
+##Create variables for model selection
+First we will create the variable lists that contain all of our variables of interest.
+
+```{r}
+##Create variable lists to be used in the model loop.
+variables_all<-c(climate1 = "climate1", climate2 = "climate2", proj_height_1 = "proj_height_1", proj_age_1 = "proj_age_1", live_stand_volume_125 = "live_stand_volume_125", slope = "slope", aspect = "aspect", elevation ="elevation", vegtype = "vegtype", wind_atfire = "wind_atfire") 
+
+variables_all_c1<-c(climate1 = "climate1", proj_height_1 = "proj_height_1", proj_age_1 = "proj_age_1", live_stand_volume_125 = "live_stand_volume_125", slope = "slope", aspect = "aspect", elevation ="elevation", vegtype = "vegtype", wind_atfire = "wind_atfire") 
+
+
+vars.clim<-c("climate1")
+vars.clim.vegtype<-c("climate1", "vegtype")
+vars.oth<-c("proj_height_1", "proj_age_1", "live_stand_volume_125") 
+vars.topo<-c("slope", "aspect", "elevation")
+vars.heatload<-c("heatload")
+vars.wind<-c("wind_atfire")
+
+#Also for later with 2 climate variables
+vars.clim.vegtype2<-c("climate1", "climate2","vegtype")
+vars.clim.vegtype2b<-c("climate1", "climate2")
+
+##Create interaction for climate and vegtype
+inputs.me <- c(vars.clim.vegtype)
+inputs.me2 <- c(vars.clim.vegtype2)
+inputs.me2b <- c(vars.clim.vegtype2b)
+```
+
+Now, we will generate two-way interactions for each of these lists. 
+
+```{r}
+
+#####1a. For those with one climate variable
+#get the names of all possible two-way interactions for climate variable(s) and vegtype.
+twoway.ints <- NULL
+for (i in 1:(length(inputs.me)-1)) {
+  for (j in (i+1):length(inputs.me)) {
+     twoway.ints <- cbind(twoway.ints, paste(inputs.me[i], inputs.me[j], sep=":"))
+  }
+}
+twoway.ints
+length(twoway.ints)
+
+#
+#Create function to determine Powerset for any vector of variable names
+## or use rje package
+#powerSet <- function(x) {
+#   z.list <- NULL
+#   for(i in 1:length(x)) {
+#      z.list <- append(z.list, combn(x, m=i, simplify=F))
+#   }    
+#   return(z.list)
+#}
+
+
+#Get variables on own
+#complete list of models using non-climate vars
+mods.me.tmp <- powerSet(vars.clim.vegtype) 
+#add climate vars to all of the above
+mods.me.climate <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.me.climate[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.me.climate
+
+#complete list of two-way interactions
+mods.twoway <- powerSet(twoway.ints)
+length(mods.twoway) #7
+mods.twoway
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+mods.inter <- list()
+counter <- 0
+for (i in 1: length(mods.twoway)) {
+   s1 <- unique(unlist( strsplit(mods.twoway[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.me.climate)) {
+      if (all(s1 %in% mods.me.climate[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.me.climate[[j]], mods.twoway[[i]])
+        mods.inter[[counter]] <- both
+      }
+   }
+}
+
+length(mods.inter)
+mods.inter
+
+
+#####1b. For those with two climate variables
+#get the names of all possible two-way interactions for climate variable(s) and vegtype.
+twoway.ints2 <- NULL
+for (i in 1:(length(inputs.me2)-1)) {
+  for (j in (i+1):length(inputs.me2)) {
+     twoway.ints2 <- cbind(twoway.ints2, paste(inputs.me2[i], inputs.me2[j], sep=":"))
+  }
+}
+twoway.ints2
+length(twoway.ints2)
+
+#Get variables on own
+#complete list of models using non-climate vars
+mods.me.tmp <- powerSet(vars.clim.vegtype2) 
+#add climate vars to all of the above
+mods.me.climate2 <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.me.climate2[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.me.climate2
+
+#complete list of two-way interactions
+mods.twoway2 <- powerSet(twoway.ints2)
+length(mods.twoway2) #7
+mods.twoway2
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+mods.inter2 <- list()
+counter <- 0
+for (i in 1: length(mods.twoway2)) {
+   s1 <- unique(unlist( strsplit(mods.twoway2[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.me.climate2)) {
+      if (all(s1 %in% mods.me.climate2[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.me.climate2[[j]], mods.twoway2[[i]])
+        mods.inter2[[counter]] <- both
+      }
+   }
+}
+
+length(mods.inter2)
+mods.inter2
+
+####1c. Two variables, no variation in vegtype
+#get the names of all possible two-way interactions for climate variable(s) and vegtype.
+twoway.ints2b <- NULL
+for (i in 1:(length(inputs.me2b)-1)) {
+  for (j in (i+1):length(inputs.me2b)) {
+     twoway.ints2b <- cbind(twoway.ints2b, paste(inputs.me2b[i], inputs.me2b[j], sep=":"))
+  }
+}
+twoway.ints2b
+length(twoway.ints2b)
+
+#Get variables on own
+#complete list of models using non-climate vars
+mods.me.tmp <- powerSet(vars.clim.vegtype2b) 
+#add climate vars to all of the above
+mods.me.climate2b <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.me.climate2b[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.me.climate2b
+
+#complete list of two-way interactions
+mods.twoway2b <- powerSet(twoway.ints2b)
+length(mods.twoway2b) #7
+mods.twoway2b
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+mods.inter2b <- list()
+counter <- 0
+for (i in 1: length(mods.twoway2b)) {
+   s1 <- unique(unlist( strsplit(mods.twoway2b[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.me.climate2b)) {
+      if (all(s1 %in% mods.me.climate2b[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.me.climate2b[[j]], mods.twoway2b[[i]])
+        mods.inter2b[[counter]] <- both
+      }
+   }
+}
+
+length(mods.inter2b)
+mods.inter2b
+
+
+#########2. Now for topography data, get all possible two-way interactions
+
+#get the names of all possible two-way interactions
+twoway.intsT <- NULL
+for (i in 1:(length(vars.topo)-1)) {
+  for (j in (i+1):length(vars.topo)) {
+     twoway.intsT <- cbind(twoway.intsT, paste(vars.topo[i], vars.topo[j], sep=":"))
+  }
+}
+twoway.intsT
+length(twoway.intsT)
+
+#complete list of models using non-climate vars (topo)
+mods.me.tmp <- powerSet(vars.topo) 
+#add climate vars to all of the above
+mods.meT <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.meT[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.meT
+
+#complete list of two-way interactions
+mods.twowayT <- powerSet(twoway.intsT)
+length(mods.twowayT) #7
+mods.twowayT
+
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+
+mods.interT <- list()
+counter <- 0
+for (i in 1: length(mods.twowayT)) {
+   s1 <- unique(unlist( strsplit(mods.twowayT[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.meT)) {
+      if (all(s1 %in% mods.meT[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.meT[[j]], mods.twowayT[[i]])
+        mods.interT[[counter]] <- both
+      }
+   }
+}
+
+length(mods.interT)
+mods.interT
+mods.interTb<-c(mods.interT, vars.heatload)
+mods.interTb
+
+####3.For other VRI data, get without interactions
+
+#complete list of models using VRI - no interactions
+mods.me.tmp <- powerSet(vars.oth) 
+#add climate vars to all of the above
+mods.me.oth <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.me.oth[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.me.oth
+
+#the list of all possible model RHSs. 
+#all.poss.mods <- c(1, vars.clim, twoway.ints, mods.me.oth, mods.me2, mods.inter2)
+#all.poss.mods
+
+all.poss.mods.clim.vegtype<-c(1, mods.me.climate, twoway.ints)
+all.poss.mods.clim.vegtype 
+all.poss.mods.clim.vegtype<-all.poss.mods.clim.vegtype [-2] #Use this line only if there is an odd character(0) added to list
+all.poss.mods.clim.vegtype2<-c(1, mods.me.climate2, mods.inter2)
+all.poss.mods.clim.vegtype2
+all.poss.mods.clim.vegtype2<-all.poss.mods.clim.vegtype2[-2]
+all.poss.mods.clim.vegtype2<-all.poss.mods.clim.vegtype2[-9]
+all.poss.mods.clim.vegtype2b<-c(1, mods.me.climate2b, mods.inter2b)
+all.poss.mods.clim.vegtype2b
+all.poss.mods.clim.vegtype2b<-all.poss.mods.clim.vegtype2b[-6]
+all.poss.mods.clim.vegtype2b<-all.poss.mods.clim.vegtype2b[-2]
+
+all.poss.mods.VRI<-c(1, mods.me.oth)
+all.poss.mods.VRI
+all.poss.mods.VRI<-all.poss.mods.VRI[-2]
+all.poss.mods.topo<-c(1, mods.meT, mods.interTb)
+all.poss.mods.topo
+all.poss.mods.topo<-all.poss.mods.topo[-10]
+all.poss.mods.topo<-all.poss.mods.topo[-2]
+all.poss.mods.topo2<-c(1, mods.meT, mods.interT)
+all.poss.mods.topo2
+all.poss.mods.topo2<-all.poss.mods.topo2[-10]
+all.poss.mods.topo2<-all.poss.mods.topo2[-2]
+
+```
+
+#Make transformation in treed and non-treed data
+```{r}
+spread_data_lightning_t$LNsize_ha<-log(spread_data_lightning_t$size_ha)
+spread_data_lightning_nt$LNsize_ha<-log(spread_data_lightning_nt$size_ha)
+```
+
+
+
+############### Part 1 of 4 Model Series: Lightning Caused Fires, Trees ##########
+
+NDT 2 has 2 climate variables, and NDT 1, 3, 4 and 5 have one.
+
+Select first NDT: NDT1
+
+#1. Climate and Vegtype
+
+```{r}
+spread_data_lightning_t$ntrl_ds<-as.factor(spread_data_lightning_t$ntrl_ds)
+table(spread_data_lightning_t$ntrl_ds)
+```
+
+```{r}
+ntrl_ds<-c("NDT1") #Do one zone at a time
+
+for (h in 1:length(ntrl_ds)) {
+  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT1")
+
+for (i in 1: length(all.poss.mods.clim.vegtype)){
+  print(paste((all.poss.mods.clim.vegtype[i]), (ntrl_ds[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, fire_veg, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, !!variables_all)
+
+big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- lm(form, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   #mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   #roc_obj <- roc(df.test[,dep.var], mod.valid)
+   #mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.clim.vegtype, big.mod_lm, df.train=model_dat)
+
+}
+}
+```
+
+Now extract elements from the output .
+
+```{r}
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3
+
+#combining all as df
+tab.sum.climate <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2])
+tab.sum.climate$NDT<-c("NDT1")
+tab.sum.climate$delta.aic<- tab.sum.climate$aic - (min(tab.sum.climate$aic))
+tab.sum.climate 
+```
+
+#2. VRI
+
+```{r}
+ntrl_ds<-c("NDT1") #Do one zone at a time
+
+for (h in 1:length(ntrl_ds)) {
+  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT1")
+
+for (i in 1: length(all.poss.mods.VRI)){
+  print(paste((all.poss.mods.VRI[i]), (ntrl_ds[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, fire_veg, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, !!variables_all)
+
+big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- lm(form, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   #mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   #roc_obj <- roc(df.test[,dep.var], mod.valid)
+   #mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.VRI, big.mod_lm, df.train=model_dat)
+
+}
+}
+```
+
+Now extract elements from the output .
+
+```{r}
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3
+
+#combining all as df
+tab.sum.VRI <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2])
+tab.sum.VRI$NDT<-c("NDT1")
+tab.sum.VRI$delta.aic<- tab.sum.VRI$aic - (min(tab.sum.VRI$aic))
+tab.sum.VRI 
+```
+
+#3. Topography
+
+```{r}
+ntrl_ds<-c("NDT1") #Do one zone at a time
+
+for (h in 1:length(ntrl_ds)) {
+  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT1")
+
+for (i in 1: length(all.poss.mods.topo2)){
+  print(paste((all.poss.mods.topo2[i]), (ntrl_ds[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, fire_veg, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, !!variables_all)
+
+big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- lm(form, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   #mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   #roc_obj <- roc(df.test[,dep.var], mod.valid)
+   #mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.topo2, big.mod_lm, df.train=model_dat)
+
+}
+}
+```
+
+Now extract elements from the output .
+
+```{r}
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3
+
+#combining all as df
+tab.sum.topo <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2])
+tab.sum.topo$NDT<-c("NDT1")
+tab.sum.topo$delta.aic<- tab.sum.topo$aic - (min(tab.sum.topo$aic))
+tab.sum.topo 
+```
+
+#Now combine the datatables and save to computer
+
+```{r}
+NDT1_l_models_spread<-rbind(tab.sum.climate, tab.sum.VRI, tab.sum.topo)
+NDT1_l_models_spread
+
+write.csv(NDT1_l_models_spread, file="D:\\Fire\\fire_data\\raw_data\\NDT1_lightning_spread_models_firesize.csv")
+```
+
+Complete: NDT1
+Select next NDT: NDT3
+
+#1. Climate and Vegtype
+```{r}
+ntrl_ds<-c("NDT3") #Do one zone at a time
+
+for (h in 1:length(ntrl_ds)) {
+  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT3")
+
+for (i in 1: length(all.poss.mods.clim.vegtype)){
+  print(paste((all.poss.mods.clim.vegtype[i]), (ntrl_ds[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, fire_veg, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, !!variables_all)
+
+big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- lm(form, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   #mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   #roc_obj <- roc(df.test[,dep.var], mod.valid)
+   #mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.clim.vegtype, big.mod_lm, df.train=model_dat)
+
+}
+}
+```
+
+Now extract elements from the output .
+
+```{r}
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3
+
+#combining all as df
+tab.sum.climate <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2])
+tab.sum.climate$NDT<-c("NDT3")
+tab.sum.climate$delta.aic<- tab.sum.climate$aic - (min(tab.sum.climate$aic))
+tab.sum.climate 
+#just climate 1; vegtype not important in best model
+```
+
+#2. VRI
+
+```{r}
+ntrl_ds<-c("NDT3") #Do one zone at a time
+
+for (h in 1:length(ntrl_ds)) {
+  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT3")
+
+for (i in 1: length(all.poss.mods.VRI)){
+  print(paste((all.poss.mods.VRI[i]), (ntrl_ds[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, fire_veg, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, !!variables_all)
+
+big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- lm(form, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   #mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   #roc_obj <- roc(df.test[,dep.var], mod.valid)
+   #mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.VRI, big.mod_lm, df.train=model_dat)
+
+}
+}
+```
+
+Now extract elements from the output .
+
+```{r}
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3
+
+#combining all as df
+tab.sum.VRI <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2])
+tab.sum.VRI$NDT<-c("NDT3")
+tab.sum.VRI$delta.aic<- tab.sum.VRI$aic - (min(tab.sum.VRI$aic))
+tab.sum.VRI 
+
+```
+
+#3. Topography
+
+```{r}
+ntrl_ds<-c("NDT3") #Do one zone at a time
+
+for (h in 1:length(ntrl_ds)) {
+  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT3")
+
+for (i in 1: length(all.poss.mods.topo2)){
+  print(paste((all.poss.mods.topo2[i]), (ntrl_ds[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, fire_veg, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, !!variables_all)
+
+big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- lm(form, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   #mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   #roc_obj <- roc(df.test[,dep.var], mod.valid)
+   #mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.topo2, big.mod_lm, df.train=model_dat)
+
+}
+}
+```
+
+Now extract elements from the output .
+
+```{r}
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3
+
+#combining all as df
+tab.sum.topo <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2])
+tab.sum.topo$NDT<-c("NDT3")
+tab.sum.topo$delta.aic<- tab.sum.topo$aic - (min(tab.sum.topo$aic))
+tab.sum.topo 
+
+```
+
+#Now combine the datatables and save to computer
+
+```{r}
+NDT3_l_models_spread<-rbind(tab.sum.climate, tab.sum.VRI, tab.sum.topo)
+NDT3_l_models_spread
+
+write.csv(NDT3_l_models_spread, file="D:\\Fire\\fire_data\\raw_data\\NDT3_lightning_spread_models_firesize.csv")
+```
+
+
+Complete: NDT1, NDT3
+Select next NDT: NDT4
+
+#1. Climate and Vegtype
+```{r}
+ntrl_ds<-c("NDT4") #Do one zone at a time
+
+for (h in 1:length(ntrl_ds)) {
+  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT4")
+
+for (i in 1: length(all.poss.mods.clim.vegtype)){
+  print(paste((all.poss.mods.clim.vegtype[i]), (ntrl_ds[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, fire_veg, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, !!variables_all)
+
+big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- lm(form, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   #mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   #roc_obj <- roc(df.test[,dep.var], mod.valid)
+   #mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.clim.vegtype, big.mod_lm, df.train=model_dat)
+
+}
+}
+```
+
+Now extract elements from the output .
+
+```{r}
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3
+
+#combining all as df
+tab.sum.climate <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2])
+tab.sum.climate$NDT<-c("NDT4")
+tab.sum.climate$delta.aic<- tab.sum.climate$aic - (min(tab.sum.climate$aic))
+tab.sum.climate 
+
+```
+
+#2. VRI
+
+```{r}
+ntrl_ds<-c("NDT4") #Do one zone at a time
+
+for (h in 1:length(ntrl_ds)) {
+  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT4")
+
+for (i in 1: length(all.poss.mods.VRI)){
+  print(paste((all.poss.mods.VRI[i]), (ntrl_ds[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, fire_veg, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, !!variables_all)
+
+big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- lm(form, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   #mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   #roc_obj <- roc(df.test[,dep.var], mod.valid)
+   #mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.VRI, big.mod_lm, df.train=model_dat)
+
+}
+}
+```
+
+Now extract elements from the output .
+
+```{r}
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3
+
+#combining all as df
+tab.sum.VRI <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2])
+tab.sum.VRI$NDT<-c("NDT4")
+tab.sum.VRI$delta.aic<- tab.sum.VRI$aic - (min(tab.sum.VRI$aic))
+tab.sum.VRI 
+
+```
+
+#3. Topography
+
+```{r}
+ntrl_ds<-c("NDT4") #Do one zone at a time
+
+for (h in 1:length(ntrl_ds)) {
+  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT4")
+
+for (i in 1: length(all.poss.mods.topo2)){
+  print(paste((all.poss.mods.topo2[i]), (ntrl_ds[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, fire_veg, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, !!variables_all)
+
+big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- lm(form, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   #mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   #roc_obj <- roc(df.test[,dep.var], mod.valid)
+   #mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.topo2, big.mod_lm, df.train=model_dat)
+
+}
+}
+```
+
+Now extract elements from the output .
+
+```{r}
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3
+
+#combining all as df
+tab.sum.topo <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2])
+tab.sum.topo$NDT<-c("NDT4")
+tab.sum.topo$delta.aic<- tab.sum.topo$aic - (min(tab.sum.topo$aic))
+tab.sum.topo 
+
+```
+
+#Now combine the datatables and save to computer
+
+```{r}
+NDT4_l_models_spread<-rbind(tab.sum.climate, tab.sum.VRI, tab.sum.topo)
+NDT4_l_models_spread
+
+write.csv(NDT4_l_models_spread, file="D:\\Fire\\fire_data\\raw_data\\NDT4_lightning_spread_models_firesize.csv")
+```
+
+Complete: NDT1, NDT3, NDT4
+Select next NDT: NDT2
+
+#1. Climate and Vegtype
+```{r}
+ntrl_ds<-c("NDT2") #Do one zone at a time
+
+for (h in 1:length(ntrl_ds)) {
+  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT2")
+
+for (i in 1: length(all.poss.mods.clim.vegtype2)){
+  print(paste((all.poss.mods.clim.vegtype2[i]), (ntrl_ds[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, fire_veg, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, !!variables_all)
+
+big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- lm(form, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   #mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   #roc_obj <- roc(df.test[,dep.var], mod.valid)
+   #mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.clim.vegtype2, big.mod_lm, df.train=model_dat)
+
+}
+}
+```
+
+Now extract elements from the output .
+
+```{r}
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3
+
+#combining all as df
+tab.sum.climate <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2])
+tab.sum.climate$NDT<-c("NDT2")
+tab.sum.climate$delta.aic<- tab.sum.climate$aic - (min(tab.sum.climate$aic))
+tab.sum.climate 
+#just climate 1; vegtype not important in best model
+```
+
+#2. VRI
+
+```{r}
+ntrl_ds<-c("NDT2") #Do one zone at a time
+
+for (h in 1:length(ntrl_ds)) {
+  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT2")
+
+for (i in 1: length(all.poss.mods.VRI)){
+  print(paste((all.poss.mods.VRI[i]), (ntrl_ds[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, fire_veg, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, !!variables_all)
+
+big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- lm(form, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   #mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   #roc_obj <- roc(df.test[,dep.var], mod.valid)
+   #mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.VRI, big.mod_lm, df.train=model_dat)
+
+}
+}
+```
+
+Now extract elements from the output .
+
+```{r}
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3
+
+#combining all as df
+tab.sum.VRI <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2])
+tab.sum.VRI$NDT<-c("NDT2")
+tab.sum.VRI$delta.aic<- tab.sum.VRI$aic - (min(tab.sum.VRI$aic))
+tab.sum.VRI 
+
+```
+
+#3. Topography
+
+```{r}
+ntrl_ds<-c("NDT2") #Do one zone at a time
+
+for (h in 1:length(ntrl_ds)) {
+  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT2")
+
+for (i in 1: length(all.poss.mods.topo2)){
+  print(paste((all.poss.mods.topo2[i]), (ntrl_ds[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, fire_veg, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, !!variables_all)
+
+big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- lm(form, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   #mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   #roc_obj <- roc(df.test[,dep.var], mod.valid)
+   #mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.topo2, big.mod_lm, df.train=model_dat)
+
+}
+}
+```
+
+Now extract elements from the output .
+
+```{r}
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3
+
+#combining all as df
+tab.sum.topo <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2])
+tab.sum.topo$NDT<-c("NDT2")
+tab.sum.topo$delta.aic<- tab.sum.topo$aic - (min(tab.sum.topo$aic))
+tab.sum.topo 
+
+```
+
+#Now combine the datatables and save to computer
+
+```{r}
+NDT2_l_models_spread<-rbind(tab.sum.climate, tab.sum.VRI, tab.sum.topo)
+NDT2_l_models_spread
+
+write.csv(NDT2_l_models_spread, file="D:\\Fire\\fire_data\\raw_data\\NDT2_lightning_spread_models_firesize.csv")
+```
+
+
+Complete: NDT1, NDT3, NDT4, NDT2
+Select next NDT: NDT5
+
+#1. Climate and Vegtype
+
+```{r}
+dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT5")
+table(dat2$vegtype) #Only one vegtype and only one climate variable, so do not need to do selection.
+
+```
+
+#2. VRI
+
+```{r}
+ntrl_ds<-c("NDT5") #Do one zone at a time
+
+for (h in 1:length(ntrl_ds)) {
+  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT5")
+
+for (i in 1: length(all.poss.mods.VRI)){
+  print(paste((all.poss.mods.VRI[i]), (ntrl_ds[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, fire_veg, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, !!variables_all)
+
+big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- lm(form, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   #mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   #roc_obj <- roc(df.test[,dep.var], mod.valid)
+   #mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.VRI, big.mod_lm, df.train=model_dat)
+
+}
+}
+```
+
+Now extract elements from the output .
+
+```{r}
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3
+
+#combining all as df
+tab.sum.VRI <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2])
+tab.sum.VRI$NDT<-c("NDT5")
+tab.sum.VRI$delta.aic<- tab.sum.VRI$aic - (min(tab.sum.VRI$aic))
+tab.sum.VRI 
+
+```
+
+#3. Topography
+
+```{r}
+ntrl_ds<-c("NDT5") #Do one zone at a time
+
+for (h in 1:length(ntrl_ds)) {
+  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT5")
+
+for (i in 1: length(all.poss.mods.topo2)){
+  print(paste((all.poss.mods.topo2[i]), (ntrl_ds[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, fire_veg, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, !!variables_all)
+
+big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- lm(form, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   #mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   #roc_obj <- roc(df.test[,dep.var], mod.valid)
+   #mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.topo2, big.mod_lm, df.train=model_dat)
+
+}
+}
+```
+
+Now extract elements from the output .
+
+```{r}
+#terms in each model
+x1 <- unlist(sapply(mods.fit, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3
+
+#combining all as df
+tab.sum.topo <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2])
+tab.sum.topo$NDT<-c("NDT5")
+tab.sum.topo$delta.aic<- tab.sum.topo$aic - (min(tab.sum.topo$aic))
+tab.sum.topo 
+
+```
+
+#Now combine the datatables and save to computer
+
+```{r}
+NDT5_l_models_spread<-rbind(tab.sum.VRI, tab.sum.topo)
+NDT5_l_models_spread
+
+write.csv(NDT5_l_models_spread, file="D:\\Fire\\fire_data\\raw_data\\NDT5_lightning_spread_models_firesize.csv")
+```
