@@ -673,9 +673,40 @@ Interactions of interest: two-way interactions between climate (1) and vegtype (
 
 This will be done separately for trees and non-treed areas. 
 
+Consider modelling by landuse type spread_data_lightning$bclcs_level_5.
+
 First, let's do this for treed areas (with the lightning-caused fires dataset).
 
 ##We will do each loop separately for each NDT zone given the large number of possible models for each zone.
+
+
+Assess landuse type distribution
+```{r}
+table(dat_lightning$bclcs_level_5)
+table(dat_lightning$bclcs_level_5, dat_lightning$fire)
+
+```
+BP: unspecified -> seems to be old code for urban. Combine with urban.
+BR: bedrock
+BU: Burned Area
+CL: closed (Cover of bryoids is greater than 50% of the polygon)
+DE: dense (Tree, shrub, or herb cover is between 61% and 100% for the polygon)
+ES: Exposed Soil (Any exposed soil not covered by the other categories, such as areas of recent disturbance that include mud slides, debris torrents, avalanches, or disturbances such as pipeline rights-of-way or cultivated fields where vegetation cover is less than 5%)
+GL: glacier
+LS: Pond or lake sediments (Exposed sediments related to dried lakes or ponds)
+MI: Open Pit Mine
+MN: Moraine (debris)
+MU: Mudflat (fine-textured sediments)
+MZ: Rubbly Mine Spoils (Discarded overburden or waste rock, moved to extract ore during mining.)
+OP: Open (Cover of bryoids is less than or equal to 50% of the polygon)
+OT: Other (A Non-Vegetated polygon where none of the above categories can be reliably chosen)
+PN: Snow Cover (Snow or ice that is not part of a glacier but is found during summer months on the landscape)
+RS: River Sediments
+RZ:  Road Surface
+SP: sparse (Cover is between 10% and 25% for treed polygons, or cover is between 20% and 25% for shrub or herb polygons)
+TA: Talus (Rock fragments of any size accumulated on or at the foot of slopes as a result of successive rock falls. This is a type of colluvium)
+TS: unspecified. Seems to be old code for TZ. Tailings. An area containing the solid waste material produced in the mining and milling of ore
+UR: Urban
 
 First we will create the variable lists that contain all of our variables of interest.
 
