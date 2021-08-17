@@ -126,7 +126,7 @@ predictSurvival <- function (sim) { # this function calculates survival rate at 
   
   
   sim$tableGrizzSurvivalReport <- rbindlist (list(sim$tableGrizzSurvivalReport, new_tableGrizzSurvivalReport)) # bind the new survival rate table to the existing table
-  rm (new_tableSurvivalReport) # is this necessary? -- frees up memory
+  #rm (new_tableSurvivalReport) # is this necessary? -- frees up memory
   return (invisible(sim))
 }
 
