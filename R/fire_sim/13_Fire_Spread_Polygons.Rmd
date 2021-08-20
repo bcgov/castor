@@ -185,6 +185,9 @@ st_write(fire_boundaries_2007_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_dat
 
 st_write(fire_boundaries_2008_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2008.shp", delete_dsn = TRUE)
 
+
+st_write(fire_boundaries_2009_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2009.shp", delete_dsn = TRUE)
+
 st_write(fire_boundaries_2010_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2010.shp", delete_dsn = TRUE)
 
 st_write(fire_boundaries_2011_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2011.shp", delete_dsn = TRUE)
@@ -210,7 +213,7 @@ st_write(fire_boundaries_2020_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_dat
 
 ```
 
-Now that we have each year's polygons and buffers, we can go to QGIS and load each polygon-buffer set in QGIS and get the difference so that the buffer is separate from the polygon. In QGIS, we will also load in the BC Boundary layer and then use the "Create Grid" function to create points that are separated by 100 m vertically and horizontally to represent 1 ha portions of the province. We will then intersect these points with the buffers and fire polygons for each year and designate the 0 and 1 values for whether fire spread into that cell or not. We can then combine all of the point data into one shape file, bring back into R, and append the topography and wind speed data. We will then attach VRI data the same way we did for ignition data prep, using the command line. Once we have all of that data appended, we can assess how spread 0/1 is impacted by slope, elevation, aspect, wind speed, landuse type (bclcs_5). We will need to combine some of the bclcs_5 land types together (e.g., rock and bare ground types) since data is low and it eats up degrees of freedom.
+Now that we have each year's polygons and buffers, we can go to QGIS and load each polygon-buffer set in QGIS and get the difference so that the buffer is separate from the polygon. In QGIS, we will also load in the BC Boundary layer and then use the "Create Grid" function to create points that are separated by 100 m vertically and horizontally to represent 1 ha portions of the province. We will then clip and intersect these points with the buffers and fire polygons for each year and designate the 0 and 1 values for whether fire spread into that cell or not. We can then combine all of the point data into one shape file, bring back into R, and append the topography and wind speed data. We will then attach VRI data the same way we did for ignition data prep, using the command line. Once we have all of that data appended, we can assess how spread 0/1 is impacted by slope, elevation, aspect, wind speed, landuse type (bclcs_5). We will need to combine some of the bclcs_5 land types together (e.g., rock and bare ground types) since data is low and it eats up degrees of freedom. May also want to consider subsetting for only >1ha, so if do, we will need to ensure that each buffer is associated with the appropriate fire ID and fire size.
 
 
 

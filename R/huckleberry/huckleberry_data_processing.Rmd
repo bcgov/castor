@@ -44,7 +44,7 @@ library(pROC)
 source(here::here("R/functions/R_Postgres.R"))
 ```
 
-Bring in the shape file with the coordinates within cutblocks. This data was processed in QGIS, using the consolidated cutblock layer. This data also has the Relevant Openings data appended to it. Inspect data.
+Bring in the shape file with the coordinates within cutblocks. This data was processed in QGIS, using the consolidated cutblock layer. This data also has the Relevant "Openings data" and "Activity Treatment" appended to it. Inspect data.
 
 This link will be very useful for determing what the codes mean:
 https://www.for.gov.bc.ca/hfp/publications/00026/fs708-14-appendix_d.htm#ad_16

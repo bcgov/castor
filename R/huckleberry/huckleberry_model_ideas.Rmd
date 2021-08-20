@@ -276,3 +276,5 @@ Kilocalorie estimates: created rasters by food group. Determined fruit and ant b
 Herbs and fruit accounted fir the majority of digestable kilocalories.
 
 Here, they were able to estimate carrying capacity for bears using just fruit and meat layers, which would be cool to do if we have for sufficient berry producing species and meat species (e.g., moose, caribou, deer). We could then predict carrying capacity across a changing landscape. Roads, however, keep populations below carrying capacity - so distance to roads also need to be incorporated.
+
+##Souliere, C.M., Coogan, S.C.P., Stenhouse, G.B., and Nielsen, S.E. 2020. Harvested forests as a surrogate to wildfires in relation to grizzly bear food-supply in west-central Alberta. Forest Ecology and Management, 456: 117685.
