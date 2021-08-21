@@ -6,7 +6,7 @@ public class Grid {
 	int ageThreshold=140, ph=200, pl=10;
 	double  minHarvVol = 120.0;
 	int colSizeLattice = 50; //Size of the grid used for dummy examples
-	double lambdaProp = 0.01;
+	double lambdaProp = 0.05;
 	
 	int numCells = colSizeLattice*colSizeLattice;
 	int numTimePeriods = ph/pl;
@@ -18,6 +18,8 @@ public class Grid {
 	public double[] beta = new double[numTimePeriods];
 	public double[] gamma = new double[numTimePeriods];
 	
+	
+	double weight = (double) 1/numCells;
 	/** 
 	* Class constructor.
 	*/

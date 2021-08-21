@@ -8,7 +8,7 @@ public class Main {
 	            System.out.println("Creating a test run...");
 	            CellularAutomata ca = new CellularAutomata();
 	            ca.createData();
-	            ca.simulate();
+	            ca.simulate2();
 		 }else {
 			 CellularAutomata ca = new CellularAutomata();
 			 ca.setRParms();

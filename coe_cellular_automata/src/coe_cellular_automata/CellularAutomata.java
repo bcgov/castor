@@ -9,9 +9,11 @@ import java.util.stream.DoubleStream;
 public class CellularAutomata {
 	ArrayList<Cell> cellList = new ArrayList<Cell>();
 	ArrayList<Cell> cellListMaximum = new ArrayList<Cell>();
-	int numIter=15000;
+	int numIter=50;
 	double lateSeralTarget,harvestMax,harvestMin, objValue, maxObjValue;
+	double globalWeight =0.0;
 	boolean finalPlan = false;
+	boolean globalConstraintsAchieved = false;
 	
 	Grid landscape = new Grid();//Instantiate the GRID
 	double[] planHarvestVolume = new double[landscape.numTimePeriods];
@@ -20,6 +22,12 @@ public class CellularAutomata {
 	double[] maxPlanLateSeral = new double[landscape.numTimePeriods];
 	ArrayList<ArrayList<LinkedHashMap<String, Double>>> yields = new ArrayList<ArrayList<LinkedHashMap<String, Double>>>();
 	
+	
+	//Variables for simulate2
+	double maxCutLocal = 0.0;
+	double[] maxCutGlobal = new double[landscape.numTimePeriods];
+	
+	
 	/** 
 	* Class constructor.
 	*/
@@ -27,7 +35,234 @@ public class CellularAutomata {
 	}
 	
 	/** 
-	* Simulates the cellular automata. This is the main algorithm for searching the decision space. 
+	* Simulates the cellular automata. This is the main algorithm for searching the decision space following Heinonen and Pukkala 
+	* 1. Local level decisions are optimized by
+	* 	a. create a vector of randomly sampled without replacement cell indexes 
+	* 	b. pull a random variable and determine if the cell is to be mutated. If mutated pick random state
+	* 	c. pull a random variable and determine if the cell is to be innovated. If innovated pick best state
+	* 	e. go to next cell
+	* 	f. stop when number of iterations reached.
+	* 2. Global level decisions are optimized
+	* 	a. using the local level as the starting point. Global weight (b) =0;
+	* 	b. estimate local + global objective function
+	* 	c. for each cell evaluate the best state
+	* 	d. increment the global weight b ++ 0.1 and go to the next iteration
+	* 	e. stop when global penalties are met
+	*/
+	public void simulate2() {
+		boolean mutate = false;
+		boolean innovate = true;
+		int counterLocalMaxState = 0;
+		
+		int[] rand = new Random().ints(0, cellList.size()).distinct().limit(cellList.size()).toArray();; // Randomize the stand or cell list
+		Random r = new Random(15); // needed for mutation or innovation probabilities? 
+		Arrays.fill(planHarvestVolume, 0.0); //set the harvestVolume indicator
+		Arrays.fill(planLateSeral, 0.0); //set the late-seral forest indicator
+		
+		setCutPriorities();//scope all of the cells to parameterize priority functions
+		
+		System.out.println("Starting local optimization..");
+		//local optimization
+		for(int i = 0; i < numIter; i ++) {
+			//Local level optimization
+			System.out.println("Local optimization iter:" + i);
+			
+			for(int j = 0; j < rand.length; j++) {
+				if(mutate) {
+					cellList.get(rand[j]).state = r.nextInt(cellList.get(rand[j]).statesHarvest.size()); //get a random state
+				}
+				if(innovate) {
+					if(cellList.get(rand[j]).state == getMaxStateLocal(rand[j])) {
+						counterLocalMaxState ++;
+						continue;
+					}else {
+						cellList.get(rand[j]).state = getMaxStateLocal(rand[j]); //set the maximum state with no global constraints
+					}
+				}
+			}
+			
+			if(counterLocalMaxState == rand.length) {
+				break;
+			}else {
+				counterLocalMaxState = 0;
+			}
+			
+		}
+		
+		//Set the global level objectives
+		for(int c =0; c < cellList.size(); c++) {// Iterate through each of the cell and their corresponding state
+			int state = cellList.get(c).state;
+			planHarvestVolume = sumVector(planHarvestVolume, cellList.get(c).statesHarvest.get(state)) ;//harvest volume
+			planLateSeral = sumVector(planLateSeral, cellList.get(c).statesOG.get(state));
+		}
+		
+		System.out.println("Starting global optimization..");
+		//global optimization
+		for(int g =0; g < 10000; g++) {
+			
+			if(globalConstraintsAchieved) {
+				break;
+			}
+			
+			for(int j = 0; j < rand.length; j++) {				
+				cellList.get(rand[j]).state = getMaxStateGlobal(rand[j]); //set the maximum state with global constraints	
+				
+				//Add local contribution to global.
+				planHarvestVolume = sumVector(planHarvestVolume, cellList.get(rand[j]).statesHarvest.get(cellList.get(rand[j]).state));
+				planLateSeral = sumVector(planLateSeral, cellList.get(rand[j]).statesOG.get(cellList.get(rand[j]).state));
+			
+			}
+			
+			System.out.print("iter:" + g + " global weight:" + globalWeight );
+			for(int p =0; p< planHarvestVolume.length; p++) {
+				System.out.print(" vol @ " + p + "= " + planHarvestVolume[p]);
+				System.out.print(" LS @ " + p + "= " + planLateSeral[p]);
+			}
+			System.out.println();
+			
+			globalWeight = globalWeight + 0.01; //increment the global weight	
+		}
+		
+		//Final plan
+		System.out.println();
+		System.out.println("Preserved" );
+		int rowCounter = 0;
+		for (int l= 0; l < cellList.size(); l++){
+			if (cellList.get(l).state == 0) {
+				System.out.print(".");
+	        }else {
+	        	System.out.print("*");
+	        }
+	        rowCounter ++;
+	        if(rowCounter == landscape.colSizeLattice) {
+	        	System.out.println();
+	            rowCounter = 0;
+	        }
+	     }       		
+	}
+	
+	/**
+	* Finds the quantity across all cells and schedules of the maximum amount of volume harvested 
+	* across all planning horizons (maxCutLocal).
+	*/
+	private void setCutPriorities() {
+		double tempCut = 0.0;	
+		for(int c =0; c < cellList.size(); c++) {
+			for(int s= 0; s < cellList.get(c).statesHarvest.size(); s++ ) {				
+				tempCut = tempCut + DoubleStream.of(cellList.get(c).statesHarvest.get(s)).sum();	
+				if(maxCutLocal < tempCut) {
+					maxCutLocal = tempCut;
+				}		
+				tempCut = 0.0;
+			}		
+		}
+		//Note that the max og local is 1 for all periods. 
+	}
+	
+	/**
+	* Retrieves the max state at the local scale. The rank of alternative schedules is based on Heinonen and Pukkala:
+	* Ujk = SUM(wi*ui(qi)) where wi is the weight for objective i, 
+	* ui is the priority function for objective i and qi is the quantity of the objective i 
+	* 
+	* @param i the cell index
+	* @return the index of the cell state which maximizes the objectives
+	*/
+	private int getMaxStateLocal(int i) {
+		double maxValue = 0.0, stateValue = 0.0;
+		double isf =0.0, dsf = 0.0;
+		int stateMax = 0;
+
+		for(int s = 0; s < cellList.get(i).statesHarvest.size(); s++) {
+			
+			isf = DoubleStream.of(cellList.get(i).statesHarvest.get(s)).sum()/maxCutLocal;		
+			dsf = DoubleStream.of(sumVector(cellList.get(i).statesOG.get(s), getNeighborLateSeral(cellList.get(i).adjCellsList))).sum()/(landscape.numTimePeriods*2);
+			
+			stateValue = 0.3*isf + 0.7*dsf;
+			
+			if(maxValue < stateValue) {
+				maxValue = stateValue;
+				stateMax = s;
+			}
+		}
+		
+		return stateMax;
+	}
+
+	/**
+	* Retrieves the max state when linking the local and global objectives. 
+	* The rank of alternative schedules is based on Heinonen and Pukkala:
+	*
+	* Local level rank of alternative states
+	* Ujk = SUM(wi*ui(qi)) where wi is the weight for objective i, 
+	* ui is the priority function for objective i and qi is the quantity of the objective i 
+	*
+	* Global level rank of alternative states
+	* P =SUM(vl*pl(gl)) where vl is the weight for global objective l, 
+	* pl is the priority function for objective l and gl is the quantity of the objective l 
+	* 
+	* Combination rank or linkage between the two scales
+	* Rjk = a/A*Ujk + b*P where Rjk is the rank of alternative states, a is the
+	* area of the cell, A is the total area of all cells, b is the globalWeight to be incremented.
+	* 
+	* @param id the cell index
+	* @return the index of the cell state which maximizes the objectives
+	*/
+	private int getMaxStateGlobal(int id) {
+		double maxValue = 0.0, P = 0.0, U =0.0;
+		double isf =0.0, dsf = 0.0;
+		double stateValue;
+		int stateMax = 0;
+		
+		//remove the contribution of this cell to the global objective
+		planHarvestVolume = subtractVector(planHarvestVolume, cellList.get(id).statesHarvest.get(cellList.get(id).state));
+		planLateSeral = subtractVector(planLateSeral, cellList.get(id).statesOG.get(cellList.get(id).state));
+
+		
+		for(int s = 0; s < cellList.get(id).statesPrHV.size(); s++) { // Iterate through each of the plausible treatment schedules also known as states
+		
+			isf = DoubleStream.of(cellList.get(id).statesHarvest.get(s)).sum()/maxCutLocal; 
+			dsf = DoubleStream.of(sumVector(cellList.get(id).statesOG.get(s), getNeighborLateSeral(cellList.get(id).adjCellsList))).sum()/(landscape.numTimePeriods*2);
+			
+			U = 0.3*isf + 0.7*dsf;
+			
+			P =  0.3*DoubleStream.of(multiplyScalar(checkMaxContribution(divideScalar(sumVector(planHarvestVolume, cellList.get(id).statesHarvest.get(s)), harvestMin)), 1.0/landscape.numTimePeriods)).sum() +
+					0.7*DoubleStream.of(multiplyScalar(checkMaxContribution(divideScalar(sumVector(planLateSeral, cellList.get(id).statesOG.get(s)), lateSeralTarget)),  1.0/landscape.numTimePeriods)).sum();
+
+			stateValue = landscape.weight*U + globalWeight*P;
+			
+			if(maxValue < stateValue) {
+				maxValue = stateValue;
+				stateMax = s;
+				if(P > 0.999) { //this is the threshold for stopping the simulation
+					globalConstraintsAchieved = true;
+				}
+			}
+			
+		};
+		
+		
+		return stateMax;
+	}
+
+	/**
+	 * Resets any objectives whose value is greater than one to a max of one
+	 * @param objective an array of objective values
+	 * @return an array whose elements have a max value of 1.0
+	 */
+	private double[] checkMaxContribution(double[] objective) {
+		double out[] = new double[landscape.numTimePeriods];
+		out = objective.clone();
+		
+		for(int t = 0; t < objective.length; t++) {
+			if(objective[t] > 1.0) {
+				out[t] = 1.0;
+			}
+		}
+		return out;
+	}
+
+	/** 
+	* Simulates the cellular automata follow Mathey et al. This is the main algorithm for searching the decision space. 
 	* 1. global level penalties are determined which incentivize cell level decisions
 	* 2. create a vector of randomly sampled without replacement cell indexes 
 	* 3. the first random cell is tested if its at maximum state which includes context independent values such as
@@ -35,7 +270,6 @@ public class CellularAutomata {
 	* its contribution, as well as, the surrounding cells contribution to late-seral forest targets. 
 	* 4. If already at max state then proceed to the next cell. Else update to its max state.
 	* 5. If there are no more stands to change or the number of iterations has been reached - end.
-	* 
 	*/
 	public void simulate() {
 		int block = 0;
@@ -231,6 +465,7 @@ public class CellularAutomata {
 		int stateMax =0;
 		double[] lsn = new double[landscape.numTimePeriods];
 		lsn = getNeighborLateSeral(cellList.get(id).adjCellsList);
+		//TODO: check the lsn that the /landscape*2 is working...
 		
 		for(int i = 0; i < cellList.get(id).statesPrHV.size(); i++) { // Iterate through each of the plausible treatment schedules also known as states
 		
@@ -294,7 +529,7 @@ public class CellularAutomata {
      * @param vector1	an Array of doubles with length equal to the number of time periods
      * @param scalar	a scalar
      * @return 		a vector of length equal to the number of time periods
-     * @see multiplyVector
+     * @see multiplyScalar
      */
 	private double[] divideScalar (double[] vector1, double scalar) {
 		double[] outVector = new double[vector1.length];
@@ -304,7 +539,20 @@ public class CellularAutomata {
 		return outVector;
 	}
 	
-	
+	 /**
+     * Multiplies a vectors by a scalar element wise.
+     * @param vector1	an Array of doubles with length equal to the number of time periods
+     * @param scalar	a scalar
+     * @return 		a vector of length equal to the number of time periods
+     * @see divideScalar
+     */
+	private double[] multiplyScalar (double[] vector1, double scalar) {
+		double[] outVector = new double[vector1.length];
+		for(int i =0; i < outVector.length; i++) {
+			outVector[i] = vector1[i]*scalar;
+		}
+		return outVector;
+	}
 	
 	 /**
      * Subtracts two vectors so that the element wise difference is returned. The first vector is subtracted by the second
@@ -349,8 +597,8 @@ public class CellularAutomata {
 	public void createData() {
 		//harvest flow
 		lateSeralTarget = Math.round(0.2*landscape.numCells); // 15% of the landscape should be old growth
-		harvestMax = 66000.0;
-		harvestMin = 65000.0;
+		harvestMax = 68000.0;
+		harvestMin = 67000.0;
 		
 		Random r =	new Random(15); //Random seed for making new grids
 		//dummy yields taken from yieldid -203322
@@ -377,14 +625,23 @@ public class CellularAutomata {
 			yields.get(1).get(y).put("ht", hts2[y]);
 			yields.get(1).get(y).put("og", ogs2[y]);
 		}
-
+		//Create a landcover constraint
+		LandCoverConstraint beo = new LandCoverConstraint();
+		beo.landCoverConstraintList.add(0, new LinkedHashMap<String, Double >());
+		beo.landCoverConstraintList.get(0).put("Limit", 500.0);
+		
+		beo.landCoverConstraintList.add(1, new LinkedHashMap<String, Double >());		
+		beo.landCoverConstraintList.get(1).put("Limit", 300.0);
+		
 		for(int k= 0; k < landscape.numCells; k++) {
 			//Attribution of the stand or cell
-			int age = Math.round(r.nextInt(250)/10)*10;
-			this.cellList.add(new Cell(landscape, k + 1, age, yields.get(0), yields.get(1)));
-		}
-		
-		
+			int age = Math.round(r.nextInt(250)/10)*10; //random age in 10 year classes
+			if(k < 2500) {
+				this.cellList.add(new Cell(landscape, k + 1, age, yields.get(0), yields.get(1), 0));
+			}else {
+				this.cellList.add(new Cell(landscape, k + 1, age, yields.get(0), yields.get(1), 1));
+			}
+		}				
 		System.out.println("create data done");
 	}
 
