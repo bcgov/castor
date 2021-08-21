@@ -380,15 +380,9 @@ modules <- list("dataLoaderCLUS",
 
 # scenario = data.table (name = "revelstoke_monashee_he0d_m12d",
 #                        description = "No harvest in Monashee high elevation critical habitat; harvest allowed in matrix critical habitat up to 12% disturbance (no buffer) in forested area. Note: no core here. Adjacency = 3m. Oldest first. Flow = 210,000m^3^/year.")
-<<<<<<< HEAD
 
-scenario = data.table (name = "grizzly_test",
-                       description = "Testing grizzlysurvivalCLUS")
-=======
->>>>>>> 3ed2c366ebe0970c47975dab010403694001f2e6
-
-scenario = data.table (name = "thlb_test",
-                       description = "Test 2020 THLB.")
+scenario = data.table (name = "caribou_smc_test",
+                       description = "Test SMC module.")
 
 
 
