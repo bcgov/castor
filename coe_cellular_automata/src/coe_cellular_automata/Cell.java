@@ -28,12 +28,12 @@ public class Cell {
 	* @param yld_trans 	All forest yields for a cell after harvesting. An ArrayList of LinkedHashMap where the key is a set of forest attributes including volume, height and old growth.
 	* @param lc 
 	*/
-	public Cell (Grid landscape, int id, int age, ArrayList<LinkedHashMap<String, Double>> yld, ArrayList<LinkedHashMap<String, Double>> yld_trans, int lc){
+	public Cell (Grid landscape, int id, int age, ArrayList<LinkedHashMap<String, Double>> yld, ArrayList<LinkedHashMap<String, Double>> yld_trans, ArrayList<Integer> lc){
 		this.id = id;
 		this.age = age;
 		this.yield = yld;
 		this.yield_trans = yld_trans;
-		this.landCoverList.add(lc);
+		this.landCoverList = lc;
 		setStates(landscape, age, yld, yld_trans);
 		this.adjCellsList = getAdjCells(id-1, landscape.colSizeLattice, landscape.cellList);
 		this.state = r.nextInt(statesHarvest.size()); //assign a random state to the initial grid

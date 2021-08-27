@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 
 public class LandCoverConstraint {
-	ArrayList<LinkedHashMap<String, Double>> landCoverConstraintList = new ArrayList<LinkedHashMap<String, Double>> ();
+	ArrayList<LinkedHashMap<String,double[]>> landCoverConstraintList = new ArrayList<LinkedHashMap<String, double[]>> ();
+	ArrayList<ArrayList<Integer>> landCoverCellList = new ArrayList<ArrayList<Integer>>();
 	
 	LandCoverConstraint(){
 		

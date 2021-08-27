@@ -1,7 +1,6 @@
 package coe_cellular_automata;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Random;
 import java.util.stream.DoubleStream;
@@ -9,13 +8,14 @@ import java.util.stream.DoubleStream;
 public class CellularAutomata {
 	ArrayList<Cell> cellList = new ArrayList<Cell>();
 	ArrayList<Cell> cellListMaximum = new ArrayList<Cell>();
-	int numIter=50;
+	int numIter=15000;
 	double lateSeralTarget,harvestMax,harvestMin, objValue, maxObjValue;
 	double globalWeight =0.0;
 	boolean finalPlan = false;
 	boolean globalConstraintsAchieved = false;
 	
 	Grid landscape = new Grid();//Instantiate the GRID
+	LandCoverConstraint beo = new LandCoverConstraint();
 	double[] planHarvestVolume = new double[landscape.numTimePeriods];
 	double[] planLateSeral = new double[landscape.numTimePeriods];
 	double[] maxPlanHarvestVolume = new double[landscape.numTimePeriods];
@@ -63,7 +63,7 @@ public class CellularAutomata {
 		
 		System.out.println("Starting local optimization..");
 		//local optimization
-		for(int i = 0; i < numIter; i ++) {
+		for(int i = 0; i < 50; i ++) {
 			//Local level optimization
 			System.out.println("Local optimization iter:" + i);
 			
@@ -93,7 +93,14 @@ public class CellularAutomata {
 		for(int c =0; c < cellList.size(); c++) {// Iterate through each of the cell and their corresponding state
 			int state = cellList.get(c).state;
 			planHarvestVolume = sumVector(planHarvestVolume, cellList.get(c).statesHarvest.get(state)) ;//harvest volume
-			planLateSeral = sumVector(planLateSeral, cellList.get(c).statesOG.get(state));
+			//planLateSeral = sumVector(planLateSeral, cellList.get(c).statesOG.get(state));
+			
+			for(int lc = 0; lc < cellList.get(c).landCoverList.size(); lc ++) { //Land cover constraints
+				double [] tempLCValue = new double[landscape.numTimePeriods];
+				tempLCValue = beo.landCoverConstraintList.get(cellList.get(c).landCoverList.get(lc)).get("Actual");
+				tempLCValue = sumVector(tempLCValue, cellList.get(c).statesOG.get(cellList.get(c).state));
+				beo.landCoverConstraintList.get(cellList.get(c).landCoverList.get(lc)).put("Actual", tempLCValue);
+			}
 		}
 		
 		System.out.println("Starting global optimization..");
@@ -109,14 +116,18 @@ public class CellularAutomata {
 				
 				//Add local contribution to global.
 				planHarvestVolume = sumVector(planHarvestVolume, cellList.get(rand[j]).statesHarvest.get(cellList.get(rand[j]).state));
-				planLateSeral = sumVector(planLateSeral, cellList.get(rand[j]).statesOG.get(cellList.get(rand[j]).state));
-			
+				for(int lc =0 ; lc < cellList.get(rand[j]).landCoverList.size(); lc ++) {
+					beo.landCoverConstraintList.get(cellList.get(rand[j]).landCoverList.get(lc)).put("Actual", sumVector(beo.landCoverConstraintList.get(cellList.get(rand[j]).landCoverList.get(lc)).get("Actual"), cellList.get(rand[j]).statesOG.get(cellList.get(rand[j]).state)));
+				}
+				//planLateSeral = sumVector(planLateSeral, cellList.get(rand[j]).statesOG.get(cellList.get(rand[j]).state));
 			}
 			
 			System.out.print("iter:" + g + " global weight:" + globalWeight );
 			for(int p =0; p< planHarvestVolume.length; p++) {
 				System.out.print(" vol @ " + p + "= " + planHarvestVolume[p]);
-				System.out.print(" LS @ " + p + "= " + planLateSeral[p]);
+				System.out.print(" zero ls @ " + p + " = " + beo.landCoverConstraintList.get(0).get("Actual")[p]);
+				System.out.print(" one ls @ " + p + " = " + beo.landCoverConstraintList.get(1).get("Actual")[p]);
+				System.out.print(" two ls @ " + p + " = " + beo.landCoverConstraintList.get(2).get("Actual")[p]);
 			}
 			System.out.println();
 			
@@ -127,7 +138,7 @@ public class CellularAutomata {
 		System.out.println();
 		System.out.println("Preserved" );
 		int rowCounter = 0;
-		for (int l= 0; l < cellList.size(); l++){
+		/*for (int l= 0; l < cellList.size(); l++){
 			if (cellList.get(l).state == 0) {
 				System.out.print(".");
 	        }else {
@@ -138,7 +149,7 @@ public class CellularAutomata {
 	        	System.out.println();
 	            rowCounter = 0;
 	        }
-	     }       		
+	     } */      		
 	}
 	
 	/**
@@ -208,15 +219,27 @@ public class CellularAutomata {
 	* @return the index of the cell state which maximizes the objectives
 	*/
 	private int getMaxStateGlobal(int id) {
-		double maxValue = 0.0, P = 0.0, U =0.0;
+		double maxValue = 0.0, P = 0.0, U =0.0 ,propLC =0.0, remainingLC = 0.0;
 		double isf =0.0, dsf = 0.0;
 		double stateValue;
 		int stateMax = 0;
-		
+
 		//remove the contribution of this cell to the global objective
 		planHarvestVolume = subtractVector(planHarvestVolume, cellList.get(id).statesHarvest.get(cellList.get(id).state));
-		planLateSeral = subtractVector(planLateSeral, cellList.get(id).statesOG.get(cellList.get(id).state));
-
+		//planLateSeral = subtractVector(planLateSeral, cellList.get(id).statesOG.get(cellList.get(id).state));
+		
+		for(int lc = 0 ; lc < cellList.get(id).landCoverList.size(); lc ++) { //remove the cells current contribution (given its current state) to each land cover constraint
+			beo.landCoverConstraintList.get(cellList.get(id).landCoverList.get(lc)).put("Actual", subtractVector(beo.landCoverConstraintList.get(cellList.get(id).landCoverList.get(lc)).get("Actual"), cellList.get(id).statesOG.get(cellList.get(id).state)));
+		}
+		
+		for(int rlc = 0; rlc < beo.landCoverConstraintList.size(); rlc ++) { //get the remaining landcover constraints the cell doesn't belong to
+			if(cellList.get(id).landCoverList.contains(rlc)) {
+				continue;
+			}else {
+				remainingLC = remainingLC + DoubleStream.of(multiplyScalar(checkMaxContribution(divideVector(beo.landCoverConstraintList.get(rlc).get("Actual"), beo.landCoverConstraintList.get(rlc).get("Target"))),  1.0/landscape.numTimePeriods)).sum();
+				
+			}
+		}
 		
 		for(int s = 0; s < cellList.get(id).statesPrHV.size(); s++) { // Iterate through each of the plausible treatment schedules also known as states
 		
@@ -225,8 +248,13 @@ public class CellularAutomata {
 			
 			U = 0.3*isf + 0.7*dsf;
 			
+			propLC = 0.0;
+			for(int lc =0; lc < cellList.get(id).landCoverList.size(); lc++) { // land cover constraints the cell belongs to
+				propLC = propLC + DoubleStream.of(multiplyScalar(checkMaxContribution(divideVector(sumVector(beo.landCoverConstraintList.get(cellList.get(id).landCoverList.get(lc)).get("Actual"), cellList.get(id).statesOG.get(s)), beo.landCoverConstraintList.get(cellList.get(id).landCoverList.get(lc)).get("Target"))),  1.0/landscape.numTimePeriods)).sum();
+			}
+						
 			P =  0.3*DoubleStream.of(multiplyScalar(checkMaxContribution(divideScalar(sumVector(planHarvestVolume, cellList.get(id).statesHarvest.get(s)), harvestMin)), 1.0/landscape.numTimePeriods)).sum() +
-					0.7*DoubleStream.of(multiplyScalar(checkMaxContribution(divideScalar(sumVector(planLateSeral, cellList.get(id).statesOG.get(s)), lateSeralTarget)),  1.0/landscape.numTimePeriods)).sum();
+					0.7*((propLC + remainingLC)/beo.landCoverConstraintList.size());
 
 			stateValue = landscape.weight*U + globalWeight*P;
 			
@@ -465,14 +493,13 @@ public class CellularAutomata {
 		int stateMax =0;
 		double[] lsn = new double[landscape.numTimePeriods];
 		lsn = getNeighborLateSeral(cellList.get(id).adjCellsList);
-		//TODO: check the lsn that the /landscape*2 is working...
-		
+	
 		for(int i = 0; i < cellList.get(id).statesPrHV.size(); i++) { // Iterate through each of the plausible treatment schedules also known as states
 		
 			//isf = DoubleStream.of(multiplyVector(cellList.get(id).statesPrHV.get(i), sumVector(landscape.lambda, subtractVector(landscape.alpha,landscape.beta)))).sum(); //I s(f) is the context independent component of the obj function			
 			//dsf = DoubleStream.of(multiplyVector(divideScalar(sumVector(cellList.get(id).statesOG.get(i), lsn), landscape.numTimePeriods*2), sumVector(landscape.oneMinusLambda,landscape.gamma))).sum();
 			isf = DoubleStream.of(multiplyVector(landscape.lambda,multiplyVector(cellList.get(id).statesPrHV.get(i), subtractVector(landscape.alpha,landscape.beta)))).sum(); //I s(f) is the context independent component of the obj function			
-			dsf = DoubleStream.of(multiplyVector(landscape.oneMinusLambda, multiplyVector(divideScalar(sumVector(cellList.get(id).statesOG.get(i), lsn), landscape.numTimePeriods*2), landscape.gamma))).sum();
+			dsf = DoubleStream.of(multiplyVector(landscape.oneMinusLambda, multiplyVector(divideScalar(sumVector(cellList.get(id).statesOG.get(i), lsn), landscape.numTimePeriods*2.0), landscape.gamma))).sum();
 			
 			stateValue = isf + dsf;
 			if(maxValue < stateValue) {
@@ -520,6 +547,21 @@ public class CellularAutomata {
 		double[] outVector = new double[vector1.length];
 		for(int i =0; i < outVector.length; i++) {
 			outVector[i] = vector1[i]*vector2[i];
+		}
+		return outVector;
+	}
+	
+	 /**
+     * Divides two vectors together to return the element wise product.
+     * @param vector1	an Array of doubles with length equal to the number of time periods
+     * @param vector2	an Array of doubles with length equal to the number of time periods
+     * @return 		a vector of length equal to the number of time periods
+     * @see multiplyVector
+     */
+	private double[] divideVector (double[] vector1, double[] vector2) {
+		double[] outVector = new double[vector1.length];
+		for(int i =0; i < outVector.length; i++) {
+			outVector[i] = vector1[i]/vector2[i];
 		}
 		return outVector;
 	}
@@ -597,10 +639,14 @@ public class CellularAutomata {
 	public void createData() {
 		//harvest flow
 		lateSeralTarget = Math.round(0.2*landscape.numCells); // 15% of the landscape should be old growth
-		harvestMax = 68000.0;
-		harvestMin = 67000.0;
+		harvestMax = 32500.0;
+		harvestMin = 32000.0;
 		
-		Random r =	new Random(15); //Random seed for making new grids
+		Random r =	new Random(); //Random seed for making new grids
+		double scale = 3.7;
+		double shape = 2.9;
+		
+		
 		//dummy yields taken from yieldid -203322
 		Double vols[] = {0.0,0.0,0.0,0.0,10.22,45.4,95.32,148.35,198.33,243.29,283.14,318.13,349.0,377.2,402.6,422.64,435.88,443.75,447.82,449.16,448.54,444.25,439.52,434.92,430.47,426.17,422.0,417.96,414.02,410.19,406.46,402.82,400.28,398.41,396.56,394.73};
 		Double hts[] = {0.0, 0.6,2.6,6.41,10.62,14.6,18.15,21.22,23.85,26.1,28.01,29.66,31.07,32.29,33.36,34.29,35.1,35.83,36.47,37.04,37.55,38.01,38.43,38.81,39.15,39.46,39.75,40.01,40.25,40.48,40.68,40.87,41.05,41.22,41.37,41.51};
@@ -626,20 +672,72 @@ public class CellularAutomata {
 			yields.get(1).get(y).put("og", ogs2[y]);
 		}
 		//Create a landcover constraint
-		LandCoverConstraint beo = new LandCoverConstraint();
-		beo.landCoverConstraintList.add(0, new LinkedHashMap<String, Double >());
-		beo.landCoverConstraintList.get(0).put("Limit", 500.0);
+		double[] temp = new double[landscape.numTimePeriods];
+		double[] temp1 = new double[landscape.numTimePeriods];
+		double[] temp2 = new double[landscape.numTimePeriods];
+		double[] temp3 = new double[landscape.numTimePeriods];
+		double[] temp4 = new double[landscape.numTimePeriods];
 		
-		beo.landCoverConstraintList.add(1, new LinkedHashMap<String, Double >());		
-		beo.landCoverConstraintList.get(1).put("Limit", 300.0);
+		Arrays.fill(temp, 0.0);
+		beo.landCoverConstraintList.add(0, new LinkedHashMap<String, double[] >());
+		beo.landCoverCellList.add(0, new ArrayList<Integer>());
+		beo.landCoverConstraintList.get(0).put("Actual", temp);
+
+		beo.landCoverConstraintList.add(1, new LinkedHashMap<String, double[]>());	
+		beo.landCoverCellList.add(1, new ArrayList<Integer>());
+		beo.landCoverConstraintList.get(1).put("Actual", temp.clone());
 		
+		beo.landCoverConstraintList.add(2, new LinkedHashMap<String, double[]>());	
+		beo.landCoverCellList.add(2, new ArrayList<Integer>());
+		beo.landCoverConstraintList.get(2).put("Actual", temp.clone());
+		
+		beo.landCoverConstraintList.add(3, new LinkedHashMap<String, double[]>());	
+		beo.landCoverCellList.add(3, new ArrayList<Integer>());
+		beo.landCoverConstraintList.get(3).put("Actual", temp.clone());
+		
+		Arrays.fill(temp1, 250.0);
+		beo.landCoverConstraintList.get(0).put("Target", temp1);
+		Arrays.fill(temp2, 250.0);
+		beo.landCoverConstraintList.get(1).put("Target", temp2);
+		Arrays.fill(temp3, 10.0);
+		beo.landCoverConstraintList.get(2).put("Target", temp3);
+		Arrays.fill(temp4, 30.0);
+		beo.landCoverConstraintList.get(3).put("Target", temp4);
+		
+		ArrayList<Integer> lc = new ArrayList<>(Arrays.asList(0,2));
+		ArrayList<Integer> lc1 = new ArrayList<>(Arrays.asList(1));
+		ArrayList<Integer> lc2 = new ArrayList<>(Arrays.asList(0));
+		ArrayList<Integer> lc3 = new ArrayList<>(Arrays.asList(1,3));
+		
+	
 		for(int k= 0; k < landscape.numCells; k++) {
 			//Attribution of the stand or cell
-			int age = Math.round(r.nextInt(250)/10)*10; //random age in 10 year classes
-			if(k < 2500) {
-				this.cellList.add(new Cell(landscape, k + 1, age, yields.get(0), yields.get(1), 0));
+			int age = (int) Math.round(Math.exp(scale + shape * Math.abs(r.nextGaussian())/4)/10)*10;
+			if(age > 250) { 
+				age = 250 ;
+			};
+			System.out.println(age);
+			//int age = (int) (Math.round(distribution.sample()*10)/10); //random age in 10 year classes
+			//int age = 0;
+			if(k < 1250) {
+				if(k<80) {
+					this.cellList.add(new Cell(landscape, k + 1, age, yields.get(0), yields.get(1), lc ));
+					beo.landCoverCellList.get(0).add(k);
+					beo.landCoverCellList.get(2).add(k);
+				}else {
+					this.cellList.add(new Cell(landscape, k + 1, age, yields.get(0), yields.get(1), lc2));
+					beo.landCoverCellList.get(0).add(k);
+				}
 			}else {
-				this.cellList.add(new Cell(landscape, k + 1, age, yields.get(0), yields.get(1), 1));
+				if(k > 2300) {
+					this.cellList.add(new Cell(landscape, k + 1, age, yields.get(0), yields.get(1), lc3));
+					beo.landCoverCellList.get(1).add(k);
+					beo.landCoverCellList.get(3).add(k);
+				}else {
+					this.cellList.add(new Cell(landscape, k + 1, age, yields.get(0), yields.get(1), lc1));
+				beo.landCoverCellList.get(1).add(k);
+				}
+				
 			}
 		}				
 		System.out.println("create data done");

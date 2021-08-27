@@ -4,8 +4,8 @@ import java.util.Arrays;
 
 public class Grid {
 	int ageThreshold=140, ph=200, pl=10;
-	double  minHarvVol = 120.0;
-	int colSizeLattice = 50; //Size of the grid used for dummy examples
+	double  minHarvVol = 150.0;
+	int colSizeLattice = 500; //Size of the grid used for dummy examples
 	double lambdaProp = 0.05;
 	
 	int numCells = colSizeLattice*colSizeLattice;
