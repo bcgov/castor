@@ -1,0 +1,160 @@
+---
+title: "Distance_to_Development"
+author: "Cora Skaien"
+date: "26/08/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#libraries
+library(sf)
+library(sp)
+library(spdep)
+library(rgeos)
+library(mc2d)
+
+```
+
+#Overview
+Whether or not fires spread into surrounding areas is not as simple as what the environment is like; instead, we have fire fighting efforts that can alter the course of a fire, reduce its spread, and extinguish the fire. The closer the fire is to infrastructure, such as urban settings, power lines, railroads, and major projects, the more likely that fire fighting efforts will be increased. Thus, we will determine the distance from each fire location to each category of infrastructure and assess patterns for impact on fire escape, size and spread.
+
+#Some important layers to consider
+1. Municipalities: note that this only includes the incorporated municipalities and not the unincorporated municipalities.
+https://catalogue.data.gov.bc.ca/dataset/municipalities-legally-defined-administrative-areas-of-bc
+
+2. BC transmission lines: these provide power to municipalities and are often easy to access.
+https://catalogue.data.gov.bc.ca/dataset/bc-transmission-lines
+
+3. Railway track lines: these are important for transporting goods across the province and can be made a priority.
+https://catalogue.data.gov.bc.ca/dataset/railway-track-line#edc-pow
+
+4. Major Natural Resource Projects
+https://catalogue.data.gov.bc.ca/dataset/natural-resource-sector-major-projects-points#edc-pow
+
+5. BC Dams
+https://catalogue.data.gov.bc.ca/dataset/bc-dams#edc-pow
+
+6. Mines
+https://maps.gov.bc.ca/ess/hm/imap4m/?catalogLayers=7738,7739&scale=8000000.0&center=-14435520.3411,8238977.65217
+https://governmentofbc.maps.arcgis.com/home/item.html?id=b8ea19982bd74db3bd968d3c7f038e43
+
+This one may be useful?
+https://catalogue.data.gov.bc.ca/dataset/tantalis-administrative-areas
+https://catalogue.data.gov.bc.ca/dataset/local-government-boundaries-road-centreline-aligned
+
+#Within QGIS
+Each of the relevant above layers were brought into QGIS for inspection. A 1 m buffer was created around each point and line to make it into a polygon. Within QGIS, we used the NNJoin plugin to determine the distance between each point and each of the elements above. This cannot be done in R because there are too many points and R will run out of processing power. Once this is complete, then bring the layer into R. If you had fewer points, you could use st_distance (e.g., test<-st_distance(sample_locations, Dams, by_element = TRUE))
+
+#load in the spatial layers
+You can load in each separately, but we processed in QGIS ultimately, so you can skip this part. 
+```{r}
+Dams<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Dams_Buffer.shp", stringsAsFactors = T)
+
+NatResourceSect<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Nat_Resource_Buffer.shp", stringsAsFactors = T)
+
+TransmissionsLines<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\TransmissionLines_Buffer.shp", stringsAsFactors = T)
+
+Railway<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Railway_Buffer_.shp", stringsAsFactors = T)
+
+Munic<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Municipalities.shp", stringsAsFactors = T)
+
+Mines<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Mines.shp", stringsAsFactors = T)
+
+```
+
+#load in the data where the distances to each location is already determined.
+```{r}
+sample_locations_distances<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Distance_To_Points.shp")
+head(sample_locations_distances)
+```
+
+#Update column names
+```{r}
+sample_locations_distances$dist_mun<-sample_locations_distances$distance
+sample_locations_distances$dist_dam <-sample_locations_distances$distance_d
+sample_locations_distances$dist_nat <-sample_locations_distances$distance_N
+sample_locations_distances$dist_rail <-sample_locations_distances$distance_R
+sample_locations_distances$dist_pow <-sample_locations_distances$distance_T
+sample_locations_distances$dist_mine <-sample_locations_distances$distance_M
+```
+
+
+Create a column that is the shortest distance to any infrastructure.
+
+```{r}
+head(sample_locations_distances)
+str(sample_locations_distances)
+
+str(sample_locations_distances$dist_mine)
+str(sample_locations_distances$dist_pow)
+str(sample_locations_distances$dist_rail) #numeric but all NAs
+str(sample_locations_distances$dist_nat)
+str(sample_locations_distances$dist_dam)
+str(sample_locations_distances$dist_mun)
+
+names(sample_locations_distances)
+
+sample_locations_distances$dist_any_<-0
+sample_locations_distances$dist_any<-0
+
+sample_locations_distances$dist_any_<-
+  ifelse(sample_locations_distances$dist_mine<sample_locations_distances$dist_pow, sample_locations_distances$dist_mine, sample_locations_distances$dist_pow)
+str(sample_locations_distances$dist_any_)
+
+sample_locations_distances$dist_any<-
+  ifelse (sample_locations_distances$dist_any_<sample_locations_distances$dist_nat, sample_locations_distances$dist_any_, sample_locations_distances$dist_nat)
+str(sample_locations_distances$dist_any)
+
+sample_locations_distances$dist_any_<-
+  ifelse (sample_locations_distances$dist_any<sample_locations_distances$dist_dam, sample_locations_distances$dist_any, sample_locations_distances$dist_dam)
+str(sample_locations_distances$dist_any_)
+
+sample_locations_distances$dist_any<-
+  ifelse (sample_locations_distances$dist_any_<sample_locations_distances$dist_mun, sample_locations_distances$dist_any_, sample_locations_distances$dist_mun)
+str(sample_locations_distances$dist_any)
+
+#Distance rail did not work; must redo
+#sample_locations_distances$dist_any<-
+#  ifelse (sample_locations_distances$dist_any_<sample_locations_distances$dist_rail,
+#sample_locations_distances$dist_any_, sample_locations_distances$dist_rail)
+
+
+```
+Now compare the distances between groups.
+
+
+```{r}
+max(sample_locations_distances$dist_any)
+min(sample_locations_distances$dist_any)
+hist(sample_locations_distances$dist_any)
+sample_locations_distances$dist_any
+
+plot(sample_locations_distances$dist_any~sample_locations_distances$dist_pow)
+abline(0,1)
+plot(sample_locations_distances$dist_any~sample_locations_distances$dist_mine)
+plot(sample_locations_distances$dist_any~sample_locations_distances$dist_dam)
+plot(sample_locations_distances$dist_any~sample_locations_distances$dist_mun)
+```
+
+```{r}
+head(sample_locations_distances)
+```
+
+Save file to postgres.
+
+```{r}
+sf::st_write(sample_locations_distances, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_clim_DEM_roads_wind_infra.shp", delete_layer=TRUE)
+
+
+##Save to personal drive
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+##Above may not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
+
+#key_get('dbpass', keyring = 'postgreSQL')
+```
+

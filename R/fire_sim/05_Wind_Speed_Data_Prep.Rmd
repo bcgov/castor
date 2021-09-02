@@ -300,7 +300,7 @@ crs(sample_locations_DEM_roads_2)
 
 
 ```{r}
-##Try this first
+##Extract Coordinates
 test<-cbind(sample_locations_DEM_roads_2, st_coordinates(sample_locations_DEM_roads_2))
 head(test)
 
@@ -308,7 +308,7 @@ pointCoordinates<-data.frame(test$X, test$Y)
 head(pointCoordinates)
 #crs(pointCoordinates) #No CRS when a dataframe
 
-##Extract DEM values from stacked layer
+##Extract Wind values from stacked layer
 rasValue3=raster::extract(rasStackWind, pointCoordinates)
 head(rasValue3)
 str(rasValue3) # 274573 values

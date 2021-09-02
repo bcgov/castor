@@ -1,0 +1,552 @@
+---
+title: "13_Fire_Spread_Polygons"
+author: "Cora Skaien"
+date: "16/08/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Load libraries
+library(sf)
+library(raster)
+library(tidyverse)
+library(rgeos)
+library(cleangeo)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(rgdal)
+library(keyring)
+library(DBI)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+#Overview
+In this file, we will be creating a 500 m and 150 m buffers around each fire burn polygon, subtract the polygon area from the buffer, and then divide both the buffers and polygons into 1 ha squares (approximately). With this, we can attempt to create logistic regressions where the 1 ha squares from the buffers are 0 for spread and the 1 ha squares from the fire polygons receive a 1. The data will not be entirely related to environmental variables, however, as it will be confounded by fire-fighting efforts and fire weather change - but we will see if we can find any patterns using this approach. I suspect climate will not be able to come out from this, resulting in fire size being important for characterizing how climate impacts fires. Here, we can assess how topography, VRI and land-use impact the probability of spread into neighbouring cells. 
+
+We will first load in the fire data, and separate the fire boundaries by year for 2002-2020. We will then bring each file into QGIS and create 150 and 500 m buffers.Then we can create the 1 ha squares and assign them 0/1 by clipping them to the fire and buffer polygons. We will not get ClimateBC data since the difference between adjacent cells will be minimal and we suspect this will influence fire size prior, but less likely spread. We will need to get VRI data for each 1 ha datapoint, including stand volume, age and height, and land-use (bclcs_5).
+
+#Load in fire perimeter polygons
+```{r}
+
+fire_boundaries<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\H_FIRE_PLY_polygon.shp", stringsAsFactors = T)
+
+st_crs(fire_boundaries)
+fire_boundaries2 <- st_transform (fire_boundaries, 3005)
+st_crs(fire_boundaries2) #Same as before
+
+#Inspect
+head(fire_boundaries2)
+
+```
+
+#Subset for 2002-2020
+```{r}
+fire_boundaries2002_20<-subset(fire_boundaries2, fire_boundaries2$FIRE_YEAR>2001)
+table(fire_boundaries2002_20$FIRE_YEAR)
+
+st_write(fire_boundaries2002_20, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_polygon_2002_20.shp", delete_dsn = TRUE)
+#Lots of error messages with many features not successfully writen...
+```
+
+##Investigate years
+
+If we want to get differences by buffers and polygons each year, it is best to separate by years so each polygon knows which other polygon to have a difference with.
+
+```{r}
+table(fire_boundaries2$FIRE_YEAR)
+fire_boundaries2002_20<-subset(fire_boundaries2, fire_boundaries2$FIRE_YEAR>2001)
+table(fire_boundaries2002_20$FIRE_YEAR)
+
+fire_boundaries2002<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2002)
+fire_boundaries2003<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2003)
+fire_boundaries2004<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2004)
+fire_boundaries2005<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2005)
+fire_boundaries2006<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2006)
+fire_boundaries2007<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2007)
+fire_boundaries2008<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2008)
+fire_boundaries2009<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2009)
+fire_boundaries2010<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2010)
+fire_boundaries2011<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2011)
+fire_boundaries2012<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2012)
+fire_boundaries2013<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2013)
+fire_boundaries2014<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2014)
+fire_boundaries2015<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2015)
+fire_boundaries2016<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2016)
+fire_boundaries2017<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2017)
+fire_boundaries2018<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2018)
+fire_boundaries2019<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2019)
+fire_boundaries2020<-subset(fire_boundaries2002_20, fire_boundaries2002_20$FIRE_YEAR==2020)
+
+```
+
+```{r}
+
+st_write(fire_boundaries2002, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2002.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2003, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2003.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2004, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2004.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2005, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2005.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2006, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2006.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2007, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2007.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2008, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2008.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2009, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2009.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2010, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2010.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2011, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2011.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2012, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2012.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2013, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2013.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2014, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2014.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2015, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2015.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2016, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2016.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2017, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2017.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2018, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2018.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2019, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2019.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries2020, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_2020.shp", delete_dsn = TRUE)
+
+```
+
+
+##try 500 m buffer that we can do here or in QGIS
+
+```{r}
+fire_boundaries_2002_buf_500<- st_buffer(fire_boundaries2002, 500)
+fire_boundaries_2003_buf_500<- st_buffer(fire_boundaries2003, 500)
+fire_boundaries_2004_buf_500<- st_buffer(fire_boundaries2004, 500)
+fire_boundaries_2005_buf_500<- st_buffer(fire_boundaries2005, 500)
+fire_boundaries_2006_buf_500<- st_buffer(fire_boundaries2006, 500)
+fire_boundaries_2007_buf_500<- st_buffer(fire_boundaries2007, 500)
+fire_boundaries_2008_buf_500<- st_buffer(fire_boundaries2008, 500)
+fire_boundaries_2009_buf_500<- st_buffer(fire_boundaries2009, 500)
+fire_boundaries_2010_buf_500<- st_buffer(fire_boundaries2010, 500)
+fire_boundaries_2011_buf_500<- st_buffer(fire_boundaries2011, 500)
+fire_boundaries_2012_buf_500<- st_buffer(fire_boundaries2012, 500)
+fire_boundaries_2013_buf_500<- st_buffer(fire_boundaries2013, 500)
+fire_boundaries_2014_buf_500<- st_buffer(fire_boundaries2014, 500)
+fire_boundaries_2015_buf_500<- st_buffer(fire_boundaries2015, 500)
+fire_boundaries_2016_buf_500<- st_buffer(fire_boundaries2016, 500)
+fire_boundaries_2017_buf_500<- st_buffer(fire_boundaries2017, 500)
+fire_boundaries_2018_buf_500<- st_buffer(fire_boundaries2018, 500)
+fire_boundaries_2019_buf_500<- st_buffer(fire_boundaries2019, 500)
+fire_boundaries_2020_buf_500<- st_buffer(fire_boundaries2020, 500)
+
+```
+
+```{r}
+
+st_write(fire_boundaries_2002_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2002.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2003_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2003.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2004_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2004.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2005_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2005.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2006_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2006.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2007_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2007.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2008_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2008.shp", delete_dsn = TRUE)
+
+
+st_write(fire_boundaries_2009_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2009.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2010_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2010.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2011_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2011.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2012_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2012.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2013_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2013.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2014_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2014.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2015_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2015.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2016_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2016.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2017_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2017.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2018_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2018.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2019_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2019.shp", delete_dsn = TRUE)
+
+st_write(fire_boundaries_2020_buf_500, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\Fire_boundaries_withbuffer_2020.shp", delete_dsn = TRUE)
+
+
+```
+
+Now that we have each year's polygons and buffers, we can go to QGIS and load each polygon-buffer set in QGIS and get the difference so that the buffer is separate from the fire boundary polygon. In QGIS, we will also load in the BC Boundary layer and then use the "Create Grid" function to create points that are separated by 100 m vertically and horizontally to represent 1 ha portions of the province. Because of the way this behaved, a second square for the SE corner of BC was created as well. We will then clip and intersect these points with the buffers and fire polygons for each year and designate the 0 and 1 values for whether fire spread into that cell (fire boundary) or not (500 or 150 m buffer, minus fire boundary). We can then combine all of the point data into one shape file, bring back into R, and append the topography and wind speed data. We will then attach VRI data the same way we did for ignition data prep, using the command line. Once we have all of that data appended, we can assess how spread 0/1 is impacted by slope, elevation, aspect, wind speed, landuse type (bclcs_5). We will need to combine some of the bclcs_5 land types together (e.g., rock and bare ground types) since data size is small and it eats up degrees of freedom. We suggest also subsetting data for only >1ha.
+
+#Bring in the data
+
+```{r}
+spread_500<- st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\fire_and_buffer_allyears_500m.shp", stringsAsFactors = T)
+head(spread_500)
+  
+spread_150<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\As of August 2021\\PROT_HISTORICAL_FIRE_POLYS_SP\\fire_and_buffer_allyears_150m.shp", stringsAsFactors = T)
+head(spread_150)
+```
+
+#Subset data
+Because these files are so large, they will likely crash R when trying to proess them or save subsequent files. Thus, we will select only fires that are >1 ha (i.e., have escaped) for this dataset.
+
+```{r}
+spread_150_1ha<-subset(spread_150, spread_150$SIZE_HA>=1)
+head(spread_150_1ha)
+str(spread_150_1ha) #Reduces from 5,364,129 to 5,356,137 points... so still very large
+spread_500_1ha<-subset(spread_500, spread_500$SIZE_HA>=1)
+head(spread_500_1ha)
+str(spread_500_1ha) #Reduced from 6,860,250 to 6,804,140... so lots still too
+```
+
+#Clear the data with less than 1 ha size fires
+```{r}
+library(gdata)
+keep(spread_150_1ha, spread_500_1ha, sure = TRUE) # setting sure to TRUE removes variables not in the list
+
+ls()
+gc(TRUE)
+```
+
+#Load in the DEM layers and get aspect, slope and elevation
+
+```{r}
+##Slope
+DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc.tif")
+
+##Aspect
+DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc.tif")
+
+#Elevation
+DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+
+```
+
+Stack the rasters
+
+```{r}
+rasStack = stack(DEM_slope, DEM_aspect, DEM)
+crs(rasStack)
+head(rasStack)
+str(rasStack)
+
+```
+
+Get the point coordinates for the point data
+
+```{r}
+#Extract coordinates for points
+test_150<-cbind(spread_150_1ha, st_coordinates(spread_150_1ha))
+head(test_150)
+
+test_500<-cbind(spread_500_1ha, st_coordinates(spread_500_1ha))
+head(test_500)
+
+#Get as coordinates
+pointCoordinates_150<-data.frame(test_150$X.1, test_150$Y.1)
+head(pointCoordinates_150)
+
+pointCoordinates_500<-data.frame(test_500$X.1, test_500$Y.1)
+head(pointCoordinates_500)
+
+
+##Extract DEM values from stacked layer
+rasValue_150=raster::extract(rasStack, pointCoordinates_150)
+head(rasValue_150)
+str(rasValue_150) #5356127 points
+str(spread_150) #5356127 points
+
+rasValue_500=raster::extract(rasStack, pointCoordinates_500)
+head(rasValue_500)
+str(rasValue_500) #6804140
+str(spread_500) #6804140
+
+#Append new information
+spread_150_DEM<-cbind(spread_150_1ha, rasValue_150)
+head(spread_150_DEM)
+crs(spread_150_DEM)
+
+spread_500_DEM<-cbind(spread_500_1ha, rasValue_500)
+head(spread_500_DEM)
+crs(spread_500_DEM)
+
+```
+
+Save the DEM layer file. This save will take several hours since there is over 1,000,000 data points, so wait until further steps are complete if that is an option. Note: when I attempted to save these, it crashed after 10 hours. Avoid saving at this time.
+
+```{r}
+#st_write(spread_150_DEM, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\spread_150_DEM.shp", delete_layer=TRUE)
+
+#st_write(spread_500_DEM, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\spread_500_DEM.shp", delete_layer=TRUE)
+```
+
+
+#Clear the data again other than our working datasets
+```{r}
+library(gdata)
+keep(spread_150_DEM, spread_500_DEM, sure = TRUE) # setting sure to TRUE removes variables not in the list
+
+ls()
+gc(TRUE)
+```
+
+#Now determine the road density for each point
+Note: road density will be similar for each point, but slightly difference since they are 100 m apart. This could be a bit of an issue, however, given that each point is not necessarily independent. Road density and distance to habitation will likely be more appropriate for the fire size metric as opposed to the individual spread points. But we will include them in the data here in case it becomes clear that it is important.
+
+Bring in the roads layer.
+
+```{r}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+roads_layer<- st_read (dsn = conn, 
+          layer = c ("public", "integrated_roads"))
+dbDisconnect (conn)
+
+```
+
+Inspect the file. Check the coordinate system. Determine the names of items in the file.
+
+```{r}
+crs(roads_layer)
+head(roads_layer)
+names(roads_layer)
+
+```
+
+Now, we need to buffer each point from the sample point files by 0.564 km or 564 m to get a 1 km^2 area. Once we have this buffer, we can then perform an intersect to determine how many km of road we have per km^2 of area for each data point. This will involve summing over multiple rows because each road segment will create a new row within the dataframe but the same polygon id may appear multiple times.
+
+```{r}
+spread_150_DEM_buf<- st_buffer(spread_150_DEM, 564) #Set the buffer to 564 m to get a circle with a radius of 564 m and an area of 1 km2
+spread_500_DEM_buf<- st_buffer(spread_500_DEM, 564) #Set the buffer to 564 m to get a circle with a radius of 564 m and an area of 1 km2
+
+crs(spread_150_DEM_buf)
+crs(spread_500_DEM_buf)
+head(spread_150_DEM_buf)
+head(spread_500_DEM_buf) #Note, now these are polygon features instead of point features because we have buffers.
+```
+
+Perform st_intersection between the roads layer and our buffered layer to get roads clipped to the area of the polygons.
+
+```{r}
+spread_150_roads_buffers<-st_intersection(spread_150_DEM_buf, roads_layer)
+head(spread_150_roads_buffers)
+
+
+#Check what the distribution of shape length is
+hist(spread_150_roads_buffers$shape_length)
+mean(spread_150_roads_buffers$shape_length) #Mean shape length is 548 m
+
+#Repeat for 500 m
+spread_500_roads_buffers<-st_intersection(spread_500_DEM_buf, roads_layer)
+head(spread_500_roads_buffers)
+
+
+#Check what the distribution of shape length is
+hist(spread_500_roads_buffers$shape_length)
+mean(spread_500_roads_buffers$shape_length) #Mean shape length is 548 m
+
+```
+
+Once we have the roads intersected with the polygon, we can then get the sums for each. Note, however, that if there are no roads for a location, that a 0 will be returned for those polygons (buffered circles) and that a special match will need to be performed to get the correct points appended back to the original data. Ensure you change the file to a data frame first so that it takes < 5 seconds to run instead of 4 hours.
+
+```{r}
+###########150 m buffer around fire perimeter
+str(spread_150_roads_buffers)
+spread_150_roads_buffers_df<-as.data.frame(spread_150_roads_buffers)
+
+road_sums_df_150<- spread_150_roads_buffers_df %>%
+  group_by(id) %>% #Check what ID is needed!! May be OBJECTID? Needs to be different for each point.
+  summarize(
+    shape_length = sum(shape_length)
+  )
+
+table(road_sums_df_150$id)
+head(road_sums_df_150)
+str(road_sums_df_150)#Check how many rows there are in the data and compare to our initial data
+#181,356
+str(spread_150_roads_buffers) # 274594 obs
+#Note that there is a difference because not all cells had roads!
+
+#######500 m buffer around fire perimeter
+str(spread_500_roads_buffers)
+spread_500_roads_buffers_df<-as.data.frame(spread_500_roads_buffers)
+
+road_sums_df_500<- spread_500_roads_buffers_df %>%
+  group_by(id) %>% #Check what ID is needed!! May be OBJECTID? Needs to be different for each point.
+  summarize(
+    shape_length = sum(shape_length)
+  )
+
+table(road_sums_df_500$id)
+head(road_sums_df_500)
+str(road_sums_df_500)#Check how many rows there are in the data and compare to our initial data
+#181,356
+str(spread_500_roads_buffers) # 274594 obs
+#Note that there is a difference because not all cells had roads!
+
+```
+
+Now we will append this new data back to our original sample_locations_DEM data. We also need to replace all of the NA values with 0s, as an NA indicates that there were no roads present in that polygon buffer.
+
+```{r}
+######### 150 m buffers
+crs(road_sums_df_150) #Check if it has a coordinate system - no (as expected)
+
+spread_150_DEM_roads<- merge(spread_150_roads_buffers, road_sums_df_150, by = 'id', all=TRUE)
+crs(spread_150_DEM_roads) #has coordinate system as expected
+head(spread_150_DEM_roads) #check if you can see any with NA in the 
+
+str(spread_150_DEM_roads)
+#Check if need this below?
+#spread_150_DEM_roads_sf<-st_as_sf(spread_150_DEM_roads)
+
+#Replace NAs in shape_length column with 0s
+spread_150_DEM_roads$shape_length[is.na(spread_150_DEM_roads$shape_length)] <- 0
+head(spread_150_DEM_roads) #We can see that NAs have not been switched to 0
+
+###500 m buffers
+crs(road_sums_df_500) #Check if it has a coordinate system - no (as expected)
+
+spread_500_DEM_roads<- merge(spread_500_roads_buffers, road_sums_df_500, by = 'id', all=TRUE)
+crs(spread_500_DEM_roads) #has coordinate system as expected
+head(spread_500_DEM_roads) #check if you can see any with NA in the 
+
+str(spread_500_DEM_roads)
+#Check if need this below?
+#spread_500_DEM_roads_sf<-st_as_sf(spread_500_DEM_roads)
+
+#Replace NAs in shape_length column with 0s
+spread_500_DEM_roads$shape_length[is.na(spread_500_DEM_roads$shape_length)] <- 0
+head(spread_500_DEM_roads) #We can see that NAs have not been switched to 0
+
+```
+
+Inspect the results to ensure nothing seems too crazy
+
+```{r}
+### 150 m buffer
+hist(spread_150_DEM_roads$shape_length)
+mean(spread_150_DEM_roads$shape_length) #Mean is 3841.987 m of road per km square
+max(spread_150_DEM_roads$shape_length) #Max is 207,868.7 m of road per km square. This seems impossible.
+
+##Convert to kms worth of road
+spread_150_DEM_roads$shape_length_km<-(spread_150_DEM_roads$shape_length/1000)
+hist(spread_150_DEM_roads$shape_length_km, n=100)
+mean(spread_150_DEM_roads$shape_length_km) #Mean is 3.8 km of road per km square
+max(spread_150_DEM_roads$shape_length_km) #max is 207 km of road per km square... seems unlikely!
+
+spread_150_DEM_roads_2<-subset(spread_150_DEM_roads, spread_150_DEM_roads$shape_length_km < 100)
+hist(spread_150_DEM_roads_2$shape_length_km, n=100) #Is outlier removed? New max is 138 if subset at the 200 km level.
+max(spread_150_DEM_roads_2$shape_length_km)
+str(spread_150_DEM_roads_2) #274573 observations -- only lose 21 observations and likely more accurate
+str(spread_150_DEM_roads) #274594 observations
+
+##500 m buffer
+hist(spread_500_DEM_roads$shape_length)
+mean(spread_500_DEM_roads$shape_length) #Mean is 3841.987 m of road per km square
+max(spread_500_DEM_roads$shape_length) #Max is 207,868.7 m of road per km square. This seems impossible.
+
+##Convert to kms worth of road
+spread_500_DEM_roads$shape_length_km<-(spread_500_DEM_roads$shape_length/1000)
+hist(spread_500_DEM_roads$shape_length_km, n=100)
+mean(spread_500_DEM_roads$shape_length_km) #Mean is 3.8 km of road per km square
+max(spread_500_DEM_roads$shape_length_km) #max is 207 km of road per km square... seems unlikely!
+
+spread_500_DEM_roads_2<-subset(spread_500_DEM_roads, spread_500_DEM_roads$shape_length_km < 100)
+hist(spread_500_DEM_roads_2$shape_length_km, n=100) #Is outlier removed? New max is 138 if subset at the 200 km level.
+max(spread_500_DEM_roads_2$shape_length_km)
+str(spread_500_DEM_roads_2) #274573 observations -- only lose 21 observations and likely more accurate
+str(spread_500_DEM_roads) #274594 observations
+
+```
+
+Save file
+
+```{r}
+st_write(spread_150_DEM_roads_2, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\spread_150_DEM_roads.shp", delete_layer=TRUE)
+
+st_write(spread_500_DEM_roads_2, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\spread_500_DEM_roads.shp", delete_layer=TRUE)
+```
+
+
+
+# Add Wind Speed
+we will also add wind speed, but this likely will also not be relevant for the spread data, but instead for the fire size portion of spread. It may be useful to append here if we want more specific values, such as means over the entire polygon as opposed to the point location indicated for the initial fire.
+
+Load shape files for both the created summer file, and for BC Boundaries.
+
+```{r}
+summer_wind_raster<- raster("D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\wind_summer_clipped_224.tif")
+res(summer_wind_raster)
+
+spring_wind_raster<- raster("D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\wind_spring_raster_224.tif")
+res(spring_wind_raster) 
+
+```
+
+Stack the rasters.
+
+```{r}
+rasStackWind = stack(summer_wind_raster, spring_wind_raster)
+crs(rasStackWind)
+head(rasStackWind)
+str(rasStackWind)
+```
+
+Extract Wind Values
+
+```{r}
+##Extract Coordinates
+test<-cbind(spread_150_DEM_roads_2, st_coordinates(spread_150_DEM_roads_2))
+head(test)
+
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+#crs(pointCoordinates) #No CRS when a dataframe
+
+##Extract Wind values from stacked layer
+rasValue3=raster::extract(rasStackWind, pointCoordinates)
+head(rasValue3)
+str(rasValue3) # 274573 values
+str(spread_150_DEM_roads_2)# 274573 values
+
+#Append new information
+spread_150_DEM_roads_wind<-cbind(spread_150_DEM_roads_2, rasValue3)
+head(spread_150_DEM_roads_wind)
+crs(spread_150_DEM_roads_wind)
+```
+
+
+Now, select all those fires that are >1 ha (i.e., those that escaped)
+
+
+
+
+
+
+
