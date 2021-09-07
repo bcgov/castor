@@ -55,8 +55,8 @@ ogc_fids<-ogc_fids[!(is.na(V1)),]
 wha_cond<-getTableQuery(paste0("SELECT ogc_fid, timber_har, tag, feature_no, approval_d FROM public.wha_20210621 WHERE ogc_fid IN(",paste(ogc_fids$V1, collapse = ","), ") ORDER BY tag"))
 
 #assign all no harvest as zoneid = 0 
-ogc_fids_noharv<-wha_cond[wha_cond$timber_har == 'NO HARVEST ZONE', "ogc_fid"]
-
+ogc_fids_noharv<-wha_cond[wha_cond$timber_har == 'NO HARVEST ZONE' & wha_cond$tag != '5-118', "ogc_fid"]
+# here I am taking out WHA 5-118 and parameterizing it below, because I needed to make it available for harvest in a caribou planning scenario, so it needs a unique zoneid 
 zone_wha<-data.table(zoneid = 0, type = 'nh', variable = '', 
                      threshold = 0, reference_zone='rast.zone_wha_2021', percentage =0, 
                      ndt =0, label = 'wha_no_harv', multi_condition = '', denom = '')
@@ -64,7 +64,7 @@ zone_wha<-data.table(zoneid = 0, type = 'nh', variable = '',
 #set all to 0 in the raster as no harvest
 wha.ras[wha.ras[] %in% ogc_fids_noharv] <- 0
 
-wha_cond<-wha_cond[!(wha_cond$timber_har == 'NO HARVEST ZONE'), ] #get only the conditional harvesting ones now.
+wha_cond<-wha_cond[!(wha_cond$timber_har == 'NO HARVEST ZONE' & wha_cond$tag != '5-118'), ] #get only the conditional harvesting ones now, with 5-118 as the exception.
 
 ```
 
@@ -639,6 +639,17 @@ zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'ge', 
 wha_cond<-wha_cond[!(wha_cond$tag %in% wha_tags), ] #remove from table
 ```
 
+### 5-118 Mountain Caribou 
+No-harvest zone; parameterizing it here with a unique ID so I can modify it (make it harvestable) for a cariobu scearnio.
+```{r, w5188}
+#For the wha's that have modfied harvesting --consider 66% of the area > 80 years
+wha_tags<-c('5-118')
+ogc_fids_rm<-wha_cond[wha_cond$tag %in% wha_tags,c("ogc_fid", "tag") ]
+zone_wha<-rbind(zone_wha, data.table(zoneid = ogc_fids_rm$ogc_fid, type = 'nh', variable = '', threshold = 0, reference_zone='rast.zone_wha_2021', percentage =0, ndt =0, label = ogc_fids_rm$tag,
+                                       multi_condition = '', denom = ''))
+wha_cond<-wha_cond[!(wha_cond$tag %in% wha_tags), ] #remove from table
+```
+
 ### 5-120 to 5-123, 5-126 to 5-128, 5-131, 5-133 , 5-136 to 5-150, 5-168 to 5-171 + many more  Grizzly Bear
 Primary forestry activities will result in protections of the forest cover and plant communities within the boundaries of the wha.  Pesticides shall not be used. Salvage harvesting shall not be used. see http://www.env.gov.bc.ca/wld/documents/wha/URAR-5-121to541_MidCoastTSA.pdf
 ```{r, w5120}
@@ -766,7 +777,7 @@ wha_cond<-wha_cond[!(wha_cond$tag %in% wha_tags), ] #remove from table
 
 ### 7-002 - grizzly bear
 harvesting permitted with site-level requirements
-```{r, w7001}
+```{r, w7002}
 # site level orders; allow for harvest 
 wha_tags<-c('7-002')
 ogc_fids_rm<-wha_cond[wha_cond$tag %in% wha_tags, "ogc_fid"]
@@ -1017,7 +1028,7 @@ wha_cond<-wha_cond[!(wha_cond$tag %in% wha_tags), ] #remove from table
 ```
 
 ### 9-049, 9-073, 9-104, 9-105, 9-144, 9-145 -  Caribou
-Will no adversely effect lichen productivity, result in a network of connected forest cover for visual screening and lichen, result in pre-harvest pine leading stands to be established as pine leading stands. see http://www.env.gov.bc.ca/wld/documents/wha/RATA_9-032_034_041_073,104_106,144,145_ord.pdf
+Will not adversely effect lichen productivity, result in a network of connected forest cover for visual screening and lichen, result in pre-harvest pine leading stands to be established as pine leading stands. see http://www.env.gov.bc.ca/wld/documents/wha/RATA_9-032_034_041_073,104_106,144,145_ord.pdf
 ```{r, w9032}
 # Reduce early seral forage. >80 years for 50% of the area; should also provide security cover
 wha_tags<-c('9-049', '9-073',	'9-104',	'9-105', '9-144', '9-145')
@@ -1044,10 +1055,10 @@ DBI::dbWriteTable(conn, c("zone", "wha_2021"), value= df, row.names = FALSE, ove
 dbExecute(conn, "ALTER TABLE zone.wha_2021 ADD column start INT")
 dbExecute(conn, "ALTER TABLE zone.wha_2021 ADD column stop INT")
 dbExecute(conn, "ALTER TABLE zone.wha_2021 ALTER COLUMN denom TYPE VARCHAR;")
-dbExecute(conn, "Alter Table zone.wha_2021 set denom = null where denom is not null;")
-dbExecute(conn, "Alter Table zone.wha_2021 set multi_condition = null where multi_condition is not null;")
-dbExecute(conn, "ALTER TABLE zone.wha_2021 SET start = 0 WHERE start IS not null;")
-dbExecute(conn, "ALTER TABLE zone.wha_2021 SET stop = 250 WHERE stop IS not null;")
+dbExecute(conn, "UPDATE zone.wha_2021 set denom = null where denom is not null;")
+dbExecute(conn, "UPDATE zone.wha_2021 set multi_condition = null where multi_condition is not null;")
+dbExecute(conn, "UPDATE zone.wha_2021 SET start = 0 WHERE start IS not null;")
+dbExecute(conn, "UPDATE zone.wha_2021 SET stop = 250 WHERE stop IS not null;")
 
 dbExecute (conn, paste0("ALTER TABLE zone.wha_2021 INHERIT zone.constraints"))
 
