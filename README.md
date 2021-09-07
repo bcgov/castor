@@ -23,7 +23,7 @@ Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Invento
 ### Contributors
 Mike Fowler, Spatial Data Analyst, Forest Analysis and Inventory Branch, Office of the Chief Forester, Ministry of Forests, Lands, Natural Resource Operations and Rural Development
 
-Cora Skaien, Spatial Data Analyst, Forest Analysis and Inventory Branch, Office of the Chief Forester, Ministry of Forests, Lands, Natural Resource Operations and Rural Development
+Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, Office of the Chief Forester, Ministry of Forests, Lands, Natural Resource Operations and Rural Development
 
 ### Requirements
 The model is coded using the R programming language. Thus, you will need to [download program R](https://cran.r-project.org/bin/windows/base/) to work with the code, but don't worry, it's free, open-source software. We also recommend downloading the free version of [RStudio](https://rstudio.com/products/rstudio/download/), which provides a nice integrated development environment for working with R. 
