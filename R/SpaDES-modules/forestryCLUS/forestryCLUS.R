@@ -422,7 +422,6 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
         
       }
       queue<-data.table(dbGetQuery(sim$clusdb, sql))
-      
       if(nrow(queue) == 0) {
         message("No stands to harvest")
         land_coord <- NULL

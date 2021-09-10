@@ -41,7 +41,7 @@ source(paste0(here::here(), "/R/functions/R_Postgres.R"))
 #aoi_herds<-c("Williams_Lake_TSA")
 #aoi_herds<-c("Quesnel_TSA")
 #aoi_herds<-c("Kamloops_TSA")
-aoi_herds<-c("North" ) # eccc study area "South", "Central"
+aoi_herds<-c("MacKenzie_TSA" ) # eccc study area "South", "Central"
 
 
 #Standard values for scaling rsf
@@ -60,10 +60,10 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list(dbName = 'clus',
                          save_clusdb = FALSE,
-                         nameBoundaryFile = "eccc_smc_aoi_20210329", # "tsa_aac_bounds" 
+                         nameBoundaryFile = "tsa_aac_bounds", # "tsa_aac_bounds" 
                                                             # "bc_caribou_herd_boundary_v20200507" 
                                                             # "eccc_smc_aoi_20210329"
-                         nameBoundaryColumn = "region", # "tsa_name"  "herd_name"  "region"
+                         nameBoundaryColumn = "tsa_name", # "tsa_name"  "herd_name"  "region"
                          nameBoundary = herd,# loop list  
                          nameBoundaryGeom='wkb_geometry'
 
