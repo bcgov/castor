@@ -808,7 +808,7 @@ setZoneConstraints<-function(sim){
         dbCommit(sim$clusdb)
       }
   }else{
-    stop(paste0(P(sim)$nameZoneTable, "...nameZoneTable not supplied"))
+    paste0(P(sim)$nameZoneTable, "...nameZoneTable not supplied. WARNING: your simulation has no zone constraints")
   }
   return(invisible(sim))
 }
