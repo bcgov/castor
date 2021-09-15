@@ -44,7 +44,7 @@ library(pROC)
 source(here::here("R/functions/R_Postgres.R"))
 ```
 
-Bring in the shape file with the coordinates within cutblocks. This data was processed in QGIS, using the consolidated cutblock layer. This data also has the Relevant "Openings data" and "Activity Treatment" appended to it. Inspect data.
+Bring in the shape file with the coordinates within cutblocks. This data was processed in QGIS, using the consolidated cutblock layer. This data also has the Relevant "Openings data" and "Activity Treatment" appended to it. Note, that when selecting points by polygons within Openings and Activity Treatment data sets, often points were duplicated. To fix this issue, we used the "Delete Duplicate Geometries" function in QGIS. Because of limitations with the data, each time we intersect with more RESULTS layers, we lose data. As a result, it is important to consider which factors (and specificiaty) are most important for the analysis as 30-50% of the data is lost when we use the ACTIVITY TREATMENT data as opposed to just the OPENINGS data. 
 
 This link will be very useful for determing what the codes mean:
 https://www.for.gov.bc.ca/hfp/publications/00026/fs708-14-appendix_d.htm#ad_16
@@ -52,20 +52,62 @@ https://www.for.gov.bc.ca/hfp/publications/00026/fs708-14-appendix_d.htm#ad_16
 This may also prove useful:
 https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/silviculture/silviculture-reporting-results/technical-documentation
 
+We have multiple datasets to work with.
 
+#Dataset #1: Clayton Lamb and Garth Mowat data on huckleberry and Buffaloberry
+This data has P/A of plants and of berries, and P/A of fruits and of berries. There is also a measure of sugar content (energetics) and other potentially useful and interesting response variables.
 ```{r}
-#This first file has ALL of the locations within cutblocks
+#This first file has ALL of the locations within cutblocks 
 cutblock_plots<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Plots_in_cutblocks_FINAL.shp", stringsAsFactors = T)
 
-#This second file has openings data from RESULTS already appended in QGIS, but we lose ~30 datapoints.
-cutblock_plots<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Plots_in_cutblocks_OPENINGSdata2.shp", stringsAsFactors = T)
+#This second file has openings data from RESULTS already appended in QGIS, but we lose data
+cutblock_plots_openings<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huck_Buff_Openings_duplicates_removed.shp", stringsAsFactors = T)
+str(cutblock_plots_openings)
 
-st_crs(cutblock_plots)
-plot(cutblock_plots)
-table(cutblock_plots$Site_ID) #Some SiteIDs represented multiple times. May need to inspect to ensure that coordinates are correct for given site ID. Cutblock info for given site_ID is hopefully consistent.
+st_crs(cutblock_plots_openings)
+plot(cutblock_plots_openings)
+table(cutblock_plots_openings$Site_ID) 
+
+#This third file has Openings and Activity Treatment data appended, but we lose even more data
+cutblock_plots_openings_activity<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huck_Buff_Openings_Activity_duplicates_removed.shp", stringsAsFactors = T)
+str(cutblock_plots_openings_activity)
+
+st_crs(cutblock_plots_openings_activity)
+plot(cutblock_plots_openings_activity)
+table(cutblock_plots_openings_activity$Site_ID) 
+```
+
+#Datasets #2: Garth Mowat and new student's data on huckleberry and buffalo berry separately.
+This dataset should have the same features as the above overall, but column names differ and will need to be re-named for binding datasets together.
+
+```{r}
+cutblock_plots_openings_mowatBuff<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Mowat_Buff_Openings_duplicates_removed.shp", stringsAsFactors = T)
+
+cutblock_plots_openings_activity_mowatBuff<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Mowat_Buff_Openings_Activity_duplicates_removed.shp", stringsAsFactors = T)
+```
+
+#Datasets #3: BEC Plots
+This dataset has presence only values for each huckleberry and buffalo berry, and only presents the percent cover of the plant itself (not berries). This can be used best for percent cover models, but because does not have absence values, may be best only to use for percent cover.
+
+
+```{r}
+
+cutblock_plots_openings_BECHuck<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\BEC_huck_Openings_duplicates_removed.shp", stringsAsFactors = T)
+
+cutblock_plots_openings_activity_BECHuck<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\BEC_huck_Openings_Activity_duplicates_removed.shp", stringsAsFactors = T)
+
 ```
 
 
+
+
+
+
+
+
+
+########## Below currently has code for initial dataset. New data not yet appended.
+Inspect each of the data files below.
 ```{r}
 #See if worth losing the data points - i.e., do we have consistent good data within this.
 hist(cutblock_plots$OPEN_GRSAR)

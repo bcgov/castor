@@ -746,7 +746,7 @@ head(rasStackWind)
 str(rasStackWind)
 ```
 
-Extract Wind Values
+Extract Wind Values.
 
 ```{r}
 ##Extract Coordinates
@@ -772,80 +772,127 @@ crs(spread_150_DEM_roads_wind)
 Create more space in R.
 
 ```{r}
-keep(spread_150_DEM_roads_wind, spread_150_DEM_roads_wind_sf, spread_150_DEM_roads_wind_sf_2, spread_500_DEM, spread_150_DEM_roads_wind_sf_2_df, sure = TRUE) # setting sure to TRUE removes variables not in the list
+keep(spread_150_DEM_roads_wind, spread_500_DEM, sure = TRUE) # setting sure to TRUE removes variables not in the list
 
 ls()
 gc(TRUE)
 ```
-
-
 Save data. Note: several errors in saving, could not figure out why. There is a lot of trouble shooting code below for consideration, but none were able to resolve the problem. The same problems existed when I subset the data to a single year (e.g., 2002), so file size is *likely* not the main issue.
 
 ```{r}
 str(spread_150_DEM_roads_wind)
-spread_150_DEM_roads_wind_sf<-st_as_sf(spread_150_DEM_roads_wind)
-head(spread_150_DEM_roads_wind_sf)
-str(spread_150_DEM_roads_wind_sf)
+#spread_150_DEM_roads_wind_sf<-st_as_sf(spread_150_DEM_roads_wind)
+#head(spread_150_DEM_roads_wind_sf)
+#str(spread_150_DEM_roads_wind_sf)
 
 #Because there are a lot of unneeded columns with long paths, remove those and select only the columns of interest.
-spread_150_DEM_roads_wind_sf_2<-select(spread_150_DEM_roads_wind_sf, 'id2','FIRE_NO', 'FIRE_YEAR', 'FIRE_CAUSE','SIZE_HA', 'FIRE_DATE', 'OBJECTID', 'AREA_SQM', 'spread', 'id', 'slope_ha_bc', 'aspect_ha_bc', 'dem_ha_bc', 'roads_km', 'wind_summer_clipped_224', 'wind_spring_raster_224', 'geometry')
-
-str(spread_150_DEM_roads_wind_sf_2)
-
-spread_150_DEM_roads_wind_sf_2b<-st_cast(spread_150_DEM_roads_wind_sf_2, "POINT")
-spread_150_DEM_roads_wind_sf_2c<-st_make_valid(spread_150_DEM_roads_wind_sf_2b)
-str(spread_150_DEM_roads_wind_sf_2c)
+spread_150_DEM_roads_wind_2<-select(spread_150_DEM_roads_wind, 'id2','FIRE_NO', 'FIRE_YEAR', 'FIRE_CAUSE','SIZE_HA', 'FIRE_DATE', 'OBJECTID', 'spread', 'id', 'slope_ha_bc', 'aspect_ha_bc', 'dem_ha_bc', 'roads_km', 'wind_summer_clipped_224', 'wind_spring_raster_224', 'geometry')
 
 
-spread_150_DEM_roads_wind_sf_2c_<-cbind(spread_150_DEM_roads_wind_sf_2c, st_coordinates(spread_150_DEM_roads_wind_sf_2c))
-head(spread_150_DEM_roads_wind_sf_2c_)
+str(spread_150_DEM_roads_wind_2)
+
+#Rename columns
+spread_150_DEM_roads_wind_2<-spread_150_DEM_roads_wind_2 %>% rename(win_sum=wind_summer_clipped_224,
+      win_spr=wind_spring_raster_224,
+      aspect = aspect_ha_bc,
+      slope = slope_ha_bc,
+      elev = dem_ha_bc,
+      fire_cs=FIRE_CAUSE)
 
 
-spread_150_DEM_roads_wind_sf_2d<-data.frame((spread_150_DEM_roads_wind_sf_2c_))
-str(spread_150_DEM_roads_wind_sf_2d)
-
-spread_150_DEM_roads_wind_sf_2d_ = subset(spread_150_DEM_roads_wind_sf_2d, select = -c(geometry) )
-head(spread_150_DEM_roads_wind_sf_2d_)
-
-spread_150_DEM_roads_wind_sf_2e<-st_as_sf(spread_150_DEM_roads_wind_sf_2d_, coords = c("X", "Y"))
-str(spread_150_DEM_roads_wind_sf_2e)
-st_crs(spread_150_DEM_roads_wind_sf_2e)
-
-spread_150_DEM_roads_wind_sf_2e_<- spread_150_DEM_roads_wind_sf_2e %>% st_set_crs(3005)
-st_crs(spread_150_DEM_roads_wind_sf_2e_)
-head(spread_150_DEM_roads_wind_sf_2e_)
-str(spread_150_DEM_roads_wind_sf_2e_)
-
-
-sf::st_write(spread_150_DEM_roads_wind_sf_2e_, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\spread_150_DEM_roads_wind.shp", delete_layer=TRUE)
-
-sf::st_write(spread_150_DEM_roads_wind_sf_2e, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\spread_150_DEM_roads_wind_.shp", delete_layer=TRUE, layer_options = "GEOMETRY=AS_WKT")
-
-sf::st_write(spread_150_DEM_roads_wind_sf_2e, dsn= "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\spread_150_DEM_roads_wind_.shp", delete_layer=TRUE, layer_options = "GEOMETRY=AS_XY")
+sf::st_write(spread_150_DEM_roads_wind_2, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\spread_150_DEM_roads_wind.shp", delete_layer=TRUE)
 
 
 #Save as dataframe as well
-spread_150_DEM_roads_wind_sf_2_df<-data.frame((spread_150_DEM_roads_wind_sf_2))
+spread_150_DEM_roads_wind_2_df<-data.frame((spread_150_DEM_roads_wind_2))
 
-write.csv(spread_150_DEM_roads_wind_sf_2_df, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\spread_150_DEM_roads_wind_df.csv")
-
-write.csv(spread_150_DEM_roads_wind_sf_2d, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\spread_150_DEM_roads_wind_df_.csv")
-
-spread_150_DEM_roads_wind_sf_2f<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\spread_150_DEM_roads_wind_sf_.csv")
-head(spread_150_DEM_roads_wind_sf_2f)
-
-spread_150_DEM_roads_wind_sf_2f$geometry<-paste(spread_150_DEM_roads_wind_sf_2f$geometry, "," , spread_150_DEM_roads_wind_sf_2f$X)
-
-spread_150_DEM_roads_wind_sf_2g<-st_as_sf(spread_150_DEM_roads_wind_sf_2f, sf_column_name = "geometry", wkt="geometry")
-
+write.csv(spread_150_DEM_roads_wind_2_df, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\spread_150_DEM_roads_wind_df.csv")
 
 ```
 
 If you can get the above to work up to this point, the next step will be to bring the data into QGIS with each of the infrastructure layers to determine the distance to each point. Note: with 5.5 million points, this is a LOT of points to determine distance to. This will be a very long procedure, and sub-sampling the data prior to this point may be advisable.
 
-##Performing instead in QGIS
+We may also wish to subsample the burn areas to reduce the number of data points.
 
-Because I could not get the above to save, I have repeated the above process in QGIS. First,I brought in the wind rasters created previously (spring and summer), and then I brought in the DEM layers (slope, aspect and elevation). I used the "Sample Raster Values" function in QGIS to get the values for each of these 5 variables for each point. I then brought in each of the infrastructure layers (dams, natural resource infrastructure, railways, transmission lines, municipalities, mines) to determine the distance to each object, using the NNJoin extension. 
+```{r}
+spread_150_DEM_roads_wind_NOFIRE<-subset(spread_150_DEM_roads_wind_2, spread_150_DEM_roads_wind_2$spread==0)
+
+spread_150_DEM_roads_wind_FIRE<-subset(spread_150_DEM_roads_wind_2, spread_150_DEM_roads_wind_2$spread==1)
+head(spread_150_DEM_roads_wind_FIRE)
+
+#Take half of the fire datapoints, separated by OBJECTID so that we take half of the points from each fire.
+prop<-0.5
+DivideData2 <- createDataPartition(spread_150_DEM_roads_wind_FIRE$OBJECTID, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+
+spread_150_DEM_roads_wind_FIRE_halfpoints <- spread_150_DEM_roads_wind_FIRE[ DivideData2,]
+
+#Combine no fire points with half fire points
+spread_150_DEM_roads_wind_half<-rbind(spread_150_DEM_roads_wind_NOFIRE, spread_150_DEM_roads_wind_FIRE_halfpoints)
+```
+
+
+```{r}
+#Repeat for 20% of points
+prop<-0.2
+DivideData3 <- createDataPartition(spread_150_DEM_roads_wind_FIRE$OBJECTID, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+
+spread_150_DEM_roads_wind_FIRE_20percent <- spread_150_DEM_roads_wind_FIRE[ DivideData3,]
+
+#Combine no fire points with half fire points
+spread_150_DEM_roads_wind_20per<-rbind(spread_150_DEM_roads_wind_NOFIRE, spread_150_DEM_roads_wind_FIRE_20percent)
+
+```
+
+
+```{r}
+#Repeat for 10% of points
+prop<-0.1
+DivideData3 <- createDataPartition(spread_150_DEM_roads_wind_FIRE$OBJECTID, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+
+spread_150_DEM_roads_wind_FIRE_10percent <- spread_150_DEM_roads_wind_FIRE[ DivideData3,]
+
+#Combine no fire points with half fire points
+spread_150_DEM_roads_wind_10per<-rbind(spread_150_DEM_roads_wind_NOFIRE, spread_150_DEM_roads_wind_FIRE_10percent)
+
+```
+
+You may need to remove field "AREA_SQM" and "id" because it has >7 numbers for some fires and this causes many warning messages that tends to crash R over >1 million points.
+
+```{r}
+spread_150_DEM_roads_wind_FIRE_10percent<-select(spread_150_DEM_roads_wind, 'id2','FIRE_NO', 'FIRE_YEAR', 'FIRE_CAUSE','SIZE_HA', 'FIRE_DATE', 'OBJECTID', 'AREA_SQM', 'spread', 'slope_ha_bc', 'aspect_ha_bc', 'dem_ha_bc', 'roads_km', 'wind_summer_clipped_224', 'wind_spring_raster_224', 'geometry')
+```
+
+Attempt to save files.
+
+```{r}
+sf::st_write(spread_150_DEM_roads_wind_10per, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\spread_150_DEM_roads_wind_10per.shp", delete_layer=TRUE)
+
+sf::st_write(spread_150_DEM_roads_wind_20per, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\spread_150_DEM_roads_wind_20per.shp", delete_layer=TRUE)
+
+sf::st_write(spread_150_DEM_roads_wind_half, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\spread_150_DEM_roads_wind_50per.shp", delete_layer=TRUE)
+
+```
+
+Clear the work space, keeping what may be needed.
+
+```{r}
+keep(spread_150_DEM_roads_wind_half, spread_150_DEM_roads_wind_10per, spread_150_DEM_roads_wind_20per, spread_150_DEM_roads_wind_2, sure = TRUE) # setting sure to TRUE removes variables not in the list
+
+ls()
+gc(TRUE)
+```
+
+##Performing instead in QGIS
+The above can be very difficult to save in R, causing many crashes and lack of success. You may wish to repeat the above process in QGIS. Process: First,I brought in the wind rasters created previously (spring and summer), and then I brought in the DEM layers (slope, aspect and elevation). I used the "Sample Raster Values" function in QGIS to get the values for each of these 5 variables for each point. I then brought in each of the infrastructure layers (dams, natural resource infrastructure, railways, transmission lines, municipalities, mines) to determine the distance to each object, using the NNJoin extension. 
 
 ## Now bring data back in
 Regardless of whether the R code above worked for DEM, wind and roads, or if those procedures were performed in QGIS, the subsequent step would be to bring the layer into QGIS to use the NNJoin function to determine the distance to each infrastructure type. Below, we bring this in and manage the data, prior to appending the VRI data.
@@ -859,6 +906,7 @@ head(spread_locations_distances)
 ```
 
 #Update column names
+You will need to update the column names regardless of whether the minimum distance was determined in QGIS or in R below. You can change the names of the columns here if brought back ino R, or you can change the names in QGIS.
 ```{r}
 spread_locations_distances$dist_mun<-spread_locations_distances$distance
 spread_locations_distances$dist_dam <-spread_locations_distances$distance_d
@@ -912,11 +960,54 @@ spread_locations_distances$dist_any_, spread_locations_distances$dist_rail)
 Save the file. Hopefully this works. Because of the risks, I have opted to process and save in QGIS to then save to postgres and append VRI data in postgres next without needing to save one of these large files in R.
 
 ```{r}
-sf::st_write(spread_locations_distances, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Spread_DEM_roads_wind_infra.shp", delete_layer=TRUE)
+sf::st_write(spread_locations_distances, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data.spread.shp", delete_layer=TRUE)
 ```
 
-###### Append VRI data to above data ############
+##Append BEC data
+Because we did not get ClimateBC, we are missing the BEC and Natural Disturbance Type data that our previous data has (for ignition and escape). Therefore, we must append the BEC data to the points. This can be done either with QGIS using the intersect tool, or in R. 
 
+#Save completed file in Postgre. 
+
+```{r}
+#Save to postgre
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data.spread.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data.spread.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+```
+
+
+###### Append VRI data to above data ############
+We will use the previously uploaded VRI files from 2002-2020.
+
+#### Join ignition data to VRI data ####
+Run following query in postgres for all years 2002-2019 except 2007 and 2008. 2020 also has slightly different code. This will need to be done each time new data is generated for random points in file. This below code is fast. Note, there are 5 locations in the below code for which to update the year.
+
+Depending on how the file names most recently saved, some changes may need to be made (e.g., ign_mnt versus ign_month).
+
+CREATE TABLE fire_spread_veg_2002 AS
+(SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
+  harvest_date, proj_age_1, proj_height_1, live_stand_volume_125, stand_percentage_dead, 
+  fire.id2, fire.FIRE_YEAR, fire.fire_cs, fire.SIZE_HA, fire.FIRE_DATE,
+  fire.OBJECTID, fire.spread, fire.id, fire.slope, fire.aspect, fire.elev,
+  fire.roads_km, fire.win_sum, fire.win_spr, fire.dist_mun, fire.dist_dam,
+  fire.dist_nat, fire.dist_pow, fire.dist_mine, fire.dist_any,
+  veg_comp_lyr_r1_poly2002.geometry FROM veg_comp_lyr_r1_poly2002,
+  (SELECT wkb_geometry, id2, FIRE_YEAR, fire_cs, SIZE_HA, FIRE_DATE, OBJECTID, 
+  spread, id, slope, aspect, elev, roads_km, win.sum, win_spr, 
+  # subzone, ntrl_ds, 
+   dist_mun, dist_dam, dist_nat, dist_pow, dist_mine, dist_any 
+   from Data_spread where FIRE_YEAR = '2002') as fire where st_contains
+  (veg_comp_lyr_r1_poly2002.geometry, fire.wkb_geometry))
+
+
+## See specifics of land cover types here: https://www2.gov.bc.ca/assets/gov/environment/natural-resource-stewardship/nr-laws-policy/risc/landcover-02.pdf
+bclcs_level_2: The second level of the BC land cover classification scheme classifies the polygon as to the land cover type:
+   # treed or non-treed for vegetated polygons; land or water for non-vegetated polygons.
+bclcs_level_3: The location of the polygon relative to elevation and drainage, and is described as either alpine, wetland
+   # or upland. In rare cases, the polygon may be alpine wetland.
+bclcs_level_4: Classifies the vegetation types and non-vegetated cover types (as described by the presence of distinct features
+    # upon the land base within the polygon).
+bclcs_level_5: Classifies the vegetation density classes and Non-Vegetated categories.
 
 
 
