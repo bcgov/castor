@@ -190,6 +190,7 @@ createCLUSdb <- function(sim) {
   #dbExecute(sim$clusdb, "PRAGMA foreign_keys = ON;") #Turns the foreign key constraints on. 
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, dec_pcnt numeric, height numeric, eca numeric)")
   #Note Zone table is created as a JOIN with zoneConstraints and zone
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS raster_info (ncell integer, nrow integer)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, denom text, multi_condition text, t_area numeric, start integer, stop integer)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
@@ -234,6 +235,10 @@ setTablesCLUSdb <- function(sim) {
 
     sim$ras[]<-pixels$pixelid
     sim$rasVelo<-velox::velox(sim$ras)
+    
+    #Add the raster_info
+    dbExecute(sim$clusdb, paste0("INSERT INTO raster_info (ncell, nrow) values (", ncell(sim$ras) , ", ", nrow(sim$ras),")"))
+    
     #writeRaster(sim$ras, "ras.tif", overwrite = TRUE)
     
   }else{
