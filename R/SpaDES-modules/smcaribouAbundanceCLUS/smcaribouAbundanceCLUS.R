@@ -120,9 +120,9 @@ Init <- function (sim) {
   setnames(table.disturb, "Core", "core") # make these lower case
   setnames(table.disturb, "Matrix", "matrix")
   
-  table.disturb [, abundance_r50 := exp((r50fe_int + r50re_int) + ((r50fe_core + r50fe_core) * core) + ((r50fe_matrix + r50re_matrix) * matrix))]
-  table.disturb [, abundance_c80r50 := exp((c80r50fe_int + c80r50re_int) + ((c80r50fe_core + c80r50fe_core) * core) + ((c80r50fe_matrix + c80r50re_matrix) * matrix))]
-  table.disturb [, abundance_c80 := exp((c80fe_int + c80re_int) + ((c80fe_core + c80fe_core) * core) + ((c80fe_matrix + c80re_matrix) * matrix))]
+  table.disturb [, abundance_r50 := exp((r50fe_int + r50re_int) + ((r50fe_core + r50fe_core) * core) + (r50fe_matrix * matrix))]
+  table.disturb [, abundance_c80r50 := exp((c80r50fe_int + c80r50re_int) + ((c80r50fe_core + c80r50fe_core) * core) + (c80r50fe_matrix * matrix))]
+  table.disturb [, abundance_c80 := exp((c80fe_int + c80re_int) + ((c80fe_core + c80fe_core) * core) + (c80fe_matrix * matrix))]
   table.disturb [, abundance_avg := (abundance_r50 + abundance_c80r50 + abundance_c80)/3]
   sim$tableAbundanceReport <- table.disturb 
   sim$tableAbundanceReport [, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name, sim$boundaryInfo[[3]]) ] # add the time of the survival calc
@@ -147,9 +147,9 @@ predictAbundance <- function (sim) { # this function calculates survival rate at
   setnames(new_tableAbundanceReport, "Core", "core") # make these lower case
   setnames(new_tableAbundanceReport, "Matrix", "matrix")
   
-  new_tableAbundanceReport [, abundance_r50 := exp((r50fe_int + r50re_int) + ((r50fe_core + r50fe_core) * core) + ((r50fe_matrix + r50re_matrix) * matrix))]
-  new_tableAbundanceReport [, abundance_c80r50 := exp((c80r50fe_int + c80r50re_int) + ((c80r50fe_core + c80r50fe_core) * core) + ((c80r50fe_matrix + c80r50re_matrix) * matrix))]
-  new_tableAbundanceReport [, abundance_c80 := exp((c80fe_int + c80re_int) + ((c80fe_core + c80fe_core) * core) + ((c80fe_matrix + c80re_matrix) * matrix))]
+  new_tableAbundanceReport [, abundance_r50 := exp((r50fe_int + r50re_int) + ((r50fe_core + r50fe_core) * core) + (r50fe_matrix * matrix))]
+  new_tableAbundanceReport [, abundance_c80r50 := exp((c80r50fe_int + c80r50re_int) + ((c80r50fe_core + c80r50fe_core) * core) + (c80r50fe_matrix * matrix))]
+  new_tableAbundanceReport [, abundance_c80 := exp((c80fe_int + c80re_int) + ((c80fe_core + c80fe_core) * core) + (c80fe_matrix * matrix))]
   new_tableAbundanceReport [, abundance_avg := (abundance_r50 + abundance_c80r50 + abundance_c80)/3]
   new_tableAbundanceReport[, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name,sim$boundaryInfo[[3]]) ] # add the time of the calc
   

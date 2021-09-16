@@ -7,6 +7,13 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library (raster)
+library (fasterize)
+library (sf)
+library (DBI)
+library (data.table)
+
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 ```
 
 ### Southern Mountain Caribou Disturbance-Abundance Model
@@ -25,12 +32,6 @@ Here we provide coefficients for 3 of the top 4 models, which include combinatio
 #### Code chunk
 
 ```{r, raster and table creation}
-
-
-
-# TO-DO/CHECK: Matrix random effects? Coefficients for herd size and which are large/small?
-
-
 
 conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
@@ -88,7 +89,7 @@ table.coeffs <- table.coeffs [herd_name == "South_Selkirks", r50re_int := 0]
 table.coeffs <- table.coeffs [herd_name == "Wells_Gray_North", r50re_int := 1.558]
 table.coeffs <- table.coeffs [herd_name == "Wells_Gray_South", r50re_int := 0]
 table.coeffs <- table.coeffs [herd_name == "Redrock_Prairie_Creek", r50re_int := 0]
-#### core 
+#### slopes 
 table.coeffs <- table.coeffs [herd_name ==  "Barkerville", r50re_core := 0.945]
 table.coeffs <- table.coeffs [herd_name ==  "Burnt_Pine", r50re_core := 0]
 table.coeffs <- table.coeffs [herd_name ==  "Graham", r50re_core := 0]
@@ -117,35 +118,6 @@ table.coeffs <- table.coeffs [herd_name ==  "South_Selkirks", r50re_core := 0]
 table.coeffs <- table.coeffs [herd_name ==  "Wells_Gray_North", r50re_core := -0.146]
 table.coeffs <- table.coeffs [herd_name ==  "Wells_Gray_South", r50re_core := 0]
 table.coeffs <- table.coeffs [herd_name ==  "Redrock_Prairie_Creek", r50re_core := 0]
-####  TO-DO
-table.coeffs <- table.coeffs [herd_name ==  "Barkerville", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Burnt_Pine", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Graham", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Groundhog", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Moberly", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Monashee", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Narraway", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Central_Rockies", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Quintette", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Rainbows", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Telkwa", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Tweedsmuir", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Narrow_Lake", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Itcha_Ilgachuz", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Central_Selkirks", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Charlotte_Alplands", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Columbia_North", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Columbia_South", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Frisby_Boulder", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Hart_Ranges", r50re_matrix := -0] 
-table.coeffs <- table.coeffs [herd_name ==  "Kennedy_Siding", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "North_Cariboo", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Purcell_Central", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Purcells_South", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "South_Selkirks", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Wells_Gray_North", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Wells_Gray_South", r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Redrock_Prairie_Creek", r50re_matrix := 0]
 
 ### C80R50
 #### intercepts
@@ -177,7 +149,7 @@ table.coeffs <- table.coeffs [herd_name == "South_Selkirks", c80r50re_int := 0]
 table.coeffs <- table.coeffs [herd_name == "Wells_Gray_North", c80r50re_int := 1.013]
 table.coeffs <- table.coeffs [herd_name == "Wells_Gray_South", c80r50re_int := 0]
 table.coeffs <- table.coeffs [herd_name == "Redrock_Prairie_Creek", c80r50re_int := 0]
-#### 
+#### slopes
 table.coeffs <- table.coeffs [herd_name ==  "Barkerville", c80r50re_core := 0.380]
 table.coeffs <- table.coeffs [herd_name ==  "Burnt_Pine", c80r50re_core := 0]
 table.coeffs <- table.coeffs [herd_name ==  "Graham", c80r50re_core := 0]
@@ -206,35 +178,7 @@ table.coeffs <- table.coeffs [herd_name ==  "South_Selkirks", c80r50re_core := 0
 table.coeffs <- table.coeffs [herd_name ==  "Wells_Gray_North", c80r50re_core := 0.019]
 table.coeffs <- table.coeffs [herd_name ==  "Wells_Gray_South", c80r50re_core := 0]
 table.coeffs <- table.coeffs [herd_name ==  "Redrock_Prairie_Creek", c80r50re_core := 0]
-####  TO-DO
-table.coeffs <- table.coeffs [herd_name ==  "Barkerville", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Burnt_Pine", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Graham", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Groundhog", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Moberly", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Monashee", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Narraway", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Central_Rockies", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Quintette", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Rainbows", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Telkwa", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Tweedsmuir", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Narrow_Lake", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Itcha_Ilgachuz", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Central_Selkirks", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Charlotte_Alplands", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Columbia_North", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Columbia_South", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Frisby_Boulder", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Hart_Ranges", c80r50re_matrix := -0] 
-table.coeffs <- table.coeffs [herd_name ==  "Kennedy_Siding", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "North_Cariboo", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Purcell_Central", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Purcells_South", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "South_Selkirks", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Wells_Gray_North", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Wells_Gray_South", c80r50re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Redrock_Prairie_Creek", c80r50re_matrix := 0]
+
 
 ### C80
 #### intercepts
@@ -266,7 +210,7 @@ table.coeffs <- table.coeffs [herd_name == "South_Selkirks", c80re_int := 0]
 table.coeffs <- table.coeffs [herd_name == "Wells_Gray_North", c80re_int := 1.027]
 table.coeffs <- table.coeffs [herd_name == "Wells_Gray_South", c80re_int := 0]
 table.coeffs <- table.coeffs [herd_name == "Redrock_Prairie_Creek", c80re_int := 0]
-#### 
+#### slopes
 table.coeffs <- table.coeffs [herd_name ==  "Barkerville", c80re_core := 0.454]
 table.coeffs <- table.coeffs [herd_name ==  "Burnt_Pine", c80re_core := 0]
 table.coeffs <- table.coeffs [herd_name ==  "Graham", c80re_core := 0]
@@ -295,35 +239,6 @@ table.coeffs <- table.coeffs [herd_name ==  "South_Selkirks", c80re_core := 0]
 table.coeffs <- table.coeffs [herd_name ==  "Wells_Gray_North", c80re_core := 0.041]
 table.coeffs <- table.coeffs [herd_name ==  "Wells_Gray_South", c80re_core := 0]
 table.coeffs <- table.coeffs [herd_name ==  "Redrock_Prairie_Creek", c80re_core := 0]
-####  TO-DO
-table.coeffs <- table.coeffs [herd_name ==  "Barkerville", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Burnt_Pine", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Graham", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Groundhog", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Moberly", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Monashee", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Narraway", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Central_Rockies", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Quintette", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Rainbows", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Telkwa", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Tweedsmuir", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Narrow_Lake", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Itcha_Ilgachuz", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Central_Selkirks", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Charlotte_Alplands", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Columbia_North", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Columbia_South", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Frisby_Boulder", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Hart_Ranges", c80re_matrix := -0] 
-table.coeffs <- table.coeffs [herd_name ==  "Kennedy_Siding", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "North_Cariboo", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Purcell_Central", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Purcells_South", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "South_Selkirks", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Wells_Gray_North", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Wells_Gray_South", c80re_matrix := 0]
-table.coeffs <- table.coeffs [herd_name ==  "Redrock_Prairie_Creek", c80re_matrix := 0]
 
 # Create the Raster
 prov.rast <- raster::raster ( # standardized provincial raster with no data in it
