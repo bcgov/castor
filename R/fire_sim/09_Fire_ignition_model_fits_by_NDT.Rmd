@@ -837,7 +837,9 @@ dat_person$vegtype2[which(dat_person$bclcs_level_5_2 =="UR")]<-"UR" #
 table(dat_person$vegtype2) #SI category is too small. Combine with Rock.
 dat_person$vegtype2[dat_person$vegtype2=="SI"] <- "RO"
 
-#We still have discrepenacies between open and dense in vegtype (derived from bclcs_level_4) and bclcs_level_5. Play them out for now.
+#We still have discrepancies between open and dense in vegtype (derived from bclcs_level_4) and bclcs_level_5. Play them out for now.
+
+head(dat_person)
 
 ```
 
@@ -911,7 +913,7 @@ head(dat_lightning_t)
 ## Examining correlation between stand level variables
 ```{r}
 # Examining the relationship between some stand level variables. Volume and height are fairly correlated (0.67) but age and volume are not (0.28) and neither are age and height (0.44). Because volume and height are very close to 0.7 in correlation I will leave out this combination of variables from my treed models. 
-dat_person<-dat_person_
+dat_person_<-dat_person
 
 table(dat_person_$bclcs_level_2) ##What is L? It is Land, exclude and do not use.
 dat_person_$fire_pres<-as.numeric(dat_person_$fire)
@@ -923,6 +925,7 @@ dat_person_l<- dat_person_ %>% dplyr::filter(bclcs_level_2=="L")
 table(dat_person_$vegtype)
 table(dat_person_t$vegtype) #either disturbed, open, treed broadleaf, treed conifer, or treed mixed broadleaf and conifer
 table(dat_person_nt$vegtype) #either disturbed, open or shrub
+table(dat_person_$vegtype2)
 
 ggscatter(dat_person_t, x = "live_stand_volume_125", y = "proj_age_1", 
           add = "reg.line", conf.int = TRUE, 
@@ -1731,11 +1734,11 @@ variables_clim_VRI_NDT4<-c(climate1 = "climate1", climate2 = "climate2", vegtype
 #treat slope, aspect and elevation as their own thing.And we have already done this analysis with them.
 #slope = "slope", aspect = "aspect", elevation ="elevation")
 
-variables_all_infra_landuse_NDT4<-c(dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_any = "dist_any", bclcs_level_5_2 = "bclcs_level_5_2")
+variables_all_infra_landuse_NDT4<-c(dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_any = "dist_any", bclcs_level_5_2 = "bclcs_level_5_2") #I don't think it makes sense to have interactions between the distance elements, but maybe with land use and each distance element?
 
 ##
 inputs.me.NDT4 <- c(variables_all_NDT4)
-inputs.me.clim_VRI_DEM_NDT4 <- c(variables_clim_VRI_DEM_NDT4)
+#inputs.me.clim_VRI_DEM_NDT4 <- c(variables_clim_VRI_DEM_NDT4)
 inputs.me.clim_VRI_NDT4 <- c(variables_clim_VRI_NDT4)
 inputs.me.infra_landuse_NDT4 <- c(variables_all_infra_landuse_NDT4)
 
@@ -1761,6 +1764,8 @@ rm(dat_lightning___, dat_Disturbed, dist.cut.corr, filenames, fire_veg_data_B, f
 
 Now, we will generate two-way interactions for each of these lists. We cannot make two-way interactions between them all because apparently it will be >2 GB in size.  
 
+
+DO NOT RUN THIS NEXT CHUNK! The mods.twoway.NDT4 is >2 GB and will not run successfully. You will likely need to skip to the subsequent chunk.
 ```{r}
 twoway.ints <- NULL
 for (i in 1:(length(inputs.me.NDT4)-1)) {
@@ -1769,7 +1774,7 @@ for (i in 1:(length(inputs.me.NDT4)-1)) {
   }
 }
 twoway.ints
-length(twoway.ints) #91 two-way interactions with all distances to infrastructure; 45 with only dist_any
+length(twoway.ints) #45
 
 #Create function to determine Powerset for any vector of variable names
 ## or use rje package
@@ -1791,14 +1796,18 @@ for (i in 1: length(mods.me.tmp)) {
 }
 
 mods.me.NDT4
-length(mods.me.NDT4) #16384 with all distance to infrastructure; 1024 with only dist_any
+length(mods.me.NDT4) #1024 with only dist_any
 
-
+## DO NOT RUN BELOW ####
 #complete list of two-way interactions
 mods.twoway.NDT4 <- powerSet(twoway.ints) #Too large > 2 GB, so cannot perform, with all distances to infrastructure; also too large for smaller subset of data.
 length(mods.twoway.NDT4) #
 mods.twoway.NDT4
+```
 
+Actually skip to chunk after this one, unless you go back and add DEM back in... but it will also be > 2 GB and unable to write.
+
+```{r}
 
 ###########Try with subset: ############## 
 twoway.ints <- NULL
@@ -1856,8 +1865,10 @@ for (i in 1: length(mods.twoway.NDT4)) {
 
 length(mods.inter.NDT4)
 mods.inter.NDT4
+```
 
-
+RUN FROM HERE
+```{r}
 ####Reduce further; remove DEM
 twoway.ints <- NULL
 for (i in 1:(length(inputs.me.clim_VRI_NDT4)-1)) {
@@ -1895,7 +1906,7 @@ length(mods.me.clim_VRI_NDT4) #32
 
 #complete list of two-way interactions
 mods.twoway.NDT4 <- powerSet(twoway.ints) # Works now!
-length(mods.twoway.NDT4) #
+length(mods.twoway.NDT4) #1024
 mods.twoway.NDT4
 
 #Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
@@ -1912,7 +1923,7 @@ for (i in 1: length(mods.twoway.NDT4)) {
    }
 }
 
-length(mods.inter.NDT4) #1450
+length(mods.inter.NDT4) #1450: this number is manageable for analyses
 mods.inter.NDT4
 
 ##Subset 2: Infrastructure and land use ########
@@ -1925,6 +1936,11 @@ for (i in 1:(length(inputs.me.infra_landuse_NDT4)-1)) {
 }
 twoway.ints
 length(twoway.ints) #15
+#Review. If we do not want interactions between the different distance measurements, but only those between land use and distance, subset those.
+twoway.ints
+twoway.ints_dist<-twoway.ints[c(5,9,12,14,15)]
+twoway.ints_dist
+
 
 #Create function to determine Powerset for any vector of variable names
 ## or use rje package
@@ -1949,11 +1965,11 @@ mods.me.infra_landuse_NDT4
 length(mods.me.infra_landuse_NDT4) #64
 
 
-##Continue from here
-
 #complete list of two-way interactions
 mods.twoway.NDT4b <- powerSet(twoway.ints) #
-length(mods.twoway.NDT4b) #
+#Or use subset of interactions
+mods.twoway.NDT4b <- powerSet(twoway.ints_dist) 
+length(mods.twoway.NDT4b) #32768 if use all interactions; 32 if use subset
 mods.twoway.NDT4b
 
 #Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
@@ -1970,14 +1986,15 @@ for (i in 1: length(mods.twoway.NDT4b)) {
    }
 }
 
-length(mods.inter.NDT4b) #40069
+length(mods.inter.NDT4b) #40069 if use all interactions - this is too many to handle; 275 with subset of interactions
 mods.inter.NDT4b
+```
 
+Make final list of variables to assess.
 
+```{r}
+## 1. climate and VRI
 #the list of all possible model RHSs. 
-#all.poss.mods <- c(1, vars.clim, twoway.ints, mods.me.oth, mods.me2, mods.inter2)
-#all.poss.mods
-
 all.poss.mods.clim_VRI_NDT4<-c(1, mods.me.clim_VRI_NDT4, mods.inter.NDT4)
 all.poss.mods.clim_VRI_NDT4
 length(mods.me.clim_VRI_NDT4) #32
@@ -1991,7 +2008,8 @@ duplicated(all.poss.mods.clim_VRI_NDT4) #Need to remove #33-63
 all.poss.mods.clim_VRI_NDT4b<-all.poss.mods.clim_VRI_NDT4[-(33:63)]
 duplicated(all.poss.mods.clim_VRI_NDT4b) 
 
-##
+
+##2. Infrastructure and land use
 all.poss.mods.infra_landuse_NDT4<-c(1,mods.me.infra_landuse_NDT4, mods.inter.NDT4b)
 
 ##Check and rid of any duplicated models
@@ -2002,6 +2020,19 @@ all.poss.mods.infra_landuse_NDT4b[2]
 all.poss.mods.infra_landuse_NDT4b<-all.poss.mods.infra_landuse_NDT4b[-2] #There is probably another one that needs removing...
 all.poss.mods.infra_landuse_NDT4[66] #It was removed! Yay!
 duplicated(all.poss.mods.infra_landuse_NDT4b)
+
+###########Using a subset of interactions interactions
+all.poss.mods.infra_landuse_NDT4<-c(1,mods.me.infra_landuse_NDT4, mods.inter.NDT4b)
+
+##Check and rid of any duplicated models
+duplicated(all.poss.mods.infra_landuse_NDT4) #Need to remove #66-119
+all.poss.mods.infra_landuse_NDT4b<-all.poss.mods.infra_landuse_NDT4[-(66:128)]
+duplicated(all.poss.mods.infra_landuse_NDT4b) 
+all.poss.mods.infra_landuse_NDT4b[2]
+all.poss.mods.infra_landuse_NDT4b<-all.poss.mods.infra_landuse_NDT4b[-2] #There is probably another one that needs removing...
+duplicated(all.poss.mods.infra_landuse_NDT4b)
+length(all.poss.mods.infra_landuse_NDT4b)#276
+
 
 #If need to determine which ones are character(0), try this:
 biglist <- list(list("A","B","C"), "foo", "", character(0), integer(0))
@@ -2018,11 +2049,8 @@ lapply(biglist, all.poss.mods.infra_landuse_NDT4b {length(all.poss.mods.infra_la
 ```
 
 
-
-
-
-
 #all.poss.mods.clim_VRI_NDT4b
+We cannot run the model 100 times without R crashing. Instead, we will run it 25 times, then save the output, then run that another 3 times (for a total of 100 runs). Then we will combine all 100 runs, and calculate the deltaAIC from that.
 
 ```{r}
 zones1<-"NDT4"
@@ -2032,7 +2060,7 @@ table.glm.clim_VRI.simple <- data.frame (matrix (ncol = 5, nrow = 0))
 colnames (table.glm.clim_VRI.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT")
 
 #
-for (g in 1:100){
+for (g in 1:25){
 
 for (h in 1:length(zones1)) {
   dat2<- dat_lightning_t %>% dplyr::filter(ntrl_ds ==zones1[h])
@@ -2089,13 +2117,42 @@ table.glm.clim_VRI.simple<-rbind(table.glm.clim_VRI.simple, tab.sum.clim_VRI)
 }
 ```
 
-Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination.
+For the below chunks, they will need to be run in specific order, with repeating the previous chunk in between. DO NOT RUN THIS CHUNK MORE THAN ONCE! RUN EACH ONE ONCE, AFTER EACH SUBSEQUENT RUN OF THE ABOVE.
 
 ```{r}
-head(table.glm.NDT4a.simple)
-table(table.glm.NDT4a.simple$model) # 100 per model
+table.glm.clim_VRI.simple_run1<-table.glm.clim_VRI.simple
+head(table.glm.clim_VRI.simple_run1)
+```
 
-AIC_lightning_NDT4_treed_clim_VRI<-table.glm.NDT4a.simple
+STOP! RUN the model x25 again.
+```{r}
+table.glm.clim_VRI.simple_run2<-table.glm.clim_VRI.simple
+head(table.glm.clim_VRI.simple_run2)
+```
+
+STOP! RUN the model x25 again.
+```{r}
+table.glm.clim_VRI.simple_run3<-table.glm.clim_VRI.simple
+```
+
+STOP! RUN the model x25 again.
+```{r}
+table.glm.clim_VRI.simple_run4<-table.glm.clim_VRI.simple
+```
+
+Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination. First, combine the 4 runs back together.
+
+```{r}
+table.glm.clim_VRI.simple<-rbind(table.glm.clim_VRI.simple_run1, table.glm.clim_VRI.simple_run2, table.glm.clim_VRI.simple_run3, table.glm.clim_VRI.simple_run4)
+```
+
+Now determine deltaAIC.
+
+```{r}
+head(table.glm.clim_VRI.simple)
+table(table.glm.clim_VRI.simple$model) # 100 per model
+
+AIC_lightning_NDT4_treed_clim_VRI<-table.glm.clim_VRI.simple
 
 AIC_lightning_NDT4_treed_summary_clim_VRI<- AIC_lightning_NDT4_treed_clim_VRI %>%
   group_by(model) %>%
@@ -2110,17 +2167,23 @@ AIC_lightning_NDT4_treed_summary_clim_VRI2<- AIC_lightning_NDT4_treed_summary_cl
 head(AIC_lightning_NDT4_treed_summary_clim_VRI2)
 ```
 
+Save file.
+```{r}
+write.csv(AIC_lightning_NDT4_treed_summary_clim_VRI2, file="D:\\Fire\\fire_data\\raw_data\\AIC_lightning_NDT4_treed_summary_clim_VRI2.csv")
+```
+
+#Assessing models, all had low AUC (~0.55), so these models are barely performing better than 50-50.
 
 #Now repeat for all.poss.mods.infra_landuse_NDT4b
 
 ```{r}
-########### 4. Distance to Infrastructure ############
+########### 2. Distance to Infrastructure ############
 #Create empty table
 table.glm.infra.lu.simple <- data.frame (matrix (ncol = 5, nrow = 0))
 colnames (table.glm.infra.lu.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT")
 
 #
-for (g in 1:100){
+for (g in 1:25){
 
 for (h in 1:length(zones1)) {
   dat2<- dat_lightning_t %>% dplyr::filter(ntrl_ds ==zones1[h])
@@ -2179,11 +2242,47 @@ table.glm.infra.lu.simple<-rbind(table.glm.infra.lu.simple, tab.sum.infra.lu)
 
 Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination.
 
-```{r}
-head(table.glm.infra.simple)
-table(table.glm.infra.simple$model) # 100 per model
+For the below chunks, they will need to be run in specific order, with repeating the previous chunk in between. DO NOT RUN THIS CHUNK MORE THAN ONCE! RUN EACH ONE ONCE, AFTER EACH SUBSEQUENT RUN OF THE ABOVE.
 
-AIC_lightning_NDT4_treed_infra<-table.glm.infra.simple
+```{r}
+#Check that it ran correctly
+table.glm.infra.lu.simple
+
+table.glm.infra.lu.simple_run1<-table.glm.infra.lu.simple
+head(table.glm.infra.lu.simple_run1)
+
+```
+
+STOP! RUN the model x25 again.
+```{r}
+table.glm.infra.lu.simple_run2<-table.glm.infra.lu.simple
+head(table.glm.infra.lu.simple_run2)
+```
+
+STOP! RUN the model x25 again.
+```{r}
+table.glm.infra.lu.simple_run3<-table.glm.infra.lu.simple
+head(table.glm.infra.lu.simple_run3)
+```
+
+STOP! RUN the model x25 again.
+```{r}
+table.glm.infra.lu.simple_run4<-table.glm.infra.lu.simple
+```
+
+Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination. First, combine the 4 runs back together.
+
+```{r}
+table.glm.infra.lu.simple<-rbind(table.glm.infra.lu.simple_run1, table.glm.infra.lu.simple_run2, table.glm.infra.lu.simple_run3, table.glm.infra.lu.simple_run4)
+```
+
+Now determine deltaAIC.
+
+```{r}
+head(table.glm.infra.lu.simple)
+table(table.glm.infra.lu.simple$model) # 100 per model
+
+AIC_lightning_NDT4_treed_infra<-table.glm.infra.lu.simple
 
 AIC_lightning_NDT4_treed_summary_infra<- AIC_lightning_NDT4_treed_infra %>%
   group_by(model) %>%
@@ -2197,6 +2296,327 @@ AIC_lightning_NDT4_treed_summary_infra2<- AIC_lightning_NDT4_treed_summary_infra
 
 head(AIC_lightning_NDT4_treed_summary_infra2)
 ```
+
+Save to computer.
+
+```{r}
+write.csv(AIC_lightning_NDT4_treed_summary_infra2, file="D:\\Fire\\fire_data\\raw_data\\AIC_lightning_NDT4_treed_summary_infra.csv")
+```
+
+##Top variables
+1. Top models have live_stand_volume and proj_height with various combinations of interactions with climate 1 and climate 2. Vegtype 2 is not included, but this is important. So we should explore interactions between climate 1, climate 2, live stand volume and projected age, and add vegtype 2 with no interactions separately.
+
+2. Infrastructure and landuse: distance to any and distance to municipality best model. Land use not found important, but I think it is useful to have in model. Try full model with these 3 variables first. AUC low for all (<0.57). No interactions found to be important.
+
+3. DEM: slope + aspect + elevation + slope:aspect was the top model. Include elements of these in but not interactions with other variables unless we have a reason to expect an interaction (perhaps try landuse*elevation, for example; or with slope or aspect)
+
+Create variable lists.
+
+```{r}
+##Create variable lists to be used in the model loop.
+variables_all_NDT4<-c(climate1 = "climate1", climate2 = "climate2", vegtype2 = "vegtype2", proj_height_1 = "proj_height_1", live_stand_volume_125 = "live_stand_volume_125", slope = "slope", aspect = "aspect", elevation ="elevation", dist_mun = "dist_mun", dist_any = "dist_any", bclcs_level_5_2 = "bclcs_level_5_2", slope = "slope", aspect = "aspect", elevation ="elevation")
+
+#Too many permutations to be able to include two-way interactions and all possible models, so need to divide into what we think may have interactions and which not.
+variables_clim_VRI_NDT4<-c(climate1 = "climate1", climate2 = "climate2", proj_height_1 = "proj_height_1", live_stand_volume_125 = "live_stand_volume_125")
+
+variables_DEM_NDT4<-c(slope = "slope", aspect = "aspect", elevation ="elevation")
+
+#treat slope, aspect and elevation as their own thing.And we have already done this analysis with them.
+#slope = "slope", aspect = "aspect", elevation ="elevation")
+
+##
+inputs.me.NDT4 <- c(variables_all_NDT4)
+#inputs.me.clim_VRI_DEM_NDT4 <- c(variables_clim_VRI_DEM_NDT4)
+inputs.me.clim_VRI_NDT4 <- c(variables_clim_VRI_NDT4)
+inputs.me.DEM_NDT4 <- c(variables_DEM_NDT4)
+
+```
+
+Form for full model given above constraints.
+
+```{r}
+twoway.ints <- NULL
+for (i in 1:(length(inputs.me.clim_VRI_NDT4)-1)) {
+  for (j in (i+1):length(inputs.me.clim_VRI_NDT4)) {
+     twoway.ints <- cbind(twoway.ints, paste(inputs.me.clim_VRI_NDT4[i], inputs.me.clim_VRI_NDT4[j], sep=":"))
+  }
+}
+twoway.ints
+length(twoway.ints) #6
+
+
+twoway.ints.DEM <- NULL
+for (i in 1:(length(inputs.me.DEM_NDT4)-1)) {
+  for (j in (i+1):length(inputs.me.DEM_NDT4)) {
+     twoway.ints.DEM <- cbind(twoway.ints.DEM, paste(inputs.me.DEM_NDT4[i], inputs.me.DEM_NDT4[j], sep=":"))
+  }
+}
+twoway.ints.DEM #3
+length(twoway.ints.DEM) #3
+
+#Create function to determine Powerset for any vector of variable names
+## or use rje package
+#powerSet <- function(x) {
+#   z.list <- NULL
+#   for(i in 1:length(x)) {
+#      z.list <- append(z.list, combn(x, m=i, simplify=F))
+#   }    
+#   return(z.list)
+#}
+
+#Get variables on own and all possible combinations
+#complete list of models using all variables
+mods.me.tmp <- powerSet(variables_all_NDT4) 
+#add climate vars to all of the above
+mods.me_NDT4 <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.me_NDT4[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.me_NDT4
+length(mods.me_NDT4) #16384
+
+
+#complete list of two-way interactions
+mods.twoway.NDT4.a <- powerSet(twoway.ints) 
+length(mods.twoway.NDT4.a) #64
+mods.twoway.NDT4.a
+
+mods.twoway.NDT4.b <- powerSet(twoway.ints.DEM) 
+length(mods.twoway.NDT4.b) #8
+mods.twoway.NDT4.b
+
+mods.twoway.NDT4<-c(mods.twoway.NDT4.a, mods.twoway.NDT4.b)
+mods.twoway.NDT4
+length(mods.twoway.NDT4) #72
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+mods.inter.NDT4 <- list()
+counter <- 0
+for (i in 1: length(mods.twoway.NDT4)) {
+   s1 <- unique(unlist( strsplit(mods.twoway.NDT4[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.me_NDT4)) {
+      if (all(s1 %in% mods.me_NDT4[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.me_NDT4[[j]], mods.twoway.NDT4[[i]])
+        mods.inter.NDT4[[counter]] <- both
+      }
+   }
+}
+
+length(mods.inter.NDT4) #187392.... very large...
+mods.inter.NDT4
+
+```
+
+Make final list of variables to assess.
+
+```{r}
+## 1. climate and VRI
+#the list of all possible model RHSs. 
+all.poss.mods.NDT4<-c(1, mods.me_NDT4, mods.inter.NDT4)
+all.poss.mods.NDT4
+length(all.poss.mods.NDT4) #203,777
+#all.poss.mods.clim_VRI_NDT4<-all.poss.mods.clim_VRI_NDT4[-34]
+#all.poss.mods.clim_VRI_NDT4<-all.poss.mods.clim_VRI_NDT4[-2] #Use this line only if there is an odd character(0) added to list
+length(mods.me_NDT4)
+all.poss.mods.NDT4[16386]
+all.poss.mods.NDT4<-all.poss.mods.NDT4[-16386]
+all.poss.mods.NDT4[2]
+all.poss.mods.NDT4<-all.poss.mods.NDT4[-2]
+
+##Check and rid of any duplicated models
+duplicated(all.poss.mods.NDT4) #
+
+
+
+#If need to determine which ones are character(0), try this:
+biglist <- list(list("A","B","C"), "foo", "", character(0), integer(0))
+lapply(biglist, function(x) {length(x) == 0L} ) 
+
+#Below does not work
+lapply(biglist, all.poss.mods.infra_landuse_NDT4b {length(all.poss.mods.infra_landuse_NDT4b) == 0L} )
+
+```
+
+#Run model selection
+Because there are nearly 200,000 models to go through each time, we will do only 2 rounds at a time. 5 was too many.
+##Need to determine which ones are character(0) before proceeding.
+
+```{r}
+########### Full Model ############
+zones1<-"NDT4"
+prop<-0.75
+
+#Create empty table
+table.glm.NDT4.simple <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.NDT4.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+#
+for (g in 1:2){
+
+for (h in 1:length(zones1)) {
+  dat2<- dat_lightning_t %>% dplyr::filter(ntrl_ds ==zones1[h])
+
+#for (i in 1: length(all.poss.mods.infra)){
+#  print(paste((all.poss.mods.infra[i]), (zones1[h]), sep=" "))
+  
+for (i in 1: length(zones1)){
+  print(paste((all.poss.mods.NDT4[i]), (zones1[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(fire_pres, fire_veg, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(fire_pres, fire_veg, !!variables_all_NDT4)
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$fire_veg, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- model_dat[ trainIndex,]
+   Valid <- model_dat[-trainIndex,]
+
+big.mod <- function(mods.in, df.train, df.test, dep.var="fire_pres") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.NDT4, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4$NDT<-c("NDT4")
+tab.sum.NDT4 
+
+table.glm.NDT4.simple<-rbind(table.glm.NDT4.simple, tab.sum.NDT4)
+
+}
+}
+}
+```
+
+Now that we have run the model 5 times, we want the average AIC and AUC for each variable combination. Save the first round, but consider doing more than 5 runds, depending on how long it takes to run.
+
+
+Now determine deltaAIC.
+
+```{r}
+head(table.glm.NDT4.simple)
+table(table.glm.NDT4.simple$model) # 5 per model
+
+AIC_lightning_NDT4_treed_<-table.glm.NDT4.simple
+
+AIC_lightning_NDT4_treed_summary_<- AIC_lightning_NDT4_treed_ %>%
+  group_by(model) %>%
+  summarise(meanAIC=mean(aic),
+            meanAUC=mean(auc.valid),
+            sdAUC=sd(auc.valid),
+            )
+
+AIC_lightning_NDT4_treed_summary_2<- AIC_lightning_NDT4_treed_summary_ %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+head(AIC_lightning_NDT4_treed_summary_2)
+```
+
+Save to computer.
+
+```{r}
+write.csv(AIC_lightning_NDT4_treed_summary_2, file="D:\\Fire\\fire_data\\raw_data\\AIC_lightning_NDT4_treed_summary.csv")
+```
+
+
+For the below chunks, they will need to be run in specific order, with repeating the previous chunk in between. DO NOT RUN THIS CHUNK MORE THAN ONCE! RUN EACH ONE ONCE, AFTER EACH SUBSEQUENT RUN OF THE ABOVE.
+
+```{r}
+#Check that it ran correctly
+table.glm.NDT4.simple
+
+table.glm.NDT4.simple_run1<-table.glm.NDT4.simple
+head(table.glm.NDT4.simple_run1)
+
+```
+
+STOP! RUN the model x25 again.
+```{r}
+table.glm.NDT4.simple_run2<-table.glm.NDT4.simple
+head(table.glm.NDT4.simple_run2)
+```
+
+STOP! RUN the model x25 again.
+```{r}
+table.glm.NDT4.simple_run3<-table.glm.NDT4.simple
+head(table.glm.NDT4.simple_run3)
+```
+
+STOP! RUN the model x25 again.
+```{r}
+table.glm.NDT4.simple_run4<-table.glm.NDT4.simple
+```
+
+Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination. First, combine the 4 runs back together.
+
+```{r}
+table.glm.NDT4.simple<-rbind(table.glm.NDT4.simple_run1, table.glm.NDT4.simple_run2, table.glm.NDT4.simple_run3, table.glm.NDT4.simple_run4)
+```
+
+Now determine deltaAIC.
+
+```{r}
+head(table.glm.NDT4.simple)
+table(table.glm.NDT4.simple$model) # 100 per model
+
+AIC_lightning_NDT4_treed_<-table.glm.NDT4.simple
+
+AIC_lightning_NDT4_treed_summary_<- AIC_lightning_NDT4_treed_ %>%
+  group_by(model) %>%
+  summarise(meanAIC=mean(aic),
+            meanAUC=mean(auc.valid),
+            sdAUC=sd(auc.valid),
+            )
+
+AIC_lightning_NDT4_treed_summary_2<- AIC_lightning_NDT4_treed_summary_ %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+head(AIC_lightning_NDT4_treed_summary_2)
+```
+
+Save to computer.
+
+```{r}
+write.csv(AIC_lightning_NDT4_treed_summary_2, file="D:\\Fire\\fire_data\\raw_data\\AIC_lightning_NDT4_treed_summary.csv")
+```
+
+
+
+
+
+
+
+
+```{r}
+
+```
+
+
+
+
+
 
 #Now combine the datatables and save to computer
 
