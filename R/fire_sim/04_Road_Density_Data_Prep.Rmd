@@ -93,7 +93,7 @@ ggplot() +
 Now, we need to buffer each point from the sample_locations_DEM file by 0.564 km or 564 m to get a 1 km^2 area. Once we have this buffer, we can then perform an intersect to determine how many km of road we have per km^2 of area for each data point. This will involve summing over multiple rows because each road segment will create a new row within the dataframe but the same polygon id may appear multiple times.
 
 ```{r}
-sample_locations_DEM_buf<- st_buffer(sample_locations_DEM, 564) #Set the buffer to 564 m to get a circle with a raious of 564 m and an area of 1 km2
+sample_locations_DEM_buf<- st_buffer(sample_locations_DEM, 564) #Set the buffer to 564 m to get a circle with a radius of 564 m and an area of 1 km2
 
 crs(sample_locations_DEM_buf)
 head(sample_locations_DEM_buf) #Note, now these are polygon features instead of point features because we have buffers.
@@ -113,7 +113,7 @@ roads_100ha_buffers<-st_intersection(sample_locations_DEM_buf, roads_layer)
 head(roads_100ha_buffers)
 table(roads_100ha_buffers$idno) #Quick inspection to see that multiple roads do indeed return multiple reports for each idno
 
-#Check what the distirbution of shape length is
+#Check what the distribution of shape length is
 hist(roads_100ha_buffers$shape_length)
 mean(roads_100ha_buffers$shape_length) #Mean shape length is 548 m
 

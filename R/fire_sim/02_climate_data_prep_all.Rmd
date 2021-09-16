@@ -75,6 +75,7 @@ prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin
 st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
 prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
 bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system
+st_crs(bc.bnd)
 fire.ignition.clipped<-fire.ignition[bc.bnd,] # making sure all fire ignitions have coordinates within BC boundary
 table(fire.ignition.clipped$fire_year) #Still have correct number for 2007 and 2008
 
