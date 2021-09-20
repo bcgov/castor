@@ -14,7 +14,7 @@ require (dplyr)
 require (raster)
 require (fasterize)
 require (here)
-source (paste0 (here::here(), "/caribou/clus_repo/clus/R/functions/R_Postgres.R"))
+source (paste0 (here::here(), "/R/functions/R_Postgres.R"))
 
 # database connection
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
@@ -232,7 +232,7 @@ gc ()
 The THLB gets saved as a raster file and can then be used as an input a timber supply model. 
 
 ```{r output data}
-writeRaster (ras.thlb, filename = file.path (here::here(), "/caribou/clus_repo/clus/R/Params/", "thlb.tif"), format = "GTiff", overwrite = TRUE)
+writeRaster (ras.thlb, filename = file.path (here::here(), "/R/Params/", "thlb.tif"), format = "GTiff", overwrite = TRUE)
 
 # if writing to db
 # system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here(), '/wha.tif -t 100x100 rast.zone_wha_2021 |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)

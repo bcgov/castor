@@ -1770,7 +1770,7 @@ new_data <- data.table (computer = 'DC052586',
                         source = 'combination of TSA and caribou critical habitat boundaries in Williams Lake and Quesnel TSAs', 
                         public = 'No', 
                         last_updated = '2021', 
-                        next_update = 'as needed', #
+                        next_update = 'as needed', 
                         where_used = 'dataLoaderCLUS' 
                         )
 # merge tables
@@ -1781,6 +1781,47 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   value = pgdbs_data_list_new, 
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
+
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'rast', # caribou, public, vat, zone or rast
+                        table_name = 'study_area_chilcotin',
+                        type = 'raster', # polygon, point, line, raster or table
+                        script = 'clus\\R\\Params\\study_area_boundaries.Rmd', #
+                        source = 'clus\\R\\Params\\thlb', 
+                        public = 'Yes', #
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+new_data3 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'vat', # caribou, public, vat, zone or rast
+                        table_name = 'study_area_chilcotin',
+                        type = 'table', # polygon, point, line, raster or table
+                        script = 'clus\\R\\Params\\study_area_boundaries.Rmd', #
+                        source = 'clus\\R\\Params\\thlb', 
+                        public = 'Yes', #
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data2, new_data3))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+
+
+
+
+
+
 
 ```
 
