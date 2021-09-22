@@ -59,7 +59,7 @@ library(ggcorrplot)
 source(here::here("R/functions/R_Postgres.R"))
 ```
 
-Now we must bring in the data that we created at the end of 05_VRI_data_prep. We need only the lightning + NA and the person + NA data sets here. We also need the fire ignition data from the end of our first file (01_fire_ignition_data_prep)
+Now we must bring in the data that we created at the end of 07_VRI_data_prep. We need only the lightning + NA and the person + NA data sets here. We also need the fire ignition data from the end of our first file (01_fire_ignition_data_prep)
 
 ```{r}
 #bring in lightning caused fire data
@@ -70,7 +70,7 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
 dat_lightning <- sf::st_read  (dsn = connKyle, # connKyle
-                               query = "SELECT * FROM public.dat_lightning_for_analysis")
+                               query = "SELECT * FROM public.dat_lightning_for_analysis_")
 dbDisconnect (connKyle)
 
 #Bring in person-caused fire data
@@ -81,7 +81,7 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
 dat_person <- sf::st_read  (dsn = connKyle, # connKyle
-                               query = "SELECT * FROM public.dat_person_for_analysis")
+                               query = "SELECT * FROM public.dat_person_for_analysis_")
 dbDisconnect (connKyle)
 
 #Bring in fire ignition data from end of 01 file  
@@ -125,12 +125,11 @@ table(fire_ignitions1_new$fire_year, fire_ignitions1_new$fire_cause)
 table(fire_ignitions1_person$fire_year, fire_ignitions1_person$fire_cause)
 ```
 
-Now that the data is prepped from 05_VRI_data_prep, we can move on to the analysis for selecting the best climatic variable(s) for each Natural Disturbance Type (NDT) zone. The loop below will be run first for lightning caused fires, and then for person-caused fires.
+Now that the data is prepped from 07_VRI_data_prep, we can move on to the analysis for selecting the best climatic variable(s) for each Natural Disturbance Type (NDT) zone. The loop below will be run first for lightning caused fires, and then for person-caused fires.
 
 To select the best single fire weather covariate we first conducted exploratory graphical analyses of the correlations between fire frequency and various fire weather variables. Then we fit generalized linear models for each fire weather variable (Eq. 1) using a binomial error structure with logarithmic link. Candidate variables were monthly average temperature, monthly maximum temperature, monthly precipitations and the six mean drought codes (MDC’s). We also added various two, three or fourth-month means of these values (e.g. for May, June, July and August) to test for seasonal effects (e.g. spring vs. summer).
 
 Before we begin the analyses, we will look at some correlations.
-
 
 ```{r}
 #### looking at correlations between variables####
@@ -138,26 +137,26 @@ Before we begin the analyses, we will look at some correlations.
 ####1. Lightning ########
 
 # correlation between max T and MDC. Across all the data MDC and Tmax are correlated with values ranging between 0.78 and 0.15
-dist.cut.corr <- dat_lightning [c (20:24, 35:39)]
+dist.cut.corr <- dat_lightning [c (21:25, 36:40)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between maximum temperature and MDC")
 
 # Correlation between total precipitation and MDC. This is also pretty correlated with values between -0.75 and -0.18
-dist.cut.corr <- dat_lightning [c (30:34, 35:39)]
+dist.cut.corr <- dat_lightning [c (31:35, 36:40)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and MDC")
 
 # Correlation between Tmax and total precipitation. The correlation is very low, as would be expected (-0.02 to -0.57) 
-dist.cut.corr <- dat_lightning [c (20:24, 30:34)]
+dist.cut.corr <- dat_lightning [c (21:25, 31:35)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and Tmax")
 
 
 # Correlation between Tave and total precipitation. The correlation is very low, as would be expected (-0.03 to -0.43) 
-dist.cut.corr <- dat_lightning [c (24:28, 29:33)]
+dist.cut.corr <- dat_lightning [c (25:29, 30:34)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and Tave")
@@ -168,32 +167,31 @@ ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
 ######## Person Caused Fires #############
 
 # correlation between max T and MDC. Across all the data MDC and Tmax are correlated with values ranging between 0.78 and 0.15
-dist.cut.corr <- dat_person [c (20:24, 35:39)]
+dist.cut.corr <- dat_person [c (21:25, 36:40)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between maximum temperature and MDC")
 
 # Correlation between total precipitation and MDC. This is also pretty correlated with values between -0.75 and -0.18
-dist.cut.corr <- dat_person [c (30:34, 35:39)]
+dist.cut.corr <- dat_person [c (31:35, 36:40)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and MDC")
 
 # Correlation between Tmax and total precipitation. The correlation is very low, as would be expected (-0.02 to -0.57) 
-dist.cut.corr <- dat_person [c (19:23, 29:33)]
+dist.cut.corr <- dat_person [c (20:24, 30:34)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and Tmax")
 
 
 # Correlation between Tave and total precipitation. The correlation is very low, as would be expected (-0.03 to -0.43) 
-dist.cut.corr <- dat_person [c (25:29, 30:34)]
+dist.cut.corr <- dat_person [c (26:30, 31:35)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and Tave")
 
 ```
-
 
 #################################
 # ANALYSIS OF CLIMATE VARIABLES
@@ -289,6 +287,10 @@ head(dat_lightning_)
 Inspect how MDC for time of fire influences probability of ignition. This can be included in the modelling for monthly predictions.
 
 ```{r}
+names(dat_lightning_)
+table(dat_lightning_$fire)
+dat_lightning_$fire_pres<-dat_lightning_$fire
+
 p <- ggplot(dat_lightning_, aes(mdc_atfire, as.numeric(fire_pres))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
@@ -403,7 +405,6 @@ dat_person$mean_mdc05_mdc06_mdc07_mdc08_mdc09<- (dat_person$mdc_05 + dat_person$
 For each fire, let's extract the MDC in the specific month that fire began. Note that some fires actually began in months other than 05-09. For these, for now, we will select the nearest time (05 for January to April, and 09 for October and November). We may wish to get the actual values.
 
 ```{r}
-
 names(dat_person)
 table(dat_person$ign_month) #Some of these fires were started in October, November, January, February and March. Very unexpected.
 
@@ -425,7 +426,7 @@ dat_person_<-dat_person %>%
                                   TRUE ~ mean_mdc05_mdc06_mdc07_mdc08_mdc09)) #Those areas without fire will receive the mean value for the season. These MDC values may be most accurately used for the escape and spread data, wherein we only assess those areas where fires began.
 
 head(dat_person_)
-
+dat_person_$fire_pres<-dat_person_$fire
 
 ```
 
@@ -857,7 +858,7 @@ write.csv(aic_bec_person_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateB
 
 ```
 
-Save lightning and person caused fire datasets to clus.
+Save lightning and person caused fire datasets. These are now as csv files and not as shape files, so need to find correct way to save to clus.
 
 
 ```{r}
@@ -865,41 +866,22 @@ write.csv(dat_lightning_,file="D:\\Fire\\fire_data\\raw_data\\Data_Lightning")
 write.csv(dat_person_,file="D:\\Fire\\fire_data\\raw_data\\Data_Person")
 ```
 
-#Below is not working. Although I can see the table online, I cannot bring it back in. Sometimes the loaded table is empty/blank, and other times it is there but cannot be called on.
+#Need to save as csv and not shape file.
 
 ```{r}
 
-###
-connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
-                      host = key_get('dbhost', keyring = 'postgreSQL'),
-                      user = key_get('dbuser', keyring = 'postgreSQL'),
-                      dbname = key_get('dbname', keyring = 'postgreSQL'),
-                      password = key_get('dbpass', keyring = 'postgreSQL'),
-                      port = "5432")
-st_write (obj = dat_lightning_, 
-          dsn = connKyle, 
-          layer = c ("public", "Data_Lightning"))
+#Save to postgre
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Person.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
-dbDisconnect (connKyle)
-```
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Person.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Lightning.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
-```{r}
-connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
-                      host = key_get('dbhost', keyring = 'postgreSQL'),
-                      user = key_get('dbuser', keyring = 'postgreSQL'),
-                      dbname = key_get('dbname', keyring = 'postgreSQL'),
-                      password = key_get('dbpass', keyring = 'postgreSQL'),
-                      port = "5432")
-st_write (obj = dat_person_, 
-          dsn = connKyle, 
-          layer = c ("public", "Data_Person"))
-dbDisconnect (connKyle)
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Lightning.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ```
 
 
 Clear work space to help R run faster again.
-
 
 ```{r}
 library(gdata)
@@ -914,6 +896,6 @@ gc(TRUE)
 ```
 
 
-############### Complete. Now move on to 07_Fire_ignition_model_fits_by_BEC wherein the results of these AIC tests will be utilized###########
+############### Complete. Now move on to 09_Fire_ignition_model_fits_by_BEC wherein the results of these AIC tests will be utilized###########
 
 Note: for person-caused fires, we still need to load the roads map and decide whether to use the roads clus to predict road occurence back in time to 2002, or keep as is.

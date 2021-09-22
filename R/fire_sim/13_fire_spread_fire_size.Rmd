@@ -1541,3 +1541,8 @@ NDT5_l_models_spread
 
 write.csv(NDT5_l_models_spread, file="D:\\Fire\\fire_data\\raw_data\\NDT5_lightning_spread_models_firesize.csv")
 ```
+
+
+VARIABLES TO ADD:
+1. Seasonality
+2. latitude?

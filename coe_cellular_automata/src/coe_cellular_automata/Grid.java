@@ -1,23 +1,28 @@
 package coe_cellular_automata;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 
 public class Grid {
-	int ageThreshold=140, ph=200, pl=10;
-	double  minHarvVol = 150.0;
-	int colSizeLattice = 500; //Size of the grid used for dummy examples
+	int ageThreshold=140, ph=100, pl=10;
+	double  minHarvVol = 200.0;
+	int colSizeLattice = 150; //Size of the grid used for dummy examples
 	double lambdaProp = 0.05;
+	int ncell;
+	int nrow;
 	
 	int numCells = colSizeLattice*colSizeLattice;
 	int numTimePeriods = ph/pl;
-	int[][] grid;
+	//int[][] grid;
 	int[] cellList = new int[numCells];
 	public double[] lambda = new double[numTimePeriods];
 	public double[] oneMinusLambda = new double[numTimePeriods];
 	public double[] alpha = new double[numTimePeriods];
 	public double[] beta = new double[numTimePeriods];
 	public double[] gamma = new double[numTimePeriods];
-	
+	public ArrayList<ArrayList<int[]>> ageStatesTemplate = new ArrayList<ArrayList<int[]>>();
+	public ArrayList<ArrayList<int[]>> harvestStatesTemplate = new ArrayList<ArrayList<int[]>>();
 	
 	double weight = (double) 1/numCells;
 	/** 
@@ -28,8 +33,119 @@ public class Grid {
 		for(int i =0; i < numCells; i++) {
 			cellList[i] = i+1;
 		}
+		setStatesTemplates(numTimePeriods, pl);
 	};
 	
+	private void setStatesTemplates(int numTimePeriods2, int pl2) {
+		ArrayList<ArrayList<int[]>> ageStatesTemplate = new ArrayList<ArrayList<int[]>>() ;
+		ArrayList<ArrayList<int[]>> harvestStatesTemplate = new ArrayList<ArrayList<int[]>>();
+		
+		for(int age = 0; age < 351; age++) { // A total of 250 possible ages
+				ArrayList<int[]> states = new ArrayList<int[]>();
+				ArrayList<int[]> statesHarvest = new ArrayList<int[]>();
+				
+				int[] stateZero = new int[numTimePeriods2];
+				int[] stateHarvestZero = new int[numTimePeriods2];
+				
+				for(int ft = 0; ft < numTimePeriods2; ft ++) { // this is always state zero or no harvesting
+					int ageFT = 0;
+					if(ft == 0) {
+						ageFT = age + (int)(pl2/2);
+					} else {
+						ageFT = age + (int) (pl2*ft + pl2/2);
+					}
+					
+					if(ageFT > 350) {
+						stateZero[ft] = 350;
+					}else {
+						stateZero[ft] = ageFT;
+					}					
+					stateHarvestZero[ft] = 0;
+				}
+
+				states.add(stateZero); //This add state zero which is the no harvest state
+				statesHarvest.add(stateHarvestZero);
+				
+			    //One harvest with nested second harvest
+				int[] stateAge = new int[numTimePeriods2];
+				stateAge = stateZero.clone();
+				
+				int[] stateHarvest = new int[numTimePeriods2];
+				stateHarvest = stateHarvestZero.clone();
+				
+				//Counters
+				int ft = 0;
+				int sh = 0;
+				int srp = 0;
+				
+				for(int harvPeriod = 0; harvPeriod < numTimePeriods2; harvPeriod ++) { // cant harvest in period 0 -- thats now! Which is used for reporting thus 1 is the future assuming a midpoint	
+					if(stateAge[harvPeriod] > 50) { // set minimum harvest age --conservatively set to 50 
+						for(int rp = 0; rp < numTimePeriods2 ; rp ++) {
+							if(harvPeriod == rp) {
+								stateHarvest[rp]=stateAge[rp];//assign the age of harvest
+								stateAge[rp] = 0;//age the harvest to zero
+							} else if (harvPeriod < rp) {
+								ft ++;
+								stateAge[rp] = (int) (pl2*ft - pl2/2);
+								if(stateAge[rp] > 50 & sh == 0) {
+									srp = rp;
+									sh ++;
+								}
+							} else {
+								continue;
+							}				
+						}
+						states.add(stateAge);
+						statesHarvest.add(stateHarvest);
+						sh =0;
+						
+						if(srp > 0) {
+							ft = 0;
+							for(int m = srp; m <numTimePeriods2; m++ ) {
+								int[] stateAgeSecond = new int[numTimePeriods2];
+								stateAgeSecond = stateAge.clone();
+								
+								int[] stateHarvestSecond = new int[numTimePeriods2];
+								stateHarvestSecond = stateHarvest.clone();								
+								
+								for(int k = m; k <numTimePeriods2; k++ ) {
+									if(k == m) {
+										stateHarvestSecond[k] = stateAgeSecond[k];
+										stateAgeSecond[k] = 0;
+										
+									} else {
+										ft ++;
+										stateAgeSecond[k]  = (int) (pl2*ft - pl2/2);									
+									} 
+								}
+								states.add(stateAgeSecond);
+								statesHarvest.add(stateHarvestSecond);
+								ft = 0;
+							}
+						}
+						
+						stateAge = stateZero.clone();
+						stateHarvest = stateHarvestZero.clone();
+						ft = 0;
+						srp = 0;
+					}
+				
+				}
+				ageStatesTemplate.add(states); // add all the states for a given age
+				harvestStatesTemplate.add(statesHarvest); // add all the states for a given age
+		}	
+    setAgeStatesTemplate (ageStatesTemplate);
+    setHarvestStatesTemplate(harvestStatesTemplate);
+	}
+
+	private void setHarvestStatesTemplate(ArrayList<ArrayList<int[]>> harvestStatesTemplate) {
+		this.harvestStatesTemplate = harvestStatesTemplate;	
+	}
+
+	private void setAgeStatesTemplate(ArrayList<ArrayList<int[]>> ageStatesTemplate) {
+		this.ageStatesTemplate = ageStatesTemplate;	
+	}
+
 	/** 
 	* Sets the global penalties needed to incentivize cell level decisions
 	*/
@@ -68,5 +184,11 @@ public class Grid {
 			outVector[i] = scalar - vector1[i];
 		}
 		return outVector;
+	}
+	
+	public void setGrid (int ncell, int nrow) {
+		this.ncell = ncell;
+		this.nrow = nrow;
+		this.colSizeLattice = ncell/nrow;
 	}
 }
