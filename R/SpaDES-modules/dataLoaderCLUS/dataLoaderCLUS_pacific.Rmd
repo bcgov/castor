@@ -54,6 +54,7 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = TRUE,
+                         sqlite_dbname = "Pacific_TSA",
                          nameBoundaryFile="tsa_nw_coast_no_tfl", # note coastal TSA
                          nameBoundaryColumn="tsa_name",
                          nameBoundary = "Pacific TSA", # change this name

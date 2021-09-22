@@ -51,6 +51,7 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = TRUE,
+                         sqlite_dbname = "TFL1",
                          nameBoundaryFile="tsa_aac_bounds",
                          nameBoundaryColumn="tsa_name",
                          nameBoundary = "TFL1", # change this name

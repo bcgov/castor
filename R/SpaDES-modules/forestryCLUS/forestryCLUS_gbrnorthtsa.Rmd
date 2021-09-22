@@ -84,6 +84,7 @@ parameters <- list(
   .globals = list(),
   dataLoaderCLUS = list(   dbName='clus',
                            save_clusdb = FALSE,
+                           sqlite_dbname = "Great_Bear_Rainforest_North_TSA",
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Great_Bear_Rainforest_North_TSA_clusdb.sqlite"),
                            nameBoundaryFile = "tsa_aac_bounds_gbr",
                            nameBoundaryColumn = "tsa_name",
