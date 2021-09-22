@@ -42,8 +42,8 @@ ON c.compartment = a.compartment;")))
     
     if(nrow(getTableQuery(paste0("SELECT * FROM information_schema.tables 
        WHERE table_schema = '",input$schema ,"' and table_name = 'caribou_abundance'")))> 0){
-      if(nrow(getTableQuery(paste0("SELECT scenario, subpop_name, timeperiod, compartment, area, core, matrix, abundance_r50, abundance_c80r50, abundance_c80, abundance_avg FROM ", input$schema, ".caribou_abundance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
-        data.abundance <- data.table(getTableQuery(paste0("SELECT scenario, subpop_name, timeperiod, compartment, area, core, matrix, abundance_r50, abundance_c80r50, abundance_c80, abundance_avg FROM ", input$schema, ".caribou_abundance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, subpop_name, timeperiod;")))
+      if(nrow(getTableQuery(paste0("SELECT scenario, subpop_name, timeperiod,  area, core, matrix, abundance_r50, abundance_c80r50, abundance_c80, abundance_avg FROM ", input$schema, ".caribou_abundance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
+        data.abundance <- data.table(getTableQuery(paste0("SELECT scenario, subpop_name, timeperiod, area, core, matrix, abundance_r50, abundance_c80r50, abundance_c80, abundance_avg FROM ", input$schema, ".caribou_abundance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, subpop_name, timeperiod;")))
         data.abundance <- data.abundance [,lapply(.SD, weighted.mean, w = area), by = c("scenario",  "subpop_name", "timeperiod"), .SDcols = c("core", "matrix", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")]
       }else{
         data.abundance <- NULL

@@ -53,6 +53,7 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list (dbName = 'clus',
                          save_clusdb = TRUE,
+                         sqlite_dbname = "Cascadia_TOC_TSA",
                          nameBoundaryFile = "tsa_aac_bounds", 
                          nameBoundaryColumn = "tsa_name", 
                          nameBoundary = "Cascadia_TOC_TSA", # "Cascadia_TKO_TSA" = Cascadia Kootenay area

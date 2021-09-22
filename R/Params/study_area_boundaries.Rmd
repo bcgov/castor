@@ -15,7 +15,9 @@ prov.rast <- raster::raster(
   nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
   crs = st_crs(layeraoi)$proj4string, resolution = c(100, 100), vals = 0)
 ```
-# get data
+
+
+## Timber Supply Units (timber supply areas and tree farm licenses)
 ```{r, data4}
 forest.tenure<-getSpatialQuery("SELECT tsa_name, wkb_geometry FROM study_area_compart where tsa_name in ('Quesnel TSA', 'Lakes TSA', 'Morice TSA', 'Bulkley TSA', 'Williams Lake TSA', 'Kamloops TSA', '100 Mile House TSA', 'Golden TSA', 'Revelstoke TSA', 'Okanagan TSA', 'Kootenay Lake TSA', 'Invermere TSA', 'Cranbrook TSA', 'Arrow TSA', 'Dawson Creek TSA', 'Robson Valley TSA') or tsb_number in ('24C', '24D','24E','24F','24G','24H','24I', '16A', '16B', '16C', '16D', '16E', '16F', '16G', '16H', '16I', '16J', '16K', '16P')")
 
@@ -100,7 +102,7 @@ writeRaster(ras.forest.tenure, "forest_ten.tif")
 
 ```
 
-## Commit to postgreSQL
+### Commit to postgreSQL
 ```{r, commit_db}
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
@@ -114,5 +116,31 @@ dbDisconnect(conn)
 
 #upload to db
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/forest_ten.tif -t 100x100 rast.tsa_aac_boundary | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+```
+
+## Chilcotin Study Area
+Process for the Chilcotin caribou planning study area.
+
+```{r chilcotin study area}
+
+studyarea <- getSpatialQuery ("SELECT tsa_name, wkb_geometry FROM study_area_chilcotin WHERE tsa_name IN ('Quesnel_TSA_Matrix', 'Quesnel_TSA_HEWSR', 'Quesnel_TSA_LESR', 'Quesnel_TSA_LEWR', 'Quesnel_TSA_out', 'Williams_Lake_TSA_HEWSR', 'Williams_Lake_TSA_LESR', 'Williams_Lake_TSA_LEWR', 'Williams_Lake_TSA_Matrix', 'Williams_Lake_TSA_out');")
+
+studyarea.vat <- as.data.table (unique (studyarea$tsa_name))
+setnames (studyarea.vat, "tsa_name")
+studyarea.vat [, value := seq_len(.N)]
+
+studyarea2 <- merge (studyarea, studyarea.vat, by = "tsa_name")
+
+# Rasterize 
+ras.study.area <-fasterize::fasterize (st_cast (studyarea2, "MULTIPOLYGON"), prov.rast, field = "int_id") 
+writeRaster (ras.study.area, "study_area_chilcotin.tif")
+
+# write data
+DBI::dbWriteTable(conn, c("vat", "study_area_chilcotin"), value= studyarea.vat, row.names = FALSE, overwrite = TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/caribou/clus_repo/clus/R/Params/study_area_chilcotin.tif -t 100x100 rast.study_area_chilcotin | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+dbDisconnect(conn)
+
 ```
 

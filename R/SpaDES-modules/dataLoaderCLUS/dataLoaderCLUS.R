@@ -44,6 +44,7 @@ defineModule(sim, list(
     defineParameter("nameBoundary", "character", "Muskwa", NA, NA, desc = "Name of the boundary - a spatial polygon within the boundary file. Here we are using a caribou herd name to query the caribou herd spatial polygon data, but it could be something else (e.g., a TSA name to query a TSA spatial polygon file, or a group of herds or TSA's)."),
     defineParameter("nameBoundaryGeom", "character", "geom", NA, NA, desc = "Name of the geom column in the boundary file"),
     defineParameter("save_clusdb", "logical", FALSE, NA, NA, desc = "Save the db to a file?"),
+    defineParameter("chilcotin_study_area", "character", "default_name", NA, NA, desc = "Nmae of the sqlite database to be saved"),
     defineParameter("useCLUSdb", "character", "99999", NA, NA, desc = "Use an exising db? If no, set to 99999. IOf yes, put in the postgres database name here (e.g., clus)."),
     defineParameter("nameZoneRasters", "character", "99999", NA, NA, desc = "Administrative boundary containing zones of management objectives"),
     defineParameter("nameZonePriorityRaster", "character", "99999", NA, NA, desc = "Boundary of zones where harvesting should be prioritized"),
@@ -172,7 +173,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 disconnectDbCLUS<- function(sim) {
   if(P(sim)$save_clusdb){
     message('Saving clusdb')
-    con<-dbConnect(RSQLite::SQLite(), paste0(P(sim, 'dataLoaderCLUS', 'nameBoundary'), "_clusdb.sqlite"))
+    con<-dbConnect(RSQLite::SQLite(), paste0(P(sim, 'dataLoaderCLUS', 'sqlite_dbname'), "_clusdb.sqlite"))
     RSQLite::sqliteCopyDatabase(sim$clusdb, con)
     dbDisconnect(sim$clusdb)
     dbDisconnect(con)
@@ -813,7 +814,7 @@ setZoneConstraints<-function(sim){
         dbCommit(sim$clusdb)
       }
   }else{
-    stop(paste0(P(sim)$nameZoneTable, "...nameZoneTable not supplied"))
+    paste0(P(sim)$nameZoneTable, "...nameZoneTable not supplied. WARNING: your simulation has no zone constraints")
   }
   return(invisible(sim))
 }
