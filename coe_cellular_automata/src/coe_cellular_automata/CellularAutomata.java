@@ -59,6 +59,11 @@ public class CellularAutomata {
 	* 	e. stop when global penalties are met
 	*/
 	public void simulate2() {
+		System.out.println(cellsList.get(0).foresttype);
+		System.out.println(cellsList.get(0).pixelid);
+		System.out.println(cellsList.get(0).age);
+		System.out.println(cellsList.get(0).landCoverList.get(0));
+		
 		boolean mutate = false;
 		boolean innovate = true;
 		int counterLocalMaxState = 0;
@@ -1019,7 +1024,8 @@ public class CellularAutomata {
 				
 			    //Instantiate the Cells objects for each cell that is forested
 				String getAllCells = "SELECT pixelid, pixels.age, foresttype.foresttype_id,  pixels.manage_type "
-						+ "FROM pixels LEFT JOIN foresttype ON pixels.age = foresttype.age AND "
+						+ "FROM pixels "
+						+ "LEFT JOIN foresttype ON pixels.age = foresttype.age AND "
 						+ "pixels.yieldid = foresttype.yieldid AND pixels.yieldid_trans = foresttype.yieldid_trans "
 						+ "AND pixels.manage_type = foresttype.manage_type "
 						+ "WHERE pixels.yieldid IS NOT null AND "
@@ -1037,16 +1043,35 @@ public class CellularAutomata {
 				System.out.println("...done");
 				
 				System.out.print("Getting constraints");
-				//TODO: Add the constraints
+				String getZones = "SELECT zone_column FROM zone";
+				ResultSet rs5 = statement.executeQuery(getZones);
+				ArrayList<String> zones = new ArrayList<String>();
+				while(rs5.next()) {
+					zones.add(rs5.getString(1));
+				}
+				for(int z = 0; z < zones.size(); z++) {
+					String getZonesConstraints = "SELECT pixelid, z.id "
+							+ "FROM pixels "
+							+ "LEFT JOIN (SELECT * FROM zoneConstraints WHERE zone_column = '" +zones.get(z)+ "') as z "
+							+ "ON pixels." + zones.get(z) +" = z.zoneid "
+							+ "WHERE pixels."+zones.get(z)+" is not null";
+					ResultSet rs6 = statement.executeQuery(getZonesConstraints);
+					int cell =0;
+					while(rs6.next()) { 
+						cell = cellIndex[rs6.getInt(1)];
+						if(cell >= 0) {
+							cellsList.get(cell).setLandCoverConstraint(rs6.getInt(2));
+						}
+					}
+				}
 				System.out.println("...done");
-				
+
 				//Close all connections to the clusdb	
 				statement.close();
 				conn.close();
 				System.out.println("Disconnected from clusdb");
 				
 				System.out.print("Setting neighbourhood information");	
-				//TODO: Add the adjList
 				int cols = (int) landscape.ncell/landscape.nrow;
 				for(int c = 0; c < cellsList.size(); c++) {
 					ArrayList<Integer> adjList = new ArrayList<Integer>();

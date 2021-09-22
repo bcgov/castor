@@ -23,4 +23,9 @@ public class Cells {
 	public void setNeighbourhood(ArrayList<Integer> adjList) {
 	    this.adjCellsList = adjList;
 	}
+
+	public void setLandCoverConstraint(int int1) {
+		this.landCoverList.add(int1);
+		
+	}
 }
