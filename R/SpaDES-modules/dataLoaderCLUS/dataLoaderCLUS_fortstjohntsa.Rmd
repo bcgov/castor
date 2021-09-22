@@ -47,6 +47,7 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list (dbName = 'clus', # name of the postgres database
                          save_clusdb = TRUE,
+                         sqlite_dbname = "Fort_St_John_Core_TSA",
                          nameBoundaryFile = "tsa_aac_bounds", # name of the (TSA) boundary data in postgres
                          nameBoundaryColumn = "tsa_name", 
                          nameBoundary = "Fort_St_John_Core_TSA", # "Fort_St_John_Core_TSA"  Fort_St_John_TSA

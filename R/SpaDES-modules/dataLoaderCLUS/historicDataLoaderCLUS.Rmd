@@ -60,6 +60,7 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list(dbName = 'clus',
                          save_clusdb = FALSE,
+                         sqlite_dbname = "historic",
                          nameBoundaryFile = "tsa_aac_bounds", # "tsa_aac_bounds" 
                                                             # "bc_caribou_herd_boundary_v20200507" 
                                                             # "eccc_smc_aoi_20210329"

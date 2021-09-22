@@ -72,6 +72,7 @@ parameters <- list(
   .globals = list(),
   dataLoaderCLUS = list(   dbName='clus',
                            save_clusdb = FALSE,
+                           sqlite_dbname = "UBC_study_boundary",
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/UBC_study_boundary_clusdb.sqlite"),
                            nameBoundaryFile="ubc_gbr_boundaries",
                          nameBoundaryColumn="tsa_name",

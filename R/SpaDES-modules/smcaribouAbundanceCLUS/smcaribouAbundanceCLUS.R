@@ -125,7 +125,7 @@ Init <- function (sim) {
   table.disturb [, abundance_c80 := exp((c80fe_int + c80re_int) + ((c80fe_core + c80fe_core) * core) + (c80fe_matrix * matrix))]
   table.disturb [, abundance_avg := (abundance_r50 + abundance_c80r50 + abundance_c80)/3]
   sim$tableAbundanceReport <- table.disturb 
-  sim$tableAbundanceReport [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name,)  ] # add the time of the survival calc
+  sim$tableAbundanceReport [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the survival calc
   
   return(invisible(sim))
 }

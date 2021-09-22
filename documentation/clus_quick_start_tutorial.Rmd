@@ -358,6 +358,7 @@ parameters <-  list( # list of all parameters in the model, by module
   .globals = list(), # any global parameters; not needed
   dataLoaderCLUS = list ( # list of parameters specific to the dataLoaderCLUS module  
                          dbName = 'clus', # name of the PostgreSQL database
+                         sqlite_dbname = "tutorial_area", # name of sqlite database that you are outputting
                          save_clusdb = TRUE, # save the SQLite database; make sure = T
                          nameBoundaryFile = "tsa_aac_bounds", # name of the polygon table in the Postgres database you want to use to define the analysis area
                          nameBoundaryColumn = "tsa_name", # name of the column in the polygon table for identifying analysis area
@@ -439,6 +440,8 @@ mysimout<-spades(mySim)
 Within the parameters list, the *dataLoaderCLUS* list contains the parameters needed to define the analysis area of interest (i.e., spatial area where you want to run simulations).  These are annotated in the code chunk above, and include *dbName*, *nameBoundaryFile*, *nameBoundaryColumn*, *nameBoundary*, *nameBoundaryGeom*, *nameCompartmentRaster*, *nameCompartmentTable* and *nameMaskHarvestLandbaseRaster*. In combination, these parameters tell *dataLoaderCLUS* the area of the province where you want to complete your simulation analysis. The module takes this information and proceeds to 'clip' the datasets needed for the simulation accordingly. 
 
 Note that you can include multiple areas of interest (i.e., *nameBoundary*) together within the same SQLite database by using the concatenation ([c()](https://stat.ethz.ch/R-manual/R-patched/library/base/html/c.html)) function in R, e.g., c("Revelstoke_TSA", "Golden_TSA"). 
+
+The *sqlite_dbname* parameter is sued to define the name of the output SQLite database that will be saved by dataloaderCLUS. This should be named something related to the analysis (e.g., the area of interest).
 
 The next set of parameters are the *nameZoneRasters* and *nameZoneTable*. In the CLUS vernacular, 'zones' refer to areas where a constraint is applied to a land use activity (e.g., a forest cover constraint on harvest). Here you will see a concatenation of several raster datasets. For forestry simulations, there are some key zones that should be included in the database, these include: 
 
@@ -607,7 +610,8 @@ parameters <- list(
   .globals = list(),
   dataLoaderCLUS = list (  dbName='clus',
                            save_clusdb = FALSE,
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite"),
+                           sqlite_dbname = "tutorial_area",
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/tutorial_area_clusdb.sqlite"),
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
                            nameBoundary = "Revelstoke_TSA",

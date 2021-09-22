@@ -54,9 +54,10 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = TRUE,
+                        sqlite_dbname = "Kalum_TSA",
                          nameBoundaryFile="tsa_nw_coast_no_tfl", # note coastal TSA
                          nameBoundaryColumn="tsa_name",
-                         nameBoundary = "Kalum TSA", # change this name
+                         nameBoundary = "Kalum_TSA", # change this name
                          nameBoundaryGeom='wkb_geometry',
                          nameCompartmentRaster = "rast.tsa_aac_bound_nw_coast",
                          nameCompartmentTable = "tsa_aac_bounds_nw_coast_vat",

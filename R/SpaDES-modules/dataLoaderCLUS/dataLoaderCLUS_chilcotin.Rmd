@@ -51,6 +51,7 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = TRUE,
+                         sqlite_dbname = "chilcotin_study_area",
                          nameBoundaryFile="study_area_chilcotin",
                          nameBoundaryColumn = "tsa_name",
                          nameBoundary = c ('Quesnel_TSA_Matrix', 'Quesnel_TSA_HEWSR', 'Quesnel_TSA_LESR',

@@ -129,6 +129,7 @@ parameters <- list(
   .globals = list(),
   dataLoaderCLUS = list(   dbName='clus',
                            save_clusdb = TRUE,
+                           sqlite_dbname = "TFL30",
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL30_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
