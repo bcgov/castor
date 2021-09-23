@@ -459,6 +459,7 @@ p <- ggplot(dat_person_, aes(roads_km, as.numeric(fire_pres))) +
 p
 ```
 
+
 Make cos(aspect in degrees) to be the default aspect.
 
 ```{r}
@@ -992,10 +993,6 @@ Because of how much code is used per model, we will make separate files for each
 
 
 
-
-
-
-BELOW WILL BE REMOVED AND PUT INTO SEPARATE FILES PER NDT.
 
 
 
@@ -1730,6 +1727,7 @@ write.csv(NDT4_l_models_treed, file="D:\\Fire\\fire_data\\raw_data\\NDT4_lightni
 
 Now choose the top variables and create final model. The below code will need to be updated manually, depending on what the results of the above analyses are. From the top models, we will re-create two-way interactions for the variables selected from each model, plus the other variables listed as needed to be included. We will assess each set to ensure only interactions that make sense are investigated ultimately, given that sample sizes will be an issues. 
 
+######## UPDATE BELOW #########
 
 Top Models:
 1. climate1 + climate2 + vegtype2 + climate1:climate2
@@ -2261,6 +2259,8 @@ table.glm.infra.lu.simple<-rbind(table.glm.infra.lu.simple, tab.sum.infra.lu)
 }
 }
 ```
+
+Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination.
 
 For the below chunks, they will need to be run in specific order, with repeating the previous chunk in between. DO NOT RUN THIS CHUNK MORE THAN ONCE! RUN EACH ONE ONCE, AFTER EACH SUBSEQUENT RUN OF THE ABOVE.
 
