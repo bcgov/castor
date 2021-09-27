@@ -27,6 +27,21 @@ library(car)
 source(here::here("R/functions/R_Postgres.R"))
 ```
 
+
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
 #Load data back in if starting from here
 Note: depending where your geometry column was located when saved as a csv (and turned into a dataframe), you may need to manually correct column headings on the csv file before loading back in. This has been performed for the below files.
 
@@ -2112,7 +2127,35 @@ prop<-0.75
 
 ```{r}
 #Run model using dat1
-model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:proj_age_1 + climate2:proj_height_1 + climate2:vegtype2 + dist_mun + dist_dam + dist_mine + dist_pow + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + elevation + slope:elevation, family = binomial, data = dat1)
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:proj_age_1 + climate2:proj_height_1 + climate2:vegtype2 + dist_mun + dist_dam + dist_mine + dist_pow + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + elevation + slope:elevation + elevation*climate1 + elevation*climate2, family = binomial, data = dat1)
+
+AIC(model.NDT5) #266.4
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.8693 --> really good!
+   
+Anova(model.NDT5, type=3)
+Anova(model.NDT5, type=3, singular.ok = TRUE) 
+
+#Run model using dat1
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:proj_age_1 + climate2:proj_height_1 + climate2:vegtype2 + dist_mun + dist_dam + dist_mine + dist_pow + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + elevation + slope:elevation + elevation*climate1, family = binomial, data = dat1)
+
+AIC(model.NDT5) #264.6
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.8693 --> really good!
+   
+Anova(model.NDT5, type=3)
+Anova(model.NDT5, type=3, singular.ok = TRUE) 
+
+#Run model using dat1
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:proj_age_1 + climate2:proj_height_1 + climate2:vegtype2 + dist_mun + dist_dam + dist_mine + dist_pow + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + elevation + slope:elevation + elevation*climate1 + elevation*climate2, family = binomial, data = dat1)
 
 AIC(model.NDT5) #262.7
 
@@ -2231,15 +2274,234 @@ Anova(model.NDT5, type=3, singular.ok = TRUE)
 #Least sig
 model.NDT5<-glm(fire_pres ~ climate1 + climate2 + proj_height_1 + live_stand_volume_125 + climate2:proj_height_1 + dist_dam + dist_mine + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + elevation, family = binomial, data = dat1)
 
-AIC(model.NDT5) #252.6
+AIC(model.NDT5) #265.9
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.876 --> really good!
+   mod.auc #0.87 --> really good!
+   
+Anova(model.NDT5, type=3)
+Anova(model.NDT5, type=3, singular.ok = TRUE) 
+
+#Least sig
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + proj_height_1 + live_stand_volume_125 + climate2:proj_height_1 + dist_dam + dist_mine + bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + elevation, family = binomial, data = dat1)
+
+AIC(model.NDT5) #270.98 - worse!
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.87 --> really good!
    
 Anova(model.NDT5, type=3)
 Anova(model.NDT5, type=3, singular.ok = TRUE) 
 
 ```
+
+Remove NAs to make comparable.
+
+```{r}
+#Remove NAs to ensure all same data used so we can compare AICs
+NDT5_t<-dat_lightning_t_NDT5 %>% drop_na(climate1, climate2, proj_height_1, live_stand_volume_125, dist_mine, dist_dam, vegtype2, slope, aspect, elevation, bclcs_level_5_2, elevation)
+
+#Run Model again with this data; but uses all data here
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + proj_height_1 + live_stand_volume_125 + climate2:proj_height_1 + dist_dam + dist_mine + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + elevation, family = binomial, data = NDT5_t)
+
+Anova(model.NDT5, type=3)
+#Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+# model diagnostic plots
+binnedplot (fitted(model.NDT5), 
+            residuals(model.NDT5), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+
+NDT5_t$resids<-resid(model.NDT5)
+
+binnedplot (NDT5_t$live_stand_volume_125, 
+            NDT5_t$resids, 
+            nclass = NULL, 
+            xlab = "live stand volume", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+binnedplot (NDT5_t$climate1, 
+            NDT5_t$resids, 
+            nclass = NULL, 
+            xlab = "", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+# Diagnostic plots look good overall... but not perfect (especially last one)
+
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+
+```{r}
+summary(model.NDT5)
+
+#Create a new blank table and get AUC too
+top_mod_table_NDT5_light_t_ALL <- data.frame (matrix (ncol = 20, nrow = 0))
+colnames (top_mod_table_NDT5_light_t_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_stand_height", "coef_live_stand_volume_125",  "coef_dist_dam", "coef_dist_mine", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_elevation", "climate2:proj_height_1", "dist_dam:bclcs_level_5_2OP", "dist_dam:bclcs_level_5_2SP", "dist_mine:bclcs_level_5_2OP", "dist_mine:bclcs_level_5_2SP", "AUC")
+```
+
+Let's run it 500 times to get good mean values.
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(NDT5_t$fire_veg, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- NDT5_t[ trainIndex,]
+   Valid <- NDT5_t[-trainIndex,]
+   
+#Model   
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + proj_height_1 + live_stand_volume_125 + climate2:proj_height_1 + dist_dam + dist_mine + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + elevation, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_NDT5_light_t <- data.frame (matrix (ncol = 20, nrow = 0))
+colnames (top_mod_table_NDT5_light_t ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_stand_height", "coef_live_stand_volume_125",  "coef_dist_dam", "coef_dist_mine", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_elevation", "climate2:proj_height_1", "dist_dam:bclcs_level_5_2OP", "dist_dam:bclcs_level_5_2SP", "dist_mine:bclcs_level_5_2OP", "dist_mine:bclcs_level_5_2SP", "AUC")
+
+##Add data for NDT5
+top_mod_table_NDT5_light_t[1,1]<-"lightning"
+top_mod_table_NDT5_light_t[1,2]<-"NDT5"
+top_mod_table_NDT5_light_t[1,3]<-"Y"
+top_mod_table_NDT5_light_t[1,4]<-"fire_pres ~ climate1 + climate2 + proj_height_1 + live_stand_volume_125 + climate2:proj_height_1 + dist_dam + dist_mine + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + elevation" 
+top_mod_table_NDT5_light_t[1,5]<- coef(model.NDT5)[1] #Intercept
+top_mod_table_NDT5_light_t[1,6]<- coef(model.NDT5)[2] #Climate variable 1
+top_mod_table_NDT5_light_t[1,7]<- coef(model.NDT5)[3] #Climate variable 2
+top_mod_table_NDT5_light_t[1,8]<- coef(model.NDT5)[4] #proj height
+top_mod_table_NDT5_light_t[1,9]<- coef(model.NDT5)[5] #coefficient live stand volume
+top_mod_table_NDT5_light_t[1,10]<- coef(model.NDT5)[6] #coefficient dist_dam
+top_mod_table_NDT5_light_t[1,11]<- coef(model.NDT5)[7] #coefficient dist_mine
+top_mod_table_NDT5_light_t[1,12]<- coef(model.NDT5)[8] #coefficient bclcs_level_5_2OP
+top_mod_table_NDT5_light_t[1,13]<- coef(model.NDT5)[9] #coef bclcs_level_5_2SP
+top_mod_table_NDT5_light_t[1,14]<- coef(model.NDT5)[10] #coef elevation
+top_mod_table_NDT5_light_t[1,15]<- coef(model.NDT5)[11] #climate2:proj_height_1
+top_mod_table_NDT5_light_t[1,16]<- coef(model.NDT5)[12] #coefficient dist_dam:bclcs_level_5_2OP
+top_mod_table_NDT5_light_t[1,17]<- coef(model.NDT5)[13] #coefficient dist_dam:bclcs_level_5_2SP
+top_mod_table_NDT5_light_t[1,18]<- coef(model.NDT5)[14] #coefficient dist_mine:bclcs_level_5_2OP
+top_mod_table_NDT5_light_t[1,19]<- coef(model.NDT5)[15] #coefficient dist_mine:bclcs_level_5_2SP
+top_mod_table_NDT5_light_t[1,20]<- mod.auc
+
+top_mod_table_NDT5_light_t_ALL<-rbind(top_mod_table_NDT5_light_t_ALL, top_mod_table_NDT5_light_t)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_NDT5_light_t_ALL)
+```
+
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table_NDT5_light_t_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT5_light_t_ALL.csv")
+
+```
+
+Get mean values.
+
+```{r}
+names(top_mod_table_NDT5_light_t_ALL)
+mean(top_mod_table_NDT5_light_t_ALL$AUC) #0.87
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_NDT5_light_t_Means <- data.frame (matrix (ncol = 20, nrow = 0))
+colnames (top_mod_table_NDT5_light_t_Means ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_stand_height", "coef_live_stand_volume_125",  "coef_dist_dam", "coef_dist_mine", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_elevation", "climate2:proj_height_1", "dist_dam:bclcs_level_5_2OP", "dist_dam:bclcs_level_5_2SP", "dist_mine:bclcs_level_5_2OP", "dist_mine:bclcs_level_5_2SP", "AUC")
+
+head(top_mod_table_NDT5_light_t_Means)
+
+##Add data for NDT5
+top_mod_table_NDT5_light_t_Means[1,1]<-"lightning"
+top_mod_table_NDT5_light_t_Means[1,2]<-"NDT5"
+top_mod_table_NDT5_light_t_Means[1,3]<-"Y"
+top_mod_table_NDT5_light_t_Means[1,4]<-"fire_pres ~ climate1 + climate2 + proj_height_1 + live_stand_volume_125 + climate2:proj_height_1 + dist_dam + dist_mine + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + elevation" 
+top_mod_table_NDT5_light_t_Means[1,5]<- mean(top_mod_table_NDT5_light_t_ALL$intercept) #Intercept
+top_mod_table_NDT5_light_t_Means[1,6]<- mean(top_mod_table_NDT5_light_t_ALL$coef_climate_1, na.rm=TRUE) #Climate variable 1
+top_mod_table_NDT5_light_t_Means[1,7]<- mean(top_mod_table_NDT5_light_t_ALL$coef_climate_2, na.rm=TRUE) #Climate variable 2
+top_mod_table_NDT5_light_t_Means[1,8]<- mean(top_mod_table_NDT5_light_t_ALL$coef_stand_height, na.rm=TRUE) #I
+top_mod_table_NDT5_light_t_Means[1,9]<- mean(top_mod_table_NDT5_light_t_ALL$coef_live_stand_volume_125, na.rm=TRUE)
+top_mod_table_NDT5_light_t_Means[1,10]<- mean(top_mod_table_NDT5_light_t_ALL$coef_dist_dam, na.rm=TRUE) 
+top_mod_table_NDT5_light_t_Means[1,11]<- mean(top_mod_table_NDT5_light_t_ALL$coef_dist_mine, na.rm=TRUE) 
+top_mod_table_NDT5_light_t_Means[1,12]<- mean(top_mod_table_NDT5_light_t_ALL$coef_bclcs_level_5_2OP, na.rm=TRUE) 
+top_mod_table_NDT5_light_t_Means[1,13]<- mean(top_mod_table_NDT5_light_t_ALL$coef_bclcs_level_5_2SP, na.rm=TRUE) #
+top_mod_table_NDT5_light_t_Means[1,14]<- mean(top_mod_table_NDT5_light_t_ALL$coef_elevation, na.rm=TRUE) #
+top_mod_table_NDT5_light_t_Means[1,15]<- mean(top_mod_table_NDT5_light_t_ALL$`climate2:proj_height_1`, na.rm=TRUE) 
+top_mod_table_NDT5_light_t_Means[1,16]<- mean(top_mod_table_NDT5_light_t_ALL$`dist_dam:bclcs_level_5_2OP`, na.rm=TRUE) 
+top_mod_table_NDT5_light_t_Means[1,17]<- mean(top_mod_table_NDT5_light_t_ALL$`dist_dam:bclcs_level_5_2SP`, na.rm=TRUE)#
+top_mod_table_NDT5_light_t_Means[1,18]<- mean(top_mod_table_NDT5_light_t_ALL$`dist_mine:bclcs_level_5_2OP`, na.rm=TRUE) 
+top_mod_table_NDT5_light_t_Means[1,19]<- mean(top_mod_table_NDT5_light_t_ALL$`dist_mine:bclcs_level_5_2SP`, na.rm=TRUE) 
+top_mod_table_NDT5_light_t_Means[1,20]<- mean(mod.auc, na.rm=TRUE)
+
+top_mod_table_NDT5_light_t_Means
+
+```
+
+Save mean coefficient table.
+
+```{r}
+write.csv(top_mod_table_NDT5_light_t_Means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT5_light_t_Means.csv")
+```
+
+
+Get Standard deviation (SD) values.
+
+```{r}
+# create model table (only do this once) and add the relevant data
+top_mod_table_NDT5_light_t_SD <- data.frame (matrix (ncol = 20, nrow = 0))
+colnames (top_mod_table_NDT5_light_t_SD ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_stand_height", "coef_live_stand_volume_125",  "coef_dist_dam", "coef_dist_mine", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_elevation", "climate2:proj_height_1", "dist_dam:bclcs_level_5_2OP", "dist_dam:bclcs_level_5_2SP", "dist_mine:bclcs_level_5_2OP", "dist_mine:bclcs_level_5_2SP", "AUC")
+
+head(top_mod_table_NDT5_light_t_SD)
+
+##Add data for NDT5
+top_mod_table_NDT5_light_t_SD[1,1]<-"lightning"
+top_mod_table_NDT5_light_t_SD[1,2]<-"NDT5"
+top_mod_table_NDT5_light_t_SD[1,3]<-"Y"
+top_mod_table_NDT5_light_t_SD[1,4]<-"fire_pres ~ climate1 + climate2 + proj_height_1 + live_stand_volume_125 + climate2:proj_height_1 + dist_dam + dist_mine + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + elevation" 
+top_mod_table_NDT5_light_t_SD[1,5]<- sd(top_mod_table_NDT5_light_t_ALL$intercept) #Intercept
+top_mod_table_NDT5_light_t_SD[1,6]<- sd(top_mod_table_NDT5_light_t_ALL$coef_climate_1, na.rm=TRUE) #Climate variable 1
+top_mod_table_NDT5_light_t_SD[1,7]<- sd(top_mod_table_NDT5_light_t_ALL$coef_climate_2, na.rm=TRUE) #Climate variable 2
+top_mod_table_NDT5_light_t_SD[1,8]<- sd(top_mod_table_NDT5_light_t_ALL$coef_stand_height, na.rm=TRUE) #I
+top_mod_table_NDT5_light_t_SD[1,9]<- sd(top_mod_table_NDT5_light_t_ALL$coef_live_stand_volume_125, na.rm=TRUE)
+top_mod_table_NDT5_light_t_SD[1,10]<- sd(top_mod_table_NDT5_light_t_ALL$coef_dist_dam, na.rm=TRUE) 
+top_mod_table_NDT5_light_t_SD[1,11]<- sd(top_mod_table_NDT5_light_t_ALL$coef_dist_mine, na.rm=TRUE) 
+top_mod_table_NDT5_light_t_SD[1,12]<- sd(top_mod_table_NDT5_light_t_ALL$coef_bclcs_level_5_2OP, na.rm=TRUE) 
+top_mod_table_NDT5_light_t_SD[1,13]<- sd(top_mod_table_NDT5_light_t_ALL$coef_bclcs_level_5_2SP, na.rm=TRUE) #
+top_mod_table_NDT5_light_t_SD[1,14]<- sd(top_mod_table_NDT5_light_t_ALL$coef_elevation, na.rm=TRUE) #
+top_mod_table_NDT5_light_t_SD[1,15]<- sd(top_mod_table_NDT5_light_t_ALL$`climate2:proj_height_1`, na.rm=TRUE) 
+top_mod_table_NDT5_light_t_SD[1,16]<- sd(top_mod_table_NDT5_light_t_ALL$`dist_dam:bclcs_level_5_2OP`, na.rm=TRUE) 
+top_mod_table_NDT5_light_t_SD[1,17]<- sd(top_mod_table_NDT5_light_t_ALL$`dist_dam:bclcs_level_5_2SP`, na.rm=TRUE)#
+top_mod_table_NDT5_light_t_SD[1,18]<- sd(top_mod_table_NDT5_light_t_ALL$`dist_mine:bclcs_level_5_2OP`, na.rm=TRUE) 
+top_mod_table_NDT5_light_t_SD[1,19]<- sd(top_mod_table_NDT5_light_t_ALL$`dist_mine:bclcs_level_5_2SP`, na.rm=TRUE) 
+top_mod_table_NDT5_light_t_SD[1,20]<- sd(mod.auc, na.rm=TRUE)
+
+top_mod_table_NDT5_light_t_SD
+
+```
+
+Save sd coefficient table.
+
+```{r}
+write.csv(top_mod_table_NDT5_light_t_SD, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT5_light_t_SD.csv")
+```
+

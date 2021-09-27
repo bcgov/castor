@@ -266,6 +266,9 @@ Ignitions: "The direct effect of climate change on fire occurrence will be throu
 Authors also address fire intensity and severity. "It was suggested by Stocks (1993) that under climate change, a disproportionate number of fires may escape initial attack, resulting in very significant increases in area burned. The reasoning behind this hypothesis was that there tends to be a very narrow range in the transition between the overall suppression
 system’s success or failure."
 
+#Wotton, B.M., Flannigan, M.D., and Marshall, G.A. 2017. Potential climate change impacts in fire intensity and key wildfire suppresion thresholds in Canada. Environmental Research Letters, 12: 095003.
+
+
 
 ############ Papers for Rationale if ever needed for summary of model ##########
 

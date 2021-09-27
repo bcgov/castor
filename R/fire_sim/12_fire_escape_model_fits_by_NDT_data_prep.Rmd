@@ -1,5 +1,5 @@
 ---
-title: "fire_escape_model_fits_by_NDT"
+title: "fire_escape_model_fits_by_NDT_data_prep"
 author: "Cora Skaien"
 date: "25/07/2021"
 output: html_document
@@ -58,11 +58,12 @@ library(caret)
 library(pROC)
 library(rje)
 library(base)
+library(car)
 
 source(here::here("R/functions/R_Postgres.R"))
 ```
 
-Now we must bring in the data that we created at the end of 09_fire_escape_data_prep. These will be the same files as those used in 10_escaoe_climate_variable_selection.
+Now we must bring in the data that we created at the end of 09_fire_escape_data_prep. These will be the same files as those used in 10_escape_climate_variable_selection.
 
 ```{r}
 #Lightning-caused fires
@@ -655,7 +656,6 @@ hist(Escape_data_person_l$live_stand_volume_125)
 Save the prepped data
 
 ```{r}
-
 write.csv(Escape_data_lightning_t, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_trees_NDT.csv")
 
 write.csv(Escape_data_lightning_nt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_notrees_NDT.csv")
@@ -665,6 +665,15 @@ write.csv(Escape_data_person_t, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_D
 write.csv(Escape_data_person_nt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_notrees_NDT.csv")
 
 ```
+
+############### COMPLETE: MOVE ON TO ANALYSES FOR EACH NDT #################
+
+
+
+
+
+
+
 
 Load in the prepped data if starting from here.
 

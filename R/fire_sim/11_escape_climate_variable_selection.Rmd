@@ -9,7 +9,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 <!--
 Copyright 2021 Province of British Columbia
 
@@ -73,7 +72,7 @@ Import the data created at the end of the last file (named Escape_data_lightning
 
 
 ```{r}
-Escape_data_lightning<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning.shp")
+Escape_data_lightning<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning.csv")
 head(Escape_data_lightning)
 
 #If continuing from last file (09_fire_escape_data_prep)
@@ -342,7 +341,7 @@ Escape_data_lightningb <- sf::st_read  (dsn = connKyle, # connKyle
 ##Repeat for person-caused fires
 
 ```{r}
-Escape_data_person<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person.shp")
+Escape_data_person<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person.csv")
 head(Escape_data_person)
 
 #If continuing from last file (09_fire_escape_data_prep)
