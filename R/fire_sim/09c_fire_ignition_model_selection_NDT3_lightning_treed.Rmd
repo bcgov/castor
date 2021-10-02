@@ -7,10 +7,6 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
 
 library (data.table)
 library (DBI)
@@ -30,7 +26,6 @@ library(car)
 
 source(here::here("R/functions/R_Postgres.R"))
 ```
-
 
 <!--
 Copyright 2021 Province of British Columbia
@@ -354,11 +349,11 @@ length(mods.interI)
 all.poss.mods.clim.vegtype<-c(1, mods.me.climate, twoway.ints)
 all.poss.mods.clim.vegtype 
 all.poss.mods.clim.vegtype<-all.poss.mods.clim.vegtype [-2] #Use this line only if there is an odd character(0) added to list
-all.poss.mods.clim.vegtype2<-c(1, mods.inter2)
+all.poss.mods.clim.vegtype2<-c(1, mods.inter2, twoway.ints2)
 all.poss.mods.clim.vegtype2
 all.poss.mods.clim.vegtype2<-all.poss.mods.clim.vegtype2[-2]
 #all.poss.mods.clim.vegtype2<-all.poss.mods.clim.vegtype2[-9]
-all.poss.mods.clim.vegtype2b<-c(1, mods.inter2b)
+all.poss.mods.clim.vegtype2b<-c(1, mods.inter2b, twoway.ints2b)
 #all.poss.mods.clim.vegtype2b<-c(1, mods.me.climate2b, mods.inter2b)
 all.poss.mods.clim.vegtype2b
 all.poss.mods.clim.vegtype2b<-all.poss.mods.clim.vegtype2b[-2]
@@ -1461,7 +1456,7 @@ top_mod_table_NDT3_light_t_Means[1,26]<- mean(top_mod_table_NDT3_light_t_ALL$`co
 top_mod_table_NDT3_light_t_Means[1,27]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_slope:elevation`, na.rm=TRUE) #
 top_mod_table_NDT3_light_t_Means[1,28]<- mean(top_mod_table_NDT3_light_t_ALL$`aspect:elevation`, na.rm=TRUE) #
 top_mod_table_NDT3_light_t_Means[1,29]<- mean(top_mod_table_NDT3_light_t_ALL$`climate2:elevation`, na.rm=TRUE) #
-top_mod_table_NDT3_light_t_Means[1,30]<- mean(mod.auc, na.rm=TRUE)
+top_mod_table_NDT3_light_t_Means[1,30]<- mean(top_mod_table_NDT3_light_t_ALL$AUC, na.rm=TRUE)
 
 top_mod_table_NDT3_light_t_Means
 
@@ -1515,7 +1510,7 @@ top_mod_table_NDT3_light_t_SD[1,26]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_cl
 top_mod_table_NDT3_light_t_SD[1,27]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_slope:elevation`, na.rm=TRUE) #
 top_mod_table_NDT3_light_t_SD[1,28]<- sd(top_mod_table_NDT3_light_t_ALL$`aspect:elevation`, na.rm=TRUE) #
 top_mod_table_NDT3_light_t_SD[1,29]<- sd(top_mod_table_NDT3_light_t_ALL$`climate2:elevation`, na.rm=TRUE) #
-top_mod_table_NDT3_light_t_SD[1,30]<- sd(mod.auc, na.rm=TRUE)
+top_mod_table_NDT3_light_t_SD[1,30]<- sd(top_mod_table_NDT3_light_t_ALL$AUC, na.rm=TRUE)
 
 top_mod_table_NDT3_light_t_SD
 

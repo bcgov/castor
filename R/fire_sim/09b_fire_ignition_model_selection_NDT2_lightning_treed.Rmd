@@ -1994,7 +1994,7 @@ top_mod_table_NDT2_light_t_Means[1,23]<- mean(top_mod_table_NDT2_light_t_ALL$`co
 top_mod_table_NDT2_light_t_Means[1,24]<- mean(top_mod_table_NDT2_light_t_ALL$`coef_climate1:proj_age_1`, na.rm=TRUE) #coefficient climate1*projage
 top_mod_table_NDT2_light_t_Means[1,25]<- mean(top_mod_table_NDT2_light_t_ALL$`coef_climate2:proj_height_1`, na.rm=TRUE) #coefficient climate2*projheight
 top_mod_table_NDT2_light_t_Means[1,26]<- mean(top_mod_table_NDT2_light_t_ALL$`coef_climate1:elevation`, na.rm=TRUE) #coefficient climate1:elevation 
-top_mod_table_NDT2_light_t_Means[1,27]<- mean(mod.auc, na.rm=TRUE)
+top_mod_table_NDT2_light_t_Means[1,27]<- mean(top_mod_table_NDT2_light_t_ALL$AUC, na.rm=TRUE)
 
 top_mod_table_NDT2_light_t_Means
 
@@ -2046,7 +2046,7 @@ top_mod_table_NDT2_light_t_SD[1,23]<- sd(top_mod_table_NDT2_light_t_ALL$`coef_cl
 top_mod_table_NDT2_light_t_SD[1,24]<- sd(top_mod_table_NDT2_light_t_ALL$`coef_climate1:proj_age_1`, na.rm=TRUE) #coefficient climate1*projage
 top_mod_table_NDT2_light_t_SD[1,25]<- sd(top_mod_table_NDT2_light_t_ALL$`coef_climate2:proj_height_1`, na.rm=TRUE) #coefficient climate2*projheight
 top_mod_table_NDT2_light_t_SD[1,26]<- sd(top_mod_table_NDT2_light_t_ALL$`coef_climate1:elevation`, na.rm=TRUE) #coefficient climate1:elevation 
-top_mod_table_NDT2_light_t_SD[1,27]<- sd(mod.auc, na.rm=TRUE)
+top_mod_table_NDT2_light_t_SD[1,27]<- sd(top_mod_table_NDT2_light_t_ALL$AUC, na.rm=TRUE)
 
 top_mod_table_NDT2_light_t_SD
 

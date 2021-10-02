@@ -1,0 +1,1735 @@
+---
+title: "12c_fire_escape_model_selection_NDT3"
+author: "Cora Skaien"
+date: "28/09/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Load relevant libraries
+library(sf)
+library(tidyverse)
+library(ggplot2)
+library (ggcorrplot)
+library (RPostgreSQL)
+library (rpostgis)
+library (dplyr)
+library (lme4)
+library (arm)
+library(ggpubr)
+library(mgcv)
+library(nlme)
+library(purrr)
+library(tidyr)
+library(caret)
+library(pROC)
+library(keyring)
+library(ggcorrplot) 
+library (kableExtra)
+library (data.table)
+library (DBI)
+library (RPostgreSQL)
+library (dplyr)
+library (ggplot2)
+library (here)
+library(AICcmodavg)
+library(caret)
+library(pROC)
+library(rje)
+library(base)
+library(car)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+Load in the prepped data.
+
+```{r}
+Escape_data_lightning_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_trees_NDT.csv")
+
+head(Escape_data_lightning_t)
+
+```
+
+################ PART 1: Lightning Caused Fires ################
+
+We will make a loop that does something very similar to our last loop, but with the selected climate variable plus other variables of interest. For lightning caused fires with trees, the variables of interest include:
+
+1. Climate variable(s)
+2. Projected Height (proj_height_1)
+3. projected age (proj_age_1)  
+4. live_stand_volume_125
+5. vegtype2
+6. slope
+7. aspect (cos)
+8. elevation
+9. Various distance to infrastructure variables (dist_mun, dist_dam, dist_nat, dist_pow, dist_mine) - no interactions
+10. Land use (bclcs_level_5_2)
+11. windspeed (wind_atfire)
+12. roads_km (road density, which may relate to ability to fight fires)
+
+Interactions of interest: two-way interactions between climate (1) and vegtype (5); two-way interactions between topography measures (6-8). 
+
+This will be done separately for trees and non-treed areas. 
+
+##We will do each loop separately for each NDT zone given the large number of possible models for each zone.
+
+First we will create the variable lists that contain all of our variables of interest.
+
+```{r}
+##Create variable lists to be used in the model loop.
+variables_all<-c(climate1 = "climate1", climate2 = "climate2", proj_height_1 = "proj_height_1", proj_age_1 = "proj_age_1", live_stand_volume_125 = "live_stand_volume_125", slope = "slope", aspect = "aspect", elevation ="elevation", vegtype2 = "vegtype2", bclcs_level_5_2 = "bclcs_level_5_2", dist_mun = "dist_mun", dist_dam ="dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_mine = "dist_mine", wind_atfire = "wind_atfire", roads_km="roads_km") 
+
+variables_all_c1<-c(climate1 = "climate1", proj_height_1 = "proj_height_1", proj_age_1 = "proj_age_1", live_stand_volume_125 = "live_stand_volume_125", slope = "slope", aspect = "aspect", elevation ="elevation", vegtype2 = "vegtype2", bclcs_level_5_2 = "bclcs_level_5_2", dist_mun = "dist_mun", dist_dam ="dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_mine = "dist_mine", wind_atfire = "wind_atfire", roads_km="roads_km") 
+
+
+vars.clim<-c("climate1")
+vars.clim.vegtype<-c("climate1", "vegtype2")
+vars.oth<-c("proj_height_1", "proj_age_1", "live_stand_volume_125") 
+vars.topo<-c("slope", "aspect", "elevation", "wind_atfire")
+vars.infra<-c("dist_mun", "dist_dam", "dist_nat", "dist_pow", "dist_mine", "roads_km")
+
+#Also for later with 2 climate variables
+vars.clim.vegtype2<-c("climate1", "climate2","vegtype2")
+vars.clim.vegtype2b<-c("climate1", "climate2")
+
+##Create interaction for climate and vegtype
+inputs.me <- c(vars.clim.vegtype)
+inputs.me2 <- c(vars.clim.vegtype2)
+inputs.me2b <- c(vars.clim.vegtype2b)
+```
+
+
+Now, we will generate two-way interactions for each of these lists. 
+
+```{r}
+
+#####1a. For those with one climate variable
+#get the names of all possible two-way interactions for climate variable(s) and vegtype.
+twoway.ints <- NULL
+for (i in 1:(length(inputs.me)-1)) {
+  for (j in (i+1):length(inputs.me)) {
+     twoway.ints <- cbind(twoway.ints, paste(inputs.me[i], inputs.me[j], sep=":"))
+  }
+}
+twoway.ints
+length(twoway.ints)#1
+
+#
+#Create function to determine Powerset for any vector of variable names
+## or use rje package
+#powerSet <- function(x) {
+#   z.list <- NULL
+#   for(i in 1:length(x)) {
+#      z.list <- append(z.list, combn(x, m=i, simplify=F))
+#   }    
+#   return(z.list)
+#}
+
+
+#Get variables on own
+#complete list of models using non-climate vars
+mods.me.tmp <- powerSet(vars.clim.vegtype) 
+#add climate vars to all of the above
+mods.me.climate <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.me.climate[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.me.climate
+mods.me.climate<-mods.me.climate[-1]
+
+#####1b. For those with two climate variables
+#get the names of all possible two-way interactions for climate variable(s) and vegtype.
+twoway.ints2 <- NULL
+for (i in 1:(length(inputs.me2)-1)) {
+  for (j in (i+1):length(inputs.me2)) {
+     twoway.ints2 <- cbind(twoway.ints2, paste(inputs.me2[i], inputs.me2[j], sep=":"))
+  }
+}
+twoway.ints2
+length(twoway.ints2) #3
+
+#Get variables on own
+#complete list of models using non-climate vars
+mods.me.tmp <- powerSet(vars.clim.vegtype2) 
+#add climate vars to all of the above
+mods.me.climate2 <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.me.climate2[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.me.climate2
+mods.me.climate2<-mods.me.climate2[-1]
+
+#complete list of two-way interactions
+mods.twoway2 <- powerSet(twoway.ints2)
+length(mods.twoway2) #8
+mods.twoway2
+mods.twoway2<-mods.twoway2[-1]
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+mods.inter2 <- list()
+counter <- 0
+for (i in 1: length(mods.twoway2)) {
+   s1 <- unique(unlist( strsplit(mods.twoway2[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.me.climate2)) {
+      if (all(s1 %in% mods.me.climate2[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.me.climate2[[j]], mods.twoway2[[i]])
+        mods.inter2[[counter]] <- both
+      }
+   }
+}
+
+length(mods.inter2) #10
+#mods.inter2
+mods.inter2
+
+
+####1c. Two variables, no variation in vegtype
+#get the names of all possible two-way interactions for climate variable(s) and vegtype.
+twoway.ints2b <- NULL
+for (i in 1:(length(inputs.me2b)-1)) {
+  for (j in (i+1):length(inputs.me2b)) {
+     twoway.ints2b <- cbind(twoway.ints2b, paste(inputs.me2b[i], inputs.me2b[j], sep=":"))
+  }
+}
+twoway.ints2b
+length(twoway.ints2b) #1
+
+#Get variables on own
+#complete list of models using non-climate vars
+mods.me.tmp <- powerSet(vars.clim.vegtype2b) 
+#add climate vars to all of the above
+mods.me.climate2b <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.me.climate2b[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.me.climate2b
+mods.me.climate2b<-mods.me.climate2b[-1]
+
+#complete list of two-way interactions
+mods.twoway2b <- powerSet(twoway.ints2b)
+length(mods.twoway2b) #2
+mods.twoway2b
+mods.twoway2b<-mods.twoway2b[-1]
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+mods.inter2b <- list()
+counter <- 0
+for (i in 1: length(mods.twoway2b)) {
+   s1 <- unique(unlist( strsplit(mods.twoway2b[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.me.climate2b)) {
+      if (all(s1 %in% mods.me.climate2b[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.me.climate2b[[j]], mods.twoway2b[[i]])
+        mods.inter2b[[counter]] <- both
+      }
+   }
+}
+
+length(mods.inter2b)
+#mods.inter2b
+
+
+#########2. Now for topography data, get all possible two-way interactions
+
+#get the names of all possible two-way interactions
+twoway.intsT <- NULL
+for (i in 1:(length(vars.topo)-1)) {
+  for (j in (i+1):length(vars.topo)) {
+     twoway.intsT <- cbind(twoway.intsT, paste(vars.topo[i], vars.topo[j], sep=":"))
+  }
+}
+twoway.intsT
+length(twoway.intsT) #6
+
+#complete list of models using non-climate vars (topo)
+mods.me.tmp <- powerSet(vars.topo) 
+#add climate vars to all of the above
+mods.meT <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.meT[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.meT
+mods.meT<-mods.meT[-1]
+
+#complete list of two-way interactions
+mods.twowayT <- powerSet(twoway.intsT)
+length(mods.twowayT) #64
+mods.twowayT
+mods.twowayT<-mods.twowayT[-1]
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+
+mods.interT <- list()
+counter <- 0
+for (i in 1: length(mods.twowayT)) {
+   s1 <- unique(unlist( strsplit(mods.twowayT[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.meT)) {
+      if (all(s1 %in% mods.meT[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.meT[[j]], mods.twowayT[[i]])
+        mods.interT[[counter]] <- both
+      }
+   }
+}
+
+length(mods.interT) #97
+#mods.interT
+
+
+####3.For other VRI data, get without interactions
+
+#complete list of models using VRI - no interactions
+mods.me.tmp <- powerSet(vars.oth) 
+#add climate vars to all of the above
+mods.me.oth <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.me.oth[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.me.oth
+mods.me.oth<-mods.me.oth[-1]
+
+
+#########4. Now for distance to infrastructure data, get all possible two-way interactions
+
+#get the names of all possible two-way interactions
+twoway.intsI <- NULL
+for (i in 1:(length(vars.infra)-1)) {
+  for (j in (i+1):length(vars.infra)) {
+     twoway.intsI <- cbind(twoway.intsI, paste(vars.infra[i], vars.infra[j], sep=":"))
+  }
+}
+twoway.intsI
+length(twoway.intsI) #15
+
+#complete list of models using non-climate vars (infra)
+mods.me.tmp <- powerSet(vars.infra) 
+#add climate vars to all of the above
+mods.meI <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.meI[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.meI
+mods.meI<-mods.meI[-1]
+
+#complete list of two-way interactions
+mods.twowayI <- powerSet(twoway.intsI)
+length(mods.twowayI) #32768 -
+#mods.twowayI
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+
+mods.interI <- list()
+counter <- 0
+for (i in 1: length(mods.twowayI)) {
+   s1 <- unique(unlist( strsplit(mods.twowayI[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.meI)) {
+      if (all(s1 %in% mods.meI[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.meI[[j]], mods.twowayI[[i]])
+        mods.interI[[counter]] <- both
+      }
+   }
+}
+
+length(mods.interI) #80136
+#mods.interI
+
+
+#the list of all possible model RHSs. 
+#all.poss.mods <- c(1, vars.clim, twoway.ints, mods.me.oth, mods.me2, mods.inter2)
+#all.poss.mods
+
+all.poss.mods.clim.vegtype<-c(1, mods.me.climate, twoway.ints)
+all.poss.mods.clim.vegtype 
+
+all.poss.mods.clim.vegtype2<-c(1, mods.me.climate2, mods.inter2)
+all.poss.mods.clim.vegtype2
+
+all.poss.mods.clim.vegtype2b<-c(1, mods.me.climate2b, mods.inter2b)
+all.poss.mods.clim.vegtype2b
+
+all.poss.mods.VRI<-c(1, mods.me.oth)
+all.poss.mods.VRI
+
+all.poss.mods.topo<-c(1, mods.interT)
+all.poss.mods.topo
+
+all.poss.mods.infra<-c(1, mods.meI) #I don't think we want interactions here actually... we will in the next stage when we include bclcs_level_5_2 after some initial pattern exploration
+
+
+#If need to determine which ones are character(0), try this:
+biglist <- list(list("A","B","C"), "foo", "", character(0), integer(0))
+lapply(biglist, function(x) {length(x) == 0L} ) 
+
+
+##Check and rid of any duplicated models
+duplicated(all.poss.mods.clim.vegtype) #None duplicated
+duplicated(all.poss.mods.clim.vegtype2)
+duplicated(all.poss.mods.clim.vegtype2b)
+duplicated(all.poss.mods.VRI)
+duplicated(all.poss.mods.topo)
+duplicated(all.poss.mods.infra)
+
+```
+
+############### Part 1 of 4 Model Series: Lightning Caused Fires, Trees ##########
+
+Because of the large number of models with all variables included, we will test the climate and vegtype first, then the VRI variables, then the topography variables. Then we will test the top models together in additional combinations, with determining best AIC model from there. Or perhaps we will just combine the top models for each together, and eliminate models if the intercept was the best predictor.
+
+Select NDT: NDT3
+
+#Create new variable for partitioning the data
+```{r}
+Escape_data_lightning_t$veg_escape<-paste( Escape_data_lightning_t$vegtype2,  Escape_data_lightning_t$escape)
+table(Escape_data_lightning_t$veg_escape)
+
+```
+
+```{r}
+zones1<-c("NDT3") #Do one zone at a time
+
+prop<-0.75
+
+#Create empty table
+table.glm.climate.simple <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.climate.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+########### 1. Climate and vegtype ############
+for (g in 1:100){
+
+for (h in 1:length(zones1)) {
+  dat2<- Escape_data_lightning_t %>% dplyr::filter(ntrl_ds ==zones1[h])
+
+#for (i in 1: length(all.poss.mods.clim.vegtype2)){
+#  print(paste((all.poss.mods.clim.vegtype2[i]), (zones1[h]), sep=" "))
+  
+for (i in 1: length(zones1)){
+  print(paste((all.poss.mods.clim.vegtype2[i]), (zones1[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, veg_escape, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(escape, veg_escape, !!variables_all)
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$veg_escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- model_dat[ trainIndex,]
+   Valid <- model_dat[-trainIndex,]
+
+big.mod <- function(mods.in, df.train, df.test, dep.var="escape") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.clim.vegtype2, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.climate <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.climate$NDT<-c("NDT3")
+tab.sum.climate 
+
+table.glm.climate.simple<-rbind(table.glm.climate.simple, tab.sum.climate)
+
+}
+}
+}
+
+
+```
+
+Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination.
+
+```{r}
+head(table.glm.climate.simple)
+table(table.glm.climate.simple$model) # 100 per model
+
+AIC_lightning_NDT3_treed_climate<-table.glm.climate.simple
+
+AIC_lightning_NDT3_treed_summary_climate<- AIC_lightning_NDT3_treed_climate %>%
+  group_by(model) %>%
+  summarise(meanAIC=mean(aic),
+            meanAUC=mean(auc.valid),
+            sdAUC=sd(auc.valid),
+            )
+
+AIC_lightning_NDT3_treed_summary_climate2<- AIC_lightning_NDT3_treed_summary_climate %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+head(AIC_lightning_NDT3_treed_summary_climate2)
+```
+
+#Now repeat for VRI data
+
+```{r}
+########### 2. VRI ############
+#Create empty table
+table.glm.VRI.simple <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.VRI.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+####
+for (g in 1:100){
+
+for (h in 1:length(zones1)) {
+  dat2<- Escape_data_lightning_t %>% dplyr::filter(ntrl_ds ==zones1[h])
+
+#for (i in 1: length(all.poss.mods.VRI)){
+#  print(paste((all.poss.mods.VRI[i]), (zones1[h]), sep=" "))
+  
+for (i in 1: length(zones1)){
+  print(paste((all.poss.mods.VRI[i]), (zones1[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, veg_escape, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(escape, veg_escape, !!variables_all)
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$veg_escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- model_dat[ trainIndex,]
+   Valid <- model_dat[-trainIndex,]
+
+big.mod <- function(mods.in, df.train, df.test, dep.var="escape") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.VRI, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.VRI <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.VRI$NDT<-c("NDT3")
+tab.sum.VRI 
+
+table.glm.VRI.simple<-rbind(table.glm.VRI.simple, tab.sum.VRI)
+
+}
+}
+}
+```
+
+Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination.
+
+```{r}
+head(table.glm.VRI.simple)
+table(table.glm.VRI.simple$model) # 100 per model
+
+AIC_lightning_NDT3_treed_VRI<-table.glm.VRI.simple
+
+AIC_lightning_NDT3_treed_summary_VRI<- AIC_lightning_NDT3_treed_VRI %>%
+  group_by(model) %>%
+  summarise(meanAIC=mean(aic),
+            meanAUC=mean(auc.valid),
+            sdAUC=sd(auc.valid),
+            )
+
+AIC_lightning_NDT3_treed_summary_VRI2<- AIC_lightning_NDT3_treed_summary_VRI %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+head(AIC_lightning_NDT3_treed_summary_VRI2)
+```
+
+#Now repeat for topography
+
+```{r}
+########### 3. topo ############
+#Create empty table
+table.glm.topo.simple <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.topo.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+#
+for (g in 1:100){
+
+for (h in 1:length(zones1)) {
+  dat2<- Escape_data_lightning_t %>% dplyr::filter(ntrl_ds ==zones1[h])
+
+#for (i in 1: length(all.poss.mods.topo)){
+#  print(paste((all.poss.mods.topo[i]), (zones1[h]), sep=" "))
+  
+for (i in 1: length(zones1)){
+  print(paste((all.poss.mods.topo[i]), (zones1[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, veg_escape, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(escape, veg_escape, !!variables_all)
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$veg_escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- model_dat[ trainIndex,]
+   Valid <- model_dat[-trainIndex,]
+
+big.mod <- function(mods.in, df.train, df.test, dep.var="escape") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.topo, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.topo <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.topo$NDT<-c("NDT3")
+tab.sum.topo 
+
+table.glm.topo.simple<-rbind(table.glm.topo.simple, tab.sum.topo)
+
+}
+}
+}
+```
+
+Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination.
+
+```{r}
+head(table.glm.topo.simple)
+table(table.glm.topo.simple$model) # 100 per model
+
+AIC_lightning_NDT3_treed_topo<-table.glm.topo.simple
+
+AIC_lightning_NDT3_treed_summary_topo<- AIC_lightning_NDT3_treed_topo %>%
+  group_by(model) %>%
+  summarise(meanAIC=mean(aic),
+            meanAUC=mean(auc.valid),
+            sdAUC=sd(auc.valid),
+            )
+
+AIC_lightning_NDT3_treed_summary_topo2<- AIC_lightning_NDT3_treed_summary_topo %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+head(AIC_lightning_NDT3_treed_summary_topo2)
+```
+
+#Now repeat for infrastructure
+
+```{r}
+########### 4. Distance to Infrastructure ############
+#Create empty table
+table.glm.infra.simple <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.infra.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+#
+for (g in 1:100){
+
+for (h in 1:length(zones1)) {
+  dat2<- Escape_data_lightning_t %>% dplyr::filter(ntrl_ds ==zones1[h])
+
+#for (i in 1: length(all.poss.mods.infra)){
+#  print(paste((all.poss.mods.infra[i]), (zones1[h]), sep=" "))
+  
+for (i in 1: length(zones1)){
+  print(paste((all.poss.mods.infra[i]), (zones1[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, veg_escape, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(escape, veg_escape, !!variables_all)
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$veg_escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- model_dat[ trainIndex,]
+   Valid <- model_dat[-trainIndex,]
+
+big.mod <- function(mods.in, df.train, df.test, dep.var="escape") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+}
+}
+```
+
+Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination.
+
+```{r}
+head(table.glm.infra.simple)
+table(table.glm.infra.simple$model) # 100 per model
+
+AIC_lightning_NDT3_treed_infra<-table.glm.infra.simple
+
+AIC_lightning_NDT3_treed_summary_infra<- AIC_lightning_NDT3_treed_infra %>%
+  group_by(model) %>%
+  summarise(meanAIC=mean(aic),
+            meanAUC=mean(auc.valid),
+            sdAUC=sd(auc.valid),
+            )
+
+AIC_lightning_NDT3_treed_summary_infra2<- AIC_lightning_NDT3_treed_summary_infra %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+head(AIC_lightning_NDT3_treed_summary_infra2)
+
+```
+
+#Now combine the datatables and save to computer
+
+```{r}
+NDT3_l_models_treed<-rbind(AIC_lightning_NDT3_treed_summary_climate2, AIC_lightning_NDT3_treed_summary_VRI2, AIC_lightning_NDT3_treed_summary_topo2, AIC_lightning_NDT3_treed_summary_infra2)
+NDT3_l_models_treed
+NDT3_l_models_treed$NDT<-"NDT3"
+
+write.csv(NDT3_l_models_treed, file="D:\\Fire\\fire_data\\raw_data\\NDT3_lightning_models_treed_escape.csv")
+```
+
+
+################################ STAGE TWO ########################
+
+#STAGE TWO: PUT TOGETHER MORE VARIABLES
+Now choose the top variables and create final model. The below code will need to be updated manually, depending on what the results of the above analyses are. From the top models, we will re-create two-way interactions for the variables selected from each model, plus the other variables listed as needed to be included. We will assess each set to ensure only interactions that make sense are investigated ultimately, given that sample sizes will be an issues.
+
+Top Models:
+1. climate1 + climate2 + vegtype2 + climate1:climate2 + climate2:vegtype2 + climate1:vegtype2
+2. proj_height_1 + proj_age_1 + live_stand_volume_125
+3. slope + aspect + elevation + wind_atfire + slope:elevation + aspect:wind_atfire
+4. dist_mun + dist_dam + dist_nat + dist_mine + dist_pow + roads_km
+
+Additional Variables:
+1. bclcs_level_5_2 (land use) (to be added to final investigated model)
+
+#Create variable lists
+We want to include interactions between variables from within each list. This will make for many models, which may be hard to process in R.
+
+```{r}
+##Create variable lists to be used in the model loop.
+variables_all_NDT3<-c(climate1 = "climate1", climate2 = "climate2", vegtype2 = "vegtype2", live_stand_volume_125 = "live_stand_volume_125", proj_height_1 ="proj_height_1", proj_age_1 = "proj_age_1",  slope = "slope", elevation ="elevation", aspect = "aspect",  dist_dam = "dist_dam", dist_mun = "dist_mun", dist_nat = "dist_nat", dist_mine = "dist_mine", dist_pow = "dist_pow", roads_km = "roads_km", bclcs_level_5_2 = "bclcs_level_5_2", wind_atfire="wind_atfire")
+
+
+#Too many permutations to be able to include two-way interactions and all possible models, so need to divide into what we think may have interactions and which not.
+variables_clim_VRI_NDT3<-c(climate1 = "climate1", climate2 = "climate2", vegtype2 = "vegtype2", live_stand_volume_125 = "live_stand_volume_125", proj_height_1 ="proj_height_1", proj_age_1 = "proj_age_1")
+
+#treat slope, aspect and elevation as their own thing. And we have already done this analysis with them.
+#slope = "slope", aspect = "aspect", elevation ="elevation")
+
+variables_all_infra_landuse_NDT3<-c(dist_dam = "dist_dam", dist_mun = "dist_mun", dist_nat = "dist_nat", dist_mine = "dist_mine", dist_pow = "dist_pow", roads_km = "roads_km", bclcs_level_5_2 = "bclcs_level_5_2") #I don't think it makes sense to have interactions between the distance elements, but maybe with land use and each distance element?
+
+##
+inputs.me.NDT3 <- c(variables_all_NDT3)
+#inputs.me.clim_VRI_DEM_NDT3 <- c(variables_clim_VRI_DEM_NDT3)
+inputs.me.clim_VRI_NDT3 <- c(variables_clim_VRI_NDT3)
+inputs.me.infra_landuse_NDT3 <- c(variables_all_infra_landuse_NDT3)
+
+```
+
+Now, we will generate two-way interactions for each of these lists. We cannot make two-way interactions between them all because apparently it will be >2 GB in size.
+
+```{r}
+####Create interactions
+twoway.ints <- NULL
+for (i in 1:(length(inputs.me.clim_VRI_NDT3)-1)) {
+  for (j in (i+1):length(inputs.me.clim_VRI_NDT3)) {
+     twoway.ints <- cbind(twoway.ints, paste(inputs.me.clim_VRI_NDT3[i], inputs.me.clim_VRI_NDT3[j], sep=":"))
+  }
+}
+twoway.ints
+length(twoway.ints) #15
+
+#Create function to determine Powerset for any vector of variable names
+## or use rje package
+#powerSet <- function(x) {
+#   z.list <- NULL
+#   for(i in 1:length(x)) {
+#      z.list <- append(z.list, combn(x, m=i, simplify=F))
+#   }    
+#   return(z.list)
+#}
+
+#Get variables on own
+#complete list of models using non-climate vars
+mods.me.tmp <- powerSet(variables_clim_VRI_NDT3) 
+#add climate vars to all of the above
+mods.me.clim_VRI_NDT3 <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.me.clim_VRI_NDT3[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.me.clim_VRI_NDT3
+length(mods.me.clim_VRI_NDT3) #64
+
+
+#complete list of two-way interactions
+mods.twoway.NDT3 <- powerSet(twoway.ints) # 
+length(mods.twoway.NDT3) #32768
+mods.twoway.NDT3[1]
+mods.twoway.NDT3<-mods.twoway.NDT3[-1]
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+mods.inter.NDT3 <- list()
+counter <- 0
+for (i in 1: length(mods.twoway.NDT3)) {
+   s1 <- unique(unlist( strsplit(mods.twoway.NDT3[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.me.clim_VRI_NDT3)) {
+      if (all(s1 %in% mods.me.clim_VRI_NDT3[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.me.clim_VRI_NDT3[[j]], mods.twoway.NDT3[[i]])
+        mods.inter.NDT3[[counter]] <- both
+      }
+   }
+}
+
+length(mods.inter.NDT3) #80010
+mods.inter.NDT3[2]
+
+##Subset 2: Infrastructure and land use ########
+#inputs.me.infra_landuse_NDT3
+twoway.ints <- NULL
+for (i in 1:(length(inputs.me.infra_landuse_NDT3)-1)) {
+  for (j in (i+1):length(inputs.me.infra_landuse_NDT3)) {
+     twoway.ints <- cbind(twoway.ints, paste(inputs.me.infra_landuse_NDT3[i], inputs.me.infra_landuse_NDT3[j], sep=":"))
+  }
+}
+twoway.ints
+length(twoway.ints) #21
+#Review. If we do not want interactions between the different distance measurements, but only those between land use and distance, subset those.
+twoway.ints
+twoway.ints_dist<-twoway.ints[c(5,6,10,11,14,15,17,18,19,20,21)]
+twoway.ints_dist
+
+
+#Create function to determine Powerset for any vector of variable names
+## or use rje package
+#powerSet <- function(x) {
+#   z.list <- NULL
+#   for(i in 1:length(x)) {
+#      z.list <- append(z.list, combn(x, m=i, simplify=F))
+#   }    
+#   return(z.list)
+#}
+
+#Get variables on own
+#complete list of models using non-climate vars
+mods.me.tmp <- powerSet(variables_all_infra_landuse_NDT3) 
+#add climate vars to all of the above
+mods.me.infra_landuse_NDT3 <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.me.infra_landuse_NDT3[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.me.infra_landuse_NDT3
+length(mods.me.infra_landuse_NDT3) #128
+
+
+#complete list of two-way interactions
+#mods.twoway.NDT3b <- powerSet(twoway.ints) #
+#Or use subset of interactions
+mods.twoway.NDT3b <- powerSet(twoway.ints_dist) 
+length(mods.twoway.NDT3b) #2048
+#mods.twoway.NDT3b
+mods.twoway.NDT3b[1]
+mods.twoway.NDT3b<-mods.twoway.NDT3b[-1]
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+mods.inter.NDT3b <- list()
+counter <- 0
+for (i in 1: length(mods.twoway.NDT3b)) {
+   s1 <- unique(unlist( strsplit(mods.twoway.NDT3b[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.me.infra_landuse_NDT3)) {
+      if (all(s1 %in% mods.me.infra_landuse_NDT3[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.me.infra_landuse_NDT3[[j]], mods.twoway.NDT3b[[i]])
+        mods.inter.NDT3b[[counter]] <- both
+      }
+   }
+}
+
+length(mods.inter.NDT3b) #6640
+#mods.inter.NDT3b
+```
+
+Make final list of variables to assess.
+
+```{r}
+## 1. climate and VRI
+#the list of all possible model RHSs. 
+all.poss.mods.clim_VRI_NDT3<-c(1, mods.me.clim_VRI_NDT3, mods.inter.NDT3)
+#all.poss.mods.clim_VRI_NDT3
+length(mods.me.clim_VRI_NDT3) #64
+length(all.poss.mods.clim_VRI_NDT3) #80075
+#all.poss.mods.clim_VRI_NDT3
+
+
+##Check and rid of any duplicated models
+duplicated(all.poss.mods.clim_VRI_NDT3) #Need to remove 
+#all.poss.mods.clim_VRI_NDT3b<-all.poss.mods.clim_VRI_NDT3[-(65:127)]
+#duplicated(all.poss.mods.clim_VRI_NDT3b) 
+#length(all.poss.mods.clim_VRI_NDT3b) 
+
+
+#####2. Infrastructure and land use
+all.poss.mods.infra_landuse_NDT3<-c(1,mods.me.infra_landuse_NDT3, mods.inter.NDT3b)
+length(all.poss.mods.infra_landuse_NDT3) #6769
+
+##Check and rid of any duplicated models
+duplicated(all.poss.mods.infra_landuse_NDT3) #Need to remove 
+#all.poss.mods.infra_landuse_NDT3b<-all.poss.mods.infra_landuse_NDT3[-(34:65)]
+#duplicated(all.poss.mods.infra_landuse_NDT3b) 
+#all.poss.mods.infra_landuse_NDT3b[2]
+#all.poss.mods.infra_landuse_NDT3b<-all.poss.mods.infra_landuse_NDT3b[-2]
+```
+
+```{r}
+#If need to determine which ones are character(0), try this:
+biglist <- list(list("A","B","C"), "foo", "", character(0), integer(0))
+lapply(biglist, function(x) {length(x) == 0L} ) 
+
+#Below does not work
+lapply(biglist, all.poss.mods.infra_landuse_NDT3b {length(all.poss.mods.infra_landuse_NDT3b) == 0L} ) 
+
+```
+
+```{r}
+all.poss.mods.clim_VRI_NDT3<-all.poss.mods.clim_VRI_NDT3[-2]
+length(all.poss.mods.clim_VRI_NDT3)
+```
+
+Run models. We cannot run the full model once unfortunately, so we will need to divide the models into smaller datsets, subset the data manually, run each section independently, combine, subset the data again, and repeat many times. try to break them up into ~20,000 chunks, but many will need to be further subsetted into 10,000 chunks.
+
+```{r}
+all.poss.mods.clim_VRI_NDT3_set1<-all.poss.mods.clim_VRI_NDT3[1:20000]
+all.poss.mods.clim_VRI_NDT3_set2<-all.poss.mods.clim_VRI_NDT3[20001:40000]
+all.poss.mods.clim_VRI_NDT3_set3<-all.poss.mods.clim_VRI_NDT3[40001:60000]
+all.poss.mods.clim_VRI_NDT3_set4<-all.poss.mods.clim_VRI_NDT3[60001:80074]
+```
+
+
+```{r}
+zones1<-"NDT3"
+prop<-0.75
+
+#Create empty table
+table.glm.clim_VRI.NDT3 <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.clim_VRI.NDT3) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+#Run: subset data for NDT3
+dat2<- Escape_data_lightning_t %>% dplyr::filter(ntrl_ds ==zones1[h])
+
+#Create subset of data
+model_dat<- dat2 %>% dplyr::select(escape, veg_escape, !!variables_all_NDT3)
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$veg_escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- model_dat[ trainIndex,]
+   Valid <- model_dat[-trainIndex,]
+```
+
+
+```{r}
+#Run model for first set
+big.mod <- function(mods.in, df.train, df.test, dep.var="escape") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.clim_VRI_NDT3_set1, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.climate <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.climate$NDT<-c("NDT3")
+tab.sum.climate 
+
+table.glm.clim_VRI.NDT3_set1<-rbind(table.glm.clim_VRI.NDT3, tab.sum.climate)
+
+
+```
+
+Repeat for subset 2.
+
+```{r}
+mods.fit <- lapply(all.poss.mods.clim_VRI_NDT3_set2, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.climate <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.climate$NDT<-c("NDT3")
+tab.sum.climate 
+
+table.glm.clim_VRI.NDT3_set1_2<-rbind(table.glm.clim_VRI.NDT3_set1, tab.sum.climate)
+```
+
+
+```{r}
+mods.fit <- lapply(all.poss.mods.clim_VRI_NDT3_set3, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.climate <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.climate$NDT<-c("NDT3")
+tab.sum.climate 
+
+table.glm.clim_VRI.NDT3_set1_3<-rbind(table.glm.clim_VRI.NDT3_set1_2, tab.sum.climate)
+```
+
+
+```{r}
+mods.fit <- lapply(all.poss.mods.clim_VRI_NDT3_set4, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.climate <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.climate$NDT<-c("NDT3")
+tab.sum.climate 
+
+table.glm.clim_VRI.NDT3_set1_4<-rbind(table.glm.clim_VRI.NDT3_set1_3, tab.sum.climate)
+```
+
+Save.
+```{r}
+NDT3_ALL_escape_run1<-table.glm.clim_VRI.NDT3_set1_4
+
+write.csv(table.glm.clim_VRI.NDT3_set1_4, file="D:\\Fire\\fire_data\\raw_data\\NDT3_ALL_escape_run1.csv")
+```
+
+Then repeat the above and save, for at least 3 runs per model at a minimum. You may not be able to keep this file in R to run the next section, but you might be able to.
+
+Save.
+```{r}
+NDT3_ALL_escape_run2<-table.glm.clim_VRI.NDT3_set1_4
+
+write.csv(table.glm.clim_VRI.NDT3_set1_4, file="D:\\Fire\\fire_data\\raw_data\\NDT3_ALL_escape_run2.csv")
+```
+
+Save.
+```{r}
+NDT3_ALL_escape_run3<-table.glm.clim_VRI.NDT3_set1_4
+
+write.csv(table.glm.clim_VRI.NDT3_set1_4, file="D:\\Fire\\fire_data\\raw_data\\NDT3_ALL_escape_run3.csv")
+```
+
+
+Bring back in all of the model runs, combine, and then calculate values.
+
+```{r}
+table.glm.clim_VRI.NDT3_ALL<-rbind(NDT3_ALL_escape_run1, NDT3_ALL_escape_run2, NDT3_ALL_escape_run3)
+```
+
+
+```{r}
+head(table.glm.clim_VRI.NDT3_ALL)
+table(table.glm.clim_VRI.NDT3_ALL$model) # 6 per model?? Somehow were duplicated in initial model list creation
+
+AIC_lightning_NDT3_escape_treed_climate<-table.glm.clim_VRI.NDT3_ALL
+
+AIC_lightning_NDT3_escape_treed_summary_climate<- AIC_lightning_NDT3_escape_treed_climate %>%
+  group_by(model) %>%
+  summarise(meanAIC=mean(aic),
+            meanAUC=mean(auc.valid),
+            sdAUC=sd(auc.valid),
+            )
+
+AIC_lightning_NDT3_escape_treed_summary_climate2<- AIC_lightning_NDT3_escape_treed_summary_climate %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+head(AIC_lightning_NDT3_escape_treed_summary_climate2)
+```
+
+Save.
+```{r}
+write.csv(AIC_lightning_NDT3_escape_treed_summary_climate2, file="D:\\Fire\\fire_data\\raw_data\\table.glm.clim_VRI.NDT3_ALL_escape.csv")
+```
+
+
+#Now repeat for all.poss.mods.infra_landuse_NDT3
+
+```{r}
+all.poss.mods.infra_landuse_NDT3<-all.poss.mods.infra_landuse_NDT3[-2]
+```
+
+For below, run only 10 times and run it multiple times, as it may crash R. Before running a second time, rename the table, otherwise it will be erased.
+
+```{r}
+########### 2. Distance to Infrastructure ############
+#Create empty table
+table.glm.infra.lu.simple <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.infra.lu.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+#
+for (g in 1:10){
+
+for (h in 1:length(zones1)) {
+  dat2<- Escape_data_lightning_t %>% dplyr::filter(ntrl_ds ==zones1[h])
+
+#for (i in 1: length(all.poss.mods.infra)){
+#  print(paste((all.poss.mods.infra[i]), (zones1[h]), sep=" "))
+  
+for (i in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_landuse_NDT3[i]), (zones1[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(escape, veg_escape, variables_all_NDT3[i])
+  model_dat<- dat2 %>% dplyr::select(escape, veg_escape, !!variables_all_infra_landuse_NDT3)
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$veg_escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- model_dat[ trainIndex,]
+   Valid <- model_dat[-trainIndex,]
+
+big.mod <- function(mods.in, df.train, df.test, dep.var="escape") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_landuse_NDT3, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra.lu <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra.lu$NDT<-c("NDT3")
+tab.sum.infra.lu 
+
+table.glm.infra.lu.simple<-rbind(table.glm.infra.lu.simple, tab.sum.infra.lu)
+
+}
+}
+}
+```
+
+Rename table.
+```{r}
+table.glm.infra.lu.simple_ALL<-table.glm.infra.lu.simple
+```
+
+Now rerun the model code. Afterwards, combine the outputs.
+
+```{r}
+table.glm.infra.lu.simple_ALL_<-rbind(table.glm.infra.lu.simple_ALL, table.glm.infra.lu.simple)
+head(table.glm.infra.lu.simple_ALL_)
+
+#Run again
+table.glm.infra.lu.simple_ALL<-rbind(table.glm.infra.lu.simple_ALL_, table.glm.infra.lu.simple)
+head(table.glm.infra.lu.simple_ALL)
+```
+
+Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination. Also determine deltaAIC.
+
+```{r}
+head(table.glm.infra.lu.simple_ALL)
+table(table.glm.infra.lu.simple_ALL$model) # 100 per model
+
+AIC_lightning_NDT3_escape_treed_infra<-table.glm.infra.lu.simple_ALL
+
+AIC_lightning_NDT3_escape_treed_summary_infra<- AIC_lightning_NDT3_escape_treed_infra %>%
+  group_by(model) %>%
+  summarise(meanAIC=mean(aic),
+            meanAUC=mean(auc.valid),
+            sdAUC=sd(auc.valid),
+            )
+
+AIC_lightning_NDT3_escape_treed_summary_infra2<- AIC_lightning_NDT3_escape_treed_summary_infra %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+head(AIC_lightning_NDT3_escape_treed_summary_infra2)
+```
+
+Save to computer.
+
+```{r}
+write.csv(AIC_lightning_NDT3_escape_treed_summary_infra2, file="D:\\Fire\\fire_data\\raw_data\\AIC_lightning_NDT3_escape_treed_summary_infra_escape.csv")
+```
+
+################### FINAL MODEL SELECTION ####################
+Determine the top models.
+
+#Climate/VRI 
+climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1
+
+#Infrastructure
+dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_mun:roads_km
+
+#DEM
+slope + aspect + elevation + wind_atfire + slope:elevation + aspect:wind_atfire
+
+*Interactions to include: climate1:elevation + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire
+
+#Next investigation
+
+```{r}
+escape_lightning_t_NDT3<-subset(Escape_data_lightning_t, Escape_data_lightning_t$ntrl_ds=="NDT3")
+
+#Divide data into training and valid
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(escape_lightning_t_NDT3$escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- escape_lightning_t_NDT3[ trainIndex,]
+   Valid <- escape_lightning_t_NDT3[-trainIndex,]
+
+#Run model using dat1
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + slope:elevation + aspect:wind_atfire + climate1:elevation + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire, family = binomial, data = dat1)
+
+AIC(model.NDT3) #2837.1
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75
+   
+Anova(model.NDT3, type=3)
+#Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + slope:elevation + aspect:wind_atfire + climate1:elevation + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire, family = binomial, data = dat1)
+
+AIC(model.NDT3) #2835.9
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75
+   
+Anova(model.NDT3, type=3)
+#Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + slope:elevation + aspect:wind_atfire + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire, family = binomial, data = dat1)
+
+AIC(model.NDT3) #2833.9
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75
+   
+Anova(model.NDT3, type=3)
+#Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + aspect:wind_atfire + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire, family = binomial, data = dat1)
+
+AIC(model.NDT3) #2831.9
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75
+   
+Anova(model.NDT3, type=3)
+#Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + aspect:wind_atfire + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire, family = binomial, data = dat1)
+
+AIC(model.NDT3) #2829.3
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75
+   
+Anova(model.NDT3, type=3)
+#Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + aspect:wind_atfire + climate1:wind_atfire + climate2:elevation, family = binomial, data = dat1)
+
+AIC(model.NDT3) #2827.8
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75
+   
+Anova(model.NDT3, type=3)
+#Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + aspect:wind_atfire  + climate2:elevation, family = binomial, data = dat1)
+
+AIC(model.NDT3) #2826.3
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75
+   
+Anova(model.NDT3, type=3)
+#Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
+
+AIC(model.NDT3) #2825.3
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75
+   
+Anova(model.NDT3, type=3)
+#Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun  + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
+
+AIC(model.NDT3) #2823.3
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75
+   
+Anova(model.NDT3, type=3)
+#Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
+
+AIC(model.NDT3) #2820.6
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75
+   
+Anova(model.NDT3, type=3)
+#Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km  + aspect + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
+
+AIC(model.NDT3) #2819.7
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75
+   
+Anova(model.NDT3, type=3)
+#Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
+
+AIC(model.NDT3) #2819.4
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75
+   
+Anova(model.NDT3, type=3)
+#Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
+
+AIC(model.NDT3) #2817.8
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75
+   
+Anova(model.NDT3, type=3)
+#Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2  + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
+
+AIC(model.NDT3) #3215.07 BAD!
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75
+   
+Anova(model.NDT3, type=3)
+#Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+#GO BACK!
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
+
+AIC(model.NDT3) #2817.8
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75
+   
+Anova(model.NDT3, type=3)
+#Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+```
+
+Remove NAs and tun multiple times.
+
+```{r}
+#Remove NAs to ensure all same data used so we can compare AICs
+NDT3_escape_t<-escape_lightning_t_NDT3 %>% drop_na(climate1, climate2, vegtype2, live_stand_volume_125, proj_height_1, proj_age_1, dist_dam, dist_mun, roads_km, elevation, wind_atfire)
+
+#Run Model again with this data; but uses all data here
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation, family = binomial, data = NDT3_escape_t)
+
+Anova(model.NDT3, type=3)
+
+# model diagnostic plots
+binnedplot (fitted(model.NDT3), 
+            residuals(model.NDT3), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+
+NDT3_escape_t$resids<-resid(model.NDT3)
+
+binnedplot (NDT3_escape_t$live_stand_volume_125, 
+            NDT3_escape_t$resids, 
+            nclass = NULL, 
+            xlab = "live stand volume", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+binnedplot (NDT3_escape_t$climate1, 
+            NDT3_escape_t$resids, 
+            nclass = NULL, 
+            xlab = "", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+# Diagnostic plots look good
+```
+
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model.NDT3)
+
+#Create a new blank table and get AUC too
+top_mod_table_NDT3_light_t_ALL <- data.frame (matrix (ncol = 22, nrow = 0))
+colnames (top_mod_table_NDT3_light_t_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_live_stand_volume_125", "coef_proj_height_1", "coef_proj_age_1", "coef_dist_dam", "coef_dist_mun", "coef_roads_km", "coef_elevation", "coef_wind_atfire", "coef_dist_dam:roads_km", "coef_dist_mun:roads_km", "coef_climate2:elevation", "AUC")
+```
+
+Let's run it 500 times to get good mean values. 
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(NDT3_escape_t$veg_escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- NDT3_escape_t[ trainIndex,]
+   Valid <- NDT3_escape_t[-trainIndex,]
+   
+#Model   
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_NDT3_light_t <- data.frame (matrix (ncol = 22, nrow = 0))
+colnames (top_mod_table_NDT3_light_t ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_live_stand_volume_125", "coef_proj_height_1", "coef_proj_age_1", "coef_dist_dam", "coef_dist_mun", "coef_roads_km", "coef_elevation", "coef_wind_atfire", "coef_dist_dam:roads_km", "coef_dist_mun:roads_km", "coef_climate2:elevation", "AUC")
+
+##Add data for NDT3
+top_mod_table_NDT3_light_t[1,1]<-"lightning"
+top_mod_table_NDT3_light_t[1,2]<-"NDT3"
+top_mod_table_NDT3_light_t[1,3]<-"Y"
+top_mod_table_NDT3_light_t[1,4]<-"escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation" 
+top_mod_table_NDT3_light_t[1,5]<- coef(model.NDT3)[1] #Intercept
+top_mod_table_NDT3_light_t[1,6]<- coef(model.NDT3)[2] #Climate variable 1
+top_mod_table_NDT3_light_t[1,7]<- coef(model.NDT3)[3] #Climate variable 2
+top_mod_table_NDT3_light_t[1,8]<- coef(model.NDT3)[4] #coefficient vegtype2TB 
+top_mod_table_NDT3_light_t[1,9]<- coef(model.NDT3)[5] #coefficient vegtype2TC
+top_mod_table_NDT3_light_t[1,10]<- coef(model.NDT3)[6] #coefficient vegtype2TM
+top_mod_table_NDT3_light_t[1,11]<- coef(model.NDT3)[7] #coefficient live_stand_volume_125
+top_mod_table_NDT3_light_t[1,12]<- coef(model.NDT3)[8] #coefficient proj_height_1
+top_mod_table_NDT3_light_t[1,13]<- coef(model.NDT3)[9] #coefficient proj_age_1 
+top_mod_table_NDT3_light_t[1,14]<- coef(model.NDT3)[10] #coefficient dist_dam 
+top_mod_table_NDT3_light_t[1,15]<- coef(model.NDT3)[11] #coefficient dist_mun 
+top_mod_table_NDT3_light_t[1,16]<- coef(model.NDT3)[12] #coefficient roads_km
+top_mod_table_NDT3_light_t[1,17]<- coef(model.NDT3)[13] #coefficient elevation
+top_mod_table_NDT3_light_t[1,18]<- coef(model.NDT3)[14] #coefficient  wind_atfire 
+top_mod_table_NDT3_light_t[1,19]<- coef(model.NDT3)[15] #coefficient  dist_dam:roads_km
+top_mod_table_NDT3_light_t[1,20]<- coef(model.NDT3)[16] #coefficient  dist_mun:roads_km
+top_mod_table_NDT3_light_t[1,21]<- coef(model.NDT3)[17] #coefficient climate2:elevation
+top_mod_table_NDT3_light_t[1,22]<- mod.auc
+
+top_mod_table_NDT3_light_t_ALL<-rbind(top_mod_table_NDT3_light_t_ALL, top_mod_table_NDT3_light_t)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_NDT3_light_t_ALL)
+```
+
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table_NDT3_light_t_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT3_light_t_ALL.csv")
+```
+
+Get mean values.
+
+```{r}
+names(top_mod_table_NDT3_light_t_ALL)
+mean(top_mod_table_NDT3_light_t_ALL$AUC) # 0.74
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_NDT3_light_t_Means <- data.frame (matrix (ncol = 22, nrow = 0))
+colnames (top_mod_table_NDT3_light_t_Means ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_live_stand_volume_125", "coef_proj_height_1", "coef_proj_age_1", "coef_dist_dam", "coef_dist_mun", "coef_roads_km", "coef_elevation", "coef_wind_atfire", "coef_dist_dam:roads_km", "coef_dist_mun:roads_km", "coef_climate2:elevation", "AUC")
+
+head(top_mod_table_NDT3_light_t_Means)
+
+##Add data for NDT3
+top_mod_table_NDT3_light_t_Means[1,1]<-"lightning"
+top_mod_table_NDT3_light_t_Means[1,2]<-"NDT3"
+top_mod_table_NDT3_light_t_Means[1,3]<-"Y"
+top_mod_table_NDT3_light_t_Means[1,4]<-"escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation" 
+top_mod_table_NDT3_light_t_Means[1,5]<- mean(top_mod_table_NDT3_light_t_ALL$intercept) #Intercept
+top_mod_table_NDT3_light_t_Means[1,6]<- mean(top_mod_table_NDT3_light_t_ALL$coef_climate_1, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,7]<- mean(top_mod_table_NDT3_light_t_ALL$coef_climate_2, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,8]<- mean(top_mod_table_NDT3_light_t_ALL$coef_vegtype2TB, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,9]<- mean(top_mod_table_NDT3_light_t_ALL$coef_vegtype2TC, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,10]<- mean(top_mod_table_NDT3_light_t_ALL$coef_vegtype2TM, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,11]<- mean(top_mod_table_NDT3_light_t_ALL$coef_live_stand_volume_125, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,12]<- mean(top_mod_table_NDT3_light_t_ALL$coef_proj_height_1, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,13]<- mean(top_mod_table_NDT3_light_t_ALL$coef_proj_age_1, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,14]<- mean(top_mod_table_NDT3_light_t_ALL$coef_dist_dam, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,15]<- mean(top_mod_table_NDT3_light_t_ALL$coef_dist_mun, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,16]<- mean(top_mod_table_NDT3_light_t_ALL$coef_roads_km, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,17]<- mean(top_mod_table_NDT3_light_t_ALL$coef_elevation, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,18]<- mean(top_mod_table_NDT3_light_t_ALL$coef_wind_atfire, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,19]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_dist_dam:roads_km`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,20]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_dist_mun:roads_km`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,21]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_climate2:elevation`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,22]<- mean(top_mod_table_NDT3_light_t_ALL$AUC, na.rm=TRUE)
+
+top_mod_table_NDT3_light_t_Means
+
+```
+
+Save mean coefficient table.
+
+```{r}
+write.csv(top_mod_table_NDT3_light_t_Means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT3_light_t_Means.csv")
+```
+
+
+Get sd values.
+
+```{r}
+# create model table (only do this once) and add the relevant data
+top_mod_table_NDT3_light_t_SD <- data.frame (matrix (ncol = 22, nrow = 0))
+colnames (top_mod_table_NDT3_light_t_SD ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_live_stand_volume_125", "coef_proj_height_1", "coef_proj_age_1", "coef_dist_dam", "coef_dist_mun", "coef_roads_km", "coef_elevation", "coef_wind_atfire", "coef_dist_dam:roads_km", "coef_dist_mun:roads_km", "coef_climate2:elevation", "AUC")
+
+head(top_mod_table_NDT3_light_t_SD)
+
+##Add data for NDT3
+top_mod_table_NDT3_light_t_SD[1,1]<-"lightning"
+top_mod_table_NDT3_light_t_SD[1,2]<-"NDT3"
+top_mod_table_NDT3_light_t_SD[1,3]<-"Y"
+top_mod_table_NDT3_light_t_SD[1,4]<-"escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation" 
+top_mod_table_NDT3_light_t_SD[1,5]<- sd(top_mod_table_NDT3_light_t_ALL$intercept) #Intercept
+top_mod_table_NDT3_light_t_SD[1,6]<- sd(top_mod_table_NDT3_light_t_ALL$coef_climate_1, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,7]<- sd(top_mod_table_NDT3_light_t_ALL$coef_climate_2, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,8]<- sd(top_mod_table_NDT3_light_t_ALL$coef_vegtype2TB, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,9]<- sd(top_mod_table_NDT3_light_t_ALL$coef_vegtype2TC, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,10]<- sd(top_mod_table_NDT3_light_t_ALL$coef_vegtype2TM, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,11]<- sd(top_mod_table_NDT3_light_t_ALL$coef_live_stand_volume_125, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,12]<- sd(top_mod_table_NDT3_light_t_ALL$coef_proj_height_1, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,13]<- sd(top_mod_table_NDT3_light_t_ALL$coef_proj_age_1, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,14]<- sd(top_mod_table_NDT3_light_t_ALL$coef_dist_dam, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,15]<- sd(top_mod_table_NDT3_light_t_ALL$coef_dist_mun, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,16]<- sd(top_mod_table_NDT3_light_t_ALL$coef_roads_km, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,17]<- sd(top_mod_table_NDT3_light_t_ALL$coef_elevation, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,18]<- sd(top_mod_table_NDT3_light_t_ALL$coef_wind_atfire, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,19]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_dist_dam:roads_km`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,20]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_dist_mun:roads_km`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,21]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_climate2:elevation`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,22]<- sd(top_mod_table_NDT3_light_t_ALL$AUC, na.rm=TRUE)
+
+top_mod_table_NDT3_light_t_SD
+
+```
+
+Save sd coefficient table.
+
+```{r}
+write.csv(top_mod_table_NDT3_light_t_SD, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT3_light_t_SD.csv")
+```
+

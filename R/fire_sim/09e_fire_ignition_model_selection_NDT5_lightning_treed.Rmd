@@ -2451,7 +2451,7 @@ top_mod_table_NDT5_light_t_Means[1,16]<- mean(top_mod_table_NDT5_light_t_ALL$`di
 top_mod_table_NDT5_light_t_Means[1,17]<- mean(top_mod_table_NDT5_light_t_ALL$`dist_dam:bclcs_level_5_2SP`, na.rm=TRUE)#
 top_mod_table_NDT5_light_t_Means[1,18]<- mean(top_mod_table_NDT5_light_t_ALL$`dist_mine:bclcs_level_5_2OP`, na.rm=TRUE) 
 top_mod_table_NDT5_light_t_Means[1,19]<- mean(top_mod_table_NDT5_light_t_ALL$`dist_mine:bclcs_level_5_2SP`, na.rm=TRUE) 
-top_mod_table_NDT5_light_t_Means[1,20]<- mean(mod.auc, na.rm=TRUE)
+top_mod_table_NDT5_light_t_Means[1,20]<- mean(top_mod_table_NDT5_light_t_ALL$AUC, na.rm=TRUE)
 
 top_mod_table_NDT5_light_t_Means
 
@@ -2493,7 +2493,7 @@ top_mod_table_NDT5_light_t_SD[1,16]<- sd(top_mod_table_NDT5_light_t_ALL$`dist_da
 top_mod_table_NDT5_light_t_SD[1,17]<- sd(top_mod_table_NDT5_light_t_ALL$`dist_dam:bclcs_level_5_2SP`, na.rm=TRUE)#
 top_mod_table_NDT5_light_t_SD[1,18]<- sd(top_mod_table_NDT5_light_t_ALL$`dist_mine:bclcs_level_5_2OP`, na.rm=TRUE) 
 top_mod_table_NDT5_light_t_SD[1,19]<- sd(top_mod_table_NDT5_light_t_ALL$`dist_mine:bclcs_level_5_2SP`, na.rm=TRUE) 
-top_mod_table_NDT5_light_t_SD[1,20]<- sd(mod.auc, na.rm=TRUE)
+top_mod_table_NDT5_light_t_SD[1,20]<- sd(top_mod_table_NDT5_light_t_ALL$AUC, na.rm=TRUE)
 
 top_mod_table_NDT5_light_t_SD
 
