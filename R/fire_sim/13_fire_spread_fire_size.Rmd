@@ -475,6 +475,26 @@ spread_data_person_nt<-subset(spread_data_person, spread_data_person$bclcs_level
 table(spread_data_lightning_nt$bclcs_level_2)
 ```
 
+#Make transformation in treed and non-treed data
+```{r}
+spread_data_lightning_t$LNsize_ha<-log(spread_data_lightning_t$size_ha)
+spread_data_lightning_nt$LNsize_ha<-log(spread_data_lightning_nt$size_ha)
+```
+
+#Save prepped data files.
+```{r}
+write.csv(spread_data_lightning_t, file="D:\\Fire\\fire_data\\raw_data\\spread_data_lightning_t.csv")
+
+write.csv(spread_data_lightning_nt, file="D:\\Fire\\fire_data\\raw_data\\spread_data_lightning_nt.csv")
+
+write.csv(spread_data_person_t, file="D:\\Fire\\fire_data\\raw_data\\spread_data_person_t.csv")
+
+write.csv(spread_data_person_nt, file="D:\\Fire\\fire_data\\raw_data\\spread_data_person_nt.csv")
+```
+
+
+
+
 ##Create variables for model selection
 First we will create the variable lists that contain all of our variables of interest.
 
@@ -732,12 +752,6 @@ all.poss.mods.topo2
 all.poss.mods.topo2<-all.poss.mods.topo2[-10]
 all.poss.mods.topo2<-all.poss.mods.topo2[-2]
 
-```
-
-#Make transformation in treed and non-treed data
-```{r}
-spread_data_lightning_t$LNsize_ha<-log(spread_data_lightning_t$size_ha)
-spread_data_lightning_nt$LNsize_ha<-log(spread_data_lightning_nt$size_ha)
 ```
 
 

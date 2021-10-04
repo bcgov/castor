@@ -44,7 +44,6 @@ library(car)
 source(here::here("R/functions/R_Postgres.R"))
 ```
 
-
 <!--
 Copyright 2021 Province of British Columbia
 
@@ -399,13 +398,12 @@ duplicated(all.poss.mods.infra)
 
 ############### Part 1 of 4 Model Series: Lightning Caused Fires, Trees ##########
 
-Because of the large number of models with all variables included, we will test the climate and vegtype first, then the VRI variables, then the topography variables. Then we will test the top models together in additional combinations, with determining best AIC model from there. Or perhaps we will just combine the top models for each together, and eliminate models if the intercept was the best predictor.
+Because of the large number of models with all variables included, we will test the climate and vegtype first, then the VRI variables, then the topography variables. Then we will test the top models together in additional combinations, with determining best AIC model from there. 
 
 Select NDT: NDT1
 
 ```{r}
 zones1<-c("NDT1") #Do one zone at a time
-
 prop<-0.75
 
 #Create empty table
@@ -1008,12 +1006,7 @@ duplicated(all.poss.mods.clim_VRI_NDT1) #Need to remove
 #length(all.poss.mods.clim_VRI_NDT1b) 
 
 
-
-#####2. Infrastructure and land use
-all.poss.mods.infra_landuse_NDT1<-c(1,mods.me.infra_landuse_NDT1, mods.inter.NDT1b)
-
-##Check and rid of any duplicated models
-duplicated(all.poss.mods.infra_landuse_NDT1) #Need to remove 
+#Need to remove 
 #all.poss.mods.infra_landuse_NDT1b<-all.poss.mods.infra_landuse_NDT1[-(34:65)]
 #duplicated(all.poss.mods.infra_landuse_NDT1b) 
 #all.poss.mods.infra_landuse_NDT1b[2]
@@ -1381,7 +1374,7 @@ Anova(model.NDT1, type=3, singular.ok = TRUE)
 
 ```
 
-Remove NAs and tun multiple times.
+Remove NAs and run multiple times.
 
 ```{r}
 #Remove NAs to ensure all same data used so we can compare AICs
@@ -1420,18 +1413,6 @@ binnedplot (NDT1_escape_t$climate1,
 
 # Diagnostic plots look good
 ```
-
-
-
-
-UPDATE BELOW!
-
-
-
-
-
-
-
 
 We should repeat the above several times and take the mean of the coefficients.
 
