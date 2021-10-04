@@ -61,7 +61,8 @@ Create only those fires that escaped
 ```{r}
 spread_data_lightning<-subset(Escape_data_lightning, Escape_data_lightning$escape==1)
 head(spread_data_lightning)
-min(spread_data_lightning2$size_ha)
+min(spread_data_lightning$size_ha)
+max(spread_data_lightning$size_ha)
 str(spread_data_lightning)
 table(spread_data_lightning$escape) 
 table(spread_data_lightning$bclcs_level_2) 
@@ -102,9 +103,7 @@ hist(spread_data_lightning$size_ha_x100) #I still think this willnot work since 
 table(spread_data_lightning$ntrl_ds)
 ```
 
-
 ##Determine best climate variable for spread
-
 Now we create variable categories for model selection on climate variables
 
 ```{r}
@@ -142,7 +141,6 @@ variables2<-c("ppt05", "ppt06", "ppt07", "ppt08", "ppt09",
 ) 
 #
 ```
-
 
 Run the loop to determine the best climate variable for each of the five Natural Disturbance Types for lightning-caused fires.
 
@@ -256,7 +254,6 @@ Save to computer.
 write.csv(aic_bec_spread_summary2, file="D:\\Fire\\fire_data\\raw_data\\aic_bec_spread_climate_summary_sizeha.csv")
 ```
 
-
 #Now that we know the best variables for fire size, we can update climate 1 and climate 2 for this data.
 
 ```{r}
@@ -288,7 +285,6 @@ spread_data_lightning<-spread_data_lightning %>%
 
 head(spread_data_lightning)
 ```
-
 
 #Investigate patterns with variables within the dataset
 
@@ -466,7 +462,6 @@ ggplot (spread_data_lightning, aes (x = size_ha, y = roads_km)) +
 
 From the above, I would expect that VRI variables have very little impact on spread, but that topography, climate and wind speed will all influence fire size. Will also need to assess vegetation type.
 
-
 #Separate into treed and not treed
 
 ```{r}
@@ -479,6 +474,25 @@ spread_data_person_nt<-subset(spread_data_person, spread_data_person$bclcs_level
 
 table(spread_data_lightning_nt$bclcs_level_2)
 ```
+
+#Make transformation in treed and non-treed data
+```{r}
+spread_data_lightning_t$LNsize_ha<-log(spread_data_lightning_t$size_ha)
+spread_data_lightning_nt$LNsize_ha<-log(spread_data_lightning_nt$size_ha)
+```
+
+#Save prepped data files.
+```{r}
+write.csv(spread_data_lightning_t, file="D:\\Fire\\fire_data\\raw_data\\spread_data_lightning_t.csv")
+
+write.csv(spread_data_lightning_nt, file="D:\\Fire\\fire_data\\raw_data\\spread_data_lightning_nt.csv")
+
+write.csv(spread_data_person_t, file="D:\\Fire\\fire_data\\raw_data\\spread_data_person_t.csv")
+
+write.csv(spread_data_person_nt, file="D:\\Fire\\fire_data\\raw_data\\spread_data_person_nt.csv")
+```
+
+
 
 
 ##Create variables for model selection
@@ -495,7 +509,6 @@ vars.clim<-c("climate1")
 vars.clim.vegtype<-c("climate1", "vegtype")
 vars.oth<-c("proj_height_1", "proj_age_1", "live_stand_volume_125") 
 vars.topo<-c("slope", "aspect", "elevation")
-vars.heatload<-c("heatload")
 vars.wind<-c("wind_atfire")
 
 #Also for later with 2 climate variables
@@ -657,7 +670,6 @@ for (i in 1: length(mods.twoway2b)) {
 length(mods.inter2b)
 mods.inter2b
 
-
 #########2. Now for topography data, get all possible two-way interactions
 
 #get the names of all possible two-way interactions
@@ -703,8 +715,6 @@ for (i in 1: length(mods.twowayT)) {
 
 length(mods.interT)
 mods.interT
-mods.interTb<-c(mods.interT, vars.heatload)
-mods.interTb
 
 ####3.For other VRI data, get without interactions
 
@@ -737,10 +747,6 @@ all.poss.mods.clim.vegtype2b<-all.poss.mods.clim.vegtype2b[-2]
 all.poss.mods.VRI<-c(1, mods.me.oth)
 all.poss.mods.VRI
 all.poss.mods.VRI<-all.poss.mods.VRI[-2]
-all.poss.mods.topo<-c(1, mods.meT, mods.interTb)
-all.poss.mods.topo
-all.poss.mods.topo<-all.poss.mods.topo[-10]
-all.poss.mods.topo<-all.poss.mods.topo[-2]
 all.poss.mods.topo2<-c(1, mods.meT, mods.interT)
 all.poss.mods.topo2
 all.poss.mods.topo2<-all.poss.mods.topo2[-10]
@@ -748,11 +754,18 @@ all.poss.mods.topo2<-all.poss.mods.topo2[-2]
 
 ```
 
-#Make transformation in treed and non-treed data
-```{r}
-spread_data_lightning_t$LNsize_ha<-log(spread_data_lightning_t$size_ha)
-spread_data_lightning_nt$LNsize_ha<-log(spread_data_lightning_nt$size_ha)
-```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
