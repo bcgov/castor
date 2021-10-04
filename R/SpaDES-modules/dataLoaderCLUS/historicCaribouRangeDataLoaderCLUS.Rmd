@@ -53,6 +53,7 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = FALSE,
+                        sqlite_dbname = "historic",
                          #nameBoundaryFile="bc_caribou_herd_boundary_v20200507",
                        nameBoundaryFile=" hart_ranges_south_bnds",
                          nameBoundaryColumn="herd_name",

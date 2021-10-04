@@ -78,6 +78,7 @@ parameters <- list(
   .globals = list(),
   dataLoaderCLUS = list(   dbName='clus',
                            save_clusdb = TRUE,
+                           sqlite_dbname = "Quesnel_TSA",
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
@@ -126,6 +127,9 @@ parameters <- list(
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_all'),
    fisherCLUS = list(nameRasFisherTerritory = c('rast.zone_cond_fisher_sb_dry','rast.zone_cond_fisher_sb_wet','rast.zone_cond_fisher_dry'),nameRasWetlands = 'rast.wetland'),
+  grizzlysurvivalCLUS = list (rasterGBPU = "rast.gbpu_2021", 
+                              tableGBPU= "vat.gbpu", 
+                              roadDensity = 15.5),
   uploaderCLUS = list(aoiName = 'fisher_central_bc', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
@@ -140,12 +144,13 @@ modules <- list("dataLoaderCLUS",
                 "forestryCLUS", 
                 "roadCLUS",  
                 "fisherCLUS", 
+                "grizzlysurvivalCLUS",
                 "uploaderCLUS"
                 )
 
 
 #scenario = data.table (name = "quesnel_bau", description = "Business as usual. Harvest flow = 1,900,000 m3/yr. Adjacency = 3m. Oldest first.")
-scenario = data.table (name = "quesnel_all_terr_10per_max12yrs_newyc", description = "bau + maximum 10 % of the territory <= 12 years of age. Harvest flow = 1,900,000 m3/yr. Adjacency = 3m. Oldest first.")
+scenario = data.table (name = "quesnel_all_terr_10per_max12yrs_test", description = "bau + maximum 10 % of the territory <= 12 years of age. Harvest flow = 1,900,000 m3/yr. Adjacency = 3m. Oldest first.")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                      partition = ' vol > 150 ', 
@@ -175,7 +180,8 @@ outputs(mySim) <- data.frame (objectName = c("harvestReport",
                                              "growingStockReport",
                                              "tableSurvival",
                                              "disturbanceReport",
-                                             "volumebyareaReport"
+                                             "volumebyareaReport",
+                                             "tableGrizzSurvivalReport"
                                              ))
 
 #Run the model 1 time

@@ -12,9 +12,9 @@ public class Cell {
 	ArrayList<Integer> adjCellsList ;
 	ArrayList<double[]> statesHarvest = new ArrayList<double[]>();
 	ArrayList<double[]> statesPrHV = new ArrayList<double[]>();
-	ArrayList<double[]> statesOG = new ArrayList<double[]>();
-	ArrayList<LinkedHashMap<String, Double>> yield = new ArrayList<LinkedHashMap<String, Double>>();
-	ArrayList<LinkedHashMap<String, Double>> yield_trans = new ArrayList<LinkedHashMap<String, Double>>();
+	ArrayList<int[]> statesOG = new ArrayList<int[]>();
+	int yield;
+	int yield_trans;
 	ArrayList<Integer> landCoverList = new ArrayList<Integer>();
 	
 	Random r = new Random();
@@ -22,19 +22,20 @@ public class Cell {
 	/** 
 	* Class constructor.
 	* @param landscape	A grid object containing the necessary attribution about the landscape
+	 * @param yields 
 	* @param id			the cells index plus 1
 	* @param age		The initial age of the cell or stand
 	* @param yld		All forest yields for a cell. An ArrayList of LinkedHashMap where the key is a set of forest attributes including volume, height and old growth.
 	* @param yld_trans 	All forest yields for a cell after harvesting. An ArrayList of LinkedHashMap where the key is a set of forest attributes including volume, height and old growth.
 	* @param lc 
 	*/
-	public Cell (Grid landscape, int id, int age, ArrayList<LinkedHashMap<String, Double>> yld, ArrayList<LinkedHashMap<String, Double>> yld_trans, ArrayList<Integer> lc){
+	public Cell (Grid landscape, ArrayList<ArrayList<LinkedHashMap<String, Double>>> yields, int id, int age, int yld, int yld_trans, ArrayList<Integer> lc){
 		this.id = id;
 		this.age = age;
 		this.yield = yld;
 		this.yield_trans = yld_trans;
 		this.landCoverList = lc;
-		setStates(landscape, age, yld, yld_trans);
+		setStates(landscape, age, yields.get(yld), yields.get(yld_trans));
 		this.adjCellsList = getAdjCells(id-1, landscape.colSizeLattice, landscape.cellList);
 		this.state = r.nextInt(statesHarvest.size()); //assign a random state to the initial grid
 		//this.state =0;
@@ -48,6 +49,7 @@ public class Cell {
 	/** 
 	* Generates the plausible set of treatment schedules or states
 	* @param landscape	A grid object containing the necessary attribution about the landscape
+	 * @param yields 
 	* @param age		The initial age of the cell or stand
 	* @param yld		All forest yields for a cell. An ArrayList of LinkedHashMap where the key is a set of forest attributes including volume, height and old growth.
 	* @param yld_trans 	All forest yields for a cell after harvesting. An ArrayList of LinkedHashMap where the key is a set of forest attributes including volume, height and old growth.
@@ -60,7 +62,7 @@ public class Cell {
 			ArrayList<Double> volWindow2 = new ArrayList<Double>();
 			
 			double[] decision = new double[landscape.numTimePeriods]; // ph = planning horizon, pl = period length as in 5 or 10 year lengths
-			double[] ogStatus = new double[landscape.numTimePeriods]; // ph = planning horizon, pl = period length as in 5 or 10 year lengths
+			int[] ogStatus = new int[landscape.numTimePeriods]; // ph = planning horizon, pl = period length as in 5 or 10 year lengths
 			boolean harvestWindow = false;		
 			boolean moreStates = true;
 			boolean lessThanMinHarvAge = true;
@@ -75,9 +77,9 @@ public class Cell {
 			for (int i =0 ; i < landscape.numTimePeriods; i++) { // An array of zeros for each period in the planning horizon (ph)
 				decision[i] = 0.0;
 				if(age + i*10 >= landscape.ageThreshold) { 	//Get the old growth status for a no harvest scenario. Need og here to determine the year the cell becomes old growth
-					ogStatus[i] = 1.0;
+					ogStatus[i] = 1;
 				}else {
-					ogStatus[i] = 0.0;
+					ogStatus[i] = 0;
 				}
 				
 			}
@@ -267,28 +269,39 @@ public class Cell {
 	* @param ageThreshold	the threshold where a cell is considered late-seral or old growth
 	* @return a vector of ones or zeros representing if the time period is late-seral. The length equal to the number of time periods
 	*/
-	private double[] getOGStatus(int age, double[] decision, int ageThreshold) {
+	private int[] getOGStatus(int age, double[] decision, int ageThreshold) {
 		int harvYear = -1;
-		double[] ogStatus = decision.clone();
+		int[] ogStatus = new int[decision.length];
+		
+		for(int d = 0; d< decision.length; d++) {
+			if(decision[d] > 0.0) {
+				ogStatus[d] = 10;
+			}else {
+				ogStatus[d] = 0;
+			}
+			
+			
+		}
+		
 		for(int o = 0; o < ogStatus.length; o++) {
-			if(ogStatus[o] > 0.0) {
+			if(ogStatus[o] > 0) {
 				harvYear = o;
 			}
 			if(harvYear == -1) {
 				if(age >= ageThreshold){
-					ogStatus[o] = 1.0;
+					ogStatus[o] = 1;
 				}else{
 					if(age + o*10 >= ageThreshold) {
-						ogStatus[o] = 1.0;
+						ogStatus[o] = 1;
 					}else {
-						ogStatus[o] = 0.0;
+						ogStatus[o] = 0;
 					}
 				}
 			}else{
 				if(o*10 - harvYear*10 >= ageThreshold){
-					ogStatus[o] = 1.0;
+					ogStatus[o] = 1;
 				}else{ 
-					ogStatus[o] = 0.0;
+					ogStatus[o] = 0;
 				}
 			}				
 		}

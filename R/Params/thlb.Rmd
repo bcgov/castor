@@ -1,0 +1,258 @@
+---
+title: "THLB"
+author: "Tyler Muhly"
+date: "08/09/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require (sf)
+require (DBI)
+require (keyring)
+require (dplyr)
+require (raster)
+require (fasterize)
+require (here)
+source (paste0 (here::here(), "/R/functions/R_Postgres.R"))
+
+# database connection
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,
+                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('dbpass', keyring = 'postgreSQL')
+                       )
+```
+
+## Process Create a Timber Harvest Land Base
+The timber harvesting land base (THLB) is a spatial dataset developed for timber supply reviews and modeling that is used to define where timber harvesting is projected to occur over the long term. Land is considered outside the THLB only where harvesting is not expected to occur. 
+
+The THLB typically excludes:
+- areas that are not suitable or uneconomic for timber production; and
+- areas without legally established boundaries where timber harvesting is incompatible with management
+objectives for other resource values.
+
+Here we describe a process for creating a simplified THLB across BC. This approach is not intended to replicate the THLB creation process for timber supply reviews, but approximates it in a simpler way to facilitate building it quickly, across large areas. We use a 'raster' approach to build the THLB, where spatial polygon datasets are converted to rasters, and then additions/subtractions from the THLB are handled using raster math. This approach is computationally faster in R than spatial analyses with polygons. We rasterize data to the provincial standard, at a 1 ha spatial resolution. Also note that with this approach raster pixels are either considered within the THLB (1) or outside of the THLB (0). This contrasts with timber supply reviews, where a THLB 'factor' is produced that allows for portions of a pixel (i.e., values between 0 and 1) to be included as partially within the THLB.
+
+```{r provincial raster standard}
+prov.rast <- raster::raster ( # standardized provincial raster with no data in it
+                              nrows = 15744, ncols = 17216, 
+                              xmn = 159587.5, xmx = 1881187.5, 
+                              ymn = 173787.5, ymx = 1748187.5, 
+                              crs = 3005, # NAD83 BC Albers
+                              resolution = c(100, 100), 
+                              vals = 0)
+```
+
+###  Timber Supply Unit
+First we need to select the area of interest. In most cases this will likely be a [timber supply area (TSA)](https://catalogue.data.gov.bc.ca/dataset/fadm-timber-supply-area-tsa) or [tree farm licence (TFL)](https://catalogue.data.gov.bc.ca/dataset/fadm-tree-farm-license-current-view-tfl-) area. 
+
+Here we provide an example for the Williams Lake and Quesnel timber supply areas.
+
+```{r select area of interest}
+# select the timber supply unit where you are doing the analysis
+
+# Harvest Units: Arrow_TSA, Bulkley_TSA, Cascadia_TCC_TSA, Cascadia_TKO_TSA, Cascadia_TOC_TSA, Cranbrook_TSA, Fort_St_John_Core_TSA, Fort_St_John_TSA, Golden_TSA, Invermere_TSA, Kamloops_TSA, Kootenay_Lake_TSA, Lakes_TSA, Morice_TSA, Okanagan_TSA, Prince_George_North_TSA, Quesnel_TSA, Revelstoke_TSA, Robson_Valley_TSA, TFL1, TFL14, TFL18, TFL19, TFL23, TFL25, TFL26, TFL3, TFL30, TFL33, TFL35, TFL37, TFL38, TFL39, TFL41, TFL43, TFL44, TFL45, TFL46, TFL47, TFL49, TFL52, TFL53, TFL54, TFL55, TFL56, TFL57, TFL58, TFL59, TFL6, TFL60, TFL61, TFL8, Williams_Lake_TSA, Dawson_Creek_TSA, Onehundred_Mile_House_TSA, MacKenzie_SW_TSA, MacKenzie_TSA, Prince_George_TSA, TFL48
+
+tsa <- st_make_valid (getSpatialQuery ("SELECT * FROM public.tsa_aac_bounds WHERE tsa_name = 'Williams_Lake_TSA' OR tsa_name = 'Quesnel_TSA';"))
+
+```
+
+### Ownership
+Private lands and other designations are excluded from the THLB. The THLB includes areas where large-scale commercial timber harvest is permitted. 
+
+Here we query the [generalized forest cover ownership data](https://catalogue.data.gov.bc.ca/dataset/generalized-forest-cover-ownership) for management areas where large-scale commercial timber harvest is permitted. These include Crown UREP (Use, Recreation and Enjoyment of the Public) Reserve (own = 61), Crown Forest Management Units (own = 62), Crown Provincial Park equivalent (own = 67) or Reserve and Crown Miscellaneous Reserves (own = 69), all with Schedule "C".
+
+#### Examples from Timber Supply Review Data Packages
+The approach can vary across timber supply units, and some examples are provided below.
+
+##### Williams Lake
+Areas that get included:
+- Crown Use, Recreation and Enjoyment of the Public (UREP) Reserves, Schedule C
+- Crown Forest Management Unit, Schedule C
+- Crown Miscellaneous Reserves, Schedule C
+- Crown Provincial Park equivalent or Reserve, Schedule C 
+
+##### Quesnel
+Areas classified with ownership Crown Forest Management Unit (TSA) or Crown Miscellaneous Reserves with schedule 'C' are administered by the Crown for TSA timber supply. All others were excluded from the timber harvesting land base.
+
+```{r ownership data}
+# get ownership data where large-scale commercial forest harvest is permitted
+ownership <- st_make_valid (getSpatialQuery ("SELECT * FROM public.f_own_polygon WHERE own = 61 AND schedule = 'C' OR own = 62 AND schedule = 'C' OR own = 67 AND schedule = 'C' OR own = 69 AND schedule = 'C';"))
+
+# convert to polygon
+ownership <- st_cast (ownership, "GEOMETRYCOLLECTION") %>% st_collection_extract ("POLYGON")
+
+# rasterize the data 
+ownership$value <- 1 # create value for raster; if THLB then = 1
+ras.own <-fasterize::fasterize (ownership, prov.rast, field = "value") 
+
+# 'clip' to area of interest 
+ras.thlb <- ras.own %>% # define as thlb
+              raster::crop (tsa) %>%
+                raster::mask (tsa)
+ras.thlb [is.na (ras.thlb [])] <- 0 # make NULL values = 0 (necessary for raster math)
+rm (ownership, ras.own)
+gc ()
+
+```
+
+### Previously Harvested Areas
+Anywhere that was previously harvest gets included as part of the THLB. These areas get identified using [consolidated cutblocks](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-) data. 
+
+```{r consolidated cutblocks}
+# get cutlbock data
+cutblocks <- st_make_valid (getSpatialQuery ("SELECT * FROM public.cns_cut_bl_polygon;"))
+cutblocks <- st_cast (cutblocks, "GEOMETRYCOLLECTION") %>% st_collection_extract ("POLYGON")
+
+# rasterize the data; if THLB then = 1 
+cutblocks$value <- 1 # create value for raster 
+ras.cut <-fasterize::fasterize (cutblocks, prov.rast, field = "value") 
+
+# 'clip' to area of interest 
+ras.cut <- ras.cut %>% 
+              raster::crop (tsa) %>%
+                raster::mask (tsa)
+ras.cut [is.na (ras.cut [])] <- 0 # make NULL values = 0 (necessary for raster math)
+ras.thlb <- ras.thlb + ras.cut
+ras.thlb <- reclassify (ras.thlb, c (1,2,0)) # reclass values > 0 to 1 
+
+rm (cutblocks, ras.cut)
+gc ()
+
+```
+
+### Inoperable Areas
+Areas with steep slopes are unavailable using conventional forest harvest methods, and therefore are outside of the THLB in many timber harvest units. Here we use slope angle derived from a [provincial digital elevation model](https://catalogue.data.gov.bc.ca/dataset/digital-elevation-model-for-british-columbia-cded-1-250-000) to define inoperable areas based on terrain steepness. 
+
+#### Examples from Timber Supply Review Data Packages
+Inoperable areas may be defined differently across TSAs, some examples are provided below.
+
+##### Williams Lake
+In the Williams Lake TSA, slopes greater than 40% were considered inoperable for the majority of the unit, with the exception of the "Horsefly Forest District" (retired), where slopes between 40% and 70% were accesible by cable harvesting, and thus included as part of the THLB.
+
+##### Quesnel
+In the Quesnel TSA, slopes greater than 40% were considered inoperable for the majority of the unit, with the exception of landscape units east of the Fraser River, where slopes between 40% and 70% were accessible by cable harvesting, and thus included as part of the THLB.
+
+```{r inoperable areas}
+# slope data
+slope <- raster ("D:\\clus_data\\dem\\slope_perc_ha_bc.tif")
+crs (slope) <- 3005 # set raster proejction to BC Albers
+
+# 'clip' to area of interest 
+slope <- slope %>% 
+          raster::crop (tsa) %>%
+            raster::mask (tsa)
+
+# reclass to operatbility/slope cut-offs
+rc.slope <- reclassify (slope, c (-Inf,40,0, 40,Inf,-1)) # reclass values; if >40%, then not thlb (-1)
+
+# add to THLB
+ras.thlb <- ras.thlb + rc.slope
+ras.thlb <- reclassify (ras.thlb, c (-1,0,0)) # reclass values < 0 to 0 
+
+rm (slope, rc.slope)
+gc ()
+```
+
+### Low Productivity Sites
+Forest stands are unlikely to be harvested if they are low productivity. Here we use site index to remove low productivity sites from the THLB. We define those stands with a site index less than 8 as low productivity. In some timber supply reviews, age and volume thresholds are used to define low productivity areas. This requires obtaining growth and yield curves for each stand so that volume can be estimated for stands across a range fo ages. As the process here is intended to be simple, we use site index from the forest inventory. 
+
+#### Examples from Timber Supply Review Data Packages
+The definition of low-productivity sites varies across TSAs, an some examples are provided below. 
+
+##### Williams Lake
+In the Williams Lake TSA, age and volume thresholds for specific tree specific were used to define low productivity sites, specifically:
+- lodgepole pine (PLi) >160 years old volume < 80 m^3^
+- interior Douglas-fir (Fdi), spruce (Sx/Se), or subalpine fir (Bl) >160 years old volume < 120 m^3^
+
+##### Quesnel
+Any polygon with a site index greater than or equal to five metres was included in the THLB.
+
+```{r productivity}
+low.prod <- st_make_valid (getSpatialQuery ("SELECT * FROM public.veg_comp_lyr_r1_poly2020 WHERE bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND site_index < 8 OR est_site_index < 8;")) # querying both site indexes to be conservative; treed sites only
+
+# rasterize the data; if not THLB then = -1 
+low.prod$value <- -1 # create value for raster 
+ras.low.prod <-fasterize::fasterize (low.prod, prov.rast, field = "value") 
+
+# 'clip' to area of interest 
+ras.low.prod <- ras.low.prod %>% 
+                  raster::crop (tsa) %>%
+                    raster::mask (tsa)
+ras.low.prod [is.na (ras.low.prod [])] <- 0 # make NULL values = 0 (necessary for raster math)
+
+# raster math
+ras.thlb <- ras.thlb + ras.low.prod
+ras.thlb <- reclassify (ras.thlb, c (-Inf,0,0, 1,Inf,0)) # reclass values > 0 to 1 
+
+rm (low.prod, ras.low.prod)
+gc ()
+```
+### Non-forested areas
+Non-forested areas are not in the THLB for obvious reasons. Here we use the forest inventory land classification system (BCLCS) to remove non-forested areas. We remove areas classified as non-vegetated, non-treed and alpine, with no logging history, from the THLB.
+
+#### Examples from Timber Supply Review Data Packages
+Non-forested area defintiosn can vary across TSAs.
+
+##### Williams Lake
+In the Williams Lake TSA, non-forested areas were removed using the following query: 
+- Non-vegetated (BCLCS level 1 equal to ‘N’ and no logging history)
+- Non-treed (BCLCS level 2 = ‘N’ and no logging history)
+- Alpine (BCLCS level 3 = ‘A’ and no logging history)
+
+##### Quesnel
+In the Quesnel TSA, non-forested areas were removed using the following query: 
+- Polygons that have a harvest history are included
+- Areas covered by water are classified under the non-vegetated BCLCS class and will be removed 
+- Treed wetlands are removed 
+
+```{r non-forested areas}
+
+nonfor <- st_make_valid (getSpatialQuery ("SELECT * FROM public.veg_comp_lyr_r1_poly2020 WHERE bclcs_level_1 = 'N' OR bclcs_level_2 = 'N' OR bclcs_level_3 = 'A' AND harvest_date IS NULL;")) 
+
+# rasterize the data; if not THLB then = -1 
+nonfor$value <- -1 # create value for raster 
+ras.nonfor <-fasterize::fasterize (nonfor, prov.rast, field = "value") 
+# 'clip' to area of interest 
+ras.nonfor <- ras.nonfor %>% 
+               raster::crop (tsa) %>%
+                raster::mask (tsa)
+ras.nonfor [is.na (ras.nonfor [])] <- 0 # make NULL values = 0 (necessary for raster math)
+
+# raster math
+ras.thlb <- ras.thlb + ras.nonfor
+ras.thlb <- reclassify (ras.thlb, c (-Inf,0,0, 1,Inf,0)) # reclass values > 0 to 1 
+
+rm (nonfor, ras.nonfor)
+gc ()
+```
+### Output
+The THLB gets saved as a raster file and can then be used as an input a timber supply model. 
+
+```{r output data}
+writeRaster (ras.thlb, filename = file.path (here::here(), "/R/Params/", "thlb.tif"), format = "GTiff", overwrite = TRUE)
+
+# if writing to db
+# system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here(), '/wha.tif -t 100x100 rast.zone_wha_2021 |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+```
+
+### Other Considerations Not Included Here
+The creation of THLB for timber supply reviews can also include otehr consdieratiosn not included here.
+
+#### Non-commercial Forest
+For example, for the Williams Lake TSR non-commercial brush areas, as identified by the non-forest descriptor codes of “NC” or “NCBR” in the VRI, and deciduous-leading stands were excluded from the THLB.
+
+#### Streams, Lakes and Wetlands
+Waterbodies are typically excluded from THLB. Here we assume they are captured in the VRI as non-vegetated, non-treed areas, but additional data could be considered here. 
+
+#### Land Use Plan Orders
+Many areas have land use plans contain orders or designations for certain areas. For example, the Cariboo-Chilcotin Land Use Plan identifies community areas of special concern, that exclude harvest, except to manage insect infestations. 
+
+*Note: For the Chilcotin THLB, I confirmed these areas did not overlap WHA 5-118, and therefore did not impact the THLB estimate there. 
+
+#### Other Protected Areas
+Some areas, such as protections for critical habitat via government action regulation (GAR) orders are removed from the TLHB. Here we do not remove them, but assume they are mostly captured as part of the zone constaint designation process adn implentation for the forest harvest simulation model. 
+

@@ -107,6 +107,7 @@ test<-lapply(pars_scenario, function(x){
                            #Database connection
                            dbName='clus',
                            #save_clusdb = TRUE,
+                           sqlite_dbname = "province",
                            useCLUSdb = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/dataLoaderCLUS/",x[][[1]],"_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile="tsa_aac_bounds",

@@ -123,6 +123,7 @@ For cutblock adjacency, I used 3 m adjacency
 
 ## Chilcotin Planning Scenarios Aug. 2021
 ```{r, zone_update}
+require (DBI)
 #STEP 1: Connect to the clusdb.sqlite database for the AOI
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite")) # connect to clusdb -- set the locations of the sqlite
 
@@ -212,7 +213,6 @@ dbDisconnect(clusdb)
 
 
 ## Northern Group Disturabnce Scenarios
-
 ```{r, northern grp disturbance scenarios}
 
 #STEP 1: Connect to the clusdb.sqlite database for the AOI
@@ -301,7 +301,6 @@ dbDisconnect(clusdb)
 ```
 
 ## Wells Gray North, Barkerville, and Narrow Lake Disturbance Scenarios
-
 ```{r wells gray north, barkerville, narrow lake disturbance scenarios}
 #STEP 1: Connect to the clusdb.sqlite database for the AOI
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite")) # connect to clusdb -- set the locations of the sqlite
@@ -425,6 +424,7 @@ parameters <- list(
   .globals = list(),
   dataLoaderCLUS = list(   dbName='clus',
                            save_clusdb = TRUE,
+                           sqlite_dbname = "Quesnel_TSA",
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
@@ -440,7 +440,7 @@ parameters <- list(
                                            "rast.zone_uwr_2021", #"rast.zone_cond_uwr" 
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw",
+                                           "rast.zone_cond_cw"
                                     # "rast.zone_cond_noharvest_barkerville_crithab_or_herd"
                                     # "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd"
                                     # "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd"
@@ -456,7 +456,7 @@ parameters <- list(
                                          #  "rast.zone_smc_zones_20210315"
                                           # "rast.zone_barkerville_groundhog_zones_20210303"
                                       # "rast.zone_cond_bc_barkerville_crithab"
-                                       "rast.zone_cond_bc_itcha_ilgachuz_crithab"
+                                      # "rast.zone_cond_bc_itcha_ilgachuz_crithab"
                                       #"rast.zone_cond_bc_narrow_lake_crithab",
                                       #"rast.zone_cond_bc_north_cariboo_crithab",
                                       # "rast.zone_cond_bc_tweedsmuir_crithab"
@@ -483,7 +483,8 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCLUS = list(harvestBlockPriority = "dist, age DESC, vol DESC", # "dist, age DESC, vol DESC"
+  forestryCLUS = list(harvestBlockPriority = "CASE WHEN dist < 1000 THEN 3 WHEN dist < 2500 THEN 2 WHEN dist < 5000 THEN 1 ELSE 0 END DESC, age DESC", # query to prioritize blocks within 1km of disturbance, then 2.5km, then 5km, then everythign >5km, then oldest first after that
+                      # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
                       #harvestZonePriorityInterval = 1,
                       reportHarvestConstraints = T,
@@ -628,11 +629,11 @@ modules <- list("dataLoaderCLUS",
 #                        description = "Chilcotin scenario 2 with rotation age: WHAs 5-086, 5-087, 5-118, 5-872, 5-873, 5-118 are removed; other existing constraints remain in place, including beo, vqo, wha, uwr, cw, pa, fsw; forest age constraints are added to caribou critical habitat, including, Seral stage >80 = 37%; Seral stage >100 = 30%; Seral stage >120 = 25%). Rotation age = 120 years, or 0.83% area harvested annually or 4% area harvested every 5 years. Adjacency = 3m. Priority queue: closest to disturbance, then oldest first, then highest volume first. Harvest flow = 1,600,000m3/year.")
 # scenario = data.table (name = "quesnel_scen3ra_chil_0821",
 #                        description = "Chilcotin scenario 3 with rotation age: WHAs 5-086, 5-087, 5-118, 5-872, 5-873, 5-118 are removed; other existing constraints remain in place, including beo, vqo, wha, uwr, cw, pa, fsw; forest age constraints are added to caribou critical habitat, including, Seral stage >80 = 30%; Seral stage >100 = 25%).). Rotation age = 100 years, or 1% area harvested annually or 5% area harvested every 5 years. Adjacency = 3m. Priority queue: closest to disturbance, then oldest first, then highest volume first. Harvest flow = 1,600,000m3/year.")
+# scenario = data.table (name = "quesnel_scen4_chil_0821",
+#                        description = "Chilcotin scenario 4: WHAs 5-086, 5-087, 5-118, 5-872, 5-873, 5-118 are removed; other existing constraints remain in place, including beo, vqo, wha, uwr, cw, pa, fsw; forest age constraints are added to caribou critical habitat, including, Seral stage >40 = 85%; Seral stage >80 = 45%; Seral stage >100 = 37%; Seral stage >120 = 30%; Seral stage >140 = 25%). Rotation age = 150 years, or 0.67% area harvested annually or 3% area harvested every 5 years. Adjacency = 3m. Priority queue: closest to disturbance, then oldest first, then highest volume first. Harvest flow = 1,600,000m3/year.")
 
-scenario = data.table (name = "quesnel_scen4_chil_0821",
-                       description = "Chilcotin scenario 4: WHAs 5-086, 5-087, 5-118, 5-872, 5-873, 5-118 are removed; other existing constraints remain in place, including beo, vqo, wha, uwr, cw, pa, fsw; forest age constraints are added to caribou critical habitat, including, Seral stage >40 = 85%; Seral stage >80 = 45%; Seral stage >100 = 37%; Seral stage >120 = 30%; Seral stage >140 = 25%). Rotation age = 150 years, or 0.67% area harvested annually or 3% area harvested every 5 years. Adjacency = 3m. Priority queue: closest to disturbance, then oldest first, then highest volume first. Harvest flow = 1,600,000m3/year.")
-
-
+scenario = data.table (name = "quesnel_bau_dist1km_chil_0821",
+                       description = "Business as usual (BAU) for Chilcotin scenarios (existing constaints in place, including beo, vqo, wha, uwr, cw, pa, fsw). Adjacency = 3m. Priority queue: blocks < 1km of disturbance, then <2.5km, then <5km, then >5km, then oldest first. Even harvest flow = 1,850,000m3/year.")
 
 
 # BELOW ARE OLD SCENARIOS THAT NEED TO BE RE-RUN
@@ -654,8 +655,9 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 8000000) # 1,600,000
+                                     flow = 9250000)
                                     # 9500000 // 1,900,000 m3/yr for oldest first
+                                    # 8000000 // 1,600,000 m3/yr for closest dist 1st
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow

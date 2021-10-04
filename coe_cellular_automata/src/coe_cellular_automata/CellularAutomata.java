@@ -1,33 +1,41 @@
 package coe_cellular_automata;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Random;
 import java.util.stream.DoubleStream;
+import java.sql.*;
+import org.sqlite.*;
 
 public class CellularAutomata {
-	ArrayList<Cell> cellList = new ArrayList<Cell>();
-	ArrayList<Cell> cellListMaximum = new ArrayList<Cell>();
+	//ArrayList<Cell> cellList = new ArrayList<Cell>();
+	ArrayList<Cells> cellsList = new ArrayList<Cells>();
+	ArrayList<Integer> cellsListStateChange = new ArrayList<Integer>();
+	
+	//ArrayList<Cell> cellListMaximum = new ArrayList<Cell>();
 	int numIter=15000;
-	double lateSeralTarget,harvestMax,harvestMin, objValue, maxObjValue;
-	double globalWeight =0.0;
+	float harvestMax,harvestMin, objValue, maxObjValue;
+	double globalWeight =0.0; // needs be of high precision
 	boolean finalPlan = false;
 	boolean globalConstraintsAchieved = false;
+	int lateSeralTarget;
 	
 	Grid landscape = new Grid();//Instantiate the GRID
-	LandCoverConstraint beo = new LandCoverConstraint();
-	double[] planHarvestVolume = new double[landscape.numTimePeriods];
-	double[] planLateSeral = new double[landscape.numTimePeriods];
-	double[] maxPlanHarvestVolume = new double[landscape.numTimePeriods];
-	double[] maxPlanLateSeral = new double[landscape.numTimePeriods];
+	//LandCoverConstraint beo = new LandCoverConstraint();
+	float[] planHarvestVolume = new float[landscape.numTimePeriods];
+	int[] planLateSeral = new int[landscape.numTimePeriods];
+	float[] maxPlanHarvestVolume = new float[landscape.numTimePeriods];
+	int[] maxPlanLateSeral = new int[landscape.numTimePeriods];
 	ArrayList<ArrayList<LinkedHashMap<String, Double>>> yields = new ArrayList<ArrayList<LinkedHashMap<String, Double>>>();
-	
-	
+	ArrayList<HashMap<String, float[]>> yieldTable = new ArrayList<HashMap<String, float[]>>();
+	public ArrayList<ForestType> forestTypeList = new ArrayList<ForestType>() ;
+	public ArrayList<LandCoverConstraint> landCoverConstraintList = new ArrayList<LandCoverConstraint>() ;
 	//Variables for simulate2
-	double maxCutLocal = 0.0;
-	double[] maxCutGlobal = new double[landscape.numTimePeriods];
-	
-	
+	float maxCutLocal = 0L;
+	float[] maxCutGlobal = new float[landscape.numTimePeriods];
 	/** 
 	* Class constructor.
 	*/
@@ -53,92 +61,80 @@ public class CellularAutomata {
 		boolean mutate = false;
 		boolean innovate = true;
 		int counterLocalMaxState = 0;
-		
-		int[] rand = new Random().ints(0, cellList.size()).distinct().limit(cellList.size()).toArray();; // Randomize the stand or cell list
+		int currentMaxState;
+		//int[] rand = new Random().ints(0, cellList.size()).distinct().limit(cellList.size()).toArray();; // Randomize the stand or cell list
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
-		Arrays.fill(planHarvestVolume, 0.0); //set the harvestVolume indicator
-		Arrays.fill(planLateSeral, 0.0); //set the late-seral forest indicator
+		Arrays.fill(planHarvestVolume, 0L); //set the harvestVolume indicator
+		Arrays.fill(planLateSeral, 0); //set the late-seral forest indicator
 		
-		setCutPriorities();//scope all of the cells to parameterize priority functions
-		
+		setCutPriorities();//scope all of the cells to determine the maxHarvVol
+		setRecruitmentDelayLandCoverConstraint(); //set the ability to achieve constraints through time. In cases where no-harvesting does not meet the constraint -- remove harvesting during these periods and as a penalty
+		randomizeStates(r);
+				
 		System.out.println("Starting local optimization..");
 		//local optimization
 		for(int i = 0; i < 50; i ++) {
 			//Local level optimization
 			System.out.println("Local optimization iter:" + i);
+			Collections.shuffle(cellsListStateChange); // randomize which cell gets selected.
 			
-			for(int j = 0; j < rand.length; j++) {
+			for(int j = 0; j < cellsListStateChange.size(); j++) {
 				if(mutate) {
-					cellList.get(rand[j]).state = r.nextInt(cellList.get(rand[j]).statesHarvest.size()); //get a random state
+					cellsList.get(cellsListStateChange.get(j)).state = r.nextInt(forestTypeList.get(cellsList.get(cellsListStateChange.get(j)).foresttype).stateTypes.size()); //get a random state
 				}
 				if(innovate) {
-					if(cellList.get(rand[j]).state == getMaxStateLocal(rand[j])) {
+					currentMaxState = getMaxStateLocal(cellsListStateChange.get(j));
+					if(cellsList.get(cellsListStateChange.get(j)).state == currentMaxState) {
 						counterLocalMaxState ++;
 						continue;
 					}else {
-						cellList.get(rand[j]).state = getMaxStateLocal(rand[j]); //set the maximum state with no global constraints
+						cellsList.get(cellsListStateChange.get(j)).state = currentMaxState; //set the maximum state with no global constraints
 					}
 				}
-			}
+			}	
 			
-			if(counterLocalMaxState == rand.length) {
+			if(counterLocalMaxState == cellsListStateChange.size()) {
 				break;
 			}else {
 				counterLocalMaxState = 0;
-			}
-			
+			}	
 		}
 		
-		//Set the global level objectives
-		for(int c =0; c < cellList.size(); c++) {// Iterate through each of the cell and their corresponding state
-			int state = cellList.get(c).state;
-			planHarvestVolume = sumVector(planHarvestVolume, cellList.get(c).statesHarvest.get(state)) ;//harvest volume
-			//planLateSeral = sumVector(planLateSeral, cellList.get(c).statesOG.get(state));
-			
-			for(int lc = 0; lc < cellList.get(c).landCoverList.size(); lc ++) { //Land cover constraints
-				double [] tempLCValue = new double[landscape.numTimePeriods];
-				tempLCValue = beo.landCoverConstraintList.get(cellList.get(c).landCoverList.get(lc)).get("Actual");
-				tempLCValue = sumVector(tempLCValue, cellList.get(c).statesOG.get(cellList.get(c).state));
-				beo.landCoverConstraintList.get(cellList.get(c).landCoverList.get(lc)).put("Actual", tempLCValue);
-			}
+		try {
+			System.out.print("Saving states");
+			saveResults();
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
 		
 		System.out.println("Starting global optimization..");
+		//Set the global level objectives
+		for(int c =0; c < cellsListStateChange.size(); c++) {// Iterate through each of the cell and their corresponding state
+			int state = cellsList.get(cellsListStateChange.get(c)).state;
+			planHarvestVolume = sumVector(planHarvestVolume, (float[]) forestTypeList.get(cellsList.get(cellsListStateChange.get(c)).foresttype).stateTypes.get(state).get("harvVol")) ;//harvest volume
+
+		}
 		//global optimization
-		for(int g =0; g < 10000; g++) {
-			
+		for(int g =0; g < 10000; g++) {	
 			if(globalConstraintsAchieved) {
 				break;
 			}
 			
-			for(int j = 0; j < rand.length; j++) {				
-				cellList.get(rand[j]).state = getMaxStateGlobal(rand[j]); //set the maximum state with global constraints	
-				
-				//Add local contribution to global.
-				planHarvestVolume = sumVector(planHarvestVolume, cellList.get(rand[j]).statesHarvest.get(cellList.get(rand[j]).state));
-				for(int lc =0 ; lc < cellList.get(rand[j]).landCoverList.size(); lc ++) {
-					beo.landCoverConstraintList.get(cellList.get(rand[j]).landCoverList.get(lc)).put("Actual", sumVector(beo.landCoverConstraintList.get(cellList.get(rand[j]).landCoverList.get(lc)).get("Actual"), cellList.get(rand[j]).statesOG.get(cellList.get(rand[j]).state)));
-				}
-				//planLateSeral = sumVector(planLateSeral, cellList.get(rand[j]).statesOG.get(cellList.get(rand[j]).state));
+			Collections.shuffle(cellsListStateChange); // randomize which cell gets selected.
+			
+			for(int j = 0; j < cellsListStateChange.size(); j++) {				
+				cellsList.get(cellsListStateChange.get(j)).state = getMaxStateGlobal(cellsListStateChange.get(j)); //set the maximum state with global constraints			
 			}
 			
 			System.out.print("iter:" + g + " global weight:" + globalWeight );
-			for(int p =0; p< planHarvestVolume.length; p++) {
-				System.out.print(" vol @ " + p + "= " + planHarvestVolume[p]);
-				System.out.print(" zero ls @ " + p + " = " + beo.landCoverConstraintList.get(0).get("Actual")[p]);
-				System.out.print(" one ls @ " + p + " = " + beo.landCoverConstraintList.get(1).get("Actual")[p]);
-				System.out.print(" two ls @ " + p + " = " + beo.landCoverConstraintList.get(2).get("Actual")[p]);
-			}
-			System.out.println();
-			
 			globalWeight = globalWeight + 0.01; //increment the global weight	
 		}
 		
 		//Final plan
-		System.out.println();
+		/*System.out.println();
 		System.out.println("Preserved" );
 		int rowCounter = 0;
-		/*for (int l= 0; l < cellList.size(); l++){
+		for (int l= 0; l < cellList.size(); l++){
 			if (cellList.get(l).state == 0) {
 				System.out.print(".");
 	        }else {
@@ -152,24 +148,160 @@ public class CellularAutomata {
 	     } */      		
 	}
 	
+	private void setRecruitmentDelayLandCoverConstraint() {
+		String variable;
+		float threshold;
+		float[] value = null;
+		int[] valueInt = null;
+		//TODO: loop through each contraint with a list of cell ids rather than each cell
+		for(Cells c : cellsList) {
+			for(Integer constraint : c.landCoverList) {
+				
+				variable = landCoverConstraintList.get(constraint).variable;
+				threshold = landCoverConstraintList.get(constraint).threshold;
+				if(variable.equals("age")) {
+					valueInt =  (int[]) forestTypeList.get(c.foresttype).stateTypes.get(0).get(variable);
+					switch(landCoverConstraintList.get(constraint).type) {
+						case "ge":
+							for(int v =0; v < valueInt.length; v ++) {
+								if( (float) valueInt[v] >=  threshold) {
+									landCoverConstraintList.get(constraint).achievedConstraint[v] += 1f;
+								}
+							}
+							break;
+						case "le":
+							for(int v =0; v < value.length; v ++) {
+								if( (float) valueInt[v] <=  threshold) {
+									landCoverConstraintList.get(constraint).achievedConstraint[v] += 1f;
+								}
+						
+							}
+							break;
+					}
+				
+				}else {
+					value = (float[]) forestTypeList.get(c.foresttype).stateTypes.get(0).get(variable);
+					switch(landCoverConstraintList.get(constraint).type) {
+						case "ge":
+							for(int v =0; v < value.length; v ++) {
+								if( (float) value[v] >=  threshold) {
+									landCoverConstraintList.get(constraint).achievedConstraint[v] += 1f;
+								}
+							}
+							break;
+						case "le":
+							for(int v =0; v < value.length; v ++) {
+								if( (float) value[v] <=  threshold) {
+									landCoverConstraintList.get(constraint).achievedConstraint[v] += 1f;
+								}
+						
+							}
+							break;
+					}
+				}
+				
+		
+				
+				
+			}
+		}
+		
+		System.out.println("");
+		
+	}
+
+	public void saveResults ()  throws SQLException {
+		try { //Get the data from the db
+			Connection conn = DriverManager.getConnection("jdbc:sqlite:C:/Users/klochhea/clus/R/SpaDES-modules/forestryCLUS/Quesnel_TSA_clusdb.sqlite");		
+			if (conn != null) {
+				Statement statement = conn.createStatement();
+				
+				String dropResultsTable = "DROP TABLE IF EXISTS ca_result;";
+				statement.execute(dropResultsTable);
+				
+				String makeResultsTable = "CREATE TABLE IF NOT EXISTS ca_result (pixelid integer, t1 numeric, t2 numeric, t3 numeric, t4 numeric, t5 numeric, t6 numeric, t7 numeric, t8 numeric, t9 numeric, t10 numeric);";
+				statement.execute(makeResultsTable);
+				
+				String disbaleKEys = "ALTER TABLE ca_result DISABLE KEYS";
+				statement.execute(makeResultsTable);
+				
+				statement.close();
+				
+				String insertResults =
+					      "INSERT INTO ca_result (pixelid, t1,t2,t3,t4,t5,t6,t7,t8,t9,t10) VALUES (?,?,?,?,?,?,?,?,?,?,?);";
+				
+				int [] age;
+				int batchLimit = 1000;
+				
+				conn.setAutoCommit(false);
+				PreparedStatement pstmt = conn.prepareStatement(insertResults);
+				try {
+					for(int c = 0; c < cellsList.size(); c++) {
+					//System.out.println(c);
+					
+						pstmt.setInt(1, cellsList.get(c).pixelid);
+						age = (int[]) forestTypeList.get(cellsList.get(c).foresttype).stateTypes.get(cellsList.get(c).state).get("age");
+			        	for(int t = 0; t < age.length; t++) {
+			        		pstmt.setInt(t+2, age[t]);
+			         	}
+			        	pstmt.executeUpdate();
+			        	/*pstmt.addBatch();
+			        	batchLimit --;
+			        	
+			         	if(batchLimit == 0 ){
+			         		System.out.println("excecuteBatch: " + c);
+			         		pstmt.executeBatch();
+			         		pstmt.clearBatch();
+			         		batchLimit = 1000;
+			          	}*/
+			        	
+					}
+				}finally {
+					System.out.println("...done");
+					//pstmt.executeBatch();
+					pstmt.close();
+					conn.commit();
+					conn.close();
+				}     
+			}
+		}catch (SQLException e) {
+	            System.out.println(e.getMessage());
+	        }
+	}
+	
+	private void randomizeStates(Random r) {
+		for(int c = 0 ; c < cellsListStateChange.size(); c++) {
+			cellsList.get(cellsListStateChange.get(c)).state = r.nextInt(forestTypeList.get(cellsList.get(cellsListStateChange.get(c)).foresttype).stateTypes.size());			
+		}
+	}
+
 	/**
 	* Finds the quantity across all cells and schedules of the maximum amount of volume harvested 
 	* across all planning horizons (maxCutLocal).
 	*/
 	private void setCutPriorities() {
-		double tempCut = 0.0;	
-		for(int c =0; c < cellList.size(); c++) {
-			for(int s= 0; s < cellList.get(c).statesHarvest.size(); s++ ) {				
-				tempCut = tempCut + DoubleStream.of(cellList.get(c).statesHarvest.get(s)).sum();	
+		float tempCut = 0 ;	
+		for(int c =0; c < cellsListStateChange.size(); c++) {
+			for(int s= 0; s < forestTypeList.get(cellsList.get(cellsListStateChange.get(c)).foresttype).stateTypes.size(); s++ ) {				
+				
+				tempCut = tempCut + sumFloatVector( (float[]) forestTypeList.get(cellsList.get(cellsListStateChange.get(c)).foresttype).stateTypes.get(s).get("harvVol")) ;	
 				if(maxCutLocal < tempCut) {
-					maxCutLocal = tempCut;
+					maxCutLocal =   tempCut;
 				}		
-				tempCut = 0.0;
+				tempCut = 0L;
 			}		
 		}
 		//Note that the max og local is 1 for all periods. 
 	}
 	
+	private float sumFloatVector(float[] object) {
+		float out = 0;
+		for(int f = 0; f < object.length; f ++) {
+			out = out + object[f];
+		}
+		return out;
+	}
+
 	/**
 	* Retrieves the max state at the local scale. The rank of alternative schedules is based on Heinonen and Pukkala:
 	* Ujk = SUM(wi*ui(qi)) where wi is the weight for objective i, 
@@ -182,21 +314,60 @@ public class CellularAutomata {
 		double maxValue = 0.0, stateValue = 0.0;
 		double isf =0.0, dsf = 0.0;
 		int stateMax = 0;
-
-		for(int s = 0; s < cellList.get(i).statesHarvest.size(); s++) {
-			
-			isf = DoubleStream.of(cellList.get(i).statesHarvest.get(s)).sum()/maxCutLocal;		
-			dsf = DoubleStream.of(sumVector(cellList.get(i).statesOG.get(s), getNeighborLateSeral(cellList.get(i).adjCellsList))).sum()/(landscape.numTimePeriods*2);
-			
-			stateValue = 0.3*isf + 0.7*dsf;
-			
-			if(maxValue < stateValue) {
-				maxValue = stateValue;
-				stateMax = s;
+		float[] harvVol;
+		float[] propNH = getNeighborProportionHarvest(cellsList.get(i).adjCellsList);
+		float maxPropNH = sumPropNH(propNH);
+		if(maxPropNH == 0) {
+			for(int s = 0; s < forestTypeList.get(cellsList.get(i).foresttype).stateTypes.size(); s++) {
+				
+				harvVol =(float[]) forestTypeList.get(cellsList.get(i).foresttype).stateTypes.get(s).get("harvVol");
+				isf = sumArray(harvVol)/maxCutLocal;	
+				stateValue = 0.3*isf;
+				
+				if(maxValue < stateValue) {
+					maxValue = stateValue;
+					stateMax = s;
+				}
+				
+			}
+		}else {
+			for(int s = 0; s < forestTypeList.get(cellsList.get(i).foresttype).stateTypes.size(); s++) {
+				
+				 harvVol =(float[]) forestTypeList.get(cellsList.get(i).foresttype).stateTypes.get(s).get("harvVol");
+				 isf = sumArray(harvVol)/maxCutLocal;
+				 
+				 dsf = getPropNHRank(harvVol, propNH,maxPropNH) ;
+				
+				stateValue = 0.1*isf + 0.9*dsf;
+				
+				if(maxValue < stateValue) {
+					maxValue = stateValue;
+					stateMax = s;
+				}
+				
 			}
 		}
-		
 		return stateMax;
+	}
+
+	
+
+	private float getPropNHRank(float[] harvVol, float[] propNH, float maxPropNH) {
+		float rank =0;
+		for(int r =0; r < harvVol.length; r++) {
+			if(harvVol[r] > 0) {
+				rank = rank + propNH[r]; // this equates to one times the propNH
+			}
+		}
+		return rank/maxPropNH;
+	}
+
+	private float sumPropNH(float[] propNH) {
+		float out =0;
+		for(int n = 0; n < propNH.length; n++) {
+			out = out + propNH[n];
+		}
+		return out;
 	}
 
 	/**
@@ -225,36 +396,35 @@ public class CellularAutomata {
 		int stateMax = 0;
 
 		//remove the contribution of this cell to the global objective
-		planHarvestVolume = subtractVector(planHarvestVolume, cellList.get(id).statesHarvest.get(cellList.get(id).state));
+		//planHarvestVolume = subtractVector(planHarvestVolume, cellsList.get(id).statesHarvest.get(cellList.get(id).state));
 		//planLateSeral = subtractVector(planLateSeral, cellList.get(id).statesOG.get(cellList.get(id).state));
 		
-		for(int lc = 0 ; lc < cellList.get(id).landCoverList.size(); lc ++) { //remove the cells current contribution (given its current state) to each land cover constraint
-			beo.landCoverConstraintList.get(cellList.get(id).landCoverList.get(lc)).put("Actual", subtractVector(beo.landCoverConstraintList.get(cellList.get(id).landCoverList.get(lc)).get("Actual"), cellList.get(id).statesOG.get(cellList.get(id).state)));
+		for(int lc = 0 ; lc < cellsList.get(id).landCoverList.size(); lc ++) { //remove the cells current contribution (given its current state) to each land cover constraint
+			//beo.landCoverConstraintList.get(cellList.get(id).landCoverList.get(lc)).put("Actual", subtractIntVector(beo.landCoverConstraintList.get(cellList.get(id).landCoverList.get(lc)).get("Actual"), cellList.get(id).statesOG.get(cellList.get(id).state)));
 		}
 		
-		for(int rlc = 0; rlc < beo.landCoverConstraintList.size(); rlc ++) { //get the remaining landcover constraints the cell doesn't belong to
+		/*for(int rlc = 0; rlc < beo.landCoverConstraintList.size(); rlc ++) { //get the remaining landcover constraints the cell doesn't belong to
 			if(cellList.get(id).landCoverList.contains(rlc)) {
 				continue;
 			}else {
-				remainingLC = remainingLC + DoubleStream.of(multiplyScalar(checkMaxContribution(divideVector(beo.landCoverConstraintList.get(rlc).get("Actual"), beo.landCoverConstraintList.get(rlc).get("Target"))),  1.0/landscape.numTimePeriods)).sum();
+				remainingLC = remainingLC + DoubleStream.of(multiplyScalar(checkMaxContribution(divideIntVector(beo.landCoverConstraintList.get(rlc).get("Actual"), beo.landCoverConstraintList.get(rlc).get("Target"))),  1.0/landscape.numTimePeriods)).sum();
 				
 			}
 		}
 		
-		for(int s = 0; s < cellList.get(id).statesPrHV.size(); s++) { // Iterate through each of the plausible treatment schedules also known as states
+		for(int s = 0; s < cellsList.get(id).statesPrHV.size(); s++) { // Iterate through each of the plausible treatment schedules also known as states
 		
-			isf = DoubleStream.of(cellList.get(id).statesHarvest.get(s)).sum()/maxCutLocal; 
-			dsf = DoubleStream.of(sumVector(cellList.get(id).statesOG.get(s), getNeighborLateSeral(cellList.get(id).adjCellsList))).sum()/(landscape.numTimePeriods*2);
+			isf = DoubleStream.of(cellsList.get(id).statesHarvest.get(s)).sum()/maxCutLocal; 
+			dsf = DoubleStream.of(sumIntDoubleVector(cellsList.get(id).statesOG.get(s), getNeighborLateSeral(cellList.get(id).adjCellsList))).sum()/(landscape.numTimePeriods*2);
 			
 			U = 0.3*isf + 0.7*dsf;
 			
 			propLC = 0.0;
-			for(int lc =0; lc < cellList.get(id).landCoverList.size(); lc++) { // land cover constraints the cell belongs to
-				propLC = propLC + DoubleStream.of(multiplyScalar(checkMaxContribution(divideVector(sumVector(beo.landCoverConstraintList.get(cellList.get(id).landCoverList.get(lc)).get("Actual"), cellList.get(id).statesOG.get(s)), beo.landCoverConstraintList.get(cellList.get(id).landCoverList.get(lc)).get("Target"))),  1.0/landscape.numTimePeriods)).sum();
+			for(int lc =0; lc < cellsList.get(id).landCoverList.size(); lc++) { // land cover constraints the cell belongs to
+				//propLC = propLC + DoubleStream.of(multiplyScalar(checkMaxContribution(divideIntVector(sumIntVector(beo.landCoverConstraintList.get(cellList.get(id).landCoverList.get(lc)).get("Actual"), cellList.get(id).statesOG.get(s)), beo.landCoverConstraintList.get(cellList.get(id).landCoverList.get(lc)).get("Target"))),  1.0/landscape.numTimePeriods)).sum();
 			}
 						
-			P =  0.3*DoubleStream.of(multiplyScalar(checkMaxContribution(divideScalar(sumVector(planHarvestVolume, cellList.get(id).statesHarvest.get(s)), harvestMin)), 1.0/landscape.numTimePeriods)).sum() +
-					0.7*((propLC + remainingLC)/beo.landCoverConstraintList.size());
+			//P =  0.3*DoubleStream.of(multiplyScalar(checkMaxContribution(divideScalar(sumVector(planHarvestVolume, cellList.get(id).statesHarvest.get(s)), harvestMin)), 1.0/landscape.numTimePeriods)).sum() + 0.7*((propLC + remainingLC)/beo.landCoverConstraintList.size());
 
 			stateValue = landscape.weight*U + globalWeight*P;
 			
@@ -268,7 +438,7 @@ public class CellularAutomata {
 			
 		};
 		
-		
+		*/
 		return stateMax;
 	}
 
@@ -277,13 +447,13 @@ public class CellularAutomata {
 	 * @param objective an array of objective values
 	 * @return an array whose elements have a max value of 1.0
 	 */
-	private double[] checkMaxContribution(double[] objective) {
-		double out[] = new double[landscape.numTimePeriods];
+	private float[] checkMaxContribution(float[] objective) {
+		float out[] = new float[landscape.numTimePeriods];
 		out = objective.clone();
 		
 		for(int t = 0; t < objective.length; t++) {
-			if(objective[t] > 1.0) {
-				out[t] = 1.0;
+			if(objective[t] > 1L ) {
+				out[t] = 1L ;
 			}
 		}
 		return out;
@@ -305,7 +475,7 @@ public class CellularAutomata {
 		int[] blockParams = {0, 2000, 4000,7000,10000, 1000000}; // add a large number so there's no out of bounds issues
 		int[] freqParams = {0, 300,200,100,1,1};
 		boolean timeToSetPenalties = false;
-		int [] maxStates = new int[cellList.size()];
+		int [] maxStates = new int[cellsList.size()];
 		landscape.setPenaltiesBlank();//set penalty parameters - alpha, beta and gamma as zero filled arrays
 		
 		for(int i=0; i < numIter; i++) { // Iteration loop
@@ -321,42 +491,42 @@ public class CellularAutomata {
 				
 			numIterSinceFreq ++;
 			
-			Arrays.fill(planHarvestVolume, 0.0); //set the harvestVolume indicator
-			Arrays.fill(planLateSeral, 0.0); //set the late-seral forest indicator
-			objValue = 0.0; //reset the object value;
+			Arrays.fill(planHarvestVolume, 0L); //set the harvestVolume indicator
+			Arrays.fill(planLateSeral, 0); //set the late-seral forest indicator
+			objValue = 0; //reset the object value;
 			
-			int[] rand = new Random().ints(0, cellList.size()).distinct().limit(cellList.size()).toArray();; // Randomize the stand or cell list
+			int[] rand = new Random().ints(0, cellsList.size()).distinct().limit(cellsList.size()).toArray();; // Randomize the stand or cell list
 			
 			for(int j = 0; j < rand.length; j++) { //Stand or cell list loop
 				int maxState = getMaxState(rand[j]);
-				if(cellList.get(rand[j]).state == maxState) { //When the cell is at its max state - go to the next cell
+				if(cellsList.get(rand[j]).state == maxState) { //When the cell is at its max state - go to the next cell
 					//System.out.println("Cell:" + cellList.get(rand[j]).id + " already at max");
-					if(j == cellList.size()-1) {
+					if(j == cellsList.size()-1) {
 						finalPlan = true;
 					}
 					continue; // Go to the next cell -- this one is already at its max
 				}else{ // Change the state of the cell to its max state and then exit the stand or cell list loop
-					System.out.println("Cell:" + cellList.get(rand[j]).id + " change from " + cellList.get(rand[j]).state + " to " + maxState );
-					cellList.get(rand[j]).state = maxState; //transition function - set the new state to the max state
+					//System.out.println("Cell:" + cellsList.get(rand[j]).pixelid + " change from " + cellList.get(rand[j]).state + " to " + maxState );
+					cellsList.get(rand[j]).state = maxState; //transition function - set the new state to the max state
 					break;
 				}
 				
 			}
 			
 			//Output the global indicators (aggregate all cell level values)
-			for(int c =0; c < cellList.size(); c++) {// Iterate through each of the cell and their corresponding state
-				int state = cellList.get(c).state;
+			for(int c =0; c < cellsList.size(); c++) {// Iterate through each of the cell and their corresponding state
+				int state = cellsList.get(c).state;
 				double isf, dsf;
 					
 				//isf = DoubleStream.of(multiplyVector(cellList.get(c).statesPrHV.get(state), sumVector(landscape.lambda, subtractVector(landscape.alpha,landscape.beta)))).sum(); //I s(f) is the context independent component of the obj function			
 				//dsf = DoubleStream.of(multiplyVector(divideScalar(sumVector(cellList.get(c).statesOG.get(state), getNeighborLateSeral(cellList.get(c).adjCellsList)), landscape.numTimePeriods*2), sumVector(landscape.lambda,landscape.gamma))).sum();
-				isf = DoubleStream.of(multiplyVector(landscape.lambda,multiplyVector(cellList.get(c).statesPrHV.get(state), subtractVector(landscape.alpha,landscape.beta)))).sum(); //I s(f) is the context independent component of the obj function			
-				dsf = DoubleStream.of(multiplyVector(landscape.oneMinusLambda, multiplyVector(divideScalar(sumVector(cellList.get(c).statesOG.get(state), getNeighborLateSeral(cellList.get(c).adjCellsList)), landscape.numTimePeriods*2), landscape.gamma))).sum();
+				//isf = DoubleStream.of(multiplyVector(landscape.lambda,multiplyVector(cellsList.get(c).statesPrHV.get(state), subtractVector(landscape.alpha,landscape.beta)))).sum(); //I s(f) is the context independent component of the obj function			
+				//dsf = DoubleStream.of(multiplyVector(landscape.oneMinusLambda, multiplyVector(divideScalar(sumIntDoubleVector(cellList.get(c).statesOG.get(state), getNeighborLateSeral(cellList.get(c).adjCellsList)), landscape.numTimePeriods*2), landscape.gamma))).sum();
 					
-				objValue += isf + dsf; //objective value
+				//objValue += isf + dsf; //objective value
 				
-				planHarvestVolume = sumVector(planHarvestVolume, cellList.get(c).statesHarvest.get(state)) ;//harvest volume
-				planLateSeral = sumVector(planLateSeral, cellList.get(c).statesOG.get(state));
+				//planHarvestVolume = sumVector(planHarvestVolume, cellsList.get(c).statesHarvest.get(state)) ;//harvest volume
+				//planLateSeral = sumIntVector(planLateSeral, cellsList.get(c).statesOG.get(state));
 			}
 			System.out.println("iter:"+ i + " obj:" + objValue);
 			if(maxObjValue < objValue && i > 14000) {
@@ -364,8 +534,8 @@ public class CellularAutomata {
 				maxPlanHarvestVolume = planHarvestVolume.clone();
 				maxPlanLateSeral = planLateSeral.clone();
 				
-				for(int h =0; h < cellList.size(); h++) {
-					maxStates[h] = cellList.get(h).state;
+				for(int h =0; h < cellsList.size(); h++) {
+					maxStates[h] = cellsList.get(h).state;
 				}
 			}
 			//Set the global-level penalties
@@ -425,14 +595,14 @@ public class CellularAutomata {
 	* @param lateSeralTarget2	the minimum amount of late-seral needed
 	* @return 		an array of gamma penalties
 	*/
-	 private double[] getGammaPenalty(double[] planLateSeral2, double lateSeralTarget2) {
+	 private double[] getGammaPenalty(int[] planLateSeral2, float lateSeralTarget2) {
 			double[] gamma = new double[landscape.numTimePeriods];
 			for(int a = 0; a < planLateSeral2.length; a++ ) {
 				if(planLateSeral2[a] <= lateSeralTarget2) {
 					if(planLateSeral2[a] == 0.0) {//check divisible by zero
 						gamma[a] = lateSeralTarget2/0.00001; //use a small number in lieu of zero
 					}else {
-						gamma[a] = lateSeralTarget2/planLateSeral2[a];
+						gamma[a] = (double) lateSeralTarget2/planLateSeral2[a];
 					}
 				}else {
 					gamma[a] = 0.0;
@@ -448,7 +618,7 @@ public class CellularAutomata {
 	* @param harvestMax2	the maximum harvest volume
 	* @return 		an array of beta penalties
 	*/
-	private double[] getBetaPenalty(double[] planHarvestVolume2, double harvestMax2) {
+	private double[] getBetaPenalty(float[] planHarvestVolume2, float harvestMax2) {
 			double[] beta = new double[landscape.numTimePeriods];
 			for(int a = 0; a < planHarvestVolume2.length; a++ ) {
 				if(planHarvestVolume2[a] >= harvestMax2) {
@@ -466,7 +636,7 @@ public class CellularAutomata {
      * @param harvestMin2	the minimum harvest volume
      * @return 		an array of alpha penalties
      */
-	private double[] getAlphaPenalty(double[] planHarvestVolume2, double harvestMin2) {
+	private double[] getAlphaPenalty(float[] planHarvestVolume2, float harvestMin2) {
 		double[] alpha = new double[landscape.numTimePeriods];
 		for(int a = 0; a < planHarvestVolume2.length; a++ ) {
 			if(planHarvestVolume2[a] <= harvestMin2) {
@@ -492,14 +662,14 @@ public class CellularAutomata {
 		double stateValue, isf,dsf;
 		int stateMax =0;
 		double[] lsn = new double[landscape.numTimePeriods];
-		lsn = getNeighborLateSeral(cellList.get(id).adjCellsList);
+		lsn = getNeighborLateSeral(cellsList.get(id).adjCellsList);
 	
-		for(int i = 0; i < cellList.get(id).statesPrHV.size(); i++) { // Iterate through each of the plausible treatment schedules also known as states
+		/*for(int i = 0; i < cellsList.get(id).statesPrHV.size(); i++) { // Iterate through each of the plausible treatment schedules also known as states
 		
 			//isf = DoubleStream.of(multiplyVector(cellList.get(id).statesPrHV.get(i), sumVector(landscape.lambda, subtractVector(landscape.alpha,landscape.beta)))).sum(); //I s(f) is the context independent component of the obj function			
 			//dsf = DoubleStream.of(multiplyVector(divideScalar(sumVector(cellList.get(id).statesOG.get(i), lsn), landscape.numTimePeriods*2), sumVector(landscape.oneMinusLambda,landscape.gamma))).sum();
-			isf = DoubleStream.of(multiplyVector(landscape.lambda,multiplyVector(cellList.get(id).statesPrHV.get(i), subtractVector(landscape.alpha,landscape.beta)))).sum(); //I s(f) is the context independent component of the obj function			
-			dsf = DoubleStream.of(multiplyVector(landscape.oneMinusLambda, multiplyVector(divideScalar(sumVector(cellList.get(id).statesOG.get(i), lsn), landscape.numTimePeriods*2.0), landscape.gamma))).sum();
+			isf = DoubleStream.of(multiplyVector(landscape.lambda,multiplyVector(cellsList.get(id).statesPrHV.get(i), subtractVector(landscape.alpha,landscape.beta)))).sum(); //I s(f) is the context independent component of the obj function			
+			dsf = DoubleStream.of(multiplyVector(landscape.oneMinusLambda, multiplyVector(divideScalar(sumIntDoubleVector(cellList.get(id).statesOG.get(i), lsn), landscape.numTimePeriods*2.0), landscape.gamma))).sum();
 			
 			stateValue = isf + dsf;
 			if(maxValue < stateValue) {
@@ -507,11 +677,36 @@ public class CellularAutomata {
 				stateMax = i;
 			}
 		};
-		
+		*/
 		return stateMax;
 	}
+	
+	/**
+	 * Finds the proportion of a cells neighbours that are cut in the same time period
+	 * @param adjCellsList
+	 * @return a double representing the proportion of adjacent cells that are also cut in the same time period;
+	 */
+	private float[] getNeighborProportionHarvest(ArrayList<Integer> adjCellsList) {
+		float[] hvn = new float[landscape.numTimePeriods];
+		float[] tempHVN;
+		int state = 0;
 		
-	 /**
+		for(int n =0; n < adjCellsList.size(); n++) {
+			state = cellsList.get(adjCellsList.get(n)).state; // the cellList is no longer in order can't use get. Need a comparator.
+			if(state == 0) {
+				continue; // go to the next adjacent cell --this one has no harvesting
+			}else {
+				tempHVN = (float[])forestTypeList.get(cellsList.get(adjCellsList.get(n)).foresttype).stateTypes.get(state).get("harvVol");
+				for(int t = 0 ; t < landscape.numTimePeriods; t ++) {
+					if(tempHVN[t] > 0) {
+						hvn[t]= hvn[t] + (float) 1/adjCellsList.size();
+					}
+				}
+			}
+		}		
+		return hvn;
+	}
+	/**
      * Retrieves a factor between 0 and 1 that is equal to the proportion of stand f's neighbors 
      * that are also late-seral in planning period t
      * @param adjCellsList	an ArrayList of integers representing the cells index + 1
@@ -524,8 +719,8 @@ public class CellularAutomata {
 		
 		for(int t =0; t < landscape.numTimePeriods; t++) {
 			for(int n =0; n < adjCellsList.size(); n++) {
-				int state = cellList.get(adjCellsList.get(n)-1).state; // the cellList is no longer in order can't use get. Need a comparator.
-				lsnTimePeriod += cellList.get(adjCellsList.get(n)-1).statesOG.get(state)[t];
+				int state = cellsList.get(adjCellsList.get(n)-1).state; // the cellList is no longer in order can't use get. Need a comparator.
+				//lsnTimePeriod += cellsList.get(adjCellsList.get(n)-1).statesOG.get(state)[t];
 				counter ++;
 			}
 			lsn[t] = lsnTimePeriod/counter;
@@ -558,6 +753,21 @@ public class CellularAutomata {
      * @return 		a vector of length equal to the number of time periods
      * @see multiplyVector
      */
+	private double[] divideIntVector (int[] vector1, int[] vector2) {
+		double[] outVector = new double[vector1.length];
+		for(int i =0; i < outVector.length; i++) {
+			outVector[i] = (double) vector1[i]/vector2[i];
+		}
+		return outVector;
+	}
+	
+	 /**
+     * Divides two vectors together to return the element wise product.
+     * @param vector1	an Array of doubles with length equal to the number of time periods
+     * @param vector2	an Array of doubles with length equal to the number of time periods
+     * @return 		a vector of length equal to the number of time periods
+     * @see multiplyVector
+     */
 	private double[] divideVector (double[] vector1, double[] vector2) {
 		double[] outVector = new double[vector1.length];
 		for(int i =0; i < outVector.length; i++) {
@@ -565,6 +775,7 @@ public class CellularAutomata {
 		}
 		return outVector;
 	}
+	
 	
 	 /**
      * Divides a vectors by a scalar element wise.
@@ -580,6 +791,7 @@ public class CellularAutomata {
 		}
 		return outVector;
 	}
+	
 	
 	 /**
      * Multiplies a vectors by a scalar element wise.
@@ -603,10 +815,54 @@ public class CellularAutomata {
      * @return 		a vector of length equal to the number of time periods
      * @see sumVector
      */
+	private int[] subtractIntVector (int[] vector1, int[] vector2) {
+		int[] outVector = new int[vector1.length];
+		for(int i =0; i < outVector.length; i++) {
+			outVector[i] = vector1[i]-vector2[i];
+		}
+		return outVector;
+	}
+	 /**
+     * Subtracts two vectors so that the element wise difference is returned. The first vector is subtracted by the second
+     * @param vector1	an Array of doubles with length equal to the number of time periods
+     * @param vector2	an Array of doubles with length equal to the number of time periods
+     * @return 		a vector of length equal to the number of time periods
+     * @see sumVector
+     */
 	private double[] subtractVector (double[] vector1, double[] vector2) {
 		double[] outVector = new double[vector1.length];
 		for(int i =0; i < outVector.length; i++) {
 			outVector[i] = vector1[i]-vector2[i];
+		}
+		return outVector;
+	}
+	
+	 /**
+     * Adds two vectors so that the element wise sum is returned.
+     * @param planHarvestVolume2	an Array of doubles with length equal to the number of time periods
+     * @param scalar	a scalar
+     * @return 		a vector of length equal to the number of time periods
+     * @see subtractVector
+     */
+	private double sumArray(float[] vector) {
+		float outValue = 0L;
+		for(int i =0; i < vector.length; i++) {
+			outValue = outValue + vector[i];
+		}
+		return outValue;
+	}
+	
+	 /**
+     * Adds two vectors so that the element wise sum is returned.
+     * @param planHarvestVolume2	an Array of doubles with length equal to the number of time periods
+     * @param scalar	a scalar
+     * @return 		a vector of length equal to the number of time periods
+     * @see subtractVector
+     */
+	private float[] sumVector(float[] planHarvestVolume, float[] vector2) {
+		float[] outVector = new float[planHarvestVolume.length];
+		for(int i =0; i < outVector.length; i++) {
+			outVector[i] = planHarvestVolume[i]+ vector2[i];
 		}
 		return outVector;
 	}
@@ -618,129 +874,351 @@ public class CellularAutomata {
      * @return 		a vector of length equal to the number of time periods
      * @see subtractVector
      */
-	private double[] sumVector(double[] vector1, double[] vector2) {
-		double[] outVector = new double[vector1.length];
+	private int[] sumIntVector(int[] vector1, int[] vector2) {
+		int[] outVector = new int[vector1.length];
 		for(int i =0; i < outVector.length; i++) {
 			outVector[i] = vector1[i]+vector2[i];
 		}
 		return outVector;
 	}
-	
+	 /**
+     * Adds two vectors so that the element wise sum is returned.
+     * @param vector1	an Array of doubles with length equal to the number of time periods
+     * @param scalar	a scalar
+     * @return 		a vector of length equal to the number of time periods
+     * @see subtractVector
+     */
+	 private double[] sumIntDoubleVector(int[] vector1, double[] vector2) {
+		 double[] outVector = new double[vector1.length];
+			for(int i =0; i < outVector.length; i++) {
+				outVector[i] = vector1[i]+vector2[i];
+			}
+		return outVector;
+	}
+
 	 /**
      * Instantiates java objects developed in R
      */
-	public void setRParms() {
-		// TODO Auto-generated method stub
-	}
-	
-	 /**
-     * Creates a forest data set used for testing the cellular automata
-     */
-	public void createData() {
-		//harvest flow
-		lateSeralTarget = Math.round(0.2*landscape.numCells); // 15% of the landscape should be old growth
-		harvestMax = 32500.0;
-		harvestMin = 32000.0;
-		
-		Random r =	new Random(); //Random seed for making new grids
-		double scale = 3.7;
-		double shape = 2.9;
-		
-		
-		//dummy yields taken from yieldid -203322
-		Double vols[] = {0.0,0.0,0.0,0.0,10.22,45.4,95.32,148.35,198.33,243.29,283.14,318.13,349.0,377.2,402.6,422.64,435.88,443.75,447.82,449.16,448.54,444.25,439.52,434.92,430.47,426.17,422.0,417.96,414.02,410.19,406.46,402.82,400.28,398.41,396.56,394.73};
-		Double hts[] = {0.0, 0.6,2.6,6.41,10.62,14.6,18.15,21.22,23.85,26.1,28.01,29.66,31.07,32.29,33.36,34.29,35.1,35.83,36.47,37.04,37.55,38.01,38.43,38.81,39.15,39.46,39.75,40.01,40.25,40.48,40.68,40.87,41.05,41.22,41.37,41.51};
-		Double ogs[] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
-		//YieldID = 0
-		yields.add(0, new ArrayList <LinkedHashMap<String, Double >>());
-		
-		Double vols2[] = {0.0,0.0,10.22,45.4,95.32,148.35,198.33,243.29,283.14,318.13,349.0,377.2,402.6,422.64,435.88,443.75,447.82,449.16,448.54,444.25,439.52,434.92,430.47,426.17,422.0,417.96,414.02,410.19,406.46,402.82,400.28,398.41,396.56,394.73,394.73,394.73};
-		Double hts2[] = {0.0, 0.6,2.6,6.41,10.62,14.6,18.15,21.22,23.85,26.1,28.01,29.66,31.07,32.29,33.36,34.29,35.1,35.83,36.47,37.04,37.55,38.01,38.43,38.81,39.15,39.46,39.75,40.01,40.25,40.48,40.68,40.87,41.05,41.22,41.37,41.51};
-		Double ogs2[] = {0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};
-		//YieldID = 1
-		yields.add(1, new ArrayList <LinkedHashMap<String, Double >>());
-		
-		//Add in yields using a loop
-		for(int y=0; y<36; y++) { // for each decade in the yield curve to a max of 350 years including year 0
-			yields.get(0).add(y, new LinkedHashMap<String, Double >() );
-			yields.get(0).get(y).put("vol", vols[y]);
-			yields.get(0).get(y).put("ht", hts[y]);
-			yields.get(0).get(y).put("og", ogs[y]);
-			yields.get(1).add(y, new LinkedHashMap<String, Double >() );
-			yields.get(1).get(y).put("vol", vols2[y]);
-			yields.get(1).get(y).put("ht", hts2[y]);
-			yields.get(1).get(y).put("og", ogs2[y]);
+	public void setRParms(int[] to, int[] from, double[] weight, int[] dg, ArrayList<LinkedHashMap<String, Object>> histTable, double allowdiff ) {
+		//Instantiate the Edge objects from the R data.table
+		//System.out.println("Linking to java...");
+		for(int i =0;  i < to.length; i++){
+			 //this.edgeList.add( new Edges((int)to[i], (int)from[i], (double)weight[i]));
 		}
-		//Create a landcover constraint
-		double[] temp = new double[landscape.numTimePeriods];
-		double[] temp1 = new double[landscape.numTimePeriods];
-		double[] temp2 = new double[landscape.numTimePeriods];
-		double[] temp3 = new double[landscape.numTimePeriods];
-		double[] temp4 = new double[landscape.numTimePeriods];
-		
-		Arrays.fill(temp, 0.0);
-		beo.landCoverConstraintList.add(0, new LinkedHashMap<String, double[] >());
-		beo.landCoverCellList.add(0, new ArrayList<Integer>());
-		beo.landCoverConstraintList.get(0).put("Actual", temp);
+		//System.out.println(to.length + " edges ");
 
-		beo.landCoverConstraintList.add(1, new LinkedHashMap<String, double[]>());	
-		beo.landCoverCellList.add(1, new ArrayList<Integer>());
-		beo.landCoverConstraintList.get(1).put("Actual", temp.clone());
+		//this.degree = Arrays.stream(dg).boxed().toArray( Integer[]::new );
+		//this.idegree = Arrays.stream(dg).boxed().toArray( Integer[]::new );
+		//System.out.println(degree.length + " degree ");
 		
-		beo.landCoverConstraintList.add(2, new LinkedHashMap<String, double[]>());	
-		beo.landCoverCellList.add(2, new ArrayList<Integer>());
-		beo.landCoverConstraintList.get(2).put("Actual", temp.clone());
+		//this.hist = new histogram(histTable);
+		//System.out.println(this.hist.bins.size() + " target bins have been added");
 		
-		beo.landCoverConstraintList.add(3, new LinkedHashMap<String, double[]>());	
-		beo.landCoverCellList.add(3, new ArrayList<Integer>());
-		beo.landCoverConstraintList.get(3).put("Actual", temp.clone());
+		//dg = null;
+		//histTable.clear();
+		//to = null;
+		//from =null;
+		//weight = null;
 		
-		Arrays.fill(temp1, 250.0);
-		beo.landCoverConstraintList.get(0).put("Target", temp1);
-		Arrays.fill(temp2, 250.0);
-		beo.landCoverConstraintList.get(1).put("Target", temp2);
-		Arrays.fill(temp3, 10.0);
-		beo.landCoverConstraintList.get(2).put("Target", temp3);
-		Arrays.fill(temp4, 30.0);
-		beo.landCoverConstraintList.get(3).put("Target", temp4);
-		
-		ArrayList<Integer> lc = new ArrayList<>(Arrays.asList(0,2));
-		ArrayList<Integer> lc1 = new ArrayList<>(Arrays.asList(1));
-		ArrayList<Integer> lc2 = new ArrayList<>(Arrays.asList(0));
-		ArrayList<Integer> lc3 = new ArrayList<>(Arrays.asList(1,3));
-		
+		//this.allowableDiff = allowdiff;
+	}
+
+
 	
-		for(int k= 0; k < landscape.numCells; k++) {
-			//Attribution of the stand or cell
-			int age = (int) Math.round(Math.exp(scale + shape * Math.abs(r.nextGaussian())/4)/10)*10;
-			if(age > 250) { 
-				age = 250 ;
-			};
-			System.out.println(age);
-			//int age = (int) (Math.round(distribution.sample()*10)/10); //random age in 10 year classes
-			//int age = 0;
-			if(k < 1250) {
-				if(k<80) {
-					this.cellList.add(new Cell(landscape, k + 1, age, yields.get(0), yields.get(1), lc ));
-					beo.landCoverCellList.get(0).add(k);
-					beo.landCoverCellList.get(2).add(k);
-				}else {
-					this.cellList.add(new Cell(landscape, k + 1, age, yields.get(0), yields.get(1), lc2));
-					beo.landCoverCellList.get(0).add(k);
+	public void getCLUSData() throws Exception {
+		try { // Load the driver
+		    Class.forName("org.sqlite.JDBC");
+		} catch (ClassNotFoundException eString) {
+		    System.err.println("Could not init JDBC driver - driver not found");
+		}		
+		try { //Get the data from the db
+			Connection conn = DriverManager.getConnection("jdbc:sqlite:C:/Users/klochhea/clus/R/SpaDES-modules/forestryCLUS/Quesnel_TSA_clusdb.sqlite");		
+			if (conn != null) {
+				System.out.println("Connected to clusdb");
+				Statement statement = conn.createStatement();
+				System.out.print("Getting yield information");
+				//Create a yield lookup
+				String yc_lookup = "CREATE TABLE IF NOT EXISTS yield_lookup as SELECT ROW_NUMBER() OVER( ORDER BY yieldid asc) as id_yc, yieldid, count(*) as num FROM yields GROUP BY yieldid;";
+				statement.execute(yc_lookup);
+				
+				//Getting the yields--so far just age and height;
+				String get_yc = "SELECT o.id_yc," +
+						"  MAX(CASE WHEN p.age = 0 THEN p.tvol END) AS vol_0," + 
+						"  MAX(CASE WHEN p.age = 10 THEN p.tvol END) AS vol_10," + 
+						"  MAX(CASE WHEN p.age = 20 THEN p.tvol END) AS vol_20," + 
+						"  MAX(CASE WHEN p.age = 30 THEN p.tvol END) AS vol_30," + 
+						"  MAX(CASE WHEN p.age = 40 THEN p.tvol END) AS vol_40," + 
+						"  MAX(CASE WHEN p.age = 50 THEN p.tvol END) AS vol_50," + 
+						"  MAX(CASE WHEN p.age = 60 THEN p.tvol END) AS vol_60," + 
+						"  MAX(CASE WHEN p.age = 70 THEN p.tvol END) AS vol_70," + 
+						"  MAX(CASE WHEN p.age = 80 THEN p.tvol END) AS vol_80," + 
+						"  MAX(CASE WHEN p.age = 90 THEN p.tvol END) AS vol_90," + 
+						"  MAX(CASE WHEN p.age = 100 THEN p.tvol END) AS vol_100," + 
+						"  MAX(CASE WHEN p.age = 110 THEN p.tvol END) AS vol_110," + 
+						"  MAX(CASE WHEN p.age = 120 THEN p.tvol END) AS vol_120," + 
+						"  MAX(CASE WHEN p.age = 130 THEN p.tvol END) AS vol_130," + 
+						"  MAX(CASE WHEN p.age = 140 THEN p.tvol END) AS vol_140," + 
+						"  MAX(CASE WHEN p.age = 150 THEN p.tvol END) AS vol_150," + 
+						"  MAX(CASE WHEN p.age = 160 THEN p.tvol END) AS vol_160," + 
+						"  MAX(CASE WHEN p.age = 170 THEN p.tvol END) AS vol_170," + 
+						"  MAX(CASE WHEN p.age = 180 THEN p.tvol END) AS vol_180," + 
+						"  MAX(CASE WHEN p.age = 190 THEN p.tvol END) AS vol_190," + 
+						"  MAX(CASE WHEN p.age = 200 THEN p.tvol END) AS vol_200," + 
+						"  MAX(CASE WHEN p.age = 210 THEN p.tvol END) AS vol_210," + 
+						"  MAX(CASE WHEN p.age = 220 THEN p.tvol END) AS vol_220," + 
+						"  MAX(CASE WHEN p.age = 230 THEN p.tvol END) AS vol_230," + 
+						"  MAX(CASE WHEN p.age = 240 THEN p.tvol END) AS vol_240," + 
+						"  MAX(CASE WHEN p.age = 250 THEN p.tvol END) AS vol_250," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 260 THEN p.tvol END), MAX(CASE WHEN p.age = 250 THEN p.tvol END)) AS vol_260," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 270 THEN p.tvol END), MAX(CASE WHEN p.age = 250 THEN p.tvol END)) AS vol_270," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 280 THEN p.tvol END), MAX(CASE WHEN p.age = 250 THEN p.tvol END)) AS vol_280," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 290 THEN p.tvol END), MAX(CASE WHEN p.age = 250 THEN p.tvol END)) AS vol_290," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 300 THEN p.tvol END), MAX(CASE WHEN p.age = 250 THEN p.tvol END)) AS vol_300," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 310 THEN p.tvol END), MAX(CASE WHEN p.age = 250 THEN p.tvol END)) AS vol_310," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 320 THEN p.tvol END), MAX(CASE WHEN p.age = 250 THEN p.tvol END)) AS vol_320," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 330 THEN p.tvol END), MAX(CASE WHEN p.age = 250 THEN p.tvol END)) AS vol_330," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 340 THEN p.tvol END), MAX(CASE WHEN p.age = 250 THEN p.tvol END)) AS vol_340," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 350 THEN p.tvol END), MAX(CASE WHEN p.age = 250 THEN p.tvol END)) AS vol_350," + 
+						"  MAX(CASE WHEN p.age = 0 THEN p.height END) AS ht_0," + 
+						"  MAX(CASE WHEN p.age = 10 THEN p.height END) AS ht_10," + 
+						"  MAX(CASE WHEN p.age = 20 THEN p.height END) AS ht_20," + 
+						"  MAX(CASE WHEN p.age = 30 THEN p.height END) AS ht_30," + 
+						"  MAX(CASE WHEN p.age = 40 THEN p.height END) AS ht_40," + 
+						"  MAX(CASE WHEN p.age = 50 THEN p.height END) AS ht_50," + 
+						"  MAX(CASE WHEN p.age = 60 THEN p.height END) AS ht_60," + 
+						"  MAX(CASE WHEN p.age = 70 THEN p.height END) AS ht_70," + 
+						"  MAX(CASE WHEN p.age = 80 THEN p.height END) AS ht_80," + 
+						"  MAX(CASE WHEN p.age = 90 THEN p.height END) AS ht_90," + 
+						"  MAX(CASE WHEN p.age = 100 THEN p.height END) AS ht_100," + 
+						"  MAX(CASE WHEN p.age = 110 THEN p.height END) AS ht_110," + 
+						"  MAX(CASE WHEN p.age = 120 THEN p.height END) AS ht_120," + 
+						"  MAX(CASE WHEN p.age = 130 THEN p.height END) AS ht_130," + 
+						"  MAX(CASE WHEN p.age = 140 THEN p.height END) AS ht_140," + 
+						"  MAX(CASE WHEN p.age = 150 THEN p.height END) AS ht_150," + 
+						"  MAX(CASE WHEN p.age = 160 THEN p.height END) AS ht_160," + 
+						"  MAX(CASE WHEN p.age = 170 THEN p.height END) AS ht_170," + 
+						"  MAX(CASE WHEN p.age = 180 THEN p.height END) AS ht_180," + 
+						"  MAX(CASE WHEN p.age = 190 THEN p.height END) AS ht_190," + 
+						"  MAX(CASE WHEN p.age = 200 THEN p.height END) AS ht_200," + 
+						"  MAX(CASE WHEN p.age = 210 THEN p.height END) AS ht_210," + 
+						"  MAX(CASE WHEN p.age = 220 THEN p.height END) AS ht_220," + 
+						"  MAX(CASE WHEN p.age = 230 THEN p.height END) AS ht_230," + 
+						"  MAX(CASE WHEN p.age = 240 THEN p.height END) AS ht_240," + 
+						"  MAX(CASE WHEN p.age = 250 THEN p.height END) AS ht_250," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 260 THEN p.height END), MAX(CASE WHEN p.age = 250 THEN p.height END)) AS ht_260," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 270 THEN p.height END), MAX(CASE WHEN p.age = 250 THEN p.height END)) AS ht_270," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 280 THEN p.height END), MAX(CASE WHEN p.age = 250 THEN p.height END)) AS ht_280," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 290 THEN p.height END), MAX(CASE WHEN p.age = 250 THEN p.height END)) AS ht_290," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 300 THEN p.height END), MAX(CASE WHEN p.age = 250 THEN p.height END)) AS ht_300," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 310 THEN p.height END), MAX(CASE WHEN p.age = 250 THEN p.height END)) AS ht_310," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 320 THEN p.height END), MAX(CASE WHEN p.age = 250 THEN p.height END)) AS ht_320," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 330 THEN p.height END), MAX(CASE WHEN p.age = 250 THEN p.height END)) AS ht_330," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 340 THEN p.height END), MAX(CASE WHEN p.age = 250 THEN p.height END)) AS ht_340," + 
+						"  IFNULL(MAX(CASE WHEN p.age = 350 THEN p.height END), MAX(CASE WHEN p.age = 250 THEN p.height END)) AS ht_350" + 
+						" FROM yield_lookup o " + 
+						" JOIN yields p " + 
+						"  ON o.yieldid = p.yieldid " + 
+						" GROUP BY o.id_yc ORDER BY o.id_yc;";
+				ResultSet rs0 = statement.executeQuery(get_yc);
+				yieldTable.add(0, new HashMap<String, float[]>());
+				int id_yc = 1;
+				
+				while(rs0.next()) {
+					yieldTable.add(id_yc, new HashMap<String, float[]>());
+					float[] vol = new float[36];
+					float[] ht = new float[36];
+					for(int y =0; y < 36; y++) {
+						vol[y] = rs0.getFloat(y+2);//the first one is the id the second starts the 36 yields
+						ht[y] = rs0.getFloat(y+38); //the yields for height are the next 36 yields
+					}
+					yieldTable.get(id_yc).put("vol", vol);
+					yieldTable.get(id_yc).put("height", ht);
+					id_yc ++;
 				}
-			}else {
-				if(k > 2300) {
-					this.cellList.add(new Cell(landscape, k + 1, age, yields.get(0), yields.get(1), lc3));
-					beo.landCoverCellList.get(1).add(k);
-					beo.landCoverCellList.get(3).add(k);
-				}else {
-					this.cellList.add(new Cell(landscape, k + 1, age, yields.get(0), yields.get(1), lc1));
-				beo.landCoverCellList.get(1).add(k);
+				System.out.println("...done");
+				
+				System.out.print("Getting state information");
+				//Create manage_type field to check what type of management the cell has.
+				// manage_type : -1 means non forested; 0: means forested but not harvestable; 1: forest and harvestable
+				String manage_type = "SELECT COUNT(*) FROM pragma_table_info('pixels') WHERE name='manage_type';";
+				ResultSet rs1 = statement.executeQuery(manage_type);
+				if(rs1.getInt(1) == 0) { //only populate if the pixels table has no records in it
+					//create a column in the pixels table called type
+					String add_column1 = "ALTER TABLE pixels ADD COLUMN manage_type integer default -1;";
+					statement.execute(add_column1);
+					String populate_type0 = "UPDATE pixels SET manage_type = 0 where age is not null and yieldid is not null and yieldid_trans is not null;";
+					statement.execute(populate_type0 );
+					String populate_type1 = "UPDATE pixels SET manage_type = 1 where thlb > 0 and age is not null and yieldid is not null and yieldid_trans is not null;";
+					statement.execute(populate_type1 );				
 				}
 				
-			}
-		}				
-		System.out.println("create data done");
+				//Create the 'foresttype' table and populate it with unique forest types
+				String create_foresttype = "CREATE TABLE IF NOT EXISTS foresttype AS " +
+						" SELECT ROW_NUMBER() OVER(ORDER BY age asc, yield_lookup.id_yc, t.id_yc_trans, pixels.manage_type) AS foresttype_id, age, id_yc, id_yc_trans, pixels.manage_type, pixels.yieldid, pixels.yieldid_trans " + 
+						" FROM pixels " + 
+						" LEFT JOIN yield_lookup ON pixels.yieldid = yield_lookup.yieldid" + 
+						" LEFT JOIN (SELECT id_yc AS id_yc_trans, yieldid FROM yield_lookup) t ON pixels.yieldid_trans = t.yieldid " + 
+						" WHERE manage_type > -1 AND id_yc IS NOT null  AND id_yc_trans IS NOT null GROUP BY age, id_yc, id_yc_trans, manage_type;";	
+				statement.execute(create_foresttype);
+				
+				//Set the states for each foresttype
+				String getForestType = "SELECT foresttype_id, age, id_yc, id_yc_trans, manage_type FROM foresttype ORDER BY foresttype_id;";
+				ResultSet rs2 = statement.executeQuery(getForestType);
+				forestTypeList.add(0, new ForestType()); //at id zero there is no foresttype -- add a null
+				int forestTypeID = 1;
+				while(rs2.next()) {
+					if(forestTypeID == rs2.getInt(1)) {
+						ForestType forestType = new ForestType(); //create a new ForestType object
+						forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(4), rs2.getInt(5)); //the max age a cell can have is 350
+						forestType.setForestTypeStates(rs2.getInt(5), landscape.ageStatesTemplate.get(Math.min(350, rs2.getInt(2))), landscape.harvestStatesTemplate.get(Math.min(350, rs2.getInt(2))), yieldTable.get(rs2.getInt(3)),  yieldTable.get(rs2.getInt(4)), landscape.minHarvVol);
+						forestTypeList.add(forestTypeID, forestType);
+					}else {
+						throw new Exception("forestTypeID does not coincide with the forestTypeList! Thus, the list of forestTypes will be wrong");
+					}
+					forestTypeID ++;
+				}
+				System.out.println("...done");
+				
+				System.out.print("Getting spatial information");
+				//Get raster information used to set the GRID object. This is important for determining adjacency
+				String getRasterInfo = "SELECT ncell, nrow FROM raster_info";
+				ResultSet rs3 = statement.executeQuery(getRasterInfo);
+				while(rs3.next()) {
+					landscape.setGrid(rs3.getInt("ncell"), rs3.getInt("nrow"));
+				}
+				System.out.println("...done");
+				
+				System.out.print("Getting cell information");			
+				int[] pixelidIndex = new int[landscape.ncell + 1];
+				for(int i =0; i < landscape.ncell+1; i++) {
+					pixelidIndex[i] = i; //this will be used for adjacency after the Cells objects are instantiated
+				}
+				int[] cellIndex = new int[landscape.ncell + 1]; // since pixelid starts one rather than zero, add a one
+			    Arrays.fill(cellIndex, -1); // used to look up the index from the pixelid   
+				
+			    
+			    
+			    //Instantiate the Cells objects for each cell that is forested
+				String getAllCells = "SELECT pixelid, pixels.age, foresttype.foresttype_id,  pixels.manage_type, thlb "
+						+ "FROM pixels "
+						+ "LEFT JOIN foresttype ON pixels.age = foresttype.age AND "
+						+ "pixels.yieldid = foresttype.yieldid AND pixels.yieldid_trans = foresttype.yieldid_trans "
+						+ "AND pixels.manage_type = foresttype.manage_type "
+						+ "WHERE pixels.yieldid IS NOT null AND "
+						+ "pixels.yieldid_trans IS NOT null AND "
+						+ "pixels.age IS NOT null AND "
+						+ "foresttype.foresttype_id IS NOT null "
+						+ "ORDER BY pixelid;";
+				ResultSet rs4 = statement.executeQuery(getAllCells);
+				int counter = 0; // this is the index for cellsList -- the list of Cells objects
+				while(rs4.next()) { // not all cells get a state of zero initially -- useful for inferring the landCoverConstraints ---years of recruitment
+					cellsList.add(new Cells(rs4.getInt(1), rs4.getInt(2), rs4.getInt(3), rs4.getInt(4), rs4.getFloat(5)));
+					cellIndex[rs4.getInt(1)] = counter;
+					if(rs4.getInt(4) > 0) {
+						cellsListStateChange.add(counter);
+					}
+					counter ++;
+				}				
+				System.out.println("...done");
+				
+				System.out.print("Getting constraint information");
+				landCoverConstraintList.add(0, new LandCoverConstraint()); // zero is a null landCoverConstraint
+				counter =0;
+				String getConstraintObjects = "SELECT id, variable, threshold, type, percentage, t_area FROM zoneConstraints ORDER BY id;";
+				ResultSet rs5 = statement.executeQuery(getConstraintObjects);
+				while(rs5.next()) {
+					counter ++;
+					if(counter == rs5.getInt(1)) {
+						landCoverConstraintList.add(counter, new LandCoverConstraint());
+						landCoverConstraintList.get(counter).setLandCoverConstraintParameters(rs5.getString(2), rs5.getFloat(3),rs5.getString(4), rs5.getFloat(5), rs5.getFloat(6), landscape.numTimePeriods);
+					}else {
+						throw new Exception("zoneConstraint id does not coincide with the landCoverConstraintList! Thus, the list of constraints will be wrong");
+					}		
+				}
+				System.out.println("...done");
+				
+				System.out.print("Setting constraints to cells");
+				String setConstraints = "SELECT zone_column FROM zone WHERE reference_zone = 'rast.zone_cond_beo';";
+				ResultSet rs6 = statement.executeQuery(setConstraints);
+				ArrayList<String> zones = new ArrayList<String>();
+				while(rs6.next()) {
+					zones.add(rs6.getString(1));
+				}
+				for(int z = 0; z < zones.size(); z++) {
+					String getZonesConstraints = "SELECT pixelid, z.id "
+							+ "FROM pixels "
+							+ "LEFT JOIN (SELECT * FROM zoneConstraints WHERE zone_column = '" +zones.get(z)+ "') AS z "
+							+ "ON pixels." + zones.get(z) +" = z.zoneid "
+							+ "WHERE pixels."+zones.get(z)+" is not null;";
+					ResultSet rs7 = statement.executeQuery(getZonesConstraints);
+					int cell =0;
+					while(rs7.next()) { 
+						cell = cellIndex[rs7.getInt(1)];
+						if(cell >= 0) { //removes non-treed area with no state changes
+							cellsList.get(cell).setLandCoverConstraint(rs7.getInt(2));
+						}
+					}
+				}
+				System.out.println("...done");
+
+				//Close all connections to the clusdb	
+				statement.close();
+				conn.close();
+				System.out.println("Disconnected from clusdb");
+				
+				System.out.print("Setting neighbourhood information");	
+				int cols = (int) landscape.ncell/landscape.nrow;
+				for(int c = 0; c < cellsList.size(); c++) {
+					ArrayList<Integer> adjList = new ArrayList<Integer>();
+					adjList = getNeighbourhood(cellsList.get(c).pixelid, cols , pixelidIndex, cellIndex);
+					cellsList.get(c).setNeighbourhood(adjList);
+				}
+				
+				System.out.println("...done");
+			} 
+              
+        }catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+	}
+
+	private ArrayList<Integer> getNeighbourhood(int id, int cols, int[] pixelidIndex, int[] cellIndex) {
+	    ArrayList<Integer> cs = new ArrayList<Integer>(8);
+	    //check if cell is on an edge
+	    boolean l = id %  cols > 0;        //has left
+	    boolean u = id >= cols;            //has upper
+	    boolean r = id %  cols < cols - 1; //has right
+	    boolean d = id <   pixelidIndex.length - cols;   //has lower
+	    //collect all existing adjacent cells
+	    if (l && cellIndex[pixelidIndex[id - 1]] > 0) {
+	    	cs.add(cellIndex[pixelidIndex[id - 1]] );
+	    }
+	    if (l && u && cellIndex[pixelidIndex[id - 1 - cols]] > 0) {
+	    	cs.add(cellIndex[pixelidIndex[id - 1 - cols]]);
+	    }
+	    if (u && cellIndex[pixelidIndex[id     - cols]] > 0) {
+	    	cs.add(cellIndex[pixelidIndex[id     - cols]]);
+	    }
+	    if (u && r && cellIndex[pixelidIndex[id + 1 - cols]] > 0) {
+	    	cs.add(cellIndex[pixelidIndex[id + 1 - cols]]);
+	    }
+	    if (r && cellIndex[pixelidIndex[id + 1       ]] > 0)     {
+	    	cs.add(cellIndex[pixelidIndex[id + 1       ]]);
+	    }
+	    if (r && d && cellIndex[pixelidIndex[id + 1 + cols]] > 0) {
+	    	cs.add(cellIndex[pixelidIndex[id + 1 + cols]]);
+	    }
+	    if (d && cellIndex[pixelidIndex[id     + cols]] > 0)      {
+	    	cs.add(cellIndex[pixelidIndex[id     + cols]]);
+	    }
+	    if (d && l && cellIndex[pixelidIndex[id - 1 + cols]] > 0) {
+	    	cs.add(cellIndex[pixelidIndex[id - 1 + cols]]);
+	    }
+	    
+	    return cs;
 	}
 
 }
+
+
+

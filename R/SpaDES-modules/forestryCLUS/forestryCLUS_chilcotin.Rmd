@@ -3,8 +3,8 @@ title: "forestryCLUS"
 author: ""
 date: "08 April 2019"
 output:
-  html_document: 
-    keep_md: yes
+html_document: 
+keep_md: yes
 ---
 
 <!--
@@ -38,76 +38,52 @@ This module could be a parent module?? It relies on:
 6. uploaderCLUS (uploades the outputs to a shiny app)
 
 
-# Cascadia TSA Kootenay Block Scenarios
+# Chilcotin Scenarios
 business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
 
-no harvest in Central Selkirks caribou critical habtiat; to support Central Selkirks herd planning, we run a sceanrio with no harvest in the  Central Selkirks HEWSR and Matrix; assesses teh potential maximum impact of protecting Central Selkirks  only, assuming other herds unprotected
 
-ECCC in Central Selkirks caribou critical habtiat; an alterantive to a no harvest scenario, attemps to interpret the federal recovery strategy that stipulates no harvest in high and low elevation critical habitat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order on Central Selkirks only
-
-# Cascadia TSA Kootenay Block Parameters 
-
-## New Caribou Constraints
+# Parameters 
+## New Caribou Zone Constraints
 BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds 
 
-No harvest in Central Selkirks = rast.zone_cond_noharvest_central_selkirks_crithab_or_herd
 
-ECCC Central Selkirks = rast.zone_cond_eccc_central_selkirks_crithab_or_herd
+
 
 ## 'harvestPriority' parameter 
-- used oldest first
 
-- as alternative,  could focus on minimizzing 'disturabnce; for caribou, then older, higher volume stands
-  - 'dist, age DESC, vol DESC' priortize based on:
-      - 'dist', i.e., distance to disturbed pixel (closest first), then
-      - 'age DESC', i.e., descending age (oldest first), then
-      - 'vol DESC', i.e., descending volume (highest volume first)
-      
-- tsr used a highest volume first rule
 
 ## 'harvestFlow'
-from 2020 determination: maximum non-declining even-flow was 76,000m^3^/year for 20 years
 
-- First, I tested a harvest flow of 76,000m^3^/year (380,000m^3^/5-year); 100,000, 95,000
 
-- stable flow at 95,000m^3^/year 
 
-From 2020 analysis report, used minimum volume of 150 cubic metres for 'ground-based' operations and 200 cubic metres for cable operations; stands must achieve age where MAI is 95% of max, but when removed this, only lowered AAC by 3.8%
 
-- I used 150 m3/ha as minimum harvest volume
 
-For cutblock adjacency, in analysis report, allowed maximum 25% height ≤ 2.5 m THLB by landscape unit; I used 3 m adjacncey; thus is a bit conservative; varying this form 20% to 33% had minimal imapct on timber supply
 
+#UPDATE SCENARIO
+
+## Chilcotin Planning Scenarios Aug. 2021
 ```{r, zone_update}
-library (DBI)
-# STEP 1: Connect to the clusdb.sqlite database for the AOI
-clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Cascadia_TKO_TSA_clusdb.sqlite")) # connext to clusdb -- set the locations of the sqlite
+require (DBI)
+#STEP 1: Connect to the clusdb.sqlite database for the AOI
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite")) # connect to clusdb -- set the locations of the sqlite
 
-# STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du9_scenarios'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones
-
-
-# CENTRAL SELKIRKS
-#Below will set Central Selkirks old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 62") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 62")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 4) OR (zoneid = 8) OR (zoneid = 19) OR (zoneid = 23) OR (zoneid = 34) OR (zoneid = 8) OR (zoneid = 38) OR (zoneid = 64) OR (zoneid = 67) OR (zoneid = 69)")
-#Below will set Central Selkirks old and recruit forest as no harvest and matrix as 35% disturbance (no buffer)
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 62") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 62")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND zoneid = 33")
+#STEP 2: View the constraints available to a zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_wha_2021'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones rast.zone_cond_noharvest_barkerville_crithab_or_herd
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab'")  # rast.zone_cond_noharvest_barkerville_crithab_or_herd
+# rast.zone_cond_bc_itcha_ilgachuz_crithab  rast.zone_cond_bc_tweedsmuir_crithab    rast.zone_du7_scenario_20210330 rast.zone_wha_2021  
 
 
-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_eccc_central_selkirks_crithab_or_herd'") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_eccc_central_selkirks_crithab_or_herd' AND zoneid = 2")
+# Chilcotin Scenarios - Aug. 2021
+## Existing caribou WHA GARs removed; forest age constraints applied to critical habitat
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.zone_wha_2021' AND (zoneid = 263) OR (zoneid = 264) OR (zoneid = 3779) OR (zoneid = 3780) OR (zoneid = 3781)") 
 
-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_smc_zones_20210315'")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_smc_zones_20210315' ")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_smc_zones_20210315' AND zoneid in (15,16,17)")
+
 dbDisconnect(clusdb)
 ```
 
 
+
+## Simulation Model
 
 ```{r module_usage}
 library (SpaDES.core)
@@ -122,28 +98,57 @@ times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list(   dbName='clus',
-                           save_clusdb = FALSE,
-                           sqlite_dbname = "Cascadia_TKO_TSA",
-                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Cascadia_TKO_TSA_clusdb.sqlite"),
-                           #Study Area
-                           nameBoundaryFile = "tsa_aac_bounds",
-                           nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "Cascadia_TKO_TSA",
-                           nameBoundaryGeom = 'wkb_geometry',
-                           nameCompartmentRaster = "rast.tsa_aac_boundary",
-                           nameCompartmentTable = "tsa_aac_bounds_vat",
-                           nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', #'rast.bc_thlb2018' 
-                           nameZoneRasters = c("rast.zone_cond_beo", 
-                                               "rast.zone_cond_vqo", 
-                                               "rast.zone_wha_2021", #"rast.zone_cond_wha"  
-                                               "rast.zone_uwr_2021", #"rast.zone_cond_uwr"
-                                               "rast.zone_cond_fsw",
-                                               "rast.zone_cond_nharv",
-                                                #"rast.zone_cond_noharvest_central_selkirks_crithab_or_herd" 
-                                                #"rast.zone_cond_eccc_central_selkirks_crithab_or_herd"
-                                               "rast.zone_smc_zones_20210315"
-                                               ),
+  dataLoaderCLUS = list( dbName='clus',
+                         save_clusdb = TRUE,
+                         useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite"),
+                         nameBoundaryFile="study_area_chilcotin",
+                         nameBoundaryColumn = "tsa_name",
+                         nameBoundary = c ('Quesnel_TSA_Matrix', 'Quesnel_TSA_HEWSR', 'Quesnel_TSA_LESR',
+                                           'Quesnel_TSA_LEWR', 'Quesnel_TSA_out', 'Williams_Lake_TSA_HEWSR',
+                                           'Williams_Lake_TSA_LESR', 'Williams_Lake_TSA_LEWR', 'Williams_Lake_TSA_Matrix',
+                                           'Williams_Lake_TSA_out'),
+                         nameBoundaryGeom = 'wkb_geometry',
+                         nameCompartmentRaster = "rast.study_area_chilcotin",
+                         nameCompartmentTable = "vat.study_area_chilcotin",
+                         nameMaskHarvestLandbaseRaster='rast.thlb_2020_chilcotin',  
+                         nameZoneRasters=c("rast.zone_cond_beo", 
+                                           "rast.zone_cond_vqo", 
+                                           "rast.zone_wha_2021", 
+                                           "rast.zone_uwr_2021",  
+                                           "rast.zone_cond_nharv", 
+                                           "rast.zone_cond_fsw", 
+                                           "rast.zone_cond_cw"
+                                           
+                                           # "rast.zone_cond_noharvest_barkerville_crithab_or_herd",
+                                           # "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
+                                           # "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd",
+                                           # "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd",
+                                           # "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd",
+                                           # "rast.zone_cond_noharvest_rainbows_crithab_or_herd",
+                                           # "rast.zone_cond_noharvest_tweedsmuir_crithab_or_herd",
+                                           # "rast.zone_cond_noharvest_wells_gray_north_crithab_or_herd",
+                                           # 
+                                           # "rast.zone_cond_eccc_barkerville_crithab_or_herd",
+                                           # "rast.zone_cond_eccc_charlotte_alplands_crithab_or_herd",
+                                           # "rast.zone_cond_eccc_itcha_ilgachuz_crithab_or_herd",
+                                           # "rast.zone_cond_eccc_narrow_lake_crithab_or_herd",
+                                           # "rast.zone_cond_eccc_north_cariboo_crithab_or_herd",
+                                           # "rast.zone_cond_eccc_rainbows_crithab_or_herd",
+                                           # "rast.zone_cond_eccc_tweedsmuir_crithab_or_herd",
+                                           # "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd",
+                                           # 
+                                           # "rast.zone_cond_bc_barkerville_crithab",
+                                           # "rast.zone_cond_bc_charlotte_alplands_crithab",
+                                           # "rast.zone_cond_bc_itcha_ilgachuz_crithab",
+                                           # "rast.zone_cond_bc_narrow_lake_crithab",
+                                           # "rast.zone_cond_bc_north_cariboo_crithab",
+                                           # "rast.zone_cond_bc_rainbows_crithab",
+                                           # "rast.zone_cond_bc_tweedsmuir_crithab",
+                                           # "rast.zone_cond_bc_wells_gray_north_crithab", 
+                                           # 
+                                           # "rast.zone_barkerville_groundhog_zones_20210303",
+                                           # "rast.zone_smc_zones_20210315"
+                                           ),
                            nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
                            nameYieldsRaster = "rast.ycid_vdyp",
@@ -164,10 +169,11 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
+  forestryCLUS = list(harvestBlockPriority = "CASE WHEN dist < 1000 THEN 3 WHEN dist < 2500 THEN 2 WHEN dist < 5000 THEN 1 ELSE 0 END DESC, age DESC", # query to prioritize blocks within 1km of disturbance, then 2.5km, then 5km, then everythign >5km, then oldest first after that
+                      # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
                       #harvestZonePriorityInterval = 1,
-                      # reportHarvestConstraints = T
+                      reportHarvestConstraints = T,
                       adjacencyConstraint = 3),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
@@ -181,15 +187,17 @@ parameters <- list(
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "public.caribou_herd_vat"), # look-up table of herd names
-  volumebyareaReportCLUS = list (calculateInterval = 1,
-                                 AreaofInterestRaster = "rast.bc_crithab_and_herd",
-                                 AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
-  disturbanceCalcCLUS = list(calculateInterval =  1, # should be 1 if using constraints on 'dist' (disturbance) 
+  disturbanceCalcCLUS = list(calculateInterval =  1, # should be 1 if using constraints on 'dist' (disturbance)
                              criticalHabitatTable = "public.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
-  uploaderCLUS = list(aoiName = 'cascadia_kootenay_block', # name of the schema that gets uplaoded to postgres
+  volumebyareaReportCLUS = list (calculateInterval = 1,
+                                 AreaofInterestRaster = "rast.bc_crithab_and_herd",
+                                 AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
+  smcaribouAbundanceCLUS = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
+                                  tableSMCCoeffs = "vat.smc_coeffs"),
+  uploaderCLUS = list(aoiName = 'chilcotin_caribou_plan', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -206,42 +214,39 @@ modules <- list("dataLoaderCLUS",
                 #"yieldUncertaintyCLUS", 
                 "survivalCLUS", 
                 "disturbanceCalcCLUS", 
-                # "rsfCLUS", # error line 453 - need to debug
                 "volumebyareaReportCLUS",
+                # "rsfCLUS", # error line 453 - need to debug
+                "smcaribouAbundanceCLUS",
                 "uploaderCLUS"
                 )
 
-# rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
-# rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
-
-
-# scenario = data.table (name = "cascadiakb_bau",
-#                        description = "Business-as-usual (BAU). Adjacency = 3m. Oldest first. Harvest flow = 95,000m3/year.")
-# scenario = data.table (name = "cascadiakb_centselk_nh",
-#                        description = "No harvest in all Central Selkirks critical habitat. Adjacency = 3m. Oldest first. Harvest flow = 95,000m3/year.")
-# scenario = data.table (name = "cascadiakb_centselk_ch_he0d_m12d",
- #                       description = "No harvest in Central Selkirks high elevation critical habitat, maximum 12% disturbance  in Central Selkirks matrix critical habitat. Adjacency = 3m. Oldest first. Harvest flow = 95,000m3/year.")
- scenario = data.table (name = "cascadiakb_centselk_scen3a",
-                        description = "NNo harvest in old forest, recruitment forest and buffered Central Selkirks core critical habitat areas, as defined by Bevan Ernst, maximum 15% disturbance (unbuffered) in Central Selkirks matrix habitat areas. Adjacency = 3m. Oldest first. Harvest flow = 95,000m3/year.")
-
-#scenario = data.table (name = "cascadiakb_centselk_scen3b",
-#                       description = "No harvest in old forest and recruitment forest Central Selkirks core critical habitat areas, as defined by Bevan Ernst, maximum 35% buffered disturbance (unbuffered) in Central Selkirks matrix habitat areas. Adjacency = 3m. Oldest first. Harvest flow = 95,000m3/year.")
 
 
 
+# scenario = data.table (name = "quesnel_bau",
+#                        description = "Business as usual (BAU). Adjacency = 3m. Oldest first. Even harvest flow = 1,900,000m3/year")
 
 
 
-harvestFlow <- rbindlist(list(data.table(compartment ="Cascadia_TKO_TSA",
+harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                      partition = ' vol > 150 ', 
                                      year = rep( seq (from = 2018, 
                                                       to = 2218, 
                                                       by = 5),
                                                 1), 
-                                     flow = 475000) #95,000m3/yr 
+                                     flow = 9250000)
+                                    # 9500000 // 1,900,000 m3/yr for oldest first
+                                    # 8000000 // 1,600,000 m3/yr for closest dist 1st
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
+
+'Quesnel_TSA_Matrix', 'Quesnel_TSA_HEWSR', 'Quesnel_TSA_LESR',
+                                           'Quesnel_TSA_LEWR', 'Quesnel_TSA_out', 'Williams_Lake_TSA_HEWSR',
+                                           'Williams_Lake_TSA_LESR', 'Williams_Lake_TSA_LEWR', 'Williams_Lake_TSA_Matrix',
+                                           'Williams_Lake_TSA_out'
+
+
 
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,
@@ -277,7 +282,9 @@ mySim <- simInit(times = times,
 outputs(mySim) <- data.frame (objectName = c("harvestReport",
                                              "growingStockReport",
                                              "tableSurvival",
-                                             "disturbanceReport"))
+                                             "disturbanceReport",
+                                             "volumebyareaReport"
+                                             ))
 
 #Run the model 1 time
 system.time({mysimout<-spades(mySim)})
@@ -291,6 +298,7 @@ system.time({mysimout<-spades(mySim)})
 
 ```
 
+
 # Events
 
 ## Flow Chart
@@ -300,9 +308,9 @@ library(SpaDES.core)
 eventDiagram(mysimout)
 ```
 
-## Algorithum
+## Algorithm
 
-The general algorithum (pseudo-code) follows as:
+The general algorithm (pseudo-code) follows as:
 
 `compartment_list`= SELECT zones FROM compartments WHERE target > 0 ORDER BY priority_compartment
 

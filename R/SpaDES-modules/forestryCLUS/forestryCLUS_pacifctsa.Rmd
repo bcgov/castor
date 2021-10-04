@@ -130,6 +130,7 @@ parameters <- list(
   dataLoaderCLUS = list( 
                            dbName='clus',
                            save_clusdb = TRUE,
+                           sqlite_dbname = "Pacific_TSA",
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Pacific_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_nw_coast_no_tfl",

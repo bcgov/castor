@@ -1,0 +1,137 @@
+package coe_cellular_automata;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+
+public class ForestType {
+	
+	int id;
+	int age;
+	int id_yc;
+	int id_yc_trans;
+	int manage_type;
+	ArrayList<HashMap<String, Object>> stateTypes = new ArrayList<HashMap<String, Object>>();
+	
+	/**
+	 * Constructor
+	 */
+	public ForestType() {
+
+	}
+	
+	public void setForestTypeAttributes(int id, int age, int id_yc, int id_yc_trans, int manage_type) {
+		this.id = id;
+		this.age = age;
+		this.id_yc = id_yc;
+		this.id_yc_trans = id_yc_trans;
+		this.manage_type = manage_type;	
+	}
+	
+	public void setForestTypeStates(int manageType, ArrayList<int[]> ageTemplate, ArrayList<int[]> harvestTemplate, HashMap<String, float[]> yc,
+			HashMap<String, float[]> yc_trans, float minHarvVol) {
+		//Age State: already set up
+		//Harvest Age State: already set up
+		//Growing Stock State : need
+		//Harvest Volume State: need
+		//Old Growth State: need and links to constraints
+		//Ht state: need and links to constraints
+	
+		//Add state zero to all - a no harvest state!
+		this.stateTypes.add(0, new HashMap<String, Object>());
+		this.stateTypes.get(0).put("age", ageTemplate.get(0)); // int type
+		this.stateTypes.get(0).put("harvAge", harvestTemplate.get(0)); // float type
+				
+		float[] harvVol = new float[harvestTemplate.get(0).length];
+		float[] gsVol = new float[ageTemplate.get(0).length];
+		float[] ht = new float[ageTemplate.get(0).length];
+		
+		int ageLower, ageUpper;
+		boolean transitionCurve;
+		
+		for(int h =0 ; h < ageTemplate.get(0).length; h ++) {
+			harvVol[h] =  0f;	//no harvesting in state zero!
+			
+			ageLower = Math.min(350, Math.round(ageTemplate.get(0)[h]/10)*10);
+			ageUpper = Math.min(350, (int) (Math.round((ageTemplate.get(0)[h]/10) + 0.5)*10));
+			
+			if(ageUpper == ageLower) {
+				gsVol[h] = yc.get("vol")[ageLower/10];
+				ht[h] = yc.get("height")[ageLower/10];
+			}else {
+				gsVol[h] = interpFloat(ageTemplate.get(0)[h], ageLower , ageUpper, yc.get("vol")[ageLower/10], yc.get("vol")[ageUpper/10] );
+				ht[h] = interpFloat(ageTemplate.get(0)[h], ageLower , ageUpper, yc.get("height")[ageLower/10], yc.get("height")[ageUpper/10] );	
+			}
+		}
+				
+		this.stateTypes.get(0).put("harvVol", harvVol); 
+		this.stateTypes.get(0).put("gsVol", gsVol); 
+		this.stateTypes.get(0).put("height", ht); 
+		
+		
+		if(manageType > 0) { // if the management type allows harvesting meaning its > 0;
+			int stateCounter =0;
+			//Add all states that meet the minimum harvest criteria
+			searchStates: for(int s = 1; s < harvestTemplate.size(); s++) {
+				float[] harvVol1 = new float[harvestTemplate.get(0).length];
+				float[] gsVol1 = new float[harvestTemplate.get(0).length];
+				float[] ht1 = new float[harvestTemplate.get(0).length];
+				transitionCurve = false;
+				
+				for(int t =0 ; t < harvestTemplate.get(0).length; t ++) {
+					
+					ageLower =  Math.min(350,Math.round(harvestTemplate.get(s)[t]/10)*10);
+					ageUpper =  Math.min(350, (int) (Math.round((harvestTemplate.get(s)[t]/10) + 0.5)*10));
+					
+					if(transitionCurve) {
+						harvVol1[t] = interpFloat(harvestTemplate.get(s)[t], ageLower , ageUpper, yc_trans.get("vol")[ageLower/10], yc_trans.get("vol")[ageUpper/10]);
+					}else {
+						harvVol1[t] = interpFloat(harvestTemplate.get(s)[t], ageLower , ageUpper, yc.get("vol")[ageLower/10], yc.get("vol")[ageUpper/10]);
+					}
+					
+					//Stop scoping this state -- it doesn't meet the minimum harvest volume -- go to the next state
+					if(harvVol1[t] > 0 && harvVol1[t] < minHarvVol) {
+						continue searchStates;
+					} 	
+					
+					//Get the rest of the yields
+					ageLower =  Math.min(350, Math.round(ageTemplate.get(s)[t]/10)*10);
+					ageUpper = Math.min(350, (int) (Math.round((ageTemplate.get(s)[t]/10) + 0.5)*10));
+					
+					if(transitionCurve) {
+						gsVol1[t] = interpFloat(ageTemplate.get(s)[t], ageLower , ageUpper, yc_trans.get("vol")[ageLower/10], yc_trans.get("vol")[ageUpper/10]);						
+						ht1[t] = interpFloat(ageTemplate.get(s)[t], ageLower , ageUpper, yc_trans.get("height")[ageLower/10], yc_trans.get("height")[ageUpper/10]);
+					}else {
+						gsVol1[t] = interpFloat(ageTemplate.get(s)[t], ageLower , ageUpper, yc.get("vol")[ageLower/10], yc.get("vol")[ageUpper/10]);						
+						ht1[t] = interpFloat(ageTemplate.get(s)[t], ageLower , ageUpper, yc.get("height")[ageLower/10], yc.get("height")[ageUpper/10]);
+					}
+					
+					if(harvVol1[t] >= minHarvVol) {
+						transitionCurve = true;
+					}
+				}
+				
+				stateCounter ++;
+				
+				this.stateTypes.add(stateCounter, new HashMap<String, Object>());
+				this.stateTypes.get(stateCounter).put("age", ageTemplate.get(s)); // int type
+				this.stateTypes.get(stateCounter).put("harvAge", harvestTemplate.get(s)); // int type
+				this.stateTypes.get(stateCounter).put("harvVol", harvVol1); 
+				this.stateTypes.get(stateCounter).put("gsVol", gsVol1); 
+				this.stateTypes.get(stateCounter).put("height", ht1); 
+				
+			}						
+		}
+	}
+	
+	//More methods
+	public float interpFloat(int age, int ageLower, int ageUpper, float yieldLower, float yieldUpper) {		
+		float inpterpValue;
+		if(ageUpper == ageLower) {
+			inpterpValue = yieldLower;
+		} else {
+			inpterpValue = ((yieldUpper - yieldLower)/(ageUpper - ageLower))*(age-ageLower) + yieldLower;
+		}
+		return inpterpValue;
+	}
+	
+}
