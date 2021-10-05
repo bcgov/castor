@@ -1816,11 +1816,50 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
-
-
-
-
-
+#Create new row for table
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'public',
+                        table_name = 'eccc_industrial_sites_all', 
+                        type = 'polygon', 
+                        script = 'ogr2ogr', 
+                        source = 'Environment Canada; location of cutblocks, wells, wind farms and mines compiled from various sources.', 
+                        public = 'Yes', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'raster',
+                        table_name = 'eccc_industrial_sites_all', 
+                        type = 'raster', 
+                        script = 'NA', 
+                        source = 'Environment Canada; location of cutblocks, wells, wind farms and mines compiled from various sources.', 
+                        public = 'Yes', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+new_data3 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'public',
+                        table_name = 'eccc_industrial_centroids', 
+                        type = 'point', 
+                        script = 'ogr2ogr', 
+                        source = 'Environment Canada; location of cutblocks, wells, wind farms and mines compiled from various sources.', 
+                        public = 'Yes', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
 
 
 ```
