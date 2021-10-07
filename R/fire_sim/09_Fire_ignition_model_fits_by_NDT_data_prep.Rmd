@@ -127,6 +127,15 @@ head(dat_person_)
 
 ```
 
+Or load from computer.
+
+```{r}
+dat_lightning_<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Data_Lightning")
+dat_person_<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Data_Person")
+
+head(dat_lightning_)
+```
+
 When doing the below analyses, it was noticed that disturbed areas often get eliminated when NAs are removed from the final data used for the model. Here, we investigate what variables are missing.
 
 ```{r}
@@ -396,6 +405,61 @@ p <- ggplot(dat_lightning_, aes(live_stand_volume_125, as.numeric(fire_pres))) +
   xlab("live_stand_volume_125") + ylab("Pr (ignition)")
 p
 ```
+
+Distance to Infrastructures.
+
+```{r}
+p <- ggplot(dat_lightning_, aes(dist_any, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Any Infrastructure") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_lightning_, aes(dist_pow, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Power Lines") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_lightning_, aes(dist_mine, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Mines") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_lightning_, aes(dist_mun, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Municipalities") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_lightning_, aes(dist_dam, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Dams") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_lightning_, aes(dist_nat, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Natural Power") + ylab("Pr (ignition)")
+p
+
+```
+
+
 
 Repeat for Person-caused fires
 
