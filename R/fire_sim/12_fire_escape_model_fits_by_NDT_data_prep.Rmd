@@ -230,7 +230,7 @@ str(Escape_data_person$fire_pres)
 
 ```
 
-View plots
+View plots.
 
 ```{r}
 p <- ggplot(Escape_data_lightning, aes(aspect, as.numeric(escape))) +
@@ -301,7 +301,7 @@ p
 #Unexpectedly weak and negative relationship
 
 ```
-Also check distance to roads asthis may be related to fire-fighting capabilities and efforts.
+Also check distance to roads as this may be related to fire-fighting capabilities and efforts.
 
 ```{r}
 p <- ggplot(Escape_data_lightning, aes(roads_km, as.numeric(escape))) +
@@ -377,6 +377,58 @@ p <- ggplot(Escape_data_lightning, aes(mean_ppt05_ppt06_ppt07, as.numeric(escape
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("mean_ppt05_ppt06_ppt07") + ylab("Pr (escape)")
+p
+```
+
+#Infrstructure.
+
+```{r}
+p <- ggplot(Escape_data_lightning, aes(dist_any, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Any Infrastructure") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_lightning, aes(dist_mun, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Municipalities") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_lightning, aes(dist_mine, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Mines") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_lightning, aes(dist_nat, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Natural Power") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_lightning, aes(dist_pow, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Power Lines") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_lightning, aes(dist_dam, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Dams") + ylab("Pr (escape)")
 p
 ```
 

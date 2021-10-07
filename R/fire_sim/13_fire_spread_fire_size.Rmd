@@ -70,13 +70,11 @@ table(spread_data_lightning$bclcs_level_2)
 
 ```
 
-
 ```{r}
 spread_data_person<-subset(Escape_data_person, Escape_data_person$escape==1)
 head(spread_data_person)
 str(spread_data_person)
 table(spread_data_person$escape)
-
 
 ```
 
@@ -302,6 +300,20 @@ ggplot (spread_data_lightning, aes (x = size_ha, y = proj_age_1)) +
   labs (title = "Fire size (ha)",
         x = "Fire size (ha)",
         y = "Projected Age")
+
+#Reverse axes
+ggscatter(spread_data_lightning, x = "proj_age_1", y = "size_ha", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Stand age", ylab = "Fire size (ha)") + yscale("log10", .format = TRUE)
+#No relationship
+
+ggplot (spread_data_lightning, aes (x = proj_age_1, y = size_ha)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha)",
+        y = "Fire size (ha)",
+        x = "Projected Age")
 ```
 
 ```{r}
@@ -319,6 +331,21 @@ ggplot (spread_data_lightning, aes (x = size_ha, y = proj_height_1)) +
         x = "Fire size (ha)",
         y = "Projected Height")
 #Very weak hump-shaped pattern
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "proj_height_1", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Stand Height") + yscale("log10", .format = TRUE)
+#No relationship; potential weak positive relationship
+
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = proj_height_1)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha)",
+        y = "Fire size (ha)",
+        x = "Projected Height")
 ```
 
 ```{r}
@@ -335,6 +362,20 @@ ggplot (spread_data_lightning, aes (x = size_ha, y = live_stand_volume_125)) +
         x = "Fire size (ha)",
         y = "Live Stand Volume")
 #Slight negative trend if anything
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "live_stand_volume_125", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Live Stand Volume") + yscale("log10", .format = TRUE)
+#No relationship
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = live_stand_volume_125)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fore size (ha)",
+        y = "Fire size (ha)",
+        x = "Live Stand Volume")
 ```
 
 #2. Topography
@@ -353,6 +394,20 @@ ggplot (spread_data_lightning, aes (x = size_ha, y = slope)) +
         x = "Fire size (ha)",
         y = "Slope")
 #More or less linear and negative except one outlier at end
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "slope", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Slope (degrees)") + yscale("log10", .format = TRUE)
+#Negative relationship
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = slope)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by Slope",
+        y = "Fire size (ha)",
+        x = "Slope")
 ```
 
 Remember that aspect is now the cos(aspect) bound by -1 and 1
@@ -370,6 +425,20 @@ ggplot (spread_data_lightning, aes (x = size_ha, y = aspect)) +
         x = "Fire size (ha)",
         y = "aspect")
 #Generally a positive linear trend
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "aspect", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "aspect (degrees)") + yscale("log10", .format = TRUE)
+#positive relationship
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = aspect)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by aspect",
+        y = "Fire size (ha)",
+        x = "aspect")
 ```
 
 
@@ -377,7 +446,7 @@ ggplot (spread_data_lightning, aes (x = size_ha, y = aspect)) +
 ggscatter(spread_data_lightning, x = "size_ha", y = "elevation", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "kendall",
-          xlab = "Fire size (ha)", ylab = "elevation (degrees)")
+          xlab = "Fire size (ha)", ylab = "elevation")
 #Little to no relationship
 
 ggplot (spread_data_lightning, aes (x = size_ha, y = elevation)) +
@@ -387,25 +456,46 @@ ggplot (spread_data_lightning, aes (x = size_ha, y = elevation)) +
         x = "Fire size (ha)",
         y = "elevation")
 #Smile shaped but largely only for outlier
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "elevation", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "elevation") + yscale("log10", .format = TRUE)
+#Little to no relationship
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = elevation)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by elevation",
+        y = "Fire size (ha)",
+        x = "elevation")
 ```
 
 #Climate
-For climatic variables, remember that "climate1" and "climate2" are different for the different NDTs, so these should be assessed separately.
+For climatic variables, remember that "climate1" and "climate2" are different for the different NDTs, so these should be assessed separately. Below is a quick assessment of climate1 and climate2 all together, but not an accurate assessment.
 
 ```{r}
-ggscatter(spread_data_lightning, x = "size_ha", y = "climate1", 
+
+#Take just a temperature one since MDC is in there
+ggscatter(spread_data_lightning, y = "size_ha", x = "mean_tave06_tave07_tave08_tave09", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "kendall",
-          xlab = "Fire size (ha)", ylab = "climate1 (degrees)")
+          ylab = "Fire size (ha)", xlab = "mean_tave06_tave07_tave08_tave09") + yscale("log10", .format = TRUE)
 #Negative relationship when all grouped together
 
-ggplot (spread_data_lightning, aes (x = size_ha, y = climate1)) +
+ggplot (spread_data_lightning, aes (y = size_ha, x = mean_tave06_tave07_tave08_tave09)) +
   geom_point () +
   geom_smooth () +
   labs (title = "Fire size (ha) by climate1",
-        x = "Fire size (ha)",
-        y = "climate1")
-#Negative relationship where data is clumped, and then flat line into extreme values. But also all climate2 variables clumped, so may not be best estimate.
+        y = "Fire size (ha)",
+        x = "mean_tave06_tave07_tave08_tave09")
+
+#Precip
+ggscatter(spread_data_lightning, y = "size_ha", x = "mean_ppt05_ppt06_ppt07", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "mean_ppt05_ppt06_ppt07") + yscale("log10", .format = TRUE)
 ```
 
 
@@ -413,7 +503,7 @@ ggplot (spread_data_lightning, aes (x = size_ha, y = climate1)) +
 ggscatter(spread_data_lightning, x = "size_ha", y = "climate2", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "kendall",
-          xlab = "Fire size (ha)", ylab = "climate2 (degrees)")
+          xlab = "Fire size (ha)", ylab = "climate2")
 #Negative relationship; only one NDT has a second variable here
 
 ggplot (spread_data_lightning, aes (x = size_ha, y = climate2)) +
@@ -421,8 +511,22 @@ ggplot (spread_data_lightning, aes (x = size_ha, y = climate2)) +
   geom_smooth () +
   labs (title = "Fire size (ha) by climate2",
         x = "Fire size (ha)",
-        y = "climate2")
+        y = "ppt05")
 #Negative relationship where data is clumped. Outlier is misleading for tail end
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "climate2", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "ppt05") + yscale("log10", .format = TRUE)
+#Negative relationship; only one NDT has a second variable here
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = climate2)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by climate2",
+        y = "Fire size (ha)",
+        x = "climate2")
 ```
 
 #Wind speed
@@ -431,7 +535,7 @@ ggplot (spread_data_lightning, aes (x = size_ha, y = climate2)) +
 ggscatter(spread_data_lightning, x = "size_ha", y = "wind_atfire", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "kendall",
-          xlab = "Fire size (ha)", ylab = "wind_atfire (degrees)")
+          xlab = "Fire size (ha)", ylab = "wind_atfire")
 #Positive relationship
 
 ggplot (spread_data_lightning, aes (x = size_ha, y = wind_atfire)) +
@@ -441,6 +545,20 @@ ggplot (spread_data_lightning, aes (x = size_ha, y = wind_atfire)) +
         x = "Fire size (ha)",
         y = "wind_atfire")
 #Positive relationship where most data is clumped, then mostly flat.
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "wind_atfire", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Wind (km/hr)") + yscale("log10", .format = TRUE)
+#Positive relationship
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = wind_atfire)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by wind_atfire",
+        y = "Fire size (ha)",
+        x = "wind_atfire")
 ```
 
 
@@ -448,7 +566,7 @@ ggplot (spread_data_lightning, aes (x = size_ha, y = wind_atfire)) +
 ggscatter(spread_data_lightning, x = "size_ha", y = "roads_km", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "kendall",
-          xlab = "Fire size (ha)", ylab = "roads_km (degrees)")
+          xlab = "Fire size (ha)", ylab = "Roads (km/km2)")
 #Negative relationship but weak
 
 ggplot (spread_data_lightning, aes (x = size_ha, y = roads_km)) +
@@ -458,9 +576,166 @@ ggplot (spread_data_lightning, aes (x = size_ha, y = roads_km)) +
         x = "Fire size (ha)",
         y = "roads_km")
 #Complicated
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "roads_km", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Roads (km/km2)") + yscale("log10", .format = TRUE)
+#Negative relationship but weak
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = roads_km)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        y = "Fire size (ha)",
+        x = "roads_km")
 ```
 
 From the above, I would expect that VRI variables have very little impact on spread, but that topography, climate and wind speed will all influence fire size. Will also need to assess vegetation type.
+
+```{r}
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_any", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Any Infrastructure") + yscale("log2", .format = TRUE)
+#Negative relationship but weak
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = dist_any)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        y = "Fire size (ha)",
+        x = "Distance to Any Infrastructure")
+
+#
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_mun", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Municipalities") + yscale("log2", .format = TRUE)
+#Negative relationship but weak
+
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_mun", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Municipalities") + yscale("log10", .format = TRUE)
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = dist_mun)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        y = "Fire size (ha)",
+        x = "Distance to Municipalities")
+
+#
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_mun", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Municipalities") + yscale("log2", .format = TRUE)
+#Negative relationship but weak
+
+#
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_dam", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Dams") + yscale("log10", .format = TRUE)
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = dist_dam)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        y = "Fire size (ha)",
+        x = "Distance to Dams")
+
+#
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_mine", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Mines") + yscale("log10", .format = TRUE)
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = dist_mine)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        y = "Fire size (ha)",
+        x = "Distance to Mines")
+
+#
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_pow", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Power Lines") + yscale("log10", .format = TRUE)
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = dist_pow)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        y = "Fire size (ha)",
+        x = "Distance to Power Lines")
+
+#
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_nat", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Natural Power") + yscale("log10", .format = TRUE)
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = dist_nat)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        y = "Fire size (ha)",
+        x = "Distance to Natural Power")
+
+```
+
+#Since all had to be on a log scale, try log transforming (base 10, and ln)
+```{r}
+spread_data_lightning$LNwind<-log(spread_data_lightning$wind_atfire)
+spread_data_lightning$LNclimate1<-log(spread_data_lightning$climate1)
+spread_data_lightning$LNclimate2<-log(spread_data_lightning$climate2)
+spread_data_lightning$LNstand_age<-log(spread_data_lightning$proj_age_1)
+spread_data_lightning$LNstand_height<-log(spread_data_lightning$proj_height_1)
+spread_data_lightning$LNstand_volume<-log(spread_data_lightning$live_stand_volume_125)
+spread_data_lightning$LNdist_mun<-log(spread_data_lightning$dist_mun)
+spread_data_lightning$LNdist_mine<-log(spread_data_lightning$dist_mine)
+spread_data_lightning$LNdist_nat<-log(spread_data_lightning$dist_nat)
+spread_data_lightning$LNdist_dam<-log(spread_data_lightning$dist_dam)
+spread_data_lightning$LNdist_pow<-log(spread_data_lightning$dist_pow)
+spread_data_lightning$LNdist_any<-log(spread_data_lightning$dist_any)
+
+```
+
+Plot also using LNfire.
+
+```{r}
+
+
+###Infrastructure
+# Mun
+ggscatter(spread_data_lightning, y = "LNsize_ha", x = "LNdist_mun", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "ln(Distance to Municipalities)") 
+
+ggscatter(spread_data_lightning, y = "LNsize_ha", x = "dist_mun", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Municipalities") 
+
+# Nat
+ggscatter(spread_data_lightning, y = "LNsize_ha", x = "LNdist_nat", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "ln(Distance to Natural Power)") 
+
+ggscatter(spread_data_lightning, y = "LNsize_ha", x = "dist_nat", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Natural Power") 
+
+
+```
+
 
 #Separate into treed and not treed
 
@@ -491,271 +766,6 @@ write.csv(spread_data_person_t, file="D:\\Fire\\fire_data\\raw_data\\spread_data
 
 write.csv(spread_data_person_nt, file="D:\\Fire\\fire_data\\raw_data\\spread_data_person_nt.csv")
 ```
-
-
-
-
-##Create variables for model selection
-First we will create the variable lists that contain all of our variables of interest.
-
-```{r}
-##Create variable lists to be used in the model loop.
-variables_all<-c(climate1 = "climate1", climate2 = "climate2", proj_height_1 = "proj_height_1", proj_age_1 = "proj_age_1", live_stand_volume_125 = "live_stand_volume_125", slope = "slope", aspect = "aspect", elevation ="elevation", vegtype = "vegtype", wind_atfire = "wind_atfire") 
-
-variables_all_c1<-c(climate1 = "climate1", proj_height_1 = "proj_height_1", proj_age_1 = "proj_age_1", live_stand_volume_125 = "live_stand_volume_125", slope = "slope", aspect = "aspect", elevation ="elevation", vegtype = "vegtype", wind_atfire = "wind_atfire") 
-
-
-vars.clim<-c("climate1")
-vars.clim.vegtype<-c("climate1", "vegtype")
-vars.oth<-c("proj_height_1", "proj_age_1", "live_stand_volume_125") 
-vars.topo<-c("slope", "aspect", "elevation")
-vars.wind<-c("wind_atfire")
-
-#Also for later with 2 climate variables
-vars.clim.vegtype2<-c("climate1", "climate2","vegtype")
-vars.clim.vegtype2b<-c("climate1", "climate2")
-
-##Create interaction for climate and vegtype
-inputs.me <- c(vars.clim.vegtype)
-inputs.me2 <- c(vars.clim.vegtype2)
-inputs.me2b <- c(vars.clim.vegtype2b)
-```
-
-Now, we will generate two-way interactions for each of these lists. 
-
-```{r}
-
-#####1a. For those with one climate variable
-#get the names of all possible two-way interactions for climate variable(s) and vegtype.
-twoway.ints <- NULL
-for (i in 1:(length(inputs.me)-1)) {
-  for (j in (i+1):length(inputs.me)) {
-     twoway.ints <- cbind(twoway.ints, paste(inputs.me[i], inputs.me[j], sep=":"))
-  }
-}
-twoway.ints
-length(twoway.ints)
-
-#
-#Create function to determine Powerset for any vector of variable names
-## or use rje package
-#powerSet <- function(x) {
-#   z.list <- NULL
-#   for(i in 1:length(x)) {
-#      z.list <- append(z.list, combn(x, m=i, simplify=F))
-#   }    
-#   return(z.list)
-#}
-
-
-#Get variables on own
-#complete list of models using non-climate vars
-mods.me.tmp <- powerSet(vars.clim.vegtype) 
-#add climate vars to all of the above
-mods.me.climate <- list()
-for (i in 1: length(mods.me.tmp)) {
-   mods.me.climate[[i]] <- c(mods.me.tmp[[i]])
-}
-
-mods.me.climate
-
-#complete list of two-way interactions
-mods.twoway <- powerSet(twoway.ints)
-length(mods.twoway) #7
-mods.twoway
-
-#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
-mods.inter <- list()
-counter <- 0
-for (i in 1: length(mods.twoway)) {
-   s1 <- unique(unlist( strsplit(mods.twoway[[i]], split=':', fixed=TRUE) ) )
-   for (j in 1: length(mods.me.climate)) {
-      if (all(s1 %in% mods.me.climate[[j]])==TRUE) {
-        counter <- counter + 1
-        both <-  c(mods.me.climate[[j]], mods.twoway[[i]])
-        mods.inter[[counter]] <- both
-      }
-   }
-}
-
-length(mods.inter)
-mods.inter
-
-
-#####1b. For those with two climate variables
-#get the names of all possible two-way interactions for climate variable(s) and vegtype.
-twoway.ints2 <- NULL
-for (i in 1:(length(inputs.me2)-1)) {
-  for (j in (i+1):length(inputs.me2)) {
-     twoway.ints2 <- cbind(twoway.ints2, paste(inputs.me2[i], inputs.me2[j], sep=":"))
-  }
-}
-twoway.ints2
-length(twoway.ints2)
-
-#Get variables on own
-#complete list of models using non-climate vars
-mods.me.tmp <- powerSet(vars.clim.vegtype2) 
-#add climate vars to all of the above
-mods.me.climate2 <- list()
-for (i in 1: length(mods.me.tmp)) {
-   mods.me.climate2[[i]] <- c(mods.me.tmp[[i]])
-}
-
-mods.me.climate2
-
-#complete list of two-way interactions
-mods.twoway2 <- powerSet(twoway.ints2)
-length(mods.twoway2) #7
-mods.twoway2
-
-#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
-mods.inter2 <- list()
-counter <- 0
-for (i in 1: length(mods.twoway2)) {
-   s1 <- unique(unlist( strsplit(mods.twoway2[[i]], split=':', fixed=TRUE) ) )
-   for (j in 1: length(mods.me.climate2)) {
-      if (all(s1 %in% mods.me.climate2[[j]])==TRUE) {
-        counter <- counter + 1
-        both <-  c(mods.me.climate2[[j]], mods.twoway2[[i]])
-        mods.inter2[[counter]] <- both
-      }
-   }
-}
-
-length(mods.inter2)
-mods.inter2
-
-####1c. Two variables, no variation in vegtype
-#get the names of all possible two-way interactions for climate variable(s) and vegtype.
-twoway.ints2b <- NULL
-for (i in 1:(length(inputs.me2b)-1)) {
-  for (j in (i+1):length(inputs.me2b)) {
-     twoway.ints2b <- cbind(twoway.ints2b, paste(inputs.me2b[i], inputs.me2b[j], sep=":"))
-  }
-}
-twoway.ints2b
-length(twoway.ints2b)
-
-#Get variables on own
-#complete list of models using non-climate vars
-mods.me.tmp <- powerSet(vars.clim.vegtype2b) 
-#add climate vars to all of the above
-mods.me.climate2b <- list()
-for (i in 1: length(mods.me.tmp)) {
-   mods.me.climate2b[[i]] <- c(mods.me.tmp[[i]])
-}
-
-mods.me.climate2b
-
-#complete list of two-way interactions
-mods.twoway2b <- powerSet(twoway.ints2b)
-length(mods.twoway2b) #7
-mods.twoway2b
-
-#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
-mods.inter2b <- list()
-counter <- 0
-for (i in 1: length(mods.twoway2b)) {
-   s1 <- unique(unlist( strsplit(mods.twoway2b[[i]], split=':', fixed=TRUE) ) )
-   for (j in 1: length(mods.me.climate2b)) {
-      if (all(s1 %in% mods.me.climate2b[[j]])==TRUE) {
-        counter <- counter + 1
-        both <-  c(mods.me.climate2b[[j]], mods.twoway2b[[i]])
-        mods.inter2b[[counter]] <- both
-      }
-   }
-}
-
-length(mods.inter2b)
-mods.inter2b
-
-#########2. Now for topography data, get all possible two-way interactions
-
-#get the names of all possible two-way interactions
-twoway.intsT <- NULL
-for (i in 1:(length(vars.topo)-1)) {
-  for (j in (i+1):length(vars.topo)) {
-     twoway.intsT <- cbind(twoway.intsT, paste(vars.topo[i], vars.topo[j], sep=":"))
-  }
-}
-twoway.intsT
-length(twoway.intsT)
-
-#complete list of models using non-climate vars (topo)
-mods.me.tmp <- powerSet(vars.topo) 
-#add climate vars to all of the above
-mods.meT <- list()
-for (i in 1: length(mods.me.tmp)) {
-   mods.meT[[i]] <- c(mods.me.tmp[[i]])
-}
-
-mods.meT
-
-#complete list of two-way interactions
-mods.twowayT <- powerSet(twoway.intsT)
-length(mods.twowayT) #7
-mods.twowayT
-
-
-#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
-
-mods.interT <- list()
-counter <- 0
-for (i in 1: length(mods.twowayT)) {
-   s1 <- unique(unlist( strsplit(mods.twowayT[[i]], split=':', fixed=TRUE) ) )
-   for (j in 1: length(mods.meT)) {
-      if (all(s1 %in% mods.meT[[j]])==TRUE) {
-        counter <- counter + 1
-        both <-  c(mods.meT[[j]], mods.twowayT[[i]])
-        mods.interT[[counter]] <- both
-      }
-   }
-}
-
-length(mods.interT)
-mods.interT
-
-####3.For other VRI data, get without interactions
-
-#complete list of models using VRI - no interactions
-mods.me.tmp <- powerSet(vars.oth) 
-#add climate vars to all of the above
-mods.me.oth <- list()
-for (i in 1: length(mods.me.tmp)) {
-   mods.me.oth[[i]] <- c(mods.me.tmp[[i]])
-}
-
-mods.me.oth
-
-#the list of all possible model RHSs. 
-#all.poss.mods <- c(1, vars.clim, twoway.ints, mods.me.oth, mods.me2, mods.inter2)
-#all.poss.mods
-
-all.poss.mods.clim.vegtype<-c(1, mods.me.climate, twoway.ints)
-all.poss.mods.clim.vegtype 
-all.poss.mods.clim.vegtype<-all.poss.mods.clim.vegtype [-2] #Use this line only if there is an odd character(0) added to list
-all.poss.mods.clim.vegtype2<-c(1, mods.me.climate2, mods.inter2)
-all.poss.mods.clim.vegtype2
-all.poss.mods.clim.vegtype2<-all.poss.mods.clim.vegtype2[-2]
-all.poss.mods.clim.vegtype2<-all.poss.mods.clim.vegtype2[-9]
-all.poss.mods.clim.vegtype2b<-c(1, mods.me.climate2b, mods.inter2b)
-all.poss.mods.clim.vegtype2b
-all.poss.mods.clim.vegtype2b<-all.poss.mods.clim.vegtype2b[-6]
-all.poss.mods.clim.vegtype2b<-all.poss.mods.clim.vegtype2b[-2]
-
-all.poss.mods.VRI<-c(1, mods.me.oth)
-all.poss.mods.VRI
-all.poss.mods.VRI<-all.poss.mods.VRI[-2]
-all.poss.mods.topo2<-c(1, mods.meT, mods.interT)
-all.poss.mods.topo2
-all.poss.mods.topo2<-all.poss.mods.topo2[-10]
-all.poss.mods.topo2<-all.poss.mods.topo2[-2]
-
-```
-
-
-
 
 
 

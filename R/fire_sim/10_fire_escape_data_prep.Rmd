@@ -175,7 +175,7 @@ hist(dat_lightning_escape_2$wind_atfire)
 
 ```
 
-Inspect number of fires by MDC
+Inspect probability of escape by MDC
 
 ```{r}
 hist(dat_lightning_escape$mdc_atfire)

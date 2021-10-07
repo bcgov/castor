@@ -130,3 +130,11 @@ https://catalogue.data.gov.bc.ca/dataset/vri-2020-forest-vegetation-composite-de
 
 2. Fire mitigation
 Often burn probability maps are created to compare against mitigation alternatives and different climate scenarios (Beverly and McLouglin 2019). I would REALLY like to include fire mitigation into the probability for each (ignition, escape and spread) down the road and see if there is any difference. 
+
+
+#Incorporate into TSA stuff
+1. Perform analyses at province level
+2. Then overlay TSA layer and get summaries of important variables for each after runs, including rotation and average patch size (and variability).
+ https://catalogue.data.gov.bc.ca/dataset/fadm-timber-supply-area-tsa
+ 
+ **Query TFLs out, otherwise look here: https://catalogue.data.gov.bc.ca/dataset/fadm-tree-farm-license-current-view-tfl-

@@ -1,5 +1,5 @@
 ---
-title: "12a_fire_escape_model_selection_NDT1"
+title: "12a_fire_escape_model_selection_NDT1_treed"
 author: "Cora Skaien"
 date: "27/09/2021"
 output: html_document
@@ -1541,7 +1541,7 @@ top_mod_table_NDT1_light_t_Means[1,25]<- mean(top_mod_table_NDT1_light_t_ALL$`co
 top_mod_table_NDT1_light_t_Means[1,26]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_wind_atfire:vegtype2TB`, na.rm=TRUE) #
 top_mod_table_NDT1_light_t_Means[1,27]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_wind_atfire:vegtype2TC`, na.rm=TRUE) 
 top_mod_table_NDT1_light_t_Means[1,28]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_wind_atfire:vegtype2TM`, na.rm=TRUE) #coefficient climate1*projage
-top_mod_table_NDT1_light_t_Means[1,29]<- mean(mod.auc, na.rm=TRUE)
+top_mod_table_NDT1_light_t_Means[1,29]<- mean(top_mod_table_NDT1_light_t_ALL$AUC, na.rm=TRUE)
 
 top_mod_table_NDT1_light_t_Means
 
@@ -1592,7 +1592,7 @@ top_mod_table_NDT1_light_t_SD[1,25]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_el
 top_mod_table_NDT1_light_t_SD[1,26]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_wind_atfire:vegtype2TB`, na.rm=TRUE) #
 top_mod_table_NDT1_light_t_SD[1,27]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_wind_atfire:vegtype2TC`, na.rm=TRUE) 
 top_mod_table_NDT1_light_t_SD[1,28]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_wind_atfire:vegtype2TM`, na.rm=TRUE) #coefficient climate1*projage
-top_mod_table_NDT1_light_t_SD[1,29]<- sd(mod.auc, na.rm=TRUE)
+top_mod_table_NDT1_light_t_SD[1,29]<- sd(top_mod_table_NDT1_light_t_ALL$AUC, na.rm=TRUE)
 
 top_mod_table_NDT1_light_t_SD
 
