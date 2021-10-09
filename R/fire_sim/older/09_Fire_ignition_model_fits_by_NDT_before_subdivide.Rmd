@@ -633,8 +633,14 @@ table(dat_lightning_$bclcs_level_5_2, dat_lightning_$vegtype)
 #Still have 6 unspecified; for some reason, dense "DE" from level 5 corresponds to 542 open polygons from vegtype?? I see in definition that bryoids can be considered dense too. Use vegtype to refine. Unsure what the "OP" definition really means with bryoids... what is the remainder? Rock? Trees?
 
 #Create disturbed category if disturbed in last 16 years; add burn to this category
-dat_lightning_$bclcs_level_5_2[which(dat_lightning_$vegtype =="D")]<-"DIST" 
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="BU"] <- "DIST"
+#Because of colinearity issues later, perhaps we should not do this actually...
+#dat_lightning_$bclcs_level_5_2[which(dat_lightning_$vegtype =="D")]<-"DIST" 
+#dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="BU"] <- "DIST"
+
+table(dat_lightning_$bclcs_level_5_2)
+#There are only 7 burned sites distributed across 3 BEC zones; insufficient to do any analysis on anyway. Will remove.
+dat_lightning_<-subset(dat_lightning_,dat_lightning_$bclcs_level_5!="BU")
+
 ```
 
 
@@ -788,8 +794,8 @@ dat_person<-subset(dat_person_,dat_person_$bclcs_level_5!="RP")
 dat_person<-subset(dat_person,dat_person$bclcs_level_5!="RT")
 
 #Create disturbed category if disturbed in last 16 years; add burn to this category
-dat_person$bclcs_level_5_2[which(dat_person$vegtype =="D")]<-"DIST" 
-dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="BU"] <- "DIST"
+#dat_person$bclcs_level_5_2[which(dat_person$vegtype =="D")]<-"DIST" 
+#dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="BU"] <- "DIST"
 
 #Check
 table(dat_person$bclcs_level_5_2) #I do not know what the 22 unspecified are
@@ -978,6 +984,19 @@ write.csv(dat_person_t, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\dat
 write.csv(dat_person_nt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_notrees_NDT.csv")
 
 ```
+
+###############DATA PREP COMPLETE###################
+Because of how much code is used per model, we will make separate files for each NDT. Move on to 091_Fire_ignition_model_fits_NDT4.
+
+
+
+
+
+
+
+
+
+
 
 #Load data back in if starting from here
 Note: depending where your geometry column was located when saved as a csv (and turned into a dataframe), you may need to manually correct column headings on the csv file before loading back in. This has been performed for the below files.
@@ -1692,6 +1711,7 @@ AIC_lightning_NDT4_treed_summary_infra2<- AIC_lightning_NDT4_treed_summary_infra
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
 head(AIC_lightning_NDT4_treed_summary_infra2)
+
 ```
 
 #Now combine the datatables and save to computer
@@ -1764,7 +1784,6 @@ rm(dat_lightning___, dat_Disturbed, dist.cut.corr, filenames, fire_veg_data_B, f
 
 Now, we will generate two-way interactions for each of these lists. We cannot make two-way interactions between them all because apparently it will be >2 GB in size.  
 
-
 DO NOT RUN THIS NEXT CHUNK! The mods.twoway.NDT4 is >2 GB and will not run successfully. You will likely need to skip to the subsequent chunk.
 ```{r}
 twoway.ints <- NULL
@@ -1805,6 +1824,7 @@ length(mods.twoway.NDT4) #
 mods.twoway.NDT4
 ```
 
+ALSO DO NOT RUN THIS CHUNK!
 Actually skip to chunk after this one, unless you go back and add DEM back in... but it will also be > 2 GB and unable to write.
 
 ```{r}
@@ -2310,6 +2330,262 @@ write.csv(AIC_lightning_NDT4_treed_summary_infra2, file="D:\\Fire\\fire_data\\ra
 
 3. DEM: slope + aspect + elevation + slope:aspect was the top model. Include elements of these in but not interactions with other variables unless we have a reason to expect an interaction (perhaps try landuse*elevation, for example; or with slope or aspect)
 
+#Could consider trying backwards stepwise regression since the code chunk below this one creates an object that is too large and cannot run.
+There are a few options from this point. Either, we repeat a similar routine as prior to this step but with running half of one set of variables (since one full set is too much for R to handle), or we try stepwise regression using the step() function or manually. The former approach requires some manual adjustment as well since we need to create training and validation data sets first that remain the same to feed into each of the ha;ves of the possible models. Then we would need to repeat that process several times to be able to get meanAIC and meanAUC. The latter approach also takes time since it is all manual, but it is easier to reason with what inputs are included and why.
+
+```{r}
+dat_lightning_t_NDT4<-subset(dat_lightning_t, dat_lightning_t$ntrl_ds=="NDT4")
+
+#May need to divide data into training and valid
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(dat_lightning_t_NDT4$fire_veg, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- dat_lightning_t_NDT4[ trainIndex,]
+   Valid <- dat_lightning_t_NDT4[-trainIndex,]
+
+#Run model using dat1
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + proj_height_1*live_stand_volume_125 + climate1*proj_height_1 + climate2*proj_height_1 + climate1*live_stand_volume_125 + climate2*live_stand_volume_125 + slope + aspect + elevation + slope*aspect + slope*elevation + aspect*elevation + dist_any + bclcs_level_5_2 + vegtype2, family = binomial, data = dat1)
+#Above does not converge
+
+#Try removing some interactions
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + proj_height_1*live_stand_volume_125 + climate1*proj_height_1 + climate2*proj_height_1 + climate1*live_stand_volume_125 + climate2*live_stand_volume_125 + slope + aspect + elevation + slope*aspect + slope*elevation + dist_any + bclcs_level_5_2 + vegtype2, family = binomial, data = dat1)
+
+
+#Below works; no longer with updated bclcs_level_5_2
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + proj_height_1*live_stand_volume_125 + climate1*proj_height_1 + climate2*proj_height_1 + climate1*live_stand_volume_125 + climate2*live_stand_volume_125 + slope + aspect + elevation + slope*aspect + dist_any + bclcs_level_5_2 + vegtype2, family = binomial, data = dat1)
+
+backwards<-step(model.NDT4) #Model does not converge
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.5844 --> poor fit
+   
+#Assess if AUC any better for fewer variables
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + vegtype2 + dist_any + proj_height_1 + live_stand_volume_125 + slope + aspect + elevation + slope*aspect, family = binomial, data = dat1)
+#Determine AUC
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # 0.61 --> poor fit
+   
+   model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + proj_height_1*live_stand_volume_125 + climate1*proj_height_1 + climate2*proj_height_1 + climate1*live_stand_volume_125 + climate2*live_stand_volume_125 + slope + aspect + elevation + slope*aspect + dist_any + vegtype2, family = binomial, data = dat1) #Nearly highest AUC of 0.612. Poor.
+   
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + proj_height_1*live_stand_volume_125 + climate1*proj_height_1 + climate2*proj_height_1 + climate1*live_stand_volume_125 + climate2*live_stand_volume_125 + slope + aspect + elevation + slope*aspect + dist_mun +  dist_dam + dist_nat + dist_pow + vegtype2, family = binomial, data = dat1) #Highest AUC of 0.616. Poor.
+
+#Assess model
+library(car)
+Anova(model.NDT4, type=3) #Sig variables: climate2, live stand volume, dist_mun, dist_dam, vegtype, climate1*climate2, climate2*projected height, nearly climate1*livestand volume
+summary(model.NDT4) #interestingly, all negative relationships for distance to infrastructure. Conifer forest more likely to burn, broadleaf less likely.
+AIC(model.NDT4) #6245.033
+
+#remove some of the non-significant interactions
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate1*proj_height_1 + climate2*proj_height_1 + climate1*live_stand_volume_125 + climate2*live_stand_volume_125 + slope + aspect + elevation + slope*aspect + dist_mun +  dist_dam + dist_nat + dist_pow + vegtype2, family = binomial, data = dat1) #Highest AUC of 0.616. Poor.
+
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # --> poor fit
+  
+Anova(model.NDT4, type=3) 
+AIC(model.NDT4) #6243.53
+
+#remove some of the non-significant interactions
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate2*proj_height_1 + climate1*live_stand_volume_125 + climate2*live_stand_volume_125 + slope + aspect + elevation + slope*aspect + dist_mun +  dist_dam + dist_nat + dist_pow + vegtype2, family = binomial, data = dat1) #Highest AUC of 0.617. Poor.
+
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # --> poor fit
+  
+Anova(model.NDT4, type=3) 
+AIC(model.NDT4) #6241.56
+
+#remove some of the non-significant interactions
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate2*proj_height_1 + climate1*live_stand_volume_125 + climate2*live_stand_volume_125 + slope + aspect + elevation + dist_mun +  dist_dam + dist_nat + dist_pow + vegtype2, family = binomial, data = dat1) #AUC of 0.617. Poor. Not as good as with prior interaction
+
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # --> poor fit
+  
+Anova(model.NDT4, type=3)
+AIC(model.NDT4) #6241.3
+
+#remove some of the non-significant interactions
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate2*proj_height_1  + climate2*live_stand_volume_125 + slope + aspect + elevation + dist_mun +  dist_dam + dist_nat + dist_pow + vegtype2, family = binomial, data = dat1) #AUC of 0.612. Poor. 
+
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # --> poor fit
+  
+Anova(model.NDT4, type=3)
+AIC(model.NDT4) #6247.7 - WORSE!
+
+
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate2*proj_height_1 + climate1*live_stand_volume_125 + climate2*live_stand_volume_125 + slope + aspect + elevation + dist_mun +  dist_dam + dist_nat + dist_pow + vegtype2 + bclcs_level_5_2, family = binomial, data = dat1) #AUC of 0.618. Poor. 
+
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # --> poor fit
+  
+Anova(model.NDT4, type=3)
+AIC(model.NDT4) #6238.6
+
+
+alias( glm( fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate2*proj_height_1 + climate1*live_stand_volume_125 + climate2*live_stand_volume_125 + slope + aspect + elevation + dist_mun +  dist_dam + dist_nat + dist_pow + vegtype2 + bclcs_level_5_2, family = binomial, data = dat1) )
+
+Anova(model.NDT4, type=3, singular.ok = TRUE)
+
+
+##
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate2*proj_height_1 + climate1*live_stand_volume_125  + slope + aspect + elevation + dist_mun +  dist_dam + dist_nat + dist_pow + vegtype2 + bclcs_level_5_2, family = binomial, data = dat1) #AUC of 0.615. Poor. 
+
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # --> poor fit
+  
+Anova(model.NDT4, type=3,singular.ok = TRUE)
+AIC(model.NDT4) #6237.3
+
+##
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate1*live_stand_volume_125  + slope + aspect + elevation + dist_mun +  dist_dam + dist_nat + dist_pow + vegtype2 + bclcs_level_5_2, family = binomial, data = dat1) #AUC of 0.615. 
+
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # --> poor fit
+  
+Anova(model.NDT4, type=3,singular.ok = TRUE)
+AIC(model.NDT4) #6237.1
+
+##
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate1*live_stand_volume_125  + aspect + elevation + dist_mun +  dist_dam + dist_nat + dist_pow + vegtype2 + bclcs_level_5_2, family = binomial, data = dat1) #AUC of 0.615. Poor. 
+
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # --> poor fit
+  
+Anova(model.NDT4, type=3,singular.ok = TRUE)
+AIC(model.NDT4) #6235.6
+
+
+
+##
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate1*live_stand_volume_125  + aspect + dist_mun +  dist_dam + dist_nat + dist_pow + vegtype2 + bclcs_level_5_2, family = binomial, data = dat1) #AUC of 0.613. Poor. 
+
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # --> poor fit
+  
+Anova(model.NDT4, type=3,singular.ok = TRUE)
+AIC(model.NDT4) #6234.3
+
+### This is the best model with this specific division of training and validation data. Repeat with new subset and compare AUC.
+
+```
+
+Repeat subsetting data into training and validation datasets.
+
+```{r}
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(dat_lightning_t_NDT4$fire_veg, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- dat_lightning_t_NDT4[ trainIndex,]
+   Valid <- dat_lightning_t_NDT4[-trainIndex,]
+```
+
+Get AUC for model again.
+
+```{r}
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate1*live_stand_volume_125  + aspect + dist_mun +  dist_dam + dist_nat + dist_pow + vegtype2 + bclcs_level_5_2, family = binomial, data = dat1) #AUC - Round 2: 0.59. Round 3: 0.59; Round 4: 0.59; Round 5: 0.59; Round 6: 0.6002. 
+
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # --> poor fit
+  
+Anova(model.NDT4, type=3,singular.ok = TRUE)
+AIC(model.NDT4) #6209.5
+
+
+##try without aspect
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate1*live_stand_volume_125 + dist_mun +  dist_dam + dist_nat + dist_pow + vegtype2 + bclcs_level_5_2, family = binomial, data = dat1) #AUC 0.60
+
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # --> poor fit
+  
+Anova(model.NDT4, type=3,singular.ok = TRUE)
+AIC(model.NDT4) #6208
+```
+
+NDT4 is the natural disturbance type with frequent stand-maintaining fires. Perhaps it is just an ecosystem where it is hard to predict and there is a lot of stochasticity in ignitions by lightning.
+
+In the original models, they all performed poorly as well (0.52-0.575, with distance to mun, dam, nat, pow and any being best). 
+
+Rerun with na.omit and check diagnostics.
+
+
+```{r}
+
+#Remove NAs to ensure all same data used so we can compare AICs
+NDT4_t<-dat1 %>% drop_na(climate1, climate2, proj_height_1, live_stand_volume_125, dist_mun,  dist_dam, dist_nat, dist_pow, vegtype2, bclcs_level_5_2)
+
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate1*live_stand_volume_125 + dist_mun +  dist_dam + dist_nat + dist_pow + vegtype2 + bclcs_level_5_2, family = binomial, data = NDT4_t) 
+
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # --> poor fit
+  
+Anova(model.NDT4, type=3,singular.ok = TRUE)
+AIC(model.NDT4) #6208
+
+# model diagnostic plots
+binnedplot (fitted(model.NDT4), 
+            residuals(model.NDT4), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+
+NDT4_t$resids<-resid(model.NDT4)
+
+binnedplot (NDT4_t$live_stand_volume_125, 
+            NDT4_t$resids, 
+            nclass = NULL, 
+            xlab = "live stand volume", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+binnedplot (NDT4_t$climate1, 
+            NDT4_t$resids, 
+            nclass = NULL, 
+            xlab = "", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+# Diagnostic plots look good
+```
+
+
+#For method 2: try below
+
 Create variable lists.
 
 ```{r}
@@ -2440,40 +2716,102 @@ lapply(biglist, all.poss.mods.infra_landuse_NDT4b {length(all.poss.mods.infra_la
 ```
 
 #Run model selection
-Because there are nearly 200,000 models to go through each time, we will do only 2 rounds at a time. 5 was too many.
-##Need to determine which ones are character(0) before proceeding.
+Because there are nearly 200,000 models to go through each time, we will do only 1 round at a time. 5 was too many; 2 was even too many. It turns out that even going through it once is too many... try clearing the R space and try once more before dividing it.
 
 ```{r}
-########### Full Model ############
+rm(AIC_lightning_NDT4_treed_summary_topo2, AIC_lightning_NDT4_treed_summary_topo, AIC_lightning_NDT4_treed_topo, AIC_lightning_NDT4_treed_summary_VRI2, AIC_lightning_NDT4_treed_summary_VRI, AIC_lightning_NDT4_treed_VRI, AIC_lightning_NDT4_treed_summary_climate2, AIC_lightning_NDT4_treed_summary_climate, AIC_lightning_NDT4_treed_climate, AIC_lightning_NDT4_treed_clim_VRI, AIC_lightning_NDT4_treed_infra, AIC_lightning_NDT4_treed_summary_clim_VRI, AIC_lightning_NDT4_treed_summary_clim_VRI2, AIC_lightning_NDT4_treed_summary_infra, AIC_lightning_NDT4_treed_summary_infra2, dat1, dat2, spread_150_DEM_roads_wind_10per, spread_150_DEM_roads_wind_2, spread_150_DEM_roads_wind_FIRE, spread_500_DEM)
+
+gc()
+```
+
+Split data into training and validation data sets.
+
+```{r}
 zones1<-"NDT4"
+dat2<- dat_lightning_t %>% dplyr::filter(ntrl_ds ==zones1[h])
+
+model_dat<- dat2 %>% dplyr::select(fire_pres, fire_veg, !!variables_all_NDT4)
+
+#Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data
 prop<-0.75
-
-#Create empty table
-table.glm.NDT4.simple <- data.frame (matrix (ncol = 5, nrow = 0))
-colnames (table.glm.NDT4.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT")
-
-#
-for (g in 1:2){
-
-for (h in 1:length(zones1)) {
-  dat2<- dat_lightning_t %>% dplyr::filter(ntrl_ds ==zones1[h])
-
-#for (i in 1: length(all.poss.mods.infra)){
-#  print(paste((all.poss.mods.infra[i]), (zones1[h]), sep=" "))
-  
-for (i in 1: length(zones1)){
-  print(paste((all.poss.mods.NDT4[i]), (zones1[h]), sep=" "))
-  
- # model_dat<- dat2 %>% dplyr::select(fire_pres, fire_veg, variables_all[i])
-  model_dat<- dat2 %>% dplyr::select(fire_pres, fire_veg, !!variables_all_NDT4)
-  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(model_dat$fire_veg, p = prop,
+trainIndex <- createDataPartition(model_dat$fire_veg, p = prop,
                                     list = FALSE,
                                     times = 1)
+  dat1 <- model_dat[ trainIndex,]
+  Valid <- model_dat[-trainIndex,]
   
-   dat1 <- model_dat[ trainIndex,]
-   Valid <- model_dat[-trainIndex,]
+```
 
+Split the variables into groups. Four groups was still too large.
+
+```{r}
+length(all.poss.mods.NDT4)
+
+#If divide into four lists: note, still too large!
+all.poss.mods.NDT4_a<-all.poss.mods.NDT4[1:51000]
+all.poss.mods.NDT4_b<-all.poss.mods.NDT4[51001:102000]
+all.poss.mods.NDT4_c<-all.poss.mods.NDT4[102000:153000]
+all.poss.mods.NDT4_d<-all.poss.mods.NDT4[153001:203775]
+length(all.poss.mods.NDT4_a)
+length(all.poss.mods.NDT4_b)
+length(all.poss.mods.NDT4_c)
+length(all.poss.mods.NDT4_d)
+
+
+all.poss.mods.NDT4_a<-all.poss.mods.NDT4[1:25500]
+all.poss.mods.NDT4_b<-all.poss.mods.NDT4[25501:51000]
+all.poss.mods.NDT4_c<-all.poss.mods.NDT4[51001:76500]
+all.poss.mods.NDT4_d<-all.poss.mods.NDT4[76501:102000]
+all.poss.mods.NDT4_e<-all.poss.mods.NDT4[102001:127500]
+all.poss.mods.NDT4_f<-all.poss.mods.NDT4[127501:153000]
+all.poss.mods.NDT4_g<-all.poss.mods.NDT4[153001:178500]
+all.poss.mods.NDT4_h<-all.poss.mods.NDT4[178001:203775]
+length(all.poss.mods.NDT4_a)
+length(all.poss.mods.NDT4_b)
+length(all.poss.mods.NDT4_c)
+length(all.poss.mods.NDT4_d)
+length(all.poss.mods.NDT4_e)
+length(all.poss.mods.NDT4_f)
+length(all.poss.mods.NDT4_g)
+length(all.poss.mods.NDT4_h)
+
+```
+
+
+Create empty tables for results. Each chunk of potential models will need its own table. We will run this for this first set of training and validation data on all 4 chunks so that AIC is comparable within models.
+
+```{r}
+#Create empty table
+table.glm.NDT4.simple_set1 <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.NDT4.simple_set1) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+table.glm.NDT4.simple_set2 <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.NDT4.simple_set2) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+table.glm.NDT4.simple_set3 <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.NDT4.simple_set3) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+table.glm.NDT4.simple_set4 <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.NDT4.simple_set4) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+table.glm.NDT4.simple_set5 <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.NDT4.simple_set5) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+table.glm.NDT4.simple_set6 <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.NDT4.simple_set6) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+table.glm.NDT4.simple_set7 <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.NDT4.simple_set7) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+table.glm.NDT4.simple_set8 <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.NDT4.simple_set8) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+```
+
+#Run models for each of the quarter chunks with the first set of training and validation data.
+Note:set1 works fine, but set2 does not work. 
+
+```{r}
+########### Create function ############
 big.mod <- function(mods.in, df.train, df.test, dep.var="fire_pres") {
    rhs <- paste(mods.in, collapse=" + ")
    form <- as.formula(paste(noquote(dep.var), " ~", rhs))
@@ -2487,146 +2825,364 @@ big.mod <- function(mods.in, df.train, df.test, dep.var="fire_pres") {
    
 }
 
-mods.fit <- lapply(all.poss.mods.NDT4, big.mod, df.train=dat1, df.test=Valid)
+#First group
+mods.fit_set1 <- lapply(all.poss.mods.NDT4_a, big.mod, df.train=dat1, df.test=Valid)
 
 #terms in each model
-x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1 <- unlist(sapply(mods.fit_set1, '[', 1))
 x1.1
 #Aic for models
-x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1 <- matrix(unlist(sapply(mods.fit_set1, '[', 3)), ncol=2, byrow=TRUE)
 x3.1
 #auc from validation data
-x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1 <- unlist(sapply(mods.fit_set1, '[', 4))
 x4.1
 #combining all as df
-tab.sum.NDT4 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.NDT4$NDT<-c("NDT4")
-tab.sum.NDT4 
+tab.sum.NDT4_set1 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4_set1$NDT<-c("NDT4")
+tab.sum.NDT4_set1 
 
-table.glm.NDT4.simple<-rbind(table.glm.NDT4.simple, tab.sum.NDT4)
+table.glm.NDT4.simple_set1<-rbind(table.glm.NDT4.simple_set1, tab.sum.NDT4_set1)
+head(table.glm.NDT4.simple_set1)
 
-}
-}
-}
+#Second group
+mods.fit_set2 <- lapply(all.poss.mods.NDT4_b, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit_set2, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit_set2, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit_set2, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4_set2 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4_set2$NDT<-c("NDT4")
+tab.sum.NDT4_set2 
+
+table.glm.NDT4.simple_set2<-rbind(table.glm.NDT4.simple_set2, tab.sum.NDT4_set2)
+
+#third group
+mods.fit_set3 <- lapply(all.poss.mods.NDT4_c, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit_set3, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit_set3, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit_set3, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4_set3 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4_set3$NDT<-c("NDT4")
+tab.sum.NDT4_set3 
+
+table.glm.NDT4.simple_set3<-rbind(table.glm.NDT4.simple_set3, tab.sum.NDT4_set3)
+
+#Fourth group
+mods.fit_set4 <- lapply(all.poss.mods.NDT4_d, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit_set4, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit_set4, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit_set4, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4_set4 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4_set4$NDT<-c("NDT4")
+tab.sum.NDT4_set4 
+
+table.glm.NDT4.simple_set4<-rbind(table.glm.NDT4.simple_set4, tab.sum.NDT4_set4)
+
+#Fifth group
+mods.fit_set5 <- lapply(all.poss.mods.NDT4_e, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit_set5, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit_set5, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit_set5, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4_set5 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4_set5$NDT<-c("NDT4")
+tab.sum.NDT4_set5 
+
+table.glm.NDT4.simple_set5<-rbind(table.glm.NDT4.simple_set5, tab.sum.NDT4_set5)
+
+#Sixth group
+mods.fit_set6 <- lapply(all.poss.mods.NDT4_f, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit_set6, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit_set6, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit_set6, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4_set6 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4_set6$NDT<-c("NDT4")
+tab.sum.NDT4_set6 
+
+table.glm.NDT4.simple_set6<-rbind(table.glm.NDT4.simple_set6, tab.sum.NDT4_set6)
+
+#Seventh group
+mods.fit_set7 <- lapply(all.poss.mods.NDT4_g, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit_set7, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit_set7, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit_set7, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4_set7 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4_set7$NDT<-c("NDT4")
+tab.sum.NDT4_set7 
+
+table.glm.NDT4.simple_set7<-rbind(table.glm.NDT4.simple_set7, tab.sum.NDT4_set7)
+
+#Eigth Group
+mods.fit_set8 <- lapply(all.poss.mods.NDT4_h, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit_set8, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit_set8, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit_set8, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4_set8 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4_set8$NDT<-c("NDT4")
+tab.sum.NDT4_set8 
+
+table.glm.NDT4.simple_set8<-rbind(table.glm.NDT4.simple_set8, tab.sum.NDT4_set8)
+
 ```
 
-Now that we have run the model 5 times, we want the average AIC and AUC for each variable combination. Save the first round, but consider doing more than 5 runds, depending on how long it takes to run.
-
-
-Now determine deltaAIC.
+Create new training and validation data sets.
 
 ```{r}
-head(table.glm.NDT4.simple)
-table(table.glm.NDT4.simple$model) # 5 per model
+#Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data
+prop<-0.75
+trainIndex <- createDataPartition(model_dat$fire_veg, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  dat1 <- model_dat[ trainIndex,]
+  Valid <- model_dat[-trainIndex,]
+```
 
-AIC_lightning_NDT4_treed_<-table.glm.NDT4.simple
+Repeat above if the first round worked. 
 
-AIC_lightning_NDT4_treed_summary_<- AIC_lightning_NDT4_treed_ %>%
+```{r}
+#First group
+mods.fit_set1 <- lapply(all.poss.mods.NDT4_a, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit_set1, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit_set1, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit_set1, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4_set1 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4_set1$NDT<-c("NDT4")
+tab.sum.NDT4_set1 
+
+table.glm.NDT4.simple_set1<-rbind(table.glm.NDT4.simple_set1, tab.sum.NDT4_set1)
+head(table.glm.NDT4.simple_set1)
+
+#Second group
+mods.fit_set2 <- lapply(all.poss.mods.NDT4_b, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit_set2, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit_set2, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit_set2, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4_set2 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4_set2.1)
+tab.sum.NDT4_set2$NDT<-c("NDT4")
+tab.sum.NDT4_set2 
+
+table.glm.NDT4.simple_set2<-rbind(table.glm.NDT4.simple_set2, tab.sum.NDT4_set2)
+
+#third group
+mods.fit_set3 <- lapply(all.poss.mods.NDT4_c, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit_set3, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit_set3, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit_set3, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4_set3 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4_set3$NDT<-c("NDT4")
+tab.sum.NDT4_set3 
+
+table.glm.NDT4.simple_set3<-rbind(table.glm.NDT4.simple_set3, tab.sum.NDT4_set3)
+
+#Fourth group
+mods.fit_set4 <- lapply(all.poss.mods.NDT4_d, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit_set4, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit_set4, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit_set4, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4_set4 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4_set4$NDT<-c("NDT4")
+tab.sum.NDT4_set4 
+
+table.glm.NDT4.simple_set4<-rbind(table.glm.NDT4.simple_set4, tab.sum.NDT4_set4)
+
+#Fifth group
+mods.fit_set5 <- lapply(all.poss.mods.NDT4_e, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit_set5, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit_set5, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit_set5, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4_set5 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4_set5$NDT<-c("NDT4")
+tab.sum.NDT4_set5 
+
+table.glm.NDT4.simple_set5<-rbind(table.glm.NDT4.simple_set5, tab.sum.NDT4_set5)
+
+#Sixth group
+mods.fit_set6 <- lapply(all.poss.mods.NDT4_f, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit_set6, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit_set6, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit_set6, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4_set6 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4_set6$NDT<-c("NDT4")
+tab.sum.NDT4_set6 
+
+table.glm.NDT4.simple_set6<-rbind(table.glm.NDT4.simple_set6, tab.sum.NDT4_set6)
+
+#Seventh group
+mods.fit_set7 <- lapply(all.poss.mods.NDT4_g, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit_set7, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit_set7, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit_set7, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4_set7 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4_set7$NDT<-c("NDT4")
+tab.sum.NDT4_set7 
+
+table.glm.NDT4.simple_set7<-rbind(table.glm.NDT4.simple_set7, tab.sum.NDT4_set7)
+
+#Eigth Group
+mods.fit_set8 <- lapply(all.poss.mods.NDT4_h, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit_set8, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit_set8, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit_set8, '[', 4))
+x4.1
+#combining all as df
+tab.sum.NDT4_set8 <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.NDT4_set8$NDT<-c("NDT4")
+tab.sum.NDT4_set8 
+
+table.glm.NDT4.simple_set8<-rbind(table.glm.NDT4.simple_set8, tab.sum.NDT4_set8)
+
+```
+
+#Rerun the above WITH NEW testing and validation data sets and append the data to the bottom of each subsequent run for the respective grouping of variables. 
+This needs to be run at a minimum of 5 times initially to see the variation in AUC to determine if that is sufficient. Once the tables are appended from each set, we will then calculate the meanAIC, meanAUC and sdAUC. Hopefully we can append the rows to each new subsequent run to be able to get these values...
+
+Now, append the tables together for each set (set1, set2, set3, set4, set5), and calculate the mean AIC and mean AUC. Put these mean values into a table. Then combine the tables between sets, with the mean values. Then calculate deltaAIC.
+
+
+```{r}
+head(table.glm.NDT4.simple_set1)
+table(table.glm.NDT4.simple_set1$model) # check how many models each
+
+table.glm.NDT4.simple_set1_summary<- table.glm.NDT4.simple_set1 %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic),
             meanAUC=mean(auc.valid),
             sdAUC=sd(auc.valid),
             )
+#Repeat above for every set
 
-AIC_lightning_NDT4_treed_summary_2<- AIC_lightning_NDT4_treed_summary_ %>%
+#Append all sets together
+table.glm.NDT4.simple_summary<-rbind(table.glm.NDT4.simple_set1_summary, table.glm.NDT4.simple_set2_summary, table.glm.NDT4.simple_set3_summary, table.glm.NDT4.simple_set4_summary, table.glm.NDT4.simple_set5_summary, table.glm.NDT4.simple_set6_summary, table.glm.NDT4.simple_set7_summary, table.glm.NDT4.simple_set8_summary)
+
+table.glm.NDT4.simple_summary_2<- table.glm.NDT4.simple_summary %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT4_treed_summary_2)
+head(table.glm.NDT4.simple_summary_2)
 ```
 
 Save to computer.
 
 ```{r}
-write.csv(AIC_lightning_NDT4_treed_summary_2, file="D:\\Fire\\fire_data\\raw_data\\AIC_lightning_NDT4_treed_summary.csv")
+write.csv(table.glm.NDT4.simple_summary_2, file="D:\\Fire\\fire_data\\raw_data\\AIC_lightning_NDT4_treed_summary_ALLVAR.csv")
 ```
 
-
-For the below chunks, they will need to be run in specific order, with repeating the previous chunk in between. DO NOT RUN THIS CHUNK MORE THAN ONCE! RUN EACH ONE ONCE, AFTER EACH SUBSEQUENT RUN OF THE ABOVE.
-
-```{r}
-#Check that it ran correctly
-table.glm.NDT4.simple
-
-table.glm.NDT4.simple_run1<-table.glm.NDT4.simple
-head(table.glm.NDT4.simple_run1)
-
-```
-
-STOP! RUN the model x25 again.
-```{r}
-table.glm.NDT4.simple_run2<-table.glm.NDT4.simple
-head(table.glm.NDT4.simple_run2)
-```
-
-STOP! RUN the model x25 again.
-```{r}
-table.glm.NDT4.simple_run3<-table.glm.NDT4.simple
-head(table.glm.NDT4.simple_run3)
-```
-
-STOP! RUN the model x25 again.
-```{r}
-table.glm.NDT4.simple_run4<-table.glm.NDT4.simple
-```
-
-Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination. First, combine the 4 runs back together.
-
-```{r}
-table.glm.NDT4.simple<-rbind(table.glm.NDT4.simple_run1, table.glm.NDT4.simple_run2, table.glm.NDT4.simple_run3, table.glm.NDT4.simple_run4)
-```
-
-Now determine deltaAIC.
-
-```{r}
-head(table.glm.NDT4.simple)
-table(table.glm.NDT4.simple$model) # 100 per model
-
-AIC_lightning_NDT4_treed_<-table.glm.NDT4.simple
-
-AIC_lightning_NDT4_treed_summary_<- AIC_lightning_NDT4_treed_ %>%
-  group_by(model) %>%
-  summarise(meanAIC=mean(aic),
-            meanAUC=mean(auc.valid),
-            sdAUC=sd(auc.valid),
-            )
-
-AIC_lightning_NDT4_treed_summary_2<- AIC_lightning_NDT4_treed_summary_ %>%
-  mutate(deltaAIC=meanAIC-min(meanAIC))
-
-head(AIC_lightning_NDT4_treed_summary_2)
-```
-
-Save to computer.
-
-```{r}
-write.csv(AIC_lightning_NDT4_treed_summary_2, file="D:\\Fire\\fire_data\\raw_data\\AIC_lightning_NDT4_treed_summary.csv")
-```
-
-
-
-
-
-
-
-
-```{r}
-
-```
-
-
-
-
-
-
-#Now combine the datatables and save to computer
-
-```{r}
-NDT4_l_models_treed<-rbind(AIC_lightning_NDT4_treed_summary_climate2, AIC_lightning_NDT4_treed_summary_VRI2, AIC_lightning_NDT4_treed_summary_topo2, AIC_lightning_NDT4_treed_summary_infra2)
-NDT4_l_models_treed
-NDT4_l_models_treed$NDT<-"NDT4"
-
-write.csv(NDT4_l_models_treed, file="D:\\Fire\\fire_data\\raw_data\\NDT4_lightning_models_treed.csv")
-```
 
 
 
@@ -2681,32 +3237,7 @@ glm_best_NDT4<- glm(fire_pres ~ scale(climate1)*scale(climate2) +
 
 summary(glm_best_NDT4) #AIC 8282
 
-# model diagnostic plots
-binnedplot (fitted(glm_best_NDT4), 
-            residuals(glm_best_NDT4), 
-            nclass = NULL, 
-            xlab = "Expected Values", 
-            ylab = "Average residual", 
-            main = paste("Binned Residual Plot - glm", i))
 
-
-NDT4_t2$resids<-resid(glm_best_NDT4)
-
-binnedplot (NDT4_t2$live_stand_volume_125, 
-            NDT4_t2$resids, 
-            nclass = NULL, 
-            xlab = "live stand volume", 
-            ylab = "Average residual", 
-            main = paste("Binned Residual Plot - glm", i))
-
-binnedplot (NDT4_t2$climate1, 
-            NDT4_t2$resids, 
-            nclass = NULL, 
-            xlab = "", 
-            ylab = "Average residual", 
-            main = paste("Binned Residual Plot - glm", i))
-
-# Diagnostic plots look good
 
 # Looking at effect of forest height at the average amount of rainfall in September
 plot(NDT4_t2$live_stand_volume_125,NDT4_t2$fire_pres)
