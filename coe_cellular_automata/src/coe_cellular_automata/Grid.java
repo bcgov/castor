@@ -21,10 +21,10 @@ public class Grid {
 	public double[] alpha = new double[numTimePeriods];
 	public double[] beta = new double[numTimePeriods];
 	public double[] gamma = new double[numTimePeriods];
-	public ArrayList<ArrayList<int[]>> ageStatesTemplate = new ArrayList<ArrayList<int[]>>();
-	public ArrayList<ArrayList<int[]>> harvestStatesTemplate = new ArrayList<ArrayList<int[]>>();
+	public ArrayList<ArrayList<float[]>> ageStatesTemplate = new ArrayList<ArrayList<float[]>>();
+	public ArrayList<ArrayList<float[]>> harvestStatesTemplate = new ArrayList<ArrayList<float[]>>();
 	
-	double weight = (double) 1/numCells;
+	double weight;
 	/** 
 	* Class constructor.
 	*/
@@ -37,40 +37,40 @@ public class Grid {
 	};
 	
 	private void setStatesTemplates(int numTimePeriods2, int pl2) {
-		ArrayList<ArrayList<int[]>> ageStatesTemplate = new ArrayList<ArrayList<int[]>>() ;
-		ArrayList<ArrayList<int[]>> harvestStatesTemplate = new ArrayList<ArrayList<int[]>>();
+		ArrayList<ArrayList<float[]>> ageStatesTemplate = new ArrayList<ArrayList<float[]>>() ;
+		ArrayList<ArrayList<float[]>> harvestStatesTemplate = new ArrayList<ArrayList<float[]>>();
 		
 		for(int age = 0; age < 351; age++) { // A total of 250 possible ages
-				ArrayList<int[]> states = new ArrayList<int[]>();
-				ArrayList<int[]> statesHarvest = new ArrayList<int[]>();
+				ArrayList<float[]> states = new ArrayList<float[]>();
+				ArrayList<float[]> statesHarvest = new ArrayList<float[]>();
 				
-				int[] stateZero = new int[numTimePeriods2];
-				int[] stateHarvestZero = new int[numTimePeriods2];
+				float[] stateZero = new float[numTimePeriods2];
+				float[] stateHarvestZero = new float[numTimePeriods2];
 				
 				for(int ft = 0; ft < numTimePeriods2; ft ++) { // this is always state zero or no harvesting
-					int ageFT = 0;
+					float ageFT = 0f;
 					if(ft == 0) {
-						ageFT = age + (int)(pl2/2);
+						ageFT = (float) (age + (int)(pl2/2));
 					} else {
-						ageFT = age + (int) (pl2*ft + pl2/2);
+						ageFT = (float) ( age + (int) (pl2*ft + pl2/2));
 					}
 					
 					if(ageFT > 350) {
-						stateZero[ft] = 350;
+						stateZero[ft] = 350f;
 					}else {
 						stateZero[ft] = ageFT;
 					}					
-					stateHarvestZero[ft] = 0;
+					stateHarvestZero[ft] = 0f;
 				}
 
 				states.add(stateZero); //This add state zero which is the no harvest state
 				statesHarvest.add(stateHarvestZero);
 				
 			    //One harvest with nested second harvest
-				int[] stateAge = new int[numTimePeriods2];
+				float[] stateAge = new float[numTimePeriods2];
 				stateAge = stateZero.clone();
 				
-				int[] stateHarvest = new int[numTimePeriods2];
+				float[] stateHarvest = new float[numTimePeriods2];
 				stateHarvest = stateHarvestZero.clone();
 				
 				//Counters
@@ -83,10 +83,10 @@ public class Grid {
 						for(int rp = 0; rp < numTimePeriods2 ; rp ++) {
 							if(harvPeriod == rp) {
 								stateHarvest[rp]=stateAge[rp];//assign the age of harvest
-								stateAge[rp] = 0;//age the harvest to zero
+								stateAge[rp] = 0f;//age the harvest to zero
 							} else if (harvPeriod < rp) {
 								ft ++;
-								stateAge[rp] = (int) (pl2*ft - pl2/2);
+								stateAge[rp] = (float) ((int) (pl2*ft - pl2/2));
 								if(stateAge[rp] > 50 & sh == 0) {
 									srp = rp;
 									sh ++;
@@ -102,20 +102,20 @@ public class Grid {
 						if(srp > 0) {
 							ft = 0;
 							for(int m = srp; m <numTimePeriods2; m++ ) {
-								int[] stateAgeSecond = new int[numTimePeriods2];
+								float[] stateAgeSecond = new float[numTimePeriods2];
 								stateAgeSecond = stateAge.clone();
 								
-								int[] stateHarvestSecond = new int[numTimePeriods2];
+								float[] stateHarvestSecond = new float[numTimePeriods2];
 								stateHarvestSecond = stateHarvest.clone();								
 								
 								for(int k = m; k <numTimePeriods2; k++ ) {
 									if(k == m) {
 										stateHarvestSecond[k] = stateAgeSecond[k];
-										stateAgeSecond[k] = 0;
+										stateAgeSecond[k] = 0f;
 										
 									} else {
 										ft ++;
-										stateAgeSecond[k]  = (int) (pl2*ft - pl2/2);									
+										stateAgeSecond[k]  = (float)((int) (pl2*ft - pl2/2));									
 									} 
 								}
 								states.add(stateAgeSecond);
@@ -138,11 +138,11 @@ public class Grid {
     setHarvestStatesTemplate(harvestStatesTemplate);
 	}
 
-	private void setHarvestStatesTemplate(ArrayList<ArrayList<int[]>> harvestStatesTemplate) {
+	private void setHarvestStatesTemplate(ArrayList<ArrayList<float[]>> harvestStatesTemplate) {
 		this.harvestStatesTemplate = harvestStatesTemplate;	
 	}
 
-	private void setAgeStatesTemplate(ArrayList<ArrayList<int[]>> ageStatesTemplate) {
+	private void setAgeStatesTemplate(ArrayList<ArrayList<float[]>> ageStatesTemplate) {
 		this.ageStatesTemplate = ageStatesTemplate;	
 	}
 
@@ -190,5 +190,9 @@ public class Grid {
 		this.ncell = ncell;
 		this.nrow = nrow;
 		this.colSizeLattice = ncell/nrow;
+	}
+
+	public void setLandscapeWeight(double weight) {
+		this.weight = weight;	
 	}
 }
