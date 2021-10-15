@@ -97,8 +97,10 @@ parameters <-  list(
                                            "rast.zone_cond_bc_tweedsmuir_crithab",
                                            "rast.zone_cond_bc_wells_gray_north_crithab", 
 
-                                           "rast.zone_barkerville_groundhog_zones_20210303",
-                                           "rast.zone_smc_zones_20210315"                                    
+                                           #"rast.zone_barkerville_groundhog_zones_20210303",
+                                           #"rast.zone_smc_zones_20210315",
+                                           
+                                           "rast.zone_chilcotin_scenario2"
                                             ),
                         
                          nameZoneTable="zone.constraints", 
