@@ -10,7 +10,7 @@ public class ForestType {
 	int id_yc;
 	int id_yc_trans;
 	int manage_type;
-	ArrayList<HashMap<String, Object>> stateTypes = new ArrayList<HashMap<String, Object>>();
+	ArrayList<HashMap<String, float[]>> stateTypes = new ArrayList<HashMap<String, float[]>>();
 	
 	/**
 	 * Constructor
@@ -27,8 +27,8 @@ public class ForestType {
 		this.manage_type = manage_type;	
 	}
 	
-	public void setForestTypeStates(int manageType, ArrayList<int[]> ageTemplate, ArrayList<int[]> harvestTemplate, HashMap<String, float[]> yc,
-			HashMap<String, float[]> yc_trans) {
+	public void setForestTypeStates(int manageType, ArrayList<float[]> ageTemplate, ArrayList<float[]> harvestTemplate, HashMap<String, float[]> yc,
+			HashMap<String, float[]> yc_trans, float minHarvVol) {
 		//Age State: already set up
 		//Harvest Age State: already set up
 		//Growing Stock State : need
@@ -37,9 +37,9 @@ public class ForestType {
 		//Ht state: need and links to constraints
 	
 		//Add state zero to all - a no harvest state!
-		this.stateTypes.add(0, new HashMap<String, Object>());
+		this.stateTypes.add(0, new HashMap<String, float[]>());
 		this.stateTypes.get(0).put("age", ageTemplate.get(0)); // int type
-		this.stateTypes.get(0).put("harvAge", harvestTemplate.get(0)); // int type
+		this.stateTypes.get(0).put("harvAge", harvestTemplate.get(0)); // float type
 				
 		float[] harvVol = new float[harvestTemplate.get(0).length];
 		float[] gsVol = new float[ageTemplate.get(0).length];
@@ -56,21 +56,19 @@ public class ForestType {
 			
 			if(ageUpper == ageLower) {
 				gsVol[h] = yc.get("vol")[ageLower/10];
-				ht[h] = yc.get("ht")[ageLower/10];
+				ht[h] = yc.get("height")[ageLower/10];
 			}else {
 				gsVol[h] = interpFloat(ageTemplate.get(0)[h], ageLower , ageUpper, yc.get("vol")[ageLower/10], yc.get("vol")[ageUpper/10] );
-				ht[h] = interpFloat(ageTemplate.get(0)[h], ageLower , ageUpper, yc.get("ht")[ageLower/10], yc.get("ht")[ageUpper/10] );	
+				ht[h] = interpFloat(ageTemplate.get(0)[h], ageLower , ageUpper, yc.get("height")[ageLower/10], yc.get("height")[ageUpper/10] );	
 			}
 		}
 				
 		this.stateTypes.get(0).put("harvVol", harvVol); 
 		this.stateTypes.get(0).put("gsVol", gsVol); 
-		this.stateTypes.get(0).put("ht", ht); 
+		this.stateTypes.get(0).put("height", ht); 
 		
 		
 		if(manageType > 0) { // if the management type allows harvesting meaning its > 0;
-			
-			//TODO switch or transition to a new yield curve after the harvest.
 			int stateCounter =0;
 			//Add all states that meet the minimum harvest criteria
 			searchStates: for(int s = 1; s < harvestTemplate.size(); s++) {
@@ -91,7 +89,7 @@ public class ForestType {
 					}
 					
 					//Stop scoping this state -- it doesn't meet the minimum harvest volume -- go to the next state
-					if(harvVol1[t] > 0 && harvVol1[t] < 150) {
+					if(harvVol1[t] > 0 && harvVol1[t] < minHarvVol) {
 						continue searchStates;
 					} 	
 					
@@ -101,37 +99,37 @@ public class ForestType {
 					
 					if(transitionCurve) {
 						gsVol1[t] = interpFloat(ageTemplate.get(s)[t], ageLower , ageUpper, yc_trans.get("vol")[ageLower/10], yc_trans.get("vol")[ageUpper/10]);						
-						ht1[t] = interpFloat(ageTemplate.get(s)[t], ageLower , ageUpper, yc_trans.get("ht")[ageLower/10], yc_trans.get("ht")[ageUpper/10]);
+						ht1[t] = interpFloat(ageTemplate.get(s)[t], ageLower , ageUpper, yc_trans.get("height")[ageLower/10], yc_trans.get("height")[ageUpper/10]);
 					}else {
 						gsVol1[t] = interpFloat(ageTemplate.get(s)[t], ageLower , ageUpper, yc.get("vol")[ageLower/10], yc.get("vol")[ageUpper/10]);						
-						ht1[t] = interpFloat(ageTemplate.get(s)[t], ageLower , ageUpper, yc.get("ht")[ageLower/10], yc.get("ht")[ageUpper/10]);
+						ht1[t] = interpFloat(ageTemplate.get(s)[t], ageLower , ageUpper, yc.get("height")[ageLower/10], yc.get("height")[ageUpper/10]);
 					}
 					
-					if(harvVol1[t] >= 150) {
+					if(harvVol1[t] >= minHarvVol) {
 						transitionCurve = true;
 					}
 				}
 				
 				stateCounter ++;
 				
-				this.stateTypes.add(stateCounter, new HashMap<String, Object>());
+				this.stateTypes.add(stateCounter, new HashMap<String, float[]>());
 				this.stateTypes.get(stateCounter).put("age", ageTemplate.get(s)); // int type
 				this.stateTypes.get(stateCounter).put("harvAge", harvestTemplate.get(s)); // int type
 				this.stateTypes.get(stateCounter).put("harvVol", harvVol1); 
 				this.stateTypes.get(stateCounter).put("gsVol", gsVol1); 
-				this.stateTypes.get(stateCounter).put("ht", ht1); 
+				this.stateTypes.get(stateCounter).put("height", ht1); 
 				
 			}						
 		}
 	}
 	
 	//More methods
-	public float interpFloat(int age, int ageLower, int ageUpper, float yieldLower, float yieldUpper) {		
+	public float interpFloat(float f, int ageLower, int ageUpper, float yieldLower, float yieldUpper) {		
 		float inpterpValue;
 		if(ageUpper == ageLower) {
 			inpterpValue = yieldLower;
 		} else {
-			inpterpValue = ((yieldUpper - yieldLower)/(ageUpper - ageLower))*(age-ageLower) + yieldLower;
+			inpterpValue = ((yieldUpper - yieldLower)/(ageUpper - ageLower))*(f-ageLower) + yieldLower;
 		}
 		return inpterpValue;
 	}

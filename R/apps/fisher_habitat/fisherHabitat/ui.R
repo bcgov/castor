@@ -21,7 +21,7 @@ ui <- tagList(dashboardPage(
         column(width = 9, box(width=NULL,
                               leafletOutput("map", height = 670),
                               absolutePanel(id = "fisher_map_control", class = "panel panel-default", draggable = T, top = 270, left = 20, fixed = FALSE, width = "15%", height = "30%",
-                                valueBoxOutput("numberFisher", width = 12)
+                                fluidRow(valueBoxOutput("numberFisher", width = 12))
                               )
                               ),
                

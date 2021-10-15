@@ -9,7 +9,7 @@ public class Main {
 		 if (args.length != 4) {
 	            System.err.println("Usage: java coe_cellular_automata <clusdb> <Parameters>");
 	            CellularAutomata ca = new CellularAutomata();
-	            ca.createData2();
+	            ca.getCLUSData();
 	            ca.simulate2();
 		 }else {
 			 CellularAutomata ca = new CellularAutomata();

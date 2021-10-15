@@ -447,6 +447,7 @@ setTablesCLUSdb <- function(sim) {
     if(aoi == extent(ras.ylds_trans)){#need to check that each of the extents are the same
       pixels<-cbind(pixels, data.table(c(t(raster::as.matrix(ras.ylds_trans)))))
       setnames(pixels, "V1", "yieldid_trans")
+      
       rm(ras.ylds_trans)
       gc()
     }else{
@@ -468,6 +469,8 @@ setTablesCLUSdb <- function(sim) {
                       values (:ycid, :age, :tvol, :dec_pcnt, :height, :eca)", yields.trans)
     dbClearResult(rs)
     dbCommit(sim$clusdb)
+    
+    pixels[is.na(yieldid_trans) & !is.na(yieldid), yieldid_trans := yieldid] #assign the transition the same curve
     
   }else{
     message('.....yield trans ids: default 1')
