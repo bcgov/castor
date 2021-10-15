@@ -90,8 +90,12 @@ Init <- function(sim) {
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".zonemanagement where scenario = '", sim$scenario$name, "';"))
     
 
-    lapply(dbGetQuery(connx, paste0("SELECT table_name FROM information_schema.tables WHERE table_schema  = '", P(sim, "uploaderCLUS", "aoiName") ,"' and table_name in ('disturbance', 'growingstock', 'rsf', 'survival', 'fisher', 'harvest', 'yielduncertainty', 'volumebyarea', 'grizzly_survival', 'caribou_abundance') ;"))$table_name, function (x){
+    lapply(dbGetQuery(connx, paste0("SELECT table_name FROM information_schema.tables WHERE table_schema  = '", P(sim, "uploaderCLUS", "aoiName") ,"' and table_name in ('disturbance', 'growingstock', 'rsf',  'fisher', 'harvest', 'yielduncertainty',  'grizzly_survival') ;"))$table_name, function (x){
       dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".",x," where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
+    }) 
+    
+    lapply(dbGetQuery(connx, paste0("SELECT table_name FROM information_schema.tables WHERE table_schema  = '", P(sim, "uploaderCLUS", "aoiName") ,"' and table_name in ('survival',  'volumebyarea',  'caribou_abundance') ;"))$table_name, function (y){
+     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".",y," where scenario = '", sim$scenario$name, "' ;"))
     })
     
    dbDisconnect(connx)
@@ -247,7 +251,7 @@ save.rasters <-function (sim){
                           password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
     ##blocks
     message('....cutblock raster')
-    commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/") ,paste0(sim$scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_harvestBlocks.tif")), 
+    commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/") ,paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]], "_harvestBlocks.tif")), 
                  schema = P(sim, "uploaderCLUS", "aoiName"), 
                  name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks"), 
                  dbInfo = P(sim, "uploaderCLUS", "dbInfo") )
@@ -267,7 +271,7 @@ save.rasters <-function (sim){
     }
     ##zoneConstraint
     message('....constraint raster')
-    commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/") , paste0(sim$scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_constraints.tif")), 
+    commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/") , paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]], "_constraints.tif")), 
                  schema = P(sim, "uploaderCLUS", "aoiName"), 
                  name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint"),
                  dbInfo = P(sim, "uploaderCLUS", "dbInfo"))
