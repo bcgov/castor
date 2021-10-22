@@ -58,6 +58,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 -->
 
+#=================================
+#  Script Name: 12a_fire_escape_model_selection_NDT1_treed.R
+#  Script Version: 1.0
+#  Script Purpose: Model selection for escape by NDT.
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
 Load in the prepped data.
 
 ```{r}
@@ -114,7 +121,6 @@ inputs.me <- c(vars.clim.vegtype)
 inputs.me2 <- c(vars.clim.vegtype2)
 inputs.me2b <- c(vars.clim.vegtype2b)
 ```
-
 
 Now, we will generate two-way interactions for each of these lists. 
 

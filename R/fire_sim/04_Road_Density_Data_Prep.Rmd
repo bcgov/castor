@@ -23,6 +23,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 -->
 
+#=================================
+#  Script Name: 04_Road_Density_Data_prep.R
+#  Script Version: 1.0
+#  Script Purpose: Determine the road density (km/km-square) for each datapoint.
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
 #Overview
 Many studies have shown that road density is highly correlated with person-caused fires (e.g., Marchal et al. 2017), and they often use km of road per km^2 area. Here, we will attempt to bring in the roads layer from clus, investigate differences in number of roads present between 2002-2020, consider using the road clus to back-cast where roads were from 2002 to 2020, and then determine annual road density per km^2. This data will be utilized only in the person-caused fire model, and not in the lightning caused fire model. 
 
@@ -77,7 +84,7 @@ ggplot() +
 Now we will then bring in the data layer from the DEM_data_prep file. 
 
 ```{r}
-sample_locations_DEM <- st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM_5x.shp")
+sample_locations_DEM <- st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM_5x_AllMonths.shp")
 
 ```
 Inspect the data. See what the names of columns are, geometry type, etc. We will also plot this one again to ensure that it falls within the BC Boundary properly.
@@ -183,7 +190,7 @@ Now that we have the roads data appended to our data, we can save the file and m
 
 ```{r}
 
-st_write(sample_locations_DEM_roads_2, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_climate_DEM_roads.shp", delete_layer=TRUE)
+st_write(sample_locations_DEM_roads_2, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_climate_DEM_roads_.shp", delete_layer=TRUE)
 ##Can also open in QGis to assess for any physical outliers and their information.
 
 #str(ignition_weather_crs)
@@ -191,13 +198,14 @@ st_write(sample_locations_DEM_roads_2, dsn = "D:\\Fire\\fire_data\\raw_data\\Cli
 #ignition_weather_crs<-st_as_sf(ignition_weather_crs)
 
 ##Save to personal drive
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_climate_DEM_roads.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_climate_DEM_roads_.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_climate_DEM_roads.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_climate_DEM_roads_.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ##Above may not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
 
 #key_get('dbpass', keyring = 'postgreSQL')
+
 ```
 
-############## Now move on to file 05_VRI_data_prep#############
+############## Now move on to file 05_Wind_Speed_Data_Prep #############

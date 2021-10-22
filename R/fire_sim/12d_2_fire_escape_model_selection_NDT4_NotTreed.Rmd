@@ -1,7 +1,7 @@
 ---
-title: "12e_fire_escape_model_selection_NDT5_treed"
+title: "12d_2_fire_escape_model_selection_NDT4_NotTreed"
 author: "Cora Skaien"
-date: "28/09/2021"
+date: "13/10/2021"
 output: html_document
 ---
 
@@ -59,7 +59,7 @@ See the License for the specific language governing permissions and limitations 
 -->
 
 #=================================
-#  Script Name: 12e_fire_escape_model_selection_NDT5_treed.R
+#  Script Name: 12d_2_fire_escape_model_selection_NDT4_NotTreed.R
 #  Script Version: 1.0
 #  Script Purpose: Model selection for escape by NDT.
 #  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
@@ -68,42 +68,32 @@ See the License for the specific language governing permissions and limitations 
 Load in the prepped data.
 
 ```{r}
-Escape_data_lightning_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_trees_NDT.csv")
+Escape_data_lightning_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_notrees_NDT.csv")
 
-head(Escape_data_lightning_t)
+head(Escape_data_lightning_nt)
 
 ```
 
-Check how mnay data points there are for NDT5, lightning, treed models. The data may be too low to really do the below selection process.
-
+If missing, add back in.
 ```{r}
-Escape_data_lightning_t_NDT5<-subset(Escape_data_lightning_t, Escape_data_lightning_t$ntrl_ds=="NDT5")
-
-str(Escape_data_lightning_t_NDT5) #116 observations...
-table(Escape_data_lightning_t_NDT5$escape) #97 not escaped, 19 escaped. 
-
-table(Escape_data_lightning_t_NDT5$vegtype2) #All TC, so cannot include vegtype as a variable
-
+Escape_data_lightning_nt$veg_escape<-paste( Escape_data_lightning_nt$vegtype2,  Escape_data_lightning_nt$escape)
+table(Escape_data_lightning_nt$veg_escape)
 ```
 
-#Note: with so few occurences, we will be limited to very few variables, otherwise we will overfit. We may be able to have 3-4 ideally. So investigate different ones and look for strongest patterns Must avoid overfitting.
 
 ################ PART 1: Lightning Caused Fires ################
 
 We will make a loop that does something very similar to our last loop, but with the selected climate variable plus other variables of interest. For lightning caused fires with trees, the variables of interest include:
 
 1. Climate variable(s)
-2. Projected Height (proj_height_1)
-3. projected age (proj_age_1)  
-4. live_stand_volume_125
-5. vegtype2
-6. slope
-7. aspect (cos)
-8. elevation
-9. Various distance to infrastructure variables (dist_mun, dist_dam, dist_nat, dist_pow, dist_mine) - no interactions
-10. Land use (bclcs_level_5_2)
-11. windspeed (wind_atfire)
-12. roads_km (road density, which may relate to ability to fight fires)
+2. vegtype2
+3. slope
+4. aspect (cos)
+5. elevation
+6. Various distance to infrastructure variables (dist_mun, dist_dam, dist_nat, dist_pow, dist_mine) - no interactions
+7. Land use (bclcs_level_5_2)
+8. windspeed (wind_atfire)
+9. roads_km (road density, which may relate to ability to fight fires)
 
 Interactions of interest: two-way interactions between climate (1) and vegtype (5); two-way interactions between topography measures (6-8). 
 
@@ -124,7 +114,7 @@ vars.clim<-c("climate1")
 vars.clim.vegtype<-c("climate1", "vegtype2")
 vars.oth<-c("proj_height_1", "proj_age_1", "live_stand_volume_125") 
 vars.topo<-c("slope", "aspect", "elevation", "wind_atfire")
-vars.infra<-c("dist_mun", "dist_dam", "dist_nat", "dist_pow", "dist_mine", "roads_km")
+vars.infra<-c("dist_mun", "dist_dam", "dist_nat", "dist_pow", "dist_mine", "roads_km", "bclcs_level_5_2")
 
 #Also for later with 2 climate variables
 vars.clim.vegtype2<-c("climate1", "climate2","vegtype2")
@@ -134,13 +124,12 @@ vars.clim.vegtype2b<-c("climate1", "climate2")
 inputs.me <- c(vars.clim.vegtype)
 inputs.me2 <- c(vars.clim.vegtype2)
 inputs.me2b <- c(vars.clim.vegtype2b)
+inputs.me.infra_landuse_NDT4<-c(vars.infra)
 ```
-
 
 Now, we will generate two-way interactions for each of these lists. 
 
 ```{r}
-
 #####1a. For those with one climate variable
 #get the names of all possible two-way interactions for climate variable(s) and vegtype.
 twoway.ints <- NULL
@@ -268,9 +257,11 @@ for (i in 1: length(mods.twoway2b)) {
 }
 
 length(mods.inter2b)
-#mods.inter2b
+mods.inter2b
+```
 
 
+```{r}
 #########2. Now for topography data, get all possible two-way interactions
 
 #get the names of all possible two-way interactions
@@ -315,74 +306,81 @@ for (i in 1: length(mods.twowayT)) {
    }
 }
 
-length(mods.interT) #97
+length(mods.interT) #112
 #mods.interT
+```
 
 
-####3.For other VRI data, get without interactions
-
-#complete list of models using VRI - no interactions
-mods.me.tmp <- powerSet(vars.oth) 
-#add climate vars to all of the above
-mods.me.oth <- list()
-for (i in 1: length(mods.me.tmp)) {
-   mods.me.oth[[i]] <- c(mods.me.tmp[[i]])
-}
-
-mods.me.oth
-mods.me.oth<-mods.me.oth[-1]
-
-
-#########4. Now for distance to infrastructure data, get all possible two-way interactions
-
-#get the names of all possible two-way interactions
-twoway.intsI <- NULL
-for (i in 1:(length(vars.infra)-1)) {
-  for (j in (i+1):length(vars.infra)) {
-     twoway.intsI <- cbind(twoway.intsI, paste(vars.infra[i], vars.infra[j], sep=":"))
+```{r}
+#########3. Now for distance to infrastructure data, get all possible two-way interactions
+#inputs.me.infra_landuse_NDT4
+twoway.ints <- NULL
+for (i in 1:(length(inputs.me.infra_landuse_NDT4)-1)) {
+  for (j in (i+1):length(inputs.me.infra_landuse_NDT4)) {
+     twoway.ints <- cbind(twoway.ints, paste(inputs.me.infra_landuse_NDT4[i], inputs.me.infra_landuse_NDT4[j], sep=":"))
   }
 }
-twoway.intsI
-length(twoway.intsI) #15
+twoway.ints
+length(twoway.ints) #21
+#Review. If we do not want interactions between the different distance measurements, but only those between land use and distance, subset those.
+twoway.ints
+twoway.ints_dist<-twoway.ints[c(5,6,10,11,14,15,17,18,19,20,21)]
+twoway.ints_dist
 
-#complete list of models using non-climate vars (infra)
-mods.me.tmp <- powerSet(vars.infra) 
+
+#Create function to determine Powerset for any vector of variable names
+## or use rje package
+#powerSet <- function(x) {
+#   z.list <- NULL
+#   for(i in 1:length(x)) {
+#      z.list <- append(z.list, combn(x, m=i, simplify=F))
+#   }    
+#   return(z.list)
+#}
+
+#Get variables on own
+#complete list of models using non-climate vars
+mods.me.tmp <- powerSet(variables_all_infra_landuse_NDT4) 
 #add climate vars to all of the above
-mods.meI <- list()
+mods.me.infra_landuse_NDT4 <- list()
 for (i in 1: length(mods.me.tmp)) {
-   mods.meI[[i]] <- c(mods.me.tmp[[i]])
+   mods.me.infra_landuse_NDT4[[i]] <- c(mods.me.tmp[[i]])
 }
 
-mods.meI
-mods.meI<-mods.meI[-1]
+mods.me.infra_landuse_NDT4
+length(mods.me.infra_landuse_NDT4) #128
+
 
 #complete list of two-way interactions
-mods.twowayI <- powerSet(twoway.intsI)
-length(mods.twowayI) #32768 -
-#mods.twowayI
+#mods.twoway.NDT4b <- powerSet(twoway.ints) #
+#Or use subset of interactions
+mods.twoway.NDT4b <- powerSet(twoway.ints_dist) 
+length(mods.twoway.NDT4b) #2048
+#mods.twoway.NDT4b
+mods.twoway.NDT4b[1]
+mods.twoway.NDT4b<-mods.twoway.NDT4b[-1]
 
 #Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
-
-mods.interI <- list()
+mods.inter.NDT4b <- list()
 counter <- 0
-for (i in 1: length(mods.twowayI)) {
-   s1 <- unique(unlist( strsplit(mods.twowayI[[i]], split=':', fixed=TRUE) ) )
-   for (j in 1: length(mods.meI)) {
-      if (all(s1 %in% mods.meI[[j]])==TRUE) {
+for (i in 1: length(mods.twoway.NDT4b)) {
+   s1 <- unique(unlist( strsplit(mods.twoway.NDT4b[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.me.infra_landuse_NDT4)) {
+      if (all(s1 %in% mods.me.infra_landuse_NDT4[[j]])==TRUE) {
         counter <- counter + 1
-        both <-  c(mods.meI[[j]], mods.twowayI[[i]])
-        mods.interI[[counter]] <- both
+        both <-  c(mods.me.infra_landuse_NDT4[[j]], mods.twoway.NDT4b[[i]])
+        mods.inter.NDT4b[[counter]] <- both
       }
    }
 }
 
-length(mods.interI) #80136
-#mods.interI
+length(mods.inter.NDT4b) #6640
+#mods.inter.NDT4b
+```
 
 
+```{r}
 #the list of all possible model RHSs. 
-#all.poss.mods <- c(1, vars.clim, twoway.ints, mods.me.oth, mods.me2, mods.inter2)
-#all.poss.mods
 
 all.poss.mods.clim.vegtype<-c(1, mods.me.climate, twoway.ints)
 all.poss.mods.clim.vegtype 
@@ -393,15 +391,15 @@ all.poss.mods.clim.vegtype2
 all.poss.mods.clim.vegtype2b<-c(1, mods.me.climate2b, mods.inter2b)
 all.poss.mods.clim.vegtype2b
 
-all.poss.mods.VRI<-c(1, mods.me.oth)
-all.poss.mods.VRI
-
 all.poss.mods.topo<-c(1, mods.interT)
 all.poss.mods.topo
 
-all.poss.mods.infra<-c(1, mods.meI) #I don't think we want interactions here actually... we will in the next stage when we include bclcs_level_5_2 after some initial pattern exploration
+all.poss.mods.infra<-c(1, mods.inter.NDT4b) 
+length(all.poss.mods.infra)
+```
 
 
+```{r}
 #If need to determine which ones are character(0), try this:
 biglist <- list(list("A","B","C"), "foo", "", character(0), integer(0))
 lapply(biglist, function(x) {length(x) == 0L} ) 
@@ -411,7 +409,6 @@ lapply(biglist, function(x) {length(x) == 0L} )
 duplicated(all.poss.mods.clim.vegtype) #None duplicated
 duplicated(all.poss.mods.clim.vegtype2)
 duplicated(all.poss.mods.clim.vegtype2b)
-duplicated(all.poss.mods.VRI)
 duplicated(all.poss.mods.topo)
 duplicated(all.poss.mods.infra)
 
@@ -419,13 +416,14 @@ duplicated(all.poss.mods.infra)
 
 ############### Part 1 of 4 Model Series: Lightning Caused Fires, Trees ##########
 
-Because of the large number of models with all variables included, we will test the climate and vegtype first, then the VRI variables, then the topography variables. Then we will test the top models together in additional combinations, with determining best AIC model from there. Or perhaps we will just combine the top models for each together, and eliminate models if the intercept was the best predictor.
+Because of the large number of models with all variables included, we will test the climate and vegtype first, then the topography variables. Then we will test the top models together in additional combinations, with determining best AIC model from there. 
 
-Select NDT: NDT5
+Select NDT: NDT4
+#Only has one climate variable, so use
+all.poss.mods.clim.vegtype
 
 ```{r}
-zones1<-c("NDT5") #Do one zone at a time
-
+zones1<-c("NDT4") #Do one zone at a time
 prop<-0.75
 
 #Create empty table
@@ -436,12 +434,12 @@ colnames (table.glm.climate.simple) <- c ("model", "edf", "aic", "auc.valid", "N
 for (g in 1:100){
 
 for (h in 1:length(zones1)) {
-  dat2<- Escape_data_lightning_t %>% dplyr::filter(ntrl_ds ==zones1[h])
+  dat2<- Escape_data_lightning_nt %>% dplyr::filter(ntrl_ds ==zones1[h])
   
 for (i in 1: length(zones1)){
-  print(paste((all.poss.mods.clim.vegtype2b[i]), (zones1[h]), sep=" "))
+  print(paste((all.poss.mods.clim.vegtype[i]), (zones1[h]), sep=" "))
   
- # model_dat<- dat2 %>% dplyr::select(escape, veg_escape, variables_all[i])
+ # model_dat<- dat2 %>% dplyr::select(escape, escape, variables_all[i])
   model_dat<- dat2 %>% dplyr::select(escape, veg_escape, !!variables_all)
   # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
   trainIndex <- createDataPartition(model_dat$veg_escape, p = prop,
@@ -464,7 +462,7 @@ big.mod <- function(mods.in, df.train, df.test, dep.var="escape") {
    
 }
 
-mods.fit <- lapply(all.poss.mods.clim.vegtype2b, big.mod, df.train=dat1, df.test=Valid)
+mods.fit <- lapply(all.poss.mods.clim.vegtype, big.mod, df.train=dat1, df.test=Valid)
 
 #terms in each model
 x1.1 <- unlist(sapply(mods.fit, '[', 1))
@@ -477,7 +475,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.climate <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.climate$NDT<-c("NDT5")
+tab.sum.climate$NDT<-c("NDT4")
 tab.sum.climate 
 
 table.glm.climate.simple<-rbind(table.glm.climate.simple, tab.sum.climate)
@@ -495,112 +493,25 @@ Now that we have run the model 100 times, we want the average AIC and AUC for ea
 head(table.glm.climate.simple)
 table(table.glm.climate.simple$model) # 100 per model
 
-AIC_lightning_NDT5_treed_climate<-table.glm.climate.simple
+AIC_lightning_NDT4_escape_nottreed_climate<-table.glm.climate.simple
 
-AIC_lightning_NDT5_treed_summary_climate<- AIC_lightning_NDT5_treed_climate %>%
+AIC_lightning_NDT4_escape_nottreed_summary_climate<- AIC_lightning_NDT4_escape_nottreed_climate %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic),
             meanAUC=mean(auc.valid),
             sdAUC=sd(auc.valid),
             )
 
-AIC_lightning_NDT5_treed_summary_climate2<- AIC_lightning_NDT5_treed_summary_climate %>%
+AIC_lightning_NDT4_escape_nottreed_summary_climate2<- AIC_lightning_NDT4_escape_nottreed_summary_climate %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT5_treed_summary_climate2)
-```
-
-#Now repeat for VRI data
-
-```{r}
-########### 2. VRI ############
-#Create empty table
-table.glm.VRI.simple <- data.frame (matrix (ncol = 5, nrow = 0))
-colnames (table.glm.VRI.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT")
-
-####
-for (g in 1:100){
-
-for (h in 1:length(zones1)) {
-  dat2<- Escape_data_lightning_t %>% dplyr::filter(ntrl_ds ==zones1[h])
-
-#for (i in 1: length(all.poss.mods.VRI)){
-#  print(paste((all.poss.mods.VRI[i]), (zones1[h]), sep=" "))
-  
-for (i in 1: length(zones1)){
-  print(paste((all.poss.mods.VRI[i]), (zones1[h]), sep=" "))
-  
- # model_dat<- dat2 %>% dplyr::select(escape, veg_escape, variables_all[i])
-  model_dat<- dat2 %>% dplyr::select(escape, veg_escape, !!variables_all)
-  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(model_dat$veg_escape, p = prop,
-                                    list = FALSE,
-                                    times = 1)
-  
-   dat1 <- model_dat[ trainIndex,]
-   Valid <- model_dat[-trainIndex,]
-
-big.mod <- function(mods.in, df.train, df.test, dep.var="escape") {
-   rhs <- paste(mods.in, collapse=" + ")
-   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
-   mods.fit <- glm(form, family=binomial, data=df.train)
-   mod.stuff <- summary(mods.fit)
-   mod.aic <- extractAIC(mods.fit)
-   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
-   roc_obj <- roc(df.test[,dep.var], mod.valid)
-   mod.auc <- auc(roc_obj)
-   return(list(rhs, mod.stuff, mod.aic, mod.auc))
-   
-}
-
-mods.fit <- lapply(all.poss.mods.VRI, big.mod, df.train=dat1, df.test=Valid)
-
-#terms in each model
-x1.1 <- unlist(sapply(mods.fit, '[', 1))
-x1.1
-#Aic for models
-x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
-x3.1
-#auc from validation data
-x4.1 <- unlist(sapply(mods.fit, '[', 4))
-x4.1
-#combining all as df
-tab.sum.VRI <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.VRI$NDT<-c("NDT5")
-tab.sum.VRI 
-
-table.glm.VRI.simple<-rbind(table.glm.VRI.simple, tab.sum.VRI)
-
-}
-}
-}
-```
-
-Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination.
-
-```{r}
-head(table.glm.VRI.simple)
-table(table.glm.VRI.simple$model) # 100 per model
-
-AIC_lightning_NDT5_treed_VRI<-table.glm.VRI.simple
-
-AIC_lightning_NDT5_treed_summary_VRI<- AIC_lightning_NDT5_treed_VRI %>%
-  group_by(model) %>%
-  summarise(meanAIC=mean(aic),
-            meanAUC=mean(auc.valid),
-            sdAUC=sd(auc.valid),
-            )
-
-AIC_lightning_NDT5_treed_summary_VRI2<- AIC_lightning_NDT5_treed_summary_VRI %>%
-  mutate(deltaAIC=meanAIC-min(meanAIC))
-
-head(AIC_lightning_NDT5_treed_summary_VRI2)
+head(AIC_lightning_NDT4_escape_nottreed_summary_climate2)
 ```
 
 #Now repeat for topography
 
 ```{r}
-########### 3. topo ############
+########### 2. topo ############
 #Create empty table
 table.glm.topo.simple <- data.frame (matrix (ncol = 5, nrow = 0))
 colnames (table.glm.topo.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT")
@@ -609,7 +520,7 @@ colnames (table.glm.topo.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT"
 for (g in 1:100){
 
 for (h in 1:length(zones1)) {
-  dat2<- Escape_data_lightning_t %>% dplyr::filter(ntrl_ds ==zones1[h])
+  dat2<- Escape_data_lightning_nt %>% dplyr::filter(ntrl_ds ==zones1[h])
 
 #for (i in 1: length(all.poss.mods.topo)){
 #  print(paste((all.poss.mods.topo[i]), (zones1[h]), sep=" "))
@@ -617,10 +528,10 @@ for (h in 1:length(zones1)) {
 for (i in 1: length(zones1)){
   print(paste((all.poss.mods.topo[i]), (zones1[h]), sep=" "))
   
- # model_dat<- dat2 %>% dplyr::select(escape, veg_escape, variables_all[i])
-  model_dat<- dat2 %>% dplyr::select(escape, veg_escape, !!variables_all)
+ # model_dat<- dat2 %>% dplyr::select(escape, escape, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(escape, escape, !!variables_all)
   # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(model_dat$veg_escape, p = prop,
+  trainIndex <- createDataPartition(model_dat$escape, p = prop,
                                     list = FALSE,
                                     times = 1)
   
@@ -653,7 +564,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.topo <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.topo$NDT<-c("NDT5")
+tab.sum.topo$NDT<-c("NDT4")
 tab.sum.topo 
 
 table.glm.topo.simple<-rbind(table.glm.topo.simple, tab.sum.topo)
@@ -669,25 +580,25 @@ Now that we have run the model 100 times, we want the average AIC and AUC for ea
 head(table.glm.topo.simple)
 table(table.glm.topo.simple$model) # 100 per model
 
-AIC_lightning_NDT5_treed_topo<-table.glm.topo.simple
+AIC_lightning_NDT4_escape_nottreed_topo<-table.glm.topo.simple
 
-AIC_lightning_NDT5_treed_summary_topo<- AIC_lightning_NDT5_treed_topo %>%
+AIC_lightning_NDT4_escape_nottreed_summary_topo<- AIC_lightning_NDT4_escape_nottreed_topo %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic),
             meanAUC=mean(auc.valid),
             sdAUC=sd(auc.valid),
             )
 
-AIC_lightning_NDT5_treed_summary_topo2<- AIC_lightning_NDT5_treed_summary_topo %>%
+AIC_lightning_NDT4_escape_nottreed_summary_topo2<- AIC_lightning_NDT4_escape_nottreed_summary_topo %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT5_treed_summary_topo2)
+head(AIC_lightning_NDT4_escape_nottreed_summary_topo2)
 ```
 
 #Now repeat for infrastructure
 
 ```{r}
-########### 4. Distance to Infrastructure ############
+########### 3. Distance to Infrastructure ############
 #Create empty table
 table.glm.infra.simple <- data.frame (matrix (ncol = 5, nrow = 0))
 colnames (table.glm.infra.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT")
@@ -696,7 +607,7 @@ colnames (table.glm.infra.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT
 for (g in 1:100){
 
 for (h in 1:length(zones1)) {
-  dat2<- Escape_data_lightning_t %>% dplyr::filter(ntrl_ds ==zones1[h])
+  dat2<- Escape_data_lightning_nt %>% dplyr::filter(ntrl_ds ==zones1[h])
 
 #for (i in 1: length(all.poss.mods.infra)){
 #  print(paste((all.poss.mods.infra[i]), (zones1[h]), sep=" "))
@@ -704,10 +615,10 @@ for (h in 1:length(zones1)) {
 for (i in 1: length(zones1)){
   print(paste((all.poss.mods.infra[i]), (zones1[h]), sep=" "))
   
- # model_dat<- dat2 %>% dplyr::select(escape, veg_escape, variables_all[i])
-  model_dat<- dat2 %>% dplyr::select(escape, veg_escape, !!variables_all)
+ # model_dat<- dat2 %>% dplyr::select(escape, escape, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(escape, escape, !!variables_all)
   # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(model_dat$veg_escape, p = prop,
+  trainIndex <- createDataPartition(model_dat$escape, p = prop,
                                     list = FALSE,
                                     times = 1)
   
@@ -740,7 +651,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -756,31 +667,32 @@ Now that we have run the model 100 times, we want the average AIC and AUC for ea
 head(table.glm.infra.simple)
 table(table.glm.infra.simple$model) # 100 per model
 
-AIC_lightning_NDT5_treed_infra<-table.glm.infra.simple
+AIC_lightning_NDT4_escape_nottreed_infra<-table.glm.infra.simple
 
-AIC_lightning_NDT5_treed_summary_infra<- AIC_lightning_NDT5_treed_infra %>%
+AIC_lightning_NDT4_escape_nottreed_summary_infra<- AIC_lightning_NDT4_escape_nottreed_infra %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic),
             meanAUC=mean(auc.valid),
             sdAUC=sd(auc.valid),
             )
 
-AIC_lightning_NDT5_treed_summary_infra2<- AIC_lightning_NDT5_treed_summary_infra %>%
+AIC_lightning_NDT4_escape_nottreed_summary_infra2<- AIC_lightning_NDT4_escape_nottreed_summary_infra %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT5_treed_summary_infra2)
+head(AIC_lightning_NDT4_escape_nottreed_summary_infra2)
 
 ```
 
 #Now combine the datatables and save to computer
 
 ```{r}
-NDT5_l_models_treed<-rbind(AIC_lightning_NDT5_treed_summary_climate2, AIC_lightning_NDT5_treed_summary_VRI2, AIC_lightning_NDT5_treed_summary_topo2, AIC_lightning_NDT5_treed_summary_infra2)
-NDT5_l_models_treed
-NDT5_l_models_treed$NDT<-"NDT5"
+NDT4_l_models_nottreed<-rbind(AIC_lightning_NDT4_escape_nottreed_summary_climate2, AIC_lightning_NDT4_escape_nottreed_summary_topo2, AIC_lightning_NDT4_escape_nottreed_summary_infra2)
+NDT4_l_models_nottreed
+NDT4_l_models_nottreed$NDT<-"NDT4"
 
-write.csv(NDT5_l_models_treed, file="D:\\Fire\\fire_data\\raw_data\\NDT5_lightning_models_treed_escape.csv")
+write.csv(NDT4_l_models_nottreed, file="D:\\Fire\\fire_data\\raw_data\\NDT4_lightning_models_nottreed_escape.csv")
 ```
+
 
 ################################ STAGE TWO ########################
 
@@ -788,243 +700,235 @@ write.csv(NDT5_l_models_treed, file="D:\\Fire\\fire_data\\raw_data\\NDT5_lightni
 Now choose the top variables and create final model. The below code will need to be updated manually, depending on what the results of the above analyses are. From the top models, we will re-create two-way interactions for the variables selected from each model, plus the other variables listed as needed to be included. We will assess each set to ensure only interactions that make sense are investigated ultimately, given that sample sizes will be an issues.
 
 Top Models:
-1. climate1 + climate2 + climate1:climate2
-2. live_stand_volume_125
-3. dist_dam (some others maybe, but AUC dropped dramatically)
-4. No DEM model in top deltaAIC<2
+1. climate1 + vegtype2 (intercept was best, then vegtype, then climate)
+2. slope + elevation + slope:elevation
+3. dist_mun + dist_mine + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2
 
-Additional Variables:
-1. bclcs_level_5_2 (land use) (to be added to final investigated model)
+We want to include interactions between variables from within each list. This will make for many models, which may be hard to process in R.
 
-Because there are few variables to explore for NDT5, we will step to manual model investigation utilizing the above variables and relevant interactions.
+Interactions to add: elevation + climate1:elevation  + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + wind_atfire
 
 #Next investigation
+Because there would be far too many models to investigate including all variables and their interactions, we will start with the above and make educated guesses for what may need to be enhanced. We will seek the best model from the above informed progress.
 
 ```{r}
-escape_lightning_t_NDT5<-subset(Escape_data_lightning_t, Escape_data_lightning_t$ntrl_ds=="NDT5")
+escape_lightning_nt_NDT4<-subset(Escape_data_lightning_nt, Escape_data_lightning_nt$ntrl_ds=="NDT4")
 
 #Divide data into training and valid
 prop<-0.75
 # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(escape_lightning_t_NDT5$escape, p = prop,
+  trainIndex <- createDataPartition(escape_lightning_nt_NDT4$escape, p = prop,
                                     list = FALSE,
                                     times = 1)
   
-   dat1 <- escape_lightning_t_NDT5[ trainIndex,]
-   Valid <- escape_lightning_t_NDT5[-trainIndex,]
+   dat1 <- escape_lightning_nt_NDT4[ trainIndex,]
+   Valid <- escape_lightning_nt_NDT4[-trainIndex,]
 
 #Run model using dat1
-model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125 + dist_dam + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km + wind_atfire, family = binomial, data = dat1)
+model.NDT4<-glm(escape ~ climate1 + vegtype2 + slope + elevation + slope:elevation + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + elevation + climate1:elevation  + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + wind_atfire, family = binomial, data = dat1)
 
-AIC(model.NDT5) #78.5
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"escape"], mod.valid)
-   mod.auc <- auc(roc_obj)
-   mod.auc #0.63 
-   
-Anova(model.NDT5, type=3)
-Anova(model.NDT5, type=3, singular.ok = TRUE)
-
-#Remove least significant variables
-model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125 + dist_dam + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km, family = binomial, data = dat1)
-
-AIC(model.NDT5) #76.5
+AIC(model.NDT4) #338.03
 
 #Determine AUC of full model
-mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.63 
+   mod.auc #0.57
    
-Anova(model.NDT5, type=3)
-Anova(model.NDT5, type=3, singular.ok = TRUE)
+Anova(model.NDT4, type=3)
+#Anova(model.NDT4, type=3, singular.ok = TRUE)
 
-#Remove least significant variables
-model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125  + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km, family = binomial, data = dat1)
+#Remove least significant
+model.NDT4<-glm(escape ~ climate1 + vegtype2 + slope + elevation + slope:elevation + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + elevation + climate1:elevation + wind_atfire:vegtype2 + wind_atfire, family = binomial, data = dat1)
 
-AIC(model.NDT5) #76.5
+AIC(model.NDT4) #336.03
 
 #Determine AUC of full model
-mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.63 
+   mod.auc #0.57
    
-Anova(model.NDT5, type=3)
-Anova(model.NDT5, type=3, singular.ok = TRUE)
+Anova(model.NDT4, type=3)
+#Anova(model.NDT4, type=3, singular.ok = TRUE)
 
+#Remove least significant
+model.NDT4<-glm(escape ~ climate1 + vegtype2 + slope + elevation + slope:elevation + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + elevation + wind_atfire:vegtype2 + wind_atfire, family = binomial, data = dat1)
 
-#Remove least significant variables
-model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125  + bclcs_level_5_2 + roads_km, family = binomial, data = dat1)
-
-AIC(model.NDT5) #71.7
+AIC(model.NDT4) #334.1
 
 #Determine AUC of full model
-mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.64 
+   mod.auc #0.44 --> droppe dreally badly!
    
-Anova(model.NDT5, type=3)
-Anova(model.NDT5, type=3, singular.ok = TRUE)
+Anova(model.NDT4, type=3)
+#Anova(model.NDT4, type=3, singular.ok = TRUE)
 
+#Remove least significant
+model.NDT4<-glm(escape ~ climate1 + vegtype2 + slope + elevation + slope:elevation + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + elevation + wind_atfire, family = binomial, data = dat1)
 
-#Remove least significant variables
-model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2  + bclcs_level_5_2 + roads_km, family = binomial, data = dat1)
-
-AIC(model.NDT5) #82.3 (BAD!)
+AIC(model.NDT4) #330.9
 
 #Determine AUC of full model
-mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.64 
+   mod.auc #0.57
    
-Anova(model.NDT5, type=3)
-Anova(model.NDT5, type=3, singular.ok = TRUE)
+Anova(model.NDT4, type=3)
+#Anova(model.NDT4, type=3, singular.ok = TRUE)
 
+#Remove least significant
+model.NDT4<-glm(escape ~ climate1 + vegtype2 + slope + elevation + slope:elevation + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + elevation, family = binomial, data = dat1)
 
-#Revert; then Remove least significant variables
-model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125  + bclcs_level_5_2, family = binomial, data = dat1)
-
-AIC(model.NDT5) #70.2
+AIC(model.NDT4) #328.9
 
 #Determine AUC of full model
-mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.7
+   mod.auc #0.57
    
-Anova(model.NDT5, type=3)
-Anova(model.NDT5, type=3, singular.ok = TRUE)
+Anova(model.NDT4, type=3)
+#Anova(model.NDT4, type=3, singular.ok = TRUE)
 
+#Remove least significant
+model.NDT4<-glm(escape ~ climate1 + vegtype2 + slope + elevation + slope:elevation + dist_mun + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + elevation, family = binomial, data = dat1)
 
-#Remove least significant variables
-model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125, family = binomial, data = dat1)
-
-AIC(model.NDT5) #66.8
+AIC(model.NDT4) #327.4
 
 #Determine AUC of full model
-mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.72
+   mod.auc #0.56
    
-Anova(model.NDT5, type=3)
-Anova(model.NDT5, type=3, singular.ok = TRUE)
+Anova(model.NDT4, type=3)
+#Anova(model.NDT4, type=3, singular.ok = TRUE)
 
-#Try to remove live stand volume again
+#Remove least significant
+model.NDT4<-glm(escape ~ climate1 + vegtype2 + slope + elevation + slope:elevation + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + elevation, family = binomial, data = dat1)
 
-#Remove least significant variables
-model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2, family = binomial, data = dat1)
-
-AIC(model.NDT5) #77.7
+AIC(model.NDT4) #326.4
 
 #Determine AUC of full model
-mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.73
+   mod.auc #0.54
    
-Anova(model.NDT5, type=3)
-Anova(model.NDT5, type=3, singular.ok = TRUE)
+Anova(model.NDT4, type=3)
+#Anova(model.NDT4, type=3, singular.ok = TRUE)
 
-#Best AIC despite live stand volume not significant:
-model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125, family = binomial, data = dat1)
+#Go back one step
+model.NDT4<-glm(escape ~ climate1 + vegtype2 + slope + elevation + slope:elevation + dist_mun + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2, family = binomial, data = dat1)
+
+AIC(model.NDT4) #327.4
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.56
+   
+Anova(model.NDT4, type=3)
+#Anova(model.NDT4, type=3, singular.ok = TRUE)
 
 ```
 
-
-Remove NAs and tun multiple times.
+Remove NAs and run multiple times.
 
 ```{r}
 #Remove NAs to ensure all same data used so we can compare AICs
-NDT5_escape_t<-escape_lightning_t_NDT5 %>% drop_na(climate1, climate2, live_stand_volume_125)
+NDT4_escape_nt<-escape_lightning_nt_NDT4 %>% drop_na(climate1, vegtype2, dist_mun, bclcs_level_5_2, slope, elevation)
 
 #Run Model again with this data; but uses all data here
-model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125, family = binomial, data = NDT5_escape_t)
+model.NDT4<-glm(escape ~ climate1 + vegtype2 + slope + elevation + slope:elevation + dist_mun + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2, family = binomial, data = NDT4_escape_nt)
 
-Anova(model.NDT5, type=3)
+Anova(model.NDT4, type=3) #
+#Anova(model.NDT4, type=3, singular.ok = TRUE)
 
 # model diagnostic plots
-binnedplot (fitted(model.NDT5), 
-            residuals(model.NDT5), 
+binnedplot (fitted(model.NDT4), 
+            residuals(model.NDT4), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm", i))
 
 
-NDT5_escape_t$resids<-resid(model.NDT5)
+NDT4_escape_nt$resids<-resid(model.NDT4)
 
-binnedplot (NDT5_escape_t$live_stand_volume_125, 
-            NDT5_escape_t$resids, 
-            nclass = NULL, 
-            xlab = "live stand volume", 
-            ylab = "Average residual", 
-            main = paste("Binned Residual Plot - glm", i))
 
-binnedplot (NDT5_escape_t$climate1, 
-            NDT5_escape_t$resids, 
+binnedplot (NDT4_escape_nt$climate1, 
+            NDT4_escape_nt$resids, 
             nclass = NULL, 
             xlab = "", 
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm", i))
 
-# Diagnostic plots look good
+# Diagnostic plots look okay
 ```
 
 We should repeat the above several times and take the mean of the coefficients.
 
 ```{r}
-summary(model.NDT5)
+summary(model.NDT4)
 
 #Create a new blank table and get AUC too
-top_mod_table_NDT5_light_t_ALL <- data.frame (matrix (ncol = 10, nrow = 0))
-colnames (top_mod_table_NDT5_light_t_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_live_stand_volume_125", "coef_climate1:climate2", "AUC")
+top_mod_table_NDT4_light_nt_ALL <- data.frame (matrix (ncol = 18, nrow = 0))
+colnames (top_mod_table_NDT4_light_nt_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_vegtypeOP", "coef_vegtypeS", "coef_slope", "coef_elevation", "coef_dist_mun", "coef_roads_km", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_slope:elevation", "coef_roads_km:bclcs_level_5_2OP", "coef_roads_km:bclcs_level_5_2SP", "AUC")
 ```
 
-Let's run it 500 times to get good mean values. Had to change proportion to 0.7 instead of 0.75 because otherwise insufficient division of 0/1.
+Let's run it 500 times to get good mean values.
 
 ```{r}
 
 for (g in 1:500){
 
-prop<-0.7
+prop<-0.75
 # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(NDT5_escape_t$escape, p = prop,
+  trainIndex <- createDataPartition(NDT4_escape_nt$escape, p = prop,
                                     list = FALSE,
                                     times = 1)
   
-   dat1 <- NDT5_escape_t[ trainIndex,]
-   Valid <- NDT5_escape_t[-trainIndex,]
+   dat1 <- NDT4_escape_nt[ trainIndex,]
+   Valid <- NDT4_escape_nt[-trainIndex,]
    
 #Model   
-model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125, family = binomial, data = dat1) 
+model.NDT4<-glm(escape ~ climate1 + vegtype2 + slope + elevation + slope:elevation + dist_mun + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2, family = binomial, data = dat1) 
 
-mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT5_light_t <- data.frame (matrix (ncol = 10, nrow = 0))
-colnames (top_mod_table_NDT5_light_t ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_live_stand_volume_125", "coef_climate1:climate2", "AUC")
+top_mod_table_NDT4_light_nt <- data.frame (matrix (ncol = 18, nrow = 0))
+colnames (top_mod_table_NDT4_light_nt ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_vegtypeOP", "coef_vegtypeS", "coef_slope", "coef_elevation", "coef_dist_mun", "coef_roads_km", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_slope:elevation", "coef_roads_km:bclcs_level_5_2OP", "coef_roads_km:bclcs_level_5_2SP", "AUC")
 
-##Add data for NDT5
-top_mod_table_NDT5_light_t[1,1]<-"lightning"
-top_mod_table_NDT5_light_t[1,2]<-"NDT5"
-top_mod_table_NDT5_light_t[1,3]<-"Y"
-top_mod_table_NDT5_light_t[1,4]<-"escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125" 
-top_mod_table_NDT5_light_t[1,5]<- coef(model.NDT5)[1] #Intercept
-top_mod_table_NDT5_light_t[1,6]<- coef(model.NDT5)[2] #Climate variable 1
-top_mod_table_NDT5_light_t[1,7]<- coef(model.NDT5)[3] #Climate variable 2
-top_mod_table_NDT5_light_t[1,8]<- coef(model.NDT5)[4] #coefficient live_stand_volume_125
-top_mod_table_NDT5_light_t[1,9]<- coef(model.NDT5)[5] #coefficient climate1:climate2
-top_mod_table_NDT5_light_t[1,10]<- mod.auc
+##Add data for NDT4
+top_mod_table_NDT4_light_nt[1,1]<-"lightning"
+top_mod_table_NDT4_light_nt[1,2]<-"NDT4"
+top_mod_table_NDT4_light_nt[1,3]<-"N"
+top_mod_table_NDT4_light_nt[1,4]<-"escape ~ climate1 + vegtype2 + slope + elevation + slope:elevation + dist_mun + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2" 
+top_mod_table_NDT4_light_nt[1,5]<- coef(model.NDT4)[1] #Intercept
+top_mod_table_NDT4_light_nt[1,6]<- coef(model.NDT4)[2] #climate1
+top_mod_table_NDT4_light_nt[1,7]<- coef(model.NDT4)[3] #vegtypeOP
+top_mod_table_NDT4_light_nt[1,8]<- coef(model.NDT4)[4] #coefficient vegtypeS
+top_mod_table_NDT4_light_nt[1,9]<- coef(model.NDT4)[5] #coefficient slope
+top_mod_table_NDT4_light_nt[1,10]<- coef(model.NDT4)[6] #coefficient elevation
+top_mod_table_NDT4_light_nt[1,11]<- coef(model.NDT4)[7] #coef dist_mun
+top_mod_table_NDT4_light_nt[1,12]<- coef(model.NDT4)[8] #coefficient roads_km
+top_mod_table_NDT4_light_nt[1,13]<- coef(model.NDT4)[9] #coefficient bclcs_level_5_2_OP
+top_mod_table_NDT4_light_nt[1,14]<- coef(model.NDT4)[10] #coefficient bclcs_level_5_2_SP
+top_mod_table_NDT4_light_nt[1,15]<- coef(model.NDT4)[11] #coefficient slope:elevation
+top_mod_table_NDT4_light_nt[1,16]<- coef(model.NDT4)[12] #coefficient roads_km:bclcs_level_5_2OP
+top_mod_table_NDT4_light_nt[1,17]<- coef(model.NDT4)[13] #coefficient roads_km:bclcs_level_5_2SP
+top_mod_table_NDT4_light_nt[1,18]<- mod.auc
 
-top_mod_table_NDT5_light_t_ALL<-rbind(top_mod_table_NDT5_light_t_ALL, top_mod_table_NDT5_light_t)
+top_mod_table_NDT4_light_nt_ALL<-rbind(top_mod_table_NDT4_light_nt_ALL, top_mod_table_NDT4_light_nt)
 
 }
 
@@ -1032,79 +936,93 @@ top_mod_table_NDT5_light_t_ALL<-rbind(top_mod_table_NDT5_light_t_ALL, top_mod_ta
 
 Check.
 ```{r}
-head(top_mod_table_NDT5_light_t_ALL)
+head(top_mod_table_NDT4_light_nt_ALL)
 
 ```
 
 #Save coefficient table
 
 ```{r}
-write.csv(top_mod_table_NDT5_light_t_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT5_light_t_ALL.csv")
+write.csv(top_mod_table_NDT4_light_nt_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT4_light_nt_ALL.csv")
 ```
 
 Get mean values.
 
 ```{r}
-names(top_mod_table_NDT5_light_t_ALL)
-mean(top_mod_table_NDT5_light_t_ALL$AUC) #0.67
+names(top_mod_table_NDT4_light_nt_ALL)
+mean(top_mod_table_NDT4_light_nt_ALL$AUC) # 0.60
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT5_light_t_Means <- data.frame (matrix (ncol = 10, nrow = 0))
-colnames (top_mod_table_NDT5_light_t_Means ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_live_stand_volume_125", "coef_climate1:climate2", "AUC")
+top_mod_table_NDT4_light_nt_Means <- data.frame (matrix (ncol = 18, nrow = 0))
+colnames (top_mod_table_NDT4_light_nt_Means ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_vegtypeOP", "coef_vegtypeS", "coef_slope", "coef_elevation", "coef_dist_mun", "coef_roads_km", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_slope:elevation", "coef_roads_km:bclcs_level_5_2OP", "coef_roads_km:bclcs_level_5_2SP", "AUC")
 
-head(top_mod_table_NDT5_light_t_Means)
+head(top_mod_table_NDT4_light_nt_Means)
 
-##Add data for NDT5
-top_mod_table_NDT5_light_t_Means[1,1]<-"lightning"
-top_mod_table_NDT5_light_t_Means[1,2]<-"NDT5"
-top_mod_table_NDT5_light_t_Means[1,3]<-"Y"
-top_mod_table_NDT5_light_t_Means[1,4]<-"escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125" 
-top_mod_table_NDT5_light_t_Means[1,5]<- mean(top_mod_table_NDT5_light_t_ALL$intercept) #Intercept
-top_mod_table_NDT5_light_t_Means[1,6]<- mean(top_mod_table_NDT5_light_t_ALL$coef_climate_1, na.rm=TRUE) #Climate variable 1
-top_mod_table_NDT5_light_t_Means[1,7]<- mean(top_mod_table_NDT5_light_t_ALL$coef_climate_2, na.rm=TRUE) #Climate variable 2
-top_mod_table_NDT5_light_t_Means[1,8]<- mean(top_mod_table_NDT5_light_t_ALL$coef_live_stand_volume_125, na.rm=TRUE) #
-top_mod_table_NDT5_light_t_Means[1,9]<- mean(top_mod_table_NDT5_light_t_ALL$`coef_climate1:climate2`, na.rm=TRUE) #
-top_mod_table_NDT5_light_t_Means[1,10]<- mean(top_mod_table_NDT5_light_t_ALL$AUC, na.rm=TRUE)
+##Add data for NDT4
+top_mod_table_NDT4_light_nt_Means[1,1]<-"lightning"
+top_mod_table_NDT4_light_nt_Means[1,2]<-"NDT4"
+top_mod_table_NDT4_light_nt_Means[1,3]<-"N"
+top_mod_table_NDT4_light_nt_Means[1,4]<-"escape ~ climate1 + vegtype2 + slope + elevation + slope:elevation + dist_mun + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2" 
+top_mod_table_NDT4_light_nt_Means[1,5]<- mean(top_mod_table_NDT4_light_nt_ALL$intercept) #Intercept
+top_mod_table_NDT4_light_nt_Means[1,6]<- mean(top_mod_table_NDT4_light_nt_ALL$coef_climate_1, na.rm=TRUE) #Climate variable 1
+top_mod_table_NDT4_light_nt_Means[1,7]<- mean(top_mod_table_NDT4_light_nt_ALL$coef_vegtypeOP, na.rm=TRUE) #
+top_mod_table_NDT4_light_nt_Means[1,8]<- mean(top_mod_table_NDT4_light_nt_ALL$coef_vegtypeS, na.rm=TRUE) #coefficient
+top_mod_table_NDT4_light_nt_Means[1,9]<- mean(top_mod_table_NDT4_light_nt_ALL$coef_slope, na.rm=TRUE) #coefficient vegtypeTC
+top_mod_table_NDT4_light_nt_Means[1,10]<- mean(top_mod_table_NDT4_light_nt_ALL$coef_elevation, na.rm=TRUE) #coefficient vegtypeTM
+top_mod_table_NDT4_light_nt_Means[1,11]<- mean(top_mod_table_NDT4_light_nt_ALL$coef_dist_mun, na.rm=TRUE) #coef_live_stand_volume_125
+top_mod_table_NDT4_light_nt_Means[1,12]<- mean(top_mod_table_NDT4_light_nt_ALL$coef_roads_km, na.rm=TRUE) 
+top_mod_table_NDT4_light_nt_Means[1,13]<- mean(top_mod_table_NDT4_light_nt_ALL$coef_bclcs_level_5_2OP, na.rm=TRUE) 
+top_mod_table_NDT4_light_nt_Means[1,14]<- mean(top_mod_table_NDT4_light_nt_ALL$coef_bclcs_level_5_2SP, na.rm=TRUE) 
+top_mod_table_NDT4_light_nt_Means[1,15]<- mean(top_mod_table_NDT4_light_nt_ALL$`coef_slope:elevation`, na.rm=TRUE)
+top_mod_table_NDT4_light_nt_Means[1,16]<- mean(top_mod_table_NDT4_light_nt_ALL$`coef_roads_km:bclcs_level_5_2OP`, na.rm=TRUE) #
+top_mod_table_NDT4_light_nt_Means[1,17]<- mean(top_mod_table_NDT4_light_nt_ALL$`coef_roads_km:bclcs_level_5_2SP`, na.rm=TRUE) #
+top_mod_table_NDT4_light_nt_Means[1,18]<- mean(top_mod_table_NDT4_light_nt_ALL$AUC, na.rm=TRUE)
 
-top_mod_table_NDT5_light_t_Means
+top_mod_table_NDT4_light_nt_Means
 
 ```
 
 Save mean coefficient table.
 
 ```{r}
-write.csv(top_mod_table_NDT5_light_t_Means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT5_light_t_Means.csv")
+write.csv(top_mod_table_NDT4_light_nt_Means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT4_light_nt_Means.csv")
 ```
-
 
 Get sd values.
 
 ```{r}
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT5_light_t_SD <- data.frame (matrix (ncol = 10, nrow = 0))
-colnames (top_mod_table_NDT5_light_t_SD ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_live_stand_volume_125", "coef_climate1:climate2", "AUC")
+top_mod_table_NDT4_light_nt_SD <- data.frame (matrix (ncol = 18, nrow = 0))
+colnames (top_mod_table_NDT4_light_nt_SD ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_vegtypeOP", "coef_vegtypeS", "coef_slope", "coef_elevation", "coef_dist_mun", "coef_roads_km", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_slope:elevation", "coef_roads_km:bclcs_level_5_2OP", "coef_roads_km:bclcs_level_5_2SP", "AUC")
 
-head(top_mod_table_NDT5_light_t_SD)
+head(top_mod_table_NDT4_light_nt_SD)
 
-##Add data for NDT5
-top_mod_table_NDT5_light_t_SD[1,1]<-"lightning"
-top_mod_table_NDT5_light_t_SD[1,2]<-"NDT5"
-top_mod_table_NDT5_light_t_SD[1,3]<-"Y"
-top_mod_table_NDT5_light_t_SD[1,4]<-"escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125" 
-top_mod_table_NDT5_light_t_SD[1,5]<- sd(top_mod_table_NDT5_light_t_ALL$intercept) #Intercept
-top_mod_table_NDT5_light_t_SD[1,6]<- sd(top_mod_table_NDT5_light_t_ALL$coef_climate_1, na.rm=TRUE) #Climate variable 1
-top_mod_table_NDT5_light_t_SD[1,7]<- sd(top_mod_table_NDT5_light_t_ALL$coef_climate_2, na.rm=TRUE) #Climate variable 2
-top_mod_table_NDT5_light_t_SD[1,8]<- sd(top_mod_table_NDT5_light_t_ALL$coef_live_stand_volume_125, na.rm=TRUE) #
-top_mod_table_NDT5_light_t_SD[1,9]<- sd(top_mod_table_NDT5_light_t_ALL$`coef_climate1:climate2`, na.rm=TRUE) #
-top_mod_table_NDT5_light_t_SD[1,10]<- sd(top_mod_table_NDT5_light_t_ALL$AUC, na.rm=TRUE)
+##Add data for NDT4
+top_mod_table_NDT4_light_nt_SD[1,1]<-"lightning"
+top_mod_table_NDT4_light_nt_SD[1,2]<-"NDT4"
+top_mod_table_NDT4_light_nt_SD[1,3]<-"N"
+top_mod_table_NDT4_light_nt_SD[1,4]<-"escape ~ climate1 + vegtype2 + slope + elevation + slope:elevation + dist_mun + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2" 
+top_mod_table_NDT4_light_nt_SD[1,5]<- sd(top_mod_table_NDT4_light_nt_ALL$intercept) #Intercept
+top_mod_table_NDT4_light_nt_SD[1,6]<- sd(top_mod_table_NDT4_light_nt_ALL$coef_climate_1, na.rm=TRUE) #Climate variable 1
+top_mod_table_NDT4_light_nt_SD[1,7]<- sd(top_mod_table_NDT4_light_nt_ALL$coef_vegtypeOP, na.rm=TRUE) #
+top_mod_table_NDT4_light_nt_SD[1,8]<- sd(top_mod_table_NDT4_light_nt_ALL$coef_vegtypeS, na.rm=TRUE) #coefficient
+top_mod_table_NDT4_light_nt_SD[1,9]<- sd(top_mod_table_NDT4_light_nt_ALL$coef_slope, na.rm=TRUE) #coefficient vegtypeTC
+top_mod_table_NDT4_light_nt_SD[1,10]<- sd(top_mod_table_NDT4_light_nt_ALL$coef_elevation, na.rm=TRUE) #coefficient vegtypeTM
+top_mod_table_NDT4_light_nt_SD[1,11]<- sd(top_mod_table_NDT4_light_nt_ALL$coef_dist_mun, na.rm=TRUE) #coef_live_stand_volume_125
+top_mod_table_NDT4_light_nt_SD[1,12]<- sd(top_mod_table_NDT4_light_nt_ALL$coef_roads_km, na.rm=TRUE) 
+top_mod_table_NDT4_light_nt_SD[1,13]<- sd(top_mod_table_NDT4_light_nt_ALL$coef_bclcs_level_5_2OP, na.rm=TRUE) 
+top_mod_table_NDT4_light_nt_SD[1,14]<- sd(top_mod_table_NDT4_light_nt_ALL$coef_bclcs_level_5_2SP, na.rm=TRUE) 
+top_mod_table_NDT4_light_nt_SD[1,15]<- sd(top_mod_table_NDT4_light_nt_ALL$`coef_slope:elevation`, na.rm=TRUE)
+top_mod_table_NDT4_light_nt_SD[1,16]<- sd(top_mod_table_NDT4_light_nt_ALL$`coef_roads_km:bclcs_level_5_2OP`, na.rm=TRUE) #
+top_mod_table_NDT4_light_nt_SD[1,17]<- sd(top_mod_table_NDT4_light_nt_ALL$`coef_roads_km:bclcs_level_5_2SP`, na.rm=TRUE) #
+top_mod_table_NDT4_light_nt_SD[1,18]<- sd(top_mod_table_NDT4_light_nt_ALL$AUC, na.rm=TRUE)
 
-top_mod_table_NDT5_light_t_SD
+top_mod_table_NDT4_light_nt_SD
 
 ```
 
 Save sd coefficient table.
 
 ```{r}
-write.csv(top_mod_table_NDT5_light_t_SD, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT5_light_t_SD.csv")
+write.csv(top_mod_table_NDT4_light_nt_SD, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT4_light_nt_SD.csv")
 ```
-

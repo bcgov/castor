@@ -42,6 +42,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 -->
 
+#=================================
+#  Script Name: 09b_fire_ignition_model_selection_NDT2_lightning_treed.R
+#  Script Version: 1.0
+#  Script Purpose: Model selection, using various initial models to inform the final model selection.
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
 #Load data back in if starting from here
 Note: depending where your geometry column was located when saved as a csv (and turned into a dataframe), you may need to manually correct column headings on the csv file before loading back in. This has been performed for the below files.
 

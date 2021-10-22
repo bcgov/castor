@@ -41,6 +41,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 -->
 
+#=================================
+#  Script Name: 09b_2_fire_ignition_model_selection_NDT2_lightning_NotTreed.R
+#  Script Version: 1.0
+#  Script Purpose: Model selection, using various initial models to inform the final model selection.
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
 #Load data back in if starting from here
 Note: depending where your geometry column was located when saved as a csv (and turned into a dataframe), you may need to manually correct column headings on the csv file before loading back in. This has been performed for the below files.
 
@@ -876,7 +883,7 @@ colnames (top_mod_table_NDT2_light_nt ) <- c ("CAUSE", "NDT", "TREED", "Model_te
 ##Add data for NDT2
 top_mod_table_NDT2_light_nt[1,1]<-"lightning"
 top_mod_table_NDT2_light_nt[1,2]<-"NDT2"
-top_mod_table_NDT2_light_nt[1,3]<-"Y"
+top_mod_table_NDT2_light_nt[1,3]<-"N"
 top_mod_table_NDT2_light_nt[1,4]<-"fire_pres ~ climate1 + climate2  + climate1:climate2 + slope + elevation + slope:elevation +  dist_mun" 
 top_mod_table_NDT2_light_nt[1,5]<- coef(model.NDT2)[1] #Intercept
 top_mod_table_NDT2_light_nt[1,6]<- coef(model.NDT2)[2] #Climate variable 1
@@ -921,7 +928,7 @@ head(top_mod_table_NDT2_light_nt_Means)
 ##Add data for NDT2
 top_mod_table_NDT2_light_nt_Means[1,1]<-"lightning"
 top_mod_table_NDT2_light_nt_Means[1,2]<-"NDT2"
-top_mod_table_NDT2_light_nt_Means[1,3]<-"Y"
+top_mod_table_NDT2_light_nt_Means[1,3]<-"N"
 top_mod_table_NDT2_light_nt_Means[1,4]<-"fire_pres ~ climate1 + climate2  + climate1:climate2 + slope + elevation + slope:elevation +  dist_mun" 
 top_mod_table_NDT2_light_nt_Means[1,5]<- mean(top_mod_table_NDT2_light_nt_ALL$intercept) #
 top_mod_table_NDT2_light_nt_Means[1,6]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_climate_1, na.rm=TRUE) #
@@ -955,7 +962,7 @@ head(top_mod_table_NDT2_light_nt_SD)
 ##Add data for NDT2
 top_mod_table_NDT2_light_nt_SD[1,1]<-"lightning"
 top_mod_table_NDT2_light_nt_SD[1,2]<-"NDT2"
-top_mod_table_NDT2_light_nt_SD[1,3]<-"Y"
+top_mod_table_NDT2_light_nt_SD[1,3]<-"N"
 top_mod_table_NDT2_light_nt_SD[1,4]<-"fire_pres ~ climate1 + climate2  + climate1:climate2 + slope + elevation + slope:elevation +  dist_mun" 
 top_mod_table_NDT2_light_nt_SD[1,5]<- sd(top_mod_table_NDT2_light_nt_ALL$intercept) #
 top_mod_table_NDT2_light_nt_SD[1,6]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_climate_1, na.rm=TRUE) #

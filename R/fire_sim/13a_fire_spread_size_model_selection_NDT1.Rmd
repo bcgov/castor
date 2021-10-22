@@ -59,6 +59,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 -->
 
+#=================================
+#  Script Name: 13a_fire_spread_size_model_selection_NDT1.R
+#  Script Version: 1.0
+#  Script Purpose: model selection for fire size (part of spread) by NDT.
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
 #Objective
 The objective of this file is to determine the best model for predicting fire size, given climate, topography, infrastructure, etc. Prior models were logistic regression (0/1) and used AUC to assess quality. Here, we will be working with continuous data and will assess model fit via R-squared, root mean squared error, and cross-validation. We will first attempt linear regressions, but may need to consider other distributions.
 

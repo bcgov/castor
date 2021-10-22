@@ -1,5 +1,5 @@
 ---
-title: "09_Fire ignition model fit by BEC zone"
+title: "09_Fire_ignition_model_fits_by_NDT_data_prep"
 author: "Elizabeth Kleynhans and Cora Skaien"
 contributor: "Peter Ott"
 date: "20/04/2021"
@@ -53,6 +53,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 -->
+
+#=================================
+#  Script Name: 09_Fire_ignition_model_fits_by_NDT_data_prep.R
+#  Script Version: 1.0
+#  Script Purpose: Prepare the data to use in model selection for ignition models.
+#  Script Authors: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+# Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
 
 ## Introduction
 
@@ -267,18 +276,6 @@ dat_lightning_$aspect_radians<-(dat_lightning_$aspect*pi)/180
 hist(dat_lightning_$aspect_radians)
 
 dat_lightning_$aspect_cos<-cos(dat_lightning_$aspect_radians) #try cos because I hypothesize that southern aspects would be most likely to have higher likelihood of fire. 180 degrees is -1 with cos, and north is plus 1.
-```
-
-Check values for percent dead.
-
-```{r}
-hist(dat_lightning_$stand_percentage_dead)
-min(dat_lightning_$stand_percentage_dead) #NA
-table(dat_lightning_$stand_percentage_dead) # There are 9 cases with 0. A few thousand with NA
-dat_lightning_$stand_percentage_dead
-
-#Not an accurate measure. Do not use.
-
 ```
 
 View plots.
@@ -610,17 +607,17 @@ p
 Save data.
 
 ```{r}
-write.csv(dat_lightning_, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_Sept.csv")
+write.csv(dat_lightning_, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_Oct.csv")
 
-write.csv(dat_person_, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_Sept.csv")
+write.csv(dat_person_, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_Oct.csv")
 
 #Can read the data in
-dat_lightning_<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_Sept.csv")
+dat_lightning_<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_Oct.csv")
 
-dat_person_<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_Sept.csv")
+dat_person_<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_Oct.csv")
 ```
 
-#Before sub-seeting data by treed and not treed, assess vegtype and land use type for both lightning and person-casued fires.
+#Before sub-setting data by treed and not treed, assess vegtype and land use type for both lightning and person-casued fires.
 
 Assess landuse type distribution
 ```{r}
@@ -703,6 +700,7 @@ table(dat_lightning_$bclcs_level_5_2, dat_lightning_$vegtype)
 table(dat_lightning_$bclcs_level_5_2)
 #There are only 7 burned sites distributed across 3 BEC zones; insufficient to do any analysis on anyway. Will remove.
 dat_lightning_<-subset(dat_lightning_,dat_lightning_$bclcs_level_5!="BU")
+dat_lightning_<-subset(dat_lightning_,dat_lightning_$bclcs_level_5!="RT")
 
 ```
 
@@ -733,7 +731,7 @@ dat_lightning_ <- dat_lightning_ %>%
                                                            if_else(bclcs_level_4=="RO","RO",
                                                                    if_else(bclcs_level_4=="SI", "SI",                                         vegtype2))))))))
 dat_lightning_$vegtype2[which(dat_lightning_$proj_age_1 <16)]<-"D" #
-table(dat_lightning_$vegtype2) #D: Disturbed; OP: Open; RO: Rock; S: Shurb; SI: Snow/Ice; TB: Treed Broadleaf; TC: Treed Conifer; TM: Treed Mixed.
+table(dat_lightning_$vegtype2) #D: Disturbed; OP: Open; RO: Rock; S: Shrub; SI: Snow/Ice; TB: Treed Broadleaf; TC: Treed Conifer; TM: Treed Mixed.
 
 
 table(dat_lightning_$bclcs_level_5_2, dat_lightning_$vegtype2)
@@ -916,9 +914,9 @@ head(dat_person)
 
 ```{r}
 
-write.csv(dat_lightning_, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_Sept.csv")
+write.csv(dat_lightning_, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_Oct.csv")
 
-write.csv(dat_person, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_Sept.csv")
+write.csv(dat_person, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_Oct.csv")
 
 ```
 
@@ -933,9 +931,9 @@ dat_lightning_t<- dat_lightning_ %>% dplyr::filter(bclcs_level_2=="T")
 dat_lightning_nt<- dat_lightning_ %>% dplyr::filter(bclcs_level_2=="N")
 dat_lightning_l<- dat_lightning_ %>% dplyr::filter(bclcs_level_2=="L")
 
-table(dat_lightning_$vegtype)
-table(dat_lightning_t$vegtype) #either disturbed, open, treed broadleaf, treed conifer, or treed mixed broadleaf and conifer
-table(dat_lightning_nt$vegtype) #either disturbed, open or shrub
+table(dat_lightning_$vegtype2)
+table(dat_lightning_t$vegtype2) #either disturbed, open, treed broadleaf, treed conifer, or treed mixed broadleaf and conifer
+table(dat_lightning_nt$vegtype2) #either disturbed, open or shrub
 
 ggscatter(dat_lightning_t, x = "live_stand_volume_125", y = "proj_age_1", 
           add = "reg.line", conf.int = TRUE, 
@@ -1038,13 +1036,13 @@ hist(dat_person_l$live_stand_volume_125)
 Save the prepped data
 
 ```{r}
-write.csv(dat_lightning_t, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_trees_NDT.csv")
+write.csv(dat_lightning_t, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_trees_NDT_Oct.csv")
 
-write.csv(dat_lightning_nt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_notrees_NDT.csv")
+write.csv(dat_lightning_nt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_notrees_NDT_Oct.csv")
 
-write.csv(dat_person_t, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_trees_NDT.csv")
+write.csv(dat_person_t, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_trees_NDT_Oct.csv")
 
-write.csv(dat_person_nt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_notrees_NDT.csv")
+write.csv(dat_person_nt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_notrees_NDT_Oct.csv")
 
 ```
 
