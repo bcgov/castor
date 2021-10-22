@@ -58,6 +58,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 -->
 
+#=================================
+#  Script Name: 12b_2_fire_escape_model_selection_NDT2_NotTreed.R
+#  Script Version: 1.0
+#  Script Purpose: Model selection for escape by NDT.
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
 Load in the prepped data.
 
 ```{r}
@@ -897,21 +904,14 @@ binnedplot (NDT2_escape_nt$climate1,
 # Diagnostic plots look okay
 ```
 
-
-
-
-
-
-UPDATE BELOW!
-
 We should repeat the above several times and take the mean of the coefficients.
 
 ```{r}
 summary(model.NDT2)
 
 #Create a new blank table and get AUC too
-top_mod_table_NDT2_light_nt_ALL <- data.frame (matrix (ncol = 19, nrow = 0))
-colnames (top_mod_table_NDT2_light_nt_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtypeOP", "coef_vegtypeS", "coef_slope", "coef_aspect", "coef_elevation", "coef_wind_atfire", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP",  "coef_climate2:elevation", "coef_vegtype2OP:wind_atfire", "coef_vegtype2S:wind_atfire", "AUC")
+top_mod_table_NDT2_light_nt_ALL <- data.frame (matrix (ncol = 23, nrow = 0))
+colnames (top_mod_table_NDT2_light_nt_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_slope", "coef_aspect", "coef_wind_atfire", "coef_dist_dam", "coef_dist_nat", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_elevation", "coef_vegtypeOP", "coef_vegtypeS", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2SP", "coef_wind_atfire:vegtype2OP", "coef_wind_atfire:vegtype2S", "AUC")
 ```
 
 Let's run it 500 times to get good mean values.
@@ -937,29 +937,33 @@ mod.valid <- predict.glm(model.NDT2, newdata=Valid, type="response")
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT2_light_nt <- data.frame (matrix (ncol = 19, nrow = 0))
-colnames (top_mod_table_NDT2_light_nt ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtypeOP", "coef_vegtypeS", "coef_slope", "coef_aspect", "coef_elevation", "coef_wind_atfire", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP",  "coef_climate2:elevation", "coef_vegtype2OP:wind_atfire", "coef_vegtype2S:wind_atfire", "AUC")
+top_mod_table_NDT2_light_nt <- data.frame (matrix (ncol = 23, nrow = 0))
+colnames (top_mod_table_NDT2_light_nt ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_slope", "coef_aspect", "coef_wind_atfire", "coef_dist_dam", "coef_dist_nat", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_elevation", "coef_vegtypeOP", "coef_vegtypeS", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2SP", "coef_wind_atfire:vegtype2OP", "coef_wind_atfire:vegtype2S", "AUC")
 
 ##Add data for NDT2
 top_mod_table_NDT2_light_nt[1,1]<-"lightning"
 top_mod_table_NDT2_light_nt[1,2]<-"NDT2"
-top_mod_table_NDT2_light_nt[1,3]<-"Y"
+top_mod_table_NDT2_light_nt[1,3]<-"N"
 top_mod_table_NDT2_light_nt[1,4]<-"escape ~ climate1 + slope + aspect + wind_atfire  + dist_dam + dist_nat  + bclcs_level_5_2  + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2  + elevation  + vegtype2 + wind_atfire:vegtype2" 
 top_mod_table_NDT2_light_nt[1,5]<- coef(model.NDT2)[1] #Intercept
-top_mod_table_NDT2_light_nt[1,6]<- coef(model.NDT2)[2] #Climate variable 1
-top_mod_table_NDT2_light_nt[1,7]<- coef(model.NDT2)[3] #Climate variable 2
-top_mod_table_NDT2_light_nt[1,8]<- coef(model.NDT2)[4] #coefficient vegtypeOP
-top_mod_table_NDT2_light_nt[1,9]<- coef(model.NDT2)[5] #coefficient vegtypeS
-top_mod_table_NDT2_light_nt[1,10]<- coef(model.NDT2)[6] #coefficient slope
-top_mod_table_NDT2_light_nt[1,11]<- coef(model.NDT2)[7] #coef aspect
-top_mod_table_NDT2_light_nt[1,12]<- coef(model.NDT2)[8] #coefficient elevation
-top_mod_table_NDT2_light_nt[1,13]<- coef(model.NDT2)[9] #coefficient wind_atfire
-top_mod_table_NDT2_light_nt[1,14]<- coef(model.NDT2)[10] #coefficient  bclcs_level_5_2OP
-top_mod_table_NDT2_light_nt[1,15]<- coef(model.NDT2)[11] #coefficient bclcs_level_5_2SP
-top_mod_table_NDT2_light_nt[1,16]<- coef(model.NDT2)[12] #coefficient climate2:elevation
-top_mod_table_NDT2_light_nt[1,17]<- coef(model.NDT2)[13] #coefficient vegtype2OP:wind_atfire
-top_mod_table_NDT2_light_nt[1,18]<- coef(model.NDT2)[14] #coefficient vegtype2S:wind_atfire
-top_mod_table_NDT2_light_nt[1,19]<- mod.auc
+top_mod_table_NDT2_light_nt[1,6]<- coef(model.NDT2)[2] #climate1
+top_mod_table_NDT2_light_nt[1,7]<- coef(model.NDT2)[3] #slope
+top_mod_table_NDT2_light_nt[1,8]<- coef(model.NDT2)[4] #coefficient aspect
+top_mod_table_NDT2_light_nt[1,9]<- coef(model.NDT2)[5] #coefficient wind_atfire
+top_mod_table_NDT2_light_nt[1,10]<- coef(model.NDT2)[6] #coefficient dist_dam
+top_mod_table_NDT2_light_nt[1,11]<- coef(model.NDT2)[7] #coef dist_nat
+top_mod_table_NDT2_light_nt[1,12]<- coef(model.NDT2)[8] #coefficient bclcs_level_5_2_OP
+top_mod_table_NDT2_light_nt[1,13]<- coef(model.NDT2)[9] #coefficient bclcs_level_5_2_SP
+top_mod_table_NDT2_light_nt[1,14]<- coef(model.NDT2)[10] #coefficient elevation
+top_mod_table_NDT2_light_nt[1,15]<- coef(model.NDT2)[11] #coefficient vegtype2OP
+top_mod_table_NDT2_light_nt[1,16]<- coef(model.NDT2)[12] #coefficient vegtype2S
+top_mod_table_NDT2_light_nt[1,17]<- coef(model.NDT2)[13] #coefficient dist_dam:bclcs_level_5_2OP
+top_mod_table_NDT2_light_nt[1,18]<- coef(model.NDT2)[14] #coefficient dist_dam:bclcs_level_5_2SP
+top_mod_table_NDT2_light_nt[1,19]<- coef(model.NDT2)[15] #coefficient dist_nat:bclcs_level_5_2OP
+top_mod_table_NDT2_light_nt[1,20]<- coef(model.NDT2)[16] #coefficient dist_nat:bclcs_level_5_2SP
+top_mod_table_NDT2_light_nt[1,21]<- coef(model.NDT2)[17] #coefficient wind_atfire:vegtype2OP
+top_mod_table_NDT2_light_nt[1,22]<- coef(model.NDT2)[18] #coefficient wind_atfire:vegtype2S 
+top_mod_table_NDT2_light_nt[1,23]<- mod.auc
 
 top_mod_table_NDT2_light_nt_ALL<-rbind(top_mod_table_NDT2_light_nt_ALL, top_mod_table_NDT2_light_nt)
 
@@ -983,34 +987,38 @@ Get mean values.
 
 ```{r}
 names(top_mod_table_NDT2_light_nt_ALL)
-mean(top_mod_table_NDT2_light_nt_ALL$AUC) #0.67 --> not nearly as good as the first subsetted data! I lucked out it seems.
+mean(top_mod_table_NDT2_light_nt_ALL$AUC) # 0.71
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT2_light_nt_Means <- data.frame (matrix (ncol = 19, nrow = 0))
-colnames (top_mod_table_NDT2_light_nt_Means ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtypeOP", "coef_vegtypeS", "coef_slope", "coef_aspect", "coef_elevation", "coef_wind_atfire", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP",  "coef_climate2:elevation", "coef_vegtype2OP:wind_atfire", "coef_vegtype2S:wind_atfire", "AUC")
+top_mod_table_NDT2_light_nt_Means <- data.frame (matrix (ncol = 23, nrow = 0))
+colnames (top_mod_table_NDT2_light_nt_Means ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_slope", "coef_aspect", "coef_wind_atfire", "coef_dist_dam", "coef_dist_nat", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_elevation", "coef_vegtypeOP", "coef_vegtypeS", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2SP", "coef_wind_atfire:vegtype2OP", "coef_wind_atfire:vegtype2S", "AUC")
 
 head(top_mod_table_NDT2_light_nt_Means)
 
 ##Add data for NDT2
 top_mod_table_NDT2_light_nt_Means[1,1]<-"lightning"
 top_mod_table_NDT2_light_nt_Means[1,2]<-"NDT2"
-top_mod_table_NDT2_light_nt_Means[1,3]<-"Y"
+top_mod_table_NDT2_light_nt_Means[1,3]<-"N"
 top_mod_table_NDT2_light_nt_Means[1,4]<-"escape ~ climate1 + slope + aspect + wind_atfire  + dist_dam + dist_nat  + bclcs_level_5_2  + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2  + elevation  + vegtype2 + wind_atfire:vegtype2" 
 top_mod_table_NDT2_light_nt_Means[1,5]<- mean(top_mod_table_NDT2_light_nt_ALL$intercept) #Intercept
 top_mod_table_NDT2_light_nt_Means[1,6]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_climate_1, na.rm=TRUE) #Climate variable 1
-top_mod_table_NDT2_light_nt_Means[1,7]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_climate_2, na.rm=TRUE) #Climate variable 2
-top_mod_table_NDT2_light_nt_Means[1,8]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_vegtypeOP, na.rm=TRUE) #coefficient vegtypeTB
-top_mod_table_NDT2_light_nt_Means[1,9]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_vegtypeS, na.rm=TRUE) #coefficient vegtypeTC
-top_mod_table_NDT2_light_nt_Means[1,10]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_slope, na.rm=TRUE) #coefficient vegtypeTM
-top_mod_table_NDT2_light_nt_Means[1,11]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_aspect, na.rm=TRUE) #coef_live_stand_volume_125
-top_mod_table_NDT2_light_nt_Means[1,12]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_elevation, na.rm=TRUE) 
-top_mod_table_NDT2_light_nt_Means[1,13]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_wind_atfire, na.rm=TRUE) 
-top_mod_table_NDT2_light_nt_Means[1,14]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_bclcs_level_5_2OP, na.rm=TRUE) 
-top_mod_table_NDT2_light_nt_Means[1,15]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_bclcs_level_5_2SP, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_Means[1,16]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_climate2:elevation`, na.rm=TRUE) #
-top_mod_table_NDT2_light_nt_Means[1,17]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_vegtype2OP:wind_atfire`, na.rm=TRUE) #
-top_mod_table_NDT2_light_nt_Means[1,18]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_vegtype2S:wind_atfire`, na.rm=TRUE) 
-top_mod_table_NDT2_light_nt_Means[1,19]<- mean(top_mod_table_NDT2_light_nt_ALL$AUC, na.rm=TRUE)
+top_mod_table_NDT2_light_nt_Means[1,7]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_slope, na.rm=TRUE) #
+top_mod_table_NDT2_light_nt_Means[1,8]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_aspect, na.rm=TRUE) #coefficient
+top_mod_table_NDT2_light_nt_Means[1,9]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_wind_atfire, na.rm=TRUE) #coefficient vegtypeTC
+top_mod_table_NDT2_light_nt_Means[1,10]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_dist_dam, na.rm=TRUE) #coefficient vegtypeTM
+top_mod_table_NDT2_light_nt_Means[1,11]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_dist_nat, na.rm=TRUE) #coef_live_stand_volume_125
+top_mod_table_NDT2_light_nt_Means[1,12]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_bclcs_level_5_2OP, na.rm=TRUE) 
+top_mod_table_NDT2_light_nt_Means[1,13]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_bclcs_level_5_2SP, na.rm=TRUE) 
+top_mod_table_NDT2_light_nt_Means[1,14]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_elevation, na.rm=TRUE) 
+top_mod_table_NDT2_light_nt_Means[1,15]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_vegtypeOP, na.rm=TRUE)
+top_mod_table_NDT2_light_nt_Means[1,16]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_vegtypeS, na.rm=TRUE) #
+top_mod_table_NDT2_light_nt_Means[1,17]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_dist_dam:bclcs_level_5_2OP`, na.rm=TRUE) #
+top_mod_table_NDT2_light_nt_Means[1,18]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_dist_dam:bclcs_level_5_2SP`, na.rm=TRUE)
+top_mod_table_NDT2_light_nt_Means[1,19]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_dist_nat:bclcs_level_5_2OP`, na.rm=TRUE)
+top_mod_table_NDT2_light_nt_Means[1,20]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_dist_nat:bclcs_level_5_2SP`, na.rm=TRUE)
+top_mod_table_NDT2_light_nt_Means[1,21]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_wind_atfire:vegtype2OP`, na.rm=TRUE)
+top_mod_table_NDT2_light_nt_Means[1,22]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_wind_atfire:vegtype2S`, na.rm=TRUE)
+top_mod_table_NDT2_light_nt_Means[1,23]<- mean(top_mod_table_NDT2_light_nt_ALL$AUC, na.rm=TRUE)
 
 top_mod_table_NDT2_light_nt_Means
 
@@ -1022,36 +1030,39 @@ Save mean coefficient table.
 write.csv(top_mod_table_NDT2_light_nt_Means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT2_light_nt_Means.csv")
 ```
 
-
 Get sd values.
 
 ```{r}
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT2_light_nt_SD <- data.frame (matrix (ncol = 19, nrow = 0))
-colnames (top_mod_table_NDT2_light_nt_SD ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtypeOP", "coef_vegtypeS", "coef_slope", "coef_aspect", "coef_elevation", "coef_wind_atfire", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP",  "coef_climate2:elevation", "coef_vegtype2OP:wind_atfire", "coef_vegtype2S:wind_atfire", "AUC")
+top_mod_table_NDT2_light_nt_SD <- data.frame (matrix (ncol = 23, nrow = 0))
+colnames (top_mod_table_NDT2_light_nt_SD ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_slope", "coef_aspect", "coef_wind_atfire", "coef_dist_dam", "coef_dist_nat", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_elevation", "coef_vegtypeOP", "coef_vegtypeS", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2SP", "coef_wind_atfire:vegtype2OP", "coef_wind_atfire:vegtype2S", "AUC")
 
 head(top_mod_table_NDT2_light_nt_SD)
 
 ##Add data for NDT2
 top_mod_table_NDT2_light_nt_SD[1,1]<-"lightning"
 top_mod_table_NDT2_light_nt_SD[1,2]<-"NDT2"
-top_mod_table_NDT2_light_nt_SD[1,3]<-"Y"
+top_mod_table_NDT2_light_nt_SD[1,3]<-"N"
 top_mod_table_NDT2_light_nt_SD[1,4]<-"escape ~ climate1 + slope + aspect + wind_atfire  + dist_dam + dist_nat  + bclcs_level_5_2  + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2  + elevation  + vegtype2 + wind_atfire:vegtype2" 
 top_mod_table_NDT2_light_nt_SD[1,5]<- sd(top_mod_table_NDT2_light_nt_ALL$intercept) #Intercept
 top_mod_table_NDT2_light_nt_SD[1,6]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_climate_1, na.rm=TRUE) #Climate variable 1
-top_mod_table_NDT2_light_nt_SD[1,7]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_climate_2, na.rm=TRUE) #Climate variable 2
-top_mod_table_NDT2_light_nt_SD[1,8]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_vegtypeOP, na.rm=TRUE) #coefficient vegtypeTB
-top_mod_table_NDT2_light_nt_SD[1,9]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_vegtypeS, na.rm=TRUE) #coefficient vegtypeTC
-top_mod_table_NDT2_light_nt_SD[1,10]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_slope, na.rm=TRUE) #coefficient vegtypeTM
-top_mod_table_NDT2_light_nt_SD[1,11]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_aspect, na.rm=TRUE) #coef_live_stand_volume_125
-top_mod_table_NDT2_light_nt_SD[1,12]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_elevation, na.rm=TRUE) 
-top_mod_table_NDT2_light_nt_SD[1,13]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_wind_atfire, na.rm=TRUE) 
-top_mod_table_NDT2_light_nt_SD[1,14]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_bclcs_level_5_2OP, na.rm=TRUE) 
-top_mod_table_NDT2_light_nt_SD[1,15]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_bclcs_level_5_2SP, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_SD[1,16]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_climate2:elevation`, na.rm=TRUE) #
-top_mod_table_NDT2_light_nt_SD[1,17]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_vegtype2OP:wind_atfire`, na.rm=TRUE) #
-top_mod_table_NDT2_light_nt_SD[1,18]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_vegtype2S:wind_atfire`, na.rm=TRUE) 
-top_mod_table_NDT2_light_nt_SD[1,19]<- sd(top_mod_table_NDT2_light_nt_ALL$AUC, na.rm=TRUE)
+top_mod_table_NDT2_light_nt_SD[1,7]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_slope, na.rm=TRUE) #
+top_mod_table_NDT2_light_nt_SD[1,8]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_aspect, na.rm=TRUE) #coefficient
+top_mod_table_NDT2_light_nt_SD[1,9]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_wind_atfire, na.rm=TRUE) #coefficient vegtypeTC
+top_mod_table_NDT2_light_nt_SD[1,10]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_dist_dam, na.rm=TRUE) #coefficient vegtypeTM
+top_mod_table_NDT2_light_nt_SD[1,11]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_dist_nat, na.rm=TRUE) #coef_live_stand_volume_125
+top_mod_table_NDT2_light_nt_SD[1,12]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_bclcs_level_5_2OP, na.rm=TRUE) 
+top_mod_table_NDT2_light_nt_SD[1,13]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_bclcs_level_5_2SP, na.rm=TRUE) 
+top_mod_table_NDT2_light_nt_SD[1,14]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_elevation, na.rm=TRUE) 
+top_mod_table_NDT2_light_nt_SD[1,15]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_vegtypeOP, na.rm=TRUE)
+top_mod_table_NDT2_light_nt_SD[1,16]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_vegtypeS, na.rm=TRUE) #
+top_mod_table_NDT2_light_nt_SD[1,17]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_dist_dam:bclcs_level_5_2OP`, na.rm=TRUE) #
+top_mod_table_NDT2_light_nt_SD[1,18]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_dist_dam:bclcs_level_5_2SP`, na.rm=TRUE)
+top_mod_table_NDT2_light_nt_SD[1,19]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_dist_nat:bclcs_level_5_2OP`, na.rm=TRUE)
+top_mod_table_NDT2_light_nt_SD[1,20]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_dist_nat:bclcs_level_5_2SP`, na.rm=TRUE)
+top_mod_table_NDT2_light_nt_SD[1,21]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_wind_atfire:vegtype2OP`, na.rm=TRUE)
+top_mod_table_NDT2_light_nt_SD[1,22]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_wind_atfire:vegtype2S`, na.rm=TRUE)
+top_mod_table_NDT2_light_nt_SD[1,23]<- sd(top_mod_table_NDT2_light_nt_ALL$AUC, na.rm=TRUE)
 
 top_mod_table_NDT2_light_nt_SD
 

@@ -24,6 +24,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 -->
 
+#=================================
+#  Script Name: 10_fire_escape_data_prep.R
+#  Script Version: 1.0
+#  Script Purpose: preparing data for escape models 
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
 #Overview
 In Marchal et al. 2020, they define escape as "the probability that a fire will reach a size of at least 1 ha". We will inspect the ignition data and see the size of each fire. We will then separate them into those that are <1 ha in size, and those that are > 1 ha in size. From this, we can use logistic regression, including climate variables, topography (aspect and slope), and VRI data. Below currently only accounts for lightning caused fires. Human caused fires will be modelled down the road.
 
