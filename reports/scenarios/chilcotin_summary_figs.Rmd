@@ -33,7 +33,8 @@ dbDisconnect (conn)
 
 data.summ <- data.harvest %>% # get summary data
                group_by (scenario, timeperiod) %>% 
-                 summarise (volume = sum (volume))
+                 summarise (volume = sum (volume)) %>%
+                   filter (scenario != "chilcotin_scen2")
 
 harvest <- ggplot (data.summ, aes (x = timeperiod, y = volume, color = scenario, linetype = scenario)) +
               geom_line (position = position_dodge (width = 1), size = 1) + 
@@ -42,8 +43,10 @@ harvest <- ggplot (data.summ, aes (x = timeperiod, y = volume, color = scenario,
 Williams Lake Timber Supply Areas for Each Scenario", 
                     x = "Future Year", 
                     y = "Volume Harvested (m3)") + 
-              scale_color_discrete (name = "Scenario", labels = c("BAU", "1a", "1b", "1c", "2")) +
-              scale_linetype_discrete (name = "Scenario", labels = c("BAU", "1a", "1b", "1c", "2")) +
+              scale_color_discrete (name = "Scenario", 
+                                    labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
+              scale_linetype_discrete (name = "Scenario", 
+                                       labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
               theme (legend.position = c (0.15, 0.15),
                      legend.title = element_text(size = 10),
                      legend.text = element_text( size = 8)) +
@@ -95,13 +98,17 @@ data.disturb.nobuff.itcha <- data.summ.disturb.nobuff %>%
                                         critical_hab == "Itcha_Ilgachuz LESR" |
                                         critical_hab == "Itcha_Ilgachuz LEWR" | 
                                         critical_hab == "Itcha_Ilgachuz Matrix") %>%
-                                filter (scenario != "load_data")
+                                filter (scenario != "load_data") %>%
+                                  filter (scenario != "chilcotin_scen2") 
+
+
 data.disturb.buff.itcha <- data.summ.disturb.buff %>%
                               filter (critical_hab == "Itcha_Ilgachuz HEWSR" | 
                                         critical_hab == "Itcha_Ilgachuz LESR" |
                                         critical_hab == "Itcha_Ilgachuz LEWR" | 
                                         critical_hab == "Itcha_Ilgachuz Matrix") %>%
-                                filter (scenario != "load_data")
+                                filter (scenario != "load_data") %>%
+                                  filter (scenario != "chilcotin_scen2") 
 
 plot.disturb.nobuff <- ggplot (data.disturb.nobuff.itcha, 
                                aes (x = timeperiod, y = disturb, 
@@ -112,7 +119,9 @@ plot.disturb.nobuff <- ggplot (data.disturb.nobuff.itcha,
                                             'chilcotin_scen1a' = "Scenario 1a",
                                             'chilcotin_scen1b' = "Scenario 1b",
                                             'chilcotin_scen1c' = "Scenario 1c",
-                                            'chilcotin_scen2' = "Scenario 2"))
+                                            'chilcotin_scen2a' = "Scenario 2a",
+                                            'chilcotin_scen2b' = "Scenario 2b",
+                                            'chilcotin_scen2c' = "Scenario 2c"))
                               ) +
                   labs (title = "Disturbance (no Buffer) in Ithca-Ilgachuz Caribou Critical Habitat 
 for Each Scenario", 
@@ -138,7 +147,9 @@ plot.disturb.buff <- ggplot (data.disturb.buff.itcha,
                                             'chilcotin_scen1a' = "Scenario 1a",
                                             'chilcotin_scen1b' = "Scenario 1b",
                                             'chilcotin_scen1c' = "Scenario 1c",
-                                            'chilcotin_scen2' = "Scenario 2"))
+                                            'chilcotin_scen2a' = "Scenario 2a",
+                                            'chilcotin_scen2b' = "Scenario 2b",
+                                            'chilcotin_scen2c' = "Scenario 2c"))
                               ) +
                   labs (title = "Disturbance (500m Buffer) in Ithca-Ilgachuz Caribou Critical Habitat 
 for Each Scenario", 
@@ -160,15 +171,15 @@ ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\imag
         plot = plot.disturb.nobuff,
         dpi = 300,
         device = "jpeg",
-        width = 6, 
-        height = 4)
+        width = 9, 
+        height = 6)
 
 ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbnace_itcha_buff500.jpg", 
         plot = plot.disturb.buff,
         dpi = 300,
         device = "jpeg",
-        width = 6, 
-        height = 4)
+        width = 9, 
+        height = 6)
 
 ###########
 # Rainbows
@@ -178,13 +189,15 @@ data.disturb.nobuff.rain <- data.summ.disturb.nobuff %>%
                                         critical_hab == "Rainbows LESR" |
                                         critical_hab == "Rainbows LEWR" | 
                                         critical_hab == "Rainbows Matrix") %>%
-                                filter (scenario != "load_data")
+                                filter (scenario != "load_data") %>%
+                                  filter (scenario != "chilcotin_scen2") 
 data.disturb.buff.rain <- data.summ.disturb.buff %>%
                               filter (critical_hab == "Rainbows HEWSR" | 
                                         critical_hab == "Rainbows LESR" |
                                         critical_hab == "Rainbows LEWR" | 
                                         critical_hab == "Rainbows Matrix") %>%
-                                filter (scenario != "load_data")
+                                filter (scenario != "load_data") %>%
+                                  filter (scenario != "chilcotin_scen2") 
 
 
 plot.disturb.nobuff.rain <- ggplot (data.disturb.nobuff.rain, 
@@ -196,7 +209,9 @@ plot.disturb.nobuff.rain <- ggplot (data.disturb.nobuff.rain,
                                             'chilcotin_scen1a' = "Scenario 1a",
                                             'chilcotin_scen1b' = "Scenario 1b",
                                             'chilcotin_scen1c' = "Scenario 1c",
-                                            'chilcotin_scen2' = "Scenario 2"))
+                                            'chilcotin_scen2a' = "Scenario 2a",
+                                            'chilcotin_scen2b' = "Scenario 2b",
+                                            'chilcotin_scen2c' = "Scenario 2c"))
                               ) +
                   labs (title = "Disturbance (no Buffer) in Rainbows Caribou Critical Habitat 
 for Each Scenario", 
@@ -223,7 +238,9 @@ plot.disturb.buff.rain <- ggplot (data.disturb.buff.rain,
                                             'chilcotin_scen1a' = "Scenario 1a",
                                             'chilcotin_scen1b' = "Scenario 1b",
                                             'chilcotin_scen1c' = "Scenario 1c",
-                                            'chilcotin_scen2' = "Scenario 2"))
+                                            'chilcotin_scen2a' = "Scenario 2a",
+                                            'chilcotin_scen2b' = "Scenario 2b",
+                                            'chilcotin_scen2c' = "Scenario 2c"))
                               ) +
                   labs (title = "Disturbance (500m Buffer) in Rainbows Caribou Critical Habitat 
 for Each Scenario", 
@@ -245,15 +262,15 @@ ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\imag
         plot = plot.disturb.nobuff.rain,
         dpi = 300,
         device = "jpeg",
-        width = 6, 
-        height = 4)
+        width = 9, 
+        height = 6)
 
 ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbnace_rain_buff500.jpg", 
         plot = plot.disturb.buff.rain,
         dpi = 300,
         device = "jpeg",
-        width = 6, 
-        height = 4)
+        width = 9, 
+        height = 6)
 
 
 #####################
@@ -264,13 +281,15 @@ data.disturb.nobuff.char <- data.summ.disturb.nobuff %>%
                                         critical_hab == "Charlotte_Alplands LESR" |
                                         critical_hab == "Charlotte_Alplands LEWR" | 
                                         critical_hab == "Charlotte_Alplands Matrix") %>%
-                                filter (scenario != "load_data")
+                                filter (scenario != "load_data") %>%
+                                  filter (scenario != "chilcotin_scen2") 
 data.disturb.buff.char <- data.summ.disturb.buff %>%
                               filter (critical_hab == "Charlotte_Alplands HEWSR" | 
                                         critical_hab == "Charlotte_Alplands LESR" |
                                         critical_hab == "Charlotte_Alplands LEWR" | 
                                         critical_hab == "Charlotte_Alplands Matrix") %>%
-                                filter (scenario != "load_data")
+                                filter (scenario != "load_data") %>%
+                                  filter (scenario != "chilcotin_scen2") 
 
 
 plot.disturb.nobuff.char <- ggplot (data.disturb.nobuff.char, 
@@ -282,7 +301,9 @@ plot.disturb.nobuff.char <- ggplot (data.disturb.nobuff.char,
                                             'chilcotin_scen1a' = "Scenario 1a",
                                             'chilcotin_scen1b' = "Scenario 1b",
                                             'chilcotin_scen1c' = "Scenario 1c",
-                                            'chilcotin_scen2' = "Scenario 2"))
+                                            'chilcotin_scen2a' = "Scenario 2a",
+                                            'chilcotin_scen2b' = "Scenario 2b",
+                                            'chilcotin_scen2c' = "Scenario 2c"))
                               ) +
                   labs (title = "Disturbance (no Buffer) in Rainbows Caribou Critical Habitat 
 for Each Scenario", 
@@ -309,7 +330,9 @@ plot.disturb.buff.char <- ggplot (data.disturb.buff.char,
                                             'chilcotin_scen1a' = "Scenario 1a",
                                             'chilcotin_scen1b' = "Scenario 1b",
                                             'chilcotin_scen1c' = "Scenario 1c",
-                                            'chilcotin_scen2' = "Scenario 2"))
+                                            'chilcotin_scen2a' = "Scenario 2a",
+                                            'chilcotin_scen2b' = "Scenario 2b",
+                                            'chilcotin_scen2c' = "Scenario 2c"))
                               ) +
                   labs (title = "Disturbance (500m Buffer) in Rainbows Caribou Critical Habitat 
 for Each Scenario", 
@@ -331,15 +354,15 @@ ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\imag
         plot = plot.disturb.nobuff.char,
         dpi = 300,
         device = "jpeg",
-        width = 6, 
-        height = 4)
+        width = 9, 
+        height = 6)
 
 ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbnace_charlotte_buff500.jpg", 
         plot = plot.disturb.buff.char,
         dpi = 300,
         device = "jpeg",
-        width = 6, 
-        height = 4)
+        width = 9, 
+        height = 6)
 
 ```
 
@@ -361,7 +384,8 @@ dbDisconnect (conn)
 ##########
 data.seral.itcha <- data.seral %>%
                       filter (herd_bounds == "Itcha_Ilgachuz") %>%
-                       filter (scenario != "load_data")
+                       filter (scenario != "load_data") %>%
+                                  filter (scenario != "chilcotin_scen2")
 
 plot.seral.itcha <- ggplot (data.seral.itcha, 
                                aes (x = timeperiod, y = (prop_age * 100), 
@@ -371,9 +395,9 @@ plot.seral.itcha <- ggplot (data.seral.itcha,
                                   x = "Future Year", 
                                   y = "Percent Early Seral") + 
                             scale_color_discrete (name = "Scenario", 
-                                                  labels = c("BAU", "1a", "1b", "1c", "2")) +
+                                                  labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
                             scale_linetype_discrete (name = "Scenario", 
-                                                     labels = c("BAU", "1a", "1b", "1c", "2")) +
+                                                     labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
                             theme (legend.position = c (0.15, 0.15),
                                    legend.title = element_text(size = 10),
                                    legend.text = element_text( size = 8)) +
@@ -385,15 +409,16 @@ ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\imag
         plot = plot.seral.itcha,
         dpi = 300,
         device = "jpeg",
-        width = 6, 
-        height = 4)
+        width = 9, 
+        height = 6)
 
 ###############
 #### Rainbows
 ###############
 data.seral.rain <- data.seral %>%
                       filter (herd_bounds == "Rainbows") %>%
-                       filter (scenario != "load_data")
+                       filter (scenario != "load_data") %>%
+                                  filter (scenario != "chilcotin_scen2")
 
 plot.seral.rain <- ggplot (data.seral.rain, 
                                aes (x = timeperiod, y = (prop_age * 100), 
@@ -403,9 +428,9 @@ plot.seral.rain <- ggplot (data.seral.rain,
                                   x = "Future Year", 
                                   y = "Percent Early Seral") + 
                             scale_color_discrete (name = "Scenario", 
-                                                  labels = c("BAU", "1a", "1b", "1c", "2")) +
+                                                  labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
                             scale_linetype_discrete (name = "Scenario", 
-                                                     labels = c("BAU", "1a", "1b", "1c", "2")) +
+                                                     labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
                             theme (legend.position = c (0.15, 0.15),
                                    legend.title = element_text(size = 10),
                                    legend.text = element_text( size = 8)) +
@@ -417,15 +442,16 @@ ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\imag
         plot = plot.seral.rain,
         dpi = 300,
         device = "jpeg",
-        width = 6, 
-        height = 4)
+        width = 9, 
+        height = 6)
 
 ###############
 #### Charlotte
 ###############
 data.seral.char <- data.seral %>%
                       filter (herd_bounds == "Charlotte_Alplands") %>%
-                       filter (scenario != "load_data")
+                       filter (scenario != "load_data") %>%
+                                  filter (scenario != "chilcotin_scen2")
 
 plot.seral.char <- ggplot (data.seral.char, 
                                aes (x = timeperiod, y = (prop_age * 100), 
@@ -435,9 +461,9 @@ plot.seral.char <- ggplot (data.seral.char,
                                   x = "Future Year", 
                                   y = "Percent Early Seral") + 
                             scale_color_discrete (name = "Scenario", 
-                                                  labels = c("BAU", "1a", "1b", "1c", "2")) +
+                                                  labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
                             scale_linetype_discrete (name = "Scenario", 
-                                                     labels = c("BAU", "1a", "1b", "1c", "2")) +
+                                                     labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
                             theme (legend.position = c (0.15, 0.15),
                                    legend.title = element_text(size = 10),
                                    legend.text = element_text( size = 8)) +
@@ -449,6 +475,6 @@ ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\imag
         plot = plot.seral.char,
         dpi = 300,
         device = "jpeg",
-        width = 6, 
-        height = 4)
+        width = 9, 
+        height = 6)
 ```

@@ -73,11 +73,16 @@ zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE referen
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab'")  # 
 #  rast.zone_cond_bc_itcha_ilgachuz_crithab",  "rast.zone_cond_bc_charlotte_alplands_crithab", "rast.zone_cond_bc_rainbows_crithab"     
 
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_chilcotin_scenario2'")
+dbExecute (clusdb, "UPDATE zoneConstraints SET multi_condition = NULL WHERE multi_condition = 'NA';") 
 
 
 #### Chilcotin Scenarios - Sept. 2021 #### 
 ### To remove existing caribou WHA GARs; forest age constraints applied to critical habitat
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.zone_wha_2021' AND (zoneid = 263) OR (zoneid = 264) OR (zoneid = 3779) OR (zoneid = 3780) OR (zoneid = 3781)") 
+### To remove existing caribou conditional harvest WHA GARs; forest age constraints applied to critical habitat
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.zone_wha_2021' AND (zoneid = 263) OR (zoneid = 3779) OR (zoneid = 3780) OR (zoneid = 3781)") 
+
 
 #################
 ### Scenario 1a forest age constraints applied to all to critical habitat ##
@@ -222,6 +227,72 @@ VALUES
 (3545,3,'rast.zone_cond_bc_charlotte_alplands_crithab','zone25',0,'age',41,'ge',85,NULL,NULL,79918,0,250);")
 
 
+
+#################
+### Scenario 2a no harvest corridors ##
+#################
+# Seral stage >80 = 45%; Seral stage >100 = 37%; Seral stage >120 = 30%; Seral stage >140 = 25%
+# Seral stage >40 = 65%
+
+# Need to create some new rows for multiple age constraints
+dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
+VALUES 
+(3472,5,'rast.zone_chilcotin_scenario2','zone32',0,'age',141,'ge',25,NULL,NULL,776877,0,250),
+(3473,5,'rast.zone_chilcotin_scenario2','zone32',0,'age',121,'ge',30,NULL,NULL,776877,0,250),
+(3474,5,'rast.zone_chilcotin_scenario2','zone32',0,'age',101,'ge',37,NULL,NULL,776877,0,250),
+(3475,5,'rast.zone_chilcotin_scenario2','zone32',0,'age',81,'ge',45,NULL,NULL,776877,0,250),
+(3476,6,'rast.zone_chilcotin_scenario2','zone32',0,'age',141,'ge',25,NULL,NULL,891770,0,250),
+(3477,6,'rast.zone_chilcotin_scenario2','zone32',0,'age',121,'ge',30,NULL,NULL,891770,0,250),
+(3478,6,'rast.zone_chilcotin_scenario2','zone32',0,'age',101,'ge',37,NULL,NULL,891770,0,250),
+(3479,6,'rast.zone_chilcotin_scenario2','zone32',0,'age',81,'ge',45,NULL,NULL,891770,0,250);")
+
+
+#################
+### Scenario 2b; harvest in LESR high-low areas (zone 2) ##
+#################
+# Seral stage >80 = 45%; Seral stage >100 = 37%; Seral stage >120 = 30%; Seral stage >140 = 25%
+# Seral stage >40 = 65%
+
+# Change LESR high-low to harvestable
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_chilcotin_scenario2' AND (zoneid = 2)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_chilcotin_scenario2' AND (zoneid = 2)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 40 where reference_zone = 'rast.zone_chilcotin_scenario2' AND (zoneid = 2)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_chilcotin_scenario2' AND (zoneid = 2)")
+
+# Need to create some new rows for multiple age constraints
+dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
+VALUES 
+(3480,2,'rast.zone_chilcotin_scenario2','zone32',0,'age',141,'ge',25,NULL,NULL,14863,0,250),
+(3481,2,'rast.zone_chilcotin_scenario2','zone32',0,'age',121,'ge',30,NULL,NULL,14863,0,250),
+(3482,2,'rast.zone_chilcotin_scenario2','zone32',0,'age',101,'ge',37,NULL,NULL,14863,0,250),
+(3483,2,'rast.zone_chilcotin_scenario2','zone32',0,'age',81,'ge',45,NULL,NULL,14863,0,250);")
+
+
+#################
+### Scenario 2c; harvest in LESR high-low and high moderate areas and Rainbows corridor (zones 2, 3, and 7) ##
+#################
+# Seral stage >80 = 45%; Seral stage >100 = 37%; Seral stage >120 = 30%; Seral stage >140 = 25%
+# Seral stage >40 = 65%
+
+# Change LESR high-moderate and Rainbows corridor to harvestable
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_chilcotin_scenario2' AND (zoneid = 3) OR (zoneid = 7)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_chilcotin_scenario2' AND (zoneid = 3) OR (zoneid = 7)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 40 where reference_zone = 'rast.zone_chilcotin_scenario2' AND (zoneid = 3) OR (zoneid = 7)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zone = 'rast.zone_chilcotin_scenario2' AND (zoneid = 3) OR (zoneid = 7)")
+
+# Need to create some new rows for multiple age constraints
+dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
+VALUES 
+(3484,3,'rast.zone_chilcotin_scenario2','zone32',0,'age',141,'ge',25,NULL,NULL,19196,0,250),
+(3485,3,'rast.zone_chilcotin_scenario2','zone32',0,'age',121,'ge',30,NULL,NULL,19196,0,250),
+(3486,3,'rast.zone_chilcotin_scenario2','zone32',0,'age',101,'ge',37,NULL,NULL,19196,0,250),
+(3487,3,'rast.zone_chilcotin_scenario2','zone32',0,'age',81,'ge',45,NULL,NULL,19196,0,250),
+(3488,7,'rast.zone_chilcotin_scenario2','zone32',0,'age',141,'ge',25,NULL,NULL,77831,0,250),
+(3489,7,'rast.zone_chilcotin_scenario2','zone32',0,'age',121,'ge',30,NULL,NULL,77831,0,250),
+(3490,7,'rast.zone_chilcotin_scenario2','zone32',0,'age',101,'ge',37,NULL,NULL,77831,0,250),
+(3491,7,'rast.zone_chilcotin_scenario2','zone32',0,'age',81,'ge',45,NULL,NULL,77831,0,250);")
+
+
 dbDisconnect(clusdb)
 ```
 
@@ -283,16 +354,18 @@ parameters <- list(
                                            # "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd",
                                            # 
                                            # "rast.zone_cond_bc_barkerville_crithab",
-                                            "rast.zone_cond_bc_charlotte_alplands_crithab",
-                                            "rast.zone_cond_bc_itcha_ilgachuz_crithab",
+                                           # "rast.zone_cond_bc_charlotte_alplands_crithab",
+                                           # "rast.zone_cond_bc_itcha_ilgachuz_crithab",
                                            # "rast.zone_cond_bc_narrow_lake_crithab",
                                            # "rast.zone_cond_bc_north_cariboo_crithab",
-                                            "rast.zone_cond_bc_rainbows_crithab"
+                                           # "rast.zone_cond_bc_rainbows_crithab"
                                            # "rast.zone_cond_bc_tweedsmuir_crithab",
                                            # "rast.zone_cond_bc_wells_gray_north_crithab", 
                                            # 
                                            # "rast.zone_barkerville_groundhog_zones_20210303",
                                            # "rast.zone_smc_zones_20210315"
+                                           
+                                            "rast.zone_chilcotin_scenario2"
                                            ),
                            nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -369,39 +442,47 @@ modules <- list("dataLoaderCLUS",
 # scenario = data.table (name = "chilcotin_bau",
 #                        description = "Business as usual (BAU). Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Even harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 # scenario = data.table (name = "chilcotin_scen1a",
-#                        description = "Scenario 1a. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 150 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
+#                        description = "Scenario 1a. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 # scenario = data.table (name = "chilcotin_scen1b",
 #                        description = "Scenario 1b. Habitat: HEWSR, LESR, LEWR. Rotation age (in habitat): 120 years. Seral stage constraints (in habitat): 25% > 120 y.o.; 30% >100 y.o.; 37% >80 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 # scenario = data.table (name = "chilcotin_scen1c",
 #                        description = "Scenario 1c. Habitat: HEWSR, LESR. Rotation age (in habitat): 100 years. Seral stage constraints (in habitat): 25% > 100 y.o.; 30% > 80 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
-scenario = data.table (name = "chilcotin_scen2",
-                       description = "Scenario 2. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 150 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 85 > 40 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
+# scenario = data.table (name = "chilcotin_scen2",
+#                        description = "Scenario 2. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 85 > 40 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
+# scenario = data.table (name = "chilcotin_scen2a",
+#                        description = "Scenario 2a. No harvest: HEWSR, LESR, Tweedsmuir Corridor, Rainbows Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LEWR, Matrix): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
+# scenario = data.table (name = "chilcotin_scen2b",
+#                        description = "Scenario 2b. No harvest: HEWSR, LESR (except high-low areas), Tweedsmuir Corridor, Rainbows Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
+
+scenario = data.table (name = "chilcotin_scen2c",
+                       description = "Scenario 2c. No harvest: HEWSR, LESR (except high-low adn highe-moderate areas), Tweedsmuir Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix, Rainbows Corridor): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
+
 
 
 
 harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
-                                          partition = ' vol > 150 AND age > 149 ', # 149, 119, 99
+                                          partition = ' vol > 150 AND age > 139 ', # 139, 119, 99
                                           year = rep( seq (from = 2018, 
                                                            to = 2218, 
                                                            by = 5),
                                                      1), 
                                           flow = 0), # 0 m3/yr 
                               data.table (compartment ="Quesnel_TSA_LESR",
-                                          partition = ' vol > 150 AND age > 149 ', # 119
+                                          partition = ' vol > 150 AND age > 139 ', # 119
                                           year = rep( seq (from = 2018, 
                                                            to = 2218, 
                                                            by = 5),
                                                       1), 
                                           flow = 35000), # 7,000 m3/yr 
                               data.table (compartment ="Quesnel_TSA_LEWR",
-                                          partition = ' vol > 150 AND age > 149 ', #  AND age > 119
+                                          partition = ' vol > 150 AND age > 139 ', #  AND age > 119
                                           year = rep( seq (from = 2018, 
                                                            to = 2218, 
                                                            by = 5),
                                                       1), 
                                           flow = 425000), # 85,000 m3/yr 
                               data.table (compartment ="Quesnel_TSA_Matrix",
-                                          partition = ' vol > 150 AND age > 149 ', # AND age > 119
+                                          partition = ' vol > 150 AND age > 139 ', # AND age > 119
                                           year = rep( seq (from = 2018, 
                                                            to = 2218, 
                                                            by = 5),
@@ -415,28 +496,28 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                                       1), 
                                           flow = 10500000), # 2,100,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_HEWSR",
-                                          partition = ' vol > 110 AND age > 149 ', 
+                                          partition = ' vol > 110 AND age > 139 ', 
                                           year = rep( seq (from = 2018, 
                                                            to = 2218, 
                                                            by = 5),
                                                       1), 
                                           flow = 75000), # 15,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_LESR",
-                                          partition = ' vol > 110 AND age > 149 ', 
+                                          partition = ' vol > 110 AND age > 139 ', 
                                           year = rep( seq (from = 2018, 
                                                            to = 2218, 
                                                            by = 5),
                                                       1), 
                                           flow = 350000), # 70,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_LEWR",
-                                          partition = ' vol > 110 AND age > 149 ', # AND age > 119 
+                                          partition = ' vol > 110 AND age > 139 ', # AND age > 119 
                                           year = rep( seq (from = 2018, 
                                                            to = 2218, 
                                                            by = 5),
                                                       1), 
                                           flow = 700000), # 140,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_Matrix",
-                                          partition = ' vol > 110 AND age > 149 ', # AND age > 119 
+                                          partition = ' vol > 110 AND age > 139 ', # AND age > 119 
                                           year = rep( seq (from = 2018, 
                                                            to = 2218, 
                                                            by = 5),
