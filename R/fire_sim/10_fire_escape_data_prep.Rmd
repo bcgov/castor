@@ -101,6 +101,12 @@ Now, select only those locations where a fire did occur. And then create a new c
 #NOTE: in below, it is determined that both lightning and person caused fires have exactly 3989 fires of size 0 hectares... this is concerning...
 
 ```{r}
+dat_lightning_<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_Sept.csv")
+
+```
+
+
+```{r}
 table(dat_lightning_$fire)
 
 dat_lightning_escape<-subset(dat_lightning_, dat_lightning_$fire=="1")
@@ -110,8 +116,8 @@ str(dat_lightning_escape$size_ha)
 dat_lightning_escape$size_ha<-as.numeric(dat_lightning_escape$size_ha)
 hist(dat_lightning_escape$size_ha) #lots of little fires
 dat_lightning_escape_2<- dat_lightning_escape %>% drop_na(size_ha)
-str(dat_lightning_escape_2) #16319 
-min(dat_lightning_escape_2$size_ha) #How is min size 0? Odd.
+str(dat_lightning_escape_2) #15143
+min(dat_lightning_escape_2$size_ha) #Size 0 is here because we have not subset by size yet
 table(dat_lightning_escape_2$size_ha) #3989
 max(dat_lightning_escape_2$size_ha) 
 mean(dat_lightning_escape_2$size_ha) #262.2081 hectares for mean size
@@ -121,7 +127,7 @@ hist(dat_lightning_escape_2$size_ha, n=100)
 dat_lightning_escape_2$escape<- 0
 dat_lightning_escape_2$escape[dat_lightning_escape_2$size_ha >= 1] <- 1
 
-table(dat_lightning_escape_2$escape) #We have 12256 that did not escape, and 2911 that did escape. So ~23% escaped. Is this too high?
+table(dat_lightning_escape_2$escape) #We have 12234 that did not escape, and 2909 that did escape. So ~23% escaped. Is this too high?
 
 
 #Compare to a 3 ha threshold
@@ -169,8 +175,7 @@ hist(dat_lightning_escape_2$wind_atfire)
 
 ```
 
-
-Inspect number of fires by MDC
+Inspect probability of escape by MDC
 
 ```{r}
 hist(dat_lightning_escape$mdc_atfire)
@@ -226,7 +231,12 @@ write.csv(dat_lightning_escape_2, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data
 
 ```
 
-Repeat for person caused fires
+Repeat for person caused fires.
+
+```{r}
+dat_person_<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_Sept.csv")
+```
+
 
 ```{r}
 table(dat_person_$fire)
@@ -239,7 +249,7 @@ dat_person_escape$size_ha<-as.numeric(dat_person_escape$size_ha)
 hist(dat_person_escape$size_ha) #lots of little fires
 dat_person_escape_2<- dat_person_escape %>% drop_na(size_ha)
 str(dat_person_escape_2) #20973 obs
-min(dat_person_escape_2$size_ha) #How is min size 0? Odd. There are a LOT of 0s...
+min(dat_person_escape_2$size_ha) #
 table(dat_person_escape_2$size_ha) #3989 size 0 fires to be exact...
 table(dat_person_escape_2$fire_pres) #Claims all are fire present locations...
 max(dat_person_escape_2$size_ha) 
@@ -322,6 +332,5 @@ write.csv(dat_person_escape_2, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\e
 #dat_person_escape_2<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person.csv")
 
 ```
-
 
 Data preparations are now complete. Move on to model selection.

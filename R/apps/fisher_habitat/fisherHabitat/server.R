@@ -226,7 +226,7 @@ server <- function(input, output, session) {
         valueBox(
             tags$p("Status", style = "font-size: 50%;"),
             fluidRow(
-                column(HTML(paste0("Abundance:&nbsp ", paste0(round(sum(data$abund),0))," <br> Denning:&nbsp ",paste0(numDenning)," <br> Movement:&nbsp ",paste0(numMovement)," <br> Rust:&nbsp ",paste0(numRust)," <br> CWD:&nbsp ",paste0(numCWD)," <br> Cavity:&nbsp ",paste0(numCavity))), status = "primary", 
+                column(HTML(paste0("Abundance:&nbsp ", paste0(round(sum(data$abund),0))," <br> Max Abundance (n_fish):&nbsp ",paste0(round(sum(data$n_fish),0))," <br> Denning:&nbsp ",paste0(numDenning)," <br> Movement:&nbsp ",paste0(numMovement)," <br> Rust:&nbsp ",paste0(numRust)," <br> CWD:&nbsp ",paste0(numCWD)," <br> Cavity:&nbsp ",paste0(numCavity))), status = "primary", 
                        title = "O",  width = 12 , 
                        height = 120)
                 ), color = 'blue'
