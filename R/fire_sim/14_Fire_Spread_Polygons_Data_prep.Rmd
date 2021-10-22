@@ -1,5 +1,5 @@
 ---
-title: "13_Fire_Spread_Polygons"
+title: "14_Fire_Spread_Polygons_Data_prep"
 author: "Cora Skaien"
 date: "16/08/2021"
 output: html_document
@@ -22,9 +22,32 @@ library(keyring)
 library(DBI)
 library(caret)
 library(gdata)
+library(stringi)
 
 source(here::here("R/functions/R_Postgres.R"))
 ```
+
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+#=================================
+#  Script Name: 14_Fire_Spread_Polygons_Data_prep.R
+#  Script Version: 1.0
+#  Script Purpose: data prep for polygons of spread area for fires as part of spread.
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
 
 #Overview
 In this file, we will be creating a 500 m and 150 m buffers around each fire burn polygon, subtract the polygon area from the buffer, and then divide both the buffers and polygons into 1 ha squares (approximately). With this, we can attempt to create logistic regressions where the 1 ha squares from the buffers are 0 for spread and the 1 ha squares from the fire polygons receive a 1. The data will not be entirely related to environmental variables, however, as it will be confounded by fire-fighting efforts and fire weather change - but we will see if we can find any patterns using this approach. I suspect climate will not be able to come out from this, resulting in fire size being important for characterizing how climate impacts fires. Here, we can assess how topography, VRI and land-use impact the probability of spread into neighbouring cells. 
@@ -897,7 +920,7 @@ The above can be very difficult to save in R, causing many crashes and lack of s
 ## Now bring data back in
 Regardless of whether the R code above worked for DEM, wind and roads, or if those procedures were performed in QGIS, the subsequent step would be to bring the layer into QGIS to use the NNJoin function to determine the distance to each infrastructure type. Below, we bring this in and manage the data, prior to appending the VRI data.
 
-Note: TBD if this file will be able to be saved after processing either. May need to do this step in QGIS as well. If do in R, use below code. Otherwise, in QGIS, use the Field Calculator, and the min(A,B,C...) function.
+Note: TBD if this file will be able to be saved after processing. May need to do this step in QGIS as well. If do in R, use below code. Otherwise, in QGIS, use the Field Calculator, and the min(A,B,C...) function.
 
 #load in the data where the distances to infrastrcture for each location is already determined. This will be the file for if the minimum distance is not determined prior.
 ```{r}
@@ -970,9 +993,17 @@ Because we did not get ClimateBC, we are missing the BEC and Natural Disturbance
 
 ```{r}
 #Save to postgre
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data.spread.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\Spread_DEM_roads_wind_20p_BEC_infraALL2.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data.spread.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\Spread_DEM_roads_wind_20p_BEC_infraALL2.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+#Reduce name and remove capitals and try again
+#Save to postgre
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\spread_20p_all.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\spread_20p_all.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+#key_get('dbpass', keyring = 'postgreSQL')
 ```
 
 
@@ -986,17 +1017,17 @@ Depending on how the file names most recently saved, some changes may need to be
 
 CREATE TABLE fire_spread_veg_2002 AS
 (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
-  harvest_date, proj_age_1, proj_height_1, live_stand_volume_125, stand_percentage_dead, 
-  fire.id2, fire.FIRE_YEAR, fire.fire_cs, fire.SIZE_HA, fire.FIRE_DATE,
-  fire.OBJECTID, fire.spread, fire.id, fire.slope, fire.aspect, fire.elev,
-  fire.roads_km, fire.win_sum, fire.win_spr, fire.dist_mun, fire.dist_dam,
-  fire.dist_nat, fire.dist_pow, fire.dist_mine, fire.dist_any,
+  harvest_date, proj_age_1, proj_height_1, live_stand_volume_125, 
+  fire.id2, fire.fire_year, fire.fire_cs, fire.size_ha, fire.fire_date,
+  fire.objectid, fire.spread, fire.id, fire.slope, fire.aspect, fire.elev,
+  fire.roads_km, fire.win_sum, fire.win_spr, fire.zone, fire.subzone, 
+  fire.variant, fire.ntrldstrbn, fire.distance_m, fire.distance,
+  fire.dist_nat, fire.distance_p, fire.dist_mines, fire.dist_any,
   veg_comp_lyr_r1_poly2002.geometry FROM veg_comp_lyr_r1_poly2002,
-  (SELECT wkb_geometry, id2, FIRE_YEAR, fire_cs, SIZE_HA, FIRE_DATE, OBJECTID, 
-  spread, id, slope, aspect, elev, roads_km, win.sum, win_spr, 
-  # subzone, ntrl_ds, 
-   dist_mun, dist_dam, dist_nat, dist_pow, dist_mine, dist_any 
-   from Data_spread where FIRE_YEAR = '2002') as fire where st_contains
+  (SELECT wkb_geometry, id2, FIRE_YEAR, fire_cs, size_ha, fire_date, objectid, 
+  spread, id, slope, aspect, elev, roads_km, win_sum, win_spr, zone, subzone, 
+  variant, ntrldstrbn, distance_m, distance, dist_nat, distance_p, dist_mines, dist_any 
+   from spread_20p_all where FIRE_YEAR = '2002') as fire where st_contains
   (veg_comp_lyr_r1_poly2002.geometry, fire.wkb_geometry))
 
 
@@ -1010,5 +1041,427 @@ bclcs_level_4: Classifies the vegetation types and non-vegetated cover types (as
 bclcs_level_5: Classifies the vegetation density classes and Non-Vegetated categories.
 
 
+############## 
+#For 2020, run this code because no projected age, height or stand volume 
+##############
+
+CREATE TABLE fire_spread_veg_2020 AS
+(SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
+  harvest_date, 
+  fire.id2, fire.fire_year, fire.fire_cs, fire.size_ha, fire.fire_date,
+  fire.objectid, fire.spread, fire.id, fire.slope, fire.aspect, fire.elev,
+  fire.roads_km, fire.win_sum, fire.win_spr, fire.zone, fire.subzone, 
+  fire.variant, fire.ntrldstrbn, fire.distance_m, fire.distance,
+  fire.dist_nat, fire.distance_p, fire.dist_mines, fire.dist_any,
+  veg_comp_lyr_r1_poly2020.geometry FROM veg_comp_lyr_r1_poly2020,
+  (SELECT wkb_geometry, id2, fire_year, fire_cs, size_ha, fire_date, objectid, 
+  spread, id, slope, aspect, elev, roads_km, win_sum, win_spr, zone, subzone, 
+  variant, ntrldstrbn, distance_m, distance, dist_nat, distance_p, dist_mines, dist_any 
+   from spread_20p_all where FIRE_YEAR = '2020') as fire where st_contains
+  (veg_comp_lyr_r1_poly2020.geometry, fire.wkb_geometry))
+  
+  
+###################
+#FOR 2007 run this because some of the names for the VRI_2007 file are different to what they are in other years. In particular:
+###################
+
+# bclcs_level_2 = bclcs_lv_2 same for the other bclcs layers
+#proj_height_1 = proj_ht_1
+#harvest_date = upd_htdate
+# live_stand_volume_125 does not exist, so fancy stuff created
+# percent_dead does not exist
+
+ CREATE TABLE fire_spread_veg_2007 AS
+ (SELECT feature_id, bclcs_lv_2, bclcs_lv_3, bclcs_lv_4, bclcs_lv_5,
+  upd_htdate, proj_age_1, proj_ht_1, COALESCE(volsp1_125,0)+COALESCE(volsp2_125,0)+COALESCE(volsp3_125,0)+COALESCE(volsp4_125,0)+COALESCE(volsp5_125,0) AS live_stand_volume_125, 
+  fire.id2, fire.fire_year, fire.fire_cs, fire.size_ha, fire.fire_date,
+  fire.objectid, fire.spread, fire.id, fire.slope, fire.aspect, fire.elev,
+  fire.roads_km, fire.win_sum, fire.win_spr, fire.zone, fire.subzone, 
+  fire.variant, fire.ntrldstrbn, fire.distance_m, fire.distance,
+  fire.dist_nat, fire.distance_p, fire.dist_mines, fire.dist_any,
+  veg_comp_lyr_r1_poly2007.geometry FROM veg_comp_lyr_r1_poly2007,
+  (SELECT wkb_geometry, id2, fire_year, fire_cs, size_ha, fire_date, objectid, 
+  spread, id, slope, aspect, elev, roads_km, win_sum, win_spr, zone, subzone, 
+  variant, ntrldstrbn, distance_m, distance, dist_nat, distance_p, dist_mines, dist_any 
+   from spread_20p_all where fire_year = '2007') 
+   as fire where st_contains (veg_comp_lyr_r1_poly2007.geometry, fire.wkb_geometry))
 
 
+##############################
+# FOR 2008 Run this code:
+No  stand_percentage_dead, 
+##############################
+ CREATE TABLE fire_spread_veg_2008 AS
+ (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
+   harvest_date, proj_age_1, proj_height_1, COALESCE(vol_per_ha_spp1_125,0)+
+     COALESCE(vol_per_ha_spp2_125,0)+COALESCE(vol_per_ha_spp3_125,0)+COALESCE(vol_per_ha_spp4_125,0)
+   +COALESCE(vol_per_ha_spp5_125,0)+COALESCE(vol_per_ha_spp6_125,0) AS live_stand_volume_125,
+   fire.id2, fire.fire_year, fire.fire_cs, fire.size_ha, fire.fire_date,
+  fire.objectid, fire.spread, fire.id, fire.slope, fire.aspect, fire.elev,
+  fire.roads_km, fire.win_sum, fire.win_spr, fire.zone, fire.subzone, 
+  fire.variant, fire.ntrldstrbn, fire.distance_m, fire.distance,
+  fire.dist_nat, fire.distance_p, fire.dist_mines, fire.dist_any,
+   veg_comp_lyr_r1_poly2008.geometry FROM veg_comp_lyr_r1_poly2008,
+   (SELECT wkb_geometry, id2, fire_year, fire_cs, size_ha, fire_date, objectid, 
+  spread, id, slope, aspect, elev, roads_km, win_sum, win_spr, zone, subzone, 
+  variant, ntrldstrbn, distance_m, distance, dist_nat, distance_p, dist_mines, dist_any 
+    from spread_20p_all where fire_year = '2008') 
+    as fire where st_contains (veg_comp_lyr_r1_poly2008.geometry, fire.wkb_geometry))
+
+
+# Another problem is that fire_veg_2011 has a geometry column that is type MultiPolygonZ instead of MultiPolygon so this needs to be changed with the following query in postgres
+ ALTER TABLE fire_spread_veg_2011  
+ ALTER COLUMN geometry TYPE geometry(MULTIPOLYGON, 3005) 
+ USING ST_Force2D(geometry);
+ 
+ Now, we can use R for the next step.
+
+=====================
+
+```{r}
+#Load necessary libraries
+
+library(dplyr)
+library(tidyr)
+library(keyring)
+library(sf)
+library(DBI)
+library(purrr)
+library(tidyverse)
+library(ggplot2)
+library (ggcorrplot)
+library (RPostgreSQL)
+library (rpostgis)
+library (lme4)
+library (arm)
+library(ggpubr)
+library(mgcv)
+library(nlme)
+library(caret)
+library(pROC)
+
+source(here::here("R/functions/R_Postgres.R"))
+
+```
+
+Now we will bring all of the files we made above into R. You may need to create a new connection to bring each one in instead, or at least run line by line and not as a code chunk.
+
+```{r}
+#Import all fire_spread_veg
+conn <- dbConnect (dbDriver ("PostgreSQL"), 
+                   host = "",
+                   user = "postgres",
+                   dbname = "postgres",
+                   password = "postgres",
+                   port = "5432")
+fire_spread_veg_2002 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2002")
+fire_spread_veg_2003 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2003")
+fire_spread_veg_2004 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2004")
+fire_spread_veg_2005 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2005")
+fire_spread_veg_2006 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2006")
+fire_spread_veg_2007 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2007")
+fire_spread_veg_2008 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2008")
+fire_spread_veg_2009 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2009")
+fire_spread_veg_2010 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2010")
+fire_spread_veg_2011 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2011")
+fire_spread_veg_2012 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2012")
+fire_spread_veg_2013 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2013")
+fire_spread_veg_2014 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2014")
+fire_spread_veg_2015 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2015")
+fire_spread_veg_2016 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2016")
+fire_spread_veg_2017 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2017")
+fire_spread_veg_2018 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2018")
+fire_spread_veg_2019 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2019")
+fire_spread_veg_2020 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_spread_veg_2020")
+
+dbDisconnect (conn) # connKyle
+
+```
+
+We need to update naming conventions from the 2007 and 2008 data given that it is different in those VRI files than for other years.
+
+```{r}
+# REMEMBER TO CHANGE THE 0 values in the 2007 and 2008 fire_spread_veg datasets for volume to NULL.
+
+# the VRI for 2007 had harvest_date named upd_htdate and proj_height_1, proj_height_2 as proj_ht_1, proj_ht_2. So I need to be renamed these columns
+#fire_spread_veg_2007$harvest_date <- NA
+names(fire_spread_veg_2007)
+names(fire_spread_veg_2002)
+fire_spread_veg_2007<- fire_spread_veg_2007 %>% rename(
+  bclcs_level_2=bclcs_lv_2,
+  bclcs_level_3=bclcs_lv_3,
+  bclcs_level_4=bclcs_lv_4,
+  bclcs_level_5=bclcs_lv_5,
+  proj_height_1=proj_ht_1, 
+  harvest_date=upd_htdate)
+
+
+# change the 0 values in live_stand_volume_125 to NULL for both 2007 and 2008 data
+
+fire_spread_veg_2007$live_stand_volume_125[fire_spread_veg_2007$live_stand_volume_125 == 0] <- NA
+fire_spread_veg_2008$live_stand_volume_125[fire_spread_veg_2008$live_stand_volume_125 == 0] <- NA
+
+fire_spread_veg_2020$proj_height_1<-NA
+fire_spread_veg_2020$proj_age_1<-NA
+fire_spread_veg_2020$live_stand_volume_125<-NA
+fire_spread_veg_2020$stand_percentage_dead<-NA
+
+```
+
+2020 has 35 columns when the rest have 34; inspect.
+
+```{r}
+names(fire_spread_veg_2012)
+names(fire_spread_veg_2020)
+fire_spread_veg_2020<-fire_spread_veg_2020[-35]
+names(fire_spread_veg_2020)
+```
+
+
+Now we must combine all of the files together into one.
+
+```{r}
+# join all fire_spread_veg datasets together. This function is faster than a list of rbinds
+filenames3<- c("fire_spread_veg_2002", "fire_spread_veg_2003", "fire_spread_veg_2004","fire_spread_veg_2005", "fire_spread_veg_2006", "fire_spread_veg_2007","fire_spread_veg_2008", "fire_spread_veg_2009", "fire_spread_veg_2010","fire_spread_veg_2011", "fire_spread_veg_2012", "fire_spread_veg_2013","fire_spread_veg_2014", "fire_spread_veg_2015", "fire_spread_veg_2016","fire_spread_veg_2017", "fire_spread_veg_2018", "fire_spread_veg_2019", "fire_spread_veg_2020")
+filenames3
+
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames3[i])) # for new files lists change the name at filenames2
+  })
+  do.call(rbind,d)
+}
+
+n<-length(filenames3)
+fire_spread_veg_data_B<-mkFrameList(n)
+
+table(fire_spread_veg_data_B$fire_year, fire_spread_veg_data_B$fire_cs)
+
+names(fire_spread_veg_data_B)
+
+#Rename columns for ease of use
+head(fire_spread_veg_data_B)
+fire_spread_veg_data_B<- fire_spread_veg_data_B %>% rename(
+  dist_mun=distance_m,
+  dist_dam=distance,
+  dist_mine=dist_mines,
+  dist_pow=distance_p)
+names(fire_spread_veg_data_B)
+str(fire_spread_veg_data_B)
+
+```
+
+Clear code.
+
+```{r}
+library(gdata)
+
+gdata::keep(fire_spread_veg_data_B, spread_data_lightning, spread_data_lightning_nt, spread_data_lightning_t, sure = TRUE)
+
+```
+
+Create a dataframe version.
+
+```{r}
+fire_spread_veg_data_df<-as.data.frame(fire_spread_veg_data_B)
+str(fire_spread_veg_data_df)
+
+fire_spread_veg_data_df<-st_drop_geometry(fire_spread_veg_data_B)
+str(fire_spread_veg_data_df)
+head(fire_spread_veg_data_df)
+
+```
+
+#Must create new columns for vegtype and bclcs_level_5_2 like in previous analyses
+
+```{r}
+
+#Repeat vegtype classification with new information
+fire_spread_veg_data_df$vegtype2<-"OP" #setting anything that is not one of the categories below to Open.
+fire_spread_veg_data_df <- fire_spread_veg_data_df %>%
+  mutate(vegtype2 = if_else(bclcs_level_4=="TC","TC", # Treed coniferous
+                           if_else(bclcs_level_4=="TM", "TM", # Treed mixed
+                                   if_else(bclcs_level_4== "TB","TB", #Treed broadleaf
+                                           if_else(bclcs_level_4=="SL", "S", # shrub
+                                                   if_else(bclcs_level_4=="ST", "S", 
+                                                           if_else(bclcs_level_4=="RO","RO",
+                                                                   if_else(bclcs_level_4=="SI", "SI",                                         vegtype2))))))))
+fire_spread_veg_data_df$vegtype2[which(fire_spread_veg_data_df$proj_age_1 <16)]<-"D" #
+table(fire_spread_veg_data_df$vegtype2) #D: Disturbed; OP: Open; RO: Rock; S: Shrub; SI: Snow/Ice; TB: Treed Broadleaf; TC: Treed Conifer; TM: Treed Mixed.
+
+#Combine Rock, ice and snow because ice and snow has too few points
+fire_spread_veg_data_df$vegtype2[fire_spread_veg_data_df$vegtype2=="SI"] <- "RO"
+table(fire_spread_veg_data_df$vegtype2)
+```
+
+Assess landuse type distribution
+```{r}
+table(fire_spread_veg_data_df$bclcs_level_5)
+table(fire_spread_veg_data_df$bclcs_level_5, fire_spread_veg_data_df$fire)
+
+```
+AP: airport
+BI: Block field (Blocks of rock derived from the underlying bedrock by weathering and / or frost heaving. These have not undergone and significant down slope movement as they occur on level or gently sloping areas. Was part of the undifferentiated Rubble, Talus, Block field in previous versions)
+BP: unspecified -> seems to be old code for urban. Combine with urban.
+BR: bedrock
+BU: Burned Area
+CB: cutbank (Part of a road corridor created upslope of the road surface, created by excavation into the hillside)
+CL: closed (Cover of bryoids is greater than 50% of the polygon) --> this one confuses me... closed canopy? Closed what?
+DE: dense (Tree, shrub, or herb cover is between 61% and 100% for the polygon)
+ES: Exposed Soil (Any exposed soil not covered by the other categories, such as areas of recent disturbance that include mud slides, debris torrents, avalanches, or disturbances such as pipeline rights-of-way or cultivated fields where vegetation cover is less than 5%)
+GP: Gravel Pit
+LA: Lake
+LL: Landing (A compacted area adjacent to a road used for sorting and loading logs)
+LS: Pond or lake sediments (Exposed sediments related to dried lakes or ponds)
+MI: Open Pit Mine
+MN: Moraine (debris)
+MU: Mudflat (fine-textured sediments)
+MZ: Rubbly Mine Spoils (Discarded overburden or waste rock, moved to extract ore during mining.)
+OC: Ocean
+OP: Open (Cover of bryoids is less than or equal to 50% of the polygon)
+OT: Other (A Non-Vegetated polygon where none of the above categories can be reliably chosen)
+PN: Snow Cover (Snow or ice that is not part of a glacier but is found during summer months on the landscape)
+RE: Reservoir
+RI: River/Stream
+RM: Reservoir margin
+RN: Railway Surface
+RS: River Sediments
+RZ:  Road Surface
+SP: sparse (Cover is between 10% and 25% for treed polygons, or cover is between 20% and 25% for shrub or herb polygons)
+TA: Talus (Rock fragments of any size accumulated on or at the foot of slopes as a result of successive rock falls. This is a type of colluvium)
+TS: unspecified. Seems to be old code for TZ. Tailings. An area containing the solid waste material produced in the mining and milling of ore
+TZ: New code for TS
+UR: Urban
+
+```{r}
+fire_spread_veg_data_df$bclcs_level_5_2<-fire_spread_veg_data_df$bclcs_level_5
+#Change BP to UR since UR is the updated code for BP
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="BP"] <- "UR"
+
+#Add airport as urban
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="AP"] <- "UR"
+
+#Make various snow/glacier categories into one
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="GL"] <- "SNOW"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="PN"] <- "SNOW"
+
+#Make various rock categories (or road)
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="MI"] <- "ROCK"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="MN"] <- "ROCK"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="MZ"] <- "ROCK"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="RZ"] <- "ROCK"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="TA"] <- "ROCK"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="TS"] <- "ROCK"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="TZ"] <- "ROCK"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="OT"] <- "ROCK"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="GP"] <- "ROCK"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="BI"] <- "ROCK"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="RN"] <- "ROCK"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="BR"] <- "ROCK"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="MN"] <- "ROCK"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="TA"] <- "ROCK"
+
+#Categories for soil, sediments and mud
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="ES"] <- "SOIL"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="LS"] <- "SOIL"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="MU"] <- "SOIL"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="RS"] <- "SOIL"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="LL"] <- "SOIL"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="CB"] <- "SOIL"
+
+#Combine CL and Op categories
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="CL"] <- "OP"
+
+#Categories for water
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="OC"] <- "WATER"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="LA"] <- "WATER"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="RE"] <- "WATER"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="RI"] <- "WATER"
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="RM"] <- "WATER"
+
+#For comparison to determine which categories need changing
+table(fire_spread_veg_data_df$bclcs_level_5_2) #Burn may be too small. Still 597 without any category for some reason.
+#Snow is a very small category. Combine with another category: water?
+
+fire_spread_veg_data_df$bclcs_level_5_2[fire_spread_veg_data_df$bclcs_level_5_2=="SNOW"] <- "WATER"
+
+#Inspect with other divisions
+table(fire_spread_veg_data_df$bclcs_level_5_2, fire_spread_veg_data_df$ntrldstrbn)
+table(fire_spread_veg_data_df$bclcs_level_5_2, fire_spread_veg_data_df$vegtype2)
+#Going to need to remove the burned category for NDT2 and NDT5. Might be ok for NDT3 and NDT4, but still pretty small. 
+#Other will need to be removed for NDT4 and NDT5.
+
+```
+
+### Create a wind at fire variable
+
+```{r}
+#Create a month variable
+fire_spread_veg_data_df$ign_month<-stri_sub(fire_spread_veg_data_df$fire_date,5,6)
+table(fire_spread_veg_data_df$ign_month)
+
+#Assign season by month
+fire_spread_veg_data_df$wind_atfire<-0
+fire_spread_veg_data_df$ign_month<-as.numeric(fire_spread_veg_data_df$ign_month)
+head(fire_spread_veg_data_df)
+fire_spread_veg_data_df<-fire_spread_veg_data_df %>%
+    mutate(wind_atfire = case_when(ign_month == 1 ~ win_spr, #even though not quite accurate
+                                  ign_month == 2 ~ win_spr, #even though not quite accurate
+                                  ign_month == 3 ~ win_spr,
+                                  ign_month == 4 ~ win_spr,
+                                  ign_month == 5 ~ win_spr,
+                                  ign_month == 6 ~ win_sum,
+                                  ign_month == 7 ~ win_sum,
+                                  ign_month == 8 ~ win_sum,
+                                  ign_month == 9 ~ win_sum,#even though not quite accurate
+                                  ign_month == 10 ~ win_sum,#even though not quite accurate
+                                  ign_month == 11 ~ win_spr,#even though not quite accurate
+                                  ign_month == 12 ~ win_spr,#even though not quite accurate
+                                  TRUE ~ win_spr))
+
+fire_spread_veg_data_df$wind_atfire
+hist(fire_spread_veg_data_df$wind_atfire)
+
+```
+
+### Create cos transformation for aspect
+```{r}
+#Before transformations, must convert degrees to radians
+fire_spread_veg_data_df$aspect_radians<-(fire_spread_veg_data_df$aspect*pi)/180
+hist(fire_spread_veg_data_df$aspect_radians)
+
+fire_spread_veg_data_df$aspect_cos<-cos(fire_spread_veg_data_df$aspect_radians) #try cos because I hypothesize that southern aspects would be most likely to have higher likelihood of fire. 180 degrees is -1 with cos, and north is plus 1.
+```
+
+Attempt to save files.
+
+```{r}
+write.csv(fire_spread_veg_data_df, file = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_.csv")
+
+st_write(fire_spread_veg_data_B, overwrite=TRUE, dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data.shp", delete_dsn = TRUE)
+```
+
+Now that the data frame is prepared, we can move on to data analysis for each NDT.
+
+############################### COMPLETE ######################
+
+Move on to the 15_Fire_Spread_Polygons_Data series

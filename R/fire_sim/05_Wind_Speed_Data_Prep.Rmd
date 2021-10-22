@@ -23,6 +23,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 -->
 
+#=================================
+#  Script Name: 05_Wind_Speed_Data_Prep.R
+#  Script Version: 1.0
+#  Script Purpose: Determine the wind speed in the spring and summer at each location, after initially creating a raster from the Canadian Wind Atlas.
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
 #Overview
 Wind speed and direction are important factors in modelling fire behaviour and spread. The classic tool used for regional data is WindNinja, but this has some limitations and is usually performed on 50 m x 50 m areas, as opposed to the entirely of a large area like BC. Ideally, WindNinja would be used to create better predictions for wind speed and direction (although it has problems as well, wherein it utilizes weather stations that may not capture variation at different elevations, etc), but here we will use the Canadian Wind Atlas to get average wind speed for each season (spring, summer, fall). SOme limitations of using the Canadian Wind Atlas for modelling fire behaviour include:
 
@@ -292,7 +299,7 @@ str(rasStackWind)
 Bring data back in from the end of 04_Road_Density_Data_Prep
 
 ```{r}
-sample_locations_DEM_roads_2<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_climate_DEM_roads.shp")
+sample_locations_DEM_roads_2<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_climate_DEM_roads_.shp")
 str(sample_locations_DEM_roads_2)
 crs(sample_locations_DEM_roads_2)
 
@@ -327,13 +334,8 @@ names(sample_locations_DEM_roads_wind)
 sample_locations_DEM_roads_wind2<- sample_locations_DEM_roads_wind %>% rename(
   win_sum=wind_summer_clipped_224,
   win_spg=wind_spring_raster_224)
-
-sample_locations_DEM_roads_wind2_test<-sample_locations_DEM_roads_wind2[-32]
-sample_locations_DEM_roads_wind2_test<-sample_locations_DEM_roads_wind2_test[-32]
-sample_locations_DEM_roads_wind2_test<-sample_locations_DEM_roads_wind2_test[-34]
-sample_locations_DEM_roads_wind2_test<-sample_locations_DEM_roads_wind2_test[-37]
 names(sample_locations_DEM_roads_wind2)
-names(sample_locations_DEM_roads_wind2_test)
+
 
 ```
 
@@ -342,7 +344,7 @@ Save file.
 
 ```{r}
 
-sf::st_write(sample_locations_DEM_roads_wind2_test, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_clim_DEM_roads_wind.shp", delete_layer=TRUE)
+sf::st_write(sample_locations_DEM_roads_wind2, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_clim_DEM_roads_wind_.shp", delete_layer=TRUE)
 
 
 ##Save to personal drive
@@ -353,6 +355,7 @@ sf::st_write(sample_locations_DEM_roads_wind2_test, dsn = "D:\\Fire\\fire_data\\
 ##Above may not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
 
 #key_get('dbpass', keyring = 'postgreSQL')
+
 ```
 
 
@@ -516,3 +519,4 @@ head(dat_person_)
 
 ```
 
+################## Move on to 06_Distance_to_Development #############

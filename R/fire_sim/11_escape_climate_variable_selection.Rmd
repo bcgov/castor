@@ -23,6 +23,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 -->
 
+#=================================
+#  Script Name: 10_fire_escape_data_prep.R
+#  Script Version: 1.0
+#  Script Purpose: Data prep for climate variables, plus model selection for climate variables
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+# Script contributor: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
 #Overview
 We will do the same method we did for selecting climate variables for the ignition model for the escape model. We will start by using the data that was generated at the end of 04_vri_data_prep.
 

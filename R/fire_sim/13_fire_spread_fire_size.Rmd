@@ -1,5 +1,5 @@
 ---
-title: "Fire_Size_Model_Selection"
+title: "Fire_spread_fire_size"
 author: "Cora Skaien"
 date: "16/08/2021"
 output: html_document
@@ -30,6 +30,27 @@ library(keyring)
 
 source(here::here("R/functions/R_Postgres.R"))
 ```
+
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+#=================================
+#  Script Name: Fire_spread_fire_size.R
+#  Script Version: 1.0
+#  Script Purpose: prepping and investigating data to assess fire size.
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
 
 #Overview
 One important factor for modelling spread is the size of the fire. Here, we will assess what climatic, VRI and topographic variables are associated with increasing fire size to see if we can create a good predictive model for predicting fire size. Some considerations include: should we include ALL ignition points, or just those above our escape threshold? I will likely do both and compare quality of data, but if this is used as a continuation point from our already hierarchical dataset (from probablilty of ignition including locations with and without fires, to probability of escape including all ignition points, to probability of spread including all escaped fires only), then it might make more sense to only include those above our escape size threshold. Also consider that some fires have a size of 0 reported, so if we use all ignitions, these may need to be excluded. Also consider: should person and lightning fires be kept separate for escape and spread? Once the initial ignition has occurred, I feel that they can be grouped.
