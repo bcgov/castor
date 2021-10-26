@@ -17,7 +17,7 @@ public class CellularAutomata {
 	
 	//ArrayList<Cell> cellListMaximum = new ArrayList<Cell>();
 	int numIter=15000;
-	float harvestMax,harvestMin, objValue, maxObjValue;
+	float harvestMax,harvestMin, gsMin, objValue, maxObjValue;
 	double globalWeight =0.0; // needs be of high precision
 	boolean finalPlan = false;
 	boolean globalConstraintsAchieved = false;
@@ -37,6 +37,12 @@ public class CellularAutomata {
 	//Variables for simulate2
 	float maxCutLocal = 0L;
 	float[] maxCutGlobal = new float[landscape.numTimePeriods];
+	
+	enum type{
+		SUBTRACT,
+		SUM
+	}
+	
 	/** 
 	* Class constructor.
 	*/
@@ -65,8 +71,13 @@ public class CellularAutomata {
 		int currentMaxState;
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
 		harvestMin = 19000000;
-		setLandCoverConstraintRecruitment(); //In cases no-harvesting decision does not meet the constraint -- remove harvesting during these periods and as a penalty -- thus ahciving the paritial amount
-		setMaxCutLocal();//scope all of the cells to determine the maxHarvVol	
+		gsMin = 119000000;
+		setLandCoverConstraintHarvestDelay(); //In cases no-harvesting decision does not meet the constraint -- remove harvesting during these periods and as a penalty -- thus ahciving the paritial amount
+		
+		System.out.println("");
+		landscape.setLandscapeWeight((double) 1/cellsListChangeState.size());
+		
+		setMaxCutValue();//scope all of the cells to determine the maxHarvVol	
 		randomizeStates(r);
 		
 		System.out.println("Starting local optimization..");
@@ -97,7 +108,11 @@ public class CellularAutomata {
 				counterLocalMaxState = 0;
 			}	
 		}
-		//Set the global level objectives
+		
+		//---------------------------------------------
+		//Set the global objectives
+		//---------------------------------------------
+		System.out.print("Setting global targets...");
 		for(int c =0; c < cellsListChangeState.size(); c++) {// Iterate through each of the cell and their corresponding state
 			planHarvestVolume = sumVector(planHarvestVolume,  forestTypeList.get(cellsList.get(cellsListChangeState.get(c)).foresttype).stateTypes.get(cellsList.get(cellsListChangeState.get(c)).state).get("harvVol")) ;//harvest volume
 		}
@@ -105,6 +120,10 @@ public class CellularAutomata {
 		for(int gs =0; gs < cellsList.size(); gs++) {
 			planGSVolume = sumVector(planGSVolume,  forestTypeList.get(cellsList.get(gs).foresttype).stateTypes.get(cellsList.get(gs).state).get("gsVol")) ;
 		}
+		
+		setLandCoverConstraints(); //go through each land cover constraint and assign achievedConstraint following the local level optimization
+		System.out.println("done");
+		//---------------------------------------------
 		
 		System.out.println("Starting global optimization..");
 		int cell;
@@ -115,6 +134,7 @@ public class CellularAutomata {
 			}
 			
 			Collections.shuffle(cellsListChangeState); // randomize which cell gets selected.
+			
 			for(int j = 0; j < cellsListChangeState.size(); j++) {
 				if(globalConstraintsAchieved) {
 					break;
@@ -124,7 +144,7 @@ public class CellularAutomata {
 			}
 			
 			System.out.print("iter:" + g + " global weight:" + globalWeight );
-			globalWeight = globalWeight + 0.01; //increment the global weight
+			globalWeight = globalWeight + 1; //increment the global weight
 			for(int k =0; k < planHarvestVolume.length; k++){
 				System.out.print(" Vol:" + planHarvestVolume[k] + "  ");
 			}
@@ -144,55 +164,62 @@ public class CellularAutomata {
 		}
 	}
 	
-	private void setLandCoverConstraintRecruitment() {
-		String variable;
+	private void setLandCoverConstraints() {
 		float[] value = null;
-		boolean addToStateChange;
+		
+		for(LandCoverConstraint lc : landCoverConstraintList ) { // reset each constraint
+			if(lc.achievedConstraint == null) {
+				continue;
+			}
+			Arrays.fill(lc.achievedConstraint, 0f);
+		}
+		for(Cells c : cellsList) { // assign the current constraint
+			for(Integer constraint : c.landCoverList) {
+				value =  forestTypeList.get(c.foresttype).stateTypes.get(c.state).get(landCoverConstraintList.get(constraint).variable);
+				setAddLCConstraint(constraint, value);		
+			}
+		}
+		
+	}
+	
+	private void setLandCoverConstraintHarvestDelay() {
+		float[] value = null;
+		boolean addToChangeStateList;
 		int counter = 0;
 		//TODO: loop through each constraint with a list of cell ids rather than each cell
-		for(Cells c : cellsList) {
-			
-			addToStateChange = true;
+		for(Cells c : cellsList) {		
+			addToChangeStateList = true;
 			
 			for(Integer constraint : c.landCoverList) {
-				
-				variable = landCoverConstraintList.get(constraint).variable;				
-				value =  forestTypeList.get(c.foresttype).stateTypes.get(0).get(variable);
-				
-				switch(landCoverConstraintList.get(constraint).type) {
-					case "ge": //greater or equal to
-						for(int v =0; v < value.length; v ++) {
-							if(  value[v] >=  landCoverConstraintList.get(constraint).threshold) {
-								landCoverConstraintList.get(constraint).achievedConstraint[v] += 1f;
-							}
-						}
-						break;
-					case "le": //lesser or equal to
-						for(int v =0; v < value.length; v ++) {
-							if(value[v] <=  landCoverConstraintList.get(constraint).threshold) {
-								landCoverConstraintList.get(constraint).achievedConstraint[v] += 1f;
-							}
-						
-						}
-						break;
-					case "nh": // no harvest
-						addToStateChange = false; //remove from the cellsListChangeState object
-						break;
-					}
-															
+				value =  forestTypeList.get(c.foresttype).stateTypes.get(c.state).get(landCoverConstraintList.get(constraint).variable);
+				setAddLCConstraint(constraint, value);															
 			}
 			
-			if(c.manage_type > 0 && addToStateChange && forestTypeList.get(c.foresttype).stateTypes.size() > 1) {
+			if(c.manage_type > 0 && addToChangeStateList) {
 				cellsListChangeState.add(counter);
 			}
 			
 			counter ++;
 		}
 		
-		System.out.println("");
-		landscape.setLandscapeWeight((double) 1/cellsListChangeState.size());
+		for(LandCoverConstraint lc : landCoverConstraintList) {
+			if(lc.achievedConstraint == null) {
+				continue;
+			}
+			for(int p = 0; p < lc.achievedConstraint.length; p++) {
+				if(lc.achievedConstraint[p] > lc.target_cover ) {
+					lc.delayHarvest = p;
+					break;
+				}
+				
+			}
+		}
 	}
 
+	/**
+	 * Saves the results of the co-evolutionary cellular automata. Writes to a table called ca_result in the sqlite database
+	 * @throws SQLException
+	 */
 	public void saveResults ()  throws SQLException {
 		try { //Get the data from the db
 			Connection conn = DriverManager.getConnection("jdbc:sqlite:C:/Users/klochhea/clus/R/SpaDES-modules/forestryCLUS/Quesnel_TSA_clusdb.sqlite");		
@@ -236,9 +263,15 @@ public class CellularAutomata {
 	        }
 	}
 	
+	/**
+	 * Randomizes the cells state assignment
+	 * @param r the random variable
+	 */
 	private void randomizeStates(Random r) {
+		int cell;
 		for(int c = 0 ; c < cellsListChangeState.size(); c++) {
-			cellsList.get(cellsListChangeState.get(c)).state = r.nextInt(forestTypeList.get(cellsList.get(cellsListChangeState.get(c)).foresttype).stateTypes.size());			
+			cell = cellsListChangeState.get(c);
+			cellsList.get(cell).state = r.nextInt(forestTypeList.get(cellsList.get(cell).foresttype).stateTypes.size());			
 		}
 	}
 
@@ -246,7 +279,7 @@ public class CellularAutomata {
 	* Finds the quantity across all cells and schedules of the maximum amount of volume harvested 
 	* across all planning horizons (maxCutLocal).
 	*/
-	private void setMaxCutLocal() {
+	private void setMaxCutValue() {
 		float tempCut = 0 ;	
 		for(int c =0; c < cellsListChangeState.size(); c++) {
 			for(int s= 0; s < forestTypeList.get(cellsList.get(cellsListChangeState.get(c)).foresttype).stateTypes.size(); s++ ) {				
@@ -261,16 +294,10 @@ public class CellularAutomata {
 		//Note that the max og local is 1 for all periods. 
 	}
 	
-	private float sumFloatVector(float[] object) {
-		float out = 0;
-		for(int f = 0; f < object.length; f ++) {
-			out = out + object[f];
-		}
-		return out;
-	}
+
 
 	/**
-	* Retrieves the max state at the local scale. The rank of alternative schedules is based on Heinonen and Pukkala:
+	* Retrieves the top ranking state at the local scale. The rank of alternative schedules is based on Heinonen and Pukkala:
 	* Ujk = SUM(wi*ui(qi)) where wi is the weight for objective i, 
 	* ui is the priority function for objective i and qi is the quantity of the objective i 
 	* 
@@ -292,7 +319,7 @@ public class CellularAutomata {
 			isf = sumArray(harvVol)/maxCutLocal;
 	
 			age = forestTypeList.get(cellsList.get(i).foresttype).stateTypes.get(s).get("age");
-		    stateValue = 0.3*isf + 0.65*getPropNHRank(harvVol, propN[0],maxPropNH)+ 0.05*getPropNAgeRank(age, propN[1],maxPropNAge);
+		    stateValue = 0.3*isf + 0.65*getPropNHRank(harvVol, propN[0], maxPropNH)+ 0.05*getPropNAgeRank(age, propN[1], maxPropNAge);
 				
 			if(maxValue < stateValue) {
 				maxValue = stateValue;
@@ -304,45 +331,8 @@ public class CellularAutomata {
 	}
 
 	
-
-	private float getPropNHRank(float[] attribute, float[] propN, float maxPropN) {
-		if(maxPropN == 0f) {
-			return 0f;
-		}else {
-			float rank =0;
-			for(int r =0; r < attribute.length; r++) {
-				if(attribute[r] > 0) {
-					rank = rank + propN[r]; // this equates to one times the propNH
-				}
-			}
-			return rank/maxPropN;
-		}
-	}
-	
-	private float getPropNAgeRank(float[] attribute, float[] propN, float maxPropN) {
-		if(maxPropN == 0f) {
-			return 0f;
-		}else {
-			float rank =0;
-			for(int r =0; r < attribute.length; r++) {
-				if(attribute[r] > 100) {
-					rank = rank + propN[r]; // this equates to one times the propNH
-				}
-			}
-			return rank/maxPropN;
-		}
-	}
-
-	private float sumPropN(float[] propN) {
-		float out =0;
-		for(int n = 0; n < propN.length; n++) {
-			out = out + propN[n];
-		}
-		return out;
-	}
-
 	/**
-	* Retrieves the max state when linking the local and global objectives. 
+	* Retrieves the state of a cell with the maximum rank when linking local and global objectives. 
 	* The rank of alternative schedules is based on Heinonen and Pukkala:
 	*
 	* Local level rank of alternative states
@@ -358,59 +348,177 @@ public class CellularAutomata {
 	* area of the cell, A is the total area of all cells, b is the globalWeight to be incremented.
 	* 
 	* @param id the cell index
-	* @return the index of the cell state which maximizes the objectives
+	* @return the index of the cell state which has the highest rank
 	*/
 	private int getMaxStateGlobal(int i) {
-		double maxValue = 0.0, P = 0.0, U =0.0 , hfc = 0.0;
+		double maxValue = 0.0, P = 0.0, U =0.0 , hfc = 0.0, gsc= 0.0;
 		double isf =0.0, lc =1.0;
 		double stateValue;
 		int stateMax = 0;
-		float[] harvVol, age;
+		float[] harvVol, age, gsVol;
 		float[][] propN = getNeighborProportion(cellsList.get(i).adjCellsList);
 		float maxPropNH = sumPropN(propN[0]);
 		float maxPropNAge = sumPropN(propN[1]);
+		boolean recruitment = false;
 		
+		//Get some of the cells info - fetched more than three times
 		int oldState = cellsList.get(i).state;
 		int foresttype = cellsList.get(i).foresttype;
-		planHarvestVolume = subtractVector(planHarvestVolume, forestTypeList.get(foresttype).stateTypes.get(oldState).get("harvVol"));
-		planGSVolume = subtractVector(planGSVolume, forestTypeList.get(foresttype).stateTypes.get(oldState).get("gsVol"));
+		int harvestDelay = getMaxHarvestDelay(cellsList.get(i).landCoverList);
 		
-		for(int s = 0; s < forestTypeList.get(foresttype).stateTypes.size(); s++) {
-				
-			harvVol = forestTypeList.get(foresttype).stateTypes.get(s).get("harvVol");
+		ForestType ft = forestTypeList.get(foresttype);
+		//Adjust the global objectives
+		setObjectives(type.SUBTRACT, ft.stateTypes.get(oldState), cellsList.get(i).landCoverList);
+		
+		//Iterate through all of the states
+		for(int s = 0; s < ft.stateTypes.size(); s++) {
+			harvVol = ft.stateTypes.get(s).get("harvVol");
+			for(int r = 0; r < harvVol.length;r ++) {
+				if(harvVol[r] > 0 && r < harvestDelay) {
+					recruitment = true;
+					break;
+				}
+			}
+			
+			if(recruitment) {
+				recruitment = false;
+				continue;
+			}
+			
+			gsVol = ft.stateTypes.get(s).get("gsVol");
 			isf = sumArray(harvVol)/maxCutLocal;
-	
-			age = forestTypeList.get(foresttype).stateTypes.get(s).get("age");
+			age = ft.stateTypes.get(s).get("age");
 		    U = 0.3*isf + 0.65*getPropNHRank(harvVol, propN[0],maxPropNH)+ 0.05*getPropNAgeRank(age, propN[1],maxPropNAge);
 				
-			hfc = getHarvestFlowConstraint(harvVol, planHarvestVolume);
-			
-			P = 0.5*hfc + 0.5*lc; 
+			hfc = getHarvestFlowConstraint(harvVol);
+			gsc = getGrowingStockConstraint(gsVol);
+			lc  = getLandCoverConstraint(ft.stateTypes.get(s), cellsList.get(i).landCoverList);
+					
+			P = 0.2*hfc + 0.3*gsc + 0.5*lc; 
 			stateValue = landscape.weight*U + globalWeight*P;
 				
-			if(maxValue < stateValue) {
-				maxValue = stateValue;
+			if(maxValue < stateValue) { 
+				maxValue = stateValue; //save the top ranking state
 				stateMax = s;
 				if(P > 0.999) { //this is the threshold for stopping the simulation
 					globalConstraintsAchieved = true;
 					break;
 				}
 			}
-				
 		}
-		
-		planHarvestVolume = sumVector(planHarvestVolume, forestTypeList.get(foresttype).stateTypes.get(stateMax).get("harvVol"));
-		planGSVolume = sumVector(planGSVolume, forestTypeList.get(foresttype).stateTypes.get(stateMax).get("gsVol"));
-	
+		//Adjust the global objectives now that a new state (or same) as been found
+		setObjectives(type.SUM, ft.stateTypes.get(stateMax), cellsList.get(i).landCoverList);
 		return stateMax;
 	}
 
-	private double getHarvestFlowConstraint(float[] harvVol, float[] planHarvestVolume2) {
+	private double getLandCoverConstraint(HashMap<String, float[]> hashMap, ArrayList<Integer> landCoverList) {
+		double valueOut =0.0;
+		float[] vector, currentConstraint;
+		int constraint, target;
+		
+		for(int lcc = 0; lcc< landCoverList.size(); lcc++) {
+			constraint = landCoverList.get(lcc);
+			vector = hashMap.get(landCoverConstraintList.get(constraint).variable);
+			currentConstraint = landCoverConstraintList.get(constraint).achievedConstraint;
+			target = landCoverConstraintList.get(constraint).target_cover;
+			
+			switch(landCoverConstraintList.get(constraint).type) {
+				case "ge": //greater or equal to
+					for(int v =0; v < vector.length; v ++) {
+						if(  vector[v] >=  landCoverConstraintList.get(constraint).threshold) {
+							currentConstraint[v] += 1f;
+						}
+						valueOut += Math.min(1.0, currentConstraint[v]/target)*((double) 1/vector.length)*((double) 1/landCoverList.size());
+					}
+					break;
+				case "le": //lesser or equal to
+					for(int v =0; v < vector.length; v ++) {
+						if(vector[v] <=  landCoverConstraintList.get(constraint).threshold) {
+							currentConstraint[v] -= 1f;
+						}
+						valueOut += Math.min(1.0, currentConstraint[v]/target)*((double) 1/vector.length)*((double) 1/landCoverList.size());
+					}
+					break;
+			}
+		}
+		return valueOut;
+	}
+
+	private int getMaxHarvestDelay(ArrayList<Integer> landCoverList) {
+		int delay = 0;
+		for(int d = 0; d<landCoverList.size(); d++) {
+			delay = Math.max(delay, landCoverConstraintList.get(landCoverList.get(d)).delayHarvest);
+		}
+		return delay;
+	}
+
+	private float getPropNHRank(float[] attribute, float[] propN, float maxPropN) {
+		if(maxPropN == 0f) {
+			return 0f;
+		}else {
+			float rank =0;
+			for(int r =0; r < attribute.length; r++) {
+				if(attribute[r] > 0) {
+					rank = rank + propN[r]; // this equates to one times the propNH
+				}
+			}
+			return (float) rank/maxPropN;
+		}
+	}
+	
+	private float getPropNAgeRank(float[] attribute, float[] propN, float maxPropN) {
+		if(maxPropN == 0f) {
+			return 0f;
+		}else {
+			float rank =0;
+			for(int r =0; r < attribute.length; r++) {
+				if(attribute[r] > 100) {
+					rank = rank + propN[r]; // this equates to one times the propNH
+				}
+			}
+			return (float) rank/maxPropN;
+		}
+	}
+
+	private float sumPropN(float[] propN) {
+		float out =0;
+		for(int n = 0; n < propN.length; n++) {
+			out = out + propN[n];
+		}
+		return out;
+	}
+
+//TODO: Debug why the addition and subtraction of land cover constraints isn't working
+	private void setObjectives(type operator, HashMap<String, float[]> hashMap, ArrayList<Integer> landCoverList) {
+		switch (operator) {
+			case SUBTRACT:
+				for(int i =0; i < hashMap.get("harvVol").length; i++) {
+					planHarvestVolume[i] = planHarvestVolume[i] - hashMap.get("harvVol")[i];
+					planGSVolume[i] = planGSVolume[i] - hashMap.get("gsVol")[i];
+					
+				}
+				for(int lc = 0; lc < landCoverList.size(); lc++) {		
+					setSubLCConstraint(landCoverList.get(lc),hashMap.get(landCoverConstraintList.get(landCoverList.get(lc)).variable) );
+				}
+				break;
+			case SUM:
+				for(int i =0; i < hashMap.get("harvVol").length; i++) {
+					planHarvestVolume[i] = planHarvestVolume[i] + hashMap.get("harvVol")[i];
+					planGSVolume[i] = planGSVolume[i] + hashMap.get("gsVol")[i];
+				}
+				for(int lc = 0; lc < landCoverList.size(); lc++) {		
+					setAddLCConstraint(landCoverList.get(lc),hashMap.get(landCoverConstraintList.get(landCoverList.get(lc)).variable) );
+				}
+				break;
+			}
+	}
+
+	private double getHarvestFlowConstraint(float[] harvVol) {
 		double hvConstraint = 0.0;
 		double volActual;
 		double weight = (double) 1/harvVol.length; 
 		for(int h = 0; h < harvVol.length; h++) {
-			volActual = harvVol[h] + planHarvestVolume2[h];
+			volActual = harvVol[h] + planHarvestVolume[h];
 			if( volActual >= harvestMin) {
 				hvConstraint += weight;
 			}else {
@@ -420,24 +528,62 @@ public class CellularAutomata {
 		return hvConstraint;
 	}
 
-	/**
-	 * Resets any objectives whose value is greater than one to a max of one
-	 * @param objective an array of objective values
-	 * @return an array whose elements have a max value of 1.0
-	 */
-	private float[] checkMaxContribution(float[] objective) {
-		float out[] = new float[landscape.numTimePeriods];
-		
-		for(int t = 0; t < objective.length; t++) {
-			if(objective[t] > 1L ) {
-				out[t] = 1L ;
+	private double getGrowingStockConstraint(float[] gsVol) {
+		double hvConstraint = 0.0;
+		double volActual;
+		double weight = (double) 1/gsVol.length; 
+		for(int h = 0; h < gsVol.length; h++) {
+			volActual = gsVol[h] + planGSVolume[h];
+			if( volActual >= gsMin) {
+				hvConstraint += weight;
 			}else {
-				out[t] = objective[t];
+				hvConstraint += weight*(volActual/gsMin);
 			}
 		}
-		return out;
+		return hvConstraint;
 	}
+	
 
+	private void setAddLCConstraint (int constraint, float[] value) {
+		switch(landCoverConstraintList.get(constraint).type) {
+		case "ge": //greater or equal to
+			for(int v =0; v < value.length; v ++) {
+				if(  value[v] >=  landCoverConstraintList.get(constraint).threshold) {
+					landCoverConstraintList.get(constraint).achievedConstraint[v] += 1f;
+				}
+			}
+			break;
+		case "le": //lesser or equal to
+			for(int v =0; v < value.length; v ++) {
+				if(value[v] <=  landCoverConstraintList.get(constraint).threshold) {
+					landCoverConstraintList.get(constraint).achievedConstraint[v] += 1f;
+				}
+			
+			}
+			break;
+		}
+	}
+	
+	private void setSubLCConstraint (int constraint, float[] value) {
+		switch(landCoverConstraintList.get(constraint).type) {
+		case "ge": //greater or equal to
+			for(int v =0; v < value.length; v ++) {
+				if(  value[v] >=  landCoverConstraintList.get(constraint).threshold) {
+					landCoverConstraintList.get(constraint).achievedConstraint[v] -= 1f;
+				}
+			}
+			break;
+		case "le": //lesser or equal to
+			for(int v =0; v < value.length; v ++) {
+				if(value[v] <=  landCoverConstraintList.get(constraint).threshold) {
+					landCoverConstraintList.get(constraint).achievedConstraint[v] -= 1f;
+				}
+			
+			}
+			break;
+		}
+	}
+	
 	/** 
 	* Simulates the cellular automata follow Mathey et al. This is the main algorithm for searching the decision space. 
 	* 1. global level penalties are determined which incentivize cell level decisions
@@ -716,6 +862,14 @@ public class CellularAutomata {
 		return lsn;
 	}
 
+	private float sumFloatVector(float[] object) {
+		float out = 0;
+		for(int f = 0; f < object.length; f ++) {
+			out = out + object[f];
+		}
+		return out;
+	}
+	
 	 /**
      * Multiplies two vectors together to return the element wise product.
      * @param vector1	an Array of doubles with length equal to the number of time periods
@@ -1105,7 +1259,7 @@ public class CellularAutomata {
 				System.out.print("Getting constraint information");
 				landCoverConstraintList.add(0, new LandCoverConstraint()); // zero is a null landCoverConstraint
 				counter =0;
-				String getConstraintObjects = "SELECT id, variable, threshold, type, percentage, t_area FROM zoneConstraints ORDER BY id;";
+				String getConstraintObjects = "SELECT id, variable, threshold, type, percentage, t_area FROM zoneConstraints WHERE reference_zone = 'rast.zone_cond_beo' ORDER BY id;";
 				ResultSet rs5 = statement.executeQuery(getConstraintObjects);
 				while(rs5.next()) {
 					counter ++;
@@ -1125,6 +1279,7 @@ public class CellularAutomata {
 				while(rs6.next()) {
 					zones.add(rs6.getString(1));
 				}
+				int cell;
 				for(int z = 0; z < zones.size(); z++) {
 					String getZonesConstraints = "SELECT pixelid, z.id "
 							+ "FROM pixels "
@@ -1132,7 +1287,7 @@ public class CellularAutomata {
 							+ "ON pixels." + zones.get(z) +" = z.zoneid "
 							+ "WHERE pixels."+zones.get(z)+" is not null;";
 					ResultSet rs7 = statement.executeQuery(getZonesConstraints);
-					int cell;
+					
 					while(rs7.next()) { 
 						cell = cellIndex[rs7.getInt(1)];
 						if(cell >= 0) { //removes non-treed area (-1) with no state changes
