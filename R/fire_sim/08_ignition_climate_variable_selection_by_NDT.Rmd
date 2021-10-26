@@ -25,7 +25,7 @@ See the License for the specific language governing permissions and limitations 
 -->
 
 #=================================
-#  Script Name: 07_ignition_climate_variable_selection.R
+#  Script Name: 08_ignition_climate_variable_selection.R
 #  Script Version: 1.0
 #  Script Purpose: Run logistic regression models to determine the top candidate climate variable to use in the final analysis of fire ignitions.
 #  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
@@ -59,7 +59,9 @@ library(ggcorrplot)
 source(here::here("R/functions/R_Postgres.R"))
 ```
 
-Now we must bring in the data that we created at the end of 07_VRI_data_prep. We need only the lightning + NA and the person + NA data sets here. We also need the fire ignition data from the end of our first file (01_fire_ignition_data_prep)
+Now we must bring in the data that we created at the end of 07_VRI_data_prep. We need only the lightning + NA and the person + NA data sets here. We also need the fire ignition data from the end of our first file (01_fire_ignition_data_prep).
+
+Note: October 21, 2021, the below files no longer appear to be on postgres
 
 ```{r}
 #bring in lightning caused fire data
@@ -98,11 +100,23 @@ dbDisconnect (conn) # connKyle
 
 ```
 
+Can bring in from local machine.
+```{r}
+dat_lightning<-read.csv(file ="D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis_Oct.csv")
+head(dat_lightning)
+
+dat_person<-read.csv(file ="D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis_Oct.csv")
+head(dat_lightning)
+
+```
+
 Inspect the fire ignition data.
 
 ```{r}
 
 fire_ignitions1<-st_set_geometry(fire_ignitions,NULL) # remove geometry column for dataset
+
+head(fire_ignitions1)
 
 # look at histogram of when fires were ignited per year
 fire_ignitions1$month<- substring(fire_ignitions1$ign_date, 5, 6)
@@ -231,7 +245,6 @@ dat_lightning$mean_tave05_tave06_tave07_tave08<- (dat_lightning$tave05 + dat_lig
 dat_lightning$mean_tave06_tave07_tave08_tave09<- (dat_lightning$tave06 + dat_lightning$tave07+ dat_lightning$tave08 + dat_lightning$tave09)/4
 dat_lightning$mean_tave05_tave06_tave07_tave08_tave09<- (dat_lightning$tave05 + dat_lightning$tave06 + dat_lightning$tave07+ dat_lightning$tave08 + dat_lightning$tave09)/5
 
-
 dat_lightning$mean_ppt05_ppt06<- (dat_lightning$ppt05+ dat_lightning$ppt06)/2
 dat_lightning$mean_ppt06_ppt07<- (dat_lightning$ppt06+ dat_lightning$ppt07)/2
 dat_lightning$mean_ppt07_ppt08<- (dat_lightning$ppt07+ dat_lightning$ppt08)/2
@@ -253,7 +266,62 @@ dat_lightning$mean_mdc07_mdc08_mdc09<- (dat_lightning$mdc_07+ dat_lightning$mdc_
 dat_lightning$mean_mdc05_mdc06_mdc07_mdc08<- (dat_lightning$mdc_05+ dat_lightning$mdc_06 + dat_lightning$mdc_07 + dat_lightning$mdc_08)/4
 dat_lightning$mean_mdc06_mdc07_mdc08_mdc09<- (dat_lightning$mdc_06+ dat_lightning$mdc_07 + dat_lightning$mdc_08 + dat_lightning$mdc_09)/4
 dat_lightning$mean_mdc05_mdc06_mdc07_mdc08_mdc09<- (dat_lightning$mdc_05 + dat_lightning$mdc_06+ dat_lightning$mdc_07 + dat_lightning$mdc_08 + dat_lightning$mdc_09)/5
+```
 
+We also want difference from one month to the next and then for each fire, we will assign the difference depending on the month of fire.
+
+```{r}
+#Check months for fire
+table(dat_lightning$ign_month)
+head(dat_lightning) 
+
+#Without all months, we can only use the below comparisons. 
+dat_lightning$tave_dif_01_02<-(dat_lightning$tave02 - dat_lightning$tave01)
+dat_lightning$tave_dif_02_03<-(dat_lightning$tave03 - dat_lightning$tave02)
+dat_lightning$tave_dif_03_04<-(dat_lightning$tave04 - dat_lightning$tave03)
+dat_lightning$tave_dif_04_05<-(dat_lightning$tave05 - dat_lightning$tave04)
+dat_lightning$tave_dif_05_06<-(dat_lightning$tave06 - dat_lightning$tave05)
+dat_lightning$tave_dif_06_07<-(dat_lightning$tave07 - dat_lightning$tave06)
+dat_lightning$tave_dif_07_08<-(dat_lightning$tave08 - dat_lightning$tave07)
+dat_lightning$tave_dif_08_09<-(dat_lightning$tave09 - dat_lightning$tave08)
+dat_lightning$tave_dif_09_10<-(dat_lightning$tave10 - dat_lightning$tave09)
+dat_lightning$tave_dif_10_11<-(dat_lightning$tave11 - dat_lightning$tave10)
+dat_lightning$tave_dif_11_12<-(dat_lightning$tave12 - dat_lightning$tave11)
+
+dat_lightning$tave_dif_mean<-((dat_lightning$tave_dif_05_06 + dat_lightning$tave_dif_06_07 + dat_lightning$tave_dif_07_08 + dat_lightning$tave_dif_08_09)/4)
+
+head(dat_lightning)
+hist(dat_lightning$tave_dif_05_06)
+hist(dat_lightning$tave_dif_06_07)
+hist(dat_lightning$tave_dif_07_08)
+hist(dat_lightning$tave_dif_08_09)
+table(dat_lightning$ign_month) # captures most fires, but does miss the 659 fires in month 5 (since we do not currently have month)
+
+#FOR NOW USE 05_06 for 04_05, BUT NEEDS UPDATING!
+
+
+dat_lightning$Tdif_atfire<-0
+dat_lightning$ign_month<-as.numeric(dat_lightning$ign_month)
+head(dat_lightning)
+dat_lightning_2<-dat_lightning %>%
+    mutate(Tdif_atfire = case_when(ign_month == 5 ~ tave_dif_04_05,
+                                  ign_month == 6 ~ tave_dif_05_06,
+                                  ign_month == 7 ~ tave_dif_06_07,
+                                  ign_month == 8 ~ tave_dif_07_08,
+                                  ign_month == 9 ~ tave_dif_08_09,
+                                  ign_month == 10 ~ tave_dif_09_10,
+                                  ign_month == 11 ~ tave_dif_10_11,
+                                  ign_month == 12 ~ tave_dif_11_12,
+                                  ign_month == 4 ~ tave_dif_03_04,
+                                  ign_month == 3 ~ tave_dif_02_03,
+                                  ign_month == 2 ~ tave_dif_01_02,
+                                  ign_month == 1 ~ tave_dif_01_02,
+                                  TRUE ~ tave_dif_mean)) #Those areas without fire will receive the mean value for the season. These MDC values may be most accurately used for the escape and spread data, wherein we only assess those areas where fires began.
+
+head(dat_lightning_2)
+hist(dat_lightning_2$Tdif_atfire)
+
+dat_lightning<-dat_lightning_2
 
 ```
 
@@ -346,6 +414,7 @@ dat_lightning_$fire_zone<-paste(dat_lightning_$fire_pres, dat_lightning_$ntrl_ds
 str(dat_lightning_$fire_zone)
 dat_lightning_$fire_zone<-as.factor(dat_lightning_$fire_zone)
 table(dat_lightning_$fire_zone)
+head(dat_lightning_)
 ```
 
 
@@ -399,6 +468,63 @@ dat_person$mean_mdc07_mdc08_mdc09<- (dat_person$mdc_07+ dat_person$mdc_08 + dat_
 dat_person$mean_mdc05_mdc06_mdc07_mdc08<- (dat_person$mdc_05+ dat_person$mdc_06 + dat_person$mdc_07 + dat_person$mdc_08)/4
 dat_person$mean_mdc06_mdc07_mdc08_mdc09<- (dat_person$mdc_06+ dat_person$mdc_07 + dat_person$mdc_08 + dat_person$mdc_09)/4
 dat_person$mean_mdc05_mdc06_mdc07_mdc08_mdc09<- (dat_person$mdc_05 + dat_person$mdc_06+ dat_person$mdc_07 + dat_person$mdc_08 + dat_person$mdc_09)/5
+```
+
+We also want difference from one month to the next and then for each fire, we will assign the difference depending on the month of fire.
+
+```{r}
+#Check months for fire
+table(dat_person$ign_month)
+head(dat_person) 
+
+#Without all months, we can only use the below comparisons. 
+dat_person$tave_dif_01_02<-(dat_person$tave02 - dat_person$tave01)
+dat_person$tave_dif_02_03<-(dat_person$tave03 - dat_person$tave02)
+dat_person$tave_dif_03_04<-(dat_person$tave04 - dat_person$tave03)
+dat_person$tave_dif_04_05<-(dat_person$tave05 - dat_person$tave04)
+dat_person$tave_dif_05_06<-(dat_person$tave06 - dat_person$tave05)
+dat_person$tave_dif_06_07<-(dat_person$tave07 - dat_person$tave06)
+dat_person$tave_dif_07_08<-(dat_person$tave08 - dat_person$tave07)
+dat_person$tave_dif_08_09<-(dat_person$tave09 - dat_person$tave08)
+dat_person$tave_dif_09_10<-(dat_person$tave10 - dat_person$tave09)
+dat_person$tave_dif_10_11<-(dat_person$tave11 - dat_person$tave10)
+dat_person$tave_dif_11_12<-(dat_person$tave12 - dat_person$tave11)
+
+dat_person$tave_dif_mean<-((dat_person$tave_dif_05_06 + dat_person$tave_dif_06_07 + dat_person$tave_dif_07_08 + dat_person$tave_dif_08_09)/4)
+
+head(dat_person)
+hist(dat_person$tave_dif_05_06)
+hist(dat_person$tave_dif_06_07)
+hist(dat_person$tave_dif_07_08)
+hist(dat_person$tave_dif_08_09)
+table(dat_person$ign_month) # captures most fires, but does miss the 659 fires in month 5 (since we do not currently have month)
+
+#FOR NOW USE 05_06 for 04_05, BUT NEEDS UPDATING!
+
+
+dat_person$Tdif_atfire<-0
+dat_person$ign_month<-as.numeric(dat_person$ign_month)
+head(dat_person)
+dat_person_2<-dat_person %>%
+    mutate(Tdif_atfire = case_when(ign_month == 5 ~ tave_dif_04_05,
+                                  ign_month == 6 ~ tave_dif_05_06,
+                                  ign_month == 7 ~ tave_dif_06_07,
+                                  ign_month == 8 ~ tave_dif_07_08,
+                                  ign_month == 9 ~ tave_dif_08_09,
+                                  ign_month == 10 ~ tave_dif_09_10,
+                                  ign_month == 11 ~ tave_dif_10_11,
+                                  ign_month == 12 ~ tave_dif_11_12,
+                                  ign_month == 4 ~ tave_dif_03_04,
+                                  ign_month == 3 ~ tave_dif_02_03,
+                                  ign_month == 2 ~ tave_dif_01_02,
+                                  ign_month == 1 ~ tave_dif_01_02,
+                                  TRUE ~ tave_dif_mean)) #Those areas without fire will receive the mean value for the season. These MDC values may be most accurately used for the escape and spread data, wherein we only assess those areas where fires began.
+
+head(dat_person_2)
+hist(dat_person_2$Tdif_atfire)
+
+dat_person<-dat_person_2
+
 ```
 
 

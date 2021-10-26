@@ -23,6 +23,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 -->
 
+#=================================
+#  Script Name: 03_DEM_data_prep.R
+#  Script Version: 1.0
+#  Script Purpose: Determine the elevation, slope and aspect of each location in the dataset.
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
 #===================
 
 #Overview
@@ -75,7 +82,7 @@ GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_b
 
 #Elevation
 DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
-plot(DEM_slope)
+plot(DEM)
 
 GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
 #DEM_slope
@@ -139,7 +146,8 @@ Stack the rasters. Stacking the rasters will make extracting slope and aspect va
 ```{r}
 ##Stack the rasters
 #rasStack = stack(DEM_slope, DEM_aspect)
-rasStack = stack(DEM_slope, DEM_aspect, DEM, heatload_BC, TRASP2)
+#rasStack = stack(DEM_slope, DEM_aspect, DEM, heatload_BC, TRASP2)
+rasStack = stack(DEM_slope, DEM_aspect, DEM)
 crs(rasStack)
 head(rasStack)
 str(rasStack)
@@ -173,7 +181,7 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
 sample_locations2 <- sf::st_read  (dsn = connKyle, # connKyle
-                               query = "SELECT * FROM public.DC_data_5x")
+                               query = "SELECT * FROM public.DC_data_5x_AllMonths")
 dbDisconnect (connKyle)
 
 head(sample_locations2)
@@ -204,7 +212,6 @@ https://stackoverflow.com/questions/54734771/sf-write-lat-long-from-geometry-int
 ```{r}
 names(sample_locations2)
 
-
 ##Try this first
 test<-cbind(sample_locations2, st_coordinates(sample_locations2))
 head(test)
@@ -233,13 +240,13 @@ Save this file and use for next R Markdown file (04_vri_data_prep). Make sure yo
 
 ```{r}
 
-st_write(sample_locations_DEM, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM_5x.shp", delete_layer=TRUE)
+st_write(sample_locations_DEM, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM_5x_AllMonths.shp", delete_layer=TRUE)
 
 #Also write to local machine on OSGeo4W
 #ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM_5x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM_5x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM_5x_AllMonths.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ##Above may not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
 
 #key_get('dbpass', keyring = 'postgreSQL')
