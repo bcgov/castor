@@ -137,8 +137,8 @@ Init <- function(sim) {
 
 saveForestry<- function(sim) {
   #write.csv(sim$harvestReport, "harvestReport.csv")
-  writeRaster(sim$harvestBlocks, paste0(sim$scenario$name, "_",P(sim, "dataLoaderCLUS", "nameBoundary"), "_harvestBlocks.tif"), overwrite=TRUE)#write the blocks to a raster?
-  writeRaster(sim$ras.zoneConstraint, paste0(sim$scenario$name, "_", P(sim, "dataLoaderCLUS", "nameBoundary"), "_constraints.tif"), overwrite=TRUE)
+  writeRaster(sim$harvestBlocks, paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]], "_harvestBlocks.tif"), overwrite=TRUE)#write the blocks to a raster?
+  writeRaster(sim$ras.zoneConstraint, paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]],"_constraints.tif"), overwrite=TRUE)
   return(invisible(sim))
 }
 
