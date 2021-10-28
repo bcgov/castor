@@ -37,6 +37,7 @@ public class CellularAutomata {
 	//Variables for simulate2
 	float maxCutLocal = 0L;
 	float[] maxCutGlobal = new float[landscape.numTimePeriods];
+	double plc;
 	
 	enum type{
 		SUBTRACT,
@@ -70,9 +71,9 @@ public class CellularAutomata {
 		int counterLocalMaxState = 0;
 		int currentMaxState;
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
-		harvestMin = 19000000;
+		harvestMin = 22500000;
 		gsMin = 119000000;
-		setLandCoverConstraintHarvestDelay(); //In cases no-harvesting decision does not meet the constraint -- remove harvesting during these periods and as a penalty -- thus ahciving the paritial amount
+		setLCCHarvestDelay(); //In cases no-harvesting decision does not meet the constraint -- remove harvesting during these periods and as a penalty -- thus ahciving the paritial amount
 		
 		System.out.println("");
 		landscape.setLandscapeWeight((double) 1/cellsListChangeState.size());
@@ -143,8 +144,8 @@ public class CellularAutomata {
 				cellsList.get(cell).state = getMaxStateGlobal(cell); //set the maximum state with global constraints			
 			}
 			
-			System.out.print("iter:" + g + " global weight:" + globalWeight );
-			globalWeight = globalWeight + 1; //increment the global weight
+			System.out.print("iter:" + g + " global weight:" + globalWeight + " Plc:" + plc );
+			globalWeight = globalWeight + 0.1; //increment the global weight
 			for(int k =0; k < planHarvestVolume.length; k++){
 				System.out.print(" Vol:" + planHarvestVolume[k] + "  ");
 			}
@@ -165,14 +166,14 @@ public class CellularAutomata {
 	}
 	
 	private void setLandCoverConstraints() {
-		float[] value = null;
-		
+		float[] value = null;	
 		for(LandCoverConstraint lc : landCoverConstraintList ) { // reset each constraint
 			if(lc.achievedConstraint == null) {
 				continue;
 			}
 			Arrays.fill(lc.achievedConstraint, 0f);
 		}
+		
 		for(Cells c : cellsList) { // assign the current constraint
 			for(Integer constraint : c.landCoverList) {
 				value =  forestTypeList.get(c.foresttype).stateTypes.get(c.state).get(landCoverConstraintList.get(constraint).variable);
@@ -180,18 +181,21 @@ public class CellularAutomata {
 			}
 		}
 		
+		for(int landC = 1; landC < landCoverConstraintList.size(); landC++ ) { //start at one because the first landCoverConstraint with index 0 is null
+			setLandCoverPHAchieved(landC);
+		}
 	}
 	
-	private void setLandCoverConstraintHarvestDelay() {
+	private void setLCCHarvestDelay() {
 		float[] value = null;
 		boolean addToChangeStateList;
 		int counter = 0;
-		//TODO: loop through each constraint with a list of cell ids rather than each cell
+		//loop through each cell assuming no harvest to find out the period in the planning horizon the land cover constraint becomes non-binding
 		for(Cells c : cellsList) {		
 			addToChangeStateList = true;
 			
 			for(Integer constraint : c.landCoverList) {
-				value =  forestTypeList.get(c.foresttype).stateTypes.get(c.state).get(landCoverConstraintList.get(constraint).variable);
+				value =  forestTypeList.get(c.foresttype).stateTypes.get(0).get(landCoverConstraintList.get(constraint).variable);
 				setAddLCConstraint(constraint, value);															
 			}
 			
@@ -211,7 +215,10 @@ public class CellularAutomata {
 					lc.delayHarvest = p;
 					break;
 				}
-				
+				if(p == lc.achievedConstraint.length-1) { //the constraint will never be met within the planning horizon
+					lc.delayHarvest = p;
+					break;
+				}
 			}
 		}
 	}
@@ -354,6 +361,7 @@ public class CellularAutomata {
 		double maxValue = 0.0, P = 0.0, U =0.0 , hfc = 0.0, gsc= 0.0;
 		double isf =0.0, lc =1.0;
 		double stateValue;
+		
 		int stateMax = 0;
 		float[] harvVol, age, gsVol;
 		float[][] propN = getNeighborProportion(cellsList.get(i).adjCellsList);
@@ -362,13 +370,13 @@ public class CellularAutomata {
 		boolean recruitment = false;
 		
 		//Get some of the cells info - fetched more than three times
-		int oldState = cellsList.get(i).state;
-		int foresttype = cellsList.get(i).foresttype;
 		int harvestDelay = getMaxHarvestDelay(cellsList.get(i).landCoverList);
+		ForestType ft = forestTypeList.get(cellsList.get(i).foresttype);
+		ArrayList<Integer> lcList = cellsList.get(i).landCoverList;
+		plc = getLCRemaining(lcList);
 		
-		ForestType ft = forestTypeList.get(foresttype);
 		//Adjust the global objectives
-		setObjectives(type.SUBTRACT, ft.stateTypes.get(oldState), cellsList.get(i).landCoverList);
+		setObjectives(type.SUBTRACT, ft.stateTypes.get(cellsList.get(i).state), lcList);
 		
 		//Iterate through all of the states
 		for(int s = 0; s < ft.stateTypes.size(); s++) {
@@ -378,11 +386,14 @@ public class CellularAutomata {
 					recruitment = true;
 					break;
 				}
+				if(r >= harvestDelay) {
+					break;
+				}
 			}
 			
 			if(recruitment) {
 				recruitment = false;
-				continue;
+				continue; // go to the next state - can't harvest this one -- its locked down!
 			}
 			
 			gsVol = ft.stateTypes.get(s).get("gsVol");
@@ -392,23 +403,46 @@ public class CellularAutomata {
 				
 			hfc = getHarvestFlowConstraint(harvVol);
 			gsc = getGrowingStockConstraint(gsVol);
-			lc  = getLandCoverConstraint(ft.stateTypes.get(s), cellsList.get(i).landCoverList);
+			lc  = getLandCoverConstraint(ft.stateTypes.get(s), lcList);
 					
-			P = 0.2*hfc + 0.3*gsc + 0.5*lc; 
+			P = 0.2*hfc + 0.3*1.0 + 0.5*lc; 
 			stateValue = landscape.weight*U + globalWeight*P;
 				
 			if(maxValue < stateValue) { 
 				maxValue = stateValue; //save the top ranking state
 				stateMax = s;
-				if(P > 0.999) { //this is the threshold for stopping the simulation
+				if( plc >= 0.999 && P >= 0.999) { //this is the threshold for stopping the simulation
 					globalConstraintsAchieved = true;
 					break;
 				}
 			}
 		}
 		//Adjust the global objectives now that a new state (or same) as been found
-		setObjectives(type.SUM, ft.stateTypes.get(stateMax), cellsList.get(i).landCoverList);
+		setObjectives(type.SUM, ft.stateTypes.get(stateMax), lcList);
 		return stateMax;
+	}
+
+	private double getLCRemaining(ArrayList<Integer> lcList) {
+		int lcRemaining = 0;
+		int count = 0;
+		for(int f = 1; f < landCoverConstraintList.size(); f ++) {
+			if(landCoverConstraintList.get(f).delayHarvest == landscape.numTimePeriods -1) {
+				continue;
+			}		
+			if(landCoverConstraintList.get(f).perPHAchieved >= 1.0) {
+				lcRemaining ++;
+			}
+			count ++;
+		}
+		
+		for(int f2 = 1; f2 < lcList.size(); f2 ++) {
+			count --;
+			if(landCoverConstraintList.get(f2).perPHAchieved >= 1.0) {
+				lcRemaining --;
+			}
+		}
+		
+		return (double) lcRemaining/count;
 	}
 
 	private double getLandCoverConstraint(HashMap<String, float[]> hashMap, ArrayList<Integer> landCoverList) {
@@ -421,22 +455,24 @@ public class CellularAutomata {
 			vector = hashMap.get(landCoverConstraintList.get(constraint).variable);
 			currentConstraint = landCoverConstraintList.get(constraint).achievedConstraint;
 			target = landCoverConstraintList.get(constraint).target_cover;
-			
+			double weight = (double) 1/(vector.length-landCoverConstraintList.get(constraint).delayHarvest);
 			switch(landCoverConstraintList.get(constraint).type) {
 				case "ge": //greater or equal to
-					for(int v =0; v < vector.length; v ++) {
+					for(int v =landCoverConstraintList.get(constraint).delayHarvest; v < vector.length; v ++) {
 						if(  vector[v] >=  landCoverConstraintList.get(constraint).threshold) {
-							currentConstraint[v] += 1f;
+							valueOut += Math.min(1.0, (currentConstraint[v]+1)/target)*weight*((double) 1/landCoverList.size());
+						}else {
+							valueOut += Math.min(1.0, currentConstraint[v]/target)*weight*((double) 1/landCoverList.size());							
 						}
-						valueOut += Math.min(1.0, currentConstraint[v]/target)*((double) 1/vector.length)*((double) 1/landCoverList.size());
 					}
 					break;
 				case "le": //lesser or equal to
-					for(int v =0; v < vector.length; v ++) {
-						if(vector[v] <=  landCoverConstraintList.get(constraint).threshold) {
-							currentConstraint[v] -= 1f;
+					for(int v =landCoverConstraintList.get(constraint).delayHarvest; v < vector.length; v ++) {
+						if(  vector[v] <=  landCoverConstraintList.get(constraint).threshold) {
+							valueOut += Math.min(1.0, (currentConstraint[v]+1)/target)*weight*((double) 1/landCoverList.size());
+						}else {
+							valueOut += Math.min(1.0, currentConstraint[v]/target)*weight*((double) 1/landCoverList.size());							
 						}
-						valueOut += Math.min(1.0, currentConstraint[v]/target)*((double) 1/vector.length)*((double) 1/landCoverList.size());
 					}
 					break;
 			}
@@ -488,7 +524,18 @@ public class CellularAutomata {
 		return out;
 	}
 
-//TODO: Debug why the addition and subtraction of land cover constraints isn't working
+	private void setLandCoverPHAchieved (int constraint) {
+		float weight = (float) 1/(landCoverConstraintList.get(constraint).achievedConstraint.length-landCoverConstraintList.get(constraint).delayHarvest);
+		landCoverConstraintList.get(constraint).perPHAchieved = 0f;//reset it
+		
+		for(int l = landCoverConstraintList.get(constraint).delayHarvest; l < landCoverConstraintList.get(constraint).achievedConstraint.length; l++) {
+			if(landCoverConstraintList.get(constraint).achievedConstraint[l] >= landCoverConstraintList.get(constraint).target_cover) {
+				landCoverConstraintList.get(constraint).perPHAchieved += weight;
+			};
+		}	
+	}
+	
+	
 	private void setObjectives(type operator, HashMap<String, float[]> hashMap, ArrayList<Integer> landCoverList) {
 		switch (operator) {
 			case SUBTRACT:
@@ -508,6 +555,7 @@ public class CellularAutomata {
 				}
 				for(int lc = 0; lc < landCoverList.size(); lc++) {		
 					setAddLCConstraint(landCoverList.get(lc),hashMap.get(landCoverConstraintList.get(landCoverList.get(lc)).variable) );
+					setLandCoverPHAchieved(landCoverList.get(lc));
 				}
 				break;
 			}
@@ -545,6 +593,7 @@ public class CellularAutomata {
 	
 
 	private void setAddLCConstraint (int constraint, float[] value) {
+		
 		switch(landCoverConstraintList.get(constraint).type) {
 		case "ge": //greater or equal to
 			for(int v =0; v < value.length; v ++) {
@@ -562,9 +611,15 @@ public class CellularAutomata {
 			}
 			break;
 		}
+		
+	
 	}
 	
+	
+	
+	
 	private void setSubLCConstraint (int constraint, float[] value) {
+
 		switch(landCoverConstraintList.get(constraint).type) {
 		case "ge": //greater or equal to
 			for(int v =0; v < value.length; v ++) {
@@ -582,6 +637,7 @@ public class CellularAutomata {
 			}
 			break;
 		}
+
 	}
 	
 	/** 

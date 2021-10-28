@@ -5,10 +5,10 @@ import java.util.LinkedHashMap;
 
 public class LandCoverConstraint {
 	String variable, type;
-	float threshold, percentage, t_area;
+	float threshold, percentage, t_area, perPHAchieved;
 	float[] achievedConstraint; // this id dynamic and is needed to keep track of the constraint
 	int delayHarvest, target_cover;
-	double perPHAchieved;
+	
 	/**Constructor
 	 * 
 	 */
