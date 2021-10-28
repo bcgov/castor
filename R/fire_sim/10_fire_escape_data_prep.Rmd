@@ -108,7 +108,7 @@ Now, select only those locations where a fire did occur. And then create a new c
 #NOTE: in below, it is determined that both lightning and person caused fires have exactly 3989 fires of size 0 hectares... this is concerning...
 
 ```{r}
-dat_lightning_<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_Sept.csv")
+dat_lightning_<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_Oct.csv")
 
 ```
 
@@ -193,7 +193,7 @@ p <- ggplot(dat_lightning_escape_2, aes(mdc_atfire, as.numeric(escape))) +
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("MDC at fire") + ylab("Pr (ignition)")
+  xlab("MDC at fire") + ylab("Pr (escape)")
 p
 
 p <- ggplot(dat_lightning_escape_2, aes(mdc_atfire, as.numeric(escape3))) +
@@ -201,7 +201,7 @@ p <- ggplot(dat_lightning_escape_2, aes(mdc_atfire, as.numeric(escape3))) +
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("MDC at fire") + ylab("Pr (ignition)")
+  xlab("MDC at fire") + ylab("Pr (escape)")
 p
 
 p <- ggplot(dat_lightning_escape_2, aes(mdc_atfire, as.numeric(escape10))) +
@@ -209,7 +209,7 @@ p <- ggplot(dat_lightning_escape_2, aes(mdc_atfire, as.numeric(escape10))) +
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("MDC at fire") + ylab("Pr (ignition)")
+  xlab("MDC at fire") + ylab("Pr (escape)")
 p
 
 #Of just ignition
@@ -224,6 +224,19 @@ p
 
 ```
 
+Inspect by Tdif_atfire
+
+```{r}
+p <- ggplot(dat_lightning_escape_2, aes(Tdif_atfire, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Temp Difference from Month Before Fire") + ylab("Pr (escape)")
+p
+```
+
+
 Save data on local machine.
 
 ```{r}
@@ -231,17 +244,17 @@ Save data on local machine.
 #st_write(dat_lightning_escape_2, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning.shp", delete_layer=TRUE)
 
 #Loaded in as df and not a shape file
-write.csv(dat_lightning_escape_2, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning.csv")
+write.csv(dat_lightning_escape_2, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_Oct.csv")
 
 # If need to read back in, use below code, but note that because geometry was not removed, you may need to manually shift the column headings (there is a comma in the geometry cell, causing everything to shift one after the geometry statement).
-#dat_lightning_escape_2<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning.csv")
+#dat_lightning_escape_2<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_Oct.csv")
 
 ```
 
 Repeat for person caused fires.
 
 ```{r}
-dat_person_<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_Sept.csv")
+dat_person_<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_Oct.csv")
 ```
 
 
@@ -325,6 +338,17 @@ Inspect number of fires by MDC
 hist(dat_person_escape_2$mdc_atfire)
 hist(dat_person_escape_2$wind_atfire)
 ```
+Inspect by Tdif_atfire
+
+```{r}
+p <- ggplot(dat_person_escape_2, aes(Tdif_atfire, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Temp Difference from Month Before Fire") + ylab("Pr (escape)")
+p
+```
 
 Save data on local machine.
 
@@ -333,10 +357,10 @@ Save data on local machine.
 #st_write(dat_person_escape_2, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person.shp", delete_layer=TRUE)
 
 #Loaded in as df and not a shape file
-write.csv(dat_person_escape_2, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person.csv")
+write.csv(dat_person_escape_2, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_Oct.csv")
 
 # If need to read back in, use below code, but note that because geometry was not removed, you may need to manually shift the column headings (there is a comma in the geometry cell, causing everything to shift one after the geometry statement).
-#dat_person_escape_2<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person.csv")
+#dat_person_escape_2<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_Oct.csv")
 
 ```
 
