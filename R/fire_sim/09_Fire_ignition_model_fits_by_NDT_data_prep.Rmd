@@ -604,6 +604,56 @@ p <- ggplot(dat_person_, aes(live_stand_volume_125, as.numeric(fire_pres))) +
 p
 ```
 
+Check for patterns by difference in temperature.
+
+```{r}
+
+#Lightning Caused fires
+p <- ggplot(dat_lightning_, aes(Tdif_atfire, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Temperature Difference From Month Before") + ylab("Pr (ignition)")
+p # problem here is that all events of no far are clustered in middle
+
+p <- ggplot(dat_lightning_, aes(Tdif_atfireB, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Temperature Difference From Month Before") + ylab("Pr (ignition)")
+p # problem here is that all events of no far are clustered in middle
+
+p <- ggplot(dat_lightning_, aes(Tdif_atfire2, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Temperature Difference From Month Before") + ylab("Pr (ignition)")
+p #problem here is that all events of fire are clustered towards the high end
+
+#Person caused fires
+p <- ggplot(dat_person_, aes(Tdif_atfire, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Temperature Difference From Month Before") + ylab("Pr (ignition)")
+p # problem here is that all events of no far are clustered in middle
+
+p <- ggplot(dat_person_, aes(Tdif_atfire2, as.numeric(fire_pres))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Temperature Difference From Month Before") + ylab("Pr (ignition)")
+p #problem here is that all events of fire are clustered towards the high end
+
+```
+
+In the above, whether you use the mean or the max, you get the complete opposite pattern, and the locations where fire did not occur get clustered. Must ponder how to represent data best. Is there one month jump in particular that seems most intuitive? May also wish to use max temperatures and not just mean temperatures, but means of monthly temperature seems intuitive to me.
+
 Save data.
 
 ```{r}
@@ -859,7 +909,7 @@ dat_person<-subset(dat_person,dat_person$bclcs_level_5!="RT")
 #dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="BU"] <- "DIST"
 
 #Check
-table(dat_person$bclcs_level_5_2) #I do not know what the 22 unspecified are
+table(dat_person$bclcs_level_5_2) #I do not know what the unspecified ones are
 ```
 
 

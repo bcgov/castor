@@ -74,7 +74,7 @@ Now we must bring in the data that we created at the end of 09_fire_escape_data_
 
 ```{r}
 #Lightning-caused fires
-Escape_data_lightning<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning.csv")
+Escape_data_lightning<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_Oct.csv")
 head(Escape_data_lightning)
 table(Escape_data_lightning$bclcs_level_2)
 
@@ -82,7 +82,7 @@ table(Escape_data_lightning$bclcs_level_2)
 Escape_data_lightning<-dat_lightning_escape_2
 
 #Person-caused fires
-Escape_data_person<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person.csv")
+Escape_data_person<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_Oct.csv")
 head(Escape_data_person)
 
 #If continuing from last file (09_fire_escape_data_prep)
@@ -351,7 +351,7 @@ p
 
 ```
 
-TOp climate variables.
+Top climate variables.
 
 ```{r}
 p <- ggplot(Escape_data_lightning, aes(tave09, as.numeric(escape))) +
@@ -623,15 +623,15 @@ table(Escape_data_person$veg_escape)
 #Save data here in case get disconnected from R
 
 ```{r}
-write.csv(Escape_data_lightning, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_escape_.csv")
+write.csv(Escape_data_lightning, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_escape_Oct.csv")
 
-write.csv(Escape_data_person, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_escape_.csv")
+write.csv(Escape_data_person, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_escape_Oct.csv")
 
 #Load back in as needed
-Escape_data_lightning<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_escape_.csv")
+Escape_data_lightning<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_escape_Oct.csv")
 head(Escape_data_lightning)
 
-Escape_data_person<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_escape_.csv")
+Escape_data_person<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_escape_Oct.csv")
 head(Escape_data_person)
 ```
 
@@ -725,13 +725,13 @@ hist(Escape_data_person_l$live_stand_volume_125)
 Save the prepped data
 
 ```{r}
-write.csv(Escape_data_lightning_t, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_trees_NDT.csv")
+write.csv(Escape_data_lightning_t, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_trees_NDT_Oct.csv")
 
-write.csv(Escape_data_lightning_nt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_notrees_NDT.csv")
+write.csv(Escape_data_lightning_nt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_notrees_NDT_Oct.csv")
 
-write.csv(Escape_data_person_t, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_trees_NDT.csv")
+write.csv(Escape_data_person_t, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_trees_NDT_Oct.csv")
 
-write.csv(Escape_data_person_nt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_notrees_NDT.csv")
+write.csv(Escape_data_person_nt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_notrees_NDT_Oct.csv")
 
 ```
 
@@ -741,50 +741,6 @@ write.csv(Escape_data_person_nt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_
 
 
 
-
-
-
-
-
-
-
-
-
-Load in the prepped data if starting from here.
-
-```{r}
-Escape_data_lightning_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_trees_NDT.csv")
-
-Escape_data_lightning_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_notrees_NDT.csv")
-
-Escape_data_person_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_trees_NDT.csv")
-
-Escape_data_person_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_notrees_NDT.csv")
-```
-
-```{r}
-Escape_data_person_nt$fire_veg<-paste(Escape_data_person_nt$escape, Escape_data_person_nt$vegtype)
-
-Escape_data_person_t$fire_veg<-paste(Escape_data_person_t$escape, Escape_data_person_t$vegtype)
-
-Escape_data_lightning_nt$fire_veg<-paste(Escape_data_lightning_nt$escape, Escape_data_lightning_nt$vegtype)
-
-Escape_data_lightning_t$fire_veg<-paste(Escape_data_lightning_t$escape, Escape_data_lightning_t$vegtype)
-
-str(Escape_data_person_t$fire_veg)
-str(Escape_data_person_t$fire_pres)
-```
-
-Clear R except what I want to keep.
-
-```{r}
-library(gdata)
-
-keep(dat_lightning, dat_lightning_, dat_person, dat_person_, Escape_data_lightning_t, Escape_data_lightning_nt, Escape_data_person_nt, Escape_data_person_t, sure = TRUE) # setting sure to TRUE removes variables not in the list
- 
-ls()
-gc(TRUE)
-```
 
 
 
