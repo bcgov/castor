@@ -10,7 +10,7 @@ public class ForestType {
 	int id_yc;
 	int id_yc_trans;
 	int manage_type;
-	ArrayList<HashMap<String, Object>> stateTypes = new ArrayList<HashMap<String, Object>>();
+	ArrayList<HashMap<String, float[]>> stateTypes = new ArrayList<HashMap<String, float[]>>();
 	
 	/**
 	 * Constructor
@@ -27,7 +27,7 @@ public class ForestType {
 		this.manage_type = manage_type;	
 	}
 	
-	public void setForestTypeStates(int manageType, ArrayList<int[]> ageTemplate, ArrayList<int[]> harvestTemplate, HashMap<String, float[]> yc,
+	public void setForestTypeStates(int manageType, ArrayList<float[]> ageTemplate, ArrayList<float[]> harvestTemplate, HashMap<String, float[]> yc,
 			HashMap<String, float[]> yc_trans, float minHarvVol) {
 		//Age State: already set up
 		//Harvest Age State: already set up
@@ -37,7 +37,7 @@ public class ForestType {
 		//Ht state: need and links to constraints
 	
 		//Add state zero to all - a no harvest state!
-		this.stateTypes.add(0, new HashMap<String, Object>());
+		this.stateTypes.add(0, new HashMap<String, float[]>());
 		this.stateTypes.get(0).put("age", ageTemplate.get(0)); // int type
 		this.stateTypes.get(0).put("harvAge", harvestTemplate.get(0)); // float type
 				
@@ -112,7 +112,7 @@ public class ForestType {
 				
 				stateCounter ++;
 				
-				this.stateTypes.add(stateCounter, new HashMap<String, Object>());
+				this.stateTypes.add(stateCounter, new HashMap<String, float[]>());
 				this.stateTypes.get(stateCounter).put("age", ageTemplate.get(s)); // int type
 				this.stateTypes.get(stateCounter).put("harvAge", harvestTemplate.get(s)); // int type
 				this.stateTypes.get(stateCounter).put("harvVol", harvVol1); 
@@ -124,12 +124,12 @@ public class ForestType {
 	}
 	
 	//More methods
-	public float interpFloat(int age, int ageLower, int ageUpper, float yieldLower, float yieldUpper) {		
+	public float interpFloat(float f, int ageLower, int ageUpper, float yieldLower, float yieldUpper) {		
 		float inpterpValue;
 		if(ageUpper == ageLower) {
 			inpterpValue = yieldLower;
 		} else {
-			inpterpValue = ((yieldUpper - yieldLower)/(ageUpper - ageLower))*(age-ageLower) + yieldLower;
+			inpterpValue = ((yieldUpper - yieldLower)/(ageUpper - ageLower))*(f-ageLower) + yieldLower;
 		}
 		return inpterpValue;
 	}

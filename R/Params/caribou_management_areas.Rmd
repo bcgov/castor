@@ -1459,10 +1459,68 @@ dbDisconnect(conn)
 ```
 
 
+### Chilcotin Scenario 2 Zones, October 2021
+The following creates zones for Chilcotin caribou recovery planning, specific to scenario 2. These zones are a combination of critical habitat and other specified zones
+
+```{r, chilcotin scenario 2 areas}
+
+require (sf)
+require (data.table)
+require (DBI)
+
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"),
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'),
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'),
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+zone.scenario2 <- getSpatialQuery("SELECT * from public.chilcotin_scen2;")
+
+# zone integer  
+zone.scenario2.vat <- data.table (st_drop_geometry (zone.scenario2 [, c ('type')]))  
+zone.scenario2.vat [, value := seq_len(.N)]  
+zone.scenario2 <- merge (zone.scenario2, zone.scenario2.vat, by.x = "type", by.y = "type")
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(zone.scenario2)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_scenario2 <- fasterize::fasterize (zone.scenario2, prov.rast, field = "value")
+writeRaster (ras_scenario2, "ras_chilcotin_scneario2.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_chilcotin_scneario2.tif -t 100x100 rast.zone_chilcotin_scenario2 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 
+#Create zone constraint table for raster with all zones
+zone_nh <- data.table (zoneid = as.integer(c(1:4, 7:8)), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.zone_chilcotin_scenario2', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA),
+                         denom = as.character(NA), 
+                         start = as.integer(0),
+                         stop = as.integer(250))
+
+zone_age <- data.table (zoneid = as.integer(c(5:6)), 
+                         type = 'ge', variable = 'age', threshold = 40, 
+                         reference_zone = 'rast.zone_chilcotin_scenario2', 
+                         percentage = 65, ndt = as.integer(0), multi_condition = as.character(NA),
+                         denom = as.character(NA), 
+                         start = as.integer(0),
+                         stop = as.integer(250))
+zone_scenario2 <- rbindlist(list(zone_nh, zone_age))
 
 
+DBI::dbWriteTable(conn, c("vat", "zone_chilcotin_scenario2"), value = zone.scenario2.vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "zone_chilcotin_scenario2"), value = zone_scenario2, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.zone_chilcotin_scenario2 ALTER COLUMN denom TYPE VARCHAR;"))
+dbExecute(conn, paste0("ALTER TABLE zone.zone_chilcotin_scenario2 INHERIT zone.constraints"))
+dbDisconnect(conn)
+
+```
 
 
 
