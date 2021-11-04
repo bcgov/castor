@@ -288,18 +288,30 @@ dat_lightning$tave_dif_09_10<-(dat_lightning$tave10 - dat_lightning$tave09)
 dat_lightning$tave_dif_10_11<-(dat_lightning$tave11 - dat_lightning$tave10)
 dat_lightning$tave_dif_11_12<-(dat_lightning$tave12 - dat_lightning$tave11)
 
+#Create a variable that is the mean of the main months for which fires occur
 dat_lightning$tave_dif_mean<-((dat_lightning$tave_dif_05_06 + dat_lightning$tave_dif_06_07 + dat_lightning$tave_dif_07_08 + dat_lightning$tave_dif_08_09)/4)
 
+#Compare to the mean for each individually
+mean(dat_lightning$tave_dif_05_06) #3.79
+mean(dat_lightning$tave_dif_06_07) #3.004
+mean(dat_lightning$tave_dif_07_08) #-0.852
+mean(dat_lightning$tave_dif_08_09)  #-4.6906
+dat_lightning$tave_dif_mean2<-((dat_lightning$tave_dif_05_06 + dat_lightning$tave_dif_06_07 + dat_lightning$tave_dif_07_08)/3)
+mean(dat_lightning$tave_dif_mean2)
+
+#Create a variable for the max difference for which fires most often occur
+library(matrixStats)
+dat_lightning$tave_dif_max<- rowMaxs(as.matrix(dat_lightning[,c(117,118,119,120)])) #select columns for dat_lightning$tave_dif_05_06, dat_lightning$tave_dif_06_07, dat_lightning$tave_dif_07_08, dat_lightning$tave_dif_08_09)
+
 head(dat_lightning)
+hist(dat_lightning$tave_dif_04_05)
 hist(dat_lightning$tave_dif_05_06)
 hist(dat_lightning$tave_dif_06_07)
 hist(dat_lightning$tave_dif_07_08)
 hist(dat_lightning$tave_dif_08_09)
-table(dat_lightning$ign_month) # captures most fires, but does miss the 659 fires in month 5 (since we do not currently have month)
+table(dat_lightning$ign_month) 
 
-#FOR NOW USE 05_06 for 04_05, BUT NEEDS UPDATING!
-
-
+#Assign values by month fire occurred, with the TRUE value assigning to the locations where fire did not occur
 dat_lightning$Tdif_atfire<-0
 dat_lightning$ign_month<-as.numeric(dat_lightning$ign_month)
 head(dat_lightning)
@@ -316,12 +328,53 @@ dat_lightning_2<-dat_lightning %>%
                                   ign_month == 3 ~ tave_dif_02_03,
                                   ign_month == 2 ~ tave_dif_01_02,
                                   ign_month == 1 ~ tave_dif_01_02,
-                                  TRUE ~ tave_dif_mean)) #Those areas without fire will receive the mean value for the season. These MDC values may be most accurately used for the escape and spread data, wherein we only assess those areas where fires began.
+                                  TRUE ~ tave_dif_mean)) #Those areas without fire will receive the mean value for the season. 
+
+#try without 08_09 since temperature change goes in opposite direction
+dat_lightning_2$Tdif_atfireB<-0
+dat_lightning_2$ign_month<-as.numeric(dat_lightning_2$ign_month)
+head(dat_lightning_2)
+dat_lightning_2<-dat_lightning_2 %>%
+    mutate(Tdif_atfireB = case_when(ign_month == 5 ~ tave_dif_04_05,
+                                  ign_month == 6 ~ tave_dif_05_06,
+                                  ign_month == 7 ~ tave_dif_06_07,
+                                  ign_month == 8 ~ tave_dif_07_08,
+                                  ign_month == 9 ~ tave_dif_08_09,
+                                  ign_month == 10 ~ tave_dif_09_10,
+                                  ign_month == 11 ~ tave_dif_10_11,
+                                  ign_month == 12 ~ tave_dif_11_12,
+                                  ign_month == 4 ~ tave_dif_03_04,
+                                  ign_month == 3 ~ tave_dif_02_03,
+                                  ign_month == 2 ~ tave_dif_01_02,
+                                  ign_month == 1 ~ tave_dif_01_02,
+                                  TRUE ~ tave_dif_mean2)) #Those areas without fire will receive the mean value for the season. 
+head(dat_lightning_2)
+hist(dat_lightning_2$Tdif_atfireB) #Mostly clustered at slightly about 2
+
+#Make a second, similar variable in which the TRUE statement represents the max difference instead of the mean
+dat_lightning_2$Tdif_atfire2<-0
+head(dat_lightning_2)
+dat_lightning_2<-dat_lightning_2 %>%
+    mutate(Tdif_atfire2 = case_when(ign_month == 5 ~ tave_dif_04_05,
+                                  ign_month == 6 ~ tave_dif_05_06,
+                                  ign_month == 7 ~ tave_dif_06_07,
+                                  ign_month == 8 ~ tave_dif_07_08,
+                                  ign_month == 9 ~ tave_dif_08_09,
+                                  ign_month == 10 ~ tave_dif_09_10,
+                                  ign_month == 11 ~ tave_dif_10_11,
+                                  ign_month == 12 ~ tave_dif_11_12,
+                                  ign_month == 4 ~ tave_dif_03_04,
+                                  ign_month == 3 ~ tave_dif_02_03,
+                                  ign_month == 2 ~ tave_dif_01_02,
+                                  ign_month == 1 ~ tave_dif_01_02,
+                                  TRUE ~ tave_dif_max)) #Those areas without fire will receive the mean value for the season. These MDC values may be most accurately used for the escape and spread data, wherein we only assess those areas where fires began.
 
 head(dat_lightning_2)
 hist(dat_lightning_2$Tdif_atfire)
 
 dat_lightning<-dat_lightning_2
+
+##Will not be able to be used for ignition, but should be able to be used for escape and fire size
 
 ```
 
@@ -492,16 +545,27 @@ dat_person$tave_dif_11_12<-(dat_person$tave12 - dat_person$tave11)
 
 dat_person$tave_dif_mean<-((dat_person$tave_dif_05_06 + dat_person$tave_dif_06_07 + dat_person$tave_dif_07_08 + dat_person$tave_dif_08_09)/4)
 
+#Compare to the mean for each individually
+mean(dat_person$tave_dif_05_06) #3.56
+mean(dat_person$tave_dif_06_07) #3.06
+mean(dat_person$tave_dif_07_08) #-0.63
+mean(dat_person$tave_dif_08_09)  #-4.27
+dat_person$tave_dif_mean2<-((dat_person$tave_dif_05_06 + dat_person$tave_dif_06_07 + dat_person$tave_dif_07_08)/3)
+mean(dat_person$tave_dif_mean2)
+
+#Create a variable for the max difference for which fires most often occur
+library(matrixStats)
+dat_person$tave_dif_max<- rowMaxs(as.matrix(dat_person[,c(117,118,119,120)])) #select columns for dat_person$tave_dif_05_06, dat_person$tave_dif_06_07, dat_person$tave_dif_07_08, dat_person$tave_dif_08_09)
+
 head(dat_person)
+hist(dat_person$tave_dif_04_05)
 hist(dat_person$tave_dif_05_06)
 hist(dat_person$tave_dif_06_07)
 hist(dat_person$tave_dif_07_08)
 hist(dat_person$tave_dif_08_09)
-table(dat_person$ign_month) # captures most fires, but does miss the 659 fires in month 5 (since we do not currently have month)
+table(dat_person$ign_month) 
 
-#FOR NOW USE 05_06 for 04_05, BUT NEEDS UPDATING!
-
-
+#Assign values by month fire occurred, with the TRUE value assigning to the locations where fire did not occur
 dat_person$Tdif_atfire<-0
 dat_person$ign_month<-as.numeric(dat_person$ign_month)
 head(dat_person)
@@ -518,7 +582,46 @@ dat_person_2<-dat_person %>%
                                   ign_month == 3 ~ tave_dif_02_03,
                                   ign_month == 2 ~ tave_dif_01_02,
                                   ign_month == 1 ~ tave_dif_01_02,
-                                  TRUE ~ tave_dif_mean)) #Those areas without fire will receive the mean value for the season. These MDC values may be most accurately used for the escape and spread data, wherein we only assess those areas where fires began.
+                                  TRUE ~ tave_dif_mean)) #Those areas without fire will receive the mean value for the season. 
+
+#try without 08_09 since temperature change goes in opposite direction
+dat_person_2$Tdif_atfireB<-0
+dat_person_2$ign_month<-as.numeric(dat_person_2$ign_month)
+head(dat_person_2)
+dat_person_2<-dat_person_2 %>%
+    mutate(Tdif_atfireB = case_when(ign_month == 5 ~ tave_dif_04_05,
+                                  ign_month == 6 ~ tave_dif_05_06,
+                                  ign_month == 7 ~ tave_dif_06_07,
+                                  ign_month == 8 ~ tave_dif_07_08,
+                                  ign_month == 9 ~ tave_dif_08_09,
+                                  ign_month == 10 ~ tave_dif_09_10,
+                                  ign_month == 11 ~ tave_dif_10_11,
+                                  ign_month == 12 ~ tave_dif_11_12,
+                                  ign_month == 4 ~ tave_dif_03_04,
+                                  ign_month == 3 ~ tave_dif_02_03,
+                                  ign_month == 2 ~ tave_dif_01_02,
+                                  ign_month == 1 ~ tave_dif_01_02,
+                                  TRUE ~ tave_dif_mean2)) #Those areas without fire will receive the mean value for the season. 
+head(dat_person_2)
+hist(dat_person_2$Tdif_atfireB) #Mostly clustered at slightly about 2
+
+#Make a second, similar variable in which the TRUE statement represents the max difference instead of the mean
+dat_person_2$Tdif_atfire2<-0
+head(dat_person_2)
+dat_person_2<-dat_person_2 %>%
+    mutate(Tdif_atfire2 = case_when(ign_month == 5 ~ tave_dif_04_05,
+                                  ign_month == 6 ~ tave_dif_05_06,
+                                  ign_month == 7 ~ tave_dif_06_07,
+                                  ign_month == 8 ~ tave_dif_07_08,
+                                  ign_month == 9 ~ tave_dif_08_09,
+                                  ign_month == 10 ~ tave_dif_09_10,
+                                  ign_month == 11 ~ tave_dif_10_11,
+                                  ign_month == 12 ~ tave_dif_11_12,
+                                  ign_month == 4 ~ tave_dif_03_04,
+                                  ign_month == 3 ~ tave_dif_02_03,
+                                  ign_month == 2 ~ tave_dif_01_02,
+                                  ign_month == 1 ~ tave_dif_01_02,
+                                  TRUE ~ tave_dif_max)) #Those areas without fire will receive the mean value for the season. These MDC values may be most accurately used for the escape and spread data, wherein we only assess those areas where fires began.
 
 head(dat_person_2)
 hist(dat_person_2$Tdif_atfire)
@@ -526,7 +629,6 @@ hist(dat_person_2$Tdif_atfire)
 dat_person<-dat_person_2
 
 ```
-
 
 For each fire, let's extract the MDC in the specific month that fire began. Note that some fires actually began in months other than 05-09. For these, for now, we will select the nearest time (05 for January to April, and 09 for October and November). We may wish to get the actual values.
 
@@ -556,6 +658,20 @@ dat_person_$fire_pres<-dat_person_$fire
 
 ```
 
+
+Create new factor to parse out for training and validation data
+
+```{r}
+#create new column
+dat_person_$fire_zone<-paste(dat_person_$fire_pres, dat_person_$ntrl_ds)
+str(dat_person_$fire_zone)
+dat_person_$fire_zone<-as.factor(dat_person_$fire_zone)
+table(dat_person_$fire_zone)
+head(dat_person_)
+```
+
+
+##### Create variables for Model Selextion ########
 Create groupings of variables to put into model selection loop.
 
 ```{r}

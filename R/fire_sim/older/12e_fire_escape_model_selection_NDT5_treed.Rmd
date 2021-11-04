@@ -104,7 +104,6 @@ We will make a loop that does something very similar to our last loop, but with 
 10. Land use (bclcs_level_5_2)
 11. windspeed (wind_atfire)
 12. roads_km (road density, which may relate to ability to fight fires)
-13. Tdif_atfire (temperature difference from the month prior to the month of the fire)
 
 Interactions of interest: two-way interactions between climate (1) and vegtype (5); two-way interactions between topography measures (6-8). 
 
@@ -796,14 +795,13 @@ Top Models:
 
 Additional Variables:
 1. bclcs_level_5_2 (land use) (to be added to final investigated model)
-2. Tdif_atfire
 
-Because there are few variables to explore for NDT5, we will step to manual model investigation utilizing the above variables and relevant interactions. + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire
+Because there are few variables to explore for NDT5, we will step to manual model investigation utilizing the above variables and relevant interactions.
 
 #Next investigation
 
 ```{r}
-escape_lightning_t_NDT5<-subset(Escape_data_lightning_t, Escape_data_lightning_t$ntrl_ds=="NDT5") #119 observations
+escape_lightning_t_NDT5<-subset(Escape_data_lightning_t, Escape_data_lightning_t$ntrl_ds=="NDT5")
 
 #Divide data into training and valid
 prop<-0.75
@@ -816,105 +814,125 @@ prop<-0.75
    Valid <- escape_lightning_t_NDT5[-trainIndex,]
 
 #Run model using dat1
-model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125 + dist_dam + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km + wind_atfire + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
+model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125 + dist_dam + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km + wind_atfire, family = binomial, data = dat1)
 
-AIC(model.NDT5) #64.96
+AIC(model.NDT5) #78.5
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.65
+   mod.auc #0.63 
    
 Anova(model.NDT5, type=3)
-#Anova(model.NDT5, type=3, singular.ok = TRUE)
+Anova(model.NDT5, type=3, singular.ok = TRUE)
 
 #Remove least significant variables
-model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125 + dist_dam + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km + wind_atfire + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
+model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125 + dist_dam + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km, family = binomial, data = dat1)
 
-AIC(model.NDT5) #63.2
+AIC(model.NDT5) #76.5
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.63
+   mod.auc #0.63 
    
 Anova(model.NDT5, type=3)
-#Anova(model.NDT5, type=3, singular.ok = TRUE)
+Anova(model.NDT5, type=3, singular.ok = TRUE)
 
 #Remove least significant variables
-model.NDT5<-glm(escape ~ climate1 + climate2 + live_stand_volume_125 + dist_dam + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km + wind_atfire + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
+model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125  + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km, family = binomial, data = dat1)
 
-AIC(model.NDT5) #61.8
+AIC(model.NDT5) #76.5
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.45--> huge drop
+   mod.auc #0.63 
    
 Anova(model.NDT5, type=3)
-#Anova(model.NDT5, type=3, singular.ok = TRUE)
+Anova(model.NDT5, type=3, singular.ok = TRUE)
+
 
 #Remove least significant variables
-model.NDT5<-glm(escape ~ climate2 + live_stand_volume_125 + dist_dam + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km + wind_atfire + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
+model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125  + bclcs_level_5_2 + roads_km, family = binomial, data = dat1)
 
-AIC(model.NDT5) #59.8
+AIC(model.NDT5) #71.7
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.60
+   mod.auc #0.64 
    
 Anova(model.NDT5, type=3)
-#Anova(model.NDT5, type=3, singular.ok = TRUE)
+Anova(model.NDT5, type=3, singular.ok = TRUE)
 
 
-#Compare to top model before Tdif_atfire
+#Remove least significant variables
+model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2  + bclcs_level_5_2 + roads_km, family = binomial, data = dat1)
+
+AIC(model.NDT5) #82.3 (BAD!)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.64 
+   
+Anova(model.NDT5, type=3)
+Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+
+#Revert; then Remove least significant variables
+model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125  + bclcs_level_5_2, family = binomial, data = dat1)
+
+AIC(model.NDT5) #70.2
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.7
+   
+Anova(model.NDT5, type=3)
+Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+
+#Remove least significant variables
 model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125, family = binomial, data = dat1)
 
-AIC(model.NDT5) #60.0
+AIC(model.NDT5) #66.8
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.55
+   mod.auc #0.72
    
 Anova(model.NDT5, type=3)
 Anova(model.NDT5, type=3, singular.ok = TRUE)
 
-#Try with this top model plus Tdif
-model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
+#Try to remove live stand volume again
 
-AIC(model.NDT5) #61.2
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"escape"], mod.valid)
-   mod.auc <- auc(roc_obj)
-   mod.auc #0.51
-   
-Anova(model.NDT5, type=3)
-Anova(model.NDT5, type=3, singular.ok = TRUE)
-
-#This model performed best
 #Remove least significant variables
-model.NDT5<-glm(escape ~ climate2 + live_stand_volume_125 + dist_dam + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km + wind_atfire + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
+model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2, family = binomial, data = dat1)
 
-AIC(model.NDT5) #59.8
+AIC(model.NDT5) #77.7
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.60
+   mod.auc #0.73
    
 Anova(model.NDT5, type=3)
-#Anova(model.NDT5, type=3, singular.ok = TRUE)
+Anova(model.NDT5, type=3, singular.ok = TRUE)
 
+#Best AIC despite live stand volume not significant:
+model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125, family = binomial, data = dat1)
 
 ```
 
@@ -923,10 +941,10 @@ Remove NAs and tun multiple times.
 
 ```{r}
 #Remove NAs to ensure all same data used so we can compare AICs
-NDT5_escape_t<-escape_lightning_t_NDT5 %>% drop_na(climate2, live_stand_volume_125, dist_dam, bclcs_level_5_2, roads_km, wind_atfire, Tdif_atfire) #102 observations; small sample size
+NDT5_escape_t<-escape_lightning_t_NDT5 %>% drop_na(climate1, climate2, live_stand_volume_125)
 
 #Run Model again with this data; but uses all data here
-model.NDT5<-glm(escape ~ climate2 + live_stand_volume_125 + dist_dam + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km + wind_atfire + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = NDT5_escape_t)
+model.NDT5<-glm(escape ~ climate1 + climate2 + climate1:climate2 + live_stand_volume_125, family = binomial, data = NDT5_escape_t)
 
 Anova(model.NDT5, type=3)
 
@@ -959,151 +977,6 @@ binnedplot (NDT5_escape_t$climate1,
 ```
 
 We should repeat the above several times and take the mean of the coefficients.
-
-```{r}
-summary(model.NDT5)
-
-#Create a new blank table and get AUC too
-top_mod_table_NDT5_light_t_ALL <- data.frame (matrix (ncol = 18, nrow = 0))
-colnames (top_mod_table_NDT5_light_t_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_2", "coef_live_stand_volume_125", "coef_dist_dam", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_roads_km", "coef_wind_atfire", "coef_Tdif_atfire", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2SP", "coef_climate2:Tdif_atfire", "coef_wind_atfire:Tdif_atfire", "AUC")
-```
-
-Let's run it 500 times to get good mean values. Had to change proportion to 0.7 instead of 0.75 because otherwise insufficient division of 0/1.
-
-```{r}
-
-for (g in 1:500){
-
-prop<-0.7
-# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(NDT5_escape_t$escape, p = prop,
-                                    list = FALSE,
-                                    times = 1)
-  
-   dat1 <- NDT5_escape_t[ trainIndex,]
-   Valid <- NDT5_escape_t[-trainIndex,]
-   
-#Model   
-model.NDT5<-glm(escape ~ climate2 + live_stand_volume_125 + dist_dam + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km + wind_atfire + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1) 
-
-mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"escape"], mod.valid)
-   mod.auc <- auc(roc_obj)
-
-# create model table (only do this once) and add the relevant data
-top_mod_table_NDT5_light_t <- data.frame (matrix (ncol = 18, nrow = 0))
-colnames (top_mod_table_NDT5_light_t ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_2", "coef_live_stand_volume_125", "coef_dist_dam", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_roads_km", "coef_wind_atfire", "coef_Tdif_atfire", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2SP", "coef_climate2:Tdif_atfire", "coef_wind_atfire:Tdif_atfire", "AUC")
-
-##Add data for NDT5
-top_mod_table_NDT5_light_t[1,1]<-"lightning"
-top_mod_table_NDT5_light_t[1,2]<-"NDT5"
-top_mod_table_NDT5_light_t[1,3]<-"Y"
-top_mod_table_NDT5_light_t[1,4]<-"escape ~ climate2 + live_stand_volume_125 + dist_dam + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km + wind_atfire + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire" 
-top_mod_table_NDT5_light_t[1,5]<- coef(model.NDT5)[1] #Intercept
-top_mod_table_NDT5_light_t[1,6]<- coef(model.NDT5)[2] #Climate variable 2
-top_mod_table_NDT5_light_t[1,7]<- coef(model.NDT5)[3] #Climate live_stand_volume_125
-top_mod_table_NDT5_light_t[1,8]<- coef(model.NDT5)[4] #coefficient dist_dam 
-top_mod_table_NDT5_light_t[1,9]<- coef(model.NDT5)[5] #coefficient bclcs_level_5_2OP
-top_mod_table_NDT5_light_t[1,10]<- coef(model.NDT5)[6] #coefficient bclcs_level_5_2SP
-top_mod_table_NDT5_light_t[1,11]<- coef(model.NDT5)[7] #coefficient roads_km
-top_mod_table_NDT5_light_t[1,12]<- coef(model.NDT5)[8] #coefficient wind_atfire
-top_mod_table_NDT5_light_t[1,13]<- coef(model.NDT5)[9] #coefficient Tdif_atfire
-top_mod_table_NDT5_light_t[1,14]<- coef(model.NDT5)[10] #coefficient dist_dam:bclcs_level_5_2OP
-top_mod_table_NDT5_light_t[1,15]<- coef(model.NDT5)[11] #coefficient dist_dam:bclcs_level_5_2SP
-top_mod_table_NDT5_light_t[1,16]<- coef(model.NDT5)[12] #coefficient climate2:Tdif_atfire 
-top_mod_table_NDT5_light_t[1,17]<- coef(model.NDT5)[13] #coefficient wind_atfire:Tdif_atfire
-top_mod_table_NDT5_light_t[1,18]<- mod.auc
-
-top_mod_table_NDT5_light_t_ALL<-rbind(top_mod_table_NDT5_light_t_ALL, top_mod_table_NDT5_light_t)
-
-}
-
-```
-
-Check.
-```{r}
-head(top_mod_table_NDT5_light_t_ALL)
-
-```
-
-#Save coefficient table
-
-```{r}
-write.csv(top_mod_table_NDT5_light_t_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT5_light_t_ALL.csv")
-```
-
-Get mean values.
-
-```{r}
-names(top_mod_table_NDT5_light_t_ALL)
-mean(top_mod_table_NDT5_light_t_ALL$AUC) #0.61 --> way worse than original 0.67 without Tdif
-```
-
-BELOW NOT UPDATED.
-```{r}
-# create model table (only do this once) and add the relevant data
-top_mod_table_NDT5_light_t_Means <- data.frame (matrix (ncol = 18, nrow = 0))
-colnames (top_mod_table_NDT5_light_t_Means ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_2", "coef_live_stand_volume_125", "coef_dist_dam", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_roads_km", "coef_wind_atfire", "coef_Tdif_atfire", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2SP", "coef_climate2:Tdif_atfire", "coef_wind_atfire:Tdif_atfire", "AUC")
-
-head(top_mod_table_NDT5_light_t_Means)
-
-##Add data for NDT5
-top_mod_table_NDT5_light_t_Means[1,1]<-"lightning"
-top_mod_table_NDT5_light_t_Means[1,2]<-"NDT5"
-top_mod_table_NDT5_light_t_Means[1,3]<-"Y"
-top_mod_table_NDT5_light_t_Means[1,4]<-"escape ~ climate2 + live_stand_volume_125 + dist_dam + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km + wind_atfire + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire" 
-top_mod_table_NDT5_light_t_Means[1,5]<- mean(top_mod_table_NDT5_light_t_ALL$intercept) #Intercept
-top_mod_table_NDT5_light_t_Means[1,6]<- mean(top_mod_table_NDT5_light_t_ALL$coef_climate_1, na.rm=TRUE) #Climate variable 1
-top_mod_table_NDT5_light_t_Means[1,7]<- mean(top_mod_table_NDT5_light_t_ALL$coef_climate_2, na.rm=TRUE) #Climate variable 2
-top_mod_table_NDT5_light_t_Means[1,8]<- mean(top_mod_table_NDT5_light_t_ALL$coef_live_stand_volume_125, na.rm=TRUE) #
-top_mod_table_NDT5_light_t_Means[1,9]<- mean(top_mod_table_NDT5_light_t_ALL$`coef_climate1:climate2`, na.rm=TRUE) #
-top_mod_table_NDT5_light_t_Means[1,10]<- mean(top_mod_table_NDT5_light_t_ALL$AUC, na.rm=TRUE)
-
-top_mod_table_NDT5_light_t_Means
-
-```
-
-Save mean coefficient table.
-
-```{r}
-write.csv(top_mod_table_NDT5_light_t_Means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT5_light_t_Means.csv")
-```
-
-
-Get sd values.
-
-```{r}
-# create model table (only do this once) and add the relevant data
-top_mod_table_NDT5_light_t_SD <- data.frame (matrix (ncol = 18, nrow = 0))
-colnames (top_mod_table_NDT5_light_t_SD ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_2", "coef_live_stand_volume_125", "coef_dist_dam", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_roads_km", "coef_wind_atfire", "coef_Tdif_atfire", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2SP", "coef_climate2:Tdif_atfire", "coef_wind_atfire:Tdif_atfire", "AUC")
-
-head(top_mod_table_NDT5_light_t_SD)
-
-##Add data for NDT5
-top_mod_table_NDT5_light_t_SD[1,1]<-"lightning"
-top_mod_table_NDT5_light_t_SD[1,2]<-"NDT5"
-top_mod_table_NDT5_light_t_SD[1,3]<-"Y"
-top_mod_table_NDT5_light_t_SD[1,4]<-"escape ~ climate2 + live_stand_volume_125 + dist_dam + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + roads_km + wind_atfire + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire" 
-top_mod_table_NDT5_light_t_SD[1,5]<- sd(top_mod_table_NDT5_light_t_ALL$intercept) #Intercept
-top_mod_table_NDT5_light_t_SD[1,6]<- sd(top_mod_table_NDT5_light_t_ALL$coef_climate_1, na.rm=TRUE) #Climate variable 1
-top_mod_table_NDT5_light_t_SD[1,7]<- sd(top_mod_table_NDT5_light_t_ALL$coef_climate_2, na.rm=TRUE) #Climate variable 2
-top_mod_table_NDT5_light_t_SD[1,8]<- sd(top_mod_table_NDT5_light_t_ALL$coef_live_stand_volume_125, na.rm=TRUE) #
-top_mod_table_NDT5_light_t_SD[1,9]<- sd(top_mod_table_NDT5_light_t_ALL$`coef_climate1:climate2`, na.rm=TRUE) #
-top_mod_table_NDT5_light_t_SD[1,10]<- sd(top_mod_table_NDT5_light_t_ALL$AUC, na.rm=TRUE)
-
-top_mod_table_NDT5_light_t_SD
-
-```
-
-Save sd coefficient table.
-
-```{r}
-write.csv(top_mod_table_NDT5_light_t_SD, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT5_light_t_SD.csv")
-```
-
-
-We will revery back to the last model.
-
 
 ```{r}
 summary(model.NDT5)

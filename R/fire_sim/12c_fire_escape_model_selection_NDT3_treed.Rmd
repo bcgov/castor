@@ -90,6 +90,7 @@ We will make a loop that does something very similar to our last loop, but with 
 10. Land use (bclcs_level_5_2)
 11. windspeed (wind_atfire)
 12. roads_km (road density, which may relate to ability to fight fires)
+13. Tdif_atfire (temperature difference from the month prior to the month of the fire)
 
 Interactions of interest: two-way interactions between climate (1) and vegtype (5); two-way interactions between topography measures (6-8). 
 
@@ -792,6 +793,7 @@ Top Models:
 
 Additional Variables:
 1. bclcs_level_5_2 (land use) (to be added to final investigated model)
+2. Tdif_atfire
 
 #Create variable lists
 We want to include interactions between variables from within each list. This will make for many models, which may be hard to process in R.
@@ -1304,7 +1306,7 @@ dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km
 #DEM
 slope + aspect + elevation + wind_atfire + slope:elevation + aspect:wind_atfire
 
-*Interactions to include: climate1:elevation + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire
+*Interactions to include: climate1:elevation + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire
 
 #Next investigation
 
@@ -1322,177 +1324,150 @@ prop<-0.75
    Valid <- escape_lightning_t_NDT3[-trainIndex,]
 
 #Run model using dat1
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + slope:elevation + aspect:wind_atfire + climate1:elevation + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire, family = binomial, data = dat1)
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + slope:elevation + aspect:wind_atfire + climate1:elevation + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
 
-AIC(model.NDT3) #2837.1
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"escape"], mod.valid)
-   mod.auc <- auc(roc_obj)
-   mod.auc #0.75
-   
-Anova(model.NDT3, type=3)
-#Anova(model.NDT3, type=3, singular.ok = TRUE)
-
-#Remove least significant
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + slope:elevation + aspect:wind_atfire + climate1:elevation + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire, family = binomial, data = dat1)
-
-AIC(model.NDT3) #2835.9
+AIC(model.NDT3) #2930.1
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.75
+   mod.auc #0.73
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
 #Remove least significant
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + slope:elevation + aspect:wind_atfire + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire, family = binomial, data = dat1)
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + slope:elevation + climate1:elevation + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
 
-AIC(model.NDT3) #2833.9
+AIC(model.NDT3) #2928.1
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.75
+   mod.auc #0.73
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
 #Remove least significant
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + aspect:wind_atfire + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire, family = binomial, data = dat1)
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + slope:elevation + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
 
-AIC(model.NDT3) #2831.9
+AIC(model.NDT3) #2926.3
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.75
+   mod.auc #0.73
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
 #Remove least significant
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + aspect:wind_atfire + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire, family = binomial, data = dat1)
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_mun:roads_km + slope + aspect + elevation + wind_atfire  + climate1:wind_atfire + climate2:elevation + climate2:wind_atfire + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
 
-AIC(model.NDT3) #2829.3
+AIC(model.NDT3) #2924.6
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.75
+   mod.auc #0.73
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
 #Remove least significant
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + aspect:wind_atfire + climate1:wind_atfire + climate2:elevation, family = binomial, data = dat1)
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + climate2:elevation + climate2:wind_atfire + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
 
-AIC(model.NDT3) #2827.8
+AIC(model.NDT3) #2923.2
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.75
+   mod.auc #0.73
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
 #Remove least significant
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + aspect:wind_atfire  + climate2:elevation, family = binomial, data = dat1)
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + climate2:elevation + climate2:wind_atfire + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
 
-AIC(model.NDT3) #2826.3
+AIC(model.NDT3) #2920.9
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.75
+   mod.auc #0.73
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
 #Remove least significant
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun + dist_mine + roads_km + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + climate2:elevation + climate2:wind_atfire + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
 
-AIC(model.NDT3) #2825.3
+AIC(model.NDT3) #2916.98
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.75
+   mod.auc #0.73
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
 #Remove least significant
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun  + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun + dist_mine + roads_km + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + climate2:elevation  + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
 
-AIC(model.NDT3) #2823.3
+AIC(model.NDT3) #2915.8
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.75
+   mod.auc #0.74
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
 #Remove least significant
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun  + roads_km + dist_dam:roads_km + dist_mun:roads_km + slope + aspect + elevation + wind_atfire + climate2:elevation  + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
 
-AIC(model.NDT3) #2820.6
+AIC(model.NDT3) #2914.2
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.75
+   mod.auc #0.74
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
 #Remove least significant
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km  + aspect + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun  + roads_km + dist_dam:roads_km + dist_mun:roads_km + slope + elevation + wind_atfire + climate2:elevation  + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
 
-AIC(model.NDT3) #2819.7
+AIC(model.NDT3) #2913.4
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.75
+   mod.auc #0.74
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
-#Remove least significant
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
 
-AIC(model.NDT3) #2819.4
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"escape"], mod.valid)
-   mod.auc <- auc(roc_obj)
-   mod.auc #0.75
-   
-Anova(model.NDT3, type=3)
-#Anova(model.NDT3, type=3, singular.ok = TRUE)
-
-#Remove least significant
+#Previous best model before Tdif added
 model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
 
-AIC(model.NDT3) #2817.8
+AIC(model.NDT3) #2933.0
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
@@ -1503,30 +1478,16 @@ mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
-#Remove least significant
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2  + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
+#Best Model
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun  + roads_km + dist_dam:roads_km + dist_mun:roads_km + slope + elevation + wind_atfire + climate2:elevation  + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
 
-AIC(model.NDT3) #3215.07 BAD!
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"escape"], mod.valid)
-   mod.auc <- auc(roc_obj)
-   mod.auc #0.75
-   
-Anova(model.NDT3, type=3)
-#Anova(model.NDT3, type=3, singular.ok = TRUE)
-
-#GO BACK!
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1)
-
-AIC(model.NDT3) #2817.8
+AIC(model.NDT3) #2913.4
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.75
+   mod.auc #0.74
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
@@ -1537,12 +1498,12 @@ Remove NAs and tun multiple times.
 
 ```{r}
 #Remove NAs to ensure all same data used so we can compare AICs
-NDT3_escape_t<-escape_lightning_t_NDT3 %>% drop_na(climate1, climate2, vegtype2, live_stand_volume_125, proj_height_1, proj_age_1, dist_dam, dist_mun, roads_km, elevation, wind_atfire)
+NDT3_escape_t<-escape_lightning_t_NDT3 %>% drop_na(climate1, climate2, vegtype2, live_stand_volume_125, proj_height_1, proj_age_1, dist_dam, dist_mun, roads_km, slope, elevation, wind_atfire, Tdif_atfire)
 
 #Run Model again with this data; but uses all data here
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation, family = binomial, data = NDT3_escape_t)
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun  + roads_km + dist_dam:roads_km + dist_mun:roads_km + slope + elevation + wind_atfire + climate2:elevation  + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = NDT3_escape_t)
 
-Anova(model.NDT3, type=3)
+Anova(model.NDT3, type=3) #live_stand_volume_125:proj_height_1 not optimal here.
 
 # model diagnostic plots
 binnedplot (fitted(model.NDT3), 
@@ -1572,15 +1533,14 @@ binnedplot (NDT3_escape_t$climate1,
 # Diagnostic plots look good
 ```
 
-
 We should repeat the above several times and take the mean of the coefficients.
 
 ```{r}
 summary(model.NDT3)
 
 #Create a new blank table and get AUC too
-top_mod_table_NDT3_light_t_ALL <- data.frame (matrix (ncol = 22, nrow = 0))
-colnames (top_mod_table_NDT3_light_t_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_live_stand_volume_125", "coef_proj_height_1", "coef_proj_age_1", "coef_dist_dam", "coef_dist_mun", "coef_roads_km", "coef_elevation", "coef_wind_atfire", "coef_dist_dam:roads_km", "coef_dist_mun:roads_km", "coef_climate2:elevation", "AUC")
+top_mod_table_NDT3_light_t_ALL <- data.frame (matrix (ncol = 31, nrow = 0))
+colnames (top_mod_table_NDT3_light_t_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_live_stand_volume_125", "coef_proj_height_1", "coef_proj_age_1", "coef_dist_dam", "coef_dist_mun", "coef_roads_km", "coef_slope", "coef_elevation", "coef_wind_atfire", "coef_Tdif_atfire", "coef_climate2:vegtype2TB", "coef_climate2:vegtype2TC", "coef_climate2:vegtype2TM", "coef_live_stand_volume_125:proj_height_1", "coef_dist_dam:roads_km", "coef_dist_mun:roads_km", "coef_climate2:elevation", "coef_climate1:Tdif_atfire", "coef_climate2:Tdif_atfire", "coef_wind_atfire:Tdif_atfire", "AUC")
 ```
 
 Let's run it 500 times to get good mean values. 
@@ -1599,21 +1559,21 @@ prop<-0.75
    Valid <- NDT3_escape_t[-trainIndex,]
    
 #Model   
-model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation, family = binomial, data = dat1) 
+model.NDT3<-glm(escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun  + roads_km + dist_dam:roads_km + dist_mun:roads_km + slope + elevation + wind_atfire + climate2:elevation  + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1) 
 
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT3_light_t <- data.frame (matrix (ncol = 22, nrow = 0))
-colnames (top_mod_table_NDT3_light_t ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_live_stand_volume_125", "coef_proj_height_1", "coef_proj_age_1", "coef_dist_dam", "coef_dist_mun", "coef_roads_km", "coef_elevation", "coef_wind_atfire", "coef_dist_dam:roads_km", "coef_dist_mun:roads_km", "coef_climate2:elevation", "AUC")
+top_mod_table_NDT3_light_t <- data.frame (matrix (ncol = 31, nrow = 0))
+colnames (top_mod_table_NDT3_light_t ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_live_stand_volume_125", "coef_proj_height_1", "coef_proj_age_1", "coef_dist_dam", "coef_dist_mun", "coef_roads_km", "coef_slope", "coef_elevation", "coef_wind_atfire", "coef_Tdif_atfire", "coef_climate2:vegtype2TB", "coef_climate2:vegtype2TC", "coef_climate2:vegtype2TM", "coef_live_stand_volume_125:proj_height_1", "coef_dist_dam:roads_km", "coef_dist_mun:roads_km", "coef_climate2:elevation", "coef_climate1:Tdif_atfire", "coef_climate2:Tdif_atfire", "coef_wind_atfire:Tdif_atfire", "AUC")
 
 ##Add data for NDT3
 top_mod_table_NDT3_light_t[1,1]<-"lightning"
 top_mod_table_NDT3_light_t[1,2]<-"NDT3"
 top_mod_table_NDT3_light_t[1,3]<-"Y"
-top_mod_table_NDT3_light_t[1,4]<-"escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation" 
+top_mod_table_NDT3_light_t[1,4]<-"escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun  + roads_km + dist_dam:roads_km + dist_mun:roads_km + slope + elevation + wind_atfire + climate2:elevation  + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire" 
 top_mod_table_NDT3_light_t[1,5]<- coef(model.NDT3)[1] #Intercept
 top_mod_table_NDT3_light_t[1,6]<- coef(model.NDT3)[2] #Climate variable 1
 top_mod_table_NDT3_light_t[1,7]<- coef(model.NDT3)[3] #Climate variable 2
@@ -1626,12 +1586,21 @@ top_mod_table_NDT3_light_t[1,13]<- coef(model.NDT3)[9] #coefficient proj_age_1
 top_mod_table_NDT3_light_t[1,14]<- coef(model.NDT3)[10] #coefficient dist_dam 
 top_mod_table_NDT3_light_t[1,15]<- coef(model.NDT3)[11] #coefficient dist_mun 
 top_mod_table_NDT3_light_t[1,16]<- coef(model.NDT3)[12] #coefficient roads_km
-top_mod_table_NDT3_light_t[1,17]<- coef(model.NDT3)[13] #coefficient elevation
-top_mod_table_NDT3_light_t[1,18]<- coef(model.NDT3)[14] #coefficient  wind_atfire 
-top_mod_table_NDT3_light_t[1,19]<- coef(model.NDT3)[15] #coefficient  dist_dam:roads_km
-top_mod_table_NDT3_light_t[1,20]<- coef(model.NDT3)[16] #coefficient  dist_mun:roads_km
-top_mod_table_NDT3_light_t[1,21]<- coef(model.NDT3)[17] #coefficient climate2:elevation
-top_mod_table_NDT3_light_t[1,22]<- mod.auc
+top_mod_table_NDT3_light_t[1,17]<- coef(model.NDT3)[13] #coefficient slope
+top_mod_table_NDT3_light_t[1,18]<- coef(model.NDT3)[14] #coefficient elevation 
+top_mod_table_NDT3_light_t[1,19]<- coef(model.NDT3)[15] #coefficient  wind_atfire
+top_mod_table_NDT3_light_t[1,20]<- coef(model.NDT3)[16] #coefficient  Tdif_atfire
+top_mod_table_NDT3_light_t[1,21]<- coef(model.NDT3)[17] #coefficient climate2:vegtype2TB
+top_mod_table_NDT3_light_t[1,22]<- coef(model.NDT3)[18] #coefficient climate2:vegtype2TC
+top_mod_table_NDT3_light_t[1,23]<- coef(model.NDT3)[19] #coefficient climate2:vegtype2TM
+top_mod_table_NDT3_light_t[1,24]<- coef(model.NDT3)[20] #coefficient live_stand_volume_125:proj_height_1
+top_mod_table_NDT3_light_t[1,25]<- coef(model.NDT3)[21] #coefficient dist_dam:roads_km
+top_mod_table_NDT3_light_t[1,26]<- coef(model.NDT3)[22] #coefficient dist_mun:roads_km
+top_mod_table_NDT3_light_t[1,27]<- coef(model.NDT3)[23] #coefficient climate2:elevation
+top_mod_table_NDT3_light_t[1,28]<- coef(model.NDT3)[24] #coefficient climate1:Tdif_atfire
+top_mod_table_NDT3_light_t[1,29]<- coef(model.NDT3)[25] #coefficient climate2:Tdif_atfire 
+top_mod_table_NDT3_light_t[1,30]<- coef(model.NDT3)[26] #coefficient wind_atfire:Tdif_atfire
+top_mod_table_NDT3_light_t[1,31]<- mod.auc
 
 top_mod_table_NDT3_light_t_ALL<-rbind(top_mod_table_NDT3_light_t_ALL, top_mod_table_NDT3_light_t)
 
@@ -1654,11 +1623,11 @@ Get mean values.
 
 ```{r}
 names(top_mod_table_NDT3_light_t_ALL)
-mean(top_mod_table_NDT3_light_t_ALL$AUC) # 0.74
+mean(top_mod_table_NDT3_light_t_ALL$AUC) # 0.745
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT3_light_t_Means <- data.frame (matrix (ncol = 22, nrow = 0))
-colnames (top_mod_table_NDT3_light_t_Means ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_live_stand_volume_125", "coef_proj_height_1", "coef_proj_age_1", "coef_dist_dam", "coef_dist_mun", "coef_roads_km", "coef_elevation", "coef_wind_atfire", "coef_dist_dam:roads_km", "coef_dist_mun:roads_km", "coef_climate2:elevation", "AUC")
+top_mod_table_NDT3_light_t_Means <- data.frame (matrix (ncol = 31, nrow = 0))
+colnames (top_mod_table_NDT3_light_t_Means ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_live_stand_volume_125", "coef_proj_height_1", "coef_proj_age_1", "coef_dist_dam", "coef_dist_mun", "coef_roads_km", "coef_slope", "coef_elevation", "coef_wind_atfire", "coef_Tdif_atfire", "coef_climate2:vegtype2TB", "coef_climate2:vegtype2TC", "coef_climate2:vegtype2TM", "coef_live_stand_volume_125:proj_height_1", "coef_dist_dam:roads_km", "coef_dist_mun:roads_km", "coef_climate2:elevation", "coef_climate1:Tdif_atfire", "coef_climate2:Tdif_atfire", "coef_wind_atfire:Tdif_atfire", "AUC")
 
 head(top_mod_table_NDT3_light_t_Means)
 
@@ -1666,7 +1635,7 @@ head(top_mod_table_NDT3_light_t_Means)
 top_mod_table_NDT3_light_t_Means[1,1]<-"lightning"
 top_mod_table_NDT3_light_t_Means[1,2]<-"NDT3"
 top_mod_table_NDT3_light_t_Means[1,3]<-"Y"
-top_mod_table_NDT3_light_t_Means[1,4]<-"escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation" 
+top_mod_table_NDT3_light_t_Means[1,4]<-"escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun  + roads_km + dist_dam:roads_km + dist_mun:roads_km + slope + elevation + wind_atfire + climate2:elevation  + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire" 
 top_mod_table_NDT3_light_t_Means[1,5]<- mean(top_mod_table_NDT3_light_t_ALL$intercept) #Intercept
 top_mod_table_NDT3_light_t_Means[1,6]<- mean(top_mod_table_NDT3_light_t_ALL$coef_climate_1, na.rm=TRUE) #
 top_mod_table_NDT3_light_t_Means[1,7]<- mean(top_mod_table_NDT3_light_t_ALL$coef_climate_2, na.rm=TRUE) #
@@ -1679,12 +1648,21 @@ top_mod_table_NDT3_light_t_Means[1,13]<- mean(top_mod_table_NDT3_light_t_ALL$coe
 top_mod_table_NDT3_light_t_Means[1,14]<- mean(top_mod_table_NDT3_light_t_ALL$coef_dist_dam, na.rm=TRUE) #
 top_mod_table_NDT3_light_t_Means[1,15]<- mean(top_mod_table_NDT3_light_t_ALL$coef_dist_mun, na.rm=TRUE) #
 top_mod_table_NDT3_light_t_Means[1,16]<- mean(top_mod_table_NDT3_light_t_ALL$coef_roads_km, na.rm=TRUE) #
-top_mod_table_NDT3_light_t_Means[1,17]<- mean(top_mod_table_NDT3_light_t_ALL$coef_elevation, na.rm=TRUE) #
-top_mod_table_NDT3_light_t_Means[1,18]<- mean(top_mod_table_NDT3_light_t_ALL$coef_wind_atfire, na.rm=TRUE) #
-top_mod_table_NDT3_light_t_Means[1,19]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_dist_dam:roads_km`, na.rm=TRUE) #
-top_mod_table_NDT3_light_t_Means[1,20]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_dist_mun:roads_km`, na.rm=TRUE) #
-top_mod_table_NDT3_light_t_Means[1,21]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_climate2:elevation`, na.rm=TRUE) #
-top_mod_table_NDT3_light_t_Means[1,22]<- mean(top_mod_table_NDT3_light_t_ALL$AUC, na.rm=TRUE)
+top_mod_table_NDT3_light_t_Means[1,17]<- mean(top_mod_table_NDT3_light_t_ALL$coef_slope, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,18]<- mean(top_mod_table_NDT3_light_t_ALL$coef_elevation, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,19]<- mean(top_mod_table_NDT3_light_t_ALL$coef_wind_atfire, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,20]<- mean(top_mod_table_NDT3_light_t_ALL$coef_Tdif_atfire, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,21]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_climate2:vegtype2TB`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,22]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_climate2:vegtype2TC`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,23]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_climate2:vegtype2TM`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,24]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_live_stand_volume_125:proj_height_1`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,25]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_dist_dam:roads_km`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,26]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_dist_mun:roads_km`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,27]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_climate2:elevation`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,28]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_climate1:Tdif_atfire`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,29]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_climate2:Tdif_atfire`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,30]<- mean(top_mod_table_NDT3_light_t_ALL$`coef_wind_atfire:Tdif_atfire`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_Means[1,31]<- mean(top_mod_table_NDT3_light_t_ALL$AUC, na.rm=TRUE)
 
 top_mod_table_NDT3_light_t_Means
 
@@ -1696,13 +1674,12 @@ Save mean coefficient table.
 write.csv(top_mod_table_NDT3_light_t_Means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT3_light_t_Means.csv")
 ```
 
-
 Get sd values.
 
 ```{r}
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT3_light_t_SD <- data.frame (matrix (ncol = 22, nrow = 0))
-colnames (top_mod_table_NDT3_light_t_SD ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_live_stand_volume_125", "coef_proj_height_1", "coef_proj_age_1", "coef_dist_dam", "coef_dist_mun", "coef_roads_km", "coef_elevation", "coef_wind_atfire", "coef_dist_dam:roads_km", "coef_dist_mun:roads_km", "coef_climate2:elevation", "AUC")
+top_mod_table_NDT3_light_t_SD <- data.frame (matrix (ncol = 31, nrow = 0))
+colnames (top_mod_table_NDT3_light_t_SD ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_live_stand_volume_125", "coef_proj_height_1", "coef_proj_age_1", "coef_dist_dam", "coef_dist_mun", "coef_roads_km", "coef_slope", "coef_elevation", "coef_wind_atfire", "coef_Tdif_atfire", "coef_climate2:vegtype2TB", "coef_climate2:vegtype2TC", "coef_climate2:vegtype2TM", "coef_live_stand_volume_125:proj_height_1", "coef_dist_dam:roads_km", "coef_dist_mun:roads_km", "coef_climate2:elevation", "coef_climate1:Tdif_atfire", "coef_climate2:Tdif_atfire", "coef_wind_atfire:Tdif_atfire", "AUC")
 
 head(top_mod_table_NDT3_light_t_SD)
 
@@ -1710,7 +1687,7 @@ head(top_mod_table_NDT3_light_t_SD)
 top_mod_table_NDT3_light_t_SD[1,1]<-"lightning"
 top_mod_table_NDT3_light_t_SD[1,2]<-"NDT3"
 top_mod_table_NDT3_light_t_SD[1,3]<-"Y"
-top_mod_table_NDT3_light_t_SD[1,4]<-"escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1  + dist_dam + dist_mun + roads_km + dist_dam:roads_km + dist_mun:roads_km + elevation + wind_atfire  + climate2:elevation" 
+top_mod_table_NDT3_light_t_SD[1,4]<-"escape ~ climate1 + climate2 + vegtype2 + live_stand_volume_125 + proj_height_1 + proj_age_1 + climate2:vegtype2 + live_stand_volume_125:proj_height_1 + dist_dam + dist_mun  + roads_km + dist_dam:roads_km + dist_mun:roads_km + slope + elevation + wind_atfire + climate2:elevation  + Tdif_atfire:climate1 + Tdif_atfire:climate2 + Tdif_atfire:wind_atfire + Tdif_atfire" 
 top_mod_table_NDT3_light_t_SD[1,5]<- sd(top_mod_table_NDT3_light_t_ALL$intercept) #Intercept
 top_mod_table_NDT3_light_t_SD[1,6]<- sd(top_mod_table_NDT3_light_t_ALL$coef_climate_1, na.rm=TRUE) #
 top_mod_table_NDT3_light_t_SD[1,7]<- sd(top_mod_table_NDT3_light_t_ALL$coef_climate_2, na.rm=TRUE) #
@@ -1723,12 +1700,21 @@ top_mod_table_NDT3_light_t_SD[1,13]<- sd(top_mod_table_NDT3_light_t_ALL$coef_pro
 top_mod_table_NDT3_light_t_SD[1,14]<- sd(top_mod_table_NDT3_light_t_ALL$coef_dist_dam, na.rm=TRUE) #
 top_mod_table_NDT3_light_t_SD[1,15]<- sd(top_mod_table_NDT3_light_t_ALL$coef_dist_mun, na.rm=TRUE) #
 top_mod_table_NDT3_light_t_SD[1,16]<- sd(top_mod_table_NDT3_light_t_ALL$coef_roads_km, na.rm=TRUE) #
-top_mod_table_NDT3_light_t_SD[1,17]<- sd(top_mod_table_NDT3_light_t_ALL$coef_elevation, na.rm=TRUE) #
-top_mod_table_NDT3_light_t_SD[1,18]<- sd(top_mod_table_NDT3_light_t_ALL$coef_wind_atfire, na.rm=TRUE) #
-top_mod_table_NDT3_light_t_SD[1,19]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_dist_dam:roads_km`, na.rm=TRUE) #
-top_mod_table_NDT3_light_t_SD[1,20]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_dist_mun:roads_km`, na.rm=TRUE) #
-top_mod_table_NDT3_light_t_SD[1,21]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_climate2:elevation`, na.rm=TRUE) #
-top_mod_table_NDT3_light_t_SD[1,22]<- sd(top_mod_table_NDT3_light_t_ALL$AUC, na.rm=TRUE)
+top_mod_table_NDT3_light_t_SD[1,17]<- sd(top_mod_table_NDT3_light_t_ALL$coef_slope, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,18]<- sd(top_mod_table_NDT3_light_t_ALL$coef_elevation, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,19]<- sd(top_mod_table_NDT3_light_t_ALL$coef_wind_atfire, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,20]<- sd(top_mod_table_NDT3_light_t_ALL$coef_Tdif_atfire, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,21]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_climate2:vegtype2TB`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,22]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_climate2:vegtype2TC`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,23]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_climate2:vegtype2TM`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,24]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_live_stand_volume_125:proj_height_1`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,25]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_dist_dam:roads_km`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,26]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_dist_mun:roads_km`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,27]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_climate2:elevation`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,28]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_climate1:Tdif_atfire`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,29]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_climate2:Tdif_atfire`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,30]<- sd(top_mod_table_NDT3_light_t_ALL$`coef_wind_atfire:Tdif_atfire`, na.rm=TRUE) #
+top_mod_table_NDT3_light_t_SD[1,31]<- sd(top_mod_table_NDT3_light_t_ALL$AUC, na.rm=TRUE)
 
 top_mod_table_NDT3_light_t_SD
 
