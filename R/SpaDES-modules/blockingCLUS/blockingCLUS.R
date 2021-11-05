@@ -402,18 +402,30 @@ spreadBlock<- function(sim) {
 
 
 
-updateBlocks<-function(sim){
-
-  #This function updates the block information used in summaries and for a queue
+updateBlocks<-function(sim){ #This function updates the block information used in summaries and for a queue
   message("update the blocks table")
-        
+  
+  if(P(sim, "forestryCLUS", "salvageRaster") == '99999') {
+  
   #SQLite doesn't support related JOIN and UPDATES.This would mean UPDATE blocks SET age = (SELECT age FROM ...), area = (SELECT area FROM ...)
-  new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, round(AVG(age),0) as age , AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as s_vol, AVG(dist) as dist
+    new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, round(AVG(age),0) as age , AVG(height) as height, AVG(vol) as vol, AVG(dist) as dist
              FROM pixels WHERE blockid > 0 GROUP BY blockid;"))
   
   #Could of used a DELETE TABLE then CREATE the table but this would require the landing to be re-estimated which would not link to the roads.
-  dbBegin(sim$clusdb)
+    dbBegin(sim$clusdb)
+  
+    rs<-dbSendQuery(sim$clusdb, "UPDATE blocks SET age =  :age, height = :height, vol = :vol, dist = :dist WHERE blockid = :blockid", new_blocks)
+  
+  }else{
+    new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, round(AVG(age),0) as age , AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as s_vol, AVG(dist) as dist
+             FROM pixels WHERE blockid > 0 GROUP BY blockid;"))
+    
+    dbBegin(sim$clusdb)
+    
     rs<-dbSendQuery(sim$clusdb, "UPDATE blocks SET age =  :age, height = :height, vol = :vol, salvage_vol = :s_vol, dist = :dist WHERE blockid = :blockid", new_blocks)
+    
+  }
+  
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
