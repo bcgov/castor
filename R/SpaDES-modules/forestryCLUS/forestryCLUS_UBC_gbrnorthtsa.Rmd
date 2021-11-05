@@ -170,9 +170,9 @@ modules <- list("dataLoaderCLUS",
 harvestFlow <- rbindlist(list(data.table(compartment ="UBC_study_boundary",
                                      partition = ' vol > 250 ',# was set at vol > 250 because the Sunshine Coast TSA had a minimum harvest volume per ha set at 250m3 or 300m3 depending on species. See table 19 (pg 28) from the Sunshine Coast TSA TSR Data Package April 2011 report. 
 
-                                     year = rep( seq (from = 2018, 
-                                                      to = 2218, # was 2218
-                                                      by = 5), # was 5
+                                     year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
                                                 1), 
 
                                      flow = 2050000))) #2000000 = yes, 2100000=no, 2500000=no, 3500000=no(I think), 4000000=no,

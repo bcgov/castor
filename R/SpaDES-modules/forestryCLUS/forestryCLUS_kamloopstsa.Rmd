@@ -426,9 +426,9 @@ modules <- list("dataLoaderCLUS",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Kamloops_TSA",
                                      partition = ' vol > 90 and age >= 60 ', 
-                                     year = rep( seq (from = 2018, 
-                                                      to = 2218, 
-                                                      by = 5),
+                                     year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by =1),
                                                 1), 
                                      flow = 7500000))) #1,500,000 m3/yr
 

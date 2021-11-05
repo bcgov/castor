@@ -262,9 +262,9 @@ scenario = data.table (name = "bulkley_telkwa_hi_priority",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Bulkley_TSA",
                                      partition = ' vol > 150 ', # from Lakes 2019 determination
-                                     year = rep( seq (from = 2018, # run the 
-                                                      to = 2218, 
-                                                      by = 5),
+                                     year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by =1),
                                                 1), 
                                      flow = 3500000) # 700,000m3/yr
 ))

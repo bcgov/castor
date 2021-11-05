@@ -578,9 +578,9 @@ scenario = data.table (name = "pg_south_centgrp_luo_age_le40_minNRV",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Prince_George_TSA", # Prince_George_North_TSA   Prince_George_TSA
                                          partition = ' vol > 182 and age >= 75  ', 
-                                           year = rep( seq (from = 2018, 
-                                                            to = 2218, 
-                                                            by = 5),
+                                         year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
                                                       1), 
                                            flow = 30000000) #6,000,000 / 30000000 //  1,200,000 / 6000000 
 ))
