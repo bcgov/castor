@@ -1279,12 +1279,19 @@ gdata::keep(fire_spread_veg_data_B, spread_data_lightning, spread_data_lightning
 
 ```
 
+Get X andY columns before lose geometry.
+```{r}
+test<-cbind(fire_spread_veg_data_B, st_coordinates(fire_spread_veg_data_B))
+head(test)
+
+test<-st_coordinates(fire_spread_veg_data_B)
+head(test)
+```
+
+
 Create a dataframe version.
 
 ```{r}
-fire_spread_veg_data_df<-as.data.frame(fire_spread_veg_data_B)
-str(fire_spread_veg_data_df)
-
 fire_spread_veg_data_df<-st_drop_geometry(fire_spread_veg_data_B)
 str(fire_spread_veg_data_df)
 head(fire_spread_veg_data_df)

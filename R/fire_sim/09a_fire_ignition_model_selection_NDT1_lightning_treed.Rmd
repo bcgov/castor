@@ -469,19 +469,19 @@ Now that we have run the model 100 times, we want the average AIC and AUC for ea
 head(table.glm.climate.simple)
 table(table.glm.climate.simple$model) # 100 per model
 
-AIC_lightning_NDT1_treed_climate<-table.glm.climate.simple
+AIC_lightning_NDT1_t_ignitereed_climate<-table.glm.climate.simple
 
-AIC_lightning_NDT1_treed_summary_climate<- AIC_lightning_NDT1_treed_climate %>%
+AIC_lightning_NDT1_t_ignitereed_summary_climate<- AIC_lightning_NDT1_t_ignitereed_climate %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic),
             meanAUC=mean(auc.valid),
             sdAUC=sd(auc.valid),
             )
 
-AIC_lightning_NDT1_treed_summary_climate2<- AIC_lightning_NDT1_treed_summary_climate %>%
+AIC_lightning_NDT1_t_ignitereed_summary_climate2<- AIC_lightning_NDT1_t_ignitereed_summary_climate %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT1_treed_summary_climate2)
+head(AIC_lightning_NDT1_t_ignitereed_summary_climate2)
 ```
 
 #Now repeat for VRI data
@@ -556,19 +556,19 @@ Now that we have run the model 100 times, we want the average AIC and AUC for ea
 head(table.glm.VRI.simple)
 table(table.glm.VRI.simple$model) # 100 per model
 
-AIC_lightning_NDT1_treed_VRI<-table.glm.VRI.simple
+AIC_lightning_NDT1_t_ignitereed_VRI<-table.glm.VRI.simple
 
-AIC_lightning_NDT1_treed_summary_VRI<- AIC_lightning_NDT1_treed_VRI %>%
+AIC_lightning_NDT1_t_ignitereed_summary_VRI<- AIC_lightning_NDT1_t_ignitereed_VRI %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic),
             meanAUC=mean(auc.valid),
             sdAUC=sd(auc.valid),
             )
 
-AIC_lightning_NDT1_treed_summary_VRI2<- AIC_lightning_NDT1_treed_summary_VRI %>%
+AIC_lightning_NDT1_t_ignitereed_summary_VRI2<- AIC_lightning_NDT1_t_ignitereed_summary_VRI %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT1_treed_summary_VRI2)
+head(AIC_lightning_NDT1_t_ignitereed_summary_VRI2)
 ```
 
 #Now repeat for topography
@@ -643,19 +643,19 @@ Now that we have run the model 100 times, we want the average AIC and AUC for ea
 head(table.glm.topo.simple)
 table(table.glm.topo.simple$model) # 100 per model
 
-AIC_lightning_NDT1_treed_topo<-table.glm.topo.simple
+AIC_lightning_NDT1_t_ignitereed_topo<-table.glm.topo.simple
 
-AIC_lightning_NDT1_treed_summary_topo<- AIC_lightning_NDT1_treed_topo %>%
+AIC_lightning_NDT1_t_ignitereed_summary_topo<- AIC_lightning_NDT1_t_ignitereed_topo %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic),
             meanAUC=mean(auc.valid),
             sdAUC=sd(auc.valid),
             )
 
-AIC_lightning_NDT1_treed_summary_topo2<- AIC_lightning_NDT1_treed_summary_topo %>%
+AIC_lightning_NDT1_t_ignitereed_summary_topo2<- AIC_lightning_NDT1_t_ignitereed_summary_topo %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT1_treed_summary_topo2)
+head(AIC_lightning_NDT1_t_ignitereed_summary_topo2)
 ```
 
 #Now repeat for infrastructure
@@ -730,26 +730,26 @@ Now that we have run the model 100 times, we want the average AIC and AUC for ea
 head(table.glm.infra.simple)
 table(table.glm.infra.simple$model) # 100 per model
 
-AIC_lightning_NDT1_treed_infra<-table.glm.infra.simple
+AIC_lightning_NDT1_t_ignitereed_infra<-table.glm.infra.simple
 
-AIC_lightning_NDT1_treed_summary_infra<- AIC_lightning_NDT1_treed_infra %>%
+AIC_lightning_NDT1_t_ignitereed_summary_infra<- AIC_lightning_NDT1_t_ignitereed_infra %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic),
             meanAUC=mean(auc.valid),
             sdAUC=sd(auc.valid),
             )
 
-AIC_lightning_NDT1_treed_summary_infra2<- AIC_lightning_NDT1_treed_summary_infra %>%
+AIC_lightning_NDT1_t_ignitereed_summary_infra2<- AIC_lightning_NDT1_t_ignitereed_summary_infra %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT1_treed_summary_infra2)
+head(AIC_lightning_NDT1_t_ignitereed_summary_infra2)
 
 ```
 
 #Now combine the datatables and save to computer
 
 ```{r}
-NDT1_l_models_treed<-rbind(AIC_lightning_NDT1_treed_summary_climate2, AIC_lightning_NDT1_treed_summary_VRI2, AIC_lightning_NDT1_treed_summary_topo2, AIC_lightning_NDT1_treed_summary_infra2)
+NDT1_l_models_treed<-rbind(AIC_lightning_NDT1_t_ignitereed_summary_climate2, AIC_lightning_NDT1_t_ignitereed_summary_VRI2, AIC_lightning_NDT1_t_ignitereed_summary_topo2, AIC_lightning_NDT1_t_ignitereed_summary_infra2)
 NDT1_l_models_treed
 NDT1_l_models_treed$NDT<-"NDT1"
 
@@ -1528,25 +1528,25 @@ Now that we have run the model 100 times, we want the average AIC and AUC for ea
 head(table.glm.infra.lu.simple)
 table(table.glm.infra.lu.simple$model) # 100 per model
 
-AIC_lightning_NDT1_treed_infra<-table.glm.infra.lu.simple
+AIC_lightning_NDT1_t_ignitereed_infra<-table.glm.infra.lu.simple
 
-AIC_lightning_NDT1_treed_summary_infra<- AIC_lightning_NDT1_treed_infra %>%
+AIC_lightning_NDT1_t_ignitereed_summary_infra<- AIC_lightning_NDT1_t_ignitereed_infra %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic),
             meanAUC=mean(auc.valid),
             sdAUC=sd(auc.valid),
             )
 
-AIC_lightning_NDT1_treed_summary_infra2<- AIC_lightning_NDT1_treed_summary_infra %>%
+AIC_lightning_NDT1_t_ignitereed_summary_infra2<- AIC_lightning_NDT1_t_ignitereed_summary_infra %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT1_treed_summary_infra2)
+head(AIC_lightning_NDT1_t_ignitereed_summary_infra2)
 ```
 
 Save to computer.
 
 ```{r}
-write.csv(AIC_lightning_NDT1_treed_summary_infra2, file="D:\\Fire\\fire_data\\raw_data\\AIC_lightning_NDT1_treed_summary_infra.csv")
+write.csv(AIC_lightning_NDT1_t_ignitereed_summary_infra2, file="D:\\Fire\\fire_data\\raw_data\\AIC_lightning_NDT1_t_ignitereed_summary_infra.csv")
 ```
 
 Determine the top models.
@@ -1734,13 +1734,13 @@ Remove NAs and tun multiple times.
 
 ```{r}
 #Remove NAs to ensure all same data used so we can compare AICs
-NDT1_t<-dat_lightning_t_NDT1 %>% drop_na(climate1, climate2, proj_height_1, live_stand_volume_125, proj_age_1, dist_mun,  dist_dam, dist_nat, dist_mine, vegtype2, bclcs_level_5_2, slope, aspect, elevation)
+NDT1_t_ignite<-dat_lightning_t_NDT1 %>% drop_na(climate1, climate2, proj_height_1, live_stand_volume_125, proj_age_1, dist_mun,  dist_dam, dist_nat, dist_mine, vegtype2, bclcs_level_5_2, slope, aspect, elevation)
 
 #Run Model again with this data; but uses all data here
-model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1  + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125  + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2  + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation + climate2:elevation, family = binomial, data = NDT1_t)
+model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1  + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125  + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2  + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation + climate2:elevation, family = binomial, data = NDT1_t_ignite)
 
 Anova(model.NDT1, type=3)
-Anova(model.NDT1, type=3, singular.ok = TRUE)
+#Anova(model.NDT1, type=3, singular.ok = TRUE)
 
 # model diagnostic plots
 binnedplot (fitted(model.NDT1), 
@@ -1748,26 +1748,53 @@ binnedplot (fitted(model.NDT1),
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
-            main = paste("Binned Residual Plot - glm", i))
+            main = paste("Binned Residual Plot - glm"))
 
 
-NDT1_t$resids<-resid(model.NDT1)
+NDT1_t_ignite$resids<-resid(model.NDT1)
 
-binnedplot (NDT1_t$live_stand_volume_125, 
-            NDT1_t$resids, 
+binnedplot (NDT1_t_ignite$live_stand_volume_125, 
+            NDT1_t_ignite$resids, 
             nclass = NULL, 
             xlab = "live stand volume", 
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm", i))
 
-binnedplot (NDT1_t$climate1, 
-            NDT1_t$resids, 
+binnedplot (NDT1_t_ignite$climate1, 
+            NDT1_t_ignite$resids, 
             nclass = NULL, 
             xlab = "", 
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm", i))
 
 # Diagnostic plots look good
+
+#Partial Residuals
+#climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1  + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125  + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2  + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation + climate2:elevation
+library(visreg)
+visreg(model.NDT1, "climate1", by="vegtype2", overlay=TRUE) #huge variation in disturbed
+visreg(model.NDT1, "climate1", by="vegtype2", overlay=TRUE, ylim=c(-7,7))
+visreg(model.NDT1, "climate1", by="climate2")
+
+visreg(model.NDT1, "climate2", by="climate1")
+visreg(model.NDT1, "climate2", by="elevation")
+
+visreg(model.NDT1, "slope")
+visreg(model.NDT1, "aspect")
+visreg(model.NDT1, "elevation", by="climate2")
+
+visreg(model.NDT1, "live_stand_volume_125", by="vegtype2", overlay=TRUE, ylim=c(-20,20))
+
+visreg(model.NDT1, "proj_age_1", by="climate2")
+visreg(model.NDT1, "proj_age_1", by="climate1")
+
+visreg(model.NDT1, "proj_height_1", by="climate1")
+
+visreg(model.NDT1, "dist_mun") #look into these extreme points
+visreg(model.NDT1, "dist_dam")
+visreg(model.NDT1, "dist_nat", by="bclcs_level_5_2")
+visreg(model.NDT1, "dist_mine", by="bclcs_level_5_2")
+
 ```
 
 
@@ -1789,12 +1816,12 @@ for (g in 1:500){
 
 prop<-0.75
 # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(NDT1_t$fire_veg, p = prop,
+  trainIndex <- createDataPartition(NDT1_t_ignite$fire_veg, p = prop,
                                     list = FALSE,
                                     times = 1)
   
-   dat1 <- NDT1_t[ trainIndex,]
-   Valid <- NDT1_t[-trainIndex,]
+   dat1 <- NDT1_t_ignite[ trainIndex,]
+   Valid <- NDT1_t_ignite[-trainIndex,]
    
 #Model   
 model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1  + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125  + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2  + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation + climate2:elevation, family = binomial, data = dat1) 
