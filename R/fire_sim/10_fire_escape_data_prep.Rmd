@@ -9,7 +9,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 <!--
 Copyright 2021 Province of British Columbia
 
@@ -110,6 +109,7 @@ Now, select only those locations where a fire did occur. And then create a new c
 ```{r}
 dat_lightning_<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_Oct.csv")
 
+head(dat_lightning_)
 ```
 
 
@@ -224,7 +224,7 @@ p
 
 ```
 
-Inspect by Tdif_atfire
+Inspect by Tdif_atfire. 
 
 ```{r}
 p <- ggplot(dat_lightning_escape_2, aes(Tdif_atfire, as.numeric(escape))) +
