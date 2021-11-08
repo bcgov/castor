@@ -400,9 +400,9 @@ scenario = data.table (name = "morice_whitesail_bec2",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Morice_TSA",
                                      partition = ' vol > 150 ', #  this is the value that was used in Morice TSR 
-                                     year = rep( seq (from = 2018, 
-                                                      to = 2218, 
-                                                      by = 5),
+                                     year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
                                                 1), 
                                      flow = 7250000) # 1,450,000m3/yr 
 ))

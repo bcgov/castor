@@ -167,9 +167,9 @@ scenario = data.table (name = "all_terr_10per_max_12yrs_le_wetland2",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                      partition = ' vol > 100 and age > 60 ', 
-                                     year = rep( seq (from = 2018, # run the 
-                                                      to = 2218, 
-                                                      by = 5),
+                                     year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by =1),
                                                 1), 
                                      flow = 9590000) 
 ))

@@ -70,14 +70,14 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 #STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_wha_2021'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones rast.zone_cond_noharvest_barkerville_crithab_or_herd
 
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab'")  # 
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_rainbows_crithab'")  # 
 #  rast.zone_cond_bc_itcha_ilgachuz_crithab",  "rast.zone_cond_bc_charlotte_alplands_crithab", "rast.zone_cond_bc_rainbows_crithab"     
 
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_chilcotin_scenario2'")
 dbExecute (clusdb, "UPDATE zoneConstraints SET multi_condition = NULL WHERE multi_condition = 'NA';") 
 
 
-#### Chilcotin Scenarios - Sept. 2021 #### 
+#### Chilcotin Scenarios 1a, b and c - Sept. 2021 #### 
 ### To remove existing caribou WHA GARs; forest age constraints applied to critical habitat
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.zone_wha_2021' AND (zoneid = 263) OR (zoneid = 264) OR (zoneid = 3779) OR (zoneid = 3780) OR (zoneid = 3781)") 
 ### To remove existing caribou conditional harvest WHA GARs; forest age constraints applied to critical habitat
@@ -309,7 +309,7 @@ moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
-times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
+times <- list(start = 0, end = 4) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -354,18 +354,19 @@ parameters <- list(
                                            # "rast.zone_cond_eccc_wells_gray_north_crithab_or_herd",
                                            # 
                                            # "rast.zone_cond_bc_barkerville_crithab",
-                                           # "rast.zone_cond_bc_charlotte_alplands_crithab",
-                                           # "rast.zone_cond_bc_itcha_ilgachuz_crithab",
                                            # "rast.zone_cond_bc_narrow_lake_crithab",
                                            # "rast.zone_cond_bc_north_cariboo_crithab",
-                                           # "rast.zone_cond_bc_rainbows_crithab"
                                            # "rast.zone_cond_bc_tweedsmuir_crithab",
-                                           # "rast.zone_cond_bc_wells_gray_north_crithab", 
-                                           # 
+                                           # "rast.zone_cond_bc_wells_gray_north_crithab",
+                                           
+                                           "rast.zone_cond_bc_charlotte_alplands_crithab",
+                                           "rast.zone_cond_bc_itcha_ilgachuz_crithab",
+                                           "rast.zone_cond_bc_rainbows_crithab"
+                                           
                                            # "rast.zone_barkerville_groundhog_zones_20210303",
                                            # "rast.zone_smc_zones_20210315"
                                            
-                                            "rast.zone_chilcotin_scenario2"
+                                           # "rast.zone_chilcotin_scenario2"
                                            ),
                            nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -387,7 +388,7 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCLUS = list(harvestBlockPriority = "age DESC", # query to prioritize blocks within 1km of disturbance, then 2.5km, then 5km, then everything >5km, then oldest first after that =  "CASE WHEN dist < 1000 THEN 3 WHEN dist < 2500 THEN 2 WHEN dist < 5000 THEN 1 ELSE 0 END DESC, age DESC"
+  forestryCLUS = list(harvestBlockPriority = "dist, age DESC", # query to prioritize blocks within 1km of disturbance, then 2.5km, then 5km, then everything >5km, then oldest first after that =  "CASE WHEN dist < 1000 THEN 3 WHEN dist < 2500 THEN 2 WHEN dist < 5000 THEN 1 ELSE 0 END DESC, age DESC"
                       # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
                       #harvestZonePriorityInterval = 1,
@@ -415,7 +416,7 @@ parameters <- list(
                                  AreaofInterestTable = "vat.study_area_chilcotin"),
   smcaribouAbundanceCLUS = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
                                   tableSMCCoeffs = "vat.smc_coeffs"),
-  uploaderCLUS = list(aoiName = 'chilcotin_caribou_plan', # name of the schema that gets uplaoded to postgres
+  uploaderCLUS = list(aoiName = 'chilcotin_caribou_plan', # name of the schema that gets uploaded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -453,81 +454,84 @@ modules <- list("dataLoaderCLUS",
 #                        description = "Scenario 2a. No harvest: HEWSR, LESR, Tweedsmuir Corridor, Rainbows Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LEWR, Matrix): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 # scenario = data.table (name = "chilcotin_scen2b",
 #                        description = "Scenario 2b. No harvest: HEWSR, LESR (except high-low areas), Tweedsmuir Corridor, Rainbows Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
+# scenario = data.table (name = "chilcotin_scen2c",
+#                        description = "Scenario 2c. No harvest: HEWSR, LESR (except high-low adn highe-moderate areas), Tweedsmuir Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix, Rainbows Corridor): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 
-scenario = data.table (name = "chilcotin_scen2c",
-                       description = "Scenario 2c. No harvest: HEWSR, LESR (except high-low adn highe-moderate areas), Tweedsmuir Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix, Rainbows Corridor): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
+scenario = data.table (name = "chilcotin_scen1a_disturb",
+                       description = "Scenario 1a with closest to disturbance harvest priority. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Closest to Disturabnce, then oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
+
 
 
 
 
 harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           partition = ' vol > 150 AND age > 139 ', # 139, 119, 99
-                                          year = rep( seq (from = 2018, 
-                                                           to = 2218, 
-                                                           by = 5),
+                                          year = rep( seq (from = 1, 
+                                                           to = 40, 
+                                                           by = 1),
                                                      1), 
                                           flow = 0), # 0 m3/yr 
                               data.table (compartment ="Quesnel_TSA_LESR",
                                           partition = ' vol > 150 AND age > 139 ', # 119
-                                          year = rep( seq (from = 2018, 
-                                                           to = 2218, 
-                                                           by = 5),
-                                                      1), 
+                                           year = rep( seq (from = 1, 
+                                                           to = 40, 
+                                                           by = 1),
+                                                     1),
                                           flow = 35000), # 7,000 m3/yr 
                               data.table (compartment ="Quesnel_TSA_LEWR",
                                           partition = ' vol > 150 AND age > 139 ', #  AND age > 119
-                                          year = rep( seq (from = 2018, 
-                                                           to = 2218, 
-                                                           by = 5),
-                                                      1), 
+                                           year = rep( seq (from = 1, 
+                                                           to = 40, 
+                                                           by = 1),
+                                                     1), 
                                           flow = 425000), # 85,000 m3/yr 
                               data.table (compartment ="Quesnel_TSA_Matrix",
                                           partition = ' vol > 150 AND age > 139 ', # AND age > 119
-                                          year = rep( seq (from = 2018, 
-                                                           to = 2218, 
-                                                           by = 5),
-                                                      1), 
+                                           year = rep( seq (from = 1, 
+                                                           to = 40, 
+                                                           by = 1),
+                                                     1), 
                                           flow = 950000), #190,000 m3/yr 
                               data.table (compartment ="Quesnel_TSA_out",
                                           partition = ' vol > 150 ', 
-                                          year = rep( seq (from = 2018, 
-                                                           to = 2218, 
-                                                           by = 5),
-                                                      1), 
+                                           year = rep( seq (from = 1, 
+                                                           to = 40, 
+                                                           by = 1),
+                                                     1), 
                                           flow = 10500000), # 2,100,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_HEWSR",
                                           partition = ' vol > 110 AND age > 139 ', 
-                                          year = rep( seq (from = 2018, 
-                                                           to = 2218, 
-                                                           by = 5),
-                                                      1), 
+                                           year = rep( seq (from = 1, 
+                                                           to = 40, 
+                                                           by = 1),
+                                                     1), 
                                           flow = 75000), # 15,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_LESR",
                                           partition = ' vol > 110 AND age > 139 ', 
-                                          year = rep( seq (from = 2018, 
-                                                           to = 2218, 
-                                                           by = 5),
-                                                      1), 
+                                           year = rep( seq (from = 1, 
+                                                           to = 40, 
+                                                           by = 1),
+                                                     1), 
                                           flow = 350000), # 70,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_LEWR",
                                           partition = ' vol > 110 AND age > 139 ', # AND age > 119 
-                                          year = rep( seq (from = 2018, 
-                                                           to = 2218, 
-                                                           by = 5),
+                                          year = rep( seq (from = 1, 
+                                                           to = 40, 
+                                                           by = 1),
                                                       1), 
                                           flow = 700000), # 140,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_Matrix",
                                           partition = ' vol > 110 AND age > 139 ', # AND age > 119 
-                                          year = rep( seq (from = 2018, 
-                                                           to = 2218, 
-                                                           by = 5),
+                                          year = rep( seq (from = 1, 
+                                                           to = 40, 
+                                                           by = 1),
                                                       1), 
                                           flow = 700000), # 140,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_out",
                                           partition = ' vol > 110 ', 
-                                          year = rep( seq (from = 2018, 
-                                                           to = 2218, 
-                                                           by = 5),
+                                          year = rep( seq (from = 1, 
+                                                           to = 40, 
+                                                           by = 1),
                                                       1), 
                                           flow = 8250000) # 1,650,000 m3/yr 
 ))

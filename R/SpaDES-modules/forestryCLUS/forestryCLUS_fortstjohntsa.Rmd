@@ -310,9 +310,9 @@ scenario = data.table (name = "fsj_nocore_multi_plan_aac",
 
 harvestFlow <- rbindlist(list(data.table(compartment = "Fort_St_John_TSA", 
                                      partition = ' vol > 139 ', 
-                                     year = rep( seq (from = 2018, 
-                                                      to = 2222, 
-                                                      by = 5),
+                                     year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by =1),
                                                 1), 
                                      flow = 4655000) # Even flow: 1,550,000/ 7750000 // 
                                                     # AAC = 931,000 / 4655000

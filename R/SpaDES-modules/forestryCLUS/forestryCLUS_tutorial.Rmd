@@ -167,9 +167,9 @@ scenario = data.table (name = "revelstoke_bau",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
                                          partition = ' vol > 150 ', 
-                                         year = rep(seq (from = 2019, 
-                                                         to = 2219, 
-                                                         by = 5),
+                                         year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
                                                     1), 
                                          flow = 1050000) # 210,000m^3^/year
 ))

@@ -159,9 +159,11 @@ setBlocksTable <- function(sim) {
   dbExecute(sim$clusdb, paste0("UPDATE blocks SET vol = 0 WHERE vol IS NULL")) 
   dbExecute(sim$clusdb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL")) 
   # Use "(CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing" to get set landing as pixel
+  
   dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, height,  vol, dist, landing)  
                     SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as salvage_vol, AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
-                                       FROM pixels WHERE blockid > 0 GROUP BY blockid "))
+                                       FROM pixels WHERE blockid > 0 GROUP BY blockid "))  
+
   dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
   return(invisible(sim))
 }
@@ -402,18 +404,18 @@ spreadBlock<- function(sim) {
 
 
 
-updateBlocks<-function(sim){
-
-  #This function updates the block information used in summaries and for a queue
+updateBlocks<-function(sim){ #This function updates the block information used in summaries and for a queue
   message("update the blocks table")
-        
-  #SQLite doesn't support related JOIN and UPDATES.This would mean UPDATE blocks SET age = (SELECT age FROM ...), area = (SELECT area FROM ...)
-  new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, round(AVG(age),0) as age , AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as s_vol, AVG(dist) as dist
-             FROM pixels WHERE blockid > 0 GROUP BY blockid;"))
   
-  #Could of used a DELETE TABLE then CREATE the table but this would require the landing to be re-estimated which would not link to the roads.
-  dbBegin(sim$clusdb)
+
+    new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, round(AVG(age),0) as age , AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as s_vol, AVG(dist) as dist
+             FROM pixels WHERE blockid > 0 GROUP BY blockid;"))
+    
+    dbBegin(sim$clusdb)
+    
     rs<-dbSendQuery(sim$clusdb, "UPDATE blocks SET age =  :age, height = :height, vol = :vol, salvage_vol = :s_vol, dist = :dist WHERE blockid = :blockid", new_blocks)
+    
+  
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   

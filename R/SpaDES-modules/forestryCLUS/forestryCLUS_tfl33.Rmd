@@ -191,9 +191,9 @@ modules <- list("dataLoaderCLUS",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="TFL33",
                                          partition = ' vol > 100 ', 
-                                         year = rep( seq (from = 2018, 
-                                                          to = 2218, 
-                                                          by = 5),
+                                         year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
                                                     1), 
                                          flow = 12500) # 2,500m3/yr 
 ))
