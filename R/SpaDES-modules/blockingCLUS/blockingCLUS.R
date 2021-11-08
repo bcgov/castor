@@ -160,7 +160,7 @@ setBlocksTable <- function(sim) {
   dbExecute(sim$clusdb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL")) 
   # Use "(CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing" to get set landing as pixel
   
-  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, height,  vol, dist, landing)  
+  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, height,  vol, salvage_vol, dist, landing)  
                     SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as salvage_vol, AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
                                        FROM pixels WHERE blockid > 0 GROUP BY blockid "))  
 

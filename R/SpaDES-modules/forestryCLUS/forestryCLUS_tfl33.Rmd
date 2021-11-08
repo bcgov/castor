@@ -191,11 +191,12 @@ modules <- list("dataLoaderCLUS",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="TFL33",
                                          partition = ' vol > 100 ', 
-                                         year = rep( seq (from = 1, # run the 
+                                         period = rep( seq (from = 1, # run the 
                                                       to = 40, 
                                                       by = 1),
                                                     1), 
-                                         flow = 12500) # 2,500m3/yr 
+                                         flow = 12500,
+                                         partition_type = 'live') # 2,500m3/yr 
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
