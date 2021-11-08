@@ -137,7 +137,8 @@ parameters <- list(
                       #harvestZonePriority = "age DESC",
                       #harvestZonePriorityInterval = 1,
                       reportHarvestConstraints = TRUE,
-                      adjacencyConstraint = 3),
+                      adjacencyConstraint = 3,
+                      salvageRaster = 'rast.dead_vol_125_2020'),
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
@@ -166,12 +167,21 @@ scenario = data.table (name = "revelstoke_bau",
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
-                                         partition = ' vol > 150 ', 
+                                         partition = '  (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', 
                                          year = rep( seq (from = 1, # run the 
                                                       to = 40, 
                                                       by = 1),
                                                     1), 
-                                         flow = 1050000) # 210,000m^3^/year
+                                         flow = 1050000, # 210,000m^3^/year
+                                         type = 'live'), 
+                              data.table(compartment ="Revelstoke_TSA",
+                                         partition = ' (salvage_vol > 100 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
+                                         year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
+                                                    1), 
+                                         flow = 5000, #1,000m3/yr 
+                                         type = 'dead')
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow

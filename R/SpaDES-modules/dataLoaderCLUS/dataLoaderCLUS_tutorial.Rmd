@@ -55,7 +55,7 @@ parameters <-  list(
                          nameBoundary = "Revelstoke_TSA", 
                          nameBoundaryGeom = 'wkb_geometry', 
                          nameCompartmentRaster = "rast.tsa_aac_boundary", 
-                         nameCompartmentTable = "tsa_aac_bounds_vat", 
+                         nameCompartmentTable = "vat.tsa_aac_bounds_vat", 
                          nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', #'rast.bc_thlb2018' 
                          nameZoneRasters = c("rast.zone_cond_beo", 
                                              "rast.zone_cond_vqo", 
@@ -63,8 +63,8 @@ parameters <-  list(
                                              "rast.zone_uwr_2021", #"rast.zone_cond_uwr"
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", 
-                                             "rast.zone_cond_cw",
-                                             "rast.raster_test"
+                                             "rast.zone_cond_cw"
+                                             #"rast.raster_test"
                           ), 
                          nameZoneTable = "zone.constraints", 
                         # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -79,7 +79,7 @@ parameters <-  list(
                          nameForestInventoryHeight = "proj_height_1", 
                          nameForestInventoryCrownClosure = "crown_closure", 
                          nameForestInventoryTreed = "bclcs_level_2",
-                         nameForestInventorySiteIndex = "site_index" 
+                         nameForestInventorySiteIndex = "site_index"
                     ),
   blockingCLUS = list(blockMethod = 'pre', 
                       patchZone = 'rast.zone_cond_beo', 
