@@ -318,11 +318,12 @@ scenario = data.table (name = "fsj_core_multi_plan_aac",
 
 harvestFlow <- rbindlist(list(data.table(compartment = "Fort_St_John_Core_TSA", # "Fort_St_John_Core_TSA"  Fort_St_John_TSA
                                      partition = ' vol > 139 ', 
-                                     year = rep( seq (from = 1, # run the 
+                                     period = rep( seq (from = 1, # run the 
                                                       to = 40, 
                                                       by =1),
                                                 1), 
-                                     flow = 5920000) #BAU = 8500000 / 1,700,000m3/yr //
+                                     flow = 5920000,
+                                     partition_type = 'live') #BAU = 8500000 / 1,700,000m3/yr //
                                                       # AAC = 1,184,000 / 5920000
 ))
 

@@ -423,7 +423,7 @@ parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list(   dbName='clus',
-                           save_clusdb = TRUE,
+                           save_clusdb = FALSE,
                            sqlite_dbname = "Quesnel_TSA",
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite"),
                            #Study Area
@@ -651,11 +651,12 @@ scenario = data.table (name = "quesnel_bau_dist1km_chil_0821",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                      partition = ' vol > 150 ', 
-                                     year = rep( seq (from = 1, 
+                                     period = rep( seq (from = 1, 
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 9250000)
+                                     flow = 9250000,
+                                     partition_type = 'live')
                                     # 9500000 // 1,900,000 m3/yr for oldest first
                                     # 8000000 // 1,600,000 m3/yr for closest dist 1st
 ))

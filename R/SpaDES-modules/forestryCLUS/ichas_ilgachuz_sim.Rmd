@@ -136,11 +136,12 @@ scenario = data.table(name="nh_all_crit_test99", description = "No harvest in an
 
 harvestFlow<- data.table(compartment ="Quesnel_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep( seq (from = 1, # run the 
+                                     period = rep( seq (from = 1, # run the 
                                                       to = 40, 
                                                       by = 1)
                                                  ,1),  
-                         flow = 8000000)
+                                     flow = 8000000,
+                                     partition_type = 'live')
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))
 

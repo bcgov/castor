@@ -106,40 +106,49 @@ scenario = data.table(name="test", description = "checking uncertainty model")
 
 harvestFlow<- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 1, to=2, by = 1),1), 
-                                     flow = 207100),
+                                     period = rep(seq(from = 1, to=2, by = 1),1), 
+                                     flow = 207100,
+                                     partition_type = 'live'),
                              data.table(compartment ="Revelstoke_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 3, to=10, by = 1),1), 
-                                     flow = 186390), 
+                                     period = rep(seq(from = 3, to=10, by = 1),1), 
+                                     flow = 186390,
+                                     partition_type = 'live'), 
                              data.table(compartment ="Revelstoke_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 11, to=20, by = 1),1), 
-                                     flow = 165680),
+                                     period = rep(seq(from = 11, to=20, by = 1),1), 
+                                     flow = 165680,
+                                     partition_type = 'live'),
                              data.table(compartment ="Revelstoke_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 21, to=30, by = 1),1), 
-                                     flow = 144970),
+                                     period = rep(seq(from = 21, to=30, by = 1),1), 
+                                     flow = 144970,
+                                     partition_type = 'live'),
                              data.table(compartment ="Revelstoke_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 31, to=40, by = 1),1), 
-                                     flow = 135900),
+                                     period = rep(seq(from = 31, to=40, by = 1),1), 
+                                     flow = 135900,
+                                     partition_type = 'live'),
                              data.table(compartment ="Revelstoke_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 41, to=50, by = 1),1), 
-                                     flow = 144970),
+                                     period = rep(seq(from = 41, to=50, by = 1),1), 
+                                     flow = 144970,
+                                     partition_type = 'live'),
                               data.table(compartment ="Revelstoke_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 51, to=60, by = 1),1), 
-                                     flow = 165680),
+                                     period = rep(seq(from = 51, to=60, by = 1),1), 
+                                     flow = 165680,
+                                     partition_type = 'live'),
                              data.table(compartment ="Revelstoke_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 61, to=70, by = 1),1), 
-                                     flow = 186390),
+                                     period = rep(seq(from = 61, to=70, by = 1),1), 
+                                     flow = 186390,
+                                     partition_type = 'live'),
                              data.table(compartment ="Revelstoke_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 71, to=80, by = 1),1), 
-                                     flow = 207100)
+                                     period = rep(seq(from = 71, to=80, by = 1),1), 
+                                     flow = 207100,
+                                     partition_type = 'live')
 ))
 
 
@@ -214,7 +223,7 @@ ELSE
 
 ## Input data
 
-A SQLite db is required (output from dataloaderCLUS). A harvestFlow data.table object that includes the forest management unit (i.e., compartment, aka - 'supply block'), the partition from which the harvest flow applies (e.x., All dead pine); the year at which the flow applies and the amount of volume.
+A SQLite db is required (output from dataloaderCLUS). A harvestFlow data.table object that includes the forest management unit (i.e., compartment, aka - 'supply block'), the partition from which the harvest flow applies (e.x., All dead pine); the period at which the flow applies and the amount of volume.
 
 ## Output data
 

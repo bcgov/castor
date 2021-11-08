@@ -512,11 +512,12 @@ scenario = data.table (name = "mackenzie_bau_newpark_noadj",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="MacKenzie_TSA", # # MacKenzie_TSA   MacKenzie_SW_TSA
                                      partition = ' vol > 150 ', # from 2014 determination
-                                     year = rep( seq (from = 1, # run the 
+                                     period = rep( seq (from = 1, # run the 
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 11250000) # southwest: 6500000 / 1,300,000m3/yr //north: 9750000 / 1,950,000m3/yr 
+                                     flow = 11250000,
+                                     partition_type = 'live') # southwest: 6500000 / 1,300,000m3/yr //north: 9750000 / 1,950,000m3/yr 
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))
