@@ -141,34 +141,35 @@ Init <- function(sim) {
   if(dbGetQuery (sim$clusdb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='salvage_vol';")$exists_check == 0){
     # add in the column
     dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN salvage_vol numeric DEFAULT 0")
+  }
     # add in the raster
-    if(P(sim, "forestryCLUS", "salvageRaster") == '99999'){
-      message("WARNING: No salvage raster specified ... defaulting to no salvage opportunities")
-    }else{
-      message("...getting salvage opportunities")
-      sim$salvageReport<-data.table(scenario = character(), compartment = character(), 
+  if(P(sim, "forestryCLUS", "salvageRaster") == '99999'){
+    message("WARNING: No salvage raster specified ... defaulting to no salvage opportunities")
+  }else{
+    message("...getting salvage opportunities")
+    sim$salvageReport<-data.table(scenario = character(), compartment = character(), 
                                     timeperiod= integer(), salvage_area = numeric(), salvage_vol = numeric() )
       
-      salvage_vol<- data.table (c(t(raster::as.matrix( 
+    salvage_vol<- data.table (c(t(raster::as.matrix( 
         RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                      srcRaster = P(sim, "forestryCLUS", "salvageRaster"), 
                      clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                      geom = sim$boundaryInfo[[4]], 
                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                      conn = NULL)))))
-      salvage_vol[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
-      setnames(salvage_vol, "V1", "salvage_vol")
-      #add to the clusdb
-      dbBegin(sim$clusdb)
+    salvage_vol[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
+    setnames(salvage_vol, "V1", "salvage_vol")
+    #add to the clusdb
+    dbBegin(sim$clusdb)
       rs<-dbSendQuery(sim$clusdb, "Update pixels set salvage_vol = :salvage_vol where pixelid = :pixelid", salvage_vol)
-      dbClearResult(rs)
-      dbCommit(sim$clusdb)
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
       
       #clean up
-      rm(salvage_vol)
-      gc()
-    }
+    rm(salvage_vol)
+    gc()
   }
+  
   return(invisible(sim))
 }
 
