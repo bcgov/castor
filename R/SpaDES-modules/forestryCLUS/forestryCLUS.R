@@ -423,7 +423,7 @@ getHarvestQueue<- function(sim) {
   for(compart in sim$compartment_list){
    # harvestTarget<-sim$harvestFlow[compartment == compart,]$flow[time(sim)]
     harvestTarget<-sim$harvestFlow[compartment == compart & year == time(sim),]$flow
-    harvestType<-sim$harvestFlow[compartment == compart & year == time(sim),]$type
+    harvestType<-sim$harvestFlow[compartment == compart & year == time(sim),]$partition_type
     harvestType<<-harvestType
     if(length(harvestTarget)>0){# Determine if there is a demand for timber volume 
       message(paste0(compart, " harvest Target: ", harvestTarget))
@@ -523,7 +523,7 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
               out<-queue[eval(parse(text=paste("part", i, sep = "")))==1, ]
               
               dbBegin(sim$clusdb)
-                rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans, vol = 0 WHERE pixelid = :pixelid", out[, "pixelid"])
+              rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans, vol = 0 WHERE pixelid = :pixelid", out[, "pixelid"])
               dbClearResult(rs)
               dbCommit(sim$clusdb)
               
