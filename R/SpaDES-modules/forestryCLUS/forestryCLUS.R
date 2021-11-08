@@ -459,9 +459,7 @@ ORDER by zone_rank, block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"
       }else{
         message("Using block priority")
         
-        if(P(sim, "forestryCLUS", "salvageRaster") == '99999') {
-          
-          sql<-paste0("SELECT pixelid, p.blockid as blockid, compartid, yieldid, height, elv, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h ", partition_case, "
+        sql<-paste0("SELECT pixelid, p.blockid as blockid, compartid, yieldid, height, elv, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h, (thlb*salvage_vol) as salvage_vol ", partition_case, "
 FROM pixels p
 INNER JOIN 
 (SELECT blockid, ROW_NUMBER() OVER ( 
@@ -471,20 +469,6 @@ WHERE compartid = '", compart ,"' AND zone_const = 0 AND thlb > 0 AND p.blockid 
 ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
                            LIMIT ", as.integer(sum(harvestTarget)/50))
           
-        }else{
-          
-          sql<-paste0("SELECT pixelid, p.blockid as blockid, compartid, yieldid, height, elv, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h, (thlb*salvage_vol) as salvage_vol ", partition_case, "
-FROM pixels p
-INNER JOIN 
-(SELECT blockid, ROW_NUMBER() OVER ( 
-		ORDER BY ", P(sim, "forestryCLUS", "harvestBlockPriority"), ") as block_rank FROM blocks) b
-on p.blockid = b.blockid
-WHERE compartid = '", compart ,"' AND zone_const = 0 AND thlb > 0 AND p.blockid > 0 AND (", partition, ")
-ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
-                           LIMIT ", as.integer(sum(harvestTarget)/50))
-          
-        }
-        
       }
       
       queue<-data.table(dbGetQuery(sim$clusdb, sql))
