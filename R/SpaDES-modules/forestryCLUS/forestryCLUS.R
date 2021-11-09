@@ -64,7 +64,7 @@ defineModule(sim, list(
     createsOutput(objectName = "ras.zoneConstraint", objectClass = "raster", desc = NA),
     createsOutput(objectName = "scenario", objectClass ="data.table", desc = 'A user supplied name and description of the scenario. The column heading are name and description.'),
     createsOutput(objectName = "zoneManagement", objectClass ="data.table", desc = '.'),
-    createsOutput("salvageReport", "data.table", "Summary per simulation year of the disturbance indicators")
+    createsOutput("salvageReport", "data.table", "Summary per simulation period of the disturbance indicators")
     
   )
 ))
@@ -422,18 +422,18 @@ getHarvestQueue<- function(sim) {
   #Right now its looping by compartment -- So far it will be serializable at the aoi level then
   for(compart in sim$compartment_list){
    # harvestTarget<-sim$harvestFlow[compartment == compart,]$flow[time(sim)]
-    harvestTarget<-sim$harvestFlow[compartment == compart & year == time(sim),]$flow
-    harvestType<-sim$harvestFlow[compartment == compart & year == time(sim),]$type
+    harvestTarget<-sim$harvestFlow[compartment == compart & period == time(sim),]$flow
+    harvestType<-sim$harvestFlow[compartment == compart & period == time(sim),]$partition_type
     harvestType<<-harvestType
     if(length(harvestTarget)>0){# Determine if there is a demand for timber volume 
       message(paste0(compart, " harvest Target: ", harvestTarget))
       ##Partitions will be evaluated simultaneously as an 'OR'
-      if(length(sim$harvestFlow[compartment==compart & year == time(sim),]$partition)>1){
-        partition_raw<-sim$harvestFlow[compartment==compart & year == time(sim),]$partition
-        partition<-paste(sim$harvestFlow[compartment==compart & year == time(sim),]$partition, sep = " ", collapse = " OR ")
-        partition_case<-paste0(", ", paste(apply(cbind(1:length(harvestTarget), harvestFlow[compartment==compart & year == time(sim),]$partition), 1, FUN=function(x){paste0("(CASE WHEN ", x[2], " THEN 1 ELSE 0 END) as part",x[1])}) , sep = "", collapse = ", "))
+      if(length(sim$harvestFlow[compartment==compart & period == time(sim),]$partition)>1){
+        partition_raw<-sim$harvestFlow[compartment==compart & period == time(sim),]$partition
+        partition<-paste(sim$harvestFlow[compartment==compart & period == time(sim),]$partition, sep = " ", collapse = " OR ")
+        partition_case<-paste0(", ", paste(apply(cbind(1:length(harvestTarget), harvestFlow[compartment==compart & period == time(sim),]$partition), 1, FUN=function(x){paste0("(CASE WHEN ", x[2], " THEN 1 ELSE 0 END) as part",x[1])}) , sep = "", collapse = ", "))
       }else{
-        partition<-sim$harvestFlow[compartment==compart & year == time(sim),]$partition
+        partition<-sim$harvestFlow[compartment==compart & period == time(sim),]$partition
         partition_case<-""
       }
       
@@ -523,7 +523,7 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
               out<-queue[eval(parse(text=paste("part", i, sep = "")))==1, ]
               
               dbBegin(sim$clusdb)
-                rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans, vol = 0 WHERE pixelid = :pixelid", out[, "pixelid"])
+              rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans, vol = 0 WHERE pixelid = :pixelid", out[, "pixelid"])
               dbClearResult(rs)
               dbCommit(sim$clusdb)
               

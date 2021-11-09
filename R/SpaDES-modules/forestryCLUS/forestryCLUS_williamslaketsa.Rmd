@@ -703,11 +703,12 @@ scenario = data.table (name = "williams_lake_bau_dist1km_chil_0821", description
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Williams_Lake_TSA",
                                      partition = ' vol > 110 ', 
-                                     year = rep( seq (from = 1, # run the 
+                                     period = rep( seq (from = 1, # run the 
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 10500000)  
+                                     flow = 10500000,
+                                     partition_type = 'live')  
                               # closest to disturbance priority: 8250000 / 1,650,000m3/year
                               # oldest first priority: 11750000 / 2,350,000m3/year
 ))

@@ -214,11 +214,12 @@ scenario = data.table (name = "tfl53_narrow_lake_he0d_m12d",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="TFL53",
                                          partition = ' vol > 150 ', 
-                                         year = rep( seq (from = 1, # run the 
+                                         period = rep( seq (from = 1, # run the 
                                                       to = 40, 
                                                       by = 1),
                                                     1), 
-                                         flow = 1350000) #270,000m3/yr 
+                                         flow = 1350000,
+                                         partition_type = 'live') #270,000m3/yr 
 ))
 
 

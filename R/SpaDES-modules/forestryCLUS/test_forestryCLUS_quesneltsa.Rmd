@@ -86,18 +86,18 @@ scenario = data.table (name = "bau_even_more_salv", description = "bau plus 5 M 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                      partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', 
-                                     year = rep( seq (from = 1, 
+                                     period = rep( seq (from = 1, 
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 9500000, type = 'live'),
+                                     flow = 9500000, partition_type = 'live'),
                               data.table(compartment ="Quesnel_TSA",
                                      partition = ' (salvage_vol > 100 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
-                                     year = rep( seq (from = 1, 
+                                     period = rep( seq (from = 1, 
                                                       to = 2, 
                                                       by = 1),
                                                 1), 
-                                     flow = 5000000, type = 'dead') # 1,900,000 m3/yr
+                                     flow = 5000000, partition_type = 'dead') # 1,900,000 m3/yr
 ))
 
 objects <- list(harvestFlow = harvestFlow, scenario = scenario)

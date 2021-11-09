@@ -49,7 +49,7 @@ defineModule(sim, list(
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput("disturbance", "data.table", "Disturbance table for every pixel"),
-    createsOutput("disturbanceReport", "data.table", "Summary per simulation year of the disturbance indicators")
+    createsOutput("disturbanceReport", "data.table", "Summary per simulation period of the disturbance indicators")
   )
 ))
 
