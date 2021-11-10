@@ -902,6 +902,15 @@ Anova(model.NDT2.E, type=3)
 
 ```
 
+
+
+FIX BELOW
+
+
+
+
+
+
 Remove NAs and run multiple times.
 
 ```{r}
@@ -911,6 +920,10 @@ NDT2_escape_nt<-escape_lightning_nt_NDT2 %>% drop_na(climate1, vegtype2, dist_na
 
 #Run Model again with this data; but uses all data here
 model.NDT2.E<-glm(escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire, family = binomial, data = NDT2_escape_nt)
+
+model.NDT2.E<-glm(escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire, family = binomial, data = NDT2_escape_nt) #Still errors
+
+model.NDT2.E<-glm(escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire, family = binomial, data = NDT2_escape_nt) #Still errors
 
 Anova(model.NDT2.E, type=3) #
 Anova(model.NDT2.E, type=3, singular.ok = TRUE)
@@ -935,6 +948,32 @@ binnedplot (NDT2_escape_nt$climate1,
             main = paste("Binned Residual Plot - glm", i))
 
 # Diagnostic plots look okay
+#climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire
+
+##Below does not work because of the error message in the model. May need to update model.
+
+visreg(model.NDT2.E, "climate1", by="wind_atfire")
+visreg(model.NDT2.E, "Tdif_atfire")
+
+visreg(model.NDT2.E, "slope")
+
+visreg(model.NDT2.E, "wind_atfire", by="climate1")
+visreg(model.NDT2.E, "wind_atfire", by="vegtype2", overlay=TRUE)
+
+visreg(model.NDT2.E, "vegtype2", by="wind_atfire")
+
+#dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2
+visreg(model.NDT2.E, "dist_dam", by="roads_km")
+visreg(model.NDT2.E, "dist_dam", by="bclcs_level_5_2", overlay=TRUE)
+visreg(model.NDT2.E, "dist_nat", by="bclcs_level_5_2", overlay=TRUE)
+visreg(model.NDT2.E, "dist_mine", by="bclcs_level_5_2", overlay=TRUE)
+
+visreg(model.NDT2.E, "roads_km", by="dist_dam")
+
+visreg(model.NDT2.E, "bclcs_level_5_2", by="dist_dam")
+visreg(model.NDT2.E, "bclcs_level_5_2", by="dist_nat")
+visreg(model.NDT2.E, "bclcs_level_5_2", by="dist_mine")
+
 ```
 
 We should repeat the above several times and take the mean of the coefficients.

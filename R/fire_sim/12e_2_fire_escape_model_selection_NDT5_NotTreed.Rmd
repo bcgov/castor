@@ -969,6 +969,7 @@ binnedplot (NDT5_escape_nt$climate1,
             main = paste("Binned Residual Plot - glm", i))
 
 # Diagnostic plots look... not great
+visreg(model.NDT5.E, "climate1")
 ```
 
 Repeat with Tdif.

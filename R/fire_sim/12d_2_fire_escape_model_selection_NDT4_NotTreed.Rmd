@@ -917,6 +917,19 @@ binnedplot (NDT4_escape_nt$climate1,
             main = paste("Binned Residual Plot - glm", i))
 
 # Diagnostic plots look okay
+# climate1 + vegtype2 + slope + elevation + slope:elevation + dist_mun + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + Tdif_atfire + Tdif_atfire:climate1
+visreg(model.NDT4.E, "climate1", by="Tdif_atfire")
+visreg(model.NDT4.E, "Tdif_atfire", by="climate1")
+
+visreg(model.NDT4.E, "vegtype2")
+
+visreg(model.NDT4.E, "slope", by="elevation")
+visreg(model.NDT4.E, "elevation", by="slope")
+
+visreg(model.NDT4.E, "dist_mun")
+visreg(model.NDT4.E, "roads_km", by="bclcs_level_5_2", overlay=TRUE)
+visreg(model.NDT4.E, "bclcs_level_5_2", by="roads_km")
+
 ```
 
 We should repeat the above several times and take the mean of the coefficients.
