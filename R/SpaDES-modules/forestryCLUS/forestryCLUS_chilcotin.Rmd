@@ -468,7 +468,7 @@ scenario = data.table (name = "chilcotin_bau_dead",
 
 
 harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
-                                          partition = ' vol > 150 ', #  AND age > 139, 119, 99
+                                          partition = ' vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5', #  AND age > 139, 119, 99
                                           period = rep( seq (from = 1, 
                                                            to = 40, 
                                                            by = 1),
@@ -476,7 +476,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 0,
                                           partition_type = 'live'), # 0 m3/yr 
                               data.table (compartment ="Quesnel_TSA_LESR",
-                                          partition = ' vol > 150  ', # AND age > 139, 119
+                                          partition = ' vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5', # AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 40, 
                                                            by = 1),
@@ -484,7 +484,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 35000,
                                           partition_type = 'live'), # 7,000 m3/yr 
                               data.table (compartment ="Quesnel_TSA_LESR",
-                                          partition = ' vol > 150  ', # AND age > 139, 119
+                                          partition = ' salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', # AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
@@ -492,7 +492,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 17500,
                                           partition_type = 'dead'), # 3,500 m3/yr 
                               data.table (compartment ="Quesnel_TSA_LEWR",
-                                          partition = ' vol > 150 ', #  AND age > 139, 119
+                                          partition = ' vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5', #  AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 40, 
                                                            by = 1),
@@ -500,7 +500,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 425000,
                                           partition_type = 'live'), # 85,000 m3/yr 
                               data.table (compartment ="Quesnel_TSA_LEWR",
-                                          partition = ' vol > 150 ', #  AND age > 139, 119
+                                          partition = ' salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5)', #  AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
@@ -508,7 +508,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 212500,
                                           partition_type = 'dead'), # 42,500 m3/yr 
                               data.table (compartment ="Quesnel_TSA_Matrix",
-                                          partition = ' vol > 150 ', # AND age > 139, 119
+                                          partition = ' vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5', # AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 40, 
                                                            by = 1),
@@ -516,7 +516,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 950000,
                                           partition_type = 'live'), #190,000 m3/yr 
                               data.table (compartment ="Quesnel_TSA_Matrix",
-                                          partition = ' vol > 150 ', # AND age > 139, 119
+                                          partition = ' salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5)', # AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
@@ -524,7 +524,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 475000,
                                           partition_type = 'dead'), #95,000 m3/yr 
                               data.table (compartment ="Quesnel_TSA_out",
-                                          partition = ' vol > 150 ', 
+                                          partition = ' vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5', 
                                           period = rep( seq (from = 1, 
                                                            to = 40, 
                                                            by = 1),
@@ -532,7 +532,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 10500000,
                                           partition_type = 'live'), # 2,100,000 m3/yr 
                               data.table (compartment ="Quesnel_TSA_out",
-                                          partition = ' vol > 150 ', 
+                                          partition = ' salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
@@ -540,7 +540,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 5250000,
                                           partition_type = 'dead'), # 1,050,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_HEWSR",
-                                          partition = ' vol > 110  ', # AND age > 139
+                                          partition = ' vol > 110  and salvage_vol/(vol + salvage_vol) < 0.5', # AND age > 139
                                           period = rep( seq (from = 1, 
                                                            to = 40, 
                                                            by = 1),
@@ -548,7 +548,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 75000,
                                           partition_type = 'live'), # 15,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_HEWSR",
-                                          partition = ' vol > 110  ', # AND age > 139
+                                          partition = ' salvage_vol > 110 and salvage_vol/(vol + salvage_vol) >= 0.5) ', # AND age > 139
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
@@ -556,7 +556,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 37500,
                                           partition_type = 'dead'), # 7,500 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_LESR",
-                                          partition = ' vol > 110  ', # AND age > 139
+                                          partition = ' vol > 110 and salvage_vol/(vol + salvage_vol) < 0.5 ', # AND age > 139
                                           period = rep( seq (from = 1, 
                                                            to = 40, 
                                                            by = 1),
@@ -564,7 +564,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 350000,
                                           partition_type = 'live'), # 70,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_LESR",
-                                          partition = ' vol > 110  ', # AND age > 139
+                                          partition = ' salvage_vol > 110  and salvage_vol/(vol + salvage_vol) >= 0.5)', # AND age > 139
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
@@ -572,7 +572,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 175000,
                                           partition_type = 'dead'), # 35,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_LEWR",
-                                          partition = ' vol > 110 ', # AND age > 139, 119 
+                                          partition = ' vol > 110 and salvage_vol/(vol + salvage_vol) < 0.5', # AND age > 139, 119 
                                           period = rep( seq (from = 1, 
                                                            to = 40, 
                                                            by = 1),
@@ -580,7 +580,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 700000,
                                           partition_type = 'live'), # 140,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_LEWR",
-                                          partition = ' vol > 110 ', # AND age > 139, 119 
+                                          partition = ' salvage_vol > 110 and salvage_vol/(vol + salvage_vol) >= 0.5)', # AND age > 139, 119 
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
@@ -588,7 +588,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 350000,
                                           partition_type = 'dead'), # 70,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_Matrix",
-                                          partition = ' vol > 110 ', # AND age > 139, 119 
+                                          partition = ' vol > 110 and salvage_vol/(vol + salvage_vol) < 0.5 ', # AND age > 139, 119 
                                           period = rep( seq (from = 1, 
                                                            to = 40, 
                                                            by = 1),
@@ -596,7 +596,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 700000,
                                           partition_type = 'live'), # 140,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_Matrix",
-                                          partition = ' vol > 110 ', # AND age > 139, 119 
+                                          partition = ' salvage_vol > 110 and salvage_vol/(vol + salvage_vol) >= 0.5)', # AND age > 139, 119 
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
@@ -604,7 +604,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 350000,
                                           partition_type = 'dead'), # 70,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_out",
-                                          partition = ' vol > 110 ', 
+                                          partition = ' vol > 110 and salvage_vol/(vol + salvage_vol) < 0.5', 
                                           period = rep( seq (from = 1, 
                                                            to = 40, 
                                                            by = 1),
@@ -612,7 +612,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="Quesnel_TSA_HEWSR",
                                           flow = 8250000,
                                           partition_type = 'live'), # 1,650,000 m3/yr 
                               data.table (compartment ="Williams_Lake_TSA_out",
-                                          partition = ' vol > 110 ', 
+                                          partition = ' salvage_vol > 110 and salvage_vol/(vol + salvage_vol) >= 0.5)', 
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),

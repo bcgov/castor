@@ -676,16 +676,25 @@ modules <- list("dataLoaderCLUS",
                 )
 ### SCENARIOS ###
 scenario = data.table (name = "revelstoke_bau", 
-                       description = "Business-as-usual case; sustainable flow = 210,000m^3^/year. Adjacency = 3m. Oldest first. 150m3/ha minimum volume.")
+                       description = "Business-as-usual case; sustainable flow = 200,000m^3^/year live, 5000 m^3^/year dead. Adjacency = 3m. Oldest first. 150m3/ha minimum volume.")
+
 harvestFlow <- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
-                                         partition = ' vol > 150 ', 
-                                         year = rep(seq (from = 1, 
-                                                         to = 40, 
-                                                         by = 1),
+                                         partition = '  (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', 
+                                         period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
                                                     1), 
-                                         flow = 1050000) # 210,000m^3^/year
-))
-#harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
+                                         flow = 1000000, # 200,000m^3^/year
+                                         partition_type = 'live'), 
+                              data.table(compartment ="Revelstoke_TSA",
+                                         partition = ' (salvage_vol > 100 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
+                                         period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
+                                                    1), 
+                                         flow = 5000, #10,000m3/yr 
+                                         partition_type = 'dead')
+                              
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,
                                   3,3,3,3,3,3,
