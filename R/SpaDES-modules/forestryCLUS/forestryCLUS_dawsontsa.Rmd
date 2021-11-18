@@ -542,11 +542,12 @@ scenario = data.table (name = "dawson_creek_agele20_maxnrv_no_constraints",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
                                      partition = ' vol > 120 ', # 120
-                                     year = rep( seq (from = 2018,
-                                                      to = 2222,
-                                                      by = 5),
+                                     period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by =1),
                                                 1),
-                                     flow = 8750000) #1,750,000m3/yr / BAU with new protected area
+                                     flow = 8750000,
+                                     partition_type = 'live') #1,750,000m3/yr / BAU with new protected area
 ))
 # 
 # harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",

@@ -245,11 +245,12 @@ scenario = data.table (name = "kalum_tweeds_hi_priority",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Kalum_TSA",
                                      partition = ' vol > 299 ', 
-                                     year = rep( seq (from = 2018, # run the 
-                                                      to = 2218, 
-                                                      by = 5),
+                                     period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by =1),
                                                 1), 
-                                     flow = 2125000) #425,000m3/yr
+                                     flow = 2125000,
+                                     partition_type = 'live') #425,000m3/yr
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))

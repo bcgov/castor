@@ -154,11 +154,12 @@ scenario = data.table (name = "quesnel_all_terr_10per_max12yrs_test", descriptio
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                      partition = ' vol > 150 ', 
-                                     year = rep( seq (from = 2018, 
-                                                      to = 2218, 
-                                                      by = 5),
+                                     period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
                                                 1), 
-                                     flow = 9500000) # 1,900,000 m3/yr 
+                                     flow = 9500000,
+                                     partition_type = 'live') # 1,900,000 m3/yr 
 ))
 
 
