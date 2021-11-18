@@ -53,7 +53,7 @@ See the License for the specific language governing permissions and limitations 
 Note: depending where your geometry column was located when saved as a csv (and turned into a dataframe), you may need to manually correct column headings on the csv file before loading back in. This has been performed for the below files.
 
 ```{r}
-dat_person_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_trees_NDT.csv")
+dat_person_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_trees_NDT_Oct.csv")
 head(dat_person_t)
 ```
 
@@ -393,7 +393,7 @@ all.poss.mods.infra<-all.poss.mods.infra[-c(65:127)]
 
 ```
 
-############### Part 1 of 4 Model Series: person Caused Fires, Trees ##########
+############### Model Series: Person Caused Fires, Trees ##########
 
 Because of the large number of models with all variables included, we will test the climate and vegtype first, then the VRI variables, then the topography variables. Then we will test the top models together in additional combinations, with determining best AIC model from there. 
 
@@ -1074,6 +1074,7 @@ head(top_mod_table_NDT1_person_t_ALL)
 write.csv(top_mod_table_NDT1_person_t_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT1_person_t_ALL.csv")
 ```
 
+#Get Mean Values
 
 ```{r}
 names(top_mod_table_NDT1_person_t_ALL)

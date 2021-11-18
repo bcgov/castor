@@ -106,7 +106,7 @@ dat_lightning<-read.csv(file ="D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_V
 head(dat_lightning)
 
 dat_person<-read.csv(file ="D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis_Oct.csv")
-head(dat_lightning)
+head(dat_person)
 
 ```
 
