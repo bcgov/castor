@@ -422,18 +422,18 @@ getHarvestQueue<- function(sim) {
   #Right now its looping by compartment -- So far it will be serializable at the aoi level then
   for(compart in sim$compartment_list){
    # harvestTarget<-sim$harvestFlow[compartment == compart,]$flow[time(sim)]
-    harvestTarget<-sim$harvestFlow[compartment == compart & period == time(sim),]$flow
-    harvestType<-sim$harvestFlow[compartment == compart & period == time(sim),]$partition_type
-    harvestType<<-harvestType
-    if(length(harvestTarget)>0){# Determine if there is a demand for timber volume 
-      message(paste0(compart, " harvest Target: ", harvestTarget))
+    harvestTarget<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$flow
+    harvestType<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$partition_type
+  
+    if(length(harvestTarget)>0 ){# Determine if there is a demand for timber volume 
+      message(paste0(compart, " harvest Target: ", harvestTarget, " "))
       ##Partitions will be evaluated simultaneously as an 'OR'
-      if(length(sim$harvestFlow[compartment==compart & period == time(sim),]$partition)>1){
-        partition_raw<-sim$harvestFlow[compartment==compart & period == time(sim),]$partition
-        partition<-paste(sim$harvestFlow[compartment==compart & period == time(sim),]$partition, sep = " ", collapse = " OR ")
-        partition_case<-paste0(", ", paste(apply(cbind(1:length(harvestTarget), harvestFlow[compartment==compart & period == time(sim),]$partition), 1, FUN=function(x){paste0("(CASE WHEN ", x[2], " THEN 1 ELSE 0 END) as part",x[1])}) , sep = "", collapse = ", "))
+      if(length(harvestTarget)>1){
+        partition_raw<-sim$harvestFlow[compartment==compart & period == time(sim) & flow > 0,]$partition
+        partition_sql<-paste(sim$harvestFlow[compartment==compart & period == time(sim) & flow > 0,]$partition, sep = " ", collapse = " OR ")
+        partition_case<-paste0(", ", paste(apply(cbind(1:length(harvestTarget), partition_raw), 1, FUN=function(x){paste0("(CASE WHEN ", x[2], " THEN 1 ELSE 0 END) as part",x[1])}) , sep = "", collapse = ", "))
       }else{
-        partition<-sim$harvestFlow[compartment==compart & period == time(sim),]$partition
+        partition_sql<<-sim$harvestFlow[compartment==compart & period == time(sim),]$partition
         partition_case<-""
       }
       
@@ -452,7 +452,7 @@ INNER JOIN
 (SELECT ", name.zone.priority,", ROW_NUMBER() OVER ( 
 		ORDER BY ", P(sim, "forestryCLUS", "harvestZonePriority"), ") as zone_rank FROM zonePriority) a
 on p.",name.zone.priority," = a.",name.zone.priority,"
-WHERE compartid = '", compart ,"' AND zone_const = 0 AND p.blockid > 0 AND thlb > 0 AND (", partition, ")
+WHERE compartid = '", compart ,"' AND zone_const = 0 AND p.blockid > 0 AND thlb > 0 AND (", partition_sql, ")
 ORDER by zone_rank, block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
                            LIMIT ", as.integer(sum(harvestTarget)/50))
        
@@ -465,14 +465,14 @@ INNER JOIN
 (SELECT blockid, ROW_NUMBER() OVER ( 
 		ORDER BY ", P(sim, "forestryCLUS", "harvestBlockPriority"), ") as block_rank FROM blocks) b
 on p.blockid = b.blockid
-WHERE compartid = '", compart ,"' AND zone_const = 0 AND thlb > 0 AND p.blockid > 0 AND (", partition, ")
+WHERE compartid = '", compart ,"' AND zone_const = 0 AND thlb > 0 AND p.blockid > 0 AND (", partition_sql, ")
 ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
                            LIMIT ", as.integer(sum(harvestTarget)/50))
           
       }
       
       queue<-data.table(dbGetQuery(sim$clusdb, sql))
-      
+    
       if(nrow(queue) == 0) {
         message("No stands to harvest")
         land_coord <- NULL
@@ -486,7 +486,7 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
         }
         
         queue<-queue[is.na(vol_h), vol_h:=0][, seqid := seq_len(.N)]
-  
+        
         if(length(harvestTarget)>1){
           h_pixels<-lapply(c(1:length(harvestTarget)), function(x){
             if(harvestType[x] == 'dead'){
@@ -498,18 +498,12 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
             }
           })
         }else{
-        if(length(harvestType) > 1){
           
           if(harvestType == 'dead'){
-            h_pixels<-queue[, cvalue:=cumsum(salvage_vol)][cvalue <= harvestTarget,]$pixelid
+              h_pixels<-queue[, cvalue:=cumsum(salvage_vol)][cvalue <= harvestTarget,]$pixelid
           }else{
-            h_pixels<-queue[, cvalue:=cumsum(vol_h)][cvalue <= harvestTarget,]$pixelid
-          }
-          
-        }else{
-          h_pixels<-queue[, cvalue:=cumsum(vol_h)][cvalue <= harvestTarget,]$pixelid
-        } 
-      
+              h_pixels<-queue[, cvalue:=cumsum(vol_h)][cvalue <= harvestTarget,]$pixelid
+            }
         }
         
         queue<-queue[pixelid %in% unique(unlist(h_pixels)),]
@@ -523,9 +517,10 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
               out<-queue[eval(parse(text=paste("part", i, sep = "")))==1, ]
               
               dbBegin(sim$clusdb)
-              rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans, vol = 0 WHERE pixelid = :pixelid", out[, "pixelid"])
+              rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans, vol = 0, salvage_vol = 0 WHERE pixelid = :pixelid", out[, "pixelid"])
               dbClearResult(rs)
               dbCommit(sim$clusdb)
+              
               
               temp.harvestBlockList<-out[, list(sum(vol_h), mean(height), mean(elv)), by = c("blockid", "compartid")]
               setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
@@ -541,7 +536,7 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
               out<-queue[eval(parse(text=paste("part", i, sep = "")))==1, ]
               
               dbBegin(sim$clusdb)
-              rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0, salvage_vol = 0 WHERE pixelid = :pixelid", out[, "pixelid"])
+              rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0, vol = 0, salvage_vol = 0 WHERE pixelid = :pixelid", out[, "pixelid"])
               dbClearResult(rs)
               dbCommit(sim$clusdb)
               
@@ -558,33 +553,44 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
         }else{
           
          if(harvestType == 'dead'){
-            
+           
+           dbBegin(sim$clusdb)
+           rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0, vol = 0, salvage_vol = 0 WHERE pixelid = :pixelid", queue[, "pixelid"])
+           dbClearResult(rs)
+           dbCommit(sim$clusdb)
+           
             temp.harvestBlockList<-queue[, list(sum(salvage_vol), mean(height), mean(elv)), by = c("blockid", "compartid")]
             setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
             sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, temp.harvestBlockList))
             
             
             temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = compart, target = harvestTarget/sim$updateInterval , area= sum(queue$thlb)/sim$updateInterval , volume = sum(queue$salvage_vol)/sim$updateInterval, age = sum(queue$age_h)/sim$updateInterval, hsize = nrow(temp.harvestBlockList),transition_area  = queue[yieldid > 0, sum(thlb)]/sim$updateInterval,  transition_volume  = queue[yieldid > 0, sum(salvage_vol)]/sim$updateInterval)
-            temp_harvest_report<-temp_harvest_report[, age:=age/area][, hsize:=area/hsize][, avail_thlb:=as.numeric(dbGetQuery(sim$clusdb, paste0("SELECT sum(thlb) from pixels where zone_const = 0 and ", partition )))]
+            temp_harvest_report<-temp_harvest_report[, age:=age/area][, hsize:=area/hsize][, avail_thlb:=as.numeric(dbGetQuery(sim$clusdb, paste0("SELECT sum(thlb) from pixels where zone_const = 0 and ", partition_sql )))]
             sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report), use.names = TRUE)
             
           }else{
+            
+            dbBegin(sim$clusdb)
+            rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans, vol = 0, salvage_vol = 0 WHERE pixelid = :pixelid", queue[, "pixelid"])
+            dbClearResult(rs)
+            dbCommit(sim$clusdb)
             
             temp.harvestBlockList<-queue[, list(sum(vol_h), mean(height), mean(elv)), by = c("blockid", "compartid")]
             setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
             sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, temp.harvestBlockList))
             
             temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = compart, target = harvestTarget/sim$updateInterval , area= sum(queue$thlb)/sim$updateInterval , volume = sum(queue$vol_h)/sim$updateInterval, age = sum(queue$age_h)/sim$updateInterval, hsize = nrow(temp.harvestBlockList),transition_area  = queue[yieldid > 0, sum(thlb)]/sim$updateInterval,  transition_volume  = queue[yieldid > 0, sum(vol_h)]/sim$updateInterval)
-            temp_harvest_report<-temp_harvest_report[, age:=age/area][, hsize:=area/hsize][, avail_thlb:=as.numeric(dbGetQuery(sim$clusdb, paste0("SELECT sum(thlb) from pixels where zone_const = 0 and ", partition )))]
+            temp_harvest_report<-temp_harvest_report[, age:=age/area][, hsize:=area/hsize][, avail_thlb:=as.numeric(dbGetQuery(sim$clusdb, paste0("SELECT sum(thlb) from pixels where zone_const = 0 and ", partition_sql )))]
             sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report), use.names = TRUE)
             
           }
         }
         
-        #out_test<<-sim$harvestReport
-      
         #Save the harvesting raster
         sim$harvestBlocks[queue$pixelid]<-time(sim)*sim$updateInterval
+        
+        #test_harvestReport<<-sim$harvestReport
+        #test_ras<<-sim$harvestBlocks
         
         #Create landings. pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
         #land_pixels<-queue[, .SD[which.max(vol_h)], by=blockid]$pixelid
@@ -598,7 +604,7 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
         rm(land_pixels, queue, temp_harvest_report, temp.harvestBlockList)
       }
     } else{
-      message("No volume demanded")
+      message(paste0("No volume demanded in ", compart))
       next #No volume demanded in this compartment
     }
   }
@@ -611,6 +617,8 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
     sim$landings <- NULL
   }
   
+  #out_test<<-sim$harvestReport
+  #stop()
   return(invisible(sim))
 }
 
