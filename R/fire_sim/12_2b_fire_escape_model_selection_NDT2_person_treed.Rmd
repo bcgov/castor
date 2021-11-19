@@ -158,6 +158,30 @@ for (i in 1: length(mods.me.tmp)) {
 mods.me.climate
 mods.me.climate<-mods.me.climate[-1]
 
+#complete list of two-way interactions
+mods.twoway <- powerSet(twoway.ints)
+length(mods.twoway) #2
+mods.twoway
+mods.twoway<-mods.twoway[-1]
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+mods.inter <- list()
+counter <- 0
+for (i in 1: length(mods.twoway)) {
+   s1 <- unique(unlist( strsplit(mods.twoway[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.me.climate)) {
+      if (all(s1 %in% mods.me.climate[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.me.climate[[j]], mods.twoway[[i]])
+        mods.inter[[counter]] <- both
+      }
+   }
+}
+
+length(mods.inter) #1
+mods.inter
+
+
 #####1b. For those with two climate variables
 #get the names of all possible two-way interactions for climate variable(s) and vegtype.
 twoway.ints2 <- NULL
@@ -366,7 +390,7 @@ length(mods.interI) #80136
 #all.poss.mods <- c(1, vars.clim, twoway.ints, mods.me.oth, mods.me2, mods.inter2)
 #all.poss.mods
 
-all.poss.mods.clim.vegtype<-c(1, mods.me.climate, twoway.ints)
+all.poss.mods.clim.vegtype<-c(1, mods.me.climate, mods.inter)
 all.poss.mods.clim.vegtype 
 
 all.poss.mods.clim.vegtype2<-c(1, mods.me.climate2, mods.inter2)
@@ -764,21 +788,84 @@ write.csv(NDT2_l_models_treed, file="D:\\Fire\\fire_data\\raw_data\\NDT2_person_
 ```
 
 
+write.csv(AIC_person_NDT2_escape_treed_summary_climate2, file="D:\\Fire\\fire_data\\raw_data\\NDT2_person_models_treed_escape_climateUPDATE.csv")
+
 ################################ STAGE TWO ########################
 
 #STAGE TWO: PUT TOGETHER MORE VARIABLES
 Now choose the top variables and create final model. The below code will need to be updated manually, depending on what the results of the above analyses are. From the top models, we will re-create two-way interactions for the variables selected from each model, plus the other variables listed as needed to be included. We will assess each set to ensure only interactions that make sense are investigated ultimately, given that sample sizes will be an issues.
 
 Top Models:
-1. climate
-2. VRI 
-3. DEM 
-4. Infrastructure
+1. climate1 + vegtype2
+2. proj_height_1 + proj_age_1 + live_stand_volume_125
+3. slope + aspect + elevation + wind_atfire + slope:elevation + elevation:wind_atfire
+4. dist_mun + dist_dam + dist_pow + dist_mine + roads_km
 
-Additional Variables:
+#Additional Variables:
 1. bclcs_level_5_2 (land use) (to be added to final investigated model)
 **We will leave vegtype2 in final model selection to test.
 2. Tdif_atfire
+
+#Interactions to investigate:
+1. elevation*climate1
+2. wind_atfire*climate1
+3. wind_atfire*vegtype2
+4. Tdif_atfire*climate1
+5. Tdif_atfire*wind_atfire
+6. bclcs_level_5_2*dist_mun
+7. bclcs_level_5_2*dist_dam
+8. bclcs_level_5_2*dist_pow
+9. bclcs_level_5_2*dist_mine
+10. bclcs_level_5_2*roads_km
+11. dist_mun*roads_km
+12. dist_dam*roads_km
+13. dist_pow*roads_km
+14. dist_mine*roads_km
+
+#Next investigation
+Because there would be far too many models to investigate including all variables and their interactions, we will start with the above and make educated guesses for what may need to be enhanced. We will seek the best model from the above informed progress.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+############## If wish to try and make additional interactions to comb through. The combinations get very large and many of the model options need to be subsetted and ran in chunks, which can be very time consuming.
 
 We want to include interactions between variables from within each list. This will make for many models, which may be hard to process in R.
 
@@ -1225,11 +1312,12 @@ write.csv(AIC_person_NDT2_escape_treed_summary_infra2, file="D:\\Fire\\fire_data
 Determine the top models.
 
 #1. Climate and VRI
+climate1 + live_stand_volume_125
 
 #2. Infrastructure
 
 #3. DEM
-
+slope + aspect + elevation + wind_atfire + slope:elevation + elevation:wind_atfire
 
 #Interactions to investigate:
 1. elevation*climate1
