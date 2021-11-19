@@ -121,7 +121,8 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648
 ## Chilcotin Study Area
 Process for the Chilcotin caribou planning study area.
 
-```{r chilcotin study area}
+'Version 1' included the Quesnel and Williams Lake TSAs, with compartments for caribou critical habitat areas to allow for habitat-type specific harvest prescriptions (e.g., age targets). A specific dataset was built for this.
+```{r chilcotin study area version 1}
 
 studyarea <- getSpatialQuery ("SELECT tsa_name, wkb_geometry FROM public.study_area_chilcotin WHERE tsa_name IN ('Quesnel_TSA_Matrix', 'Quesnel_TSA_HEWSR', 'Quesnel_TSA_LESR', 'Quesnel_TSA_LEWR', 'Quesnel_TSA_out', 'Williams_Lake_TSA_HEWSR', 'Williams_Lake_TSA_LESR', 'Williams_Lake_TSA_LEWR', 'Williams_Lake_TSA_Matrix', 'Williams_Lake_TSA_out');")
 
@@ -143,4 +144,26 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648
 dbDisconnect(conn)
 
 ```
+'Version 2' was created to focus the analysis in the operating area of the licensees, which are teh western portions of the Quesnel and Williams Lake TSAs. 
 
+```{r chilcotin study area version 2}
+studyarea <- getSpatialQuery ("SELECT * FROM public.chilcotin_area_of_interest;")
+
+studyarea$name <- "chilctoin_aoi"
+studyarea$value <- 1
+studyarea.vat <- as.data.table (unique(studyarea$name))
+setnames (studyarea.vat, "name")
+studyarea.vat [, value := seq_len(.N)]
+
+# Rasterize 
+ras.study.area <-fasterize::fasterize (st_cast (studyarea, "MULTIPOLYGON"), prov.rast, field = "value") 
+writeRaster (ras.study.area, "chilcotin_aoi.tif")
+
+# write data
+DBI::dbWriteTable(conn, c("vat", "chilcotin_aoi_v2"), value= studyarea.vat, row.names = FALSE, overwrite = TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/Params/chilcotin_aoi.tif -t 100x100 rast.chilcotin_aoi_v2 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+dbDisconnect(conn)
+
+```
