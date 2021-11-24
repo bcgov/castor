@@ -23,6 +23,7 @@ library(caret)
 library(pROC)
 library(rje)
 library(car)
+library(visreg)
 
 source(here::here("R/functions/R_Postgres.R"))
 ```
@@ -52,7 +53,7 @@ See the License for the specific language governing permissions and limitations 
 Note: depending where your geometry column was located when saved as a csv (and turned into a dataframe), you may need to manually correct column headings on the csv file before loading back in. This has been performed for the below files.
 
 ```{r}
-dat_lightning_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_notrees_NDT.csv")
+dat_lightning_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_notrees_NDT_Oct.csv")
 head(dat_lightning_nt)
 
 ```
@@ -64,7 +65,7 @@ Now, we will make a loop that does something very similar to our last loop, but 
 1. Climate variable(s)
 2. vegtype2 (with additional categories)
 3. slope
-4. aspect (cos)
+4. aspect_cos (cos)
 5. elevation
 6. Various distance to infrastructure variables (dist_mun, dist_dam, dist_nat, dist_pow, dist_mine) - no interactions
 7. Some measure of death or mountain pine beetle damage -- TBD
@@ -82,16 +83,16 @@ First we will create the variable lists that contain all of our variables of int
 
 ```{r}
 ##Create variable lists to be used in the model loop.
-variables_all_nt<-c(climate1 = "climate1", climate2 = "climate2", slope = "slope", aspect = "aspect", elevation ="elevation", vegtype2 = "vegtype2", dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_mine = "dist_mine", bclcs_level_5_2 = "bclcs_level_5_2") #heatload="heatload",
+variables_all_nt<-c(climate1 = "climate1", climate2 = "climate2", slope = "slope", aspect_cos = "aspect_cos", elevation ="elevation", vegtype2 = "vegtype2", dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_mine = "dist_mine", bclcs_level_5_2 = "bclcs_level_5_2") #heatload="heatload",
 
-variables_all_nt_c1<-c(climate1 = "climate1", slope = "slope", aspect = "aspect", elevation ="elevation", vegtype2 = "vegtype2", dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_mine = "dist_mine", bclcs_level_5_2 = "bclcs_level_5_2") #heatload="heatload",
+variables_all_nt_c1<-c(climate1 = "climate1", slope = "slope", aspect_cos = "aspect_cos", elevation ="elevation", vegtype2 = "vegtype2", dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_mine = "dist_mine", bclcs_level_5_2 = "bclcs_level_5_2") #heatload="heatload",
 
 vars.nt.clim<-c("climate1")
 vars.nt.clim.vegtype<-c("climate1", "vegtype2")
 vars.nt.clim.vegtype2<-c("climate1", "climate2","vegtype2")
 vars.nt.clim.vegtype2b<-c("climate1", "climate2")
 
-vars.nt.topo<-c("slope", "aspect", "elevation")
+vars.nt.topo<-c("slope", "aspect_cos", "elevation")
 vars.nt.infra<-c("dist_mun", "dist_dam", "dist_nat", "dist_pow", "dist_mine", bclcs_level_5_2 = "bclcs_level_5_2")
 
 
@@ -676,7 +677,7 @@ Now choose the top variables and create final model. The below code will need to
 
 Top Models:
 1. climate1 + climate2 + vegtype2 + climate1:vegtype2
-2. Best model was intercept! Investigate these, but delatAIC > 2: slope + aspect + elevation + aspect:elevation
+2. Best model was intercept! Investigate these, but delatAIC > 2: slope + aspect_cos + elevation + aspect_cos:elevation
 3. dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 
 
 
@@ -697,130 +698,122 @@ prop<-0.75
    Valid <- dat_lightning_nt_NDT3[-trainIndex,]
 
 #Run model using dat1
-model.NDT3<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + slope + aspect + elevation + aspect:elevation + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:elevation + climate2:elevation, family = binomial, data = dat1)
+model.NDT3<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + slope + aspect_cos + elevation + aspect_cos:elevation + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:elevation + climate2:elevation, family = binomial, data = dat1)
 
-AIC(model.NDT3) #1607.5
+AIC(model.NDT3) #1676.4
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.58
+   mod.auc #0.63
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
 #Begin removing least significant interaction
-model.NDT3<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + slope + aspect + elevation + aspect:elevation + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:elevation , family = binomial, data = dat1)
+model.NDT3<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + slope + aspect_cos + elevation + aspect_cos:elevation + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:elevation, family = binomial, data = dat1)
 
-AIC(model.NDT3) #1605.9
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
-   mod.auc <- auc(roc_obj)
-   mod.auc #0.58
-   
-Anova(model.NDT3, type=3)
-#Anova(model.NDT3, type=3, singular.ok = TRUE)
-
-#Remove least sig
-model.NDT3<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + aspect + elevation + aspect:elevation + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:elevation , family = binomial, data = dat1)
-
-AIC(model.NDT3) #1603.9
+AIC(model.NDT3) #1674.99
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.58
+   mod.auc #0.62
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
-#Remove least sig
-model.NDT3<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + aspect + elevation + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:elevation , family = binomial, data = dat1)
+#Begin removing least significant interaction
+model.NDT3<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + slope + aspect_cos + elevation + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:elevation, family = binomial, data = dat1)
 
-AIC(model.NDT3) #1603.2
+AIC(model.NDT3) #1673.8
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.58
+   mod.auc #0.63
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
-#Remove least sig
-model.NDT3<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 +  elevation + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:elevation , family = binomial, data = dat1)
+#Begin removing least significant
+model.NDT3<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2  + aspect_cos + elevation + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:elevation, family = binomial, data = dat1)
 
-AIC(model.NDT3) #1601.2
+AIC(model.NDT3) #1671.8
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.58
+   mod.auc #0.63
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
-#Remove least sig
-model.NDT3<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 +  elevation + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2  , family = binomial, data = dat1)
+#Begin removing least significant
+model.NDT3<-glm(fire_pres ~ climate1 + vegtype2 + climate1:vegtype2  + aspect_cos + elevation + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:elevation, family = binomial, data = dat1)
 
-AIC(model.NDT3) #1600.5
+AIC(model.NDT3) #1670.6
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.58
+   mod.auc #0.63
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
-#Remove least sig
-model.NDT3<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2  , family = binomial, data = dat1)
+#Begin removing least significant
+model.NDT3<-glm(fire_pres ~ climate1 + vegtype2 + climate1:vegtype2  + aspect_cos + elevation + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2, family = binomial, data = dat1)
 
-AIC(model.NDT3) #1598.9
+AIC(model.NDT3) #1669.9
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.58
+   mod.auc #0.63
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
-#Remove least sig
-model.NDT3<-glm(fire_pres ~ climate1 + vegtype2 + climate1:vegtype2 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2  , family = binomial, data = dat1)
+#Begin removing least significant
+model.NDT3<-glm(fire_pres ~ climate1 + vegtype2 + climate1:vegtype2  + aspect_cos + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2, family = binomial, data = dat1)
 
-AIC(model.NDT3) #1597.5
+AIC(model.NDT3) #1667.9
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.58
+   mod.auc #0.63
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
 
-#Remove least sig
-model.NDT3<-glm(fire_pres ~ climate1 + vegtype2 + climate1:vegtype2  + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2  , family = binomial, data = dat1)
+#Begin removing least significant
+model.NDT3<-glm(fire_pres ~ climate1 + vegtype2 + climate1:vegtype2 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2, family = binomial, data = dat1)
 
-AIC(model.NDT3) #1597.2
+AIC(model.NDT3) #1667.5
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT3, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.57
+   mod.auc #0.62
    
 Anova(model.NDT3, type=3)
 #Anova(model.NDT3, type=3, singular.ok = TRUE)
+
+#Begin removing least significant
+
+
+#SAME REULT!
+
 
 #Previous model slightly better. Revert.
 model.NDT3<-glm(fire_pres ~ climate1 + vegtype2 + climate1:vegtype2 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2, family = binomial, data = dat1)
@@ -870,6 +863,20 @@ binnedplot (NDT3_nt$climate1,
             main = paste("Binned Residual Plot - glm", i))
 
 # Diagnostic plots look good
+#Residual Plots
+# climate1 + vegtype2 + climate1:vegtype2 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2
+
+visreg(model.NDT3, "climate1", by="vegtype2", overlay=TRUE)
+visreg(model.NDT3, "vegtype2", by="climate1")
+
+visreg(model.NDT3, "dist_nat", by="bclcs_level_5_2", overlay = TRUE)
+visreg(model.NDT3, "dist_mine", by="bclcs_level_5_2", overlay = TRUE)
+visreg(model.NDT3, "dist_mun")
+visreg(model.NDT3, "dist_dam")
+
+visreg(model.NDT3, "bclcs_level_5_2", by="dist_nat")
+visreg(model.NDT3, "bclcs_level_5_2", by="dist_mine")
+
 ```
 
 We should repeat the above several times and take the mean of the coefficients.

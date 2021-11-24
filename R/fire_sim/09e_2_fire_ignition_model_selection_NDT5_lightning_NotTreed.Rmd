@@ -23,6 +23,7 @@ library(caret)
 library(pROC)
 library(rje)
 library(car)
+library(visreg)
 
 source(here::here("R/functions/R_Postgres.R"))
 ```
@@ -52,7 +53,7 @@ See the License for the specific language governing permissions and limitations 
 Note: depending where your geometry column was located when saved as a csv (and turned into a dataframe), you may need to manually correct column headings on the csv file before loading back in. This has been performed for the below files.
 
 ```{r}
-dat_lightning_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_notrees_NDT.csv")
+dat_lightning_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_notrees_NDT_Oct.csv")
 head(dat_lightning_nt)
 
 ```
@@ -82,16 +83,16 @@ First we will create the variable lists that contain all of our variables of int
 
 ```{r}
 ##Create variable lists to be used in the model loop.
-variables_all_nt<-c(climate1 = "climate1", climate2 = "climate2", slope = "slope", aspect = "aspect", elevation ="elevation", vegtype2 = "vegtype2", dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_mine = "dist_mine", bclcs_level_5_2 = "bclcs_level_5_2") #heatload="heatload",
+variables_all_nt<-c(climate1 = "climate1", climate2 = "climate2", slope = "slope",  aspect_cos = "aspect_cos", elevation ="elevation", vegtype2 = "vegtype2", dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_mine = "dist_mine", bclcs_level_5_2 = "bclcs_level_5_2") #heatload="heatload",
 
-variables_all_nt_c1<-c(climate1 = "climate1", slope = "slope", aspect = "aspect", elevation ="elevation", vegtype2 = "vegtype2", dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_mine = "dist_mine", bclcs_level_5_2 = "bclcs_level_5_2") #heatload="heatload",
+variables_all_nt_c1<-c(climate1 = "climate1", slope = "slope",  aspect_cos = "aspect_cos", elevation ="elevation", vegtype2 = "vegtype2", dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_mine = "dist_mine", bclcs_level_5_2 = "bclcs_level_5_2") #heatload="heatload",
 
 vars.nt.clim<-c("climate1")
 vars.nt.clim.vegtype<-c("climate1", "vegtype2")
 vars.nt.clim.vegtype2<-c("climate1", "climate2","vegtype2")
 vars.nt.clim.vegtype2b<-c("climate1", "climate2")
 
-vars.nt.topo<-c("slope", "aspect", "elevation")
+vars.nt.topo<-c("slope", "", "elevation")
 vars.nt.infra<-c("dist_mun", "dist_dam", "dist_nat", "dist_pow", "dist_mine", bclcs_level_5_2 = "bclcs_level_5_2")
 
 
@@ -385,8 +386,6 @@ duplicated(all.poss.mods.nt.infra)
 
 ```
 
-
-
 ############### Part 1 of 4 Model Series: Lightning Caused Fires, Trees ##########
 
 Because of the large number of models with all variables included, we will test the climate and vegtype first, then the VRI variables, then the topography variables. Then we will test the top models together, with determining best AIC model from there. Or perhaps we will just combine the top models for each together, and eliminate models if the intercept was the best predictor.
@@ -676,7 +675,7 @@ Now choose the top variables and create final model. The below code will need to
 
 Top Models:
 1. climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2
-2. Best model was intercept! Investigate: slope + elevation + aspect + slope:elevation
+2. Best model was intercept! Investigate: slope + elevation + aspect_cos + slope:elevation
 3. dist_dam + dist_mine + bclcs_level_5_2
 
 
@@ -697,146 +696,260 @@ prop<-0.75
    Valid <- dat_lightning_nt_NDT5[-trainIndex,]
 
 #Run model using dat1
-model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + aspect + slope:elevation + dist_dam + dist_mine + bclcs_level_5_2 + climate1:elevation + climate2:elevation,  family = binomial, data = dat1)
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + aspect_cos + slope:elevation + dist_dam + dist_mine + bclcs_level_5_2 + climate1:elevation + climate2:elevation,  family = binomial, data = dat1)
 
-AIC(model.NDT5) #103.9
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
-   mod.auc <- auc(roc_obj)
-   mod.auc #0.78
-   
-Anova(model.NDT5, type=3)
-#Anova(model.NDT5, type=3, singular.ok = TRUE)
-
-#Begin removing least significant interaction
-model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + aspect + slope:elevation + dist_dam + dist_mine + bclcs_level_5_2 + climate1:elevation,  family = binomial, data = dat1)
-
-AIC(model.NDT5) #101.9
+AIC(model.NDT5) #110.2
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.78
+   mod.auc #0.70
    
 Anova(model.NDT5, type=3)
 #Anova(model.NDT5, type=3, singular.ok = TRUE)
 
-#Begin removing least significant interaction
-model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + aspect  + dist_dam + dist_mine + bclcs_level_5_2 + climate1:elevation,  family = binomial, data = dat1)
+#Remove least significant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + aspect_cos + slope:elevation + dist_dam + dist_mine + bclcs_level_5_2 + climate2:elevation,  family = binomial, data = dat1)
 
-AIC(model.NDT5) #99.9
+AIC(model.NDT5) #108.3
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.78
+   mod.auc #0.70
    
 Anova(model.NDT5, type=3)
 #Anova(model.NDT5, type=3, singular.ok = TRUE)
 
-#Begin removing least significant interaction
-model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + aspect  + dist_dam + dist_mine + bclcs_level_5_2,  family = binomial, data = dat1)
+#Remove least significant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + aspect_cos  + dist_dam + dist_mine + bclcs_level_5_2 + climate2:elevation,  family = binomial, data = dat1)
 
-AIC(model.NDT5) #98.0
+AIC(model.NDT5) #106.6
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.77
+   mod.auc #0.70
    
 Anova(model.NDT5, type=3)
 #Anova(model.NDT5, type=3, singular.ok = TRUE)
 
-#Remove least sig
-model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + dist_dam + dist_mine + bclcs_level_5_2,  family = binomial, data = dat1)
+#Remove least significant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + dist_dam + dist_mine + bclcs_level_5_2 + climate2:elevation,  family = binomial, data = dat1)
 
-AIC(model.NDT5) #96.2
+AIC(model.NDT5) #104.6
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.78
+   mod.auc #0.70
    
 Anova(model.NDT5, type=3)
 #Anova(model.NDT5, type=3, singular.ok = TRUE)
 
-#Remove least sig
-model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + dist_dam + bclcs_level_5_2,  family = binomial, data = dat1)
+#Remove least significant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + dist_dam + bclcs_level_5_2 + climate2:elevation,  family = binomial, data = dat1)
 
-AIC(model.NDT5) #94.4
+AIC(model.NDT5) #102.7
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.81
+   mod.auc #0.71
    
 Anova(model.NDT5, type=3)
 #Anova(model.NDT5, type=3, singular.ok = TRUE)
 
-#Remove least sig
-model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + elevation + dist_dam + bclcs_level_5_2,  family = binomial, data = dat1)
+#Remove least significant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + bclcs_level_5_2 + climate2:elevation,  family = binomial, data = dat1)
 
-AIC(model.NDT5) #92.9
+AIC(model.NDT5) #101.2
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.80
+   mod.auc #0.69
    
 Anova(model.NDT5, type=3)
 #Anova(model.NDT5, type=3, singular.ok = TRUE)
 
-#Remove least sig
-model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + elevation + bclcs_level_5_2,  family = binomial, data = dat1)
-
-AIC(model.NDT5) #91.4
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
-   mod.auc <- auc(roc_obj)
-   mod.auc #0.79
-   
-Anova(model.NDT5, type=3)
-#Anova(model.NDT5, type=3, singular.ok = TRUE)
-
-#Remove least sig
-model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2  + climate1:vegtype2 + climate2:vegtype2 + elevation + bclcs_level_5_2,  family = binomial, data = dat1)
-
-AIC(model.NDT5) #90.5
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
-   mod.auc <- auc(roc_obj)
-   mod.auc #0.77
-   
-Anova(model.NDT5, type=3)
-#Anova(model.NDT5, type=3, singular.ok = TRUE)
-
+#Previous top model
 #AUC better prior model: go back
 model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + elevation + bclcs_level_5_2,  family = binomial, data = dat1)
 
-AIC(model.NDT5) #91.4
+AIC(model.NDT5) #105.0 (second subset: 103.7)
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.79
+   mod.auc #0.64
+   
+Anova(model.NDT5, type=3)
+#Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+#Top model
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + bclcs_level_5_2 + climate2:elevation,  family = binomial, data = dat1)
+
+AIC(model.NDT5) #101.2 (second run: 105.1)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.69
+   
+Anova(model.NDT5, type=3)
+#Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+#Second run suggests older model better, but remove climate interaction
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2 + elevation + bclcs_level_5_2,  family = binomial, data = dat1)
+
+AIC(model.NDT5) # (second subset: 101.8)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.64
+   
+Anova(model.NDT5, type=3)
+#Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+#Remove
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2  + bclcs_level_5_2,  family = binomial, data = dat1)
+
+AIC(model.NDT5) # (second subset: 99.9)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.66
    
 Anova(model.NDT5, type=3)
 #Anova(model.NDT5, type=3, singular.ok = TRUE)
 
 ```
+
+Remove NAs and tun multiple times.
+
+```{r}
+#Remove NAs to ensure all same data used so we can compare AIC_nts
+NDT5_nt<-dat_lightning_nt_NDT5 %>% drop_na(climate1, climate2, vegtype2, bclcs_level_5_2)
+
+#Run Model again with this data; but uses all data here
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2  + bclcs_level_5_2, family = binomial, data = NDT5_nt)
+
+Anova(model.NDT5, type=3)
+#Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+# model diagnostic plots
+binnedplot (fitted(model.NDT5), 
+            residuals(model.NDT5), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+
+NDT5_nt$resids<-resid(model.NDT5)
+
+binnedplot (NDT5_nt$climate1, 
+            NDT5_nt$resids, 
+            nclass = NULL, 
+            xlab = "", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+# Diagnostic plots look... ok. Small sample size.
+# climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2  + bclcs_level_5_2
+
+
+
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model.NDT5)
+
+#Create a new blank table and get AUC too
+top_mod_table_NDT5_light_nt_ALL <- data.frame (matrix (ncol = 13, nrow = 0))
+colnames (top_mod_table_NDT5_light_nt_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtypeS", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_climate1:vegtype2S", "coef_climate2:vegtype2S", "AUC")
+```
+
+Let's run it 500 times to get good mean values.
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(NDT5_nt$fire_veg, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- NDT5_nt[ trainIndex,]
+   Valid <- NDT5_nt[-trainIndex,]
+   
+#Model   
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2  + bclcs_level_5_2, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_NDT5_light_nt <- data.frame (matrix (ncol = 13, nrow = 0))
+colnames (top_mod_table_NDT5_light_nt ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtypeS", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_climate1:vegtype2S", "coef_climate2:vegtype2S", "AUC")
+
+##Add data for NDT5
+top_mod_table_NDT5_light_nt[1,1]<-"lightning"
+top_mod_table_NDT5_light_nt[1,2]<-"NDT5"
+top_mod_table_NDT5_light_nt[1,3]<-"N"
+top_mod_table_NDT5_light_nt[1,4]<-"fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2  + bclcs_level_5_2" 
+top_mod_table_NDT5_light_nt[1,5]<- coef(model.NDT5)[1] #Intercept
+top_mod_table_NDT5_light_nt[1,6]<- coef(model.NDT5)[2] #Cl
+top_mod_table_NDT5_light_nt[1,7]<- coef(model.NDT5)[3] #c
+top_mod_table_NDT5_light_nt[1,8]<- coef(model.NDT5)[4] #v
+top_mod_table_NDT5_light_nt[1,9]<- coef(model.NDT5)[5] #coeffici
+top_mod_table_NDT5_light_nt[1,10]<- coef(model.NDT5)[6] #coefficient
+top_mod_table_NDT5_light_nt[1,11]<- coef(model.NDT5)[7] # 
+top_mod_table_NDT5_light_nt[1,12]<- coef(model.NDT5)[8] 
+top_mod_table_NDT5_light_nt[1,13]<- mod.auc
+
+top_mod_table_NDT5_light_nt_ALL<-rbind(top_mod_table_NDT5_light_nt_ALL, top_mod_table_NDT5_light_nt)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_NDT5_light_nt_ALL)
+
+```
+
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table_NDT5_light_nt_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT5_light_nt_ALL.csv")
+```
+
+```{r}
+names(top_mod_table_NDT5_light_nt_ALL)
+mean(top_mod_table_NDT5_light_nt_ALL$AUC) #0.75
+```
+
+Previous top model had better AUC. Go back.
 
 Remove NAs and tun multiple times.
 
@@ -864,11 +977,25 @@ NDT5_nt$resids<-resid(model.NDT5)
 binnedplot (NDT5_nt$climate1, 
             NDT5_nt$resids, 
             nclass = NULL, 
-            xlab = "", 
+            xlab ="", 
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm", i))
 
 # Diagnostic plots look... ok. Small sample size.
+#Partial residuals
+#climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + elevation + bclcs_level_5_2
+visreg(model.NDT5, "climate1", by="vegtype2", overlay=TRUE)
+visreg(model.NDT5, "climate1", by="climate2")
+
+visreg(model.NDT5, "climate2", by="vegtype2", overlay=TRUE)
+visreg(model.NDT5, "climate2", by="climate1")
+
+visreg(model.NDT5, "vegtype2", by="climate1")
+visreg(model.NDT5, "vegtype2", by="climate2")
+
+visreg(model.NDT5, "elevation")
+visreg(model.NDT5, "bclcs_level_5_2")
+
 ```
 
 We should repeat the above several times and take the mean of the coefficients.
@@ -941,6 +1068,7 @@ head(top_mod_table_NDT5_light_nt_ALL)
 ```{r}
 write.csv(top_mod_table_NDT5_light_nt_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT5_light_nt_ALL.csv")
 ```
+
 
 Get mean values.
 

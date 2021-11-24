@@ -76,7 +76,7 @@ public class CellularAutomata {
 		int counterLocalMaxState = 0;
 		int currentMaxState;
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
-		harvestMin = 20050000;
+		harvestMin = 20000000;
 		gsMin = 69000000;
 		setLCCHarvestDelay(); //In cases no-harvesting decision does not meet the constraint -- remove harvesting during these periods and as a penalty -- thus ahciving the paritial amount
 		
@@ -198,16 +198,33 @@ public class CellularAutomata {
 			if(lc.achievedConstraint == null) {
 				continue;
 			}
-			for(int p = 0; p < lc.achievedConstraint.length; p++) {
-				if(lc.achievedConstraint[p] > lc.target_cover ) {
-					lc.delayHarvest = p;
-					break;
+			switch(lc.type) {
+			case "ge":
+				for(int p = 0; p < lc.achievedConstraint.length; p++) {
+					if(lc.achievedConstraint[p] > lc.target_cover ) {
+						lc.delayHarvest = p;
+						break;
+					}
+					if(p == lc.achievedConstraint.length-1) { //the constraint will never be met within the planning horizon
+						lc.delayHarvest = p;
+						break;
+					}
 				}
-				if(p == lc.achievedConstraint.length-1) { //the constraint will never be met within the planning horizon
-					lc.delayHarvest = p;
-					break;
+				break;
+			case "le":
+				for(int p = 0; p < lc.achievedConstraint.length; p++) {
+					if(lc.achievedConstraint[p] < lc.target_cover ) {
+						lc.delayHarvest = p;
+						break;
+					}
+					if(p == lc.achievedConstraint.length-1) { //the constraint will never be met within the planning horizon
+						lc.delayHarvest = p;
+						break;
+					}
 				}
+				break;
 			}
+				
 		}
 	}
 	
@@ -273,7 +290,7 @@ public class CellularAutomata {
 			isf = sumArray(harvVol, thlb)/maxCutLocal;
 	
 			age = forestTypeList.get(cellsList.get(i).foresttype).stateTypes.get(s).get("age");
-		    stateValue = 0.3*isf + 0.65*getPropNHRank(harvVol, propN[0], maxPropNH)+ 0.05*getPropNAgeRank(age, propN[1], maxPropNAge);
+		    stateValue = 0.2*isf + 0.45*getPropNHRank(harvVol, propN[0], maxPropNH)+ 0.35*getPropNAgeRank(age, propN[1], maxPropNAge);
 				
 			if(maxValue < stateValue) {
 				maxValue = stateValue;
@@ -389,7 +406,7 @@ public class CellularAutomata {
 			if(maxValue < stateValue) { 
 				maxValue = stateValue; //save the top ranking state
 				stateMax = s;
-				if( plc >= 0.999 && P >= 0.999) { //this is the threshold for stopping the simulation
+				if( plc >= 0.99 && P >= 0.999) { //this is the threshold for stopping the simulation
 					globalConstraintsAchieved = true;
 					break;
 				}
@@ -447,7 +464,7 @@ public class CellularAutomata {
 	/**
 	 * Gets the remaining percentage of land cover constraints that are achieved through out the planning horizon
 	 * @param lcList  the land cover constraints that are not be included in the remaining percentage
-	 * @return  a double value of the percentage of land cover constraints acheived
+	 * @return  a double value of the percentage of land cover constraints achieved
 	 */
 	private double getLCRemaining(ArrayList<Integer> lcList) {
 		int lcRemaining = 0;
@@ -509,28 +526,29 @@ public class CellularAutomata {
 		float[] vector, currentConstraint;
 		int constraint, target;
 		
-		for(int lcc = 0; lcc< landCoverList.size(); lcc++) {
+		for(int lcc = 0; lcc < landCoverList.size(); lcc++) {
 			constraint = landCoverList.get(lcc);
 			vector = hashMap.get(landCoverConstraintList.get(constraint).variable);
 			currentConstraint = landCoverConstraintList.get(constraint).achievedConstraint;
 			target = landCoverConstraintList.get(constraint).target_cover;
-			double weight = (double) 1/(vector.length-landCoverConstraintList.get(constraint).delayHarvest);
+			double weight = (double) 1/(vector.length-landCoverConstraintList.get(constraint).delayHarvest)*((double) 1/landCoverList.size());
+			
 			switch(landCoverConstraintList.get(constraint).type) {
 				case "ge": //greater or equal to
 					for(int v =landCoverConstraintList.get(constraint).delayHarvest; v < vector.length; v ++) {
 						if(  vector[v] >=  landCoverConstraintList.get(constraint).threshold) {
-							valueOut += Math.min(1.0, (currentConstraint[v]+1)/target)*weight*((double) 1/landCoverList.size());
+							valueOut += Math.min(1.0, (currentConstraint[v]+1)/target)*weight;
 						}else {
-							valueOut += Math.min(1.0, currentConstraint[v]/target)*weight*((double) 1/landCoverList.size());							
+							valueOut += Math.min(1.0, currentConstraint[v]/target)*weight;							
 						}
 					}
 					break;
 				case "le": //lesser or equal to
 					for(int v =landCoverConstraintList.get(constraint).delayHarvest; v < vector.length; v ++) {
 						if(  vector[v] <=  landCoverConstraintList.get(constraint).threshold) {
-							valueOut += Math.min(1.0, (currentConstraint[v]+1)/target)*weight*((double) 1/landCoverList.size());
+							valueOut += Math.min(1.0, target/(currentConstraint[v]+1))*weight;
 						}else {
-							valueOut += Math.min(1.0, currentConstraint[v]/target)*weight*((double) 1/landCoverList.size());							
+							valueOut += Math.min(1.0, target/currentConstraint[v])*weight;							
 						}
 					}
 					break;
@@ -544,11 +562,23 @@ public class CellularAutomata {
 		float weight = (float) 1/(landCoverConstraintList.get(constraint).achievedConstraint.length-landCoverConstraintList.get(constraint).delayHarvest);
 		landCoverConstraintList.get(constraint).perPHAchieved = 0f;//reset it
 		
-		for(int l = landCoverConstraintList.get(constraint).delayHarvest; l < landCoverConstraintList.get(constraint).achievedConstraint.length; l++) {
-			if(landCoverConstraintList.get(constraint).achievedConstraint[l] >= landCoverConstraintList.get(constraint).target_cover) {
-				landCoverConstraintList.get(constraint).perPHAchieved += weight;
-			};
-		}	
+		switch(landCoverConstraintList.get(constraint).type) {
+			case "ge":
+				///since some land cover constraints need years for recruitment we don't include those years when assessing if the constraint is achieved
+				for(int l = landCoverConstraintList.get(constraint).delayHarvest; l < landCoverConstraintList.get(constraint).achievedConstraint.length; l++) {
+					if(landCoverConstraintList.get(constraint).achievedConstraint[l] >= landCoverConstraintList.get(constraint).target_cover) {
+						landCoverConstraintList.get(constraint).perPHAchieved += weight;
+					};
+				}
+				break;
+			case "le":
+				for(int l = landCoverConstraintList.get(constraint).delayHarvest; l < landCoverConstraintList.get(constraint).achievedConstraint.length; l++) {
+					if(landCoverConstraintList.get(constraint).achievedConstraint[l] <= landCoverConstraintList.get(constraint).target_cover) {
+						landCoverConstraintList.get(constraint).perPHAchieved += weight;
+					};
+				}
+				break;
+		}
 	}
 	
 	private double getHarvestFlowConstraint(float[] harvVol, float thlb) {
@@ -589,21 +619,20 @@ public class CellularAutomata {
 	private void setAddLCConstraint (int constraint, float[] value) {
 		
 		switch(landCoverConstraintList.get(constraint).type) {
-		case "ge": //greater or equal to
-			for(int v =0; v < value.length; v ++) {
-				if(  value[v] >=  landCoverConstraintList.get(constraint).threshold) {
-					landCoverConstraintList.get(constraint).achievedConstraint[v] += 1f;
+			case "ge": //greater or equal to
+				for(int v =0; v < value.length; v ++) {
+					if(  value[v] >=  landCoverConstraintList.get(constraint).threshold) {
+						landCoverConstraintList.get(constraint).achievedConstraint[v] += 1f;
+					}
 				}
-			}
-			break;
-		case "le": //lesser or equal to
-			for(int v =0; v < value.length; v ++) {
-				if(value[v] <=  landCoverConstraintList.get(constraint).threshold) {
-					landCoverConstraintList.get(constraint).achievedConstraint[v] += 1f;
+				break;
+			case "le": //lesser or equal to
+				for(int v =0; v < value.length; v ++) {
+					if(value[v] <=  landCoverConstraintList.get(constraint).threshold) {
+						landCoverConstraintList.get(constraint).achievedConstraint[v] += 1f;
+					}		
 				}
-			
-			}
-			break;
+				break;
 		}	
 	}
 	
@@ -744,16 +773,16 @@ public class CellularAutomata {
 			if (conn != null) {
 				Statement statement = conn.createStatement();
 					
-				String dropResultsTable = "DROP TABLE IF EXISTS ca_result;";
+				String dropResultsTable = "DROP TABLE IF EXISTS ca_result_age;";
 				statement.execute(dropResultsTable);
 					
-				String makeResultsTable = "CREATE TABLE IF NOT EXISTS ca_result (pixelid integer, t1 numeric, t2 numeric, t3 numeric, t4 numeric, t5 numeric, t6 numeric, t7 numeric, t8 numeric, t9 numeric, t10 numeric);";
+				String makeResultsTable = "CREATE TABLE IF NOT EXISTS ca_result_age (pixelid integer, t1 numeric, t2 numeric, t3 numeric, t4 numeric, t5 numeric, t6 numeric, t7 numeric, t8 numeric, t9 numeric, t10 numeric);";
 				statement.execute(makeResultsTable);
 
 				statement.close();
 					
 				String insertResults =
-						      "INSERT INTO ca_result (pixelid, t1,t2,t3,t4,t5,t6,t7,t8,t9,t10) VALUES (?,?,?,?,?,?,?,?,?,?,?);";
+						      "INSERT INTO ca_result_age (pixelid, t1,t2,t3,t4,t5,t6,t7,t8,t9,t10) VALUES (?,?,?,?,?,?,?,?,?,?,?);";
 					
 				float [] age;
 					
@@ -773,10 +802,54 @@ public class CellularAutomata {
 					//pstmt.executeBatch();
 					pstmt.close();
 					conn.commit();
+					//conn.close();
+				}  
+				
+				//TODO: save constraint reporting
+				//Landcover Constraints Table
+				Statement statementLC = conn.createStatement();
+				
+				String dropResultsTableLC = "DROP TABLE IF EXISTS ca_result_lc;";
+				statementLC.execute(dropResultsTableLC);
+					
+				String makeResultsTableLC = "CREATE TABLE IF NOT EXISTS ca_result_lc (zoneid integer, variable text, type text, threshold numeric, percentage numeric, target_cover numeric, t1,t2,t3,t4,t5,t6,t7,t8,t9,t10  );";
+				statementLC.execute(makeResultsTableLC);
+
+				statementLC.close();
+					
+				String insertResultsLC =
+						      "INSERT INTO ca_result_lc (zoneid, variable, type, threshold, percentage, target_cover, t1,t2,t3,t4,t5,t6,t7,t8,t9,t10) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
+					
+				float [] ac;
+					
+				conn.setAutoCommit(false);
+				PreparedStatement pstmtLC = conn.prepareStatement(insertResultsLC);
+				
+				try {
+					for(int c = 1; c < landCoverConstraintList.size(); c++) {
+						pstmtLC.setInt(1, c);
+						pstmtLC.setString(2, landCoverConstraintList.get(c).variable);
+						pstmtLC.setString(3, landCoverConstraintList.get(c).type);
+						pstmtLC.setFloat(4, landCoverConstraintList.get(c).threshold);
+						pstmtLC.setFloat(5, landCoverConstraintList.get(c).percentage);
+						pstmtLC.setFloat(6, landCoverConstraintList.get(c).target_cover);
+						
+						ac =  landCoverConstraintList.get(c).achievedConstraint;
+				        for(int t = 0; t < ac.length; t++) {
+				        	pstmtLC.setInt(t+7, (int) ac[t]);
+				         }
+				        pstmtLC.executeUpdate();		        	
+					}
+				}finally {
+					System.out.println("...done");
+					//pstmt.executeBatch();
+					pstmtLC.close();
+					conn.commit();
 					conn.close();
-				}     
-				}
-		}catch (SQLException e) {
+				} 
+			}
+			
+		} catch (SQLException e) {
 		        System.out.println(e.getMessage());
 		       }
 	}
@@ -980,7 +1053,7 @@ public class CellularAutomata {
 					System.out.print("Getting constraint information");
 					landCoverConstraintList.add(0, new LandCoverConstraint()); // zero is a null landCoverConstraint
 					counter =0;
-					String getConstraintObjects = "SELECT id, variable, threshold, type, percentage, t_area FROM zoneConstraints WHERE reference_zone = 'rast.zone_cond_beo' ORDER BY id;";
+					String getConstraintObjects = "SELECT id, variable, threshold, type, percentage, t_area FROM zoneConstraints ORDER BY id;";
 					ResultSet rs5 = statement.executeQuery(getConstraintObjects);
 					while(rs5.next()) {
 						counter ++;
@@ -994,7 +1067,7 @@ public class CellularAutomata {
 					System.out.println("...done");
 					
 					System.out.print("Setting constraints to cells");
-					String setConstraints = "SELECT zone_column FROM zone WHERE reference_zone = 'rast.zone_cond_beo';";
+					String setConstraints = "SELECT zone_column FROM zone WHERE reference_zone IN ('rast.zone_cond_beo', 'rast.zone_cond_vqo', 'rast.zone_cond_uwr');";
 					ResultSet rs6 = statement.executeQuery(setConstraints);
 					ArrayList<String> zones = new ArrayList<String>();
 					while(rs6.next()) {
@@ -1004,14 +1077,14 @@ public class CellularAutomata {
 					for(int z = 0; z < zones.size(); z++) {
 						String getZonesConstraints = "SELECT pixelid, z.id "
 								+ "FROM pixels "
-								+ "LEFT JOIN (SELECT * FROM zoneConstraints WHERE zone_column = '" +zones.get(z)+ "') AS z "
+								+ "LEFT JOIN (SELECT * FROM zoneConstraints WHERE zone_column = '" +zones.get(z)+ "' and variable IN ('age', 'height', '')) AS z "
 								+ "ON pixels." + zones.get(z) +" = z.zoneid "
-								+ "WHERE pixels."+zones.get(z)+" is not null;";
+								+ "WHERE pixels."+zones.get(z)+" is not null AND z.id is not null;";
 						ResultSet rs7 = statement.executeQuery(getZonesConstraints);
 						
 						while(rs7.next()) { 
 							cell = cellIndex[rs7.getInt(1)];
-							if(cell >= 0) { //removes non-treed area (-1) with no state changes
+							if(cell >= 0) { //removes non-treed area (e.g., INDEX = -1) which has no state changes
 								cellsList.get(cell).setLandCoverConstraint(rs7.getInt(2));
 							}
 						}
