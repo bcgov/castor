@@ -1959,10 +1959,6 @@ new_data3 <- data.table (computer = 'DC052586',
                         next_update = 'as needed', 
                         where_used = 'dataLoaderCLUS' 
                         )
-
-
-
-
 # merge tables
 pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
                                list (pgdbs_data_list, new_data, new_data2))
@@ -1971,5 +1967,35 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   value = pgdbs_data_list_new, 
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
+
+
+
+chilcotin_area_of_interest_habitat
+
+#Create new row for table
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'public', 
+                        table_name = 'chilcotin_area_of_interest_habitat', 
+                        type = 'polygon', 
+                        script = 'ogr2ogr', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS')
+
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+
+
+
 ```
 

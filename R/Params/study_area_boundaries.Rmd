@@ -147,13 +147,12 @@ dbDisconnect(conn)
 'Version 2' was created to focus the analysis in the operating area of the licensees, which are teh western portions of the Quesnel and Williams Lake TSAs. 
 
 ```{r chilcotin study area version 2}
-studyarea <- getSpatialQuery ("SELECT * FROM public.chilcotin_area_of_interest;")
+studyarea <- getSpatialQuery ("SELECT * FROM public.chilcotin_area_of_interest_habitat;")
 
-studyarea$name <- "chilctoin_aoi"
-studyarea$value <- 1
-studyarea.vat <- as.data.table (unique(studyarea$name))
-setnames (studyarea.vat, "name")
+studyarea.vat <- as.data.table (unique (studyarea$tsa_name))
+setnames (studyarea.vat, "tsa_name")
 studyarea.vat [, value := seq_len(.N)]
+studyarea <- merge (studyarea, studyarea.vat, by = "tsa_name")
 
 # Rasterize 
 ras.study.area <-fasterize::fasterize (st_cast (studyarea, "MULTIPOLYGON"), prov.rast, field = "value") 

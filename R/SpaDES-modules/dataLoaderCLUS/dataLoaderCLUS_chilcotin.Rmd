@@ -52,9 +52,9 @@ parameters <-  list(
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = TRUE,
                          sqlite_dbname = "chilcotin_study_area",
-                         nameBoundaryFile="chilcotin_area_of_interest", # study_area_chilcotin
-                         nameBoundaryColumn = "name", # tsa_name
-                         nameBoundary = 'chilcotin_aoi', # c ('Quesnel_TSA_Matrix', 'Quesnel_TSA_HEWSR', 'Quesnel_TSA_LESR', 'Quesnel_TSA_LEWR', 'Quesnel_TSA_out', 'Williams_Lake_TSA_HEWSR', 'Williams_Lake_TSA_LESR', 'Williams_Lake_TSA_LEWR', 'Williams_Lake_TSA_Matrix', Williams_Lake_TSA_out')
+                         nameBoundaryFile="chilcotin_area_of_interest_habitat", # study_area_chilcotin
+                         nameBoundaryColumn = "tsa_name", # tsa_name
+                         nameBoundary = c ('Matrix', 'HEWSR', 'LESR', 'LEWR', 'out'), # c ('Quesnel_TSA_Matrix', 'Quesnel_TSA_HEWSR', 'Quesnel_TSA_LESR', 'Quesnel_TSA_LEWR', 'Quesnel_TSA_out', 'Williams_Lake_TSA_HEWSR', 'Williams_Lake_TSA_LESR', 'Williams_Lake_TSA_LEWR', 'Williams_Lake_TSA_Matrix', Williams_Lake_TSA_out')
                          nameBoundaryGeom = 'wkb_geometry',
                          nameCompartmentRaster = "rast.chilcotin_aoi_v2", #rast.study_area_chilcotin
                          nameCompartmentTable = "vat.chilcotin_aoi_v2",
