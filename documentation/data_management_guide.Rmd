@@ -1920,5 +1920,82 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
+
+
+# CHILCOTIN AREA-OF-INTEREST
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'public', 
+                        table_name = 'chilcoltin_area_to_model', 
+                        type = 'polygon', 
+                        script = 'ogr2ogr', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = 'chilcotin_aoi_v2', 
+                        type = 'raster', 
+                        script = 'study_area_boundaries.Rmd', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+new_data3 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'vat', 
+                        table_name = 'chilcotin_aoi_v2', 
+                        type = 'table', 
+                        script = 'study_area_boundaries.Rmd', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+
+
+chilcotin_area_of_interest_habitat
+
+#Create new row for table
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'public', 
+                        table_name = 'chilcotin_area_of_interest_habitat', 
+                        type = 'polygon', 
+                        script = 'ogr2ogr', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2021', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS')
+
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+
+
+
 ```
 
