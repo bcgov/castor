@@ -1,25 +1,28 @@
 
 ui <- dashboardPage(skin = "black",
+            
                     dashboardHeader(title = "CLUS: Explorer Tool"),
-                    dashboardSidebar( 
-                      #shinyjs::useShinyjs(),
+                    dashboardSidebar(
+                      tags$style("@import url(https://use.fontawesome.com/releases/v5.15.3/css/all.css);"),
+                    introjsUI(),
                       sidebarMenu(
-                        menuItem("Home", tabName = "home", icon = icon("home")),
-                        menuItem("Scenarios", tabName = "settings", icon = icon("gears")),
+                        menuItem("Home", tabName = "home", icon = icon("home")), 
+                        add_class(menuItem("Scenarios", tabName = "settings", icon = icon("gears")), "settings" ),
                         menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard"),
-                                 menuSubItem("Summary", tabName = "summary", icon = icon("balance-scale")),
+                                 menuSubItem("Summary", tabName = "summary", icon = icon("balance-scale")), 
                                  menuSubItem("Caribou", tabName = "caribou", icon = icon("paw")),
                                  menuSubItem("Climate", tabName = "climate", icon = icon("thermometer-half")),
                                  menuSubItem("Fire", tabName = "fire", icon = icon("fire")),
-                                 menuSubItem("Fisher", tabName = "fisher", icon = icon("leaf")),
+                                 menuSubItem("Fisher", tabName = "fisher", icon = icon("otter",lib = "font-awesome")),
                                  menuSubItem("Forestry", tabName = "forestry", icon = icon("tree")),
-                                 menuSubItem("Insects (planned)", tabName = "insects", icon = icon("bug")),
-                                 menuSubItem("Mining (planned)", tabName = "mining", icon = icon("gem")),
-                                 menuSubItem("Oil and Gas (planned)", tabName = "oilandgas", icon = icon("bolt")),
-                                 menuSubItem("Recreation (planned)", tabName = "recreation", icon = icon("shoe-prints"))
+                                 menuSubItem("Grizzly Bear", tabName = "grizzly_bear", icon = icon("leaf")),
+                                 menuSubItem("Insects", tabName = "insects", icon = icon("bug")), 
+                                 menuSubItem("Mining", tabName = "mining", icon = icon("gem")),
+                                 menuSubItem("Oil and Gas", tabName = "oilandgas", icon = icon("bolt")),
+                                 menuSubItem("Recreation", tabName = "recreation", icon = icon("shoe-prints"))
                         ), 
-                        menuItem("Query Builder", tabName = "querybuilder", icon = icon("search")),
-                        menuItem("Map Viewer", tabName = "mapviewer", icon = icon("layer-group"))
+                        add_class(menuItem("Query Builder", tabName = "querybuilder", icon = icon("search")), "querybuilder"),
+                        add_class(menuItem("Map Viewer", tabName = "mapviewer", icon = icon("layer-group")), "mapviewer")
                       )
                     ),
                     dashboardBody(
@@ -28,11 +31,33 @@ ui <- dashboardPage(skin = "black",
                              #fisher_map_control {background-color: rgba(192,192,192,0.2);}'))),
 
                       tabItems(
-                        tabItem(tabName = "home"),
+                          
+                        tabItem(tabName = "home",
+                                box(title="Welcome to the CLUS Explorer App", width =12,
+                                    fluidRow(
+                                        column(width = 10,
+                                           p("This app was designed to interactively compare outputs from the caribou and landuse simulator (CLUS) model. Outputs are formely organized by scenario; represnting a plausible future projection of the landscape.")),
+                                        column(width = 2, align = "center",
+                                                  img(src="clus-logo.png", width =100))
+                                    )
+                                ),
+                                fluidRow(
+                                  column(
+                                    12,
+                                    actionButton("help", "Take a tour")
+                                    , align = "center"
+                                    , style = "margin-bottom: 10px;"
+                                    , style = "margin-top: -10px;"
+                                  ),
+                                  bsTooltip("help", "Press for instructions",
+                                            "right", options = list(container = "body"))
+                                )
+                        ), 
                         tabItem(tabName = "settings",
                                 sidebarLayout(
                                   sidebarPanel( width = 6,
                                                 fluidRow(
+                                                  
                                                   column(width =12,
                                                          box(title = "Area of interest", width = 12, background = "black", solidHeader = TRUE,
                                                              
@@ -85,26 +110,21 @@ ui <- dashboardPage(skin = "black",
                                                                     )
                                                                   ),
                                                                   fluidRow(
-                                                                    box(title = "Caribou Habitat", solidHeader = TRUE, background = "purple", width =12,
-                                                                        valueBoxOutput("statusCritHab"),
-                                                                        valueBoxOutput("statusDist"),
-                                                                        valueBoxOutput("statusDist500"),
-                                                                        
-                                                                        bsTooltip("statusCritHab", "Percentage of the area of interest in critical caribou habitat",
-                                                                                  "top", options = list(container = "body")),
-                                                                        bsTooltip("statusDist", "Percentage of critical caribou habitat disturbed",
-                                                                                  "top", options = list(container = "body")),
-                                                                        bsTooltip("statusDist500", "Percentage of critical caribou habitat disturbed with 500 m buffer",
-                                                                                  "top", options = list(container = "body"))
-                                                                    )
+                                                                    
                                                                   ),
                                                                   fluidRow(
                                                                     column(12,
-                                                                           selectInput("tsa_selected", choices = NULL, label = 'TSA:', width = '100%',
+                                                                           tags$h4("Timber Supply Area(s):"),
+                                                                           selectInput("tsa_selected", choices = NULL, label = '', width = '100%',
                                                                                        multiple = T),
                                                                            bsTooltip("tsa_selected", "Select timber supply area(s).",
                                                                                      "bottom", options = list(container = "body"))
-                                                                    )
+                                                                    ),
+                                                                    column(12,
+                                                                           tags$h4("Scenario Description"),
+                                                                           textOutput("scenario_description")),
+                                                                    bsTooltip("scenario_description", "Description of the last scenario selected",
+                                                                              "bottom", options = list(container = "body"))
                                                                   )
                                                               )#end of current state box
                                              )
@@ -165,7 +185,12 @@ ui <- dashboardPage(skin = "black",
                                       plotlyOutput(outputId = "propOldPlot", height = "900px"))
                                 ),
                                 fluidRow(
-                                  box(title = "Survival", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+                                  box(title = "Abundance (Southern Group of Southern Mountain Caribou Only)", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+                                      plotlyOutput(outputId = "abundancePlot", height = "900px"),
+                                      "Use abundance estimates with caution. The estimates assume the entire herd is in the area of interest, or forestry development is similar outside the area of interest.")
+                                ), 
+                                fluidRow(
+                                  box(title = "Survival (Southern Group of Southern Mountain Caribou Only)", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
                                       plotlyOutput(outputId = "survivalPlot", height = "900px"))
                                 ),
                                 fluidRow(
@@ -226,7 +251,7 @@ ui <- dashboardPage(skin = "black",
                                   ),
                                   box(title = "Territory", collapsible = FALSE,  collapsed = FALSE, solidHeader = TRUE,background = "purple", width =6,
                                       tags$style(" .irs-bar, .irs-bar-edge, .irs-single, .irs {max-height: 50px;}, .irs-grid-pol { background:blue; border-color: blue;}"),
-                                      sliderInput("fisherTerritoryYear", "Year", 0, 200,value = 0, step = 5, animate = TRUE),
+                                      sliderInput("fisherTerritoryYear", "Year", 0, 200, value = 0, step = 5, animate = TRUE),
                                       plotOutput(outputId = "fisherTerritoryPlot", height = "200px")
                                       )
                                 ),
@@ -238,8 +263,24 @@ ui <- dashboardPage(skin = "black",
                                               tags$style(" .irs-bar, .irs-bar-edge, .irs-single, .irs-grid-pol { background:black; border-color: black;}"),
                                               sliderInput("fisheryear", "Year", 0, 200,value = 0, step = 5, animate = TRUE),
                                               valueBoxOutput("numberFisherTerritory", width = 12),
-                                              bsTooltip("numberFisherTerritory", "Number of fisher territories with relative probability of occupancy > 0.2", "bottom")
+                                              bsTooltip("numberFisherTerritory", "Number of fisher territories with relative probability of occupancy > 0.55", "bottom")
                                   )
+                                )
+                        ),
+                        tabItem(tabName = "grizzly_bear",
+                                tags$div("Click on the boxes below to obtain information on estimated road density and adult female  survival. Esitmates are provided for grizzly bear population units (GBPUs). Survival estimates are calculated by adapting a model developed by ",
+                                         tags$a(href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535", "Boulanger and Stenhouse (2014).")
+                                  ),
+                                br(), # line break
+                                fluidRow(
+                                        box(title = "Adult Female Survival", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+                                        sliderInput("grizzlyYear", label = "Enter Year Range to Plot", 
+                                                    0, 200, value = c (0, 50), step = 5),
+                                        plotlyOutput(outputId = "survival_grizzly_af_Plot", height = "900px"))
+                                  ),
+                                fluidRow(
+                                  box(title = "Grizzly Bear Population Unit Road Density", collapsible = TRUE, collapsed = TRUE, solidHeader = TRUE, background = "purple", width =12,
+                                      plotlyOutput(outputId = "road_density_grizzly_Plot", height = "900px"))
                                 )
                         ),
                         tabItem(tabName = "insects",

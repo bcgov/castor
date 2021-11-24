@@ -109,21 +109,119 @@ from 2016 analysis report:  maximum even flow harvest was 2,139,000m^3^/year; fr
 
 the predicted sustainable harvest flow in Quesnel was between 1,617,000 and 2,139,000 (https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/quesnel_tsa_discussion_paper.pdf) pg 12
 
-- First, I tested a harvest flow of 2,139,000m^3^/year, dropped to 1.9M m^3^/year, was final
+
+Annual volume
+  - First, I tested a harvest flow of 2,139,000m^3^/year, dropped to 1.9M m^3^/year, was final for oldest first
+  - for closest to disturbance, oldest, highest volume first = 1.6 M m^3^/year
+  
 
 - I used 150 m3/ha as minimum harvest volume
 
 For cutblock adjacency, I used 3 m adjacency
 
 #UPDATE SCENARIO
+
+## Chilcotin Planning Scenarios Aug. 2021
 ```{r, zone_update}
+require (DBI)
 #STEP 1: Connect to the clusdb.sqlite database for the AOI
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite")) # connect to clusdb -- set the locations of the sqlite
 
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_smc_zones_20210315'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones rast.zone_cond_noharvest_barkerville_crithab_or_herd
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_du7_scenario_20210330'")  # rast.zone_cond_noharvest_barkerville_crithab_or_herd
-# rast.zone_cond_bc_itcha_ilgachuz_crithab  rast.zone_cond_bc_tweedsmuir_crithab    rast.zone_du7_scenario_20210330
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_wha_2021'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones rast.zone_cond_noharvest_barkerville_crithab_or_herd
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab'")  # rast.zone_cond_noharvest_barkerville_crithab_or_herd
+# rast.zone_cond_bc_itcha_ilgachuz_crithab  rast.zone_cond_bc_tweedsmuir_crithab    rast.zone_du7_scenario_20210330 rast.zone_wha_2021  
+
+
+# Chilcotin Scenarios - Aug. 2021
+## Existing caribou WHA GARs removed; forest age constraints applied to critical habitat
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.zone_wha_2021' AND (zoneid = 263) OR (zoneid = 264) OR (zoneid = 3779) OR (zoneid = 3780) OR (zoneid = 3781)") 
+
+## Scenario 1 forest age constraints applied to all to critical habitat
+## Seral stage >80 = 45%; Seral stage >100 = 37%; Seral stage >120 = 30%; Seral stage >140 = 25%
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 4)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 4)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 141 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 4)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 4)")
+## Need to create some new rows for multiple age constraints
+dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
+VALUES 
+(498,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone22',0,'age',121,'ge',30,NULL,NULL,82524,0,250),
+(499,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone22',0,'age',121,'ge',30,NULL,NULL,157428,0,250),
+(500,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone22',0,'age',121,'ge',30,NULL,NULL,264988,0,250),
+(501,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone22',0,'age',101,'ge',37,NULL,NULL,82524,0,250),
+(502,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone22',0,'age',101,'ge',37,NULL,NULL,157428,0,250),
+(503,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone22',0,'age',101,'ge',37,NULL,NULL,264988,0,250),
+(504,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone22',0,'age',81,'ge',45,NULL,NULL,82524,0,250),
+(505,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone22',0,'age',81,'ge',45,NULL,NULL,157428,0,250),
+(506,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone22',0,'age',81,'ge',45,NULL,NULL,264988,0,250);")
+
+## Scenario 2 forest age constraints applied to all to critical habitat
+## Seral stage >80 = 37%; Seral stage >100 = 30%; Seral stage >120 = 25%
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 435) OR (id = 436) OR (id = 437)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 498) OR (id = 499) OR (id = 500)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 501) OR (id = 502) OR (id = 503)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 504) OR (id = 505) OR (id = 506)")
+
+## Scenario 3 forest age constraints applied to all to critical habitat
+## Seral stage >80 = 30%; Seral stage >100 = 25%
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 435) OR (id = 436) OR (id = 437) OR (id = 498) OR (id = 499) OR (id = 500)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 501) OR (id = 502) OR (id = 503)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 504) OR (id = 505) OR (id = 506)")
+
+
+## Scenario 1, with rotation age
+## Need to create some new rows for rotation age
+## Here I am saying, allow harvest in up to 3% of the area in a five year period (equivalent to 0.6% harvested annually), and make all stands available to harvest (i.e., age <= 99,999 years old)
+dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
+VALUES 
+(507,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone22',0,'age',99999,'le',3,NULL,NULL,82524,0,250),
+(508,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone22',0,'age',99999,'le',3,NULL,NULL,157428,0,250),
+(509,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone22',0,'age',99999,'le',3,NULL,NULL,264988,0,250);")
+
+## Scenario 2, with rotation age 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 435) OR (id = 436) OR (id = 437)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 498) OR (id = 499) OR (id = 500)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 501) OR (id = 502) OR (id = 503)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 504) OR (id = 505) OR (id = 506)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 4 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 507) OR (id = 508) OR (id = 509)")
+
+## Scenario 3, with rotation age 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 435) OR (id = 436) OR (id = 437) OR (id = 498) OR (id = 499) OR (id = 500)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 501) OR (id = 502) OR (id = 503)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 504) OR (id = 505) OR (id = 506)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 5 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 507) OR (id = 508) OR (id = 509)")
+
+## Scenario 4, 150 yo rotation age with early seral constaint added to seral constraints
+# Seral stage >40 = 85%; Seral stage >80 = 45%; Seral stage >100 = 37%; Seral stage >120 = 30%; Seral stage >140 = 25%
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 435) OR (id = 436) OR (id = 437) OR (id = 498) OR (id = 499) OR (id = 500)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 435) OR (id = 436) OR (id = 437)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 498) OR (id = 499) OR (id = 500)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 501) OR (id = 502) OR (id = 503)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 45 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 504) OR (id = 505) OR (id = 506)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 3 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 507) OR (id = 508) OR (id = 509)")
+dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
+VALUES 
+(510,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone22',0,'age',41,'ge',85,NULL,NULL,82524,0,250),
+(511,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone22',0,'age',41,'ge',85,NULL,NULL,157428,0,250),
+(512,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone22',0,'age',41,'ge',85,NULL,NULL,264988,0,250);")
+
+
+
+dbDisconnect(clusdb)
+```
+
+
+## Northern Group Disturabnce Scenarios
+```{r, northern grp disturbance scenarios}
+
+#STEP 1: Connect to the clusdb.sqlite database for the AOI
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite")) # connect to clusdb -- set the locations of the sqlite
+
+#STEP 2: View the constraints available to a zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_wha_2021'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones rast.zone_cond_noharvest_barkerville_crithab_or_herd
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab'")  # rast.zone_cond_noharvest_barkerville_crithab_or_herd
+# rast.zone_cond_bc_itcha_ilgachuz_crithab  rast.zone_cond_bc_tweedsmuir_crithab    rast.zone_du7_scenario_20210330 rast.zone_wha_2021  
 
 
 # NORTHERN GROUP - Tweedsmuir
@@ -138,9 +236,6 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone =
 dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85) OR (zoneid = 86)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85) OR (zoneid = 86)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 45) OR (zoneid = 46) OR (zoneid = 47) OR (zoneid = 48) OR (zoneid = 49) OR (zoneid = 50) OR (zoneid = 51) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85) OR (zoneid = 86)") 
-
-
-
 
 
 # NORTHERN GROUP - Itcha
@@ -201,6 +296,20 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 45) OR (zoneid = 48) OR (zoneid = 51) OR (zoneid = 54) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85) OR (zoneid = 86)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_du7_scenario_20210330' AND (zoneid = 45) OR (zoneid = 48) OR (zoneid = 51) OR (zoneid = 54) OR (zoneid = 83) OR (zoneid = 84) OR (zoneid = 85) OR (zoneid = 86)") 
 
+dbDisconnect(clusdb)
+
+```
+
+## Wells Gray North, Barkerville, and Narrow Lake Disturbance Scenarios
+```{r wells gray north, barkerville, narrow lake disturbance scenarios}
+#STEP 1: Connect to the clusdb.sqlite database for the AOI
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite")) # connect to clusdb -- set the locations of the sqlite
+
+#STEP 2: View the constraints available to a zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_wha_2021'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones rast.zone_cond_noharvest_barkerville_crithab_or_herd
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab'")  # rast.zone_cond_noharvest_barkerville_crithab_or_herd
+# rast.zone_cond_bc_itcha_ilgachuz_crithab  rast.zone_cond_bc_tweedsmuir_crithab    rast.zone_du7_scenario_20210330 rast.zone_wha_2021  
+
 
 # WELLS GRAY NORTH Update the constraints available to a zone as specified in the scenario
 #Below will set Wells Gray North old, recruit and buffer as no harvest and matrix as 35% disturbance (no buffer)
@@ -219,15 +328,6 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = '
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_cond_eccc_wells_gray_north_crithab_or_herd' AND (zoneid = 2)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_cond_eccc_wells_gray_north_crithab_or_herd' AND (zoneid = 2)") 
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 12 where reference_zone = 'rast.zone_cond_eccc_wells_gray_north_crithab_or_herd' AND (zoneid = 2)") 
-
-
-# Below makes priority forest stands no harvest and all of the matrix and LEWR habitat areas max 15% disturbance
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 30) OR (zoneid = 27) OR (zoneid = 28)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 66) OR (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69) OR (zoneid = 70) OR (zoneid = 71)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 66) OR (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69) OR (zoneid = 70) OR (zoneid = 71)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 66) OR (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69) OR (zoneid = 70) OR (zoneid = 71)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 22) OR (zoneid = 26) OR (zoneid = 25) OR (zoneid = 27) OR (zoneid = 28) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 66) OR (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69) OR (zoneid = 70) OR (zoneid = 71)") 
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 22) OR (zoneid = 26)") 
 
 
 # BARKERVILLE Update the constraints available to a zone as specified in the scenario
@@ -280,10 +380,32 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zo
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_du9_scenarios' AND (zoneid = 9) OR (zoneid = 10) OR (zoneid = 24) OR (zoneid = 25) OR (zoneid = 39) OR (zoneid = 40) OR (zoneid = 70) OR (zoneid = 71) OR (zoneid = 37) OR (zoneid = 51)") 
 
  
-
 dbDisconnect(clusdb)
+
 ```
 
+## Southern Mtn Caribou Scenarios
+
+```{r, SMC scenarios}
+#STEP 1: Connect to the clusdb.sqlite database for the AOI
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite")) # connect to clusdb -- set the locations of the sqlite
+
+#STEP 2: View the constraints available to a zone
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_wha_2021'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones rast.zone_cond_noharvest_barkerville_crithab_or_herd
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab'")  # rast.zone_cond_noharvest_barkerville_crithab_or_herd
+# rast.zone_cond_bc_itcha_ilgachuz_crithab  rast.zone_cond_bc_tweedsmuir_crithab    rast.zone_du7_scenario_20210330 rast.zone_wha_2021  
+
+# Below makes priority forest stands no harvest and all of the matrix and LEWR habitat areas max 15% disturbance
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'nh' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 30) OR (zoneid = 27) OR (zoneid = 28)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'le' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 66) OR (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69) OR (zoneid = 70) OR (zoneid = 71)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 0 where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 66) OR (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69) OR (zoneid = 70) OR (zoneid = 71)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 15 where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 66) OR (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69) OR (zoneid = 70) OR (zoneid = 71)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'dist' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 22) OR (zoneid = 26) OR (zoneid = 25) OR (zoneid = 27) OR (zoneid = 28) OR (zoneid = 29) OR (zoneid = 30) OR (zoneid = 31) OR (zoneid = 32) OR (zoneid = 33) OR (zoneid = 34) OR (zoneid = 66) OR (zoneid = 67) OR (zoneid = 68) OR (zoneid = 69) OR (zoneid = 70) OR (zoneid = 71)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_smc_zones_20210315' AND (zoneid = 22) OR (zoneid = 26)")
+
+dbDisconnect(clusdb)
+
+```
 
 
 
@@ -301,7 +423,8 @@ parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list(   dbName='clus',
-                           save_clusdb = TRUE,
+                           save_clusdb = FALSE,
+                           sqlite_dbname = "Quesnel_TSA",
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
@@ -310,14 +433,14 @@ parameters <- list(
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
-                           nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
+                           nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', #'rast.bc_thlb2018' 
                            nameZoneRasters=c("rast.zone_cond_beo", 
                                            "rast.zone_cond_vqo", 
-                                           "rast.zone_cond_wha", 
-                                           "rast.zone_cond_uwr", 
+                                           "rast.zone_wha_2021", #"rast.zone_cond_wha" 
+                                           "rast.zone_uwr_2021", #"rast.zone_cond_uwr" 
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw",
+                                           "rast.zone_cond_cw"
                                     # "rast.zone_cond_noharvest_barkerville_crithab_or_herd"
                                     # "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd"
                                     # "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd"
@@ -338,7 +461,7 @@ parameters <- list(
                                       #"rast.zone_cond_bc_north_cariboo_crithab",
                                       # "rast.zone_cond_bc_tweedsmuir_crithab"
                                       #"rast.zone_cond_bc_wells_gray_north_crithab",
-                                            "rast.zone_du7_scenario_20210330"
+                                      #      "rast.zone_du7_scenario_20210330"
                                            ),
                            nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -360,7 +483,8 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
+  forestryCLUS = list(harvestBlockPriority = "CASE WHEN dist < 1000 THEN 3 WHEN dist < 2500 THEN 2 WHEN dist < 5000 THEN 1 ELSE 0 END DESC, age DESC", # query to prioritize blocks within 1km of disturbance, then 2.5km, then 5km, then everythign >5km, then oldest first after that
+                      # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
                       #harvestZonePriorityInterval = 1,
                       reportHarvestConstraints = T,
@@ -370,21 +494,23 @@ parameters <- list(
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_all'),
   # rsfCLUS = list (calculateInterval = 10, # at what time interval to calculate RSF
-  #                 criticalHabitatTable = "public.vat_bc_crithab_and_herd",
+  #                 criticalHabitatTable = "vat.vat_bc_crithab_and_herd",
   #                 randomEffectsTable = "public.rsf_re_coeff",
   #                 writeRSFRasters = TRUE,
   #                 checkRasters = FALSE),
   survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
-                       tableCaribouHerd = "public.caribou_herd_vat"), # look-up table of herd names
+                       tableCaribouHerd = "vat.caribou_herd_vat"), # look-up table of herd names
   disturbanceCalcCLUS = list(calculateInterval =  1, # should be 1 if using constraints on 'dist' (disturbance)
-                             criticalHabitatTable = "public.vat_bc_crithab_and_herd",
+                             criticalHabitatTable = "vat.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 40),
   volumebyareaReportCLUS = list (calculateInterval = 1,
                                  AreaofInterestRaster = "rast.bc_crithab_and_herd",
-                                 AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
+                                 AreaofInterestTable = "vat.vat_bc_crithab_and_herd"),
+  smcaribouAbundanceCLUS = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
+                                  tableSMCCoeffs = "vat.smc_coeffs"),
   uploaderCLUS = list(aoiName = 'quesnel_tsa', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
@@ -404,8 +530,10 @@ modules <- list("dataLoaderCLUS",
                 "disturbanceCalcCLUS", 
                 "volumebyareaReportCLUS",
                 # "rsfCLUS", # error line 453 - need to debug
+                "smcaribouAbundanceCLUS",
                 "uploaderCLUS"
                 )
+
 
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU7' and  species = 'caribou' and season IN ('A')"))
 # rsf_model_coeff[, bounds := 'rast.bc_crithab_and_herd']
@@ -484,10 +612,27 @@ modules <- list("dataLoaderCLUS",
 #                        description = "No harvest in Tweedsmuir critical habitat that overlaps with the harvest unit (e.g., TSA or TFL). Even harvest flow = 1,900,000m3/year. Adjacency = 3m. Oldest first.")
 # scenario = data.table (name = "quesnel_tweeds_he0d_mlewr12d",
 #                        description = "No harvest in Tweedsmuir HEWSR and LESR critical habitat; harvest allowed in LEWR and matrix critical habitat up to 12% disturbance (no buffer) in forested area. Even harvest flow = 1,900,000m3/year. Adjacency = 3m. Oldest first.")
+# scenario = data.table (name = "quesnel_tweeds_hi_priority",
+#                        description = "No harvest in Tweedsmuir priority stands in high priority zone HEWSR and LESR critical habitat; harvest allowed in high priority LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: only high priority zones in this unit. Even harvest flow = 1,900,000m3/year. Adjacency = 3m. Oldest first.")
 
-scenario = data.table (name = "quesnel_tweeds_hi_priority",
-                       description = "No harvest in Tweedsmuir priority stands in high priority zone HEWSR and LESR critical habitat; harvest allowed in high priority LEWR and matrix critical habitat up to 15% disturbance (no buffer) in forested area. NOTE: only high priority zones in this unit. Even harvest flow = 1,900,000m3/year. Adjacency = 3m. Oldest first.")
-
+# scenario = data.table (name = "quesnel_bau_chil_0821",
+#                        description = "Business as usual (BAU) for Chilcotin scenarios (existing constaints in place, including beo, vqo, wha, uwr, cw, pa, fsw). Adjacency = 3m. Priority queue: closest to disturbance, then oldest first, then highest volume first. Even harvest flow = 1,600,000m3/year.")
+# scenario = data.table (name = "quesnel_scen1_chil_0821",
+#                        description = "Chilcotin scenario 1: WHAs 5-086, 5-087, 5-118, 5-872, 5-873, 5-118 are removed; other existing constraints remain in place, including beo, vqo, wha, uwr, cw, pa, fsw; forest age constraints are added to caribou critical habitat, including, Seral stage >80 = 45%; Seral stage >100 = 37%; Seral stage >120 = 30%; Seral stage >140 = 25%). Adjacency = 3m. Priority queue: closest to disturbance, then oldest first, then highest volume first. Harvest flow = 1,600,000m3/year.")
+# scenario = data.table (name = "quesnel_scen2_chil_0821",
+#                        description = "Chilcotin scenario 2: WHAs 5-086, 5-087, 5-118, 5-872, 5-873, 5-118 are removed; other existing constraints remain in place, including beo, vqo, wha, uwr, cw, pa, fsw; forest age constraints are added to caribou critical habitat, including, Seral stage >80 = 37%; Seral stage >100 = 30%; Seral stage >120 = 25%). Adjacency = 3m. Priority queue: closest to disturbance, then oldest first, then highest volume first. Harvest flow = 1,600,000m3/year.")
+# scenario = data.table (name = "quesnel_scen3_chil_0821",
+#                        description = "Chilcotin scenario 3: WHAs 5-086, 5-087, 5-118, 5-872, 5-873, 5-118 are removed; other existing constraints remain in place, including beo, vqo, wha, uwr, cw, pa, fsw; forest age constraints are added to caribou critical habitat, including, Seral stage >80 = 30%; Seral stage >100 = 25%). Adjacency = 3m. Priority queue: closest to disturbance, then oldest first, then highest volume first. Harvest flow = 1,600,000m3/year.")
+# scenario = data.table (name = "quesnel_scen1ra_chil_0821",
+#                        description = "Chilcotin scenario 1 with rotation age: WHAs 5-086, 5-087, 5-118, 5-872, 5-873, 5-118 are removed; other existing constraints remain in place, including beo, vqo, wha, uwr, cw, pa, fsw; forest age constraints are added to caribou critical habitat, including, Seral stage >80 = 45%; Seral stage >100 = 37%; Seral stage >120 = 30%; Seral stage >140 = 25%). Rotation age = 150 years, or 0.67% area harvested annually or 3% area harvested every 5 years. Adjacency = 3m. Priority queue: closest to disturbance, then oldest first, then highest volume first. Harvest flow = 1,600,000m3/year.")
+# scenario = data.table (name = "quesnel_scen2ra_chil_0821",
+#                        description = "Chilcotin scenario 2 with rotation age: WHAs 5-086, 5-087, 5-118, 5-872, 5-873, 5-118 are removed; other existing constraints remain in place, including beo, vqo, wha, uwr, cw, pa, fsw; forest age constraints are added to caribou critical habitat, including, Seral stage >80 = 37%; Seral stage >100 = 30%; Seral stage >120 = 25%). Rotation age = 120 years, or 0.83% area harvested annually or 4% area harvested every 5 years. Adjacency = 3m. Priority queue: closest to disturbance, then oldest first, then highest volume first. Harvest flow = 1,600,000m3/year.")
+# scenario = data.table (name = "quesnel_scen3ra_chil_0821",
+#                        description = "Chilcotin scenario 3 with rotation age: WHAs 5-086, 5-087, 5-118, 5-872, 5-873, 5-118 are removed; other existing constraints remain in place, including beo, vqo, wha, uwr, cw, pa, fsw; forest age constraints are added to caribou critical habitat, including, Seral stage >80 = 30%; Seral stage >100 = 25%).). Rotation age = 100 years, or 1% area harvested annually or 5% area harvested every 5 years. Adjacency = 3m. Priority queue: closest to disturbance, then oldest first, then highest volume first. Harvest flow = 1,600,000m3/year.")
+# scenario = data.table (name = "quesnel_scen4_chil_0821",
+#                        description = "Chilcotin scenario 4: WHAs 5-086, 5-087, 5-118, 5-872, 5-873, 5-118 are removed; other existing constraints remain in place, including beo, vqo, wha, uwr, cw, pa, fsw; forest age constraints are added to caribou critical habitat, including, Seral stage >40 = 85%; Seral stage >80 = 45%; Seral stage >100 = 37%; Seral stage >120 = 30%; Seral stage >140 = 25%). Rotation age = 150 years, or 0.67% area harvested annually or 3% area harvested every 5 years. Adjacency = 3m. Priority queue: closest to disturbance, then oldest first, then highest volume first. Harvest flow = 1,600,000m3/year.")
+scenario = data.table (name = "quesnel_bau_dist1km_chil_0821",
+                       description = "Business as usual (BAU) for Chilcotin scenarios (existing constaints in place, including beo, vqo, wha, uwr, cw, pa, fsw). Adjacency = 3m. Priority queue: blocks < 1km of disturbance, then <2.5km, then <5km, then >5km, then oldest first. Even harvest flow = 1,850,000m3/year.")
 
 
 
@@ -504,17 +649,16 @@ scenario = data.table (name = "quesnel_tweeds_hi_priority",
 #                        description = "No harvest in Chilcotin (Itcha, Rainbows and Charlotte only) high and low elevation critical habitat, maximum 35% buffered disturbance (15% harvest) in Chilcotin matrix critical habitat. Adjacency was set to 3m.")
 
 
-
-
-
-
 harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
                                      partition = ' vol > 150 ', 
-                                     year = rep( seq (from = 2018, 
-                                                      to = 2218, 
-                                                      by = 5),
+                                     period = rep( seq (from = 1, 
+                                                      to = 40, 
+                                                      by = 1),
                                                 1), 
-                                     flow = 9500000) # 1,900,000 m3/yr 
+                                     flow = 9250000,
+                                     partition_type = 'live')
+                                    # 9500000 // 1,900,000 m3/yr for oldest first
+                                    # 8000000 // 1,600,000 m3/yr for closest dist 1st
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow

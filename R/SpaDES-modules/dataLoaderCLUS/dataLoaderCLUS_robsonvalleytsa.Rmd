@@ -50,17 +50,18 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list (dbName = 'clus', # name of the postgres database
                          save_clusdb = TRUE,
+                         sqlite_dbname = "Robson_Valley_TSA",
                          nameBoundaryFile = "tsa_aac_bounds", # name of the TSA boundary data in postgres
                          nameBoundaryColumn = "tsa_name", 
                          nameBoundary = "Robson_Valley_TSA", # the boudnary (TSA) name
                          nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
                          nameCompartmentRaster = "rast.tsa_aac_boundary", 
                          nameCompartmentTable = "tsa_aac_bounds_vat", 
-                         nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018', # THLB raster in postgres
+                         nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', #'rast.bc_thlb2018'
                          nameZoneRasters = c("rast.zone_cond_beo",
                                              "rast.zone_cond_vqo", 
-                                             "rast.zone_cond_wha", 
-                                             "rast.zone_cond_uwr",
+                                             "rast.zone_wha_2021", #"rast.zone_cond_wha" 
+                                             "rast.zone_uwr_2021", #"rast.zone_cond_uwr"
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", 
                                              "rast.zone_cond_cw", 

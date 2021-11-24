@@ -163,6 +163,7 @@ parameters <- list(
   dataLoaderCLUS = list( 
                            dbName='clus',
                            save_clusdb = TRUE,
+                           sqlite_dbname = "Lakes_TSA",
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Lakes_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
@@ -171,11 +172,11 @@ parameters <- list(
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
-                           nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
+                           nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', #'rast.bc_thlb2018' 
                            nameZoneRasters = c("rast.zone_cond_beo", 
                                                "rast.zone_cond_vqo", 
-                                               "rast.zone_cond_wha", 
-                                               "rast.zone_cond_uwr",
+                                               "rast.zone_wha_2021", #"rast.zone_cond_wha"  
+                                               "rast.zone_uwr_2021", #"rast.zone_cond_uwr"
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                
@@ -302,11 +303,12 @@ scenario = data.table (name = "lakes_takla_hi_priority",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Lakes_TSA",
                                      partition = ' vol > 100 ', # from Lakes 2019 determination
-                                     year = rep( seq (from = 2018, # run the 
-                                                      to = 2218, 
-                                                      by = 5),
+                                     period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by =1),
                                                 1), 
-                                     flow = 4750000) #950,000m3/yr
+                                     flow = 4750000,
+                                     partition_type = 'live') #950,000m3/yr
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))

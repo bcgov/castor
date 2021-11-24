@@ -1,0 +1,121 @@
+---
+title: "Fort St. John TSA Management Zones"
+author: "Tyler Muhly"
+date: "06/07/2021"
+output: 
+  html_document:
+    keep_md: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library (raster)
+library (fasterize)
+library (sf)
+library (DBI)
+library (data.table)
+
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
+```
+
+## Purpose
+The scripts here produce rasters and tables that specify proposed old growth deferral areas, as recommended in the Gorley adn Merkel old growth report. A request for an analysis of the impact of these zones on the Fort St. John TSA timber volume was received from the North region (Shane Ford, Michael Huck). These data were created for the entire province so they can potentially be used elsewhere. 
+
+Here we included recommendation 6.3.a, which are old areas in BEC zones with <10% old existing, recommendation 6.3.c, which are areas with a probability of having an 'ancient' (>300 year old) forest, and recommendation 6.3.e, which are forest stands with a dsite productivity >20, as defined in the provincal site productivity layer. 
+
+All spatial polygon files are converted to rasters following the provincial hectares BC raster convention that we are using in the CLUS model to ensure all rasters overlap. Currently, these are used in the forestryCLUS/dataLoaderCLUS as zoneRasters (i.e., management zones with constraints on forestry).  
+
+### Old Growth Deferral Areas - Recommendation 6.3.a
+```{r, convert polygon to raster}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+poly.63a<- getSpatialQuery("SELECT * FROM public.oldgrwth_def_rec_6_3_a")
+poly.63a$zone <- poly.63a$ogc_fid
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(poly.63a)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras.poly.63a <- fasterize::fasterize (poly.63a, prov.rast, field = "zone")
+writeRaster (ras.poly.63a, paste0 (here::here(), "/R/params/ras_oldgrth_63a.tif"), overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_oldgrth_63a.tif -t 100x100 rast.oldgrwth_def_rec63a | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+# Create zone constraint table for raster 
+zone <- data.table (zoneid = as.integer (1), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.oldgrwth_def_rec63a', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+DBI::dbWriteTable(conn, c("zone", "oldgrwth_def_rec63a"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.oldgrwth_def_rec63a INHERIT zone.constraints"))
+
+dbDisconnect(conn)
+
+```
+
+
+### Old Growth Deferral Areas - Recommendation 6.3.c
+```{r, convert polygon to raster}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+poly.63c<- getSpatialQuery("SELECT * FROM public.oldgrwth_def_rec_6_3_c")
+poly.63c$zone <- as.integer (as.factor (poly.63c$probabilit))
+poly.63c_vat <- unique (data.table (st_drop_geometry (poly.63c [, c ('zone', 'probabilit')])))
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(poly.63c)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras.poly.63c<- fasterize::fasterize (poly.63c, prov.rast, field = "zone")
+writeRaster (ras.poly.63c, paste0 (here::here(), "/R/params/ras_oldgrth_63c.tif"), overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_oldgrth_63c.tif -t 100x100 rast.oldgrwth_def_rec63c | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+# Create zone constraint table for raster 
+zone <- data.table (zoneid = as.integer (c (1:4)), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.oldgrwth_def_rec63c', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+DBI::dbWriteTable(conn, c("zone", "oldgrwth_def_rec63c"), value = zone, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("vat", "oldgrwth_def_rec63c"), value = poly.63c_vat, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.oldgrwth_def_rec63c INHERIT zone.constraints"))
+
+dbDisconnect(conn)
+
+```
+
+
+### Old Growth Deferral Areas - Recommendation 6.3.e
+```{r, convert polygon to raster}
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+poly.63e<- getSpatialQuery("SELECT * FROM public.oldgrwth_def_rec_6_3_e")
+poly.63e$zone <- 1
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(poly.63e)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras.poly.63e<- fasterize::fasterize (poly.63e, prov.rast, field = "zone")
+writeRaster (ras.poly.63e, paste0 (here::here(), "/R/params/ras_oldgrth_63e.tif"), overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_oldgrth_63e.tif -t 100x100 rast.oldgrwth_def_rec63e | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+# Create zone constraint table for raster 
+zone <- data.table (zoneid = as.integer (1), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.oldgrwth_def_rec63e', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA))
+DBI::dbWriteTable(conn, c("zone", "oldgrwth_def_rec63e"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.oldgrwth_def_rec63e INHERIT zone.constraints"))
+
+dbDisconnect(conn)
+
+```

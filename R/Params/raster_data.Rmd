@@ -20,6 +20,9 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+require (data.table)
+require (here)
+source (here ("R/functions/R_Postgres.R"))
 ```
 
 ## Purpose
@@ -58,7 +61,7 @@ data.table(layer=c('bc timber harvesting landbase', 'Coast timber harvesting lan
 ## Set empty provincial raster
 
 ```{r, faster_raster}
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+source (here ("R/functions/R_Postgres.R"))
 
 #Get dummy layer for projection (too lazy to write it) 
 lyr<-getSpatialQuery(paste("SELECT geom FROM public.gcbp_carib_polygon"))
@@ -97,6 +100,14 @@ system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/c
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/thlb_rco_Lyr.tif -t 100x100 public.ras_thlb_rco_Lyr2018 | psql -d clus")
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/thlb_sir_Lyr.tif -t 100x100 public.ras_thlb_sir_Lyr2018 | psql -d clus")
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/thlb2018.tif -t 100x100 public.ras_bc_thlb2018 | psql -d clus")
+
+
+## 2020 Version
+layer <- getSpatialQuery(paste("SELECT thlb_fact, shape FROM public.thlb"))
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "thlb_fact")
+writeRaster(layer.ras, file="thlb_2020.tif", format="GTiff", overwrite=TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/Params/thlb_2020.tif -t 100x100 rast.thlb_2020 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
 ```
 
 
@@ -347,4 +358,24 @@ all[all[] ==0 ]<-NA
 writeRaster(all, file="C:/Users/klochhea/clus/R/params/all_perm.tif", format="GTiff", overwrite=TRUE)
 
 system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/all_perm.tif -t 100x100 rast.perm_dist_rds | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+```
+
+
+## Dead (Salvage) Volume Raster
+
+```{r, dead volume}
+
+vri <- getSpatialQuery ("SELECT * FROM public.veg_comp_lyr_r1_poly2020")
+# dead_stand_volume_125, geometry
+
+# Note: If rasterizing the DEAD_STAND_VOLUME_125 field from the 2020 Veg comp r1 data, check whether it includes inventory data from TFLs (i.e., use FAIBS internal data). Any area where the bclcs_level_1  = 'U' add in the rasterized DEAD_STAND_VOLUME_125 field from the TFL inventory. 
+
+dead.ras <-fasterize::fasterize(sf= vri, raster = ProvRast , field = "dead_stand_volume_125")
+rm(vri)
+gc()
+
+writeRaster(dead.ras, file="dead_vol_125_2020.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = 'raster2pgsql -s 3005 -d -I -C -M',  here::here(), '/R/Params/dead_vol_125_2020.tif -t 100x100 rast.dead_vol_125_2020 | psql -d clus')
+
 ```

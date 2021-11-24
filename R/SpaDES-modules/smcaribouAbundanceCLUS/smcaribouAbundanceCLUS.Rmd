@@ -1,0 +1,91 @@
+---
+title: "smcaribouAbundanceCLUS"
+author: "Tyler Muhly and Kyle Lochhead"
+date: "22 July 2021"
+output: pdf_document
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, results = "hold")
+```
+
+## Overview
+This module estimates the abundance of subpopulations of the southern group of southern mountain caribou using the model developed by [Lochhead et al. (In Prep.)](citation). The model used an exponential generalized linear mixed-model to fit subpopulation-specific relationships between forestry disturbance estimates and caribou abundance estimates over time. Here we use the model to estimate a subpopulation abundance as a function of the amount of forested area disturbed by roads and cutblocks in each core and matrix critical habitat areas. 
+
+# Usage
+
+```{r module_usage}
+
+library (SpaDES.core)
+library (data.table)
+library (here)
+library (dplyr)
+source (paste0 (here(),"/R/functions/R_Postgres.R"))
+
+moduleDir <- file.path (paste0 (here(),"/R/SpaDES-modules"))
+inputDir <- file.path (paste0 (here(), "/R")) %>% reproducible::checkPath (create = TRUE)
+outputDir <- file.path (paste0 (here(), "/R/SpaDES-modules/survivalCLUS/outputs"))
+cacheDir <- file.path (paste0 (here(), "/R"))
+times <- list (start = 0, end = 1)
+
+parameters <- list (
+  .progress = list (type = NA, interval = NA),
+  .globals = list (),
+  dataLoaderCLUS = list (useCLUSdb = "C:\\Work\\caribou\\clus_data\\clusdb.sqlite", # instantiated dbase
+                         dbName = 'clus', # Database connection
+                         save_clusdb = FALSE, # don't save the dbase
+                         # Study Area params below; make sure they are consistent with other modules
+                         nameBoundaryFile = "study_area_compart",
+                         nameBoundaryColumn = "tsb_number",
+                         nameBoundary = c ("26A", "29B", "29C"), # DU7 
+                         nameBoundaryGeom ='wkb_geometry',
+                         nameCompartmentRaster = "rast.forest_tenure",
+                         nameCompartmentTable = "forest_tenure_vat",
+                         nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
+                         nameZoneRasters = c ("rast.zone_cond_beo", "rast.zone_cond_vqo",  "rast.zone_cond_uwr", "rast.zone_cond_fsw", "rast.zone_cond_nharv"),
+                         nameZoneTable = "zone_constraints",
+                         nameAgeRaster = "rast.vri2017_projage1",
+                         nameHeightRaster = "rast.vri2017_projheight1",
+                         nameCrownClosureRaster = "rast.vri2017_crownclosure",
+                         nameYieldTable = "yield_ex"),
+ smcaribouAbundanceCLUS = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
+                                tableSMCCoeffs = "vat.smc_coeffs") 
+)
+
+modules <- list ("dataLoaderCLUS", "smcaribouAbundanceCLUS")
+objects <- list ()
+paths <- list (
+  cachePath = cacheDir,
+  modulePath = moduleDir,
+  inputPath = inputDir,
+  outputPath = outputDir
+)
+
+mySim <- simInit (times = times, params = parameters, modules = modules,
+                  objects = objects, paths = paths)
+outputs (mySim) <- data.frame (objectName = c ("tableSurvivalReport")) # Consists of survival rate estimates for each herd in the study area at each time step. Gets saved in the 'outputs' folder of the module. 
+system.time({
+mysimout <- spades (mySim)
+})
+```
+
+# Parameters
+The user defines two parameters to run this module:
+1. *nameRasSMCHerd*, a raster that defines the location of core and matrix critical habitat for each southern mountain caribou herd. 
+2. *tableSMCCoeffs*, a table that defines the namse of the critical habitat/herd areas, and the model coefficients for estimating subpopulation/herd abundance from  forestry disturbance.
+
+# Events
+This module is pretty simple; there are two event types: 'init' and 'calculateAbundance' . The 'init' event identifies subpopulations/herds in the sim study area, calculates the amount of disturbance in each subpopulations critical habitat types (core and matrix) and estimates abundance of those subpopulations at time 0 and saves theseestimates as a data.table in the sim. The 'calculateAbundance' event calculates disturbance and abundance estimates in each calculateAbundance at each scheduled time interval. 
+
+# Data dependencies
+## Input data
+This module needs the 'dist' field (i.e., disturbed areas) from the 'pixels' table in the sim RSQLite databases (clusdb) that gets instantiated at the start of the sim in the dataLoaderCLUS. It also requires a table with model coefficients for estimating abundance from disturbance. This table is currently 'hard coded' and remains static throughout the scenario run.
+
+## Output data
+This module outputs a table that has the herd name identifier, proportion of forest area that is disturbed in each subpopulations critical habitat area and the estimated abundance of the subpopulation at each time interval of the sim.
+
+# Links to other modules
+The module will only work if the dataLoadDerCLUS clusdb is instantiated as part of the CLUS model. Otherwise you won't have the  data needed to make the abundance estimate. 
+

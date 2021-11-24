@@ -6,12 +6,13 @@ RUN apt-get update && apt-get install libgdal-dev libpq-dev libudunits2-dev libp
 RUN apt-get clean
 
 # Download and install library
-RUN R -e "install.packages(c('shiny','shinydashboard','shinydashboardPlus', 'shinyBS', 'bsplus', 'shinyjs', 'V8', 'shinythemes', 'shinyWidgets', 'igraph', 'leaflet', 'leaflet.extras', 'dplyr', 'ggplot2', 'RPostgreSQL', 'rpostgis', 'sf', 'zoo','tidyr','plotly','raster','lobstr', 'rgdal', 'DT'))"
+RUN R -e "install.packages(c('shiny','shinydashboard','shinydashboardPlus', 'shinyBS', 'bsplus', 'shinyjs', 'V8', 'shinythemes', 'shinyWidgets', 'igraph', 'leaflet', 'leaflet.extras', 'dplyr', 'ggplot2', 'RPostgreSQL', 'rpostgis', 'sf', 'zoo','tidyr','plotly','raster','lobstr', 'rgdal', 'DT', 'rintrojs'))"
 
 # copy the app to the image 
 COPY server.R /srv/shiny-server/
 COPY ui.R /srv/shiny-server/
 COPY global.R /srv/shiny-server/
+COPY /www /srv/shiny-server/www
 
 
 # make all app files readable (solves issue when dev in Windows, but building in Ubuntu)

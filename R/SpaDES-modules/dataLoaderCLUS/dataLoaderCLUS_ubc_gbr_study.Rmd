@@ -56,13 +56,14 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list (dbName = 'clus', # name of the postgres database
                          save_clusdb = TRUE,
+                         sqlite_dbname = "UBC_study_boundary",
                          nameBoundaryFile="ubc_gbr_boundaries",
                          nameBoundaryColumn="tsa_name",
                          nameBoundary = "UBC_study_boundary",
                          nameBoundaryGeom='wkb_geometry',
                          nameCompartmentRaster = "rast.ubc_gbr_boundaries",
                          nameCompartmentTable = "ubc_gbr_boundaries_vat",
-                         nameMaskHarvestLandbaseRaster='rast.bc_thlb2018',
+                         nameMaskHarvestLandbaseRaster='rast.thlb_2020', #'rast.bc_thlb2018'
                          nameZoneRasters=c("rast.zone_cond_beo", 
                                            "rast.zone_cond_vqo", 
                                            "rast.zone_cond_wha_gbr", 

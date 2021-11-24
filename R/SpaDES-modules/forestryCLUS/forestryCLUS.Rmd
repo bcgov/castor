@@ -54,6 +54,7 @@ parameters <- list(
   dataLoaderCLUS = list( 
                          dbName='clus',
                            #save_clusdb = TRUE,
+                          # sqlite_dbname = "study_area",
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile="tsa_aac_bounds",
@@ -68,7 +69,7 @@ parameters <- list(
                            nameZoneTable="zone_constraints",
                            nameYieldsRaster = "rast.ycid_vdyp",
                            nameYieldTable ="yc_vdyp",
-                           nameYieldsTransitionRaster = "rast.tipsy2018_id",
+                           nameYieldsTransitionRaster = 'rast.thlb_2020', #'rast.bc_thlb2018' 
                            nameYieldTransitionTable ="yc_tipsy",
                            nameForestInventoryRaster ="rast.vri2018_id",
                            nameForestInventoryKey = "feature_id",
@@ -104,41 +105,50 @@ modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryC
 scenario = data.table(name="test", description = "checking uncertainty model")
 
 harvestFlow<- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
-                                     partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2018, to=2020, by = 1),1), 
-                                     flow = 207100),
+                                     partition = ' (vol > 110) ',
+                                     period = rep(seq(from = 1, to=2, by = 1),1), 
+                                     flow = 207100,
+                                     partition_type = 'live'),
                              data.table(compartment ="Revelstoke_TSA",
-                                     partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2021, to=2030, by = 1),1), 
-                                     flow = 186390), 
+                                     partition = ' (vol > 110) ',
+                                     period = rep(seq(from = 3, to=10, by = 1),1), 
+                                     flow = 186390,
+                                     partition_type = 'live'), 
                              data.table(compartment ="Revelstoke_TSA",
-                                     partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2031, to=2040, by = 1),1), 
-                                     flow = 165680),
+                                     partition = ' (vol > 110) ',
+                                     period = rep(seq(from = 11, to=20, by = 1),1), 
+                                     flow = 165680,
+                                     partition_type = 'live'),
                              data.table(compartment ="Revelstoke_TSA",
-                                     partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2041, to=2050, by = 1),1), 
-                                     flow = 144970),
+                                     partition = ' (vol > 110) ',
+                                     period = rep(seq(from = 21, to=30, by = 1),1), 
+                                     flow = 144970,
+                                     partition_type = 'live'),
                              data.table(compartment ="Revelstoke_TSA",
-                                     partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2051, to=2060, by = 1),1), 
-                                     flow = 135900),
+                                     partition = ' (vol > 110) ',
+                                     period = rep(seq(from = 31, to=40, by = 1),1), 
+                                     flow = 135900,
+                                     partition_type = 'live'),
                              data.table(compartment ="Revelstoke_TSA",
-                                     partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2061, to=2070, by = 1),1), 
-                                     flow = 144970),
+                                     partition = ' (vol > 110) ',
+                                     period = rep(seq(from = 41, to=50, by = 1),1), 
+                                     flow = 144970,
+                                     partition_type = 'live'),
                               data.table(compartment ="Revelstoke_TSA",
-                                     partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2071, to=2080, by = 1),1), 
-                                     flow = 165680),
+                                     partition = ' (vol > 110) ',
+                                     period = rep(seq(from = 51, to=60, by = 1),1), 
+                                     flow = 165680,
+                                     partition_type = 'live'),
                              data.table(compartment ="Revelstoke_TSA",
-                                     partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2081, to=2090, by = 1),1), 
-                                     flow = 186390),
+                                     partition = ' (vol > 110) ',
+                                     period = rep(seq(from = 61, to=70, by = 1),1), 
+                                     flow = 186390,
+                                     partition_type = 'live'),
                              data.table(compartment ="Revelstoke_TSA",
-                                     partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2091, to=2118, by = 1),1), 
-                                     flow = 207100)
+                                     partition = ' (vol > 110) ',
+                                     period = rep(seq(from = 71, to=80, by = 1),1), 
+                                     flow = 207100,
+                                     partition_type = 'live')
 ))
 
 
@@ -213,7 +223,7 @@ ELSE
 
 ## Input data
 
-A SQLite db is required (output from dataloaderCLUS). A harvestFlow data.table object that includes the forest management unit (i.e., compartment, aka - 'supply block'), the partition from which the harvest flow applies (e.x., All dead pine); the year at which the flow applies and the amount of volume.
+A SQLite db is required (output from dataloaderCLUS). A harvestFlow data.table object that includes the forest management unit (i.e., compartment, aka - 'supply block'), the partition from which the harvest flow applies (e.x., All dead pine); the period at which the flow applies and the amount of volume.
 
 ## Output data
 

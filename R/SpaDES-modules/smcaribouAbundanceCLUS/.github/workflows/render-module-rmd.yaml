@@ -1,0 +1,38 @@
+on:
+  pull_request:
+    branches:
+      - master
+      - development
+  push:
+    branches:
+      - master
+      - development
+    paths:
+      - smcaribouAbundanceCLUS.Rmd
+      - smcaribouAbundanceCLUS.R
+
+name: Render module Rmd
+
+jobs:
+  render:
+    name: Render module Rmd
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: r-lib/actions/setup-r@v1
+      - uses: r-lib/actions/setup-pandoc@v1
+      - name: Install devtools, knitr and rmarkdown
+        run: Rscript -e 'install.packages(c("devtools", "knitr", "rmarkdown"))'
+      - name: Install SpaDES
+        run: |
+          Rscript -e 'devtools::install_github("PredictiveEcology/reproducible@development")'
+          Rscript -e 'devtools::install_github("PredictiveEcology/SpaDES.core@development", dependencies = TRUE)'
+          Rscript -e 'devtools::install_github("PredictiveEcology/SpaDES.tools@development", dependencies = TRUE)'
+      - name: Install module package dependencies
+        run: Rscript -e 'pkgs <- SpaDES.core::packages(modules = "smcaribouAbundanceCLUS", paths = ".."); reproducible::Require(pkgs)'
+      - name: Render module Rmd
+        run: Rscript -e 'rmarkdown::render("smcaribouAbundanceCLUS.Rmd", encoding = "UTF-8")'
+      - name: Commit results
+        run: |
+          git commit smcaribouAbundanceCLUS.html -m 'Re-build smcaribouAbundanceCLUS.Rmd' || echo "No changes to commit"
+          git push https://${{github.actor}}:${{secrets.GITHUB_TOKEN}}@github.com/${{github.repository}}.git HEAD:${{github.ref}} || echo "No changes to commit"

@@ -46,17 +46,18 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list (dbName = 'clus', # name of the postgres database
                          save_clusdb = TRUE,
+                         sqlite_dbname = "Quesnel_TSA",
                          nameBoundaryFile = "tsa_aac_bounds", # name of the TSA boundary data in postgres
                          nameBoundaryColumn = "tsa_name", # name of the column in the boundary (TSA) data with the boundary (TSA) name
                          nameBoundary = "Quesnel_TSA", # the boudnary (TSA) name
                          nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
                          nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster with boundaries (TSAs) id's (integers); note the 'raster' schema in postgres
                          nameCompartmentTable = "tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
-                         nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018', # THLB raster in postgres
+                         nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', #'rast.bc_thlb2018'
                          nameZoneRasters = c("rast.zone_cond_beo", # rasters of the zone constraints to include
                                              "rast.zone_cond_vqo", 
-                                             "rast.zone_cond_wha", 
-                                             "rast.zone_cond_uwr",
+                                             "rast.zone_wha_2021", #"rast.zone_cond_wha"  
+                                             "rast.zone_uwr_2021", #"rast.zone_cond_uwr"
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
                                              "rast.zone_cond_cw", 

@@ -96,12 +96,11 @@ scenario = data.table(name="barkerville_bc_herd_plan_30", description = "BC herd
 
 harvestFlow<- rbindlist(list(data.table(compartment ="Cascadia_TCC_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2018, to=2020, by = 1),1), 
-                                     flow = 55190),
-                             data.table(compartment ="Cascadia_TCC_TSA",
-                                     partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2021, to=2119, by = 1),1), 
-                                     flow = 55190)
+                                      period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),1), 
+                                     flow = 55190,
+                                     partition_type = 'live')
                              ))
 
 

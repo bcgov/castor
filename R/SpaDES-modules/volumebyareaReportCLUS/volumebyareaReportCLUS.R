@@ -71,7 +71,7 @@ doEvent.volumebyareaReportCLUS = function(sim, eventTime, eventType) {
 
 Init <- function(sim) {
   sim$volumebyareaReport <- data.table (scenario = character(), 
-                                        compartment = character(), 
+                                        #compartment = character(), 
                                         timeperiod = integer(),
                                         area_of_interest = character(),
                                         volume_harvest = numeric(),
@@ -112,7 +112,7 @@ volAnalysis <- function(sim) {
   tempVolumeReport <- tempVolumeReport [, .(volume_harvest = sum (vol_h), area_harvest = .N), by = "aoi"]
   
   tempVolumeReport [, scenario := sim$scenario$name]
-  tempVolumeReport [, compartment := sim$boundaryInfo[[3]]]
+  #tempVolumeReport [, compartment := sim$boundaryInfo[[3]]]
   tempVolumeReport [, timeperiod := as.integer(time(sim)*sim$updateInterval)]
   aoi_tab <- data.table (getTableQuery (paste0 ("SELECT * FROM ", P(sim, "volumebyareaReportCLUS", "AreaofInterestTable"))))
   colnames(aoi_tab)[1:2] <- c("area_name", "value")

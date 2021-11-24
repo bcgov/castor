@@ -12,7 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 ---
-title: "Database creation for Dawson Creek TSA Analyses Version 1.0"
+title: "Database creation for Fort St. John TSA Analyses Version 1.0"
 author: "Kyle Lochhead"
 date: "23 June 2020"
 output: pdf_document
@@ -47,17 +47,18 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list (dbName = 'clus', # name of the postgres database
                          save_clusdb = TRUE,
+                         sqlite_dbname = "Fort_St_John_Core_TSA",
                          nameBoundaryFile = "tsa_aac_bounds", # name of the (TSA) boundary data in postgres
                          nameBoundaryColumn = "tsa_name", 
                          nameBoundary = "Fort_St_John_Core_TSA", # "Fort_St_John_Core_TSA"  Fort_St_John_TSA
                          nameBoundaryGeom = 'wkb_geometry', # geometry column name in the boundary file
                          nameCompartmentRaster = "rast.tsa_aac_boundary", 
                          nameCompartmentTable = "tsa_aac_bounds_vat", # boundary (TSA) names corresponding to raster id's
-                         nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018', # THLB raster in postgres
+                         nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', #'rast.bc_thlb2018'
                          nameZoneRasters = c("rast.zone_cond_beo", # rasters of the zone constraints to include
                                              "rast.zone_cond_vqo", 
-                                             "rast.zone_cond_wha", 
-                                             "rast.zone_cond_uwr",
+                                             "rast.zone_wha_2021", #"rast.zone_cond_wha" 
+                                             "rast.zone_uwr_2021", #"rast.zone_cond_uwr"
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", # includes parks and no harvest OGMAs
                                              "rast.zone_cond_cw", 
@@ -75,7 +76,21 @@ parameters <-  list(
                                              
                                              "rast.zone_cond_bc_graham_crithab",
                                              
-                                             "rast.zone_du7_scenario_20210330"
+                                             "rast.zone_du7_scenario_20210330",
+                                             
+                                             "rast.pink_mtn_habitat",
+                                             "rast.fn_aoi_fsj_tsa",
+                                             "rast.graham_caribou_core_habitat",
+                                             "rast.old_growth_fsj_tsa",
+                                             "rast.brfn_areas_fsj",
+                                             "rast.boreal_caribou_zone_2019",
+                                             "rast.oldgrwth_def_rec63a",
+                                             "rast.oldgrwth_def_rec63c",
+                                             "rast.oldgrwth_def_rec63e",
+                                             "rast.boreal_caribou_old",
+                                             "rast.graham_caribou_old",
+                                             "rast.pink_mtn_caribou_old",
+                                             "rast.fn_aoi_caribou"
                                            ), 
                          nameZoneTable = "zone.constraints", 
                          nameYieldsRaster = "rast.ycid_vdyp", 
@@ -94,9 +109,9 @@ parameters <-  list(
   blockingCLUS = list(blockMethod = 'pre', #
                       patchZone = 'rast.zone_cond_beo', 
                       patchVariation = 6,
-                      nameCutblockRaster ="rast.cns_cut_bl", # existing cutblocks data
+                      nameCutblockRaster ="rast.cns_cut_bl", 
                       useLandingsArea = FALSE),
-  roadCLUS = list(roadMethod = 'pre', # 'pre' creates the road network using a a minimum spanning tree to all potential 'landings (created in blockingCLUS)
+  roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_all'# existing road network
                   ),
@@ -124,7 +139,7 @@ parameters <-  list(
 # rsf_model_coeff <- data.table (getTableQuery ("SELECT * FROM rsf_model_coeff WHERE population = 'DU8' and  species = 'caribou' and season IN ('A')")) # use annual caribou RSF model coefficients for DU7
 #rsf_model_coeff[, population := 'Tweedsmuir'] 
 
-scenario = data.table(name="load_data_fsj_core", 
+scenario = data.table(name="load_data_fsj_core", # load_data_fsj_nocore  load_data_fsj_core
                       description = "dataloader")
 
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,

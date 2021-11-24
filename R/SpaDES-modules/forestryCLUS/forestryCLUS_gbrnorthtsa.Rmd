@@ -84,6 +84,7 @@ parameters <- list(
   .globals = list(),
   dataLoaderCLUS = list(   dbName='clus',
                            save_clusdb = FALSE,
+                           sqlite_dbname = "Great_Bear_Rainforest_North_TSA",
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Great_Bear_Rainforest_North_TSA_clusdb.sqlite"),
                            nameBoundaryFile = "tsa_aac_bounds_gbr",
                            nameBoundaryColumn = "tsa_name",
@@ -91,7 +92,7 @@ parameters <- list(
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary_gbr",
                            nameCompartmentTable = "tsa_aac_bounds_vat_gbr",
-                           nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
+                           nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', #'rast.bc_thlb2018' 
                            nameZoneRasters=c(#"rast.zone_cond_beo", # beo might not be correct for GBR. Should probably include harvest constraints
                                            "rast.zone_cond_vqo", 
                                            "rast.zone_cond_wha_gbr", 
@@ -186,12 +187,13 @@ modules <- list("dataLoaderCLUS",
 harvestFlow <- rbindlist(list(data.table(compartment ="Great_Bear_Rainforest_North_TSA",
                                      partition = ' vol > 250', # was set at vol > 250 because the Sunshine Coast TSA had a minimum harvest volume per ha set at 250m3 or 300m3 depending on species. See table 19 (pg 28) from the Sunshine Coast TSA TSR Data Package April 2011 report. 
 
-                                     year = rep( seq (from = 2018, 
-                                                      to = 2218, 
-                                                      by = 5),
+                                     period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by =1),
                                                 1), 
 
-                                     flow = 4800000))) # 1.) try 5000000 did not worked, 2.) 4500 000 worked, 3.) 4 600 000 worked, 4 700 000 worked, 4900000 did not work, 4800000 worked but 4 850 000 did not.
+                                     flow = 4800000,
+                                     partition_type = 'live'))) # 1.) try 5000000 did not worked, 2.) 4500 000 worked, 3.) 4 600 000 worked, 4 700 000 worked, 4900000 did not work, 4800000 worked but 4 850 000 did not.
 
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow

@@ -356,6 +356,7 @@ parameters <- list(
   dataLoaderCLUS = list( 
                            dbName='clus',
                            save_clusdb = TRUE,
+                           sqlite_dbname = "Prince_George_TSA",
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Prince_George_TSA_clusdb.sqlite"),  # Prince_George_North_TSA_clusdb.sqlite  Prince_George_TSA_clusdb.sqlite
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
@@ -363,11 +364,11 @@ parameters <- list(
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
-                           nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
+                           nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', #'rast.bc_thlb2018' 
                            nameZoneRasters = c("rast.zone_cond_beo", 
                                                "rast.zone_cond_vqo", 
-                                               "rast.zone_cond_wha", 
-                                               "rast.zone_cond_uwr",
+                                               "rast.zone_wha_2021", #"rast.zone_cond_wha"  
+                                               "rast.zone_uwr_2021", #"rast.zone_cond_uwr"
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw",
@@ -577,11 +578,12 @@ scenario = data.table (name = "pg_south_centgrp_luo_age_le40_minNRV",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Prince_George_TSA", # Prince_George_North_TSA   Prince_George_TSA
                                          partition = ' vol > 182 and age >= 75  ', 
-                                           year = rep( seq (from = 2018, 
-                                                            to = 2218, 
-                                                            by = 5),
+                                         period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
                                                       1), 
-                                           flow = 30000000) #6,000,000 / 30000000 //  1,200,000 / 6000000 
+                                         flow = 30000000,
+                                         partition_type = 'live') #6,000,000 / 30000000 //  1,200,000 / 6000000 
 ))
 
 

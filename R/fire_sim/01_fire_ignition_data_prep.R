@@ -15,7 +15,13 @@
 #  Script Version: 1.0
 #  Script Purpose: This script combines historic fire ignition point locations (https://catalogue.data.gov.bc.ca/dataset/fire-incident-locations-historical) with current fire ignition point locations (https://catalogue.data.gov.bc.ca/dataset/fire-locations-current). It also removes unneccessary data such as locations where ignitions were observed before 2002, ignition locations where smoke was observed but no fire was seen and fires for which the cause is unknown. 
 #  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#  Script Contributor: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #=================================
+
+##Overview
+# In this section (01), we select the available data for fires in BC from 2002 and 2020 (2002-2019 historic; 2020 current),
+ # combine data into one, and upload these files to the clus database.
+
 library(raster)
 library(data.table)
 library(sf)
@@ -27,10 +33,11 @@ require (RPostgreSQL)
 require (rpostgis)
 require (fasterize)
 require (dplyr)
+library(keyring)
 
 source(here::here("R/functions/R_Postgres.R"))
 
-
+#Below is currently on the D-drive of my computer. Will need to be in clusdb eventually.
 historic.ignit <- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Ignition_point_locations\\PROT_HISTORICAL_INCIDENTS_SP\\H_FIRE_PNT_point.shp", stringsAsFactors = T)
 
 current.ignit <- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\Current_Fire_Ignition_point_locations\\PROT_CURRENT_FIRE_PNTS_SP\\C_FIRE_PNT_point.shp", stringsAsFactors = T)
@@ -50,17 +57,26 @@ current.ignit<- current.ignit %>%
 ignition<- rbind(historic.ignit, current.ignit)
 
 ignition1 <- ignition %>% 
-  filter(FIRE_YEAR>2001) %>%
-  filter(FIRE_TYPE == "Fire" | FIRE_TYPE=="Nuisance Fire") 
+  filter(FIRE_YEAR>2001) %>% ##Select for years 2002 beyond
+  filter(FIRE_TYPE == "Fire" | FIRE_TYPE=="Nuisance Fire") #Select fire type for ones desired
 
-st_write(ignition1, dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp")
+st_crs(ignition1)
+
+st_write(ignition1, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp", delete_dsn = TRUE)
+table(ignition1$FIRE_YEAR) 
 
 
-## Load ignigition data into postgres (either my local one or Kyles)
-host=keyring::key_get('dbhost', keyring = 'postgreSQL')
-user=keyring::key_get('dbuser', keyring = 'postgreSQL')
-dbname=keyring::key_get('dbname', keyring = 'postgreSQL')
-password=keyring::key_get('dbpass', keyring = 'postgreSQL')
 
-ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+## Load ignition data into postgres (either my local one or Kyles)
+#host=keyring::key_get('dbhost', keyring = 'postgreSQL')
+#user=keyring::key_get('dbuser', keyring = 'postgreSQL')
+#dbname=keyring::key_get('dbname', keyring = 'postgreSQL')
+#password=keyring::key_get('dbpass', keyring = 'postgreSQL')
+
+##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
+#ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
 # I wrote this to both places KylesClus and my local postgres
+# https://gdal.org/programs/ogr2ogr.html
+

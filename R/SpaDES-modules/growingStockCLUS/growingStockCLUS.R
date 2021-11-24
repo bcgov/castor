@@ -148,16 +148,15 @@ updateGS<- function(sim) {
   message("...update yields")
   if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")) > 0){
     #tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, dat[yieldid == .BY]$eca,  xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
-    tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
-    (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
-    (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
-    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca as eca,
-    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt
+    #Note that this query uses the 'current' estimate of yield as the floor when interpolating
+    tab1<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t.pixelid,
+    (((k.tvol - t.vol*1.0)/(round(t.age/10+0.5)*10-(t.age - ", sim$updateInterval,")))*(t.age - CAST(t.age/10 AS INT)*10))+ t.vol as vol,
+    (((k.height - t.height*1.0)/(round(t.age/10+0.5)*10-(t.age-", sim$updateInterval,")))*(t.age - CAST(t.age/10 AS INT)*10))+ t.height as ht,
+    (((k.eca - t.eca*1.0)/(round(t.age/10+0.5)*10-(t.age- ", sim$updateInterval,")))*(t.age - CAST(t.age/10 AS INT)*10))+ t.height as eca,
+    (((k.dec_pcnt - t.dec_pcnt*1.0)/(round(t.age/10+0.5)*10-(t.age-", sim$updateInterval,")))*(t.age - CAST(t.age/10 AS INT)*10))+ t.dec_pcnt as dec_pcnt
     FROM pixels t
-    LEFT JOIN yields y 
-    ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
     LEFT JOIN yields k 
-    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
+    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0")))
     
     dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca, dec_pcnt = :dec_pcnt where pixelid = :pixelid", tab1[,c("vol", "ht", "eca", "dec_pcnt", "pixelid")])
@@ -166,15 +165,13 @@ updateGS<- function(sim) {
     
   }else{
     
-    tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
-    (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
-    (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
-    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt
+    tab1<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t.pixelid,
+    (((k.tvol - t.vol*1.0)/(round(t.age/10+0.5)*10-(t.age - ", sim$updateInterval,")))*(t.age - CAST(t.age/10 AS INT)*10))+ t.vol as vol,
+    (((k.height - t.height*1.0)/(round(t.age/10+0.5)*10-(t.age-", sim$updateInterval,")))*(t.age - CAST(t.age/10 AS INT)*10))+ t.height as ht,
+    (((k.dec_pcnt - t.dec_pcnt*1.0)/(round(t.age/10+0.5)*10-(t.age-", sim$updateInterval,")))*(t.age - CAST(t.age/10 AS INT)*10))+ t.dec_pcnt as dec_pcnt
     FROM pixels t
-    LEFT JOIN yields y 
-    ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
     LEFT JOIN yields k 
-    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
+    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0")))
     
     dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, dec_pcnt = :dec_pcnt  where pixelid = :pixelid", tab1[,c("vol", "ht", "dec_pcnt", "pixelid")])

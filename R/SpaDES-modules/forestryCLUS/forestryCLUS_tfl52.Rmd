@@ -250,6 +250,7 @@ parameters <- list(
   .globals = list(),
   dataLoaderCLUS = list(   dbName='clus',
                            save_clusdb = TRUE,
+                           sqlite_dbname = "TFL52",
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/TFL52_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
@@ -258,11 +259,11 @@ parameters <- list(
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
-                           nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
+                           nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', #'rast.bc_thlb2018' 
                            nameZoneRasters = c("rast.zone_cond_beo", 
                                                "rast.zone_cond_vqo", 
-                                               "rast.zone_cond_wha", 
-                                               "rast.zone_cond_uwr",
+                                               "rast.zone_wha_2021", #"rast.zone_cond_wha"  
+                                               "rast.zone_uwr_2021", #"rast.zone_cond_uwr"
                                                "rast.zone_cond_fsw",
                                                "rast.zone_cond_nharv",
                                                "rast.zone_cond_cw", 
@@ -397,11 +398,12 @@ scenario = data.table (name = "tfl52_barkerville_high_priority",
 
 harvestFlow <- rbindlist(list(data.table(compartment ="TFL52",
                                          partition = ' vol > 150 ', 
-                                         year = rep( seq (from = 2018, 
-                                                          to = 2218, 
-                                                          by = 5),
+                                         period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
                                                     1), 
-                                         flow = 2975000) #595,000m3/yr 
+                                         flow = 2975000,
+                                         partition_type = 'live') #595,000m3/yr 
 ))
 
 

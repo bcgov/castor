@@ -48,7 +48,9 @@ pars_scenario<-list(list("Prince_George_TSA", rbindlist(list(data.table(compartm
                                      flow = 6038000), 
                                      data.table(compartment ="Prince_George_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2022, to=2119, by = 1),1), 
+                                     year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),1), 
                                      flow =5038000 )
                                      ))), 
                     list("Invermere_TSA", rbindlist(list(data.table(compartment ="Invermere_TSA",
@@ -57,36 +59,50 @@ pars_scenario<-list(list("Prince_George_TSA", rbindlist(list(data.table(compartm
                                      flow = 496720), 
                                      data.table(compartment ="Invermere_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2022, to=2119, by = 1),1), 
+                                     year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),1), 
                                      flow =424800 )
                                      ))),
                     list("Cascadia_TKO_TSA", rbindlist(list(data.table(compartment ="Cascadia_TKO_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2018, to=2037, by = 1),1), 
+                                     year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),1), 
                                      flow = 101420), 
                                      data.table(compartment ="Cascadia_TKO_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2038, to=2057, by = 1),1), 
+                                     year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),), 
                                      flow =91570 ),
                                      data.table(compartment ="Cascadia_TKO_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2058, to=2077, by = 1),1), 
+                                     year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),1), 
                                      flow =82440 ),
                                      data.table(compartment ="Cascadia_TKO_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2078, to=2119, by = 1),1), 
+                                     year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),1), 
                                      flow =76000 )
                                      )))
                     )
 
 pars_scenario<-list(list("Revelstoke_TSA", rbindlist(list(data.table(compartment ="Revelstoke_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2018, to=2119, by = 1),1), 
+                                     year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),1), 
                                      flow = 200000)
                                      ))), 
                     list("Golden_TSA", rbindlist(list(data.table(compartment ="Golden_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2018, to=2119, by = 1),1), 
+                                     year = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),1), 
                                      flow = 485000)
                                      )))
 )
@@ -107,6 +123,7 @@ test<-lapply(pars_scenario, function(x){
                            #Database connection
                            dbName='clus',
                            #save_clusdb = TRUE,
+                           sqlite_dbname = "province",
                            useCLUSdb = paste0("C:/Users/KLOCHHEA/clus/R/SpaDES-modules/dataLoaderCLUS/",x[][[1]],"_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile="tsa_aac_bounds",

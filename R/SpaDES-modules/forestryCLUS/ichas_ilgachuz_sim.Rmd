@@ -40,6 +40,7 @@ parameters <- list(
   dataLoaderCLUS = list( 
                          dbName='clus',
                            #save_clusdb = TRUE,
+                         sqlite_dbname = "Quesnel_TSA",
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Quesnel_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile="tsa_aac_bounds",
@@ -135,7 +136,12 @@ scenario = data.table(name="nh_all_crit_test99", description = "No harvest in an
 
 harvestFlow<- data.table(compartment ="Quesnel_TSA",
                                      partition = ' vol > 110 ',
-                                     year = rep(seq(from = 2018, to=2218, by = 5),1),  flow = 8000000)
+                                     period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1)
+                                                 ,1),  
+                                     flow = 8000000,
+                                     partition_type = 'live')
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC))
 

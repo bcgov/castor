@@ -1,24 +1,5 @@
 
 server <- function(input, output, session) {
-  #---Functions
-  # buildClimateMap<-function(x){
-  #   dag<-data.table(from = c('Temperature_changes',	'Temperature_changes',	'Temperature_changes',	'Precipitation_changes',	'Precipitation_changes',	'Precipitation_changes',	'Core_habitat',	'Core_habitat',	'Core_habitat',	'Core_habitat',	'Core_habitat',	'Matrix_habitat',	'Matrix_habitat',	'Over_winter_prey_survival',	'Health_risk',	'Health_risk',	'Plant_phenology',	'Accessible_lichen_forage',	'Growing_season_forage',	'Growing_season_forage',	'Early_seral_anthro',	'Current_practice_forestry',	'Land_conversion',	'Primary_prey_density',	'Primary_prey_density',	'Predator_density',	'Linear_feature_density',	'Energy_balance',	'Energy_balance',	'Predation_pressure',	'Predation_pressure',	'Juvenile_recruitment',	'Adult_female_survival', 'Winter_displacement'),
-  #                   to = c('Matrix_habitat',	'Over_winter_prey_survival',	'Core_habitat',	'Matrix_habitat',	'Over_winter_prey_survival',	'Core_habitat',	'Health_risk',	'Plant_phenology',	'Accessible_lichen_forage',	'Predation_pressure',	'Matrix_habitat',	'Over_winter_prey_survival',	'Growing_season_forage',	'Primary_prey_density',	'Juvenile_recruitment',	'Adult_female_survival',	'Energy_balance',	'Energy_balance',	'Energy_balance',	'Primary_prey_density',	'Growing_season_forage',	'Early_seral_anthro',	'Early_seral_anthro',	'Health_risk',	'Predator_density',	'Predation_pressure',	'Predation_pressure',	'Juvenile_recruitment',	'Adult_female_survival',	'Juvenile_recruitment',	'Adult_female_survival',	'Population_trend',	'Population_trend', 'Accessible_lichen_forage')
-  #   ) 
-  #   g<-graph_from_data_frame(dag, directed=TRUE)
-  #   
-  #   V(g)$color <- c("yellow", "yellow", "purple", "purple", "lightblue","red","purple","purple", "purple", "purple",
-  #                   "orange", "orange", "lightblue","lightblue", "orange","pink", "lightblue", "green", "green","orange", "green")
-  #   l <-layout_with_fr(g, niter =5, start.temp = 5.25)
-  #   rownames(l) <- V(g)$name
-  #   test<-data.frame(x=c(   3, 11, 2 , 10, 13, -1, 1, 2.5,  7,  13.5,  17, 17, 8.0, 11,  17, 4, 9, 4, 11, 7, 8),
-  #                    y=c(0.5, -1,4,  1.5,  5, 14,  11, 7.5,  6,   8.5,   9.5,  6.5, 9.5, 11, 14, 13,  13, 16, 16, 4, 19))
-  #   test<-as.matrix(test)
-  #   rownames(test) <- V(g)$name
-  #   return(list(g,test))
-  # }
-  # climateMap <- buildClimateMap()
-  
   
   #---Reactive 
   queryColumnNames <- reactive({
@@ -58,22 +39,56 @@ ON c.compartment = a.compartment;")))
   reportList<-reactive({
     req(input$schema)
     req(input$scenario)
-    if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
+    
+    if(nrow(getTableQuery(paste0("SELECT * FROM information_schema.tables 
+       WHERE table_schema = '",input$schema ,"' and table_name = 'caribou_abundance'")))> 0){
+      if(nrow(getTableQuery(paste0("SELECT scenario, subpop_name, timeperiod,  area, core, matrix, abundance_r50, abundance_c80r50, abundance_c80, abundance_avg FROM ", input$schema, ".caribou_abundance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
+        data.abundance <- data.table(getTableQuery(paste0("SELECT scenario, subpop_name, timeperiod, area, core, matrix, abundance_r50, abundance_c80r50, abundance_c80, abundance_avg FROM ", input$schema, ".caribou_abundance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, subpop_name, timeperiod;")))
+        data.abundance <- data.abundance [,lapply(.SD, weighted.mean, w = area), by = c("scenario",  "subpop_name", "timeperiod"), .SDcols = c("core", "matrix", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")]
+      }else{
+        data.abundance <- NULL
+      }
+    }else{
+      data.abundance <- NULL
+    }
+    
+    if(nrow(getTableQuery(paste0("SELECT * FROM information_schema.tables 
+       WHERE table_schema = '",input$schema ,"' and table_name = 'survival'")))> 0){
+      if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
       data.survival<-data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, herd_bounds, timeperiod;")))
       data.survival<-data.survival[,lapply(.SD, weighted.mean, w =area), by =c("scenario",  "herd_bounds", "timeperiod"), .SDcols = c("prop_age", "prop_mature", "prop_old", "survival_rate")]
+      }else{
+        data.survival<-NULL
+      }
     }else{
       data.survival<-NULL
     }
     
-    if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
+    if(nrow(getTableQuery(paste0("SELECT * FROM information_schema.tables 
+       WHERE table_schema = '",input$schema ,"' and table_name = 'disturbance'")))> 0){
+      if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
       data.disturbance<-data.table (getTableQuery(paste0("SELECT scenario,timeperiod,critical_hab,
     sum(c40r500) as c40r500, sum(c40r50) as c40r50, sum(total_area) as total_area FROM ", input$schema, ".disturbance where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') group by scenario, critical_hab, timeperiod order by scenario, critical_hab, timeperiod;")))
       # c40r50 = dist; c40r500 = dist500 }
       data.disturbance<-data.disturbance[, dist_per:= c40r50/total_area][, dist500_per:= c40r500/total_area]
+      }else{
+        data.disturbance<-NULL
+      }
     }else{
       data.disturbance<-NULL
     }
-
+    
+     if(nrow(getTableQuery(paste0("SELECT * FROM information_schema.tables 
+       WHERE table_schema = '",input$schema ,"' and table_name = 'grizzly_survival'")))> 0){
+      if(nrow(getTableQuery(paste0("SELECT * FROM ", input$schema, ".grizzly_survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') limit 1")))> 0){
+      data.grizzly_survival<-data.table(getTableQuery(paste0("SELECT * FROM ", input$schema, ".grizzly_survival where scenario IN ('", paste(input$scenario, sep =  "' '", collapse = "', '"), "') order by scenario, gbpu_name, timeperiod;")))
+      data.grizzly_survival<-data.grizzly_survival[,lapply(.SD, weighted.mean, w = total_area), by =c("scenario",  "gbpu_name", "timeperiod"), .SDcols = c("road_density", "survival_rate")]
+      }else{
+        data.grizzly_survival<-NULL
+      }
+    }else{
+      data.grizzly_survival<-NULL
+    }
     
     data.fire<- getTableQuery(paste0("SELECT * FROM fire where herd_bounds IN ('", paste(unique(data.survival$herd_bounds), sep =  "' '", collapse = "', '"), "');"))
     data.fire2<- getTableQuery(paste0("SELECT herd_name, habitat,  round(cast(mean_ha2 as numeric),1) as mean,  round(cast(mean_area_percent as numeric),1) as percent, 
@@ -100,9 +115,11 @@ ON c.compartment = a.compartment;")))
          survival = data.survival,
          disturbance = data.disturbance,
          fire = data.fire,
-         fire2=data.fire2,
+         fire2 = data.fire2,
          fisher = data.fisherOccupancy,
-         fisherPts= data.fisherPoints)
+         fisherPts = data.fisherPoints,
+         grizzly_survival = data.grizzly_survival,
+         abundance = data.abundance)
   })
   
   fisherPointsFilter<-reactive({
@@ -125,6 +142,20 @@ group by scenario, timeperiod) foo2
 ON (foo1.scenario = foo2.scenario) )")))
     merge(DT.all, DT.g, by.x = "scenario", by.y = "scenario")
   })
+  
+  steps <- reactive(
+    data.frame(
+      element=c(".sidebar-menu", ".settings", ".treeview",  ".querybuilder", ".mapviewer"),
+      intro=c(
+        "This is the navigation sidebar where you can select various features in the app.",
+        "Step 1: This is where you select your area of interest and the various scenarios you wish to compare.",
+        "Step 2: This is where you can view outputs of various indicators by scenario",
+        "Advanced: This is the query builder where you can create output tables",
+        "Advanced: This is where you can interatively view spatial outputs"
+      ),
+      position=c("right", "right", "right", "right", "right")
+    )
+  )
   
   observeEvent(input$getMapLayersButton, {
     withProgress(message = 'Loading layers', value = 0.1, {
@@ -155,6 +186,28 @@ ON (foo1.scenario = foo2.scenario) )")))
       clearShapes() %>%
       addCircles(lat = ~y, lng = ~x, fillColor = ~pal(fisherPointsFilter()$rel_prob_occup), color=~pal(fisherPointsFilter()$rel_prob_occup), radius = fisherPointsFilter()$size*100, popup = ~paste0("ref:",reference_zone, " zone:", zone, " occupancy:", rel_prob_occup))
   })
+  
+  
+  observeEvent(input$help,
+               introjs(session,
+                       options = list(steps=steps(),
+                                      "nextLabel"="Next",
+                                      "prevLabel"="Previous",
+                                      "skipLabel"="Skip"
+                       )
+               )
+  )
+  
+  observeEvent(input$scenario, {
+    if(length(input$scenario)>0){
+    output$scenario_description <- renderText(
+      paste0(scenariosList()[scenario %in% input$scenario, "description"][length(input$scenario)])
+    )
+    }else{
+      output$scenario_description <- renderText(
+        paste0("No scenarios selected"))
+    }
+  }, ignoreInit = TRUE)
   
   #---Observe
   observe({
@@ -231,36 +284,10 @@ ON (foo1.scenario = foo2.scenario) )")))
     )
   })
   
-  output$statusDist<-renderValueBox({
-    data<-statusData()[compartment %in% input$tsa_selected,]
-    valueBox(
-      subtitle = "Disturbed",
-      tags$p(paste0(round((sum(data$c40r50)/sum(data$total_area))*100, 0), '%'), style = "font-size: 110%;"),
-      icon = icon("paw"), color = "purple"
-    )
-  })
-  
-  output$statusCritHab<-renderValueBox({
-    data<-statusData()[compartment %in% input$tsa_selected,]
-    valueBox(
-      subtitle = "Critical habitat",
-      tags$p(paste0(round((sum(data$total_area)/sum(data$total))*100, 0), '%'), style = "font-size: 110%;"),
-      icon = icon("exclamation-triangle"), color = "purple"
-    )
-  })
-  
-  output$statusDist500<-renderValueBox({
-    data<-statusData()[compartment %in% input$tsa_selected,]
-    valueBox(
-      subtitle = "Disturbed 500m",
-      tags$p(paste0(round((sum(data$c40r500)/sum(data$total_area))*100, 0), '%'), style = "font-size: 110%;"),
-      icon = icon("paw"), color = "purple"
-    )
-  })
   
   output$numberFisherTerritory<-renderValueBox({
     valueBoxSpark(
-      value = paste0(as.integer(nrow(reportList()$fisher[timeperiod == input$fisheryear & scenario == input$fisher_scenario_selected & rel_prob_occup > 0.2, "zone"]))),
+      value = paste0(as.integer(nrow(reportList()$fisher[timeperiod == input$fisheryear & scenario == input$fisher_scenario_selected & rel_prob_occup > 0.55, "zone"]))),
       title = toupper("Territories"),
       subtitle = NULL,
       icon = icon("times-circle"),
@@ -332,8 +359,7 @@ ON (foo1.scenario = foo2.scenario) )")))
   output$harvestAgePlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data<-reportList()$harvest
-      data<-data[, lapply(.SD, FUN=weighted.mean, x=volume), by=c("timeperiod", "scenario"), .SDcols='age']
-      print(data)
+      data<-data[, lapply(.SD, FUN=weighted.mean, x=age), by=c("timeperiod", "scenario"), .SDcols='age']
       #data$scenario <- reorder(data$scenario, data$V1, function(x) -max(x) )
       data[,timeperiod:= as.integer(timeperiod)]
       p<-ggplot (data, aes (x=timeperiod, y=age, fill = scenario)) +  
@@ -422,6 +448,26 @@ ON (foo1.scenario = foo2.scenario) )")))
     ggplotly(p)
   }) 
   
+  output$abundancePlot <- renderPlotly ({
+    withProgress(message = 'Making Plots', value = 0.1, {
+      data<-reportList()$abundance
+      
+      p <- ggplot(data, aes (x = timeperiod, y = abundance_avg, color = scenario)) +
+              facet_grid (rows = vars(subpop_name))+
+              geom_line () +
+              xlab ("Future year") +
+              ylab ("Abundance") +
+              scale_x_continuous (limits = c(0, 50), breaks = seq (0, 50, by = 10))+
+              theme_bw () +
+              theme (legend.title = element_blank(),
+                     plot.caption = element_text (hjust = 0))
+      ggplotly(p, height = 900) %>% 
+        layout (legend = list (orientation = "h", y = -0.1),
+                margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
+      
+    })
+  }) 
+ 
   output$survivalPlot <- renderPlotly ({
     withProgress(message = 'Making Plots', value = 0.1, {
       data<-reportList()$survival
@@ -432,10 +478,54 @@ ON (foo1.scenario = foo2.scenario) )")))
         geom_line() +
         geom_hline(yintercept=0, linetype="dashed", color = "black")+
         xlab ("Future year") +
-        ylab ("Change in Annual Adult Female Survival Rate)") +
+        ylab ("Change in Annual Adult Female Survival Rate") +
         scale_x_continuous(limits = c(0, 50), breaks = seq(0, 50, by = 10))+
         theme_bw()+
         theme (legend.title = element_blank())
+      ggplotly(p, height = 900) %>% 
+        layout (legend = list (orientation = "h", y = -0.1),
+                margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
+    })
+  }) 
+  
+  output$survival_grizzly_af_Plot <- renderPlotly ({
+    withProgress(message = 'Making Plots', value = 0.1, {
+      data<-reportList()$grizzly_survival
+      
+      # if want to look at difference:
+      # grizzly_data[, survival_rate_change := survival_rate - first(survival_rate), by = .(scenario, gbpu_name)]  # replace first() with shift() to get difference with previous year value instead of first year value
+      
+      p<-ggplot(data, aes (x = timeperiod, y = survival_rate, color = scenario)) +
+        facet_grid (rows = vars(gbpu_name))+
+        geom_line() +
+        xlab ("Future year") +
+        ylab ("Adult Female Survival Rate") +
+        theme_bw() +
+        theme (legend.title = element_blank()) +
+        scale_x_continuous(limits = c (input$grizzlyYear[1], input$grizzlyYear[2]))
+      
+      ggplotly(p, height = 900) %>% 
+        layout (legend = list (orientation = "h", y = -0.1),
+                margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))
+    })
+  }) 
+  
+  output$road_density_grizzly_Plot <- renderPlotly ({
+    withProgress(message = 'Making Plots', value = 0.1, {
+      data<-reportList()$grizzly_survival
+      
+      # if want to look at difference:
+      # grizzly_data[, survival_rate_change := survival_rate - first(survival_rate), by = .(scenario, gbpu_name)]  # replace first() with shift() to get difference with previous year value instead of first year value
+      
+      p<-ggplot(data, aes (x = timeperiod, y = road_density, color = scenario)) +
+        facet_grid (rows = vars(gbpu_name))+
+        geom_line() +
+        xlab ("Future year") +
+        ylab ("Grizzly Bear Population Unit Road Density (km/km2)") +
+        theme_bw() +
+        theme (legend.title = element_blank()) +
+        scale_x_continuous(limits = c (input$grizzlyYear[1], input$grizzlyYear[2]))
+      
       ggplotly(p, height = 900) %>% 
         layout (legend = list (orientation = "h", y = -0.1),
                 margin = list (l = 50, r = 40, b = 50, t = 40, pad = 0))

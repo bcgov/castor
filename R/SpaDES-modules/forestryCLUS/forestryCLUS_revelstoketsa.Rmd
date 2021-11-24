@@ -187,12 +187,13 @@ moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
-times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
+times <- list(start = 0, end = 5) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list (  dbName='clus',
                            save_clusdb = FALSE,
+                           sqlite_dbname = "Revelstoke_TSA",
                            useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Revelstoke_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
@@ -201,20 +202,20 @@ parameters <- list(
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.tsa_aac_boundary",
                            nameCompartmentTable = "tsa_aac_bounds_vat",
-                           nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
+                           nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', #'rast.bc_thlb2018' 
                            nameZoneRasters = c("rast.zone_cond_beo", 
                                              "rast.zone_cond_vqo", 
-                                             "rast.zone_cond_wha", 
-                                             "rast.zone_cond_uwr",
+                                             "rast.zone_wha_2021", #"rast.zone_cond_wha"  
+                                             "rast.zone_uwr_2021", #"rast.zone_cond_uwr"
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_nharv", 
-                                             "rast.zone_cond_cw",
+                                             "rast.zone_cond_cw"
                             # "rast.zone_cond_noharvest_monashee_crithab_or_herd"
                             # "rast.zone_cond_noharvest_frisby_boulder_crithab_or_herd"
                             # "rast.zone_cond_noharvest_columbia_south_crithab_or_herd"
                             # "rast.zone_cond_noharvest_central_rockies_crithab_or_herd"
                             # "rast.zone_cond_noharvest_columbia_north_crithab_or_herd"
-                             "rast.zone_cond_eccc_monashee_crithab_or_herd"
+                            # "rast.zone_cond_eccc_monashee_crithab_or_herd"
                             # "rast.zone_cond_eccc_frisby_boulder_crithab_or_herd"
                             # "rast.zone_cond_eccc_columbia_south_crithab_or_herd"
                             # "rast.zone_cond_eccc_central_rockies_crithab_or_herd"
@@ -256,14 +257,17 @@ parameters <- list(
   roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_all'),
+  grizzlysurvivalCLUS = list (rasterGBPU = "rast.gbpu_2021", 
+                              tableGBPU= "vat.gbpu", 
+                              roadDensity = 10),
   # rsfCLUS = list (calculateInterval = 10, # at what time interval to calculate RSF
   #                 criticalHabitatTable = "public.vat_bc_crithab_and_herd",
   #                 randomEffectsTable = "public.rsf_re_coeff",
   #                 writeRSFRasters = TRUE,
   #                 checkRasters = FALSE),
-  survivalCLUS = list (caribou_herd_density = 0.05, 
-                       nameRasCaribouHerd = "rast.caribou_herd", 
-                       tableCaribouHerd = "public.caribou_herd_vat"), 
+  # survivalCLUS = list (caribou_herd_density = 0.05, 
+  #                      nameRasCaribouHerd = "rast.caribou_herd", 
+  #                      tableCaribouHerd = "public.caribou_herd_vat"), 
   disturbanceCalcCLUS = list(calculateInterval = 1, # should be 1 if using constraints on 'dist' (disturbance)
                              criticalHabitatTable = "public.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
@@ -291,6 +295,7 @@ modules <- list("dataLoaderCLUS",
                 "disturbanceCalcCLUS", 
                 "volumebyareaReportCLUS",
                 # "rsfCLUS", # error line 453 - need to debug
+                "grizzlysurvivalCLUS",
                 "uploaderCLUS"
                 )
 
@@ -374,21 +379,23 @@ modules <- list("dataLoaderCLUS",
 # scenario = data.table (name = "revelstoke_frisby_boulder_hi_med_lo",
 #                        description = "No harvest in high priority stands and all priority areas in Frisby Boulder high elevation critical habitat; harvest allowed in matrix all priority areas up to 15% forest disturbance (no buffer) in forested area.  Adjacency = 3m. Oldest first. Flow = 210,000m^3^/year.")
 
-scenario = data.table (name = "revelstoke_monashee_he0d_m12d",
-                       description = "No harvest in Monashee high elevation critical habitat; harvest allowed in matrix critical habitat up to 12% disturbance (no buffer) in forested area. Note: no core here. Adjacency = 3m. Oldest first. Flow = 210,000m^3^/year.")
+# scenario = data.table (name = "revelstoke_monashee_he0d_m12d",
+#                        description = "No harvest in Monashee high elevation critical habitat; harvest allowed in matrix critical habitat up to 12% disturbance (no buffer) in forested area. Note: no core here. Adjacency = 3m. Oldest first. Flow = 210,000m^3^/year.")
 
-
+scenario = data.table (name = "caribou_smc_test",
+                       description = "Test SMC module.")
 
 
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
                                          partition = ' vol > 150 ', 
-                                         year = rep(seq (from = 2018, 
-                                                         to = 2218, 
-                                                         by = 5),
+                                         period = rep(seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
                                                     1), 
-                                         flow = 1050000) # 210,000m^3^/year
+                                         flow = 1050000,
+                                         partition_type = 'live') # 210,000m^3^/year
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow
@@ -428,7 +435,8 @@ outputs(mySim) <- data.frame (objectName = c("harvestReport",
                                              "growingStockReport",
                                              "tableSurvivalReport",
                                              "disturbanceReport",
-                                             "volumebyareaReport"))
+                                             "volumebyareaReport",
+                                             "tableGrizzSurvivalReport"))
 
 #Run the model 1 time
 system.time({mysimout<-spades(mySim)})

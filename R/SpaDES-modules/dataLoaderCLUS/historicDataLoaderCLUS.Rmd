@@ -41,7 +41,8 @@ source(paste0(here::here(), "/R/functions/R_Postgres.R"))
 #aoi_herds<-c("Williams_Lake_TSA")
 #aoi_herds<-c("Quesnel_TSA")
 #aoi_herds<-c("Kamloops_TSA")
-aoi_herds<-c("North" ) # eccc study area "South", "Central"
+
+aoi_herds<-c("North" ) # eccc study area "North", South", "Central"
 
 
 #Standard values for scaling rsf
@@ -60,6 +61,7 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list(dbName = 'clus',
                          save_clusdb = FALSE,
+                         sqlite_dbname = "eccc_industrial_sites", # historic
                          nameBoundaryFile = "eccc_smc_aoi_20210329", # "tsa_aac_bounds" 
                                                             # "bc_caribou_herd_boundary_v20200507" 
                                                             # "eccc_smc_aoi_20210329"
@@ -74,9 +76,9 @@ parameters <-  list(
                   ),
 
     cutblockSeqPrepCLUS = list( startHarvestYear = 1980,
-                                nameCutblockRaster= 'rast.cns_cut_bl',
-                                nameCutblockTable= 'cns_cut_bl_polygon',
-                                queryCutblocks = 'cutseq_centroid'
+                                nameCutblockRaster= 'rast.eccc_industrial_sites_all', # rast.cns_cut_bl
+                                nameCutblockTable= 'eccc_industrial_sites_all', # cns_cut_bl_polygon
+                                queryCutblocks = 'eccc_industrial_centroids' # cutseq_centroid
                               )
     # rsfCLUS = list(calculateInterval = 1, 
     #                criticalHabitatTable = "public.criticalhabitat_gen_bc_vat",

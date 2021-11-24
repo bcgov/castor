@@ -1,0 +1,180 @@
+---
+title: "forestryCLUS"
+author: ""
+date: "08 June 2021"
+output:
+html_document: 
+keep_md: yes
+---
+
+# Overview
+
+```{r module_usage}
+library (SpaDES.core)
+library (data.table)
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
+
+moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
+inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/outputs"))
+cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
+times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
+parameters <- list(
+  .progress = list(type = NA, interval = NA),
+  .globals = list(),
+  dataLoaderCLUS = list(   dbName='clus',
+                           save_clusdb = FALSE,
+                           sqlite_dbname = "Quesnel_TSA",
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/Quesnel_TSA_clusdb.sqlite"),
+                           #Study Area
+                           nameBoundaryFile = "tsa_aac_bounds",
+                           nameBoundaryColumn = "tsa_name",
+                           nameBoundary = "Quesnel_TSA",
+                           nameBoundaryGeom = 'wkb_geometry',
+                           nameCompartmentRaster = "rast.tsa_aac_boundary",
+                           nameCompartmentTable = "tsa_aac_bounds_vat",
+                           nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2020',
+                           nameZoneRasters=c("rast.zone_cond_beo", 
+                                           "rast.zone_cond_vqo", 
+                                           "rast.zone_cond_wha", 
+                                           "rast.zone_cond_uwr", 
+                                           "rast.zone_cond_nharv"
+                                           ),
+                           nameZoneTable = "zone.constraints",
+                           # nameZonePriorityRaster = "rast.zone_cond_beo",
+                           nameYieldsRaster = "rast.ycid_vdyp",
+                           nameYieldTable = "yc_vdyp",
+                           nameYieldsTransitionRaster = "rast.tipsy2018_id",
+                           nameYieldTransitionTable = "yc_tipsy",
+                           nameForestInventoryRaster = "rast.vri2019_id",
+                           nameForestInventoryKey = "feature_id",
+                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2019",
+                           nameForestInventoryAge = "proj_age_1",
+                           nameForestInventoryHeight = "proj_height_1",
+                           nameForestInventoryCrownClosure = "crown_closure",
+                           nameForestInventoryTreed = "bclcs_level_2",
+                           nameForestInventorySiteIndex = "site_index"),
+  blockingCLUS = list(blockMethod ='pre', 
+                      patchZone = 'rast.zone_cond_beo',
+                      patchVariation = 6,
+                      nameCutblockRaster ="rast.cns_cut_bl",
+                      useLandingsArea = FALSE, 
+                      useSpreadProbRas = FALSE),
+  forestryCLUS = list(harvestBlockPriority = " age DESC ", # "dist, age DESC, vol DESC"
+                      reportHarvestConstraints = T,
+                      adjacencyConstraint = 3,
+                      salvageRaster = 'rast.dead_vol_125_2020'),
+  growingStockCLUS = list (periodLength = 5),
+  uploaderCLUS = list(aoiName = 'test_quesnel', # name of the schema that gets uplaoded to postgres
+                      dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbuser", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbpass", keyring="postgreSQL"),  
+                                     keyring::key_get("vmdbname", keyring="postgreSQL"))
+                  )
+)
+
+modules <- list("dataLoaderCLUS", 
+                "growingStockCLUS", 
+                "blockingCLUS", 
+                "forestryCLUS", 
+                "uploaderCLUS"
+                )
+
+
+#scenario = data.table (name = "quesnel_bau", description = "Business as usual. Harvest flow = 1,900,000 m3/yr. Adjacency = 3m. Oldest first.")
+scenario = data.table (name = "bau", description = "bau")
+
+harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
+                                     partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', 
+                                     period = rep( seq (from = 1, 
+                                                      to = 40, 
+                                                      by = 1),
+                                                1), 
+                                     flow = 9500000, partition_type = 'live'),
+                              data.table(compartment ="Quesnel_TSA",
+                                     partition = ' (salvage_vol > 100 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
+                                     period = rep( seq (from = 1, 
+                                                      to = 2, 
+                                                      by = 1),
+                                                1), 
+                                     flow = 5000000, partition_type = 'dead') # 1,900,000 m3/yr
+))
+
+harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
+                                     partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5)   ', 
+                                     period = rep( seq (from = 1, 
+                                                      to = 40, 
+                                                      by = 1),
+                                                1), 
+                                     flow = 10000000, partition_type = 'live')))
+
+objects <- list(harvestFlow = harvestFlow, scenario = scenario)
+
+paths <- list(cachePath = cacheDir,
+              modulePath = moduleDir,
+              inputPath = inputDir,
+              outputPath = outputDir)
+
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects, 
+                 paths = paths)
+
+# outputs to keep; these are tables that get used in the uploader
+outputs(mySim) <- data.frame (objectName = c("harvestReport",
+                                             "growingStockReport"
+                                             ))
+
+#Run the model 1 time
+system.time({mysimout<-spades(mySim)})
+
+#Run the model with experiment
+#sims3 <- experiment(mySim, replicates = 2)
+
+#Profile the model
+#profvis::profvis({system.time({mysimout<-spades(mySim)})})
+
+
+```
+
+
+# Events
+
+## Flow Chart
+
+```{r, flow_chart}
+library(SpaDES.core)
+eventDiagram(mysimout)
+```
+
+## Algorithm
+
+The general algorithm (pseudo-code) follows as:
+
+`compartment_list`= SELECT zones FROM compartments WHERE target > 0 ORDER BY priority_compartment
+
+FOR compartment_selected in `compartment_list`
+`queue`<- SELECT pixelid, blockid FROM pixels WHERE 
+            compartment = compartment_selected AND thlb > 0 AND constraint = 0                 ORDER BY priority
+               
+IF (`queue` > 0 )
+  check constraints
+ELSE 
+  NEXT
+        
+
+# Data dependencies
+
+## Input data
+
+A SQLite db is required (output from dataloaderCLUS). A harvestFlow data.table object that includes the forest management unit (i.e., compartment, aka - 'supply block'), the partition from which the harvest flow applies (e.x., All dead pine); the year at which the flow applies and the amount of volume.
+
+## Output data
+
+A list of landings || blocks from when they are harvested.
+
+# Links to other modules
+
+dataloaderCLUS is required.
+
