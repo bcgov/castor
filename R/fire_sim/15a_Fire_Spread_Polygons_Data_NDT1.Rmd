@@ -103,7 +103,7 @@ table(fire_spread_veg_data_df$spread_bclcs5_2)
 fire_spread_veg_data_df$vegtype2[fire_spread_veg_data_df$bclcs_level_2=="W"] <- "W"
 ```
 
-################ PART 1: Lightning Caused Fires ################
+################ All Fires ################
 
 We will perform multiple loops for different subsets of variables for model selection, and then use these results to inform us on best models moving forward. The variables that will be assessed include:
 
@@ -1318,7 +1318,7 @@ head(top_mod_table_NDT1_spread_poly)
 #Save coefficient table
 
 ```{r}
-write.csv(top_mod_table_NDT1_spread_poly, file="D:\\Fire\\fire_data\\raw_data\\top_mod_spread_NDT1_light_t_ALL_.csv")
+write.csv(top_mod_table_NDT1_spread_poly, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT1_spread_poly_all_.csv")
 ```
 
 ```{r}
@@ -1336,7 +1336,7 @@ top_mod_table_NDT1_spread_poly_means
 Save table.
 
 ```{r}
-write.csv(top_mod_table_NDT1_spread_poly_means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT1_spread_poly_means_.csv")
+write.csv(top_mod_table_NDT1_spread_poly_means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT1_spread_poly_means_.csv")
 ```
 
 Standard deviation.
@@ -1355,5 +1355,5 @@ top_mod_table_NDT1_spread_poly_sd
 Save sd coefficient table.
 
 ```{r}
-write.csv(top_mod_table_NDT1_spread_poly_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT1_spread_poly_sd_.csv")
+write.csv(top_mod_table_NDT1_spread_poly_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT1_spread_poly_sd_.csv")
 ```
