@@ -12,12 +12,12 @@ knitr::opts_chunk$set(echo = TRUE)
 library(sf)
 library(tidyverse)
 library(ggplot2)
-library (ggcorrplot)
-library (RPostgreSQL)
-library (rpostgis)
-library (dplyr)
-library (lme4)
-library (arm)
+library(ggcorrplot)
+library(RPostgreSQL)
+library(rpostgis)
+library(dplyr)
+library(lme4)
+library(arm)
 library(ggpubr)
 library(mgcv)
 library(nlme)
@@ -27,16 +27,11 @@ library(caret)
 library(pROC)
 library(keyring)
 library(ggcorrplot) 
-library (kableExtra)
-library (data.table)
-library (DBI)
-library (RPostgreSQL)
-library (dplyr)
-library (ggplot2)
-library (here)
+library(kableExtra)
+library(data.table)
+library(DBI)
+library(here)
 library(AICcmodavg)
-library(caret)
-library(pROC)
 library(rje)
 library(base)
 library(car)
@@ -974,6 +969,22 @@ binnedplot (NDT3_escape_nt$climate1,
             main = paste("Binned Residual Plot - glm", i))
 
 # Diagnostic plots look good
+# climate1 + climate2 + climate1:climate2 + elevation + wind_atfire + dist_dam + roads_km + climate2:elevation + wind_atfire:vegtype2 + vegtype2 + Tdif_atfire + Tdif_atfire:climate2
+visreg(model.NDT3.E, "climate1", by="climate2")
+
+visreg(model.NDT3.E, "climate2", by="elevation")
+visreg(model.NDT3.E, "climate2", by="Tdif_atfire")
+visreg(model.NDT3.E, "climate2", by="climate1")
+
+visreg(model.NDT3.E, "elevation", by="climate2")
+
+visreg(model.NDT3.E, "wind_atfire", by="vegtype2", overlay=TRUE)
+visreg(model.NDT3.E, "vegtype2", by="wind_atfire")
+
+visreg(model.NDT3.E, "Tdif_atfire", by="climate2")
+
+visreg(model.NDT3.E, "dist_dam")
+visreg(model.NDT3.E, "roads_km")
 ```
 
 We should repeat the above several times and take the mean of the coefficients.

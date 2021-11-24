@@ -23,10 +23,10 @@ library(caret)
 library(pROC)
 library(rje)
 library(car)
+library(visreg)
 
 source(here::here("R/functions/R_Postgres.R"))
 ```
-
 
 <!--
 Copyright 2021 Province of British Columbia
@@ -53,7 +53,7 @@ See the License for the specific language governing permissions and limitations 
 Note: depending where your geometry column was located when saved as a csv (and turned into a dataframe), you may need to manually correct column headings on the csv file before loading back in. This has been performed for the below files.
 
 ```{r}
-dat_lightning_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_trees_NDT.csv")
+dat_lightning_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_trees_NDT_Oct.csv")
 head(dat_lightning_t)
 
 ```
@@ -68,7 +68,7 @@ Now, we will make a loop that does something very similar to our last loop, but 
 4. live_stand_volume_125
 5. vegtype2 (with additional categories)
 6. slope
-7. aspect (cos)
+7. aspect_cos (cos)
 8. elevation
 9. Various distance to infrastructure variables (dist_mun, dist_dam, dist_nat, dist_pow, dist_mine, dist_any) - no interactions
 10. Some measure of death or mountain pine beetle damage -- TBD
@@ -86,9 +86,9 @@ First we will create the variable lists that contain all of our variables of int
 
 ```{r}
 ##Create variable lists to be used in the model loop.
-variables_all<-c(climate1 = "climate1", climate2 = "climate2", proj_height_1 = "proj_height_1", proj_age_1 = "proj_age_1", live_stand_volume_125 = "live_stand_volume_125", slope = "slope", aspect = "aspect", elevation ="elevation", vegtype2 = "vegtype2", dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_mine = "dist_mine", dist_any = "dist_any") #heatload="heatload",
+variables_all<-c(climate1 = "climate1", climate2 = "climate2", proj_height_1 = "proj_height_1", proj_age_1 = "proj_age_1", live_stand_volume_125 = "live_stand_volume_125", slope = "slope", aspect_cos = "aspect_cos", elevation ="elevation", vegtype2 = "vegtype2", dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_mine = "dist_mine", dist_any = "dist_any") #heatload="heatload",
 
-variables_all_c1<-c(climate1 = "climate1", proj_height_1 = "proj_height_1", proj_age_1 = "proj_age_1", live_stand_volume_125 = "live_stand_volume_125", slope = "slope", aspect = "aspect", elevation ="elevation", vegtype2 = "vegtype2", dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_mine = "dist_mine", dist_any = "dist_any") #heatload="heatload",
+variables_all_c1<-c(climate1 = "climate1", proj_height_1 = "proj_height_1", proj_age_1 = "proj_age_1", live_stand_volume_125 = "live_stand_volume_125", slope = "slope", aspect_cos = "aspect_cos", elevation ="elevation", vegtype2 = "vegtype2", dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_mine = "dist_mine", dist_any = "dist_any") #heatload="heatload",
 
 vars.clim<-c("climate1")
 vars.clim.vegtype<-c("climate1", "vegtype2")
@@ -96,7 +96,7 @@ vars.clim.vegtype2<-c("climate1", "climate2","vegtype2")
 vars.clim.vegtype2b<-c("climate1", "climate2")
 
 vars.oth<-c("proj_height_1", "proj_age_1", "live_stand_volume_125") 
-vars.topo<-c("slope", "aspect", "elevation")
+vars.topo<-c("slope", "aspect_cos", "elevation")
 vars.infra<-c("dist_mun", "dist_dam", "dist_nat", "dist_pow", "dist_mine", "dist_any")
 
 
@@ -767,7 +767,7 @@ Now choose the top variables and create final model. The below code will need to
 Top Models:
 1. climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2
 2. proj_height_1 + proj_age_1 + live_stand_volume_125
-3. slope + aspect + elevation + aspect:elevation
+3. slope + aspect_cos + elevation + aspect_cos:elevation
 4. dist_mun + dist_dam + dist_nat + dist_mine 
 
 Additional Variables:
@@ -777,14 +777,14 @@ We want to include interactions between variables from within each list. This wi
 
 ```{r}
 ##Create variable lists to be used in the model loop.
-variables_all_NDT1<-c(climate1 = "climate1", climate2 = "climate2", vegtype2 = "vegtype2", proj_height_1 = "proj_height_1", live_stand_volume_125 = "live_stand_volume_125", proj_age_1 = "proj_age_1", slope = "slope", aspect = "aspect", elevation ="elevation", dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_mine = "dist_mine", bclcs_level_5_2 = "bclcs_level_5_2")
+variables_all_NDT1<-c(climate1 = "climate1", climate2 = "climate2", vegtype2 = "vegtype2", proj_height_1 = "proj_height_1", live_stand_volume_125 = "live_stand_volume_125", proj_age_1 = "proj_age_1", slope = "slope", aspect_cos = "aspect_cos", elevation ="elevation", dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_mine = "dist_mine", bclcs_level_5_2 = "bclcs_level_5_2")
 
 
 #Too many permutations to be able to include two-way interactions and all possible models, so need to divide into what we think may have interactions and which not.
 variables_clim_VRI_NDT1<-c(climate1 = "climate1", climate2 = "climate2", vegtype2 = "vegtype2", proj_height_1 = "proj_height_1", live_stand_volume_125 = "live_stand_volume_125", proj_age_1 = "proj_age_1")
 
-#treat slope, aspect and elevation as their own thing. And we have already done this analysis with them.
-#slope = "slope", aspect = "aspect", elevation ="elevation")
+#treat slope, aspect_cos and elevation as their own thing. And we have already done this analysis with them.
+#slope = "slope", aspect_cos = "aspect_cos", elevation ="elevation")
 
 variables_all_infra_landuse_NDT1<-c(dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_mine = "dist_mine", bclcs_level_5_2 = "bclcs_level_5_2") #I don't think it makes sense to have interactions between the distance elements, but maybe with land use and each distance element?
 
@@ -1562,7 +1562,7 @@ dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_le
 This is the top model, with the next deltaAIC of 3.7, so this is the one.
 
 #3. DEM
-slope + aspect + elevation + aspect:elevation
+slope + aspect_cos + elevation + aspect_cos:elevation
 
 This was the top DEM model prior. We will work with this.
 
@@ -1583,141 +1583,122 @@ prop<-0.75
    Valid <- dat_lightning_t_NDT1[-trainIndex,]
 
 #Run model using dat1
-model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1 + climate1:live_stand_volume_125 + climate1:proj_age_1 + climate2:live_stand_volume_125 + climate2:proj_age_1 + vegtype2:live_stand_volume_125 + vegtype2:proj_age_1 + proj_height_1:live_stand_volume_125 + proj_height_1:proj_age_1 + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation + aspect:elevation, family = binomial, data = dat1)
+model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1 + climate1:live_stand_volume_125 + climate1:proj_age_1 + climate2:live_stand_volume_125 + climate2:proj_age_1 + vegtype2:live_stand_volume_125 + vegtype2:proj_age_1 + proj_height_1:live_stand_volume_125 + proj_height_1:proj_age_1 + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation + aspect_cos:elevation, family = binomial, data = dat1)
 
-AIC(model.NDT1) #6113.6
+AIC(model.NDT1) #6160.6
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT1, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.7543 --> good fit!
+   mod.auc #0.75 --> good fit!
    
 Anova(model.NDT1, type=3)
 Anova(model.NDT1, type=3, singular.ok = TRUE)
 
 #Begin removing least significant interaction
-model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1 + climate1:live_stand_volume_125 + climate1:proj_age_1 + climate2:live_stand_volume_125 + climate2:proj_age_1 + vegtype2:live_stand_volume_125 + vegtype2:proj_age_1 + proj_height_1:live_stand_volume_125 + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation + aspect:elevation, family = binomial, data = dat1)
+model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1 + climate1:live_stand_volume_125 + climate1:proj_age_1 + climate2:live_stand_volume_125 + climate2:proj_age_1 + vegtype2:live_stand_volume_125 + vegtype2:proj_age_1 + proj_height_1:live_stand_volume_125 + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation + aspect_cos:elevation, family = binomial, data = dat1)
 
-AIC(model.NDT1) #6111.6
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model.NDT1, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
-   mod.auc <- auc(roc_obj)
-   mod.auc #0.7542 --> good fit!
-   
-Anova(model.NDT1, type=3)
-Anova(model.NDT1, type=3, singular.ok = TRUE)
-
-
-#Begin removing least significant interaction
-model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1 + climate1:live_stand_volume_125 + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125 + vegtype2:proj_age_1 + proj_height_1:live_stand_volume_125 + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation + aspect:elevation, family = binomial, data = dat1)
-
-AIC(model.NDT1) #6109.6
+AIC(model.NDT1) #6158.6
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT1, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.7542 --> good fit!
+   mod.auc #0.75 --> good fit!
    
 Anova(model.NDT1, type=3)
 Anova(model.NDT1, type=3, singular.ok = TRUE)
 
+#Remove least significant interaction
+model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1 + climate1:live_stand_volume_125 + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125 + vegtype2:proj_age_1 + proj_height_1:live_stand_volume_125 + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation + aspect_cos:elevation, family = binomial, data = dat1)
 
-#Begin removing least significant interaction
-model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1 + climate1:live_stand_volume_125 + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125 + vegtype2:proj_age_1 + proj_height_1:live_stand_volume_125 + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation, family = binomial, data = dat1)
-
-AIC(model.NDT1) #6108.2
+AIC(model.NDT1) #6156.6
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT1, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.7543 --> good fit!
+   mod.auc #0.783 --> good fit!
    
 Anova(model.NDT1, type=3)
 Anova(model.NDT1, type=3, singular.ok = TRUE)
 
+#Remove least significant interaction
+model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:proj_height_1 + climate1:live_stand_volume_125 + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125 + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation, family = binomial, data = dat1)
 
-#Begin removing least significant interaction
-model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1 + climate1:live_stand_volume_125 + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125 + vegtype2:proj_age_1 + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation, family = binomial, data = dat1)
-
-AIC(model.NDT1) #6107.1
+AIC(model.NDT1) #6143.8
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT1, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.7543 --> good fit!
+   mod.auc #0.75 --> good fit!
    
 Anova(model.NDT1, type=3)
 Anova(model.NDT1, type=3, singular.ok = TRUE)
 
-#Begin removing least significant interaction
-model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1  + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125 + vegtype2:proj_age_1 + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation, family = binomial, data = dat1)
+#Remove least significant interaction
+model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:proj_height_1 + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125 + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation, family = binomial, data = dat1)
 
-AIC(model.NDT1) #6106.5
+AIC(model.NDT1) #6142.4
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT1, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.7546 --> good fit!
+   mod.auc #0.75 --> good fit!
    
 Anova(model.NDT1, type=3)
 Anova(model.NDT1, type=3, singular.ok = TRUE)
 
-#Begin removing least significant interaction
-model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1  + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125 + vegtype2:proj_age_1 + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2  + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation, family = binomial, data = dat1)
+#Remove least significant interaction
+model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:proj_height_1 + climate1:proj_age_1  + climate2:proj_age_1  + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation, family = binomial, data = dat1)
 
-AIC(model.NDT1) #6104.99
+AIC(model.NDT1) #6140.8
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT1, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.7546 --> good fit!
+   mod.auc #0.75 --> good fit!
    
 Anova(model.NDT1, type=3)
 Anova(model.NDT1, type=3, singular.ok = TRUE)
 
+#Remove least significant interaction
+model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + proj_age_1 + climate1:climate2 + climate1:proj_height_1 + climate1:proj_age_1  + climate2:proj_age_1  + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation, family = binomial, data = dat1)
 
-#Begin removing least significant interaction
-model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1  + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125  + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2  + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation, family = binomial, data = dat1)
-
-AIC(model.NDT1) #6103.23
+AIC(model.NDT1) #6869--> BAD!
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT1, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.7551 --> good fit!
+   mod.auc #0.75 --> good fit!
    
 Anova(model.NDT1, type=3)
 Anova(model.NDT1, type=3, singular.ok = TRUE)
 
-#The above is the best model thus far. Are there interactions between other variables that may be of biological relevance to investigate? Maybe try climate with elevation?
+#REVERT
+model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:proj_height_1 + climate1:proj_age_1  + climate2:proj_age_1  + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation, family = binomial, data = dat1)
 
-#New interactions
-model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1  + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125  + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2  + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation + climate1:elevation + climate2:elevation, family = binomial, data = dat1)
-
-AIC(model.NDT1) #6101.5
+AIC(model.NDT1) #6140.8
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT1, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.7564 --> good fit!
+   mod.auc #0.75 --> good fit!
    
 Anova(model.NDT1, type=3)
 Anova(model.NDT1, type=3, singular.ok = TRUE)
 
-#try removing one
-model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1  + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125  + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2  + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation + climate2:elevation, family = binomial, data = dat1)
 
-AIC(model.NDT1) #6100.08
+#Previous top model
+model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:proj_height_1 + climate1:proj_age_1  + climate2:proj_age_1  + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation, family = binomial, data = dat1)
+
+AIC(model.NDT1) #6146.98
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT1, newdata=Valid, type="response")
@@ -1728,16 +1709,30 @@ mod.valid <- predict.glm(model.NDT1, newdata=Valid, type="response")
 Anova(model.NDT1, type=3)
 Anova(model.NDT1, type=3, singular.ok = TRUE)
 
+#Best model
+model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:proj_height_1 + climate1:proj_age_1  + climate2:proj_age_1  + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation, family = binomial, data = dat1)
+
+AIC(model.NDT1) #6140.8
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.75 --> good fit!
+   
+Anova(model.NDT1, type=3)
+Anova(model.NDT1, type=3, singular.ok = TRUE)
+
 ```
 
 Remove NAs and tun multiple times.
 
 ```{r}
 #Remove NAs to ensure all same data used so we can compare AICs
-NDT1_t_ignite<-dat_lightning_t_NDT1 %>% drop_na(climate1, climate2, proj_height_1, live_stand_volume_125, proj_age_1, dist_mun,  dist_dam, dist_nat, dist_mine, vegtype2, bclcs_level_5_2, slope, aspect, elevation)
+NDT1_t_ignite<-dat_lightning_t_NDT1 %>% drop_na(climate1, climate2, proj_height_1, live_stand_volume_125, proj_age_1, dist_mun, dist_dam, dist_nat, dist_mine, vegtype2, bclcs_level_5_2, slope, aspect_cos, elevation)
 
 #Run Model again with this data; but uses all data here
-model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1  + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125  + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2  + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation + climate2:elevation, family = binomial, data = NDT1_t_ignite)
+model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:proj_height_1 + climate1:proj_age_1  + climate2:proj_age_1  + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation, family = binomial, data = NDT1_t_ignite)
 
 Anova(model.NDT1, type=3)
 #Anova(model.NDT1, type=3, singular.ok = TRUE)
@@ -1770,30 +1765,36 @@ binnedplot (NDT1_t_ignite$climate1,
 # Diagnostic plots look good
 
 #Partial Residuals
-#climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1  + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125  + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2  + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation + climate2:elevation
-library(visreg)
-visreg(model.NDT1, "climate1", by="vegtype2", overlay=TRUE) #huge variation in disturbed
-visreg(model.NDT1, "climate1", by="vegtype2", overlay=TRUE, ylim=c(-7,7))
+#climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:proj_height_1 + climate1:proj_age_1  + climate2:proj_age_1  + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation
 visreg(model.NDT1, "climate1", by="climate2")
+visreg(model.NDT1, "climate1", by="proj_age_1")
+visreg(model.NDT1, "climate1", by="proj_height_1")
 
 visreg(model.NDT1, "climate2", by="climate1")
-visreg(model.NDT1, "climate2", by="elevation")
+visreg(model.NDT1, "climate2", by="proj_age_1")
 
 visreg(model.NDT1, "slope")
-visreg(model.NDT1, "aspect")
-visreg(model.NDT1, "elevation", by="climate2")
+visreg(model.NDT1, "aspect_cos")
+visreg(model.NDT1, "elevation")
 
-visreg(model.NDT1, "live_stand_volume_125", by="vegtype2", overlay=TRUE, ylim=c(-20,20))
+visreg(model.NDT1, "live_stand_volume_125", by="vegtype2", overlay=TRUE, ylim=c(-10,10))
 
 visreg(model.NDT1, "proj_age_1", by="climate2")
 visreg(model.NDT1, "proj_age_1", by="climate1")
+visreg(model.NDT1, "proj_age_1", by="proj_height_1")
 
 visreg(model.NDT1, "proj_height_1", by="climate1")
+visreg(model.NDT1, "proj_height_1", by="proj_age_1")
 
-visreg(model.NDT1, "dist_mun") #look into these extreme points
+#dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2
+
+visreg(model.NDT1, "dist_mun", by="bclcs_level_5_2", overlay=TRUE) #look into these extreme points
 visreg(model.NDT1, "dist_dam")
-visreg(model.NDT1, "dist_nat", by="bclcs_level_5_2")
-visreg(model.NDT1, "dist_mine", by="bclcs_level_5_2")
+visreg(model.NDT1, "dist_nat", by="bclcs_level_5_2", overlay=TRUE)
+visreg(model.NDT1, "dist_mine")
+
+visreg(model.NDT1, "bclcs_level_5_2", by="dist_nat")
+visreg(model.NDT1, "bclcs_level_5_2", by="dist_mun")
 
 ```
 
@@ -1804,8 +1805,8 @@ We should repeat the above several times and take the mean of the coefficients.
 summary(model.NDT1)
 
 #Create a new blank table and get AUC too
-top_mod_table_NDT1_light_t_ALL <- data.frame (matrix (ncol = 42, nrow = 0))
-colnames (top_mod_table_NDT1_light_t_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_climate_interaction", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_stand_height", "coef_live_stand_volume_125", "coef_stand_age",  "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_mine", "coef_bclcs_level_5_2DIST", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "slope", "aspect", "elevation", "coef_climate1:vegtype2TB", "coef_climate1:vegtype2TC", "coef_climate1:vegtype2TM", "coef_climate1:proj_height_1", "coef_climate1:proj_age_1", "coef_climate2:proj_age_1", "coef_vegtype2TB:live_stand_volume_125", "coef_vegtype2TC:live_stand_volume_125", "coef_vegtype2TM:live_stand_volume_125", "coef_live_stand_volume_125:proj_age_1", "coef_dist_nat:bclcs_level_5_2DIST", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2DIST", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2SP", "coef_climate2:elevation", "AUC")
+top_mod_table_NDT1_light_t_ALL <- data.frame (matrix (ncol = 34, nrow = 0))
+colnames (top_mod_table_NDT1_light_t_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_proj_height_1", "coef_live_stand_volume_125", "coef_proj_age_1",  "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_mine", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_slope", "coef_aspect_cos", "coef_elevation", "coef_climate1:climate2 ", "coef_climate1:proj_height_1", "coef_climate1:proj_age_1", "coef_climate2:proj_age_1", "coef_proj_height_1:proj_age_1", "coef_dist_mun:bclcs_level_5_2OP", "coef_dist_mun:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2SP", "AUC")
 ```
 
 Let's run it 500 times to get good mean values.
@@ -1824,59 +1825,51 @@ prop<-0.75
    Valid <- NDT1_t_ignite[-trainIndex,]
    
 #Model   
-model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1  + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125  + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2  + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation + climate2:elevation, family = binomial, data = dat1) 
+model.NDT1<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:proj_height_1 + climate1:proj_age_1  + climate2:proj_age_1  + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation, family = binomial, data = dat1) 
 
 mod.valid <- predict.glm(model.NDT1, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT1_light_t <- data.frame (matrix (ncol = 42, nrow = 0))
-colnames (top_mod_table_NDT1_light_t ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_climate_interaction", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_stand_height", "coef_live_stand_volume_125", "coef_stand_age",  "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_mine", "coef_bclcs_level_5_2DIST", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "slope", "aspect", "elevation", "coef_climate1:vegtype2TB", "coef_climate1:vegtype2TC", "coef_climate1:vegtype2TM", "coef_climate1:proj_height_1", "coef_climate1:proj_age_1", "coef_climate2:proj_age_1", "coef_vegtype2TB:live_stand_volume_125", "coef_vegtype2TC:live_stand_volume_125", "coef_vegtype2TM:live_stand_volume_125", "coef_live_stand_volume_125:proj_age_1", "coef_dist_nat:bclcs_level_5_2DIST", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2DIST", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2SP", "coef_climate2:elevation", "AUC")
+top_mod_table_NDT1_light_t <- data.frame (matrix (ncol = 34, nrow = 0))
+colnames (top_mod_table_NDT1_light_t ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_proj_height_1", "coef_live_stand_volume_125", "coef_proj_age_1",  "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_mine", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_slope", "coef_aspect_cos", "coef_elevation", "coef_climate1:climate2 ", "coef_climate1:proj_height_1", "coef_climate1:proj_age_1", "coef_climate2:proj_age_1", "coef_proj_height_1:proj_age_1", "coef_dist_mun:bclcs_level_5_2OP", "coef_dist_mun:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2SP", "AUC")
 
 ##Add data for NDT1
 top_mod_table_NDT1_light_t[1,1]<-"lightning"
 top_mod_table_NDT1_light_t[1,2]<-"NDT1"
 top_mod_table_NDT1_light_t[1,3]<-"Y"
-top_mod_table_NDT1_light_t[1,4]<-"fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1  + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125  + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2  + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation + climate2:elevation" 
+top_mod_table_NDT1_light_t[1,4]<-"fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:proj_height_1 + climate1:proj_age_1  + climate2:proj_age_1  + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation" 
 top_mod_table_NDT1_light_t[1,5]<- coef(model.NDT1)[1] #Intercept
 top_mod_table_NDT1_light_t[1,6]<- coef(model.NDT1)[2] #Climate variable 1
 top_mod_table_NDT1_light_t[1,7]<- coef(model.NDT1)[3] #Climate variable 2
-top_mod_table_NDT1_light_t[1,8]<- coef(model.NDT1)[20] #Interaction climate variables
-top_mod_table_NDT1_light_t[1,9]<- coef(model.NDT1)[4] #coefficient vegtypeTB
-top_mod_table_NDT1_light_t[1,10]<- coef(model.NDT1)[5] #coefficient vegtypeTC
-top_mod_table_NDT1_light_t[1,11]<- coef(model.NDT1)[6] #coefficient vegtypeTM
-top_mod_table_NDT1_light_t[1,12]<- coef(model.NDT1)[7] #stand_height
-top_mod_table_NDT1_light_t[1,13]<- coef(model.NDT1)[8] #live stand volume
-top_mod_table_NDT1_light_t[1,14]<- coef(model.NDT1)[9] #proj age
-top_mod_table_NDT1_light_t[1,15]<- coef(model.NDT1)[10] #coefficient dist_mun
-top_mod_table_NDT1_light_t[1,16]<- coef(model.NDT1)[11] #coefficient dist_dam
-top_mod_table_NDT1_light_t[1,17]<- coef(model.NDT1)[12] #coefficient dist_nat
-top_mod_table_NDT1_light_t[1,18]<- coef(model.NDT1)[13] #coefficient dist_mine
-top_mod_table_NDT1_light_t[1,19]<- coef(model.NDT1)[14] #coefficient bclcs_level_5_2DIST
-top_mod_table_NDT1_light_t[1,20]<- coef(model.NDT1)[15] #coefficient bclcs_level_5_2OP
-top_mod_table_NDT1_light_t[1,21]<- coef(model.NDT1)[16] #coefficient bclcs_level_5_2SP
-top_mod_table_NDT1_light_t[1,22]<- coef(model.NDT1)[17] #coefficient slope
-top_mod_table_NDT1_light_t[1,23]<- coef(model.NDT1)[18] #coefficient aspect
-top_mod_table_NDT1_light_t[1,24]<- coef(model.NDT1)[19] #coefficient elevation
-top_mod_table_NDT1_light_t[1,25]<- coef(model.NDT1)[21] #coefficient climate1:vegypeTB
-top_mod_table_NDT1_light_t[1,26]<- coef(model.NDT1)[22] #coefficient climate1:vegypeTC
-top_mod_table_NDT1_light_t[1,27]<- coef(model.NDT1)[23] #coefficient climate1:vegypeTM
-top_mod_table_NDT1_light_t[1,28]<- coef(model.NDT1)[24] #coefficient climate1*projheight
-top_mod_table_NDT1_light_t[1,29]<- coef(model.NDT1)[25] #coefficient climate1*projage
-top_mod_table_NDT1_light_t[1,30]<- coef(model.NDT1)[26] #coefficient climate2*projage
-top_mod_table_NDT1_light_t[1,31]<- coef(model.NDT1)[27] #coefficient livestandvolume*vegtypeTB
-top_mod_table_NDT1_light_t[1,32]<- coef(model.NDT1)[28] #coefficient livestandvolume*vegtypeTC
-top_mod_table_NDT1_light_t[1,33]<- coef(model.NDT1)[29] #coefficient livestandvolume*vegtypeTM
-top_mod_table_NDT1_light_t[1,34]<- coef(model.NDT1)[30] #coefficient livestandvolume*projage
-top_mod_table_NDT1_light_t[1,35]<- coef(model.NDT1)[31] #coefficient dist_nat:bclcs_level_5_2DIST 
-top_mod_table_NDT1_light_t[1,36]<- coef(model.NDT1)[32] #coefficient dist_nat:bclcs_level_5_2OP
-top_mod_table_NDT1_light_t[1,37]<- coef(model.NDT1)[33] #coefficient dist_nat:bclcs_level_5_2SP 
-top_mod_table_NDT1_light_t[1,38]<- coef(model.NDT1)[34] #coefficient dist_mine:bclcs_level_5_2DIST 
-top_mod_table_NDT1_light_t[1,39]<- coef(model.NDT1)[35] #coefficient dist_mine:bclcs_level_5_2OP
-top_mod_table_NDT1_light_t[1,40]<- coef(model.NDT1)[36] #coefficient dist_mine:bclcs_level_5_2SP
-top_mod_table_NDT1_light_t[1,41]<- coef(model.NDT1)[37] #coefficient climate2:elevation 
-top_mod_table_NDT1_light_t[1,42]<- mod.auc
+top_mod_table_NDT1_light_t[1,8]<- coef(model.NDT1)[4] #I
+top_mod_table_NDT1_light_t[1,9]<- coef(model.NDT1)[5] #co
+top_mod_table_NDT1_light_t[1,10]<- coef(model.NDT1)[6] #coe
+top_mod_table_NDT1_light_t[1,11]<- coef(model.NDT1)[7] #c
+top_mod_table_NDT1_light_t[1,12]<- coef(model.NDT1)[8] #
+top_mod_table_NDT1_light_t[1,13]<- coef(model.NDT1)[9] #
+top_mod_table_NDT1_light_t[1,14]<- coef(model.NDT1)[10] #pr
+top_mod_table_NDT1_light_t[1,15]<- coef(model.NDT1)[11] #coeffic
+top_mod_table_NDT1_light_t[1,16]<- coef(model.NDT1)[12] #coefficien
+top_mod_table_NDT1_light_t[1,17]<- coef(model.NDT1)[13] #coefficien
+top_mod_table_NDT1_light_t[1,18]<- coef(model.NDT1)[14] #coefficient 
+top_mod_table_NDT1_light_t[1,19]<- coef(model.NDT1)[15] #coe
+top_mod_table_NDT1_light_t[1,20]<- coef(model.NDT1)[16] #co
+top_mod_table_NDT1_light_t[1,21]<- coef(model.NDT1)[17] #coe
+top_mod_table_NDT1_light_t[1,22]<- coef(model.NDT1)[18] #c
+top_mod_table_NDT1_light_t[1,23]<- coef(model.NDT1)[19] #co
+top_mod_table_NDT1_light_t[1,24]<- coef(model.NDT1)[20] #
+top_mod_table_NDT1_light_t[1,25]<- coef(model.NDT1)[21] #
+top_mod_table_NDT1_light_t[1,26]<- coef(model.NDT1)[22] #co
+top_mod_table_NDT1_light_t[1,27]<- coef(model.NDT1)[23] #c
+top_mod_table_NDT1_light_t[1,28]<- coef(model.NDT1)[24] #c
+top_mod_table_NDT1_light_t[1,29]<- coef(model.NDT1)[25] #co
+top_mod_table_NDT1_light_t[1,30]<- coef(model.NDT1)[26] #
+top_mod_table_NDT1_light_t[1,31]<- coef(model.NDT1)[27] #co
+top_mod_table_NDT1_light_t[1,32]<- coef(model.NDT1)[28] #coe
+top_mod_table_NDT1_light_t[1,33]<- coef(model.NDT1)[29] #c
+top_mod_table_NDT1_light_t[1,34]<- mod.auc
 
 top_mod_table_NDT1_light_t_ALL<-rbind(top_mod_table_NDT1_light_t_ALL, top_mod_table_NDT1_light_t)
 
@@ -1900,182 +1893,35 @@ Get mean values.
 
 ```{r}
 names(top_mod_table_NDT1_light_t_ALL)
-mean(top_mod_table_NDT1_light_t_ALL$AUC) #0.754
 
-# create model table (only do this once) and add the relevant data
-top_mod_table_NDT1_light_t_Means <- data.frame (matrix (ncol = 42, nrow = 0))
-colnames (top_mod_table_NDT1_light_t_Means ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_climate_interaction", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_stand_height", "coef_live_stand_volume_125", "coef_stand_age",  "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_mine", "coef_bclcs_level_5_2DIST", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "slope", "aspect", "elevation", "coef_climate1:vegtype2TB", "coef_climate1:vegtype2TC", "coef_climate1:vegtype2TM", "coef_climate1:proj_height_1", "coef_climate1:proj_age_1", "coef_climate2:proj_age_1", "coef_vegtype2TB:live_stand_volume_125", "coef_vegtype2TC:live_stand_volume_125", "coef_vegtype2TM:live_stand_volume_125", "coef_live_stand_volume_125:proj_age_1", "coef_dist_nat:bclcs_level_5_2DIST", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2DIST", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2SP", "coef_climate2:elevation", "AUC")
-
-head(top_mod_table_NDT1_light_t_Means)
-
-##Add data for NDT1
-top_mod_table_NDT1_light_t_Means[1,1]<-"lightning"
-top_mod_table_NDT1_light_t_Means[1,2]<-"NDT1"
-top_mod_table_NDT1_light_t_Means[1,3]<-"Y"
-top_mod_table_NDT1_light_t_Means[1,4]<-"fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1  + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125  + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2  + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation + climate2:elevation" 
-top_mod_table_NDT1_light_t_Means[1,5]<- mean(top_mod_table_NDT1_light_t_ALL$intercept) #Intercept
-top_mod_table_NDT1_light_t_Means[1,6]<- mean(top_mod_table_NDT1_light_t_ALL$coef_climate_1, na.rm=TRUE) #Climate variable 1
-top_mod_table_NDT1_light_t_Means[1,7]<- mean(top_mod_table_NDT1_light_t_ALL$coef_climate_2, na.rm=TRUE) #Climate variable 2
-top_mod_table_NDT1_light_t_Means[1,8]<- mean(top_mod_table_NDT1_light_t_ALL$coef_climate_interaction, na.rm=TRUE) #Interaction climate variables
-top_mod_table_NDT1_light_t_Means[1,9]<- mean(top_mod_table_NDT1_light_t_ALL$coef_vegtypeTB, na.rm=TRUE) #coefficient vegtypeTB
-top_mod_table_NDT1_light_t_Means[1,10]<- mean(top_mod_table_NDT1_light_t_ALL$coef_vegtypeTC, na.rm=TRUE) #coefficient vegtypeTC
-top_mod_table_NDT1_light_t_Means[1,11]<- mean(top_mod_table_NDT1_light_t_ALL$coef_vegtypeTM, na.rm=TRUE) #coefficient vegtypeTM
-top_mod_table_NDT1_light_t_Means[1,12]<- mean(top_mod_table_NDT1_light_t_ALL$coef_stand_height, na.rm=TRUE) #stand_height
-top_mod_table_NDT1_light_t_Means[1,13]<- mean(top_mod_table_NDT1_light_t_ALL$coef_live_stand_volume_125, na.rm=TRUE) #live stand volume
-top_mod_table_NDT1_light_t_Means[1,14]<- mean(top_mod_table_NDT1_light_t_ALL$coef_stand_age, na.rm=TRUE) #proj age
-top_mod_table_NDT1_light_t_Means[1,15]<- mean(top_mod_table_NDT1_light_t_ALL$coef_dist_mun, na.rm=TRUE) #coefficient dist_mun
-top_mod_table_NDT1_light_t_Means[1,16]<- mean(top_mod_table_NDT1_light_t_ALL$coef_dist_dam, na.rm=TRUE)#coefficient dist_dam
-top_mod_table_NDT1_light_t_Means[1,17]<- mean(top_mod_table_NDT1_light_t_ALL$coef_dist_nat, na.rm=TRUE) #coefficient dist_nat
-top_mod_table_NDT1_light_t_Means[1,18]<- mean(top_mod_table_NDT1_light_t_ALL$coef_dist_mine, na.rm=TRUE) #coefficient dist_mine
-top_mod_table_NDT1_light_t_Means[1,19]<- mean(top_mod_table_NDT1_light_t_ALL$coef_bclcs_level_5_2DIST, na.rm=TRUE) #coefficient bclcs_level_5_2DIST
-top_mod_table_NDT1_light_t_Means[1,20]<- mean(top_mod_table_NDT1_light_t_ALL$coef_bclcs_level_5_2OP, na.rm=TRUE) #coefficient bclcs_level_5_2OP
-top_mod_table_NDT1_light_t_Means[1,21]<- mean(top_mod_table_NDT1_light_t_ALL$coef_bclcs_level_5_2SP, na.rm=TRUE) #coefficient bclcs_level_5_2SP
-top_mod_table_NDT1_light_t_Means[1,22]<- mean(top_mod_table_NDT1_light_t_ALL$slope, na.rm=TRUE) #coefficient slope
-top_mod_table_NDT1_light_t_Means[1,23]<- mean(top_mod_table_NDT1_light_t_ALL$aspect, na.rm=TRUE) #coefficient aspect
-top_mod_table_NDT1_light_t_Means[1,24]<- mean(top_mod_table_NDT1_light_t_ALL$elevation, na.rm=TRUE) #coefficient elevation
-top_mod_table_NDT1_light_t_Means[1,25]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_climate1:vegtype2TB`, na.rm=TRUE) #coefficient climate1:vegypeTB
-top_mod_table_NDT1_light_t_Means[1,26]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_climate1:vegtype2TC`, na.rm=TRUE) #coefficient climate1:vegypeTC
-top_mod_table_NDT1_light_t_Means[1,27]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_climate1:vegtype2TM`, na.rm=TRUE) #coefficient climate1:vegypeTM
-top_mod_table_NDT1_light_t_Means[1,28]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_climate1:proj_height_1`, na.rm=TRUE) #coefficient climate1*projheight
-top_mod_table_NDT1_light_t_Means[1,29]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_climate1:proj_age_1`, na.rm=TRUE) #coefficient climate1*projage
-top_mod_table_NDT1_light_t_Means[1,30]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_climate2:proj_age_1`, na.rm=TRUE) #coefficient climate2*projage
-top_mod_table_NDT1_light_t_Means[1,31]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_vegtype2TB:live_stand_volume_125`, na.rm=TRUE) #coefficient livestandvolume*vegtypeTB
-top_mod_table_NDT1_light_t_Means[1,32]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_vegtype2TC:live_stand_volume_125`, na.rm=TRUE)#coefficient livestandvolume*vegtypeTC
-top_mod_table_NDT1_light_t_Means[1,33]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_vegtype2TM:live_stand_volume_125`, na.rm=TRUE) #coefficient livestandvolume*vegtypeTM
-top_mod_table_NDT1_light_t_Means[1,34]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_live_stand_volume_125:proj_age_1`, na.rm=TRUE) #coefficient livestandvolume*projage
-top_mod_table_NDT1_light_t_Means[1,35]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_dist_nat:bclcs_level_5_2DIST`, na.rm=TRUE) #coefficient dist_nat:bclcs_level_5_2DIST 
-top_mod_table_NDT1_light_t_Means[1,36]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_dist_nat:bclcs_level_5_2OP`, na.rm=TRUE) #coefficient dist_nat:bclcs_level_5_2OP
-top_mod_table_NDT1_light_t_Means[1,37]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_dist_nat:bclcs_level_5_2SP`, na.rm=TRUE) #coefficient dist_nat:bclcs_level_5_2SP 
-top_mod_table_NDT1_light_t_Means[1,38]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_dist_mine:bclcs_level_5_2DIST`, na.rm=TRUE) #coefficient dist_mine:bclcs_level_5_2DIST 
-top_mod_table_NDT1_light_t_Means[1,39]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_dist_mine:bclcs_level_5_2OP`, na.rm=TRUE) #coefficient dist_mine:bclcs_level_5_2OP
-top_mod_table_NDT1_light_t_Means[1,40]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_dist_mine:bclcs_level_5_2SP`, na.rm=TRUE) #coefficient dist_mine:bclcs_level_5_2SP
-top_mod_table_NDT1_light_t_Means[1,41]<- mean(top_mod_table_NDT1_light_t_ALL$`coef_climate2:elevation`, na.rm=TRUE) #coefficient climate2:elevation 
-top_mod_table_NDT1_light_t_Means[1,42]<- mean(top_mod_table_NDT1_light_t_ALL$AUC, na.rm=TRUE)
-
+top_mod_table_NDT1_light_t_Means<-top_mod_table_NDT1_light_t_ALL %>% summarise_each(funs( mean( .,na.rm = TRUE)))
 top_mod_table_NDT1_light_t_Means
 
+top_mod_table_NDT1_light_t_Means[1,1]<-"lightning"
+top_mod_table_NDT1_light_t_Means[1,2]<-"NDT1"
+top_mod_table_NDT1_light_t_Means[1,3]<-"Treed"
+top_mod_table_NDT1_light_t_Means[1,4]<- "fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:proj_height_1 + climate1:proj_age_1  + climate2:proj_age_1  + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation" 
+top_mod_table_NDT1_light_t_Means
 ```
 
-Save mean coefficient table.
+Save table.
 
 ```{r}
 write.csv(top_mod_table_NDT1_light_t_Means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT1_light_t_Means.csv")
 ```
 
-
-Get sd values.
-
-```{r}
-# create model table (only do this once) and add the relevant data
-top_mod_table_NDT1_light_t_SD <- data.frame (matrix (ncol = 42, nrow = 0))
-colnames (top_mod_table_NDT1_light_t_SD ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_climate_interaction", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_stand_height", "coef_live_stand_volume_125", "coef_stand_age",  "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_mine", "coef_bclcs_level_5_2DIST", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "slope", "aspect", "elevation", "coef_climate1:vegtype2TB", "coef_climate1:vegtype2TC", "coef_climate1:vegtype2TM", "coef_climate1:proj_height_1", "coef_climate1:proj_age_1", "coef_climate2:proj_age_1", "coef_vegtype2TB:live_stand_volume_125", "coef_vegtype2TC:live_stand_volume_125", "coef_vegtype2TM:live_stand_volume_125", "coef_live_stand_volume_125:proj_age_1", "coef_dist_nat:bclcs_level_5_2DIST", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2DIST", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2SP", "coef_climate2:elevation", "AUC")
-
-head(top_mod_table_NDT1_light_t_SD)
-
-##Add data for NDT1
-top_mod_table_NDT1_light_t_SD[1,1]<-"lightning"
-top_mod_table_NDT1_light_t_SD[1,2]<-"NDT1"
-top_mod_table_NDT1_light_t_SD[1,3]<-"Y"
-top_mod_table_NDT1_light_t_SD[1,4]<-"fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:vegtype2 + climate1:proj_height_1  + climate1:proj_age_1  + climate2:proj_age_1 + vegtype2:live_stand_volume_125  + live_stand_volume_125:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2  + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect + elevation + climate2:elevation" 
-top_mod_table_NDT1_light_t_SD[1,5]<- sd(top_mod_table_NDT1_light_t_ALL$intercept) #Intercept
-top_mod_table_NDT1_light_t_SD[1,6]<- sd(top_mod_table_NDT1_light_t_ALL$coef_climate_1, na.rm=TRUE) #Climate variable 1
-top_mod_table_NDT1_light_t_SD[1,7]<- sd(top_mod_table_NDT1_light_t_ALL$coef_climate_2, na.rm=TRUE) #Climate variable 2
-top_mod_table_NDT1_light_t_SD[1,8]<- sd(top_mod_table_NDT1_light_t_ALL$coef_climate_interaction, na.rm=TRUE) #Interaction climate variables
-top_mod_table_NDT1_light_t_SD[1,9]<- sd(top_mod_table_NDT1_light_t_ALL$coef_vegtypeTB, na.rm=TRUE) #coefficient vegtypeTB
-top_mod_table_NDT1_light_t_SD[1,10]<- sd(top_mod_table_NDT1_light_t_ALL$coef_vegtypeTC, na.rm=TRUE) #coefficient vegtypeTC
-top_mod_table_NDT1_light_t_SD[1,11]<- sd(top_mod_table_NDT1_light_t_ALL$coef_vegtypeTM, na.rm=TRUE) #coefficient vegtypeTM
-top_mod_table_NDT1_light_t_SD[1,12]<- sd(top_mod_table_NDT1_light_t_ALL$coef_stand_height, na.rm=TRUE) #stand_height
-top_mod_table_NDT1_light_t_SD[1,13]<- sd(top_mod_table_NDT1_light_t_ALL$coef_live_stand_volume_125, na.rm=TRUE) #live stand volume
-top_mod_table_NDT1_light_t_SD[1,14]<- sd(top_mod_table_NDT1_light_t_ALL$coef_stand_age, na.rm=TRUE) #proj age
-top_mod_table_NDT1_light_t_SD[1,15]<- sd(top_mod_table_NDT1_light_t_ALL$coef_dist_mun, na.rm=TRUE) #coefficient dist_mun
-top_mod_table_NDT1_light_t_SD[1,16]<- sd(top_mod_table_NDT1_light_t_ALL$coef_dist_dam, na.rm=TRUE)#coefficient dist_dam
-top_mod_table_NDT1_light_t_SD[1,17]<- sd(top_mod_table_NDT1_light_t_ALL$coef_dist_nat, na.rm=TRUE) #coefficient dist_nat
-top_mod_table_NDT1_light_t_SD[1,18]<- sd(top_mod_table_NDT1_light_t_ALL$coef_dist_mine, na.rm=TRUE) #coefficient dist_mine
-top_mod_table_NDT1_light_t_SD[1,19]<- sd(top_mod_table_NDT1_light_t_ALL$coef_bclcs_level_5_2DIST, na.rm=TRUE) #coefficient bclcs_level_5_2DIST
-top_mod_table_NDT1_light_t_SD[1,20]<- sd(top_mod_table_NDT1_light_t_ALL$coef_bclcs_level_5_2OP, na.rm=TRUE) #coefficient bclcs_level_5_2OP
-top_mod_table_NDT1_light_t_SD[1,21]<- sd(top_mod_table_NDT1_light_t_ALL$coef_bclcs_level_5_2SP, na.rm=TRUE) #coefficient bclcs_level_5_2SP
-top_mod_table_NDT1_light_t_SD[1,22]<- sd(top_mod_table_NDT1_light_t_ALL$slope, na.rm=TRUE) #coefficient slope
-top_mod_table_NDT1_light_t_SD[1,23]<- sd(top_mod_table_NDT1_light_t_ALL$aspect, na.rm=TRUE) #coefficient aspect
-top_mod_table_NDT1_light_t_SD[1,24]<- sd(top_mod_table_NDT1_light_t_ALL$elevation, na.rm=TRUE) #coefficient elevation
-top_mod_table_NDT1_light_t_SD[1,25]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_climate1:vegtype2TB`, na.rm=TRUE) #coefficient climate1:vegypeTB
-top_mod_table_NDT1_light_t_SD[1,26]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_climate1:vegtype2TC`, na.rm=TRUE) #coefficient climate1:vegypeTC
-top_mod_table_NDT1_light_t_SD[1,27]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_climate1:vegtype2TM`, na.rm=TRUE) #coefficient climate1:vegypeTM
-top_mod_table_NDT1_light_t_SD[1,28]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_climate1:proj_height_1`, na.rm=TRUE) #coefficient climate1*projheight
-top_mod_table_NDT1_light_t_SD[1,29]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_climate1:proj_age_1`, na.rm=TRUE) #coefficient climate1*projage
-top_mod_table_NDT1_light_t_SD[1,30]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_climate2:proj_age_1`, na.rm=TRUE) #coefficient climate2*projage
-top_mod_table_NDT1_light_t_SD[1,31]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_vegtype2TB:live_stand_volume_125`, na.rm=TRUE) #coefficient livestandvolume*vegtypeTB
-top_mod_table_NDT1_light_t_SD[1,32]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_vegtype2TC:live_stand_volume_125`, na.rm=TRUE)#coefficient livestandvolume*vegtypeTC
-top_mod_table_NDT1_light_t_SD[1,33]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_vegtype2TM:live_stand_volume_125`, na.rm=TRUE) #coefficient livestandvolume*vegtypeTM
-top_mod_table_NDT1_light_t_SD[1,34]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_live_stand_volume_125:proj_age_1`, na.rm=TRUE) #coefficient livestandvolume*projage
-top_mod_table_NDT1_light_t_SD[1,35]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_dist_nat:bclcs_level_5_2DIST`, na.rm=TRUE) #coefficient dist_nat:bclcs_level_5_2DIST 
-top_mod_table_NDT1_light_t_SD[1,36]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_dist_nat:bclcs_level_5_2OP`, na.rm=TRUE) #coefficient dist_nat:bclcs_level_5_2OP
-top_mod_table_NDT1_light_t_SD[1,37]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_dist_nat:bclcs_level_5_2SP`, na.rm=TRUE) #coefficient dist_nat:bclcs_level_5_2SP 
-top_mod_table_NDT1_light_t_SD[1,38]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_dist_mine:bclcs_level_5_2DIST`, na.rm=TRUE) #coefficient dist_mine:bclcs_level_5_2DIST 
-top_mod_table_NDT1_light_t_SD[1,39]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_dist_mine:bclcs_level_5_2OP`, na.rm=TRUE) #coefficient dist_mine:bclcs_level_5_2OP
-top_mod_table_NDT1_light_t_SD[1,40]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_dist_mine:bclcs_level_5_2SP`, na.rm=TRUE) #coefficient dist_mine:bclcs_level_5_2SP
-top_mod_table_NDT1_light_t_SD[1,41]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_climate2:elevation`, na.rm=TRUE) #coefficient climate2:elevation 
-top_mod_table_NDT1_light_t_SD[1,42]<- sd(top_mod_table_NDT1_light_t_ALL$AUC, na.rm=TRUE)
-
-top_mod_table_NDT1_light_t_SD
-
-```
-
-If colons replaced with periods, use below:
+Standard deviation.
 
 ```{r}
-# create model table (only do this once) and add the relevant data
-top_mod_table_NDT1_light_t_SD <- data.frame (matrix (ncol = 42, nrow = 0))
-colnames (top_mod_table_NDT1_light_t_SD ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_climate_interaction", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_stand_height", "coef_live_stand_volume_125", "coef_stand_age",  "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_mine", "coef_bclcs_level_5_2DIST", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "slope", "aspect", "elevation", "coef_climate1.vegtype2TB", "coef_climate1.vegtype2TC", "coef_climate1.vegtype2TM", "coef_climate1.proj_height_1", "coef_climate1.proj_age_1", "coef_climate2.proj_age_1", "coef_vegtype2TB.live_stand_volume_125", "coef_vegtype2TC.live_stand_volume_125", "coef_vegtype2TM.live_stand_volume_125", "coef_live_stand_volume_125.proj_age_1", "coef_dist_nat.bclcs_level_5_2DIST", "coef_dist_nat.bclcs_level_5_2OP", "coef_dist_nat.bclcs_level_5_2SP", "coef_dist_mine.bclcs_level_5_2DIST", "coef_dist_mine.bclcs_level_5_2OP", "coef_dist_mine.bclcs_level_5_2SP", "coef_climate2.elevation", "AUC")
+top_mod_table_NDT1_light_t_SD<-top_mod_table_NDT1_light_t_ALL %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_NDT1_light_t_SD
 
-head(top_mod_table_NDT1_light_t_SD)
-
-##Add data for NDT1
 top_mod_table_NDT1_light_t_SD[1,1]<-"lightning"
 top_mod_table_NDT1_light_t_SD[1,2]<-"NDT1"
-top_mod_table_NDT1_light_t_SD[1,3]<-"Y"
-top_mod_table_NDT1_light_t_SD[1,4]<-"fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1.climate2 + climate1.vegtype2 + climate1.proj_height_1  + climate1.proj_age_1  + climate2.proj_age_1 + vegtype2.live_stand_volume_125  + live_stand_volume_125.proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2  + dist_nat.bclcs_level_5_2 + dist_mine.bclcs_level_5_2 + slope + aspect + elevation + climate2.elevation" 
-top_mod_table_NDT1_light_t_SD[1,5]<- sd(top_mod_table_NDT1_light_t_ALL$intercept) #Intercept
-top_mod_table_NDT1_light_t_SD[1,6]<- sd(top_mod_table_NDT1_light_t_ALL$coef_climate_1, na.rm=TRUE) #Climate variable 1
-top_mod_table_NDT1_light_t_SD[1,7]<- sd(top_mod_table_NDT1_light_t_ALL$coef_climate_2, na.rm=TRUE) #Climate variable 2
-top_mod_table_NDT1_light_t_SD[1,8]<- sd(top_mod_table_NDT1_light_t_ALL$coef_climate_interaction, na.rm=TRUE) #Interaction climate variables
-top_mod_table_NDT1_light_t_SD[1,9]<- sd(top_mod_table_NDT1_light_t_ALL$coef_vegtypeTB, na.rm=TRUE) #coefficient vegtypeTB
-top_mod_table_NDT1_light_t_SD[1,10]<- sd(top_mod_table_NDT1_light_t_ALL$coef_vegtypeTC, na.rm=TRUE) #coefficient vegtypeTC
-top_mod_table_NDT1_light_t_SD[1,11]<- sd(top_mod_table_NDT1_light_t_ALL$coef_vegtypeTM, na.rm=TRUE) #coefficient vegtypeTM
-top_mod_table_NDT1_light_t_SD[1,12]<- sd(top_mod_table_NDT1_light_t_ALL$coef_stand_height, na.rm=TRUE) #stand_height
-top_mod_table_NDT1_light_t_SD[1,13]<- sd(top_mod_table_NDT1_light_t_ALL$coef_live_stand_volume_125, na.rm=TRUE) #live stand volume
-top_mod_table_NDT1_light_t_SD[1,14]<- sd(top_mod_table_NDT1_light_t_ALL$coef_stand_age, na.rm=TRUE) #proj age
-top_mod_table_NDT1_light_t_SD[1,15]<- sd(top_mod_table_NDT1_light_t_ALL$coef_dist_mun, na.rm=TRUE) #coefficient dist_mun
-top_mod_table_NDT1_light_t_SD[1,16]<- sd(top_mod_table_NDT1_light_t_ALL$coef_dist_dam, na.rm=TRUE)#coefficient dist_dam
-top_mod_table_NDT1_light_t_SD[1,17]<- sd(top_mod_table_NDT1_light_t_ALL$coef_dist_nat, na.rm=TRUE) #coefficient dist_nat
-top_mod_table_NDT1_light_t_SD[1,18]<- sd(top_mod_table_NDT1_light_t_ALL$coef_dist_mine, na.rm=TRUE) #coefficient dist_mine
-top_mod_table_NDT1_light_t_SD[1,19]<- sd(top_mod_table_NDT1_light_t_ALL$coef_bclcs_level_5_2DIST, na.rm=TRUE) #coefficient bclcs_level_5_2DIST
-top_mod_table_NDT1_light_t_SD[1,20]<- sd(top_mod_table_NDT1_light_t_ALL$coef_bclcs_level_5_2OP, na.rm=TRUE) #coefficient bclcs_level_5_2OP
-top_mod_table_NDT1_light_t_SD[1,21]<- sd(top_mod_table_NDT1_light_t_ALL$coef_bclcs_level_5_2SP, na.rm=TRUE) #coefficient bclcs_level_5_2SP
-top_mod_table_NDT1_light_t_SD[1,22]<- sd(top_mod_table_NDT1_light_t_ALL$slope, na.rm=TRUE) #coefficient slope
-top_mod_table_NDT1_light_t_SD[1,23]<- sd(top_mod_table_NDT1_light_t_ALL$aspect, na.rm=TRUE) #coefficient aspect
-top_mod_table_NDT1_light_t_SD[1,24]<- sd(top_mod_table_NDT1_light_t_ALL$elevation, na.rm=TRUE) #coefficient elevation
-top_mod_table_NDT1_light_t_SD[1,25]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_climate1.vegtype2TB`, na.rm=TRUE) #coefficient climate1.vegypeTB
-top_mod_table_NDT1_light_t_SD[1,26]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_climate1.vegtype2TC`, na.rm=TRUE) #coefficient climate1.vegypeTC
-top_mod_table_NDT1_light_t_SD[1,27]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_climate1.vegtype2TM`, na.rm=TRUE) #coefficient climate1.vegypeTM
-top_mod_table_NDT1_light_t_SD[1,28]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_climate1.proj_height_1`, na.rm=TRUE) #coefficient climate1*projheight
-top_mod_table_NDT1_light_t_SD[1,29]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_climate1.proj_age_1`, na.rm=TRUE) #coefficient climate1*projage
-top_mod_table_NDT1_light_t_SD[1,30]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_climate2.proj_age_1`, na.rm=TRUE) #coefficient climate2*projage
-top_mod_table_NDT1_light_t_SD[1,31]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_vegtype2TB.live_stand_volume_125`, na.rm=TRUE) #coefficient livestandvolume*vegtypeTB
-top_mod_table_NDT1_light_t_SD[1,32]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_vegtype2TC.live_stand_volume_125`, na.rm=TRUE)#coefficient livestandvolume*vegtypeTC
-top_mod_table_NDT1_light_t_SD[1,33]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_vegtype2TM.live_stand_volume_125`, na.rm=TRUE) #coefficient livestandvolume*vegtypeTM
-top_mod_table_NDT1_light_t_SD[1,34]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_live_stand_volume_125.proj_age_1`, na.rm=TRUE) #coefficient livestandvolume*projage
-top_mod_table_NDT1_light_t_SD[1,35]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_dist_nat.bclcs_level_5_2DIST`, na.rm=TRUE) #coefficient dist_nat.bclcs_level_5_2DIST 
-top_mod_table_NDT1_light_t_SD[1,36]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_dist_nat.bclcs_level_5_2OP`, na.rm=TRUE) #coefficient dist_nat.bclcs_level_5_2OP
-top_mod_table_NDT1_light_t_SD[1,37]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_dist_nat.bclcs_level_5_2SP`, na.rm=TRUE) #coefficient dist_nat.bclcs_level_5_2SP 
-top_mod_table_NDT1_light_t_SD[1,38]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_dist_mine.bclcs_level_5_2DIST`, na.rm=TRUE) #coefficient dist_mine.bclcs_level_5_2DIST 
-top_mod_table_NDT1_light_t_SD[1,39]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_dist_mine.bclcs_level_5_2OP`, na.rm=TRUE) #coefficient dist_mine.bclcs_level_5_2OP
-top_mod_table_NDT1_light_t_SD[1,40]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_dist_mine.bclcs_level_5_2SP`, na.rm=TRUE) #coefficient dist_mine.bclcs_level_5_2SP
-top_mod_table_NDT1_light_t_SD[1,41]<- sd(top_mod_table_NDT1_light_t_ALL$`coef_climate2.elevation`, na.rm=TRUE) #coefficient climate2.elevation 
-top_mod_table_NDT1_light_t_SD[1,42]<- sd(top_mod_table_NDT1_light_t_ALL$AUC, na.rm=TRUE)
-
+top_mod_table_NDT1_light_t_SD[1,3]<-"Treed"
+top_mod_table_NDT1_light_t_SD[1,4]<-"fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:proj_height_1 + climate1:proj_age_1  + climate2:proj_age_1  + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation" 
 top_mod_table_NDT1_light_t_SD
 ```
-
 
 Save sd coefficient table.
 

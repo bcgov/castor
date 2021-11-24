@@ -12,12 +12,12 @@ knitr::opts_chunk$set(echo = TRUE)
 library(sf)
 library(tidyverse)
 library(ggplot2)
-library (ggcorrplot)
-library (RPostgreSQL)
-library (rpostgis)
-library (dplyr)
-library (lme4)
-library (arm)
+library(ggcorrplot)
+library(RPostgreSQL)
+library(rpostgis)
+library(dplyr)
+library(lme4)
+library(arm)
 library(ggpubr)
 library(mgcv)
 library(nlme)
@@ -27,16 +27,11 @@ library(caret)
 library(pROC)
 library(keyring)
 library(ggcorrplot) 
-library (kableExtra)
-library (data.table)
-library (DBI)
-library (RPostgreSQL)
-library (dplyr)
-library (ggplot2)
-library (here)
+library(kableExtra)
+library(data.table)
+library(DBI)
+library(here)
 library(AICcmodavg)
-library(caret)
-library(pROC)
 library(rje)
 library(base)
 library(car)
@@ -729,6 +724,8 @@ prop<-0.75
    dat1 <- escape_lightning_nt_NDT2[ trainIndex,]
    Valid <- escape_lightning_nt_NDT2[-trainIndex,]
 
+   #Note: small dataset, so too many variables in most of the below models
+   
 #Run model using dat1
 model.NDT2.E<-glm(escape ~ climate1 + slope + aspect + wind_atfire + slope:aspect + slope:wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + elevation + climate1:elevation  + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire:climate1  + Tdif_atfire:wind_atfire + Tdif_atfire, family = binomial, data = dat1)
 
@@ -871,17 +868,16 @@ Anova(model.NDT2.E, type=3)
 #Anova(model.NDT2.E, type=3, singular.ok = TRUE)
 
 
-
-#Previosu best model before Tdif
+#Previous best model before Tdif
 model.NDT2.E<-glm(escape ~ climate1 + slope + aspect + wind_atfire  + dist_dam + dist_nat  + bclcs_level_5_2  + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2  + elevation  + vegtype2 + wind_atfire:vegtype2, family = binomial, data = dat1)
 
-AIC(model.NDT2.E) #166.5
+AIC(model.NDT2.E) #166.5 (run 2: 164.2)
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT2.E, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.66
+   mod.auc #0.66 (0.79)
    
 Anova(model.NDT2.E, type=3)
 #Anova(model.NDT2.E, type=3, singular.ok = TRUE)
@@ -889,17 +885,30 @@ Anova(model.NDT2.E, type=3)
 #Best model
 model.NDT2.E<-glm(escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire, family = binomial, data = dat1)
 
-AIC(model.NDT2.E) #156.9
+AIC(model.NDT2.E) #156.9 (154.2)
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT2.E, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.76
+   mod.auc #0.76 (0.86)
    
 Anova(model.NDT2.E, type=3)
 #Anova(model.NDT2.E, type=3, singular.ok = TRUE)
 
+#Reduce variables given small datset
+model.NDT2.E<-glm(escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire, family = binomial, data = dat1)
+
+AIC(model.NDT2.E) #159.9
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT2.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.82
+   
+Anova(model.NDT2.E, type=3)
+#Anova(model.NDT2.E, type=3, singular.ok = TRUE)
 ```
 
 Remove NAs and run multiple times.
@@ -907,13 +916,20 @@ Remove NAs and run multiple times.
 ```{r}
 #Remove NAs to ensure all same data used so we can compare AICs
 NDT2_escape_nt<-escape_lightning_nt_NDT2 %>% drop_na(climate1, vegtype2, dist_nat, dist_dam, dist_mine, roads_km, bclcs_level_5_2, slope, wind_atfire, Tdif_atfire)
-#Only 228 data points. Small dataset.
+#Only 241 data points. Small dataset.
 
 #Run Model again with this data; but uses all data here
 model.NDT2.E<-glm(escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire, family = binomial, data = NDT2_escape_nt)
 
+model.NDT2.E<-glm(escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire, family = binomial, data = NDT2_escape_nt) #Still errors
+
+model.NDT2.E<-glm(escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire, family = binomial, data = NDT2_escape_nt) #Still errors
+
+#Use below given small sample size
+model.NDT2.E<-glm(escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire, family = binomial, data = NDT2_escape_nt)
+
 Anova(model.NDT2.E, type=3) #
-Anova(model.NDT2.E, type=3, singular.ok = TRUE)
+#Anova(model.NDT2.E, type=3, singular.ok = TRUE)
 
 # model diagnostic plots
 binnedplot (fitted(model.NDT2.E), 
@@ -935,6 +951,25 @@ binnedplot (NDT2_escape_nt$climate1,
             main = paste("Binned Residual Plot - glm", i))
 
 # Diagnostic plots look okay
+#climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire
+
+visreg(model.NDT2.E, "climate1", by="wind_atfire")
+visreg(model.NDT2.E, "Tdif_atfire")
+
+visreg(model.NDT2.E, "slope")
+
+visreg(model.NDT2.E, "wind_atfire", by="climate1")
+visreg(model.NDT2.E, "wind_atfire", by="vegtype2", overlay=TRUE)
+
+visreg(model.NDT2.E, "vegtype2", by="wind_atfire")
+
+#dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 
+visreg(model.NDT2.E, "dist_dam")
+visreg(model.NDT2.E, "dist_nat")
+visreg(model.NDT2.E, "dist_mine")
+visreg(model.NDT2.E, "roads_km")
+visreg(model.NDT2.E, "bclcs_level_5_2")
+
 ```
 
 We should repeat the above several times and take the mean of the coefficients.
@@ -943,8 +978,8 @@ We should repeat the above several times and take the mean of the coefficients.
 summary(model.NDT2.E)
 
 #Create a new blank table and get AUC too
-top_mod_table_NDT2_light_nt_ALL <- data.frame (matrix (ncol = 28, nrow = 0))
-colnames (top_mod_table_NDT2_light_nt_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_slope", "coef_wind_atfire", "coef_dist_dam", "coef_dist_nat", "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_vegtypeOP", "coef_vegtypeS", "coef_Tdif_atfire", "coef_dist_dam:roads_km", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2SP", "coef_climate1:wind_atfire", "coef_wind_atfire:vegtype2OP", "coef_wind_atfire:vegtype2S", "AUC")
+top_mod_table_NDT2_light_nt_ALL <- data.frame (matrix (ncol = 21, nrow = 0))
+colnames (top_mod_table_NDT2_light_nt_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_slope", "coef_wind_atfire", "coef_dist_dam", "coef_dist_nat", "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_vegtypeOP", "coef_vegtypeS", "coef_Tdif_atfire", "coef_climate1:wind_atfire", "coef_wind_atfire:vegtype2OP", "coef_wind_atfire:vegtype2S", "AUC")
 ```
 
 Let's run it 500 times to get good mean values.
@@ -963,21 +998,21 @@ prop<-0.75
    Valid <- NDT2_escape_nt[-trainIndex,]
    
 #Model   
-model.NDT2.E<-glm(escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire, family = binomial, data = dat1) 
+model.NDT2.E<-glm(escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire, family = binomial, data = dat1) 
 
 mod.valid <- predict.glm(model.NDT2.E, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT2_light_nt <- data.frame (matrix (ncol = 28, nrow = 0))
-colnames (top_mod_table_NDT2_light_nt ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_slope", "coef_wind_atfire", "coef_dist_dam", "coef_dist_nat", "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_vegtypeOP", "coef_vegtypeS", "coef_Tdif_atfire", "coef_dist_dam:roads_km", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2SP", "coef_climate1:wind_atfire", "coef_wind_atfire:vegtype2OP", "coef_wind_atfire:vegtype2S", "AUC")
+top_mod_table_NDT2_light_nt <- data.frame (matrix (ncol = 21, nrow = 0))
+colnames (top_mod_table_NDT2_light_nt ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_slope", "coef_wind_atfire", "coef_dist_dam", "coef_dist_nat", "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_vegtypeOP", "coef_vegtypeS", "coef_Tdif_atfire", "coef_climate1:wind_atfire", "coef_wind_atfire:vegtype2OP", "coef_wind_atfire:vegtype2S", "AUC")
 
 ##Add data for NDT2
 top_mod_table_NDT2_light_nt[1,1]<-"lightning"
 top_mod_table_NDT2_light_nt[1,2]<-"NDT2"
 top_mod_table_NDT2_light_nt[1,3]<-"N"
-top_mod_table_NDT2_light_nt[1,4]<-"escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire" 
+top_mod_table_NDT2_light_nt[1,4]<-"escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire" 
 top_mod_table_NDT2_light_nt[1,5]<- coef(model.NDT2.E)[1] #Intercept
 top_mod_table_NDT2_light_nt[1,6]<- coef(model.NDT2.E)[2] #climate1
 top_mod_table_NDT2_light_nt[1,7]<- coef(model.NDT2.E)[3] #slope
@@ -991,17 +1026,10 @@ top_mod_table_NDT2_light_nt[1,14]<- coef(model.NDT2.E)[10] #coefficient bclcs_le
 top_mod_table_NDT2_light_nt[1,15]<- coef(model.NDT2.E)[11] #coefficient vegtype2OP
 top_mod_table_NDT2_light_nt[1,16]<- coef(model.NDT2.E)[12] #coefficient vegtype2S
 top_mod_table_NDT2_light_nt[1,17]<- coef(model.NDT2.E)[13] #coefficient Tdif_atfire 
-top_mod_table_NDT2_light_nt[1,18]<- coef(model.NDT2.E)[14] #coefficient dist_dam:roads_km 
-top_mod_table_NDT2_light_nt[1,19]<- coef(model.NDT2.E)[15] #coefficient dist_dam:bclcs_level_5_2OP
-top_mod_table_NDT2_light_nt[1,20]<- coef(model.NDT2.E)[16] #coefficient dist_dam:bclcs_level_5_2SP
-top_mod_table_NDT2_light_nt[1,21]<- coef(model.NDT2.E)[17] #coefficient dist_nat:bclcs_level_5_2OP 
-top_mod_table_NDT2_light_nt[1,22]<- coef(model.NDT2.E)[18] #coefficient dist_nat:bclcs_level_5_2SP
-top_mod_table_NDT2_light_nt[1,23]<- coef(model.NDT2.E)[19] #coefficient dist_mine:bclcs_level_5_2OP 
-top_mod_table_NDT2_light_nt[1,24]<- coef(model.NDT2.E)[20] #coefficient dist_mine:bclcs_level_5_2SP 
-top_mod_table_NDT2_light_nt[1,25]<- coef(model.NDT2.E)[21] #coefficient climate1:wind_atfire 
-top_mod_table_NDT2_light_nt[1,26]<- coef(model.NDT2.E)[22] #coefficient wind_atfire:vegtype2OP 
-top_mod_table_NDT2_light_nt[1,27]<- coef(model.NDT2.E)[23] #coefficient wind_atfire:vegtype2S
-top_mod_table_NDT2_light_nt[1,28]<- mod.auc
+top_mod_table_NDT2_light_nt[1,18]<- coef(model.NDT2.E)[14] #coefficient
+top_mod_table_NDT2_light_nt[1,19]<- coef(model.NDT2.E)[15] #
+top_mod_table_NDT2_light_nt[1,20]<- coef(model.NDT2.E)[16] #coefficie
+top_mod_table_NDT2_light_nt[1,21]<- mod.auc
 
 top_mod_table_NDT2_light_nt_ALL<-rbind(top_mod_table_NDT2_light_nt_ALL, top_mod_table_NDT2_light_nt)
 
@@ -1022,106 +1050,45 @@ write.csv(top_mod_table_NDT2_light_nt_ALL, file="D:\\Fire\\fire_data\\raw_data\\
 ```
 
 
-###SOMETHING WENT WRONG BELOW... investigate
+```{r}
+mean(top_mod_table_NDT2_light_nt_ALL$AUC) # 0.74
+```
 
-
-Get mean values.
+#Get Mean Values
 
 ```{r}
 names(top_mod_table_NDT2_light_nt_ALL)
-mean(top_mod_table_NDT2_light_nt_ALL$AUC) # 0.76
 
-# create model table (only do this once) and add the relevant data
-top_mod_table_NDT2_light_nt_Means <- data.frame (matrix (ncol = 28, nrow = 0))
-colnames (top_mod_table_NDT2_light_nt_Means ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_slope", "coef_wind_atfire", "coef_dist_dam", "coef_dist_nat", "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_vegtypeOP", "coef_vegtypeS", "coef_Tdif_atfire", "coef_dist_dam:roads_km", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2SP", "coef_climate1:wind_atfire", "coef_wind_atfire:vegtype2OP", "coef_wind_atfire:vegtype2S", "AUC")
+top_mod_table_NDT2_escape_light_nt_means<-top_mod_table_NDT2_light_nt_ALL %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table_NDT2_escape_light_nt_means
 
-head(top_mod_table_NDT2_light_nt_Means)
-
-##Add data for NDT2
-top_mod_table_NDT2_light_nt_Means[1,1]<-"lightning"
-top_mod_table_NDT2_light_nt_Means[1,2]<-"NDT2"
-top_mod_table_NDT2_light_nt_Means[1,3]<-"N"
-top_mod_table_NDT2_light_nt_Means[1,4]<-"escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire" 
-top_mod_table_NDT2_light_nt_Means[1,5]<- mean(top_mod_table_NDT2_light_nt_ALL$intercept) #Intercept
-top_mod_table_NDT2_light_nt_Means[1,6]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_climate_1, na.rm=TRUE) #Climate variable 1
-top_mod_table_NDT2_light_nt_Means[1,7]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_slope, na.rm=TRUE) #
-top_mod_table_NDT2_light_nt_Means[1,8]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_wind_atfire, na.rm=TRUE) #coefficient
-top_mod_table_NDT2_light_nt_Means[1,9]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_dist_dam, na.rm=TRUE) #coefficient vegtypeTC
-top_mod_table_NDT2_light_nt_Means[1,10]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_dist_nat, na.rm=TRUE) #coefficient vegtypeTM
-top_mod_table_NDT2_light_nt_Means[1,11]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_dist_mine, na.rm=TRUE) #coef_live_stand_volume_125
-top_mod_table_NDT2_light_nt_Means[1,12]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_roads_km, na.rm=TRUE) 
-top_mod_table_NDT2_light_nt_Means[1,13]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_bclcs_level_5_2OP, na.rm=TRUE) 
-top_mod_table_NDT2_light_nt_Means[1,14]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_bclcs_level_5_2SP, na.rm=TRUE) 
-top_mod_table_NDT2_light_nt_Means[1,15]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_vegtypeOP, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_Means[1,16]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_vegtypeS, na.rm=TRUE) #
-top_mod_table_NDT2_light_nt_Means[1,17]<- mean(top_mod_table_NDT2_light_nt_ALL$coef_Tdif_atfire, na.rm=TRUE) #
-top_mod_table_NDT2_light_nt_Means[1,18]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_dist_dam:roads_km`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_Means[1,19]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_dist_dam:bclcs_level_5_2OP`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_Means[1,20]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_dist_dam:bclcs_level_5_2SP`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_Means[1,21]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_dist_nat:bclcs_level_5_2OP`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_Means[1,22]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_dist_nat:bclcs_level_5_2SP`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_Means[1,23]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_dist_mine:bclcs_level_5_2OP`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_Means[1,24]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_dist_mine:bclcs_level_5_2SP`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_Means[1,25]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_climate1:wind_atfire `, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_Means[1,26]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_wind_atfire:vegtype2OP`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_Means[1,27]<- mean(top_mod_table_NDT2_light_nt_ALL$`coef_wind_atfire:vegtype2S`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_Means[1,28]<- mean(top_mod_table_NDT2_light_nt_ALL$AUC, na.rm=TRUE)
-
-top_mod_table_NDT2_light_nt_Means
-
+top_mod_table_NDT2_escape_light_nt_means[1,1]<-"Lightning"
+top_mod_table_NDT2_escape_light_nt_means[1,2]<-"NDT2"
+top_mod_table_NDT2_escape_light_nt_means[1,3]<-"Not Treed"
+top_mod_table_NDT2_escape_light_nt_means[1,4]<- "escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire" 
+top_mod_table_NDT2_escape_light_nt_means
 ```
-
-Save mean coefficient table. NOTE: here, some models with low AUC has extreme values for coefficients (i.e., 200,000 vs most being 1). These need to be manually removed and values recalculated.
+Save table.
 
 ```{r}
-write.csv(top_mod_table_NDT2_light_nt_Means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT2_light_nt_Means.csv")
+write.csv(top_mod_table_NDT2_escape_light_nt_means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT2_light_nt_Means.csv")
 ```
 
-Get sd values. NOTE: here, some models with low AUC has extreme values for coefficients (i.e., 200,000 vs most being 1). These need to be manually removed and values recalculated.
+Standard deviation.
 
 ```{r}
-# create model table (only do this once) and add the relevant data
-top_mod_table_NDT2_light_nt_SD <- data.frame (matrix (ncol = 28, nrow = 0))
-colnames (top_mod_table_NDT2_light_nt_SD ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_slope", "coef_wind_atfire", "coef_dist_dam", "coef_dist_nat", "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_vegtypeOP", "coef_vegtypeS", "coef_Tdif_atfire", "coef_dist_dam:roads_km", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2SP", "coef_climate1:wind_atfire", "coef_wind_atfire:vegtype2OP", "coef_wind_atfire:vegtype2S", "AUC")
+top_mod_table_NDT2_escape_light_nt_sd<-top_mod_table_NDT2_light_nt_ALL %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_NDT2_escape_light_nt_sd
 
-head(top_mod_table_NDT2_light_nt_SD)
-
-##Add data for NDT2
-top_mod_table_NDT2_light_nt_SD[1,1]<-"lightning"
-top_mod_table_NDT2_light_nt_SD[1,2]<-"NDT2"
-top_mod_table_NDT2_light_nt_SD[1,3]<-"N"
-top_mod_table_NDT2_light_nt_SD[1,4]<-"escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire" 
-top_mod_table_NDT2_light_nt_SD[1,5]<- sd(top_mod_table_NDT2_light_nt_ALL$intercept) #Intercept
-top_mod_table_NDT2_light_nt_SD[1,6]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_climate_1, na.rm=TRUE) #Climate variable 1
-top_mod_table_NDT2_light_nt_SD[1,7]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_slope, na.rm=TRUE) #
-top_mod_table_NDT2_light_nt_SD[1,8]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_wind_atfire, na.rm=TRUE) #coefficient
-top_mod_table_NDT2_light_nt_SD[1,9]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_dist_dam, na.rm=TRUE) #coefficient vegtypeTC
-top_mod_table_NDT2_light_nt_SD[1,10]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_dist_nat, na.rm=TRUE) #coefficient vegtypeTM
-top_mod_table_NDT2_light_nt_SD[1,11]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_dist_mine, na.rm=TRUE) #coef_live_stand_volume_125
-top_mod_table_NDT2_light_nt_SD[1,12]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_roads_km, na.rm=TRUE) 
-top_mod_table_NDT2_light_nt_SD[1,13]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_bclcs_level_5_2OP, na.rm=TRUE) 
-top_mod_table_NDT2_light_nt_SD[1,14]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_bclcs_level_5_2SP, na.rm=TRUE) 
-top_mod_table_NDT2_light_nt_SD[1,15]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_vegtypeOP, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_SD[1,16]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_vegtypeS, na.rm=TRUE) #
-top_mod_table_NDT2_light_nt_SD[1,17]<- sd(top_mod_table_NDT2_light_nt_ALL$coef_Tdif_atfire, na.rm=TRUE) #
-top_mod_table_NDT2_light_nt_SD[1,18]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_dist_dam:roads_km`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_SD[1,19]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_dist_dam:bclcs_level_5_2OP`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_SD[1,20]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_dist_dam:bclcs_level_5_2SP`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_SD[1,21]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_dist_nat:bclcs_level_5_2OP`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_SD[1,22]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_dist_nat:bclcs_level_5_2SP`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_SD[1,23]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_dist_mine:bclcs_level_5_2OP`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_SD[1,24]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_dist_mine:bclcs_level_5_2SP`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_SD[1,25]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_climate1:wind_atfire `, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_SD[1,26]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_wind_atfire:vegtype2OP`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_SD[1,27]<- sd(top_mod_table_NDT2_light_nt_ALL$`coef_wind_atfire:vegtype2S`, na.rm=TRUE)
-top_mod_table_NDT2_light_nt_SD[1,28]<- sd(top_mod_table_NDT2_light_nt_ALL$AUC, na.rm=TRUE)
-
-top_mod_table_NDT2_light_nt_SD
-
+top_mod_table_NDT2_escape_light_nt_sd[1,1]<-"Lightning"
+top_mod_table_NDT2_escape_light_nt_sd[1,2]<-"NDT2"
+top_mod_table_NDT2_escape_light_nt_sd[1,3]<-"Not Treed"
+top_mod_table_NDT2_escape_light_nt_sd[1,4]<-"escape ~ climate1 + slope + wind_atfire + dist_dam + dist_nat + dist_mine + roads_km + bclcs_level_5_2 + climate1:wind_atfire + vegtype2 + wind_atfire:vegtype2 + Tdif_atfire" 
+top_mod_table_NDT2_escape_light_nt_sd
 ```
 
 Save sd coefficient table.
 
 ```{r}
-write.csv(top_mod_table_NDT2_light_nt_SD, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT2_light_nt_SD.csv")
+write.csv(top_mod_table_NDT2_escape_light_nt_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_escape_NDT2_light_nt_SD.csv")
 ```

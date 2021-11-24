@@ -23,10 +23,10 @@ library(caret)
 library(pROC)
 library(rje)
 library(car)
+library(visreg)
 
 source(here::here("R/functions/R_Postgres.R"))
 ```
-
 
 <!--
 Copyright 2021 Province of British Columbia
@@ -53,16 +53,16 @@ See the License for the specific language governing permissions and limitations 
 Note: depending where your geometry column was located when saved as a csv (and turned into a dataframe), you may need to manually correct column headings on the csv file before loading back in. This has been performed for the below files.
 
 ```{r}
-dat_lightning_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_trees_NDT.csv")
+dat_lightning_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_trees_NDT_Oct.csv")
 head(dat_lightning_t)
 
-dat_lightning_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_notrees_NDT.csv")
+dat_lightning_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_notrees_NDT_Oct.csv")
 head(dat_lightning_nt)
 
-dat_person_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_trees_NDT.csv")
+dat_person_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_trees_NDT_Oct.csv")
 head(dat_person_t)
 
-dat_person_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_notrees_NDT.csv")
+dat_person_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_notrees_NDT_Oct.csv")
 head(dat_person_nt)
 ```
 
@@ -2317,8 +2317,7 @@ NDT5_t<-dat_lightning_t_NDT5 %>% drop_na(climate1, climate2, proj_height_1, live
 #Run Model again with this data; but uses all data here
 model.NDT5<-glm(fire_pres ~ climate1 + climate2 + proj_height_1 + live_stand_volume_125 + climate2:proj_height_1 + dist_dam + dist_mine + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + elevation, family = binomial, data = NDT5_t)
 
-Anova(model.NDT5, type=3)
-#Anova(model.NDT5, type=3, singular.ok = TRUE)
+AIC(model.NDT5) #381.95
 
 # model diagnostic plots
 binnedplot (fitted(model.NDT5), 
@@ -2346,6 +2345,24 @@ binnedplot (NDT5_t$climate1,
             main = paste("Binned Residual Plot - glm", i))
 
 # Diagnostic plots look good overall... but not perfect (especially last one)
+
+#Partial Residuals
+#climate1 + climate2 + proj_height_1 + live_stand_volume_125 + climate2:proj_height_1 + dist_dam + dist_mine + bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + elevation
+visreg(model.NDT5, "climate1")
+visreg(model.NDT5, "climate2", by="proj_height_1")
+
+visreg(model.NDT5, "proj_height_1", by="climate2")
+visreg(model.NDT5, "live_stand_volume_125")
+
+visreg(model.NDT5, "elevation")
+
+visreg(model.NDT5, "dist_dam", by="bclcs_level_5_2", overlay=TRUE, ylim=c(-30,30))
+visreg(model.NDT5, "dist_mine", by="bclcs_level_5_2", overlay=TRUE, ylim=c(-30,30))
+
+visreg(model.NDT5, "bclcs_level_5_2", by="dist_mine")
+visreg(model.NDT5, "bclcs_level_5_2", by="dist_mine", ylim=c(-40,40))
+visreg(model.NDT5, "bclcs_level_5_2", by="dist_dam")
+visreg(model.NDT5, "bclcs_level_5_2", by="dist_dam", ylim=c(-40,40))
 
 ```
 
