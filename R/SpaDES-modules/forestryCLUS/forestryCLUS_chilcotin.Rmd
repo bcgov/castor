@@ -318,7 +318,7 @@ parameters <- list(
   dataLoaderCLUS = list( dbName='clus',
                          save_clusdb = FALSE,
                          sqlite_dbname = "chilcotin_study_area",
-                         useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/chilcotin_study_area_clusdb.sqlite"),
+                         useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/chilcotin_study_area_clusdb.sqlite"),
                          nameBoundaryFile="chilcotin_area_of_interest_habitat",
                          nameBoundaryColumn = "tsa_name",
                          nameBoundary = c ('Matrix', 'HEWSR', 'LESR', 'LEWR', 'out'),
@@ -459,83 +459,96 @@ modules <- list("dataLoaderCLUS",
 # scenario = data.table (name = "chilcotin_scen1a_disturb",
 #                        description = "Scenario 1a with closest to disturbance harvest priority. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Closest to Disturabnce, then oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 
-scenario = data.table (name = "chilcotin_bau_dead",
+scenario = data.table (name = "chilcotin_bau_live_dead",
                        description = "Business as usual (BAU). Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Salvage dead volume in first 10 years. Minimum volume: 150 m3/year. Even live harvest flow: HEWSR = 0 m3/year; LESR = 7,000 m3/year; LEWR = 85,000m3/year; Matrix = 140,000m3/year; out = 2,100,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 0 m3/year; LESR = 3,500 m3/year; LEWR = 42,500m3/year; Matrix = 70,000 m3/year; out = 1,050,000 m3/year.")
 
 
 
 harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5)', #  AND age > 139, 119, 99
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', #  AND age > 139, 119, 99
                                           period = rep( seq (from = 1, 
-                                                           to = 40, 
+                                                           to = 2, 
                                                            by = 1),
                                                      1), 
-                                          flow = 0,
+                                          flow = 45000,
                                           partition_type = 'live'), # 0 m3/yr 
-                              data.table (compartment ="LESR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5)', # AND age > 139, 119
-                                          period = rep( seq (from = 1, 
+                              data.table (compartment ="HEWSR",
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', #  AND age > 139, 119, 99
+                                          period = rep( seq (from = 3, 
                                                            to = 40, 
                                                            by = 1),
+                                                     1), 
+                                          flow = 48000,
+                                          partition_type = 'live'),
+                               data.table (compartment ="HEWSR",partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', period = rep( seq (from = 1,to = 2, by = 1),1),flow =3000,partition_type = 'dead'),
+                              data.table (compartment ="LESR",
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', # AND age > 139, 119
+                                          period = rep( seq (from = 1, 
+                                                           to = 2, 
+                                                           by = 1),
                                                      1),
-                                          flow = 35000,
+                                          flow = 100000,#150000
                                           partition_type = 'live'), # 7,000 m3/yr 
-                              data.table (compartment ="LESR",
-                                          partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', # AND age > 139, 119
-                                          period = rep( seq (from = 1, 
-                                                           to = 2, 
+                                  data.table (compartment ="LESR",
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', # AND age > 139, 119
+                                          period = rep( seq (from = 3, 
+                                                           to = 40, 
                                                            by = 1),
                                                      1),
-                                          flow = 17500,
-                                          partition_type = 'dead'), # 3,500 m3/yr 
+                                          flow = 160000,#150000
+                                          partition_type = 'live'), # 7,000 m3/yr 
+                              data.table (compartment ="LESR",partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', period = rep( seq (from = 1,to = 2, by = 1),1),flow =100000,partition_type = 'dead'), # 160000 m3/yr 
                               data.table (compartment ="LEWR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5)', #  AND age > 139, 119
-                                          period = rep( seq (from = 1, 
-                                                           to = 40, 
-                                                           by = 1),
-                                                     1), 
-                                          flow = 425000,
-                                          partition_type = 'live'), # 85,000 m3/yr 
-                              data.table (compartment ="LEWR",
-                                          partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5))', #  AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', #  AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
                                                      1), 
-                                          flow = 212500,
-                                          partition_type = 'dead'), # 42,500 m3/yr 
-                              data.table (compartment ="Matrix",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5)', # AND age > 139, 119
-                                          period = rep( seq (from = 1, 
+                                          flow = 1055000, #1125000
+                                          partition_type = 'live'), # 85,000 m3/yr 
+                               data.table (compartment ="LEWR",
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', #  AND age > 139, 119
+                                          period = rep( seq (from = 3, 
                                                            to = 40, 
                                                            by = 1),
                                                      1), 
-                                          flow = 950000,
+                                          flow = 1125000, #1125000
+                                          partition_type = 'live'), 
+                              data.table (compartment ="LEWR",partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', period = rep( seq (from = 1, to = 2, by = 1),1), flow = 500000,partition_type = 'dead'), # 42,500 m3/yr 
+                              data.table (compartment ="Matrix",
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', # AND age > 139, 119
+                                          period = rep( seq (from = 1, 
+                                                           to = 1, 
+                                                           by = 1),
+                                                     1), 
+                                          flow = 960000, #1380000
                                           partition_type = 'live'), #190,000 m3/yr 
                               data.table (compartment ="Matrix",
-                                          partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5))', # AND age > 139, 119
-                                          period = rep( seq (from = 1, 
-                                                           to = 2, 
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', # AND age > 139, 119
+                                          period = rep( seq (from = 2, 
+                                                           to = 40, 
                                                            by = 1),
                                                      1), 
-                                          flow = 475000,
-                                          partition_type = 'dead'), #95,000 m3/yr 
+                                          flow = 1410000, #1380000
+                                          partition_type = 'live'),
+                              data.table (compartment ="Matrix",partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ',  period = rep( seq (from = 1, to = 2, by = 1), 1), flow = 450000,partition_type = 'dead'), #95,000 m3/yr 
                               data.table (compartment ="out",
                                           partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5)', 
                                           period = rep( seq (from = 1, 
+                                                           to = 1, 
+                                                           by = 1),
+                                                     1), 
+                                          flow =  1860000,#1900000
+                                          partition_type = 'live'), # 2,100,000 m3/yr 
+                              data.table (compartment ="out",
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5)', 
+                                          period = rep( seq (from = 2, 
                                                            to = 40, 
                                                            by = 1),
                                                      1), 
-                                          flow = 10500000,
-                                          partition_type = 'live'), # 2,100,000 m3/yr 
-                              data.table (compartment ="out",
-                                          partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
-                                          period = rep( seq (from = 1, 
-                                                           to = 2, 
-                                                           by = 1),
-                                                     1), 
-                                          flow = 5250000,
-                                          partition_type = 'dead') # 1,050,000 m3/yr 
+                                          flow = 2100000,#1900000
+                                          partition_type = 'live'),
+                              data.table (compartment ="out",partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ',period = rep( seq (from = 1,  to = 2,  by = 1),1),  flow = 350000,partition_type = 'dead') # 1,050,000 m3/yr 
 ))
 
 #harvestFlow<-rbindlist(list(harvestFlowA,harvestFlowB,harvestFlowC)) # if > 1 harvest flow

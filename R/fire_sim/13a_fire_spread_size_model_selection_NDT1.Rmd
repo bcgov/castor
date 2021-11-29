@@ -12,12 +12,12 @@ knitr::opts_chunk$set(echo = TRUE)
 library(sf)
 library(tidyverse)
 library(ggplot2)
-library (ggcorrplot)
-library (RPostgreSQL)
-library (rpostgis)
-library (dplyr)
-library (lme4)
-library (arm)
+library(ggcorrplot)
+library(RPostgreSQL)
+library(rpostgis)
+library(dplyr)
+library(lme4)
+library(arm)
 library(ggpubr)
 library(mgcv)
 library(nlme)
@@ -27,19 +27,15 @@ library(caret)
 library(pROC)
 library(keyring)
 library(ggcorrplot) 
-library (kableExtra)
-library (data.table)
-library (DBI)
-library (RPostgreSQL)
-library (dplyr)
-library (ggplot2)
-library (here)
+library(kableExtra)
+library(data.table)
+library(DBI)
+library(here)
 library(AICcmodavg)
-library(caret)
-library(pROC)
 library(rje)
 library(base)
 library(car)
+library(visreg)
 #library(aomisc) #Not available for this version of R
 
 source(here::here("R/functions/R_Postgres.R"))
@@ -71,6 +67,8 @@ The objective of this file is to determine the best model for predicting fire si
 
 Note on cross-validation using test and validation data: "When comparing two models, the one that produces the lowest test sample RMSE is the preferred model.
 the RMSE and the MAE are measured in the same scale as the outcome variable. Dividing the RMSE by the average value of the outcome variable will give you the prediction error rate, which should be as small as possible." (http://www.sthda.com/english/articles/38-regression-model-validation/157-cross-validation-essentials-in-r/#loading-required-r-packages)
+
+#For fire size, plot observed vs model for both testing data and validation data set.
 
 #Load in the prepped data.
 ```{r}
