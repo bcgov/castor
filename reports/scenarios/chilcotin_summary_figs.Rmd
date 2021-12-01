@@ -34,24 +34,35 @@ dbDisconnect (conn)
 data.summ <- data.harvest %>% # get summary data
                group_by (scenario, timeperiod) %>% 
                  summarise (volume = sum (volume)) %>%
-                   filter (scenario != "chilcotin_scen2")
+                   filter (scenario == "chilcotin_bau_live_dead" | 
+                           scenario == "chilcotin_scen1a_live_dead" |
+                           scenario == "chilcotin_scen1b_live_dead" |
+                          #scenario == "chilcotin_scen1c_live_dead" |
+                           scenario == "chilcotin_scen2a_live_dead" |
+                           scenario == "chilcotin_scen2b_live_dead" |
+                           scenario == "chilcotin_scen2c_live_dead"
+                           )  #chilcotin_scen2
 
 harvest <- ggplot (data.summ, aes (x = timeperiod, y = volume, color = scenario, linetype = scenario)) +
               geom_line (position = position_dodge (width = 1), size = 1) + 
               #facet_grid (. ~scenario) +
-              labs (title = "Annual Volume Harvested in Quesnel and 
-Williams Lake Timber Supply Areas for Each Scenario", 
+              labs (title = "Annual Volume Harvested in the Area of 
+Interest for Each Scenario", 
                     x = "Future Year", 
                     y = "Volume Harvested (m3)") + 
               scale_color_discrete (name = "Scenario", 
-                                    labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
+                                    labels = c("BAU", "1a", "1b", 
+                                               #"1c", 
+                                               "2a", "2b", "2c")) +
               scale_linetype_discrete (name = "Scenario", 
-                                       labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
+                                       labels = c("BAU", "1a", "1b", 
+                                                  #"1c", 
+                                                  "2a", "2b", "2c")) +
               theme (legend.position = c (0.15, 0.15),
                      legend.title = element_text(size = 10),
                      legend.text = element_text( size = 8)) +
               scale_x_continuous (breaks = seq(0,200,25)) +
-              scale_y_continuous (label = comma, breaks = seq(3500000,4500000,100000)) +
+              scale_y_continuous (label = comma, breaks = seq(100000,1200000,100000)) +
               theme_classic()
 
 ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\harvest.jpg", 
@@ -98,8 +109,14 @@ data.disturb.nobuff.itcha <- data.summ.disturb.nobuff %>%
                                         critical_hab == "Itcha_Ilgachuz LESR" |
                                         critical_hab == "Itcha_Ilgachuz LEWR" | 
                                         critical_hab == "Itcha_Ilgachuz Matrix") %>%
-                                filter (scenario != "load_data") %>%
-                                  filter (scenario != "chilcotin_scen2") 
+                                filter (scenario == "chilcotin_bau_live_dead" | 
+                                           scenario == "chilcotin_scen1a_live_dead" |
+                                           scenario == "chilcotin_scen1b_live_dead" |
+                                          #scenario == "chilcotin_scen1c_live_dead" |
+                                           scenario == "chilcotin_scen2a_live_dead" |
+                                           scenario == "chilcotin_scen2b_live_dead" |
+                                           scenario == "chilcotin_scen2c_live_dead"
+                                           )
 
 
 data.disturb.buff.itcha <- data.summ.disturb.buff %>%
@@ -107,21 +124,26 @@ data.disturb.buff.itcha <- data.summ.disturb.buff %>%
                                         critical_hab == "Itcha_Ilgachuz LESR" |
                                         critical_hab == "Itcha_Ilgachuz LEWR" | 
                                         critical_hab == "Itcha_Ilgachuz Matrix") %>%
-                                filter (scenario != "load_data") %>%
-                                  filter (scenario != "chilcotin_scen2") 
-
+                                filter (scenario == "chilcotin_bau_live_dead" | 
+                                           scenario == "chilcotin_scen1a_live_dead" |
+                                           scenario == "chilcotin_scen1b_live_dead" |
+                                          #scenario == "chilcotin_scen1c_live_dead" |
+                                           scenario == "chilcotin_scen2a_live_dead" |
+                                           scenario == "chilcotin_scen2b_live_dead" |
+                                           scenario == "chilcotin_scen2c_live_dead"
+                                           )
 plot.disturb.nobuff <- ggplot (data.disturb.nobuff.itcha, 
                                aes (x = timeperiod, y = disturb, 
                                     color = critical_hab, linetype = critical_hab)) +
                   geom_line (position = position_dodge (width = 1), size = 1) + 
                   facet_grid (. ~scenario,
-                              labeller = as_labeller (c ('chilcotin_bau' = "BAU",
-                                            'chilcotin_scen1a' = "Scenario 1a",
-                                            'chilcotin_scen1b' = "Scenario 1b",
-                                            'chilcotin_scen1c' = "Scenario 1c",
-                                            'chilcotin_scen2a' = "Scenario 2a",
-                                            'chilcotin_scen2b' = "Scenario 2b",
-                                            'chilcotin_scen2c' = "Scenario 2c"))
+                              labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", #chilcotin_bau
+                                            'chilcotin_scen1a_live_dead' = "Scenario 1a", #chilcotin_scen1a
+                                            'chilcotin_scen1b_live_dead' = "Scenario 1b",
+                                            #'chilcotin_scen1c_live_dead' = "Scenario 1c",
+                                            'chilcotin_scen2a_live_dead' = "Scenario 2a",
+                                            'chilcotin_scen2b_live_dead' = "Scenario 2b",
+                                            'chilcotin_scen2c_live_dead' = "Scenario 2c"))
                               ) +
                   labs (title = "Disturbance (no Buffer) in Ithca-Ilgachuz Caribou Critical Habitat 
 for Each Scenario", 
@@ -143,13 +165,13 @@ plot.disturb.buff <- ggplot (data.disturb.buff.itcha,
                                     color = critical_hab, linetype = critical_hab)) +
                   geom_line (position = position_dodge (width = 1), size = 1) + 
                   facet_grid (. ~scenario,
-                              labeller = as_labeller (c ('chilcotin_bau' = "BAU",
-                                            'chilcotin_scen1a' = "Scenario 1a",
-                                            'chilcotin_scen1b' = "Scenario 1b",
-                                            'chilcotin_scen1c' = "Scenario 1c",
-                                            'chilcotin_scen2a' = "Scenario 2a",
-                                            'chilcotin_scen2b' = "Scenario 2b",
-                                            'chilcotin_scen2c' = "Scenario 2c"))
+                              labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", #chilcotin_bau
+                                            'chilcotin_scen1a_live_dead' = "Scenario 1a", #chilcotin_scen1a
+                                            'chilcotin_scen1b_live_dead' = "Scenario 1b",
+                                            #'chilcotin_scen1c_live_dead' = "Scenario 1c",
+                                            'chilcotin_scen2a_live_dead' = "Scenario 2a",
+                                            'chilcotin_scen2b_live_dead' = "Scenario 2b",
+                                            'chilcotin_scen2c_live_dead' = "Scenario 2c"))
                               ) +
                   labs (title = "Disturbance (500m Buffer) in Ithca-Ilgachuz Caribou Critical Habitat 
 for Each Scenario", 
@@ -167,14 +189,14 @@ for Each Scenario",
                   theme_bw ()
 
 
-ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbnace_itcha_nobuff.jpg", 
+ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbance_itcha_nobuff.jpg", 
         plot = plot.disturb.nobuff,
         dpi = 300,
         device = "jpeg",
         width = 9, 
         height = 6)
 
-ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbnace_itcha_buff500.jpg", 
+ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbance_itcha_buff500.jpg", 
         plot = plot.disturb.buff,
         dpi = 300,
         device = "jpeg",
@@ -189,29 +211,40 @@ data.disturb.nobuff.rain <- data.summ.disturb.nobuff %>%
                                         critical_hab == "Rainbows LESR" |
                                         critical_hab == "Rainbows LEWR" | 
                                         critical_hab == "Rainbows Matrix") %>%
-                                filter (scenario != "load_data") %>%
-                                  filter (scenario != "chilcotin_scen2") 
+                                filter (scenario == "chilcotin_bau_live_dead" | 
+                                           scenario == "chilcotin_scen1a_live_dead" |
+                                           scenario == "chilcotin_scen1b_live_dead" |
+                                          #scenario == "chilcotin_scen1c_live_dead" |
+                                           scenario == "chilcotin_scen2a_live_dead" |
+                                           scenario == "chilcotin_scen2b_live_dead" |
+                                           scenario == "chilcotin_scen2c_live_dead"
+                                           )
 data.disturb.buff.rain <- data.summ.disturb.buff %>%
                               filter (critical_hab == "Rainbows HEWSR" | 
                                         critical_hab == "Rainbows LESR" |
                                         critical_hab == "Rainbows LEWR" | 
                                         critical_hab == "Rainbows Matrix") %>%
-                                filter (scenario != "load_data") %>%
-                                  filter (scenario != "chilcotin_scen2") 
-
+                                filter (scenario == "chilcotin_bau_live_dead" | 
+                                           scenario == "chilcotin_scen1a_live_dead" |
+                                           scenario == "chilcotin_scen1b_live_dead" |
+                                          #scenario == "chilcotin_scen1c_live_dead" |
+                                           scenario == "chilcotin_scen2a_live_dead" |
+                                           scenario == "chilcotin_scen2b_live_dead" |
+                                           scenario == "chilcotin_scen2c_live_dead"
+                                           )
 
 plot.disturb.nobuff.rain <- ggplot (data.disturb.nobuff.rain, 
                                aes (x = timeperiod, y = disturb, 
                                     color = critical_hab, linetype = critical_hab)) +
                   geom_line (position = position_dodge (width = 1), size = 1) + 
                   facet_grid (. ~scenario,
-                              labeller = as_labeller (c ('chilcotin_bau' = "BAU",
-                                            'chilcotin_scen1a' = "Scenario 1a",
-                                            'chilcotin_scen1b' = "Scenario 1b",
-                                            'chilcotin_scen1c' = "Scenario 1c",
-                                            'chilcotin_scen2a' = "Scenario 2a",
-                                            'chilcotin_scen2b' = "Scenario 2b",
-                                            'chilcotin_scen2c' = "Scenario 2c"))
+                              labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", #chilcotin_bau
+                                            'chilcotin_scen1a_live_dead' = "Scenario 1a", #chilcotin_scen1a
+                                            'chilcotin_scen1b_live_dead' = "Scenario 1b",
+                                            #'chilcotin_scen1c_live_dead' = "Scenario 1c",
+                                            'chilcotin_scen2a_live_dead' = "Scenario 2a",
+                                            'chilcotin_scen2b_live_dead' = "Scenario 2b",
+                                            'chilcotin_scen2c_live_dead' = "Scenario 2c"))
                               ) +
                   labs (title = "Disturbance (no Buffer) in Rainbows Caribou Critical Habitat 
 for Each Scenario", 
@@ -234,13 +267,13 @@ plot.disturb.buff.rain <- ggplot (data.disturb.buff.rain,
                                     color = critical_hab, linetype = critical_hab)) +
                   geom_line (position = position_dodge (width = 1), size = 1) + 
                   facet_grid (. ~scenario,
-                              labeller = as_labeller (c ('chilcotin_bau' = "BAU",
-                                            'chilcotin_scen1a' = "Scenario 1a",
-                                            'chilcotin_scen1b' = "Scenario 1b",
-                                            'chilcotin_scen1c' = "Scenario 1c",
-                                            'chilcotin_scen2a' = "Scenario 2a",
-                                            'chilcotin_scen2b' = "Scenario 2b",
-                                            'chilcotin_scen2c' = "Scenario 2c"))
+                              labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", #chilcotin_bau
+                                            'chilcotin_scen1a_live_dead' = "Scenario 1a", #chilcotin_scen1a
+                                            'chilcotin_scen1b_live_dead' = "Scenario 1b",
+                                            #'chilcotin_scen1c_live_dead' = "Scenario 1c",
+                                            'chilcotin_scen2a_live_dead' = "Scenario 2a",
+                                            'chilcotin_scen2b_live_dead' = "Scenario 2b",
+                                            'chilcotin_scen2c_live_dead' = "Scenario 2c"))
                               ) +
                   labs (title = "Disturbance (500m Buffer) in Rainbows Caribou Critical Habitat 
 for Each Scenario", 
@@ -258,14 +291,14 @@ for Each Scenario",
                   theme_bw ()
 
 
-ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbnace_rain_nobuff.jpg", 
+ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbance_rain_nobuff.jpg", 
         plot = plot.disturb.nobuff.rain,
         dpi = 300,
         device = "jpeg",
         width = 9, 
         height = 6)
 
-ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbnace_rain_buff500.jpg", 
+ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbance_rain_buff500.jpg", 
         plot = plot.disturb.buff.rain,
         dpi = 300,
         device = "jpeg",
@@ -281,15 +314,27 @@ data.disturb.nobuff.char <- data.summ.disturb.nobuff %>%
                                         critical_hab == "Charlotte_Alplands LESR" |
                                         critical_hab == "Charlotte_Alplands LEWR" | 
                                         critical_hab == "Charlotte_Alplands Matrix") %>%
-                                filter (scenario != "load_data") %>%
-                                  filter (scenario != "chilcotin_scen2") 
+                                filter (scenario == "chilcotin_bau_live_dead" | 
+                                           scenario == "chilcotin_scen1a_live_dead" |
+                                           scenario == "chilcotin_scen1b_live_dead" |
+                                          #scenario == "chilcotin_scen1c_live_dead" |
+                                           scenario == "chilcotin_scen2a_live_dead" |
+                                           scenario == "chilcotin_scen2b_live_dead" |
+                                           scenario == "chilcotin_scen2c_live_dead"
+                                           )
 data.disturb.buff.char <- data.summ.disturb.buff %>%
                               filter (critical_hab == "Charlotte_Alplands HEWSR" | 
                                         critical_hab == "Charlotte_Alplands LESR" |
                                         critical_hab == "Charlotte_Alplands LEWR" | 
                                         critical_hab == "Charlotte_Alplands Matrix") %>%
-                                filter (scenario != "load_data") %>%
-                                  filter (scenario != "chilcotin_scen2") 
+                                filter (scenario == "chilcotin_bau_live_dead" | 
+                                           scenario == "chilcotin_scen1a_live_dead" |
+                                           scenario == "chilcotin_scen1b_live_dead" |
+                                          #scenario == "chilcotin_scen1c_live_dead" |
+                                           scenario == "chilcotin_scen2a_live_dead" |
+                                           scenario == "chilcotin_scen2b_live_dead" |
+                                           scenario == "chilcotin_scen2c_live_dead"
+                                           )
 
 
 plot.disturb.nobuff.char <- ggplot (data.disturb.nobuff.char, 
@@ -297,22 +342,22 @@ plot.disturb.nobuff.char <- ggplot (data.disturb.nobuff.char,
                                     color = critical_hab, linetype = critical_hab)) +
                   geom_line (position = position_dodge (width = 1), size = 1) + 
                   facet_grid (. ~scenario,
-                              labeller = as_labeller (c ('chilcotin_bau' = "BAU",
-                                            'chilcotin_scen1a' = "Scenario 1a",
-                                            'chilcotin_scen1b' = "Scenario 1b",
-                                            'chilcotin_scen1c' = "Scenario 1c",
-                                            'chilcotin_scen2a' = "Scenario 2a",
-                                            'chilcotin_scen2b' = "Scenario 2b",
-                                            'chilcotin_scen2c' = "Scenario 2c"))
+                              labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", #chilcotin_bau
+                                            'chilcotin_scen1a_live_dead' = "Scenario 1a", #chilcotin_scen1a
+                                            'chilcotin_scen1b_live_dead' = "Scenario 1b",
+                                            #'chilcotin_scen1c_live_dead' = "Scenario 1c",
+                                            'chilcotin_scen2a_live_dead' = "Scenario 2a",
+                                            'chilcotin_scen2b_live_dead' = "Scenario 2b",
+                                            'chilcotin_scen2c_live_dead' = "Scenario 2c"))
                               ) +
                   labs (title = "Disturbance (no Buffer) in Rainbows Caribou Critical Habitat 
 for Each Scenario", 
                         x = "Future Year", 
                         y = "Percent Disturbance") + 
                   scale_color_discrete (name = "Critical Habitat", 
-                                        labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                                        labels = c("HEWSR", "LEWR", "Matrix")) +
                   scale_linetype_discrete (name = "Critical Habitat", 
-                                           labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                                           labels = c("HEWSR", "LEWR", "Matrix")) +
                   theme (legend.position = c (0.15, 0.15),
                          legend.title = element_text(size = 10),
                          legend.text = element_text( size = 8)) +
@@ -326,22 +371,22 @@ plot.disturb.buff.char <- ggplot (data.disturb.buff.char,
                                     color = critical_hab, linetype = critical_hab)) +
                   geom_line (position = position_dodge (width = 1), size = 1) + 
                   facet_grid (. ~scenario,
-                              labeller = as_labeller (c ('chilcotin_bau' = "BAU",
-                                            'chilcotin_scen1a' = "Scenario 1a",
-                                            'chilcotin_scen1b' = "Scenario 1b",
-                                            'chilcotin_scen1c' = "Scenario 1c",
-                                            'chilcotin_scen2a' = "Scenario 2a",
-                                            'chilcotin_scen2b' = "Scenario 2b",
-                                            'chilcotin_scen2c' = "Scenario 2c"))
+                              labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", #chilcotin_bau
+                                            'chilcotin_scen1a_live_dead' = "Scenario 1a", #chilcotin_scen1a
+                                            'chilcotin_scen1b_live_dead' = "Scenario 1b",
+                                            #'chilcotin_scen1c_live_dead' = "Scenario 1c",
+                                            'chilcotin_scen2a_live_dead' = "Scenario 2a",
+                                            'chilcotin_scen2b_live_dead' = "Scenario 2b",
+                                            'chilcotin_scen2c_live_dead' = "Scenario 2c"))
                               ) +
                   labs (title = "Disturbance (500m Buffer) in Rainbows Caribou Critical Habitat 
 for Each Scenario", 
                         x = "Future Year", 
                         y = "Percent Disturbance") + 
                   scale_color_discrete (name = "Critical Habitat", 
-                                        labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                                        labels = c("HEWSR", "LEWR", "Matrix")) +
                   scale_linetype_discrete (name = "Critical Habitat", 
-                                           labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                                           labels = c("HEWSR", "LEWR", "Matrix")) +
                   theme (legend.position = c (0.15, 0.15),
                          legend.title = element_text(size = 10),
                          legend.text = element_text( size = 8)) +
@@ -350,14 +395,14 @@ for Each Scenario",
                   theme_bw ()
 
 
-ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbnace_charlotte_nobuff.jpg", 
+ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbance_charlotte_nobuff.jpg", 
         plot = plot.disturb.nobuff.char,
         dpi = 300,
         device = "jpeg",
         width = 9, 
         height = 6)
 
-ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbnace_charlotte_buff500.jpg", 
+ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbance_charlotte_buff500.jpg", 
         plot = plot.disturb.buff.char,
         dpi = 300,
         device = "jpeg",
@@ -385,7 +430,14 @@ dbDisconnect (conn)
 data.seral.itcha <- data.seral %>%
                       filter (herd_bounds == "Itcha_Ilgachuz") %>%
                        filter (scenario != "load_data") %>%
-                                  filter (scenario != "chilcotin_scen2")
+                           filter (scenario == "chilcotin_bau_live_dead" | 
+                                   scenario == "chilcotin_scen1a_live_dead" |
+                                   scenario == "chilcotin_scen1b_live_dead" |
+                                  #scenario == "chilcotin_scen1c_live_dead" |
+                                   scenario == "chilcotin_scen2a_live_dead" |
+                                   scenario == "chilcotin_scen2b_live_dead" |
+                                   scenario == "chilcotin_scen2c_live_dead"
+                                   )
 
 plot.seral.itcha <- ggplot (data.seral.itcha, 
                                aes (x = timeperiod, y = (prop_age * 100), 
@@ -395,9 +447,13 @@ plot.seral.itcha <- ggplot (data.seral.itcha,
                                   x = "Future Year", 
                                   y = "Percent Early Seral") + 
                             scale_color_discrete (name = "Scenario", 
-                                                  labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
+                                                  labels = c("BAU", "1a", "1b", 
+                                                             #"1c", 
+                                                             "2a", "2b", "2c")) +
                             scale_linetype_discrete (name = "Scenario", 
-                                                     labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
+                                                     labels = c("BAU", "1a", "1b", 
+                                                                #"1c", 
+                                                                "2a", "2b", "2c")) +
                             theme (legend.position = c (0.15, 0.15),
                                    legend.title = element_text(size = 10),
                                    legend.text = element_text( size = 8)) +
@@ -418,7 +474,14 @@ ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\imag
 data.seral.rain <- data.seral %>%
                       filter (herd_bounds == "Rainbows") %>%
                        filter (scenario != "load_data") %>%
-                                  filter (scenario != "chilcotin_scen2")
+                          filter (scenario == "chilcotin_bau_live_dead" | 
+                                   scenario == "chilcotin_scen1a_live_dead" |
+                                   scenario == "chilcotin_scen1b_live_dead" |
+                                  #scenario == "chilcotin_scen1c_live_dead" |
+                                   scenario == "chilcotin_scen2a_live_dead" |
+                                   scenario == "chilcotin_scen2b_live_dead" |
+                                   scenario == "chilcotin_scen2c_live_dead"
+                                   )
 
 plot.seral.rain <- ggplot (data.seral.rain, 
                                aes (x = timeperiod, y = (prop_age * 100), 
@@ -428,9 +491,13 @@ plot.seral.rain <- ggplot (data.seral.rain,
                                   x = "Future Year", 
                                   y = "Percent Early Seral") + 
                             scale_color_discrete (name = "Scenario", 
-                                                  labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
+                                                  labels = c("BAU", "1a", "1b", 
+                                                             #"1c", 
+                                                             "2a", "2b", "2c")) +
                             scale_linetype_discrete (name = "Scenario", 
-                                                     labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
+                                                     labels = c("BAU", "1a", "1b", 
+                                                                #"1c", 
+                                                                "2a", "2b", "2c")) +
                             theme (legend.position = c (0.15, 0.15),
                                    legend.title = element_text(size = 10),
                                    legend.text = element_text( size = 8)) +
@@ -450,8 +517,14 @@ ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\imag
 ###############
 data.seral.char <- data.seral %>%
                       filter (herd_bounds == "Charlotte_Alplands") %>%
-                       filter (scenario != "load_data") %>%
-                                  filter (scenario != "chilcotin_scen2")
+                       filter (scenario == "chilcotin_bau_live_dead" | 
+                                   scenario == "chilcotin_scen1a_live_dead" |
+                                   scenario == "chilcotin_scen1b_live_dead" |
+                                  #scenario == "chilcotin_scen1c_live_dead" |
+                                   scenario == "chilcotin_scen2a_live_dead" |
+                                   scenario == "chilcotin_scen2b_live_dead" |
+                                   scenario == "chilcotin_scen2c_live_dead"
+                                   )
 
 plot.seral.char <- ggplot (data.seral.char, 
                                aes (x = timeperiod, y = (prop_age * 100), 
@@ -461,9 +534,11 @@ plot.seral.char <- ggplot (data.seral.char,
                                   x = "Future Year", 
                                   y = "Percent Early Seral") + 
                             scale_color_discrete (name = "Scenario", 
-                                                  labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
+                                                  labels = c("BAU", "1a", "1b", #"1c", 
+                                                             "2a", "2b", "2c")) +
                             scale_linetype_discrete (name = "Scenario", 
-                                                     labels = c("BAU", "1a", "1b", "1c", "2a", "2b", "2c")) +
+                                                     labels = c("BAU", "1a", "1b", #"1c", 
+                                                                "2a", "2b", "2c")) +
                             theme (legend.position = c (0.15, 0.15),
                                    legend.title = element_text(size = 10),
                                    legend.text = element_text( size = 8)) +
