@@ -332,7 +332,7 @@ parameters <- list(
                                            "rast.zone_uwr_2021",  
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw"
+                                           "rast.zone_cond_cw",
                                            
                                            # "rast.zone_cond_noharvest_barkerville_crithab_or_herd",
                                            # "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
@@ -358,9 +358,9 @@ parameters <- list(
                                            # "rast.zone_cond_bc_tweedsmuir_crithab",
                                            # "rast.zone_cond_bc_wells_gray_north_crithab",
                                            
-                                           # "rast.zone_cond_bc_charlotte_alplands_crithab",
-                                           # "rast.zone_cond_bc_itcha_ilgachuz_crithab",
-                                           # "rast.zone_cond_bc_rainbows_crithab"
+                                            "rast.zone_cond_bc_charlotte_alplands_crithab",
+                                            "rast.zone_cond_bc_itcha_ilgachuz_crithab",
+                                            "rast.zone_cond_bc_rainbows_crithab"
                                            
                                            # "rast.zone_barkerville_groundhog_zones_20210303",
                                            # "rast.zone_smc_zones_20210315"
@@ -442,12 +442,12 @@ modules <- list("dataLoaderCLUS",
 
 # scenario = data.table (name = "chilcotin_bau",
 #                        description = "Business as usual (BAU). Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Even harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
-# scenario = data.table (name = "chilcotin_scen1a",
-#                        description = "Scenario 1a. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
-# scenario = data.table (name = "chilcotin_scen1b",
+# scenario = data.table (name = "chilcotin_scen1a_live_dead",
+#                       description = "Scenario 1a. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
+# scenario = data.table (name = "chilcotin_scen1b_live_dead",
 #                        description = "Scenario 1b. Habitat: HEWSR, LESR, LEWR. Rotation age (in habitat): 120 years. Seral stage constraints (in habitat): 25% > 120 y.o.; 30% >100 y.o.; 37% >80 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
-# scenario = data.table (name = "chilcotin_scen1c",
-#                        description = "Scenario 1c. Habitat: HEWSR, LESR. Rotation age (in habitat): 100 years. Seral stage constraints (in habitat): 25% > 100 y.o.; 30% > 80 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
+ scenario = data.table (name = "chilcotin_scen1c_live_dead",
+                        description = "Scenario 1c. Habitat: HEWSR, LESR. Rotation age (in habitat): 100 years. Seral stage constraints (in habitat): 25% > 100 y.o.; 30% > 80 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 # scenario = data.table (name = "chilcotin_scen2",
 #                        description = "Scenario 2. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 85 > 40 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 # scenario = data.table (name = "chilcotin_scen2a",
@@ -459,13 +459,13 @@ modules <- list("dataLoaderCLUS",
 # scenario = data.table (name = "chilcotin_scen1a_disturb",
 #                        description = "Scenario 1a with closest to disturbance harvest priority. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Closest to Disturabnce, then oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 
-scenario = data.table (name = "chilcotin_bau_live_dead",
-                       description = "Business as usual (BAU). Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Salvage dead volume in first 10 years. Minimum volume: 150 m3/year. Even live harvest flow: HEWSR = 0 m3/year; LESR = 7,000 m3/year; LEWR = 85,000m3/year; Matrix = 140,000m3/year; out = 2,100,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 0 m3/year; LESR = 3,500 m3/year; LEWR = 42,500m3/year; Matrix = 70,000 m3/year; out = 1,050,000 m3/year.")
+#scenario = data.table (name = "chilcotin_bau_live_dead",
+ #                      description = "Business as usual (BAU). Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Salvage dead volume in first 10 years. Minimum volume: 150 m3/year. Even live harvest flow: HEWSR = 0 m3/year; LESR = 7,000 m3/year; LEWR = 85,000m3/year; Matrix = 140,000m3/year; out = 2,100,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 0 m3/year; LESR = 3,500 m3/year; LEWR = 42,500m3/year; Matrix = 70,000 m3/year; out = 1,050,000 m3/year.")
 
 
 
 harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', #  AND age > 139, 119, 99
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', #  AND age > 139, 119, 99
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
@@ -473,7 +473,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
                                           flow = 45000,
                                           partition_type = 'live'), # 0 m3/yr 
                               data.table (compartment ="HEWSR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', #  AND age > 139, 119, 99
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', #  AND age > 139, 119, 99
                                           period = rep( seq (from = 3, 
                                                            to = 40, 
                                                            by = 1),
@@ -482,7 +482,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
                                           partition_type = 'live'),
                                data.table (compartment ="HEWSR",partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', period = rep( seq (from = 1,to = 2, by = 1),1),flow =3000,partition_type = 'dead'),
                               data.table (compartment ="LESR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', # AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', # AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
@@ -490,7 +490,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
                                           flow = 100000,#150000
                                           partition_type = 'live'), # 7,000 m3/yr 
                                   data.table (compartment ="LESR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', # AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', # AND age > 139, 119
                                           period = rep( seq (from = 3, 
                                                            to = 40, 
                                                            by = 1),
@@ -499,7 +499,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
                                           partition_type = 'live'), # 7,000 m3/yr 
                               data.table (compartment ="LESR",partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', period = rep( seq (from = 1,to = 2, by = 1),1),flow =100000,partition_type = 'dead'), # 160000 m3/yr 
                               data.table (compartment ="LEWR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', #  AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', #  AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
@@ -507,7 +507,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
                                           flow = 1055000, #1125000
                                           partition_type = 'live'), # 85,000 m3/yr 
                                data.table (compartment ="LEWR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', #  AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', #  AND age > 139, 119
                                           period = rep( seq (from = 3, 
                                                            to = 40, 
                                                            by = 1),
@@ -516,7 +516,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
                                           partition_type = 'live'), 
                               data.table (compartment ="LEWR",partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', period = rep( seq (from = 1, to = 2, by = 1),1), flow = 500000,partition_type = 'dead'), # 42,500 m3/yr 
                               data.table (compartment ="Matrix",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', # AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', # AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 1, 
                                                            by = 1),
@@ -524,7 +524,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
                                           flow = 960000, #1380000
                                           partition_type = 'live'), #190,000 m3/yr 
                               data.table (compartment ="Matrix",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', # AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', # AND age > 139, 119
                                           period = rep( seq (from = 2, 
                                                            to = 40, 
                                                            by = 1),
@@ -533,7 +533,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
                                           partition_type = 'live'),
                               data.table (compartment ="Matrix",partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ',  period = rep( seq (from = 1, to = 2, by = 1), 1), flow = 450000,partition_type = 'dead'), #95,000 m3/yr 
                               data.table (compartment ="out",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5)', 
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', 
                                           period = rep( seq (from = 1, 
                                                            to = 1, 
                                                            by = 1),
@@ -541,7 +541,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
                                           flow =  1860000,#1900000
                                           partition_type = 'live'), # 2,100,000 m3/yr 
                               data.table (compartment ="out",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5)', 
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', 
                                           period = rep( seq (from = 2, 
                                                            to = 40, 
                                                            by = 1),
