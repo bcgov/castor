@@ -1,7 +1,7 @@
 ---
-title: "13d_fire_spread_size_model_selection_lightning_treed_NDT4"
+title: "13_2d_fire_spread_size_model_selection_person_treed_NDT4"
 author: "Cora Skaien"
-date: "01/12/2021"
+date: "06/12/2021"
 output: html_document
 ---
 
@@ -56,7 +56,7 @@ See the License for the specific language governing permissions and limitations 
 -->
 
 #=================================
-#  Script Name: 13d_fire_spread_size_model_selection_lightning_treed_NDT4.R
+#  Script Name: 13_2d_fire_spread_size_model_selection_person_treed_NDT4.R
 #  Script Version: 1.0
 #  Script Purpose: model selection for fire size (part of spread) by NDT.
 #  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
@@ -72,18 +72,18 @@ the RMSE and the MAE are measured in the same scale as the outcome variable. Div
 
 #Load in the prepped data.
 ```{r}
-spread_data_lightning_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\spread_data_lightning_t_Nov.csv")
+spread_data_person_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\spread_data_person_t_Nov.csv")
 
-head(spread_data_lightning_t)
+head(spread_data_person_t)
 ```
 #Inspect the data
 ```{r}
-min(spread_data_lightning_t$size_ha) # Minimum 1 ha: this is because we are only quantifying the spread and fire size of those that "spreadd" (> 1 ha)
-hist(spread_data_lightning_t$size_ha) #Definitely not a normal distribution
-hist(log(spread_data_lightning_t$size_ha)) #Still not a normal distribution; already have a LNsize_ha variable created prior
+min(spread_data_person_t$size_ha) # Minimum 1 ha: this is because we are only quantifying the spread and fire size of those that "spreadd" (> 1 ha)
+hist(spread_data_person_t$size_ha) #Definitely not a normal distribution
+hist(log(spread_data_person_t$size_ha)) #Still not a normal distribution; already have a LNsize_ha variable created prior
 
-spread_data_lightning_t$ntrl_ds<-as.factor(spread_data_lightning_t$ntrl_ds)
-table(spread_data_lightning_t$ntrl_ds) #Very few in NDT5 (n=19)
+spread_data_person_t$ntrl_ds<-as.factor(spread_data_person_t$ntrl_ds)
+table(spread_data_person_t$ntrl_ds) #Very few in NDT5 (n=19)
 ```
 
 ##Create variables for model selection
@@ -95,7 +95,7 @@ variables_all<-c(climate1 = "climate1", climate2 = "climate2", proj_height_1 = "
 
 variables_all_c1<-c(climate1 = "climate1", proj_height_1 = "proj_height_1", proj_age_1 = "proj_age_1", live_stand_volume_125 = "live_stand_volume_125", slope = "slope", aspect = "aspect", elevation ="elevation", vegtype2 = "vegtype2", wind_atfire = "wind_atfire", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_mine = "dist_mine", dist_mun = "dist_mun", dist_pow = "dist_pow", roads_km = "roads_km", bclcs_level_5_2 = "bclcs_level_5_2") 
 
-variables_all_infra_landuse<-c(dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_mine = "dist_mine", roads_km = "roads_km", bclcs_level_5_2 = "bclcs_level_5_2")
+variables_all_infra_landuse_NDT4<-c(dist_mun = "dist_mun", dist_dam = "dist_dam", dist_nat = "dist_nat", dist_mine = "dist_mine", roads_km = "roads_km", bclcs_level_5_2 = "bclcs_level_5_2")
 
 vars.clim<-c("climate1")
 vars.clim.vegtype2<-c("climate1", "vegtype2")
@@ -112,7 +112,7 @@ vars.clim.vegtype22b<-c("climate1", "climate2")
 inputs.me <- c(vars.clim.vegtype2)
 inputs.me2 <- c(vars.clim.vegtype22)
 inputs.me2b <- c(vars.clim.vegtype22b)
-inputs.me.infra_landuse <- c(variables_all_infra_landuse)
+inputs.me.infra_landuse_NDT4 <- c(variables_all_infra_landuse_NDT4)
 ```
 
 Now, we will generate two-way interactions for each of these lists. 
@@ -361,11 +361,11 @@ Then also for infrastructure.
 
 ```{r}
 ##Subset 2: Infrastructure and land use ########
-#inputs.me.infra_landuse
+#inputs.me.infra_landuse_NDT4
 twoway.ints.in <- NULL
-for (i in 1:(length(inputs.me.infra_landuse)-1)) {
-  for (j in (i+1):length(inputs.me.infra_landuse)) {
-     twoway.ints.in <- cbind(twoway.ints.in, paste(inputs.me.infra_landuse[i], inputs.me.infra_landuse[j], sep=":"))
+for (i in 1:(length(inputs.me.infra_landuse_NDT4)-1)) {
+  for (j in (i+1):length(inputs.me.infra_landuse_NDT4)) {
+     twoway.ints.in <- cbind(twoway.ints.in, paste(inputs.me.infra_landuse_NDT4[i], inputs.me.infra_landuse_NDT4[j], sep=":"))
   }
 }
 twoway.ints.in
@@ -388,45 +388,45 @@ twoway.ints.in_dist
 
 #Get variables on own
 #complete list of models using non-climate vars
-mods.me.tmp.in <- powerSet(variables_all_infra_landuse) 
+mods.me.tmp.in <- powerSet(variables_all_infra_landuse_NDT4) 
 #add climate vars to all of the above
-mods.me.infra_landuse <- list()
+mods.me.infra_landuse_NDT4 <- list()
 for (i in 1: length(mods.me.tmp.in)) {
-   mods.me.infra_landuse[[i]] <- c(mods.me.tmp.in[[i]])
+   mods.me.infra_landuse_NDT4[[i]] <- c(mods.me.tmp.in[[i]])
 }
 
-mods.me.infra_landuse
-length(mods.me.infra_landuse) #64
+mods.me.infra_landuse_NDT4
+length(mods.me.infra_landuse_NDT4) #64
 
 
 #complete list of two-way interactions
-#mods.twoway.in.b <- powerSet(twoway.in.ints.in) #
+#mods.twoway.in.NDT4b <- powerSet(twoway.in.ints.in) #
 #Or use subset of interactions
-mods.twoway.in.b <- powerSet(twoway.ints.in_dist) 
-length(mods.twoway.in.b) #512
-#mods.twoway.in.b
-mods.twoway.in.b[1]
-mods.twoway.in.b<-mods.twoway.in.b[-1]
+mods.twoway.in.NDT4b <- powerSet(twoway.ints.in_dist) 
+length(mods.twoway.in.NDT4b) #512
+#mods.twoway.in.NDT4b
+mods.twoway.in.NDT4b[1]
+mods.twoway.in.NDT4b<-mods.twoway.in.NDT4b[-1]
 
 #Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway.in to be added
-mods.inter.b.in <- list()
+mods.inter.NDT4b.in <- list()
 counter <- 0
-for (i in 1: length(mods.twoway.in.b)) {
-   s1 <- unique(unlist( strsplit(mods.twoway.in.b[[i]], split=':', fixed=TRUE) ) )
-   for (j in 1: length(mods.me.infra_landuse)) {
-      if (all(s1 %in% mods.me.infra_landuse[[j]])==TRUE) {
+for (i in 1: length(mods.twoway.in.NDT4b)) {
+   s1 <- unique(unlist( strsplit(mods.twoway.in.NDT4b[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.me.infra_landuse_NDT4)) {
+      if (all(s1 %in% mods.me.infra_landuse_NDT4[[j]])==TRUE) {
         counter <- counter + 1
-        both <-  c(mods.me.infra_landuse[[j]], mods.twoway.in.b[[i]])
-        mods.inter.b.in[[counter]] <- both
+        both <-  c(mods.me.infra_landuse_NDT4[[j]], mods.twoway.in.NDT4b[[i]])
+        mods.inter.NDT4b.in[[counter]] <- both
       }
    }
 }
 
-length(mods.inter.b.in) #1364
-#mods.inter.b.in
+length(mods.inter.NDT4b.in) #1365
+#mods.inter.NDT4b.in
 
 #####2. Infrastructure and land use
-all.poss.mods.infra_landuse<-c(1,mods.me.infra_landuse, mods.inter.b.in)
+all.poss.mods.infra_landuse<-c(1,mods.me.infra_landuse_NDT4, mods.inter.NDT4b.in)
 all.poss.mods.infra_landuse[2]
 all.poss.mods.infra_landuse<-all.poss.mods.infra_landuse[-2]
 
@@ -435,13 +435,14 @@ duplicated(all.poss.mods.infra_landuse)
 ```
 
 
-############### Part 1 of 4 Model Series: Lightning Caused Fires, Trees ##########
+
+############### Part 1 of 4 Model Series: person Caused Fires, Trees ##########
 
 NDT 2 has 2 climate variables, and NDT 1, 3, 4 and 5 have one.
 
 Select: NDT4
-#1. Climate1 and vegtype2
-Only has climate1, no climate2. Use all.poss.mods.clim.vegtype. NDT1,3, 4 and 5 only have one climate variables. NDT4 has two.
+#1. Climate1, climate2 and vegtype2
+All NDTs have both climate1 and climate2
 
 ```{r}
 ntrl_ds<-c("NDT4") #Do one zone at a time
@@ -456,10 +457,10 @@ colnames (table.glm.climate.simple.spread) <- c ("model", "edf", "aic", "Model.R
 for (g in 1:100){
   
 for (h in 1:length(zones1)) {
-  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT4")
+  dat2<- subset(spread_data_person_t, spread_data_person_t$ntrl_ds=="NDT4")
 
 for (i in 1: length(zones1)){
-  print(paste((all.poss.mods.clim.vegtype[i]), (ntrl_ds[h]), sep=" "))
+  print(paste((all.poss.mods.clim.vegtype2[i]), (ntrl_ds[h]), sep=" "))
   
  # model_dat<- dat2 %>% dplyr::select(spread, fire_veg, variables_all[i])
   model_dat<- dat2 %>% dplyr::select(LNsize_ha, vegtype2, !!variables_all)
@@ -487,7 +488,7 @@ big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
    
 }
 
-mods.fit <- lapply(all.poss.mods.clim.vegtype, big.mod_lm, df.train=dat1)
+mods.fit <- lapply(all.poss.mods.clim.vegtype2, big.mod_lm, df.train=dat1)
 
 #terms in each model
 x1.1 <- unlist(sapply(mods.fit, '[', 1))
@@ -521,21 +522,19 @@ table.glm.climate.simple.spread<-rbind(table.glm.climate.simple.spread, tab.sum.
 }
 }
 ```
-
 Check data.
-
 ```{r}
 head(table.glm.climate.simple.spread)
 ```
-Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination.
+Now that we have run the model 100 times, we want the average AIC and goodness of fit metrics for each variable combination..
 
 ```{r}
 head(table.glm.climate.simple.spread)
 table(table.glm.climate.simple.spread$model) # 100 per model
 
-AIC_lightning_NDT4_spread_treed_climate<-table.glm.climate.simple.spread
+AIC_person_NDT4_spread_treed_climate<-table.glm.climate.simple.spread
 
-AIC_lightning_NDT4_spread_treed_summary_climate<- AIC_lightning_NDT4_spread_treed_climate %>%
+AIC_person_NDT4_spread_treed_summary_climate<- AIC_person_NDT4_spread_treed_climate %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic, na.rm=TRUE),
             meanR2=mean(Model.R2, na.rm=TRUE),
@@ -546,10 +545,10 @@ AIC_lightning_NDT4_spread_treed_summary_climate<- AIC_lightning_NDT4_spread_tree
             meanMAEvalid=mean(Valid.MAE, na.rm=TRUE)
             )
 
-AIC_lightning_NDT4_spread_treed_summary_climate2<- AIC_lightning_NDT4_spread_treed_summary_climate %>%
+AIC_person_NDT4_spread_treed_summary_climate2<- AIC_person_NDT4_spread_treed_summary_climate %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT4_spread_treed_summary_climate2)
+head(AIC_person_NDT4_spread_treed_summary_climate2)
 ```
 
 
@@ -570,15 +569,15 @@ colnames (table.glm.climate.simple.spread.gamma) <- c ("model", "edf", "aic", "M
 for (g in 1:100){
   
 for (h in 1:length(zones1)) {
-  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT4")
+  dat2<- subset(spread_data_person_t, spread_data_person_t$ntrl_ds=="NDT4")
 
 for (i in 1: length(zones1)){
   print(paste((all.poss.mods.clim.vegtype[i]), (ntrl_ds[h]), sep=" "))
   
  # model_dat<- dat2 %>% dplyr::select(spread, fire_veg, variables_all[i])
-  model_dat<- dat2 %>% dplyr::select(LNsize_ha, size_ha, escape10, !!variables_all)
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, size_ha, vegtype2, !!variables_all)
   # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(model_dat$escape10, p = prop,
+  trainIndex <- createDataPartition(model_dat$vegtype2, p = prop,
                                     list = FALSE,
                                     times = 1)
   
@@ -635,15 +634,15 @@ Check data.
 ```{r}
 head(table.glm.climate.simple.spread.gamma)
 ```
-Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination.
+Now that we have run the model 100 times, we want the average AIC and goodness of fit metrics for each variable combination..
 
 ```{r}
 head(table.glm.climate.simple.spread.gamma)
 table(table.glm.climate.simple.spread.gamma$model) # 100 per model
 
-AIC_lightning_NDT4_spread_treed_climate_gamma<-table.glm.climate.simple.spread.gamma
+AIC_person_NDT4_spread_treed_climate_gamma<-table.glm.climate.simple.spread.gamma
 
-AIC_lightning_NDT4_spread_treed_summary_climate_gamma<- AIC_lightning_NDT4_spread_treed_climate_gamma %>%
+AIC_person_NDT4_spread_treed_summary_climate_gamma<- AIC_person_NDT4_spread_treed_climate_gamma %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic, na.rm=TRUE),
             meanR2=mean(Model.R2, na.rm=TRUE),
@@ -653,10 +652,10 @@ AIC_lightning_NDT4_spread_treed_summary_climate_gamma<- AIC_lightning_NDT4_sprea
             meanMAEvalid=mean(Valid.MAE, na.rm=TRUE)
             )
 
-AIC_lightning_NDT4_spread_treed_summary_climate_gamma2<- AIC_lightning_NDT4_spread_treed_summary_climate_gamma %>%
+AIC_person_NDT4_spread_treed_summary_climate_gamma2<- AIC_person_NDT4_spread_treed_summary_climate_gamma %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT4_spread_treed_summary_climate_gamma2)
+head(AIC_person_NDT4_spread_treed_summary_climate_gamma2)
 ```
 
 
@@ -673,15 +672,15 @@ colnames (table.glm.VRI.simple.spread) <- c ("model", "edf", "aic", "Model.R2", 
 for (g in 1:100){
   
 for (h in 1:length(zones1)) {
-  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT4")
+  dat2<- subset(spread_data_person_t, spread_data_person_t$ntrl_ds=="NDT4")
 
 for (i in 1: length(zones1)){
   print(paste((all.poss.mods.VRI[i]), (ntrl_ds[h]), sep=" "))
   
  # model_dat<- dat2 %>% dplyr::select(spread, fire_veg, variables_all[i])
-  model_dat<- dat2 %>% dplyr::select(LNsize_ha, escape10, !!variables_all)
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, vegtype2, !!variables_all)
   # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(model_dat$escape10, p = prop,
+  trainIndex <- createDataPartition(model_dat$vegtype2, p = prop,
                                     list = FALSE,
                                     times = 1)
   
@@ -742,15 +741,15 @@ Check data.
 ```{r}
 head(table.glm.VRI.simple.spread)
 ```
-Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination.
+Now that we have run the model 100 times, we want the average AIC and goodness of fit metrics for each variable combination.
 
 ```{r}
 head(table.glm.VRI.simple.spread)
 table(table.glm.VRI.simple.spread$model) # 100 per model
 
-AIC_lightning_NDT4_spread_treed_VRI<-table.glm.VRI.simple.spread
+AIC_person_NDT4_spread_treed_VRI<-table.glm.VRI.simple.spread
 
-AIC_lightning_NDT4_spread_treed_summary_VRI<- AIC_lightning_NDT4_spread_treed_VRI %>%
+AIC_person_NDT4_spread_treed_summary_VRI<- AIC_person_NDT4_spread_treed_VRI %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic, na.rm=TRUE),
             meanR2=mean(Model.R2, na.rm=TRUE),
@@ -761,10 +760,10 @@ AIC_lightning_NDT4_spread_treed_summary_VRI<- AIC_lightning_NDT4_spread_treed_VR
             meanMAEvalid=mean(Valid.MAE, na.rm=TRUE)
             )
 
-AIC_lightning_NDT4_spread_treed_summary_VRI2<- AIC_lightning_NDT4_spread_treed_summary_VRI %>%
+AIC_person_NDT4_spread_treed_summary_VRI2<- AIC_person_NDT4_spread_treed_summary_VRI %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT4_spread_treed_summary_VRI2)
+head(AIC_person_NDT4_spread_treed_summary_VRI2)
 ```
 #Now repeat for topography
 
@@ -777,15 +776,15 @@ colnames (table.glm.topo.simple.spread) <- c ("model", "edf", "aic", "Model.R2",
 for (g in 1:100){
   
 for (h in 1:length(zones1)) {
-  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT4")
+  dat2<- subset(spread_data_person_t, spread_data_person_t$ntrl_ds=="NDT4")
 
 for (i in 1: length(zones1)){
   print(paste((all.poss.mods.topo[i]), (ntrl_ds[h]), sep=" "))
   
  # model_dat<- dat2 %>% dplyr::select(spread, fire_veg, variables_all[i])
-  model_dat<- dat2 %>% dplyr::select(LNsize_ha, escape10, !!variables_all)
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, vegtype2, !!variables_all)
   # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(model_dat$escape10, p = prop,
+  trainIndex <- createDataPartition(model_dat$vegtype2, p = prop,
                                     list = FALSE,
                                     times = 1)
   
@@ -846,15 +845,15 @@ Check data.
 ```{r}
 head(table.glm.topo.simple.spread)
 ```
-Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination.
+Now that we have run the model 100 times, we want the average AIC and goodness of fit metrics for each variable combination..
 
 ```{r}
 head(table.glm.topo.simple.spread)
 table(table.glm.topo.simple.spread$model) # 100 per model
 
-AIC_lightning_NDT4_spread_treed_topo<-table.glm.topo.simple.spread
+AIC_person_NDT4_spread_treed_topo<-table.glm.topo.simple.spread
 
-AIC_lightning_NDT4_spread_treed_summary_topo<- AIC_lightning_NDT4_spread_treed_topo %>%
+AIC_person_NDT4_spread_treed_summary_topo<- AIC_person_NDT4_spread_treed_topo %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic, na.rm=TRUE),
             meanR2=mean(Model.R2, na.rm=TRUE),
@@ -865,10 +864,10 @@ AIC_lightning_NDT4_spread_treed_summary_topo<- AIC_lightning_NDT4_spread_treed_t
             meanMAEvalid=mean(Valid.MAE, na.rm=TRUE)
             )
 
-AIC_lightning_NDT4_spread_treed_summary_topo2<- AIC_lightning_NDT4_spread_treed_summary_topo %>%
+AIC_person_NDT4_spread_treed_summary_topo2<- AIC_person_NDT4_spread_treed_summary_topo %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT4_spread_treed_summary_topo2)
+head(AIC_person_NDT4_spread_treed_summary_topo2)
 ```
 
 #Now repeat for infrastructure
@@ -882,15 +881,15 @@ colnames (table.glm.infra.simple.spread) <- c ("model", "edf", "aic", "Model.R2"
 for (g in 1:100){
   
 for (h in 1:length(zones1)) {
-  dat2<- subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT4")
+  dat2<- subset(spread_data_person_t, spread_data_person_t$ntrl_ds=="NDT4")
 
 for (i in 1: length(zones1)){
   print(paste((all.poss.mods.infra_landuse[i]), (ntrl_ds[h]), sep=" "))
   
  # model_dat<- dat2 %>% dplyr::select(spread, fire_veg, variables_all[i])
-  model_dat<- dat2 %>% dplyr::select(LNsize_ha, bclcs_level_5_2, !!variables_all)
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, vegtype2, !!variables_all)
   # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(model_dat$bclcs_level_5_2 , p = prop,
+  trainIndex <- createDataPartition(model_dat$vegtype2, p = prop,
                                     list = FALSE,
                                     times = 1)
   
@@ -951,15 +950,15 @@ Check data.
 ```{r}
 head(table.glm.infra.simple.spread)
 ```
-Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination.
+Now that we have run the model 100 times, we want the average AIC and goodness of fit metrics for each variable combination..
 
 ```{r}
 head(table.glm.infra.simple.spread)
 table(table.glm.infra.simple.spread$model) # 100 per model 
 
-AIC_lightning_NDT4_spread_treed_infra<-table.glm.infra.simple.spread
+AIC_person_NDT4_spread_treed_infra<-table.glm.infra.simple.spread
 
-AIC_lightning_NDT4_spread_treed_summary_infra<- AIC_lightning_NDT4_spread_treed_infra %>%
+AIC_person_NDT4_spread_treed_summary_infra<- AIC_person_NDT4_spread_treed_infra %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic, na.rm=TRUE),
             meanR2=mean(Model.R2, na.rm=TRUE),
@@ -970,15 +969,15 @@ AIC_lightning_NDT4_spread_treed_summary_infra<- AIC_lightning_NDT4_spread_treed_
             meanMAEvalid=mean(Valid.MAE, na.rm=TRUE)
             )
 
-AIC_lightning_NDT4_spread_treed_summary_infra2<- AIC_lightning_NDT4_spread_treed_summary_infra %>%
+AIC_person_NDT4_spread_treed_summary_infra2<- AIC_person_NDT4_spread_treed_summary_infra %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT4_spread_treed_summary_infra2)
+head(AIC_person_NDT4_spread_treed_summary_infra2)
 ```
 
 Combine together
 ```{r}
-NDT4_l_treed_spread<-rbind(AIC_lightning_NDT4_spread_treed_summary_climate2, AIC_lightning_NDT4_spread_treed_summary_infra2, AIC_lightning_NDT4_spread_treed_summary_topo2, AIC_lightning_NDT4_spread_treed_summary_VRI2)
+NDT4_l_treed_spread<-rbind(AIC_person_NDT4_spread_treed_summary_climate2, AIC_person_NDT4_spread_treed_summary_infra2, AIC_person_NDT4_spread_treed_summary_topo2, AIC_person_NDT4_spread_treed_summary_VRI2)
 
 NDT4_l_treed_spread$NDT<-"NDT4"
 
@@ -987,173 +986,180 @@ head(NDT4_l_treed_spread)
 
 Save data.
 ```{r}
-write.csv(NDT4_l_treed_spread, file="D:\\Fire\\fire_data\\raw_data\\NDT4_lightning_models_treed_spread_Nov.csv")
+write.csv(NDT4_l_treed_spread, file="D:\\Fire\\fire_data\\raw_data\\NDT4_person_models_treed_spread_Nov.csv")
 ```
 
 ##Determine Best Models.
 For best models, we will look at R-square of the model, and then within the top R-square, we will assess which had lowest AIC.
 
 1. proj_age_1 + live_stand_volume_125
-2. dist_mun + roads_km
-3. elevation
-4. climate1 + vegtype2
+2. dist_mun + dist_mine + roads_km
+3. slope + elevation + slope:elevation
+4. climate1 + climate2
+
 
 ##################### Begin Manual Exploration ##################
 Begin manual exploration from here. We will use the above variables, plus additional interactions: wind_atfire + climate1:proj_height_1 + climate1:proj_age_1 + climate1:live_stand_volume_125 + climate1:elevation + climate1:wind_atfire + slope:wind_atfire + elevation:wind_atfire + vegtype2:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125
 
 
 ```{r}
-spread_lightning_t_NDT4<-subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT4")
+spread_person_t_NDT4<-subset(spread_data_person_t, spread_data_person_t$ntrl_ds=="NDT4")
 
 prop<-0.75
 
 #Partition data into training and validation
- trainIndex <- createDataPartition(spread_lightning_t_NDT4$escape10, p = prop,
+ trainIndex <- createDataPartition(spread_person_t_NDT4$vegtype2, p = prop,
                                     list = FALSE,
                                     times = 1)
   
-   dat1 <- spread_lightning_t_NDT4[ trainIndex,]
-   Valid <- spread_lightning_t_NDT4[-trainIndex,]
+   dat1 <- spread_person_t_NDT4[ trainIndex,]
+   Valid <- spread_person_t_NDT4[-trainIndex,]
   
 #Run model using dat1
-model.NDT4<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun +  roads_km + elevation + climate1 + vegtype2 + wind_atfire + climate1:proj_age_1 + climate1:live_stand_volume_125 + climate1:elevation + climate1:wind_atfire + slope + slope:wind_atfire + elevation:wind_atfire + vegtype2:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = dat1)
+model.NDT4<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + dist_mine + roads_km + slope + elevation + slope:elevation + climate1 + climate2 + wind_atfire + climate1:proj_height_1 + climate1:proj_age_1 + climate1:live_stand_volume_125 + climate1:elevation + climate1:wind_atfire + slope:wind_atfire + elevation:wind_atfire + vegtype2:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = dat1)
 
-AIC(model.NDT4) #847.4
-summary(model.NDT4)$r.squared #0.31
-summary(model.NDT4)$adj.r.squared #0.20
-
-predictions <- model.NDT4 %>% predict(Valid)
-R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.04
-RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #2.45
-MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.92
-
-summary(model.NDT4)
-Anova(model.NDT4, type=3)
-Anova(model.NDT4, type=3, singular.ok = TRUE)
-
-
-#Remove least sig
-model.NDT4<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun +  roads_km + elevation + climate1 + vegtype2 + wind_atfire + climate1:live_stand_volume_125 + climate1:elevation + climate1:wind_atfire + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = dat1)
-
-AIC(model.NDT4) #840.7
-summary(model.NDT4)$r.squared #0.30
-summary(model.NDT4)$adj.r.squared #0.22
+AIC(model.NDT4) #1261.8
+summary(model.NDT4)$r.squared #0.14
+summary(model.NDT4)$adj.r.squared #0.07
 
 predictions <- model.NDT4 %>% predict(Valid)
 R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.04
-RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #2.45
-MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.92
+RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.82
+MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.30
 
 summary(model.NDT4)
 Anova(model.NDT4, type=3)
-Anova(model.NDT4, type=3, singular.ok = TRUE)
+
 
 #Remove least sig
-model.NDT4<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun +  roads_km + elevation + climate1 + vegtype2 + wind_atfire + climate1:elevation + climate1:wind_atfire + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire, data = dat1)
+model.NDT4<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + dist_mine + roads_km + slope + elevation + slope:elevation + climate1 + climate2 + wind_atfire + climate1:proj_height_1 + climate1:proj_age_1 + climate1:live_stand_volume_125 + climate1:wind_atfire + slope:wind_atfire + elevation:wind_atfire + vegtype2:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = dat1)
 
-AIC(model.NDT4) #836.9
-summary(model.NDT4)$r.squared #0.30
-summary(model.NDT4)$adj.r.squared #0.23
+AIC(model.NDT4) #1259.8
+summary(model.NDT4)$r.squared #0.14
+summary(model.NDT4)$adj.r.squared #0.08
 
 predictions <- model.NDT4 %>% predict(Valid)
 R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.04
-RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #2.45
-MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.92
+RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.82
+MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.30
 
 summary(model.NDT4)
 Anova(model.NDT4, type=3)
-Anova(model.NDT4, type=3, singular.ok = TRUE)
 
 #Remove least sig
-model.NDT4<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation + climate1:wind_atfire + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire, data = dat1)
+model.NDT4<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + dist_mine + roads_km + slope + elevation + slope:elevation + climate1 + climate2 + wind_atfire + climate1:proj_height_1 + climate1:proj_age_1 + climate1:live_stand_volume_125 + climate1:wind_atfire + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = dat1)
 
-AIC(model.NDT4) #829.6
-summary(model.NDT4)$r.squared #0.30
-summary(model.NDT4)$adj.r.squared #0.24
+AIC(model.NDT4) #1254.99
+summary(model.NDT4)$r.squared #0.14
+summary(model.NDT4)$adj.r.squared #0.08
 
 predictions <- model.NDT4 %>% predict(Valid)
 R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.04
-RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #2.45
-MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.92
+RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.81
+MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.28
 
 summary(model.NDT4)
 Anova(model.NDT4, type=3)
-Anova(model.NDT4, type=3, singular.ok = TRUE)
 
 #Remove least sig
-model.NDT4<-lm(LNsize_ha ~ proj_age_1  + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation + climate1:wind_atfire + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire, data = dat1)
+model.NDT4<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + dist_mine + roads_km + slope + elevation + slope:elevation + climate1 + climate2 + wind_atfire + climate1:proj_height_1 + climate1:live_stand_volume_125 + climate1:wind_atfire + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = dat1)
 
-AIC(model.NDT4) #865.2 -> bad increase
-summary(model.NDT4)$r.squared #0.27
-summary(model.NDT4)$adj.r.squared #0.21
+AIC(model.NDT4) #1252.99
+summary(model.NDT4)$r.squared #0.14
+summary(model.NDT4)$adj.r.squared #0.09
 
 predictions <- model.NDT4 %>% predict(Valid)
-R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.05
-RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #2.34
-MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.83
+R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.04
+RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.81
+MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.28
 
 summary(model.NDT4)
 Anova(model.NDT4, type=3)
-Anova(model.NDT4, type=3, singular.ok = TRUE)
 
-#Remove proj age instead
-model.NDT4<-lm(LNsize_ha ~  live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation + climate1:wind_atfire + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire, data = dat1)
+#Remove least sig
+model.NDT4<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + dist_mine + roads_km + slope + elevation + slope:elevation + climate1 + climate2 + wind_atfire + climate1:proj_height_1 + climate1:live_stand_volume_125 + climate1:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = dat1)
 
-AIC(model.NDT4) #828.1
-summary(model.NDT4)$r.squared #0.30
-summary(model.NDT4)$adj.r.squared #0.25
+AIC(model.NDT4) #1251.6
+summary(model.NDT4)$r.squared #0.14
+summary(model.NDT4)$adj.r.squared #0.09
+
+predictions <- model.NDT4 %>% predict(Valid)
+R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.04
+RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.79
+MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.27
+
+summary(model.NDT4)
+Anova(model.NDT4, type=3)
+
+#Remove least sig
+model.NDT4<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + dist_mine + roads_km + slope + elevation + slope:elevation + climate1 + climate2 + wind_atfire + climate1:live_stand_volume_125 + climate1:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = dat1)
+
+AIC(model.NDT4) #1250.6
+summary(model.NDT4)$r.squared #0.14
+summary(model.NDT4)$adj.r.squared #0.09
+
+predictions <- model.NDT4 %>% predict(Valid)
+R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.04
+RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.80
+MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.27
+
+summary(model.NDT4)
+Anova(model.NDT4, type=3)
+
+#Remove least sig
+model.NDT4<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + roads_km + slope + elevation + slope:elevation + climate1 + climate2 + wind_atfire + climate1:live_stand_volume_125 + climate1:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = dat1)
+
+AIC(model.NDT4) #1249.1
+summary(model.NDT4)$r.squared #0.13
+summary(model.NDT4)$adj.r.squared #0.09
+
+predictions <- model.NDT4 %>% predict(Valid)
+R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.04
+RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.80
+MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.28
+
+summary(model.NDT4)
+Anova(model.NDT4, type=3)
+
+#Remove least sig
+model.NDT4<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + roads_km + slope + elevation + slope:elevation + climate1 + climate2 + wind_atfire + climate1:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = dat1)
+
+AIC(model.NDT4) #1248.5
+summary(model.NDT4)$r.squared #0.13
+summary(model.NDT4)$adj.r.squared #0.09
 
 predictions <- model.NDT4 %>% predict(Valid)
 R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.03
-RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #2.46
-MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.94
+RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.81
+MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.28
 
 summary(model.NDT4)
 Anova(model.NDT4, type=3)
-Anova(model.NDT4, type=3, singular.ok = TRUE)
+
+#Remove least sig
+model.NDT4<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + slope + elevation + slope:elevation + climate1 + climate2 + wind_atfire + climate1:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = dat1)
+
+AIC(model.NDT4) #1247.9
+summary(model.NDT4)$r.squared #0.13
+summary(model.NDT4)$adj.r.squared #0.09
+
+predictions <- model.NDT4 %>% predict(Valid)
+R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.03
+RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.82
+MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.28
+
+summary(model.NDT4)
+Anova(model.NDT4, type=3)
+
 ```
 Remove NAs and run multiple times.
 
 ```{r}
 #Remove NAs to ensure all same data used so we can compare AICs
-NDT4_spread_size_t<-spread_lightning_t_NDT4 %>% drop_na(proj_age_1, live_stand_volume_125 , dist_mun, climate1, wind_atfire, elevation, Tdif_atfire)
+NDT4_spread_size_t<-spread_person_t_NDT4 %>% drop_na(proj_age_1 , live_stand_volume_125 , dist_mun , roads_km , slope , climate1 , climate2 , wind_atfire, elevation, Tdif_atfire)
 
 #Run Model again with this data; but uses all data here
-model.NDT4.Spread<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation + climate1:wind_atfire + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire, data = NDT4_spread_size_t)
-
-AIC(model.NDT4.Spread) #1101.1
-summary(model.NDT4.Spread)$r.squared #0.23
-summary(model.NDT4.Spread)$adj.r.squared #0.19
-
-#Anova(model.NDT4.Spread, type=3)
-Anova(model.NDT4.Spread, type=3, singular.ok = TRUE)
-
-#Compare to fewer interactions
-model.NDT4.Spread<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire, data = NDT4_spread_size_t)
-
-AIC(model.NDT4.Spread) #1099.4
-summary(model.NDT4.Spread)$r.squared #0.23
-summary(model.NDT4.Spread)$adj.r.squared #0.19
-
-#Anova(model.NDT4.Spread, type=3)
-Anova(model.NDT4.Spread, type=3, singular.ok = TRUE)
-
-#Compare to fewer interactions
-model.NDT4.Spread<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire, data = NDT4_spread_size_t)
-
-AIC(model.NDT4.Spread) #1098.4
-summary(model.NDT4.Spread)$r.squared #0.23
-summary(model.NDT4.Spread)$adj.r.squared #0.19
-
-#Anova(model.NDT4.Spread, type=3)
-Anova(model.NDT4.Spread, type=3, singular.ok = TRUE)
-
-#
-model.NDT4.Spread<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire, data = NDT4_spread_size_t)
-
-AIC(model.NDT4.Spread) #1096.98
-summary(model.NDT4.Spread)$r.squared #0.23
-summary(model.NDT4.Spread)$adj.r.squared #0.19
+model.NDT4.Spread<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + roads_km + slope + elevation + slope:elevation + climate1 + climate2 + wind_atfire + climate1:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = NDT4_spread_size_t)
 
 #Anova(model.NDT4.Spread, type=3)
 Anova(model.NDT4.Spread, type=3, singular.ok = TRUE)
@@ -1186,19 +1192,25 @@ binnedplot (NDT4_spread_size_t$climate1,
 # Diagnostic plots look good
 
 #Partial Residuals
-#proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire
+#LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + roads_km + slope + elevation + slope:elevation + climate1 + climate2 + wind_atfire + climate1:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125
 visreg(model.NDT4.Spread, "proj_age_1")
-visreg(model.NDT4.Spread, "live_stand_volume_125")
-
+visreg(model.NDT4.Spread, "live_stand_volume_125", by="Tdif_atfire")
 visreg(model.NDT4.Spread, "dist_mun")
-visreg(model.NDT4.Spread, "elevation", by="climate1")
-visreg(model.NDT4.Spread, "elevation", by="wind_atfire")
-visreg(model.NDT4.Spread, "slope", by="wind_atfire")
+visreg(model.NDT4.Spread, "roads_km")
 
-visreg(model.NDT4.Spread, "climate1", by="elevation")
+visreg(model.NDT4.Spread, "slope", by= "elevation")
+visreg(model.NDT4.Spread, "elevation", by="slope")
+visreg(model.NDT4.Spread, "elevation", by="wind_atfire")
+
+#climate1 + climate2 + wind_atfire + climate1:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125
+visreg(model.NDT4.Spread, "climate1", by="wind_atfire")
+visreg(model.NDT4.Spread, "climate2")
 
 visreg(model.NDT4.Spread, "wind_atfire", by="elevation")
-visreg(model.NDT4.Spread, "wind_atfire", by="slope")
+visreg(model.NDT4.Spread, "wind_atfire", by="Tdif_atfire")
+
+visreg(model.NDT4.Spread, "Tdif_atfire", by="wind_atfire")
+visreg(model.NDT4.Spread, "Tdif_atfire", by="live_stand_volume_125")
 
 ```
 We should repeat the above several times and take the mean of the coefficients.
@@ -1207,8 +1219,8 @@ We should repeat the above several times and take the mean of the coefficients.
 summary(model.NDT4.Spread)
 
 #Create a new blank table and get AUC too
-top_mod_table_NDT4_lightning_t_ALL <- data.frame (matrix (ncol = 21, nrow = 0))
-colnames (top_mod_table_NDT4_lightning_t_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_proj_age_1", "coef_live_stand_volume_125", "coef_dist_mun", "coef_elevation", "coef_climate_1", "coef_wind_atfire", "coef_slope", "coef_elevation:climate1", "coef_wind_atfire:slope", "coef_elevation:wind_atfire", "AIC", "Model.R2", "Valid.R2", "Valid.RSME", "Valid.MAE", "Adjusted.R2")
+top_mod_table_NDT4_person_t_ALL <- data.frame (matrix (ncol = 26, nrow = 0))
+colnames (top_mod_table_NDT4_person_t_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_proj_age_1", "coef_live_stand_volume_125", "coef_dist_mun", "coef_roads_km",  "coef_slope", "coef_elevation", "coef_climate_1", "coef_climate_2", "coef_wind_atfire", "coef_Tdif_atfire", "coef_slope:elevation", "coef_climate1:wind_atfire", "coef_elevation:wind_atfire", "coef_wind_atfire:Tdif_atfire", "coef_live_stand_volume_125:Tdif_atfire", "AIC", "Model.R2", "Valid.R2", "Valid.RSME", "Valid.MAE", "Adjusted.R2")
 
 ```
 
@@ -1228,38 +1240,43 @@ prop<-0.75
    Valid <- NDT4_spread_size_t[-trainIndex,]
    
 #Model   
-model.NDT4.Spread<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire, data = dat1) 
+model.NDT4.Spread<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + roads_km + slope + elevation + slope:elevation + climate1 + climate2 + wind_atfire + climate1:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = dat1) 
 
 predictions <- model.NDT4.Spread %>% predict(Valid)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT4_lightning_t <- data.frame (matrix (ncol = 21, nrow = 0))
-colnames (top_mod_table_NDT4_lightning_t ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_proj_age_1", "coef_live_stand_volume_125", "coef_dist_mun", "coef_elevation", "coef_climate_1", "coef_wind_atfire", "coef_slope", "coef_elevation:climate1", "coef_wind_atfire:slope", "coef_elevation:wind_atfire", "AIC", "Model.R2", "Valid.R2", "Valid.RSME", "Valid.MAE", "Adjusted.R2")
+top_mod_table_NDT4_person_t <- data.frame (matrix (ncol = 26, nrow = 0))
+colnames (top_mod_table_NDT4_person_t ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_proj_age_1", "coef_live_stand_volume_125", "coef_dist_mun", "coef_roads_km",  "coef_slope", "coef_elevation", "coef_climate_1", "coef_climate_2", "coef_wind_atfire", "coef_Tdif_atfire", "coef_slope:elevation", "coef_climate1:wind_atfire", "coef_elevation:wind_atfire", "coef_wind_atfire:Tdif_atfire", "coef_live_stand_volume_125:Tdif_atfire", "AIC", "Model.R2", "Valid.R2", "Valid.RSME", "Valid.MAE", "Adjusted.R2")
 
 ##Add data for NDT4
-top_mod_table_NDT4_lightning_t[1,1]<-"lightning"
-top_mod_table_NDT4_lightning_t[1,2]<-"NDT4"
-top_mod_table_NDT4_lightning_t[1,3]<-"Y"
-top_mod_table_NDT4_lightning_t[1,4]<-"LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire" 
-top_mod_table_NDT4_lightning_t[1,5]<- coef(model.NDT4.Spread)[1] #Intercept
-top_mod_table_NDT4_lightning_t[1,6]<- coef(model.NDT4.Spread)[2] #C
-top_mod_table_NDT4_lightning_t[1,7]<- coef(model.NDT4.Spread)[3] #C
-top_mod_table_NDT4_lightning_t[1,8]<- coef(model.NDT4.Spread)[4] #co
-top_mod_table_NDT4_lightning_t[1,9]<- coef(model.NDT4.Spread)[5] #co
-top_mod_table_NDT4_lightning_t[1,10]<- coef(model.NDT4.Spread)[6] #c
-top_mod_table_NDT4_lightning_t[1,11]<- coef(model.NDT4.Spread)[7] #l
-top_mod_table_NDT4_lightning_t[1,12]<- coef(model.NDT4.Spread)[8] #co
-top_mod_table_NDT4_lightning_t[1,13]<- coef(model.NDT4.Spread)[9] #c
-top_mod_table_NDT4_lightning_t[1,14]<- coef(model.NDT4.Spread)[10] #coeff
-top_mod_table_NDT4_lightning_t[1,15]<- coef(model.NDT4.Spread)[11] #co
-top_mod_table_NDT4_lightning_t[1,16]<- AIC(model.NDT4.Spread)
-top_mod_table_NDT4_lightning_t[1,17]<- summary(model.NDT4.Spread)$r.squared
-top_mod_table_NDT4_lightning_t[1,18]<- R2(predictions, Valid$LNsize_ha, na.rm=TRUE)
-top_mod_table_NDT4_lightning_t[1,19]<- RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE)
-top_mod_table_NDT4_lightning_t[1,20]<- MAE(predictions, Valid$LNsize_ha, na.rm=TRUE)
-top_mod_table_NDT4_lightning_t[1,21]<- summary(model.NDT4.Spread)$adj.r.squared
+top_mod_table_NDT4_person_t[1,1]<-"person"
+top_mod_table_NDT4_person_t[1,2]<-"NDT4"
+top_mod_table_NDT4_person_t[1,3]<-"Y"
+top_mod_table_NDT4_person_t[1,4]<-"LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + roads_km + slope + elevation + slope:elevation + climate1 + climate2 + wind_atfire + climate1:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125" 
+top_mod_table_NDT4_person_t[1,5]<- coef(model.NDT4.Spread)[1] #Intercept
+top_mod_table_NDT4_person_t[1,6]<- coef(model.NDT4.Spread)[2] #C
+top_mod_table_NDT4_person_t[1,7]<- coef(model.NDT4.Spread)[3] #C
+top_mod_table_NDT4_person_t[1,8]<- coef(model.NDT4.Spread)[4] #co
+top_mod_table_NDT4_person_t[1,9]<- coef(model.NDT4.Spread)[5] #co
+top_mod_table_NDT4_person_t[1,10]<- coef(model.NDT4.Spread)[6] #c
+top_mod_table_NDT4_person_t[1,11]<- coef(model.NDT4.Spread)[7] #l
+top_mod_table_NDT4_person_t[1,12]<- coef(model.NDT4.Spread)[8] #co
+top_mod_table_NDT4_person_t[1,13]<- coef(model.NDT4.Spread)[9] #c
+top_mod_table_NDT4_person_t[1,14]<- coef(model.NDT4.Spread)[10] #coeff
+top_mod_table_NDT4_person_t[1,15]<- coef(model.NDT4.Spread)[11] #co
+top_mod_table_NDT4_person_t[1,16]<- coef(model.NDT4.Spread)[12] #coe
+top_mod_table_NDT4_person_t[1,17]<- coef(model.NDT4.Spread)[13] #co
+top_mod_table_NDT4_person_t[1,18]<- coef(model.NDT4.Spread)[14] #co
+top_mod_table_NDT4_person_t[1,19]<- coef(model.NDT4.Spread)[15] #
+top_mod_table_NDT4_person_t[1,20]<- coef(model.NDT4.Spread)[16] # cl
+top_mod_table_NDT4_person_t[1,21]<- AIC(model.NDT4.Spread)
+top_mod_table_NDT4_person_t[1,22]<- summary(model.NDT4.Spread)$r.squared
+top_mod_table_NDT4_person_t[1,23]<- R2(predictions, Valid$LNsize_ha, na.rm=TRUE)
+top_mod_table_NDT4_person_t[1,24]<- RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE)
+top_mod_table_NDT4_person_t[1,25]<- MAE(predictions, Valid$LNsize_ha, na.rm=TRUE)
+top_mod_table_NDT4_person_t[1,26]<- summary(model.NDT4.Spread)$adj.r.squared
 
-top_mod_table_NDT4_lightning_t_ALL<-rbind(top_mod_table_NDT4_lightning_t_ALL, top_mod_table_NDT4_lightning_t)
+top_mod_table_NDT4_person_t_ALL<-rbind(top_mod_table_NDT4_person_t_ALL, top_mod_table_NDT4_person_t)
 
 }
 
@@ -1267,52 +1284,53 @@ top_mod_table_NDT4_lightning_t_ALL<-rbind(top_mod_table_NDT4_lightning_t_ALL, to
 
 Check.
 ```{r}
-head(top_mod_table_NDT4_lightning_t_ALL)
+head(top_mod_table_NDT4_person_t_ALL)
 
 ```
 
 #Save coefficient table
 
 ```{r}
-write.csv(top_mod_table_NDT4_lightning_t_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_model.NDT4.Spread_firesize_lightning_t.csv")
+write.csv(top_mod_table_NDT4_person_t_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_model.NDT4.Spread_firesize_person_t.csv")
 ```
 
 
 #Get Mean Values
 
 ```{r}
-names(top_mod_table_NDT4_lightning_t_ALL)
+names(top_mod_table_NDT4_person_t_ALL)
 
-top_mod_table_NDT4_model.NDT4.Spreadlightning_t_means<-top_mod_table_NDT4_lightning_t_ALL %>% summarise_each(funs( mean( .,na.rm = TRUE)))
-top_mod_table_NDT4_model.NDT4.Spreadlightning_t_means
+top_mod_table_NDT4_model.NDT4.Spreadperson_t_means<-top_mod_table_NDT4_person_t_ALL %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table_NDT4_model.NDT4.Spreadperson_t_means
 
-top_mod_table_NDT4_model.NDT4.Spreadlightning_t_means[1,1]<-"lightning"
-top_mod_table_NDT4_model.NDT4.Spreadlightning_t_means[1,2]<-"NDT4"
-top_mod_table_NDT4_model.NDT4.Spreadlightning_t_means[1,3]<-"Treed"
-top_mod_table_NDT4_model.NDT4.Spreadlightning_t_means[1,4]<- "LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire" 
-top_mod_table_NDT4_model.NDT4.Spreadlightning_t_means
+top_mod_table_NDT4_model.NDT4.Spreadperson_t_means[1,1]<-"person"
+top_mod_table_NDT4_model.NDT4.Spreadperson_t_means[1,2]<-"NDT4"
+top_mod_table_NDT4_model.NDT4.Spreadperson_t_means[1,3]<-"Treed"
+top_mod_table_NDT4_model.NDT4.Spreadperson_t_means[1,4]<- "LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + roads_km + slope + elevation + slope:elevation + climate1 + climate2 + wind_atfire + climate1:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125" 
+top_mod_table_NDT4_model.NDT4.Spreadperson_t_means
 ```
 Save table.
 
 ```{r}
-write.csv(top_mod_table_NDT4_model.NDT4.Spreadlightning_t_means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_model.NDT4.Spread_firesize_lightning_t_Means.csv")
+write.csv(top_mod_table_NDT4_model.NDT4.Spreadperson_t_means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_model.NDT4.Spread_firesize_person_t_Means.csv")
 ```
 
 Standard deviation.
 
 ```{r}
-top_mod_table_NDT4_model.NDT4.Spreadlightning_t_sd<-top_mod_table_NDT4_lightning_t_ALL %>% summarise_each(funs( sd( .,na.rm = TRUE)))
-top_mod_table_NDT4_model.NDT4.Spreadlightning_t_sd
+top_mod_table_NDT4_model.NDT4.Spreadperson_t_sd<-top_mod_table_NDT4_person_t_ALL %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_NDT4_model.NDT4.Spreadperson_t_sd
 
-top_mod_table_NDT4_model.NDT4.Spreadlightning_t_sd[1,1]<-"lightning"
-top_mod_table_NDT4_model.NDT4.Spreadlightning_t_sd[1,2]<-"NDT4"
-top_mod_table_NDT4_model.NDT4.Spreadlightning_t_sd[1,3]<-"Treed"
-top_mod_table_NDT4_model.NDT4.Spreadlightning_t_sd[1,4]<-"LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire" 
-top_mod_table_NDT4_model.NDT4.Spreadlightning_t_sd
+top_mod_table_NDT4_model.NDT4.Spreadperson_t_sd[1,1]<-"person"
+top_mod_table_NDT4_model.NDT4.Spreadperson_t_sd[1,2]<-"NDT4"
+top_mod_table_NDT4_model.NDT4.Spreadperson_t_sd[1,3]<-"Treed"
+top_mod_table_NDT4_model.NDT4.Spreadperson_t_sd[1,4]<-"LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + roads_km + slope + elevation + slope:elevation + climate1 + climate2 + wind_atfire + climate1:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125" 
+top_mod_table_NDT4_model.NDT4.Spreadperson_t_sd
 ```
 
 Save sd coefficient table.
 
 ```{r}
-write.csv(top_mod_table_NDT4_model.NDT4.Spreadlightning_t_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_model.NDT4.Spread_firesize_lightning_t_SD.csv")
+write.csv(top_mod_table_NDT4_model.NDT4.Spreadperson_t_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_model.NDT4.Spread_firesize_person_t_SD.csv")
 ```
+
