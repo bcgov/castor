@@ -983,8 +983,9 @@ head(AIC_lightning_NDT5_spread_treed_summary_infra2)
 ```
 
 Combine together
+#Note: no climate model will available because climate1 is the only variable for that model
 ```{r}
-NDT5_l_treed_spread<-rbind(AIC_lightning_NDT5_spread_treed_summary_climate2, AIC_lightning_NDT5_spread_treed_summary_infra2, AIC_lightning_NDT5_spread_treed_summary_topo2, AIC_lightning_NDT5_spread_treed_summary_VRI2)
+NDT5_l_treed_spread<-rbind(AIC_lightning_NDT5_spread_treed_summary_infra2, AIC_lightning_NDT5_spread_treed_summary_topo2, AIC_lightning_NDT5_spread_treed_summary_VRI2)
 
 NDT5_l_treed_spread$NDT<-"NDT5"
 
@@ -996,30 +997,22 @@ Save data.
 write.csv(NDT5_l_treed_spread, file="D:\\Fire\\fire_data\\raw_data\\NDT5_lightning_models_treed_spread_Nov.csv")
 ```
 
-
-
-#####UPDATE BELOW ###########
-
-
-
-
-
-
-
 ##Determine Best Models.
 For best models, we will look at R-square of the model, and then within the top R-square, we will assess which had lowest AIC.
 
-1. proj_age_1 + live_stand_volume_125
-2. dist_mun + roads_km
-3. elevation
-4. climate1 + vegtype2
+1. live_stand_volume_125
+2. dist_mun + dist_dam + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_dam:bclcs_level_5_2
+3. slope
+4. climate1 
 
 ##################### Begin Manual Exploration ##################
-Begin manual exploration from here. We will use the above variables, plus additional interactions: wind_atfire + climate1:proj_height_1 + climate1:proj_age_1 + climate1:live_stand_volume_125 + climate1:elevation + climate1:wind_atfire + slope:wind_atfire + elevation:wind_atfire + vegtype2:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125
+Begin manual exploration from here. We will use the above variables, plus additional interactions: wind_atfire + climate1:live_stand_volume_125 + climate1:wind_atfire + slope:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125
 
 
 ```{r}
-spread_lightning_t_NDT5<-subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT5")
+spread_lightning_t_NDT5<-subset(spread_data_lightning_t, spread_data_lightning_t$ntrl_ds=="NDT5") #19 observations...
+
+#Given how few observations there are, we can have very few variables in the model
 
 prop<-0.75
 
@@ -1031,17 +1024,22 @@ prop<-0.75
    dat1 <- spread_lightning_t_NDT5[ trainIndex,]
    Valid <- spread_lightning_t_NDT5[-trainIndex,]
   
-#Run model using dat1
-model.NDT5<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun +  roads_km + elevation + climate1 + vegtype2 + wind_atfire + climate1:proj_age_1 + climate1:live_stand_volume_125 + climate1:elevation + climate1:wind_atfire + slope + slope:wind_atfire + elevation:wind_atfire + vegtype2:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = dat1)
+#Run model using dat1: Note, this first model already has too many variables - hoping it can be informative though
+model.NDT5<-lm(LNsize_ha ~ live_stand_volume_125 + dist_mun + roads_km + bclcs_level_5_2 + climate1 + wind_atfire + climate1:live_stand_volume_125  + climate1:wind_atfire + slope + slope:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = dat1)
 
-AIC(model.NDT5) #847.4
-summary(model.NDT5)$r.squared #0.31
-summary(model.NDT5)$adj.r.squared #0.20
+AIC(model.NDT5) #Did not converge... 
+
+#Remove interactions
+model.NDT5<-lm(LNsize_ha ~ live_stand_volume_125 + dist_mun + roads_km + bclcs_level_5_2 + climate1 + wind_atfire + slope + Tdif_atfire, data = dat1)
+
+AIC(model.NDT5) #47.7
+summary(model.NDT5)$r.squared #0.89
+summary(model.NDT5)$adj.r.squared #0.66
 
 predictions <- model.NDT5 %>% predict(Valid)
-R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.04
-RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #2.45
-MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.92
+R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.69
+RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.75
+MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.62
 
 summary(model.NDT5)
 Anova(model.NDT5, type=3)
@@ -1049,127 +1047,99 @@ Anova(model.NDT5, type=3, singular.ok = TRUE)
 
 
 #Remove least sig
-model.NDT5<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun +  roads_km + elevation + climate1 + vegtype2 + wind_atfire + climate1:live_stand_volume_125 + climate1:elevation + climate1:wind_atfire + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125, data = dat1)
+model.NDT5<-lm(LNsize_ha ~ live_stand_volume_125 + dist_mun + roads_km + bclcs_level_5_2 + climate1 + wind_atfire + slope, data = dat1)
 
-AIC(model.NDT5) #840.7
-summary(model.NDT5)$r.squared #0.30
-summary(model.NDT5)$adj.r.squared #0.22
+AIC(model.NDT5) #45.7
+summary(model.NDT5)$r.squared #0.89
+summary(model.NDT5)$adj.r.squared #0.72
 
 predictions <- model.NDT5 %>% predict(Valid)
-R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.04
-RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #2.45
-MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.92
+R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.69
+RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.75
+MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.63
 
 summary(model.NDT5)
 Anova(model.NDT5, type=3)
 Anova(model.NDT5, type=3, singular.ok = TRUE)
 
 #Remove least sig
-model.NDT5<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun +  roads_km + elevation + climate1 + vegtype2 + wind_atfire + climate1:elevation + climate1:wind_atfire + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire, data = dat1)
+model.NDT5<-lm(LNsize_ha ~ live_stand_volume_125 + dist_mun + roads_km + bclcs_level_5_2 + climate1 + slope, data = dat1)
 
-AIC(model.NDT5) #836.9
-summary(model.NDT5)$r.squared #0.30
-summary(model.NDT5)$adj.r.squared #0.23
+AIC(model.NDT5) #43.7
+summary(model.NDT5)$r.squared #0.88
+summary(model.NDT5)$adj.r.squared #0.77
 
 predictions <- model.NDT5 %>% predict(Valid)
-R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.04
-RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #2.45
-MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.92
+R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.73
+RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.76
+MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.65
 
 summary(model.NDT5)
 Anova(model.NDT5, type=3)
 Anova(model.NDT5, type=3, singular.ok = TRUE)
 
 #Remove least sig
-model.NDT5<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation + climate1:wind_atfire + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire, data = dat1)
+model.NDT5<-lm(LNsize_ha ~ live_stand_volume_125 + dist_mun + bclcs_level_5_2 + slope, data = dat1)
 
-AIC(model.NDT5) #829.6
-summary(model.NDT5)$r.squared #0.30
-summary(model.NDT5)$adj.r.squared #0.24
+AIC(model.NDT5) #41.8
+summary(model.NDT5)$r.squared #0.88
+summary(model.NDT5)$adj.r.squared #0.80
 
 predictions <- model.NDT5 %>% predict(Valid)
-R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.04
-RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #2.45
-MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.92
+R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.72
+RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.79
+MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.68
 
 summary(model.NDT5)
 Anova(model.NDT5, type=3)
 Anova(model.NDT5, type=3, singular.ok = TRUE)
 
 #Remove least sig
-model.NDT5<-lm(LNsize_ha ~ proj_age_1  + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation + climate1:wind_atfire + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire, data = dat1)
+model.NDT5<-lm(LNsize_ha ~ live_stand_volume_125 + dist_mun + bclcs_level_5_2, data = dat1)
 
-AIC(model.NDT5) #865.2 -> bad increase
-summary(model.NDT5)$r.squared #0.27
-summary(model.NDT5)$adj.r.squared #0.21
+AIC(model.NDT5) #40.1
+summary(model.NDT5)$r.squared #0.88
+summary(model.NDT5)$adj.r.squared #0.82
 
 predictions <- model.NDT5 %>% predict(Valid)
-R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.05
-RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #2.34
-MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.83
+R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.61
+RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.91
+MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.78
 
 summary(model.NDT5)
 Anova(model.NDT5, type=3)
 Anova(model.NDT5, type=3, singular.ok = TRUE)
 
-#Remove proj age instead
-model.NDT5<-lm(LNsize_ha ~  live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation + climate1:wind_atfire + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire, data = dat1)
+#GO BACK!
+model.NDT5<-lm(LNsize_ha ~ live_stand_volume_125 + dist_mun + bclcs_level_5_2 + slope, data = dat1)
 
-AIC(model.NDT5) #828.1
-summary(model.NDT5)$r.squared #0.30
-summary(model.NDT5)$adj.r.squared #0.25
+AIC(model.NDT5) #41.8
+summary(model.NDT5)$r.squared #0.88
+summary(model.NDT5)$adj.r.squared #0.80
 
 predictions <- model.NDT5 %>% predict(Valid)
-R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.03
-RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #2.46
-MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #1.94
+R2(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.72
+RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.79
+MAE(predictions, Valid$LNsize_ha, na.rm=TRUE) #0.68
 
 summary(model.NDT5)
 Anova(model.NDT5, type=3)
 Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+
 ```
 Remove NAs and run multiple times.
 
 ```{r}
 #Remove NAs to ensure all same data used so we can compare AICs
-NDT5_spread_size_t<-spread_lightning_t_NDT5 %>% drop_na(proj_age_1, live_stand_volume_125 , dist_mun, climate1, wind_atfire, elevation, Tdif_atfire)
+NDT5_spread_size_t<-spread_lightning_t_NDT5 %>% drop_na( live_stand_volume_125 , dist_mun, slope, bclcs_level_5_2) #17 observations
 
 #Run Model again with this data; but uses all data here
-model.NDT5.Spread<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation + climate1:wind_atfire + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire, data = NDT5_spread_size_t)
+model.NDT5.Spread<-lm(LNsize_ha ~ live_stand_volume_125 + dist_mun + bclcs_level_5_2 + slope, data = NDT5_spread_size_t)
 
-AIC(model.NDT5.Spread) #1101.1
-summary(model.NDT5.Spread)$r.squared #0.23
-summary(model.NDT5.Spread)$adj.r.squared #0.19
-
-#Anova(model.NDT5.Spread, type=3)
-Anova(model.NDT5.Spread, type=3, singular.ok = TRUE)
-
-#Compare to fewer interactions
-model.NDT5.Spread<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire, data = NDT5_spread_size_t)
-
-AIC(model.NDT5.Spread) #1099.4
-summary(model.NDT5.Spread)$r.squared #0.23
-summary(model.NDT5.Spread)$adj.r.squared #0.19
-
-#Anova(model.NDT5.Spread, type=3)
-Anova(model.NDT5.Spread, type=3, singular.ok = TRUE)
-
-#Compare to fewer interactions
-model.NDT5.Spread<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire + Tdif_atfire, data = NDT5_spread_size_t)
-
-AIC(model.NDT5.Spread) #1098.4
-summary(model.NDT5.Spread)$r.squared #0.23
-summary(model.NDT5.Spread)$adj.r.squared #0.19
-
-#Anova(model.NDT5.Spread, type=3)
-Anova(model.NDT5.Spread, type=3, singular.ok = TRUE)
-
-#
-model.NDT5.Spread<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire, data = NDT5_spread_size_t)
-
-AIC(model.NDT5.Spread) #1096.98
-summary(model.NDT5.Spread)$r.squared #0.23
-summary(model.NDT5.Spread)$adj.r.squared #0.19
+AIC(model.NDT5.Spread) #49.4
+summary(model.NDT5.Spread)$r.squared #0.87
+summary(model.NDT5.Spread)$adj.r.squared #0.82
 
 #Anova(model.NDT5.Spread, type=3)
 Anova(model.NDT5.Spread, type=3, singular.ok = TRUE)
@@ -1202,19 +1172,11 @@ binnedplot (NDT5_spread_size_t$climate1,
 # Diagnostic plots look good
 
 #Partial Residuals
-#proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire
-visreg(model.NDT5.Spread, "proj_age_1")
+#live_stand_volume_125 + dist_mun + bclcs_level_5_2 + slope
 visreg(model.NDT5.Spread, "live_stand_volume_125")
-
 visreg(model.NDT5.Spread, "dist_mun")
-visreg(model.NDT5.Spread, "elevation", by="climate1")
-visreg(model.NDT5.Spread, "elevation", by="wind_atfire")
-visreg(model.NDT5.Spread, "slope", by="wind_atfire")
-
-visreg(model.NDT5.Spread, "climate1", by="elevation")
-
-visreg(model.NDT5.Spread, "wind_atfire", by="elevation")
-visreg(model.NDT5.Spread, "wind_atfire", by="slope")
+visreg(model.NDT5.Spread, "slope")
+visreg(model.NDT5.Spread, "bclcs_level_5_2")
 
 ```
 We should repeat the above several times and take the mean of the coefficients.
@@ -1223,8 +1185,8 @@ We should repeat the above several times and take the mean of the coefficients.
 summary(model.NDT5.Spread)
 
 #Create a new blank table and get AUC too
-top_mod_table_NDT5_lightning_t_ALL <- data.frame (matrix (ncol = 21, nrow = 0))
-colnames (top_mod_table_NDT5_lightning_t_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_proj_age_1", "coef_live_stand_volume_125", "coef_dist_mun", "coef_elevation", "coef_climate_1", "coef_wind_atfire", "coef_slope", "coef_elevation:climate1", "coef_wind_atfire:slope", "coef_elevation:wind_atfire", "AIC", "Model.R2", "Valid.R2", "Valid.RSME", "Valid.MAE", "Adjusted.R2")
+top_mod_table_NDT5_lightning_t_ALL <- data.frame (matrix (ncol = 16, nrow = 0))
+colnames (top_mod_table_NDT5_lightning_t_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_live_stand_volume_125", "coef_dist_mun", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_slope", "AIC", "Model.R2", "Valid.R2", "Valid.RSME", "Valid.MAE", "Adjusted.R2")
 
 ```
 
@@ -1236,7 +1198,7 @@ for (g in 1:500){
 
 prop<-0.75
 # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(NDT5_spread_size_t$vegtype2, p = prop,
+  trainIndex <- createDataPartition(NDT5_spread_size_t$bclcs_level_5_2, p = prop,
                                     list = FALSE,
                                     times = 1)
   
@@ -1244,36 +1206,31 @@ prop<-0.75
    Valid <- NDT5_spread_size_t[-trainIndex,]
    
 #Model   
-model.NDT5.Spread<-lm(LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire, data = dat1) 
+model.NDT5.Spread<-lm(LNsize_ha ~ live_stand_volume_125 + dist_mun + bclcs_level_5_2 + slope, data = dat1) 
 
 predictions <- model.NDT5.Spread %>% predict(Valid)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT5_lightning_t <- data.frame (matrix (ncol = 21, nrow = 0))
-colnames (top_mod_table_NDT5_lightning_t ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_proj_age_1", "coef_live_stand_volume_125", "coef_dist_mun", "coef_elevation", "coef_climate_1", "coef_wind_atfire", "coef_slope", "coef_elevation:climate1", "coef_wind_atfire:slope", "coef_elevation:wind_atfire", "AIC", "Model.R2", "Valid.R2", "Valid.RSME", "Valid.MAE", "Adjusted.R2")
+top_mod_table_NDT5_lightning_t <- data.frame (matrix (ncol = 16, nrow = 0))
+colnames (top_mod_table_NDT5_lightning_t ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_live_stand_volume_125", "coef_dist_mun", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2SP", "coef_slope", "AIC", "Model.R2", "Valid.R2", "Valid.RSME", "Valid.MAE", "Adjusted.R2")
 
 ##Add data for NDT5
 top_mod_table_NDT5_lightning_t[1,1]<-"lightning"
 top_mod_table_NDT5_lightning_t[1,2]<-"NDT5"
 top_mod_table_NDT5_lightning_t[1,3]<-"Y"
-top_mod_table_NDT5_lightning_t[1,4]<-"LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire" 
+top_mod_table_NDT5_lightning_t[1,4]<-"LNsize_ha ~ live_stand_volume_125 + dist_mun + bclcs_level_5_2 + slope" 
 top_mod_table_NDT5_lightning_t[1,5]<- coef(model.NDT5.Spread)[1] #Intercept
 top_mod_table_NDT5_lightning_t[1,6]<- coef(model.NDT5.Spread)[2] #C
 top_mod_table_NDT5_lightning_t[1,7]<- coef(model.NDT5.Spread)[3] #C
 top_mod_table_NDT5_lightning_t[1,8]<- coef(model.NDT5.Spread)[4] #co
 top_mod_table_NDT5_lightning_t[1,9]<- coef(model.NDT5.Spread)[5] #co
 top_mod_table_NDT5_lightning_t[1,10]<- coef(model.NDT5.Spread)[6] #c
-top_mod_table_NDT5_lightning_t[1,11]<- coef(model.NDT5.Spread)[7] #l
-top_mod_table_NDT5_lightning_t[1,12]<- coef(model.NDT5.Spread)[8] #co
-top_mod_table_NDT5_lightning_t[1,13]<- coef(model.NDT5.Spread)[9] #c
-top_mod_table_NDT5_lightning_t[1,14]<- coef(model.NDT5.Spread)[10] #coeff
-top_mod_table_NDT5_lightning_t[1,15]<- coef(model.NDT5.Spread)[11] #co
-top_mod_table_NDT5_lightning_t[1,16]<- AIC(model.NDT5.Spread)
-top_mod_table_NDT5_lightning_t[1,17]<- summary(model.NDT5.Spread)$r.squared
-top_mod_table_NDT5_lightning_t[1,18]<- R2(predictions, Valid$LNsize_ha, na.rm=TRUE)
-top_mod_table_NDT5_lightning_t[1,19]<- RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE)
-top_mod_table_NDT5_lightning_t[1,20]<- MAE(predictions, Valid$LNsize_ha, na.rm=TRUE)
-top_mod_table_NDT5_lightning_t[1,21]<- summary(model.NDT5.Spread)$adj.r.squared
+top_mod_table_NDT5_lightning_t[1,11]<- AIC(model.NDT5.Spread)
+top_mod_table_NDT5_lightning_t[1,12]<- summary(model.NDT5.Spread)$r.squared
+top_mod_table_NDT5_lightning_t[1,13]<- R2(predictions, Valid$LNsize_ha, na.rm=TRUE)
+top_mod_table_NDT5_lightning_t[1,14]<- RMSE(predictions, Valid$LNsize_ha, na.rm=TRUE)
+top_mod_table_NDT5_lightning_t[1,15]<- MAE(predictions, Valid$LNsize_ha, na.rm=TRUE)
+top_mod_table_NDT5_lightning_t[1,16]<- summary(model.NDT5.Spread)$adj.r.squared
 
 top_mod_table_NDT5_lightning_t_ALL<-rbind(top_mod_table_NDT5_lightning_t_ALL, top_mod_table_NDT5_lightning_t)
 
@@ -1305,7 +1262,7 @@ top_mod_table_NDT5_model.NDT5.Spreadlightning_t_means
 top_mod_table_NDT5_model.NDT5.Spreadlightning_t_means[1,1]<-"lightning"
 top_mod_table_NDT5_model.NDT5.Spreadlightning_t_means[1,2]<-"NDT5"
 top_mod_table_NDT5_model.NDT5.Spreadlightning_t_means[1,3]<-"Treed"
-top_mod_table_NDT5_model.NDT5.Spreadlightning_t_means[1,4]<- "LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire" 
+top_mod_table_NDT5_model.NDT5.Spreadlightning_t_means[1,4]<- "LNsize_ha ~ live_stand_volume_125 + dist_mun + bclcs_level_5_2 + slope" 
 top_mod_table_NDT5_model.NDT5.Spreadlightning_t_means
 ```
 Save table.
@@ -1323,7 +1280,7 @@ top_mod_table_NDT5_model.NDT5.Spreadlightning_t_sd
 top_mod_table_NDT5_model.NDT5.Spreadlightning_t_sd[1,1]<-"lightning"
 top_mod_table_NDT5_model.NDT5.Spreadlightning_t_sd[1,2]<-"NDT5"
 top_mod_table_NDT5_model.NDT5.Spreadlightning_t_sd[1,3]<-"Treed"
-top_mod_table_NDT5_model.NDT5.Spreadlightning_t_sd[1,4]<-"LNsize_ha ~ proj_age_1 + live_stand_volume_125 + dist_mun + elevation + climate1 + wind_atfire + climate1:elevation  + slope + slope:wind_atfire + elevation:wind_atfire" 
+top_mod_table_NDT5_model.NDT5.Spreadlightning_t_sd[1,4]<-"LNsize_ha ~ live_stand_volume_125 + dist_mun + bclcs_level_5_2 + slope" 
 top_mod_table_NDT5_model.NDT5.Spreadlightning_t_sd
 ```
 
