@@ -288,7 +288,7 @@ length(all.poss.mods.infra)
 #all.poss.mods.infra
 ```
 
-############### Part 1 of 4 Model Series: Lightning Caused Fires, Trees ##########
+############### ##########
 
 Because of the large number of models with all variables included, we will test the separate combos first. Then we will test the top models together in additional combinations, with determining best AIC model from there. 
 
@@ -364,19 +364,19 @@ Now that we have run the model 100 times, we want the average AIC and AUC for ea
 head(table.glm.VRI.simple)
 table(table.glm.VRI.simple$model) # 100 per model
 
-AIC_lightning_NDT2_spread_treed_VRI<-table.glm.VRI.simple
+AIC_NDT2_spread_VRI<-table.glm.VRI.simple
 
-AIC_lightning_NDT2_spread_treed_summary_VRI<- AIC_lightning_NDT2_spread_treed_VRI %>%
+AIC_NDT2_spread_summary_VRI<- AIC_NDT2_spread_VRI %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic),
             meanAUC=mean(auc.valid),
             sdAUC=sd(auc.valid),
             )
 
-AIC_lightning_NDT2_spread_treed_summary_VRI2<- AIC_lightning_NDT2_spread_treed_summary_VRI %>%
+AIC_NDT2_spread_summary_VRI2<- AIC_NDT2_spread_summary_VRI %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT2_spread_treed_summary_VRI2)
+head(AIC_NDT2_spread_summary_VRI2)
 ```
 
 #Now repeat for topography
@@ -451,19 +451,19 @@ Now that we have run the model 100 times, we want the average AIC and AUC for ea
 head(table.glm.topo.simple)
 table(table.glm.topo.simple$model) # 100 per model
 
-AIC_lightning_NDT2_spread_treed_topo<-table.glm.topo.simple
+AIC_NDT2_spread_topo<-table.glm.topo.simple
 
-AIC_lightning_NDT2_spread_treed_summary_topo<- AIC_lightning_NDT2_spread_treed_topo %>%
+AIC_NDT2_spread_summary_topo<- AIC_NDT2_spread_topo %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic),
             meanAUC=mean(auc.valid),
             sdAUC=sd(auc.valid),
             )
 
-AIC_lightning_NDT2_spread_treed_summary_topo2<- AIC_lightning_NDT2_spread_treed_summary_topo %>%
+AIC_NDT2_spread_summary_topo2<- AIC_NDT2_spread_summary_topo %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT2_spread_treed_summary_topo2)
+head(AIC_NDT2_spread_summary_topo2)
 ```
 
 #Now repeat for infrastructure
@@ -1378,40 +1378,40 @@ Now that we have run the model at least 3 times, we want the average AIC and AUC
 head(table.glm.infra.simple)
 table(table.glm.infra.simple$model) # 100 per model
 
-AIC_lightning_NDT2_spread_treed_infra<-table.glm.infra.simple
+AIC_NDT2_spread_infra<-table.glm.infra.simple
 
-AIC_lightning_NDT2_spread_treed_summary_infra<- AIC_lightning_NDT2_spread_treed_infra %>%
+AIC_NDT2_spread_summary_infra<- AIC_NDT2_spread_infra %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic),
             meanAUC=mean(auc.valid),
             sdAUC=sd(auc.valid),
             )
 
-AIC_lightning_NDT2_spread_treed_summary_infra2<- AIC_lightning_NDT2_spread_treed_summary_infra %>%
+AIC_NDT2_spread_summary_infra2<- AIC_NDT2_spread_summary_infra %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_lightning_NDT2_spread_treed_summary_infra2)
+head(AIC_NDT2_spread_summary_infra2)
 
 ```
 
 #Now combine the datatables and save to computer
 
 ```{r}
-NDT2_l_spread_models_treed<-rbind(AIC_lightning_NDT2_spread_treed_summary_VRI2, AIC_lightning_NDT2_spread_treed_summary_topo2, AIC_lightning_NDT2_spread_treed_summary_infra2)
+NDT2_l_spread_models_treed<-rbind(AIC_NDT2_spread_summary_VRI2, AIC_NDT2_spread_summary_topo2, AIC_NDT2_spread_summary_infra2)
 NDT2_l_spread_models_treed
 NDT2_l_spread_models_treed$NDT<-"NDT2"
 
 #or if did not do infrastructure
-NDT2_l_spread_models_treed<-rbind(AIC_lightning_NDT2_spread_treed_summary_VRI2, AIC_lightning_NDT2_spread_treed_summary_topo2)
+NDT2_l_spread_models_treed<-rbind(AIC_NDT2_spread_summary_VRI2, AIC_NDT2_spread_summary_topo2)
 NDT2_l_spread_models_treed
 NDT2_l_spread_models_treed$NDT<-"NDT2"
 
-write.csv(NDT2_l_spread_models_treed, file="D:\\Fire\\fire_data\\raw_data\\NDT2_lightning_spread_models_treed_polygon.csv")
+write.csv(NDT2_l_spread_models_treed, file="D:\\Fire\\fire_data\\raw_data\\NDT2_spread_models_polygon.csv")
 
 #Or if only have topography since VRI will not be used (too much lost data from non-treed locations)
-AIC_lightning_NDT2_spread_treed_summary_topo2$NDT<-"NDT2"
+AIC_NDT2_spread_summary_topo2$NDT<-"NDT2"
 
-write.csv(AIC_lightning_NDT2_spread_treed_summary_topo2, file="D:\\Fire\\fire_data\\raw_data\\NDT2_lightning_spread_TOPOmodels_treed_polygon.csv")
+write.csv(AIC_NDT2_spread_summary_topo2, file="D:\\Fire\\fire_data\\raw_data\\NDT2_spread_TOPOmodels_polygon.csv")
 
 ```
 
@@ -1444,7 +1444,7 @@ prop<-0.75
 #Run model using dat1
 model.NDT2.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2, family = binomial, data = dat1)
 
-AIC(model.NDT2.S) #170483.1
+AIC(model.NDT2.S) #170510.5
 summary(model.NDT2.S)
 
 #Determine AUC of full model
@@ -1459,16 +1459,46 @@ Anova(model.NDT2.S, type=3, singular.ok = TRUE)
 
 #All variables significant, but lots of model slowness
 
+#Remove bclcs_2 because similar to vegtype
+model.NDT2.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2, family = binomial, data = dat1)
+
+AIC(model.NDT2.S) #170519
+summary(model.NDT2.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT2.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.66
+   
+Anova(model.NDT2.S, type=3)
+Anova(model.NDT2.S, type=3, singular.ok = TRUE)
+
+#Try with fewer interactions
+model.NDT2.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km + dist_nat:roads_km  + dist_pow:roads_km + dist_mine:roads_km + vegtype2, family = binomial, data = dat1)
+
+AIC(model.NDT2.S) #172958.4
+summary(model.NDT2.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT2.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.64
+   
+Anova(model.NDT2.S, type=3)
+Anova(model.NDT2.S, type=3, singular.ok = TRUE)
+
 ```
 
 Remove NAs and run multiple times.
 
 ```{r}
 #Remove NAs to ensure all same data used so we can compare AICs
-NDT2_spread<-spread_poly_NDT2 %>% drop_na(slope, aspect_cos, elev, dist_mun, dist_dam, dist_nat, dist_pow, dist_mine, roads_km, bclcs_level_5_2, vegtype2, bclcs_level_2) #174741 data points
+NDT2_spread<-spread_poly_NDT2 %>% drop_na(slope, aspect_cos, elev, dist_mun, dist_dam, dist_nat, dist_pow, dist_mine, roads_km, bclcs_level_5_2, vegtype2) #174741 data points
 
 #Run Model again with this data; but uses all data here
-model.NDT2.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2, family = binomial, data = NDT2_spread)
+model.NDT2.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2, family = binomial, data = NDT2_spread)
 
 #Anova(model.NDT2.S, type=3)
 Anova(model.NDT2.S, type=3, singular.ok = TRUE)
@@ -1484,7 +1514,7 @@ binnedplot (fitted(model.NDT2.S),
 NDT2_spread$resids<-resid(model.NDT2.S)
 
 # Diagnostic plots 
-#slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2
+#slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2
 
 visreg(model.NDT2.S, "slope", by="aspect_cos")
 visreg(model.NDT2.S, "slope", by="elev")
@@ -1515,38 +1545,16 @@ visreg(model.NDT2.S, "roads_km", by="bclcs_level_5_2", overlay=TRUE)
 
 #vegtype2 + bclcs_level_2
 visreg(model.NDT2.S, "bclcs_level_2") #Water has highest probability??
-visreg(model.NDT2.S, "vegtype2") #Do we needboth bclcs_level2 and vegtype? Hmmm
+visreg(model.NDT2.S, "vegtype2") #Do we need both bclcs_level2 and vegtype? Hmmm
 ```
-Given patterns observed in the visreg, use the same subset of data from before the last step and remove some interactions.
-
-```{r}
-#Remove patterns that did not seem significant; remove bclcl_level_2 given similarities to vegtype
-model.NDT2.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + vegtype2, family = binomial, data = dat1)
-
-AIC(model.NDT2.S) #172061.6
-summary(model.NDT2.S)
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model.NDT2.S, newdata=Valid, type="response") #
-   roc_obj <- roc(Valid[,"spread"], mod.valid)
-   mod.auc <- auc(roc_obj)
-   mod.auc #0.64
-   
-Anova(model.NDT2.S, type=3)
-Anova(model.NDT2.S, type=3, singular.ok = TRUE) #very slow, lots of "fitted probabilities numerically 0 or 1 occurred"
-
-#Performed better as full model
-```
-
-
 We should repeat the above several times and take the mean of the coefficients.
 
 ```{r}
 summary(model.NDT2.S)
 
 #Create a new blank table and get AUC too
-top_mod_table_NDT2_spread_poly <- data.frame (matrix (ncol = 89, nrow = 0))
-colnames (top_mod_table_NDT2_spread_poly ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_pow",  "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2BU", "coef_bclcs_level_5_2DE", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SOIL", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2UR", "coef_bclcs_level_5_2WATER", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_bclcs_level_2L", "coef_bclcs_level_2N", "coef_bclcs_level_2T", "coef_bclcs_level_2W", "coef_slope:aspect_cos", "coef_slope:elev", "coef_aspect_cos:elev", "coef_dist_mun:roads_km", "coef_dist_mun:bclcs_level_5_2BU", "coef_dist_mun:bclcs_level_5_2DE", "coef_dist_mun:bclcs_level_5_2OP", "coef_dist_mun:bclcs_level_5_2ROCK", "coef_dist_mun:bclcs_level_5_2SOIL", "coef_dist_mun:bclcs_level_5_2SP", "coef_dist_mun:bclcs_level_5_2UR", "coef_dist_mun:bclcs_level_5_2WATER", "coef_dist_dam:bclcs_level_5_2BU", "coef_dist_dam:bclcs_level_5_2DE", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2ROCK", "coef_dist_dam:bclcs_level_5_2SOIL", "coef_dist_dam:bclcs_level_5_2SP", "coef_dist_dam:bclcs_level_5_2UR", "coef_dist_dam:bclcs_level_5_2WATER", "coef_dist_nat:roads_km", "coef_dist_nat:bclcs_level_5_2BU", "coef_dist_nat:bclcs_level_5_2DE", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2ROCK", "coef_dist_nat:bclcs_level_5_2SOIL", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2UR", "coef_dist_nat:bclcs_level_5_2WATER", "coef_dist_pow:roads_km", "coef_dist_pow:bclcs_level_5_2BU", "coef_dist_pow:bclcs_level_5_2DE", "coef_dist_pow:bclcs_level_5_2OP", "coef_dist_pow:bclcs_level_5_2ROCK", "coef_dist_pow:bclcs_level_5_2SOIL", "coef_dist_pow:bclcs_level_5_2SP", "coef_dist_pow:bclcs_level_5_2UR", "coef_dist_pow:bclcs_level_5_2WATER", "coef_dist_mine:roads_km", "coef_dist_mine:bclcs_level_5_2BU", "coef_dist_mine:bclcs_level_5_2DE", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2ROCK", "coef_dist_mine:bclcs_level_5_2SOIL", "coef_dist_mine:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2UR", "coef_dist_mine:bclcs_level_5_2WATER", "coef_roads_km:bclcs_level_5_2BU", "coef_roads_km:bclcs_level_5_2DE", "coef_roads_km:bclcs_level_5_2OP", "coef_roads_km:bclcs_level_5_2ROCK", "coef_roads_km:bclcs_level_5_2SOIL", "coef_roads_km:bclcs_level_5_2SP", "coef_roads_km:bclcs_level_5_2UR", "coef_roads_km:bclcs_level_5_2WATER", "AUC")
+top_mod_table_NDT2_spread_poly <- data.frame (matrix (ncol = 85, nrow = 0))
+colnames (top_mod_table_NDT2_spread_poly ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_pow",  "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2BU", "coef_bclcs_level_5_2DE", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SOIL", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2UR", "coef_bclcs_level_5_2WATER", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_slope:aspect_cos", "coef_slope:elev", "coef_aspect_cos:elev", "coef_dist_mun:roads_km", "coef_dist_mun:bclcs_level_5_2BU", "coef_dist_mun:bclcs_level_5_2DE", "coef_dist_mun:bclcs_level_5_2OP", "coef_dist_mun:bclcs_level_5_2ROCK", "coef_dist_mun:bclcs_level_5_2SOIL", "coef_dist_mun:bclcs_level_5_2SP", "coef_dist_mun:bclcs_level_5_2UR", "coef_dist_mun:bclcs_level_5_2WATER", "coef_dist_dam:bclcs_level_5_2BU", "coef_dist_dam:bclcs_level_5_2DE", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2ROCK", "coef_dist_dam:bclcs_level_5_2SOIL", "coef_dist_dam:bclcs_level_5_2SP", "coef_dist_dam:bclcs_level_5_2UR", "coef_dist_dam:bclcs_level_5_2WATER", "coef_dist_nat:roads_km", "coef_dist_nat:bclcs_level_5_2BU", "coef_dist_nat:bclcs_level_5_2DE", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2ROCK", "coef_dist_nat:bclcs_level_5_2SOIL", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2UR", "coef_dist_nat:bclcs_level_5_2WATER", "coef_dist_pow:roads_km", "coef_dist_pow:bclcs_level_5_2BU", "coef_dist_pow:bclcs_level_5_2DE", "coef_dist_pow:bclcs_level_5_2OP", "coef_dist_pow:bclcs_level_5_2ROCK", "coef_dist_pow:bclcs_level_5_2SOIL", "coef_dist_pow:bclcs_level_5_2SP", "coef_dist_pow:bclcs_level_5_2UR", "coef_dist_pow:bclcs_level_5_2WATER", "coef_dist_mine:roads_km", "coef_dist_mine:bclcs_level_5_2BU", "coef_dist_mine:bclcs_level_5_2DE", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2ROCK", "coef_dist_mine:bclcs_level_5_2SOIL", "coef_dist_mine:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2UR", "coef_dist_mine:bclcs_level_5_2WATER", "coef_roads_km:bclcs_level_5_2BU", "coef_roads_km:bclcs_level_5_2DE", "coef_roads_km:bclcs_level_5_2OP", "coef_roads_km:bclcs_level_5_2ROCK", "coef_roads_km:bclcs_level_5_2SOIL", "coef_roads_km:bclcs_level_5_2SP", "coef_roads_km:bclcs_level_5_2UR", "coef_roads_km:bclcs_level_5_2WATER", "AUC")
 ```
 
 Let's run it 500 times to get good mean values.
@@ -1565,21 +1573,21 @@ prop<-0.75
    Valid <- NDT2_spread[-trainIndex,]
    
 #Model   
-model.NDT2.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2, family = binomial, data = dat1) 
+model.NDT2.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2, family = binomial, data = dat1) 
 
 mod.valid <- predict.glm(model.NDT2.S, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"spread"], mod.valid)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT2_spread <- data.frame (matrix (ncol = 89, nrow = 0))
-colnames (top_mod_table_NDT2_spread ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_pow",  "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2BU", "coef_bclcs_level_5_2DE", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SOIL", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2UR", "coef_bclcs_level_5_2WATER", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_bclcs_level_2L", "coef_bclcs_level_2N", "coef_bclcs_level_2T", "coef_bclcs_level_2W", "coef_slope:aspect_cos", "coef_slope:elev", "coef_aspect_cos:elev", "coef_dist_mun:roads_km", "coef_dist_mun:bclcs_level_5_2BU", "coef_dist_mun:bclcs_level_5_2DE", "coef_dist_mun:bclcs_level_5_2OP", "coef_dist_mun:bclcs_level_5_2ROCK", "coef_dist_mun:bclcs_level_5_2SOIL", "coef_dist_mun:bclcs_level_5_2SP", "coef_dist_mun:bclcs_level_5_2UR", "coef_dist_mun:bclcs_level_5_2WATER", "coef_dist_dam:bclcs_level_5_2BU", "coef_dist_dam:bclcs_level_5_2DE", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2ROCK", "coef_dist_dam:bclcs_level_5_2SOIL", "coef_dist_dam:bclcs_level_5_2SP", "coef_dist_dam:bclcs_level_5_2UR", "coef_dist_dam:bclcs_level_5_2WATER", "coef_dist_nat:roads_km", "coef_dist_nat:bclcs_level_5_2BU", "coef_dist_nat:bclcs_level_5_2DE", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2ROCK", "coef_dist_nat:bclcs_level_5_2SOIL", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2UR", "coef_dist_nat:bclcs_level_5_2WATER", "coef_dist_pow:roads_km", "coef_dist_pow:bclcs_level_5_2BU", "coef_dist_pow:bclcs_level_5_2DE", "coef_dist_pow:bclcs_level_5_2OP", "coef_dist_pow:bclcs_level_5_2ROCK", "coef_dist_pow:bclcs_level_5_2SOIL", "coef_dist_pow:bclcs_level_5_2SP", "coef_dist_pow:bclcs_level_5_2UR", "coef_dist_pow:bclcs_level_5_2WATER", "coef_dist_mine:roads_km", "coef_dist_mine:bclcs_level_5_2BU", "coef_dist_mine:bclcs_level_5_2DE", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2ROCK", "coef_dist_mine:bclcs_level_5_2SOIL", "coef_dist_mine:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2UR", "coef_dist_mine:bclcs_level_5_2WATER", "coef_roads_km:bclcs_level_5_2BU", "coef_roads_km:bclcs_level_5_2DE", "coef_roads_km:bclcs_level_5_2OP", "coef_roads_km:bclcs_level_5_2ROCK", "coef_roads_km:bclcs_level_5_2SOIL", "coef_roads_km:bclcs_level_5_2SP", "coef_roads_km:bclcs_level_5_2UR", "coef_roads_km:bclcs_level_5_2WATER", "AUC")
+top_mod_table_NDT2_spread <- data.frame (matrix (ncol = 85, nrow = 0))
+colnames (top_mod_table_NDT2_spread ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_pow",  "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2BU", "coef_bclcs_level_5_2DE", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SOIL", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2UR", "coef_bclcs_level_5_2WATER", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_slope:aspect_cos", "coef_slope:elev", "coef_aspect_cos:elev", "coef_dist_mun:roads_km", "coef_dist_mun:bclcs_level_5_2BU", "coef_dist_mun:bclcs_level_5_2DE", "coef_dist_mun:bclcs_level_5_2OP", "coef_dist_mun:bclcs_level_5_2ROCK", "coef_dist_mun:bclcs_level_5_2SOIL", "coef_dist_mun:bclcs_level_5_2SP", "coef_dist_mun:bclcs_level_5_2UR", "coef_dist_mun:bclcs_level_5_2WATER", "coef_dist_dam:bclcs_level_5_2BU", "coef_dist_dam:bclcs_level_5_2DE", "coef_dist_dam:bclcs_level_5_2OP", "coef_dist_dam:bclcs_level_5_2ROCK", "coef_dist_dam:bclcs_level_5_2SOIL", "coef_dist_dam:bclcs_level_5_2SP", "coef_dist_dam:bclcs_level_5_2UR", "coef_dist_dam:bclcs_level_5_2WATER", "coef_dist_nat:roads_km", "coef_dist_nat:bclcs_level_5_2BU", "coef_dist_nat:bclcs_level_5_2DE", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2ROCK", "coef_dist_nat:bclcs_level_5_2SOIL", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2UR", "coef_dist_nat:bclcs_level_5_2WATER", "coef_dist_pow:roads_km", "coef_dist_pow:bclcs_level_5_2BU", "coef_dist_pow:bclcs_level_5_2DE", "coef_dist_pow:bclcs_level_5_2OP", "coef_dist_pow:bclcs_level_5_2ROCK", "coef_dist_pow:bclcs_level_5_2SOIL", "coef_dist_pow:bclcs_level_5_2SP", "coef_dist_pow:bclcs_level_5_2UR", "coef_dist_pow:bclcs_level_5_2WATER", "coef_dist_mine:roads_km", "coef_dist_mine:bclcs_level_5_2BU", "coef_dist_mine:bclcs_level_5_2DE", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2ROCK", "coef_dist_mine:bclcs_level_5_2SOIL", "coef_dist_mine:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2UR", "coef_dist_mine:bclcs_level_5_2WATER", "coef_roads_km:bclcs_level_5_2BU", "coef_roads_km:bclcs_level_5_2DE", "coef_roads_km:bclcs_level_5_2OP", "coef_roads_km:bclcs_level_5_2ROCK", "coef_roads_km:bclcs_level_5_2SOIL", "coef_roads_km:bclcs_level_5_2SP", "coef_roads_km:bclcs_level_5_2UR", "coef_roads_km:bclcs_level_5_2WATER", "AUC")
 
 ##Add data for NDT2
 top_mod_table_NDT2_spread[1,1]<-"lightning or person (ALL)"
 top_mod_table_NDT2_spread[1,2]<-"NDT2"
 top_mod_table_NDT2_spread[1,3]<-"ALL Treed and not treed"
-top_mod_table_NDT2_spread[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2" 
+top_mod_table_NDT2_spread[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2" 
 top_mod_table_NDT2_spread[1,5]<- coef(model.NDT2.S)[1] #Intercept
 top_mod_table_NDT2_spread[1,6]<- coef(model.NDT2.S)[2] #
 top_mod_table_NDT2_spread[1,7]<- coef(model.NDT2.S)[3] #
@@ -1660,11 +1668,7 @@ top_mod_table_NDT2_spread[1,81]<- coef(model.NDT2.S)[77] #
 top_mod_table_NDT2_spread[1,82]<- coef(model.NDT2.S)[78] #
 top_mod_table_NDT2_spread[1,83]<- coef(model.NDT2.S)[79] #
 top_mod_table_NDT2_spread[1,84]<- coef(model.NDT2.S)[80] #
-top_mod_table_NDT2_spread[1,85]<- coef(model.NDT2.S)[81] #
-top_mod_table_NDT2_spread[1,86]<- coef(model.NDT2.S)[82] #
-top_mod_table_NDT2_spread[1,87]<- coef(model.NDT2.S)[83] #
-top_mod_table_NDT2_spread[1,88]<- coef(model.NDT2.S)[84] #
-top_mod_table_NDT2_spread[1,89]<- mod.auc
+top_mod_table_NDT2_spread[1,85]<- mod.auc
 
 top_mod_table_NDT2_spread_poly<-rbind(top_mod_table_NDT2_spread_poly, top_mod_table_NDT2_spread)
 
@@ -1695,7 +1699,7 @@ top_mod_table_NDT2_spread_poly_means
 top_mod_table_NDT2_spread_poly_means[1,1]<-"lightning or person (ALL)"
 top_mod_table_NDT2_spread_poly_means[1,2]<-"NDT2"
 top_mod_table_NDT2_spread_poly_means[1,3]<-"ALL Treed and not treed"
-top_mod_table_NDT2_spread_poly_means[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2" 
+top_mod_table_NDT2_spread_poly_means[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2" 
 top_mod_table_NDT2_spread_poly_means
 ```
 Save table.
@@ -1713,7 +1717,7 @@ top_mod_table_NDT2_spread_poly_sd
 top_mod_table_NDT2_spread_poly_sd[1,1]<-"lightning or person (ALL)"
 top_mod_table_NDT2_spread_poly_sd[1,2]<-"NDT2"
 top_mod_table_NDT2_spread_poly_sd[1,3]<-"ALL Treed and not treed"
-top_mod_table_NDT2_spread_poly_sd[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2" 
+top_mod_table_NDT2_spread_poly_sd[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2" 
 top_mod_table_NDT2_spread_poly_sd
 ```
 
@@ -1721,5 +1725,202 @@ Save sd coefficient table.
 
 ```{r}
 write.csv(top_mod_table_NDT2_spread_poly_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT2_spread_poly_sd.csv")
+```
+
+
+
+
+
+
+Compare to a second model with fewer variables
+```{r}
+model.NDT2.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + vegtype2, family = binomial, data = NDT2_spread)
+
+visreg(model.NDT2.S, "slope", by="aspect_cos")
+visreg(model.NDT2.S, "slope", by="elev")
+
+visreg(model.NDT2.S, "elev", by="aspect_cos")
+visreg(model.NDT2.S, "elev", by="slope")
+
+visreg(model.NDT2.S, "aspect_cos", by="slope")
+visreg(model.NDT2.S, "aspect_cos", by="elev")
+
+#dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_mine:roads_km + dist_mine:bclcs_level_5_2
+
+##visreg issues as visreg suggests the model did not converge
+visreg(model.NDT2.S, "dist_mun", by="roads_km")
+visreg(model.NDT2.S, "dist_mun", by="bclcs_level_5_2")
+visreg(model.NDT2.S, "dist_mun", by="bclcs_level_5_2", overlay=TRUE)
+
+visreg(model.NDT2.S, "dist_dam")
+
+visreg(model.NDT2.S, "dist_nat", by="roads_km")
+visreg(model.NDT2.S, "dist_nat", by="bclcs_level_5_2", overlay=TRUE)
+
+visreg(model.NDT2.S, "dist_pow", by="roads_km")
+
+visreg(model.NDT2.S, "dist_mine", by="roads_km")
+
+visreg(model.NDT2.S, "roads_km", by="dist_mun")
+visreg(model.NDT2.S, "roads_km", by="dist_nat")
+visreg(model.NDT2.S, "roads_km", by="dist_pow")
+visreg(model.NDT2.S, "roads_km", by="dist_mine")
+
+#vegtype2
+visreg(model.NDT2.S, "vegtype2") 
+```
+
+```{r}
+summary(model.NDT2.S)
+
+#Create a new blank table and get AUC too
+top_mod_table2_NDT2_spread_poly <- data.frame (matrix (ncol = 61, nrow = 0))
+colnames (top_mod_table2_NDT2_spread_poly ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_pow",  "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2BU", "coef_bclcs_level_5_2DE", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SOIL", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2UR", "coef_bclcs_level_5_2WATER", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_slope:aspect_cos", "coef_slope:elev", "coef_aspect_cos:elev", "coef_dist_mun:roads_km", "coef_dist_mun:bclcs_level_5_2BU", "coef_dist_mun:bclcs_level_5_2DE", "coef_dist_mun:bclcs_level_5_2OP", "coef_dist_mun:bclcs_level_5_2ROCK", "coef_dist_mun:bclcs_level_5_2SOIL", "coef_dist_mun:bclcs_level_5_2SP", "coef_dist_mun:bclcs_level_5_2UR", "coef_dist_mun:bclcs_level_5_2WATER",  "coef_dist_nat:roads_km", "coef_dist_nat:bclcs_level_5_2BU", "coef_dist_nat:bclcs_level_5_2DE", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2ROCK", "coef_dist_nat:bclcs_level_5_2SOIL", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2UR", "coef_dist_nat:bclcs_level_5_2WATER", "coef_dist_pow:roads_km",  "coef_dist_mine:roads_km", "coef_dist_mine:bclcs_level_5_2BU", "coef_dist_mine:bclcs_level_5_2DE", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2ROCK", "coef_dist_mine:bclcs_level_5_2SOIL", "coef_dist_mine:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2UR", "coef_dist_mine:bclcs_level_5_2WATER", "AUC")
+```
+
+Let's run it 500 times to get good mean values.
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(NDT2_spread$spread_bclcs5, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- NDT2_spread[ trainIndex,]
+   Valid <- NDT2_spread[-trainIndex,]
+   
+#Model   
+model.NDT2.S<-glm (spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + vegtype2, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.NDT2.S, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table2_NDT2_spread <- data.frame (matrix (ncol = 61, nrow = 0))
+colnames (top_mod_table2_NDT2_spread ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_pow",  "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2BU", "coef_bclcs_level_5_2DE", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SOIL", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2UR", "coef_bclcs_level_5_2WATER", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_slope:aspect_cos", "coef_slope:elev", "coef_aspect_cos:elev", "coef_dist_mun:roads_km", "coef_dist_mun:bclcs_level_5_2BU", "coef_dist_mun:bclcs_level_5_2DE", "coef_dist_mun:bclcs_level_5_2OP", "coef_dist_mun:bclcs_level_5_2ROCK", "coef_dist_mun:bclcs_level_5_2SOIL", "coef_dist_mun:bclcs_level_5_2SP", "coef_dist_mun:bclcs_level_5_2UR", "coef_dist_mun:bclcs_level_5_2WATER",  "coef_dist_nat:roads_km", "coef_dist_nat:bclcs_level_5_2BU", "coef_dist_nat:bclcs_level_5_2DE", "coef_dist_nat:bclcs_level_5_2OP", "coef_dist_nat:bclcs_level_5_2ROCK", "coef_dist_nat:bclcs_level_5_2SOIL", "coef_dist_nat:bclcs_level_5_2SP", "coef_dist_nat:bclcs_level_5_2UR", "coef_dist_nat:bclcs_level_5_2WATER", "coef_dist_pow:roads_km",  "coef_dist_mine:roads_km", "coef_dist_mine:bclcs_level_5_2BU", "coef_dist_mine:bclcs_level_5_2DE", "coef_dist_mine:bclcs_level_5_2OP", "coef_dist_mine:bclcs_level_5_2ROCK", "coef_dist_mine:bclcs_level_5_2SOIL", "coef_dist_mine:bclcs_level_5_2SP", "coef_dist_mine:bclcs_level_5_2UR", "coef_dist_mine:bclcs_level_5_2WATER", "AUC")
+
+##Add data for NDT2
+top_mod_table2_NDT2_spread[1,1]<-"lightning or person (ALL)"
+top_mod_table2_NDT2_spread[1,2]<-"NDT2"
+top_mod_table2_NDT2_spread[1,3]<-"ALL Treed and not treed"
+top_mod_table2_NDT2_spread[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + vegtype2" 
+top_mod_table2_NDT2_spread[1,5]<- coef(model.NDT2.S)[1] #Intercept
+top_mod_table2_NDT2_spread[1,6]<- coef(model.NDT2.S)[2] #
+top_mod_table2_NDT2_spread[1,7]<- coef(model.NDT2.S)[3] #
+top_mod_table2_NDT2_spread[1,8]<- coef(model.NDT2.S)[4] #
+top_mod_table2_NDT2_spread[1,9]<- coef(model.NDT2.S)[5] #
+top_mod_table2_NDT2_spread[1,10]<- coef(model.NDT2.S)[6] #
+top_mod_table2_NDT2_spread[1,11]<- coef(model.NDT2.S)[7] 
+top_mod_table2_NDT2_spread[1,12]<- coef(model.NDT2.S)[8] #
+top_mod_table2_NDT2_spread[1,13]<- coef(model.NDT2.S)[9] #
+top_mod_table2_NDT2_spread[1,14]<- coef(model.NDT2.S)[10] #
+top_mod_table2_NDT2_spread[1,15]<- coef(model.NDT2.S)[11] #
+top_mod_table2_NDT2_spread[1,16]<- coef(model.NDT2.S)[12] #
+top_mod_table2_NDT2_spread[1,17]<- coef(model.NDT2.S)[13] #
+top_mod_table2_NDT2_spread[1,18]<- coef(model.NDT2.S)[14] #
+top_mod_table2_NDT2_spread[1,19]<- coef(model.NDT2.S)[15] #
+top_mod_table2_NDT2_spread[1,20]<- coef(model.NDT2.S)[16] # 
+top_mod_table2_NDT2_spread[1,21]<- coef(model.NDT2.S)[17] #  
+top_mod_table2_NDT2_spread[1,22]<- coef(model.NDT2.S)[18] #
+top_mod_table2_NDT2_spread[1,23]<- coef(model.NDT2.S)[19] #
+top_mod_table2_NDT2_spread[1,24]<- coef(model.NDT2.S)[20] #
+top_mod_table2_NDT2_spread[1,25]<- coef(model.NDT2.S)[21] #
+top_mod_table2_NDT2_spread[1,26]<- coef(model.NDT2.S)[22] #
+top_mod_table2_NDT2_spread[1,27]<- coef(model.NDT2.S)[23] #
+top_mod_table2_NDT2_spread[1,28]<- coef(model.NDT2.S)[24] #
+top_mod_table2_NDT2_spread[1,29]<- coef(model.NDT2.S)[25] #
+top_mod_table2_NDT2_spread[1,30]<- coef(model.NDT2.S)[26] #
+top_mod_table2_NDT2_spread[1,31]<- coef(model.NDT2.S)[27] #
+top_mod_table2_NDT2_spread[1,32]<- coef(model.NDT2.S)[28] #
+top_mod_table2_NDT2_spread[1,33]<- coef(model.NDT2.S)[29] #
+top_mod_table2_NDT2_spread[1,34]<- coef(model.NDT2.S)[30] #
+top_mod_table2_NDT2_spread[1,35]<- coef(model.NDT2.S)[31] #
+top_mod_table2_NDT2_spread[1,36]<- coef(model.NDT2.S)[32] #
+top_mod_table2_NDT2_spread[1,37]<- coef(model.NDT2.S)[33] #
+top_mod_table2_NDT2_spread[1,38]<- coef(model.NDT2.S)[34] #
+top_mod_table2_NDT2_spread[1,39]<- coef(model.NDT2.S)[35] #
+top_mod_table2_NDT2_spread[1,40]<- coef(model.NDT2.S)[36] #
+top_mod_table2_NDT2_spread[1,41]<- coef(model.NDT2.S)[37] #
+top_mod_table2_NDT2_spread[1,42]<- coef(model.NDT2.S)[38] #
+top_mod_table2_NDT2_spread[1,43]<- coef(model.NDT2.S)[39] #
+top_mod_table2_NDT2_spread[1,44]<- coef(model.NDT2.S)[40] #
+top_mod_table2_NDT2_spread[1,45]<- coef(model.NDT2.S)[41] #
+top_mod_table2_NDT2_spread[1,46]<- coef(model.NDT2.S)[42] #
+top_mod_table2_NDT2_spread[1,47]<- coef(model.NDT2.S)[43] #
+top_mod_table2_NDT2_spread[1,48]<- coef(model.NDT2.S)[44] #
+top_mod_table2_NDT2_spread[1,49]<- coef(model.NDT2.S)[45] #
+top_mod_table2_NDT2_spread[1,50]<- coef(model.NDT2.S)[46] #
+top_mod_table2_NDT2_spread[1,51]<- coef(model.NDT2.S)[47] #
+top_mod_table2_NDT2_spread[1,52]<- coef(model.NDT2.S)[48] #
+top_mod_table2_NDT2_spread[1,53]<- coef(model.NDT2.S)[49] #
+top_mod_table2_NDT2_spread[1,54]<- coef(model.NDT2.S)[50] #
+top_mod_table2_NDT2_spread[1,55]<- coef(model.NDT2.S)[51] #
+top_mod_table2_NDT2_spread[1,56]<- coef(model.NDT2.S)[52] #
+top_mod_table2_NDT2_spread[1,57]<- coef(model.NDT2.S)[53] #
+top_mod_table2_NDT2_spread[1,58]<- coef(model.NDT2.S)[54] #
+top_mod_table2_NDT2_spread[1,59]<- coef(model.NDT2.S)[55] #
+top_mod_table2_NDT2_spread[1,60]<- coef(model.NDT2.S)[56] #
+top_mod_table2_NDT2_spread[1,61]<- mod.auc
+
+top_mod_table2_NDT2_spread_poly<-rbind(top_mod_table2_NDT2_spread_poly, top_mod_table2_NDT2_spread)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table2_NDT2_spread_poly)
+```
+
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table2_NDT2_spread_poly, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT2_spread_poly_all_2.csv")
+```
+
+```{r}
+names(top_mod_table2_NDT2_spread_poly)
+#colMeans(top_mod_table2_NDT2_spread_poly[5:30])
+#sapply(top_mod_table2_NDT2_spread_poly,mean, na.rm = T)
+#lapply(top_mod_table2_NDT2_spread_poly,mean, na.rm = T)
+
+top_mod_table2_NDT2_spread_poly_means<-top_mod_table2_NDT2_spread_poly %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table2_NDT2_spread_poly_means
+
+top_mod_table2_NDT2_spread_poly_means[1,1]<-"lightning or person (ALL)"
+top_mod_table2_NDT2_spread_poly_means[1,2]<-"NDT2"
+top_mod_table2_NDT2_spread_poly_means[1,3]<-"ALL Treed and not treed"
+top_mod_table2_NDT2_spread_poly_means[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + vegtype2" 
+top_mod_table2_NDT2_spread_poly_means
+```
+Save table.
+
+```{r}
+write.csv(top_mod_table2_NDT2_spread_poly_means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT2_spread_poly_means2.csv")
+```
+
+Standard deviation.
+
+```{r}
+top_mod_table2_NDT2_spread_poly_sd<-top_mod_table2_NDT2_spread_poly %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table2_NDT2_spread_poly_sd
+
+top_mod_table2_NDT2_spread_poly_sd[1,1]<-"lightning or person (ALL)"
+top_mod_table2_NDT2_spread_poly_sd[1,2]<-"NDT2"
+top_mod_table2_NDT2_spread_poly_sd[1,3]<-"ALL Treed and not treed"
+top_mod_table2_NDT2_spread_poly_sd[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + vegtype2" 
+top_mod_table2_NDT2_spread_poly_sd
+```
+
+Save sd coefficient table.
+
+```{r}
+write.csv(top_mod_table2_NDT2_spread_poly_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT2_spread_poly_sd2.csv")
 ```
 

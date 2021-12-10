@@ -68,6 +68,8 @@ Escape_data_lightning_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateB
 
 head(Escape_data_lightning_nt)
 
+table(Escape_data_lightning_nt$ntrl_ds)
+
 ```
 
 If missing, add back in.

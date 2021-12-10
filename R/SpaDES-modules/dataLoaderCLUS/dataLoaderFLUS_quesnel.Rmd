@@ -52,8 +52,8 @@ parameters <-  list(
                          nameBoundary = "Quesnel_TSA", # change this name
                          nameBoundaryGeom='wkb_geometry',
                          nameCompartmentRaster = "rast.tsa_aac_boundary",
-                         nameCompartmentTable = "tsa_aac_bounds_vat",
-                         nameMaskHarvestLandbaseRaster='rast.bc_thlb2018', # rast.thlb_2020
+                         nameCompartmentTable = "vat.tsa_aac_bounds_vat",
+                         nameMaskHarvestLandbaseRaster='rast.thlb_2020', # rast.thlb_2020
                          nameZoneRasters=c("rast.zone_cond_beo", 
                                            "rast.zone_cond_vqo", 
                                            "rast.zone_cond_wha", 
@@ -65,7 +65,7 @@ parameters <-  list(
                                           "rast.zone_cond_fisher_sb_dry",
                                           "rast.zone_cond_fisher_dry"),
                         
-                         nameZoneTable="zone_constraints", 
+                         nameZoneTable="zone.constraints", 
                         # nameZonePriorityRaster = "rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp",# raster of stand id for VDYP ("natural origin") yields
                          nameYieldTable ="yc_vdyp", # VDYP yield  table
@@ -91,7 +91,7 @@ parameters <-  list(
                   ),
   fisherCLUS = list(nameRasFisherTerritory = c('rast.zone_cond_fisher_sb_dry','rast.zone_cond_fisher_sb_wet','rast.zone_cond_fisher_dry'),
                     nameRasWetlands = 'rast.wetland'),
-  uploaderCLUS = list(aoiName = 'fisher_central_bc',
+  uploaderCLUS = list(aoiName = 'test_quesnel',
                         dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
                         ))
 

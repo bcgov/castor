@@ -18,7 +18,7 @@ moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
-times <- list(start = 0, end = 10) # 5 year interval; 200 years = 40 intervals
+times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -60,7 +60,7 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCLUS = list(harvestBlockPriority = "  salvage_vol DESC, age DESC ", # "dist, age DESC, vol DESC"
+  forestryCLUS = list(harvestBlockPriority = " age DESC ", # "dist, age DESC, vol DESC"
                       reportHarvestConstraints = T,
                       adjacencyConstraint = 3,
                       salvageRaster = 'rast.dead_vol_125_2020'),
@@ -82,23 +82,23 @@ modules <- list("dataLoaderCLUS",
 
 
 #scenario = data.table (name = "quesnel_bau", description = "Business as usual. Harvest flow = 1,900,000 m3/yr. Adjacency = 3m. Oldest first.")
-scenario = data.table (name = "bau_even_more_salv", description = "bau plus 5 M m3")
+scenario = data.table (name = "bau_dead", description = "bau with salvage")
+
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
-                                     partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', 
+                                     partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5)   ', 
                                      period = rep( seq (from = 1, 
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 9500000, partition_type = 'live'),
+                                     flow = 10000000, partition_type = 'live'),
                               data.table(compartment ="Quesnel_TSA",
                                      partition = ' (salvage_vol > 100 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
                                      period = rep( seq (from = 1, 
-                                                      to = 2, 
+                                                      to = 3, 
                                                       by = 1),
                                                 1), 
-                                     flow = 5000000, partition_type = 'dead') # 1,900,000 m3/yr
-))
+                                     flow = 5000000, partition_type = 'dead')))
 
 objects <- list(harvestFlow = harvestFlow, scenario = scenario)
 
