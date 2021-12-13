@@ -29,13 +29,15 @@ public class ForestType {
 	
 	public void setForestTypeStates(int manageType, ArrayList<float[]> ageTemplate, ArrayList<float[]> harvestTemplate, HashMap<String, float[]> yc,
 			HashMap<String, float[]> yc_trans, float minHarvVol) {
-		//Age State: already set up
-		//Harvest Age State: already set up
-		//Growing Stock State : need
-		//Harvest Volume State: need
-		//Old Growth State: need and links to constraints
-		//Ht state: need and links to constraints
-	
+		//Age State: already set up need for reporting
+		//Harvest Age State: already set up for repoting and links to constraints for BEO, WHA, UWR
+		//Growing Stock State : need for reporting
+		//Harvest Volume State: need for reporting
+		//Ht state: need and links to constraints for VQOs
+		//ECA state: links to constraints for watersheds CW, FSW
+		//CrownClosure: ? need for fisher constraints
+		//Dist:? 
+		
 		//Add state zero to all - a no harvest state!
 		this.stateTypes.add(0, new HashMap<String, float[]>());
 		this.stateTypes.get(0).put("age", ageTemplate.get(0)); // int type
@@ -44,6 +46,7 @@ public class ForestType {
 		float[] harvVol = new float[harvestTemplate.get(0).length];
 		float[] gsVol = new float[ageTemplate.get(0).length];
 		float[] ht = new float[ageTemplate.get(0).length];
+		//float[] eca = new float[ageTemplate.get(0).length];
 		
 		int ageLower, ageUpper;
 		boolean transitionCurve;
@@ -57,9 +60,11 @@ public class ForestType {
 			if(ageUpper == ageLower) {
 				gsVol[h] = yc.get("vol")[ageLower/10];
 				ht[h] = yc.get("height")[ageLower/10];
+				//eca[h] = ht[h];
 			}else {
 				gsVol[h] = interpFloat(ageTemplate.get(0)[h], ageLower , ageUpper, yc.get("vol")[ageLower/10], yc.get("vol")[ageUpper/10] );
 				ht[h] = interpFloat(ageTemplate.get(0)[h], ageLower , ageUpper, yc.get("height")[ageLower/10], yc.get("height")[ageUpper/10] );	
+				//eca[h] = ht[h];
 			}
 		}
 				

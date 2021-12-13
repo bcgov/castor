@@ -68,6 +68,8 @@ Escape_data_person_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Da
 
 head(Escape_data_person_t)
 
+table(Escape_data_person_t$ntrl_ds)
+
 ```
 
 ################ PART 1: Person Caused Fires ################

@@ -68,6 +68,8 @@ Escape_data_lightning_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC
 
 head(Escape_data_lightning_t)
 
+table(Escape_data_lightning_t$ntrl_ds)
+
 ```
 
 ################ PART 1: Lightning Caused Fires ################

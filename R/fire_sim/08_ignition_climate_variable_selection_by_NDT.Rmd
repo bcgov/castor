@@ -275,7 +275,7 @@ We also want difference from one month to the next and then for each fire, we wi
 table(dat_lightning$ign_month)
 head(dat_lightning) 
 
-#Without all months, we can only use the below comparisons. 
+#Ensure all months available in data for comparisons
 dat_lightning$tave_dif_01_02<-(dat_lightning$tave02 - dat_lightning$tave01)
 dat_lightning$tave_dif_02_03<-(dat_lightning$tave03 - dat_lightning$tave02)
 dat_lightning$tave_dif_03_04<-(dat_lightning$tave04 - dat_lightning$tave03)

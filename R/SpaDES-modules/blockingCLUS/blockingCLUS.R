@@ -76,6 +76,11 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                   sim <- setBlocksTable(sim) #inserts values into the blocks table
                   sim <- setHistoricalLandings(sim) #inserts values into the blocks table
                   sim <- scheduleEvent(sim, eventTime = time(sim),  "blockingCLUS", "writeBlocks", eventPriority=21) # set this last. Not that important
+               }else{
+                 if(dbGetQuery (sim$clusdb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('blocks') WHERE name='salvage_vol';")$exists_check == 0){
+                   # add in the column
+                   dbExecute(sim$clusdb, "ALTER TABLE blocks ADD COLUMN salvage_vol numeric DEFAULT 0")
+                 }
                }
                
                #Schedule the Update 
