@@ -55,6 +55,8 @@ Note: depending where your geometry column was located when saved as a csv (and 
 ```{r}
 dat_person_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_trees_NDT_Oct.csv")
 head(dat_person_t)
+
+table(dat_person_t$ntrl_ds)
 ```
 
 

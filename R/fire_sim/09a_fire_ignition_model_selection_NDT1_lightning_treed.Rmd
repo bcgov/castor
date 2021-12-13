@@ -56,6 +56,8 @@ Note: depending where your geometry column was located when saved as a csv (and 
 dat_lightning_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_trees_NDT_Oct.csv")
 head(dat_lightning_t)
 
+table(dat_lightning_t$ntrl_ds)
+
 ```
 
 ######################### ANALYSES: TREED, LIGHTNING #########################
