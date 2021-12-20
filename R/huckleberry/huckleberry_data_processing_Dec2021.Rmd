@@ -160,13 +160,35 @@ names(cutblock_plots_openings_df_Huck) # Key names: Species.Cover, HARVEST_YE ==
 names(cutblock_plots_openings_BECHuck_df) #key names: TotalB, HARVESTYR 
 #Many other variables may qish to acquire for BEC data, like fire year, 
 
-table(cutblock_plots_openings_activity_BECHuck_df$DSTRBEDDT)
+#Update names in cutblock_plots_openings_BECHuck_df
+cutblock_plots_openings_BECHuck_df<-rename(cutblock_plots_openings_BECHuck_df,
+                   c("Species.Cover"="TotalB",
+                     "HARVEST_YE"="HARVESTYR"))
 
+#Combine
+# fill in non-overlapping columns with NAs
+cutblock_plots_openings_df_Huck[setdiff(names(cutblock_plots_openings_BECHuck_df), names(cutblock_plots_openings_df_Huck))] <- NA
+cutblock_plots_openings_BECHuck_df[setdiff(names(cutblock_plots_openings_df_Huck), names(cutblock_plots_openings_BECHuck_df))] <- NA
+
+cutblock_plots_openings_Huck_ALL_df<-rbind(cutblock_plots_openings_df_Huck, cutblock_plots_openings_BECHuck_df)
+
+head(cutblock_plots_openings_Huck_ALL_df) #May need to alter additional columns to be synonymous - will find out during data processing
+```
+
+Repeat for Buffaloberry
+
+```{r}
 ## 2. cutblock_plots_openings_df_Buff, cutblock_plots_openings_mowatBuff_df
+names(cutblock_plots_openings_df_Buff)
+names(cutblock_plots_openings_mowatBuff_df)
 
 ```
 
+##Data sets for what purpose
+1. Percent cover huckleberry: cutblock_plots_openings_Huck_ALL_df
+2. Other elements huckleberry: cutblock_plots_openings_df_Huck (although if use above, NA remove will likely get same result- *should* at least)
 
+3. 
 
 
 

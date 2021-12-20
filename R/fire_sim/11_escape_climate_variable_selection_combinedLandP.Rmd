@@ -83,15 +83,21 @@ Import the data created at the end of the last file (named Escape_data_lightning
 Escape_data_lightning<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_Dec.csv")
 head(Escape_data_lightning)
 
-#If continuing from last file (10_fire_escape_data_prep)
-Escape_data_lightning<-dat_lightning_escape_2
+Escape_data_person<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_Dec.csv")
+head(Escape_data_person)
+
+# fill in non-overlapping columns with NAs
+Escape_data_lightning[setdiff(names(Escape_data_person), names(Escape_data_lightning))] <- NA
+Escape_data_person[setdiff(names(Escape_data_lightning), names(Escape_data_person))] <- NA
+
+Escape_data_ALL_LandP<- rbind(Escape_data_lightning, Escape_data_person) #Combine all groups!
 
 ```
 
 Inspect the data. Make necessary changes.
 
 ```{r}
-head(Escape_data_lightning)
+head(Escape_data_ALL_LandP)
 
 ```
 
@@ -136,12 +142,12 @@ variables2<-c("ppt05", "ppt06", "ppt07", "ppt08", "ppt09",
 Inspect data and create dataframe
 
 ```{r}
-table(Escape_data_lightning$fire_yr, Escape_data_lightning$escape)
-table(Escape_data_lightning$fire_yr, Escape_data_lightning$escape, Escape_data_lightning$zone)
+table(Escape_data_ALL_LandP$fire_yr, Escape_data_ALL_LandP$escape)
+table(Escape_data_ALL_LandP$fire_yr, Escape_data_ALL_LandP$escape, Escape_data_ALL_LandP$zone)
 
-table(Escape_data_lightning$fire_yr, Escape_data_lightning$escape, Escape_data_lightning$ntrl_ds)
+table(Escape_data_ALL_LandP$fire_yr, Escape_data_ALL_LandP$escape, Escape_data_ALL_LandP$ntrl_ds)
 
-str(Escape_data_lightning)
+str(Escape_data_ALL_LandP)
 
 ```
 
@@ -152,7 +158,7 @@ Run the loop to determine the best climate variable for each of the five Natural
 #### Running simple logistic regression mode: lightning-caused fires
 #################################
 # create loop to do variable selection of climate data
-unique(Escape_data_lightning$ntrl_ds)
+unique(Escape_data_ALL_LandP$ntrl_ds)
 zones_escape<- c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5")
 
 filenames<-list()
@@ -162,7 +168,7 @@ prop<-0.75
 for (g in 1:100){
 
 for (h in 1:length(zones_escape)) {
-  dat2<- Escape_data_lightning %>% dplyr::filter(ntrl_ds ==zones_escape[h])
+  dat2<- Escape_data_ALL_LandP %>% dplyr::filter(ntrl_ds ==zones_escape[h])
   
 #Create frame of AIC table
 # summary table
@@ -314,14 +320,15 @@ Save files.
 
 ```{r}
 #Save AIC table
-write.csv(aic_bec_escape_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_climate_AIC_results_lightning.csv")
+write.csv(aic_bec_escape_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_climate_AIC_results_allData.csv")
 ```
 
+Top model for NDTs 1,2,3 and 5 is tave09xppt09; For NDT4 it is mdc_06. Let's use all these variables in model selection?
 
 ```{r}
 #Save csv
-write.csv(Escape_data_lightningb, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Escape_data_lightning_df.csv")
-#tried saving shape file, but could not on account of the name in the file
+write.csv(Escape_data_ALL_LandP, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Escape_data_ALL_LandP_df.csv")
+
 
 
 ###
@@ -331,280 +338,31 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       dbname = key_get('dbname', keyring = 'postgreSQL'),
                       password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
-st_write (obj = Escape_data_lightningb, 
+st_write (obj = Escape_data_ALL_LandPb, 
           dsn = connKyle, 
-          layer = c ("public", "Escape_data_lightning"))
+          layer = c ("public", "Escape_data_ALL_LandP"))
 
 dbDisconnect (connKyle)
 
 ## use this for middle code to loadback in later
-Escape_data_lightningb <- sf::st_read  (dsn = connKyle, # connKyle
-                               query = "SELECT * FROM public.Escape_data_lightning")
-
-
+Escape_data_ALL_LandP <- sf::st_read  (dsn = connKyle, # connKyle
+                               query = "SELECT * FROM public.Escape_data_ALL_LandP")
 
 ```
-
-
-##Repeat for person-caused fires
-
-```{r}
-Escape_data_person<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_Dec.csv")
-head(Escape_data_person)
-
-#If continuing from last file (10_fire_escape_data_prep)
-Escape_data_person<-dat_person_escape_2
-
-```
-
-Inspect the data. Make necessary changes.
-
-```{r}
-head(Escape_data_person)
-
-```
-
-Now we create variable categories for model selection on climate variables
-
-```{r}
-variables<- c("tmax05","tmax06", "tmax07", "tmax08", "tmax09", 
-              "mean_tmax05_tmax06","mean_tmax06_tmax07", "mean_tmax07_tmax08", "mean_tmax08_tmax09", 
-              "mean_tmax05_tmax06_tmax07", "mean_tmax06_tmax07_tmax08","mean_tmax07_tmax08_tmax09", 
-              "mean_tmax05_tmax06_tmax07_tmax08", "mean_tmax06_tmax07_tmax08_tmax09", "mean_tmax05_tmax06_tmax07_tmax08_tmax09",
-              
-              "tave05","tave06", "tave07", "tave08", "tave09", 
-              "mean_tave05_tave06","mean_tave06_tave07", "mean_tave07_tave08", "mean_tave08_tave09", 
-              "mean_tave05_tave06_tave07", "mean_tave06_tave07_tave08","mean_tave07_tave08_tave09", 
-              "mean_tave05_tave06_tave07_tave08", "mean_tave06_tave07_tave08_tave09", "mean_tave05_tave06_tave07_tave08_tave09",
-              
-              "ppt05","ppt06", "ppt07", "ppt08", "ppt09",
-              "mean_ppt05_ppt06", "mean_ppt06_ppt07", "mean_ppt07_ppt08", "mean_ppt08_ppt09", 
-              "mean_ppt05_ppt06_ppt07","mean_ppt06_ppt07_ppt08", "mean_ppt07_ppt08_ppt09",
-              "mean_ppt05_ppt06_ppt07_ppt08", "mean_ppt06_ppt07_ppt08_ppt09",
-              "mean_ppt05_ppt06_ppt07_ppt08_ppt09",
-              
-              "mdc_05","mdc_06", "mdc_07", "mdc_08", "mdc_09",
-              "mean_mdc05_mdc06", "mean_mdc06_mdc07", "mean_mdc07_mdc08", "mean_mdc08_mdc09", 
-              "mean_mdc05_mdc06_mdc07", "mean_mdc06_mdc07_mdc08", "mean_mdc07_mdc08_mdc09", 
-              "mean_mdc05_mdc06_mdc07_mdc08", "mean_mdc06_mdc07_mdc08_mdc09",
-              "mean_mdc05_mdc06_mdc07_mdc08_mdc09")
-
- variables1<-c("tmax05", "tmax06", "tmax07", "tmax08", "tmax09",
-               "tave05", "tave06", "tave07", "tave08", "tave09"
-#               "tmax05","tmax06", "tmax07", "tmax08", "tmax09",
-#               "mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09"
-)
-variables2<-c("ppt05", "ppt06", "ppt07", "ppt08", "ppt09",
-              "ppt05", "ppt06", "ppt07", "ppt08", "ppt09"
-              # "mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09",
-              # "ppt05", "ppt06", "ppt07", "ppt08", "ppt09"
-) 
-#
-```
-
-Inspect data and create dataframe
-
-```{r}
-table(Escape_data_person$fire_yr, Escape_data_person$escape)
-table(Escape_data_person$fire_yr, Escape_data_person$escape, Escape_data_person$zone)
-
-table(Escape_data_person$fire_yr, Escape_data_person$escape, Escape_data_person$ntrl_ds)
-
-str(Escape_data_person)
-
-table(Escape_data_person$ntrl_ds)
-table(Escape_data_person$ntrl_ds, Escape_data_person$escape) #Almost no escaped fires in NDT5
-str(Escape_data_person$tmax05)
-
-```
-
-Run the loop to determine the best climate variable for each of the five Natural Disturbance Types for person-caused fires.
-
-```{r}
-#################################
-#### Running simple logistic regression mode: person-caused fires
-#################################
-# create loop to do variable selection of climate data
-unique(Escape_data_person$ntrl_ds)
-zones_escape<- c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5")
-zones_escape<- c("NDT1", "NDT2", "NDT3", "NDT4") #Almost no fires escape in NDT5 so model cannot run for it. We will give it a percentage chance instead in final model (4/90) - 4.4%
-
-filenames<-list()
-prop<-0.75
-
-#Begin loop
-for (g in 1:100){
-
-for (h in 1:length(zones_escape)) {
-  dat2<- Escape_data_person %>% dplyr::filter(ntrl_ds ==zones_escape[h])
-  
-#Create frame of AIC table
-# summary table
-table.glm.climate.simple <- data.frame (matrix (ncol = 4, nrow = 0))
-colnames (table.glm.climate.simple) <- c ("Zone", "Variable", "AIC", "AUC")
-
-model_dat<- dat2 %>% dplyr::select(escape)
-trainIndex <- createDataPartition(model_dat$escape, p = prop,
-                                  list = FALSE,
-                                  times = 1)
-dat1 <- as.data.frame(model_dat[ trainIndex,])
-names(dat1)[1] <- "escape"
-Valid <- as.data.frame(model_dat[-trainIndex,])
-names(Valid)[1] <- "escape"
-
-
-model1 <- glm (escape ~ 1 ,
-               data=dat1,
-               family = binomial (link = "logit"))
-
-table.glm.climate.simple[1,1]<-zones_escape[h]
-table.glm.climate.simple[1,2]<-"intercept"
-table.glm.climate.simple[1,3]<-extractAIC(model1)[2]
-
-# lets look at fit of the Valid (validation) dataset
-Valid$model1_predict <- predict.glm(model1,newdata = Valid,type="response")
-roc_obj <- roc(Valid$escape, Valid$model1_predict)
-auc(roc_obj)
-table.glm.climate.simple[1,4]<-auc(roc_obj)
-
-rm(model_dat,dat1,Valid)
-
-for (i in 1: length(variables)){
-  print(paste((variables[i]), (zones_escape[h]), sep=" "))
-  
-  model_dat<- dat2 %>% dplyr::select(escape, variables[i])
-  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(model_dat$escape, p = prop,
-                                    list = FALSE,
-                                    times = 1)
-  dat1 <- model_dat[ trainIndex,]
-  Valid <- model_dat[-trainIndex,]
-  
-  model1 <- glm (escape ~ . ,
-                 data=dat1,
-                 family = binomial (link = "logit"))
-  
-  table.glm.climate.simple[i+1,1]<-zones_escape[h]
-  table.glm.climate.simple[i+1,2]<-variables[i]
-  table.glm.climate.simple[i+1,3]<-extractAIC(model1)[2]
-  
-  # lets look at fit of the Valid (validation) dataset
-  Valid$model1_predict <- predict.glm(model1,newdata = Valid,type="response")
-  roc_obj <- roc(Valid$escape, Valid$model1_predict)
-  auc(roc_obj)
-  table.glm.climate.simple[i+1,4]<-auc(roc_obj)
-  
-}
-
-# This is an addition to the table above allowing combinations of temperature and precipitation
-
-for (i in 1: length(variables1)){
-  print(paste((variables1[i]), variables2[i], (zones_escape[h]), sep=" "))
-  model_dat<- dat2 %>% dplyr::select(escape, variables1[i], variables2[i])
-  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(model_dat$escape, p = prop,
-                                    list = FALSE,
-                                    times = 1)
-  dat1 <- model_dat[ trainIndex,]
-  Valid <- model_dat[-trainIndex,]
-  
-  model2 <- glm (escape ~ . ,
-                 data=dat1,
-                 family = binomial (link = "logit"))
-  
-  table.glm.climate.simple[(i+length(variables))+1,1]<-zones_escape[h]
-  table.glm.climate.simple[(i+length(variables))+1,2]<-paste0(variables1[i],"+", variables2[i])
-  table.glm.climate.simple[(i+length(variables))+1,3]<-extractAIC(model2)[2]
-  
-  Valid$model2_predict <- predict.glm(model2,newdata = Valid,type="response")
-  roc_obj <- roc(Valid$escape, Valid$model2_predict)
-  auc(roc_obj)
-  table.glm.climate.simple[(i+length(variables))+1,4]<-auc(roc_obj)
-  
-}
-
-for (i in 1: length(variables1)){
-  print(paste((variables1[i]), "x",variables2[i], (zones_escape[h]), sep=" "))
-
-  model_dat<- dat2 %>% dplyr::select(escape, variables1[i], variables2[i])
-  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(model_dat$escape, p = prop,
-                                    list = FALSE,
-                                    times = 1)
-  dat1 <- model_dat[ trainIndex,]
-  Valid <- model_dat[-trainIndex,]
-
-  model2 <- glm (escape ~ (.)^2,
-                 data=dat1,
-                 family = binomial (link = "logit"))
-
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones_escape[h]
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-extractAIC(model2)[2]
-
-  Valid$model2_predict <- predict.glm(model2,newdata = Valid,type="response")
-  roc_obj <- roc(Valid$escape, Valid$model2_predict)
-  auc(roc_obj)
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),4]<-auc(roc_obj)
-
-}
-table.glm.climate1<-table.glm.climate.simple %>% drop_na(AIC)
-
-
-#assign file names to the work
-nam1<-paste("AIC",zones_escape[h],"run",g,sep="_") #defining the name
-assign(nam1,table.glm.climate.simple)
-filenames<-append(filenames,nam1)
-}
-}
-##
-
-mkFrameList <- function(nfiles) {
-  d <- lapply(seq_len(nfiles),function(i) {
-    eval(parse(text=filenames[i]))
-  })
-  do.call(rbind,d)
-}
-
-n<-length(filenames)
-aic_bec_escape_person<-mkFrameList(n) 
-
-aic_bec_escape_summary_person<- aic_bec_escape_person %>%
-  group_by(Zone, Variable) %>%
-  summarise(meanAIC=mean(AIC),
-            meanAUC=mean(AUC),
-            sdAUC=sd(AUC),
-            )
-
-aic_bec_escape_summary_person2<- aic_bec_escape_summary_person %>%
-  group_by(Zone) %>%
-  mutate(deltaAIC=meanAIC-min(meanAIC))
-
-aic_bec_escape_summary_person2
-
-```
-
-Save files.
-
-```{r}
-#Save AIC table
-write.csv(aic_bec_escape_summary_person2, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_climate_AIC_results_person.csv")
-```
-
-
-
-
-
 
 Create frequency distribution of the number of escaped fires per year by each BEC zone.
 
 ```{r}
-table(Escape_data_lightningb$fire_yr, Escape_data_lightning$escape, Escape_data_lightning$zone)
-escaped_table_BEC<-table(Escape_data_lightningb$fire_yr, Escape_data_lightning$escape, Escape_data_lightning$zone)
+table(Escape_data_ALL_LandP$fire_yr, Escape_data_ALL_LandP$escape, Escape_data_ALL_LandP$zone)
+escaped_table_BEC<-table(Escape_data_ALL_LandP$fire_yr, Escape_data_ALL_LandP$escape, Escape_data_ALL_LandP$zone)
 str(escaped_table_BEC)
 #escaped_table_BEC[3]<-(escaped_table_BEC$[2]/(escaped_table_BEC$[2]+escaped_table_BEC$[1]))
 
 ##Create by month? Might be able to do with just the ignition data
+
+table(Escape_data_ALL_LandP$fire_yr, Escape_data_ALL_LandP$escape, Escape_data_ALL_LandP$ntrl_ds)
+escaped_table_ntrl_ds<-table(Escape_data_ALL_LandP$fire_yr, Escape_data_ALL_LandP$escape, Escape_data_ALL_LandP$ntrl_ds)
+str(escaped_table_ntrl_ds)
 
 ```
 
