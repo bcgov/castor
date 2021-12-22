@@ -143,6 +143,7 @@ writeRaster(denning.ras, file="denning.tif", format="GTiff", overwrite=TRUE)
 ```
 
 ##### Resting: Rust Brooms
+
 ```{r, rust_brooms}
 #SBS: WET. Hybrid spruce (Sx) leading, secondary, or tertiary species. Crown closure ≥30% QMD_125 ≥22.7 cm Basal area ≥35 m²/ha Stand age ≥135 years Stand height ≥23.7 m
 #rest.rust.sbs.wet<- habitat[(species_cd_1 %in% c('SX') | species_cd_2 %in% c('SX') | species_cd_3 %in% c('SX') ) & crown_closure >= 30 & quad_diam_125 >= 22.7 & basal_area >= 35 & proj_age_1 >= 135 & bec_zone_code == 'SBS' & bec_subzone %in% c('wk','mk','mm','mw'), "feature_id"]
@@ -171,6 +172,7 @@ writeRaster(rest.rust.ras, file="rest_rust.tif", format="GTiff", overwrite=TRUE)
 ```
 
 ##### Resting habitat: cavity
+
 ```{r, rest_cavity}
 #SBS-WET Act or At leading, secondary, or tertiary species  Crown closure ≥25% QMD_125 ≥30 cm Basal area ≥32 m²/ha Stand height ≥35 m 7
 #rest.cavity.sbs.wet<- habitat[(species_cd_1 %in% c('ACT', 'AT') | species_cd_2 %in% c('ACT', 'AT') | species_cd_3 %in% c('ACT', 'AT') ) & crown_closure >= 25 & quad_diam_125 >= 30 & basal_area >= 32 & proj_height_1 >= 35 & bec_zone_code == 'SBS' & bec_subzone %in% c('wk','mk','mm','mw'), "feature_id"]
@@ -189,6 +191,7 @@ writeRaster(rest.cavity.ras, file="rest_cavity.tif", format="GTiff", overwrite=T
 ```
 
 ##### Resting: coarse woody
+
 ```{r, rest_cwd}
 #SBS_WET. QMD_125 ≥22.7 cm Stand age ≥135 years  Stand height ≥23.7 m 
 #rest.cwd.sbs.wet<- habitat[ quad_diam_125 >= 22.7 & proj_age_1 >= 135 & proj_height_1 >= 23.7 & bec_zone_code == 'SBS' & bec_subzone %in% c('wk','mk','mm','mw'), "feature_id"]
@@ -302,6 +305,14 @@ defer.ras[is.na(defer.ras[])]<-0
 thlb.ras<-raster("thlb2020.tif")
 thlb.ras[is.na(thlb.ras[])]<-0
 
+#habitat
+cav.ras<-raster("rest_cavity.tif")
+cav.ras[is.na(cav.ras[])]<-0
+rust.ras<-raster("rest_rust.tif")
+
+den.cav.ras<-cav.ras+den.ras
+den.cav.ras[den.cav.ras[] > 1]<-1
+writeRaster(den.cav.ras, "den_cav.tif", overwrite= T)
 #Overlap
 den.overlap.ogma<-den.ras*ogma.ras
 den.overlap.defer<-den.ras*defer.ras
@@ -311,10 +322,20 @@ mov.overlap.ogma<-mov.ras*ogma.ras
 mov.overlap.defer<-mov.ras*defer.ras
 mov.overlap.defer.thlb<-mov.ras*defer.ras*thlb.ras
 
+den.cav.overlap.ogma<-den.cav.ras*ogma.ras
+writeRaster(den.cav.overlap.ogma, "den_cav_ovlp_ogma.tif", overwrite= T)
+den.cav.overlap.defer<-den.cav.ras*defer.ras
+writeRaster(den.cav.overlap.defer, "den_cav_ovlp_defer.tif", overwrite= T)
+den.cav.overlap.defer.thlb<-den.cav.ras*defer.ras*thlb.ras
+
+rust.overlap.ogma<-rust.ras*ogma.ras
+rust.overlap.defer<-rust.ras*defer.ras
+rust.overlap.defer.thlb<-rust.ras*defer.ras*thlb.ras
+
 #Add in habitat categgoires to break any ties
 hex.grid$hab_den<- exactextractr::exact_extract(den.ras,hex.grid,c('sum'))
-hex.grid$hab_rus<- exactextractr::exact_extract(raster("rest_rust.tif"),hex.grid,c('sum'))
-hex.grid$hab_cav<- exactextractr::exact_extract(raster("rest_cavity.tif"),hex.grid,c('sum'))
+hex.grid$hab_rus<- exactextractr::exact_extract(rust.ras,hex.grid,c('sum'))
+hex.grid$hab_cav<- exactextractr::exact_extract(cav.ras,hex.grid,c('sum'))
 hex.grid$hab_cwd<- exactextractr::exact_extract(raster("rest_cwd.tif"),hex.grid,c('sum'))
 hex.grid$hab_mov<- exactextractr::exact_extract(mov.ras,hex.grid,c('sum'))
 hex.grid$ogma<- exactextractr::exact_extract(ogma.ras,hex.grid,c('sum'))
@@ -326,6 +347,13 @@ hex.grid$den_defer_thlb<- exactextractr::exact_extract(den.overlap.defer.thlb,he
 hex.grid$mov_ogma<- exactextractr::exact_extract(mov.overlap.ogma,hex.grid,c('sum'))
 hex.grid$mov_defer<- exactextractr::exact_extract(mov.overlap.defer,hex.grid,c('sum'))
 hex.grid$mov_defer_thlb<- exactextractr::exact_extract(mov.overlap.defer.thlb,hex.grid,c('sum'))
+
+hex.grid$dc_ogma<- exactextractr::exact_extract(den.cav.overlap.ogma,hex.grid,c('sum'))
+hex.grid$dc_defer<- exactextractr::exact_extract(den.cav.overlap.defer,hex.grid,c('sum'))
+hex.grid$dc_defer_thlb<- exactextractr::exact_extract(den.cav.overlap.defer.thlb,hex.grid,c('sum'))
+hex.grid$rust_ogma<- exactextractr::exact_extract(rust.overlap.ogma,hex.grid,c('sum'))
+hex.grid$rust_defer<- exactextractr::exact_extract(rust.overlap.defer,hex.grid,c('sum'))
+hex.grid$rust_defer_thlb<- exactextractr::exact_extract(rust.overlap.defer.thlb,hex.grid,c('sum'))
 
 #Add in relative prob of occupancy
 if(FALSE){
@@ -392,6 +420,9 @@ fish.constraints1$x<-NULL
 fish.constraints1<-data.table(fish.constraints1)
 
 fish.constraints1[n_fish >= 0.43,cap:= "vh"][n_fish >= 0.3 & n_fish < 0.43, cap:= "h"][n_fish >= 0.18 & n_fish < 0.3, cap:="m"][n_fish >= 0.07 & n_fish < 0.18, cap:= "l"][n_fish < 0.07, cap:="r"]
+
+fish.constraints1[ogma > 0, og_feta:=1]
+fish.constraints1[defer > 0, og_defer:=1]
 
 fish.constraints.boreal<-fish.constraints1[boreal,]
 fish.constraints.boreal$n_feta<-1
