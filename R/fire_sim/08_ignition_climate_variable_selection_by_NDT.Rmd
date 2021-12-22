@@ -367,7 +367,7 @@ dat_lightning_2<-dat_lightning_2 %>%
                                   ign_month == 3 ~ tave_dif_02_03,
                                   ign_month == 2 ~ tave_dif_01_02,
                                   ign_month == 1 ~ tave_dif_01_02,
-                                  TRUE ~ tave_dif_max)) #Those areas without fire will receive the mean value for the season. These MDC values may be most accurately used for the escape and spread data, wherein we only assess those areas where fires began.
+                                  TRUE ~ tave_dif_max)) #Those areas without fire will receive the mean value for the season. 
 
 head(dat_lightning_2)
 hist(dat_lightning_2$Tdif_atfire)
@@ -377,6 +377,30 @@ dat_lightning<-dat_lightning_2
 ##Will not be able to be used for ignition, but should be able to be used for escape and fire size
 
 ```
+Also get temperature at time of fire.
+
+```{r}
+dat_lightning$T_atfire<-0
+dat_lightning$ign_month<-as.numeric(dat_lightning$ign_month)
+head(dat_lightning)
+dat_lightning_<-dat_lightning %>%
+    mutate(T_atfire = case_when(ign_month == 5 ~ tave_05,
+                                  ign_month == 6 ~ tave_06,
+                                  ign_month == 7 ~ tave_07,
+                                  ign_month == 8 ~ tave_08,
+                                  ign_month == 9 ~ tave_09,
+                                  ign_month == 10 ~ tave_09,
+                                  ign_month == 11 ~ tave_09,
+                                  ign_month == 4 ~ tave_05,
+                                  ign_month == 3 ~ tave_05,
+                                  ign_month == 2 ~ tave_05,
+                                  ign_month == 1 ~ tave_05,
+                                  TRUE ~ mean_tave05_tave06_tave07_tave08_tave09)) #Those areas without fire will receive the mean value for the season. 
+
+head(dat_lightning_)
+
+```
+
 
 For each fire, let's extract the MDC in the specific month that fire began. Note that some fires actually began in months other than 05-09. For these, for now, we will select the nearest time (05 for January to April, and 09 for October and November). We may wish to get the actual values.
 
