@@ -1183,6 +1183,7 @@ Remove NAs and run multiple times.
 #Remove NAs to ensure all same data used so we can compare AICs
 NDT5_escape_t<-escape_all_t_NDT5 %>% drop_na(climate1, climate2, mdc_atfire, vegtype2, live_stand_volume_125, proj_height_1, proj_age_1, dist_infra, bclcs_level_2, slope, aspect, elevation, wind_atfire, Tdif_atfire, roads_km, fire_cs) #305 observations
 table(NDT5_escape_t$vegtype2)
+table(NDT5_escape_t$bclcs_level_2)
 
 #Run Model again with this data; but uses all data here
 model.NDT5.E<-glm(escape ~ climate1 + climate2 + climate1:climate2 + proj_height_1 + live_stand_volume_125 + bclcs_level_2  + slope + elevation + roads_km + Tdif_atfire+ fire_cs + bclcs_level_2*climate1 + bclcs_level_2*mdc_atfire + fire_cs*Tdif_atfire + fire_cs*dist_infra, family = binomial, data = NDT5_escape_t)
@@ -1247,6 +1248,7 @@ visreg(model.NDT5.E, "fire_cs", by="Tdif_atfire")
 visreg(model.NDT5.E, "Tdif_atfire", by="fire_cs", overlay=TRUE)
 
 ```
+#With this dataset, it seems ok to leave the "L" in for bclcs_level_2... could cosnider taking it out to remain consistent, but this is already a small dataset and we will a lot of data if we take it out.
 
 We should repeat the above several times and take the mean of the coefficients.
 

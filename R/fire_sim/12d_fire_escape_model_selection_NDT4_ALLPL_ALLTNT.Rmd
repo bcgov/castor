@@ -1083,7 +1083,27 @@ Anova(model.NDT4.E, type=3, singular.ok = TRUE) #P-values did not work; need to 
 model.NDT4.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + proj_age_1:bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire, family = binomial, data = NDT4_escape_t)
 
 #Anova(model.NDT4.E, type=3)
-Anova(model.NDT4.E, type=3, singular.ok = TRUE) #P-values did not work; need to reduce something in model
+Anova(model.NDT4.E, type=3, singular.ok = TRUE) 
+
+#Remove interactions with VRI, and investigate with L removed (below code)
+model.NDT4.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2  + slope + aspect + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire, family = binomial, data = NDT4_escape_t)
+
+#Anova(model.NDT4.E, type=3)
+Anova(model.NDT4.E, type=3, singular.ok = TRUE) 
+AIC(model.NDT4.E) #6948.9
+
+model.NDT4.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + live_stand_volume_125 + bclcs_level_2  + slope + aspect + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire, family = binomial, data = NDT4_escape_t)
+
+#Anova(model.NDT4.E, type=3)
+Anova(model.NDT4.E, type=3, singular.ok = TRUE) 
+AIC(model.NDT4.E) #6947.4
+
+model.NDT4.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire, family = binomial, data = NDT4_escape_t)
+
+#Anova(model.NDT4.E, type=3)
+Anova(model.NDT4.E, type=3, singular.ok = TRUE) 
+AIC(model.NDT4.E) #6943.9
+
 
 # model diagnostic plots
 binnedplot (fitted(model.NDT4.E), 
@@ -1113,8 +1133,7 @@ binnedplot (NDT4_escape_t$climate1,
 # Diagnostic plots look good
 
 #Partial Residuals
-library(visreg)
-#Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + proj_age_1:bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire
+#Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire
 
 visreg(model.NDT4.E, "Tmax_atfire", by="fire_cs", overlay=TRUE)
 visreg(model.NDT4.E, "Tmax_atfire", by="mdc_atfire")
@@ -1129,20 +1148,13 @@ visreg(model.NDT4.E, "mdc_atfire", by="Tmax_atfire")
 visreg(model.NDT4.E, "mdc_atfire", by="vegtype2", overlay=TRUE)
 visreg(model.NDT4.E, "mdc_atfire", by="vegtype2")
 
-# proj_age_1 + live_stand_volume_125 + bclcs_level_2 + proj_age_1:bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire
 visreg(model.NDT4.E, "Tdif_atfire", by="Tmax_atfire")
 visreg(model.NDT4.E, "Tdif_atfire", by="bclcs_level_2", overlay=TRUE)
 visreg(model.NDT4.E, "Tdif_atfire", by="fire_cs", overlay=TRUE)
 
 visreg(model.NDT4.E, "bclcs_level_2", by="Tdif_atfire")
-visreg(model.NDT4.E, "bclcs_level_2", by="proj_age_1")
-visreg(model.NDT4.E, "bclcs_level_2", by="live_stand_volume_125")
-visreg(model.NDT4.E, "bclcs_level_2", by="live_stand_volume_125", ylim=c(-33,10))
 
-visreg(model.NDT4.E, "live_stand_volume_125", by="bclcs_level_2", overlay=TRUE)
-visreg(model.NDT4.E, "live_stand_volume_125", by="bclcs_level_2", overlay=TRUE, ylim=c(-45,5))
-visreg(model.NDT4.E, "proj_age_1", by="bclcs_level_2", overlay=TRUE)
-visreg(model.NDT4.E, "proj_age_1", by="bclcs_level_2", overlay=TRUE, ylim=c(-15,5))
+visreg(model.NDT4.E, "live_stand_volume_125")
 
 visreg(model.NDT4.E, "fire_cs", by="Tmax_atfire")
 visreg(model.NDT4.E, "fire_cs", by="vegtype2")
@@ -1152,8 +1164,6 @@ visreg(model.NDT4.E, "dist_infra")
 visreg(model.NDT4.E, "roads_km")
 
 visreg(model.NDT4.E, "elevation", by="ppt_atfire")
-visreg(model.NDT4.E, "slope")
-visreg(model.NDT4.E, "aspect")
 
 visreg(model.NDT4.E, "wind_atfire")
 
@@ -1164,9 +1174,9 @@ visreg(model.NDT4.E, "wind_atfire")
 
 ```{r}
 table(NDT4_escape_t$bclcs_level_2)
+
+NDT4_escape_t<-subset(NDT4_escape_t, NDT4_escape_t$bclcs_level_2!="L")
 ```
-
-
 
 We should repeat the above several times and take the mean of the coefficients.
 
@@ -1176,8 +1186,8 @@ names(model.NDT4.E)
 model.NDT4.E[1]
 
 #Create a new blank table and get AUC too
-top_mod_table_NDT4_ALL <- data.frame (matrix (ncol = 53, nrow = 0))
-colnames (top_mod_table_NDT4_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_Tmax_atfire", "coef_ppt_atfire", "coef_vegtypeOP", "coef_vegtypeRO", "coef_vegtypeS", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_vegtypeUR", "coef_mdc_atfire", "coef_proj_age_1", "coef_live_stand_volume_125", "coef_bclcs_level_2N", "coef_bclcs_level_2T", "coef_slope", "coef_aspect", "coef_elevation", "coef_wind_atfire", "coef_dist_infra", "coef_roads_km", "coef_Tdif_atfire", "coef_fire_csPerson", "coef_Tmax_atfire:mdc_atfire", "coef_vegtype2OP:mdc_atfire", "coef_vegtype2RO:mdc_atfire", "coef_vegtype2S:mdc_atfire", "coef_vegtype2TB:mdc_atfire", "coef_vegtype2TC:mdc_atfire", "coef_vegtype2TM:mdc_atfire", "coef_vegtype2UR:mdc_atfire", "coef_proj_age_1:bclcs_level_2N", "coef_proj_age_1:bclcs_level_2T", "coef_live_stand_volume_125:bclcs_level_2N", "coef_live_stand_volume_125:bclcs_level_2T", "coef_ppt_atfire:elevation", "coef_Tmax_atfire:Tdif_atfire", "coef_Tmax_atfire:fire_csPerson", "coef_vegtype2OP:fire_csPerson", "coef_vegtype2RO:fire_csPerson", "coef_vegtype2S:fire_csPerson", "coef_vegtype2TB:fire_csPerson", "coef_vegtype2TC:fire_csPerson", "coef_vegtype2TM:fire_csPerson", "coef_vegtype2UR:fire_csPerson", "coef_Tdif_atfire:fire_csPerson", "coef_bclcs_level_2N:Tdif_atfire", "coef_bclcs_level_2T:Tdif_atfire", "AUC")
+top_mod_table_NDT4_ALL <- data.frame (matrix (ncol = 38, nrow = 0))
+colnames (top_mod_table_NDT4_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_Tmax_atfire", "coef_ppt_atfire", "coef_vegtypeOP", "coef_vegtypeS", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_mdc_atfire", "coef_live_stand_volume_125", "coef_bclcs_level_2T", "coef_elevation", "coef_wind_atfire", "coef_dist_infra", "coef_roads_km", "coef_Tdif_atfire", "coef_fire_csPerson", "coef_Tmax_atfire:mdc_atfire", "coef_vegtype2OP:mdc_atfire", "coef_vegtype2S:mdc_atfire", "coef_vegtype2TB:mdc_atfire", "coef_vegtype2TC:mdc_atfire", "coef_vegtype2TM:mdc_atfire", "coef_ppt_atfire:elevation", "coef_Tmax_atfire:Tdif_atfire", "coef_Tmax_atfire:fire_csPerson", "coef_vegtype2OP:fire_csPerson", "coef_vegtype2S:fire_csPerson", "coef_vegtype2TB:fire_csPerson", "coef_vegtype2TC:fire_csPerson", "coef_vegtype2TM:fire_csPerson",  "coef_Tdif_atfire:fire_csPerson", "coef_bclcs_level_2T:Tdif_atfire", "AUC")
 ```
 
 Let's run it 500 times to get good mean values.
@@ -1196,21 +1206,21 @@ prop<-0.75
    Valid <- NDT4_escape_t[-trainIndex,]
    
 #Model   
-model.NDT4.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + proj_age_1:bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire, family = binomial, data = dat1) 
+model.NDT4.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire, family = binomial, data = dat1) 
 
 mod.valid <- predict.glm(model.NDT4.E, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT4 <- data.frame (matrix (ncol = 53, nrow = 0))
-colnames (top_mod_table_NDT4 ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_Tmax_atfire", "coef_ppt_atfire", "coef_vegtypeOP", "coef_vegtypeRO", "coef_vegtypeS", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_vegtypeUR", "coef_mdc_atfire", "coef_proj_age_1", "coef_live_stand_volume_125", "coef_bclcs_level_2N", "coef_bclcs_level_2T", "coef_slope", "coef_aspect", "coef_elevation", "coef_wind_atfire", "coef_dist_infra", "coef_roads_km", "coef_Tdif_atfire", "coef_fire_csPerson", "coef_Tmax_atfire:mdc_atfire", "coef_vegtype2OP:mdc_atfire", "coef_vegtype2RO:mdc_atfire", "coef_vegtype2S:mdc_atfire", "coef_vegtype2TB:mdc_atfire", "coef_vegtype2TC:mdc_atfire", "coef_vegtype2TM:mdc_atfire", "coef_vegtype2UR:mdc_atfire", "coef_proj_age_1:bclcs_level_2N", "coef_proj_age_1:bclcs_level_2T", "coef_live_stand_volume_125:bclcs_level_2N", "coef_live_stand_volume_125:bclcs_level_2T", "coef_ppt_atfire:elevation", "coef_Tmax_atfire:Tdif_atfire", "coef_Tmax_atfire:fire_csPerson", "coef_vegtype2OP:fire_csPerson", "coef_vegtype2RO:fire_csPerson", "coef_vegtype2S:fire_csPerson", "coef_vegtype2TB:fire_csPerson", "coef_vegtype2TC:fire_csPerson", "coef_vegtype2TM:fire_csPerson", "coef_vegtype2UR:fire_csPerson", "coef_Tdif_atfire:fire_csPerson", "coef_bclcs_level_2N:Tdif_atfire", "coef_bclcs_level_2T:Tdif_atfire", "AUC")
+top_mod_table_NDT4 <- data.frame (matrix (ncol = 38, nrow = 0))
+colnames (top_mod_table_NDT4 ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_Tmax_atfire", "coef_ppt_atfire", "coef_vegtypeOP", "coef_vegtypeS", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_mdc_atfire", "coef_live_stand_volume_125", "coef_bclcs_level_2T", "coef_elevation", "coef_wind_atfire", "coef_dist_infra", "coef_roads_km", "coef_Tdif_atfire", "coef_fire_csPerson", "coef_Tmax_atfire:mdc_atfire", "coef_vegtype2OP:mdc_atfire", "coef_vegtype2S:mdc_atfire", "coef_vegtype2TB:mdc_atfire", "coef_vegtype2TC:mdc_atfire", "coef_vegtype2TM:mdc_atfire", "coef_ppt_atfire:elevation", "coef_Tmax_atfire:Tdif_atfire", "coef_Tmax_atfire:fire_csPerson", "coef_vegtype2OP:fire_csPerson", "coef_vegtype2S:fire_csPerson", "coef_vegtype2TB:fire_csPerson", "coef_vegtype2TC:fire_csPerson", "coef_vegtype2TM:fire_csPerson",  "coef_Tdif_atfire:fire_csPerson", "coef_bclcs_level_2T:Tdif_atfire", "AUC")
 
 ##Add data for NDT4
 top_mod_table_NDT4[1,1]<-"lightning, person, unknown"
 top_mod_table_NDT4[1,2]<-"NDT4"
 top_mod_table_NDT4[1,3]<-"Y and N"
-top_mod_table_NDT4[1,4]<-"escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + proj_age_1:bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire" 
+top_mod_table_NDT4[1,4]<-"escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire 
 top_mod_table_NDT4[1,5]<- coef(model.NDT4.E)[1] #Intercept
 top_mod_table_NDT4[1,6]<- coef(model.NDT4.E)[2] #
 top_mod_table_NDT4[1,7]<- coef(model.NDT4.E)[3] #
@@ -1244,22 +1254,7 @@ top_mod_table_NDT4[1,34]<- coef(model.NDT4.E)[30] #coefficient
 top_mod_table_NDT4[1,35]<- coef(model.NDT4.E)[31] #coefficient 
 top_mod_table_NDT4[1,36]<- coef(model.NDT4.E)[32] #coefficient 
 top_mod_table_NDT4[1,37]<- coef(model.NDT4.E)[33] #coefficient 
-top_mod_table_NDT4[1,38]<- coef(model.NDT4.E)[34] #coefficient 
-top_mod_table_NDT4[1,39]<- coef(model.NDT4.E)[35] #coefficient 
-top_mod_table_NDT4[1,40]<- coef(model.NDT4.E)[36] #coefficient 
-top_mod_table_NDT4[1,41]<- coef(model.NDT4.E)[37] #coefficient 
-top_mod_table_NDT4[1,42]<- coef(model.NDT4.E)[38] #coefficient 
-top_mod_table_NDT4[1,43]<- coef(model.NDT4.E)[39] #coefficient 
-top_mod_table_NDT4[1,44]<- coef(model.NDT4.E)[40] #coefficient 
-top_mod_table_NDT4[1,45]<- coef(model.NDT4.E)[41] #coefficient 
-top_mod_table_NDT4[1,46]<- coef(model.NDT4.E)[42] #coefficient 
-top_mod_table_NDT4[1,47]<- coef(model.NDT4.E)[43] #coefficient 
-top_mod_table_NDT4[1,48]<- coef(model.NDT4.E)[44] #coefficient 
-top_mod_table_NDT4[1,49]<- coef(model.NDT4.E)[45] #coefficient
-top_mod_table_NDT4[1,50]<- coef(model.NDT4.E)[46] #coefficient 
-top_mod_table_NDT4[1,51]<- coef(model.NDT4.E)[47] #coefficient 
-top_mod_table_NDT4[1,52]<- coef(model.NDT4.E)[48] #coefficient 
-top_mod_table_NDT4[1,53]<- mod.auc
+top_mod_table_NDT4[1,38]<- mod.auc
 
 top_mod_table_NDT4_ALL<-rbind(top_mod_table_NDT4_ALL, top_mod_table_NDT4)
 
@@ -1288,7 +1283,7 @@ top_mod_table_NDT4_ALL_mean
 top_mod_table_NDT4_ALL_mean[1,1]<-"lightning, person, unknown (ALL)"
 top_mod_table_NDT4_ALL_mean[1,2]<-"NDT4"
 top_mod_table_NDT4_ALL_mean[1,3]<-"ALL Treed and not treed"
-top_mod_table_NDT4_ALL_mean[1,4]<-"escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + proj_age_1:bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire" 
+top_mod_table_NDT4_ALL_mean[1,4]<-"escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire" 
 top_mod_table_NDT4_ALL_mean #Mean values are odd! Need to rid of outliers
 ```
 Save mean coefficient table.
@@ -1306,7 +1301,7 @@ top_mod_table_NDT4_ALL_SD
 top_mod_table_NDT4_ALL_SD[1,1]<-"lightning, person, unknown (ALL)"
 top_mod_table_NDT4_ALL_SD[1,2]<-"NDT4"
 top_mod_table_NDT4_ALL_SD[1,3]<-"ALL Treed and not treed"
-top_mod_table_NDT4_ALL_SD[1,4]<-"escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + proj_age_1:bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire" 
+top_mod_table_NDT4_ALL_SD[1,4]<-"escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire" 
 top_mod_table_NDT4_ALL_SD
 ```
 
@@ -1324,36 +1319,35 @@ Create blank data table.
 
 ```{r}
 #Create a new blank table and get AUC too
-top_mod_table_NDT4_ALL_v2 <- data.frame (matrix (ncol = 41, nrow = 0))
-colnames (top_mod_table_NDT4_ALL_v2 ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtypeOP", "coef_vegtypeRO", "coef_vegtypeS", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_vegtypeUR", "coef_mdc_atfire", "coef_live_stand_volume_125", "coef_bclcs_level_2N", "coef_bclcs_level_2T", "coef_slope", "coef_aspect", "coef_elevation","coef_wind_atfire", "coef_dist_infra", "coef_roads_km", "coef_Tdifatfire", "coef_fire_csPerson", "coef_climate2:mdc_atfire", "coef_live_stand_volume_125:bclcs_level_2N", "coef_live_stand_volume_125:bclcs_level_2T", "coef_slope:aspect", "coef_dist_infra:roads_km", "coef_climate2:elevation", "coef_climate1:Tdif_atfire", "coef_climate2:Tdif_atfire", "coef_dist_infra:fire_csPerson", "coef_roads_km:fire_csPerson", "coef_elevation:fire_csPerson", "coef_Tdif_atfire:fire_csPerson", "coef_climate1:bclcs_level_2N", "coef_climate1:bclcs_level_2T", "AUC")
+top_mod_table_NDT4_ALL_v2 <- data.frame (matrix (ncol = 38, nrow = 0))
+colnames (top_mod_table_NDT4_ALL_v2 ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_Tmax_atfire", "coef_ppt_atfire", "coef_vegtypeOP", "coef_vegtypeS", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_mdc_atfire", "coef_live_stand_volume_125", "coef_bclcs_level_2T", "coef_elevation", "coef_wind_atfire", "coef_dist_infra", "coef_roads_km", "coef_Tdif_atfire", "coef_fire_csPerson", "coef_Tmax_atfire:mdc_atfire", "coef_vegtype2OP:mdc_atfire", "coef_vegtype2S:mdc_atfire", "coef_vegtype2TB:mdc_atfire", "coef_vegtype2TC:mdc_atfire", "coef_vegtype2TM:mdc_atfire", "coef_ppt_atfire:elevation", "coef_Tmax_atfire:Tdif_atfire", "coef_Tmax_atfire:fire_csPerson", "coef_vegtype2OP:fire_csPerson", "coef_vegtype2S:fire_csPerson", "coef_vegtype2TB:fire_csPerson", "coef_vegtype2TC:fire_csPerson", "coef_vegtype2TM:fire_csPerson",  "coef_Tdif_atfire:fire_csPerson", "coef_bclcs_level_2T:Tdif_atfire", "AUC")
 ```
 
 ```{r}
-dat1 <- subset(NDT4_escape_t, NDT4_escape_t$fire_yr<2018) #10370
-Valid <- subset(NDT4_escape_t, NDT4_escape_t$fire_yr>2017) #881
+dat1 <- subset(NDT4_escape_t, NDT4_escape_t$fire_yr<2018) #9515
+Valid <- subset(NDT4_escape_t, NDT4_escape_t$fire_yr>2017) #823
 
 table(dat1$fire_yr)
 table(Valid$fire_yr) #No 2020?
 ```
 
-
 ```{r}
 #Model   
-model.NDT4.E.v2<-glm(escape ~ climate1 + climate2 + vegtype2 + mdc_atfire + climate2:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + dist_infra + roads_km + dist_infra:roads_km + wind_atfire + Tdif_atfire  + elevation*climate2 + Tdif_atfire*climate1 + Tdif_atfire*climate2 + fire_cs + fire_cs*dist_infra + fire_cs*roads_km + fire_cs*elevation + fire_cs*Tdif_atfire + bclcs_level_2*climate1, family = binomial, data = dat1) 
+model.NDT4.E.v2<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire, family = binomial, data = dat1) 
 
 mod.valid <- predict.glm(model.NDT4.E.v2, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT4 <- data.frame (matrix (ncol = 41, nrow = 0))
-colnames (top_mod_table_NDT4 ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtypeOP", "coef_vegtypeRO", "coef_vegtypeS", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_vegtypeUR", "coef_mdc_atfire", "coef_live_stand_volume_125", "coef_bclcs_level_2N", "coef_bclcs_level_2T", "coef_slope", "coef_aspect", "coef_elevation","coef_wind_atfire", "coef_dist_infra", "coef_roads_km", "coef_Tdifatfire", "coef_fire_csPerson", "coef_climate2:mdc_atfire", "coef_live_stand_volume_125:bclcs_level_2N", "coef_live_stand_volume_125:bclcs_level_2T", "coef_slope:aspect", "coef_dist_infra:roads_km", "coef_climate2:elevation", "coef_climate1:Tdif_atfire", "coef_climate2:Tdif_atfire", "coef_dist_infra:fire_csPerson", "coef_roads_km:fire_csPerson", "coef_elevation:fire_csPerson", "coef_Tdif_atfire:fire_csPerson", "coef_climate1:bclcs_level_2N", "coef_climate1:bclcs_level_2T", "AUC")
+top_mod_table_NDT4 <- data.frame (matrix (ncol = 38, nrow = 0))
+colnames (top_mod_table_NDT4 ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_Tmax_atfire", "coef_ppt_atfire", "coef_vegtypeOP", "coef_vegtypeS", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_mdc_atfire", "coef_live_stand_volume_125", "coef_bclcs_level_2T", "coef_elevation", "coef_wind_atfire", "coef_dist_infra", "coef_roads_km", "coef_Tdif_atfire", "coef_fire_csPerson", "coef_Tmax_atfire:mdc_atfire", "coef_vegtype2OP:mdc_atfire", "coef_vegtype2S:mdc_atfire", "coef_vegtype2TB:mdc_atfire", "coef_vegtype2TC:mdc_atfire", "coef_vegtype2TM:mdc_atfire", "coef_ppt_atfire:elevation", "coef_Tmax_atfire:Tdif_atfire", "coef_Tmax_atfire:fire_csPerson", "coef_vegtype2OP:fire_csPerson", "coef_vegtype2S:fire_csPerson", "coef_vegtype2TB:fire_csPerson", "coef_vegtype2TC:fire_csPerson", "coef_vegtype2TM:fire_csPerson",  "coef_Tdif_atfire:fire_csPerson", "coef_bclcs_level_2T:Tdif_atfire", "AUC")
 
 ##Add data for NDT4
 top_mod_table_NDT4[1,1]<-"lightning, person, unknown"
 top_mod_table_NDT4[1,2]<-"NDT4"
-top_mod_table_NDT4[1,3]<-"Y andN"
-top_mod_table_NDT4[1,4]<-"escape ~ climate1 + climate2 + vegtype2 + mdc_atfire + climate2:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + dist_infra + roads_km + dist_infra:roads_km + wind_atfire + Tdif_atfire  + elevation*climate2 + Tdif_atfire*climate1 + Tdif_atfire*climate2 + fire_cs + fire_cs*dist_infra + fire_cs*roads_km + fire_cs*elevation + fire_cs*Tdif_atfire + bclcs_level_2*climate1" 
+top_mod_table_NDT4[1,3]<-"Y and N"
+top_mod_table_NDT4[1,4]<-"escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire" 
 top_mod_table_NDT4[1,5]<- coef(model.NDT4.E.v2)[1] #Intercept
 top_mod_table_NDT4[1,6]<- coef(model.NDT4.E.v2)[2] #
 top_mod_table_NDT4[1,7]<- coef(model.NDT4.E.v2)[3] #
@@ -1387,30 +1381,27 @@ top_mod_table_NDT4[1,34]<- coef(model.NDT4.E.v2)[30] #coefficient
 top_mod_table_NDT4[1,35]<- coef(model.NDT4.E.v2)[31] #coefficient 
 top_mod_table_NDT4[1,36]<- coef(model.NDT4.E.v2)[32] #coefficient 
 top_mod_table_NDT4[1,37]<- coef(model.NDT4.E.v2)[33] #coefficient 
-top_mod_table_NDT4[1,38]<- coef(model.NDT4.E.v2)[34] #coefficient 
-top_mod_table_NDT4[1,39]<- coef(model.NDT4.E.v2)[35] #coefficient 
-top_mod_table_NDT4[1,40]<- coef(model.NDT4.E.v2)[36] #coefficient 
-top_mod_table_NDT4[1,41]<- mod.auc
+top_mod_table_NDT4[1,38]<- mod.auc
 
 top_mod_table_NDT4_ALL_v2<-rbind(top_mod_table_NDT4_ALL_v2, top_mod_table_NDT4)
 ```
 
 View.
 ```{r}
-head(top_mod_table_NDT4_ALL_v2) #AUC 0.67 this way
+head(top_mod_table_NDT4_ALL_v2) #AUC 0.70
 ```
 Divide by one year earlier given lack of 2020
 
 
 ```{r}
 #Create a new blank table and get AUC too
-top_mod_table_NDT4_ALL_v2 <- data.frame (matrix (ncol = 41, nrow = 0))
-colnames (top_mod_table_NDT4_ALL_v2 ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtypeOP", "coef_vegtypeRO", "coef_vegtypeS", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_vegtypeUR", "coef_mdc_atfire", "coef_live_stand_volume_125", "coef_bclcs_level_2N", "coef_bclcs_level_2T", "coef_slope", "coef_aspect", "coef_elevation","coef_wind_atfire", "coef_dist_infra", "coef_roads_km", "coef_Tdifatfire", "coef_fire_csPerson", "coef_climate2:mdc_atfire", "coef_live_stand_volume_125:bclcs_level_2N", "coef_live_stand_volume_125:bclcs_level_2T", "coef_slope:aspect", "coef_dist_infra:roads_km", "coef_climate2:elevation", "coef_climate1:Tdif_atfire", "coef_climate2:Tdif_atfire", "coef_dist_infra:fire_csPerson", "coef_roads_km:fire_csPerson", "coef_elevation:fire_csPerson", "coef_Tdif_atfire:fire_csPerson", "coef_climate1:bclcs_level_2N", "coef_climate1:bclcs_level_2T", "AUC")
+top_mod_table_NDT4_ALL_v2 <- data.frame (matrix (ncol = 38, nrow = 0))
+colnames (top_mod_table_NDT4_ALL_v2 ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_Tmax_atfire", "coef_ppt_atfire", "coef_vegtypeOP", "coef_vegtypeS", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_mdc_atfire", "coef_live_stand_volume_125", "coef_bclcs_level_2T", "coef_elevation", "coef_wind_atfire", "coef_dist_infra", "coef_roads_km", "coef_Tdif_atfire", "coef_fire_csPerson", "coef_Tmax_atfire:mdc_atfire", "coef_vegtype2OP:mdc_atfire", "coef_vegtype2S:mdc_atfire", "coef_vegtype2TB:mdc_atfire", "coef_vegtype2TC:mdc_atfire", "coef_vegtype2TM:mdc_atfire", "coef_ppt_atfire:elevation", "coef_Tmax_atfire:Tdif_atfire", "coef_Tmax_atfire:fire_csPerson", "coef_vegtype2OP:fire_csPerson", "coef_vegtype2S:fire_csPerson", "coef_vegtype2TB:fire_csPerson", "coef_vegtype2TC:fire_csPerson", "coef_vegtype2TM:fire_csPerson",  "coef_Tdif_atfire:fire_csPerson", "coef_bclcs_level_2T:Tdif_atfire", "AUC")
 ```
 
 ```{r}
-dat1 <- subset(NDT4_escape_t, NDT4_escape_t$fire_yr<2017) #9939
-Valid <- subset(NDT4_escape_t, NDT4_escape_t$fire_yr>2016) #1312
+dat1 <- subset(NDT4_escape_t, NDT4_escape_t$fire_yr<2017) #9121
+Valid <- subset(NDT4_escape_t, NDT4_escape_t$fire_yr>2016) #1217
 
 table(dat1$fire_yr)
 table(Valid$fire_yr) #No 2020?
@@ -1419,21 +1410,21 @@ table(Valid$fire_yr) #No 2020?
 
 ```{r}
 #Model   
-model.NDT4.E.v2<-glm(escape ~ climate1 + climate2 + vegtype2 + mdc_atfire + climate2:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + dist_infra + roads_km + dist_infra:roads_km + wind_atfire + Tdif_atfire  + elevation*climate2 + Tdif_atfire*climate1 + Tdif_atfire*climate2 + fire_cs + fire_cs*dist_infra + fire_cs*roads_km + fire_cs*elevation + fire_cs*Tdif_atfire + bclcs_level_2*climate1, family = binomial, data = dat1) 
+model.NDT4.E.v2<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire, family = binomial, data = dat1) 
 
 mod.valid <- predict.glm(model.NDT4.E.v2, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape"], mod.valid)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT4 <- data.frame (matrix (ncol = 41, nrow = 0))
-colnames (top_mod_table_NDT4 ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtypeOP", "coef_vegtypeRO", "coef_vegtypeS", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_vegtypeUR", "coef_mdc_atfire", "coef_live_stand_volume_125", "coef_bclcs_level_2N", "coef_bclcs_level_2T", "coef_slope", "coef_aspect", "coef_elevation","coef_wind_atfire", "coef_dist_infra", "coef_roads_km", "coef_Tdifatfire", "coef_fire_csPerson", "coef_climate2:mdc_atfire", "coef_live_stand_volume_125:bclcs_level_2N", "coef_live_stand_volume_125:bclcs_level_2T", "coef_slope:aspect", "coef_dist_infra:roads_km", "coef_climate2:elevation", "coef_climate1:Tdif_atfire", "coef_climate2:Tdif_atfire", "coef_dist_infra:fire_csPerson", "coef_roads_km:fire_csPerson", "coef_elevation:fire_csPerson", "coef_Tdif_atfire:fire_csPerson", "coef_climate1:bclcs_level_2N", "coef_climate1:bclcs_level_2T", "AUC")
+top_mod_table_NDT4 <- data.frame (matrix (ncol = 38, nrow = 0))
+colnames (top_mod_table_NDT4 ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_Tmax_atfire", "coef_ppt_atfire", "coef_vegtypeOP", "coef_vegtypeS", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "coef_mdc_atfire", "coef_live_stand_volume_125", "coef_bclcs_level_2T", "coef_elevation", "coef_wind_atfire", "coef_dist_infra", "coef_roads_km", "coef_Tdif_atfire", "coef_fire_csPerson", "coef_Tmax_atfire:mdc_atfire", "coef_vegtype2OP:mdc_atfire", "coef_vegtype2S:mdc_atfire", "coef_vegtype2TB:mdc_atfire", "coef_vegtype2TC:mdc_atfire", "coef_vegtype2TM:mdc_atfire", "coef_ppt_atfire:elevation", "coef_Tmax_atfire:Tdif_atfire", "coef_Tmax_atfire:fire_csPerson", "coef_vegtype2OP:fire_csPerson", "coef_vegtype2S:fire_csPerson", "coef_vegtype2TB:fire_csPerson", "coef_vegtype2TC:fire_csPerson", "coef_vegtype2TM:fire_csPerson",  "coef_Tdif_atfire:fire_csPerson", "coef_bclcs_level_2T:Tdif_atfire", "AUC")
 
 ##Add data for NDT4
 top_mod_table_NDT4[1,1]<-"lightning, person, unknown"
 top_mod_table_NDT4[1,2]<-"NDT4"
 top_mod_table_NDT4[1,3]<-"Y andN"
-top_mod_table_NDT4[1,4]<-"escape ~ climate1 + climate2 + vegtype2 + mdc_atfire + climate2:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + dist_infra + roads_km + dist_infra:roads_km + wind_atfire + Tdif_atfire  + elevation*climate2 + Tdif_atfire*climate1 + Tdif_atfire*climate2 + fire_cs + fire_cs*dist_infra + fire_cs*roads_km + fire_cs*elevation + fire_cs*Tdif_atfire + bclcs_level_2*climate1" 
+top_mod_table_NDT4[1,4]<-"escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:mdc_atfire + vegtype2:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + elevation + wind_atfire + dist_infra + roads_km + Tdif_atfire + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire  + fire_cs + fire_cs*Tmax_atfire + fire_cs*vegtype2 + fire_cs*Tdif_atfire + bclcs_level_2*Tdif_atfire" 
 top_mod_table_NDT4[1,5]<- coef(model.NDT4.E.v2)[1] #Intercept
 top_mod_table_NDT4[1,6]<- coef(model.NDT4.E.v2)[2] #
 top_mod_table_NDT4[1,7]<- coef(model.NDT4.E.v2)[3] #
@@ -1467,15 +1458,12 @@ top_mod_table_NDT4[1,34]<- coef(model.NDT4.E.v2)[30] #coefficient
 top_mod_table_NDT4[1,35]<- coef(model.NDT4.E.v2)[31] #coefficient 
 top_mod_table_NDT4[1,36]<- coef(model.NDT4.E.v2)[32] #coefficient 
 top_mod_table_NDT4[1,37]<- coef(model.NDT4.E.v2)[33] #coefficient 
-top_mod_table_NDT4[1,38]<- coef(model.NDT4.E.v2)[34] #coefficient 
-top_mod_table_NDT4[1,39]<- coef(model.NDT4.E.v2)[35] #coefficient 
-top_mod_table_NDT4[1,40]<- coef(model.NDT4.E.v2)[36] #coefficient 
-top_mod_table_NDT4[1,41]<- mod.auc
+top_mod_table_NDT4[1,38]<- mod.auc
 
 top_mod_table_NDT4_ALL_v2<-rbind(top_mod_table_NDT4_ALL_v2, top_mod_table_NDT4)
 ```
 
 View.
 ```{r}
-head(top_mod_table_NDT4_ALL_v2) #New AUC 0.63; worse
+head(top_mod_table_NDT4_ALL_v2) #New AUC 0.67; worse
 ```
