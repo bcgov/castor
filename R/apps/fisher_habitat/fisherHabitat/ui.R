@@ -23,20 +23,7 @@ ui <- tagList(dashboardPage(
                               absolutePanel(id = "fisher_map_control", class = "panel panel-default", draggable = T, top = 270, left = 20, fixed = FALSE, width = "15%", height = "30%",
                                 fluidRow(valueBoxOutput("numberFisher", width = 12))
                               )
-                              ),
-               
-                              boxPlus(height = 390, width=NULL,
-                              tabBox(width = NULL, id = "tabset1", height = "0",
-                              tabPanel("Abundance" , 
-                                              plotlyOutput('fisherAbundance', height = "300px")
-                                     ),
-                              tabPanel("Density" , 
-                                       plotlyOutput('fisherDensity', height = "300px")
-                              ),
-                              tabPanel("Rel. Prob. Occupancy" , 
-                                       plotlyOutput('fisherOccupancy', height = "300px")
                               )
-               ))
         ),
         
         column(
@@ -51,7 +38,7 @@ ui <- tagList(dashboardPage(
             width = 3,height = 400,
             
             boxPlus( 
-              title = "Change Colour",  
+              title = "Change Attribute",  
               closable = FALSE, 
               status = "primary", 
               solidHeader = TRUE, 
@@ -65,7 +52,7 @@ ui <- tagList(dashboardPage(
                            inline = FALSE)
             ),
             boxPlus(width=NULL,
-                    title = "Filter Data ",  
+                    title = "Filter by TSA ",  
                     closable = FALSE, 
                     status = "primary", 
                     solidHeader = TRUE, 
@@ -78,12 +65,6 @@ ui <- tagList(dashboardPage(
                       selected = tsaBnds,
                       multiple = TRUE, 
                       options = list('plugins' = list('remove_button'), placeholder = 'Select a Timber Supply Area', 'persist' = TRUE)),
-                    radioButtons(
-                      "shapeFilt",
-                      "Select by Shape",
-                      choices = c("None","Drawn Polygon", "Shapefile", "Both"),
-                      selected = "None",
-                      inline = FALSE),
                     actionButton("fb", "Filter", width = "100%")
             ),
           
@@ -104,7 +85,7 @@ ui <- tagList(dashboardPage(
         )
     )
 ),  
-tags$footer(actionLink("contactUs", "Contact Us ", onclick = "window.open('https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/ground-sample-inventories')" ), 
+tags$footer(actionLink("contactUs", "Contact Us ", onclick = "window.open('https://www.bcfisherhabitat.ca/contact/')" ), 
             align = "center",
             style = "
                 bottom:0;
