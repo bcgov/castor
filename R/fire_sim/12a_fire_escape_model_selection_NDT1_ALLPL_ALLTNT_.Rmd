@@ -394,7 +394,24 @@ mods.me.O2<-mods.me.O2[-1]
 #complete list of two-way interactions
 mods.twoway.O2 <- powerSet(twoway.ints.O2)
 length(mods.twoway.O2) #2
-mods.twowayI
+mods.twoway.O2
+
+#Finding models in mods.me that accommodate/allow interaction terms 
+mods.inter.O2 <- list()
+counter <- 0
+for (i in 1: length(mods.twoway.O2)) {
+   s1 <- unique(unlist( strsplit(mods.twoway.O2[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.meI)) {
+      if (all(s1 %in% mods.me.O2[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.me.O2[[j]], mods.twoway.O2[[i]])
+        mods.inter.O2[[counter]] <- both
+      }
+   }
+}
+
+length(mods.inter.O2) #4
+mods.inter.O2
 ```
 
 Determine final models for testing.
@@ -415,7 +432,7 @@ all.poss.mods.topo
 all.poss.mods.infra<-c(1, mods.interI) 
 all.poss.mods.infra
 
-all.poss.mods.Oth2<-c(1, mods.me.O2) 
+all.poss.mods.Oth2<-c(1, mods.inter.O2) 
 all.poss.mods.Oth2
 ```
 
@@ -2098,3 +2115,298 @@ View.
 ```{r}
 head(top_mod_table_NDT1_ALL2_v2) #New AUC 0.65, not awful
 ```
+
+
+#With above subsetted data, start process from beginning.
+
+```{r}
+dat1 <- subset(NDT1_escape_t2, NDT1_escape_t2$fire_yr<2018) #3500
+Valid <- subset(NDT1_escape_t2, NDT1_escape_t2$fire_yr>2017) #517
+```
+
+
+```{r}
+model.NDT1.E<-glm(escape ~ climate1 + climate2 + vegtype2 + mdc_atfire + climate1:climate2 + climate2:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + proj_age_1:bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + slope:elevation + dist_infra + roads_km + dist_infra:roads_km + wind_atfire + Tdif_atfire + elevation*climate1  + elevation*climate2 + wind_atfire*climate1 + wind_atfire*climate2 + wind_atfire*vegtype2 + Tdif_atfire*climate1 + Tdif_atfire*climate2 + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2763.2
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.67
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ climate1 + climate2 + vegtype2 + mdc_atfire + climate1:climate2 + climate2:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + proj_age_1:bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + slope:elevation + dist_infra + roads_km + dist_infra:roads_km + wind_atfire + Tdif_atfire + elevation*climate1  + elevation*climate2 + Tdif_atfire*climate1 + Tdif_atfire*climate2 + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2750.5
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.68
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ climate1 + climate2 + vegtype2 + mdc_atfire + climate1:climate2 + climate2:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + proj_age_1:bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + dist_infra + roads_km + dist_infra:roads_km + wind_atfire + Tdif_atfire + elevation*climate2 + Tdif_atfire*climate1 + Tdif_atfire*climate2 + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2747.1
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.68
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ climate1 + climate2 + vegtype2 + mdc_atfire + climate1:climate2 + climate2:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + dist_infra + roads_km + dist_infra:roads_km + wind_atfire + Tdif_atfire + elevation*climate2 + Tdif_atfire*climate1 + Tdif_atfire*climate2 + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2744.3
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.68
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ climate1 + climate2 + vegtype2 + mdc_atfire + climate1:climate2 + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + dist_infra + roads_km + dist_infra:roads_km + wind_atfire + Tdif_atfire + elevation*climate2 + Tdif_atfire*climate1 + Tdif_atfire*climate2 + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2742.9
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.68
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ climate1 + climate2 + vegtype2 + mdc_atfire + climate1:climate2 + live_stand_volume_125 + bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + dist_infra + roads_km + dist_infra:roads_km + wind_atfire + Tdif_atfire + elevation*climate2 + Tdif_atfire*climate1 + Tdif_atfire*climate2 + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2741.6
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.69
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ climate1 + climate2 + vegtype2 + mdc_atfire + climate1:climate2 + live_stand_volume_125 + bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + dist_infra + roads_km + wind_atfire + Tdif_atfire + elevation*climate2 + Tdif_atfire*climate1 + Tdif_atfire*climate2 + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2741.2
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.69
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ climate1 + climate2 + vegtype2 + mdc_atfire + climate1:climate2 + live_stand_volume_125 + bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + dist_infra + wind_atfire + Tdif_atfire + elevation*climate2 + Tdif_atfire*climate1 + Tdif_atfire*climate2 + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2739.98
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.69
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+```
+Compare to Tmax_atfire and ppt_atfire
+
+```{r}
+model.NDT1.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:ppt_atfire + ppt_atfire:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + proj_age_1:bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + slope:elevation + dist_infra + roads_km + dist_infra:roads_km + wind_atfire + Tdif_atfire + elevation*Tmax_atfire  + elevation*ppt_atfire + wind_atfire*Tmax_atfire + wind_atfire*ppt_atfire + wind_atfire*vegtype2 + Tdif_atfire*Tmax_atfire + Tdif_atfire*ppt_atfire + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2741.2
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.65
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:ppt_atfire + ppt_atfire:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + proj_age_1:bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + slope:elevation + dist_infra + roads_km + dist_infra:roads_km + wind_atfire + Tdif_atfire + elevation*Tmax_atfire  + elevation*ppt_atfire + Tdif_atfire*Tmax_atfire + Tdif_atfire*ppt_atfire + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2729.99
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.65
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:ppt_atfire + ppt_atfire:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + dist_infra + roads_km + dist_infra:roads_km + wind_atfire + Tdif_atfire + elevation*Tmax_atfire  + elevation*ppt_atfire + Tdif_atfire*Tmax_atfire + Tdif_atfire*ppt_atfire + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2726.5
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.66
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:ppt_atfire + ppt_atfire:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + dist_infra + roads_km + wind_atfire + Tdif_atfire + elevation*Tmax_atfire  + elevation*ppt_atfire + Tdif_atfire*Tmax_atfire + Tdif_atfire*ppt_atfire + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2725.8
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.65
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:ppt_atfire + ppt_atfire:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + dist_infra + wind_atfire + Tdif_atfire + elevation*Tmax_atfire  + elevation*ppt_atfire + Tdif_atfire*Tmax_atfire + Tdif_atfire*ppt_atfire + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2724.8
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.66
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:ppt_atfire + ppt_atfire:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + dist_infra + wind_atfire + Tdif_atfire + elevation*Tmax_atfire  + elevation*ppt_atfire + Tdif_atfire*Tmax_atfire + Tdif_atfire*ppt_atfire + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2723.3
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.66
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:ppt_atfire + ppt_atfire:mdc_atfire + live_stand_volume_125 + bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + dist_infra + wind_atfire + Tdif_atfire + elevation*Tmax_atfire  + elevation*ppt_atfire + Tdif_atfire*Tmax_atfire + Tdif_atfire*ppt_atfire + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2723.3
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.66
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+```
+Try with one year added to validation
+
+```{r}
+dat1 <- subset(NDT1_escape_t2, NDT1_escape_t2$fire_yr<2017) #3261
+Valid <- subset(NDT1_escape_t2, NDT1_escape_t2$fire_yr>2016) #756
+```
+
+```{r}
+model.NDT1.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:ppt_atfire + ppt_atfire:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + proj_age_1:bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + slope:elevation + dist_infra + roads_km + dist_infra:roads_km + wind_atfire + Tdif_atfire + elevation*Tmax_atfire  + elevation*ppt_atfire + wind_atfire*Tmax_atfire + wind_atfire*ppt_atfire + wind_atfire*vegtype2 + Tdif_atfire*Tmax_atfire + Tdif_atfire*ppt_atfire + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2445.23
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.64
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:ppt_atfire + ppt_atfire:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + proj_age_1:bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + slope:elevation + dist_infra + roads_km + dist_infra:roads_km + wind_atfire + Tdif_atfire + elevation*Tmax_atfire  + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire + Tdif_atfire*ppt_atfire + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2435.2
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.64
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:ppt_atfire + ppt_atfire:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2 + proj_age_1:bclcs_level_2 + live_stand_volume_125:bclcs_level_2 + slope + aspect + elevation + wind_atfire + slope:aspect + slope:elevation + dist_infra + roads_km + wind_atfire + Tdif_atfire + elevation*Tmax_atfire  + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire + Tdif_atfire*ppt_atfire + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2433.6
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.64
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + Tmax_atfire:ppt_atfire + ppt_atfire:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2  + slope + aspect + elevation + wind_atfire + slope:aspect + slope:elevation + dist_infra + roads_km + wind_atfire + Tdif_atfire + elevation*Tmax_atfire  + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2430.6
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.64
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + ppt_atfire:mdc_atfire + proj_age_1 + live_stand_volume_125 + bclcs_level_2  + slope + aspect + elevation + wind_atfire + slope:aspect  + dist_infra + roads_km + wind_atfire + Tdif_atfire + elevation*Tmax_atfire  + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2427.1
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.64
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+#Remove least sig
+model.NDT1.E<-glm(escape ~ Tmax_atfire + ppt_atfire + vegtype2 + mdc_atfire + ppt_atfire:mdc_atfire + live_stand_volume_125 + bclcs_level_2  + slope + aspect + elevation + wind_atfire + slope:aspect  + dist_infra + wind_atfire + Tdif_atfire + elevation*Tmax_atfire  + elevation*ppt_atfire  + Tdif_atfire*Tmax_atfire + fire_cs, family = binomial, data = dat1)
+
+AIC(model.NDT1.E) #2424.2
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT1.E, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.64
+   
+Anova(model.NDT1.E, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 or 1 occurred"
+
+
+```
+Using the above with another year's worth of data, the AUC decreases; so use 2017-2019 as validation dataset instead.
