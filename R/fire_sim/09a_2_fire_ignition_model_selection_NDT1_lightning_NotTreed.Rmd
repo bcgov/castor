@@ -60,6 +60,7 @@ table(dat_lightning_nt$ntrl_ds)
 
 ```
 
+
 ######################### ANALYSES: NOT TREED, LIGHTNING #########################
 
 Now, we will make a loop that does something very similar to our last loop, but with the selected climate variable plus other variables of interest. For lightning caused fires with trees, the variables of interest include:
