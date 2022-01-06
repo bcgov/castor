@@ -489,7 +489,7 @@ for (i in 1: length(zones1)){
 big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
    rhs <- paste(mods.in, collapse=" + ")
    form <- as.formula(paste(noquote(dep.var), " ~", rhs))
-   mods.fit <- lm(form, data=df.train)
+   mods.fit <- glm(form, data=df.train)
    mod.stuff <- summary(mods.fit)
    mod.aic <- extractAIC(mods.fit)
    predictions <- mods.fit %>% predict(Valid)
@@ -594,7 +594,7 @@ for (i in 1: length(zones1)){
 big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
    rhs <- paste(mods.in, collapse=" + ")
    form <- as.formula(paste(noquote(dep.var), " ~", rhs))
-   mods.fit <- lm(form, data=df.train)
+   mods.fit <- glm(form, data=df.train)
    mod.stuff <- summary(mods.fit)
    mod.aic <- extractAIC(mods.fit)
    predictions <- mods.fit %>% predict(Valid)
@@ -698,7 +698,7 @@ for (i in 1: length(zones1)){
 big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
    rhs <- paste(mods.in, collapse=" + ")
    form <- as.formula(paste(noquote(dep.var), " ~", rhs))
-   mods.fit <- lm(form, data=df.train)
+   mods.fit <- glm(form, data=df.train)
    mod.stuff <- summary(mods.fit)
    mod.aic <- extractAIC(mods.fit)
    predictions <- mods.fit %>% predict(Valid)
@@ -803,7 +803,7 @@ for (i in 1: length(zones1)){
 big.mod_lm <- function(mods.in, df.train, dep.var="LNsize_ha") {
    rhs <- paste(mods.in, collapse=" + ")
    form <- as.formula(paste(noquote(dep.var), " ~", rhs))
-   mods.fit <- lm(form, data=df.train)
+   mods.fit <- glm(form, data=df.train)
    mod.stuff <- summary(mods.fit)
    mod.aic <- extractAIC(mods.fit)
    predictions <- mods.fit %>% predict(Valid)
@@ -922,7 +922,7 @@ prop<-0.75
    Valid <- spread_NDT1[-trainIndex,]
   
 #Run model using dat1
-model.NDT1<-lm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + dist_infra + roads_km + slope + aspect + wind_atfire + slope:wind_atfire + climate1 + climate2 + mdc_atfire + climate1:proj_height_1 + climate1*proj_age_1 + climate1*live_stand_volume_125 + climate1*elevation + climate1*wind_atfire + slope*wind_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire + Tdif_atfire*wind_atfire + Tdif_atfire*live_stand_volume_125, data = dat1)
+model.NDT1<-glm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + dist_infra + roads_km + slope + aspect + wind_atfire + slope:wind_atfire + climate1 + climate2 + mdc_atfire + climate1:proj_height_1 + climate1*proj_age_1 + climate1*live_stand_volume_125 + climate1*elevation + climate1*wind_atfire + slope*wind_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire + Tdif_atfire*wind_atfire + Tdif_atfire*live_stand_volume_125, data = dat1)
 
 AIC(model.NDT1) #2066.653
 summary(model.NDT1)$r.squared #0.22
@@ -937,7 +937,7 @@ summary(model.NDT1)
 Anova(model.NDT1, type=3)
 
 #Remove least sig
-model.NDT1<-lm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + dist_infra + roads_km + slope + aspect + wind_atfire + slope:wind_atfire + climate1 + climate2 + mdc_atfire + climate1:proj_height_1 + climate1*proj_age_1 + climate1*live_stand_volume_125 + climate1*wind_atfire + slope*wind_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire + Tdif_atfire*live_stand_volume_125, data = dat1)
+model.NDT1<-glm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + dist_infra + roads_km + slope + aspect + wind_atfire + slope:wind_atfire + climate1 + climate2 + mdc_atfire + climate1:proj_height_1 + climate1*proj_age_1 + climate1*live_stand_volume_125 + climate1*wind_atfire + slope*wind_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire + Tdif_atfire*live_stand_volume_125, data = dat1)
 
 AIC(model.NDT1) #2062.7
 summary(model.NDT1)$r.squared #0.22
@@ -952,7 +952,7 @@ summary(model.NDT1)
 Anova(model.NDT1, type=3)
 
 #Remove least sig
-model.NDT1<-lm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + dist_infra + roads_km + slope + aspect + wind_atfire + slope:wind_atfire + climate1 + climate2 + mdc_atfire + climate1*live_stand_volume_125 + climate1*wind_atfire + slope*wind_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire + Tdif_atfire*live_stand_volume_125, data = dat1)
+model.NDT1<-glm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + dist_infra + roads_km + slope + aspect + wind_atfire + slope:wind_atfire + climate1 + climate2 + mdc_atfire + climate1*live_stand_volume_125 + climate1*wind_atfire + slope*wind_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire + Tdif_atfire*live_stand_volume_125, data = dat1)
 
 AIC(model.NDT1) #2057.1
 summary(model.NDT1)$r.squared #0.22
@@ -967,7 +967,7 @@ summary(model.NDT1)
 Anova(model.NDT1, type=3)
 
 #Remove least sig
-model.NDT1<-lm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + dist_infra + roads_km + slope + aspect + wind_atfire + slope:wind_atfire + climate1 + climate2 + mdc_atfire + climate1*live_stand_volume_125 + slope*wind_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire, data = dat1)
+model.NDT1<-glm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + dist_infra + roads_km + slope + aspect + wind_atfire + slope:wind_atfire + climate1 + climate2 + mdc_atfire + climate1*live_stand_volume_125 + slope*wind_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire, data = dat1)
 
 AIC(model.NDT1) #2054.6
 summary(model.NDT1)$r.squared #0.22
@@ -982,7 +982,7 @@ summary(model.NDT1)
 Anova(model.NDT1, type=3)
 
 #Remove least sig
-model.NDT1<-lm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + dist_infra + roads_km + slope + aspect + wind_atfire + slope:wind_atfire + climate1 + climate2 + mdc_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire, data = dat1)
+model.NDT1<-glm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + dist_infra + roads_km + slope + aspect + wind_atfire + slope:wind_atfire + climate1 + climate2 + mdc_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire, data = dat1)
 
 AIC(model.NDT1) #2053.9
 summary(model.NDT1)$r.squared #0.21
@@ -997,7 +997,7 @@ summary(model.NDT1)
 Anova(model.NDT1, type=3)
 
 #Remove least sig
-model.NDT1<-lm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + dist_infra + roads_km + slope + aspect + wind_atfire + climate1 + climate2 + mdc_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire, data = dat1)
+model.NDT1<-glm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + dist_infra + roads_km + slope + aspect + wind_atfire + climate1 + climate2 + mdc_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire, data = dat1)
 
 AIC(model.NDT1) #2053.3
 summary(model.NDT1)$r.squared #0.21
@@ -1012,7 +1012,7 @@ summary(model.NDT1)
 Anova(model.NDT1, type=3)
 
 #Remove least sig
-model.NDT1<-lm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2  + roads_km + slope + aspect + wind_atfire + climate1 + climate2 + mdc_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire, data = dat1)
+model.NDT1<-glm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2  + roads_km + slope + aspect + wind_atfire + climate1 + climate2 + mdc_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire, data = dat1)
 
 AIC(model.NDT1) #2051.4
 summary(model.NDT1)$r.squared #0.21
@@ -1027,7 +1027,7 @@ summary(model.NDT1)
 Anova(model.NDT1, type=3)
 
 #Remove least sig
-model.NDT1<-lm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + slope + aspect + wind_atfire + climate1 + climate2 + mdc_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire, data = dat1)
+model.NDT1<-glm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + slope + aspect + wind_atfire + climate1 + climate2 + mdc_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire, data = dat1)
 
 AIC(model.NDT1) #2049.98
 summary(model.NDT1)$r.squared #0.21
@@ -1050,7 +1050,7 @@ Remove NAs and run multiple times.
 NDT1_spread_size<-spread_NDT1 %>% drop_na(proj_height_1 , live_stand_volume_125, bclcs_level_2, slope , aspect , climate1 , climate2, vegtype2, wind_atfire, elevation, Tdif_atfire)
 
 #Run Model again with this data; but uses all data here
-model.NDT1.Spread<-lm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + slope + aspect + wind_atfire + climate1 + climate2 + mdc_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire, data = NDT1_spread_size)
+model.NDT1.Spread<-glm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + slope + aspect + wind_atfire + climate1 + climate2 + mdc_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire, data = NDT1_spread_size)
 
 #Anova(model.NDT1.Spread, type=3)
 Anova(model.NDT1.Spread, type=3, singular.ok = TRUE)
@@ -1132,7 +1132,7 @@ prop<-0.75
    Valid <- NDT1_spread_size[-trainIndex,]
    
 #Model   
-model.NDT1.Spread<-lm(LNsize_ha ~ proj_height_1 + live_stand_volume_125  + dist_mine + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + slope + aspect + climate1 + vegtype2 + wind_atfire + elevation + climate1:elevation + elevation:wind_atfire + vegtype2:wind_atfire, data = dat1) 
+model.NDT1.Spread<-glm(LNsize_ha ~ proj_height_1 + live_stand_volume_125  + dist_mine + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + slope + aspect + climate1 + vegtype2 + wind_atfire + elevation + climate1:elevation + elevation:wind_atfire + vegtype2:wind_atfire, data = dat1) 
 
 predictions <- model.NDT1.Spread %>% predict(Valid)
 
@@ -1246,7 +1246,7 @@ spread_NDT1b<- spread_NDT1 %>% drop_na(LNstand_height, LNstand_volume, LNdist_mi
    Valid <- spread_NDT1[-trainIndex,]
    
 #Best model without transformations
-model.NDT1<-lm(LNsize_ha ~ proj_height_1 + live_stand_volume_125  + dist_mine + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + slope + aspect + climate1 + vegtype2 + wind_atfire  + climate1:elevation + elevation:wind_atfire + vegtype2:wind_atfire, data = dat1)
+model.NDT1<-glm(LNsize_ha ~ proj_height_1 + live_stand_volume_125  + dist_mine + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + slope + aspect + climate1 + vegtype2 + wind_atfire  + climate1:elevation + elevation:wind_atfire + vegtype2:wind_atfire, data = dat1)
 
 AIC(model.NDT1) #1652.5
 summary(model.NDT1)$r.squared #0.24
@@ -1261,7 +1261,7 @@ summary(model.NDT1)
 Anova(model.NDT1, type=3)
 
 #Transformations
-model.NDT1<-lm(LNsize_ha ~ LNstand_height  + live_stand_volume_125 + LNdist_mine + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + slope + aspect + climate1 + vegtype2 + LNwind  + climate1:elevation + elevation:LNwind + vegtype2:LNwind, data = dat1)
+model.NDT1<-glm(LNsize_ha ~ LNstand_height  + live_stand_volume_125 + LNdist_mine + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + slope + aspect + climate1 + vegtype2 + LNwind  + climate1:elevation + elevation:LNwind + vegtype2:LNwind, data = dat1)
 
 AIC(model.NDT1) #1668.7
 summary(model.NDT1)$r.squared #0.20
