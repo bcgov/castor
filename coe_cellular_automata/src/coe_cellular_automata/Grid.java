@@ -40,7 +40,7 @@ public class Grid {
 		ArrayList<ArrayList<float[]>> ageStatesTemplate = new ArrayList<ArrayList<float[]>>() ;
 		ArrayList<ArrayList<float[]>> harvestStatesTemplate = new ArrayList<ArrayList<float[]>>();
 		
-		for(int age = 0; age < 351; age++) { // A total of 250 possible ages
+		for(int age = 0; age < 351; age++) { // A total of 350 possible ages
 				ArrayList<float[]> states = new ArrayList<float[]>();
 				ArrayList<float[]> statesHarvest = new ArrayList<float[]>();
 				
@@ -76,10 +76,12 @@ public class Grid {
 				//Counters
 				int ft = 0;
 				int sh = 0;
-				int srp = 0;
+				int srp = 0; //second
+				int th =0;
+				int trp = 0; //third
 				
 				for(int harvPeriod = 0; harvPeriod < numTimePeriods2; harvPeriod ++) { // cant harvest in period 0 -- thats now! Which is used for reporting thus 1 is the future assuming a midpoint	
-					if(stateAge[harvPeriod] > 50) { // set minimum harvest age --conservatively set to 50 
+					if(stateAge[harvPeriod] >= 50) { // set minimum harvest age --conservatively set to 50 
 						for(int rp = 0; rp < numTimePeriods2 ; rp ++) {
 							if(harvPeriod == rp) {
 								stateHarvest[rp]=stateAge[rp];//assign the age of harvest
@@ -87,7 +89,7 @@ public class Grid {
 							} else if (harvPeriod < rp) {
 								ft ++;
 								stateAge[rp] = (float) ((int) (pl2*ft - pl2/2));
-								if(stateAge[rp] > 50 & sh == 0) {
+								if(stateAge[rp] >= 50 & sh == 0) {
 									srp = rp;
 									sh ++;
 								}
@@ -101,26 +103,59 @@ public class Grid {
 						
 						if(srp > 0) {
 							ft = 0;
-							for(int m = srp; m <numTimePeriods2; m++ ) {
+							for(int m = srp; m < numTimePeriods2; m++ ) {
 								float[] stateAgeSecond = new float[numTimePeriods2];
 								stateAgeSecond = stateAge.clone();
 								
 								float[] stateHarvestSecond = new float[numTimePeriods2];
 								stateHarvestSecond = stateHarvest.clone();								
 								
-								for(int k = m; k <numTimePeriods2; k++ ) {
+								for(int k = m; k < numTimePeriods2; k++ ) {
 									if(k == m) {
 										stateHarvestSecond[k] = stateAgeSecond[k];
 										stateAgeSecond[k] = 0f;
 										
 									} else {
 										ft ++;
-										stateAgeSecond[k]  = (float)((int) (pl2*ft - pl2/2));									
+										stateAgeSecond[k]  = (float)((int) (pl2*ft - pl2/2));	
+										if(stateAgeSecond[k] >= 50 & th == 0) {
+											trp = k;
+											th ++; // a counter to find the earliest period for a third harvest
+										}
 									} 
 								}
+								
 								states.add(stateAgeSecond);
 								statesHarvest.add(stateHarvestSecond);
 								ft = 0;
+								th = 0 ;
+								
+								if(trp > 0) {
+									for(int h = trp; h < numTimePeriods2; h++ ) {
+										float[] stateAgeThird = new float[numTimePeriods2];
+										stateAgeThird = stateAgeSecond.clone();
+										
+										float[] stateHarvestThird = new float[numTimePeriods2];
+										stateHarvestThird = stateHarvestSecond.clone();
+										
+										for(int f = h; f <numTimePeriods2; f++ ) {
+											if(f == h) {
+												stateHarvestThird[f] = stateAgeThird[f];
+												stateAgeThird[f] = 0f;
+												
+											} else {
+												ft ++;
+												stateAgeThird[f]  = (float)((int) (pl2*ft - pl2/2));									
+											} 
+										}
+										
+										states.add(stateAgeThird);
+										statesHarvest.add(stateHarvestThird);
+										ft = 0;
+									}
+									
+								}
+								trp = 0;
 							}
 						}
 						

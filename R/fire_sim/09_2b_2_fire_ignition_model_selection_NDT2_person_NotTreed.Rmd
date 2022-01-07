@@ -57,6 +57,7 @@ dat_person_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\dat
 head(dat_person_nt)
 ```
 
+
 ######################### ANALYSES: NOT TREED, PERSON #########################
 
 Now, we will make a loop that does something very similar to our last loop, but with the selected climate variable plus other variables of interest. For person caused fires with trees, the variables of interest include:

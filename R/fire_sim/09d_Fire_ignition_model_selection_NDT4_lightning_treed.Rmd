@@ -57,14 +57,6 @@ Note: depending where your geometry column was located when saved as a csv (and 
 dat_lightning_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_trees_NDT_Oct.csv")
 head(dat_lightning_t)
 
-dat_lightning_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_notrees_NDT_Oct.csv")
-head(dat_lightning_nt)
-
-dat_person_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_trees_NDT_Oct.csv")
-head(dat_person_t)
-
-dat_person_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_notrees_NDT_Oct.csv")
-head(dat_person_nt)
 ```
 
 ######################### ANALYSES: TREED, LIGHTNING #########################
@@ -1761,4 +1753,251 @@ Save sd coefficient table.
 ```{r}
 write.csv(top_mod_table_NDT4_light_t_SD, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT4_light_t_SD.csv")
 ```
+
+
+#Redo with redued variables (categories)
+
+```{r}
+dat_lightning_t_NDT4<-subset(dat_lightning_t, dat_lightning_t$ntrl_ds=="NDT4")
+
+#Divide data into training and valid
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(dat_lightning_t_NDT4$fire_veg, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- dat_lightning_t_NDT4[ trainIndex,]
+   Valid <- dat_lightning_t_NDT4[-trainIndex,]
+
+#Run model using dat1
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + proj_height_1*live_stand_volume_125 + climate1*proj_height_1 + climate2*proj_height_1 + climate1*live_stand_volume_125 + climate2*live_stand_volume_125 + slope + aspect_cos + elevation + slope*aspect_cos + dist_infra + vegtype2 + elevation*climate1 + elevation*climate2 + vegtype2, family = binomial, data = dat1) 
+   
+AIC(model.NDT4) #6524.5
+Anova(model.NDT4)
+
+#Determine AUC
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # 0.61 --> poor fit
+
+#Remove least significant interaction
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + proj_height_1*live_stand_volume_125 + climate1*proj_height_1 + climate2*proj_height_1 + climate1*live_stand_volume_125 + slope + aspect_cos + elevation + slope*aspect_cos + dist_infra + vegtype2 + elevation*climate1 + vegtype2, family = binomial, data = dat1) 
+   
+AIC(model.NDT4) #6520.9
+Anova(model.NDT4)
+
+#Determine AUC
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # 0.61 --> poor fit
+   
+#Remove least significant interaction
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate1*proj_height_1 + climate1*live_stand_volume_125 + slope + aspect_cos + elevation + slope*aspect_cos + dist_infra + vegtype2 + elevation*climate1 + vegtype2, family = binomial, data = dat1) 
+   
+AIC(model.NDT4) #6517.8
+Anova(model.NDT4)
+
+#Determine AUC
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # 0.61 --> poor fit
+   
+#Remove least significant interaction
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate1*live_stand_volume_125 + slope + aspect_cos + elevation + slope*aspect_cos + dist_infra + vegtype2 + elevation*climate1 + vegtype2, family = binomial, data = dat1) 
+   
+AIC(model.NDT4) #6516.9
+Anova(model.NDT4)
+
+#Determine AUC
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc # 0.61 --> poor fit
+
+```
+
+Re-run with na.omit and check diagnostics.
+
+```{r}
+#Remove NAs to ensure all same data used so we can compare AICs
+NDT4_t<-dat_lightning_t_NDT4 %>% drop_na(climate1, climate2, proj_height_1, live_stand_volume_125, dist_infra, slope, aspect_cos, elevation, vegtype2)
+
+#Check vegtype categories
+table(NDT4_t$vegtype2) #Only 3 disturbed, and 3 open. May wish to remove these 6 points.
+
+NDT4_t<-subset(NDT4_t, NDT4_t$vegtype2!="D")
+NDT4_t<-subset(NDT4_t, NDT4_t$vegtype2!="OP")
+
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate1*live_stand_volume_125 + slope + aspect_cos + elevation + slope*aspect_cos + dist_infra + vegtype2 + elevation*climate1, family = binomial, data = NDT4_t) 
+  
+Anova(model.NDT4, type=3,singular.ok = TRUE)
+AIC(model.NDT4) #8631.8
+
+# model diagnostic plots
+binnedplot (fitted(model.NDT4), 
+            residuals(model.NDT4), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+
+NDT4_t$resids<-resid(model.NDT4)
+
+binnedplot (NDT4_t$live_stand_volume_125, 
+            NDT4_t$resids, 
+            nclass = NULL, 
+            xlab = "live stand volume", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+binnedplot (NDT4_t$climate1, 
+            NDT4_t$resids, 
+            nclass = NULL, 
+            xlab = "", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+# Diagnostic plots look good
+
+#Residual Plots
+#climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate1*live_stand_volume_125 + slope + aspect_cos + elevation + slope*aspect_cos + dist_infra + vegtype2 + elevation*climate1
+
+visreg(model.NDT4, "climate1", by="climate2")
+visreg(model.NDT4, "climate1", by="elevation")
+visreg(model.NDT4, "climate1", by="live_stand_volume_125")
+
+visreg(model.NDT4, "climate2", by="climate1")
+
+visreg(model.NDT4, "proj_height_1")
+visreg(model.NDT4, "live_stand_volume_125", by="climate1")
+
+visreg(model.NDT4, "slope", by="aspect_cos")
+visreg(model.NDT4, "aspect_cos", by="slope")
+visreg(model.NDT4, "elevation", by="climate1")
+
+visreg(model.NDT4, "vegtype2")
+
+visreg(model.NDT4, "dist_infra")
+
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model.NDT4)
+
+#Or create a new blank table and get AUC too
+top_mod_table_NDT4_light_t_ALL <- data.frame (matrix (ncol = 20, nrow = 0))
+colnames (top_mod_table_NDT4_light_t_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_proj_height_1", "coef_live_stand_volume_125", "coef_slope", "coef_aspect_cos", "coef_elevation", "coef_dist_infra", "coef_vegtypeTC", "coef_vegtypeTM",  "coef_climate1:climate2", "coef_climate1:live_stand_volume_125", "coef_slope:aspect_cos", "coef_climate1:elevation", "AUC")
+```
+
+Let's run it 500 times to get good mean values.
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data
+  trainIndex <- createDataPartition(NDT4_t$fire_veg, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- NDT4_t[ trainIndex,]
+   Valid <- NDT4_t[-trainIndex,]
+   
+#Model   
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate1*live_stand_volume_125 + slope + aspect_cos + elevation + slope*aspect_cos + dist_infra + vegtype2 + elevation*climate1, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_NDT4_light_t <- data.frame (matrix (ncol = 20, nrow = 0))
+colnames (top_mod_table_NDT4_light_t ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_proj_height_1", "coef_live_stand_volume_125", "coef_slope", "coef_aspect_cos", "coef_elevation", "coef_dist_infra", "coef_vegtypeTC", "coef_vegtypeTM",  "coef_climate1:climate2", "coef_climate1:live_stand_volume_125", "coef_slope:aspect_cos", "coef_climate1:elevation", "AUC")
+
+##Add data for NDT4
+top_mod_table_NDT4_light_t[1,1]<-"lightning"
+top_mod_table_NDT4_light_t[1,2]<-"NDT4"
+top_mod_table_NDT4_light_t[1,3]<-"Y"
+top_mod_table_NDT4_light_t[1,4]<-"fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate1*live_stand_volume_125 + slope + aspect_cos + elevation + slope*aspect_cos + dist_infra + vegtype2 + elevation*climate1" 
+top_mod_table_NDT4_light_t[1,5]<- coef(model.NDT4)[1] #
+top_mod_table_NDT4_light_t[1,6]<- coef(model.NDT4)[2] #
+top_mod_table_NDT4_light_t[1,7]<- coef(model.NDT4)[3] #
+top_mod_table_NDT4_light_t[1,8]<- coef(model.NDT4)[4] #Int
+top_mod_table_NDT4_light_t[1,9]<- coef(model.NDT4)[5] #coef_
+top_mod_table_NDT4_light_t[1,10]<- coef(model.NDT4)[6] #
+top_mod_table_NDT4_light_t[1,11]<- coef(model.NDT4)[7] #d
+top_mod_table_NDT4_light_t[1,12]<- coef(model.NDT4)[8] #
+top_mod_table_NDT4_light_t[1,13]<- coef(model.NDT4)[9] #d
+top_mod_table_NDT4_light_t[1,14]<- coef(model.NDT4)[10] #dis
+top_mod_table_NDT4_light_t[1,15]<- coef(model.NDT4)[11] #coeffi
+top_mod_table_NDT4_light_t[1,16]<- coef(model.NDT4)[12] #coeffic
+top_mod_table_NDT4_light_t[1,17]<- coef(model.NDT4)[13] #coeffic
+top_mod_table_NDT4_light_t[1,18]<- coef(model.NDT4)[14] #coefficient
+top_mod_table_NDT4_light_t[1,19]<- coef(model.NDT4)[15] #coef
+top_mod_table_NDT4_light_t[1,20]<- mod.auc
+
+top_mod_table_NDT4_light_t_ALL<-rbind(top_mod_table_NDT4_light_t_ALL, top_mod_table_NDT4_light_t)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_NDT4_light_t_ALL)
+```
+
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table_NDT4_light_t_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT4_light_t_ALL_Jan.csv")
+```
+
+Get mean values.
+
+```{r}
+names(top_mod_table_NDT4_light_t_ALL)
+
+top_mod_table_NDT4_light_t_Means<-top_mod_table_NDT4_light_t_ALL %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table_NDT4_light_t_Means
+
+top_mod_table_NDT4_light_t_Means[1,1]<-"lightning"
+top_mod_table_NDT4_light_t_Means[1,2]<-"NDT4"
+top_mod_table_NDT4_light_t_Means[1,3]<-"Treed"
+top_mod_table_NDT4_light_t_Means[1,4]<- "fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate1*live_stand_volume_125 + slope + aspect_cos + elevation + slope*aspect_cos + dist_infra + vegtype2 + elevation*climate1" 
+top_mod_table_NDT4_light_t_Means
+```
+Save table.
+
+```{r}
+write.csv(top_mod_table_NDT4_light_t_Means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT4_light_t_Means_Jan.csv")
+```
+
+Standard deviation.
+
+```{r}
+top_mod_table_NDT4_light_t_SD<-top_mod_table_NDT4_light_t_ALL %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_NDT4_light_t_SD
+
+top_mod_table_NDT4_light_t_SD[1,1]<-"lightning"
+top_mod_table_NDT4_light_t_SD[1,2]<-"NDT4"
+top_mod_table_NDT4_light_t_SD[1,3]<-"Treed"
+top_mod_table_NDT4_light_t_SD[1,4]<-"fire_pres ~ climate1 + climate2 + climate1*climate2 + proj_height_1 + live_stand_volume_125 + climate1*live_stand_volume_125 + slope + aspect_cos + elevation + slope*aspect_cos + dist_infra + vegtype2 + elevation*climate1" 
+top_mod_table_NDT4_light_t_SD
+```
+
+Save sd coefficient table.
+
+```{r}
+write.csv(top_mod_table_NDT4_light_t_SD, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT4_light_t_SD_Jan.csv")
+```
+
 

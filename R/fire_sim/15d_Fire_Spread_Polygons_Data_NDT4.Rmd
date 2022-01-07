@@ -1,7 +1,7 @@
 ---
-title: "15c_Fire_Spread_Polygons_Data_NDT3"
+title: "15d_Fire_Spread_Polygons_Data_NDT4"
 author: "Cora Skaien"
-date: "24/11/2021"
+date: "25/11/2021"
 output: html_document
 ---
 
@@ -55,7 +55,7 @@ See the License for the specific language governing permissions and limitations 
 -->
 
 #=================================
-#  Script Name: 15c_Fire_Spread_Polygons_Data_NDT3.R
+#  Script Name: 15d_Fire_Spread_Polygons_Data_NDT4.R
 #  Script Version: 1.0
 #  Script Purpose: model selection for factors that dictate spread into cells (part of spread) by NDT.
 #  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
@@ -298,10 +298,10 @@ length(all.poss.mods.infra)
 
 Because of the large number of models with all variables included, we will test the separate combos first. Then we will test the top models together in additional combinations, with determining best AIC model from there. 
 
-Select NDT: NDT3
+Select NDT: NDT4
 
 ```{r}
-zones1<-c("NDT3") #Do one zone at a time
+zones1<-c("NDT4") #Do one zone at a time
 prop<-0.75
 
 ########### 1. VRI ############
@@ -354,7 +354,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.VRI <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.VRI$NDT<-c("NDT3")
+tab.sum.VRI$NDT<-c("NDT4")
 tab.sum.VRI 
 
 table.glm.VRI.simple<-rbind(table.glm.VRI.simple, tab.sum.VRI)
@@ -370,19 +370,19 @@ Now that we have run the model 100 times, we want the average AIC and AUC for ea
 head(table.glm.VRI.simple)
 table(table.glm.VRI.simple$model) # 100 per model
 
-AIC_NDT3_spread_VRI<-table.glm.VRI.simple
+AIC_NDT4_spread_VRI<-table.glm.VRI.simple
 
-AIC_NDT3_spread_summary_VRI<- AIC_NDT3_spread_VRI %>%
+AIC_NDT4_spread_summary_VRI<- AIC_NDT4_spread_VRI %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic),
             meanAUC=mean(auc.valid),
             sdAUC=sd(auc.valid),
             )
 
-AIC_NDT3_spread_summary_VRI2<- AIC_NDT3_spread_summary_VRI %>%
+AIC_NDT4_spread_summary_VRI2<- AIC_NDT4_spread_summary_VRI %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_NDT3_spread_summary_VRI2)
+head(AIC_NDT4_spread_summary_VRI2)
 ```
 
 #Now repeat for topography
@@ -441,7 +441,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.topo <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.topo$NDT<-c("NDT3")
+tab.sum.topo$NDT<-c("NDT4")
 tab.sum.topo 
 
 table.glm.topo.simple<-rbind(table.glm.topo.simple, tab.sum.topo)
@@ -457,19 +457,24 @@ Now that we have run the model 100 times, we want the average AIC and AUC for ea
 head(table.glm.topo.simple)
 table(table.glm.topo.simple$model) # 100 per model
 
-AIC_NDT3_spread_topo<-table.glm.topo.simple
+AIC_NDT4_spread_topo<-table.glm.topo.simple
 
-AIC_NDT3_spread_summary_topo<- AIC_NDT3_spread_topo %>%
+AIC_NDT4_spread_summary_topo<- AIC_NDT4_spread_topo %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic),
             meanAUC=mean(auc.valid),
             sdAUC=sd(auc.valid),
             )
 
-AIC_NDT3_spread_summary_topo2<- AIC_NDT3_spread_summary_topo %>%
+AIC_NDT4_spread_summary_topo2<- AIC_NDT4_spread_summary_topo %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_NDT3_spread_summary_topo2)
+head(AIC_NDT4_spread_summary_topo2)
+```
+If want to save the above:
+
+```{r}
+write.csv(AIC_NDT4_spread_summary_topo2, file="D:\\Fire\\fire_data\\raw_data\\AIC_NDT4_spread_poly_summary_topo2.csv")
 ```
 
 
@@ -556,7 +561,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -595,7 +600,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -643,7 +648,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -683,7 +688,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -723,7 +728,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -763,7 +768,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -810,7 +815,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -850,7 +855,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -895,7 +900,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -934,7 +939,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -980,7 +985,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -1020,7 +1025,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -1064,7 +1069,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -1103,7 +1108,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -1148,7 +1153,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -1187,7 +1192,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -1226,7 +1231,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -1272,7 +1277,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -1311,7 +1316,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -1350,7 +1355,7 @@ x4.1 <- unlist(sapply(mods.fit, '[', 4))
 x4.1
 #combining all as df
 tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-tab.sum.infra$NDT<-c("NDT3")
+tab.sum.infra$NDT<-c("NDT4")
 tab.sum.infra 
 
 table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
@@ -1360,7 +1365,7 @@ table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
 
 #Save in case computer restarts
 ```{r}
-write.csv(table.glm.infra.simple, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\table.glm.infra.spread_poly_NDT3.csv")
+write.csv(table.glm.infra.simple, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\table.glm.infra.spread_poly_NDT4.csv")
 ```
 
 
@@ -1387,51 +1392,51 @@ Now that we have run the model at least 3 times, we want the average AIC and AUC
 head(table.glm.infra.simple)
 table(table.glm.infra.simple$model) # 100 per model
 
-AIC_NDT3_spread_infra<-table.glm.infra.simple
+AIC_NDT4_spread_infra<-table.glm.infra.simple
 
-AIC_NDT3_spread_summary_infra<- AIC_NDT3_spread_infra %>%
+AIC_NDT4_spread_summary_infra<- AIC_NDT4_spread_infra %>%
   group_by(model) %>%
   summarise(meanAIC=mean(aic),
             meanAUC=mean(auc.valid),
             sdAUC=sd(auc.valid),
             )
 
-AIC_NDT3_spread_summary_infra2<- AIC_NDT3_spread_summary_infra %>%
+AIC_NDT4_spread_summary_infra2<- AIC_NDT4_spread_summary_infra %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
-head(AIC_NDT3_spread_summary_infra2)
+head(AIC_NDT4_spread_summary_infra2)
 
 ```
 
 #Now combine the datatables and save to computer
 
 ```{r}
-NDT3_l_spread_models_treed<-rbind(AIC_NDT3_spread_summary_VRI2, AIC_NDT3_spread_summary_topo2, AIC_NDT3_spread_summary_infra2)
-NDT3_l_spread_models_treed
-NDT3_l_spread_models_treed$NDT<-"NDT3"
+NDT4_l_spread_models_treed<-rbind(AIC_NDT4_spread_summary_VRI2, AIC_NDT4_spread_summary_topo2, AIC_NDT4_spread_summary_infra2)
+NDT4_l_spread_models_treed
+NDT4_l_spread_models_treed$NDT<-"NDT4"
 
 #or if did not do infrastructure
-NDT3_l_spread_models_treed<-rbind(AIC_NDT3_spread_summary_VRI2, AIC_NDT3_spread_summary_topo2)
-NDT3_l_spread_models_treed
-NDT3_l_spread_models_treed$NDT<-"NDT3"
+NDT4_l_spread_models_treed<-rbind(AIC_NDT4_spread_summary_VRI2, AIC_NDT4_spread_summary_topo2)
+NDT4_l_spread_models_treed
+NDT4_l_spread_models_treed$NDT<-"NDT4"
 
-write.csv(NDT3_l_spread_models_treed, file="D:\\Fire\\fire_data\\raw_data\\NDT3_spread_models_polygon.csv")
+write.csv(NDT4_l_spread_models_treed, file="D:\\Fire\\fire_data\\raw_data\\NDT4_spread_models_polygon.csv")
 
 #Or if only have topography since VRI will not be used (too much lost data from non-treed locations)
-AIC_NDT3_spread_summary_topo2$NDT<-"NDT3"
+AIC_NDT4_spread_summary_topo2$NDT<-"NDT4"
 
-write.csv(AIC_NDT3_spread_summary_topo2, file="D:\\Fire\\fire_data\\raw_data\\NDT3_spread_TOPOmodels_polygon.csv")
+write.csv(AIC_NDT4_spread_summary_topo2, file="D:\\Fire\\fire_data\\raw_data\\NDT4_spread_TOPOmodels_polygon.csv")
 
 ```
 
 
 ```{r}
-write.csv(AIC_NDT3_spread_summary_VRI2, file="D:\\Fire\\fire_data\\raw_data\\NDT3_spread_TOPOmodels_polygon.csv")
+write.csv(AIC_NDT4_spread_summary_VRI2, file="D:\\Fire\\fire_data\\raw_data\\NDT4_spread_TOPOmodels_polygon.csv")
 
 ```
 
 
-############# START HERE FOR NDT3 ##################
+############# START HERE FOR NDT4 ##################
 
 ################################ STAGE TWO ########################
 
@@ -1445,64 +1450,51 @@ Top Models:
 
 
 ```{r}
-spread_poly_NDT3<-subset(fire_spread_veg_data_df, fire_spread_veg_data_df$ntrldstrbn=="NDT3")
-head(spread_poly_NDT3) #Lots of NAs in some variables (e.g., vegtype2, bclcs_level_2, bclcs_level_5_2)
+spread_poly_NDT4<-subset(fire_spread_veg_data_df, fire_spread_veg_data_df$ntrldstrbn=="NDT4")
+head(spread_poly_NDT4) #Lots of NAs in some variables (e.g., vegtype2, bclcs_level_2, bclcs_level_5_2)
 
 #Divide data into training and valid
 prop<-0.75
 # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(spread_poly_NDT3$spread_bclcs5, p = prop,
+  trainIndex <- createDataPartition(spread_poly_NDT4$spread_bclcs5, p = prop,
                                     list = FALSE,
                                     times = 1)
   
-   dat1 <- spread_poly_NDT3[ trainIndex,]
-   Valid <- spread_poly_NDT3[-trainIndex,]
+   dat1 <- spread_poly_NDT4[ trainIndex,]
+   Valid <- spread_poly_NDT4[-trainIndex,]
 
 #Run model using dat1
-model.NDT3.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2, family = binomial, data = dat1)
+model.NDT4.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2, family = binomial, data = dat1)
 
-AIC(model.NDT3.S) #700101.7
-#summary(model.NDT3.S)
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model.NDT3.S, newdata=Valid, type="response") #
-   roc_obj <- roc(Valid[,"spread"], mod.valid)
-   mod.auc <- auc(roc_obj)
-   mod.auc #0.63
-   
-#Anova(model.NDT3.S, type=3)
-Anova(model.NDT3.S, type=3, singular.ok = TRUE)
-
-
-#Remove bclcs_2 because similar to vegtype
-model.NDT3.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2, family = binomial, data = dat1)
-
-AIC(model.NDT3.S) #701307.6
-#summary(model.NDT3.S)
+AIC(model.NDT4.S) #158696.3
+#summary(model.NDT4.S)
 
 #Determine AUC of full model
-mod.valid <- predict.glm(model.NDT3.S, newdata=Valid, type="response") #
-   roc_obj <- roc(Valid[,"spread"], mod.valid)
-   mod.auc <- auc(roc_obj)
-   mod.auc #0.67
-   
-#Anova(model.NDT3.S, type=3)
-Anova(model.NDT3.S, type=3, singular.ok = TRUE)
-
-# all are significant, but I suspect because so many datapoints. Try removing interactions and compare.
-model.NDT3.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + dist_mine:roads_km + vegtype2, family = binomial, data = dat1)
-
-AIC(model.NDT3.S) #705404.5
-#summary(model.NDT3.S)
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model.NDT3.S, newdata=Valid, type="response") #
+mod.valid <- predict.glm(model.NDT4.S, newdata=Valid, type="response") #
    roc_obj <- roc(Valid[,"spread"], mod.valid)
    mod.auc <- auc(roc_obj)
    mod.auc #0.66
    
-#Anova(model.NDT3.S, type=3)
-Anova(model.NDT3.S, type=3, singular.ok = TRUE)
+#Anova(model.NDT4.S, type=3)
+Anova(model.NDT4.S, type=3, singular.ok = TRUE)
+
+
+#All variables significant, but lots of model slowness
+
+# all are significant, but I suspect because so many datapoints. Try removing interactions and compare.
+model.NDT4.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + dist_mine:roads_km + vegtype2, family = binomial, data = dat1)
+
+AIC(model.NDT4.S) #159480.2
+#summary(model.NDT4.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT4.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.72
+   
+#Anova(model.NDT4.S, type=3)
+Anova(model.NDT4.S, type=3, singular.ok = TRUE)
 
 ```
 
@@ -1510,63 +1502,63 @@ Remove NAs and run multiple times.
 
 ```{r}
 #Remove NAs to ensure all same data used so we can compare AICs
-NDT3_spread<-spread_poly_NDT3 %>% drop_na(slope, aspect_cos, elev, dist_mun, dist_dam, dist_nat, dist_pow, dist_mine, roads_km, bclcs_level_5_2, vegtype2) #766546 data points
+NDT4_spread<-spread_poly_NDT4 %>% drop_na(slope, aspect_cos, elev, dist_mun, dist_dam, dist_nat, dist_pow, dist_mine, roads_km, bclcs_level_5_2, vegtype2) #766546 data points
 
 #Run Model again with this data; but uses all data here
-model.NDT3.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + dist_mine:roads_km + vegtype2, family = binomial, data = NDT3_spread)
+model.NDT4.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + dist_mine:roads_km + vegtype2, family = binomial, data = NDT4_spread)
 
-#Anova(model.NDT3.S, type=3)
-Anova(model.NDT3.S, type=3, singular.ok = TRUE)
+#Anova(model.NDT4.S, type=3)
+Anova(model.NDT4.S, type=3, singular.ok = TRUE)
 
 # model diagnostic plots
-binnedplot (fitted(model.NDT3.S), 
-            residuals(model.NDT3.S), 
+binnedplot (fitted(model.NDT4.S), 
+            residuals(model.NDT4.S), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm", i))
 
-NDT3_spread$resids<-resid(model.NDT3.S)
+NDT4_spread$resids<-resid(model.NDT4.S)
 
 # Diagnostic plots 
 #slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + dist_mine:roads_km + vegtype2
 
-visreg(model.NDT3.S, "slope", by="aspect_cos")
-visreg(model.NDT3.S, "slope", by="elev")
+visreg(model.NDT4.S, "slope", by="aspect_cos")
+visreg(model.NDT4.S, "slope", by="elev")
 
-visreg(model.NDT3.S, "elev", by="aspect_cos")
-visreg(model.NDT3.S, "elev", by="slope")
+visreg(model.NDT4.S, "elev", by="aspect_cos")
+visreg(model.NDT4.S, "elev", by="slope")
 
-visreg(model.NDT3.S, "aspect_cos", by="slope")
-visreg(model.NDT3.S, "aspect_cos", by="elev")
+visreg(model.NDT4.S, "aspect_cos", by="slope")
+visreg(model.NDT4.S, "aspect_cos", by="elev")
 
 #dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + dist_mine:roads_km
-visreg(model.NDT3.S, "dist_mun", by="roads_km")
-visreg(model.NDT3.S, "dist_dam", by="roads_km")
-visreg(model.NDT3.S, "dist_nat", by="roads_km")
-visreg(model.NDT3.S, "dist_pow", by="roads_km")
-visreg(model.NDT3.S, "dist_mine", by="roads_km")
+visreg(model.NDT4.S, "dist_mun", by="roads_km")
+visreg(model.NDT4.S, "dist_dam", by="roads_km")
+visreg(model.NDT4.S, "dist_nat", by="roads_km")
+visreg(model.NDT4.S, "dist_pow", by="roads_km")
+visreg(model.NDT4.S, "dist_mine", by="roads_km")
 
-visreg(model.NDT3.S, "bclcs_level_5_2") 
+visreg(model.NDT4.S, "bclcs_level_5_2") 
 
-visreg(model.NDT3.S, "roads_km", by="dist_mun")
-visreg(model.NDT3.S, "roads_km", by="dist_dam")
-visreg(model.NDT3.S, "roads_km", by="dist_nat")
-visreg(model.NDT3.S, "roads_km", by="dist_pow")
-visreg(model.NDT3.S, "roads_km", by="dist_mine")
+visreg(model.NDT4.S, "roads_km", by="dist_mun")
+visreg(model.NDT4.S, "roads_km", by="dist_dam")
+visreg(model.NDT4.S, "roads_km", by="dist_nat")
+visreg(model.NDT4.S, "roads_km", by="dist_pow")
+visreg(model.NDT4.S, "roads_km", by="dist_mine")
 
 #vegtype2 
-visreg(model.NDT3.S, "vegtype2") 
+visreg(model.NDT4.S, "vegtype2") 
 ```
 
 We should repeat the above several times and take the mean of the coefficients.
 
 ```{r}
-summary(model.NDT3.S)
+summary(model.NDT4.S)
 
 #Create a new blank table and get AUC too
-top_mod_table_NDT3_spread_poly <- data.frame (matrix (ncol = 37, nrow = 0))
-colnames (top_mod_table_NDT3_spread_poly ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_pow",  "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2BU", "coef_bclcs_level_5_2DE", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SOIL", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2UR", "coef_bclcs_level_5_2WATER", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_slope:aspect_cos", "coef_slope:elev", "coef_aspect_cos:elev", "coef_dist_mun:roads_km", "coef_dist_nat:roads_km", "coef_dist_pow:roads_km", "coef_dist_mine:roads_km", "AUC")
+top_mod_table_NDT4_spread_poly <- data.frame (matrix (ncol = 37, nrow = 0))
+colnames (top_mod_table_NDT4_spread_poly ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_pow",  "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2BU", "coef_bclcs_level_5_2DE", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SOIL", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2UR", "coef_bclcs_level_5_2WATER", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_slope:aspect_cos", "coef_slope:elev", "coef_aspect_cos:elev", "coef_dist_mun:roads_km", "coef_dist_nat:roads_km", "coef_dist_pow:roads_km", "coef_dist_mine:roads_km", "AUC")
 ```
 
 Let's run it 500 times to get good mean values.
@@ -1577,64 +1569,64 @@ for (g in 1:500){
 
 prop<-0.75
 # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(NDT3_spread$spread_bclcs5, p = prop,
+  trainIndex <- createDataPartition(NDT4_spread$spread_bclcs5, p = prop,
                                     list = FALSE,
                                     times = 1)
   
-   dat1 <- NDT3_spread[ trainIndex,]
-   Valid <- NDT3_spread[-trainIndex,]
+   dat1 <- NDT4_spread[ trainIndex,]
+   Valid <- NDT4_spread[-trainIndex,]
    
 #Model   
-model.NDT3.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + dist_mine:roads_km + vegtype2, family = binomial, data = dat1) 
+model.NDT4.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + dist_mine:roads_km + vegtype2, family = binomial, data = dat1) 
 
-mod.valid <- predict.glm(model.NDT3.S, newdata=Valid, type="response")
+mod.valid <- predict.glm(model.NDT4.S, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"spread"], mod.valid)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_NDT3_spread <- data.frame (matrix (ncol = 37, nrow = 0))
-colnames (top_mod_table_NDT3_spread ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_pow",  "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2BU", "coef_bclcs_level_5_2DE", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SOIL", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2UR", "coef_bclcs_level_5_2WATER", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_slope:aspect_cos", "coef_slope:elev", "coef_aspect_cos:elev", "coef_dist_mun:roads_km", "coef_dist_nat:roads_km", "coef_dist_pow:roads_km", "coef_dist_mine:roads_km", "AUC")
+top_mod_table_NDT4_spread <- data.frame (matrix (ncol = 37, nrow = 0))
+colnames (top_mod_table_NDT4_spread ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_mun", "coef_dist_dam", "coef_dist_nat", "coef_dist_pow",  "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2BU", "coef_bclcs_level_5_2DE", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SOIL", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2UR", "coef_bclcs_level_5_2WATER", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_slope:aspect_cos", "coef_slope:elev", "coef_aspect_cos:elev", "coef_dist_mun:roads_km", "coef_dist_nat:roads_km", "coef_dist_pow:roads_km", "coef_dist_mine:roads_km", "AUC")
 
-##Add data for NDT3
-top_mod_table_NDT3_spread[1,1]<-"lightning or person (ALL)"
-top_mod_table_NDT3_spread[1,2]<-"NDT3"
-top_mod_table_NDT3_spread[1,3]<-"ALL Treed and not treed"
-top_mod_table_NDT3_spread[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + dist_mine:roads_km + vegtype2" 
-top_mod_table_NDT3_spread[1,5]<- coef(model.NDT3.S)[1] #Intercept
-top_mod_table_NDT3_spread[1,6]<- coef(model.NDT3.S)[2] #
-top_mod_table_NDT3_spread[1,7]<- coef(model.NDT3.S)[3] #
-top_mod_table_NDT3_spread[1,8]<- coef(model.NDT3.S)[4] #
-top_mod_table_NDT3_spread[1,9]<- coef(model.NDT3.S)[5] #
-top_mod_table_NDT3_spread[1,10]<- coef(model.NDT3.S)[6] #
-top_mod_table_NDT3_spread[1,11]<- coef(model.NDT3.S)[7] 
-top_mod_table_NDT3_spread[1,12]<- coef(model.NDT3.S)[8] #
-top_mod_table_NDT3_spread[1,13]<- coef(model.NDT3.S)[9] #
-top_mod_table_NDT3_spread[1,14]<- coef(model.NDT3.S)[10] #
-top_mod_table_NDT3_spread[1,15]<- coef(model.NDT3.S)[11] #
-top_mod_table_NDT3_spread[1,16]<- coef(model.NDT3.S)[12] #
-top_mod_table_NDT3_spread[1,17]<- coef(model.NDT3.S)[13] #
-top_mod_table_NDT3_spread[1,18]<- coef(model.NDT3.S)[14] #
-top_mod_table_NDT3_spread[1,19]<- coef(model.NDT3.S)[15] #
-top_mod_table_NDT3_spread[1,20]<- coef(model.NDT3.S)[16] # 
-top_mod_table_NDT3_spread[1,21]<- coef(model.NDT3.S)[17] #  
-top_mod_table_NDT3_spread[1,22]<- coef(model.NDT3.S)[18] #
-top_mod_table_NDT3_spread[1,23]<- coef(model.NDT3.S)[19] #
-top_mod_table_NDT3_spread[1,24]<- coef(model.NDT3.S)[20] #
-top_mod_table_NDT3_spread[1,25]<- coef(model.NDT3.S)[21] #
-top_mod_table_NDT3_spread[1,26]<- coef(model.NDT3.S)[22] #
-top_mod_table_NDT3_spread[1,27]<- coef(model.NDT3.S)[23] #
-top_mod_table_NDT3_spread[1,28]<- coef(model.NDT3.S)[24] #
-top_mod_table_NDT3_spread[1,29]<- coef(model.NDT3.S)[25] #
-top_mod_table_NDT3_spread[1,30]<- coef(model.NDT3.S)[26] #
-top_mod_table_NDT3_spread[1,31]<- coef(model.NDT3.S)[27] #
-top_mod_table_NDT3_spread[1,32]<- coef(model.NDT3.S)[28] #
-top_mod_table_NDT3_spread[1,33]<- coef(model.NDT3.S)[29] #
-top_mod_table_NDT3_spread[1,34]<- coef(model.NDT3.S)[30] #
-top_mod_table_NDT3_spread[1,35]<- coef(model.NDT3.S)[31] #
-top_mod_table_NDT3_spread[1,36]<- coef(model.NDT3.S)[32] #
-top_mod_table_NDT3_spread[1,37]<- mod.auc
+##Add data for NDT4
+top_mod_table_NDT4_spread[1,1]<-"lightning or person (ALL)"
+top_mod_table_NDT4_spread[1,2]<-"NDT4"
+top_mod_table_NDT4_spread[1,3]<-"ALL Treed and not treed"
+top_mod_table_NDT4_spread[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + dist_mine:roads_km + vegtype2" 
+top_mod_table_NDT4_spread[1,5]<- coef(model.NDT4.S)[1] #Intercept
+top_mod_table_NDT4_spread[1,6]<- coef(model.NDT4.S)[2] #
+top_mod_table_NDT4_spread[1,7]<- coef(model.NDT4.S)[3] #
+top_mod_table_NDT4_spread[1,8]<- coef(model.NDT4.S)[4] #
+top_mod_table_NDT4_spread[1,9]<- coef(model.NDT4.S)[5] #
+top_mod_table_NDT4_spread[1,10]<- coef(model.NDT4.S)[6] #
+top_mod_table_NDT4_spread[1,11]<- coef(model.NDT4.S)[7] 
+top_mod_table_NDT4_spread[1,12]<- coef(model.NDT4.S)[8] #
+top_mod_table_NDT4_spread[1,13]<- coef(model.NDT4.S)[9] #
+top_mod_table_NDT4_spread[1,14]<- coef(model.NDT4.S)[10] #
+top_mod_table_NDT4_spread[1,15]<- coef(model.NDT4.S)[11] #
+top_mod_table_NDT4_spread[1,16]<- coef(model.NDT4.S)[12] #
+top_mod_table_NDT4_spread[1,17]<- coef(model.NDT4.S)[13] #
+top_mod_table_NDT4_spread[1,18]<- coef(model.NDT4.S)[14] #
+top_mod_table_NDT4_spread[1,19]<- coef(model.NDT4.S)[15] #
+top_mod_table_NDT4_spread[1,20]<- coef(model.NDT4.S)[16] # 
+top_mod_table_NDT4_spread[1,21]<- coef(model.NDT4.S)[17] #  
+top_mod_table_NDT4_spread[1,22]<- coef(model.NDT4.S)[18] #
+top_mod_table_NDT4_spread[1,23]<- coef(model.NDT4.S)[19] #
+top_mod_table_NDT4_spread[1,24]<- coef(model.NDT4.S)[20] #
+top_mod_table_NDT4_spread[1,25]<- coef(model.NDT4.S)[21] #
+top_mod_table_NDT4_spread[1,26]<- coef(model.NDT4.S)[22] #
+top_mod_table_NDT4_spread[1,27]<- coef(model.NDT4.S)[23] #
+top_mod_table_NDT4_spread[1,28]<- coef(model.NDT4.S)[24] #
+top_mod_table_NDT4_spread[1,29]<- coef(model.NDT4.S)[25] #
+top_mod_table_NDT4_spread[1,30]<- coef(model.NDT4.S)[26] #
+top_mod_table_NDT4_spread[1,31]<- coef(model.NDT4.S)[27] #
+top_mod_table_NDT4_spread[1,32]<- coef(model.NDT4.S)[28] #
+top_mod_table_NDT4_spread[1,33]<- coef(model.NDT4.S)[29] #
+top_mod_table_NDT4_spread[1,34]<- coef(model.NDT4.S)[30] #
+top_mod_table_NDT4_spread[1,35]<- coef(model.NDT4.S)[31] #
+top_mod_table_NDT4_spread[1,36]<- coef(model.NDT4.S)[32] #
+top_mod_table_NDT4_spread[1,37]<- mod.auc
 
-top_mod_table_NDT3_spread_poly<-rbind(top_mod_table_NDT3_spread_poly, top_mod_table_NDT3_spread)
+top_mod_table_NDT4_spread_poly<-rbind(top_mod_table_NDT4_spread_poly, top_mod_table_NDT4_spread)
 
 }
 
@@ -1642,53 +1634,52 @@ top_mod_table_NDT3_spread_poly<-rbind(top_mod_table_NDT3_spread_poly, top_mod_ta
 
 Check.
 ```{r}
-head(top_mod_table_NDT3_spread_poly)
+head(top_mod_table_NDT4_spread_poly)
 ```
 
 #Save coefficient table
 
 ```{r}
-write.csv(top_mod_table_NDT3_spread_poly, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT3_spread_poly_all_.csv")
+write.csv(top_mod_table_NDT4_spread_poly, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT4_spread_poly_all_.csv")
 ```
 
 ```{r}
-names(top_mod_table_NDT3_spread_poly)
-#colMeans(top_mod_table_NDT3_spread_poly[5:30])
-#sapply(top_mod_table_NDT3_spread_poly,mean, na.rm = T)
-#lapply(top_mod_table_NDT3_spread_poly,mean, na.rm = T)
+names(top_mod_table_NDT4_spread_poly)
+#colMeans(top_mod_table_NDT4_spread_poly[5:30])
+#sapply(top_mod_table_NDT4_spread_poly,mean, na.rm = T)
+#lapply(top_mod_table_NDT4_spread_poly,mean, na.rm = T)
 
-top_mod_table_NDT3_spread_poly_means<-top_mod_table_NDT3_spread_poly %>% summarise_each(funs( mean( .,na.rm = TRUE)))
-top_mod_table_NDT3_spread_poly_means
+top_mod_table_NDT4_spread_poly_means<-top_mod_table_NDT4_spread_poly %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table_NDT4_spread_poly_means
 
-top_mod_table_NDT3_spread_poly_means[1,1]<-"lightning or person (ALL)"
-top_mod_table_NDT3_spread_poly_means[1,2]<-"NDT3"
-top_mod_table_NDT3_spread_poly_means[1,3]<-"ALL Treed and not treed"
-top_mod_table_NDT3_spread_poly_means[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + dist_mine:roads_km + vegtype2" 
-top_mod_table_NDT3_spread_poly_means
+top_mod_table_NDT4_spread_poly_means[1,1]<-"lightning or person (ALL)"
+top_mod_table_NDT4_spread_poly_means[1,2]<-"NDT4"
+top_mod_table_NDT4_spread_poly_means[1,3]<-"ALL Treed and not treed"
+top_mod_table_NDT4_spread_poly_means[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + dist_mine:roads_km + vegtype2" 
+top_mod_table_NDT4_spread_poly_means
 ```
 Save table.
 
 ```{r}
-write.csv(top_mod_table_NDT3_spread_poly_means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT3_spread_poly_means.csv")
+write.csv(top_mod_table_NDT4_spread_poly_means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT4_spread_poly_means.csv")
 ```
 
 Standard deviation.
 
 ```{r}
-top_mod_table_NDT3_spread_poly_sd<-top_mod_table_NDT3_spread_poly %>% summarise_each(funs( sd( .,na.rm = TRUE)))
-top_mod_table_NDT3_spread_poly_sd
+top_mod_table_NDT4_spread_poly_sd<-top_mod_table_NDT4_spread_poly %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_NDT4_spread_poly_sd
 
-top_mod_table_NDT3_spread_poly_sd[1,1]<-"lightning or person (ALL)"
-top_mod_table_NDT3_spread_poly_sd[1,2]<-"NDT3"
-top_mod_table_NDT3_spread_poly_sd[1,3]<-"ALL Treed and not treed"
-top_mod_table_NDT3_spread_poly_sd[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + dist_mine:roads_km + vegtype2" 
-top_mod_table_NDT3_spread_poly_sd
+top_mod_table_NDT4_spread_poly_sd[1,1]<-"lightning or person (ALL)"
+top_mod_table_NDT4_spread_poly_sd[1,2]<-"NDT4"
+top_mod_table_NDT4_spread_poly_sd[1,3]<-"ALL Treed and not treed"
+top_mod_table_NDT4_spread_poly_sd[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + dist_mine:roads_km + vegtype2" 
+top_mod_table_NDT4_spread_poly_sd
 ```
 
 Save sd coefficient table.
 
 ```{r}
-write.csv(top_mod_table_NDT3_spread_poly_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT3_spread_poly_sd.csv")
+write.csv(top_mod_table_NDT4_spread_poly_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT4_spread_poly_sd.csv")
 ```
-
 

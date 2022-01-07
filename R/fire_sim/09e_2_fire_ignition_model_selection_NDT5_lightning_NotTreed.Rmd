@@ -1144,3 +1144,269 @@ top_mod_table_NDT5_light_nt_SD
 write.csv(top_mod_table_NDT5_light_nt_SD, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT5_light_nt_SD.csv")
 ```
 
+#Repeat aboce with condensed variables
+
+```{r}
+dat_lightning_nt_NDT5<-subset(dat_lightning_nt, dat_lightning_nt$ntrl_ds=="NDT5")
+
+#Divide data into training and valid
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(dat_lightning_nt_NDT5$fire_veg, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- dat_lightning_nt_NDT5[ trainIndex,]
+   Valid <- dat_lightning_nt_NDT5[-trainIndex,]
+
+#Run model using dat1
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + aspect_cos + slope:elevation + dist_infra + climate1:elevation + climate2:elevation,  family = binomial, data = dat1)
+
+AIC(model.NDT5) #114.8
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.69
+   
+Anova(model.NDT5, type=3)
+#Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + aspect_cos + slope:elevation + dist_infra + climate2:elevation,  family = binomial, data = dat1)
+
+AIC(model.NDT5) #112.8
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.68
+   
+Anova(model.NDT5, type=3)
+#Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + aspect_cos + dist_infra + climate2:elevation,  family = binomial, data = dat1)
+
+AIC(model.NDT5) #110.8
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.67
+   
+Anova(model.NDT5, type=3)
+#Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + aspect_cos + dist_infra + climate2:elevation,  family = binomial, data = dat1)
+
+AIC(model.NDT5) #109.1
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.70
+   
+Anova(model.NDT5, type=3)
+#Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + aspect_cos + climate2:elevation,  family = binomial, data = dat1)
+
+AIC(model.NDT5) #107.1`
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.71
+   
+Anova(model.NDT5, type=3)
+#Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2 + slope + elevation + climate2:elevation,  family = binomial, data = dat1)
+
+AIC(model.NDT5) #105.2
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.72
+   
+Anova(model.NDT5, type=3)
+#Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2  + elevation + climate2:elevation,  family = binomial, data = dat1)
+
+AIC(model.NDT5) #103.2
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.71
+   
+Anova(model.NDT5, type=3)
+#Anova(model.NDT5, type=3, singular.ok = TRUE)
+```
+Remove NAs and tun multiple times.
+
+```{r}
+#Remove NAs to ensure all same data used so we can compare AIC_nts
+NDT5_nt<-dat_lightning_nt_NDT5 %>% drop_na(climate1, climate2, vegtype2, elevation)
+
+#Run Model again with this data; but uses all data here
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2  + elevation + climate2:elevation, family = binomial, data = NDT5_nt)
+
+Anova(model.NDT5, type=3)
+#Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+# model diagnostic plots
+binnedplot (fitted(model.NDT5), 
+            residuals(model.NDT5), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+
+NDT5_nt$resids<-resid(model.NDT5)
+
+binnedplot (NDT5_nt$climate1, 
+            NDT5_nt$resids, 
+            nclass = NULL, 
+            xlab ="", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+# Diagnostic plots look... ok. Small sample size.
+
+#Partial residuals
+#climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2  + elevation + climate2:elevation
+visreg(model.NDT5, "climate1", by="vegtype2", overlay=TRUE)
+visreg(model.NDT5, "climate2", by="vegtype2", overlay=TRUE)
+visreg(model.NDT5, "climate2", by="elevation")
+
+visreg(model.NDT5, "vegtype2", by="climate1")
+visreg(model.NDT5, "vegtype2", by="climate2")
+
+visreg(model.NDT5, "elevation", by="climate2")
+
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model.NDT5)
+
+#Create a new blank table and get AUC too
+top_mod_table_NDT5_light_nt_ALL <- data.frame (matrix (ncol = 13, nrow = 0))
+colnames (top_mod_table_NDT5_light_nt_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtypeS", "coef_elevation", "coef_climate1:vegtype2S", "coef_climate2:vegtype2S", "coef_climate2:elevation", "AUC")
+```
+
+Let's run it 500 times to get good mean values.
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(NDT5_nt$fire_veg, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- NDT5_nt[ trainIndex,]
+   Valid <- NDT5_nt[-trainIndex,]
+   
+#Model   
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2  + elevation + climate2:elevation, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_NDT5_light_nt <- data.frame (matrix (ncol = 13, nrow = 0))
+colnames (top_mod_table_NDT5_light_nt ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtypeS", "coef_elevation", "coef_climate1:vegtype2S", "coef_climate2:vegtype2S", "coef_climate2:elevation", "AUC")
+
+##Add data for NDT5
+top_mod_table_NDT5_light_nt[1,1]<-"lightning"
+top_mod_table_NDT5_light_nt[1,2]<-"NDT5"
+top_mod_table_NDT5_light_nt[1,3]<-"N"
+top_mod_table_NDT5_light_nt[1,4]<-"fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2  + elevation + climate2:elevation" 
+top_mod_table_NDT5_light_nt[1,5]<- coef(model.NDT5)[1] #Intercept
+top_mod_table_NDT5_light_nt[1,6]<- coef(model.NDT5)[2] #Climate variable 1
+top_mod_table_NDT5_light_nt[1,7]<- coef(model.NDT5)[3] #climate2
+top_mod_table_NDT5_light_nt[1,8]<- coef(model.NDT5)[4] #vegtype2S
+top_mod_table_NDT5_light_nt[1,9]<- coef(model.NDT5)[5] #coefficient elevation
+top_mod_table_NDT5_light_nt[1,10]<- coef(model.NDT5)[6] #coefficie
+top_mod_table_NDT5_light_nt[1,11]<- coef(model.NDT5)[7] #coeffi
+top_mod_table_NDT5_light_nt[1,12]<- coef(model.NDT5)[8] #climate1:climate2
+top_mod_table_NDT5_light_nt[1,13]<- mod.auc
+
+top_mod_table_NDT5_light_nt_ALL<-rbind(top_mod_table_NDT5_light_nt_ALL, top_mod_table_NDT5_light_nt)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_NDT5_light_nt_ALL)
+
+```
+
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table_NDT5_light_nt_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT5_light_nt_ALL_Jan.csv")
+```
+
+Get mean values.
+
+```{r}
+names(top_mod_table_NDT5_light_nt_ALL)
+mean(top_mod_table_NDT5_light_nt_ALL$AUC) #0.71
+
+top_mod_table_NDT5_light_nt_Means<-top_mod_table_NDT5_light_nt_ALL %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table_NDT5_light_nt_Means
+
+top_mod_table_NDT5_light_nt_Means[1,1]<-"lightning"
+top_mod_table_NDT5_light_nt_Means[1,2]<-"NDT5"
+top_mod_table_NDT5_light_nt_Means[1,3]<-"Not treed"
+top_mod_table_NDT5_light_nt_Means[1,4]<- "fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2  + elevation + climate2:elevation" 
+top_mod_table_NDT5_light_nt_Means
+```
+
+Save mean coefficient table.
+
+```{r}
+write.csv(top_mod_table_NDT5_light_nt_Means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT5_light_nt_Means_Jan.csv")
+```
+
+Standard deviation.
+
+```{r}
+top_mod_table_NDT5_light_nt_SD<-top_mod_table_NDT5_light_nt_ALL %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_NDT5_light_nt_SD
+
+top_mod_table_NDT5_light_nt_SD[1,1]<-"lightning"
+top_mod_table_NDT5_light_nt_SD[1,2]<-"NDT5"
+top_mod_table_NDT5_light_nt_SD[1,3]<-"Not treed"
+top_mod_table_NDT5_light_nt_SD[1,4]<-"fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2  + elevation + climate2:elevation" 
+top_mod_table_NDT5_light_nt_SD
+```
+
+```{r}
+write.csv(top_mod_table_NDT5_light_nt_SD, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT5_light_nt_SD_Jan.csv")
+```
+

@@ -1056,3 +1056,7 @@ Save sd coefficient table.
 ```{r}
 write.csv(top_mod_table_NDT4_ignite_person_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT4_ignite_person_sd.csv")
 ```
+
+
+#Repeat above with reduced variables
+

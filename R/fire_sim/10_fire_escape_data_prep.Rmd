@@ -182,7 +182,7 @@ hist(dat_lightning_escape_2$wind_atfire)
 
 ```
 
-Inspect probability of escape by MDC
+Inspect probability of escape by MDC.
 
 ```{r}
 hist(dat_lightning_escape$mdc_atfire)
@@ -365,3 +365,72 @@ write.csv(dat_person_escape_2, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\e
 ```
 
 Data preparations are now complete. Move on to model selection.
+
+## December 2021
+Bring files back in and change so that all NAs in non-treed polygons become 0 for age, height and volume. 
+
+Load files in.
+```{r}
+dat_lightning_escape_2<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_Oct.csv")
+
+dat_person_escape_2<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_Oct.csv")
+```
+
+For polygons that are not treed, replace NA values with 0 for age, height and volume.
+
+```{r}
+table(dat_lightning_escape_2$bclcs_level_2)
+
+data_L<-subset(dat_lightning_escape_2, dat_lightning_escape_2$bclcs_level_2=="L")
+data_L$proj_age_1
+
+data_N<-subset(dat_lightning_escape_2, dat_lightning_escape_2$bclcs_level_2=="N")
+data_T<-subset(dat_lightning_escape_2, dat_lightning_escape_2$bclcs_level_2=="T")
+data_T$proj_age_1 #A few NAs but not many
+
+data_N$proj_age_1[is.na(data_N$proj_age_1)] <- 0
+data_N$proj_height_1[is.na(data_N$proj_height_1)] <- 0
+data_N$live_stand_volume_125[is.na(data_N$live_stand_volume_125)] <- 0
+
+data_L$proj_age_1[is.na(data_L$proj_age_1)] <- 0
+data_L$proj_height_1[is.na(data_L$proj_height_1)] <- 0
+data_L$live_stand_volume_125[is.na(data_L$live_stand_volume_125)] <- 0
+
+dat_lightning_escape_2b<-rbind(data_L, data_N, data_T)
+table(dat_lightning_escape_2b$bclcs_level_2)
+
+```
+Repeat for person-caused
+
+```{r}
+table(dat_person_escape_2$bclcs_level_2)
+
+data_p_L<-subset(dat_person_escape_2, dat_person_escape_2$bclcs_level_2=="L")
+data_p_L$proj_age_1
+
+data_p_N<-subset(dat_person_escape_2, dat_person_escape_2$bclcs_level_2=="N")
+data_p_T<-subset(dat_person_escape_2, dat_person_escape_2$bclcs_level_2=="T")
+data_p_T$proj_age_1 #A few NAs but not many
+
+data_p_N$proj_age_1[is.na(data_p_N$proj_age_1)] <- 0
+data_p_N$proj_height_1[is.na(data_p_N$proj_height_1)] <- 0
+data_p_N$live_stand_volume_125[is.na(data_p_N$live_stand_volume_125)] <- 0
+
+data_p_L$proj_age_1[is.na(data_p_L$proj_age_1)] <- 0
+data_p_L$proj_height_1[is.na(data_p_L$proj_height_1)] <- 0
+data_p_L$live_stand_volume_125[is.na(data_p_L$live_stand_volume_125)] <- 0
+
+dat_person_escape_2b<-rbind(data_p_L, data_p_N, data_p_T)
+table(dat_person_escape_2b$bclcs_level_2)
+
+```
+
+Save files.
+
+```{r}
+write.csv(dat_lightning_escape_2b, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_Dec.csv")
+
+write.csv(dat_person_escape_2b, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_Dec.csv")
+```
+
+
