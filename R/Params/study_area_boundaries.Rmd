@@ -144,10 +144,10 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648
 dbDisconnect(conn)
 
 ```
-'Version 2' was created to focus the analysis in the operating area of the licensees, which are teh western portions of the Quesnel and Williams Lake TSAs. 
+'Version 2' (October 2021) and 'Version 3' (January 2022) was created to focus the analysis in the operating area of the licensees, which are the western portions of the Quesnel and Williams Lake TSAs, and within caribou habitat areas. 
 
-```{r chilcotin study area version 2}
-studyarea <- getSpatialQuery ("SELECT * FROM public.chilcotin_area_of_interest_habitat;")
+```{r chilcotin study area version 3 (previously 2)}
+studyarea <- getSpatialQuery ("SELECT * FROM public.chilcotin_area_of_interest_habitat_v3;") # public.chilcotin_area_of_interest_habitat
 
 studyarea.vat <- as.data.table (unique (studyarea$tsa_name))
 setnames (studyarea.vat, "tsa_name")
@@ -156,13 +156,14 @@ studyarea <- merge (studyarea, studyarea.vat, by = "tsa_name")
 
 # Rasterize 
 ras.study.area <-fasterize::fasterize (st_cast (studyarea, "MULTIPOLYGON"), prov.rast, field = "value") 
-writeRaster (ras.study.area, "chilcotin_aoi.tif")
+writeRaster (ras.study.area, "chilcotin_aoi_v3.tif")
 
 # write data
-DBI::dbWriteTable(conn, c("vat", "chilcotin_aoi_v2"), value= studyarea.vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("vat", "chilcotin_aoi_v3"), value= studyarea.vat, row.names = FALSE, overwrite = TRUE)
 
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/Params/chilcotin_aoi.tif -t 100x100 rast.chilcotin_aoi_v2 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/Params/chilcotin_aoi_v3.tif -t 100x100 rast.chilcotin_aoi_v3 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 dbDisconnect(conn)
 
 ```
+

@@ -1968,11 +1968,7 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
-
-
-chilcotin_area_of_interest_habitat
-
-#Create new row for table
+#version 2 of area of interest
 new_data <- data.table (computer = 'DC052586', 
                         database = 'clus', 
                         schema = 'public', 
@@ -1995,7 +1991,45 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
 dbDisconnect(conn)
 
 
-
+#version 3 of area of interest
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'public', 
+                        table_name = 'chilcotin_area_of_interest_habitat_v3', 
+                        type = 'polygon', 
+                        script = 'ogr2ogr', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2022', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS')
+new_data1 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = 'chilcotin_aoi_v3', 
+                        type = 'raster', 
+                        script = 'study_area_boundaries.Rmd', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2022', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS')
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'vat', 
+                        table_name = 'chilcotin_aoi_v3', 
+                        type = 'table', 
+                        script = 'study_area_boundaries.Rmd', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2022', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data1, new_data2))
+dbDisconnect(conn)
 
 ```
 
