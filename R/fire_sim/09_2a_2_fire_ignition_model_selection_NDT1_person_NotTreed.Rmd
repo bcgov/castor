@@ -1145,7 +1145,7 @@ head(top_mod_table_NDT1_person_t_ALL)
 #Save coefficient table
 
 ```{r}
-write.csv(top_mod_table_NDT1_person_t_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT1_person_t_ALL_Jan.csv")
+write.csv(top_mod_table_NDT1_person_t_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT1_person_NT_ALL_Jan.csv")
 ```
 
 

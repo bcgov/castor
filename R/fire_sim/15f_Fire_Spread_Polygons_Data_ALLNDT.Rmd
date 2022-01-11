@@ -76,6 +76,26 @@ head(fire_spread_veg_data_df)
 
 ```
 
+May need to load in a separate sets and then combine.
+
+```{r}
+fire_spread_data_set1<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_set1.csv")
+
+fire_spread_data_set2<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_set2.csv")
+
+fire_spread_data_set3<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_set3.csv")
+
+fire_spread_data_set4<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_set4.csv")
+
+fire_spread_data_set5<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_set5.csv")
+
+fire_spread_veg_data_df<-rbind(fire_spread_data_set1, fire_spread_data_set2, fire_spread_data_set3, fire_spread_data_set4, fire_spread_data_set5)
+
+head(fire_spread_veg_data_df)
+
+```
+
+
 Check data categories.
 
 ```{r}
@@ -108,7 +128,27 @@ table(fire_spread_veg_data_df$spread_bclcs5_2)
 
 #Determined that we lose all water sites because not in vegtype2. So need to make all water sites from bclcs_level_2 to be water in vegtype2. No interactions possible between the two, but there will be colinearity.
 fire_spread_veg_data_df$vegtype2[fire_spread_veg_data_df$bclcs_level_2=="W"] <- "W"
+```
 
+Ensure dist_infra is updated.
+
+```{r}
+fire_spread_veg_data_df$dist_any_<-0
+fire_spread_veg_data_df$dist_any<-0
+
+fire_spread_veg_data_df$dist_any_<-
+  ifelse(fire_spread_veg_data_df$dist_mine<fire_spread_veg_data_df$dist_pow, fire_spread_veg_data_df$dist_mine, fire_spread_veg_data_df$dist_pow)
+str(fire_spread_veg_data_df$dist_any_)
+
+fire_spread_veg_data_df$dist_any<-
+  ifelse (fire_spread_veg_data_df$dist_any_<fire_spread_veg_data_df$dist_mun, fire_spread_veg_data_df$dist_any_, fire_spread_veg_data_df$dist_mun)
+str(fire_spread_veg_data_df$dist_any)
+
+fire_spread_veg_data_df$dist_any_<-
+  ifelse (fire_spread_veg_data_df$dist_any<fire_spread_veg_data_df$dist_dam, fire_spread_veg_data_df$dist_any, fire_spread_veg_data_df$dist_dam)
+str(fire_spread_veg_data_df$dist_any_)
+
+fire_spread_veg_data_df$dist_infra<-fire_spread_veg_data_df$dist_any_
 ```
 
 #Here, we use one set of common variables for all NDTs and see how the model performs.

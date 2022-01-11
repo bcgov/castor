@@ -70,6 +70,26 @@ head(fire_spread_veg_data_df)
 
 ```
 
+May need to load in a separate sets and then combine.
+
+```{r}
+fire_spread_data_set1<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_set1.csv")
+
+fire_spread_data_set2<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_set2.csv")
+
+fire_spread_data_set3<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_set3.csv")
+
+fire_spread_data_set4<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_set4.csv")
+
+fire_spread_data_set5<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_set5.csv")
+
+fire_spread_veg_data_df<-rbind(fire_spread_data_set1, fire_spread_data_set2, fire_spread_data_set3, fire_spread_data_set4, fire_spread_data_set5)
+
+head(fire_spread_veg_data_df)
+
+```
+
+
 Check data categories.
 
 ```{r}
@@ -102,7 +122,27 @@ table(fire_spread_veg_data_df$spread_bclcs5_2)
 
 #Determined that we lose all water sites because not in vegtype2. So need to make all water sites from bclcs_level_2 to be water in vegtype2. No interactions possible between the two, but there will be colinearity.
 fire_spread_veg_data_df$vegtype2[fire_spread_veg_data_df$bclcs_level_2=="W"] <- "W"
+```
 
+Ensure dist_infra is updated.
+
+```{r}
+fire_spread_veg_data_df$dist_any_<-0
+fire_spread_veg_data_df$dist_any<-0
+
+fire_spread_veg_data_df$dist_any_<-
+  ifelse(fire_spread_veg_data_df$dist_mine<fire_spread_veg_data_df$dist_pow, fire_spread_veg_data_df$dist_mine, fire_spread_veg_data_df$dist_pow)
+str(fire_spread_veg_data_df$dist_any_)
+
+fire_spread_veg_data_df$dist_any<-
+  ifelse (fire_spread_veg_data_df$dist_any_<fire_spread_veg_data_df$dist_mun, fire_spread_veg_data_df$dist_any_, fire_spread_veg_data_df$dist_mun)
+str(fire_spread_veg_data_df$dist_any)
+
+fire_spread_veg_data_df$dist_any_<-
+  ifelse (fire_spread_veg_data_df$dist_any<fire_spread_veg_data_df$dist_dam, fire_spread_veg_data_df$dist_any, fire_spread_veg_data_df$dist_dam)
+str(fire_spread_veg_data_df$dist_any_)
+
+fire_spread_veg_data_df$dist_infra<-fire_spread_veg_data_df$dist_any_
 ```
 
 ################ All Data ################
@@ -1681,5 +1721,38 @@ Save sd coefficient table.
 
 ```{r}
 write.csv(top_mod_table_NDT4_spread_poly_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT4_spread_poly_sd.csv")
+```
+
+
+#Repeat above with reduced variable categories
+
+```{r}
+spread_poly_NDT4<-subset(fire_spread_veg_data_df, fire_spread_veg_data_df$ntrldstrbn=="NDT4")
+head(spread_poly_NDT4) #Lots of NAs in some variables (e.g., vegtype2, bclcs_level_2, bclcs_level_5_2)
+
+#Divide data into training and valid
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(spread_poly_NDT4$spread_bclcs5, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- spread_poly_NDT4[ trainIndex,]
+   Valid <- spread_poly_NDT4[-trainIndex,]
+
+#Run model using dat1
+model.NDT4.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:roads_km + dist_infra:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2, family = binomial, data = dat1)
+
+AIC(model.NDT4.S) #158696.3
+#summary(model.NDT4.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT4.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.66
+   
+#Anova(model.NDT4.S, type=3)
+Anova(model.NDT4.S, type=3, singular.ok = TRUE)
 ```
 
