@@ -78,7 +78,7 @@ zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE referen
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_chilcotin_scenario2'")
 dbExecute (clusdb, "UPDATE zoneConstraints SET multi_condition = NULL WHERE multi_condition = 'NA';") 
 
-
+################################################################
 #### Chilcotin Scenarios 1a, b and c - Sept. 2021 #### 
 ### To remove existing caribou WHA GARs; forest age constraints applied to critical habitat
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.zone_wha_2021' AND (zoneid = 263) OR (zoneid = 264) OR (zoneid = 3779) OR (zoneid = 3780) OR (zoneid = 3781)") 
@@ -337,7 +337,7 @@ parameters <- list(
                                            "rast.zone_uwr_2021",  
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw",
+                                           "rast.zone_cond_cw"
                                            
                                            # "rast.zone_cond_noharvest_barkerville_crithab_or_herd",
                                            # "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
@@ -363,14 +363,14 @@ parameters <- list(
                                            # "rast.zone_cond_bc_tweedsmuir_crithab",
                                            # "rast.zone_cond_bc_wells_gray_north_crithab",
                                            
-                                            "rast.zone_cond_bc_charlotte_alplands_crithab",
-                                            "rast.zone_cond_bc_itcha_ilgachuz_crithab",
-                                            "rast.zone_cond_bc_rainbows_crithab"
+                                            # "rast.zone_cond_bc_charlotte_alplands_crithab",
+                                            # "rast.zone_cond_bc_itcha_ilgachuz_crithab",
+                                            # "rast.zone_cond_bc_rainbows_crithab"
                                            
                                            # "rast.zone_barkerville_groundhog_zones_20210303",
                                            # "rast.zone_smc_zones_20210315"
                                            
-                                            "rast.zone_chilcotin_scenario2"
+                                           # "rast.zone_chilcotin_scenario2"
                                            ),
                            nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -457,8 +457,8 @@ modules <- list("dataLoaderCLUS",
 #                        description = "Scenario 2c. No harvest: HEWSR, LESR (except high-low adn highe-moderate areas), Tweedsmuir Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix, Rainbows Corridor): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 # scenario = data.table (name = "chilcotin_scen1a_disturb",
 #                        description = "Scenario 1a with closest to disturbance harvest priority. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Closest to Disturabnce, then oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
-# scenario = data.table (name = "chilcotin_bau_live_dead",
-#                        description = "Business as usual (BAU). Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Salvage dead volume in first 10 years. Minimum volume: 150 m3/year. Even live harvest flow: HEWSR = 0 m3/year; LESR = 7,000 m3/year; LEWR = 85,000m3/year; Matrix = 140,000m3/year; out = 2,100,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 0 m3/year; LESR = 3,500 m3/year; LEWR = 42,500m3/year; Matrix = 70,000 m3/year; out = 1,050,000 m3/year.")
+scenario = data.table (name = "chilcotin_bau_live_dead",
+                       description = "Business as usual (BAU). Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Salvage dead volume in first 10 years. Minimum volume: 150 m3/year. Even live harvest flow: HEWSR = 10,000 m3/year; LESR = 10,000 m3/year; LEWR = 100,000m3/year; Matrix = 200,000m3/year; out = 2,500,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 10,000 m3/year; LESR = 10,000 m3/year; LEWR = 100,000m3/year; Matrix = 100,000 m3/year; out = 1,500,000 m3/year.")
 # scenario = data.table (name = "chilcotin_scen1a_live_dead",
 #                       description = "Scenario 1a. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 # scenario = data.table (name = "chilcotin_scen1b_live_dead",
@@ -469,41 +469,41 @@ modules <- list("dataLoaderCLUS",
 #                        description = "Scenario 2a, live and dead volume harvest. Adjacency = 0m. Harvest Priority: Closest to disturbance first, Salvage Violume Second, Oldest Third. Salvage harvest in first 2 interals (i.e., 10 years) only. No harvest: HEWSR, LESR, Tweedsmuir Corridor, Rainbows Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LEWR, Matrix): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Minimum volume: 150 m3/year. Target harvest flow (live; years 10-200): HEWSR = 9,600 m3/year; LESR =  32,000 m3/year; LEWR = 225,000 m3/year; Matrix = 282,000 m3/year;  out = 420,000 m3/year. Target harvest flow (live + dead; years 1-10): HEWSR = 9,600 m3/year; LESR = 40,000 m3/year; LEWR = 311,000 m3/year; Matrix = 282,000 m3/year; out = 442,000 m3/year.")
 # scenario = data.table (name = "chilcotin_scen2c_live_dead",
 #                        description = "Scenario 2c, live and dead volume harvest. Adjacency = 0m. Harvest Priority: Closest to disturbance first, Salvage Violume Second, Oldest Third. Salvage harvest in first 2 interals (i.e., 10 years) only. No harvest: HEWSR, LESR (except high-low and high-moderate areas), Tweedsmuir Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix, Rainbows Corridor): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Minimum volume: 150 m3/year. Target harvest flow (live; years 10-200): HEWSR = 9,600 m3/year; LESR =  32,000 m3/year; LEWR = 225,000 m3/year; Matrix = 282,000 m3/year;  out = 420,000 m3/year. Target harvest flow (live + dead; years 1-10): HEWSR = 9,600 m3/year; LESR = 40,000 m3/year; LEWR = 311,000 m3/year; Matrix = 282,000 m3/year; out = 442,000 m3/year.")
-scenario = data.table (name = "chilcotin_scen2b_live_dead",
-                       description = "Scenario 2b, live and dead volume harvest. Adjacency = 0m. Harvest Priority: Closest to disturbance first, Salvage Violume Second, Oldest Third. Salvage harvest in first 2 interals (i.e., 10 years) only. No harvest: HEWSR, LESR (except high-low areas), Tweedsmuir Corridor, Rainbows Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Minimum volume: 150 m3/year. Target harvest flow (live; years 10-200): HEWSR = 9,600 m3/year; LESR =  32,000 m3/year; LEWR = 225,000 m3/year; Matrix = 282,000 m3/year;  out = 420,000 m3/year. Target harvest flow (live + dead; years 1-10): HEWSR = 9,600 m3/year; LESR = 40,000 m3/year; LEWR = 311,000 m3/year; Matrix = 282,000 m3/year; out = 442,000 m3/year.")
+# scenario = data.table (name = "chilcotin_scen2b_live_dead",
+#                        description = "Scenario 2b, live and dead volume harvest. Adjacency = 0m. Harvest Priority: Closest to disturbance first, Salvage Violume Second, Oldest Third. Salvage harvest in first 2 interals (i.e., 10 years) only. No harvest: HEWSR, LESR (except high-low areas), Tweedsmuir Corridor, Rainbows Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Minimum volume: 150 m3/year. Target harvest flow (live; years 10-200): HEWSR = 9,600 m3/year; LESR =  32,000 m3/year; LEWR = 225,000 m3/year; Matrix = 282,000 m3/year;  out = 420,000 m3/year. Target harvest flow (live + dead; years 1-10): HEWSR = 9,600 m3/year; LESR = 40,000 m3/year; LEWR = 311,000 m3/year; Matrix = 282,000 m3/year; out = 442,000 m3/year.")
 
 
 harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', #  AND age > 139, 119, 99
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', #  AND age > 139, 119, 99
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
                                                      1), 
-                                          flow = 45000,
+                                          flow = 0,
                                           partition_type = 'live'), 
                               data.table (compartment ="HEWSR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', #  AND age > 139, 119, 99
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', #  AND age > 139, 119, 99
                                           period = rep( seq (from = 3, 
                                                            to = 40, 
                                                            by = 1),
                                                      1), 
-                                          flow = 48000,
+                                          flow = 50000, #10,000/yr
                                           partition_type = 'live'),
                                data.table (compartment ="HEWSR",
                                            partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
                                            period = rep( seq (from = 1,
                                                               to = 2, 
                                                               by = 1),1),
-                                           flow =3000,
+                                           flow = 50000, #10,000/yr
                                            partition_type = 'dead'),
                               data.table (compartment ="LESR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', # AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', # AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
                                                      1),
-                                          flow = 100000,#150000
-                                          partition_type = 'live'), # 7,000 m3/yr 
+                                          flow = 0,
+                                          partition_type = 'live'), 
                                   data.table (compartment ="LESR",
                                           partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', # AND age > 139, 119
 
@@ -511,83 +511,83 @@ harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
                                                            to = 40, 
                                                            by = 1),
                                                      1),
-                                          flow = 160000,
+                                          flow = 50000, #10,000/yr
                                           partition_type = 'live'), 
                               data.table (compartment ="LESR",
                                           partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
                                           period = rep( seq (from = 1,
                                                              to = 2, 
                                                              by = 1),1),
-                                          flow = 100000,
+                                          flow = 50000, #10,000/yr
                                           partition_type = 'dead'), 
                               data.table (compartment ="LEWR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', #  AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', #  AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
                                                      1), 
-                                          flow = 1055000, #
+                                          flow = 0, 
                                           partition_type = 'live'), 
                                data.table (compartment ="LEWR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', #  AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', #  AND age > 139, 119
                                           period = rep( seq (from = 3, 
                                                            to = 40, 
                                                            by = 1),
                                                      1), 
-                                          flow = 1125000, 
+                                          flow = 500000, #100,000/yr
                                           partition_type = 'live'), 
                               data.table (compartment ="LEWR",
                                           partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
                                           period = rep( seq (from = 1, 
                                                              to = 2, 
                                                              by = 1),1), 
-                                          flow = 500000,
+                                          flow =  500000, #100,000/yr
                                           partition_type = 'dead'),
                               data.table (compartment ="Matrix",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', # AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', # AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
                                                      1), 
-                                          flow = 960000, 
+                                          flow = 0, 
                                           partition_type = 'live'), 
                               data.table (compartment ="Matrix",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', # AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', # AND age > 139, 119
                                           period = rep( seq (from = 3, 
                                                            to = 40, 
                                                            by = 1),
                                                      1), 
-                                          flow = 1410000,
+                                          flow = 1000000, #200,000/yr
                                           partition_type = 'live'),
                               data.table (compartment ="Matrix",
                                           partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ',  
                                           period = rep( seq (from = 1, 
                                                              to = 2, 
                                                              by = 1), 1), 
-                                          flow = 450000,
+                                          flow = 1000000, #200,000/yr
                                           partition_type = 'dead'), 
                               data.table (compartment ="out",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', 
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', 
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
                                                      1), 
-                                          flow =  1860000,
+                                          flow =  0,
                                           partition_type = 'live'), 
                               data.table (compartment ="out",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', 
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', 
                                           period = rep( seq (from = 3, 
                                                            to = 40, 
                                                            by = 1),
                                                      1), 
-                                          flow = 2100000,
+                                          flow = 10000000, #2,500,000/yr
                                           partition_type = 'live'),
                               data.table (compartment ="out",
                                           partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ',
                                           period = rep( seq (from = 1,  
                                                              to = 2,  
                                                              by = 1),1),  
-                                          flow = 350000,
+                                          flow = 10000000, #2,500,000/yr
                                           partition_type = 'dead') 
 ))
 
