@@ -24,7 +24,7 @@ See the License for the specific language governing permissions and limitations 
 -->
 
 #Overview
-The goal of this project is to be able to assess whether we can model the abundance and productivity of huckleberry and soopalilie (bufallo berry) patches and relate this to grizzly bear foraging quality habitat. Some work has been done looking at associations between forest cutblock age and the abundance of both huckleberries and soopalilie, and some preliminary analyses have been performed to assess the correlations between variables.
+The goal of this project is to be able to assess whether we can model the abundance and productivity of huckleberry and soopalilie (buffaloberry) patches and relate this to grizzly bear foraging quality habitat. Some work has been done looking at associations between forest cutblock age and the abundance of both huckleberries and soopalilie, and some preliminary analyses have been performed to assess the correlations between variables.
 
 Currently, we have data provided by Dr. Clayton Lamb on the abundance of huckleberry plants and berries, along with accompanying data on climate, soils, DEM, etc. We should look into the possibility of acquiring additional data that may be comparable that may cover more areas of BC. It has been suggested that we can model canopy closure from models that Kyle has. We can (and should) include climate, but the main questions of interest are stand characteristics (e.g., crown closure, basal area). There will also be some static variables such as topography.
 
@@ -39,7 +39,7 @@ We likely should split the analyses into different BEC zones, and only include t
 4. Data projection is ESPG 3005.
 5. Generate ifelse statement to determine if fire after logging or not. Tyler has done something similar.
 6. In VegModData, what is the difference between 0 and NA? 0s are when this species was looked for and not found; NA indicates that it was not explicitly sought.
-7.  11. Other data available? Data from Chandler and Hamilton have much lower stand age results than Tyler's preliminary analyses. Garth has already sent some from another student.
+7.  Other data available? Data from Chandler and Hamilton have much lower stand age results than Tyler's preliminary analyses. Garth has already sent some from another student.
 8. Subset so only use plots that have been logged before.
 9. Due to hierarchical nature, could use negative binomial hurdle models.
 10. Current data set too small to look at different types of mechanical treatment, but this is likely important.
