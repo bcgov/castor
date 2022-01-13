@@ -1730,6 +1730,11 @@ write.csv(top_mod_table_NDT4_spread_poly_sd, file="D:\\Fire\\fire_data\\raw_data
 spread_poly_NDT4<-subset(fire_spread_veg_data_df, fire_spread_veg_data_df$ntrldstrbn=="NDT4")
 head(spread_poly_NDT4) #Lots of NAs in some variables (e.g., vegtype2, bclcs_level_2, bclcs_level_5_2)
 
+table(spread_poly_NDT4$vegtype2)
+table(spread_poly_NDT4$bclcs_level_5_2) #45 burn (small); 273 blanls. May need to remove.
+
+spread_poly_NDT4<-subset(spread_poly_NDT4, spread_poly_NDT4$bclcs_level_5_2!=" ") #Currently keeping 45 BU, may need to remove later
+
 #Divide data into training and valid
 prop<-0.75
 # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
@@ -1743,16 +1748,257 @@ prop<-0.75
 #Run model using dat1
 model.NDT4.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:roads_km + dist_infra:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2, family = binomial, data = dat1)
 
-AIC(model.NDT4.S) #158696.3
+AIC(model.NDT4.S) #162057.7
 #summary(model.NDT4.S)
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model.NDT4.S, newdata=Valid, type="response") #
    roc_obj <- roc(Valid[,"spread"], mod.valid)
    mod.auc <- auc(roc_obj)
-   mod.auc #0.66
+   mod.auc #0.69
    
 #Anova(model.NDT4.S, type=3)
 Anova(model.NDT4.S, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT4.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2, family = binomial, data = dat1)
+
+AIC(model.NDT4.S) #162056
+#summary(model.NDT4.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT4.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.69
+   
+#Anova(model.NDT4.S, type=3)
+Anova(model.NDT4.S, type=3, singular.ok = TRUE)
+
+#Everything appears to be significant - check partial residuals
+
+```
+Remove NAs and run multiple times.
+
+```{r}
+#Remove NAs to ensure all same data used so we can compare AICs
+NDT4_spread<-spread_poly_NDT4 %>% drop_na(slope, aspect_cos, elev, dist_infra, roads_km, bclcs_level_5_2, vegtype2, bclcs_level_2) #766546 data points
+
+#Run Model again with this data; but uses all data here
+model.NDT4.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2, family = binomial, data = NDT4_spread)
+
+#Anova(model.NDT4.S, type=3)
+Anova(model.NDT4.S, type=3, singular.ok = TRUE)
+
+# model diagnostic plots
+binnedplot (fitted(model.NDT4.S), 
+            residuals(model.NDT4.S), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+NDT4_spread$resids<-resid(model.NDT4.S)
+
+# Partial Residual plots 
+#slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2
+
+visreg(model.NDT4.S, "slope", by="aspect_cos")
+visreg(model.NDT4.S, "slope", by="elev")
+
+visreg(model.NDT4.S, "elev", by="aspect_cos")
+visreg(model.NDT4.S, "elev", by="slope")
+
+visreg(model.NDT4.S, "aspect_cos", by="slope")
+visreg(model.NDT4.S, "aspect_cos", by="elev")
+
+visreg(model.NDT4.S, "dist_infra", by="roads_km")
+visreg(model.NDT4.S, "dist_infra", by="bclcs_level_5_2")
+visreg(model.NDT4.S, "dist_infra", by="bclcs_level_5_2", ylim=c(-10,30))
+
+visreg(model.NDT4.S, "bclcs_level_5_2", by="roads_km") 
+visreg(model.NDT4.S, "bclcs_level_5_2", by="roads_km", ylim=c(-5,15)) 
+visreg(model.NDT4.S, "bclcs_level_5_2", by="dist_infra", ylim=c(-5,15)) 
+
+visreg(model.NDT4.S, "roads_km", by="dist_infra")
+visreg(model.NDT4.S, "roads_km", by="bclcs_level_5_2", ylim=c(-10,30))
+
+visreg(model.NDT4.S, "vegtype2") 
+visreg(model.NDT4.S, "bclcs_level_2") 
+
+#There are some subtle differences by landuse at different distance to infrastructure (VERY minor) and roads (less minor for burn), but overall, might be worth removing interaction. These patterns are more obvious, however, when plotting roads and distance to infrastructure on the x axis
+
+#visualize without interaction
+visreg(model.NDT4.S, "roads_km")
+visreg(model.NDT4.S, "dist_infra")
+
+#Distance to infratsructure does not seem to be that important, pretty flat line. Perhaps remove this variable entirely.
+
+#Also, aspect*elevation differences very subtle, so remove interaction
+
+```
+
+```{r}
+model.NDT4.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2, family = binomial, data = NDT4_spread)
+
+Anova(model.NDT4.S, type=3, singular.ok = TRUE) #Whether treed or not, does not seem to be important here...
+
+# model diagnostic plots
+binnedplot (fitted(model.NDT4.S), 
+            residuals(model.NDT4.S), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+# Partial Residual plots 
+
+visreg(model.NDT4.S, "slope", by="aspect_cos")
+visreg(model.NDT4.S, "slope", by="elev")
+
+visreg(model.NDT4.S, "elev", by="slope")
+visreg(model.NDT4.S, "aspect_cos", by="slope")
+
+visreg(model.NDT4.S, "bclcs_level_5_2", by="roads_km") 
+visreg(model.NDT4.S, "bclcs_level_5_2", by="roads_km", ylim=c(-5,15)) 
+
+visreg(model.NDT4.S, "roads_km", by="bclcs_level_5_2", ylim=c(-10,30))
+
+visreg(model.NDT4.S, "vegtype2") 
+visreg(model.NDT4.S, "bclcs_level_2") 
+
+
+```
+
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model.NDT4.S)
+
+#Create a new blank table and get AUC too
+top_mod_table_NDT4_spread_poly <- data.frame (matrix (ncol = 36, nrow = 0))
+colnames (top_mod_table_NDT4_spread_poly ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_roads_km", "coef_bclcs_level_5_2DE", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SOIL", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2UR", "coef_bclcs_level_5_2WATER", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_bclcs_level_2N", "coef_bclcs_level_2T", "coef_bclcs_level_2W", "coef_slope:aspect_cos", "coef_slope:elev", "coef_roads_km:bclcs_level_5_2DE", "coef_roads_km:bclcs_level_5_2OP", "coef_roads_km:bclcs_level_5_2ROCK", "coef_roads_km:bclcs_level_5_2SOIL", "coef_roads_km:bclcs_level_5_2SP", "coef_roads_km:bclcs_level_5_2UR", "coef_roads_km:bclcs_level_5_2WATER", "AUC")
+```
+
+Let's run it 500 times to get good mean values.
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(NDT4_spread$spread_bclcs5, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- NDT4_spread[ trainIndex,]
+   Valid <- NDT4_spread[-trainIndex,]
+   
+#Model   
+model.NDT4.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.NDT4.S, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_NDT4_spread <- data.frame (matrix (ncol = 36, nrow = 0))
+colnames (top_mod_table_NDT4_spread ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_roads_km", "coef_bclcs_level_5_2DE", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SOIL", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2UR", "coef_bclcs_level_5_2WATER", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_bclcs_level_2N", "coef_bclcs_level_2T", "coef_bclcs_level_2W", "coef_slope:aspect_cos", "coef_slope:elev", "coef_roads_km:bclcs_level_5_2DE", "coef_roads_km:bclcs_level_5_2OP", "coef_roads_km:bclcs_level_5_2ROCK", "coef_roads_km:bclcs_level_5_2SOIL", "coef_roads_km:bclcs_level_5_2SP", "coef_roads_km:bclcs_level_5_2UR", "coef_roads_km:bclcs_level_5_2WATER", "AUC")
+
+##Add data for NDT4
+top_mod_table_NDT4_spread[1,1]<-"lightning or person (ALL)"
+top_mod_table_NDT4_spread[1,2]<-"NDT4"
+top_mod_table_NDT4_spread[1,3]<-"ALL Treed and not treed"
+top_mod_table_NDT4_spread[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2" 
+top_mod_table_NDT4_spread[1,5]<- coef(model.NDT4.S)[1] #Intercept
+top_mod_table_NDT4_spread[1,6]<- coef(model.NDT4.S)[2] #
+top_mod_table_NDT4_spread[1,7]<- coef(model.NDT4.S)[3] #
+top_mod_table_NDT4_spread[1,8]<- coef(model.NDT4.S)[4] #
+top_mod_table_NDT4_spread[1,9]<- coef(model.NDT4.S)[5] #
+top_mod_table_NDT4_spread[1,10]<- coef(model.NDT4.S)[6] #
+top_mod_table_NDT4_spread[1,11]<- coef(model.NDT4.S)[7] 
+top_mod_table_NDT4_spread[1,12]<- coef(model.NDT4.S)[8] #
+top_mod_table_NDT4_spread[1,13]<- coef(model.NDT4.S)[9] #
+top_mod_table_NDT4_spread[1,14]<- coef(model.NDT4.S)[10] #
+top_mod_table_NDT4_spread[1,15]<- coef(model.NDT4.S)[11] #
+top_mod_table_NDT4_spread[1,16]<- coef(model.NDT4.S)[12] #
+top_mod_table_NDT4_spread[1,17]<- coef(model.NDT4.S)[13] #
+top_mod_table_NDT4_spread[1,18]<- coef(model.NDT4.S)[14] #
+top_mod_table_NDT4_spread[1,19]<- coef(model.NDT4.S)[15] #
+top_mod_table_NDT4_spread[1,20]<- coef(model.NDT4.S)[16] # 
+top_mod_table_NDT4_spread[1,21]<- coef(model.NDT4.S)[17] #  
+top_mod_table_NDT4_spread[1,22]<- coef(model.NDT4.S)[18] #
+top_mod_table_NDT4_spread[1,23]<- coef(model.NDT4.S)[19] #
+top_mod_table_NDT4_spread[1,24]<- coef(model.NDT4.S)[20] #
+top_mod_table_NDT4_spread[1,25]<- coef(model.NDT4.S)[21] #
+top_mod_table_NDT4_spread[1,26]<- coef(model.NDT4.S)[22] #
+top_mod_table_NDT4_spread[1,27]<- coef(model.NDT4.S)[23] #
+top_mod_table_NDT4_spread[1,28]<- coef(model.NDT4.S)[24] #
+top_mod_table_NDT4_spread[1,29]<- coef(model.NDT4.S)[25] #
+top_mod_table_NDT4_spread[1,30]<- coef(model.NDT4.S)[26] #
+top_mod_table_NDT4_spread[1,31]<- coef(model.NDT4.S)[27] #
+top_mod_table_NDT4_spread[1,32]<- coef(model.NDT4.S)[28] #
+top_mod_table_NDT4_spread[1,33]<- coef(model.NDT4.S)[29] #
+top_mod_table_NDT4_spread[1,34]<- coef(model.NDT4.S)[30] #
+top_mod_table_NDT4_spread[1,35]<- coef(model.NDT4.S)[31] #
+top_mod_table_NDT4_spread[1,36]<- mod.auc
+
+top_mod_table_NDT4_spread_poly<-rbind(top_mod_table_NDT4_spread_poly, top_mod_table_NDT4_spread)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_NDT4_spread_poly)
+```
+
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table_NDT4_spread_poly, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT4_spread_poly_all_Jan.csv")
+```
+
+```{r}
+names(top_mod_table_NDT4_spread_poly)
+#colMeans(top_mod_table_NDT4_spread_poly[5:30])
+#sapply(top_mod_table_NDT4_spread_poly,mean, na.rm = T)
+#lapply(top_mod_table_NDT4_spread_poly,mean, na.rm = T)
+
+top_mod_table_NDT4_spread_poly_means<-top_mod_table_NDT4_spread_poly %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table_NDT4_spread_poly_means
+
+top_mod_table_NDT4_spread_poly_means[1,1]<-"lightning or person (ALL)"
+top_mod_table_NDT4_spread_poly_means[1,2]<-"NDT4"
+top_mod_table_NDT4_spread_poly_means[1,3]<-"ALL Treed and not treed"
+top_mod_table_NDT4_spread_poly_means[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2" 
+top_mod_table_NDT4_spread_poly_means
+```
+Save table.
+
+```{r}
+write.csv(top_mod_table_NDT4_spread_poly_means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT4_spread_poly_means_Jan.csv")
+```
+
+Standard deviation.
+
+```{r}
+top_mod_table_NDT4_spread_poly_sd<-top_mod_table_NDT4_spread_poly %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_NDT4_spread_poly_sd
+
+top_mod_table_NDT4_spread_poly_sd[1,1]<-"lightning or person (ALL)"
+top_mod_table_NDT4_spread_poly_sd[1,2]<-"NDT4"
+top_mod_table_NDT4_spread_poly_sd[1,3]<-"ALL Treed and not treed"
+top_mod_table_NDT4_spread_poly_sd[1,4]<-"spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + roads_km + bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2" 
+top_mod_table_NDT4_spread_poly_sd
+```
+
+Save sd coefficient table.
+
+```{r}
+write.csv(top_mod_table_NDT4_spread_poly_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT4_spread_poly_sd_Jan.csv")
 ```
 
