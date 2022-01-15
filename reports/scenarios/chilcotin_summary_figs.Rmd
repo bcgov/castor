@@ -37,11 +37,20 @@ data.summ <- data.harvest %>% # get summary data
                    filter (scenario == "chilcotin_bau_live_dead" | 
                            scenario == "chilcotin_scen1a_live_dead" |
                            scenario == "chilcotin_scen1b_live_dead" |
-                          #scenario == "chilcotin_scen1c_live_dead" |
+                          scenario == "chilcotin_scen1c_live_dead" |
                            scenario == "chilcotin_scen2a_live_dead" |
                            scenario == "chilcotin_scen2b_live_dead" |
                            scenario == "chilcotin_scen2c_live_dead"
                            )  #chilcotin_scen2
+
+
+harvest.avg <- data.summ %>%
+                filter(scenario == "chilcotin_scen2c_live_dead") %>%
+                  summarise (volume = sum (volume/40))
+
+
+
+
 
 harvest <- ggplot (data.summ, aes (x = timeperiod, y = volume, color = scenario, linetype = scenario)) +
               geom_line (position = position_dodge (width = 1), size = 1) + 
@@ -52,17 +61,17 @@ Interest for Each Scenario",
                     y = "Volume Harvested (m3)") + 
               scale_color_discrete (name = "Scenario", 
                                     labels = c("BAU", "1a", "1b", 
-                                               #"1c", 
+                                               "1c", 
                                                "2a", "2b", "2c")) +
               scale_linetype_discrete (name = "Scenario", 
                                        labels = c("BAU", "1a", "1b", 
-                                                  #"1c", 
+                                                  "1c", 
                                                   "2a", "2b", "2c")) +
               theme (legend.position = c (0.15, 0.15),
                      legend.title = element_text(size = 10),
                      legend.text = element_text( size = 8)) +
               scale_x_continuous (breaks = seq(0,200,25)) +
-              scale_y_continuous (label = comma, breaks = seq(100000,1200000,100000)) +
+              scale_y_continuous (label = comma, breaks = seq(1000000,2000000,100000)) +
               theme_classic()
 
 ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\harvest.jpg", 
@@ -86,6 +95,7 @@ conn <- dbConnect (RPostgreSQL::PostgreSQL(),
 				          port = "5432")
 data.disturb <- dbGetQuery (conn, "SELECT * FROM chilcotin_caribou_plan.disturbance") 
 dbDisconnect (conn)
+
 
 data.disturb$perc_dist_nobuff <- (data.disturb$c40r50 / data.disturb$total_area) * 100 # get percentages
 data.disturb$perc_dist_buff <- (data.disturb$c40r500 / data.disturb$total_area) * 100
@@ -112,7 +122,7 @@ data.disturb.nobuff.itcha <- data.summ.disturb.nobuff %>%
                                 filter (scenario == "chilcotin_bau_live_dead" | 
                                            scenario == "chilcotin_scen1a_live_dead" |
                                            scenario == "chilcotin_scen1b_live_dead" |
-                                          #scenario == "chilcotin_scen1c_live_dead" |
+                                           scenario == "chilcotin_scen1c_live_dead" |
                                            scenario == "chilcotin_scen2a_live_dead" |
                                            scenario == "chilcotin_scen2b_live_dead" |
                                            scenario == "chilcotin_scen2c_live_dead"
@@ -127,7 +137,7 @@ data.disturb.buff.itcha <- data.summ.disturb.buff %>%
                                 filter (scenario == "chilcotin_bau_live_dead" | 
                                            scenario == "chilcotin_scen1a_live_dead" |
                                            scenario == "chilcotin_scen1b_live_dead" |
-                                          #scenario == "chilcotin_scen1c_live_dead" |
+                                           scenario == "chilcotin_scen1c_live_dead" |
                                            scenario == "chilcotin_scen2a_live_dead" |
                                            scenario == "chilcotin_scen2b_live_dead" |
                                            scenario == "chilcotin_scen2c_live_dead"
@@ -140,7 +150,7 @@ plot.disturb.nobuff <- ggplot (data.disturb.nobuff.itcha,
                               labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", #chilcotin_bau
                                             'chilcotin_scen1a_live_dead' = "Scenario 1a", #chilcotin_scen1a
                                             'chilcotin_scen1b_live_dead' = "Scenario 1b",
-                                            #'chilcotin_scen1c_live_dead' = "Scenario 1c",
+                                            'chilcotin_scen1c_live_dead' = "Scenario 1c",
                                             'chilcotin_scen2a_live_dead' = "Scenario 2a",
                                             'chilcotin_scen2b_live_dead' = "Scenario 2b",
                                             'chilcotin_scen2c_live_dead' = "Scenario 2c"))
@@ -168,7 +178,7 @@ plot.disturb.buff <- ggplot (data.disturb.buff.itcha,
                               labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", #chilcotin_bau
                                             'chilcotin_scen1a_live_dead' = "Scenario 1a", #chilcotin_scen1a
                                             'chilcotin_scen1b_live_dead' = "Scenario 1b",
-                                            #'chilcotin_scen1c_live_dead' = "Scenario 1c",
+                                            'chilcotin_scen1c_live_dead' = "Scenario 1c",
                                             'chilcotin_scen2a_live_dead' = "Scenario 2a",
                                             'chilcotin_scen2b_live_dead' = "Scenario 2b",
                                             'chilcotin_scen2c_live_dead' = "Scenario 2c"))
@@ -214,7 +224,7 @@ data.disturb.nobuff.rain <- data.summ.disturb.nobuff %>%
                                 filter (scenario == "chilcotin_bau_live_dead" | 
                                            scenario == "chilcotin_scen1a_live_dead" |
                                            scenario == "chilcotin_scen1b_live_dead" |
-                                          #scenario == "chilcotin_scen1c_live_dead" |
+                                          scenario == "chilcotin_scen1c_live_dead" |
                                            scenario == "chilcotin_scen2a_live_dead" |
                                            scenario == "chilcotin_scen2b_live_dead" |
                                            scenario == "chilcotin_scen2c_live_dead"
@@ -227,7 +237,7 @@ data.disturb.buff.rain <- data.summ.disturb.buff %>%
                                 filter (scenario == "chilcotin_bau_live_dead" | 
                                            scenario == "chilcotin_scen1a_live_dead" |
                                            scenario == "chilcotin_scen1b_live_dead" |
-                                          #scenario == "chilcotin_scen1c_live_dead" |
+                                          scenario == "chilcotin_scen1c_live_dead" |
                                            scenario == "chilcotin_scen2a_live_dead" |
                                            scenario == "chilcotin_scen2b_live_dead" |
                                            scenario == "chilcotin_scen2c_live_dead"
@@ -241,7 +251,7 @@ plot.disturb.nobuff.rain <- ggplot (data.disturb.nobuff.rain,
                               labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", #chilcotin_bau
                                             'chilcotin_scen1a_live_dead' = "Scenario 1a", #chilcotin_scen1a
                                             'chilcotin_scen1b_live_dead' = "Scenario 1b",
-                                            #'chilcotin_scen1c_live_dead' = "Scenario 1c",
+                                            'chilcotin_scen1c_live_dead' = "Scenario 1c",
                                             'chilcotin_scen2a_live_dead' = "Scenario 2a",
                                             'chilcotin_scen2b_live_dead' = "Scenario 2b",
                                             'chilcotin_scen2c_live_dead' = "Scenario 2c"))
@@ -270,7 +280,7 @@ plot.disturb.buff.rain <- ggplot (data.disturb.buff.rain,
                               labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", #chilcotin_bau
                                             'chilcotin_scen1a_live_dead' = "Scenario 1a", #chilcotin_scen1a
                                             'chilcotin_scen1b_live_dead' = "Scenario 1b",
-                                            #'chilcotin_scen1c_live_dead' = "Scenario 1c",
+                                            'chilcotin_scen1c_live_dead' = "Scenario 1c",
                                             'chilcotin_scen2a_live_dead' = "Scenario 2a",
                                             'chilcotin_scen2b_live_dead' = "Scenario 2b",
                                             'chilcotin_scen2c_live_dead' = "Scenario 2c"))
@@ -317,7 +327,7 @@ data.disturb.nobuff.char <- data.summ.disturb.nobuff %>%
                                 filter (scenario == "chilcotin_bau_live_dead" | 
                                            scenario == "chilcotin_scen1a_live_dead" |
                                            scenario == "chilcotin_scen1b_live_dead" |
-                                          #scenario == "chilcotin_scen1c_live_dead" |
+                                          scenario == "chilcotin_scen1c_live_dead" |
                                            scenario == "chilcotin_scen2a_live_dead" |
                                            scenario == "chilcotin_scen2b_live_dead" |
                                            scenario == "chilcotin_scen2c_live_dead"
@@ -330,7 +340,7 @@ data.disturb.buff.char <- data.summ.disturb.buff %>%
                                 filter (scenario == "chilcotin_bau_live_dead" | 
                                            scenario == "chilcotin_scen1a_live_dead" |
                                            scenario == "chilcotin_scen1b_live_dead" |
-                                          #scenario == "chilcotin_scen1c_live_dead" |
+                                          scenario == "chilcotin_scen1c_live_dead" |
                                            scenario == "chilcotin_scen2a_live_dead" |
                                            scenario == "chilcotin_scen2b_live_dead" |
                                            scenario == "chilcotin_scen2c_live_dead"
@@ -345,7 +355,7 @@ plot.disturb.nobuff.char <- ggplot (data.disturb.nobuff.char,
                               labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", #chilcotin_bau
                                             'chilcotin_scen1a_live_dead' = "Scenario 1a", #chilcotin_scen1a
                                             'chilcotin_scen1b_live_dead' = "Scenario 1b",
-                                            #'chilcotin_scen1c_live_dead' = "Scenario 1c",
+                                            'chilcotin_scen1c_live_dead' = "Scenario 1c",
                                             'chilcotin_scen2a_live_dead' = "Scenario 2a",
                                             'chilcotin_scen2b_live_dead' = "Scenario 2b",
                                             'chilcotin_scen2c_live_dead' = "Scenario 2c"))
@@ -374,7 +384,7 @@ plot.disturb.buff.char <- ggplot (data.disturb.buff.char,
                               labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", #chilcotin_bau
                                             'chilcotin_scen1a_live_dead' = "Scenario 1a", #chilcotin_scen1a
                                             'chilcotin_scen1b_live_dead' = "Scenario 1b",
-                                            #'chilcotin_scen1c_live_dead' = "Scenario 1c",
+                                            'chilcotin_scen1c_live_dead' = "Scenario 1c",
                                             'chilcotin_scen2a_live_dead' = "Scenario 2a",
                                             'chilcotin_scen2b_live_dead' = "Scenario 2b",
                                             'chilcotin_scen2c_live_dead' = "Scenario 2c"))
@@ -433,7 +443,7 @@ data.seral.itcha <- data.seral %>%
                            filter (scenario == "chilcotin_bau_live_dead" | 
                                    scenario == "chilcotin_scen1a_live_dead" |
                                    scenario == "chilcotin_scen1b_live_dead" |
-                                  #scenario == "chilcotin_scen1c_live_dead" |
+                                   scenario == "chilcotin_scen1c_live_dead" |
                                    scenario == "chilcotin_scen2a_live_dead" |
                                    scenario == "chilcotin_scen2b_live_dead" |
                                    scenario == "chilcotin_scen2c_live_dead"
@@ -448,11 +458,11 @@ plot.seral.itcha <- ggplot (data.seral.itcha,
                                   y = "Percent Early Seral") + 
                             scale_color_discrete (name = "Scenario", 
                                                   labels = c("BAU", "1a", "1b", 
-                                                             #"1c", 
+                                                             "1c", 
                                                              "2a", "2b", "2c")) +
                             scale_linetype_discrete (name = "Scenario", 
                                                      labels = c("BAU", "1a", "1b", 
-                                                                #"1c", 
+                                                                "1c", 
                                                                 "2a", "2b", "2c")) +
                             theme (legend.position = c (0.15, 0.15),
                                    legend.title = element_text(size = 10),
@@ -477,7 +487,7 @@ data.seral.rain <- data.seral %>%
                           filter (scenario == "chilcotin_bau_live_dead" | 
                                    scenario == "chilcotin_scen1a_live_dead" |
                                    scenario == "chilcotin_scen1b_live_dead" |
-                                  #scenario == "chilcotin_scen1c_live_dead" |
+                                   scenario == "chilcotin_scen1c_live_dead" |
                                    scenario == "chilcotin_scen2a_live_dead" |
                                    scenario == "chilcotin_scen2b_live_dead" |
                                    scenario == "chilcotin_scen2c_live_dead"
@@ -492,11 +502,11 @@ plot.seral.rain <- ggplot (data.seral.rain,
                                   y = "Percent Early Seral") + 
                             scale_color_discrete (name = "Scenario", 
                                                   labels = c("BAU", "1a", "1b", 
-                                                             #"1c", 
+                                                             "1c", 
                                                              "2a", "2b", "2c")) +
                             scale_linetype_discrete (name = "Scenario", 
                                                      labels = c("BAU", "1a", "1b", 
-                                                                #"1c", 
+                                                                "1c", 
                                                                 "2a", "2b", "2c")) +
                             theme (legend.position = c (0.15, 0.15),
                                    legend.title = element_text(size = 10),
@@ -520,7 +530,7 @@ data.seral.char <- data.seral %>%
                        filter (scenario == "chilcotin_bau_live_dead" | 
                                    scenario == "chilcotin_scen1a_live_dead" |
                                    scenario == "chilcotin_scen1b_live_dead" |
-                                  #scenario == "chilcotin_scen1c_live_dead" |
+                                   scenario == "chilcotin_scen1c_live_dead" |
                                    scenario == "chilcotin_scen2a_live_dead" |
                                    scenario == "chilcotin_scen2b_live_dead" |
                                    scenario == "chilcotin_scen2c_live_dead"
@@ -534,10 +544,10 @@ plot.seral.char <- ggplot (data.seral.char,
                                   x = "Future Year", 
                                   y = "Percent Early Seral") + 
                             scale_color_discrete (name = "Scenario", 
-                                                  labels = c("BAU", "1a", "1b", #"1c", 
+                                                  labels = c("BAU", "1a", "1b", "1c", 
                                                              "2a", "2b", "2c")) +
                             scale_linetype_discrete (name = "Scenario", 
-                                                     labels = c("BAU", "1a", "1b", #"1c", 
+                                                     labels = c("BAU", "1a", "1b", "1c", 
                                                                 "2a", "2b", "2c")) +
                             theme (legend.position = c (0.15, 0.15),
                                    legend.title = element_text(size = 10),
