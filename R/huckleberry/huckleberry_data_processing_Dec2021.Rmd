@@ -262,6 +262,24 @@ table(cutblock_plots_openings_Huck_ALL_df$Species)
 head(cutblock_plots_openings_BECHuck_df)
 ```
 
+Save file.
+
+```{r}
+names(cutblock_plots_openings_Huck_ALL_df)
+cutblock_plots_openings_Huck_ALL_df[182]
+cutblock_plots_openings_Huck_ALL_df$Elevation_1<-cutblock_plots_openings_Huck_ALL_df$Elevation
+
+cutblock_plots_openings_Huck_ALL_df<-cutblock_plots_openings_Huck_ALL_df[-182]
+
+cutblock_plots_openings_Huck_ALL_df[183]
+cutblock_plots_openings_Huck_ALL_df$Aspect_1<-cutblock_plots_openings_Huck_ALL_df$Aspect
+
+cutblock_plots_openings_Huck_ALL_df<-cutblock_plots_openings_Huck_ALL_df[-183]
+
+st_write(cutblock_plots_openings_Huck_ALL_df, dsn="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df.csv")
+```
+
+
 Repeat for Buffaloberry
 
 ```{r}

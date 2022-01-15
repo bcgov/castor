@@ -60,8 +60,12 @@ This file continues from huckleberry_data_processing_Dec2021, and shows some int
 6. Land Cover Type (MODIS_LC)
 7. Canopy Cover - but investigate what StrataCove, StrataCo_1...3 are.
 
-
 All of the NAs by oerigin (burn/harvest) for huckleberry cover are from the BEC dara, and we can see that the percent cover is much smaller on average. Clarify what size of plots were assessed by Clayton, and if these data can even be comparable.
+
+#Load Data In
+```{r}
+cutblock_plots_openings_Huck_ALL_df<-st_read(dsn="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df.csv")
+```
 
 #Begin Exploration of variables
 ```{r}
