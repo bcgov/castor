@@ -136,7 +136,10 @@ parameters <-  list(
   smcaribouAbundanceCLUS = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
                                  tableSMCCoeffs = "vat.smc_coeffs"),
   uploaderCLUS = list(aoiName = 'chilcotin_caribou_plan',
-                        dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
+                        dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
+                                       keyring::key_get("vmdbuser", keyring="postgreSQL"), 
+                                       keyring::key_get("vmdbpass", keyring="postgreSQL"), 
+                                       keyring::key_get("vmdbname", keyring="postgreSQL"))
                         ))
 
 scenario = data.table(name="load_data", 
