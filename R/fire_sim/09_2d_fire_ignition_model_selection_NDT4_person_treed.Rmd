@@ -1056,3 +1056,239 @@ Save sd coefficient table.
 ```{r}
 write.csv(top_mod_table_NDT4_ignite_person_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT4_ignite_person_sd.csv")
 ```
+
+
+#Repeat above with reduced variables
+
+```{r}
+ignition_person_t_NDT4<-subset(dat_person_t, dat_person_t$ntrl_ds=="NDT4")
+
+#Divide data into training and valid
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(ignition_person_t_NDT4$fire_pres, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- ignition_person_t_NDT4[ trainIndex,]
+   Valid <- ignition_person_t_NDT4[-trainIndex,]
+
+#Run model using dat1
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + proj_height_1 + proj_age_1 + live_stand_volume_125 + slope + aspect_cos + elevation + slope:aspect_cos + slope:elevation + aspect_cos:elevation + dist_infra + roads_km + dist_infra:roads_km + elevation*climate1 + elevation*climate2, family = binomial, data = dat1)
+
+AIC(model.NDT4) #12361.9
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.78 --> good fit!
+   
+Anova(model.NDT4, type=3)
+#Anova(model.NDT4, type=3, singular.ok = TRUE)
+
+#Remove least significant interaction
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + proj_height_1 + proj_age_1 + live_stand_volume_125 + slope + aspect_cos + elevation + slope:aspect_cos + slope:elevation + dist_infra + roads_km + dist_infra:roads_km + elevation*climate1 + elevation*climate2, family = binomial, data = dat1)
+
+AIC(model.NDT4) #12360.2
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.78 --> good fit!
+   
+Anova(model.NDT4, type=3)
+#Anova(model.NDT4, type=3, singular.ok = TRUE)
+
+#Remove least significant interaction
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + proj_height_1 + proj_age_1 + live_stand_volume_125 + slope + aspect_cos + elevation + slope:elevation + dist_infra + roads_km + dist_infra:roads_km + elevation*climate1 + elevation*climate2, family = binomial, data = dat1)
+
+AIC(model.NDT4) #12359.8
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.78 --> good fit!
+   
+Anova(model.NDT4, type=3)
+#Anova(model.NDT4, type=3, singular.ok = TRUE)
+
+```
+
+Remove NAs and run multiple times.
+
+```{r}
+#Remove NAs to ensure all same data used so we can compare AICs
+NDT4_ignition_t<-ignition_person_t_NDT4 %>% drop_na(climate1, climate2, live_stand_volume_125, proj_height_1, proj_age_1, dist_infra, roads_km, slope, elevation, aspect_cos)
+
+table(NDT4_ignition_t$vegtype2) #9 open
+
+#Run Model again with this data; but uses all data here
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + proj_height_1 + proj_age_1 + live_stand_volume_125 + slope + aspect_cos + elevation + slope:elevation + dist_infra + roads_km + dist_infra:roads_km + elevation*climate1 + elevation*climate2, family = binomial, data = NDT4_ignition_t) 
+
+Anova(model.NDT4, type=3)
+#Anova(model.NDT4, type=3, singular.ok = TRUE)
+
+# model diagnostic plots
+binnedplot (fitted(model.NDT4), 
+            residuals(model.NDT4), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+
+NDT4_ignition_t$resids<-resid(model.NDT4)
+
+binnedplot (NDT4_ignition_t$climate1, 
+            NDT4_ignition_t$resids, 
+            nclass = NULL, 
+            xlab = "", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+# Diagnostic plots look good
+
+#Partial Residuals
+#climate1 + climate2 + vegtype2 + climate1:climate2 + proj_height_1 + proj_age_1 + live_stand_volume_125 + slope + aspect_cos + elevation + slope:elevation + dist_infra + roads_km + dist_infra:roads_km + elevation*climate1 + elevation*climate2
+
+visreg(model.NDT4, "climate1", by="elevation")
+visreg(model.NDT4, "climate1", by="climate2")
+visreg(model.NDT4, "climate2", by="elevation")
+visreg(model.NDT4, "climate2", by="climate1")
+
+visreg(model.NDT4, "vegtype2")
+
+visreg(model.NDT4, "proj_height_1")
+visreg(model.NDT4, "proj_age_1")
+visreg(model.NDT4, "live_stand_volume_125")
+
+visreg(model.NDT4, "slope", by="elevation")
+visreg(model.NDT4, "aspect_cos")
+visreg(model.NDT4, "elevation", by="slope")
+visreg(model.NDT4, "elevation", by="climate1")
+visreg(model.NDT4, "elevation", by="climate2")
+
+visreg(model.NDT4, "dist_infra", by="roads_km")
+visreg(model.NDT4, "roads_km", by="dist_infra")
+
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model.NDT4)
+
+#Create a new blank table and get AUC too
+top_mod_table_NDT4_person_t_ALL <- data.frame (matrix (ncol = 25, nrow = 0))
+colnames (top_mod_table_NDT4_person_t_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtype2OP", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_proj_height_1", "coef_proj_age_1", "coef_live_stand_volume_125", "coef_slope", "coef_aspect_cos", "coef_elevation", "coef_dist_infra", "coef_roads_km", "coef_climate1:climate2",  "coef_slope:elevation", "coef_dist_infra:roads_km", "coef_climate1:elevation", "coef_climate2:elevation", "AUC")
+```
+Let's run it 500 times to get good mean values.
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(NDT4_ignition_t$fire_veg, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- NDT4_ignition_t[ trainIndex,]
+   Valid <- NDT4_ignition_t[-trainIndex,]
+   
+#Model   
+model.NDT4<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + proj_height_1 + proj_age_1 + live_stand_volume_125 + slope + aspect_cos + elevation + slope:elevation + dist_infra + roads_km + dist_infra:roads_km + elevation*climate1 + elevation*climate2, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.NDT4, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_NDT4_person_t <- data.frame (matrix (ncol = 25, nrow = 0))
+colnames (top_mod_table_NDT4_person_t ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_vegtype2OP", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_proj_height_1", "coef_proj_age_1", "coef_live_stand_volume_125", "coef_slope", "coef_aspect_cos", "coef_elevation", "coef_dist_infra", "coef_roads_km", "coef_climate1:climate2",  "coef_slope:elevation", "coef_dist_infra:roads_km", "coef_climate1:elevation", "coef_climate2:elevation", "AUC")
+
+##Add data for NDT4
+top_mod_table_NDT4_person_t[1,1]<-"person"
+top_mod_table_NDT4_person_t[1,2]<-"NDT4"
+top_mod_table_NDT4_person_t[1,3]<-"Y"
+top_mod_table_NDT4_person_t[1,4]<-"fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + proj_height_1 + proj_age_1 + live_stand_volume_125 + slope + aspect_cos + elevation + slope:elevation + dist_infra + roads_km + dist_infra:roads_km + elevation*climate1 + elevation*climate2" 
+top_mod_table_NDT4_person_t[1,5]<- coef(model.NDT4)[1] #Intercept
+top_mod_table_NDT4_person_t[1,6]<- coef(model.NDT4)[2] #Climate variable 1
+top_mod_table_NDT4_person_t[1,7]<- coef(model.NDT4)[3] #Climate variable 2
+top_mod_table_NDT4_person_t[1,8]<- coef(model.NDT4)[4] #
+top_mod_table_NDT4_person_t[1,9]<- coef(model.NDT4)[5]
+top_mod_table_NDT4_person_t[1,10]<- coef(model.NDT4)[6]
+top_mod_table_NDT4_person_t[1,11]<- coef(model.NDT4)[7]
+top_mod_table_NDT4_person_t[1,12]<- coef(model.NDT4)[8]
+top_mod_table_NDT4_person_t[1,13]<- coef(model.NDT4)[9]
+top_mod_table_NDT4_person_t[1,14]<- coef(model.NDT4)[10]
+top_mod_table_NDT4_person_t[1,15]<- coef(model.NDT4)[11]
+top_mod_table_NDT4_person_t[1,16]<- coef(model.NDT4)[12]
+top_mod_table_NDT4_person_t[1,17]<- coef(model.NDT4)[13]
+top_mod_table_NDT4_person_t[1,18]<- coef(model.NDT4)[14]
+top_mod_table_NDT4_person_t[1,19]<- coef(model.NDT4)[15]
+top_mod_table_NDT4_person_t[1,20]<- coef(model.NDT4)[16]
+top_mod_table_NDT4_person_t[1,21]<- coef(model.NDT4)[17]
+top_mod_table_NDT4_person_t[1,22]<- coef(model.NDT4)[18]
+top_mod_table_NDT4_person_t[1,23]<- coef(model.NDT4)[19]
+top_mod_table_NDT4_person_t[1,24]<- coef(model.NDT4)[20]
+top_mod_table_NDT4_person_t[1,25]<- mod.auc
+
+top_mod_table_NDT4_person_t_ALL<-rbind(top_mod_table_NDT4_person_t_ALL, top_mod_table_NDT4_person_t)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_NDT4_person_t_ALL)
+```
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table_NDT4_person_t_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT4_person_t_ALL_Jan.csv")
+```
+
+
+```{r}
+names(top_mod_table_NDT4_person_t_ALL)
+
+top_mod_table_NDT4_ignite_person_means<-top_mod_table_NDT4_person_t_ALL %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table_NDT4_ignite_person_means
+
+top_mod_table_NDT4_ignite_person_means[1,1]<-"person"
+top_mod_table_NDT4_ignite_person_means[1,2]<-"NDT4"
+top_mod_table_NDT4_ignite_person_means[1,3]<-"Treed"
+top_mod_table_NDT4_ignite_person_means[1,4]<- "fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + proj_height_1 + proj_age_1 + live_stand_volume_125 + slope + aspect_cos + elevation + slope:elevation + dist_infra + roads_km + dist_infra:roads_km + elevation*climate1 + elevation*climate2" 
+top_mod_table_NDT4_ignite_person_means
+```
+Save table.
+
+```{r}
+write.csv(top_mod_table_NDT4_ignite_person_means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT4_ignite_person_means_Jan.csv")
+```
+
+Standard deviation.
+
+```{r}
+top_mod_table_NDT4_ignite_person_sd<-top_mod_table_NDT4_person_t_ALL %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_NDT4_ignite_person_sd
+
+top_mod_table_NDT4_ignite_person_sd[1,1]<-"person"
+top_mod_table_NDT4_ignite_person_sd[1,2]<-"NDT4"
+top_mod_table_NDT4_ignite_person_sd[1,3]<-"Treed"
+top_mod_table_NDT4_ignite_person_sd[1,4]<-"fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + proj_height_1 + proj_age_1 + live_stand_volume_125 + slope + aspect_cos + elevation + slope:elevation + dist_infra + roads_km + dist_infra:roads_km + elevation*climate1 + elevation*climate2" 
+top_mod_table_NDT4_ignite_person_sd
+```
+
+Save sd coefficient table.
+
+```{r}
+write.csv(top_mod_table_NDT4_ignite_person_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT4_ignite_person_sd_Jan.csv")
+```
+

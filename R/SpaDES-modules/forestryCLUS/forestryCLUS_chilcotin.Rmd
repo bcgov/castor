@@ -72,13 +72,13 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 #STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_wha_2021'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones rast.zone_cond_noharvest_barkerville_crithab_or_herd
 
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_rainbows_crithab'")  # 
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab'")  # 
 #  rast.zone_cond_bc_itcha_ilgachuz_crithab",  "rast.zone_cond_bc_charlotte_alplands_crithab", "rast.zone_cond_bc_rainbows_crithab"     
 
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_chilcotin_scenario2'")
 dbExecute (clusdb, "UPDATE zoneConstraints SET multi_condition = NULL WHERE multi_condition = 'NA';") 
 
-
+################################################################
 #### Chilcotin Scenarios 1a, b and c - Sept. 2021 #### 
 ### To remove existing caribou WHA GARs; forest age constraints applied to critical habitat
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.zone_wha_2021' AND (zoneid = 263) OR (zoneid = 264) OR (zoneid = 3779) OR (zoneid = 3780) OR (zoneid = 3781)") 
@@ -99,15 +99,15 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zo
 # Need to create some new rows for multiple age constraints
 dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
 VALUES 
-(3510,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone26',0,'age',121,'ge',30,NULL,NULL,354101,0,250),
-(3511,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone26',0,'age',121,'ge',30,NULL,NULL,743222,0,250),
-(3512,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone26',0,'age',121,'ge',30,NULL,NULL,803760,0,250),
-(3513,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone26',0,'age',101,'ge',37,NULL,NULL,354101,0,250),
-(3514,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone26',0,'age',101,'ge',37,NULL,NULL,743222,0,250),
-(3515,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone26',0,'age',101,'ge',37,NULL,NULL,803760,0,250),
-(3516,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone26',0,'age',81,'ge',45,NULL,NULL,354101,0,250),
-(3517,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone26',0,'age',81,'ge',45,NULL,NULL,743222,0,250),
-(3518,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone26',0,'age',81,'ge',45,NULL,NULL,803760,0,250);")
+(1465,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',121,'ge',30,NULL,NULL,354303,0,250),
+(1466,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',121,'ge',30,NULL,NULL,742496,0,250),
+(1467,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',121,'ge',30,NULL,NULL,790764,0,250),
+(1468,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',101,'ge',37,NULL,NULL,354303,0,250),
+(1469,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',101,'ge',37,NULL,NULL,742496,0,250),
+(1470,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',101,'ge',37,NULL,NULL,790764,0,250),
+(1471,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',81,'ge',45,NULL,NULL,354303,0,250),
+(1472,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',81,'ge',45,NULL,NULL,742496,0,250),
+(1473,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',81,'ge',45,NULL,NULL,790764,0,250);")
 
 ## Rainbows ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
@@ -116,15 +116,15 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 141 where reference_zo
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
 dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
 VALUES 
-(3519,0,'rast.zone_cond_bc_rainbows_crithab','zone29',0,'age',121,'ge',30,NULL,NULL,54247,0,250),
-(3520,3,'rast.zone_cond_bc_rainbows_crithab','zone29',0,'age',121,'ge',30,NULL,NULL,45116,0,250),
-(3521,4,'rast.zone_cond_bc_rainbows_crithab','zone29',0,'age',121,'ge',30,NULL,NULL,10929,0,250),
-(3522,0,'rast.zone_cond_bc_rainbows_crithab','zone29',0,'age',101,'ge',37,NULL,NULL,54247,0,250),
-(3523,3,'rast.zone_cond_bc_rainbows_crithab','zone29',0,'age',101,'ge',37,NULL,NULL,45116,0,250),
-(3524,4,'rast.zone_cond_bc_rainbows_crithab','zone29',0,'age',101,'ge',37,NULL,NULL,10929,0,250),
-(3525,0,'rast.zone_cond_bc_rainbows_crithab','zone29',0,'age',81,'ge',45,NULL,NULL,54247,0,250),
-(3526,3,'rast.zone_cond_bc_rainbows_crithab','zone29',0,'age',81,'ge',45,NULL,NULL,45116,0,250),
-(3527,4,'rast.zone_cond_bc_rainbows_crithab','zone29',0,'age',81,'ge',45,NULL,NULL,10929,0,250);")
+(1474,0,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',121,'ge',30,NULL,NULL,41182,0,250),
+(1475,3,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',121,'ge',30,NULL,NULL,45116,0,250),
+(1476,4,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',121,'ge',30,NULL,NULL,10929,0,250),
+(1477,0,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',101,'ge',37,NULL,NULL,41182,0,250),
+(1478,3,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',101,'ge',37,NULL,NULL,45116,0,250),
+(1479,4,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',101,'ge',37,NULL,NULL,10929,0,250),
+(1480,0,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',81,'ge',45,NULL,NULL,41182,0,250),
+(1481,3,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',81,'ge',45,NULL,NULL,45116,0,250),
+(1482,4,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',81,'ge',45,NULL,NULL,10929,0,250);")
 
 ## Charlotte ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
@@ -133,15 +133,15 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 141 where reference_zo
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
 dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
 VALUES 
-(3528,0,'rast.zone_cond_bc_charlotte_alplands_crithab','zone25',0,'age',121,'ge',30,NULL,NULL,93677,0,250),
-(3529,2,'rast.zone_cond_bc_charlotte_alplands_crithab','zone25',0,'age',121,'ge',30,NULL,NULL,44178,0,250),
-(3530,3,'rast.zone_cond_bc_charlotte_alplands_crithab','zone25',0,'age',121,'ge',30,NULL,NULL,79918,0,250),
-(3531,0,'rast.zone_cond_bc_charlotte_alplands_crithab','zone25',0,'age',101,'ge',37,NULL,NULL,93677,0,250),
-(3532,2,'rast.zone_cond_bc_charlotte_alplands_crithab','zone25',0,'age',101,'ge',37,NULL,NULL,44178,0,250),
-(3533,3,'rast.zone_cond_bc_charlotte_alplands_crithab','zone25',0,'age',101,'ge',37,NULL,NULL,79918,0,250),
-(3534,0,'rast.zone_cond_bc_charlotte_alplands_crithab','zone25',0,'age',81,'ge',45,NULL,NULL,93677,0,250),
-(3535,2,'rast.zone_cond_bc_charlotte_alplands_crithab','zone25',0,'age',81,'ge',45,NULL,NULL,44178,0,250),
-(3536,3,'rast.zone_cond_bc_charlotte_alplands_crithab','zone25',0,'age',81,'ge',45,NULL,NULL,79918,0,250);")
+(3528,0,'rast.zone_cond_bc_charlotte_alplands_crithab','zone16',0,'age',121,'ge',30,NULL,NULL,93677,0,250),
+(3529,2,'rast.zone_cond_bc_charlotte_alplands_crithab','zone16',0,'age',121,'ge',30,NULL,NULL,44178,0,250),
+(3530,3,'rast.zone_cond_bc_charlotte_alplands_crithab','zone16',0,'age',121,'ge',30,NULL,NULL,79592,0,250),
+(3531,0,'rast.zone_cond_bc_charlotte_alplands_crithab','zone16',0,'age',101,'ge',37,NULL,NULL,93677,0,250),
+(3532,2,'rast.zone_cond_bc_charlotte_alplands_crithab','zone16',0,'age',101,'ge',37,NULL,NULL,44178,0,250),
+(3533,3,'rast.zone_cond_bc_charlotte_alplands_crithab','zone16',0,'age',101,'ge',37,NULL,NULL,79592,0,250),
+(3534,0,'rast.zone_cond_bc_charlotte_alplands_crithab','zone16',0,'age',81,'ge',45,NULL,NULL,93677,0,250),
+(3535,2,'rast.zone_cond_bc_charlotte_alplands_crithab','zone16',0,'age',81,'ge',45,NULL,NULL,44178,0,250),
+(3536,3,'rast.zone_cond_bc_charlotte_alplands_crithab','zone16',0,'age',81,'ge',45,NULL,NULL,79592,0,250);")
 
         
 #################
@@ -151,19 +151,19 @@ VALUES
 
 ## Itcha ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND zoneid = 4")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 3327) OR (id = 3328)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 3510) OR (id = 3511)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 3513) OR (id = 3514)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 3516) OR (id = 3517)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 226) OR (id = 227)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1465) OR (id = 1466)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1468) OR (id = 1469)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1471) OR (id = 1472)")
 ## Rainbows ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND zoneid = 4")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 3334) OR (id = 3335) OR (id = 3336)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 3519) OR (id = 3520)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 3522) OR (id = 3523)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 3525) OR (id = 3526)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 229) OR (id = 230)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 1474) OR (id = 1475)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 1477) OR (id = 1478)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 1480) OR (id = 1481)")
 ## Charlotte ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND zoneid = 3")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (id = 3324) OR (id = 3325)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (id = 223) OR (id = 224)")
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (id = 3528) OR (id = 3529)")
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (id = 3531) OR (id = 3532)")
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (id = 3534) OR (id = 3535)")
@@ -175,14 +175,14 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zo
 
 ## Itcha ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND zoneid = 3")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 3510)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 3513)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 3516)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1465)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1468)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1471)")
 ## Rainbows ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND zoneid = 3")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 3519")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 3522")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 3525")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1474")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1477")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1480")
 ## Charlotte ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND zoneid = 2")
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND id = 3528")
@@ -244,14 +244,14 @@ VALUES
 # Need to create some new rows for multiple age constraints
 dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
 VALUES 
-(1794,5,'rast.zone_chilcotin_scenario2','zone20',0,'age',141,'ge',25,NULL,NULL,776877,0,250),
-(1795,5,'rast.zone_chilcotin_scenario2','zone20',0,'age',121,'ge',30,NULL,NULL,776877,0,250),
-(1796,5,'rast.zone_chilcotin_scenario2','zone20',0,'age',101,'ge',37,NULL,NULL,776877,0,250),
-(1797,5,'rast.zone_chilcotin_scenario2','zone20',0,'age',81,'ge',45,NULL,NULL,776877,0,250),
-(1798,6,'rast.zone_chilcotin_scenario2','zone20',0,'age',141,'ge',25,NULL,NULL,879039,0,250),
-(1799,6,'rast.zone_chilcotin_scenario2','zone20',0,'age',121,'ge',30,NULL,NULL,879039,0,250),
-(1800,6,'rast.zone_chilcotin_scenario2','zone20',0,'age',101,'ge',37,NULL,NULL,879039,0,250),
-(1801,6,'rast.zone_chilcotin_scenario2','zone20',0,'age',81,'ge',45,NULL,NULL,879039,0,250);")
+(1800,5,'rast.zone_chilcotin_scenario2','zone20',0,'age',141,'ge',25,NULL,NULL,776122,0,250),
+(1801,5,'rast.zone_chilcotin_scenario2','zone20',0,'age',121,'ge',30,NULL,NULL,776122,0,250),
+(1802,5,'rast.zone_chilcotin_scenario2','zone20',0,'age',101,'ge',37,NULL,NULL,776122,0,250),
+(1803,5,'rast.zone_chilcotin_scenario2','zone20',0,'age',81,'ge',45,NULL,NULL,776122,0,250),
+(1804,6,'rast.zone_chilcotin_scenario2','zone20',0,'age',141,'ge',25,NULL,NULL,878448,0,250),
+(1805,6,'rast.zone_chilcotin_scenario2','zone20',0,'age',121,'ge',30,NULL,NULL,878448,0,250),
+(1806,6,'rast.zone_chilcotin_scenario2','zone20',0,'age',101,'ge',37,NULL,NULL,878448,0,250),
+(1807,6,'rast.zone_chilcotin_scenario2','zone20',0,'age',81,'ge',45,NULL,NULL,878448,0,250);")
 
 #################
 ### Scenario 2b; harvest in LESR high-low areas (zone 2) ##
@@ -268,10 +268,10 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zo
 # Need to create some new rows for multiple age constraints
 dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
 VALUES 
-(1802,2,'rast.zone_chilcotin_scenario2','zone20',0,'age',141,'ge',25,NULL,NULL,14863,0,250),
-(1803,2,'rast.zone_chilcotin_scenario2','zone20',0,'age',121,'ge',30,NULL,NULL,14863,0,250),
-(1804,2,'rast.zone_chilcotin_scenario2','zone20',0,'age',101,'ge',37,NULL,NULL,14863,0,250),
-(1805,2,'rast.zone_chilcotin_scenario2','zone20',0,'age',81,'ge',45,NULL,NULL,14863,0,250);")
+(1808,2,'rast.zone_chilcotin_scenario2','zone20',0,'age',141,'ge',25,NULL,NULL,14923,0,250),
+(1809,2,'rast.zone_chilcotin_scenario2','zone20',0,'age',121,'ge',30,NULL,NULL,14923,0,250),
+(1810,2,'rast.zone_chilcotin_scenario2','zone20',0,'age',101,'ge',37,NULL,NULL,14923,0,250),
+(1811,2,'rast.zone_chilcotin_scenario2','zone20',0,'age',81,'ge',45,NULL,NULL,14923,0,250);")
 
 
 #################
@@ -289,14 +289,14 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 65 where reference_zo
 # Need to create some new rows for multiple age constraints
 dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
 VALUES 
-(1806,3,'rast.zone_chilcotin_scenario2','zone20',0,'age',141,'ge',25,NULL,NULL,19196,0,250),
-(1807,3,'rast.zone_chilcotin_scenario2','zone20',0,'age',121,'ge',30,NULL,NULL,19196,0,250),
-(1808,3,'rast.zone_chilcotin_scenario2','zone20',0,'age',101,'ge',37,NULL,NULL,19196,0,250),
-(1809,3,'rast.zone_chilcotin_scenario2','zone20',0,'age',81,'ge',45,NULL,NULL,19196,0,250),
-(1810,7,'rast.zone_chilcotin_scenario2','zone20',0,'age',141,'ge',25,NULL,NULL,77831,0,250),
-(1811,7,'rast.zone_chilcotin_scenario2','zone20',0,'age',121,'ge',30,NULL,NULL,77831,0,250),
-(1812,7,'rast.zone_chilcotin_scenario2','zone20',0,'age',101,'ge',37,NULL,NULL,77831,0,250),
-(1813,7,'rast.zone_chilcotin_scenario2','zone20',0,'age',81,'ge',45,NULL,NULL,77831,0,250);")
+(1812,3,'rast.zone_chilcotin_scenario2','zone20',0,'age',141,'ge',25,NULL,NULL,19210,0,250),
+(1813,3,'rast.zone_chilcotin_scenario2','zone20',0,'age',121,'ge',30,NULL,NULL,19210,0,250),
+(1814,3,'rast.zone_chilcotin_scenario2','zone20',0,'age',101,'ge',37,NULL,NULL,19210,0,250),
+(1815,3,'rast.zone_chilcotin_scenario2','zone20',0,'age',81,'ge',45,NULL,NULL,19210,0,250),
+(1816,7,'rast.zone_chilcotin_scenario2','zone20',0,'age',141,'ge',25,NULL,NULL,77831,0,250),
+(1817,7,'rast.zone_chilcotin_scenario2','zone20',0,'age',121,'ge',30,NULL,NULL,77831,0,250),
+(1818,7,'rast.zone_chilcotin_scenario2','zone20',0,'age',101,'ge',37,NULL,NULL,77831,0,250),
+(1819,7,'rast.zone_chilcotin_scenario2','zone20',0,'age',81,'ge',45,NULL,NULL,77831,0,250);")
 
 ## CLEAN-UP
 dbExecute(clusdb, "VACUUM")
@@ -324,12 +324,12 @@ parameters <- list(
                          save_clusdb = FALSE,
                          sqlite_dbname = "chilcotin_study_area",
                          useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/chilcotin_study_area_clusdb.sqlite"),
-                         nameBoundaryFile="chilcotin_area_of_interest_habitat",
+                         nameBoundaryFile = "chilcotin_area_of_interest_habitat_v3",
                          nameBoundaryColumn = "tsa_name",
                          nameBoundary = c ('Matrix', 'HEWSR', 'LESR', 'LEWR', 'out'),
                          nameBoundaryGeom = 'wkb_geometry',
-                         nameCompartmentRaster = "rast.chilcotin_aoi_v2",
-                         nameCompartmentTable = "vat.chilcotin_aoi_v2",
+                         nameCompartmentRaster = "rast.chilcotin_aoi_v3",
+                         nameCompartmentTable = "vat.chilcotin_aoi_v3",
                          nameMaskHarvestLandbaseRaster='rast.thlb_2020_chilcotin',  
                          nameZoneRasters=c("rast.zone_cond_beo", 
                                            "rast.zone_cond_vqo", 
@@ -340,7 +340,7 @@ parameters <- list(
                                            "rast.zone_cond_cw",
                                            
                                            # "rast.zone_cond_noharvest_barkerville_crithab_or_herd",
-                                           # "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
+                                          # "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
                                            # "rast.zone_cond_noharvest_itcha_ilgachuz_crithab_or_herd",
                                            # "rast.zone_cond_noharvest_narrow_lake_crithab_or_herd",
                                            # "rast.zone_cond_noharvest_north_cariboo_crithab_or_herd",
@@ -363,9 +363,9 @@ parameters <- list(
                                            # "rast.zone_cond_bc_tweedsmuir_crithab",
                                            # "rast.zone_cond_bc_wells_gray_north_crithab",
                                            
-                                            "rast.zone_cond_bc_charlotte_alplands_crithab",
-                                            "rast.zone_cond_bc_itcha_ilgachuz_crithab",
-                                            "rast.zone_cond_bc_rainbows_crithab"
+                                             # "rast.zone_cond_bc_charlotte_alplands_crithab",
+                                             # "rast.zone_cond_bc_itcha_ilgachuz_crithab",
+                                             # "rast.zone_cond_bc_rainbows_crithab"
                                            
                                            # "rast.zone_barkerville_groundhog_zones_20210303",
                                            # "rast.zone_smc_zones_20210315"
@@ -414,7 +414,7 @@ parameters <- list(
   disturbanceCalcCLUS = list(calculateInterval =  1, # should be 1 if using constraints on 'dist' (disturbance)
                              criticalHabitatTable = "vat.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
-                             permDisturbanceRaster = "rast.mine_ag_wind_rail",
+                             permDisturbanceRaster = "rast.perm_dist_rds",
                              recovery = 40),
   volumebyareaReportCLUS = list (calculateInterval = 1,
                                  AreaofInterestRaster = "rast.study_area_chilcotin",
@@ -447,12 +447,6 @@ modules <- list("dataLoaderCLUS",
 
 # scenario = data.table (name = "chilcotin_bau",
 #                        description = "Business as usual (BAU). Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Even harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
-# scenario = data.table (name = "chilcotin_scen1a_live_dead",
-#                       description = "Scenario 1a. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
-# scenario = data.table (name = "chilcotin_scen1b_live_dead",
-#                        description = "Scenario 1b. Habitat: HEWSR, LESR, LEWR. Rotation age (in habitat): 120 years. Seral stage constraints (in habitat): 25% > 120 y.o.; 30% >100 y.o.; 37% >80 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
- scenario = data.table (name = "chilcotin_scen1c_live_dead",
-                        description = "Scenario 1c. Habitat: HEWSR, LESR. Rotation age (in habitat): 100 years. Seral stage constraints (in habitat): 25% > 100 y.o.; 30% > 80 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 # scenario = data.table (name = "chilcotin_scen2",
 #                        description = "Scenario 2. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 85 > 40 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 # scenario = data.table (name = "chilcotin_scen2a",
@@ -464,130 +458,136 @@ modules <- list("dataLoaderCLUS",
 # scenario = data.table (name = "chilcotin_scen1a_disturb",
 #                        description = "Scenario 1a with closest to disturbance harvest priority. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Closest to Disturabnce, then oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 # scenario = data.table (name = "chilcotin_bau_live_dead",
-#                        description = "Business as usual (BAU). Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Salvage dead volume in first 10 years. Minimum volume: 150 m3/year. Even live harvest flow: HEWSR = 0 m3/year; LESR = 7,000 m3/year; LEWR = 85,000m3/year; Matrix = 140,000m3/year; out = 2,100,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 0 m3/year; LESR = 3,500 m3/year; LEWR = 42,500m3/year; Matrix = 70,000 m3/year; out = 1,050,000 m3/year.")
+#                        description = "Business as usual (BAU). Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Salvage dead volume in first 10 years. Minimum volume: 150 m3/year. Even live harvest flow: HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
+# scenario = data.table (name = "chilcotin_scen1a_live_dead",
+#                       description = "Scenario 1a. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Minimum volume:  150 m3/year. Target harvest flow: HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
+# scenario = data.table (name = "chilcotin_scen1b_live_dead",
+#                        description = "Scenario 1b. Habitat: HEWSR, LESR, LEWR. Rotation age (in habitat): 120 years. Seral stage constraints (in habitat): 25% > 120 y.o.; 30% >100 y.o.; 37% >80 y.o. Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Minimum volume:  150 m3/year. Target harvest flow: HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year. ")
+ # scenario = data.table (name = "chilcotin_scen1c_live_dead",
+ #                        description = "Scenario 1c. Habitat: HEWSR, LESR. Rotation age (in habitat): 100 years. Seral stage constraints (in habitat): 25% > 100 y.o.; 30% > 80 y.o. Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Minimum volume:  150 m3/year. Target harvest flow: HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
 # scenario = data.table (name = "chilcotin_scen2a_live_dead",
-#                        description = "Scenario 2a, live and dead volume harvest. Adjacency = 0m. Harvest Priority: Closest to disturbance first, Salvage Violume Second, Oldest Third. Salvage harvest in first 2 interals (i.e., 10 years) only. No harvest: HEWSR, LESR, Tweedsmuir Corridor, Rainbows Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LEWR, Matrix): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Minimum volume: 150 m3/year. Target harvest flow (live; years 10-200): HEWSR = 9,600 m3/year; LESR =  32,000 m3/year; LEWR = 225,000 m3/year; Matrix = 282,000 m3/year;  out = 420,000 m3/year. Target harvest flow (live + dead; years 1-10): HEWSR = 9,600 m3/year; LESR = 40,000 m3/year; LEWR = 311,000 m3/year; Matrix = 282,000 m3/year; out = 442,000 m3/year.")
-# scenario = data.table (name = "chilcotin_scen2c_live_dead",
-#                        description = "Scenario 2c, live and dead volume harvest. Adjacency = 0m. Harvest Priority: Closest to disturbance first, Salvage Violume Second, Oldest Third. Salvage harvest in first 2 interals (i.e., 10 years) only. No harvest: HEWSR, LESR (except high-low and high-moderate areas), Tweedsmuir Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix, Rainbows Corridor): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Minimum volume: 150 m3/year. Target harvest flow (live; years 10-200): HEWSR = 9,600 m3/year; LESR =  32,000 m3/year; LEWR = 225,000 m3/year; Matrix = 282,000 m3/year;  out = 420,000 m3/year. Target harvest flow (live + dead; years 1-10): HEWSR = 9,600 m3/year; LESR = 40,000 m3/year; LEWR = 311,000 m3/year; Matrix = 282,000 m3/year; out = 442,000 m3/year.")
-scenario = data.table (name = "chilcotin_scen2b_live_dead",
-                       description = "Scenario 2b, live and dead volume harvest. Adjacency = 0m. Harvest Priority: Closest to disturbance first, Salvage Violume Second, Oldest Third. Salvage harvest in first 2 interals (i.e., 10 years) only. No harvest: HEWSR, LESR (except high-low areas), Tweedsmuir Corridor, Rainbows Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Minimum volume: 150 m3/year. Target harvest flow (live; years 10-200): HEWSR = 9,600 m3/year; LESR =  32,000 m3/year; LEWR = 225,000 m3/year; Matrix = 282,000 m3/year;  out = 420,000 m3/year. Target harvest flow (live + dead; years 1-10): HEWSR = 9,600 m3/year; LESR = 40,000 m3/year; LEWR = 311,000 m3/year; Matrix = 282,000 m3/year; out = 442,000 m3/year.")
+#                        description = "Scenario 2a, live and dead volume harvest. Adjacency = 0m. Harvest Priority: Closest to disturbance first, Salvage Volume Second, Oldest Third. Salvage harvest in first 2 intervals (i.e., 10 years) only. No harvest: HEWSR, LESR, Tweedsmuir Corridor, Rainbows Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LEWR, Matrix): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Minimum volume: 150 m3/year. Target harvest flow (live; years 10-200): HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
+# scenario = data.table (name = "chilcotin_scen2b_live_dead",
+#                        description = "Scenario 2b, live and dead volume harvest. Adjacency = 0m. Harvest Priority: Closest to disturbance first, Salvage Volume Second, Oldest Third. Salvage harvest in first 2 intervals (i.e., 10 years) only. No harvest: HEWSR, LESR (except high-low areas), Tweedsmuir Corridor, Rainbows Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Minimum volume: 150 m3/year. Target harvest flow (live; years 10-200): HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
+scenario = data.table (name = "chilcotin_scen2c_live_dead",
+                       description = "Scenario 2c, live and dead volume harvest. Adjacency = 0m. Harvest Priority: Closest to disturbance first, Salvage Volume Second, Oldest Third. Salvage harvest in first 2 intervals (i.e., 10 years) only. No harvest: HEWSR, LESR (except high-low and high-moderate areas), Tweedsmuir Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix, Rainbows Corridor): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Minimum volume: 150 m3/year. Target harvest flow (live; years 10-200): HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
 
 
 harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', #  AND age > 139, 119, 99
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5 AND age > 139) ', #  AND age > 139, 119, 99
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
                                                      1), 
-                                          flow = 45000,
+                                          flow = 42500, # 8,500/yr, can't be zero
                                           partition_type = 'live'), 
                               data.table (compartment ="HEWSR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', #  AND age > 139, 119, 99
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5 AND age > 139) ', #  AND age > 139, 119, 99
                                           period = rep( seq (from = 3, 
                                                            to = 40, 
                                                            by = 1),
                                                      1), 
-                                          flow = 48000,
+                                          flow = 45000, #9,000/yr
                                           partition_type = 'live'),
-                               data.table (compartment ="HEWSR",
+                              data.table (compartment ="HEWSR",
                                            partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
                                            period = rep( seq (from = 1,
                                                               to = 2, 
                                                               by = 1),1),
-                                           flow =3000,
+                                           flow = 2500, # 500/yr
                                            partition_type = 'dead'),
                               data.table (compartment ="LESR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', # AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 139 ', # AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
                                                      1),
-                                          flow = 100000,#150000
-                                          partition_type = 'live'), # 7,000 m3/yr 
+                                          flow = 225000, #45,000/yr
+                                          partition_type = 'live'), 
                                   data.table (compartment ="LESR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', # AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 139 ', # AND age > 139, 119
 
                                           period = rep( seq (from = 3, 
                                                            to = 40, 
                                                            by = 1),
                                                      1),
-                                          flow = 160000,
+                                          flow = 236250, #47,250/yr
                                           partition_type = 'live'), 
                               data.table (compartment ="LESR",
                                           partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
                                           period = rep( seq (from = 1,
                                                              to = 2, 
                                                              by = 1),1),
-                                          flow = 100000,
+                                          flow = 11250, #2,250/yr
                                           partition_type = 'dead'), 
                               data.table (compartment ="LEWR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', #  AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 139 ', #  AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
                                                      1), 
-                                          flow = 1055000, #
+                                          flow = 1050000, #210,000/yr
                                           partition_type = 'live'), 
                                data.table (compartment ="LEWR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', #  AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 139 ', #  AND age > 139, 119
                                           period = rep( seq (from = 3, 
                                                            to = 40, 
                                                            by = 1),
                                                      1), 
-                                          flow = 1125000, 
+                                          flow = 1150000, #230,000/yr
                                           partition_type = 'live'), 
                               data.table (compartment ="LEWR",
                                           partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
                                           period = rep( seq (from = 1, 
                                                              to = 2, 
                                                              by = 1),1), 
-                                          flow = 500000,
+                                          flow =  100000, #20,000/yr
                                           partition_type = 'dead'),
                               data.table (compartment ="Matrix",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', # AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 139 ', # AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
                                                      1), 
-                                          flow = 960000, 
+                                          flow = 1300000, #260,000/yr
                                           partition_type = 'live'), 
                               data.table (compartment ="Matrix",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', # AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 139 ', # AND age > 139, 119
                                           period = rep( seq (from = 3, 
                                                            to = 40, 
                                                            by = 1),
                                                      1), 
-                                          flow = 1410000,
+                                          flow = 1550000, #310,000/yr
                                           partition_type = 'live'),
                               data.table (compartment ="Matrix",
                                           partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ',  
                                           period = rep( seq (from = 1, 
                                                              to = 2, 
                                                              by = 1), 1), 
-                                          flow = 450000,
+                                          flow = 250000, #50,000/yr
                                           partition_type = 'dead'), 
                               data.table (compartment ="out",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', 
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', 
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
                                                      1), 
-                                          flow =  1860000,
+                                          flow =  5475000, #1,095,000/yr
                                           partition_type = 'live'), 
                               data.table (compartment ="out",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 100 ', 
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5)  ', 
                                           period = rep( seq (from = 3, 
                                                            to = 40, 
                                                            by = 1),
                                                      1), 
-                                          flow = 2100000,
+                                          flow = 6000000, #1,200,000/yr
                                           partition_type = 'live'),
                               data.table (compartment ="out",
                                           partition = ' (salvage_vol > 150 and salvage_vol/(vol + salvage_vol) >= 0.5) ',
                                           period = rep( seq (from = 1,  
                                                              to = 2,  
                                                              by = 1),1),  
-                                          flow = 350000,
+                                          flow = 525000, #105,000/yr
                                           partition_type = 'dead') 
 ))
 

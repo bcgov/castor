@@ -164,6 +164,28 @@ plot(sample_locations_distances$dist_any~sample_locations_distances$dist_mun)
 head(sample_locations_distances)
 ```
 
+#In subsequent processing, we see that certain types of infrastructure tend to behave similarly, while others less so. So make new variable for dist_any that incorporates the similar types.
+
+```{r}
+sample_locations_distances$dist_any_<-0
+sample_locations_distances$dist_any<-0
+
+sample_locations_distances$dist_any_<-
+  ifelse(sample_locations_distances$dist_mine<sample_locations_distances$dist_pow, sample_locations_distances$dist_mine, sample_locations_distances$dist_pow)
+str(sample_locations_distances$dist_any_)
+
+sample_locations_distances$dist_any<-
+  ifelse (sample_locations_distances$dist_any_<sample_locations_distances$dist_mun, sample_locations_distances$dist_any_, sample_locations_distances$dist_mun)
+str(sample_locations_distances$dist_any)
+
+sample_locations_distances$dist_any_<-
+  ifelse (sample_locations_distances$dist_any<sample_locations_distances$dist_dam, sample_locations_distances$dist_any, sample_locations_distances$dist_dam)
+str(sample_locations_distances$dist_any_)
+
+sample_locations_distances$dist_infra<-sample_locations_distances$dist_any_
+```
+
+
 Save file to postgres.
 
 ```{r}

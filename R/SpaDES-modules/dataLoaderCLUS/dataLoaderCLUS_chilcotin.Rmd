@@ -52,12 +52,12 @@ parameters <-  list(
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = TRUE,
                          sqlite_dbname = "chilcotin_study_area",
-                         nameBoundaryFile="chilcotin_area_of_interest_habitat", # study_area_chilcotin
+                         nameBoundaryFile="chilcotin_area_of_interest_habitat_v3", # study_area_chilcotin; chilcotin_area_of_interest_habitat
                          nameBoundaryColumn = "tsa_name", # tsa_name
                          nameBoundary = c ('Matrix', 'HEWSR', 'LESR', 'LEWR', 'out'), # c ('Quesnel_TSA_Matrix', 'Quesnel_TSA_HEWSR', 'Quesnel_TSA_LESR', 'Quesnel_TSA_LEWR', 'Quesnel_TSA_out', 'Williams_Lake_TSA_HEWSR', 'Williams_Lake_TSA_LESR', 'Williams_Lake_TSA_LEWR', 'Williams_Lake_TSA_Matrix', Williams_Lake_TSA_out')
                          nameBoundaryGeom = 'wkb_geometry',
-                         nameCompartmentRaster = "rast.chilcotin_aoi_v2", #rast.study_area_chilcotin
-                         nameCompartmentTable = "vat.chilcotin_aoi_v2",
+                         nameCompartmentRaster = "rast.chilcotin_aoi_v3", #rast.study_area_chilcotin
+                         nameCompartmentTable = "vat.chilcotin_aoi_v3",
                          nameMaskHarvestLandbaseRaster='rast.thlb_2020_chilcotin', 
                          nameZoneRasters=c("rast.zone_cond_beo", 
                                            "rast.zone_cond_vqo", 
@@ -136,7 +136,10 @@ parameters <-  list(
   smcaribouAbundanceCLUS = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
                                  tableSMCCoeffs = "vat.smc_coeffs"),
   uploaderCLUS = list(aoiName = 'chilcotin_caribou_plan',
-                        dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
+                        dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
+                                       keyring::key_get("vmdbuser", keyring="postgreSQL"), 
+                                       keyring::key_get("vmdbpass", keyring="postgreSQL"), 
+                                       keyring::key_get("vmdbname", keyring="postgreSQL"))
                         ))
 
 scenario = data.table(name="load_data", 
