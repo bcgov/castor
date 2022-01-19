@@ -163,6 +163,7 @@ save.currentState<- function(sim){
 
   
     sim$foreststate[,aoi:= P(sim, "uploaderCLUS", "aoiName")]
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".state where aoi = '", P(sim, "uploaderCLUS", "aoiName"), "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
     dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'state'), 
                  sim$foreststate, append = T, row.names = FALSE)
   
