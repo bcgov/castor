@@ -440,39 +440,20 @@ write.csv(b_table, "btable.csv")
 ```{r , sum_tsa}
 
 #Get tsa boundary
-tsa<-getSpatialQuery("SeLECT * from tsa_aac_bounds")
-test99<-st_intersects(tsa, fish.constraints0)
+tsa<-getSpatialQuery("SeLECT * from tsa_boundaries")
+fish.constraints1<-fish.constraints0[columbia,]
+test99<-st_intersects(tsa, fish.constraints1)
 
 temp<-data.table(tsa = as.character(), fid = as.integer())
-test22<-unique(tsa$tsa_name)
-for(i in 1:59){
+test22<-unique(tsa$administrative_area_name)
+for(i in 1:37){
   temp<-rbindlist(list(temp, data.table(tsa= test22[i], fids= test99[[i]])))
 }
 temp<-temp[!is.na(temp$fid),]
-notin2<-unique(temp$fid)
-
-fish.constraints1<-fish.constraints0[unique(temp$fid),]
+fish.constraints2<-fish.constraints1[unique(temp$fid),] #check to make sure we got em all
 
 st_write(fish.constraints1, "feta_v2.shp")
-
-test100<-st_intersects(tsa, fish.constraints1)
-test22<-unique(tsa$tsa_name)
-
-temp<-data.table(tsa = as.character(), fid = as.integer())
-
-for(i in 1:59){
-  temp<-rbindlist(list(temp, data.table(tsa= test22[i], fids= test100[[i]])))
-}
-temp<-temp[!is.na(temp$fid),]
-notin3<-unique(temp$fid)
-
-temp$tsa<-gsub("_TSA", " ", temp$tsa)
-temp$tsa<-trimws(temp$tsa)
-temp$tsa<-gsub("_", " ", temp$tsa)
-temp[temp$tsa =='Onehundred Mile House',]$tsa<-'100_Mile_House'
-temp[temp$tsa =='MacKenzie SW',]$tsa<-'MacKenzie'
-temp[temp$tsa =='Prince George North',]$tsa<-'Prince George'
-temp[temp$tsa =='Fort St John Core',]$tsa<-'Fort St John'
+st_write(st_transform(fish.constraints1, 4326), "feta_v2.geojson")
 saveRDS(temp, "tsa_fids_v2.rds")
 
 ```
