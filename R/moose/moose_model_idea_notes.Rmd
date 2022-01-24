@@ -413,7 +413,7 @@ CLASS:
     circle); that would only give you a max of ~21 pixels (I think, adn if we include partial pixels) 
     and thus max road density of ~24km/km2, which is very high; so, we could be more conservative here     and use 100m road in a roaded ha, which is 17km/km2; minimum is 1 pixel = .79km/km2, which is still     high, and equals survival of 0.62, which is quite low so we may need to be more conservative with 
     the road length assumption
-  - temporal covariates also need a work around, because they measure the mean value over a 1 to 1 year
+  - temporal covariates also need a work around, because they measure the mean value over a 1 day to 1 year
     period; 
       - for daily, we could calculate the mean density of values within the radius of a 'typical' daily         movement distance
       - for weekly, we could calculate the mean density of values within the radius of a 'typical'     
