@@ -36,14 +36,21 @@ We likely should split the analyses into different BEC zones, and only include t
 2. Cutblock size info? I have coordinates and I may be able to match these to online databases. https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks- Note: retention patch sizes may not be adequately captured here. Note: many cutblock sizes only capture that year's cutblock and not adjacent ones. May also wish to consider size:edge ratio. Consider area-to-perimeter ratio. Likely less important for actual berry production (although shading effects could influence), and more important for grizzly bear selection of foraging sites.
 
 3. Cutblock treatment: RESULTS file on bc gov page may have info on treatments and silviculture. (scarification, planting density, timing of harvest - winter vs summer)
+
 4. Data projection is ESPG 3005.
+
 5. Generate ifelse statement to determine if fire after logging or not. Tyler has done something similar.
+
 6. In VegModData, what is the difference between 0 and NA? 0s are when this species was looked for and not found; NA indicates that it was not explicitly sought.
+
 7.  Other data available? Data from Chandler and Hamilton have much lower stand age results than Tyler's preliminary analyses. Garth has already sent some from another student.
+
 8. Subset so only use plots that have been logged before.
+
 9. Due to hierarchical nature, could use negative binomial hurdle models.
+
 10. Current data set too small to look at different types of mechanical treatment, but this is likely important.
-11. Try a model with: canopy cover (%), scarification (0/1), CTI, SAI, and elevation (Nielsen et al. 2004b). Need to get CTI.
+
 
 #Questions I have and notes:
   1. Phenology and distribution and abundance? And energetics! Perhaps: P/A, percent cover focus. Then phenology and energetics. Energetics priority before phenology for our aims. Negative binomial (counts and P/A --> model occurrence and then count for it; regression models--> zero inflated models--> look into! Talk to Peter)
@@ -63,7 +70,7 @@ We likely should split the analyses into different BEC zones, and only include t
 6. land cover type (MODIS in the dataset - categorical)
 7. Solar heat load (acquire from DEM info?) - otherwise use slope, elevation, aspect. Can be calculated from DEM in ArcGIS. I see note of this in metadata but do not see in data file.
 8. Soil pH?? But how to scale up when we likely do not have a province wide soil pH layer? (Or do we??? Need to figure out how to use this and see if useful: https://www.env.gov.bc.ca/esd/distdata/ecosystems/Soil_Data/SOIL_DATA_FGDB/) Data has this, but for projecting, need layer.
-9. Soil properties (sandiness, course materials, etc.) - Do we have this across BC? Maybe this is what link above can give us. Data has this, but for projecting, we need layer.
+9. Soil properties (sandiness, course materials, etc.) - Do we have this across BC? Maybe this is what link above can give us. Data has this, but for projecting, we need layer. Clayton did extensive processing to create these layers and has kindly shared them. Unfortunately, the shared layers only cover SE BC and thus not the extent of the entire data.
 10. Consider area-to-perimeter ratio.
 
 Clayton's climate models found best predictors:(1) percent of area burned, (2) percent sand, (3) average winter temperature, (4) precipitation as snow, (5) canopy cover, (6) average pH, (7) slope and (8) solar heat load
@@ -154,7 +161,7 @@ Future predictions: 300 m x 300 m resolution. Predicted climate and crown closur
 
 Found huckleberry projected to increase by 84-112% by 2080. Most species predicted to maintain 94-100% of current habitat by 2080, but some predicted to lose much habitat. All species showed increase in elevation predicted, with one scenario predicting a median decrease of 203 m for huckleberry.
 
-Huckleberry among the least affected species for elevational shifts. It's habitat range is predicted to remain stable with some additional increase in elevation for new habitat (but less increase than other species)- they mostly saw complete mainteance of present day range for huckleberry.
+Huckleberry among the least affected species for elevational shifts. It's habitat range is predicted to remain stable with some additional increase in elevation for new habitat (but less increase than other species)- they mostly saw complete maintenance of present day range for huckleberry.
 
 ##Lamb, C.T., Mowat, G., McLellan, B.N., Nielsen, S.E., and Boutin, S. 2017. Forbidden fruit: human settlement and abundant fruit create an ecological trap for an apex omnivore.Journal of Animal Ecology, 86:55-65.
 In this paper, the authors assess habitat suitability, human-influence, grizzly bear occurrence and grizzly bear mortality. They find that valley within their study region, which was high in both berry resources and human density, was more attractive to bears than surrounding areas, despite 17% lower apparent survival in this same region. Despite lower fitness, the detected a net flow of bears into the ET (ecological trap), which contributed to a study-wide population decline.
@@ -202,8 +209,7 @@ The authors found that huckleberry patches were consistently the most influentia
 
 The authors found that the top five predictors in our best huckleberry patch model were, in decreasing importance: 1) canopy cover, 2) coarse fragments in soil, 3) slope, 4) precipitation as snow in winter and, 5) average solar radiation. Overall, areas of low canopy cover, low angle slope, few coarse fragments in soil, north and east aspects, as well as high winter snow load produce huckleberry patches important to grizzly bears.
 
-The authors also found that 74% of huckleberry patches were not in cut blocks. The
-~26% of huckleberry patches that were in cut blocks occurred where the proportion of focal area in cut blocks was only 18%. Mean cut block age with huckleberry patches was ~40 yrs vs ~25 years for cut blocks without patches. They also found that planted cut blocks were less likely to have huckleberry patches. Slash burning didn’t increase the probability of a cut block yielding a huckleberry patch, it was slightly reduced. Fires (not slash burns) were ~3x more likely to yield a huckleberry patch than a cutblock. 
+The authors also found that 74% of huckleberry patches were not in cut blocks. The ~26% of huckleberry patches that were in cut blocks occurred where the proportion of focal area in cut blocks was only 18%. Mean cut block age with huckleberry patches was ~40 yrs vs ~25 years for cut blocks without patches. They also found that planted cut blocks were less likely to have huckleberry patches. Slash burning didn’t increase the probability of a cut block yielding a huckleberry patch, it was slightly reduced. Fires (not slash burns) were ~3x more likely to yield a huckleberry patch than a cutblock. 
 
 Huckleberry patches were more prevalent in the Englemann Spruce Sub-alpine Fir (ESSF) zone and in the wet mild subzones wm3, wm4, and wmw. Site series that favor huckleberry patches were 103 subxeric (dry), and to a lesser degree 101. Old forests (80-250 years old) and early seral stage dominated by shrubs dominated the structural stages with huckleberry patches.
 
@@ -300,3 +306,118 @@ Comparing Odds ratios, huckleberry was equally likely in post-burn and post-harv
 
 ##Stewart, B.P., Nelson, T.A., Wulder, M.A., Nielsen, S.E., and Stenhouse, G. 2012. Impact of disturbance characteristics and age on grizzly bear habitat selection. Applied Geography, 34: 614-625.
 These authors used a four-decade remotely sensed disturbance history and telemetry data for 22 adult grizzly bears from 2005-2009 in Canadian Rockies. They found that male bears tended to select for disturbed sites that were 30-40 years old more frequently than younger stands, whereas females showed equal selection for all ages of disturbed sites except those <10 years. Females selected for disturbances summer/fall > spring. Male bears showed other seasons > fall.  Both sexes selected for larger disturbances at all ages.
+
+##Holden, Z.A., Kasworm, W.F., Servheen, C., Hahn, B., Dobrowski, S. 2012. Sensitivity of berry productivity to climatic variation in the Cabinet-Yaak Grizzly Bear Recvoery Zone, Northwest United States, 1989-2010. Wildlife Society Bulletin, DOI: 10.1002/wsb.128.
+Thse authors investigated annual berry productivity in huckleberry and serviceberry from 1989 to 2010, looking at temperature, precipitation and snow indices. They found that huckleberry production was highest during cool springs, with high diurnal July temperature ranges. April-June growing degree days and July temp range explained 70% of interannual variation. 
+
+Intro: Huckleberries make up to 10% grizzly diet in their region. Serviceberry valuable food for ungulates, especially the bark from it in the winter. Beavers and snowshoe hares also consume. Huckleberry requires high levels of sunlight to produce berries, and respond favourably to disturbance and open-stand characteristics. Regional climatic variation key in predicting huckleberry production.
+
+Variables: snow-free date, number of snow-free days, maximum snow-water equivalent (SWE) and monthly and seasonal cumulative precipitation. Monthly mean and cumulative minimum and maximum temperatures, seasonal temperature metrics, and growing-degree days above 18 C and 58 C (GDD1 and GDD5) were calculated using daily minimum and maximum temperatures for each station. For huckleberry, best explanatory variables were growing degree days above 5'C and July temperature range. Suggest that solar radiation important, as it relates to photosynthesis capabilities.
+
+They suggest that warmer spring temperatures could lead to lower huckleberry production. They also suggest that early snowmelt can result in decreased plant-available summer moisture, and this might be the link we have observed between PAS and production.
+
+##Krebs, C.J., Boonstra, R., Cowcill, K., and Kenney, A.J. 2009. Climatic determinants of berry crops in the boreal forest of the southwestern Yukon. Botany, 87: 401-408.
+Assessed multiple berry species, including huckleberry (40 cm x 40 cm quadrat) and buffaloberry (2 tagged twigs) over 12 years. Most common predictors were the rainfall and temperature from t-1 and t-2 timeframes! suggest that both years prior need to be good years to get a bumper crop (test interaction between two years). Flowering primordia are set in year t-1.
+
+Included minimum temperature from May 15-30 to account for possible bud damage.
+
+July rainfall was most powerful estimate for buffaloberry (of year t-1) for berry counts. Huckleberry: best models had rainfall in May ot t, t-1 and t-2. "Moreover, aggregated climatic variables like mean summer temperature or total summer rainfall were of little use in predicting future berry crops, and monthly averages were needed, a reflection of the lack of
+correlation among summer weather measures".
+
+*Get measures for spring frost and growing degree days (May)
+
+##Krebs, C.J., Cowcill, K., Boonstra, R., and Kenney, A.J., 2010. Do changes in berry crops drive population fluctuations in small rodents in the southwestern Yukon? Journal of Mammalogy, 91(2): 500-509.
+This paper looks at how the abundance of 6 different shrub and herb species, mushrooms and white spruce seeds impact the survival of 3 rodent species. They found that the production of these crops in year t influenced rodent densities in years t+1.
+
+##Spencer, M., Willsey, T., Berg, K., and Anderson, J. 2020. A literature review for the western science state of knowledge for huckleberries.
+"Black huckleberry populations are under pressure in the Kootenay region due to many factors, particularly fire suppression, backcountry road construction, commercial forestry, recreational and commercial berry harvesting and climate change." --> brings up a question of whether we want to include a metroic of human access, like logging road densities. But I think it is better to keep that out of this model for now.
+
+Objective: "To summarize the environmental conditions that may influence huckleberry patch productivity4 (including elevation, slope/aspect, canopy cover, forestry practices, fire regime, harvest, climate change)"
+
+BEC Zones: ESSF** (best), ICH (next best), MS and IDF in Kootenays.
+
+"Abundance is also associated with areas of moderate to high snowfall as deep snowpacks insulate plants from extreme cold and desiccation by heavy winter frosts (Haeussler and Coates, 1986; Proctor et al., 2017)."
+
+"Similar to other Vaccinium species, black huckleberry favours moist, well-drained, and acidic soil that is high in organic matter and low in calcium and available nutrients (Barney et al., 2006)."
+
+"Black huckleberry is tolerant of a range of soil textures, from loamy sands to clay loams, but is most productive in soils with low bulk densities and high water-holding capacity (Barney et al., 2006). Compacted, heavy-textured, and poorly-draining soils are associated with poor survival and productivity, due to restricted growth of roots and rhizomes. A soil pH of 5.5 is optimal for black huckleberry productivity (Minore and Dubrasich, 1978)." 
+
+"Huckleberry is considered an indicator of nitrogen-poor sites (Cocksedge et al., 2009), but will grow within a broad range of soil nutrient profiles (Barney et al., 2006)."
+
+"Black huckleberry abundance increases with both elevation (to 1,200 m) and continentality in B.C. (Cocksedge et al., 2009)." 400-800 m elevation on coast; generally absent below 1200 m (drier) regions of interior. Most likely 1500-2000 in Kootenays.
+
+"Black huckleberry establishes well on moderately steep slopes (25-40%) (Martin, 1979; 1980)."
+
+"Black huckleberry is a dominant understory species in all stages of forest succession and can be found in both shaded old-growth forests and in cleared areas with full sun exposure (Anzinger, 2002). Canopy cover <30% has been identified as the most important factor associated with huckleberry patches important to grizzly bears (Proctor et al., 2017), and MacHutchon (2017) determined that an open canopy is likely more important to patch development and berry production than forest structural stage."
+
+"Huckleberry produces extensive rhizome networks and reproduction primarily occurs vegetatively from adventitious shoots on its rhizomes and root crowns (Simonin, 2000). Vigorous rhizomatous regeneration occurs following disturbances such as fire or logging, allowing huckleberry to dominate early seral shrub communities (Martin, 1979; Anzinger, 2002). 20% canopy closure has been reported as ideal for berry production (Keefer, 2011), with a decline in productivity observed at >30% canopy cover (Martin, 1979; 1980)."
+
+"Huckleberry roots may penetrate as deep as 1 m below the soil surface, but rhizomes are typically present in top 8-30 cm of the soil profile (Minore, 1975). Low intensity fires that do not destroy organic soil horizons leave rhizome networks intact, and vigorous sprouting of rhizomes occurs following light surface fires (Minore, 1975; Mah, 2000). Under optimal conditions, emerging shoots have been observed in as few as 15 days following a burn (Martin, 1979)." Fire also helps inhibit dense forest canopy. "In the East Kootenay region, the most productive contemporary sites are those with a history of logging and broadcasting burning (Hobby and Keefer, 2010)."
+
+"Huckleberry patch regeneration in cut-blocks depends on the presence of several cumulative site characteristics (soil, ecological, climate, and topographic conditions), combined with an open canopy (Proctor et al., 2017). Martin (1980) found that the primary factors determining fruit production in clearcuts were canopy cover, site aspect and silvicultural post-timber treatment practices... On xeric aspects, canopy removal may decrease productivity due to moisture stress (Martin, 1979). Proctor et al. (2017) found that planted cut blocks were less likely to support huckleberry patches, likely due to increased canopy cover. Post-timber mechanical site preparation is destructive to huckleberry rhizomes and has been associated with significant reductions in the cover and productivity of regenerating patches (Martin, 1980; Keefer, 2011)."
+
+"For instance, increased tree cover provides refuge for black bears, which may have negative impacts on grizzly bear population dynamics due to increased competition for huckleberries (Mowat, G., Large Carnivore Specialist, Wildlife and Habitat Branch, B.C. Ministry of FLNRORD, pers. comm., April 2020)."
+
+"Other management recommendations to preserve huckleberry patches include minimizing disturbance to the forest floor by logging on winter snowpacks, limiting road density and restricting access to areas supporting productive huckleberry patches, implementing selective logging and prescribed burns to maintain and regenerate existing patches, and limiting fire suppression in remote areas (Proctor et al., 2017)."
+
+Climate: "In the northwestern U.S., the range of huckleberry is expected to shrink by 5-40% by the end of the century, whereas habitat at altitudes > 3,050 m and boreal ecosystems in northern B.C. are expected to increase by 5-60%. In addition to predicted range shifts, phenology models predict that flowering and fruiting may occur 11-52 days earlier by the end of the 21st century (Prevéy et al., 2020)... the risk of late frost events may not change despite warmer spring temperatures (Richardson et al., 2018). Holden et al. (2012) found a negative correlation between monthly spring (April-June) temperatures and huckleberry productivity, which can likely be attributed to a combination of frost damage to early-flowering plants and a declining snowpack leading to summer moisture deficits."
+
+"Forest management practices: The response of black huckleberry to forest management practices is variable and appears to be highly dependent on site-specific characteristics (Kerns et al., 2004; Keefer, 2011; Proctor et al., 2017). The extent to which timber harvest can mimic natural disturbance regimes and facilitate the generation of productive huckleberry patches requires more research (Proctor et al., 2017). Commercial forest practices such as mechanical site preparation and post-logging planting can negatively impact huckleberry patches (Martin, 1980; Keefer, 2011), and it is not yet clear if the ecological requirements for productive huckleberry patches can be balanced with a profitable timer industry (Proctor et al., 2017). Experimentation with post-timber site-preparation techniques (e.g. brushing, mechanical site preparation, broadcast burning) and re-planting intervals will be useful in addressing this knowledge gap."
+
+"Proctor et al. (2017) developed a model associating geophysical, ecological, soil, climate, and topographical variables with huckleberry patches known to be used by bears. Their huckleberry patch model found that the most important predictors for patches utilized by grizzly bears were low canopy cover, low coarse fragment content in soil, low slope angle, high winter snowpack, and a cool (north–east) aspect (Proctor et al., 2017). In addition, they found that cut blocks were a poor predictor for huckleberry patches, as was slash burning, whereas fires other than slash burning increased the probability of huckleberry patch establishment."
+
+Holden et al. (2012): "Low spring temperatures and high diurnal ranges in July were found to be important predictors of huckleberry production, whereas precipitation and snowpack were found to be less important for productivity in this region."
+
+Prevey et al. 2020: "Briefly, habitat in lower elevation regions of the current range of huckleberry patches are predicted to shrink, whereas habitat suitability is expected to increase at higher elevations and northern latitudes. This shift in range is expected to be accompanied by an average advancement of flowering and fruiting time of approximately 35 days."
+
+"Soil characteristics, elevation, slope, and aspect greatly influence black huckleberry growth and productivity. Black huckleberry is most productive in soils with low bulk densities and high water-holding capacities, and in the Kootenay region huckleberry abundance is highest in areas of neutral to acid bedrock. Black huckleberry establishes well on moderately steep slopes (25-40%) and its abundance generally increases with elevation up to 1,200 m."
+
+##Martin, P. 1980. Factors influencing globe huckleberry fruit production in Northwestern Montana. Int. Conf. Bear Res. and Management 5: 159-165. 
+This author investigated the impacts wildfires, harvesting techniques and physical and vegetation site characteristics on huckleberry production, an important food source for grizzly bears. They found that timber stands that were not disturbed in the last 60 years had low production. The most productive sites were those that experienced wildfire 25-60 years ago, or clearcut and broadcast burned 8-15 years ago. Scarification on any aspects reduced hucklberry production. Fruit production was not related to the percent cover or height of the huckleberry plants.
+
+**When looking at berry production, include physical plant characteristics as covariates.
+
+"Scarification apparently destroyed the rhizomes of the huckleberry shrubs
+and thus prevented vegetative propagation. Since seedling propagation of huckleberries is extremely rare in western Montana (P. Stickney, For. Sci.
+Lab., Missoula, Mont., pers. comm.), widespread rhizome destruction reduces the percent cover of huckleberry plants."
+
+Plots burned after harvest were productive earlier than those burned in wildfire. "Perhaps the fire was less intense, and the depth of rhizome destruction less extensive."
+
+When berry density increased, so did berry volume. Canopy cover cut-off for drop in berry production was 30%. Fruit production was low on both steep and gentle slopes, but with a minimal relationship overall. 
+
+##Anderson, N.J. 1994. Grizzly bear food production on clearcuts within the western and northwestern Yellowstone ecosystem. Thesis, University of Montana.
+Anderson found some opposite patterns in yellowstone as other researchers have found more locally. Namely, he observed that hucklberries were more abundant in undisturbed forest patches than in clearcuts, and that shrub density increased with successional age. Likely different canopy and forest characteristics.
+
+##Notes from Vacc mem Lit review_Mar_31_21
+Martin (1980) found that the primary factors determining fruit production in clearcuts were canopy cover, site aspect and silvicultural post-timber treatment practices. 
+
+Proctor et al. (2017) found that planted cut blocks were less likely to support huckleberry patches, likely due to increased canopy cover. 
+
+Additionally, berries produced in shaded areas are reported as being less sweet than those grown in open sun, which further discourages foraging by bears (Mowat et al., 2017).
+
+Post-timber mechanical site preparation is destructive to huckleberry rhizomes and has been associated with significant reductions in the cover and productivity of regenerating patches (Martin, 1980; Keefer, 2011).
+
+In contrast, huckleberry in patches on mesic aspects that are broadcast-burned after timber harvesting can return to post-disturbance cover and productivity within 8-15 years (Martin 1980). 
+
+Other management recommendations to preserve huckleberry patches include minimizing disturbance to the forest floor by logging on winter snowpacks, limiting road density and restricting access to areas supporting productive huckleberry patches, implementing selective logging and prescribed burns to maintain and regenerate existing patches, and limiting fire suppression in remote areas (Proctor et al., 2017).
+
+Burton 1998: Fruit production in Vaccinium was higher at any light levels greater than 60% relative irradiance.  The size and sugar content of Vaccinium berries bore no relationship to light intensity...   These results suggest that partial cutting would be better than clear-cut logging for promoting the highest populations of these shrub species... completely open (clear-cut) conditions are not likely detrimental to growth and berry production. Peak productivity was noted in a plot receiving 75% global irradiance, while the best fitting parabolic function predicts maximum performance at approximately 90% irradiance. We also found that fruit density and productivity in Vaccinium were more sensitive to soil moisture conditions than to canopy conditions 
+
+##Keefer, M., Cocksedge, W., Munro, R., Meuleman, J., and MacPherson, N. 2010. What about the berries? Managing for understory species. The Centre for Livelihoods and Ecology.
+There is a lack of policy around managing non-timber forest products (NTFPs). Some First Nations and logging companies have made their own informal policies. There is a need for more guidance. "With lack of provincial regulations on these species, there is great concern over the maintenance and protection of both the species and their habitat."
+
+"Forest understory species contribute to biological diversity and long-term ecosystem productivity (Alaback and Herman 1988; Halpern and Spies 1995), are well correlated with mammalian and avian abundance (Carey 1995; Carey and Johnson 1995; Morrison 1982), and are important for wildlife, contributing browse, berries, and cover (Willams et al. 1980; Bunnell and Hamilton 1983; Campbell and Johnson 1983; Kasworm et al. 1984; Noyce and Coy 1990; Tirmenstein 1990 a & b; McLellan and Hovey 1995; Riddell 2005). These plant species can also contribute to fuel reduction treatments and in ecosystem restoration (Monsen et al. 2004)."
+
+"High density planting or mechanical scarification may decrease the abundance and quality of some species, particularly in the short-term (Haeussler et al. 2002; Minore 1984). Such disturbances can also propagate invasive plants that may impede the re-establishment of valuable plants. Other silvicultural practices, such as broadcast burns (depending on timing and intensity), spacing, and pruning may enhance berry habitat for some species (Kerns et al. 2002; Johnson 1999; Halpern and Spies 1995; Minore 1975; Burton 1998)."
+
+"Increasing extremes such as late frosts and drought can result in decreased berry production in habitats that would otherwise have provided abundant crops."
+
+"Low intensity fires (Turner 1991) which could also assist with issues of fuel loading. Highly analogous treatments have been occurring in the East Kootenay through the Ministry of Forests and Range Ecosystem Restoration Program. The program is using prescribed fire to enhance wild plants in their natural ecosystems."
+
+"Competition with timber growth has led to practices of enhancing timber production at the expense of (i.e. the removal of) understory species. Although the goal was not to reduce berry production per se, inevitably that would happen when the vegetation management program was effective. Simply increasing the awareness of important NTFP species, and including these within management considerations, may decrease the negative effects due to timber management practices."
+
+"Silviculture regimes, such as clearcuts, partial cuts, shelterwoods, patch clearcut, single-tree selection, etc., can be carried out in conjunction with NTFP stand management regimes. The question to forest managers is the implication to growth and yield and to stand establishment. How the two growth and yield metrics (timber and NTFP) interact is still in the early stages of research, especially considering the substantial suite of variables, including the broad number of species identified as cultural or NTFP use and the lack of substantial autecological information on many of these species (Clason et al. 2008; Haeussler et al. 2002)."
+
+"For example, if a woodlot manager wished to commercially thin a 50 year old coastal Douglas-fir stand down to 60% of the original basal area in order to realize the interim economic value from thinning, increase mean log diameter, and increase sunlight penetration to enhance salal foliage production for commercial harvest, then the manager could use available growth and yield models, such as TIPSY (Table Interpolation Program for
+Stand Yields) and VDYP (Variable Density Yield Prediction system) to estimate the effects on the value of the timber."
+

@@ -55,48 +55,107 @@ https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resourc
 
 We have multiple datasets to work with.
 
+##Notes from Clayton
+Keep in mind the hierarchy of the processes as your filter the data— For Occurrence>cover>fruit occurrence>fruit abundance. For example, there are lots of cover==0% because the species didn’t occur. I chose to model each processes independently and then multiply them together, but you could shortcut and try to just model berry abundance all together, see how goes.
+
+VegModData_BEC_CL is occurrence and cover data from BEC, my plots across BC and some Proctor Huck data. This is a big dataset useful for modelling occurrence and cover only. Not fruit occurrence or productivity. You’ll see the BEC Code (for example VACCMEM= huck), and then “_cover” or “_occ” for % cover and occurrence, respectively.
+
+Productivity_Data is occurrence, cover, fruit presence, and fruit abundance data.I think I assigned NA’s to abundance and other values when the species didn’t occur. Some records where the species and fruit occurs don’t have fruit abundance data becuase these data weren’t always collected. These rows are NA’s too.
+
+Time since cut and Time since Fire are in there, and are calculated relative to when the plot was done. I fixed all non-cut block and non-fire areas as 118. Lots of other variables in there for you to play with.”
+
+
+##Additional considerations for data and variables
+1. Temp and Rainfall in t-1 and t-2 (years before)
+2. Solar radiation
+3. PAS (Already have)
+4. Spring temperature
+5. July temperature
+6. Spring rainall
+7. July rainfall
+8. Time since wildfire
+9. Whether site prep involved fire
+10. Whether site prep involved scarification (mechanical)
+11. Tree canopy
+12. DEM: slope, elevation AND aspect all important (shift aspect to NE)
+
+
+#Before bringing data in
+Consider getting climatic variables at time t, t-1, t-2 (for berry production) and 20 year normal for cover and presence. Then append together with appropriate names for each set if varaibles at their timelines.
+
+
 #Dataset #1: Clayton Lamb and Garth Mowat data on huckleberry and Buffaloberry
 This data has P/A of plants and of berries, and P/A of fruits and of berries. There is also a measure of sugar content (energetics) and other potentially useful and interesting response variables.
 ```{r}
-#This first file has ALL of the locations within cutblocks 
-cutblock_plots<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Plots_in_cutblocks_FINAL.shp", stringsAsFactors = T)
-
-#This second file has openings data from RESULTS already appended in QGIS, but we lose data
 cutblock_plots_openings<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huck_Buff_Openings_duplicates_removed.shp", stringsAsFactors = T)
 str(cutblock_plots_openings)
 
 st_crs(cutblock_plots_openings)
 plot(cutblock_plots_openings)
 table(cutblock_plots_openings$Site_ID) 
-
-#This third file has Openings and Activity Treatment data appended, but we lose even more data
-cutblock_plots_openings_activity<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huck_Buff_Openings_Activity_duplicates_removed.shp", stringsAsFactors = T)
-str(cutblock_plots_openings_activity)
-
-st_crs(cutblock_plots_openings_activity)
-plot(cutblock_plots_openings_activity)
-table(cutblock_plots_openings_activity$Site_ID) 
 ```
 
 ```{r}
-## Elevation is missing from data! Need to get from DEM
+## Elevation is missing from data! Need to get from DEM. Because some of the slope and aspect data differs, also append this data.
+
+DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc.tif")
+
+DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc.tif")
+
 #Elevation
-DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
-plot(DEM)
-crs(DEM)
+DEM_elevation <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+crs(DEM_elevation)
 crs(cutblock_plots_openings) #Same!
+
+#Stack rasters
+rasStack = stack(DEM_slope, DEM_aspect, DEM_elevation)
+crs(rasStack)
+head(rasStack)
+str(rasStack)
 
 pointCoordinates<-data.frame(cutblock_plots_openings$coords_x1, cutblock_plots_openings$coords_x2)
 head(pointCoordinates)
 
-ELEVATION=raster::extract(DEM, pointCoordinates)
-head(ELEVATION)
+DEM_huck1=raster::extract(rasStack, pointCoordinates)
+head(DEM_huck1)
 
 #Append
-cutblock_plots_openings<-cbind(cutblock_plots_openings, ELEVATION)
+cutblock_plots_openings<-cbind(cutblock_plots_openings, DEM_huck1)
 head(cutblock_plots_openings)
 ```
-Need to decide whether want DEM Slope and Aspect as well, in case other values differ.
+
+Also need to append the soils data, layers provided by Clayton Lamb who did extensive processing to create these layers from:http://www.env.gov.bc.ca/esd/distdata/ecosystems/Soil_Data/SOIL_DATA_FGDB/
+
+```{r}
+cofrag <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\cofrag_utm.tif")
+orgcarb <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\orgcarb_utm.tif")
+PH2 <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\ph2_utm.tif")
+phca <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\phca_utm.tif")
+tclay <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\tclay_utm.tif")
+tsand <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\tsand_utm.tif")
+tsilt <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\tsilt_utm.tif")
+vfsand <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\vfsand_utm.tif")
+
+#Check crs
+crs(cofrag)
+crs(PH2)
+
+SoilStack<- stack(cofrag, orgcarb, PH2, phca, tclay, tsand, tsilt, vfsand)
+crs(SoilStack)
+
+SoilStack_2 <- projectRaster(SoilStack, crs = crs(rasStack))
+crs(SoilStack_2)
+plot(SoilStack_2)
+
+#Extract values from SoilStack_2 for GPS coordinates in data file
+SOIL_huck1=raster::extract(SoilStack_2, pointCoordinates)
+head(DEM_huck1)
+
+#Combine back into original data set
+cutblock_plots_openings<-cbind(cutblock_plots_openings, SOIL_huck1)
+head(cutblock_plots_openings)
+
+```
 
 
 #Datasets #2: Garth Mowat and new student's data on huckleberry and buffalo berry separately.
@@ -117,10 +176,10 @@ DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\
 DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc.tif")
 
 #Elevation
-DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+DEM_elevation <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
 
 #Stack rasters
-rasStack = stack(DEM_slope, DEM_aspect, DEM)
+rasStack = stack(DEM_slope, DEM_aspect, DEM_elevation)
 crs(rasStack)
 head(rasStack)
 str(rasStack)
@@ -160,6 +219,24 @@ Save new file.
 st_write(cutblock_plots_openings_mowatBuff, dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Mowat_Buff_Openings_duplicates_removed_DEM.shp")
 ```
 
+#Productivity data missing in cutblock_plots_openings_Huck_ALL_df and cutblock_plots_openings_activity_df. Must bring in and append
+
+```{r}
+prod.data<-read.csv(file="D://Hucklberry//Grizzly Bear stuff//berries//data//Productivity_Data.csv")
+head(prod.data)
+prod.data$Site_ID<-prod.data$Site.ID
+head(cutblock_plots_df)
+
+cutblock_plots_df<-left_join(cutblock_plots_df, prod.data, by="Site_ID")
+head(cutblock_plots_df)
+
+cutblock_plots_openings_Huck_ALL_df<-left_join(cutblock_plots_openings_Huck_ALL_df, prod.data, by="Site_ID")
+head(cutblock_plots_openings_Huck_ALL_df)
+
+cutblock_plots_openings_activity_df<-left_join(cutblock_plots_openings_activity_df, prod.data, by="Site_ID")
+head(cutblock_plots_openings_activity_df)
+
+```
 
 #Datasets #3: BEC Plots
 This dataset has presence only values for each huckleberry and buffalo berry, and only presents the percent cover of the plant itself (not berries). This can be used best for percent cover models, but because does not have absence values, may be best only to use for percent cover.
@@ -167,6 +244,7 @@ This dataset has presence only values for each huckleberry and buffalo berry, an
 ```{r}
 
 cutblock_plots_openings_BECHuck<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\BEC_huck_Openings_duplicates_removed.shp", stringsAsFactors = T)
+head(cutblock_plots_openings_BECHuck)
 
 cutblock_plots_openings_activity_BECHuck<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\BEC_huck_Openings_Activity_duplicates_removed.shp", stringsAsFactors = T)
 
@@ -189,24 +267,40 @@ cutblock_plots_openings_activity_BECHuck_df<-st_drop_geometry(cutblock_plots_ope
 
 ```
 
-#Productivity data missing in cutblock_plots_openings_Huck_ALL_df and cutblock_plots_openings_activity_df. Must bring in and append
+Save BEC data so can extract coordinates and append ClimateBC Data.
 
 ```{r}
-prod.data<-read.csv(file="D://Hucklberry//Grizzly Bear stuff//berries//data//Productivity_Data.csv")
-head(prod.data)
-prod.data$Site_ID<-prod.data$Site.ID
-head(cutblock_plots_df)
+names(cutblock_plots_openings_BECHuck_df)
 
-cutblock_plots_df<-left_join(cutblock_plots_df, prod.data, by="Site_ID")
-head(cutblock_plots_df)
+cutblock_plots_openings_BECHuck_df<-rename(cutblock_plots_openings_BECHuck_df,
+                   c("Aspect_reported"="Aspect",
+                     "Elevation_reported"="Elevation"))
 
-cutblock_plots_openings_Huck_ALL_df<-left_join(cutblock_plots_openings_Huck_ALL_df, prod.data, by="Site_ID")
-head(cutblock_plots_openings_Huck_ALL_df)
-
-cutblock_plots_openings_activity_df<-left_join(cutblock_plots_openings_activity_df, prod.data, by="Site_ID")
-head(cutblock_plots_openings_activity_df)
+st_write(cutblock_plots_openings_BECHuck_df, dsn= "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\BEC_cutblock_plots_openings_BECHuck_df.csv")
 
 ```
+
+#Bring back in and append
+
+```{r}
+BEC_ClimateBC_Data<-read.csv(file= "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\BEC_latlong_forCLIMATEBC_Normal_1991_2020SY.csv")
+head(BEC_ClimateBC_Data)
+
+
+#Rename ID1 and ID2
+head(cutblock_plots_openings_BECHuck_df)
+names(cutblock_plots_openings_BECHuck_df)
+BEC_ClimateBC_Data<-rename(BEC_ClimateBC_Data,
+                   c("ProjectID"="ID1",
+                     "PlotNumber"="ID2"))
+head(BEC_ClimateBC_Data)
+
+cutblock_plots_openings_BECHuck_df_<-merge(cutblock_plots_openings_BECHuck_df, BEC_ClimateBC_Data, by=c("ProjectID", "PlotNumber"))
+head(cutblock_plots_openings_BECHuck_df_)
+```
+
+
+
 
 #Combine appropriate files
 
@@ -308,7 +402,7 @@ cutblock_plots_openings_mowatBuff_df$Buff_Fru_3 # --> Buff_Fruiting_Plant_Height
 
 #mowat
 cutblock_plots_openings_mowatBuff_df2<-rename(cutblock_plots_openings_mowatBuff_df,
-                   c("Species.Present"="shep_occur",
+                   c("Species.Present"="Buffalober",
                      "Species.Cover"="Buff_Spe_1",
                      "HARVEST_YE"="Harvest_Ye",
                      "CutBlock_Occurrence"="Clear_Cut",
