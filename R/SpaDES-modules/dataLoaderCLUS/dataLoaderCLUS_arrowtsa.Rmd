@@ -24,6 +24,10 @@ The dataloaderCLUS preps the database and other objects required to run CLUS. A 
 
 Here I set the parameters to create a database for the [Arrow timber supply area (TSA)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/timber-supply-review-and-allowable-annual-cut/allowable-annual-cut-timber-supply-areas/arrow-tsa). The TSA is located in south-eastern British Columbia, encompasses approximately 1.3 million hectares of land. It overlaps with the Central Selkirks, Columbia South, Monashee and South Selkirks caribou herds (all in DU9). On November 16, 2017, the allowable annual cut was set at 500,000 cubic metres,
 
+  # get the paths
+myPaths <- c(myPaths[2], myPaths[1])  # switch them
+.libPaths(myPaths)  # reassign them
+
 # Usage
 Set parameters for creating the database in the code chunk below. 
 ```{r module_usage}
