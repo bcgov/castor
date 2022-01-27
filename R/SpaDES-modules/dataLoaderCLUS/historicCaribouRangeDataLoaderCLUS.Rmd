@@ -54,12 +54,12 @@ parameters <-  list(
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = FALSE,
                         sqlite_dbname = "historic",
-                         #nameBoundaryFile="bc_caribou_herd_boundary_v20200507",
-                       nameBoundaryFile=" hart_ranges_south_bnds",
+                         nameBoundaryFile="bc_caribou_herd_boundary_v20200507",
+                       #nameBoundaryFile=" hart_ranges_south_bnds",
                          nameBoundaryColumn="herd_name",
-                         nameBoundary = "Hart_Ranges",
-                         #nameBoundaryGeom='shape'
-                       nameBoundaryGeom='wkb_geometry'
+                         nameBoundary = "Columbia_North",
+                         nameBoundaryGeom='shape'
+                       #nameBoundaryGeom='wkb_geometry'
                     ),
     roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
@@ -80,28 +80,13 @@ parameters <-  list(
                     criticalHabitatTable = "public.criticalhabitat_gen_bc_vat",
                     criticalHabRaster = "rast.bc_gen_crithab",
                     recovery = 40),
-    # survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
-    #                    nameRasCaribouHerd = "rast.bc_gen_crithab", # raster of herd boundaries
-    #                    tableCaribouHerd = "public.criticalhabitat_gen_bc_vat"),
-     uploaderCLUS = list(aoiName = 'disturbance_measures2',
+     uploaderCLUS = list(aoiName = 'disturbance_measures3',
                          dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), keyring::key_get("vmdbuser", keyring="postgreSQL"), keyring::key_get("vmdbpass", keyring="postgreSQL"),  keyring::key_get("vmdbname", keyring="postgreSQL"))
                      )
   )
 
-
-# rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE population = 'DU9' and  species = 'caribou' and season IN ('A')"))
-# 
-# rsf_model_coeff[, population:= herd]
-# rsf_model_coeff[, bounds:= 'rast.bc_gen_crithab']
-# rsf_model_coeff[, minv:= scale_rsf[herd_name == herd, "minv"]]
-# rsf_model_coeff[, maxv:=scale_rsf[herd_name == herd, "maxv"]]
-# 
-# 
 scenario = data.table(name="disturbance_measures2", description = "historical disturbances")
-modules <- list("dataLoaderCLUS", "roadCLUS", "cutblockSeqPrepCLUS", "disturbanceCalcCLUS", "uploaderCLUS")
-
-#objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
-# objects <- list(scenario = scenario, rsf_model_coeff=rsf_model_coeff)
+modules <- list("dataLoaderCLUS", "roadCLUS", "cutblockSeqPrepCLUS")
 
 objects <- list(scenario = scenario)
 
