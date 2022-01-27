@@ -45,7 +45,7 @@ source(here::here("R/functions/R_Postgres.R"))
 ```
 
 #Overview
-This file continues from Hucklberry_Data_analysis_Plant_PA, and works with locations where huckleberry did exist to assess patterns for percent cover.
+This file continues from Huckleberry_Data_analysis_Plant_PA, and works with locations where huckleberry did exist to assess patterns for percent cover.
 
 #Load in data and prep
 ```{r}

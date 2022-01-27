@@ -395,7 +395,7 @@ head(cutblock_plots_openings_HuckBuff_ALL_df3b)
 
 Now, only data missing in above from initial list is solar radiation. Try this package.
 
-Note: I have had this work with my fire data, but for some reason, not working on January 24, 2022.
+Note: I have had this work with my fire data, but for some reason, not working on January 24, 2022. Additionally, each time I try to run it, I am told that there is not enough space on my C drive.
 
 ```{r}
 library(spatialEco)
@@ -497,6 +497,7 @@ crs(PH2)
 SoilStack<- stack(cofrag, orgcarb, PH2, phca, tclay, tsand, tsilt, vfsand)
 crs(SoilStack)
 
+crs(rasStack)
 #None of the below are working, but we must find a way to make it happen
 SoilStack_2 <- projectRaster(SoilStack, crs = crs(rasStack))
 #SoilStack_2<- spTransform(SoilStack, CRS("+init=epsg:3005"))
