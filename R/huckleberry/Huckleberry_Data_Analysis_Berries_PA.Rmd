@@ -1,0 +1,496 @@
+---
+title: "Huckleberry_Data_Analysis_Berries_PA"
+author: "Cora Skaien"
+date: "26/01/2022"
+output: html_document
+---
+
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(raster)
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(cleangeo)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(rgdal)
+library(keyring)
+library(DBI)
+library(rgeos)
+library(car)
+library(rje)
+library(caret)
+library(pROC)
+library(visreg)
+library(arm)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+#Overview
+This file continues from Hucklberry_Data_analysis_Plant_PA, and works with locations where huckleberry did exist to assess patterns for P/A of berries.
+
+#Load in data and prep
+```{r}
+cutblock_plots_openings_HuckBuff_ALL_df<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_HuckBuff_ALL_df_Jan.csv")
+
+cutblock_plots_openings_Huck_ALL_df_PA<-subset(cutblock_plots_openings_Huck_ALL_df, cutblock_plots_openings_Huck_ALL_df$Species.Pr=="1")
+
+```
+
+Check distribution of plants with berries and those without.
+
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df_PA$Fruit.Pres) #122 without, 310 with.
+
+cutblock_plots_openings_Huck_ALL_df_PA$Species.He #Note, lots of NAs... this will be lost data for when this metric is included in the analysis.
+
+cutblock_plots_openings_Huck_ALL_df_PA$Species.Co #Note: lots of NAs here too, so more lost data
+```
+
+#####################  Begin Exploratory Analyses ###########################
+
+#Explore these Harvesting Variables:
+DN1_DIS_CD
+DN1_SILSYS_GP
+PREP_MA
+PREP_ME
+PREP_BU
+BRUSH_MA
+BRUSH_CM
+G_BGC_ZONE
+OPEN_GRSAR OR AREA_SQM
+PLANTED
+Origin
+Origin.age
+TimeSinceF
+TimeSinceC
+START_SEASON
+
+#And:
+PAS_total
+Tave_wt
+Tave_sp
+Tave_sm
+PPT_sp
+PPT_sm
+Tave_wt_1
+Tave_sp_1
+Tave_sm_1
+PPT_sp_1
+PPT_sm_1
+Tave_wt_2
+Tave_sp_2
+Tave_sm_2
+PPT_sp_2
+PPT_sm_2
+DD5_at
+DD5_sp
+DD5_sm
+DD5_wt
+NFFD_sp
+
+TSAND
+PH2
+MODIS_LC (land cover type)
+SAI_rec
+dem_ha_bc
+LandsatCC_
+
+Species.Co
+Species.He
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_PA$PAS_total_ann<-cutblock_plots_openings_Huck_ALL_df_PA$PAS_at+ cutblock_plots_openings_Huck_ALL_df_PA$PAS_sm + cutblock_plots_openings_Huck_ALL_df_PA$PAS_sp + cutblock_plots_openings_Huck_ALL_df_PA$PAS_wt
+```
+
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_PA$MODIS_LC<-as.factor(cutblock_plots_openings_Huck_ALL_df_PA$MODIS_LC)
+table(cutblock_plots_openings_Huck_ALL_df_PA$MODIS_LC)
+
+cutblock_plots_openings_Huck_ALL_df_PA$PLANTED<-as.factor(cutblock_plots_openings_Huck_ALL_df_PA$PLANTED)
+
+cutblock_plots_openings_Huck_ALL_df_PA$DN1_DIS_CD<-as.factor(as.character(cutblock_plots_openings_Huck_ALL_df_PA$DN1_DIS_CD))
+
+cutblock_plots_openings_Huck_ALL_df_PA$PREP_MA<-as.factor(cutblock_plots_openings_Huck_ALL_df_PA$PREP_MA)
+cutblock_plots_openings_Huck_ALL_df_PA$PREP_ME<-as.factor(cutblock_plots_openings_Huck_ALL_df_PA$PREP_ME)
+cutblock_plots_openings_Huck_ALL_df_PA$PREP_BU<-as.factor(cutblock_plots_openings_Huck_ALL_df_PA$PREP_BU)
+
+cutblock_plots_openings_Huck_ALL_df_PA$BRUSH_MA<-as.factor(cutblock_plots_openings_Huck_ALL_df_PA$BRUSH_MA)
+
+```
+
+
+#Begin Analyses
+Note, these are a lot of variables to be assessing at this time with such a small dataset...
+```{r}
+#Note: origin + origin.age + TimeSinceF + TimeSinceC are all related and should not all be included in final model
+
+#Species Present or Absent Huckleberry
+model.new.1 <- glm (Fruit.Pres ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + origin.age + TimeSinceF + TimeSinceC + AREA_SQM + START_SEASON + PAS_total_ann + Tave_wt + Tave_sp + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 * Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sp_1*PPT_sp_2 + PPT_sm_1*PPT_sm_2 + DD5_at + DD5_sp + DD5_wt + NFFD_sp + TSAND + PH2 + MODIS_LC + SAI_cb + dem_ha_bc + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #267.4
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + origin.age + TimeSinceF + TimeSinceC + AREA_SQM + START_SEASON + PAS_total_ann + Tave_wt + Tave_sp + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 * Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sp_1 + PPT_sp_2 + PPT_sm_1 + PPT_sm_2 + DD5_at + DD5_sp + DD5_wt + NFFD_sp + TSAND + PH2 + MODIS_LC + SAI_cb + dem_ha_bc + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #263.7
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + origin.age + TimeSinceF + TimeSinceC + AREA_SQM + START_SEASON + PAS_total_ann + Tave_wt + Tave_sp + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 * Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sp_1 + PPT_sp_2 + PPT_sm_1 + PPT_sm_2 + DD5_at + DD5_sp + DD5_wt + NFFD_sp + TSAND + PH2 + MODIS_LC + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #259.9
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + origin.age + TimeSinceF + TimeSinceC + AREA_SQM + START_SEASON + PAS_total_ann + Tave_wt + Tave_sp + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 * Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sp_1 + PPT_sp_2 + PPT_sm_1 + PPT_sm_2 + DD5_at + DD5_wt + NFFD_sp + TSAND + PH2 + MODIS_LC + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #255.98
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + origin.age + TimeSinceF + TimeSinceC + AREA_SQM + START_SEASON + PAS_total_ann + Tave_sp + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 * Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sp_1 + PPT_sp_2 + PPT_sm_1 + PPT_sm_2 + DD5_at + NFFD_sp + TSAND + PH2 + MODIS_LC + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #252.1
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + origin.age + TimeSinceF + TimeSinceC + AREA_SQM + START_SEASON + PAS_total_ann + Tave_sp + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 * Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sp_1 + PPT_sp_2 + PPT_sm_1 + PPT_sm_2 + DD5_at + NFFD_sp + PH2 + MODIS_LC + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #250.7
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + origin.age + TimeSinceF + TimeSinceC + AREA_SQM + START_SEASON + PAS_total_ann + Tave_sp + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sp_1 + PPT_sp_2 + PPT_sm_1 + PPT_sm_2 + DD5_at + NFFD_sp + PH2 + MODIS_LC + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #249.5
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + origin.age + TimeSinceF + TimeSinceC + AREA_SQM + START_SEASON + PAS_total_ann + Tave_sp + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_1 + PPT_sm_2 + DD5_at + NFFD_sp + PH2 + MODIS_LC + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #245.9
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + origin.age + TimeSinceC + AREA_SQM + START_SEASON + Tave_sp + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_1 + PPT_sm_2 + DD5_at + NFFD_sp + PH2 + MODIS_LC + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #242.4
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ DN1_SILSYS_GP + PREP_ME * PREP_BU + BRUSH_MA + PLANTED + origin + origin.age + TimeSinceC + AREA_SQM + START_SEASON + Tave_sp + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_1 + PPT_sm_2 + DD5_at + NFFD_sp + PH2 + MODIS_LC + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #234.98
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ DN1_SILSYS_GP + PREP_ME * PREP_BU + BRUSH_MA + PLANTED + origin + origin.age + TimeSinceC + AREA_SQM + START_SEASON + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_1 + PPT_sm_2 + DD5_at + NFFD_sp + PH2 + MODIS_LC + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #233.7
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ DN1_SILSYS_GP + PREP_ME * PREP_BU + BRUSH_MA + PLANTED + origin + origin.age + TimeSinceC + AREA_SQM + START_SEASON + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_1 + PPT_sm_2 + DD5_at + PH2 + MODIS_LC + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #233.6
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ DN1_SILSYS_GP + PREP_ME * PREP_BU + BRUSH_MA + PLANTED + origin + origin.age + TimeSinceC + AREA_SQM + START_SEASON + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_2 + DD5_at + MODIS_LC + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #230.5
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ DN1_SILSYS_GP + PREP_ME * PREP_BU + BRUSH_MA + origin + origin.age + TimeSinceC + AREA_SQM + START_SEASON + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_2 + DD5_at + MODIS_LC + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #228.6
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ PREP_ME * PREP_BU + BRUSH_MA + origin + origin.age + TimeSinceC + AREA_SQM + START_SEASON + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_2 + DD5_at + MODIS_LC + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #226.4
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ PREP_ME * PREP_BU + BRUSH_MA + origin + origin.age + TimeSinceC + AREA_SQM + START_SEASON + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_2 + DD5_at  + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #220.2
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ PREP_ME * PREP_BU + BRUSH_MA + origin + origin.age + AREA_SQM + START_SEASON + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_2 + DD5_at  + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #220.0
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ PREP_ME * PREP_BU + BRUSH_MA + origin  + AREA_SQM + START_SEASON + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_2 + DD5_at  + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #218.5
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ PREP_ME * PREP_BU + BRUSH_MA + origin + START_SEASON + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_2 + DD5_at  + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #217.6
+
+#Remove least significant
+model.new.1 <- glm (Fruit.Pres ~ PREP_ME * PREP_BU + BRUSH_MA + START_SEASON + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_2 + DD5_at  + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #216.9
+
+```
+
+Partial residuals
+
+```{r}
+model.new.1 <- glm (Fruit.Pres ~ PREP_ME * PREP_BU + BRUSH_MA + START_SEASON + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_2 + DD5_at  + LandsatCC_ + Species.Co + Species.He,
+               data=cutblock_plots_openings_Huck_ALL_df_PA,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #216.9
+
+# model diagnostic plots
+binnedplot (fitted(model.new.1), 
+            residuals(model.new.1), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+#Despite model performing well (see AUC in next section), this resid plot does not look great?
+
+#Partial residuals plot
+visreg(model.new.1, "PREP_ME", by="PREP_BU")
+visreg(model.new.1, "PREP_BU", by="PREP_ME")
+
+visreg(model.new.1, "BRUSH_MA")
+visreg(model.new.1, "START_SEASON")
+
+visreg(model.new.1, "Tave_sm")
+visreg(model.new.1, "PPT_sp")
+visreg(model.new.1, "PPT_sm")
+visreg(model.new.1, "Tave_wt_1")
+visreg(model.new.1, "Tave_wt_2")
+visreg(model.new.1, "Tave_sp_1", by="Tave_sp_2")
+visreg(model.new.1, "Tave_sp_2", by="Tave_sp_1")
+visreg(model.new.1, "Tave_sm_1", by="Tave_sm_2")
+visreg(model.new.1, "Tave_sm_2", by="Tave_sm_1")
+visreg(model.new.1, "PPT_sm_2")
+visreg(model.new.1, "DD5_at")
+
+visreg(model.new.1, "LandsatCC_")
+visreg(model.new.1, "Species.Co")
+visreg(model.new.1, "Species.He")
+```
+
+
+Determine AUC by splitting into training and validation set (85% and 15% given small sample size).
+
+```{r}
+summary(model.new.1)
+
+#Create a new blank table and get AUC too
+top_mod_table_PA_Plant <- data.frame (matrix (ncol = 27, nrow = 0))
+colnames (top_mod_table_PA_Plant ) <- c ("Model", "Model_terms", "intercept", "coef_PREP_ME1", "coef_PREP_BU1", "coef_BRUSH_MA1", "coef_START_SEASONSpring", "coef_START_SEASONSummer",  "coef_START_SEASONFall", "coef_Tave_sm", "coef_PPT_sp", "coef_PPT_sm","coef_Tave_wt_1", "coef_Tave_wt_2", "coef_Tave_sp_1", "coef_Tave_sp_2", "coef_Tave_sm_1", "coef_Tave_sm_2", "coef_PPT_sm_2", "coef_DD5_at", "coef_LandsatCC_", "coef_Species.Co", "coef_Species_He", "coef_PREP_ME1:PREP_BU1", "coef_Tave_sp_1:Tave_sp_2", "coef_Tave_sm_1:Tave_sm_2", "AUC")
+```
+
+Let's run it 500 times to get good mean values.
+
+Remove NAs in response.
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_PA2<-subset(cutblock_plots_openings_Huck_ALL_df_PA, cutblock_plots_openings_Huck_ALL_df_PA$Fruit.Pres!="NA")
+```
+
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.85
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(cutblock_plots_openings_Huck_ALL_df_PA2$Fruit.Pres, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- cutblock_plots_openings_Huck_ALL_df_PA2[ trainIndex,]
+   Valid <- cutblock_plots_openings_Huck_ALL_df_PA2[-trainIndex,]
+   
+#Model   
+model.new.1<-glm(Fruit.Pres ~ PREP_ME * PREP_BU + BRUSH_MA + START_SEASON + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_2 + DD5_at  + LandsatCC_ + Species.Co + Species.He, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.new.1, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"Fruit.Pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_PlantPA <- data.frame (matrix (ncol = 27, nrow = 0))
+colnames (top_mod_table_PlantPA ) <- c ("Model", "Model_terms", "intercept", "coef_PREP_ME1", "coef_PREP_BU1", "coef_BRUSH_MA1", "coef_START_SEASONSpring", "coef_START_SEASONSummer",  "coef_START_SEASONFall", "coef_Tave_sm", "coef_PPT_sp", "coef_PPT_sm","coef_Tave_wt_1", "coef_Tave_wt_2", "coef_Tave_sp_1", "coef_Tave_sp_2", "coef_Tave_sm_1", "coef_Tave_sm_2", "coef_PPT_sm_2", "coef_DD5_at", "coef_LandsatCC_", "coef_Species.Co", "coef_Species_He", "coef_PREP_ME1:PREP_BU1", "coef_Tave_sp_1:Tave_sp_2", "coef_Tave_sm_1:Tave_sm_2", "AUC")
+
+##Add data for NDT1
+top_mod_table_PlantPA[1,1]<-"Berries PA"
+top_mod_table_PlantPA[1,2]<-"Fruit.Pres ~ PREP_ME * PREP_BU + BRUSH_MA + START_SEASON + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_2 + DD5_at  + LandsatCC_ + Species.Co + Species.He"
+top_mod_table_PlantPA[1,3]<- coef(model.new.1)[1] #Intercept
+top_mod_table_PlantPA[1,4]<- coef(model.new.1)[2] #Intercept
+top_mod_table_PlantPA[1,5]<- coef(model.new.1)[3] #Intercept
+top_mod_table_PlantPA[1,6]<- coef(model.new.1)[4] #
+top_mod_table_PlantPA[1,7]<- coef(model.new.1)[5] #
+top_mod_table_PlantPA[1,8]<- coef(model.new.1)[6] #coefficient 
+top_mod_table_PlantPA[1,9]<- coef(model.new.1)[7] #coefficient 
+top_mod_table_PlantPA[1,10]<- coef(model.new.1)[8] #coefficient
+top_mod_table_PlantPA[1,11]<- coef(model.new.1)[9] #
+top_mod_table_PlantPA[1,12]<- coef(model.new.1)[10] #coefficient 
+top_mod_table_PlantPA[1,13]<- coef(model.new.1)[11] #coefficient 
+top_mod_table_PlantPA[1,14]<- coef(model.new.1)[12] #coefficient
+top_mod_table_PlantPA[1,15]<- coef(model.new.1)[13] #coefficient
+top_mod_table_PlantPA[1,16]<- coef(model.new.1)[14] #coefficient
+top_mod_table_PlantPA[1,17]<- coef(model.new.1)[15] #coefficien
+top_mod_table_PlantPA[1,18]<- coef(model.new.1)[16] #coefficient 
+top_mod_table_PlantPA[1,19]<- coef(model.new.1)[17] #
+top_mod_table_PlantPA[1,20]<- coef(model.new.1)[18] #  
+top_mod_table_PlantPA[1,21]<- coef(model.new.1)[19] # 
+top_mod_table_PlantPA[1,22]<- coef(model.new.1)[20] # 
+top_mod_table_PlantPA[1,23]<- coef(model.new.1)[21] # 
+top_mod_table_PlantPA[1,24]<- coef(model.new.1)[22] # 
+top_mod_table_PlantPA[1,25]<- coef(model.new.1)[23] # 
+top_mod_table_PlantPA[1,26]<- coef(model.new.1)[24] # 
+top_mod_table_PlantPA[1,27]<- mod.auc
+
+top_mod_table_PA_Plant<-rbind(top_mod_table_PA_Plant, top_mod_table_PlantPA)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_PA_Plant)
+
+```
+
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table_PA_Plant, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Top_Mod_PlantPA.csv")
+```
+
+Get mean values.
+
+```{r}
+top_mod_table_PA_Plant_mean<-top_mod_table_PA_Plant %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table_PA_Plant_mean
+
+top_mod_table_PA_Plant_mean[1,1]<-"Berries PA"
+top_mod_table_PA_Plant_mean[1,2]<-"Fruit.Pres ~ PREP_ME * PREP_BU + BRUSH_MA + START_SEASON + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_2 + DD5_at  + LandsatCC_ + Species.Co + Species.He"
+top_mod_table_PA_Plant_mean
+```
+Save mean coefficient table.
+
+```{r}
+write.csv(top_mod_table_PA_Plant_mean, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Top_Mod_PlantPA_mean.csv")
+```
+
+Get SD.
+
+```{r}
+top_mod_table_PA_Plant_SD<-top_mod_table_PA_Plant %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_PA_Plant_SD
+
+top_mod_table_PA_Plant_SD[1,1]<-"Berries PA"
+top_mod_table_PA_Plant_SD[1,2]<-"Fruit.Pres ~ PREP_ME * PREP_BU + BRUSH_MA + START_SEASON + Tave_sm + PPT_sp + PPT_sm + Tave_wt_1 + Tave_wt_2 + Tave_sp_1*Tave_sp_2 + Tave_sm_1*Tave_sm_2 + PPT_sm_2 + DD5_at  + LandsatCC_ + Species.Co + Species.He"
+top_mod_table_PA_Plant_SD
+```
+
+Save sd coefficient table.
+
+```{r}
+write.csv(top_mod_table_PA_Plant_SD, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Top_Mod_PlantPA_SD.csv")
+```
+
