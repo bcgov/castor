@@ -38,6 +38,7 @@ library(rje)
 library(caret)
 library(pROC)
 library(visreg)
+library(arm)
 
 source(here::here("R/functions/R_Postgres.R"))
 ```
@@ -64,13 +65,13 @@ All of the NAs by origin (burn/harvest) for huckleberry cover are from the BEC d
 
 #Load Data In
 ```{r}
-cutblock_plots_openings_HuckBuff_ALL_df<-st_read(dsn="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_HuckBuff_ALL_df3b.csv")
+cutblock_plots_openings_HuckBuff_ALL_df<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_HuckBuff_ALL_df3b.csv")
 ```
 
 #Subset the huckleberry data
 ```{r}
-table(cutblock_plots_openings_HuckBuff_ALL_df3b$Species)
-cutblock_plots_openings_Huck_ALL_df<-subset(cutblock_plots_openings_HuckBuff_ALL_df3b, cutblock_plots_openings_HuckBuff_ALL_df3b$Species=="Vaccinium_membranaceum")
+table(cutblock_plots_openings_HuckBuff_ALL_df$Species)
+cutblock_plots_openings_Huck_ALL_df<-subset(cutblock_plots_openings_HuckBuff_ALL_df, cutblock_plots_openings_HuckBuff_ALL_df$Species=="Vaccinium_membranaceum")
 
 ```
 
@@ -291,10 +292,8 @@ table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH_GP)
 
 ```
 
-#Error in below now... check and fix
-```{r}
-##May need to combine BU ME and ME BU later.
 
+```{r}
 table(cutblock_plots_openings_Huck_ALL_df$PREP_BU) #1533 no, 754 yes
 table(cutblock_plots_openings_Huck_ALL_df$PREP_ME) #1501 no, 786 yes
 table(cutblock_plots_openings_Huck_ALL_df$PREP_MA)
@@ -322,8 +321,6 @@ hist(cutblock_plots_openings_Huck_ALL_df$origin.age)
 table(cutblock_plots_openings_Huck_ALL_df$origin)
 
 ```
-
-
 
 Investigate date when operations began and ended
 
@@ -656,8 +653,6 @@ ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = PREP1_TECH_GP, y = origin.
 #Areas with burning for prep slightly older.
 ```
 
-
-
 ```{r}
 cutblock_plots_openings_Huck_ALL_df$AREA_SQM
 ```
@@ -690,14 +685,10 @@ At this point, we have a few variations on the data:
 Save
 
 ```{r}
-#two names ASPECT and aspect, must change 1
-cutblock_plots_openings_Huck_ALL_df[216]
-n[220]
+cutblock_plots_openings_Huck_ALL_df2[68]
+cutblock_plots_openings_Huck_ALL_df2<-cutblock_plots_openings_Huck_ALL_df2[-68]
 
-cutblock_plots_openings_Huck_ALL_df2<-cutblock_plots_openings_Huck_ALL_df[-220]
-cutblock_plots_openings_Huck_ALL_df2<-cutblock_plots_openings_Huck_ALL_df2[-216]
-
-write_csv(cutblock_plots_openings_Huck_ALL_df2, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_Jan24.csv")
+write_csv(cutblock_plots_openings_Huck_ALL_df2, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_Jan25.csv")
 ```
 
 
@@ -807,7 +798,7 @@ max(cutblock_plots_openings_Huck_ALL_df$SLOPE)
 hist(cutblock_plots_openings_Huck_ALL_df$aspect_ha_bc)
 
 cor(cutblock_plots_openings_Huck_ALL_df$SLOPE, cutblock_plots_openings_Huck_ALL_df$slope_30m_) #0.70
-plot(cutblock_plots_openings_Huck_ALL_df$SLOPE ~ cutblock_plots_openings_Huck_ALL_df$slope_30m_SRTM) #Quite different. Perhaps use point values and use DEM to get slope and aspect? Or use the cutblock data because it likely takes the average for the cutblock which is probably more representative.
+plot(cutblock_plots_openings_Huck_ALL_df$SLOPE ~ cutblock_plots_openings_Huck_ALL_df$slope_30m_) #Quite different. Perhaps use point values and use DEM to get slope and aspect? Or use the cutblock data because it likely takes the average for the cutblock which is probably more representative.
 plot(cutblock_plots_openings_Huck_ALL_df$aspect_ha_bc ~ cutblock_plots_openings_Huck_ALL_df$aspect_30m)
 
 
@@ -873,9 +864,9 @@ PPT_sm_dec
 TSAND
 PH2
 MODIS_LC (land cover type)
-CMI_sp
-CMI_sm
-CMI_at
+CMI_sp_dec
+CMI_sm_dec
+CMI_at_dec
 SAI_rec
 dem_ha_bc
 
@@ -1141,6 +1132,14 @@ Anova(model.new.1, type=3) #
 summary(model.new.1) #
 AIC(model.new.1) #415.99
 
+#Check model fit
+# model diagnostic plots
+binnedplot (fitted(model.new.1), 
+            residuals(model.new.1), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
 
 #Explore partial residuals with current model
 library(visreg)
@@ -1165,99 +1164,133 @@ visreg(model.new.1, "DD5_dec")
 visreg(model.new.1, "LandsatCC_")
 
 ```
+Ensure data saved.
 
-
-
-
-
-
-
-
-
-
-####### UPDATE BELOW #############
-
-
+```{r}
+write.csv(cutblock_plots_openings_Huck_ALL_df, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_Jan.csv")
+```
 
 Determine AUC by splitting into training and validation set (85% and 15% given small sample size).
 
 ```{r}
-#Create an 85% proportion
+summary(model.new.1)
+
+#Create a new blank table and get AUC too
+top_mod_table_PA_Plant <- data.frame (matrix (ncol = 22, nrow = 0))
+colnames (top_mod_table_PA_Plant ) <- c ("Model", "Model_terms", "intercept", "coef_DN1_DIS_CDL", "coef_PREP_MA1", "coef_PREP_ME1", "coef_PREP_BU1", "coef_BRUSH_MA1", "coef_G_BGC_ZONEICH", "coef_G_BGC_ZONEMS", "coef_G_BGC_ZONESBS", "coef_origin1", "coef_origin2", "coef_PAS_total", "coef_PPT_sm_dec", "coef_PH2","coef_CMI_sm_dec", "coef_CMI_at_dec", "coef_SAI_cb", "coef_DD5_dec", "coef_LandsatCC_", "AUC")
+```
+
+Let's run it 500 times to get good mean values.
+
+```{r}
+
+for (g in 1:500){
+
 prop<-0.85
-
-#Create variables
-variables.huck<-c(slope_30m_SRTM = "slope_30m_SRTM", LandsatCC_ = "LandsatCC_", PREP_BU_ = "PREP_BU_" , PREP_ME_ = "PREP_ME_",  PAS_total = "PAS_total", PH2 = "PH2", ELEVATION = "ELEVATION", Tave_wt = "Tave_wt")
-
-variables.huck<-c("slope_30m_SRTM", "LandsatCC_", "PREP_BU_", "PREP_ME_",  "PAS_total", "PH2", "ELEVATION", "Tave_wt")
-
-#
-mods.me.tmp <- powerSet(variables.huck)
-mods.me.tmp
-
-# Select models we want to test here. 256 has all, test some without silviculture and site prep, like 241, 242, 243, 244
-mod.to.test.1<-mods.me.tmp[241:244]
-mod.to.test.2<-mod.to.test<-mods.me.tmp[256]
-mod.to.test.3<-mods.me.tmp[225:228]
-
-mod.to.test.subset<-c(1, mod.to.test.1,mod.to.test.2, mod.to.test.3)
-mod.to.test.subset
-
-mod.to.test.all<-c(1,mods.me.tmp)
-mod.to.test.all<-mod.to.test.all[-2]
-
-#Subset the data once into training and validation set
-cutblock_plots_openings_Huck_ALL_df_ng<-as.data.frame((cutblock_plots_openings_Huck_ALL_df))
-model.data<- cutblock_plots_openings_Huck_ALL_df_ng %>% dplyr::select(Species.Pr2, variables.huck)
-trainIndex_huck <- createDataPartition(model.data$Species.Pr2, p = prop,
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(cutblock_plots_openings_Huck_ALL_df$Species.Pr2, p = prop,
                                     list = FALSE,
                                     times = 1)
   
-dat.1 <- model.data[ trainIndex_huck,]
-Valid.1 <- model.data[-trainIndex_huck,]
-
-
-#Create model function
-big.mod <- function(mods.in, df.train, df.test, dep.var="Species.Pr2") {
-   rhs <- paste(mods.in, collapse=" + ")
-   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
-   mods.fit <- glm(form, family=binomial, data=df.train)
-   mod.stuff <- summary(mods.fit)
-   mod.aic <- extractAIC(mods.fit)
-   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
-   roc_obj <- roc(df.test[,dep.var], mod.valid)
-   mod.auc <- auc(roc_obj)
-   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   dat1 <- cutblock_plots_openings_Huck_ALL_df[ trainIndex,]
+   Valid <- cutblock_plots_openings_Huck_ALL_df[-trainIndex,]
    
+#Model   
+model.new.1<-glm(Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.new.1, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"Species.Pr2"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_PlantPA <- data.frame (matrix (ncol = 22, nrow = 0))
+colnames (top_mod_table_PlantPA ) <- c ("Model", "Model_terms", "intercept", "coef_DN1_DIS_CDL", "coef_PREP_MA1", "coef_PREP_ME1", "coef_PREP_BU1", "coef_BRUSH_MA1", "coef_G_BGC_ZONEICH", "coef_G_BGC_ZONEMS", "coef_G_BGC_ZONESBS", "coef_origin1", "coef_origin2", "coef_PAS_total", "coef_PPT_sm_dec", "coef_PH2","coef_CMI_sm_dec", "coef_CMI_at_dec", "coef_SAI_cb", "coef_DD5_dec", "coef_LandsatCC_", "AUC")
+
+##Add data for NDT1
+top_mod_table_PlantPA[1,1]<-"Plant PA"
+top_mod_table_PlantPA[1,2]<-"Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_"
+top_mod_table_PlantPA[1,3]<- coef(model.new.1)[1] #Intercept
+top_mod_table_PlantPA[1,4]<- coef(model.new.1)[2] #Intercept
+top_mod_table_PlantPA[1,5]<- coef(model.new.1)[3] #Intercept
+top_mod_table_PlantPA[1,6]<- coef(model.new.1)[4] #
+top_mod_table_PlantPA[1,7]<- coef(model.new.1)[5] #
+top_mod_table_PlantPA[1,8]<- coef(model.new.1)[6] #coefficient 
+top_mod_table_PlantPA[1,9]<- coef(model.new.1)[7] #coefficient 
+top_mod_table_PlantPA[1,10]<- coef(model.new.1)[8] #coefficient
+top_mod_table_PlantPA[1,11]<- coef(model.new.1)[9] #
+top_mod_table_PlantPA[1,12]<- coef(model.new.1)[10] #coefficient 
+top_mod_table_PlantPA[1,13]<- coef(model.new.1)[11] #coefficient 
+top_mod_table_PlantPA[1,14]<- coef(model.new.1)[12] #coefficient
+top_mod_table_PlantPA[1,15]<- coef(model.new.1)[13] #coefficient
+top_mod_table_PlantPA[1,16]<- coef(model.new.1)[14] #coefficient
+top_mod_table_PlantPA[1,17]<- coef(model.new.1)[15] #coefficien
+top_mod_table_PlantPA[1,18]<- coef(model.new.1)[16] #coefficient 
+top_mod_table_PlantPA[1,19]<- coef(model.new.1)[17] #
+top_mod_table_PlantPA[1,20]<- coef(model.new.1)[18] #  
+top_mod_table_PlantPA[1,21]<- coef(model.new.1)[19] # 
+top_mod_table_PlantPA[1,22]<- mod.auc
+
+top_mod_table_PA_Plant<-rbind(top_mod_table_PA_Plant, top_mod_table_PlantPA)
+
 }
 
-mods.fit <- lapply(mod.to.test.all, big.mod, df.train=dat.1, df.test=Valid.1)
-mods.fit
-
-
-#terms in each model
-x1 <- unlist(sapply(mods.fit, '[', 1))
-x1
-#Aic for models
-x3 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
-x3
-#auc from validation data
-x4 <- unlist(sapply(mods.fit, '[', 4))
-x4
-#combining all as df
-tab.sum.huckleberry <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2], auc.valid=x4)
-tab.sum.huckleberry$delta.aic<- tab.sum.huckleberry$aic - (min(tab.sum.huckleberry$aic))
-tab.sum.huckleberry 
-
-
 ```
-Save as csv
+
+Check.
 ```{r}
-write.csv(tab.sum.huckleberry, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\model.1.series.AIC.AUC.csv")
+head(top_mod_table_PA_Plant)
 
 ```
 
-If going to model selection like above, could include other variables like TSAND, PLANTING. Also determine timing of harvest.
+#Save coefficient table
 
+```{r}
+write.csv(top_mod_table_PA_Plant, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Top_Mod_PlantPA.csv")
+```
+
+Get mean values.
+
+```{r}
+top_mod_table_PA_Plant_mean<-top_mod_table_PA_Plant %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table_PA_Plant_mean
+
+top_mod_table_PA_Plant_mean[1,1]<-"Plant PA"
+top_mod_table_PA_Plant_mean[1,2]<-"Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_"
+top_mod_table_PA_Plant_mean
+```
+Save mean coefficient table.
+
+```{r}
+write.csv(top_mod_table_PA_Plant_mean, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Top_Mod_PlantPA_mean.csv")
+```
+
+Get SD.
+
+```{r}
+top_mod_table_PA_Plant_SD<-top_mod_table_PA_Plant %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_PA_Plant_SD
+
+top_mod_table_PA_Plant_SD[1,1]<-"Plant PA"
+top_mod_table_PA_Plant_SD[1,2]<-"Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_"
+top_mod_table_PA_Plant_SD
+```
+
+Save sd coefficient table.
+
+```{r}
+write.csv(top_mod_table_PA_Plant_SD, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Top_Mod_PlantPA_SD.csv")
+```
+
+
+
+
+
+
+
+
+
+
+#Additional Code for timing of harvest
 ```{r}
 #Determine timing of harvest
 names(cutblock_plots_openings_Huck_ALL_df)
@@ -1309,250 +1342,17 @@ table(cutblock_plots_openings_Huck_ALL_df$DIST_SEASON) # Determine if want diffe
 ```
 
 
-```{r}
-cutblock_plots_openings_Huck_ALL_df$PAS_total<-cutblock_plots_openings_Huck_ALL_df$PAS_wt + cutblock_plots_openings_Huck_ALL_df$PAS_sm + cutblock_plots_openings_Huck_ALL_df$PAS_sp + cutblock_plots_openings_Huck_ALL_df$PAS_at
-
-variables.huck<-c("slope_30m_SRTM", "aspect_30m_SRTM", "LandsatCC_",  "PAS_total", "PH2", "ELEVATION", "Tave_wt", "TSAND", "MODIS_LC", "Fire_Occ", "PLANTED", "PREP_BU_", "PREP_ME_", "DIST_SEASON", "origin.age", "DN1_SILSYS_GP")
-
-cutblock_plots_openings_Huck_ALL_df$Fire_Occ<-as.factor(cutblock_plots_openings_Huck_ALL_df$Fire_Occ)
-cutblock_plots_openings_Huck_ALL_df$MODIS_LC<-as.factor(cutblock_plots_openings_Huck_ALL_df$MODIS_LC)
-head(cutblock_plots_openings_Huck_ALL_df$Fire_Occ)
-
-#
-mods.me.tmp <- powerSet(variables.huck)
-#mods.me.tmp
-
-mod.to.test.all<-c(1,mods.me.tmp)
-mod.to.test.all<-mod.to.test.all[-2]
-
-#Subset the data once into training and validation set
-cutblock_plots_openings_Huck_ALL_df_ng<-as.data.frame((cutblock_plots_openings_Huck_ALL_df))
-model.data<- cutblock_plots_openings_Huck_ALL_df_ng %>% dplyr::select(Species.Pr2, variables.huck)
-trainIndex_huck <- createDataPartition(model.data$Species.Pr2, p = prop,
-                                    list = FALSE,
-                                    times = 1)
-  
-dat.1 <- model.data[ trainIndex_huck,]
-Valid.1 <- model.data[-trainIndex_huck,]
-
-#Run with big.mod
-mods.fit2 <- lapply(mod.to.test.all, big.mod, df.train=dat.1, df.test=Valid.1)
-#mods.fit2
-
-
-#terms in each model
-x1 <- unlist(sapply(mods.fit2, '[', 1))
-x1
-#Aic for models
-x3 <- matrix(unlist(sapply(mods.fit2, '[', 3)), ncol=2, byrow=TRUE)
-#x3
-#auc from validation data
-x4 <- unlist(sapply(mods.fit2, '[', 4))
-#x4
-#combining all as df
-tab.sum.huckleberry2 <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2], auc.valid=x4)
-tab.sum.huckleberry2$delta.aic<- tab.sum.huckleberry2$aic - (min(tab.sum.huckleberry2$aic))
-tab.sum.huckleberry2 
-```
-Save as csv
-```{r}
-write.csv(tab.sum.huckleberry2, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\model.2.series.AIC.AUC_SpeciesPresent_Huck.csv")
-
-```
 
 
 
-##Create new best models
-```{r}
-model.new.2 <- glm (Species.Pr2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + Tave_wt + Fire_Occ + DIST_SEASON + origin.age,
-               data=cutblock_plots_openings_Huck_ALL_df,
-               family = binomial (link = "logit"))
-
-Anova(model.new.2, type=3) #
-summary(model.new.2) # Treatment in Fall is most conducive to have huckleberries
-#positive with slope (transformation desired?)
-#negative with canopy cover 
-#Positive with precip as snow
-#Positive with PH (transformation desired?)
-# Positive with elevation
-# Positive with Temp in winter
-# More likely where natural fires occurred
-#Positive with origin age (transformation desired??)
-AIC(model.new.2) #406.1
-
-model.new.2b <- glm (Species.Pr2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + Tave_wt + Fire_Occ + DIST_SEASON + origin.age + PREP_ME_,
-               data=cutblock_plots_openings_Huck_ALL_df,
-               family = binomial (link = "logit"))
-
-Anova(model.new.2b, type=3) #
-summary(model.new.2b) 
-AIC(model.new.2b) #406.4
-
-model.new.2c <- glm (Species.Pr2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + Tave_wt + Fire_Occ + DIST_SEASON + origin.age + PREP_ME_ + PREP_BU_,
-               data=cutblock_plots_openings_Huck_ALL_df,
-               family = binomial (link = "logit"))
-
-Anova(model.new.2c, type=3) #
-summary(model.new.2c) # 
-AIC(model.new.2c) #407.6
-
-model.new.2d <- glm (Species.Pr2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + Tave_wt + Fire_Occ + DIST_SEASON + origin.age + PREP_ME_ + PLANTED,
-               data=cutblock_plots_openings_Huck_ALL_df,
-               family = binomial (link = "logit"))
-
-Anova(model.new.2d, type=3) #
-summary(model.new.2d) # 
-AIC(model.new.2d) #407.8
-```
-Current top model:
-
-```{r}
-model.new.2c <- glm (Species.Pr2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + Tave_wt + Fire_Occ + DIST_SEASON + origin.age + PREP_ME_ + PREP_BU_,
-               data=cutblock_plots_openings_Huck_ALL_df,
-               family = binomial (link = "logit"))
-AIC(model.new.2c) #407.6
-```
-
-
-Check correlation between canopy cover and age of impact.
-
-```{r}
-ggscatter(cutblock_plots_openings_Huck_ALL_df, x = "LandsatCC_", y = "origin.age", 
-          add = "reg.line", conf.int = TRUE, 
-          cor.coef = TRUE, cor.method = "kendall",
-          xlab = "Canopy Cover", ylab = "Age Since Disturbance")
-#Only 0.44 correlation, so ok to have in model together!
-```
-Assess each variable in the model again.
-
-1. DIST_SEASON: We see that spring has substantially lower abundance, and Fall highest.
-
-```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = DIST_SEASON , y = Species.Co)) +
-  geom_boxplot () +
-  labs (x = "Season",
-        y = "Huckleberry Cover")
-
-```
-
-
-2. SLOPE: We see a positive trend.
-```{r}
-ggplot(cutblock_plots_openings_Huck_ALL_df, aes(slope_30m_SRTM, as.numeric(Species.Pr))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Slope") + ylab("Pr (Species Present)")
-```
-3. Canopy Cover: we see a negative trend.
-```{r}
-ggplot(cutblock_plots_openings_Huck_ALL_df, aes(LandsatCC_ , as.numeric(Species.Pr))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Canopy Cover 2010") + ylab("Pr (Species Present)")
-```
-
-4. Precip as Snow: strong positive signmoidal pattern
-
-```{r}
-ggplot(cutblock_plots_openings_Huck_ALL_df, aes(PAS_total, as.numeric(Species.Pr))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Precip as Snow") + ylab("Pr (Species Present)")
-```
-
-5. PH: gentle negative pattern. Not strong.
-
-```{r}
-ggplot(cutblock_plots_openings_Huck_ALL_df, aes(PH2, as.numeric(Species.Pr))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("pH") + ylab("Pr (Species Present)")
-```
-
-6. Elevation: Strong positive trend
-
-```{r}
-ggplot(cutblock_plots_openings_Huck_ALL_df, aes(ELEVATION, as.numeric(Species.Pr))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Elevation (m)") + ylab("Pr (Species Present)")
-```
-
-7. Average winter Temp: positive trend with increasing temperature
-
-```{r}
-ggplot(cutblock_plots_openings_Huck_ALL_df, aes(Tave_wt , as.numeric(Species.Pr))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Winter Temp") + ylab("Pr (Species Present)")
-```
-8. Occurence of natural fires
-
-```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = Fire_Occ , y = Species.Co)) +
-  geom_boxplot () +
-  labs (x = "No Natural Fire (0), Natural Fire (1)",
-        y = "Huckleberry Cover")
-```
-9. Mechanical prep: slightly more common where mechanical prep occurred.
-
-```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = PREP_ME_ , y = Species.Co)) +
-  geom_boxplot () +
-  labs (x = "No Mechanical TR (0), Mechanical TR (1)",
-        y = "Huckleberry Cover")
-```
-
-10. Burn prep: more likely where burn prep occurred.
-
-```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = PREP_BU_ , y = Species.Co)) +
-  geom_boxplot () +
-  labs (x = "No Burn Prep (0), Burn Prep (1)",
-        y = "Huckleberry Cover")
-```
-11. origin Age: positive trend, but I suspect it is not linear.
-
-```{r}
-ggplot(cutblock_plots_openings_Huck_ALL_df, aes(origin.age , as.numeric(Species.Pr))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Time Since Disturbance") + ylab("Pr (Species Present)")
-```
-#Assess BEC zones as well and if that is important to add to model
-
-```{r}
-names(cutblock_plots_openings_Huck_ALL_df)
-table(cutblock_plots_openings_Huck_ALL_df$G_BGC_ZONE)
-
-model.new.2e <- glm (Species.Pr2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total +
-                       PH2 + ELEVATION + Tave_wt + Fire_Occ + DIST_SEASON + origin.age +
-                       PREP_ME_ + PREP_BU_ + G_BGC_ZONE,
-               data=cutblock_plots_openings_Huck_ALL_df,
-               family = binomial (link = "logit"))
-AIC(model.new.2e) #402.9
-#HUGE. Keep BEC Zone in for sure.
-Anova(model.new.2e, type=3)
-summary(model.new.2e)
-
-```
 
 
 
+
+
+
+
+## BELOW NEEDS TO BE RELOCATED AND THEN REMOVED######
 
 ############Repeat above for Fruit Presence
 We will explore the same variables as we did for plant abundance.
