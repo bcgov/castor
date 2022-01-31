@@ -410,15 +410,404 @@ write.csv(cutblock_plots_openings_HuckBuff_ALL_df3b, file="D:\\Hucklberry\\Grizz
 ```
 
 
-#Additional dataset from Laura Smit for Huckleberry. 
+#Dataset #2: Additional dataset from Laura Smit for Huckleberry 2011-2021. 
 This data comes from repeated measure plots. As a result, for percent cover, we will only use one year's worth of data and compare to climate variables for the decade. For berry abundance, annual data will be used to compare to climate annually.
 
-Bring data in. Note, data is a csv and not a spatial file currently.
+Bring data in. 
 ```{r}
 #Data for percent cover
-
+Huck_Laura_Plant<-st_read ( dsn = "D:\\Hucklberry\\Laura_OPENINGS_PerCov.shp", stringsAsFactors = T)
+head(Huck_Laura_Plant) #17 data points
+crs(Huck_Laura_Plant) #Will need to convert to 3005, or 9001, to use rasters
 
 #Data for abundance
+Huck_Laura_Berries<-st_read ( dsn = "D:\\Hucklberry\\Laura_OPENINGS_All2.shp", stringsAsFactors = T)
+head(Huck_Laura_Berries) #42 datapoints
+crs(Huck_Laura_Berries) #Will need to convert to 3005, or 9001, to use rasters
+
+```
+Alter CRS so can append DEM data. Start with the plant data and then repeat for the berry data.
+
+```{r}
+Huck_Laura_Plant_3005<-st_transform(Huck_Laura_Plant, 3005)
+crs(Huck_Laura_Plant_3005)
+
+#Check crs of DEM stack
+crs(rasStack)
+
+Huck_Laura_Plant_3005$coords_x1<-st_coordinates(Huck_Laura_Plant_3005)
+head(Huck_Laura_Plant_3005)
+
+pointCoordinates_LauraPlant<-data.frame(Huck_Laura_Plant_3005$coords_x1[,1], Huck_Laura_Plant_3005$coords_x1[,2])
+head(pointCoordinates_LauraPlant)
+
+DEM_huck1_Laura=raster::extract(rasStack, pointCoordinates_LauraPlant)
+head(DEM_huck1_Laura)
+
+#Append
+Huck_Laura_Plant_3005<-cbind(Huck_Laura_Plant_3005, DEM_huck1_Laura)
+head(Huck_Laura_Plant_3005)
+
+```
+
+Now transform to ESPG 9001 to use soil layers from Clayton.
+
+```{r}
+Huck_Laura_Plant_9001<-st_transform(Huck_Laura_Plant_3005, 9001)
+crs(Huck_Laura_Plant_9001)
+```
+
+Also need to append the soils data, layers provided by Clayton Lamb who did extensive processing to create these layers from:http://www.env.gov.bc.ca/esd/distdata/ecosystems/Soil_Data/SOIL_DATA_FGDB/
+
+Note: The rasters provided by Clayton only cover the SE corner of BC and thus do not apply to all datapoints. Additionally, it is currently in ESPG 9001 and will not convert to ESPG 3005 here or on QGIS. May be due to user limitations.
+
+```{r}
+cofrag <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\cofrag_utm.tif")
+orgcarb <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\orgcarb_utm.tif")
+PH2 <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\ph2_utm.tif")
+phca <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\phca_utm.tif")
+tclay <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\tclay_utm.tif")
+tsand <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\tsand_utm.tif")
+tsilt <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\tsilt_utm.tif")
+vfsand <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\vfsand_utm.tif")
+
+#Check crs
+crs(cofrag) #ESPG 9001
+crs(vfsand)
+
+SoilStack<- stack(cofrag, orgcarb, PH2, phca, tclay, tsand, tsilt, vfsand)
+crs(SoilStack) #ESPG 9001
+
+crs(Huck_Laura_Plant_9001) #9001
+
+#Get Coordinates
+Huck_Laura_Plant_9001$coords_x1<-st_coordinates(Huck_Laura_Plant_9001)
+head(Huck_Laura_Plant_9001)
+
+pointCoordinates_LauraPlant2<-data.frame(Huck_Laura_Plant_9001$coords_x1[,1], Huck_Laura_Plant_9001$coords_x1[,2])
+head(pointCoordinates_LauraPlant2)
+extent(Huck_Laura_Plant_9001) #Transform did not go to what soil layers are in
+extent(SoilStack) #Transform did not go to what soil layers are in
+extent(Huck_Laura_Plant_3005) #for comparison; see that ymin and max within bounds of soil layer, but x min and max are not. Still need more investigation to fix.
+
+#Extract values from SoilStack_2 for GPS coordinates in data file
+SOIL_huck1_LauraPlant=raster::extract(SoilStack, pointCoordinates_LauraPlant2)
+head(SOIL_huck1_LauraPlant) #ALL NAs
+
+#Combine back into original data set
+Huck_Laura_Plant_9001<-cbind(Huck_Laura_Plant_9001, SOIL_huck1_LauraPlant)
+head(Huck_Laura_Plant_9001)
+
+```
+
+
+We also have data on plots that experienced wildfire, but need to append it. Will be easiest to append after make into dataframes. So append soils and DEM data bove prior to this step.
+```{r}
+#Data for percent cover
+Huck_Laura_Plant_burn<-st_read ( dsn = "D:\\Hucklberry\\Laura_OPENINGS_PerCov_FirePoints.shp", stringsAsFactors = T)
+
+#Data for abundance
+Huck_Laura_Berries_burn<-st_read ( dsn = "D:\\Hucklberry\\Laura_OPENINGS_All_FirePoints.shp", stringsAsFactors = T)
+```
+
+
+#Append ClimateBC Data
+In the below data being brought in, ALL data points from the file are included. However, not all were present within cutblocks, and thus, there will be more data points below than there is in the data brought in above.
+
+#First, we will get the data for the percetn cover, which involves the decadal means
+```{r}
+huck_Laura_plantcover_climate<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_forPerCov_coords_Decade_2011_2020SY.csv")
+head(huck_Laura_plantcover_climate)
+```
+
+Append to data.
+```{r}
+huck_Laura_plantcover_climate$ID1<-paste(huck_Laura_plantcover_climate$Site_ID, huck_Laura_plantcover_climate$Year)
+
+Huck_Laura_Plant$ID1<-paste(Huck_Laura_Plant$Site_ID, Huck_Laura_Plant$YEAR)
+
+cutblock_plots_openings_Huck_Laura_Plant<-left_join(Huck_Laura_Plant, huck_Laura_plantcover_climate, by="ID1")
+head(cutblock_plots_openings_Huck_Laura_Plant)
+
+```
+
+
+#This series will be for each year annually for the berry abundance data
+2011
+```{r}
+huck_Laura_2011_0<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2011_Year_2011SY.csv")
+head(huck_Laura_2011_0)
+
+huck_Laura_2011_1<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2011_Year_2010SY.csv")
+head(huck_Laura_2011_1)
+
+huck_Laura_2011_2<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2011_Year_2009SY.csv")
+head(huck_Laura_2011_2)
+
+huck_Laura_2011<-cbind(huck_Laura_2011_0, huck_Laura_2011_1, huck_Laura_2011_2)
+head(huck_Laura_2011)
+names(huck_Laura_2011)
+huck_Laura_2011<-huck_Laura_2011[-(181:185)]
+huck_Laura_2011<-huck_Laura_2011[-(91:95)]
+huck_Laura_2011<-huck_Laura_2011[-5] #Remove elevation since unknown here
+
+#Add the Year back in for appending later
+huck_Laura_2011$Year<-c(2011)
+head(huck_Laura_2011)
+```
+
+2012
+```{r}
+huck_Laura_2012_0<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2012_Year_2012SY.csv")
+head(huck_Laura_2012_0)
+
+huck_Laura_2012_1<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2012_Year_2011SY.csv")
+head(huck_Laura_2012_1)
+
+huck_Laura_2012_2<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2012_Year_2010SY.csv")
+head(huck_Laura_2012_2)
+
+huck_Laura_2012<-cbind(huck_Laura_2012_0, huck_Laura_2012_1, huck_Laura_2012_2)
+head(huck_Laura_2012)
+names(huck_Laura_2012)
+huck_Laura_2012<-huck_Laura_2012[-(181:185)]
+huck_Laura_2012<-huck_Laura_2012[-(91:95)]
+huck_Laura_2012<-huck_Laura_2012[-5] #Remove elevation since unknown here
+
+#Add the Year back in for appending later
+huck_Laura_2012$Year<-c(2012)
+head(huck_Laura_2012)
+```
+
+2013
+```{r}
+huck_Laura_2013_0<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2013_Year_2013SY.csv")
+head(huck_Laura_2013_0)
+
+huck_Laura_2013_1<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2013_Year_2012SY.csv")
+head(huck_Laura_2013_1)
+
+huck_Laura_2013_2<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2013_Year_2011SY.csv")
+head(huck_Laura_2013_2)
+
+huck_Laura_2013<-cbind(huck_Laura_2013_0, huck_Laura_2013_1, huck_Laura_2013_2)
+head(huck_Laura_2013)
+names(huck_Laura_2013)
+huck_Laura_2013<-huck_Laura_2013[-(181:185)]
+huck_Laura_2013<-huck_Laura_2013[-(91:95)]
+huck_Laura_2013<-huck_Laura_2013[-5] #Remove elevation since unknown here
+
+#Add the Year back in for appending later
+huck_Laura_2013$Year<-c(2013)
+head(huck_Laura_2013)
+```
+
+2014
+```{r}
+huck_Laura_2014_0<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2014_Year_2014SY.csv")
+head(huck_Laura_2014_0)
+
+huck_Laura_2014_1<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2014_Year_2013SY.csv")
+head(huck_Laura_2014_1)
+
+huck_Laura_2014_2<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2014_Year_2012SY.csv")
+head(huck_Laura_2014_2)
+
+huck_Laura_2014<-cbind(huck_Laura_2014_0, huck_Laura_2014_1, huck_Laura_2014_2)
+head(huck_Laura_2014)
+names(huck_Laura_2014)
+huck_Laura_2014<-huck_Laura_2014[-(181:185)]
+huck_Laura_2014<-huck_Laura_2014[-(91:95)]
+huck_Laura_2014<-huck_Laura_2014[-5] #Remove elevation since unknown here
+
+#Add the Year back in for appending later
+huck_Laura_2014$Year<-c(2014)
+head(huck_Laura_2014)
+```
+
+2015
+```{r}
+huck_Laura_2015_0<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2015_Year_2015SY.csv")
+head(huck_Laura_2015_0)
+
+huck_Laura_2015_1<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2015_Year_2014SY.csv")
+head(huck_Laura_2015_1)
+
+huck_Laura_2015_2<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2015_Year_2013SY.csv")
+head(huck_Laura_2015_2)
+
+huck_Laura_2015<-cbind(huck_Laura_2015_0, huck_Laura_2015_1, huck_Laura_2015_2)
+head(huck_Laura_2015)
+names(huck_Laura_2015)
+huck_Laura_2015<-huck_Laura_2015[-(181:185)]
+huck_Laura_2015<-huck_Laura_2015[-(91:95)]
+huck_Laura_2015<-huck_Laura_2015[-5] #Remove elevation since unknown here
+
+#Add the Year back in for appending later
+huck_Laura_2015$Year<-c(2015)
+head(huck_Laura_2015)
+```
+
+2016
+```{r}
+huck_Laura_2016_0<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2016_Year_2016SY.csv")
+head(huck_Laura_2016_0)
+
+huck_Laura_2016_1<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2016_Year_2015SY.csv")
+head(huck_Laura_2016_1)
+
+huck_Laura_2016_2<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2016_Year_2014SY.csv")
+head(huck_Laura_2016_2)
+
+huck_Laura_2016<-cbind(huck_Laura_2016_0, huck_Laura_2016_1, huck_Laura_2016_2)
+head(huck_Laura_2016)
+names(huck_Laura_2016)
+huck_Laura_2016<-huck_Laura_2016[-(181:185)]
+huck_Laura_2016<-huck_Laura_2016[-(91:95)]
+huck_Laura_2016<-huck_Laura_2016[-5] #Remove elevation since unknown here
+
+#Add the Year back in for appending later
+huck_Laura_2016$Year<-c(2016)
+head(huck_Laura_2016)
+```
+
+2017
+```{r}
+huck_Laura_2017_0<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2017_Year_2017SY.csv")
+head(huck_Laura_2017_0)
+
+huck_Laura_2017_1<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2017_Year_2016SY.csv")
+head(huck_Laura_2017_1)
+
+huck_Laura_2017_2<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2017_Year_2015SY.csv")
+head(huck_Laura_2017_2)
+
+huck_Laura_2017<-cbind(huck_Laura_2017_0, huck_Laura_2017_1, huck_Laura_2017_2)
+head(huck_Laura_2017)
+names(huck_Laura_2017)
+huck_Laura_2017<-huck_Laura_2017[-(181:185)]
+huck_Laura_2017<-huck_Laura_2017[-(91:95)]
+huck_Laura_2017<-huck_Laura_2017[-5] #Remove elevation since unknown here
+
+#Add the Year back in for appending later
+huck_Laura_2017$Year<-c(2017)
+head(huck_Laura_2017)
+```
+
+2018
+```{r}
+huck_Laura_2018_0<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2018_Year_2018SY.csv")
+head(huck_Laura_2018_0)
+
+huck_Laura_2018_1<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2018_Year_2017SY.csv")
+head(huck_Laura_2018_1)
+
+huck_Laura_2018_2<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2018_Year_2016SY.csv")
+head(huck_Laura_2018_2)
+
+huck_Laura_2018<-cbind(huck_Laura_2018_0, huck_Laura_2018_1, huck_Laura_2018_2)
+head(huck_Laura_2018)
+names(huck_Laura_2018)
+huck_Laura_2018<-huck_Laura_2018[-(181:185)]
+huck_Laura_2018<-huck_Laura_2018[-(91:95)]
+huck_Laura_2018<-huck_Laura_2018[-5] #Remove elevation since unknown here
+
+#Add the Year back in for appending later
+huck_Laura_2018$Year<-c(2018)
+head(huck_Laura_2018)
+```
+
+2019
+```{r}
+huck_Laura_2019_0<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2019_Year_2019SY.csv")
+head(huck_Laura_2019_0)
+
+huck_Laura_2019_1<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2019_Year_2018SY.csv")
+head(huck_Laura_2019_1)
+
+huck_Laura_2019_2<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2019_Year_2017SY.csv")
+head(huck_Laura_2019_2)
+
+huck_Laura_2019<-cbind(huck_Laura_2019_0, huck_Laura_2019_1, huck_Laura_2019_2)
+head(huck_Laura_2019)
+names(huck_Laura_2019)
+huck_Laura_2019<-huck_Laura_2019[-(181:185)]
+huck_Laura_2019<-huck_Laura_2019[-(91:95)]
+huck_Laura_2019<-huck_Laura_2019[-5] #Remove elevation since unknown here
+
+#Add the Year back in for appending later
+huck_Laura_2019$Year<-c(2019)
+head(huck_Laura_2019)
+```
+
+2020
+```{r}
+huck_Laura_2020_0<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2020_Year_2020SY.csv")
+head(huck_Laura_2020_0)
+
+huck_Laura_2020_1<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2020_Year_2019SY.csv")
+head(huck_Laura_2020_1)
+
+huck_Laura_2020_2<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2020_Year_2018SY.csv")
+head(huck_Laura_2020_2)
+
+huck_Laura_2020<-cbind(huck_Laura_2020_0, huck_Laura_2020_1, huck_Laura_2020_2)
+head(huck_Laura_2020)
+names(huck_Laura_2020)
+huck_Laura_2020<-huck_Laura_2020[-(181:185)]
+huck_Laura_2020<-huck_Laura_2020[-(91:95)]
+huck_Laura_2020<-huck_Laura_2020[-5] #Remove elevation since unknown here
+
+#Add the Year back in for appending later
+huck_Laura_2020$Year<-c(2020)
+head(huck_Laura_2020)
+```
+
+2021
+#2021 is complicated in that ClimateBC does not yet have annual data for 2021, so the best we can do is either the decadal average, or repeating 2020
+```{r}
+#There is no 2021 data at this time. Need to decide what to use in its place.
+#huck_Laura_2021_0<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2021_Year_2021SY.csv")
+#head(huck_Laura_2021_0)
+
+huck_Laura_2021_1<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2021_Year_2020SY.csv")
+head(huck_Laura_2021_1)
+
+huck_Laura_2021_2<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2021_Year_2019SY.csv")
+head(huck_Laura_2021_2)
+
+huck_Laura_2021<-cbind(huck_Laura_2021_0, huck_Laura_2021_1, huck_Laura_2021_2)
+head(huck_Laura_2021)
+names(huck_Laura_2021)
+huck_Laura_2021<-huck_Laura_2021[-(181:185)]
+huck_Laura_2021<-huck_Laura_2021[-(91:95)]
+huck_Laura_2021<-huck_Laura_2021[-5] #Remove elevation since unknown here
+
+#Add the Year back in for appending later
+huck_Laura_2021$Year<-c(2021)
+head(huck_Laura_2021)
+```
+
+Combine the data sets together.
+
+```{r}
+Huck_Laura_climate_data<-rbind(huck_Laura_2021, huck_Laura_2020, huck_Laura_2019, huck_Laura_2018, huck_Laura_2017, huck_Laura_2016, huck_Laura_2015, huck_Laura_2014, huck_Laura_2013, huck_Laura_2012, huck_Laura_2011)
+
+head(Huck_Laura_climate_data)
+names(Huck_Laura_climate_data)
+
+Huck_Laura_climate_data$ID1<-paste(Huck_Laura_climate_data$Site_ID, Huck_Laura_climate_data$Year)
+
+#Below may need updating once file brought in to proper names
+Huck_Laura_Berries$ID1<-paste(Huck_Laura_Berries$Site_ID, Huck_Laura_Berries$YEAR)
+  
+cutblock_plots_openings_Laura_Huck<-left_join(Huck_Laura_Berries, Huck_Laura_climate_data, by="ID1")
+head(cutblock_plots_openings_Laura_Huck)
+
+
+cutblock_plots_openings_Laura_Huck<- cutblock_plots_openings_Laura_Huck %>% distinct() #Back to expected 986 data rows
+
+head(cutblock_plots_openings_Laura_Huck)
 
 ```
 
@@ -426,7 +815,8 @@ Bring data in. Note, data is a csv and not a spatial file currently.
 
 
 
-#Datasets #2: Garth Mowat and new student's data on huckleberry and buffalo berry separately.
+
+#Datasets #3: Garth Mowat and new student's (Mackenzie) data on huckleberry and buffalo berry separately.
 This dataset should have the same features as the above overall, but column names differ and will need to be re-named for binding datasets together.
 
 ```{r}
@@ -532,8 +922,10 @@ st_write(cutblock_plots_openings_mowatBuff, dsn = "D:\\Hucklberry\\Grizzly Bear 
 ```
 
 
-#Datasets #3: BEC Plots
+#Datasets #4: BEC Plots
 This dataset has presence only values for each huckleberry and buffalo berry, and only presents the percent cover of the plant itself (not berries). This can be used best for percent cover models, but because does not have absence values, may be best only to use for percent cover.
+
+Currently, we only have the huckleberry data, but can acquire the buffaloberry data as well if we find it useful. Subsequent investigation does show that the percent cover is considerably less for these BEC plots than in the Clayton and Lamb data, and thus may not be comparable.
 
 ```{r}
 
