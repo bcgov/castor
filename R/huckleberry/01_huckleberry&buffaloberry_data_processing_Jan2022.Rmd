@@ -45,6 +45,10 @@ source(here::here("R/functions/R_Postgres.R"))
 ```
 
 #Overview
+In this file, we bring in each of our different datasets, append the necessary data from spatial files, and then combine the necessary datasets together to be able to perform analyses for huckleberry and buffaloberry. In these analyses, we explore how both climatic elements, as well as silviculture practices, influence plant P/A, percent cover and berry P/A and abundance.
+
+Below is a the procedure used in QGIS for the first dataset, with similar approach taken for subsequent datasets.
+
 We have a dataset provided by Clayton Lamb and Garth Mowat that contains information on numerous shrub species occurrence, cover, fruit phenology, sugar content, etc. Using the consolidated cutblock layer available online (https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-), I was able to use the intersect tool in QGIS to determine which of the plots in the provided data occurred in cutblocks. Here, we will bring in both layers, append the data together between the two files, and then subset the huckleberry (Vaccinium membranaceum) and buffalo berry (Shepherdia canadensis) to see how large our dataset is.
 
 Bring in the shape file with the coordinates within cutblocks. This data was processed in QGIS, using the consolidated cutblock layer. This data also has the relevant "Openings data" and "Activity Treatment" appended to it. Note, that when selecting points by polygons within Openings and Activity Treatment data sets, often points were duplicated. To fix this issue, we used the "Delete Duplicate Geometries" function in QGIS. Because of limitations with the data, each time we intersect with more RESULTS layers, we lose data. As a result, it is important to consider which factors (and specificity) are most important for the analysis as 30-50% of the data is lost when we use the ACTIVITY TREATMENT data as opposed to just the OPENINGS data. 
@@ -66,14 +70,13 @@ Productivity_Data is occurrence, cover, fruit presence, and fruit abundance data
 
 Time since cut and Time since Fire are in there, and are calculated relative to when the plot was done. I fixed all non-cut block and non-fire areas as 118. Lots of other variables in there for you to play with.”
 
-
 ##Additional considerations for data and variables
 1. Temp and Rainfall in t-1 and t-2 (years before) --> ClimateBC data
    - Spring temperature
    - July temperature
-   - Spring rainall
+   - Spring rainfall
    - July rainfall
-2. Solar radiation --> but does not work from ClimateBC
+2. Solar radiation --> but does not work from ClimateBC; need to find elsewhere
 3. PAS --> ClimateBC
 4. Time since wildfire --> wildfire shape file
 5. Whether site prep involved fire --> RESULTS OPENINGS data
@@ -82,12 +85,13 @@ Time since cut and Time since Fire are in there, and are calculated relative to 
 8. DEM: slope, elevation AND aspect all important (shift aspect to NE)
 
 
-#Additional considerations
+#Additional considerations for different types of analyses
 Consider getting climatic variables at time t, t-1, t-2 (for berry production) and 10 year normal for cover and presence. Then append together with appropriate names for each set if variables at their timelines.
 
+####################### BRING IN DATASETS ######################
 
 #Dataset #1: Clayton Lamb and Garth Mowat data on huckleberry and Buffaloberry
-This data has P/A of plants and of berries, and P/A of fruits and of berries. There is also a measure of sugar content (energetics) and other potentially useful and interesting response variables.
+This data has P/A of plants and of berries, and P/A of fruits and of berries. There is also a measure of sugar content (energetics) and other potentially useful and interesting response variables. This data has information for both huckleberry and buffalobery.
 ```{r}
 cutblock_plots_openings<- st_read ( dsn = "D:\\Hucklberry\\Clayton_OPENINIGS_Plots2.shp", stringsAsFactors = T) #986 observations
 str(cutblock_plots_openings)
@@ -134,7 +138,7 @@ cutblock_plots_openings<-cbind(cutblock_plots_openings, DEM_huck1)
 head(cutblock_plots_openings)
 ```
 
-Get coordiantes in decimal degrees for ClimateBC to get data at t-1 and t-2.
+Get coordinates in decimal degrees for ClimateBC to get data at t-1 and t-2.
 
 ```{r}
 crs(cutblock_plots_openings)
@@ -151,6 +155,9 @@ head(pointCoordinatesDD)
 
 head(test)
 str(test)
+
+cutblock_plots_openings<-test
+
 
 ```
 
@@ -173,7 +180,7 @@ Once the above has been run through ClimateBC for the year of the data, the year
 
 First, let's bring in the decadal normal values.
 
-After using many combinations of Project, Site.ID, Species and longitude, we end up with duplicates epsite each data set having the same number of rows. Thus, at the end, we must remove the duplicates.
+After using many combinations of Project, Site.ID, Species and longitude, we end up with duplicates despite each data set having the same number of rows. Thus, at the end, we must remove the duplicates.
 
 ```{r}
 HuckBuff_Clayton_Normal<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_HuckBuff_Decade_2011_2020Y.csv")
@@ -214,7 +221,7 @@ head(cutblock_plots_openings_HuckBuff_ALL_df2b) #986 data points, good
 
 ```
 
-Compare with the values provided in dataset to ensure not identicial (assuming Clayton's data had specific year climate data)
+Compare with the values provided in dataset to ensure not identical (assuming Clayton's data had specific year climate data)
 
 ```{r}
 plot(cutblock_plots_openings_Huck_ALL_df2$Tave_at, cutblock_plots_openings_Huck_ALL_df2$Tave_at_norm)
@@ -390,21 +397,46 @@ head(cutblock_plots_openings_HuckBuff_ALL_df3)
 cutblock_plots_openings_HuckBuff_ALL_df3b<- cutblock_plots_openings_HuckBuff_ALL_df3 %>% distinct() #Back to expected 986 data rows
 
 head(cutblock_plots_openings_HuckBuff_ALL_df3b)
+##Note that the climate in the year of data collection here does not have a"_0" afterwards, whereas subsequent data files do have "_0".
 
 ```
 
-Now, only data missing in above from initial list is solar radiation. Try this package.
-
-Note: I have had this work with my fire data, but for some reason, not working on January 24, 2022. Additionally, each time I try to run it, I am told that there is not enough space on my C drive.
+Add heatload as a form of solar radiation. Equation and methodology taken from here: https://www.davidzeleny.net/anadat-r/doku.php/en:customized_functions:heatload
 
 ```{r}
-library(spatialEco)
-heatload_BC<-hli(DEM_elevation, check = TRUE)
-
-plot(heatload_BC)
+# Function "heatload"
+# Calculates heat load or potential annual direct incident radiation, using the formulas published in 
+# McCune & Keon (2002) based on aspect, slope and latitude.
+ 
+heatload <- function (aspect, slope, latitude, method = 'heatload', units = 'degrees', equation = 1)
+{
+  if (units == 'degrees')   # convert degrees to radians
+    {
+    aspect <- aspect/180*pi
+    slope <- slope/180*pi
+    aspect[slope == 0] <- 0
+    latitude <- latitude/180*pi
+    }  
+  A <- if (method == 'heatload') abs (pi - abs (aspect - (5*pi/4))) else pi - abs (aspect-pi)
+  S <- slope
+  L <- if (length (latitude) == 1) rep (latitude, length (A)) else latitude
+  if (equation == 1) res <- exp (-1.467 +1.582*cos(L)*cos(S) -1.500*cos(A)*sin(S)*sin(L) -0.262*sin(L)*sin(S) +0.607*sin(A)*sin(S))
+  if (equation == 2) res <- exp (-1.236 +1.350*cos(L)*cos(S) -1.376*cos(A)*sin(S)*sin(L) -0.331*sin(L)*sin(S) +0.375*sin(A)*sin(S))
+  if (equation == 3) res <-      +0.339 +0.808*cos(L)*cos(S)                             -0.196*sin(L)*sin(S)                       - 0.482*cos(A)*sin(S)
+  return (res)
+}
 ```
 
-Save file with processed data
+```{r}
+cutblock_plots_openings_HuckBuff_ALL_df3b$heatload <- heatload (aspect = cutblock_plots_openings_HuckBuff_ALL_df3b$aspect_ha_bc, slope = cutblock_plots_openings_HuckBuff_ALL_df3b$slope_ha_bc, latitude = cutblock_plots_openings_HuckBuff_ALL_df3b$Latitude.x, equation = 3)
+ 
+cutblock_plots_openings_HuckBuff_ALL_df3b$heatload 
+hist(cutblock_plots_openings_HuckBuff_ALL_df3b$heatload)
+
+```
+
+
+Save file with processed data. 
 ```{r}
 write.csv(cutblock_plots_openings_HuckBuff_ALL_df3b, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_HuckBuff_ALL_df3b.csv")
 ```
@@ -412,6 +444,9 @@ write.csv(cutblock_plots_openings_HuckBuff_ALL_df3b, file="D:\\Hucklberry\\Grizz
 
 #Dataset #2: Additional dataset from Laura Smit for Huckleberry 2011-2021. 
 This data comes from repeated measure plots. As a result, for percent cover, we will only use one year's worth of data and compare to climate variables for the decade. For berry abundance, annual data will be used to compare to climate annually.
+
+#Some Notes
+1. Percent cover of plant and canopy cover was not present in every year, and estimates have been extrapolated for those.
 
 Bring data in. 
 ```{r}
@@ -421,10 +456,10 @@ head(Huck_Laura_Plant) #17 data points
 crs(Huck_Laura_Plant) #Will need to convert to 3005, or 9001, to use rasters
 
 #Data for abundance
-Huck_Laura_Berries<-st_read ( dsn = "D:\\Hucklberry\\Laura_OPENINGS_All2.shp", stringsAsFactors = T)
+Huck_Laura_Berries<-st_read ( dsn = "D:\\Hucklberry\\Laura_OPENINGS_All.shp", stringsAsFactors = T)
 head(Huck_Laura_Berries) #42 datapoints
 crs(Huck_Laura_Berries) #Will need to convert to 3005, or 9001, to use rasters
-
+names(Huck_Laura_Berries)
 ```
 Alter CRS so can append DEM data. Start with the plant data and then repeat for the berry data.
 
@@ -450,65 +485,125 @@ head(Huck_Laura_Plant_3005)
 
 ```
 
-Now transform to ESPG 9001 to use soil layers from Clayton.
+#Repeat for berries
 
 ```{r}
-Huck_Laura_Plant_9001<-st_transform(Huck_Laura_Plant_3005, 9001)
-crs(Huck_Laura_Plant_9001)
+Huck_Laura_Berries_3005<-st_transform(Huck_Laura_Berries, 3005)
+crs(Huck_Laura_Berries_3005)
+
+#Check crs of DEM stack
+crs(rasStack)
+
+Huck_Laura_Berries_3005$coords_x1<-st_coordinates(Huck_Laura_Berries_3005)
+head(Huck_Laura_Berries_3005)
+
+pointCoordinates_LauraBerries<-data.frame(Huck_Laura_Berries_3005$coords_x1[,1], Huck_Laura_Berries_3005$coords_x1[,2])
+head(pointCoordinates_LauraBerries)
+
+DEM_huck1_Laura=raster::extract(rasStack, pointCoordinates_LauraBerries)
+head(DEM_huck1_Laura)
+
+#Append
+Huck_Laura_Berries_3005<-cbind(Huck_Laura_Berries_3005, DEM_huck1_Laura)
+head(Huck_Laura_Berries_3005)
+
 ```
 
 Also need to append the soils data, layers provided by Clayton Lamb who did extensive processing to create these layers from:http://www.env.gov.bc.ca/esd/distdata/ecosystems/Soil_Data/SOIL_DATA_FGDB/
 
-Note: The rasters provided by Clayton only cover the SE corner of BC and thus do not apply to all datapoints. Additionally, it is currently in ESPG 9001 and will not convert to ESPG 3005 here or on QGIS. May be due to user limitations.
+Note: The rasters provided by Clayton only cover the SE corner of BC and thus do not apply to all datapoints. 
 
+#First for P/A data
 ```{r}
-cofrag <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\cofrag_utm.tif")
-orgcarb <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\orgcarb_utm.tif")
-PH2 <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\ph2_utm.tif")
-phca <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\phca_utm.tif")
-tclay <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\tclay_utm.tif")
-tsand <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\tsand_utm.tif")
-tsilt <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\tsilt_utm.tif")
-vfsand <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\vfsand_utm.tif")
+cofrag <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\cofrag_3005.tif")
+orgcarb <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\orgcarb_3005.tif")
+PH2 <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\ph2_3005.tif")
+phca <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\phca_3005.tif")
+tclay <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\tclay_3005.tif")
+tsand <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\tsand_3005.tif")
+tsilt <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\tsilt_3005.tif")
+vfsand <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\vfsand_3005.tif")
 
 #Check crs
-crs(cofrag) #ESPG 9001
-crs(vfsand)
+crs(cofrag) #ESPG 3005
+crs(vfsand) #3005
 
 SoilStack<- stack(cofrag, orgcarb, PH2, phca, tclay, tsand, tsilt, vfsand)
-crs(SoilStack) #ESPG 9001
-
-crs(Huck_Laura_Plant_9001) #9001
-
-#Get Coordinates
-Huck_Laura_Plant_9001$coords_x1<-st_coordinates(Huck_Laura_Plant_9001)
-head(Huck_Laura_Plant_9001)
-
-pointCoordinates_LauraPlant2<-data.frame(Huck_Laura_Plant_9001$coords_x1[,1], Huck_Laura_Plant_9001$coords_x1[,2])
-head(pointCoordinates_LauraPlant2)
-extent(Huck_Laura_Plant_9001) #Transform did not go to what soil layers are in
-extent(SoilStack) #Transform did not go to what soil layers are in
-extent(Huck_Laura_Plant_3005) #for comparison; see that ymin and max within bounds of soil layer, but x min and max are not. Still need more investigation to fix.
+crs(SoilStack) #ESPG 3005
 
 #Extract values from SoilStack_2 for GPS coordinates in data file
-SOIL_huck1_LauraPlant=raster::extract(SoilStack, pointCoordinates_LauraPlant2)
-head(SOIL_huck1_LauraPlant) #ALL NAs
+SOIL_huck1_LauraPlant=raster::extract(SoilStack, pointCoordinates_LauraPlant)
+head(SOIL_huck1_LauraPlant) #Looks good
 
 #Combine back into original data set
-Huck_Laura_Plant_9001<-cbind(Huck_Laura_Plant_9001, SOIL_huck1_LauraPlant)
-head(Huck_Laura_Plant_9001)
+Huck_Laura_Plant_3005<-cbind(Huck_Laura_Plant_3005, SOIL_huck1_LauraPlant)
+head(Huck_Laura_Plant_3005)
 
+```
+
+Repeat for berry data.
+
+```{r}
+#Extract values from SoilStack_2 for GPS coordinates in data file
+SOIL_huck1_LauraBerries=raster::extract(SoilStack, pointCoordinates_LauraBerries)
+head(SOIL_huck1_LauraBerries) #Looks good
+
+#Combine back into original data set
+Huck_Laura_Berries_3005<-cbind(Huck_Laura_Berries_3005, SOIL_huck1_LauraBerries)
+head(Huck_Laura_Berries_3005)
 ```
 
 
 We also have data on plots that experienced wildfire, but need to append it. Will be easiest to append after make into dataframes. So append soils and DEM data bove prior to this step.
+
+Make into data frame.
+```{r}
+Huck_Laura_Plant_df<-st_drop_geometry(Huck_Laura_Plant_3005)
+str(Huck_Laura_Plant_df)
+names(Huck_Laura_Plant_df)
+
+Huck_Laura_Berries_df<-st_drop_geometry(Huck_Laura_Berries_3005)
+str(Huck_Laura_Berries_df)
+names(Huck_Laura_Berries_df)
+```
+
 ```{r}
 #Data for percent cover
-Huck_Laura_Plant_burn<-st_read ( dsn = "D:\\Hucklberry\\Laura_OPENINGS_PerCov_FirePoints.shp", stringsAsFactors = T)
+Huck_Laura_Plant_burn<-st_read ( dsn = "D:\\Hucklberry\\Laura_OPENINGS_PA_FirePoints.shp", stringsAsFactors = T)
+
+Huck_Laura_Plant_burn_df<-st_drop_geometry(Huck_Laura_Plant_burn)
 
 #Data for abundance
 Huck_Laura_Berries_burn<-st_read ( dsn = "D:\\Hucklberry\\Laura_OPENINGS_All_FirePoints.shp", stringsAsFactors = T)
+
+Huck_Laura_Berries_burn_df<-st_drop_geometry(Huck_Laura_Berries_burn)
 ```
+
+Create a time since fire category.
+```{r}
+Huck_Laura_Plant_burn_df$TimeSinceFire<-(Huck_Laura_Plant_burn_df$Year - Huck_Laura_Plant_burn_df$FIRE_YEAR)
+head(Huck_Laura_Plant_burn_df)
+
+Huck_Laura_Berries_burn_df$TimeSinceFire<-(Huck_Laura_Berries_burn_df$Year - Huck_Laura_Berries_burn_df$FIRE_YEAR)
+head(Huck_Laura_Berries_burn_df)
+
+
+```
+
+
+Now combine files.
+```{r}
+Huck_Laura_Plant_df2<-full_join(Huck_Laura_Plant_df, Huck_Laura_Plant_burn_df)
+
+head(Huck_Laura_Plant_df2)
+
+Huck_Laura_Berries_df2<-full_join(Huck_Laura_Berries_df, Huck_Laura_Berries_burn_df)
+
+head(Huck_Laura_Berries_df2)
+Huck_Laura_Berries_df2$FIRE_DATE
+
+```
+
 
 
 #Append ClimateBC Data
@@ -524,9 +619,9 @@ Append to data.
 ```{r}
 huck_Laura_plantcover_climate$ID1<-paste(huck_Laura_plantcover_climate$Site_ID, huck_Laura_plantcover_climate$Year)
 
-Huck_Laura_Plant$ID1<-paste(Huck_Laura_Plant$Site_ID, Huck_Laura_Plant$YEAR)
+Huck_Laura_Plant_df2$ID1<-paste(Huck_Laura_Plant_df2$Site_ID, Huck_Laura_Plant_df2$Year)
 
-cutblock_plots_openings_Huck_Laura_Plant<-left_join(Huck_Laura_Plant, huck_Laura_plantcover_climate, by="ID1")
+cutblock_plots_openings_Huck_Laura_Plant<-left_join(Huck_Laura_Plant_df2, huck_Laura_plantcover_climate, by="ID1")
 head(cutblock_plots_openings_Huck_Laura_Plant)
 
 ```
@@ -764,7 +859,14 @@ head(huck_Laura_2020)
 ```
 
 2021
-#2021 is complicated in that ClimateBC does not yet have annual data for 2021, so the best we can do is either the decadal average, or repeating 2020
+#2021 is complicated in that ClimateBC does not yet have annual data for 2021, so the best we can do is either the decadal average, or repeating 2020. We may also wish to try and get some of the similar variables from another source, like Environment Canada? 
+I tried searching Environment Canada by GPS coordiantes and turned up nothing.
+
+```{r}
+table(Huck_Laura_Berries_df2$Year) #We have 12 data points in 2021
+```
+
+
 ```{r}
 #There is no 2021 data at this time. Need to decide what to use in its place.
 #huck_Laura_2021_0<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2021_Year_2021SY.csv")
@@ -788,7 +890,7 @@ huck_Laura_2021$Year<-c(2021)
 head(huck_Laura_2021)
 ```
 
-Combine the data sets together.
+Combine the data sets together. Note: within cutblocks, we only end up with data from 2019-2021, but the data from the 2011-2021 plots inclusive are now available.
 
 ```{r}
 Huck_Laura_climate_data<-rbind(huck_Laura_2021, huck_Laura_2020, huck_Laura_2019, huck_Laura_2018, huck_Laura_2017, huck_Laura_2016, huck_Laura_2015, huck_Laura_2014, huck_Laura_2013, huck_Laura_2012, huck_Laura_2011)
@@ -799,9 +901,9 @@ names(Huck_Laura_climate_data)
 Huck_Laura_climate_data$ID1<-paste(Huck_Laura_climate_data$Site_ID, Huck_Laura_climate_data$Year)
 
 #Below may need updating once file brought in to proper names
-Huck_Laura_Berries$ID1<-paste(Huck_Laura_Berries$Site_ID, Huck_Laura_Berries$YEAR)
+Huck_Laura_Berries_df2$ID1<-paste(Huck_Laura_Berries_df2$Site_ID, Huck_Laura_Berries_df2$Year)
   
-cutblock_plots_openings_Laura_Huck<-left_join(Huck_Laura_Berries, Huck_Laura_climate_data, by="ID1")
+cutblock_plots_openings_Laura_Huck<-left_join(Huck_Laura_Berries_df2, Huck_Laura_climate_data, by="ID1")
 head(cutblock_plots_openings_Laura_Huck)
 
 
@@ -813,43 +915,50 @@ head(cutblock_plots_openings_Laura_Huck)
 
 
 
-
-
-
 #Datasets #3: Garth Mowat and new student's (Mackenzie) data on huckleberry and buffalo berry separately.
 This dataset should have the same features as the above overall, but column names differ and will need to be re-named for binding datasets together.
 
+#Some notes
+1. Some 0s in some columns are not true 0s, but rather NAs. See original excel document with comments for details.
+2. Check in with Clayton about the shep_kcal field (from a map?)
+
 ```{r}
-cutblock_plots_openings_mowatBuff<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Mowat_Buff_Openings_duplicates_removed.shp", stringsAsFactors = T)
+cutblock_plots_openings_mowatBuff<- st_read ( dsn = "D:\\Hucklberry\\Mackenzie_Points_Buff.shp", stringsAsFactors = T)
 head(cutblock_plots_openings_mowatBuff)
+names(cutblock_plots_openings_mowatBuff)
+
+cutblock_plots_openings_mowatBuff<-cutblock_plots_openings_mowatBuff[-(68:78)]
+
 cutblock_plots_openings_mowatBuff$Species<-c("Shepherdia_canadensis")
 
+cutblock_plots_openings_mowatBuff2<-subset(cutblock_plots_openings_mowatBuff, cutblock_plots_openings_mowatBuff$Clear_Cut=="Yes")
+head(cutblock_plots_openings_mowatBuff2) #79 datapoints within cutblocks
 ```
 
-#DEM Info inaccurate in cutblock_plots_openings_mowatBuff, so append DEM info
+#Append DEM
 
 ```{r}
-
+crs(cutblock_plots_openings_mowatBuff2)
 #Set crs
-cutblock_plots_openings_mowatBuff2 <- st_transform (cutblock_plots_openings_mowatBuff, 3005)
+cutblock_plots_openings_mowatBuff2 <- st_transform (cutblock_plots_openings_mowatBuff2, 3005)
 crs(cutblock_plots_openings_mowatBuff2)
 
 #Extract GPS locations
-names(cutblock_plots_openings_mowatBuff)
+names(cutblock_plots_openings_mowatBuff2)
 
 ##Try this first
 test<-cbind(cutblock_plots_openings_mowatBuff2, st_coordinates(cutblock_plots_openings_mowatBuff2))
 head(test)
 
-pointCoordinates<-data.frame(test$X, test$Y)
-head(pointCoordinates)
-#crs(pointCoordinates) #No CRS when a dataframe
+pointCoordinates_Mowat<-data.frame(test$X, test$Y)
+head(pointCoordinates_Mowat)
+
 
 ##Extract DEM values from stacked layer. Note: This DEM stack was created prior
-rasValue2=raster::extract(rasStack, pointCoordinates)
-head(rasValue2) #ALL NAs so did not work right
-str(rasValue2) #59 values
-str(cutblock_plots_openings_mowatBuff)#59 values
+rasValue2=raster::extract(rasStack, pointCoordinates_Mowat)
+head(rasValue2) #
+str(rasValue2) #79 values
+str(cutblock_plots_openings_mowatBuff2)#79 values
 
 #Append new information
 cutblock_plots_openings_mowatBuff<-cbind(cutblock_plots_openings_mowatBuff2, rasValue2)
@@ -859,67 +968,60 @@ crs(cutblock_plots_openings_mowatBuff)
 
 Also need to append the soils data, layers provided by Clayton Lamb who did extensive processing to create these layers from:http://www.env.gov.bc.ca/esd/distdata/ecosystems/Soil_Data/SOIL_DATA_FGDB/
 
-Note: The rasters provided by Clayton only cover the SE corner of BC and thus do not apply to all datapoints. Additionally, it is currently in ESPG 9001 and will not convert to ESPG 3005 here or on QGIS. May be due to user limitations.
+Note: The rasters provided by Clayton only cover the SE corner of BC and thus do not apply to all datapoints. For subsequent data analyses, if including soil properties, we will lose the data with NAs in the analyses.
 
 ```{r}
-cofrag <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\cofrag_utm.tif")
-orgcarb <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\orgcarb_utm.tif")
-PH2 <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\ph2_utm.tif")
-phca <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\phca_utm.tif")
-tclay <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\tclay_utm.tif")
-tsand <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\tsand_utm.tif")
-tsilt <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\tsilt_utm.tif")
-vfsand <- raster("D:\\Hucklberry\\Soil_Layers_Clayton\\vfsand_utm.tif")
-
-#Check crs
-crs(cofrag) #ESPG 9001
-crs(DEM_slope) #EPSG 3005
-
-cofrag_2<- spTransform(cofrag, CRS("+init=epsg:3005"))
-cofrag_2<- projectRaster(cofrag,crs = crs(DEM_aspect))
-crs(cofrag_2)
-
-extent(cofrag)
-extent(DEM_aspect)
-
-crs(PH2)
-
-SoilStack<- stack(cofrag, orgcarb, PH2, phca, tclay, tsand, tsilt, vfsand)
-crs(SoilStack)
-
-crs(rasStack)
-#None of the below are working, but we must find a way to make it happen
-SoilStack_2 <- projectRaster(SoilStack, crs = crs(rasStack))
-#SoilStack_2<- spTransform(SoilStack, CRS("+init=epsg:3005"))
-#SoilStack_2<- spTransform(SoilStack, proj4string(rasStack))
-
-crs(SoilStack_2)
-plot(SoilStack_2)
-
-crs(cutblock_plots_openings_mowatBuff)
+crs(SoilStack) #ESPG 3005
 
 #Extract values from SoilStack_2 for GPS coordinates in data file
-SOIL_huck1=raster::extract(SoilStack_2, pointCoordinates)
-head(DEM_huck1)
+SOIL_huck_Mac=raster::extract(SoilStack, pointCoordinates_Mowat)
+head(SOIL_huck_Mac)
+SOIL_huck_Mac #Lots of NAs for the ones outside of the raster
 
 #Combine back into original data set
-cutblock_plots_openings<-cbind(cutblock_plots_openings_mowatBuff, SOIL_huck1)
-head(cutblock_plots_openings)
+cutblock_plots_openings_mowatBuff<-cbind(cutblock_plots_openings_mowatBuff, SOIL_huck_Mac)
+head(cutblock_plots_openings_mowatBuff)
 
 ```
 
-Try to stack from 2 different ones and see what happens
+Append climate data.
 ```{r}
-testStack<-stack(cofrag_2, DEM_aspect)
-crs(SoilStack)
+Mowat_Buff_Climate2020<-read.csv(file= "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\2020_ClusterPlots_AllDataJoined_CLEAN_Laura_Mackenzie_Year_2020SY.csv")
+head(Mowat_Buff_Climate2020)
+
+Mowat_Buff_Climate2019<-read.csv(file= "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\2020_ClusterPlots_AllDataJoined_CLEAN_Laura_Mackenzie_Year_2019SY.csv")
+
+Mowat_Buff_Climate2018<-read.csv(file= "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\2020_ClusterPlots_AllDataJoined_CLEAN_Laura_Mackenzie_Year_2018SY.csv")
+
+Mowat_Buff_Climate<-cbind(Mowat_Buff_Climate2020, Mowat_Buff_Climate2019, Mowat_Buff_Climate2018)
+
+names(Mowat_Buff_Climate)
+
+#Remove repeated columns
+Mowat_Buff_Climate<-Mowat_Buff_Climate[-(181:185)]
+Mowat_Buff_Climate<-Mowat_Buff_Climate[-(91:95)]
+
+#174 variables
 ```
 
+```{r}
+cutblock_plots_openings_mowatBuff$ID2<-paste(cutblock_plots_openings_mowatBuff$Study_Area, cutblock_plots_openings_mowatBuff$LONGITUDE)
+table(cutblock_plots_openings_mowatBuff$ID2)
 
+Mowat_Buff_Climate$ID2<-paste(Mowat_Buff_Climate$Study_Area, Mowat_Buff_Climate$Longitude)
+table(Mowat_Buff_Climate$ID2)
+
+cutblock_plots_openings_mowatBuff2<-left_join(cutblock_plots_openings_mowatBuff, Mowat_Buff_Climate, by="ID2")
+
+str(cutblock_plots_openings_mowatBuff2)
+head(cutblock_plots_openings_mowatBuff2)
+```
 
 Save new file.
 ```{r}
-st_write(cutblock_plots_openings_mowatBuff, dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Mowat_Buff_Openings_duplicates_removed_DEM.shp")
+write.csv(cutblock_plots_openings_mowatBuff2, file = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_Buff_Openings_DEM_Soil_Climate.csv")
 ```
+
 
 
 #Datasets #4: BEC Plots
