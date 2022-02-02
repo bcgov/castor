@@ -604,7 +604,15 @@ Huck_Laura_Berries_df2$FIRE_DATE
 
 ```
 
+Modify Time Since Fire so that NAs are maximum value in Clayton's data of 118.
 
+```{r}
+Huck_Laura_Plant_df2$TimeSinceFire[is.na(Huck_Laura_Plant_df2$TimeSinceFire)]<- 118
+Huck_Laura_Plant_df2$TimeSinceFire
+
+Huck_Laura_Berries_df2$TimeSinceFire[is.na(Huck_Laura_Berries_df2$TimeSinceFire)]<- 118
+Huck_Laura_Berries_df2$TimeSinceFire
+```
 
 #Append ClimateBC Data
 In the below data being brought in, ALL data points from the file are included. However, not all were present within cutblocks, and thus, there will be more data points below than there is in the data brought in above.
@@ -860,7 +868,7 @@ head(huck_Laura_2020)
 
 2021
 #2021 is complicated in that ClimateBC does not yet have annual data for 2021, so the best we can do is either the decadal average, or repeating 2020. We may also wish to try and get some of the similar variables from another source, like Environment Canada? 
-I tried searching Environment Canada by GPS coordiantes and turned up nothing.
+I tried searching Environment Canada by GPS coordinates and turned up nothing (i.e., no nearby weather stations).
 
 ```{r}
 table(Huck_Laura_Berries_df2$Year) #We have 12 data points in 2021
@@ -903,14 +911,31 @@ Huck_Laura_climate_data$ID1<-paste(Huck_Laura_climate_data$Site_ID, Huck_Laura_c
 #Below may need updating once file brought in to proper names
 Huck_Laura_Berries_df2$ID1<-paste(Huck_Laura_Berries_df2$Site_ID, Huck_Laura_Berries_df2$Year)
   
-cutblock_plots_openings_Laura_Huck<-left_join(Huck_Laura_Berries_df2, Huck_Laura_climate_data, by="ID1")
+cutblock_plots_openings_Laura_Huck_Berries<-left_join(Huck_Laura_Berries_df2, Huck_Laura_climate_data, by="ID1")
 head(cutblock_plots_openings_Laura_Huck)
 
 
-cutblock_plots_openings_Laura_Huck<- cutblock_plots_openings_Laura_Huck %>% distinct() #Back to expected 986 data rows
+cutblock_plots_openings_Laura_Huck_Berries<- cutblock_plots_openings_Laura_Huck_Berries %>% distinct() #
 
-head(cutblock_plots_openings_Laura_Huck)
+head(cutblock_plots_openings_Laura_Huck_Berries)
 
+```
+
+Add heatload.
+#Likely need to update latitude call in below
+
+```{r}
+#Plant Data
+cutblock_plots_openings_Laura_Huck_Plant$heatload <- heatload (aspect = cutblock_plots_openings_Laura_Huck_Plant$aspect_ha_bc, slope = cutblock_plots_openings_Laura_Huck_Plant$slope_ha_bc, latitude = cutblock_plots_openings_Laura_Huck_Plant$Latitude, equation = 3)
+ 
+cutblock_plots_openings_Laura_Huck_Plant$heatload 
+hist(cutblock_plots_openings_Laura_Huck_Plant$heatload)
+
+#Berry Data
+cutblock_plots_openings_Laura_Huck_Berries$heatload <- heatload (aspect = cutblock_plots_openings_Laura_Huck_Berries$aspect_ha_bc, slope = cutblock_plots_openings_Laura_Huck_Berries$slope_ha_bc, latitude = cutblock_plots_openings_Laura_Huck_Berries$Latitude, equation = 3)
+ 
+cutblock_plots_openings_Laura_Huck_Berries$heatload 
+hist(cutblock_plots_openings_Laura_Huck_Berries$heatload)
 ```
 
 
@@ -921,16 +946,21 @@ This dataset should have the same features as the above overall, but column name
 #Some notes
 1. Some 0s in some columns are not true 0s, but rather NAs. See original excel document with comments for details.
 2. Check in with Clayton about the shep_kcal field (from a map?)
+3. Time Since Cut and Time Since Fire in provided document do not match up with intersection results from spatial layers from the BC government
 
 ```{r}
-cutblock_plots_openings_mowatBuff<- st_read ( dsn = "D:\\Hucklberry\\Mackenzie_Points_Buff.shp", stringsAsFactors = T)
+cutblock_plots_openings_mowatBuff<- st_read ( dsn = "D:\\Hucklberry\\Mackenzie_Points_Buff_OPENINGS.shp", stringsAsFactors = T)
+
 head(cutblock_plots_openings_mowatBuff)
 names(cutblock_plots_openings_mowatBuff)
 
 cutblock_plots_openings_mowatBuff<-cutblock_plots_openings_mowatBuff[-(68:78)]
 
 cutblock_plots_openings_mowatBuff$Species<-c("Shepherdia_canadensis")
+```
 
+We could consider subsetting my whether file indicates clearcut or not, but this info does not line up with our data.
+```{r}
 cutblock_plots_openings_mowatBuff2<-subset(cutblock_plots_openings_mowatBuff, cutblock_plots_openings_mowatBuff$Clear_Cut=="Yes")
 head(cutblock_plots_openings_mowatBuff2) #79 datapoints within cutblocks
 ```
@@ -938,9 +968,9 @@ head(cutblock_plots_openings_mowatBuff2) #79 datapoints within cutblocks
 #Append DEM
 
 ```{r}
-crs(cutblock_plots_openings_mowatBuff2)
+crs(cutblock_plots_openings_mowatBuff)
 #Set crs
-cutblock_plots_openings_mowatBuff2 <- st_transform (cutblock_plots_openings_mowatBuff2, 3005)
+cutblock_plots_openings_mowatBuff2 <- st_transform (cutblock_plots_openings_mowatBuff, 3005)
 crs(cutblock_plots_openings_mowatBuff2)
 
 #Extract GPS locations
@@ -957,8 +987,8 @@ head(pointCoordinates_Mowat)
 ##Extract DEM values from stacked layer. Note: This DEM stack was created prior
 rasValue2=raster::extract(rasStack, pointCoordinates_Mowat)
 head(rasValue2) #
-str(rasValue2) #79 values
-str(cutblock_plots_openings_mowatBuff2)#79 values
+str(rasValue2) #68 values
+str(cutblock_plots_openings_mowatBuff2)#68 values
 
 #Append new information
 cutblock_plots_openings_mowatBuff<-cbind(cutblock_plots_openings_mowatBuff2, rasValue2)
@@ -1015,6 +1045,92 @@ cutblock_plots_openings_mowatBuff2<-left_join(cutblock_plots_openings_mowatBuff,
 
 str(cutblock_plots_openings_mowatBuff2)
 head(cutblock_plots_openings_mowatBuff2)
+```
+
+Bring in the fire data. Note that the fire data in the provided data does not match the provincial layers. We may wish to replace the fire year, and investigate.
+```{r}
+cutblock_plots_openings_mowatBuff_FIRE<- st_read ( dsn = "D:\\Hucklberry\\Mackenzie_Points_Buff_OPENINGS_Fire.shp", stringsAsFactors = T)
+head(cutblock_plots_openings_mowatBuff_FIRE)
+
+
+#make as dataframes
+cutblock_plots_openings_mowatBuff_df<-st_drop_geometry(cutblock_plots_openings_mowatBuff2)
+str(cutblock_plots_openings_mowatBuff_df) #68 observations
+
+cutblock_plots_openings_mowatBuff_FIRE_df<-st_drop_geometry(cutblock_plots_openings_mowatBuff_FIRE)
+str(cutblock_plots_openings_mowatBuff_FIRE_df) #29 observations
+head(cutblock_plots_openings_mowatBuff_FIRE_df) #I think that some had more than one fire; so find out which ones duplicated, and then keep more recent fire date
+cutblock_plots_openings_mowatBuff_FIRE_df$ID1<-paste(cutblock_plots_openings_mowatBuff_FIRE_df$Drainage, cutblock_plots_openings_mowatBuff_FIRE_df$LONGITUDE)
+table(cutblock_plots_openings_mowatBuff_FIRE_df$ID1)
+#Duplicates: 
+# Tyax_Road -122.749799
+# Commerce -114.485356 
+# Border_FSR -114.531562 -- 4 of this one!
+# Flathead_River -114.492559 
+
+table(cutblock_plots_openings_mowatBuff_FIRE_df$ID1, cutblock_plots_openings_mowatBuff_FIRE_df$FIRE_YEAR)
+# Tyax_Road -122.749799 -- both 2009
+# Commerce -114.485356  -- one 1929, one 1936
+# Border_FSR -114.531562 -- two 1929, one 1919, one 1934
+# Flathead_River -114.492559  -- 1936 and 1945
+
+head(cutblock_plots_openings_mowatBuff_FIRE_df)
+cutblock_plots_openings_mowatBuff_FIRE_df[21,]
+cutblock_plots_openings_mowatBuff_FIRE_df[22,]
+
+#Flathead_River -114.492559
+cutblock_plots_openings_mowatBuff_FIRE_df<-cutblock_plots_openings_mowatBuff_FIRE_df[-c(21),]
+
+# Commerce -114.485356
+cutblock_plots_openings_mowatBuff_FIRE_df<-cutblock_plots_openings_mowatBuff_FIRE_df[-c(10),]
+
+#Border_FSR - all 4 are in a row, with the first one being most recent fire
+cutblock_plots_openings_mowatBuff_FIRE_df<-cutblock_plots_openings_mowatBuff_FIRE_df[-c(8),]
+cutblock_plots_openings_mowatBuff_FIRE_df<-cutblock_plots_openings_mowatBuff_FIRE_df[-c(7),]
+cutblock_plots_openings_mowatBuff_FIRE_df<-cutblock_plots_openings_mowatBuff_FIRE_df[-c(6),]
+
+#Tyax_Road -122.749799 -- both 2009 - appear identical, remove one
+cutblock_plots_openings_mowatBuff_FIRE_df<-cutblock_plots_openings_mowatBuff_FIRE_df[-c(4),]
+
+cutblock_plots_openings_mowatBuff_FIRE_df<-data.frame(cutblock_plots_openings_mowatBuff_FIRE_df)
+head(cutblock_plots_openings_mowatBuff_FIRE_df)
+
+#Check
+table(cutblock_plots_openings_mowatBuff_FIRE_df$ID1, cutblock_plots_openings_mowatBuff_FIRE_df$FIRE_YEAR)
+
+#When joining, we should get 68 observations
+cutblock_plots_openings_mowatBuff3<-full_join(cutblock_plots_openings_mowatBuff_df, cutblock_plots_openings_mowatBuff_FIRE_df) #68 observations
+
+
+```
+
+Determine time since fire and clearcuts.
+
+```{r}
+cutblock_plots_openings_mowatBuff3$TimeSinceFire<-(cutblock_plots_openings_mowatBuff3$Year-cutblock_plots_openings_mowatBuff3$FIRE_YEAR)
+cutblock_plots_openings_mowatBuff3$TimeSinceFire #Change NAs to a really long time, the max value; in Clayton's data. this is 118
+
+cutblock_plots_openings_mowatBuff3$TimeSinceFire[is.na(cutblock_plots_openings_mowatBuff3$TimeSinceFire)]<-118
+
+
+#Create cutblock year
+library(stringi)
+cutblock_plots_openings_mowatBuff3$Cutblock_Year<-stri_sub(cutblock_plots_openings_mowatBuff3$APP_DT,1,4)
+cutblock_plots_openings_mowatBuff3$Cutblock_Year
+str(cutblock_plots_openings_mowatBuff3$Cutblock_Year)
+cutblock_plots_openings_mowatBuff3$Cutblock_Year<-as.numeric(cutblock_plots_openings_mowatBuff3$Cutblock_Year)
+
+cutblock_plots_openings_mowatBuff3$TimeSinceCutblock<-(cutblock_plots_openings_mowatBuff3$Year-cutblock_plots_openings_mowatBuff3$Cutblock_Year)
+cutblock_plots_openings_mowatBuff3$TimeSinceCutblock
+
+```
+
+Add heatload.
+```{r}
+cutblock_plots_openings_mowatBuff3$heatload <- heatload (aspect = cutblock_plots_openings_mowatBuff3$aspect_ha_bc_3005, slope = cutblock_plots_openings_mowatBuff3$slope_ha_bc_3005, latitude = cutblock_plots_openings_mowatBuff3$Latitude, equation = 3)
+ 
+cutblock_plots_openings_mowatBuff3$heatload 
+hist(cutblock_plots_openings_mowatBuff3$heatload)
 ```
 
 Save new file.
