@@ -1,0 +1,1867 @@
+---
+title: "Huckleberry_Data_analysis"
+author: "Cora Skaien"
+date: "14/01/2022"
+output: html_document
+---
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(raster)
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(cleangeo)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(rgdal)
+library(keyring)
+library(DBI)
+library(rgeos)
+library(car)
+library(rje)
+library(caret)
+library(pROC)
+library(visreg)
+library(arm)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+##Data sets for what purpose
+1. Percent cover huckleberry: cutblock_plots_openings_HuckBuff_ALL_df3b (and subset Huck)
+2. Other elements huckleberry: cutblock_plots_openings_Huck_ALL_df (although if use above, NA remove will likely get same result- *should* at least)
+
+3. Percent cover buffaloberry (plant and berries separate), Presence buffaloberry (plant and berries separate): cutblock_plots_openings_Buff_ALL_df
+
+#Overview
+This file continues from huckleberry_data_processing_Dec2021, and shows some initial exploration of the huckleberry data. As of January 14, 2022, the analyses only encompass the huckleberry data from Mowat and Lamb due to missing data in the BEC data for % sand, DEM (which can be easily acquired), pH, and other environmental variables that have been shown to be crucial for huckleberry P/A, cover and huckleberry fruit P/A and cover. These variables will need to be appended to that data before it can be included into the analyses for percent cover; note, this data may wish to not be included for P/A models as we only selected presence data, and thus have no complimenting absence data, and the number of presences will likely overwhelm the models.
+
+#Additional processing needed for BEC data:
+1. Determine timing of harvested and burning to determine origin age of stand and time since fire and harvest
+2. DEM --> Although BEC data has aspect and slope indicated for some point within area from RESULTS tab
+3. % Sand (TSAND)
+4. pH
+5. ClimateBC data (Tave_wt, PAS)
+6. Land Cover Type (MODIS_LC)
+7. Canopy Cover - but investigate what StrataCove, StrataCo_1...3 are.
+
+All of the NAs by origin (burn/harvest) for huckleberry cover are from the BEC data, and we can see that the percent cover is much smaller on average. Clarify what size of plots were assessed by Clayton, and if these data can even be comparable.
+
+#Load Data In
+```{r}
+cutblock_plots_openings_HuckBuff_ALL_df<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_HuckBuff_ALL_df3b.csv")
+```
+
+#Subset the huckleberry data
+```{r}
+table(cutblock_plots_openings_HuckBuff_ALL_df$Species)
+cutblock_plots_openings_Huck_ALL_df<-subset(cutblock_plots_openings_HuckBuff_ALL_df, cutblock_plots_openings_HuckBuff_ALL_df$Species=="Vaccinium_membranaceum")
+
+```
+
+
+#Begin Exploration of variables
+```{r}
+head(cutblock_plots_openings_Huck_ALL_df)
+names(cutblock_plots_openings_Huck_ALL_df)
+
+table(cutblock_plots_openings_Huck_ALL_df$Species.Pr) #150 absences, 538 presences, 11 NAs
+cutblock_plots_openings_Huck_ALL_df<-subset(cutblock_plots_openings_Huck_ALL_df, cutblock_plots_openings_Huck_ALL_df$Species.Pr!="NA")
+
+table(cutblock_plots_openings_Huck_ALL_df$Fruit.Pres) #224 absences, 379 presences and 85 NAs
+
+table(cutblock_plots_openings_Huck_ALL_df$Species.y) 
+
+```
+
+## Looking at DN1_DIS_CD (DENUDATION_1_DISTURBANCE_CODE) between openings and openings + activity files
+```{r}
+#See if worth losing the data points - i.e., do we have consistent good data within this.
+head(cutblock_plots_openings_Huck_ALL_df)
+table(cutblock_plots_openings_Huck_ALL_df$G_BGC_ZONE) #BEC Zone: ESSF, ICH, MS, SBS
+hist(cutblock_plots_openings_Huck_ALL_df$OPEN_GRSAR) #total area the opening encompasses
+table(cutblock_plots_openings_Huck_ALL_df$DN1_DIS_CD) # 23 B (burned wildfire); 2193 logged (L); 16 P (pest); 37 S (Salvage); 3 W (windthrow); 636 total
+table(cutblock_plots_openings_Huck_ALL_df$DN2_DIS_CD) #Additional elements; 133 total
+
+#Create an ifelse statement to get a new category in case there are any DSN1s with NAs taht have a DSN2 input
+cutblock_plots_openings_Huck_ALL_df$DN1_2_DIS_CD<- ifelse (is.na(cutblock_plots_openings_Huck_ALL_df$DN1_DIS_CD), cutblock_plots_openings_Huck_ALL_df$DN2_DIS_CD, cutblock_plots_openings_Huck_ALL_df$DN1_DIS_CD)
+table(cutblock_plots_openings_Huck_ALL_df$DN1_2_DIS_CD)# 636; same as initial, so no improvement
+
+```
+May wish to remove P, S and W.
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df<-subset(cutblock_plots_openings_Huck_ALL_df, cutblock_plots_openings_Huck_ALL_df$DN1_DIS_CD!="P")
+cutblock_plots_openings_Huck_ALL_df<-subset(cutblock_plots_openings_Huck_ALL_df, cutblock_plots_openings_Huck_ALL_df$DN1_DIS_CD!="S")
+
+table(cutblock_plots_openings_Huck_ALL_df$DN1_DIS_CD)
+```
+
+#Inspect DN1_SILSYS (DENUDATION_1_SILV_SYSTEM_CODE)
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df$DN1_SILSYS) #626 CCRES (Clearcut with reserves); 953 Clearcut; spattering of others; 
+table(cutblock_plots_openings_Huck_ALL_df$DN2_SILSYS)
+#Do same as above to see if can get additional data inputs
+cutblock_plots_openings_Huck_ALL_df$DN1_2_SILSYS<- ifelse (is.na(cutblock_plots_openings_Huck_ALL_df$DN1_SILSYS), cutblock_plots_openings_Huck_ALL_df$DN2_SILSYS, cutblock_plots_openings_Huck_ALL_df$DN1_SILSYS)
+table(cutblock_plots_openings_Huck_ALL_df$DN1_2_SILSYS)#No improvement, and names now turned to numbers?
+
+#May wish to group the smaller groups into an "other" category
+cutblock_plots_openings_Huck_ALL_df$DN1_SILSYS_GP<-cutblock_plots_openings_Huck_ALL_df$DN1_SILSYS
+cutblock_plots_openings_Huck_ALL_df$DN1_SILSYS_GP <- recode_factor(cutblock_plots_openings_Huck_ALL_df$DN1_SILSYS_GP, CCRES = "CCRES", CLEAR = "CLEAR", IMCUT  = "Other", PATCT = "Other", RETEN= "Other", SEEDT = "Other", SELEC = "Other", SHELT = "Other")
+table(cutblock_plots_openings_Huck_ALL_df$DN1_SILSYS_GP)
+
+cutblock_plots_openings_Huck_ALL_df$DN1_SILSYS_GP #NAs exist... turn them into Other? Or maybe Unknown.
+cutblock_plots_openings_Huck_ALL_df$DN1_SILSYS_GP<-as.factor(cutblock_plots_openings_Huck_ALL_df$DN1_SILSYS_GP)
+
+library(forcats) 
+cutblock_plots_openings_Huck_ALL_df$DN1_SILSYS_GP<-fct_explicit_na(cutblock_plots_openings_Huck_ALL_df$DN1_SILSYS_GP, na_level = "Unknown")
+
+table(cutblock_plots_openings_Huck_ALL_df$DN1_SILSYS_GP)
+
+```
+
+#Investigate other categories
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df$DN1_SILVAR) # Not many records; not useful
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH) # 594 BU (burn), 657 ME (mechanical), others; --> Ma maybe manual?
+table(cutblock_plots_openings_Huck_ALL_df$PREP2_TECH)
+#Same as above
+cutblock_plots_openings_Huck_ALL_df$PREP1_TECH<-as.factor(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH)
+cutblock_plots_openings_Huck_ALL_df$PREP2_TECH<-as.factor(cutblock_plots_openings_Huck_ALL_df$PREP2_TECH)
+cutblock_plots_openings_Huck_ALL_df$PREP1_2_TECH<- ifelse (is.na(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH), cutblock_plots_openings_Huck_ALL_df$PREP2_TECH, cutblock_plots_openings_Huck_ALL_df$PREP1_TECH)
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_2_TECH)# 516; get two additional one, but names messed up (become numbers)
+```
+
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df$PREP1_2<-paste(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH,cutblock_plots_openings_Huck_ALL_df$PREP2_TECH)
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_2) #336 records of NA, lots of combinations otherwise. Maybe make a column that is yes/no for each technique that is considered important? We see that the 2 in above that we gain are the "NA GS" here. We also see that some were burned first and then had mechanical treatment (50), and some had mechanical treatment and then were burned (57)
+
+cutblock_plots_openings_Huck_ALL_df$PREP1_2<-as.factor(cutblock_plots_openings_Huck_ALL_df$PREP1_2)
+cutblock_plots_openings_Huck_ALL_df$PREP1_TECH<-as.factor(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH)
+
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_2)
+
+##All 3 of the ifelse statements below get the same result
+cutblock_plots_openings_Huck_ALL_df$PREP_TECH <- ifelse (cutblock_plots_openings_Huck_ALL_df$PREP1_2 == "BU ME", cutblock_plots_openings_Huck_ALL_df$PREP1_2, ifelse (cutblock_plots_openings_Huck_ALL_df$PREP1_2 == "ME BU", cutblock_plots_openings_Huck_ALL_df$PREP1_2, cutblock_plots_openings_Huck_ALL_df$PREP1_TECH))
+
+cutblock_plots_openings_Huck_ALL_df$PREP_TECH <- ifelse ((cutblock_plots_openings_Huck_ALL_df$PREP1_2 == "BU ME" | cutblock_plots_openings_Huck_ALL_df$PREP1_2 == "ME BU"), cutblock_plots_openings_Huck_ALL_df$PREP1_2, cutblock_plots_openings_Huck_ALL_df$PREP1_TECH)
+cutblock_plots_openings_Huck_ALL_df$PREP_TECH <- ifelse ((cutblock_plots_openings_Huck_ALL_df$PREP1_2 == "ME BU" | cutblock_plots_openings_Huck_ALL_df$PREP1_2 == "BU ME"), cutblock_plots_openings_Huck_ALL_df$PREP1_2, cutblock_plots_openings_Huck_ALL_df$PREP1_TECH) #get same result if change order of names
+table(cutblock_plots_openings_Huck_ALL_df$PREP_TECH)
+table(cutblock_plots_openings_Huck_ALL_df$PREP2_TECH)
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_2)
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH)
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df$PREP_TECH) #1 = BU; 2=CA; 3=CG; 4=GS; 5=MA; 6=ME; 7=BI; 24=?? NA? 
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df$PREP1_2)
+
+cutblock_plots_openings_Huck_ALL_df$PREP_TECH_2<-paste(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df$PREP_TECH)
+table(cutblock_plots_openings_Huck_ALL_df$PREP_TECH_2) #This helps fix the weird error above; n = 641 
+
+```
+
+Create additional columns that indicate whether burning happened and whether mechanical application happened.
+
+```{r}
+
+cutblock_plots_openings_Huck_ALL_df$PREP_BU <- ifelse ((cutblock_plots_openings_Huck_ALL_df$PREP1_TECH == "BU" | cutblock_plots_openings_Huck_ALL_df$PREP2_TECH == "BU"), 1, 0)
+
+#Attempt 2
+cutblock_plots_openings_Huck_ALL_df$PREP_BU <- ifelse ((cutblock_plots_openings_Huck_ALL_df$PREP1_TECH != "BU" & cutblock_plots_openings_Huck_ALL_df$PREP2_TECH != "BU"), 0, 1)
+                                                                                                                                 table(cutblock_plots_openings_Huck_ALL_df$PREP_BU) #Lots of NAs - there should be no NAs. It is an ifelse statement where all should be 1s or 0s...
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH) #170 burns
+table(cutblock_plots_openings_Huck_ALL_df$PREP2_TECH) #72 burns
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df$PREP2_TECH) #Won't see all because many NAs in PREP2_TECH
+
+
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH)
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df$PREP_BU)
+cutblock_plots_openings_Huck_ALL_df$PREP_BU # A lot of NAs: turn to 0s
+cutblock_plots_openings_Huck_ALL_df$PREP_BU[is.na(cutblock_plots_openings_Huck_ALL_df$PREP_BU)]<-0
+table(cutblock_plots_openings_Huck_ALL_df$PREP_BU) #This looks better, but keep in mind that some that had no info may have had treatments not listed
+
+
+```
+
+Repeat for mechanical.
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df$PREP_ME <- ifelse ((cutblock_plots_openings_Huck_ALL_df$PREP1_TECH == "ME" | cutblock_plots_openings_Huck_ALL_df$PREP2_TECH == "ME"), 1, 0)
+table(cutblock_plots_openings_Huck_ALL_df$PREP_ME) #There should be a LOT more data here
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH)
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df$PREP_ME)
+cutblock_plots_openings_Huck_ALL_df$PREP_ME # A lot of NAs: turn to 0s
+cutblock_plots_openings_Huck_ALL_df$PREP_ME[is.na(cutblock_plots_openings_Huck_ALL_df$PREP_ME)]<-0
+table(cutblock_plots_openings_Huck_ALL_df$PREP_ME) #This looks better, but keep in mind that some that had no info may have had treatments not listed
+```
+Repeat for MA (manual?)
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df$PREP_MA <- ifelse ((cutblock_plots_openings_Huck_ALL_df$PREP1_TECH == "MA" | cutblock_plots_openings_Huck_ALL_df$PREP2_TECH == "MA"), 1, 0)
+table(cutblock_plots_openings_Huck_ALL_df$PREP_MA) #There should be a LOT more data here
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH)
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df$PREP_MA)
+cutblock_plots_openings_Huck_ALL_df$PREP_MA # A lot of NAs: turn to 0s
+cutblock_plots_openings_Huck_ALL_df$PREP_MA[is.na(cutblock_plots_openings_Huck_ALL_df$PREP_MA)]<-0
+table(cutblock_plots_openings_Huck_ALL_df$PREP_MA) #This looks better, but keep in mind that some that had no info may have had treatmeants not listed
+```
+
+
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df$BRSH1_TECH)#Brushing technique; 428 MA (manual); 69 CG (Chemical Ground); 51 CA (Chemical Air); and others
+
+cutblock_plots_openings_Huck_ALL_df$BRUSH_MA <- ifelse ((cutblock_plots_openings_Huck_ALL_df$BRSH1_TECH == "MA"), 1, 0)
+table(cutblock_plots_openings_Huck_ALL_df$BRUSH_MA) #There should be a LOT more data here
+
+cutblock_plots_openings_Huck_ALL_df$BRUSH_MA # A lot of NAs: turn to 0s
+cutblock_plots_openings_Huck_ALL_df$BRUSH_MA[is.na(cutblock_plots_openings_Huck_ALL_df$BRUSH_MA)]<-0
+table(cutblock_plots_openings_Huck_ALL_df$BRUSH_MA) #This looks better, but keep in mind that some that had no info may have had treatmeants not listed
+
+
+#Repeat for chemical
+cutblock_plots_openings_Huck_ALL_df$BRUSH_CM <- ifelse ((cutblock_plots_openings_Huck_ALL_df$BRSH1_TECH == "CA" | cutblock_plots_openings_Huck_ALL_df$BRSH1_TECH== "CG"), 1, 0)
+table(cutblock_plots_openings_Huck_ALL_df$BRUSH_CM) #There should be a LOT more data here
+
+cutblock_plots_openings_Huck_ALL_df$BRUSH_CM # A lot of NAs: turn to 0s
+cutblock_plots_openings_Huck_ALL_df$BRUSH_CM[is.na(cutblock_plots_openings_Huck_ALL_df$BRUSH_CM)]<-0
+table(cutblock_plots_openings_Huck_ALL_df$BRUSH_CM) #This is whether brushing with chemicals was applied
+```
+
+
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df$PLNT1_TECH) #Mostly PL (planting). RP (replanting). Do NAs mean no planting? Or unknown?
+cutblock_plots_openings_Huck_ALL_df$PLNT1_TECH
+table(cutblock_plots_openings_Huck_ALL_df$PLNT2_TECH)
+
+cutblock_plots_openings_Huck_ALL_df$PLNT1_2_TECH<-paste(cutblock_plots_openings_Huck_ALL_df$PLNT1_TECH, cutblock_plots_openings_Huck_ALL_df$PLNT2_TECH)
+table(cutblock_plots_openings_Huck_ALL_df$PLNT1_2_TECH)
+cutblock_plots_openings_Huck_ALL_df$PLNT1_2_TECH<-as.factor(cutblock_plots_openings_Huck_ALL_df$PLNT1_2_TECH)
+
+cutblock_plots_openings_Huck_ALL_df$PLANTED<- ifelse (cutblock_plots_openings_Huck_ALL_df$PLNT1_2_TECH=="NA NA", 0, 1)
+table(cutblock_plots_openings_Huck_ALL_df$PLANTED) #391 not planted, and 1896 with some kind of planting. Very uneven sample size.
+#With current data, 582 planted, 92 not.
+
+```
+
+
+```{r}
+hist(cutblock_plots_openings_Huck_ALL_df$FEAT_AREA)
+hist(cutblock_plots_openings_Huck_ALL_df$PLNT1_AREA) #Also has a Plant2, so could add together for total planting area?
+hist(cutblock_plots_openings_Huck_ALL_df$PLNT2_AREA)
+cutblock_plots_openings_Huck_ALL_df$TOTAL_plant_area<-cutblock_plots_openings_Huck_ALL_df$PLNT1_AREA+cutblock_plots_openings_Huck_ALL_df$PLNT2_AREA
+cutblock_plots_openings_Huck_ALL_df$TOTAL_plant_area
+cutblock_plots_openings_Huck_ALL_df$TOTAL_plant_area[is.na(cutblock_plots_openings_Huck_ALL_df$TOTAL_plant_area)]<-0
+cutblock_plots_openings_Huck_ALL_df$TOTAL_plant_area # We will assume an absence is indicative of no planting
+hist(cutblock_plots_openings_Huck_ALL_df$TOTAL_plant_area)
+
+cutblock_plots_openings_Huck_ALL_df$PLANTING<-ifelse (cutblock_plots_openings_Huck_ALL_df$TOTAL_plant_area==0, 0, 1)
+table(cutblock_plots_openings_Huck_ALL_df$PLANTING) # We see that this is far different than the data for whether planted or not, suggesting that not all planted sites have planting density. These are NOT true 0s and this data can only be used for locations where we know planting occurred.
+#Compare to:
+table(cutblock_plots_openings_Huck_ALL_df$PLANTED)
+
+```
+
+
+```{r}
+
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH) #May wish to combine smaller groups into "other"
+cutblock_plots_openings_Huck_ALL_df$PREP1_TECH_GP<-cutblock_plots_openings_Huck_ALL_df$PREP1_TECH
+cutblock_plots_openings_Huck_ALL_df$PREP1_TECH_GP <- recode_factor(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH_GP, BU="BU", CA="Other",CG="Other",GS="Other",MA="Other",ME="ME", "BI"="Other")
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH_GP)
+#Not as useful as individual assessments that account for both Phase 1 and Phase 2
+
+library(forcats) 
+cutblock_plots_openings_Huck_ALL_df$PREP1_TECH_GP<-fct_explicit_na(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH_GP, na_level = "Unknown")
+
+table(cutblock_plots_openings_Huck_ALL_df$PREP1_TECH_GP)
+
+```
+
+
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df$PREP_BU) #1533 no, 754 yes
+table(cutblock_plots_openings_Huck_ALL_df$PREP_ME) #1501 no, 786 yes
+table(cutblock_plots_openings_Huck_ALL_df$PREP_MA)
+
+#Compare above with data
+table(cutblock_plots_openings_Huck_ALL_df$Species.Pr) #135 absent, 455 present; ignores BEC plots because only presences there
+table(cutblock_plots_openings_Huck_ALL_df$Species.Pr, cutblock_plots_openings_Huck_ALL_df$PREP_BU) 
+table(cutblock_plots_openings_Huck_ALL_df$Species.Pr, cutblock_plots_openings_Huck_ALL_df$DN1_SILSYS_GP) #Only 475 datapoints accounted for here. CCRES = Clearcut with reserves; CLEAR = clearcut
+
+```
+
+Because some of these clearcuts subsequently had fire come through, we must create a new variable that accounts for if fire occurred after but before sampling.
+
+```{r}
+# make a new variable that is "origin"
+cutblock_plots_openings_Huck_ALL_df$origin <- ifelse ((cutblock_plots_openings_Huck_ALL_df$CutBlock_O == 1 & cutblock_plots_openings_Huck_ALL_df$TimeSinceC < cutblock_plots_openings_Huck_ALL_df$TimeSinceF), 1, ifelse ((cutblock_plots_openings_Huck_ALL_df$Fire_Occ == 1 & cutblock_plots_openings_Huck_ALL_df$TimeSinceC > cutblock_plots_openings_Huck_ALL_df$TimeSinceF), 2, 0))
+cutblock_plots_openings_Huck_ALL_df$origin <- as.factor (cutblock_plots_openings_Huck_ALL_df$origin)
+
+table(cutblock_plots_openings_Huck_ALL_df$origin) # 1 = most recently logged; 2 = fire after logging. 0 is when harvesting and burning occurred in the same year.
+
+# make a new variable that is age of stands of known origin
+cutblock_plots_openings_Huck_ALL_df$origin.age <- ifelse ((cutblock_plots_openings_Huck_ALL_df$origin == 1), cutblock_plots_openings_Huck_ALL_df$TimeSinceC, ifelse ((cutblock_plots_openings_Huck_ALL_df$origin == 2), cutblock_plots_openings_Huck_ALL_df$TimeSinceF, ifelse ((cutblock_plots_openings_Huck_ALL_df$origin == 0), cutblock_plots_openings_Huck_ALL_df$TimeSinceF, NA)))
+
+hist(cutblock_plots_openings_Huck_ALL_df$origin.age)
+table(cutblock_plots_openings_Huck_ALL_df$origin)
+
+```
+
+Investigate date when operations began and ended
+
+```{r}
+head(cutblock_plots_openings_Huck_ALL_df)
+table(cutblock_plots_openings_Huck_ALL_df$DST_STR_DT)
+table(cutblock_plots_openings_Huck_ALL_df$DST_END_DT)
+
+#Select month that data was collected
+library(stringi)
+cutblock_plots_openings_Huck_ALL_df$Date_month_START<-stri_sub(cutblock_plots_openings_Huck_ALL_df$DST_STR_DT,5,6)
+table(cutblock_plots_openings_Huck_ALL_df$Date_month_START) #
+
+cutblock_plots_openings_Huck_ALL_df$Date_month_END<-stri_sub(cutblock_plots_openings_Huck_ALL_df$DST_END_DT,5,6)
+table(cutblock_plots_openings_Huck_ALL_df$Date_month_END) #
+
+table(cutblock_plots_openings_Huck_ALL_df$Date_month_START, cutblock_plots_openings_Huck_ALL_df$Date_month_END) 
+
+#Get Years
+cutblock_plots_openings_Huck_ALL_df$Date_year_START<-stri_sub(cutblock_plots_openings_Huck_ALL_df$DST_STR_DT,1,4)
+table(cutblock_plots_openings_Huck_ALL_df$Date_year_START) #
+
+cutblock_plots_openings_Huck_ALL_df$Date_year_END<-stri_sub(cutblock_plots_openings_Huck_ALL_df$DST_END_DT,1,4)
+table(cutblock_plots_openings_Huck_ALL_df$Date_year_END) #
+
+#How many went between years
+str(cutblock_plots_openings_Huck_ALL_df$Date_year_END)
+cutblock_plots_openings_Huck_ALL_df$Date_year_END<-as.numeric(cutblock_plots_openings_Huck_ALL_df$Date_year_END)
+cutblock_plots_openings_Huck_ALL_df$Date_year_START<-as.numeric(cutblock_plots_openings_Huck_ALL_df$Date_year_START)
+
+cutblock_plots_openings_Huck_ALL_df$NumYearsTreat<-cutblock_plots_openings_Huck_ALL_df$Date_year_END - cutblock_plots_openings_Huck_ALL_df$Date_year_START
+
+table(cutblock_plots_openings_Huck_ALL_df$NumYearsTreat) #Some ended 59 years after starting.
+
+
+#Even though not entirely accurate, let's use the start month as a proxy. Will group September-November as fall, December-February as winter, March-May as Spring and June-August as summer
+cutblock_plots_openings_Huck_ALL_df$START_SEASON<-cutblock_plots_openings_Huck_ALL_df$Date_month_START
+str(cutblock_plots_openings_Huck_ALL_df$START_SEASON)
+
+cutblock_plots_openings_Huck_ALL_df$START_SEASON<-recode_factor(cutblock_plots_openings_Huck_ALL_df$START_SEASON, "01"="Winter", "02"="Winter","03"="Spring","04"="Spring","05"="Spring","06"="Summer", "07"="Summer", "08"="Summer", "09"="Fall", "10" ="Fall", "11"="Fall", "12" ="Winter")
+
+table(cutblock_plots_openings_Huck_ALL_df$START_SEASON)
+
+```
+
+
+############ Prepare Climate Variables for P/A and % Cover #########
+
+```{r}
+#Make annual PAS (precipitation as snow). Here we want to use the decade ClimateBC data for P/A and % Cover
+cutblock_plots_openings_Huck_ALL_df$PAS_total<-cutblock_plots_openings_Huck_ALL_df$PAS_at_dec + cutblock_plots_openings_Huck_ALL_df$PAS_sm_dec + cutblock_plots_openings_Huck_ALL_df$PAS_sp_dec + cutblock_plots_openings_Huck_ALL_df$PAS_wt_dec
+
+```
+
+
+
+
+##################### BEGIN VISUALIZATIONS ###############
+
+Visualize differences by categories.
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df$Species.Pr2 <- as.factor (cutblock_plots_openings_Huck_ALL_df$Species.Pr)
+table(cutblock_plots_openings_Huck_ALL_df$Species.Pr)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = Species.Pr2, fill = origin)) + 
+  geom_bar (position = "fill") +
+  scale_fill_discrete (name = "Stand Origin", labels = c("Burned and Harvested", "Harvested", "Burned")) #Most data points are in harvested stands. Those that were burned since harvesting may have more presences? But very unequal sample sizes.
+```
+
+##We see in above figure that if we include the BEC data, we need to determine information on when those plots were burned and harvested, as they are all presences and all NAs currently.
+
+
+Assess the percent cover of huckleberry by origin.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = origin, y = Species.Co)) +
+  geom_boxplot () +
+  labs (x = "Harvest Fire Same Year (0), Harvest Origin (1) and Fire Origin (2) Stands",
+        y = "Huckleberry Cover")
+
+#Cover appears to be highest in stands that burned, then that were harvested, and then that had both in the same year.
+```
+
+#All of the NAs in the above are from the BEC data, and we can see that the percent cover is much smaller on average. Clarify what size of plots were assessed by Clayton, and if these data can even be comparable.
+
+
+Assess for differences in stand age by category.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = origin, y = origin.age)) +
+  geom_boxplot () +
+  labs (x = "Harvest Origin (1) and Fire Origin (2) Stands",
+        y = "Stand Age")
+
+#Those burned and harvested in same year WAY older. Perhaps remove these. Other two categories (harvested, burned) more similar ins tand age but means differ.
+```
+
+0 category actually had many that were indicated here to not have been logged and not burned. Check cutblock occurence.
+
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df$CutBlock_O) #97 indicated not to have been in cutblocks despite RESULTS Openings data. Possible they were logged after. Remove these.
+
+cutblock_plots_openings_Huck_ALL_df<-subset(cutblock_plots_openings_Huck_ALL_df, cutblock_plots_openings_Huck_ALL_df$CutBlock_O=="1")
+```
+
+
+Compare area in hectares between plots with and without.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = Species.Pr2, y = AREA_SQM)) +
+  geom_boxplot () +
+  labs (x = "No Huckleberry (0) and Huckleberry Detected (1) Stands",
+        y = "Area (HA)")
+#Difficult to see any differences.
+```
+
+Compare age of stand for if huckleberry detected.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = Species.Pr2, y = origin.age)) +
+  geom_boxplot () +
+  labs (x = "No Huckleberry (0) and Huckleberry Detected (1) Stands",
+        y = "Stand Age")
+
+#Huckleberry maybe slightly more detected in slightly older stands
+#Pattern stronger for huckleberry to be detected in older stands. May be a hump shaped distribution that is not being captured.
+
+```
+
+Assess age between burned and harvested plots with and without.
+
+```{r}
+supp.labs <- c("Harvest", "Fire")
+names(supp.labs) <- c(1, 2)
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = Species.Pr2, y = origin.age)) +
+  geom_boxplot () +
+  labs (x = "No Huckleberry (0) and Huckleberry Detected (1) Stands",
+        y = "Stand Age") +
+  facet_grid (cols = vars(origin),
+              labeller = labeller (origin = supp.labs))
+
+#More likely to occur in stands with fire since harvested at a younger age, and more likely to occur in older stands if harvested.
+```
+
+#Repeat using PREP_BU
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df$PREP_BU_<-as.factor(cutblock_plots_openings_Huck_ALL_df$PREP_BU)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = Species.Pr2, fill = PREP_BU_)) + 
+  geom_bar (position = "fill") +
+  scale_fill_discrete (name = "Burned or Not", labels = c("Not Burned", "Burned")) 
+#More common in burned
+```
+
+Assess the percent cover of huckleberry.
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df$Species.Co<-as.numeric(cutblock_plots_openings_Huck_ALL_df$Species.Co)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = PREP_BU_, y = Species.Co)) +
+  geom_boxplot () +
+  labs (x = "Not Burned (0), Burned(1)",
+        y = "Huckleberry Cover")
+
+#Maybe slightly higher in burned. But hieracrhical and still need to remove absence locations
+```
+
+Assess for differences in stand age by category.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = PREP_BU_, y = origin.age)) +
+  geom_boxplot () +
+  labs (x = "Not Burned (0), Burned(1)",
+        y = "Stand Age")
+
+#Stand age is greater in burned areas.
+```
+
+#Repeat for Mechanical treatment
+#using PREP_ME
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df$PREP_ME_<-as.factor(cutblock_plots_openings_Huck_ALL_df$PREP_ME)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = Species.Pr2, fill = PREP_ME_)) + 
+  geom_bar (position = "fill") +
+  scale_fill_discrete (name = "Mechanical Treatment or Not", labels = c("No Mechanical TR", "Mechanical TR")) 
+#More common in those with mechanical treatment; are the labels backwards since differ from next figure?
+```
+
+Assess the percent cover of huckleberry by origin.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = PREP_ME_, y = Species.Co)) +
+  geom_boxplot () +
+  labs (x = "No Mechanical TR (0), Mechanical TR (1)",
+        y = "Huckleberry Cover")
+
+#Similar; maybe slightly higher in ME
+```
+
+Assess for differences in stand age by category.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = PREP_ME_, y = origin.age)) +
+  geom_boxplot () +
+  labs (x = "No Mechanical TR (0), Mechanical TR (1)",
+        y = "Stand Age")
+
+#Stand age is similar for both with and without.
+```
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df$PREP_BU_ME<-paste(cutblock_plots_openings_Huck_ALL_df$PREP_BU_, cutblock_plots_openings_Huck_ALL_df$PREP_ME_)
+str(cutblock_plots_openings_Huck_ALL_df$PREP_BU_ME)
+cutblock_plots_openings_Huck_ALL_df$PREP_BU_ME<-as.factor(cutblock_plots_openings_Huck_ALL_df$PREP_BU_ME)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = TimeSinceC, y = Species.Co, colour = factor(PREP_BU_ME))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Cover Across stand Ages",
+        x = "Stand Age (years)",
+        y = "Species Cover (%)")  +
+  scale_colour_discrete (name = "Stand Origin", labels = c("No Burn No Mechanical", "Mechanical", "Burn", "Burn and Mechanical"))
+
+#Burn peaks at 15 years, with a second peak at 35 years; burn and mechanical peaks at 10 years and lowest at 30 years; mechanical peaked at 5 years; no burn and no mechanical peaked at 35 years before data too sparse
+```
+
+
+Repeat but without 0s
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_PA<-subset(cutblock_plots_openings_Huck_ALL_df, cutblock_plots_openings_Huck_ALL_df$Species.Pr=="1")
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_PA, aes (x = TimeSinceC, y = Species.Co, colour = factor(PREP_BU_ME))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Cover Across stand Ages",
+        x = "Stand Age (years)",
+        y = "Species Cover (%)")  +
+  scale_colour_discrete (name = "Stand Origin", labels = c("No Burn No Mechanical", "Mechanical", "Burn", "Burn and Mechanical"))
+
+```
+
+
+Repeat the above plots for site prep and other harvest treatments (PREP1_TECH_GP, PREP_TECH_2_GP,  DN1_SILSYS_GP).
+
+Visualize differences by categories DN1_SILSYS_GP
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = Species.Pr2, fill = DN1_SILSYS_GP)) + 
+  geom_bar (position = "fill") +
+  scale_fill_discrete (name = "Clearcut Technique") 
+#More likely to occur in sites with clearcuts as opposed to clearcuts with reserves.
+```
+
+Assess the percent cover of huckleberry by origin.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_PA, aes (x = DN1_SILSYS_GP, y = Species.Co)) +
+  geom_boxplot () +
+  labs (x = "Clearcut Technique",
+        y = "Huckleberry Cover")
+
+#Cover appears to be similar for all categories.
+```
+
+Assess for differences in stand age by category.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = DN1_SILSYS_GP, y = origin.age)) +
+  geom_boxplot () +
+  labs (x = "Clearcut Technique",
+        y = "Stand Age")
+
+#Clearcut with reserves are younger than clearcuts and other.
+```
+
+Repeat the above plots for site prep and other harvest treatments (PREP1_TECH_GP, DN1_SILSYS_GP).
+
+Visualize differences by categories PREP1_TECH_GP
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = Species.Pr2, fill = PREP1_TECH_GP)) + 
+  geom_bar (position = "fill") +
+  scale_fill_discrete (name = "Site Prep Technique") 
+#If burning used in site prep, more likely to occur. Definitely a lot of NAs though too.
+```
+Assess for fruit Presence/Absence.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df3, aes (x = Fruit.Pres, fill = PREP1_TECH_GP)) + 
+geom_bar (position = "fill") +
+  scale_fill_discrete (name = "Site Prep technique")
+#Fruit presence pretty similar between all
+```
+
+Assess the percent cover of huckleberry by origin.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = PREP1_TECH_GP, y = Species.Co)) +
+  geom_boxplot () +
+  labs (x = "Prep Technique",
+        y = "Huckleberry Cover")
+
+#Cover appears to be similar for all categories.
+```
+
+Assess for fruit abundance by origin.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = PREP1_TECH_GP, y = Fruit.Abund)) +
+  geom_boxplot () +
+  labs (x = "Prep Technique",
+        y = "Huckleberry Fruit Abundance")
+
+#Appears highest in areas with burning as part of site prep.
+```
+
+Assess for differences in stand age by category.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = PREP1_TECH_GP, y = origin.age)) +
+  geom_boxplot () +
+  labs (x = "Site Prep Technique",
+        y = "Stand Age")
+
+#Areas with burning for prep slightly older.
+```
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df$AREA_SQM
+```
+
+#Check pattern by origin.age
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_PA, aes (x = origin.age, y = Species.Co)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Time since Fire or Harvest (years)",
+        y = "Species Cover")
+```
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_PA, aes (x = TimeSinceC, y = Species.Co)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Time Since Harvest (years)",
+        y = "Species Cover")
+#Seemingly positive but very little data >90 years.
+```
+
+At this point, we have a few variations on the data:
+1. cutblock_plots_openings_Huck_ALL_df
+2. cutblock_plots_openings_Huck_ALL_df
+
+Save
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df2[68]
+cutblock_plots_openings_Huck_ALL_df2<-cutblock_plots_openings_Huck_ALL_df2[-68]
+
+write_csv(cutblock_plots_openings_Huck_ALL_df2, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_Jan25.csv")
+```
+
+
+
+Look at raw data relationhship shapes to each climate variable
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_PA, aes (x = TSAND, y = Species.Co)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "% Sand",
+        y = "Species Cover")
+```
+
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_PA, aes (x = Tave_wt, y = Species.Co)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Average Winter Temp",
+        y = "Species Cover")
+#Relationship may be more hump shaped centred around -7 degrees as opposed to linear
+```
+
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_PA, aes (x = PAS_total, y = Species.Co)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Precipitation as snow (mm)",
+        y = "Species Cover")
+```
+
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = PH2, y = Species.Co)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Soil PH",
+        y = "Species Cover")
+#Interesting pattern... not quite linear. Drops off above ph ~ 5
+```
+
+
+```{r}
+plot(cutblock_plots_openings_Huck_ALL_df$slope_30m_, cutblock_plots_openings_Huck_ALL_df$slope_ha_bc) #Not the same...
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_PA, aes (x = slope_30m_, y = Species.Co)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Slope",
+        y = "Species Cover")
+#Definitely more hump shaped
+```
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_PA, aes (x = slope_ha_bc, y = Species.Co)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Slope",
+        y = "Species Cover")
+```
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_PA, aes (x = aspect_30m, y = Species.Co)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Aspect",
+        y = "Species Cover")
+```
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_PA, aes (x = aspect_ha_bc, y = Species.Co)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Aspect",
+        y = "Species Cover")
+```
+
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_PA, aes (x = LandsatCC_, y = Species.Co)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "Canopy Cover (%)",
+        y = "Species Cover")
+#Mostly a negative relationship
+```
+
+
+#Because max slope ~40 degrees, can create an SAI (slope-aspect index) value: example = sin(aspect +225) x (slope/45).
+
+```{r}
+names(cutblock_plots_openings_Huck_ALL_df)
+hist(cutblock_plots_openings_Huck_ALL_df$slope_ha_bc)
+cutblock_plots_openings_Huck_ALL_df$SLOPE<-as.numeric(cutblock_plots_openings_Huck_ALL_df$slope_ha_bc)
+max(cutblock_plots_openings_Huck_ALL_df$SLOPE) 
+hist(cutblock_plots_openings_Huck_ALL_df$aspect_ha_bc)
+
+cor(cutblock_plots_openings_Huck_ALL_df$SLOPE, cutblock_plots_openings_Huck_ALL_df$slope_30m_) #0.70
+plot(cutblock_plots_openings_Huck_ALL_df$SLOPE ~ cutblock_plots_openings_Huck_ALL_df$slope_30m_) #Quite different. Perhaps use point values and use DEM to get slope and aspect? Or use the cutblock data because it likely takes the average for the cutblock which is probably more representative.
+plot(cutblock_plots_openings_Huck_ALL_df$aspect_ha_bc ~ cutblock_plots_openings_Huck_ALL_df$aspect_30m)
+
+
+cutblock_plots_openings_Huck_ALL_df$SAI_cb<-(sin(cutblock_plots_openings_Huck_ALL_df$aspect_ha_bc + 225) *(cutblock_plots_openings_Huck_ALL_df$SLOPE/58.9)) #SAI (Slope to aspect Index) of cutblock data slope and aspect
+cutblock_plots_openings_Huck_ALL_df$SAI_rec<-(sin(cutblock_plots_openings_Huck_ALL_df$aspect_30m + 225) *(cutblock_plots_openings_Huck_ALL_df$slope_30m_/45)) #SAI of slope and aspect from Clayton's data
+
+hist(cutblock_plots_openings_Huck_ALL_df$SAI_cb)
+hist(cutblock_plots_openings_Huck_ALL_df$SAI_rec)
+plot(cutblock_plots_openings_Huck_ALL_df$SAI_cb ~ cutblock_plots_openings_Huck_ALL_df$SAI_rec) # The result is COMPLETELY different, depending on which values are used. No correlation what so ever.
+
+cutblock_plots_openings_Huck_ALL_df_PA<-subset(cutblock_plots_openings_Huck_ALL_df, cutblock_plots_openings_Huck_ALL_df$Species.Pr=="1")
+```
+
+Compare probabilities between values.
+
+```{r}
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_PA, aes (x = SAI_cb, y = Species.Co)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by SAI",
+        x = "SAI_cb",
+        y = "Species Cover")
+```
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_PA, aes (x = SAI_rec, y = Species.Co)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by SAI",
+        x = "SAI_rec",
+        y = "Species Cover")
+```
+
+
+
+#####################  Begin Exploratory Analyses ###########################
+
+#Explore these Harvesting Variables:
+DN1_DIS_CD
+DN1_SILSYS_GP
+PREP_MA
+PREP_ME
+PREP_BU
+BRUSH_MA
+BRUSH_CM
+G_BGC_ZONE
+OPEN_GRSAR OR AREA_SQM
+PLANTED
+Origin
+Origin.age
+TimeSinceF
+TimeSinceC
+START_SEASON
+
+#And:
+PAS_total
+Tave_wt_dec
+Tave_sp_dec
+Tave_sm_dec
+PPT_sp_dec
+PPT_sm_dec
+TSAND
+PH2
+MODIS_LC (land cover type)
+CMI_sp_dec
+CMI_sm_dec
+CMI_at_dec
+SAI_rec
+dem_ha_bc
+
+on (1) Huckleberry Presence/Absence (Species.Pr); (2) Species cover (Species.Co); 
+
+And then use a subset and investigate similar variables (but with annual ClimateBC variables) for:
+(3) fruit P/A (Fruit.Pres); (4) fruit abundance (Fruit.Cover).
+
+Explore if there are datasets that might be able to fill in the gaps for the lost data already. Or if a variable comes out as not significant, then take a step back and use the larger dataset that did not eliminate the NAs for that one. 
+
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df$MODIS_LC<-as.factor(cutblock_plots_openings_Huck_ALL_df$MODIS_LC)
+table(cutblock_plots_openings_Huck_ALL_df$MODIS_LC)
+
+cutblock_plots_openings_Huck_ALL_df$PLANTED<-as.factor(cutblock_plots_openings_Huck_ALL_df$PLANTED)
+
+cutblock_plots_openings_Huck_ALL_df$DN1_DIS_CD<-as.factor(as.character(cutblock_plots_openings_Huck_ALL_df$DN1_DIS_CD))
+
+cutblock_plots_openings_Huck_ALL_df$PREP_MA<-as.factor(cutblock_plots_openings_Huck_ALL_df$PREP_MA)
+cutblock_plots_openings_Huck_ALL_df$PREP_ME<-as.factor(cutblock_plots_openings_Huck_ALL_df$PREP_ME)
+cutblock_plots_openings_Huck_ALL_df$PREP_BU<-as.factor(cutblock_plots_openings_Huck_ALL_df$PREP_BU)
+
+cutblock_plots_openings_Huck_ALL_df$BRUSH_MA<-as.factor(cutblock_plots_openings_Huck_ALL_df$BRUSH_MA)
+
+
+```
+
+#Below key for Model 13 Levels:
+0	Water
+1	Evergreen Needle leaf Forest
+2	Evergreen Broadleaf Forest
+3	Deciduous Needle leaf Forest** More common
+4	Deciduous Broadleaf Forest
+5	Mixed Forests *Less common
+6	Closed Shrublands
+7	Open Shrublands **More common
+8	Woody Savannas
+9	Savannas
+10	Grasslands
+11	Permanent Wetland **More common
+12	Croplands
+13	Urban and Built-Up
+14	Cropland/Natural Vegetation Mosaic *less common
+15	Snow and Ice
+16	Barren or Sparsely Vegetated
+
+
+```{r}
+### Assess best model for Species Present/Absence
+
+#All varaibles of interest from lit review
+#DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + OPEN_GRSAR + PLANTED + origin + origin.age + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec + Tave_sp_dec + Tave_sm_dec + PPT_sp_dec + PPT_sm_dec + TSAND + PH2 + MODIS_LC + CMI_sp_dec + CMI_sm_dec + CMI_at_dec + SAI_sb + dem_ha_bc
+
+#Note: origin + origin.age + TimeSinceF + TimeSinceC are all related and should not all be included in final model
+
+#Species Present or Absent Huckleberry
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + origin.age + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec + Tave_sp_dec + Tave_sm_dec + PPT_sp_dec + PPT_sm_dec + TSAND + PH2 + MODIS_LC + CMI_sp_dec + CMI_sm_dec + CMI_at_dec + SAI_cb + dem_ha_bc,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #442.5
+
+#Remove least significant
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec + Tave_sp_dec + Tave_sm_dec + PPT_sp_dec + PPT_sm_dec + TSAND + PH2 + MODIS_LC + CMI_sp_dec + CMI_sm_dec + CMI_at_dec + SAI_cb + dem_ha_bc,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #440.9
+
+#Remove least significant
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + Tave_sm_dec + PPT_sp_dec + PPT_sm_dec + TSAND + PH2 + MODIS_LC + CMI_sp_dec + CMI_sm_dec + CMI_at_dec + SAI_cb,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #437.8
+
+#Remove least significant
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + Tave_sm_dec + PPT_sp_dec + PPT_sm_dec + TSAND + PH2 + MODIS_LC + CMI_sm_dec + CMI_at_dec + SAI_cb,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #436.2
+
+#Remove least significant
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + Tave_sm_dec  + PPT_sm_dec + TSAND + PH2 + MODIS_LC + CMI_sm_dec + CMI_at_dec + SAI_cb,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #435.2
+
+#Remove least significant
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + Tave_sm_dec  + PPT_sm_dec + PH2 + MODIS_LC + CMI_sm_dec + CMI_at_dec + SAI_cb,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #433.3
+
+#Remove least significant
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + Tave_sm_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #432.0
+
+#Remove least significant
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #431.4
+
+##Not top model as more can be removed, but I want to keep the silviculture variables in to assess the lack of relationship to visualize for everyone.
+
+
+#Forgot frost free days and growing degree days. Add back in.
+
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD_0_dec + DD5_dec + NFFD_dec,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #433.4
+
+#Remove least sig
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD_0_dec + DD5_dec,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #431.4
+
+#Remove least sig
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #429.99
+
+#Forgot canopy cover, add back in
+#Remove least sig
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #428.7
+
+
+
+#If continue to get to best model, then:
+#Remove least sig
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #426.9
+
+#Remove least sig
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + G_BGC_ZONE + PLANTED + origin + TimeSinceF  + AREA_SQM + PAS_total + Tave_wt_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #425.0
+
+#Remove least sig
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + G_BGC_ZONE + PLANTED + origin + TimeSinceF  + AREA_SQM + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #423.3
+
+#Remove least sig
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + G_BGC_ZONE + PLANTED + origin  + AREA_SQM + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #421.97
+
+#Remove least sig
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + PLANTED + origin  + AREA_SQM + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #420.6
+
+#Remove least sig
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + PLANTED + origin  + AREA_SQM + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #417.8
+
+#Remove least sig
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin  + AREA_SQM + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #416.8
+
+#Remove least sig
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #415.99
+
+#Test Start season
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_ + START_SEASON,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #416.2
+```
+
+
+```{r}
+#Best model as of January 24, 2022
+model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.1, type=3) #
+summary(model.new.1) #
+AIC(model.new.1) #415.99
+
+#Check model fit
+# model diagnostic plots
+binnedplot (fitted(model.new.1), 
+            residuals(model.new.1), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+#Explore partial residuals with current model
+library(visreg)
+
+visreg(model.new.1, "DN1_DIS_CD")
+visreg(model.new.1, "PREP_MA")
+visreg(model.new.1, "PREP_BU")
+visreg(model.new.1, "PREP_ME")
+visreg(model.new.1, "BRUSH_MA")
+
+visreg(model.new.1, "G_BGC_ZONE")
+visreg(model.new.1, "origin")
+
+visreg(model.new.1, "PAS_total")
+visreg(model.new.1, "PPT_sm_dec")
+visreg(model.new.1, "PH2")
+visreg(model.new.1, "CMI_sm_dec")
+visreg(model.new.1, "CMI_at_dec")
+visreg(model.new.1, "SAI_cb")
+
+visreg(model.new.1, "DD5_dec")
+visreg(model.new.1, "LandsatCC_")
+
+```
+Ensure data saved.
+
+```{r}
+write.csv(cutblock_plots_openings_Huck_ALL_df, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_Jan.csv")
+```
+
+Determine AUC by splitting into training and validation set (85% and 15% given small sample size).
+
+```{r}
+summary(model.new.1)
+
+#Create a new blank table and get AUC too
+top_mod_table_PA_Plant <- data.frame (matrix (ncol = 22, nrow = 0))
+colnames (top_mod_table_PA_Plant ) <- c ("Model", "Model_terms", "intercept", "coef_DN1_DIS_CDL", "coef_PREP_MA1", "coef_PREP_ME1", "coef_PREP_BU1", "coef_BRUSH_MA1", "coef_G_BGC_ZONEICH", "coef_G_BGC_ZONEMS", "coef_G_BGC_ZONESBS", "coef_origin1", "coef_origin2", "coef_PAS_total", "coef_PPT_sm_dec", "coef_PH2","coef_CMI_sm_dec", "coef_CMI_at_dec", "coef_SAI_cb", "coef_DD5_dec", "coef_LandsatCC_", "AUC")
+```
+
+Let's run it 500 times to get good mean values.
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.85
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(cutblock_plots_openings_Huck_ALL_df$Species.Pr2, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- cutblock_plots_openings_Huck_ALL_df[ trainIndex,]
+   Valid <- cutblock_plots_openings_Huck_ALL_df[-trainIndex,]
+   
+#Model   
+model.new.1<-glm(Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.new.1, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"Species.Pr2"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_PlantPA <- data.frame (matrix (ncol = 22, nrow = 0))
+colnames (top_mod_table_PlantPA ) <- c ("Model", "Model_terms", "intercept", "coef_DN1_DIS_CDL", "coef_PREP_MA1", "coef_PREP_ME1", "coef_PREP_BU1", "coef_BRUSH_MA1", "coef_G_BGC_ZONEICH", "coef_G_BGC_ZONEMS", "coef_G_BGC_ZONESBS", "coef_origin1", "coef_origin2", "coef_PAS_total", "coef_PPT_sm_dec", "coef_PH2","coef_CMI_sm_dec", "coef_CMI_at_dec", "coef_SAI_cb", "coef_DD5_dec", "coef_LandsatCC_", "AUC")
+
+##Add data for NDT1
+top_mod_table_PlantPA[1,1]<-"Plant PA"
+top_mod_table_PlantPA[1,2]<-"Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_"
+top_mod_table_PlantPA[1,3]<- coef(model.new.1)[1] #Intercept
+top_mod_table_PlantPA[1,4]<- coef(model.new.1)[2] #Intercept
+top_mod_table_PlantPA[1,5]<- coef(model.new.1)[3] #Intercept
+top_mod_table_PlantPA[1,6]<- coef(model.new.1)[4] #
+top_mod_table_PlantPA[1,7]<- coef(model.new.1)[5] #
+top_mod_table_PlantPA[1,8]<- coef(model.new.1)[6] #coefficient 
+top_mod_table_PlantPA[1,9]<- coef(model.new.1)[7] #coefficient 
+top_mod_table_PlantPA[1,10]<- coef(model.new.1)[8] #coefficient
+top_mod_table_PlantPA[1,11]<- coef(model.new.1)[9] #
+top_mod_table_PlantPA[1,12]<- coef(model.new.1)[10] #coefficient 
+top_mod_table_PlantPA[1,13]<- coef(model.new.1)[11] #coefficient 
+top_mod_table_PlantPA[1,14]<- coef(model.new.1)[12] #coefficient
+top_mod_table_PlantPA[1,15]<- coef(model.new.1)[13] #coefficient
+top_mod_table_PlantPA[1,16]<- coef(model.new.1)[14] #coefficient
+top_mod_table_PlantPA[1,17]<- coef(model.new.1)[15] #coefficien
+top_mod_table_PlantPA[1,18]<- coef(model.new.1)[16] #coefficient 
+top_mod_table_PlantPA[1,19]<- coef(model.new.1)[17] #
+top_mod_table_PlantPA[1,20]<- coef(model.new.1)[18] #  
+top_mod_table_PlantPA[1,21]<- coef(model.new.1)[19] # 
+top_mod_table_PlantPA[1,22]<- mod.auc
+
+top_mod_table_PA_Plant<-rbind(top_mod_table_PA_Plant, top_mod_table_PlantPA)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_PA_Plant)
+
+```
+
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table_PA_Plant, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Top_Mod_PlantPA.csv")
+```
+
+Get mean values.
+
+```{r}
+top_mod_table_PA_Plant_mean<-top_mod_table_PA_Plant %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table_PA_Plant_mean
+
+top_mod_table_PA_Plant_mean[1,1]<-"Plant PA"
+top_mod_table_PA_Plant_mean[1,2]<-"Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_"
+top_mod_table_PA_Plant_mean
+```
+Save mean coefficient table.
+
+```{r}
+write.csv(top_mod_table_PA_Plant_mean, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Top_Mod_PlantPA_mean.csv")
+```
+
+Get SD.
+
+```{r}
+top_mod_table_PA_Plant_SD<-top_mod_table_PA_Plant %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_PA_Plant_SD
+
+top_mod_table_PA_Plant_SD[1,1]<-"Plant PA"
+top_mod_table_PA_Plant_SD[1,2]<-"Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_"
+top_mod_table_PA_Plant_SD
+```
+
+Save sd coefficient table.
+
+```{r}
+write.csv(top_mod_table_PA_Plant_SD, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Top_Mod_PlantPA_SD.csv")
+```
+
+
+
+
+
+
+
+
+
+
+#Additional Code for timing of harvest
+```{r}
+#Determine timing of harvest
+names(cutblock_plots_openings_Huck_ALL_df)
+head(cutblock_plots_openings_Huck_ALL_df$DST_STR_DT)
+table(cutblock_plots_openings_Huck_ALL_df$DST_STR_DT)
+
+cutblock_plots_openings_Huck_ALL_df$DST_Start_year<-stri_sub(cutblock_plots_openings_Huck_ALL_df$DST_STR_DT,3,4)
+cutblock_plots_openings_Huck_ALL_df$DST_Start_year
+cutblock_plots_openings_Huck_ALL_df$DST_Start_month<-stri_sub(cutblock_plots_openings_Huck_ALL_df$DST_STR_DT,5,6)
+head(cutblock_plots_openings_Huck_ALL_df$DST_Start_month)
+cutblock_plots_openings_Huck_ALL_df$DST_End_year<-stri_sub(cutblock_plots_openings_Huck_ALL_df$DST_END_DT,3,4)
+cutblock_plots_openings_Huck_ALL_df$DST_End_year
+cutblock_plots_openings_Huck_ALL_df$DST_End_month<-stri_sub(cutblock_plots_openings_Huck_ALL_df$DST_END_DT,5,6)
+
+#Make all numeric
+cutblock_plots_openings_Huck_ALL_df$DST_Start_year.num<-as.numeric((cutblock_plots_openings_Huck_ALL_df$DST_Start_year))
+cutblock_plots_openings_Huck_ALL_df$DST_End_year.num<- as.numeric(cutblock_plots_openings_Huck_ALL_df$DST_End_year)
+
+cutblock_plots_openings_Huck_ALL_df$DST_Start_month.num<-as.numeric((cutblock_plots_openings_Huck_ALL_df$DST_Start_month))
+cutblock_plots_openings_Huck_ALL_df$DST_End_month.num<- as.numeric(cutblock_plots_openings_Huck_ALL_df$DST_End_month)
+
+#Determine length in years
+cutblock_plots_openings_Huck_ALL_df$DST_year_length<- cutblock_plots_openings_Huck_ALL_df$DST_End_year.num - cutblock_plots_openings_Huck_ALL_df$DST_Start_year.num
+table(cutblock_plots_openings_Huck_ALL_df$DST_year_length) #Can see that treatment took a long time in some.
+
+#Only look at start month, assuming this is when harvesting and scarification ocurred.
+table(cutblock_plots_openings_Huck_ALL_df$DST_Start_month)
+str(cutblock_plots_openings_Huck_ALL_df$DST_Start_month)
+cutblock_plots_openings_Huck_ALL_df$DST_Start_month<-as.factor(cutblock_plots_openings_Huck_ALL_df$DST_Start_month)
+
+#Turn into seasonal months
+cutblock_plots_openings_Huck_ALL_df$DIST_SEASON<-0
+cutblock_plots_openings_Huck_ALL_df<-cutblock_plots_openings_Huck_ALL_df %>%
+    mutate(DIST_SEASON = case_when(DST_Start_month == "01" ~ "Winter",
+                                  DST_Start_month == "02" ~ "Winter",
+                                  DST_Start_month == "03" ~ "Spring",
+                                  DST_Start_month == "04" ~ "Spring",
+                                  DST_Start_month == "05" ~ "Spring",
+                                  DST_Start_month == "06" ~ "Summer",
+                                  DST_Start_month == "07" ~ "Summer",
+                                  DST_Start_month == "08" ~ "Summer",
+                                  DST_Start_month == "09" ~ "Fall",
+                                  DST_Start_month == "10" ~ "Fall",
+                                  DST_Start_month == "11" ~ "Fall",
+                                  DST_Start_month == "12" ~ "Winter",
+                                  TRUE ~ "NA"))
+table(cutblock_plots_openings_Huck_ALL_df$DIST_SEASON) # Determine if want different cutoffs for snow months.
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+## BELOW NEEDS TO BE RELOCATED AND THEN REMOVED######
+
+############Repeat above for Fruit Presence
+We will explore the same variables as we did for plant abundance.
+
+```{r}
+variables.huck<-c("slope_30m_SRTM", "aspect_30m_SRTM", "LandsatCC_",  "PAS_total", "PH2", "ELEVATION", "Tave_wt", "TSAND", "MODIS_LC", "Fire_Occ", "PLANTED", "PREP_BU_", "PREP_ME_", "DIST_SEASON", "origin.age")
+
+
+#
+mods.me.tmp <- powerSet(variables.huck)
+#mods.me.tmp
+
+mod.to.test.all<-c(1,mods.me.tmp)
+mod.to.test.all<-mod.to.test.all[-2]
+
+#Ensure as factor
+cutblock_plots_openings_Huck_ALL_df_ng$Fruit.Pres2<-as.factor(cutblock_plots_openings_Huck_ALL_df_ng$Fruit.Pres)
+str(cutblock_plots_openings_Huck_ALL_df_ng$Fruit.Pres)
+str(cutblock_plots_openings_Huck_ALL_df_ng$Fruit.Pres2)
+
+#Subset the data once into training and validation set
+model.data2<- cutblock_plots_openings_Huck_ALL_df_ng %>% dplyr::select(Fruit.Pres2, variables.huck)
+trainIndex_huck <- createDataPartition(model.data2$Fruit.Pres2, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+dat.1 <- model.data2[ trainIndex_huck,]
+Valid.1 <- model.data2[-trainIndex_huck,]
+
+#Create function specific for fruit
+#Create model function
+big.mod2 <- function(mods.in, df.train, df.test, dep.var="Fruit.Pres2") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+#Run with big.mod2
+mods.fit3 <- lapply(mod.to.test.all, big.mod2, df.train=dat.1, df.test=Valid.1)
+#mods.fit3
+
+
+#terms in each model
+x1 <- unlist(sapply(mods.fit3, '[', 1))
+x1
+#Aic for models
+x3 <- matrix(unlist(sapply(mods.fit3, '[', 3)), ncol=2, byrow=TRUE)
+#x3
+#auc from validation data
+x4 <- unlist(sapply(mods.fit3, '[', 4))
+#x4
+#combining all as df
+tab.sum.huckleberry3 <- cbind.data.frame(model=x1, edf=x3[,1], aic=x3[,2], auc.valid=x4)
+tab.sum.huckleberry3$delta.aic<- tab.sum.huckleberry3$aic - (min(tab.sum.huckleberry3$aic))
+tab.sum.huckleberry3 
+```
+Save as csv
+```{r}
+write.csv(tab.sum.huckleberry3, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\model.2.series.AIC.AUC_FruitPresent_Huck.csv")
+
+```
+
+These variables commonly in top models, so start here:
+slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC
+
+Now, others included in some that are interesting to us now: 
+1. ELEVATION
+2. MODIS_LC
+3. origin.age
+4. Fire_Occ
+
+One model each deltaAIC<2 had PREP_ME_ and PREP_BU_, but not frequent like above factors; one also had aspect, but not others. One model had TSAND, one had winter Temp. One model also had PLANTED.
+
+For berry abundance models, plant abundance should be included as a fixed effect (McLelland et al. 2021). Need to be added below.
+**When looking at berry production, include physical plant characteristics as covariates.
+
+## ADD COVARIATES OF PLANT HEIGHT AND ABUNDANCE!
+
+```{r}
+model.fruitPA.1 <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1, type=3)
+summary(model.fruitPA.1)
+#Less likely to have fruit where fire occurred
+# Positive corellation with origin age
+# Positive interaction with pH
+# positive interaction with precip as snow
+# negative interaction with canopy cover
+# positive interaction with slope
+AIC(model.fruitPA.1) #565.5
+
+model.fruitPA.1b <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + G_BGC_ZONE,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1b, type=3)
+summary(model.fruitPA.1b)
+AIC(model.fruitPA.1b) #568.08-- less good with BEC added!
+
+model.fruitPA.1c <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + PLANTED,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1c, type=3)
+summary(model.fruitPA.1c)
+AIC(model.fruitPA.1c) #567.1
+
+model.fruitPA.1c <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + PREP_BU_,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1c, type=3)
+summary(model.fruitPA.1c)
+AIC(model.fruitPA.1c) #567.5
+
+
+model.fruitPA.1c <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + PREP_ME_,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1c, type=3)
+summary(model.fruitPA.1c)
+AIC(model.fruitPA.1c) #567.4
+
+model.fruitPA.1c <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + TSAND,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1c, type=3)
+summary(model.fruitPA.1c)
+AIC(model.fruitPA.1c) #567.3
+
+model.fruitPA.1c <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + Tave_wt,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1c, type=3)
+summary(model.fruitPA.1c)
+AIC(model.fruitPA.1c) #567.5
+
+```
+Current best model:
+
+```{r}
+model.fruitPA.1 <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+Anova(model.fruitPA.1, type=3)
+summary(model.fruitPA.1)
+#Less likely to have fruit where fire occurred
+# Positive corellation with origin age
+# Positive interaction with pH
+# positive interaction with precip as snow
+# negative interaction with canopy cover
+# positive interaction with slope
+AIC(model.fruitPA.1) #565.5
+```
+
+
+
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df$Fruit.Pres)
+str(cutblock_plots_openings_Huck_ALL_df$Fruit.Pres)
+
+model.new.F1 <- glm (Fruit.Pres ~ SAI_cb + LandsatCC_ + PREP_BU_* PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age + TCLAY + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.F1, type=3)
+summary(model.new.F1)
+AIC(model.new.F1) #449.0
+
+#Remove least sig
+model.new.F1 <- glm (Fruit.Pres ~ SAI_cb + LandsatCC_ + PREP_BU_* PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.F1, type=3)
+summary(model.new.F1)
+AIC(model.new.F1) #447.0
+```
+
+Let's do partial resids for this before refining further
+
+SAI_cb + LandsatCC_ + PREP_BU_* PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt
+
+```{r}
+#Partial residuals
+visreg(model.new.F1, "SAI_cb")
+visreg(model.new.F1, "LandsatCC_")
+
+visreg(model.new.F1, "PREP_BU_", by="PREP_ME_")
+visreg(model.new.F1, "PREP_ME_", by="PREP_BU_")
+
+visreg(model.new.F1, "PAS_total")
+visreg(model.new.F1, "PH2")
+visreg(model.new.F1, "Tave_wt")
+
+visreg(model.new.F1, "PLANTED")
+visreg(model.new.F1, "AREA_SQM")
+visreg(model.new.F1, "ELEVATION")
+
+visreg(model.new.F1, "VFSAND")
+visreg(model.new.F1, "DN1_SILSYS_GP")
+
+visreg(model.new.F1, "origin.age")
+visreg(model.new.F1, "G_BGC_ZONE")
+visreg(model.new.F1, "START_SEASON")
+
+```
+
+
+```{r}
+#Remove least sig
+model.new.F1 <- glm (Fruit.Pres ~ SAI_cb + LandsatCC_ + PREP_BU_* PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age + VFSAND + DN1_SILSYS_GP + START_SEASON +Tave_wt,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.F1, type=3)
+summary(model.new.F1)
+AIC(model.new.F1) #442.7
+
+#Remove least sig
+model.new.F1 <- glm (Fruit.Pres ~ SAI_cb + LandsatCC_ + PREP_BU_* PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age + VFSAND + DN1_SILSYS_GP  +Tave_wt,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.F1, type=3)
+summary(model.new.F1)
+AIC(model.new.F1) #439.8
+
+
+#Remove least sig
+model.new.F1 <- glm (Fruit.Pres ~ SAI_cb + LandsatCC_ + PREP_BU_* PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age + VFSAND + DN1_SILSYS_GP,
+               data=cutblock_plots_openings_Huck_ALL_df,
+               family = binomial (link = "logit"))
+
+Anova(model.new.F1, type=3)
+summary(model.new.F1)
+AIC(model.new.F1) #438.8
+
+```
+
+```{r}
+#Partial residuals
+visreg(model.new.F1, "SAI_cb")
+visreg(model.new.F1, "LandsatCC_")
+
+visreg(model.new.F1, "PREP_BU_", by="PREP_ME_")
+visreg(model.new.F1, "PREP_ME_", by="PREP_BU_")
+
+visreg(model.new.F1, "PAS_total")
+visreg(model.new.F1, "PH2")
+
+visreg(model.new.F1, "PLANTED")
+visreg(model.new.F1, "AREA_SQM")
+visreg(model.new.F1, "ELEVATION")
+
+visreg(model.new.F1, "VFSAND")
+visreg(model.new.F1, "DN1_SILSYS_GP")
+
+visreg(model.new.F1, "origin.age")
+
+```
+
+
+
+
+
+### To do next: Species Cover and Fruit Cover
+
+```{r}
+Species.Height
+
+Species.Co
+
+Fruit.Cover
+
+Fruit.Abund
+
+Fruit.Brix
+
+Fruit.Phenology
+
+```
+
+
+#Percent cover, but without full data from BEC data
+
+```{r}
+model.new.C1 <- lm (Species.Co~ SAI_cb + LandsatCC_ + PREP_BU_* PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age + TCLAY + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt,
+               data=cutblock_plots_openings_Huck_ALL_df)
+
+Anova(model.new.C1, type=3)
+summary(model.new.C1)
+AIC(model.new.C1) #2451.7
+summary(model.new.C1)$r.squared #0.42
+summary(model.new.C1)$adj.r.squared #0.38
+
+#Remove least sig
+model.new.C1 <- lm (Species.Co~ SAI_cb + LandsatCC_ + PREP_BU_ + PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age + TCLAY + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt,
+               data=cutblock_plots_openings_Huck_ALL_df)
+
+Anova(model.new.C1, type=3)
+summary(model.new.C1)
+AIC(model.new.C1) #2449.9
+summary(model.new.C1)$r.squared #0.42
+summary(model.new.C1)$adj.r.squared #0.38
+
+#Remove least sig
+model.new.C1 <- lm (Species.Co~ SAI_cb + LandsatCC_ + PREP_BU_ + PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age  + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt,
+               data=cutblock_plots_openings_Huck_ALL_df)
+
+Anova(model.new.C1, type=3)
+summary(model.new.C1)
+AIC(model.new.C1) #2448.1
+summary(model.new.C1)$r.squared #0.42
+summary(model.new.C1)$adj.r.squared #0.38
+
+#Remove least sig
+model.new.C1 <- lm (Species.Co~ SAI_cb + LandsatCC_ + PREP_BU_ + PREP_ME_ +  PAS_total + PH2  +AREA_SQM + ELEVATION + origin.age  + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt,
+               data=cutblock_plots_openings_Huck_ALL_df)
+
+Anova(model.new.C1, type=3)
+summary(model.new.C1)
+AIC(model.new.C1) #2446.5
+summary(model.new.C1)$r.squared #0.42
+summary(model.new.C1)$adj.r.squared #0.38
+
+#Remove least sig
+model.new.C1 <- lm (Species.Co~ SAI_cb + LandsatCC_ + PREP_BU_ + PREP_ME_ +  PAS_total + PH2  +AREA_SQM + ELEVATION + origin.age  + VFSAND + G_BGC_ZONE + START_SEASON +Tave_wt,
+               data=cutblock_plots_openings_Huck_ALL_df)
+
+Anova(model.new.C1, type=3)
+summary(model.new.C1)
+AIC(model.new.C1) #2419.9
+summary(model.new.C1)$r.squared #0.32 --> MAJOR reduction
+summary(model.new.C1)$adj.r.squared #0.29
+
+##Remove least sig
+model.new.C1 <- lm (Species.Co~ SAI_cb + LandsatCC_ + PREP_BU_ + PREP_ME_ +  PAS_total + PH2   + ELEVATION + origin.age  + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt,
+               data=cutblock_plots_openings_Huck_ALL_df)
+
+Anova(model.new.C1, type=3)
+summary(model.new.C1)
+AIC(model.new.C1) #2446.3
+summary(model.new.C1)$r.squared #0.42
+summary(model.new.C1)$adj.r.squared #0.38
+```
+
+Partial residuals:SAI_cb + LandsatCC_ + PREP_BU_ + PREP_ME_ +  PAS_total + PH2   + ELEVATION + origin.age  + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt
+
+```{r}
+visreg(model.new.C1, "SAI_cb")
+visreg(model.new.C1, "LandsatCC_")
+
+visreg(model.new.C1, "PREP_BU_")
+visreg(model.new.C1, "PREP_ME_")
+
+visreg(model.new.C1, "PAS_total")
+visreg(model.new.C1, "PH2")
+visreg(model.new.C1, "Tave_wt")
+
+visreg(model.new.C1, "ELEVATION")
+visreg(model.new.C1, "origin.age")
+
+visreg(model.new.C1, "VFSAND")
+visreg(model.new.C1, "DN1_SILSYS_GP")
+visreg(model.new.C1, "G_BGC_ZONE")
+
+visreg(model.new.C1, "START_SEASON")
+```
+
+
+
+
+
+
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = TSAND, y = Species.Co)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+        x = "% Sand",
+        y = "Species Cover")
+
+
+##or berry presence/absence, check which months surveys were done and assess if there is seasonality in the data that needs to be partitioned.
+
+
+#For berry abundance models, plant abundance should be included as a fixed effect (McLelland et al. 2021).
+
+
+
+
+#Other layers with attributes we may want:
+https://catalogue.data.gov.bc.ca/dataset/results-activity-treatment-units#edc-pow
+https://catalogue.data.gov.bc.ca/dataset/results-forest-cover-silviculture#edc-pow
+
+
+
+
+#Additional code:
+
+Compare to if do intersect in R - do we lose as much data or less?
+
+```{r}
+#Load locations within cutblocks
+cutblock_plots_gps<- st_read ( dsn = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Plots_in_cutblocks_FINAL.shp", stringsAsFactors = T)
+
+#Load openings data
+openings_data<- st_read (dsn = "D:\\Hucklberry\\RSLT_OPENING_SVW\\RSLT_OPNGS_polygon.shp", stringsAsFactors = T)
+
+#Combine using "over" from rgeos package - doesn't work because we have sf instead of sp objects. Not sure the proper call so will try again later.
+#cutblocks_with_openings<-over(cutblock_plots_gps, openings_data)
+
+
+```
+
+
+
+
+
+
+
+Assess for fruit Presence/Absence.
+Note: this is hierarchical, so when we look at fruit P/A, it should be subsetted and only be where plants occurred.
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df$Fruit.Pres2 <- as.factor (cutblock_plots_openings_Huck_ALL_df$Fruit.Pres)
+cutblock_plots_openings_Huck_ALL_df$Fruit.Pres2
+cutblock_plots_openings_Huck_ALL_df3 <-  subset(cutblock_plots_openings_Huck_ALL_df, cutblock_plots_openings_Huck_ALL_df$Fruit.Pres2!="NA")
+cutblock_plots_openings_Huck_ALL_df3$Fruit.Pres2
+
+ggplot (cutblock_plots_openings_Huck_ALL_df3, aes (x = Fruit.Pres, fill = origin)) + 
+geom_bar (position = "fill") +
+  scale_fill_discrete (name = "Stand Origin", labels = c("Burned and Harvested", "Harvested", "Burned")) #Unequal sample sizes, but areas burned and harvested might have more fruit.
+```
+
+Assess for fruit abundance by origin.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = origin, y = Fruit.Abund)) +
+  geom_boxplot () +
+  labs (x = "Unknown Origin (0), Harvest Origin (1) and Fire Origin (2) Stands",
+        y = "Huckleberry Fruit Abundance")
+
+#Reverse pattern as last: highest in burned and harvested in same year, then harvest, then burned.
+```
+
+
+Assess for fruit Presence/Absence.
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df$Fruit.Pres2 <- as.factor (cutblock_plots_openings_Huck_ALL_df$Fruit.Pres)
+cutblock_plots_openings_Huck_ALL_df$PREP_BU_ <- as.factor (cutblock_plots_openings_Huck_ALL_df$PREP_BU)
+cutblock_plots_openings_Huck_ALL_df3 <-  subset(cutblock_plots_openings_Huck_ALL_df, cutblock_plots_openings_Huck_ALL_df$Fruit.Pres2!="NA")
+cutblock_plots_openings_Huck_ALL_df3$Fruit.Pres2
+
+ggplot (cutblock_plots_openings_Huck_ALL_df3, aes (x = Fruit.Pres, fill = PREP_BU_)) + 
+geom_bar (position = "fill") +
+  scale_fill_discrete (name = "Stand Origin", labels = c("Not Burned", "Burned")) 
+#No differences
+```
+
+
+Assess for fruit abundance by origin.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = PREP_BU_, y = Fruit.Abund)) +
+  geom_boxplot () +
+  labs (x = "Not Burned (0), Burned(1)",
+        y = "Huckleberry Fruit Abundance")
+
+#Not a huge difference
+```
+
+Assess for fruit abundance by origin.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = PREP_ME_, y = Fruit.Abund)) +
+  geom_boxplot () +
+  labs (x = "No Mechanical TR (0), Mechanical TR (1)",
+        y = "Huckleberry Fruit Abundance")
+
+#Lower with ME
+```
+
+
+Assess for fruit Presence/Absence.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df3, aes (x = Fruit.Pres, fill = DN1_SILSYS_GP)) + 
+geom_bar (position = "fill") +
+  scale_fill_discrete (name = "Clearcut Technique")
+#Fruit presence most common in clearcuts.
+```
+
+
+Assess for fruit abundance by origin.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df, aes (x = DN1_SILSYS_GP, y = Fruit.Abund)) +
+  geom_boxplot () +
+  labs (x = "Clearcut Technique",
+        y = "Huckleberry Fruit Abundance")
+
+#Appears highest in other site clearcut types, then clearcut > clearcut with reserves
+```

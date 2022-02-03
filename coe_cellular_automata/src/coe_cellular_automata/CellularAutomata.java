@@ -76,7 +76,7 @@ public class CellularAutomata {
 		int counterLocalMaxState = 0;
 		int currentMaxState;
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
-		harvestMin = 2100000*landscape.pl;
+		harvestMin = 2000000*landscape.pl;
 		//harvestMin = 20000000;
 		gsMin = 69000000;
 		setLCCHarvestDelay(); //In cases no-harvesting decision does not meet the constraint -- remove harvesting during these periods and as a penalty -- thus ahciving the paritial amount
@@ -311,7 +311,7 @@ public class CellularAutomata {
 			isf = sumArray(harvVol, thlb)/maxCutLocal;
 	
 			age = forestTypeList.get(cellsList.get(i).foresttype).stateTypes.get(s).get("age");
-		    stateValue = 0.05*isf + 0.90*getPropNHRank(harvVol, propN[0], maxPropNH)+ 0.05*getPropNAgeRank(age, propN[1], maxPropNAge);
+		    stateValue = 0.05*isf + 0.70*getPropNHRank(harvVol, propN[0], maxPropNH)+ 0.2*getPropNAgeRank(age, propN[1], maxPropNAge);
 				
 			if(maxValue < stateValue) {
 				maxValue = stateValue;
@@ -415,13 +415,13 @@ public class CellularAutomata {
 			
 			isf = sumArray(harvVol, thlb)/maxCutLocal;
 			age = ft.stateTypes.get(s).get("age");
-		    U = 0.05*isf + 0.90*getPropNHRank(harvVol, propN[0],maxPropNH)+ 0.05*getPropNAgeRank(age, propN[1],maxPropNAge);
+		    U = 0.1*isf + 0.70*getPropNHRank(harvVol, propN[0],maxPropNH)+ 0.2*getPropNAgeRank(age, propN[1],maxPropNAge);
 				
 			hfc = getHarvestFlowConstraint(harvVol, thlb);
 			gsc = getGrowingStockConstraint(ft.stateTypes.get(s).get("gsVol"), thlb);
 			lc  = getLandCoverConstraint(ft.stateTypes.get(s), lcList);
 					
-			P = 0.2*hfc + 0.0*gsc + 0.8*lc; 
+			P = 0.5*hfc + 0.0*gsc + 0.50*lc; 
 			stateValue = landscape.weight*U + globalWeight*P;
 				
 			if(maxValue < stateValue) { 
