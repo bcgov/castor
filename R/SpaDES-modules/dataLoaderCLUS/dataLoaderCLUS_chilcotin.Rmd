@@ -97,7 +97,8 @@ parameters <-  list(
                                            #"rast.zone_barkerville_groundhog_zones_20210303",
                                            #"rast.zone_smc_zones_20210315",
                                            
-                                           "rast.zone_chilcotin_scenario2"
+                                           "rast.zone_chilcotin_scenario2",
+                                           "rast.zone_chilcotin_proposed_wha"
                                             ),
                         
                          nameZoneTable="zone.constraints", 
