@@ -601,14 +601,14 @@ vol.by.area <- ggplot (data.summ, aes (x = timeperiod, y = volume, color = area_
                               labs (title = "Annual Volume Harvested by Supply Block for Each Scenario", 
                                     x = "Future Year", 
                                     y = "Volume Harvested (m3)") + 
-                              scale_color_discrete (name = "Scenario", 
-                                                    labels = c("BAU", "1a", "1b", 
-                                                               "1c", 
-                                                               "2a", "2b", "2c")) +
-                              scale_linetype_discrete (name = "Scenario", 
-                                                       labels = c("BAU", "1a", "1b", 
-                                                                  "1c", 
-                                                                  "2a", "2b", "2c")) +
+                              # scale_color_discrete (name = "Scenario", 
+                              #                       labels = c("BAU", "1a", "1b", 
+                              #                                  "1c", 
+                              #                                  "2a", "2b", "2c")) +
+                              # scale_linetype_discrete (name = "Scenario", 
+                              #                          labels = c("BAU", "1a", "1b", 
+                              #                                     "1c", 
+                              #                                     "2a", "2b", "2c")) +
                               theme (legend.position = c (0.15, 0.15),
                                      legend.title = element_text(size = 10),
                                      legend.text = element_text( size = 8)) +
