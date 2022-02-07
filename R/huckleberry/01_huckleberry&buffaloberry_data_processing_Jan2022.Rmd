@@ -553,7 +553,6 @@ Huck_Laura_Berries_3005<-cbind(Huck_Laura_Berries_3005, SOIL_huck1_LauraBerries)
 head(Huck_Laura_Berries_3005)
 ```
 
-
 We also have data on plots that experienced wildfire, but need to append it. Will be easiest to append after make into dataframes. So append soils and DEM data bove prior to this step.
 
 Make into data frame.
@@ -629,8 +628,8 @@ huck_Laura_plantcover_climate$ID1<-paste(huck_Laura_plantcover_climate$Site_ID, 
 
 Huck_Laura_Plant_df2$ID1<-paste(Huck_Laura_Plant_df2$Site_ID, Huck_Laura_Plant_df2$Year)
 
-cutblock_plots_openings_Huck_Laura_Plant<-left_join(Huck_Laura_Plant_df2, huck_Laura_plantcover_climate, by="ID1")
-head(cutblock_plots_openings_Huck_Laura_Plant)
+cutblock_plots_openings_Laura_Huck_Plant<-left_join(Huck_Laura_Plant_df2, huck_Laura_plantcover_climate, by="ID1")
+head(cutblock_plots_openings_Laura_Huck_Plant)
 
 ```
 
@@ -886,10 +885,11 @@ head(huck_Laura_2021_1)
 huck_Laura_2021_2<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_2021_Year_2019SY.csv")
 head(huck_Laura_2021_2)
 
-huck_Laura_2021<-cbind(huck_Laura_2021_0, huck_Laura_2021_1, huck_Laura_2021_2)
+#huck_Laura_2021<-cbind(huck_Laura_2021_0, huck_Laura_2021_1, huck_Laura_2021_2)
+huck_Laura_2021<-cbind(huck_Laura_2021_1, huck_Laura_2021_2)
 head(huck_Laura_2021)
 names(huck_Laura_2021)
-huck_Laura_2021<-huck_Laura_2021[-(181:185)]
+#huck_Laura_2021<-huck_Laura_2021[-(181:185)]
 huck_Laura_2021<-huck_Laura_2021[-(91:95)]
 huck_Laura_2021<-huck_Laura_2021[-5] #Remove elevation since unknown here
 
@@ -900,22 +900,31 @@ head(huck_Laura_2021)
 
 Combine the data sets together. Note: within cutblocks, we only end up with data from 2019-2021, but the data from the 2011-2021 plots inclusive are now available.
 
+For now, make same columns.
 ```{r}
-Huck_Laura_climate_data<-rbind(huck_Laura_2021, huck_Laura_2020, huck_Laura_2019, huck_Laura_2018, huck_Laura_2017, huck_Laura_2016, huck_Laura_2015, huck_Laura_2014, huck_Laura_2013, huck_Laura_2012, huck_Laura_2011)
+names(huck_Laura_2021)
+names(huck_Laura_2020)
+```
+
+
+```{r}
+#Huck_Laura_climate_data<-rbind(huck_Laura_2021, huck_Laura_2020, huck_Laura_2019, huck_Laura_2018, huck_Laura_2017, huck_Laura_2016, huck_Laura_2015, huck_Laura_2014, huck_Laura_2013, huck_Laura_2012, huck_Laura_2011)
+
+Huck_Laura_climate_data<-rbind(huck_Laura_2020, huck_Laura_2019, huck_Laura_2018, huck_Laura_2017, huck_Laura_2016, huck_Laura_2015, huck_Laura_2014, huck_Laura_2013, huck_Laura_2012, huck_Laura_2011) #2021 excluded for now until find solution
 
 head(Huck_Laura_climate_data)
 names(Huck_Laura_climate_data)
 
-Huck_Laura_climate_data$ID1<-paste(Huck_Laura_climate_data$Site_ID, Huck_Laura_climate_data$Year)
+Huck_Laura_climate_data$ID1<-paste(Huck_Laura_climate_data$Site_ID, Huck_Laura_climate_data$Year) #312 observations
 
 #Below may need updating once file brought in to proper names
-Huck_Laura_Berries_df2$ID1<-paste(Huck_Laura_Berries_df2$Site_ID, Huck_Laura_Berries_df2$Year)
+Huck_Laura_Berries_df2$ID1<-paste(Huck_Laura_Berries_df2$Site_ID, Huck_Laura_Berries_df2$Year) #42 observations
   
 cutblock_plots_openings_Laura_Huck_Berries<-left_join(Huck_Laura_Berries_df2, Huck_Laura_climate_data, by="ID1")
-head(cutblock_plots_openings_Laura_Huck)
+head(cutblock_plots_openings_Laura_Huck) #192 observations
 
 
-cutblock_plots_openings_Laura_Huck_Berries<- cutblock_plots_openings_Laura_Huck_Berries %>% distinct() #
+cutblock_plots_openings_Laura_Huck_Berries<- cutblock_plots_openings_Laura_Huck_Berries %>% distinct() #42 observations
 
 head(cutblock_plots_openings_Laura_Huck_Berries)
 
@@ -937,6 +946,14 @@ cutblock_plots_openings_Laura_Huck_Berries$heatload <- heatload (aspect = cutblo
 cutblock_plots_openings_Laura_Huck_Berries$heatload 
 hist(cutblock_plots_openings_Laura_Huck_Berries$heatload)
 ```
+
+Save files.
+```{r}
+write.csv(cutblock_plots_openings_Laura_Huck_Plant, file = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Laura_Huck_Plant.csv")
+
+write.csv(cutblock_plots_openings_Laura_Huck_Berries, file = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Laura_Huck_Berries.csv")
+```
+
 
 
 
@@ -1205,6 +1222,7 @@ head(cutblock_plots_openings_BECHuck_df_)
 
 
 
+################# Now that we have the data in, combine files as appropriate #################
 
 #Combine appropriate files
 

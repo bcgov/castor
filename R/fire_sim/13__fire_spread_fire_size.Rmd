@@ -57,6 +57,9 @@ One important factor for modelling spread is the size of the fire. Here, we will
 
 Otherwise, methodology will be similar as per previous steps, except this time we will not be able to use a logistic regression given that we are predicting fire size according to the variables presented.
 
+#Considerations
+Consider quadratic terms for continuous variables and including the untransformed data and the quadratic term (X + X^2) in the model.
+
 #Continue with Data from end of Escape Models
 Escape_data_lightning, Escape_data_lightning_t, Escape_data_lightning_t
 Escape_data_person, Escape_data_person_t, Escape_data_person_t

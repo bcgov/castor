@@ -425,5 +425,56 @@ Stand Yields) and VDYP (Variable Density Yield Prediction system) to estimate th
 In this paper, the authors investigated the influences of ambient temperature on grizzly bear behaviour, and associated conditions with cutblocks vs. mature forest. They found that "cutblocks aged 0–20 years provided an abundance of forage but were on average 6 °C warmer than mature conifer stands and 21- to 40-year-old cutblocks. When ambient temperatures increased, the relative change (odds ratio) in the probability of selection for 0- to 20-year-old cutblocks decreased during the hottest part of the day and increased during cooler periods, especially for males. Concurrently, the probability of selection for 21- to 40-year-old cutblocks increased on warmer days."
 
 ##Pigeon, K.E., Stenhouse, G., and Cote, S.D. 2016: Drivers of hibernation: linking food and weather to denning behaviour of grizzyl bears. Behavioural Ecology and Sociobiology, 70: 1745-1754.
-These authors assessed timing if grizzly bear den entry and exit according to sex, reproductive status, berry abundance and weather variables. They found that den entry was linked to food availability (39%), with delayed entry if there were abundant berries in the fall, and den exit was dictated by weather, with warmer springs (26%) and less snow (winter precip; 21%) resulting in earlier exit. Den exit dates also were explained by sex (22%) and reproductive status (14%). This combination may result in shorter denning periods if warmer temperatures result in longer growing seasons. The spring temperature is likely linked to temperature within den that stimulates early exit. "Climate-induced changes in the hibernation behaviour of bears may further increase human-bear interactions because bears and humans could be simultaneously active on the landscape for longer periods associated with unseasonably warm springs or autumns expected with
-future climate conditions."
+These authors assessed timing if grizzly bear den entry and exit according to sex, reproductive status, berry abundance and weather variables. They found that den entry was linked to food availability (39%), with delayed entry if there were abundant berries in the fall, and den exit was dictated by weather, with warmer springs (26%) and less snow (winter precip; 21%) resulting in earlier exit. Den exit dates also were explained by sex (22%) and reproductive status (14%). This combination may result in shorter denning periods if warmer temperatures result in longer growing seasons. The spring temperature is likely linked to temperature within den that stimulates early exit. "Climate-induced changes in the hibernation behaviour of bears may further increase human-bear interactions because bears and humans could be simultaneously active on the landscape for longer periods associated with unseasonably warm springs or autumns expected with future climate conditions."
+
+##Chandeler, J.R., Haeussler, S., Hamilton, E.H., Feller, M., Bradfield, G., and Simard, S.w. 2017. Twenty years of ecosystem response after clearcutting and slashburning in conifer forests of central British Columbia, Canada. PLOS One, 12(2): e0172667.doi:10.1371/journal.pone.0172667
+These authors recorded vascular plant cover repeatedly after treatment (clearcut logging, prescribed burning and reforestation) between 1981 and 2008 in 16 permanent research installations in three biogeoclimatic zones: Engelmann Spruce-Subalpine Fir, Interior Cedar-Hemlock and Sub-Boreal Spruce. They grouped plant species from 181 recorded species into functional groups (plant functional types) to evaluate plant community response to disturbance. 
+
+Knowledge gap: "prescribed burning (specifically slashburning) has been widely used after timber harvest as a means of reducing fire hazard, costs of site preparation, and competing vegetation [29±31], and there has been recent impetus to expand this practice [32]. While ecosystem models have been developed to predict the effect of harvesting and/or fire on long-term tree biomass production [33] and stand development
+[34, 35], few studies have examined long-term response of understory plant communities after clearcutting and slashburning in BC [8, 9]."
+
+Methodology: All sites clearcut 1981-1987, with logging performed in the winter to help protect understory and soil. Within 3 years if logging, all sites were slash-burned in the fall, and then planted with P. glauca x engelmannii, P. contorta var. latifolia and/or A. lasiocarpa seedlings. Recorded percent cover and height of each vascular plant. Vegetation was re-sampled, generally 1, 2, 3, 5, 10, and 20 years following slashburning for most sites.
+
+Determing Plant Functional Types: Plant attributes used in the cluster analysis included physical properties (plant height, plant duration, leaf duration, Nfixation), seed properties (seed quantity, seed dispersal, seed longevity, seed size), root properties (depth of rooting, vigour of sprouting, rate of lateral spread, dominant mycorrhizal guild).
+
+Findings: Twenty years post-treatment, species diversity increased in all zones and plant abundance was greatest in the Interior Cedar-Hemlock. Cover of understory plant functional types associated with mature
+conifer forests increased in all zones, (I personally need clarification on this statement). Overall, loss of compositional or functional diversity following harvest and site remediation was not detected, suggesting that montane and subalpine forests in British Columbia are resilient to this treatment. For all zones combined, richness increased from 79 species in year 1 to 132 species 20 years after clearcutting and slashburning. Five years post-burn, all three zones developed into open meadows with fireweed (Epilobium angustifolium) as the dominant species with a mixture of V. sitchensis in the ESSF; R. parviflorus and G. dryopteris in the ICH; and R. parviflorus and red raspberry (Rubus idaeus) in the SBS. The early dominance of E. angustifolium after clearcut and/or fire is consistent with previous studies [10, 13, 38±40, 72]; however, in all three zones, E. angustifolium began to decline after
+year 5 and was no longer the dominant species (mean % cover < 20%) by year 20.
+
+"The vegetation community in the open young forests in the ESSF seemed to resemble that supported prior to burning [46] with V. membranaceumÐM. ferrugineaÐV. sitchensis dominated understory (Fig 4A). Similarly, in the ICH and the SBS, forbs with limited lateral spread (C. canadensis and L. borealis), rapid lateral spread (G. dryopteris), and budbank and seedbank
+(R. parviflorus) regeneration strategies [73] appeared to return [47, 49±52]. However, even by year 20, residual V. membranaceum (in the ICH and SBS) and two forbs with limited lateral spread (R. pedatus in the ICH and C. uniflora in the SBS) did not reestablish as significant components
+of the understory community."
+
+May wish to check sources pertaining to this statement if look at climate over time on huckleberry: "There is considerable interest in assessing the resilience of forests to management strategies and natural disturbance in the face of changing climates and evolving management practices [1-3]."
+
+##Duguid, M.C.D., and Ashton, M.S., 2013. A meta-analysis of the effect of forest management for timber and understory plant species diversity in temperate forests. Forest Ecology and Management 303: 81-90.
+
+
+
+
+############### February 3 Thoughts ##################
+ ##From Tyler:
+ Goal: Define (fit a quantitative model if possible) the relationship between berry cover/abundance and harvested forest stand characteristics (and silvicultural practices) that can be used to assess the influence of forest harvest on berry production at large scales (e.g., timber supply area).
+
+Objectives:
+-	Develop model of the relationship between forest stand characteristics (e.g., canopy closure) and berry cover/abundance in cutblocks
+-	Develop model of the relationship between silviculture practices (e.g., planting, burn, mechanical) and berry cover/abundance in cutblocks
+Other Thoughts:
+-	For timber supply modeling, I think we still need a spatial map/model of berry distribution
+o	For landscape simulation purposes, to tell us where berries are likely to occur and respond to forest harvest
+o	Also useful for understanding potential change in berry distribution under climate change, and how that might interact with forestry
+o	Can we use Clayton’s model?
+	Not ground validated
+	Uses canopy closure, so could be circular; remove these stand level effects? 
+o	If not, could use something coarser like BEC zone, subzone?
+-	Canopy closure seems to be a key variable 
+o	estimated from landcover data? Is this updated annually and aligned with timing of berry plots? Is there an estimate from plot data? 
+-	Data on silviculture incomplete? Is there enough to look at planting densities, planted/not planted?
+-	Could use TASS model to ‘fill in the blanks’ on stand characteristic data
+o	If we know silviculture inputs to cutblocks (e.g., planting densities), we can simulate the stand and estimate stand characteristics, e.g., canopy closure, light levels, at the time when the berry plot was taken; use these estimates to fit the model
+o	Note: limited to single spp., pine or spruce stands
+-	Developing a wildfire model may be a secondary goal, if time allows; aligns with fire modeling work
+
+
+## See subsequent correspondance and document for work plans from Garth Mowat and other team members.
+
