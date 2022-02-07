@@ -169,7 +169,12 @@ Init <- function(sim) {
     rm(salvage_vol)
     gc()
   }
-  
+  sim$harvestPixelList<- data.table (pixelid = integer(), # create harvest pixel list for export to volume-by-area report
+                                     blockid = integer(), compartid = character(), timeperiod = numeric(),
+                                     yieldid = integer(), height = numeric(), elv = integer(),
+                                     age_h = numeric(), thlb = numeric(), vol_h = numeric(),
+                                     salvage_vol = numeric(), part1 = integer(), part2 = integer(),
+                                     seqid = integer())
   return(invisible(sim))
 }
 
@@ -418,12 +423,12 @@ setConstraints<- function(sim) {
   return(invisible(sim))
 }
 
-getHarvestQueue<- function(sim) {
+getHarvestQueue <- function(sim) {
   #Right now its looping by compartment -- So far it will be serializable at the aoi level then
   for(compart in sim$compartment_list){
    # harvestTarget<-sim$harvestFlow[compartment == compart,]$flow[time(sim)]
-    harvestTarget<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$flow
-    harvestType<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$partition_type
+     harvestTarget<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$flow
+     harvestType<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$partition_type
   
     if(length(harvestTarget)>0 ){# Determine if there is a demand for timber volume 
       message(paste0(compart, " harvest Target: ", harvestTarget, " "))
@@ -506,9 +511,10 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
             }
         }
         
-        queue<-queue[pixelid %in% unique(unlist(h_pixels)),]
-        sim$harvestPixelList<-queue
-        
+        queue <- queue[pixelid %in% unique(unlist(h_pixels)),]
+        queue [, timeperiod := as.integer(time(sim)*sim$updateInterval)]
+        sim$harvestPixelList <-  rbindlist(list(sim$harvestPixelList, queue), use.names = TRUE ) 
+
         #Update the pixels table
         if(length(harvestType) > 1){
           for(i in 1:length(harvestType)){

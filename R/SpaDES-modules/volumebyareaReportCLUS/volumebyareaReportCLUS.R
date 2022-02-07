@@ -71,12 +71,11 @@ doEvent.volumebyareaReportCLUS = function(sim, eventTime, eventType) {
 
 Init <- function(sim) {
   sim$volumebyareaReport <- data.table (scenario = character(), 
-                                        compartment = character(), 
                                         timeperiod = integer(),
                                         volume_harvest = numeric(),
                                         area_harvest = numeric(),
                                         area_name = character())
-  sim$vol <- data.table (dbGetQuery(sim$clusdb, "SELECT pixelid, compartid AS compartment FROM pixels ORDER BY pixelid"))
+  sim$vol <- data.table (dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels ORDER BY pixelid"))
   
   #Get the area of interest
   if(P(sim, "volumebyareaReportCLUS", "AreaofInterestRaster") == '99999') {
@@ -99,8 +98,10 @@ Init <- function(sim) {
       }
     setorder(aoi_bounds, pixelid) #sort the bounds
     sim$vol [, area_name := aoi_bounds$attribute]
+    test.vol <<- sim$vol
     }
-  }
+    }
+  
   return(invisible(sim))
 }
 
@@ -108,11 +109,10 @@ Init <- function(sim) {
 # assign volume to area of interest
 volAnalysis <- function(sim) {
   tempVolumeReport <- as.data.table (merge (sim$harvestPixelList, sim$vol, by = 'pixelid', all.x = TRUE))
-  tempVolumeReport <- tempVolumeReport [, .(volume_harvest = sum (vol_h), area_harvest = .N), by = c ("compartment", "area_name")]
-  
+  tempVolumeReport <- tempVolumeReport [, .(volume_harvest = sum (vol_h), area_harvest = .N), by = c ("timeperiod", "area_name")]
   tempVolumeReport [, scenario := sim$scenario$name]
-  tempVolumeReport [, timeperiod := as.integer(time(sim)*sim$updateInterval)]
-  sim$volumebyareaReport <- rbindlist(list(sim$volumebyareaReport, tempVolumeReport), use.names = TRUE ) 
+  #tempVolumeReport [, timeperiod := as.integer(time(sim)*sim$updateInterval)]
+  sim$volumebyareaReport <- tempVolumeReport 
   return(invisible(sim))
 }
 
