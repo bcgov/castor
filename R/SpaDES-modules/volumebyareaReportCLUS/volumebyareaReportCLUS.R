@@ -109,9 +109,9 @@ Init <- function(sim) {
 # assign volume to area of interest
 volAnalysis <- function(sim) {
   tempVolumeReport <- as.data.table (merge (sim$harvestPixelList, sim$vol, by = 'pixelid', all.x = TRUE))
-  tempVolumeReport <- tempVolumeReport [, .(volume_harvest = sum (vol_h), area_harvest = .N), by = c ("timeperiod", "area_name")]
+  tempVolumeReport <- tempVolumeReport [, .(volume_harvest = sum (vol_h), area_harvest = .N), by = "area_name"]
   tempVolumeReport [, scenario := sim$scenario$name]
-  #tempVolumeReport [, timeperiod := as.integer(time(sim)*sim$updateInterval)]
+  tempVolumeReport [, timeperiod := as.integer(time(sim)*sim$updateInterval)]
   sim$volumebyareaReport <- tempVolumeReport 
   return(invisible(sim))
 }
