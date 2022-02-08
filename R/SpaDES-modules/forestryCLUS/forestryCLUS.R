@@ -418,12 +418,16 @@ setConstraints<- function(sim) {
   return(invisible(sim))
 }
 
-getHarvestQueue<- function(sim) {
+getHarvestQueue <- function(sim) {
+  #Objects that need appending 
+  sim$harvestPixelList <- data.table()
+  land_pixels <- data.table()
+  
   #Right now its looping by compartment -- So far it will be serializable at the aoi level then
   for(compart in sim$compartment_list){
    # harvestTarget<-sim$harvestFlow[compartment == compart,]$flow[time(sim)]
-    harvestTarget<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$flow
-    harvestType<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$partition_type
+     harvestTarget<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$flow
+     harvestType<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$partition_type
   
     if(length(harvestTarget)>0 ){# Determine if there is a demand for timber volume 
       message(paste0(compart, " harvest Target: ", harvestTarget, " "))
@@ -506,8 +510,9 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
             }
         }
         
-        queue<-queue[pixelid %in% unique(unlist(h_pixels)),]
-        sim$harvestPixelList<-queue
+        queue <- queue[pixelid %in% unique(unlist(h_pixels)),]
+        queue [, timeperiod := as.integer(time(sim)*sim$updateInterval)]
+        sim$harvestPixelList <-  rbindlist(list(sim$harvestPixelList, queue), use.names = TRUE ) 
         
         #Update the pixels table
         if(length(harvestType) > 1){
@@ -589,19 +594,14 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
         #Save the harvesting raster
         sim$harvestBlocks[queue$pixelid]<-time(sim)*sim$updateInterval
         
-        #test_harvestReport<<-sim$harvestReport
-        #test_ras<<-sim$harvestBlocks
-        
         #Create landings. pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
-        #land_pixels<-queue[, .SD[which.max(vol_h)], by=blockid]$pixelid
-        land_pixels<-data.table(dbGetQuery(sim$clusdb, paste0("select landing from blocks where blockid in (",
-                                paste(unique(queue$blockid), collapse = ", "), ");")))
+        land_pixels<-rbindlist(list(land_pixels, data.table(dbGetQuery(sim$clusdb, paste0("select landing from blocks where blockid in (",
+                                paste(unique(queue$blockid), collapse = ", "), ");")))))
         
-        land_coord<-sim$pts[pixelid %in% land_pixels$landing, ]
-        setnames(land_coord,c("x", "y"), c("X", "Y"))
+        
 
         #clean up
-        rm(land_pixels, queue, temp_harvest_report, temp.harvestBlockList)
+        rm(queue, temp_harvest_report, temp.harvestBlockList)
       }
     } else{
       message(paste0("No volume demanded in ", compart))
@@ -610,14 +610,13 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
   }
  
   #convert to class SpatialPoints needed for roadsCLUS
-  if(!is.null(land_coord)){
-    sim$landings <- SpatialPoints(land_coord[,c("X", "Y")],crs(sim$ras))
+  if(!is.null(land_pixels)){
+    sim$landings <- SpatialPoints(sim$pts[pixelid %in% land_pixels$landing, c("x", "y")],crs(sim$ras))
   }else{
     message("no landings")
     sim$landings <- NULL
   }
   
-  #out_test<<-sim$harvestReport
   #stop()
   return(invisible(sim))
 }
