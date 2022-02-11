@@ -69,9 +69,9 @@ source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/chilcotin_study_area_clusdb.sqlite")) # connect to clusdb -- set the locations of the sqlite
 
 #STEP 2: View the constraints available to a zone
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_wha_2021'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones rast.zone_cond_noharvest_barkerville_crithab_or_herd  rast.zone_chilcotin_proposed_wha  rast.zone_wha_2021
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_wha_2021'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones rast.zone_cond_noharvest_barkerville_crithab_or_herd  rast.zone_chilcotin_proposed_wha  rast.zone_wha_2021  rast.zone_chilcotin_proposed_wha
 
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab'")  # 
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_rainbows_crithab'")  # 
 #  rast.zone_cond_bc_itcha_ilgachuz_crithab",  "rast.zone_cond_bc_charlotte_alplands_crithab", "rast.zone_cond_bc_rainbows_crithab"     
 
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_chilcotin_scenario2'")
@@ -103,15 +103,15 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zo
 # Need to create some new rows for multiple age constraints
 dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
 VALUES 
-(1465,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',121,'ge',30,NULL,NULL,354303,0,250),
-(1466,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',121,'ge',30,NULL,NULL,742496,0,250),
-(1467,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',121,'ge',30,NULL,NULL,790764,0,250),
-(1468,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',101,'ge',37,NULL,NULL,354303,0,250),
-(1469,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',101,'ge',37,NULL,NULL,742496,0,250),
-(1470,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',101,'ge',37,NULL,NULL,790764,0,250),
-(1471,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',81,'ge',45,NULL,NULL,354303,0,250),
-(1472,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',81,'ge',45,NULL,NULL,742496,0,250),
-(1473,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',81,'ge',45,NULL,NULL,790764,0,250);")
+(1467,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',121,'ge',30,NULL,NULL,354303,0,250),
+(1468,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',121,'ge',30,NULL,NULL,742496,0,250),
+(1469,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',121,'ge',30,NULL,NULL,790764,0,250),
+(1470,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',101,'ge',37,NULL,NULL,354303,0,250),
+(1471,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',101,'ge',37,NULL,NULL,742496,0,250),
+(1472,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',101,'ge',37,NULL,NULL,790764,0,250),
+(1473,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',81,'ge',45,NULL,NULL,354303,0,250),
+(1474,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',81,'ge',45,NULL,NULL,742496,0,250),
+(1475,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',81,'ge',45,NULL,NULL,790764,0,250);")
 
 ## Rainbows ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
@@ -120,15 +120,15 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 141 where reference_zo
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
 dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
 VALUES 
-(1474,0,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',121,'ge',30,NULL,NULL,41182,0,250),
-(1475,3,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',121,'ge',30,NULL,NULL,45116,0,250),
-(1476,4,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',121,'ge',30,NULL,NULL,10929,0,250),
-(1477,0,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',101,'ge',37,NULL,NULL,41182,0,250),
-(1478,3,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',101,'ge',37,NULL,NULL,45116,0,250),
-(1479,4,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',101,'ge',37,NULL,NULL,10929,0,250),
-(1480,0,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',81,'ge',45,NULL,NULL,41182,0,250),
-(1481,3,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',81,'ge',45,NULL,NULL,45116,0,250),
-(1482,4,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',81,'ge',45,NULL,NULL,10929,0,250);")
+(1476,0,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',121,'ge',30,NULL,NULL,41182,0,250),
+(1477,3,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',121,'ge',30,NULL,NULL,45116,0,250),
+(1478,4,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',121,'ge',30,NULL,NULL,10929,0,250),
+(1479,0,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',101,'ge',37,NULL,NULL,41182,0,250),
+(1480,3,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',101,'ge',37,NULL,NULL,45116,0,250),
+(1481,4,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',101,'ge',37,NULL,NULL,10929,0,250),
+(1482,0,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',81,'ge',45,NULL,NULL,41182,0,250),
+(1483,3,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',81,'ge',45,NULL,NULL,45116,0,250),
+(1484,4,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',81,'ge',45,NULL,NULL,10929,0,250);")
 
 ## Charlotte ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
@@ -156,15 +156,15 @@ VALUES
 ## Itcha ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND zoneid = 4")
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 226) OR (id = 227)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1465) OR (id = 1466)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1468) OR (id = 1469)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1471) OR (id = 1472)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1467) OR (id = 1468)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1470) OR (id = 1471)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1473) OR (id = 1474)")
 ## Rainbows ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND zoneid = 4")
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 229) OR (id = 230)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 1474) OR (id = 1475)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 1477) OR (id = 1478)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 1480) OR (id = 1481)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 1476) OR (id = 1477)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 1479) OR (id = 1480)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 1482) OR (id = 1483)")
 ## Charlotte ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND zoneid = 3")
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (id = 223) OR (id = 224)")
@@ -179,14 +179,14 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zo
 
 ## Itcha ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND zoneid = 3")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1465)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1468)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1471)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1467)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1470)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1473)")
 ## Rainbows ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND zoneid = 3")
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1474")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1477")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1480")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1476")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1479")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1482")
 ## Charlotte ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND zoneid = 2")
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND id = 3528")
@@ -198,7 +198,7 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zo
 ```{r, Scenario 2}
 
 #################
-### Scenario 2 forest age constraints applied to all critical habitat ##
+### OLD >>> Scenario 2 forest age constraints applied to all critical habitat ##
 #################
 # Seral stage >80 = 45%; Seral stage >100 = 37%; Seral stage >120 = 30%; Seral stage >140 = 25%;
 # Seral stage >40 = 85%
@@ -383,6 +383,53 @@ VALUES
 (3536,3,'rast.zone_cond_bc_charlotte_alplands_crithab','zone16',0,'age',81,'ge',45,NULL,NULL,79592,0,250);")
 dbDisconnect(clusdb)
 
+#################
+### Scenario 3b forest age constraints applied to HEWSR, LEWR and LESR  to critical habitat ##
+#################
+# Seral stage >80 = 37%; Seral stage >100 = 30%; Seral stage >120 = 25%
+
+## Itcha ##
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND zoneid = 4")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 226) OR (id = 227)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1467) OR (id = 1468)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1470) OR (id = 1471)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1473) OR (id = 1474)")
+## Rainbows ##
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND zoneid = 4")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 229) OR (id = 230)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 1476) OR (id = 1477)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 1479) OR (id = 1480)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (id = 1482) OR (id = 1483)")
+## Charlotte ##
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND zoneid = 3")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (id = 223) OR (id = 224)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (id = 3528) OR (id = 3529)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (id = 3531) OR (id = 3532)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (id = 3534) OR (id = 3535)")
+
+#################
+### Scenario 1c forest age constraints applied to HEWSR and LESR critical habitat ##
+#################
+# Seral stage >80 = 30%; Seral stage >100 = 25%
+
+## Itcha ##
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND zoneid = 3")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1467)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1470)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (id = 1473)")
+## Rainbows ##
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND zoneid = 3")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1476")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1479")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1482")
+## Charlotte ##
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND zoneid = 2")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND id = 3528")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND id = 3531")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND id = 3534")
+
+
+
 ```
 
 
@@ -397,7 +444,7 @@ moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
-times <- list(start = 0, end = 2) # 5 year interval; 200 years = 40 intervals
+times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -418,7 +465,7 @@ parameters <- list(
                                            "rast.zone_uwr_2021",  
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw"
+                                           "rast.zone_cond_cw",
                                            
                                            # "rast.zone_cond_noharvest_barkerville_crithab_or_herd",
                                           # "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
@@ -447,13 +494,13 @@ parameters <- list(
                                            # "rast.zone_barkerville_groundhog_zones_20210303",
                                            # "rast.zone_smc_zones_20210315"
                                           
-                                             # "rast.zone_cond_bc_charlotte_alplands_crithab",
-                                             # "rast.zone_cond_bc_itcha_ilgachuz_crithab",
-                                             # "rast.zone_cond_bc_rainbows_crithab",
+                                               "rast.zone_cond_bc_charlotte_alplands_crithab",
+                                               "rast.zone_cond_bc_itcha_ilgachuz_crithab",
+                                               "rast.zone_cond_bc_rainbows_crithab",
                                            
-                                             # "rast.zone_chilcotin_scenario2"
+                                              #"rast.zone_chilcotin_scenario2"
                                           
-                                             # "rast.zone_chilcotin_proposed_wha"
+                                              "rast.zone_chilcotin_proposed_wha"
                                            ),
                            nameZoneTable = "zone.constraints",
                            # nameZonePriorityRaster = "rast.zone_cond_beo",
@@ -541,8 +588,8 @@ modules <- list("dataLoaderCLUS",
 #                        description = "Scenario 2c. No harvest: HEWSR, LESR (except high-low adn highe-moderate areas), Tweedsmuir Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix, Rainbows Corridor): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 # scenario = data.table (name = "chilcotin_scen1a_disturb",
 #                        description = "Scenario 1a with closest to disturbance harvest priority. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Closest to Disturabnce, then oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
-scenario = data.table (name = "chilcotin_bau_live_dead",
-                       description = "Business as usual (BAU). Adjacency = 0m. Priority queue = Closest to disturbance first, dead volume second, oldest third (live or dead volume). Salvage dead volume in first 10 years. Minimum volume: 150 m3/year. Even live harvest flow: HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
+# scenario = data.table (name = "chilcotin_bau_live_dead",
+#                        description = "Business as usual (BAU). Adjacency = 0m. Priority queue = Closest to disturbance first, dead volume second, oldest third (live or dead volume). Salvage dead volume in first 10 years. Minimum volume: 150 m3/year. Even live harvest flow: HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
 # scenario = data.table (name = "chilcotin_scen1a_live_dead",
 #                       description = "Scenario 1a. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Minimum volume:  150 m3/year. Target harvest flow: HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
 # scenario = data.table (name = "chilcotin_scen1b_live_dead",
@@ -555,14 +602,17 @@ scenario = data.table (name = "chilcotin_bau_live_dead",
 #                        description = "Scenario 2b, live and dead volume harvest. Adjacency = 0m. Harvest Priority: Closest to disturbance first, Salvage Volume Second, Oldest Third. Salvage harvest in first 2 intervals (i.e., 10 years) only. No harvest: HEWSR, LESR (except high-low areas), Tweedsmuir Corridor, Rainbows Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Minimum volume: 150 m3/year. Target harvest flow (live; years 10-200): HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
 # scenario = data.table (name = "chilcotin_scen2c_live_dead",
 #                        description = "Scenario 2c, live and dead volume harvest. Adjacency = 0m. Harvest Priority: Closest to disturbance first, Salvage Volume Second, Oldest Third. Salvage harvest in first 2 intervals (i.e., 10 years) only. No harvest: HEWSR, LESR (except high-low and high-moderate areas), Tweedsmuir Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix, Rainbows Corridor): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Minimum volume: 150 m3/year. Target harvest flow (live; years 10-200): HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
-
 # scenario = data.table (name = "chilcotin_scen3a_live_dead",
 #                       description = "Scenario 3a. Modified location of no harvest WHA. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Minimum volume:  150 m3/year. Target harvest flow: HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
+# scenario = data.table (name = "chilcotin_scen3b_live_dead",
+#                       description = "Scenario 3b. Habitat: HEWSR, LESR, LEWR. Rotation age (in habitat): 120 years. Seral stage constraints (in habitat): 25% > 120 y.o.; 30% >100 y.o.; 37% >80 y.o. Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Minimum volume:  150 m3/year. Target harvest flow: HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
 
+scenario = data.table (name = "chilcotin_scen3c_live_dead",
+                      description = "Scenario 3c. Habitat: HEWSR, LESR. Rotation age (in habitat): 100 years. Seral stage constraints (in habitat): 25% > 100 y.o.; 30% > 80 y.o. Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Minimum volume:  150 m3/year. Target harvest flow: HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
 
 
 harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', #  AND age > 139, 119, 99
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 99 ', #  AND age > 139, 119, 99
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
@@ -570,7 +620,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
                                           flow = 42500, # 8,500/yr, can't be zero
                                           partition_type = 'live'), 
                               data.table (compartment ="HEWSR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', #  AND age > 139, 119, 99
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 99 ', #  AND age > 139, 119, 99
                                           period = rep( seq (from = 3, 
                                                            to = 40, 
                                                            by = 1),
@@ -585,7 +635,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
                                            flow = 2500, # 500/yr
                                            partition_type = 'dead'),
                               data.table (compartment ="LESR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', # AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 99 ', # AND age > 139, 119
                                           period = rep( seq (from = 1, 
                                                            to = 2, 
                                                            by = 1),
@@ -593,7 +643,7 @@ harvestFlow <- rbindlist(list(data.table (compartment ="HEWSR",
                                           flow = 225000, #45,000/yr
                                           partition_type = 'live'), 
                                   data.table (compartment ="LESR",
-                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', # AND age > 139, 119
+                                          partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) AND age > 99 ', # AND age > 139, 119
 
                                           period = rep( seq (from = 3, 
                                                            to = 40, 
