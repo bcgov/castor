@@ -616,7 +616,7 @@ Huck_Laura_Berries_df2$TimeSinceFire
 #Append ClimateBC Data
 In the below data being brought in, ALL data points from the file are included. However, not all were present within cutblocks, and thus, there will be more data points below than there is in the data brought in above.
 
-#First, we will get the data for the percetn cover, which involves the decadal means
+#First, we will get the data for the percent cover, which involves the decadal means
 ```{r}
 huck_Laura_plantcover_climate<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_forPerCov_coords_Decade_2011_2020SY.csv")
 head(huck_Laura_plantcover_climate)

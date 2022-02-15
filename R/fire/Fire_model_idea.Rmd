@@ -354,3 +354,5 @@ Define risk classes:
 
 That said, the analysis also indicates that there is a window of a couple of decades over which the timber supply in the fire risk scenarios with salvage are similar. This represents a planning opportunity to refine understanding of how climate change may affect this landscape and improve anticipation of appropriate strategic forest management response."
 
+##Whitman, E., Batllori, E., Parisien, M-A., Miller, C., Coop, J.D., Krawchuk, M.A., Chong, G.W., and Haire, S.L. 2015. The climate space of fire regimes in north-western North America. Journal of Biogeography 42: 1736-1749.
+
