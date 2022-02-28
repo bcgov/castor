@@ -15,15 +15,15 @@ library(dplyr)
 #Overview
 This document is meant to bring in the files for soils and to take away the spatial component so that I can send them to Deepa Filatow to see if we can make soil layers for my points of interest.
 
-Bring in the data for soils.
+Bring in the data for soils. Used files with duplicates removed.
 ```{r}
-cutblock_plots_openings_soils<- st_read ( dsn = "D:\\Hucklberry\\Clayton_openings_soils.shp", stringsAsFactors = T) #986 observations
+cutblock_plots_openings_soils<- st_read ( dsn = "D:\\Hucklberry\\Clayton_openings_soils_reduced.shp", stringsAsFactors = T) #986 observations
 str(cutblock_plots_openings)
 
-Huck_Laura_Berries_soils<-st_read ( dsn = "D:\\Hucklberry\\Laura_openings_soils.shp", stringsAsFactors = T)
+Huck_Laura_Berries_soils<-st_read ( dsn = "D:\\Hucklberry\\Laura_openings_soils_reduced.shp", stringsAsFactors = T)
 head(Huck_Laura_Berries) #42 datapoints
 
-cutblock_plots_openings_mowatBuff_soils<- st_read ( dsn = "D:\\Hucklberry\\Mackenzie_openings_soils.shp", stringsAsFactors = T)
+cutblock_plots_openings_mowatBuff_soils<- st_read ( dsn = "D:\\Hucklberry\\Mackenzie_openings_soils_reduced.shp", stringsAsFactors = T)
 
 ```
 
@@ -57,11 +57,11 @@ From above:
 Combine files together so that rows from openings data have information from sols data regardless.
 
 ```{r}
-Clayton_cutblock_plots_openings_df_soils<-full_join(cutblock_plots_openings_df, cutblock_plots_openings_soils_df) #If join this way, end up with 1783 observations
+Clayton_cutblock_plots_openings_df_soils<-full_join(cutblock_plots_openings_df, cutblock_plots_openings_soils_df) #If join this way, end up with 1240 observations
 
-Laura_cutblock_plots_openings_df_soils<-full_join(Huck_Laura_Berries_df, Huck_Laura_Berries_soils_df) # end up with 84 observations
+Laura_cutblock_plots_openings_df_soils<-full_join(Huck_Laura_Berries_df, Huck_Laura_Berries_soils_df) # end up with 42 observations - excellent!
 
-Mackenzie_cutblock_plots_openings_df_soils<-full_join(cutblock_plots_openings_mowatBuff_df, cutblock_plots_openings_mowatBuff_soils_df) #End up with 101 observations
+Mackenzie_cutblock_plots_openings_df_soils<-full_join(cutblock_plots_openings_mowatBuff_df, cutblock_plots_openings_mowatBuff_soils_df) #End up with 68 observations - excellent!
 
 ```
 
@@ -94,6 +94,7 @@ table(Laura_cutblock_plots_openings_df_soils$Site_ID2) #Everything has 2 reports
 #also note, because so close together along transect, all get given same soil information from that polygon.
 
 head(Huck_Laura_Berries_df)
+table(Huck_Laura_Berries_df$Site_ID)
 Huck_Laura_Berries_df$Site_ID2<-paste(Huck_Laura_Berries_df$Site_ID, Huck_Laura_Berries_df$Distance, Huck_Laura_Berries_df$Year)
 table(Huck_Laura_Berries_df$Site_ID2) #Every ID represented once
 ```
