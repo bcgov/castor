@@ -250,7 +250,7 @@ plot.disturb.nobuff <- ggplot (data.disturb.nobuff.itcha,
                                             'chilcotin_scen3b_live_dead' = "3b",
                                             'chilcotin_scen3c_live_dead' = "3c"))
                               ) +
-                  labs (title = "Disturbance (no Buffer) in Ithca-Ilgachuz Caribou Critical Habitat 
+                  labs (title = "Disturbance (no Buffer) in Itcha-Ilgachuz Caribou Critical Habitat 
 for Each Scenario", 
                         x = "Future Year", 
                         y = "Percent Disturbance") + 
@@ -281,7 +281,7 @@ plot.disturb.buff <- ggplot (data.disturb.buff.itcha,
                                             'chilcotin_scen3b_live_dead' = "3b",
                                             'chilcotin_scen3c_live_dead' = "3c"))
                               ) +
-                  labs (title = "Disturbance (500m Buffer) in Ithca-Ilgachuz Caribou Critical Habitat 
+                  labs (title = "Disturbance (500m Buffer) in Itcha-Ilgachuz Caribou Critical Habitat 
 for Each Scenario", 
                         x = "Future Year", 
                         y = "Percent Disturbance") + 
@@ -479,8 +479,8 @@ plot.disturb.nobuff.char <- ggplot (data.disturb.nobuff.char,
                                             'chilcotin_scen3b_live_dead' = "3b",
                                             'chilcotin_scen3c_live_dead' = "3c"))
                               ) +
-                  labs (title = "Disturbance (no Buffer) in Rainbows Caribou Critical Habitat 
-for Each Scenario", 
+                  labs (title = "Disturbance (no Buffer) in Charlotte Alplands 
+Caribou Critical Habitat for Each Scenario", 
                         x = "Future Year", 
                         y = "Percent Disturbance") + 
                   scale_color_discrete (name = "Critical Habitat", 
@@ -511,8 +511,8 @@ plot.disturb.buff.char <- ggplot (data.disturb.buff.char,
                                             'chilcotin_scen3b_live_dead' = "3b",
                                             'chilcotin_scen3c_live_dead' = "3c"))
                               ) +
-                  labs (title = "Disturbance (500m Buffer) in Rainbows Caribou Critical Habitat 
-for Each Scenario", 
+                  labs (title = "Disturbance (500m Buffer) in Charlotte Alplands 
+Caribou Critical Habitat for Each Scenario", 
                         x = "Future Year", 
                         y = "Percent Disturbance") + 
                   scale_color_discrete (name = "Critical Habitat", 
@@ -579,7 +579,7 @@ plot.seral.itcha <- ggplot (data.seral.itcha,
                                aes (x = timeperiod, y = (prop_age * 100), 
                                     color = scenario, linetype = scenario)) +
                             geom_line (position = position_dodge (width = 1), size = 1) + 
-                            labs (title = "Percent Early Seral in Ithca-Ilgachuz Herd for Each Scenario", 
+                            labs (title = "Percent Early Seral in Itcha-Ilgachuz Herd for Each Scenario", 
                                   x = "Future Year", 
                                   y = "Percent Early Seral") + 
                             scale_color_discrete (name = "Scenario", 
@@ -732,7 +732,8 @@ supply.avg <- data.summ %>%
                             scenario == "chilcotin_scen2b_live_dead"| 
                             scenario == "chilcotin_scen2c_live_dead" | 
                            scenario == "chilcotin_scen3a_live_dead" | 
-                           scenario == "chilcotin_scen3b_live_dead") %>%
+                           scenario == "chilcotin_scen3b_live_dead" | 
+                           scenario == "chilcotin_scen3c_live_dead") %>%
                   summarise (volume = sum (volume/40))
 
 write.csv (supply.avg, "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\supply_block.csv")
@@ -784,8 +785,8 @@ vol.by.area <- ggplot (data.summ, aes (x = timeperiod, y = volume, color = area_
                               scale_y_continuous (label = comma, breaks = seq(0,800000,100000)) +
                               theme_classic()
 
-ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\harvest.jpg", 
-        plot = harvest,
+ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\supply_block.jpg", 
+        plot = vol.by.area,
         dpi = 300,
         device = "jpeg",
         width = 6, 
