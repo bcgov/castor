@@ -100,7 +100,6 @@ Init <- function(sim) {
   return(invisible(sim))
 }
 
-
 # assign volume to area of interest
 volAnalysis <- function(sim) {
   tempVolumeReport <- as.data.table (merge (sim$harvestPixelList, sim$volumebyarea, by = 'pixelid', all.x = TRUE))
