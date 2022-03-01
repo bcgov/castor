@@ -39,6 +39,10 @@ library(keyring)
 library(sf)
 library(raster)
 library(dplyr)
+library(DBI)
+library (RPostgreSQL)
+library (RPostgres)
+library (rpostgis)
 
 ```
 
@@ -57,6 +61,25 @@ roads_layer<- st_read (dsn = conn,
 dbDisconnect (conn)
 
 ```
+```{r}
+conn <- DBI::dbConnect (dbDriver ("RPostgres::Postgres()"), 
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+
+conn <- DBI::dbConnect (dbDriver ("RPostgreSQL::PostgreSQL("), 
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+```
+
+
 Inspect the file. Check the coordinate system. Determine the names of items in the file.
 
 ```{r}

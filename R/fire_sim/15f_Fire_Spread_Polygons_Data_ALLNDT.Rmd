@@ -70,7 +70,7 @@ See the License for the specific language governing permissions and limitations 
 Load in the prepped data.
 
 ```{r}
-fire_spread_veg_data_df<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_.csv")
+                                                            fire_spread_veg_data_df<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_.csv")
 
 head(fire_spread_veg_data_df)
 
@@ -631,9 +631,7 @@ Save sd coefficient table.
 write.csv(top_mod_table_ALL_spread_poly_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_ALL_spread_poly_sd_Jan.csv")
 ```
 
-
 #Compare to model without certain interactions
-
 
 ```{r}
 #Run Model again with fewer interactions
@@ -811,4 +809,336 @@ Save sd coefficient table.
 
 ```{r}
 write.csv(top_mod_table_ALL_spread_poly_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_ALL_spread_poly_sd_Jan2.csv")
+```
+
+
+#Comments on current model:
+There is a lot of overlap between bclcs_level_2 (treed, not, water), vegtype2, and bclcs_level_5_2 (landuse), and it probably does not make sense to include all of them in the same model. Need tp consider which one(s) make the most sense.
+
+
+```{r}
+#Run Model again with fewer interactions
+model.ALL.S<-glm(spread ~ slope + aspect_cos + elev + slope:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:roads_km + dist_infra:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2, family = binomial, data = ALL_spread)
+
+AIC(model.ALL.S) #1569232
+
+###
+model.ALL.S<-glm(spread ~ slope + aspect_cos + elev + slope:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:roads_km + dist_infra:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2, family = binomial, data = ALL_spread)
+
+#Anova(model.ALL.S, type=3)
+Anova(model.ALL.S, type=3, singular.ok = TRUE)
+AIC(model.ALL.S) #1570593
+
+###
+model.ALL.S<-glm(spread ~ slope + aspect_cos + elev + slope:elev + dist_infra + roads_km + dist_infra:roads_km + vegtype2, family = binomial, data = ALL_spread)
+
+#Anova(model.ALL.S, type=3)
+Anova(model.ALL.S, type=3, singular.ok = TRUE)
+AIC(model.ALL.S) #1578387
+
+#Does including NDT make a difference
+###
+model.ALL.S<-glm(spread ~ slope + aspect_cos + elev + slope:elev + dist_infra + roads_km + dist_infra:roads_km + vegtype2 + ntrldstrbn, family = binomial, data = ALL_spread)
+
+#Anova(model.ALL.S, type=3)
+Anova(model.ALL.S, type=3, singular.ok = TRUE)
+AIC(model.ALL.S) #1538628
+
+summary(model.ALL.S)
+
+# model diagnostic plots
+binnedplot (fitted(model.ALL.S), 
+            residuals(model.ALL.S), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+ALL_spread$resids<-resid(model.ALL.S)
+
+# Diagnostic plots 
+# slope + aspect_cos + elev + slope:elev + dist_infra + roads_km + dist_infra:roads_km + vegtype2 + ntrldstrbn
+
+visreg(model.ALL.S, "slope", by="elev")
+visreg(model.ALL.S, "elev", by="slope")
+visreg(model.ALL.S, "aspect_cos")
+
+visreg(model.ALL.S, "dist_infra", by="roads_km")
+visreg(model.ALL.S, "roads_km", by="dist_infra")
+
+visreg(model.ALL.S, "vegtype2") 
+visreg(model.ALL.S, "ntrldstrbn") 
+
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model.ALL.S)
+
+#Create a new blank table and get AUC too
+top_mod_table_ALL_spread_poly <- data.frame (matrix (ncol = 24, nrow = 0))
+colnames (top_mod_table_ALL_spread_poly ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_infra", "coef_roads_km", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_ntrldstrbnNDT2", "coef_ntrldstrbnNDT3", "coef_ntrldstrbnNDT4", "coef_ntrldstrbnNDT5", "coef_slope:elev", "coef_dist_infra:roads_km", "AUC")
+```
+
+Let's run it 500 times to get good mean values.
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(ALL_spread$spread_bclcs5, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- ALL_spread[ trainIndex,]
+   Valid <- ALL_spread[-trainIndex,]
+   
+#Model   
+model.ALL.S<-glm(spread ~ slope + aspect_cos + elev + slope:elev + dist_infra + roads_km + dist_infra:roads_km + vegtype2 + ntrldstrbn, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.ALL.S, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_ALL_spread <- data.frame (matrix (ncol = 24, nrow = 0))
+colnames (top_mod_table_ALL_spread ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_infra", "coef_roads_km", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_ntrldstrbnNDT2", "coef_ntrldstrbnNDT3", "coef_ntrldstrbnNDT4", "coef_ntrldstrbnNDT5", "coef_slope:elev", "coef_dist_infra:roads_km", "AUC")
+
+##Add data for ALL
+top_mod_table_ALL_spread[1,1]<-"lightning or person (ALL)"
+top_mod_table_ALL_spread[1,2]<-"ALL"
+top_mod_table_ALL_spread[1,3]<-"ALL Treed and not treed"
+top_mod_table_ALL_spread[1,4]<-"spread ~ slope + aspect_cos + elev + slope:elev + dist_infra + roads_km + dist_infra:roads_km + vegtype2 + ntrldstrbn" 
+top_mod_table_ALL_spread[1,5]<- coef(model.ALL.S)[1] #Intercept
+top_mod_table_ALL_spread[1,6]<- coef(model.ALL.S)[2] #
+top_mod_table_ALL_spread[1,7]<- coef(model.ALL.S)[3] #
+top_mod_table_ALL_spread[1,8]<- coef(model.ALL.S)[4] #
+top_mod_table_ALL_spread[1,9]<- coef(model.ALL.S)[5] #
+top_mod_table_ALL_spread[1,10]<- coef(model.ALL.S)[6] #
+top_mod_table_ALL_spread[1,11]<- coef(model.ALL.S)[7] 
+top_mod_table_ALL_spread[1,12]<- coef(model.ALL.S)[8] #
+top_mod_table_ALL_spread[1,13]<- coef(model.ALL.S)[9] #
+top_mod_table_ALL_spread[1,14]<- coef(model.ALL.S)[10] #
+top_mod_table_ALL_spread[1,15]<- coef(model.ALL.S)[11] #
+top_mod_table_ALL_spread[1,16]<- coef(model.ALL.S)[12] #
+top_mod_table_ALL_spread[1,17]<- coef(model.ALL.S)[13] #
+top_mod_table_ALL_spread[1,18]<- coef(model.ALL.S)[14] #
+top_mod_table_ALL_spread[1,19]<- coef(model.ALL.S)[15] #
+top_mod_table_ALL_spread[1,20]<- coef(model.ALL.S)[16] #
+top_mod_table_ALL_spread[1,21]<- coef(model.ALL.S)[17] #
+top_mod_table_ALL_spread[1,22]<- coef(model.ALL.S)[18] #
+top_mod_table_ALL_spread[1,23]<- coef(model.ALL.S)[19] #
+top_mod_table_ALL_spread[1,24]<- mod.auc
+
+top_mod_table_ALL_spread_poly<-rbind(top_mod_table_ALL_spread_poly, top_mod_table_ALL_spread)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_ALL_spread_poly)
+```
+
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table_ALL_spread_poly, file="D:\\Fire\\fire_data\\raw_data\\top_mod_ALL_spread_poly_all_Feb10.csv")
+```
+
+```{r}
+names(top_mod_table_ALL_spread_poly)
+#colMeans(top_mod_table_ALL_spread_poly[5:30])
+#sapply(top_mod_table_ALL_spread_poly,mean, na.rm = T)
+#lapply(top_mod_table_ALL_spread_poly,mean, na.rm = T)
+
+top_mod_table_ALL_spread_poly_means<-top_mod_table_ALL_spread_poly %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table_ALL_spread_poly_means
+
+top_mod_table_ALL_spread_poly_means[1,1]<-"lightning or person (ALL)"
+top_mod_table_ALL_spread_poly_means[1,2]<-"ALL"
+top_mod_table_ALL_spread_poly_means[1,3]<-"ALL Treed and not treed"
+top_mod_table_ALL_spread_poly_means[1,4]<-"spread ~ slope + aspect_cos + elev + slope:elev + dist_infra + roads_km + dist_infra:roads_km + vegtype2" 
+top_mod_table_ALL_spread_poly_means
+```
+Save table.
+
+```{r}
+write.csv(top_mod_table_ALL_spread_poly_means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_ALL_spread_poly_means_Feb10.csv")
+```
+
+Standard deviation.
+
+```{r}
+top_mod_table_ALL_spread_poly_sd<-top_mod_table_ALL_spread_poly %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_ALL_spread_poly_sd
+
+top_mod_table_ALL_spread_poly_sd[1,1]<-"lightning or person (ALL)"
+top_mod_table_ALL_spread_poly_sd[1,2]<-"ALL"
+top_mod_table_ALL_spread_poly_sd[1,3]<-"ALL Treed and not treed"
+top_mod_table_ALL_spread_poly_sd[1,4]<-"spread ~ slope + aspect_cos + elev + slope:elev + dist_infra + roads_km + dist_infra:roads_km + vegtype2" 
+top_mod_table_ALL_spread_poly_sd
+```
+
+Save sd coefficient table.
+
+```{r}
+write.csv(top_mod_table_ALL_spread_poly_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_ALL_spread_poly_sd_Feb10.csv")
+```
+
+Partial residuals suggest that we should remove aspect.
+
+```{r}
+model.ALL.S<-glm(spread ~ slope + elev + slope:elev + dist_infra + roads_km + dist_infra:roads_km + vegtype2 + ntrldstrbn, family = binomial, data = ALL_spread)
+
+#Anova(model.ALL.S, type=3)
+Anova(model.ALL.S, type=3, singular.ok = TRUE)
+AIC(model.ALL.S) #1538747
+
+summary(model.ALL.S)
+
+# model diagnostic plots
+binnedplot (fitted(model.ALL.S), 
+            residuals(model.ALL.S), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+ALL_spread$resids<-resid(model.ALL.S)
+
+# Diagnostic plots 
+# slope + aspect_cos + elev + slope:elev + dist_infra + roads_km + dist_infra:roads_km + vegtype2 + ntrldstrbn
+
+visreg(model.ALL.S, "slope", by="elev")
+visreg(model.ALL.S, "elev", by="slope")
+
+visreg(model.ALL.S, "dist_infra", by="roads_km")
+visreg(model.ALL.S, "roads_km", by="dist_infra")
+
+visreg(model.ALL.S, "vegtype2") 
+visreg(model.ALL.S, "ntrldstrbn") 
+
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model.ALL.S)
+
+#Create a new blank table and get AUC too
+top_mod_table_ALL_spread_poly <- data.frame (matrix (ncol = 23, nrow = 0))
+colnames (top_mod_table_ALL_spread_poly ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_elev", "coef_dist_infra", "coef_roads_km", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_ntrldstrbnNDT2", "coef_ntrldstrbnNDT3", "coef_ntrldstrbnNDT4", "coef_ntrldstrbnNDT5", "coef_slope:elev", "coef_dist_infra:roads_km", "AUC")
+```
+
+Let's run it 500 times to get good mean values.
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(ALL_spread$spread_bclcs5, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- ALL_spread[ trainIndex,]
+   Valid <- ALL_spread[-trainIndex,]
+   
+#Model   
+model.ALL.S<-glm(spread ~ slope + elev + slope:elev + dist_infra + roads_km + dist_infra:roads_km + vegtype2 + ntrldstrbn, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.ALL.S, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_ALL_spread <- data.frame (matrix (ncol = 23, nrow = 0))
+colnames (top_mod_table_ALL_spread ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_elev", "coef_dist_infra", "coef_roads_km", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_ntrldstrbnNDT2", "coef_ntrldstrbnNDT3", "coef_ntrldstrbnNDT4", "coef_ntrldstrbnNDT5", "coef_slope:elev", "coef_dist_infra:roads_km", "AUC")
+
+##Add data for ALL
+top_mod_table_ALL_spread[1,1]<-"lightning or person (ALL)"
+top_mod_table_ALL_spread[1,2]<-"ALL"
+top_mod_table_ALL_spread[1,3]<-"ALL Treed and not treed"
+top_mod_table_ALL_spread[1,4]<-"spread ~ slope + elev + slope:elev + dist_infra + roads_km + dist_infra:roads_km + vegtype2 + ntrldstrbn" 
+top_mod_table_ALL_spread[1,5]<- coef(model.ALL.S)[1] #Intercept
+top_mod_table_ALL_spread[1,6]<- coef(model.ALL.S)[2] #
+top_mod_table_ALL_spread[1,7]<- coef(model.ALL.S)[3] #
+top_mod_table_ALL_spread[1,8]<- coef(model.ALL.S)[4] #
+top_mod_table_ALL_spread[1,9]<- coef(model.ALL.S)[5] #
+top_mod_table_ALL_spread[1,10]<- coef(model.ALL.S)[6] #
+top_mod_table_ALL_spread[1,11]<- coef(model.ALL.S)[7] 
+top_mod_table_ALL_spread[1,12]<- coef(model.ALL.S)[8] #
+top_mod_table_ALL_spread[1,13]<- coef(model.ALL.S)[9] #
+top_mod_table_ALL_spread[1,14]<- coef(model.ALL.S)[10] #
+top_mod_table_ALL_spread[1,15]<- coef(model.ALL.S)[11] #
+top_mod_table_ALL_spread[1,16]<- coef(model.ALL.S)[12] #
+top_mod_table_ALL_spread[1,17]<- coef(model.ALL.S)[13] #
+top_mod_table_ALL_spread[1,18]<- coef(model.ALL.S)[14] #
+top_mod_table_ALL_spread[1,19]<- coef(model.ALL.S)[15] #
+top_mod_table_ALL_spread[1,20]<- coef(model.ALL.S)[16] #
+top_mod_table_ALL_spread[1,21]<- coef(model.ALL.S)[17] #
+top_mod_table_ALL_spread[1,22]<- coef(model.ALL.S)[18] #
+top_mod_table_ALL_spread[1,23]<- mod.auc
+
+top_mod_table_ALL_spread_poly<-rbind(top_mod_table_ALL_spread_poly, top_mod_table_ALL_spread)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_ALL_spread_poly)
+```
+
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table_ALL_spread_poly, file="D:\\Fire\\fire_data\\raw_data\\top_mod_ALL_spread_poly_all_Feb14.csv")
+```
+
+```{r}
+names(top_mod_table_ALL_spread_poly)
+#colMeans(top_mod_table_ALL_spread_poly[5:30])
+#sapply(top_mod_table_ALL_spread_poly,mean, na.rm = T)
+#lapply(top_mod_table_ALL_spread_poly,mean, na.rm = T)
+
+top_mod_table_ALL_spread_poly_means<-top_mod_table_ALL_spread_poly %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table_ALL_spread_poly_means
+
+top_mod_table_ALL_spread_poly_means[1,1]<-"lightning or person (ALL)"
+top_mod_table_ALL_spread_poly_means[1,2]<-"ALL"
+top_mod_table_ALL_spread_poly_means[1,3]<-"ALL Treed and not treed"
+top_mod_table_ALL_spread_poly_means[1,4]<-"spread ~ slope + elev + slope:elev + dist_infra + roads_km + dist_infra:roads_km + vegtype2" 
+top_mod_table_ALL_spread_poly_means
+```
+Save table.
+
+```{r}
+write.csv(top_mod_table_ALL_spread_poly_means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_ALL_spread_poly_means_Feb14.csv")
+```
+
+Standard deviation.
+
+```{r}
+top_mod_table_ALL_spread_poly_sd<-top_mod_table_ALL_spread_poly %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_ALL_spread_poly_sd
+
+top_mod_table_ALL_spread_poly_sd[1,1]<-"lightning or person (ALL)"
+top_mod_table_ALL_spread_poly_sd[1,2]<-"ALL"
+top_mod_table_ALL_spread_poly_sd[1,3]<-"ALL Treed and not treed"
+top_mod_table_ALL_spread_poly_sd[1,4]<-"spread ~ slope + elev + slope:elev + dist_infra + roads_km + dist_infra:roads_km + vegtype2" 
+top_mod_table_ALL_spread_poly_sd
+```
+
+Save sd coefficient table.
+
+```{r}
+write.csv(top_mod_table_ALL_spread_poly_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_ALL_spread_poly_sd_Feb14.csv")
 ```

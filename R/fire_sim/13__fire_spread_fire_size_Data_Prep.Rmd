@@ -851,7 +851,130 @@ spread_data_ALL<-spread_data_ALL %>%
 
 ```
 
-#Esnure that dist_any contains the relevant values and not all
+#Repeat above for all NDTs together 
+
+```{r}
+#################################
+#### Running simple linear model: all lightning, person, treed and non treed
+#################################
+# create loop to do variable selection of climate data
+spread_data_ALL$ONE<-c(1)
+ONE<-spread_data_ALL$ONE
+
+filenames<-list()
+
+#Begin loop
+for (h in 1) {
+  dat2<- spread_data_ALL
+  
+#Create frame of AIC table
+# summary table
+table.glm.climate.simple <- data.frame (matrix (ncol = 3, nrow = 0))
+colnames (table.glm.climate.simple) <- c ("Zone", "Variable", "AIC")
+
+model_dat<- dat2 %>% dplyr::select(LNsize_ha)
+
+model1 <- lm (LNsize_ha ~ 1 ,
+               data=model_dat)
+
+table.glm.climate.simple[1,1]<-"ALLNDT"
+table.glm.climate.simple[1,2]<-"intercept"
+table.glm.climate.simple[1,3]<-extractAIC(model1)[2]
+
+
+for (i in 1: length(variables)){
+  print(paste((variables[i]), sep=" "))
+  
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, variables[i])
+  
+  model1 <- lm (LNsize_ha ~ . ,
+                 data=model_dat)
+  
+  table.glm.climate.simple[i+1,1]<-"ALLNDT"
+  table.glm.climate.simple[i+1,2]<-variables[i]
+  table.glm.climate.simple[i+1,3]<-extractAIC(model1)[2]
+  
+}
+
+# This is an addition to the table above allowing combinations of temperature and precipitation
+
+for (i in 1: length(variables1)){
+  print(paste((variables1[i]), variables2[i], sep=" "))
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, variables1[i], variables2[i])
+  
+  model2 <- lm (LNsize_ha ~ . ,
+                 data=model_dat)
+  
+  table.glm.climate.simple[(i+length(variables))+1,1]<-"ALLNDT"
+  table.glm.climate.simple[(i+length(variables))+1,2]<-paste0(variables1[i],"+", variables2[i])
+  table.glm.climate.simple[(i+length(variables))+1,3]<-extractAIC(model2)[2]
+  
+  
+}
+
+for (i in 1: length(variables1)){
+  print(paste((variables1[i]), "x",variables2[i], sep=" "))
+
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, variables1[i], variables2[i])
+ 
+
+  model2 <- lm (LNsize_ha ~ (.)^2,
+                 data=model_dat)
+
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-"ALLNDT"
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-extractAIC(model2)[2]
+
+
+}
+table.glm.climate1<-table.glm.climate.simple %>% drop_na(AIC)
+
+
+#assign file names to the work
+nam1<-paste("AIC","run",h,sep="_") #defining the name
+assign(nam1,table.glm.climate.simple)
+filenames<-append(filenames,nam1)
+}
+
+##
+
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(filenames)
+aic_bec_spread<-mkFrameList(n) 
+
+aic_bec_spread_summary_2<- aic_bec_spread %>%
+  group_by(Variable) 
+
+aic_bec_spread_summary_2b<- aic_bec_spread_summary_2 %>%
+  mutate(deltaAIC=AIC-min(AIC))
+
+#Above not working at the moment, so do manually
+min(aic_bec_spread_summary_2$AIC) #8627.998
+aic_bec_spread_summary_2$minAIC<-min(aic_bec_spread_summary_2$AIC)
+aic_bec_spread_summary_2$minAIC
+
+aic_bec_spread_summary_2$deltaAIC<-aic_bec_spread_summary_2$AIC -aic_bec_spread_summary_2$minAIC
+
+aic_bec_spread_summary_2b<-aic_bec_spread_summary_2
+aic_bec_spread_summary_2b
+
+```
+Save to computer.
+```{r}
+write.csv(aic_bec_spread_summary_2b, file="D:\\Fire\\fire_data\\raw_data\\aic_bec_spread_climate_summary_sizeha_ALLNDT.csv")
+```
+
+Best variable:
+ 1. mean_tmax06_tmax07_tmax08_tmax09
+ 2. tmax06xppt06
+
+#Ensure that dist_any contains the relevant values and not all
 
 ```{r}
 spread_data_ALL$dist_any_<-0
@@ -1015,6 +1138,177 @@ No climate2 needed; if still in, then remove
 names(spread_data_ALL)
 spread_data_ALL<-spread_data_ALL[-137]
 ```
+
+#Add quadratic terms for variables of interest
+
+#Inspect relationships with key variables
+Start with Climate1. The results here show that the relationship with climate 1 is indeed linear; no quadratic term needed.
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = climate1, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects Climate1 by NDT",
+        x = "LN(fire size)",
+        y = "Climate1")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+For climate2, also look predominately linear, with a slight curve perhaps for NDT1 (hump)
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = climate2, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects Climate2 by NDT",
+        x = "LN(fire size)",
+        y = "Climate2")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+MDC_atfire mostly linear, except there is a lag at the start wherein it remains flat until a fire size of ~ ln(3). Add quadratic term.
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = mdc_atfire, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects mdc_atfire by NDT",
+        x = "LN(fire size)",
+        y = "mdc_atfire")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+```{r}
+spread_data_ALL$mdc_atfire2<-spread_data_ALL$mdc_atfire^2
+spread_data_ALL$mdc_atfire2
+```
+
+
+Projected height looks pretty linear for all categories
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = proj_height_1, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects proj_height_1 by NDT",
+        x = "LN(fire size)",
+        y = "proj_height_1")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+Projected age also looks linear.
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = proj_age_1, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects proj_age_1 by NDT",
+        x = "LN(fire size)",
+        y = "proj_age_1")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = live_stand_volume_125, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects live_stand_volume_125 by NDT",
+        x = "LN(fire size)",
+        y = "live_stand_volume_125")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+The relationship with slope is non-linear in most. 
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = slope, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects slope by NDT",
+        x = "LN(fire size)",
+        y = "slope")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+```{r}
+spread_data_ALL$slope2<-spread_data_ALL$slope^2
+```
+
+Aspect linear.
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = aspect, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects aspect by NDT",
+        x = "LN(fire size)",
+        y = "aspect")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+Elevation linear.
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = elevation, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects elevation by NDT",
+        x = "LN(fire size)",
+        y = "elevation")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+Linear except in NDT5, then very unusual curve.
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = dist_infra, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects dist_infra by NDT",
+        x = "LN(fire size)",
+        y = "dist_infra")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+```{r}
+spread_data_ALL$dist_infra2<-spread_data_ALL$dist_infra^2
+```
+
+Wind linear.
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = wind_atfire, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects wind_atfire by NDT",
+        x = "LN(fire size)",
+        y = "wind_atfire")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+Roads linear, but definitely some outliers. 
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = roads_km, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects roads_km by NDT",
+        x = "LN(fire size)",
+        y = "roads_km")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+
+```
+
+Tdif linear.
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = Tdif_atfire, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects Tdif_atfire by NDT",
+        x = "LN(fire size)",
+        y = "Tdif_atfire")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
 
 Save data.
 ```{r}
