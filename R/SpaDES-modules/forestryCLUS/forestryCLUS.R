@@ -511,7 +511,7 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
         }
         
         queue <- queue[pixelid %in% unique(unlist(h_pixels)),]
-        queue [, timeperiod := as.integer(time(sim)*sim$updateInterval)]
+        #queue [, timeperiod := as.integer(time(sim)*sim$updateInterval)]
         sim$harvestPixelList <-  rbindlist(list(sim$harvestPixelList, queue), use.names = TRUE ) 
         
         #Update the pixels table
