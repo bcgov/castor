@@ -31,7 +31,7 @@ See the License for the specific language governing permissions and limitations 
 #=================================
 
 #Overview
-Many studies have shown that road density is highly correlated with person-caused fires (e.g., Marchal et al. 2017), and they often use km of road per km^2 area. Here, we will attempt to bring in the roads layer from clus, investigate differences in number of roads present between 2002-2020, consider using the road clus to back-cast where roads were from 2002 to 2020, and then determine annual road density per km^2. This data will be utilized only in the person-caused fire model, and not in the lightning caused fire model. 
+Many studies have shown that road density is highly correlated with person-caused fires (e.g., Marchal et al. 2017), and they often use km of road per km^2 area. Here, we will attempt to bring in the roads layer from clus, investigate differences in number of roads present between 2002-2020, consider using the road clus to back-cast where roads were from 2002 to 2020, and then determine annual road density per km^2. This data will be utilized only in the person-caused fire model, and not in the lightning caused fire model. Can find a 2002 road map and compare.
 
 ```{r}
 #Libraries
@@ -89,7 +89,7 @@ names(roads_layer)
 
 ```
 
-Bring in the BC boundary, transform, and inspec - plot the provincial boundary with the roads layer to ensure that they align properly.
+Bring in the BC boundary, transform, and inspect - plot the provincial boundary with the roads layer to ensure that they align properly.
 
 ```{r}
 

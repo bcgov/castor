@@ -782,8 +782,9 @@ dat_lightning_ <- dat_lightning_ %>%
                                    if_else(bclcs_level_4== "TB","TB", #Treed broadleaf
                                            if_else(bclcs_level_4=="SL", "S", # shrub
                                                    if_else(bclcs_level_4=="ST", "S", 
-                                                           if_else(bclcs_level_4=="RO","RO",
-                                                                   if_else(bclcs_level_4=="SI", "SI",                                         vegtype2))))))))
+                                                           if_else(bclcs_level_4=="RO","RO", #Rock
+                                                                   if_else(bclcs_level_4=="SI", "SI", #snow/Ice   
+                                                                           vegtype2))))))))
 dat_lightning_$vegtype2[which(dat_lightning_$proj_age_1 <16)]<-"D" #
 table(dat_lightning_$vegtype2) #D: Disturbed; OP: Open; RO: Rock; S: Shrub; SI: Snow/Ice; TB: Treed Broadleaf; TC: Treed Conifer; TM: Treed Mixed.
 
