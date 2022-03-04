@@ -49,8 +49,12 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 
-
 source(here::here("R/functions/R_Postgres.R"))
+```
+
+If we need to set library paths, then:
+```{r}
+.libPaths("C:/data/localApps/R-4.1.2/library")
 ```
 
 Now we must bring in the relevant data
@@ -152,6 +156,8 @@ Run the below code chunk to bring the data back in if you are starting from this
 
 #import the fire ignition data
 ##Can use keyring
+keyring_unlock()
+
 conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
                         host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
                         dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 

@@ -240,6 +240,12 @@ source(here::here("R/functions/R_Postgres.R"))
 
 Now we will bring all of the files we made above into R. You may need to create a new connection to bring each one in instead, or at least run line by line and not as a code chunk.
 
+If we need to set library paths, then:
+```{r}
+.libPaths("C:/data/localApps/R-4.1.2/library")
+```
+
+
 ```{r}
 #Import all fire_veg
 conn <- dbConnect (dbDriver ("PostgreSQL"), 

@@ -39,16 +39,25 @@ library(keyring)
 library(sf)
 library(raster)
 library(dplyr)
-library(DBI)
 library (RPostgreSQL)
 library (RPostgres)
 library (rpostgis)
+library(DBI)
 
 ```
+
+If we need to set library paths, then:
+```{r}
+.libPaths("C:/data/localApps/R-4.1.2/library")
+```
+
 
 Bring in the data. This is a very large file and R may have a hard time bringing it in. This data was created in 2018 and represents the road network as of 2017/2018. It is possible to use the road clus to back-cast with other files. For now and for simplicity, we will assume constant road density from 2002-2018 and into the future, but future refinements may wish to alter this and get more accurate road data annually.
 
 ```{r}
+#Unlock keyring first
+keyring_unlock()
+
 conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
                         host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
                         dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
@@ -61,23 +70,7 @@ roads_layer<- st_read (dsn = conn,
 dbDisconnect (conn)
 
 ```
-```{r}
-conn <- DBI::dbConnect (dbDriver ("RPostgres::Postgres()"), 
-                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
-                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
-                        port = '5432',
-                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
-                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
-
-conn <- DBI::dbConnect (dbDriver ("RPostgreSQL::PostgreSQL("), 
-                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
-                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
-                        port = '5432',
-                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
-                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
-
-```
 
 
 Inspect the file. Check the coordinate system. Determine the names of items in the file.
