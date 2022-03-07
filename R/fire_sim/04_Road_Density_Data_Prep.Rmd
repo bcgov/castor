@@ -31,7 +31,7 @@ See the License for the specific language governing permissions and limitations 
 #=================================
 
 #Overview
-Many studies have shown that road density is highly correlated with person-caused fires (e.g., Marchal et al. 2017), and they often use km of road per km^2 area. Here, we will attempt to bring in the roads layer from clus, investigate differences in number of roads present between 2002-2020, consider using the road clus to back-cast where roads were from 2002 to 2020, and then determine annual road density per km^2. This data will be utilized only in the person-caused fire model, and not in the lightning caused fire model. 
+Many studies have shown that road density is highly correlated with person-caused fires (e.g., Marchal et al. 2017), and they often use km of road per km^2 area. Here, we will attempt to bring in the roads layer from clus, investigate differences in number of roads present between 2002-2020, consider using the road clus to back-cast where roads were from 2002 to 2020, and then determine annual road density per km^2. This data will be utilized only in the person-caused fire model, and not in the lightning caused fire model. Can find a 2002 road map and compare.
 
 ```{r}
 #Libraries
@@ -39,16 +39,25 @@ library(keyring)
 library(sf)
 library(raster)
 library(dplyr)
-library(DBI)
 library (RPostgreSQL)
 library (RPostgres)
 library (rpostgis)
+library(DBI)
 
 ```
+
+If we need to set library paths, then:
+```{r}
+.libPaths("C:/data/localApps/R-4.1.2/library")
+```
+
 
 Bring in the data. This is a very large file and R may have a hard time bringing it in. This data was created in 2018 and represents the road network as of 2017/2018. It is possible to use the road clus to back-cast with other files. For now and for simplicity, we will assume constant road density from 2002-2018 and into the future, but future refinements may wish to alter this and get more accurate road data annually.
 
 ```{r}
+#Unlock keyring first
+keyring_unlock()
+
 conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
                         host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
                         dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
@@ -61,23 +70,7 @@ roads_layer<- st_read (dsn = conn,
 dbDisconnect (conn)
 
 ```
-```{r}
-conn <- DBI::dbConnect (dbDriver ("RPostgres::Postgres()"), 
-                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
-                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
-                        port = '5432',
-                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
-                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
-
-conn <- DBI::dbConnect (dbDriver ("RPostgreSQL::PostgreSQL("), 
-                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
-                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
-                        port = '5432',
-                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
-                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
-
-```
 
 
 Inspect the file. Check the coordinate system. Determine the names of items in the file.
@@ -89,7 +82,7 @@ names(roads_layer)
 
 ```
 
-Bring in the BC boundary, transform, and inspec - plot the provincial boundary with the roads layer to ensure that they align properly.
+Bring in the BC boundary, transform, and inspect - plot the provincial boundary with the roads layer to ensure that they align properly.
 
 ```{r}
 
