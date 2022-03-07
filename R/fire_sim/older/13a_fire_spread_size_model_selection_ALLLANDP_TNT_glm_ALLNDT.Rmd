@@ -85,13 +85,14 @@ head(spread_data_ALL)
 
 #Inspect the data
 ```{r}
-min(spread_data_ALL$size_ha) # Minimum 1 ha: this is because we are only quantifying the spread and fire size of those that "spreadd" (> 1 ha)
+min(spread_data_ALL$size_ha) # Minimum 1 ha: this is because we are only quantifying the spread and fire size of those that "spread" (> 1 ha)
 hist(spread_data_ALL$size_ha) #Definitely not a normal distribution
 hist(log(spread_data_ALL$size_ha)) #Still not a normal distribution; already have a LNsize_ha variable created prior
 
 spread_data_ALL$ntrl_ds<-as.factor(spread_data_ALL$ntrl_ds)
 table(spread_data_ALL$ntrl_ds) #Very few in NDT5 (n=23)
 ```
+
 
 ##Create variables for model selection
 First we will create the variable lists that contain all of our variables of interest.
@@ -907,6 +908,7 @@ Note: R-square values were all very low, all <0.06, and adjusted Rsquare all < 0
 ##################### Begin Manual Exploration ##################
 Begin manual exploration from here. We will use the above variables, plus additional interactions: wind_atfire + climate1:proj_height_1 + climate1:proj_age_1 + climate1:live_stand_volume_125 + climate1:elevation + climate1:wind_atfire + slope:wind_atfire + elevation:wind_atfire + vegtype2:wind_atfire + Tdif_atfire + Tdif_atfire:wind_atfire + Tdif_atfire:live_stand_volume_125
 
+#Note that in visual exploration, it appears that mdc_atfire and slope may benefit from quadratic terms.
 
 ```{r}
 spread_NDT1<-subset(spread_data_ALL, spread_data_ALL$ntrl_ds=="NDT1")
@@ -922,9 +924,9 @@ prop<-0.75
    Valid <- spread_NDT1[-trainIndex,]
   
 #Run model using dat1
-model.NDT1<-glm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + dist_infra + roads_km + slope + aspect + wind_atfire + slope:wind_atfire + climate1 + climate2 + mdc_atfire + climate1:proj_height_1 + climate1*proj_age_1 + climate1*live_stand_volume_125 + climate1*elevation + climate1*wind_atfire + slope*wind_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire + Tdif_atfire*wind_atfire + Tdif_atfire*live_stand_volume_125, data = dat1)
+model.NDT1<-glm(LNsize_ha ~ proj_height_1 + live_stand_volume_125 + bclcs_level_2 + proj_height_1:bclcs_level_2 + dist_infra + roads_km + slope + slope2 + aspect + wind_atfire + slope:wind_atfire + climate1 + climate2 + mdc_atfire + mdc_atfire2 + climate1:proj_height_1 + climate1*proj_age_1 + climate1*live_stand_volume_125 + climate1*elevation + climate1*wind_atfire + slope*wind_atfire + elevation*wind_atfire + vegtype2*wind_atfire + Tdif_atfire + Tdif_atfire*wind_atfire + Tdif_atfire*live_stand_volume_125, data = dat1)
 
-AIC(model.NDT1) #2066.653
+AIC(model.NDT1) #2107.239
 summary(model.NDT1)$r.squared #0.22
 summary(model.NDT1)$adj.r.squared #0.16
 

@@ -39,9 +39,11 @@ library(rje)
 library(caret)
 library(pROC)
 library(visreg)
+```
 
-
-source(here::here("R/functions/R_Postgres.R"))
+Unsure about below anymore
+```{r setup, include=FALSE}
+source(here::here("R/functions/R_Postgres.R")) #maybe this is the problem after my update?
 ```
 
 #Overview
@@ -442,6 +444,13 @@ write.csv(cutblock_plots_openings_HuckBuff_ALL_df3b, file="D:\\Hucklberry\\Grizz
 ```
 
 
+If need to load back in:
+```{r}
+cutblock_plots_openings_HuckBuff_ALL_df3b<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_HuckBuff_ALL_df3b.csv")
+head(cutblock_plots_openings_HuckBuff_ALL_df3b)
+```
+
+
 #Dataset #2: Additional dataset from Laura Smit for Huckleberry 2011-2021. 
 This data comes from repeated measure plots. As a result, for percent cover, we will only use one year's worth of data and compare to climate variables for the decade. For berry abundance, annual data will be used to compare to climate annually.
 
@@ -613,10 +622,12 @@ Huck_Laura_Berries_df2$TimeSinceFire[is.na(Huck_Laura_Berries_df2$TimeSinceFire)
 Huck_Laura_Berries_df2$TimeSinceFire
 ```
 
+
+
 #Append ClimateBC Data
 In the below data being brought in, ALL data points from the file are included. However, not all were present within cutblocks, and thus, there will be more data points below than there is in the data brought in above.
 
-#First, we will get the data for the percetn cover, which involves the decadal means
+#First, we will get the data for the percent cover, which involves the decadal means
 ```{r}
 huck_Laura_plantcover_climate<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_data_ClimateBC\\Laura_Data_Long_forPerCov_coords_Decade_2011_2020SY.csv")
 head(huck_Laura_plantcover_climate)
@@ -947,6 +958,29 @@ cutblock_plots_openings_Laura_Huck_Berries$heatload
 hist(cutblock_plots_openings_Laura_Huck_Berries$heatload)
 ```
 
+
+#create Harvest year and time since Harvest
+
+```{r}
+#Berry data
+cutblock_plots_openings_Laura_Huck_Berries$Cutblock_Year<-stri_sub(cutblock_plots_openings_Laura_Huck_Berries$DST_STR_DT,1,4)
+cutblock_plots_openings_Laura_Huck_Berries$Cutblock_Year
+str(cutblock_plots_openings_Laura_Huck_Berries$Cutblock_Year)
+cutblock_plots_openings_Laura_Huck_Berries$Cutblock_Year<-as.numeric(cutblock_plots_openings_Laura_Huck_Berries$Cutblock_Year)
+
+cutblock_plots_openings_Laura_Huck_Berries$TimeSinceCutblock<-(cutblock_plots_openings_Laura_Huck_Berries$Year.x-cutblock_plots_openings_Laura_Huck_Berries$Cutblock_Year)
+cutblock_plots_openings_Laura_Huck_Berries$TimeSinceCutblock
+
+#percent Cover data
+cutblock_plots_openings_Laura_Huck_Plant$Cutblock_Year<-stri_sub(cutblock_plots_openings_Laura_Huck_Plant$DST_STR_DT,1,4)
+cutblock_plots_openings_Laura_Huck_Plant$Cutblock_Year
+cutblock_plots_openings_Laura_Huck_Plant$Cutblock_Year<-as.numeric(cutblock_plots_openings_Laura_Huck_Plant$Cutblock_Year)
+
+cutblock_plots_openings_Laura_Huck_Plant$TimeSinceCutblock<-(cutblock_plots_openings_Laura_Huck_Plant$Year.x-cutblock_plots_openings_Laura_Huck_Plant$Cutblock_Year)
+cutblock_plots_openings_Laura_Huck_Plant$TimeSinceCutblock
+
+```
+
 Save files.
 ```{r}
 write.csv(cutblock_plots_openings_Laura_Huck_Plant, file = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Laura_Huck_Plant.csv")
@@ -954,6 +988,14 @@ write.csv(cutblock_plots_openings_Laura_Huck_Plant, file = "D:\\Hucklberry\\Griz
 write.csv(cutblock_plots_openings_Laura_Huck_Berries, file = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Laura_Huck_Berries.csv")
 ```
 
+If need to bring files back in:
+```{r}
+cutblock_plots_openings_Laura_Huck_Plant<-read.csv(file = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Laura_Huck_Plant.csv")
+head(cutblock_plots_openings_Laura_Huck_Plant)
+
+cutblock_plots_openings_Laura_Huck_Berries<-read.csv(file = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Laura_Huck_Berries.csv")
+head(cutblock_plots_openings_Laura_Huck_Berries)
+```
 
 
 
@@ -971,7 +1013,7 @@ cutblock_plots_openings_mowatBuff<- st_read ( dsn = "D:\\Hucklberry\\Mackenzie_P
 head(cutblock_plots_openings_mowatBuff)
 names(cutblock_plots_openings_mowatBuff)
 
-cutblock_plots_openings_mowatBuff<-cutblock_plots_openings_mowatBuff[-(68:78)]
+#cutblock_plots_openings_mowatBuff<-cutblock_plots_openings_mowatBuff[-(68:78)]
 
 cutblock_plots_openings_mowatBuff$Species<-c("Shepherdia_canadensis")
 ```
@@ -979,7 +1021,7 @@ cutblock_plots_openings_mowatBuff$Species<-c("Shepherdia_canadensis")
 We could consider subsetting my whether file indicates clearcut or not, but this info does not line up with our data.
 ```{r}
 cutblock_plots_openings_mowatBuff2<-subset(cutblock_plots_openings_mowatBuff, cutblock_plots_openings_mowatBuff$Clear_Cut=="Yes")
-head(cutblock_plots_openings_mowatBuff2) #79 datapoints within cutblocks
+head(cutblock_plots_openings_mowatBuff2) #54 datapoints within cutblocks
 ```
 
 #Append DEM
@@ -1117,6 +1159,7 @@ table(cutblock_plots_openings_mowatBuff_FIRE_df$ID1, cutblock_plots_openings_mow
 
 #When joining, we should get 68 observations
 cutblock_plots_openings_mowatBuff3<-full_join(cutblock_plots_openings_mowatBuff_df, cutblock_plots_openings_mowatBuff_FIRE_df) #68 observations
+head(cutblock_plots_openings_mowatBuff3)
 
 
 ```
@@ -1132,7 +1175,10 @@ cutblock_plots_openings_mowatBuff3$TimeSinceFire[is.na(cutblock_plots_openings_m
 
 #Create cutblock year
 library(stringi)
-cutblock_plots_openings_mowatBuff3$Cutblock_Year<-stri_sub(cutblock_plots_openings_mowatBuff3$APP_DT,1,4)
+cutblock_plots_openings_mowatBuff3$Cutblock_Year<-stri_sub(cutblock_plots_openings_mowatBuff3$DST_STR_DT,1,4)
+cutblock_plots_openings_mowatBuff3$Cutblock_Year2<-stri_sub(cutblock_plots_openings_mowatBuff3$APP_DT,1,4)
+table(cutblock_plots_openings_mowatBuff3$Cutblock_Year,cutblock_plots_openings_mowatBuff3$Cutblock_Year2) #Same
+
 cutblock_plots_openings_mowatBuff3$Cutblock_Year
 str(cutblock_plots_openings_mowatBuff3$Cutblock_Year)
 cutblock_plots_openings_mowatBuff3$Cutblock_Year<-as.numeric(cutblock_plots_openings_mowatBuff3$Cutblock_Year)
@@ -1144,7 +1190,7 @@ cutblock_plots_openings_mowatBuff3$TimeSinceCutblock
 
 Add heatload.
 ```{r}
-cutblock_plots_openings_mowatBuff3$heatload <- heatload (aspect = cutblock_plots_openings_mowatBuff3$aspect_ha_bc_3005, slope = cutblock_plots_openings_mowatBuff3$slope_ha_bc_3005, latitude = cutblock_plots_openings_mowatBuff3$Latitude, equation = 3)
+cutblock_plots_openings_mowatBuff3$heatload <- heatload (aspect = cutblock_plots_openings_mowatBuff3$aspect_ha_bc_3005, slope = cutblock_plots_openings_mowatBuff3$slope_ha_bc_3005, latitude = cutblock_plots_openings_mowatBuff3$LATITUDE, equation = 3)
  
 cutblock_plots_openings_mowatBuff3$heatload 
 hist(cutblock_plots_openings_mowatBuff3$heatload)
@@ -1153,6 +1199,11 @@ hist(cutblock_plots_openings_mowatBuff3$heatload)
 Save new file.
 ```{r}
 write.csv(cutblock_plots_openings_mowatBuff2, file = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_Buff_Openings_DEM_Soil_Climate.csv")
+```
+
+If need to load back in data.
+```{r}
+cutblock_plots_openings_mowatBuff2<-read.csv(file = "D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_Buff_Openings_DEM_Soil_Climate.csv")
 ```
 
 
@@ -1222,81 +1273,182 @@ head(cutblock_plots_openings_BECHuck_df_)
 
 
 
+
+
+
+
 ################# Now that we have the data in, combine files as appropriate #################
 
 #Combine appropriate files
 
 ```{r}
-head(cutblock_plots_openings_Huck_ALL_df)
-table(cutblock_plots_openings_Huck_ALL_df$Species.y) #202 buffaloberry; 628 huckleberry
+head(cutblock_plots_openings_HuckBuff_ALL_df3b)
+table(cutblock_plots_openings_HuckBuff_ALL_df3b$Species.y) #240 buffaloberry; 699 huckleberry
+head(cutblock_plots_openings_Laura_Huck_Berries) #Only Huckleberry
 head(cutblock_plots_openings_mowatBuff_df) #Only Buffaloberry
-head(cutblock_plots_openings_BECHuck_df) #only huckleberry
+#head(cutblock_plots_openings_BECHuck_df) #only huckleberry
 
 #Separate by species
-cutblock_plots_openings_Huck_ALL_df_Buff<-subset(cutblock_plots_openings_Huck_ALL_df, cutblock_plots_openings_Huck_ALL_df$Species.y=="Shepherdia_canadensis")
-cutblock_plots_openings_Huck_ALL_df_Huck<-subset(cutblock_plots_openings_Huck_ALL_df, cutblock_plots_openings_Huck_ALL_df$Species.y=="Vaccinium_membranaceum")
+cutblock_plots_openings_Buff_ALL_df<-subset(cutblock_plots_openings_HuckBuff_ALL_df3b, cutblock_plots_openings_HuckBuff_ALL_df3b$Species.y=="Shepherdia_canadensis")
+cutblock_plots_openings_Huck_ALL_df<-subset(cutblock_plots_openings_HuckBuff_ALL_df3b, cutblock_plots_openings_HuckBuff_ALL_df3b$Species.y=="Vaccinium_membranaceum")
 
 #Because sample size increased, see if in cutblocks
-table(cutblock_plots_openings_Huck_ALL_df_Buff$CutBlock_Occurrence)#Suggests 16 not
-table(cutblock_plots_openings_Huck_ALL_df_Huck$CutBlock_Occurrence) #Suggests 27 not
+table(cutblock_plots_openings_Buff_ALL_df$CutBlock_O)#Suggests 49 not
+table(cutblock_plots_openings_Huck_ALL_df$CutBlock_O) #Suggests 99 not
 
-cutblock_plots_openings_Huck_ALL_df_Buff<-subset(cutblock_plots_openings_Huck_ALL_df_Buff, cutblock_plots_openings_Huck_ALL_df_Buff$CutBlock_Occurrence=="1")
+cutblock_plots_openings_Buff_ALL_df2<-subset(cutblock_plots_openings_Buff_ALL_df, cutblock_plots_openings_Buff_ALL_df$CutBlock_O=="1")
 
-cutblock_plots_openings_Huck_ALL_df_Huck<-subset(cutblock_plots_openings_Huck_ALL_df_Huck, cutblock_plots_openings_Huck_ALL_df_Huck$CutBlock_Occurrence=="1")
+cutblock_plots_openings_Huck_ALL_df2<-subset(cutblock_plots_openings_Huck_ALL_df, cutblock_plots_openings_Huck_ALL_df$CutBlock_O=="1")
 ```
 
 ```{r}
 #Ensure names consistent between files to be combined
 ## 1. cutblock_plots_openings_Huck_ALL_df_Huck, cutblock_plots_openings_BECHuck_df
-names(cutblock_plots_openings_Huck_ALL_df_Huck) # Key names: Species.Cover, HARVEST_YE == CutBlock_Year
-names(cutblock_plots_openings_BECHuck_df) #key names: TotalB, HARVESTYR 
+names(cutblock_plots_openings_Huck_ALL_df2) # Key names: Species.Pr, Species.Co, Species.He, Fruit.Pres, Fruit.Cove, Fruit.Abun,  HARVEST_YE == CutBlock_Year, TimeSinceC, TimeSinceF, LandsatCC_ = Canopy Cover
+head(cutblock_plots_openings_Huck_ALL_df2) #
+names(cutblock_plots_openings_Laura_Huck_Berries) #  Fruit_Coun, Plant_Heig, Species_Co,  Canopy_Cov, TimeSinceCutblock, TimeSinceFire
+
+#names(cutblock_plots_openings_BECHuck_df) #key names: TotalB, HARVESTYR 
 #Many other variables may qish to acquire for BEC data, like fire year, 
 ##Note, all climate variables NAs... need to run through climateBC and get
+```
 
+UPDATE NAMING
+```{r}
+#Update names in cutblock_plots_openings_Laura_Huck_Berries
+cutblock_plots_openings_Laura_Huck_Berries<-rename(cutblock_plots_openings_Laura_Huck_Berries,
+                   c("Species.Co"="Species_Co",
+                     "HARVEST_YE"="Cutblock_Year",
+                     "Species.He" = "Plant_Heig",
+                     "Fruit.Abun" ="Fruit_Coun"))
 
-#Update names in cutblock_plots_openings_BECHuck_df
-cutblock_plots_openings_BECHuck_df<-rename(cutblock_plots_openings_BECHuck_df,
-                   c("Species.Cover"="TotalB",
-                     "HARVEST_YE"="HARVESTYR"))
+#Change Canopy Cover name in other file
+cutblock_plots_openings_Huck_ALL_df2<-rename(cutblock_plots_openings_Huck_ALL_df2,
+                   c("Canopy_Cov"="LandsatCC_",
+                     "TimeSinceFire" = "TimeSinceF",
+                     "TimeSinceCutblock" = "TimeSinceC"))
 
-cutblock_plots_openings_BECHuck_df$Species.Present<-1
-table(cutblock_plots_openings_BECHuck_df$Species.Present)
+cutblock_plots_openings_Laura_Huck_Berries$Species.Pr<-1
+table(cutblock_plots_openings_Laura_Huck_Berries$Species.Pr)
 
 #Combine
 # fill in non-overlapping columns with NAs
-cutblock_plots_openings_Huck_ALL_df_Huck[setdiff(names(cutblock_plots_openings_BECHuck_df), names(cutblock_plots_openings_Huck_ALL_df_Huck))] <- NA
-cutblock_plots_openings_BECHuck_df[setdiff(names(cutblock_plots_openings_Huck_ALL_df_Huck), names(cutblock_plots_openings_BECHuck_df))] <- NA
+cutblock_plots_openings_Huck_ALL_df2[setdiff(names(cutblock_plots_openings_Laura_Huck_Berries), names(cutblock_plots_openings_Huck_ALL_df2))] <- NA
+cutblock_plots_openings_Laura_Huck_Berries[setdiff(names(cutblock_plots_openings_Huck_ALL_df2), names(cutblock_plots_openings_Laura_Huck_Berries))] <- NA
 
-cutblock_plots_openings_Huck_ALL_df<-rbind(cutblock_plots_openings_Huck_ALL_df_Huck, cutblock_plots_openings_BECHuck_df)
+library(gtools)
 
-head(cutblock_plots_openings_Huck_ALL_df) #May need to alter additional columns to be synonymous - will find out during data processing
+cutblock_plots_openings_Huck_ALL_df_2022<-smartbind(cutblock_plots_openings_Huck_ALL_df2, cutblock_plots_openings_Laura_Huck_Berries)
+head(cutblock_plots_openings_Huck_ALL_df_2022)
+```
 
-table(cutblock_plots_openings_Huck_ALL_df$Species.y)
-table(cutblock_plots_openings_Huck_ALL_df_Huck$Species.y)
-table(cutblock_plots_openings_BECHuck_df$Species) #1686
-table(cutblock_plots_openings_Huck_ALL_df$Species)
-head(cutblock_plots_openings_BECHuck_df)
+Inspect
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022$HARVEST_YE
+cutblock_plots_openings_Huck_ALL_df_2022$Canopy_Cov
+cutblock_plots_openings_Huck_ALL_df_2022$Canopy_Cov<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022$Canopy_Cov)
+cutblock_plots_openings_Huck_ALL_df_2022$TimeSinceCutblock
+cutblock_plots_openings_Huck_ALL_df_2022$TimeSinceFire
+cutblock_plots_openings_Huck_ALL_df_2022$Fruit.Abun #Many NAs because plant not present at those locations
+cutblock_plots_openings_Huck_ALL_df_2022$Fruit.Abun<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022$Fruit.Abun)
+cutblock_plots_openings_Huck_ALL_df_2022$Species.He
+cutblock_plots_openings_Huck_ALL_df_2022$Species.He<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022$Species.He)
+cutblock_plots_openings_Huck_ALL_df_2022$Species.Co
+cutblock_plots_openings_Huck_ALL_df_2022$Species.Co<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022$Species.Co)
+```
+
+```{r}
+#Update names in cutblock_plots_openings_BECHuck_df
+#cutblock_plots_openings_BECHuck_df<-rename(cutblock_plots_openings_BECHuck_df,
+#                   c("Species.Cover"="TotalB",
+#                     "HARVEST_YE"="HARVESTYR"))
+
+#cutblock_plots_openings_BECHuck_df$Species.Present<-1
+#table(cutblock_plots_openings_BECHuck_df$Species.Present)
+
+#Combine
+# fill in non-overlapping columns with NAs
+#cutblock_plots_openings_Huck_ALL_df_Huck[setdiff(names(cutblock_plots_openings_BECHuck_df), names(cutblock_plots_openings_Huck_ALL_df_Huck))] <- NA
+#cutblock_plots_openings_BECHuck_df[setdiff(names(cutblock_plots_openings_Huck_ALL_df_Huck), #names(cutblock_plots_openings_BECHuck_df))] <- NA
+
+#cutblock_plots_openings_Huck_ALL_df<-rbind(cutblock_plots_openings_Huck_ALL_df_Huck, cutblock_plots_openings_BECHuck_df)
+```
+
+
+```{r}
+head(cutblock_plots_openings_Huck_ALL_df_2022) #May need to alter additional columns to be synonymous - will find out during data processing
+names(cutblock_plots_openings_Huck_ALL_df_2022)
+
 ```
 
 Save file.
 
 ```{r}
-names(cutblock_plots_openings_Huck_ALL_df)
-cutblock_plots_openings_Huck_ALL_df[182]
-cutblock_plots_openings_Huck_ALL_df$Elevation_1<-cutblock_plots_openings_Huck_ALL_df$Elevation
+names(cutblock_plots_openings_Huck_ALL_df_2022)
 
-cutblock_plots_openings_Huck_ALL_df<-cutblock_plots_openings_Huck_ALL_df[-182]
+#remove weird slope columns
+cutblock_plots_openings_Huck_ALL_df_2022<-cutblock_plots_openings_Huck_ALL_df_2022[-500]
 
-cutblock_plots_openings_Huck_ALL_df[183]
-cutblock_plots_openings_Huck_ALL_df$Aspect_1<-cutblock_plots_openings_Huck_ALL_df$Aspect
+#remove weird aspect column
+cutblock_plots_openings_Huck_ALL_df_2022<-cutblock_plots_openings_Huck_ALL_df_2022[-500]
 
-cutblock_plots_openings_Huck_ALL_df<-cutblock_plots_openings_Huck_ALL_df[-183]
+#two fire year columns
+plot(cutblock_plots_openings_Huck_ALL_df_2022$Fire_Year, cutblock_plots_openings_Huck_ALL_df_2022$FIRE_YEAR)
+cutblock_plots_openings_Huck_ALL_df_2022<-cutblock_plots_openings_Huck_ALL_df_2022[-518]
 
-st_write(cutblock_plots_openings_Huck_ALL_df, dsn="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df.csv")
+write.csv(cutblock_plots_openings_Huck_ALL_df_2022, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_2022.csv")
 ```
 
 
-Repeat for Buffaloberry
+keep in mind that we still have areas where plants did not occur, but reasonably could.
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df2$Species.Pr)
+
+cutblock_plots_openings_Huck_ALL_df2_PresenceOnly<-subset(cutblock_plots_openings_Huck_ALL_df2, cutblock_plots_openings_Huck_ALL_df2$Species.Pr=="1")
+
+write.csv(cutblock_plots_openings_Huck_ALL_df2_PresenceOnly, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df2_PresenceOnly.csv")
+
+```
+
+If need to bring back in.
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df2_PresenceOnly<-read.csv( file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df2_PresenceOnly.csv")
+
+cutblock_plots_openings_Huck_ALL_df_2022<-read.csv( file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_2022.csv")
+```
+
+
+
+###### bring in Dave Wadell's additional information and append to dataframe
+
+```{r}
+
+silv_dt<- read.csv(file="D:\\Hucklberry\\Dave_Files\\silv_dt.csv")
+head(silv_dt)
+
+atu_subset<- read.csv(file="D:\\Hucklberry\\Dave_Files\\atu_subset.csv")
+head(atu_subset)
+
+msyt_sub<- read.csv(file="D:\\Hucklberry\\Dave_Files\\msyt_sub.csv")
+head(msyt_sub)
+
+```
+
+
+
+
+
+
+
+
+
+
+###### UPDATE BELOW #############
+
+
+
+#######Repeat for Buffaloberry
 
 ```{r}
 ## 2. cutblock_plots_openings_Huck_ALL_df_Buff, cutblock_plots_openings_mowatBuff_df

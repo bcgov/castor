@@ -40,7 +40,7 @@ library(pROC)
 library(visreg)
 library(arm)
 
-source(here::here("R/functions/R_Postgres.R"))
+#source(here::here("R/functions/R_Postgres.R"))
 ```
 
 ##Data sets for what purpose
