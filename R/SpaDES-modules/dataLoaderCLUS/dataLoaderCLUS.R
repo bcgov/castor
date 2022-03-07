@@ -825,13 +825,17 @@ calcForestState<-function(sim){
 sim$foreststate<- data.table(dbGetQuery(sim$clusdb, paste0("SELECT compartid as compartment, sum(case when compartid is not null then 1 else 0 end) as total, 
            sum(thlb) as thlb, sum(case when age <= 40 and age >= 0 then 1 else 0 end) as early,
            sum(case when age > 40 and age < 140 then 1 else 0 end) as mature,
-           sum(case when age >= 140 then 1 else 0 end) as old,
-           0 as road
+           sum(case when age >= 140 then 1 else 0 end) as old
            FROM pixels  where compartid 
               in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')
                          group by compartid;"))
             )
 
+if(dbGetQuery(sim$clusdb, paste0("SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='roadyear';"))$exists_check == 0){
+  sim$foreststate[,road:=0]
+}else{
+  sim$foreststate[,road:= dbGetQuery(sim$clusdb,"select count() as road from pixels where roadyear = 0")$road]
+}
   return(invisible(sim))
 }
 
