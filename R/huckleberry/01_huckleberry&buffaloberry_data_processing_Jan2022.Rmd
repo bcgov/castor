@@ -39,6 +39,7 @@ library(rje)
 library(caret)
 library(pROC)
 library(visreg)
+library(gtools)
 ```
 
 Unsure about below anymore
@@ -1414,11 +1415,12 @@ If need to bring back in.
 
 ```{r}
 cutblock_plots_openings_Huck_ALL_df2_PresenceOnly<-read.csv( file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df2_PresenceOnly.csv")
+head(cutblock_plots_openings_Huck_ALL_df2_PresenceOnly)
 
 cutblock_plots_openings_Huck_ALL_df_2022<-read.csv( file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_2022.csv")
+head(cutblock_plots_openings_Huck_ALL_df_2022)
+cutblock_plots_openings_Huck_ALL_df_2022$OPENING_ID
 ```
-
-
 
 ###### bring in Dave Wadell's additional information and append to dataframe
 
@@ -1434,7 +1436,34 @@ msyt_sub<- read.csv(file="D:\\Hucklberry\\Dave_Files\\msyt_sub.csv")
 head(msyt_sub)
 
 ```
+Update Opening ID naming.
 
+```{r}
+silv_dt<-rename(silv_dt,
+                   c("OPENING_ID"="opening_id."))
+head(silv_dt)
+
+atu_subset<-rename(atu_subset,
+                   c("OPENING_ID"="opening_id"))
+head(atu_subset)
+
+msyt_sub<-rename(msyt_sub,
+                   c("OPENING_ID"="opening_id."))
+head(msyt_sub)
+
+```
+
+Bind using smartbind.
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b<-smartbind(cutblock_plots_openings_Huck_ALL_df_2022, silv_dt)
+head(cutblock_plots_openings_Huck_ALL_df_2022_b)
+cutblock_plots_openings_Huck_ALL_df_2022_b$pl_date_min. #Mostly NAs, some not.
+
+cutblock_plots_openings_Huck_ALL_df_2022_b<-smartbind(cutblock_plots_openings_Huck_ALL_df_2022_b, atu_subset)
+cutblock_plots_openings_Huck_ALL_df_2022_b<-smartbind(cutblock_plots_openings_Huck_ALL_df_2022_b, msyt_sub) # recursive gc invocation
+
+head(cutblock_plots_openings_Huck_ALL_df_2022_b)
+```
 
 
 
