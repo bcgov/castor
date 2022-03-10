@@ -142,7 +142,7 @@ parameters <- list(
   growingStockCLUS = list (periodLength = 5),
   roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
-                  nameRoads =  'rast.crds_all'),
+                  nameRoads =  'rast.ce_road_2019'),
   uploaderCLUS = list(aoiName = 'tutorial', 
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
