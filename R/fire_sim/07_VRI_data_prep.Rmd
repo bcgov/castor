@@ -191,7 +191,7 @@ No  stand_percentage_dead,
 
 
 # note that the VRI for 2008 does not have live_stand_volume so I (Liz) also tried to extract it from the 2009 VRI and put it in here -  assuming that a year would not make much difference to volume. Below is the code i used to try and do this (but note this does not seem to work.... )
-### July 2021, when ran, there already is a column for live_stand_volume_125,  so this may not be necessary
+### July 2021, when ran, there already is a column for live_stand_volume_125, so this may not be necessary
 
 #ALTER TABLE fire_veg_2008
 #ADD COLUMN live_stand_volume_125 double precision;
@@ -239,6 +239,12 @@ source(here::here("R/functions/R_Postgres.R"))
 ```
 
 Now we will bring all of the files we made above into R. You may need to create a new connection to bring each one in instead, or at least run line by line and not as a code chunk.
+
+If we need to set library paths, then:
+```{r}
+.libPaths("C:/data/localApps/R-4.1.2/library")
+```
+
 
 ```{r}
 #Import all fire_veg

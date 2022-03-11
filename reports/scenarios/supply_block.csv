@@ -1,0 +1,91 @@
+"","area_name","scenario","volume"
+"1","Quesnel TSA Narcosli East Blk","chilcotin_bau_live_dead",726862.69511694
+"2","Quesnel TSA Narcosli East Blk","chilcotin_scen1a_live_dead",723864.260439374
+"3","Quesnel TSA Narcosli East Blk","chilcotin_scen1b_live_dead",724235.375985354
+"4","Quesnel TSA Narcosli East Blk","chilcotin_scen1c_live_dead",724235.375985354
+"5","Quesnel TSA Narcosli East Blk","chilcotin_scen2a_live_dead",726364.207123
+"6","Quesnel TSA Narcosli East Blk","chilcotin_scen2b_live_dead",726364.207123
+"7","Quesnel TSA Narcosli East Blk","chilcotin_scen2c_live_dead",726364.207123
+"8","Quesnel TSA Narcosli East Blk","chilcotin_scen3a_live_dead",723864.260439374
+"9","Quesnel TSA Narcosli East Blk","chilcotin_scen3b_live_dead",724235.375985354
+"10","Quesnel TSA Narcosli East Blk","chilcotin_scen3c_live_dead",724235.375985354
+"11","Quesnel TSA Narcosli West Blk","chilcotin_bau_live_dead",309400.485013396
+"12","Quesnel TSA Narcosli West Blk","chilcotin_scen1a_live_dead",297621.788453777
+"13","Quesnel TSA Narcosli West Blk","chilcotin_scen1b_live_dead",310751.787952385
+"14","Quesnel TSA Narcosli West Blk","chilcotin_scen1c_live_dead",310811.297737816
+"15","Quesnel TSA Narcosli West Blk","chilcotin_scen2a_live_dead",276905.84995899
+"16","Quesnel TSA Narcosli West Blk","chilcotin_scen2b_live_dead",279162.276708858
+"17","Quesnel TSA Narcosli West Blk","chilcotin_scen2c_live_dead",279171.424178264
+"18","Quesnel TSA Narcosli West Blk","chilcotin_scen3a_live_dead",297751.522059896
+"19","Quesnel TSA Narcosli West Blk","chilcotin_scen3b_live_dead",310882.733847547
+"20","Quesnel TSA Narcosli West Blk","chilcotin_scen3c_live_dead",311191.49182612
+"21","Quesnel TSA South Kluskus Blk","chilcotin_bau_live_dead",100264.209357603
+"22","Quesnel TSA South Kluskus Blk","chilcotin_scen1a_live_dead",101315.101388811
+"23","Quesnel TSA South Kluskus Blk","chilcotin_scen1b_live_dead",105687.302132029
+"24","Quesnel TSA South Kluskus Blk","chilcotin_scen1c_live_dead",103625.494766656
+"25","Quesnel TSA South Kluskus Blk","chilcotin_scen2a_live_dead",78732.3560496767
+"26","Quesnel TSA South Kluskus Blk","chilcotin_scen2b_live_dead",78732.3560496767
+"27","Quesnel TSA South Kluskus Blk","chilcotin_scen2c_live_dead",79486.4185110469
+"28","Quesnel TSA South Kluskus Blk","chilcotin_scen3a_live_dead",101302.268665961
+"29","Quesnel TSA South Kluskus Blk","chilcotin_scen3b_live_dead",101940.811004815
+"30","Quesnel TSA South Kluskus Blk","chilcotin_scen3c_live_dead",100932.256249248
+"31","Wms Lk TSA Anahim Block","chilcotin_bau_live_dead",86268.5900770752
+"32","Wms Lk TSA Anahim Block","chilcotin_scen1a_live_dead",68531.9365669805
+"33","Wms Lk TSA Anahim Block","chilcotin_scen1b_live_dead",79722.6963297632
+"34","Wms Lk TSA Anahim Block","chilcotin_scen1c_live_dead",84990.2193369388
+"35","Wms Lk TSA Anahim Block","chilcotin_scen2a_live_dead",9053.40959097107
+"36","Wms Lk TSA Anahim Block","chilcotin_scen2b_live_dead",9053.40959097107
+"37","Wms Lk TSA Anahim Block","chilcotin_scen2c_live_dead",17542.3793760102
+"38","Wms Lk TSA Anahim Block","chilcotin_scen3a_live_dead",67323.361174025
+"39","Wms Lk TSA Anahim Block","chilcotin_scen3b_live_dead",78000.083785957
+"40","Wms Lk TSA Anahim Block","chilcotin_scen3c_live_dead",82219.85992729
+"41","Wms Lk TSA Chezacut Block","chilcotin_bau_live_dead",94100.6841368225
+"42","Wms Lk TSA Chezacut Block","chilcotin_scen1a_live_dead",81054.7768490056
+"43","Wms Lk TSA Chezacut Block","chilcotin_scen1b_live_dead",89163.4650444079
+"44","Wms Lk TSA Chezacut Block","chilcotin_scen1c_live_dead",93218.1217932162
+"45","Wms Lk TSA Chezacut Block","chilcotin_scen2a_live_dead",2887.22284687235
+"46","Wms Lk TSA Chezacut Block","chilcotin_scen2b_live_dead",2897.97656795161
+"47","Wms Lk TSA Chezacut Block","chilcotin_scen2c_live_dead",3513.24119922455
+"48","Wms Lk TSA Chezacut Block","chilcotin_scen3a_live_dead",78677.2209787061
+"49","Wms Lk TSA Chezacut Block","chilcotin_scen3b_live_dead",89499.4993122375
+"50","Wms Lk TSA Chezacut Block","chilcotin_scen3c_live_dead",94552.3430674457
+"51","Wms Lk TSA Kloacut Block","chilcotin_bau_live_dead",169010.7417554
+"52","Wms Lk TSA Kloacut Block","chilcotin_scen1a_live_dead",164551.928987239
+"53","Wms Lk TSA Kloacut Block","chilcotin_scen1b_live_dead",169503.871009286
+"54","Wms Lk TSA Kloacut Block","chilcotin_scen1c_live_dead",169014.404419372
+"55","Wms Lk TSA Kloacut Block","chilcotin_scen2a_live_dead",145251.848476099
+"56","Wms Lk TSA Kloacut Block","chilcotin_scen2b_live_dead",145251.848476099
+"57","Wms Lk TSA Kloacut Block","chilcotin_scen2c_live_dead",145251.848476099
+"58","Wms Lk TSA Kloacut Block","chilcotin_scen3a_live_dead",164555.709223033
+"59","Wms Lk TSA Kloacut Block","chilcotin_scen3b_live_dead",169733.712737654
+"60","Wms Lk TSA Kloacut Block","chilcotin_scen3c_live_dead",169862.176037652
+"61","Wms Lk TSA Palmer Lake Block","chilcotin_bau_live_dead",243136.591503591
+"62","Wms Lk TSA Palmer Lake Block","chilcotin_scen1a_live_dead",222925.772455494
+"63","Wms Lk TSA Palmer Lake Block","chilcotin_scen1b_live_dead",243116.800258656
+"64","Wms Lk TSA Palmer Lake Block","chilcotin_scen1c_live_dead",243127.326103304
+"65","Wms Lk TSA Palmer Lake Block","chilcotin_scen2a_live_dead",193719.974883023
+"66","Wms Lk TSA Palmer Lake Block","chilcotin_scen2b_live_dead",193719.974883023
+"67","Wms Lk TSA Palmer Lake Block","chilcotin_scen2c_live_dead",193719.974883023
+"68","Wms Lk TSA Palmer Lake Block","chilcotin_scen3a_live_dead",222925.772455563
+"69","Wms Lk TSA Palmer Lake Block","chilcotin_scen3b_live_dead",243138.79478438
+"70","Wms Lk TSA Palmer Lake Block","chilcotin_scen3c_live_dead",243139.637883273
+"71","Wms Lk TSA Tatla Block","chilcotin_bau_live_dead",58087.1146065474
+"72","Wms Lk TSA Tatla Block","chilcotin_scen1a_live_dead",47040.2926227962
+"73","Wms Lk TSA Tatla Block","chilcotin_scen1b_live_dead",56585.1464266414
+"74","Wms Lk TSA Tatla Block","chilcotin_scen1c_live_dead",56754.1761539447
+"75","Wms Lk TSA Tatla Block","chilcotin_scen2a_live_dead",6746.45149568966
+"76","Wms Lk TSA Tatla Block","chilcotin_scen2b_live_dead",6746.45149568966
+"77","Wms Lk TSA Tatla Block","chilcotin_scen2c_live_dead",6800.08854182591
+"78","Wms Lk TSA Tatla Block","chilcotin_scen3a_live_dead",47116.5950036463
+"79","Wms Lk TSA Tatla Block","chilcotin_scen3b_live_dead",57169.2267808931
+"80","Wms Lk TSA Tatla Block","chilcotin_scen3c_live_dead",57633.6310818939
+"81",NA,"chilcotin_bau_live_dead",8.26104375
+"82",NA,"chilcotin_scen1a_live_dead",8.26104375
+"83",NA,"chilcotin_scen1b_live_dead",8.26104375
+"84",NA,"chilcotin_scen1c_live_dead",8.26104375
+"85",NA,"chilcotin_scen2a_live_dead",8.26104375
+"86",NA,"chilcotin_scen2b_live_dead",8.26104375
+"87",NA,"chilcotin_scen2c_live_dead",8.26104375
+"88",NA,"chilcotin_scen3a_live_dead",8.26104375
+"89",NA,"chilcotin_scen3b_live_dead",8.26104375
+"90",NA,"chilcotin_scen3c_live_dead",8.26104375

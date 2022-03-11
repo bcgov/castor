@@ -77,7 +77,7 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
       sim <- scheduleEvent(sim, time(sim)+ 1, "forestryCLUS", "schedule", 3)
       sim <- scheduleEvent(sim, end(sim) , "forestryCLUS", "save", 9)
       
-      if(P(sim, "forestryCLUS", "harvestZonePriorityInterval") > 0){
+      if(P(sim, "harvestZonePriorityInterval", "forestryCLUS") > 0){
         sim <- scheduleEvent(sim, time(sim)+ 1 , "forestryCLUS", "updateZonePriority", 10)
       }
     },
@@ -88,7 +88,7 @@ doEvent.forestryCLUS = function(sim, eventTime, eventType) {
     },
     updateZonePriority={
       sim <- updateZonePriorityTable(sim)
-      sim <- scheduleEvent(sim, time(sim)+ P(sim, "forestryCLUS", "harvestZonePriorityInterval") , "forestryCLUS", "updateZonePriority", 10)
+      sim <- scheduleEvent(sim, time(sim)+ P(sim, "harvestZonePriorityInterval", "forestryCLUS") , "forestryCLUS", "updateZonePriority", 10)
     },
     save = {
       sim <- reportConstraints(sim) 
@@ -110,7 +110,7 @@ Init <- function(sim) {
   sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), target = numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric())
  
   #Remove zones as a scenario
-  dbExecute(sim$clusdb, paste0("DELETE FROM zoneConstraints WHERE reference_zone not in ('",paste(P(sim, "dataLoaderCLUS", "nameZoneRasters"), sep= ' ', collapse = "', '"),"')"))
+  dbExecute(sim$clusdb, paste0("DELETE FROM zoneConstraints WHERE reference_zone not in ('",paste(P(sim, "nameZoneRasters", "dataLoaderCLUS"), sep= ' ', collapse = "', '"),"')"))
   
  
   #Create the zoneManagement table used for reporting the harvesting constraints throughout the simulation
@@ -118,8 +118,8 @@ Init <- function(sim) {
   
   
   #Create the zonePriority table used for spatially adjusting the harvest queue
-  if(!P(sim, "forestryCLUS", "harvestZonePriority") == '99999'){
-    pzone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column from zone where reference_zone = '", P(sim, "dataLoaderCLUS", "nameZonePriorityRaster"),"'"))[[1]]
+  if(!P(sim, "harvestZonePriority", "forestryCLUS") == '99999'){
+    pzone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column from zone where reference_zone = '", P(sim, "nameZonePriorityRaster", "dataLoaderCLUS"),"'"))[[1]]
     dbExecute(sim$clusdb, paste0("CREATE TABLE zonePriority as SELECT ", pzone,", ", pzone," as zoneid, avg(age) as age, avg(dist) as dist, avg(vol*thlb) as vol FROM pixels WHERE thlb > 0 GROUP BY ", 
                                  pzone))
   }
@@ -143,7 +143,7 @@ Init <- function(sim) {
     dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN salvage_vol numeric DEFAULT 0")
   }
     # add in the raster
-  if(P(sim, "forestryCLUS", "salvageRaster") == '99999'){
+  if(P(sim, "salvageRaster", "forestryCLUS") == '99999'){
     message("WARNING: No salvage raster specified ... defaulting to no salvage opportunities")
   }else{
     message("...getting salvage opportunities")
@@ -152,7 +152,7 @@ Init <- function(sim) {
       
     salvage_vol<- data.table (c(t(raster::as.matrix( 
         RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                     srcRaster = P(sim, "forestryCLUS", "salvageRaster"), 
+                     srcRaster = P(sim, "salvageRaster", "forestryCLUS"), 
                      clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                      geom = sim$boundaryInfo[[4]], 
                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -174,9 +174,10 @@ Init <- function(sim) {
 }
 
 saveForestry<- function(sim) {
+  message("Write rasters")
   #write.csv(sim$harvestReport, "harvestReport.csv")
-  writeRaster(sim$harvestBlocks, paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]], "_harvestBlocks.tif"), overwrite=TRUE)#write the blocks to a raster?
-  writeRaster(sim$ras.zoneConstraint, paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]],"_constraints.tif"), overwrite=TRUE)
+  #writeRaster(sim$harvestBlocks, paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]], "_harvestBlocks.tif"), overwrite=TRUE)#write the blocks to a raster?
+  #writeRaster(sim$ras.zoneConstraint, paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]],"_constraints.tif"), overwrite=TRUE)
   return(invisible(sim))
 }
 
@@ -194,7 +195,7 @@ setConstraints<- function(sim) {
     dbExecute(sim$clusdb, paste0("UPDATE pixels SET zone_const = 1 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
   }
   #Get the zones that are listed for this specific scenario
-  zones<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone WHERE reference_zone in ('",paste(P(sim, "dataLoaderCLUS", "nameZoneRasters"), sep= ' ', collapse = "', '"),"')"))
+  zones<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone WHERE reference_zone in ('",paste(P(sim, "nameZoneRasters", "dataLoaderCLUS"), sep= ' ', collapse = "', '"),"')"))
   for(i in 1:nrow(zones)){ #for each of the specified zone rasters
     numConstraints<-dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT variable, type, denom FROM zoneConstraints WHERE
                                zone_column = '",  zones[[1]][i] ,"' AND type IN ('ge', 'le') and start <= ", time(sim)*sim$updateInterval, " and stop >= ", time(sim)*sim$updateInterval ))
@@ -392,14 +393,14 @@ setConstraints<- function(sim) {
     } 
   }
   
-  if(!(P(sim, "forestryCLUS", "adjacencyConstraint") == 9999)){
+  if(!(P(sim, "adjacencyConstraint", "forestryCLUS") == 9999)){
     #Update pixels in clusdb for adjacency constraints
     message("...assigning adjacency constraint")
     query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE blockid IN 
-                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= ",P(sim, "forestryCLUS", "adjacencyConstraint") ,
+                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= ",P(sim, "adjacencyConstraint", "forestryCLUS") ,
                                                             " UNION 
                                                             SELECT b.adjblockid FROM 
-                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= ",P(sim, "forestryCLUS", "adjacencyConstraint"),") a 
+                                                            (SELECT blockid FROM blocks WHERE blockid > 0 AND height >= 0 AND height <= ",P(sim, "adjacencyConstraint", "forestryCLUS"),") a 
                                                             LEFT JOIN adjacentBlocks b ON a.blockid = b.blockid ); ")))
     dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "UPDATE pixels set zone_const = 1 WHERE pixelid = :pixelid; ", query_parms)
@@ -418,12 +419,16 @@ setConstraints<- function(sim) {
   return(invisible(sim))
 }
 
-getHarvestQueue<- function(sim) {
+getHarvestQueue <- function(sim) {
+  #Objects that need appending 
+  sim$harvestPixelList <- data.table()
+  land_pixels <- data.table()
+  
   #Right now its looping by compartment -- So far it will be serializable at the aoi level then
   for(compart in sim$compartment_list){
    # harvestTarget<-sim$harvestFlow[compartment == compart,]$flow[time(sim)]
-    harvestTarget<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$flow
-    harvestType<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$partition_type
+     harvestTarget<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$flow
+     harvestType<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$partition_type
   
     if(length(harvestTarget)>0 ){# Determine if there is a demand for timber volume 
       message(paste0(compart, " harvest Target: ", harvestTarget, " "))
@@ -438,22 +443,22 @@ getHarvestQueue<- function(sim) {
       }
       
       #Queue pixels for harvesting. Use a nested query so that all of the block will be selected -- meet patch size objectives
-      if(!P(sim,"forestryCLUS", "harvestZonePriority")== '99999'){
-        message(paste0("Using zone priority: ",P(sim,"forestryCLUS", "harvestZonePriority") ))
-        name.zone.priority<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column from zone where reference_zone = '", P(sim, "dataLoaderCLUS", "nameZonePriorityRaster"),"'"))$zone_column
+      if(!P(sim, "harvestZonePriority","forestryCLUS")== '99999'){
+        message(paste0("Using zone priority: ",P(sim, "harvestZonePriority","forestryCLUS") ))
+        name.zone.priority<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column from zone where reference_zone = '", P(sim, "nameZonePriorityRaster", "dataLoaderCLUS"),"'"))$zone_column
         
         sql<-paste0("SELECT pixelid, p.blockid, compartid, yieldid, height, elv, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h, (thlb*salvage_vol) as salvage_vol ", partition_case, " 
 FROM pixels p
 INNER JOIN 
 (SELECT blockid, ROW_NUMBER() OVER ( 
-		ORDER BY ", P(sim, "forestryCLUS", "harvestBlockPriority"), ") as block_rank FROM blocks) b
+		ORDER BY ", P(sim, "harvestBlockPriority", "forestryCLUS"), ") as block_rank FROM blocks) b
 on p.blockid = b.blockid
 INNER JOIN 
 (SELECT ", name.zone.priority,", ROW_NUMBER() OVER ( 
-		ORDER BY ", P(sim, "forestryCLUS", "harvestZonePriority"), ") as zone_rank FROM zonePriority) a
+		ORDER BY ", P(sim, "harvestZonePriority", "forestryCLUS"), ") as zone_rank FROM zonePriority) a
 on p.",name.zone.priority," = a.",name.zone.priority,"
 WHERE compartid = '", compart ,"' AND zone_const = 0 AND p.blockid > 0 AND thlb > 0 AND (", partition_sql, ")
-ORDER by zone_rank, block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
+ORDER by zone_rank, block_rank, ", P(sim, "harvestBlockPriority", "forestryCLUS"), "
                            LIMIT ", as.integer(sum(harvestTarget)/50))
        
       }else{
@@ -463,10 +468,10 @@ ORDER by zone_rank, block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"
 FROM pixels p
 INNER JOIN 
 (SELECT blockid, ROW_NUMBER() OVER ( 
-		ORDER BY ", P(sim, "forestryCLUS", "harvestBlockPriority"), ") as block_rank FROM blocks) b
+		ORDER BY ", P(sim, "harvestBlockPriority", "forestryCLUS"), ") as block_rank FROM blocks) b
 on p.blockid = b.blockid
 WHERE compartid = '", compart ,"' AND zone_const = 0 AND thlb > 0 AND p.blockid > 0 AND (", partition_sql, ")
-ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
+ORDER by block_rank, ", P(sim, "harvestBlockPriority", "forestryCLUS"), "
                            LIMIT ", as.integer(sum(harvestTarget)/50))
           
       }
@@ -480,8 +485,8 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
       }else{
         
         #Adjust the harvestFlow based on the growing stock constraint
-        if(!(P(sim, "forestryCLUS", "growingStockConstraint") == 9999)){
-          harvestTarget<- min(max(0, sim$growingStockReport[timeperiod == time(sim)*sim$updateInterval, m_gs] - sim$growingStockReport[timeperiod == 0, m_gs]*P(sim, "forestryCLUS", "growingStockConstraint")), harvestTarget)
+        if(!(P(sim, "growingStockConstraint", "forestryCLUS") == 9999)){
+          harvestTarget<- min(max(0, sim$growingStockReport[timeperiod == time(sim)*sim$updateInterval, m_gs] - sim$growingStockReport[timeperiod == 0, m_gs]*P(sim, "growingStockConstraint", "forestryCLUS")), harvestTarget)
           print(paste0("Adjust harvest flow | gs constraint: ", harvestTarget))
         }
         
@@ -506,8 +511,9 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
             }
         }
         
-        queue<-queue[pixelid %in% unique(unlist(h_pixels)),]
-        sim$harvestPixelList<-queue
+        queue <- queue[pixelid %in% unique(unlist(h_pixels)),]
+        #queue [, timeperiod := as.integer(time(sim)*sim$updateInterval)]
+        sim$harvestPixelList <-  rbindlist(list(sim$harvestPixelList, queue), use.names = TRUE ) 
         
         #Update the pixels table
         if(length(harvestType) > 1){
@@ -589,19 +595,14 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
         #Save the harvesting raster
         sim$harvestBlocks[queue$pixelid]<-time(sim)*sim$updateInterval
         
-        #test_harvestReport<<-sim$harvestReport
-        #test_ras<<-sim$harvestBlocks
-        
         #Create landings. pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
-        #land_pixels<-queue[, .SD[which.max(vol_h)], by=blockid]$pixelid
-        land_pixels<-data.table(dbGetQuery(sim$clusdb, paste0("select landing from blocks where blockid in (",
-                                paste(unique(queue$blockid), collapse = ", "), ");")))
+        land_pixels<-rbindlist(list(land_pixels, data.table(dbGetQuery(sim$clusdb, paste0("select landing from blocks where blockid in (",
+                                paste(unique(queue$blockid), collapse = ", "), ");")))))
         
-        land_coord<-sim$pts[pixelid %in% land_pixels$landing, ]
-        setnames(land_coord,c("x", "y"), c("X", "Y"))
+        
 
         #clean up
-        rm(land_pixels, queue, temp_harvest_report, temp.harvestBlockList)
+        rm(queue, temp_harvest_report, temp.harvestBlockList)
       }
     } else{
       message(paste0("No volume demanded in ", compart))
@@ -610,19 +611,19 @@ ORDER by block_rank, ", P(sim, "forestryCLUS", "harvestBlockPriority"), "
   }
  
   #convert to class SpatialPoints needed for roadsCLUS
-  if(!is.null(land_coord)){
-    sim$landings <- SpatialPoints(land_coord[,c("X", "Y")],crs(sim$ras))
+  if(!is.null(land_pixels)){
+    sim$landings <- SpatialPoints(sim$pts[pixelid %in% land_pixels$landing, c("x", "y")],crs(sim$ras))
   }else{
     message("no landings")
     sim$landings <- NULL
   }
   
-  #out_test<<-sim$harvestReport
   #stop()
   return(invisible(sim))
 }
 
 reportConstraints<- function(sim) {
+  message("write constraints report")
   sim$zoneManagement<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement"))
   return(invisible(sim))
 }
@@ -686,7 +687,7 @@ reportConstraints<- function(sim) {
 
 updateZonePriorityTable<-function(sim) {
   dbExecute(sim$clusdb, "DROP TABLE zonePriority")
-  pzone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column from zone where reference_zone = '", P(sim, "dataLoaderCLUS", "nameZonePriorityRaster"),"'"))[[1]]
+  pzone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column from zone where reference_zone = '", P(sim, "nameZonePriorityRaster", "dataLoaderCLUS"),"'"))[[1]]
   dbExecute(sim$clusdb, paste0("CREATE TABLE zonePriority as SELECT ", pzone,", ", pzone," as zoneid, avg(age) as age, avg(dist) as dist, avg(vol*thlb) as vol FROM pixels WHERE thlb > 0 GROUP BY ", 
                                pzone))
   return(invisible(sim))

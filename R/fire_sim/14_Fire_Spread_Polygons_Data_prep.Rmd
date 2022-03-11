@@ -1499,4 +1499,6 @@ write.csv(fire_spread_veg_data_df_set5, file = "D:\\Fire\\fire_data\\raw_data\\H
 
 ############################### COMPLETE ######################
 
-Move on to the 15_Fire_Spread_Polygons_Data series
+Move on to the 15_Fire_Spread_Polygons_Data series.
+
+Note: As of February 13, 2022, I suggest using all NDTs together in file 15f_Fire_Spread_Polygons_Data_ALLNDTS as opposed to having a different model for each NDT.

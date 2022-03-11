@@ -128,10 +128,10 @@ createBlocksTable<-function(sim){
 
 getExistingCutblocks<-function(sim){
 
-  if(!(P(sim, "blockingCLUS", "nameCutblockRaster") == '99999')){
-    message(paste0('..getting cutblocks: ',P(sim, "blockingCLUS", "nameCutblockRaster")))
+  if(!(P(sim, "nameCutblockRaster", "blockingCLUS") == '99999')){
+    message(paste0('..getting cutblocks: ',P(sim, "nameCutblockRaster", "blockingCLUS")))
     ras.blk<- RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                           srcRaster= P(sim, "blockingCLUS", "nameCutblockRaster"), 
+                           srcRaster= P(sim, "nameCutblockRaster", "blockingCLUS"), 
                            clipper=sim$boundaryInfo[1] , 
                            geom= sim$boundaryInfo[4] , 
                            where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -153,7 +153,7 @@ getExistingCutblocks<-function(sim){
       rm(ras.blk,exist_cutblocks)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "blockingCLUS", "nameCutblockRaster")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameCutblockRaster", "blockingCLUS")))
     }
   }
 return(invisible(sim))
@@ -195,7 +195,12 @@ setSpreadProb<- function(sim) {
   
   if(!P(sim)$spreadProbRas == "99999"){
     #scale the spread probability raster so that the values are [0,1]
-    sim$ras.spreadProbBlock<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster= P(sim, "blockingCLUS", "spreadProbRas"), clipper=P(sim, "dataLoaderCLUS", "nameBoundaryFile"), geom= P(sim, "dataLoaderCLUS", "nameBoundaryGeom"), where_clause =  paste0(P(sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", P(sim, "dataLoaderCLUS", "nameBoundary"),"'')"), conn=NULL)
+    sim$ras.spreadProbBlock<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+                                          srcRaster= P(sim, "spreadProbRas", "blockingCLUS"), 
+                                          clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
+                                          geom = sim$boundaryInfo[[4]], 
+                                          where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                          conn=NULL)
     sim$ras.spreadProbBlock<-1-(sim$ras.spreadProbBlocks - minValue(sim$ras.spreadProbBlock))/(maxValue(sim$ras.spreadProbBlock)-minValue(sim$ras.spreadProbBlock))
   }else{
     sim$ras.spreadProbBlock<-sim$aoi
@@ -244,9 +249,9 @@ preBlock <- function(sim) {
   V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
   #g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains? The problem here is that it may delete island pixels
   
-  patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone where reference_zone = '",  P(sim, "blockingCLUS", "patchZone"),"'"))
+  patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone where reference_zone = '",  P(sim, "patchZone", "blockingCLUS"),"'"))
   if(nrow(patchSizeZone) == 0){
-    stop(paste0("check ", P(sim, "blockingCLUS", "patchZone")))
+    stop(paste0("check ", P(sim, "patchZone", "blockingCLUS")))
   }
   #only select those zones to apply constraints that actually have thlb in them.
   zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(", patchSizeZone, ") FROM pixels WHERE 
@@ -272,7 +277,7 @@ preBlock <- function(sim) {
       paths.matrix[, V1 := as.integer(V1)]
       paths.matrix[, V2 := as.integer(V2)]
       #print(head(get.edgelist(g.mst_sub)))
-      natDT <- dbGetQuery(sim$clusdb,paste0("SELECT ndt, t_area FROM zoneConstraints WHERE reference_zone = '", P(sim, "blockingCLUS", "patchZone"), "' AND zoneid = ", zone))
+      natDT <- dbGetQuery(sim$clusdb,paste0("SELECT ndt, t_area FROM zoneConstraints WHERE reference_zone = '", P(sim, "patchZone", "blockingCLUS"), "' AND zoneid = ", zone))
       
       targetNum <- sim$patchSizeDist[ndt == natDT$ndt, ] # get the target patchsize
       targetNum[,targetNum:= (natDT$t_area*freq)/sizeClass][,targetNum:= ceiling(targetNum)]

@@ -1968,11 +1968,7 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
-
-
-chilcotin_area_of_interest_habitat
-
-#Create new row for table
+#version 2 of area of interest
 new_data <- data.table (computer = 'DC052586', 
                         database = 'clus', 
                         schema = 'public', 
@@ -1995,6 +1991,153 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
 dbDisconnect(conn)
 
 
+#version 3 of area of interest
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'public', 
+                        table_name = 'chilcotin_area_of_interest_habitat_v3', 
+                        type = 'polygon', 
+                        script = 'ogr2ogr', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2022', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS')
+new_data1 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = 'chilcotin_aoi_v3', 
+                        type = 'raster', 
+                        script = 'study_area_boundaries.Rmd', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2022', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS')
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'vat', 
+                        table_name = 'chilcotin_aoi_v3', 
+                        type = 'table', 
+                        script = 'study_area_boundaries.Rmd', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2022', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data1, new_data2))
+dbDisconnect(conn)
+
+# Chilcotin proposed WHA
+#Create new row for table
+new_data <- data.table (computer = 'DC052586', # e.g., 206.12.91.188 or DC052586 
+                        database = 'clus', # clus
+                        schema = 'public', # caribou, public, vat, zone or rast
+                        table_name = 'chilcotin_proposed_wha', # add year adn month if relevant
+                        type = 'polygon', # polygon, point, line, raster or table
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', # name and location of script to produce the data
+                        source = 'Chilcotin planning: Genevieve Lachance', # description of data source
+                        public = 'No', # Yes, if can be shared with public, otherwise No
+                        last_updated = '2022', # year when data added
+                        next_update = 'as needed', # year when data should ideally be updated
+                        where_used = 'dataLoaderCLUS' 
+                        )
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = 'zone_chilcotin_proposed_wha', 
+                        type = 'raster', # polygon, point, line, raster or table
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2022', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+new_data3 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'vat', 
+                        table_name = 'zone_chilcotin_proposed_wha', 
+                        type = 'table', # polygon, point, line, raster or table
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2022', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+new_data4 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'zone', 
+                        table_name = 'zone_chilcotin_proposed_wha', 
+                        type = 'table', # polygon, point, line, raster or table
+                        script = 'clus\\R\\Params\\caribou_management_areas.Rmd', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2022', 
+                        next_update = 'as needed', 
+                        where_used = 'dataLoaderCLUS' 
+                        )
+
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3, new_data4))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+# Chilcotin supply blocks
+#Create new row for table
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'public', 
+                        table_name = 'chilcotin_aoi_supply_blocks', 
+                        type = 'polygon', 
+                        script = 'study_area_boundaries.Rmd', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2022', 
+                        next_update = 'as needed', 
+                        where_used = 'forestryCLUS'
+                        )
+new_data2 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'vat', 
+                        table_name = 'chilcotin_supply_blocks_vat', 
+                        type = 'table', 
+                        script = 'study_area_boundaries.Rmd', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2022', 
+                        next_update = 'as needed', 
+                        where_used = 'forestryCLUS'
+                        )
+new_data3 <- data.table (computer = 'DC052586', 
+                        database = 'clus', 
+                        schema = 'rast', 
+                        table_name = '.chilcotin_aoi_supply_blocks', 
+                        type = 'raster', 
+                        script = 'study_area_boundaries.Rmd', 
+                        source = 'Chilcotin planning: Genevieve Lachance', 
+                        public = 'No', 
+                        last_updated = '2022', 
+                        next_update = 'as needed', 
+                        where_used = 'forestryCLUS'
+                        )
+
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
 
 
 ```

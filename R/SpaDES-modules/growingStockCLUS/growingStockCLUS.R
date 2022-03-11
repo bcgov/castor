@@ -52,20 +52,20 @@ doEvent.growingStockCLUS = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
-      sim$updateInterval<-max(1, round(P(sim, "growingStockCLUS", "periodLength")/2, 0)) #take the mid point -- less biased
+      sim$updateInterval<-max(1, round(P(sim, "periodLength", "growingStockCLUS")/2, 0)) #take the mid point -- less biased
       sim <- Init(sim)
       sim <- scheduleEvent(sim, time(sim) + 1, "growingStockCLUS", "updateGrowingStock", 1)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "vacuumInterval"), "growingStockCLUS", "vacuumDB", 2)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "vacuumInterval", "growingStockCLUS"), "growingStockCLUS", "vacuumDB", 2)
     },
     updateGrowingStock= {
       sim <- updateGS(sim)
-      sim$updateInterval<-P(sim, "growingStockCLUS", "periodLength")
+      sim$updateInterval<-P(sim, "periodLength", "growingStockCLUS")
       sim <- recordGS(sim)
       sim <- scheduleEvent(sim, time(sim) + 1, "growingStockCLUS", "updateGrowingStock", 1)
     },
     vacuumDB ={
       sim <- vacuumDB(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "growingStockCLUS", "vacuumInterval"), "growingStockCLUS", "vacuumDB", 2)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "vacuumInterval", "growingStockCLUS"), "growingStockCLUS", "vacuumDB", 2)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -119,7 +119,7 @@ Init <- function(sim) {
     dbCommit(sim$clusdb)  
     }
   
-  sim$growingStockReport<-data.table(scenario = sim$scenario$name, timeperiod = time(sim)*P(sim, "growingStockCLUS", "periodLength"),  
+  sim$growingStockReport<-data.table(scenario = sim$scenario$name, timeperiod = time(sim)*P(sim, "periodLength", "growingStockCLUS"),  
                                      dbGetQuery(sim$clusdb, 
                                      paste0("SELECT sum(vol) as gs, sum(vol*thlb) as m_gs, sum(vol*thlb*dec_pcnt) as m_dec_gs, compartid as compartment FROM pixels where compartid 
               in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')

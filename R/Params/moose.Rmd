@@ -1,0 +1,282 @@
+---
+title: "moose paramaters for CLUS"
+author: "Tyler Muhly"
+date: "06/01/2022"
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require (downloader)
+require (here)
+require (raster)
+require (ggplot2)
+require (viridis)
+require (dplyr)
+wd <- "D:\\moose_model\\"
+
+```
+
+## Moose Paramaters for CLUS
+Here we create the parameters needed to estimate moose abundance using the caribou and land use simulator (CLUS) model. Moose abundance is estimated using the method developed by [Doug Lewis](https://dir.gov.bc.ca/gtds.cgi?searchString=doug+lewis&sortBy=name&sortOrder=ascending&search=Search&gobutton.x=0&gobutton.y=0), with the government of British Columbia cumulative effects program.
+
+### Moose and Climate
+The first step is to estimate the winter distribution of moose based on climate conditions (*Lewis, D. Draft. Using Climate Variables to estimate the Winter Distribution of Moose (Alces alces) In British Columbia*). Specifically, two climate variables are used, the probability that snow depth (SD) is less than 120 cm and the probability that winter temperature (WT) between December and February is less than -5 degrees Celcius. The product of SD and WT is used to estimate a "climate envelope score" (CES) that indicates the distribution of ideal moose winter climate conditions. 
+
+Past and future estimates of climate data are downloaded from [ClimateBC](http://climatebc.ca/) (*Wang, T., Hamann, A., Spittlehouse, D.L., Murdock, T., 2012. ClimateWNA - High-Resolution Spatial Climate Data for Western North America. Journal of Applied Meteorology and Climatology, 51: 16-29.*). Here we download the seasonal and annual historic 'climate normal' data from 1981 to 2010, and seasonal  and annual future climate variables that were estimated for 2011 to 2040 (2025), 2041 to 2070 (2055) and 2071 to 2100 (2085) from an ensemble of global climate models using the representative concentration pathway (RCP) 4.5 climate trajectory.
+
+```{r download climate data}
+download ("http://raster.climatebc.ca/download/Normal_1981_2010MSY/Normal_1981_2010_seasonal.zip", 
+          dest = paste0 (wd, "Normal_1981_2010_seasonal.zip"), 
+          mode = "wb")
+unzip (paste0 (wd, "Normal_1981_2010_seasonal.zip"), 
+       exdir =  paste0 (wd, "seasonal\\N1981_2010"))
+file.remove ( paste0 (wd, "Normal_1981_2010_seasonal.zip"))
+
+download ("http://raster.climatebc.ca/download/15GCM-Ensemble_rcp45_2025MSY/15GCM-Ensemble_rcp45_2025_seasonal.zip", 
+          dest =  paste0 (wd, "15GCM-Ensemble_rcp45_2025_seasonal.zip"), 
+          mode = "wb")
+unzip (paste0 (wd, "15GCM-Ensemble_rcp45_2025_seasonal.zip"), 
+       exdir = paste0 (wd, "seasonal\\RCP45_2025"))
+file.remove (paste0 (wd, "15GCM-Ensemble_rcp45_2025_seasonal.zip"))
+
+download ("http://raster.climatebc.ca/download/15GCM-Ensemble_rcp45_2055MSY/15GCM-Ensemble_rcp45_2055_seasonal.zip", 
+          dest = paste0 (wd, "15GCM-Ensemble_rcp45_2055_seasonal.zip"), 
+          mode = "wb")
+unzip (paste0 (wd, "15GCM-Ensemble_rcp45_2055_seasonal.zip"), 
+       exdir = paste0 (wd, "seasonal\\RCP45_2055"))
+file.remove (paste0 (wd, "15GCM-Ensemble_rcp45_2055_seasonal.zip"))
+
+download ("http://raster.climatebc.ca/download/15GCM-Ensemble_rcp45_2085MSY/15GCM-Ensemble_rcp45_2085_seasonal.zip", 
+          dest = paste0 (wd, "15GCM-Ensemble_rcp45_2085_seasonal.zip"), 
+          mode = "wb")
+unzip (paste0 (wd, "15GCM-Ensemble_rcp45_2085_seasonal.zip"), 
+       exdir = paste0 (wd, "seasonal\\RCP45_2085"))
+file.remove (paste0 (wd, "15GCM-Ensemble_rcp45_2085_seasonal.zip"))
+
+download ("http://raster.climatebc.ca/download/Normal_1981_2010MSY/Normal_1981_2010_annual.zip", 
+          dest = paste0 (wd, "Normal_1981_2010_annual.zip"), 
+          mode = "wb")
+unzip ("D:\\moose_model\\Normal_1981_2010_annual.zip", 
+       exdir = paste0 (wd, "annual\\N1981_2010"))
+file.remove (paste0 (wd, "Normal_1981_2010_annual.zip"))
+
+download ("http://raster.climatebc.ca/download/15GCM-Ensemble_rcp85_2025MSY/15GCM-Ensemble_rcp85_2025_annual.zip", 
+          dest = paste0 (wd, "15GCM-Ensemble_rcp85_2025_annual.zip"), 
+          mode = "wb")
+unzip (paste0 (wd, "15GCM-Ensemble_rcp85_2025_annual.zip"), 
+       exdir = paste0 (wd, "annual\\RCP45_2025"))
+file.remove (paste0 (wd, "15GCM-Ensemble_rcp85_2025_annual.zip"))
+
+download ("http://raster.climatebc.ca/download/15GCM-Ensemble_rcp85_2055MSY/15GCM-Ensemble_rcp85_2055_annual.zip", 
+          dest = paste0 (wd, "15GCM-Ensemble_rcp85_2055_annual.zip"), 
+          mode = "wb")
+unzip (paste0 (wd, "15GCM-Ensemble_rcp85_2055_annual.zip"), 
+       exdir = paste0 (wd, "annual\\RCP45_2055"))
+file.remove (paste0 (wd, "D15GCM-Ensemble_rcp85_2055_annual.zip"))
+
+download ("http://raster.climatebc.ca/download/15GCM-Ensemble_rcp85_2085MSY/15GCM-Ensemble_rcp85_2085_annual.zip", 
+          dest = paste0 (wd, "15GCM-Ensemble_rcp85_2085_annual.zip"), 
+          mode = "wb")
+unzip (paste0 (wd, "15GCM-Ensemble_rcp85_2085_annual.zip"), 
+       exdir = paste0 (wd, "annual\\RCP45_2085"))
+file.remove (paste0 (wd, "15GCM-Ensemble_rcp85_2085_annual.zip"))
+
+```
+
+The SD variable is calculated from precipitation-as-snow (PAS), where PAS is divided by 0.35, the estimated snow bulk density on March 1st, as measured by [Ministry of Environment snow survey data](https://www2.gov.bc.ca/gov/content/environment/air-land-water/water/water-science-data/water-data-tools/snow-survey-data ). 
+
+```{r snow depth from ppt as snow}
+
+pas.current <- raster (paste0 (wd, "annual\\N1981_2010\\pas")) / 10 # convert mm to cm
+pas.2025 <- raster (paste0 (wd, "annual\\RCP45_2025\\pas")) / 10
+pas.2055 <- raster (paste0 (wd, "annual\\RCP45_2055\\pas")) / 10
+pas.2085 <- raster (paste0 (wd, "annual\\RCP45_2085\\pas")) / 10
+
+snow.current <- pas.current / 0.35 # snow bulk density modifier
+snow.2025 <- pas.2025 / 0.35
+snow.2055 <- pas.2055 / 0.35
+snow.2085 <- pas.2085 / 0.35
+
+```
+
+The WT and SD variables for each time period are estimated by first calculating the distance of each variable estimate (i.e., at a particular location or pixel in the dataset) from the 120 cm and -5 degree Celcius thresholds, respectively, using a *z-statistic*. The value at each pixels is subtracted from each variables threshold value, divided by the standard deviation of variable values across the province. 
+
+```{r variable distance from threshold}
+
+# winter temp values
+temp.current <- raster (paste0 (wd, "seasonal\\N1981_2010\\tave_wt")) / 10 # temp variables were multiplied by 10 by ClimateBC
+temp.2025 <- raster (paste0 (wd, "seasonal\\RCP45_2025\\tave_wt")) / 10
+temp.2055 <- raster (paste0 (wd, "seasonal\\RCP45_2055\\tave_wt")) / 10
+temp.2085 <- raster (paste0 (wd, "seasonal\\RCP45_2085\\tave_wt")) / 10
+
+# z-stats
+snow.current.z <- (120 - snow.current) / sd (snow.current[], na.rm = TRUE)
+snow.2025.z <- (120 - snow.2025) / sd (snow.2025[], na.rm = TRUE)
+snow.2055.z <- (120 - snow.2055) / sd (snow.2055[], na.rm = TRUE)
+snow.2085.z <- (120 - snow.2085) / sd (snow.2085[], na.rm = TRUE)
+
+temp.current.z <- (-5 - temp.current) / sd (temp.current[], na.rm = TRUE)
+temp.2025.z <- (-5 - temp.2025) / sd (temp.2025[], na.rm = TRUE)
+temp.2055.z <- (-5 - temp.2055) / sd (temp.2055[], na.rm = TRUE)
+temp.2085.z <- (-5 - temp.2085) / sd (temp.2085[], na.rm = TRUE)
+
+```
+
+The *z-statistic* is then used to estimate a probability that a location (pixel) is above the SD or WT thresholds by calculating the cumulative density function (CDF). The CDF is calculated using as: 
+
+CDF = 1 / (1 + exp (-1.65451 * x))
+
+where x is the *z-statistic* score.
+
+```{r probability wt and sd are less than threshold and raster resample}
+
+snow.current.prob <- 1 / (1 + exp(-1.65451 * snow.current.z))
+snow.2025.prob <- 1 / (1 + exp(-1.65451 * snow.2025.z))
+snow.2055.prob <- 1 / (1 + exp(-1.65451 * snow.2055.z))
+snow.2085.prob <- 1 / (1 + exp(-1.65451 * snow.2085.z))
+
+temp.current.prob <- 1 / (1 + exp(-1.65451 * temp.current.z))
+temp.2025.prob <- 1 / (1 + exp(-1.65451 * temp.2025.z))
+temp.2055.prob <- 1 / (1 + exp(-1.65451 * temp.2055.z))
+temp.2085.prob <- 1 / (1 + exp(-1.65451 * temp.2085.z))
+
+# save as Tiffs; re-sampled to BC raster standard
+#Create a provincial raster
+crs <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs"
+prov.rast <- raster::raster (
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = crs,
+  resolution = c(100, 100), vals = 0)
+
+# project to BC Albers
+snow.current.prob <- projectRaster (snow.current.prob, 
+                                    crs = crs)
+snow.2025.prob <- projectRaster (snow.2025.prob, 
+                                 crs = crs)
+snow.2055.prob <- projectRaster (snow.2055.prob, 
+                                 crs = crs)
+snow.2085.prob <- projectRaster (snow.2085.prob, 
+                                 crs = crs)
+
+temp.current.prob <- projectRaster (temp.current.prob, 
+                                    crs = crs)
+temp.2025.prob <- projectRaster (temp.2025.prob, 
+                                 crs = crs)
+temp.2055.prob <- projectRaster (temp.2055.prob, 
+                                 crs = crs)
+temp.2085.prob <- projectRaster (temp.2085.prob, 
+                                 crs = crs)
+
+# resample to prov standard
+snow.current.prob <- resample (snow.current.prob, prov.rast, method = "bilinear") # re-sample using bilinear interpolation
+snow.2025.prob <- resample (snow.2025.prob, prov.rast, method = "bilinear")
+snow.2055.prob <- resample (snow.2055.prob, prov.rast, method = "bilinear")
+snow.2085.prob <- resample (snow.2085.prob, prov.rast, method = "bilinear")
+
+temp.current.prob <- resample (temp.current.prob, prov.rast, method = "bilinear")
+temp.2025.prob <- resample (temp.2025.prob, prov.rast, method = "bilinear")
+temp.2055.prob <- resample (temp.2055.prob, prov.rast, method = "bilinear")
+temp.2085.prob <- resample (temp.2085.prob, prov.rast, method = "bilinear")
+
+```
+
+Finally the CES is calculated for each location (pixel) by multiplying the two probabilities together:
+
+CES = SD * WT
+
+```{r ces calc and save}
+
+# CES
+ces.current <- snow.current.prob * temp.current.prob
+ces.2025 <- snow.2025.prob * temp.2025.prob
+ces.2055 <- snow.2055.prob * temp.2055.prob
+ces.2085 <- snow.2085.prob * temp.2085.prob
+
+# save rasters as tifs
+dir.create (paste0 (wd, "output\\"))
+writeRaster (ces.current, paste0 (wd, "output\\ces_current.tif"))
+writeRaster (ces.2025, paste0 (wd, "output\\ces_2025.tif"))
+writeRaster (ces.2055, paste0 (wd, "output\\ces_2055.tif"))
+writeRaster (ces.2085, paste0 (wd, "output\\ces_2085.tif"))
+
+# write rasters to db
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', paste0 (wd), 'output/ces_current.tif -t 100x100 rast.moose_climenv_current | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', paste0 (wd), 'output/ces_2025.tif -t 100x100 rast.moose_climenv_2025 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', paste0 (wd), 'output/ces_2055.tif -t 100x100 rast.moose_climenv_2055 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', paste0 (wd), 'output/ces_2085.tif -t 100x100 rast.moose_climenv_2085 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+# system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/Params/ces_current.tif -t 100x100 rast.chilcotin_aoi_v3 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+```
+
+The CES output maps are shown below. Higher CES scores indicate better climate conditions for moose (i.e., climate conditions more likely to be below the WT and SD thresholds.  Note that in general, CES values in southern and interior portions of the province decline over time, indicating a potential decline in moose distribution. 
+
+```{r ces plots, eval = F, fig.show = "hold", out.width = "50%"}
+
+# convert to a df for plotting 
+
+ces.current.pts <- data.frame (rasterToPoints (ces.current, spatial = TRUE))
+ces.2025.pts <- data.frame (rasterToPoints (ces.2025, spatial = TRUE))
+ces.2055.pts <- data.frame (rasterToPoints (ces.2055, spatial = TRUE))
+ces.2085.pts <- data.frame (rasterToPoints (ces.2085, spatial = TRUE))
+
+# plots
+ggplot() +
+ geom_raster (data = ces.current.df , aes(x = x, y = y, fill = ces_current)) +
+ scale_fill_viridis (name = "Climate Envelope Score") + 
+ xlab ("UTM Westing Coordinate (m)") +
+ ylab ("UTM Northing Coordinate (m)") +
+ ggtitle ("Historic (1990 to 2010) moose climate envelope score (CES)")
+
+ggplot() +
+ geom_raster (data = ces.2025.df , aes(x = x, y = y, fill = ces_2025)) +
+ scale_fill_viridis (name = "Climate Envelope Score") + 
+ xlab ("UTM Westing Coordinate (m)") +
+ ylab ("UTM Northing Coordinate (m)") +
+ ggtitle ("Near-term future (2010 to 2040) moose climate envelope score (CES)")
+
+ggplot() +
+ geom_raster (data = ces.2055.df , aes(x = x, y = y, fill = ces_2055)) +
+ scale_fill_viridis (name = "Climate Envelope Score") + 
+ xlab ("UTM Westing Coordinate (m)") +
+ ylab ("UTM Northing Coordinate (m)") +
+ ggtitle ("Mid-term future (2040 to 2070) moose climate envelope score (CES)")
+
+ggplot() +
+ geom_raster (data = ces.2085.df , aes(x = x, y = y, fill = ces_2085)) +
+ scale_fill_viridis (name = "Climate Envelope Score") + 
+ xlab ("UTM Westing Coordinate (m)") +
+ ylab ("UTM Northing Coordinate (m)") +
+ ggtitle ("Long-term future (2070 to 2100) moose climate envelope score (CES)")
+
+
+```
+
+### Moose and Forage
+The second step in the moose model is to estimate the amount of forage within moose range. For this, we need to divide forage into 'static' and 'dynamic' types, where static types include riparian areas, wetlands and aspen or birch leading forest stands, and dynamic types include conifer leading forest stands, where forage biomass changes with stand age and biogeoclimatic (BEC) zone. Conifer forest is considered dynamic, as moose forage biomass (primarily shrubs) changes as a function of forest canopy (i.e., cover), where forage abundance decreases as forest canopy increases. 
+
+Here we use the [forest inventory data](https://catalogue.data.gov.bc.ca/dataset/vri-2020-forest-vegetation-composite-layer-1-l1-) to define the forage landcover types. 
+
+```{r static forage data}
+
+
+
+  
+  concatenate (bec_zone_code, bec_subzone, bec_variant) # form forest invenotry - concatenate and subset 'moose' classes 
+  IDFxh2
+  ESSFwc2
+  IDFdk3
+  SBSdw1
+  ICHmw3
+  BWBSmw
+
+
+```
+
+
+Forage biomass of static and dynamic vegetation types is estimated using data and equations from *Telfer, E.S., 1995. Moose range under pre-settlement fire cycles and forest management regimes in the boreal forest of Western Canada, Alces, Vol 3: 153-165*.  
+

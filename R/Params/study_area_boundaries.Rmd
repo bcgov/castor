@@ -144,10 +144,13 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648
 dbDisconnect(conn)
 
 ```
-'Version 2' was created to focus the analysis in the operating area of the licensees, which are teh western portions of the Quesnel and Williams Lake TSAs. 
 
-```{r chilcotin study area version 2}
-studyarea <- getSpatialQuery ("SELECT * FROM public.chilcotin_area_of_interest_habitat;")
+'Version 2' (October 2021) and 'Version 3' (January 2022) was created to focus the analysis in the operating area of the licensees, which are the western portions of the Quesnel and Williams Lake TSAs, and within caribou habitat areas. 
+
+```{r chilcotin study area version 3 (previously 2)}
+# ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user=tmuhly password=caribou host=DC052586" D:\clus_data\scenarios\chilcotin\area_of_interest\chilcotin_area_of_interest_habitat_v3.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+studyarea <- getSpatialQuery ("SELECT * FROM public.chilcotin_area_of_interest_habitat_v3;") # public.chilcotin_area_of_interest_habitat
 
 studyarea.vat <- as.data.table (unique (studyarea$tsa_name))
 setnames (studyarea.vat, "tsa_name")
@@ -156,12 +159,41 @@ studyarea <- merge (studyarea, studyarea.vat, by = "tsa_name")
 
 # Rasterize 
 ras.study.area <-fasterize::fasterize (st_cast (studyarea, "MULTIPOLYGON"), prov.rast, field = "value") 
-writeRaster (ras.study.area, "chilcotin_aoi.tif")
+writeRaster (ras.study.area, "chilcotin_aoi_v3.tif")
 
 # write data
-DBI::dbWriteTable(conn, c("vat", "chilcotin_aoi_v2"), value= studyarea.vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("vat", "chilcotin_aoi_v3"), value= studyarea.vat, row.names = FALSE, overwrite = TRUE)
 
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/Params/chilcotin_aoi.tif -t 100x100 rast.chilcotin_aoi_v2 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/Params/chilcotin_aoi_v3.tif -t 100x100 rast.chilcotin_aoi_v3 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+dbDisconnect(conn)
+
+```
+
+```{r chilcotin study area supply blocks}
+# use for tracking harvest by supply block
+
+# ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user=tmuhly password=caribou host=DC052586" D:\clus_data\scenarios\chilcotin\area_of_interest\chilcotin_aoi_supply_blocks.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+supply.blocks <- getSpatialQuery ("SELECT * FROM public.chilcotin_aoi_supply_blocks;") 
+names (supply.blocks) [names (supply.blocks) == "tsb_number"] <- "supply_block"
+
+supply.blocks.vat <- as.data.table (unique (supply.blocks$supply_block))
+setnames (supply.blocks.vat, "supply_block") 
+supply.blocks.vat [, value := seq_len(.N)]
+supply.blocks <- merge (supply.blocks, supply.blocks.vat, by = "supply_block")
+
+# Rasterize 
+ras.supply.blocks <-fasterize::fasterize (st_cast (supply.blocks, "MULTIPOLYGON"), prov.rast, field = "value") 
+writeRaster (ras.supply.blocks, "chilcotin_aoi_supply_blocks.tif")
+
+# write data
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+setnames (supply.blocks.vat, c ("attribute", "value")) # Note use convention; always name these value and attribute
+DBI::dbWriteTable(conn, c("vat", "chilcotin_supply_blocks_vat"), value = supply.blocks.vat, row.names = FALSE, overwrite = TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/Params/chilcotin_aoi_supply_blocks.tif -t 100x100 rast.chilcotin_aoi_supply_blocks | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 dbDisconnect(conn)
 

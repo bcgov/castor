@@ -70,18 +70,12 @@ doEvent.volumebyareaReportCLUS = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
-  sim$volumebyareaReport <- data.table (scenario = character(), 
-                                        #compartment = character(), 
-                                        timeperiod = integer(),
-                                        area_of_interest = character(),
-                                        volume_harvest = numeric(),
-                                        area_harvest = numeric(),
-                                        area_name = character())
-  sim$vol <- sim$pts
+  sim$volumebyareaReport <- data.table()
+  sim$volumebyarea <- data.table(dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels where thlb > 0 ORDER BY pixelid"))
   
   #Get the area of interest
   if(P(sim, "volumebyareaReportCLUS", "AreaofInterestRaster") == '99999') {
-    sim$vol[, aoi := 1]
+    sim$volumebyarea[, attribute := 1]
     } else {
     aoi_bounds <- data.table (c (t (raster::as.matrix( 
     RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
@@ -93,34 +87,26 @@ Init <- function(sim) {
     aoi_bounds [, pixelid := seq_len (.N)]
     if(nrow(aoi_bounds[!is.na(V1),]) > 0){
       if(!(P(sim, "volumebyareaReportCLUS", "AreaofInterestTable") == '99999')){
-        aoi_lu <- data.table (getTableQuery (paste0 ("SELECT cast (value as int) AS zone FROM ",P(sim, "volumebyareaReportCLUS", "AreaofInterestTable"))))
+        aoi_lu <- data.table (getTableQuery (paste0 ("SELECT cast (value as int) AS zone, attribute FROM ",P(sim, "volumebyareaReportCLUS", "AreaofInterestTable"))))
         aoi_bounds <- merge(aoi_bounds, aoi_lu, by.x = "V1", by.y = "zone", all.x = TRUE)
       } else {
       stop(paste0(P(sim, "volumebyareaReportCLUS", "AreaofInterestRaster"), "- does not overlap with harvest unit"))
       }
-    setorder(aoi_bounds, pixelid) #sort the bounds
-    sim$vol [, aoi := aoi_bounds$V1]
+    sim$volumebyarea <-merge(sim$volumebyarea, aoi_bounds, by.x = "pixelid", by.y = "pixelid", all.x = T)
+    setnames(sim$volumebyarea, "attribute", "area_name")
     }
-  }
+    }
+  
   return(invisible(sim))
 }
 
-
 # assign volume to area of interest
 volAnalysis <- function(sim) {
-  tempVolumeReport <- as.data.table (merge (sim$harvestPixelList, sim$vol, by = 'pixelid', all.x = TRUE))
-  tempVolumeReport <- tempVolumeReport [, .(volume_harvest = sum (vol_h), area_harvest = .N), by = "aoi"]
-  
+  tempVolumeReport <- as.data.table (merge (sim$harvestPixelList, sim$volumebyarea, by = 'pixelid', all.x = TRUE))
+  tempVolumeReport <- tempVolumeReport [, .(volume_harvest = sum (vol_h), area_harvest = .N), by ="area_name"]
   tempVolumeReport [, scenario := sim$scenario$name]
-  #tempVolumeReport [, compartment := sim$boundaryInfo[[3]]]
   tempVolumeReport [, timeperiod := as.integer(time(sim)*sim$updateInterval)]
-  aoi_tab <- data.table (getTableQuery (paste0 ("SELECT * FROM ", P(sim, "volumebyareaReportCLUS", "AreaofInterestTable"))))
-  colnames(aoi_tab)[1:2] <- c("area_name", "value")
-  tempVolumeReport <- merge(tempVolumeReport, 
-                             aoi_tab, 
-                             by.x = "aoi", by.y = "value", all.x = TRUE)
-  setnames(tempVolumeReport, "aoi", ("area_of_interest"))
-  sim$volumebyareaReport <- rbindlist(list(sim$volumebyareaReport, tempVolumeReport), use.names = TRUE ) 
+  sim$volumebyareaReport <- rbindlist(list(sim$volumebyareaReport, tempVolumeReport ))
   return(invisible(sim))
 }
 
