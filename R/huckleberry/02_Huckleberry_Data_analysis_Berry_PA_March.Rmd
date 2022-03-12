@@ -526,7 +526,7 @@ ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Canopy_
         y = "Berry Abundance") 
 ```
 
-Comapre to origin age.
+Compare to origin age.
 ```{r}
 ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Fruit.AbunTEST)) +
   geom_point () +
@@ -547,6 +547,25 @@ ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = vri_age
   labs (title = "Huckleberry Berry Abundance by VRI Age",
         x = "VRI age",
         y = "Berry Abundance") 
+```
+
+
+Compare age of cutblock to canopy cover.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Canopy_Cov, colour = factor(bec_zone))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Canopy_Cov)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
 ```
 
 
