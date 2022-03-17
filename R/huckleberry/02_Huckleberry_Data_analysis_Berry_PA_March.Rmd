@@ -80,7 +80,8 @@ table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr) #136 absences, 453
 cutblock_plots_openings_Huck_ALL_df_2022_b2_ALL<-cutblock_plots_openings_Huck_ALL_df_2022_b2
 cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr!="NA")
 
-#Numbers below represent once species absences removed...
+cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr!="0")
+
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Pres) #123 absences, 316 presences; also lots of NAs.
 
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.y) #495
@@ -331,7 +332,6 @@ table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLANTED)
 
 
 ```{r}
-
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH) #May wish to combine smaller groups into "other"
 cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH_GP<-cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH
 cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH_GP <- recode_factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH_GP, BU="BU", CA="Other",CG="Other",GS="Other",MA="Other",ME="ME", "BI"="Other")
@@ -453,6 +453,28 @@ table(cutblock_plots_openings_Huck_ALL_df_2022_b2$planted_species2) #172 records
 
 ```
 
+Look at how much of the data shows NAs for abundance.
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Pres) #All 406 cases report if fruits or not
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Abun #Many NAs
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Abun!="NA") #240 results
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Pres) #30 not fruit presents and 210 yes presents. Thus some of the 112 reports of fruit not present was NA. Go back and add back in.
+
+#
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.AbunTEST<-ifelse((cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Pres=="0" & is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Abun)), 0, cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Abun)
+  
+
+
+#
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.AbunTEST)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.AbunTEST
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.AbunTEST!="NA") #240
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Pres) # 112 absences, 210 presences.
+```
+
+
 
 ############ Prepare Climate Variables for P/A and % Cover #########
 
@@ -460,8 +482,18 @@ table(cutblock_plots_openings_Huck_ALL_df_2022_b2$planted_species2) #172 records
 #Make annual PAS (precipitation as snow). Here we want to use the decade ClimateBC data for P/A and % Cover
 cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_total<-cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_at_dec + cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_sm_dec + cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_sp_dec + cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_wt_dec
 
+#Repeat for abundance data
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_total<-cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_at_dec + cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_sm_dec + cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_sp_dec + cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_wt_dec
+
 ```
 
+Save files.
+
+```{r}
+write.csv(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA.csv")
+
+write.csv(cutblock_plots_openings_Huck_ALL_df_2022_b2, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_2022_b2_Berries.csv")
+```
 
 
 
@@ -469,118 +501,143 @@ cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_total<-cutblock_plots_openings_H
 
 Visualize differences by categories.
 
-```{r}
-cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr2 <- as.factor (cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr)
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr)
+1. Berry abundance by canopy closure, by BEC
 
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Species.Pr2, fill = origin)) + 
-  geom_bar (position = "fill") +
-  scale_fill_discrete (name = "Stand Origin", labels = c("Burned and Harvested", "Harvested", "Burned")) #Most data points are in harvested stands. Those that were burned since harvesting may have more presences? But very unequal sample sizes.
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.AbunTEST
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Canopy_Cov
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$bec_zone) #144 ESSF, 45 ICH, 3 MS and 10 SBS... MS and SBS scarce. Somehow have a ton of NAS; We have 202 accounted for from 322 observations??
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$bec_zone #Need to acquire full BEC data
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(bec_zone))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Canopy Cover",
+        x = "Canopy Cover (%)",
+        y = "Berry Abundance")  #+
+ # scale_colour_discrete (name = "Stand Origin", labels = c("No Burn No Mechanical", "Mechanical", "Burn", "Burn and Mechanical"))
+
+#Remove BEC
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Canopy_Cov, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Canopy Cover",
+        x = "Canopy Cover (%)",
+        y = "Berry Abundance") 
 ```
 
-##We see in above figure that if we include the BEC data, we need to determine information on when those plots were burned and harvested, as they are all presences and all NAs currently.
-
-
-Assess the percent cover of huckleberry by origin.
-
+Compare to origin age.
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = origin, y = Species.Co)) +
-  geom_boxplot () +
-  labs (x = "Harvest Fire Same Year (0), Harvest Origin (1) and Fire Origin (2) Stands",
-        y = "Huckleberry Cover")
-
-#Cover appears to be highest in stands that burned, then that were harvested, and then that had both in the same year.
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Time Since Cutblock",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
 ```
 
-#All of the NAs in the above are from the BEC data, and we can see that the percent cover is much smaller on average. Clarify what size of plots were assessed by Clayton, and if these data can even be comparable.
-
-
-Assess for differences in stand age by category.
+Comapre to VRI age.
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = origin, y = origin.age)) +
-  geom_boxplot () +
-  labs (x = "Harvest Origin (1) and Fire Origin (2) Stands",
-        y = "Stand Age")
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$vri_age #some NAs
 
-#Those burned and harvested in same year WAY older. Perhaps remove these. Other two categories (harvested, burned) more similar ins tand age but means differ.
-```
-
-0 category actually had many that were indicated here to not have been logged and not burned. Check cutblock occurence.
-
-```{r}
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$CutBlock_O) #97 indicated not to have been in cutblocks despite RESULTS Openings data. Possible they were logged after. Remove these.
-
-cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$CutBlock_O=="1")
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = vri_age, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by VRI Age",
+        x = "VRI age",
+        y = "Berry Abundance") 
 ```
 
 
-Compare area in hectares between plots with and without.
+Compare age of cutblock to canopy cover.
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Species.Pr2, y = AREA_SQM)) +
-  geom_boxplot () +
-  labs (x = "No Huckleberry (0) and Huckleberry Detected (1) Stands",
-        y = "Area (HA)")
-#Difficult to see any differences.
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Canopy_Cov, colour = factor(bec_zone))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Canopy_Cov)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
 ```
 
-Compare age of stand for if huckleberry detected.
+
+#Look at Growing Degree Days
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DD5_at_0
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = DD5_at_0, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Growing Degree Days",
+        x = "Growing Degree Days > 5",
+        y = "Berry Abundance") 
+```
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Species.Pr2, y = origin.age)) +
-  geom_boxplot () +
-  labs (x = "No Huckleberry (0) and Huckleberry Detected (1) Stands",
-        y = "Stand Age")
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$heatload
 
-#Huckleberry maybe slightly more detected in slightly older stands
-#Pattern stronger for huckleberry to be detected in older stands. May be a hump shaped distribution that is not being captured.
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = heatload, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Heatload",
+        x = "Heatload",
+        y = "Berry Abundance") 
 
 ```
 
-Assess age between burned and harvested plots with and without.
+Plot berry abundance by plant cover; but note, not complete.
 
 ```{r}
-supp.labs <- c("Harvest", "Fire")
-names(supp.labs) <- c(1, 2)
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Species.Pr2, y = origin.age)) +
-  geom_boxplot () +
-  labs (x = "No Huckleberry (0) and Huckleberry Detected (1) Stands",
-        y = "Stand Age") +
-  facet_grid (cols = vars(origin),
-              labeller = labeller (origin = supp.labs))
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Species.Co #Only a handful of NAs, actually not too bad
 
-#More likely to occur in stands with fire since harvested at a younger age, and more likely to occur in older stands if harvested.
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Species.Co, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Species Cover",
+        x = "Species Cover (%)",
+        y = "Berry Abundance") 
 ```
 
-#Repeat using PREP_BU
-
+By Species Height.
 ```{r}
-cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU_<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Species.He #Only a handful of NAs, actually not too bad
 
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Species.Pr2, fill = PREP_BU_)) + 
-  geom_bar (position = "fill") +
-  scale_fill_discrete (name = "Burned or Not", labels = c("Not Burned", "Burned")) 
-#More common in burned
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Species.He, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Species Height",
+        x = "Species Height (cm)",
+        y = "Berry Abundance") 
 ```
 
-Assess the percent cover of huckleberry.
 
 ```{r}
-cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Co<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Co)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Cove<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Cove)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Cove #Lots of missing values
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned # We somehow have NA values. Assume not burned.
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned)]<-0
 
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = PREP_BU_, y = Species.Co)) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Burned, y = Fruit.Cove)) +
   geom_boxplot () +
   labs (x = "Not Burned (0), Burned(1)",
-        y = "Huckleberry Cover")
+        y = "Huckleberry Fruit Cover")
 
-#Maybe slightly higher in burned. But hieracrhical and still need to remove absence locations
+#No difference
 ```
 
 Assess for differences in stand age by category.
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = PREP_BU_, y = origin.age)) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Burned, y = origin.age)) +
   geom_boxplot () +
   labs (x = "Not Burned (0), Burned(1)",
         y = "Stand Age")

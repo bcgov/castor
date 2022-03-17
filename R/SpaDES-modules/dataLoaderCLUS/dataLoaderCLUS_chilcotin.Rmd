@@ -124,7 +124,7 @@ parameters <-  list(
                       useLandingsArea=FALSE),
   roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
-                  nameRoads =  'rast.crds_all'
+                  nameRoads =  'rast.ce_road_2019'
                   ),
   disturbanceCalcCLUS = list(calculateInterval = 1, 
                              criticalHabitatTable = "vat.vat_bc_crithab_and_herd",

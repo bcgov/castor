@@ -231,6 +231,7 @@ unique(dat_person_$ntrl_ds_codes)
 #Compare codes to lightning
 unique(dat_lightning_$ntrl_ds_codes) #they are the same
 
+
 ## Create empty vector
 dat_person_$climate1<-0
 head(dat_person_)
@@ -299,6 +300,20 @@ p <- ggplot(dat_lightning_, aes(aspect_cos, as.numeric(fire_pres))) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("aspect_cos") + ylab("Pr (ignition)")
 p
+
+# I was wondering whether there were clearly more ignitions on one side so I decided to try and look at it as a circular plot. I assume this is doing what I think it should be doing looks like cos aspect is not working the way we think it should. Plots look weird... see below.
+library(circular)
+
+
+x<-filter(dat_lightning_, fire_pres==1)
+b_circular<-circular(x$aspect_radians)
+b_circular_asp<-circular(x$aspect)
+b_circular_cos<-circular(x$aspect_cos)
+rose.diag(b_circular, bins=36, prop=3)
+rose.diag(b_circular_asp, bins=36, prop=3)
+rose.diag(b_circular_cos, bins=36, prop=3) # weird it does not look like cos-aspect worked. 
+b<-density(x$aspect_radians, control.circular=list(units="radians"))
+
 ##Seems to be minimal relationship with aspect overall
 
 p <- ggplot(dat_lightning_, aes(slope, as.numeric(fire_pres))) +
@@ -317,12 +332,12 @@ ggplot(dat_lightning_, aes(x = slope)) +
 
 
 #
-p <- ggplot(dat_lightning_, aes(aspect_cos*slope, as.numeric(fire_pres))) +
+p <- ggplot(dat_lightning_, aes(aspect*slope, as.numeric(fire_pres))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("aspect_cos*slope") + ylab("Pr (ignition)")
+  xlab("aspect*slope") + ylab("Pr (ignition)")
 p
 
 p <- ggplot(dat_lightning_, aes(elevation, as.numeric(fire_pres))) +
