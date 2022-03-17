@@ -336,28 +336,30 @@ system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 214748364
 ```
 
 
-## Perm disturbed
+## Permanently disturbed
 
 ```{r, roads2001}
 landusers<-raster("S:/ANA/PROJECTS/CLUS/Data/all_disturbance/mine_ag_wind_rail.tif")
 landusers[landusers[] > 0 ]<-1
 landusers[is.na(landusers[]) ]<-0
 
-roads<-raster(paste0(here::here(), "/R/params/ften_road.tif")) 
-roads[roads[] > 0 ]<-1
-roads[is.na(roads[]) ]<-0
+# removed roads in 2022; permanent roads are now included in the rast.ce_road_2019 data
 
-proads<-raster(paste0(here::here(), "/R/params/paved_road.tif"))
-proads[proads[] > 0 ]<-1
-proads[is.na(proads[]) ]<-0
+# roads<-raster(paste0(here::here(), "/R/params/ften_road.tif")) 
+# roads[roads[] > 0 ]<-1
+# roads[is.na(roads[]) ]<-0
+# 
+# proads<-raster(paste0(here::here(), "/R/params/paved_road.tif"))
+# proads[proads[] > 0 ]<-1
+# proads[is.na(proads[]) ]<-0
+# 
+# all<-landusers + roads + proads
+# all[all[] > 0 ]<-1
+# all[all[] ==0 ]<-NA
+# 
+ writeRaster (landusers, file = here::here(), "R/Params/all_perm.tif", format="GTiff", overwrite=TRUE)
 
-all<-landusers + roads + proads
-all[all[] > 0 ]<-1
-all[all[] ==0 ]<-NA
-
-writeRaster(all, file="C:/Users/klochhea/clus/R/params/all_perm.tif", format="GTiff", overwrite=TRUE)
-
-system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/all_perm.tif -t 100x100 rast.perm_dist_rds | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), 'R/params/all_perm.tif -t 100x100 rast.perm_dist_no_rds | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 ```
 
 
