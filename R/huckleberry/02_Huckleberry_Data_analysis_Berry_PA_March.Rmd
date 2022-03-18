@@ -46,24 +46,13 @@ library(mgcViz)
 ```
 
 ##Data sets for what purpose
-1. Percent cover huckleberry: cutblock_plots_openings_Huck_ALL_df_2022_b23b (and subset Huck)
-2. Other elements huckleberry: cutblock_plots_openings_Huck_ALL_df_2022_b2 (although if use above, NA remove will likely get same result- *should* at least)
+Percent cover huckleberry and berry abundance: cutblock_plots_openings_Huck_ALL_df_2022_b2
 
-3. Percent cover buffaloberry (plant and berries separate), Presence buffaloberry (plant and berries separate): cutblock_plots_openings_Buff_ALL_df
+This dataset already has the two datasets combined together.
 
 #Overview
-This file continues from huckleberry_data_processing_Dec2021, and shows some initial exploration of the huckleberry data. As of January 14, 2022, the analyses only encompass the huckleberry data from Mowat and Lamb due to missing data in the BEC data for % sand, DEM (which can be easily acquired), pH, and other environmental variables that have been shown to be crucial for huckleberry P/A, cover and huckleberry fruit P/A and cover. These variables will need to be appended to that data before it can be included into the analyses for percent cover; note, this data may wish to not be included for P/A models as we only selected presence data, and thus have no complimenting absence data, and the number of presences will likely overwhelm the models.
+This file continues from huckleberry&buffaloberry_data_processing_Jan2022. Here, we explore how silviculture practices influence the abundance of huckleberry berries. 
 
-#Additional processing needed for BEC data:
-1. Determine timing of harvested and burning to determine origin age of stand and time since fire and harvest
-2. DEM --> Although BEC data has aspect and slope indicated for some point within area from RESULTS tab
-3. % Sand (TSAND)
-4. pH
-5. ClimateBC data (Tave_wt, PAS)
-6. Land Cover Type (MODIS_LC)
-7. Canopy Cover - but investigate what StrataCove, StrataCo_1...3 are.
-
-All of the NAs by origin (burn/harvest) for huckleberry cover are from the BEC data, and we can see that the percent cover is much smaller on average. Clarify what size of plots were assessed by Clayton, and if these data can even be comparable.
 
 #Load Data In
 ```{r}
@@ -1809,12 +1798,200 @@ visreg(model.new.2b2, "Canopy_Cov")
 visreg(model.new.2b2, "START_SEASON", by="Canopy_Cov")
 visreg(model.new.2b2, "Canopy_Cov", by= "START_SEASON")
 
+#Go back to this one
+model.new.2b2 <- gam (Fruit.AbunTEST ~ PREP_ME + Burned + Brush2 + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b2)
+anova(model.new.2b2)
+summary(model.new.2b2) #Adjusted R-square = 0.229, Deviance explained 29.5%
+AIC(model.new.2b2) #3122.2
+plot(model.new.2b2)
+plot(model.new.2b2, select=1)
+plot(model.new.2b2, select=2)
+plot(model.new.2b2, select=3)
+plot(model.new.2b2, select=4)
+plot(model.new.2b2, select=5)
+plot(model.new.2b2, select=6)
+plot(model.new.2b2, select=7)
+
+#PREP_ME + Burned + Brush2 + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He
+visreg(model.new.2b2, "PREP_ME")
+visreg(model.new.2b2, "Burned")
+visreg(model.new.2b2, "Brush2")
+visreg(model.new.2b2, "G_BGC_ZONE")
+visreg(model.new.2b2, "heatload")
+visreg(model.new.2b2, "Species.He")
+visreg(model.new.2b2, "START_SEASON", by="Canopy_Cov")
+visreg(model.new.2b2, "PREP_ME", by="Canopy_Cov")
+visreg(model.new.2b2, "Canopy_Cov", by= "START_SEASON")
+visreg(model.new.2b2, "Canopy_Cov", by= "PREP_ME")
+
+```
+
+
+Compare to if remove covariates.
+```{r}
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + s(OPEN_GRSAR) + s(Canopy_Cov, by=PLANTED) + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=Chem2) + s(Canopy_Cov, by=START_SEASON) + s(Canopy_Cov, by=Brush2),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.09, Deviance explained 15.5%
+AIC(model.new.2b_2) #3736.9
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+plot(model.new.2b_2, select=1)
+plot(model.new.2b_2, select=2)
+plot(model.new.2b_2, select=3)
+plot(model.new.2b_2, select=4)
+plot(model.new.2b_2, select=5) .
+plot(model.new.2b_2, select=6)
+plot(model.new.2b_2, select=7)
+
+
+library(visreg)
+visreg(model.new.2b_2, "DN1_SILSYS_GP")
+visreg(model.new.2b_2, "Chem2")
+visreg(model.new.2b_2, "PREP_ME")
+visreg(model.new.2b_2, "Burned")
+visreg(model.new.2b_2, "Brush2")
+visreg(model.new.2b_2, "G_BGC_ZONE")
+visreg(model.new.2b_2, "PLANTED")
+visreg(model.new.2b_2, "START_SEASON")
+
+#Remove ones that do not need to be smoothed
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + s(Canopy_Cov, by=PREP_ME) + c(Canopy_Cov)*Chem2 + s(Canopy_Cov, by=START_SEASON) + c(Canopy_Cov)*Brush2,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.09, Deviance explained 15.8%
+AIC(model.new.2b_2) #3736.2
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + s(Canopy_Cov, by=PREP_ME) + c(Canopy_Cov)*Chem2 + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.09, Deviance explained 15.8%
+AIC(model.new.2b_2) #3734.3
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.09, Deviance explained 15.7%
+AIC(model.new.2b_2) #3734.3
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.097, Deviance explained 15.7%
+AIC(model.new.2b_2) #3730.9
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + G_BGC_ZONE + PLANTED + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.10, Deviance explained 15.6%
+AIC(model.new.2b_2) #3729.1
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Brush2 + G_BGC_ZONE + PLANTED + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.10, Deviance explained 15.5%
+AIC(model.new.2b_2) #3727.99
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Brush2 + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.10, Deviance explained 15.1%
+AIC(model.new.2b_2) #3726.7
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME  + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.10, Deviance explained 15%
+AIC(model.new.2b_2) #3757.9 --> WORSE
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Brush2 + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.10, Deviance explained 15.1%
+AIC(model.new.2b_2) #3726.7
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+plot(model.new.2b_2, select=1)
+plot(model.new.2b_2, select=2)
+plot(model.new.2b_2, select=3)
+plot(model.new.2b_2, select=4)
+plot(model.new.2b_2, select=5) .
+plot(model.new.2b_2, select=6)
+
+library(visreg)
+visreg(model.new.2b_2, "DN1_SILSYS_GP")
+visreg(model.new.2b_2, "PREP_ME", by="Canopy_Cov")
+visreg(model.new.2b_2, "Brush2")
+visreg(model.new.2b_2, "G_BGC_ZONE")
+visreg(model.new.2b_2, "START_SEASON", by="Canopy_Cov")
+visreg(model.new.2b_2, "Canopy_Cov", by="PREP_ME")
+visreg(model.new.2b_2, "Canopy_Cov", by="START_SEASON")
+
+#Remove ones that do not need to be smoothed
 ```
 
 
 
 
-
+########### BELOW IS OLD CODE THAT MAY BE USEFUL ##############
 
 
 
