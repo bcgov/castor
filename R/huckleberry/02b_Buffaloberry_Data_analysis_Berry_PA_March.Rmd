@@ -50,12 +50,14 @@ library(plyr)
 cutblock_plots_openings_Buff_ALL_df_March2022
 
 #Overview
-This file continues from huckleberry&buffaloberry_data_processing_Jan2022. Here, we explore how silviculture practices influence the abundance of buffaloberry berries.
+This file continues from Buffaloberry&buffaloberry_data_processing_Jan2022. Here, we explore how silviculture practices influence the abundance of buffaloberry berries.
 
 #Load Data In
 ```{r}
-cutblock_plots_openings_Buff_ALL_df<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Buff_ALL_df_March2022.csv")
-head(cutblock_plots_openings_Buff_ALL_df)                     
+cutblock_plots_openings_Buff_ALL_df_b2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Buff_ALL_df_b2.csv")
+head(cutblock_plots_openings_Buff_ALL_df_b2)
+
+cutblock_plots_openings_Buff_ALL_df<-cutblock_plots_openings_Buff_ALL_df_b2
                              
 ```
 
@@ -89,7 +91,6 @@ Save data.
 write.csv(cutblock_plots_openings_Buff_ALL_df, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Buff_ALL_df_PlantPresOnly.csv")
 ```
 
-
 ## Looking at DN1_DIS_CD (DENUDATION_1_DISTURBANCE_CODE) between openings and openings + activity files
 ```{r}
 #See if worth losing the data points - i.e., do we have consistent good data within this.
@@ -99,7 +100,6 @@ cutblock_plots_openings_Buff_ALL_df$OPEN_GRSAR<-as.numeric(cutblock_plots_openin
 hist(cutblock_plots_openings_Buff_ALL_df$OPEN_GRSAR) #total area the opening encompasses
 table(cutblock_plots_openings_Buff_ALL_df$DN1_DIS_CD) # 3 B (burned wildfire); 135 logged (L); 1 P (pest); 3 S (Salvage); 3 W; 
 table(cutblock_plots_openings_Buff_ALL_df$DN2_DIS_CD) #Additional elements; 115 total
-
 
 ```
 
@@ -181,18 +181,21 @@ cutblock_plots_openings_Buff_ALL_df$PREP_BU <- ifelse ((cutblock_plots_openings_
 
 #Attempt 2
 cutblock_plots_openings_Buff_ALL_df$PREP_BU <- ifelse ((cutblock_plots_openings_Buff_ALL_df$PREP1_TECH != "BU" & cutblock_plots_openings_Buff_ALL_df$PREP2_TECH != "BU"), 0, 1)                                                     
-table(cutblock_plots_openings_Buff_ALL_df$PREP_BU)    #103 not burned, 200 burned; MANY NAs
+table(cutblock_plots_openings_Buff_ALL_df$PREP_BU)    #8 not burned, 22 burned; MANY NAs
+
 cutblock_plots_openings_Buff_ALL_df$PREP_BU
 #Lots of NAs - there should be no NAs. It is an ifelse statement where all should be 1s or 0s...
-table(cutblock_plots_openings_Buff_ALL_df$PREP1_TECH) #156 burned
-table(cutblock_plots_openings_Buff_ALL_df$PREP2_TECH) #67 burned
-table(cutblock_plots_openings_Buff_ALL_df$PREP_TECH_2) #122 Bu Bu (so burned both times); so 200 burned seemed realistic
+table(cutblock_plots_openings_Buff_ALL_df$PREP1_TECH) #16 burned
+table(cutblock_plots_openings_Buff_ALL_df$PREP2_TECH) #7 burned
+table(cutblock_plots_openings_Buff_ALL_df$PREP_TECH_2) #122 9 (so burned both times); so 200 burned seemed realistic
 
 table(cutblock_plots_openings_Buff_ALL_df$PREP1_TECH, cutblock_plots_openings_Buff_ALL_df$PREP2_TECH) #Won't see all because many NAs in PREP2_TECH; here 23 are BU BU
 
 
 table(cutblock_plots_openings_Buff_ALL_df$PREP1_TECH)
 table(cutblock_plots_openings_Buff_ALL_df$PREP1_TECH, cutblock_plots_openings_Buff_ALL_df$PREP_BU)
+table(cutblock_plots_openings_Buff_ALL_df$PREP_BU, cutblock_plots_openings_Buff_ALL_df$Burned)
+table(cutblock_plots_openings_Buff_ALL_df$Burned)
 
 cutblock_plots_openings_Buff_ALL_df$PREP_BU[is.na(cutblock_plots_openings_Buff_ALL_df$PREP_BU)]<-0
 table(cutblock_plots_openings_Buff_ALL_df$PREP_BU) #This looks better, but keep in mind that some that had no info may have had treatments not listed; 306 not burned, 186 burned
@@ -212,9 +215,9 @@ cutblock_plots_openings_Buff_ALL_df$PREP_ME[is.na(cutblock_plots_openings_Buff_A
 table(cutblock_plots_openings_Buff_ALL_df$PREP_ME) #This looks better, but keep in mind that some that had no info may have had treatments not listed; 291 no mechanical treatment, 201 mechanical treatment
 
 #Compare PREP_ME to Mechanical from atu data
-table(cutblock_plots_openings_Buff_ALL_df$PREP_ME, cutblock_plots_openings_Buff_ALL_df$Mechanical) #14 more yeses for one, and 10 different moreyeses for other...
-table(cutblock_plots_openings_Buff_ALL_df$PREP_ME) #180 yes
-table(cutblock_plots_openings_Buff_ALL_df$Mechanical) #184 yes
+table(cutblock_plots_openings_Buff_ALL_df$PREP_ME, cutblock_plots_openings_Buff_ALL_df$Mechanical) #A few more yeses in each
+table(cutblock_plots_openings_Buff_ALL_df$PREP_ME) #37 yes
+table(cutblock_plots_openings_Buff_ALL_df$Mechanical) #34 yes
 
 cutblock_plots_openings_Buff_ALL_df$Mechanical2<-ifelse(cutblock_plots_openings_Buff_ALL_df$Mechanical==1,1, 
                                                                 ifelse(cutblock_plots_openings_Buff_ALL_df$PREP_ME==1,1,0))
@@ -239,7 +242,7 @@ table(cutblock_plots_openings_Buff_ALL_df$Manual) #142 yeses
 
 cutblock_plots_openings_Buff_ALL_df$Manual2<-ifelse(cutblock_plots_openings_Buff_ALL_df$Manual==1,1, 
                                                                 ifelse(cutblock_plots_openings_Buff_ALL_df$PREP_MA==1,1,0))
-table(cutblock_plots_openings_Buff_ALL_df$Manual2) #145 yeses, combining info from both
+table(cutblock_plots_openings_Buff_ALL_df$Manual2) #40 yeses, combining info from both
 #Perhaps this firm manual refers to something different and not brushing?
 
 ```
@@ -259,7 +262,7 @@ table(cutblock_plots_openings_Buff_ALL_df$Brushing_ALL, cutblock_plots_openings_
 
 cutblock_plots_openings_Buff_ALL_df$Brush2<-ifelse(cutblock_plots_openings_Buff_ALL_df$Brushing_ALL==1,1, 
                                                                 ifelse(cutblock_plots_openings_Buff_ALL_df$BRUSH_MA==1,1,0))
-table(cutblock_plots_openings_Buff_ALL_df$Brush2) #140 yeses, combining info from both
+table(cutblock_plots_openings_Buff_ALL_df$Brush2) #44 yeses, combining info from both
 ```
 
 
@@ -276,7 +279,7 @@ table(cutblock_plots_openings_Buff_ALL_df$BRUSH_CM, cutblock_plots_openings_Buff
 
 cutblock_plots_openings_Buff_ALL_df$Chem2<-ifelse(cutblock_plots_openings_Buff_ALL_df$Chemical==1,1, 
                                                                 ifelse(cutblock_plots_openings_Buff_ALL_df$BRUSH_CM==1,1,0))
-table(cutblock_plots_openings_Buff_ALL_df$Chem2) #40 yeses, combining info from both
+table(cutblock_plots_openings_Buff_ALL_df$Chem2) #28 yeses, combining info from both
 
 ```
 
@@ -298,7 +301,7 @@ table(cutblock_plots_openings_Buff_ALL_df$PLANTED, cutblock_plots_openings_Buff_
 
 cutblock_plots_openings_Buff_ALL_df$Planted2<-ifelse(cutblock_plots_openings_Buff_ALL_df$Planted_ALL==1,1, 
                                                                 ifelse(cutblock_plots_openings_Buff_ALL_df$PLANTED==1,1,0))
-table(cutblock_plots_openings_Buff_ALL_df$Planted2) #387 yeses, combining info from both; 31 nos
+table(cutblock_plots_openings_Buff_ALL_df$Planted2) #124 yeses, combining info from both; 11 nos
 ```
 
 
@@ -340,19 +343,14 @@ table(cutblock_plots_openings_Buff_ALL_df$PREP1_TECH_GP)
 
 
 ```{r}
-table(cutblock_plots_openings_Buff_ALL_df$PREP_BU) #262 no, 161 yes
-table(cutblock_plots_openings_Buff_ALL_df$PREP_ME) #243 no, 180 yes
-table(cutblock_plots_openings_Buff_ALL_df$PREP_MA) #404 no, 19 yes
+table(cutblock_plots_openings_Buff_ALL_df$PREP_BU) #113 no, 22 yes
+table(cutblock_plots_openings_Buff_ALL_df$PREP_ME) #98 no, 37 yes
+table(cutblock_plots_openings_Buff_ALL_df$PREP_MA) #133 no, 2 yes
 
 #With refined data
-table(cutblock_plots_openings_Buff_ALL_df$Burned) #242 no, 176 yes
-table(cutblock_plots_openings_Buff_ALL_df$Mechanical2) #224 no, 194 yes
-table(cutblock_plots_openings_Buff_ALL_df$Manual2) #273 no, 145 yes # But thuis may include brushing now?
-
-#Compare above with data
-table(cutblock_plots_openings_Buff_ALL_df$Species.Pr) #423 present; ignores BEC plots because only presences there
-table(cutblock_plots_openings_Buff_ALL_df$Species.Pr, cutblock_plots_openings_Buff_ALL_df$PREP_BU) 
-table(cutblock_plots_openings_Buff_ALL_df$Species.Pr, cutblock_plots_openings_Buff_ALL_df$DN1_SILSYS_GP) #Only 475 datapoints accounted for here. CCRES = Clearcut with reserves; CLEAR = clearcut
+table(cutblock_plots_openings_Buff_ALL_df$Burned) #113 no, 22 yes
+table(cutblock_plots_openings_Buff_ALL_df$Mechanical2) #97 no, 38 yes
+table(cutblock_plots_openings_Buff_ALL_df$Manual2) #95 no, 40 yes # But thuis may include brushing now?
 
 ```
 
@@ -365,9 +363,6 @@ cutblock_plots_openings_Buff_ALL_df$TimeSinceCutblock
 cutblock_plots_openings_Buff_ALL_df$TimeSinceFire
 cutblock_plots_openings_Buff_ALL_df$CutBlock_O
 table(cutblock_plots_openings_Buff_ALL_df$CutBlock_O) #562 indicated as yes. Need to add yes to the appended Laura data.
-
-cutblock_plots_openings_Buff_ALL_df$CutBlock_O[is.na(cutblock_plots_openings_Buff_ALL_df$CutBlock_O)]<-1
-table(cutblock_plots_openings_Buff_ALL_df$CutBlock_O) #604 - fixed!
 
 cutblock_plots_openings_Buff_ALL_df$origin <- ifelse ((cutblock_plots_openings_Buff_ALL_df$CutBlock_O == 1 & cutblock_plots_openings_Buff_ALL_df$TimeSinceCutblock < cutblock_plots_openings_Buff_ALL_df$TimeSinceFire), 1, ifelse ((cutblock_plots_openings_Buff_ALL_df$Fire_Occ == 1 & cutblock_plots_openings_Buff_ALL_df$TimeSinceCutblock > cutblock_plots_openings_Buff_ALL_df$TimeSinceFire), 2, 0))
 cutblock_plots_openings_Buff_ALL_df$origin <- as.factor (cutblock_plots_openings_Buff_ALL_df$origin)
@@ -448,11 +443,11 @@ table(cutblock_plots_openings_Buff_ALL_df$planted_species2) #172 records, so sug
 
 Look at how much of the data shows NAs for abundance.
 ```{r}
-table(cutblock_plots_openings_Buff_ALL_df$Fruit.Pres) #All 406 cases report if fruits or not
+table(cutblock_plots_openings_Buff_ALL_df$Fruit.Pres) #All 134 cases report berries 0/1
 cutblock_plots_openings_Buff_ALL_df$Fruit.Abun #Many NAs
 
-cutblock_plots_openings_Buff_ALL_df_FruitNotNA<-subset(cutblock_plots_openings_Buff_ALL_df, cutblock_plots_openings_Buff_ALL_df$Fruit.Abun!="NA") #240 results
-table(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Fruit.Pres) #30 not fruit presents and 210 yes presents. Thus some of the 112 reports of fruit not present was NA. Go back and add back in.
+#cutblock_plots_openings_Buff_ALL_df_FruitNotNA<-subset(cutblock_plots_openings_Buff_ALL_df, cutblock_plots_openings_Buff_ALL_df$Fruit.Abun!="NA") #240 results
+#table(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Fruit.Pres) #30 not fruit presents and 210 yes presents. Thus some of the 112 reports of fruit not present was NA. Go back and add back in.
 
 #
 cutblock_plots_openings_Buff_ALL_df$Fruit.AbunTEST<-ifelse((cutblock_plots_openings_Buff_ALL_df$Fruit.Pres=="0" & is.na(cutblock_plots_openings_Buff_ALL_df$Fruit.Abun)), 0, cutblock_plots_openings_Buff_ALL_df$Fruit.Abun)
@@ -463,8 +458,8 @@ cutblock_plots_openings_Buff_ALL_df$Fruit.AbunTEST<-ifelse((cutblock_plots_openi
 table(cutblock_plots_openings_Buff_ALL_df$Fruit.AbunTEST)
 cutblock_plots_openings_Buff_ALL_df$Fruit.AbunTEST
 
-cutblock_plots_openings_Buff_ALL_df_FruitNotNA<-subset(cutblock_plots_openings_Buff_ALL_df, cutblock_plots_openings_Buff_ALL_df$Fruit.AbunTEST!="NA") #240
-table(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Fruit.Pres) # 112 absences, 210 presences.
+cutblock_plots_openings_Buff_ALL_df_FruitNotNA<-subset(cutblock_plots_openings_Buff_ALL_df, cutblock_plots_openings_Buff_ALL_df$Fruit.AbunTEST!="NA") #119
+table(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Fruit.Pres) # 19 absences, 100 presences.
 ```
 
 
@@ -502,10 +497,13 @@ write.csv(cutblock_plots_openings_Buff_ALL_df, file="C:\\cora\\Hucklberry\\Grizz
 Keep in mind that cutblocks that are adjacent to each other are still currently not combined together to represent total cutblock size.
 
 ```{r}
-cutblock_plots_openings_Buff_ALL_df_FruitNotNA$planted_density_TOT #This indicates planting density of the up to 5 species planted. Probably more accurate than creating a proxy. But note, not all have this info, so will lose more data again.
+cutblock_plots_openings_Buff_ALL_df_FruitNotNA$planted_density_TOT #This indicates planting density of the up to 5 species planted. Probably more accurate than creating a proxy. But note, not all have this info, so will lose more data again. Lots of NAs - remove? Make 0? Investigate if these ones are the few without planting.
+table(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Planted_ALL) 
+#There are more than 13 records With NAs :( But only 13 without planting.
+
+#Make ifelse statement for Planted to be 0 density planted if not planted.
+
 ```
-
-
 
 
 ##################### BEGIN VISUALIZATIONS ###############
@@ -517,22 +515,22 @@ Visualize differences by categories.
 ```{r}
 cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Fruit.AbunTEST
 cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Canopy.Cov
-table(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$G_BGC_ZONE) 
+table(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$G_BGC_ZONE) #Might need to combine SBPS (n=1) with something else, or just exclude. Also may need to do something with IDF (7).
 cutblock_plots_openings_Buff_ALL_df_FruitNotNA$G_BGC_ZONE 
 
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Canopy.Cov, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Berry Abundance by Canopy Cover",
+  labs (title = "Buffaloberry Berry Abundance by Canopy Cover",
         x = "Canopy Cover (%)",
         y = "Berry Abundance")  #+
- # scale_colour_discrete (name = "Stand Origin", labels = c("No Burn No Mechanical", "Mechanical", "Burn", "Burn and Mechanical"))
+
 
 #Remove BEC
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Canopy.Cov, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Berry Abundance by Canopy Cover",
+  labs (title = "Buffaloberry Berry Abundance by Canopy Cover",
         x = "Canopy Cover (%)",
         y = "Berry Abundance") 
 ```
@@ -542,7 +540,7 @@ Compare to origin age.
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = origin.age, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Berry Abundance by Time Since Cutblock",
+  labs (title = "Buffaloberry Berry Abundance by Time Since Cutblock",
         x = "Time Since Logging",
         y = "Berry Abundance") 
 
@@ -550,7 +548,7 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = origin.age, y =
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = origin.age, y = Fruit.AbunTEST,colour = factor(G_BGC_ZONE))) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Berry Abundance by Time Since Cutblock",
+  labs (title = "Buffaloberry Berry Abundance by Time Since Cutblock",
         x = "Time Since Logging",
         y = "Berry Abundance") 
 ```
@@ -563,14 +561,14 @@ cutblock_plots_openings_Buff_ALL_df_FruitNotNA$vri_age #some NAs
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = vri_age, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Berry Abundance by VRI Age",
+  labs (title = "Buffaloberry Berry Abundance by VRI Age",
         x = "VRI age",
         y = "Berry Abundance") 
 
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = vri_age, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Berry Abundance by VRI Age",
+  labs (title = "Buffaloberry Berry Abundance by VRI Age",
         x = "VRI age",
         y = "Berry Abundance") 
 ```
@@ -602,7 +600,7 @@ cutblock_plots_openings_Buff_ALL_df_FruitNotNA$DD5_at_0
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = DD5_at_0, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Berry Abundance by Growing Degree Days",
+  labs (title = "Buffaloberry Berry Abundance by Growing Degree Days",
         x = "Growing Degree Days > 5",
         y = "Berry Abundance") 
 ```
@@ -613,7 +611,7 @@ cutblock_plots_openings_Buff_ALL_df_FruitNotNA$heatload
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = heatload, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Berry Abundance by Heatload",
+  labs (title = "Buffaloberry Berry Abundance by Heatload",
         x = "Heatload",
         y = "Berry Abundance") 
 
@@ -622,20 +620,21 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = heatload, y = F
 Plot berry abundance by plant cover; but note, not complete.
 
 ```{r}
-cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Species.Co #Only a handful of NAs, actually not too bad
-cor(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Species.Co, cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Fruit.AbunTEST, use = "complete.obs") #0.22
+cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Species.Co #About half have NAs
+cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Species.Co<-as.numeric(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Species.Co)
+cor(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Species.Co, cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Fruit.AbunTEST, use = "complete.obs") #0.05
 
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Species.Co, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Berry Abundance by Species Cover",
+  labs (title = "Buffaloberry Berry Abundance by Species Cover",
         x = "Species Cover (%)",
         y = "Berry Abundance") 
 
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Species.Co, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Berry Abundance by Species Cover",
+  labs (title = "Buffaloberry Berry Abundance by Species Cover",
         x = "Species Cover (%)",
         y = "Berry Abundance") 
 ```
@@ -643,20 +642,21 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Species.Co, y =
 By Species Height.
 ```{r}
 cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Species.He #Only a handful of NAs, actually not too bad
+cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Species.He<-as.numeric(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Species.He)
 
-cor(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Species.He, cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Fruit.AbunTEST, use = "complete.obs") #0.26 - this correlation is stronger
+cor(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Species.He, cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Fruit.AbunTEST, use = "complete.obs") #0.27 - this correlation is stronger
 
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Species.He, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Berry Abundance by Species Height",
+  labs (title = "Buffaloberry Berry Abundance by Species Height",
         x = "Species Height (cm)",
         y = "Berry Abundance") 
 
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Species.He, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Berry Abundance by Species Height",
+  labs (title = "Buffaloberry Berry Abundance by Species Height",
         x = "Species Height (cm)",
         y = "Berry Abundance") 
 ```
@@ -668,14 +668,14 @@ planted_density_TOT
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = planted_density_TOT, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Berry Abundance by Planting Density",
+  labs (title = "Buffaloberry Berry Abundance by Planting Density",
         x = "Planting Density (trees/ha)",
         y = "Berry Abundance") 
 
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = planted_density_TOT, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Berry Abundance by Planting Density",
+  labs (title = "Buffaloberry Berry Abundance by Planting Density",
         x = "Planting Density (trees/ha)",
         y = "Berry Abundance") 
 ```
@@ -691,7 +691,7 @@ cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Burned[is.na(cutblock_plots_openi
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Burned, y = Fruit.AbunTEST)) +
   geom_boxplot () +
   labs (x = "Not Burned (0), Burned(1)",
-        y = "Huckleberry Fruit Cover")
+        y = "Buffaloberry Fruit Cover")
 
 #No difference
 ```
@@ -699,6 +699,8 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Burned, y = Fru
 Assess for differences in stand age by category.
 
 ```{r}
+cutblock_plots_openings_Buff_ALL_df$Burned<-as.factor(cutblock_plots_openings_Buff_ALL_df$Burned)
+
 ggplot (cutblock_plots_openings_Buff_ALL_df, aes (x = Burned, y = origin.age)) +
   geom_boxplot () +
   labs (x = "Not Burned (0), Burned(1)",
@@ -733,28 +735,25 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Canopy.Cov, y =
         y = "Berry Abundance") 
 ```
 
-
 #Repeat for Mechanical treatment
-#using Mechanical2 (some NAS); PREP_ME instead
-
+#using Mechanical2 
 
 ```{r}
-ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = origin.age, y = Canopy.Cov, colour = factor(PREP_ME))) +
+ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = origin.age, y = Canopy.Cov, colour = factor(Mechanical2))) +
   geom_point () +
   geom_smooth (se=F) +
   labs (title = "Canopy Cover by Time Since Cutblock/Logging",
         x = "Time Since Logging",
         y = "Canopy Cover (%)") 
 
-ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = origin.age, y = Fruit.AbunTEST, colour = factor(PREP_ME))) +
+ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = origin.age, y = Fruit.AbunTEST, colour = factor(Mechanical2))) +
   geom_point () +
   geom_smooth (se=F) +
   labs (title = "Berry Abundance by Time Since Cutblock/Logging",
         x = "Time Since Logging",
         y = "Berry Abundance") 
 
-
-ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Canopy.Cov, y = Fruit.AbunTEST, colour = factor(PREP_ME))) +
+ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Canopy.Cov, y = Fruit.AbunTEST, colour = factor(Mechanical2))) +
   geom_point () +
   geom_smooth (se=F) +
   labs (title = "Berry Abundance by Canopy Cover",
@@ -778,7 +777,6 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = origin.age, y =
   labs (title = "Berry Abundance by Time Since Cutblock/Logging",
         x = "Time Since Logging",
         y = "Berry Abundance") 
-
 
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Canopy.Cov, y = Fruit.AbunTEST, colour = factor(PLANTED))) +
   geom_point () +
@@ -805,7 +803,6 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = origin.age, y =
         x = "Time Since Logging",
         y = "Berry Abundance") 
 
-
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Canopy.Cov, y = Fruit.AbunTEST, colour = factor(DN1_SILSYS_GP))) +
   geom_point () +
   geom_smooth (se=F) +
@@ -830,7 +827,6 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = origin.age, y =
   labs (title = "Berry Abundance by Time Since Cutblock/Logging",
         x = "Time Since Logging",
         y = "Berry Abundance") 
-
 
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Canopy.Cov, y = Fruit.AbunTEST, colour = factor(Qa))) +
   geom_point () +
@@ -858,7 +854,6 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA2, aes (x = origin.age, y 
   labs (title = "Berry Abundance by Time Since Cutblock/Logging",
         x = "Time Since Logging",
         y = "Berry Abundance") 
-
 
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA2, aes (x = Canopy.Cov, y = Fruit.AbunTEST, colour = factor(START_SEASON))) +
   geom_point () +
@@ -892,17 +887,16 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = AREA_SQM, y = F
 #Chemicals
 Chem2
 ```{r}
-cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Chem2 #A few NAs... why?
-cutblock_plots_openings_Buff_ALL_df_FruitNotNA_chem<-subset(cutblock_plots_openings_Buff_ALL_df_FruitNotNA, cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Chem2!="NA")
+cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Chem2 
 
-ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA_chem, aes (x = Canopy.Cov, y = Fruit.AbunTEST, colour = factor(Chem2))) +
+ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Canopy.Cov, y = Fruit.AbunTEST, colour = factor(Chem2))) +
   geom_point () +
   geom_smooth (se=F) +
   labs (title = "Berry Abundance by Canopy Cover and Chemical Application",
         x = "Canopy Cover",
         y = "Berry Abundance") 
 
-ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA_chem, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Chem2))) +
+ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Chem2))) +
   geom_point () +
   geom_smooth (se=F) +
   labs (title = "Berry Abundance by Time and Chemical Application",
@@ -913,14 +907,14 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA_chem, aes (x = TimeSinceC
 #Brushing
 Brush2
 ```{r}
-ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA_chem, aes (x = Canopy.Cov, y = Fruit.AbunTEST, colour = factor(Brush2))) +
+ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Canopy.Cov, y = Fruit.AbunTEST, colour = factor(Brush2))) +
   geom_point () +
   geom_smooth (se=F) +
   labs (title = "Berry Abundance by Canopy Cover and Brushing",
         x = "Canopy Cover",
         y = "Berry Abundance") 
 
-ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA_chem, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Brush2))) +
+ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Brush2))) +
   geom_point () +
   geom_smooth (se=F) +
   labs (title = "Berry Abundance by Time and Brushing",
@@ -938,7 +932,7 @@ cutblock_plots_openings_Buff_ALL_df_FruitNotNA$TSAND
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = TSAND, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Berry Abundance in Cutblocks by % Sand",
+  labs (title = "Buffaloberry Berry Abundance in Cutblocks by % Sand",
         x = "% Sand",
         y = "Berry Abundance")
 ```
@@ -948,14 +942,14 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = TSAND, y = Frui
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Tave_wt_0, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover by Average Winter Temperature Season Prior",
+  labs (title = "Buffaloberry Percent Cover by Average Winter Temperature Season Prior",
         x = "Average Winter Temp",
         y = "Berry Abundance")
 
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Tave_wt_1, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover by Average Winter Temperature Season Prior",
+  labs (title = "Buffaloberry Percent Cover by Average Winter Temperature Season Prior",
         x = "Average Winter Temp",
         y = "Berry Abundance")
 #Relationship may be more hump shaped centred around -7 degrees as opposed to linear
@@ -966,7 +960,7 @@ Spring Temperature.
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Tave_sp_0, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover by Average Spring Temperature Season Prior",
+  labs (title = "Buffaloberry Percent Cover by Average Spring Temperature Season Prior",
         x = "Average Spring Temp",
         y = "Berry Abundance")
 
@@ -977,7 +971,7 @@ Summer Temperature.
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Tave_sm_0, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover by Average Summer Temperature Season Prior",
+  labs (title = "Buffaloberry Percent Cover by Average Summer Temperature Season Prior",
         x = "Average Summer Temp",
         y = "Berry Abundance")
 
@@ -988,7 +982,7 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = Tave_sm_0, y = 
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = PAS_total, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover by Precipitation as Snow",
+  labs (title = "Buffaloberry Percent Cover by Precipitation as Snow",
         x = "Precipitation as snow (mm)",
         y = "Berry Abundance")
 ```
@@ -1001,7 +995,7 @@ cutblock_plots_openings_Buff_ALL_df_FruitNotNA$PH2<-as.numeric(cutblock_plots_op
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = PH2, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover by pH",
+  labs (title = "Buffaloberry Percent Cover by pH",
         x = "Soil PH",
         y = "Berry Abundance")
 #Extrapolated to those <2 pH likely false
@@ -1017,7 +1011,7 @@ cutblock_plots_openings_Buff_ALL_df_FruitNotNA$slope_ha_bc<-as.numeric(cutblock_
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = slope_30m_, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover by Slope",
+  labs (title = "Buffaloberry Percent Cover by Slope",
         x = "Slope",
         y = "Fruit Abundance")
 #Weak relationship (positive)
@@ -1027,7 +1021,7 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = slope_30m_, y =
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = slope_ha_bc, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover by Slope",
+  labs (title = "Buffaloberry Percent Cover by Slope",
         x = "Slope",
         y = "Fruit Abundance")
 ```
@@ -1038,7 +1032,7 @@ cutblock_plots_openings_Buff_ALL_df_FruitNotNA$aspect_30m<-as.numeric(cutblock_p
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = aspect_30m, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Coverby Apsect",
+  labs (title = "Buffaloberry Percent Coverby Apsect",
         x = "Aspect",
         y = "Fruit Abundance")
 ```
@@ -1049,7 +1043,7 @@ cutblock_plots_openings_Buff_ALL_df_FruitNotNA$aspect_ha_bc<-as.numeric(cutblock
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = aspect_ha_bc, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover by Aspect",
+  labs (title = "Buffaloberry Percent Cover by Aspect",
         x = "Aspect",
         y = "Fruit Abundance")
 ```
@@ -1060,7 +1054,7 @@ cutblock_plots_openings_Buff_ALL_df_FruitNotNA$cos_aspect<-cos(cutblock_plots_op
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = cos_aspect, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover by Aspect",
+  labs (title = "Buffaloberry Percent Cover by Aspect",
         x = "cos(Aspect)",
         y = "Fruit Abundance")
 ```
@@ -1072,7 +1066,7 @@ cutblock_plots_openings_Buff_ALL_df_FruitNotNA$dem_ha_bc<-as.numeric(cutblock_pl
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = dem_ha_bc, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover by Elevation",
+  labs (title = "Buffaloberry Percent Cover by Elevation",
         x = "Elevation (m)",
         y = "Fruit Abundance")
 ```
@@ -1108,7 +1102,7 @@ Compare probabilities between values.
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = SAI_cb, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover by SAI",
+  labs (title = "Buffaloberry Percent Cover by SAI",
         x = "SAI_cb",
         y = "Species Cover")
 ```
@@ -1117,7 +1111,7 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = SAI_cb, y = Fru
 ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = SAI_rec, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover by SAI",
+  labs (title = "Buffaloberry Percent Cover by SAI",
         x = "SAI_rec",
         y = "Species Cover")
 ```
@@ -1132,7 +1126,7 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = SAI_rec, y = Fr
 
 
 
-##ALL BELOW MODELS NEED UPDATING: MARCH 17, 2022 ###
+##ALL BELOW MODELS NEED UPDATING: MARCH 18, 2022 ###
 
 
 
@@ -1140,14 +1134,14 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = SAI_rec, y = Fr
 
 #Explore these Harvesting Variables:
 DN1_SILSYS_GP #Maybe
-PREP_ME
+Mechanical2
 Burned
 Brush2
 Chem2
 G_BGC_ZONE
 OPEN_GRSAR OR AREA_SQM (on in ha and one km square)
 PLANTED
-Origin.age/TimeSinceC
+Origin.age/TimeSinceCutblock
 START_SEASON
 
 #Potential Seasonal variables And:
@@ -1164,37 +1158,36 @@ DD5_0
 
 cutblock_plots_openings_Buff_ALL_df_FruitNotNA$PLANTED<-as.factor(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$PLANTED)
 
-cutblock_plots_openings_Buff_ALL_df_FruitNotNA$PREP_ME<-as.factor(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$PREP_ME)
+cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Mechanical2<-as.factor(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Mechanical2)
 
 cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Burned<-as.factor(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Burned)
 
 cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Manual2<-as.factor(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Manual2)
 
-cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Chem2<-as.factor(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Chem2)
-
 cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Brush2<-as.factor(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Brush2)
 
+cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Chem2<-as.factor(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Chem2)
 
 ```
 
 #Model Series 1:
-DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + START_SEASON*TimeSinceCutblock + Chem2*TimeSinceCutblock + Species.He
+DN1_SILSYS_GP + Manual2 + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock + START_SEASON + heatload + Manual2*TimeSinceCutblock + START_SEASON*TimeSinceCutblock + Chem2*TimeSinceCutblock + Species.He
 
 #Model Series 2:
-DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + Canopy.Cov + START_SEASON + heatload + PREP_ME*Canopy.Cov + START_SEASON*Canopy.Cov + Chem2*Canopy.Cov + Species.He
+DN1_SILSYS_GP + Manual2 + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + Canopy.Cov + START_SEASON + heatload + Manual2*Canopy.Cov + START_SEASON*Canopy.Cov + Chem2*Canopy.Cov + Species.He
 
 #Could investigate as linear models; but GAMs might be better
 
 ```{r}
 #Model using Time Since Cutblock
-model.new.1 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + START_SEASON*TimeSinceCutblock + Chem2*TimeSinceCutblock + Species.He,
+model.new2.1 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + Manual2 + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock + START_SEASON + heatload + Manual2*TimeSinceCutblock + START_SEASON*TimeSinceCutblock + Chem2*TimeSinceCutblock + Species.He,
 data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA)
 
-Anova(model.new.1, type=3) #
-summary(model.new.1) #
-AIC(model.new.1) #3155.946
-summary(model.new.1)$r.squared #0.19
-summary(model.new.1)$adj.r.squared #0.11
+Anova(model.new2.1, type=3) #
+summary(model.new2.1) #
+AIC(model.new2.1) #1724.751
+summary(model.new2.1)$r.squared #0.23
+summary(model.new2.1)$adj.r.squared #-0.03
 
 #Remove least significant
 
@@ -1203,47 +1196,47 @@ summary(model.new.1)$adj.r.squared #0.11
 
 ```{r}
 #Best model
-model.new.1 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Chem2 + G_BGC_ZONE + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + Species.He, data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA)
+model.new2.1 <- lm (Fruit.AbunTEST ~ , data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA)
 
 #Check model fit
 # model diagnostic plots
-binnedplot (fitted(model.new.1), 
-            residuals(model.new.1), 
+binnedplot (fitted(model.new2.1), 
+            residuals(model.new2.1), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm", i))
 
 #Explore partial residuals with current model
-# DN1_SILSYS_GP + PREP_ME + Burned + Chem2 + G_BGC_ZONE + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + Species.He
+#
 library(visreg)
 
-visreg(model.new.1, "DN1_SILSYS_GP")
-visreg(model.new.1, "Burned")
-visreg(model.new.1, "Chem2")
-visreg(model.new.1, "PREP_ME", by="TimeSinceCutblock")
-visreg(model.new.1, "TimeSinceCutblock", by="PREP_ME")
+visreg(model.new2.1, "DN1_SILSYS_GP")
+visreg(model.new2.1, "Burned")
+visreg(model.new2.1, "Chem2")
+visreg(model.new2.1, "Manual2", by="TimeSinceCutblock")
+visreg(model.new2.1, "TimeSinceCutblock", by="Manual2")
 
-visreg(model.new.1, "G_BGC_ZONE")
+visreg(model.new2.1, "G_BGC_ZONE")
 
-visreg(model.new.1, "heatload")
-visreg(model.new.1, "START_SEASON")
+visreg(model.new2.1, "heatload")
+visreg(model.new2.1, "START_SEASON")
 
-visreg(model.new.1, "Species.He")
+visreg(model.new2.1, "Species.He")
 
 
 ```
 
 Model 2: Canopy Cover
 ```{r}
-model.new.2 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + Canopy.Cov + START_SEASON + heatload + PREP_ME*Canopy.Cov + START_SEASON*Canopy.Cov + Chem2*Canopy.Cov + Species.He,
+model.new2.2 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + Manual2 + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + Canopy.Cov + START_SEASON + heatload + Manual2*Canopy.Cov + START_SEASON*Canopy.Cov + Chem2*Canopy.Cov + Species.He,
 data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA)
 
-Anova(model.new.2, type=3) #
-summary(model.new.2) #
-AIC(model.new.2) # 3160.532
-summary(model.new.2)$r.squared #0.17
-summary(model.new.2)$adj.r.squared #0.09
+Anova(model.new2.2, type=3) #
+summary(model.new2.2) #
+AIC(model.new2.2) # 1722.615
+summary(model.new2.2)$r.squared #0.25
+summary(model.new2.2)$adj.r.squared #-0.01
 
 #Remove Least Significant
 
@@ -1254,186 +1247,431 @@ summary(model.new.2)$adj.r.squared #0.09
 
 ```{r}
 #Best model
-model.new.2 <- lm (Fruit.AbunTEST ~ + PREP_ME + Burned + Brush2 + G_BGC_ZONE  + Canopy.Cov + START_SEASON + heatload + Species.He,
+model.new2.2 <- lm (Fruit.AbunTEST ~ + ,
 data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA)
 
 #Check model fit
 # model diagnostic plots
-binnedplot (fitted(model.new.1), 
-            residuals(model.new.1), 
+binnedplot (fitted(model.new2.1), 
+            residuals(model.new2.1), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm", i))
 
 #Explore partial residuals with current model
-# PREP_ME + Burned + Brush2 + G_BGC_ZONE  + Canopy.Cov + START_SEASON + heatload + Species.He
+# 
 library(visreg)
 
-visreg(model.new.2, "PREP_ME")
-visreg(model.new.2, "Burned")
-visreg(model.new.2, "Brush2")
+visreg(model.new2.2, "Manual2")
+visreg(model.new2.2, "Burned")
+visreg(model.new2.2, "Brush2")
 
-visreg(model.new.2, "G_BGC_ZONE")
-visreg(model.new.2, "Canopy.Cov")
+visreg(model.new2.2, "G_BGC_ZONE")
+visreg(model.new2.2, "Canopy.Cov")
 
-visreg(model.new.2, "heatload")
-visreg(model.new.2, "START_SEASON")
+visreg(model.new2.2, "heatload")
+visreg(model.new2.2, "START_SEASON")
 
-visreg(model.new.2, "Species.He")
+visreg(model.new2.2, "Species.He")
 ```
 
 
 Ensure data saved.
 
 ```{r}
-write.csv(cutblock_plots_openings_Buff_ALL_df_FruitNotNA, file="c:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Buff_ALL_df_FruitNotNA_March16.csv")
+write.csv(cutblock_plots_openings_Buff_ALL_df_FruitNotNA, file="c:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Buff_ALL_df_FruitNotNA_March18.csv")
 ```
 
 
 ### Try above as GAMs
 #Model Series 1:
-DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + START_SEASON*TimeSinceCutblock + Chem2*TimeSinceCutblock + Species.He
+DN1_SILSYS_GP + Manual2 + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock + START_SEASON + heatload + Manual2*TimeSinceCutblock + START_SEASON*TimeSinceCutblock + Chem2*TimeSinceCutblock + Species.He
 
 #Model Series 2:
-DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + Canopy.Cov + START_SEASON + heatload + PREP_ME*Canopy.Cov + START_SEASON*Canopy.Cov + Chem2*Canopy.Cov + Species.He
+DN1_SILSYS_GP + Manual2 + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + Canopy.Cov + START_SEASON + heatload + Manual2*Canopy.Cov + START_SEASON*Canopy.Cov + Chem2*Canopy.Cov + Species.He
 
 ```{r}
 library(mgcv)
 
-model.new.1b <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + s(OPEN_GRSAR) + PLANTED + s(TimeSinceCutblock, by=PREP_ME) + s(TimeSinceCutblock, by=Chem2) + START_SEASON + s(heatload) + s(Species.He),
+model.new2.1b <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + Burned + Brush2 + Chem2 + G_BGC_ZONE + s(OPEN_GRSAR) + PLANTED + s(TimeSinceCutblock, by=Chem2) + s(TimeSinceCutblock, by=Burned) + s(TimeSinceCutblock, by=Mechanical2) + s(TimeSinceCutblock, by=Brush2) + START_SEASON + s(TimeSinceCutblock, by=START_SEASON) + s(heatload) + s(Species.He) +s(Tave_wt_1),
 data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
 
-gam.check(model.new.1b)
-anova(model.new.1b)
-summary(model.new.1b) #Adjusted R-square = 0.203, Deviance explained 28.5%
-AIC(model.new.1b) #3133.89
+#Too little data to perform above. Need to remove some terms
+
+model.new2.1b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + s(TimeSinceCutblock, by=Chem2) + s(TimeSinceCutblock, by=Burned) + s(TimeSinceCutblock, by=Mechanical2) + s(TimeSinceCutblock, by=Brush2) + START_SEASON + s(TimeSinceCutblock, by=START_SEASON) + s(Species.He) +s(Tave_wt_1),
+data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+#Still too many
+model.new2.1b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + s(TimeSinceCutblock, by=Chem2) + s(TimeSinceCutblock, by=Burned) + s(TimeSinceCutblock, by=Mechanical2) + s(TimeSinceCutblock, by=Brush2) + START_SEASON + s(Species.He) ,
+data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.1b) #Model not performing well
+anova(model.new2.1b)
+summary(model.new2.1b) #Adjusted R-square = 0.106, Deviance explained 29.4%
+AIC(model.new2.1b) #1710.708
 
 library(mgcViz)
-getViz(model.new.1b)
-plot(model.new.1b)
-plot(model.new.1b, select=1)
-plot(model.new.1b, select=2)
-plot(model.new.1b, select=3)
-plot(model.new.1b, select=4)
-plot(model.new.1b, select=5) #Flat line at 0?? Check what is wrong.
-plot(model.new.1b, select=6)
-plot(model.new.1b, select=7)
+getViz(model.new2.1b)
+plot(model.new2.1b)
 
-
-library(visreg)
-visreg(model.new.1b, "DN1_SILSYS_GP")
-visreg(model.new.1b, "Chem2")
-visreg(model.new.1b, "PREP_ME")
-visreg(model.new.1b, "Burned")
-visreg(model.new.1b, "Brush2")
-visreg(model.new.1b, "G_BGC_ZONE")
-visreg(model.new.1b, "PLANTED")
-visreg(model.new.1b, "START_SEASON")
-
-
-#Try to add some other interactions
-model.new.1b3 <- gam (Fruit.AbunTEST ~ PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + c(TimeSinceCutblock)*PREP_ME + s(TimeSinceCutblock, by=Chem2) + s(TimeSinceCutblock, by=Brush2) + c(TimeSinceCutblock) +START_SEASON + s(heatload) + Species.He,
+#Remove smoothing on key variables
+model.new2.1b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + s(TimeSinceCutblock, by=Chem2) + c(TimeSinceCutblock)*Burned + s(TimeSinceCutblock, by=Mechanical2) + c(TimeSinceCutblock)*Brush2 + START_SEASON + s(Species.He) ,
 data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
 
-gam.check(model.new.1b3)
-anova(model.new.1b3)
-summary(model.new.1b3) #Adjusted R-Square = 0.217; Deviance explained 28.8%
-AIC(model.new.1b3) #3127.1
+gam.check(model.new2.1b) #Model not performing well
+anova(model.new2.1b)
+summary(model.new2.1b) #Adjusted R-square = 0.106, Deviance explained 29.5%
+AIC(model.new2.1b) #1710.701
 
-plot(model.new.1b3)
-plot(model.new.1b3, select=1)
-plot(model.new.1b3, select=2)
-plot(model.new.1b3, select=3)
+library(mgcViz)
+getViz(model.new2.1b)
+plot(model.new2.1b)
 
-#PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + c(TimeSinceCutblock)*PREP_ME + s(TimeSinceCutblock, by=Chem2) + s(TimeSinceCutblock, by=Brush2) + c(TimeSinceCutblock) +START_SEASON + s(heatload) + Species.He
-visreg(model.new.1b3, "Burned")
-visreg(model.new.1b3, "G_BGC_ZONE")
-visreg(model.new.1b3, "START_SEASON")
-visreg(model.new.1b3, "heatload")
-visreg(model.new.1b3, "Species.He")
-visreg(model.new.1b3, "TimeSinceCutblock")
-visreg(model.new.1b3, "TimeSinceCutblock", by="PREP_ME")
-visreg(model.new.1b3, "TimeSinceCutblock", by="Chem2")
-visreg(model.new.1b3, "TimeSinceCutblock", by="Brush2")
-visreg(model.new.1b3, "Brush2", by= "TimeSinceCutblock")
-visreg(model.new.1b3, "PREP_ME", by= "TimeSinceCutblock")
-visreg(model.new.1b3, "Chem2", by= "TimeSinceCutblock")
+#Remove least significant
+model.new2.1b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + s(TimeSinceCutblock, by=Chem2) + s(TimeSinceCutblock, by=Mechanical2) + c(TimeSinceCutblock)*Brush2 + START_SEASON + s(Species.He) ,
+data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.1b) #Model not performing well
+anova(model.new2.1b)
+summary(model.new2.1b) #Adjusted R-square = 0.115, Deviance explained 29.4%
+AIC(model.new2.1b) #1708.9
+
+library(mgcViz)
+getViz(model.new2.1b)
+plot(model.new2.1b)
+
+#Remove least significant
+model.new2.1b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + c(TimeSinceCutblock)*Chem2 + s(TimeSinceCutblock, by=Mechanical2) + c(TimeSinceCutblock)*Brush2 + START_SEASON + s(Species.He) ,
+data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.1b) #Model not performing well
+anova(model.new2.1b)
+summary(model.new2.1b) #Adjusted R-square = 0.107, Deviance explained 28.4%
+AIC(model.new2.1b) #1708.9
+
+library(mgcViz)
+getViz(model.new2.1b)
+plot(model.new2.1b)
+
+#Remove least significant
+model.new2.1b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + s(TimeSinceCutblock, by=Mechanical2) + c(TimeSinceCutblock)*Brush2 + START_SEASON + s(Species.He) ,
+data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.1b) #Model not performing well
+anova(model.new2.1b)
+summary(model.new2.1b) #Adjusted R-square = 0.108, Deviance explained 27.2%
+AIC(model.new2.1b) #1708.9
+
+library(mgcViz)
+getViz(model.new2.1b)
+plot(model.new2.1b)
+
+#Remove least significant
+model.new2.1b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + s(TimeSinceCutblock, by=Mechanical2) + c(TimeSinceCutblock)*Brush2 + START_SEASON + s(Species.He) ,
+data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.1b) #Model not performing well
+anova(model.new2.1b)
+summary(model.new2.1b) #Adjusted R-square = 0.108, Deviance explained 27.2%
+AIC(model.new2.1b) #1708.9
+
+library(mgcViz)
+getViz(model.new2.1b)
+plot(model.new2.1b)
+
+#Try to add season back in
+model.new2.1b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + s(TimeSinceCutblock, by=Mechanical2) + c(TimeSinceCutblock)*Brush2 + START_SEASON + s(Species.He) + s(TimeSinceCutblock, by=START_SEASON),
+data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.1b) #Model not performing well
+anova(model.new2.1b)
+summary(model.new2.1b) #Adjusted R-square = 0.077, Deviance explained 27.3%
+AIC(model.new2.1b) #1713.3
+
+library(mgcViz)
+getViz(model.new2.1b)
+plot(model.new2.1b)
+
+#Remove least significant
+model.new2.1b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + s(TimeSinceCutblock, by=Mechanical2) + c(TimeSinceCutblock)*Brush2  + s(Species.He) ,
+data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.1b) #Model not performing well
+anova(model.new2.1b)
+summary(model.new2.1b) #Adjusted R-square = 0.134, Deviance explained 26.9%
+AIC(model.new2.1b) #1702.6
+
+library(mgcViz)
+getViz(model.new2.1b)
+plot(model.new2.1b)
+
+#Remove least significant
+model.new2.1b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + PLANTED + s(TimeSinceCutblock, by=Mechanical2) + c(TimeSinceCutblock)*Brush2  + s(Species.He),
+data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.1b) #Model not performing well
+anova(model.new2.1b)
+summary(model.new2.1b) #Adjusted R-square = 0.152, Deviance explained 24%
+AIC(model.new2.1b) #1696.2
+
+library(mgcViz)
+getViz(model.new2.1b)
+plot(model.new2.1b)
+
+#Try Chem interaction given observed patterns
+model.new2.1b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + PLANTED + s(TimeSinceCutblock, by=Mechanical2) + c(TimeSinceCutblock)*Brush2  + s(TimeSinceCutblock, by=Chem2) + s(Species.He),
+data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.1b) #Model not performing well
+anova(model.new2.1b)
+summary(model.new2.1b) #Adjusted R-square = 0.148, Deviance explained 24.9%
+AIC(model.new2.1b) #1698.33
+
+library(mgcViz)
+getViz(model.new2.1b)
+plot(model.new2.1b)
+
+#
+model.new2.1b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + PLANTED + s(TimeSinceCutblock, by=Mechanical2) + c(TimeSinceCutblock)*Brush2 +  c(TimeSinceCutblock)*Chem2  + s(Species.He),
+data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.1b) #Model not performing well
+anova(model.new2.1b)
+summary(model.new2.1b) #Adjusted R-square = 0.142, Deviance explained 24%
+AIC(model.new2.1b) #1698.1
+
+library(mgcViz)
+getViz(model.new2.1b)
+plot(model.new2.1b)
+
+#Remove least significant
+model.new2.1b <- gam (Fruit.AbunTEST ~ Burned + Brush2  + PLANTED + s(TimeSinceCutblock, by=Mechanical2) + c(TimeSinceCutblock)*Brush2  + s(Species.He),
+data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.1b) #Model not performing well
+anova(model.new2.1b)
+summary(model.new2.1b) #Adjusted R-square = 0.161, Deviance explained 24%
+AIC(model.new2.1b) #1694.2
+
+library(mgcViz)
+getViz(model.new2.1b)
+plot(model.new2.1b)
+
+#Remove least significant
+model.new2.1b <- gam (Fruit.AbunTEST ~  Brush2  + PLANTED + Mechanical2 + s(TimeSinceCutblock, by=Mechanical2) + c(TimeSinceCutblock)*Brush2  + s(Species.He),
+data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.1b) #Model not performing well
+anova(model.new2.1b)
+summary(model.new2.1b) #Adjusted R-square = 0.162, Deviance explained 24.1%
+AIC(model.new2.1b) #1694.0
+
+library(mgcViz)
+getViz(model.new2.1b)
+plot(model.new2.1b)
+
+#Remove least significant
+model.new2.1b <- gam (Fruit.AbunTEST ~  Brush2  + PLANTED + Mechanical2 + s(TimeSinceCutblock, by=Mechanical2) + s(Species.He),
+data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.1b) #Model not performing well
+anova(model.new2.1b)
+summary(model.new2.1b) #Adjusted R-square = 0.159, Deviance explained 23.1%
+AIC(model.new2.1b) #1693.5
+
+library(mgcViz)
+getViz(model.new2.1b)
+plot(model.new2.1b)
+
+#Remove least significant
+model.new2.1b <- gam (Fruit.AbunTEST ~  PLANTED + Mechanical2 + s(TimeSinceCutblock, by=Mechanical2) + s(Species.He),
+data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.1b) #Model not performing well
+anova(model.new2.1b)
+summary(model.new2.1b) #Adjusted R-square = 0.16, Deviance explained 22.2%
+AIC(model.new2.1b) #1692.5
+
+library(mgcViz)
+getViz(model.new2.1b)
+plot(model.new2.1b)
+
+plot(model.new2.1b, select=1)
+plot(model.new2.1b, select=2)
+plot(model.new2.1b, select=3)
+
+library(visreg)
+visreg(model.new2.1b, "PLANTED")
+visreg(model.new2.1b, "Mechanical2", by="TimeSinceCutblock")
+visreg(model.new2.1b, "TimeSinceCutblock", by="Mechanical2")
+visreg(model.new2.1b, "Species.He")
+visreg(model.new2.1b, "TimeSinceCutblock")
+
+
+
 ```
 
 Repeat for Canopy Cover.
 
 ```{r}
-model.new.2b <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + s(OPEN_GRSAR) + s(Canopy.Cov, by=PLANTED) + s(Canopy.Cov, by=PREP_ME) + s(Canopy.Cov, by=Chem2) + s(Canopy.Cov, by=START_SEASON) + s(heatload) + s(Species.He) + s(Canopy.Cov, by=Brush2),
+model.new2.2b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + s(Canopy.Cov, by=Chem2) + s(Canopy.Cov, by=Burned) + s(Canopy.Cov, by=Mechanical2) + s(Canopy.Cov, by=Brush2) + START_SEASON + s(Species.He),
 data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
 
-gam.check(model.new.2b)
-anova(model.new.2b)
-summary(model.new.2b) #Adjusted R-square = 0.225, Deviance explained 31.6%
-AIC(model.new.2b) #3133.89
+gam.check(model.new2.2b)
+anova(model.new2.2b)
+summary(model.new2.2b) #Adjusted R-square = 0.06, Deviance explained 24.1%
+AIC(model.new2.2b) #1711.47
 
 library(mgcViz)
-getViz(model.new.2b)
-plot(model.new.2b)
-plot(model.new.2b, select=1)
-plot(model.new.2b, select=2)
-plot(model.new.2b, select=3)
-plot(model.new.2b, select=4)
-plot(model.new.2b, select=5) #Flat line at 0?? Check what is wrong.
-plot(model.new.2b, select=6)
-plot(model.new.2b, select=7)
+getViz(model.new2.2b)
+plot(model.new2.2b)
 
+#COnvert to linear for certain variables
+model.new2.2b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + c(Canopy.Cov)*Chem2 + s(Canopy.Cov, by=Burned) + s(Canopy.Cov, by=Mechanical2) + s(Canopy.Cov, by=Brush2) + START_SEASON + Species.He, data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
 
+gam.check(model.new2.2b)
+anova(model.new2.2b)
+summary(model.new2.2b) #Adjusted R-square = 0.065, Deviance explained 24.1%
+AIC(model.new2.2b) #1711.47
+
+library(mgcViz)
+getViz(model.new2.2b)
+plot(model.new2.2b)
+
+#Remove least sig
+model.new2.2b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + c(Canopy.Cov)*Chem2 + s(Canopy.Cov, by=Burned) + s(Canopy.Cov, by=Mechanical2) + s(Canopy.Cov, by=Brush2) + Species.He, data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.2b)
+anova(model.new2.2b)
+summary(model.new2.2b) #Adjusted R-square = 0.091, Deviance explained 23.6%
+AIC(model.new2.2b) #1706.5
+
+library(mgcViz)
+getViz(model.new2.2b)
+plot(model.new2.2b)
+
+#Remove least sig
+model.new2.2b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + PLANTED + c(Canopy.Cov)*Chem2 + s(Canopy.Cov, by=Burned) + s(Canopy.Cov, by=Mechanical2) + s(Canopy.Cov, by=Brush2) + Species.He, data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.2b)
+anova(model.new2.2b)
+summary(model.new2.2b) #Adjusted R-square = 0.122, Deviance explained 22.2%
+AIC(model.new2.2b) #1699.5
+
+library(mgcViz)
+getViz(model.new2.2b)
+plot(model.new2.2b)
+
+#Remove least sig
+model.new2.2b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + PLANTED + c(Canopy.Cov)*Chem2 + c(Canopy.Cov)*Burned + s(Canopy.Cov, by=Mechanical2) + s(Canopy.Cov, by=Brush2) + Species.He, data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.2b)
+anova(model.new2.2b)
+summary(model.new2.2b) #Adjusted R-square = 0.123, Deviance explained 22.4%
+AIC(model.new2.2b) #1699.5
+
+library(mgcViz)
+getViz(model.new2.2b)
+plot(model.new2.2b)
+
+#Remove least sig
+model.new2.2b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + PLANTED + c(Canopy.Cov)*Burned + s(Canopy.Cov, by=Mechanical2) + s(Canopy.Cov, by=Brush2) + Species.He, data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.2b)
+anova(model.new2.2b)
+summary(model.new2.2b) #Adjusted R-square = 0.133, Deviance explained 22.4%
+AIC(model.new2.2b) #1697.7
+
+library(mgcViz)
+getViz(model.new2.2b)
+plot(model.new2.2b)
+
+#Remove least sig
+model.new2.2b <- gam (Fruit.AbunTEST ~ Burned + Brush2 + Chem2 + PLANTED + s(Canopy.Cov, by=Mechanical2) + s(Canopy.Cov, by=Brush2) + Species.He, data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.2b)
+anova(model.new2.2b)
+summary(model.new2.2b) #Adjusted R-square = 0.124, Deviance explained 20%
+AIC(model.new2.2b) #1696.4
+
+library(mgcViz)
+getViz(model.new2.2b)
+plot(model.new2.2b)
+
+#Remove least sig
+model.new2.2b <- gam (Fruit.AbunTEST ~ Burned + Brush2+ PLANTED + s(Canopy.Cov, by=Mechanical2) + s(Canopy.Cov, by=Brush2) + Species.He, data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.2b)
+anova(model.new2.2b)
+summary(model.new2.2b) #Adjusted R-square = 0.13, Deviance explained 19.6%
+AIC(model.new2.2b) #1694.7
+
+library(mgcViz)
+getViz(model.new2.2b)
+plot(model.new2.2b)
+
+#Remove least sig
+model.new2.2b <- gam (Fruit.AbunTEST ~  Brush2+ PLANTED + s(Canopy.Cov, by=Mechanical2) + s(Canopy.Cov, by=Brush2) + Species.He, data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.2b)
+anova(model.new2.2b)
+summary(model.new2.2b) #Adjusted R-square = 0.137, Deviance explained 19.4%
+AIC(model.new2.2b) #1693.1
+
+library(mgcViz)
+getViz(model.new2.2b)
+plot(model.new2.2b)
+
+#Remove least sig
+model.new2.2b <- gam (Fruit.AbunTEST ~  Brush2+ PLANTED + Mechanical2 + c(Canopy.Cov)*Mechanical2 + s(Canopy.Cov, by=Brush2) + Species.He, data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.2b)
+anova(model.new2.2b)
+summary(model.new2.2b) #Adjusted R-square = 0.127, Deviance explained 19.3%
+AIC(model.new2.2b) #1694.9
+
+library(mgcViz)
+getViz(model.new2.2b)
+plot(model.new2.2b)
+
+#Remove least sig
+model.new2.2b <- gam (Fruit.AbunTEST ~  Brush2+ PLANTED + Mechanical2 + s(Canopy.Cov, by=Brush2) + Species.He, data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.2b)
+anova(model.new2.2b)
+summary(model.new2.2b) #Adjusted R-square = 0.126, Deviance explained 18.3%
+AIC(model.new2.2b) #1694.1
+
+library(mgcViz)
+getViz(model.new2.2b)
+plot(model.new2.2b)
+
+#Remove least sig
+model.new2.2b <- gam (Fruit.AbunTEST ~  Brush2+ PLANTED + s(Canopy.Cov) + s(Canopy.Cov, by=Brush2) + Species.He, data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
+
+gam.check(model.new2.2b)
+anova(model.new2.2b)
+summary(model.new2.2b) #Adjusted R-square = 0.135, Deviance explained 18.4%
+AIC(model.new2.2b) #1692.2
+
+library(mgcViz)
+getViz(model.new2.2b)
+plot(model.new2.2b)
+
+plot(model.new2.2b, select=1)
+plot(model.new2.2b, select=2)
+
+#Brush2+ PLANTED + s(Canopy.Cov, by=Brush2) + Species.He
 library(visreg)
-visreg(model.new.2b, "DN1_SILSYS_GP")
-visreg(model.new.2b, "Chem2")
-visreg(model.new.2b, "PREP_ME")
-visreg(model.new.2b, "Burned")
-visreg(model.new.2b, "Brush2")
-visreg(model.new.2b, "G_BGC_ZONE")
-visreg(model.new.2b, "PLANTED")
-visreg(model.new.2b, "START_SEASON")
-
-#Remove ones that do not need to be smoothed
+visreg(model.new2.2b, "PLANTED")
+visreg(model.new2.2b, "Brush2")
+visreg(model.new2.2b, "Species.He")
+visreg(model.new2.2b, "Canopy.Cov", by="Brush2")
+visreg(model.new2.2b, "Brush2", by="Canopy.Cov")
+visreg(model.new2.2b, "Canopy.Cov")
 
 
 ```
-
-
-Compare to if remove covariates.
-```{r}
-model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + s(OPEN_GRSAR) + s(Canopy.Cov, by=PLANTED) + s(Canopy.Cov, by=PREP_ME) + s(Canopy.Cov, by=Chem2) + s(Canopy.Cov, by=START_SEASON) + s(Canopy.Cov, by=Brush2),
-data=cutblock_plots_openings_Buff_ALL_df_FruitNotNA, method="REML")
-
-gam.check(model.new.2b_2)
-anova(model.new.2b_2)
-summary(model.new.2b_2) #Adjusted R-square = 0.09, Deviance explained 15.5%
-AIC(model.new.2b_2) #3736.9
-
-getViz(model.new.2b_2)
-plot(model.new.2b_2)
-plot(model.new.2b_2, select=1)
-plot(model.new.2b_2, select=2)
-plot(model.new.2b_2, select=3)
-plot(model.new.2b_2, select=4)
-plot(model.new.2b_2, select=5) .
-plot(model.new.2b_2, select=6)
-plot(model.new.2b_2, select=7)
-
-
-library(visreg)
-visreg(model.new.2b_2, "DN1_SILSYS_GP")
-visreg(model.new.2b_2, "Chem2")
-visreg(model.new.2b_2, "PREP_ME")
-visreg(model.new.2b_2, "Burned")
-visreg(model.new.2b_2, "Brush2")
-visreg(model.new.2b_2, "G_BGC_ZONE")
-visreg(model.new.2b_2, "PLANTED")
-visreg(model.new.2b_2, "START_SEASON")
-
-#Remove ones that do not need to be smoothed
-
-```
-
 
 
