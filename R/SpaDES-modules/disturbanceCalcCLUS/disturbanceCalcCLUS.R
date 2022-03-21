@@ -150,7 +150,7 @@ Init <- function(sim) {
 distAnalysis <- function(sim) {
   #dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE perm_dist > 0 or (roadyear >= ", max(0,as.integer(time(sim) - P(sim, "disturbanceCalcCLUS", "recovery"))),")  or (blockid > 0 and age BETWEEN 0 AND ",P(sim, "disturbanceCalcCLUS", "recovery"),")"))) # 
   #dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE perm_dist > 0 or roadyear >= 0 or (blockid > 0 and age BETWEEN 0 AND ", P(sim, "disturbanceCalcCLUS", "recovery"),")"))) # 
-  all.dist<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT age, blockid, (case when ((",time(sim)*sim$updateInterval, " - roadstatus < ",P(sim, "recovery", "disturbanceCalcCLUS")," AND roadtype > 0) OR roadtype =0) then 1 else 0 end) as road_dist, pixelid FROM pixels WHERE perm_dist > 0 AND ((blockid > 0 and age >= 0) OR (",time(sim)*sim$updateInterval, " - roadstatus < ", P(sim, "recovery", "disturbanceCalcCLUS")," AND roadtype > 0) OR roadtype = 0);")))
+  all.dist<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT age, blockid, (case when ((",time(sim)*sim$updateInterval, " - roadstatus < ",P(sim, "recovery", "disturbanceCalcCLUS")," AND roadtype > 0) OR roadtype =0) then 1 else 0 end) as road_dist, pixelid FROM pixels WHERE perm_dist > 0 OR ((blockid > 0 and age >= 0) OR (",time(sim)*sim$updateInterval, " - roadstatus < ", P(sim, "recovery", "disturbanceCalcCLUS")," AND roadtype > 0) OR roadtype = 0);")))
   #sim.disturbance<<-sim$disturbance
   #sim.ras<<-sim$ras
   #stop()
