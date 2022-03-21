@@ -65,7 +65,7 @@ paths <- list (
 
 mySim <- simInit (times = times, params = parameters, modules = modules,
                   objects = objects, paths = paths)
-outputs (mySim) <- data.frame (objectName = c ("tableSurvivalReport")) # Consists of survival rate estimates for each herd in the study area at each time step. Gets saved in the 'outputs' folder of the module. 
+outputs (mySim) <- data.frame (objectName = c ("tableAbundanceReport")) # Consists of abundance estimates for each herd in the study area at each time step. Gets saved in the 'outputs' folder of the module. 
 system.time({
 mysimout <- spades (mySim)
 })
