@@ -166,7 +166,7 @@ Huckleberry among the least affected species for elevational shifts. It's habita
 ##Lamb, C.T., Mowat, G., McLellan, B.N., Nielsen, S.E., and Boutin, S. 2017. Forbidden fruit: human settlement and abundant fruit create an ecological trap for an apex omnivore.Journal of Animal Ecology, 86:55-65.
 In this paper, the authors assess habitat suitability, human-influence, grizzly bear occurrence and grizzly bear mortality. They find that the valley within their study region, which was high in both berry resources and human density, was more attractive to bears than surrounding areas, despite 17% lower apparent survival in this same region. Despite lower fitness, the detected a net flow of bears into the ET (ecological trap), which contributed to a study-wide population decline.
 
-In their study region, black huckleberry tends to ripen between AUgust 1 and September 15th, and buffalo berry tends to ripen between July 1 and August 15th.
+In their study region, black huckleberry tends to ripen between August 1 and September 15th, and buffalo berry tends to ripen between July 1 and August 15th.
 
 The researchers created occurrence models for both fruiting shrub species (huckleberry and bufalloberry) using multivariate logistic regression (P/A) and occurrence records from 1779 vegetation plots (20 x 20 m) conducted within the study area, using climate, soil, topographic and fire variables. Data was separated into training (85%) and validation (15%) datasets. 
 
@@ -271,7 +271,7 @@ Separated data into 85% testing set and 15% validation set, and used logistic re
 Fruit distribution was assessed with a conditional model, using only those sites where the plant species was present and logistic regression (lacked fruit production during fruiting period vs had fruits). Fruit productivity modelled two ways: (1) conditional where plant occurred, and (2) all sites regardless. 
 
 Modelling distribution plants: buffalo berry had good fit; huckleberry models did not.
-Modelling distribution fruits: huckleberry at intermediate canopy cover (34%), and buffalo berry at low canopy cover (0%). Fruit production similar in clearcuts and forest for species of interest. For SAI, huckleberry and buffalo berry appear at opposite ends of the distribution. Indicate that previous work shows buffalo berry more common in early seral or open forests.
+Modelling distribution fruits: a, and buffalo berry at low canopy cover (0%). Fruit production similar in clearcuts and forest for species of interest. For SAI, huckleberry and buffalo berry appear at opposite ends of the distribution. Indicate that previous work shows buffalo berry more common in early seral or open forests.
 
 ##McClelland, C.J.R., Coops, N.C., Kearney, S.P., Burton, A.C., Nielsen, S.E., and Stenhouse, G.B. 2020. Variations in grizzly bear habitat selection in relation to the daily and seasonal availability of annual plant-food resources. Ecological Informatics, 58: 101116. 
 In this paper, authors assessed seasonal availability of plant food-species at 30 m resolution and compared with grizzly bear GPS collar data. grizzly bears selected areas where key food sources were available. In dry spring conditions, they selected for root species and occurred earlier than in wet spring years. In wet summers, selection for forb species prolonged. In dry fall, selection for berry species longest.
@@ -319,8 +319,7 @@ Assessed multiple berry species, including huckleberry (40 cm x 40 cm quadrat) a
 
 Included minimum temperature from May 15-30 to account for possible bud damage.
 
-July rainfall was most powerful estimate for buffaloberry (of year t-1) for berry counts. Huckleberry: best models had rainfall in May ot t, t-1 and t-2. "Moreover, aggregated climatic variables like mean summer temperature or total summer rainfall were of little use in predicting future berry crops, and monthly averages were needed, a reflection of the lack of
-correlation among summer weather measures".
+July rainfall was most powerful estimate for buffaloberry (of year t-1) for berry counts. Huckleberry: best models had rainfall in May at t, t-1 and t-2. "Moreover, aggregated climatic variables like mean summer temperature or total summer rainfall were of little use in predicting future berry crops, and monthly averages were needed, a reflection of the lack of correlation among summer weather measures".
 
 *Get measures for spring frost and growing degree days (May)
 
