@@ -282,13 +282,13 @@ data.disturb.nobuff.itcha <- data.summ.disturb.nobuff %>%
                                            scenario == "chilcotin_scen2c_live_dead" |
                                            scenario == "chilcotin_scen3a_live_dead" |
                                            scenario == "chilcotin_scen3b_live_dead" |
-                                           scenario == "chilcotin_scen3c_live_dead" |
-                                           scenario =="chilcotin_bau_live" |
-                                           scenario == "chilcotin_scen2a_live" | 
-                                           scenario == "chilcotin_scen2c_live" |
-                                           scenario == "chilcotin_scen3a_live" |
-                                           scenario == "chilcotin_scen3c_live" |
-                                           scenario == "chilcotin_scen2a_live_dead_10yrds"
+                                           scenario == "chilcotin_scen3c_live_dead" 
+                                           # scenario =="chilcotin_bau_live" |
+                                           # scenario == "chilcotin_scen2a_live" | 
+                                           # scenario == "chilcotin_scen2c_live" |
+                                           # scenario == "chilcotin_scen3a_live" |
+                                           # scenario == "chilcotin_scen3c_live" |
+                                           # scenario == "chilcotin_scen2a_live_dead_10yrds"
                                            )
 
 
@@ -306,13 +306,13 @@ data.disturb.buff.itcha <- data.summ.disturb.buff %>%
                                            scenario == "chilcotin_scen2c_live_dead" |
                                            scenario == "chilcotin_scen3a_live_dead" |
                                            scenario == "chilcotin_scen3b_live_dead" |
-                                           scenario == "chilcotin_scen3c_live_dead" |
-                                           scenario =="chilcotin_bau_live" |
-                                           scenario == "chilcotin_scen2a_live" | 
-                                           scenario == "chilcotin_scen2c_live" |
-                                           scenario == "chilcotin_scen3a_live" |
-                                           scenario == "chilcotin_scen3c_live" |
-                                           scenario == "chilcotin_scen2a_live_dead_10yrds"
+                                           scenario == "chilcotin_scen3c_live_dead" 
+                                           # scenario =="chilcotin_bau_live" |
+                                           # scenario == "chilcotin_scen2a_live" | 
+                                           # scenario == "chilcotin_scen2c_live" |
+                                           # scenario == "chilcotin_scen3a_live" |
+                                           # scenario == "chilcotin_scen3c_live" |
+                                           # scenario == "chilcotin_scen2a_live_dead_10yrds"
                                            )
 
 
@@ -519,6 +519,7 @@ data.disturb.nobuff.itcha.road <- data.summ.disturb.nobuff %>%
                                         critical_hab == "Itcha_Ilgachuz LEWR" | 
                                         critical_hab == "Itcha_Ilgachuz Matrix") %>%
                                 filter (scenario == "chilcotin_bau_live_dead" |
+                                        scenario == "chilcotin_scen1a_live_dead" |
                                         scenario == "chilcotin_scen2a_live_dead" |
                                         scenario == "chilcotin_scen2a_live_dead_10yrds" |
                                         scenario == "chilcotin_scen3a_live_dead" |
@@ -532,6 +533,7 @@ data.disturb.buff.itcha.road <- data.summ.disturb.buff %>%
                                         critical_hab == "Itcha_Ilgachuz LEWR" | 
                                         critical_hab == "Itcha_Ilgachuz Matrix") %>%
                                 filter (scenario == "chilcotin_bau_live_dead" |
+                                        scenario == "chilcotin_scen1a_live_dead" |
                                         scenario == "chilcotin_scen2a_live_dead" |
                                         scenario == "chilcotin_scen2a_live_dead_10yrds" |
                                         scenario == "chilcotin_scen3a_live_dead" |
@@ -546,16 +548,17 @@ plot.disturb.nobuff.road <- ggplot (data.disturb.nobuff.itcha.road,
                   facet_grid (. ~scenario,
                               labeller = as_labeller (c (
                                             'chilcotin_bau_live_dead' = "BAU", 
+                                            'chilcotin_scen1a_live_dead' = "1a 30",
                                             'chilcotin_scen2a_live_dead' = "2a 30",
                                             'chilcotin_scen2a_live_dead_10yrds' = "2a 10",
                                             'chilcotin_scen3a_live_dead' = "3a 30",
                                             'chilcotin_scen3a_live_dead_10yrds' = "3a 10"
 ))
                               ) +
-                  labs (title = "Disturbance (no Buffer) in Itcha-Ilgachuz Caribou Critical Habitat 
+                  labs (title = "Roads (no Buffer) in Itcha-Ilgachuz Caribou Critical Habitat 
 for Each Scenario", 
                         x = "Future Year", 
-                        y = "Percent Disturbance") + 
+                        y = "Percent Roaded") + 
                   scale_color_discrete (name = "Critical Habitat", 
                                         labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
                   scale_linetype_discrete (name = "Critical Habitat", 
@@ -575,14 +578,15 @@ plot.disturb.buff.road <- ggplot (data.disturb.buff.itcha.road,
                   geom_line (position = position_dodge (width = 1), size = 1) + 
                   facet_grid (. ~scenario,
                               labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", 
+                                            'chilcotin_scen1a_live_dead' = "1a 30",
                                             'chilcotin_scen2a_live_dead' = "2a 30",
                                             'chilcotin_scen2a_live_dead_10yrds' = "2a 10",
                                             'chilcotin_scen3a_live_dead' = "3a 30",
                                             'chilcotin_scen3a_live_dead_10yrds' = "3a 10"))) +
-                  labs (title = "Disturbance (500m Buffer) in Itcha-Ilgachuz Caribou Critical Habitat 
+                  labs (title = "Roads (500m Buffer) in Itcha-Ilgachuz Caribou Critical Habitat 
 for Each Scenario", 
                         x = "Future Year", 
-                        y = "Percent Disturbance") + 
+                        y = "Percent Roaded") + 
                   scale_color_discrete (name = "Critical Habitat", 
                                         labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
                   scale_linetype_discrete (name = "Critical Habitat", 
