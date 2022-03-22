@@ -232,20 +232,6 @@ data.disturb$perc_rd_buff [data.disturb$perc_rd_buff > 100] <- 100
 
 
 
-data.hab.area <- data.disturb %>% 
-                  group_by (scenario, timeperiod, critical_hab) %>% 
-                   summarise (total_area = sum (total_area))
-
-
-data.hab.road.nobuff <- data.disturb %>% 
-                          group_by (scenario, timeperiod, critical_hab) %>% 
-                           summarise (total_road50 = sum (road50))
-
-
-
-
-
-
 
 data.summ.disturb.nobuff <- data.disturb %>% # get summary data, weighted averages
                                group_by (scenario, timeperiod, critical_hab) %>% 
@@ -264,6 +250,13 @@ data.summ.rd.buff <- data.disturb %>% # get summary data, weighted averages
                                 summarise (road = weighted.mean (perc_rd_buff, total_area)) 
 
 
+
+
+test <- data.disturb %>%
+         filter (#critical_hab == "Itcha_Ilgachuz HEWSR" | Matrix
+                 critical_hab == "Itcha_Ilgachuz HEWSR") %>%
+          filter (#scenario == "chilcotin_bau_live_dead" | chilcotin_scen1a_live_dead
+                  scenario == "chilcotin_bau_live_dead")
 
 ###########
 #### Itcha

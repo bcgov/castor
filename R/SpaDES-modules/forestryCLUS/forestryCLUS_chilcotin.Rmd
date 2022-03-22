@@ -71,7 +71,7 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-
 #STEP 2: View the constraints available to a zone
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_wha_2021'") # Note: the reference_zone is the name of the raster in the rast schema. If there is no 'WHERE' clause this may return 1000's of zones rast.zone_cond_noharvest_barkerville_crithab_or_herd  rast.zone_chilcotin_proposed_wha  rast.zone_wha_2021  rast.zone_chilcotin_proposed_wha
 
-zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_rainbows_crithab'")  # 
+zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab'")  # 
 #  rast.zone_cond_bc_itcha_ilgachuz_crithab",  "rast.zone_cond_bc_charlotte_alplands_crithab", "rast.zone_cond_bc_rainbows_crithab"     
 
 zoneconstraints<-dbGetQuery(clusdb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.zone_chilcotin_scenario2'")
@@ -632,7 +632,7 @@ scenario = data.table (name = "chilcotin_scen1a_live_dead",
 
 harvestFlow <- rbindlist(list(
                               data.table (compartment ="HEWSR",
-                                          partition = ' vol > 150 AND age > 79', # (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) , #  AND age > 139, 119, 99, 79
+                                          partition = ' vol > 150 AND age > 79 ', # (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) , #  AND age > 139, 119, 99, 79
                                           period = rep( seq (from = 1,
                                                            to = 2,
                                                            by = 1),
