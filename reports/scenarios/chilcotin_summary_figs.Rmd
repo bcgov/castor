@@ -34,7 +34,8 @@ dbDisconnect (conn)
 data.summ <- data.harvest %>% # get summary data
                group_by (scenario, timeperiod) %>% 
                  summarise (volume = sum (volume)) %>%
-                   filter (scenario == "chilcotin_bau_live_dead" | 
+                   filter (scenario =="chilcotin_bau_live" |
+                           scenario == "chilcotin_bau_live_dead" | 
                            scenario == "chilcotin_scen1a_live_dead" |
                            scenario == "chilcotin_scen1b_live_dead" |
                           scenario == "chilcotin_scen1c_live_dead" |
@@ -47,8 +48,20 @@ data.summ <- data.harvest %>% # get summary data
                            )  #chilcotin_scen2
 
 
-harvest.avg <- data.summ %>%
-                filter(scenario == "chilcotin_scen3c_live_dead") %>%
+data.summ.live <- data.harvest %>% # get summary data
+               group_by (scenario, timeperiod) %>% 
+                 summarise (volume = sum (volume)) %>%
+                   filter (scenario =="chilcotin_bau_live" |
+                           scenario == "chilcotin_scen2a_live" | 
+                           scenario == "chilcotin_scen2c_live" |
+                           scenario == "chilcotin_scen3a_live" |
+                          scenario == "chilcotin_scen3c_live" 
+                           ) 
+
+
+
+harvest.avg <- data.summ.live %>%
+                filter(scenario == "chilcotin_scen3c_live") %>%
                   summarise (volume = sum (volume/40))
 
 
@@ -57,7 +70,7 @@ harvest <- ggplot (data.summ, aes (x = timeperiod, y = volume, color = scenario,
               geom_line (position = position_dodge (width = 1), size = 1) + 
               #facet_grid (. ~scenario) +
               labs (title = "Annual Volume Harvested in the Area of 
-Interest for Each Scenario", 
+Interest for Each Scenario (dead priority)", 
                     x = "Future Year", 
                     y = "Volume Harvested (m3)") + 
               scale_color_discrete (name = "Scenario", 
@@ -79,6 +92,33 @@ ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\imag
         device = "jpeg",
         width = 6, 
         height = 4)
+
+
+harvest.live <- ggplot (data.summ.live, aes (x = timeperiod, y = volume, color = scenario, linetype = scenario)) +
+              geom_line (position = position_dodge (width = 1), size = 1) + 
+              #facet_grid (. ~scenario) +
+              labs (title = "Annual Volume Harvested in the Area of 
+Interest for Each Scenario (no dead priority)", 
+                    x = "Future Year", 
+                    y = "Volume Harvested (m3)") + 
+              scale_color_discrete (name = "Scenario", 
+                                    labels = c ("BAU", "2a", "2c", "3a", "3c")) +
+              scale_linetype_discrete (name = "Scenario", 
+                                       labels = c ("BAU", "2a", "2c", "3a", "3c")) +
+              theme (legend.position = c (0.15, 0.15),
+                     legend.title = element_text(size = 10),
+                     legend.text = element_text( size = 8)) +
+              scale_x_continuous (breaks = seq(0,200,25)) +
+              scale_y_continuous (label = comma, breaks = seq(1000000,2000000,100000)) +
+              theme_classic()
+
+ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\harvest_live.jpg", 
+        plot = harvest.live,
+        dpi = 300,
+        device = "jpeg",
+        width = 6, 
+        height = 4)
+
 
 
 harvest.scen1 <- ggplot (data.summ %>% filter (scenario == "chilcotin_bau_live_dead" | 
@@ -182,10 +222,16 @@ conn <- dbConnect (RPostgreSQL::PostgreSQL(),
 data.disturb <- dbGetQuery (conn, "SELECT * FROM chilcotin_caribou_plan.disturbance") 
 dbDisconnect (conn)
 
-
 data.disturb$perc_dist_nobuff <- (data.disturb$c40r50 / data.disturb$total_area) * 100 # get percentages
 data.disturb$perc_dist_buff <- (data.disturb$c40r500 / data.disturb$total_area) * 100
 data.disturb$perc_dist_buff [data.disturb$perc_dist_buff > 100] <- 100 
+
+data.disturb$perc_road_nobuff <- (data.disturb$road50 / data.disturb$total_area) * 100 
+data.disturb$perc_rd_buff <- (data.disturb$road500 / data.disturb$total_area) * 100
+data.disturb$perc_rd_buff [data.disturb$perc_rd_buff > 100] <- 100 
+
+
+
 
 data.summ.disturb.nobuff <- data.disturb %>% # get summary data, weighted averages
                                group_by (scenario, timeperiod, critical_hab) %>% 
@@ -195,7 +241,22 @@ data.summ.disturb.buff <- data.disturb %>% # get summary data, weighted averages
                                group_by (scenario, timeperiod, critical_hab) %>% 
                                 summarise (disturb = weighted.mean (perc_dist_buff, total_area)) 
 
+data.summ.rd.nobuff <- data.disturb %>% # get summary data, weighted averages
+                               group_by (scenario, timeperiod, critical_hab) %>% 
+                                summarise (road = weighted.mean (perc_road_nobuff, total_area)) 
 
+data.summ.rd.buff <- data.disturb %>% # get summary data, weighted averages
+                               group_by (scenario, timeperiod, critical_hab) %>% 
+                                summarise (road = weighted.mean (perc_rd_buff, total_area)) 
+
+
+
+
+test <- data.disturb %>%
+         filter (#critical_hab == "Itcha_Ilgachuz HEWSR" | Matrix
+                 critical_hab == "Itcha_Ilgachuz HEWSR") %>%
+          filter (#scenario == "chilcotin_bau_live_dead" | chilcotin_scen1a_live_dead
+                  scenario == "chilcotin_bau_live_dead")
 
 ###########
 #### Itcha
@@ -214,7 +275,13 @@ data.disturb.nobuff.itcha <- data.summ.disturb.nobuff %>%
                                            scenario == "chilcotin_scen2c_live_dead" |
                                            scenario == "chilcotin_scen3a_live_dead" |
                                            scenario == "chilcotin_scen3b_live_dead" |
-                                           scenario == "chilcotin_scen3c_live_dead"
+                                           scenario == "chilcotin_scen3c_live_dead" 
+                                           # scenario =="chilcotin_bau_live" |
+                                           # scenario == "chilcotin_scen2a_live" | 
+                                           # scenario == "chilcotin_scen2c_live" |
+                                           # scenario == "chilcotin_scen3a_live" |
+                                           # scenario == "chilcotin_scen3c_live" |
+                                           # scenario == "chilcotin_scen2a_live_dead_10yrds"
                                            )
 
 
@@ -232,8 +299,16 @@ data.disturb.buff.itcha <- data.summ.disturb.buff %>%
                                            scenario == "chilcotin_scen2c_live_dead" |
                                            scenario == "chilcotin_scen3a_live_dead" |
                                            scenario == "chilcotin_scen3b_live_dead" |
-                                           scenario == "chilcotin_scen3c_live_dead"
+                                           scenario == "chilcotin_scen3c_live_dead" 
+                                           # scenario =="chilcotin_bau_live" |
+                                           # scenario == "chilcotin_scen2a_live" | 
+                                           # scenario == "chilcotin_scen2c_live" |
+                                           # scenario == "chilcotin_scen3a_live" |
+                                           # scenario == "chilcotin_scen3c_live" |
+                                           # scenario == "chilcotin_scen2a_live_dead_10yrds"
                                            )
+
+
 plot.disturb.nobuff <- ggplot (data.disturb.nobuff.itcha, 
                                aes (x = timeperiod, y = disturb, 
                                     color = critical_hab, linetype = critical_hab)) +
@@ -279,8 +354,7 @@ plot.disturb.buff <- ggplot (data.disturb.buff.itcha,
                                             'chilcotin_scen2c_live_dead' = "2c",
                                             'chilcotin_scen3a_live_dead' = "3a",
                                             'chilcotin_scen3b_live_dead' = "3b",
-                                            'chilcotin_scen3c_live_dead' = "3c"))
-                              ) +
+                                            'chilcotin_scen3c_live_dead' = "3c"))) +
                   labs (title = "Disturbance (500m Buffer) in Itcha-Ilgachuz Caribou Critical Habitat 
 for Each Scenario", 
                         x = "Future Year", 
@@ -310,6 +384,320 @@ ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\imag
         device = "jpeg",
         width = 9, 
         height = 6)
+
+
+# LIVE comparison
+data.disturb.nobuff.itcha.live <- data.summ.disturb.nobuff %>%
+                              filter (critical_hab == "Itcha_Ilgachuz HEWSR" | 
+                                        critical_hab == "Itcha_Ilgachuz LESR" |
+                                        critical_hab == "Itcha_Ilgachuz LEWR" | 
+                                        critical_hab == "Itcha_Ilgachuz Matrix") %>%
+                                filter (scenario == "chilcotin_bau_live_dead" | 
+                                           scenario == "chilcotin_scen2a_live_dead" |
+                                           scenario == "chilcotin_scen2c_live_dead" |
+                                           scenario == "chilcotin_scen3a_live_dead" |
+                                           scenario == "chilcotin_scen3c_live_dead" |
+                                           scenario =="chilcotin_bau_live" |
+                                           scenario == "chilcotin_scen2a_live" | 
+                                           scenario == "chilcotin_scen2c_live" |
+                                           scenario == "chilcotin_scen3a_live" |
+                                           scenario == "chilcotin_scen3c_live"
+                                           )
+
+
+data.disturb.buff.itcha.live <- data.summ.disturb.buff %>%
+                              filter (critical_hab == "Itcha_Ilgachuz HEWSR" | 
+                                        critical_hab == "Itcha_Ilgachuz LESR" |
+                                        critical_hab == "Itcha_Ilgachuz LEWR" | 
+                                        critical_hab == "Itcha_Ilgachuz Matrix") %>%
+                                filter (scenario == "chilcotin_bau_live_dead" | 
+                                           scenario == "chilcotin_scen2a_live_dead" |
+                                           scenario == "chilcotin_scen2c_live_dead" |
+                                           scenario == "chilcotin_scen3a_live_dead" |
+                                           scenario == "chilcotin_scen3c_live_dead" |
+                                           scenario =="chilcotin_bau_live" |
+                                           scenario == "chilcotin_scen2a_live" | 
+                                           scenario == "chilcotin_scen2c_live" |
+                                           scenario == "chilcotin_scen3a_live" |
+                                           scenario == "chilcotin_scen3c_live"
+                                           )
+
+
+plot.disturb.nobuff.live <- ggplot (data.disturb.nobuff.itcha.live, 
+                               aes (x = timeperiod, y = disturb, 
+                                    color = critical_hab, linetype = critical_hab)) +
+                  geom_line (position = position_dodge (width = 1), size = 1) + 
+                  facet_grid (. ~scenario,
+                              labeller = as_labeller (c (
+                                            'chilcotin_bau_live_dead' = "BAU dead", 
+                                            'chilcotin_scen2a_live_dead' = "2a dead",
+                                            'chilcotin_scen2c_live_dead' = "2c dead",
+                                            'chilcotin_scen3a_live_dead' = "3a dead",
+                                            'chilcotin_scen3c_live_dead' = "3c dead",
+                                            
+                                            'chilcotin_bau_live' = "BAU", 
+                                            'chilcotin_scen2a_live' = "2a",
+                                            'chilcotin_scen2c_live' = "2c",
+                                            'chilcotin_scen3a_live' = "3a",
+                                            'chilcotin_scen3c_live' = "3c"))
+                              ) +
+                  labs (title = "Disturbance (no Buffer) in Itcha-Ilgachuz Caribou Critical Habitat 
+for Each Scenario", 
+                        x = "Future Year", 
+                        y = "Percent Disturbance") + 
+                  scale_color_discrete (name = "Critical Habitat", 
+                                        labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                  scale_linetype_discrete (name = "Critical Habitat", 
+                                           labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                  theme (legend.position = c (0.15, 0.15),
+                         legend.title = element_text(size = 10),
+                         legend.text = element_text( size = 8)) +
+                  scale_x_continuous (limits = c(0, 80), breaks = seq(0,80,20)) +
+                  scale_y_continuous (label = comma, breaks = seq(0,35,5)) +
+                  theme_bw ()
+
+
+
+plot.disturb.buff.live <- ggplot (data.disturb.buff.itcha.live, 
+                               aes (x = timeperiod, y = disturb, 
+                                    color = critical_hab, linetype = critical_hab)) +
+                  geom_line (position = position_dodge (width = 1), size = 1) + 
+                  facet_grid (. ~scenario,
+                              labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU dead", 
+                                            'chilcotin_scen2a_live_dead' = "2a dead",
+                                            'chilcotin_scen2c_live_dead' = "2c dead",
+                                            'chilcotin_scen3a_live_dead' = "3a dead",
+                                            'chilcotin_scen3c_live_dead' = "3c dead",
+                                            
+                                            'chilcotin_bau_live' = "BAU", 
+                                            'chilcotin_scen2a_live' = "2a",
+                                            'chilcotin_scen2c_live' = "2c",
+                                            'chilcotin_scen3a_live' = "3a",
+                                            'chilcotin_scen3c_live' = "3c"))) +
+                  labs (title = "Disturbance (500m Buffer) in Itcha-Ilgachuz Caribou Critical Habitat 
+for Each Scenario", 
+                        x = "Future Year", 
+                        y = "Percent Disturbance") + 
+                  scale_color_discrete (name = "Critical Habitat", 
+                                        labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                  scale_linetype_discrete (name = "Critical Habitat", 
+                                           labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                  theme (legend.position = c (0.15, 0.15),
+                         legend.title = element_text(size = 10),
+                         legend.text = element_text( size = 8)) +
+                  scale_x_continuous (limits = c(0, 80), breaks = seq(0,80,20)) +
+                  scale_y_continuous (label = comma, breaks = seq(0,100,10)) +
+                  theme_bw ()
+
+
+ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbance_itcha_nobuff_live.jpg", 
+        plot = plot.disturb.nobuff.live,
+        dpi = 300,
+        device = "jpeg",
+        width = 9, 
+        height = 6)
+
+ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbance_itcha_buff500_live.jpg", 
+        plot = plot.disturb.buff.live,
+        dpi = 300,
+        device = "jpeg",
+        width = 9, 
+        height = 6)
+
+
+## ROAD RECOVERY 
+data.disturb.nobuff.itcha.road <- data.summ.disturb.nobuff %>%
+                              filter (critical_hab == "Itcha_Ilgachuz HEWSR" | 
+                                        critical_hab == "Itcha_Ilgachuz LESR" |
+                                        critical_hab == "Itcha_Ilgachuz LEWR" | 
+                                        critical_hab == "Itcha_Ilgachuz Matrix") %>%
+                                filter (scenario == "chilcotin_bau_live_dead" |
+                                        scenario == "chilcotin_scen1a_live_dead" |
+                                        scenario == "chilcotin_scen2a_live_dead" |
+                                        scenario == "chilcotin_scen2a_live_dead_10yrds" |
+                                        scenario == "chilcotin_scen3a_live_dead" |
+                                        scenario == "chilcotin_scen3a_live_dead_10yrds" 
+                                        )
+
+
+data.disturb.buff.itcha.road <- data.summ.disturb.buff %>%
+                              filter (critical_hab == "Itcha_Ilgachuz HEWSR" | 
+                                        critical_hab == "Itcha_Ilgachuz LESR" |
+                                        critical_hab == "Itcha_Ilgachuz LEWR" | 
+                                        critical_hab == "Itcha_Ilgachuz Matrix") %>%
+                                filter (scenario == "chilcotin_bau_live_dead" |
+                                        scenario == "chilcotin_scen1a_live_dead" |
+                                        scenario == "chilcotin_scen2a_live_dead" |
+                                        scenario == "chilcotin_scen2a_live_dead_10yrds" |
+                                        scenario == "chilcotin_scen3a_live_dead" |
+                                        scenario == "chilcotin_scen3a_live_dead_10yrds"
+                                           )
+
+
+plot.disturb.nobuff.road <- ggplot (data.disturb.nobuff.itcha.road, 
+                               aes (x = timeperiod, y = disturb, 
+                                    color = critical_hab, linetype = critical_hab)) +
+                  geom_line (position = position_dodge (width = 1), size = 1) + 
+                  facet_grid (. ~scenario,
+                              labeller = as_labeller (c (
+                                            'chilcotin_bau_live_dead' = "BAU", 
+                                            'chilcotin_scen1a_live_dead' = "1a 30",
+                                            'chilcotin_scen2a_live_dead' = "2a 30",
+                                            'chilcotin_scen2a_live_dead_10yrds' = "2a 10",
+                                            'chilcotin_scen3a_live_dead' = "3a 30",
+                                            'chilcotin_scen3a_live_dead_10yrds' = "3a 10"
+))
+                              ) +
+                  labs (title = "Roads (no Buffer) in Itcha-Ilgachuz Caribou Critical Habitat 
+for Each Scenario", 
+                        x = "Future Year", 
+                        y = "Percent Roaded") + 
+                  scale_color_discrete (name = "Critical Habitat", 
+                                        labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                  scale_linetype_discrete (name = "Critical Habitat", 
+                                           labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                  theme (legend.position = c (0.15, 0.15),
+                         legend.title = element_text(size = 10),
+                         legend.text = element_text( size = 8)) +
+                  scale_x_continuous (limits = c(0, 80), breaks = seq(0,80,20)) +
+                  scale_y_continuous (label = comma, breaks = seq(0,35,5)) +
+                  theme_bw ()
+
+
+
+plot.disturb.buff.road <- ggplot (data.disturb.buff.itcha.road, 
+                               aes (x = timeperiod, y = disturb, 
+                                    color = critical_hab, linetype = critical_hab)) +
+                  geom_line (position = position_dodge (width = 1), size = 1) + 
+                  facet_grid (. ~scenario,
+                              labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", 
+                                            'chilcotin_scen1a_live_dead' = "1a 30",
+                                            'chilcotin_scen2a_live_dead' = "2a 30",
+                                            'chilcotin_scen2a_live_dead_10yrds' = "2a 10",
+                                            'chilcotin_scen3a_live_dead' = "3a 30",
+                                            'chilcotin_scen3a_live_dead_10yrds' = "3a 10"))) +
+                  labs (title = "Roads (500m Buffer) in Itcha-Ilgachuz Caribou Critical Habitat 
+for Each Scenario", 
+                        x = "Future Year", 
+                        y = "Percent Roaded") + 
+                  scale_color_discrete (name = "Critical Habitat", 
+                                        labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                  scale_linetype_discrete (name = "Critical Habitat", 
+                                           labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                  theme (legend.position = c (0.15, 0.15),
+                         legend.title = element_text(size = 10),
+                         legend.text = element_text( size = 8)) +
+                  scale_x_continuous (limits = c(0, 80), breaks = seq(0,80,20)) +
+                  scale_y_continuous (label = comma, breaks = seq(0,100,10)) +
+                  theme_bw ()
+
+
+ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbance_itcha_nobuff_road.jpg", 
+        plot = plot.disturb.nobuff.road,
+        dpi = 300,
+        device = "jpeg",
+        width = 9, 
+        height = 6)
+
+ggsave (filename = "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\images\\disturbance_itcha_buff500_road.jpg", 
+        plot = plot.disturb.buff.road,
+        dpi = 300,
+        device = "jpeg",
+        width = 9, 
+        height = 6)
+
+
+
+
+
+data.road.nobuff.itcha <- data.summ.rd.nobuff %>%
+                              filter (critical_hab == "Itcha_Ilgachuz HEWSR" | 
+                                        critical_hab == "Itcha_Ilgachuz LESR" |
+                                        critical_hab == "Itcha_Ilgachuz LEWR" | 
+                                        critical_hab == "Itcha_Ilgachuz Matrix") %>%
+                                filter (scenario == "chilcotin_bau_live_dead" |
+                                        scenario == "chilcotin_scen2a_live_dead" |
+                                        scenario == "chilcotin_scen2a_live_dead_10yrds" |
+                                        scenario == "chilcotin_scen3a_live_dead" |
+                                        scenario == "chilcotin_scen3a_live_dead_10yrds" 
+                                        )
+
+
+data.road.buff.itcha <- data.summ.rd.buff %>%
+                              filter (critical_hab == "Itcha_Ilgachuz HEWSR" | 
+                                        critical_hab == "Itcha_Ilgachuz LESR" |
+                                        critical_hab == "Itcha_Ilgachuz LEWR" | 
+                                        critical_hab == "Itcha_Ilgachuz Matrix") %>%
+                                filter (scenario == "chilcotin_bau_live_dead" |
+                                        scenario == "chilcotin_scen2a_live_dead" |
+                                        scenario == "chilcotin_scen2a_live_dead_10yrds" |
+                                        scenario == "chilcotin_scen3a_live_dead" |
+                                        scenario == "chilcotin_scen3a_live_dead_10yrds"
+                                           )
+
+
+
+plot.road.nobuff <- ggplot (data.road.nobuff.itcha, 
+                               aes (x = timeperiod, y = road, 
+                                    color = critical_hab, linetype = critical_hab)) +
+                  geom_line (position = position_dodge (width = 1), size = 1) + 
+                  facet_grid (. ~scenario,
+                              labeller = as_labeller (c (
+                                            'chilcotin_bau_live_dead' = "BAU", 
+                                            'chilcotin_scen2a_live_dead' = "2a 30",
+                                            'chilcotin_scen2a_live_dead_10yrds' = "2a 10",
+                                            'chilcotin_scen3a_live_dead' = "3a 30",
+                                            'chilcotin_scen3a_live_dead_10yrds' = "3a 10"
+))
+                              ) +
+                  labs (title = "Percent Road (no Buffer) in Itcha-Ilgachuz Caribou Critical Habitat 
+for Each Scenario", 
+                        x = "Future Year", 
+                        y = "Percent Road") + 
+                  scale_color_discrete (name = "Critical Habitat", 
+                                        labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                  scale_linetype_discrete (name = "Critical Habitat", 
+                                           labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                  theme (legend.position = c (0.15, 0.15),
+                         legend.title = element_text(size = 10),
+                         legend.text = element_text( size = 8)) +
+                  scale_x_continuous (limits = c(0, 80), breaks = seq(0,80,20)) +
+                  scale_y_continuous (label = comma, breaks = seq(0,35,5)) +
+                  theme_bw ()
+
+
+
+plot.disturb.buff.road <- ggplot (data.disturb.buff.itcha.road, 
+                               aes (x = timeperiod, y = road, 
+                                    color = critical_hab, linetype = critical_hab)) +
+                  geom_line (position = position_dodge (width = 1), size = 1) + 
+                  facet_grid (. ~scenario,
+                              labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", 
+                                            'chilcotin_scen2a_live_dead' = "2a 30",
+                                            'chilcotin_scen2a_live_dead_10yrds' = "2a 10",
+                                            'chilcotin_scen3a_live_dead' = "3a 30",
+                                            'chilcotin_scen3a_live_dead_10yrds' = "3a 10"))) +
+                  labs (title = "Percent Road (500m Buffer) in Itcha-Ilgachuz Caribou Critical Habitat 
+for Each Scenario", 
+                        x = "Future Year", 
+                        y = "Percent Road") + 
+                  scale_color_discrete (name = "Critical Habitat", 
+                                        labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                  scale_linetype_discrete (name = "Critical Habitat", 
+                                           labels = c("HEWSR", "LESR", "LEWR", "Matrix")) +
+                  theme (legend.position = c (0.15, 0.15),
+                         legend.title = element_text(size = 10),
+                         legend.text = element_text( size = 8)) +
+                  scale_x_continuous (limits = c(0, 80), breaks = seq(0,80,20)) +
+                  scale_y_continuous (label = comma, breaks = seq(0,100,10)) +
+                  theme_bw ()
+
+
+
+
+
+
+
 
 ###########
 # Rainbows
@@ -718,9 +1106,13 @@ data.summ <- data.vol.by.area %>% # get summary data
                             scenario == "chilcotin_scen2c_live_dead" | 
                            scenario == "chilcotin_scen3a_live_dead" | 
                            scenario == "chilcotin_scen3b_live_dead" | 
-                           scenario == "chilcotin_scen3c_live_dead"
+                           scenario == "chilcotin_scen3c_live_dead" |
+                                   scenario == "chilcotin_bau_live" | 
+                           scenario == "chilcotin_scen2a_live" |
+                           scenario == "chilcotin_scen2c_live" | 
+                           scenario == "chilcotin_scen3a_live" | 
+                           scenario == "chilcotin_scen3c_live"
                            ) 
-
 
 supply.avg <- data.summ %>%
                 group_by (area_name, scenario) %>%
@@ -733,10 +1125,17 @@ supply.avg <- data.summ %>%
                             scenario == "chilcotin_scen2c_live_dead" | 
                            scenario == "chilcotin_scen3a_live_dead" | 
                            scenario == "chilcotin_scen3b_live_dead" | 
-                           scenario == "chilcotin_scen3c_live_dead") %>%
+                           scenario == "chilcotin_scen3c_live_dead" |
+                           scenario == "chilcotin_bau_live" | 
+                           scenario == "chilcotin_scen2a_live" |
+                           scenario == "chilcotin_scen2c_live" | 
+                           scenario == "chilcotin_scen3a_live" | 
+                           scenario == "chilcotin_scen3c_live") %>%
                   summarise (volume = sum (volume/40))
 
 write.csv (supply.avg, "C:\\Work\\caribou\\clus_repo\\clus\\reports\\scenarios\\supply_block.csv")
+
+
 
 # "Quesnel TSA Narcosli East Blk" "Quesnel TSA Narcosli West Blk" "Quesnel TSA South Kluskus Blk"
 #  "Wms Lk TSA Anahim Block"       "Wms Lk TSA Chezacut Block"     "Wms Lk TSA Kloacut Block"     
