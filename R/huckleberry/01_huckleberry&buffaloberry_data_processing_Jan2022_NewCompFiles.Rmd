@@ -1315,22 +1315,33 @@ Load in fire points for this dataset.
 
 ```{r}
 ##Need to update below file name
-#Buff_Laura_burn<-st_read ( dsn = "C:\\cora\\Hucklberry\\Laura_OPENINGS_PA_FirePoints.shp", stringsAsFactors = T)
+Buff_Laura_burn<-st_read ( dsn = "C:\\cora\\Hucklberry\\Laura_Buffaloberry_Plots_Cutblocks_Fire2.shp", stringsAsFactors = T)
 
 Buff_Laura_burn_df<-st_drop_geometry(Buff_Laura_burn)
+head(Buff_Laura_burn_df)
 ```
 
 ```{r}
-Buff_Laura_burn_df$TimeSinceFire<-(Buff_Laura_burn_df$Year - Buff_Laura_burn_df$FIRE_YEAR)
+Buff_Laura_burn_df$TimeSinceFire<-(Buff_Laura_burn_df$Visit_Year - Buff_Laura_burn_df$FIRE_YEAR)
 head(Buff_Laura_burn_df)
+Buff_Laura_burn_df$TimeSinceFire
 ```
 
 
 Now combine files.
 ```{r}
+str(Buff_Laura_df) #28 observations
+str(Buff_Laura_burn_df) #36 observations. Some plots must have burned more than once.
+table(Buff_Laura_burn_df$ID2) #2 replicates per location
+table(Buff_Laura_burn_df$ID2, Buff_Laura_burn_df$FIRE_YEAR) #There was a 1929 fire and a 1936 fire in every plot
+
+Buff_Laura_burn_df<-subset(Buff_Laura_burn_df, Buff_Laura_burn_df$FIRE_YEAR=="1936") #18 observations
+
 Buff_Laura_df2<-left_join(Buff_Laura_df, Buff_Laura_burn_df, by="ID2")
+str(Buff_Laura_df2) #28 observations
 
 head(Buff_Laura_df2) 
+Buff_Laura_df2$TimeSinceFire
 ```
 
 Modify Time Since Fire so that NAs are maximum value in Clayton's data of 118.
@@ -1338,6 +1349,37 @@ Modify Time Since Fire so that NAs are maximum value in Clayton's data of 118.
 ```{r}
 Buff_Laura_df2$TimeSinceFire[is.na(Buff_Laura_df2$TimeSinceFire)]<- 118
 Buff_Laura_df2$TimeSinceFire
+```
+
+#Determine if cutblocks or fire more recent
+
+```{r}
+
+#Create cutblock year
+library(stringi)
+Buff_Laura_df2$Cutblock_Year<-stri_sub(Buff_Laura_df2$DSTRBSTDT.x,1,4)
+
+Buff_Laura_df2$Cutblock_Year
+Buff_Laura_df2$Cutblock_Year<-as.numeric(Buff_Laura_df2$Cutblock_Year)
+
+Buff_Laura_df2$TimeSinceCutblock<-(Buff_Laura_df2$Visit_Year.x-Buff_Laura_df2$Cutblock_Year)
+Buff_Laura_df2$TimeSinceCutblock
+
+#Compare
+Buff_Laura_df2$origin<-ifelse(Buff_Laura_df2$TimeSinceFire<Buff_Laura_df2$TimeSinceCutblock, 1,0)
+Buff_Laura_df2$origin #All fires in 1936 and all cutblocks more recent. All data can be used.
+Buff_Laura_df2$TimeSinceFire
+
+
+```
+
+Add heatload.
+#Remember need in decimal degrees lat long
+```{r}
+Buff_Laura_df2$heatload <- heatload (aspect = Buff_Laura_df2$aspect_ha_bc_3005, slope = Buff_Laura_df2$slope_ha_bc_3005, latitude = Buff_Laura_df2$Shrub.Lati.x, equation = 3)
+ 
+Buff_Laura_df2$heatload 
+hist(Buff_Laura_df2$heatload)
 ```
 
 #Append ClimateBC Data
