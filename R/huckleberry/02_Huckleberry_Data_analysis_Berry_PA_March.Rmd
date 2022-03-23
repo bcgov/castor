@@ -930,6 +930,25 @@ ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA_chem, aes (x = Ti
         y = "Berry Abundance") 
 ```
 
+
+#Mounding
+Mounding
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA_chem, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(Mounding))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover and Brushing",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA_chem, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Mounding))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time and Brushing",
+        x = "Time Since Cutblock",
+        y = "Berry Abundance") 
+```
+
 Look at raw data relationhship shapes to each climate variable
 
 ```{r}
@@ -1153,25 +1172,114 @@ DD5_0
 ```{r}
 
 cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PLANTED<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PLANTED)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PLANTED) #23 not, 299 yes
 
 cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PREP_ME<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PREP_ME)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PREP_ME) # 197 not, 125 yes
 
 cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Burned<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Burned)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Burned) #182 not burned, 140 burned
 
 cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Manual2<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Manual2)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Manual2[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Manual2)]<-0
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Manual2) #209 not, 113 yes
 
 cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Chem2<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Chem2)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Chem2[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Chem2)]<-0
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Chem2)#290 not, 32 yes. Highly uneven.
 
 cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Brush2<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Brush2)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Brush2[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Brush2)]<-0
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Brush2) #213 not brushed, 109 brushed.
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Mounding<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Mounding)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Mounding
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Mounding[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Mounding)]<-0
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Mounding) #uneven. 274 not mounded, 48 mounded.
 
 
 ```
 
 #Model Series 1:
-DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + START_SEASON*TimeSinceCutblock + Chem2*TimeSinceCutblock + Species.He
+DN1_SILSYS_GP + PREP_ME + Burned + Manual2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + START_SEASON*TimeSinceCutblock + Chem2*TimeSinceCutblock + Species.He
 
 #Model Series 2:
-DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + Canopy_Cov + START_SEASON + heatload + PREP_ME*Canopy_Cov + START_SEASON*Canopy_Cov + Chem2*Canopy_cov + Species.He
+DN1_SILSYS_GP + PREP_ME + Burned + Manual2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + Canopy_Cov + START_SEASON + heatload + PREP_ME*Canopy_Cov + START_SEASON*Canopy_Cov + Chem2*Canopy_cov + Species.He
+
+#REML will not work to use AIC - actually might be ok to use AIC. If use -2log likelihood comparison, then need to remove REML as well. Scale it between 0 and 1, want it to be high.
+Look in output for -2Log Likelihood (not restricted though)
+
+#Notes
+1. Going to remove planted or not because very few not planted, and this is not generally an option for companies
+2. Smoothing curves selected are based on raw data plots
+
+```{r}
+model.new.1c <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Manual2 + Chem2 + G_BGC_ZONE + s(OPEN_GRSAR) + Mounding + s(TimeSinceCutblock, by=PREP_ME) + s(TimeSinceCutblock, by=Chem2) + s(TimeSinceCutblock, by=Mounding) + START_SEASON + s(heatload) + s(Species.He),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML", family=ziP()) 
+
+gam.check(model.new.1c)
+anova(model.new.1c)
+anova.gam(model.new.1c)
+summary(model.new.1c) #Deviance explained 99.8%
+AIC(model.new.1c) #8958.886
+
+library(mgcViz)
+getViz(model.new.1c)
+plot(model.new.1c)
+plot(model.new.1c, select=1)
+plot(model.new.1c, select=2)
+plot(model.new.1c, select=3)
+plot(model.new.1c, select=4)
+plot(model.new.1c, select=5) #Flat line at 0?? Check what is wrong.
+plot(model.new.1c, select=6)
+plot(model.new.1c, select=7)
+
+
+library(visreg)
+visreg(model.new.1c, "DN1_SILSYS_GP")
+visreg(model.new.1c, "Chem2")
+visreg(model.new.1c, "PREP_ME")
+visreg(model.new.1c, "Burned")
+visreg(model.new.1c, "Manual2")
+visreg(model.new.1c, "G_BGC_ZONE")
+visreg(model.new.1c, "START_SEASON")
+
+visreg(model.new.1c, "TimeSinceCutblock", by= "Chem2")
+visreg(model.new.1c, "TimeSinceCutblock", by= "PREP_ME")
+visreg(model.new.1c, "TimeSinceCutblock", by= "Mounding")
+
+
+#Can take the smooth out for many terms
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##Old models prior to usinf ziP (zero-inflated Poisson)
 
 #Could investigate as linear models; but GAMs might be better
 

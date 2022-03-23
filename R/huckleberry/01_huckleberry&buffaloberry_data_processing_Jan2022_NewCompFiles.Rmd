@@ -1251,6 +1251,11 @@ cutblock_plots_openings_mowatBuff3<-read.csv(file = "C:\\cora\\Hucklberry\\Grizz
 #Datasets #4: Long-term Buffaloberry Plots Garth Mowat from Laura Smit
 This dataset is provided by Laura Smit and contains data rom repeated measures plots for buffaloberry from 2016-2021. It contains the height and width of plants, canopy cover for some years (but not all), berry count, berry phenology, and information on percent infection present on berries and plant leaves.
 
+Notes:
+1. Often did not count the berries that were infected; so production may have been higher than stated, but useable berries lower.
+2. In more recent years, often counted when green, so may not have as many infected accounted for. And not all green berries will turn into berries that are actually food.
+3. Sometimes says 0 berries present, but 100% infected; so there were berries present, but all infected and thus not edible.
+
 Bring in the data that occur within cutblocks.
 ```{r}
 Laura_buffalo_data<-st_read ( dsn = "C:\\cora\\Hucklberry\\Laura_Buffaloberry_Plots_Cutblocks.shp", stringsAsFactors = T)
@@ -1383,6 +1388,29 @@ hist(Buff_Laura_df2$heatload)
 ```
 
 #Append ClimateBC Data
+
+
+
+
+##Investigate berries percent infected
+```{r}
+Buff_Laura_df2$Percent.Be.x
+
+#Losing numbers in below
+Buff_Laura_df2$Percent.Be<-as.numeric(as.factor(Buff_Laura_df2$Percent.Be.x))
+Buff_Laura_df2$Percent.Be
+Buff_Laura_df2$Percent.Be.x[is.na(Buff_Laura_df2$Percent.Be.x)]<-0
+
+plot(Buff_Laura_df2$Berry.Coun.x, Buff_Laura_df2$Percent.Be.x)
+
+```
+
+
+
+```{r}
+Buff_Laura_df2$Canopy.Cov.x #Use this one
+Buff_Laura_df2$Canopy.Cov.y #Do not use this one - missing second half of data
+```
 
 
 
@@ -1799,7 +1827,7 @@ Now investigate the last grouping
 ```{r}
 #Last Grouping
 table(cutblock_plots_openings_Huck_ALL_df_2022_b22b$silv_method_code)
-#BROAD: Broadcast burn; BRUSH: Brush saw; cHAIN: Chain Drag;CROSS: cross-ditching; ; DISC: Disc trenching (5); EXCAV: Excavator; KNOCK: 3 meter knock down; MANCT: Manual Cutting; MANSB: Manual Stem Bending; MDOWN: Machine Knockdown; MOCUT: Motorized Cutting (Handheld); MOUND: Mounding; MXPLT: Mixed Stock; PATCH: machine patch scarification; PBUNR: Pile and burn; PILE: Piling; POST: Blade or Strip Post-scarification; PRE: Blade or Strip Pre-scarification; POWER: Power saw; SHARK: shark-fin drag; SHEAR: pruning Shears; WFIRE: wildfire.
+#BROAD: Broadcast burn; BRUSH: Brush saw; CHAIN: Chain Drag;CROSS: cross-ditching; ; DISC: Disc trenching (5); EXCAV: Excavator; KNOCK: 3 meter knock down; MANCT: Manual Cutting; MANSB: Manual Stem Bending; MDOWN: Machine Knockdown; MOCUT: Motorized Cutting (Handheld); MOUND: Mounding; MXPLT: Mixed Stock; PATCH: machine patch scarification; PBUNR: Pile and burn; PILE: Piling; POST: Blade or Strip Post-scarification; PRE: Blade or Strip Pre-scarification; POWER: Power saw; SHARK: shark-fin drag; SHEAR: pruning Shears; WFIRE: wildfire.
 #Unsure if interesting: CTAIN: Container (1037), PLOT: Plots
 
 #MOUND: Mounding
