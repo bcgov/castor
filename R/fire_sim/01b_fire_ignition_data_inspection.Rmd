@@ -54,7 +54,7 @@ historic.ignit <- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fir
 
 current.ignit <- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\Current_Fire_Ignition_point_locations\\PROT_CURRENT_FIRE_PNTS_SP\\C_FIRE_PNT_point.shp", stringsAsFactors = T)
 
-head(historic.ignit)
+tail(historic.ignit, 20)
 head(current.ignit)
 
 #Ensure they are both in the same coordinate system
@@ -74,6 +74,7 @@ Now, let's inspect some of the elements of this file.
 
 ```{r}
 table(ignition$FIRE_TYPE) #We will want Fire and Nuisance Fire types. Admittedly, I am unsure what some of these other ones are.
+#By BC Wildfire Service (BCWS) definition, a  nuisance fire is a fire which does not spread to forest or range land or beyond an area authorized for burning. Examples of nuisance fires include abandoned campfires or burning vehicles and equipment where the fire does not spread to surrounding vegetation.
 
 table(ignition$FIRE_CAUSE)
 

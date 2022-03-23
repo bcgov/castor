@@ -390,7 +390,7 @@ for (i in 1: length(years)) {
   sample.pts.all$long <- as.numeric(dat$longitude)
   sample.pts.all$el <- "."
   
-  nam1<-paste("sampled.points.all",years[i], "csv",sep=".")
+  nam1<-paste("sampled.points.all.frt",years[i], "csv",sep=".")
   the_dir <- "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data"
   write.csv(sample.pts.all, file = paste0(the_dir, "\\", basename(nam1)), row.names=FALSE)
 }
@@ -421,9 +421,9 @@ Once the above has been completed for the random points and known fire locations
 ###############################
 
 #Depending on where you saved your output, you may need to update the directory below
-file.list1<-list.files("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output_July2021_5x", pattern="sampled.points.all", all.files=FALSE, full.names=FALSE)
+file.list1<-list.files("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output_frt", pattern="sampled.points.all", all.files=FALSE, full.names=FALSE)
 y1<-gsub(".csv","",file.list1)
-the_dir <- "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output_July2021_5x"
+the_dir <- "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\output_frt"
 
 for (i in 1:length(file.list1)){
   assign(paste0(y1[i]),read.csv (file=paste0(the_dir, "\\", file.list1[i])))
@@ -461,7 +461,7 @@ for (i in 1: length(y1)){
   
   for (j in 5 : 9) {
     
-    x2$MDC_04<-15
+    x2$MDC_04<-15 # the MDC value for April. This assumes that the ground is saturated at the start of the season. Maybe not true for all locations... may need to think about this a little more.
     
     Em<- days_month[j]*((0.36*x2[[paste0("Tmax0",j)]])+Lf[j])
     Em2 <- ifelse(Em<0, 0, Em)
@@ -498,7 +498,7 @@ names(samp_locations_sf)
 DC.ignitions1<- DC.ignitions %>% rename(idno=ID1,
                                         fire_year=YEAR) 
 samp_locations_sf$idno <- as.factor(as.character(samp_locations_sf$idno))
-samp_locations_sf$fire_yr <- as.numeric(as.character(samp_locations_sf$fire_yr))
+samp_locations_sf$fire_year <- as.numeric(as.character(samp_locations_sf$fire_year))
 
 # Now join DC.ignitions back with the original fire ignition dataset
 ignition_weather<-left_join(DC.ignitions1, samp_locations_sf)
@@ -645,7 +645,7 @@ conn <- DBI::dbConnect (dbDriver ("PostgreSQL"),
 
 st_write (obj = ignition_weather_crs, 
           dsn = conn, 
-          layer = c ("public", "DC_data_ALL_5x"))
+          layer = c ("public", "DC_data_ALL_5x_frt"))
 
 dbDisconnect (conn)
 ```
@@ -654,7 +654,7 @@ Note: in current below file saved, the lat and long do not match and thus differ
 
 ```{r}
 
-st_write(ignition_weather_crs, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_5x_AllMonths.shp", delete_layer=TRUE)
+st_write(ignition_weather_crs, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_5x_AllMonths_frt.shp", delete_layer=TRUE)
 ##Can also open in QGis to assess for any physical outliers and their information.
 
 #str(ignition_weather_crs)
