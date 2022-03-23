@@ -64,7 +64,7 @@ https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resourc
 
 We have multiple datasets to work with.
 
-##Notes from Clayton
+##Notes from Clayton for Clayton files (Huckleberry and Buffaloberry)
 Keep in mind the hierarchy of the processes as your filter the data— For Occurrence>cover>fruit occurrence>fruit abundance. For example, there are lots of cover==0% because the species didn’t occur. I chose to model each processes independently and then multiply them together, but you could shortcut and try to just model berry abundance all together, see how goes.
 
 VegModData_BEC_CL is occurrence and cover data from BEC, my plots across BC and some Proctor Huck data. This is a big dataset useful for modelling occurrence and cover only. Not fruit occurrence or productivity. You’ll see the BEC Code (for example VACCMEM= huck), and then “_cover” or “_occ” for % cover and occurrence, respectively.
@@ -79,7 +79,7 @@ Time since cut and Time since Fire are in there, and are calculated relative to 
    - July temperature
    - Spring rainfall
    - July rainfall
-2. Solar radiation --> but does not work from ClimateBC; need to find elsewhere
+2. Solar radiation --> but does not work from ClimateBC; need to find elsewhere; currently exploring heatload as a surrogate
 3. PAS --> ClimateBC
 4. Time since wildfire --> wildfire shape file
 5. Whether site prep involved fire --> RESULTS OPENINGS data
@@ -1028,9 +1028,8 @@ head(cutblock_plots_openings_Laura_Huck_Berries)
 ```
 
 
-
 #Datasets #3: Garth Mowat and new student's (Mackenzie) data on huckleberry and buffalo berry separately.
-This dataset should have the same features as the above overall, but column names differ and will need to be re-named for binding datasets together.
+This dataset has repeated measures of huckleberry plots from 2011-2021.It should have the same features as the above overall, but column names differ and will need to be re-named for binding datasets together.
 
 #Some notes
 1. Some 0s in some columns are not true 0s, but rather NAs. See original excel document with comments for details.
@@ -1249,8 +1248,108 @@ cutblock_plots_openings_mowatBuff3<-read.csv(file = "C:\\cora\\Hucklberry\\Grizz
 ```
 
 
+#Datasets #4: Long-term Buffaloberry Plots Garth Mowat from Laura Smit
+This dataset is provided by Laura Smit and contains data rom repeated measures plots for buffaloberry from 2016-2021. It contains the height and width of plants, canopy cover for some years (but not all), berry count, berry phenology, and information on percent infection present on berries and plant leaves.
 
-#Datasets #4: BEC Plots
+Bring in the data that occur within cutblocks.
+```{r}
+Laura_buffalo_data<-st_read ( dsn = "C:\\cora\\Hucklberry\\Laura_Buffaloberry_Plots_Cutblocks.shp", stringsAsFactors = T)
+head(Laura_buffalo_data)
+st_crs(Laura_buffalo_data) #9001, must convert
+
+Laura_buffalo_data_3005<-st_transform(Laura_buffalo_data, 3005)
+crs(Laura_buffalo_data_3005)
+
+```
+
+Append DEM data.
+```{r}
+crs(rasStack) #3005
+
+Laura_buffalo_data_3005$coords_x1<-st_coordinates(Laura_buffalo_data_3005)
+head(Laura_buffalo_data_3005)
+
+pointCoordinates<-data.frame(Laura_buffalo_data_3005$coords_x1, Laura_buffalo_data_3005$coords_x1)
+head(pointCoordinates)
+pointCoordinates2<-pointCoordinates[1:2]
+pointCoordinates2
+
+DEM_buff2=raster::extract(rasStack, pointCoordinates2)
+head(DEM_buff2)
+
+#Append
+Laura_buffalo_data_3005<-cbind(Laura_buffalo_data_3005, DEM_buff2)
+head(Laura_buffalo_data_3005)
+
+```
+
+Append soils data for those that overlap.
+
+```{r}
+crs(SoilStack) #ESPG 3005
+
+#Extract values from SoilStack_2 for GPS coordinates in data file
+SOIL_buff2=raster::extract(SoilStack, pointCoordinates2)
+head(SOIL_buff2) #Looks good
+
+#Combine back into original data set
+Laura_buffalo_data_3005<-cbind(Laura_buffalo_data_3005, SOIL_buff2)
+head(Laura_buffalo_data_3005)
+```
+
+Make into data frame.
+```{r}
+Buff_Laura_df<-st_drop_geometry(Laura_buffalo_data_3005)
+str(Buff_Laura_df)
+names(Buff_Laura_df)
+
+```
+
+Save file.
+
+```{r}
+write.csv(Buff_Laura_df, file="C:\\cora\\Hucklberry\\Buff_Laura_df.csv")
+```
+
+Load in fire points for this dataset.
+
+```{r}
+##Need to update below file name
+#Buff_Laura_burn<-st_read ( dsn = "C:\\cora\\Hucklberry\\Laura_OPENINGS_PA_FirePoints.shp", stringsAsFactors = T)
+
+Buff_Laura_burn_df<-st_drop_geometry(Buff_Laura_burn)
+```
+
+```{r}
+Buff_Laura_burn_df$TimeSinceFire<-(Buff_Laura_burn_df$Year - Buff_Laura_burn_df$FIRE_YEAR)
+head(Buff_Laura_burn_df)
+```
+
+
+Now combine files.
+```{r}
+Buff_Laura_df2<-left_join(Buff_Laura_df, Buff_Laura_burn_df, by="ID2")
+
+head(Buff_Laura_df2) 
+```
+
+Modify Time Since Fire so that NAs are maximum value in Clayton's data of 118.
+
+```{r}
+Buff_Laura_df2$TimeSinceFire[is.na(Buff_Laura_df2$TimeSinceFire)]<- 118
+Buff_Laura_df2$TimeSinceFire
+```
+
+#Append ClimateBC Data
+
+
+
+
+
+
+
+
+#Datasets #5: BEC Plots
 This dataset has presence only values for each huckleberry and buffalo berry, and only presents the percent cover of the plant itself (not berries). This can be used best for percent cover models, but because does not have absence values, may be best only to use for percent cover.
 
 Currently, we only have the huckleberry data, but can acquire the buffaloberry data as well if we find it useful. Subsequent investigation does show that the percent cover is considerably less for these BEC plots than in the Clayton and Lamb data, and thus may not be comparable.
@@ -1271,15 +1370,11 @@ For processing below, we do not need these files to be spatial files. Turn them 
 
 ```{r}
 
-
 cutblock_plots_openings_Huck_ALL_df<-st_drop_geometry(cutblock_plots_openings)
-
 
 cutblock_plots_openings_mowatBuff_df<-st_drop_geometry(cutblock_plots_openings_mowatBuff)
 
-
 cutblock_plots_openings_BECHuck_df<-st_drop_geometry(cutblock_plots_openings_BECHuck)
-
 
 ```
 

@@ -59,6 +59,7 @@ ignition<- rbind(historic.ignit, current.ignit)
 ignition1 <- ignition %>% 
   filter(FIRE_YEAR>2001) %>% ##Select for years 2002 beyond
   filter(FIRE_TYPE == "Fire" | FIRE_TYPE=="Nuisance Fire") #Select fire type for ones desired
+table(ignition1$FIRE_YEAR) # Looking at https://www2.gov.bc.ca/gov/content/safety/wildfire-status/about-bcws/wildfire-statistics/wildfire-averages and comparing the values I get to these in the table I think I should filter only by "Fire" and not "Nuisance Fire" but this removes many fire locations particularly for the years 2007 and 2008. 
 
 st_crs(ignition1)
 
