@@ -39,29 +39,20 @@ library(caret)
 library(pROC)
 library(visreg)
 library(arm)
+library(mgcv)
+library(mgcViz)
 
 #source(here::here("R/functions/R_Postgres.R"))
 ```
 
 ##Data sets for what purpose
-1. Percent cover huckleberry: cutblock_plots_openings_Huck_ALL_df_2022_b23b (and subset Huck)
-2. Other elements huckleberry: cutblock_plots_openings_Huck_ALL_df_2022_b2 (although if use above, NA remove will likely get same result- *should* at least)
+Percent cover huckleberry and berry abundance: cutblock_plots_openings_Huck_ALL_df_2022_b2
 
-3. Percent cover buffaloberry (plant and berries separate), Presence buffaloberry (plant and berries separate): cutblock_plots_openings_Buff_ALL_df
+This dataset already has the two datasets combined together.
 
 #Overview
-This file continues from huckleberry_data_processing_Dec2021, and shows some initial exploration of the huckleberry data. As of January 14, 2022, the analyses only encompass the huckleberry data from Mowat and Lamb due to missing data in the BEC data for % sand, DEM (which can be easily acquired), pH, and other environmental variables that have been shown to be crucial for huckleberry P/A, cover and huckleberry fruit P/A and cover. These variables will need to be appended to that data before it can be included into the analyses for percent cover; note, this data may wish to not be included for P/A models as we only selected presence data, and thus have no complimenting absence data, and the number of presences will likely overwhelm the models.
+This file continues from huckleberry&buffaloberry_data_processing_Jan2022. Here, we explore how silviculture practices influence the abundance of huckleberry berries. 
 
-#Additional processing needed for BEC data:
-1. Determine timing of harvested and burning to determine origin age of stand and time since fire and harvest
-2. DEM --> Although BEC data has aspect and slope indicated for some point within area from RESULTS tab
-3. % Sand (TSAND)
-4. pH
-5. ClimateBC data (Tave_wt, PAS)
-6. Land Cover Type (MODIS_LC)
-7. Canopy Cover - but investigate what StrataCove, StrataCo_1...3 are.
-
-All of the NAs by origin (burn/harvest) for huckleberry cover are from the BEC data, and we can see that the percent cover is much smaller on average. Clarify what size of plots were assessed by Clayton, and if these data can even be comparable.
 
 #Load Data In
 ```{r}
@@ -97,6 +88,7 @@ cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck
 #See if worth losing the data points - i.e., do we have consistent good data within this.
 head(cutblock_plots_openings_Huck_ALL_df_2022_b2)
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$G_BGC_ZONE) #BEC Zone: ESSF, ICH, MS, SBS
+cutblock_plots_openings_Huck_ALL_df_2022_b2$OPEN_GRSAR<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$OPEN_GRSAR)
 hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$OPEN_GRSAR) #total area the opening encompasses
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD) # 15 B (burned wildfire); 492 logged (L); 1 P (pest); 1 S (Salvage);626 total (so 5 missing data)
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN2_DIS_CD) #Additional elements; 115 total
@@ -114,7 +106,7 @@ cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck
 cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD!="S")
 cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD!="B")
 
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD) #492 logged
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD) #423 logged
 ```
 
 #Inspect DN1_SILSYS (DENUDATION_1_SILV_SYSTEM_CODE)
@@ -313,8 +305,11 @@ table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Planted2) #387 yeses, combinin
 
 
 ```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$FEAT_AREA<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$FEAT_AREA)
 hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$FEAT_AREA)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_AREA<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_AREA)
 hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_AREA) #Also has a Plant2, so could add together for total planting area?
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT2_AREA<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT2_AREA)
 hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT2_AREA)
 cutblock_plots_openings_Huck_ALL_df_2022_b2$TOTAL_plant_area<-cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_AREA+cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT2_AREA
 cutblock_plots_openings_Huck_ALL_df_2022_b2$TOTAL_plant_area
@@ -480,9 +475,19 @@ table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Pres) # 112 a
 
 ```{r}
 #Make annual PAS (precipitation as snow). Here we want to use the decade ClimateBC data for P/A and % Cover
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_at_dec<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_at_dec)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_sm_dec<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_sm_dec)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_sp_dec<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_sp_dec)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_wt_dec<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_wt_dec)
+
 cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_total<-cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_at_dec + cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_sm_dec + cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_sp_dec + cutblock_plots_openings_Huck_ALL_df_2022_b2$PAS_wt_dec
 
 #Repeat for abundance data
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_at_dec<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_at_dec)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_sm_dec<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_sm_dec)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_sp_dec <-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_sp_dec )
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_wt_dec<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_wt_dec)
+
 cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_total<-cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_at_dec + cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_sm_dec + cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_sp_dec + cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PAS_wt_dec
 
 ```
@@ -495,6 +500,14 @@ write.csv(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, file="C:\\cora
 write.csv(cutblock_plots_openings_Huck_ALL_df_2022_b2, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_2022_b2_Berries.csv")
 ```
 
+#Determine density of plants by cutblock size.
+Keep in mind that cutblocks that are adjacent to each other are still currently not combined together to represent total cutblock size.
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$planted_density_TOT #This indicates planting density of the up to 5 species planted. Probably more accurate than creating a proxy. But note, not all have this info, so will lose more data again.
+```
+
+
 
 
 ##################### BEGIN VISUALIZATIONS ###############
@@ -506,10 +519,10 @@ Visualize differences by categories.
 ```{r}
 cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.AbunTEST
 cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Canopy_Cov
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$bec_zone) #144 ESSF, 45 ICH, 3 MS and 10 SBS... MS and SBS scarce. Somehow have a ton of NAS; We have 202 accounted for from 322 observations??
-cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$bec_zone #Need to acquire full BEC data
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$G_BGC_ZONE) 
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$G_BGC_ZONE 
 
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(bec_zone))) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
   geom_point () +
   geom_smooth (se=F) +
   labs (title = "Huckleberry Berry Abundance by Canopy Cover",
@@ -534,6 +547,14 @@ ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.
   labs (title = "Huckleberry Berry Abundance by Time Since Cutblock",
         x = "Time Since Logging",
         y = "Berry Abundance") 
+
+#By BEC
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Fruit.AbunTEST,colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Time Since Cutblock",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
 ```
 
 Comapre to VRI age.
@@ -547,13 +568,20 @@ ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = vri_age
   labs (title = "Huckleberry Berry Abundance by VRI Age",
         x = "VRI age",
         y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = vri_age, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by VRI Age",
+        x = "VRI age",
+        y = "Berry Abundance") 
 ```
 
 
 Compare age of cutblock to canopy cover.
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Canopy_Cov, colour = factor(bec_zone))) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Canopy_Cov, colour = factor(G_BGC_ZONE))) +
   geom_point () +
   geom_smooth (se=F) +
   labs (title = "Canopy Cover by Time Since Cutblock/Logging",
@@ -597,8 +625,16 @@ Plot berry abundance by plant cover; but note, not complete.
 
 ```{r}
 cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Species.Co #Only a handful of NAs, actually not too bad
+cor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Species.Co, cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.AbunTEST, use = "complete.obs") #0.22
 
 ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Species.Co, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Species Cover",
+        x = "Species Cover (%)",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Species.Co, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
   geom_point () +
   geom_smooth (se=F) +
   labs (title = "Huckleberry Berry Abundance by Species Cover",
@@ -610,7 +646,16 @@ By Species Height.
 ```{r}
 cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Species.He #Only a handful of NAs, actually not too bad
 
+cor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Species.He, cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.AbunTEST, use = "complete.obs") #0.26 - this correlation is stronger
+
 ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Species.He, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Species Height",
+        x = "Species Height (cm)",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Species.He, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
   geom_point () +
   geom_smooth (se=F) +
   labs (title = "Huckleberry Berry Abundance by Species Height",
@@ -619,14 +664,33 @@ ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Species
 ```
 
 
+planted_density_TOT
+# We see not much influence of planting density on berry production here
 ```{r}
-cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Cove<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Cove)
-cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Cove #Lots of missing values
-cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned)
-cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned # We somehow have NA values. Assume not burned.
-cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned)]<-0
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = planted_density_TOT, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Planting Density",
+        x = "Planting Density (trees/ha)",
+        y = "Berry Abundance") 
 
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Burned, y = Fruit.Cove)) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = planted_density_TOT, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Planting Density",
+        x = "Planting Density (trees/ha)",
+        y = "Berry Abundance") 
+```
+
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Cove<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Cove)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Cove #Lots of missing values
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Burned<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Burned)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Burned # We somehow have NA values. Assume not burned.
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Burned[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Burned)]<-0
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Burned, y = Fruit.AbunTEST)) +
   geom_boxplot () +
   labs (x = "Not Burned (0), Burned(1)",
         y = "Huckleberry Fruit Cover")
@@ -645,322 +709,405 @@ ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Burned, y = origin
 #Stand age is greater in burned areas.
 ```
 
+Determine canopy cover and stand age by breaking it into burned and not burned.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Canopy_Cov, colour = factor(Burned))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Fruit.AbunTEST, colour = factor(Burned))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(Burned))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+```
+
+
 #Repeat for Mechanical treatment
-#using PREP_ME
+#using Mechanical2 (some NAS); PREP_ME instead
+
 
 ```{r}
-cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME_<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME)
-
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Species.Pr2, fill = PREP_ME_)) + 
-  geom_bar (position = "fill") +
-  scale_fill_discrete (name = "Mechanical Treatment or Not", labels = c("No Mechanical TR", "Mechanical TR")) 
-#More common in those with mechanical treatment; are the labels backwards since differ from next figure?
-```
-
-Assess the percent cover of huckleberry by origin.
-
-```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = PREP_ME_, y = Species.Co)) +
-  geom_boxplot () +
-  labs (x = "No Mechanical TR (0), Mechanical TR (1)",
-        y = "Huckleberry Cover")
-
-#Similar; maybe slightly higher in ME
-```
-
-Assess for differences in stand age by category.
-
-```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = PREP_ME_, y = origin.age)) +
-  geom_boxplot () +
-  labs (x = "No Mechanical TR (0), Mechanical TR (1)",
-        y = "Stand Age")
-
-#Stand age is similar for both with and without.
-```
-
-```{r}
-cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU_ME<-paste(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU_, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME_)
-str(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU_ME)
-cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU_ME<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU_ME)
-
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceC, y = Species.Co, colour = factor(PREP_BU_ME))) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Canopy_Cov, colour = factor(PREP_ME))) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Cover Across stand Ages",
-        x = "Stand Age (years)",
-        y = "Species Cover (%)")  +
-  scale_colour_discrete (name = "Stand Origin", labels = c("No Burn No Mechanical", "Mechanical", "Burn", "Burn and Mechanical"))
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
 
-#Burn peaks at 15 years, with a second peak at 35 years; burn and mechanical peaks at 10 years and lowest at 30 years; mechanical peaked at 5 years; no burn and no mechanical peaked at 35 years before data too sparse
-```
-
-
-Repeat but without 0s
-
-```{r}
-cutblock_plots_openings_Huck_ALL_df_2022_b2_PA<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr=="1")
-
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = TimeSinceC, y = Species.Co, colour = factor(PREP_BU_ME))) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Fruit.AbunTEST, colour = factor(PREP_ME))) +
   geom_point () +
   geom_smooth (se=F) +
-  labs (title = "Huckleberry Cover Across stand Ages",
-        x = "Stand Age (years)",
-        y = "Species Cover (%)")  +
-  scale_colour_discrete (name = "Stand Origin", labels = c("No Burn No Mechanical", "Mechanical", "Burn", "Burn and Mechanical"))
-
-```
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
 
 
-Repeat the above plots for site prep and other harvest treatments (PREP1_TECH_GP, PREP_TECH_2_GP,  DN1_SILSYS_GP).
-
-Visualize differences by categories DN1_SILSYS_GP
-
-```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Species.Pr2, fill = DN1_SILSYS_GP)) + 
-  geom_bar (position = "fill") +
-  scale_fill_discrete (name = "Clearcut Technique") 
-#More likely to occur in sites with clearcuts as opposed to clearcuts with reserves.
-```
-
-Assess the percent cover of huckleberry by origin.
-
-```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = DN1_SILSYS_GP, y = Species.Co)) +
-  geom_boxplot () +
-  labs (x = "Clearcut Technique",
-        y = "Huckleberry Cover")
-
-#Cover appears to be similar for all categories.
-```
-
-Assess for differences in stand age by category.
-
-```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = DN1_SILSYS_GP, y = origin.age)) +
-  geom_boxplot () +
-  labs (x = "Clearcut Technique",
-        y = "Stand Age")
-
-#Clearcut with reserves are younger than clearcuts and other.
-```
-
-Repeat the above plots for site prep and other harvest treatments (PREP1_TECH_GP, DN1_SILSYS_GP).
-
-Visualize differences by categories PREP1_TECH_GP
-
-```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Species.Pr2, fill = PREP1_TECH_GP)) + 
-  geom_bar (position = "fill") +
-  scale_fill_discrete (name = "Site Prep Technique") 
-#If burning used in site prep, more likely to occur. Definitely a lot of NAs though too.
-```
-Assess for fruit Presence/Absence.
-
-```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b23, aes (x = Fruit.Pres, fill = PREP1_TECH_GP)) + 
-geom_bar (position = "fill") +
-  scale_fill_discrete (name = "Site Prep technique")
-#Fruit presence pretty similar between all
-```
-
-Assess the percent cover of huckleberry by origin.
-
-```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = PREP1_TECH_GP, y = Species.Co)) +
-  geom_boxplot () +
-  labs (x = "Prep Technique",
-        y = "Huckleberry Cover")
-
-#Cover appears to be similar for all categories.
-```
-
-Assess for fruit abundance by origin.
-
-```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = PREP1_TECH_GP, y = Fruit.Abund)) +
-  geom_boxplot () +
-  labs (x = "Prep Technique",
-        y = "Huckleberry Fruit Abundance")
-
-#Appears highest in areas with burning as part of site prep.
-```
-
-Assess for differences in stand age by category.
-
-```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = PREP1_TECH_GP, y = origin.age)) +
-  geom_boxplot () +
-  labs (x = "Site Prep Technique",
-        y = "Stand Age")
-
-#Areas with burning for prep slightly older.
-```
-
-```{r}
-cutblock_plots_openings_Huck_ALL_df_2022_b2$AREA_SQM
-```
-
-#Check pattern by origin.age
-
-```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = origin.age, y = Species.Co)) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(PREP_ME))) +
   geom_point () +
-  geom_smooth () +
-  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
-        x = "Time since Fire or Harvest (years)",
-        y = "Species Cover")
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
 ```
 
+#Repeat for if planted or not
+
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = TimeSinceC, y = Species.Co)) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Canopy_Cov, colour = factor(PLANTED))) +
   geom_point () +
-  geom_smooth () +
-  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
-        x = "Time Since Harvest (years)",
-        y = "Species Cover")
-#Seemingly positive but very little data >90 years.
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Fruit.AbunTEST, colour = factor(PLANTED))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(PLANTED))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
 ```
 
-At this point, we have a few variations on the data:
-1. cutblock_plots_openings_Huck_ALL_df_2022_b2
-2. cutblock_plots_openings_Huck_ALL_df_2022_b2
-
-Save
+Does clearcut technique matter?
 
 ```{r}
-cutblock_plots_openings_Huck_ALL_df_2022_b22[68]
-cutblock_plots_openings_Huck_ALL_df_2022_b22<-cutblock_plots_openings_Huck_ALL_df_2022_b22[-68]
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Canopy_Cov, colour = factor(DN1_SILSYS_GP))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
 
-write_csv(cutblock_plots_openings_Huck_ALL_df_2022_b22, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_2022_b2_Jan25.csv")
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Fruit.AbunTEST, colour = factor(DN1_SILSYS_GP))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(DN1_SILSYS_GP))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+```
+
+Differences by main species planted?
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Canopy_Cov, colour = factor(Qa))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin.age, y = Fruit.AbunTEST, colour = factor(Qa))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(Qa))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
 ```
 
 
+Start season of operations.
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$START_SEASON!="NA")
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA2, aes (x = origin.age, y = Canopy_Cov, colour = factor(START_SEASON))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA2, aes (x = origin.age, y = Fruit.AbunTEST, colour = factor(START_SEASON))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA2, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(START_SEASON))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+```
+
+
+Cutblock Area.
+AREA_SQM
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = AREA_SQM, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Area of Cutblock",
+        x = "Area of Cutblock",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = AREA_SQM, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Area of Cutblock",
+        x = "Area of Cutblock",
+        y = "Berry Abundance") 
+
+
+```
+
+#Chemicals
+Chem2
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Chem2 #A few NAs... why?
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA_chem<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Chem2!="NA")
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA_chem, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(Chem2))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover and Chemical Application",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA_chem, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Chem2))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time and Chemical Application",
+        x = "Time Since Cutblock",
+        y = "Berry Abundance") 
+```
+
+#Brushing
+Brush2
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA_chem, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(Brush2))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover and Brushing",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA_chem, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Brush2))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time and Brushing",
+        x = "Time Since Cutblock",
+        y = "Berry Abundance") 
+```
 
 Look at raw data relationhship shapes to each climate variable
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = TSAND, y = Species.Co)) +
+str(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$TSAND)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$TSAND<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$TSAND)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$TSAND
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = TSAND, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+  labs (title = "Huckleberry Berry Abundance in Cutblocks by % Sand",
         x = "% Sand",
-        y = "Species Cover")
+        y = "Berry Abundance")
 ```
 
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = Tave_wt, y = Species.Co)) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Tave_wt_0, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+  labs (title = "Huckleberry Percent Cover by Average Winter Temperature Season Prior",
         x = "Average Winter Temp",
-        y = "Species Cover")
+        y = "Berry Abundance")
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Tave_wt_1, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Average Winter Temperature Season Prior",
+        x = "Average Winter Temp",
+        y = "Berry Abundance")
 #Relationship may be more hump shaped centred around -7 degrees as opposed to linear
 ```
 
-
+Spring Temperature.
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = PAS_total, y = Species.Co)) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Tave_sp_0, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+  labs (title = "Huckleberry Percent Cover by Average Spring Temperature Season Prior",
+        x = "Average Spring Temp",
+        y = "Berry Abundance")
+
+```
+
+Summer Temperature.
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Tave_sm_0, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Average Summer Temperature Season Prior",
+        x = "Average Summer Temp",
+        y = "Berry Abundance")
+
+```
+
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = PAS_total, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Precipitation as Snow",
         x = "Precipitation as snow (mm)",
-        y = "Species Cover")
+        y = "Berry Abundance")
 ```
 
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = PH2, y = Species.Co)) +
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PH2
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PH2<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PH2)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = PH2, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+  labs (title = "Huckleberry Percent Cover by pH",
         x = "Soil PH",
-        y = "Species Cover")
-#Interesting pattern... not quite linear. Drops off above ph ~ 5
+        y = "Berry Abundance")
+#Extrapolated to those <2 pH likely false
 ```
 
 
 ```{r}
-plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_30m_, cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_ha_bc) #Not the same...
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$slope_30m_, cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$slope_ha_bc) #Not the same... but positively correlated
 
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = slope_30m_, y = Species.Co)) +
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$slope_30m_<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$slope_30m_)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$slope_ha_bc<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$slope_ha_bc)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = slope_30m_, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+  labs (title = "Huckleberry Percent Cover by Slope",
         x = "Slope",
-        y = "Species Cover")
-#Definitely more hump shaped
+        y = "Fruit Abundance")
+#Weak relationship (positive)
 ```
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = slope_ha_bc, y = Species.Co)) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = slope_ha_bc, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+  labs (title = "Huckleberry Percent Cover by Slope",
         x = "Slope",
-        y = "Species Cover")
+        y = "Fruit Abundance")
 ```
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = aspect_30m, y = Species.Co)) +
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$aspect_30m<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$aspect_30m)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = aspect_30m, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+  labs (title = "Huckleberry Percent Coverby Apsect",
         x = "Aspect",
-        y = "Species Cover")
+        y = "Fruit Abundance")
 ```
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = aspect_ha_bc, y = Species.Co)) +
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$aspect_ha_bc<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$aspect_ha_bc)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = aspect_ha_bc, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
+  labs (title = "Huckleberry Percent Cover by Aspect",
         x = "Aspect",
-        y = "Species Cover")
+        y = "Fruit Abundance")
+```
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$cos_aspect<-cos(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$aspect_ha_bc)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = cos_aspect, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Aspect",
+        x = "cos(Aspect)",
+        y = "Fruit Abundance")
 ```
 
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = LandsatCC_, y = Species.Co)) +
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$dem_ha_bc<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$dem_ha_bc)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = dem_ha_bc, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
-  labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
-        x = "Canopy Cover (%)",
-        y = "Species Cover")
-#Mostly a negative relationship
+  labs (title = "Huckleberry Percent Cover by Elevation",
+        x = "Elevation (m)",
+        y = "Fruit Abundance")
 ```
 
 
 #Because max slope ~40 degrees, can create an SAI (slope-aspect index) value: example = sin(aspect +225) x (slope/45).
 
 ```{r}
-names(cutblock_plots_openings_Huck_ALL_df_2022_b2)
-hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_ha_bc)
-cutblock_plots_openings_Huck_ALL_df_2022_b2$SLOPE<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_ha_bc)
-max(cutblock_plots_openings_Huck_ALL_df_2022_b2$SLOPE) 
-hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$aspect_ha_bc)
+names(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$slope_ha_bc)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$SLOPE<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$slope_ha_bc)
+max(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$SLOPE) 
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$aspect_ha_bc)
 
-cor(cutblock_plots_openings_Huck_ALL_df_2022_b2$SLOPE, cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_30m_) #0.70
-plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$SLOPE ~ cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_30m_) #Quite different. Perhaps use point values and use DEM to get slope and aspect? Or use the cutblock data because it likely takes the average for the cutblock which is probably more representative.
-plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$aspect_ha_bc ~ cutblock_plots_openings_Huck_ALL_df_2022_b2$aspect_30m)
+cor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$SLOPE, cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$slope_30m_) #0.70
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$SLOPE ~ cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$slope_30m_) #Quite different. Perhaps use point values and use DEM to get slope and aspect? Or use the cutblock data because it likely takes the average for the cutblock which is probably more representative.
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$aspect_ha_bc ~ cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$aspect_30m)
 
 
-cutblock_plots_openings_Huck_ALL_df_2022_b2$SAI_cb<-(sin(cutblock_plots_openings_Huck_ALL_df_2022_b2$aspect_ha_bc + 225) *(cutblock_plots_openings_Huck_ALL_df_2022_b2$SLOPE/58.9)) #SAI (Slope to aspect Index) of cutblock data slope and aspect
-cutblock_plots_openings_Huck_ALL_df_2022_b2$SAI_rec<-(sin(cutblock_plots_openings_Huck_ALL_df_2022_b2$aspect_30m + 225) *(cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_30m_/45)) #SAI of slope and aspect from Clayton's data
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$SAI_cb<-(sin(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$aspect_ha_bc + 225) *(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$SLOPE/58.9)) #SAI (Slope to aspect Index) of cutblock data slope and aspect
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$SAI_rec<-(sin(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$aspect_30m + 225) *(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$slope_30m_/45)) #SAI of slope and aspect from Clayton's data
 
-hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$SAI_cb)
-hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$SAI_rec)
-plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$SAI_cb ~ cutblock_plots_openings_Huck_ALL_df_2022_b2$SAI_rec) # The result is COMPLETELY different, depending on which values are used. No correlation what so ever.
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$SAI_cb)
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$SAI_rec)
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$SAI_cb ~ cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$SAI_rec) # The result is COMPLETELY different, depending on which values are used. No correlation what so ever.
 
-cutblock_plots_openings_Huck_ALL_df_2022_b2_PA<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr=="1")
 ```
 
 Compare probabilities between values.
 
 ```{r}
 
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = SAI_cb, y = Species.Co)) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = SAI_cb, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
   labs (title = "Huckleberry Percent Cover by SAI",
@@ -969,7 +1116,7 @@ ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = SAI_cb, y = Spe
 ```
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = SAI_rec, y = Species.Co)) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = SAI_rec, y = Fruit.AbunTEST)) +
   geom_point () +
   geom_smooth () +
   labs (title = "Huckleberry Percent Cover by SAI",
@@ -982,299 +1129,139 @@ ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_PA, aes (x = SAI_rec, y = Sp
 #####################  Begin Exploratory Analyses ###########################
 
 #Explore these Harvesting Variables:
-DN1_DIS_CD
-DN1_SILSYS_GP
-PREP_MA
+DN1_SILSYS_GP #Maybe
 PREP_ME
-PREP_BU
-BRUSH_MA
-BRUSH_CM
+Burned
+Brush2
+Chem2
 G_BGC_ZONE
-OPEN_GRSAR OR AREA_SQM
+OPEN_GRSAR OR AREA_SQM (on in ha and one km square)
 PLANTED
-Origin
-Origin.age
-TimeSinceF
-TimeSinceC
+Origin.age/TimeSinceC
 START_SEASON
 
-#And:
+#Potential Seasonal variables And:
+heatload
+
 PAS_total
-Tave_wt_dec
-Tave_sp_dec
-Tave_sm_dec
-PPT_sp_dec
-PPT_sm_dec
-TSAND
-PH2
-MODIS_LC (land cover type)
-CMI_sp_dec
-CMI_sm_dec
-CMI_at_dec
-SAI_rec
-dem_ha_bc
-
-on (1) Huckleberry Presence/Absence (Species.Pr); (2) Species cover (Species.Co); 
-
-And then use a subset and investigate similar variables (but with annual ClimateBC variables) for:
-(3) fruit P/A (Fruit.Pres); (4) fruit abundance (Fruit.Cover).
-
-Explore if there are datasets that might be able to fill in the gaps for the lost data already. Or if a variable comes out as not significant, then take a step back and use the larger dataset that did not eliminate the NAs for that one. 
+Tave_wt_1
+Tave_sp_0
+Tave_sm_0
+DD5_0
 
 
 ```{r}
-cutblock_plots_openings_Huck_ALL_df_2022_b2$MODIS_LC<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$MODIS_LC)
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$MODIS_LC)
 
-cutblock_plots_openings_Huck_ALL_df_2022_b2$PLANTED<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLANTED)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PLANTED<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PLANTED)
 
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD<-as.factor(as.character(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD))
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PREP_ME<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PREP_ME)
 
-cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_MA<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_MA)
-cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME)
-cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Burned<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Burned)
 
-cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_MA<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_MA)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Manual2<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Manual2)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Chem2<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Chem2)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Brush2<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Brush2)
 
 
 ```
 
-#Below key for Model 13 Levels:
-0	Water
-1	Evergreen Needle leaf Forest
-2	Evergreen Broadleaf Forest
-3	Deciduous Needle leaf Forest** More common
-4	Deciduous Broadleaf Forest
-5	Mixed Forests *Less common
-6	Closed Shrublands
-7	Open Shrublands **More common
-8	Woody Savannas
-9	Savannas
-10	Grasslands
-11	Permanent Wetland **More common
-12	Croplands
-13	Urban and Built-Up
-14	Cropland/Natural Vegetation Mosaic *less common
-15	Snow and Ice
-16	Barren or Sparsely Vegetated
+#Model Series 1:
+DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + START_SEASON*TimeSinceCutblock + Chem2*TimeSinceCutblock + Species.He
 
+#Model Series 2:
+DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + Canopy_Cov + START_SEASON + heatload + PREP_ME*Canopy_Cov + START_SEASON*Canopy_Cov + Chem2*Canopy_cov + Species.He
+
+#Could investigate as linear models; but GAMs might be better
 
 ```{r}
-### Assess best model for Species Present/Absence
-
-#All varaibles of interest from lit review
-#DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + OPEN_GRSAR + PLANTED + origin + origin.age + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec + Tave_sp_dec + Tave_sm_dec + PPT_sp_dec + PPT_sm_dec + TSAND + PH2 + MODIS_LC + CMI_sp_dec + CMI_sm_dec + CMI_at_dec + SAI_sb + dem_ha_bc
-
-#Note: origin + origin.age + TimeSinceF + TimeSinceC are all related and should not all be included in final model
-
-#Species Present or Absent Huckleberry
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + origin.age + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec + Tave_sp_dec + Tave_sm_dec + PPT_sp_dec + PPT_sm_dec + TSAND + PH2 + MODIS_LC + CMI_sp_dec + CMI_sm_dec + CMI_at_dec + SAI_cb + dem_ha_bc,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
+#Model using Time Since Cutblock
+model.new.1 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + START_SEASON*TimeSinceCutblock + Chem2*TimeSinceCutblock + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
 
 Anova(model.new.1, type=3) #
 summary(model.new.1) #
-AIC(model.new.1) #442.5
+AIC(model.new.1) #3155.946
+summary(model.new.1)$r.squared #0.19
+summary(model.new.1)$adj.r.squared #0.11
 
 #Remove least significant
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec + Tave_sp_dec + Tave_sm_dec + PPT_sp_dec + PPT_sm_dec + TSAND + PH2 + MODIS_LC + CMI_sp_dec + CMI_sm_dec + CMI_at_dec + SAI_cb + dem_ha_bc,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
+model.new.1 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + START_SEASON*TimeSinceCutblock + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
 
 Anova(model.new.1, type=3) #
 summary(model.new.1) #
-AIC(model.new.1) #440.9
+AIC(model.new.1) #3153.96
+summary(model.new.1)$r.squared #0.19
+summary(model.new.1)$adj.r.squared #0.11
 
 #Remove least significant
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + Tave_sm_dec + PPT_sp_dec + PPT_sm_dec + TSAND + PH2 + MODIS_LC + CMI_sp_dec + CMI_sm_dec + CMI_at_dec + SAI_cb,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
+model.new.1 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
 
 Anova(model.new.1, type=3) #
 summary(model.new.1) #
-AIC(model.new.1) #437.8
+AIC(model.new.1) #3150.0
+summary(model.new.1)$r.squared #0.18
+summary(model.new.1)$adj.r.squared #0.12
 
 #Remove least significant
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + Tave_sm_dec + PPT_sp_dec + PPT_sm_dec + TSAND + PH2 + MODIS_LC + CMI_sm_dec + CMI_at_dec + SAI_cb,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
+model.new.1 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock + heatload + PREP_ME*TimeSinceCutblock + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
 
 Anova(model.new.1, type=3) #
 summary(model.new.1) #
-AIC(model.new.1) #436.2
+AIC(model.new.1) #3167.4 --> WORSE!
+summary(model.new.1)$r.squared #0.18
+summary(model.new.1)$adj.r.squared #0.13
 
 #Remove least significant
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + Tave_sm_dec  + PPT_sm_dec + TSAND + PH2 + MODIS_LC + CMI_sm_dec + CMI_at_dec + SAI_cb,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
+model.new.1 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
 
 Anova(model.new.1, type=3) #
 summary(model.new.1) #
-AIC(model.new.1) #435.2
+AIC(model.new.1) #3148.2
+summary(model.new.1)$r.squared #0.18
+summary(model.new.1)$adj.r.squared #0.12
 
 #Remove least significant
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + Tave_sm_dec  + PPT_sm_dec + PH2 + MODIS_LC + CMI_sm_dec + CMI_at_dec + SAI_cb,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
+model.new.1 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Chem2 + G_BGC_ZONE + PLANTED + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
 
 Anova(model.new.1, type=3) #
 summary(model.new.1) #
-AIC(model.new.1) #433.3
+AIC(model.new.1) #3146.4
+summary(model.new.1)$r.squared #0.18
+summary(model.new.1)$adj.r.squared #0.12
 
 #Remove least significant
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + Tave_sm_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
+model.new.1 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned  + G_BGC_ZONE + PLANTED + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
 
 Anova(model.new.1, type=3) #
 summary(model.new.1) #
-AIC(model.new.1) #432.0
+AIC(model.new.1) #3177.65 --> WORSE!
+summary(model.new.1)$r.squared #0.18
+summary(model.new.1)$adj.r.squared #0.12
 
 #Remove least significant
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
+model.new.1 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Chem2 + G_BGC_ZONE + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
 
 Anova(model.new.1, type=3) #
 summary(model.new.1) #
-AIC(model.new.1) #431.4
-
-##Not top model as more can be removed, but I want to keep the silviculture variables in to assess the lack of relationship to visualize for everyone.
-
-
-#Forgot frost free days and growing degree days. Add back in.
-
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD_0_dec + DD5_dec + NFFD_dec,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
-
-Anova(model.new.1, type=3) #
-summary(model.new.1) #
-AIC(model.new.1) #433.4
-
-#Remove least sig
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD_0_dec + DD5_dec,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
-
-Anova(model.new.1, type=3) #
-summary(model.new.1) #
-AIC(model.new.1) #431.4
-
-#Remove least sig
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
-
-Anova(model.new.1, type=3) #
-summary(model.new.1) #
-AIC(model.new.1) #429.99
-
-#Forgot canopy cover, add back in
-#Remove least sig
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + BRUSH_CM + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
-
-Anova(model.new.1, type=3) #
-summary(model.new.1) #
-AIC(model.new.1) #428.7
-
-
-
-#If continue to get to best model, then:
-#Remove least sig
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + G_BGC_ZONE + PLANTED + origin + TimeSinceF + TimeSinceC + AREA_SQM + PAS_total + Tave_wt_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
-
-Anova(model.new.1, type=3) #
-summary(model.new.1) #
-AIC(model.new.1) #426.9
-
-#Remove least sig
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + G_BGC_ZONE + PLANTED + origin + TimeSinceF  + AREA_SQM + PAS_total + Tave_wt_dec  + PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
-
-Anova(model.new.1, type=3) #
-summary(model.new.1) #
-AIC(model.new.1) #425.0
-
-#Remove least sig
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + G_BGC_ZONE + PLANTED + origin + TimeSinceF  + AREA_SQM + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
-
-Anova(model.new.1, type=3) #
-summary(model.new.1) #
-AIC(model.new.1) #423.3
-
-#Remove least sig
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME * PREP_BU + BRUSH_MA + G_BGC_ZONE + PLANTED + origin  + AREA_SQM + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
-
-Anova(model.new.1, type=3) #
-summary(model.new.1) #
-AIC(model.new.1) #421.97
-
-#Remove least sig
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + DN1_SILSYS_GP + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + PLANTED + origin  + AREA_SQM + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
-
-Anova(model.new.1, type=3) #
-summary(model.new.1) #
-AIC(model.new.1) #420.6
-
-#Remove least sig
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + PLANTED + origin  + AREA_SQM + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
-
-Anova(model.new.1, type=3) #
-summary(model.new.1) #
-AIC(model.new.1) #417.8
-
-#Remove least sig
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin  + AREA_SQM + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
-
-Anova(model.new.1, type=3) #
-summary(model.new.1) #
-AIC(model.new.1) #416.8
-
-#Remove least sig
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
-
-Anova(model.new.1, type=3) #
-summary(model.new.1) #
-AIC(model.new.1) #415.99
-
-#Test Start season
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_ + START_SEASON,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
-
-Anova(model.new.1, type=3) #
-summary(model.new.1) #
-AIC(model.new.1) #416.2
+AIC(model.new.1) #3145.3
+summary(model.new.1)$r.squared #0.18
+summary(model.new.1)$adj.r.squared #0.12
+#Overall, not performinf great.
 ```
 
 
 ```{r}
-#Best model as of January 24, 2022
-model.new.1 <- glm (Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
-               family = binomial (link = "logit"))
-
-Anova(model.new.1, type=3) #
-summary(model.new.1) #
-AIC(model.new.1) #415.99
+#Best model
+model.new.1 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Chem2 + G_BGC_ZONE + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + Species.He, data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
 
 #Check model fit
 # model diagnostic plots
@@ -1286,33 +1273,732 @@ binnedplot (fitted(model.new.1),
             main = paste("Binned Residual Plot - glm", i))
 
 #Explore partial residuals with current model
+# DN1_SILSYS_GP + PREP_ME + Burned + Chem2 + G_BGC_ZONE + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + Species.He
 library(visreg)
 
-visreg(model.new.1, "DN1_DIS_CD")
-visreg(model.new.1, "PREP_MA")
-visreg(model.new.1, "PREP_BU")
-visreg(model.new.1, "PREP_ME")
-visreg(model.new.1, "BRUSH_MA")
+visreg(model.new.1, "DN1_SILSYS_GP")
+visreg(model.new.1, "Burned")
+visreg(model.new.1, "Chem2")
+visreg(model.new.1, "PREP_ME", by="TimeSinceCutblock")
+visreg(model.new.1, "TimeSinceCutblock", by="PREP_ME")
 
 visreg(model.new.1, "G_BGC_ZONE")
-visreg(model.new.1, "origin")
 
-visreg(model.new.1, "PAS_total")
-visreg(model.new.1, "PPT_sm_dec")
-visreg(model.new.1, "PH2")
-visreg(model.new.1, "CMI_sm_dec")
-visreg(model.new.1, "CMI_at_dec")
-visreg(model.new.1, "SAI_cb")
+visreg(model.new.1, "heatload")
+visreg(model.new.1, "START_SEASON")
 
-visreg(model.new.1, "DD5_dec")
-visreg(model.new.1, "LandsatCC_")
+visreg(model.new.1, "Species.He")
+
 
 ```
+
+Model 2: Canopy Cover
+```{r}
+model.new.2 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + Canopy_Cov + START_SEASON + heatload + PREP_ME*Canopy_Cov + START_SEASON*Canopy_Cov + Chem2*Canopy_Cov + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
+
+Anova(model.new.2, type=3) #
+summary(model.new.2) #
+AIC(model.new.2) # 3160.532
+summary(model.new.2)$r.squared #0.17
+summary(model.new.2)$adj.r.squared #0.09
+
+#Remove Least SignificaNT
+model.new.2 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + Canopy_Cov + START_SEASON + heatload + PREP_ME*Canopy_Cov + START_SEASON*Canopy_Cov + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
+
+Anova(model.new.2, type=3) #
+summary(model.new.2) #
+AIC(model.new.2) # 3158.5
+summary(model.new.2)$r.squared #0.17
+summary(model.new.2)$adj.r.squared #0.10
+
+#Remove Least SignificaNT
+model.new.2 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + Canopy_Cov + START_SEASON + heatload + PREP_ME*Canopy_Cov  + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
+
+Anova(model.new.2, type=3) #
+summary(model.new.2) #
+AIC(model.new.2) # 3153.7
+summary(model.new.2)$r.squared #0.17
+summary(model.new.2)$adj.r.squared #0.10
+
+#Remove Least SignificaNT
+model.new.2 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE  + PLANTED + Canopy_Cov + START_SEASON + heatload + PREP_ME*Canopy_Cov  + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
+
+Anova(model.new.2, type=3) #
+summary(model.new.2) #
+AIC(model.new.2) # 3151.8
+summary(model.new.2)$r.squared #0.17
+summary(model.new.2)$adj.r.squared #0.11
+
+#Remove Least SignificaNT
+model.new.2 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE  + Canopy_Cov + START_SEASON + heatload + PREP_ME*Canopy_Cov  + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
+
+Anova(model.new.2, type=3) #
+summary(model.new.2) #
+AIC(model.new.2) # 3149.8
+summary(model.new.2)$r.squared #0.17
+summary(model.new.2)$adj.r.squared #0.11
+
+#Remove Least SignificaNT
+model.new.2 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE  + Canopy_Cov + heatload + PREP_ME*Canopy_Cov  + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
+
+Anova(model.new.2, type=3) #
+summary(model.new.2) #
+AIC(model.new.2) # 3168.21 --> worse!
+summary(model.new.2)$r.squared #0.17
+summary(model.new.2)$adj.r.squared #0.11
+
+#Remove Least SignificaNT
+model.new.2 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE  + Canopy_Cov + START_SEASON + heatload   + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
+
+Anova(model.new.2, type=3) #
+summary(model.new.2) #
+AIC(model.new.2) # 3148.2
+summary(model.new.2)$r.squared #0.17
+summary(model.new.2)$adj.r.squared #0.11
+
+#Remove Least Significant
+model.new.2 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + G_BGC_ZONE  + Canopy_Cov + START_SEASON + heatload   + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
+
+Anova(model.new.2, type=3) #
+summary(model.new.2) #
+AIC(model.new.2) # 3146.3
+summary(model.new.2)$r.squared #0.17
+summary(model.new.2)$adj.r.squared #0.12
+
+#Remove Least Significant
+model.new.2 <- lm (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + G_BGC_ZONE  + Canopy_Cov + START_SEASON + heatload   + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
+
+Anova(model.new.2, type=3) #
+summary(model.new.2) #
+AIC(model.new.2) # 3177.2 --> WORSE!
+summary(model.new.2)$r.squared #0.17
+summary(model.new.2)$adj.r.squared #0.12
+
+#Remove Least Significant
+model.new.2 <- lm (Fruit.AbunTEST ~ + PREP_ME + Burned + Brush2 + G_BGC_ZONE  + Canopy_Cov + START_SEASON + heatload   + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
+
+Anova(model.new.2, type=3) #
+summary(model.new.2) #
+AIC(model.new.2) # 3143.8
+summary(model.new.2)$r.squared #0.15
+summary(model.new.2)$adj.r.squared #0.11
+
+
+```
+
+
+```{r}
+#Best model
+model.new.2 <- lm (Fruit.AbunTEST ~ + PREP_ME + Burned + Brush2 + G_BGC_ZONE  + Canopy_Cov + START_SEASON + heatload + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
+
+#Check model fit
+# model diagnostic plots
+binnedplot (fitted(model.new.1), 
+            residuals(model.new.1), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+#Explore partial residuals with current model
+# PREP_ME + Burned + Brush2 + G_BGC_ZONE  + Canopy_Cov + START_SEASON + heatload + Species.He
+library(visreg)
+
+visreg(model.new.2, "PREP_ME")
+visreg(model.new.2, "Burned")
+visreg(model.new.2, "Brush2")
+
+visreg(model.new.2, "G_BGC_ZONE")
+visreg(model.new.2, "Canopy_Cov")
+
+visreg(model.new.2, "heatload")
+visreg(model.new.2, "START_SEASON")
+
+visreg(model.new.2, "Species.He")
+```
+
+
 Ensure data saved.
 
 ```{r}
-write.csv(cutblock_plots_openings_Huck_ALL_df_2022_b2, file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_2022_b2_Jan.csv")
+write.csv(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, file="c:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA_March16.csv")
 ```
+
+
+### Try above as GAMs
+#Model Series 1:
+DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock + START_SEASON + heatload + PREP_ME*TimeSinceCutblock + START_SEASON*TimeSinceCutblock + Chem2*TimeSinceCutblock + Species.He
+
+#Model Series 2:
+DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + Canopy_Cov + START_SEASON + heatload + PREP_ME*Canopy_Cov + START_SEASON*Canopy_Cov + Chem2*Canopy_cov + Species.He
+
+```{r}
+library(mgcv)
+
+model.new.1b <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + s(OPEN_GRSAR) + PLANTED + s(TimeSinceCutblock, by=PREP_ME) + s(TimeSinceCutblock, by=Chem2) + START_SEASON + s(heatload) + s(Species.He),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.1b)
+anova(model.new.1b)
+summary(model.new.1b) #Adjusted R-square = 0.203, Deviance explained 28.5%
+AIC(model.new.1b) #3133.89
+
+library(mgcViz)
+getViz(model.new.1b)
+plot(model.new.1b)
+plot(model.new.1b, select=1)
+plot(model.new.1b, select=2)
+plot(model.new.1b, select=3)
+plot(model.new.1b, select=4)
+plot(model.new.1b, select=5) #Flat line at 0?? Check what is wrong.
+plot(model.new.1b, select=6)
+plot(model.new.1b, select=7)
+
+
+library(visreg)
+visreg(model.new.1b, "DN1_SILSYS_GP")
+visreg(model.new.1b, "Chem2")
+visreg(model.new.1b, "PREP_ME")
+visreg(model.new.1b, "Burned")
+visreg(model.new.1b, "Brush2")
+visreg(model.new.1b, "G_BGC_ZONE")
+visreg(model.new.1b, "PLANTED")
+visreg(model.new.1b, "START_SEASON")
+
+#Can take the smooth out for many terms
+model.new.1b2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock*PREP_ME + s(TimeSinceCutblock, by=Chem2) + START_SEASON + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.1b2)
+anova(model.new.1b2)
+summary(model.new.1b2) #Adjusted R-square = 0.203, Deviance explained 28.5%
+AIC(model.new.1b2) #3133.9
+
+#Can remove non-significant variables
+model.new.1b3 <- gam (Fruit.AbunTEST ~ PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + TimeSinceCutblock*PREP_ME + s(TimeSinceCutblock, by=Chem2) + START_SEASON + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.1b3)
+anova(model.new.1b3)
+summary(model.new.1b3) #Adjusted R-Square = 0.209; Deviance explained 28.2%
+AIC(model.new.1b3) #3129.1
+
+#Can remove non-significant variables
+model.new.1b3 <- gam (Fruit.AbunTEST ~ PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + TimeSinceCutblock*PREP_ME + s(TimeSinceCutblock, by=Chem2) + START_SEASON + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.1b3)
+anova(model.new.1b3)
+summary(model.new.1b3) #Adjusted R-Square = 0.21; Deviance explained 28%
+AIC(model.new.1b3) #3127.1
+
+#Can remove non-significant variables
+model.new.1b3 <- gam (Fruit.AbunTEST ~ PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + TimeSinceCutblock*PREP_ME + s(TimeSinceCutblock, by=Chem2) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.1b3)
+anova(model.new.1b3)
+summary(model.new.1b3) #Adjusted R-Square = 0.212; Deviance explained 27.2%
+AIC(model.new.1b3) #3147.4- WORSE
+
+#Can remove non-significant variables
+model.new.1b3 <- gam (Fruit.AbunTEST ~ PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + TimeSinceCutblock*PREP_ME + s(TimeSinceCutblock, by=Chem2) + START_SEASON + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.1b3)
+anova(model.new.1b3)
+summary(model.new.1b3) #Adjusted R-Square = 0.21; Deviance explained 27.6%
+AIC(model.new.1b3) #3127.2
+
+#Try to add some other interactions
+model.new.1b3 <- gam (Fruit.AbunTEST ~ PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + TimeSinceCutblock*PREP_ME + s(TimeSinceCutblock, by=Chem2) + s(TimeSinceCutblock, by=Brush2) + c(TimeSinceCutblock) + s(TimeSinceCutblock, by=START_SEASON) +START_SEASON + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.1b3)
+anova(model.new.1b3)
+summary(model.new.1b3) #Adjusted R-Square = 0.207; Deviance explained 28.8%
+AIC(model.new.1b3) #3133.6
+
+plot(model.new.1b3)
+plot(model.new.1b3, select=1)
+plot(model.new.1b3, select=2)
+plot(model.new.1b3, select=3)
+
+visreg(model.new.1b3, "Chem2")
+visreg(model.new.1b3, "PREP_ME")
+visreg(model.new.1b3, "Burned")
+visreg(model.new.1b3, "Brush2")
+visreg(model.new.1b3, "G_BGC_ZONE")
+visreg(model.new.1b3, "START_SEASON")
+visreg(model.new.1b3, "TimeSinceCutblock", by="PREP_ME")
+visreg(model.new.1b3, "TimeSinceCutblock", by="Chem2")
+visreg(model.new.1b3, "PREP_ME", by= "TimeSinceCutblock")
+
+#Try to add some other interactions
+model.new.1b3 <- gam (Fruit.AbunTEST ~ PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + c(TimeSinceCutblock)*PREP_ME + s(TimeSinceCutblock, by=Chem2) + s(TimeSinceCutblock, by=Brush2) + c(TimeSinceCutblock) +START_SEASON*c(TimeSinceCutblock) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.1b3)
+anova(model.new.1b3)
+summary(model.new.1b3) #Adjusted R-Square = 0.206; Deviance explained 28.7%
+AIC(model.new.1b3) #3132.9
+
+plot(model.new.1b3)
+
+
+#Try to add some other interactions
+model.new.1b3 <- gam (Fruit.AbunTEST ~ PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + c(TimeSinceCutblock)*PREP_ME + s(TimeSinceCutblock, by=Chem2) + s(TimeSinceCutblock, by=Brush2) + c(TimeSinceCutblock) +START_SEASON + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.1b3)
+anova(model.new.1b3)
+summary(model.new.1b3) #Adjusted R-Square = 0.217; Deviance explained 28.8%
+AIC(model.new.1b3) #3127.1
+
+plot(model.new.1b3)
+
+#
+model.new.1b3 <- gam (Fruit.AbunTEST ~ PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + c(TimeSinceCutblock)*PREP_ME + s(TimeSinceCutblock, by=Chem2) + s(TimeSinceCutblock, by=Brush2) + s(TimeSinceCutblock, by=Burned) + c(TimeSinceCutblock) +START_SEASON + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.1b3)
+anova(model.new.1b3)
+summary(model.new.1b3) #Adjusted R-Square = 0.217; Deviance explained 28.8%
+AIC(model.new.1b3) #3128.97
+
+plot(model.new.1b3)
+
+#Try to add some other interactions
+model.new.1b3 <- gam (Fruit.AbunTEST ~ PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + c(TimeSinceCutblock)*PREP_ME + s(TimeSinceCutblock, by=Chem2) + s(TimeSinceCutblock, by=Brush2) + c(TimeSinceCutblock) +START_SEASON + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.1b3)
+anova(model.new.1b3)
+summary(model.new.1b3) #Adjusted R-Square = 0.217; Deviance explained 28.8%
+AIC(model.new.1b3) #3127.1
+
+plot(model.new.1b3)
+plot(model.new.1b3, select=1)
+plot(model.new.1b3, select=2)
+plot(model.new.1b3, select=3)
+
+#PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + c(TimeSinceCutblock)*PREP_ME + s(TimeSinceCutblock, by=Chem2) + s(TimeSinceCutblock, by=Brush2) + c(TimeSinceCutblock) +START_SEASON + s(heatload) + Species.He
+visreg(model.new.1b3, "Burned")
+visreg(model.new.1b3, "G_BGC_ZONE")
+visreg(model.new.1b3, "START_SEASON")
+visreg(model.new.1b3, "heatload")
+visreg(model.new.1b3, "Species.He")
+visreg(model.new.1b3, "TimeSinceCutblock")
+visreg(model.new.1b3, "TimeSinceCutblock", by="PREP_ME")
+visreg(model.new.1b3, "TimeSinceCutblock", by="Chem2")
+visreg(model.new.1b3, "TimeSinceCutblock", by="Brush2")
+visreg(model.new.1b3, "Brush2", by= "TimeSinceCutblock")
+visreg(model.new.1b3, "PREP_ME", by= "TimeSinceCutblock")
+visreg(model.new.1b3, "Chem2", by= "TimeSinceCutblock")
+```
+
+Repeat for Canopy Cover.
+
+```{r}
+model.new.2b <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + s(OPEN_GRSAR) + s(Canopy_Cov, by=PLANTED) + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=Chem2) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + s(Species.He) + s(Canopy_Cov, by=Brush2),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b)
+anova(model.new.2b)
+summary(model.new.2b) #Adjusted R-square = 0.225, Deviance explained 31.6%
+AIC(model.new.2b) #3133.89
+
+library(mgcViz)
+getViz(model.new.2b)
+plot(model.new.2b)
+plot(model.new.2b, select=1)
+plot(model.new.2b, select=2)
+plot(model.new.2b, select=3)
+plot(model.new.2b, select=4)
+plot(model.new.2b, select=5) #Flat line at 0?? Check what is wrong.
+plot(model.new.2b, select=6)
+plot(model.new.2b, select=7)
+
+
+library(visreg)
+visreg(model.new.2b, "DN1_SILSYS_GP")
+visreg(model.new.2b, "Chem2")
+visreg(model.new.2b, "PREP_ME")
+visreg(model.new.2b, "Burned")
+visreg(model.new.2b, "Brush2")
+visreg(model.new.2b, "G_BGC_ZONE")
+visreg(model.new.2b, "PLANTED")
+visreg(model.new.2b, "START_SEASON")
+
+#Remove ones that do not need to be smoothed
+model.new.2b2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2*Canopy_Cov + Chem2*Canopy_Cov + G_BGC_ZONE + OPEN_GRSAR + Canopy_Cov*PLANTED + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b2)
+anova(model.new.2b2)
+summary(model.new.2b2) #Adjusted R-square = 0.226, Deviance explained 32%
+AIC(model.new.2b2) #3131.0
+
+plot(model.new.2b2)
+
+#Remove least significant
+model.new.2b2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + c(Canopy_Cov)*Brush2 + c(Canopy_Cov)*Chem2 + G_BGC_ZONE + OPEN_GRSAR + c(Canopy_Cov)*PLANTED + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b2)
+anova(model.new.2b2)
+summary(model.new.2b2) #Adjusted R-square = 0.226, Deviance explained 32%
+AIC(model.new.2b2) #3131.0
+plot(model.new.2b2)
+
+#Remove least significant
+model.new.2b2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + c(Canopy_Cov)*Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + c(Canopy_Cov)*PLANTED + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b2)
+anova(model.new.2b2)
+summary(model.new.2b2) #Adjusted R-square = 0.23, Deviance explained 32%
+AIC(model.new.2b2) #3129.2
+plot(model.new.2b2)
+
+#Remove least significant
+model.new.2b2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + c(Canopy_Cov)*PLANTED + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b2)
+anova(model.new.2b2)
+summary(model.new.2b2) #Adjusted R-square = 0.23, Deviance explained 31.7%
+AIC(model.new.2b2) #3128.2
+plot(model.new.2b2)
+
+#Remove least significant
+model.new.2b2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b2)
+anova(model.new.2b2)
+summary(model.new.2b2) #Adjusted R-square = 0.229, Deviance explained 31.4%
+AIC(model.new.2b2) #3127.6
+plot(model.new.2b2)
+
+#Remove least significant
+model.new.2b2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b2)
+anova(model.new.2b2)
+summary(model.new.2b2) #Adjusted R-square = 0.232, Deviance explained 31.4%
+AIC(model.new.2b2) #3125.8
+plot(model.new.2b2)
+
+#Remove least significant
+model.new.2b2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + G_BGC_ZONE + OPEN_GRSAR+ s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b2)
+anova(model.new.2b2)
+summary(model.new.2b2) #Adjusted R-square = 0.234, Deviance explained 31.2%
+AIC(model.new.2b2) #3124.0
+plot(model.new.2b2)
+
+#Remove least significant
+model.new.2b2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b2)
+anova(model.new.2b2)
+summary(model.new.2b2) #Adjusted R-square = 0.235, Deviance explained 31%
+AIC(model.new.2b2) #3123.1
+plot(model.new.2b2)
+
+#Remove least significant
+model.new.2b2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b2)
+anova(model.new.2b2)
+summary(model.new.2b2) #Adjusted R-square = 0.233, Deviance explained 30.4%
+AIC(model.new.2b2) #3155.1--> WORSE
+plot(model.new.2b2)
+
+#Remove least significant
+model.new.2b2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b2)
+anova(model.new.2b2)
+summary(model.new.2b2) #Adjusted R-square = 0.235, Deviance explained 31%
+AIC(model.new.2b2) #3123.1
+plot(model.new.2b2)
+
+#Remove least significant
+model.new.2b2 <- gam (Fruit.AbunTEST ~ PREP_ME + Burned + Brush2 + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b2)
+anova(model.new.2b2)
+summary(model.new.2b2) #Adjusted R-square = 0.229, Deviance explained 29.5%
+AIC(model.new.2b2) #3122.2
+plot(model.new.2b2)
+plot(model.new.2b2, select=1)
+plot(model.new.2b2, select=2)
+plot(model.new.2b2, select=3)
+plot(model.new.2b2, select=4)
+plot(model.new.2b2, select=5)
+plot(model.new.2b2, select=6)
+plot(model.new.2b2, select=7)
+
+#PREP_ME + Burned + Brush2 + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He
+visreg(model.new.2b2, "PREP_ME")
+visreg(model.new.2b2, "Burned")
+visreg(model.new.2b2, "Brush2")
+visreg(model.new.2b2, "G_BGC_ZONE")
+visreg(model.new.2b2, "heatload")
+visreg(model.new.2b2, "Species.He")
+visreg(model.new.2b2, "START_SEASON", by="Canopy_Cov")
+visreg(model.new.2b2, "PREP_ME", by="Canopy_Cov")
+visreg(model.new.2b2, "Canopy_Cov", by= "START_SEASON")
+visreg(model.new.2b2, "Canopy_Cov", by= "PREP_ME")
+
+#Remove least significant
+model.new.2b2 <- gam (Fruit.AbunTEST ~  Burned + Brush2 + G_BGC_ZONE + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b2)
+anova(model.new.2b2)
+summary(model.new.2b2) #Adjusted R-square = 0.217, Deviance explained 27.4%
+AIC(model.new.2b2) #3122.1
+plot(model.new.2b2)
+plot(model.new.2b2, select=1)
+plot(model.new.2b2, select=2)
+plot(model.new.2b2, select=3)
+plot(model.new.2b2, select=4)
+plot(model.new.2b2, select=5)
+plot(model.new.2b2, select=6)
+plot(model.new.2b2, select=7)
+
+#PREP_ME + Burned + Brush2 + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He
+visreg(model.new.2b2, "Burned")
+visreg(model.new.2b2, "Brush2")
+visreg(model.new.2b2, "G_BGC_ZONE")
+visreg(model.new.2b2, "heatload")
+visreg(model.new.2b2, "Species.He")
+visreg(model.new.2b2, "Canopy_Cov")
+visreg(model.new.2b2, "START_SEASON", by="Canopy_Cov")
+visreg(model.new.2b2, "Canopy_Cov", by= "START_SEASON")
+
+#Go back to this one
+model.new.2b2 <- gam (Fruit.AbunTEST ~ PREP_ME + Burned + Brush2 + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b2)
+anova(model.new.2b2)
+summary(model.new.2b2) #Adjusted R-square = 0.229, Deviance explained 29.5%
+AIC(model.new.2b2) #3122.2
+plot(model.new.2b2)
+plot(model.new.2b2, select=1)
+plot(model.new.2b2, select=2)
+plot(model.new.2b2, select=3)
+plot(model.new.2b2, select=4)
+plot(model.new.2b2, select=5)
+plot(model.new.2b2, select=6)
+plot(model.new.2b2, select=7)
+
+#PREP_ME + Burned + Brush2 + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON) + s(heatload) + Species.He
+visreg(model.new.2b2, "PREP_ME")
+visreg(model.new.2b2, "Burned")
+visreg(model.new.2b2, "Brush2")
+visreg(model.new.2b2, "G_BGC_ZONE")
+visreg(model.new.2b2, "heatload")
+visreg(model.new.2b2, "Species.He")
+visreg(model.new.2b2, "START_SEASON", by="Canopy_Cov")
+visreg(model.new.2b2, "PREP_ME", by="Canopy_Cov")
+visreg(model.new.2b2, "Canopy_Cov", by= "START_SEASON")
+visreg(model.new.2b2, "Canopy_Cov", by= "PREP_ME")
+
+```
+
+
+Compare to if remove covariates.
+```{r}
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + s(OPEN_GRSAR) + s(Canopy_Cov, by=PLANTED) + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=Chem2) + s(Canopy_Cov, by=START_SEASON) + s(Canopy_Cov, by=Brush2),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.09, Deviance explained 15.5%
+AIC(model.new.2b_2) #3736.9
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+plot(model.new.2b_2, select=1)
+plot(model.new.2b_2, select=2)
+plot(model.new.2b_2, select=3)
+plot(model.new.2b_2, select=4)
+plot(model.new.2b_2, select=5) .
+plot(model.new.2b_2, select=6)
+plot(model.new.2b_2, select=7)
+
+
+library(visreg)
+visreg(model.new.2b_2, "DN1_SILSYS_GP")
+visreg(model.new.2b_2, "Chem2")
+visreg(model.new.2b_2, "PREP_ME")
+visreg(model.new.2b_2, "Burned")
+visreg(model.new.2b_2, "Brush2")
+visreg(model.new.2b_2, "G_BGC_ZONE")
+visreg(model.new.2b_2, "PLANTED")
+visreg(model.new.2b_2, "START_SEASON")
+
+#Remove ones that do not need to be smoothed
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + s(Canopy_Cov, by=PREP_ME) + c(Canopy_Cov)*Chem2 + s(Canopy_Cov, by=START_SEASON) + c(Canopy_Cov)*Brush2,
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.09, Deviance explained 15.8%
+AIC(model.new.2b_2) #3736.2
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + s(Canopy_Cov, by=PREP_ME) + c(Canopy_Cov)*Chem2 + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.09, Deviance explained 15.8%
+AIC(model.new.2b_2) #3734.3
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + OPEN_GRSAR + PLANTED + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.09, Deviance explained 15.7%
+AIC(model.new.2b_2) #3734.3
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + Chem2 + G_BGC_ZONE + PLANTED + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.097, Deviance explained 15.7%
+AIC(model.new.2b_2) #3730.9
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Burned + Brush2 + G_BGC_ZONE + PLANTED + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.10, Deviance explained 15.6%
+AIC(model.new.2b_2) #3729.1
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Brush2 + G_BGC_ZONE + PLANTED + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.10, Deviance explained 15.5%
+AIC(model.new.2b_2) #3727.99
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Brush2 + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.10, Deviance explained 15.1%
+AIC(model.new.2b_2) #3726.7
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME  + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.10, Deviance explained 15%
+AIC(model.new.2b_2) #3757.9 --> WORSE
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+
+
+#Remove least significant
+model.new.2b_2 <- gam (Fruit.AbunTEST ~ DN1_SILSYS_GP + PREP_ME + Brush2 + G_BGC_ZONE + s(Canopy_Cov, by=PREP_ME) + s(Canopy_Cov, by=START_SEASON),
+data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, method="REML")
+
+gam.check(model.new.2b_2)
+anova(model.new.2b_2)
+summary(model.new.2b_2) #Adjusted R-square = 0.10, Deviance explained 15.1%
+AIC(model.new.2b_2) #3726.7
+
+getViz(model.new.2b_2)
+plot(model.new.2b_2)
+plot(model.new.2b_2, select=1)
+plot(model.new.2b_2, select=2)
+plot(model.new.2b_2, select=3)
+plot(model.new.2b_2, select=4)
+plot(model.new.2b_2, select=5) .
+plot(model.new.2b_2, select=6)
+
+library(visreg)
+visreg(model.new.2b_2, "DN1_SILSYS_GP")
+visreg(model.new.2b_2, "PREP_ME", by="Canopy_Cov")
+visreg(model.new.2b_2, "Brush2")
+visreg(model.new.2b_2, "G_BGC_ZONE")
+visreg(model.new.2b_2, "START_SEASON", by="Canopy_Cov")
+visreg(model.new.2b_2, "Canopy_Cov", by="PREP_ME")
+visreg(model.new.2b_2, "Canopy_Cov", by="START_SEASON")
+
+#Remove ones that do not need to be smoothed
+```
+
+
+
+
+########### BELOW IS OLD CODE THAT MAY BE USEFUL ##############
+
+
+
+
+
+
+
 
 Determine AUC by splitting into training and validation set (85% and 15% given small sample size).
 
@@ -1332,12 +2018,12 @@ for (g in 1:500){
 
 prop<-0.85
 # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr2, p = prop,
+  trainIndex <- createDataPartition(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Species.Pr2, p = prop,
                                     list = FALSE,
                                     times = 1)
   
-   dat1 <- cutblock_plots_openings_Huck_ALL_df_2022_b2[ trainIndex,]
-   Valid <- cutblock_plots_openings_Huck_ALL_df_2022_b2[-trainIndex,]
+   dat1 <- cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA[ trainIndex,]
+   Valid <- cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA[-trainIndex,]
    
 #Model   
 model.new.1<-glm(Species.Pr2 ~ DN1_DIS_CD + PREP_MA + PREP_ME + PREP_BU + BRUSH_MA + G_BGC_ZONE + origin + PAS_total+ PPT_sm_dec + PH2 + CMI_sm_dec + CMI_at_dec + SAI_cb + DD5_dec + LandsatCC_, family = binomial, data = dat1) 
@@ -1437,37 +2123,37 @@ write.csv(top_mod_table_PA_Plant_SD, file="D:\\Hucklberry\\Grizzly Bear stuff\\b
 #Additional Code for timing of harvest
 ```{r}
 #Determine timing of harvest
-names(cutblock_plots_openings_Huck_ALL_df_2022_b2)
-head(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_STR_DT)
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_STR_DT)
+names(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
+head(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_STR_DT)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_STR_DT)
 
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_Start_year<-stri_sub(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_STR_DT,3,4)
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_Start_year
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_Start_month<-stri_sub(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_STR_DT,5,6)
-head(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_Start_month)
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_End_year<-stri_sub(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_END_DT,3,4)
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_End_year
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_End_month<-stri_sub(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_END_DT,5,6)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_Start_year<-stri_sub(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_STR_DT,3,4)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_Start_year
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_Start_month<-stri_sub(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_STR_DT,5,6)
+head(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_Start_month)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_End_year<-stri_sub(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_END_DT,3,4)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_End_year
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_End_month<-stri_sub(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_END_DT,5,6)
 
 #Make all numeric
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_Start_year.num<-as.numeric((cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_Start_year))
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_End_year.num<- as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_End_year)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_Start_year.num<-as.numeric((cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_Start_year))
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_End_year.num<- as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_End_year)
 
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_Start_month.num<-as.numeric((cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_Start_month))
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_End_month.num<- as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_End_month)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_Start_month.num<-as.numeric((cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_Start_month))
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_End_month.num<- as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_End_month)
 
 #Determine length in years
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_year_length<- cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_End_year.num - cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_Start_year.num
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_year_length) #Can see that treatment took a long time in some.
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_year_length<- cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_End_year.num - cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_Start_year.num
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_year_length) #Can see that treatment took a long time in some.
 
 #Only look at start month, assuming this is when harvesting and scarification ocurred.
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_Start_month)
-str(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_Start_month)
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_Start_month<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_Start_month)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_Start_month)
+str(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_Start_month)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_Start_month<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DST_Start_month)
 
 #Turn into seasonal months
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DIST_SEASON<-0
-cutblock_plots_openings_Huck_ALL_df_2022_b2<-cutblock_plots_openings_Huck_ALL_df_2022_b2 %>%
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DIST_SEASON<-0
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA<-cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA %>%
     mutate(DIST_SEASON = case_when(DST_Start_month == "01" ~ "Winter",
                                   DST_Start_month == "02" ~ "Winter",
                                   DST_Start_month == "03" ~ "Spring",
@@ -1481,7 +2167,7 @@ cutblock_plots_openings_Huck_ALL_df_2022_b2<-cutblock_plots_openings_Huck_ALL_df
                                   DST_Start_month == "11" ~ "Fall",
                                   DST_Start_month == "12" ~ "Winter",
                                   TRUE ~ "NA"))
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DIST_SEASON) # Determine if want different cutoffs for snow months.
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$DIST_SEASON) # Determine if want different cutoffs for snow months.
 
 ```
 
@@ -1513,12 +2199,12 @@ mod.to.test.all<-c(1,mods.me.tmp)
 mod.to.test.all<-mod.to.test.all[-2]
 
 #Ensure as factor
-cutblock_plots_openings_Huck_ALL_df_2022_b2_ng$Fruit.Pres2<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_ng$Fruit.Pres)
-str(cutblock_plots_openings_Huck_ALL_df_2022_b2_ng$Fruit.Pres)
-str(cutblock_plots_openings_Huck_ALL_df_2022_b2_ng$Fruit.Pres2)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA_ng$Fruit.Pres2<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA_ng$Fruit.Pres)
+str(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA_ng$Fruit.Pres)
+str(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA_ng$Fruit.Pres2)
 
 #Subset the data once into training and validation set
-model.data2<- cutblock_plots_openings_Huck_ALL_df_2022_b2_ng %>% dplyr::select(Fruit.Pres2, variables.huck)
+model.data2<- cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA_ng %>% dplyr::select(Fruit.Pres2, variables.huck)
 trainIndex_huck <- createDataPartition(model.data2$Fruit.Pres2, p = prop,
                                     list = FALSE,
                                     times = 1)
@@ -1584,7 +2270,7 @@ For berry abundance models, plant abundance should be included as a fixed effect
 
 ```{r}
 model.fruitPA.1 <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA,
                family = binomial (link = "logit"))
 Anova(model.fruitPA.1, type=3)
 summary(model.fruitPA.1)
@@ -1597,21 +2283,21 @@ summary(model.fruitPA.1)
 AIC(model.fruitPA.1) #565.5
 
 model.fruitPA.1b <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + G_BGC_ZONE,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA,
                family = binomial (link = "logit"))
 Anova(model.fruitPA.1b, type=3)
 summary(model.fruitPA.1b)
 AIC(model.fruitPA.1b) #568.08-- less good with BEC added!
 
 model.fruitPA.1c <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + PLANTED,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA,
                family = binomial (link = "logit"))
 Anova(model.fruitPA.1c, type=3)
 summary(model.fruitPA.1c)
 AIC(model.fruitPA.1c) #567.1
 
 model.fruitPA.1c <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + PREP_BU_,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA,
                family = binomial (link = "logit"))
 Anova(model.fruitPA.1c, type=3)
 summary(model.fruitPA.1c)
@@ -1619,21 +2305,21 @@ AIC(model.fruitPA.1c) #567.5
 
 
 model.fruitPA.1c <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + PREP_ME_,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA,
                family = binomial (link = "logit"))
 Anova(model.fruitPA.1c, type=3)
 summary(model.fruitPA.1c)
 AIC(model.fruitPA.1c) #567.4
 
 model.fruitPA.1c <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + TSAND,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA,
                family = binomial (link = "logit"))
 Anova(model.fruitPA.1c, type=3)
 summary(model.fruitPA.1c)
 AIC(model.fruitPA.1c) #567.3
 
 model.fruitPA.1c <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ + Tave_wt,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA,
                family = binomial (link = "logit"))
 Anova(model.fruitPA.1c, type=3)
 summary(model.fruitPA.1c)
@@ -1644,7 +2330,7 @@ Current best model:
 
 ```{r}
 model.fruitPA.1 <- glm (Fruit.Pres2 ~ slope_30m_SRTM + LandsatCC_ + PAS_total + PH2 + ELEVATION + MODIS_LC + ELEVATION + MODIS_LC + origin.age + Fire_Occ,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA,
                family = binomial (link = "logit"))
 Anova(model.fruitPA.1, type=3)
 summary(model.fruitPA.1)
@@ -1660,11 +2346,11 @@ AIC(model.fruitPA.1) #565.5
 
 
 ```{r}
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Pres)
-str(cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Pres)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Pres)
+str(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Pres)
 
 model.new.F1 <- glm (Fruit.Pres ~ SAI_cb + LandsatCC_ + PREP_BU_* PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age + TCLAY + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA,
                family = binomial (link = "logit"))
 
 Anova(model.new.F1, type=3)
@@ -1673,7 +2359,7 @@ AIC(model.new.F1) #449.0
 
 #Remove least sig
 model.new.F1 <- glm (Fruit.Pres ~ SAI_cb + LandsatCC_ + PREP_BU_* PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA,
                family = binomial (link = "logit"))
 
 Anova(model.new.F1, type=3)
@@ -1714,7 +2400,7 @@ visreg(model.new.F1, "START_SEASON")
 ```{r}
 #Remove least sig
 model.new.F1 <- glm (Fruit.Pres ~ SAI_cb + LandsatCC_ + PREP_BU_* PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age + VFSAND + DN1_SILSYS_GP + START_SEASON +Tave_wt,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA,
                family = binomial (link = "logit"))
 
 Anova(model.new.F1, type=3)
@@ -1723,7 +2409,7 @@ AIC(model.new.F1) #442.7
 
 #Remove least sig
 model.new.F1 <- glm (Fruit.Pres ~ SAI_cb + LandsatCC_ + PREP_BU_* PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age + VFSAND + DN1_SILSYS_GP  +Tave_wt,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA,
                family = binomial (link = "logit"))
 
 Anova(model.new.F1, type=3)
@@ -1733,7 +2419,7 @@ AIC(model.new.F1) #439.8
 
 #Remove least sig
 model.new.F1 <- glm (Fruit.Pres ~ SAI_cb + LandsatCC_ + PREP_BU_* PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age + VFSAND + DN1_SILSYS_GP,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2,
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA,
                family = binomial (link = "logit"))
 
 Anova(model.new.F1, type=3)
@@ -1790,7 +2476,7 @@ Fruit.Phenology
 
 ```{r}
 model.new.C1 <- lm (Species.Co~ SAI_cb + LandsatCC_ + PREP_BU_* PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age + TCLAY + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2)
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
 
 Anova(model.new.C1, type=3)
 summary(model.new.C1)
@@ -1800,7 +2486,7 @@ summary(model.new.C1)$adj.r.squared #0.38
 
 #Remove least sig
 model.new.C1 <- lm (Species.Co~ SAI_cb + LandsatCC_ + PREP_BU_ + PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age + TCLAY + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2)
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
 
 Anova(model.new.C1, type=3)
 summary(model.new.C1)
@@ -1810,7 +2496,7 @@ summary(model.new.C1)$adj.r.squared #0.38
 
 #Remove least sig
 model.new.C1 <- lm (Species.Co~ SAI_cb + LandsatCC_ + PREP_BU_ + PREP_ME_ +  PAS_total + PH2 + PLANTED +AREA_SQM + ELEVATION + origin.age  + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2)
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
 
 Anova(model.new.C1, type=3)
 summary(model.new.C1)
@@ -1820,7 +2506,7 @@ summary(model.new.C1)$adj.r.squared #0.38
 
 #Remove least sig
 model.new.C1 <- lm (Species.Co~ SAI_cb + LandsatCC_ + PREP_BU_ + PREP_ME_ +  PAS_total + PH2  +AREA_SQM + ELEVATION + origin.age  + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2)
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
 
 Anova(model.new.C1, type=3)
 summary(model.new.C1)
@@ -1830,7 +2516,7 @@ summary(model.new.C1)$adj.r.squared #0.38
 
 #Remove least sig
 model.new.C1 <- lm (Species.Co~ SAI_cb + LandsatCC_ + PREP_BU_ + PREP_ME_ +  PAS_total + PH2  +AREA_SQM + ELEVATION + origin.age  + VFSAND + G_BGC_ZONE + START_SEASON +Tave_wt,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2)
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
 
 Anova(model.new.C1, type=3)
 summary(model.new.C1)
@@ -1840,7 +2526,7 @@ summary(model.new.C1)$adj.r.squared #0.29
 
 ##Remove least sig
 model.new.C1 <- lm (Species.Co~ SAI_cb + LandsatCC_ + PREP_BU_ + PREP_ME_ +  PAS_total + PH2   + ELEVATION + origin.age  + VFSAND + DN1_SILSYS_GP + G_BGC_ZONE + START_SEASON +Tave_wt,
-               data=cutblock_plots_openings_Huck_ALL_df_2022_b2)
+               data=cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA)
 
 Anova(model.new.C1, type=3)
 summary(model.new.C1)
@@ -1879,7 +2565,7 @@ visreg(model.new.C1, "START_SEASON")
 
 
 
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TSAND, y = Species.Co)) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = TSAND, y = Species.Co)) +
   geom_point () +
   geom_smooth () +
   labs (title = "Huckleberry Percent Cover in Cutblocks of Different Ages",
@@ -1929,12 +2615,12 @@ Assess for fruit Presence/Absence.
 Note: this is hierarchical, so when we look at fruit P/A, it should be subsetted and only be where plants occurred.
 
 ```{r}
-cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Pres2 <- as.factor (cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Pres)
-cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Pres2
-cutblock_plots_openings_Huck_ALL_df_2022_b23 <-  subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Pres2!="NA")
-cutblock_plots_openings_Huck_ALL_df_2022_b23$Fruit.Pres2
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Pres2 <- as.factor (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Pres)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Pres2
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA3 <-  subset(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Pres2!="NA")
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA3$Fruit.Pres2
 
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b23, aes (x = Fruit.Pres, fill = origin)) + 
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA3, aes (x = Fruit.Pres, fill = origin)) + 
 geom_bar (position = "fill") +
   scale_fill_discrete (name = "Stand Origin", labels = c("Burned and Harvested", "Harvested", "Burned")) #Unequal sample sizes, but areas burned and harvested might have more fruit.
 ```
@@ -1942,7 +2628,7 @@ geom_bar (position = "fill") +
 Assess for fruit abundance by origin.
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = origin, y = Fruit.Abund)) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = origin, y = Fruit.Abund)) +
   geom_boxplot () +
   labs (x = "Unknown Origin (0), Harvest Origin (1) and Fire Origin (2) Stands",
         y = "Huckleberry Fruit Abundance")
@@ -1954,12 +2640,12 @@ ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = origin, y = Fruit.
 Assess for fruit Presence/Absence.
 
 ```{r}
-cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Pres2 <- as.factor (cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Pres)
-cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU_ <- as.factor (cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU)
-cutblock_plots_openings_Huck_ALL_df_2022_b23 <-  subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Pres2!="NA")
-cutblock_plots_openings_Huck_ALL_df_2022_b23$Fruit.Pres2
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Pres2 <- as.factor (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Pres)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PREP_BU_ <- as.factor (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$PREP_BU)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA3 <-  subset(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Pres2!="NA")
+cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA3$Fruit.Pres2
 
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b23, aes (x = Fruit.Pres, fill = PREP_BU_)) + 
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA3, aes (x = Fruit.Pres, fill = PREP_BU_)) + 
 geom_bar (position = "fill") +
   scale_fill_discrete (name = "Stand Origin", labels = c("Not Burned", "Burned")) 
 #No differences
@@ -1969,7 +2655,7 @@ geom_bar (position = "fill") +
 Assess for fruit abundance by origin.
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = PREP_BU_, y = Fruit.Abund)) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = PREP_BU_, y = Fruit.Abund)) +
   geom_boxplot () +
   labs (x = "Not Burned (0), Burned(1)",
         y = "Huckleberry Fruit Abundance")
@@ -1980,7 +2666,7 @@ ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = PREP_BU_, y = Frui
 Assess for fruit abundance by origin.
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = PREP_ME_, y = Fruit.Abund)) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = PREP_ME_, y = Fruit.Abund)) +
   geom_boxplot () +
   labs (x = "No Mechanical TR (0), Mechanical TR (1)",
         y = "Huckleberry Fruit Abundance")
@@ -1992,7 +2678,7 @@ ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = PREP_ME_, y = Frui
 Assess for fruit Presence/Absence.
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b23, aes (x = Fruit.Pres, fill = DN1_SILSYS_GP)) + 
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA3, aes (x = Fruit.Pres, fill = DN1_SILSYS_GP)) + 
 geom_bar (position = "fill") +
   scale_fill_discrete (name = "Clearcut Technique")
 #Fruit presence most common in clearcuts.
@@ -2002,7 +2688,7 @@ geom_bar (position = "fill") +
 Assess for fruit abundance by origin.
 
 ```{r}
-ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = DN1_SILSYS_GP, y = Fruit.Abund)) +
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = DN1_SILSYS_GP, y = Fruit.Abund)) +
   geom_boxplot () +
   labs (x = "Clearcut Technique",
         y = "Huckleberry Fruit Abundance")

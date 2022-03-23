@@ -2140,5 +2140,28 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
 dbDisconnect(conn)
 
 
+
+#Create new row for table
+new_data <- data.table (computer = 'DC052586', 
+                        database = 'test', 
+                        schema = 'clus', 
+                        table_name = 'rast', 
+                        type = 'raster', 
+                        script = 'clus\\R\\Params\\raster_data.Rmd', 
+                        source = 'permanent disturabances form cumulative effects; no roads', 
+                        public = 'No', 
+                        last_updated = '2022', 
+                        next_update = '2023', 
+                        where_used = 'dataLoaderCLUS'
+                        )
+# merge tables
+pgdbs_data_list_new <- merge (pgdbs_data_list, new_data, all = T)
+#
+
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
 ```
 
