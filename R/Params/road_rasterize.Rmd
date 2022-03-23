@@ -26,30 +26,15 @@ knitr::opts_chunk$set(echo = TRUE)
 This code converts the line geometry of roads to raster form. Where each pixel value represents the presence of roads.
 
 ```{r, roads}
-#Sections of this code are taken from bc_raster_roads (stephhazlitt)
 library(sf)
 library(rpostgis)
 library(raster)
 source(paste0(here::here(),"/R/functions/R_Postgres.R"))
 
 #Roads layers to make
-#roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads;")
+roads_sf_perm <- getSpatialQuery("SELECT shape,  -2  as road FROM public.integrated_roads where integrated_road_class_num <= 2 or (dra_road_name_full is not null AND dra_road_class <> 'trail');")
 
-#roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where road_surface = 'loose' and (road_class <> 'proposed');")
-#roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where (road_surface = 'rough' or road_surface = 'seasonal') and (road_class <> 'proposed');")
-#roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where (road_surface = 'unknown') and (road_class <> 'proposed');")
-
-#roads_sf <- getSpatialQuery("select wkb_geometry FROM public.integrated_roads where bcgw_source = 'WHSE_BASEMAPPING.TRIM_TRANSPORTATION_LINES'")
-
-#roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where (road_surface <> 'paved') and (road_class <> 'proposed');")
-
-#roads_sf <- getSpatialQuery("select wkb_geometry FROM public.integrated_roads where bcgw_source = 'WHSE_MINERAL_TENURE.OG_PETRLM_DEV_RDS_PRE06_PUB_SP' or bcgw_source = 'WHSE_MINERAL_TENURE.OG_PETRLM_ACCESS_ROADS_PUB_SP' or bcgw_source = 'WHSE_MINERAL_TENURE.OG_PETRLM_DEV_ROADS_PUB_SP'")
-
-#roads_sf <- getSpatialQuery("select wkb_geometry FROM public.integrated_roads where bcgw_source = 'WHSE_FOREST_VEGETATION.RSLT_FOREST_COVER_INV_SVW' or bcgw_source = 'WHSE_FOREST_TENURE.FTEN_ROAD_SECTION_LINES_SVW' or bcgw_source = 'WHSE_FOREST_TENURE.ABR_ROAD_SECTION_LINE'")
-
-#roads_sf <- getSpatialQuery("select wkb_geometry FROM public.ften_rs_ln_line")
-
-roads_sf <- getSpatialQuery("SELECT wkb_geometry FROM public.integrated_roads where (road_surface = 'paved') and (road_class <> 'proposed');")
+roads_sf <- getSpatialQuery("SELECT shape,  -1  as road FROM public.integrated_roads where integrated_road_class_num > 2")
 
 # Set up Provincial raster based on hectares BC extent, 1ha resolution and projection
 prov.rast <- raster(
@@ -58,12 +43,20 @@ prov.rast <- raster(
 )
 
 #Buffer the MULTILINESTRINGS
+roads_sf_perm<-roads_sf_perm %>% st_buffer(dist = 51)
 roads_sf<-roads_sf %>% st_buffer(dist = 51)
-roads_sf$road<-1
 
 #RAsterize
+road_perm<-fasterize::fasterize(st_cast(roads_sf_perm, "MULTIPOLYGON"), prov.rast, field = "road")
+road_perm[is.na(road_perm[])]<-0
+
 road<-fasterize::fasterize(st_cast(roads_sf, "MULTIPOLYGON"), prov.rast, field = "road")
-writeRaster(road, "paved_road.tif", overwrite = TRUE)
+road[is.na(road[])]<-0
+
+
+out_road<-road_perm + road
+out_road[out_road[] < -2]<- -2
+writeRaster(out_road, "ce_road_class.tif", overwrite = TRUE)
 
 #upload to db
 #system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/ften_road.tif -t 100x100 rast.rds_ften | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
@@ -72,3 +65,49 @@ writeRaster(road, "paved_road.tif", overwrite = TRUE)
 
 ```
 
+## Create a distance raster
+
+```{r, dist_to}
+
+library(raster)
+library(data.table)
+
+
+out_road<-raster("ce_road_class.tif")
+pixels <- data.table(c(t(raster::as.matrix(out_road)))) 
+pixels <- pixels[, pixelid := seq_len(.N)][V1 < 0, ]
+        
+outPts <- data.table(xyFromCell(out_road,pixels$pixelid))
+
+mill_sinks<-data.table(read.csv("mill_locations_2019.csv", sep =","))
+
+dist<-RANN::nn2(mill_sinks[, c('X', 'Y')], 
+                       outPts[, c('x', 'y')], 
+                       k = 1)
+pixels$dist<-dist$nn.dists
+
+out_road[pixels$pixelid]<-pixels$dist
+writeRaster(out_road, "ce_road_dists.tif")
+ 
+```
+
+## create road input
+
+```{r }
+library(raster)
+library(data.table)
+
+road.dists<-raster("ce_road_dists.tif")
+road.class<-raster("ce_road_class.tif")
+
+#reclass the road class
+road.class[road.class[]==0]<-NA
+road.class[road.class[] == -2] <- 0
+road.class[road.class[] == -1] <- 1
+
+road.dists[road.dists[]==0]<-NA
+
+road.out<-road.class*road.dists
+writeRaster(road.out, "ce_road_clus.tif", overwrite =T)
+
+```
