@@ -72,7 +72,10 @@ cutblock_plots_openings_Buff_ALL_df$Species.Pr<-revalue(cutblock_plots_openings_
 table(cutblock_plots_openings_Buff_ALL_df$Species.Pr) #100 without plants, 145 with
 
 cutblock_plots_openings_Buff_ALL_df_ALL<-cutblock_plots_openings_Buff_ALL_df
-cutblock_plots_openings_Buff_ALL_df<-subset(cutblock_plots_openings_Buff_ALL_df, cutblock_plots_openings_Buff_ALL_df$Species.Pr!="0") #145 plants
+cutblock_plots_openings_Buff_ALL_df<-subset(cutblock_plots_openings_Buff_ALL_df, cutblock_plots_openings_Buff_ALL_df$Species.Pr!="0") #158 plants
+
+#Check have from both datasets
+table(cutblock_plots_openings_Buff_ALL_df$DATASET) #104 from Clayton, 54 from Mackenzie
 
 table(cutblock_plots_openings_Buff_ALL_df$Fruit.Pres)
 cutblock_plots_openings_Buff_ALL_df$Fruit.Pres<-revalue(cutblock_plots_openings_Buff_ALL_df$Fruit.Pres, c("0"="0", "1"="1", "No"="0", "Yes"="1"))
@@ -81,8 +84,11 @@ cutblock_plots_openings_Buff_ALL_df$Fruit.Pres
 cutblock_plots_openings_Buff_ALL_df$Fruit.Pres<-as.numeric(cutblock_plots_openings_Buff_ALL_df$Fruit.Pres)
 
 table(cutblock_plots_openings_Buff_ALL_df$Species)
+cutblock_plots_openings_Buff_ALL_df$Species
 
 cutblock_plots_openings_Buff_ALL_df2<-cutblock_plots_openings_Buff_ALL_df #Save as a back up for now
+
+table(cutblock_plots_openings_Buff_ALL_df$DATASET)
 
 ```
 
@@ -111,7 +117,7 @@ cutblock_plots_openings_Buff_ALL_df<-subset(cutblock_plots_openings_Buff_ALL_df,
 cutblock_plots_openings_Buff_ALL_df<-subset(cutblock_plots_openings_Buff_ALL_df, cutblock_plots_openings_Buff_ALL_df$DN1_DIS_CD!="B")
 cutblock_plots_openings_Buff_ALL_df<-subset(cutblock_plots_openings_Buff_ALL_df, cutblock_plots_openings_Buff_ALL_df$DN1_DIS_CD!="W")
 
-table(cutblock_plots_openings_Buff_ALL_df$DN1_DIS_CD) #135 logged
+table(cutblock_plots_openings_Buff_ALL_df$DN1_DIS_CD) #144 logged
 ```
 
 #Inspect DN1_SILSYS (DENUDATION_1_SILV_SYSTEM_CODE)
@@ -221,7 +227,7 @@ table(cutblock_plots_openings_Buff_ALL_df$Mechanical) #34 yes
 
 cutblock_plots_openings_Buff_ALL_df$Mechanical2<-ifelse(cutblock_plots_openings_Buff_ALL_df$Mechanical==1,1, 
                                                                 ifelse(cutblock_plots_openings_Buff_ALL_df$PREP_ME==1,1,0))
-table(cutblock_plots_openings_Buff_ALL_df$Mechanical2) #914 yeses, combining infor from both
+table(cutblock_plots_openings_Buff_ALL_df$Mechanical2) #40 yeses, combining infor from both
 
 ```
 Repeat for MA (manual?)
@@ -238,7 +244,7 @@ table(cutblock_plots_openings_Buff_ALL_df$PREP_MA) #This looks better, but keep 
 #Compare PREP_MA to Manual from atu data
 table(cutblock_plots_openings_Buff_ALL_df$PREP_MA, cutblock_plots_openings_Buff_ALL_df$Manual) #Dramatic differences
 table(cutblock_plots_openings_Buff_ALL_df$PREP_MA) #19 yeses
-table(cutblock_plots_openings_Buff_ALL_df$Manual) #142 yeses
+table(cutblock_plots_openings_Buff_ALL_df$Manual) # 44 yeses
 
 cutblock_plots_openings_Buff_ALL_df$Manual2<-ifelse(cutblock_plots_openings_Buff_ALL_df$Manual==1,1, 
                                                                 ifelse(cutblock_plots_openings_Buff_ALL_df$PREP_MA==1,1,0))
@@ -343,14 +349,14 @@ table(cutblock_plots_openings_Buff_ALL_df$PREP1_TECH_GP)
 
 
 ```{r}
-table(cutblock_plots_openings_Buff_ALL_df$PREP_BU) #113 no, 22 yes
-table(cutblock_plots_openings_Buff_ALL_df$PREP_ME) #98 no, 37 yes
-table(cutblock_plots_openings_Buff_ALL_df$PREP_MA) #133 no, 2 yes
+table(cutblock_plots_openings_Buff_ALL_df$PREP_BU) #122 no, 22 yes
+table(cutblock_plots_openings_Buff_ALL_df$PREP_ME) #105 no, 39 yes
+table(cutblock_plots_openings_Buff_ALL_df$PREP_MA) #142 no, 2 yes
 
 #With refined data
-table(cutblock_plots_openings_Buff_ALL_df$Burned) #113 no, 22 yes
-table(cutblock_plots_openings_Buff_ALL_df$Mechanical2) #97 no, 38 yes
-table(cutblock_plots_openings_Buff_ALL_df$Manual2) #95 no, 40 yes # But thuis may include brushing now?
+table(cutblock_plots_openings_Buff_ALL_df$Burned) #122 no, 22 yes
+table(cutblock_plots_openings_Buff_ALL_df$Mechanical2) #104 no, 40 yes
+table(cutblock_plots_openings_Buff_ALL_df$Manual2) #100 no, 44 yes 
 
 ```
 
@@ -374,6 +380,7 @@ cutblock_plots_openings_Buff_ALL_df$origin.age <- ifelse ((cutblock_plots_openin
 
 hist(cutblock_plots_openings_Buff_ALL_df$origin.age)
 table(cutblock_plots_openings_Buff_ALL_df$origin)
+table(cutblock_plots_openings_Buff_ALL_df$origin, cutblock_plots_openings_Buff_ALL_df$Fire_Year)
 
 ```
 
@@ -381,7 +388,7 @@ We only want ones most recently logged, not ones burned since. So remove ones bu
 
 ```{r}
 cutblock_plots_openings_Buff_ALL_df_ALL2<-cutblock_plots_openings_Buff_ALL_df
-cutblock_plots_openings_Buff_ALL_df<-subset(cutblock_plots_openings_Buff_ALL_df, cutblock_plots_openings_Buff_ALL_df$origin=="1") #Drops down to 406
+cutblock_plots_openings_Buff_ALL_df<-subset(cutblock_plots_openings_Buff_ALL_df, cutblock_plots_openings_Buff_ALL_df$origin=="1") #Drops down to 142
 ```
 
 Investigate date when operations began and ended
@@ -443,7 +450,7 @@ table(cutblock_plots_openings_Buff_ALL_df$planted_species2) #172 records, so sug
 
 Look at how much of the data shows NAs for abundance.
 ```{r}
-table(cutblock_plots_openings_Buff_ALL_df$Fruit.Pres) #All 134 cases report berries 0/1
+table(cutblock_plots_openings_Buff_ALL_df$Fruit.Pres) #19 cases without fruit present
 cutblock_plots_openings_Buff_ALL_df$Fruit.Abun #Many NAs
 
 #cutblock_plots_openings_Buff_ALL_df_FruitNotNA<-subset(cutblock_plots_openings_Buff_ALL_df, cutblock_plots_openings_Buff_ALL_df$Fruit.Abun!="NA") #240 results
@@ -452,14 +459,16 @@ cutblock_plots_openings_Buff_ALL_df$Fruit.Abun #Many NAs
 #
 cutblock_plots_openings_Buff_ALL_df$Fruit.AbunTEST<-ifelse((cutblock_plots_openings_Buff_ALL_df$Fruit.Pres=="0" & is.na(cutblock_plots_openings_Buff_ALL_df$Fruit.Abun)), 0, cutblock_plots_openings_Buff_ALL_df$Fruit.Abun)
   
-
-
 #
 table(cutblock_plots_openings_Buff_ALL_df$Fruit.AbunTEST)
 cutblock_plots_openings_Buff_ALL_df$Fruit.AbunTEST
 
-cutblock_plots_openings_Buff_ALL_df_FruitNotNA<-subset(cutblock_plots_openings_Buff_ALL_df, cutblock_plots_openings_Buff_ALL_df$Fruit.AbunTEST!="NA") #119
-table(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Fruit.Pres) # 19 absences, 100 presences.
+cutblock_plots_openings_Buff_ALL_df$Species.Pr
+cutblock_plots_openings_Buff_ALL_df$Fruit.Pres
+
+#Remaining NAs have fruit, but no record for how many
+cutblock_plots_openings_Buff_ALL_df_FruitNotNA<-subset(cutblock_plots_openings_Buff_ALL_df, cutblock_plots_openings_Buff_ALL_df$Fruit.AbunTEST!="NA") #127
+table(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Fruit.Pres) # 19 absences, 108 presences.
 ```
 
 
@@ -484,6 +493,17 @@ cutblock_plots_openings_Buff_ALL_df_FruitNotNA$PAS_wt_dec<-as.numeric(cutblock_p
 cutblock_plots_openings_Buff_ALL_df_FruitNotNA$PAS_total<-cutblock_plots_openings_Buff_ALL_df_FruitNotNA$PAS_at_dec + cutblock_plots_openings_Buff_ALL_df_FruitNotNA$PAS_sm_dec + cutblock_plots_openings_Buff_ALL_df_FruitNotNA$PAS_sp_dec + cutblock_plots_openings_Buff_ALL_df_FruitNotNA$PAS_wt_dec
 
 ```
+
+Check lat-long.
+
+```{r}
+cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Lat
+cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Long
+
+names(cutblock_plots_openings_Buff_ALL_df_FruitNotNA)
+table(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$G_BGC_ZONE)
+```
+
 
 Save files.
 
@@ -590,6 +610,17 @@ ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = origin.age, y =
   labs (title = "Canopy Cover by Time Since Cutblock/Logging",
         x = "Time Since Logging",
         y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Buff_ALL_df_FruitNotNA, aes (x = origin.age, y = Canopy.Cov)) +
+  geom_point () +
+  geom_smooth (se=F) +
+    theme(panel.background = element_rect(fill = "transparent"),
+        panel.border = element_rect(linetype = "solid", fill = NA)) +
+  labs (
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+cor(cutblock_plots_openings_Buff_ALL_df_FruitNotNA$TimeSinceCutblock, cutblock_plots_openings_Buff_ALL_df_FruitNotNA$Canopy.Cov) #0.70
 ```
 
 
