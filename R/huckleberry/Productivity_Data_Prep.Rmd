@@ -107,8 +107,6 @@ table(cutblock_plots_openings_productivity_huck$Site_ID)
 ```
 
 ```{r}
-## Elevation is missing from data! Need to get from DEM. Because some of the slope and aspect data differs, also append this data.
-
 DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
 crs(DEM_slope) 
 
@@ -186,6 +184,7 @@ cutblock_plots_openings_productivity_huck_df<-read.csv(file="C:\\cora\\Hucklberr
 head(cutblock_plots_openings_productivity_huck_df)
 table(cutblock_plots_openings_productivity_huck_df$Species)
 ```
+
 
 
 #########START HERE! GET CLIMATEBC DATA!!!##############

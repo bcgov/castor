@@ -1890,7 +1890,7 @@ Look in output for -2Log Likelihood (not restricted though)
 5. Combine non-snow harvest seasons together
 6. Not much variation by BEC, so remove BEC from variables
 7. Add site index or growing season rainfall
-8. From GarthL The Huck model could include: crown closure, plant height, spring GDD (April-June), July temp range (these from the Holden paper). Not sure how functional either of these variables is-test with our data? Probably better just to use heatload. Need a moisture variable too but what?
+8. From Garth: The Huck model could include: crown closure, plant height, spring GDD (April-June), July temp range (these from the Holden paper). Not sure how functional either of these variables is-test with our data? Probably better just to use heatload. Need a moisture variable too but what?
 Shep model may include: crown closure, plant height, July rain previous year, heatload.
 Need moisture variable: July rainfall or PAS?
 Growing degree days from April to June and July temperature explaining 70% of variation in one study

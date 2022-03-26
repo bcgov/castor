@@ -1,0 +1,512 @@
+---
+title: "Repeated_Measures_Data_Analyses"
+author: "Cora Skaien"
+date: "26/03/2022"
+output: html_document
+---
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(raster)
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(cleangeo)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(rgdal)
+library(sp)
+library(keyring)
+library(DBI)
+library(rgeos)
+library(car)
+library(rje)
+library(caret)
+library(pROC)
+library(visreg)
+library(gtools)
+```
+
+#Overview
+This document takes repeated measures data for huckleberry and buffaloberry to assess how variation across time and conditions influence berry abundance. This requires ClimateBC data to be brought in for time t, t-1 and t-2, as well as DEM information, and heatload.
+
+########### HUCKLEBERRY ##############
+
+#Load in the repeated measures data for huckleberry
+```{r}
+Huck_RepeatedMeasures<- st_read ( dsn = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_Data_Long_RepeatedMeasuresHuck.shp", stringsAsFactors = T) 
+crs(Huck_RepeatedMeasures)
+
+Huck_RepeatedMeasures_3005<-st_transform(Huck_RepeatedMeasures, 3005)
+crs(Huck_RepeatedMeasures_3005)
+```
+
+Append DEM info.
+
+```{r}
+DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
+crs(DEM_slope) 
+
+DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc_3005.tif")
+crs(DEM_aspect)
+
+#Elevation
+DEM_elevation <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+crs(DEM_elevation)
+crs(Huck_RepeatedMeasures_3005) #Same!
+
+#Stack rasters
+rasStack = stack(DEM_slope, DEM_aspect, DEM_elevation)
+crs(rasStack) #3005
+head(rasStack)
+str(rasStack)
+extent(rasStack)
+
+Huck_RepeatedMeasures_3005$coords_x1<-st_coordinates(Huck_RepeatedMeasures_3005)
+head(Huck_RepeatedMeasures_3005)
+
+pointCoordinates<-data.frame(Huck_RepeatedMeasures_3005$coords_x1[,1], Huck_RepeatedMeasures_3005$coords_x1[,2])
+head(pointCoordinates)
+
+DEM_huck1=raster::extract(rasStack, pointCoordinates)
+head(DEM_huck1)
+
+#Append
+Huck_RepeatedMeasures_3005<-cbind(Huck_RepeatedMeasures_3005, DEM_huck1)
+head(Huck_RepeatedMeasures_3005)
+```
+
+Combine soils data.
+
+```{r}
+cofrag <- raster("C:\\cora\\Hucklberry\\Soil_Layers_Clayton\\cofrag_3005.tif")
+orgcarb <- raster("C:\\cora\\Hucklberry\\Soil_Layers_Clayton\\orgcarb_3005.tif")
+PH2 <- raster("C:\\cora\\Hucklberry\\Soil_Layers_Clayton\\ph2_3005.tif")
+phca <- raster("C:\\cora\\Hucklberry\\Soil_Layers_Clayton\\phca_3005.tif")
+tclay <- raster("C:\\cora\\Hucklberry\\Soil_Layers_Clayton\\tclay_3005.tif")
+tsand <- raster("C:\\cora\\Hucklberry\\Soil_Layers_Clayton\\tsand_3005.tif")
+tsilt <- raster("C:\\cora\\Hucklberry\\Soil_Layers_Clayton\\tsilt_3005.tif")
+vfsand <- raster("C:\\cora\\Hucklberry\\Soil_Layers_Clayton\\vfsand_3005.tif")
+
+#Check crs
+crs(cofrag) #ESPG 3005
+crs(vfsand) #3005
+
+SoilStack<- stack(cofrag, orgcarb, PH2, phca, tclay, tsand, tsilt, vfsand)
+crs(SoilStack) #ESPG 3005
+
+#Extract values from SoilStack_2 for GPS coordinates in data file
+SOIL_huck_repeat=raster::extract(SoilStack, pointCoordinates)
+head(SOIL_huck_repeat) #Looks good
+
+#Combine back into original data set
+Huck_RepeatedMeasures_3005<-cbind(Huck_RepeatedMeasures_3005, SOIL_huck_repeat)
+head(Huck_RepeatedMeasures_3005)
+```
+
+Remove geometry.
+```{r}
+Huck_RepeatedMeasures_3005_df<-st_drop_geometry(Huck_RepeatedMeasures_3005)
+```
+
+bring in Climate data for t, t-1 and t-2.
+
+#2011
+```{r}
+huck_repeat_2011_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2011_Year_2011MSY.csv")
+head(huck_repeat_2011_0)
+
+huck_repeat_2011_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2011_Year_2010MSY.csv")
+head(huck_repeat_2011_1)
+
+huck_repeat_2011_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2011_Year_2009MSY.csv")
+head(huck_repeat_2011_2)
+
+huck_repeated_2011<-cbind(huck_repeat_2011_0, huck_repeat_2011_1, huck_repeat_2011_2)
+names(huck_repeated_2011)
+
+#Remove duplicated columns
+huck_repeated_2011<-huck_repeated_2011[-(541:545)]
+huck_repeated_2011<-huck_repeated_2011[-(271:275)]
+huck_repeated_2011<-huck_repeated_2011[-(5)]
+
+```
+
+#2012
+```{r}
+huck_repeat_2012_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2012_Year_2012MSY.csv")
+head(huck_repeat_2012_0)
+
+huck_repeat_2012_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2012_Year_2011MSY.csv")
+head(huck_repeat_2012_1)
+
+huck_repeat_2012_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2012_Year_2010MSY.csv")
+head(huck_repeat_2012_2)
+
+huck_repeated_2012<-cbind(huck_repeat_2012_0, huck_repeat_2012_1, huck_repeat_2012_2)
+names(huck_repeated_2012)
+
+#Remove duplicated columns
+huck_repeated_2012<-huck_repeated_2012[-(541:545)]
+huck_repeated_2012<-huck_repeated_2012[-(271:275)]
+huck_repeated_2012<-huck_repeated_2012[-(5)]
+
+```
+
+#2013
+```{r}
+huck_repeat_2013_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2013_Year_2013MSY.csv")
+head(huck_repeat_2013_0)
+
+huck_repeat_2013_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2013_Year_2012MSY.csv")
+head(huck_repeat_2013_1)
+
+huck_repeat_2013_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2013_Year_2011MSY.csv")
+head(huck_repeat_2013_2)
+
+huck_repeated_2013<-cbind(huck_repeat_2013_0, huck_repeat_2013_1, huck_repeat_2013_2)
+names(huck_repeated_2013)
+
+#Remove duplicated columns
+huck_repeated_2013<-huck_repeated_2013[-(541:545)]
+huck_repeated_2013<-huck_repeated_2013[-(271:275)]
+huck_repeated_2013<-huck_repeated_2013[-(5)]
+
+```
+
+#2014
+```{r}
+huck_repeat_2014_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2014_Year_2014MSY.csv")
+head(huck_repeat_2014_0)
+
+huck_repeat_2014_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2014_Year_2013MSY.csv")
+head(huck_repeat_2014_1)
+
+huck_repeat_2014_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2014_Year_2012MSY.csv")
+head(huck_repeat_2014_2)
+
+huck_repeated_2014<-cbind(huck_repeat_2014_0, huck_repeat_2014_1, huck_repeat_2014_2)
+names(huck_repeated_2014)
+
+#Remove duplicated columns
+huck_repeated_2014<-huck_repeated_2014[-(541:545)]
+huck_repeated_2014<-huck_repeated_2014[-(271:275)]
+huck_repeated_2014<-huck_repeated_2014[-(5)]
+
+```
+
+#2015
+```{r}
+huck_repeat_2015_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2015_Year_2015MSY.csv")
+head(huck_repeat_2015_0)
+
+huck_repeat_2015_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2015_Year_2014MSY.csv")
+head(huck_repeat_2015_1)
+
+huck_repeat_2015_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2015_Year_2013MSY.csv")
+head(huck_repeat_2015_2)
+
+huck_repeated_2015<-cbind(huck_repeat_2015_0, huck_repeat_2015_1, huck_repeat_2015_2)
+names(huck_repeated_2015)
+
+#Remove duplicated columns
+huck_repeated_2015<-huck_repeated_2015[-(541:545)]
+huck_repeated_2015<-huck_repeated_2015[-(271:275)]
+huck_repeated_2015<-huck_repeated_2015[-(5)]
+
+```
+
+#2016
+```{r}
+huck_repeat_2016_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2016_Year_2016MSY.csv")
+head(huck_repeat_2016_0)
+
+huck_repeat_2016_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2016_Year_2015MSY.csv")
+head(huck_repeat_2016_1)
+
+huck_repeat_2016_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2016_Year_2014MSY.csv")
+head(huck_repeat_2016_2)
+
+huck_repeated_2016<-cbind(huck_repeat_2016_0, huck_repeat_2016_1, huck_repeat_2016_2)
+names(huck_repeated_2016)
+
+#Remove duplicated columns
+huck_repeated_2016<-huck_repeated_2016[-(541:545)]
+huck_repeated_2016<-huck_repeated_2016[-(271:275)]
+huck_repeated_2016<-huck_repeated_2016[-(5)]
+
+```
+
+#2017
+```{r}
+huck_repeat_2017_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2017_Year_2017MSY.csv")
+head(huck_repeat_2017_0)
+
+huck_repeat_2017_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2017_Year_2016MSY.csv")
+head(huck_repeat_2017_1)
+
+huck_repeat_2017_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2017_Year_2015MSY.csv")
+head(huck_repeat_2017_2)
+
+huck_repeated_2017<-cbind(huck_repeat_2017_0, huck_repeat_2017_1, huck_repeat_2017_2)
+names(huck_repeated_2017)
+
+#Remove duplicated columns
+huck_repeated_2017<-huck_repeated_2017[-(541:545)]
+huck_repeated_2017<-huck_repeated_2017[-(271:275)]
+huck_repeated_2017<-huck_repeated_2017[-(5)]
+
+```
+
+
+#2018
+```{r}
+huck_repeat_2018_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2018_Year_2018MSY.csv")
+head(huck_repeat_2018_0)
+
+huck_repeat_2018_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2018_Year_2017MSY.csv")
+head(huck_repeat_2018_1)
+
+huck_repeat_2018_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2018_Year_2016MSY.csv")
+head(huck_repeat_2018_2)
+
+huck_repeated_2018<-cbind(huck_repeat_2018_0, huck_repeat_2018_1, huck_repeat_2018_2)
+names(huck_repeated_2018)
+
+#Remove duplicated columns
+huck_repeated_2018<-huck_repeated_2018[-(541:545)]
+huck_repeated_2018<-huck_repeated_2018[-(271:275)]
+huck_repeated_2018<-huck_repeated_2018[-(5)]
+
+```
+
+#2019
+```{r}
+huck_repeat_2019_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2019_Year_2019MSY.csv")
+head(huck_repeat_2019_0)
+
+huck_repeat_2019_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2019_Year_2018MSY.csv")
+head(huck_repeat_2019_1)
+
+huck_repeat_2019_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2019_Year_2017MSY.csv")
+head(huck_repeat_2019_2)
+
+huck_repeated_2019<-cbind(huck_repeat_2019_0, huck_repeat_2019_1, huck_repeat_2019_2)
+names(huck_repeated_2019)
+
+#Remove duplicated columns
+huck_repeated_2019<-huck_repeated_2019[-(541:545)]
+huck_repeated_2019<-huck_repeated_2019[-(271:275)]
+huck_repeated_2019<-huck_repeated_2019[-(5)]
+
+```
+
+#2020
+```{r}
+huck_repeat_2020_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2020_Year_2020MSY.csv")
+head(huck_repeat_2020_0)
+
+huck_repeat_2020_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2020_Year_2019MSY.csv")
+head(huck_repeat_2020_1)
+
+huck_repeat_2020_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2020_Year_2018MSY.csv")
+head(huck_repeat_2020_2)
+
+huck_repeated_2020<-cbind(huck_repeat_2020_0, huck_repeat_2020_1, huck_repeat_2020_2)
+names(huck_repeated_2020)
+
+#Remove duplicated columns
+huck_repeated_2020<-huck_repeated_2020[-(541:545)]
+huck_repeated_2020<-huck_repeated_2020[-(271:275)]
+huck_repeated_2020<-huck_repeated_2020[-(5)]
+
+```
+
+#2021
+```{r}
+#There currently is no 2021 data yet in ClimateBC as of March 2022
+#huck_repeat_2021_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2021_Year_2021MSY.csv")
+#head(huck_repeat_2021_0)
+
+huck_repeat_2021_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2021_Year_2020MSY.csv")
+head(huck_repeat_2021_1)
+
+huck_repeat_2021_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_RepeatedMeasures Huckleberry\\Repeated_Measures_Huckleberry_Long_2021_Year_2019MSY.csv")
+head(huck_repeat_2021_2)
+
+#huck_repeated_2021<-cbind(huck_repeat_2021_0, huck_repeat_2021_1, huck_repeat_2021_2)
+huck_repeated_2021<-cbind(huck_repeat_2021_1, huck_repeat_2021_2)
+names(huck_repeated_2021)
+
+#Remove duplicated columns
+#huck_repeated_2021<-huck_repeated_2021[-(541:545)]
+huck_repeated_2021<-huck_repeated_2021[-(271:275)]
+huck_repeated_2021<-huck_repeated_2021[-(5)]
+
+```
+
+Combine data sets. First will need to get same column names in the 2021 data.
+
+```{r}
+huck_repeated_2021[setdiff(names(huck_repeated_2020), names(huck_repeated_2021))] <- NA
+head(huck_repeated_2021)
+```
+
+
+```{r}
+huck_repeated_climate_data<-rbind(huck_repeated_2020, huck_repeated_2019, huck_repeated_2018, huck_repeated_2017, huck_repeated_2016, huck_repeated_2015, huck_repeated_2014, huck_repeated_2013, huck_repeated_2012, huck_repeated_2011) 
+
+huck_repeated_climate_data2<-smartbind(huck_repeated_climate_data, huck_repeated_2021)
+
+head(huck_repeated_climate_data2)
+huck_repeated_climate_data2$Tave01_0
+```
+
+Combine data together.
+
+```{r}
+Huck_RepeatedMeasures_3005_df_b<-left_join(Huck_RepeatedMeasures_3005_df, huck_repeated_climate_data2, by="ID")
+head(Huck_RepeatedMeasures_3005_df_b)
+```
+
+#Add heatload
+```{r}
+# Function "heatload"
+# Calculates heat load or potential annual direct incident radiation, using the formulas published in 
+# McCune & Keon (2002) based on aspect, slope and latitude.
+ 
+heatload <- function (aspect, slope, latitude, method = 'heatload', units = 'degrees', equation = 1)
+{
+  if (units == 'degrees')   # convert degrees to radians
+    {
+    aspect <- aspect/180*pi
+    slope <- slope/180*pi
+    aspect[slope == 0] <- 0
+    latitude <- latitude/180*pi
+    }  
+  A <- if (method == 'heatload') abs (pi - abs (aspect - (5*pi/4))) else pi - abs (aspect-pi)
+  S <- slope
+  L <- if (length (latitude) == 1) rep (latitude, length (A)) else latitude
+  if (equation == 1) res <- exp (-1.467 +1.582*cos(L)*cos(S) -1.500*cos(A)*sin(S)*sin(L) -0.262*sin(L)*sin(S) +0.607*sin(A)*sin(S))
+  if (equation == 2) res <- exp (-1.236 +1.350*cos(L)*cos(S) -1.376*cos(A)*sin(S)*sin(L) -0.331*sin(L)*sin(S) +0.375*sin(A)*sin(S))
+  if (equation == 3) res <-      +0.339 +0.808*cos(L)*cos(S)                             -0.196*sin(L)*sin(S)                       - 0.482*cos(A)*sin(S)
+  return (res)
+}
+```
+
+```{r}
+Huck_RepeatedMeasures_3005_df_b$heatload <- heatload (aspect = Huck_RepeatedMeasures_3005_df_b$aspect_ha_bc, slope = Huck_RepeatedMeasures_3005_df_b$slope_ha_bc, latitude = Huck_RepeatedMeasures_3005_df_b$Lat, equation = 3)
+ 
+Huck_RepeatedMeasures_3005_df_b$heatload 
+hist(Huck_RepeatedMeasures_3005_df_b$heatload)
+```
+
+
+#Combine some variables together given prior literature.
+Notes: spring GDD (April-June), July temp range (these from the Holden paper).  Probably better just to use heatload. Need a moisture variable too but what?
+Shep model may include: crown closure, plant height, July rain previous year, heatload.
+Need moisture variable: July rainfall or PAS?
+Growing degree days from April to June and July temperature explaining 70% of variation in one study
+
+```{r}
+#Need to make "_0" variables numeric given NAs from 2021 missing data
+Huck_RepeatedMeasures_3005_df_b$DD5_04_0<-as.numeric(Huck_RepeatedMeasures_3005_df_b$DD5_04_0)
+Huck_RepeatedMeasures_3005_df_b$DD5_05_0<-as.numeric(Huck_RepeatedMeasures_3005_df_b$DD5_05_0)
+Huck_RepeatedMeasures_3005_df_b$DD5_06_0<-as.numeric(Huck_RepeatedMeasures_3005_df_b$DD5_06_0)
+
+#Make spring growing degree day variables
+Huck_RepeatedMeasures_3005_df_b$GDD_sp_0<-(Huck_RepeatedMeasures_3005_df_b$DD5_04_0 + Huck_RepeatedMeasures_3005_df_b$DD5_05_0 + Huck_RepeatedMeasures_3005_df_b$DD5_06_0)
+
+Huck_RepeatedMeasures_3005_df_b$GDD_sp_1<-(Huck_RepeatedMeasures_3005_df_b$DD5_04_1 + Huck_RepeatedMeasures_3005_df_b$DD5_05_1 + Huck_RepeatedMeasures_3005_df_b$DD5_06_1)
+
+Huck_RepeatedMeasures_3005_df_b$GDD_sp_2<-(Huck_RepeatedMeasures_3005_df_b$DD5_04_2 + Huck_RepeatedMeasures_3005_df_b$DD5_05_2 + Huck_RepeatedMeasures_3005_df_b$DD5_06_2)
+
+```
+
+Make fruit count numeric.
+```{r}
+Huck_RepeatedMeasures_3005_df_b$Fruit_Coun<-as.numeric(Huck_RepeatedMeasures_3005_df_b$Fruit_Coun)
+```
+
+
+Inspect patterns by plotID.
+
+```{r}
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = GDD_sp_1, y = Fruit_Coun, colour = factor(ID))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Growing Degre Days April-June (t)",
+        y = "Fruit Abundance") 
+```
+
+Having difficulties plotting by ID.
+
+```{r}
+Huck_RepeatedMeasures_3005_df_b_0<-subset(Huck_RepeatedMeasures_3005_df_b, Huck_RepeatedMeasures_3005_df_b$GDD_sp_0!="NA")
+
+ggplot (Huck_RepeatedMeasures_3005_df_b_0, aes (x = GDD_sp_0, y = Fruit_Coun)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (
+        x = "Growing Degre Days April-June (t)",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = GDD_sp_1, y = Fruit_Coun)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (
+        x = "Growing Degre Days April-June (t-1)",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = GDD_sp_2, y = Fruit_Coun)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (
+        x = "Growing Degre Days April-June (t-2)",
+        y = "Fruit Abundance") 
+```
+
+July rainfall.
+
+```{r}
+Huck_RepeatedMeasures_3005_df_b_0$PPT07_0<-as.numeric(Huck_RepeatedMeasures_3005_df_b_0$PPT07_0)
+
+ggplot (Huck_RepeatedMeasures_3005_df_b_0, aes (x = PPT07_0, y = Fruit_Coun)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (
+        x = "July rainfall (t)",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = PPT07_1, y = Fruit_Coun)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (
+        x = "July rainfall (t-1)",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = PPT07_2, y = Fruit_Coun)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (
+        x = "July rainfall (t-2)",
+        y = "Fruit Abundance") 
+```
+
