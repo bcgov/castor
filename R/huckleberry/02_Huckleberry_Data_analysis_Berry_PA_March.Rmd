@@ -58,6 +58,8 @@ This file continues from huckleberry&buffaloberry_data_processing_Jan2022. Here,
 ```{r}
 cutblock_plots_openings_Huck_ALL_df_2022_b2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_2022_b2.csv")
 head(cutblock_plots_openings_Huck_ALL_df_2022_b2)
+str(cutblock_plots_openings_Huck_ALL_df_2022_b2)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr)
                                                   
 ```
 
@@ -454,6 +456,8 @@ table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Pres) #All 406 cases rep
 cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Abun #Many NAs
 
 cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Abun!="NA") #240 results
+
+#Before subsetting, ensure that locations without fruits given 0 abundance
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA$Fruit.Pres) #30 not fruit presents and 210 yes presents. Thus some of the 112 reports of fruit not present was NA. Go back and add back in.
 
 #
@@ -537,8 +541,7 @@ ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Canopy_
   geom_smooth (se=F) +
   labs (title = "Huckleberry Berry Abundance by Canopy Cover",
         x = "Canopy Cover (%)",
-        y = "Berry Abundance")  #+
- # scale_colour_discrete (name = "Stand Origin", labels = c("No Burn No Mechanical", "Mechanical", "Burn", "Burn and Mechanical"))
+        y = "Berry Abundance")  
 
 #Remove BEC
 ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = Canopy_Cov, y = Fruit.AbunTEST)) +
@@ -1799,6 +1802,18 @@ ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA_No0s, aes (x = SA
         y = "Species Cover")
 ```
 
+Investigate covariates.
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = heatload, y = Species.He)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Canopy Cover",
+        x = "Heatload",
+        y = "Species Height (cm)")
+#Not remotely correlated
+```
+
+
 
 
 
@@ -1878,6 +1893,7 @@ Look in output for -2Log Likelihood (not restricted though)
 8. From GarthL The Huck model could include: crown closure, plant height, spring GDD (April-June), July temp range (these from the Holden paper). Not sure how functional either of these variables is-test with our data? Probably better just to use heatload. Need a moisture variable too but what?
 Shep model may include: crown closure, plant height, July rain previous year, heatload.
 Need moisture variable: July rainfall or PAS?
+Growing degree days from April to June and July temperature explaining 70% of variation in one study
 
 #ziP and Ziplss
 This sort of model is really only appropriate when none of your covariates help to explain the zeroes in your data. If your covariates predict which observations are likely to have zero mean then adding a zero inflated model on top of this is likely to lead to identifiability problems. Identifiability problems may lead to fit failures, or absurd values for the linear predictor or predicted values.
