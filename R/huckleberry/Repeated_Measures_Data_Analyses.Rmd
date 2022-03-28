@@ -47,6 +47,8 @@ This document takes repeated measures data for huckleberry and buffaloberry to a
 
 ########### HUCKLEBERRY ##############
 
+Assess plots below. In summary, there does not appear to be any relationship with most variables, except perhaps with canopy cover in which berry production peaks at 10% and then perhaps increases again at 35% cover. Not as useful as I had hoped.
+
 #Load in the repeated measures data for huckleberry
 ```{r}
 Huck_RepeatedMeasures<- st_read ( dsn = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Laura_Data_Long_RepeatedMeasuresHuck.shp", stringsAsFactors = T) 
@@ -430,64 +432,164 @@ Huck_RepeatedMeasures_3005_df_b$DD5_05_0<-as.numeric(Huck_RepeatedMeasures_3005_
 Huck_RepeatedMeasures_3005_df_b$DD5_06_0<-as.numeric(Huck_RepeatedMeasures_3005_df_b$DD5_06_0)
 
 #Make spring growing degree day variables
-Huck_RepeatedMeasures_3005_df_b$GDD_sp_0<-(Huck_RepeatedMeasures_3005_df_b$DD5_04_0 + Huck_RepeatedMeasures_3005_df_b$DD5_05_0 + Huck_RepeatedMeasures_3005_df_b$DD5_06_0)
+Huck_RepeatedMeasures_3005_df_b$GDD2_sp_0<-(Huck_RepeatedMeasures_3005_df_b$DD5_04_0 + Huck_RepeatedMeasures_3005_df_b$DD5_05_0 + Huck_RepeatedMeasures_3005_df_b$DD5_06_0)
 
-Huck_RepeatedMeasures_3005_df_b$GDD_sp_1<-(Huck_RepeatedMeasures_3005_df_b$DD5_04_1 + Huck_RepeatedMeasures_3005_df_b$DD5_05_1 + Huck_RepeatedMeasures_3005_df_b$DD5_06_1)
+Huck_RepeatedMeasures_3005_df_b$GDD2_sp_1<-(Huck_RepeatedMeasures_3005_df_b$DD5_04_1 + Huck_RepeatedMeasures_3005_df_b$DD5_05_1 + Huck_RepeatedMeasures_3005_df_b$DD5_06_1)
 
-Huck_RepeatedMeasures_3005_df_b$GDD_sp_2<-(Huck_RepeatedMeasures_3005_df_b$DD5_04_2 + Huck_RepeatedMeasures_3005_df_b$DD5_05_2 + Huck_RepeatedMeasures_3005_df_b$DD5_06_2)
+Huck_RepeatedMeasures_3005_df_b$GDD2_sp_2<-(Huck_RepeatedMeasures_3005_df_b$DD5_04_2 + Huck_RepeatedMeasures_3005_df_b$DD5_05_2 + Huck_RepeatedMeasures_3005_df_b$DD5_06_2)
 
 ```
+
+Make Number of Frost Free Days in spring.
+
+```{r}
+#Make numeric
+Huck_RepeatedMeasures_3005_df_b$NFFD04_0<-as.numeric(Huck_RepeatedMeasures_3005_df_b$NFFD04_0)
+Huck_RepeatedMeasures_3005_df_b$NFFD05_0<-as.numeric(Huck_RepeatedMeasures_3005_df_b$NFFD05_0)
+Huck_RepeatedMeasures_3005_df_b$NFFD06_0<-as.numeric(Huck_RepeatedMeasures_3005_df_b$NFFD06_0)
+
+Huck_RepeatedMeasures_3005_df_b$NFFD2_sp_0<-(Huck_RepeatedMeasures_3005_df_b$NFFD04_0 + Huck_RepeatedMeasures_3005_df_b$NFFD05_0 + Huck_RepeatedMeasures_3005_df_b$NFFD06_0)
+
+Huck_RepeatedMeasures_3005_df_b$NFFD2_sp_1<-(Huck_RepeatedMeasures_3005_df_b$NFFD04_1 + Huck_RepeatedMeasures_3005_df_b$NFFD05_1 + Huck_RepeatedMeasures_3005_df_b$NFFD06_1)
+
+Huck_RepeatedMeasures_3005_df_b$NFFD2_sp_2<-(Huck_RepeatedMeasures_3005_df_b$NFFD04_2 + Huck_RepeatedMeasures_3005_df_b$NFFD05_2 + Huck_RepeatedMeasures_3005_df_b$NFFD06_2)
+```
+
 
 Make fruit count numeric.
 ```{r}
 Huck_RepeatedMeasures_3005_df_b$Fruit_Coun<-as.numeric(Huck_RepeatedMeasures_3005_df_b$Fruit_Coun)
 ```
 
-
 Inspect patterns by plotID.
 
 ```{r}
-ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = GDD_sp_1, y = Fruit_Coun, colour = factor(ID))) +
+table(Huck_RepeatedMeasures_3005_df_b$ID) #One of every case because year is included
+table(Huck_RepeatedMeasures_3005_df_b$ID2) #One of every instance, but as a number
+names(Huck_RepeatedMeasures_3005_df_b)
+table(Huck_RepeatedMeasures_3005_df_b$Site_ID)
+table(Huck_RepeatedMeasures_3005_df_b$Distance)
+
+Huck_RepeatedMeasures_3005_df_b$ID3<-paste(Huck_RepeatedMeasures_3005_df_b$Site_ID, Huck_RepeatedMeasures_3005_df_b$Distance)
+table(Huck_RepeatedMeasures_3005_df_b$ID3)
+```
+
+
+```{r}
+Huck_RepeatedMeasures_3005_df_b_0<-subset(Huck_RepeatedMeasures_3005_df_b, Huck_RepeatedMeasures_3005_df_b$GDD2_sp_0!="NA")
+
+ggplot (Huck_RepeatedMeasures_3005_df_b_0, aes (x = GDD2_sp_0, y = Fruit_Coun, colour = factor(ID3))) +
   geom_point () +
   geom_smooth (se=F) +
   theme(legend.position="none") +
   labs (
-        x = "Growing Degre Days April-June (t)",
+        x = "Growing Degree Days April-June (t)",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = GDD2_sp_1, y = Fruit_Coun, colour = factor(ID3))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Growing Degree Days April-June (t-1)",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = GDD2_sp_2, y = Fruit_Coun, colour = factor(ID3))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Growing Degree Days April-June (t-2)",
         y = "Fruit Abundance") 
 ```
 
-Having difficulties plotting by ID.
+Having difficulties plotting by ID sometimes.
 
 ```{r}
-Huck_RepeatedMeasures_3005_df_b_0<-subset(Huck_RepeatedMeasures_3005_df_b, Huck_RepeatedMeasures_3005_df_b$GDD_sp_0!="NA")
-
-ggplot (Huck_RepeatedMeasures_3005_df_b_0, aes (x = GDD_sp_0, y = Fruit_Coun)) +
+ggplot (Huck_RepeatedMeasures_3005_df_b_0, aes (x = GDD2_sp_0, y = Fruit_Coun)) +
   geom_point () +
   geom_smooth (se=F) +
   labs (
-        x = "Growing Degre Days April-June (t)",
+        x = "Growing Degree Days April-June (t)",
         y = "Fruit Abundance") 
 
-ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = GDD_sp_1, y = Fruit_Coun)) +
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = GDD2_sp_1, y = Fruit_Coun)) +
   geom_point () +
   geom_smooth (se=F) +
   labs (
-        x = "Growing Degre Days April-June (t-1)",
+        x = "Growing Degree Days April-June (t-1)",
         y = "Fruit Abundance") 
 
-ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = GDD_sp_2, y = Fruit_Coun)) +
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = GDD2_sp_2, y = Fruit_Coun)) +
   geom_point () +
   geom_smooth (se=F) +
   labs (
-        x = "Growing Degre Days April-June (t-2)",
+        x = "Growing Degree Days April-June (t-2)",
         y = "Fruit Abundance") 
 ```
+
+Number of Frost free Days.
+```{r}
+ggplot (Huck_RepeatedMeasures_3005_df_b_0, aes (x = NFFD2_sp_0, y = Fruit_Coun, colour = factor(ID3))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Frost Free Days April-June (t)",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = NFFD2_sp_1, y = Fruit_Coun, colour = factor(ID3))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Frost Free Days April-June (t-1)",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = NFFD2_sp_2, y = Fruit_Coun, colour = factor(ID3))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Frost Free Days April-June (t-2)",
+        y = "Fruit Abundance") 
+```
+
 
 July rainfall.
 
 ```{r}
 Huck_RepeatedMeasures_3005_df_b_0$PPT07_0<-as.numeric(Huck_RepeatedMeasures_3005_df_b_0$PPT07_0)
+```
 
+```{r}
+ggplot (Huck_RepeatedMeasures_3005_df_b_0, aes (x = PPT07_0, y = Fruit_Coun, colour = factor(ID3))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "July rainfall (t)",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = PPT07_1, y = Fruit_Coun, colour = factor(ID3))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "July rainfall (t-1)",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = PPT07_2, y = Fruit_Coun, colour = factor(ID3))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "July rainfall (t-2)",
+        y = "Fruit Abundance") 
+```
+
+
+```{r}
 ggplot (Huck_RepeatedMeasures_3005_df_b_0, aes (x = PPT07_0, y = Fruit_Coun)) +
   geom_point () +
   geom_smooth (se=F) +
@@ -507,6 +609,169 @@ ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = PPT07_2, y = Fruit_Coun)) +
   geom_smooth (se=F) +
   labs (
         x = "July rainfall (t-2)",
+        y = "Fruit Abundance") 
+```
+
+Heatload.
+
+```{r}
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = heatload, y = Fruit_Coun, colour = factor(ID3))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Heatload",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = heatload, y = Fruit_Coun)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Heatload",
+        y = "Fruit Abundance") 
+```
+
+Plant characteristics.
+
+```{r}
+Huck_RepeatedMeasures_3005_df_b$Plant_Heig<-as.numeric(Huck_RepeatedMeasures_3005_df_b$Plant_Heig)
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = Plant_Heig, y = Fruit_Coun, colour = factor(ID3))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Plant Height (cm)",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = Plant_Heig, y = Fruit_Coun) ) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Plant Height (cm)",
+        y = "Fruit Abundance") 
+```
+
+```{r}
+Huck_RepeatedMeasures_3005_df_b$Species_Co<-as.numeric(Huck_RepeatedMeasures_3005_df_b$Species_Co)
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = Species_Co, y = Fruit_Coun, colour = factor(ID3))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Plant Cover (%)",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = Species_Co, y = Fruit_Coun) ) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Plant Cover (%)",
+        y = "Fruit Abundance") 
+```
+
+Canopy Cover.
+```{r}
+Huck_RepeatedMeasures_3005_df_b$Canopy_Cov<-as.numeric(Huck_RepeatedMeasures_3005_df_b$Canopy_Cov)
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = Canopy_Cov, y = Fruit_Coun, colour = factor(ID3))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Canopy Cover (%)",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = Canopy_Cov, y = Fruit_Coun) ) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Canopy Cover (%)",
+        y = "Fruit Abundance") 
+```
+
+Soil characteristics. Except these will be the same for each location across years.
+
+```{r}
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = tsand_3005, y = Fruit_Coun) ) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Sand",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = cofrag_3005, y = Fruit_Coun) ) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Coarse Fragments",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = orgcarb_3005, y = Fruit_Coun) ) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Organic Carbon",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = ph2_3005, y = Fruit_Coun) ) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "pH",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = tsilt_3005, y = Fruit_Coun) ) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Silt",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = tclay_3005, y = Fruit_Coun) ) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Clay",
+        y = "Fruit Abundance") 
+```
+
+DEM (also same between years).
+
+```{r}
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = dem_ha_bc, y = Fruit_Coun) ) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Elevation",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = slope_ha_bc_3005, y = Fruit_Coun) ) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Slope",
+        y = "Fruit Abundance") 
+
+ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = aspect_ha_bc_3005, y = Fruit_Coun) ) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(legend.position="none") +
+  labs (
+        x = "Aspect",
         y = "Fruit Abundance") 
 ```
 
