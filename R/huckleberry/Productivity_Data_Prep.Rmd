@@ -96,15 +96,32 @@ Consider getting climatic variables at time t, t-1, t-2 (for berry production) a
 #Dataset #1: Clayton Lamb and Garth Mowat data on huckleberry and Buffaloberry
 This data has P/A of plants and of berries, and P/A of fruits and of berries. There is also a measure of sugar content (energetics) and other potentially useful and interesting response variables. This data has information for both huckleberry and buffalobery.
 ```{r}
-cutblock_plots_openings_productivity_huck<- st_read ( dsn = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_huckleberry_cutblocks_RESULTS.shp", stringsAsFactors = T) #986 observations
-str(cutblock_plots_openings_productivity_huck) #381 observations
+cutblock_plots_openings_productivity_huck<- st_read ( dsn = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\Clayton_data_Huck_Cutblocks and RESULTS2.shp", stringsAsFactors = T) #986 observations
+str(cutblock_plots_openings_productivity_huck) #230 observations
 
 head(cutblock_plots_openings_productivity_huck)
 
 st_crs(cutblock_plots_openings_productivity_huck)
 plot(cutblock_plots_openings_productivity_huck)
-table(cutblock_plots_openings_productivity_huck$Site_ID) 
+table(cutblock_plots_openings_productivity_huck$ID2) 
 ```
+
+Extrapolate berry abundance from 1 m-square plots as in data to 100 m-square plots like in subsequent Mackenzie data.
+
+```{r}
+cutblock_plots_openings_productivity_huck$Fruit.Abun.100<-(cutblock_plots_openings_productivity_huck$Fruit.Abun*cutblock_plots_openings_productivity_huck$Species.Co)
+
+hist(cutblock_plots_openings_productivity_huck$Fruit.Abun.100)
+cutblock_plots_openings_productivity_huck$Fruit.Abun.100 #283 data points
+
+#Ensure all whole numbers
+cutblock_plots_openings_productivity_huck$Fruit.Abun.100<-round(cutblock_plots_openings_productivity_huck$Fruit.Abun.100,0)
+cutblock_plots_openings_productivity_huck$Fruit.Abun.100
+
+hist(cutblock_plots_openings_productivity_huck$Fruit.Abun.100)
+
+```
+
 
 ```{r}
 DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
@@ -159,7 +176,6 @@ str(test)
 
 cutblock_plots_openings_productivity_huck<-test
 
-
 ```
 
 This data already has Soils data (complements of Clayton Lamb), so no need to append that data (will in datasets below).
@@ -172,257 +188,150 @@ Now, remove spatial elements and turn into dataframe, where we can then bring in
 cutblock_plots_openings_productivity_huck_df<-st_drop_geometry(cutblock_plots_openings_productivity_huck)
 head(cutblock_plots_openings_productivity_huck_df)
 
-write.csv(cutblock_plots_openings_productivity_huck_df, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_cutblocks_DEM_Huckleberry.csv")
+write.csv(cutblock_plots_openings_productivity_huck_df, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_cutblocks_DEM_Huckleberry_March28.csv")
 
 ```
 
-Take file and modify in excel to get unique ID values to append for Climate data, and to update the current climate variables to have a "_0" at the end to represent that these climate variables pertain to the year of collection. While here, I also created columns for the years and months in which PREP1 and PREP2 occured to better estimate when mechanical disturbance occurred for number of years since logging began, and for seasonality.
+Take file and modify in excel to get unique ID values to append for Climate data. While here, I also created columns for the years and months in which PREP1 and PREP2 occured to better estimate when mechanical disturbance occurred for number of years since logging began, and for seasonality. No need to update climate data to have "_0" at end because does not have monthly values, so need to acquire with ClimateBC anyway.
 
 Load back in.
 ```{r}
-cutblock_plots_openings_productivity_huck_df<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_cutblocks_DEM_Huckleberry_B.csv")
+cutblock_plots_openings_productivity_huck_df<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_cutblocks_DEM_Huckleberry_March28b.csv")
 head(cutblock_plots_openings_productivity_huck_df)
 table(cutblock_plots_openings_productivity_huck_df$Species)
+
+
 ```
-
-
-
-#########START HERE! GET CLIMATEBC DATA!!!##############
-
 
 Once the above has been run through ClimateBC for the year of the data, the year prior, and 2 years prior for annual and seasonal variables, we will bring these files back in, append them to each other, and then append to our dataset above. Note that the conditions in the year of collection should already be present, and these do not need to be brought in at this time for this dataset.
-
-First, let's bring in the decadal normal values.
-
-After using many combinations of Project, Site.ID, Species and longitude, we end up with duplicates despite each data set having the same number of rows. Thus, at the end, we must remove the duplicates.
-
-```{r}
-HuckBuff_Clayton_Normal<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_HuckBuff_Decade_2011_2020Y.csv")
-head(HuckBuff_Clayton_Normal) #986 observations - this matches productivity data
-
-
-#Try to round to ensure matching correctly
-HuckBuff_Clayton_Normal$Long2<-round(HuckBuff_Clayton_Normal$Longitude, 4)
-HuckBuff_Clayton_Normal$Long2
-
-#HuckBuff_Clayton_Normal$ID2<-paste(HuckBuff_Clayton_Normal$Project, HuckBuff_Clayton_Normal$Species,HuckBuff_Clayton_Normal$Long2)
-#HuckBuff_Clayton_Normal$ID2
-
-cutblock_plots_openings_productivity_huck_df$Long2<-round(cutblock_plots_openings_productivity_huck_df$coords_x1DD[,1], 4)
-
-cutblock_plots_openings_productivity_huck_df$Long2
-table(cutblock_plots_openings_productivity_huck_df$Long2)
-
-##ID
-HuckBuff_Clayton_Normal$ID3<-paste(HuckBuff_Clayton_Normal$Site.ID, HuckBuff_Clayton_Normal$Species, HuckBuff_Clayton_Normal$Long2)
-#HuckBuff_Clayton_Normal$ID3
-table(HuckBuff_Clayton_Normal$ID3) #
-
-cutblock_plots_openings_productivity_huck_df$ID3<-paste(cutblock_plots_openings_productivity_huck_df$Site.ID, cutblock_plots_openings_productivity_huck_df$Species, cutblock_plots_openings_productivity_huck_df$Long2)
-#cutblock_plots_openings_productivity_huck_df$ID3 
-table(cutblock_plots_openings_productivity_huck_df$ID3)
-
-
-cutblock_plots_openings_productivity_huck_df2<-left_join(cutblock_plots_openings_productivity_huck_df, HuckBuff_Clayton_Normal, by="ID3")
-
-head(cutblock_plots_openings_productivity_huck_df2) #399 - gained 18 extra. Something went wrong.
-table(cutblock_plots_openings_productivity_huck_df2$ID3)
-```
-
-If have duplicates, run below.
-```{r}
-duplicated(cutblock_plots_openings_productivity_huck_df2)
-
-cutblock_plots_openings_productivity_huck_df2b<- cutblock_plots_openings_productivity_huck_df2 %>% distinct()
-
-head(cutblock_plots_openings_productivity_huck_df2b) #381 data points, good
-cutblock_plots_openings_productivity_huck_df2<-cutblock_plots_openings_productivity_huck_df2b
-
-```
-
-Compare with the values provided in dataset to ensure not identical (assuming Clayton's data had specific year climate data)
-
-```{r}
-cutblock_plots_openings_productivity_huck_df2$Tave_at #I am not sure what these units are
-
-cutblock_plots_openings_productivity_huck_df2$Tave_at_dec #Some NAs. Probably rom dropping the wrong one in the repeat. Fix.
-
-```
-
-Now bring in the datasets for each year.
 
 #2013
 ```{r}
 #Huckleberry
-huck_Clayton_2013_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Huck_2013_Year_2012SY.csv")
+huck_Clayton_2013_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2013_Year_2013MSY.csv")
+head(huck_Clayton_2013_0)
+
+huck_Clayton_2013_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2013_Year_2012MSY.csv")
 head(huck_Clayton_2013_1)
 
-huck_Clayton_2013_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Huck_2013_Year_2011SY.csv")
+huck_Clayton_2013_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2013_Year_2011MSY.csv")
+head(huck_Clayton_2013_2)
 
-huck_Clayton_2013<-cbind(huck_Clayton_2013_1, huck_Clayton_2013_2)
+huck_Clayton_2013<-cbind(huck_Clayton_2013_0, huck_Clayton_2013_1, huck_Clayton_2013_2)
 head(huck_Clayton_2013)
 names(huck_Clayton_2013)
-huck_Clayton_2013<-huck_Clayton_2013[-(91:95)]
+huck_Clayton_2013<-huck_Clayton_2013[-(541:545)]
+huck_Clayton_2013<-huck_Clayton_2013[-(271:275)]
 
-#Buffaloberry
-Buff_Clayton_2013_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Buff_2013_Year_2012SY.csv")
-head(Buff_Clayton_2013_1)
-
-Buff_Clayton_2013_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Buff_2013_Year_2011SY.csv")
-
-Buff_Clayton_2013<-cbind(Buff_Clayton_2013_1, Buff_Clayton_2013_2)
-head(Buff_Clayton_2013)
-names(Buff_Clayton_2013)
-Buff_Clayton_2013<-Buff_Clayton_2013[-(91:95)]
-
-HuckBuff_Clayton_13<-rbind(huck_Clayton_2013, Buff_Clayton_2013)
-head(HuckBuff_Clayton_13)
-table(HuckBuff_Clayton_13$Species)
 ```
 
 #2014
+In newest data there is no longer any 2014 data with berry abundance information.
 ```{r}
 #Huckleberry
-huck_Clayton_2014_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Huck_2014_Year_2013SY.csv")
-head(huck_Clayton_2014_1)
+#huck_Clayton_2014_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2014_Year_2013MSY.csv")
+#head(huck_Clayton_2014_1)
 
-huck_Clayton_2014_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Huck_2014_Year_2012SY.csv")
+#huck_Clayton_2014_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2014_Year_2012MSY.csv")
 
-huck_Clayton_2014<-cbind(huck_Clayton_2014_1, huck_Clayton_2014_2)
-head(huck_Clayton_2014)
-names(huck_Clayton_2014)
-huck_Clayton_2014<-huck_Clayton_2014[-(91:95)]
+#huck_Clayton_2014<-cbind(huck_Clayton_2014_1, huck_Clayton_2014_2)
+#head(huck_Clayton_2014)
+#names(huck_Clayton_2014)
+#huck_Clayton_2014<-huck_Clayton_2014[-(271:275)]
 
-#Buffaloberry
-Buff_Clayton_2014_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Buff_2014_Year_2013SY.csv")
-head(Buff_Clayton_2014_1)
-
-Buff_Clayton_2014_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Buff_2014_Year_2012SY.csv")
-
-Buff_Clayton_2014<-cbind(Buff_Clayton_2014_1, Buff_Clayton_2014_2)
-head(Buff_Clayton_2014)
-names(Buff_Clayton_2014)
-Buff_Clayton_2014<-Buff_Clayton_2014[-(91:95)]
-
-HuckBuff_Clayton_14<-rbind(huck_Clayton_2014, Buff_Clayton_2014)
-head(HuckBuff_Clayton_14)
-table(HuckBuff_Clayton_14$Species)
 ```
 
 #2015
+In newest data there is no longer any 2015 data with berry abundance information.
 ```{r}
 #Huckleberry
-huck_Clayton_2015_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Huck_2015_Year_2014SY.csv")
-head(huck_Clayton_2015_1)
+#huck_Clayton_2015_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2015_Year_2014MSY.csv")
+#head(huck_Clayton_2015_1)
 
-huck_Clayton_2015_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Huck_2015_Year_2013SY.csv")
+#huck_Clayton_2015_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2015_Year_2013MSY.csv")
 
-huck_Clayton_2015<-cbind(huck_Clayton_2015_1, huck_Clayton_2015_2)
-head(huck_Clayton_2015)
-names(huck_Clayton_2015)
-huck_Clayton_2015<-huck_Clayton_2015[-(91:95)]
+#huck_Clayton_2015<-cbind(huck_Clayton_2015_1, huck_Clayton_2015_2)
+#head(huck_Clayton_2015)
+#names(huck_Clayton_2015)
+#huck_Clayton_2015<-huck_Clayton_2015[-(271:275)]
 
-#Buffaloberry
-Buff_Clayton_2015_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Buff_2015_Year_2014SY.csv")
-head(Buff_Clayton_2015_1)
-
-Buff_Clayton_2015_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Buff_2015_Year_2013SY.csv")
-
-Buff_Clayton_2015<-cbind(Buff_Clayton_2015_1, Buff_Clayton_2015_2)
-head(Buff_Clayton_2015)
-names(Buff_Clayton_2015)
-Buff_Clayton_2015<-Buff_Clayton_2015[-(91:95)]
-
-HuckBuff_Clayton_15<-rbind(huck_Clayton_2015, Buff_Clayton_2015)
-head(HuckBuff_Clayton_15)
-table(HuckBuff_Clayton_15$Species)
 ```
 
 #2016
 ```{r}
 #Huckleberry
-huck_Clayton_2016_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Huck_2016_Year_2015SY.csv")
+huck_Clayton_2016_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2016_Year_2016MSY.csv")
+head(huck_Clayton_2016_0)
+
+huck_Clayton_2016_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2016_Year_2015MSY.csv")
 head(huck_Clayton_2016_1)
 
-huck_Clayton_2016_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Huck_2016_Year_2014SY.csv")
+huck_Clayton_2016_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2016_Year_2014MSY.csv")
+head(huck_Clayton_2016_2)
 
-huck_Clayton_2016<-cbind(huck_Clayton_2016_1, huck_Clayton_2016_2)
+huck_Clayton_2016<-cbind(huck_Clayton_2016_0, huck_Clayton_2016_1, huck_Clayton_2016_2)
 head(huck_Clayton_2016)
 names(huck_Clayton_2016)
-huck_Clayton_2016<-huck_Clayton_2016[-(91:95)]
+huck_Clayton_2016<-huck_Clayton_2016[-(541:545)]
+huck_Clayton_2016<-huck_Clayton_2016[-(271:275)]
 
-#Buffaloberry
-Buff_Clayton_2016_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Buff_2016_Year_2015SY.csv")
-head(Buff_Clayton_2016_1)
-
-Buff_Clayton_2016_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Buff_2016_Year_2014SY.csv")
-
-Buff_Clayton_2016<-cbind(Buff_Clayton_2016_1, Buff_Clayton_2016_2)
-head(Buff_Clayton_2016)
-names(Buff_Clayton_2016)
-Buff_Clayton_2016<-Buff_Clayton_2016[-(91:95)]
-
-HuckBuff_Clayton_16<-rbind(huck_Clayton_2016, Buff_Clayton_2016)
-head(HuckBuff_Clayton_16)
-table(HuckBuff_Clayton_16$Species)
 ```
 
 #2017
 ```{r}
 #Huckleberry
-huck_Clayton_2017_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Huck_2017_Year_2016SY.csv")
+huck_Clayton_2017_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2017_Year_2017MSY.csv")
+head(huck_Clayton_2017_0)
+
+huck_Clayton_2017_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2017_Year_2016MSY.csv")
 head(huck_Clayton_2017_1)
 
-huck_Clayton_2017_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Huck_2017_Year_2015SY.csv")
+huck_Clayton_2017_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2017_Year_2015MSY.csv")
+head(huck_Clayton_2017_2)
 
-huck_Clayton_2017<-cbind(huck_Clayton_2017_1, huck_Clayton_2017_2)
+huck_Clayton_2017<-cbind(huck_Clayton_2017_0, huck_Clayton_2017_1, huck_Clayton_2017_2)
 head(huck_Clayton_2017)
 names(huck_Clayton_2017)
-huck_Clayton_2017<-huck_Clayton_2017[-(91:95)]
+huck_Clayton_2017<-huck_Clayton_2017[-(541:545)]
+huck_Clayton_2017<-huck_Clayton_2017[-(271:275)]
 ```
 
 #2018
 ```{r}
 #Huckleberry
-huck_Clayton_2018_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Huck_2018_Year_2017SY.csv")
+huck_Clayton_2018_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2018_Year_2018MSY.csv")
+head(huck_Clayton_2018_0)
+
+huck_Clayton_2018_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2018_Year_2017MSY.csv")
 head(huck_Clayton_2018_1)
 
-huck_Clayton_2018_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_Data_Coord_ClimateBC\\Clayton_OPENINGS_coords_Huck_2018_Year_2016SY.csv")
+huck_Clayton_2018_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2018_Year_2016MSY.csv")
+head(huck_Clayton_2018_2)
 
-huck_Clayton_2018<-cbind(huck_Clayton_2018_1, huck_Clayton_2018_2)
+huck_Clayton_2018<-cbind(huck_Clayton_2018_0, huck_Clayton_2018_1, huck_Clayton_2018_2)
 head(huck_Clayton_2018)
 names(huck_Clayton_2018)
-huck_Clayton_2018<-huck_Clayton_2018[-(91:95)]
+huck_Clayton_2018<-huck_Clayton_2018[-(541:545)]
+huck_Clayton_2018<-huck_Clayton_2018[-(271:275)]
 ```
 
 Combine the data sets together.
 
 ```{r}
-HuckBuff_climate_data<-rbind(huck_Clayton_2018, huck_Clayton_2017, HuckBuff_Clayton_16, HuckBuff_Clayton_15, HuckBuff_Clayton_14, HuckBuff_Clayton_13)
+#huck_climate_data<-rbind(huck_Clayton_2018, huck_Clayton_2017, huck_Clayton_2016, huck_Clayton_2015, huck_Clayton_2014, huck_Clayton_2013)
 
-head(HuckBuff_climate_data)
+huck_climate_data<-rbind(huck_Clayton_2018, huck_Clayton_2017, huck_Clayton_2016, huck_Clayton_2013)
+
+head(huck_climate_data)
+names(huck_climate_data)
   
-names(HuckBuff_climate_data)
-  
-HuckBuff_climate_data$Long2<-round(HuckBuff_climate_data$Longitude, 4)
+#Join data
+cutblock_plots_openings_productivity_huck_df_climate<-left_join(cutblock_plots_openings_productivity_huck_df, huck_climate_data, by="ID2") #238 pbservations as expected
+head(cutblock_plots_openings_productivity_huck_df_climate) 
 
-#Create the same ID column as prior  
-HuckBuff_climate_data$ID3<-paste(HuckBuff_climate_data$Site.ID, HuckBuff_climate_data$Species, HuckBuff_climate_data$Long2)
-table(HuckBuff_climate_data$ID3)
-head(HuckBuff_climate_data)
-
-cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3<-left_join(cutblock_plots_openings_productivity_huck_df2, HuckBuff_climate_data, by="ID3")
-head(cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3)
-```
-
-
-```{r}
-duplicated(cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3)
-cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3b<- cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3 %>% distinct() #Back to expected 986 data rows
-
-head(cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3b)
-##Note that the climate in the year of data collection here does not have a"_0" afterwards, whereas subsequent data files do have "_0". This will need to be updated.
-
+#Test random variable
+cutblock_plots_openings_productivity_huck_df_climate$PPT01_1
+cutblock_plots_openings_productivity_huck_df_climate$Species
 ```
 
 Add heatload as a form of solar radiation. Equation and methodology taken from here: https://www.davidzeleny.net/anadat-r/doku.php/en:customized_functions:heatload
@@ -452,34 +361,361 @@ heatload <- function (aspect, slope, latitude, method = 'heatload', units = 'deg
 ```
 
 ```{r}
-cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3b$heatload <- heatload (aspect = cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3b$aspect_ha_bc, slope = cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3b$slope_ha_bc, latitude = cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3b$Latitude.x, equation = 3)
+cutblock_plots_openings_productivity_huck_df_climate$heatload <- heatload (aspect = cutblock_plots_openings_productivity_huck_df_climate$aspect_ha_bc_3005, slope = cutblock_plots_openings_productivity_huck_df_climate$slope_ha_bc_3005, latitude = cutblock_plots_openings_productivity_huck_df_climate$Latitude, equation = 3)
  
-cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3b$heatload 
-hist(cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3b$heatload)
+cutblock_plots_openings_productivity_huck_df_climate$heatload 
+hist(cutblock_plots_openings_productivity_huck_df_climate$heatload)
 
 ```
 
 Some other investigations.
 ```{r}
-cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3b$Fruit.Abun #Mostly NAs, even for locations where it indicated that fruit was present.
-table(cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3b$CutBlock_O) #829 were in cutblocks
+cutblock_plots_openings_productivity_huck_df_climate$Fruit.Abun.100
+table(cutblock_plots_openings_productivity_huck_df_climate$CutBlock_O) #Indicated that 13 were not in cutblocks- investigate
+
+Clayton_no_CB<-subset(cutblock_plots_openings_productivity_huck_df_climate, cutblock_plots_openings_productivity_huck_df_climate$CutBlock_O==0)
+head(Clayton_no_CB)
+table(Clayton_no_CB$YEAR, Clayton_no_CB$DST_STR_DT) #Many were cut in subsequent years; all 2016 cutblocks onwards in this subset can be removed. Investigate others.
+
+library(stringi)
+Clayton_no_CB$Cutblock_Year<-stri_sub(Clayton_no_CB$DST_STR_DT,1,4)
+Clayton_no_CB2<-subset(Clayton_no_CB, Clayton_no_CB$Cutblock_Year<2016)
+Clayton_no_CB2
+Clayton_no_CB2$PREP1_TECH #Some have info, others not. 
+
+#Let's remove the original 0s from the data, and then re-append the info that is not blank here.
+Clayton_no_CB2$PREP1_TECH<-as.factor(Clayton_no_CB2$PREP1_TECH)
+Clayton_no_CB3<-subset(Clayton_no_CB2, Clayton_no_CB2$PREP1_TECH!="NA")
+str(Clayton_no_CB3)
+Clayton_no_CB3$PREP1_TECH #Left with just one that was burned.
+
+#Note, when looking on QGIS, ID2 of 3019 just on edge of cutblock and should be included.
 
 ```
 
 
+```{r}
+library(stringi)
+cutblock_plots_openings_productivity_huck_df_climate$Cutblock_Year<-stri_sub(cutblock_plots_openings_productivity_huck_df_climate$DST_STR_DT,1,4)
+
+cutblock_plots_openings_productivity_huck_df_climate<-subset(cutblock_plots_openings_productivity_huck_df_climate, cutblock_plots_openings_productivity_huck_df_climate$CutBlock_O=="1")
+
+cutblock_plots_openings_productivity_huck_df_climate2<-rbind(cutblock_plots_openings_productivity_huck_df_climate, Clayton_no_CB3)
+
+str(cutblock_plots_openings_productivity_huck_df_climate2) #226 observations
+
+cutblock_plots_openings_productivity_huck_df_climate<-cutblock_plots_openings_productivity_huck_df_climate2
+```
+
 
 Save file with processed data. 
 ```{r}
-write.csv(cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3b, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3b.csv")
+write.csv(cutblock_plots_openings_productivity_huck_df_climate2, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_huck_df_climate_March28.csv")
 ```
 
 
 If need to load back in:
 ```{r}
-cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3b<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3b.csv")
-head(cutblock_plots_openings_productivity_huck_HuckBuff_ALL_df3b)
+cutblock_plots_openings_productivity_huck_df_climate<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_huck_df_climate_March28.csv")
+head(cutblock_plots_openings_productivity_huck_df_climate)
 
 ```
+
+##Repeat for Buffaloberry####
+```{r}
+cutblock_plots_openings_productivity_buff<- st_read ( dsn = "C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\Clayton_data_Buff_Cutblocks and RESULTS3.shp", stringsAsFactors = T) #986 observations
+str(cutblock_plots_openings_productivity_buff) #89 observations
+
+head(cutblock_plots_openings_productivity_buff)
+
+st_crs(cutblock_plots_openings_productivity_buff)
+plot(cutblock_plots_openings_productivity_buff)
+table(cutblock_plots_openings_productivity_buff$Site.ID)
+```
+
+```{r}
+#DEM layer = rasStack
+crs(rasStack) #3005
+head(rasStack)
+str(rasStack)
+extent(rasStack)
+
+crs(cutblock_plots_openings_productivity_buff)
+
+cutblock_plots_openings_productivity_buff$coords_x1<-st_coordinates(cutblock_plots_openings_productivity_buff)
+head(cutblock_plots_openings_productivity_buff)
+
+pointCoordinates<-data.frame(cutblock_plots_openings_productivity_buff$coords.x1, cutblock_plots_openings_productivity_buff$coords.x2)
+head(pointCoordinates)
+
+DEM_buff1=raster::extract(rasStack, pointCoordinates)
+head(DEM_buff1)
+
+#Append
+cutblock_plots_openings_productivity_buff<-cbind(cutblock_plots_openings_productivity_buff, DEM_buff1)
+head(cutblock_plots_openings_productivity_buff)
+```
+
+Get coordinates in decimal degrees for ClimateBC to get data at t-1 and t-2.
+
+```{r}
+crs(cutblock_plots_openings_productivity_buff)
+
+test<-st_transform(cutblock_plots_openings_productivity_buff, crs="+proj=longlat  +datum=NAD83")
+crs(test)
+head(test)
+
+test$coords_x1DD<-st_coordinates(test)
+head(test)
+
+pointCoordinatesDD<-data.frame(test$coords_x1DD[,1], test$coords_x1DD[,2])
+head(pointCoordinatesDD)
+
+head(test)
+str(test)
+
+cutblock_plots_openings_productivity_buff<-test
+
+
+```
+
+This data already has Soils data (complements of Clayton Lamb), so no need to append that data (will in datasets below).
+
+This data also already has canopy cover, time since wildfire and RESULTS OPENINGS data appended.
+
+Now, remove spatial elements and turn into dataframe, where we can then bring in the ClimateBC data for years t, t-1 and t-2 to append.
+
+```{r}
+cutblock_plots_openings_productivity_buff_df<-st_drop_geometry(cutblock_plots_openings_productivity_buff)
+head(cutblock_plots_openings_productivity_buff_df)
+
+write.csv(cutblock_plots_openings_productivity_buff_df, file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_cutblocks_DEM_buffaloberry_March28.csv")
+
+```
+
+Take file and modify in excel to get unique ID values to append for Climate data.  While here, I also created columns for the years and months in which PREP1 and PREP2 occured to better estimate when mechanical disturbance occurred for number of years since logging began, and for seasonality.
+
+Load back in.
+```{r}
+cutblock_plots_openings_productivity_buff_df<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_cutblocks_DEM_buffaloberry_March28b.csv")
+head(cutblock_plots_openings_productivity_buff_df)
+table(cutblock_plots_openings_productivity_buff_df$Species)
+table(cutblock_plots_openings_productivity_buff_df$YEAR) #Only 2013 and 2016
+```
+
+Once the above has been run through ClimateBC for the year of the data, the year prior, and 2 years prior for annual and seasonal variables, we will bring these files back in, append them to each other, and then append to our dataset above. Note that the conditions in the year of collection should already be present, and these do not need to be brought in at this time for this dataset.
+
+#2013
+```{r}
+#buffaloberry
+buff_Clayton_2013_0<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Buff_Clayton\\Clayton_BUFF_Climate_2013_Year_2013MSY.csv")
+head(buff_Clayton_2013_0)
+
+buff_Clayton_2013_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Buff_Clayton\\Clayton_BUFF_Climate_2013_Year_2012MSY.csv")
+head(buff_Clayton_2013_1)
+
+buff_Clayton_2013_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Buff_Clayton\\Clayton_BUFF_Climate_2013_Year_2011MSY.csv")
+head(buff_Clayton_2013_2)
+
+buff_Clayton_2013<-cbind(buff_Clayton_2013_0, buff_Clayton_2013_1, buff_Clayton_2013_2)
+head(buff_Clayton_2013)
+names(buff_Clayton_2013)
+buff_Clayton_2013<-buff_Clayton_2013[-(541:545)]
+buff_Clayton_2013<-buff_Clayton_2013[-(271:275)]
+
+```
+
+#2014
+New data only had 2013 and 2016.
+```{r}
+#buffaloberry
+#buff_Clayton_2014_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2014_Year_2013MSY.csv")
+#head(buff_Clayton_2014_1)
+
+#buff_Clayton_2014_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2014_Year_2012MSY.csv")
+
+#buff_Clayton_2014<-cbind(buff_Clayton_2014_1, buff_Clayton_2014_2)
+#head(buff_Clayton_2014)
+#names(buff_Clayton_2014)
+#buff_Clayton_2014<-buff_Clayton_2014[-(271:275)]
+
+```
+
+#2015
+New data only had 2013 and 2016.
+```{r}
+#buffaloberry
+#buff_Clayton_2015_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2015_Year_2014MSY.csv")
+#head(buff_Clayton_2015_1)
+
+#buff_Clayton_2015_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2015_Year_2013MSY.csv")
+
+#buff_Clayton_2015<-cbind(buff_Clayton_2015_1, buff_Clayton_2015_2)
+#head(buff_Clayton_2015)
+#names(buff_Clayton_2015)
+#buff_Clayton_2015<-buff_Clayton_2015[-(271:275)]
+
+```
+
+#2016
+```{r}
+#buffaloberry
+buff_Clayton_2016_0<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Buff_Clayton\\Clayton_BUFF_Climate_2016_Year_2016MSY.csv")
+head(buff_Clayton_2016_0)
+
+buff_Clayton_2016_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Buff_Clayton\\Clayton_BUFF_Climate_2016_Year_2015MSY.csv")
+head(buff_Clayton_2016_1)
+
+buff_Clayton_2016_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Buff_Clayton\\Clayton_BUFF_Climate_2016_Year_2014MSY.csv")
+head(buff_Clayton_2016_2)
+
+buff_Clayton_2016<-cbind(buff_Clayton_2016_0, buff_Clayton_2016_1, buff_Clayton_2016_2)
+head(buff_Clayton_2016)
+names(buff_Clayton_2016)
+buff_Clayton_2016<-buff_Clayton_2016[-(541:545)]
+buff_Clayton_2016<-buff_Clayton_2016[-(271:275)]
+
+```
+
+#2017
+New data only had 2013 and 2016.
+```{r}
+#buffaloberry
+#buff_Clayton_2017_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2017_Year_2016MSY.csv")
+#head(buff_Clayton_2017_1)
+
+#buff_Clayton_2017_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2017_Year_2015MSY.csv")
+
+#buff_Clayton_2017<-cbind(buff_Clayton_2017_1, buff_Clayton_2017_2)
+#head(buff_Clayton_2017)
+#names(buff_Clayton_2017)
+#buff_Clayton_2017<-buff_Clayton_2017[-(271:275)]
+```
+
+#2018
+New data only had 2013 and 2016.
+```{r}
+#buffaloberry
+#buff_Clayton_2018_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2018_Year_2017MSY.csv")
+#head(buff_Clayton_2018_1)
+
+#buff_Clayton_2018_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2018_Year_2016MSY.csv")
+
+#buff_Clayton_2018<-cbind(buff_Clayton_2018_1, buff_Clayton_2018_2)
+#head(buff_Clayton_2018)
+#names(buff_Clayton_2018)
+#buff_Clayton_2018<-buff_Clayton_2018[-(271:275)]
+```
+
+Combine the data sets together.
+
+```{r}
+buff_climate_data<-rbind(buff_Clayton_2016, buff_Clayton_2013)
+
+head(buff_climate_data)
+names(buff_climate_data)
+  
+#Join data
+cutblock_plots_openings_productivity_buff_df_climate<-left_join(cutblock_plots_openings_productivity_buff_df, buff_climate_data, by="ID2")
+head(cutblock_plots_openings_productivity_buff_df_climate) 
+
+#Test random variable
+cutblock_plots_openings_productivity_buff_df_climate$PPT01_1
+cutblock_plots_openings_productivity_buff_df_climate$Species
+```
+
+Add heatload as a form of solar radiation. Equation and methodology taken from here: https://www.davidzeleny.net/anadat-r/doku.php/en:customized_functions:heatload
+
+```{r}
+# Function "heatload"
+# Calculates heat load or potential annual direct incident radiation, using the formulas published in 
+# McCune & Keon (2002) based on aspect, slope and latitude.
+ 
+heatload <- function (aspect, slope, latitude, method = 'heatload', units = 'degrees', equation = 1)
+{
+  if (units == 'degrees')   # convert degrees to radians
+    {
+    aspect <- aspect/180*pi
+    slope <- slope/180*pi
+    aspect[slope == 0] <- 0
+    latitude <- latitude/180*pi
+    }  
+  A <- if (method == 'heatload') abs (pi - abs (aspect - (5*pi/4))) else pi - abs (aspect-pi)
+  S <- slope
+  L <- if (length (latitude) == 1) rep (latitude, length (A)) else latitude
+  if (equation == 1) res <- exp (-1.467 +1.582*cos(L)*cos(S) -1.500*cos(A)*sin(S)*sin(L) -0.262*sin(L)*sin(S) +0.607*sin(A)*sin(S))
+  if (equation == 2) res <- exp (-1.236 +1.350*cos(L)*cos(S) -1.376*cos(A)*sin(S)*sin(L) -0.331*sin(L)*sin(S) +0.375*sin(A)*sin(S))
+  if (equation == 3) res <-      +0.339 +0.808*cos(L)*cos(S)                             -0.196*sin(L)*sin(S)                       - 0.482*cos(A)*sin(S)
+  return (res)
+}
+```
+
+```{r}
+cutblock_plots_openings_productivity_buff_df_climate$heatload <- heatload (aspect = cutblock_plots_openings_productivity_buff_df_climate$aspect_ha_bc_3005, slope = cutblock_plots_openings_productivity_buff_df_climate$slope_ha_bc_3005, latitude = cutblock_plots_openings_productivity_buff_df_climate$Latitude, equation = 3)
+ 
+cutblock_plots_openings_productivity_buff_df_climate$heatload 
+hist(cutblock_plots_openings_productivity_buff_df_climate$heatload)
+
+```
+
+Some other investigations.
+```{r}
+cutblock_plots_openings_productivity_buff_df_climate$Fruit.Abun 
+table(cutblock_plots_openings_productivity_buff_df_climate$CutBlock_O) #Indicated that 8 were not in cutblocks- investigate
+
+Clayton_no_CB<-subset(cutblock_plots_openings_productivity_buff_df_climate, cutblock_plots_openings_productivity_buff_df_climate$CutBlock_O==0)
+head(Clayton_no_CB)
+table(Clayton_no_CB$YEAR, Clayton_no_CB$DST_STR_DT) #Many were cut in subsequent years; all 2016 cutblocks onwards in this subset can be removed. Investigate others.
+
+library(stringi)
+Clayton_no_CB$Cutblock_Year<-stri_sub(Clayton_no_CB$DST_STR_DT,1,4)
+Clayton_no_CB2<-subset(Clayton_no_CB, Clayton_no_CB$Cutblock_Year<2016)
+Clayton_no_CB2
+Clayton_no_CB2$PREP1_TECH #Some have info, others not. 
+
+#Let's remove the original 0s from the data, and then re-append the info that is not blank here.
+Clayton_no_CB2$PREP1_TECH<-as.factor(Clayton_no_CB2$PREP1_TECH)
+Clayton_no_CB3<-subset(Clayton_no_CB2, Clayton_no_CB2$PREP1_TECH!="NA")
+str(Clayton_no_CB3)
+Clayton_no_CB3$PREP1_TECH 
+
+```
+
+
+```{r}
+cutblock_plots_openings_productivity_buff_df_climate<-subset(cutblock_plots_openings_productivity_buff_df_climate, cutblock_plots_openings_productivity_buff_df_climate$CutBlock_O=="1")
+
+str(cutblock_plots_openings_productivity_buff_df_climate) #89 observations; should have lost 8, unsure what happened
+table(cutblock_plots_openings_productivity_buff_df_climate$CutBlock_O)
+
+```
+
+```{r}
+cutblock_plots_openings_productivity_buff_df_climate$Fruit_Abun_100<-round(cutblock_plots_openings_productivity_buff_df_climate$Fruit_Abun_100,0)
+
+cutblock_plots_openings_productivity_buff_df_climate$Fruit_Abun_100
+```
+
+
+Save file with processed data. 
+```{r}
+write.csv(cutblock_plots_openings_productivity_buff_df_climate, file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_buff_df_climate_March28.csv")
+```
+
+Modify on own outside and then being back in.
+
+If need to load back in:
+```{r}
+cutblock_plots_openings_productivity_buff_df_climate<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_buff_df_climate_March28b.csv")
+head(cutblock_plots_openings_productivity_buff_df_climate)
+
+
+```
+
+
+
+
+
 
 
 #Dataset #2: Additional dataset from Laura Smit for Huckleberry 2011-2021. 
@@ -707,7 +943,7 @@ huck_Laura_2011<-cbind(huck_Laura_2011_0, huck_Laura_2011_1, huck_Laura_2011_2)
 head(huck_Laura_2011)
 names(huck_Laura_2011)
 huck_Laura_2011<-huck_Laura_2011[-(181:185)]
-huck_Laura_2011<-huck_Laura_2011[-(91:95)]
+huck_Laura_2011<-huck_Laura_2011[-(271:275)]
 huck_Laura_2011<-huck_Laura_2011[-5] #Remove elevation since unknown here
 
 #Add the Year back in for appending later
@@ -730,7 +966,7 @@ huck_Laura_2012<-cbind(huck_Laura_2012_0, huck_Laura_2012_1, huck_Laura_2012_2)
 head(huck_Laura_2012)
 names(huck_Laura_2012)
 huck_Laura_2012<-huck_Laura_2012[-(181:185)]
-huck_Laura_2012<-huck_Laura_2012[-(91:95)]
+huck_Laura_2012<-huck_Laura_2012[-(271:275)]
 huck_Laura_2012<-huck_Laura_2012[-5] #Remove elevation since unknown here
 
 #Add the Year back in for appending later
@@ -753,7 +989,7 @@ huck_Laura_2013<-cbind(huck_Laura_2013_0, huck_Laura_2013_1, huck_Laura_2013_2)
 head(huck_Laura_2013)
 names(huck_Laura_2013)
 huck_Laura_2013<-huck_Laura_2013[-(181:185)]
-huck_Laura_2013<-huck_Laura_2013[-(91:95)]
+huck_Laura_2013<-huck_Laura_2013[-(271:275)]
 huck_Laura_2013<-huck_Laura_2013[-5] #Remove elevation since unknown here
 
 #Add the Year back in for appending later
@@ -776,7 +1012,7 @@ huck_Laura_2014<-cbind(huck_Laura_2014_0, huck_Laura_2014_1, huck_Laura_2014_2)
 head(huck_Laura_2014)
 names(huck_Laura_2014)
 huck_Laura_2014<-huck_Laura_2014[-(181:185)]
-huck_Laura_2014<-huck_Laura_2014[-(91:95)]
+huck_Laura_2014<-huck_Laura_2014[-(271:275)]
 huck_Laura_2014<-huck_Laura_2014[-5] #Remove elevation since unknown here
 
 #Add the Year back in for appending later
@@ -799,7 +1035,7 @@ huck_Laura_2015<-cbind(huck_Laura_2015_0, huck_Laura_2015_1, huck_Laura_2015_2)
 head(huck_Laura_2015)
 names(huck_Laura_2015)
 huck_Laura_2015<-huck_Laura_2015[-(181:185)]
-huck_Laura_2015<-huck_Laura_2015[-(91:95)]
+huck_Laura_2015<-huck_Laura_2015[-(271:275)]
 huck_Laura_2015<-huck_Laura_2015[-5] #Remove elevation since unknown here
 
 #Add the Year back in for appending later
@@ -822,7 +1058,7 @@ huck_Laura_2016<-cbind(huck_Laura_2016_0, huck_Laura_2016_1, huck_Laura_2016_2)
 head(huck_Laura_2016)
 names(huck_Laura_2016)
 huck_Laura_2016<-huck_Laura_2016[-(181:185)]
-huck_Laura_2016<-huck_Laura_2016[-(91:95)]
+huck_Laura_2016<-huck_Laura_2016[-(271:275)]
 huck_Laura_2016<-huck_Laura_2016[-5] #Remove elevation since unknown here
 
 #Add the Year back in for appending later
@@ -845,7 +1081,7 @@ huck_Laura_2017<-cbind(huck_Laura_2017_0, huck_Laura_2017_1, huck_Laura_2017_2)
 head(huck_Laura_2017)
 names(huck_Laura_2017)
 huck_Laura_2017<-huck_Laura_2017[-(181:185)]
-huck_Laura_2017<-huck_Laura_2017[-(91:95)]
+huck_Laura_2017<-huck_Laura_2017[-(271:275)]
 huck_Laura_2017<-huck_Laura_2017[-5] #Remove elevation since unknown here
 
 #Add the Year back in for appending later
@@ -868,7 +1104,7 @@ huck_Laura_2018<-cbind(huck_Laura_2018_0, huck_Laura_2018_1, huck_Laura_2018_2)
 head(huck_Laura_2018)
 names(huck_Laura_2018)
 huck_Laura_2018<-huck_Laura_2018[-(181:185)]
-huck_Laura_2018<-huck_Laura_2018[-(91:95)]
+huck_Laura_2018<-huck_Laura_2018[-(271:275)]
 huck_Laura_2018<-huck_Laura_2018[-5] #Remove elevation since unknown here
 
 #Add the Year back in for appending later
@@ -891,7 +1127,7 @@ huck_Laura_2019<-cbind(huck_Laura_2019_0, huck_Laura_2019_1, huck_Laura_2019_2)
 head(huck_Laura_2019)
 names(huck_Laura_2019)
 huck_Laura_2019<-huck_Laura_2019[-(181:185)]
-huck_Laura_2019<-huck_Laura_2019[-(91:95)]
+huck_Laura_2019<-huck_Laura_2019[-(271:275)]
 huck_Laura_2019<-huck_Laura_2019[-5] #Remove elevation since unknown here
 
 #Add the Year back in for appending later
@@ -914,7 +1150,7 @@ huck_Laura_2020<-cbind(huck_Laura_2020_0, huck_Laura_2020_1, huck_Laura_2020_2)
 head(huck_Laura_2020)
 names(huck_Laura_2020)
 huck_Laura_2020<-huck_Laura_2020[-(181:185)]
-huck_Laura_2020<-huck_Laura_2020[-(91:95)]
+huck_Laura_2020<-huck_Laura_2020[-(271:275)]
 huck_Laura_2020<-huck_Laura_2020[-5] #Remove elevation since unknown here
 
 #Add the Year back in for appending later
@@ -947,7 +1183,7 @@ huck_Laura_2021<-cbind(huck_Laura_2021_1, huck_Laura_2021_2)
 head(huck_Laura_2021)
 names(huck_Laura_2021)
 #huck_Laura_2021<-huck_Laura_2021[-(181:185)]
-huck_Laura_2021<-huck_Laura_2021[-(91:95)]
+huck_Laura_2021<-huck_Laura_2021[-(271:275)]
 huck_Laura_2021<-huck_Laura_2021[-5] #Remove elevation since unknown here
 
 #Add the Year back in for appending later
@@ -1141,7 +1377,7 @@ Mowat_Buff_Climate$ID
 
 #Remove repeated columns
 Mowat_Buff_Climate<-Mowat_Buff_Climate[-(181:185)]
-Mowat_Buff_Climate<-Mowat_Buff_Climate[-(91:95)]
+Mowat_Buff_Climate<-Mowat_Buff_Climate[-(271:275)]
 
 head(Mowat_Buff_Climate)
 #174 variables
@@ -1446,76 +1682,6 @@ plot(Buff_Laura_df2$Berry.Coun.x, Buff_Laura_df2$Percent.Be.x)
 ```{r}
 Buff_Laura_df2$Canopy.Cov.x #Use this one
 Buff_Laura_df2$Canopy.Cov.y #Do not use this one - missing second half of data
-```
-
-
-
-
-
-
-
-
-#Datasets #5: BEC Plots
-This dataset has presence only values for each huckleberry and buffalo berry, and only presents the percent cover of the plant itself (not berries). This can be used best for percent cover models, but because does not have absence values, may be best only to use for percent cover.
-
-Currently, we only have the huckleberry data, but can acquire the buffaloberry data as well if we find it useful. Subsequent investigation does show that the percent cover is considerably less for these BEC plots than in the Clayton and Lamb data, and thus may not be comparable.
-
-```{r}
-
-cutblock_plots_openings_productivity_BECHuck<- st_read ( dsn = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\BEC_huck_Openings_duplicates_removed.shp", stringsAsFactors = T)
-head(cutblock_plots_openings_productivity_BECHuck)
-
-cutblock_plots_openings_productivity_activity_BECHuck<- st_read ( dsn = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\BEC_huck_Openings_Activity_duplicates_removed.shp", stringsAsFactors = T)
-
-```
-
-
-
-####################################
-
-##Remove Geometry for Processing Moving Forwards
-For processing below, we do not need these files to be spatial files. Turn them into dataframes and this will help speed up processing.
-
-```{r}
-
-cutblock_plots_openings_productivity_Huck_ALL_df<-st_drop_geometry(cutblock_plots_openings_productivity)
-
-cutblock_plots_openings_productivity_mowatBuff_df<-st_drop_geometry(cutblock_plots_openings_productivity_mowatBuff)
-
-cutblock_plots_openings_productivity_BECHuck_df<-st_drop_geometry(cutblock_plots_openings_productivity_BECHuck)
-
-```
-
-Save BEC data so can extract coordinates and append ClimateBC Data.
-
-```{r}
-names(cutblock_plots_openings_productivity_BECHuck_df)
-
-cutblock_plots_openings_productivity_BECHuck_df<-rename(cutblock_plots_openings_productivity_BECHuck_df,
-                   c("Aspect_reported"="Aspect",
-                     "Elevation_reported"="Elevation"))
-
-st_write(cutblock_plots_openings_productivity_BECHuck_df, dsn= "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\BEC_cutblock_plots_openings_productivity_BECHuck_df.csv")
-
-```
-
-#Bring back in and append
-
-```{r}
-BEC_ClimateBC_Data<-read.csv(file= "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\BEC_latlong_forCLIMATEBC_Normal_1991_2020SY.csv")
-head(BEC_ClimateBC_Data)
-
-
-#Rename ID1 and ID2
-head(cutblock_plots_openings_productivity_BECHuck_df)
-names(cutblock_plots_openings_productivity_BECHuck_df)
-BEC_ClimateBC_Data<-rename(BEC_ClimateBC_Data,
-                   c("ProjectID"="ID1",
-                     "PlotNumber"="ID2"))
-head(BEC_ClimateBC_Data)
-
-cutblock_plots_openings_productivity_BECHuck_df_<-merge(cutblock_plots_openings_productivity_BECHuck_df, BEC_ClimateBC_Data, by=c("ProjectID", "PlotNumber"))
-head(cutblock_plots_openings_productivity_BECHuck_df_)
 ```
 
 

@@ -40,6 +40,11 @@ library(caret)
 library(pROC)
 library(visreg)
 library(gtools)
+library(mgcv)
+library(lme4)
+library(forcats)
+library(vroom)
+library(stringi)
 ```
 
 #Overview
@@ -775,3 +780,144 @@ ggplot (Huck_RepeatedMeasures_3005_df_b, aes (x = aspect_ha_bc_3005, y = Fruit_C
         y = "Fruit Abundance") 
 ```
 
+try a quick analysis?
+
+```{r}
+hist(Huck_RepeatedMeasures_3005_df_b$Fruit_Coun) #Pretty skewed
+table(Huck_RepeatedMeasures_3005_df_b$Fruit_Coun)
+#Try nbinom2 instead of Poisson
+
+library(glmmTMB)
+library(car)
+library(visreg)
+#Try a simple one, using the ID3 as a random effect
+huck.m1<-glmmTMB(Fruit_Coun~Canopy_Cov + (1|ID3), family = nbinom2, data=Huck_RepeatedMeasures_3005_df_b)
+Anova(huck.m1, type=3) #Not important here, but we also do not expect it to be linear
+summary(huck.m1, type=3) 
+
+#Growing Degree Days
+huck.m2<-glmmTMB(Fruit_Coun~GDD2_sp_0 + (1|ID3), family = nbinom2, data=Huck_RepeatedMeasures_3005_df_b)
+Anova(huck.m2, type=3) #Not important
+
+huck.m2<-glmmTMB(Fruit_Coun~GDD2_sp_1 + (1|ID3), family = nbinom2, data=Huck_RepeatedMeasures_3005_df_b)
+Anova(huck.m2, type=3) #Important
+summary(huck.m2)
+visreg(huck.m2, "GDD2_sp_1") #Slight positive relationship, mostly flat
+
+huck.m2<-glmmTMB(Fruit_Coun~GDD2_sp_2 + (1|ID3), family = nbinom2, data=Huck_RepeatedMeasures_3005_df_b)
+Anova(huck.m2, type=3) #Not important
+
+cor(Huck_RepeatedMeasures_3005_df_b$GDD2_sp_0, Huck_RepeatedMeasures_3005_df_b$GDD2_sp_1, use = "complete.obs") #0.82
+
+cor(Huck_RepeatedMeasures_3005_df_b$GDD2_sp_0, Huck_RepeatedMeasures_3005_df_b$GDD2_sp_2, use = "complete.obs") #0.73
+
+cor(Huck_RepeatedMeasures_3005_df_b$GDD2_sp_2, Huck_RepeatedMeasures_3005_df_b$GDD2_sp_1, use = "complete.obs") #0.85
+
+#Precip July
+Huck_RepeatedMeasures_3005_df_b$PPT07_0<-as.numeric(Huck_RepeatedMeasures_3005_df_b$PPT07_0)
+
+huck.m3<-glmmTMB(Fruit_Coun~PPT07_0 + (1|ID3), family = nbinom2, data=Huck_RepeatedMeasures_3005_df_b)
+Anova(huck.m3, type=3) #Not Important
+summary(huck.m3)
+visreg(huck.m3, "PPT07_0") #Pretty flat
+
+huck.m3<-glmmTMB(Fruit_Coun~PPT07_1 + (1|ID3), family = nbinom2, data=Huck_RepeatedMeasures_3005_df_b)
+Anova(huck.m3, type=3) #Not Important
+summary(huck.m3)
+
+huck.m3<-glmmTMB(Fruit_Coun~PPT07_2 + (1|ID3), family = nbinom2, data=Huck_RepeatedMeasures_3005_df_b)
+Anova(huck.m3, type=3) #Not Important
+summary(huck.m3)
+
+cor(Huck_RepeatedMeasures_3005_df_b$PPT07_0, Huck_RepeatedMeasures_3005_df_b$PPT07_1, use = "complete.obs") #-0.31
+
+cor(Huck_RepeatedMeasures_3005_df_b$PPT07_0, Huck_RepeatedMeasures_3005_df_b$PPT07_2, use = "complete.obs") #-0.26
+
+cor(Huck_RepeatedMeasures_3005_df_b$PPT07_2, Huck_RepeatedMeasures_3005_df_b$PPT07_1, use = "complete.obs") #-0.09
+
+#Number Frost Free Days
+huck.m4<-glmmTMB(Fruit_Coun~NFFD2_sp_0 + (1|ID3), family = nbinom2, data=Huck_RepeatedMeasures_3005_df_b)
+Anova(huck.m4, type=3) #Not important
+
+huck.m4<-glmmTMB(Fruit_Coun~NFFD2_sp_1 + (1|ID3), family = nbinom2, data=Huck_RepeatedMeasures_3005_df_b)
+Anova(huck.m4, type=3) #Important
+visreg(huck.m4, "NFFD2_sp_1") #Pretty flat, slight positive
+
+huck.m4<-glmmTMB(Fruit_Coun~NFFD2_sp_2 + (1|ID3), family = nbinom2, data=Huck_RepeatedMeasures_3005_df_b)
+Anova(huck.m4, type=3) #Not important, but just barely
+
+cor(Huck_RepeatedMeasures_3005_df_b$NFFD2_sp_0, Huck_RepeatedMeasures_3005_df_b$NFFD2_sp_1, use = "complete.obs") #-0.85
+
+cor(Huck_RepeatedMeasures_3005_df_b$NFFD2_sp_0, Huck_RepeatedMeasures_3005_df_b$NFFD2_sp_2, use = "complete.obs") #-0.80
+
+cor(Huck_RepeatedMeasures_3005_df_b$NFFD2_sp_2, Huck_RepeatedMeasures_3005_df_b$NFFD2_sp_1, use = "complete.obs") #-0.86
+```
+
+From the above, it is suggested that of what has been investigated, the variables of potential interest include:
+1. Spring Growing Degree Days at t-1
+2. Number of Frost Free Days at t-1
+
+```{r}
+huck.m5<-glmmTMB(Fruit_Coun~NFFD2_sp_1 + GDD2_sp_1 + Canopy_Cov + PPT07_0 + (1|ID3), family = nbinom2, data=Huck_RepeatedMeasures_3005_df_b)
+Anova(huck.m5, type=3) #Nothing
+
+huck.m5<-glmmTMB(Fruit_Coun~NFFD2_sp_1 + GDD2_sp_1 + Canopy_Cov + PPT07_0 + PPT07_1 + PPT07_2 + (1|ID3), family = nbinom2, data=Huck_RepeatedMeasures_3005_df_b)
+Anova(huck.m5, type=3) #Nothing
+summary(huck.m5) 
+
+library(visreg)
+visreg(huck.m5, "Canopy_Cov") #Looks pretty flat to me; slight negative
+visreg(huck.m5, "GDD2_sp_1") #Slight negative; pretty flat
+visreg(huck.m5, "NFFD2_sp_1") #Slight positive
+visreg(huck.m5, "PPT07_0") #Pretty flat
+visreg(huck.m5, "PPT07_1") #pretty flat
+visreg(huck.m5, "PPT07_2") #slight positive
+```
+
+Explore as a GAM because we know that Canopy Cover, for examle, is not linear.
+
+```{r}
+library(mgcv)
+library(lme4)
+library(forcats)
+library(vroom)
+
+#Must convert to factor first
+Huck_RepeatedMeasures_3005_df_b$ID3<-as.factor(Huck_RepeatedMeasures_3005_df_b$ID3)
+
+#Models
+huck.m6<-gam(Fruit_Coun~ s(GDD2_sp_1) + s(Canopy_Cov) + s(ID3, bs="re"), family = nb(link="sqrt"), data=Huck_RepeatedMeasures_3005_df_b, method = "REML")
+anova(huck.m6)
+visreg(huck.m6, "GDD2_sp_1")
+visreg(huck.m6, "Canopy_Cov")
+
+huck.m6<-gam(Fruit_Coun~s(NFFD2_sp_1) + s(GDD2_sp_1) + s(Canopy_Cov) + s(PPT07_0) + s(PPT07_1) + s(PPT07_2) + s(ID3, bs="re"), family = nb(link="sqrt"), data=Huck_RepeatedMeasures_3005_df_b, method = "REML")
+anova(huck.m6)
+visreg(huck.m6, "GDD2_sp_1")
+visreg(huck.m6, "Canopy_Cov")
+visreg(huck.m6, "NFFD2_sp_1")
+visreg(huck.m6, "PPT07_0")
+visreg(huck.m6, "PPT07_1")
+visreg(huck.m6, "PPT07_2")
+
+huck.m6<-gam(Fruit_Coun~s(NFFD2_sp_1) + s(GDD2_sp_1) + s(Canopy_Cov) + s(PPT07_0) + s(PPT07_1) + s(PPT07_2) + ti(PPT07_0, PPT07_1) + s(ID3, bs="re"), family = nb(link="sqrt"), data=Huck_RepeatedMeasures_3005_df_b, method = "REML")
+anova(huck.m6) #Interaction not significant
+visreg(huck.m6, "GDD2_sp_1")
+visreg(huck.m6, "Canopy_Cov")
+visreg(huck.m6, "NFFD2_sp_1")
+visreg(huck.m6, "PPT07_0")
+visreg(huck.m6, "PPT07_1")
+visreg(huck.m6, "PPT07_2")
+
+huck.m6<-gam(Fruit_Coun ~ s(NFFD2_sp_1) + s(GDD2_sp_1) + s(Canopy_Cov) + s(PPT07_0) + s(ID3, bs="re"), family = nb(link="sqrt"), data=Huck_RepeatedMeasures_3005_df_b)
+```
+
+
+Save file. Share this prior to ending contract.
+```{r}
+write.csv(Huck_RepeatedMeasures_3005_df_b, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_Repeated_Measures_Climate.csv")
+```
+
+
+
+####### BUFFALOBERRY #######
