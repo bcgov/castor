@@ -54,7 +54,7 @@ This file continues from Buffaloberry&buffaloberry_data_processing_Jan2022. Here
 
 #Load Data In
 ```{r}
-cutblock_plots_openings_Buff_ALL_df_b2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_Buff_ALL_df_b2_March30.csv")
+cutblock_plots_openings_Buff_ALL_df_b2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Buff_ALL_df_March30_2022.csv")
 head(cutblock_plots_openings_Buff_ALL_df_b2)
 
 cutblock_plots_openings_Buff_ALL_df<-cutblock_plots_openings_Buff_ALL_df_b2
