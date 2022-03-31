@@ -56,7 +56,7 @@ This file continues from huckleberry&buffaloberry_data_processing_Jan2022. Here,
 
 #Load Data In
 ```{r}
-cutblock_plots_openings_Huck_ALL_df_2022_b2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_2022_b2.csv")
+cutblock_plots_openings_Huck_ALL_df_2022_b2<-read.csv( file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2_March30.csv")
 head(cutblock_plots_openings_Huck_ALL_df_2022_b2)
 str(cutblock_plots_openings_Huck_ALL_df_2022_b2)
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr)
@@ -65,25 +65,6 @@ table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr)
 
 
 #Begin Exploration of variables
-```{r}
-head(cutblock_plots_openings_Huck_ALL_df_2022_b2)
-names(cutblock_plots_openings_Huck_ALL_df_2022_b2)
-
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr) #136 absences, 453 presences; some NAs - why NAs? Unsure, in raw data, must remove.
-cutblock_plots_openings_Huck_ALL_df_2022_b2_ALL<-cutblock_plots_openings_Huck_ALL_df_2022_b2
-cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr!="NA")
-
-cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr!="0")
-
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Pres) #123 absences, 316 presences; also lots of NAs.
-
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.y) #495
-
-cutblock_plots_openings_Huck_ALL_df_2022_b22<-cutblock_plots_openings_Huck_ALL_df_2022_b2 #Save as a back up for now
-
-cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Pres!="NA") #439 data points
-
-```
 
 ## Looking at DN1_DIS_CD (DENUDATION_1_DISTURBANCE_CODE) between openings and openings + activity files
 ```{r}
@@ -92,7 +73,7 @@ head(cutblock_plots_openings_Huck_ALL_df_2022_b2)
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$G_BGC_ZONE) #BEC Zone: ESSF, ICH, MS, SBS
 cutblock_plots_openings_Huck_ALL_df_2022_b2$OPEN_GRSAR<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$OPEN_GRSAR)
 hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$OPEN_GRSAR) #total area the opening encompasses
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD) # 15 B (burned wildfire); 492 logged (L); 1 P (pest); 1 S (Salvage);626 total (so 5 missing data)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD) # 1 B (burned wildfire); 230 logged (L); 2 S (Salvage); 3 missing data
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN2_DIS_CD) #Additional elements; 115 total
 
 #Create an ifelse statement to get a new category in case there are any DSN1s with NAs taht have a DSN2 input
@@ -101,43 +82,45 @@ table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN2_DIS_CD) #Additional elemen
 
 ```
 
-May wish to remove P, S and W, and B
+May wish to remove P, S and W, and B.
+# As of March 30, 2022, we have decided not to remove the 3 cases not purely designatef as "L" due to already low sample size.
 
 ```{r}
-cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD!="P")
-cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD!="S")
-cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD!="B")
+#cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD!="P")
+#cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD!="S")
+#cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD!="B")
 
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD) #423 logged
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD) #
 ```
 
 #Inspect DN1_SILSYS (DENUDATION_1_SILV_SYSTEM_CODE)
 ```{r}
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS) #84 CCRES (Clearcut with reserves); 224 Clearcut; 13 SELEC (Selective logging) spattering of others; 
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS) #37 CCRES (Clearcut with reserves); 150 Clearcut; 8 SELEC (Selective logging) spattering of others; Only 197 data points have a designation as one kind or another.
+
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN2_SILSYS)
 #Do same as above to see if can get additional data inputs
 #cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_2_SILSYS<- ifelse (is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS), cutblock_plots_openings_Huck_ALL_df_2022_b2$DN2_SILSYS, cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS)
 #table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_2_SILSYS)#No improvement, and names now turned to numbers?
 
 #May wish to group the smaller groups into an "other" category
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP<-cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP <- recode_factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP, CCRES = "CCRES", CLEAR = "CLEAR", IMCUT  = "Other", PATCT = "Other", RETEN= "Other", SEEDT = "Other", SELEC = "Other", SHELT = "Other")
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP) 
+#cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP<-cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS
+#cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP <- recode_factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP, CCRES = "CCRES", CLEAR = "CLEAR", IMCUT  = "Other", PATCT = "Other", RETEN= "Other", SEEDT = "Other", SELEC = "Other", SHELT = "Other")
+#table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP) 
 
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP #NAs exist... turn them into Other? Or maybe Unknown.
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP)
+#cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP #NAs exist... turn them into Other? Or maybe Unknown.
+#cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP)
 
 library(forcats) 
-cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP<-fct_explicit_na(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP, na_level = "Unknown")
+#cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP<-fct_explicit_na(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP, na_level = "Unknown")
 
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP) #COuld consider combining Unknown and Other? They are slightly different, however, but Other is such a small category. Consider this if partial residuals are wonky.
+#table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP) #COuld consider combining Unknown and Other? They are slightly different, however, but Other is such a small category. Consider this if partial residuals are wonky.
 
 ```
 
 #Investigate other categories
 ```{r}
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILVAR) # Not many records; not useful
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH) # 146 BU (burn), 163 ME (mechanical), others; --> Ma maybe manual?
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH) # 81 BU (burn), 59 ME (mechanical), others; --> Ma maybe manual?
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH)
 # Mostly same categories as above at different values
 cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH)
@@ -181,12 +164,12 @@ cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU <- ifelse ((cutblock_plots_o
 
 #Attempt 2
 cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU <- ifelse ((cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH != "BU" & cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH != "BU"), 0, 1)                                                     
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU)    #103 not burned, 200 burned; MANY NAs
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU)    #27 not burned, 92 burned; MANY NAs
 cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU
 #Lots of NAs - there should be no NAs. It is an ifelse statement where all should be 1s or 0s...
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH) #156 burned
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH) #67 burned
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_TECH_2) #122 Bu Bu (so burned both times); so 200 burned seemed realistic
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH) #
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH) #
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_TECH_2) #
 
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH) #Won't see all because many NAs in PREP2_TECH; here 23 are BU BU
 
@@ -195,12 +178,21 @@ table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH)
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU)
 
 cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU)]<-0
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU) #This looks better, but keep in mind that some that had no info may have had treatments not listed; 306 not burned, 186 burned
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU) #This looks better, but keep in mind that some that had no info may have had treatments not listed; 144 not burned, 92 burned
 
 #Compare PREP_BU to Burned from atu data
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU, cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned)
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU) #161 yes
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned) #176 yes, so 15 more (perhaps wildfires?)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2<-cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2)]<-0
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2<-ifelse(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2>0, 1,0)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2
 
 ```
 
@@ -349,14 +341,13 @@ table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME) #243 no, 180 yes
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_MA) #404 no, 19 yes
 
 #With refined data
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned) #242 no, 176 yes
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2) #242 no, 176 yes
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Mechanical2) #224 no, 194 yes
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Manual2) #273 no, 145 yes # But thuis may include brushing now?
 
 #Compare above with data
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr) #423 present; ignores BEC plots because only presences there
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr) #
 table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU) 
-table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr, cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP) #Only 475 datapoints accounted for here. CCRES = Clearcut with reserves; CLEAR = clearcut
 
 ```
 
@@ -1814,6 +1805,20 @@ ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_FruitNotNA, aes (x = heatloa
 ```
 
 
+######### BEGIN ANALYSES ####################
+
+First, let's run a quick GAM on berry abundance in relation to only time since logging, with no covariates. The idea here is just to get an idea of the pattern across time to relate to literature.
+
+
+
+
+
+
+
+
+
+
+######### PRIOR ANALYSES BELOW #############
 
 
 

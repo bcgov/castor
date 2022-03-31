@@ -108,3 +108,116 @@ mean(cutblock_plots_openings_productivity_huck_df$dem_ha_bc) #1587.69
 ```
 
 
+## Clearcut vs Time Since Logging
+```{r}
+#Huckleberry
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL<-read.csv( file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2_March30.csv")
+head(cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL)
+```
+
+```{r}
+plot(cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$Canopy.Cov, cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$TimeSinceCutblock)
+
+plot( cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$TimeSinceCutblock, cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$Canopy.Cov)
+
+ggplot (cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL, aes (x = TimeSinceCutblock, y = Canopy.Cov)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        panel.border = element_rect(linetype = "solid", fill = NA)) +
+  labs (
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+cor(cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$Canopy.Cov, cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$TimeSinceCutblock) #0.59
+
+```
+
+```{r}
+#Buffaloberry
+cutblock_plots_openings_productivity_Buff_ALL_df_b2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_Buff_ALL_df_b2_March30.csv")
+```
+
+```{r}
+plot(cutblock_plots_openings_productivity_Buff_ALL_df_b2$Canopy_Cov2, cutblock_plots_openings_productivity_Buff_ALL_df_b2$TimeSinceCutblock)
+
+plot( cutblock_plots_openings_productivity_Buff_ALL_df_b2$TimeSinceCutblock, cutblock_plots_openings_productivity_Buff_ALL_df_b2$Canopy_Cov2)
+
+ggplot (cutblock_plots_openings_productivity_Buff_ALL_df_b2, aes (x = TimeSinceCutblock, y = Canopy_Cov2)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        panel.border = element_rect(linetype = "solid", fill = NA)) +
+  labs (
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+cor(cutblock_plots_openings_productivity_Buff_ALL_df_b2$Canopy_Cov2, cutblock_plots_openings_productivity_Buff_ALL_df_b2$TimeSinceCutblock) #0.71
+```
+
+#Elevation
+```{r}
+min(cutblock_plots_openings_productivity_Buff_ALL_df_b2$DEM_30_bca)
+min(cutblock_plots_openings_productivity_Buff_ALL_df_b2$DEM_30_bca)
+mean(cutblock_plots_openings_productivity_Buff_ALL_df_b2$DEM_30_bca)
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b2$Elevation.x
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b$DEM_30_bc
+cutblock_plots_openings_productivity_Buff_ALL_df$DEM_30_bca
+cutblock_plots_openings_productivity_Buff_ALL_df$dem_ha_bc
+
+min(cutblock_plots_openings_productivity_Buff_ALL_df$dem_ha_bc)
+max(cutblock_plots_openings_productivity_Buff_ALL_df$dem_ha_bc)
+mean(cutblock_plots_openings_productivity_Buff_ALL_df$dem_ha_bc)
+
+```
+
+
+
+#Berry by Canopy
+```{r}
+ggplot (cutblock_plots_openings_productivity_Buff_ALL_df_b2, aes (x = Canopy_Cov2, y = Fruit_Abun_100)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        panel.border = element_rect(linetype = "solid", fill = NA)) +
+  labs (
+        x = "Canopy Cover (%)",
+        y = "Fruit Abundance") 
+```
+
+
+BEC.
+
+```{r}
+#Huckleberry
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$G_BGC_ZONE)
+(xtabs(Fruit.Abun.100~G_BGC_ZONE,aggregate(Fruit.Abun.100~G_BGC_ZONE,cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL,mean))) #MEAN
+(xtabs(Fruit.Abun.100~G_BGC_ZONE,aggregate(Fruit.Abun.100~G_BGC_ZONE,cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL,mean)))/sqrt(table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$G_BGC_ZONE)) #SE
+mean(cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$Fruit.Abun.100)
+mean(cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$Fruit.Abun.100)/sqrt(236)
+
+#Buffaloberry
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$G_BGC_ZONE)
+(xtabs(Fruit_Abun_100~G_BGC_ZONE,aggregate(Fruit_Abun_100~G_BGC_ZONE,cutblock_plots_openings_productivity_Buff_ALL_df_b2,mean))) #MEAN
+(xtabs(Fruit_Abun_100~G_BGC_ZONE,aggregate(Fruit_Abun_100~G_BGC_ZONE,cutblock_plots_openings_productivity_Buff_ALL_df_b2,mean)))/sqrt(table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$G_BGC_ZONE)) #SE
+mean(cutblock_plots_openings_productivity_Buff_ALL_df_b2$Fruit_Abun_100)
+mean(cutblock_plots_openings_productivity_Buff_ALL_df_b2$Fruit_Abun_100)/sqrt(131)
+```
+
+
+##Explore correlations between variables
+
+Huckleberry
+```{r}
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.He, cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD2_sp_0)
+
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.He, cutblock_plots_openings_Huck_ALL_df_2022_b2$PPT05_0)
+
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD2_sp_1, cutblock_plots_openings_Huck_ALL_df_2022_b2$PPT05_0)
+
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$PPT07_2, cutblock_plots_openings_Huck_ALL_df_2022_b2$PPT05_0)
+
+```
+
