@@ -1037,10 +1037,10 @@ This dataset has repeated measures of huckleberry plots from 2011-2021.It should
 3. Time Since Cut and Time Since Fire in provided document do not match up with intersection results from spatial layers from the BC government
 
 ```{r}
-cutblock_plots_openings_mowatBuff<- st_read ( dsn = "C:\\cora\\Hucklberry\\Mackenzie_Plots_March2022.shp", stringsAsFactors = T)
+cutblock_plots_openings_mowatBuff<- st_read ( dsn = "C:\\cora\\Hucklberry\\Mackenzie_Points_Buff_OPENINGS.shp", stringsAsFactors = T)
 
 head(cutblock_plots_openings_mowatBuff)
-names(cutblock_plots_openings_mowatBuff)
+names(cutblock_plots_openings_mowatBuff) #68 observations
 
 #cutblock_plots_openings_mowatBuff<-cutblock_plots_openings_mowatBuff[-(68:78)]
 
@@ -1050,7 +1050,13 @@ cutblock_plots_openings_mowatBuff$Species<-c("Shepherdia_canadensis")
 We could consider subsetting my whether file indicates clearcut or not, but this info does not line up with our data.
 ```{r}
 #cutblock_plots_openings_mowatBuff2<-subset(cutblock_plots_openings_mowatBuff, cutblock_plots_openings_mowatBuff$Clear_Cut=="Yes")
-#head(cutblock_plots_openings_mowatBuff2) #54 datapoints within cutblocks
+#head(cutblock_plots_openings_mowatBuff2) #65 datapoints within cutblocks
+table(cutblock_plots_openings_mowatBuff$Clear_Cut) #14 not in cutblocks, 54 yes
+#60 total when Laura looks at raw data for yes or no in cutblocks - so some descrepencies
+
+#Check 
+
+
 ```
 
 #Append DEM
@@ -1058,7 +1064,7 @@ We could consider subsetting my whether file indicates clearcut or not, but this
 ```{r}
 crs(cutblock_plots_openings_mowatBuff)
 #Set crs
-cutblock_plots_openings_mowatBuff2 <- st_transform (cutblock_plots_openings_mowatBuff2, 3005)
+cutblock_plots_openings_mowatBuff2 <- st_transform (cutblock_plots_openings_mowatBuff, 3005)
 crs(cutblock_plots_openings_mowatBuff2)
 
 #Extract GPS locations
@@ -1075,8 +1081,8 @@ head(pointCoordinates_Mowat)
 ##Extract DEM values from stacked layer. Note: This DEM stack was created prior
 rasValue2=raster::extract(rasStack, pointCoordinates_Mowat)
 head(rasValue2) #
-str(rasValue2) #54 values
-str(cutblock_plots_openings_mowatBuff2)#54 values
+str(rasValue2) #68 values
+str(cutblock_plots_openings_mowatBuff2)#68 values
 
 #Append new information
 cutblock_plots_openings_mowatBuff<-cbind(cutblock_plots_openings_mowatBuff2, rasValue2)
@@ -1103,44 +1109,55 @@ head(cutblock_plots_openings_mowatBuff)
 ```
 
 Append climate data.
+#Originally data was used that had climate data for all of the plots from Mackenzie; however, matching has proven difficult, and a new extraction was made for the 65 data points that come from the above data.
 ```{r}
 Mowat_Buff_Climate2020<-read.csv(file= "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\2020_ClusterPlots_AllDataJoined_CLEAN_Laura_Mackenzie_Year_2020SY.csv")
-head(Mowat_Buff_Climate2020)
+
 
 Mowat_Buff_Climate2019<-read.csv(file= "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\2020_ClusterPlots_AllDataJoined_CLEAN_Laura_Mackenzie_Year_2019SY.csv")
+
 
 Mowat_Buff_Climate2018<-read.csv(file= "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\2020_ClusterPlots_AllDataJoined_CLEAN_Laura_Mackenzie_Year_2018SY.csv")
 
 Mowat_Buff_Climate<-cbind(Mowat_Buff_Climate2020, Mowat_Buff_Climate2019, Mowat_Buff_Climate2018)
 
 names(Mowat_Buff_Climate)
+Mowat_Buff_Climate$ID
 
 #Remove repeated columns
 Mowat_Buff_Climate<-Mowat_Buff_Climate[-(181:185)]
 Mowat_Buff_Climate<-Mowat_Buff_Climate[-(91:95)]
 
+head(Mowat_Buff_Climate)
 #174 variables
 ```
 
 ```{r}
-cutblock_plots_openings_mowatBuff$ID2<-paste(cutblock_plots_openings_mowatBuff$Study_Area.x, cutblock_plots_openings_mowatBuff$LONGITUDE)
+cutblock_plots_openings_mowatBuff$LONG2<-round(cutblock_plots_openings_mowatBuff$LONGITUDE, digits=4)
+cutblock_plots_openings_mowatBuff$ID2<-paste(cutblock_plots_openings_mowatBuff$Study_Area, cutblock_plots_openings_mowatBuff$LONG2)
 table(cutblock_plots_openings_mowatBuff$ID2)
 
-Mowat_Buff_Climate$ID2<-paste(Mowat_Buff_Climate$Study_Area, Mowat_Buff_Climate$Longitude)
+Mowat_Buff_Climate$Longitude2<-round(Mowat_Buff_Climate$Longitude, digits=4)
+Mowat_Buff_Climate$Longitude2
+
+Mowat_Buff_Climate$ID2<-paste(Mowat_Buff_Climate$Study_Area, Mowat_Buff_Climate$Longitude2)
 table(Mowat_Buff_Climate$ID2)
 
-cutblock_plots_openings_mowatBuff2<-left_join(cutblock_plots_openings_mowatBuff, Mowat_Buff_Climate, by="ID2")
+cutblock_plots_openings_mowatBuff_df<-st_drop_geometry(cutblock_plots_openings_mowatBuff)
+
+cutblock_plots_openings_mowatBuff2<-left_join(cutblock_plots_openings_mowatBuff_df, Mowat_Buff_Climate, by="ID2") #Coming in with climate data being ALL NAs...
+head(cutblock_plots_openings_mowatBuff2)
+cutblock_plots_openings_mowatBuff2$Tave_at_0
 
 str(cutblock_plots_openings_mowatBuff2)
 head(cutblock_plots_openings_mowatBuff2)
-cutblock_plots_openings_mowatBuff$ID2
-cutblock_plots_openings_mowatBuff2$ID2
 ```
 
 Bring in the fire data. Note that the fire data in the provided data does not match the provincial layers. We may wish to replace the fire year, and investigate.
 ```{r}
 cutblock_plots_openings_mowatBuff_FIRE<- st_read ( dsn = "C:\\cora\\Hucklberry\\Mackenzie_Points_Buff_OPENINGS_Fire.shp", stringsAsFactors = T)
-head(cutblock_plots_openings_mowatBuff_FIRE)
+head(cutblock_plots_openings_mowatBuff_FIRE) #29
+str(cutblock_plots_openings_mowatBuff_FIRE)
 
 
 #make as dataframes
@@ -1150,6 +1167,11 @@ str(cutblock_plots_openings_mowatBuff_df) #68 observations
 cutblock_plots_openings_mowatBuff_FIRE_df<-st_drop_geometry(cutblock_plots_openings_mowatBuff_FIRE)
 str(cutblock_plots_openings_mowatBuff_FIRE_df) #29 observations
 head(cutblock_plots_openings_mowatBuff_FIRE_df) #I think that some had more than one fire; so find out which ones duplicated, and then keep more recent fire date
+cutblock_plots_openings_mowatBuff_FIRE_df$LONGITUDE2<-round(cutblock_plots_openings_mowatBuff_FIRE_df$LONGITUDE, digits=4)
+cutblock_plots_openings_mowatBuff_FIRE_df$LONGITUDE2
+
+cutblock_plots_openings_mowatBuff_FIRE_df$ID2<-paste(cutblock_plots_openings_mowatBuff_FIRE_df$Study_Area, cutblock_plots_openings_mowatBuff_FIRE_df$LONGITUDE2)
+
 cutblock_plots_openings_mowatBuff_FIRE_df$ID1<-paste(cutblock_plots_openings_mowatBuff_FIRE_df$Drainage, cutblock_plots_openings_mowatBuff_FIRE_df$LONGITUDE)
 table(cutblock_plots_openings_mowatBuff_FIRE_df$ID1)
 #Duplicates: 
@@ -1158,7 +1180,7 @@ table(cutblock_plots_openings_mowatBuff_FIRE_df$ID1)
 # Border_FSR -114.531562 -- 4 of this one!
 # Flathead_River -114.492559 
 
-table(cutblock_plots_openings_mowatBuff_FIRE_df$ID1, cutblock_plots_openings_mowatBuff_FIRE_df$FIRE_YEAR)
+table(cutblock_plots_openings_mowatBuff_FIRE_df$ID2, cutblock_plots_openings_mowatBuff_FIRE_df$FIRE_YEAR)
 # Tyax_Road -122.749799 -- both 2009
 # Commerce -114.485356  -- one 1929, one 1936
 # Border_FSR -114.531562 -- two 1929, one 1919, one 1934
@@ -1172,6 +1194,9 @@ cutblock_plots_openings_mowatBuff_FIRE_df[22,]
 cutblock_plots_openings_mowatBuff_FIRE_df<-cutblock_plots_openings_mowatBuff_FIRE_df[-c(21),]
 
 # Commerce -114.485356
+cutblock_plots_openings_mowatBuff_FIRE_df[10,]
+cutblock_plots_openings_mowatBuff_FIRE_df[9,]
+
 cutblock_plots_openings_mowatBuff_FIRE_df<-cutblock_plots_openings_mowatBuff_FIRE_df[-c(10),]
 
 #Border_FSR - all 4 are in a row, with the first one being most recent fire
@@ -1186,28 +1211,24 @@ cutblock_plots_openings_mowatBuff_FIRE_df<-data.frame(cutblock_plots_openings_mo
 head(cutblock_plots_openings_mowatBuff_FIRE_df)
 
 #Check
-table(cutblock_plots_openings_mowatBuff_FIRE_df$ID1, cutblock_plots_openings_mowatBuff_FIRE_df$FIRE_YEAR)
+table(cutblock_plots_openings_mowatBuff_FIRE_df$ID2, cutblock_plots_openings_mowatBuff_FIRE_df$FIRE_YEAR)
 
-table(cutblock_plots_openings_mowatBuff2$ID2) #No overlap???
-table(cutblock_plots_openings_mowatBuff_FIRE_df$ID1) #No overlap??? something wrong
-cutblock_plots_openings_mowatBuff2$ID1<-cutblock_plots_openings_mowatBuff2$ID2
-cutblock_plots_openings_mowatBuff2<-cutblock_plots_openings_mowatBuff2[-447]
+table(cutblock_plots_openings_mowatBuff2$ID2) #
+table(cutblock_plots_openings_mowatBuff_FIRE_df$ID2) #N
 
-#When joining, we should get 54 observations
-cutblock_plots_openings_mowatBuff3<-full_join(cutblock_plots_openings_mowatBuff2, cutblock_plots_openings_mowatBuff_FIRE_df, by="ID1") #59 observations; March 17: 77 observations (23+54, so join did not work)
-table(cutblock_plots_openings_mowatBuff3$ID1)
-table(cutblock_plots_openings_mowatBuff3$ID2)
-head(cutblock_plots_openings_mowatBuff3)
-
-#The 5 new ones are not in cutblocks
-cutblock_plots_openings_mowatBuff3<-subset(cutblock_plots_openings_mowatBuff3, cutblock_plots_openings_mowatBuff3$Study_Area.x!="NA")
-
+#When joining, we should get 68 observations
+cutblock_plots_openings_mowatBuff3<-full_join(cutblock_plots_openings_mowatBuff2, cutblock_plots_openings_mowatBuff_FIRE_df, by="ID2") # 68 observations
+names(cutblock_plots_openings_mowatBuff3) #Notice many repeat variables because .x and .y here, likely naming was different from shape files and how saved
 
 ```
 
 Determine time since fire and clearcuts.
 
 ```{r}
+names(cutblock_plots_openings_mowatBuff3)
+cutblock_plots_openings_mowatBuff3$Date.x
+cutblock_plots_openings_mowatBuff3$Year<-c(2020)
+cutblock_plots_openings_mowatBuff3$Year
 cutblock_plots_openings_mowatBuff3$TimeSinceFire<-(cutblock_plots_openings_mowatBuff3$Year-cutblock_plots_openings_mowatBuff3$FIRE_YEAR)
 cutblock_plots_openings_mowatBuff3$TimeSinceFire #Change NAs to a really long time, the max value; in Clayton's data. this is 118
 
@@ -1216,22 +1237,20 @@ cutblock_plots_openings_mowatBuff3$TimeSinceFire[is.na(cutblock_plots_openings_m
 
 #Create cutblock year
 library(stringi)
-cutblock_plots_openings_mowatBuff3$Cutblock_Year<-stri_sub(cutblock_plots_openings_mowatBuff3$DST_STR_DT,1,4)
-cutblock_plots_openings_mowatBuff3$Cutblock_Year2<-stri_sub(cutblock_plots_openings_mowatBuff3$APP_DT,1,4)
-table(cutblock_plots_openings_mowatBuff3$Cutblock_Year,cutblock_plots_openings_mowatBuff3$Cutblock_Year2) #Same
+cutblock_plots_openings_mowatBuff3$Cutblock_Year<-stri_sub(cutblock_plots_openings_mowatBuff3$DST_STR_DT.x,1,4)
 
 cutblock_plots_openings_mowatBuff3$Cutblock_Year
 str(cutblock_plots_openings_mowatBuff3$Cutblock_Year)
 cutblock_plots_openings_mowatBuff3$Cutblock_Year<-as.numeric(cutblock_plots_openings_mowatBuff3$Cutblock_Year)
 
 cutblock_plots_openings_mowatBuff3$TimeSinceCutblock<-(cutblock_plots_openings_mowatBuff3$Year-cutblock_plots_openings_mowatBuff3$Cutblock_Year)
-cutblock_plots_openings_mowatBuff3$TimeSinceCutblock
+cutblock_plots_openings_mowatBuff3$TimeSinceCutblock 
 
 ```
 
 Add heatload.
 ```{r}
-cutblock_plots_openings_mowatBuff3$heatload <- heatload (aspect = cutblock_plots_openings_mowatBuff3$aspect_ha_bc_3005, slope = cutblock_plots_openings_mowatBuff3$slope_ha_bc_3005, latitude = cutblock_plots_openings_mowatBuff3$LATITUDE, equation = 3)
+cutblock_plots_openings_mowatBuff3$heatload <- heatload (aspect = cutblock_plots_openings_mowatBuff3$aspect_ha_bc_3005, slope = cutblock_plots_openings_mowatBuff3$slope_ha_bc_3005, latitude = cutblock_plots_openings_mowatBuff3$LATITUDE.x, equation = 3)
  
 cutblock_plots_openings_mowatBuff3$heatload 
 hist(cutblock_plots_openings_mowatBuff3$heatload)
@@ -1239,17 +1258,24 @@ hist(cutblock_plots_openings_mowatBuff3$heatload)
 
 Save new file.
 ```{r}
-write.csv(cutblock_plots_openings_mowatBuff3, file = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_Buff_Openings_DEM_Soil_Climate.csv")
+write.csv(cutblock_plots_openings_mowatBuff3, file = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_Buff_Openings_DEM_Soil_Climate_March23.csv")
 ```
 
 If need to load back in data.
+#Modified to remove the .y repeats, and the .x naming
 ```{r}
-cutblock_plots_openings_mowatBuff3<-read.csv(file = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_Buff_Openings_DEM_Soil_Climate.csv")
+cutblock_plots_openings_mowatBuff3<-read.csv(file = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_Buff_Openings_DEM_Soil_Climate_March23b.csv")
+
 ```
 
 
 #Datasets #4: Long-term Buffaloberry Plots Garth Mowat from Laura Smit
 This dataset is provided by Laura Smit and contains data rom repeated measures plots for buffaloberry from 2016-2021. It contains the height and width of plants, canopy cover for some years (but not all), berry count, berry phenology, and information on percent infection present on berries and plant leaves.
+
+Notes:
+1. Often did not count the berries that were infected; so production may have been higher than stated, but useable berries lower.
+2. In more recent years, often counted when green, so may not have as many infected accounted for. And not all green berries will turn into berries that are actually food.
+3. Sometimes says 0 berries present, but 100% infected; so there were berries present, but all infected and thus not edible.
 
 Bring in the data that occur within cutblocks.
 ```{r}
@@ -1315,22 +1341,33 @@ Load in fire points for this dataset.
 
 ```{r}
 ##Need to update below file name
-#Buff_Laura_burn<-st_read ( dsn = "C:\\cora\\Hucklberry\\Laura_OPENINGS_PA_FirePoints.shp", stringsAsFactors = T)
+Buff_Laura_burn<-st_read ( dsn = "C:\\cora\\Hucklberry\\Laura_Buffaloberry_Plots_Cutblocks_Fire2.shp", stringsAsFactors = T)
 
 Buff_Laura_burn_df<-st_drop_geometry(Buff_Laura_burn)
+head(Buff_Laura_burn_df)
 ```
 
 ```{r}
-Buff_Laura_burn_df$TimeSinceFire<-(Buff_Laura_burn_df$Year - Buff_Laura_burn_df$FIRE_YEAR)
+Buff_Laura_burn_df$TimeSinceFire<-(Buff_Laura_burn_df$Visit_Year - Buff_Laura_burn_df$FIRE_YEAR)
 head(Buff_Laura_burn_df)
+Buff_Laura_burn_df$TimeSinceFire
 ```
 
 
 Now combine files.
 ```{r}
+str(Buff_Laura_df) #28 observations
+str(Buff_Laura_burn_df) #36 observations. Some plots must have burned more than once.
+table(Buff_Laura_burn_df$ID2) #2 replicates per location
+table(Buff_Laura_burn_df$ID2, Buff_Laura_burn_df$FIRE_YEAR) #There was a 1929 fire and a 1936 fire in every plot
+
+Buff_Laura_burn_df<-subset(Buff_Laura_burn_df, Buff_Laura_burn_df$FIRE_YEAR=="1936") #18 observations
+
 Buff_Laura_df2<-left_join(Buff_Laura_df, Buff_Laura_burn_df, by="ID2")
+str(Buff_Laura_df2) #28 observations
 
 head(Buff_Laura_df2) 
+Buff_Laura_df2$TimeSinceFire
 ```
 
 Modify Time Since Fire so that NAs are maximum value in Clayton's data of 118.
@@ -1340,7 +1377,61 @@ Buff_Laura_df2$TimeSinceFire[is.na(Buff_Laura_df2$TimeSinceFire)]<- 118
 Buff_Laura_df2$TimeSinceFire
 ```
 
+#Determine if cutblocks or fire more recent
+
+```{r}
+
+#Create cutblock year
+library(stringi)
+Buff_Laura_df2$Cutblock_Year<-stri_sub(Buff_Laura_df2$DSTRBSTDT.x,1,4)
+
+Buff_Laura_df2$Cutblock_Year
+Buff_Laura_df2$Cutblock_Year<-as.numeric(Buff_Laura_df2$Cutblock_Year)
+
+Buff_Laura_df2$TimeSinceCutblock<-(Buff_Laura_df2$Visit_Year.x-Buff_Laura_df2$Cutblock_Year)
+Buff_Laura_df2$TimeSinceCutblock
+
+#Compare
+Buff_Laura_df2$origin<-ifelse(Buff_Laura_df2$TimeSinceFire<Buff_Laura_df2$TimeSinceCutblock, 1,0)
+Buff_Laura_df2$origin #All fires in 1936 and all cutblocks more recent. All data can be used.
+Buff_Laura_df2$TimeSinceFire
+
+
+```
+
+Add heatload.
+#Remember need in decimal degrees lat long
+```{r}
+Buff_Laura_df2$heatload <- heatload (aspect = Buff_Laura_df2$aspect_ha_bc_3005, slope = Buff_Laura_df2$slope_ha_bc_3005, latitude = Buff_Laura_df2$Shrub.Lati.x, equation = 3)
+ 
+Buff_Laura_df2$heatload 
+hist(Buff_Laura_df2$heatload)
+```
+
 #Append ClimateBC Data
+
+
+
+
+##Investigate berries percent infected
+```{r}
+Buff_Laura_df2$Percent.Be.x
+
+#Losing numbers in below
+Buff_Laura_df2$Percent.Be<-as.numeric(as.factor(Buff_Laura_df2$Percent.Be.x))
+Buff_Laura_df2$Percent.Be
+Buff_Laura_df2$Percent.Be.x[is.na(Buff_Laura_df2$Percent.Be.x)]<-0
+
+plot(Buff_Laura_df2$Berry.Coun.x, Buff_Laura_df2$Percent.Be.x)
+
+```
+
+
+
+```{r}
+Buff_Laura_df2$Canopy.Cov.x #Use this one
+Buff_Laura_df2$Canopy.Cov.y #Do not use this one - missing second half of data
+```
 
 
 
@@ -1362,6 +1453,8 @@ head(cutblock_plots_openings_BECHuck)
 cutblock_plots_openings_activity_BECHuck<- st_read ( dsn = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\BEC_huck_Openings_Activity_duplicates_removed.shp", stringsAsFactors = T)
 
 ```
+
+
 
 ####################################
 
@@ -1757,7 +1850,7 @@ Now investigate the last grouping
 ```{r}
 #Last Grouping
 table(cutblock_plots_openings_Huck_ALL_df_2022_b22b$silv_method_code)
-#BROAD: Broadcast burn; BRUSH: Brush saw; cHAIN: Chain Drag;CROSS: cross-ditching; ; DISC: Disc trenching (5); EXCAV: Excavator; KNOCK: 3 meter knock down; MANCT: Manual Cutting; MANSB: Manual Stem Bending; MDOWN: Machine Knockdown; MOCUT: Motorized Cutting (Handheld); MOUND: Mounding; MXPLT: Mixed Stock; PATCH: machine patch scarification; PBUNR: Pile and burn; PILE: Piling; POST: Blade or Strip Post-scarification; PRE: Blade or Strip Pre-scarification; POWER: Power saw; SHARK: shark-fin drag; SHEAR: pruning Shears; WFIRE: wildfire.
+#BROAD: Broadcast burn; BRUSH: Brush saw; CHAIN: Chain Drag;CROSS: cross-ditching; ; DISC: Disc trenching (5); EXCAV: Excavator; KNOCK: 3 meter knock down; MANCT: Manual Cutting; MANSB: Manual Stem Bending; MDOWN: Machine Knockdown; MOCUT: Motorized Cutting (Handheld); MOUND: Mounding; MXPLT: Mixed Stock; PATCH: machine patch scarification; PBUNR: Pile and burn; PILE: Piling; POST: Blade or Strip Post-scarification; PRE: Blade or Strip Pre-scarification; POWER: Power saw; SHARK: shark-fin drag; SHEAR: pruning Shears; WFIRE: wildfire.
 #Unsure if interesting: CTAIN: Container (1037), PLOT: Plots
 
 #MOUND: Mounding
@@ -1926,7 +2019,7 @@ hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$vri_age)
 hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$rslt_age)
 ```
 
-Also check because some opening IDs may have been for buffaloberry, and thus nothave a species associated with it anymore.
+Also check because some opening IDs may have been for buffaloberry, and thus not have a species associated with it anymore.
 
 ```{r}
 cutblock_plots_openings_Huck_ALL_df_2022_b2$Species
@@ -1964,9 +2057,11 @@ bring data back in as needed.
 ```{r}
 cutblock_plots_openings_Buff_ALL_df2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Buff_ALL_df2.csv")
 head(cutblock_plots_openings_Buff_ALL_df2)
+str(cutblock_plots_openings_Buff_ALL_df2) #191 observations, 490 variables
 
-cutblock_plots_openings_mowatBuff3<-read.csv(file = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_Buff_Openings_DEM_Soil_Climate.csv")
+cutblock_plots_openings_mowatBuff3<-read.csv(file = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_Buff_Openings_DEM_Soil_Climate_March23b.csv")
 head(cutblock_plots_openings_mowatBuff3)
+str(cutblock_plots_openings_mowatBuff3) #68 observations of 474 variables
 ```
 
 
@@ -1974,14 +2069,14 @@ head(cutblock_plots_openings_mowatBuff3)
 ## 2. cutblock_plots_openings_Buff_ALL_df2, cutblock_plots_openings_mowatBuff3
 names(cutblock_plots_openings_Buff_ALL_df2)
 names(cutblock_plots_openings_mowatBuff3)
-cutblock_plots_openings_mowatBuff3$Species<-c("Shepherdia_canadensis")
+head(cutblock_plots_openings_mowatBuff3)
+#cutblock_plots_openings_mowatBuff3$Species<-c("Shepherdia_canadensis")
 
 cutblock_plots_openings_mowatBuff3$Clear_Cut
 cutblock_plots_openings_mowatBuff3$TimeSinceCutblock
 cutblock_plots_openings_Buff_ALL_df2$TimeSinceC
 cutblock_plots_openings_mowatBuff3$Canopy_Cov
-cutblock_plots_openings_mowatBuff3$DENSIOMETE #Use densiometer estimates for canopy cover
-cutblock_plots_openings_mowatBuff3$Canopy_Cov
+cutblock_plots_openings_mowatBuff3$Canopy_C_1
 cutblock_plots_openings_Buff_ALL_df2$LandsatCC_
 
 cutblock_plots_openings_mowatBuff3$Species_Co #Buff Species Percent cover by category
@@ -2008,7 +2103,8 @@ cutblock_plots_openings_Buff_ALL_df2$Species.He
 cutblock_plots_openings_mowatBuff3$count #--> count_of_Buff_Estimate_per_m2
 cutblock_plots_openings_mowatBuff3$count_of_1 #--> count_of_Buffaloberrries_per_plot
 cutblock_plots_openings_mowatBuff3$Buff_Fru_3 # --> Buff_Fruiting_Plant_Height_cm
-
+cutblock_plots_openings_mowatBuff3$Latitude
+cutblock_plots_openings_Buff_ALL_df2$Latitude
 
 #mowat
 cutblock_plots_openings_mowatBuff3b<-rename(cutblock_plots_openings_mowatBuff3,
@@ -2022,7 +2118,14 @@ cutblock_plots_openings_mowatBuff3b<-rename(cutblock_plots_openings_mowatBuff3,
                      "Fruit.Cove"="Fruit_Cove",
                      "Species.He"="BUFF_PLANT",
                      "Fruit.Abun"="Fruit_Coun",
-                     "Fruit.Phen"="Buffalob_3"))
+                     "Fruit.Phen"="Buffalob_3",
+                     "TSAND"="tsand_3005",
+                     "TSILT" ="tsilt_3005",
+                     "VFSAND" = "vfsand_3005",
+                     "TCLAY" = "tclay_3005", 
+                    "PH2_0"= "ph2_3005",
+                      "COFRAG_0" = "cofrag_3005",
+                    "ORGCARB" = "orgcarb_3005"))
 
 cutblock_plots_openings_Buff_ALL_df2b<-rename(cutblock_plots_openings_Buff_ALL_df2,
                    c("TimeSinceCutblock"="TimeSinceC",
@@ -2040,44 +2143,57 @@ cutblock_plots_openings_Buff_ALL_df2b[setdiff(names(cutblock_plots_openings_mowa
 cutblock_plots_openings_mowatBuff3b[setdiff(names(cutblock_plots_openings_Buff_ALL_df2b), names(cutblock_plots_openings_mowatBuff3b))] <- NA
 
 #Combine
-str(cutblock_plots_openings_Buff_ALL_df2b) #191 observations, 642 variables
-str(cutblock_plots_openings_mowatBuff3b) #54 observations, 642 variables
+str(cutblock_plots_openings_Buff_ALL_df2b) #191 observations, 610 variables
+str(cutblock_plots_openings_mowatBuff3b) #68 observations, 610 variables
+
+cutblock_plots_openings_Buff_ALL_df2b$DATASET<-c(1)
+cutblock_plots_openings_mowatBuff3b$DATASET<-c(2)
 
 cutblock_plots_openings_Buff_ALL_df<-smartbind(cutblock_plots_openings_Buff_ALL_df2b, cutblock_plots_openings_mowatBuff3b)
+cutblock_plots_openings_Buff_ALL_df<-rbind(cutblock_plots_openings_Buff_ALL_df2b, cutblock_plots_openings_mowatBuff3b)
 
-str(cutblock_plots_openings_Buff_ALL_df) #245 observations, 642 variables
+str(cutblock_plots_openings_Buff_ALL_df) #259 observations, 611 variables
 head(cutblock_plots_openings_Buff_ALL_df)
+names(cutblock_plots_openings_Buff_ALL_df)
 ```
+
+Determine probelm below- it is not that data is lost; it is that it is not being plotted because naming of lat and long columns
+```{r}
+#The above looks like it should work, but we lose data? 
+cutblock_plots_openings_Buff_ALL_df$Latitude #Not plotting because coordinates not same name
+
+cutblock_plots_openings_Buff_ALL_df$Latitude
+cutblock_plots_openings_Buff_ALL_df$LATITUDE
+
+cutblock_plots_openings_Buff_ALL_df$Lat<-ifelse(is.na(cutblock_plots_openings_Buff_ALL_df$Latitude), cutblock_plots_openings_Buff_ALL_df$LATITUDE, cutblock_plots_openings_Buff_ALL_df$Latitude)
+
+cutblock_plots_openings_Buff_ALL_df$Lat
+
+cutblock_plots_openings_Buff_ALL_df$Long<-ifelse(is.na(cutblock_plots_openings_Buff_ALL_df$Latitude), cutblock_plots_openings_Buff_ALL_df$LONGITUDE, cutblock_plots_openings_Buff_ALL_df$Longitude)
+
+cutblock_plots_openings_Buff_ALL_df$Long
+
+```
+
+Check other variables.
+```{r}
+cutblock_plots_openings_Buff_ALL_df$Fruit.Abun
+cutblock_plots_openings_Buff_ALL_df$Fruit.Pres
+cutblock_plots_openings_Buff_ALL_df$TCLAY
+cutblock_plots_openings_Buff_ALL_df$Tave_at_0
+```
+
+
 Save Buffaloberry files.
 
 ```{r}
 names(cutblock_plots_openings_Buff_ALL_df)
 
-#Remove extra ASPECT
-cutblock_plots_openings_Buff_ALL_df<-cutblock_plots_openings_Buff_ALL_df[-203]
-
-#Change names of latitude (585) and longitude (586)
-cutblock_plots_openings_Buff_ALL_df<-rename(cutblock_plots_openings_Buff_ALL_df,
-                   c("Latitude_"="Latitude",
-                     "Longitude_"="Longitude"
-                     ))
-
-#
-cutblock_plots_openings_Buff_ALL_df$FIRE_YEAR
-cutblock_plots_openings_Buff_ALL_df$Fire_Year
-cutblock_plots_openings_Buff_ALL_df<-cutblock_plots_openings_Buff_ALL_df[-628]
-
-write.csv(cutblock_plots_openings_Buff_ALL_df, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Buff_ALL_df_March2022.csv")
+write.csv(cutblock_plots_openings_Buff_ALL_df, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Buff_ALL_df_March2022c.csv")
 ```
 
 
 
-
-
-
-
-
-#UPDATE BELOW
 Bind using Leftjoin.
 ```{r}
 cutblock_plots_openings_Buff_ALL_df$OPENING_ID<-as.numeric(cutblock_plots_openings_Buff_ALL_df$OPENING_ID)
@@ -2090,10 +2206,10 @@ table(cutblock_plots_openings_Buff_ALL_df_b$OPENING_ID) #
 gc()
 cutblock_plots_openings_Buff_ALL_df_b<-left_join(cutblock_plots_openings_Buff_ALL_df_b, msyt_sub) # recursive gc invocation if do not use gc() prior
 table(cutblock_plots_openings_Buff_ALL_df_b$OPENING_ID) #Still the correct number of rows expected.
-#Still 245 observations in above as expected.
+#Still 259 observations in above as expected.
 
 gc()
-#Below is where we spring up from 245 to 1977
+#Below is where we spring up from 259 to 1977
 cutblock_plots_openings_Buff_ALL_df_b2<-left_join(cutblock_plots_openings_Buff_ALL_df_b, atu_subset) 
 table(cutblock_plots_openings_Buff_ALL_df_b2$OPENING_ID)
 table(cutblock_plots_openings_Buff_ALL_df_b2$Species)
@@ -2122,9 +2238,9 @@ head(atu_subset) #silv_base_code, silv_technique_code, Silv_method_code,
 #First take columns that are of interest for this data so we can work with it, and then append to original cutblock_plots_openings_Buff_ALL_df_b as a summary
 names(cutblock_plots_openings_Buff_ALL_df_b2) #ID4 = 716; 720:722, 729:730
 
-cutblock_plots_openings_Buff_ALL_df_b22_a<-cutblock_plots_openings_Buff_ALL_df_b2[715]
-cutblock_plots_openings_Buff_ALL_df_b22_b<-cutblock_plots_openings_Buff_ALL_df_b2[719:721]
-cutblock_plots_openings_Buff_ALL_df_b22_c<-cutblock_plots_openings_Buff_ALL_df_b2[728:729]
+cutblock_plots_openings_Buff_ALL_df_b22_a<-cutblock_plots_openings_Buff_ALL_df_b2[688]
+cutblock_plots_openings_Buff_ALL_df_b22_b<-cutblock_plots_openings_Buff_ALL_df_b2[692:694]
+cutblock_plots_openings_Buff_ALL_df_b22_c<-cutblock_plots_openings_Buff_ALL_df_b2[701:702]
 
 cutblock_plots_openings_Buff_ALL_df_b22<-cbind(cutblock_plots_openings_Buff_ALL_df_b22_a, cutblock_plots_openings_Buff_ALL_df_b22_b, cutblock_plots_openings_Buff_ALL_df_b22_c)
 head(cutblock_plots_openings_Buff_ALL_df_b22) #All have gone to NA
@@ -2153,7 +2269,7 @@ cutblock_plots_openings_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_Buff_AL
 cutblock_plots_openings_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_Buff_ALL_df_b22b, cutblock_plots_openings_Buff_ALL_df_b22b$silv_technique_code!="PO")
 
 cutblock_plots_openings_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_Buff_ALL_df_b22b, cutblock_plots_openings_Buff_ALL_df_b22b$silv_technique_code!="RO")
-#Down to 1541
+#Down to 1627
 
 cutblock_plots_openings_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_Buff_ALL_df_b22b, cutblock_plots_openings_Buff_ALL_df_b22b$silv_technique_code!="RR")
 
@@ -2162,7 +2278,7 @@ cutblock_plots_openings_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_Buff_AL
 cutblock_plots_openings_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_Buff_ALL_df_b22b, cutblock_plots_openings_Buff_ALL_df_b22b$silv_technique_code!="RO")
 
 cutblock_plots_openings_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_Buff_ALL_df_b22b, cutblock_plots_openings_Buff_ALL_df_b22b$silv_technique_code!="SU")
-#1215
+#1570
 
 ```
 
@@ -2171,7 +2287,7 @@ Some obvious ones to remove for cutblock_plots_openings_Buff_ALL_df_b22$silv_met
 ```{r}
 cutblock_plots_openings_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_Buff_ALL_df_b22b, cutblock_plots_openings_Buff_ALL_df_b22b$silv_method_code!="FILE")
 
-cutblock_plots_openings_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_Buff_ALL_df_b22b, cutblock_plots_openings_Buff_ALL_df_b22b$silv_method_code!="WALK") #Down to 1264
+cutblock_plots_openings_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_Buff_ALL_df_b22b, cutblock_plots_openings_Buff_ALL_df_b22b$silv_method_code!="WALK") #Down to 1283
 ```
 
 Now determine what remains and what is interesting within those categories
@@ -2339,37 +2455,37 @@ cutblock_plots_openings_Buff_ALL_df_b_atu<-cutblock_plots_openings_Buff_ALL_df_b
            MechAboveG = sum(MechAboveG, na.rm = TRUE)) #Get 642 variables; so missing 5 IDs. Not bad!
 
 cutblock_plots_openings_Buff_ALL_df_b_atu$Brushing_ALL<-ifelse(cutblock_plots_openings_Buff_ALL_df_b_atu$Brushing_ALL>0, 1,0)
-table(cutblock_plots_openings_Buff_ALL_df_b_atu$Brushing_ALL) #69 brushed, 176 not
+table(cutblock_plots_openings_Buff_ALL_df_b_atu$Brushing_ALL) #69 brushed, 188 not
 
 cutblock_plots_openings_Buff_ALL_df_b_atu$Fert_ALL<-ifelse(cutblock_plots_openings_Buff_ALL_df_b_atu$Fert_ALL>0, 1,0)
-table(cutblock_plots_openings_Buff_ALL_df_b_atu$Fert_ALL) #Only 18 plots fertilized, 227 not
+table(cutblock_plots_openings_Buff_ALL_df_b_atu$Fert_ALL) #Only 18 plots fertilized, 239 not
 
 cutblock_plots_openings_Buff_ALL_df_b_atu$Planted_ALL<-ifelse(cutblock_plots_openings_Buff_ALL_df_b_atu$Planted_ALL>0, 1,0)
-table(cutblock_plots_openings_Buff_ALL_df_b_atu$Planted_ALL) #224 planted, 21 not
+table(cutblock_plots_openings_Buff_ALL_df_b_atu$Planted_ALL) #231 planted, 26 not
 
 cutblock_plots_openings_Buff_ALL_df_b_atu$Burned<-ifelse(cutblock_plots_openings_Buff_ALL_df_b_atu$Burned>0, 1,0)
-table(cutblock_plots_openings_Buff_ALL_df_b_atu$Burned) #45 burned, 200 not
+table(cutblock_plots_openings_Buff_ALL_df_b_atu$Burned) #45 burned, 212 not
 
 cutblock_plots_openings_Buff_ALL_df_b_atu$Mechanical<-ifelse(cutblock_plots_openings_Buff_ALL_df_b_atu$Mechanical>0, 1,0)
-table(cutblock_plots_openings_Buff_ALL_df_b_atu$Mechanical) #88 mechanical treatment, 157 not
+table(cutblock_plots_openings_Buff_ALL_df_b_atu$Mechanical) #91 mechanical treatment, 166 not
 
 cutblock_plots_openings_Buff_ALL_df_b_atu$Manual<-ifelse(cutblock_plots_openings_Buff_ALL_df_b_atu$Manual>0, 1,0)
-table(cutblock_plots_openings_Buff_ALL_df_b_atu$Manual) #67 manual treatment, 178 not
+table(cutblock_plots_openings_Buff_ALL_df_b_atu$Manual) #71 manual treatment, 186 not
 
 cutblock_plots_openings_Buff_ALL_df_b_atu$Chemical<-ifelse(cutblock_plots_openings_Buff_ALL_df_b_atu$Chemical>0, 1,0)
-table(cutblock_plots_openings_Buff_ALL_df_b_atu$Chemical) #38 chemical treatmed, 207 not
+table(cutblock_plots_openings_Buff_ALL_df_b_atu$Chemical) #38 chemical treatmed, 219 not
 
 cutblock_plots_openings_Buff_ALL_df_b_atu$Mounding<-ifelse(cutblock_plots_openings_Buff_ALL_df_b_atu$Mounding>0, 1,0)
-table(cutblock_plots_openings_Buff_ALL_df_b_atu$Mounding) #21 mounded, 224 not
+table(cutblock_plots_openings_Buff_ALL_df_b_atu$Mounding) #21 mounded, 236 not
 
 cutblock_plots_openings_Buff_ALL_df_b_atu$Piling<-ifelse(cutblock_plots_openings_Buff_ALL_df_b_atu$Piling>0, 1,0)
-table(cutblock_plots_openings_Buff_ALL_df_b_atu$Piling) #22 with pilings, 223 not
+table(cutblock_plots_openings_Buff_ALL_df_b_atu$Piling) #22 with pilings, 235 not
 
 cutblock_plots_openings_Buff_ALL_df_b_atu$MechBelowG<-ifelse(cutblock_plots_openings_Buff_ALL_df_b_atu$MechBelowG>0, 1,0)
-table(cutblock_plots_openings_Buff_ALL_df_b_atu$MechBelowG) #70 mechanical below ground, 175 not
+table(cutblock_plots_openings_Buff_ALL_df_b_atu$MechBelowG) #73 mechanical below ground, 184 not
 
 cutblock_plots_openings_Buff_ALL_df_b_atu$MechAboveG<-ifelse(cutblock_plots_openings_Buff_ALL_df_b_atu$MechAboveG>0, 1,0)
-table(cutblock_plots_openings_Buff_ALL_df_b_atu$MechAboveG) #39 above ground, 206 not
+table(cutblock_plots_openings_Buff_ALL_df_b_atu$MechAboveG) #39 above ground, 218 not
 ```
 
 Now append data post-processing.
@@ -2414,9 +2530,10 @@ Also check because some opening IDs may have been for buffaloberry, and thus not
 
 ```{r}
 cutblock_plots_openings_Buff_ALL_df_b2$Species
+cutblock_plots_openings_Buff_ALL_df_b2$CutBlock_O
 
 cutblock_plots_openings_Buff_ALL_df_b2$CutBlock_O[is.na(cutblock_plots_openings_Buff_ALL_df_b2$CutBlock_O)]<-1
-table(cutblock_plots_openings_Buff_ALL_df_b2$CutBlock_O) #642 - fixed!
+table(cutblock_plots_openings_Buff_ALL_df_b2$CutBlock_O) #259 - fixed!
 head(cutblock_plots_openings_Buff_ALL_df_b2)
 
 ```

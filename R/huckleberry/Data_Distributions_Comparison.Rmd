@@ -1,0 +1,223 @@
+---
+title: "Comparing_Data_Distributions"
+author: "Cora Skaien"
+date: "26/03/2022"
+output: html_document
+---
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(raster)
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(cleangeo)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(rgdal)
+library(sp)
+library(keyring)
+library(DBI)
+library(rgeos)
+library(car)
+library(rje)
+library(caret)
+library(pROC)
+library(visreg)
+library(gtools)
+```
+
+Unsure about below anymore
+```{r setup, include=FALSE}
+source(here::here("R/functions/R_Postgres.R")) #maybe this is the problem after my update?
+```
+
+Determine distribution of data by environmental variables. This will need to be repeated for when data sets combined, but peak here.
+
+First, we will need to bring in the data and then append the same data we have for the rest of the data.
+```{r}
+#Bring in ALL Clayton Huckleberry Data
+Huckleberry_Clayton_ALL<-st_read(dsn="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_huckleberry_SpeciesPresent.shp", stringsAsFactors = T)
+
+```
+
+```{r}
+DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
+crs(DEM_slope) 
+
+DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc_3005.tif")
+crs(DEM_aspect)
+
+#Elevation
+DEM_elevation <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+crs(DEM_elevation)
+crs(Huckleberry_Clayton_ALL) #Same!
+
+#Stack rasters
+rasStack = stack(DEM_slope, DEM_aspect, DEM_elevation)
+crs(rasStack) #3005
+head(rasStack)
+str(rasStack)
+extent(rasStack)
+```
+
+
+```{r}
+Huckleberry_Clayton_ALL$coords_x1<-st_coordinates(Huckleberry_Clayton_ALL)
+head(Huckleberry_Clayton_ALL)
+crs(Huckleberry_Clayton_ALL)
+
+pointCoordinates<-data.frame(Huckleberry_Clayton_ALL$coords.x1, Huckleberry_Clayton_ALL$coords.x2)
+head(pointCoordinates)
+
+DEM_huck_ALL=raster::extract(rasStack, pointCoordinates)
+head(DEM_huck_ALL)
+
+#Append
+Huckleberry_Clayton_ALL<-cbind(Huckleberry_Clayton_ALL, DEM_huck_ALL)
+head(Huckleberry_Clayton_ALL)
+```
+
+Compare distirbutions between all data and cutblock locations.
+
+```{r}
+hist(Huckleberry_Clayton_ALL$dem_ha_bc, xlim=c(500,2500))
+mean(Huckleberry_Clayton_ALL$dem_ha_bc) #1639.47
+min(Huckleberry_Clayton_ALL$dem_ha_bc) #440
+max(Huckleberry_Clayton_ALL$dem_ha_bc) #2303
+
+cutblock_plots_openings_productivity_huck_df<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_cutblocks_DEM_Huckleberry_B.csv")
+
+hist(cutblock_plots_openings_productivity_huck_df$dem_ha_bc, xlim=c(500,2500))
+mean(cutblock_plots_openings_productivity_huck_df$dem_ha_bc) #1587.69
+```
+
+
+## Clearcut vs Time Since Logging
+```{r}
+#Huckleberry
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL<-read.csv( file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2_March30.csv")
+head(cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL)
+```
+
+```{r}
+plot(cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$Canopy.Cov, cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$TimeSinceCutblock)
+
+plot( cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$TimeSinceCutblock, cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$Canopy.Cov)
+
+ggplot (cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL, aes (x = TimeSinceCutblock, y = Canopy.Cov)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        panel.border = element_rect(linetype = "solid", fill = NA)) +
+  labs (
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+cor(cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$Canopy.Cov, cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$TimeSinceCutblock) #0.59
+
+```
+
+```{r}
+#Buffaloberry
+cutblock_plots_openings_productivity_Buff_ALL_df_b2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_Buff_ALL_df_b2_March30.csv")
+```
+
+```{r}
+plot(cutblock_plots_openings_productivity_Buff_ALL_df_b2$Canopy_Cov2, cutblock_plots_openings_productivity_Buff_ALL_df_b2$TimeSinceCutblock)
+
+plot( cutblock_plots_openings_productivity_Buff_ALL_df_b2$TimeSinceCutblock, cutblock_plots_openings_productivity_Buff_ALL_df_b2$Canopy_Cov2)
+
+ggplot (cutblock_plots_openings_productivity_Buff_ALL_df_b2, aes (x = TimeSinceCutblock, y = Canopy_Cov2)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        panel.border = element_rect(linetype = "solid", fill = NA)) +
+  labs (
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+cor(cutblock_plots_openings_productivity_Buff_ALL_df_b2$Canopy_Cov2, cutblock_plots_openings_productivity_Buff_ALL_df_b2$TimeSinceCutblock) #0.71
+```
+
+#Elevation
+```{r}
+min(cutblock_plots_openings_productivity_Buff_ALL_df_b2$DEM_30_bca)
+min(cutblock_plots_openings_productivity_Buff_ALL_df_b2$DEM_30_bca)
+mean(cutblock_plots_openings_productivity_Buff_ALL_df_b2$DEM_30_bca)
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b2$Elevation.x
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b$DEM_30_bc
+cutblock_plots_openings_productivity_Buff_ALL_df$DEM_30_bca
+cutblock_plots_openings_productivity_Buff_ALL_df$dem_ha_bc
+
+min(cutblock_plots_openings_productivity_Buff_ALL_df$dem_ha_bc)
+max(cutblock_plots_openings_productivity_Buff_ALL_df$dem_ha_bc)
+mean(cutblock_plots_openings_productivity_Buff_ALL_df$dem_ha_bc)
+
+```
+
+
+
+#Berry by Canopy
+```{r}
+ggplot (cutblock_plots_openings_productivity_Buff_ALL_df_b2, aes (x = Canopy_Cov2, y = Fruit_Abun_100)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        panel.border = element_rect(linetype = "solid", fill = NA)) +
+  labs (
+        x = "Canopy Cover (%)",
+        y = "Fruit Abundance") 
+```
+
+
+BEC.
+
+```{r}
+#Huckleberry
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$G_BGC_ZONE)
+(xtabs(Fruit.Abun.100~G_BGC_ZONE,aggregate(Fruit.Abun.100~G_BGC_ZONE,cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL,mean))) #MEAN
+(xtabs(Fruit.Abun.100~G_BGC_ZONE,aggregate(Fruit.Abun.100~G_BGC_ZONE,cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL,mean)))/sqrt(table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$G_BGC_ZONE)) #SE
+mean(cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$Fruit.Abun.100)
+mean(cutblock_plots_openings_productivity_Huck_ALL_df_2022_ALL$Fruit.Abun.100)/sqrt(236)
+
+#Buffaloberry
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$G_BGC_ZONE)
+(xtabs(Fruit_Abun_100~G_BGC_ZONE,aggregate(Fruit_Abun_100~G_BGC_ZONE,cutblock_plots_openings_productivity_Buff_ALL_df_b2,mean))) #MEAN
+(xtabs(Fruit_Abun_100~G_BGC_ZONE,aggregate(Fruit_Abun_100~G_BGC_ZONE,cutblock_plots_openings_productivity_Buff_ALL_df_b2,mean)))/sqrt(table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$G_BGC_ZONE)) #SE
+mean(cutblock_plots_openings_productivity_Buff_ALL_df_b2$Fruit_Abun_100)
+mean(cutblock_plots_openings_productivity_Buff_ALL_df_b2$Fruit_Abun_100)/sqrt(131)
+```
+
+
+##Explore correlations between variables
+
+Huckleberry
+```{r}
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.He, cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD2_sp_0)
+
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.He, cutblock_plots_openings_Huck_ALL_df_2022_b2$PPT05_0)
+
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD2_sp_1, cutblock_plots_openings_Huck_ALL_df_2022_b2$PPT05_0)
+
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$PPT07_2, cutblock_plots_openings_Huck_ALL_df_2022_b2$PPT05_0)
+
+```
+
