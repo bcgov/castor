@@ -19,16 +19,15 @@
 #=================================
 
 ##Overview
-# In this section (01), we select the available data for fires in BC from 2002 and 2020 (2002-2019 historic; 2020 current),
- # combine data into one, and upload these files to the clus database.
+# In this section (01), we select the available data for fires in BC from 2002 and 2020 and upload these files to the clus database.
+
+library(bcdata)
 
 library(raster)
 library(data.table)
 library(sf)
 library(tidyverse)
 library(rgeos)
-library(bcmaps)
-library(ggplot2)
 require (RPostgreSQL)
 require (rpostgis)
 require (fasterize)
@@ -37,37 +36,59 @@ library(keyring)
 
 source(here::here("R/functions/R_Postgres.R"))
 
-#Below is currently on the D-drive of my computer. Will need to be in clusdb eventually.
-historic.ignit <- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Ignition_point_locations\\PROT_HISTORICAL_INCIDENTS_SP\\H_FIRE_PNT_point.shp", stringsAsFactors = T)
-
-current.ignit <- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\Current_Fire_Ignition_point_locations\\PROT_CURRENT_FIRE_PNTS_SP\\C_FIRE_PNT_point.shp", stringsAsFactors = T)
-
-head(historic.ignit)
-head(current.ignit)
-
-historic.ignit <- st_transform (historic.ignit, 3005)
-current.ignit <- st_transform (current.ignit, 3005)
-
-historic.ignit<- historic.ignit %>% 
-  dplyr::select(FIRE_NO, FIRE_YEAR, IGN_DATE, FIRE_CAUSE, FIRE_ID, FIRE_TYPE, LATITUDE, LONGITUDE, SIZE_HA, geometry)
-
-current.ignit<- current.ignit %>% 
-  dplyr::select(FIRE_NO, FIRE_YEAR, IGN_DATE, FIRE_CAUSE, FIRE_ID, FIRE_TYPE, LATITUDE, LONGITUDE, SIZE_HA, geometry)
-
-ignition<- rbind(historic.ignit, current.ignit)
-
-ignition1 <- ignition %>% 
-  filter(FIRE_YEAR>2001) %>% ##Select for years 2002 beyond
-  filter(FIRE_TYPE == "Fire" | FIRE_TYPE=="Nuisance Fire") #Select fire type for ones desired
-table(ignition1$FIRE_YEAR) # Looking at https://www2.gov.bc.ca/gov/content/safety/wildfire-status/about-bcws/wildfire-statistics/wildfire-averages and comparing the values I get to these in the table I think I should filter only by "Fire" and not "Nuisance Fire" but this removes many fire locations particularly for the years 2007 and 2008. 
-
-st_crs(ignition1)
-
-st_write(ignition1, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp", delete_dsn = TRUE)
-table(ignition1$FIRE_YEAR) 
+# Raw fire ignition point data from BCDC:
+# https://cat.data.gov.bc.ca/dataset/fire-perimeters-historical/resource/61de892c-09f4-4440-b18f-09995801558f
 
 
+# get latest data off BCGW
+ignit<-try(
+  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
+    filter(FIRE_YEAR > 2001) %>%
+    filter(FIRE_TYPE == "Fire") %>%
+    collect()
+)
 
+
+head(ignit)
+ignit$FIRE_NUMBER<-as.factor(ignit$FIRE_NUMBER)
+table(ignit$FIRE_YEAR) # yipee Looking at https://www2.gov.bc.ca/gov/content/safety/wildfire-status/about-bcws/wildfire-statistics/wildfire-averages and comparing the values I get to these looks correct with all years present after 2001. 
+table(ignit$FIRE_YEAR, ignit$FIRE_CAUSE) #But notice that there is lots of fire cause data missing. Which is a problem. I've had discussions with the curator on BCGW about this and they think that im loosing this data when I filter. I cant work out how this is happening though. Anyway, because I need these records Im joining this table back to the data we downloaded in 2021. 
+
+ignit2<-frt <- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Ignition_point_locations\\PROT_HISTORICAL_INCIDENTS_SP\\H_FIRE_PNT_point.shp", stringsAsFactors = T)
+head(ignit2)
+ignit2$FIRE_NO<-as.factor(ignit2$FIRE_NO)
+
+ignit2<- ignit2 %>%
+  filter(FIRE_YEAR>2001) %>%
+  filter(FIRE_TYPE == "Fire") %>%
+  select(FIRE_NO, FIRE_YEAR, FIRE_CAUSE) %>%
+  rename(FIRE_CAUSE2=FIRE_CAUSE,
+         FIRE_NUMBER=FIRE_NO) 
+
+table(ignit2$FIRE_YEAR, ignit2$FIRE_CAUSE)
+  
+ignit2$FIRE_YEAR2<-ignit2$FIRE_YEAR
+ignit2<-as.data.frame(ignit2)
+ignit2<-ignit2[,c(1:3,5)]
+
+
+ignition<-ignit %>% left_join(ignit2)
+ignition %>% select(FIRE_YEAR,FIRE_YEAR2, FIRE_NUMBER, FIRE_CAUSE,FIRE_CAUSE2) %>% print(n=100)
+
+# now that the two dataframes are linked Im going to change all the Unknown values in FIRE_CAUSE colum to NA. Then Im going to use the coalesce function to match the columns FIRE_CAUSE and FIRE_CAUSE to pull out any inform to so that I get as much data about fire cause as possible and then change the NA values back to Unknown.
+
+ignition2 <- ignition %>%
+  mutate(FIRE_CAUSE = na_if(FIRE_CAUSE, "Unknown")) %>%
+  mutate(FIRE_CAUSE3 = coalesce(FIRE_CAUSE, FIRE_CAUSE2)) %>%
+  mutate(FIRE_CAUSE3 = coalesce (FIRE_CAUSE3,"Unknown"))
+table(ignition2$FIRE_YEAR, ignition2$FIRE_CAUSE3)
+
+# This is better. Im still missing quite a few fire locations with data especially for the years 2007 - 2009. But with out bugging Devona again this is the best I can do for now.
+
+ignition2 <- st_transform (ignit, 3005)
+
+
+st_write(ignition2, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\bc_fire_ignition.shp", delete_dsn = TRUE)
 
 ## Load ignition data into postgres (either my local one or Kyles)
 #host=keyring::key_get('dbhost', keyring = 'postgreSQL')
