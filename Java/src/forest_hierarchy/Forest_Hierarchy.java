@@ -3,7 +3,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.stream.IntStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 
 public class Forest_Hierarchy {
@@ -12,12 +14,14 @@ public class Forest_Hierarchy {
 	ArrayList<Integer> blockList = new ArrayList<Integer>();
 	List<Integer> degreeList; // the degree of a vertex of a graph is the number of edges incident to the vertex, with loops counted twice
 	Integer[] blockPixels ;
+	
 	histogram hist;
 	Integer[] degree;
 	Integer[] idegree;
-	int blockID = 0;
-	double cwt = 1.0, allowableDiff = 2; //allowableDiff: Sum of d standard normal random variables has Chi-Square distribution with d degrees of freedom
+    int blockID = 0;
+	double allowableDiff = 0.39; //allowableDiff: Sum of d standard normal random variables has Chi-Square distribution with d degrees of freedom
 	private static final int EMPTY = -1;
+	enum blockMerge { NEW, TAILTO, TAILFROM, MERGE}
 	
 	public Forest_Hierarchy() {
 
@@ -49,6 +53,7 @@ public class Forest_Hierarchy {
 		this.edgeList.sort((o1, o2) -> Double.compare(o1.getWeight(), o2.getWeight()));	//sort the edgeList	
 		
 		System.out.println("Blocking...");
+		
 		while(findBlocks){//as long as the distribution of block sizes has not been met or there are edges to include, cluster pixels into blocks
 			if(blockSize == 0){ //the first pixel in the block
 				seed = this.degreeList.indexOf(Collections.max(this.degreeList));//get the largest degree?
@@ -135,7 +140,131 @@ public class Forest_Hierarchy {
 		this.edgeList.clear();//clean up
 	}
 
+	public void blockEdges2() { //This is a different mst algortihum building from bottom up
+		int blockSize = 0, seed = 0, seedNew = -1, d = 0;
+		this.hist.setBin();
+		int nTarget =  this.hist.bins.get(this.hist.getBin()-1).n;
+		double maxTargetSize = this.hist.bins.get(this.hist.getBin()-1).max_block_size;
+		boolean findBlocks =	!this.hist.bins.isEmpty(); //if there is a histogram with bins then findBlocks
+		this.degreeList = Arrays.asList(this.degree);
+		HashMap<Integer, ArrayList<Integer>> blockList2 = new HashMap<>();
+		int[] blockPixelsLUT = new int[this.degreeList.size()+1]; //automatically initiates to zero
+		int blockRemove; // the name of the block that get consolidated
+		//blockPixelsLUT = IntStream.rangeClosed(0, degreeList.size()).toArray();
+		blockMerge blockMergeType = blockMerge.NEW;;
+		ArrayList<Integer> blocksConsolidate = new ArrayList<Integer>();
+		
+		System.out.println("Blocking...");
+		
+		this.blockPixels = new Integer[this.degree.length]; 
+		Arrays.fill(this.blockPixels, 0);	//fill the pixelBlock array with 0
+		
+		this.edgeList.sort((o1, o2) -> Double.compare(o1.getWeight(), o2.getWeight()));	//sort the edgeList	
+		
+		//1.remove edges greater than the allowable difference
+		//-this is the "cut" of the graph based on greatest affinity (Felzenszwalb and Huttenlocher 2004)
+		for(int t = edgeList.size()-1; t >= 0; t--) {
+			if(edgeList.get(t).weight <= this.allowableDiff) {
+				break;
+			}else {
+				edgeList.remove(t);
+			}
+		}
 
+		while(findBlocks){//as long as the distribution of block sizes has not been met or there are edges to include, cluster pixels into blocks
+			
+			if(edgeList.isEmpty()) {//group pixels till there is nothing left to group or the edgeList is empty
+				break;
+			}
+			
+			//get an edge to contemplate
+			Edges edge = edgeList.get(getEdgeFromMinWeightDegree());
+			
+			//create a block
+			if(blockPixelsLUT[edge.to] == 0 & blockPixelsLUT[edge.from] == 0) {
+				blockMergeType = blockMerge.NEW;
+			}
+			if(blockPixelsLUT[edge.to] > 0 & blockPixelsLUT[edge.from] == 0) {
+				blockMergeType = blockMerge.TAILFROM;
+			}
+			if(blockPixelsLUT[edge.to] == 0 & blockPixelsLUT[edge.from] > 0) {
+				blockMergeType = blockMerge.TAILTO;
+			}
+			if(blockPixelsLUT[edge.to] > 0 & blockPixelsLUT[edge.from] > 0) {
+				blockMergeType = blockMerge.MERGE;
+			}
+			
+			switch(blockMergeType) {
+				case NEW:
+					blockID ++;
+					blockList2.putIfAbsent(blockID , new ArrayList<Integer>());
+					blockList2.get(blockID ).add(edge.from);
+					blockList2.get(blockID ).add(edge.to);
+					
+					blockPixelsLUT[edge.from] = blockID; // assign a new block as the smaller of the two
+					blockPixelsLUT[edge.to] = blockID;
+					break;
+				case TAILTO:
+					blockList2.get(blockPixelsLUT[edge.from]).add(edge.to);
+					blockPixelsLUT[edge.to] = blockPixelsLUT[edge.from]; // assign a new block as the smaller of the two
+					break;
+				case TAILFROM:
+					blockList2.get(blockPixelsLUT[edge.to] ).add(edge.from);
+					blockPixelsLUT[edge.from] = blockPixelsLUT[edge.to]; // assign a new block as the smaller of the two
+					break;
+				case MERGE:
+					//change the name of all the other blocks to the smallest block
+					blockRemove = blockPixelsLUT[edge.to];
+					blocksConsolidate = blockList2.get(blockRemove);
+					blockSize = blocksConsolidate.size() + blockList2.get(blockPixelsLUT[edge.from] ).size() ;
+					//Max patch size constraint
+					if(blockSize <= maxTargetSize) {						
+						this.hist.setBinTargetNumber(blockSize);
+						if(!this.hist.bins.isEmpty()){
+							nTarget = this.hist.bins.get(this.hist.getBin()-1).n;
+							maxTargetSize = this.hist.bins.get(this.hist.getBin()-1).max_block_size;
+						}
+						
+						for(int i =0; i < blocksConsolidate.size(); i++) {
+							blockList2.get(blockPixelsLUT[edge.from] ).add(blocksConsolidate.get(i));
+							blockPixelsLUT[blocksConsolidate.get(i)] = blockPixelsLUT[edge.from];
+						}
+					//remove the archaic block
+					blockList2.remove(blockRemove);
+					}
+					break;	
+			}
+	
+			//remove a degree from the degreeList
+			removeDegree(edge.to - 1); // have to minus one for the zero start of the array
+			removeDegree(edge.from - 1);
+			
+			//remove the edge from the edgeList
+			edgeList.remove(edge);
+
+		}//End of the while loop
+		
+	
+		for (int r = 0; r < blockPixels.length ; r++){ //assign the remaining blocks their own blockID
+			if(blockPixelsLUT[r+1] == 0) {
+				blockID++;
+				this.blockPixels[r] = blockID;			
+			}else {
+				this.blockPixels[r] = blockPixelsLUT[r+1] ;
+			}
+			
+		}
+		
+		
+	}
+	
+	private void removeDegree(int pixel) {
+		degreeList.set(pixel, degreeList.get(pixel) - 1);
+		if(degreeList.get(pixel) == 0) { // catch those pixels that have zero degree so that the loop doesn't select it again
+			degreeList.set(pixel, 9);
+		}
+	}
+	
 	private void setPixelBlocks() {
 		this.blockID ++;
 		Iterator<Integer> itr = this.blockList.iterator();   
@@ -147,7 +276,19 @@ public class Forest_Hierarchy {
         }   
         this.blockList.clear();	
 	}
-
+	
+	private void setPixelBlocks2() {
+		this.blockID ++;
+		Iterator<Integer> itr = this.blockList.iterator();   
+        while (itr.hasNext()) { 
+            int x = (Integer)itr.next();
+            this.blockPixels[x-1] = this.blockID;
+            removeEdges2(x); //remove all remaining edges in the edgeList. So that each block has a unique set of pixels
+            itr.remove(); 
+        }   
+        this.blockList.clear();	
+	}
+	
 	private  int findPixelToAdd(int seed, int blocksize) {
 	//double wt = 0.0;
 	int nextPixel = -1;
@@ -167,10 +308,7 @@ public class Forest_Hierarchy {
 				//}
 			}
 		}
-		if(nextPixel > 0){ //remove degrees from each of the pixels
-			this.degreeList.set(seed, (this.degreeList.get(seed).intValue() - 1)); //subtract a degree from the pixel
-			this.degreeList.set((nextPixel -1), (this.degreeList.get((nextPixel-1)).intValue() - 1)); 
-		}
+	
 	return (nextPixel - 1);
 	}
 
@@ -187,6 +325,26 @@ public class Forest_Hierarchy {
 					deleteEdges.add(edge);
 					this.degreeList.set(x-1, (this.degreeList.get(x-1).intValue() - 1));
 					this.degreeList.set((edge.to -1), (this.degreeList.get((edge.to -1)).intValue() - 1));
+				}
+			}
+			this.edgeList.removeAll(deleteEdges);
+			deleteEdges = null;
+		}
+	}
+	
+	private void removeEdges2(int x) {
+		if(this.degreeList.get(x-1) > 0){
+			List<Edges> deleteEdges = new ArrayList<Edges>();
+			for(Edges edge : this.edgeList){ //find the next pixel from a seed
+				if (edge.to == x) {
+					deleteEdges.add(edge);
+					//this.degreeList.set(x-1, (this.degreeList.get(x-1).intValue() - 1));
+					//this.degreeList.set((edge.from -1), (this.degreeList.get(edge.from-1).intValue() - 1));
+				}
+				if (edge.from == x) {
+					deleteEdges.add(edge);
+					//this.degreeList.set(x-1, (this.degreeList.get(x-1).intValue() - 1));
+					//this.degreeList.set((edge.to -1), (this.degreeList.get((edge.to -1)).intValue() - 1));
 				}
 			}
 			this.edgeList.removeAll(deleteEdges);
@@ -253,7 +411,7 @@ public class Forest_Hierarchy {
 		this.idegree = create_degree();
 		ArrayList<LinkedHashMap<String, Object>> histTable = new ArrayList<LinkedHashMap<String, Object>>();
 		this.hist = new histogram(histTable);
-		blockEdges();
+		blockEdges2();
 	}
 	
 
@@ -272,8 +430,22 @@ public class Forest_Hierarchy {
 		return degree;
 	}
 	
-
-	
+/**
+ * Finds the edge with the lowest weight and degree - a common task for agglomerative clustering
+ * @return
+ */
+	public int getEdgeFromMinWeightDegree() {
+		int out = 0;
+		int minDegree = Collections.min(this.degreeList);
+		
+		for(Edges edge : this.edgeList) {
+			if(degreeList.get(edge.from-1) == minDegree || degreeList.get(edge.to-1) == minDegree) {
+				out = edgeList.indexOf(edge);
+				break;
+			}
+		}
+		return out;
+	}
     /**
      * Private class for tracking Edges of a Minimum Spanning Tree.
      */
@@ -310,13 +482,13 @@ public class Forest_Hierarchy {
         	// TODO  need a way to make this discrete --issues with rounding up and down?
             if(histTable.isEmpty()){
                 areaBin bin0  = new areaBin();
-                bin0.max_block_size = 4; //changed this from 5, needed a large block that is more than the degrees
-                bin0.n = 3;
+                bin0.max_block_size = 2; //changed this from 5, needed a large block that is more than the degrees
+                bin0.n = 5;
                 this.bins.add(bin0);
                 
                 areaBin bin  = new areaBin();
-                bin.max_block_size = 2; //changed this from 5, needed a large block that is more than the degrees
-                bin.n = 3;
+                bin.max_block_size = 5; //changed this from 5, needed a large block that is more than the degrees
+                bin.n = 1;
                 this.bins.add(bin);
             }else{
         		for(int i =0;  i < histTable.size(); i++){

@@ -261,7 +261,7 @@ preBlock <- function(sim) {
                                  thlb > 0 AND ", patchSizeZone, " IS NOT NULL group by ", patchSizeZone)))) 
   resultset<-list() #create an empty resultset to be appended within the for loop
   islands<-list() #create an empty list to add pixels that are islands and don't connect to the graph
-  
+
   for(zone in zones){
     message(paste0("loading--", zone))
     vertices<-data.table(dbGetQuery(sim$clusdb,
@@ -278,9 +278,9 @@ preBlock <- function(sim) {
     lut<-data.table(verts = as_ids(V(g.sub)))[, ind := seq_len(.N)]
     g.sub2<-g.sub %>% set_vertex_attr("name", value = lut$ind)
     
-    g.mst_sub<-mst(g.sub2, weighted=TRUE)
+    g.mst_sub<<-mst(g.sub2, weighted=TRUE)
     #g.mst_sub<-delete.vertices(g.mst_sub, degree(g.mst_sub) == 0)
-    
+ 
     if(length(get.edgelist(g.mst_sub)) > 0){
       paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst_sub)), E(g.mst_sub)$weight))
       paths.matrix[, V1 := as.integer(V1)][, V2 := as.integer(V2)]
@@ -308,8 +308,9 @@ preBlock <- function(sim) {
     }
   }
   
+  #ras<<-sim$ras
   #rs.test<<-resultset
-
+  #stop()
   #Run the forest_hierarchy java object in parallel. One for each 'zone'. This will maintain zone boundaries as block boundaries
   if(length(zones) > 1 && object.size(g) > 10000000000){ #0.1 GB
     noCores<-min(parallel::detectCores()-1, length(zones))
@@ -367,7 +368,7 @@ preBlock <- function(sim) {
   sim$harvestUnits<-sim$ras
   sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$clusdb, 'Select blockid from pixels ORDER BY pixelid ASC')))
 
-  #writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
+  writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
   #stop()
   rm(zones, result, blockids, max_blockid)
   gc()
@@ -482,7 +483,7 @@ getBlocksIDs<- function(x){
   from<-.jarray(as.matrix(x[][[2]][,2]))#set the "from" list as a java object
   weight<-.jarray(as.matrix(x[][[2]][,3])) #set the "weight" list as a java object
   fhClass$setRParms(to, from, weight, d, h, x[][[5]]) # sets the input R parameters <Edges> <Degree> <Histogram> <variation>
-  fhClass$blockEdges() # builds the blocks
+  fhClass$blockEdges2() # builds the blocks
   #blockids<-cbind(convertToR(fhClass$getBlocks()), as.integer(unlist(dg[,1]))) #creates a link between pixelid and blockid
   blockids<-cbind(convertToR(fhClass$getBlocks()), as.integer(x[][[6]]$verts)) #creates a link between pixelid and blockid
   #stop()
