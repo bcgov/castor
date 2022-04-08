@@ -1,0 +1,2123 @@
+---
+title: "Productivity_Data_Prep"
+author: "Cora Skaien"
+date: "25/03/2022"
+output: html_document
+---
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(raster)
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(cleangeo)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(rgdal)
+library(sp)
+library(keyring)
+library(DBI)
+library(rgeos)
+library(car)
+library(rje)
+library(caret)
+library(pROC)
+library(visreg)
+library(gtools)
+```
+
+Unsure about below anymore
+```{r setup, include=FALSE}
+source(here::here("R/functions/R_Postgres.R")) #maybe this is the problem after my update?
+```
+
+#Overview
+In this file, we bring in each of our different datasets for produtcivity data, append the necessary data from spatial files, and then combine the necessary datasets together to be able to perform analyses for huckleberry and buffaloberry. In these analyses, we explore how both climatic elements, as well as silviculture practices, influence plant P/A, percent cover and berry P/A and abundance.
+
+Below is a the procedure used in QGIS for the first dataset, with similar approach taken for subsequent datasets.
+
+We have a dataset provided by Clayton Lamb and Garth Mowat that contains information on numerous shrub species occurrence, cover, fruit phenology, sugar content, etc. Using the consolidated cutblock layer available online (https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-), I was able to use the intersect tool in QGIS to determine which of the plots in the provided data occurred in cutblocks. Here, we will bring in both layers, append the data together between the two files, and then subset the huckleberry (Vaccinium membranaceum) and buffalo berry (Shepherdia canadensis) to see how large our dataset is.
+
+Bring in the shape file with the coordinates within cutblocks. This data was processed in QGIS, using the consolidated cutblock layer. This data also has the relevant "Openings data" and "Activity Treatment" appended to it. Note, that when selecting points by polygons within Openings and Activity Treatment data sets, often points were duplicated. To fix this issue, we used the "Delete Duplicate Geometries" function in QGIS. Because of limitations with the data, each time we intersect with more RESULTS layers, we lose data. As a result, it is important to consider which factors (and specificity) are most important for the analysis as 30-50% of the data is lost when we use the ACTIVITY TREATMENT data as opposed to just the OPENINGS data. 
+
+This link will be very useful for determining what the codes mean:
+https://www.for.gov.bc.ca/hfp/publications/00026/fs708-14-appendix_d.htm#ad_16
+
+This may also prove useful:
+https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/silviculture/silviculture-reporting-results/technical-documentation
+
+We have multiple datasets to work with.
+
+##Notes from Clayton for Clayton files (Huckleberry and Buffaloberry)
+Keep in mind the hierarchy of the processes as your filter the data— For Occurrence>cover>fruit occurrence>fruit abundance. For example, there are lots of cover==0% because the species didn’t occur. I chose to model each processes independently and then multiply them together, but you could shortcut and try to just model berry abundance all together, see how goes.
+
+VegModData_BEC_CL is occurrence and cover data from BEC, my plots across BC and some Proctor Huck data. This is a big dataset useful for modelling occurrence and cover only. Not fruit occurrence or productivity. You’ll see the BEC Code (for example VACCMEM= huck), and then “_cover” or “_occ” for % cover and occurrence, respectively.
+
+Productivity_Data is occurrence, cover, fruit presence, and fruit abundance data.I think I assigned NA’s to abundance and other values when the species didn’t occur. Some records where the species and fruit occurs don’t have fruit abundance data becuase these data weren’t always collected. These rows are NA’s too.
+
+Time since cut and Time since Fire are in there, and are calculated relative to when the plot was done. I fixed all non-cut block and non-fire areas as 118. Lots of other variables in there for you to play with.”
+
+##Additional considerations for data and variables
+1. Temp and Rainfall in t-1 and t-2 (years before) --> ClimateBC data
+   - Spring temperature
+   - July temperature
+   - Spring rainfall
+   - July rainfall
+2. Solar radiation --> but does not work from ClimateBC; need to find elsewhere; currently exploring heatload as a surrogate
+3. PAS --> ClimateBC
+4. Time since wildfire --> wildfire shape file
+5. Whether site prep involved fire --> RESULTS OPENINGS data
+6. Whether site prep involved scarification (mechanical) --> RESULTS OPENINGS data
+7. Tree canopy
+8. DEM: slope, elevation AND aspect all important (shift aspect to NE)
+
+
+#Additional considerations for different types of analyses
+Consider getting climatic variables at time t, t-1, t-2 (for berry production) and 10 year normal for cover and presence. Then append together with appropriate names for each set if variables at their timelines.
+
+####################### BRING IN DATASETS ######################
+
+#Dataset #1: Clayton Lamb and Garth Mowat data on huckleberry and Buffaloberry
+This data has P/A of plants and of berries, and P/A of fruits and of berries. There is also a measure of sugar content (energetics) and other potentially useful and interesting response variables. This data has information for both huckleberry and buffalobery.
+```{r}
+cutblock_plots_openings_productivity_huck<- st_read ( dsn = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\Clayton_data_Huck_Cutblocks and RESULTS2.shp", stringsAsFactors = T) #986 observations
+str(cutblock_plots_openings_productivity_huck) #230 observations
+
+head(cutblock_plots_openings_productivity_huck)
+
+st_crs(cutblock_plots_openings_productivity_huck)
+plot(cutblock_plots_openings_productivity_huck)
+table(cutblock_plots_openings_productivity_huck$ID2) 
+```
+
+Extrapolate berry abundance from 1 m-square plots as in data to 100 m-square plots like in subsequent Mackenzie data.
+
+```{r}
+cutblock_plots_openings_productivity_huck$Fruit.Abun.100<-(cutblock_plots_openings_productivity_huck$Fruit.Abun*cutblock_plots_openings_productivity_huck$Species.Co)
+
+hist(cutblock_plots_openings_productivity_huck$Fruit.Abun.100)
+cutblock_plots_openings_productivity_huck$Fruit.Abun.100 #283 data points
+
+#Ensure all whole numbers
+cutblock_plots_openings_productivity_huck$Fruit.Abun.100<-round(cutblock_plots_openings_productivity_huck$Fruit.Abun.100,0)
+cutblock_plots_openings_productivity_huck$Fruit.Abun.100
+
+hist(cutblock_plots_openings_productivity_huck$Fruit.Abun.100)
+
+```
+
+
+```{r}
+DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
+crs(DEM_slope) 
+
+DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc_3005.tif")
+crs(DEM_aspect)
+
+#Elevation
+DEM_elevation <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+crs(DEM_elevation)
+crs(cutblock_plots_openings_productivity_huck) #Same!
+
+#Stack rasters
+rasStack = stack(DEM_slope, DEM_aspect, DEM_elevation)
+crs(rasStack) #3005
+head(rasStack)
+str(rasStack)
+extent(rasStack)
+
+cutblock_plots_openings_productivity_huck$coords_x1<-st_coordinates(cutblock_plots_openings_productivity_huck)
+head(cutblock_plots_openings_productivity_huck)
+
+pointCoordinates<-data.frame(cutblock_plots_openings_productivity_huck$coords.x1, cutblock_plots_openings_productivity_huck$coords.x2)
+head(pointCoordinates)
+
+DEM_huck1=raster::extract(rasStack, pointCoordinates)
+head(DEM_huck1)
+
+#Append
+cutblock_plots_openings_productivity_huck<-cbind(cutblock_plots_openings_productivity_huck, DEM_huck1)
+head(cutblock_plots_openings_productivity_huck)
+```
+
+Get coordinates in decimal degrees for ClimateBC to get data at t-1 and t-2.
+
+```{r}
+crs(cutblock_plots_openings_productivity_huck)
+
+test<-st_transform(cutblock_plots_openings_productivity_huck, crs="+proj=longlat  +datum=NAD83")
+crs(test)
+head(test)
+
+test$coords_x1DD<-st_coordinates(test)
+head(test)
+
+pointCoordinatesDD<-data.frame(test$coords_x1DD[,1], test$coords_x1DD[,2])
+head(pointCoordinatesDD)
+
+head(test)
+str(test)
+
+cutblock_plots_openings_productivity_huck<-test
+
+```
+
+This data already has Soils data (complements of Clayton Lamb), so no need to append that data (will in datasets below).
+
+This data also already has canopy cover, time since wildfire and RESULTS OPENINGS data appended.
+
+Now, remove spatial elements and turn into dataframe, where we can then bring in the ClimateBC data for years t-1 and t-2 to append.
+
+```{r}
+cutblock_plots_openings_productivity_huck_df<-st_drop_geometry(cutblock_plots_openings_productivity_huck)
+head(cutblock_plots_openings_productivity_huck_df)
+
+write.csv(cutblock_plots_openings_productivity_huck_df, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_cutblocks_DEM_Huckleberry_March28.csv")
+
+```
+
+Take file and modify in excel to get unique ID values to append for Climate data. While here, I also created columns for the years and months in which PREP1 and PREP2 occured to better estimate when mechanical disturbance occurred for number of years since logging began, and for seasonality. No need to update climate data to have "_0" at end because does not have monthly values, so need to acquire with ClimateBC anyway.
+
+Load back in.
+```{r}
+cutblock_plots_openings_productivity_huck_df<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_cutblocks_DEM_Huckleberry_March28b.csv")
+head(cutblock_plots_openings_productivity_huck_df)
+table(cutblock_plots_openings_productivity_huck_df$Species)
+
+
+```
+
+Once the above has been run through ClimateBC for the year of the data, the year prior, and 2 years prior for annual and seasonal variables, we will bring these files back in, append them to each other, and then append to our dataset above. Note that the conditions in the year of collection should already be present, and these do not need to be brought in at this time for this dataset.
+
+#2013
+```{r}
+#Huckleberry
+huck_Clayton_2013_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2013_Year_2013MSY.csv")
+head(huck_Clayton_2013_0)
+
+huck_Clayton_2013_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2013_Year_2012MSY.csv")
+head(huck_Clayton_2013_1)
+
+huck_Clayton_2013_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2013_Year_2011MSY.csv")
+head(huck_Clayton_2013_2)
+
+huck_Clayton_2013<-cbind(huck_Clayton_2013_0, huck_Clayton_2013_1, huck_Clayton_2013_2)
+head(huck_Clayton_2013)
+names(huck_Clayton_2013)
+huck_Clayton_2013<-huck_Clayton_2013[-(541:545)]
+huck_Clayton_2013<-huck_Clayton_2013[-(271:275)]
+
+```
+
+#2014
+In newest data there is no longer any 2014 data with berry abundance information.
+```{r}
+#Huckleberry
+#huck_Clayton_2014_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2014_Year_2013MSY.csv")
+#head(huck_Clayton_2014_1)
+
+#huck_Clayton_2014_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2014_Year_2012MSY.csv")
+
+#huck_Clayton_2014<-cbind(huck_Clayton_2014_1, huck_Clayton_2014_2)
+#head(huck_Clayton_2014)
+#names(huck_Clayton_2014)
+#huck_Clayton_2014<-huck_Clayton_2014[-(271:275)]
+
+```
+
+#2015
+In newest data there is no longer any 2015 data with berry abundance information.
+```{r}
+#Huckleberry
+#huck_Clayton_2015_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2015_Year_2014MSY.csv")
+#head(huck_Clayton_2015_1)
+
+#huck_Clayton_2015_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\Huckleberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2015_Year_2013MSY.csv")
+
+#huck_Clayton_2015<-cbind(huck_Clayton_2015_1, huck_Clayton_2015_2)
+#head(huck_Clayton_2015)
+#names(huck_Clayton_2015)
+#huck_Clayton_2015<-huck_Clayton_2015[-(271:275)]
+
+```
+
+#2016
+```{r}
+#Huckleberry
+huck_Clayton_2016_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2016_Year_2016MSY.csv")
+head(huck_Clayton_2016_0)
+
+huck_Clayton_2016_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2016_Year_2015MSY.csv")
+head(huck_Clayton_2016_1)
+
+huck_Clayton_2016_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2016_Year_2014MSY.csv")
+head(huck_Clayton_2016_2)
+
+huck_Clayton_2016<-cbind(huck_Clayton_2016_0, huck_Clayton_2016_1, huck_Clayton_2016_2)
+head(huck_Clayton_2016)
+names(huck_Clayton_2016)
+huck_Clayton_2016<-huck_Clayton_2016[-(541:545)]
+huck_Clayton_2016<-huck_Clayton_2016[-(271:275)]
+
+```
+
+#2017
+```{r}
+#Huckleberry
+huck_Clayton_2017_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2017_Year_2017MSY.csv")
+head(huck_Clayton_2017_0)
+
+huck_Clayton_2017_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2017_Year_2016MSY.csv")
+head(huck_Clayton_2017_1)
+
+huck_Clayton_2017_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2017_Year_2015MSY.csv")
+head(huck_Clayton_2017_2)
+
+huck_Clayton_2017<-cbind(huck_Clayton_2017_0, huck_Clayton_2017_1, huck_Clayton_2017_2)
+head(huck_Clayton_2017)
+names(huck_Clayton_2017)
+huck_Clayton_2017<-huck_Clayton_2017[-(541:545)]
+huck_Clayton_2017<-huck_Clayton_2017[-(271:275)]
+```
+
+#2018
+```{r}
+#Huckleberry
+huck_Clayton_2018_0<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2018_Year_2018MSY.csv")
+head(huck_Clayton_2018_0)
+
+huck_Clayton_2018_1<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2018_Year_2017MSY.csv")
+head(huck_Clayton_2018_1)
+
+huck_Clayton_2018_2<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Huck_Clayton\\ClimateBC_Huck_CLayton_2018_Year_2016MSY.csv")
+head(huck_Clayton_2018_2)
+
+huck_Clayton_2018<-cbind(huck_Clayton_2018_0, huck_Clayton_2018_1, huck_Clayton_2018_2)
+head(huck_Clayton_2018)
+names(huck_Clayton_2018)
+huck_Clayton_2018<-huck_Clayton_2018[-(541:545)]
+huck_Clayton_2018<-huck_Clayton_2018[-(271:275)]
+```
+
+Combine the data sets together.
+
+```{r}
+#huck_climate_data<-rbind(huck_Clayton_2018, huck_Clayton_2017, huck_Clayton_2016, huck_Clayton_2015, huck_Clayton_2014, huck_Clayton_2013)
+
+huck_climate_data<-rbind(huck_Clayton_2018, huck_Clayton_2017, huck_Clayton_2016, huck_Clayton_2013)
+
+head(huck_climate_data)
+names(huck_climate_data)
+  
+#Join data
+cutblock_plots_openings_productivity_huck_df_climate<-left_join(cutblock_plots_openings_productivity_huck_df, huck_climate_data, by="ID2") #238 pbservations as expected
+head(cutblock_plots_openings_productivity_huck_df_climate) 
+
+#Test random variable
+cutblock_plots_openings_productivity_huck_df_climate$PPT01_1
+cutblock_plots_openings_productivity_huck_df_climate$Species
+```
+
+Add heatload as a form of solar radiation. Equation and methodology taken from here: https://www.davidzeleny.net/anadat-r/doku.php/en:customized_functions:heatload
+
+```{r}
+# Function "heatload"
+# Calculates heat load or potential annual direct incident radiation, using the formulas published in 
+# McCune & Keon (2002) based on aspect, slope and latitude.
+ 
+heatload <- function (aspect, slope, latitude, method = 'heatload', units = 'degrees', equation = 1)
+{
+  if (units == 'degrees')   # convert degrees to radians
+    {
+    aspect <- aspect/180*pi
+    slope <- slope/180*pi
+    aspect[slope == 0] <- 0
+    latitude <- latitude/180*pi
+    }  
+  A <- if (method == 'heatload') abs (pi - abs (aspect - (5*pi/4))) else pi - abs (aspect-pi)
+  S <- slope
+  L <- if (length (latitude) == 1) rep (latitude, length (A)) else latitude
+  if (equation == 1) res <- exp (-1.467 +1.582*cos(L)*cos(S) -1.500*cos(A)*sin(S)*sin(L) -0.262*sin(L)*sin(S) +0.607*sin(A)*sin(S))
+  if (equation == 2) res <- exp (-1.236 +1.350*cos(L)*cos(S) -1.376*cos(A)*sin(S)*sin(L) -0.331*sin(L)*sin(S) +0.375*sin(A)*sin(S))
+  if (equation == 3) res <-      +0.339 +0.808*cos(L)*cos(S)                             -0.196*sin(L)*sin(S)                       - 0.482*cos(A)*sin(S)
+  return (res)
+}
+```
+
+```{r}
+cutblock_plots_openings_productivity_huck_df_climate$heatload <- heatload (aspect = cutblock_plots_openings_productivity_huck_df_climate$aspect_ha_bc_3005, slope = cutblock_plots_openings_productivity_huck_df_climate$slope_ha_bc_3005, latitude = cutblock_plots_openings_productivity_huck_df_climate$Latitude, equation = 3)
+ 
+cutblock_plots_openings_productivity_huck_df_climate$heatload 
+hist(cutblock_plots_openings_productivity_huck_df_climate$heatload)
+
+```
+
+Some other investigations.
+```{r}
+cutblock_plots_openings_productivity_huck_df_climate$Fruit.Abun.100
+table(cutblock_plots_openings_productivity_huck_df_climate$CutBlock_O) #Indicated that 13 were not in cutblocks- investigate
+
+Clayton_no_CB<-subset(cutblock_plots_openings_productivity_huck_df_climate, cutblock_plots_openings_productivity_huck_df_climate$CutBlock_O==0)
+head(Clayton_no_CB)
+table(Clayton_no_CB$YEAR, Clayton_no_CB$DST_STR_DT) #Many were cut in subsequent years; all 2016 cutblocks onwards in this subset can be removed. Investigate others.
+
+library(stringi)
+Clayton_no_CB$Cutblock_Year<-stri_sub(Clayton_no_CB$DST_STR_DT,1,4)
+Clayton_no_CB2<-subset(Clayton_no_CB, Clayton_no_CB$Cutblock_Year<2016)
+Clayton_no_CB2
+Clayton_no_CB2$PREP1_TECH #Some have info, others not. 
+
+#Let's remove the original 0s from the data, and then re-append the info that is not blank here.
+Clayton_no_CB2$PREP1_TECH<-as.factor(Clayton_no_CB2$PREP1_TECH)
+Clayton_no_CB3<-subset(Clayton_no_CB2, Clayton_no_CB2$PREP1_TECH!="NA")
+str(Clayton_no_CB3)
+Clayton_no_CB3$PREP1_TECH #Left with just one that was burned.
+
+#Note, when looking on QGIS, ID2 of 3019 just on edge of cutblock and should be included.
+
+```
+
+
+```{r}
+library(stringi)
+cutblock_plots_openings_productivity_huck_df_climate$Cutblock_Year<-stri_sub(cutblock_plots_openings_productivity_huck_df_climate$DST_STR_DT,1,4)
+
+cutblock_plots_openings_productivity_huck_df_climate<-subset(cutblock_plots_openings_productivity_huck_df_climate, cutblock_plots_openings_productivity_huck_df_climate$CutBlock_O=="1")
+
+cutblock_plots_openings_productivity_huck_df_climate2<-rbind(cutblock_plots_openings_productivity_huck_df_climate, Clayton_no_CB3)
+
+str(cutblock_plots_openings_productivity_huck_df_climate2) #226 observations
+
+cutblock_plots_openings_productivity_huck_df_climate<-cutblock_plots_openings_productivity_huck_df_climate2
+```
+
+Investigate time since fire relative to cutblock.
+
+```{r}
+cutblock_plots_openings_productivity_huck_df_climate$TimeSinceF
+cutblock_plots_openings_productivity_huck_df_climate$TimeSinceC
+which(cutblock_plots_openings_productivity_huck_df_climate$TimeSinceC>cutblock_plots_openings_productivity_huck_df_climate$TimeSinceF)# 26, 27, 62, 100, 148
+cutblock_plots_openings_productivity_huck_df_climate[26,] #Harvest year 1977; fire year 2007
+cutblock_plots_openings_productivity_huck_df_climate[27,] #Harvest year 1977, fire year 2007
+cutblock_plots_openings_productivity_huck_df_climate[62,] #Harvest 2000; fire 2007
+cutblock_plots_openings_productivity_huck_df_climate[100,] #Harvest 1978, fire 2007
+cutblock_plots_openings_productivity_huck_df_climate[148,] #Harvest 1972, fire 1973
+
+cutblock_plots_openings_productivity_huck_df_climateb<-cutblock_plots_openings_productivity_huck_df_climate[-148,]
+cutblock_plots_openings_productivity_huck_df_climateb<-cutblock_plots_openings_productivity_huck_df_climateb[-100,]
+cutblock_plots_openings_productivity_huck_df_climateb<-cutblock_plots_openings_productivity_huck_df_climateb[-62,]
+cutblock_plots_openings_productivity_huck_df_climateb<-cutblock_plots_openings_productivity_huck_df_climateb[-27,]
+cutblock_plots_openings_productivity_huck_df_climateb<-cutblock_plots_openings_productivity_huck_df_climateb[-26,]
+
+#Check to ensure correctly done
+which(cutblock_plots_openings_productivity_huck_df_climateb$TimeSinceC>cutblock_plots_openings_productivity_huck_df_climateb$TimeSinceF) #None, excellent
+
+```
+
+
+
+Save file with processed data. 
+```{r}
+write.csv(cutblock_plots_openings_productivity_huck_df_climateb, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_huck_df_climate_March28.csv") #221 observations
+```
+
+
+If need to load back in:
+```{r}
+cutblock_plots_openings_productivity_huck_df_climate<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_huck_df_climate_March28.csv")
+head(cutblock_plots_openings_productivity_huck_df_climate)
+
+```
+
+
+##Repeat for Buffaloberry####
+```{r}
+cutblock_plots_openings_productivity_buff<- st_read ( dsn = "C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\CLayton_Buff_Shifted_CutblocksANdResults_March29.shp", stringsAsFactors = T) #986 observations
+str(cutblock_plots_openings_productivity_buff) #92 observations
+
+head(cutblock_plots_openings_productivity_buff)
+
+st_crs(cutblock_plots_openings_productivity_buff)
+plot(cutblock_plots_openings_productivity_buff)
+table(cutblock_plots_openings_productivity_buff$Site.ID)
+```
+
+```{r}
+#DEM layer = rasStack
+crs(rasStack) #3005
+head(rasStack)
+str(rasStack)
+extent(rasStack)
+
+crs(cutblock_plots_openings_productivity_buff)
+
+cutblock_plots_openings_productivity_buff$coords_x1<-st_coordinates(cutblock_plots_openings_productivity_buff)
+head(cutblock_plots_openings_productivity_buff)
+
+pointCoordinates<-data.frame(cutblock_plots_openings_productivity_buff$coords.x1, cutblock_plots_openings_productivity_buff$coords.x2)
+head(pointCoordinates)
+
+DEM_buff1=raster::extract(rasStack, pointCoordinates)
+head(DEM_buff1)
+
+#Append
+cutblock_plots_openings_productivity_buff<-cbind(cutblock_plots_openings_productivity_buff, DEM_buff1)
+head(cutblock_plots_openings_productivity_buff)
+```
+
+Get coordinates in decimal degrees for ClimateBC to get data at t-1 and t-2.
+
+```{r}
+crs(cutblock_plots_openings_productivity_buff)
+
+test<-st_transform(cutblock_plots_openings_productivity_buff, crs="+proj=longlat  +datum=NAD83")
+crs(test)
+head(test)
+
+test$coords_x1DD<-st_coordinates(test)
+head(test)
+
+pointCoordinatesDD<-data.frame(test$coords_x1DD[,1], test$coords_x1DD[,2])
+head(pointCoordinatesDD)
+
+head(test)
+str(test)
+
+cutblock_plots_openings_productivity_buff<-test
+
+
+```
+
+This data already has Soils data (complements of Clayton Lamb), so no need to append that data (will in datasets below).
+
+This data also already has canopy cover, time since wildfire and RESULTS OPENINGS data appended.
+
+Now, remove spatial elements and turn into dataframe, where we can then bring in the ClimateBC data for years t, t-1 and t-2 to append.
+
+```{r}
+cutblock_plots_openings_productivity_buff_df<-st_drop_geometry(cutblock_plots_openings_productivity_buff)
+head(cutblock_plots_openings_productivity_buff_df)
+
+write.csv(cutblock_plots_openings_productivity_buff_df, file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_cutblocks_DEM_buffaloberry_March28.csv")
+
+```
+
+Take file and modify in excel to get unique ID values to append for Climate data.  While here, I also created columns for the years and months in which PREP1 and PREP2 occured to better estimate when mechanical disturbance occurred for number of years since logging began, and for seasonality.
+
+Load back in.
+```{r}
+cutblock_plots_openings_productivity_buff_df<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\Clayton_cutblocks_DEM_buffaloberry_March28b.csv")
+head(cutblock_plots_openings_productivity_buff_df)
+table(cutblock_plots_openings_productivity_buff_df$Species)
+table(cutblock_plots_openings_productivity_buff_df$YEAR) #Only 2013 and 2016
+```
+
+Once the above has been run through ClimateBC for the year of the data, the year prior, and 2 years prior for annual and seasonal variables, we will bring these files back in, append them to each other, and then append to our dataset above. Note that the conditions in the year of collection should already be present, and these do not need to be brought in at this time for this dataset.
+
+#2013
+```{r}
+#buffaloberry
+buff_Clayton_2013_0<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Buff_Clayton\\Clayton_BUFF_Climate_2013_Year_2013MSY.csv")
+head(buff_Clayton_2013_0)
+
+buff_Clayton_2013_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Buff_Clayton\\Clayton_BUFF_Climate_2013_Year_2012MSY.csv")
+head(buff_Clayton_2013_1)
+
+buff_Clayton_2013_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Buff_Clayton\\Clayton_BUFF_Climate_2013_Year_2011MSY.csv")
+head(buff_Clayton_2013_2)
+
+buff_Clayton_2013<-cbind(buff_Clayton_2013_0, buff_Clayton_2013_1, buff_Clayton_2013_2)
+head(buff_Clayton_2013)
+#names(buff_Clayton_2013)
+buff_Clayton_2013<-buff_Clayton_2013[-(541:545)]
+buff_Clayton_2013<-buff_Clayton_2013[-(271:275)]
+
+```
+
+#2014
+New data only had 2013 and 2016.
+```{r}
+#buffaloberry
+#buff_Clayton_2014_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2014_Year_2013MSY.csv")
+#head(buff_Clayton_2014_1)
+
+#buff_Clayton_2014_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2014_Year_2012MSY.csv")
+
+#buff_Clayton_2014<-cbind(buff_Clayton_2014_1, buff_Clayton_2014_2)
+#head(buff_Clayton_2014)
+#names(buff_Clayton_2014)
+#buff_Clayton_2014<-buff_Clayton_2014[-(271:275)]
+
+```
+
+#2015
+New data only had 2013 and 2016.
+```{r}
+#buffaloberry
+#buff_Clayton_2015_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2015_Year_2014MSY.csv")
+#head(buff_Clayton_2015_1)
+
+#buff_Clayton_2015_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2015_Year_2013MSY.csv")
+
+#buff_Clayton_2015<-cbind(buff_Clayton_2015_1, buff_Clayton_2015_2)
+#head(buff_Clayton_2015)
+#names(buff_Clayton_2015)
+#buff_Clayton_2015<-buff_Clayton_2015[-(271:275)]
+
+```
+
+#2016
+```{r}
+#buffaloberry
+buff_Clayton_2016_0<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Buff_Clayton\\Clayton_BUFF_Climate_2016_Year_2016MSY.csv")
+head(buff_Clayton_2016_0)
+
+buff_Clayton_2016_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Buff_Clayton\\Clayton_BUFF_Climate_2016_Year_2015MSY.csv")
+head(buff_Clayton_2016_1)
+
+buff_Clayton_2016_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Buff_Clayton\\Clayton_BUFF_Climate_2016_Year_2014MSY.csv")
+head(buff_Clayton_2016_2)
+
+buff_Clayton_2016<-cbind(buff_Clayton_2016_0, buff_Clayton_2016_1, buff_Clayton_2016_2)
+head(buff_Clayton_2016)
+#names(buff_Clayton_2016)
+buff_Clayton_2016<-buff_Clayton_2016[-(541:545)]
+buff_Clayton_2016<-buff_Clayton_2016[-(271:275)]
+
+```
+
+#2017
+New data only had 2013 and 2016.
+```{r}
+#buffaloberry
+#buff_Clayton_2017_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2017_Year_2016MSY.csv")
+#head(buff_Clayton_2017_1)
+
+#buff_Clayton_2017_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2017_Year_2015MSY.csv")
+
+#buff_Clayton_2017<-cbind(buff_Clayton_2017_1, buff_Clayton_2017_2)
+#head(buff_Clayton_2017)
+#names(buff_Clayton_2017)
+#buff_Clayton_2017<-buff_Clayton_2017[-(271:275)]
+```
+
+#2018
+New data only had 2013 and 2016.
+```{r}
+#buffaloberry
+#buff_Clayton_2018_1<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2018_Year_2017MSY.csv")
+#head(buff_Clayton_2018_1)
+
+#buff_Clayton_2018_2<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\buffaloberry_Clayton_data_ClimateBC\\Clayton_data_ClimateBC_2018_Year_2016MSY.csv")
+
+#buff_Clayton_2018<-cbind(buff_Clayton_2018_1, buff_Clayton_2018_2)
+#head(buff_Clayton_2018)
+#names(buff_Clayton_2018)
+#buff_Clayton_2018<-buff_Clayton_2018[-(271:275)]
+```
+
+Combine the data sets together.
+
+```{r}
+buff_climate_data<-rbind(buff_Clayton_2016, buff_Clayton_2013)
+
+head(buff_climate_data)
+names(buff_climate_data)
+  
+#Join data
+cutblock_plots_openings_productivity_buff_df_climate<-left_join(cutblock_plots_openings_productivity_buff_df, buff_climate_data, by="ID")
+head(cutblock_plots_openings_productivity_buff_df_climate)
+str(cutblock_plots_openings_productivity_buff_df_climate) #92 variables
+str(cutblock_plots_openings_productivity_buff_df) #92 variables
+
+#Test random variable
+cutblock_plots_openings_productivity_buff_df_climate$PPT01_1
+cutblock_plots_openings_productivity_buff_df_climate$Species
+```
+
+Add heatload as a form of solar radiation. Equation and methodology taken from here: https://www.davidzeleny.net/anadat-r/doku.php/en:customized_functions:heatload
+
+```{r}
+# Function "heatload"
+# Calculates heat load or potential annual direct incident radiation, using the formulas published in 
+# McCune & Keon (2002) based on aspect, slope and latitude.
+ 
+heatload <- function (aspect, slope, latitude, method = 'heatload', units = 'degrees', equation = 1)
+{
+  if (units == 'degrees')   # convert degrees to radians
+    {
+    aspect <- aspect/180*pi
+    slope <- slope/180*pi
+    aspect[slope == 0] <- 0
+    latitude <- latitude/180*pi
+    }  
+  A <- if (method == 'heatload') abs (pi - abs (aspect - (5*pi/4))) else pi - abs (aspect-pi)
+  S <- slope
+  L <- if (length (latitude) == 1) rep (latitude, length (A)) else latitude
+  if (equation == 1) res <- exp (-1.467 +1.582*cos(L)*cos(S) -1.500*cos(A)*sin(S)*sin(L) -0.262*sin(L)*sin(S) +0.607*sin(A)*sin(S))
+  if (equation == 2) res <- exp (-1.236 +1.350*cos(L)*cos(S) -1.376*cos(A)*sin(S)*sin(L) -0.331*sin(L)*sin(S) +0.375*sin(A)*sin(S))
+  if (equation == 3) res <-      +0.339 +0.808*cos(L)*cos(S)                             -0.196*sin(L)*sin(S)                       - 0.482*cos(A)*sin(S)
+  return (res)
+}
+```
+
+```{r}
+cutblock_plots_openings_productivity_buff_df_climate$heatload <- heatload (aspect = cutblock_plots_openings_productivity_buff_df_climate$aspect_ha_bc_3005, slope = cutblock_plots_openings_productivity_buff_df_climate$slope_ha_bc_3005, latitude = cutblock_plots_openings_productivity_buff_df_climate$Latitude, equation = 3)
+ 
+cutblock_plots_openings_productivity_buff_df_climate$heatload 
+hist(cutblock_plots_openings_productivity_buff_df_climate$heatload)
+
+```
+
+Some other investigations.
+```{r}
+cutblock_plots_openings_productivity_buff_df_climate$Fruit.Abun 
+table(cutblock_plots_openings_productivity_buff_df_climate$CutBlock_O) #Indicated that 8 were not in cutblocks- investigate
+cutblock_plots_openings_productivity_buff_df_climate$Fruit_Abun_100
+
+Clayton_no_CB_Buff<-subset(cutblock_plots_openings_productivity_buff_df_climate, cutblock_plots_openings_productivity_buff_df_climate$CutBlock_O==0)
+head(Clayton_no_CB_Buff)
+table(Clayton_no_CB_Buff$YEAR, Clayton_no_CB_Buff$DST_STR_DT) #Many were cut in subsequent years; all 2016 cutblocks onwards in this subset can be removed. Investigate others.
+
+library(stringi)
+Clayton_no_CB_Buff$Cutblock_Year<-stri_sub(Clayton_no_CB_Buff$DST_STR_DT,1,4)
+Clayton_no_CB_Buff2<-subset(Clayton_no_CB_Buff, Clayton_no_CB_Buff$Cutblock_Year<2016)
+Clayton_no_CB_Buff2
+Clayton_no_CB_Buff2$PREP1_TECH #Only one left, and it has NA, so remove
+
+```
+
+
+```{r}
+cutblock_plots_openings_productivity_buff_df_climate<-subset(cutblock_plots_openings_productivity_buff_df_climate, cutblock_plots_openings_productivity_buff_df_climate$CutBlock_O=="1")
+
+str(cutblock_plots_openings_productivity_buff_df_climate) #84 observations
+table(cutblock_plots_openings_productivity_buff_df_climate$CutBlock_O)
+
+```
+
+```{r}
+cutblock_plots_openings_productivity_buff_df_climate$Fruit_Abun_100<-round(cutblock_plots_openings_productivity_buff_df_climate$Fruit_Abun_100,0)
+
+cutblock_plots_openings_productivity_buff_df_climate$Fruit_Abun_100
+```
+
+
+Investigate time since fire relative to cutblock.
+
+```{r}
+cutblock_plots_openings_productivity_buff_df_climate$TimeSinceF
+cutblock_plots_openings_productivity_buff_df_climate$TimeSinceC
+which(cutblock_plots_openings_productivity_buff_df_climate$TimeSinceC>cutblock_plots_openings_productivity_buff_df_climate$TimeSinceF)# 26, 41
+cutblock_plots_openings_productivity_buff_df_climate[26,] #Harvest 1972, fire 1973
+cutblock_plots_openings_productivity_buff_df_climate[41,] #Harvest 1972, fire 1973
+
+cutblock_plots_openings_productivity_buff_df_climateb<-cutblock_plots_openings_productivity_buff_df_climate[-41,]
+cutblock_plots_openings_productivity_buff_df_climateb<-cutblock_plots_openings_productivity_buff_df_climateb[-26,]
+
+#Check to ensure correctly done
+which(cutblock_plots_openings_productivity_buff_df_climateb$TimeSinceC>cutblock_plots_openings_productivity_buff_df_climateb$TimeSinceF) #None, excellent
+
+```
+
+Save file with processed data. 
+```{r}
+write.csv(cutblock_plots_openings_productivity_buff_df_climateb, file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_buff_df_climate_March28.csv") #80 observations
+```
+
+Modify on own outside and then being back in.
+
+If need to load back in:
+```{r}
+cutblock_plots_openings_productivity_buff_df_climate<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_buff_df_climate_March28b.csv")
+head(cutblock_plots_openings_productivity_buff_df_climate)
+
+
+```
+
+
+#Datasets #3: Garth Mowat and new student's (Mackenzie) data on huckleberry and buffalo berry separately.
+This dataset has repeated measures of huckleberry plots from 2011-2021.It should have the same features as the above overall, but column names differ and will need to be re-named for binding datasets together.
+
+#Some notes
+1. Some 0s in some columns are not true 0s, but rather NAs. See original excel document with comments for details.
+2. Check in with Clayton about the shep_kcal field (from a map?)
+3. Time Since Cut and Time Since Fire in provided document do not match up with intersection results from spatial layers from the BC government
+
+##Buffaloberry
+```{r}
+cutblock_plots_openings_productivity_mowatBuff<- st_read ( dsn = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\Mack_Buff_FINAL_March29.shp", stringsAsFactors = T)
+head(cutblock_plots_openings_productivity_mowatBuff)
+names(cutblock_plots_openings_productivity_mowatBuff) #47 observations
+table(cutblock_plots_openings_productivity_mowatBuff$Species) 
+
+cutblock_plots_openings_productivity_mowatBuff$Species<-c("Shepherdia_canadensis")
+
+cutblock_plots_openings_productivity_mowatBuff$PREP1_AREA 
+cutblock_plots_openings_productivity_mowatBuff$PREP1_TECH
+
+```
+
+We could consider subsetting my whether file indicates clearcut or not, but this info does not line up with our data.
+```{r}
+#cutblock_plots_openings_productivity_mowatBuff2<-subset(cutblock_plots_openings_productivity_mowatBuff, cutblock_plots_openings_productivity_mowatBuff$Clear_Cut=="Yes")
+#head(cutblock_plots_openings_productivity_mowatBuff2) #65 datapoints within cutblocks
+table(cutblock_plots_openings_productivity_mowatBuff$Clear_Cut) #14 not in cutblocks, 54 yes
+#60 total when Laura looks at raw data for yes or no in cutblocks - so some descrepencies
+
+#Check 
+
+
+```
+
+#Append DEM
+
+```{r}
+crs(cutblock_plots_openings_productivity_mowatBuff)
+#Set crs
+cutblock_plots_openings_productivity_mowatBuff2 <- st_transform (cutblock_plots_openings_productivity_mowatBuff, 3005)
+crs(cutblock_plots_openings_productivity_mowatBuff2)
+
+#Extract GPS locations
+names(cutblock_plots_openings_productivity_mowatBuff2)
+
+##Try this first
+test<-cbind(cutblock_plots_openings_productivity_mowatBuff2, st_coordinates(cutblock_plots_openings_productivity_mowatBuff2))
+head(test)
+
+pointCoordinates_Mowat<-data.frame(test$X, test$Y)
+head(pointCoordinates_Mowat)
+
+
+##Extract DEM values from stacked layer. Note: This DEM stack was created prior
+rasValue2=raster::extract(rasStack, pointCoordinates_Mowat)
+head(rasValue2) #
+str(rasValue2) #47 values
+str(cutblock_plots_openings_productivity_mowatBuff2)#47 values
+
+#Append new information
+cutblock_plots_openings_productivity_mowatBuff<-cbind(cutblock_plots_openings_productivity_mowatBuff2, rasValue2)
+head(cutblock_plots_openings_productivity_mowatBuff)
+crs(cutblock_plots_openings_productivity_mowatBuff)
+```
+
+Also need to append the soils data, layers provided by Clayton Lamb who did extensive processing to create these layers from:http://www.env.gov.bc.ca/esd/distdata/ecosystems/Soil_Data/SOIL_DATA_FGDB/
+
+Note: The rasters provided by Clayton only cover the SE corner of BC and thus do not apply to all datapoints. For subsequent data analyses, if including soil properties, we will lose the data with NAs in the analyses.
+
+```{r}
+crs(SoilStack) #ESPG 3005
+
+#Extract values from SoilStack_2 for GPS coordinates in data file
+SOIL_huck_Mac=raster::extract(SoilStack, pointCoordinates_Mowat)
+head(SOIL_huck_Mac)
+SOIL_huck_Mac #Lots of NAs for the ones outside of the raster
+
+#Combine back into original data set
+cutblock_plots_openings_productivity_mowatBuff<-cbind(cutblock_plots_openings_productivity_mowatBuff, SOIL_huck_Mac)
+head(cutblock_plots_openings_productivity_mowatBuff)
+
+```
+
+#Save current file
+```{r}
+cutblock_plots_openings_productivity_mowatBuff_df<-st_drop_geometry(cutblock_plots_openings_productivity_mowatBuff)
+
+write.csv(cutblock_plots_openings_productivity_mowatBuff_df, file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_mowatBuff_March28.csv")
+```
+
+Bring back in.
+
+```{r}
+cutblock_plots_openings_productivity_mowatBuff_df<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_mowatBuff_March28b.csv")
+head(cutblock_plots_openings_productivity_mowatBuff_df)
+```
+
+Append climate data.
+
+```{r}
+Mowat_Buff_Climate2020<-read.csv(file= "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Buff_Mackenzie\\Mack_Buff_Climate_2020_Year_2020MSY.csv")
+head(Mowat_Buff_Climate2020)
+
+Mowat_Buff_Climate2019<-read.csv(file= "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Buff_Mackenzie\\Mack_Buff_Climate_2020_Year_2019MSY.csv")
+head(Mowat_Buff_Climate2019)
+
+Mowat_Buff_Climate2018<-read.csv(file= "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_Buff_Mackenzie\\Mack_Buff_Climate_2020_Year_2018MSY.csv")
+head(Mowat_Buff_Climate2018)
+
+Mowat_Buff_Climate<-cbind(Mowat_Buff_Climate2020, Mowat_Buff_Climate2019, Mowat_Buff_Climate2018)
+
+names(Mowat_Buff_Climate)
+Mowat_Buff_Climate$ID
+
+#Remove repeated columns
+Mowat_Buff_Climate<-Mowat_Buff_Climate[-(541:545)]
+Mowat_Buff_Climate<-Mowat_Buff_Climate[-(271:275)]
+
+head(Mowat_Buff_Climate)
+
+```
+
+```{r}
+cutblock_plots_openings_productivity_mowatBuff2<-left_join(cutblock_plots_openings_productivity_mowatBuff_df, Mowat_Buff_Climate, by="ID2") 
+head(cutblock_plots_openings_productivity_mowatBuff2)
+cutblock_plots_openings_productivity_mowatBuff2$Tave_at_0
+
+str(cutblock_plots_openings_productivity_mowatBuff2)
+head(cutblock_plots_openings_productivity_mowatBuff2)
+```
+
+Bring in the fire data. Note that the fire data in the provided data does not match the provincial layers. We may wish to replace the fire year, and investigate.
+
+An investigation in QGIS shows that all of the fire points had fires that were older than the cutblocks.
+
+Determine time since fire and clearcuts.
+
+```{r}
+names(cutblock_plots_openings_productivity_mowatBuff2)
+
+cutblock_plots_openings_productivity_mowatBuff2$Year<-c(2020)
+cutblock_plots_openings_productivity_mowatBuff2$Year
+
+
+#Create cutblock year
+library(stringi)
+cutblock_plots_openings_productivity_mowatBuff2$Cutblock_Year<-stri_sub(cutblock_plots_openings_productivity_mowatBuff2$DST_STR_DT,1,4)
+
+cutblock_plots_openings_productivity_mowatBuff2$Cutblock_Year
+str(cutblock_plots_openings_productivity_mowatBuff2$Cutblock_Year)
+cutblock_plots_openings_productivity_mowatBuff2$Cutblock_Year<-as.numeric(cutblock_plots_openings_productivity_mowatBuff2$Cutblock_Year)
+
+cutblock_plots_openings_productivity_mowatBuff2$TimeSinceCutblock<-(cutblock_plots_openings_productivity_mowatBuff2$Year-cutblock_plots_openings_productivity_mowatBuff2$Cutblock_Year)
+cutblock_plots_openings_productivity_mowatBuff2$TimeSinceCutblock 
+
+```
+
+Add heatload.
+```{r}
+cutblock_plots_openings_productivity_mowatBuff2$heatload <- heatload (aspect = cutblock_plots_openings_productivity_mowatBuff2$aspect_ha_bc_3005, slope = cutblock_plots_openings_productivity_mowatBuff2$slope_ha_bc_3005, latitude = cutblock_plots_openings_productivity_mowatBuff2$LATITUDE, equation = 3)
+ 
+cutblock_plots_openings_productivity_mowatBuff2$heatload 
+hist(cutblock_plots_openings_productivity_mowatBuff2$heatload)
+```
+
+Save new file.
+```{r}
+write.csv(cutblock_plots_openings_productivity_mowatBuff2, file = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_Buff_Openings_DEM_Soil_Climate_March29.csv")
+```
+
+If need to load back in data.
+```{r}
+cutblock_plots_openings_productivity_mowatBuff2<-read.csv(file = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_Buff_Openings_DEM_Soil_Climate_March29.csv")
+
+```
+
+
+##Mack's Huckleberry Data
+```{r}
+cutblock_plots_openings_productivity_mowathuck<- st_read ( dsn = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\Mack_Huck_CutblocksRESULTS_March29b.shp", stringsAsFactors = T)
+head(cutblock_plots_openings_productivity_mowathuck)
+names(cutblock_plots_openings_productivity_mowathuck) #16 observations
+table(cutblock_plots_openings_productivity_mowathuck$Species) 
+
+cutblock_plots_openings_productivity_mowathuck$PREP1_AREA 
+cutblock_plots_openings_productivity_mowathuck$PREP1_TECH
+table(cutblock_plots_openings_productivity_mowathuck$Clear.Cut)
+
+```
+
+We could consider subsetting my whether file indicates clearcut or not, but this info does not line up with our data.
+```{r}
+table(cutblock_plots_openings_productivity_mowathuck$Clear_Cut) #All in clearcut
+
+#Check 
+
+```
+
+#Append DEM
+
+```{r}
+crs(cutblock_plots_openings_productivity_mowathuck)
+#Set crs
+cutblock_plots_openings_productivity_mowathuck2 <- st_transform (cutblock_plots_openings_productivity_mowathuck, 3005)
+crs(cutblock_plots_openings_productivity_mowathuck2)
+
+#Extract GPS locations
+names(cutblock_plots_openings_productivity_mowathuck2)
+
+##Try this first
+test<-cbind(cutblock_plots_openings_productivity_mowathuck2, st_coordinates(cutblock_plots_openings_productivity_mowathuck2))
+head(test)
+
+pointCoordinates_Mowat<-data.frame(test$X, test$Y)
+head(pointCoordinates_Mowat)
+
+
+##Extract DEM values from stacked layer. Note: This DEM stack was created prior
+rasValue2=raster::extract(rasStack, pointCoordinates_Mowat)
+head(rasValue2) #
+str(rasValue2) #47 values
+str(cutblock_plots_openings_productivity_mowathuck2)#47 values
+
+#Append new information
+cutblock_plots_openings_productivity_mowathuck<-cbind(cutblock_plots_openings_productivity_mowathuck2, rasValue2)
+head(cutblock_plots_openings_productivity_mowathuck)
+crs(cutblock_plots_openings_productivity_mowathuck)
+```
+
+Also need to append the soils data, layers provided by Clayton Lamb who did extensive processing to create these layers from:http://www.env.gov.bc.ca/esd/distdata/ecosystems/Soil_Data/SOIL_DATA_FGDB/
+
+Note: The rasters provided by Clayton only cover the SE corner of BC and thus do not apply to all datapoints. For subsequent data analyses, if including soil properties, we will lose the data with NAs in the analyses.
+
+```{r}
+crs(SoilStack) #ESPG 3005
+
+#Extract values from SoilStack_2 for GPS coordinates in data file
+SOIL_huck_Mac=raster::extract(SoilStack, pointCoordinates_Mowat)
+head(SOIL_huck_Mac)
+SOIL_huck_Mac #Lots of NAs for the ones outside of the raster
+
+#Combine back into original data set
+cutblock_plots_openings_productivity_mowathuck<-cbind(cutblock_plots_openings_productivity_mowathuck, SOIL_huck_Mac)
+head(cutblock_plots_openings_productivity_mowathuck)
+
+```
+
+#Save current file
+```{r}
+cutblock_plots_openings_productivity_mowathuck_df<-st_drop_geometry(cutblock_plots_openings_productivity_mowathuck)
+
+write.csv(cutblock_plots_openings_productivity_mowathuck_df, file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_mowathuck_March28.csv")
+```
+
+Bring back in.
+
+```{r}
+cutblock_plots_openings_productivity_mowathuck_df<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_mowathuck_March28.csv")
+head(cutblock_plots_openings_productivity_mowathuck_df)
+```
+
+Append climate data.
+
+```{r}
+Mowat_huck_Climate2020<-read.csv(file= "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_huck_Mackenzie\\Mack_Huck_Climate_Year_2020MSY.csv")
+head(Mowat_huck_Climate2020)
+
+Mowat_huck_Climate2019<-read.csv(file= "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_huck_Mackenzie\\Mack_Huck_Climate_Year_2019MSY.csv")
+head(Mowat_huck_Climate2019)
+
+Mowat_huck_Climate2018<-read.csv(file= "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\March 28 2022 Data Files\\ClimateBC_huck_Mackenzie\\Mack_Huck_Climate_Year_2018MSY.csv")
+head(Mowat_huck_Climate2018)
+
+Mowat_huck_Climate<-cbind(Mowat_huck_Climate2020, Mowat_huck_Climate2019, Mowat_huck_Climate2018)
+
+names(Mowat_huck_Climate)
+Mowat_huck_Climate$ID
+
+#Remove repeated columns
+Mowat_huck_Climate<-Mowat_huck_Climate[-(541:545)]
+Mowat_huck_Climate<-Mowat_huck_Climate[-(271:275)]
+
+head(Mowat_huck_Climate)
+
+```
+
+```{r}
+cutblock_plots_openings_productivity_mowathuck2<-left_join(cutblock_plots_openings_productivity_mowathuck_df, Mowat_huck_Climate, by="ID") 
+head(cutblock_plots_openings_productivity_mowathuck2)
+cutblock_plots_openings_productivity_mowathuck2$Tave_at_0
+
+str(cutblock_plots_openings_productivity_mowathuck2)
+head(cutblock_plots_openings_productivity_mowathuck2)
+```
+
+Bring in the fire data. Note that the fire data in the provided data does not match the provincial layers. We may wish to replace the fire year, and investigate.
+
+An investigation in QGIS shows that all of the fire points had fires that were older than the cutblocks.
+
+Determine time since fire and clearcuts.
+
+```{r}
+names(cutblock_plots_openings_productivity_mowathuck2)
+
+cutblock_plots_openings_productivity_mowathuck2$Year<-c(2020)
+cutblock_plots_openings_productivity_mowathuck2$Year
+
+#Create cutblock year
+library(stringi)
+cutblock_plots_openings_productivity_mowathuck2$Cutblock_Year<-stri_sub(cutblock_plots_openings_productivity_mowathuck2$DST_STR_DT,1,4)
+
+cutblock_plots_openings_productivity_mowathuck2$Cutblock_Year
+str(cutblock_plots_openings_productivity_mowathuck2$Cutblock_Year)
+cutblock_plots_openings_productivity_mowathuck2$Cutblock_Year<-as.numeric(cutblock_plots_openings_productivity_mowathuck2$Cutblock_Year)
+
+cutblock_plots_openings_productivity_mowathuck2$TimeSinceCutblock<-(cutblock_plots_openings_productivity_mowathuck2$Year-cutblock_plots_openings_productivity_mowathuck2$Cutblock_Year)
+cutblock_plots_openings_productivity_mowathuck2$TimeSinceCutblock 
+
+```
+
+Add heatload.
+```{r}
+cutblock_plots_openings_productivity_mowathuck2$heatload <- heatload (aspect = cutblock_plots_openings_productivity_mowathuck2$aspect_ha_bc_3005, slope = cutblock_plots_openings_productivity_mowathuck2$slope_ha_bc_3005, latitude = cutblock_plots_openings_productivity_mowathuck2$Latitude, equation = 3)
+ 
+cutblock_plots_openings_productivity_mowathuck2$heatload 
+hist(cutblock_plots_openings_productivity_mowathuck2$heatload)
+```
+
+Save new file.
+```{r}
+write.csv(cutblock_plots_openings_productivity_mowathuck2, file = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_huck_Openings_DEM_Soil_Climate_March29.csv")
+```
+
+If need to load back in data.
+```{r}
+cutblock_plots_openings_productivity_mowathuck2<-read.csv(file = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_huck_Openings_DEM_Soil_Climate_March29.csv")
+
+```
+
+
+
+
+
+
+################# Now that we have the data in, combine files as appropriate #################
+##Combine Datasets##
+Load data back in.
+```{r}
+cutblock_plots_openings_productivity_huck_df_climate<-read.csv(file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_huck_df_climate_March28.csv")
+head(cutblock_plots_openings_productivity_huck_df_climate)
+
+cutblock_plots_openings_productivity_buff_df_climate<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_buff_df_climate_March28b.csv")
+head(cutblock_plots_openings_productivity_buff_df_climate)
+
+cutblock_plots_openings_productivity_mowatBuff2<-read.csv(file = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_Buff_Openings_DEM_Soil_Climate_March29.csv")
+head(cutblock_plots_openings_productivity_mowatBuff2)
+
+cutblock_plots_openings_productivity_mowathuck2<-read.csv(file = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_huck_Openings_DEM_Soil_Climate_March29.csv")
+head(cutblock_plots_openings_productivity_mowathuck2)
+```
+
+
+#Combine appropriate files
+
+#Huckleberry
+```{r}
+#Ensure names consistent between files to be combined
+## 1. cutblock_plots_openings_productivity_Huck_ALL_df_Huck, cutblock_plots_openings_productivity_BECHuck_df
+names(cutblock_plots_openings_productivity_huck_df_climate) # Key names: Species.Pr, Species.Co, Species.He, Fruit.Pres, Fruit.Cove, Fruit.Abun, Fruit.Abun.100,  HARVEST_YE == CutBlock_Y, TimeSinceC, LandsatCC_ = Canopy Cover
+cutblock_plots_openings_productivity_huck_df_climate$Cutblock_Year
+cutblock_plots_openings_productivity_huck_df_climate$CutBlock_Y
+
+plot(cutblock_plots_openings_productivity_huck_df_climate$Cutblock_Year,
+cutblock_plots_openings_productivity_huck_df_climate$CutBlock_Y) #There are a few that differ???
+
+cutblock_plots_openings_productivity_mowathuck2$Cutblock_Y<-cutblock_plots_openings_productivity_mowathuck2$Cutblock_Year #Use both and compare results
+
+names(cutblock_plots_openings_productivity_mowathuck2) #  Fruit.Pres, Auto.Berri (fruit at 100 m square plot), Species.Co,  Canopy.Cov and Canopy.C_1, TimeSinceCutblock, Fruiting_1 = Plant Height -- got rid of TimeSinceFire in last iteration
+cutblock_plots_openings_productivity_mowathuck2$Fruiting_1
+cutblock_plots_openings_productivity_mowathuck2$Canopy.Cov
+cutblock_plots_openings_productivity_mowathuck2$Canopy.C_1
+```
+
+UPDATE NAMING
+```{r}
+#Update names in cutblock_plots_openings_productivity_Laura_Huck_Berries
+cutblock_plots_openings_productivity_mowathuck2b<-rename(cutblock_plots_openings_productivity_mowathuck2,
+                   c("Fruit.Abun.100" ="Auto.Berri",
+                     "Species.He" = "Fruiting_1",
+                     "Species.Cov" = "Species._1",
+                     "Cutblock_O" = "Clear.Cut", 
+                     "TSAND"="tsand_3005",
+                     "TSILT" ="tsilt_3005",
+                     "VFSAND" = "vfsand_3005",
+                     "TCLAY" = "tclay_3005", 
+                    "PH2_0"= "ph2_3005",
+                      "COFRAG_0" = "cofrag_3005",
+                    "ORGCARB" = "orgcarb_3005"))
+
+#Change Canopy Cover name in other file
+cutblock_plots_openings_productivity_huck_df_climate<-rename(cutblock_plots_openings_productivity_huck_df_climate,
+                   c("Canopy.Cov"="LandsatCC_",
+                     "TimeSinceFire" = "TimeSinceF",
+                     "TimeSinceCutblock" = "TimeSinceC",
+                     "Species.Cov"="Species.Co"))
+
+
+cutblock_plots_openings_productivity_mowathuck2b$Species.Pr<-1
+table(cutblock_plots_openings_productivity_mowathuck2b$Species.Pr)
+
+#Combine
+# fill in non-overlapping columns with NAs
+cutblock_plots_openings_productivity_mowathuck2b[setdiff(names(cutblock_plots_openings_productivity_huck_df_climate), names(cutblock_plots_openings_productivity_mowathuck2b))] <- NA
+cutblock_plots_openings_productivity_huck_df_climate[setdiff(names(cutblock_plots_openings_productivity_mowathuck2b), names(cutblock_plots_openings_productivity_huck_df_climate))] <- NA
+```
+
+
+
+```{r}
+library(gtools)
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022<-smartbind(cutblock_plots_openings_productivity_huck_df_climate, cutblock_plots_openings_productivity_mowathuck2b)
+head(cutblock_plots_openings_productivity_Huck_ALL_df_2022)
+```
+
+Inspect
+```{r}
+cutblock_plots_openings_productivity_Huck_ALL_df_2022$Cutblock_Year
+cutblock_plots_openings_productivity_Huck_ALL_df_2022$Cutblock_Year<-as.numeric(cutblock_plots_openings_productivity_Huck_ALL_df_2022$Cutblock_Year)
+cutblock_plots_openings_productivity_Huck_ALL_df_2022$Canopy.Cov
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022$TimeSinceCutblock 
+cutblock_plots_openings_productivity_Huck_ALL_df_2022$Fruit.Abun.100
+cutblock_plots_openings_productivity_Huck_ALL_df_2022$Fruit.Abun.100<-round(cutblock_plots_openings_productivity_Huck_ALL_df_2022$Fruit.Abun.100, digits=0)
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022$Species.He
+cutblock_plots_openings_productivity_Huck_ALL_df_2022$Species.Cov
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022$CutBlock_O)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022$Clear.Cut)
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022$CutBlock_O[is.na(cutblock_plots_openings_productivity_Huck_ALL_df_2022$CutBlock_O)]<-1
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022$CutBlock_O)
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022<-subset(cutblock_plots_openings_productivity_Huck_ALL_df_2022, cutblock_plots_openings_productivity_Huck_ALL_df_2022$CutBlock_O=="1")
+```
+
+
+```{r}
+head(cutblock_plots_openings_productivity_Huck_ALL_df_2022)
+names(cutblock_plots_openings_productivity_Huck_ALL_df_2022)
+
+```
+
+Save file.
+
+```{r}
+write.csv(cutblock_plots_openings_productivity_Huck_ALL_df_2022, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_Huck_ALL_df_2022b_March.csv")
+```
+
+If need to bring back in.
+
+```{r}
+cutblock_plots_openings_productivity_Huck_ALL_df_2022<-read.csv( file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_Huck_ALL_df_2022b_March.csv")
+head(cutblock_plots_openings_productivity_Huck_ALL_df_2022)
+
+head(cutblock_plots_openings_productivity_Huck_ALL_df_2022)
+cutblock_plots_openings_productivity_Huck_ALL_df_2022$OPENING_ID
+```
+
+###### bring in Dave Wadell's additional information and append to dataframe
+
+```{r}
+
+#silv_dt<- read.csv(file="C:\\cora\\Hucklberry\\Dave_Files\\silv_dt_b.csv")
+#head(silv_dt)
+
+atu_subset<- read.csv(file="C:\\cora\\Hucklberry\\Dave_Files\\March 2022\\atu_sub2.csv")
+head(atu_subset) #
+
+msyt_sub<- read.csv(file="C:\\cora\\Hucklberry\\Dave_Files\\March 2022\\msyt_sub2.csv")
+head(msyt_sub)
+
+silv_dt<- read.csv(file="C:\\cora\\Hucklberry\\Dave_Files\\March 2022\\sdate_sub2.csv")
+head(silv_dt)
+
+
+```
+
+Update Opening ID naming.
+
+```{r}
+silv_dt<-rename(silv_dt,
+                   c("OPENING_ID"="opening_id"))
+head(silv_dt)
+
+atu_subset<-rename(atu_subset,
+                   c("OPENING_ID"="opening_id"))
+head(atu_subset)
+
+msyt_sub<-rename(msyt_sub,
+                   c("OPENING_ID"="opening_id"))
+head(msyt_sub)
+
+```
+
+Bind using Leftjoin.
+```{r}
+cutblock_plots_openings_productivity_Huck_ALL_df_2022$OPENING_ID<-as.numeric(cutblock_plots_openings_productivity_Huck_ALL_df_2022$OPENING_ID)
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b<-left_join(cutblock_plots_openings_productivity_Huck_ALL_df_2022, silv_dt)
+head(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b)
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b$pl_date_min #Mostly NAs, some not.
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b$OPENING_ID)# All 1 case
+
+gc()
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b<-left_join(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b, msyt_sub) # recursive gc invocation if do not use gc() prior
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b$OPENING_ID) #Still the correct number of rows expected.
+
+gc()
+#Below is where we spring up from 236 attributes to 1213
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2<-left_join(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b, atu_subset) 
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$OPENING_ID) # Many repeats
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$Species)
+```
+
+Explore below and see how to fix issue.
+```{r}
+#
+head(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b)
+head(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2)
+
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b$ID3)
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b$ID4<-1:nrow(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b)
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b$ID4 #Every row unique now
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2<-left_join(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b, atu_subset) 
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$OPENING_ID)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$Species)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$ID4)
+
+head(atu_subset) #silv_base_code, silv_technique_code, Silv_method_code,
+# treatment amount, act_planted_no, 
+#The above are the values that I want. So let's make a column that is 0 and 1 for the types of interest from the first 3, then summarize those columns by ID number.
+
+#First take columns that are of interest for this data so we can work with it, and then append to original cutblock_plots_openings_productivity_Huck_ALL_df_2022_b as a summary
+names(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2)
+names(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2[1001:1214])#ID4 = 1178; 1182:1185, 1191:1192; 1199:1203; 1211:1212
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22_a<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2[1178]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22_b<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2[1182:1185]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22_c<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2[1191:1192]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22_d<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2[1199:1203]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22_e<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2[1211:1212]
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22<-cbind(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22_a, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22_b, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22_c, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22_d, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22_e)
+head(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22)
+
+#Determine what variables are present for each variable of interest, and which levels are of interest
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22$silv_base_code) 
+#AU: Audit; BR: Brushing; DN: Denudation; FE: Fertilization (37); JS: Juvenile Spacing; PC: Pest Control; PL: Planting;  RD: Roads (only 9); SP: Site Preparation; SU: Surveys; SX: Silviculture Trials (only 3)
+#Might be interested in brushing, denudation, fertilization, planting, Site Prep (but at this level, vague); investigate surveys.
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22$silv_technique_code)
+#AE: Aerial (3); BI: Biological (6); BL: Backlog Silviculture Prescription (5); BR: Brushing (65); BU: Burning (302); CA: Chemical Air (38); CG: Chemical Ground (65); DD: Site Disturbance (6); DE: Deactivation; DR: Drainage (2);FE: Fertilization (10); FG: Free Growing (648); FH: Forest health; FP: Fill Planting (171); GR: Ground (?; 18); GS: Grass Seeding (18); HV: Harvest (543); HZ: Hazard; JS: Juvenile Spacing; MA: Manual (486); ME: Mechanical (466); MS: Mineral Soil Disturbance (31); OF Office Revuew (137); PA: Pay (2)... PL: Planting (1220); PO: Post Harvest Inspection; RA: Regeneration Performance Assessment (77); RE: Reconnasaince (357); RG: Regn/stocking (1252); RP: Replanting (43); SE: Seedling Protection;  SI: Silviculture Prescription;  SM: Stand Management Prescription;  SP: Site Prep; SU: Surviuval (other codes but at low frequency); TR: Traverse.
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22$silv_method_code)
+#BAGS: Gro-max Bags; BASL;Basal Spray; BPACK: Back Pack Application; BROAD: Broadcast burn; BRUSH: Brush saw; CHAIN: Chain Drag; CONE: Cone Style Protectors; COPPR: Copper Treated Plugs; CROSS: Cross Ditching; CTAIN: Container (1037); DISC: Disc trenching (5); EXCAV: Excavator; FILE: file review; GPS: GPS; GRANU: Granular Application; GRAZE: Grazing; GUARD: fireguard; HELI: Helicopter; KNOCK: 3 Metre Knock Down; LAND: Landings; LAYOT: layout; LINE: Lines; LRIP: Landing Ripping; MAINT: Maintenance; MANCT: Manual Cutting; MANGI: Manual Girdling; MDOWN: Machine Knockdown; MEAS: Measurement; MOCUT: Motorized Cutting (Handheld); MOUND: Mounding; MULTI: Multi-layered; MXPLT: Mixed Stock; PATCH: machine patch scarification; PBURN: Pile and Burn; PHOTO: Air photo interpretation; PILE: Piling; PLOT: Plots; POST: Blade or Strip Post-scarification; Power: Power saw; REPEL: Repelling Style Protectors; RESTU: Removing Stump; ROADS: roads and landing; SHARK: shark fin drag; SPOT: Spot treatment; TIGHT: Tight Chain; TRAIL: Planting trail prep; VOCOL: Vole collar; WALK: Walkthrough; WFIRE:wildfire; WINDR: Windthrow
+```
+
+
+```{r}
+#Many clear ones to remove for cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22$silv_technique_code
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b<-subset(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22$silv_technique_code!="RE")
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b<-subset(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_technique_code!="RA")
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b<-subset(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_technique_code!="OF")
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b<-subset(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_technique_code!="FH")
+#Down to 2461
+
+```
+
+Some obvious ones to remove for cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22$silv_method_code as well
+
+```{r}
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b<-subset(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code!="FILE")
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b<-subset(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code!="WALK") #Down to 2309
+```
+
+Now determine what remains and what is interesting within those categories
+```{r}
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_base_code) 
+#Interesting: BR: Brushing; FE: Fertilization (37); PL: Planting
+#Unsure if these are interesting: SP: Site Preparation; SU: Surveys
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Brushing<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_base_code == "BR",1,0)
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Fertilize<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_base_code == "FE",1,0)
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Planted<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_base_code == "PL",1,0)
+```
+
+Now investigate the next variable.
+```{r}
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_technique_code)
+#Interesting: BR: Brushing (10); BU: Burning (119); CA: Chemical Air (38); CG: Chemical Ground (65); FE: Fertilization (10); FP: Fill Planting (151); MA: Manual (485); ME: Mechanical (447); PL: Planting (1121); RP: Replanting (41)
+#Not sure if this is interesting: FG: Free Growing (648); RG: Regn/stocking (1252)
+
+#Brushing
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Brushing2<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_technique_code == "BR",1,0)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Brushing, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Brushing2) #This is additional brushing
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Brushing_ALL<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Brushing + cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Brushing2
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Brushing_ALL<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Brushing_ALL > 0,1,0)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Brushing_ALL) #484 had brushing
+
+#Fertilization
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Fert2<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_technique_code == "FE",1,0)
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Fert_ALL<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Fertilize + cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Fert2
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Fert_ALL) #No repeats
+
+#Planting: PL: Planting (1121); RP: Replanting (41); FP: Fill Planting (151)
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Planted2<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_technique_code=="PL",1,
+                                                               (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_technique_code=="RP",1,
+                                                                       (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_technique_code=="FP",1,0)))))
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Planted2)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Planted2, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_technique_code)
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Planted_ALL<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Planted + cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Planted2
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Planted_ALL)
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Planted_ALL<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Planted_ALL>0, 1,0)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Planted_ALL)
+
+#Burning
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Burned<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_technique_code == "BU",1,0)
+
+#Mechanical
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Mechanical<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_technique_code == "ME",1,0)
+
+#Manual
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Manual<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_technique_code == "MA",1,0)
+
+#Chemical
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Chemical<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_technique_code=="CA",1,
+                                                               (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_technique_code=="CG",1,0)))
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Chemical)
+```
+
+Now investigate the last grouping
+
+```{r}
+#Last Grouping
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code)
+#BAGS: Gro-max Bags; BASL;Basal Spray; BLOCK: Clearcut Block; BPACK: Back Pack Application; BROAD: Broadcast burn; BRUSH: Brush saw; CHAIN: Chain Drag; CONE: Cone Style Protectors; COPPR: Copper Treated Plugs; CROSS: Cross Ditching; CTAIN: Container (378); DISC: Disc trenching (5); EXCAV: Excavator;GRANU: Granular Application; GRAZE: Grazing; GUARD: fireguard; HELI: Helicopter; KNOCK: 3 Metre Knock Down; LAND: Landings; LAYOT: layout; LRIP: Landing Ripping; MAINT: Maintenance; MANCT: Manual Cutting; MANGI: Manual Girdling; MDOWN: Machine Knockdown; MEAS: Measurement; MOCUT: Motorized Cutting (Handheld); MOUND: Mounding; MULTI: Multi-layered; MXPLT: Mixed Stock; PATCH: machine patch scarification; PBURN: Pile and Burn; PHOTO: Air photo interpretation; PILE: Piling; PLOT: Plots; POST: Blade or Strip Post-scarification; Power: Power saw; REPEL: Repelling Style Protectors; RESTU: Removing Stump; ROADS: roads and landing; SHARK: shark fin drag; SPOT: Spot treatment; TIGHT: Tight Chain; TRAIL: Planting trail prep; VOCOL: Vole collar; WALK: Walkthrough; WFIRE:wildfire; WINDR: Windthrow
+#Unsure if interesting: CTAIN: Container (1037), PLOT: Plots
+
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Mechanical)
+
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Manual)
+
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Burned)
+
+#MOUND: Mounding
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Mounding<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="MOUND",1,0)
+
+#PILE: Piling
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Piling<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="PILE",1,0)
+
+#Burned
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Burned2<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="BROAD",1,
+                                                               (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="PBUNR",1,
+                                                                       
+                                                                       (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="SPOT",1,
+                                                                       (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="WFIRE",1,0)))))))
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Burned_ALL<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Burned + cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Burned2
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Burned_ALL)
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Burned_ALL<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Burned_ALL>0,1,0)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Burned_ALL)
+
+#BelowGroundDamage Mechanical
+#CHAIN: Chain Drag;CROSS: cross-ditching; DISC: Disc trenching (5); EXCAV: Excavator; PATCH: machine patch scarification; POST: Blade or Strip Post-scarification; PRE: Blade or Strip Pre-scarification; SHARK: shark-fin drag;
+#Include TRAIL and MOUND? RRIP?
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$MechBelowG<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="CHAIN",1,
+                                                               (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="CROSS",1,
+                                                                       (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="CHAIN",1,
+                                                                           (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="DISC",1, 
+                                                                        (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="EXCAV",1,
+                                                                                (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="LRIP",1,
+                                                                        (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="PATCH",1,
+                                                                                (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="POST",1,
+                                                                                                (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="PRE",1,
+                                                                                                        (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="SHARK",1,
+                                                                                                                (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="TRAIL",1,
+                                                                                                                        (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="MOUND",1,
+                                                                                                                              
+                                                                               0)))))))))))))))))))))))
+
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$MechBelowG) #360 below ground disturbed cases; 4366 not.
+
+#Above Ground Mechanical
+#KNOCK: 3 meter knock down,  MDOWN: Machine Knockdown; MOCUT: Motorized Cutting (Handheld), BLADE, 
+# Include WINDR? Winthrow. 13 are listed within mechanical, 9 not; so may have been some windthrow removal.
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Manual)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Mechanical)
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$MechAboveG<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="KNOCK",1,
+                                                               (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="MDOWN",1,
+                                                                       (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="MOCUT",1, 
+                                                                        (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="BLADE",1,
+                                                                        (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="WINDR",1,
+                                                                                (ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_method_code=="PILE",1,
+                                                                               0)))))))))))
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$MechAboveG) #93 yes, 4633 nos... might not be super useful to separate from below ground?
+
+#Check how many had both above and below ground
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$MechAboveAndBelowG<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$MechAboveG + cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$MechBelowG
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$MechAboveAndBelowG) #53 cases had both above and below ground, 400 only one or other.
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$MechAboveAndBelowG, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$Mechanical ) #27 + 17 deemed not mechanical had mechanical above or below ground; 38 mechanical missed in designations. Which direction needs fixing?
+
+```
+
+Explore new columns.
+
+```{r}
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$disturbance_code)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_system_code)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_system_variant_code)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$silv_cut_phase_code)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$plan_silv_method_code)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b$plan_silv_technique_code)
+```
+
+
+Check names now and rid of names not needed
+```{r}
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b
+
+head(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2)
+names(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2)
+#Rid of columns not needed for appending
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-30]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-24]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-22]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-20]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-18]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-17]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-15]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-14]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-13]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-12]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-11]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-10]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-9]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-8]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-5]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-4]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-3]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-2]
+names(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2)
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-4]
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2[-15]
+```
+Get means for each group by ID4.
+
+```{r}
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b22b2 %>%
+  group_by(ID4, .drop=FALSE) %>%
+  summarize(treatment_amount = sum(treatment_amount, na.rm = TRUE), 
+           act_planted_no = sum(act_planted_no, na.rm = TRUE),
+           Brushing_ALL = sum(Brushing_ALL, na.rm = TRUE),
+           Fert_ALL = sum(Fert_ALL, na.rm = TRUE),
+           Planted_ALL = sum(Planted_ALL, na.rm = TRUE),
+           Mechanical = sum(Mechanical, na.rm = TRUE),
+           Manual= sum(Manual, na.rm = TRUE),
+           Chemical = sum(Chemical, na.rm = TRUE),
+           Mounding = sum(Mounding, na.rm = TRUE),
+           Piling = sum(Piling, na.rm = TRUE),
+           Burned_ALL = sum(Burned_ALL, na.rm = TRUE),
+           MechBelowG = sum(MechBelowG, na.rm = TRUE),
+           MechAboveG = sum(MechAboveG, na.rm = TRUE)) #Get 230
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Brushing_ALL<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Brushing_ALL>0, 1,0)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Brushing_ALL) #84 brshed, 146 not
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Fert_ALL<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Fert_ALL>0, 1,0)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Fert_ALL) #Only 15 plots fertilized, 215 not
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Planted_ALL<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Planted_ALL>0, 1,0)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Planted_ALL) #220 planted, 10 not
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Burned<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Burned_ALL>0, 1,0)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Burned) #95 burned, 135 not
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Mechanical<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Mechanical>0, 1,0)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Mechanical) #85 mechanical treatment, 145 not
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Manual<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Manual>0, 1,0)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Manual) #85 manual treatment, 145 not
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Chemical<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Chemical>0, 1,0)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Chemical) #26 chemical treatmed, 204 not
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Mounding<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Mounding>0, 1,0)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Mounding) #31 mounded, 199 not
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Piling<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Piling>0, 1,0)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$Piling) #18 with pilings, 212 not
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$MechBelowG<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$MechBelowG>0, 1,0)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$MechBelowG) #66 mechanical below ground, 164 not
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$MechAboveG<-ifelse(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$MechAboveG>0, 1,0)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu$MechAboveG) #32 above ground, 198 not
+```
+
+Now append data post-processing.
+```{r}
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2<-left_join(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b, cutblock_plots_openings_productivity_Huck_ALL_df_2022_b_atu) 
+head(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2)
+```
+
+Inspect data.
+
+```{r}
+
+#Inspect each set
+names(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2)
+names(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2[1000:1192])
+
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$planted_species1) #Main species planted
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$planted_species2)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$planted_species3)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$planted_species4)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$planted_species5)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$natural_species1)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$natural_species2)
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$natural_species3)
+
+hist(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$planted_density1)
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$planted_density_TOT<-cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$planted_density1 + cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$planted_density2 + cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$planted_density3 + cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$planted_density4 + cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$planted_density5
+hist(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$planted_density_TOT)
+
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$op_cat) #Not useful
+table(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$op_stat)
+
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$treatment_amount<-as.numeric(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$treatment_amount)
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$vri_age.<-as.numeric(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$vri_age)
+cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$rslt_age.<-as.numeric(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$rslt_age)
+
+hist(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$treatment_amount)
+hist(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$planted_density1)
+hist(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$vri_age)
+hist(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2$rslt_age)
+```
+
+Save data.
+```{r}
+write.csv(cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2_March30.csv")
+
+```
+
+
+
+
+
+#######Repeat for Buffaloberry#############
+
+bring data back in as needed.
+
+```{r}
+cutblock_plots_openings_productivity_mowatBuff2<-read.csv(file = "C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\MowatMac_Buff_Openings_DEM_Soil_Climate_March29.csv")
+head(cutblock_plots_openings_productivity_mowatBuff2)
+
+cutblock_plots_openings_productivity_buff_df_climate<-read.csv(file="C:\\cora\\hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_buff_df_climate_March28b.csv")
+head(cutblock_plots_openings_productivity_buff_df_climate)
+
+```
+
+
+```{r}
+## 2. cutblock_plots_openings_productivity_Buff_ALL_df2, cutblock_plots_openings_productivity_mowatBuff2
+names(cutblock_plots_openings_productivity_buff_df_climate)
+names(cutblock_plots_openings_productivity_mowatBuff2)
+head(cutblock_plots_openings_productivity_mowatBuff2)
+
+
+cutblock_plots_openings_productivity_mowatBuff2$Clear_Cut #Note: These have been inspected, and they occur in old cutblocks
+cutblock_plots_openings_productivity_mowatBuff2$CutBlock_O<-1
+cutblock_plots_openings_productivity_mowatBuff2$TimeSinceCutblock
+cutblock_plots_openings_productivity_buff_df_climate$TimeSinceC
+cutblock_plots_openings_productivity_mowatBuff2$Canopy_Cov
+cutblock_plots_openings_productivity_mowatBuff2$DENSIOMETE
+cutblock_plots_openings_productivity_buff_df_climate$LandsatCC_
+
+cutblock_plots_openings_productivity_mowatBuff2$Species_Co #Buff Species Percent cover by category
+cutblock_plots_openings_productivity_mowatBuff2$Plant_Cove #Percent cover of plant in 100 m-square plot
+cutblock_plots_openings_productivity_mowatBuff2$NUM_BUFF_P #Number berries per 100 m2 plot
+cutblock_plots_openings_productivity_mowatBuff2$NUM_BUFF_P<-round(cutblock_plots_openings_productivity_mowatBuff2$NUM_BUFF_P, digits=0)
+cutblock_plots_openings_productivity_mowatBuff2$BUFF_PLANT #Plant Height
+cutblock_plots_openings_productivity_buff_df_climate$Species.Co
+
+cutblock_plots_openings_productivity_buff_df_climate$Species.Pr #Lots of 0s where not present
+cutblock_plots_openings_productivity_mowatBuff2$Species.Pr<-1
+
+cutblock_plots_openings_productivity_mowatBuff2$Fruit_Pres
+cutblock_plots_openings_productivity_buff_df_climate$Fruit.Pres
+cutblock_plots_openings_productivity_buff_df_climate$Fruit.Cove
+cutblock_plots_openings_productivity_buff_df_climate$Fruit.Abun #Also high numbers
+cutblock_plots_openings_productivity_buff_df_climate$Fruit_Abun_100
+cutblock_plots_openings_productivity_buff_df_climate$Species.Co #Species cover
+cutblock_plots_openings_productivity_buff_df_climate$Species.He
+
+cutblock_plots_openings_productivity_buff_df_climate$HARVEST_YE
+cutblock_plots_openings_productivity_buff_df_climate$HARVEST_YE
+
+cutblock_plots_openings_productivity_mowatBuff2$Latitude
+cutblock_plots_openings_productivity_buff_df_climate$Latitude
+
+#mowat
+cutblock_plots_openings_productivity_mowatBuff2b<-rename(cutblock_plots_openings_productivity_mowatBuff2,
+                   c("Canopy_Cov2"="DENSIOMETE",
+                     "Species.Cover"="Plant_Cove",
+                     "Fruit.Pres"="Fruit_Pres",
+                     "Fruit.Cove"="Fruit_Cove",
+                     "Species.He"="BUFF_PLANT",
+                     "Fruit_Abun_100"="NUM_BUFF_P",
+                     "Fruit.Phen"="Buffalob_3",
+                     "TSAND"="tsand_3005",
+                     "TSILT" ="tsilt_3005",
+                     "VFSAND" = "vfsand_3005",
+                     "TCLAY" = "tclay_3005", 
+                    "PH2_0"= "ph2_3005",
+                      "COFRAG_0" = "cofrag_3005",
+                    "ORGCARB" = "orgcarb_3005"))
+
+cutblock_plots_openings_productivity_buff_df_climateb<-rename(cutblock_plots_openings_productivity_buff_df_climate,
+                   c("TimeSinceCutblock"="TimeSinceC",
+                     "TimeSinceFire"="TimeSinceF",
+                     "Canopy_Cov2"="LandsatCC_",
+                     "Species.Cover" = "Species.Co"
+                     ))
+
+
+
+
+```
+Now combine
+
+```{r}
+# fill in non-overlapping columns with NAs
+cutblock_plots_openings_productivity_buff_df_climateb[setdiff(names(cutblock_plots_openings_productivity_mowatBuff2b), names(cutblock_plots_openings_productivity_buff_df_climateb))] <- NA
+cutblock_plots_openings_productivity_mowatBuff2b[setdiff(names(cutblock_plots_openings_productivity_buff_df_climateb), names(cutblock_plots_openings_productivity_mowatBuff2b))] <- NA
+
+#Combine
+str(cutblock_plots_openings_productivity_buff_df_climateb) #84 observations, 1114 variables; 2 more than I expect? 
+str(cutblock_plots_openings_productivity_mowatBuff2b) #47 observations, 1114 observations
+
+cutblock_plots_openings_productivity_buff_df_climateb$DATASET<-c(1)
+cutblock_plots_openings_productivity_mowatBuff2b$DATASET<-c(2)
+
+cutblock_plots_openings_productivity_Buff_ALL_df<-smartbind(cutblock_plots_openings_productivity_buff_df_climateb, cutblock_plots_openings_productivity_mowatBuff2b)
+
+str(cutblock_plots_openings_productivity_Buff_ALL_df) #131 observations, 1115 variables
+head(cutblock_plots_openings_productivity_Buff_ALL_df)
+names(cutblock_plots_openings_productivity_Buff_ALL_df)
+```
+
+Spot check variables.
+```{r}
+cutblock_plots_openings_productivity_Buff_ALL_df$Fruit_Abun_100
+cutblock_plots_openings_productivity_Buff_ALL_df$Fruit.Pres
+cutblock_plots_openings_productivity_Buff_ALL_df$TCLAY
+cutblock_plots_openings_productivity_Buff_ALL_df$Tave_at_0
+cutblock_plots_openings_productivity_Buff_ALL_df$dem_ha_bc
+cutblock_plots_openings_productivity_Buff_ALL_df$DEM_30_bca
+
+```
+
+Save Buffaloberry files.
+
+```{r}
+names(cutblock_plots_openings_productivity_Buff_ALL_df)
+
+write.csv(cutblock_plots_openings_productivity_Buff_ALL_df, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_Buff_ALL_df_March30_2022.csv")
+```
+
+
+Bind using Leftjoin.
+```{r}
+cutblock_plots_openings_productivity_Buff_ALL_df$OPENING_ID<-as.numeric(cutblock_plots_openings_productivity_Buff_ALL_df$OPENING_ID)
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b<-left_join(cutblock_plots_openings_productivity_Buff_ALL_df, silv_dt)
+head(cutblock_plots_openings_productivity_Buff_ALL_df_b)
+cutblock_plots_openings_productivity_Buff_ALL_df_b$pl_date_min #Mostly NAs, some not.
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b$OPENING_ID) #
+
+gc()
+cutblock_plots_openings_productivity_Buff_ALL_df_b<-left_join(cutblock_plots_openings_productivity_Buff_ALL_df_b, msyt_sub) # recursive gc invocation if do not use gc() prior
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b$OPENING_ID) #Still the correct number of rows expected.
+#Still 259 observations in above as expected.
+
+gc()
+#Below is where we spring up from 131 to 997
+cutblock_plots_openings_productivity_Buff_ALL_df_b2<-left_join(cutblock_plots_openings_productivity_Buff_ALL_df_b, atu_subset) 
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$OPENING_ID)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$Species)
+```
+
+Explore below and see how to fix issue.
+```{r}
+#
+head(cutblock_plots_openings_productivity_Buff_ALL_df_b)
+head(cutblock_plots_openings_productivity_Buff_ALL_df_b2)
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b$ID4<-1:nrow(cutblock_plots_openings_productivity_Buff_ALL_df_b)
+cutblock_plots_openings_productivity_Buff_ALL_df_b$ID4 #Every row unique now
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b2<-left_join(cutblock_plots_openings_productivity_Buff_ALL_df_b, atu_subset) 
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$OPENING_ID)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$Species)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$ID4)
+
+#How do I represent the atu dataset fully without losing the data?
+head(atu_subset) #silv_base_code, silv_technique_code, Silv_method_code,
+# treatment amount, act_planted_no, 
+#The above are the values that I want. So let's make a column that is 0 and 1 for the types of interest from the first 3, then summarize those columns by ID number.
+
+#First take columns that are of interest for this data so we can work with it, and then append to original cutblock_plots_openings_productivity_Buff_ALL_df_b as a summary
+names(cutblock_plots_openings_productivity_Buff_ALL_df_b2)
+names(cutblock_plots_openings_productivity_Buff_ALL_df_b2[1001:1226]) #ID4 = 1190; 1194:1196, 1203:1204
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22_a<-cutblock_plots_openings_productivity_Buff_ALL_df_b2[1190]
+cutblock_plots_openings_productivity_Buff_ALL_df_b22_b<-cutblock_plots_openings_productivity_Buff_ALL_df_b2[1194:1196]
+cutblock_plots_openings_productivity_Buff_ALL_df_b22_c<-cutblock_plots_openings_productivity_Buff_ALL_df_b2[1203:1204]
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22<-cbind(cutblock_plots_openings_productivity_Buff_ALL_df_b22_a, cutblock_plots_openings_productivity_Buff_ALL_df_b22_b, cutblock_plots_openings_productivity_Buff_ALL_df_b22_c)
+head(cutblock_plots_openings_productivity_Buff_ALL_df_b22) #All have gone to NA
+
+#Determine what variables are present for each variable of interest, and which levels are of interest
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22$silv_base_code) 
+#AU: Audit; BR: Brushing; DN: Denudation; DS: Direct Seeding (only 2); FE: Fertilization (37); JS: Juvenile Spacing; PC: Pest Control; PL: Planting; RD: Roads (only 9); SP: Site Preparation; SU: Surveys; SX: Silviculture Trials (only 3)
+#Might be interested in brushing, denudation, fertilization, planting, Site Prep (but at this level, vague); investigate surveys.
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22$silv_technique_code)
+#BI: Biological (2); BL Backlog Silviculture Prescription (5); BR: Brushing (17); BU: Burning (60); CA: Chemical Air (26); CG: Chemical Ground (21); DD: Site Disturbance (3); DE: Deactivation (3); DR: Drainage (1);FE: Fertilization (10); FG: Free Growing (127); FH: Forest health (5); FP: Fill Planting (89); GR: Ground (?; 2); GS: Grass Seeding (1); HV: Harvest (137); HZ: Hazard (1); JS: Juvenile Spacing (7); MA: Manual (90); ME: Mechanical (131); MS: Mineral Soil Disturbance (5); OF Office Review (22); Pay (1)... PL: Planting (411); PO: Post Harvest Inspection (19); RA: Regeneration Performance Assessment (21); RE: Reconnasaince (110); RG: Regn/stocking (261); RO: Roadside (1); RP: Replanting (19); RR: Road Rehab (2); SE: Seedling Protection (20); SI:Silviculture Prescription (7); SM:Stand Management Prescription (2); SP: Site Prep (28); SR: Site Rebab (1); SU: Surviuval (51)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22$silv_method_code)
+#BLADE: Blading; BROAD: Broadcast burn; BRUSH: Brush saw; CHAIN: Chain Drag; CTAIN: Container (1037); DISC: Disc trenching (5); EXCAV: Excavator; FILE: file review; HANDR: Hand pulling (removal); HELI: Helicopter; KNOCK: 3-meter knock down; LAND: Landings; MANCT: Manual Cutting; MANGI: Manual Girdling; MOUND: Mounding; MXPLT: Mixed Stock; PATCH: machine patch scarification; PILE: Piling; PLOT: Plots; POST: Blade or Strip Post-scarification; Power: Power saw; SHARK: Shark fin drag; SPOT: Spot treatment; TRAIL: Planting trail prep; WALK: Walkthrough; and many more at low frequency.
+```
+
+
+```{r}
+#Many clear ones to remove for cutblock_plots_openings_productivity_Buff_ALL_df_b22$silv_technique_code
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_productivity_Buff_ALL_df_b22, cutblock_plots_openings_productivity_Buff_ALL_df_b22$silv_technique_code!="RE")
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_productivity_Buff_ALL_df_b22b, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code!="RA")
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_productivity_Buff_ALL_df_b22b, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code!="OF")
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_productivity_Buff_ALL_df_b22b, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code!="FH")
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_productivity_Buff_ALL_df_b22b, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code!="PO")
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_productivity_Buff_ALL_df_b22b, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code!="RO")
+#Down to 1627
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_productivity_Buff_ALL_df_b22b, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code!="RR")
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_productivity_Buff_ALL_df_b22b, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code!="PA")
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_productivity_Buff_ALL_df_b22b, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code!="RO")
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_productivity_Buff_ALL_df_b22b, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code!="SU")
+#844
+
+```
+
+Some obvious ones to remove for cutblock_plots_openings_productivity_Buff_ALL_df_b22$silv_method_code as well
+
+```{r}
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_productivity_Buff_ALL_df_b22b, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code!="FILE")
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b<-subset(cutblock_plots_openings_productivity_Buff_ALL_df_b22b, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code!="WALK") #Down to 809
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+Now determine what remains and what is interesting within those categories
+```{r}
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_base_code) 
+#Interesting: BR: Brushing; FE: Fertilization (18); PC: Pest Control; PL: Planting
+#Unsure if these are interesting: SP: Site Preparation; SU: Surveys
+#Remove JS and RD; maybe SU? Surveys
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Brushing<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_base_code == "BR",1,0)
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Fertilize<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_base_code == "FE",1,0)
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Planted<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_base_code == "PL",1,0)
+```
+
+Now investigate the next variable.
+```{r}
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code)
+#Interesting: BI: Biological; BR: Brushing (6); BU: Burning (60); CA: Chemical Air (25); CG: Chemical Ground (21); DD: Site Disturbance; FE: Fertilization (10); FG: Free Growing; FP: Fill Planting (84); GS:Grass Seeding; MA: Manual (89); ME: Mechanical (126); MS: Mineral Soil Disturbance; PL: Planting (389); RG: Regen; RP: Replanting (19); SE: Seedling Protection
+#Not sure if this is interesting: FG: Free Growing (648); RG: Regn/stocking (1252)
+
+#Brushing
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Brushing2<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code == "BR",1,0)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Brushing, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Brushing2) #This is additional brushing
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Brushing_ALL<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Brushing + cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Brushing2
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Brushing_ALL<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Brushing_ALL > 0,1,0)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Brushing_ALL) #105 had brushing
+
+#Fertilization
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Fert2<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code == "FE",1,0)
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Fert_ALL<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Fertilize + cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Fert2
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Fert_ALL) #No repeats
+
+#Planting: PL: Planting (1121); RP: Replanting (41); FP: Fill Planting (151)
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Planted2<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code=="PL",1,
+                                                               (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code=="RP",1,
+                                                                       (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code=="FP",1,0)))))
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Planted2)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Planted2, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code)
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Planted_ALL<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Planted + cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Planted2
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Planted_ALL)
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Planted_ALL<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Planted_ALL>0, 1,0)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Planted_ALL) #492 planted
+
+#Burning
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Burned<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code == "BU",1,0)
+
+#Mechanical
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Mechanical<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code == "ME",1,0)
+
+#Manual
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Manual<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code == "MA",1,0)
+
+#Chemical
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Chemical<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code=="CA",1,                                       (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_technique_code=="CG",1,0)))
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Chemical)
+```
+
+Now investigate the last grouping
+
+```{r}
+#Last Grouping
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code)
+#BLADE: Blading; BROAD: Broadcast burn; BRUSH: Brush saw; CHAIN: Chain Drag; CTAIN: Container (1037); DISC: Disc trenching (5); EXCAV: Excavator; FILE: file review; HANDR: Hand pulling (removal); HELI: Helicopter; KNOCK: 3-meter knock down; LAND: Landings; MANCT: Manual Cutting; MANGI: Manual Girdling; MOUND: Mounding; MXPLT: Mixed Stock; PATCH: machine patch scarification; PILE: Piling; PLOT: Plots; POST: Blade or Strip Post-scarification; Power: Power saw; SHARK: Shark fin drag; SPOT: Spot treatment; TRAIL: Planting trail prep; WALK: Walkthrough;
+#Unsure if interesting: CTAIN: Container (1037), PLOT: Plots
+
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Mechanical)
+
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Manual)
+
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Burned)
+
+#MOUND: Mounding
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Mounding<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="MOUND",1,0)
+
+#PILE: Piling
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Piling<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="PILE",1,0)
+
+#Burned
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Burned2<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="BROAD",1,
+                                                               (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="PBUNR",1,                                                      
+                                                                       (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="SPOT",1,
+                                                                       (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="WFIRE",1,0)))))))
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Burned_ALL<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Burned + cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Burned2
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Burned_ALL)
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Burned_ALL<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Burned_ALL>0,1,0)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Burned_ALL) #60 burned
+
+#BelowGroundDamage Mechanical
+#BLADE; CHAIN: Chain Drag;CROSS: cross-ditching; DISC: Disc trenching (5); EXCAV: Excavator; PATCH: machine patch scarification; POST: Blade or Strip Post-scarification; PRE: Blade or Strip Pre-scarification; SHARK: shark-fin drag;
+#Include TRAIL and MOUND? RRIP?
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$MechBelowG<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="CHAIN",1,
+                                                               (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="CROSS",1,
+                                                                       (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="DISC",1, 
+                                                                        (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="EXCAV",1,
+                                                                                (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="LRIP",1,
+                                                                        (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="PATCH",1,
+                                                                                (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="POST",1,
+                                                                                                (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="PRE",1,
+                                                                                                        (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="SHARK",1,
+                                                                                                                (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="TRAIL",1,
+                                                                                                                        (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="MOUND",1,
+                                                                                   (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="BLADE",1,                                           
+                                                                               0)))))))))))))))))))))))
+
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$MechBelowG) #29 below ground disturbed cases; 780 not.
+
+#SHould BLADE be below or above ground?
+
+#Above Ground Mechanical
+#KNOCK: 3 meter knock down,  MDOWN: Machine Knockdown; MOCUT: Motorized Cutting (Handheld), BLADE, 
+# Include WINDR? Winthrow. 13 are listed within mechanical, 9 not; so may have been some windthrow removal.
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Manual)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Mechanical)
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$MechAboveG<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="KNOCK",1,
+                                                               (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="MDOWN",1,
+                                                                       (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="MOCUT",1, 
+                                                                        (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="BLADE",1,
+                                                                        (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="WINDR",1,
+                                                                                (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="PILE",1,
+                                                                                
+                                                                                        (ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$silv_method_code=="MANGI",1,
+                                                                               0)))))))))))))
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$MechAboveG) #
+
+#Check how many had both above and below ground
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b$MechAboveAndBelowG<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b$MechAboveG + cutblock_plots_openings_productivity_Buff_ALL_df_b22b$MechBelowG
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$MechAboveAndBelowG) #53 cases had both above and below ground, 400 only one or other.
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b22b$MechAboveAndBelowG, cutblock_plots_openings_productivity_Buff_ALL_df_b22b$Mechanical ) #27 + 17 deemed not mechanical had mechanical above or below ground; 38 mechanical missed in designations. Which direction needs fixing?
+
+```
+
+Check names now and rid of names not needed
+```{r}
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b2<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b
+
+head(cutblock_plots_openings_productivity_Buff_ALL_df_b22b2)
+names(cutblock_plots_openings_productivity_Buff_ALL_df_b22b2)
+#Rid of columns not needed for appending
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b2<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b2[-26]
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b2<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b2[-22]
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b2<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b2[-14]
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b2<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b2[-12]
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b2<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b2[-10]
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b2<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b2[-9]
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b2<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b2[-8]
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b2<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b2[-7]
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b2<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b2[-4]
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b2<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b2[-3]
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b2<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b2[-2]
+names(cutblock_plots_openings_productivity_Buff_ALL_df_b22b2)
+```
+
+As needed:
+```{r}
+#
+cutblock_plots_openings_productivity_Buff_ALL_df_b22b2<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b2[-7]
+```
+Get means for each group by ID4.
+
+```{r}
+#If below results in one observation, unload "dplyr" library and load back in.
+cutblock_plots_openings_productivity_Buff_ALL_df_b_atu<-cutblock_plots_openings_productivity_Buff_ALL_df_b22b2 %>%
+  group_by(ID4, .drop=FALSE) %>%
+  summarize(treatment_amount = sum(treatment_amount, na.rm = TRUE), 
+           act_planted_no = sum(act_planted_no, na.rm = TRUE),
+           Brushing_ALL = sum(Brushing_ALL, na.rm = TRUE),
+           Fert_ALL = sum(Fert_ALL, na.rm = TRUE),
+           Planted_ALL = sum(Planted_ALL, na.rm = TRUE),
+           Burned_ALL = sum(Burned_ALL, na.rm = TRUE),
+           Mechanical = sum(Mechanical, na.rm = TRUE),
+           Manual= sum(Manual, na.rm = TRUE),
+           Chemical = sum(Chemical, na.rm = TRUE),
+           Mounding = sum(Mounding, na.rm = TRUE),
+           Piling = sum(Piling, na.rm = TRUE),
+           MechBelowG = sum(MechBelowG, na.rm = TRUE),
+           MechAboveG = sum(MechAboveG, na.rm = TRUE)) #Get 642 variables; so missing 5 IDs. Not bad!
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Brushing_ALL<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Brushing_ALL>0, 1,0)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Brushing_ALL) #69 brushed, 188 not
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Fert_ALL<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Fert_ALL>0, 1,0)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Fert_ALL) #Only 18 plots fertilized, 239 not
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Planted_ALL<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Planted_ALL>0, 1,0)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Planted_ALL) #231 planted, 26 not
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Burned_ALL<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Burned_ALL>0, 1,0)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Burned_ALL) #45 burned, 212 not
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Mechanical<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Mechanical>0, 1,0)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Mechanical) #91 mechanical treatment, 166 not
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Manual<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Manual>0, 1,0)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Manual) #71 manual treatment, 186 not
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Chemical<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Chemical>0, 1,0)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Chemical) #38 chemical treatmed, 219 not
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Mounding<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Mounding>0, 1,0)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Mounding) #21 mounded, 236 not
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Piling<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Piling>0, 1,0)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$Piling) #22 with pilings, 235 not
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$MechBelowG<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$MechBelowG>0, 1,0)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$MechBelowG) #73 mechanical below ground, 184 not
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$MechAboveG<-ifelse(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$MechAboveG>0, 1,0)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b_atu$MechAboveG) #39 above ground, 218 not
+```
+
+Now append data post-processing.
+```{r}
+cutblock_plots_openings_productivity_Buff_ALL_df_b2<-left_join(cutblock_plots_openings_productivity_Buff_ALL_df_b, cutblock_plots_openings_productivity_Buff_ALL_df_b_atu, by="ID4") #131 of 1203 variables. Note, in the abive processing with Dave's files, we only had 121 plots, so 10 are missing indepth data.
+head(cutblock_plots_openings_productivity_Buff_ALL_df_b2)
+```
+
+Inspect data.
+
+```{r}
+#Inspect each set
+names(cutblock_plots_openings_productivity_Buff_ALL_df_b2)
+
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$planted_species1) #Main species planted
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$planted_species2)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$planted_species3)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$planted_species4)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$planted_species5)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$natural_species1)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$natural_species2)
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$natural_species3)
+
+hist(cutblock_plots_openings_productivity_Buff_ALL_df_b2$planted_density1)
+cutblock_plots_openings_productivity_Buff_ALL_df_b2$planted_density_TOT<-cutblock_plots_openings_productivity_Buff_ALL_df_b2$planted_density1 + cutblock_plots_openings_productivity_Buff_ALL_df_b2$planted_density2 + cutblock_plots_openings_productivity_Buff_ALL_df_b2$planted_density3 + cutblock_plots_openings_productivity_Buff_ALL_df_b2$planted_density4 + cutblock_plots_openings_productivity_Buff_ALL_df_b2$planted_density5
+hist(cutblock_plots_openings_productivity_Buff_ALL_df_b2$planted_density_TOT)
+
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$op_cat) #Not useful
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$op_stat)
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b2$treatment_amount<-as.numeric(cutblock_plots_openings_productivity_Buff_ALL_df_b2$treatment_amount)
+cutblock_plots_openings_productivity_Buff_ALL_df_b2$vri_age.<-as.numeric(cutblock_plots_openings_productivity_Buff_ALL_df_b2$vri_age)
+cutblock_plots_openings_productivity_Buff_ALL_df_b2$rslt_age.<-as.numeric(cutblock_plots_openings_productivity_Buff_ALL_df_b2$rslt_age)
+
+hist(cutblock_plots_openings_productivity_Buff_ALL_df_b2$treatment_amount)
+hist(cutblock_plots_openings_productivity_Buff_ALL_df_b2$planted_density1)
+hist(cutblock_plots_openings_productivity_Buff_ALL_df_b2$vri_age)
+hist(cutblock_plots_openings_productivity_Buff_ALL_df_b2$rslt_age)
+```
+
+Also check because some opening IDs may have been for buffaloberry, and thus nothave a species associated with it anymore.
+
+```{r}
+cutblock_plots_openings_productivity_Buff_ALL_df_b2$Species
+cutblock_plots_openings_productivity_Buff_ALL_df_b2$CutBlock_O
+
+cutblock_plots_openings_productivity_Buff_ALL_df_b2$CutBlock_O[is.na(cutblock_plots_openings_productivity_Buff_ALL_df_b2$CutBlock_O)]<-1
+table(cutblock_plots_openings_productivity_Buff_ALL_df_b2$CutBlock_O) #259 - fixed!
+head(cutblock_plots_openings_productivity_Buff_ALL_df_b2)
+
+```
+
+Save File.
+```{r}
+write.csv(cutblock_plots_openings_productivity_Buff_ALL_df_b2, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_Buff_ALL_df_b2_March30.csv")
+```
+
+
+############################ PREP COMPLETE ####################
