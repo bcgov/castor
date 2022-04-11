@@ -35,6 +35,7 @@ defineModule (sim, list (
   inputObjects = bind_rows(
     expectsInput (objectName = "clusdb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the model. This module needs the age variable from the pixels table in the clusdb.', sourceURL = NA),
     expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
+    expectsInput(objectName = "boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
     ),
   outputObjects = bind_rows(
@@ -48,13 +49,13 @@ doEvent.survivalCLUS = function (sim, eventTime, eventType) {
     eventType,
     init = { # identify herds in the study area, calculate survival rate at time 0 for those herds and save the survival rate estimate
       sim <- Init (sim) # identify herds in the study area and calculate survival rate at time 0; instantiate a table to save the survival rate estimates
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "survivalCLUS", "calculateInterval"), "survivalCLUS", "calculateSurvival", 8) # schedule the next survival calculation event 
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "survivalCLUS"), "survivalCLUS", "calculateSurvival", 8) # schedule the next survival calculation event 
       sim <- scheduleEvent (sim, end(sim), "survivalCLUS", "adjustSurvivalTable", 9) 
     },
     
     calculateSurvival = { # calculate survival rate at each time interval 
       sim <- predictSurvival (sim) # this function calculates survival rate
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "survivalCLUS", "calculateInterval"), "survivalCLUS", "calculateSurvival", 8) # schedule the next survival calculation event  
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "survivalCLUS"), "survivalCLUS", "calculateSurvival", 8) # schedule the next survival calculation event  
     },
     adjustSurvivalTable ={ # calucalte the total area from which the proportions and survival rate applies
       sim <- adjustSurvivalTable (sim)
@@ -73,11 +74,11 @@ Init <- function (sim) { # this function identifies the caribou herds in the 'st
   
     herdbounds <- data.table (c (t (raster::as.matrix ( # clip caribou herd raster by the 'study area' set in dataLoader
                                     RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                                      srcRaster = P (sim, "survivalCLUS", "nameRasCaribouHerd") , # clip the herd boundary raster; defined in parameters, above
-                                                  clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"),  # by the study area; defined in parameters of dataLoaderCLUS
-                                                  geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
-                                                  where_clause =  paste0 (P (sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                                  conn = NULL)))))
+                                      srcRaster = P (sim, "nameRasCaribouHerd", "survivalCLUS") , # clip the herd boundary raster; defined in parameters, above
+                                      clipper=sim$boundaryInfo[[1]], 
+                                      geom= sim$boundaryInfo[[4]], 
+                                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                      conn = NULL)))))
     
     setnames (herdbounds, "V1", "herd_bounds") # rename the default column name
     herdbounds [, herd_bounds := as.integer (herd_bounds)] # add the herd boudnary value from the raster and make the value an integer
