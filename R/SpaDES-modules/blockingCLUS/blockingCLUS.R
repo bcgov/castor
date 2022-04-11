@@ -113,7 +113,7 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
 }
 
 Init <- function(sim) {
-  sim$edgesAdj<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 4, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras),
+  sim$edgesAdj<-data.table(SpaDES.tools::adj(returnDT= TRUE, directions = 8, numCol = ncol(sim$ras), numCell=ncol(sim$ras)*nrow(sim$ras),
                                              cells = 1:as.integer(ncol(sim$ras)*nrow(sim$ras)))) #hard-coded the "rooks" case
 return(invisible(sim))
 }
@@ -167,7 +167,7 @@ setBlocksTable <- function(sim) {
   
   dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, height,  vol, salvage_vol, dist, landing)  
                     SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as salvage_vol, AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
-                                       FROM pixels WHERE blockid > 0 GROUP BY blockid "))  
+                                       FROM pixels WHERE blockid > 0 AND thlb > 0 GROUP BY blockid "))  
 
   dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
   return(invisible(sim))
@@ -224,7 +224,7 @@ preBlock <- function(sim) {
   #scale the crownclosure and height between 0 and 1 to remove bias of distances towards a variable
   weight[, height:=scale(height)][, crownclosure:=scale(crownclosure)] #scale the variables
 
-  #Get the inverse of the covariance-variance matrix or since its standarized correlation matrix
+  #Get the inverse of the covariance-variance matrix or since its standardized correlation matrix
   covm<-solve(cov(weight[,c("crownclosure", "height")], use= 'complete.obs'))
 
   edges.w1<-merge(x=edges, y=weight, by.x= "from", by.y ="pixelid", all.x= TRUE) #merge in the weights from a cost surface
@@ -246,9 +246,12 @@ preBlock <- function(sim) {
   #g<-graph.lattice(c(nrow(sim$ras), ncol(sim$ras), 1))#instantiate the igraph object
   g<-graph.edgelist(edges.weight[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
   E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
-  V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
-  #g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains? The problem here is that it may delete island pixels
-  
+  #V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
+  g<-g %>% 
+    set_vertex_attr("name", value = V(g))
+  g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains? The problem here is that it may delete island pixels
+  #test22<<-dbGetQuery(sim$clusdb, "select pixelid from pixels where thlb > 0 AND blockid = 0 and zone1 = 22;")
+ # stop()
   patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone where reference_zone = '",  P(sim, "patchZone", "blockingCLUS"),"'"))
   if(nrow(patchSizeZone) == 0){
     stop(paste0("check ", P(sim, "patchZone", "blockingCLUS")))
@@ -258,7 +261,7 @@ preBlock <- function(sim) {
                                  thlb > 0 AND ", patchSizeZone, " IS NOT NULL group by ", patchSizeZone)))) 
   resultset<-list() #create an empty resultset to be appended within the for loop
   islands<-list() #create an empty list to add pixels that are islands and don't connect to the graph
-  
+
   for(zone in zones){
     message(paste0("loading--", zone))
     vertices<-data.table(dbGetQuery(sim$clusdb,
@@ -271,25 +274,43 @@ preBlock <- function(sim) {
     }
     
     #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
-    g.mst_sub<-mst(induced_subgraph(g, vids = as.matrix(vertices)), weighted=TRUE)
+    g.sub<-induced_subgraph(g, vids = as.character(vertices$pixelid))
+    lut<-data.table(verts = as_ids(V(g.sub)))[, ind := seq_len(.N)]
+    g.sub2<-g.sub %>% set_vertex_attr("name", value = lut$ind)
+    
+    g.mst_sub<<-mst(g.sub2, weighted=TRUE)
+    #g.mst_sub<-delete.vertices(g.mst_sub, degree(g.mst_sub) == 0)
+ 
     if(length(get.edgelist(g.mst_sub)) > 0){
       paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst_sub)), E(g.mst_sub)$weight))
-      paths.matrix[, V1 := as.integer(V1)]
-      paths.matrix[, V2 := as.integer(V2)]
-      #print(head(get.edgelist(g.mst_sub)))
-      natDT <- dbGetQuery(sim$clusdb,paste0("SELECT ndt, t_area FROM zoneConstraints WHERE reference_zone = '", P(sim, "patchZone", "blockingCLUS"), "' AND zoneid = ", zone))
+      paths.matrix[, V1 := as.integer(V1)][, V2 := as.integer(V2)]
       
+      #get patch size distribution by natural disturbance type
+      natDT <- dbGetQuery(sim$clusdb,paste0("SELECT ndt, t_area FROM zoneConstraints WHERE reference_zone = '", P(sim, "patchZone", "blockingCLUS"), "' AND zoneid = ", zone))
       targetNum <- sim$patchSizeDist[ndt == natDT$ndt, ] # get the target patchsize
       targetNum[,targetNum:= (natDT$t_area*freq)/sizeClass][,targetNum:= ceiling(targetNum)]
-      #sample(x=c(1,2,3), size=1000, replace=TRUE, prob=c(.04,.50,.46))
-      patchDist <-list(targetNum$sizeClass , targetNum$targetNum)
-      resultset <-append(resultset, list(list(as.matrix(degree(g.mst_sub)), paths.matrix, zone, patchDist, P(sim)$patchVariation))) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
+      
+      #Adjust the target number based on the current distribution
+      current.block.dist <- dbGetQuery(sim$clusdb,paste0("SELECT blockid, count() as area FROM pixels WHERE ",patchSizeZone," = ", zone, " And blockid > 0 group by blockid;"))
+      if(nrow(current.block.dist) > 0){
+        currentNum <- data.table(sizeClass = targetNum$sizeClass)
+        current.block.dist <- hist(current.block.dist$area, breaks = c(0, currentNum[max(sizeClass) == sizeClass, sizeClass:= 10000]$sizeClass), plot= F)$count
+        patchDist <- list(targetNum$sizeClass , data.table(num = targetNum$targetNum - current.block.dist)[num<0,num:=0]$num)
+      }else{
+        patchDist <- list(targetNum$sizeClass ,  targetNum$targetNum )
+      }
+     
+      #make list of blocking parameters
+      resultset <-append(resultset, list(list(as.matrix(degree(g.mst_sub)), paths.matrix, zone, patchDist, P(sim)$patchVariation, lut))) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
     }else{
       message(paste0(zone, " has length<0"))
       next
     }
   }
-
+  
+  #ras<<-sim$ras
+  #rs.test<<-resultset
+  #stop()
   #Run the forest_hierarchy java object in parallel. One for each 'zone'. This will maintain zone boundaries as block boundaries
   if(length(zones) > 1 && object.size(g) > 10000000000){ #0.1 GB
     noCores<-min(parallel::detectCores()-1, length(zones))
@@ -312,6 +333,7 @@ preBlock <- function(sim) {
   rm(resultset, g, covm)
   gc()
   
+  message("Updating blocks table")
   #Need to combine the results of blockids into clusdb. Update the pixels table and populate the blockids
   lastBlockID <<- 0
   result<-lapply(blockids, function(x){
@@ -346,7 +368,8 @@ preBlock <- function(sim) {
   sim$harvestUnits<-sim$ras
   sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$clusdb, 'Select blockid from pixels ORDER BY pixelid ASC')))
 
-  #writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
+  writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
+  #stop()
   rm(zones, result, blockids, max_blockid)
   gc()
   return(invisible(sim))
@@ -460,8 +483,10 @@ getBlocksIDs<- function(x){
   from<-.jarray(as.matrix(x[][[2]][,2]))#set the "from" list as a java object
   weight<-.jarray(as.matrix(x[][[2]][,3])) #set the "weight" list as a java object
   fhClass$setRParms(to, from, weight, d, h, x[][[5]]) # sets the input R parameters <Edges> <Degree> <Histogram> <variation>
-  fhClass$blockEdges() # builds the blocks
-  blockids<-cbind(convertToR(fhClass$getBlocks()), as.integer(unlist(dg[,1]))) #creates a link between pixelid and blockid
+  fhClass$blockEdges2() # builds the blocks
+  #blockids<-cbind(convertToR(fhClass$getBlocks()), as.integer(unlist(dg[,1]))) #creates a link between pixelid and blockid
+  blockids<-cbind(convertToR(fhClass$getBlocks()), as.integer(x[][[6]]$verts)) #creates a link between pixelid and blockid
+  #stop()
   fhClass$clearInfo() #This method clears the object so it can be sent for garbage collection
   
   rm(fhClass, dg, h, to, from, weight) #remove from memory
@@ -479,6 +504,12 @@ worker.init <- function(packages) { #used for setting up the environments of the
 }
 
 jgc <- function() .jcall("java/lang/System", method = "gc")
+
+binFreqTable <- function(x, bins) {
+  freq = hist(x, breaks=c(0,bins, 100000), include.lowest=TRUE, plot=FALSE)
+  ranges = paste(head(freq$breaks,-1), freq$breaks[-1], sep=" - ")
+  return(data.frame(range = ranges, frequency = freq$counts))
+}
 
 .inputObjects <- function(sim) {
   if(!suppliedElsewhere("patchSizeDist", sim)){

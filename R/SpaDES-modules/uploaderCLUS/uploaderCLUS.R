@@ -66,46 +66,49 @@ doEvent.uploaderCLUS = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
+  
   #check to see if a scenario table exists. If it does -- delete from the table where scenario is equal to the scenario
   connx<-DBI::dbConnect(dbDriver("PostgreSQL"), 
-                        host=P(sim, "uploaderCLUS", "dbInfo")[[1]], 
-                        dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], 
+                        host=P(sim, "dbInfo", "uploaderCLUS")[[1]], 
+                        dbname = P(sim, "dbInfo", "uploaderCLUS")[[4]], 
                         port='5432', 
-                        user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
-                        password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
+                        user=P(sim, "dbInfo", "uploaderCLUS")[[2]],
+                        password= P(sim, "dbInfo", "uploaderCLUS")[[3]])
 
+  
   #Does the schema exist?
-  if(length(dbGetQuery(connx, paste0("SELECT schema_name FROM information_schema.schemata WHERE schema_name = '", P(sim, "uploaderCLUS", "aoiName") ,"';"))) > 0){
+  if(nrow(dbGetQuery(connx, paste0("SELECT schema_name FROM information_schema.schemata WHERE schema_name = '", P(sim, "aoiName", "uploaderCLUS") ,"';"))) > 0){
     message("...remove old information")
     #remove all the rows that have the scenario name in them
     if(!is.null(sim$foreststate)){
       message("...Add new forest state")
-      dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".state where aoi = '", P(sim, "uploaderCLUS", "aoiName"), "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
+      dbExecute(connx, paste0("DELETE FROM ",P(sim, "aoiName", "uploaderCLUS"), ".state where aoi = '", P(sim, "aoiName", "uploaderCLUS"), "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
     }
     
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios where scenario = '", sim$scenario$name, "';"))
-    dbExecute(connx, paste0("INSERT INTO ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios (scenario, description) values ('", sim$scenario$name,"', '", sim$scenario$description, "');"))
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "aoiName", "uploaderCLUS"), ".scenarios where scenario = '", sim$scenario$name, "';"))
+    dbExecute(connx, paste0("INSERT INTO ",P(sim, "aoiName", "uploaderCLUS"), ".scenarios (scenario, description) values ('", sim$scenario$name,"', '", sim$scenario$description, "');"))
     
     sim$zoneManagement
     if(!is.null(sim$zoneManagement)){
       message("...Add new forest zones")
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".zonemanagement where scenario = '", sim$scenario$name, "';"))
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "aoiName", "uploaderCLUS"), ".zonemanagement where scenario = '", sim$scenario$name, "';"))
     }
     
-    lapply(dbGetQuery(connx, paste0("SELECT table_name FROM information_schema.tables WHERE table_schema  = '", P(sim, "uploaderCLUS", "aoiName") ,"' and table_name in ('disturbance', 'growingstock', 'rsf',  'fisher', 'harvest', 'yielduncertainty',  'grizzly_survival') ;"))$table_name, function (x){
-      dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".",x," where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
+    lapply(dbGetQuery(connx, paste0("SELECT table_name FROM information_schema.tables WHERE table_schema  = '", P(sim, "aoiName", "uploaderCLUS") ,"' and table_name in ('disturbance', 'growingstock', 'rsf',  'fisher', 'harvest', 'yielduncertainty',  'grizzly_survival') ;"))$table_name, function (x){
+      dbExecute(connx, paste0("DELETE FROM ",P(sim, "aoiName", "uploaderCLUS"), ".",x," where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
     }) 
     
-    lapply(dbGetQuery(connx, paste0("SELECT table_name FROM information_schema.tables WHERE table_schema  = '", P(sim, "uploaderCLUS", "aoiName") ,"' and table_name in ('survival',  'volumebyarea',  'caribou_abundance') ;"))$table_name, function (y){
-     dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".",y," where scenario = '", sim$scenario$name, "' ;"))
+    lapply(dbGetQuery(connx, paste0("SELECT table_name FROM information_schema.tables WHERE table_schema  = '", P(sim, "aoiName", "uploaderCLUS") ,"' and table_name in ('survival',  'volumebyarea',  'caribou_abundance') ;"))$table_name, function (y){
+     dbExecute(connx, paste0("DELETE FROM ",P(sim, "aoiName", "uploaderCLUS"), ".",y," where scenario = '", sim$scenario$name, "' ;"))
     })
     
    dbDisconnect(connx)
   }else{
     #Create the schema and all the tables
-    dbExecute(connx, paste0("CREATE SCHEMA ",P(sim, "uploaderCLUS", "aoiName"),";"))
-    dbExecute(connx, paste0("GRANT ALL ON SCHEMA ",P(sim, "uploaderCLUS", "aoiName")," TO appuser;"))
-    dbExecute(connx, paste0("GRANT ALL ON SCHEMA ",P(sim, "uploaderCLUS", "aoiName")," TO clus_project;"))
+   
+    dbExecute(connx, paste0("CREATE SCHEMA ",P(sim, "aoiName", "uploaderCLUS"),";"))
+    dbExecute(connx, paste0("GRANT ALL ON SCHEMA ",P(sim, "aoiName", "uploaderCLUS")," TO appuser;"))
+    dbExecute(connx, paste0("GRANT ALL ON SCHEMA ",P(sim, "aoiName", "uploaderCLUS")," TO clus_project;"))
     #Create the tables
     tableList = list(state = data.table(aoi=character(), compartment=character(), total= integer(), thlb= numeric(), early= integer(), mature= integer(), old= integer(), road = integer()),
 
@@ -139,12 +142,12 @@ Init <- function(sim) {
 
     tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "disturbance", "yielduncertainty", "fisher", "zonemanagement", "grizzly_survival", "caribou_abundance")
     for(i in 1:length(tablesUpload)){
-      dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), tablesUpload[[i]]), tableList[[tablesUpload[i]]], row.names = FALSE)
-      dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", tablesUpload[[i]]," to appuser;"))
-      dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "uploaderCLUS", "aoiName"),".", tablesUpload[[i]]," to clus_project;"))
+      dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), tablesUpload[[i]]), tableList[[tablesUpload[i]]], row.names = FALSE)
+      dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "aoiName", "uploaderCLUS"),".", tablesUpload[[i]]," to appuser;"))
+      dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "aoiName", "uploaderCLUS"),".", tablesUpload[[i]]," to clus_project;"))
     }
     
-    dbExecute(connx, paste0("INSERT INTO ",P(sim, "uploaderCLUS", "aoiName"), ".scenarios (scenario, description) values ('", sim$scenario$name,"', '", sim$scenario$description, "');"))
+    dbExecute(connx, paste0("INSERT INTO ",P(sim, "aoiName", "uploaderCLUS"), ".scenarios (scenario, description) values ('", sim$scenario$name,"', '", sim$scenario$description, "');"))
     dbDisconnect(connx)
   }
   return(invisible(sim))
@@ -153,18 +156,16 @@ Init <- function(sim) {
 save.currentState<- function(sim){
   if(!is.null(sim$foreststate)){
     connx<-DBI::dbConnect(dbDriver("PostgreSQL"), 
-                          host=P(sim, "uploaderCLUS", 
-                                 "dbInfo")[[1]], 
-                          dbname = P(sim, "uploaderCLUS", 
-                                     "dbInfo")[[4]], 
+                          host=P(sim, "dbInfo", "uploaderCLUS")[[1]], 
+                          dbname = P(sim, "dbInfo", "uploaderCLUS")[[4]], 
                           port='5432', 
-                          user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
-                          password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
+                          user=P(sim, "dbInfo", "uploaderCLUS")[[2]],
+                          password= P(sim, "dbInfo", "uploaderCLUS")[[3]])
 
   
-    sim$foreststate[,aoi:= P(sim, "uploaderCLUS", "aoiName")]
-    dbExecute(connx, paste0("DELETE FROM ",P(sim, "uploaderCLUS", "aoiName"), ".state where aoi = '", P(sim, "uploaderCLUS", "aoiName"), "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
-    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'state'), 
+    sim$foreststate[,aoi:= P(sim, "aoiName", "uploaderCLUS")]
+    dbExecute(connx, paste0("DELETE FROM ",P(sim, "aoiName", "uploaderCLUS"), ".state where aoi = '", P(sim, "aoiName", "uploaderCLUS"), "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
+    dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'state'), 
                  sim$foreststate, append = T, row.names = FALSE)
   
 
@@ -176,66 +177,66 @@ save.currentState<- function(sim){
 save.reports <-function (sim){
 
   connx<-DBI::dbConnect(dbDriver("PostgreSQL"), 
-                        host=P(sim, "uploaderCLUS", "dbInfo")[[1]], 
-                        dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], 
+                        host=P(sim, "dbInfo", "uploaderCLUS")[[1]], 
+                        dbname = P(sim, "dbInfo", "uploaderCLUS")[[4]], 
                         port='5432', 
-                        user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
-                        password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
+                        user=P(sim, "dbInfo", "uploaderCLUS")[[2]],
+                        password= P(sim, "dbInfo", "uploaderCLUS")[[3]])
   #harvestingReport
   if(!is.null(sim$harvestReport)){
-    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'harvest'),
+    dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'harvest'),
                  sim$harvestReport, append = T,
                  row.names = FALSE)
   }
   #GrowingStockReport
   if(!is.null(sim$growingStockReport)){
-    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'growingstock'), 
+    dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'growingstock'), 
                  sim$growingStockReport, append = T,
                  row.names = FALSE)
   }
   #rsf
   if(!is.null(sim$rsf)){
-    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'rsf'), 
+    dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'rsf'), 
                  sim$rsf, append = T,row.names = FALSE)
   }
   # caribou survival
   if(!is.null(sim$tableSurvivalReport)){
-    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'survival'), 
+    dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'survival'), 
                  sim$tableSurvivalReport, append = T,row.names = FALSE)
   }
   #disturbance
   if(!is.null(sim$disturbanceReport)){
-    DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'disturbance'), 
+    DBI::dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'disturbance'), 
                       sim$disturbanceReport, append = T,row.names = FALSE)
   }
   #yielduncertainty
   if(!is.null(sim$yielduncertain)){
-    DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'yielduncertainty'), 
+    DBI::dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'yielduncertainty'), 
                       sim$yielduncertain, append = T,row.names = FALSE)
   }
   #volumebyarea
   if(!is.null(sim$volumebyareaReport)){
-    DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'volumebyarea'), 
+    DBI::dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'volumebyarea'), 
                       sim$volumebyareaReport, append = T, row.names = FALSE)
   }
   #fisher
   if(!is.null(sim$tableFisherOccupancy)){
-    DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'fisher'), 
+    DBI::dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'fisher'), 
                       sim$tableFisherOccupancy, append = T, row.names = FALSE)
   }
   #zonal constraints
   if(!is.null(sim$zoneManagement)){
-    DBI::dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'zonemanagement'), 
+    DBI::dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'zonemanagement'), 
                       sim$zoneManagement, append = T, row.names = FALSE)
   }
   # grizzly bear survival
   if(!is.null(sim$tableGrizzSurvivalReport)){
-    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'grizzly_survival'), 
+    dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'grizzly_survival'), 
                  sim$tableGrizzSurvivalReport, append = T,row.names = FALSE)
   }
   # caribou abundance
   if(!is.null(sim$tableAbundanceReport)){
-    dbWriteTable(connx, c(P(sim, "uploaderCLUS", "aoiName"), 'caribou_abundance'), 
+    dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'caribou_abundance'), 
                  sim$tableAbundanceReport, append = T,row.names = FALSE)
   }
   dbDisconnect(connx)
@@ -247,39 +248,39 @@ save.rasters <-function (sim){
   
   if(is.null(sim$foreststate)){
     connx<-DBI::dbConnect(dbDriver("PostgreSQL"), 
-                          host=P(sim, "uploaderCLUS", "dbInfo")[[1]], 
-                          dbname = P(sim, "uploaderCLUS", "dbInfo")[[4]], 
+                          host=P(sim, "dbInfo", "uploaderCLUS")[[1]], 
+                          dbname = P(sim, "dbInfo", "uploaderCLUS")[[4]], 
                           port='5432', 
-                          user=P(sim, "uploaderCLUS", "dbInfo")[[2]],
-                          password= P(sim, "uploaderCLUS", "dbInfo")[[3]])
+                          user=P(sim, "dbInfo", "uploaderCLUS")[[2]],
+                          password= P(sim, "dbInfo", "uploaderCLUS")[[3]])
     ##blocks
     message('....cutblock raster')
     commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/") ,paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]], "_harvestBlocks.tif")), 
-                 schema = P(sim, "uploaderCLUS", "aoiName"), 
+                 schema = P(sim, "aoiName", "uploaderCLUS"), 
                  name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks"), 
-                 dbInfo = P(sim, "uploaderCLUS", "dbInfo") )
-    dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks")," to appuser;"))
-    dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks")," to clus_project;"))
+                 dbInfo = P(sim, "dbInfo", "uploaderCLUS") )
+    dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "aoiName", "uploaderCLUS"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks")," to appuser;"))
+    dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "aoiName", "uploaderCLUS"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks")," to clus_project;"))
     
     ##roads
     if(!is.null(sim$roads)){
 
     message('....roads raster')
     commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/")  ,paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_year_", time(sim)*sim$updateInterval, ".tif")), 
-                 schema = P(sim, "uploaderCLUS", "aoiName"), name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads"),
-                 dbInfo = P(sim, "uploaderCLUS", "dbInfo"))
-    dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to appuser;"))
-    dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to clus_project;"))
+                 schema = P(sim, "aoiName", "uploaderCLUS"), name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads"),
+                 dbInfo = P(sim, "dbInfo", "uploaderCLUS"))
+    dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "aoiName", "uploaderCLUS"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to appuser;"))
+    dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "aoiName", "uploaderCLUS"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to clus_project;"))
     
     }
     ##zoneConstraint
     message('....constraint raster')
     commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/") , paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]], "_constraints.tif")), 
-                 schema = P(sim, "uploaderCLUS", "aoiName"), 
+                 schema = P(sim, "aoiName", "uploaderCLUS"), 
                  name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint"),
-                 dbInfo = P(sim, "uploaderCLUS", "dbInfo"))
-    dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint")," to appuser;"))
-    dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "uploaderCLUS", "aoiName"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint")," to clus_project;"))
+                 dbInfo = P(sim, "dbInfo", "uploaderCLUS"))
+    dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "aoiName", "uploaderCLUS"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint")," to appuser;"))
+    dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "aoiName", "uploaderCLUS"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint")," to clus_project;"))
     
     ##rsfEND
   }

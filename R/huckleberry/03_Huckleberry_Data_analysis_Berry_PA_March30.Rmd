@@ -1,0 +1,1995 @@
+---
+title: "Huckleberry_Data_analysis"
+author: "Cora Skaien"
+date: "14/01/2022"
+output: html_document
+---
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(raster)
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(cleangeo)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(rgdal)
+library(keyring)
+library(DBI)
+library(rgeos)
+library(car)
+library(rje)
+library(caret)
+library(pROC)
+library(visreg)
+library(arm)
+library(mgcv)
+library(mgcViz)
+
+#source(here::here("R/functions/R_Postgres.R"))
+```
+
+##Data sets for what purpose
+Percent cover huckleberry and berry abundance: cutblock_plots_openings_Huck_ALL_df_2022_b2
+
+This dataset already has the two datasets combined together.
+
+#Overview
+This file continues from huckleberry&buffaloberry_data_processing_Jan2022. Here, we explore how silviculture practices influence the abundance of huckleberry berries. 
+
+
+#Load Data In
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2<-read.csv( file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_productivity_Huck_ALL_df_2022_b2_March30.csv")
+head(cutblock_plots_openings_Huck_ALL_df_2022_b2)
+str(cutblock_plots_openings_Huck_ALL_df_2022_b2)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr)
+                                                  
+```
+
+
+#Begin Exploration of variables
+
+## Looking at DN1_DIS_CD (DENUDATION_1_DISTURBANCE_CODE) between openings and openings + activity files
+```{r}
+#See if worth losing the data points - i.e., do we have consistent good data within this.
+head(cutblock_plots_openings_Huck_ALL_df_2022_b2)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$G_BGC_ZONE) #BEC Zone: ESSF, ICH, MS, SBS
+cutblock_plots_openings_Huck_ALL_df_2022_b2$OPEN_GRSAR<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$OPEN_GRSAR)
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$OPEN_GRSAR) #total area the opening encompasses
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD) # 1 B (burned wildfire); 230 logged (L); 2 S (Salvage); 3 missing data
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN2_DIS_CD) #Additional elements; 115 total
+
+#Create an ifelse statement to get a new category in case there are any DSN1s with NAs taht have a DSN2 input
+#cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_2_DIS_CD<- ifelse (is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD), cutblock_plots_openings_Huck_ALL_df_2022_b2$DN2_DIS_CD, cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD)
+#table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_2_DIS_CD)# 626; same as initial, so no improvement
+
+```
+
+May wish to remove P, S and W, and B.
+# As of March 30, 2022, we have decided not to remove the 3 cases not purely designatef as "L" due to already low sample size.
+
+```{r}
+#cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD!="P")
+#cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD!="S")
+#cutblock_plots_openings_Huck_ALL_df_2022_b2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD!="B")
+
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_DIS_CD) #
+```
+
+#Inspect DN1_SILSYS (DENUDATION_1_SILV_SYSTEM_CODE)
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS) #37 CCRES (Clearcut with reserves); 150 Clearcut; 8 SELEC (Selective logging) spattering of others; Only 197 data points have a designation as one kind or another.
+
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN2_SILSYS)
+#Do same as above to see if can get additional data inputs
+#cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_2_SILSYS<- ifelse (is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS), cutblock_plots_openings_Huck_ALL_df_2022_b2$DN2_SILSYS, cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS)
+#table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_2_SILSYS)#No improvement, and names now turned to numbers?
+
+#May wish to group the smaller groups into an "other" category
+#cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP<-cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS
+#cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP <- recode_factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP, CCRES = "CCRES", CLEAR = "CLEAR", IMCUT  = "Other", PATCT = "Other", RETEN= "Other", SEEDT = "Other", SELEC = "Other", SHELT = "Other")
+#table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP) 
+
+#cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP #NAs exist... turn them into Other? Or maybe Unknown.
+#cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP)
+
+library(forcats) 
+#cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP<-fct_explicit_na(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP, na_level = "Unknown")
+
+#table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILSYS_GP) #COuld consider combining Unknown and Other? They are slightly different, however, but Other is such a small category. Consider this if partial residuals are wonky.
+
+```
+
+#Investigate other categories
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DN1_SILVAR) # Not many records; not useful
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH) # 81 BU (burn), 59 ME (mechanical), others; --> Ma maybe manual?
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH)
+# Mostly same categories as above at different values
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH)
+#cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2_TECH<- ifelse (is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH), cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH)
+#table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2_TECH)# 516; get two additional one, but names messed up (become numbers)
+```
+
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2<-paste(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH,cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2) #336 records of NA, lots of combinations otherwise. Maybe make a column that is yes/no for each technique that is considered important? We see that the 2 in above that we gain are the "NA GS" here. We also see that some were burned first and then had mechanical treatment (50), and some had mechanical treatment and then were burned (57)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH)
+
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2)
+
+##All 3 of the ifelse statements below get the same result
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_TECH <- ifelse (cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2 == "BU ME", cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2, ifelse (cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2 == "ME BU", cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH))
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_TECH <- ifelse ((cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2 == "BU ME" | cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2 == "ME BU"), cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_TECH <- ifelse ((cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2 == "ME BU" | cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2 == "BU ME"), cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH) #get same result if change order of names
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_TECH)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_TECH) #1 = BU; 2=CA; 3=CG; 4=GS; 5=MA; 6=ME; 7=BI; 24=?? NA? 
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_2)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_TECH_2<-paste(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_TECH)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_TECH_2) #This helps fix the weird error above; n = 641 
+
+```
+
+Create additional columns that indicate whether burning happened and whether mechanical application happened.
+
+```{r}
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU <- ifelse ((cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH == "BU" | cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH == "BU"), 1, 0)
+
+#Attempt 2
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU <- ifelse ((cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH != "BU" & cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH != "BU"), 0, 1)                                                     
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU)    #27 not burned, 92 burned; MANY NAs
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU
+#Lots of NAs - there should be no NAs. It is an ifelse statement where all should be 1s or 0s...
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH) #
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH) #
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_TECH_2) #
+
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH) #Won't see all because many NAs in PREP2_TECH; here 23 are BU BU
+
+
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU)]<-0
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU) #This looks better, but keep in mind that some that had no info may have had treatments not listed; 144 not burned, 92 burned
+
+#Compare PREP_BU to Burned from atu data
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU, cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU) #161 yes
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned) #176 yes, so 15 more (perhaps wildfires?)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2<-cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2)]<-0
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2<-ifelse(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2>0, 1,0)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2
+
+```
+
+Repeat for mechanical.
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME <- ifelse ((cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH == "ME" | cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH == "ME"), 1, 0)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME) #There should be a LOT more data here
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME # A lot of NAs: turn to 0s
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME)]<-0
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME) #This looks better, but keep in mind that some that had no info may have had treatments not listed; 291 no mechanical treatment, 201 mechanical treatment
+
+#Compare PREP_ME to Mechanical from atu data
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME, cutblock_plots_openings_Huck_ALL_df_2022_b2$Mechanical) #14 more yeses for one, and 10 different moreyeses for other...
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME) #180 yes
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Mechanical) #184 yes
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Mechanical2<-ifelse(cutblock_plots_openings_Huck_ALL_df_2022_b2$Mechanical==1,1, 
+                                                                ifelse(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME==1,1,0))
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Mechanical2) #914 yeses, combining infor from both
+
+```
+Repeat for MA (manual?)
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_MA <- ifelse ((cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH == "MA" | cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP2_TECH == "MA"), 1, 0)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_MA) #There should be a LOT more data here
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_MA)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_MA # A lot of NAs: turn to 0s
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_MA[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_MA)]<-0
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_MA) #This looks better, but keep in mind that some that had no info may have had treatmeants not listed; 20 manual treatment, 472 no manual treatment' not useful, do not use.
+
+#Compare PREP_MA to Manual from atu data
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_MA, cutblock_plots_openings_Huck_ALL_df_2022_b2$Manual) #Dramatic differences
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_MA) #19 yeses
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Manual) #142 yeses
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Manual2<-ifelse(cutblock_plots_openings_Huck_ALL_df_2022_b2$Manual==1,1, 
+                                                                ifelse(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_MA==1,1,0))
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Manual2) #145 yeses, combining info from both
+#Perhaps this firm manual refers to something different and not brushing?
+
+```
+
+
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$BRSH1_TECH)#Brushing technique; 121 MA (manual); 16 CG (Chemical Ground); 4 CA (Chemical Air); and others
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_MA <- ifelse ((cutblock_plots_openings_Huck_ALL_df_2022_b2$BRSH1_TECH == "MA"), 1, 0)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_MA) #There should be a LOT more data here
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_MA # A lot of NAs: turn to 0s
+cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_MA[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_MA)]<-0
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_MA) #This looks better, but keep in mind that some that had no info may have had treatmeants not listed; 112 manual brushing, 311 not
+
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Brushing_ALL, cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_MA)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Brush2<-ifelse(cutblock_plots_openings_Huck_ALL_df_2022_b2$Brushing_ALL==1,1, 
+                                                                ifelse(cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_MA==1,1,0))
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Brush2) #140 yeses, combining info from both
+```
+
+
+```{r}
+#Repeat for chemical
+cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_CM <- ifelse ((cutblock_plots_openings_Huck_ALL_df_2022_b2$BRSH1_TECH == "CA" | cutblock_plots_openings_Huck_ALL_df_2022_b2$BRSH1_TECH== "CG"), 1, 0)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_CM) #There should be a LOT more data here
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_CM # A lot of NAs: turn to 0s
+cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_CM[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_CM)]<-0
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_CM) #This is whether brushing with chemicals was applied; 20 chemical brushing, 472 not
+
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_CM, cutblock_plots_openings_Huck_ALL_df_2022_b2$Chemical) #Some differences
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Chem2<-ifelse(cutblock_plots_openings_Huck_ALL_df_2022_b2$Chemical==1,1, 
+                                                                ifelse(cutblock_plots_openings_Huck_ALL_df_2022_b2$BRUSH_CM==1,1,0))
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Chem2) #40 yeses, combining info from both
+
+```
+
+
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_TECH) #Mostly PL (planting). RP (replanting). FP (Fill planting). Do NAs mean no planting? Or unknown?
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_TECH
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT2_TECH)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_2_TECH<-paste(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_TECH, cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT2_TECH)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_2_TECH)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_2_TECH<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_2_TECH)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PLANTED<- ifelse (cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_2_TECH=="NA NA", 0, 1)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLANTED) #Very uneven sample size.
+#With current data, 386 planted, 37 not.
+
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLANTED, cutblock_plots_openings_Huck_ALL_df_2022_b2$Planted_ALL) #A few differences
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Planted2<-ifelse(cutblock_plots_openings_Huck_ALL_df_2022_b2$Planted_ALL==1,1, 
+                                                                ifelse(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLANTED==1,1,0))
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Planted2) #387 yeses, combining info from both; 31 nos
+```
+
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$FEAT_AREA<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$FEAT_AREA)
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$FEAT_AREA)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_AREA<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_AREA)
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_AREA) #Also has a Plant2, so could add together for total planting area?
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT2_AREA<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT2_AREA)
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT2_AREA)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$TOTAL_plant_area<-cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT1_AREA+cutblock_plots_openings_Huck_ALL_df_2022_b2$PLNT2_AREA
+cutblock_plots_openings_Huck_ALL_df_2022_b2$TOTAL_plant_area
+cutblock_plots_openings_Huck_ALL_df_2022_b2$TOTAL_plant_area[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$TOTAL_plant_area)]<-0
+cutblock_plots_openings_Huck_ALL_df_2022_b2$TOTAL_plant_area # We will assume an absence is indicative of no planting
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$TOTAL_plant_area)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PLANTING<-ifelse (cutblock_plots_openings_Huck_ALL_df_2022_b2$TOTAL_plant_area==0, 0, 1)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLANTING) # We see that this is far different than the data for whether planted or not, suggesting that not all planted sites have planting density. These are NOT true 0s and this data can only be used for locations where we know planting occurred.
+#Compare to:
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PLANTED)
+#New metric obviously incomplete as have 290 0s instead of 56.
+
+```
+
+
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH) #May wish to combine smaller groups into "other"
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH_GP<-cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH_GP <- recode_factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH_GP, BU="BU", CA="Other",CG="Other",GS="Other",MA="Other",ME="ME", "BI"="Other")
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH_GP)
+#Not as useful as individual assessments that account for both Phase 1 and Phase 2
+
+library(forcats) 
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH_GP<-fct_explicit_na(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH_GP, na_level = "Unknown")
+
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP1_TECH_GP)
+
+```
+
+
+```{r}
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU) #262 no, 161 yes
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_ME) #243 no, 180 yes
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_MA) #404 no, 19 yes
+
+#With refined data
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2) #242 no, 176 yes
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Mechanical2) #224 no, 194 yes
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Manual2) #273 no, 145 yes # But thuis may include brushing now?
+
+#Compare above with data
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr) #
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Pr, cutblock_plots_openings_Huck_ALL_df_2022_b2$PREP_BU) 
+
+```
+
+Investigate date when operations began and ended
+
+```{r}
+head(cutblock_plots_openings_Huck_ALL_df_2022_b2)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_STR_DT)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_END_DT)
+
+#Select month that data was collected
+library(stringi)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_month_START<-stri_sub(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_STR_DT,5,6)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_month_START) #
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_month_END<-stri_sub(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_END_DT,5,6)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_month_END) #
+
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_month_START, cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_month_END) 
+
+#Get Years
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_year_START<-stri_sub(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_STR_DT,1,4)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_year_START) #
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_year_END<-stri_sub(cutblock_plots_openings_Huck_ALL_df_2022_b2$DST_END_DT,1,4)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_year_END) #
+
+#How many went between years
+str(cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_year_END)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_year_END<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_year_END)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_year_START<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_year_START)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$NumYearsTreat<-cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_year_END - cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_year_START
+
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$NumYearsTreat) #Some ended 59 years after starting.
+
+
+#Even though not entirely accurate, let's use the start month as a proxy. Will group September-November as fall, December-February as winter, March-May as Spring and June-August as summer
+cutblock_plots_openings_Huck_ALL_df_2022_b2$START_SEASON<-cutblock_plots_openings_Huck_ALL_df_2022_b2$Date_month_START
+str(cutblock_plots_openings_Huck_ALL_df_2022_b2$START_SEASON)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$START_SEASON<-recode_factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$START_SEASON, "01"="Winter", "02"="Winter","03"="Spring","04"="Spring","05"="Spring","06"="Summer", "07"="Summer", "08"="Summer", "09"="Fall", "10" ="Fall", "11"="Fall", "12" ="Winter")
+
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$START_SEASON)
+
+```
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$START_SEASON2<-recode_factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$START_SEASON, "Winter"="Winter", "Spring" = "Not Winter","Summer" = "Not Winter", "Fall" ="Not Winter")
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$START_SEASON2)
+```
+
+
+Investigate the newer variables from Dave Waddell.
+
+```{r}
+names(cutblock_plots_openings_Huck_ALL_df_2022_b2)
+head(cutblock_plots_openings_Huck_ALL_df_2022_b2)
+
+#Look at Planting density - no records in remaining 470 plots
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$planted_density_TOT)
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$planted_species1) #Dominate species planted when reported; only 238 reported the species of the 406 records
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$planted_species2) #172 records, so suggests Qa was reported most, as not all plotshad a second species
+
+```
+
+
+
+
+############ Prepare Climate Variables for P/A and % Cover #########
+
+Look at lat-long.
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Latitude
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Longitude
+```
+
+
+#Determine density of plants by cutblock size.
+Keep in mind that cutblocks that are adjacent to each other are still currently not combined together to represent total cutblock size.
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$planted_density_TOT #This indicates planting density of the up to 5 species planted. Probably more accurate than creating a proxy. But note, not all have this info, so will lose more data again.
+
+```
+
+```{r}
+#Make spring growing degree day variables
+cutblock_plots_openings_Huck_ALL_df_2022_b2$GDD2_sp_0<-(cutblock_plots_openings_Huck_ALL_df_2022_b2$DD5_04_0 + cutblock_plots_openings_Huck_ALL_df_2022_b2$DD5_05_0 + cutblock_plots_openings_Huck_ALL_df_2022_b2$DD5_06_0)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$GDD2_sp_1<-(cutblock_plots_openings_Huck_ALL_df_2022_b2$DD5_04_1 + cutblock_plots_openings_Huck_ALL_df_2022_b2$DD5_05_1 + cutblock_plots_openings_Huck_ALL_df_2022_b2$DD5_06_1)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$GDD2_sp_2<-(cutblock_plots_openings_Huck_ALL_df_2022_b2$DD5_04_2 + cutblock_plots_openings_Huck_ALL_df_2022_b2$DD5_05_2 + cutblock_plots_openings_Huck_ALL_df_2022_b2$DD5_06_2)
+
+#Number of Frost Free Days
+cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD2_sp_0<-(cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD04_0 + cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD05_0 + cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD06_0)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD2_sp_1<-(cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD04_1 + cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD05_1 + cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD06_1)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD2_sp_2<-(cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD04_2 + cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD05_2 + cutblock_plots_openings_Huck_ALL_df_2022_b2$NFFD06_2)
+```
+
+
+Save file.
+```{r}
+write.csv(cutblock_plots_openings_Huck_ALL_df_2022_b2, file="C:\\cora\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_Huck_ALL_df_2022_b2_March30_2022.csv")
+```
+
+
+
+##################### BEGIN VISUALIZATIONS ###############
+
+Visualize differences by categories.
+
+1. Berry abundance by canopy closure, by BEC
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Abun.100
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Canopy.Cov
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2$G_BGC_ZONE) 
+cutblock_plots_openings_Huck_ALL_df_2022_b2$G_BGC_ZONE 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Canopy Cover",
+        x = "Canopy Cover (%)",
+        y = "Berry Abundance")  
+
+#Remove BEC
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Canopy_Cov, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Canopy Cover",
+        x = "Canopy Cover (%)",
+        y = "Berry Abundance") 
+```
+
+Compare to origin age.
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Time Since Cutblock",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+#By BEC
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST,colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Time Since Cutblock",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+```
+
+Comapre to VRI age.
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$vri_age #some NAs
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = vri_age, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by VRI Age",
+        x = "VRI age",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = vri_age, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by VRI Age",
+        x = "VRI age",
+        y = "Berry Abundance") 
+```
+
+
+Compare age of cutblock to canopy cover.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceCutblock, y = Canopy_Cov, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        panel.border = element_rect(linetype = "solid", fill = NA)) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceCutblock, y = Canopy_Cov)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        panel.border = element_rect(linetype = "solid", fill = NA)) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceCutblock, y = Canopy_Cov)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  theme(panel.background = element_rect(fill = "transparent"),
+        panel.border = element_rect(linetype = "solid", fill = NA)) +
+  labs (
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+cor(cutblock_plots_openings_Huck_ALL_df_2022_b2$TimeSinceCutblock, cutblock_plots_openings_Huck_ALL_df_2022_b2$Canopy_Cov) #0.50
+```
+
+
+#Look at Growing Degree Days
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$DD5_at_0
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = DD5_at_0, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Growing Degree Days",
+        x = "Growing Degree Days > 5",
+        y = "Berry Abundance") 
+```
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$heatload
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = heatload, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Heatload",
+        x = "Heatload",
+        y = "Berry Abundance") 
+
+```
+
+Plot berry abundance by plant cover; but note, not complete.
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Co #Only a handful of NAs, actually not too bad
+cor(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.Co, cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.AbunTEST, use = "complete.obs") #0.22
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Species.Co, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Species Cover",
+        x = "Species Cover (%)",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Species.Co, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Species Cover",
+        x = "Species Cover (%)",
+        y = "Berry Abundance") 
+```
+
+By Species Height.
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.He #Only a handful of NAs, actually not too bad
+
+cor(cutblock_plots_openings_Huck_ALL_df_2022_b2$Species.He, cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.AbunTEST, use = "complete.obs") #0.26 - this correlation is stronger
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Species.He, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Species Height",
+        x = "Species Height (cm)",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Species.He, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Species Height",
+        x = "Species Height (cm)",
+        y = "Berry Abundance") 
+```
+
+
+planted_density_TOT
+# We see not much influence of planting density on berry production here
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = planted_density_TOT, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Planting Density",
+        x = "Planting Density (trees/ha)",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = planted_density_TOT, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Planting Density",
+        x = "Planting Density (trees/ha)",
+        y = "Berry Abundance") 
+```
+
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Cove<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Cove)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.Cove #Lots of missing values
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned # We somehow have NA values. Assume not burned.
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned[is.na(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned)]<-0
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Burned, y = Fruit.AbunTEST)) +
+  geom_boxplot () +
+  labs (x = "Not Burned (0), Burned(1)",
+        y = "Huckleberry Fruit Cover")
+
+#No difference
+```
+
+Assess for differences in stand age by category.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Burned, y = TimeSinceCutblock)) +
+  geom_boxplot () +
+  labs (x = "Not Burned (0), Burned(1)",
+        y = "Stand Age")
+
+#Stand age is greater in burned areas.
+```
+
+Determine canopy cover and stand age by breaking it into burned and not burned.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceCutblock, y = Canopy_Cov, colour = factor(Burned))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Burned))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(Burned))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+```
+
+
+#Repeat for Mechanical treatment
+#using Mechanical2 (some NAS); PREP_ME instead
+
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceCutblock, y = Canopy_Cov, colour = factor(PREP_ME))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(PREP_ME))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(PREP_ME))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+```
+
+#Repeat for if planted or not
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceCutblock, y = Canopy_Cov, colour = factor(PLANTED))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(PLANTED))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(PLANTED))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+```
+
+Does clearcut technique matter?
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceCutblock, y = Canopy_Cov, colour = factor(DN1_SILSYS_GP))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(DN1_SILSYS_GP))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(DN1_SILSYS_GP))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+```
+
+Differences by main species planted?
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceCutblock, y = Canopy_Cov, colour = factor(Qa))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Qa))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(Qa))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+```
+
+
+Start season of operations.
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b22<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$START_SEASON!="NA")
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b22, aes (x = TimeSinceCutblock, y = Canopy_Cov, colour = factor(START_SEASON))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b22, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(START_SEASON))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b22, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(START_SEASON))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+```
+
+
+Cutblock Area.
+AREA_SQM
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = AREA_SQM, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Area of Cutblock",
+        x = "Area of Cutblock",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = AREA_SQM, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Area of Cutblock",
+        x = "Area of Cutblock",
+        y = "Berry Abundance") 
+
+
+```
+
+#Chemicals
+Chem2
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Chem2 #A few NAs... why?
+cutblock_plots_openings_Huck_ALL_df_2022_b2_chem<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$Chem2!="NA")
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_chem, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(Chem2))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover and Chemical Application",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_chem, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Chem2))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time and Chemical Application",
+        x = "Time Since Cutblock",
+        y = "Berry Abundance") 
+```
+
+#Brushing
+Brush2
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_chem, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(Brush2))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover and Brushing",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_chem, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Brush2))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time and Brushing",
+        x = "Time Since Cutblock",
+        y = "Berry Abundance") 
+```
+
+
+#Mounding
+Mounding
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_chem, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(Mounding))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover and Brushing",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_chem, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Mounding))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time and Brushing",
+        x = "Time Since Cutblock",
+        y = "Berry Abundance") 
+```
+
+Look at raw data relationhship shapes to each climate variable
+
+```{r}
+str(cutblock_plots_openings_Huck_ALL_df_2022_b2$TSAND)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$TSAND<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$TSAND)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$TSAND
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = TSAND, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Berry Abundance in Cutblocks by % Sand",
+        x = "% Sand",
+        y = "Berry Abundance")
+```
+
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Tave_wt_0, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Average Winter Temperature Season Prior",
+        x = "Average Winter Temp",
+        y = "Berry Abundance")
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Tave_wt_1, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Average Winter Temperature Season Prior",
+        x = "Average Winter Temp",
+        y = "Berry Abundance")
+#Relationship may be more hump shaped centred around -7 degrees as opposed to linear
+```
+
+Spring Temperature.
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Tave_sp_0, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Average Spring Temperature Season Prior",
+        x = "Average Spring Temp",
+        y = "Berry Abundance")
+
+```
+
+Summer Temperature.
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Tave_sm_0, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Average Summer Temperature Season Prior",
+        x = "Average Summer Temp",
+        y = "Berry Abundance")
+
+```
+
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = PAS_total, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Precipitation as Snow",
+        x = "Precipitation as snow (mm)",
+        y = "Berry Abundance")
+```
+
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PH2
+cutblock_plots_openings_Huck_ALL_df_2022_b2$PH2<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$PH2)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = PH2, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by pH",
+        x = "Soil PH",
+        y = "Berry Abundance")
+#Extrapolated to those <2 pH likely false
+```
+
+
+```{r}
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_30m_, cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_ha_bc) #Not the same... but positively correlated
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_30m_<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_30m_)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_ha_bc<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_ha_bc)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = slope_30m_, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Slope",
+        x = "Slope",
+        y = "Fruit Abundance")
+#Weak relationship (positive)
+```
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = slope_ha_bc, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Slope",
+        x = "Slope",
+        y = "Fruit Abundance")
+```
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$aspect_30m<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$aspect_30m)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = aspect_30m, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Coverby Apsect",
+        x = "Aspect",
+        y = "Fruit Abundance")
+```
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$aspect_ha_bc<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$aspect_ha_bc)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = aspect_ha_bc, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Aspect",
+        x = "Aspect",
+        y = "Fruit Abundance")
+```
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$cos_aspect<-cos(cutblock_plots_openings_Huck_ALL_df_2022_b2$aspect_ha_bc)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = cos_aspect, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Aspect",
+        x = "cos(Aspect)",
+        y = "Fruit Abundance")
+```
+
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$dem_ha_bc<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$dem_ha_bc)
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = dem_ha_bc, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Elevation",
+        x = "Elevation (m)",
+        y = "Fruit Abundance")
+```
+
+
+#Because max slope ~40 degrees, can create an SAI (slope-aspect index) value: example = sin(aspect +225) x (slope/45).
+
+```{r}
+names(cutblock_plots_openings_Huck_ALL_df_2022_b2)
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_ha_bc)
+cutblock_plots_openings_Huck_ALL_df_2022_b2$SLOPE<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_ha_bc)
+max(cutblock_plots_openings_Huck_ALL_df_2022_b2$SLOPE) 
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$aspect_ha_bc)
+
+cor(cutblock_plots_openings_Huck_ALL_df_2022_b2$SLOPE, cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_30m_) #0.70
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$SLOPE ~ cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_30m_) #Quite different. Perhaps use point values and use DEM to get slope and aspect? Or use the cutblock data because it likely takes the average for the cutblock which is probably more representative.
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$aspect_ha_bc ~ cutblock_plots_openings_Huck_ALL_df_2022_b2$aspect_30m)
+
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$SAI_cb<-(sin(cutblock_plots_openings_Huck_ALL_df_2022_b2$aspect_ha_bc + 225) *(cutblock_plots_openings_Huck_ALL_df_2022_b2$SLOPE/58.9)) #SAI (Slope to aspect Index) of cutblock data slope and aspect
+cutblock_plots_openings_Huck_ALL_df_2022_b2$SAI_rec<-(sin(cutblock_plots_openings_Huck_ALL_df_2022_b2$aspect_30m + 225) *(cutblock_plots_openings_Huck_ALL_df_2022_b2$slope_30m_/45)) #SAI of slope and aspect from Clayton's data
+
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$SAI_cb)
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2$SAI_rec)
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2$SAI_cb ~ cutblock_plots_openings_Huck_ALL_df_2022_b2$SAI_rec) # The result is COMPLETELY different, depending on which values are used. No correlation what so ever.
+
+```
+
+Compare probabilities between values.
+
+```{r}
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = SAI_cb, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by SAI",
+        x = "SAI_cb",
+        y = "Species Cover")
+```
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = SAI_rec, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by SAI",
+        x = "SAI_rec",
+        y = "Species Cover")
+```
+
+
+
+
+#Repeat visualizations with 0 data removed
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2, cutblock_plots_openings_Huck_ALL_df_2022_b2$Fruit.AbunTEST>0) #n=197
+```
+
+
+1. Berry abundance by canopy closure, by BEC
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$Fruit.AbunTEST
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$Canopy_Cov
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$G_BGC_ZONE) 
+
+#Combine MS and SBS as one category due to small sample size
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$G_BGC_ZONE<-revalue(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$G_BGC_ZONE, c("MS"="Other", "SBS"="Other","ESSF"="ESSF","ICH"="ICH"))
+table(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$G_BGC_ZONE) 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Canopy Cover",
+        x = "Canopy Cover (%)",
+        y = "Berry Abundance")  #
+
+#Remove BEC
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Canopy_Cov, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Canopy Cover",
+        x = "Canopy Cover (%)",
+        y = "Berry Abundance") 
+```
+
+Compare to origin age.
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Time Since Cutblock",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+#By BEC
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST,colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Time Since Cutblock",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+```
+
+Comapre to VRI age.
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$vri_age #some NAs
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = vri_age, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by VRI Age",
+        x = "VRI age",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = vri_age, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by VRI Age",
+        x = "VRI age",
+        y = "Berry Abundance") 
+```
+
+
+Compare age of cutblock to canopy cover.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Canopy_Cov, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Canopy_Cov)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+```
+
+
+#Look at Growing Degree Days
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$DD5_at_0
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = DD5_at_0, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Growing Degree Days",
+        x = "Growing Degree Days > 5",
+        y = "Berry Abundance") 
+```
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$heatload
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = heatload, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Heatload",
+        x = "Heatload",
+        y = "Berry Abundance") 
+
+```
+
+Plot berry abundance by plant cover; but note, not complete.
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$Species.Co 
+cor(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$Species.Co, cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$Fruit.AbunTEST, use = "complete.obs") #0.12
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Species.Co, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Species Cover",
+        x = "Species Cover (%)",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Species.Co, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Species Cover",
+        x = "Species Cover (%)",
+        y = "Berry Abundance") 
+```
+
+By Species Height.
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$Species.He 
+cor(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$Species.He, cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$Fruit.AbunTEST, use = "complete.obs") #0.21 - this correlation is stronger
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Species.He, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Species Height",
+        x = "Species Height (cm)",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Species.He, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Species Height",
+        x = "Species Height (cm)",
+        y = "Berry Abundance") 
+```
+
+
+planted_density_TOT
+# We see not much influence of planting density on berry production here
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = planted_density_TOT, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Planting Density",
+        x = "Planting Density (trees/ha)",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = planted_density_TOT, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Planting Density",
+        x = "Planting Density (trees/ha)",
+        y = "Berry Abundance") 
+```
+
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$Fruit.Cove
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$Burned 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Burned, y = Fruit.AbunTEST)) +
+  geom_boxplot () +
+  labs (x = "Not Burned (0), Burned(1)",
+        y = "Huckleberry Fruit Cover")
+
+#No difference
+```
+
+Assess for differences in stand age by category.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = Burned, y = TimeSinceCutblock)) +
+  geom_boxplot () +
+  labs (x = "Not Burned (0), Burned(1)",
+        y = "Stand Age")
+
+#Stand age is greater in burned areas.
+```
+
+Determine canopy cover and stand age by breaking it into burned and not burned.
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Canopy_Cov, colour = factor(Burned))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Burned))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(Burned))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+```
+
+
+#Repeat for Mechanical treatment
+#using Mechanical2 (some NAS); PREP_ME instead
+
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Canopy_Cov, colour = factor(PREP_ME))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(PREP_ME))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(PREP_ME))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+```
+
+#Repeat for if planted or not
+#Almost none not planted; ignore!
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Canopy_Cov, colour = factor(PLANTED))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(PLANTED))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(PLANTED))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+```
+
+Does clearcut technique matter?
+#Mostly clearcut, so ignore. Also, all unknowns are from 30+ years ago, so incomplete data
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Canopy_Cov, colour = factor(DN1_SILSYS_GP))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(DN1_SILSYS_GP))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(DN1_SILSYS_GP))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+```
+
+Differences by main species planted?
+#Messy, ignore. Also, all unknowns are from 30+ years ago, so incomplete data
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Canopy_Cov, colour = factor(Qa))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Qa))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(Qa))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+```
+
+
+Start season of operations.
+#Not very many points for spring
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s2<-subset(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$START_SEASON!="NA")
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s2, aes (x = TimeSinceCutblock, y = Canopy_Cov, colour = factor(START_SEASON))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Canopy Cover by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Canopy Cover (%)") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s2, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(START_SEASON))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time Since Cutblock/Logging",
+        x = "Time Since Logging",
+        y = "Berry Abundance") 
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s2, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(START_SEASON))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+```
+
+
+Cutblock Area.
+AREA_SQM
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = AREA_SQM, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Area of Cutblock",
+        x = "Area of Cutblock",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = AREA_SQM, y = Fruit.AbunTEST, colour = factor(G_BGC_ZONE))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Area of Cutblock",
+        x = "Area of Cutblock",
+        y = "Berry Abundance") 
+
+
+```
+
+#Chemicals
+Chem2
+```{r}
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(Chem2))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover and Chemical Application",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Chem2))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time and Chemical Application",
+        x = "Time Since Cutblock",
+        y = "Berry Abundance") 
+```
+
+#Brushing
+Brush2
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(Brush2))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover and Brushing",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Brush2))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time and Brushing",
+        x = "Time Since Cutblock",
+        y = "Berry Abundance") 
+```
+
+
+#Mounding
+Mounding
+Very few cases with mounding once 0s removed.
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Canopy_Cov, y = Fruit.AbunTEST, colour = factor(Mounding))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Canopy Cover and Brushing",
+        x = "Canopy Cover",
+        y = "Berry Abundance") 
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TimeSinceCutblock, y = Fruit.AbunTEST, colour = factor(Mounding))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Berry Abundance by Time and Brushing",
+        x = "Time Since Cutblock",
+        y = "Berry Abundance") 
+```
+
+Look at raw data relationhship shapes to each climate variable
+
+```{r}
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$TSAND
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = TSAND, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Berry Abundance in Cutblocks by % Sand",
+        x = "% Sand",
+        y = "Berry Abundance")
+```
+
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Tave_wt_0, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Average Winter Temperature Season Prior",
+        x = "Average Winter Temp",
+        y = "Berry Abundance")
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Tave_wt_1, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Average Winter Temperature Season Prior",
+        x = "Average Winter Temp",
+        y = "Berry Abundance")
+#Relationship may be more hump shaped centred around -7 degrees as opposed to linear
+```
+
+Spring Temperature.
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Tave_sp_0, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Average Spring Temperature Season Prior",
+        x = "Average Spring Temp",
+        y = "Berry Abundance")
+
+```
+
+Summer Temperature.
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = Tave_sm_0, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Average Summer Temperature Season Prior",
+        x = "Average Summer Temp",
+        y = "Berry Abundance")
+
+```
+
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = PAS_total, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Precipitation as Snow",
+        x = "Precipitation as snow (mm)",
+        y = "Berry Abundance")
+```
+
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$PH2
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = PH2, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by pH",
+        x = "Soil PH",
+        y = "Berry Abundance")
+#Extrapolated to those <2 pH likely false
+```
+
+
+```{r}
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$slope_30m_, cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$slope_ha_bc) #Not the same... but positively correlated
+
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = slope_30m_, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Slope",
+        x = "Slope",
+        y = "Fruit Abundance")
+#Weak relationship (positive)
+```
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = slope_ha_bc, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Slope",
+        x = "Slope",
+        y = "Fruit Abundance")
+```
+
+```{r}
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = aspect_30m, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Coverby Apsect",
+        x = "Aspect",
+        y = "Fruit Abundance")
+```
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = aspect_ha_bc, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Aspect",
+        x = "Aspect",
+        y = "Fruit Abundance")
+```
+
+```{r}
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = cos_aspect, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Aspect",
+        x = "cos(Aspect)",
+        y = "Fruit Abundance")
+```
+
+
+```{r}
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = dem_ha_bc, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by Elevation",
+        x = "Elevation (m)",
+        y = "Fruit Abundance")
+```
+
+
+#Because max slope ~40 degrees, can create an SAI (slope-aspect index) value: example = sin(aspect +225) x (slope/45).
+
+```{r}
+names(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s)
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$slope_ha_bc)
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$SLOPE<-as.numeric(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$slope_ha_bc)
+max(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$SLOPE) 
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$aspect_ha_bc)
+
+cor(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$SLOPE, cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$slope_30m_) #0.70
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$SLOPE ~ cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$slope_30m_) #Quite different. Perhaps use point values and use DEM to get slope and aspect? Or use the cutblock data because it likely takes the average for the cutblock which is probably more representative.
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$aspect_ha_bc ~ cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$aspect_30m)
+
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$SAI_cb<-(sin(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$aspect_ha_bc + 225) *(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$SLOPE/58.9)) #SAI (Slope to aspect Index) of cutblock data slope and aspect
+cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$SAI_rec<-(sin(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$aspect_30m + 225) *(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$slope_30m_/45)) #SAI of slope and aspect from Clayton's data
+
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$SAI_cb)
+hist(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$SAI_rec)
+plot(cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$SAI_cb ~ cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s$SAI_rec) # The result is COMPLETELY different, depending on which values are used. No correlation what so ever.
+
+```
+
+Compare probabilities between values.
+
+```{r}
+
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = SAI_cb, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by SAI",
+        x = "SAI_cb",
+        y = "Species Cover")
+```
+
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2_No0s, aes (x = SAI_rec, y = Fruit.AbunTEST)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Huckleberry Percent Cover by SAI",
+        x = "SAI_rec",
+        y = "Species Cover")
+```
+
+Investigate covariates.
+```{r}
+ggplot (cutblock_plots_openings_Huck_ALL_df_2022_b2, aes (x = heatload, y = Species.He)) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Huckleberry Berry Abundance by Canopy Cover",
+        x = "Heatload",
+        y = "Species Height (cm)")
+#Not remotely correlated
+```
+
+
+######### BEGIN ANALYSES ####################
+
+First, let's run a quick GAM on berry abundance in relation to only time since logging, with no covariates. The idea here is just to get an idea of the pattern across time to relate to literature.
+
+```{r}
+library(mgcv)
+
+huck.Time.1<-gam(Fruit.Abun.100~ s(TimeSinceCutblock), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Time.1)
+summary(huck.Time.1)
+visreg(huck.Time.1, "TimeSinceCutblock")
+
+#Canopy Cover
+huck.Time.1b<-gam(Fruit.Abun.100~ s(Canopy.Cov), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Time.1)
+summary(huck.Time.1b)
+visreg(huck.Time.1b, "Canopy.Cov")
+
+```
+
+Now, we will explore the larger models using canopy cover, silviculture and climatic variables.
+
+Make all as factors as needed.
+```{r}
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$Burned2)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Mechanical2<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$Mechanical2)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Manual2<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$Manual2)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Chem2<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$Chem2)
+
+cutblock_plots_openings_Huck_ALL_df_2022_b2$Mounding<-as.factor(cutblock_plots_openings_Huck_ALL_df_2022_b2$Mounding)
+```
+
+
+```{r}
+huck.Cov.1<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Manual2 + Chem2 + Mounding + s(Canopy.Cov, by = START_SEASON2) + s(Canopy.Cov, by = START_SEASON2) + s(Canopy.Cov, by = Burned2) + s(Canopy.Cov, by = Mechanical2) + s(Canopy.Cov, by = Manual2) + s(Canopy.Cov, by = Chem2) + s(OPEN_GRSAR) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2) + s(PPT07_2), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.1) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.1)
+
+#Remove smooths with Canopy Cover that were not needed
+huck.Cov.2<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Manual2 + Chem2 + Mounding + s(Canopy.Cov, by = START_SEASON2) + s(Canopy.Cov, by = START_SEASON2) + s(Canopy.Cov, by = Burned2) + s(Canopy.Cov, by = Mechanical2) + s(Canopy.Cov, by = Manual2) + s(OPEN_GRSAR) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2) + s(PPT07_2), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.2) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.2)
+
+AIC(huck.Cov.2, huck.Cov.1) #Models equivalent
+
+#Remove mounding
+huck.Cov.3<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Manual2 + Chem2 + s(Canopy.Cov, by = START_SEASON2) + s(Canopy.Cov, by = START_SEASON2) + s(Canopy.Cov, by = Burned2) + s(Canopy.Cov, by = Mechanical2) + s(Canopy.Cov, by = Manual2) + s(OPEN_GRSAR) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2) + s(PPT07_2), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.3) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.3)
+
+AIC(huck.Cov.2, huck.Cov.3) #Model 3 better.
+draw(huck.Cov.3, scales= 'fixed')
+
+#PPT07_2 really not doing anything, so remove.
+huck.Cov.4<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Manual2 + Chem2 + s(Canopy.Cov, by = START_SEASON2) + s(Canopy.Cov, by = Burned2) + s(Canopy.Cov, by = Mechanical2) + s(Canopy.Cov, by = Manual2) + s(OPEN_GRSAR) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.4) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.4)
+
+AIC(huck.Cov.4, huck.Cov.3) #Equivalent models
+draw(huck.Cov.4, scales= 'fixed')
+
+#Remove smooth with start season
+huck.Cov.5<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Manual2 + Chem2 + s(Canopy.Cov, by = Burned2) + s(Canopy.Cov, by = Mechanical2) + s(Canopy.Cov, by = Manual2) + s(OPEN_GRSAR) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.5) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.5)
+
+AIC(huck.Cov.5, huck.Cov.4) #Equivalent models
+draw(huck.Cov.5, scales= 'fixed')
+
+#
+huck.Cov.6<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Manual2 + Chem2 + s(Canopy.Cov, by = Mechanical2) + s(Canopy.Cov, by = Manual2) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.6) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.6)
+
+AIC(huck.Cov.5, huck.Cov.6) #Model 6 better
+draw(huck.Cov.6, scales= 'fixed')
+
+visreg(huck.Cov.6, "Canopy.Cov", by = "Mechanical2")
+visreg(huck.Cov.6, "Canopy.Cov", by="Manual2")
+
+visreg(huck.Cov.6, "Canopy.Cov")
+visreg(huck.Cov.6, "Tave_wt_2")
+visreg(huck.Cov.6, "PPT05_0")
+visreg(huck.Cov.6, "NFFD2_sp_1")
+
+visreg(huck.Cov.6, "START_SEASON2")
+visreg(huck.Cov.6, "Chem2")
+visreg(huck.Cov.6, "Burned2")
+
+#Compare to different link
+huck.Cov.7<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Manual2 + Chem2 + s(Canopy.Cov, by = Mechanical2) + s(Canopy.Cov, by = Manual2) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2), family = nb(link="sqrt"), data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.7) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.7)
+#Does not work
+```
+
+Consider having time since intervention (manual, mechanical, etc.) in the model as the smooth with each variable.
+#Insufficient coverage... but try time since logging as a proxy
+
+```{r}
+huck.Cov.8<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Manual2 + Chem2 + s(TimeSinceCutblock, by = START_SEASON2) + s(TimeSinceCutblock, by = Burned2) + s(TimeSinceCutblock, by = Mechanical2) + s(TimeSinceCutblock, by = Manual2) + s(TimeSinceCutblock, by = Chem2) + s(Canopy.Cov) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2) + s(PPT07_2), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.8) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.8)
+
+#
+huck.Cov.9<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Manual2 + Chem2 + s(TimeSinceCutblock, by = START_SEASON2) + s(TimeSinceCutblock, by = Mechanical2) + s(TimeSinceCutblock, by = Manual2) + s(TimeSinceCutblock, by = Chem2) + s(Canopy.Cov) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.9) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.9)
+
+AIC(huck.Cov.8, huck.Cov.9) #Equivalent models
+
+huck.Cov.10<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Manual2 + Chem2 + s(TimeSinceCutblock, by = Mechanical2) + s(TimeSinceCutblock, by = Manual2) + s(TimeSinceCutblock, by = Chem2) + s(Canopy.Cov) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.10) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.10)
+
+AIC(huck.Cov.10, huck.Cov.9) #Equivalent models
+
+#Forgot heatload, add back in
+huck.Cov.11<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Manual2 + Chem2 + s(TimeSinceCutblock, by = Mechanical2) + s(TimeSinceCutblock, by = Manual2) + s(TimeSinceCutblock, by = Chem2) + s(Canopy.Cov) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2) + s(heatload), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.11) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.11)
+
+AIC(huck.Cov.10, huck.Cov.11) #Model 11 better
+
+AIC(huck.Cov.6, huck.Cov.11) #Model 6 slightly better; but this framework makes more sense
+
+draw(huck.Cov.11, scales= 'fixed')
+
+visreg(huck.Cov.11, "TimeSinceCutblock", by = "Mechanical2")
+visreg(huck.Cov.11, "TimeSinceCutblock", by="Manual2")
+visreg(huck.Cov.11, "TimeSinceCutblock", by="Chem2")
+
+visreg(huck.Cov.11, "Canopy.Cov")
+visreg(huck.Cov.11, "Tave_wt_2")
+visreg(huck.Cov.11, "PPT05_0")
+visreg(huck.Cov.11, "NFFD2_sp_1")
+visreg(huck.Cov.11, "heatload")
+
+visreg(huck.Cov.11, "START_SEASON2")
+visreg(huck.Cov.11, "Chem2")
+visreg(huck.Cov.11, "Burned2")
+
+huck.Cov.12<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Manual2 + Chem2 + s(TimeSinceCutblock, by = Mechanical2)  + s(TimeSinceCutblock, by = Chem2) + s(Canopy.Cov) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2) + s(heatload), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.12) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.12)
+
+AIC(huck.Cov.11, huck.Cov.12) #Equivalent
+AIC(huck.Cov.6, huck.Cov.12) #Model 6 slightly better; but this framework makes more sense
+
+huck.Cov.13<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Chem2 + s(TimeSinceCutblock, by = Mechanical2)  + s(TimeSinceCutblock, by = Chem2) + s(Canopy.Cov) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2) + s(heatload), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.13) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.13)
+
+AIC(huck.Cov.13, huck.Cov.12) #Model 13 better
+AIC(huck.Cov.6, huck.Cov.13) #Model 13 slightly better; but this framework makes more sense
+
+draw(huck.Cov.13, scales= 'fixed')
+
+visreg(huck.Cov.13, "TimeSinceCutblock", by = "Mechanical2")
+visreg(huck.Cov.13, "TimeSinceCutblock", by="Chem2")
+
+visreg(huck.Cov.13, "Canopy.Cov")
+visreg(huck.Cov.13, "Tave_wt_2")
+visreg(huck.Cov.13, "PPT05_0")
+visreg(huck.Cov.13, "NFFD2_sp_1")
+visreg(huck.Cov.13, "heatload")
+
+visreg(huck.Cov.13, "START_SEASON2")
+visreg(huck.Cov.13, "Chem2")
+visreg(huck.Cov.13, "Burned2")
+
+#
+huck.Cov.14<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Chem2 + s(TimeSinceCutblock, by = Mechanical2)  + s(TimeSinceCutblock, by = Chem2) + s(Canopy.Cov) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2) + s(Tave_wt_0) + s(PAS_0) + s(heatload), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.14) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.14)
+
+AIC(huck.Cov.13, huck.Cov.14) #Equivalent models, but new variables not significant
+
+
+#
+huck.Cov.15<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Chem2 + s(TimeSinceCutblock, by = Mechanical2)  + s(TimeSinceCutblock, by = Chem2) + s(Canopy.Cov) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2) + s(Tave_wt_0) + s(PAS_0) + s(slope_ha_bc_3005), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.15) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.15)
+
+AIC(huck.Cov.15, huck.Cov.14) #model 15 better
+
+huck.Cov.16<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Chem2 + s(TimeSinceCutblock, by = Mechanical2)  + s(TimeSinceCutblock, by = Chem2) + s(Canopy.Cov) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2)  + s(slope_ha_bc_3005), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.16) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.16)
+anova(huck.Cov.16)
+
+AIC(huck.Cov.15, huck.Cov.16) #comparable models
+
+visreg(huck.Cov.16, "TimeSinceCutblock", by = "Mechanical2")
+visreg(huck.Cov.16, "TimeSinceCutblock", by="Chem2")
+
+visreg(huck.Cov.16, "Canopy.Cov")
+visreg(huck.Cov.16, "Tave_wt_2")
+visreg(huck.Cov.16, "PPT05_0")
+visreg(huck.Cov.16, "NFFD2_sp_1")
+visreg(huck.Cov.16, "slope_ha_bc_3005")
+
+visreg(huck.Cov.16, "START_SEASON2")
+visreg(huck.Cov.16, "Chem2")
+visreg(huck.Cov.16, "Burned2")
+visreg(huck.Cov.16, "Mechanical2")
+
+
+huck.Cov.16b<-gam(Fruit.Abun.100 ~ START_SEASON2 + Burned2 + Mechanical2 + Chem2 + s(TimeSinceCutblock, by = Mechanical2)  + s(TimeSinceCutblock, by = Chem2) + s(Canopy.Cov) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2)  + s(slope_ha_bc_3005) + s(dem_ha_bc), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.16b) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.16b)
+anova(huck.Cov.16b)
+
+huck.Cov.16b<-gam(Fruit.Abun.100 ~ START_SEASON2 + Mechanical2 + Chem2 + s(TimeSinceCutblock, by = Mechanical2)  + s(TimeSinceCutblock, by = Chem2) + s(Canopy.Cov) + s(NFFD2_sp_1) + s(PPT05_0) + s(Tave_wt_2)  + s(slope_ha_bc_3005) + s(dem_ha_bc), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.16b) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.16b)
+anova(huck.Cov.16b)
+
+
+huck.Cov.16c<-gam(Fruit.Abun.100 ~ START_SEASON2 + Mechanical2 + Chem2 + s(TimeSinceCutblock, by = Mechanical2)  + s(TimeSinceCutblock, by = Chem2) + s(Canopy.Cov) + s(NFFD2_sp_1) + s(PPT05_0) + s(slope_ha_bc_3005) + s(dem_ha_bc), family = nb, data=cutblock_plots_openings_Huck_ALL_df_2022_b2, method = "REML", select=TRUE)
+gam.check(huck.Cov.16c) #Most p-values < 0.05, so may have problems
+summary(huck.Cov.16c)
+anova(huck.Cov.16c)
+
+visreg(huck.Cov.16c, "TimeSinceCutblock", by = "Mechanical2")
+visreg(huck.Cov.16c, "TimeSinceCutblock", by="Chem2")
+
+visreg(huck.Cov.16c, "Canopy.Cov")
+visreg(huck.Cov.16c, "dem_ha_bc")
+visreg(huck.Cov.16c, "PPT05_0")
+visreg(huck.Cov.16c, "NFFD2_sp_1")
+visreg(huck.Cov.16c, "slope_ha_bc_3005")
+
+visreg(huck.Cov.16b, "START_SEASON2")
+visreg(huck.Cov.16b, "Chem2")
+visreg(huck.Cov.16b, "Mechanical2")
+```
+
+
+#For huckleberry, there are only 6 without the soil variables, so we could consider assessing those here.
+
+
