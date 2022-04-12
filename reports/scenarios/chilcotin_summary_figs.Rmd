@@ -224,7 +224,7 @@ dbDisconnect (conn)
 
 data.disturb$perc_dist_nobuff <- (data.disturb$c40r50 / data.disturb$total_area) * 100 # get percentages
 data.disturb$perc_dist_buff <- (data.disturb$c40r500 / data.disturb$total_area) * 100
-data.disturb$perc_dist_buff [data.disturb$perc_dist_buff > 100] <- 100 
+#data.disturb$perc_dist_buff [data.disturb$perc_dist_buff > 100] <- 100 
 
 data.disturb$perc_road_nobuff <- (data.disturb$road50 / data.disturb$total_area) * 100 
 data.disturb$perc_rd_buff <- (data.disturb$road500 / data.disturb$total_area) * 100
@@ -253,10 +253,18 @@ data.summ.rd.buff <- data.disturb %>% # get summary data, weighted averages
 
 
 test <- data.disturb %>%
-         filter (#critical_hab == "Itcha_Ilgachuz HEWSR" | Matrix
-                 critical_hab == "Itcha_Ilgachuz HEWSR") %>%
+         #filter (#critical_hab == "Itcha_Ilgachuz HEWSR" | Matrix
+          #       critical_hab == "Itcha_Ilgachuz HEWSR") %>%
           filter (#scenario == "chilcotin_bau_live_dead" | chilcotin_scen1a_live_dead
-                  scenario == "chilcotin_bau_live_dead")
+                  scenario == "chilcotin_scen1a_live_dead")
+
+
+test2 <- data.summ.disturb.buff %>%
+         #filter (#critical_hab == "Itcha_Ilgachuz HEWSR" | Matrix
+          #       critical_hab == "Itcha_Ilgachuz HEWSR") %>%
+          filter (#scenario == "chilcotin_bau_live_dead" | chilcotin_scen1a_live_dead
+                  scenario == "chilcotin_scen1a_live_dead")
+
 
 ###########
 #### Itcha
