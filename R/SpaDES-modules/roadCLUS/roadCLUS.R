@@ -573,7 +573,7 @@ mstList<- function(sim){
 
 getRoutes<-function(sim){ #for graphs using cppRouting
   sim$roadSegs<-unique(as.integer(cppRouting::get_multi_paths(Graph = sim$g, from = sim$roadSourceID, to = cellFromXY(sim$ras,sim$landings), long =T )$node))
-  alreadyRoaded<-dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear is not null and pixelid in (",paste(sim$roadSegs, collapse = ", "),")"))
+  alreadyRoaded<-dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear IS NOT NULL and pixelid in (",paste(sim$roadSegs, collapse = ", "),")")) # existing roads have a road year; this selects those
   
   sim$paths.v<-sim$roadSegs[!(sim$roadSegs[] %in% alreadyRoaded$pixelid)]
   #update the raster
@@ -662,7 +662,7 @@ getRoadSegment<-function(sim){
   #Convert the landings to pixelid's
   targets<-cellFromXY(sim$ras, sim$landings) #This should be pixelid not XY as used in other roading methods
   sim$roadSegs<-unique(as.numeric(unlist(strsplit(sim$roadslist[landing %in% targets, ]$road, ","))))
-  alreadyRoaded<-dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear is not null and pixelid in (",paste(sim$roadSegs, collapse = ", "),")"))
+  alreadyRoaded<-dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear IS NOT NULL and pixelid in (",paste(sim$roadSegs, collapse = ", "),")"))
   sim$paths.v<-sim$roadSegs[!(sim$roadSegs[] %in% alreadyRoaded$pixelid)]
   
   #update the raster

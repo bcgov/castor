@@ -29,6 +29,7 @@ defineModule(sim, list(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("queryCutblocks", "character", "cutseq", NA, NA, "This describes the type of query for the cutblocks"),
     defineParameter("getArea", "logical", FALSE, NA, NA, "This describes if the area ha should be returned for each landing"),
+    defineParameter("resetAge", "logical", FALSE, NA, NA, "Set this to TRUE to define roadyear and roadstatus as the time since the road was built/used. If FALSE then it returns the sequence that the road was built/used."),
     defineParameter("startHarvestYear", "numeric", 1980, NA, NA, "This describes the min year from which to query the cutblocks"),
     defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
     defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
@@ -67,6 +68,8 @@ doEvent.cutblockSeqPrepCLUS = function(sim, eventTime, eventType, debug = FALSE)
 
       sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "cutblockSeqPrep", 6)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "updateAge", 7)
+      sim <- scheduleEvent(sim, end(sim), "cutblockSeqPrepCLUS", "finalAge", 8)
+      
     },
     
     cutblockSeqPrep = {
@@ -77,6 +80,10 @@ doEvent.cutblockSeqPrepCLUS = function(sim, eventTime, eventType, debug = FALSE)
     updateAge = {
       sim <- incrementAge(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "updateAge", 7)
+    },
+    
+    finalAge = {
+      sim <- finalAgeCalc(sim)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -230,4 +237,25 @@ setBlocksTable <- function(sim) {
   return(invisible(sim))
 }
 
-
+finalAgeCalc <- function (sim) { # this function inverts the roadstatus and roadyear from the time it was built/used in the backcast to its age (i.e., end time - year it was built/used)
+  if(P(sim)$resetAge) { # if TRUE
+    message("Setting roadyear and roadstatus as negative age.")
+    
+    # update the db
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, paste0("UPDATE pixels SET roadstatus = (",  end(sim), " - roadstatus) * -1,  roadyear = (",  end(sim), " - roadyear) * -1 WHERE roadtype != 0 OR roadtype IS NULL"))    
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+    # then update the rasters
+    sim$road.year<-sim$ras
+    sim$road.year[]<-dbGetQuery(sim$clusdb, 'SELECT roadyear FROM pixels')$roadyear
+    sim$road.status<-sim$ras
+    sim$road.status[]<-dbGetQuery(sim$clusdb, 'SELECT roadstatus FROM pixels')$roadstatus
+    
+    return(invisible(sim))
+    
+  } else { # if FALSE
+    message("Keeping roadyear and roadstatus as sequence.")
+  }
+  
+}

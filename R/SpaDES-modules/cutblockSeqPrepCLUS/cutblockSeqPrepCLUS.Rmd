@@ -36,10 +36,12 @@ outputDir <- file.path(moduleDir, "outputs")
 cacheDir <- file.path(outputDir, "cache")
 times <- list(start = 0, end = 10)
 parameters <- list(
-  #.progress = list(type = "text", interval = 1), # for a progress bar
-  ## If there are further modules, each can have its own set of parameters:
-  #module1 = list(param1 = value1, param2 = value2),
-  #module2 = list(param1 = value1, param2 = value2)
+  cutblockSeqPrepCLUS = list(startHarvestYear = 1970,
+                             nameCutblockRaster= 'rast.cns_cut_bl', 
+                             nameCutblockTable= 'cns_cut_bl_polygon', 
+                             queryCutblocks = 'cutseq_centroid',
+                             resetAge = T # if True, converts road age and status from it's time sequence of simulation (e.g., simulated in year 1, 2, 3 etc.) to the time since the road was created or used (i.e., end time - roadyear and end time - roadstatus) which inverts the sequence (e.g., road was built 3, 2, 1 years ago)
+                              )
 )
 modules <- list("cutblockSeqPrepCLUS")
 objects <- list()

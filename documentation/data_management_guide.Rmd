@@ -57,7 +57,7 @@ conn <- DBI::dbConnect(dbDriver("PostgreSQL"),
 pgdbs_data_list <- getTableQuery("SELECT * from public.pgdbs_data_list;")
 
 #Create new row for table
-new_data <- data.table (computer = 'test', # e.g., 206.12.91.188 or DC052586 
+new_data <- data.table (computer = 'test', # e.g., 206.12.91.188 or DG401102 
                         database = 'test', # clus
                         schema = 'test', # caribou, public, vat, zone or rast
                         table_name = 'test', # add year adn month if relevant
@@ -2032,7 +2032,6 @@ pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRU
 dbDisconnect(conn)
 
 # Chilcotin proposed WHA
-#Create new row for table
 new_data <- data.table (computer = 'DC052586', # e.g., 206.12.91.188 or DC052586 
                         database = 'clus', # clus
                         schema = 'public', # caribou, public, vat, zone or rast
@@ -2082,17 +2081,14 @@ new_data4 <- data.table (computer = 'DC052586',
                         where_used = 'dataLoaderCLUS' 
                         )
 
-# merge tables
 pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
                                list (pgdbs_data_list, new_data, new_data2, new_data3, new_data4))
-# re-upload data to postgres
 DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
                   value = pgdbs_data_list_new, 
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
 # Chilcotin supply blocks
-#Create new row for table
 new_data <- data.table (computer = 'DC052586', 
                         database = 'clus', 
                         schema = 'public', 
@@ -2130,18 +2126,13 @@ new_data3 <- data.table (computer = 'DC052586',
                         where_used = 'forestryCLUS'
                         )
 
-# merge tables
 pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
                                list (pgdbs_data_list, new_data, new_data2, new_data3))
-# re-upload data to postgres
 DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
                   value = pgdbs_data_list_new, 
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
-
-
-#Create new row for table
 new_data <- data.table (computer = 'DC052586', 
                         database = 'test', 
                         schema = 'clus', 
@@ -2154,11 +2145,36 @@ new_data <- data.table (computer = 'DC052586',
                         next_update = '2023', 
                         where_used = 'dataLoaderCLUS'
                         )
-# merge tables
 pgdbs_data_list_new <- merge (pgdbs_data_list, new_data, all = T)
-#
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
 
-# re-upload data to postgres
+# Update Kyle's computer name
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set computer = 'DG401102' where computer = 'DC052586';")
+
+# Chilcotin roads
+new_data <- data.table (computer = 'DG401102', database = 'clus', schema = 'public', 
+                        table_name = 'Cariboo_Consolidated_Roads', type = 'line', 
+                        script = 'clus\\R\\Params\\road_rasterize.Rmd', 
+                        source = 'Carole Mahood, Cariboo region GIS Analyst', public = 'No', 
+                        last_updated = '2022', next_update = '2023', where_used = 'dataLoaderCLUS')
+pgdbs_data_list_new <- merge (pgdbs_data_list, new_data, all = T)
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+# raster
+new_data <- data.table (computer = 'DG401102', database = 'clus', schema = 'rast', 
+                        table_name = 'rds_cariboo_2022', type = 'line', 
+                        script = 'clus\\R\\Params\\road_rasterize.Rmd', 
+                        source = 'Carole Mahood, Cariboo region GIS Analyst', public = 'No', 
+                        last_updated = '2022', next_update = '2023', where_used = 'dataLoaderCLUS')
+
+pgdbs_data_list_new <- merge (pgdbs_data_list, new_data, all = T)
 DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
                   value = pgdbs_data_list_new, 
                   row.names = FALSE, overwrite = TRUE)
