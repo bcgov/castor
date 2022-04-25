@@ -114,9 +114,11 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
               
             },
             mst ={ # Create a minimum spanning tree before least-cost paths -- updates the cost surface at each road interval
-              sim <- getClosestRoad(sim)
-              sim <- mstList(sim)# Construction of a minimum spanning tree to connect targets before connecting to exising road network
-              sim <- getShortestPaths(sim)
+              #sim <- getClosestRoad(sim)
+              #sim <- mstList(sim)# Construction of a minimum spanning tree to connect targets before connecting to exising road network
+             
+               sim <- mstSolve(sim)
+              sim <- setEdges(sim)
               sim <- updateRoadsTable(sim)
             },
             pre ={ # Solve the road network initially -- assumes cost surface is static
@@ -433,21 +435,21 @@ getGraph<- function(sim){
   sim$roadSourceID<-dbGetQuery(sim$clusdb, "select source from roadsource limit 1;")$source
   sim$edges.weight<-data.table(dbGetQuery(sim$clusdb, "select * from roadedges;"))
 
-  if(P(sim)$roadMethod %in% c('pre', 'lcp')){
+  
     sim$g<-cppRouting::makegraph(sim$edges.weight,directed=F)
     sim$g<-cppRouting::cpp_simplify(sim$g)
-  }else{
+  
     #------make the igraph
-    sim$g<-graph.edgelist(as.matrix(sim$edges.weight)[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
-    E(sim$g)$weight<-as.matrix(sim$edges.weight)[,3]#assign weights to the graph. Requires a matrix input
+    sim$g.igraph<-graph.edgelist(as.matrix(sim$edges.weight)[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
+    E(sim$g.igraph)$weight<-as.matrix(sim$edges.weight)[,3]#assign weights to the graph. Requires a matrix input
     #set the names of the graph as the pixelids
-    sim$g<-sim$g %>% 
-      set_vertex_attr("name", value = V(sim$g))
+    sim$g.igraph<-sim$g.igraph %>% 
+      set_vertex_attr("name", value = V(sim$g.igraph))
     
     #------simplify the graph
-    sim$g<-igraph::simplify(sim$g) #remove more edges then needed.
-    sim$g<-delete.vertices(simplify(sim$g), degree(sim$g)==0)
-  }
+    sim$g.igraph<-igraph::simplify(sim$g.igraph) #remove more edges then needed.
+    sim$g.igraph<-delete.vertices(simplify(sim$g.igraph), degree(sim$g.igraph)==0)
+  
   
   #rm(edges.weight)
   gc()
@@ -473,6 +475,35 @@ lcpList<- function(sim){##Get a list of paths from which there is a to and from 
   rm(paths.matrix)
   gc()
   return(invisible(sim))
+}
+
+mstSolve<-function(sim){
+  message('mstSolve')
+  #Create the edge list
+  landing.cell<<-cellFromXY(sim$ras,sim$landings)
+  
+  #edge.list<-data.table(to = landing.cell, 
+  #                      from = sim$roadSourceID, 
+  #                      weight = cppRouting::get_distance_matrix(Graph=sim$g, 
+  #                                                               from=landing.cell, 
+  #                                                               to=sim$roadSourceID, 
+  #                                                               algorithm ="A*", 
+  #                                                               allcores=FALSE)
+  #)
+  
+  landings<-cellFromXY(sim$ras,sim$landings)
+  landings<<-c(landings, sim$roadSourceID) #add in the road
+  ras<<-sim$ras
+  g<<-sim$g
+  g.igraph<<-sim$g.igraph
+  stop()
+  dist.matrix<<-get_distance_pair(Graph=sim$g, from=landings, to=landings, allcores=FALSE)
+  message("done")
+  
+  
+  roadSegs<<-cppRouting::get_multi_paths(Graph = sim$g, from = , to = , long =T )
+  
+  return(invisible(sim)) 
 }
 
 mstList<- function(sim){

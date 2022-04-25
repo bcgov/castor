@@ -19,16 +19,15 @@
 #=================================
 
 ##Overview
-# In this section (01), we select the available data for fires in BC from 2002 and 2020 (2002-2019 historic; 2020 current),
- # combine data into one, and upload these files to the clus database.
+# In this section (01), we select the available data for fires in BC from 2002 and 2020 and upload these files to the clus database.
+
+library(bcdata)
 
 library(raster)
 library(data.table)
 library(sf)
 library(tidyverse)
 library(rgeos)
-library(bcmaps)
-library(ggplot2)
 require (RPostgreSQL)
 require (rpostgis)
 require (fasterize)
@@ -37,37 +36,33 @@ library(keyring)
 
 source(here::here("R/functions/R_Postgres.R"))
 
-#Below is currently on the D-drive of my computer. Will need to be in clusdb eventually.
-historic.ignit <- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Ignition_point_locations\\PROT_HISTORICAL_INCIDENTS_SP\\H_FIRE_PNT_point.shp", stringsAsFactors = T)
-
-current.ignit <- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\Current_Fire_Ignition_point_locations\\PROT_CURRENT_FIRE_PNTS_SP\\C_FIRE_PNT_point.shp", stringsAsFactors = T)
-
-head(historic.ignit)
-head(current.ignit)
-
-historic.ignit <- st_transform (historic.ignit, 3005)
-current.ignit <- st_transform (current.ignit, 3005)
-
-historic.ignit<- historic.ignit %>% 
-  dplyr::select(FIRE_NO, FIRE_YEAR, IGN_DATE, FIRE_CAUSE, FIRE_ID, FIRE_TYPE, LATITUDE, LONGITUDE, SIZE_HA, geometry)
-
-current.ignit<- current.ignit %>% 
-  dplyr::select(FIRE_NO, FIRE_YEAR, IGN_DATE, FIRE_CAUSE, FIRE_ID, FIRE_TYPE, LATITUDE, LONGITUDE, SIZE_HA, geometry)
-
-ignition<- rbind(historic.ignit, current.ignit)
-
-ignition1 <- ignition %>% 
-  filter(FIRE_YEAR>2001) %>% ##Select for years 2002 beyond
-  filter(FIRE_TYPE == "Fire" | FIRE_TYPE=="Nuisance Fire") #Select fire type for ones desired
-table(ignition1$FIRE_YEAR) # Looking at https://www2.gov.bc.ca/gov/content/safety/wildfire-status/about-bcws/wildfire-statistics/wildfire-averages and comparing the values I get to these in the table I think I should filter only by "Fire" and not "Nuisance Fire" but this removes many fire locations particularly for the years 2007 and 2008. 
-
-st_crs(ignition1)
-
-st_write(ignition1, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp", delete_dsn = TRUE)
-table(ignition1$FIRE_YEAR) 
+# Raw fire ignition point data from BCDC:
+# https://cat.data.gov.bc.ca/dataset/fire-perimeters-historical/resource/61de892c-09f4-4440-b18f-09995801558f
 
 
+# get latest data off BCGW
+ignit<-try(
+  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
+    filter(FIRE_YEAR > 2001) %>%
+    filter(FIRE_TYPE == "Fire") %>%
+    collect()
+)
 
+
+head(ignit)
+table(ignit$FIRE_YEAR) # yipee Looking at https://www2.gov.bc.ca/gov/content/safety/wildfire-status/about-bcws/wildfire-statistics/wildfire-averages and comparing the values I get to these looks correct with all years present after 2001. 
+table(ignit$FIRE_YEAR, ignit$FIRE_CAUSE) 
+
+
+ignition <- ignit %>%
+  mutate(FIRE_CAUSE2 = na_if(FIRE_CAUSE, "Unknown")) 
+table(ignition$FIRE_YEAR, ignition$FIRE_CAUSE2)
+
+
+ignition2 <- st_transform (ignition, 3005)
+
+
+#st_write(ignition2, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\bc_fire_ignition.shp", delete_dsn = TRUE)
 
 ## Load ignition data into postgres (either my local one or Kyles)
 #host=keyring::key_get('dbhost', keyring = 'postgreSQL')

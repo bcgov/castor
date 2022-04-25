@@ -100,7 +100,8 @@ ggplot() +
 Now we will then bring in the data layer from the DEM_data_prep file. 
 
 ```{r}
-sample_locations_DEM <- st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM_5x_AllMonths.shp")
+sample_locations_DEM <- st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM_5x_AllMonths_frt.shp")
+
 
 ```
 Inspect the data. See what the names of columns are, geometry type, etc. We will also plot this one again to ensure that it falls within the BC Boundary properly.
@@ -158,7 +159,7 @@ table(road_sums_df$idno)
 head(road_sums_df)
 str(road_sums_df)#Check how many rows there are in the data and compare to our initial data
 #181,356
-str(sample_locations_DEM) # 274594 obs
+str(sample_locations_DEM) # 200292 obs
 #Note that there is a difference because not all cells had roads!
 
 ```
@@ -193,12 +194,7 @@ max(sample_locations_DEM_roads$shape_length) #Max is 207,868.7 m of road per km 
 sample_locations_DEM_roads$shape_length_km<-(sample_locations_DEM_roads$shape_length/1000)
 hist(sample_locations_DEM_roads$shape_length_km, n=100)
 mean(sample_locations_DEM_roads$shape_length_km) #Mean is 3.8 km of road per km square
-max(sample_locations_DEM_roads$shape_length_km) #max is 207 km of road per km square... seems unlikely!
-
-sample_locations_DEM_roads_2<-subset(sample_locations_DEM_roads, sample_locations_DEM_roads$shape_length_km < 100)
-hist(sample_locations_DEM_roads_2$shape_length_km, n=100) #Is outlier removed? New max is 138 if subset at the 200 km level.
-max(sample_locations_DEM_roads_2$shape_length_km)
-str(sample_locations_DEM_roads_2) #274573 observations -- only lose 21 observations and likely more accurate
+max(sample_locations_DEM_roads$shape_length_km) #max is 44km
 str(sample_locations_DEM_roads) #274594 observations
 ```
 
@@ -206,7 +202,10 @@ Now that we have the roads data appended to our data, we can save the file and m
 
 ```{r}
 
-st_write(sample_locations_DEM_roads_2, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_climate_DEM_roads_.shp", delete_layer=TRUE)
+st_write(sample_locations_DEM_roads, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\Data_climate_DEM_roads_frt.shp", delete_layer=TRUE)
+
+rm(road_sums_df, roads_100ha_buffers, roads_100ha_buffers_df,roads_layer)
+gc()
 ##Can also open in QGis to assess for any physical outliers and their information.
 
 #str(ignition_weather_crs)
