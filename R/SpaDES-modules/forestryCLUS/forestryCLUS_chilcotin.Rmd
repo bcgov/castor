@@ -494,9 +494,9 @@ parameters <- list(
                                            # "rast.zone_barkerville_groundhog_zones_20210303",
                                            # "rast.zone_smc_zones_20210315"
                                           
-                                                "rast.zone_cond_bc_charlotte_alplands_crithab",
-                                                "rast.zone_cond_bc_itcha_ilgachuz_crithab",
-                                                "rast.zone_cond_bc_rainbows_crithab"
+                                                # "rast.zone_cond_bc_charlotte_alplands_crithab",
+                                                # "rast.zone_cond_bc_itcha_ilgachuz_crithab",
+                                                # "rast.zone_cond_bc_rainbows_crithab"
                                            
                                                # "rast.zone_chilcotin_scenario2"
                                           
@@ -531,7 +531,7 @@ parameters <- list(
                       adjacencyConstraint = 0,
                       salvageRaster = 'rast.dead_vol_125_2020'),
   growingStockCLUS = list (periodLength = 5),
-  roadCLUS = list(roadMethod = 'pre', 
+  roadCLUS = list(roadMethod = 'lcp', #pre 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.ce_road_2019'),
   # rsfCLUS = list (calculateInterval = 10, # at what time interval to calculate RSF
@@ -592,10 +592,10 @@ modules <- list("dataLoaderCLUS",
 #                        description = "Scenario 2c. No harvest: HEWSR, LESR (except high-low adn highe-moderate areas), Tweedsmuir Corridor. Rotation age (in all habitat): 140 years. Seral stage constraints (in LESR high-low areas, LEWR, Matrix, Rainbows Corridor): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Adjacency = 0m. Oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
 # scenario = data.table (name = "chilcotin_scen1a_disturb",
 #                        description = "Scenario 1a with closest to disturbance harvest priority. Habitat: HEWSR, LESR, LEWR, Matrix. Rotation age (in habitat): 140 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Closest to Disturabnce, then oldest first. Minimum volume: Quesnel = 150 m3/year; Williams Lake = 110 m3/year. Target harvest flow: Quesnel Matrix = 190,000m3/year; Quesnel HEWSR = 0 m3/year; Quesnel LESR = 7,000 m3/year; Quesnel LEWR = 85,000m3/year; Quesnel out = 2,100,000m3/year; Williams Lake HEWSR = 15,000m3/year; Williams Lake LESR = 70,000m3/year; Williams Lake LEWR = 140,000m3/year; Williams Lake Matrix = 140,000m3/year; Williams Lake out = 1,650,000m3/year. ")
-# scenario = data.table (name = "chilcotin_bau_live_dead",
-#                        description = "Business as usual (BAU). Adjacency = 0m. Priority queue = Closest to disturbance first, dead volume second, oldest third (live or dead volume). Salvage dead volume in first 10 years. Minimum volume: 150 m3/year. No road recovery. Even live harvest flow: HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
-scenario = data.table (name = "chilcotin_scen1a_live_dead",
-                      description = "Scenario 1a. Habitat: HEWSR, LESR, LEWR, Matrix. Minimum harvest age (in habitat): 80 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Minimum volume:  150 m3/year. Road Recovery = 30 years. Target harvest flow: HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
+scenario = data.table (name = "chilcotin_bau_live_dead",
+                       description = "Business as usual (BAU). Adjacency = 0m. Priority queue = Closest to disturbance first, dead volume second, oldest third (live or dead volume). Salvage dead volume in first 10 years. Minimum volume: 150 m3/year. No road recovery. Even live harvest flow: HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
+# scenario = data.table (name = "chilcotin_scen1a_live_dead",
+#                       description = "Scenario 1a. Habitat: HEWSR, LESR, LEWR, Matrix. Minimum harvest age (in habitat): 80 years. Seral stage constraints (in habitat): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o. Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Minimum volume:  150 m3/year. Road Recovery = 30 years. Target harvest flow: HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
 # scenario = data.table (name = "chilcotin_scen1b_live_dead",
 #                        description = "Scenario 1b. Habitat: HEWSR, LESR, LEWR. Minimum harvest age (in habitat): 80 years. Seral stage constraints (in habitat): 25% > 120 y.o.; 30% >100 y.o.; 37% >80 y.o. Adjacency = 0m. Priority queue = closest to disturbance first, dead volume second, oldest third (live or dead volume). Minimum volume:  150 m3/year. Road Recovery = 30 years. Target harvest flow: HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year. ")
  # scenario = data.table (name = "chilcotin_scen1c_live_dead",
