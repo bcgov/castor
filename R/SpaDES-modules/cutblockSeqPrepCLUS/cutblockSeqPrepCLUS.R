@@ -252,10 +252,11 @@ finalAgeCalc <- function (sim) { # this function inverts the roadstatus and road
     sim$road.status<-sim$ras
     sim$road.status[]<-dbGetQuery(sim$clusdb, 'SELECT roadstatus FROM pixels')$roadstatus
     
-    return(invisible(sim))
+    
     
   } else { # if FALSE
     message("Keeping roadyear and roadstatus as sequence.")
   }
   
+  return(invisible(sim))
 }
