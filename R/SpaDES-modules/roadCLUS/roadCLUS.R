@@ -62,7 +62,9 @@ defineModule(sim, list(
     createsOutput(objectName = "road.type", objectClass = "RasterLayer", desc = "A raster of the roads by type; 0 = perm roads; >0 = distance to mill as crow flies"),
     createsOutput(objectName = "road.year", objectClass = "RasterLayer", desc = "A raster of the time period roads were used"),
     createsOutput(objectName = "roadslist", objectClass = "data.table", desc = "A table of the road segments for every pixel"),
-    createsOutput(objectName = "edges.weight", objectClass = "data.table", desc = "A table of the road segments for every pixel")
+    createsOutput(objectName = "perm.roads", objectClass = "integer", desc = "A vector of pixelids that correspond to permanent roads"),
+    createsOutput(objectName = "node.coords", objectClass = "data.frame", desc = "A table of coordinates for each node"),
+    createsOutput(objectName = "edges.weight", objectClass = "data.table", desc = "A table of the edges (to, from and weight) to build the network")
     
   )
 ))
@@ -117,7 +119,7 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
               #sim <- getClosestRoad(sim)
               #sim <- mstList(sim)# Construction of a minimum spanning tree to connect targets before connecting to exising road network
              
-               sim <- mstSolve(sim)
+              sim <- mstSolve(sim)
               sim <- setEdges(sim)
               sim <- updateRoadsTable(sim)
             },
@@ -422,9 +424,18 @@ setGraph<- function(sim){
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
+  #Uses the coordinates for the NBA* algorithm
+  ids<-unique(c(unique(edges.weight$to), unique(edges.weight$from)))
+  coords<-data.table(id = ids, xyFromCell(sim$ras, ids))
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS roadcoords ( id integer, x integer,  y integer )")
+  dbBegin(sim$clusdb)
+  rs<-dbSendQuery(sim$clusdb, "INSERT INTO roadcoords (id , x,  y) 
+                      values (:id, :x, :y);", coords)
+  dbClearResult(rs)
+  dbCommit(sim$clusdb)
   #------clean up
   #sim$g<-delete.vertices(sim$g, degree(sim$g) == 0) #remove non-connected verticies????
-  rm(edges.weight,edges.w1,edges.w2, edges, weight, bound.line, step.one, step.two.xy, link.cell,perms)#remove unused objects
+  rm(ids, coords, edges.weight,edges.w1,edges.w2, edges, weight, bound.line, step.one, step.two.xy, link.cell,perms)#remove unused objects
   gc() #garbage collection
   return(invisible(sim))
 }
@@ -432,38 +443,39 @@ setGraph<- function(sim){
 
 getGraph<- function(sim){
   message("...getting graph")
+  #------Get all the road data from the database
   sim$roadSourceID<-dbGetQuery(sim$clusdb, "select source from roadsource limit 1;")$source
   sim$edges.weight<-data.table(dbGetQuery(sim$clusdb, "select * from roadedges;"))
-
+  sim$node.coords<-data.table(dbGetQuery(sim$clusdb, "select * from roadcoords;"))
   
-    sim$g<-cppRouting::makegraph(sim$edges.weight,directed=F)
-    sim$g<-cppRouting::cpp_simplify(sim$g)
+  #------make the cppRouting graph object
+  sim$g<-cppRouting::makegraph(sim$edges.weight,directed=F, coords = sim$node.coords) #coordinates help find paths
+  sim$g<-cppRouting::cpp_simplify(sim$g)
   
-    #------make the igraph
-    sim$g.igraph<-graph.edgelist(as.matrix(sim$edges.weight)[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
-    E(sim$g.igraph)$weight<-as.matrix(sim$edges.weight)[,3]#assign weights to the graph. Requires a matrix input
+  if(P(sim)$roadMethod %in% c('lcp', 'mst')){ #Need a vector of permanent roads for cases where the landing falls on one -- since these roads are simplified to a single pixel with many edges.
+    sim$perm.roads<-dbGetQuery(sim$clusdb, "select pixelid from pixels where roadtype = 0;")
+  }
+  
+  #------make the igraph -- TO BE DEPRECATED
+  #sim$g.igraph<-graph.edgelist(as.matrix(sim$edges.weight)[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
+  #E(sim$g.igraph)$weight<-as.matrix(sim$edges.weight)[,3]#assign weights to the graph. Requires a matrix input
     #set the names of the graph as the pixelids
-    sim$g.igraph<-sim$g.igraph %>% 
-      set_vertex_attr("name", value = V(sim$g.igraph))
+  #sim$g.igraph<-sim$g.igraph %>% 
+  #    set_vertex_attr("name", value = V(sim$g.igraph))
     
-    #------simplify the graph
-    sim$g.igraph<-igraph::simplify(sim$g.igraph) #remove more edges then needed.
-    sim$g.igraph<-delete.vertices(simplify(sim$g.igraph), degree(sim$g.igraph)==0)
-  
-  
-  #rm(edges.weight)
-  gc()
+  #------simplify the graph
+  #sim$g.igraph<-igraph::simplify(sim$g.igraph) #remove more edges then needed.
+  #sim$g.igraph<-delete.vertices(simplify(sim$g.igraph), degree(sim$g.igraph)==0)
+
   return(invisible(sim))
 } 
 
 setEdges<- function(sim){ #Updates the graph to account for the new roads
-  #pixelsRoaded<<-sim$paths.v
-  #edges.weight<<-sim$edges.weight
-  
-  sim$edges.weight[to %in% sim$paths.v & from %in% sim$paths.v, weight := 0.0000001]
-  sim$g<-cppRouting::makegraph(sim$edges.weight,directed=F)
-  sim$g<-cppRouting::cpp_simplify(sim$g)
-  
+  #------set the newly simulated roads to have a low weight
+  sim$edges.weight[to %in% sim$paths.v & from %in% sim$paths.v, weight := 0.0000001] #assign a low cost to the newly made road
+  #------make the cppRouting graph object
+  sim$g <- cppRouting::makegraph(sim$edges.weight,directed=F, coords = sim$node.coords) #rebuild the cppRouting graph
+  sim$g <- cppRouting::cpp_simplify(sim$g) #KISS 
   return(invisible(sim))
 } 
 
@@ -477,32 +489,48 @@ lcpList<- function(sim){##Get a list of paths from which there is a to and from 
   return(invisible(sim))
 }
 
-mstSolve<-function(sim){
+mstSolve <- function(sim){
   message('mstSolve')
-  #Create the edge list
-  landing.cell<<-cellFromXY(sim$ras,sim$landings)
+  #------get the edge list between a permanent road and the landing
+  landing.cell <- data.table(landings = cellFromXY(sim$ras,sim$landings))[!(landings %in% sim$perm.roads$pixelid),] #remove landings on permanent roads
+  weights.closest.rd <- cppRouting::get_distance_matrix(Graph=sim$g, 
+                                  from=landing.cell$landings, 
+                                  to=sim$roadSourceID, 
+                                  allcores=FALSE)
+  edge.list <- data.table(from= landing.cell$landings, to = sim$roadSourceID, weight = weights.closest.rd[,1])
+ 
+  #------get the edge list between the closest landings
+  message('...get nearest neighbours')
+  nnlandings <- RANN::nn2(xyFromCell(sim$ras, landing.cell$landings), k =2)
+  edge.list.inner <- data.table(from= landing.cell$landings, id=nnlandings$nn.idx[,1], idnn =nnlandings$nn.idx[,2] )
+  edge.list.outer <- data.table(to =edge.list.inner$from, id =edge.list.inner$idnn) 
+  edge.list.nn <- merge(edge.list.inner, edge.list.outer, by.x = "id", by.y = "id")
+  edge.list.nn <- edge.list.nn[from < to, c("from", "to") := .(to, from)][,c("to", 'from')]
+  edge.list.nn <- unique(edge.list.nn)
   
-  #edge.list<-data.table(to = landing.cell, 
-  #                      from = sim$roadSourceID, 
-  #                      weight = cppRouting::get_distance_matrix(Graph=sim$g, 
-  #                                                               from=landing.cell, 
-  #                                                               to=sim$roadSourceID, 
-  #                                                               algorithm ="A*", 
-  #                                                               allcores=FALSE)
-  #)
+  edge.list2 <- data.table(to = edge.list.nn$to, 
+                        from = edge.list.nn$from, 
+                        weight = cppRouting::get_distance_pair(Graph=sim$g, 
+                                                                 from=edge.list.nn$from, 
+                                                                 to=edge.list.nn$to, 
+                                                                 algorithm = "NBA", 
+                                                                 constant = 110/0.06,  #Fastest is 110 km/hr convert to m/min
+                                                                 allcores=FALSE))
+  message('...solve the mst')
+  #------solve the mst
+  edges <- rbindlist(list(edge.list, edge.list2), use.names=TRUE)
+  gi.mst <- mst(graph_from_data_frame(edges, directed=FALSE))
+  paths.matrix <- noquote(get.edgelist(gi.mst, names=TRUE)) #Is this getting the edgelist using the vertex ids -yes!
   
-  landings<-cellFromXY(sim$ras,sim$landings)
-  landings<<-c(landings, sim$roadSourceID) #add in the road
-  ras<<-sim$ras
-  g<<-sim$g
-  g.igraph<<-sim$g.igraph
-  stop()
-  dist.matrix<<-get_distance_pair(Graph=sim$g, from=landings, to=landings, allcores=FALSE)
-  message("done")
+  message('...getting paths')
+  #------get the shortest paths
+  sim$roadSegs <- unique(as.integer(cppRouting::get_path_pair(Graph = sim$g, from = paths.matrix[,2], to = paths.matrix[,1], algorithm = "NBA", constant = 110/0.06, long =T )$node))
+  alreadyRoaded <- dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear is not null and pixelid in (",paste(sim$roadSegs, collapse = ", "),")"))
   
-  
-  roadSegs<<-cppRouting::get_multi_paths(Graph = sim$g, from = , to = , long =T )
-  
+  sim$paths.v <- sim$roadSegs[!(sim$roadSegs[] %in% alreadyRoaded$pixelid)]
+  #update the raster
+  sim$road.year[sim$ras[] %in% sim$paths.v] <- time(sim)*sim$updateInterval
+  sim$road.status[sim$ras[] %in% sim$roadSegs] <- time(sim)*sim$updateInterval
   return(invisible(sim)) 
 }
 
@@ -572,8 +600,10 @@ mstList<- function(sim){
 }
 
 getRoutes<-function(sim){ #for graphs using cppRouting
-  sim$roadSegs<-unique(as.integer(cppRouting::get_multi_paths(Graph = sim$g, from = sim$roadSourceID, to = cellFromXY(sim$ras,sim$landings), long =T )$node))
-  alreadyRoaded<-dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear IS NOT NULL and pixelid in (",paste(sim$roadSegs, collapse = ", "),")")) # existing roads have a road year; this selects those
+  message("getRoutes")
+  landing.cell <-data.table(landings = cellFromXY(sim$ras,sim$landings))[!(landings %in% sim$perm.roads$pixelid),] #remove landings on permanent roads
+  sim$roadSegs <-unique(as.integer(cppRouting::get_multi_paths(Graph = sim$g, from = sim$roadSourceID, to = landing.cell$landings, long =T )$node))
+  alreadyRoaded <-dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear is not null and pixelid in (",paste(sim$roadSegs, collapse = ", "),")"))
   
   sim$paths.v<-sim$roadSegs[!(sim$roadSegs[] %in% alreadyRoaded$pixelid)]
   #update the raster

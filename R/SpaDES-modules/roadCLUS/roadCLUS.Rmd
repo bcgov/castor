@@ -43,8 +43,7 @@ parameters <- list(.progress = list(type = NA, interval = NA),
   .globals = list(),
   roadCLUS = list(roadMethod = 'snap', # pre(?), lcp, mst
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
-                  nameRoads =  'rast.pre_roads',
-                  ),
+                  nameRoads =  'rast.pre_roads'),
   dataLoaderCLUS = list(dbName='clus',
                          nameBoundaryFile="tsa_aac_bounds",
                          #nameBoundaryFile="gcbp_carib_polygon",
@@ -58,8 +57,7 @@ parameters <- list(.progress = list(type = NA, interval = NA),
                          nameZoneRasters=c("rast.zone_cond_beo", "rast.zone_cond_vqo", "rast.zone_cond_wha", "rast.zone_cond_uwr", "rast.zone_cond_nharv", "rast.zone_cond_crithab")),
   cutblockSeqPrepCLUS = list(queryCutblocks ='cutseq_centroid',
                              startHarvestYear = 1994, 
-                             getArea =TRUE,
-                             resetAge = FALSE)
+                             getArea =TRUE)
                    )
 modules <- list("dataLoaderCLUS", "roadCLUS", "cutblockSeqPrepCLUS")
 objects <- list()
