@@ -1,0 +1,3 @@
+[submodule "R/spades-modules/FLEX"]
+	path = R/spades-modules/FLEX
+	url = https://github.com/joburgar/FLEX
