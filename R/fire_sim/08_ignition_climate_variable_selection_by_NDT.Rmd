@@ -1,5 +1,5 @@
 ---
-title: "07_ignition_climate_variable_selection"
+title: "08_ignition_climate_variable_selection"
 author: "Elizabeth Kleynhans and Cora Skaien"
 date: "08/07/2021"
 output: html_document
@@ -72,7 +72,7 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
 dat_lightning <- sf::st_read  (dsn = connKyle, # connKyle
-                               query = "SELECT * FROM public.dat_lightning_for_analysis_")
+                               query = "SELECT * FROM public.dat_lightning_for_analysis")
 dbDisconnect (connKyle)
 
 #Bring in person-caused fire data
@@ -83,7 +83,7 @@ connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
                       password = key_get('dbpass', keyring = 'postgreSQL'),
                       port = "5432")
 dat_person <- sf::st_read  (dsn = connKyle, # connKyle
-                               query = "SELECT * FROM public.dat_person_for_analysis_")
+                               query = "SELECT * FROM public.dat_person_for_analysis")
 dbDisconnect (connKyle)
 
 #Bring in fire ignition data from end of 01 file  
@@ -97,6 +97,7 @@ conn <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
 fire_ignitions <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.bc_fire_ignition")
 dbDisconnect (conn) # connKyle
+
 
 ```
 
@@ -269,13 +270,14 @@ dat_lightning$mean_mdc05_mdc06_mdc07_mdc08_mdc09<- (dat_lightning$mdc_05 + dat_l
 ```
 
 We also want difference from one month to the next and then for each fire, we will assign the difference depending on the month of fire.
+NOTE: we investigated this but decided not to includ it for the ignition models because its difficult to know how to deal with the points with no fire i.e. what value should you assign it? You could assign it the mean for the months or randomly assign it a month and then use that or assign it a month drawn from a distribution so that months with fires are represented more often. Anyway, there are many options so we chose to leave it out for ignition but include it for escape and spread.
 
 ```{r}
 #Check months for fire
 table(dat_lightning$ign_month)
 head(dat_lightning) 
 
-#Without all months, we can only use the below comparisons. 
+#Ensure all months available in data for comparisons
 dat_lightning$tave_dif_01_02<-(dat_lightning$tave02 - dat_lightning$tave01)
 dat_lightning$tave_dif_02_03<-(dat_lightning$tave03 - dat_lightning$tave02)
 dat_lightning$tave_dif_03_04<-(dat_lightning$tave04 - dat_lightning$tave03)
@@ -367,7 +369,7 @@ dat_lightning_2<-dat_lightning_2 %>%
                                   ign_month == 3 ~ tave_dif_02_03,
                                   ign_month == 2 ~ tave_dif_01_02,
                                   ign_month == 1 ~ tave_dif_01_02,
-                                  TRUE ~ tave_dif_max)) #Those areas without fire will receive the mean value for the season. These MDC values may be most accurately used for the escape and spread data, wherein we only assess those areas where fires began.
+                                  TRUE ~ tave_dif_max)) #Those areas without fire will receive the mean value for the season. 
 
 head(dat_lightning_2)
 hist(dat_lightning_2$Tdif_atfire)
@@ -377,6 +379,30 @@ dat_lightning<-dat_lightning_2
 ##Will not be able to be used for ignition, but should be able to be used for escape and fire size
 
 ```
+Also get temperature at time of fire.
+
+```{r}
+dat_lightning$T_atfire<-0
+dat_lightning$ign_month<-as.numeric(dat_lightning$ign_month)
+head(dat_lightning)
+dat_lightning_<-dat_lightning %>%
+    mutate(T_atfire = case_when(ign_month == 5 ~ tave_05,
+                                  ign_month == 6 ~ tave_06,
+                                  ign_month == 7 ~ tave_07,
+                                  ign_month == 8 ~ tave_08,
+                                  ign_month == 9 ~ tave_09,
+                                  ign_month == 10 ~ tave_09,
+                                  ign_month == 11 ~ tave_09,
+                                  ign_month == 4 ~ tave_05,
+                                  ign_month == 3 ~ tave_05,
+                                  ign_month == 2 ~ tave_05,
+                                  ign_month == 1 ~ tave_05,
+                                  TRUE ~ mean_tave05_tave06_tave07_tave08_tave09)) #Those areas without fire will receive the mean value for the season. 
+
+head(dat_lightning_)
+
+```
+
 
 For each fire, let's extract the MDC in the specific month that fire began. Note that some fires actually began in months other than 05-09. For these, for now, we will select the nearest time (05 for January to April, and 09 for October and November). We may wish to get the actual values.
 

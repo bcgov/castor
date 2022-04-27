@@ -46,71 +46,46 @@ library(stringi)
 source(here::here("R/functions/R_Postgres.R"))
 ```
 
-We will bring in the historic and current fire shape files and combine them.
+We will bring in the historic fire shape files with point data from BCGW (https://cat.data.gov.bc.ca/dataset/fire-perimeters-historical/resource/61de892c-09f4-4440-b18f-09995801558f).
+Interestingly, the 2022 version of this file seems to have very few fires for which the cause is know and only fires after 2017 have any info for this. In the previous version I downloaded (2021) there was more of this data but the records for before 2010 seemed suspect because the number of fires were really low. I've emailed the curator about this and did not get a solution to these concerns, but hopefully the problems will be fixed and updated on BCGW! Will keep checking.
 
 ```{r}
 
-historic.ignit <- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Ignition_point_locations\\PROT_HISTORICAL_INCIDENTS_SP\\H_FIRE_PNT_point.shp", stringsAsFactors = T)
+# Raw fire ignition point data from BC:
+# https://cat.data.gov.bc.ca/dataset/fire-perimeters-historical/resource/61de892c-09f4-4440-b18f-09995801558f
 
-current.ignit <- st_read ( dsn = "D:\\Fire\\fire_data\\raw_data\\Current_Fire_Ignition_point_locations\\PROT_CURRENT_FIRE_PNTS_SP\\C_FIRE_PNT_point.shp", stringsAsFactors = T)
 
-head(historic.ignit)
-head(current.ignit)
-
-#Ensure they are both in the same coordinate system
-historic.ignit <- st_transform (historic.ignit, 3005)
-current.ignit <- st_transform (current.ignit, 3005)
-
-historic.ignit<- historic.ignit %>% 
-  dplyr::select(FIRE_NO, FIRE_YEAR, IGN_DATE, FIRE_CAUSE, FIRE_ID, FIRE_TYPE, LATITUDE, LONGITUDE, SIZE_HA, geometry)
-
-current.ignit<- current.ignit %>% 
-  dplyr::select(FIRE_NO, FIRE_YEAR, IGN_DATE, FIRE_CAUSE, FIRE_ID, FIRE_TYPE, LATITUDE, LONGITUDE, SIZE_HA, geometry)
-
-ignition<- rbind(historic.ignit, current.ignit)
+#ignition2<-st_read("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\bc_fire_ignition.shp")
+ignit<-ignition2
 ```
 
 Now, let's inspect some of the elements of this file.
 
 ```{r}
-table(ignition$FIRE_TYPE) #We will want Fire and Nuisance Fire types. Admittedly, I am unsure what some of these other ones are.
+table(ignition2$FIRE_CAUSE3) # hmmm there are 1074 lightning caused fires, 960 human caused ones and 30043 unknown. I dont think I can filter this by the cause of fire. If I do I loose a TON of data! BAD!
 
-table(ignition$FIRE_CAUSE)
-
-table(ignition$FIRE_YEAR) #We have data from 1950-2020. For now, let's keep all of them in. We will assess if there are obvious trends over time that may suggest detection bias and not just different numbers of fires.
-
-ignition_ <- ignition %>% 
-  filter(FIRE_TYPE == "Fire" | FIRE_TYPE=="Nuisance Fire") #Select fire type for ones desired
-
-ignition_ <- ignition_ %>% 
-  filter(FIRE_CAUSE == "Lightning" | FIRE_CAUSE=="Person")
-
-ignition_$FIRE_CAUSE<-as.factor(as.character(ignition_$FIRE_CAUSE))
+ignition2$FIRE_CAUSE3<-as.factor(as.character(ignition2$FIRE_CAUSE3))
 ```
 
 
 ```{r}
 ##Check size of fires
-min(ignition_$SIZE_HA) #There are a lot of 0s and a lot of NAs Why would the fire data have size 0s for fires that existed? Are they THAT small?
+min(ignition2$CURRENT_SIZE) # There are 123 zeros and 38 NA's
 
-ignition_2<-subset(ignition_, ignition_$SIZE_HA!="NA")
-min(ignition_2$SIZE_HA)
-table(ignition_2$SIZE_HA)#14,993 were size 0. What does this mean?
-
-ignition_zeros<-subset(ignition_2, ignition_2$SIZE_HA==0)
-
-table(ignition_zeros$FIRE_CAUSE) #Here, we have 5425 0 in lightning and 9568 in person
-table(ignition_zeros$FIRE_YEAR) #Common since 1989 onwards
-
+ignition_2<-subset(ignition2, ignit$CURRENT_SIZE!="NA")
+min(ignition_2$CURRENT_SIZE)
+table(ignition_2$CURRENT_SIZE)
+table(ignition_2$FIRE_CAUSE) #Here, we have  20178 in lightning and 12530 in person
 ```
 
 We want to extract the month for which the fire began so that we can match that specific MDC (monthly drought code) with that fire for modelling month to month.
 
 ```{r}
-names(ignition_)
-ignition_$IGN_DATE
-ignition_$ign_month<-stri_sub(ignition_$IGN_DATE,5,6)
-head(ignition_)
+names(ignition2)
+library(stringi)
+ignition2$IGNITION_DATE
+ignition2$ign_month<-stri_sub(ignition2$IGNITION_DATE,6,7)
+head(ignition2)
 
 
 ```
@@ -118,41 +93,11 @@ head(ignition_)
 Visualize by lightning and person caused fires
 
 ```{r}
-counts<-table(ignition_$FIRE_YEAR, ignition_$FIRE_CAUSE)
+counts<-table(ignition2$FIRE_YEAR, ignition2$FIRE_CAUSE)
 counts
 
-barplot(counts, beside = TRUE, legend = TRUE)
+barplot(counts, beside = TRUE, legend = F)
 ```
-
-
-```{r}
-##Make df to get dataframe
-counts_df<-as.data.frame(counts)
-counts_df
-
-#Filter to get lightning and person caused separate
-counts_lightning <- counts_df %>% 
-  filter(Var2 == "Lightning")
-
-hist(counts_lightning$Freq)
-
-counts_person <- counts_df %>% 
-  filter(Var2 == "Person")
-
-hist(counts_person$Freq) #interestingly, this is more of a normal distribution than Poisson-like. 
-```
-
-
-Separate by lightning and person caused fires
-```{r}
-ignition_lightning<-ignition_ %>% 
-  filter(FIRE_CAUSE == "Lightning")
-
-ignition_person<-ignition_ %>% 
-  filter(FIRE_CAUSE == "Person")
-
-```
-
 
 
 
@@ -165,34 +110,34 @@ Note: Other papers use 3 ha (e.g., Wang et al. 2016, International Journal of Wi
 ```{r}
 #We will start with ignition_ file
 
-ignition_$escape<- 0
-ignition_$escape[ignition_$SIZE_HA >= 1] <- 1
+ignition2$escape<- 0
+ignition2$escape[ignition2$CURRENT_SIZE >= 1] <- 1
 
-table(ignition_$escape) #We have 136471 that did not escape, and 28125 that did escape.
+table(ignition2$escape) #We have 26541 that did not escape, and 7184 that did escape.
 
 #Compare to a 3 ha threshold
-ignition_$escape3<- 0
-ignition_$escape3[ignition_$SIZE_HA >= 3] <- 1
+ignition2$escape3<- 0
+ignition2$escape3[ignition2$CURRENT_SIZE >= 3] <- 1
 
-table(ignition_$escape3) #146825 that did not escape and 17771 that did.
+table(ignition2$escape3) #28875 that did not escape and 4850 that did.
 
 
 #Compare to a 10 ha threshold
-ignition_$escape10<- 0
-ignition_$escape10[ignition_$SIZE_HA >= 10] <- 1
+ignition2$escape10<- 0
+ignition2$escape10[ignition2$CURRENT_SIZE >= 10] <- 1
 
-table(ignition_$escape10) #153748 that did not escape and 10848 that did.
+table(ignition2$escape10) #30638 that did not escape and 3087 that did.
 
 ```
 Create files for escaped fires at 1 ha, 3 ha and 10 ha
 ```{r}
-escape_1ha<-subset(ignition_, ignition_$escape==1)
+escape_1ha<-subset(ignition2, ignition2$escape==1)
 head(escape_1ha)
 
-escape_3ha<-subset(ignition_, ignition_$escape3==1)
+escape_3ha<-subset(ignition2, ignition2$escape3==1)
 head(escape_3ha)
 
-escape_10ha<-subset(ignition_, ignition_$escape10==1)
+escape_10ha<-subset(ignition2, ignition2$escape10==1)
 head(escape_10ha)
 
 ```
@@ -203,17 +148,18 @@ Visualize by lightning and person caused fires
 counts_1ha<-table(escape_1ha$FIRE_YEAR, escape_1ha$FIRE_CAUSE)
 counts_1ha
 
-barplot(counts_1ha, beside = TRUE, legend = TRUE)
+barplot(counts_1ha, beside = TRUE, legend = F)
 ```
 ```{r}
-counts_3ha<-table(escape_3ha$FIRE_YEAR, escape_3ha$FIRE_CAUSE)
+counts_3ha<-table(escape_3ha$FIRE_YEAR, escape_3ha$FIRE_CAUSE3)
+
 counts_3ha
 
 barplot(counts_3ha, beside = TRUE, legend = TRUE)
 ```
 
 ```{r}
-counts_10ha<-table(escape_10ha$FIRE_YEAR, escape_10ha$FIRE_CAUSE)
+counts_10ha<-table(escape_10ha$FIRE_YEAR, escape_10ha$FIRE_CAUSE3)
 counts_10ha
 
 barplot(counts_10ha, beside = TRUE, legend = TRUE)
@@ -234,7 +180,8 @@ hist(counts_1ha_lightning$Freq)
 counts_1ha_person <- counts_1ha_df %>% 
   filter(Var2 == "Person")
 
-hist(counts_1ha_person$Freq) #interestingly, this is more of a normal distribution than Poisson-like. 
+hist(counts_1ha_person$Freq, xlim=c(0,600), breaks=3) #interestingly, this is more of a normal distribution than Poisson-like. 
+# basically this shows that within a year there is a greater variation in the number of lightning caused fires in comparison the human caused ones.
 ```
 
 

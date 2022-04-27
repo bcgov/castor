@@ -1,0 +1,1318 @@
+---
+title: "Fire_spread_fire_size"
+author: "Cora Skaien"
+date: "16/08/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Load relevant libraries.
+
+library(sf)
+library(tidyverse)
+library(ggplot2)
+library (ggcorrplot)
+library (RPostgreSQL)
+library (rpostgis)
+library (dplyr)
+library (lme4)
+library (arm)
+library(ggpubr)
+library(mgcv)
+library(nlme)
+library(purrr)
+library(tidyr)
+library(caret)
+library(pROC)
+library(keyring)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+#=================================
+#  Script Name: Fire_spread_fire_size.R
+#  Script Version: 1.0
+#  Script Purpose: prepping and investigating data to assess fire size.
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
+#Overview
+One important factor for modelling spread is the size of the fire. Here, we will assess what climatic, VRI and topographic variables are associated with increasing fire size to see if we can create a good predictive model for predicting fire size. Some considerations include: should we include ALL ignition points, or just those above our escape threshold? I will likely do both and compare quality of data, but if this is used as a continuation point from our already hierarchical dataset (from probablilty of ignition including locations with and without fires, to probability of escape including all ignition points, to probability of spread including all escaped fires only), then it might make more sense to only include those above our escape size threshold. Also consider that some fires have a size of 0 reported, so if we use all ignitions, these may need to be excluded. Also consider: should person and lightning fires be kept separate for escape and spread? Once the initial ignition has occurred, I feel that they can be grouped.
+
+Otherwise, methodology will be similar as per previous steps, except this time we will not be able to use a logistic regression given that we are predicting fire size according to the variables presented.
+
+#Considerations
+Consider quadratic terms for continuous variables and including the untransformed data and the quadratic term (X + X^2) in the model.
+
+#Continue with Data from end of Escape Models
+Escape_data_lightning, Escape_data_lightning_t, Escape_data_lightning_t
+Escape_data_person, Escape_data_person_t, Escape_data_person_t
+
+```{r}
+
+Escape_data_lightning<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_escape_Oct.csv")
+head(Escape_data_lightning)
+
+Escape_data_person<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_escape_Oct.csv")
+head(Escape_data_person)
+
+Escape_data_lightning_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_trees_NDT_Oct.csv")
+
+Escape_data_lightning_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_lightning_notrees_NDT_Oct.csv")
+
+Escape_data_person_t<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_trees_NDT_Oct.csv")
+
+Escape_data_person_nt<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\escape_data_person_notrees_NDT_Oct.csv")
+```
+
+Create only those fires that escaped
+```{r}
+spread_data_lightning<-subset(Escape_data_lightning, Escape_data_lightning$escape==1)
+head(spread_data_lightning)
+min(spread_data_lightning$size_ha)
+max(spread_data_lightning$size_ha)
+str(spread_data_lightning)
+table(spread_data_lightning$escape) 
+table(spread_data_lightning$bclcs_level_2) 
+
+
+```
+
+```{r}
+spread_data_person<-subset(Escape_data_person, Escape_data_person$escape==1)
+head(spread_data_person)
+str(spread_data_person)
+table(spread_data_person$escape)
+
+spread_data_person$LNsize_ha<-log(spread_data_person$size_ha)
+
+```
+
+#Check for needed transformations on fire size
+
+```{r}
+hist(spread_data_lightning$size_ha)
+min(spread_data_lightning$size_ha)
+table(spread_data_lightning$size_ha)
+hist(log(spread_data_lightning$size_ha))
+#Neither of the above are normal distributions
+spread_data_lightning$LNsize_ha<-log(spread_data_lightning$size_ha)
+table(spread_data_lightning$LNsize_ha) #Messy but caught an error using this
+
+#One idea could be to multiply fire size by 100 and round to nearest whole number and use Poisson distribution
+spread_data_lightning$size_ha_x100<-spread_data_lightning$size_ha*100
+spread_data_lightning$size_ha_x100<-round(spread_data_lightning$size_ha_x100)
+hist(spread_data_lightning$size_ha_x100) #I still think this willnot work since there are so many small fires
+
+table(spread_data_lightning$bclcs_level_2)
+
+```
+
+```{r}
+table(spread_data_lightning$ntrl_ds)
+```
+#Investigate patterns with variables within the dataset
+
+1. VRI data
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "proj_age_1", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "Stand age")
+#Weak positive relationship
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = proj_age_1)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha)",
+        x = "Fire size (ha)",
+        y = "Projected Age")
+
+#Reverse axes
+ggscatter(spread_data_lightning, x = "proj_age_1", y = "size_ha", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Stand age", ylab = "Fire size (ha)") + yscale("log10", .format = TRUE)
+#No relationship
+
+ggplot (spread_data_lightning, aes (x = proj_age_1, y = size_ha)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha)",
+        y = "Fire size (ha)",
+        x = "Projected Age")
+```
+
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "proj_height_1", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "Stand Height")
+#No relationship; potential weak positive relationship
+
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = proj_height_1)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha)",
+        x = "Fire size (ha)",
+        y = "Projected Height")
+#Very weak hump-shaped pattern
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "proj_height_1", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Stand Height") + yscale("log10", .format = TRUE)
+#No relationship; potential weak positive relationship
+
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = proj_height_1)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha)",
+        y = "Fire size (ha)",
+        x = "Projected Height")
+```
+
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "live_stand_volume_125", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "Live Stand Volume")
+#No relationship
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = live_stand_volume_125)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fore size (ha)",
+        x = "Fire size (ha)",
+        y = "Live Stand Volume")
+#Slight negative trend if anything
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "live_stand_volume_125", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Live Stand Volume") + yscale("log10", .format = TRUE)
+#No relationship
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = live_stand_volume_125)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fore size (ha)",
+        y = "Fire size (ha)",
+        x = "Live Stand Volume")
+```
+
+#2. Topography
+
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "slope", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "Slope (degrees)")
+#Negative relationship
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = slope)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by Slope",
+        x = "Fire size (ha)",
+        y = "Slope")
+#More or less linear and negative except one outlier at end
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "slope", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Slope (degrees)") + yscale("log10", .format = TRUE)
+#Negative relationship
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = slope)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by Slope",
+        y = "Fire size (ha)",
+        x = "Slope")
+```
+
+Remember that aspect is now the cos(aspect) bound by -1 and 1
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "aspect", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "aspect (degrees)")
+#positive relationship
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = aspect)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by aspect",
+        x = "Fire size (ha)",
+        y = "aspect")
+#Generally a positive linear trend
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "aspect", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "aspect (degrees)") + yscale("log10", .format = TRUE)
+#positive relationship
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = aspect)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by aspect",
+        y = "Fire size (ha)",
+        x = "aspect")
+```
+
+
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "elevation", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "elevation")
+#Little to no relationship
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = elevation)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by elevation",
+        x = "Fire size (ha)",
+        y = "elevation")
+#Smile shaped but largely only for outlier
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "elevation", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "elevation") + yscale("log10", .format = TRUE)
+#Little to no relationship
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = elevation)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by elevation",
+        y = "Fire size (ha)",
+        x = "elevation")
+```
+
+#Climate
+For climatic variables, remember that "climate1" and "climate2" are different for the different NDTs, so these should be assessed separately. Below is a quick assessment of climate1 and climate2 all together, but not an accurate assessment.
+
+```{r}
+
+#Take just a temperature one since MDC is in there
+ggscatter(spread_data_lightning, y = "size_ha", x = "mean_tave06_tave07_tave08_tave09", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "mean_tave06_tave07_tave08_tave09") + yscale("log10", .format = TRUE)
+#Negative relationship when all grouped together
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = mean_tave06_tave07_tave08_tave09)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by climate1",
+        y = "Fire size (ha)",
+        x = "mean_tave06_tave07_tave08_tave09")
+
+#Precip
+ggscatter(spread_data_lightning, y = "size_ha", x = "mean_ppt05_ppt06_ppt07", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "mean_ppt05_ppt06_ppt07") + yscale("log10", .format = TRUE)
+```
+
+
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "climate2", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "climate2")
+#Negative relationship; only one NDT has a second variable here
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = climate2)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by climate2",
+        x = "Fire size (ha)",
+        y = "ppt05")
+#Negative relationship where data is clumped. Outlier is misleading for tail end
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "climate2", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "ppt05") + yscale("log10", .format = TRUE)
+#Negative relationship; only one NDT has a second variable here
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = climate2)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by climate2",
+        y = "Fire size (ha)",
+        x = "climate2")
+```
+
+#Wind speed
+
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "wind_atfire", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "wind_atfire")
+#Positive relationship
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = wind_atfire)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by wind_atfire",
+        x = "Fire size (ha)",
+        y = "wind_atfire")
+#Positive relationship where most data is clumped, then mostly flat.
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "wind_atfire", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Wind (km/hr)") + yscale("log10", .format = TRUE)
+#Positive relationship
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = wind_atfire)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by wind_atfire",
+        y = "Fire size (ha)",
+        x = "wind_atfire")
+```
+
+
+```{r}
+ggscatter(spread_data_lightning, x = "size_ha", y = "roads_km", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "Fire size (ha)", ylab = "Roads (km/km2)")
+#Negative relationship but weak
+
+ggplot (spread_data_lightning, aes (x = size_ha, y = roads_km)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        x = "Fire size (ha)",
+        y = "roads_km")
+#Complicated
+
+#Reverse axes
+ggscatter(spread_data_lightning, y = "size_ha", x = "roads_km", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Roads (km/km2)") + yscale("log10", .format = TRUE)
+#Negative relationship but weak
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = roads_km)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        y = "Fire size (ha)",
+        x = "roads_km")
+```
+
+From the above, I would expect that VRI variables have very little impact on spread, but that topography, climate and wind speed will all influence fire size. Will also need to assess vegetation type.
+
+```{r}
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_any", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Any Infrastructure") + yscale("log2", .format = TRUE)
+#Negative relationship but weak
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = dist_any)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        y = "Fire size (ha)",
+        x = "Distance to Any Infrastructure")
+
+#
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_mun", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Municipalities") + yscale("log2", .format = TRUE)
+#Negative relationship but weak
+
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_mun", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Municipalities") + yscale("log10", .format = TRUE)
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = dist_mun)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        y = "Fire size (ha)",
+        x = "Distance to Municipalities")
+
+#
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_mun", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Municipalities") + yscale("log2", .format = TRUE)
+#Negative relationship but weak
+
+#
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_dam", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Dams") + yscale("log10", .format = TRUE)
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = dist_dam)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        y = "Fire size (ha)",
+        x = "Distance to Dams")
+
+#
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_mine", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Mines") + yscale("log10", .format = TRUE)
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = dist_mine)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        y = "Fire size (ha)",
+        x = "Distance to Mines")
+
+#
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_pow", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Power Lines") + yscale("log10", .format = TRUE)
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = dist_pow)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        y = "Fire size (ha)",
+        x = "Distance to Power Lines")
+
+#
+ggscatter(spread_data_lightning, y = "size_ha", x = "dist_nat", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Natural Power") + yscale("log10", .format = TRUE)
+
+ggplot (spread_data_lightning, aes (y = size_ha, x = dist_nat)) +
+  geom_point () +
+  geom_smooth () +
+  labs (title = "Fire size (ha) by roads_km",
+        y = "Fire size (ha)",
+        x = "Distance to Natural Power")
+
+```
+
+#Since all had to be on a log scale, try log transforming (base 10, and ln)
+```{r}
+spread_data_lightning$LNwind<-log(spread_data_lightning$wind_atfire)
+spread_data_lightning$LNclimate1<-log(spread_data_lightning$climate1)
+spread_data_lightning$LNclimate2<-log(spread_data_lightning$climate2)
+spread_data_lightning$LNstand_age<-log(spread_data_lightning$proj_age_1)
+spread_data_lightning$LNstand_height<-log(spread_data_lightning$proj_height_1)
+spread_data_lightning$LNstand_volume<-log(spread_data_lightning$live_stand_volume_125)
+spread_data_lightning$LNdist_mun<-log(spread_data_lightning$dist_mun)
+spread_data_lightning$LNdist_mine<-log(spread_data_lightning$dist_mine)
+spread_data_lightning$LNdist_nat<-log(spread_data_lightning$dist_nat)
+spread_data_lightning$LNdist_dam<-log(spread_data_lightning$dist_dam)
+spread_data_lightning$LNdist_pow<-log(spread_data_lightning$dist_pow)
+spread_data_lightning$LNdist_any<-log(spread_data_lightning$dist_any)
+
+```
+
+Plot also using LNfire.
+
+```{r}
+###Infrastructure
+# Mun
+ggscatter(spread_data_lightning, y = "LNsize_ha", x = "LNdist_mun", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "ln(Distance to Municipalities)") 
+
+ggscatter(spread_data_lightning, y = "LNsize_ha", x = "dist_mun", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Municipalities") 
+
+# Nat
+ggscatter(spread_data_lightning, y = "LNsize_ha", x = "LNdist_nat", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "ln(Distance to Natural Power)") 
+
+ggscatter(spread_data_lightning, y = "LNsize_ha", x = "dist_nat", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          ylab = "Fire size (ha)", xlab = "Distance to Natural Power") 
+
+
+```
+
+
+```{r}
+spread_data_person$LNwind<-log(spread_data_person$wind_atfire)
+spread_data_person$LNclimate1<-log(spread_data_person$climate1)
+spread_data_person$LNclimate2<-log(spread_data_person$climate2)
+spread_data_person$LNstand_age<-log(spread_data_person$proj_age_1)
+spread_data_person$LNstand_height<-log(spread_data_person$proj_height_1)
+spread_data_person$LNstand_volume<-log(spread_data_person$live_stand_volume_125)
+spread_data_person$LNdist_mun<-log(spread_data_person$dist_mun)
+spread_data_person$LNdist_mine<-log(spread_data_person$dist_mine)
+spread_data_person$LNdist_nat<-log(spread_data_person$dist_nat)
+spread_data_person$LNdist_dam<-log(spread_data_person$dist_dam)
+spread_data_person$LNdist_pow<-log(spread_data_person$dist_pow)
+spread_data_person$LNdist_any<-log(spread_data_person$dist_any)
+```
+
+
+#Separate into treed and not treed
+
+```{r}
+spread_data_lightning_t<-subset(spread_data_lightning, spread_data_lightning$bclcs_level_2=="T")
+spread_data_lightning_nt<-subset(spread_data_lightning, spread_data_lightning$bclcs_level_2=="N")
+
+spread_data_person_t<-subset(spread_data_person, spread_data_person$bclcs_level_2=="T")
+spread_data_person_nt<-subset(spread_data_person, spread_data_person$bclcs_level_2=="N")
+
+
+table(spread_data_lightning_nt$bclcs_level_2)
+```
+
+#Make transformation in treed and non-treed data
+```{r}
+spread_data_lightning_t$LNsize_ha<-log(spread_data_lightning_t$size_ha)
+spread_data_lightning_nt$LNsize_ha<-log(spread_data_lightning_nt$size_ha)
+
+spread_data_person_t$LNsize_ha<-log(spread_data_person_t$size_ha)
+spread_data_person_nt$LNsize_ha<-log(spread_data_person_nt$size_ha)
+```
+
+#Save prepped data files.
+```{r}
+write.csv(spread_data_lightning_t, file="D:\\Fire\\fire_data\\raw_data\\spread_data_lightning_t_Nov.csv")
+
+write.csv(spread_data_lightning_nt, file="D:\\Fire\\fire_data\\raw_data\\spread_data_lightning_nt_Nov.csv")
+
+write.csv(spread_data_person_t, file="D:\\Fire\\fire_data\\raw_data\\spread_data_person_t_Nov.csv")
+
+write.csv(spread_data_person_nt, file="D:\\Fire\\fire_data\\raw_data\\spread_data_person_nt_Nov.csv")
+```
+
+
+Combine all four datasets together with new method.
+
+```{r}
+#First ensure all same columns
+names(spread_data_lightning_t)
+names(spread_data_lightning_nt)
+names(spread_data_person_t)
+names(spread_data_person_nt)
+
+#Remove mdc_atfire_2 and fire_zone
+spread_data_lightning_t<-spread_data_lightning_t[-132]
+spread_data_lightning_t<-spread_data_lightning_t[-132]
+spread_data_lightning_nt<-spread_data_lightning_nt[-132]
+spread_data_lightning_nt<-spread_data_lightning_nt[-132]
+
+#Remove escape10 and size_ha_x100
+spread_data_lightning_t<-spread_data_lightning_t[-149]
+spread_data_lightning_t<-spread_data_lightning_t[-145]
+spread_data_lightning_nt<-spread_data_lightning_nt[-149]
+spread_data_lightning_nt<-spread_data_lightning_nt[-145]
+
+spread_data_ALL<-rbind(spread_data_lightning_t, spread_data_lightning_nt, spread_data_person_t, spread_data_person_nt)
+```
+
+```{r}
+write.csv(spread_data_ALL, file="D:\\Fire\\fire_data\\raw_data\\spread_data_ALL_Dec.csv")
+
+```
+
+#Continue work with combined data
+
+```{r}
+spread_data_ALL<- read.csv(file="D:\\Fire\\fire_data\\raw_data\\spread_data_ALL_Dec.csv")
+```
+
+
+##Determine best climate variable for spread
+Now we create variable categories for model selection on climate variables
+
+```{r}
+variables<- c("tmax05","tmax06", "tmax07", "tmax08", "tmax09", 
+              "mean_tmax05_tmax06","mean_tmax06_tmax07", "mean_tmax07_tmax08", "mean_tmax08_tmax09", 
+              "mean_tmax05_tmax06_tmax07", "mean_tmax06_tmax07_tmax08","mean_tmax07_tmax08_tmax09", 
+              "mean_tmax05_tmax06_tmax07_tmax08", "mean_tmax06_tmax07_tmax08_tmax09", "mean_tmax05_tmax06_tmax07_tmax08_tmax09",
+              
+              "tave05","tave06", "tave07", "tave08", "tave09", 
+              "mean_tave05_tave06","mean_tave06_tave07", "mean_tave07_tave08", "mean_tave08_tave09", 
+              "mean_tave05_tave06_tave07", "mean_tave06_tave07_tave08","mean_tave07_tave08_tave09", 
+              "mean_tave05_tave06_tave07_tave08", "mean_tave06_tave07_tave08_tave09", "mean_tave05_tave06_tave07_tave08_tave09",
+              
+              "ppt05","ppt06", "ppt07", "ppt08", "ppt09",
+              "mean_ppt05_ppt06", "mean_ppt06_ppt07", "mean_ppt07_ppt08", "mean_ppt08_ppt09", 
+              "mean_ppt05_ppt06_ppt07","mean_ppt06_ppt07_ppt08", "mean_ppt07_ppt08_ppt09",
+              "mean_ppt05_ppt06_ppt07_ppt08", "mean_ppt06_ppt07_ppt08_ppt09",
+              "mean_ppt05_ppt06_ppt07_ppt08_ppt09",
+              
+              "mdc_05","mdc_06", "mdc_07", "mdc_08", "mdc_09",
+              "mean_mdc05_mdc06", "mean_mdc06_mdc07", "mean_mdc07_mdc08", "mean_mdc08_mdc09", 
+              "mean_mdc05_mdc06_mdc07", "mean_mdc06_mdc07_mdc08", "mean_mdc07_mdc08_mdc09", 
+              "mean_mdc05_mdc06_mdc07_mdc08", "mean_mdc06_mdc07_mdc08_mdc09",
+              "mean_mdc05_mdc06_mdc07_mdc08_mdc09")
+
+ variables1<-c("tmax05", "tmax06", "tmax07", "tmax08", "tmax09",
+               "tave05", "tave06", "tave07", "tave08", "tave09"
+#               "tmax05","tmax06", "tmax07", "tmax08", "tmax09",
+#               "mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09"
+)
+variables2<-c("ppt05", "ppt06", "ppt07", "ppt08", "ppt09",
+              "ppt05", "ppt06", "ppt07", "ppt08", "ppt09"
+              # "mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09",
+              # "ppt05", "ppt06", "ppt07", "ppt08", "ppt09"
+) 
+#
+```
+
+Run the loop to determine the best climate variable for each of the five Natural Disturbance Types for lightning-caused fires.
+
+```{r}
+#################################
+#### Running simple linear model: all lightning, person, treed and non treed
+#################################
+# create loop to do variable selection of climate data
+unique(spread_data_ALL$ntrl_ds)
+zones_spread<- c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5")
+
+filenames<-list()
+
+#Begin loop
+for (h in 1:length(zones_spread)) {
+  dat2<- spread_data_ALL %>% dplyr::filter(ntrl_ds ==zones_spread[h])
+  
+#Create frame of AIC table
+# summary table
+table.glm.climate.simple <- data.frame (matrix (ncol = 3, nrow = 0))
+colnames (table.glm.climate.simple) <- c ("Zone", "Variable", "AIC")
+
+model_dat<- dat2 %>% dplyr::select(LNsize_ha)
+
+model1 <- lm (LNsize_ha ~ 1 ,
+               data=model_dat)
+
+table.glm.climate.simple[1,1]<-zones_spread[h]
+table.glm.climate.simple[1,2]<-"intercept"
+table.glm.climate.simple[1,3]<-extractAIC(model1)[2]
+
+
+for (i in 1: length(variables)){
+  print(paste((variables[i]), (zones_spread[h]), sep=" "))
+  
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, variables[i])
+  
+  model1 <- lm (LNsize_ha ~ . ,
+                 data=model_dat)
+  
+  table.glm.climate.simple[i+1,1]<-zones_spread[h]
+  table.glm.climate.simple[i+1,2]<-variables[i]
+  table.glm.climate.simple[i+1,3]<-extractAIC(model1)[2]
+  
+}
+
+# This is an addition to the table above allowing combinations of temperature and precipitation
+
+for (i in 1: length(variables1)){
+  print(paste((variables1[i]), variables2[i], (zones_spread[h]), sep=" "))
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, variables1[i], variables2[i])
+  
+  model2 <- lm (LNsize_ha ~ . ,
+                 data=model_dat)
+  
+  table.glm.climate.simple[(i+length(variables))+1,1]<-zones_spread[h]
+  table.glm.climate.simple[(i+length(variables))+1,2]<-paste0(variables1[i],"+", variables2[i])
+  table.glm.climate.simple[(i+length(variables))+1,3]<-extractAIC(model2)[2]
+  
+  
+}
+
+for (i in 1: length(variables1)){
+  print(paste((variables1[i]), "x",variables2[i], (zones_spread[h]), sep=" "))
+
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, variables1[i], variables2[i])
+ 
+
+  model2 <- lm (LNsize_ha ~ (.)^2,
+                 data=model_dat)
+
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones_spread[h]
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-extractAIC(model2)[2]
+
+
+}
+table.glm.climate1<-table.glm.climate.simple %>% drop_na(AIC)
+
+
+#assign file names to the work
+nam1<-paste("AIC",zones_spread[h],"run",h,sep="_") #defining the name
+assign(nam1,table.glm.climate.simple)
+filenames<-append(filenames,nam1)
+}
+
+##
+
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(filenames)
+aic_bec_spread<-mkFrameList(n) 
+
+aic_bec_spread_summary<- aic_bec_spread %>%
+  group_by(Zone, Variable) 
+
+aic_bec_spread_summary2<- aic_bec_spread_summary %>%
+  group_by(Zone) %>%
+  mutate(deltaAIC=AIC-min(AIC))
+
+aic_bec_spread_summary2
+
+```
+Save to computer.
+```{r}
+write.csv(aic_bec_spread_summary2, file="D:\\Fire\\fire_data\\raw_data\\aic_bec_spread_climate_summary_sizeha.csv")
+```
+
+
+#Now that we know the best variables for fire size, we can update climate 1 and climate 2 for this data.
+
+```{r}
+
+## Create empty vector
+spread_data_ALL$climate1<-0
+head(spread_data_ALL)
+
+spread_data_ALL<-spread_data_ALL %>%
+    mutate(climate1 = case_when(ntrl_ds_numeric == 1 ~ tmax08, # NDT1
+                                ntrl_ds_numeric == 2 ~ tave09, #NDT2
+                                ntrl_ds_numeric == 3 ~ tmax06, #NDT3
+                                ntrl_ds_numeric == 4 ~ tmax05, # NDT4
+                                ntrl_ds_numeric == 5 ~ tave08, # NDT5
+                                TRUE ~ NA_real_))
+
+#Repeat for climate2
+spread_data_ALL$ppt05<-as.numeric(spread_data_ALL$ppt05)
+spread_data_ALL$ppt06<-as.numeric(spread_data_ALL$ppt06)
+spread_data_ALL$ppt08<-as.numeric(spread_data_ALL$ppt08)
+spread_data_ALL$ppt09<-as.numeric(spread_data_ALL$ppt09)
+
+spread_data_ALL$climate2<-0
+head(spread_data_ALL)
+
+spread_data_ALL<-spread_data_ALL %>%
+    mutate(climate2 = case_when(ntrl_ds_numeric == 1 ~ ppt08, # NDT1
+                                ntrl_ds_numeric == 2 ~ ppt09, #NDT2
+                                ntrl_ds_numeric == 3 ~ ppt06, #NDT3
+                                ntrl_ds_numeric == 4 ~ ppt05, # NDT4
+                                ntrl_ds_numeric == 5 ~ ppt08, # NDT5
+                                TRUE ~ NA_real_))
+
+```
+
+#Repeat above for all NDTs together 
+
+```{r}
+#################################
+#### Running simple linear model: all lightning, person, treed and non treed
+#################################
+# create loop to do variable selection of climate data
+spread_data_ALL$ONE<-c(1)
+ONE<-spread_data_ALL$ONE
+
+filenames<-list()
+
+#Begin loop
+for (h in 1) {
+  dat2<- spread_data_ALL
+  
+#Create frame of AIC table
+# summary table
+table.glm.climate.simple <- data.frame (matrix (ncol = 3, nrow = 0))
+colnames (table.glm.climate.simple) <- c ("Zone", "Variable", "AIC")
+
+model_dat<- dat2 %>% dplyr::select(LNsize_ha)
+
+model1 <- lm (LNsize_ha ~ 1 ,
+               data=model_dat)
+
+table.glm.climate.simple[1,1]<-"ALLNDT"
+table.glm.climate.simple[1,2]<-"intercept"
+table.glm.climate.simple[1,3]<-extractAIC(model1)[2]
+
+
+for (i in 1: length(variables)){
+  print(paste((variables[i]), sep=" "))
+  
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, variables[i])
+  
+  model1 <- lm (LNsize_ha ~ . ,
+                 data=model_dat)
+  
+  table.glm.climate.simple[i+1,1]<-"ALLNDT"
+  table.glm.climate.simple[i+1,2]<-variables[i]
+  table.glm.climate.simple[i+1,3]<-extractAIC(model1)[2]
+  
+}
+
+# This is an addition to the table above allowing combinations of temperature and precipitation
+
+for (i in 1: length(variables1)){
+  print(paste((variables1[i]), variables2[i], sep=" "))
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, variables1[i], variables2[i])
+  
+  model2 <- lm (LNsize_ha ~ . ,
+                 data=model_dat)
+  
+  table.glm.climate.simple[(i+length(variables))+1,1]<-"ALLNDT"
+  table.glm.climate.simple[(i+length(variables))+1,2]<-paste0(variables1[i],"+", variables2[i])
+  table.glm.climate.simple[(i+length(variables))+1,3]<-extractAIC(model2)[2]
+  
+  
+}
+
+for (i in 1: length(variables1)){
+  print(paste((variables1[i]), "x",variables2[i], sep=" "))
+
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, variables1[i], variables2[i])
+ 
+
+  model2 <- lm (LNsize_ha ~ (.)^2,
+                 data=model_dat)
+
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-"ALLNDT"
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-extractAIC(model2)[2]
+
+
+}
+table.glm.climate1<-table.glm.climate.simple %>% drop_na(AIC)
+
+
+#assign file names to the work
+nam1<-paste("AIC","run",h,sep="_") #defining the name
+assign(nam1,table.glm.climate.simple)
+filenames<-append(filenames,nam1)
+}
+
+##
+
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(filenames)
+aic_bec_spread<-mkFrameList(n) 
+
+aic_bec_spread_summary_2<- aic_bec_spread %>%
+  group_by(Variable) 
+
+aic_bec_spread_summary_2b<- aic_bec_spread_summary_2 %>%
+  mutate(deltaAIC=AIC-min(AIC))
+
+#Above not working at the moment, so do manually
+min(aic_bec_spread_summary_2$AIC) #8627.998
+aic_bec_spread_summary_2$minAIC<-min(aic_bec_spread_summary_2$AIC)
+aic_bec_spread_summary_2$minAIC
+
+aic_bec_spread_summary_2$deltaAIC<-aic_bec_spread_summary_2$AIC -aic_bec_spread_summary_2$minAIC
+
+aic_bec_spread_summary_2b<-aic_bec_spread_summary_2
+aic_bec_spread_summary_2b
+
+```
+Save to computer.
+```{r}
+write.csv(aic_bec_spread_summary_2b, file="D:\\Fire\\fire_data\\raw_data\\aic_bec_spread_climate_summary_sizeha_ALLNDT.csv")
+```
+
+Best variable:
+ 1. mean_tmax06_tmax07_tmax08_tmax09
+ 2. tmax06xppt06
+
+#Ensure that dist_any contains the relevant values and not all
+
+```{r}
+spread_data_ALL$dist_any_<-0
+spread_data_ALL$dist_any<-0
+
+spread_data_ALL$dist_any_<-
+  ifelse(spread_data_ALL$dist_mine<spread_data_ALL$dist_pow, spread_data_ALL$dist_mine, spread_data_ALL$dist_pow)
+str(spread_data_ALL$dist_any_)
+
+spread_data_ALL$dist_any<-
+  ifelse (spread_data_ALL$dist_any_<spread_data_ALL$dist_mun, spread_data_ALL$dist_any_, spread_data_ALL$dist_mun)
+str(spread_data_ALL$dist_any)
+
+spread_data_ALL$dist_any_<-
+  ifelse (spread_data_ALL$dist_any<spread_data_ALL$dist_dam, spread_data_ALL$dist_any, spread_data_ALL$dist_dam)
+str(spread_data_ALL$dist_any_)
+
+spread_data_ALL$dist_infra<-spread_data_ALL$dist_any_
+hist(spread_data_ALL$dist_infra)
+```
+
+Save data.
+```{r}
+write.csv(spread_data_ALL, file="D:\\Fire\\fire_data\\raw_data\\spread_data_ALL_Dec2021.csv")
+```
+
+
+
+
+########### IF Not Separated by NDT ##############
+#Rerun above but not by NDT
+
+```{r}
+#################################
+#### Running simple linear model: all lightning, person, treed and non treed
+#################################
+# create loop to do variable selection of climate data
+filenames<-list()
+spread_data_ALL$ALL<-1
+
+#Begin loop
+for (h in 1:length(ALL)) {
+  dat2<- spread_data_ALL
+  
+#Create frame of AIC table
+# summary table
+table.glm.climate.simple <- data.frame (matrix (ncol = 2, nrow = 0))
+colnames (table.glm.climate.simple) <- c ("Variable", "AIC")
+
+model_dat<- dat2 %>% dplyr::select(LNsize_ha)
+
+model1 <- lm (LNsize_ha ~ 1 ,
+               data=model_dat)
+
+table.glm.climate.simple[1,1]<-"intercept"
+table.glm.climate.simple[1,2]<-extractAIC(model1)[2]
+
+
+for (i in 1: length(variables)){
+  print(paste((variables[i]), sep=" "))
+  
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, variables[i])
+  
+  model1 <- lm (LNsize_ha ~ . ,
+                 data=model_dat)
+  
+  table.glm.climate.simple[i+1,1]<-variables[i]
+  table.glm.climate.simple[i+1,2]<-extractAIC(model1)[2]
+  
+}
+
+# This is an addition to the table above allowing combinations of temperature and precipitation
+
+for (i in 1: length(variables1)){
+  print(paste((variables1[i]), variables2[i], sep=" "))
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, variables1[i], variables2[i])
+  
+  model2 <- lm (LNsize_ha ~ . ,
+                 data=model_dat)
+  
+  table.glm.climate.simple[(i+length(variables))+1,1]<-paste0(variables1[i],"+", variables2[i])
+  table.glm.climate.simple[(i+length(variables))+1,2]<-extractAIC(model2)[2]
+  
+  
+}
+
+for (i in 1: length(variables1)){
+  print(paste((variables1[i]), "x",variables2[i], sep=" "))
+
+  model_dat<- dat2 %>% dplyr::select(LNsize_ha, variables1[i], variables2[i])
+ 
+
+  model2 <- lm (LNsize_ha ~ (.)^2,
+                 data=model_dat)
+
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-paste0(variables1[i],"x", variables2[i])
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-extractAIC(model2)[2]
+
+
+}
+table.glm.climate1<-table.glm.climate.simple %>% drop_na(AIC)
+
+
+#assign file names to the work
+nam1<-paste("AIC","run",h,sep="_") #defining the name
+assign(nam1,table.glm.climate.simple)
+filenames<-append(filenames,nam1)
+}
+
+##
+
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(filenames)
+aic_bec_spread<-mkFrameList(n) 
+
+aic_bec_spread_summary<- aic_bec_spread %>%
+  group_by(Variable) 
+
+aic_bec_spread_summary$ALL<-1
+
+aic_bec_spread_summary2<- aic_bec_spread_summary %>%
+    group_by(ALL) %>%
+  mutate(deltaAIC=AIC-min(AIC))
+
+aic_bec_spread_summary2
+
+```
+
+Save to computer.
+```{r}
+write.csv(aic_bec_spread_summary2, file="D:\\Fire\\fire_data\\raw_data\\aic_bec_spread_climate_summary_sizeha_ALLNDTs.csv")
+```
+
+
+#Now that we know the best variables for fire size, we can update climate 1 and climate 2 for this data.
+
+```{r}
+
+## Create empty vector
+spread_data_ALL$climate1<-0
+head(spread_data_ALL)
+
+spread_data_ALL<-spread_data_ALL %>%
+    mutate(climate1 = case_when(ntrl_ds_numeric == 1 ~ mean_tmax06_tmax07_tmax08_tmax09, # NDT1
+                                ntrl_ds_numeric == 2 ~ mean_tmax06_tmax07_tmax08_tmax09, #NDT2
+                                ntrl_ds_numeric == 3 ~ mean_tmax06_tmax07_tmax08_tmax09, #NDT3
+                                ntrl_ds_numeric == 4 ~ mean_tmax06_tmax07_tmax08_tmax09, # NDT4
+                                ntrl_ds_numeric == 5 ~ mean_tmax06_tmax07_tmax08_tmax09, # NDT5
+                                TRUE ~ NA_real_))
+
+```
+No climate2 needed; if still in, then remove
+
+```{r}
+names(spread_data_ALL)
+spread_data_ALL<-spread_data_ALL[-137]
+```
+
+#Add quadratic terms for variables of interest
+
+#Inspect relationships with key variables
+Start with Climate1. The results here show that the relationship with climate 1 is indeed linear; no quadratic term needed.
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = climate1, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects Climate1 by NDT",
+        x = "LN(fire size)",
+        y = "Climate1")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+For climate2, also look predominately linear, with a slight curve perhaps for NDT1 (hump)
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = climate2, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects Climate2 by NDT",
+        x = "LN(fire size)",
+        y = "Climate2")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+MDC_atfire mostly linear, except there is a lag at the start wherein it remains flat until a fire size of ~ ln(3). Add quadratic term.
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = mdc_atfire, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects mdc_atfire by NDT",
+        x = "LN(fire size)",
+        y = "mdc_atfire")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+```{r}
+spread_data_ALL$mdc_atfire2<-spread_data_ALL$mdc_atfire^2
+spread_data_ALL$mdc_atfire2
+```
+
+
+Projected height looks pretty linear for all categories
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = proj_height_1, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects proj_height_1 by NDT",
+        x = "LN(fire size)",
+        y = "proj_height_1")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+Projected age also looks linear.
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = proj_age_1, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects proj_age_1 by NDT",
+        x = "LN(fire size)",
+        y = "proj_age_1")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = live_stand_volume_125, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects live_stand_volume_125 by NDT",
+        x = "LN(fire size)",
+        y = "live_stand_volume_125")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+The relationship with slope is non-linear in most. 
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = slope, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects slope by NDT",
+        x = "LN(fire size)",
+        y = "slope")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+```{r}
+spread_data_ALL$slope2<-spread_data_ALL$slope^2
+```
+
+Aspect linear.
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = aspect, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects aspect by NDT",
+        x = "LN(fire size)",
+        y = "aspect")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+Elevation linear.
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = elevation, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects elevation by NDT",
+        x = "LN(fire size)",
+        y = "elevation")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+Linear except in NDT5, then very unusual curve.
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = dist_infra, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects dist_infra by NDT",
+        x = "LN(fire size)",
+        y = "dist_infra")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+```{r}
+spread_data_ALL$dist_infra2<-spread_data_ALL$dist_infra^2
+```
+
+Wind linear.
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = wind_atfire, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects wind_atfire by NDT",
+        x = "LN(fire size)",
+        y = "wind_atfire")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+Roads linear, but definitely some outliers. 
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = roads_km, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects roads_km by NDT",
+        x = "LN(fire size)",
+        y = "roads_km")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+
+```
+
+Tdif linear.
+
+```{r}
+ggplot (spread_data_ALL, aes (x = LNsize_ha, y = Tdif_atfire, colour = factor(ntrl_ds))) +
+  geom_point () +
+  geom_smooth (se=F) +
+  labs (title = "Effects Tdif_atfire by NDT",
+        x = "LN(fire size)",
+        y = "Tdif_atfire")  +
+  scale_colour_discrete (name = "NDT", labels = c("NDT1", "NDT2", "NDT3", "NDT4", "NDT5"))
+```
+
+
+Save data.
+```{r}
+write.csv(spread_data_ALL, file="D:\\Fire\\fire_data\\raw_data\\spread_data_ALL_Dec2021_CombinedNDT.csv")
+```
+
+

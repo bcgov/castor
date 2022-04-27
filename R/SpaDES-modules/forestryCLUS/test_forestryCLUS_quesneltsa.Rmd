@@ -61,9 +61,7 @@ parameters <- list(
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
   forestryCLUS = list(harvestBlockPriority = " age DESC ", # "dist, age DESC, vol DESC"
-                      reportHarvestConstraints = T,
-                      adjacencyConstraint = 3,
-                      salvageRaster = 'rast.dead_vol_125_2020'),
+                      reportHarvestConstraints = T),
   growingStockCLUS = list (periodLength = 5),
   uploaderCLUS = list(aoiName = 'test_quesnel', # name of the schema that gets uplaoded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
@@ -82,32 +80,27 @@ modules <- list("dataLoaderCLUS",
 
 
 #scenario = data.table (name = "quesnel_bau", description = "Business as usual. Harvest flow = 1,900,000 m3/yr. Adjacency = 3m. Oldest first.")
-scenario = data.table (name = "bau", description = "bau")
+scenario = data.table (name = "bau_ca", description = "bau")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
-                                     partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', 
-                                     period = rep( seq (from = 1, 
-                                                      to = 40, 
-                                                      by = 1),
-                                                1), 
-                                     flow = 9500000, partition_type = 'live'),
-                              data.table(compartment ="Quesnel_TSA",
-                                     partition = ' (salvage_vol > 100 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
-                                     period = rep( seq (from = 1, 
-                                                      to = 2, 
-                                                      by = 1),
-                                                1), 
-                                     flow = 5000000, partition_type = 'dead') # 1,900,000 m3/yr
-))
-
-harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
-                                     partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5)   ', 
+                                     partition = ' vol > 150 and manage_type > 0 ', 
                                      period = rep( seq (from = 1, 
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
                                      flow = 10000000, partition_type = 'live')))
 
+if(FALSE){
+  harvestFlow <- rbindlist(list(data.table(compartment ="Quesnel_TSA",
+                                     partition = ' (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5)   ', 
+                                     period = rep( seq (from = 1, 
+                                                      to = 40, 
+                                                      by = 1),
+                                                1), 
+                                     flow = 21000000, partition_type = 'live')
+#data.table(compartment ="Quesnel_TSA",partition = ' (salvage_vol > 100 and salvage_vol/(vol + salvage_vol) >= 0.5) ',  period = rep( seq (from = 1, to = 3, by = 1), 1),   flow = 5000000, partition_type = 'dead')
+                             ))
+ }
 objects <- list(harvestFlow = harvestFlow, scenario = scenario)
 
 paths <- list(cachePath = cacheDir,

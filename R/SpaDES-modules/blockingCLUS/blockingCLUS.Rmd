@@ -20,6 +20,9 @@ output: pdf_document
 
 # Purpose
 
+"The accuracy of any attempt to model a forest system depends largely upon
+the precision with which the site can be classified into homogeneous units" (Vanclay)
+
 This module groups pixels together to form harvest units. The purpose of this process is to specfiy the distribution of patches formed through forestry activities. For a greater description of this process and the calibration of this module go [here](https://github.com/bcgov/clus/blob/master/reports/harvest/draft-CLUS-blocking.md) 
 
 # Overview

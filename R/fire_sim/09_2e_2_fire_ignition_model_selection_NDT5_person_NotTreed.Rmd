@@ -1057,3 +1057,303 @@ Save sd coefficient table.
 write.csv(top_mod_table_NDT5_ignite_person_NT_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT5_ignite_person_NT_sd.csv")
 ```
 
+
+#Repeat above with reduced variables
+```{r}
+ignition_person_nt_NDT5<-subset(dat_person_nt, dat_person_nt$ntrl_ds=="NDT5")
+table(ignition_person_nt_NDT5$vegtype2)
+hist(ignition_person_nt_NDT5$roads_km)
+ignition_person_nt_NDT5$roads_km #Mostly 0s, so remove from model
+
+#Divide data into training and valid
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(ignition_person_nt_NDT5$fire_pres, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- ignition_person_nt_NDT5[ trainIndex,] #only 69 data points, so below too long
+   Valid <- ignition_person_nt_NDT5[-trainIndex,]
+
+#Run model using dat1
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + aspect_cos + elevation + slope:aspect_cos + aspect_cos:elevation + dist_infra, family = binomial, data = dat1) 
+
+AIC(model.NDT5) #52.1
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.67 
+   
+Anova(model.NDT5, type=3)
+Anova(model.NDT5, type=3, singular.ok = TRUE) 
+
+#Remove least sigificant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:climate2 + climate1:vegtype2 + climate2:vegtype2 + slope + aspect_cos + elevation + slope:aspect_cos + dist_infra, family = binomial, data = dat1) 
+
+AIC(model.NDT5) #50.4
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.67 
+   
+Anova(model.NDT5, type=3)
+Anova(model.NDT5, type=3, singular.ok = TRUE) 
+
+#Remove least sigificant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + climate2:vegtype2 + slope + aspect_cos + elevation + slope:aspect_cos + dist_infra, family = binomial, data = dat1) 
+
+AIC(model.NDT5) #48.6
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.38 --> see if additional ierations improve; otherwise put climate interaction back in
+   
+Anova(model.NDT5, type=3)
+Anova(model.NDT5, type=3, singular.ok = TRUE) 
+
+#Remove least sigificant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + slope + aspect_cos + elevation + slope:aspect_cos + dist_infra, family = binomial, data = dat1) 
+
+AIC(model.NDT5) #46.8
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.38 --> see if additional ierations improve; otherwise put climate interaction back in
+   
+Anova(model.NDT5, type=3)
+Anova(model.NDT5, type=3, singular.ok = TRUE) 
+
+#Remove least sigificant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + slope + aspect_cos + elevation + dist_infra, family = binomial, data = dat1) 
+
+AIC(model.NDT5) #46.2
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.46 --> see if additional ierations improve; otherwise put climate interaction back in
+   
+Anova(model.NDT5, type=3)
+Anova(model.NDT5, type=3, singular.ok = TRUE) 
+
+#Remove least sigificant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2 + slope + aspect_cos + elevation, family = binomial, data = dat1) 
+
+AIC(model.NDT5) #44.8
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.58 --> see if additional ierations improve; otherwise put climate interaction back in
+   
+Anova(model.NDT5, type=3)
+Anova(model.NDT5, type=3, singular.ok = TRUE) 
+
+#Remove least sigificant
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + vegtype2 + climate1:vegtype2  + aspect_cos + elevation, family = binomial, data = dat1) 
+
+AIC(model.NDT5) #42.8
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.59 --> see if additional ierations improve; otherwise put climate interaction back in
+   
+Anova(model.NDT5, type=3)
+Anova(model.NDT5, type=3, singular.ok = TRUE) 
+
+#Add climate interaction back
+model.NDT5<-glm(fire_pres ~ climate1 + climate2 + climate1:climate2 + vegtype2 + climate1:vegtype2  + aspect_cos + elevation, family = binomial, data = dat1) 
+
+AIC(model.NDT5) #44.8
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.59 --> Did not help
+   
+Anova(model.NDT5, type=3)
+Anova(model.NDT5, type=3, singular.ok = TRUE) 
+
+#Compare without climate2
+model.NDT5<-glm(fire_pres ~ climate1 + vegtype2 + climate1:vegtype2  + aspect_cos + elevation, family = binomial, data = dat1) 
+
+AIC(model.NDT5) #42.6
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.67
+   
+Anova(model.NDT5, type=3)
+Anova(model.NDT5, type=3, singular.ok = TRUE) 
+
+```
+
+Remove NAs and run multiple times.
+
+```{r}
+#Remove NAs to ensure all same data used so we can compare AICs
+NDT5_ignition_nt<-ignition_person_nt_NDT5 %>% drop_na(climate1, vegtype2, aspect_cos, elevation)
+
+#Model
+model.NDT5<-glm(fire_pres ~ climate1 + vegtype2 + climate1:vegtype2  + aspect_cos + elevation, family = binomial, data = NDT5_ignition_nt) 
+
+Anova(model.NDT5, type=3)
+#Anova(model.NDT5, type=3, singular.ok = TRUE)
+
+# model diagnostic plots
+binnedplot (fitted(model.NDT5), 
+            residuals(model.NDT5), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+
+NDT5_ignition_nt$resids<-resid(model.NDT5)
+
+binnedplot (NDT5_ignition_nt$live_stand_volume_125, 
+            NDT5_ignition_nt$resids, 
+            nclass = NULL, 
+            xlab = "live stand volume", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+binnedplot (NDT5_ignition_nt$climate1, 
+            NDT5_ignition_nt$resids, 
+            nclass = NULL, 
+            xlab = "", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+# Diagnostic plots look good
+
+#Partial Residuals
+library(visreg)
+#climate1 + vegtype2 + climate1:vegtype2  + aspect_cos + elevation
+
+visreg(model.NDT5, "climate1", by="vegtype2", overlay=TRUE)
+visreg(model.NDT5, "climate1", by="vegtype2")
+visreg(model.NDT5, "vegtype2", by="climate1")
+
+visreg(model.NDT5, "aspect_cos")
+visreg(model.NDT5, "elevation")
+
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model.NDT5)
+
+#Create a new blank table and get AUC too
+top_mod_table_NDT5_person_t_ALL <- data.frame (matrix (ncol = 11, nrow = 0))
+colnames (top_mod_table_NDT5_person_t_ALL ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_vegtype2S", "coef_aspect_cos", "coef_elevation", "coef_climate1:vegtype2S", "AUC")
+```
+Let's run it 500 times to get good mean values.
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(NDT5_ignition_nt$fire_veg, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- NDT5_ignition_nt[ trainIndex,]
+   Valid <- NDT5_ignition_nt[-trainIndex,]
+   
+#Model   
+model.NDT5<-glm(fire_pres ~ climate1 + vegtype2 + climate1:vegtype2  + aspect_cos + elevation, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.NDT5, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire_pres"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_NDT5_person_t <- data.frame (matrix (ncol = 11, nrow = 0))
+colnames (top_mod_table_NDT5_person_t ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_vegtype2S", "coef_aspect_cos", "coef_elevation", "coef_climate1:vegtype2S", "AUC")
+
+##Add data for NDT5
+top_mod_table_NDT5_person_t[1,1]<-"person"
+top_mod_table_NDT5_person_t[1,2]<-"NDT5"
+top_mod_table_NDT5_person_t[1,3]<-"N"
+top_mod_table_NDT5_person_t[1,4]<-"fire_pres ~ climate1 + vegtype2 + climate1:vegtype2  + aspect_cos + elevation" 
+top_mod_table_NDT5_person_t[1,5]<- coef(model.NDT5)[1] #Intercept
+top_mod_table_NDT5_person_t[1,6]<- coef(model.NDT5)[2] #Climate variable 1
+top_mod_table_NDT5_person_t[1,7]<- coef(model.NDT5)[3] #Climate variable 2
+top_mod_table_NDT5_person_t[1,8]<- coef(model.NDT5)[4] #
+top_mod_table_NDT5_person_t[1,9]<- coef(model.NDT5)[5]
+top_mod_table_NDT5_person_t[1,10]<- coef(model.NDT5)[6]
+top_mod_table_NDT5_person_t[1,11]<- mod.auc
+
+top_mod_table_NDT5_person_t_ALL<-rbind(top_mod_table_NDT5_person_t_ALL, top_mod_table_NDT5_person_t)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_NDT5_person_t_ALL)
+```
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table_NDT5_person_t_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT5_person_NT_ALL_Jan.csv")
+```
+
+
+```{r}
+names(top_mod_table_NDT5_person_t_ALL)
+mean(top_mod_table_NDT5_person_t_ALL$AUC) #0.87
+
+top_mod_table_NDT5_ignite_person_NT_means<-top_mod_table_NDT5_person_t_ALL %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table_NDT5_ignite_person_NT_means
+
+top_mod_table_NDT5_ignite_person_NT_means[1,1]<-"Person"
+top_mod_table_NDT5_ignite_person_NT_means[1,2]<-"NDT5"
+top_mod_table_NDT5_ignite_person_NT_means[1,3]<-"Not Treed"
+top_mod_table_NDT5_ignite_person_NT_means[1,4]<- "fire_pres ~ climate1 + vegtype2 + climate1:vegtype2  + aspect_cos + elevation" 
+top_mod_table_NDT5_ignite_person_NT_means
+```
+Save table.
+
+```{r}
+write.csv(top_mod_table_NDT5_ignite_person_NT_means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT5_ignite_person_NT_means_Jan.csv")
+```
+
+Standard deviation.
+
+```{r}
+top_mod_table_NDT5_ignite_person_NT_sd<-top_mod_table_NDT5_person_t_ALL %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_NDT5_ignite_person_NT_sd
+
+top_mod_table_NDT5_ignite_person_NT_sd[1,1]<-"Person"
+top_mod_table_NDT5_ignite_person_NT_sd[1,2]<-"NDT5"
+top_mod_table_NDT5_ignite_person_NT_sd[1,3]<-"Not Treed"
+top_mod_table_NDT5_ignite_person_NT_sd[1,4]<-"fire_pres ~ climate1 + vegtype2 + climate1:vegtype2  + aspect_cos + elevation" 
+top_mod_table_NDT5_ignite_person_NT_sd
+```
+
+Save sd coefficient table.
+
+```{r}
+write.csv(top_mod_table_NDT5_ignite_person_NT_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT5_ignite_person_NT_sd_Jan.csv")
+```

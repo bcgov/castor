@@ -19,6 +19,7 @@ library(shinyjs)
 library(shinydashboard)
 library(shinydashboardPlus)
 library(leaflet.extras)
+library(leaflet.extras2)
 library(leaflet)
 library(rpostgis)
 library(sf)
@@ -60,8 +61,11 @@ myDrawPolygonOptions <- function(allowIntersection = FALSE,
 #----------------
 #Spatial---------
 ##Get a connection to the postgreSQL server (local instance)
-fetaPoly<-st_transform(st_read("www/feta_v1.shp"), 4326)
-fetaTSA<-readRDS("www/tsa_fids_v1.rds")
+#fetaPoly<-st_transform(st_read("www/feta_v1.shp"), 4326)
+#fetaPoly<-readLines("www/test.geojson") %>% paste(collapse = "\n")
+fetaPolyGeoJson<-readr::read_file("www/feta_v2.geojson")
+fetaPolySf<-geojsonsf::geojson_sf(fetaPolyGeoJson)
+fetaTSA<-readRDS("www/tsa_fids_v2.rds")
 #----------------
 #Non-Spatial 
 tsaBnds <- as.list(unique(fetaTSA$tsa))

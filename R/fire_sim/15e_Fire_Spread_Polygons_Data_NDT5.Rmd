@@ -1,0 +1,2040 @@
+---
+title: "15e_Fire_Spread_Polygons_Data_NDT5"
+author: "Cora Skaien"
+date: "25/11/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#Load relevant libraries
+library(sf)
+library(tidyverse)
+library(ggplot2)
+library(ggcorrplot)
+library(RPostgreSQL)
+library(rpostgis)
+library(dplyr)
+library(lme4)
+library(arm)
+library(ggpubr)
+library(mgcv)
+library(nlme)
+library(purrr)
+library(tidyr)
+library(caret)
+library(pROC)
+library(keyring)
+library(ggcorrplot) 
+library(kableExtra)
+library(data.table)
+library(DBI)
+library(here)
+library(AICcmodavg)
+library(rje)
+library(base)
+library(car)
+library(visreg)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+#=================================
+#  Script Name: 15e_Fire_Spread_Polygons_Data_NDT5.R
+#  Script Version: 1.0
+#  Script Purpose: model selection for factors that dictate spread into cells (part of spread) by NDT.
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
+Load in the prepped data.
+
+```{r}
+fire_spread_veg_data_df<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_.csv")
+
+head(fire_spread_veg_data_df)
+
+```
+
+May need to load in a separate sets and then combine.
+
+```{r}
+fire_spread_data_set1<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_set1.csv")
+
+fire_spread_data_set2<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_set2.csv")
+
+fire_spread_data_set3<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_set3.csv")
+
+fire_spread_data_set4<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_set4.csv")
+
+fire_spread_data_set5<-read.csv(file="D:\\Fire\\fire_data\\raw_data\\Historical_Fire_Perimiter_polygons\\fire_spread_veg_data_set5.csv")
+
+fire_spread_veg_data_df<-rbind(fire_spread_data_set1, fire_spread_data_set2, fire_spread_data_set3, fire_spread_data_set4, fire_spread_data_set5)
+
+head(fire_spread_veg_data_df)
+
+```
+
+
+Check data categories.
+
+```{r}
+table(fire_spread_veg_data_df$bclcs_level_2) #T: treed; N: Not treed; W: Water; L:land, non-veg
+fire_spread_veg_data_df$proj_age_1 #Lots of NAs
+fire_spread_veg_data_df$proj_height_1
+fire_spread_veg_data_df$live_stand_volume_125
+
+names(fire_spread_veg_data_df)
+table
+
+str(fire_spread_veg_data_df$spread)
+table(fire_spread_veg_data_df$spread)
+
+fire_spread_veg_data_df$spread<-as.numeric(fire_spread_veg_data_df$spread)
+
+table(fire_spread_veg_data_df$fire_cs) #must decide: do we separate into different categories? For this, I suggest not necessary.
+
+fire_spread_veg_data_df$spread_veg<-paste(fire_spread_veg_data_df$spread, fire_spread_veg_data_df$vegtype2)
+table(fire_spread_veg_data_df$spread_veg)
+
+fire_spread_veg_data_df$spread_bclcs2<-paste(fire_spread_veg_data_df$spread, fire_spread_veg_data_df$bclcs_level_2)
+table(fire_spread_veg_data_df$spread_bclcs2)
+
+fire_spread_veg_data_df$spread_bclcs5<-paste(fire_spread_veg_data_df$spread, fire_spread_veg_data_df$bclcs_level_5_2)
+table(fire_spread_veg_data_df$spread_bclcs5)
+
+fire_spread_veg_data_df$spread_bclcs5_2<-paste(fire_spread_veg_data_df$spread, fire_spread_veg_data_df$bclcs_level_5_2, fire_spread_veg_data_df$bclcs_level_2)
+table(fire_spread_veg_data_df$spread_bclcs5_2)
+
+#Determined that we lose all water sites because not in vegtype2. So need to make all water sites from bclcs_level_2 to be water in vegtype2. No interactions possible between the two, but there will be colinearity.
+fire_spread_veg_data_df$vegtype2[fire_spread_veg_data_df$bclcs_level_2=="W"] <- "W"
+```
+
+Ensure dist_infra is updated.
+
+```{r}
+fire_spread_veg_data_df$dist_any_<-0
+fire_spread_veg_data_df$dist_any<-0
+
+fire_spread_veg_data_df$dist_any_<-
+  ifelse(fire_spread_veg_data_df$dist_mine<fire_spread_veg_data_df$dist_pow, fire_spread_veg_data_df$dist_mine, fire_spread_veg_data_df$dist_pow)
+str(fire_spread_veg_data_df$dist_any_)
+
+fire_spread_veg_data_df$dist_any<-
+  ifelse (fire_spread_veg_data_df$dist_any_<fire_spread_veg_data_df$dist_mun, fire_spread_veg_data_df$dist_any_, fire_spread_veg_data_df$dist_mun)
+str(fire_spread_veg_data_df$dist_any)
+
+fire_spread_veg_data_df$dist_any_<-
+  ifelse (fire_spread_veg_data_df$dist_any<fire_spread_veg_data_df$dist_dam, fire_spread_veg_data_df$dist_any, fire_spread_veg_data_df$dist_dam)
+str(fire_spread_veg_data_df$dist_any_)
+
+fire_spread_veg_data_df$dist_infra<-fire_spread_veg_data_df$dist_any_
+```
+
+################ All Data ################
+
+We will perform multiple loops for different subsets of variables for model selection, and then use these results to inform us on best models moving forward. The variables that will be assessed include:
+
+1. Projected Height (proj_height_1) #Note, there may be some NAs and we may not be able to use this
+2. projected age (proj_age_1) #Note, there may be some NAs and we may not be able to use this
+3. live_stand_volume_125 #Note, there may be some NAs and we may not be able to use this
+4. vegtype2
+5. slope
+6. aspect_cos (cos)
+7. elev
+8. Various distance to infrastructure variables (dist_mun, dist_dam, dist_nat, dist_pow, dist_mine) - no interactions
+9. Land use (bclcs_level_5_2)
+10. roads_km (road density, which may relate to ability to fight fires)
+11. bclcs_level_2 (Treed or not treed)
+
+################
+
+NOTE: NDT1, 2 and 3 all had the same top TOPO models, and it takes 10 hours to run the separate subsets for infrastructure at least 3 times to get the same result that most interactions and variables are significant. I recommend skipping this and going straight to Step #2.
+
+##########################
+
+First we will create the variable lists that contain all of our variables of interest.
+
+```{r}
+##Create variable lists to be used in the model loop.
+variables_all<-c(proj_height_1 = "proj_height_1", proj_age_1 = "proj_age_1", live_stand_volume_125 = "live_stand_volume_125", slope = "slope", aspect_cos = "aspect_cos", elev ="elev", vegtype2 = "vegtype2", bclcs_level_5_2 = "bclcs_level_5_2", dist_mun = "dist_mun", dist_dam ="dist_dam", dist_nat = "dist_nat", dist_pow = "dist_pow", dist_mine = "dist_mine", roads_km="roads_km", bclcs_level_2 = "bclcs_level_2") 
+
+vars.oth<-c("proj_height_1", "proj_age_1", "live_stand_volume_125") #Note, there may be some NAs and we may not be able to use this
+vars.topo<-c("slope", "aspect_cos", "elev")
+vars.infra<-c("dist_mun", "dist_dam", "dist_nat", "dist_pow", "dist_mine", "roads_km", "bclcs_level_5_2")
+vars.veg<-c("vegtype2", "bclcs_level_2") #Too few; will add in final model selection
+
+```
+
+Now, we will generate two-way interactions for each of these lists. 
+
+```{r}
+
+#get the names of all possible two-way interactions
+twoway.intsT <- NULL
+for (i in 1:(length(vars.topo)-1)) {
+  for (j in (i+1):length(vars.topo)) {
+     twoway.intsT <- cbind(twoway.intsT, paste(vars.topo[i], vars.topo[j], sep=":"))
+  }
+}
+twoway.intsT
+length(twoway.intsT) #3
+
+#complete list of models using non-climate vars (topo)
+mods.me.tmp <- powerSet(vars.topo) 
+#add climate vars to all of the above
+mods.meT <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.meT[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.meT
+mods.meT<-mods.meT[-1]
+
+#complete list of two-way interactions
+mods.twowayT <- powerSet(twoway.intsT)
+length(mods.twowayT) #8
+mods.twowayT
+mods.twowayT<-mods.twowayT[-1]
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+
+mods.interT <- list()
+counter <- 0
+for (i in 1: length(mods.twowayT)) {
+   s1 <- unique(unlist( strsplit(mods.twowayT[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.meT)) {
+      if (all(s1 %in% mods.meT[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.meT[[j]], mods.twowayT[[i]])
+        mods.interT[[counter]] <- both
+      }
+   }
+}
+
+length(mods.interT) #10
+#mods.interT
+
+
+#complete list of two-way interactions
+mods.twowayO <- powerSet(twoway.intsT)
+length(mods.twowayO) #8
+mods.twowayO
+mods.twowayO<-mods.twowayO[-1]
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+
+mods.interO <- list()
+counter <- 0
+for (i in 1: length(mods.twowayO)) {
+   s1 <- unique(unlist( strsplit(mods.twowayO[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.meT)) {
+      if (all(s1 %in% mods.meT[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.meT[[j]], mods.twowayO[[i]])
+        mods.interO[[counter]] <- both
+      }
+   }
+}
+
+length(mods.interO) #10
+#mods.interO
+
+
+####3.VRI data
+
+#complete list of models using VRI - no interactions
+mods.me.tmp <- powerSet(vars.oth) 
+#add climate vars to all of the above
+mods.me.oth <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.me.oth[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.me.oth
+mods.me.oth<-mods.me.oth[-1]
+
+
+
+#########4. Now for distance to infrastructure data, get all possible two-way interactions
+
+#get the names of all possible two-way interactions
+twoway.intsI <- NULL
+for (i in 1:(length(vars.infra)-1)) {
+  for (j in (i+1):length(vars.infra)) {
+     twoway.intsI <- cbind(twoway.intsI, paste(vars.infra[i], vars.infra[j], sep=":"))
+  }
+}
+twoway.intsI
+length(twoway.intsI) #21
+
+#Subset to get only the interactions of interest
+twoway.intsIb<-twoway.intsI[c(5,6,10,11,14,15,17,18,19,20,21)]
+twoway.intsIb
+
+#complete list of models using non-climate vars (infra)
+mods.me.tmp <- powerSet(vars.infra) 
+#add climate vars to all of the above
+mods.meI <- list()
+for (i in 1: length(mods.me.tmp)) {
+   mods.meI[[i]] <- c(mods.me.tmp[[i]])
+}
+
+mods.meI
+mods.meI<-mods.meI[-1]
+
+#complete list of two-way interactions
+mods.twowayI <- powerSet(twoway.intsIb)
+length(mods.twowayI) #2048
+#mods.twowayI
+
+#Finding models in mods.me that accommodate/allow interaction terms in each mods.twoway to be added
+
+mods.interI <- list()
+counter <- 0
+for (i in 1: length(mods.twowayI)) {
+   s1 <- unique(unlist( strsplit(mods.twowayI[[i]], split=':', fixed=TRUE) ) )
+   for (j in 1: length(mods.meI)) {
+      if (all(s1 %in% mods.meI[[j]])==TRUE) {
+        counter <- counter + 1
+        both <-  c(mods.meI[[j]], mods.twowayI[[i]])
+        mods.interI[[counter]] <- both
+      }
+   }
+}
+
+length(mods.interI) #6767
+head(mods.interI)
+#mods.interI
+
+
+#the list of all possible model RHSs. 
+all.poss.mods.VRI<-c(1, mods.interO)
+all.poss.mods.VRI
+
+all.poss.mods.topo<-c(1, mods.interT)
+all.poss.mods.topo
+
+all.poss.mods.infra<-c(1, mods.interI) 
+length(all.poss.mods.infra)
+#all.poss.mods.infra
+```
+
+############## ##########
+
+Because of the large number of models with all variables included, we will test the separate combos first. Then we will test the top models together in additional combinations, with determining best AIC model from there. 
+
+Select NDT: NDT5
+
+```{r}
+zones1<-c("NDT5") #Do one zone at a time
+prop<-0.75
+
+########### 1. VRI ############
+#Create empty table
+table.glm.VRI.simple <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.VRI.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+####
+for (g in 1:100){
+
+for (h in 1:length(zones1)) {
+  dat2<- fire_spread_veg_data_df %>% dplyr::filter(ntrldstrbn ==zones1[h])
+  
+for (i in 1: length(zones1)){
+  print(paste((all.poss.mods.VRI[i]), (zones1[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(spread, spread, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(spread, !!variables_all)
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$spread, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- model_dat[ trainIndex,]
+   Valid <- model_dat[-trainIndex,]
+
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.VRI, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.VRI <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.VRI$NDT<-c("NDT5")
+tab.sum.VRI 
+
+table.glm.VRI.simple<-rbind(table.glm.VRI.simple, tab.sum.VRI)
+
+}
+}
+}
+```
+
+Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination.
+
+```{r}
+head(table.glm.VRI.simple)
+table(table.glm.VRI.simple$model) # 100 per model
+
+AIC_NDT5_spread_VRI<-table.glm.VRI.simple
+
+AIC_NDT5_spread_summary_VRI<- AIC_NDT5_spread_VRI %>%
+  group_by(model) %>%
+  summarise(meanAIC=mean(aic),
+            meanAUC=mean(auc.valid),
+            sdAUC=sd(auc.valid),
+            )
+
+AIC_NDT5_spread_summary_VRI2<- AIC_NDT5_spread_summary_VRI %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+head(AIC_NDT5_spread_summary_VRI2)
+```
+
+#Now repeat for topography
+
+```{r}
+########### 2. topo ############
+#Create empty table
+table.glm.topo.simple <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.topo.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+#
+for (g in 1:100){
+
+for (h in 1:length(zones1)) {
+  dat2<- fire_spread_veg_data_df %>% dplyr::filter(ntrldstrbn ==zones1[h])
+
+#for (i in 1: length(all.poss.mods.topo)){
+#  print(paste((all.poss.mods.topo[i]), (zones1[h]), sep=" "))
+  
+for (i in 1: length(zones1)){
+  print(paste((all.poss.mods.topo[i]), (zones1[h]), sep=" "))
+  
+ # model_dat<- dat2 %>% dplyr::select(spread, spread, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(spread, spread, !!variables_all)
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$spread, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- model_dat[ trainIndex,]
+   Valid <- model_dat[-trainIndex,]
+
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.topo, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.topo <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.topo$NDT<-c("NDT5")
+tab.sum.topo 
+
+table.glm.topo.simple<-rbind(table.glm.topo.simple, tab.sum.topo)
+
+}
+}
+}
+```
+
+Now that we have run the model 100 times, we want the average AIC and AUC for each variable combination.
+
+```{r}
+head(table.glm.topo.simple)
+table(table.glm.topo.simple$model) # 100 per model
+
+AIC_NDT5_spread_topo<-table.glm.topo.simple
+
+AIC_NDT5_spread_summary_topo<- AIC_NDT5_spread_topo %>%
+  group_by(model) %>%
+  summarise(meanAIC=mean(aic),
+            meanAUC=mean(auc.valid),
+            sdAUC=sd(auc.valid),
+            )
+
+AIC_NDT5_spread_summary_topo2<- AIC_NDT5_spread_summary_topo %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+head(AIC_NDT5_spread_summary_topo2)
+```
+If want to save the above:
+
+```{r}
+write.csv(AIC_NDT5_spread_summary_topo2, file="D:\\Fire\\fire_data\\raw_data\\AIC_NDT5_spread_poly_summary_topo2")
+```
+
+
+
+######### VERY TIME CONSUMING BELOW! INSTEAD JUST TEST ALL INTERACTIONS MNAULLAY! IT WILL BE FASTER! ###########
+
+#Now repeat for infrastructure
+Running 100 times takes up too much space, so need to run fewer times and combine.
+
+Cannot run even one full run because too many models. Need to break up into smaller chunks if want to run all of these models. Otherwise, consider reducing models in this set. If run in chunks, need to subset the data into training and validation separately from the loop so that the entire set of variables are with the same data subset per full run for comparing AIC values.
+
+A common problem is the result "prediction from a rank-deficient fit may be misleading Setting levels: control = 0, case = 1
+Setting direction: controls < cases", which indicates (1) over-fitting, or (2) insufficient data in some categories to estimate coefficients. One issues is vegtype2 and bclcls_5_2 and bclcs_2 all have water as the same data. 
+
+
+```{r}
+length(all.poss.mods.infra) #6768
+
+all.poss.mods.infra_a<-all.poss.mods.infra[c(1:1000)]
+all.poss.mods.infra_b<-all.poss.mods.infra[c(1001:1400)] 
+#all.poss.mods.infra_b_2<-all.poss.mods.infra[c(1101:1400)] 
+
+all.poss.mods.infra_c<-all.poss.mods.infra[c(1401:1900)]
+all.poss.mods.infra_c2<-all.poss.mods.infra[c(1901:2250)]
+all.poss.mods.infra_d<-all.poss.mods.infra[c(2251:3000)]
+all.poss.mods.infra_e<-all.poss.mods.infra[c(3001:3750)]
+all.poss.mods.infra_f<-all.poss.mods.infra[c(3751:4500)]
+all.poss.mods.infra_g<-all.poss.mods.infra[c(4501:5250)]
+all.poss.mods.infra_h<-all.poss.mods.infra[c(5251:6000)]
+all.poss.mods.infra_i<-all.poss.mods.infra[c(6001:6768)]
+
+dat2<- fire_spread_veg_data_df %>% dplyr::filter(ntrldstrbn ==zones1)
+
+ # model_dat<- dat2 %>% dplyr::select(spread, spread, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(spread, spread_bclcs5_2, ntrldstrbn, !!variables_all)
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$spread_bclcs5_2, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- model_dat[ trainIndex,]
+   Valid <- model_dat[-trainIndex,]
+   
+#Create empty table
+table.glm.infra.simple <- data.frame (matrix (ncol = 5, nrow = 0))
+colnames (table.glm.infra.simple) <- c ("model", "edf", "aic", "auc.valid", "NDT")
+
+```
+
+```{r}
+all.poss.mods.infra_a_1<-all.poss.mods.infra_a[1:500]
+all.poss.mods.infra_a_2<-all.poss.mods.infra_a[501:1000]
+```
+
+
+```{r}
+########### 3. Distance to Infrastructure ############
+
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_a_1[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_a_1, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+
+```
+
+```{r}
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_a_2[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_a_2, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+
+```
+
+#Need to reduce subset b
+```{r}
+all.poss.mods.infra_b_1<-all.poss.mods.infra_b[1:200]
+all.poss.mods.infra_b_2<-all.poss.mods.infra_b[201:400]
+```
+
+
+Repeat for second portion (b_1)
+```{r}
+
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_b_1[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_b_1, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+Repeat for next portion
+```{r}
+
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_b_2[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_b_2, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+Repeat for next portion.
+```{r}
+
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_c[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_c, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+Repeat for next portion.
+```{r}
+
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_c2[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_c2, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+Make section 2 smaller
+```{r}
+all.poss.mods.infra_d_1<-all.poss.mods.infra_d[1:400]
+all.poss.mods.infra_d_2<-all.poss.mods.infra_d[401:750]
+```
+
+
+Repeat for next portion.
+```{r}
+
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_d_1[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_d_1, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+Repeat for next portion.
+```{r}
+
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_d_2[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_d_2, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+```{r}
+all.poss.mods.infra_e_1<-all.poss.mods.infra_e[1:400]
+all.poss.mods.infra_e_2<-all.poss.mods.infra_e[401:750]
+```
+
+
+Repeat for next portion.
+```{r}
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_e_1[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_e_1, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+Repeat for next portion.
+```{r}
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_e_2[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_e_2, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+
+```{r}
+all.poss.mods.infra_f_1<-all.poss.mods.infra_f[1:400]
+all.poss.mods.infra_f_2<-all.poss.mods.infra_f[401:750]
+```
+
+
+Repeat for next portion.
+```{r}
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_f_1[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_f_1, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+
+Repeat for next portion.
+```{r}
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_f_2[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_f_2, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+```{r}
+all.poss.mods.infra_g_1<-all.poss.mods.infra_g[1:400]
+all.poss.mods.infra_g_2<-all.poss.mods.infra_g[401:750]
+```
+
+Repeat for next portion.
+```{r}
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_g_1[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_g_1, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+Repeat for next portion.
+```{r}
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_g_2[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_g_2, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+```{r}
+all.poss.mods.infra_h_1<-all.poss.mods.infra_h[1:400]
+all.poss.mods.infra_h_2<-all.poss.mods.infra_h[401:650]
+all.poss.mods.infra_h_3<-all.poss.mods.infra_h[651:750]
+```
+
+Repeat for next portion.
+```{r}
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_h_1[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_h_1, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+Repeat for next portion.
+```{r}
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_h_2[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_h_2, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+Repeat for next portion.
+```{r}
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_h_3[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_h_3, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+```{r}
+all.poss.mods.infra_i_1<-all.poss.mods.infra_i[1:400]
+all.poss.mods.infra_i_2<-all.poss.mods.infra_i[401:600]
+all.poss.mods.infra_i_3<-all.poss.mods.infra_i[601:768]
+
+```
+
+Repeat for next portion.
+```{r}
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_i_1[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_i_1, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+Repeat for next portion.
+```{r}
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_i_2[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_i_2, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+Repeat for next portion.
+```{r}
+for (g in 1: length(zones1)){
+  print(paste((all.poss.mods.infra_i_3[i]), (zones1), sep=" "))
+ 
+big.mod <- function(mods.in, df.train, df.test, dep.var="spread") {
+   rhs <- paste(mods.in, collapse=" + ")
+   form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+   mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+   roc_obj <- roc(df.test[,dep.var], mod.valid)
+   mod.auc <- auc(roc_obj)
+   return(list(rhs, mod.stuff, mod.aic, mod.auc))
+   
+}
+
+mods.fit <- lapply(all.poss.mods.infra_i_3, big.mod, df.train=dat1, df.test=Valid)
+
+#terms in each model
+x1.1 <- unlist(sapply(mods.fit, '[', 1))
+x1.1
+#Aic for models
+x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+x3.1
+#auc from validation data
+x4.1 <- unlist(sapply(mods.fit, '[', 4))
+x4.1
+#combining all as df
+tab.sum.infra <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+tab.sum.infra$NDT<-c("NDT5")
+tab.sum.infra 
+
+table.glm.infra.simple<-rbind(table.glm.infra.simple, tab.sum.infra)
+
+}
+```
+
+#Save in case computer restarts
+```{r}
+write.csv(table.glm.infra.simple, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\table.glm.infra.spread_poly_NDT5.csv")
+```
+
+
+#Repeat again above steps to get repetition with a new subset of data.
+
+```{r}
+dat2<- fire_spread_veg_data_df %>% dplyr::filter(ntrldstrbn ==zones1)
+
+ # model_dat<- dat2 %>% dplyr::select(spread, spread_bclcs5_2, variables_all[i])
+  model_dat<- dat2 %>% dplyr::select(spread, spread_bclcs5_2, !!variables_all)
+  # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(model_dat$spread_bclcs5_2, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- model_dat[ trainIndex,]
+   Valid <- model_dat[-trainIndex,]
+```
+
+
+Now that we have run the model at least 3 times, we want the average AIC and AUC for each variable combination.
+
+```{r}
+head(table.glm.infra.simple)
+table(table.glm.infra.simple$model) # 100 per model
+
+AIC_NDT5_spread_infra<-table.glm.infra.simple
+
+AIC_NDT5_spread_summary_infra<- AIC_NDT5_spread_infra %>%
+  group_by(model) %>%
+  summarise(meanAIC=mean(aic),
+            meanAUC=mean(auc.valid),
+            sdAUC=sd(auc.valid),
+            )
+
+AIC_NDT5_spread_summary_infra2<- AIC_NDT5_spread_summary_infra %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+head(AIC_NDT5_spread_summary_infra2)
+
+```
+
+#Now combine the datatables and save to computer
+
+```{r}
+NDT5_l_spread_models_treed<-rbind(AIC_NDT5_spread_summary_VRI2, AIC_NDT5_spread_summary_topo2, AIC_NDT5_spread_summary_infra2)
+NDT5_l_spread_models_treed
+NDT5_l_spread_models_treed$NDT<-"NDT5"
+
+#or if did not do infrastructure
+NDT5_l_spread_models_treed<-rbind(AIC_NDT5_spread_summary_VRI2, AIC_NDT5_spread_summary_topo2)
+NDT5_l_spread_models_treed
+NDT5_l_spread_models_treed$NDT<-"NDT5"
+
+write.csv(NDT5_l_spread_models_treed, file="D:\\Fire\\fire_data\\raw_data\\NDT5_spread_models_polygon.csv")
+
+#Or if only have topography since VRI will not be used (too much lost data from non-treed locations)
+AIC_NDT5_spread_summary_topo2$NDT<-"NDT5"
+
+write.csv(AIC_NDT5_spread_summary_topo2, file="D:\\Fire\\fire_data\\raw_data\\NDT5_spread_TOPOmodels_polygon.csv")
+
+```
+
+
+```{r}
+write.csv(AIC_NDT5_spread_summary_VRI2, file="D:\\Fire\\fire_data\\raw_data\\NDT5_spread_TOPOmodels_polygon.csv")
+
+```
+
+
+############# START HERE FOR NDT5 ##################
+
+################################ STAGE TWO ########################
+
+#STAGE TWO: PUT TOGETHER MORE VARIABLES
+Now choose the top variables and create final model. The below code will need to be updated manually, depending on what the results of the above analyses are. From the top models, we will re-create two-way interactions for the variables selected from each model, plus the other variables listed as needed to be included. We will assess each set to ensure only interactions that make sense are investigated ultimately, given that sample sizes will be an issues.
+
+Top Models:
+1. slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev
+2. dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2
+3. vegtype2 + bclcs_level_2 #+ vegtype2:bclcs_level_2 -->do not include interaction because not all levels there
+
+
+```{r}
+spread_poly_NDT5<-subset(fire_spread_veg_data_df, fire_spread_veg_data_df$ntrldstrbn=="NDT5") #29761
+head(spread_poly_NDT5) #Lots of NAs in some variables (e.g., vegtype2, bclcs_level_2, bclcs_level_5_2)
+
+#Divide data into training and valid
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(spread_poly_NDT5$spread_bclcs5, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- spread_poly_NDT5[ trainIndex,]
+   Valid <- spread_poly_NDT5[-trainIndex,]
+
+#Run model using dat1
+model.NDT5.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_mun:bclcs_level_5_2 + dist_dam:roads_km + dist_dam:bclcs_level_5_2 + dist_nat:roads_km + dist_nat:bclcs_level_5_2 + dist_pow:roads_km + dist_pow:bclcs_level_5_2 + dist_mine:roads_km + dist_mine:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2, family = binomial, data = dat1)
+
+AIC(model.NDT5.S) #485988.4
+#summary(model.NDT5.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.54 --> very poor
+   
+Anova(model.NDT5.S, type=3)
+Anova(model.NDT5.S, type=3, singular.ok = TRUE)
+
+
+#Model did not create estimates for most variables
+
+# all are significant, but I suspect because so many datapoints. Try removing interactions and compare.
+model.NDT5.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + dist_mine:roads_km + vegtype2, family = binomial, data = dat1)
+
+AIC(model.NDT5.S) #21047.92
+#summary(model.NDT5.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.68
+   
+Anova(model.NDT5.S, type=3)
+#Anova(model.NDT5.S, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT5.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_dam:roads_km  + dist_nat:roads_km + dist_pow:roads_km + vegtype2, family = binomial, data = dat1)
+
+AIC(model.NDT5.S) #21045.99
+#summary(model.NDT5.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.68
+   
+Anova(model.NDT5.S, type=3)
+#Anova(model.NDT5.S, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT5.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_mun:roads_km + dist_nat:roads_km + dist_pow:roads_km + vegtype2, family = binomial, data = dat1)
+
+AIC(model.NDT5.S) #21044.1
+#summary(model.NDT5.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.68
+   
+Anova(model.NDT5.S, type=3)
+#Anova(model.NDT5.S, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT5.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_dam + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_nat:roads_km + dist_pow:roads_km + vegtype2, family = binomial, data = dat1)
+
+AIC(model.NDT5.S) #21042.2
+#summary(model.NDT5.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.68
+   
+Anova(model.NDT5.S, type=3)
+#Anova(model.NDT5.S, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT5.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_mun + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_nat:roads_km + dist_pow:roads_km + vegtype2, family = binomial, data = dat1)
+
+AIC(model.NDT5.S) #21040.5
+#summary(model.NDT5.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.68
+   
+Anova(model.NDT5.S, type=3)
+#Anova(model.NDT5.S, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT5.S<-glm(spread ~ slope + aspect_cos + elev + slope:elev + aspect_cos:elev + dist_mun + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_nat:roads_km + dist_pow:roads_km + vegtype2, family = binomial, data = dat1)
+
+AIC(model.NDT5.S) #21040.1
+#summary(model.NDT5.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.68
+   
+Anova(model.NDT5.S, type=3)
+#Anova(model.NDT5.S, type=3, singular.ok = TRUE)
+
+```
+
+Remove NAs and run multiple times.
+
+```{r}
+#Remove NAs to ensure all same data used so we can compare AICs
+NDT5_spread<-spread_poly_NDT5 %>% drop_na(slope, aspect_cos, elev, dist_mun, dist_nat, dist_pow, dist_mine, roads_km, bclcs_level_5_2, vegtype2) #28593 data points
+
+#Run Model again with this data; but uses all data here
+model.NDT5.S<-glm(spread ~ slope + aspect_cos + elev + slope:elev + aspect_cos:elev + dist_mun + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_nat:roads_km + dist_pow:roads_km + vegtype2, family = binomial, data = NDT5_spread)
+
+#Anova(model.NDT5.S, type=3)
+Anova(model.NDT5.S, type=3, singular.ok = TRUE)
+
+# model diagnostic plots
+binnedplot (fitted(model.NDT5.S), 
+            residuals(model.NDT5.S), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+NDT5_spread$resids<-resid(model.NDT5.S)
+
+# Diagnostic plots 
+#slope + aspect_cos + elev + slope:elev + aspect_cos:elev + dist_mun + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_nat:roads_km + dist_pow:roads_km + vegtype2
+
+visreg(model.NDT5.S, "slope", by="elev")
+
+visreg(model.NDT5.S, "elev", by="aspect_cos")
+visreg(model.NDT5.S, "elev", by="slope")
+
+visreg(model.NDT5.S, "aspect_cos", by="elev")
+
+visreg(model.NDT5.S, "dist_mun")
+visreg(model.NDT5.S, "dist_nat", by="roads_km")
+visreg(model.NDT5.S, "dist_pow", by="roads_km")
+visreg(model.NDT5.S, "dist_mine")
+
+visreg(model.NDT5.S, "bclcs_level_5_2")
+visreg(model.NDT5.S, "bclcs_level_5_2", ylim=c(-15,15))
+visreg(model.NDT5.S, "roads_km", by="dist_nat")
+visreg(model.NDT5.S, "roads_km", by="dist_pow")
+
+visreg(model.NDT5.S, "vegtype2")
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model.NDT5.S)
+
+#Create a new blank table and get AUC too
+top_mod_table_NDT5_spread_poly <- data.frame (matrix (ncol = 31, nrow = 0))
+colnames (top_mod_table_NDT5_spread_poly ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_mun", "coef_dist_nat", "coef_dist_pow",  "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2DE", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SOIL", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2WATER", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_slope:elev", "coef_aspect_cos:elev", "coef_dist_nat:roads_km", "coef_dist_pow:roads_km", "AUC")
+```
+
+Let's run it 500 times to get good mean values.
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(NDT5_spread$spread_bclcs5, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- NDT5_spread[ trainIndex,]
+   Valid <- NDT5_spread[-trainIndex,]
+   
+#Model   
+model.NDT5.S<-glm(spread ~ slope + aspect_cos + elev + slope:elev + aspect_cos:elev + dist_mun + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_nat:roads_km + dist_pow:roads_km + vegtype2, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.NDT5.S, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_NDT5_spread <- data.frame (matrix (ncol = 31, nrow = 0))
+colnames (top_mod_table_NDT5_spread ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_mun", "coef_dist_nat", "coef_dist_pow",  "coef_dist_mine", "coef_roads_km", "coef_bclcs_level_5_2DE", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SOIL", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2WATER", "coef_vegtype2OP", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TB", "coef_vegtype2TC", "coef_vegtype2TM", "coef_vegtype2W", "coef_slope:elev", "coef_aspect_cos:elev", "coef_dist_nat:roads_km", "coef_dist_pow:roads_km", "AUC")
+
+##Add data for NDT5
+top_mod_table_NDT5_spread[1,1]<-"lightning or person (ALL)"
+top_mod_table_NDT5_spread[1,2]<-"NDT5"
+top_mod_table_NDT5_spread[1,3]<-"ALL Treed and not treed"
+top_mod_table_NDT5_spread[1,4]<-"spread ~ slope + aspect_cos + elev + slope:elev + aspect_cos:elev + dist_mun + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_nat:roads_km + dist_pow:roads_km + vegtype2" 
+top_mod_table_NDT5_spread[1,5]<- coef(model.NDT5.S)[1] #Intercept
+top_mod_table_NDT5_spread[1,6]<- coef(model.NDT5.S)[2] #
+top_mod_table_NDT5_spread[1,7]<- coef(model.NDT5.S)[3] #
+top_mod_table_NDT5_spread[1,8]<- coef(model.NDT5.S)[4] #
+top_mod_table_NDT5_spread[1,9]<- coef(model.NDT5.S)[5] #
+top_mod_table_NDT5_spread[1,10]<- coef(model.NDT5.S)[6] #
+top_mod_table_NDT5_spread[1,11]<- coef(model.NDT5.S)[7] 
+top_mod_table_NDT5_spread[1,12]<- coef(model.NDT5.S)[8] #
+top_mod_table_NDT5_spread[1,13]<- coef(model.NDT5.S)[9] #
+top_mod_table_NDT5_spread[1,14]<- coef(model.NDT5.S)[10] #
+top_mod_table_NDT5_spread[1,15]<- coef(model.NDT5.S)[11] #
+top_mod_table_NDT5_spread[1,16]<- coef(model.NDT5.S)[12] #
+top_mod_table_NDT5_spread[1,17]<- coef(model.NDT5.S)[13] #
+top_mod_table_NDT5_spread[1,18]<- coef(model.NDT5.S)[14] #
+top_mod_table_NDT5_spread[1,19]<- coef(model.NDT5.S)[15] #
+top_mod_table_NDT5_spread[1,20]<- coef(model.NDT5.S)[16] # 
+top_mod_table_NDT5_spread[1,21]<- coef(model.NDT5.S)[17] #  
+top_mod_table_NDT5_spread[1,22]<- coef(model.NDT5.S)[18] #
+top_mod_table_NDT5_spread[1,23]<- coef(model.NDT5.S)[19] #
+top_mod_table_NDT5_spread[1,24]<- coef(model.NDT5.S)[20] #
+top_mod_table_NDT5_spread[1,25]<- coef(model.NDT5.S)[21] #
+top_mod_table_NDT5_spread[1,26]<- coef(model.NDT5.S)[22] #
+top_mod_table_NDT5_spread[1,27]<- coef(model.NDT5.S)[23] #
+top_mod_table_NDT5_spread[1,28]<- coef(model.NDT5.S)[24] #
+top_mod_table_NDT5_spread[1,29]<- coef(model.NDT5.S)[25] #
+top_mod_table_NDT5_spread[1,30]<- coef(model.NDT5.S)[26] #
+top_mod_table_NDT5_spread[1,31]<- mod.auc
+
+top_mod_table_NDT5_spread_poly<-rbind(top_mod_table_NDT5_spread_poly, top_mod_table_NDT5_spread)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_NDT5_spread_poly)
+```
+
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table_NDT5_spread_poly, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT5_spread_poly_all_.csv")
+```
+
+```{r}
+names(top_mod_table_NDT5_spread_poly)
+#colMeans(top_mod_table_NDT5_spread_poly[5:30])
+#sapply(top_mod_table_NDT5_spread_poly,mean, na.rm = T)
+#lapply(top_mod_table_NDT5_spread_poly,mean, na.rm = T)
+
+top_mod_table_NDT5_spread_poly_means<-top_mod_table_NDT5_spread_poly %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table_NDT5_spread_poly_means
+
+top_mod_table_NDT5_spread_poly_means[1,1]<-"lightning or person (ALL)"
+top_mod_table_NDT5_spread_poly_means[1,2]<-"NDT5"
+top_mod_table_NDT5_spread_poly_means[1,3]<-"ALL Treed and not treed"
+top_mod_table_NDT5_spread_poly_means[1,4]<-"spread ~ slope + aspect_cos + elev + slope:elev + aspect_cos:elev + dist_mun + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_nat:roads_km + dist_pow:roads_km + vegtype2" 
+top_mod_table_NDT5_spread_poly_means
+```
+Save table.
+
+```{r}
+write.csv(top_mod_table_NDT5_spread_poly_means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT5_spread_poly_means.csv")
+```
+
+Standard deviation.
+
+```{r}
+top_mod_table_NDT5_spread_poly_sd<-top_mod_table_NDT5_spread_poly %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_NDT5_spread_poly_sd
+
+top_mod_table_NDT5_spread_poly_sd[1,1]<-"lightning or person (ALL)"
+top_mod_table_NDT5_spread_poly_sd[1,2]<-"NDT5"
+top_mod_table_NDT5_spread_poly_sd[1,3]<-"ALL Treed and not treed"
+top_mod_table_NDT5_spread_poly_sd[1,4]<-"spread ~ slope + aspect_cos + elev + slope:elev + aspect_cos:elev + dist_mun + dist_nat + dist_pow + dist_mine + roads_km + bclcs_level_5_2 + dist_nat:roads_km + dist_pow:roads_km + vegtype2" 
+top_mod_table_NDT5_spread_poly_sd
+```
+
+Save sd coefficient table.
+
+```{r}
+write.csv(top_mod_table_NDT5_spread_poly_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT5_spread_poly_sd.csv")
+```
+
+
+
+#Repeat above for reduced variable categories
+
+```{r}
+spread_poly_NDT5<-subset(fire_spread_veg_data_df, fire_spread_veg_data_df$ntrldstrbn=="NDT5") #29761
+head(spread_poly_NDT5) #Lots of NAs in some variables (e.g., vegtype2, bclcs_level_2, bclcs_level_5_2)
+
+table(spread_poly_NDT5$vegtype2) #Lots of categories with few; remove
+spread_poly_NDT5<-subset(spread_poly_NDT5, spread_poly_NDT5$vegtype2!="D")
+spread_poly_NDT5<-subset(spread_poly_NDT5, spread_poly_NDT5$vegtype2!="TB")
+spread_poly_NDT5<-subset(spread_poly_NDT5, spread_poly_NDT5$vegtype2!="TM")
+
+table(spread_poly_NDT5$bclcs_level_5_2)  #Remove BU, and turn SOIL into ROCK, or remove
+spread_poly_NDT5<-subset(spread_poly_NDT5, spread_poly_NDT5$bclcs_level_5_2!="BU")
+spread_poly_NDT5<-subset(spread_poly_NDT5, spread_poly_NDT5$bclcs_level_5_2!="SOIL")
+
+table(spread_poly_NDT5$bclcs_level_2) 
+
+#Divide data into training and valid
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(spread_poly_NDT5$spread_bclcs5, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- spread_poly_NDT5[ trainIndex,]
+   Valid <- spread_poly_NDT5[-trainIndex,]
+
+#Run model using dat1
+model.NDT5.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:roads_km + dist_infra:bclcs_level_5_2 + roads_km:bclcs_level_5_2 + vegtype2 + bclcs_level_2, family = binomial, data = dat1)
+
+AIC(model.NDT5.S) #21192.27
+#summary(model.NDT5.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.67
+   
+#Anova(model.NDT5.S, type=3)
+Anova(model.NDT5.S, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT5.S<-glm(spread ~ slope + aspect_cos + elev + slope:aspect_cos + slope:elev + aspect_cos:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:roads_km + dist_infra:bclcs_level_5_2  + vegtype2 + bclcs_level_2, family = binomial, data = dat1)
+
+AIC(model.NDT5.S) #21190.8
+#summary(model.NDT5.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.67
+   
+#Anova(model.NDT5.S, type=3)
+Anova(model.NDT5.S, type=3, singular.ok = TRUE)
+
+#Remove least significant
+model.NDT5.S<-glm(spread ~ slope + aspect_cos + elev + slope:elev + aspect_cos:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:roads_km + dist_infra:bclcs_level_5_2  + vegtype2 + bclcs_level_2, family = binomial, data = dat1)
+
+AIC(model.NDT5.S) #21189.0
+#summary(model.NDT5.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.67
+   
+#Anova(model.NDT5.S, type=3)
+Anova(model.NDT5.S, type=3, singular.ok = TRUE)
+
+#Treed variable not working; remove
+model.NDT5.S<-glm(spread ~ slope + aspect_cos + elev + slope:elev + aspect_cos:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:roads_km + dist_infra:bclcs_level_5_2  + vegtype2, family = binomial, data = dat1)
+
+AIC(model.NDT5.S) #21189.0
+#summary(model.NDT5.S)
+
+#Determine AUC of full model
+mod.valid <- predict.glm(model.NDT5.S, newdata=Valid, type="response") #
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.67
+   
+#Anova(model.NDT5.S, type=3)
+Anova(model.NDT5.S, type=3, singular.ok = TRUE)
+```
+
+
+Remove NAs and run multiple times.
+
+```{r}
+#Remove NAs to ensure all same data used so we can compare AICs
+NDT5_spread<-spread_poly_NDT5 %>% drop_na(slope, aspect_cos, elev, dist_infra, roads_km, bclcs_level_5_2, vegtype2) #28593 data points
+
+#Run Model again with this data; but uses all data here
+model.NDT5.S<-glm(spread ~ slope + aspect_cos + elev + slope:elev + aspect_cos:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:roads_km + dist_infra:bclcs_level_5_2 + vegtype2, family = binomial, data = NDT5_spread)
+
+#Anova(model.NDT5.S, type=3)
+Anova(model.NDT5.S, type=3, singular.ok = TRUE)
+
+# model diagnostic plots
+binnedplot (fitted(model.NDT5.S), 
+            residuals(model.NDT5.S), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm", i))
+
+NDT5_spread$resids<-resid(model.NDT5.S)
+
+# Diagnostic plots 
+#slope + aspect_cos + elev + slope:elev + aspect_cos:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:roads_km + dist_infra:bclcs_level_5_2 + vegtype2
+
+visreg(model.NDT5.S, "slope", by="elev")
+
+visreg(model.NDT5.S, "elev", by="aspect_cos")
+visreg(model.NDT5.S, "elev", by="slope")
+
+visreg(model.NDT5.S, "aspect_cos", by="elev")
+
+visreg(model.NDT5.S, "dist_infra", by="roads_km")
+visreg(model.NDT5.S, "dist_infra", by="bclcs_level_5_2")
+
+visreg(model.NDT5.S, "bclcs_level_5_2", by="dist_infra")
+visreg(model.NDT5.S, "roads_km", by="dist_infra")
+
+visreg(model.NDT5.S, "vegtype2")
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model.NDT5.S)
+
+#Create a new blank table and get AUC too
+top_mod_table_NDT5_spread_poly <- data.frame (matrix (ncol = 26, nrow = 0))
+colnames (top_mod_table_NDT5_spread_poly ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_infra", "coef_roads_km", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2WATER", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TC", "coef_vegtype2W", "coef_slope:elev", "coef_aspect_cos:elev", "coef_dist_infra:roads_km", "coef_dist_infra:bclcs_level_5_2OP", "coef_dist_infra:bclcs_level_5_2ROCK", "coef_dist_infra:bclcs_level_5_2SP", "coef_dist_infra:bclcs_level_5_2WATER", "AUC")
+```
+
+Let's run it 500 times to get good mean values.
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(NDT5_spread$spread_bclcs5, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- NDT5_spread[ trainIndex,]
+   Valid <- NDT5_spread[-trainIndex,]
+   
+#Model   
+model.NDT5.S<-glm(spread ~ slope + aspect_cos + elev + slope:elev + aspect_cos:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:roads_km + dist_infra:bclcs_level_5_2 + vegtype2, family = binomial, data = dat1) 
+
+mod.valid <- predict.glm(model.NDT5.S, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"spread"], mod.valid)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_NDT5_spread <- data.frame (matrix (ncol = 26, nrow = 0))
+colnames (top_mod_table_NDT5_spread ) <- c ("CAUSE", "NDT", "TREED", "Model_terms", "intercept", "coef_slope", "coef_aspect_cos", "coef_elev", "coef_dist_infra", "coef_roads_km", "coef_bclcs_level_5_2OP", "coef_bclcs_level_5_2ROCK", "coef_bclcs_level_5_2SP", "coef_bclcs_level_5_2WATER", "coef_vegtype2RO", "coef_vegtype2S", "coef_vegtype2TC", "coef_vegtype2W", "coef_slope:elev", "coef_aspect_cos:elev", "coef_dist_infra:roads_km", "coef_dist_infra:bclcs_level_5_2OP", "coef_dist_infra:bclcs_level_5_2ROCK", "coef_dist_infra:bclcs_level_5_2SP", "coef_dist_infra:bclcs_level_5_2WATER", "AUC")
+
+##Add data for NDT5
+top_mod_table_NDT5_spread[1,1]<-"lightning or person (ALL)"
+top_mod_table_NDT5_spread[1,2]<-"NDT5"
+top_mod_table_NDT5_spread[1,3]<-"ALL Treed and not treed"
+top_mod_table_NDT5_spread[1,4]<-"spread ~ slope + aspect_cos + elev + slope:elev + aspect_cos:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:roads_km + dist_infra:bclcs_level_5_2 + vegtype2" 
+top_mod_table_NDT5_spread[1,5]<- coef(model.NDT5.S)[1] #Intercept
+top_mod_table_NDT5_spread[1,6]<- coef(model.NDT5.S)[2] #
+top_mod_table_NDT5_spread[1,7]<- coef(model.NDT5.S)[3] #
+top_mod_table_NDT5_spread[1,8]<- coef(model.NDT5.S)[4] #
+top_mod_table_NDT5_spread[1,9]<- coef(model.NDT5.S)[5] #
+top_mod_table_NDT5_spread[1,10]<- coef(model.NDT5.S)[6] #
+top_mod_table_NDT5_spread[1,11]<- coef(model.NDT5.S)[7] 
+top_mod_table_NDT5_spread[1,12]<- coef(model.NDT5.S)[8] #
+top_mod_table_NDT5_spread[1,13]<- coef(model.NDT5.S)[9] #
+top_mod_table_NDT5_spread[1,14]<- coef(model.NDT5.S)[10] #
+top_mod_table_NDT5_spread[1,15]<- coef(model.NDT5.S)[11] #
+top_mod_table_NDT5_spread[1,16]<- coef(model.NDT5.S)[12] #
+top_mod_table_NDT5_spread[1,17]<- coef(model.NDT5.S)[13] #
+top_mod_table_NDT5_spread[1,18]<- coef(model.NDT5.S)[14] #
+top_mod_table_NDT5_spread[1,19]<- coef(model.NDT5.S)[15] #
+top_mod_table_NDT5_spread[1,20]<- coef(model.NDT5.S)[16] # 
+top_mod_table_NDT5_spread[1,21]<- coef(model.NDT5.S)[17] #  
+top_mod_table_NDT5_spread[1,22]<- coef(model.NDT5.S)[18] #
+top_mod_table_NDT5_spread[1,23]<- coef(model.NDT5.S)[19] #
+top_mod_table_NDT5_spread[1,24]<- coef(model.NDT5.S)[20] #
+top_mod_table_NDT5_spread[1,25]<- coef(model.NDT5.S)[21] #
+top_mod_table_NDT5_spread[1,26]<- mod.auc
+
+top_mod_table_NDT5_spread_poly<-rbind(top_mod_table_NDT5_spread_poly, top_mod_table_NDT5_spread)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_NDT5_spread_poly)
+```
+
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table_NDT5_spread_poly, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT5_spread_poly_all_Jan.csv")
+```
+
+```{r}
+names(top_mod_table_NDT5_spread_poly)
+#colMeans(top_mod_table_NDT5_spread_poly[5:30])
+#sapply(top_mod_table_NDT5_spread_poly,mean, na.rm = T)
+#lapply(top_mod_table_NDT5_spread_poly,mean, na.rm = T)
+
+top_mod_table_NDT5_spread_poly_means<-top_mod_table_NDT5_spread_poly %>% summarise_each(funs( mean( .,na.rm = TRUE)))
+top_mod_table_NDT5_spread_poly_means
+
+top_mod_table_NDT5_spread_poly_means[1,1]<-"lightning or person (ALL)"
+top_mod_table_NDT5_spread_poly_means[1,2]<-"NDT5"
+top_mod_table_NDT5_spread_poly_means[1,3]<-"ALL Treed and not treed"
+top_mod_table_NDT5_spread_poly_means[1,4]<-"spread ~ slope + aspect_cos + elev + slope:elev + aspect_cos:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:roads_km + dist_infra:bclcs_level_5_2 + vegtype2" 
+top_mod_table_NDT5_spread_poly_means
+```
+Save table.
+
+```{r}
+write.csv(top_mod_table_NDT5_spread_poly_means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT5_spread_poly_means_Jan.csv")
+```
+
+Standard deviation.
+
+```{r}
+top_mod_table_NDT5_spread_poly_sd<-top_mod_table_NDT5_spread_poly %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_NDT5_spread_poly_sd
+
+top_mod_table_NDT5_spread_poly_sd[1,1]<-"lightning or person (ALL)"
+top_mod_table_NDT5_spread_poly_sd[1,2]<-"NDT5"
+top_mod_table_NDT5_spread_poly_sd[1,3]<-"ALL Treed and not treed"
+top_mod_table_NDT5_spread_poly_sd[1,4]<-"spread ~ slope + aspect_cos + elev + slope:elev + aspect_cos:elev + dist_infra + roads_km + bclcs_level_5_2 + dist_infra:roads_km + dist_infra:bclcs_level_5_2 + vegtype2" 
+top_mod_table_NDT5_spread_poly_sd
+```
+
+Save sd coefficient table.
+
+```{r}
+write.csv(top_mod_table_NDT5_spread_poly_sd, file="D:\\Fire\\fire_data\\raw_data\\top_mod_NDT5_spread_poly_sd_Jan.csv")
+```
+

@@ -1,0 +1,145 @@
+---
+title: "Huckleberry_Data_Analysis_Berry_PerCov"
+author: "Cora Skaien"
+date: "27/01/2022"
+output: html_document
+---
+
+
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(raster)
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(cleangeo)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(rgdal)
+library(keyring)
+library(DBI)
+library(rgeos)
+library(car)
+library(rje)
+library(caret)
+library(pROC)
+library(visreg)
+library(arm)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+#Overview
+This file continues from Huckleberry_Data_analysis_Berry_PA, and works with locations where huckleberry did exist , and berries were present, to assess patterns for percent cover.
+
+
+#Load in data and prep
+```{r}
+cutblock_plots_openings_HuckBuff_ALL_df<-read.csv(file="D:\\Hucklberry\\Grizzly Bear stuff\\berries\\data\\cutblock_plots_openings_HuckBuff_ALL_df_Jan.csv")
+
+cutblock_plots_openings_Huck_ALL_df_PA<-subset(cutblock_plots_openings_Huck_ALL_df, cutblock_plots_openings_Huck_ALL_df$Species.Pr=="1")
+
+cutblock_plots_openings_Huck_ALL_df_PA_berries<-subset(cutblock_plots_openings_Huck_ALL_df_PA, cutblock_plots_openings_Huck_ALL_df_PA$Fruit.Pres!="0")
+str(cutblock_plots_openings_Huck_ALL_df_PA_berries) #310 observations
+
+#Berry cover
+hist(cutblock_plots_openings_Huck_ALL_df_PA$Fruit.Cove) #I would like to clarify what exactly fruit cover is
+cutblock_plots_openings_Huck_ALL_df_PA$Fruit.Cove #Lots of NAs so lots of data will be lost
+
+#Berry abundance
+hist(cutblock_plots_openings_Huck_ALL_df_PA$Fruit.Abun)
+cutblock_plots_openings_Huck_ALL_df_PA$Fruit.Abun #Lots of NAs, so lots of data will be lost; similar as above
+table(cutblock_plots_openings_Huck_ALL_df_PA$Fruit.Ab_1) #very little data, and must change one category to low if going to use
+
+```
+
+#####################  Begin Exploratory Analyses ###########################
+
+#Explore these Harvesting Variables:
+DN1_DIS_CD
+DN1_SILSYS_GP
+PREP_MA
+PREP_ME
+PREP_BU
+BRUSH_MA
+BRUSH_CM
+G_BGC_ZONE
+OPEN_GRSAR OR AREA_SQM
+PLANTED
+Origin
+Origin.age
+TimeSinceF
+TimeSinceC
+START_SEASON
+
+#And:
+PAS_total
+Tave_wt
+Tave_sp
+Tave_sm
+PPT_sp
+PPT_sm
+Tave_wt_1
+Tave_sp_1
+Tave_sm_1
+PPT_sp_1
+PPT_sm_1
+Tave_wt_2
+Tave_sp_2
+Tave_sm_2
+PPT_sp_2
+PPT_sm_2
+DD5_at
+DD5_sp
+DD5_sm
+DD5_wt
+NFFD_sp
+
+TSAND
+PH2
+MODIS_LC (land cover type)
+SAI_rec
+dem_ha_bc
+LandsatCC_
+
+Species.Co
+Species.He
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_PA_berries$PAS_total_ann<-cutblock_plots_openings_Huck_ALL_df_PA_berries$PAS_at+ cutblock_plots_openings_Huck_ALL_df_PA_berries$PAS_sm + cutblock_plots_openings_Huck_ALL_df_PA_berries$PAS_sp + cutblock_plots_openings_Huck_ALL_df_PA_berries$PAS_wt
+```
+
+
+```{r}
+cutblock_plots_openings_Huck_ALL_df_PA_berries$MODIS_LC<-as.factor(cutblock_plots_openings_Huck_ALL_df_PA_berries$MODIS_LC)
+table(cutblock_plots_openings_Huck_ALL_df_PA_berries$MODIS_LC)
+
+cutblock_plots_openings_Huck_ALL_df_PA_berries$PLANTED<-as.factor(cutblock_plots_openings_Huck_ALL_df_PA_berries$PLANTED)
+
+cutblock_plots_openings_Huck_ALL_df_PA_berries$DN1_DIS_CD<-as.factor(as.character(cutblock_plots_openings_Huck_ALL_df_PA_berries$DN1_DIS_CD))
+
+cutblock_plots_openings_Huck_ALL_df_PA_berries$PREP_MA<-as.factor(cutblock_plots_openings_Huck_ALL_df_PA_berries$PREP_MA)
+cutblock_plots_openings_Huck_ALL_df_PA_berries$PREP_ME<-as.factor(cutblock_plots_openings_Huck_ALL_df_PA_berries$PREP_ME)
+cutblock_plots_openings_Huck_ALL_df_PA_berries$PREP_BU<-as.factor(cutblock_plots_openings_Huck_ALL_df_PA_berries$PREP_BU)
+
+cutblock_plots_openings_Huck_ALL_df_PA_berries$BRUSH_MA<-as.factor(cutblock_plots_openings_Huck_ALL_df_PA_berries$BRUSH_MA)
+
+```
+#Note: this is a long list to explore for a small dataset, and smaller models may need to be explored first and then combined and further assessed.
+

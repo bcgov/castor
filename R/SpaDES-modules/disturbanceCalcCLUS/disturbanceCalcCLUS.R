@@ -62,7 +62,7 @@ doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
     },
     analysis = {
       sim <- distAnalysis(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "disturbanceCalcCLUS", "calculateInterval"), "disturbanceCalcCLUS", "analysis", 9)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "disturbanceCalcCLUS"), "disturbanceCalcCLUS", "analysis", 9)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -84,26 +84,26 @@ Init <- function(sim) {
                                     c10_40r50=numeric(),  c10_40r500=numeric(), cut10_40=numeric() )
   sim$disturbance <- sim$pts
   message("...Get the critical habitat")
-  if(P(sim, "disturbanceCalcCLUS", "criticalHabRaster") == '99999'){
+  if(P(sim, "criticalHabRaster", "disturbanceCalcCLUS") == '99999'){
     sim$disturbance[, critical_hab:= 1]
   }else{
     bounds <- data.table (c (t (raster::as.matrix( 
     RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                 srcRaster = P(sim, "disturbanceCalcCLUS", "criticalHabRaster"), 
+                 srcRaster = P(sim, "criticalHabRaster", "disturbanceCalcCLUS"), 
                  clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                  geom = sim$boundaryInfo[[4]], 
                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                  conn = NULL)))))
     bounds[,pixelid:=seq_len(.N)] # make a unique id to ensure it merges correctly
     if(nrow(bounds[!is.na(V1),]) > 0){ #check to see if some of the aoi overlaps with the boundary
-      if(!(P(sim, "disturbanceCalcCLUS", "criticalHabitatTable") == '99999')){
-        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , crithab FROM ",P(sim, "disturbanceCalcCLUS", "criticalHabitatTable"))))
+      if(!(P(sim, "criticalHabitatTable", "disturbanceCalcCLUS") == '99999')){
+        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , crithab FROM ",P(sim, "criticalHabitatTable", "disturbanceCalcCLUS"))))
         bounds<-merge(bounds, crit_lu, by.x = "V1", by.y = "value", all.x = TRUE)
       }else{
-        stop(paste0("ERROR: need to supply a lookup table: ", P(sim, "rsfCLUS", "criticalHabitatTable")))
+        stop(paste0("ERROR: need to supply a lookup table: ", P(sim, "criticalHabitatTable", "disturbanceCalcCLUS")))
       }
     }else{
-      stop(paste0(P(sim, "disturbanceCalcCLUS", "criticalHabRaster"), "- does not overlap with aoi"))
+      stop(paste0(P(sim, "criticalHabRaster", "disturbanceCalcCLUS"), "- does not overlap with aoi"))
     }
     setorder(bounds, pixelid) #sort the bounds
     sim$disturbance[, critical_hab:= bounds$crithab]
@@ -117,13 +117,13 @@ Init <- function(sim) {
     # add in the column
     dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN perm_dist integer DEFAULT 0")
     # add in the raster
-    if(P(sim, "disturbanceCalcCLUS", "permDisturbanceRaster") == '99999'){
+    if(P(sim, "permDisturbanceRaster", "disturbanceCalcCLUS") == '99999'){
       message("WARNING: No permanent disturbance raster specified ... defaulting to no permanent disturbances")
       dbExecute(sim$clusdb, "Update pixels set perm_dist = 0;")
     }else{
     perm_dist <- data.table (c(t(raster::as.matrix( 
         RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                     srcRaster = P(sim, "disturbanceCalcCLUS", "permDisturbanceRaster"), 
+                     srcRaster = P(sim, "permDisturbanceRaster", "disturbanceCalcCLUS"), 
                      clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                      geom = sim$boundaryInfo[[4]], 
                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -150,7 +150,7 @@ Init <- function(sim) {
 distAnalysis <- function(sim) {
   #dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE perm_dist > 0 or (roadyear >= ", max(0,as.integer(time(sim) - P(sim, "disturbanceCalcCLUS", "recovery"))),")  or (blockid > 0 and age BETWEEN 0 AND ",P(sim, "disturbanceCalcCLUS", "recovery"),")"))) # 
   #dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE perm_dist > 0 or roadyear >= 0 or (blockid > 0 and age BETWEEN 0 AND ", P(sim, "disturbanceCalcCLUS", "recovery"),")"))) # 
-  all.dist<-data.table(dbGetQuery(sim$clusdb, "SELECT age, blockid, roadyear, pixelid FROM pixels WHERE (blockid > 0 and age >= 0) or roadyear >=0;"))
+  all.dist<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT age, blockid, (case when ((",time(sim)*sim$updateInterval, " - roadstatus < ",P(sim, "recovery", "disturbanceCalcCLUS")," AND roadtype != 0) OR roadtype = 0) then 1 else 0 end) as road_dist, pixelid FROM pixels WHERE perm_dist > 0 OR ((blockid > 0 and age >= 0) OR (",time(sim)*sim$updateInterval, " - roadstatus < ", P(sim, "recovery", "disturbanceCalcCLUS")," AND roadtype != 0) OR roadtype = 0);")))
   #sim.disturbance<<-sim$disturbance
   #sim.ras<<-sim$ras
   #stop()
@@ -167,7 +167,7 @@ distAnalysis <- function(sim) {
       Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2, by=c("compartment","critical_hab")), .)
     
     message("Get the Road summaries")
-    outPts[roadyear >=0, field:=0] #note that outside critical_hab roads will impact this.
+    outPts[road_dist > 0, field:=0] #note that outside critical_hab roads will impact this.
     
     nearNeigh_rds<-RANN::nn2(outPts[field == 0, c('x', 'y')], 
                        outPts[is.na(field), c('x', 'y')], 
@@ -185,7 +185,7 @@ distAnalysis <- function(sim) {
     outPts<-outPts[,c("rds_dist","field") := list(NULL, NA)]
     
     message("Cutblocks and roads combined")
-    outPts[roadyear >= 0 | (blockid > 0 & age >=0 & age <= 40), field:=0]
+    outPts[road_dist > 0 | (blockid > 0 & age >=0 & age <= 40), field:=0]
     nearNeigh<-RANN::nn2(outPts[ field ==0, c('x', 'y')], 
                          outPts[is.na(field), c('x', 'y')], 
                          k = 1)
@@ -202,7 +202,7 @@ distAnalysis <- function(sim) {
     
     outPts<-outPts[,c("dist","field") := list(NULL, NA)]
     
-    outPts[roadyear >= 0 | (blockid > 0 & age >=10 & age <= 40), field:=0]
+    outPts[road_dist > 0 | (blockid > 0 & age >=10 & age <= 40), field:=0]
     nearNeigh<-RANN::nn2(outPts[ field ==0, c('x', 'y')], 
                          outPts[is.na(field), c('x', 'y')], 
                          k = 1)
@@ -217,7 +217,7 @@ distAnalysis <- function(sim) {
     
     outPts<-outPts[,c("dist","field") := list(NULL, NA)]
     
-    outPts[roadyear >=0 | (blockid > 0 & age >=0 & age <= 20), field:=0]
+    outPts[road_dist > 0 | (blockid > 0 & age >=0 & age <= 20), field:=0]
     nearNeigh<-RANN::nn2(outPts[ field == 0, c('x', 'y')], 
                          outPts[is.na(field), c('x', 'y')], 
                          k = 1)
@@ -233,7 +233,7 @@ distAnalysis <- function(sim) {
       Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2, by=c("compartment","critical_hab")), .)
     outPts<-outPts[,c("dist","field") := list(NULL, NA)]
     
-    outPts[roadyear >=0 | (blockid > 0 & age >=0 & age <= 80), field:=0]
+    outPts[road_dist > 0 | (blockid > 0 & age >=0 & age <= 80), field:=0]
     nearNeigh<-RANN::nn2(outPts[ field ==0, c('x', 'y')], 
                          outPts[is.na(field), c('x', 'y')], 
                          k = 1)
