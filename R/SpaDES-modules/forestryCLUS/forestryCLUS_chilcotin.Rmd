@@ -465,7 +465,7 @@ parameters <- list(
                                            "rast.zone_uwr_2021",  
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw",
+                                           "rast.zone_cond_cw"
                                            
                                            # "rast.zone_cond_noharvest_barkerville_crithab_or_herd",
                                           # "rast.zone_cond_noharvest_charlotte_alplands_crithab_or_herd",
@@ -531,7 +531,7 @@ parameters <- list(
                       adjacencyConstraint = 0,
                       salvageRaster = 'rast.dead_vol_125_2020'),
   growingStockCLUS = list (periodLength = 5),
-  roadCLUS = list(roadMethod = 'lcp', #pre 
+  roadCLUS = list(roadMethod = 'mst', #pre 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.rds_cariboo_2022'),
   # rsfCLUS = list (calculateInterval = 10, # at what time interval to calculate RSF
