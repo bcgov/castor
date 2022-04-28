@@ -280,7 +280,7 @@ preBlock <- function(sim) {
       lut<-data.table(verts = as_ids(V(g.sub)))[, ind := seq_len(.N)]
       g.sub2<-g.sub %>% set_vertex_attr("name", value = lut$ind)
     
-      g.mst_sub<<-mst(g.sub2, weighted=TRUE)
+      g.mst_sub<-mst(g.sub2, weighted=TRUE)
       #g.mst_sub<-delete.vertices(g.mst_sub, degree(g.mst_sub) == 0)
  
     
