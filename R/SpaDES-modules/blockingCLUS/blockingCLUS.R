@@ -275,13 +275,15 @@ preBlock <- function(sim) {
     
     #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
     g.sub<-induced_subgraph(g, vids = as.character(vertices$pixelid))
-    lut<-data.table(verts = as_ids(V(g.sub)))[, ind := seq_len(.N)]
-    g.sub2<-g.sub %>% set_vertex_attr("name", value = lut$ind)
     
-    g.mst_sub<<-mst(g.sub2, weighted=TRUE)
-    #g.mst_sub<-delete.vertices(g.mst_sub, degree(g.mst_sub) == 0)
+    if(length(get.edgelist(g.sub)) > 0){
+      lut<-data.table(verts = as_ids(V(g.sub)))[, ind := seq_len(.N)]
+      g.sub2<-g.sub %>% set_vertex_attr("name", value = lut$ind)
+    
+      g.mst_sub<-mst(g.sub2, weighted=TRUE)
+      #g.mst_sub<-delete.vertices(g.mst_sub, degree(g.mst_sub) == 0)
  
-    if(length(get.edgelist(g.mst_sub)) > 0){
+    
       paths.matrix<-data.table(cbind(noquote(get.edgelist(g.mst_sub)), E(g.mst_sub)$weight))
       paths.matrix[, V1 := as.integer(V1)][, V2 := as.integer(V2)]
       

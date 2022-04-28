@@ -2,7 +2,7 @@
 title: "04b_Road_density_per_ha"
 author: "Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations."
 date: "22/04/2022"
-purpose: "To create a raster spatial layer that determines the length of roads per ha for the entire province. This script is based off https://github.com/bcgov/bc-raster-roads/. "
+purpose: "To create a raster spatial layer that determines the distance to a road for the entire province. This script is based off https://github.com/bcgov/bc-raster-roads/.  with an additional step at the end to calculate distance to."
 output: html_document
 ---
 
@@ -21,15 +21,29 @@ See the License for the specific language governing permissions and limitations 
 -->
 
 # B.C. Roads in Raster Format
-This analysis generates a raster spatial layer with the total length of roads per hectare for British Columbia. 
+This analysis does two things. First it generates a raster spatial layer with the total length of roads per hectare for British Columbia. Then at the end I use the raster with lengths of roads to estimate distance to any road. The first step of calculating length of roads per ha is actually unneccessary but Ill leave it in for the time being. 
 
 ### Data
 
-This analysis uses the British Columbia [Digital Road Atlas (DRA) available from the B.C. Data Catalogue]((https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e)) and distributed under the [Access Only - B.C. Crown Copyright ](https://www2.gov.bc.ca/gov/content?id=1AAACC9C65754E4D89A118B875E0FBDA) licence.
+To calculate length of roads per ha I uses the British Columbia [Digital Road Atlas (DRA) available from the B.C. Data Catalogue]((https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e)) and distributed under the [Access Only - B.C. Crown Copyright ](https://www2.gov.bc.ca/gov/content?id=1AAACC9C65754E4D89A118B875E0FBDA) licence.
 
 The Digital Road Atlas is the [best available single source of road data for the Province of B.C.](https://www2.gov.bc.ca/gov/content?id=21FFEC94B0AD40818D2D2AF06D522714) Metadata details for the Digital Road Atlas (DRA) are available in PDF format from the [B.C. Data Catalogue](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e).
 
 This analysis _excludes_ some surface and road types in the [Digital Road Atlas (DRA) ](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e). Boat (B), overgrown (O) & decomissioned (D) roads are excluded from ```TRANSPORT_LINE_SURFACE_CODE``` and ferry routes (F, FP, FR, RWA), non-motorized trails (T, TD), road proposed (RP), and road pedestrian mall (RPM) are excluded from ```TRANSPORT_LINE_TYPE_CODE```.
+
+```{r}
+library(bcdata)
+library(raster)
+library(keyring)
+library(sf)
+library(dplyr)
+library (RPostgreSQL)
+library (RPostgres)
+library (rpostgis)
+library(DBI)
+
+
+```
 
 
 
@@ -37,10 +51,29 @@ This analysis _excludes_ some surface and road types in the [Digital Road Atlas 
 # Raw road file 
 # DRA from BCDC:
 # https://catalogue.data.gov.bc.ca/dataset/digital-road-atlas-dra-master-partially-attributed-roads/resource/a06a2e11-a0b1-41d4-b857-cb2770e34fb0
+
+# get latest data off BCGW
+
+# Not roads - TYPE = Ferry routes, non motorized Trails, proposed, pedestrian mall
+notRoads <- c("F", "FP", "FR", "RP", "TD", "RWA", "RPM", "T") 
+# No longer roads - SURFACE_TYPE = decomissioned, overgrown, and boat
+NoLongerRoads <- c("D", "O", "B")
+
+#Takes a while! Alternatively download the file and then open it.
+roads<-try(
+  bcdc_query_geodata("WHSE_BASEMAPPING.DRA_DGTL_ROAD_ATLAS_MPAR_SP") %>%
+    filter(!ROAD_CLASS %in% notRoads,
+           !ROAD_SURFACE %in% NoLongerRoads) %>%
+    select(DIGITAL_ROAD_ATLAS_LINE_ID, FEATURE_TYPE, ROAD_SURFACE, ROAD_CLASS, NUMBER_OF_LANES, FEATURE_CODE, GEOMETRY, OBJECTID) %>%
+    collect()
+)
+
+# This is the way its done by the cummulative effects people and it worked when I used their script off git-hub, but I have not managed to get it to work here.
 RdsZip <- 'dra.gdb.zip'
 download.file("ftp://ftp.geobc.gov.bc.ca/sections/outgoing/bmgs/DRA_Public/dgtl_road_atlas.gdb.zip",
-              destfile = file.path(DataDir, RdsZip))
+              destfile = file.path("//Work//caribou//clus//R//fire_sim//data", RdsZip))
 unzip(file.path(DataDir, RdsZip), exdir = file.path(DataDir, "DRA"))
+
 
 # List feature classes in the geodatabase
 Rd_gdb <- list.files(file.path(DataDir, "DRA"), pattern = ".gdb", full.names = TRUE)[1]
@@ -216,16 +249,19 @@ file.copy("out/data/tile/RoadDensR.tif", "../roadless-areas-indicator/data/", ov
 
 ```
 
-The final step after making the roads raster is to sample the density of roads at each of my fire ignition points. 
+After making the roads raster. I used the Raster -> Analysis -> Proximity (Raster distance) tool to calculate the distance from any pixel to the nearest road. After doing this the final is to sample the distance to roads at each of my fire ignition points. 
 
 ```{r}
-roads <- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\Roads_length_per_ha_BC.tif")
-rast_sum_len <- cellStats(roads, "sum")
-cellStats(roads, "max")
-cellStats(roads, "min")
-GDALinfo("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\Roads_length_per_ha_BC.tif")
+# import roads distance raster
+roads_dist <- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_roads.tif")
+rast_sum_len <- cellStats(roads_dist, "sum")
+cellStats(roads_dist, "max") # 8098.8 this is probably ok because it calculated the distance even to pixels in the ocean because the raster is a square rather than just BC
+cellStats(roads_dist, "min") # 0 seems appropriate
+GDALinfo("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_roads.tif")
 
 #plot(roads) #you may wish to plot this to inspect but just opening the tif files makes it look like its all good
+
+sample_locations_DEM<-st_read("C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\DC_data_DEM_5x_AllMonths_frt.shp")
 
 names(sample_locations_DEM)
 
@@ -238,7 +274,7 @@ head(pointCoordinates)
 #crs(pointCoordinates) #No CRS when a dataframe
 
 ##Extract DEM values from stacked layer
-rasValue2=raster::extract(roads, pointCoordinates)
+rasValue2=raster::extract(roads_dist, pointCoordinates)
 head(rasValue2)
 str(rasValue2) #200292 values
 str(sample_locations_DEM)#200292 values
@@ -247,7 +283,8 @@ str(sample_locations_DEM)#200292 values
 sample_locations_DEM_roads<-cbind(sample_locations_DEM, rasValue2)
 head(sample_locations_DEM_roads)
 sample_locations_DEM_roads <- sample_locations_DEM_roads %>%
-  rename(road_ha=rasValue2)
+  rename(road_dist_m=rasValue2)
+sample_locations_DEM_roads$road_dist_m<-sample_locations_DEM_roads$road_dist*100
 
 crs(sample_locations_DEM_roads)
 
