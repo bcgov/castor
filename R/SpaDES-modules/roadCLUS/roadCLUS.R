@@ -226,11 +226,11 @@ getExistingRoads <- function(sim) {
     
     #Initialize the road rasters
     sim$road.type<-sim$ras
-    sim$road.type[]<-dbGetQuery(sim$clusdb, 'SELECT roadtype FROM pixels')$roadtype
+    sim$road.type[]<-dbGetQuery(sim$clusdb, 'SELECT roadtype FROM pixels order by pixelid')$roadtype
     sim$road.year<-sim$ras
-    sim$road.year[]<-dbGetQuery(sim$clusdb, 'SELECT roadyear FROM pixels')$roadyear
+    sim$road.year[]<-dbGetQuery(sim$clusdb, 'SELECT roadyear FROM pixels order by pixelid')$roadyear
     sim$road.status<-sim$ras
-    sim$road.status[]<-dbGetQuery(sim$clusdb, 'SELECT roadstatus FROM pixels')$roadstatus
+    sim$road.status[]<-dbGetQuery(sim$clusdb, 'SELECT roadstatus FROM pixels order by pixelid')$roadstatus
     
     sim$paths.v<-NULL #set the placeholder for simulated paths
     sim$roadSegs<-NULL #set the placeholder for simulated paths
@@ -322,6 +322,7 @@ updateRoadsTable <- function(sim){
   roadUpdateAll<-data.table(sim$roadSegs)
   if(nrow(roadUpdateAll) > 0){
     setnames(roadUpdateAll, "pixelid")
+    
     roadUpdateAll[,roadstatus := time(sim)*sim$updateInterval]
     
     dbBegin(sim$clusdb)
