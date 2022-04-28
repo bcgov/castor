@@ -47,13 +47,13 @@ doEvent.smcaribouAbundanceCLUS = function (sim, eventTime, eventType) {
     eventType,
     init = { 
       sim <- Init (sim) 
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "smcaribouAbundanceCLUS", "calculateInterval"), "smcaribouAbundanceCLUS", "calculateAbundance", 8) 
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "smcaribouAbundanceCLUS"), "smcaribouAbundanceCLUS", "calculateAbundance", 8) 
       sim <- scheduleEvent (sim, end(sim), "smcaribouAbundanceCLUS", "adjustAbundanceTable", 9) 
     },
     
     calculateAbundance = { # calculate survival rate at each time interval 
       sim <- predictAbundance (sim) 
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "smcaribouAbundanceCLUS", "calculateInterval"), "smcaribouAbundanceCLUS", "calculateAbundance", 8) 
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "smcaribouAbundanceCLUS"), "smcaribouAbundanceCLUS", "calculateAbundance", 8) 
     },
     adjustAbundanceTable ={ 
       sim <- adjustAbundanceTable (sim)
@@ -73,10 +73,10 @@ Init <- function (sim) {
     
     herd_hab <- data.table (c (t (raster::as.matrix ( 
                       RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                                    srcRaster = P (sim, "smcaribouAbundanceCLUS", "nameRasSMCHerd") , 
-                                    clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"),  
-                                    geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
-                                    where_clause =  paste0 (P (sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                    srcRaster = P (sim, "nameRasSMCHerd", "smcaribouAbundanceCLUS") , 
+                                    clipper = P (sim, "nameBoundaryFile", "dataLoaderCLUS"),  
+                                    geom = P (sim, "nameBoundaryGeom", "dataLoaderCLUS"), 
+                                    where_clause =  paste0 (P (sim, "nameBoundaryColumn", "dataLoaderCLUS"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                                     conn = NULL)))))
     
     setnames (herd_hab, "V1", "herd_habitat") 

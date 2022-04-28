@@ -427,8 +427,8 @@ getHarvestQueue <- function(sim) {
   #Right now its looping by compartment -- So far it will be serializable at the aoi level then
   for(compart in sim$compartment_list){
    # harvestTarget<-sim$harvestFlow[compartment == compart,]$flow[time(sim)]
-     harvestTarget<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$flow
-     harvestType<<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$partition_type
+     harvestTarget<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$flow
+     harvestType<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$partition_type
   
     if(length(harvestTarget)>0 ){# Determine if there is a demand for timber volume 
       message(paste0(compart, " harvest Target: ", harvestTarget, " "))
@@ -475,7 +475,7 @@ ORDER by block_rank, ", P(sim, "harvestBlockPriority", "forestryCLUS"), "
                            LIMIT ", as.integer(sum(harvestTarget)/50))
           
       }
-      
+
       queue<-data.table(dbGetQuery(sim$clusdb, sql))
     
       if(nrow(queue) == 0) {

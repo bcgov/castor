@@ -140,7 +140,7 @@ parameters <- list(
                       adjacencyConstraint = 3,
                       salvageRaster = 'rast.dead_vol_125_2020'),
   growingStockCLUS = list (periodLength = 5),
-  roadCLUS = list(roadMethod = 'pre', 
+  roadCLUS = list(roadMethod = 'lcp', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.ce_road_2019'),
   uploaderCLUS = list(aoiName = 'tutorial', 

@@ -78,7 +78,8 @@ parameters <-  list(
     cutblockSeqPrepCLUS = list( startHarvestYear = 1980,
                                 nameCutblockRaster= 'rast.eccc_industrial_sites_all', # rast.cns_cut_bl
                                 nameCutblockTable= 'eccc_industrial_sites_all', # cns_cut_bl_polygon
-                                queryCutblocks = 'eccc_industrial_centroids' # cutseq_centroid
+                                queryCutblocks = 'eccc_industrial_centroids', # cutseq_centroid
+                                resetAge = FALSE # if TRUE, converts road age and status from it's time sequence of simulation (e.g., road was simulated in year 1, 2, 3 etc.) to the time since the road was created or used (i.e., end time - roadyear and end time - roadstatus) which inverts the sequence (e.g., road was built 3, 2, 1 years ago)
                               )
     # rsfCLUS = list(calculateInterval = 1, 
     #                criticalHabitatTable = "public.criticalhabitat_gen_bc_vat",

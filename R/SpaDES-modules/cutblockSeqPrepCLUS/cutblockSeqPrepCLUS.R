@@ -16,7 +16,7 @@ defineModule(sim, list(
   description = NA, #"insert module description here",
   keywords = NA, # c("insert key words here"),
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
-              person("Tyler", "Muhly", email = "tyler.muhley@gov.bc.ca", role = c("aut", "cre"))),
+              person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
   version = list(SpaDES.core = "0.2.5", cutblockSeqPrepCLUS = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
@@ -29,6 +29,7 @@ defineModule(sim, list(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("queryCutblocks", "character", "cutseq", NA, NA, "This describes the type of query for the cutblocks"),
     defineParameter("getArea", "logical", FALSE, NA, NA, "This describes if the area ha should be returned for each landing"),
+    defineParameter("resetAge", "logical", FALSE, NA, NA, "Set this to TRUE to define roadyear and roadstatus as the time since the road was built/used. If FALSE then it returns the sequence that the road was built/used."),
     defineParameter("startHarvestYear", "numeric", 1980, NA, NA, "This describes the min year from which to query the cutblocks"),
     defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
     defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
@@ -44,6 +45,7 @@ defineModule(sim, list(
   ),
   inputObjects = bind_rows(
     expectsInput("boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput("harvestUnits", objectClass ="RasterLayer", desc = NA, sourceURL = NA),
     expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA)
     
   ),
@@ -62,21 +64,30 @@ doEvent.cutblockSeqPrepCLUS = function(sim, eventTime, eventType, debug = FALSE)
     init = {
       sim<-Init(sim)
       sim <- getHistoricalLandings(sim) #Get the XY location of the historical cutblock landings
-      sim <- createBlocksTable(sim)#create blockid column blocks and adjacency table
-      sim <- getExistingCutblocks(sim) #updates pixels to include existing blocks
-
+      
+      if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='blocks'")) == 0){
+        sim <- createBlocksTable(sim)#create blockid column blocks and adjacency table
+        sim <- getExistingCutblocks(sim) #updates pixels to include existing blocks
+        sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval,"cutblockSeqPrepCLUS", "updateAge",  7)
+      }
+      
       sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "cutblockSeqPrep", 6)
-      sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "updateAge", 7)
+      sim <- scheduleEvent(sim, end(sim), "cutblockSeqPrepCLUS", "finalAge", 8)
+      
     },
     
     cutblockSeqPrep = {
       sim <- getLandings(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "cutblockSeqPrep")
+      sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "cutblockSeqPrep",6)
     },
     
     updateAge = {
       sim <- incrementAge(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "updateAge", 7)
+    },
+    
+    finalAge = {
+      sim <- finalAgeCalc(sim)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -121,6 +132,7 @@ getHistoricalLandings <- function(sim) {
 
 ### Set a list of cutblock locations as a Spatial Points object
 getLandings <- function(sim) {
+  message("get landings")
   if(!is.null(sim$histLandings)){
     landings <- sim$histLandings %>% dplyr::filter(harvestyr == time(sim) + P(sim)$startHarvestYear) 
     if(nrow(landings) > 0){
@@ -150,9 +162,9 @@ createBlocksTable<-function(sim){
 
 
 getExistingCutblocks<-function(sim){
-  if(!(P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster") == '99999')){
-    message(paste0('..getting cutblocks: ',P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster")))
-    ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "cutblockSeqPrepCLUS", "nameCutblockRaster"),
+  if(!(P(sim, "nameCutblockRaster", "cutblockSeqPrepCLUS") == '99999')){
+    message(paste0('..getting cutblocks: ',P(sim, "nameCutblockRaster", "cutblockSeqPrepCLUS")))
+    ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "nameCutblockRaster", "cutblockSeqPrepCLUS"),
                            tmpRast = paste0('temp_', sample(1:10000, 1)),
                            clipper=sim$boundaryInfo[1] , 
                            geom= sim$boundaryInfo[4] , 
@@ -172,7 +184,7 @@ getExistingCutblocks<-function(sim){
       dbCommit(sim$clusdb)
       
       message('...getting age')
-      blocks.age<-getTableQuery(paste0("SELECT (", P(sim)$startHarvestYear, " - harvestyr) as age, cutblockid as blockid from ", P(sim, "cutblockSeqPrepCLUS", "nameCutblockTable"), 
+      blocks.age<-getTableQuery(paste0("SELECT (", P(sim)$startHarvestYear, " - harvestyr) as age, cutblockid as blockid from ", P(sim, "nameCutblockTable", "cutblockSeqPrepCLUS"), 
                                        " where cutblockid in ('",paste(unique(exist_cutblocks$blockid), collapse = "', '"), "');"))
       
       dbExecute(sim$clusdb, "CREATE INDEX index_blockid on pixels (blockid)")
@@ -186,7 +198,7 @@ getExistingCutblocks<-function(sim){
       rm(ras.blk,exist_cutblocks, blocks.age)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "blockingCLUS", "nameCutblockRaster")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameCutblockRaster", "blockingCLUS")))
     }
   }
   return(invisible(sim))
@@ -230,4 +242,26 @@ setBlocksTable <- function(sim) {
   return(invisible(sim))
 }
 
-
+finalAgeCalc <- function (sim) { # this function inverts the roadstatus and roadyear from the time it was built/used in the backcast to its age (i.e., end time - year it was built/used)
+  if(P(sim)$resetAge) { # if TRUE
+    message("Setting roadyear and roadstatus as negative age.")
+    
+    # update the db
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, paste0("UPDATE pixels SET roadstatus = (",  end(sim), " - roadstatus) * -1,  roadyear = (",  end(sim), " - roadyear) * -1 WHERE roadtype != 0 OR roadtype IS NULL"))    
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+    # then update the rasters
+    sim$road.year<-sim$ras
+    sim$road.year[]<-dbGetQuery(sim$clusdb, 'SELECT roadyear FROM pixels')$roadyear
+    sim$road.status<-sim$ras
+    sim$road.status[]<-dbGetQuery(sim$clusdb, 'SELECT roadstatus FROM pixels')$roadstatus
+    
+    
+    
+  } else { # if FALSE
+    message("Keeping roadyear and roadstatus as sequence.")
+  }
+  
+  return(invisible(sim))
+}
