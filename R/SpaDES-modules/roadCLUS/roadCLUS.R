@@ -524,6 +524,7 @@ mstSolve <- function(sim){
   
   message('...getting paths')
   #------get the shortest paths
+  #TODO: the solution from the mst will inevitably contain paths from a landing to the exisiting road network...try to seperate those going to sourceID and those going to other locations. Can this have saving since only one destination?
   sim$roadSegs <- unique(as.integer(cppRouting::get_path_pair(Graph = sim$g, from = paths.matrix[,2], to = paths.matrix[,1], algorithm = "NBA", constant = 110/0.06, long =T )$node))
   alreadyRoaded <- dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear is not null and pixelid in (",paste(sim$roadSegs, collapse = ", "),")"))
   

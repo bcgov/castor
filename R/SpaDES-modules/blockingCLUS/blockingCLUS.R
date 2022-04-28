@@ -80,11 +80,11 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                  if(dbGetQuery (sim$clusdb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('blocks') WHERE name='salvage_vol';")$exists_check == 0){
                    # add in the column
                    dbExecute(sim$clusdb, "ALTER TABLE blocks ADD COLUMN salvage_vol numeric DEFAULT 0")
-                 }
+                 } 
+                 #Schedule the Update 
+                 sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks",eventPriority= 2)
                }
                
-               #Schedule the Update 
-                sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks",eventPriority= 2)
                },
              
              dynamic ={
