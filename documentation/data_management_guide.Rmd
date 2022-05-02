@@ -2179,5 +2179,52 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   value = pgdbs_data_list_new, 
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
+
+#Create new row for table
+new_data <- data.table (computer = 'DG401102', database = 'clus', schema = 'comaprison_nass', 
+                        table_name = 'zone_constraints_nass',  type = 'table', 
+                        script = 'NA', 
+                        source = 'Zone constraint table for the Nass model comparison project. Is a copy of the constraints table from the main zone shema.', 
+                        public = 'Yes', last_updated = '2022', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data2 <- data.table (computer = 'DG401102', database = 'clus', schema = 'comaprison_nass', 
+                        table_name = 'nass_supply_blocks',  type = 'polygon', 
+                        script = 'study_area_boundaries.Rmd', source = 'Nass TSA area, with supply blocks.', 
+                        public = 'Yes', last_updated = '2022', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data3 <- data.table (computer = 'DG401102', database = 'clus', schema = 'comaprison_nass', 
+                        table_name = 'rast_supply_blocks',  type = 'raster', 
+                        script = 'study_area_boundaries.Rmd', source = 'Nass TSA supply blocks.', 
+                        public = 'Yes', last_updated = '2022', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data4 <- data.table (computer = 'DG401102', database = 'clus', schema = 'comaprison_nass', 
+                        table_name = 'rast_tsa',  type = 'raster', 
+                        script = 'study_area_boundaries.Rmd', source = 'Nass TSA area.', 
+                        public = 'Yes', last_updated = '2022', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data5 <- data.table (computer = 'DG401102', database = 'clus', schema = 'comaprison_nass', 
+                        table_name = 'vat_supply_blocks',  type = 'table', 
+                        script = 'study_area_boundaries.Rmd', source = 'Nass TSA supply blocks VAT.', 
+                        public = 'Yes', last_updated = '2022', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3, new_data4, new_data5))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+
+
+new_data <- data.table (computer = 'DG401102', database = 'clus', schema = 'comaprison_nass', 
+                        table_name = 'vat_tsa',  type = 'table', 
+                        script = 'study_area_boundaries.Rmd', source = 'Nass TSA VAT.', 
+                        public = 'Yes', last_updated = '2022', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+
 ```
 

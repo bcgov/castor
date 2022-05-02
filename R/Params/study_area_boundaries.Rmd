@@ -198,3 +198,56 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648
 dbDisconnect(conn)
 
 ```
+
+
+## Nass 
+```{r Nass TSA}
+
+nass.tsa <- st_make_valid (getSpatialQuery ("SELECT tsa_number, tsbnmbrdsc, wkb_geometry FROM public.fadm_tsa_polygon WHERE tsa_number = '43';"))
+nass.tsa.supply.blocks <- st_make_valid (getSpatialQuery ("SELECT tsa_number, tsbnmbrdsc, wkb_geometry FROM public.fadm_tsa_polygon WHERE tsbnmbrdsc = 'Nass TSA Stewart Block' OR tsbnmbrdsc = 'Nass TSA Block E';"))
+
+null.block <- st_difference(nass.tsa, st_union(st_geometry(st_intersection(nass.tsa, nass.tsa.supply.blocks))))
+nass.tsa.supply.blocks <- rbind (nass.tsa.supply.blocks, null.block)
+
+names(nass.tsa) [names(nass.tsa) == "tsa_number"] <- "tsa_name"
+nass.tsa$tsa_name <- "Nass_TSA"
+
+names(nass.tsa.supply.blocks) [names(nass.tsa.supply.blocks) == "tsbnmbrdsc"] <- "supply_block"
+nass.tsa.supply.blocks$supply_block [nass.tsa.supply.blocks$supply_block == "Nass TSA Stewart Block"] <- "Stewart_Block"
+nass.tsa.supply.blocks$supply_block [nass.tsa.supply.blocks$supply_block == "Nass TSA Block E"] <- "Block_E"
+nass.tsa.supply.blocks$supply_block <- nass.tsa.supply.blocks$supply_block %>% replace_na ('null_block')
+
+supply.blocks.vat <- as.data.table (unique (nass.tsa.supply.blocks$supply_block))
+setnames (supply.blocks.vat, "supply_block") 
+supply.blocks.vat [, value := seq_len(.N)]
+nass.tsa.supply.blocks <- merge (nass.tsa.supply.blocks, supply.blocks.vat, by = "supply_block")
+
+nass.tsa$tsa_value <- as.integer (1)
+nass.tsa.vat <- as.data.table (unique (nass.tsa$tsa_name))
+nass.tsa.vat [, value := seq_len(.N)]
+
+#st_write (nass.tsa.supply.blocks,"nass_supply_blocks.shp")
+# ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user= password= host=" SCHEMA=comaprison_nass C:\Work\git\clus\R\Params\nass_supply_blocks.shp nass_supply_blocks  -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -lco SCHEMA=comparison_nass
+
+# Rasterize 
+ras.nass.supply.blocks <-fasterize::fasterize (st_cast (nass.tsa.supply.blocks, "MULTIPOLYGON"), prov.rast, field = "value") 
+ras.nass.all <-fasterize::fasterize (st_cast (nass.tsa, "MULTIPOLYGON"), prov.rast, field = "tsa_value") 
+
+writeRaster (ras.nass.supply.blocks, "nass_supply_blocks.tif", overwrite = T)
+writeRaster (ras.nass.all, "nass_all.tif", overwrite = T)
+
+# write data
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+setnames (supply.blocks.vat, c ("attribute", "value")) # Note use convention; always name these value and attribute
+DBI::dbWriteTable(conn, c("comparison_nass", "vat_supply_blocks"), value = supply.blocks.vat, row.names = FALSE, overwrite = TRUE)
+setnames (nass.tsa.vat, c ("attribute", "value")) # Note use convention; always name these value and attribute
+DBI::dbWriteTable(conn, c("comparison_nass", "vat_tsa"), value = nass.tsa.vat, row.names = FALSE, overwrite = TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/Params/nass_supply_blocks.tif -t 100x100 comparison_nass.rast_supply_blocks | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/Params/nass_all.tif -t 100x100 comparison_nass.rast_tsa | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+dbDisconnect(conn)
+
+```
