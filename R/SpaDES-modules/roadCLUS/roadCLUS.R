@@ -414,10 +414,10 @@ setGraph<- function(sim){
   }
  
   
-  g<-cppRouting::makegraph(edges.weight,directed=F) 
-  g<-cppRouting::cpp_simplify(sim$g) #KISS
+  sim$g<-cppRouting::makegraph(edges.weight,directed=F) 
+  sim$g<-cppRouting::cpp_simplify(sim$g) #KISS
   
-  graph.df<-cppRouting::to_df(g)
+  graph.df<-cppRouting::to_df(sim$g)
   
   message("store edge list in clusdb")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS roadsource ( source integer)")
@@ -431,7 +431,7 @@ setGraph<- function(sim){
   dbCommit(sim$clusdb)
   
   #Uses the coordinates for the NBA* algorithm
-  ids<-unique(c(unique(graph.df$to), unique(graph.df$from)))
+  ids<-as.integer(unique(c(unique(graph.df$to), unique(graph.df$from))))
   coords<-data.table(id = ids, xyFromCell(sim$ras, ids))
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS roadcoords ( id integer, x integer,  y integer )")
   dbBegin(sim$clusdb)
