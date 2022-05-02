@@ -49,13 +49,13 @@ doEvent.grizzlysurvivalCLUS = function (sim, eventTime, eventType) {
     eventType,
     init = { # identify GBPUs in the study area, calculate survival rate at time 0 for those GBPUs and save the survival rate estimate
       sim <- Init (sim) # identify GBPUs in the study area and calculate survival rate at time 0; instantiate a table to save the survival rate estimates
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "grizzlysurvivalCLUS", "calculateInterval"), "grizzlysurvivalCLUS", "calculateSurvival", 10) # schedule the next survival calculation event; should be after roadCLUS
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "grizzlysurvivalCLUS"), "grizzlysurvivalCLUS", "calculateSurvival", 10) # schedule the next survival calculation event; should be after roadCLUS
       #sim <- scheduleEvent (sim, end(sim), "grizzlysurvivalCLUS", "adjustSurvivalTable", 9) 
     },
     
     calculateSurvival = { # calculate survival rate at each time interval 
       sim <- predictSurvival (sim) # this function calculates survival rate
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "grizzlysurvivalCLUS", "calculateInterval"), "grizzlysurvivalCLUS", "calculateSurvival", 10) # schedule the next survival calculation event  
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "grizzlysurvivalCLUS"), "grizzlysurvivalCLUS", "calculateSurvival", 10) # schedule the next survival calculation event  
     },
     # adjustSurvivalTable ={ # calucalte the total area from which the survival rate applies
     #   sim <- adjustSurvivalTable (sim)
@@ -74,11 +74,11 @@ Init <- function (sim) { # this function identifies the GBPUs in the 'study area
   
     gbpubounds <- data.table (c (t (raster::as.matrix ( # clip caribou herd raster by the 'study area' set in dataLoader
                                     RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                                      srcRaster = P (sim, "grizzlysurvivalCLUS", "rasterGBPU") , # clip the GBPU boundary raster; defined in parameters, above
-                                                  clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"),  # by the study area; defined in parameters of dataLoaderCLUS
-                                                  geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
-                                                  where_clause =  paste0 (P (sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                                  conn = NULL)))))
+                                      srcRaster = P (sim, "rasterGBPU", "grizzlysurvivalCLUS") , # clip the GBPU boundary raster; defined in parameters, above
+                                      clipper=sim$boundaryInfo[1] , 
+                                      geom= sim$boundaryInfo[4] , 
+                                      where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                      conn=NULL)))))
     
     setnames (gbpubounds, "V1", "gbpu_name") # rename the default column name
     gbpubounds [, gbpu_name := as.integer (gbpu_name)] # add the GBPU boundary value from the raster and make the value an integer

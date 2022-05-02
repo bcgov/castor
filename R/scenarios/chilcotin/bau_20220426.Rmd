@@ -74,7 +74,7 @@ parameters <- list(
   dataLoaderCLUS = list( dbName='clus',
                          save_clusdb = FALSE,
                          sqlite_dbname = "chilcotin_study_area",
-                         useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/chilcotin_study_area_clusdb.sqlite"),
+                         useCLUSdb = paste0(here::here(), "/R/scenarios/chilcotin/chilcotin_study_area_clusdb.sqlite"),
                          nameBoundaryFile = "chilcotin_area_of_interest_habitat_v3",
                          nameBoundaryColumn = "tsa_name",
                          nameBoundary = c ('Matrix', 'HEWSR', 'LESR', 'LEWR', 'out'),
