@@ -414,6 +414,11 @@ setGraph<- function(sim){
   }
  
   
+  g<-cppRouting::makegraph(edges.weight,directed=F) 
+  g<-cppRouting::cpp_simplify(sim$g) #KISS
+  
+  graph.df<-cppRouting::to_df(g)
+  
   message("store edge list in clusdb")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS roadsource ( source integer)")
   dbExecute(sim$clusdb, paste0("INSERT INTO roadsource  (source) values (", sim$roadSourceID,");"))
@@ -421,12 +426,12 @@ setGraph<- function(sim){
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS roadedges ( 'to' integer, 'from' integer,  'weight' numeric )")
   dbBegin(sim$clusdb)
   rs<-dbSendQuery(sim$clusdb, "INSERT INTO roadedges ('to' , 'from', 'weight') 
-                      values (:to, :from, :weight);", edges.weight)
+                      values (:to, :from, :dist);", graph.df)
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
   #Uses the coordinates for the NBA* algorithm
-  ids<-unique(c(unique(edges.weight$to), unique(edges.weight$from)))
+  ids<-unique(c(unique(graph.df$to), unique(graph.df$from)))
   coords<-data.table(id = ids, xyFromCell(sim$ras, ids))
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS roadcoords ( id integer, x integer,  y integer )")
   dbBegin(sim$clusdb)
@@ -451,7 +456,7 @@ getGraph<- function(sim){
   
   #------make the cppRouting graph object
   sim$g<-cppRouting::makegraph(sim$edges.weight,directed=F, coords = sim$node.coords) #coordinates help find paths
-  sim$g<-cppRouting::cpp_simplify(sim$g)
+  #sim$g<-cppRouting::cpp_simplify(sim$g) #this should already be simplified when it was created
   
   if(P(sim)$roadMethod %in% c('lcp', 'mst')){ #Need a vector of permanent roads for cases where the landing falls on one -- since these roads are simplified to a single pixel with many edges.
     sim$perm.roads<-dbGetQuery(sim$clusdb, "select pixelid from pixels where roadtype = 0;")
@@ -476,7 +481,7 @@ setEdges<- function(sim){ #Updates the graph to account for the new roads
   sim$edges.weight[to %in% sim$paths.v & from %in% sim$paths.v, weight := 0.0000001] #assign a low cost to the newly made road
   #------make the cppRouting graph object
   sim$g <- cppRouting::makegraph(sim$edges.weight,directed=F, coords = sim$node.coords) #rebuild the cppRouting graph
-  sim$g <- cppRouting::cpp_simplify(sim$g) #KISS 
+  #sim$g <- cppRouting::cpp_simplify(sim$g) #KISS 
   return(invisible(sim))
 } 
 
@@ -510,29 +515,34 @@ mstSolve <- function(sim){
   edge.list.nn <- unique(edge.list.nn)
   
   edge.list2 <- data.table(to = edge.list.nn$to, 
-                        from = edge.list.nn$from, 
-                        weight = cppRouting::get_distance_pair(Graph=sim$g, 
-                                                                 from=edge.list.nn$from, 
-                                                                 to=edge.list.nn$to, 
-                                                                 algorithm = "NBA", 
-                                                                 constant = 110/0.06,  #Fastest is 110 km/hr convert to m/min
-                                                                 allcores=FALSE))
+                          from = edge.list.nn$from, 
+                          weight = cppRouting::get_distance_pair(Graph=sim$g, from=edge.list.nn$from,to=edge.list.nn$to, algorithm = "NBA",constant = 110/0.06, allcores=FALSE))
+  
   message('...solve the mst')
   #------solve the mst
-  edges <- rbindlist(list(edge.list, edge.list2), use.names=TRUE)
-  gi.mst <- mst(graph_from_data_frame(edges, directed=FALSE))
-  paths.matrix <- noquote(get.edgelist(gi.mst, names=TRUE)) #Is this getting the edgelist using the vertex ids -yes!
+  edges.all <- rbindlist(list(edge.list, edge.list2), use.names=TRUE)
+  gi.mst <- igraph::mst(graph_from_data_frame(edges.all, directed=FALSE))
+  paths.matrix <- data.table(get.edgelist(gi.mst, names=TRUE)) #Is this getting the edgelist using the vertex ids -yes!
+  #V1 = from, V2 = to...we set the 'to' using roadSourceID on line 506
+  paths.matrix.tothers <- paths.matrix[!(V2==sim$roadSourceID), ]
   
   message('...getting paths')
   #------get the shortest paths
-  #TODO: the solution from the mst will inevitably contain paths from a landing to the exisiting road network...try to seperate those going to sourceID and those going to other locations. Can this have saving since only one destination?
-  sim$roadSegs <- unique(as.integer(cppRouting::get_path_pair(Graph = sim$g, from = paths.matrix[,2], to = paths.matrix[,1], algorithm = "NBA", constant = 110/0.06, long =T )$node))
+  #The solution from the mst will inevitably contain paths from a landing to the existing road network (roadSourceID)...try to seperate those going to sourceID and those going to other locations. Can this have saving since only one destination?
+  toRoadSourceID<-unique(as.integer(cppRouting::get_multi_paths(Graph = sim$g, from = sim$roadSourceID, to=paths.matrix[V2==sim$roadSourceID,"V1"]$V1, long =T )$node))
+  toOthers<-unique(as.integer(cppRouting::get_path_pair(Graph = sim$g, from = paths.matrix.tothers$V2, to=paths.matrix.tothers$V1 , algorithm = "NBA", constant = 110/0.06, long =T )$node))
+  
+  sim$roadSegs <- unique(c(toOthers, toRoadSourceID))
   alreadyRoaded <- dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear is not null and pixelid in (",paste(sim$roadSegs, collapse = ", "),")"))
   
   sim$paths.v <- sim$roadSegs[!(sim$roadSegs[] %in% alreadyRoaded$pixelid)]
   #update the raster
   sim$road.year[sim$ras[] %in% sim$paths.v] <- time(sim)*sim$updateInterval
   sim$road.status[sim$ras[] %in% sim$roadSegs] <- time(sim)*sim$updateInterval
+  
+  #------Clean up
+  rm(landing.cell,weights.closest.rd,edge.list,nnlandings,edge.list.inner,edge.list.outer,edge.list.nn ,edge.list2,edges.all,gi.mst,paths.matrix,paths.matrix.tothers,toRoadSourceID,toOthers,alreadyRoaded)
+  gc()
   return(invisible(sim)) 
 }
 

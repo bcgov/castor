@@ -56,11 +56,11 @@ doEvent.volumebyareaReportCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init(sim) 
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "volumebyareaReportCLUS", "calculateInterval"), "volumebyareaReportCLUS", "analysis", 10)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "volumebyareaReportCLUS"), "volumebyareaReportCLUS", "analysis", 10)
     },
     analysis = {
       sim <- volAnalysis(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "volumebyareaReportCLUS", "calculateInterval"), "volumebyareaReportCLUS", "analysis", 10)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "volumebyareaReportCLUS"), "volumebyareaReportCLUS", "analysis", 10)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -74,23 +74,23 @@ Init <- function(sim) {
   sim$volumebyarea <- data.table(dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels where thlb > 0 ORDER BY pixelid"))
   
   #Get the area of interest
-  if(P(sim, "volumebyareaReportCLUS", "AreaofInterestRaster") == '99999') {
+  if(P(sim, "AreaofInterestRaster", "volumebyareaReportCLUS") == '99999') {
     sim$volumebyarea[, attribute := 1]
     } else {
     aoi_bounds <- data.table (c (t (raster::as.matrix( 
     RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                 srcRaster = P(sim, "volumebyareaReportCLUS", "AreaofInterestRaster"), 
+                 srcRaster = P(sim, "AreaofInterestRaster", "volumebyareaReportCLUS"), 
                  clipper = sim$boundaryInfo[[1]],  
                  geom = sim$boundaryInfo[[4]], 
                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                  conn = NULL)))))
     aoi_bounds [, pixelid := seq_len (.N)]
     if(nrow(aoi_bounds[!is.na(V1),]) > 0){
-      if(!(P(sim, "volumebyareaReportCLUS", "AreaofInterestTable") == '99999')){
-        aoi_lu <- data.table (getTableQuery (paste0 ("SELECT cast (value as int) AS zone, attribute FROM ",P(sim, "volumebyareaReportCLUS", "AreaofInterestTable"))))
+      if(!(P(sim, "AreaofInterestTable", "volumebyareaReportCLUS") == '99999')){
+        aoi_lu <- data.table (getTableQuery (paste0 ("SELECT cast (value as int) AS zone, attribute FROM ",P(sim, "AreaofInterestTable", "volumebyareaReportCLUS"))))
         aoi_bounds <- merge(aoi_bounds, aoi_lu, by.x = "V1", by.y = "zone", all.x = TRUE)
       } else {
-      stop(paste0(P(sim, "volumebyareaReportCLUS", "AreaofInterestRaster"), "- does not overlap with harvest unit"))
+      stop(paste0(P(sim, "AreaofInterestRaster", "volumebyareaReportCLUS"), "- does not overlap with harvest unit"))
       }
     sim$volumebyarea <-merge(sim$volumebyarea, aoi_bounds, by.x = "pixelid", by.y = "pixelid", all.x = T)
     setnames(sim$volumebyarea, "attribute", "area_name")
