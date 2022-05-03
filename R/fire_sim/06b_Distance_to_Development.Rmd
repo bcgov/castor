@@ -1,0 +1,433 @@
+---
+title: "06b_Distance_to_Development"
+author: "Elizabeth Kleynhans and Cora Skaien"
+date: "25/04/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#libraries
+library(sf)
+library(sp)
+library(spdep)
+library(rgeos)
+library(mc2d)
+library(raster)
+library(fasterize)
+library(bcdata)
+
+```
+
+
+<!--
+Copyright 2022 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+#=================================
+#  Script Name: 06b_Distance_to_Development.R
+#  Script Version: 1.0
+#  Script Purpose: Determine the distance to various types of development/infrastructure.
+#  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#Script Contributor: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
+
+#Overview
+Whether or not fires spread into surrounding areas is not as simple as what the environment is like; instead, we have fire fighting efforts that can alter the course of a fire, reduce its spread, and extinguish the fire. The closer the fire is to infrastructure, such as urban settings, power lines, railroads, and major projects, the more likely that fire fighting efforts will be increased. Furthermore, people might also be the cause of fires due to mistakes (camp fires not properly put out, run away planned burns, arsen, or even sparks from trains)  so being closer to infrastructure might results in more fires. Thus, we will determine the distance from each fire location to the nearest infrastructure (regardless of type). 
+
+#Layers to include
+
+I've decided to use the layers that the Cumulative effects group use. The layers are outlined in the file: "Z:\bcce\shared\data_library\disturbance\human_disturbance\2021\4_README_CEF_Disturbance_GIS_Inputs_20210927".
+
+1.) Mining and Extraction
+Using the layers:
+ - WHSE_BASEMAPPING.BTM_PRESENT_LAND_USE_V1_SVW with the PRESENT_LAND_USE_LABEL = 'Mining'    - WHSE_FOREST_VEGETATION.VEG_COMP_LYR_R1_POLY with the following selection criteria BCLCS_LEVEL_5 in ('GP','MI','MZ','TZ') 
+
+2.) Rail and Infrastructure
+Using layers:
+ - WHSE_BASEMAPPING.GBA_RAILWAY_TRACKS_SP
+ In the cumulative effects layers they buffer the railway lines in north eastern BC by a different amount (17.5m) than they do in the rest of the province (7.5m). Im not sure why.
+ 
+3.) Oil and gas infrastructure
+Using layers:
+ - \\spatialfiles.bcgov\work\srm\bcce\shared\data_library\disturbance\human_disturbance\2021\inputs\data\Oil_And_Gas\BC_OG_NONGEO_SLU_DEC2020.shp
+ Or I think you can download the same layer from: https://www.bcogc.ca/files/gis/SLU/Zip/BC_OG_NONGEO_SLU_DEC2020.zip
+ 
+4.) Power
+Using layers:
+ - Dams: WHSE_WATER_MANAGEMENT.WRIS_DAMS_PUBLIC_SVW buffered by 25m
+ - Transmission: WHSE_BASEMAPPING.GBA_TRANSMISSION_LINES_SP buffered by 12.5m
+
+5.) Urban
+Using layers:
+ - WHSE_BASEMAPPING.BTM_PRESENT_LAND_USE_V1_SVW with selection criteria PRESENT_LAND_USE_LABEL IN ( 'Urban', 'Residential Agriculture Mixtures' )
+ - WHSE_FOREST_VEGETATION.VEG_COMP_LYR_R1_POLY with selection criteria BCLCS_LEVEL_5 = 'UR' or (BCLCS_LEVEL_5  is null and NON_PRODUCTIVE_DESCRIPTOR_CD = 'U') or ((NON_VEG_COVER_TYPE_1 = 'UR' and NON_VEG_COVER_PCT_1 >= 20) or (NON_VEG_COVER_TYPE_2 = 'UR' and NON_VEG_COVER_PCT_2 >= 20) or(NON_VEG_COVER_TYPE_3 = 'UR' and NON_VEG_COVER_PCT_3 >= 20)) 
+
+6.) Recreation (should I include this one???)
+Using layers
+ - WHSE_BASEMAPPING.BTM_PRESENT_LAND_USE_V1_SVW with selection criteria PRESENT_LAND_USE_LABEL = 'Recreation Activities'
+
+# Work flow
+I've decided to create a raster for each layer that for every pixel in the province calculates the minimum distance to that specific infrastructure. 
+1.) I change the shape file into a raster. 
+2.) In QGIS I calculate the minimum distance to the infrastructure for each 1ha pixel in BC.
+3.) Create a raster stack
+4.) For each ignition point obtain the distance to the infrastructure from the raster stack.
+
+
+#load in the spatial layers
+You can load in each separately, but we processed in QGIS ultimately, so you can skip this part.
+
+# Mines
+```{r}
+mines<- try(
+  bcdc_query_geodata("WHSE_BASEMAPPING.BTM_PRESENT_LAND_USE_V1_SVW") %>%
+    filter(PRESENT_LAND_USE_LABEL == 'Mining') %>%
+    collect()
+)
+plot(mines[,"MEAN_ELEVATION"])
+
+mines2<-try(
+  bcdc_query_geodata("WHSE_FOREST_VEGETATION.VEG_COMP_LYR_R1_POLY") %>%
+    filter(BCLCS_LEVEL_5 %in% c("MZ", "TZ", "MI")) %>%
+    select(BCLCS_LEVEL_5) %>%
+    collect()
+)
+
+mines<-st_cast(mines,'MULTIPOLYGON')
+mines2<-st_cast(mines2,'MULTIPOLYGON')
+
+# ha BC standard raster
+ProvRast <- raster (nrows = 15744, ncols = 17216, 
+                    xmn = 159587.5, xmx = 1881187.5, 
+                    ymn = 173787.5, ymx = 1748187.5,                      
+                    crs = st_crs(mines)$proj4string, 
+                    resolution = c (100, 100), vals = 0) # from https://github.com/bcgov/bc-raster-roads/blob/master/03_analysis.R
+
+ras.mines <- fasterize (mines, ProvRast, 
+                                 field = NULL,# raster cells that have oil and gas get value of 1
+                                 background = 0) # unharvested raster cells get value = 0 
+ras.mines2 <- fasterize (mines2, ProvRast, 
+                                 field = NULL,# raster cells that have oil and gas get value of 1
+                                 background = 0) # unharvested raster cells get value = 0 
+rast.mines.all<-overlay(ras.mines, ras.mines2, fun=function(x,y){return(x+y)})
+
+plot(rast.mines.all)
+
+raster::writeRaster (rast.mines.all, 
+                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\mines.tiff", 
+                     format = "GTiff",
+                     overwrite=TRUE)
+```
+
+# Rail and Infrastructure
+```{r}
+
+ rail<- try(
+  bcdc_query_geodata("WHSE_BASEMAPPING.GBA_RAILWAY_TRACKS_SP")%>%
+    collect()
+)
+
+# #  In the cumulative effects layers they buffer the railway lines in north eastern BC by a different amount (17.5m) than they do in the rest of the province (7.5m). Here I do that.
+rail_ne<-rail %>%
+  filter(SUBDIVISION1_NAME %in% c('Fort Nelson' , 'Fort St. John' ,  'Dawson Creek' , 'Grande Prairie'))
+rail_ne_buf<-st_buffer(rail_ne, dist=17.5)
+
+rail_not_ne<-rail %>%
+  filter(!SUBDIVISION1_NAME %in% c('Fort Nelson' , 'Fort St. John' ,  'Dawson Creek' , 'Grande Prairie'))
+rail_not_ne_buf<-st_buffer(rail_not_ne, dist=7.5)
+
+rail_buf_all<- rbind(rail_ne_buf, rail_not_ne_buf)
+
+rail_buf_all<-st_cast(rail_buf_all,'MULTIPOLYGON')
+
+ras.rail <- fasterize (rail_buf_all, ProvRast, 
+                                 field = NULL,# raster cells that have oil and gas get value of 1
+                                 background = 0) # unharvested raster cells get value = 0 
+
+plot(ras.rail) 
+raster::writeRaster (ras.rail, 
+                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\rail.tiff", 
+                     format = "GTiff",
+                     overwrite=TRUE)
+```
+
+# Oil and gas infrastructure
+```{r}
+# Im using the CE layer they have in their files.
+#\\spatialfiles.bcgov\work\srm\bcce\shared\data_library\disturbance\human_disturbance\2021\inputs\data\Oil_And_Gas\BC_OG_NONGEO_SLU_DEC2020.shp
+
+oil<-st_read("Z:\\bcce\\shared\\data_library\\disturbance\\human_disturbance\\2021\\inputs\\data\\Oil_And_Gas\\BC_OG_NONGEO_SLU_DEC2020.shp")
+
+# filter out roads because I assume they are already in the road atlas.
+oil<-oil %>%
+  filter(SLU_DESC !="ROAD")
+plot(oil[,"SLU_CODE"])
+
+ras.oil <- fasterize (oil, ProvRast, 
+                                 field = NULL,
+                                 background = 0)
+raster::writeRaster (ras.oil, 
+                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\oil.tiff", 
+                     format = "GTiff",
+                     overwrite=TRUE)
+```
+
+4.) Power
+Using layers:
+ - Dams: WHSE_WATER_MANAGEMENT.WRIS_DAMS_PUBLIC_SVW buffered by 25m
+ - Transmission: WHSE_BASEMAPPING.GBA_TRANSMISSION_LINES_SP buffered by 12.5m
+```{r}
+ dams<- try(
+  bcdc_query_geodata("WHSE_WATER_MANAGEMENT.WRIS_DAMS_PUBLIC_SVW")%>%
+    collect()
+)
+dams.buf<- st_buffer(dams, dist=25)
+ras.dams <- fasterize (dams.buf, ProvRast, 
+                                 field = NULL,
+                                 background = 0)
+
+transmission<- try(
+  bcdc_query_geodata("WHSE_BASEMAPPING.GBA_TRANSMISSION_LINES_SP")%>%
+    collect()
+)
+transmission.buf<- st_buffer(transmission, dist=12.5)
+ras.transmission <- fasterize (transmission.buf, ProvRast, 
+                                 field = NULL,
+                                 background = 0)
+#overlay dams and powerlines to join the two rasters
+ras.power<-overlay(ras.transmission, ras.dams, fun=function(x,y){return(x+y)})
+
+raster::writeRaster (ras.power, 
+                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\power.tiff", 
+                     format = "GTiff",
+                     overwrite=TRUE)
+```
+
+# Urban
+Using layers:
+ - WHSE_BASEMAPPING.BTM_PRESENT_LAND_USE_V1_SVW with selection criteria PRESENT_LAND_USE_LABEL IN ( 'Urban', 'Residential Agriculture Mixtures' )
+ 
+ - WHSE_FOREST_VEGETATION.VEG_COMP_LYR_R1_POLY with selection criteria BCLCS_LEVEL_5 = 'UR' or (BCLCS_LEVEL_5  is null and NON_PRODUCTIVE_DESCRIPTOR_CD = 'U') or ((NON_VEG_COVER_TYPE_1 = 'UR' and NON_VEG_COVER_PCT_1 >= 20) or (NON_VEG_COVER_TYPE_2 = 'UR' and NON_VEG_COVER_PCT_2 >= 20) or(NON_VEG_COVER_TYPE_3 = 'UR' and NON_VEG_COVER_PCT_3 >= 20)) 
+
+```{r}
+urban<- try(
+  bcdc_query_geodata("WHSE_BASEMAPPING.BTM_PRESENT_LAND_USE_V1_SVW")%>%
+    filter(PRESENT_LAND_USE_LABEL %in% c('Urban', 'Residential Agriculture Mixtures')) %>%
+    collect()
+)
+
+# urban2<- try(
+#   bcdc_query_geodata("WHSE_FOREST_VEGETATION.VEG_COMP_LYR_R1_POLY")%>%
+#     filter(BCLCS_LEVEL_5 =='U' | NON_PRODUCTIVE_DESCRIPTOR_CD =='U' | (NON_VEG_COVER_TYPE_1=='UR' & NON_VEG_COVER_PCT_1 >= 20) | (NON_VEG_COVER_TYPE_2=='UR' & NON_VEG_COVER_PCT_2 >= 20) |
+# (NON_VEG_COVER_TYPE_3=='UR' & NON_VEG_COVER_PCT_3 >= 20)) %>%
+#     collect()
+# )# Im not sure about this. It looks like its collecting too much stuff including roads and forested areas that do no have buildings on them. I think Im going to leave out the VRI data because I think people will only fight fires for significant infrastructure not some tiny log cabin in the woods way back
+
+
+ras.urban <- fasterize (urban, ProvRast, 
+                                 field = NULL,
+                                 background = 0)
+# ras.urban2 <- fasterize (urban2.test, ProvRast, 
+#                                  field = NULL,
+#                                  background = 0)
+
+
+#overlay dams and powerlines to join the two rasters
+#ras.urban.all<-overlay(ras.urban, ras.urban2, fun=function(x,y){return(x+y)})
+
+raster::writeRaster ( ras.urban, #ras.urban.all, 
+                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\urban.tiff", 
+                     format = "GTiff",
+                     overwrite=TRUE)
+
+```
+
+
+
+```{r}
+Dams<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Dams_Buffer.shp", stringsAsFactors = T)
+Dams_buffered<-st_buffer(Dams, dist=50) # Im buffering it because Im not sure its picking up all the locations. 
+dams2<-st_cast(Dams_buffered,'MULTIPOLYGON')
+
+ras.dam2 <- fasterize (dams2, ProvRast, 
+                                 field = NULL,# raster cells that have oil and gas get value of 1
+                                 background = 0) # unharvested raster cells get value = 0 
+sum(ras.dam2[] > 0)# buffering it results in more pixels. 
+plot(ras.dam2)
+
+raster::writeRaster (ras.dam2, 
+                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\dams.tiff", 
+                     format = "GTiff",
+                     overwrite=TRUE)
+
+NatResourceSect<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Nat_Resource_Buffer.shp", stringsAsFactors = T)
+NatResourceSect_buffered<-st_buffer(NatResourceSect, dist=50) # Im buffering it because Im not sure its picking up all the locations. 
+natresource<-st_cast(NatResourceSect_buffered,'MULTIPOLYGON')
+
+ras.natresource <- fasterize (natresource, ProvRast, 
+                                 field = NULL,# raster cells that have oil and gas get value of 1
+                                 background = 0) # unharvested raster cells get value = 0 
+sum(ras.natresource[] > 0)# buffering it results in more pixels. 
+plot(ras.natresource)
+
+raster::writeRaster (ras.natresource, 
+                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\NatResourceSect.tiff", 
+                     format = "GTiff",
+                     overwrite=TRUE)
+
+
+TransmissionsLines<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\TransmissionLines_Buffer.shp", stringsAsFactors = T)
+TransmissionsLines_buffered<-st_buffer(TransmissionsLines, dist=50) # Im buffering it because Im not sure its picking up all the locations. 
+TransmissionLines2<-st_cast(TransmissionsLines_buffered,'MULTIPOLYGON')
+
+ras.TransmissionLines2 <- fasterize (TransmissionLines2, ProvRast, 
+                                 field = NULL,# raster cells that have oil and gas get value of 1
+                                 background = 0) # unharvested raster cells get value = 0 
+sum(ras.TransmissionLines2[] > 0)# buffering it results in more pixels. 
+plot(ras.TransmissionLines2)
+
+raster::writeRaster (ras.TransmissionLines2, 
+                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\TransmissionLines.tiff", 
+                     format = "GTiff",
+                     overwrite=TRUE)
+
+
+Railway<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Railway_Buffer_.shp", stringsAsFactors = T)
+Railway_buffered<-st_buffer(Railway, dist=50) # Im buffering it because Im not sure its picking up all the locations. 
+Railway2<-st_cast(Railway_buffered,'MULTIPOLYGON')
+
+ras.Railway2 <- fasterize (Railway2, ProvRast, 
+                                 field = NULL,# raster cells that have oil and gas get value of 1
+                                 background = 0) # unharvested raster cells get value = 0 
+sum(ras.Railway2[] > 0)# buffering it results in more pixels. 
+plot(ras.Railway2)
+
+raster::writeRaster (ras.Railway2, 
+                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\railway.tiff", 
+                     format = "GTiff",
+                     overwrite=TRUE)
+
+
+#Munic<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Municipalities.shp", stringsAsFactors = T)
+
+
+
+# now calculate the distance to raster i.e. distance from each pixel to the closest occurence of a featuer I used the following Raster -> Analysis -> Proximity (Raster distance) tool in QGIS. The command I ran was as below replacing TransmissionLines.tiff with each oilgas, mines, railways tiff.
+"python3 -m gdal_proximity -srcband 1 -distunits PIXEL -ot Float32 -of GTiff C:\Work\caribou\clus\R\fire_sim\tmp\TransmissionLines.tiff C:/Work/caribou/clus/R/fire_sim/data/dist_transmissionlines.tif"
+
+rm(Mines, Mines_buffered, Mines2, Railway, Railway_buffered, Railway2,TransmissionLines2, TransmissionsLines, TransmissionsLines_buffered)
+
+```
+
+
+```{r}
+# prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+# st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
+# prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
+# bc.bnd <- st_transform (prov.bnd, 3005)
+
+# ha BC standard raster
+ProvRast <- raster (nrows = 15744, ncols = 17216, 
+                    xmn = 159587.5, xmx = 1881187.5, 
+                    ymn = 173787.5, ymx = 1748187.5,                      
+                    crs = st_crs(oilgas)$proj4string, 
+                    resolution = c (100, 100), vals = 0) # from https://github.com/bcgov/bc-raster-roads/blob/master/03_analysis.R
+
+
+```
+
+# load in oil and gas, mines, powerlines etc and change them into rasters
+```{r}
+
+# import oil and gas data. Not the following two layers are what are used by the cummulative effects crowd for oil and gas. So Im using the same.
+#see: Z:\bcce\shared\data_library\disturbance\human_disturbance\2021\4_README_CEF_Disturbance_GIS_Inputs_20210927
+
+oilgas<-try(
+  bcdc_query_geodata("WHSE_TANTALIS.TA_CROWN_TENURES_SVW") %>%
+    filter(TENURE_PURPOSE %in% c("UTILITY", "ENERGY PRODUCTION", "INDUSTRIAL", "FIRST NATIONS")) %>%
+    filter(TENURE_SUBPURPOSE %in% c("DRILLSITE/WELLSITE", "GAS AND OIL PIPELINE", "GAS PROCESSING PLANT")) %>%
+    collect()
+)
+
+
+
+# 1. WHSE_TANTALIS.TA_CROWN_TENURES_SVW
+#     Selection Criteria:
+#     TENURE_PURPOSE = 'UTILITY' AND TENURE_SUBPURPOSE = 'GAS AND OIL PIPELINE' AND 
+#     TENURE_TYPE <> 'RESERVE/NOTATION'
+#     Name in GDB: tantalis_crown_tenures_pipelines_20180814
+#     manually deleted PRGT and CG
+
+# 2. WHSE_TANTALIS.TA_SURVEYED_ROW_PARCELS_SVW
+#     Selection Criteria:
+#     FEATURE_CODE = 'FA91300120' OR FEATURE_CODE = 'FA91400120'
+#     Name in GDB: tantalis_surveyed_row_pipelines_20180814
+```
+
+
+
+
+```{r}
+dist_railway<- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_railway.tif")
+dist_transmissionlines<- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_transmissionlines.tif")
+dist_oilgas<- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_oilgas.tif")
+dist_mines<- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_mines.tif")
+dist_dams<- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_dams.tif")
+
+
+
+rasStackinfrastructure = stack(dist_railway, dist_transmissionlines, dist_oilgas, dist_mines, dist_dams)
+crs(rasStackinfrastructure)
+res(rasStackinfrastructure)
+
+```
+
+Bring back points from the 05_Wind_Speed_Data_Prep.rmd file
+```{r}
+sample_locations_DEM_roads_wind2<-sf::st_read( "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_frt.shp")
+
+##Extract Coordinates
+test<-cbind(sample_locations_DEM_roads_wind2, st_coordinates(sample_locations_DEM_roads_wind2))
+head(test)
+
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+#crs(pointCoordinates) #No CRS when a dataframe
+##Extract Wind values from stacked layer
+rasValue3=raster::extract(rasStackinfrastructure, pointCoordinates)
+head(rasValue3)
+str(rasValue3)
+names(rasValue3)
+str(sample_locations_DEM_roads_wind2)# 200292 values
+
+#Append new information
+sample_locations_DEM_roads_wind<-cbind(sample_locations_DEM_roads_wind2, rasValue3)
+head(sample_locations_DEM_roads_wind)
+crs(sample_locations_DEM_roads_wind)
+
+sample_locations_DEM_roads_wind$dist_infrastructure<-0
+dat<-sample_locations_DEM_roads_wind
+
+dat$dist_infrastructure<-
+  ifelse(dat$dist_mines < dat$dist_transmissionlines, dat$dist_mines, dat$dist_transmissionlines)
+dat$dist_infrastructure<-
+  ifelse(dat$dist_railway < dat$dist_infrastructure, dat$dist_railway, dat$dist_infrastructure)
+dat$dist_infrastructure<-
+  ifelse(dat$dist_oilgas < dat$dist_infrastructure, dat$dist_oilgas, dat$dist_infrastructure)
+dat$dist_infrastructure<-
+  ifelse(dat$dist_dams < dat$dist_infrastructure, dat$dist_dams, dat$dist_infrastructure)
+
+```
