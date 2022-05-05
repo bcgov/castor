@@ -67,7 +67,7 @@ require (DBI)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 #STEP 1: Connect to the clusdb.sqlite database for the AOI
-clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/chilcotin_study_area_clusdb.sqlite"))
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/chilcotin/chilcotin_study_area_clusdb.sqlite"))
 
 #################
 ### Scenario 2a no harvest corridors ##
@@ -117,7 +117,7 @@ parameters <- list(
   dataLoaderCLUS = list( dbName='clus',
                          save_clusdb = FALSE,
                          sqlite_dbname = "chilcotin_study_area",
-                         useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/chilcotin_study_area_clusdb.sqlite"),
+                         useCLUSdb = paste0(here::here(), "/R/scenarios/chilcotin/chilcotin_study_area_clusdb.sqlite"),
                          nameBoundaryFile = "chilcotin_area_of_interest_habitat_v3",
                          nameBoundaryColumn = "tsa_name",
                          nameBoundary = c ('Matrix', 'HEWSR', 'LESR', 'LEWR', 'out'),
@@ -177,7 +177,7 @@ parameters <- list(
                              criticalHabitatTable = "vat.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.perm_dist_no_rds",
-                             recovery = 40), 
+                             recovery = 10), 
   volumebyareaReportCLUS = list (calculateInterval = 1,
                                  AreaofInterestRaster = "rast.chilcotin_aoi_supply_blocks",
                                  AreaofInterestTable = "vat.chilcotin_supply_blocks_vat"),
@@ -363,14 +363,14 @@ mySim <- simInit(times = times,
                  paths = paths)
 
 # outputs to keep; these are tables that get used in the uploader
-outputs(mySim) <- data.frame (objectName = c("harvestReport",
-                                             "growingStockReport",
-                                             "tableSurvivalReport",
-                                             "disturbanceReport",
-                                             "volumebyareaReport",
-                                             "tableGrizzSurvivalReport",
-                                             "tableAbundanceReport"
-                                             ))
+# outputs(mySim) <- data.frame (objectName = c("harvestReport",
+#                                              "growingStockReport",
+#                                              "tableSurvivalReport",
+#                                              "disturbanceReport",
+#                                              "volumebyareaReport",
+#                                              "tableGrizzSurvivalReport",
+#                                              "tableAbundanceReport"
+#                                              ))
 
 #Run the model 1 time
 system.time({mysimout<-spades(mySim)})
