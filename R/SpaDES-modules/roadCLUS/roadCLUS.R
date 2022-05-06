@@ -29,7 +29,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "roadCLUS.Rmd"),
-  reqdPkgs = list("raster", "sf", "latticeExtra", "SpaDES.tools", "rgeos", "velox", "RANN", "dplyr", "cppRouting"),
+  reqdPkgs = list("raster", "sf", "latticeExtra", "SpaDES.tools", "rgeos", "RANN", "dplyr", "cppRouting"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("roadMethod", "character", "pre", NA, NA, "This describes the method from which to simulate roads - default is snap."),
@@ -52,7 +52,6 @@ defineModule(sim, list(
     expectsInput(objectName = "bbox", objectClass ="numeric", desc = NA, sourceURL = NA),
     expectsInput(objectName = "landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "raster", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "rasVelo", objectClass = "VeloxRaster", desc = NA, sourceURL = NA),
     expectsInput(objectName = "roadSourceID", objectClass = "integer", desc = "The source used in Dijkstra's pre-solving approach", sourceURL = NA),
     expectsInput(objectName = "updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
     
@@ -370,9 +369,9 @@ setGraph<- function(sim){
   bound.line<-getSpatialQuery(paste0("select st_boundary(",sim$boundaryInfo[[4]],") as geom from ",sim$boundaryInfo[[1]]," where 
   ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')"))
  
-  #Need a velox workaround
-  #step.one<-data.table(c(t(raster::as.matrix(fasterize::fasterize(bound.line, sim$ras)))))[, pixelid := seq_len(.N)][V1==1,]$pixelid
-  step.one<-unlist(sim$rasVelo$extract(bound.line), use.names = FALSE)
+  #TODO: Need a velox workaround. Testing below
+  step.one<-data.table(c(t(raster::as.matrix(fasterize::fasterize(bound.line, sim$ras)))))[, pixelid := seq_len(.N)][V1==1,]$pixelid
+  #step.one<-unlist(sim$rasVelo$extract(bound.line), use.names = FALSE)
   
   step.two<-data.table(dbGetQuery(sim$clusdb, paste0("select pixelid, roadtype from pixels where roadtype >= 0 and 
                                                 pixelid in (",paste(step.one, collapse = ', '),")")))
