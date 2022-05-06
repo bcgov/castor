@@ -22,16 +22,10 @@
 # In this section (01), we select the available data for fires in BC from 2002 and 2020 and upload these files to the clus database.
 
 library(bcdata)
-
-library(raster)
-library(data.table)
-library(sf)
-library(tidyverse)
-library(rgeos)
+require (dplyr)
 require (RPostgreSQL)
 require (rpostgis)
-require (fasterize)
-require (dplyr)
+
 library(keyring)
 
 source(here::here("R/functions/R_Postgres.R"))
@@ -52,6 +46,7 @@ ignit<-try(
 head(ignit)
 table(ignit$FIRE_YEAR) # yipee Looking at https://www2.gov.bc.ca/gov/content/safety/wildfire-status/about-bcws/wildfire-statistics/wildfire-averages and comparing the values I get to these looks correct with all years present after 2001. 
 table(ignit$FIRE_YEAR, ignit$FIRE_CAUSE) 
+ignit$ig_mnth<-stringi::stri_sub(ignit$IGNITION_DATE,6,7)
 
 
 ignition <- ignit %>%
@@ -59,7 +54,8 @@ ignition <- ignit %>%
 table(ignition$FIRE_YEAR, ignition$FIRE_CAUSE2)
 
 
-ignition2 <- st_transform (ignition, 3005)
+
+ignition2 <- st_transform (ignit, 3005)
 
 
 #st_write(ignition2, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\bc_fire_ignition.shp", delete_dsn = TRUE)

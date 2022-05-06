@@ -1,0 +1,386 @@
+---
+title: "04_climate_data_prep"
+author: "Elizabeth Kleynhans"
+date: "04/05/2022"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+#  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#  Script Contributor: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
+Script Purpose:  This script uses the fire ignition points and sample locations. It takes the elevation and lat and long coordinates of each point to extract monthly average climate variables from climateBC (http://climatebc.ca/) for all years 2002 to 2020. This range of dates was chosen because it is the years that we have VRI data for i.e. VRI data does not exist before 2002. To extract the climate data I use the app that climateBC provides. The version I used of the app is climateBC_v710. This version was released on 06 June 2021 and includes 13 General Circulation Models from the CMIP6. It also has a different normal period (1991 - 2020).  After the climate data has been extracted from climateBC this data is reimported into this script and the mean monthly drought code for the months  May - September is calculated for each year. From this script I get the maximum temperature, minimum temperature, average temperature, total precipitation, relative humidity and mean monthly drought code for the months May - September for each year 2002 - 2020 for all fire ignition locations and randomly sampled (available fire ignition locations (fire absence)) points on the landscape 
+
+########### Acquiring and Appending Climate Data ########
+
+First, we will generate separate files from above code for each year to input into ClimateBC.
+
+
+# Load data back in if we need to.
+Note the column names will have changed so be careful!
+```{r}
+sample_locations_DEM <-st_read(dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\DEM_5x_AllMonths_frt.shp")
+head(sample_locations_DEM) 
+```
+
+
+
+```{r}
+years<-c("2002", "2003", "2004", "2005", "2006", "2007","2008","2009","2010","2011","2012","2013","2014","2015","2016","2017","2018", "2019", "2020", "2021")
+
+for (i in 1: length(years)) {
+  dat<- sample_locations_DEM %>% filter(FIRE_YEAR==years[i])
+  sample.pts.all <- data.frame (matrix (ncol = 5, nrow = nrow (dat)))
+  colnames (sample.pts.all) <- c ("ID1","ID2", "lat", "long", "el")
+  sample.pts.all$ID1<- dat$idno
+  sample.pts.all$ID2 <- dat$FIRE_YEAR
+  sample.pts.all$lat <-as.numeric(dat$LATITUDE)
+  sample.pts.all$long <- as.numeric(dat$LONGITUDE)
+  sample.pts.all$el <- as.numeric(dat$dem_ha_bc)
+  
+  nam1<-paste("sampled.points.all.frt",years[i], "csv",sep=".")
+  the_dir <- "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp"
+  write.csv(sample.pts.all, file = paste0(the_dir, "\\", basename(nam1)), row.names=FALSE)
+}
+
+```
+
+Next, see http://climatebc.ca/Help for how to use ClimateBC to get the climate data. 
+You will need to download ClimateBC (http://climatebc.ca/downloads/download.html) and use the files you generate as input to the first code chunk below.
+
+# Here we have a choice you can either manually extract the points as follows or use the R code below to extract them
+
+## manual extraction
+##To acquire ClimateBC Data for your sampled Locations##
+1. Open ClimateBC on your computer.
+2. In the Multi-Location section, select "Annual Data" and select the appropriate year for each individual file. 
+3. In the bottom drop down menu, select "monthly primary variables". 
+4. Upload each year, one at a time, and specify an output file location. Name the output files as the default suggested, but create a folder specifically for your outputs for each run.
+5. Once all things are set up, click the "Start" button
+6. Repeat for each year
+
+Once the above has been completed for the random points and known fire locations you have created in code earlier in this R Markdown file, proceed to the next code chunk.
+
+```{r}
+# Note from this project you probably wont be able to change the Working directory. Unfortunately I think this needs to be done because of instructions in the exe file and it needs to know where to point. So probably copy this code chunk into a new R session that is not part of any project then run this and come back after.
+
+# should really update this so that the year number is not repeated so many time. Maybe in the future
+
+setwd("D:/ClimateBC721"); # set the ClimateBC root directory as the working directory
+exe <- "ClimateBC_v7.21.exe"
+
+## 2002
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2002.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2002.csv'
+yearPeriod = '/Year_2002.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2003
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2003.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2003.csv'
+yearPeriod = '/Year_2003.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2004
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2004.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2004.csv'
+yearPeriod = '/Year_2004.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2005
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2005.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2005.csv'
+yearPeriod = '/Year_2005.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2006
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2006.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2006.csv'
+yearPeriod = '/Year_2006.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2007
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2007.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2007.csv'
+yearPeriod = '/Year_2007.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2008
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2008.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2008.csv'
+yearPeriod = '/Year_2008.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2009
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2009.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2009.csv'
+yearPeriod = '/Year_2009.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2010
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2010.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2010.csv'
+yearPeriod = '/Year_2010.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2011
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2011.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2011.csv'
+yearPeriod = '/Year_2011.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2012
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2012.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2012.csv'
+yearPeriod = '/Year_2012.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2013
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2013.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2013.csv'
+yearPeriod = '/Year_2013.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2014
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2014.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2014.csv'
+yearPeriod = '/Year_2014.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2015
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2015.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2015.csv'
+yearPeriod = '/Year_2015.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2016
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2016.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2016.csv'
+yearPeriod = '/Year_2016.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2017
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2017.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2017.csv'
+yearPeriod = '/Year_2017.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2018
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2018.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2018.csv'
+yearPeriod = '/Year_2018.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2019
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2019.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2019.csv'
+yearPeriod = '/Year_2019.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2020
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2020.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2020.csv'
+yearPeriod = '/Year_2020.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+# note there may be no data for 2021 in this case you will need to get the climate data off the future projections. Im not sure how to do this through R code so I did it manually using the 13 GCM ensemble and ssp370.
+##2021
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2021.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2021.csv'
+yearPeriod = '/Year_2021.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+```
+
+#Import climate data and calculate Drought Code
+
+```{r}
+
+###############################
+#Import climate data per ignition and sample location
+###############################
+
+#Depending on where you saved your output, you may need to update the directory below
+file.list1<-list.files("C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output", pattern="samp.points", all.files=FALSE, full.names=FALSE)
+y1<-gsub(".csv","",file.list1)
+the_dir <- "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output"
+
+for (i in 1:length(file.list1)){
+  assign(paste0(y1[i]),read.csv (file=paste0(the_dir, "\\", file.list1[i])))
+}
+
+```
+
+Because much literature suggests that the monthly drought code (MDC) is an important factor, we will use information acquired from ClimateBC to get MDC values.
+
+```{r}
+# FOR EACH DATASET CALCULATE THE MONTHLY DROUGHT CODE
+
+#############################################
+#### Equations to calculate drought code ####
+#############################################
+    # note if I want to find MDC10 Im giong to have to change this code. I tried putting a list of mnths e.g. c("04", "05", "06",..."10") but this did not work with also changing j from 1:length(mnths) because there is part of the code where it uses information from the month before i.e. j-1 and I could not quickly think of a solution, so I left it. 
+
+days_month<- c(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31) # number of days in each month starting in Jan
+#### Daylength adjustment factor (Lf) [Development and Structure of the Canadian Forest Fire Weather Index System pg 15, https://d1ied5g1xfgpx8.cloudfront.net/pdfs/19927.pdf] ####
+# Month <- Lf value
+# LF[1] is the value for Jan
+Lf<-c(-1.6, -1.6, -1.6, 0.9, 3.8, 5.8, 6.4, 5.0, 2.4, 0.4, -1.6, -1.6)
+####
+
+### Calculate drought code for Fire ignition data
+filenames<-list()
+for (i in 1: length(y1)){
+  
+  x<-eval(as.name(y1[i])) %>% 
+    rename(YEAR=ID2) %>%
+    dplyr::select(ID1, YEAR,Latitude, Longitude, Tmax04:Tmax10, Tave04:Tave10, PPT04:PPT10, RH04:RH10)
+  
+  x2<- x %>% filter(Tmax05 != -9999) # there are some locations that did not have climate data, probably because they were over the ocean, so Im removing these here.
+  
+  for (j in 5 : 9) {
+
+    
+    x2$MDC_04<-15 # the MDC value for April. This assumes that the ground is saturated at the start of the season. Maybe not true for all locations... may need to think about this a little more.
+    
+    Em<- days_month[j]*((0.36*x2[[paste0("Tmax0",j)]])+Lf[j])
+    Em2 <- ifelse(Em<0, 0, Em)
+    DC_half<- x2[[paste0("MDC_0",j-1)]] + (0.25 * Em2)
+    precip<-x2[[paste0("PPT0",j)]]
+    RMeff<-(0.83 * (x2[[paste0("PPT0",j)]]))
+    Qmr<- (800 * exp((-(DC_half))/400)) + (3.937 * RMeff)
+    Qmr2 <- ifelse(Qmr>800, 800, Qmr)
+    MDC_m <- (400 * log(800/Qmr2)) + 0.25*Em2
+    x2[[paste0("MDC_0",j)]] <- (x2[[paste0("MDC_0",j-1)]] + MDC_m)/2
+    x2[[paste0("MDC_0",j)]] <- ifelse(x2[[paste0("MDC_0",j)]] <15, 15, x2[[paste0("MDC_0",j)]])
+  }
+  nam1<-paste("DC.",y1[i],sep="") #defining the name
+  assign(nam1,x2)
+  filenames<-append(filenames,nam1)
+}
+
+
+# combined all the DC.ignition files together
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(filenames)
+DC.ignitions<-mkFrameList(n) 
+DC.ignitions$ID1<- as.factor(DC.ignitions$ID1)
+
+dim(DC.ignitions) 
+names(DC.ignitions)
+names(sample_locations_DEM)
+
+DC.ignitions1<- DC.ignitions %>% rename(idno=ID1,
+                                        FIRE_YEAR=YEAR)
+
+sample_locations_DEM$idno <- as.factor(as.character(sample_locations_DEM$idno))
+sample_locations_DEM$FIRE_YEAR <- as.numeric(as.character(sample_locations_DEM$FIRE_YEAR))
+
+# Now join DC.ignitions back with the original fire ignition dataset
+ignition_weather<-left_join(sample_locations_DEM, DC.ignitions1)
+tail(ignition_weather) #Lat -Longs match
+dim(ignition_weather) 
+st_crs(ignition_weather) #Answer NA
+head(ignition_weather) #Note, there are 2 Lat/Long columns: ensure that they are the same; otherwise, you may be using the incorrect climate csvs that were manually created.
+ignition_weather_crs <- st_as_sf(ignition_weather)
+crs(ignition_weather_crs)
+ignition_weather_crs<- st_transform(ignition_weather_crs, 3005)
+crs(ignition_weather_crs)
+
+```
+
+We want to ensure that everything lines up with the BC Boundaries, so perform below
+
+```{r}
+# Check the points line up with BC boundaries!
+ggplot() +
+  geom_sf(data=bc.bnd, col='red') +
+  geom_sf(data=ignition_weather_crs1, col='black') #looks good
+#If random points appear in middle of ocean, open in QGIS to get points and see what has happened.
+
+
+# A check of the fire ignition counts per year line up with the original data. So the number of fire ignitions seem good.
+```
+
+
+Note: in current below file saved, the lat and long do not match and thus different points were used.
+
+```{r}
+table(ignition_weather_crs$FIRE_YEAR, ignition_weather_crs$FIRE_CAUSE)
+
+st_write(ignition_weather_crs, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\samp_locations_fire_all_5x.shp", delete_layer=TRUE)
+##Can also open in QGis to assess for any physical outliers and their information.
+
+#str(ignition_weather_crs)
+#head(ignition_weather_crs)
+#ignition_weather_crs<-st_as_sf(ignition_weather_crs)
+
+
+##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_5x_AllMonths.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+##Above may not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
+
+#key_get('dbpass', keyring = 'postgreSQL')
+
+# OR my local machine
+
+# ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_5x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+```
+
+remove some data.frames to create more space in the memory
+```{r}
+rm(all_sample_points, dat, DC.ignitions, DC.ignitions1, DC.sampled.points.all.frt.2002_Year_2002M, DC.sampled.points.all.frt.2003_Year_2003M, DC.sampled.points.all.frt.2004_Year_2004M, DC.sampled.points.all.frt.2005_Year_2005M, DC.sampled.points.all.frt.2006_Year_2006M, DC.sampled.points.all.frt.2007_Year_2007M, DC.sampled.points.all.frt.2008_Year_2008M, DC.sampled.points.all.frt.2009_Year_2009M, DC.sampled.points.all.frt.2010_Year_2010M, DC.sampled.points.all.frt.2011_Year_2011M, DC.sampled.points.all.frt.2012_Year_2012M, DC.sampled.points.all.frt.2012_Year_2012M, DC.sampled.points.all.frt.2013_Year_2013M, DC.sampled.points.all.frt.2014_Year_2014M, DC.sampled.points.all.frt.2015_Year_2015M, DC.sampled.points.all.frt.2016_Year_2016M, DC.sampled.points.all.frt.2017_Year_2017M, DC.sampled.points.all.frt.2018_Year_2018M, DC.sampled.points.all.frt.2019_Year_2019M, DC.sampled.points.all.frt.2020_Year_2020M, DC.sampled.points.all.frt.2021_Year_2021M, fire.igni.ndt, fire.ignition.clipped, fire.ignition.clipped2, foo.ignit.buffered, foo_ignit_sf, foo_ignit_small, foo_ignit_small_1, sampled.points.all.frt.2002_Year_2002MP, sampled.points.all.frt.2003_Year_2003MP, sampled.points.all.frt.2004_Year_2004MP, sampled.points.all.frt.2005_Year_2005MP, sampled.points.all.frt.2006_Year_2006MP, sampled.points.all.frt.2007_Year_2007MP, sampled.points.all.frt.2008_Year_2008MP,sampled.points.all.frt.2009_Year_2009MP, sampled.points.all.frt.2010_Year_2010MP, sampled.points.all.frt.2011_Year_2011MP, sampled.points.all.frt.2012_Year_2012MP, sampled.points.all.frt.2013_Year_2013MP, sampled.points.all.frt.2014_Year_2014MP, sampled.points.all.frt.2015_Year_2015MP, sampled.points.all.frt.2016_Year_2016MP, sampled.points.all.frt.2017_Year_2017MP, sampled.points.all.frt.2018_Year_2018MP, sampled.points.all.frt.2019_Year_2019MP, sampled.points.all.frt.2020_Year_2020MP, sampled.points.all.frt.2021_Year_2021MP, sampled_points_2002, sampled_points_2003, sampled_points_2004, sampled_points_2005, sampled_points_2006, sampled_points_2007, sampled_points_2008, sampled_points_2009, sampled_points_2010, sampled_points_2011, sampled_points_2012, sampled_points_2013, sampled_points_2014, sampled_points_2015, sampled_points_2016, sampled_points_2017, sampled_points_2018, sampled_points_2019, sampled_points_2020, sampled_points_2021, escape_10ha, escape_1ha, escape_3ha, foo, NDT, ndt_clipped, ndt_sf, samp_locations, samp_locations_sf, samp_points, samp_points_sf, x,x1,x2, samp_joined, samp_joined2, samp_joined_new, sample.pts.all, sample.p.trans, sample.p.trans1, ignition, ignition2, frt, frt_clipped, frt_foo ,frt_sf, ignit, igni.ndt, foo.ignit.buf.union, fire.igni.frt, pnts )
+
+gc()
+```
+
+
+
+Note, we lose a lot of data in 2002 when clipping with VRI later. Upon inspection, we can see that this is because there are empty spaces in VRi data for 2002. This will make more sense later, but if you would like to inspect this for yourself, create the 2002 points data now.
+
+```{r}
+
+##Get 2002 data and visualize in QGIS
+ignition_weather_crs_2002<-subset(ignition_weather_crs3,ignition_weather_crs3$FIRE_YEAR==2002)
+head(ignition_weather_crs_2002)
+st_write(ignition_weather_crs_2002, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_2002.shp", delete_layer=TRUE)
+
+```
+
+
+If need to load back in:
+  
+  ```{r}
+climate_data<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_5x.shp")
+head(climate_data)
+```
+
+
+#########################################
+#### FINISHED NOW GO TO 05_Distance_to_roads_data_prep####
+#########################################

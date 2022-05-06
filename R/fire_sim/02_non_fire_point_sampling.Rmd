@@ -1,0 +1,254 @@
+---
+title: "02_climate_data_prep_all"
+author: "Elizabeth Kleynhans and Cora Skaien"
+date: "07/07/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+#===================
+
+This script obtains the lat, long coordinates of fire ignition locations and samples locations where fires were not observed to start. Currently its set to sample 5 x the number of fire iginition points where fires did not start in each fire regime type. 
+
+
+```{r}
+# a bunch of these libraries are probably unneccessary. Should clean up.
+library(raster)
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(cleangeo)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(bcdata)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+If we need to set library paths, then:
+```{r}
+.libPaths("C:/data/localApps/R-4.1.2/library")
+```
+
+Note, that if you bring the data back in, the names may have been shortened given column name limitations for shape files.
+Run the below code chunk to bring the data back in if you are starting from this portion of the code. This way, you can avoid losing time running the above again if you have already created it.
+
+```{r}
+
+#import the fire ignition data
+##Can use keyring
+keyring_unlock()
+
+conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), 
+                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                        port = '5432',
+                        user = keyring::key_get('dbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+fire.igni.frt.ndt<- st_read (dsn = conn, 
+          layer = c ("public", "fire_ignit_by_frt"))
+dbDisconnect (conn)
+
+##Or from local device; e.g. below
+# fire.igni.frt <-st_read(dsn="C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\bc_fire_ignition_clipped.shp")
+# 
+# head(fire.ignt.frt)
+# table(fire.igni.frt$FIRE_YE, fire.igni.frt$FIRE_CA)
+# names(fire.igni.frt)
+# 
+# fire.igni.frt <- fire.igni.frt %>%
+#   rename(FIRE_NUMBER=FIRE_NU,
+#          FIRE_YEAR=FIRE_YE,
+#          IGNITION_DATE = IGNITIO,
+#          FIRE_CAUSE = FIRE_CA,
+#          FIRE_LABEL = FIRE_LA,
+#          FIRE_TYPE = FIRE_TY,
+#          CURRENT_SIZE = CURRENT
+#          )
+
+```
+
+Now let's buffer each fire location by 500m, and within each frt Zone, we'll sample locations where fires did not start and combine those locations with locations where the fires did start. In the initial code, this was done for only lightning caused fires. Here, we will do for all fires to avoid accidentally selecting a location where fires occurred for another cause and have it accidentally designated as an area without fire.
+
+Buffer is so that the areas selected as non-fire locations are less likely to have been fire affected. I chatted to Devona Hay about this and asked  (1.)	How accurate are the point locations? Does a buffer of 500m seem reasonable to remove any error in determining where the fire started or should we extend it (or reduce it/remove it)?  Devona's answere: Point locations are fairly accurate.  We usually adjust the point location once a fire origin and cause is completed, but note that not all fires have this completed.  A 500 m buffer seems reasonable to cover off those fires where that doesn’t happen, based on my experience the points that we have adjusted after an investigation is completed, haven’t been moved more than 10-20 metres in any one direction)
+
+Each time you run the loop below, you will get new coordinates for areas not affected by fire. As a result, you will need to re-run the ClimateBC stuff manually each time you run the below chunk. Once you have ran it once, and acquired ClimateBC data for the locations, you can avoid running it again by saving the file and starting on the next script from that file onward.
+
+This loop will take a little while to run, so have other work plans while it is running.
+
+```{r}
+
+fire.ignt.frt2 <- fire.igni.frt.ndt %>%
+  select("id", "FIRE_NUMBER", "FIRE_YEAR", "IGNITION_DATE", "FIRE_CAUSE", "FIRE_LABEL", "FIRE_CENTRE", "ZONE", "FIRE_ID", "FIRE_TYPE", "LATITUDE", "LONGITUDE","CURRENT_SIZE","ig_mnth", "Cluster","geometry")
+
+years<-c("2002", "2003", "2004", "2005", "2006", "2007","2008","2009","2010","2011","2012","2013","2014","2015","2016","2017","2018", "2019", "2020", "2021")
+frt_clusters<- c("3", "5", "7", "9", "10", "11", "12", "13", "14", "15")
+filenames<-list()
+
+##Run loop below. This loop will take some time.
+
+for (i in 1:length(years)) {
+  print(years[i])
+  foo<- fire.ignt.frt2 %>% filter(FIRE_YEAR==years[i])
+  foo_ignit_sf<- st_as_sf(foo)
+  
+  all_sample_points <- data.frame (matrix (ncol = 17, nrow = 0)) # add 'data' to the points
+  colnames (all_sample_points) <- c ("id", "FIRE_NUMBER", "FIRE_YEAR", "IGNITION_DATE", "FIRE_CAUSE", "FIRE_LABEL", "FIRE_CENTRE", "ZONE", "FIRE_ID", "FIRE_TYPE", "LATITUDE", "LONGITUDE","CURRENT_SIZE", "ig_mnth", "Cluster", "fire","geometry")
+  
+  #"NATURAL_DISTURBANCE","MAP_LABEL", "BGC_LABEL", "ZONE_NAME","SUBZONE_NAME" (could include these if sample at the NDT level instead of fire regime zone (frt))
+  
+  for (j in 1:length(frt_clusters)) {
+    print(frt_clusters[j])
+    
+    foo_ignit_small<- foo_ignit_sf %>% filter(Cluster==frt_clusters[j])
+    
+    if (dim(foo_ignit_small)[1]>0) {
+    foo_ignit_small$fire<-1
+    
+    foo.ignit.buffered<- st_buffer(foo_ignit_small, dist=500) # buffering fire ignition locations by 500m. I decided to do this because I dont think the recorded locations are likely very accurate so I hope this helps
+    foo.ignit.buffered<-foo.ignit.buffered %>% 
+      dplyr::select(id, FIRE_NUMBER, FIRE_ID, Cluster, geometry)
+    foo.ignit.buf.union<-st_union(foo.ignit.buffered)
+    
+    frt_foo<- frt_sf %>% filter(Cluster==frt_clusters[j])
+    clipped<-st_difference(frt_foo, foo.ignit.buf.union)
+    
+    ##Below we sample 10x as many points for where fires do not occur 
+    #sample_size<-dim(foo_ignit_small)[1]*10 # here 10 is the number of points I sample in correlation with the number of ignition points in that BEC zone. 
+    sample_size<-dim(foo_ignit_small)[1]*5 # here 5 is the number of points I sample in correlation with the number of ignition points in that BEC zone.
+    samp_points <- st_sample(clipped, size=sample_size)
+    samp_points_sf = st_sf(samp_points)
+    samp_joined = st_join(samp_points_sf, clipped) # joining attributes back to the sample points
+    samp_joined<- st_transform(samp_joined, 3005)
+    samp_joined$id<-"NA"
+    samp_joined$FIRE_NUMBER<-"NA"
+    samp_joined$FIRE_YEAR<- years[i]
+    samp_joined$IGNITION_DATE<-"NA"
+    samp_joined$FIRE_CAUSE<-"NA"
+    samp_joined$FIRE_LABEL<-"NA"
+    samp_joined$ZONE<-"NA"
+    samp_joined$FIRE_ID<-"NA"
+    samp_joined$FIRE_TYPE<-"NA"
+    samp_joined$CURRENT_SIZE<-"NA"
+    samp_joined$ig_mnth <-"NA"
+    #samp_joined$escape <-"NA"
+    samp_joined$Cluster<-frt_clusters[j]
+    samp_joined$fire<-0
+    
+    
+    
+    #getting long lat info
+    #geo.prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0" 
+    sample.p.trans <- st_transform(samp_joined, crs = "+proj=longlat +datum=NAD83 / BC Albers +no_defs")
+    #st_crs(sample.p.trans)
+    sample.p.trans1<-as.data.frame(sample.p.trans)     # Try find a way to split the data up into 3 colums and the remove the brackets. 
+    samp_joined2<- sample.p.trans1 %>%
+      tidyr::separate(geometry, into = c("longitude", "latitude")," ")
+    
+    samp_joined2$longitude<- gsub(",", "", as.character(samp_joined2$longitude) )
+    samp_joined2$longitude<- substring(samp_joined2$longitude, 3)
+    samp_joined2$longitude<- as.numeric(samp_joined2$longitude)
+    samp_joined2$longitude<- round(samp_joined2$longitude, digits=4)
+    samp_joined2$latitude<- gsub(")", "", as.character(samp_joined2$latitude) )
+    samp_joined2$latitude<- as.numeric(samp_joined2$latitude)
+    samp_joined2$latitude<- round(samp_joined2$latitude, digits=4)
+    
+    samp_joined$longitude<-samp_joined2$longitude
+    samp_joined$latitude<-samp_joined2$latitude
+    samp_joined_new<- samp_joined %>% 
+      rename(#wkb_geometry=geometry,
+             LONGITUDE=longitude,
+             LATITUDE=latitude) %>%
+      dplyr::select(id: FIRE_TYPE, LATITUDE, LONGITUDE, CURRENT_SIZE,ig_mnth,Cluster, fire, geometry)
+    
+    foo_ignit_small_1<-foo_ignit_small %>%
+    dplyr::select(id,FIRE_NUMBER, FIRE_YEAR, IGNITION_DATE, FIRE_CAUSE, FIRE_LABEL, ZONE, FIRE_ID, FIRE_TYPE, LATITUDE, LONGITUDE,CURRENT_SIZE,ig_mnth, Cluster, fire,geometry)  
+    
+    pnts<- rbind(samp_joined_new, foo_ignit_small_1)
+    
+    all_sample_points<- rbind(all_sample_points, pnts)
+    
+    
+    } 
+    
+  }
+  
+  #assign file names to the work
+  nam1<-paste("sampled_points",years[i],sep="_") #defining the name
+  assign(nam1,all_sample_points)
+  filenames<-append(filenames,nam1)
+}
+
+
+
+```
+In the above code, when ran for just lightning fires (see old code in "old" folder), we do not get the following error. However, when not filtering by lightning, we get this error for every BEC zone:
+"attribute variables are assumed to be spatially constant throughout all geometries". I am unsure if this is of concern. This is odd, as this typically arises without an st_intersect, which we have performed between the layers being used (or were part of the steps to make the layer we are using). We have done the intersect and are using that resultant file, so I am unsure why this is occurring, but suspect that we can ignore the warning. Something to investigate perhaps, however.
+
+Now that we have completed the loop, save the output as an R Object.
+
+```{r}
+
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(filenames)
+samp_locations<-mkFrameList(n) 
+samp_locations$idno<-1:length(samp_locations$FIRE_YEAR)
+samp_locations_sf<-st_as_sf(samp_locations)
+st_crs(samp_locations_sf)
+head(samp_locations_sf) #Note, wkb_geometry is in different coordinate system for this data
+table(is.na(samp_locations_sf$id))
+
+##Check data
+table(samp_locations_sf$FIRE_CAUSE) 
+table(samp_locations_sf$FIRE_TYPE) 
+table(samp_locations_sf$Cluster, samp_locations_sf$FIRE_TYPE)
+table(samp_locations_sf$FIRE_YEAR) 
+table(samp_locations_sf$ig_mnth)
+
+table(samp_locations_sf$FIRE_YEAR, samp_locations_sf$Cluster, samp_locations_sf$fire) # We see that we have oue 3 original categories, but now we also have our NA locations.
+```
+
+Now we must save this file locally and on clus so that we do not need to create it again.
+
+```{r}
+# or save it as a shape file
+st_write(samp_locations_sf, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\samp_locations_fire_all_5x_frt.shp", delete_dsn = TRUE, overwrite = TRUE)
+
+#Because it is a shape file, we will need OsGeo4W Shell to save it to clus
+##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
+#ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\samp_locations_fire_all_5x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+```
+
+Clean up some files for space
+```{r}
+rm(all_sample_points, bc.bnd, bec, clipped, foo, foo.ignit.buf.union, foo.ignit.buffered, foo_ignit_sf, foo_ignit_small, foo_ignit_small_1,ignit, ignition, ignition2, sampled_points_2002, sampled_points_2003, sampled_points_2004, sampled_points_2005, sampled_points_2006, sampled_points_2007, sampled_points_2008, sampled_points_2009, sampled_points_2010, sampled_points_2011, sampled_points_2012, sampled_points_2013, sampled_points_2014, sampled_points_2015, sampled_points_2016, sampled_points_2017, sampled_points_2018, sampled_points_2019, sampled_points_2020, sampled_points_2021, samp_locations)
+```
+

@@ -1,6 +1,6 @@
 ---
 title: "03_DEM_data_prep"
-author: "Cora Skaien"
+author: "Cora Skaien and Elizabeth Kleynhans"
 date: "29/06/2021"
 output: html_document
 ---
@@ -27,10 +27,9 @@ See the License for the specific language governing permissions and limitations 
 #  Script Name: 03_DEM_data_prep.R
 #  Script Version: 1.0
 #  Script Purpose: Determine the elevation, slope and aspect of each location in the dataset.
-#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#  Script Author: Cora Skaien and Elizabeth Kleynhans Ecological Modeling Specialists, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #=================================
 
-#===================
 
 #Overview
 Because slope and aspect have been shown to influence both ignition and spread of fires, we will use the provincial DEM layer to acquire the slope and aspect of each location. The provincial DEM has already had the slope and aspect extracted for the entire province at 1 ha resolution. We will bring in these layers (100 m x 100 m resolution), and then extract the slope and aspect for each of the sample location points that we have generated at the end of file 02_climate_data.prep.
@@ -62,7 +61,7 @@ Load in the relevant files and inspect.
 ```{r}
 ##Slope
 DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
-plot(DEM_slope) #you may wish to plot this to inspect
+#plot(DEM_slope) #you may wish to plot this to inspect
 
 GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc.tif")
 #DEM_slope
@@ -72,7 +71,7 @@ GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc
 
 ##Aspect
 DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc_3005.tif")
-plot(DEM_aspect) #you may wish to plot this to inspect
+#plot(DEM_aspect) #you may wish to plot this to inspect
 
 GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc.tif")
 #DEM_aspect
@@ -82,7 +81,7 @@ GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_b
 
 #Elevation
 DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
-plot(DEM)
+#plot(DEM)
 
 GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
 #DEM_slope
@@ -106,6 +105,7 @@ res(DEM)
 #scale_fill_gradientn(name = "Aspect", colors = terrain.colors(10)) + 
 #coord_quickmap()
 ```
+NOTE: the following I leave out to keep things simple but I could consider doing this.
 
 Check this out for estimating heatload, which may be more useful for ignition models and may also be useful for escape and spread:
 https://rdrr.io/cran/spatialEco/man/hli.html
@@ -154,7 +154,7 @@ str(rasStack)
 
 ```
 
-Bring in data points for which we want data for slope and aspect (i.e, sample locations). This is the data that we uploaded at the end of the 02_climate_data_prep_all. If you are continuing from this file immediately, you may not need to bring it back in again. 
+Bring in data points for which we want data for elevation, slope and aspect (i.e, sample locations). This is the data that we uploaded at the end of the 02_non_fire_point_sampling. If you are continuing from this file immediately, you may not need to bring it back in again. 
 
 Be aware that when being saved prior, some of the column names may have been shortened. If so, then renaming may need to occur. Here are the names you want:
 
@@ -185,7 +185,7 @@ sample_locations2 <- sf::st_read  (dsn = connKyle, # connKyle
 dbDisconnect (connKyle)
 
 # if using data straight from 02b_climate_data_prep_all.Rmd script
-sample_locations2<- ignition_weather_crs1
+sample_locations2<- samp_locations_sf
 
 head(sample_locations2)
 crs(sample_locations2)
@@ -222,8 +222,8 @@ head(pointCoordinates)
 ##Extract DEM values from stacked layer
 rasValue2=raster::extract(rasStack, pointCoordinates)
 head(rasValue2)
-str(rasValue2) #200292 values
-str(sample_locations2)#200292 values
+str(rasValue2) #200298 values
+str(sample_locations2)#200298 values
 
 #Append new information
 sample_locations_DEM<-cbind(sample_locations2, rasValue2)
@@ -232,13 +232,13 @@ crs(sample_locations_DEM)
 
 ```
 
-Save this file and use for next R Markdown file (04_vri_data_prep). Make sure you save it to the local machine via OSGeo4W for use in code in the next file.
+Save this file and use for next R Markdown file (04_Road). Make sure you save it to the local machine via OSGeo4W for use in code in the next file.
 
 ```{r}
 
-st_write(sample_locations_DEM, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\DC_data_DEM_5x_AllMonths_frt.shp", delete_layer=TRUE)
+st_write(sample_locations_DEM, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\DEM_5x_AllMonths_frt.shp", delete_layer=TRUE)
 
-rm(ignition_weather, ignition_weather_crs,pointCoordinates, rasValue2, test, TRASP2, DEM, DEM_aspect, DEM_slope) # remove some files out of memory
+rm(pointCoordinates, rasValue2, test, DEM, DEM_aspect, DEM_slope, rasStack, rasValue2,samp_joined, samp_joined2, samp_joined_new, sample_locations2, samp_locations_sf) # remove some files out of memory
 gc()
 
 #Also write to local machine on OSGeo4W
@@ -254,4 +254,4 @@ gc()
 
 
 
-############## Now move on to file 04_Road_density_data_prep#############
+############## Now move on to file 04_climate_data_prep#############
