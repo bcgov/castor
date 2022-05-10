@@ -1,0 +1,3 @@
+[submodule "R/SpaDES-modules/FLEX"]
+	path = R/SpaDES-modules/FLEX
+	url = https://github.com/bcgov/FLEX
