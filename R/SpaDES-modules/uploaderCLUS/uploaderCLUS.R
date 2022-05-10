@@ -266,7 +266,7 @@ save.rasters <-function (sim){
                           password= P(sim, "dbInfo", "uploaderCLUS")[[3]])
     ##blocks
     message('....cutblock raster')
-    commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/") ,paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]], "_harvestBlocks.tif")), 
+    commitRaster(layer = paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]], "_harvestBlocks.tif"), 
                  schema = P(sim, "aoiName", "uploaderCLUS"), 
                  name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_cutblocks"), 
                  dbInfo = P(sim, "dbInfo", "uploaderCLUS") )
@@ -277,7 +277,7 @@ save.rasters <-function (sim){
     if(!is.null(sim$roads)){
 
     message('....roads raster')
-    commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/")  ,paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_year_", time(sim)*sim$updateInterval, ".tif")), 
+    commitRaster(layer = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadCLUS", "roadMethod"),"_year_", time(sim)*sim$updateInterval, ".tif"), 
                  schema = P(sim, "aoiName", "uploaderCLUS"), name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads"),
                  dbInfo = P(sim, "dbInfo", "uploaderCLUS"))
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "aoiName", "uploaderCLUS"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_roads")," to appuser;"))
@@ -286,7 +286,7 @@ save.rasters <-function (sim){
     }
     ##zoneConstraint
     message('....constraint raster')
-    commitRaster(layer = paste0(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/") , paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]], "_constraints.tif")), 
+    commitRaster(layer = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]], "_constraints.tif"), 
                  schema = P(sim, "aoiName", "uploaderCLUS"), 
                  name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint"),
                  dbInfo = P(sim, "dbInfo", "uploaderCLUS"))

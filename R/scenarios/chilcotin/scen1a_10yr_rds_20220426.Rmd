@@ -65,16 +65,14 @@ BAU = beo, vqo, wha, uwr, fsw, parks and protected areas, community watersheds
 ```{r, Scenario 1a}
 require (DBI)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
-clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/chilcotin_study_area_clusdb.sqlite"))
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/chilcotin/chilcotin_study_area_clusdb.sqlite"))
 
 ################################################################
 #### Chilcotin Scenarios 1a, b and c - Sept. 2021 #### 
 ### To remove existing caribou WHA GARs; forest age constraints applied to critical habitat
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.zone_wha_2021' AND (zoneid = 263) OR (zoneid = 264) OR (zoneid = 3779) OR (zoneid = 3780) OR (zoneid = 3781)") 
-dbCommit(clusdb)
 ### To remove existing caribou conditional harvest WHA GARs; forest age constraints applied to critical habitat
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.zone_wha_2021' AND (zoneid = 263) OR (zoneid = 3779) OR (zoneid = 3780) OR (zoneid = 3781)") 
-dbCommit(clusdb)
 
 #################
 ### Scenario 1a forest age constraints applied to all to critical habitat ##
@@ -83,13 +81,10 @@ dbCommit(clusdb)
 
 ## Itcha ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 4)")
-dbCommit(clusdb)
 dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 4)")
-dbCommit(clusdb)
 dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 141 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 4)")
-dbCommit(clusdb)
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 4)")
-dbCommit(clusdb)
+
 # Need to create some new rows for multiple age constraints
 dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
 VALUES 
@@ -102,16 +97,12 @@ VALUES
 (1473,0,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',81,'ge',45,NULL,NULL,354303,0,250),
 (1474,3,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',81,'ge',45,NULL,NULL,742496,0,250),
 (1475,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',81,'ge',45,NULL,NULL,790764,0,250);")
-dbCommit(clusdb)
+
 ## Rainbows ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
-dbCommit(clusdb)
 dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
-dbCommit(clusdb)
 dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 141 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
-dbCommit(clusdb)
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
-dbCommit(clusdb)
 dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
 VALUES 
 (1476,0,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',121,'ge',30,NULL,NULL,41182,0,250),
@@ -123,17 +114,13 @@ VALUES
 (1482,0,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',81,'ge',45,NULL,NULL,41182,0,250),
 (1483,3,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',81,'ge',45,NULL,NULL,45116,0,250),
 (1484,4,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',81,'ge',45,NULL,NULL,10929,0,250);")
-dbCommit(clusdb)
+
 
 ## Charlotte ##
 dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
-dbCommit(clusdb)
 dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
-dbCommit(clusdb)
 dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 141 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
-dbCommit(clusdb)
 dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
-dbCommit(clusdb)
 dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
 VALUES 
 (3528,0,'rast.zone_cond_bc_charlotte_alplands_crithab','zone16',0,'age',121,'ge',30,NULL,NULL,93677,0,250),
@@ -145,9 +132,27 @@ VALUES
 (3534,0,'rast.zone_cond_bc_charlotte_alplands_crithab','zone16',0,'age',81,'ge',45,NULL,NULL,93677,0,250),
 (3535,2,'rast.zone_cond_bc_charlotte_alplands_crithab','zone16',0,'age',81,'ge',45,NULL,NULL,44178,0,250),
 (3536,3,'rast.zone_cond_bc_charlotte_alplands_crithab','zone16',0,'age',81,'ge',45,NULL,NULL,79592,0,250);")
-dbCommit(clusdb)
+dbDisconnect (clusdb)      
 
-dbDisconnect (clusdb)  
+# all above doesn't save to db....?
+# do it again
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/chilcotin/chilcotin_study_area_clusdb.sqlite"))
+
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 121 WHERE reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND id = 1468") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 WHERE reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND id = 1468") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 101 WHERE reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND id = 1471") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 WHERE reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND id = 1471") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 81 WHERE reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND id = 1474") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 45 WHERE reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND id = 1474")
+
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 121 WHERE reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1477") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 30 WHERE reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1477") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 101 WHERE reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1480") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 37 WHERE reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1480") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 81 WHERE reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1483") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 45 WHERE reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND id = 1483") 
+
+dbDisconnect (clusdb)      
 ```
 
 ## Simulation Model
@@ -159,7 +164,7 @@ source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
-outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/outputs"))
+outputDir <- file.path(paste0(here::here(), "/R/scenarios/chilcotin"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
 times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
@@ -168,7 +173,7 @@ parameters <- list(
   dataLoaderCLUS = list( dbName='clus',
                          save_clusdb = FALSE,
                          sqlite_dbname = "chilcotin_study_area",
-                         useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/chilcotin_study_area_clusdb.sqlite"),
+                         useCLUSdb = paste0(here::here(), "/R/scenarios/chilcotin/chilcotin_study_area_clusdb.sqlite"),
                          nameBoundaryFile = "chilcotin_area_of_interest_habitat_v3",
                          nameBoundaryColumn = "tsa_name",
                          nameBoundary = c ('Matrix', 'HEWSR', 'LESR', 'LEWR', 'out'),
@@ -417,14 +422,14 @@ mySim <- simInit(times = times,
                  paths = paths)
 
 # outputs to keep; these are tables that get used in the uploader
-outputs(mySim) <- data.frame (objectName = c("harvestReport",
-                                             "growingStockReport",
-                                             "tableSurvivalReport",
-                                             "disturbanceReport",
-                                             "volumebyareaReport",
-                                             "tableGrizzSurvivalReport",
-                                             "tableAbundanceReport"
-                                             ))
+# outputs(mySim) <- data.frame (objectName = c("harvestReport",
+#                                              "growingStockReport",
+#                                              "tableSurvivalReport",
+#                                              "disturbanceReport",
+#                                              "volumebyareaReport",
+#                                              "tableGrizzSurvivalReport",
+#                                              "tableAbundanceReport"
+#                                              ))
 
 #Run the model 1 time
 system.time({mysimout<-spades(mySim)})

@@ -184,8 +184,8 @@ plotRoads<-function(sim){
 }
 
 saveRoads<-function(sim){
-  raster::writeRaster(sim$road.status, file=paste0(P(sim)$outputPath, sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadMethod", "roadCLUS"),"_status_", time(sim)*sim$updateInterval, ".tif"), format="GTiff", overwrite=TRUE)
-  raster::writeRaster(sim$road.year, file=paste0(P(sim)$outputPath, sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadMethod", "roadCLUS"),"_year_", time(sim)*sim$updateInterval, ".tif"), format="GTiff", overwrite=TRUE)
+  raster::writeRaster(sim$road.status, file = paste0 (sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadMethod", "roadCLUS"),"_status_", time(sim)*sim$updateInterval, ".tif"), format="GTiff", overwrite=TRUE)
+  raster::writeRaster(sim$road.year, file = paste0 (sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_", P(sim, "roadMethod", "roadCLUS"),"_year_", time(sim)*sim$updateInterval, ".tif"), format="GTiff", overwrite=TRUE)
   return(invisible(sim))
 }
 

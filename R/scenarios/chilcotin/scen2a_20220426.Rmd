@@ -67,7 +67,7 @@ require (DBI)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 #STEP 1: Connect to the clusdb.sqlite database for the AOI
-clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/chilcotin_study_area_clusdb.sqlite"))
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/chilcotin/chilcotin_study_area_clusdb.sqlite"))
 
 #################
 ### Scenario 2a no harvest corridors ##
@@ -93,7 +93,6 @@ VALUES
 (1805,6,'rast.zone_chilcotin_scenario2','zone20',0,'age',121,'ge',30,NULL,NULL,878448,0,250),
 (1806,6,'rast.zone_chilcotin_scenario2','zone20',0,'age',101,'ge',37,NULL,NULL,878448,0,250),
 (1807,6,'rast.zone_chilcotin_scenario2','zone20',0,'age',81,'ge',45,NULL,NULL,878448,0,250);")
-dbCommit(clusdb)
 
 dbDisconnect(clusdb)
 
@@ -109,7 +108,7 @@ source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
-outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/outputs"))
+outputDir <- file.path(paste0(here::here(), "/R/scenarios/chilcotin"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
 times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
@@ -118,7 +117,7 @@ parameters <- list(
   dataLoaderCLUS = list( dbName='clus',
                          save_clusdb = FALSE,
                          sqlite_dbname = "chilcotin_study_area",
-                         useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/chilcotin_study_area_clusdb.sqlite"),
+                         useCLUSdb = paste0(here::here(), "/R/scenarios/chilcotin/chilcotin_study_area_clusdb.sqlite"),
                          nameBoundaryFile = "chilcotin_area_of_interest_habitat_v3",
                          nameBoundaryColumn = "tsa_name",
                          nameBoundary = c ('Matrix', 'HEWSR', 'LESR', 'LEWR', 'out'),
@@ -212,7 +211,7 @@ modules <- list("dataLoaderCLUS",
 
 
 scenario = data.table (name = "chilcotin_scen2a_live_dead",
-                       description = "Scenario 2a, live and dead volume harvest. Adjacency = 0m. Harvest Priority: Closest to disturbance first, Salvage Volume Second, Oldest Third. Salvage harvest in first 2 intervals (i.e., 10 years) only. No harvest: HEWSR, LESR, Tweedsmuir Corridor, Rainbows Corridor. Minimum harvest age (in habitat): 80 years. Seral stage constraints (in LEWR, Matrix): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Minimum volume: 150 m3/year. Road Recovery = 30 years. Target harvest flow (live; years 10-200): HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
+                       description = "Scenario 2a, live and dead volume harvest. Adjacency = 0m. Harvest Priority: Closest to disturbance first, Salvage Volume Second, Oldest Third. Salvage harvest in first 2 intervals (i.e., 10 years) only. No harvest: HEWSR, LESR, Tweedsmuir Corridor, Rainbows Corridor. Minimum harvest age (in habitat): 80 years. Seral stage constraints (in LEWR, Matrix): 25% > 140 y.o.; 30% >120 y.o.; 37% >100 y.o.; 45% >80 y.o.; 65% > 40 y.o. Minimum volume: 150 m3/year. Road Recovery = 40 years. Target harvest flow (live; years 10-200): HEWSR = 9,000 m3/year; LESR = 47,250 m3/year; LEWR = 230,000m3/year; Matrix = 310,000m3/year; out = 1,200,000m3/year. Dead volume targets (in first 10 years only): HEWSR = 500 m3/year; LESR = 2,250 m3/year; LEWR = 20,000m3/year; Matrix = 50,000 m3/year; out = 105,000 m3/year.")
 
 
 
@@ -364,14 +363,14 @@ mySim <- simInit(times = times,
                  paths = paths)
 
 # outputs to keep; these are tables that get used in the uploader
-outputs(mySim) <- data.frame (objectName = c("harvestReport",
-                                             "growingStockReport",
-                                             "tableSurvivalReport",
-                                             "disturbanceReport",
-                                             "volumebyareaReport",
-                                             "tableGrizzSurvivalReport",
-                                             "tableAbundanceReport"
-                                             ))
+# outputs(mySim) <- data.frame (objectName = c("harvestReport",
+#                                              "growingStockReport",
+#                                              "tableSurvivalReport",
+#                                              "disturbanceReport",
+#                                              "volumebyareaReport",
+#                                              "tableGrizzSurvivalReport",
+#                                              "tableAbundanceReport"
+#                                              ))
 
 #Run the model 1 time
 system.time({mysimout<-spades(mySim)})
