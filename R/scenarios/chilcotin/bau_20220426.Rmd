@@ -65,7 +65,7 @@ source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
-outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/outputs"))
+outputDir <- file.path(paste0(here::here(), "/R/scenarios/chilcotin"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
 times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
 parameters <- list(

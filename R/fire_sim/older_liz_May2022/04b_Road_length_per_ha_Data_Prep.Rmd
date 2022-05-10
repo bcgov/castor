@@ -1,0 +1,295 @@
+---
+title: "04b_Road_density_per_ha"
+author: "Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations."
+date: "22/04/2022"
+purpose: "To create a raster spatial layer that determines the distance to a road for the entire province. This script is based off https://github.com/bcgov/bc-raster-roads/.  with an additional step at the end to calculate distance to."
+output: html_document
+---
+
+<!--
+Copyright 2022 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+# B.C. Roads in Raster Format
+This analysis does two things. First it generates a raster spatial layer with the total length of roads per hectare for British Columbia. Then at the end I use the raster with lengths of roads to estimate distance to any road. The first step of calculating length of roads per ha is actually unneccessary but Ill leave it in for the time being. 
+
+### Data
+
+To calculate length of roads per ha I uses the British Columbia [Digital Road Atlas (DRA) available from the B.C. Data Catalogue]((https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e)) and distributed under the [Access Only - B.C. Crown Copyright ](https://www2.gov.bc.ca/gov/content?id=1AAACC9C65754E4D89A118B875E0FBDA) licence.
+
+The Digital Road Atlas is the [best available single source of road data for the Province of B.C.](https://www2.gov.bc.ca/gov/content?id=21FFEC94B0AD40818D2D2AF06D522714) Metadata details for the Digital Road Atlas (DRA) are available in PDF format from the [B.C. Data Catalogue](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e).
+
+This analysis _excludes_ some surface and road types in the [Digital Road Atlas (DRA) ](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e). Boat (B), overgrown (O) & decomissioned (D) roads are excluded from ```TRANSPORT_LINE_SURFACE_CODE``` and ferry routes (F, FP, FR, RWA), non-motorized trails (T, TD), road proposed (RP), and road pedestrian mall (RPM) are excluded from ```TRANSPORT_LINE_TYPE_CODE```.
+
+```{r}
+library(bcdata)
+library(raster)
+library(keyring)
+library(sf)
+library(dplyr)
+library (RPostgreSQL)
+library (RPostgres)
+library (rpostgis)
+library(DBI)
+
+
+```
+
+
+
+```{r setup, include=FALSE}
+# Raw road file 
+# DRA from BCDC:
+# https://catalogue.data.gov.bc.ca/dataset/digital-road-atlas-dra-master-partially-attributed-roads/resource/a06a2e11-a0b1-41d4-b857-cb2770e34fb0
+
+# get latest data off BCGW
+
+# Not roads - TYPE = Ferry routes, non motorized Trails, proposed, pedestrian mall
+notRoads <- c("F", "FP", "FR", "RP", "TD", "RWA", "RPM", "T") 
+# No longer roads - SURFACE_TYPE = decomissioned, overgrown, and boat
+NoLongerRoads <- c("D", "O", "B")
+
+#Takes a while! Alternatively download the file and then open it.
+roads<-try(
+  bcdc_query_geodata("WHSE_BASEMAPPING.DRA_DGTL_ROAD_ATLAS_MPAR_SP") %>%
+    filter(!ROAD_CLASS %in% notRoads,
+           !ROAD_SURFACE %in% NoLongerRoads) %>%
+    select(DIGITAL_ROAD_ATLAS_LINE_ID, FEATURE_TYPE, ROAD_SURFACE, ROAD_CLASS, NUMBER_OF_LANES, FEATURE_CODE, GEOMETRY, OBJECTID) %>%
+    collect()
+)
+
+# This is the way its done by the cummulative effects people and it worked when I used their script off git-hub, but I have not managed to get it to work here.
+RdsZip <- 'dra.gdb.zip'
+download.file("ftp://ftp.geobc.gov.bc.ca/sections/outgoing/bmgs/DRA_Public/dgtl_road_atlas.gdb.zip",
+              destfile = file.path("//Work//caribou//clus//R//fire_sim//data", RdsZip))
+unzip(file.path(DataDir, RdsZip), exdir = file.path(DataDir, "DRA"))
+
+
+# List feature classes in the geodatabase
+Rd_gdb <- list.files(file.path(DataDir, "DRA"), pattern = ".gdb", full.names = TRUE)[1]
+fc_list <- st_layers(Rd_gdb)
+
+# Read as sf and calculate road lengths
+roads_sf <- read_sf(Rd_gdb, layer = "TRANSPORT_LINE") %>% 
+  mutate(rd_len = st_length(.))
+
+# Write metadata from gdb to csv files
+# (sf >= 0.6-1 supports reading non-spatial tables))
+lapply(fc_list$name[grepl("CODE$", fc_list$name)], function(l) {
+  metadata <- st_read(Rd_gdb, layer = l, stringsAsFactors = FALSE)
+  write_csv(metadata, path = file.path("data", paste0(l, ".csv")))
+})
+
+# Determine the FC extent, projection, and attribute information
+summary(roads_sf)
+
+# Save as RDS for quicker access later
+saveRDS(roads_sf, file = "tmp/DRA_roads_sf.rds")
+```
+
+
+```{r cars}
+roads_sf <- readRDS("tmp/DRA_roads_sf.rds")
+
+# Make table of all possible combinations to determine how to classify roads
+# into use types, capture all cases and if contribute to non-intact land
+Rd_Tbl <- st_set_geometry(roads_sf, NULL) %>% 
+  count(TRANSPORT_LINE_SURFACE_CODE, TRANSPORT_LINE_TYPE_CODE)
+write_csv(Rd_Tbl, "out/Rd_x_tbl.csv")
+
+# Not roads - TYPE = Ferry routes, non motorized Trails, proposed, pedestrian mall
+notRoads <- c("F", "FP", "FR", "RP", "TD", "RWA", "RPM", "T") 
+# No longer roads - SURFACE_TYPE = decomissioned, overgrown, and boat
+NoLongerRoads <- c("D", "O", "B")
+
+roads_sf <- roads_sf %>% 
+  filter(!TRANSPORT_LINE_TYPE_CODE %in% notRoads, 
+         !TRANSPORT_LINE_SURFACE_CODE %in% NoLongerRoads)
+
+# Save as RDS for quicker access later.
+saveRDS(roads_sf, file = "tmp/DRA_roads_sf_clean.rds")
+# Also save as geopackage format for use in other software
+write_sf(roads_sf, "out/data/roads_clean.gpkg")
+```
+
+
+```{r pressure, echo=FALSE}
+library(raster)
+library(spex) # fast conversion of raster to polygons
+# For parallel processing tiles to rasters
+library(foreach)
+#library(doMC)
+
+roads_sf <- readRDS("tmp/DRA_roads_sf_clean.rds")
+p<- roads_sf %>% filter(TRANSPORT_LINE_SURFACE_CODE =="P")
+
+
+# Set up Provincial raster based on hectares BC extent, 1ha resolution and projection
+ProvRast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(roads_sf)$proj4string, resolution = c(100, 100), vals = 0
+)
+
+# checking that the roads and ProvRast line up. They should since one was created from the other
+plot(ProvRast)
+plot(st_geometry(p), add=TRUE)
+
+
+#ProvRast <- raster(extent(roads_sf), crs = st_crs(roads_sf)$proj4string,
+#                   resolution = c(100, 100), vals = 0)
+
+#---------------------
+#split Province into tiles for processing
+
+# extent of input layer
+ProvBB <- st_bbox(ProvRast)
+
+#Number of tile rows, number of columns will be the same
+nTileRows <- 10
+
+prov_grid <- st_make_grid(st_as_sfc(ProvBB), n = rep(nTileRows, 2))
+prov_grid <- st_sf(tile_id = seq_along(prov_grid), 
+                   geometry = prov_grid, crs = 3005)
+
+# Plot grid and Prov bounding box just to check
+#plot(prov_grid, add=TRUE)
+ProvPlt <- st_as_sfc(ProvBB, crs = 3005)
+plot(ProvPlt, add = TRUE, border = "red", lwd=8)
+plot(prov_grid, add=TRUE)
+
+# Chop the roads up by the 10x10 tile grid. This takes a while but you only have to 
+# do it once.
+roads_gridded <- st_intersection(roads_sf, prov_grid)
+
+# Loop through each tile and calculate road density for each 1ha cell.
+# Choose number of cores to use in parallel carefully... too many and
+# it will fill up memory and grind to a halt.
+registerDoMC(3) # note I could not get this to work. It told me the package was not compatible with my current R version. So I skipped this. it still worked fine and went fairly fast on a machine with 64GB of ram.
+
+ptm <- proc.time()
+foreach(i = prov_grid$tile_id) %dopar% {
+  Pcc <- raster::extent(prov_grid[prov_grid$tile_id == i, ])
+  DefaultRaster <- raster(Pcc, crs = st_crs(roads_gridded)$proj4string, 
+                          resolution = c(100, 100), vals = 0, ext = Pcc)
+  
+  ## Use the roads layer that has already been chopped into tiles
+  TilePoly <- roads_gridded[roads_gridded$tile_id == i, ]
+  
+  if (nrow(TilePoly) > 0) {
+    
+    ##  This calculates lengths more directly than psp method...
+    DefaultRaster[] <- 1:ncell(DefaultRaster)
+    rsp <- spex::polygonize(DefaultRaster) # spex pkg for quickly making polygons from raster
+    # Split tile poly into grid by the polygonized raster
+    rp1 <- st_intersection(TilePoly[,1], rsp)
+    rp1$rd_len <- as.numeric(st_length(rp1)) # road length in m for each grid cell
+    # Sum of road lengths in each grid cell
+    x <- tapply(rp1$rd_len, rp1$layer, sum, na.rm = TRUE)
+    # Create raster and populate with sum of road lengths
+    roadlengthT <- raster(DefaultRaster)
+    roadlengthT[as.integer(names(x))] <- x
+    roadlengthT[is.na(roadlengthT)] <- 0
+    
+    rm(rsp, rp1, x)
+  } else {
+    roadlengthT <- DefaultRaster
+  }
+  fname <- file.path(tileOutDir, paste0("rdTile_", i, ".tif"))
+  writeRaster(roadlengthT, filename = fname, format = "GTiff", overwrite = TRUE)
+  message(fname)
+  rm(Pcc, DefaultRaster, TilePoly, roadlengthT, fname)
+  gc()
+}
+
+#Memory functions - object.size(roadsIN), gc(), rm()
+
+```
+
+```{r}
+#code to read rasters from a directory and mosaic - faster than merge or mosaic
+#Code snippet from: https://stackoverflow.com/questions/15876591/merging-multiple-rasters-in-r
+
+#Build list of all raster files you want to join (in your current working directory).
+Tiles<- list.files(path=tileOutDir, pattern='rdTile_', full.names = TRUE)
+
+#Make a template raster file to build onto
+
+template<-ProvRast
+proj4string(template) <- CRS('+init=epsg:3005') 
+writeRaster(template, file=file.path(tileOutDir,"RoadDensR.tif"), format="GTiff", overwrite=TRUE)
+
+# Note I never managed to get the next step to work. Again issues with out of date libraries and other problems I could not solve. So eventually I went to QGIS and just merged the files there. This was super fast, so a good alternative!!!
+
+#Merge all raster tiles into one big raster.
+# RoadDensR<-mosaic_rasters(gdalfile=file.path(tileOutDir,Tiles),
+#                           dst_dataset=file.path(tileOutDir,"RoadDensR.tif"),
+#                           of="GTiff",
+#                           output_Raster=TRUE)
+# gdalinfo(file.path(tileOutDir,"RoadDensR.tif"))
+# #Plot to test
+# plot(RoadDensR)
+#lines(roadsIN,col='red')
+
+# Check total sum of road lengths and compare to total sum from vector object
+rast_sum_len <- cellStats(RoadDensR, "sum")
+as.numeric(sum(roads_sf$rd_len)) - rast_sum_len
+# ~ 250 km difference - pretty good!
+
+file.copy("out/data/tile/RoadDensR.tif", "../roadless-areas-indicator/data/", overwrite = TRUE)
+
+```
+
+After making the roads raster. I used the Raster -> Analysis -> Proximity (Raster distance) tool to calculate the distance from any pixel to the nearest road. After doing this the final is to sample the distance to roads at each of my fire ignition points. 
+
+```{r}
+# import roads distance raster
+roads_dist <- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_roads.tif")
+rast_sum_len <- cellStats(roads_dist, "sum")
+cellStats(roads_dist, "max") # 8098.8 this is probably ok because it calculated the distance even to pixels in the ocean because the raster is a square rather than just BC
+cellStats(roads_dist, "min") # 0 seems appropriate
+GDALinfo("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_roads.tif")
+
+#plot(roads) #you may wish to plot this to inspect but just opening the tif files makes it look like its all good
+
+sample_locations_DEM<-st_read("C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\DC_data_DEM_5x_AllMonths_frt.shp")
+
+names(sample_locations_DEM)
+
+##Try this first
+test<-cbind(sample_locations_DEM, st_coordinates(sample_locations_DEM))
+head(test)
+
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+#crs(pointCoordinates) #No CRS when a dataframe
+
+##Extract DEM values from stacked layer
+rasValue2=raster::extract(roads_dist, pointCoordinates)
+head(rasValue2)
+str(rasValue2) #200292 values
+str(sample_locations_DEM)#200292 values
+
+#Append new information
+sample_locations_DEM_roads<-cbind(sample_locations_DEM, rasValue2)
+head(sample_locations_DEM_roads)
+sample_locations_DEM_roads <- sample_locations_DEM_roads %>%
+  rename(road_dist_m=rasValue2)
+sample_locations_DEM_roads$road_dist_m<-sample_locations_DEM_roads$road_dist*100
+
+crs(sample_locations_DEM_roads)
+
+st_write(sample_locations_DEM_roads, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\DC_data_DEM_roads.shp", delete_layer=TRUE)
+
+
+```
+

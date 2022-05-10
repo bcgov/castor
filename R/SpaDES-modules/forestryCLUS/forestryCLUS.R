@@ -220,7 +220,7 @@ setConstraints<- function(sim) {
           query_parms<-query_parms[!is.na(denom), denom := paste(denom, " AND ")] #Add an 'AND' so that the query will be seemlessly added to the sql
         }
  
-       query_parms<-query_parms[!is.na(limits) | limits > 0, ] #remove any constraints that don't have any limits or cells to constrain on
+       query_parms<-query_parms[!is.na(limits) | limits > 0, ] [multi_condition == "NA", multi_condition := NA] #remove any constraints that don't have any limits or cells to constrain on
        #The query_parms object can have many zoneid's wihtin a zone that have the 'same' structure of the query - lets take advantage of that and set up all the queries in a single transaction --aka 'a parameterized query'
        switch(
           as.character(query_parms[1, "type"]), #The reason only the 1st row is needed because all remaining rows will have the same configuration of the query
