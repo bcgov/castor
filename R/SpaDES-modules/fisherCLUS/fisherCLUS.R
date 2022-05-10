@@ -26,7 +26,8 @@ defineModule(sim, list(
   reqdPkgs = list(),
   parameters = rbind(
     defineParameter ("calculateInterval", "numeric", 1, 1, 5, "The simulation time at which survival rates are calculated"),
-    defineParameter ("nameRasFisherTerritory", "character", "rast.zone_cond_fisher_dry", NA, NA, "Name of the raster(s) descirbing fisher territories. Stored in psql."), 
+    defineParameter ("nameFetaRaster", "character", "rast.fetaid", NA, NA, "Name of the raster descirbing fetas. Stored in psql."), 
+    defineParameter ("nameRasFisherTerritory", "character", NA, NA, NA, "Name of the raster(s) descirbing fisher territories. Stored in psql."), 
     defineParameter ("nameRasWetlands", "character", "rast.wetlands", NA, NA, "Name of the raster for wetlands as described in Weir and Corbould 2010")
     ),
   inputObjects = bind_rows(
@@ -34,9 +35,12 @@ defineModule(sim, list(
     expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA),
     expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = "Name of the area of interest(aoi) eg. Quesnel_TSA", sourceURL = NA),
+    expectsInput(objectName ="harvestPixelList", objectClass = "data.table", desc = NA, sourceURL = NA),
     expectsInput(objectName ="zone.available", objectClass ="data.table", desc = "The number of zones", sourceURL = NA)
   ),
   outputObjects = bind_rows(
+    createsOutput (objectName = "fisher.feta.info", objectClass = "data.table", desc = "A data.table object containg which fisher zone a feta belongs to based on a majority rule"),
+    createsOutput (objectName = "fisher.d2.cov", objectClass = "list", desc = "A list object containing a covariance matrix for each fisher zone required to compute d2"),
     createsOutput (objectName = "tableFisherOccupancy", objectClass = "data.table", desc = "A data.table object. Consists of fisher occupancy estimates for each territory in the study area at each time step. Gets saved in the 'outputs' folder of the module.")
   )
 ))
@@ -46,12 +50,22 @@ doEvent.fisherCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init(sim) #Gets the needed spatial layers
-      sim <- predictOccupancy(sim)# Predicts the time =0 fisher occupancy
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "fisherCLUS", "calculateInterval"), "fisherCLUS", "calculateFisherOccupancy", 8) # schedule the next calculation event 
+      if(!is.na(P(sim, "nameFetaRaster", "fisherCLUS"))){
+        sim <- setFLEXWorld(sim) #preps the object need for flex
+        sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "fisherCLUS"), "fisherCLUS", "calculateFLEXWorld", 8) # schedule the next calculation event 
+      }
+      if(!is.na(P(sim, "nameRasFisherTerritory", "fisherCLUS"))){
+        sim <- predictOccupancy(sim)# Predicts the time =0 fisher occupancy
+        sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "fisherCLUS"), "fisherCLUS", "calculateFisherOccupancy", 8) # schedule the next calculation event 
+      }
     },
     calculateFisherOccupancy = { # calculate fisher occupancy at each time interval 
       sim <- predictOccupancy (sim) # Calculates fisher occupancy
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "fisherCLUS", "calculateInterval"), "fisherCLUS", "calculateFisherOccupancy", 8) # schedule the next calculation event  
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "fisherCLUS"), "fisherCLUS", "calculateFisherOccupancy", 8) # schedule the next calculation event  
+    },
+    calculateFLEXWorld = {
+      sim <- getFLEXWorld(sim)
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "fisherCLUS"), "fisherCLUS", "calculateFLEXWorld", 8) # schedule the next
     },
     warning(paste("Undefined event type: \'", current(sim)[1, "eventType", with = FALSE],
                   "\' in module \'", current(sim)[1, "moduleName", with = FALSE], "\'", sep = ""))
@@ -60,80 +74,199 @@ doEvent.fisherCLUS = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
-  fisher.ras.ter<-data.table(reference_zone = P(sim, "fisherCLUS", "nameRasFisherTerritory"))
-  #Add any territory not already in the clusdb
-  getFisherTerritory<-fisher.ras.ter[!(reference_zone %in% sim$zone.available$reference_zone),]
-
-  if(nrow(getFisherTerritory) > 0){
-    getFisherTerritory[,zone:= paste0("zone", .I + as.integer(length(sim$zone.available$reference_zone)))] #assign zone name as the last zone number plus the new zones
-    for(i in 1:nrow(getFisherTerritory)){
-      dbExecute (sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN ", getFisherTerritory$zone[i], " integer")) # add a column to the pixel table that will define the fisher territory  
+  if(!is.na(P(sim, "nameRasFisherTerritory", "fisherCLUS"))){
+    message("getting territory information")
+    fisher.ras.ter<-data.table(reference_zone = P(sim, "nameRasFisherTerritory", "fisherCLUS"))
+    #Add any territory not already in the clusdb
+    getFisherTerritory<-fisher.ras.ter[!(reference_zone %in% dbGetQuery(sim$clusdb, "SELECT * FROM zone;")$reference_zone),]
+    
+    if(nrow(getFisherTerritory[!is.na(reference_zone),]) > 0){
+      getFisherTerritory[,zone:= paste0("zone", .I + as.integer(nrow(dbGetQuery(sim$clusdb, "SELECT count(*) as num_zones FROM zone;")$num_zones)))] #assign zone name as the last zone number plus the new zones
+      for(i in 1:nrow(getFisherTerritory)){
+        dbExecute (sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN ", getFisherTerritory$zone[i], " integer")) # add a column to the pixel table that will define the fisher territory  
+        ras.territory <- data.table (c (t (raster::as.matrix ( # 
+        RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
+                      srcRaster = getFisherTerritory$reference_zone[i] , # 
+                      clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"),  # 
+                      geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                      where_clause =  paste0 (P (sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                      conn = NULL)))))
+        
+   
+        ras.territory[, V1 := as.integer (V1)] # add the herd boudnary value from the raster and make the value an integer
+        ras.territory[, pixelid := seq_len(.N)] # add pixelid value
+        
+        dbBegin (sim$clusdb) # fire up the db and add the herd boundary values to the pixels table 
+          rs <- dbSendQuery (sim$clusdb, paste0("Update pixels set ", getFisherTerritory$zone[i], "= :V1 where pixelid = :pixelid", ras.territory)) 
+        dbClearResult (rs)
+        dbCommit (sim$clusdb) # commit the new column to the db
+        
+        #Add the new fisher territory to the zone table
+        dbExecute (sim$clusdb, paste0("INSERT INTO zone (zone_column, reference_zone) VALUES (", getFisherTerritory$zone[i], ", ", getFisherTerritory$reference_zone[i], ")")) 
       
-      ras.territory <- data.table (c (t (raster::as.matrix ( # 
-      RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                    srcRaster = getFisherTerritory$reference_zone[i] , # 
-                    clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"),  # 
-                    geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
-                    where_clause =  paste0 (P (sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                    conn = NULL)))))
-      
- 
-      ras.territory[, V1 := as.integer (V1)] # add the herd boudnary value from the raster and make the value an integer
-      ras.territory[, pixelid := seq_len(.N)] # add pixelid value
-      
-      dbBegin (sim$clusdb) # fire up the db and add the herd boundary values to the pixels table 
-        rs <- dbSendQuery (sim$clusdb, paste0("Update pixels set ", getFisherTerritory$zone[i], "= :V1 where pixelid = :pixelid", ras.territory)) 
-      dbClearResult (rs)
-      dbCommit (sim$clusdb) # commit the new column to the db
-      
-      #Add the new fisher territory to the zone table
-      dbExecute (sim$clusdb, paste0("INSERT INTO zone (zone_column, reference_zone) VALUES (", getFisherTerritory$zone[i], ", ", getFisherTerritory$reference_zone[i], ")")) 
+      }
+      rm(ras.territory,getFisherTerritory)
+      #Add in the permanent wetlands raster to pixels table
+      gc()
+      if(dbGetQuery (sim$clusdb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='wetland';")$exists_check > 0){
+        dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN wetland integer") # add a column to the pixel table that will define the wetland area   
+        ras.wetland <- data.table (c (t (raster::as.matrix ( # 
+          RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
+                        srcRaster = P(sim, "fisherCLUS", "nameRasWetlands") , # 
+                        clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"),  # 
+                        geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
+                        where_clause =  paste0 (P (sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                        conn = NULL)))))
+        ras.wetland[, V1 := as.integer (V1)] # add the wetlands value from the raster and make the value an integer
+        ras.wetland[, pixelid := seq_len(.N)] # add pixelid value
+        
+        dbBegin (sim$clusdb) # add values to the pixels table 
+        rs <- dbSendQuery (sim$clusdb, paste0("Update pixels set wetland = :V1 where pixelid = :pixelid"), ras.wetland) 
+        dbClearResult (rs)
+        dbCommit (sim$clusdb) # commit the new column to the db
+        
+        rm(ras.wetland)
+      }
     }
-    rm(ras.territory,getFisherTerritory)
   }
-  #Add in the permenant wetlands raster
-  if(nrow(data.table(dbGetQuery(sim$clusdb, "PRAGMA table_info(pixels)"))[name == 'wetland',])== 0){
-    dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN wetland integer") # add a column to the pixel table that will define the wetland area   
-    ras.wetland <- data.table (c (t (raster::as.matrix ( # 
-      RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                    srcRaster = P(sim, "fisherCLUS", "nameRasWetlands") , # 
-                    clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"),  # 
-                    geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
-                    where_clause =  paste0 (P (sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                    conn = NULL)))))
-    ras.wetland[, V1 := as.integer (V1)] # add the wetlands value from the raster and make the value an integer
-    ras.wetland[, pixelid := seq_len(.N)] # add pixelid value
-    
-    dbBegin (sim$clusdb) # add values to the pixels table 
-      rs <- dbSendQuery (sim$clusdb, paste0("Update pixels set wetland = :V1 where pixelid = :pixelid"), ras.wetland) 
-    dbClearResult (rs)
-    dbCommit (sim$clusdb) # commit the new column to the db
-    
-    rm(ras.wetland)
-    }
-   gc()
-  
   #Initiate the time 0 output object tableFisherOccupancy
   sim$tableFisherOccupancy<-data.table(timeperiod = as.integer(), scenario = as.character(), compartment =  as.character(), openess = as.numeric(), zone = as.integer(), reference_zone = as.character(), rel_prob_occup = as.numeric())
 
+  #---------FLEX modelling
+  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'fisherhabitat';")) == 0){
+    #Create the table in the database
+    message("creating fisherhabitat table")
+    dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS fisherhabitat (pixelid integer, fetaid integer, den_p integer, rus_p integer, mov_p integer, cwd_p integer, cav_p integer)")
+    feta.ras <- RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = P(sim, "nameFetaRaster", "fisherCLUS") , # 
+                             clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                             where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                             conn = NULL)
+    hab_p <- data.table(
+                    pixelid = 1:ncell(feta.ras),
+                    fetaid = feta.ras[],
+                    den_p= RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_denning_p" , # 
+                      clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                      conn = NULL)[],
+                    rus_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_rust_p" , # 
+                      clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                      conn = NULL)[],
+                    cwd_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_cwd_p" , # 
+                      clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                      conn = NULL)[],
+                    cav_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_cavity_p" , # 
+                      clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                      conn = NULL)[],
+                    mov_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_movement_p" , # 
+                                          clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                                          where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                          conn = NULL)[])
+    
+    hab_p<-hab_p[!is.na(fetaid) & mov_p > 0,] #Remove the non contributing pixels
+    
+    
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "INSERT INTO fisherhabitat (pixelid , fetaid,  den_p, rus_p, cwd_p, cav_p, mov_p) 
+                        values (:pixelid , :fetaid,  :den_p, :rus_p, :cwd_p, :cav_p, :mov_p);", hab_p)
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+    
+  }
+  
   return(invisible(sim))
 }
 
 predictOccupancy<- function(sim) {
-  getFisherTerritory<- sim$zone.available[reference_zone %in% P(sim, "fisherCLUS", "nameRasFisherTerritory"),]
+  getFisherTerritory<- sim$zone.available[reference_zone %in% P(sim, "nameRasFisherTerritory", "fisherCLUS"),]
   #Build the query -- appending by fisher territory
   sql_fisher<-lapply(1:length(getFisherTerritory$zone_column), 
-                     function(i){
-                      data.table(dbGetQuery(sim$clusdb, paste0("Select (cast(sum(case when wetland > 0 OR age < 12 then 1 else 0 end) as float)/count())*100 as openess, ", getFisherTerritory$zone_column[i] ," as zone, '",getFisherTerritory$reference_zone[i],"' as reference_zone from pixels 
-                      where ", getFisherTerritory$zone_column[i]," is not null group by ",getFisherTerritory$zone_column[i] )))
-                      })
+                       function(i){
+                        data.table(dbGetQuery(sim$clusdb, paste0("Select (cast(sum(case when wetland > 0 OR age < 12 then 1 else 0 end) as float)/count())*100 as openess, ", getFisherTerritory$zone_column[i] ," as zone, '",getFisherTerritory$reference_zone[i],"' as reference_zone from pixels 
+                        where ", getFisherTerritory$zone_column[i]," is not null group by ",getFisherTerritory$zone_column[i] )))
+                        })
   occupancy<-rbindlist(sql_fisher)
   #Model from Weir and Corbould 2010
   occupancy[, rel_prob_occup:= ((exp(-0.219*openess))/(1+exp(-0.219*openess )))/0.5]
   occupancy[, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name, sim$boundaryInfo[[3]]) ] 
-  
+    
   sim$tableFisherOccupancy<-rbindlist(list(sim$tableFisherOccupancy, occupancy), use.names = TRUE)
   return(invisible(sim))
+}
+
+setFLEXWorld<-function(sim){ #sets up the world object
+  sim$fisher.feta.info <- data.table(dbGetQuery(sim$clusdb, "with freqs as (select count(mov_p) as freq, mov_p, fetaid from fisherhabitat group by fetaid, mov_p) select max(freq), mov_p as pop, fetaid from freqs group by fetaid;"))#the population each feta belong to
+  sim$fisher.d2.cov <- list(matrix(c(0.5,	2.7,	0.6,	3.2,	-6.5, 2.7,	82.7,	4.9,	83.3,	-75.8, 0.6,	4.9,	0.9,	4,	-7.1, 3.2,	83.3,	4,	101.3,	-100.4, -6.5,	-75.8,	-7.1,	-100.4,	156.2), ncol =5, nrow =5),
+                           matrix(c(0.5,	-1.9,	-0.2,	1.9,	-3.8, -1.9,	96.8,	-0.7,	-24.6,	57.3, -0.2,	-0.7,	0.3,	-0.6,	1.2, 1.9,	-24.6,	-0.6,	45.5,	-2.8, -3.8,	57.3,	1.2,	-2.8,	77.3), ncol =5, nrow =5),
+                           matrix(c(0.7,	0.5,	6.1,	2.1, 0.5,	2.9,	4.0,	5.2, 6.1,	4.0,	62.6,	22.4, 2.1,	5.2,	22.4,	42.3), ncol=4, nrow=4),
+                           matrix(c(193.2,	5.4,	42.1,	125.2, 5.4,	0.4,	2.,	5.2, 42.1,	2.9,	36.0,	46.5, 125.2,	5.2, 46.5,	131.4), ncol =4, nrow =4))
+  sim$flexRasWorld <- list()
+  return(invisible(sim))
+}
+
+getFLEXWorld<-function(sim){
+  message("calc flex world")
+  #---VAT for regional models: 1 = SBS-wet; 2 = SBS-dry; 3 = Dry Forest; 4 = Boreal_A; 5 = Boreal_B
+  #---Note: age > 0 is added a query to remove any harvesting that occurs in the same sim time
+  #TODO code out Boreal_B
+  fisher.habitat <- data.table(dbGetQuery(sim$clusdb, "select fisherhabitat.pixelid, fetaid, den_p, rus_p, cav_p, cwd_p, mov_p, age, height, crownclosure, basalarea, qmd from fisherhabitat inner join pixels on fisherhabitat.pixelid = pixels.pixelid"))
+  total_cut <- sim$harvestPixelList[nrow(sim$harvestPixelList),]$cvalue/P(sim, "periodLength", "growingStockCLUS")
+  
+  for(i in 1:P(sim, "periodLength", "growingStockCLUS")){
+    fisher.habitat<-fisher.habitat[pixelid %in% sim$harvestPixelList[cvalue <= total_cut*i & cvalue > total_cut*(i-1),]$pixelid, age:=0]
+    
+    fisher.habitat[den_p == 1 & age >= 125 & crownclosure >= 30 & qmd >=28.5 & basalarea >= 29.75, denning:=1][den_p == 2 & age >= 125 & crownclosure >= 20 & qmd >=28 & basalarea >= 28, denning:=1][den_p == 3 & age >= 207 & crownclosure >= 20 & qmd >= 34.3, denning:=1][den_p == 4 & age >= 88 & qmd >= 19.5 & height >= 19, denning:=1]
+    fisher.habitat[rus_p == 1 & age > 0 & crownclosure >= 30 & qmd >= 22.7 & basalarea >= 35 & height >= 23.7, rust:=1][rus_p == 2 & age >= 72 & crownclosure >= 25 & qmd >= 19.6 & basalarea >= 32, rust:=1][rus_p == 3 & age >= 83 & crownclosure >=40 & qmd >= 20.1, rust:=1][rus_p == 4 & age >= 78 & crownclosure >=50 & qmd >= 18.5 & height >= 19 & basalarea >= 31.4, rust:=1]
+    fisher.habitat[cav_p == 1 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1][cav_p == 2 & age > 0 & height >= 35 & basalarea >=32, cavity:=1]
+    fisher.habitat[cwd_p == 1 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 2 & age >= 135 & crownclosure >= 25 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 3 & age >= 100, cwd:=1][cwd_p == 4 & age >= 78 & qmd >= 18.1 & height >= 19 & crownclosure >= 60, cwd:=1]
+    fisher.habitat[mov_p > 0 & age > 0 & crownclosure >= 50, movement:=1]
+  
+    #---Summarize habitat by the feta
+    den<-fisher.habitat[den_p > 0, .(denning = (sum(denning, na.rm =T)/3000)*100), by = fetaid]
+    cav<-fisher.habitat[cav_p > 0, .(cavity = (sum(cavity, na.rm =T)/3000)*100), by = fetaid]
+    rus<-fisher.habitat[rus_p > 0, .(rust = (sum(rust, na.rm =T)/3000)*100), by = fetaid] 
+    cwd<-fisher.habitat[cwd_p > 0, .(cwd =(sum(cwd, na.rm =T)/3000)*100), by = fetaid]
+    mov<-fisher.habitat[mov_p > 0, .(mov = (sum(movement, na.rm =T)/3000)*100), by = fetaid]
+  
+    #---Merge all habitat data.table together
+    fisher.habitat.rs <- Reduce(function(...) merge(..., all = TRUE), list(sim$fisher.feta.info, den,cav,rus,cwd,mov))
+    
+    #---Calculate D2 (Mahalanobis)
+    #----Add log transforms
+    fisher.habitat.rs[ pop == 1 & denning > 0, denning:=log(denning)][ pop == 1 & cavity > 0, cavity:=log(cavity)]
+    fisher.habitat.rs[ pop == 2 & denning > 0, denning:=log(denning)]
+    fisher.habitat.rs[ pop >= 3 & rust > 0, rust:=log(rust)]
+    
+    fisher.habitat.rs[ pop == 1, d2:= mahalanobis(fisher.habitat.rs[ pop == 1, c("denning", "rust", "cavity", "cwd", "mov")], c(1.6, 36.2, 0.7, 30.4, 26.8), cov = sim$fisher.d2.cov[[1]])]
+    fisher.habitat.rs[ pop == 2, d2:= mahalanobis(fisher.habitat.rs[ pop == 2, c("denning", "rust", "cavity", "cwd", "mov")], c(1.2, 19.1, 0.5, 10.2, 33.1), cov = sim$fisher.d2.cov[[2]])]
+    fisher.habitat.rs[ pop == 3, d2:= mahalanobis(fisher.habitat.rs[ pop == 3, c("denning", "rust", "cwd", "mov")], c(2.3, 1.6, 10.8, 21.5), cov = sim$fisher.d2.cov[[3]])]
+    fisher.habitat.rs[ pop >= 4, d2:= mahalanobis(fisher.habitat.rs[ pop >= 4, c("denning", "rust", "cwd", "mov")], c(24.0, 2.2, 17.4, 56.2), cov = sim$fisher.d2.cov[[4]])]
+    
+    fisher.habitat.mahal<-merge(fisher.habitat, fisher.habitat.rs[,c("fetaid", "d2", "pop", "mov")], by.x = "fetaid", by.y = "fetaid", all.x =T)
+ 
+    #---Create Raster of D2
+    ras.mahal<-sim$ras
+    ras.mahal[]<-NA
+    ras.mahal[fisher.habitat.mahal$pixelid]<-fisher.habitat.mahal$d2
+    
+    #---Create Raster of movement
+    ras.mov<-sim$ras
+    ras.mov[] <- NA
+    ras.mov[fisher.habitat.mahal$pixelid]<-fisher.habitat.mahal$mov
+
+    #Aggregate to a 30km pixels and save for FLEX
+    if(i == 1){
+      sim$flexRasWorld[[1]] <- aggregate(ras.mahal, fact =55)
+      sim$flexRasWorld[[2]] <- aggregate(ras.mov, fact =55)
+    }else{
+      sim$flexRasWorld[[1]] <- stack(sim$flexRasWorld[[1]], aggregate(ras.mahal, fact =55))
+      sim$flexRasWorld[[2]] <- stack(sim$flexRasWorld[[2]], aggregate(ras.mov, fact =55))
+    }
+  }
+  
+  return(invisible(sim)) 
 }
 
 .inputObjects <- function(sim) {

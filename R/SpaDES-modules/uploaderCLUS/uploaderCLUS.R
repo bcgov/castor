@@ -56,7 +56,7 @@ doEvent.uploaderCLUS = function(sim, eventTime, eventType) {
     save = {
       sim <- save.currentState(sim)
       sim <- save.reports(sim)
-      sim <- save.rasters(sim) 
+     # sim <- save.rasters(sim) 
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -184,68 +184,79 @@ save.reports <-function (sim){
                         password= P(sim, "dbInfo", "uploaderCLUS")[[3]])
   #harvestingReport
   if(!is.null(sim$harvestReport)){
+    message("writing harvest report")
     dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'harvest'),
                  sim$harvestReport, append = T,
                  row.names = FALSE)
   }
   #GrowingStockReport
   if(!is.null(sim$growingStockReport)){
+    message("writing growingstock report")
     dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'growingstock'), 
                  sim$growingStockReport, append = T,
                  row.names = FALSE)
   }
   #rsf
   if(!is.null(sim$rsf)){
+    message("writing rsf report")
     dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'rsf'), 
                  sim$rsf, append = T,row.names = FALSE)
   }
   # caribou survival
   if(!is.null(sim$tableSurvivalReport)){
+    message("writing caribou survival report")
     dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'survival'), 
                  sim$tableSurvivalReport, append = T,row.names = FALSE)
   }
   #disturbance
   if(!is.null(sim$disturbanceReport)){
+    message("writing disturbance report")
     DBI::dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'disturbance'), 
                       sim$disturbanceReport, append = T,row.names = FALSE)
   }
   #yielduncertainty
   if(!is.null(sim$yielduncertain)){
+    message("writing uncertainty report")
     DBI::dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'yielduncertainty'), 
                       sim$yielduncertain, append = T,row.names = FALSE)
   }
   #volumebyarea
   if(!is.null(sim$volumebyareaReport)){
+    message("writing volume by area report")
     DBI::dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'volumebyarea'), 
                       sim$volumebyareaReport, append = T, row.names = FALSE)
   }
   #fisher
   if(!is.null(sim$tableFisherOccupancy)){
+    message("writing fisher report")
     DBI::dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'fisher'), 
                       sim$tableFisherOccupancy, append = T, row.names = FALSE)
   }
   #zonal constraints
   if(!is.null(sim$zoneManagement)){
+    message("writing land cover constraint report")
     DBI::dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'zonemanagement'), 
                       sim$zoneManagement, append = T, row.names = FALSE)
   }
   # grizzly bear survival
   if(!is.null(sim$tableGrizzSurvivalReport)){
+    message("writing grizzly bear survival report")
     dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'grizzly_survival'), 
                  sim$tableGrizzSurvivalReport, append = T,row.names = FALSE)
   }
   # caribou abundance
   if(!is.null(sim$tableAbundanceReport)){
+    message("writing abundance report")
     dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'caribou_abundance'), 
                  sim$tableAbundanceReport, append = T,row.names = FALSE)
   }
   dbDisconnect(connx)
+  
   return(invisible(sim)) 
 }
 
 save.rasters <-function (sim){
   #rasters
-  
   if(is.null(sim$foreststate)){
     connx<-DBI::dbConnect(dbDriver("PostgreSQL"), 
                           host=P(sim, "dbInfo", "uploaderCLUS")[[1]], 

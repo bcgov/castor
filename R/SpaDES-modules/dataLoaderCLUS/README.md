@@ -71,7 +71,7 @@ Any spatial or tabular data can be entered into the design of clusdb. The minimu
 * Summary of the state of the forest in the area of interest
 * Populates the pixels, yields, zones and zoneConstraints tables in the clusdb database.
 
-![](data/clusdb_v1.1.jpeg)<!-- -->
+![](data/clusdb_v1.3.jpeg)<!-- -->
 
 
 ### Licence
