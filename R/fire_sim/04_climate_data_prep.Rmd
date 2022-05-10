@@ -67,7 +67,7 @@ for (i in 1: length(years)) {
 Next, see http://climatebc.ca/Help for how to use ClimateBC to get the climate data. 
 You will need to download ClimateBC (http://climatebc.ca/downloads/download.html) and use the files you generate as input to the first code chunk below.
 
-# Here we have a choice you can either manually extract the points as follows or use the R code below to extract them
+# Here we have a choice you can either manually extract the points as follows or use the R code below to extract them. I find it faster and easier to us the R code although I originally manually extracted the points because I did not know how to connect to the program through R. I think they built this functionality more recently.
 
 ## manual extraction
 ##To acquire ClimateBC Data for your sampled Locations##
@@ -85,8 +85,8 @@ Once the above has been completed for the random points and known fire locations
 
 # should really update this so that the year number is not repeated so many time. Maybe in the future
 
-setwd("D:/ClimateBC721"); # set the ClimateBC root directory as the working directory
-exe <- "ClimateBC_v7.21.exe"
+setwd("D:/Climatebc_v730"); # set the ClimateBC root directory as the working directory
+exe <- "ClimateBC_v7.30.exe"
 
 ## 2002
 inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2002.csv' 
@@ -202,12 +202,12 @@ outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_20
 yearPeriod = '/Year_2020.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
-# note there may be no data for 2021 in this case you will need to get the climate data off the future projections. Im not sure how to do this through R code so I did it manually using the 13 GCM ensemble and ssp370.
 ##2021
 inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2021.csv' 
 outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2021.csv'
 yearPeriod = '/Year_2021.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
 ```
 
 #Import climate data and calculate Drought Code
@@ -354,7 +354,7 @@ st_write(ignition_weather_crs, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\
 
 remove some data.frames to create more space in the memory
 ```{r}
-rm(all_sample_points, dat, DC.ignitions, DC.ignitions1, DC.sampled.points.all.frt.2002_Year_2002M, DC.sampled.points.all.frt.2003_Year_2003M, DC.sampled.points.all.frt.2004_Year_2004M, DC.sampled.points.all.frt.2005_Year_2005M, DC.sampled.points.all.frt.2006_Year_2006M, DC.sampled.points.all.frt.2007_Year_2007M, DC.sampled.points.all.frt.2008_Year_2008M, DC.sampled.points.all.frt.2009_Year_2009M, DC.sampled.points.all.frt.2010_Year_2010M, DC.sampled.points.all.frt.2011_Year_2011M, DC.sampled.points.all.frt.2012_Year_2012M, DC.sampled.points.all.frt.2012_Year_2012M, DC.sampled.points.all.frt.2013_Year_2013M, DC.sampled.points.all.frt.2014_Year_2014M, DC.sampled.points.all.frt.2015_Year_2015M, DC.sampled.points.all.frt.2016_Year_2016M, DC.sampled.points.all.frt.2017_Year_2017M, DC.sampled.points.all.frt.2018_Year_2018M, DC.sampled.points.all.frt.2019_Year_2019M, DC.sampled.points.all.frt.2020_Year_2020M, DC.sampled.points.all.frt.2021_Year_2021M, fire.igni.ndt, fire.ignition.clipped, fire.ignition.clipped2, foo.ignit.buffered, foo_ignit_sf, foo_ignit_small, foo_ignit_small_1, sampled.points.all.frt.2002_Year_2002MP, sampled.points.all.frt.2003_Year_2003MP, sampled.points.all.frt.2004_Year_2004MP, sampled.points.all.frt.2005_Year_2005MP, sampled.points.all.frt.2006_Year_2006MP, sampled.points.all.frt.2007_Year_2007MP, sampled.points.all.frt.2008_Year_2008MP,sampled.points.all.frt.2009_Year_2009MP, sampled.points.all.frt.2010_Year_2010MP, sampled.points.all.frt.2011_Year_2011MP, sampled.points.all.frt.2012_Year_2012MP, sampled.points.all.frt.2013_Year_2013MP, sampled.points.all.frt.2014_Year_2014MP, sampled.points.all.frt.2015_Year_2015MP, sampled.points.all.frt.2016_Year_2016MP, sampled.points.all.frt.2017_Year_2017MP, sampled.points.all.frt.2018_Year_2018MP, sampled.points.all.frt.2019_Year_2019MP, sampled.points.all.frt.2020_Year_2020MP, sampled.points.all.frt.2021_Year_2021MP, sampled_points_2002, sampled_points_2003, sampled_points_2004, sampled_points_2005, sampled_points_2006, sampled_points_2007, sampled_points_2008, sampled_points_2009, sampled_points_2010, sampled_points_2011, sampled_points_2012, sampled_points_2013, sampled_points_2014, sampled_points_2015, sampled_points_2016, sampled_points_2017, sampled_points_2018, sampled_points_2019, sampled_points_2020, sampled_points_2021, escape_10ha, escape_1ha, escape_3ha, foo, NDT, ndt_clipped, ndt_sf, samp_locations, samp_locations_sf, samp_points, samp_points_sf, x,x1,x2, samp_joined, samp_joined2, samp_joined_new, sample.pts.all, sample.p.trans, sample.p.trans1, ignition, ignition2, frt, frt_clipped, frt_foo ,frt_sf, ignit, igni.ndt, foo.ignit.buf.union, fire.igni.frt, pnts )
+rm(all_sample_points, dat, DC.ignitions, DC.ignitions1, DC.samp_points_2002, DC.samp_points_2003, DC.samp_points_2004, DC.samp_points_2005, DC.samp_points_2006, DC.samp_points_2007, DC.samp_points_2008, DC.samp_points_2009, DC.samp_points_2010, DC.samp_points_2011, DC.samp_points_2012, DC.samp_points_2013, DC.samp_points_2014, DC.samp_points_2015, DC.samp_points_2016, DC.samp_points_2017, DC.samp_points_2018, DC.samp_points_2019, DC.samp_points_2020, DC.samp_points_2021, fire.igni.ndt, fire.ignition.clipped, fire.ignition.clipped2, foo.ignit.buffered, foo_ignit_sf, foo_ignit_small, foo_ignit_small_1, samp_points_2002, samp_points_2003, samp_points_2004, samp_points_2005, samp_points_2006, samp_points_2007, samp_points_2008,samp_points_2009, samp_points_2010, samp_points_2011, samp_points_2012, samp_points_2013, samp_points_2014, samp_points_2015, samp_points_2016, samp_points_2017, samp_points_2018, samp_points_2019, samp_points_2020, samp_points_2021, foo, NDT, ndt_clipped, ndt_sf, samp_locations, samp_locations_sf, samp_points, samp_points_sf, x,x1,x2, samp_joined, samp_joined2, samp_joined_new, sample.pts.all, sample.p.trans, sample.p.trans1, ignition, ignition2, frt, frt_clipped, frt_foo ,frt_sf, ignit, igni.ndt, foo.ignit.buf.union, fire.igni.frt, pnts )
 
 gc()
 ```

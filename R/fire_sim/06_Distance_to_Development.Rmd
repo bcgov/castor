@@ -1,7 +1,7 @@
 ---
-title: "Distance_to_Development"
-author: "Cora Skaien"
-date: "26/08/2021"
+title: "06_Distance_to_Development"
+author: "Elizabeth Kleynhans and Cora Skaien"
+date: "25/04/2022"
 output: html_document
 ---
 
@@ -14,12 +14,15 @@ library(sp)
 library(spdep)
 library(rgeos)
 library(mc2d)
+library(raster)
+library(fasterize)
+library(bcdata)
 
 ```
 
 
 <!--
-Copyright 2021 Province of British Columbia
+Copyright 2022 Province of British Columbia
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,300 +36,358 @@ See the License for the specific language governing permissions and limitations 
 -->
 
 #=================================
-#  Script Name: 06_Distance_to_Development.R
+#  Script Name: 06b_Distance_to_Development.R
 #  Script Version: 1.0
-#  Script Purpose: Determine the distance to various types of development/infrastructure for each location.
-#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
-#Script Contributor: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#  Script Purpose: Determine the distance to various types of development/infrastructure.
+#  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#Script Contributor: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #=================================
 
 
 #Overview
-Whether or not fires spread into surrounding areas is not as simple as what the environment is like; instead, we have fire fighting efforts that can alter the course of a fire, reduce its spread, and extinguish the fire. The closer the fire is to infrastructure, such as urban settings, power lines, railroads, and major projects, the more likely that fire fighting efforts will be increased. Thus, we will determine the distance from each fire location to each category of infrastructure and assess patterns for impact on fire escape, size and spread.
+Whether or not fires spread into surrounding areas is not as simple as what the environment is like; instead, we have fire fighting efforts that can alter the course of a fire, reduce its spread, and extinguish the fire. The closer the fire is to infrastructure, such as urban settings, power lines, railroads, and major projects, the more likely that fire fighting efforts will be increased. Furthermore, people might also be the cause of fires due to mistakes (camp fires not properly put out, run away planned burns, arsen, or even sparks from trains)  so being closer to infrastructure might results in more fires. Thus, we will determine the distance from each fire location to the nearest infrastructure (regardless of type). 
 
-#Some important layers to consider
-1. Municipalities: note that this only includes the incorporated municipalities and not the unincorporated municipalities.
-https://catalogue.data.gov.bc.ca/dataset/municipalities-legally-defined-administrative-areas-of-bc
+#Layers to include
 
-2. BC transmission lines: these provide power to municipalities and are often easy to access.
-https://catalogue.data.gov.bc.ca/dataset/bc-transmission-lines
+I've decided to use the layers that the Cumulative effects group use. The layers are outlined in the file: "Z:\bcce\shared\data_library\disturbance\human_disturbance\2021\4_README_CEF_Disturbance_GIS_Inputs_20210927".
 
-3. Railway track lines: these are important for transporting goods across the province and can be made a priority.
-https://catalogue.data.gov.bc.ca/dataset/railway-track-line#edc-pow
+1.) Mining and Extraction
+Using the layers:
+ - WHSE_BASEMAPPING.BTM_PRESENT_LAND_USE_V1_SVW with the PRESENT_LAND_USE_LABEL = 'Mining'    - WHSE_FOREST_VEGETATION.VEG_COMP_LYR_R1_POLY with the following selection criteria BCLCS_LEVEL_5 in ('GP','MI','MZ','TZ') 
 
-4. Major Natural Resource Projects
-https://catalogue.data.gov.bc.ca/dataset/natural-resource-sector-major-projects-points#edc-pow
+2.) Rail and Infrastructure
+Using layers:
+ - WHSE_BASEMAPPING.GBA_RAILWAY_TRACKS_SP
+ In the cumulative effects layers they buffer the railway lines in north eastern BC by a different amount (17.5m) than they do in the rest of the province (7.5m). Im not sure why.
+ 
+3.) Oil and gas infrastructure
+Using layers:
+ - \\spatialfiles.bcgov\work\srm\bcce\shared\data_library\disturbance\human_disturbance\2021\inputs\data\Oil_And_Gas\BC_OG_NONGEO_SLU_DEC2020.shp
+ Or I think you can download the same layer from: https://www.bcogc.ca/files/gis/SLU/Zip/BC_OG_NONGEO_SLU_DEC2020.zip
+ 
+4.) Power
+Using layers:
+ - Dams: WHSE_WATER_MANAGEMENT.WRIS_DAMS_PUBLIC_SVW buffered by 25m
+ - Transmission: WHSE_BASEMAPPING.GBA_TRANSMISSION_LINES_SP buffered by 12.5m
 
-5. BC Dams
-https://catalogue.data.gov.bc.ca/dataset/bc-dams#edc-pow
+5.) Urban
+Using layers:
+ - WHSE_BASEMAPPING.BTM_PRESENT_LAND_USE_V1_SVW with selection criteria PRESENT_LAND_USE_LABEL IN ( 'Urban', 'Residential Agriculture Mixtures' )
+ - WHSE_FOREST_VEGETATION.VEG_COMP_LYR_R1_POLY with selection criteria BCLCS_LEVEL_5 = 'UR' or (BCLCS_LEVEL_5  is null and NON_PRODUCTIVE_DESCRIPTOR_CD = 'U') or ((NON_VEG_COVER_TYPE_1 = 'UR' and NON_VEG_COVER_PCT_1 >= 20) or (NON_VEG_COVER_TYPE_2 = 'UR' and NON_VEG_COVER_PCT_2 >= 20) or(NON_VEG_COVER_TYPE_3 = 'UR' and NON_VEG_COVER_PCT_3 >= 20)) 
 
-6. Mines
-https://maps.gov.bc.ca/ess/hm/imap4m/?catalogLayers=7738,7739&scale=8000000.0&center=-14435520.3411,8238977.65217
-https://governmentofbc.maps.arcgis.com/home/item.html?id=b8ea19982bd74db3bd968d3c7f038e43
+6.) Recreation (should I include this one???)
+Using layers
+ - WHSE_BASEMAPPING.BTM_PRESENT_LAND_USE_V1_SVW with selection criteria PRESENT_LAND_USE_LABEL = 'Recreation Activities'
 
-This one may be useful?
-https://catalogue.data.gov.bc.ca/dataset/tantalis-administrative-areas
-https://catalogue.data.gov.bc.ca/dataset/local-government-boundaries-road-centreline-aligned
+# Work flow
+I've decided to create a raster for each layer that for every pixel in the province calculates the minimum distance to that specific infrastructure. 
+1.) I change the shape file into a raster. 
+2.) In QGIS I calculate the minimum distance to the infrastructure for each 1ha pixel in BC.
+3.) Create a raster stack
+4.) For each ignition point obtain the distance to the infrastructure from the raster stack.
 
-#Within QGIS
-Each of the relevant above layers were brought into QGIS for inspection. A 1 m buffer was created around each point and line to make it into a polygon. Within QGIS, we used the NNJoin plugin to determine the distance between each point and each of the elements above. This cannot be done in R because there are too many points and R will run out of processing power. Once this is complete, then bring the layer into R. If you had fewer points, you could use st_distance (e.g., test<-st_distance(sample_locations, Dams, by_element = TRUE))
 
 #load in the spatial layers
-You can load in each separately, but we processed in QGIS ultimately, so you can skip this part. 
+You can load in each separately.
+
+# Mines
 ```{r}
-Dams<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Dams_Buffer.shp", stringsAsFactors = T)
+mines<- try(
+  bcdc_query_geodata("WHSE_BASEMAPPING.BTM_PRESENT_LAND_USE_V1_SVW") %>%
+    filter(PRESENT_LAND_USE_LABEL == 'Mining') %>%
+    collect()
+)
+mines <- st_transform (mines, 3005)
+plot(mines[,"MEAN_ELEVATION"])
 
-NatResourceSect<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Nat_Resource_Buffer.shp", stringsAsFactors = T)
+mines2<-try(
+  bcdc_query_geodata("WHSE_FOREST_VEGETATION.VEG_COMP_LYR_R1_POLY") %>%
+    filter(BCLCS_LEVEL_5 %in% c("MZ", "TZ", "MI")) %>%
+    select(BCLCS_LEVEL_5) %>%
+    collect()
+)
+mines2 <- st_transform (mines2, 3005)
 
-TransmissionsLines<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\TransmissionLines_Buffer.shp", stringsAsFactors = T)
+mines<-st_cast(mines,'MULTIPOLYGON')
+mines2<-st_cast(mines2,'MULTIPOLYGON')
 
-Railway<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Railway_Buffer_.shp", stringsAsFactors = T)
+# ha BC standard raster
+ProvRast <- raster (nrows = 15744, ncols = 17216, 
+                    xmn = 159587.5, xmx = 1881187.5, 
+                    ymn = 173787.5, ymx = 1748187.5,                      
+                    crs = st_crs(mines)$proj4string, 
+                    resolution = c (100, 100), vals = 0) # from https://github.com/bcgov/bc-raster-roads/blob/master/03_analysis.R
 
-Munic<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Municipalities.shp", stringsAsFactors = T)
+ras.mines <- fasterize (mines, ProvRast, 
+                                 field = NULL,# raster cells that have oil and gas get value of 1
+                                 background = 0) # unharvested raster cells get value = 0 
+ras.mines2 <- fasterize (mines2, ProvRast, 
+                                 field = NULL,# raster cells that have oil and gas get value of 1
+                                 background = 0) # unharvested raster cells get value = 0 
+rast.mines.all<-overlay(ras.mines, ras.mines2, fun=function(x,y){return(x+y)})
 
-Mines<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Mines.shp", stringsAsFactors = T)
+plot(rast.mines.all)
+
+raster::writeRaster (rast.mines.all, 
+                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\mines.tiff", 
+                     format = "GTiff",
+                     overwrite=TRUE)
+```
+
+# Rail and Infrastructure
+```{r}
+
+ rail<- try(
+  bcdc_query_geodata("WHSE_BASEMAPPING.GBA_RAILWAY_TRACKS_SP")%>%
+    collect()
+)
+
+# #  In the cumulative effects layers they buffer the railway lines in north eastern BC by a different amount (17.5m) than they do in the rest of the province (7.5m). Here I do that.
+rail_ne<-rail %>%
+  filter(SUBDIVISION1_NAME %in% c('Fort Nelson' , 'Fort St. John' ,  'Dawson Creek' , 'Grande Prairie'))
+rail_ne_buf<-st_buffer(rail_ne, dist=17.5)
+
+rail_not_ne<-rail %>%
+  filter(!SUBDIVISION1_NAME %in% c('Fort Nelson' , 'Fort St. John' ,  'Dawson Creek' , 'Grande Prairie'))
+rail_not_ne_buf<-st_buffer(rail_not_ne, dist=7.5)
+
+rail_buf_all<- rbind(rail_ne_buf, rail_not_ne_buf)
+
+rail_buf_all<-st_cast(rail_buf_all,'MULTIPOLYGON')
+rail_buf_all <- st_transform (rail_buf_all, 3005)
+
+
+ras.rail <- fasterize (rail_buf_all, ProvRast, 
+                                 field = NULL,# raster cells that have oil and gas get value of 1
+                                 background = 0) # unharvested raster cells get value = 0 
+
+plot(ras.rail) 
+raster::writeRaster (ras.rail, 
+                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\rail.tiff", 
+                     format = "GTiff",
+                     overwrite=TRUE)
+```
+
+# Oil and gas infrastructure
+```{r}
+# Im using the CE layer they have in their files.
+#\\spatialfiles.bcgov\work\srm\bcce\shared\data_library\disturbance\human_disturbance\2021\inputs\data\Oil_And_Gas\BC_OG_NONGEO_SLU_DEC2020.shp
+
+oil<-st_read("Z:\\bcce\\shared\\data_library\\disturbance\\human_disturbance\\2021\\inputs\\data\\Oil_And_Gas\\BC_OG_NONGEO_SLU_DEC2020.shp")
+
+# filter out roads because I assume they are already in the road atlas.
+oil<-oil %>%
+  filter(SLU_DESC !="ROAD")
+plot(oil[,"SLU_CODE"])
+
+ras.oil <- fasterize (oil, ProvRast, 
+                                 field = NULL,
+                                 background = 0)
+raster::writeRaster (ras.oil, 
+                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\oil.tiff", 
+                     format = "GTiff",
+                     overwrite=TRUE)
+```
+
+4.) Power
+Using layers:
+ - Dams: WHSE_WATER_MANAGEMENT.WRIS_DAMS_PUBLIC_SVW buffered by 25m
+ - Transmission: WHSE_BASEMAPPING.GBA_TRANSMISSION_LINES_SP buffered by 12.5m
+```{r}
+ dams<- try(
+  bcdc_query_geodata("WHSE_WATER_MANAGEMENT.WRIS_DAMS_PUBLIC_SVW")%>%
+    collect()
+)
+dams.buf<- st_buffer(dams, dist=25)
+ras.dams <- fasterize (dams.buf, ProvRast, 
+                                 field = NULL,
+                                 background = 0)
+
+transmission<- try(
+  bcdc_query_geodata("WHSE_BASEMAPPING.GBA_TRANSMISSION_LINES_SP")%>%
+    collect()
+)
+transmission.buf<- st_buffer(transmission, dist=12.5)
+ras.transmission <- fasterize (transmission.buf, ProvRast, 
+                                 field = NULL,
+                                 background = 0)
+#overlay dams and powerlines to join the two rasters
+ras.power<-overlay(ras.transmission, ras.dams, fun=function(x,y){return(x+y)})
+
+raster::writeRaster (ras.power, 
+                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\power.tiff", 
+                     format = "GTiff",
+                     overwrite=TRUE)
+```
+
+# Urban
+Using layers:
+ - WHSE_BASEMAPPING.BTM_PRESENT_LAND_USE_V1_SVW with selection criteria PRESENT_LAND_USE_LABEL IN ( 'Urban', 'Residential Agriculture Mixtures' )
+ 
+ - WHSE_FOREST_VEGETATION.VEG_COMP_LYR_R1_POLY with selection criteria BCLCS_LEVEL_5 = 'UR' or (BCLCS_LEVEL_5  is null and NON_PRODUCTIVE_DESCRIPTOR_CD = 'U') or ((NON_VEG_COVER_TYPE_1 = 'UR' and NON_VEG_COVER_PCT_1 >= 20) or (NON_VEG_COVER_TYPE_2 = 'UR' and NON_VEG_COVER_PCT_2 >= 20) or(NON_VEG_COVER_TYPE_3 = 'UR' and NON_VEG_COVER_PCT_3 >= 20)) 
+
+```{r}
+urban<- try(
+  bcdc_query_geodata("WHSE_BASEMAPPING.BTM_PRESENT_LAND_USE_V1_SVW")%>%
+    filter(PRESENT_LAND_USE_LABEL %in% c('Urban', 'Residential Agriculture Mixtures')) %>%
+    collect()
+)
+
+# urban2<- try(
+#   bcdc_query_geodata("WHSE_FOREST_VEGETATION.VEG_COMP_LYR_R1_POLY")%>%
+#     filter(BCLCS_LEVEL_5 =='U' | NON_PRODUCTIVE_DESCRIPTOR_CD =='U' | (NON_VEG_COVER_TYPE_1=='UR' & NON_VEG_COVER_PCT_1 >= 20) | (NON_VEG_COVER_TYPE_2=='UR' & NON_VEG_COVER_PCT_2 >= 20) |
+# (NON_VEG_COVER_TYPE_3=='UR' & NON_VEG_COVER_PCT_3 >= 20)) %>%
+#     collect()
+# )# Im not sure about this. It looks like its collecting too much stuff including roads and forested areas that do no have buildings on them. I think Im going to leave out the VRI data because I think people will only fight fires for significant infrastructure not some tiny log cabin in the woods way back
+
+
+ras.urban <- fasterize (urban, ProvRast, 
+                                 field = NULL,
+                                 background = 0)
+# ras.urban2 <- fasterize (urban2.test, ProvRast, 
+#                                  field = NULL,
+#                                  background = 0)
+
+
+#overlay dams and powerlines to join the two rasters
+#ras.urban.all<-overlay(ras.urban, ras.urban2, fun=function(x,y){return(x+y)})
+
+raster::writeRaster ( ras.urban, #ras.urban.all, 
+                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\urban.tiff", 
+                     format = "GTiff",
+                     overwrite=TRUE)
 
 ```
 
-#load in the data where the distances to each location is already determined.
+# Next step:
+now calculate the distance to raster i.e. distance from each pixel to the closest occurrence of a feature. To do this I used QGIS - Raster -> Analysis -> Proximity (Raster distance) tool. The command I ran was as below replacing e.g. Power.tiff with each oilgas, mines, railways etc
+"python3 -m gdal_proximity -srcband 1 -distunits PIXEL -ot Float32 -of GTiff C:\Work\caribou\clus\R\fire_sim\tmp\TransmissionLines.tiff C:/Work/caribou/clus/R/fire_sim/data/dist_transmissionlines.tif"
+
+# free up some space if you need to
 ```{r}
-sample_locations_distances<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\Infrastructure and Urban Areas\\Distance_To_Points.shp")
-head(sample_locations_distances)
+rm(dams, dams.buf, mines, mines2, oil, rail, rail_buf, rail_buf_all, rail_ne, rail_not_ne_buf, rail_not_ne, rail_ne_buf, ras.dams, ras.mines, ras.mines2, ras.oil, ras.power, ras.rail, ras.transmission, ras.urban, ras.urban.all, ras.urban2, rast.mines.all, transmission, transmission.buf, urban, urban2, urban2.test, urban2.try)
+
+gc()
 ```
 
-#Update column names
+# bring distance rasters back in
 ```{r}
-sample_locations_distances$dist_mun<-sample_locations_distances$distance
-sample_locations_distances$dist_dam <-sample_locations_distances$distance_d
-sample_locations_distances$dist_nat <-sample_locations_distances$distance_N
-sample_locations_distances$dist_rail <-sample_locations_distances$distance_R
-sample_locations_distances$dist_pow <-sample_locations_distances$distance_T
-sample_locations_distances$dist_mine <-sample_locations_distances$distance_M
+dist_rail<- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_rail.tif")
+dist_power<- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_power.tif")
+dist_oil<- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_oil.tif")
+dist_mines<- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_mines.tif")
+dist_urban<- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_urban.tif")
+
+rasStackinfrastructure = stack(dist_rail, dist_power, dist_oil, dist_mines, dist_urban)
+
+
+crs(rasStackinfrastructure) # EPSG 9001. Hmm should probably change to 3005
+res(rasStackinfrastructure) # at ha scale ... perfect
+
 ```
 
-Create a column that is the shortest distance to any infrastructure.
+Bring back points from the 05_Distance_to_Road_Data_Prep.rmd file, jion the infrastructure data and create a new column that is the shortest distance to any infrastructure type.
 
 ```{r}
-head(sample_locations_distances)
-str(sample_locations_distances)
+sample_locations_DEM_roads<-sf::st_read( "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_frt.shp")
 
-str(sample_locations_distances$dist_mine)
-str(sample_locations_distances$dist_pow)
-str(sample_locations_distances$dist_rail) #numeric but all NAs
-str(sample_locations_distances$dist_nat)
-str(sample_locations_distances$dist_dam)
-str(sample_locations_distances$dist_mun)
 
-names(sample_locations_distances)
+##Extract Coordinates
+test<-cbind(sample_locations_DEM_roads, st_coordinates(sample_locations_DEM_roads))
+head(test)
 
-sample_locations_distances$dist_any_<-0
-sample_locations_distances$dist_any<-0
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+#crs(pointCoordinates) #No CRS when a dataframe
+##Extract Wind values from stacked layer
+rasValue3=raster::extract(rasStackinfrastructure, pointCoordinates)
+head(rasValue3)
+str(rasValue3)
+names(rasValue3)
+str(sample_locations_DEM_roads)# 200292 values
 
-sample_locations_distances$dist_any_<-
-  ifelse(sample_locations_distances$dist_mine<sample_locations_distances$dist_pow, sample_locations_distances$dist_mine, sample_locations_distances$dist_pow)
-str(sample_locations_distances$dist_any_)
+#Append new information
+sample_locations_DEM_roads_infra<-cbind(sample_locations_DEM_roads, rasValue3)
+sample_locations_DEM_roads_infra$dist_mines_m<-sample_locations_DEM_roads_infra$dist_mines*100
+sample_locations_DEM_roads_infra$dist_oil_m<-sample_locations_DEM_roads_infra$dist_oil*100
+sample_locations_DEM_roads_infra$dist_power_m<-sample_locations_DEM_roads_infra$dist_power*100
+sample_locations_DEM_roads_infra$dist_rail_m<-sample_locations_DEM_roads_infra$dist_rail*100
+sample_locations_DEM_roads_infra$dist_urban_m<-sample_locations_DEM_roads_infra$dist_urban*100
 
-sample_locations_distances$dist_any<-
-  ifelse (sample_locations_distances$dist_any_<sample_locations_distances$dist_nat, sample_locations_distances$dist_any_, sample_locations_distances$dist_nat)
-str(sample_locations_distances$dist_any)
+sample_locations_DEM_roads_infra <- sample_locations_DEM_roads_infra %>% 
+  select(id:road_dist_m, geometry:dist_urban_m)
 
-sample_locations_distances$dist_any_<-
-  ifelse (sample_locations_distances$dist_any<sample_locations_distances$dist_dam, sample_locations_distances$dist_any, sample_locations_distances$dist_dam)
-str(sample_locations_distances$dist_any_)
+head(sample_locations_DEM_roads_infra)
+crs(sample_locations_DEM_roads_infra)
 
-sample_locations_distances$dist_any<-
-  ifelse (sample_locations_distances$dist_any_<sample_locations_distances$dist_mun, sample_locations_distances$dist_any_, sample_locations_distances$dist_mun)
-str(sample_locations_distances$dist_any)
+sample_locations_DEM_roads_infra$dist_infrastructure_m<-0
 
-#Distance rail did not work; must redo
-#sample_locations_distances$dist_any<-
-#  ifelse (sample_locations_distances$dist_any_<sample_locations_distances$dist_rail,
-#sample_locations_distances$dist_any_, sample_locations_distances$dist_rail)
 
+sample_locations_DEM_roads_infra$dist_infrastructure_m<-
+  ifelse(sample_locations_DEM_roads_infra$dist_rail_m < sample_locations_DEM_roads_infra$dist_power_m, sample_locations_DEM_roads_infra$dist_rail_m, sample_locations_DEM_roads_infra$dist_power_m)
+
+sample_locations_DEM_roads_infra$dist_infrastructure_m<-
+  ifelse(sample_locations_DEM_roads_infra$dist_oil_m < sample_locations_DEM_roads_infra$dist_infrastructure_m, sample_locations_DEM_roads_infra$dist_oil_m, sample_locations_DEM_roads_infra$dist_infrastructure_m)
+
+sample_locations_DEM_roads_infra$dist_infrastructure_m<-
+  ifelse(sample_locations_DEM_roads_infra$dist_mines_m < sample_locations_DEM_roads_infra$dist_infrastructure_m, sample_locations_DEM_roads_infra$dist_mines_m, sample_locations_DEM_roads_infra$dist_infrastructure_m)
+
+sample_locations_DEM_roads_infra$dist_infrastructure_m<-
+  ifelse(sample_locations_DEM_roads_infra$dist_urban_m < sample_locations_DEM_roads_infra$dist_infrastructure_m, sample_locations_DEM_roads_infra$dist_urban_m, sample_locations_DEM_roads_infra$dist_infrastructure_m)
 
 ```
-Now compare the distances between groups.
+
+# Look at the infrastructure data and how correlated the variables are
 
 ```{r}
-max(sample_locations_distances$dist_any)
-min(sample_locations_distances$dist_any)
-hist(sample_locations_distances$dist_any)
-sample_locations_distances$dist_any
+max(sample_locations_DEM_roads_infra$dist_infrastructure_m)
+min(sample_locations_DEM_roads_infra$dist_infrastructure_m)
+hist(sample_locations_DEM_roads_infra$dist_infrastructure_m)
+sample_locations_DEM_roads_infra$dist_infrastructure_m
 
-plot(sample_locations_distances$dist_any~sample_locations_distances$dist_pow)
-abline(0,1)
-plot(sample_locations_distances$dist_any~sample_locations_distances$dist_mine)
-plot(sample_locations_distances$dist_any~sample_locations_distances$dist_dam)
-plot(sample_locations_distances$dist_any~sample_locations_distances$dist_mun)
+plot(sample_locations_DEM_roads_infra$dist_infrastructure_m~sample_locations_DEM_roads_infra$dist_rail_m)
+abline(0,1, col="red")
+plot(sample_locations_DEM_roads_infra$dist_infrastructure_m~sample_locations_DEM_roads_infra$dist_power_m)
+plot(sample_locations_DEM_roads_infra$dist_infrastructure_m~sample_locations_DEM_roads_infra$dist_oil_m)
+plot(sample_locations_DEM_roads_infra$dist_infrastructure_m~sample_locations_DEM_roads_infra$dist_mines_m)
+plot(sample_locations_DEM_roads_infra$dist_infrastructure_m~sample_locations_DEM_roads_infra$dist_urban_m)
+hist(sample_locations_DEM_roads_infra$dist_urban_m)
+
 ```
 
 ```{r}
-head(sample_locations_distances)
-```
+# change some column names
 
-#In subsequent processing, we see that certain types of infrastructure tend to behave similarly, while others less so. So make new variable for dist_any that incorporates the similar types.
+sample_locations_DEM_roads_infra<- sample_locations_DEM_roads_infra %>%
+  dplyr::rename(fire_yr=FIRE_YE,
+         fire_no=FIRE_NU,
+         fire_cs=FIRE_CA,
+         size_ha=CURRENT,
+         fir_typ=FIRE_TY
+         )
 
-```{r}
-sample_locations_distances$dist_any_<-0
-sample_locations_distances$dist_any<-0
+sample_locations_DEM_roads_infra<- sample_locations_DEM_roads_infra %>%
+  dplyr::rename(fire_yr=FIRE_YEAR,
+         fire_no=FIRE_NUMBER,
+         fire_cs=FIRE_CAUSE,
+         size_ha=CURRENT_SIZE,
+         fir_typ=FIRE_TYPE,
+         slope=slope_ha_bc_3005,
+         aspect=aspect_ha_bc_3005,
+         elevation=dem_ha_bc,
+         mine_dist=dist_mines_m,
+         oil_dist=dist_oil_m,
+         power_dist=dist_power_m,
+         rail_dist=dist_rail_m,
+         urban_dist=dist_urban_m,
+         infr_dist=dist_infrastructure_m
+         )
 
-sample_locations_distances$dist_any_<-
-  ifelse(sample_locations_distances$dist_mine<sample_locations_distances$dist_pow, sample_locations_distances$dist_mine, sample_locations_distances$dist_pow)
-str(sample_locations_distances$dist_any_)
-
-sample_locations_distances$dist_any<-
-  ifelse (sample_locations_distances$dist_any_<sample_locations_distances$dist_mun, sample_locations_distances$dist_any_, sample_locations_distances$dist_mun)
-str(sample_locations_distances$dist_any)
-
-sample_locations_distances$dist_any_<-
-  ifelse (sample_locations_distances$dist_any<sample_locations_distances$dist_dam, sample_locations_distances$dist_any, sample_locations_distances$dist_dam)
-str(sample_locations_distances$dist_any_)
-
-sample_locations_distances$dist_infra<-sample_locations_distances$dist_any_
-```
-
-
-Save file to postgres.
-
-```{r}
-sf::st_write(sample_locations_distances, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_clim_DEM_roads_wind_infra.shp", delete_layer=TRUE)
+sf::st_write(sample_locations_DEM_roads_infra, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_infra.shp", delete_layer=TRUE)
 
 ##Save to personal drive
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
-
-##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
-##Above may not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
-
-#key_get('dbpass', keyring = 'postgreSQL')
-```
-
-If need to load back in.
-
-```{r}
-sample_locations_distances<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_clim_DEM_roads_wind_infra.shp")
-```
-
-
-```{r}
-head(sample_locations_distances)
-```
-
-
-Fewer objects.
-
-```{r}
-head(sample_locations_distances)
-
-sample_locations_distances_2<-dplyr::select(sample_locations_distances, 'idno','ogc_fid', 'fire_yr', 'latitud','longitd', 'tmax05', 'tmax06', 'tmax07', 'tmax08', 'tmax09', 'tave05', 'tave06', 'tave07', 'tave08', 'tave09', 'ppt05', 'ppt06', 'ppt07', 'ppt08', 'ppt09', 'mdc_04', 'mdc_05', 'mdc_06', 'mdc_07', 'mdc_08', 'mdc_09', 'fire_no', 'ign_dat', 'fire_cs', 'fire_id', 'fir_typ', 'size_ha', 'objectd', 'zone', 'subzone', 'ntrl_ds', 'fire', 'slp_h_b', 'aspct__', 'dm_h_bc', 'shp_ln_', 'win_sum', 'win_spg', 'ign_month', 'dist_mun', 'dist_dam', 'dist_nat', 'dist_pow', 'dist_mine', 'dist_any', 'geometry')
-
-head(sample_locations_distances_2)
-```
-
-If need to combine climate data from prior, do below:
-
-```{r}
-head(sample_locations_DEM_roads_wind2)
-
-sample_locations_distances_2b<-st_join(sample_locations_distances_2, sample_locations_DEM_roads_wind2)
-head(sample_locations_distances_2b)
-
-sample_locations_distances_2b2<-dplyr::select(sample_locations_distances_2b, 'idno.x','ogc_fid.x', 'fire_yr.x', 'latitud.x','longitd.x', 'tmax01', 'tmax02', 'tmax03', 'tmax04', 'tmax05.x', 'tmax06.x', 'tmax07.x', 'tmax08.x', 'tmax09.x', 'tmax10', 'tmax11', 'tmax12', 'tave01', 'tave02', 'tave03', 'tave04', 'tave05.x', 'tave06.x', 'tave07.x', 'tave08.x', 'tave09.x', 'tave10', 'tave11', 'tave12', 'ppt01', 'ppt02', 'ppt03', 'ppt04', 'ppt05.x', 'ppt06.x', 'ppt07.x', 'ppt08.x', 'ppt09.x', 'ppt10', 'ppt11', 'ppt12', 'mdc_04.x', 'mdc_05.x', 'mdc_06.x', 'mdc_07.x', 'mdc_08.x', 'mdc_09.x', 'fire_no.x', 'ign_dat.x', 'fire_cs.x', 'fire_id.x', 'fir_typ.x', 'size_ha.x', 'objectd.x', 'zone.x', 'subzone.x', 'ntrl_ds.x', 'fire.x', 'slp_h_b.x', 'aspct__.x', 'dm_h_bc.x', 'shp_ln_.x', 'win_sum.x', 'win_spg.x', 'ign_month', 'dist_mun', 'dist_dam', 'dist_nat', 'dist_pow', 'dist_mine', 'dist_any', 'geometry')
-
-head(sample_locations_distances_2b2)
-
-sample_locations_distances_2b2<- sample_locations_distances_2b2 %>% rename(
-  idno = idno.x,
-  ogc_fid = ogc_fid.x, 
-  fire_yr = fire_yr.x, 
-  latitud= latitud.x,
-  longitd = longitd.x, 
-  tmax05 = tmax05.x, 
-  tmax06 = tmax06.x, 
-  tmax07 = tmax07.x, 
-  tmax08 = tmax08.x, 
-  tmax09 = tmax09.x, 
-  tave05 = tave05.x, 
-  tave06 = tave06.x, 
-  tave07 = tave07.x, 
-  tave08 = tave08.x, 
-  tave09 = tave09.x,
-  ppt05 = ppt05.x, 
-  ppt06 = ppt06.x, 
-  ppt07 = ppt07.x, 
-  ppt08 = ppt08.x, 
-  ppt09 = ppt09.x,
-  mdc_04 = mdc_04.x, 
-  mdc_05 = mdc_05.x, 
-  mdc_06 = mdc_06.x, 
-  mdc_07 = mdc_07.x, 
-  mdc_08 = mdc_08.x, 
-  mdc_09 = mdc_09.x, 
-  fire_no = fire_no.x,
-  ign_dat = ign_dat.x, 
-  fire_cs = fire_cs.x, 
-  fire_id = fire_id.x, 
-  fir_typ = fir_typ.x, 
-  size_ha = size_ha.x, 
-  objectd = objectd.x, 
-  zone = zone.x, 
-  subzone = subzone.x, 
-  ntrl_ds = ntrl_ds.x, 
-  fire = fire.x, 
-  slp_h_b = slp_h_b.x, 
-  aspct__ = aspct__.x, 
-  dm_h_bc=dm_h_bc.x, 
-  shp_ln_=shp_ln_.x, 
-  win_sum = win_sum.x, 
-  win_spg=win_spg.x)
-```
-
-If have duplicated rows when try to save to postgres, use following code to find and remove. 
-
-```{r}
-head(sample_locations_distances_2b2)
-table(sample_locations_distances_2b2$ogc_fid)
-which(sample_locations_distances_2b2$ogc_fid==97027) #For some reason lines 473 and 474 have the same ogc_fid??
-sample_locations_distances_2b2[473,]
-sample_locations_distances_2b2[474,]
-sample_locations_distances_2b2[475,]
-
-sample_locations_distances_2b2b<-sample_locations_distances_2b2[-c(473),]
-sample_locations_distances_2b2b[474,]
-sample_locations_distances_2b2b[473,]
-sample_locations_distances_2b2b[475,]
-
-which(sample_locations_distances_2b2b$ogc_fid==97056)
-sample_locations_distances_2b2b<-sample_locations_distances_2b2b[-c(505),]
-
-#Do larger call
-sample_locations_distances_2c<-distinct(sample_locations_distances_2b2b, ogc_fid, .keep_all = TRUE)
-
-str(sample_locations_distances_2c)
-str(sample_locations_distances_2b2b)
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ```
 
-
-```{r}
-sf::st_write(sample_locations_distances_2, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_ignite.shp", delete_layer=TRUE)
-
-sf::st_write(sample_locations_distances_2c, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_ignite_AllMonths.shp", delete_layer=TRUE)
-
-#Save to postgre
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_ignite_AllMonths.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
-
-#key_get('dbpass', keyring = 'postgreSQL')
-
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_ignite_AllMonths.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
-
-```
- If need to read back in:
- 
-```{r}
-sample_locations_distances_2<-st_read(dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_ignite.shp")
-head(sample_locations_distances_2)
-
-```
-
-############ Complete. Move on to 07_VRI_date_prep ##############
+##### now move onto 07_Wind_Speed_data_Prep ####
