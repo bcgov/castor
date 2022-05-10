@@ -1,5 +1,5 @@
 ---
-title: "04b_Road_density_per_ha"
+title: "05_Distance_to_roads_data_prep"
 author: "Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations."
 date: "22/04/2022"
 purpose: "To create a raster spatial layer that determines the distance to a road for the entire province. This script is based off https://github.com/bcgov/bc-raster-roads/.  with an additional step at the end to calculate distance to."
@@ -41,7 +41,6 @@ library (RPostgreSQL)
 library (RPostgres)
 library (rpostgis)
 library(DBI)
-
 
 ```
 
@@ -99,7 +98,7 @@ saveRDS(roads_sf, file = "tmp/DRA_roads_sf.rds")
 
 
 ```{r cars}
-roads_sf <- readRDS("tmp/DRA_roads_sf.rds")
+roads_sf <- readRDS("C:/Work//caribou//bc-raster-roads//tmp//DRA_roads_sf.rds")
 
 # Make table of all possible combinations to determine how to classify roads
 # into use types, capture all cases and if contribute to non-intact land
@@ -254,6 +253,7 @@ After making the roads raster. I used the Raster -> Analysis -> Proximity (Raste
 ```{r}
 # import roads distance raster
 roads_dist <- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_roads.tif")
+plot(roads_dist) # looks reasonable I think
 rast_sum_len <- cellStats(roads_dist, "sum")
 cellStats(roads_dist, "max") # 8098.8 this is probably ok because it calculated the distance even to pixels in the ocean because the raster is a square rather than just BC
 cellStats(roads_dist, "min") # 0 seems appropriate
@@ -261,12 +261,13 @@ GDALinfo("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_roads.tif")
 
 #plot(roads) #you may wish to plot this to inspect but just opening the tif files makes it look like its all good
 
-sample_locations_DEM<-st_read("C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\DC_data_DEM_5x_AllMonths_frt.shp")
+# if you are working from scratch import the data here
+ignition_weather_crs<-st_read("C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\DC_data_DEM_5x_AllMonths_frt.shp")
 
-names(sample_locations_DEM)
+names(ignition_weather_crs)
 
 ##Try this first
-test<-cbind(sample_locations_DEM, st_coordinates(sample_locations_DEM))
+test<-cbind(ignition_weather_crs, st_coordinates(ignition_weather_crs))
 head(test)
 
 pointCoordinates<-data.frame(test$X, test$Y)
@@ -277,16 +278,18 @@ head(pointCoordinates)
 rasValue2=raster::extract(roads_dist, pointCoordinates)
 head(rasValue2)
 str(rasValue2) #200292 values
-str(sample_locations_DEM)#200292 values
+str(ignition_weather_crs)#200292 values
 
 #Append new information
-sample_locations_DEM_roads<-cbind(sample_locations_DEM, rasValue2)
+sample_locations_DEM_roads<-cbind(ignition_weather_crs, rasValue2)
 head(sample_locations_DEM_roads)
 sample_locations_DEM_roads <- sample_locations_DEM_roads %>%
   rename(road_dist_m=rasValue2)
 sample_locations_DEM_roads$road_dist_m<-sample_locations_DEM_roads$road_dist*100
 
 crs(sample_locations_DEM_roads)
+# remove extra lat long columns
+sample_locations_DEM_roads<-sample_locations_DEM_roads %>% select(id:dem_ha_bc, Tmax04:geometry )
 
 st_write(sample_locations_DEM_roads, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\DC_data_DEM_roads.shp", delete_layer=TRUE)
 

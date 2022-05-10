@@ -19,7 +19,7 @@
 #=================================
 
 ##Overview
-# In this section (01), we select the available data for fires in BC from 2002 and 2020 and upload these files to the clus database.
+# In this section (01), we select the available data for fires in BC from 2002 and 2020. Then we pull in the BEC data, Natural disturbance type and fire regime type and combine this data with the ignition data. 
 
 library(bcdata)
 require (dplyr)
@@ -57,8 +57,99 @@ table(ignition$FIRE_YEAR, ignition$FIRE_CAUSE2)
 
 ignition2 <- st_transform (ignit, 3005)
 
+###
+#Get natural disturbance data
+# Collect the BEC and NDT zones from the BCGW or from postgres
 
-#st_write(ignition2, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\bc_fire_ignition.shp", delete_dsn = TRUE)
+#postgres (faster)
+NDT<-getSpatialQuery("SELECT objectid, feature_class_skey, zone, subzone, natural_disturbance, zone_name, wkb_geometry FROM public.bec_zone")
+
+#OR BCGW (slower)
+try(bcdc_describe_feature("WHSE_FOREST_VEGETATION.BEC_BIOGEOCLIMATIC_POLY"))
+
+NDT<-try(
+  bcdc_query_geodata("WHSE_FOREST_VEGETATION.BEC_BIOGEOCLIMATIC_POLY") %>%
+    select(ZONE, ZONE_NAME, NATURAL_DISTURBANCE, NATURAL_DISTURBANCE_NAME, GEOMETRY, OBJECTID) %>% # keeping data from 2002 on because this is when the VRI data is available
+    collect()
+)
+
+st_crs(NDT)
+NDT<-st_transform(NDT, 3005)
+
+
+# An alternative to natural disturbance types is to use the fire regime units or zone outlined in Erni et al. 2020 Developing a two-level fire regime zonation system for Canada. I downloaded the shapefiles from https://zenodo.org/record/4458156#.YjTUVI_MJPY
+
+frt <- st_read ( dsn = "D:\\Fire\\fire_data\\Fire_Regime_Types\\FRT\\FRT_Canada.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(frt) #Retrieve coordinate reference system from sf or sfc object
+frt<-st_transform(frt, 3005) #transform coordinate system to 3005 - that for BC, Canada
+# plot it
+ggplot(data=frt) +
+  geom_sf() +
+  coord_sf()
+
+#get provincial boundary for clipping the layers to the area of interest
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
+prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
+crs(prov.bnd)# this one needs to be transformed to 3005
+bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system
+st_crs(bc.bnd)
+
+# Clip NDT here
+ndt_clipped<-st_intersection(bc.bnd, NDT)
+#plot(st_geometry(ndt_clipped), col=sf.colors(10,categorical=TRUE))
+length(unique(ndt_clipped$Cluster))
+ndt_sf<-st_as_sf(ndt_clipped)
+
+#Clip FRT here
+frt_clipped<-st_intersection(bc.bnd, frt)
+#plot(st_geometry(frt_clipped), col=sf.colors(10,categorical=TRUE))
+length(unique(frt_clipped$Cluster))
+frt_sf<-st_as_sf(frt_clipped)
+
+ignit<-ignition2
+crs(ignit)
+
+##Check clipped data on QGis. Clipped data has no physical outliers
+# note clipping the fire locations to the BC boundary removes a few ignition points in several of the years
+fire.ignition.clipped<-ignit[bc.bnd,] # making sure all fire ignitions have coordinates within BC boundary
+table(ignit$FIRE_YEAR)
+table(fire.ignition.clipped$FIRE_YEAR) #We have lost a few but its not that many.
+
+fire.ignition.clipped <-fire.ignition.clipped %>% select(id: ig_mnth) # had to remove the column FIRE_CAUSE2 because st_write only takes the first 10 leters of a columns name and if that results in two columns having the same name it causes problems.
+
+
+fire.ignition_sf<-st_as_sf(fire.ignition.clipped) #convert to sf object
+st_crs(fire.ignition_sf)
+table(fire.ignition_sf$FIRE_YEAR)
+
+
+#doing st_intersection with the whole bec and fire ignition files is very very slow, but st_join is much faster! st_intersection should be used if you want to overlay two polygons and calculate something inside them e.g. road length. For points st_intersction and st_join are apparently the same but st_join seems to be much faster. 
+# ST_Intersects is a function that takes two geometries and returns true if any part of those geometries is shared between the 2
+
+fire.ignt.frt <- st_join(fire.ignition_sf, frt_sf)
+fire.ignt.frt <- fire.ignt.frt %>% select(id:ig_mnth, PRNAME, Cluster)
+fire.igni.frt.ndt<- st_join(fire.ignt.frt, ndt_sf)
+
+table(fire.igni.frt.ndt$FIRE_YEAR, fire.igni.frt.ndt$Cluster)
+table(fire.igni.frt.ndt$FIRE_YEAR, fire.igni.frt.ndt$Cluster, fire.igni.frt.ndt$FIRE_CAUSE)
+
+
+#Write fire.igni.frt.ndt to file because it takes so long to make.
+
+
+st_write(fire.igni.frt.ndt, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\bc_fire_ignition_clipped.shp", delete_dsn = TRUE)
+
+#st_write(fire.igni.frt, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\fire_ignit_by_frt.shp", delete_dsn = TRUE)
+#st_write(fire.igni.frt, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\fire_ignit_by_frt.shp", delete_dsn = TRUE) # delete these files later when I know I dont need them any more
+
+
+
+##Save via OsGeo4W Shell
+##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
+#ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\fire_ignit_by_frt.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+
 
 ## Load ignition data into postgres (either my local one or Kyles)
 #host=keyring::key_get('dbhost', keyring = 'postgreSQL')

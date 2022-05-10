@@ -23,6 +23,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 -->
 
+
 #=================================
 #  Script Name: 07_vri_data_prep.R
 #  Script Version: 1.0
@@ -64,57 +65,24 @@ Run following query in postgres for all years 2002-2019 except 2007 and 2008. 20
 
 Depending on how the file names most recently saved, some changes may need to be made (e.g., ign_mnt versus ign_month).
 
-CREATE TABLE fire_veg_2002 AS
+CREATE TABLE fire_veg_2002_B AS
 (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
-  harvest_date, proj_age_1, proj_height_1, live_stand_volume_125, 
+  harvest_date, proj_age_1, proj_height_1, live_stand_volume_125, stand_percentage_dead, 
   fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.ign_month, fire.size_ha, fire.fire,
-  fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax01, fire.tmax02, fire.tmax03, fire.tmax04, 
-  fire.tmax05, fire.tmax06, fire.tmax07, fire.tmax08, fire.tmax09, fire.tmax10, fire.tmax11, fire.tmax12,
-  fire.tave01, fire.tave02, fire.tave03, fire.tave04, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
-  fire.tave09, fire.tave10, fire.tave11, fire.tave12, fire.ppt01, fire.ppt02, fire.ppt03, fire.ppt04,
-  fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09, fire.ppt10, fire.ppt11, fire.ppt12,
+  fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax05, fire.tmax06, fire.tmax07,
+  fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
+  fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09,
   fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09, fire.slp_h_b,
   fire.aspct__, fire.dm_h_bc,  fire.shp_ln_, fire.win_sum, 
   fire.win_spg, fire.dist_mun, fire.dist_dam, fire.dist_nat, fire.dist_pow, fire.dist_mine, fire.dist_any,
   veg_comp_lyr_r1_poly2002.geometry FROM veg_comp_lyr_r1_poly2002,
   (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, ign_month, size_ha, fire, zone,
-   subzone, ntrl_ds, tmax01, tmax02, tmax03, tmax04, tmax05, tmax06, tmax07, tmax08, tmax09, 
-   tmax10, tmax11, tmax12,tave01, tave02, tave03, tave04, tave05, tave06, tave07, tave08,
-   tave09, tave10, tave11, tave12, ppt01, ppt02, ppt03, ppt04, ppt05, ppt06, ppt07, ppt08, 
-   ppt09, ppt10, ppt11, ppt12, mdc_05, mdc_06, mdc_07, mdc_08,
+   subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
+   tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
    mdc_09, slp_h_b, aspct__, dm_h_bc,  shp_ln_, win_sum, win_spg,
    dist_mun, dist_dam, dist_nat, dist_pow, dist_mine, dist_any 
-   from Data_ignite_AllMonths where fire_yr = '2002') as fire where st_contains
+   from Data_ignite where fire_yr = '2002') as fire where st_contains
   (veg_comp_lyr_r1_poly2002.geometry, fire.wkb_geometry))
-  
-  
-  
-  ############################### This is where I was
-  CREATE TABLE fire_veg_2002 AS
-(SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
-  harvest_date, proj_age_1, proj_height_1, live_stand_volume_125, 
-  fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.ig_mnth, fire.size_ha, fire.fire,
-  fire.zone, fire.cluster, fire.fire_nu, fire.fire_la, fire.tmax04, 
-  fire.tmax05, fire.tmax06, fire.tmax07, fire.tmax08, fire.tmax09, fire.tmax10, 
- fire.tave04, fire.tave05, fire.tave06, fire.tave07, fire.tave08,fire.tave09, fire.tave10, 
- fire.ppt04, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09, fire.ppt10,
-  fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09, 
- fire.rh04, fire.rh05, fire.rh06, fire.rh07, fire.rh08, fire.rh09, fire.rh10, 
- fire.slope,fire.aspect, fire.elevatn,  
-  fire.win_sum, fire.win_spg, fire.rd_dst_, fire.min_dst, fire.oil_dst, fire.pwr_dst, fire.ral_dst, fire.urbn_ds,fire.infr_ds,
-  veg_comp_lyr_r1_poly2002.geometry FROM veg_comp_lyr_r1_poly2002,
-  (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, ign_month, size_ha, fire, zone,
-   subzone, ntrl_ds, tmax01, tmax02, tmax03, tmax04, tmax05, tmax06, tmax07, tmax08, tmax09, 
-   tmax10, tmax11, tmax12,tave01, tave02, tave03, tave04, tave05, tave06, tave07, tave08,
-   tave09, tave10, tave11, tave12, ppt01, ppt02, ppt03, ppt04, ppt05, ppt06, ppt07, ppt08, 
-   ppt09, ppt10, ppt11, ppt12, mdc_05, mdc_06, mdc_07, mdc_08,
-   mdc_09, slp_h_b, aspct__, dm_h_bc,  shp_ln_, win_sum, win_spg,
-   dist_mun, dist_dam, dist_nat, dist_pow, dist_mine, dist_any 
-   from Data_ignite_AllMonths where fire_yr = '2002') as fire where st_contains
-  (veg_comp_lyr_r1_poly2002.geometry, fire.wkb_geometry))
-  
-  #########
-  
 
 
 ## See specifics of land cover types here: https://www2.gov.bc.ca/assets/gov/environment/natural-resource-stewardship/nr-laws-policy/risc/landcover-02.pdf
@@ -131,27 +99,22 @@ bclcs_level_5: Classifies the vegetation density classes and Non-Vegetated categ
 ############## 
 #For 2020, run this code because no projected age, height or stand volume 
 ##############
-CREATE TABLE fire_veg_2020 AS
+CREATE TABLE fire_veg_2020_B AS
 (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
   harvest_date,
-   fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.ign_month, fire.size_ha, fire.fire,
-  fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax01, fire.tmax02, fire.tmax03, fire.tmax04, 
-  fire.tmax05, fire.tmax06, fire.tmax07, fire.tmax08, fire.tmax09, fire.tmax10, fire.tmax11, fire.tmax12,
-  fire.tave01, fire.tave02, fire.tave03, fire.tave04, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
-  fire.tave09, fire.tave10, fire.tave11, fire.tave12, fire.ppt01, fire.ppt02, fire.ppt03, fire.ppt04,
-  fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09, fire.ppt10, fire.ppt11, fire.ppt12,
-  fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09, fire.slp_h_b,
-  fire.aspct__, fire.dm_h_bc,  fire.shp_ln_, fire.win_sum, 
-  fire.win_spg, fire.dist_mun, fire.dist_dam, fire.dist_nat, fire.dist_pow, fire.dist_mine, fire.dist_any,
+  fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.ign_month, fire.size_ha, fire.fire,
+  fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax05, fire.tmax06, fire.tmax07,
+  fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
+  fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09,
+  fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09, fire. slp_h_b, 
+  fire.aspct__, fire.dm_h_bc,  fire.shp_ln_, fire.win_sum, fire.win_spg, fire.dist_mun, fire.dist_dam, fire.dist_nat, fire.dist_pow, fire.dist_mine, fire.dist_any,
   veg_comp_lyr_r1_poly2020.geometry FROM veg_comp_lyr_r1_poly2020,
   (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, ign_month, size_ha, fire, zone,
-   subzone, ntrl_ds, tmax01, tmax02, tmax03, tmax04, tmax05, tmax06, tmax07, tmax08, tmax09, 
-   tmax10, tmax11, tmax12,tave01, tave02, tave03, tave04, tave05, tave06, tave07, tave08,
-   tave09, tave10, tave11, tave12, ppt01, ppt02, ppt03, ppt04, ppt05, ppt06, ppt07, ppt08, 
-   ppt09, ppt10, ppt11, ppt12, mdc_05, mdc_06, mdc_07, mdc_08,
-   mdc_09, slp_h_b, aspct__, dm_h_bc,  shp_ln_, win_sum, win_spg,
+   subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
+   tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
+   mdc_09, slp_h_b, aspct__,dm_h_bc,  shp_ln_, win_sum, win_spg,
    dist_mun, dist_dam, dist_nat, dist_pow, dist_mine, dist_any
-   from Data_ignite_AllMonths where fire_yr = '2020') as fire where st_contains
+   from Data_ignite where fire_yr = '2020') as fire where st_contains
   (veg_comp_lyr_r1_poly2020.geometry, fire.wkb_geometry))
 
 
@@ -165,27 +128,22 @@ CREATE TABLE fire_veg_2020 AS
 # live_stand_volume_125 does not exist, so fancy stuff created
 # percent_dead does not exist
 
- CREATE TABLE fire_veg_2007 AS
+ CREATE TABLE fire_veg_2007_B AS
  (SELECT feature_id, bclcs_lv_2, bclcs_lv_3, bclcs_lv_4, bclcs_lv_5,
   upd_htdate, proj_age_1, proj_ht_1, COALESCE(volsp1_125,0)+COALESCE(volsp2_125,0)+COALESCE(volsp3_125,0)+COALESCE(volsp4_125,0)+COALESCE(volsp5_125,0) AS live_stand_volume_125, 
   fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.ign_month, fire.size_ha, fire.fire,
-  fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax01, fire.tmax02, fire.tmax03, fire.tmax04, 
-  fire.tmax05, fire.tmax06, fire.tmax07, fire.tmax08, fire.tmax09, fire.tmax10, fire.tmax11, fire.tmax12,
-  fire.tave01, fire.tave02, fire.tave03, fire.tave04, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
-  fire.tave09, fire.tave10, fire.tave11, fire.tave12, fire.ppt01, fire.ppt02, fire.ppt03, fire.ppt04,
-  fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09, fire.ppt10, fire.ppt11, fire.ppt12,
-  fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09, fire.slp_h_b,
-  fire.aspct__, fire.dm_h_bc,  fire.shp_ln_, fire.win_sum, 
-  fire.win_spg, fire.dist_mun, fire.dist_dam, fire.dist_nat, fire.dist_pow, fire.dist_mine, fire.dist_any,
+  fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax05, fire.tmax06, fire.tmax07,
+  fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
+  fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09,
+  fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09, fire. slp_h_b, 
+  fire.aspct__,fire.dm_h_bc,  fire.shp_ln_, fire.win_sum, fire.win_spg, fire.dist_mun, fire.dist_dam, fire.dist_nat, fire.dist_pow, fire.dist_mine, fire.dist_any,
   veg_comp_lyr_r1_poly2007.geometry FROM veg_comp_lyr_r1_poly2007,
   (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, ign_month, size_ha, fire, zone,
-   subzone, ntrl_ds, tmax01, tmax02, tmax03, tmax04, tmax05, tmax06, tmax07, tmax08, tmax09, 
-   tmax10, tmax11, tmax12,tave01, tave02, tave03, tave04, tave05, tave06, tave07, tave08,
-   tave09, tave10, tave11, tave12, ppt01, ppt02, ppt03, ppt04, ppt05, ppt06, ppt07, ppt08, 
-   ppt09, ppt10, ppt11, ppt12, mdc_05, mdc_06, mdc_07, mdc_08,
-   mdc_09, slp_h_b, aspct__, dm_h_bc,  shp_ln_, win_sum, win_spg,
+   subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
+   tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
+   mdc_09, slp_h_b, aspct__, dm_h_bc,  shp_ln_, win_sum, win_spg, 
    dist_mun, dist_dam, dist_nat, dist_pow, dist_mine, dist_any
-   from Data_ignite_AllMonths where fire_yr = '2007') 
+   from Data_ignite where fire_yr = '2007') 
    as fire where st_contains (veg_comp_lyr_r1_poly2007.geometry, fire.wkb_geometry))
 
 
@@ -193,47 +151,62 @@ CREATE TABLE fire_veg_2020 AS
 # FOR 2008 Run this code:
 No  stand_percentage_dead, 
 ##############################
- CREATE TABLE fire_veg_2008 AS
+ CREATE TABLE fire_veg_2008_B AS
  (SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
    harvest_date, proj_age_1, proj_height_1, COALESCE(vol_per_ha_spp1_125,0)+
      COALESCE(vol_per_ha_spp2_125,0)+COALESCE(vol_per_ha_spp3_125,0)+COALESCE(vol_per_ha_spp4_125,0)
    +COALESCE(vol_per_ha_spp5_125,0)+COALESCE(vol_per_ha_spp6_125,0) AS live_stand_volume_125,
    fire.idno, fire.fire_yr, fire.fire_cs, fire.fir_typ, fire.ign_month, fire.size_ha, fire.fire,
-  fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax01, fire.tmax02, fire.tmax03, fire.tmax04, 
-  fire.tmax05, fire.tmax06, fire.tmax07, fire.tmax08, fire.tmax09, fire.tmax10, fire.tmax11, fire.tmax12,
-  fire.tave01, fire.tave02, fire.tave03, fire.tave04, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
-  fire.tave09, fire.tave10, fire.tave11, fire.tave12, fire.ppt01, fire.ppt02, fire.ppt03, fire.ppt04,
-  fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09, fire.ppt10, fire.ppt11, fire.ppt12,
-  fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09, fire.slp_h_b,
-  fire.aspct__, fire.dm_h_bc,  fire.shp_ln_, fire.win_sum, 
-  fire.win_spg, fire.dist_mun, fire.dist_dam, fire.dist_nat, fire.dist_pow, fire.dist_mine, fire.dist_any,
-  veg_comp_lyr_r1_poly2008.geometry FROM veg_comp_lyr_r1_poly2008,
-  (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, ign_month, size_ha, fire, zone,
-   subzone, ntrl_ds, tmax01, tmax02, tmax03, tmax04, tmax05, tmax06, tmax07, tmax08, tmax09, 
-   tmax10, tmax11, tmax12,tave01, tave02, tave03, tave04, tave05, tave06, tave07, tave08,
-   tave09, tave10, tave11, tave12, ppt01, ppt02, ppt03, ppt04, ppt05, ppt06, ppt07, ppt08, 
-   ppt09, ppt10, ppt11, ppt12, mdc_05, mdc_06, mdc_07, mdc_08,
-   mdc_09, slp_h_b, aspct__, dm_h_bc,  shp_ln_, win_sum, win_spg,
-   dist_mun, dist_dam, dist_nat, dist_pow, dist_mine, dist_any
-    from Data_ignite_AllMonths where fire_yr = '2008') 
+   fire.zone, fire.subzone, fire.ntrl_ds, fire.tmax05, fire.tmax06, fire.tmax07,
+   fire.tmax08, fire.tmax09, fire.tave05, fire.tave06, fire.tave07, fire.tave08,
+   fire.tave09, fire.ppt05, fire.ppt06, fire.ppt07, fire.ppt08, fire.ppt09,
+   fire.mdc_05, fire.mdc_06, fire.mdc_07, fire.mdc_08, fire.mdc_09, fire. slp_h_b, 
+   fire.aspct__, fire. dm_h_bc,  fire.shp_ln_, fire.win_sum, fire.win_spg, fire.dist_mun, fire.dist_dam, fire.dist_nat, fire.dist_pow, fire.dist_mine, fire.dist_any,
+   veg_comp_lyr_r1_poly2008.geometry FROM veg_comp_lyr_r1_poly2008,
+   (SELECT wkb_geometry, idno, fire_yr, fire_cs, fir_typ, ign_month, size_ha, fire, zone,
+    subzone, ntrl_ds, tmax05, tmax06, tmax07, tmax08, tmax09, tave05, tave06, tave07,
+    tave08, tave09, ppt05, ppt06, ppt07, ppt08, ppt09, mdc_05, mdc_06, mdc_07, mdc_08,
+    mdc_09, slp_h_b, aspct__, dm_h_bc,  shp_ln_, win_sum, win_spg, 
+    dist_mun, dist_dam, dist_nat, dist_pow, dist_mine, dist_any
+    from Data_ignite where fire_yr = '2008') 
     as fire where st_contains (veg_comp_lyr_r1_poly2008.geometry, fire.wkb_geometry))
 
 
-# note that the VRI for 2008 does not have live_stand_volume so I (Liz) also tried to extract it from the 2009 VRI and put it in here -  assuming that a year would not make much difference to volume. Below is the code i used to try and do this (but note this does not seem to work.... )
-### July 2021, when ran, there already is a column for live_stand_volume_125, so this may not be necessary
+# note that the VRI for 2008 does not have live_stand_volume so I also tried to extract it from the 2009 VRI and put it in here -  assuming that a year would not make much difference to volume. Below is the code i used to try and do this (but note this does not seem to work.... )
+### July 2021, when ran, there already is a column for live_stand_volume_125,  so this may not be necessary
 
-#ALTER TABLE fire_veg_2008
+#ALTER TABLE fire_veg_2008_B
 #ADD COLUMN live_stand_volume_125 double precision;
 
-# INSERT INTO fire_veg_2008
+# INSERT INTO fire_veg_2008_B
 # SELECT live_stand_volume_125
 # FROM veg_comp_lyr_r1_poly2009,
-# (SELECT wkb_geometry from Data_ignite_AllMonths where fire_yr = '2008') as fire where st_contains
+# (SELECT wkb_geometry from Data_ignite where fire_yr = '2008') as fire where st_contains
 # (veg_comp_lyr_r1_poly2009.geometry, fire.wkb_geometry)
 
+#Do for percentage dead as a proxy
+ALTER TABLE fire_veg_2008_B
+ADD COLUMN stand_percentage_dead double precision;
+
+ INSERT INTO fire_veg_2008_B
+ SELECT stand_percentage_dead
+ FROM veg_comp_lyr_r1_poly2009,
+ (SELECT wkb_geometry from Data_ignite where fire_yr = '2008') as fire where st_contains
+ (veg_comp_lyr_r1_poly2009.geometry, fire.wkb_geometry)
+
+#Do for 2007 as well despite not being as accurate because otherwise column names will not match when we append the data.
+#Do for percentage dead as a proxy
+ALTER TABLE fire_veg_2007_B
+ADD COLUMN stand_percentage_dead double precision;
+
+ INSERT INTO fire_veg_2007_B
+ SELECT stand_percentage_dead
+ FROM veg_comp_lyr_r1_poly2009,
+ (SELECT wkb_geometry from Data_ignite where fire_yr = '2007') as fire where st_contains
+ (veg_comp_lyr_r1_poly2009.geometry, fire.wkb_geometry)
 
 # Another problem is that fire_veg_2011 has a geometry column that is type MultiPolygonZ instead of MultiPolygon so this needs to be changed with the following query in postgres
- ALTER TABLE fire_veg_2011  
+ ALTER TABLE fire_veg_2011_B  
  ALTER COLUMN geometry TYPE geometry(MULTIPOLYGON, 3005) 
  USING ST_Force2D(geometry);
 
@@ -269,12 +242,6 @@ source(here::here("R/functions/R_Postgres.R"))
 
 Now we will bring all of the files we made above into R. You may need to create a new connection to bring each one in instead, or at least run line by line and not as a code chunk.
 
-If we need to set library paths, then:
-```{r}
-.libPaths("C:/data/localApps/R-4.1.2/library")
-```
-
-
 ```{r}
 #Import all fire_veg
 conn <- dbConnect (dbDriver ("PostgreSQL"), 
@@ -284,43 +251,43 @@ conn <- dbConnect (dbDriver ("PostgreSQL"),
                    password = "postgres",
                    port = "5432")
 fire_veg_2002 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2002")
+                               query = "SELECT * FROM public.fire_veg_2002_B")
 fire_veg_2003 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2003")
+                               query = "SELECT * FROM public.fire_veg_2003_B")
 fire_veg_2004 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2004")
+                               query = "SELECT * FROM public.fire_veg_2004_B")
 fire_veg_2005 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2005")
+                               query = "SELECT * FROM public.fire_veg_2005_B")
 fire_veg_2006 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2006")
+                               query = "SELECT * FROM public.fire_veg_2006_B")
 fire_veg_2007 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2007")
+                               query = "SELECT * FROM public.fire_veg_2007_B")
 fire_veg_2008 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2008")
+                               query = "SELECT * FROM public.fire_veg_2008_B")
 fire_veg_2009 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2009")
+                               query = "SELECT * FROM public.fire_veg_2009_B")
 fire_veg_2010 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2010")
+                               query = "SELECT * FROM public.fire_veg_2010_B")
 fire_veg_2011 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2011")
+                               query = "SELECT * FROM public.fire_veg_2011_B")
 fire_veg_2012 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2012")
+                               query = "SELECT * FROM public.fire_veg_2012_B")
 fire_veg_2013 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2013")
+                               query = "SELECT * FROM public.fire_veg_2013_B")
 fire_veg_2014 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2014")
+                               query = "SELECT * FROM public.fire_veg_2014_B")
 fire_veg_2015 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2015")
+                               query = "SELECT * FROM public.fire_veg_2015_B")
 fire_veg_2016 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2016")
+                               query = "SELECT * FROM public.fire_veg_2016_B")
 fire_veg_2017 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2017")
+                               query = "SELECT * FROM public.fire_veg_2017_B")
 fire_veg_2018 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2018")
+                               query = "SELECT * FROM public.fire_veg_2018_B")
 fire_veg_2019 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2019")
+                               query = "SELECT * FROM public.fire_veg_2019_B")
 fire_veg_2020 <- sf::st_read  (dsn = conn, # connKyle
-                               query = "SELECT * FROM public.fire_veg_2020")
+                               query = "SELECT * FROM public.fire_veg_2020_B")
 
 
 dbDisconnect (conn) # connKyle
@@ -360,14 +327,6 @@ fire_veg_2020$stand_percentage_dead<-NA
 Now we must combine all of the files together into one.
 
 ```{r}
-#Check all have same number columns
-names(fire_veg_2002)
-names(fire_veg_2007)
-names(fire_veg_2008)
-names(fire_veg_2020)
-fire_veg_2020<-fire_veg_2002[-c(74),]
-
-
 # join all fire_veg datasets together. This function is faster than a list of rbinds
 filenames3<- c("fire_veg_2002", "fire_veg_2003", "fire_veg_2004","fire_veg_2005", "fire_veg_2006", "fire_veg_2007","fire_veg_2008", "fire_veg_2009", "fire_veg_2010","fire_veg_2011", "fire_veg_2012", "fire_veg_2013","fire_veg_2014", "fire_veg_2015", "fire_veg_2016","fire_veg_2017", "fire_veg_2018", "fire_veg_2019", "fire_veg_2020")
 filenames3
@@ -398,7 +357,7 @@ names(fire_veg_data_B)
 Try saving file, but you will note that it is too large.
 
 ```{r}
-st_write(fire_veg_data_B, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_ALL_5x_AllMonths.shp", delete_layer=TRUE)
+st_write(fire_veg_data_B, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_ALL_5x.shp", delete_layer=TRUE)
 ```
 
 Because we have many large objects open in R, we will close some that we no longer need.
@@ -423,7 +382,6 @@ ignition_pres_abs3 <-fire_veg_data_B %>%
 table(ignition_pres_abs3$bclcs_level_2, ignition_pres_abs3$fire_cs) # T=treed, N =  non-treed and L = land.
 table(ignition_pres_abs3$fire_yr, ignition_pres_abs3$fire_cs) 
 str(ignition_pres_abs3)
-
 
 #Creating new variable of vegetation type and a description of how open the vegetation is
 # TB =  Treed broadleaf, TC = Treed Conifer, TM = Treed mixed, SL = short shrub, ST = tall shrubs, D = disturbed, O = open. I will combine tall and short shrub. We dont estimate shrub cover in our CLUS model so Im not sure how this will influence our results since I dont think I can track it over time. Maybe I should include it in Open or disturbed?
@@ -620,9 +578,9 @@ If all looks good from above, then save data.
 
 ```{r}
 #Write file
-st_write(dat_lightning, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis_Oct.shp", delete_layer=TRUE)
+st_write(dat_lightning, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis_.shp", delete_layer=TRUE)
 
-write.csv(dat_lightning, "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis_Oct.csv")
+write.csv(dat_lightning, "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis_.csv")
 
 ```
 
@@ -688,9 +646,9 @@ If data looks good, save file.
 
 ```{r}
 #Write file
-st_write(dat_person, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis_Oct.shp", delete_layer=TRUE) 
+st_write(dat_person, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis_.shp", delete_layer=TRUE) 
 
-write.csv(dat_person,"D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis_Oct.csv")
+write.csv(dat_person,"D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis_.csv")
 
 ```
 
@@ -731,16 +689,14 @@ dbDisconnect (connKyle)
 
 #probably works better to save via this:
 
-#key_get('dbpass', keyring = 'postgreSQL')
-
 #Save to postgre
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis_Oct.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis_.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis_Oct.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis_.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis_Oct.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis_.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis_Oct.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis_.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ```
 
 
