@@ -137,8 +137,7 @@ getExistingCutblocks<-function(sim){
                            where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                            conn=NULL)
     if(extent(sim$ras) == extent(ras.blk)){
-      exist_cutblocks<-data.table(c(t(raster::as.matrix(ras.blk))))
-      setnames(exist_cutblocks, "V1", "blockid")
+      exist_cutblocks<-data.table(blockid = ras.blk[])
       exist_cutblocks[, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
       exist_cutblocks<-exist_cutblocks[blockid > 0, ]
    
@@ -310,9 +309,6 @@ preBlock <- function(sim) {
     }
   }
   
-  #ras<<-sim$ras
-  #rs.test<<-resultset
-  #stop()
   #Run the forest_hierarchy java object in parallel. One for each 'zone'. This will maintain zone boundaries as block boundaries
   if(length(zones) > 1 && object.size(g) > 10000000000){ #0.1 GB
     noCores<-min(parallel::detectCores()-1, length(zones))
@@ -441,33 +437,27 @@ spreadBlock<- function(sim) {
 
 updateBlocks<-function(sim){ #This function updates the block information used in summaries and for a queue
   message("update the blocks table")
-  
-
-    new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, round(AVG(age),0) as age , AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as s_vol, AVG(dist) as dist
+   new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, round(AVG(age),0) as age , AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as s_vol, AVG(dist) as dist
              FROM pixels WHERE blockid > 0 GROUP BY blockid;"))
     
-    dbBegin(sim$clusdb)
-    
+  dbBegin(sim$clusdb)
     rs<-dbSendQuery(sim$clusdb, "UPDATE blocks SET age =  :age, height = :height, vol = :vol, salvage_vol = :s_vol, dist = :dist WHERE blockid = :blockid", new_blocks)
-    
-  
   dbClearResult(rs)
   dbCommit(sim$clusdb)
   
   rm(new_blocks)
   gc()
-  #print(head(dbGetQuery(sim$clusdb, "SELECT * FROM blocks")))
   return(invisible(sim))
 }
 
 ### additional functions
 getBlocksIDs<- function(x){ 
-  #---------------------------------------------------------------------------------
+  #---------------------------------------------------------------------------------#
   #This function uses resultset object as its input. 
   #The resultset object is a list of lists: 1.the degree list.
   #2. A list of edges (to and from) and weights; 3. The zone name; and
   #4. The patch size distribution. These are accessed via x[][[1-4]]
-  #------------------------------------------------------------
+  #---------------------------------------------------------------------------------#
   message(paste0("getBlocksID for zone: ", x[][[3]])) #Let the user know what zone is being blocked
   .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx2g", force.init = TRUE) #instantiate the JVM
   fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a new forest hierarchy object in java

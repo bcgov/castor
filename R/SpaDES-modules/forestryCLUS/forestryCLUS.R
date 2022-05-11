@@ -1,4 +1,4 @@
-#===========================================================================================
+#===========================================================================================#
 # Copyright 2020 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -10,7 +10,7 @@
 # Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
-#===========================================================================================
+#===========================================================================================#
 
 defineModule(sim, list(
   name = "forestryCLUS",
@@ -150,15 +150,14 @@ Init <- function(sim) {
     sim$salvageReport<-data.table(scenario = character(), compartment = character(), 
                                     timeperiod= integer(), salvage_area = numeric(), salvage_vol = numeric() )
       
-    salvage_vol<- data.table (c(t(raster::as.matrix( 
-        RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    salvage_vol<- data.table (salvage_vol =  RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                      srcRaster = P(sim, "salvageRaster", "forestryCLUS"), 
                      clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                      geom = sim$boundaryInfo[[4]], 
                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                     conn = NULL)))))
+                     conn = NULL)[])
     salvage_vol[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
-    setnames(salvage_vol, "V1", "salvage_vol")
+    
     #add to the clusdb
     dbBegin(sim$clusdb)
       rs<-dbSendQuery(sim$clusdb, "Update pixels set salvage_vol = :salvage_vol where pixelid = :pixelid", salvage_vol)

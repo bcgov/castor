@@ -27,6 +27,7 @@ defineModule(sim, list(
   parameters = rbind(
     defineParameter ("calculateInterval", "numeric", 1, 1, 5, "The simulation time at which survival rates are calculated"),
     defineParameter ("nameFetaRaster", "character", "rast.fetaid", NA, NA, "Name of the raster descirbing fetas. Stored in psql."), 
+    defineParameter ("nameFisherPopVector", "character", NA, NA, NA, "Name of the raster(s) descirbing fisher populations"), 
     defineParameter ("nameRasFisherTerritory", "character", NA, NA, NA, "Name of the raster(s) descirbing fisher territories. Stored in psql."), 
     defineParameter ("nameRasWetlands", "character", "rast.wetlands", NA, NA, "Name of the raster for wetlands as described in Weir and Corbould 2010")
     ),
@@ -41,6 +42,7 @@ defineModule(sim, list(
   outputObjects = bind_rows(
     createsOutput (objectName = "fisher.feta.info", objectClass = "data.table", desc = "A data.table object containg which fisher zone a feta belongs to based on a majority rule"),
     createsOutput (objectName = "fisher.d2.cov", objectClass = "list", desc = "A list object containing a covariance matrix for each fisher zone required to compute d2"),
+    createsOutput (objectName = "flexRasWorld", objectClass = "RasterLayer", desc = "A list of raster with 1st specifying the fisher habitat zones (1 to 4); 2nd a stack of mahalanobis distance through time and; 3rd a stack of movement habitat through time"),
     createsOutput (objectName = "tableFisherOccupancy", objectClass = "data.table", desc = "A data.table object. Consists of fisher occupancy estimates for each territory in the study area at each time step. Gets saved in the 'outputs' folder of the module.")
   )
 ))
@@ -84,15 +86,13 @@ Init <- function(sim) {
       getFisherTerritory[,zone:= paste0("zone", .I + as.integer(nrow(dbGetQuery(sim$clusdb, "SELECT count(*) as num_zones FROM zone;")$num_zones)))] #assign zone name as the last zone number plus the new zones
       for(i in 1:nrow(getFisherTerritory)){
         dbExecute (sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN ", getFisherTerritory$zone[i], " integer")) # add a column to the pixel table that will define the fisher territory  
-        ras.territory <- data.table (c (t (raster::as.matrix ( # 
-        RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
+        ras.territory <- data.table (V1 = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
                       srcRaster = getFisherTerritory$reference_zone[i] , # 
-                      clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"),  # 
-                      geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
-                      where_clause =  paste0 (P (sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                      conn = NULL)))))
+                      clipper=sim$boundaryInfo[[1]], 
+                      geom= sim$boundaryInfo[[4]], 
+                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                      conn=NULL)[])
         
-   
         ras.territory[, V1 := as.integer (V1)] # add the herd boudnary value from the raster and make the value an integer
         ras.territory[, pixelid := seq_len(.N)] # add pixelid value
         
@@ -110,13 +110,12 @@ Init <- function(sim) {
       gc()
       if(dbGetQuery (sim$clusdb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='wetland';")$exists_check > 0){
         dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN wetland integer") # add a column to the pixel table that will define the wetland area   
-        ras.wetland <- data.table (c (t (raster::as.matrix ( # 
-          RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
+        ras.wetland <- data.table (V1 = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
                         srcRaster = P(sim, "fisherCLUS", "nameRasWetlands") , # 
-                        clipper = P (sim, "dataLoaderCLUS", "nameBoundaryFile"),  # 
-                        geom = P (sim, "dataLoaderCLUS", "nameBoundaryGeom"), 
-                        where_clause =  paste0 (P (sim, "dataLoaderCLUS", "nameBoundaryColumn"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                        conn = NULL)))))
+                        clipper=sim$boundaryInfo[[1]], 
+                        geom= sim$boundaryInfo[[4]], 
+                        where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                        conn=NULL)[])
         ras.wetland[, V1 := as.integer (V1)] # add the wetlands value from the raster and make the value an integer
         ras.wetland[, pixelid := seq_len(.N)] # add pixelid value
         
@@ -174,6 +173,28 @@ Init <- function(sim) {
     dbClearResult(rs)
     dbCommit(sim$clusdb)
     
+    
+    #Add in the raster info for the population
+    fisher.pop <- getSpatialQuery(paste0("SELECT pop,  ST_Intersection(aoi.",sim$boundaryInfo[[4]],", fisher_zones.wkb_geometry) FROM 
+                           (SELECT ",sim$boundaryInfo[[4]]," FROM ",sim$boundaryInfo[[1]]," where ",sim$boundaryInfo[[2]]," in('", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "', '") ,"') ) as aoi 
+                           JOIN fisher_zones ON ST_Intersects(aoi.",sim$boundaryInfo[[4]],", fisher_zones.wkb_geometry)"))
+   
+    ras.fisher.pop <- fasterize::fasterize(sf= fisher.pop, raster = aggregate(sim$ras, fact =55) , field = "pop")
+    
+    
+    ras.fisher.pop.extent<-extent(ras.fisher.pop)
+    dbExecute(sim$clusdb, paste0("INSERT INTO raster_info (name, xmin, xmax, ymin, ymax, ncell, nrow, crs) values ('fisherpop',", ras.fisher.pop.extent[1], ", ", ras.fisher.pop.extent[2], ", ",
+                                 ras.fisher.pop.extent[3], ", ", ras.fisher.pop.extent[4], ",", ncell(ras.fisher.pop) , ", ", nrow(ras.fisher.pop),", '3005')"))
+    
+    #---add in raster values
+    dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS fisher_pop_raster (id integer, pop integer)")
+    fisher.pop.ras.table<-data.table(id = 1:ncell(ras.fisher.pop), pop = ras.fisher.pop[])
+    
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, "INSERT INTO fisher_pop_raster (id , pop) 
+                        values (:id , :pop);", fisher.pop.ras.table)
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
   }
   
   return(invisible(sim))
@@ -203,6 +224,15 @@ setFLEXWorld<-function(sim){ #sets up the world object
                            matrix(c(0.7,	0.5,	6.1,	2.1, 0.5,	2.9,	4.0,	5.2, 6.1,	4.0,	62.6,	22.4, 2.1,	5.2,	22.4,	42.3), ncol=4, nrow=4),
                            matrix(c(193.2,	5.4,	42.1,	125.2, 5.4,	0.4,	2.,	5.2, 42.1,	2.9,	36.0,	46.5, 125.2,	5.2, 46.5,	131.4), ncol =4, nrow =4))
   sim$flexRasWorld <- list()
+  
+  #--Fisher population raster for identifying Boreal vs Columbian populations
+  ras.info<-dbGetQuery(sim$clusdb, "SELECT * FROM raster_info WHERE name = 'fisherpop';")
+  ras.values<-dbGetQuery(sim$clusdb, "SELECT pop FROM fisher_pop_raster ORDER BY id;")
+  
+  sim$flexRasWorld[[1]]<- raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), vals = ras.values$pop, nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow)
+  raster::crs(sim$flexRasWorld[[1]])<-paste0("EPSG:", ras.info$crs)
+  
+  
   return(invisible(sim))
 }
 
@@ -258,14 +288,15 @@ getFLEXWorld<-function(sim){
 
     #Aggregate to a 30km pixels and save for FLEX
     if(i == 1){
-      sim$flexRasWorld[[1]] <- aggregate(ras.mahal, fact =55)
-      sim$flexRasWorld[[2]] <- aggregate(ras.mov, fact =55)
+      sim$flexRasWorld[[2]] <- aggregate(ras.mahal, fact =55)
+      sim$flexRasWorld[[3]] <- aggregate(ras.mov, fact =55)
     }else{
-      sim$flexRasWorld[[1]] <- stack(sim$flexRasWorld[[1]], aggregate(ras.mahal, fact =55))
-      sim$flexRasWorld[[2]] <- stack(sim$flexRasWorld[[2]], aggregate(ras.mov, fact =55))
+      sim$flexRasWorld[[2]] <- stack(sim$flexRasWorld[[2]], aggregate(ras.mahal, fact =55))
+      sim$flexRasWorld[[3]] <- stack(sim$flexRasWorld[[3]], aggregate(ras.mov, fact =55))
     }
   }
   
+  test<<-sim$flexRasWorld
   return(invisible(sim)) 
 }
 

@@ -87,13 +87,12 @@ Init <- function(sim) {
   if(P(sim, "criticalHabRaster", "disturbanceCalcCLUS") == '99999'){
     sim$disturbance[, critical_hab:= 1]
   }else{
-    bounds <- data.table (c (t (raster::as.matrix( 
-    RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    bounds <- data.table (V1 = RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                  srcRaster = P(sim, "criticalHabRaster", "disturbanceCalcCLUS"), 
                  clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                  geom = sim$boundaryInfo[[4]], 
                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                 conn = NULL)))))
+                 conn = NULL)[])
     bounds[,pixelid:=seq_len(.N)] # make a unique id to ensure it merges correctly
     if(nrow(bounds[!is.na(V1),]) > 0){ #check to see if some of the aoi overlaps with the boundary
       if(!(P(sim, "criticalHabitatTable", "disturbanceCalcCLUS") == '99999')){
@@ -121,15 +120,13 @@ Init <- function(sim) {
       message("WARNING: No permanent disturbance raster specified ... defaulting to no permanent disturbances")
       dbExecute(sim$clusdb, "Update pixels set perm_dist = 0;")
     }else{
-    perm_dist <- data.table (c(t(raster::as.matrix( 
-        RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    perm_dist <- data.table(perm_dist = RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                      srcRaster = P(sim, "permDisturbanceRaster", "disturbanceCalcCLUS"), 
                      clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                      geom = sim$boundaryInfo[[4]], 
                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                     conn = NULL)))))
+                     conn = NULL)[])
     perm_dist[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
-    setnames(perm_dist, "V1", "perm_dist")
     #add to the clusdb
     dbBegin(sim$clusdb)
       rs<-dbSendQuery(sim$clusdb, "Update pixels set perm_dist = :perm_dist where pixelid = :pixelid", perm_dist)
@@ -148,12 +145,8 @@ Init <- function(sim) {
 }
 
 distAnalysis <- function(sim) {
-  #dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE perm_dist > 0 or (roadyear >= ", max(0,as.integer(time(sim) - P(sim, "disturbanceCalcCLUS", "recovery"))),")  or (blockid > 0 and age BETWEEN 0 AND ",P(sim, "disturbanceCalcCLUS", "recovery"),")"))) # 
-  #dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE perm_dist > 0 or roadyear >= 0 or (blockid > 0 and age BETWEEN 0 AND ", P(sim, "disturbanceCalcCLUS", "recovery"),")"))) # 
   all.dist<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT age, blockid, (case when ((",time(sim)*sim$updateInterval, " - roadstatus < ",P(sim, "recovery", "disturbanceCalcCLUS")," AND roadtype != 0) OR roadtype = 0) then 1 else 0 end) as road_dist, pixelid FROM pixels WHERE perm_dist > 0 OR ((blockid > 0 and age >= 0) OR (",time(sim)*sim$updateInterval, " - roadstatus < ", P(sim, "recovery", "disturbanceCalcCLUS")," AND roadtype != 0) OR roadtype = 0);")))
-  #sim.disturbance<<-sim$disturbance
-  #sim.ras<<-sim$ras
-  #stop()
+  
   if(nrow(all.dist) > 0){
     outPts<-merge(sim$disturbance, all.dist, by = 'pixelid', all.x =TRUE) 
     message("Get the cutblock summaries")
@@ -259,13 +252,8 @@ distAnalysis <- function(sim) {
   }else{
     sim$disturbance$dist<-501
   }
-
-  #out.ras<-sim$ras
-  #out.ras[]<-sim$disturbance$dist
-  #writeRaster(out.ras, paste0("dist",time(sim), ".tif"), overwrite = TRUE)
   
   #TODO:Add the volume from harvestPixelList; but see volumebyareaReportCLUS
-  # 
   tempDisturbanceReport<-data.table(Filter(function(x) !is.null(x),
                                 list (cutblock_summary, road_summary, c80r, c40r, c20r, c10_40r)) %>%
                                   Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2, by=c("compartment","critical_hab")), .))

@@ -3,6 +3,7 @@
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
+#===========================================================================================#
 # 
 # http://www.apache.org/licenses/LICENSE-2.0
 # 
@@ -10,11 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
-#===========================================================================================
-# Everything in this file gets sourced during simInit, and all functions and objects
-# are put into the simList. To use objects, use sim$xxx, and are thus globally available
-# to all modules. Functions can be used without sim$ as they are namespaced, like functions
-# in R packages. If exact location is required, functions will be: sim$<moduleName>$FunctionName
+#===========================================================================================#
 
 defineModule(sim, list(
   name = "roadCLUS",
@@ -68,9 +65,6 @@ defineModule(sim, list(
   )
 ))
 
-## event types
-#   - type `init` is required for initialiazation
-
 doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   #set.seed(sim$.seed)## set seed ??
   switch(
@@ -87,14 +81,13 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
     },
     
     plot = {
-      # do stuff for this event
       sim <- plotRoads(sim)
     },
     
     savePredRoads = {
-      # do stuff for this event
       sim <- saveRoads(sim)
     },
+    
     buildRoads = { # Builds or simulates roads at the roading interval
       if(!is.null(sim$landings)){ #Check if there are cutblock landings to simulate roading
         switch(P(sim)$roadMethod,
@@ -104,20 +97,11 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
               sim <- updateRoadsTable(sim) # Updates the pixels table in clusdb to the proper year that pixel was roaded
             },
             lcp ={ # Create a least-cost path on the fly -- updates the cost surface at each road interval
-              #sim <- getClosestRoad(sim) 
-              #sim <- lcpList(sim) # Prepares the target and closest road information
-              #sim <- getShortestPaths(sim) # Uses Dijkstra to solve least cost paths -- includes update of the graph (sim$g)
-              #sim <- updateRoadsTable(sim)
-              
               sim <- getRoutes(sim)
               sim <- setEdges(sim)
               sim <- updateRoadsTable(sim)
-              
             },
             mst ={ # Create a minimum spanning tree before least-cost paths -- updates the cost surface at each road interval
-              #sim <- getClosestRoad(sim)
-              #sim <- mstList(sim)# Construction of a minimum spanning tree to connect targets before connecting to exising road network
-             
               sim <- mstSolve(sim)
               sim <- setEdges(sim)
               sim <- updateRoadsTable(sim)
@@ -126,9 +110,7 @@ doEvent.roadCLUS = function(sim, eventTime, eventType, debug = FALSE) {
               sim <- getRoadSegment(sim)
               sim <- updateRoadsTable(sim)
             }
-
         )
-        
         sim <- scheduleEvent(sim, time(sim) + P(sim)$roadSeqInterval, "roadCLUS", "buildRoads",7)
       }else{
         # Go on to the next time period to see if there are landings to build roads
@@ -209,7 +191,7 @@ getExistingRoads <- function(sim) {
                             conn = NULL)
     
       #Update the pixels table to set the roaded pixels
-      roadUpdate<-data.table(c(t(raster::as.matrix(sim$road.type)))) #transpose then vectorize which matches the same order as adj
+      roadUpdate<-data.table(V1= sim$road.type[]) #transpose then vectorize which matches the same order as adj
       roadUpdate[, pixelid := seq_len(.N)]
       roadUpdate<-roadUpdate[V1 >= 0,]
 

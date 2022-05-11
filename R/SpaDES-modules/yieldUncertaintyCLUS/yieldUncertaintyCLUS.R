@@ -1,3 +1,4 @@
+#===========================================================================================#
 # Copyright 2020 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -9,7 +10,7 @@
 # Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
-#===========================================================================================
+#===========================================================================================#
 
 defineModule(sim, list(
   name = "yieldUncertaintyCLUS",
@@ -74,13 +75,12 @@ Init <- function(sim) {
   
   #Get any covariates in the calibration model. Need an indicator if this has already been run and in the database
   if(!(dbGetQuery(sim$clusdb, "SELECT count(*) from pixels where elv > 0") > 0)){
-    elevation<- data.table (c (t (raster::as.matrix( 
-    RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    elevation<- data.table (V1 =  RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                  srcRaster = P(sim, "yieldUncertaintyCLUS", "elevationRaster"), # for each unique spp-pop-boundary, clip each rsf boundary data, 'bounds' (e.g., rast.du6_bounds)
                  clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                  geom = sim$boundaryInfo[[4]], 
                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                 conn = NULL)))))
+                 conn = NULL)[])
     elevation[,V1:=as.integer(V1)] #make an integer for merging the values
     elevation[,pixelid:=seq_len(.N)]#make an index
   

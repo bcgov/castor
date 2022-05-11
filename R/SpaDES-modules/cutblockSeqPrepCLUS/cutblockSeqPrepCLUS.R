@@ -171,8 +171,7 @@ getExistingCutblocks<-function(sim){
                            where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                            conn=NULL)
     if(extent(sim$ras) == extent(ras.blk)){
-      exist_cutblocks<-data.table(c(t(raster::as.matrix(ras.blk))))
-      setnames(exist_cutblocks, "V1", "blockid")
+      exist_cutblocks<-data.table(blockid = ras.blk[])
       exist_cutblocks[, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
       exist_cutblocks<-exist_cutblocks[blockid > 0, ]
       

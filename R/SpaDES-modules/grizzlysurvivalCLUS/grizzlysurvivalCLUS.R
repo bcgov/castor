@@ -2,6 +2,7 @@
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
+#===========================================================================================#
 # You may obtain a copy of the License at
 # 
 # http://www.apache.org/licenses/LICENSE-2.0
@@ -9,7 +10,7 @@
 # Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
-#===========================================================================================
+#===========================================================================================#
 
 defineModule (sim, list (
   name = "grizzlysurvivalCLUS",
@@ -57,10 +58,7 @@ doEvent.grizzlysurvivalCLUS = function (sim, eventTime, eventType) {
       sim <- predictSurvival (sim) # this function calculates survival rate
       sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "grizzlysurvivalCLUS"), "grizzlysurvivalCLUS", "calculateSurvival", 10) # schedule the next survival calculation event  
     },
-    # adjustSurvivalTable ={ # calucalte the total area from which the survival rate applies
-    #   sim <- adjustSurvivalTable (sim)
-    # },
-    
+
     warning (paste ("Undefined event type: '", current (sim) [1, "eventType", with = FALSE],
                     "' in module '", current (sim) [1, "moduleName", with = FALSE], "'", sep = ""))
   )
@@ -71,22 +69,18 @@ Init <- function (sim) { # this function identifies the GBPUs in the 'study area
   # Added a condition here in those cases where the dataLoaderCLUS has already ran
   if(nrow(data.table(dbGetQuery(sim$clusdb, "PRAGMA table_info(pixels)"))[name == 'gbpu_name',])== 0){
     dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN gbpu_name character") # add a column to the pixel table that will define the GBPU
-  
-    gbpubounds <- data.table (c (t (raster::as.matrix ( # clip caribou herd raster by the 'study area' set in dataLoader
+    # clip caribou herd raster by the 'study area' set in dataLoader
+    gbpubounds <- data.table (gbpu_name =
                                     RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
                                       srcRaster = P (sim, "rasterGBPU", "grizzlysurvivalCLUS") , # clip the GBPU boundary raster; defined in parameters, above
                                       clipper=sim$boundaryInfo[1] , 
                                       geom= sim$boundaryInfo[4] , 
                                       where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                      conn=NULL)))))
-    
-    setnames (gbpubounds, "V1", "gbpu_name") # rename the default column name
+                                      conn=NULL)[])
     gbpubounds [, gbpu_name := as.integer (gbpu_name)] # add the GBPU boundary value from the raster and make the value an integer
     gbpubounds [, pixelid := seq_len(.N)] # add pixelid value
     
     vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableGBPU))) # get the GBPU name attribute table that corresponds to the integer values
-    # vat_table <<- vat_table
-    # gbpubounds <<- gbpubounds
     gbpubounds <- merge (gbpubounds, vat_table, by.x = "gbpu_name", by.y = "raster_integer", all.x = TRUE) # left join the GBPU name to the integer
     gbpubounds [, gbpu_name := NULL] # drop the integer value 
     
@@ -98,6 +92,7 @@ Init <- function (sim) { # this function identifies the GBPUs in the 'study area
     dbClearResult (rs)
     dbCommit (sim$clusdb) # commit the new column to the db
   }
+  
   # The following calculates for each GBPU:
     # 1. Number of pixels with a road (roadyear > -1) 
     # 2. Multiplied by the road density parameter (P(sim)$roadDensity)
@@ -135,7 +130,6 @@ predictSurvival <- function (sim) { # this function calculates survival rate at 
 #   sim$tableGrizzSurvivalReport<-merge(sim$tableGrizzSurvivalReport, total_area, by.x = "gbpu_name", by.y = "gbpu_name", all.x = TRUE )
 #   return (invisible(sim))
 # }
-
 
 .inputObjects <- function(sim) {
   #cacheTags <- c(currentModule(sim), "function:.inputObjects") ## uncomment this if Cache is being used
