@@ -107,6 +107,10 @@ frt_clipped<-st_intersection(bc.bnd, frt)
 length(unique(frt_clipped$Cluster))
 frt_sf<-st_as_sf(frt_clipped)
 
+st_write(frt_sf, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\frt_clipped.shp", delete_dsn = TRUE)
+
+plot(frt_clipped)
+
 ignit<-ignition2
 crs(ignit)
 

@@ -116,6 +116,15 @@ CREATE TABLE fire_veg_2020 AS
   (SELECT wkb_geometry, idno, fire_yr
    from data_clim_dem_roads_wind_frt where fire_yr = '2020') as fire where st_contains
   (veg_comp_lyr_r1_poly2020.geometry, fire.wkb_geometry))
+  
+# Trying to get projected height and volume for 2020 as its missing from this data set so instead ill sample it from the 2019 VRI and hope that is close enough  
+CREATE TABLE fire_veg_2020_2 AS
+(SELECT proj_age_1, proj_height_1, live_stand_volume_125, 
+  fire.idno, fire.fire_yr,
+  veg_comp_lyr_r1_poly2019.geometry FROM veg_comp_lyr_r1_poly2019,
+  (SELECT wkb_geometry, idno, fire_yr
+   from data_clim_dem_roads_wind_frt where fire_yr = '2020') as fire where st_contains
+  (veg_comp_lyr_r1_poly2019.geometry, fire.wkb_geometry))
   #################################
 
 ##2021 There does not seem to be 2021 VRI data yet so Im just going to sample from the 2020 VRI data
@@ -245,8 +254,12 @@ fire_veg_2019 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2019")
 fire_veg_2020 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2020")
+fire_veg_2020_2 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2020_2")
 fire_veg_2021 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2021")
+fire_veg_2021_2 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2021_2")
 
 
 dbDisconnect (conn) # connKyle
@@ -276,14 +289,21 @@ fire_veg_2007<- fire_veg_2007 %>% rename(
 fire_veg_2007$live_stand_volume_125[fire_veg_2007$live_stand_volume_125 == 0] <- NA
 fire_veg_2008$live_stand_volume_125[fire_veg_2008$live_stand_volume_125 == 0] <- NA
 
-fire_veg_2020$proj_height_1<-NA
-fire_veg_2020$proj_age_1<-NA
-fire_veg_2020$live_stand_volume_125<-NA
-#fire_veg_2020$stand_percentage_dead<-NA
+fire_veg_2020_2<-st_set_geometry(fire_veg_2020_2, NULL)
+fire_veg_2020_2$idno<- as.numeric(fire_veg_2020_2$idno)
+fire_veg_2020$idno<- as.numeric(fire_veg_2020$idno)
 
-fire_veg_2021$proj_height_1<-NA
-fire_veg_2021$proj_age_1<-NA
-fire_veg_2021$live_stand_volume_125<-NA
+fire_veg_2020_3<-left_join(fire_veg_2020, fire_veg_2020_2, by=c("idno", "fire_yr"))
+dim(fire_veg_2020)
+dim(fire_veg_2020_3)
+
+fire_veg_2021_2<-st_set_geometry(fire_veg_2021_2, NULL)
+fire_veg_2021_2$idno<- as.numeric(fire_veg_2021_2$idno)
+fire_veg_2021$idno<- as.numeric(fire_veg_2021$idno)
+
+fire_veg_2021_3<-left_join(fire_veg_2021, fire_veg_2021_2, by=c("idno", "fire_yr"))
+dim(fire_veg_2021)
+dim(fire_veg_2021_3)
 
 ```
 
@@ -300,7 +320,7 @@ names(fire_veg_2020)
 
 
 # join all fire_veg datasets together. This function is faster than a list of rbinds
-filenames3<- c("fire_veg_2002", "fire_veg_2003", "fire_veg_2004","fire_veg_2005", "fire_veg_2006", "fire_veg_2007","fire_veg_2008", "fire_veg_2009", "fire_veg_2010","fire_veg_2011", "fire_veg_2012", "fire_veg_2013","fire_veg_2014", "fire_veg_2015", "fire_veg_2016","fire_veg_2017", "fire_veg_2018", "fire_veg_2019", "fire_veg_2020", "fire_veg_2021")
+filenames3<- c("fire_veg_2002", "fire_veg_2003", "fire_veg_2004","fire_veg_2005", "fire_veg_2006", "fire_veg_2007","fire_veg_2008", "fire_veg_2009", "fire_veg_2010","fire_veg_2011", "fire_veg_2012", "fire_veg_2013","fire_veg_2014", "fire_veg_2015", "fire_veg_2016","fire_veg_2017", "fire_veg_2018", "fire_veg_2019", "fire_veg_2020_3", "fire_veg_2021_3")
 filenames3
 
 mkFrameList <- function(nfiles) {
@@ -314,6 +334,8 @@ n<-length(filenames3)
 fire_veg_data_B<-mkFrameList(n)
 
 dim(fire_veg_data_B) #193773
+
+sample_locations_DEM_roads_wind2<- st_read("C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_frt.shp")
 dim(sample_locations_DEM_roads_wind2) # 200298 # When I sample vegetaion from the VRI I seem to loose around 4% of the points. Not sure what to do about this.
 
 dim(sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2002))
@@ -323,9 +345,14 @@ dim(fire_veg_2002)
 #2012 also seem to loose a lot around 2159 points.
 
 fire_veg_data_nogeom<- st_set_geometry(fire_veg_data_B, NULL)
+fire_veg_data_nogeom$idno<- as.numeric(fire_veg_data_nogeom$idno)
 fire_veg_data_nogeom$idno_check<-fire_veg_data_nogeom$idno
+sample_locations_DEM_roads_wind2$idno<- as.numeric(sample_locations_DEM_roads_wind2$idno)
 
 fire_all<-merge(sample_locations_DEM_roads_wind2, fire_veg_data_nogeom, by=c("idno", "fire_yr"), all.x=TRUE)
+
+dim(fire_all)
+dim(sample_locations_DEM_roads_wind2) # its weird I seem to gain a few extra locations when I join the above two  datasets Im not sure why???
 
 as.data.frame(fire_all %>% filter(fire_yr==2008) %>% select(fire_yr, idno, idno_check)) # looks ok although Im not sure why I got an extra 46 locations??? Cant figure it out.
 
@@ -335,6 +362,9 @@ table(fire_all$fire_yr, fire_all$fire_cs)
 Try saving file
 ```{r}
 st_write(fire_all, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Fire_data_all.shp", delete_layer=TRUE)
+
+#ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user= password= host=DG401102" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Fire_data_all.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI 
+
 ```
 
 Because we have many large objects open in R, we will close some that we no longer need.
@@ -342,7 +372,7 @@ Because we have many large objects open in R, we will close some that we no long
 ```{r}
 ##Now we will remove all of the fire_veg_20XX files since we are finished with processing these
 
-rm(fire_veg_2002, fire_veg_2003, fire_veg_2004,fire_veg_2005, fire_veg_2006, fire_veg_2007,fire_veg_2008, fire_veg_2009, fire_veg_2010,fire_veg_2011, fire_veg_2012, fire_veg_2013,fire_veg_2014, fire_veg_2015, fire_veg_2016,fire_veg_2017, fire_veg_2018, fire_veg_2019, fire_veg_2020, fire_veg_2021)
+rm(fire_veg_2002, fire_veg_2003, fire_veg_2004,fire_veg_2005, fire_veg_2006, fire_veg_2007,fire_veg_2008, fire_veg_2009, fire_veg_2010,fire_veg_2011, fire_veg_2012, fire_veg_2013,fire_veg_2014, fire_veg_2015, fire_veg_2016,fire_veg_2017, fire_veg_2018, fire_veg_2019, fire_veg_2020,fire_veg_2020_2, fire_veg_2020_3, fire_veg_2021, fire_veg_2021_2, fire_veg_2021_3)
 
 ```
 
@@ -364,7 +394,7 @@ str(ignition_pres_abs3)
 # TB =  Treed broadleaf, TC = Treed Conifer, TM = Treed mixed, SL = short shrub, ST = tall shrubs, D = disturbed, O = open. I will combine tall and short shrub. We dont estimate shrub cover in our CLUS model so Im not sure how this will influence our results since I dont think I can track it over time. Maybe I should include it in Open or disturbed?
 
 ignition_pres_abs3$bclcs_level_4<- as.factor(ignition_pres_abs3$bclcs_level_4)
-ignition_pres_abs4<- ignition_pres_abs3 %>% drop_na(bclcs_level_4) # this drops from 176666 to 176706 locations so I think its ok to remove the NA's
+ignition_pres_abs4<- ignition_pres_abs3 %>% drop_na(bclcs_level_4) # this drops from 176706 to 176666  locations so I think its ok to remove the NA's
 unique(ignition_pres_abs4$bclcs_level_4)
 
 ignition_pres_abs4$vegtype<-"OP" #setting anything that is not one of the categories below to Open.
@@ -390,47 +420,8 @@ hist(log(ignition_pres_abs4$live_stand_volume_125))
 Try saving file again.
 
 ```{r}
-st_write(ignition_pres_abs4, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_ALL_5x_NoW_.shp", delete_layer=TRUE) #File very large > 2 GB, so having saving issues. Perhaps now is a good time to separate the file into lightning, person caused, etc.
-```
-
-We will separate into component parts and try to save smaller files as the file is still too big.
-
-```{r}
-#fire_veg_data_B_df<-as.data.frame(fire_veg_data_B)
-#write.csv(fire_veg_data_B_df, #file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\fire_ignitions_veg_climate_ALL_df.csv")
-
-table(ignition_pres_abs4$fire_cs)
-##Subset data for fire cause of lightning and NA, Person and NA, and Unknown and NA
-fire_veg_data_lightning_5x<-ignition_pres_abs4 %>% filter(fire_cs=="Lightning")
-table(fire_veg_data_lightning_5x$fire_cs) #15228
-fire_veg_data_person_5x<-ignition_pres_abs4 %>% filter(fire_cs=="Person")
-table(fire_veg_data_person_5x$fire_cs) #21373
-fire_veg_data_NA_5x<-ignition_pres_abs4 %>% filter(fire_cs=="NA")
-table(fire_veg_data_NA_5x$fire_cs) #351829
-fire_veg_data_unknown_5x<-ignition_pres_abs4 %>% filter(fire_cs=="Unknown")
-table(fire_veg_data_unknown_5x$fire_cs) #964
-
-fire_veg_data_lightning_NA_5x<-rbind(fire_veg_data_lightning_5x, fire_veg_data_NA_5x)
-table(fire_veg_data_lightning_NA_5x$fire_cs)
-table(fire_veg_data_lightning_NA_5x$vegtype)
-
-fire_veg_data_person_NA_5x<-rbind(fire_veg_data_person_5x, fire_veg_data_NA_5x)
-table(fire_veg_data_person_NA_5x$fire_cs)
-
-##Write individual files
-st_write(fire_veg_data_lightning_5x, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_lightning_5x_NoW.shp", delete_layer=TRUE)
-
-st_write(fire_veg_data_person_5x, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_person_5x_NoW.shp", delete_layer=TRUE)
-
-st_write(fire_veg_data_NA_5x, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_NA_5x_NoW.shp", delete_layer=TRUE) #Get error
-
-##Write aggregated files for lightning and person caused
-st_write(fire_veg_data_lightning_NA_5x, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_lightning_NA_5x_NoW.shp", delete_layer=TRUE) #Get error
-
-st_write(fire_veg_data_person_NA_5x, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_person_NA_5x_NoW.shp", delete_layer=TRUE) #Get error
-
-# write final fire ignitions, weather and vegetation types to postgres
-
+st_write(ignition_pres_abs4, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Fire_data_all_with_veg.shp", delete_layer=TRUE)
+ 
 ##To save to clus, need OsGeo4W
 #Modify below with correct credentials and upload on clus as desired
 #ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user= password= host=DC052586" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_person_NA_5x_NoW.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI 
