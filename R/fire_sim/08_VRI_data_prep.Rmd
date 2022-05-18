@@ -365,6 +365,8 @@ st_write(fire_all, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Fire_data_a
 
 #ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user= password= host=DG401102" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Fire_data_all.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI 
 
+fire_all<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Fire_data_all.shp")
+
 ```
 
 Because we have many large objects open in R, we will close some that we no longer need.
@@ -381,46 +383,62 @@ Note: do we want to remove sites that are predominately water? Might be good to 
 ```{r}
 ##1. Remove all sites that are predominately water or not classified as anything
 str(fire_all)
-ignition_pres_abs3 <-fire_all %>%
-  filter(bclcs_level_2!="W") %>%
-  filter(bclcs_level_2!=" ") # this reduces the number of points from 200344 to 176706 i.e. around 12% drop. This is quite big. What to do???
 
-table(ignition_pres_abs3$bclcs_level_2, ignition_pres_abs3$fire_cs) # T=treed, N =  non-treed and L = land.
+# looking at how many na values there are
+table(is.na(fire_all$bclc__2))
+table(is.na(fire_all$bclc__3))
+table(is.na(fire_all$bclc__4))
+table(is.na(fire_all$bclc__5))
+
+ignition_pres_abs3 <-fire_all %>%
+  filter(bclc__2!="W") %>%
+  filter(bclc__2!=" ") # this reduces the number of points from 200344 to 176706 i.e. around 12% drop. 
+# 17840 are NA and 5798 are Water. Thats a lot of NA's. Not sure what to do about that
+
+table(ignition_pres_abs3$bclc__2, ignition_pres_abs3$fire_cs) # T=treed, N =  non-treed and L = land.
+
+table(is.na(ignition_pres_abs3$bclc__2))
+table(is.na(ignition_pres_abs3$bclc__3))
+table(is.na(ignition_pres_abs3$bclc__4))
+table(is.na(ignition_pres_abs3$bclc__5))
+
+table(ignition_pres_abs3$bclc__3, ignition_pres_abs3$fire_cs)
 table(ignition_pres_abs3$fire_yr, ignition_pres_abs3$fire_cs) 
+table(ignition_pres_abs3$bclc__4, ignition_pres_abs3$fire_cs)
 str(ignition_pres_abs3)
 
 
 #Creating new variable of vegetation type and a description of how open the vegetation is
 # TB =  Treed broadleaf, TC = Treed Conifer, TM = Treed mixed, SL = short shrub, ST = tall shrubs, D = disturbed, O = open. I will combine tall and short shrub. We dont estimate shrub cover in our CLUS model so Im not sure how this will influence our results since I dont think I can track it over time. Maybe I should include it in Open or disturbed?
 
-ignition_pres_abs3$bclcs_level_4<- as.factor(ignition_pres_abs3$bclcs_level_4)
-ignition_pres_abs4<- ignition_pres_abs3 %>% drop_na(bclcs_level_4) # this drops from 176706 to 176666  locations so I think its ok to remove the NA's
-unique(ignition_pres_abs4$bclcs_level_4)
+ignition_pres_abs3$bclc__4<- as.factor(ignition_pres_abs3$bclc__4)
+ignition_pres_abs4<- ignition_pres_abs3 %>% drop_na(bclc__4) # this drops from 176706 to 176666  locations so I think its ok to remove the NA's
+unique(ignition_pres_abs4$bclc__4)
 
 ignition_pres_abs4$vegtype<-"OP" #setting anything that is not one of the categories below to Open.
 ignition_pres_abs4 <- ignition_pres_abs4 %>%
-  mutate(vegtype = if_else(bclcs_level_4=="TC","TC", # Treed coniferous
-                           if_else(bclcs_level_4=="TM", "TM", # Treed mixed
-                                   if_else(bclcs_level_4== "TB","TB", #Treed broadleaf
-                                           if_else(bclcs_level_4=="SL", "S", # shrub
-                                                   if_else(bclcs_level_4=="ST", "S", vegtype))))))
-ignition_pres_abs4$vegtype[which(ignition_pres_abs4$proj_age_1 <16)]<-"D" # disturbed -  following Marchal et al 2017 I make anything that is younger than 15 years old to disturbed. This might be something I should check whether this assumption is ok.
+  mutate(vegtype = if_else(bclc__4=="TC","TC", # Treed coniferous
+                           if_else(bclc__4=="TM", "TM", # Treed mixed
+                                   if_else(bclc__4== "TB","TB", #Treed broadleaf
+                                           if_else(bclc__4=="SL", "S", # shrub
+                                                   if_else(bclc__4=="ST", "S", vegtype))))))
+ignition_pres_abs4$vegtype[which(ignition_pres_abs4$prj_g_1 <16)]<-"D" # disturbed -  following Marchal et al 2017 I make anything that is younger than 15 years old to disturbed. This might be something I should check whether this assumption is ok.
 
 #ignition_pres_abs4<- ignition_pres_abs4 %>% filter(fir_typ!="Nuisance Fire") 
 table(ignition_pres_abs4$vegtype, ignition_pres_abs4$fire_cs)
 
 # look at vegetation height, volume and age as we track these in CLUS. 
-ignition_pres_abs4$proj_age_1<- as.numeric(ignition_pres_abs4$proj_age_1)
-hist(ignition_pres_abs4$proj_age_1)
-hist(ignition_pres_abs4$proj_height_1) # not sure we have height in CLUS, we do have volume though. So maybe I should include age and volume in my model. This might be a surrogate for height
-hist(ignition_pres_abs4$live_stand_volume_125)
-hist(log(ignition_pres_abs4$live_stand_volume_125))
+ignition_pres_abs4$prj_g_1<- as.numeric(ignition_pres_abs4$prj_g_1)
+hist(ignition_pres_abs4$prj_g_1)
+hist(ignition_pres_abs4$prj_h_1) # not sure we have height in CLUS, we do have volume though. So maybe I should include age and volume in my model. This might be a surrogate for height
+hist(ignition_pres_abs4$l___125)
+hist(log(ignition_pres_abs4$l___125))
 ```
 
 Try saving file again.
 
 ```{r}
-st_write(ignition_pres_abs4, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Fire_data_all_with_veg.shp", delete_layer=TRUE)
+st_write(ignition_pres_abs4, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Fire_data_all_with_veg.shp", delete_layer=TRUE)
  
 ##To save to clus, need OsGeo4W
 #Modify below with correct credentials and upload on clus as desired
@@ -445,230 +463,6 @@ ls()
 gc(TRUE)
 
 ```
-
-Now, we must subsample the data since the sample sizes for the zeros are too large. At least two different papers used 1.5 times the number of presence points as absences. See:
-   - Chang et al (2013) Predicting fire occurrence patterns with logistic regression in Heilongjiang Province, China. Landscape Ecology 28, 1989-2004 and
-   - Catry et al. (2009) Modeling and mapping wildfire ignition risk in Portugal. International Journal of Wildland Fire 18, 921-931.
-
-# Steps for subsampling:
-First, get sample sizes per habitat type and year for the 1's. 
-Then sample 2x or some amount more than that value in each of those vegetation, year categories. 
-See https://jennybc.github.io/purrr-tutorial/ls12_different-sized-samples.html for an idea on how to do this.
-
-This will be done separately for lightning and person caused fires. 
-
-We must subsample the data since the sample sizes for the zeros are too large. At least two different papers used 1.5 times the number of presence points as absences. See:
-   - Chang et al (2013) Predicting fire occurrence patterns with logistic regression in Heilongjiang Province, China. Landscape Ecology 28, 1989-2004 and
-   - Catry et al. (2009) Modeling and mapping wildfire ignition risk in Portugal. International Journal of Wildland Fire 18, 921-931.
-
-# Steps for subsampling:
-First, get sample sizes per habitat type and year for the 1's. 
-Then sample 2x or some amount more than that value in each of those vegetation, year categories. 
-See https://jennybc.github.io/purrr-tutorial/ls12_different-sized-samples.html for an idea on how to do this.
-
-This will be done separately for lightning and person caused fires. We will first prepare the tables for both lightning and person caused fires, and then we will perform for each separately.
-
-```{r}
-#Set geometry to null for processing below
-fire_veg_data_lightning_NA_5x_<-st_set_geometry(fire_veg_data_lightning_NA_5x, NULL)
-fire_veg_data_person_NA_5x_<-st_set_geometry(fire_veg_data_person_NA_5x, NULL)
-```
-
-The step preparing the tables can take a very long time for the NAs since there are a few hundred thousand. Once you prepare these tables, you do not need to prepare them again as long as they are still saved in your R environment. Once geometry is set to null, however, the processing should be really fast.
-
-```{r}
-##Lightning caused - preparing the tables
-pre<- fire_veg_data_lightning_NA_5x_ %>%
-  filter(fire==1) %>%
-  dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
-  group_by(fire_yr, zone, bclcs_level_2) %>%
-  summarize(fire_n=n())
-head(pre)
-
-##Get NA points
-pre_checkpre<- fire_veg_data_lightning_NA_5x_ %>%
-  filter(fire==0) %>%
-  dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
-  group_by(fire_yr, zone, bclcs_level_2) %>%
-  summarize(abs_n=n())
-head(pre_checkpre)
-```
-
-This next chunk also takes quite a bit of time.
-
-```{r}
-check<-left_join(pre, pre_checkpre)
-check %>% print(n=100) # hmm there are some NA's in the 0 column. I should probably correct that.
-```
-
-
-```{r}
-abs_match <- fire_veg_data_lightning_NA_5x_ %>%
-  filter(fire == 0) %>%
-  group_by(fire_yr, zone, bclcs_level_2) %>%   # prep for work by yr and veg type
-  nest() %>%              # --> one row per yr and vegtype
-  ungroup()
-
-df<-left_join(check, abs_match) # make sure there are not veg year combinations that are not also in the fire_pres==1 file
-
-
-# there are several year, zone, subzone combinations with no data in the tibble.  This code below removes the Null values. I should increase my sample of fire absences so that I don't have any combinations with zero data or sample it in a different way. TO DO!
-df2 <- df %>% 
-  filter(lengths(data)>0)
-```
-
-Note: each time you subsample with the code below, you will end up with different random points where fires did not occur. As a result, the results of the subsequent model selection may differ. You may wish to create different random points each a few times to ensure that the same climate variables come out as the top ones for each BEC zone, especially for those with small sample sizes for where fires occurred.
-
-```{r}
-# here I sample from the tibble the number of data points I want for the absences
-# I should probably have replace = false but there are a few rows where there are more fire ignitions in that subzone than randomly sampled locations which is causing issues with this code. For now I'll leave it like this.
-  sampled_df<- df2 %>% 
-    mutate(samp = map2(data, ceiling(fire_n*2), sample_n, replace=TRUE)) %>%
-    dplyr::select(-data) %>%
-    unnest(samp) %>%
-    dplyr::select(fire_yr, zone, subzone, bclcs_level_2, feature_id:vegtype)
- 
-# joining my subsampled absence data back to the fire ignition presence data
-pre1<- fire_veg_data_lightning_NA_5x_ %>%
-  filter(fire==1)
-dim(sampled_df) # 
-dim(pre1) #  15228 rows
-
-dat_lightning<- rbind(pre1, as.data.frame(sampled_df))
-dim(dat_lightning) # 37673 rows good this worked I think; Cora July 5 has 45656 rows. This is fewer than the >180,000 rows of the data at the end of file 01
-
-head(dat_lightning)
-str(dat_lightning)
-table(dat_lightning$fire_cs)
-```
-
-If all looks good from above, then save data.
-
-```{r}
-#Write file
-st_write(dat_lightning, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis_Oct.shp", delete_layer=TRUE)
-
-write.csv(dat_lightning, "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis_Oct.csv")
-
-```
-
-Now we will repeat the process for person-caused fires.
-
-```{r}
-##Person caused fires: table preparations
-pre2<- fire_veg_data_person_NA_5x_ %>%
-  filter(fire==1) %>%
-  dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
-  group_by(fire_yr, zone, bclcs_level_2) %>%
-  summarize(fire_n=n())
-
-pre_checkpre<- fire_veg_data_person_NA_5x_ %>%
-  filter(fire==0) %>%
-  dplyr::select(fire_yr, fire, zone, bclcs_level_2) %>%
-  group_by(fire_yr, zone, bclcs_level_2) %>%
-  summarize(abs_n=n())
-
-check2<-left_join(pre2, pre_checkpre)
-check2 %>% print(n=100) # hmm there are some NA's in the 0 column. I should probably correct that.
-
-abs_match2 <- fire_veg_data_person_NA_5x_ %>%
-  filter(fire == 0) %>%
-  group_by(fire_yr, zone, bclcs_level_2) %>%   # prep for work by yr and veg type
-  nest() %>%              # --> one row per yr and vegtype
-  ungroup()
-
-dfp<-left_join(check2, abs_match2) # make sure there are not veg year combinations that are not also in the fire_pres==1 file
-
-
-# there are several year, zone, subzone combinations with no data in the tibble.  This code below removes the Null values. I should increase my sample of fire absences so that I don't have any combinations with zero data or sample it in a different way. TO DO!
-df2 <- dfp %>% 
-  filter(lengths(data)>0)
-```
-
-Now subsample from the created tables. Once again, if the above tables remain in your R Environment, you can subsample a few times to run the climate variable selection analyses.
-
-```{r}
-# here I sample from the tibble the number of data points I want for the absences
-# I should probably have replace = false but there are a few rows where there are more fire ignitions in that subzone than randomly sampled locations which is causing issues with this code. For now I'll leave it like this.
-  sampled_df<- df2 %>% 
-    mutate(samp = map2(data, ceiling(fire_n*2), sample_n, replace=TRUE)) %>%
-    dplyr::select(-data) %>%
-    unnest(samp) %>%
-    dplyr::select(fire_yr, zone, subzone, bclcs_level_2, feature_id:vegtype)
- 
-# joining my subsampled absence data back to the fire ignition presence data
-pre2<- fire_veg_data_person_NA_5x_ %>%
-  filter(fire==1)
-dim(sampled_df) #  rows
-dim(pre2) #   rows
-
-dat_person<- rbind(pre2, as.data.frame(sampled_df))
-dim(dat_person) # 
-
-head(dat_person)
-str(dat_person)
-table(dat_person$fire_cs)
-```
-
-If data looks good, save file.
-
-```{r}
-#Write file
-st_write(dat_person, dsn = "D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis_Oct.shp", delete_layer=TRUE) 
-
-write.csv(dat_person,"D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis_Oct.csv")
-
-```
-
-
-Upload these files to the clus database
-
-```{r}
-##Lightning Caused
-connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
-                      host = key_get('dbhost', keyring = 'postgreSQL'),
-                      user = key_get('dbuser', keyring = 'postgreSQL'),
-                      dbname = key_get('dbname', keyring = 'postgreSQL'),
-                      password = key_get('dbpass', keyring = 'postgreSQL'),
-                      port = "5432")
-
-st_write (obj = dat_lightning, 
-          dsn = connKyle, 
-          layer = c ("public", "dat_lightning_for_analysis"))
-
-
-dbDisconnect (connKyle)
-
-
-#Person caused
-connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
-                      host = key_get('dbhost', keyring = 'postgreSQL'),
-                      user = key_get('dbuser', keyring = 'postgreSQL'),
-                      dbname = key_get('dbname', keyring = 'postgreSQL'),
-                      password = key_get('dbpass', keyring = 'postgreSQL'),
-                      port = "5432")
-
-st_write (obj = dat_person, 
-          dsn = connKyle, 
-          layer = c ("public", "dat_person_for_analysis"))
-
-
-dbDisconnect (connKyle)
-
-#probably works better to save via this:
-
-#key_get('dbpass', keyring = 'postgreSQL')
-
-#Save to postgre
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis_Oct.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
-
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_person_for_analysis_Oct.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
-
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis_Oct.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
-
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\dat_lightning_for_analysis_Oct.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
-```
-
 
 ```{r}
 

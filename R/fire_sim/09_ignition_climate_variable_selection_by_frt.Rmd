@@ -63,7 +63,7 @@ Now we must bring in the data that we created at the end of 08_VRI_data_prep. We
 Note: October 21, 2021, the below files no longer appear to be on postgres
 
 ```{r}
-fire_ignitions<-st_read("C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Fire_data_all_with_veg.shp") 
+fire_ignitions<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Fire_data_all_with_veg.shp") 
 
 # need to update below
 #bring in lightning caused fire data
@@ -327,7 +327,6 @@ We must subsample the data since the sample sizes for the zeros are too large. A
 The step preparing the tables can take a very long time for the NAs since there are a few hundred thousand. Once you prepare these tables, you do not need to prepare them again as long as they are still saved in your R environment. Once geometry is set to null, however, the processing should be really fast.
 
 ```{r}
-
 #fire_ignitions2<-st_set_geometry(fire_ignitions, NULL)
 
 ##Lightning caused - preparing the tables

@@ -1,5 +1,5 @@
 ---
-title: "09_Fire_ignition_model_fits_by_NDT_data_prep"
+title: "09_Fire_ignition_model_fits_by_FRT_data_prep"
 author: "Elizabeth Kleynhans and Cora Skaien"
 contributor: "Peter Ott"
 date: "20/04/2021"
@@ -77,8 +77,8 @@ Note: Some climate variables resulted in delta AIC values that were very similar
 
 ```{r, AIC table, echo = F, message = F, eval = T}
 
-climate_variables_lightning<-read.csv("C:/Work/caribou/clus/R/fire_sim/data/Final_Selected_Climate_Variables_Lightning_FRT.csv")
-climate_variables_person<-read.csv("C:/Work/caribou/clus/R/fire_sim/data/Final_Selected_Climate_Variables_Person_FRT.csv")
+climate_variables_lightning<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/Final_Selected_Climate_Variables_Lightning_FRT.csv")
+climate_variables_person<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/Final_Selected_Climate_Variables_Person_FRT.csv")
 
 head(climate_variables_lightning) 
 head(climate_variables_person) 
@@ -106,7 +106,8 @@ kable (climate_variables_person,
 ## Pull in the data for both lightning and person caused fires. Note, below seems to not be working and currently I am bringing it in from my local computer.
 
 ```{r}
-dat_lightning<-read.csv("C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\dat_lightning_for_analysis.csv")
+dat_lightning<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_lightningfor_analysis.csv")
+which(dat_lightning$prj_g_1 <16) # checking that I still have young forests
 
 
 # connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
@@ -115,7 +116,7 @@ dat_lightning<-read.csv("C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\dat_lightnin
 #                       dbname = key_get('dbname', keyring = 'postgreSQL'),
 #                       password = key_get('dbpass', keyring = 'postgreSQL'),
 #                       port = "5432")
-# dat_lightning_ <- sf::st_read  (dsn = connKyle, # connKyle
+# dat_lightning <- sf::st_read  (dsn = connKyle, # connKyle
 #                                query = "SELECT * FROM Data_Lightning")
 # dbDisconnect (connKyle)
 
@@ -125,8 +126,8 @@ head(dat_lightning)
 
 
 ```{r}
-dat_person<-read.csv("C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\dat_human_for_analysis.csv")
-
+dat_person<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_human_for_analysis.csv")
+which(dat_person$prj_g_1 <16) # checking that I still have young 
 
 # connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
 #                       host = key_get('dbhost', keyring = 'postgreSQL'),
@@ -142,6 +143,8 @@ head(dat_person)
 
 ```
 
+### maybe dont do this next part because as we see later not all locations that are assumed to be disturbed are
+
 When doing the below analyses, it was noticed that disturbed areas often get eliminated when NAs are removed from the final data used for the model. Here, we investigate what variables are missing.
 
 ```{r}
@@ -154,6 +157,7 @@ dat_Disturbed$l___125[is.na(dat_Disturbed$l___125)]<-0
 dat_lightning2<-subset(dat_lightning, dat_lightning$vegtype!="D")
 dat_lightning3<-rbind(dat_lightning2, dat_Disturbed)
 dim(dat_lightning3)
+which(dat_lightning3$prj_g_1 <16)
 
 hist(dat_Disturbed$prj_g_1) #prj_g_1 must be proj_age_1 #All under 15 years, as expected given the classification of disturbed if below 15 years
 table(dat_Disturbed$prj_g_1)
@@ -207,16 +211,16 @@ Now we will create additional columns that have the climate1 and climate2 variab
 ```{r}
 #View top variable
 climate_variables_lightning
-names(dat_lightning3)
-unique(dat_lightning3$frt)
+names(dat_lightning)
+unique(dat_lightning$frt)
 #dat_lightning3$frt<-as.character(dat_lightning3$frt)
-dat_lightning3$frt<-as.numeric(dat_lightning3$frt)
+dat_lightning$frt<-as.numeric(dat_lightning$frt)
 
-table(dat_lightning3$frt)
+table(dat_lightning$frt)
 
 ## Create empty vector
-dat_lightning3$climate1<-"NA"
-head(dat_lightning3)
+dat_lightning$climate1<-"NA"
+head(dat_lightning)
 
 # dat_lightning <- dat_lightning3 %>%
 #   mutate(climate1 = if_else(frt==3, mean_MDC05_MDC06,
@@ -230,17 +234,17 @@ head(dat_lightning3)
 #                     if_else(frt==14, Tmax08,
 #                     if_else(frt==15, mean_RH07_RH08, climate1)))))))))))
 # make sure value are numbers otherwise it seems to not work.
-dat_lightning3$PPT09<-as.numeric(dat_lightning3$PPT09)
-dat_lightning<-dat_lightning3 %>%
+dat_lightning$PPT09<-as.numeric(dat_lightning$PPT09)
+dat_lightning<-dat_lightning %>%
     mutate(climate1 = case_when(frt =="3" ~ mean_MDC05_MDC06,
                             frt == "5" ~ mean_PPT05_PPT06_PPT07,
                             frt == "7" ~ mean_RH05_RH06_RH07,
-                            frt == "9" ~ PPT09,
+                            frt == "9" ~ mean_Tmax05_Tmax06_Tmax07_Tmax08,
                             frt == "10" ~ Tave07,
-                            frt == "11" ~ Tave08,
+                            frt == "11" ~ mean_Tave05_Tave06_Tave07_Tave08_Tave09,
                             frt == "12" ~ mean_Tmax07_Tmax08,
                             frt == "13" ~ mean_Tave07_Tave08,
-                            frt == "14" ~ Tmax08,
+                            frt == "14" ~ mean_Tmax07_Tmax08,
                             frt == "15" ~ mean_RH07_RH08,
                             TRUE ~ NA_real_))
 
@@ -250,9 +254,7 @@ dat_lightning$climate2<-"NA"
 #Perform mutate to get the applicable variable for each row
 dat_lightning<-dat_lightning %>%
     mutate(climate2 = case_when(
-                            frt == "10" ~ PPT07,
-                            frt == "11" ~ PPT08,
-                            frt == "14" ~ PPT08))
+                            frt == "10" ~ PPT07))
 
 head(dat_lightning)
 
@@ -296,29 +298,29 @@ dat_person3$frt<-as.numeric(dat_person3$frt)
 table(dat_person3$frt)
 
 ## Create empty vector
-dat_person3$climate1<-"NA"
-head(dat_person3)
+dat_person$climate1<-"NA"
+head(dat_person)
 
-dat_person<-dat_person3 %>%
+dat_person<-dat_person %>%
     mutate(climate1 = case_when(frt == "3" ~ mean_RH05_RH06_RH07,
                                 frt == "5" ~ mean_PPT06_PPT07,
                                 frt == "7" ~ mean_Tmax05_Tmax06_Tmax07_Tmax08,
-                                frt == "9" ~ Tmax05, # NDT4
-                                frt == "10" ~ mean_PPT07_PPT08_PPT09,
+                                frt == "9" ~ mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09   , # NDT4
+                                frt == "10" ~ mean_PPT06_PPT07_PPT08_PPT09   ,
                                 frt == "11" ~ mean_MDC06_MDC07,
                                 frt == "12" ~ mean_Tave05_Tave06_Tave07_Tave08_Tave09,
                                 frt == "13" ~ mean_Tave05_Tave06_Tave07_Tave08_Tave09,
                                 frt == "14" ~ mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09,
-                                frt == "15" ~ Tave08))
+                                frt == "15" ~ mean_Tmax07_Tmax08_Tmax09  ))
 
-#Repeat for climate 2
-dat_person$climate2<-"NA"
-
-#Perform mutate to get the applicable variable for each row
-dat_person<-dat_person %>%
-    mutate(climate2 = case_when(
-                                frt == "9" ~ PPT05,
-                                frt == "15" ~ PPT08))
+# #Repeat for climate 2
+# dat_person$climate2<-"NA"
+# 
+# #Perform mutate to get the applicable variable for each row
+# dat_person<-dat_person %>%
+#     mutate(climate2 = case_when(
+#                                 frt == "9" ~ PPT05,
+#                                 frt == "15" ~ PPT08))
 
 head(dat_person)
 
@@ -418,6 +420,7 @@ p # seems like there is probably no relationship with elevation
 
 ```{r}
 ###################################
+# bring in shape file of FRT's
 frt_map<-st_read("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\frt_clipped.shp")
 
 prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
@@ -663,7 +666,8 @@ p <- ggplot(dat_lightning, aes(prj_g_1, as.numeric(fire))) +
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("proj_age_1") + ylab("Pr (ignition)")
+  xlab("proj_age_1") + ylab("Pr (ignition)") +
+  facet_wrap(frt ~ ., ncol=3)
 p
 
 p <- ggplot(dat_lightning, aes(prj_h_1, as.numeric(fire))) +
@@ -671,7 +675,8 @@ p <- ggplot(dat_lightning, aes(prj_h_1, as.numeric(fire))) +
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("proj_height_1") + ylab("Pr (ignition)")
+  xlab("proj_height_1") + ylab("Pr (ignition)")+
+  facet_wrap(frt ~ ., ncol=3)
 p
 
 p <- ggplot(dat_lightning, aes(l___125, as.numeric(fire))) +
@@ -679,7 +684,8 @@ p <- ggplot(dat_lightning, aes(l___125, as.numeric(fire))) +
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("live_stand_volume_125") + ylab("Pr (ignition)")
+  xlab("live_stand_volume_125") + ylab("Pr (ignition)")+
+  facet_wrap(frt ~ ., ncol=3)
 p
 ```
 
@@ -691,7 +697,8 @@ p_inf <- ggplot(dat_lightning, aes(infr_ds, as.numeric(fire))) +
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Distance to Any Infrastructure") + ylab("Pr (ignition)")
+  xlab("Distance to Any Infrastructure") + ylab("Pr (ignition)") +
+  facet_wrap(frt ~ ., ncol=3)
 p_inf
 
 p_rd <- ggplot(dat_lightning, aes(rd_dst_, as.numeric(fire))) +
@@ -699,7 +706,8 @@ p_rd <- ggplot(dat_lightning, aes(rd_dst_, as.numeric(fire))) +
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Distance to roads") + ylab("Pr (ignition)")
+  xlab("Distance to roads") + ylab("Pr (ignition)") +
+  facet_wrap(frt ~ ., ncol=3)
 p_rd
 
 ```
@@ -758,7 +766,8 @@ p_elev <- ggplot(dat_person, aes(elevatn, as.numeric(fire))) +
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("elevation") + ylab("Pr (ignition)")
+  xlab("elevation") + ylab("Pr (ignition)") +
+  facet_wrap(frt ~ ., ncol=3)
 p_elev
 # lower elevations have more ignitions
 
@@ -768,7 +777,8 @@ p_rds <- ggplot(dat_person, aes(rd_dst_, as.numeric(fire))) +
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Road Density") + ylab("Pr (ignition)")
+  xlab("Road Density") + ylab("Pr (ignition)") +
+  facet_wrap(frt ~ ., ncol=3)
 p_rds
 
 ggplot(dat_person, aes(x = rd_dst_)) +
@@ -780,7 +790,8 @@ p_inf <- ggplot(dat_person, aes(infr_ds, as.numeric(fire))) +
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Road Density") + ylab("Pr (ignition)")
+  xlab("Road Density") + ylab("Pr (ignition)") +
+  facet_wrap(frt ~ ., ncol=3)
 p_inf
 
 ggplot(dat_person, aes(x = infr_ds)) +
@@ -814,6 +825,18 @@ p_3 <- ggplot(dat_person %>% filter(frt==3), aes(mean_RH05_RH06_RH07, as.numeric
   xlab("mean_RH05_RH06_RH07") + ylab("Pr (ignition)")
 p_3
 
+frt_map3<-frt_map %>% filter(Cluster==3)
+p3_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map3,colour="blue", fill="blue") +
+  coord_sf()
+
+p_3 + annotation_custom(ggplotGrob(p3_map), xmin = 61, xmax = 65,
+                        ymin = 0.17, ymax = 0.85)
+
+
 # FRT 5
 p_5 <- ggplot(dat_person %>% filter(frt==5), aes(mean_PPT06_PPT07, as.numeric(fire))) +
   geom_smooth(method="glm", formula=y~x,
@@ -822,6 +845,18 @@ p_5 <- ggplot(dat_person %>% filter(frt==5), aes(mean_PPT06_PPT07, as.numeric(fi
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("mean_PPT06_PPT07") + ylab("Pr (ignition)")
 p_5
+
+frt_map5<-frt_map %>% filter(Cluster==5)
+p5_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map5,colour="blue", fill="blue") +
+  coord_sf()
+
+p_5 + annotation_custom(ggplotGrob(p5_map), xmin = 125, xmax = 180,
+                        ymin = 0.17, ymax = 0.85)
+
 
 # FRT 7
 p_7 <- ggplot(dat_person %>% filter(frt==7), aes(mean_Tmax05_Tmax06_Tmax07_Tmax08
@@ -833,6 +868,18 @@ p_7 <- ggplot(dat_person %>% filter(frt==7), aes(mean_Tmax05_Tmax06_Tmax07_Tmax0
   xlab("mean_Tmax05_Tmax06_Tmax07_Tmax08") + ylab("Pr (ignition)")
 p_7
 
+frt_map7<-frt_map %>% filter(Cluster==7)
+p7_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map7,colour="blue", fill="blue") +
+  coord_sf()
+
+p_7 + annotation_custom(ggplotGrob(p7_map), xmin = 16, xmax = 19,
+                        ymin = 0.17, ymax = 0.85)
+
+
 #FRT_9
 p_9 <- ggplot(dat_person %>% filter(frt==9), aes(mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09
 , as.numeric(fire))) +
@@ -842,6 +889,18 @@ p_9 <- ggplot(dat_person %>% filter(frt==9), aes(mean_Tmax05_Tmax06_Tmax07_Tmax0
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09") + ylab("Pr (ignition)")
 p_9
+
+frt_map9<-frt_map %>% filter(Cluster==9)
+p9_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map9,colour="blue", fill="blue") +
+  coord_sf()
+
+p_9 + annotation_custom(ggplotGrob(p9_map), xmin = 10, xmax = 13,
+                        ymin = 0.17, ymax = 0.85)
+
 
 #FRT10
 p_10 <- ggplot(dat_person %>% filter(frt==10), aes(mean_PPT06_PPT07_PPT08_PPT09
@@ -853,6 +912,18 @@ p_10 <- ggplot(dat_person %>% filter(frt==10), aes(mean_PPT06_PPT07_PPT08_PPT09
   xlab("mean_PPT06_PPT07_PPT08_PPT09") + ylab("Pr (ignition)")
 p_10
 
+frt_map10<-frt_map %>% filter(Cluster==10)
+p10_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map10,colour="blue", fill="blue") +
+  coord_sf()
+
+p_10 + annotation_custom(ggplotGrob(p10_map), xmin = 300, xmax = 500,
+                        ymin = 0.17, ymax = 0.85)
+
+
 # FRT 11
 p_11 <- ggplot(dat_person %>% filter(frt==11), aes(mean_MDC06_MDC07
 , as.numeric(fire))) +
@@ -862,6 +933,18 @@ p_11 <- ggplot(dat_person %>% filter(frt==11), aes(mean_MDC06_MDC07
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("mean_MDC06_MDC07") + ylab("Pr (ignition)")
 p_11
+
+frt_map11<-frt_map %>% filter(Cluster==11)
+p11_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map11,colour="blue", fill="blue") +
+  coord_sf()
+
+p_11 + annotation_custom(ggplotGrob(p11_map), xmin = 75, xmax = 125,
+                        ymin = 0.17, ymax = 0.85)
+
 
 # FRT 12
 p_12 <- ggplot(dat_person %>% filter(frt==12), aes(mean_Tave05_Tave06_Tave07_Tave08_Tave09
@@ -873,6 +956,18 @@ p_12 <- ggplot(dat_person %>% filter(frt==12), aes(mean_Tave05_Tave06_Tave07_Tav
   xlab("mean_Tave05_Tave06_Tave07_Tave08_Tave09") + ylab("Pr (ignition)")
 p_12
 
+frt_map12<-frt_map %>% filter(Cluster==12)
+p12_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map12,colour="blue", fill="blue") +
+  coord_sf()
+
+p_12 + annotation_custom(ggplotGrob(p12_map), xmin = 7.5, xmax = 11,
+                        ymin = 0.17, ymax = 0.85)
+
+
 # FRT 13
 p_13 <- ggplot(dat_person %>% filter(frt==13), aes(mean_Tave05_Tave06_Tave07_Tave08_Tave09
 , as.numeric(fire))) +
@@ -882,6 +977,18 @@ p_13 <- ggplot(dat_person %>% filter(frt==13), aes(mean_Tave05_Tave06_Tave07_Tav
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("mean_Tave05_Tave06_Tave07_Tave08_Tave09") + ylab("Pr (ignition)")
 p_13
+
+frt_map13<-frt_map %>% filter(Cluster==13)
+p13_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map13,colour="blue", fill="blue") +
+  coord_sf()
+
+p_13 + annotation_custom(ggplotGrob(p13_map), xmin = 5, xmax = 10,
+                        ymin = 0.17, ymax = 0.85)
+
 
 # FRT 14
 
@@ -894,6 +1001,17 @@ p_14 <- ggplot(dat_person %>% filter(frt==14), aes(mean_Tmax05_Tmax06_Tmax07_Tma
   xlab("mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09") + ylab("Pr (ignition)")
 p_14
 
+frt_map14<-frt_map %>% filter(Cluster==14)
+p14_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map14,colour="blue", fill="blue") +
+  coord_sf()
+
+p_14 + annotation_custom(ggplotGrob(p14_map), xmin = 14, xmax = 20,
+                        ymin = 0.17, ymax = 0.85)
+
 p_15 <- ggplot(dat_person %>% filter(frt==15), aes(mean_Tmax07_Tmax08_Tmax09
 , as.numeric(fire))) +
   geom_smooth(method="glm", formula=y~x,
@@ -903,13 +1021,28 @@ p_15 <- ggplot(dat_person %>% filter(frt==15), aes(mean_Tmax07_Tmax08_Tmax09
   xlab("mean_Tmax07_Tmax08_Tmax09") + ylab("Pr (ignition)")
 p_15
 
+frt_map15<-frt_map %>% filter(Cluster==15)
+p15_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map15,colour="blue", fill="blue") +
+  coord_sf()
+
+p_15 + annotation_custom(ggplotGrob(p15_map), xmin = 13, xmax = 17,
+                        ymin = 0.17, ymax = 0.85)
+
+# nice alternative figure but cant add a map or Im not sure how to.
+library(popbio)
+logi.hist.plot(dat_person$mean_Tmax07_Tmax08_Tmax09,dat_person$fire,boxp=FALSE,type="hist",col="gray")
+
 
 ```
 
 #VRI variables
 
 ```{r}
-p <- ggplot(dat_person_, aes(proj_age_1, as.numeric(fire_pres))) +
+p <- ggplot(dat_person, aes(prj_a_1, as.numeric(fire))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
@@ -917,7 +1050,7 @@ p <- ggplot(dat_person_, aes(proj_age_1, as.numeric(fire_pres))) +
   xlab("proj_age_1") + ylab("Pr (ignition)")
 p
 
-p <- ggplot(dat_person_, aes(proj_height_1, as.numeric(fire_pres))) +
+p <- ggplot(dat_person, aes(prj_h_1, as.numeric(fire))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
@@ -934,75 +1067,13 @@ p <- ggplot(dat_person_, aes(live_stand_volume_125, as.numeric(fire_pres))) +
 p
 ```
 
-Check for patterns by difference in temperature.
-
-```{r}
-
-#Lightning Caused fires
-p <- ggplot(dat_lightning_, aes(Tdif_atfire, as.numeric(fire_pres))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Temperature Difference From Month Before") + ylab("Pr (ignition)")
-p # problem here is that all events of no far are clustered in middle
-
-p <- ggplot(dat_lightning_, aes(Tdif_atfireB, as.numeric(fire_pres))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Temperature Difference From Month Before") + ylab("Pr (ignition)")
-p # problem here is that all events of no far are clustered in middle
-
-p <- ggplot(dat_lightning_, aes(Tdif_atfire2, as.numeric(fire_pres))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Temperature Difference From Month Before") + ylab("Pr (ignition)")
-p #problem here is that all events of fire are clustered towards the high end
-
-#Person caused fires
-p <- ggplot(dat_person_, aes(Tdif_atfire, as.numeric(fire_pres))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Temperature Difference From Month Before") + ylab("Pr (ignition)")
-p # problem here is that all events of no far are clustered in middle
-
-p <- ggplot(dat_person_, aes(Tdif_atfire2, as.numeric(fire_pres))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Temperature Difference From Month Before") + ylab("Pr (ignition)")
-p #problem here is that all events of fire are clustered towards the high end
-
-```
-
-In the above, whether you use the mean or the max, you get the complete opposite pattern, and the locations where fire did not occur get clustered. Must ponder how to represent data best. Is there one month jump in particular that seems most intuitive? May also wish to use max temperatures and not just mean temperatures, but means of monthly temperature seems intuitive to me.
-
-Save data.
-
-```{r}
-write.csv(dat_lightning_, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_Oct.csv")
-
-write.csv(dat_person_, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_Oct.csv")
-
-#Can read the data in
-dat_lightning_<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Lightning_data_Oct.csv")
-
-dat_person_<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Person_data_Oct.csv")
-```
 
 #Before sub-setting data by treed and not treed, assess vegtype and land use type for both lightning and person-casued fires.
 
 Assess landuse type distribution
 ```{r}
-table(dat_lightning_$bclcs_level_5)
-table(dat_lightning_$bclcs_level_5, dat_lightning_$fire)
+table(dat_lightning$bclc__5)
+table(dat_lightning$bclc__5, dat_lightning$fire)
 
 ```
 BP: unspecified -> seems to be old code for urban. Combine with urban.
@@ -1029,59 +1100,64 @@ UR: Urban
 
 #Change some of the classifications
 ```{r}
-dat_lightning_$bclcs_level_5_2<-dat_lightning_$bclcs_level_5
+dat_lightning$bclcs_level_5_2<-dat_lightning$bclc__5
 #Change BP to UR since UR is the updated code for BP
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="BP"] <- "UR"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="BP"] <- "UR"
 
 #Make various snow/glacier categories into one
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="GL"] <- "SNOW"
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="PN"] <- "SNOW"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="GL"] <- "SNOW"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="PN"] <- "SNOW"
 
 #Make various rock categories (or road)
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="MI"] <- "ROCK"
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="MN"] <- "ROCK"
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="MZ"] <- "ROCK"
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="RZ"] <- "ROCK"
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="TA"] <- "ROCK"
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="TS"] <- "ROCK"
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="OT"] <- "ROCK"
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="GP"] <- "ROCK"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="MI"] <- "ROCK"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="MN"] <- "ROCK"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="MZ"] <- "ROCK"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="RZ"] <- "ROCK"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="TA"] <- "ROCK"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="TS"] <- "ROCK"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="OT"] <- "ROCK"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="GP"] <- "ROCK"
 
 #Categories for soil, sediments and mud
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="ES"] <- "SOIL"
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="LS"] <- "SOIL"
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="MU"] <- "SOIL"
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="RS"] <- "SOIL"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="ES"] <- "SOIL"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="LS"] <- "SOIL"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="MU"] <- "SOIL"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="RS"] <- "SOIL"
 
 #Combine CL and Op categories
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="CL"] <- "OP"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="CL"] <- "OP"
 
 #For comparison to determine which categories need changing
-table(dat_lightning_$bclcs_level_5)
-table(dat_lightning_$bclcs_level_5_2) #Rock and Snow categories are very small and this may be a problem. They may need to be combined later as "inflammable surface"
+table(dat_lightning$bclcs_level_5)
+table(dat_lightning$bclcs_level_5_2) #Rock and Snow categories are very small and this may be a problem. They may need to be combined later as "inflammable surface"
 
-table(dat_lightning_$bclcs_level_5_2, dat_lightning_$ntrl_ds)
+table(dat_lightning$bclcs_level_5_2, dat_lightning$frt)
 #Given how sparse rock, snow and soil is between these, let's make them all unvegetated
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="SOIL"] <- "UNVEG"
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="SNOW"] <- "UNVEG"
-dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="ROCK"] <- "UNVEG"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="SOIL"] <- "UNVEG"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="SNOW"] <- "UNVEG"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="ROCK"] <- "UNVEG"
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="BE"] <- "UNVEG" # BE = Beach
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="BI"] <- "UNVEG" # BI =  block field
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="TZ"] <- "UNVEG" # TZ = Tailings
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="UR"] <- "UNVEG" # UR = Urban
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="BU"] <- "UNVEG" # BU = burned but if you look at bclcs_level_4 you will notice that all BU's are classified as EL which is exposed land. So for ease Ill make them unvegetated.??
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="BR"] <- "UNVEG" # BR = bedrock Unfragmented, consolidated rock, contiguous with the underlying material.
+dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="RT"] <- "UNVEG" # not sure what RT is but in bclcs_level_4 its classified as RO which is rock so Ill make it unvegetated too
+
+
 
 #Check again
-table(dat_lightning_$bclcs_level_5_2, dat_lightning_$ntrl_ds)
+table(dat_lightning$bclcs_level_5_2, dat_lightning$bclc__4)
 
-table(dat_lightning_$bclcs_level_5_2, dat_lightning_$vegtype)
+table(dat_lightning$bclcs_level_5_2, dat_lightning$vegtype)
 #Still have 6 unspecified; for some reason, dense "DE" from level 5 corresponds to 542 open polygons from vegtype?? I see in definition that bryoids can be considered dense too. Use vegtype to refine. Unsure what the "OP" definition really means with bryoids... what is the remainder? Rock? Trees?
 
 #Create disturbed category if disturbed in last 16 years; add burn to this category
 #Because of colinearity issues later, perhaps we should not do this actually...
-#dat_lightning_$bclcs_level_5_2[which(dat_lightning_$vegtype =="D")]<-"DIST" 
-#dat_lightning_$bclcs_level_5_2[dat_lightning_$bclcs_level_5_2=="BU"] <- "DIST"
+#dat_lightning$bclcs_level_5_2[which(dat_lightning$vegtype =="D")]<-"DIST" 
+#dat_lightning$bclcs_level_5_2[dat_lightning$bclcs_level_5_2=="BU"] <- "DIST"
 
-table(dat_lightning_$bclcs_level_5_2)
-#There are only 7 burned sites distributed across 3 BEC zones; insufficient to do any analysis on anyway. Will remove.
-dat_lightning_<-subset(dat_lightning_,dat_lightning_$bclcs_level_5!="BU")
-dat_lightning_<-subset(dat_lightning_,dat_lightning_$bclcs_level_5!="RT")
-
+table(dat_lightning$bclcs_level_5_2)
 ```
 
 
@@ -1089,8 +1165,8 @@ dat_lightning_<-subset(dat_lightning_,dat_lightning_$bclcs_level_5!="RT")
 #Get the OP category in vegtype from DE in bclcs_type_5 into OP, and get the S from the former into SP in the latter.
 #OP: Open (Cover of bryoids is less than or equal to 50% of the polygon)--> what is the remainder? Rock? Trees? Confusing.
 # note: there are also many "open" designations in vegtype that come out as TB, TC and TM in the bclcs_type_5. This suggests our designations prior may not have been accurate?
-table(dat_lightning_$bclcs_level_4, dat_lightning_$vegtype)
-table(dat_lightning_$bclcs_level_5_2, dat_lightning_$vegtype)
+table(dat_lightning$bclcs_level_4, dat_lightning$vegtype)
+table(dat_lightning$bclcs_level_5_2, dat_lightning$vegtype)
 #BY: a bryoid polygon --> open seems good
 #EL: Exposed Land --> open seems good, but maybe disturbed possible too?
 #HE: Herb --> open seems good
@@ -1101,34 +1177,22 @@ table(dat_lightning_$bclcs_level_5_2, dat_lightning_$vegtype)
 
 
 #Repeat vegtype classification with new information
-dat_lightning_$vegtype2<-"OP" #setting anything that is not one of the categories below to Open.
-dat_lightning_ <- dat_lightning_ %>%
-  mutate(vegtype2 = if_else(bclcs_level_4=="TC","TC", # Treed coniferous
-                           if_else(bclcs_level_4=="TM", "TM", # Treed mixed
-                                   if_else(bclcs_level_4== "TB","TB", #Treed broadleaf
-                                           if_else(bclcs_level_4=="SL", "S", # shrub
-                                                   if_else(bclcs_level_4=="ST", "S", 
-                                                           if_else(bclcs_level_4=="RO","RO", #Rock
-                                                                   if_else(bclcs_level_4=="SI", "SI", #snow/Ice   
-                                                                           vegtype2))))))))
-dat_lightning_$vegtype2[which(dat_lightning_$proj_age_1 <16)]<-"D" #
-table(dat_lightning_$vegtype2) #D: Disturbed; OP: Open; RO: Rock; S: Shrub; SI: Snow/Ice; TB: Treed Broadleaf; TC: Treed Conifer; TM: Treed Mixed.
+dat_lightning$vegtype<-dat_lightning$bclcs_level_5_2 #setting anything that is not one of the categories below to Open.
+dat_lightning <- dat_lightning %>%
+  mutate(vegtype =if_else(bclc__5=="DE" & bclc__2=="N", "S", # if its dense but not treed Ill put it in the category shrubs.
+                  if_else(bclc__5=="SP" & bclc__2=="N", "S", # if its sparse and not treed Ill put it in the category shrubs.
+                  if_else(vegtype=="OP" & bclc__2=="N", "S",
+                  if_else(bclc__4=="SL", "S", # shrub
+                  if_else(bclc__4=="ST", "S",  
+                  if_else(bclc__4=="TC","TC", # Treed coniferous
+                  if_else(bclc__4=="TM", "TM", # Treed mixed
+                  if_else(bclc__4== "TB","TB", vegtype)))))))))
+
+dat_lightning$vegtype[which(dat_lightning$prj_g_1 <16)]<-"D" #
+table(dat_lightning$vegtype, dat_lightning$bclc__2) #D: Disturbed; UNVEG: unvegetated; S: Shrub; TB: Treed Broadleaf; TC: Treed Conifer; TM: Treed Mixed.
 
 
-table(dat_lightning_$bclcs_level_5_2, dat_lightning_$vegtype2)
-#Still have 6 unspecified; for some reason, dense "DE" from level 5 corresponds to 542 open polygons from vegtype?? I see in definition that bryoids can be considered dense too. Use vegtype to refine. Unsure what the "OP" definition really means with bryoids... what is the remainder? Rock? Trees?
-
-# Urban plots were also put into open; create as own category
-#Need bclcs_level_5_2 to be a factor prior to being able to succeed. Make other changes first in case this makes that not possible.
-dat_lightning_$bclcs_level_5_2 <-as.factor(dat_lightning_$bclcs_level_5_2)
-dat_lightning_$vegtype2[which(dat_lightning_$bclcs_level_5_2 =="UR")]<-"UR" #
-
-#Inspect
-table(dat_lightning_$vegtype2) #SI category is too small. Combine with Rock.
-dat_lightning_$vegtype2[dat_lightning_$vegtype2=="SI"] <- "RO"
-
-#We still have discrepenacies between open and dense in vegtype (derived from bclcs_level_4) and bclcs_level_5. Play them out for now.
-
+table(dat_lightning$bclcs_level_5_2, dat_lightning$vegtype)
 ```
 
 
@@ -1295,7 +1359,7 @@ head(dat_person)
 
 ```{r}
 
-write.csv(dat_lightning_, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_Oct.csv")
+write.csv(dat_lightning, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_Oct.csv")
 
 write.csv(dat_person, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_Oct.csv")
 
@@ -1305,55 +1369,55 @@ write.csv(dat_person, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_
 ## Examining correlation between stand level variables
 ```{r}
 # Examining the relationship between some stand level variables. Volume and height are fairly correlated (0.67) but age and volume are not (0.28) and neither are age and height (0.44). Because volume and height are very close to 0.7 in correlation I will leave out this combination of variables from my treed models. 
-table(dat_lightning_$bclcs_level_2) ##What is L? It is Land, exclude and do not use.
-dat_lightning_$fire_pres<-as.numeric(dat_lightning_$fire)
+table(dat_lightning$bclcs_level_2) ##What is L? It is Land, exclude and do not use.
+dat_lightning$fire_pres<-as.numeric(dat_lightning$fire)
 
-dat_lightning_t<- dat_lightning_ %>% dplyr::filter(bclcs_level_2=="T")
-dat_lightning_nt<- dat_lightning_ %>% dplyr::filter(bclcs_level_2=="N")
-dat_lightning_l<- dat_lightning_ %>% dplyr::filter(bclcs_level_2=="L")
+dat_lightningt<- dat_lightning %>% dplyr::filter(bclcs_level_2=="T")
+dat_lightningnt<- dat_lightning %>% dplyr::filter(bclcs_level_2=="N")
+dat_lightningl<- dat_lightning %>% dplyr::filter(bclcs_level_2=="L")
 
-table(dat_lightning_$vegtype2)
-table(dat_lightning_t$vegtype2) #either disturbed, open, treed broadleaf, treed conifer, or treed mixed broadleaf and conifer
-table(dat_lightning_nt$vegtype2) #either disturbed, open or shrub
+table(dat_lightning$vegtype2)
+table(dat_lightningt$vegtype2) #either disturbed, open, treed broadleaf, treed conifer, or treed mixed broadleaf and conifer
+table(dat_lightningnt$vegtype2) #either disturbed, open or shrub
 
-ggscatter(dat_lightning_t, x = "live_stand_volume_125", y = "proj_age_1", 
+ggscatter(dat_lightningt, x = "live_stand_volume_125", y = "proj_age_1", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "kendall",
           xlab = "live stand volume", ylab = "Stand age")
 
-ggscatter(dat_lightning_t, x = "live_stand_volume_125", y = "proj_height_1", 
+ggscatter(dat_lightningt, x = "live_stand_volume_125", y = "proj_height_1", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "kendall",
           xlab = "live stand volume", ylab = "Stand height")
 
-ggscatter(dat_lightning_t, x = "proj_age_1", y = "proj_height_1", 
+ggscatter(dat_lightningt, x = "proj_age_1", y = "proj_height_1", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "kendall",
           xlab = "proj_age_1", ylab = "Stand height")
 
-ggscatter(dat_lightning_t, x = "elevation", y = "roads_km", 
+ggscatter(dat_lightningt, x = "elevation", y = "roads_km", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "kendall",
           xlab = "Elevation", ylab = "Road Density") #minor negative relationship
 
-ggscatter(dat_lightning_nt, x = "elevation", y = "roads_km", 
+ggscatter(dat_lightningnt, x = "elevation", y = "roads_km", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "kendall",
           xlab = "Elevation", ylab = "Road Density") #minor negative relationship
 
 ##Note that some no tree areas also have tree attributes. This is likely because the majority of the polygon has no trees, but part of the polygon might have trees which are given attributes.
-hist(dat_lightning_nt$proj_height_1)
-hist(dat_lightning_nt$proj_age_1)
-hist(dat_lightning_nt$live_stand_volume_125) #Pretty much all NAs. Can likely assume 0.
-dat_lightning_nt$proj_height_1 #Also many NAs. 
-dat_lightning_nt$proj_age_1 # Also many NAs. 
+hist(dat_lightningnt$proj_height_1)
+hist(dat_lightningnt$proj_age_1)
+hist(dat_lightningnt$live_stand_volume_125) #Pretty much all NAs. Can likely assume 0.
+dat_lightningnt$proj_height_1 #Also many NAs. 
+dat_lightningnt$proj_age_1 # Also many NAs. 
 
-hist(dat_lightning_l$proj_height_1)
-hist(dat_lightning_l$proj_age_1)
-hist(dat_lightning_l$live_stand_volume_125)
+hist(dat_lightningl$proj_height_1)
+hist(dat_lightningl$proj_age_1)
+hist(dat_lightningl$live_stand_volume_125)
 ## This is ok. Still exclude from models, because majority of polygon will not be treed
 
-head(dat_lightning_t)
+head(dat_lightningt)
 
 ```
 
@@ -1417,9 +1481,9 @@ hist(dat_person_l$live_stand_volume_125)
 Save the prepped data
 
 ```{r}
-write.csv(dat_lightning_t, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_trees_NDT_Oct.csv")
+write.csv(dat_lightningt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_trees_NDT_Oct.csv")
 
-write.csv(dat_lightning_nt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_notrees_NDT_Oct.csv")
+write.csv(dat_lightningnt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_notrees_NDT_Oct.csv")
 
 write.csv(dat_person_t, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_trees_NDT_Oct.csv")
 
