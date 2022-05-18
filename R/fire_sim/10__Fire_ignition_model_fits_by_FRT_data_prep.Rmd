@@ -1191,7 +1191,6 @@ dat_lightning <- dat_lightning %>%
 dat_lightning$vegtype[which(dat_lightning$prj_g_1 <16)]<-"D" #
 table(dat_lightning$vegtype, dat_lightning$bclc__2) #D: Disturbed; UNVEG: unvegetated; S: Shrub; TB: Treed Broadleaf; TC: Treed Conifer; TM: Treed Mixed.
 
-
 table(dat_lightning$bclcs_level_5_2, dat_lightning$vegtype)
 ```
 
@@ -1201,110 +1200,60 @@ Note, there are different landuse types for the person-caused fires compared to 
 
 Assess landuse type distribution
 ```{r}
-table(dat_person_$bclcs_level_5)
-table(dat_person_$bclcs_level_5, dat_person_$fire)
+table(dat_person$bclc__5)
+table(dat_person$bclc__5, dat_person$fire)
 
-```
-AP: airport
-BE: Beach (An area with sorted sediments reworked in recent time by wave action, which may be formed at the edge of fresh or salt water bodies)
-BP: unspecified -> seems to be old code for urban. Combine with urban.
-BR: bedrock
-BU: Burned Area
-CB: cutbank (Part of a road corridor created upslope of the road surface, created by excavation into the hillside)
-CL: closed (Cover of bryoids is greater than 50% of the polygon) --> this one confuses me... closed canopy? Closed what?
-DE: dense (Tree, shrub, or herb cover is between 61% and 100% for the polygon)
-ES: Exposed Soil (Any exposed soil not covered by the other categories, such as areas of recent disturbance that include mud slides, debris torrents, avalanches, or disturbances such as pipeline rights-of-way or cultivated fields where vegetation cover is less than 5%)
-GL: glacier
-GP: Gravel Pit.
-LL: Landing (A compacted area adjacent to a road used for sorting and loading logs)
-LS: Pond or lake sediments (Exposed sediments related to dried lakes or ponds)
-MI: Open Pit Mine
-MN: Moraine (debris)
-MU: Mudflat (fine-textured sediments)
-MZ: Rubbly Mine Spoils (Discarded overburden or waste rock, moved to extract ore during mining.)
-OP: Open (Cover of bryoids is less than or equal to 50% of the polygon)
-OT: Other (A Non-Vegetated polygon where none of the above categories can be reliably chosen)
-PN: Snow Cover (Snow or ice that is not part of a glacier but is found during summer months on the landscape)
-RM: Reservoir Margin (Land exposed by a drained or fluctuating reservoir. It is found above "normal" water levels and may consist of a range of substrates including gravel, cobbles, fine sediments, or bedrock)
-RN: Railway Surface (A roadbed with fixed rails, which may contain single or multiple rail lines)
-RP: not specified
-RS: River Sediments
-RT: Not specified
-RZ:  Road Surface
-SP: sparse (Cover is between 10% and 25% for treed polygons, or cover is between 20% and 25% for shrub or herb polygons)
-TA: Talus (Rock fragments of any size accumulated on or at the foot of slopes as a result of successive rock falls. This is a type of colluvium)
-TS: unspecified. Seems to be old code for TZ. Tailings. An area containing the solid waste material produced in the mining and milling of ore
-TZ: Tailings (An area containing the solid waste material produced in the mining and milling of ore)
-UR: Urban
-
-#Change some of the classifications
-```{r}
-dat_person_$bclcs_level_5_2<-dat_person_$bclcs_level_5
+dat_person$bclcs_level_5_2<-dat_person$bclc__5
 #Change BP to UR since UR is the updated code for BP
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="BP"] <- "UR"
-#We will also make airport as urban
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="AP"] <- "UR"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="BP"] <- "UR"
 
 #Make various snow/glacier categories into one
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="GL"] <- "SNOW"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="PN"] <- "SNOW"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="GL"] <- "SNOW"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="PN"] <- "SNOW"
 
 #Make various rock categories (or road)
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="MI"] <- "ROCK"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="MN"] <- "ROCK"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="MZ"] <- "ROCK"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="TA"] <- "ROCK"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="TS"] <- "ROCK"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="OT"] <- "ROCK"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="GP"] <- "ROCK"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="TZ"] <- "ROCK"
-
-#Road related ones will be separate for person caused fires; we will add railroad to this category
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="RZ"] <- "ROAD"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="CB"] <- "ROAD"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="LL"] <- "ROAD"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="RN"] <- "ROAD"
-
-#Water adjacent ones
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="BE"] <- "BEACH"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="RM"] <- "BEACH"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="BE"] <- "BEACH"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="MI"] <- "ROCK"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="MN"] <- "ROCK"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="MZ"] <- "ROCK"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="RZ"] <- "ROCK"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="TA"] <- "ROCK"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="TS"] <- "ROCK"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="OT"] <- "ROCK"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="GP"] <- "ROCK"
 
 #Categories for soil, sediments and mud
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="ES"] <- "SOIL"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="LS"] <- "SOIL"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="MU"] <- "SOIL"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="RS"] <- "SOIL"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="ES"] <- "SOIL"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="LS"] <- "SOIL"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="MU"] <- "SOIL"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="RS"] <- "SOIL"
 
 #Combine CL and Op categories
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="CL"] <- "OP"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="CL"] <- "OP"
 
 #For comparison to determine which categories need changing
-table(dat_person_$bclcs_level_5)
-table(dat_person_$bclcs_level_5_2) #Rock and Snow categories are very small and this may be a problem. They may need to be combined later as "inflammable surface"
+table(dat_person$bclcs_level_5_2) #Rock and Snow categories are very small and this may be a problem. They may need to be combined later as "inflammable surface"
 
-table(dat_person_$bclcs_level_5_2, dat_person_$ntrl_ds)
+table(dat_person$bclcs_level_5_2, dat_person$frt)
 #Given how sparse rock, snow and soil is between these, let's make them all unvegetated
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="SOIL"] <- "UNVEG"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="SNOW"] <- "UNVEG"
-dat_person_$bclcs_level_5_2[dat_person_$bclcs_level_5_2=="ROCK"] <- "UNVEG"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="SOIL"] <- "UNVEG"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="SNOW"] <- "UNVEG"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="ROCK"] <- "UNVEG"
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="BE"] <- "UNVEG" # BE = Beach
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="BI"] <- "UNVEG" # BI =  block field
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="TZ"] <- "UNVEG" # TZ = Tailings
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="UR"] <- "UNVEG" # UR = Urban
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="BU"] <- "UNVEG" # BU = burned but if you look at bclcs_level_4 you will notice that all BU's are classified as EL which is exposed land. So for ease Ill make them unvegetated.??
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="BR"] <- "UNVEG" # BR = bedrock Unfragmented, consolidated rock, contiguous with the underlying material.
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="RT"] <- "UNVEG" # not sure what RT is but in bclcs_level_4 its classified as RO which is rock so Ill make it unvegetated too
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="CB"] <- "UNVEG" # CB= cutbank Part of a road corridor created upslope of the road surface, created by excavation into the hillside. 
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="RM"] <- "UNVEG" 
+#RM = Reservoir Margin
+dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="RN"] <- "UNVEG" 
+#RN = Railway Surface
+
 
 #Check again
-table(dat_person_$bclcs_level_5_2, dat_person_$ntrl_ds)
-
-table(dat_person_$bclcs_level_5_2, dat_person_$vegtype)
-#Still have 6 unspecified; for some reason, dense "DE" from level 5 corresponds to 542 open polygons from vegtype?? I see in definition that bryoids can be considered dense too. Use vegtype to refine. Unsure what the "OP" definition really means with bryoids... what is the remainder? Rock? Trees?
-
-#GP is unspecified and there are only 4, so remove; and yet, when do so, we lost MANY more...
-dat_person<-subset(dat_person_,dat_person_$bclcs_level_5!="RP")
-dat_person<-subset(dat_person,dat_person$bclcs_level_5!="RT")
-
-#Create disturbed category if disturbed in last 16 years; add burn to this category
-#dat_person$bclcs_level_5_2[which(dat_person$vegtype =="D")]<-"DIST" 
-#dat_person$bclcs_level_5_2[dat_person$bclcs_level_5_2=="BU"] <- "DIST"
-
-#Check
-table(dat_person$bclcs_level_5_2) #I do not know what the unspecified ones are
+table(dat_person$bclcs_level_5_2, dat_person$bclc__4)
 ```
 
 
@@ -1312,56 +1261,31 @@ table(dat_person$bclcs_level_5_2) #I do not know what the unspecified ones are
 #Get the OP category in vegtype from DE in bclcs_type_5 into OP, and get the S from the former into SP in the latter.
 #OP: Open (Cover of bryoids is less than or equal to 50% of the polygon)--> what is the remainder? Rock? Trees? Confusing.
 # note: there are also many "open" designations in vegtype that come out as TB, TC and TM in the bclcs_type_5. This suggests our designations prior may not have been accurate?
-table(dat_person$bclcs_level_4, dat_person$vegtype)
-table(dat_person$bclcs_level_5_2, dat_person$vegtype)
-#BY: a bryoid polygon --> open seems good
-#EL: Exposed Land --> open seems good, but maybe disturbed possible too?
-#HE: Herb --> open seems good
-#HF: Herb-Forb --> open seems good
-#HG: Herb-Graminoids --> open seems good
-#RO: Rock/Rubble--> actually I think this should be its own category of rock
-#SI: Snow/Ice--> also should be own category and not open
-
 
 #Repeat vegtype classification with new information
-dat_person$vegtype2<-"OP" #setting anything that is not one of the categories below to Open.
+dat_person$vegtype<-dat_person$bclcs_level_5_2 #setting anything that is not one of the categories below to Open.
 dat_person <- dat_person %>%
-  mutate(vegtype2 = if_else(bclcs_level_4=="TC","TC", # Treed coniferous
-                           if_else(bclcs_level_4=="TM", "TM", # Treed mixed
-                                   if_else(bclcs_level_4== "TB","TB", #Treed broadleaf
-                                           if_else(bclcs_level_4=="SL", "S", # shrub
-                                                   if_else(bclcs_level_4=="ST", "S", 
-                                                           if_else(bclcs_level_4=="RO","RO",
-                                                                   if_else(bclcs_level_4=="SI", "SI",                                         vegtype2))))))))
-dat_person$vegtype2[which(dat_person$proj_age_1 <16)]<-"D" #
-table(dat_person$vegtype2) #D: Disturbed; OP: Open; RO: Rock; S: Shurb; SI: Snow/Ice; TB: Treed Broadleaf; TC: Treed Conifer; TM: Treed Mixed.
+  mutate(vegtype =if_else(bclc__5=="DE" & bclc__2=="N", "S", # if its dense but not treed Ill put it in the category shrubs.
+                  if_else(bclc__5=="SP" & bclc__2=="N", "S", # if its sparse and not treed Ill put it in the category shrubs.
+                  if_else(vegtype=="OP" & bclc__2=="N", "S",
+                  if_else(bclc__4=="SL", "S", # shrub
+                  if_else(bclc__4=="ST", "S",  
+                  if_else(bclc__4=="TC","TC", # Treed coniferous
+                  if_else(bclc__4=="TM", "TM", # Treed mixed
+                  if_else(bclc__4== "TB","TB", vegtype)))))))))
 
-
-table(dat_person$bclcs_level_5_2, dat_person$vegtype2)
-#Still have 6 unspecified; for some reason, dense "DE" from level 5 corresponds to 542 open polygons from vegtype?? I see in definition that bryoids can be considered dense too. Use vegtype to refine. Unsure what the "OP" definition really means with bryoids... what is the remainder? Rock? Trees?
-
-# Urban plots were also put into open; create as own category
-#Need bclcs_level_5_2 to be a factor prior to being able to succeed. Make other changes first in case this makes that not possible.
-dat_person$bclcs_level_5_2 <-as.factor(dat_person$bclcs_level_5_2)
-dat_person$vegtype2[which(dat_person$bclcs_level_5_2 =="UR")]<-"UR" #
-
-#Inspect
-table(dat_person$vegtype2) #SI category is too small. Combine with Rock.
-dat_person$vegtype2[dat_person$vegtype2=="SI"] <- "RO"
-
-#We still have discrepancies between open and dense in vegtype (derived from bclcs_level_4) and bclcs_level_5. Play them out for now.
-
-head(dat_person)
+dat_person$vegtype[which(dat_person$prj_g_1 <16)]<-"D" #
+table(dat_person$vegtype, dat_person$bclc__2) #D: Disturbed; UNVEG: unvegetated; S: Shrub; TB: Treed Broadleaf; TC: Treed Conifer; TM: Treed Mixed.
 
 ```
+
 
 ##Save data files
 
 ```{r}
 
-write.csv(dat_lightning, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_lightning_Oct.csv")
-
-write.csv(dat_person, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_person_Oct.csv")
+write.csv(dat_lightning,file="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Data_Lightning.csv")
+write.csv(dat_person,file="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Data_Person.csv")
 
 ```
 
@@ -1372,28 +1296,28 @@ write.csv(dat_person, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\data_
 table(dat_lightning$bclcs_level_2) ##What is L? It is Land, exclude and do not use.
 dat_lightning$fire_pres<-as.numeric(dat_lightning$fire)
 
-dat_lightningt<- dat_lightning %>% dplyr::filter(bclcs_level_2=="T")
-dat_lightningnt<- dat_lightning %>% dplyr::filter(bclcs_level_2=="N")
-dat_lightningl<- dat_lightning %>% dplyr::filter(bclcs_level_2=="L")
+dat_lightningt<- dat_lightning %>% dplyr::filter(bclc__2=="T")
+dat_lightningnt<- dat_lightning %>% dplyr::filter(bclc__2=="N")
+dat_lightningl<- dat_lightning %>% dplyr::filter(bclc__2=="L")
 
-table(dat_lightning$vegtype2)
-table(dat_lightningt$vegtype2) #either disturbed, open, treed broadleaf, treed conifer, or treed mixed broadleaf and conifer
-table(dat_lightningnt$vegtype2) #either disturbed, open or shrub
+table(dat_lightning$vegtype)
+table(dat_lightningt$vegtype) #either disturbed, open, treed broadleaf, treed conifer, or treed mixed broadleaf and conifer
+table(dat_lightningnt$vegtype) #either disturbed or shrub
 
-ggscatter(dat_lightningt, x = "live_stand_volume_125", y = "proj_age_1", 
+ggscatter(dat_lightningt, x = "l___125", y = "prj_g_1", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "kendall",
           xlab = "live stand volume", ylab = "Stand age")
 
-ggscatter(dat_lightningt, x = "live_stand_volume_125", y = "proj_height_1", 
+ggscatter(dat_lightningt, x = "l___125", y = "prj_h_1", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "kendall",
-          xlab = "live stand volume", ylab = "Stand height")
+          xlab = "live stand volume", ylab = "Stand height") 
 
-ggscatter(dat_lightningt, x = "proj_age_1", y = "proj_height_1", 
+ggscatter(dat_lightningt, x = "prj_g_1", y = "prj_h_1", 
           add = "reg.line", conf.int = TRUE, 
           cor.coef = TRUE, cor.method = "kendall",
-          xlab = "proj_age_1", ylab = "Stand height")
+          xlab = "proj_age_1", ylab = "Stand height") # R=0.67
 
 ggscatter(dat_lightningt, x = "elevation", y = "roads_km", 
           add = "reg.line", conf.int = TRUE, 
