@@ -107,7 +107,7 @@ Init <- function(sim) {
   
   sim$compartment_list<-unique(sim$harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
   #sim$compartment_list<-unique(harvestFlow[, c("compartment", "partition")]) #For looping in partitions
-  sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), target = numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric())
+  sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), target = numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric()) # , harvest_type = character()
  
   #Remove zones as a scenario
   dbExecute(sim$clusdb, paste0("DELETE FROM zoneConstraints WHERE reference_zone not in ('",paste(P(sim, "nameZoneRasters", "dataLoaderCLUS"), sep= ' ', collapse = "', '"),"')"))
@@ -532,7 +532,7 @@ ORDER by block_rank, ", P(sim, "harvestBlockPriority", "forestryCLUS"), "
               setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
               sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, temp.harvestBlockList))
               
-              temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = compart, target = harvestTarget[i]/sim$updateInterval , area= sum(out$thlb)/sim$updateInterval , volume = sum(out$vol_h)/sim$updateInterval, age = sum(out$age_h)/sim$updateInterval, hsize = nrow(temp.harvestBlockList),transition_area  = out[yieldid > 0, sum(thlb)]/sim$updateInterval,  transition_volume  = out[yieldid > 0, sum(vol_h)]/sim$updateInterval)
+              temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = compart, target = harvestTarget[i]/sim$updateInterval , area= sum(out$thlb)/sim$updateInterval , volume = sum(out$vol_h)/sim$updateInterval, age = sum(out$age_h)/sim$updateInterval, hsize = nrow(temp.harvestBlockList),transition_area  = out[yieldid > 0, sum(thlb)]/sim$updateInterval,  transition_volume  = out[yieldid > 0, sum(vol_h)]/sim$updateInterval) #,  harvest_type = 'live'
               temp_harvest_report<-temp_harvest_report[, age:=age/area][, hsize:=area/hsize][, avail_thlb:=as.numeric(dbGetQuery(sim$clusdb, paste0("SELECT sum(thlb) from pixels where zone_const = 0 and ", partition_raw[i] )))]
               sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report), use.names = TRUE)
               
@@ -550,7 +550,7 @@ ORDER by block_rank, ", P(sim, "harvestBlockPriority", "forestryCLUS"), "
               setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
               sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, temp.harvestBlockList))
               
-              temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = compart, target = harvestTarget[i]/sim$updateInterval , area= sum(out$thlb)/sim$updateInterval , volume = sum(out$salvage_vol)/sim$updateInterval, age = sum(out$age_h)/sim$updateInterval, hsize = nrow(temp.harvestBlockList),transition_area  = out[yieldid > 0, sum(thlb)]/sim$updateInterval,  transition_volume  = out[yieldid > 0, sum(salvage_vol)]/sim$updateInterval)
+              temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = compart, target = harvestTarget[i]/sim$updateInterval , area= sum(out$thlb)/sim$updateInterval , volume = sum(out$salvage_vol)/sim$updateInterval, age = sum(out$age_h)/sim$updateInterval, hsize = nrow(temp.harvestBlockList),transition_area  = out[yieldid > 0, sum(thlb)]/sim$updateInterval,  transition_volume  = out[yieldid > 0, sum(salvage_vol)]/sim$updateInterval) # , harvest_type = 'dead'
               temp_harvest_report<-temp_harvest_report[, age:=age/area][, hsize:=area/hsize][, avail_thlb:=as.numeric(dbGetQuery(sim$clusdb, paste0("SELECT sum(thlb) from pixels where zone_const = 0 and ", partition_raw[i] )))]
               sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report), use.names = TRUE)
               
@@ -570,7 +570,7 @@ ORDER by block_rank, ", P(sim, "harvestBlockPriority", "forestryCLUS"), "
             sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, temp.harvestBlockList))
             
             
-            temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = compart, target = harvestTarget/sim$updateInterval , area= sum(queue$thlb)/sim$updateInterval , volume = sum(queue$salvage_vol)/sim$updateInterval, age = sum(queue$age_h)/sim$updateInterval, hsize = nrow(temp.harvestBlockList),transition_area  = queue[yieldid > 0, sum(thlb)]/sim$updateInterval,  transition_volume  = queue[yieldid > 0, sum(salvage_vol)]/sim$updateInterval)
+            temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = compart, target = harvestTarget/sim$updateInterval , area= sum(queue$thlb)/sim$updateInterval , volume = sum(queue$salvage_vol)/sim$updateInterval, age = sum(queue$age_h)/sim$updateInterval, hsize = nrow(temp.harvestBlockList),transition_area  = queue[yieldid > 0, sum(thlb)]/sim$updateInterval,  transition_volume  = queue[yieldid > 0, sum(salvage_vol)]/sim$updateInterval) # , harvest_type = 'dead'
             temp_harvest_report<-temp_harvest_report[, age:=age/area][, hsize:=area/hsize][, avail_thlb:=as.numeric(dbGetQuery(sim$clusdb, paste0("SELECT sum(thlb) from pixels where zone_const = 0 and ", partition_sql )))]
             sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report), use.names = TRUE)
             
@@ -585,7 +585,7 @@ ORDER by block_rank, ", P(sim, "harvestBlockPriority", "forestryCLUS"), "
             setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
             sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, temp.harvestBlockList))
             
-            temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = compart, target = harvestTarget/sim$updateInterval , area= sum(queue$thlb)/sim$updateInterval , volume = sum(queue$vol_h)/sim$updateInterval, age = sum(queue$age_h)/sim$updateInterval, hsize = nrow(temp.harvestBlockList),transition_area  = queue[yieldid > 0, sum(thlb)]/sim$updateInterval,  transition_volume  = queue[yieldid > 0, sum(vol_h)]/sim$updateInterval)
+            temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = compart, target = harvestTarget/sim$updateInterval , area= sum(queue$thlb)/sim$updateInterval , volume = sum(queue$vol_h)/sim$updateInterval, age = sum(queue$age_h)/sim$updateInterval, hsize = nrow(temp.harvestBlockList),transition_area  = queue[yieldid > 0, sum(thlb)]/sim$updateInterval,  transition_volume  = queue[yieldid > 0, sum(vol_h)]/sim$updateInterval) # , harvest_type = 'live'
             temp_harvest_report<-temp_harvest_report[, age:=age/area][, hsize:=area/hsize][, avail_thlb:=as.numeric(dbGetQuery(sim$clusdb, paste0("SELECT sum(thlb) from pixels where zone_const = 0 and ", partition_sql )))]
             sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report), use.names = TRUE)
             
