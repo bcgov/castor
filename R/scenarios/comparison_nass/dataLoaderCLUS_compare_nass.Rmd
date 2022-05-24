@@ -54,16 +54,14 @@ parameters <-  list(
                          nameBoundaryGeom='wkb_geometry',
                          nameCompartmentRaster = "comparison_nass.rast_tsa", # comparison_nass.rast_supply_blocks for supply blocks
                          nameCompartmentTable = "vat_tsa", # vat_supply_blocks for supply blocks
-                        
-                        
-                        
-                         nameMaskHarvestLandbaseRaster='rast.thlb_2020', 
+                         nameMaskHarvestLandbaseRaster='rast.thlb_nass', 
                          
                         
                         
                         
                          nameZoneRasters = c("comparison_nass.rast_zone_uwr",
-                                             "comparison_nass.rast_zone_beo_prod"),
+                                             "comparison_nass.rast_zone_beo_prod",
+                                             "comparison_nass.rast_zone_beo_lrmp_prod"),
                          nameZoneTable="comparison_nass.zone_constraints_nass", 
                         
                         
