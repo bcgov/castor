@@ -335,7 +335,7 @@ fire_veg_data_B<-mkFrameList(n)
 
 dim(fire_veg_data_B) #193773
 
-sample_locations_DEM_roads_wind2<- st_read("C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_frt.shp")
+sample_locations_DEM_roads_wind2<- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_wind_frt.shp")
 dim(sample_locations_DEM_roads_wind2) # 200298 # When I sample vegetaion from the VRI I seem to loose around 4% of the points. Not sure what to do about this.
 
 dim(sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2002))
@@ -361,7 +361,7 @@ table(fire_all$fire_yr, fire_all$fire_cs)
 ```
 Try saving file
 ```{r}
-st_write(fire_all, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Fire_data_all.shp", delete_layer=TRUE)
+st_write(fire_all, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Fire_data_all.shp", delete_layer=TRUE)
 
 #ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user= password= host=DG401102" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Fire_data_all.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI 
 

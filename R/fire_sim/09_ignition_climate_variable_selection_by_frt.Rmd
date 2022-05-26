@@ -104,6 +104,95 @@ p<-ggplot(fire_ignitions%>% filter(fire_cs=="Lightning"), aes(x=ig_mnth))+
   facet_wrap(fire_yr~., ncol=4)
 p
 
+# Interleaved histograms
+frt3<-ggplot(fire_ignitions%>% filter(frt==3), aes(x=ig_mnth, color=fire_cs, fill=fire_cs)) +geom_histogram(position="dodge")+
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
+  theme(legend.position="top") +
+  #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
+  theme_classic() +
+  labs(title="FRT = 3",x="Ignition month", y = "Count")
+
+frt5<-ggplot(fire_ignitions%>% filter(frt==5 & fire_cs != "Unknown"), aes(x=ig_mnth, color=fire_cs, fill=fire_cs)) +geom_histogram(position="dodge")+
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
+  theme(legend.position="right") +
+  #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
+  theme_classic() +
+  labs(title="FRT = 5",x="Ignition month", y = "Count")
+
+frt7<-ggplot(fire_ignitions%>% filter(frt==7 & fire_cs != "Unknown"), aes(x=ig_mnth, color=fire_cs, fill=fire_cs)) +geom_histogram(position="dodge")+
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
+  theme(legend.position="right") +
+  #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
+  theme_classic() +
+  labs(title="FRT = 7",x="Ignition month", y = "Count")
+
+frt9<-ggplot(fire_ignitions%>% filter(frt==9 & fire_cs != "Unknown"), aes(x=ig_mnth, color=fire_cs, fill=fire_cs)) +geom_histogram(position="dodge")+
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
+  theme(legend.position="right") +
+  #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
+  theme_classic() +
+  labs(title="FRT = 9",x="Ignition month", y = "Count")
+
+frt10<-ggplot(fire_ignitions%>% filter(frt==10 & fire_cs != "Unknown"), aes(x=ig_mnth, color=fire_cs, fill=fire_cs)) +geom_histogram(position="dodge")+
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
+  theme(legend.position="right") +
+  #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
+  theme_classic() +
+  labs(title="FRT = 10",x="Ignition month", y = "Count")
+
+frt11<-ggplot(fire_ignitions%>% filter(frt==11 & fire_cs != "Unknown"), aes(x=ig_mnth, color=fire_cs, fill=fire_cs)) +geom_histogram(position="dodge")+
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
+  theme(legend.position="right") +
+  #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
+  theme_classic() +
+  labs(title="FRT = 11",x="Ignition month", y = "Count")
+
+frt12<-ggplot(fire_ignitions%>% filter(frt==12 & fire_cs != "Unknown"), aes(x=ig_mnth, color=fire_cs, fill=fire_cs)) +geom_histogram(position="dodge")+
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
+  theme(legend.position="right") +
+  #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
+  theme_classic() +
+  labs(title="FRT = 12",x="Ignition month", y = "Count")
+
+frt13<-ggplot(fire_ignitions%>% filter(frt==13 & fire_cs != "Unknown"), aes(x=ig_mnth, color=fire_cs, fill=fire_cs)) +geom_histogram(position="dodge")+
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
+  theme(legend.position="right") +
+  #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
+  theme_classic() +
+  labs(title="FRT = 13",x="Ignition month", y = "Count")
+
+frt14<-ggplot(fire_ignitions%>% filter(frt==14 & fire_cs != "Unknown"), aes(x=ig_mnth, color=fire_cs, fill=fire_cs)) +geom_histogram(position="dodge")+
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
+  theme(legend.position="right") +
+  #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
+  theme_classic() +
+  labs(title="FRT = 14",x="Ignition month", y = "Count")
+
+frt15<-ggplot(fire_ignitions%>% filter(frt==15 & fire_cs != "Unknown"), aes(x=ig_mnth, color=fire_cs, fill=fire_cs)) +geom_histogram(position="dodge")+
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
+  theme(legend.position="right") +
+  #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
+  theme_classic() +
+  labs(title="FRT = 15",x="Ignition month", y = "Count")
+
+library(ggpubr)
+
+ggarrange(frt3, frt5, frt7, frt9, frt10,
+          labels = c("A", "B", "C", "D", "E"),
+          ncol = 3, nrow = 2, 
+          common.legend = TRUE, legend = "bottom")
+
+ggarrange(frt11, frt12, frt13, frt14, frt15,
+          labels = c("A", "B", "C", "D", "E", "F"),
+          ncol = 3, nrow = 2, 
+          common.legend = TRUE, legend = "bottom")
+
+
+
+
+
+
+
 # Lightning caused fires by FRT
 p<-ggplot(fire_ignitions%>% filter(fire_cs=="Lightning"), aes(x=ig_mnth))+
   geom_histogram()+
@@ -221,16 +310,47 @@ Before we begin, we will create additional climate variables.
 #Climate variable creation for lightning data
 
 ### creating amalgamations of variables to test different combinations of variables.##
+fire_ignitions$mean_Tmax03_Tmax04<- (fire_ignitions$Tmax03+ fire_ignitions$Tmax04)/2
+fire_ignitions$mean_Tmax04_Tmax05<- (fire_ignitions$Tmax04+ fire_ignitions$Tmax05)/2
 fire_ignitions$mean_Tmax05_Tmax06<- (fire_ignitions$Tmax05+ fire_ignitions$Tmax06)/2
 fire_ignitions$mean_Tmax06_Tmax07<- (fire_ignitions$Tmax06+ fire_ignitions$Tmax07)/2
 fire_ignitions$mean_Tmax07_Tmax08<- (fire_ignitions$Tmax07+ fire_ignitions$Tmax08)/2
 fire_ignitions$mean_Tmax08_Tmax09<- (fire_ignitions$Tmax08+ fire_ignitions$Tmax09)/2
+fire_ignitions$mean_Tmax09_Tmax10<- (fire_ignitions$Tmax09+ fire_ignitions$Tmax10)/2
+fire_ignitions$mean_Tmax10_Tmax11<- (fire_ignitions$Tmax10+ fire_ignitions$Tmax11)/2
+
+fire_ignitions$mean_Tmax03_Tmax04_Tmax05<- (fire_ignitions$Tmax03+ fire_ignitions$Tmax04 + fire_ignitions$Tmax05)/3
+fire_ignitions$mean_Tmax04_Tmax05_Tmax06<- (fire_ignitions$Tmax04+ fire_ignitions$Tmax05 + fire_ignitions$Tmax06)/3
 fire_ignitions$mean_Tmax05_Tmax06_Tmax07<- (fire_ignitions$Tmax05+ fire_ignitions$Tmax06 + fire_ignitions$Tmax07)/3
 fire_ignitions$mean_Tmax06_Tmax07_Tmax08<- (fire_ignitions$Tmax06+ fire_ignitions$Tmax07 + fire_ignitions$Tmax08)/3
 fire_ignitions$mean_Tmax07_Tmax08_Tmax09<- (fire_ignitions$Tmax07+ fire_ignitions$Tmax08 + fire_ignitions$Tmax09)/3
+fire_ignitions$mean_Tmax08_Tmax09_Tmax10<- (fire_ignitions$Tmax08+ fire_ignitions$Tmax09 + fire_ignitions$Tmax10)/3
+fire_ignitions$mean_Tmax09_Tmax10_Tmax11<- (fire_ignitions$Tmax09+ fire_ignitions$Tmax10 + fire_ignitions$Tmax11)/3
+
+fire_ignitions$mean_Tmax03_Tmax04_Tmax05_Tmax06<- (fire_ignitions$Tmax03 + fire_ignitions$Tmax04+ fire_ignitions$Tmax05 + fire_ignitions$Tmax06)/4
+fire_ignitions$mean_Tmax04_Tmax05_Tmax06_Tmax07<- (fire_ignitions$Tmax04 + fire_ignitions$Tmax05+ fire_ignitions$Tmax06 + fire_ignitions$Tmax07)/4
 fire_ignitions$mean_Tmax05_Tmax06_Tmax07_Tmax08<- (fire_ignitions$Tmax05 + fire_ignitions$Tmax06+ fire_ignitions$Tmax07 + fire_ignitions$Tmax08)/4
 fire_ignitions$mean_Tmax06_Tmax07_Tmax08_Tmax09<- (fire_ignitions$Tmax06 + fire_ignitions$Tmax07+ fire_ignitions$Tmax08 + fire_ignitions$Tmax09)/4
+fire_ignitions$mean_Tmax07_Tmax08_Tmax09_Tmax10<- (fire_ignitions$Tmax07 + fire_ignitions$Tmax08+ fire_ignitions$Tmax09 + fire_ignitions$Tmax10)/4
+fire_ignitions$mean_Tmax08_Tmax09_Tmax10_Tmax11<- (fire_ignitions$Tmax08 + fire_ignitions$Tmax09+ fire_ignitions$Tmax10 + fire_ignitions$Tmax11)/4
+
+fire_ignitions$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07<- (fire_ignitions$Tmax03 + fire_ignitions$Tmax04 + fire_ignitions$Tmax05+ fire_ignitions$Tmax06 + fire_ignitions$Tmax07)/5
+fire_ignitions$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08<- (fire_ignitions$Tmax04 + fire_ignitions$Tmax05 + fire_ignitions$Tmax06+ fire_ignitions$Tmax07 + fire_ignitions$Tmax08)/5
 fire_ignitions$mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09<- (fire_ignitions$Tmax05 + fire_ignitions$Tmax06 + fire_ignitions$Tmax07+ fire_ignitions$Tmax08 + fire_ignitions$Tmax09)/5
+fire_ignitions$mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- ( fire_ignitions$Tmax06 + fire_ignitions$Tmax07+ fire_ignitions$Tmax08 + fire_ignitions$Tmax09 + fire_ignitions$Tmax10)/5
+fire_ignitions$mean_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- ( fire_ignitions$Tmax07 + fire_ignitions$Tmax08+ fire_ignitions$Tmax09 + fire_ignitions$Tmax010 + fire_ignitions$Tmax11)/5
+
+fire_ignitions$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08<- (fire_ignitions$Tmax03 + fire_ignitions$Tmax04 + fire_ignitions$Tmax05 + fire_ignitions$Tmax06 + fire_ignitions$Tmax07+ fire_ignitions$Tmax08)/6
+fire_ignitions$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9<- (fire_ignitions$Tmax04 + fire_ignitions$Tmax05 + fire_ignitions$Tmax06 + fire_ignitions$Tmax07+ fire_ignitions$Tmax08 + fire_ignitions$Tmax09)/6
+fire_ignitions$mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- (fire_ignitions$Tmax05 + fire_ignitions$Tmax06 + fire_ignitions$Tmax07+ fire_ignitions$Tmax08 + fire_ignitions$Tmax09 + fire_ignitions$Tmax10)/6
+fire_ignitions$mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- (fire_ignitions$Tmax06 + fire_ignitions$Tmax07+ fire_ignitions$Tmax08 + fire_ignitions$Tmax09 + fire_ignitions$Tmax10 + fire_ignitions$Tmax11)/6
+
+fire_ignitions$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09<- (fire_ignitions$Tmax03 + fire_ignitions$Tmax04 + fire_ignitions$Tmax05 + fire_ignitions$Tmax06 + fire_ignitions$Tmax07+ fire_ignitions$Tmax08 + fire_ignitions$Tmax09)/7
+fire_ignitions$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- ( fire_ignitions$Tmax04 + fire_ignitions$Tmax05 + fire_ignitions$Tmax06 + fire_ignitions$Tmax07+ fire_ignitions$Tmax08 + fire_ignitions$Tmax09 + fire_ignitions$Tmax10)/7
+fire_ignitions$mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- (fire_ignitions$Tmax05 + fire_ignitions$Tmax06 + fire_ignitions$Tmax07+ fire_ignitions$Tmax08 + fire_ignitions$Tmax09 + fire_ignitions$Tmax10 + fire_ignitions$Tmax11)/7
+
+# TO DO :include 8 variable list and do the same for other climate variables. Update models and run!
+
 
 fire_ignitions$mean_Tave05_Tave06<- (fire_ignitions$Tave05+ fire_ignitions$Tave06)/2
 fire_ignitions$mean_Tave06_Tave07<- (fire_ignitions$Tave06+ fire_ignitions$Tave07)/2

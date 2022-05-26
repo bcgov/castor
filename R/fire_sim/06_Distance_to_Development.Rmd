@@ -272,11 +272,11 @@ gc()
 
 # bring distance rasters back in
 ```{r}
-dist_rail<- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_rail.tif")
-dist_power<- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_power.tif")
-dist_oil<- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_oil.tif")
-dist_mines<- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_mines.tif")
-dist_urban<- raster("C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\dist_urban.tif")
+dist_rail<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
+dist_power<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
+dist_oil<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
+dist_mines<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
+dist_urban<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
 
 rasStackinfrastructure = stack(dist_rail, dist_power, dist_oil, dist_mines, dist_urban)
 
@@ -367,11 +367,7 @@ sample_locations_DEM_roads_infra<- sample_locations_DEM_roads_infra %>%
          )
 
 sample_locations_DEM_roads_infra<- sample_locations_DEM_roads_infra %>%
-  dplyr::rename(fire_yr=FIRE_YEAR,
-         fire_no=FIRE_NUMBER,
-         fire_cs=FIRE_CAUSE,
-         size_ha=CURRENT_SIZE,
-         fir_typ=FIRE_TYPE,
+  dplyr::rename(
          slope=slope_ha_bc_3005,
          aspect=aspect_ha_bc_3005,
          elevation=dem_ha_bc,
@@ -383,7 +379,7 @@ sample_locations_DEM_roads_infra<- sample_locations_DEM_roads_infra %>%
          infr_dist=dist_infrastructure_m
          )
 
-sf::st_write(sample_locations_DEM_roads_infra, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_infra.shp", delete_layer=TRUE)
+sf::st_write(sample_locations_DEM_roads_infra, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_infra.shp", delete_layer=TRUE)
 
 ##Save to personal drive
 #ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
