@@ -38,7 +38,7 @@ First, we will generate separate files from above code for each year to input in
 # Load data back in if we need to.
 Note the column names will have changed so be careful!
 ```{r}
-sample_locations_DEM <-st_read(dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\DEM_5x_AllMonths_frt.shp")
+sample_locations_DEM <-st_read(dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\DEM_5x_AllMonths_frt.shp")
 head(sample_locations_DEM) 
 ```
 
@@ -219,9 +219,9 @@ system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 ###############################
 
 #Depending on where you saved your output, you may need to update the directory below
-file.list1<-list.files("C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output", pattern="samp.points", all.files=FALSE, full.names=FALSE)
+file.list1<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\output", pattern="samp.points", all.files=FALSE, full.names=FALSE)
 y1<-gsub(".csv","",file.list1)
-the_dir <- "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output"
+the_dir <- "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\output"
 
 for (i in 1:length(file.list1)){
   assign(paste0(y1[i]),read.csv (file=paste0(the_dir, "\\", file.list1[i])))
@@ -238,12 +238,13 @@ Because much literature suggests that the monthly drought code (MDC) is an impor
 #### Equations to calculate drought code ####
 #############################################
     # note if I want to find MDC10 Im giong to have to change this code. I tried putting a list of mnths e.g. c("04", "05", "06",..."10") but this did not work with also changing j from 1:length(mnths) because there is part of the code where it uses information from the month before i.e. j-1 and I could not quickly think of a solution, so I left it. 
-
-days_month<- c(31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31) # number of days in each month starting in Jan
+months<- c("02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12")
+  
+days_month<- c(31, 30, 31, 30, 31, 31, 30, 31, 30) # number of days in each month starting in Jan
 #### Daylength adjustment factor (Lf) [Development and Structure of the Canadian Forest Fire Weather Index System pg 15, https://d1ied5g1xfgpx8.cloudfront.net/pdfs/19927.pdf] ####
 # Month <- Lf value
 # LF[1] is the value for Jan
-Lf<-c(-1.6, -1.6, -1.6, 0.9, 3.8, 5.8, 6.4, 5.0, 2.4, 0.4, -1.6, -1.6)
+Lf<-c( -1.6, 0.9, 3.8, 5.8, 6.4, 5.0, 2.4, 0.4, -1.6)
 ####
 
 ### Calculate drought code for Fire ignition data
@@ -252,25 +253,25 @@ for (i in 1: length(y1)){
   
   x<-eval(as.name(y1[i])) %>% 
     rename(YEAR=ID2) %>%
-    dplyr::select(ID1, YEAR,Latitude, Longitude, Tmax04:Tmax10, Tave04:Tave10, PPT04:PPT10, RH04:RH10)
+    dplyr::select(ID1, YEAR,Latitude, Longitude, Tmax02:Tmax11, Tave02:Tave11, PPT02:PPT11, RH02:RH11)
   
   x2<- x %>% filter(Tmax05 != -9999) # there are some locations that did not have climate data, probably because they were over the ocean, so Im removing these here.
   
-  for (j in 5 : 9) {
+  for (j in 1 : length(Lf)) {
 
     
-    x2$MDC_04<-15 # the MDC value for April. This assumes that the ground is saturated at the start of the season. Maybe not true for all locations... may need to think about this a little more.
+    x2$MDC_02<-15 # the MDC value for April. This assumes that the ground is saturated at the start of the season. Maybe not true for all locations... may need to think about this a little more.
     
-    Em<- days_month[j]*((0.36*x2[[paste0("Tmax0",j)]])+Lf[j])
+    Em<- days_month[j]*((0.36*x2[[paste0("Tmax",months[j+1])]])+Lf[j])
     Em2 <- ifelse(Em<0, 0, Em)
-    DC_half<- x2[[paste0("MDC_0",j-1)]] + (0.25 * Em2)
-    precip<-x2[[paste0("PPT0",j)]]
-    RMeff<-(0.83 * (x2[[paste0("PPT0",j)]]))
+    DC_half<- x2[[paste0("MDC_",months[j])]] + (0.25 * Em2)
+    precip<-x2[[paste0("PPT",months[j+1])]]
+    RMeff<-(0.83 * (x2[[paste0("PPT",months[j+1])]]))
     Qmr<- (800 * exp((-(DC_half))/400)) + (3.937 * RMeff)
     Qmr2 <- ifelse(Qmr>800, 800, Qmr)
     MDC_m <- (400 * log(800/Qmr2)) + 0.25*Em2
-    x2[[paste0("MDC_0",j)]] <- (x2[[paste0("MDC_0",j-1)]] + MDC_m)/2
-    x2[[paste0("MDC_0",j)]] <- ifelse(x2[[paste0("MDC_0",j)]] <15, 15, x2[[paste0("MDC_0",j)]])
+    x2[[paste0("MDC_",months[j+1])]] <- (x2[[paste0("MDC_",months[j])]] + MDC_m)/2
+    x2[[paste0("MDC_",months[j+1])]] <- ifelse(x2[[paste0("MDC_",months[j+1])]] <15, 15, x2[[paste0("MDC_",months[j+1])]])
   }
   nam1<-paste("DC.",y1[i],sep="") #defining the name
   assign(nam1,x2)
@@ -293,12 +294,13 @@ DC.ignitions$ID1<- as.factor(DC.ignitions$ID1)
 dim(DC.ignitions) 
 names(DC.ignitions)
 names(sample_locations_DEM)
+dim(sample_locations_DEM)
 
 DC.ignitions1<- DC.ignitions %>% rename(idno=ID1,
-                                        FIRE_YEAR=YEAR)
+                                        FIRE_YE=YEAR)
 
 sample_locations_DEM$idno <- as.factor(as.character(sample_locations_DEM$idno))
-sample_locations_DEM$FIRE_YEAR <- as.numeric(as.character(sample_locations_DEM$FIRE_YEAR))
+sample_locations_DEM$FIRE_YE <- as.numeric(as.character(sample_locations_DEM$FIRE_YE))
 
 # Now join DC.ignitions back with the original fire ignition dataset
 ignition_weather<-left_join(sample_locations_DEM, DC.ignitions1)
@@ -330,9 +332,9 @@ ggplot() +
 Note: in current below file saved, the lat and long do not match and thus different points were used.
 
 ```{r}
-table(ignition_weather_crs$FIRE_YEAR, ignition_weather_crs$FIRE_CAUSE)
+table(ignition_weather_crs$FIRE_YE, ignition_weather_crs$FIRE_CA)
 
-st_write(ignition_weather_crs, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\samp_locations_fire_all_5x.shp", delete_layer=TRUE)
+st_write(ignition_weather_crs, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_fire_all_5x.shp", delete_layer=TRUE)
 ##Can also open in QGis to assess for any physical outliers and their information.
 
 #str(ignition_weather_crs)
@@ -366,7 +368,7 @@ Note, we lose a lot of data in 2002 when clipping with VRI later. Upon inspectio
 ```{r}
 
 ##Get 2002 data and visualize in QGIS
-ignition_weather_crs_2002<-subset(ignition_weather_crs3,ignition_weather_crs3$FIRE_YEAR==2002)
+ignition_weather_crs_2002<-subset(ignition_weather_crs3,ignition_weather_crs3$FIRE_YE==2002)
 head(ignition_weather_crs_2002)
 st_write(ignition_weather_crs_2002, dsn = "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_2002.shp", delete_layer=TRUE)
 
