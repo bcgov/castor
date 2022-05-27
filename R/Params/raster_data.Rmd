@@ -189,6 +189,22 @@ writeRaster(layer.ras, file="tipsy2018_id.tif", format="GTiff", overwrite=TRUE)
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/tipsy2018_id.tif -t 100x100 rast.tipsy2018_id | psql -d clus")
 ```
 
+
+## VEG COMP 2020
+
+This id links to polygon level attribution. Also links to yield curve generation from results - TIPSY and feature projection - VDYP
+```{r, veg_comp, echo = FALSE}
+#Harvest locations year
+layer<-getSpatialQuery("SELECT feature_id, shape FROM public.veg_comp_lyr_r1_poly2020")
+
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "feature_id")
+rm(layer)
+gc()
+
+writeRaster(layer.ras, file="vri2020_id.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/vri2020_id.tif -t 100x100 rast.vri2020_id | psql -d clus")
+```
 ## Water
 
 The BC [waterbodies dataset](https://catalogue.data.gov.bc.ca/dataset/waterbodies-trim-enhanced-base-map-ebm) is found on the BCGW oracle server under a user restriction. There are a few options for connecting to the BCGW
