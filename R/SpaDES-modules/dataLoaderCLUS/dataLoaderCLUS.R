@@ -58,8 +58,10 @@ defineModule(sim, list(
     defineParameter("nameHeightRaster", "character", "99999", NA, NA, desc = "Raster containing pixel height. EX. Canopy height model"),
     defineParameter("nameZoneTable", "character", "99999", NA, NA, desc = "Name of the table documenting the zone types"),
     defineParameter("nameYieldsRaster", "character", "99999", NA, NA, desc = "Name of the raster with id's for yield tables"),
+    defineParameter("nameYieldsCurrentRaster", "character", "99999", NA, NA, desc = "Name of the raster with id's for yield tables"),
     defineParameter("nameYieldsTransitionRaster", "character", "99999", NA, NA, desc = "Name of the raster with id's for yield tables that transition to a new table"),
     defineParameter("nameYieldTable", "character", "99999", NA, NA, desc = "Name of the table documenting the yields"),
+    defineParameter("nameYieldCurrentTable", "character", "99999", NA, NA, desc = "Name of the table documenting the yields"),
     defineParameter("nameYieldTransitionTable", "character", "99999", NA, NA, desc = "Name of the table documenting the yields that transition"),
     defineParameter("nameOwnershipRaster", "character", "99999", NA, NA, desc = "Name of the raster from GENERALIZED FOREST OWNERSHIP"),
     defineParameter("nameForestInventoryTable", "character", "99999", NA, NA, desc = "Name of the veg comp table - the forest inventory"),
@@ -181,7 +183,7 @@ createCLUSdb <- function(sim) {
   #build the clusdb - a realtional database that tracks the interactions between spatial and temporal objectives
   sim$clusdb <- dbConnect(RSQLite::SQLite(), ":memory:") #builds the db in memory; also resets any existing db! Can be set to store on disk
   #dbExecute(sim$clusdb, "PRAGMA foreign_keys = ON;") #Turns the foreign key constraints on. 
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, dec_pcnt numeric, height numeric, qmd numeric, basalarea numeric, crownclosure numeric, eca numeric)")
+  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, dec_pcnt numeric, height numeric, qmd numeric default 0.0, basalarea numeric default 0.0, crownclosure numeric default 0.0, eca numeric)")
   #Note Zone table is created as a JOIN with zoneConstraints and zone
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS raster_info (name text, xmin numeric, xmax numeric, ymin numeric, ymax numeric, ncell integer, nrow integer, crs text)")
   dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
@@ -397,12 +399,18 @@ setTablesCLUSdb <- function(sim) {
     
     yld.ids<-paste( unique(pixels[!is.na(yieldid),"yieldid"])$yieldid, sep=" ", collapse = ", ")
     
+    #Check to see what yields are available
+    testColumnNames<-getTableQuery(paste0("SELECT * FROM ",P(sim)$nameYieldTable, " LIMIT 1"))
+    colNames<- names(testColumnNames)[names(testColumnNames) %in% c("ycid", "age", "tvol", "dec_pcnt", "height", "eca", "basalarea", "qmd", "crownclosure")]
+    colNamesYieldid <-colNames
+    colNamesYieldid[1]<-"yieldid"
+      
     #Set the yields table with yield curves that are only in the study area
-    yields<-getTableQuery(paste0("SELECT ycid, age, tvol, dec_pcnt, height, eca FROM ", P(sim)$nameYieldTable, " where ycid IN (", yld.ids , ");"))
+    yields<-getTableQuery(paste0("SELECT ",paste(colNames, collapse = ", ", sep = " ")," FROM ", P(sim)$nameYieldTable, " where ycid IN (", yld.ids , ");"))
     
     dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "INSERT INTO yields (yieldid, age, tvol, dec_pcnt, height, eca) 
-                      values (:ycid, :age, :tvol, :dec_pcnt, :height, :eca)", yields)
+    rs<-dbSendQuery(sim$clusdb, paste0("INSERT INTO yields (",paste(colNamesYieldid, collapse = ", ", sep = " "),") 
+                      values (:",paste(colNames, collapse = ", :", sep = " "),")"), yields)
     dbClearResult(rs)
     dbCommit(sim$clusdb)
     
@@ -420,6 +428,52 @@ setTablesCLUSdb <- function(sim) {
                       values (:yieldid, :age, :tvol, :dec_pcnt, :height, :eca)", yields)
     dbClearResult(rs)
     dbCommit(sim$clusdb)
+  }
+  
+  #Set the current yield IDs-----#
+  #------------------------------#
+  if(!(P(sim, "nameYieldsCurrentRaster", "dataLoaderCLUS") == "99999")){
+    message(paste0('.....yield ids: ',P(sim, "nameYieldsCurrentRaster", "dataLoaderCLUS")))
+    ras.ylds.current<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+                           srcRaster= P(sim, "nameYieldsCurrentRaster", "dataLoaderCLUS"), 
+                           clipper=sim$boundaryInfo[[1]], 
+                           geom= sim$boundaryInfo[[4]], 
+                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                           conn=NULL)
+    if(aoi == extent(ras.ylds.current)){#need to check that each of the extents are the same
+      updateToCurrent<<-data.table(yieldid=ras.ylds.current[])
+      
+      pixels[, current_yieldid := updateToCurrent$yieldid]
+      pixels<-pixels[!is.na(current_yieldid), yieldid := current_yieldid]
+      pixels$current_yieldid <- NULL
+      rm(ras.ylds.current)
+      gc()
+    }else{
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameYieldsCurrentRaster", "dataLoaderCLUS")))
+    }
+    
+    #Check there is a table to link to
+    if(P(sim, "nameYieldCurrentTable", "dataLoaderCLUS") == "99999"){
+      stop(paste0("Specify the nameYieldCurrentTable =", P(sim, "nameYieldCurrentTable", "dataLoaderCLUS")))
+    }
+    
+    yld.ids.current<-paste( unique(updateToCurrent[!is.na(yieldid),]$yieldid), sep=" ", collapse = ", ")
+    
+    #Check to see what yields are available
+    testColumnNames<-getTableQuery(paste0("SELECT * FROM ",P(sim)$nameYieldCurrentTable , " LIMIT 1"))
+    colNames<- names(testColumnNames)[names(testColumnNames) %in% c("ycid", "age", "tvol", "dec_pcnt", "height", "eca", "basalarea", "qmd", "crownclosure")]
+    colNamesYieldid <-colNames
+    colNamesYieldid[1]<-"yieldid"
+    
+    #Set the yields table with yield curves that are only in the study area
+    yields.current<-getTableQuery(paste0("SELECT ",paste(colNames, collapse = ", ", sep = " ")," FROM ", P(sim)$nameYieldCurrentTable , " where ycid IN (", yld.ids.current , ");"))
+    
+    dbBegin(sim$clusdb)
+    rs<-dbSendQuery(sim$clusdb, paste0("INSERT INTO yields (",paste(colNamesYieldid, collapse = ", ", sep = " "),") 
+                      values (:",paste(colNames, collapse = ", :", sep = " "),")"), yields.current)
+    dbClearResult(rs)
+    dbCommit(sim$clusdb)
+    
   }
   
   #----------------------------#
@@ -448,13 +502,18 @@ setTablesCLUSdb <- function(sim) {
     
     yld.ids.trans<-paste( as.integer(unique(pixels[!is.na(yieldid_trans),"yieldid_trans"])$yieldid_trans), sep=" ", collapse = ", ")    
   
-    #Set the yields table with yield curves that are only in the study area
-    yields.trans<-getTableQuery(paste0("SELECT ycid, age, tvol, dec_pcnt, height, eca FROM ", P(sim)$nameYieldTransitionTable, " where ycid IN (", yld.ids.trans , ");"))
+    #Check to see what yields are available
+    testColumnNames<-getTableQuery(paste0("SELECT * FROM ",P(sim)$nameYieldTransitionTable, " LIMIT 1"))
+    colNames<- names(testColumnNames)[names(testColumnNames) %in% c("ycid", "age", "tvol", "dec_pcnt", "height", "eca", "basalarea", "qmd", "crownclosure")]
+    colNamesYieldid <-colNames
+    colNamesYieldid[1]<-"yieldid"
     
+    #Set the yields table with yield curves that are only in the study area
+    yields.trans<-getTableQuery(paste0("SELECT ", paste(colNames, collapse = ", ", sep = " ")," FROM ", P(sim)$nameYieldTransitionTable, " where ycid IN (", yld.ids.trans , ");"))
     
     dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "INSERT INTO yields (yieldid, age, tvol, dec_pcnt, height, eca) 
-                      values (:ycid, :age, :tvol, :dec_pcnt, :height, :eca)", yields.trans)
+    rs<-dbSendQuery(sim$clusdb, paste0("INSERT INTO yields (",paste(colNamesYieldid, collapse = ", ", sep = " "),") 
+                      values (:", paste(colNames, collapse = ", :", sep = " "),")"), yields.trans)
     dbClearResult(rs)
     dbCommit(sim$clusdb)
     
@@ -491,21 +550,23 @@ setTablesCLUSdb <- function(sim) {
     
     if(!P(sim, "nameForestInventoryTable","dataLoaderCLUS") == '99999'){
       #Get the forest inventory variables and re assign there names to be more generic than VEGCOMP
-      forest_attributes_clusdb<-sapply(c("Treed","Age","Height", "CrownClosure", "SiteIndex"), function(x){
+      forest_attributes_clusdb<-sapply(c("Treed","Age","Height", "CrownClosure", "SiteIndex", "QMD", "BasalArea"), function(x){
         if(!(P(sim, paste0("nameForestInventory", x), "dataLoaderCLUS") == '99999')){
           return(paste0(P(sim, paste0("nameForestInventory", x), "dataLoaderCLUS"), " as ", tolower(x)))
         }else{
-          stop(paste0("ERROR: Missing parameter nameForestInventory", x))
+          message(paste0("WARNING: Missing parameter nameForestInventory", x, " ---Defaulting to NA"))
+          #pixels<-pixels[, eval(tolower(x)):= NA]
         }
       })
-      
+      #remove any nulls
+      forest_attributes_clusdb<-Filter(Negate(is.null), forest_attributes_clusdb)
       #If there is a multi variable condition add them to the query
       queryMulti<-dbGetQuery(sim$clusdb, "SELECT distinct(variable) FROM zoneConstraints where multi_condition is not null or multi_condition <> 'NA' ")
 
       if(nrow(queryMulti) > 0){
         multiVars<-unlist(strsplit(paste(queryMulti$variable, collapse = ', ', sep = ','), ","))
         multiVars<-unique(gsub("[[:space:]]", "", multiVars))
-        multiVars<-multiVars[!multiVars[] %in% c('proj_age_1', 'proj_height_1', 'crown_closure', 'site_index', 'blockid', 'age', 'height', 'siteindex', 'crownclosure', 'dist', 'bclcs_level_2')]
+        multiVars<-multiVars[!multiVars[] %in% c('proj_age_1', 'proj_height_1', 'crown_closure', 'site_index', 'blockid', 'age', 'height', 'siteindex', 'crownclosure', 'dist', 'bclcs_level_2', "basal_area", "quad_diam_125")]
         if(!identical(character(0), multiVars)){
           multiVars1<-multiVars #used for altering pixels table in clusdb i.e., adding in the required information to run the query
           #Add the multivars to the pixels data table
@@ -524,7 +585,9 @@ setTablesCLUSdb <- function(sim) {
         dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'proj_height_1', 'height') where multi_condition is not null;")
         dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'site_index', 'siteindex') where multi_condition is not null;")
         dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'crown_closure', 'crownclosure') where multi_condition is not null;")
-          
+        dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'basal_area', 'basalarea') where multi_condition is not null;")
+        dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'quad_diam_125', 'qmd') where multi_condition is not null;")
+        
         
         }else{
         multiVars<-''
@@ -694,13 +757,27 @@ setTablesCLUSdb <- function(sim) {
     pixels[, siteindex:= 14]
   }
   
+  #----------------#
+  #Set the BasalArea----
+  #----------------#
+  if(P(sim, "nameForestInventoryBasalArea", "dataLoaderCLUS") == "99999"){
+    pixels[, basalarea := NA]
+  }
+  
+  #----------------#
+  #Set the QMD----
+  #----------------#
+  if(P(sim, "nameForestInventoryQMD", "dataLoaderCLUS") == "99999"){
+    pixels[, qmd := NA]
+  }
+  
   #-----------------------------#
   #Load the pixels in RSQLite----
   #-----------------------------#
-  qry<-paste0('INSERT INTO pixels (pixelid, compartid, yieldid, yieldid_trans, own, thlb, treed, age, crownclosure, height, siteindex,  dec_pcnt, zone',
+  qry<-paste0('INSERT INTO pixels (pixelid, compartid, yieldid, yieldid_trans, own, thlb, treed, age, crownclosure, height, siteindex, basalarea, qmd, dec_pcnt, zone',
               paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", zone"),
               paste(multiVars, sep="' '", collapse=", "),' ) 
-               values (:pixelid, :compartid, :yieldid, :yieldid_trans, :own,  :thlb, :treed, :age, :crownclosure, :height, :siteindex,  0, :zone', 
+               values (:pixelid, :compartid, :yieldid, :yieldid_trans, :own,  :thlb, :treed, :age, :crownclosure, :height, :siteindex, :basalarea, :qmd, 0, :zone', 
               paste(as.character(seq(1:sim$zone.length)), sep="' '", collapse=", :zone"),
               paste(multiVars2, sep="' '", collapse=", :"),')')
   
@@ -834,7 +911,10 @@ updateGS<- function(sim) {
     (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
     (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
     (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca as eca,
-    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt
+    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt,
+    (((k.crownclosure - y.crownclosure*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.crownclosure as crownclosure,
+    (((k.basalarea - y.basalarea*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.basalarea as basalarea,
+    (((k.qmd - y.qmd*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.qmd as qmd
     FROM pixels t
     LEFT JOIN yields y 
     ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
@@ -843,7 +923,7 @@ updateGS<- function(sim) {
     
     dbBegin(sim$clusdb)
 
-    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca, dec_pcnt = :dec_pcnt where pixelid = :pixelid", tab1[,c("vol", "ht", "eca", "pixelid", "dec_pcnt")])
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca, dec_pcnt = :dec_pcnt, crownclosure = :crownclosure, qmd = :qmd, basalarea= :basalarea where pixelid = :pixelid", tab1[,c("vol", "ht", "eca", "pixelid", "dec_pcnt", "crownclosure", "qmd", "basalarea")])
     dbClearResult(rs)
     dbCommit(sim$clusdb)
     
@@ -851,7 +931,10 @@ updateGS<- function(sim) {
     tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
     (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
     (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
-    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt
+    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt,
+    (((k.crownclosure - y.crownclosure*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.crownclosure as crownclosure,
+    (((k.basalarea - y.basalarea*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.basalarea as basalarea,
+    (((k.qmd - y.qmd*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.qmd as qmd
     FROM pixels t
     LEFT JOIN yields y 
     ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
@@ -859,9 +942,10 @@ updateGS<- function(sim) {
     ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
     
     dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, dec_pcnt = :dec_pcnt  where pixelid = :pixelid", tab1[,c("vol", "ht", "pixelid", "dec_pcnt")])
+    
+    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht,  dec_pcnt = :dec_pcnt, crownclosure = :crownclosure, qmd = :qmd, basalarea= :basalarea where pixelid = :pixelid", tab1[,c("vol", "ht",  "pixelid", "dec_pcnt", "crownclosure", "qmd", "basalarea")])
     dbClearResult(rs)
-    dbCommit(sim$clusdb)  
+    dbCommit(sim$clusdb)
   }
   
   message("...create indexes")
