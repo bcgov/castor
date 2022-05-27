@@ -103,6 +103,7 @@ public class ForestType {
 					ageUpper = Math.min(350, (int) (Math.round((ageTemplate.get(s)[t]/10) + 0.5)*10));
 					
 					if(transitionCurve) {
+
 						gsVol1[t] = interpFloat(ageTemplate.get(s)[t], ageLower , ageUpper, yc_trans.get("vol")[ageLower/10], yc_trans.get("vol")[ageUpper/10]);						
 						ht1[t] = interpFloat(ageTemplate.get(s)[t], ageLower , ageUpper, yc_trans.get("height")[ageLower/10], yc_trans.get("height")[ageUpper/10]);
 					}else {
