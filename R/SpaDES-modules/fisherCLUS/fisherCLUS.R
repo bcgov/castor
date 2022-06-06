@@ -54,12 +54,12 @@ doEvent.fisherCLUS = function(sim, eventTime, eventType) {
       if(!is.na(P(sim, "nameFetaRaster", "fisherCLUS"))){
         sim <- setFLEXWorld(sim) #preps the object need for flex
         sim <- getFLEXWorld(sim) #calc the current world
-        sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "fisherCLUS"), "fisherCLUS", "calculateFLEXWorld", 8) # schedule the next calculation event 
+        sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "fisherCLUS"), "fisherCLUS", "calculateFLEXWorld", 5) # schedule the next calculation event 
       }
     },
     calculateFLEXWorld = {
       sim <- getFLEXWorld(sim)
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "fisherCLUS"), "fisherCLUS", "calculateFLEXWorld", 8) # schedule the next
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "fisherCLUS"), "fisherCLUS", "calculateFLEXWorld", 5) # schedule the next
     },
     warning(paste("Undefined event type: \'", current(sim)[1, "eventType", with = FALSE],
                   "\' in module \'", current(sim)[1, "moduleName", with = FALSE], "\'", sep = ""))
@@ -240,11 +240,11 @@ getFLEXWorld<-function(sim){
     if(!is.null(sim$harvestPixelList)){
       fisher.habitat<-fisher.habitat[pixelid %in% sim$harvestPixelList[cvalue <= total_cut*i & cvalue > total_cut*(i-1),]$pixelid, age:=0]
     }
-    fisher.habitat[den_p == 1 & age >= 125 & crownclosure >= 30 & qmd >=28.5 & basalarea >= 29.75, denning:=1][den_p == 2 & age >= 125 & crownclosure >= 20 & qmd >=28 & basalarea >= 28, denning:=1][den_p == 3 & age >= 207 & crownclosure >= 20 & qmd >= 34.3, denning:=1][den_p == 4 & age >= 88 & qmd >= 19.5 & height >= 19, denning:=1]
-    fisher.habitat[rus_p == 1 & age > 0 & crownclosure >= 30 & qmd >= 22.7 & basalarea >= 35 & height >= 23.7, rust:=1][rus_p == 2 & age >= 72 & crownclosure >= 25 & qmd >= 19.6 & basalarea >= 32, rust:=1][rus_p == 3 & age >= 83 & crownclosure >=40 & qmd >= 20.1, rust:=1][rus_p == 4 & age >= 78 & crownclosure >=50 & qmd >= 18.5 & height >= 19 & basalarea >= 31.4, rust:=1]
+    fisher.habitat[den_p == 1 & age >= 125 & crownclosure >= 30 & qmd >=28.5 & basalarea >= 29.75, denning:=1][den_p == 2 & age >= 125 & crownclosure >= 20 & qmd >=28 & basalarea >= 28, denning:=1][den_p == 3 & age >= 207 & crownclosure >= 20 & qmd >= 34.3, denning:=1][den_p == 4 & age >= 88 & qmd >= 19.5 & height >= 19, denning:=1][den_p == 5 & age >= 98 & qmd >= 21.3 & height >= 22.8, denning:=1]
+    fisher.habitat[rus_p == 1 & age > 0 & crownclosure >= 30 & qmd >= 22.7 & basalarea >= 35 & height >= 23.7, rust:=1][rus_p == 2 & age >= 72 & crownclosure >= 25 & qmd >= 19.6 & basalarea >= 32, rust:=1][rus_p == 3 & age >= 83 & crownclosure >=40 & qmd >= 20.1, rust:=1][rus_p == 4 & age >= 78 & crownclosure >=50 & qmd >= 18.5 & height >= 19 & basalarea >= 31.4, rust:=1][rus_p == 5 & age >= 68 & crownclosure >=35 & qmd >= 17 & height >= 14.8, rust:=1]
     fisher.habitat[cav_p == 1 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1][cav_p == 2 & age > 0 & height >= 35 & basalarea >=32, cavity:=1]
-    fisher.habitat[cwd_p == 1 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 2 & age >= 135 & crownclosure >= 25 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 3 & age >= 100, cwd:=1][cwd_p == 4 & age >= 78 & qmd >= 18.1 & height >= 19 & crownclosure >= 60, cwd:=1]
-    fisher.habitat[mov_p > 0 & age > 0 & crownclosure >= 50, movement:=1]
+    fisher.habitat[cwd_p == 1 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 2 & age >= 135 & crownclosure >= 25 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 3 & age >= 100, cwd:=1][cwd_p >= 4 & age >= 78 & qmd >= 18.1 & height >= 19 & crownclosure >=60, cwd:=1]
+    fisher.habitat[mov_p > 0 & age > 0 & crownclosure >= 40, movement:=1]
   
     #---Summarize habitat by the feta
     den<-fisher.habitat[den_p > 0, .(denning = (sum(denning, na.rm =T)/3000)*100), by = fetaid]
@@ -255,7 +255,8 @@ getFLEXWorld<-function(sim){
   
     #---Merge all habitat data.table together
     fisher.habitat.rs <- Reduce(function(...) merge(..., all = TRUE), list(sim$fisher.feta.info, den,cav,rus,cwd,mov))
-    
+    #fisher.d2.cov<<-sim$fisher.d2.cov
+    #stop()
     #---Calculate D2 (Mahalanobis)
     #-----Add log transforms
     fisher.habitat.rs[ pop == 1 & denning > 0, denning:=log(denning)][ pop == 1 & cavity > 0, cavity:=log(cavity)]
@@ -277,7 +278,7 @@ getFLEXWorld<-function(sim){
     #---Create Raster of movement
     ras.mov<-sim$ras
     ras.mov[] <- NA
-    ras.mov[fisher.habitat.mahal$pixelid]<-fisher.habitat.mahal$mov
+    ras.mov[fisher.habitat.mahal$pixelid]<-fisher.habitat.mahal$mov*2
 
     #Aggregate to a 30km pixels and save for FLEX
     if(i == 1){
@@ -292,7 +293,7 @@ getFLEXWorld<-function(sim){
   fisherReport<-merge(occupancy, fisher.habitat.rs[, c("fetaid", "d2")], by.x = "zone", by.y = "fetaid")
   fisherReport[, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name, sim$boundaryInfo[[3]]) ] 
   sim$fisherReport<-rbindlist(list(sim$fisherReport, fisherReport), use.names=TRUE)
-
+  
   return(invisible(sim)) 
 }
 
