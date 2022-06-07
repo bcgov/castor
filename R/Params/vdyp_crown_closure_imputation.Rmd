@@ -13,7 +13,7 @@ source(paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 ## Purpose
 
-Natural orgin stands do not have a projection of crown closure - VDYP doesn't output crown closure over time. Thus, we will impute its value using the corresponding VRI crown closure estimate within 10 year of the reference time stamp. To do this, a strata based imputation will be used, where only observations with the same leading species group will be used.
+Natural origin stands do not have a projection of crown closure - VDYP doesn't output crown closure over time. Thus, we will impute its value using the corresponding VRI crown closure estimate within 10 year of the reference time stamp. To do this, a strata based imputation will be used, where only observations with the same leading species group will be used.
 
 ## Imputation parameter selection
 
@@ -25,20 +25,20 @@ strata<-lapply(seq_len(nrow(species)), function(i) species[i])
 if(TRUE){
   
 error<-lapply(strata, function(x){
-  ref_vri<-data.table(getTableQuery(paste0("SELECT crown_closure, basal_area, proj_age_1 as age, quad_diam_125 as qmd, proj_height_1 as height, vri_live_stems_per_ha as tph, live_stand_volume_125 as tvol, bec_zone_code, species_cd_1  FROM veg_comp_lyr_r1_poly2018 where bclcs_level_2 = 'T' and reference_year >= 2008 and species_cd_1 is not null and crown_closure >= 0 and basal_area >= 0 and  proj_height_1 >= 0 and vri_live_stems_per_ha >= 0 and quad_diam_125 >= 0 and UPPER(species_cd_1) IN ", x$sql ,";")))
-  preds_euc_k1<-impute(yai(x=ref_vri[,c("basal_area", "age", "tvol", "height", "tph")], y=ref_vri$crown_closure, method="euclidean", k=1), k=1, method = 'closest')
-  preds_mal_k1<-impute(yai(x=ref_vri[,c("basal_area", "age", "tvol","height", "tph")], y=ref_vri$crown_closure, method="mahalanobis", k=1), k=1, method = 'closest')
-  #preds_rf_k1<-impute(yai(x=ref_vri[,c("basal_area", "age", "height", "tph")], y=ref_vri$crown_closure, method="randomForest", k=1), k=1, method = 'closest')
-   preds_euc_k3<-impute(yai(x=ref_vri[,c("basal_area", "age","tvol", "height", "tph")], y=ref_vri$crown_closure, method="euclidean", k=3), k=3, method = 'mean')
-  preds_mal_k3<-impute(yai(x=ref_vri[,c("basal_area", "age", "tvol","height", "tph")], y=ref_vri$crown_closure, method="mahalanobis", k=3), k=3, method = 'mean') 
-  #preds_rf_k3<-impute(yai(x=ref_vri[,c("basal_area", "age", "height", "tph")], y=ref_vri$crown_closure, method="randomForest", k=3), k=3, method = 'dstWeighted')
-  preds_euc_k5<-impute(yai(x=ref_vri[,c("basal_area", "age", "tvol","height", "tph")], y=ref_vri$crown_closure, method="euclidean", k=5), k=5, method = 'mean')
-  preds_mal_k5<-impute(yai(x=ref_vri[,c("basal_area", "age", "tvol","height", "tph")], y=ref_vri$crown_closure, method="mahalanobis", k=5), k=5, method = 'mean') 
-  #preds_rf_k5<-impute(yai(x=ref_vri[,c("basal_area", "age", "height", "tph")], y=ref_vri$crown_closure, method="randomForest", k=5), k=5, method = 'dstWeighted')
-  preds_euc_k10<-impute(yai(x=ref_vri[,c("basal_area", "age","tvol", "height", "tph")], y=ref_vri$crown_closure, method="euclidean", k=10), k=10, method = 'mean')
-  preds_mal_k10<-impute(yai(x=ref_vri[,c("basal_area", "age","tvol", "height", "tph")], y=ref_vri$crown_closure, method="mahalanobis", k=10), k=10, method = 'mean') 
-  preds_euc_k15<-impute(yai(x=ref_vri[,c("basal_area", "age", "tvol","height", "tph")], y=ref_vri$crown_closure, method="euclidean", k=15), k=15, method = 'mean')
-  preds_mal_k15<-impute(yai(x=ref_vri[,c("basal_area", "age","tvol", "height", "tph")], y=ref_vri$crown_closure, method="mahalanobis", k=15), k=15, method = 'mean') 
+  ref_vri<-data.table(getTableQuery(paste0("SELECT crown_closure, basal_area, proj_age_1 as age, quad_diam_125 as qmd, proj_height_1 as height, vri_live_stems_per_ha as tph, live_stand_volume_125 as tvol, bec_zone_code, species_cd_1  FROM veg_comp_lyr_r1_poly2020 where bclcs_level_2 = 'T' and reference_year >= 2012 and species_cd_1 is not null and crown_closure >= 0 and basal_area >= 0 and  proj_height_1 >= 0 and vri_live_stems_per_ha >= 0 and quad_diam_125 >= 0 and UPPER(species_cd_1) IN ", x$sql ,";")))
+  preds_euc_k1<-impute(yai(x=ref_vri[,c("basal_area",  "tvol", "height", "tph", "qmd")], y=ref_vri$crown_closure, method="euclidean", k=1), k=1, method = 'closest')
+  preds_mal_k1<-impute(yai(x=ref_vri[,c("basal_area",  "tvol","height", "tph", "qmd")], y=ref_vri$crown_closure, method="mahalanobis", k=1), k=1, method = 'closest')
+  #preds_rf_k1<-impute(yai(x=ref_vri[,c("basal_area",  "height", "tph")], y=ref_vri$crown_closure, method="randomForest", k=1), k=1, method = 'closest')
+   preds_euc_k3<-impute(yai(x=ref_vri[,c("basal_area", "tvol", "height", "tph", "qmd")], y=ref_vri$crown_closure, method="euclidean", k=3), k=3, method = 'mean')
+  preds_mal_k3<-impute(yai(x=ref_vri[,c("basal_area",  "tvol","height", "tph", "qmd")], y=ref_vri$crown_closure, method="mahalanobis", k=3), k=3, method = 'mean') 
+  #preds_rf_k3<-impute(yai(x=ref_vri[,c("basal_area",  "height", "tph")], y=ref_vri$crown_closure, method="randomForest", k=3), k=3, method = 'dstWeighted')
+  preds_euc_k5<-impute(yai(x=ref_vri[,c("basal_area",  "tvol","height", "tph", "qmd")], y=ref_vri$crown_closure, method="euclidean", k=5), k=5, method = 'mean')
+  preds_mal_k5<-impute(yai(x=ref_vri[,c("basal_area",  "tvol","height", "tph", "qmd")], y=ref_vri$crown_closure, method="mahalanobis", k=5), k=5, method = 'mean') 
+  #preds_rf_k5<-impute(yai(x=ref_vri[,c("basal_area",  "height", "tph")], y=ref_vri$crown_closure, method="randomForest", k=5), k=5, method = 'dstWeighted')
+  preds_euc_k10<-impute(yai(x=ref_vri[,c("basal_area", "tvol", "height", "tph", "qmd")], y=ref_vri$crown_closure, method="euclidean", k=10), k=10, method = 'mean')
+  preds_mal_k10<-impute(yai(x=ref_vri[,c("basal_area", ,"tvol", "height", "tph", "qmd")], y=ref_vri$crown_closure, method="mahalanobis", k=10), k=10, method = 'mean') 
+  preds_euc_k15<-impute(yai(x=ref_vri[,c("basal_area",  "tvol","height", "tph", "qmd")], y=ref_vri$crown_closure, method="euclidean", k=15), k=15, method = 'mean')
+  preds_mal_k15<-impute(yai(x=ref_vri[,c("basal_area", "tvol", "height", "tph", "qmd")], y=ref_vri$crown_closure, method="mahalanobis", k=15), k=15, method = 'mean') 
   avg.y<-mean(preds_euc_k1$y.o)
   data.table(species = x$species, null = sqrt(sum((preds_euc_k1$y.o-avg.y)**2)/nrow(preds_euc_k1)),rmsd_euc_k1 = rmsd(na.omit(preds_euc_k1),scale= FALSE)["y",],rmsd_mal_k1 = rmsd(na.omit(preds_mal_k1),scale= FALSE)["y",],rmsd_euc_k3 = rmsd(na.omit(preds_euc_k3),scale= FALSE)["y",],rmsd_mal_k3 = rmsd(na.omit(preds_mal_k3),scale= FALSE)["y",],rmsd_euc_k5 = rmsd(na.omit(preds_euc_k5),scale= FALSE)["y",],rmsd_mal_k5 = rmsd(na.omit(preds_mal_k5),scale= FALSE)["y",],rmsd_euc_k10 = rmsd(na.omit(preds_euc_k10),scale= FALSE)["y",],rmsd_mal_k10 = rmsd(na.omit(preds_mal_k10),scale= FALSE)["y",],rmsd_euc_k15 = rmsd(na.omit(preds_euc_k15),scale= FALSE)["y",],rmsd_mal_k15 = rmsd(na.omit(preds_mal_k15),scale= FALSE)["y",])
 })
@@ -59,7 +59,7 @@ The resulting leave one out validation suggested the RF distance metric which us
 if(FALSE){
   conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
   
-  dbExecute(conn, "ALTER TABLE yc_vdyp_all add column cc integer default 0")
+  dbExecute(conn, "ALTER TABLE yc_vdyp_2020 add column crownclosure integer default 0")
   dbDisconnect(conn)
 }
 
@@ -69,11 +69,11 @@ strata_imp<-lapply(seq_len(nrow(species_imp)), function(i) species_imp[i])
 
 #Run the imputation by strata
 imp_results<-lapply(strata_imp, function(x){
-  ref_vri<-data.table(getTableQuery(paste0("SELECT crown_closure, basal_area, proj_age_1 as age, quad_diam_125 as qmd, proj_height_1 as height, vri_live_stems_per_ha as tph, live_stand_volume_125 as tvol, bec_zone_code, species_cd_1  FROM veg_comp_lyr_r1_poly2018 where bclcs_level_2 = 'T' and reference_year >= 2008 and species_cd_1 is not null and crown_closure >= 0 and basal_area >= 0 and  proj_height_1 >= 0 and vri_live_stems_per_ha >= 0 and quad_diam_125 >= 0 and UPPER(species_cd_1) IN ", x$sql)))
+  ref_vri<-data.table(getTableQuery(paste0("SELECT crown_closure, basal_area as basalarea, proj_age_1 as age, quad_diam_125 as qmd, proj_height_1 as height, vri_live_stems_per_ha as tph, live_stand_volume_125 as tvol, bec_zone_code, species_cd_1  FROM veg_comp_lyr_r1_poly2020 where bclcs_level_2 = 'T' and reference_year >= 2012 and species_cd_1 is not null and crown_closure >= 0 and basal_area >= 0 and  proj_height_1 >= 0 and vri_live_stems_per_ha >= 0 and quad_diam_125 >= 0 and UPPER(species_cd_1) IN ", x$sql)))
 
-  yc_vdyp<-data.table(getTableQuery(paste0("SELECT ycid, yc_grp, age, tvol, height, qmd, baha as basal_area, tph from yc_vdyp_all where yc_grp in (select distinct(yc_grp) from vdyp_vri2018 where species_cd_1 IN ", x$species,") and baha >=0 and tph >= 0;")))
+  yc_vdyp<-data.table(getTableQuery(paste0("SELECT ycid, yc_grp, age, tvol, height, qmd, basalarea, tph from yc_vdyp_2020 where yc_grp in (select distinct(yc_grp) from vdyp_vri2020 where species_cd_1 IN ", x$species,") and basalarea >=0 and tph >= 0;")))
 
-  mal <- yai(x=ref_vri[,c("basal_area", "tvol", "height", "tph")], y=ref_vri$crown_closure, method="mahalanobis", k=10, noRefs=TRUE)
+  mal <- yai(x=ref_vri[,c("basalarea", "tvol", "height", "tph")], y=ref_vri$crown_closure, method="mahalanobis", k=10, noRefs=TRUE)
 
 rownames(yc_vdyp) <- paste0("test.",rownames(yc_vdyp))
 m10 <- newtargets(mal , newdata=yc_vdyp, k=10)
@@ -98,10 +98,10 @@ Merge the imputed cc with the yield curve table.
 
 ```{r, yc_table}
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
-dbExecute(conn, "UPDATE yc_vdyp_all
-SET cc = pred_cc_impute.cc
+dbExecute(conn, "UPDATE yc_vdyp_2020
+SET crownclosure = pred_cc_impute.cc
 FROM pred_cc_impute
-WHERE yc_vdyp_all.ycid = pred_cc_impute.ycid and yc_vdyp_all.age = pred_cc_impute.age;")
+WHERE yc_vdyp_2020.ycid = pred_cc_impute.ycid and yc_vdyp_2020.age = pred_cc_impute.age;")
 dbDisconnect(conn) 
 ```
 
@@ -113,12 +113,12 @@ Compare the predicted curves to the 2008-2018 VRI.
 
 comp_vdyp_vri<-data.table(getTableQuery(paste0("
 SELECT t.yc_grp, t.crown_closure,
-    (((k.cc - y.cc*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.cc as cc
-    FROM (SELECT crown_closure, yc_grp, proj_age_1 as age FROM vdyp_vri2018 
-		  where reference_year >= 2008) as t
-    LEFT JOIN yc_vdyp_all y 
+    (((k.crownclosure - y.crownclosure *1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.crownclosure  as cc
+    FROM (SELECT crown_closure, yc_grp, proj_age_1 as age FROM vdyp_vri2020 
+		  where reference_year >= 2019) as t
+    LEFT JOIN yc_vdyp_2020 y 
     ON t.yc_grp = y.yc_grp AND CAST(t.age/10 AS INT)*10 = y.age
-    LEFT JOIN yc_vdyp_all k 
+    LEFT JOIN yc_vdyp_2020 k 
     ON t.yc_grp = k.yc_grp AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0;")))
 
 library(RColorBrewer)
