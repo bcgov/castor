@@ -129,7 +129,7 @@ parameters <- list(
                            dbName='clus',
                            save_clusdb = FALSE,
                            sqlite_dbname = "Lakes_TSA",
-                           useCLUSdb = paste0(here::here(), "/R/scenarios/Lakes_TSA/Lakes_TSA_clusdb.sqlite"),
+                           useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/Lakes_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
