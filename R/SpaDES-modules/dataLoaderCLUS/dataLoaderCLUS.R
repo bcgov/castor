@@ -24,7 +24,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "dataLoaderCLUS.Rmd"),
-  reqdPkgs = list("sf", "rpostgis","DBI", "RSQLite", "data.table", "velox"),
+  reqdPkgs = list("sf", "rpostgis","DBI", "RSQLite", "data.table"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
