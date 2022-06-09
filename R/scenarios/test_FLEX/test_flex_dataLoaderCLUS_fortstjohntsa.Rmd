@@ -34,7 +34,7 @@ library (keyring)
 
 source(here::here("R/functions/R_Postgres.R"))
 
-#Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1')
+Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1')
 #Sys.setenv(JAVA_HOME = 'C:\\Program Files (x86)\\Java\\jre1.8.0_241') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
 
 setPaths(modulePath = here::here("R/SpaDES-modules"),
@@ -42,13 +42,13 @@ setPaths(modulePath = here::here("R/SpaDES-modules"),
 
 getPaths() # shows where the 4 relevant paths are
 
-times <- list(start = 0, end = 4)
+times <- list(start = 0, end = 0)
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataLoaderCLUS = list (dbName = 'clus', # name of the postgres database
-                         #save_clusdb = TRUE,
-                         useCLUSdb = paste0(here::here(), "/R/scenarios/test_FLEX/Fort_St_John_Core_TSA_clusdb.sqlite"),
+                         save_clusdb = TRUE,
+                         #useCLUSdb = paste0(here::here(), "/R/scenarios/test_FLEX/Fort_St_John_Core_TSA_clusdb.sqlite"),
                          sqlite_dbname = "Fort_St_John_Core_TSA",
                          nameBoundaryFile = "tsa_aac_bounds", # name of the (TSA) boundary data in postgres
                          nameBoundaryColumn = "tsa_name", 
@@ -81,7 +81,7 @@ parameters <-  list(
                         nameForestInventoryCrownClosure = "crown_closure",
                         nameForestInventoryTreed = "bclcs_level_2",
                         nameForestInventorySiteIndex = "site_index",
-                        #nameForestInventoryBasalArea= "basal_area",
+                        nameForestInventoryBasalArea= "basal_area",
                         nameForestInventoryQMD = "quad_diam_125"),
   blockingCLUS = list(blockMethod = 'pre', 
                       patchZone = 'rast.zone_cond_beo', 
@@ -101,6 +101,7 @@ parameters <-  list(
     FLEX = list(
     # "iterations" = 100, # hard coding it in for 100 simulations, better for output
     # "yrs.to.run" = 10,
+    "simulations" = 10,
     "propFemales" = 0.3, 
     "maxAgeFemale" = 9,
     "dist_mov" = 1.0,
@@ -141,8 +142,7 @@ modules <- list("dataLoaderCLUS",
                 "growingStockCLUS",
                 "forestryCLUS",
                 "fisherCLUS",
-                "roadCLUS",
-                "FLEX"
+                "roadCLUS"
                 )
 
 #objects <- list(patchSizeDist=patchSizeDist, rsf_model_coeff=rsf_model_coeff , scenario = scenario)
@@ -154,7 +154,7 @@ objects <- list(patchSizeDist = patchSizeDist,
 inputs <- list()
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects)
-outputs(mySim) <- data.frame (objectName = c("harvestReport","growingStockReport", "FLEX_multi_heatmap", "flexRasWorld"))
+#outputs(mySim) <- data.frame (objectName = c("harvestReport","growingStockReport", "FLEX_multi_heatmap", "flexRasWorld", "FLEX_agg_output"))
 
 system.time({
 mysimout<-spades(mySim)
