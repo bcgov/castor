@@ -300,12 +300,12 @@ preBlock <- function(sim) {
       }else{
         patchDist <- list(targetNum$sizeClass ,  targetNum$targetNum )
       }
-     
       #make list of blocking parameters
       resultset <-append(resultset, list(list(as.matrix(degree(g.mst_sub)), paths.matrix, zone, patchDist, P(sim)$patchVariation, lut))) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
-    }else{
-      message(paste0(zone, " has length<0"))
-      next
+      
+      }else{
+        message(paste0(zone, " has length<0"))
+        next
     }
   }
   
@@ -459,6 +459,7 @@ getBlocksIDs<- function(x){
   #4. The patch size distribution. These are accessed via x[][[1-4]]
   #---------------------------------------------------------------------------------#
   message(paste0("getBlocksID for zone: ", x[][[3]])) #Let the user know what zone is being blocked
+ 
   .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx2g", force.init = TRUE) #instantiate the JVM
   fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a new forest hierarchy object in java
   
