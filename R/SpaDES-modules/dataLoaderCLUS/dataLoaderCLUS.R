@@ -127,7 +127,7 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
         dbExecute(sim$clusdb, "PRAGMA synchronous = OFF") # update the database
         dbExecute(sim$clusdb, "PRAGMA journal_mode = OFF")
         
-        ras.info<-dbGetQuery(sim$clusdb, "select * from raster_info where name = 'ras'")
+        ras.info<-dbGetQuery(sim$clusdb, "select * from raster_info where name = 'ras'") #Get the raster information
         sim$ras<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =1:ras.info$ncell)
         raster::crs(sim$ras)<-paste0("EPSG:", ras.info$crs)
         
@@ -233,8 +233,7 @@ setTablesCLUSdb <- function(sim) {
     
     #Add the raster_info
     ras.extent<-extent(sim$ras)
-    dbExecute(sim$clusdb, paste0("INSERT INTO raster_info (name, xmin, xmax, ymin, ymax, ncell, nrow, crs) values ('ras',", ras.extent[1], ", ", ras.extent[2], ", ",
-                                 ras.extent[3], ", ", ras.extent[4], ",", ncell(sim$ras) , ", ", nrow(sim$ras),", '3005')"))
+    dbExecute(sim$clusdb, glue::glue("INSERT INTO raster_info (name, xmin, xmax, ymin, ymax, ncell, nrow, crs) values ('ras', {ras.extent[1]}, {ras.extent[2]}, {ras.extent[3]}, {ras.extent[4]}, {ncell(sim$ras)}, {nrow(sim$ras)}, '3005')"))
     
   }else{
     message('.....compartment ids: default 1')
@@ -301,10 +300,11 @@ setTablesCLUSdb <- function(sim) {
       if(aoi == extent(ras.zone)){#need to check that each of the extents are the same
         pixels<-cbind(pixels, data.table(V1 = ras.zone[]))
         setnames(pixels, "V1", paste0('zone',i))#SET zone NAMES to RASTER layer
-        dbExecute(sim$clusdb, paste0('ALTER TABLE pixels ADD COLUMN zone', i,' numeric')) # add the zone id column and populate it with the zone names
-        dbExecute(sim$clusdb, paste0("INSERT INTO zone (zone_column, reference_zone) values ( 'zone", i, "', '", P(sim, "nameZoneRasters", "dataLoaderCLUS")[i], "')" ))
+        dbExecute(sim$clusdb, glue::glue("ALTER TABLE pixels ADD COLUMN zone{i} numeric")) # add the zone id column and populate it with the zone names
+        ref_zone <- P(sim, "nameZoneRasters", "dataLoaderCLUS")[i]
+        dbExecute(sim$clusdb, glue::glue("INSERT INTO zone (zone_column, reference_zone) values ( 'zone{i}', '{ref_zone}')" ))
         # message(head(zones_aoi))
-        rm(ras.zone)
+        rm(ras.zone, ref_zone)
         gc()
       } else{
         stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameZoneRasters")))
@@ -315,17 +315,18 @@ setTablesCLUSdb <- function(sim) {
     sim$zone.length<-1
     pixels[, zone1:= 1]
     dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN zone1 integer")
-    dbExecute(sim$clusdb, paste0("INSERT INTO zone (zone_column, reference_zone) values ( 'zone1', 'default')" ))
+    dbExecute(sim$clusdb, "INSERT INTO zone (zone_column, reference_zone) values ( 'zone1', 'default')" )
   }
   #-----------------------------#
   #Set the zonePriorityRaster----
   #-----------------------------#
   if(!P(sim)$nameZonePriorityRaster == '99999'){
+    nameZonePriorityRaster<-P(sim, "dataLoaderCLUS", "nameZonePriorityRaster")
     #Check to see if the name of the zone priority raster is already in the zone table
-    if(!P(sim)$nameZonePriorityRaster %in% dbGetQuery(sim$clusdb, "SELECT reference_zone from zone")$reference_zone){
-      message(paste0('.....zone priority raster not in zones table...fetching: ',P(sim, "nameZonePriorityRaster", "dataLoaderCLUS")))
+    if(!nameZonePriorityRaster %in% dbGetQuery(sim$clusdb, "SELECT reference_zone from zone")$reference_zone){
+      message(paste0('.....zone priority raster not in zones table...fetching: ',nameZonePriorityRaster))
       ras.zone.priority<- RASTER_CLIP2(tmpRast =paste0('temp_', sample(1:10000, 1)), 
-                             srcRaster= P(sim, "dataLoaderCLUS", "nameZonePriorityRaster"), 
+                             srcRaster= nameZonePriorityRaster, 
                              clipper=sim$boundaryInfo[[1]], 
                              geom= sim$boundaryInfo[[4]], 
                              where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -335,9 +336,9 @@ setTablesCLUSdb <- function(sim) {
         zone.priority<-paste0("zone", as.character(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM zone")) + 1))
         setnames(pixels, "V1", zone.priority)
         #Add the zone priority column to the zone table
-        dbExecute(sim$clusdb, paste0("INSERT INTO zone (zone_column, reference_zone) values ('",zone.priority, "', '",P(sim, "dataLoaderCLUS", "nameZonePriorityRaster"),"')"))
+        dbExecute(sim$clusdb, glue::glue("INSERT INTO zone (zone_column, reference_zone) values ('{zone.priority}', '{nameZonePriorityRaster}')"))
         #Add the column name to pixels
-        dbExecute(sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN ",zone.priority," integer"))
+        dbExecute(sim$clusdb, glue::glue("ALTER TABLE pixels ADD COLUMN {zone.priority} integer"))
         #Add to the zone.length needed when inserting the pixels table
         sim$zone.length<-sim$zone.length + 1
         rm(ras.zone.priority,zone.priority)
@@ -400,17 +401,18 @@ setTablesCLUSdb <- function(sim) {
     yld.ids<-paste( unique(pixels[!is.na(yieldid),"yieldid"])$yieldid, sep=" ", collapse = ", ")
     
     #Check to see what yields are available
-    testColumnNames<-getTableQuery(paste0("SELECT * FROM ",P(sim)$nameYieldTable, " LIMIT 1"))
+    testColumnNames<-getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameYieldTable} LIMIT 1"))
     colNames<- names(testColumnNames)[names(testColumnNames) %in% c("ycid", "age", "tvol", "dec_pcnt", "height", "eca", "basalarea", "qmd", "crownclosure")]
     colNamesYieldid <-colNames
     colNamesYieldid[1]<-"yieldid"
       
     #Set the yields table with yield curves that are only in the study area
-    yields<-getTableQuery(paste0("SELECT ",paste(colNames, collapse = ", ", sep = " ")," FROM ", P(sim)$nameYieldTable, " where ycid IN (", yld.ids , ");"))
+    #yields<-getTableQuery(paste0("SELECT ",paste(colNames, collapse = ", ", sep = " ")," FROM ", P(sim)$nameYieldTable, " where ycid IN (", yld.ids , ");"))
+    yields<-getTableQuery(glue::glue("SELECT ", glue::glue_collapse(colNames, sep = ", ")," FROM {P(sim)$nameYieldTable} where ycid IN ({yld.ids});"))
     
     dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, paste0("INSERT INTO yields (",paste(colNamesYieldid, collapse = ", ", sep = " "),") 
-                      values (:",paste(colNames, collapse = ", :", sep = " "),")"), yields)
+    rs<-dbSendQuery(sim$clusdb, glue::glue("INSERT INTO yields (",glue::glue_collapse(colNamesYieldid, sep = ", "),") 
+                      values (:",glue::glue_collapse(colNames, sep = ", :"),");"), yields)
     dbClearResult(rs)
     dbCommit(sim$clusdb)
     
@@ -469,8 +471,8 @@ setTablesCLUSdb <- function(sim) {
     yields.current<-getTableQuery(paste0("SELECT ",paste(colNames, collapse = ", ", sep = " ")," FROM ", P(sim)$nameYieldCurrentTable , " where ycid IN (", yld.ids.current , ");"))
     
     dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, paste0("INSERT INTO yields (",paste(colNamesYieldid, collapse = ", ", sep = " "),") 
-                      values (:",paste(colNames, collapse = ", :", sep = " "),")"), yields.current)
+    rs<-dbSendQuery(sim$clusdb, glue::glue("INSERT INTO yields (",glue::glue_collapse(colNamesYieldid, sep = ", "),") 
+                      values (:",glue::glue_collapse(colNames, sep = ", :"),");"), yields.current)
     dbClearResult(rs)
     dbCommit(sim$clusdb)
     
@@ -512,8 +514,8 @@ setTablesCLUSdb <- function(sim) {
     yields.trans<-getTableQuery(paste0("SELECT ", paste(colNames, collapse = ", ", sep = " ")," FROM ", P(sim)$nameYieldTransitionTable, " where ycid IN (", yld.ids.trans , ");"))
     
     dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, paste0("INSERT INTO yields (",paste(colNamesYieldid, collapse = ", ", sep = " "),") 
-                      values (:", paste(colNames, collapse = ", :", sep = " "),")"), yields.trans)
+    rs<-dbSendQuery(sim$clusdb, glue::glue("INSERT INTO yields (",glue::glue_collapse(colNamesYieldid, sep = ", "),") 
+                      values (:",glue::glue_collapse(colNames, sep = ", :"),");"), yields.trans)
     dbClearResult(rs)
     dbCommit(sim$clusdb)
     
@@ -615,9 +617,9 @@ setTablesCLUSdb <- function(sim) {
         if(!is.null(multiVars1)){
           for(var in multiVars1){
             if(is.character(pixels[, eval(parse(text =var))])){
-              dbExecute(sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN ", var, " text;"))
+              dbExecute(sim$clusdb, glue::glue("ALTER TABLE pixels ADD COLUMN {var} text;"))
             }else{
-              dbExecute(sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN ", var, " numeric;"))
+              dbExecute(sim$clusdb, glue::glue("ALTER TABLE pixels ADD COLUMN {var} numeric;"))
             }
           }
         }
@@ -799,7 +801,7 @@ setIndexesCLUSdb <- function(sim) {
   
   zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
   for(i in 1:nrow(zones)){
-    dbExecute(sim$clusdb, paste0("CREATE INDEX index_zone",i," on pixels (",zones[[1]][i],")"))
+    dbExecute(sim$clusdb, glue::glue("CREATE INDEX index_zone{i} on pixels ({zones[[1]][i]})"))
   }
   
   dbExecute(sim$clusdb, "VACUUM;")
@@ -830,9 +832,8 @@ setZoneConstraints<-function(sim){
   if(!P(sim)$nameZoneTable == '99999'){
     zone<-dbGetQuery(sim$clusdb, "SELECT * FROM zone") # select the name of the raster and its column name in pixels
     zone_const<-rbindlist(lapply(split(zone, seq(nrow(zone))) , function(x){
-      if(nrow(dbGetQuery(sim$clusdb, paste0("SELECT distinct(", x$zone_column,") from pixels where ", x$zone_column, " is not null")))>0){
-        getTableQuery(paste0("SELECT * FROM ", P(sim)$nameZoneTable, " WHERE reference_zone = '", x$reference_zone,
-                           "' AND zoneid IN(",paste(dbGetQuery(sim$clusdb, paste0("SELECT distinct(", x$zone_column,") as zoneid from pixels where ", x$zone_column, " is not null"))$zoneid, sep ="", collapse ="," ),");"))
+      if(nrow(dbGetQuery(sim$clusdb, glue::glue("SELECT distinct({x$zone_column}) from pixels where {x$zone_column} is not null")))>0){
+        getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameZoneTable} WHERE reference_zone = '{x$reference_zone}' AND zoneid IN(",paste(dbGetQuery(sim$clusdb,glue::glue("SELECT distinct({x$zone_column}) as zoneid from pixels where {x$zone_column} is not null"))$zoneid, sep ="", collapse ="," ),");"))
       }
     }))
     
@@ -846,7 +847,7 @@ setZoneConstraints<-function(sim){
     #Get total area of the zone
     if(nrow(zone_const_default)>0){
       t_area_default<-rbindlist(lapply(unique(zone_const_default$zone_column), function (x){
-        dbGetQuery(sim$clusdb, paste0("SELECT count() as t_area, ", x, " as zoneid, '", paste0(x), "' as zone_column from pixels where ", x, " is not null group by ", x)) 
+        dbGetQuery(sim$clusdb, glue::glue("SELECT count() as t_area, {x} as zoneid, '{x}' as zone_column from pixels where {x} is not null group by {x}")) 
       }))
     }else{
       t_area_default<-data.table( t_area=as.numeric(), zoneid=as.integer(),zone_column=as.character())
@@ -854,7 +855,7 @@ setZoneConstraints<-function(sim){
     #Get total area where some inequality holds
     if(nrow(zone_const_denom)>0){
       t_area_denomt<-rbindlist(lapply(split(zone_const_denom, seq(nrow(zone_const_denom))), function (x){
-        dbGetQuery(sim$clusdb, paste0("SELECT count() as t_area, ", x$zone_column, " as zoneid, '", paste0(x$zone_column), "' as zone_column from pixels where ", x$denom, " and ", x$zone_column, " = ", x$zoneid)) 
+        dbGetQuery(sim$clusdb, glue::glue("SELECT count() as t_area, {x$zone_column} as zoneid, '{x$zone_column}' as zone_column from pixels where {x$denom} and {x$zone_column}= {x$zoneid};")) 
       })) 
     }else{
       t_area_denomt<-data.table( t_area=as.numeric(), zoneid=as.integer(),zone_column=as.character())
@@ -893,7 +894,7 @@ calcForestState<-function(sim){
                          group by compartid;"))
             )
 
-  if(dbGetQuery(sim$clusdb, paste0("SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='roadyear';"))$exists_check == 0){
+  if(dbGetQuery(sim$clusdb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='roadyear';")$exists_check == 0){
     sim$foreststate[,road:=0]
   }else{
     sim$foreststate[,road:= dbGetQuery(sim$clusdb,"select count() as road from pixels where roadyear = 0")$road]
