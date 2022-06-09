@@ -174,6 +174,7 @@ public class Forest_Hierarchy {
 		while(findBlocks){//as long as the distribution of block sizes has not been met or there are edges to include, cluster pixels into blocks
 			
 			if(edgeList.isEmpty()) {//group pixels till there is nothing left to group or the edgeList is empty
+				findBlocks = false;
 				break;
 			}
 			
