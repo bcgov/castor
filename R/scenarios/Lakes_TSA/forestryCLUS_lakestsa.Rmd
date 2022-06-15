@@ -166,8 +166,8 @@ parameters <- list(
 modules <- list("dataLoaderCLUS", 
                 "growingStockCLUS", 
                 "blockingCLUS", 
-                "forestryCLUS", 
-                "roadCLUS"  
+                "forestryCLUS" 
+                #"roadCLUS"  
                 )
 
  scenario = data.table (name = "lakes_bau",
