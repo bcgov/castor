@@ -79,12 +79,32 @@ fire_ignitions<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\
 
 ```
 
+### I wante to determine whether NDT or FRT is better. So here I join NDT back to my dataset so that I can run the models both ways.
+This is going to be rather rough, but hopefully its good enough.
+
+```{r}
+#Get natural disturbance data
+# Collect the BEC and NDT zones from the BCGW or from postgres
+
+#postgres (faster)
+NDT<-getSpatialQuery("SELECT objectid, feature_class_skey, zone, subzone, natural_disturbance, zone_name, wkb_geometry FROM public.bec_zone")
+
+st_crs(NDT)
+NDT<-st_transform(NDT, 3005)
+str(fire_ignitions)
+fire.ignt.NDT <- st_join(fire_ignitions, NDT, left=TRUE)
+
+dim(fire_ignitions)
+dim(fire.ignt.NDT)
+```
+
+
 Inspect the fire ignition data.
 
 ```{r}
 #fire_ignitions<-fire_all
 
-fire_ignitions<-st_set_geometry(fire_ignitions,NULL) # remove geometry column for dataset
+fire_ignitions<-st_set_geometry(fire.ignt.NDT,NULL) # remove geometry column for dataset
 
 head(fire_ignitions)
 names(fire_ignitions) # note if you import the file the names have changed
@@ -96,6 +116,118 @@ fire_ignitions <- fire_ignitions %>%
 # Histogram of lightning caused fires
 fire_ignitions$ig_mnth<-as.numeric(fire_ignitions$ig_mnth)
 hist(fire_ignitions$ig_mnth)
+
+# plot climate varibales over time to see if it looks ok.
+
+fire_ignitions_summary<- fire_ignitions %>%
+  group_by(frt) %>%
+  summarize(Tmax02=mean(Tmax02),
+         Tmax03=mean(Tmax03),
+         Tmax04=mean(Tmax04),
+         Tmax05=mean(Tmax05),
+         Tmax06=mean(Tmax06),
+         Tmax07=mean(Tmax07),
+         Tmax08=mean(Tmax08),
+         Tmax09=mean(Tmax09),
+         Tmax10=mean(Tmax10),
+         Tmax11=mean(Tmax11),
+         Tave02=mean(Tave02),
+         Tave03=mean(Tave03),
+         Tave04=mean(Tave04),
+         Tave05=mean(Tave05),
+         Tave06=mean(Tave06),
+         Tave07=mean(Tave07),
+         Tave08=mean(Tave08),
+         Tave09=mean(Tave09),
+         Tave10=mean(Tave10),
+         Tave11=mean(Tave11),
+         PPT02=mean(PPT02),
+         PPT03=mean(PPT03),
+         PPT04=mean(PPT04),
+         PPT05=mean(PPT05),
+         PPT06=mean(PPT06),
+         PPT07=mean(PPT07),
+         PPT08=mean(PPT08),
+         PPT09=mean(PPT09),
+         PPT10=mean(PPT10),
+         PPT11=mean(PPT11),
+         RH02=mean(RH02),
+         RH03=mean(RH03),
+         RH04=mean(RH04),
+         RH05=mean(RH05),
+         RH06=mean(RH06),
+         RH07=mean(RH07),
+         RH08=mean(RH08),
+         RH09=mean(RH09),
+         RH10=mean(RH10),
+         RH11=mean(RH11),
+         MDC_02=mean(MDC_02),
+         MDC_03=mean(MDC_03),
+         MDC_04=mean(MDC_04),
+         MDC_05=mean(MDC_05),
+         MDC_06=mean(MDC_06),
+         MDC_07=mean(MDC_07),
+         MDC_08=mean(MDC_08),
+         MDC_09=mean(MDC_09),
+         MDC_10=mean(MDC_10),
+         MDC_11=mean(MDC_11))
+
+# Tave
+tave<-fire_ignitions_summary %>% dplyr::select(frt, Tave02,Tave03,Tave04,Tave05,Tave06,Tave07, Tave08, Tave09, Tave10, Tave11)
+
+xtave<-pivot_longer(tave, cols=2:11, names_to="Month", values_to="Tave")
+xtave$Tave<- as.numeric(xtave$Tave)
+
+p<-ggplot(data=xtave, aes(x=Month, y=Tave, group= frt)) +
+  geom_line(aes(colour=frt)) +
+  geom_point(aes(colour=frt)) 
+p
+
+# Tmax
+Tmax<-fire_ignitions_summary %>% dplyr::select(frt, Tmax02,Tmax03,Tmax04,Tmax05,Tmax06,Tmax07, Tmax08, Tmax09, Tmax10, Tmax11)
+
+xTmax<-pivot_longer(Tmax, cols=2:11, names_to="Month", values_to="Tmax")
+xTmax$Tmax<- as.numeric(xTmax$Tmax)
+
+p<-ggplot(data=xTmax, aes(x=Month, y=Tmax, group= frt)) +
+  geom_line(aes(colour=frt)) +
+  geom_point(aes(colour=frt)) 
+p
+
+# PPT
+PPT<-fire_ignitions_summary %>% dplyr::select(frt, PPT02,PPT03,PPT04,PPT05,PPT06,PPT07, PPT08, PPT09, PPT10, PPT11)
+
+xPPT<-pivot_longer(PPT, cols=2:11, names_to="Month", values_to="PPT")
+xPPT$PPT<- as.numeric(xPPT$PPT)
+
+p<-ggplot(data=xPPT, aes(x=Month, y=PPT, group= frt)) +
+  geom_line(aes(colour=frt)) +
+  geom_point(aes(colour=frt)) 
+p
+
+# RH
+RH<-fire_ignitions_summary %>% dplyr::select(frt, RH02,RH03,RH04,RH05,RH06,RH07, RH08, RH09, RH10, RH11)
+
+xRH<-pivot_longer(RH, cols=2:11, names_to="Month", values_to="RH")
+xRH$RH<- as.numeric(xRH$RH)
+
+p<-ggplot(data=xRH, aes(x=Month, y=RH, group= frt)) +
+  geom_line(aes(colour=frt)) +
+  geom_point(aes(colour=frt)) 
+p
+
+# MDC
+MDC_<-fire_ignitions_summary %>% dplyr::select(frt, MDC_02,MDC_03,MDC_04,MDC_05,MDC_06,MDC_07, MDC_08, MDC_09, MDC_10, MDC_11)
+
+xMDC_<-pivot_longer(MDC_, cols=2:11, names_to="Month", values_to="MDC_")
+xMDC_$MDC_<- as.numeric(xMDC_$MDC_)
+
+p<-ggplot(data=xMDC_, aes(x=Month, y=MDC_, group= frt)) +
+  geom_line(aes(colour=frt)) +
+  geom_point(aes(colour=frt)) 
+p
+
+
 
 #Lightning caused fires by years
 p<-ggplot(fire_ignitions%>% filter(fire_cs=="Lightning"), aes(x=ig_mnth))+
@@ -538,9 +670,8 @@ fire_ignitions$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- ( 
 fire_ignitions$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- ( fire_ignitions$MDC_03 + fire_ignitions$MDC_04 + fire_ignitions$MDC_05 + fire_ignitions$MDC_06 + fire_ignitions$MDC_07+ fire_ignitions$MDC_08 + fire_ignitions$MDC_09 + fire_ignitions$MDC_10 + fire_ignitions$MDC_11)/9
 # maybe also try maximum temperature, precipitation, RH and MDC for the season.
 
-
-
 ```
+
 
 #################################
 #### Subsample data before running analysis
@@ -667,7 +798,7 @@ Create groupings of variables to put into model selection loop.
 
 ```{r}
 
-variables<- c("Tmax03",
+variables<- c(#"Tmax03",
               "Tmax04",
               "Tmax05",
               "Tmax06",
@@ -675,45 +806,45 @@ variables<- c("Tmax03",
               "Tmax08", 
               "Tmax09",
               "Tmax10", 
-              "Tmax11", 
-              "mean_Tmax03_Tmax04",
+              #"Tmax11", 
+              #"mean_Tmax03_Tmax04",
               "mean_Tmax04_Tmax05",
               "mean_Tmax05_Tmax06",
               "mean_Tmax06_Tmax07", 
               "mean_Tmax07_Tmax08", 
               "mean_Tmax08_Tmax09",
               "mean_Tmax09_Tmax10",
-              "mean_Tmax10_Tmax11", 
-              "mean_Tmax03_Tmax04_Tmax05",
+              #"mean_Tmax10_Tmax11", 
+              #"mean_Tmax03_Tmax04_Tmax05",
               "mean_Tmax04_Tmax05_Tmax06",
               "mean_Tmax05_Tmax06_Tmax07", 
               "mean_Tmax06_Tmax07_Tmax08",
               "mean_Tmax07_Tmax08_Tmax09",
               "mean_Tmax08_Tmax09_Tmax10",
-              "mean_Tmax09_Tmax10_Tmax11", 
-              "mean_Tmax03_Tmax04_Tmax05_Tmax06",
+              #"mean_Tmax09_Tmax10_Tmax11", 
+              #"mean_Tmax03_Tmax04_Tmax05_Tmax06",
               "mean_Tmax04_Tmax05_Tmax06_Tmax07",
               "mean_Tmax05_Tmax06_Tmax07_Tmax08",
               "mean_Tmax06_Tmax07_Tmax08_Tmax09",
               "mean_Tmax07_Tmax08_Tmax09_Tmax10",
-              "mean_Tmax08_Tmax09_Tmax10_Tmax11",
-              "mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07",
+              #"mean_Tmax08_Tmax09_Tmax10_Tmax11",
+              #"mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07",
               "mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08",
               "mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09",
               "mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
-              "mean_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
-              "mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08",
+              #"mean_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
+              #"mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08",
               "mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9",
               "mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
-              "mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
-              "mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09",
+              #"mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
+              #"mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09",
               "mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
-              "mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
-              "mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
-              "mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
-              "mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
+              #"mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
+              #"mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
+              #"mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
+              #"mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
               
-              "Tave03",
+              #"Tave03",
               "Tave04",
               "Tave05",
               "Tave06",
@@ -721,45 +852,45 @@ variables<- c("Tmax03",
               "Tave08", 
               "Tave09",
               "Tave10", 
-              "Tave11", 
-              "mean_Tave03_Tave04",
+              #"Tave11", 
+              #"mean_Tave03_Tave04",
               "mean_Tave04_Tave05",
               "mean_Tave05_Tave06",
               "mean_Tave06_Tave07", 
               "mean_Tave07_Tave08", 
               "mean_Tave08_Tave09",
               "mean_Tave09_Tave10",
-              "mean_Tave10_Tave11", 
-              "mean_Tave03_Tave04_Tave05",
+              #"mean_Tave10_Tave11", 
+              #"mean_Tave03_Tave04_Tave05",
               "mean_Tave04_Tave05_Tave06",
               "mean_Tave05_Tave06_Tave07", 
               "mean_Tave06_Tave07_Tave08",
               "mean_Tave07_Tave08_Tave09",
               "mean_Tave08_Tave09_Tave10",
-              "mean_Tave09_Tave10_Tave11", 
-              "mean_Tave03_Tave04_Tave05_Tave06",
+              #"mean_Tave09_Tave10_Tave11", 
+              #"mean_Tave03_Tave04_Tave05_Tave06",
               "mean_Tave04_Tave05_Tave06_Tave07",
               "mean_Tave05_Tave06_Tave07_Tave08",
               "mean_Tave06_Tave07_Tave08_Tave09",
               "mean_Tave07_Tave08_Tave09_Tave10",
-              "mean_Tave08_Tave09_Tave10_Tave11",
-              "mean_Tave03_Tave04_Tave05_Tave06_Tave07",
+              #"mean_Tave08_Tave09_Tave10_Tave11",
+              #"mean_Tave03_Tave04_Tave05_Tave06_Tave07",
               "mean_Tave04_Tave05_Tave06_Tave07_Tave08",
               "mean_Tave05_Tave06_Tave07_Tave08_Tave09",
               "mean_Tave06_Tave07_Tave08_Tave09_Tave10",
-              "mean_Tave07_Tave08_Tave09_Tave10_Tave11",
-              "mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08",
+              #"mean_Tave07_Tave08_Tave09_Tave10_Tave11",
+              #"mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08",
               "mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave9",
               "mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10",
-              "mean_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
-              "mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09",
+              #"mean_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
+              #"mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09",
               "mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10",
-              "mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
-              "mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10",
-              "mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
-              "mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
+              #"mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
+              #"mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10",
+              #"mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
+              #"mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
               
-              "PPT03",
+              #"PPT03",
               "PPT04",
               "PPT05",
               "PPT06",
@@ -767,45 +898,45 @@ variables<- c("Tmax03",
               "PPT08", 
               "PPT09",
               "PPT10", 
-              "PPT11", 
-              "mean_PPT03_PPT04",
+              #"PPT11", 
+              #"mean_PPT03_PPT04",
               "mean_PPT04_PPT05",
               "mean_PPT05_PPT06",
               "mean_PPT06_PPT07", 
               "mean_PPT07_PPT08", 
               "mean_PPT08_PPT09",
               "mean_PPT09_PPT10",
-              "mean_PPT10_PPT11", 
-              "mean_PPT03_PPT04_PPT05",
+              #"mean_PPT10_PPT11", 
+              #"mean_PPT03_PPT04_PPT05",
               "mean_PPT04_PPT05_PPT06",
               "mean_PPT05_PPT06_PPT07", 
               "mean_PPT06_PPT07_PPT08",
               "mean_PPT07_PPT08_PPT09",
               "mean_PPT08_PPT09_PPT10",
-              "mean_PPT09_PPT10_PPT11", 
-              "mean_PPT03_PPT04_PPT05_PPT06",
+              #"mean_PPT09_PPT10_PPT11", 
+              #"mean_PPT03_PPT04_PPT05_PPT06",
               "mean_PPT04_PPT05_PPT06_PPT07",
               "mean_PPT05_PPT06_PPT07_PPT08",
               "mean_PPT06_PPT07_PPT08_PPT09",
               "mean_PPT07_PPT08_PPT09_PPT10",
-              "mean_PPT08_PPT09_PPT10_PPT11",
-              "mean_PPT03_PPT04_PPT05_PPT06_PPT07",
+              #"mean_PPT08_PPT09_PPT10_PPT11",
+              #"mean_PPT03_PPT04_PPT05_PPT06_PPT07",
               "mean_PPT04_PPT05_PPT06_PPT07_PPT08",
               "mean_PPT05_PPT06_PPT07_PPT08_PPT09",
               "mean_PPT06_PPT07_PPT08_PPT09_PPT10",
-              "mean_PPT07_PPT08_PPT09_PPT10_PPT11",
-              "mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08",
+              #"mean_PPT07_PPT08_PPT09_PPT10_PPT11",
+              #"mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08",
               "mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT9",
               "mean_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10",
-              "mean_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
-              "mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09",
+              #"mean_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
+              #"mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09",
               "mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10",
-              "mean_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
-              "mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10",
-              "mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
-              "mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
+              #"mean_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
+              #"mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10",
+              #"mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
+              #"mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
               
-              "RH03",
+              #"RH03",
               "RH04",
               "RH05",
               "RH06",
@@ -813,45 +944,45 @@ variables<- c("Tmax03",
               "RH08", 
               "RH09",
               "RH10", 
-              "RH11", 
-              "mean_RH03_RH04",
+              #"RH11", 
+              #"mean_RH03_RH04",
               "mean_RH04_RH05",
               "mean_RH05_RH06",
               "mean_RH06_RH07", 
               "mean_RH07_RH08", 
               "mean_RH08_RH09",
               "mean_RH09_RH10",
-              "mean_RH10_RH11", 
-              "mean_RH03_RH04_RH05",
+              #"mean_RH10_RH11", 
+              #"mean_RH03_RH04_RH05",
               "mean_RH04_RH05_RH06",
               "mean_RH05_RH06_RH07", 
               "mean_RH06_RH07_RH08",
               "mean_RH07_RH08_RH09",
               "mean_RH08_RH09_RH10",
-              "mean_RH09_RH10_RH11", 
-              "mean_RH03_RH04_RH05_RH06",
+              #"mean_RH09_RH10_RH11", 
+              #"mean_RH03_RH04_RH05_RH06",
               "mean_RH04_RH05_RH06_RH07",
               "mean_RH05_RH06_RH07_RH08",
               "mean_RH06_RH07_RH08_RH09",
               "mean_RH07_RH08_RH09_RH10",
-              "mean_RH08_RH09_RH10_RH11",
-              "mean_RH03_RH04_RH05_RH06_RH07",
+              #"mean_RH08_RH09_RH10_RH11",
+              #"mean_RH03_RH04_RH05_RH06_RH07",
               "mean_RH04_RH05_RH06_RH07_RH08",
               "mean_RH05_RH06_RH07_RH08_RH09",
               "mean_RH06_RH07_RH08_RH09_RH10",
-              "mean_RH07_RH08_RH09_RH10_RH11",
-              "mean_RH03_RH04_RH05_RH06_RH07_RH08",
+              #"mean_RH07_RH08_RH09_RH10_RH11",
+              #"mean_RH03_RH04_RH05_RH06_RH07_RH08",
               "mean_RH04_RH05_RH06_RH07_RH08_RH9",
               "mean_RH05_RH06_RH07_RH08_RH09_RH10",
-              "mean_RH06_RH07_RH08_RH09_RH10_RH11",
-              "mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09",
+              #"mean_RH06_RH07_RH08_RH09_RH10_RH11",
+              #"mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09",
               "mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10",
-              "mean_RH05_RH06_RH07_RH08_RH09_RH10_RH11",
-              "mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10",
-              "mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11",
-              "mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11",
+              #"mean_RH05_RH06_RH07_RH08_RH09_RH10_RH11",
+              #"mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10",
+              #"mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11",
+              #"mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11",
               
-              "MDC_03",
+              #"MDC_03",
               "MDC_04",
               "MDC_05",
               "MDC_06",
@@ -859,49 +990,49 @@ variables<- c("Tmax03",
               "MDC_08", 
               "MDC_09",
               "MDC_10", 
-              "MDC_11", 
-              "mean_MDC_03_MDC_04",
+              #"MDC_11", 
+              #"mean_MDC_03_MDC_04",
               "mean_MDC_04_MDC_05",
               "mean_MDC_05_MDC_06",
               "mean_MDC_06_MDC_07", 
               "mean_MDC_07_MDC_08", 
               "mean_MDC_08_MDC_09",
               "mean_MDC_09_MDC_10",
-              "mean_MDC_10_MDC_11", 
-              "mean_MDC_03_MDC_04_MDC_05",
+              #"mean_MDC_10_MDC_11", 
+              #"mean_MDC_03_MDC_04_MDC_05",
               "mean_MDC_04_MDC_05_MDC_06",
               "mean_MDC_05_MDC_06_MDC_07", 
               "mean_MDC_06_MDC_07_MDC_08",
               "mean_MDC_07_MDC_08_MDC_09",
               "mean_MDC_08_MDC_09_MDC_10",
-              "mean_MDC_09_MDC_10_MDC_11", 
-              "mean_MDC_03_MDC_04_MDC_05_MDC_06",
+              #"mean_MDC_09_MDC_10_MDC_11", 
+              #"mean_MDC_03_MDC_04_MDC_05_MDC_06",
               "mean_MDC_04_MDC_05_MDC_06_MDC_07",
               "mean_MDC_05_MDC_06_MDC_07_MDC_08",
               "mean_MDC_06_MDC_07_MDC_08_MDC_09",
               "mean_MDC_07_MDC_08_MDC_09_MDC_10",
-              "mean_MDC_08_MDC_09_MDC_10_MDC_11",
-              "mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07",
+              #"mean_MDC_08_MDC_09_MDC_10_MDC_11",
+              #"mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07",
               "mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08",
               "mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09",
               "mean_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10",
-              "mean_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
-              "mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08",
+              #"mean_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
+              #"mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08",
               "mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_9",
               "mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10",
-              "mean_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
-              "mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09",
-              "mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10",
-              "mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
-              "mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10",
-              "mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
-              "mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11")
+              #"mean_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
+              #"mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09",
+              "mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10")
+              #"mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
+              #"mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10",
+              #"mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
+              #"mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11")
 
- variables1<-c("Tmax03","Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09","Tmax10", "Tmax11",
-               "Tave03","Tave04","Tave05", "Tave06", "Tave07", "Tave08", "Tave09", "Tave10", "Tave11")
+ variables1<-c("Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09","Tmax10", 
+               "Tave04","Tave05", "Tave06", "Tave07", "Tave08", "Tave09", "Tave10")
  
-variables2<-c("PPT03","PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09","PPT10","PPT11",
-              "PPT03","PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09","PPT10","PPT11") 
+variables2<-c("PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09","PPT10",
+              "PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09","PPT10") 
 # precipitation and MDC and temperature and MDC are quite correlated so I'm leaving this combination of variables out. 
 
 ```
@@ -1031,7 +1162,7 @@ for (i in 1: length(variables1)){
 for (i in 1: length(variables1)){
   print(paste((variables1[i]), "x",variables2[i], (zones[h]), sep=" "))
 
-  if (dim(dat_1)[1]>200) {
+  if (dim(dat_1)[1]>150) {
   model2 <- glm (fire_pres ~ (.)^2,
                  data=dat_train2,
                  family = binomial (link = "logit"))
@@ -1049,14 +1180,14 @@ for (i in 1: length(variables1)){
   else {
       table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones[h]
   table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-"NA"
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),4]<-"NA"
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-"missing"
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),4]<-"missing"
   }
     
 
 }
 
-table.glm.climate1<-table.glm.climate.simple %>% drop_na(AIC)
+#table.glm.climate1<-table.glm.climate.simple %>% drop_na(AIC)
 
 
 #assign file names to the work
@@ -1084,8 +1215,8 @@ mkFrameList <- function(nfiles) {
 n<-length(filenames)
 aic_bec_lightning<-mkFrameList(n) 
 
-aic_bec_lightning2<-aic_bec_lightning %>% 
-  filter(AIC != "NA") 
+aic_bec_lightning_a<-aic_bec_lightning %>% 
+  filter(AIC != "missing") 
 
 aic_bec_lightning_summary<- aic_bec_lightning2 %>%
   group_by(Zone, Variable) %>%
