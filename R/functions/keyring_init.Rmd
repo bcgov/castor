@@ -45,12 +45,17 @@ key_set("dbpass", keyring ="postgreSQL")
 #to view the keys in the keyring use:
 key_list(keyring ="postgreSQL") # they will be labeled under 'service'
 
-#Virtual machine
+#Virtual machine -  digital ocean
 key_set("vmdbhost", keyring = "postgreSQL") 
 key_set("vmdbname", keyring = "postgreSQL") 
 key_set("vmdbuser", keyring = "postgreSQL")
 key_set("vmdbpass", keyring = "postgreSQL")
 
+# virtual machine - westgrid
+key_set("vmdbwghost", keyring = "postgreSQL") 
+key_set("vmdbwgname", keyring = "postgreSQL") 
+key_set("vmdbwguser", keyring = "postgreSQL")
+key_set("vmdbwgpass", keyring = "postgreSQL")
 ```
 ## Use the keyring in code
 Now, when you need to access data in the PostgreSQL database, you can connect using the keyring function calls below to get credentials in place of writing them in the code. You can also now test whether the functions are calling the correct credentials using the code below. 
@@ -64,4 +69,7 @@ key_get("vmdbhost", keyring="postgreSQL")
 key_get("vmdbuser", keyring="postgreSQL")
 key_get("vmdbpass", keyring="postgreSQL")
 
+key_get("vmdbwghost", keyring="postgreSQL")
+key_get("vmdbwguser", keyring="postgreSQL")
+key_get("vmdbwgpass", keyring="postgreSQL")
 ```
