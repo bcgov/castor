@@ -12,7 +12,7 @@ library (tidyverse)
 library (raster)
 library (fasterize)
 
-data.dir <- "G:\\!Workgrp\\Analysts\\!Project\\TSA_Projects\\active\\Nass_TSA\\2022\\andrew_deliverables\\Nass_almost_BaseCase_03_16\\Nass\\gisData\\grids\\"
+data.dir <- "G:\\!Workgrp\\Analysts\\!Project\\TSA_Projects\\active\\Nass_TSA\\2022\\andrew_deliverables\\Nass_almost_BaseCase_03_16\\Nass\\"
 
 #Create a provincial raster
 layeraoi<-getSpatialQuery("SELECT * FROM study_area_compart limit 1")
@@ -52,7 +52,9 @@ nass.tsa.vat [, value := seq_len(.N)]
 
 # Rasterize 
 ras.nass.supply.blocks <-fasterize::fasterize (st_cast (nass.tsa.supply.blocks, "MULTIPOLYGON"), prov.rast, field = "value") 
+#ras.nass.supply.blocks [is.na(ras.nass.supply.blocks[])] <- 0 
 ras.nass.all <-fasterize::fasterize (st_cast (nass.tsa, "MULTIPOLYGON"), prov.rast, field = "tsa_value") 
+#ras.nass.all [is.na(ras.nass.all[])] <- 0 
 
 writeRaster (ras.nass.supply.blocks, "nass_supply_blocks.tif", overwrite = T)
 writeRaster (ras.nass.all, "nass_all.tif", overwrite = T)
@@ -75,7 +77,7 @@ dbDisconnect(conn)
 ## THLB
 ```{r thlb}
 
-thlb <- raster::raster (paste0 (data.dir, "thlbNet.tif")) 
+thlb <- raster::raster (paste0 (data.dir, "gisData\\grids\\thlbContribution.tif")) 
 
 # values have been multiplied to make them 0 to 10,000; divide by 10,000 to make it a value 0 to 1
 thlb <- thlb / 10000
@@ -87,8 +89,65 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648
 
 ```
 
+## Growth and Yield
+
+```{r g and y data}
+
+## TABLES
+# volume table: VolumeBase.txt: Base case stand volume lookup table, with one row for each AU in the Nass TSA and volume values taken from the tsa43_vdyp and tsa43_tipsy PostGreSQL dumpfile provided.
+tab.vol <- read.table(paste0 (data.dir, "inputFiles\\VolumeBase.txt"), header = T, sep = '\t')
 
 
+
+tab.count <- tab.vol %>%                              
+           group_by(AU) %>%
+            tally ()
+
+test2 <- tab.count %>%
+          dplyr::filter (count > 1) # there are multiple volumes and heights for AU's why?
+
+
+test <- tab.vol %>%
+          filter (AU == 51277)
+
+colnames(tab.vol) <- c('ycid', "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100", "110", "120", "130", "140", "150", "160", "170", "180", "190", "200", "210", "220", "230", "240", "250")
+# reshape the table to long form
+tab.vol <- melt (as.data.table(tab.vol), 
+                  id.vars = "ycid",
+                  measure.vars = list (age = c ("0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100", "110", "120", "130", "140", "150", "160", "170", "180", "190", "200", "210", "220", "230", "240", "250")),
+                  value.name = "tvol",
+                  variable.name = "age")
+
+# height table: HeightBase.txt: Base case stand height lookup table, with one row for each AU in the Nass TSA and height values provided.
+tab.height <- read.table(paste0 (data.dir, "inputFiles\\HeightBase.txt"), header = T, sep = '\t')
+# reshape the table to long form
+colnames(tab.height) <- c('ycid', "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100", "110", "120", "130", "140", "150", "160", "170", "180", "190", "200", "210", "220", "230", "240", "250")
+tab.height <- melt (as.data.table(tab.height), 
+                  id.vars = "ycid",
+                  measure.vars = list (age = c ("0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100", "110", "120", "130", "140", "150", "160", "170", "180", "190", "200", "210", "220", "230", "240", "250")),
+                  value.name = "height",
+                  variable.name = "age")
+
+# join the tables
+tab.gy <- full_join (tab.vol, tab.height, by = c("ycid", "age"))
+
+
+# analysis units: AUInfoBase.txt: Initial base case AUInfo file, with one row for each AU in the Nass TSA
+tab.au <- read.table(paste0 (data.dir, "inputFiles\\AUInfoBase.txt"), header = T, sep = '\t')
+
+
+
+
+
+
+## RASTERS
+# "unmanaged" analysis unit raster; there are two the same "AU_inital" and "AU_unmanaged"
+rast.au.unman <- raster::raster (paste0 (data.dir, "gisData\\grids\\AU_unmanaged.tif")) 
+# "managed" analysis unit raster
+rast.au.man <- raster::raster (paste0 (data.dir, "gisData\\grids\\AU_managed.tif")) 
+
+
+```
 
 
 
@@ -102,8 +161,8 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648
 # For TSR, constraint is defined as 30% of productive forest area in zone >120 y.o.
 
 # don't know what 'productive forest' is, so multiply that area by the UWR area and use total area in CLUS
-prod.for <- raster::raster (paste0 (data.dir, "ProductiveForest.tif")) 
-uwr <- raster::raster (paste0 (data.dir, "uwrZone.tif"))
+prod.for <- raster::raster (paste0 (data.dir, "gisData\\grids\\ProductiveForest.tif")) 
+uwr <- raster::raster (paste0 (data.dir, "gisData\\grids\\uwrZone.tif"))
 uwr.prod <- uwr * prod.for
 crs(uwr.prod) <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs"
 writeRaster(uwr.prod, file = "uwr_prod.tif", format = "GTiff", overwrite = TRUE)
@@ -131,10 +190,10 @@ dbDisconnect(conn)
 
 # The LU/BEC spatial areas/rasters are combined here to create a unique identifier for each BEC/LU combo
   # these combos seem to be able to be handled within SELES
-prod.for <- raster::raster (paste0 (data.dir, "ProductiveForest.tif")) 
-lu <- raster::raster (paste0 (data.dir, "lu.tif")) 
+prod.for <- raster::raster (paste0 (data.dir, "gisData\\grids\\ProductiveForest.tif")) 
+lu <- raster::raster (paste0 (data.dir, "gisData\\grids\\lu.tif")) 
 # LU classes: 1:Bear  2:Bowser  3:BrownBear  4:CambriaIcefield  5:Craven  6:GreenvilleKalum  7:Kinskuch  8:Kiteen  9:Kwinamuck  10:Madely  11:Muskaboo  12:NassRiverKalum  13:Oweegee  14:Sallysout 15:SpatsiziRiver  16:TaylorDamdochax  17:Tchitin  18:Tintina  19:White  20:Wildfire
-bec <- raster::raster (paste0 (data.dir, "BecBeo.tif"))
+bec <- raster::raster (paste0 (data.dir, "gisData\\grids\\BecBeo.tif"))
 # BEC classes: 1:BAFAunL  2:BAFAunI  3:BAFAunH  4:CMAunL  5:CMAunI  6:CMAunH  7:CWHwmL  8:CWHwmI  9:CWHwmH  10:CWHws2L  11:CWHws2I  12:CWHws2H  13:ESSFunL 14:ESSFunI  15:ESSFunH 16:ESSFunpL 17:ESSFunpI 18:ESSFunpH  19:ESSFwvL  20:ESSFwvI  21:ESSFwvH  22:ESSFwvpL  23:ESSFwvpI  24:ESSFwvpH  25:ICHmc1L  26:ICHmc1I    27:ICHmc1H  28:ICHmc1aL  29:ICHmc1aI  30:ICHmc1aH  31:ICHmc2L 32:ICHmc2I  33:ICHmc2H  34:ICHvcL  35:ICHvcI  36:ICHvcH  37:MHmm1L  38:MHmm1I  39:MHmm1H  40:MHmm2L  41:MHmm2I  42:MHmm2H  43:MHmmpL  44:MHmmpI  45:MHmmpH  46:SBSmc2L  47:SBSmc2I  48:SBSmc2H  49:SBSunL  50:SBSunI
 
 
@@ -466,11 +525,11 @@ dbDisconnect(conn)
 
 # The LU/BEC spatial areas/rasters are combined here to create a unique identifier for each BEC/LU combo
   # these combos seem to be able to be handled within SELES
-prod.for <- raster::raster (paste0 (data.dir, "ProductiveForest.tif")) 
-lu.srmp <- raster::raster (paste0 (data.dir, "lu_srmp.tif")) 
+prod.for <- raster::raster (paste0 (data.dir, "gisData\\grids\\ProductiveForest.tif")) 
+lu.srmp <- raster::raster (paste0 (data.dir, "gisData\\grids\\lu_srmp.tif")) 
 unique(getValues(lu.srmp))
 # LU classes: 1:Bear 2:Bowser  3:BrownBear  4:CambriaIcefield  6:GreenvilleKalum  7:Kinskuch  8:Kiteen  9:Kwinamuck  10:Madely  12:NassRiverKalum  17:Tchitin  18:Tintina  19:White  20:Wildfire
-bec <- raster::raster (paste0 (data.dir, "BecBeo.tif"))
+bec <- raster::raster (paste0 (data.dir, "gisData\\grids\\BecBeo.tif"))
 # BEC classes: 1:BAFAunL  2:BAFAunI  3:BAFAunH  4:CMAunL  5:CMAunI  6:CMAunH  7:CWHwmL  8:CWHwmI  9:CWHwmH  10:CWHws2L  11:CWHws2I  12:CWHws2H  13:ESSFunL 14:ESSFunI  15:ESSFunH 16:ESSFunpL 17:ESSFunpI 18:ESSFunpH  19:ESSFwvL  20:ESSFwvI  21:ESSFwvH  22:ESSFwvpL  23:ESSFwvpI  24:ESSFwvpH  25:ICHmc1L  26:ICHmc1I    27:ICHmc1H  28:ICHmc1aL  29:ICHmc1aI  30:ICHmc1aH  31:ICHmc2L 32:ICHmc2I  33:ICHmc2H  34:ICHvcL  35:ICHvcI  36:ICHvcH  37:MHmm1L  38:MHmm1I  39:MHmm1H  40:MHmm2L  41:MHmm2I  42:MHmm2H  43:MHmmpL  44:MHmmpI  45:MHmmpH  46:SBSmc2L  47:SBSmc2I  48:SBSmc2H  49:SBSunL  50:SBSunI
 
 #-----------
@@ -803,6 +862,56 @@ dbDisconnect(conn)
 ```
 
 
+## IRMs
+
+```{r, irm}
+
+# max 35% below 3m tall
+# constraint applies by LU, within THLB
+thlb <- raster::raster (paste0 (data.dir, "gisData\\grids\\thlbContribution.tif")) / 10000
+# values have been multiplied to make them 0 to 10,000; divide by 10,000 to make it a value 0 to 1
+rast.irm <- raster::raster (paste0 (data.dir, "gisData\\grids\\IRMzone.tif")) 
+rast.lu <- raster::raster (paste0 (data.dir, "gisData\\grids\\lu.tif")) 
+# LU classes: 1:Bear  2:Bowser  3:BrownBear  4:CambriaIcefield  5:Craven  6:GreenvilleKalum  7:Kinskuch  8:Kiteen  9:Kwinamuck  10:Madely  11:Muskaboo  12:NassRiverKalum  13:Oweegee  14:Sallysout 15:SpatsiziRiver  16:TaylorDamdochax  17:Tchitin  18:Tintina  19:White  20:Wildfire
+unique(getValues(rast.lu))
+
+rast.lu.irm <- rast.irm * rast.lu
+unique(getValues(rast.lu.irm))
+
+zone_irm <- data.table (zoneid = as.integer (c(1:20)), 
+                             type = 'ge',
+                             variable = 'height', 
+                             threshold = as.numeric (3), 
+                             reference_zone = 'comparison_nass.rast_zone_irm_lu', 
+                             percentage = 65, ndt = as.integer (0), 
+                             label = c ('bear', 'bowser', 'brownbear', 'cambriaicefield', 'craven', 'greenvillekalum',
+                                        'kinsuch', 'kiteen', 'kwinamuck', 'madely', 'muskaboo', 'nassriverkalum', 'oweegee',
+                                        'sallysout', 'spatsiziriver', 'taylordamdochax', 'tchitin', 'tintina', 'white',
+                                        'wildfire'), 
+                             multi_condition = as.character (''), 
+                             denom = as.character ('thlb > 0'), start = as.integer (0), stop = as.integer (0))
+
+## Upload data to db
+crs(rast.irm) <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs"
+writeRaster(rast.irm, file = "irm.tif", format = "GTiff", overwrite = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/irm.tif -t 100x100 comparison_nass.rast_zone_irm | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+crs(rast.lu.irm) <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs"
+writeRaster(rast.lu.irm, file = "irm_lu.tif", format = "GTiff", overwrite = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/irm_lu.tif -t 100x100 comparison_nass.rast_zone_irm_lu | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("comparison_nass", "zone_irm_lu"), value = zone_irm, row.names = FALSE, overwrite = TRUE) 
+dbExecute(conn, "ALTER TABLE comparison_nass.zone_irm_lu ALTER COLUMN denom TYPE VARCHAR;")
+dbExecute (conn, paste0("ALTER TABLE comparison_nass.zone_irm_lu INHERIT comparison_nass.zone_constraints_nass"))
+
+dbDisconnect(conn)
+
+```
+
+
+
+
 ## VQO
 
 ```{r vqo}
@@ -813,7 +922,7 @@ dbDisconnect(conn)
 
 
 # don't know what 'productive forest' is, so multiply that area by the UWR area and use total area in CLUS
-prod.for <- raster::raster (paste0 (data.dir, "ProductiveForest.tif")) 
+prod.for <- raster::raster (paste0 (data.dir, "gisData\\grids\\ProductiveForest.tif")) 
 
 ```
 

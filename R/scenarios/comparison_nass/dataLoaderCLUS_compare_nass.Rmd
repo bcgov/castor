@@ -67,13 +67,13 @@ parameters <-  list(
                         
                         
                         # nameZonePriorityRaster = "rast.zone_cond_beo",
-                         nameYieldsRaster = "rast.ycid_vdyp",# raster of stand id for VDYP ("natural origin") yields
-                         nameYieldTable ="yc_vdyp", # VDYP yield  table
-                         nameYieldsTransitionRaster = "rast.tipsy2018_id", 
+                         nameYieldsRaster = "rast.ycid_vdyp_2020",# raster of stand id for VDYP ("natural origin") yields
+                         nameYieldTable ="yc_vdyp", # VDYP yield table
+                         nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
                          nameYieldTransitionTable ="yc_tipsy", 
-                         nameForestInventoryRaster ="rast.vri2019_id", # raster of the forest inventory 
+                         nameForestInventoryRaster ="rast.vri2020_id", # raster of the forest inventory 
                          nameForestInventoryKey = "feature_id", # unique id of each polygon 
-                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2019",# the inventory data
+                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2020",# the inventory data
                          nameForestInventoryAge = "proj_age_1",  
                          nameForestInventoryHeight = "proj_height_1",
                          nameForestInventoryCrownClosure = "crown_closure",                             
