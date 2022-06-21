@@ -1,0 +1,197 @@
+---
+title: "Fire modelling steps from start to finish"
+author: "Elizabeth Kleynhans"
+date: "10/06/2022"
+output: html_document
+---
+
+## Goals
+
+Simulate wildfire across the landscape into the future
+Quantify the risk of fire to forest values or management plans e.g. timber harvest, wildlife etc.
+
+## Steps to simulation
+
+1.) Split up BC in regions with similar fire causes, return intervals, frequencies, and intensities. Fortunately, this has already been done by Erni et al. 2020 Can. J. For. Res who defined 15 broad-scale Fire Regime Types across Canada characterized by indices related to fire activity, seasonality, and ignition cause. Within BC there are 10 FRT's which I may reduce further since two FRT's are very small and only have a few fire ignitions.
+
+```{r FRT figure, echo = F, message = F, eval = T, fig.cap = "Figure 1. Fire Regime Type's (FRT) taken from Erni et al. (2020).", fig.width = 1, fig.height = 3}
+knitr::include_graphics("C:/Users/ekleynha/OneDrive - Government of BC/Userful resources/FRT_BC.jpg")
+```
+
+
+2.) Following similar methods to LANDIS II 
+
+Within a single FRT determine the distribution of fire ignitions for lightning caused and human caused fires for historical fires.  Then for each simulation run sample the number of ignitions from this distribution for each cause of fire and allow that number of ignitions to occur.  
+
+One caveat to this approach is that the number of fire ignitions might change over time. For example climate change might alter the number of storms with lightning which could change the number of lightning caused fires. I currently dont know what the predictions are for this but this is something I should probably look into. Anyway, for the moment I will just use historical distributions of fire ignitions to determine the number of ignitions per simulation run.
+
+A gamma distribution might be a good fit. Seems to fit both the lightning and human caused fires ok at least for FRT=13. 
+
+```{r setup, include=FALSE}
+library(bcdata)
+require (dplyr)
+require (RPostgreSQL)
+require (rpostgis)
+
+library(keyring)
+
+source(here::here("R/functions/R_Postgres.R"))
+
+# Raw fire ignition point data from BCDC:
+# https://cat.data.gov.bc.ca/dataset/fire-perimeters-historical/resource/61de892c-09f4-4440-b18f-09995801558f
+
+
+# get latest data off BCGW
+ignit<-try(
+  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
+    #filter(FIRE_YEAR > 2001) %>%
+    filter(FIRE_TYPE == "Fire") %>%
+    collect()
+)
+
+
+head(ignit)
+x<-table(ignit$FIRE_YEAR, ignit$FIRE_CAUSE) 
+
+# now link fire ignitions for all years to FRT to get density of fire ignitions per year per cause
+
+frt <- st_read ( dsn = "D:\\Fire\\fire_data\\Fire_Regime_Types\\FRT\\FRT_Canada.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(frt) #Retrieve coordinate reference system from sf or sfc object
+frt<-st_transform(frt, 3005) #transform coordinate system to 3005 - that for BC, Canada
+
+#get provincial boundary for clipping the layers to the area of interest
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
+prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
+crs(prov.bnd)# this one needs to be transformed to 3005
+bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system
+st_crs(bc.bnd)
+
+#Clip FRT here
+frt_clipped<-st_intersection(bc.bnd, frt)
+#plot(st_geometry(frt_clipped), col=sf.colors(10,categorical=TRUE))
+length(unique(frt_clipped$Cluster))
+frt_sf<-st_as_sf(frt_clipped)
+
+fire.ignition.clipped<-ignit[bc.bnd,] # making sure all fire ignitions have coordinates within BC boundary
+
+fire.ignition_sf<-st_as_sf(fire.ignition.clipped) #convert to sf object
+st_crs(fire.ignition_sf)
+fire.ignt.frt <- st_join(fire.ignition_sf, frt_sf)
+
+x<- fire.ignt.frt %>% filter(Cluster=="13") %>%
+  dplyr::filter(FIRE_CAUSE!="Unknown")
+
+data <- x %>% group_by(FIRE_YEAR,FIRE_CAUSE) %>% summarize(n=n()) %>% mutate(freq=n/sum(n)) 
+
+ggplot(data, aes(x = n, fill=FIRE_CAUSE, group=FIRE_CAUSE)) +
+  geom_density() + 
+  facet_grid(~FIRE_CAUSE)
+
+#Fitting distribution to lighting data 
+data_lightning<- data %>% filter(FIRE_CAUSE=="Lightning")
+my_data<-data_lightning$n
+
+library(fitdistrplus)
+plotdist(my_data, histo = TRUE, demp = TRUE)
+descdist(my_data, discrete=FALSE, boot=500)
+
+fit_w  <- fitdist(my_data, "weibull")
+fit_g  <- fitdist(my_data, "gamma")
+fit_ln <- fitdist(my_data, "lnorm")
+
+dists <- c("gamma","lnorm","weibull")
+fit <- list()
+for (i in 1:length(dists)){
+  fit[[i]]  <- fitdist(my_data, dists[i])
+}
+
+for (i in 1:length(dists)){
+  print(summary(fit[[i]]))
+}
+
+# from AIC gamma distribution is best
+# Plot the results from the individually
+#fitted distributions and compare
+par(mfrow=c(2,2))
+denscomp(fit_w)
+denscomp(fit_g)
+denscomp(fit_ln)
+
+qqcomp(fit_w)
+qqcomp(fit_g) # tells how well the distriontion fits the tails
+qqcomp(fit_ln)
+
+ppcomp(fit_w)
+ppcomp(fit_ln)
+ppcomp(fit_g) # tells how well the center of the distribution fits
+
+# Overall it looks like the gamma distribution might be best
+
+summary(fit_g)
+
+ggplot((data %>% filter(FIRE_CAUSE=="Lightning")), aes(x = n)) +
+  geom_histogram(aes(y=..density..),      # Histogram with density instead of count on y-axis
+                   binwidth=80,
+                   colour="black", fill="lightblue") +
+  #geom_density( fill="lightblue") + 
+  stat_function(fun=dgamma, args=list(shape=fit_g$estimate[1], rate=fit_g$estimate[2])) +
+  labs(x = "n", y = "density", title = "Fitted gamma distribution with underlying data (blue)") 
+
+### Fitting distribution to human data 
+data_human<- data %>% filter(FIRE_CAUSE=="Person")
+my_data_h<-data_human$n
+
+plotdist(my_data_h, histo = TRUE, demp = TRUE)
+descdist(my_data_h, discrete=FALSE, boot=500)
+
+fit_w  <- fitdist(my_data_h, "weibull")
+fit_g  <- fitdist(my_data_h, "gamma")
+fit_ln <- fitdist(my_data_h, "lnorm")
+summary(fit_g)
+
+# from AIC gamma distribution is best
+# Plot the results from the individually
+#fitted distributions and compare
+par(mfrow=c(2,2))
+denscomp(fit_w)
+denscomp(fit_g)
+denscomp(fit_ln)
+
+qqcomp(fit_w)
+qqcomp(fit_g) # tells how well the distriontion fits the tails
+qqcomp(fit_ln)
+
+ppcomp(fit_w)
+ppcomp(fit_ln)
+ppcomp(fit_g) # tells how well the center of the distribution fits
+
+# Overall it looks like the gamma distribution might be best
+
+summary(fit_g)
+
+ggplot((data %>% filter(FIRE_CAUSE=="Person")), aes(x = n)) +
+  geom_histogram(aes(y=..density..),      # Histogram with density instead of count on y-axis
+                   binwidth=20,
+                   colour="black", fill="lightblue") +
+  #geom_density( fill="lightblue") + 
+  stat_function(fun=dgamma, args=list(shape=fit_g$estimate[1], rate=fit_g$estimate[2])) +
+  labs(x = "n", y = "density", title = "Fitted gamma distribution with underlying data (blue)") 
+
+```
+
+### Probability of ignition
+
+After working out the distribution of ignitions to know how many ignitions should occur in a single year use that number in a simulation. So within FRT 13 select a random location. Then determine whether that location is ignited by drawing a random number between 0 and 1. If the number is smaller than the probability for ignition within that pixel allow that point to ignite. The probability that a location ignites is calculated statistically as P(ignition) = vegetation + climate + elevation + human infrastructure (if its human caused fires).
+ 
+### Fire escape
+
+After a point ignites the fire has some probability of escaping from that location. The probability that a fire escapes is also determined statistically and again depends on variables related to vegetation and climate.Whetehr a fire escapes will also be a random draw of a number between 0 and 1 and if that number is smaller than the probability of escape the fire will escape.
+
+### Fire spread
+
+To model spread we will use the probability of spread. after a fire ignites and escapes it can spread into the four adjoining squares. I think to mimic fire spread  I will que the four squares around the ignition point and rank them according to the probability of spread. The square with the highest probability of spread will be selected first. Then I will draw a number between 0 and 1 and if that number is less than the probability of spread in that square the fire will spread to that square. If the number is larger than the probability of spread the fire will not spread to that square and the next square ranked by probability of spread will be selected and the process will start over i.e. drawing a number bewteen 0 and 1  and comparing it to the probability of spread in that square.
+
+Several things I will have to think about is how long does a fire continue to burn in a square. For example if a fire spread to the neighbouring square does it immediately go out in the preceeding square? I dont think I should allow this as I might get fire spread in straight lines if it goes like this. So allowing fire to spread out of a square for several time steps might help prevent this. How many time steps I will have to play around with.
+
+I am hoping that if i use the statistically calculated probabilities of ignition escape and spread that my fire size distributions will match historical data. Certainly a challenge will be checking how realistic my simulations are.

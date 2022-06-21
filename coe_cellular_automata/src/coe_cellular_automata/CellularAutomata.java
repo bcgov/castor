@@ -76,9 +76,9 @@ public class CellularAutomata {
 		int counterLocalMaxState = 0;
 		int currentMaxState;
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
-		harvestMin = 2000000*landscape.pl;
+		harvestMin = 100000*landscape.pl;
 		//harvestMin = 20000000;
-		gsMin = 69000000;
+		gsMin = 6000000;
 		setLCCHarvestDelay(); //In cases no-harvesting decision does not meet the constraint -- remove harvesting during these periods and as a penalty -- thus ahciving the paritial amount
 		
 		System.out.println("");
@@ -311,7 +311,7 @@ public class CellularAutomata {
 			isf = sumArray(harvVol, thlb)/maxCutLocal;
 	
 			age = forestTypeList.get(cellsList.get(i).foresttype).stateTypes.get(s).get("age");
-		    stateValue = 0.05*isf + 0.70*getPropNHRank(harvVol, propN[0], maxPropNH)+ 0.2*getPropNAgeRank(age, propN[1], maxPropNAge);
+		    stateValue = 0.05*isf + 0.05*getPropNHRank(harvVol, propN[0], maxPropNH)+ 0.9*getPropNAgeRank(age, propN[1], maxPropNAge);
 				
 			if(maxValue < stateValue) {
 				maxValue = stateValue;
@@ -415,19 +415,19 @@ public class CellularAutomata {
 			
 			isf = sumArray(harvVol, thlb)/maxCutLocal;
 			age = ft.stateTypes.get(s).get("age");
-		    U = 0.1*isf + 0.70*getPropNHRank(harvVol, propN[0],maxPropNH)+ 0.2*getPropNAgeRank(age, propN[1],maxPropNAge);
+		    U = 0.05*isf + 0.05*getPropNHRank(harvVol, propN[0],maxPropNH)+ 0.9*getPropNAgeRank(age, propN[1],maxPropNAge);
 				
 			hfc = getHarvestFlowConstraint(harvVol, thlb);
 			gsc = getGrowingStockConstraint(ft.stateTypes.get(s).get("gsVol"), thlb);
 			lc  = getLandCoverConstraint(ft.stateTypes.get(s), lcList);
 					
-			P = 0.5*hfc + 0.0*gsc + 0.50*lc; 
+			P = 0.3*hfc + 0.1*gsc + 0.60*lc; 
 			stateValue = landscape.weight*U + globalWeight*P;
 				
 			if(maxValue < stateValue) { 
 				maxValue = stateValue; //save the top ranking state
 				stateMax = s;
-				if( plc >= 0.999 && P >= 0.999) { //this is the threshold for stopping the simulation
+				if( plc >= 0.999 && P > 0.999) { //this is the threshold for stopping the simulation
 					globalConstraintsAchieved = true;
 					break;
 				}
@@ -816,7 +816,7 @@ public class CellularAutomata {
 		}
 		
 		try { //Get the data from the db
-			Connection conn = DriverManager.getConnection("jdbc:sqlite:C:/Users/klochhea/clus/R/SpaDES-modules/forestryCLUS/Quesnel_TSA_clusdb.sqlite");		
+			Connection conn = DriverManager.getConnection("jdbc:sqlite:C:/Users/klochhea/clus/R/SpaDES-modules/dataLoaderCLUS/TFL53_clusdb.sqlite");		
 			if (conn != null) {
 				Statement statement = conn.createStatement();
 					
@@ -935,7 +935,7 @@ public class CellularAutomata {
 			    System.err.println("Could not init JDBC driver - driver not found");
 			}		
 			try { //Get the data from the db
-				Connection conn = DriverManager.getConnection("jdbc:sqlite:C:/Users/klochhea/clus/R/SpaDES-modules/forestryCLUS/Quesnel_TSA_clusdb.sqlite");		
+				Connection conn = DriverManager.getConnection("jdbc:sqlite:C:/Users/klochhea/clus/R/SpaDES-modules/dataLoaderCLUS/TFL53_clusdb.sqlite");		
 				if (conn != null) {
 					System.out.println("Connected to clusdb");
 					Statement statement = conn.createStatement();
@@ -1060,9 +1060,9 @@ public class CellularAutomata {
 					statement.execute(populate_type2);	
 					
 					//Drop old table
-					String drop_foresttype = "DROP TABLE foresttype;";
+					//String drop_foresttype = "DROP TABLE foresttype;";
 					
-					statement.execute(drop_foresttype);
+					//statement.execute(drop_foresttype);
 					//Create the 'foresttype' table and populate it with unique forest types
 					String create_foresttype = "CREATE TABLE IF NOT EXISTS foresttype AS " +
 							" SELECT ROW_NUMBER() OVER(ORDER BY age asc, yield_lookup.id_yc, t.id_yc_trans, pixels.manage_type) AS foresttype_id, age, id_yc, id_yc_trans, pixels.manage_type, pixels.yieldid, pixels.yieldid_trans " + 
@@ -1073,7 +1073,7 @@ public class CellularAutomata {
 					statement.execute(create_foresttype);
 					
 					//Set the states for each foresttype
-					String getForestType = "SELECT foresttype_id, age, id_yc, id_yc_trans, manage_type FROM foresttype ORDER BY foresttype_id;";
+					String getForestType = "SELECT foresttype_id, age, id_yc, case when id_yc_trans = 0 then id_yc else id_yc_trans end as id_yc_trans, manage_type FROM foresttype ORDER BY foresttype_id;";
 					ResultSet rs2 = statement.executeQuery(getForestType);
 					forestTypeList.add(0, new ForestType()); //at id zero there is no foresttype -- add a null
 					int forestTypeID = 1;
@@ -1081,6 +1081,11 @@ public class CellularAutomata {
 						if(forestTypeID == rs2.getInt(1)) {
 							ForestType forestType = new ForestType(); //create a new ForestType object
 							forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(4), rs2.getInt(5)); //the max age a cell can have is 350
+							
+							if(yieldTable.get(rs2.getInt(4)).get("vol") == null | yieldTable.get(rs2.getInt(3)).get("vol")  == null) { //Check to make sure the yield exists
+								throw new Exception("yield Id not found for pixels transitioning from:" + rs2.getInt(3) + " to " + rs2.getInt(4));
+							}
+							
 							forestType.setForestTypeStates(rs2.getInt(5), landscape.ageStatesTemplate.get(Math.min(350, rs2.getInt(2))), landscape.harvestStatesTemplate.get(Math.min(350, rs2.getInt(2))), yieldTable.get(rs2.getInt(3)),  yieldTable.get(rs2.getInt(4)), landscape.minHarvVol);
 							forestTypeList.add(forestTypeID, forestType);
 						}else {
@@ -1092,7 +1097,7 @@ public class CellularAutomata {
 					
 					System.out.print("Getting spatial information");
 					//Get raster information used to set the GRID object. This is important for determining adjacency
-					String getRasterInfo = "SELECT ncell, nrow FROM raster_info";
+					String getRasterInfo = "SELECT ncell, nrow FROM raster_info where name = 'ras'";
 					ResultSet rs3 = statement.executeQuery(getRasterInfo);
 					while(rs3.next()) {
 						landscape.setGrid(rs3.getInt("ncell"), rs3.getInt("nrow"));

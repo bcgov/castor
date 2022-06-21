@@ -344,7 +344,7 @@ Save file.
 
 ```{r}
 
-sf::st_write(sample_locations_DEM_roads_wind2, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_frt.shp", delete_layer=TRUE)
+sf::st_write(sample_locations_DEM_roads_wind2, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_wind_frt.shp", delete_layer=TRUE)
 
 
 ##Save to personal drive

@@ -77,13 +77,12 @@ Init <- function(sim) {
   if(P(sim, "AreaofInterestRaster", "volumebyareaReportCLUS") == '99999') {
     sim$volumebyarea[, attribute := 1]
     } else {
-    aoi_bounds <- data.table (c (t (raster::as.matrix( 
-    RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    aoi_bounds <- data.table (V1 =  RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                  srcRaster = P(sim, "AreaofInterestRaster", "volumebyareaReportCLUS"), 
                  clipper = sim$boundaryInfo[[1]],  
                  geom = sim$boundaryInfo[[4]], 
                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                 conn = NULL)))))
+                 conn = NULL)[])
     aoi_bounds [, pixelid := seq_len (.N)]
     if(nrow(aoi_bounds[!is.na(V1),]) > 0){
       if(!(P(sim, "AreaofInterestTable", "volumebyareaReportCLUS") == '99999')){

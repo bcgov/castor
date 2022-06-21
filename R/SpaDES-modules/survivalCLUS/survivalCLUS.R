@@ -2,6 +2,7 @@
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
+#===========================================================================================#
 # You may obtain a copy of the License at
 # 
 # http://www.apache.org/licenses/LICENSE-2.0
@@ -9,7 +10,7 @@
 # Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
-#===========================================================================================
+#===========================================================================================#
 
 defineModule (sim, list (
   name = "survivalCLUS",
@@ -72,15 +73,12 @@ Init <- function (sim) { # this function identifies the caribou herds in the 'st
   if(nrow(data.table(dbGetQuery(sim$clusdb, "PRAGMA table_info(pixels)"))[name == 'herd_bounds',])== 0){
     dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN herd_bounds character") # add a column to the pixel table that will define the caribou herd area   
   
-    herdbounds <- data.table (c (t (raster::as.matrix ( # clip caribou herd raster by the 'study area' set in dataLoader
-                                    RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    herdbounds <- data.table (herd_bounds=RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
                                       srcRaster = P (sim, "nameRasCaribouHerd", "survivalCLUS") , # clip the herd boundary raster; defined in parameters, above
                                       clipper=sim$boundaryInfo[[1]], 
                                       geom= sim$boundaryInfo[[4]], 
                                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                      conn = NULL)))))
-    
-    setnames (herdbounds, "V1", "herd_bounds") # rename the default column name
+                                      conn = NULL)[])
     herdbounds [, herd_bounds := as.integer (herd_bounds)] # add the herd boudnary value from the raster and make the value an integer
     herdbounds [, pixelid := seq_len(.N)] # add pixelid value
     

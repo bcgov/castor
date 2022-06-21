@@ -2,6 +2,7 @@
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
+#===========================================================================================#
 # You may obtain a copy of the License at
 # 
 # http://www.apache.org/licenses/LICENSE-2.0
@@ -9,7 +10,7 @@
 # Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
-#===========================================================================================
+#===========================================================================================#
 
 defineModule(sim, list(
   name = "rsfCLUS",
@@ -90,13 +91,13 @@ Init <- function(sim) {
     rsf_list <- unique (rsf_model_coeff [, c("species", "population", "bounds")]) # create a list of unique species, population, boundary types
     for(k in 1:nrow (rsf_list)) { # loop through the unique list of boundaries
       message (rsf_list[k]$bounds) 
-      bounds <- data.table (c (t (raster::as.matrix( 
+      bounds <- data.table (V1 =
         RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                      srcRaster = paste0(rsf_list[k]$bounds), # for each unique spp-pop-boundary, clip each rsf boundary data, 'bounds' (e.g., rast.du6_bounds)
                      clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                      geom = sim$boundaryInfo[[4]], 
                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                     conn = NULL)))))
+                     conn = NULL)[])
       bounds[,V1:=as.integer(V1)] #make an integer for merging the values
       bounds[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly with rsfcovar
       
@@ -121,13 +122,12 @@ Init <- function(sim) {
     for (layer_name in static_list){ # loop through the list of static covariates
       message(layer_name) # declare each 'name' in the list
       # if the covariate is not a reclass type, clip the raster to the study area and convert the covariate values to a data.table
-      layer<-data.table(c(t(raster::as.matrix(
-        RASTER_CLIP2(tmpRast = spaste0('temp_', sample(1:10000, 1)), 
+      layer<-data.table(V1 = RASTER_CLIP2(tmpRast = spaste0('temp_', sample(1:10000, 1)), 
                      srcRaster= layer_name, 
                      clipper=sim$boundaryInfo[[1]], 
                      geom= sim$boundaryInfo[[4]], 
                      where_clause =  paste0(sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                     conn=NULL)))))
+                     conn=NULL)[])
       
       sim$rsfcovar[, (layer_name):= layer$V1] # attach each covariate data.table to the rsfCovar table in the clusdb. The name is the text in column sql. Note this changes later on in standardize method
     }
@@ -139,14 +139,13 @@ Init <- function(sim) {
       message(layer_name) # declare each 'name' in the list
       rClass_raster<-rsf_model_coeff[layer_uni == layer_name, sql]
       rclass_text <- rsf_model_coeff[layer_uni == layer_name, reclass] # create a table of the reclass SQL statement
-      layer <- data.table(c(t(raster::as.matrix( # create a data.table of the transposed raster of each reclass
-        RASTER_CLIP_CAT(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+      layer <- data.table( V1 = RASTER_CLIP_CAT(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                         srcRaster = rClass_raster, # clip the RC raster to the study area and reclassify it using the reclass SQL statement and convert the covariate values to a data.table
                         clipper = sim$boundaryInfo[[1]], 
                         geom = sim$boundaryInfo[[4]], 
                         where_clause =  paste0(sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                         out_reclass = rclass_text,
-                        conn=NULL)))))
+                        conn=NULL)[])
       layer[is.na(V1), V1:=0] # Return a zero for the 0 reclass -- getting a NA instead of 0 for some reason???
       sim$rsfcovar[, (layer_name):= layer$V1] # attach each covariate data.table to the rsfCovar table in the clusdb. The name is the text in column sql. Note this changes later on in standardize method
       #change the sql to equal the layer name
@@ -162,14 +161,13 @@ Init <- function(sim) {
       if(P(sim, "rsfCLUS", "randomEffectsTable") == '99999'){
         rClass_raster<-rsf_model_coeff[layer_uni == layer_name, sql]
         rclass_text <- rsf_model_coeff[layer_uni == layer_name, reclass] # create a table of the reclass SQL statement
-        layer <- data.table(c(t(raster::as.matrix( # create a data.table of the transposed raster of each reclass
-          RASTER_CLIP_CAT(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+        layer <- data.table(V1 = RASTER_CLIP_CAT(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                           srcRaster = rClass_raster, # clip the RC raster to the study area and reclassify it using the reclass SQL statement and convert the covariate values to a data.table
                           clipper = sim$boundaryInfo[[1]], 
                           geom = sim$boundaryInfo[[4]], 
                           where_clause =  paste0(sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                           out_reclass = rclass_text,
-                          conn=NULL)))))
+                          conn=NULL)[])
         
         layer[is.na(V1), V1:=max(layer$V1, na.rm=TRUE)] # Return a zero for the 0 reclass -- getting a NA instead of 0 for some reason???
         sim$rsfcovar[, (layer_name):= layer$V1]
@@ -191,14 +189,13 @@ Init <- function(sim) {
       if(P(sim, "rsfCLUS", "randomEffectsTable") == '99999'){
         rClass_raster<-rsf_model_coeff[layer_uni == layer_name, sql]
         rclass_text <- rsf_model_coeff[layer_uni == layer_name, reclass] # create a table of the reclass SQL statement
-        layer <- data.table(c(t(raster::as.matrix( # create a data.table of the transposed raster of each reclass
-          RASTER_CLIP_CAT(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+        layer <- data.table(V1 = RASTER_CLIP_CAT(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                           srcRaster = rClass_raster, # clip the RC raster to the study area and reclassify it using the reclass SQL statement and convert the covariate values to a data.table
                           clipper = sim$boundaryInfo[[1]], 
                           geom = sim$boundaryInfo[[4]], 
                           where_clause =  paste0(sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                           out_reclass = rclass_text,
-                          conn=NULL)))))
+                          conn=NULL)[])
         layer[is.na(V1), V1:=max(layer$V1, na.rm=TRUE)] # Return a zero for the 0 reclass -- getting a NA instead of 0 for some reason???
         sim$rsfcovar[, (paste0(layer_name, "_re")):= layer$V1] # suffix the layer name with 're' and attach to the rsfCovar table in the clusdb. 
         #eval(parse(text=paste0("sim$rsfcovar[!is.na(",rsf_model_coeff[layer_uni == layer_name, population ],") && ", layer_name , "_re == 0, ",layer_name, "_re := ",max_coeff,"]")))
@@ -438,7 +435,6 @@ checkRasters <- function(sim) {
     }
     writeRaster(outRas, paste0(layer, ".tif"), overwrite = TRUE)
   }
-  #--------------------------
   return(invisible(sim))
 }
 
@@ -487,12 +483,12 @@ predictInitRSF <- function(sim){
     rsfdt[, compartment :=  sim$boundaryInfo[[3]]]
     sim$rsf<-rbindlist(list(sim$rsf, rsfdt))
     
-    if(P(sim, "rsfCLUS", "writeRSFRasters")){#----Plot the Raster---------------------------
+    if(P(sim, "rsfCLUS", "writeRSFRasters")){#----Plot the Raster
       out.ras<-sim$ras
       out.ras[]<-pred_rsf$rsf_hat
       writeRaster(out.ras, paste0(rsfPops[[1]][[i]],"_", time(sim)*sim$updateInterval, ".tif"), overwrite = TRUE)
       rm(out.ras)
-    }#----------------------------------------------
+    }
     
     #Remove the prediction
     rm(pred_rsf,rsfdt.all,rsfdt.75,rsfdt,rsfdt.dist)
@@ -541,12 +537,12 @@ predictRSF <- function(sim){
     rsfdt[, compartment :=  sim$boundaryInfo[[3]]]
     sim$rsf<-rbindlist(list(sim$rsf, rsfdt))
 
-    if(P(sim, "rsfCLUS", "writeRSFRasters")){#----Plot the Raster---------------------------
+    if(P(sim, "rsfCLUS", "writeRSFRasters")){#----Plot the Raster
       out.ras<-sim$ras
       out.ras[]<-unlist(pred_rsf[,eval(expr)], use.names = FALSE)
       writeRaster(out.ras, paste0(rsfPops[[1]][[i]],"_", time(sim)*sim$updateInterval, ".tif"), overwrite = TRUE)
       rm(out.ras)
-    }#----------------------------------------------
+    }
     
     #Remove the prediction
     rm(pred_rsf)

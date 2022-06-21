@@ -1,3 +1,4 @@
+#===========================================================================================#
 # Copyright 2021 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -9,7 +10,7 @@
 # Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
-#===========================================================================================
+#===========================================================================================#
 
 defineModule (sim, list (
   name = "smcaribouAbundanceCLUS",
@@ -71,15 +72,12 @@ Init <- function (sim) {
     dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN habitat_type character")
     dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN herd_habitat_name character")  
     
-    herd_hab <- data.table (c (t (raster::as.matrix ( 
-                      RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    herd_hab <- data.table (herd_habitat = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
                                     srcRaster = P (sim, "nameRasSMCHerd", "smcaribouAbundanceCLUS") , 
                                     clipper = P (sim, "nameBoundaryFile", "dataLoaderCLUS"),  
                                     geom = P (sim, "nameBoundaryGeom", "dataLoaderCLUS"), 
                                     where_clause =  paste0 (P (sim, "nameBoundaryColumn", "dataLoaderCLUS"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                    conn = NULL)))))
-    
-    setnames (herd_hab, "V1", "herd_habitat") 
+                                    conn = NULL)[])
     herd_hab [, herd_habitat := as.integer (herd_habitat)] 
     herd_hab [, pixelid := seq_len(.N)] 
     

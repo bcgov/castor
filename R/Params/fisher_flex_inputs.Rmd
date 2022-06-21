@@ -81,7 +81,20 @@ cwd.ras<-fasterize::fasterize(sf= cwd, raster = ProvRast , field = "region")
 writeRaster(cwd.ras, "cwd.tif", overwrite = T)
 ```
 
+#mov (this is really an id for fisher zone tho)
+```{r, movement.fisher}
+mov<-getSpatialQuery("select shape, 
+                          CASE WHEN (bec_zone_code = 'SBS' and bec_subzone in('wk','mk','mm','mw')) THEN 1
+                               WHEN (bec_zone_code = 'SBS' and bec_subzone in ('dw','dh','dk')) THEN 2
+                               WHEN ((bec_zone_code = 'SBPS' and bec_subzone in('xc','mc','dc','mk')) or (bec_zone_code = 'IDF' and bec_subzone in('dk','dc','mw','dw','ww')) or (bec_zone_code = 'MS' and bec_subzone in('xc','xk','dv','dm', 'dk', 'dc'))) THEN 3
+                               WHEN ((bec_zone_code = 'BWBS' and bec_subzone in ('dk', 'mw', 'mk', 'wk')) or (bec_zone_code ='SBS' and bec_subzone = 'wk' and bec_variant ='2')) THEN 4
+                               WHEN ((bec_zone_code = 'BWBS' and bec_subzone in ('dk', 'mw', 'mk', 'wk')) or (bec_zone_code ='SBS' and bec_subzone = 'wk' and bec_variant ='2')) THEN 5
+                               ELSE 0
+                               END as region from public.veg_comp_lyr_r1_poly2020 where bec_zone_code in ('SBS', 'IDF', 'MS', 'SBPS', 'BWBS')")
 
+mov.ras<-fasterize::fasterize(sf= mov, raster = ProvRast , field = "region")
+writeRaster(mov.ras, "mov.tif", overwrite = T)
+```
 
 #FETAS
 ```{r, fetas}
@@ -91,4 +104,17 @@ prov.sf.fisher<-rbind(fish.constraints.boreal,fish.constraints.columbia )
 
 prov.fetas.ras<-fasterize::fasterize(sf= prov.sf.fisher, raster = ProvRast , field = "fid")
 writeRaster(prov.fetas.ras, "fetas.tif", overwrite = T)
+```
+
+#FLEX
+```{r, flex}
+sf.obj<-getSpatialQuery("SELECT shape, CASE WHEN (bec_zone_code = 'SBS' and bec_subzone in('wk','mk','mm','mw')) THEN 2
+                                                      WHEN (bec_zone_code = 'SBS' and bec_subzone in ('dw','dh','dk')) THEN 3
+                                                      WHEN ((bec_zone_code = 'SBPS' and bec_subzone in('xc','mc','dc','mk')) or (bec_zone_code = 'IDF' and bec_subzone in('dk','dc','mw','dw','ww')) or (bec_zone_code = 'MS' and bec_subzone in('xc','xk','dv','dm', 'dk', 'dc'))) THEN 4
+                                                      WHEN ((bec_zone_code = 'BWBS' and bec_subzone in ('dk', 'mw', 'mk', 'wk')) or (bec_zone_code ='SBS' and bec_subzone = 'wk' and bec_variant ='2')) THEN 1
+                                         END as pop from public.veg_comp_lyr_r1_poly2020 where bec_zone_code in ('SBS', 'IDF', 'MS', 'SBPS', 'BWBS')")
+library(dplyr)
+sf.obj2<-sf.obj[!is.na(sf.obj$pop),]
+sf.obj2<-sf.obj2 %>% group_by(pop) %>% summarize()
+
 ```
