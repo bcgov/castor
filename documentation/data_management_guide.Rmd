@@ -2252,5 +2252,63 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
+
+new_data <- data.table (computer = 'DG401102', database = 'clus', schema = 'comaprison_nass', 
+                        table_name = 'rast_thlb_nass ',  type = 'raster', 
+                        script = 'nass_Params.Rmd', source = 'Net THLB for Nass.', 
+                        public = 'Yes', last_updated = '2022', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+
+new_data <- data.table (computer = 'DG401102', database = 'clus', schema = 'comaprison_nass', 
+                        table_name = 'rast_zone_beo_lrmp ',  type = 'raster', 
+                        script = 'nass_Params.Rmd', source = 'LRMP BEO zones.', 
+                        public = 'Yes', last_updated = '2022', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data2 <- data.table (computer = 'DG401102', database = 'clus', schema = 'comaprison_nass', 
+                        table_name = 'rast_zone_beo_lrmp_prod ',  type = 'raster', 
+                        script = 'nass_Params.Rmd', source = 'LRMP BEO zones, productive forest only.', 
+                        public = 'Yes', last_updated = '2022', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data3 <- data.table (computer = 'DG401102', database = 'clus', schema = 'comaprison_nass', 
+                        table_name = 'zone_beo_lrmp',  type = 'table', 
+                        script = 'nass_Params.Rmd', source = 'LRMP BEO zones constraint table.', 
+                        public = 'Yes', last_updated = '2022', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+
+new_data <- data.table (computer = 'DG401102', database = 'clus', schema = 'comaprison_nass', 
+                        table_name = 'rast_zone_irm ',  type = 'raster', 
+                        script = 'nass_Params.Rmd', source = 'Integrated Resource Management zone.', 
+                        public = 'Yes', last_updated = '2022', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data2 <- data.table (computer = 'DG401102', database = 'clus', schema = 'comaprison_nass', 
+                        table_name = 'rast_zone_irm_lu ',  type = 'raster', 
+                        script = 'nass_Params.Rmd', source = 'Integrated Resource Management zones x landscape units.', 
+                        public = 'Yes', last_updated = '2022', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data3 <- data.table (computer = 'DG401102', database = 'clus', schema = 'comaprison_nass', 
+                        table_name = 'zone_irm_lu',  type = 'table', 
+                        script = 'nass_Params.Rmd', source = 'Integrated Resource Management zones x landscape units constraint table.', 
+                        public = 'Yes', last_updated = '2022', next_update = 'as needed', where_used = 'dataLoaderCLUS')
+
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
 ```
 
