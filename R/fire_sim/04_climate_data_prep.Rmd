@@ -237,7 +237,7 @@ Because much literature suggests that the monthly drought code (MDC) is an impor
 #############################################
 #### Equations to calculate drought code ####
 #############################################
-    # note if I want to find MDC10 Im giong to have to change this code. I tried putting a list of mnths e.g. c("04", "05", "06",..."10") but this did not work with also changing j from 1:length(mnths) because there is part of the code where it uses information from the month before i.e. j-1 and I could not quickly think of a solution, so I left it. 
+   
 months<- c("02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12")
   
 days_month<- c(31, 30, 31, 30, 31, 31, 30, 31, 30) # number of days in each month starting in Jan
@@ -260,7 +260,7 @@ for (i in 1: length(y1)){
   for (j in 1 : length(Lf)) {
 
     
-    x2$MDC_02<-15 # the MDC value for April. This assumes that the ground is saturated at the start of the season. Maybe not true for all locations... may need to think about this a little more.
+    x2$MDC_02<-15 # the MDC value for Feb This assumes that the ground is saturated at the start of the season. Maybe not true for all locations... may need to think about this a little more.
     
     Em<- days_month[j]*((0.36*x2[[paste0("Tmax",months[j+1])]])+Lf[j])
     Em2 <- ifelse(Em<0, 0, Em)
