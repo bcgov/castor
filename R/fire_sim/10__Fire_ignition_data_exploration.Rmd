@@ -1,5 +1,5 @@
 ---
-title: "09_Fire_ignition_model_fits_by_FRT_data_prep"
+title: "10_Fire_ignition_model_fits_by_FRT_data_prep"
 author: "Elizabeth Kleynhans and Cora Skaien"
 contributor: "Peter Ott"
 date: "20/04/2021"
@@ -53,14 +53,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 -->
-
-#=================================
-#  Script Name: 09_Fire_ignition_model_fits_by_FRT_data_prep.R
-#  Script Version: 1.0
-#  Script Purpose: Prepare the data to use in model selection for ignition models.
-#  Script Authors: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
-# Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
-#=================================
 
 
 ## Introduction
