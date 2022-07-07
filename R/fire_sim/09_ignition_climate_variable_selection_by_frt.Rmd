@@ -79,12 +79,32 @@ fire_ignitions<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\
 
 ```
 
+### I wante to determine whether NDT or FRT is better. So here I join NDT back to my dataset so that I can run the models both ways.
+This is going to be rather rough, but hopefully its good enough.
+
+```{r}
+#Get natural disturbance data
+# Collect the BEC and NDT zones from the BCGW or from postgres
+
+#postgres (faster)
+NDT<-getSpatialQuery("SELECT objectid, feature_class_skey, zone, subzone, natural_disturbance, zone_name, wkb_geometry FROM public.bec_zone")
+
+st_crs(NDT)
+NDT<-st_transform(NDT, 3005)
+str(fire_ignitions)
+fire.ignt.NDT <- st_join(fire_ignitions, NDT, left=TRUE)
+
+dim(fire_ignitions)
+dim(fire.ignt.NDT)
+```
+
+
 Inspect the fire ignition data.
 
 ```{r}
 #fire_ignitions<-fire_all
 
-fire_ignitions<-st_set_geometry(fire_ignitions,NULL) # remove geometry column for dataset
+fire_ignitions<-st_set_geometry(fire.ignt.NDT,NULL) # remove geometry column for dataset
 
 head(fire_ignitions)
 names(fire_ignitions) # note if you import the file the names have changed
@@ -96,6 +116,118 @@ fire_ignitions <- fire_ignitions %>%
 # Histogram of lightning caused fires
 fire_ignitions$ig_mnth<-as.numeric(fire_ignitions$ig_mnth)
 hist(fire_ignitions$ig_mnth)
+
+# plot climate varibales over time to see if it looks ok.
+
+fire_ignitions_summary<- fire_ignitions %>%
+  group_by(frt) %>%
+  summarize(Tmax02=mean(Tmax02),
+         Tmax03=mean(Tmax03),
+         Tmax04=mean(Tmax04),
+         Tmax05=mean(Tmax05),
+         Tmax06=mean(Tmax06),
+         Tmax07=mean(Tmax07),
+         Tmax08=mean(Tmax08),
+         Tmax09=mean(Tmax09),
+         Tmax10=mean(Tmax10),
+         Tmax11=mean(Tmax11),
+         Tave02=mean(Tave02),
+         Tave03=mean(Tave03),
+         Tave04=mean(Tave04),
+         Tave05=mean(Tave05),
+         Tave06=mean(Tave06),
+         Tave07=mean(Tave07),
+         Tave08=mean(Tave08),
+         Tave09=mean(Tave09),
+         Tave10=mean(Tave10),
+         Tave11=mean(Tave11),
+         PPT02=mean(PPT02),
+         PPT03=mean(PPT03),
+         PPT04=mean(PPT04),
+         PPT05=mean(PPT05),
+         PPT06=mean(PPT06),
+         PPT07=mean(PPT07),
+         PPT08=mean(PPT08),
+         PPT09=mean(PPT09),
+         PPT10=mean(PPT10),
+         PPT11=mean(PPT11),
+         RH02=mean(RH02),
+         RH03=mean(RH03),
+         RH04=mean(RH04),
+         RH05=mean(RH05),
+         RH06=mean(RH06),
+         RH07=mean(RH07),
+         RH08=mean(RH08),
+         RH09=mean(RH09),
+         RH10=mean(RH10),
+         RH11=mean(RH11),
+         MDC_02=mean(MDC_02),
+         MDC_03=mean(MDC_03),
+         MDC_04=mean(MDC_04),
+         MDC_05=mean(MDC_05),
+         MDC_06=mean(MDC_06),
+         MDC_07=mean(MDC_07),
+         MDC_08=mean(MDC_08),
+         MDC_09=mean(MDC_09),
+         MDC_10=mean(MDC_10),
+         MDC_11=mean(MDC_11))
+
+# Tave
+tave<-fire_ignitions_summary %>% dplyr::select(frt, Tave02,Tave03,Tave04,Tave05,Tave06,Tave07, Tave08, Tave09, Tave10, Tave11)
+
+xtave<-pivot_longer(tave, cols=2:11, names_to="Month", values_to="Tave")
+xtave$Tave<- as.numeric(xtave$Tave)
+
+p<-ggplot(data=xtave, aes(x=Month, y=Tave, group= frt)) +
+  geom_line(aes(colour=frt)) +
+  geom_point(aes(colour=frt)) 
+p
+
+# Tmax
+Tmax<-fire_ignitions_summary %>% dplyr::select(frt, Tmax02,Tmax03,Tmax04,Tmax05,Tmax06,Tmax07, Tmax08, Tmax09, Tmax10, Tmax11)
+
+xTmax<-pivot_longer(Tmax, cols=2:11, names_to="Month", values_to="Tmax")
+xTmax$Tmax<- as.numeric(xTmax$Tmax)
+
+p<-ggplot(data=xTmax, aes(x=Month, y=Tmax, group= frt)) +
+  geom_line(aes(colour=frt)) +
+  geom_point(aes(colour=frt)) 
+p
+
+# PPT
+PPT<-fire_ignitions_summary %>% dplyr::select(frt, PPT02,PPT03,PPT04,PPT05,PPT06,PPT07, PPT08, PPT09, PPT10, PPT11)
+
+xPPT<-pivot_longer(PPT, cols=2:11, names_to="Month", values_to="PPT")
+xPPT$PPT<- as.numeric(xPPT$PPT)
+
+p<-ggplot(data=xPPT, aes(x=Month, y=PPT, group= frt)) +
+  geom_line(aes(colour=frt)) +
+  geom_point(aes(colour=frt)) 
+p
+
+# RH
+RH<-fire_ignitions_summary %>% dplyr::select(frt, RH02,RH03,RH04,RH05,RH06,RH07, RH08, RH09, RH10, RH11)
+
+xRH<-pivot_longer(RH, cols=2:11, names_to="Month", values_to="RH")
+xRH$RH<- as.numeric(xRH$RH)
+
+p<-ggplot(data=xRH, aes(x=Month, y=RH, group= frt)) +
+  geom_line(aes(colour=frt)) +
+  geom_point(aes(colour=frt)) 
+p
+
+# MDC
+MDC_<-fire_ignitions_summary %>% dplyr::select(frt, MDC_02,MDC_03,MDC_04,MDC_05,MDC_06,MDC_07, MDC_08, MDC_09, MDC_10, MDC_11)
+
+xMDC_<-pivot_longer(MDC_, cols=2:11, names_to="Month", values_to="MDC_")
+xMDC_$MDC_<- as.numeric(xMDC_$MDC_)
+
+p<-ggplot(data=xMDC_, aes(x=Month, y=MDC_, group= frt)) +
+  geom_line(aes(colour=frt)) +
+  geom_point(aes(colour=frt)) 
+p
+
+
 
 #Lightning caused fires by years
 p<-ggplot(fire_ignitions%>% filter(fire_cs=="Lightning"), aes(x=ig_mnth))+
@@ -200,6 +332,24 @@ p<-ggplot(fire_ignitions%>% filter(fire_cs=="Lightning"), aes(x=ig_mnth))+
   facet_wrap(frt~., ncol=4)
 p
 
+p<-ggplot(fire_ignitions%>% filter(fire_cs=="Person"), aes(x=ig_mnth))+
+  geom_histogram()+
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
+  facet_wrap(frt~., ncol=4)
+p
+
+p<-ggplot(fire_ignitions%>% filter(fire_cs=="Lightning"), aes(x=ig_mnth))+
+  geom_histogram()+
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
+  facet_wrap(natural_disturbance~., ncol=4)
+p
+
+p<-ggplot(fire_ignitions%>% filter(fire_cs=="Person"), aes(x=ig_mnth))+
+  geom_histogram()+
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
+  facet_wrap(natural_disturbance~., ncol=4)
+p
+
 
 #Humna caused fires by years
 p<-ggplot(fire_ignitions%>% filter(fire_cs=="Person"), aes(x=ig_mnth))+
@@ -234,32 +384,32 @@ Before we begin the analyses, we will look at some correlations.
 dat_lightning<-fire_ignitions%>% filter(!fire_cs %in% c("Person", "Unknown"))
 hist(dat_lightning$ig_mnth)
 
-dist.cut.corr <- dat_lightning [c (21:25, 49:53)]
+dist.cut.corr <- dat_lightning [c (21:28, 61:68)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between maximum temperature and MDC")
 
 # Correlation between total precipitation and MDC. This is also pretty correlated with values between -0.76 and -0.37
-dist.cut.corr <- dat_lightning [c (35:39, 49:53)]
+dist.cut.corr <- dat_lightning [c (41:48, 61:68)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and MDC")
 
 # Correlation between Tmax and total precipitation. The correlation is very low, as would be expected (-0.02 to -0.57) 
-dist.cut.corr <- dat_lightning [c (21:25, 35:39)]
+dist.cut.corr <- dat_lightning [c (21:28, 41:48)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and Tmax")
 
 
 # Correlation between Tave and total precipitation. The correlation is very low, as would be expected (-0.03 to -0.43) 
-dist.cut.corr <- dat_lightning [c (28:32, 35:39)]
+dist.cut.corr <- dat_lightning [c (31:38, 41:48)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and Tave")
 
 # Correlation between Tmax and relative humidity. correlations. Max = 0.72
-dist.cut.corr <- dat_lightning [c (21:26, 42:47)]
+dist.cut.corr <- dat_lightning [c (21:28, 42:47)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between total precipitation and Tave")
@@ -280,7 +430,7 @@ ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
 dat_person<-fire_ignitions%>% filter(!fire_cs %in% c("Lightning", "Unknown"))
 
 
-dist.cut.corr <- dat_person [c (21:25, 36:40)]
+dist.cut.corr <- dat_person [c (21:28, 36:40)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between maximum temperature and MDC")
@@ -538,9 +688,8 @@ fire_ignitions$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- ( 
 fire_ignitions$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- ( fire_ignitions$MDC_03 + fire_ignitions$MDC_04 + fire_ignitions$MDC_05 + fire_ignitions$MDC_06 + fire_ignitions$MDC_07+ fire_ignitions$MDC_08 + fire_ignitions$MDC_09 + fire_ignitions$MDC_10 + fire_ignitions$MDC_11)/9
 # maybe also try maximum temperature, precipitation, RH and MDC for the season.
 
-
-
 ```
+
 
 #################################
 #### Subsample data before running analysis
@@ -664,6 +813,532 @@ and extract the AIC as a means for comparison. I also calculate the AUC by split
 
 ##### Create variables for Model Selection ########
 Create groupings of variables to put into model selection loop.
+
+```{r}
+
+variables<- c(#"Tmax03",
+              "Tmax04",
+              "Tmax05",
+              "Tmax06",
+              "Tmax07", 
+              "Tmax08", 
+              "Tmax09",
+              "Tmax10", 
+              #"Tmax11", 
+              #"mean_Tmax03_Tmax04",
+              "mean_Tmax04_Tmax05",
+              "mean_Tmax05_Tmax06",
+              "mean_Tmax06_Tmax07", 
+              "mean_Tmax07_Tmax08", 
+              "mean_Tmax08_Tmax09",
+              "mean_Tmax09_Tmax10",
+              #"mean_Tmax10_Tmax11", 
+              #"mean_Tmax03_Tmax04_Tmax05",
+              "mean_Tmax04_Tmax05_Tmax06",
+              "mean_Tmax05_Tmax06_Tmax07", 
+              "mean_Tmax06_Tmax07_Tmax08",
+              "mean_Tmax07_Tmax08_Tmax09",
+              "mean_Tmax08_Tmax09_Tmax10",
+              #"mean_Tmax09_Tmax10_Tmax11", 
+              #"mean_Tmax03_Tmax04_Tmax05_Tmax06",
+              "mean_Tmax04_Tmax05_Tmax06_Tmax07",
+              "mean_Tmax05_Tmax06_Tmax07_Tmax08",
+              "mean_Tmax06_Tmax07_Tmax08_Tmax09",
+              "mean_Tmax07_Tmax08_Tmax09_Tmax10",
+              #"mean_Tmax08_Tmax09_Tmax10_Tmax11",
+              #"mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07",
+              "mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08",
+              "mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09",
+              "mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
+              #"mean_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
+              #"mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08",
+              "mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9",
+              "mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
+              #"mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
+              #"mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09",
+              "mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
+              #"mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
+              #"mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
+              #"mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
+              #"mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
+              
+              #"Tave03",
+              "Tave04",
+              "Tave05",
+              "Tave06",
+              "Tave07", 
+              "Tave08", 
+              "Tave09",
+              "Tave10", 
+              #"Tave11", 
+              #"mean_Tave03_Tave04",
+              "mean_Tave04_Tave05",
+              "mean_Tave05_Tave06",
+              "mean_Tave06_Tave07", 
+              "mean_Tave07_Tave08", 
+              "mean_Tave08_Tave09",
+              "mean_Tave09_Tave10",
+              #"mean_Tave10_Tave11", 
+              #"mean_Tave03_Tave04_Tave05",
+              "mean_Tave04_Tave05_Tave06",
+              "mean_Tave05_Tave06_Tave07", 
+              "mean_Tave06_Tave07_Tave08",
+              "mean_Tave07_Tave08_Tave09",
+              "mean_Tave08_Tave09_Tave10",
+              #"mean_Tave09_Tave10_Tave11", 
+              #"mean_Tave03_Tave04_Tave05_Tave06",
+              "mean_Tave04_Tave05_Tave06_Tave07",
+              "mean_Tave05_Tave06_Tave07_Tave08",
+              "mean_Tave06_Tave07_Tave08_Tave09",
+              "mean_Tave07_Tave08_Tave09_Tave10",
+              #"mean_Tave08_Tave09_Tave10_Tave11",
+              #"mean_Tave03_Tave04_Tave05_Tave06_Tave07",
+              "mean_Tave04_Tave05_Tave06_Tave07_Tave08",
+              "mean_Tave05_Tave06_Tave07_Tave08_Tave09",
+              "mean_Tave06_Tave07_Tave08_Tave09_Tave10",
+              #"mean_Tave07_Tave08_Tave09_Tave10_Tave11",
+              #"mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08",
+              "mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave9",
+              "mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10",
+              #"mean_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
+              #"mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09",
+              "mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10",
+              #"mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
+              #"mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10",
+              #"mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
+              #"mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
+              
+              #"PPT03",
+              "PPT04",
+              "PPT05",
+              "PPT06",
+              "PPT07", 
+              "PPT08", 
+              "PPT09",
+              "PPT10", 
+              #"PPT11", 
+              #"mean_PPT03_PPT04",
+              "mean_PPT04_PPT05",
+              "mean_PPT05_PPT06",
+              "mean_PPT06_PPT07", 
+              "mean_PPT07_PPT08", 
+              "mean_PPT08_PPT09",
+              "mean_PPT09_PPT10",
+              #"mean_PPT10_PPT11", 
+              #"mean_PPT03_PPT04_PPT05",
+              "mean_PPT04_PPT05_PPT06",
+              "mean_PPT05_PPT06_PPT07", 
+              "mean_PPT06_PPT07_PPT08",
+              "mean_PPT07_PPT08_PPT09",
+              "mean_PPT08_PPT09_PPT10",
+              #"mean_PPT09_PPT10_PPT11", 
+              #"mean_PPT03_PPT04_PPT05_PPT06",
+              "mean_PPT04_PPT05_PPT06_PPT07",
+              "mean_PPT05_PPT06_PPT07_PPT08",
+              "mean_PPT06_PPT07_PPT08_PPT09",
+              "mean_PPT07_PPT08_PPT09_PPT10",
+              #"mean_PPT08_PPT09_PPT10_PPT11",
+              #"mean_PPT03_PPT04_PPT05_PPT06_PPT07",
+              "mean_PPT04_PPT05_PPT06_PPT07_PPT08",
+              "mean_PPT05_PPT06_PPT07_PPT08_PPT09",
+              "mean_PPT06_PPT07_PPT08_PPT09_PPT10",
+              #"mean_PPT07_PPT08_PPT09_PPT10_PPT11",
+              #"mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08",
+              "mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT9",
+              "mean_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10",
+              #"mean_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
+              #"mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09",
+              "mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10",
+              #"mean_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
+              #"mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10",
+              #"mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
+              #"mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
+              
+              #"RH03",
+              "RH04",
+              "RH05",
+              "RH06",
+              "RH07", 
+              "RH08", 
+              "RH09",
+              "RH10", 
+              #"RH11", 
+              #"mean_RH03_RH04",
+              "mean_RH04_RH05",
+              "mean_RH05_RH06",
+              "mean_RH06_RH07", 
+              "mean_RH07_RH08", 
+              "mean_RH08_RH09",
+              "mean_RH09_RH10",
+              #"mean_RH10_RH11", 
+              #"mean_RH03_RH04_RH05",
+              "mean_RH04_RH05_RH06",
+              "mean_RH05_RH06_RH07", 
+              "mean_RH06_RH07_RH08",
+              "mean_RH07_RH08_RH09",
+              "mean_RH08_RH09_RH10",
+              #"mean_RH09_RH10_RH11", 
+              #"mean_RH03_RH04_RH05_RH06",
+              "mean_RH04_RH05_RH06_RH07",
+              "mean_RH05_RH06_RH07_RH08",
+              "mean_RH06_RH07_RH08_RH09",
+              "mean_RH07_RH08_RH09_RH10",
+              #"mean_RH08_RH09_RH10_RH11",
+              #"mean_RH03_RH04_RH05_RH06_RH07",
+              "mean_RH04_RH05_RH06_RH07_RH08",
+              "mean_RH05_RH06_RH07_RH08_RH09",
+              "mean_RH06_RH07_RH08_RH09_RH10",
+              #"mean_RH07_RH08_RH09_RH10_RH11",
+              #"mean_RH03_RH04_RH05_RH06_RH07_RH08",
+              "mean_RH04_RH05_RH06_RH07_RH08_RH9",
+              "mean_RH05_RH06_RH07_RH08_RH09_RH10",
+              #"mean_RH06_RH07_RH08_RH09_RH10_RH11",
+              #"mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09",
+              "mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10",
+              #"mean_RH05_RH06_RH07_RH08_RH09_RH10_RH11",
+              #"mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10",
+              #"mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11",
+              #"mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11",
+              
+              #"MDC_03",
+              "MDC_04",
+              "MDC_05",
+              "MDC_06",
+              "MDC_07", 
+              "MDC_08", 
+              "MDC_09",
+              "MDC_10", 
+              #"MDC_11", 
+              #"mean_MDC_03_MDC_04",
+              "mean_MDC_04_MDC_05",
+              "mean_MDC_05_MDC_06",
+              "mean_MDC_06_MDC_07", 
+              "mean_MDC_07_MDC_08", 
+              "mean_MDC_08_MDC_09",
+              "mean_MDC_09_MDC_10",
+              #"mean_MDC_10_MDC_11", 
+              #"mean_MDC_03_MDC_04_MDC_05",
+              "mean_MDC_04_MDC_05_MDC_06",
+              "mean_MDC_05_MDC_06_MDC_07", 
+              "mean_MDC_06_MDC_07_MDC_08",
+              "mean_MDC_07_MDC_08_MDC_09",
+              "mean_MDC_08_MDC_09_MDC_10",
+              #"mean_MDC_09_MDC_10_MDC_11", 
+              #"mean_MDC_03_MDC_04_MDC_05_MDC_06",
+              "mean_MDC_04_MDC_05_MDC_06_MDC_07",
+              "mean_MDC_05_MDC_06_MDC_07_MDC_08",
+              "mean_MDC_06_MDC_07_MDC_08_MDC_09",
+              "mean_MDC_07_MDC_08_MDC_09_MDC_10",
+              #"mean_MDC_08_MDC_09_MDC_10_MDC_11",
+              #"mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07",
+              "mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08",
+              "mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09",
+              "mean_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10",
+              #"mean_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
+              #"mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08",
+              "mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_9",
+              "mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10",
+              #"mean_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
+              #"mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09",
+              "mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10")
+              #"mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
+              #"mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10",
+              #"mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
+              #"mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11")
+
+ variables1<-c("Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09","Tmax10", 
+               "Tave04","Tave05", "Tave06", "Tave07", "Tave08", "Tave09", "Tave10")
+ 
+variables2<-c("PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09","PPT10",
+              "PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09","PPT10") 
+# precipitation and MDC and temperature and MDC are quite correlated so I'm leaving this combination of variables out. 
+
+```
+
+Modify variable names for ease in analysis.
+
+```{r}
+#Lightning
+dat_lightning$fire_pres<-as.numeric(dat_lightning$fire) 
+table(dat_lightning$fire_yr, dat_lightning$fire_pres)
+table(dat_lightning$fire_cs, dat_lightning$frt)
+
+#Create partition for selecting randomly within zones types for validation data
+
+```
+
+#################################
+#### Running simple logistic regression model
+#################################
+
+Now that the data is prepped, we are ready to run the logistic regression model for the lightning and person caused fires separately to determine the best climate variables.
+
+We have three main options: separate by BEC zone (14), by Natural Disturbance Type (NDT), or by fire regime type (FRT). The initial code, now saved in the "old" folder, assesses by BEC zones independently. Cora did it by NDT and here we will run by fire regime type.
+
+
+```{r}
+# create loop to do variable selection of climate data
+unique(dat_lightning$frt)
+str(dat_lightning$frt)
+dat_lightning$frt<-as.factor(dat_lightning$frt)
+zones<- c("3", "5", "12", "15", "7", "9", "10", "11", "13", "14")
+
+filenames<-list()
+prop<-0.75
+
+```
+
+Model selection for lightning caused fires:
+
+```{r}
+
+for (g in 1:100){
+
+for (h in 1:length(zones)) {
+  dat2<- dat_lightning %>% dplyr::filter(frt ==zones[h])
+  
+#Create frame of AIC table
+# summary table
+table.glm.climate.simple <- data.frame (matrix (ncol = 4, nrow = 0))
+colnames (table.glm.climate.simple) <- c ("Zone", "Variable", "AIC", "AUC")
+
+# Create test and training datasets
+dat_0<-dat2 %>% filter(fire_pres==0)
+dt_0 = sort(sample(nrow(dat_0), nrow(dat_0)*prop))
+train_0<-dat_0[dt_0,]
+test_0<-dat_0[-dt_0,]
+
+dat_1<-dat2 %>% filter(fire_pres==1)
+dt_1 = sort(sample(nrow(dat_1), nrow(dat_1)*prop))
+train_1<-dat_1[dt_1,]
+test_1<-dat_1[-dt_1,]
+
+dat_train<-rbind(train_0,train_1)
+dat_test<-rbind(test_0,test_1)
+
+model1 <- glm (fire_pres ~ 1 ,
+               data=dat_train,
+               family = binomial (link = "logit"))
+
+table.glm.climate.simple[1,1]<-zones[h]
+table.glm.climate.simple[1,2]<-"intercept"
+table.glm.climate.simple[1,3]<-extractAIC(model1)[2]
+
+# lets look at fit of the Valid (validation) dataset
+dat_test$model1_predict <- predict.glm(model1,newdata = dat_test,type="response")
+roc_obj <- roc(dat_test$fire_pres, dat_test$model1_predict)
+auc(roc_obj)
+table.glm.climate.simple[1,4]<-auc(roc_obj)
+
+#rm(model_dat,dat1,Valid)
+
+for (i in 1: length(variables)){
+  print(paste((variables[i]), (zones[h]), sep=" "))
+  
+  #model_dat<- dat2 %>% dplyr::select(fire_pres, variables[i])
+  dat_test1<-dat_test %>% dplyr::select(fire_pres, variables[i])
+  dat_train1<-dat_train %>% dplyr::select(fire_pres,variables[i])
+  
+  model1 <- glm (fire_pres ~ . ,
+                 data=dat_train1,
+                 family = binomial (link = "logit"))
+  
+  table.glm.climate.simple[i+1,1]<-zones[h]
+  table.glm.climate.simple[i+1,2]<-variables[i]
+  table.glm.climate.simple[i+1,3]<-extractAIC(model1)[2]
+  
+  # lets look at fit of the Valid (validation) dataset
+  dat_test1$model1_predict <- predict.glm(model1,newdata = dat_test1,type="response")
+  roc_obj <- roc(dat_test1$fire_pres, dat_test1$model1_predict)
+  auc(roc_obj)
+  table.glm.climate.simple[i+1,4]<-auc(roc_obj)
+  
+}
+
+# This is an addition to the table above allowing combinations of temperature and precipitation
+
+for (i in 1: length(variables1)){
+  print(paste((variables1[i]), variables2[i], (zones[h]), sep=" "))
+  dat_train2<- dat_train %>% dplyr::select(fire_pres, variables1[i], variables2[i])
+  dat_test2<-dat_test %>% dplyr::select(fire_pres, variables1[i], variables2[i])
+  
+  model2 <- glm (fire_pres ~ . ,
+                 data=dat_train2,
+                 family = binomial (link = "logit"))
+  
+  table.glm.climate.simple[(i+length(variables))+1,1]<-zones[h]
+  table.glm.climate.simple[(i+length(variables))+1,2]<-paste0(variables1[i],"+", variables2[i])
+  table.glm.climate.simple[(i+length(variables))+1,3]<-extractAIC(model2)[2]
+  
+  dat_test2$model2_predict <- predict.glm(model2,newdata = dat_test2,type="response")
+  roc_obj <- roc(dat_test2$fire_pres, dat_test2$model2_predict)
+  auc(roc_obj)
+  table.glm.climate.simple[(i+length(variables))+1,4]<-auc(roc_obj)
+  
+}
+
+for (i in 1: length(variables1)){
+  print(paste((variables1[i]), "x",variables2[i], (zones[h]), sep=" "))
+
+  if (dim(dat_1)[1]>150) {
+  model2 <- glm (fire_pres ~ (.)^2,
+                 data=dat_train2,
+                 family = binomial (link = "logit"))
+
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones[h]
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-extractAIC(model2)[2]
+
+  dat_test2$model2_predict <- predict.glm(model2,newdata = dat_test2,type="response")
+  roc_obj <- roc(dat_test2$fire_pres, dat_test2$model2_predict)
+  auc(roc_obj)
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),4]<-auc(roc_obj)
+  } 
+  
+  else {
+      table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones[h]
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-"missing"
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),4]<-"missing"
+  }
+    
+
+}
+
+#table.glm.climate1<-table.glm.climate.simple %>% drop_na(AIC)
+
+
+#assign file names to the work
+nam1<-paste("AIC",zones[h],"run",g,sep="_") #defining the name
+assign(nam1,table.glm.climate.simple)
+filenames<-append(filenames,nam1)
+}
+}
+# Common warning message: glm.fit: fitted probabilities numerically 0 or 1 occurred
+
+
+```
+
+Save output:
+
+```{r}
+
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(filenames)
+aic_bec_lightning<-mkFrameList(n) 
+
+str(aic_bec_lightning)
+
+aic_bec_lightning_a<-aic_bec_lightning %>% 
+  filter(AIC != "missing") 
+
+aic_bec_lightning$AIC<- as.numeric(aic_bec_lightning$AIC)
+aic_bec_lightning$AUC<-as.numeric(aic_bec_lightning$AUC)
+table(is.na(aic_bec_lightning2$AIC))
+
+aic_bec_lightning2<- aic_bec_lightning %>% na.omit()
+  
+aic_bec_lightning_summary<- aic_bec_lightning2 %>%
+  group_by(Zone, Variable) %>%
+  summarise(meanAIC=mean(AIC),
+            meanAUC=mean(AUC),
+            sdAUC=sd(AUC),
+            )
+
+aic_bec_lightning_summary2<- aic_bec_lightning_summary %>%
+  group_by(Zone) %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+aic_bec_lightning_summary2
+
+
+
+```
+
+Save file to local computer:
+
+```{r}
+write.csv(aic_bec_lightning_summary2, file="C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\climate_AIC_results_lightning_FRT.csv")
+```
+
+##########################################
+###Repeat for person-caused fires:
+##########################################
+
+# first subsample data
+
+```{r}
+#fire_ignitions2<-st_set_geometry(fire_ignitions, NULL)
+
+##Lightning caused - preparing the tables
+pre<- fire_ignitions %>%
+  filter(fire==1) %>%
+  filter(!fire_cs %in% c("Lightning", "Unknown")) %>%
+  dplyr::select(fire_yr, fire, frt) %>%
+  group_by(fire_yr, frt) %>%
+  summarize(fire_n=n())
+head(pre)
+
+##Get NA points
+pre_checkpre<- fire_ignitions %>%
+  filter(fire==0) %>%
+  dplyr::select(fire_yr, fire, frt) %>%
+  group_by(fire_yr, frt) %>%
+  summarize(abs_n=n())
+head(pre_checkpre)
+
+check<-left_join(pre, pre_checkpre)
+check %>% print(n=300) # hmm there are some NA's in the 0 column. I should probably correct that.
+
+abs_match <- fire_ignitions %>%
+  filter(fire == 0) %>%
+  group_by(fire_yr, frt) %>%   # prep for work by yr and veg type
+  nest() %>%              # --> one row per yr and vegtype
+  ungroup()
+
+df<-left_join(check, abs_match) # make sure there are not veg year combinations that are not also in the fire_pres==1 file
+
+  sampled_df<- df %>% 
+    mutate(samp = map2(data, floor(fire_n*5), sample_n, replace=TRUE)) %>%
+    dplyr::select(-data) %>%
+    unnest(samp) #%>%
+    #dplyr::select(idno:frt)
+ 
+# joining my subsampled absence data back to the fire ignition presence data
+pre1<-  fire_ignitions %>%
+  filter(fire==1) %>%
+  filter(!fire_cs %in% c("Lightning", "Unknown"))
+dim(sampled_df) # 
+dim(pre1) #  15228 rows
+sampled_df<-sampled_df %>% dplyr::select(fire_yr,frt, idno:mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11)
+
+dat_human<- rbind(pre1, as.data.frame(sampled_df))
+dim(dat_human) # 37673 rows good this worked I think; Cora July 5 has 45656 rows. This is fewer than the >180,000 rows of the data at the end of file 01
+table(dat_human$fire_cs)
+
+head(dat_human)
+str(dat_human)
+table(dat_human$fire_cs)
+```
+
+If all looks good from above, then save data.
+
+```{r}
+#Write file
+write.csv(dat_human, "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\dat_human_for_analysis.csv")
+
+#st_write(dat_lightning, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\dat_lightning_for_analysis.shp", delete_layer=TRUE)
+```
+
+##### Create variables for Model Selection ########
+Create groupings of variables to put into model selection loop.
+
 
 ```{r}
 
@@ -897,335 +1572,11 @@ variables<- c("Tmax03",
               "mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
               "mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11")
 
- variables1<-c("Tmax03","Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09","Tmax10", "Tmax11",
-               "Tave03","Tave04","Tave05", "Tave06", "Tave07", "Tave08", "Tave09", "Tave10", "Tave11")
+ variables1<-c("Tmax03","Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09","Tmax10","Tmax11", 
+               "Tave03","Tave04","Tave05", "Tave06", "Tave07", "Tave08", "Tave09", "Tave10","Tave11")
  
 variables2<-c("PPT03","PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09","PPT10","PPT11",
-              "PPT03","PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09","PPT10","PPT11") 
-# precipitation and MDC and temperature and MDC are quite correlated so I'm leaving this combination of variables out. 
-
-```
-
-Modify variable names for ease in analysis.
-
-```{r}
-#Lightning
-dat_lightning$fire_pres<-as.numeric(dat_lightning$fire) 
-table(dat_lightning$fire_yr, dat_lightning$fire_pres)
-table(dat_lightning$fire_cs, dat_lightning$frt)
-
-#Create partition for selecting randomly within zones types for validation data
-
-```
-
-#################################
-#### Running simple logistic regression model
-#################################
-
-Now that the data is prepped, we are ready to run the logistic regression model for the lightning and person caused fires separately to determine the best climate variables.
-
-We have three main options: separate by BEC zone (14), by Natural Disturbance Type (NDT), or by fire regime type (FRT). The initial code, now saved in the "old" folder, assesses by BEC zones independently. Cora did it by NDT and here we will run by fire regime type.
-
-
-```{r}
-# create loop to do variable selection of climate data
-unique(dat_lightning$frt)
-str(dat_lightning$frt)
-dat_lightning$frt<-as.factor(dat_lightning$frt)
-zones<- c("3", "5", "12", "15", "7", "9", "10", "11", "13", "14")
-
-filenames<-list()
-prop<-0.75
-
-```
-
-Model selection for lightning caused fires:
-
-```{r}
-
-for (g in 1:100){
-
-for (h in 1:length(zones)) {
-  dat2<- dat_lightning %>% dplyr::filter(frt ==zones[h])
-  
-#Create frame of AIC table
-# summary table
-table.glm.climate.simple <- data.frame (matrix (ncol = 4, nrow = 0))
-colnames (table.glm.climate.simple) <- c ("Zone", "Variable", "AIC", "AUC")
-
-# Create test and training datasets
-dat_0<-dat2 %>% filter(fire_pres==0)
-dt_0 = sort(sample(nrow(dat_0), nrow(dat_0)*prop))
-train_0<-dat_0[dt_0,]
-test_0<-dat_0[-dt_0,]
-
-dat_1<-dat2 %>% filter(fire_pres==1)
-dt_1 = sort(sample(nrow(dat_1), nrow(dat_1)*prop))
-train_1<-dat_1[dt_1,]
-test_1<-dat_1[-dt_1,]
-
-dat_train<-rbind(train_0,train_1)
-dat_test<-rbind(test_0,test_1)
-
-model1 <- glm (fire_pres ~ 1 ,
-               data=dat_train,
-               family = binomial (link = "logit"))
-
-table.glm.climate.simple[1,1]<-zones[h]
-table.glm.climate.simple[1,2]<-"intercept"
-table.glm.climate.simple[1,3]<-extractAIC(model1)[2]
-
-# lets look at fit of the Valid (validation) dataset
-dat_test$model1_predict <- predict.glm(model1,newdata = dat_test,type="response")
-roc_obj <- roc(dat_test$fire_pres, dat_test$model1_predict)
-auc(roc_obj)
-table.glm.climate.simple[1,4]<-auc(roc_obj)
-
-#rm(model_dat,dat1,Valid)
-
-for (i in 1: length(variables)){
-  print(paste((variables[i]), (zones[h]), sep=" "))
-  
-  #model_dat<- dat2 %>% dplyr::select(fire_pres, variables[i])
-  dat_test1<-dat_test %>% dplyr::select(fire_pres, variables[i])
-  dat_train1<-dat_train %>% dplyr::select(fire_pres,variables[i])
-  
-  model1 <- glm (fire_pres ~ . ,
-                 data=dat_train1,
-                 family = binomial (link = "logit"))
-  
-  table.glm.climate.simple[i+1,1]<-zones[h]
-  table.glm.climate.simple[i+1,2]<-variables[i]
-  table.glm.climate.simple[i+1,3]<-extractAIC(model1)[2]
-  
-  # lets look at fit of the Valid (validation) dataset
-  dat_test1$model1_predict <- predict.glm(model1,newdata = dat_test1,type="response")
-  roc_obj <- roc(dat_test1$fire_pres, dat_test1$model1_predict)
-  auc(roc_obj)
-  table.glm.climate.simple[i+1,4]<-auc(roc_obj)
-  
-}
-
-# This is an addition to the table above allowing combinations of temperature and precipitation
-
-for (i in 1: length(variables1)){
-  print(paste((variables1[i]), variables2[i], (zones[h]), sep=" "))
-  dat_train2<- dat_train %>% dplyr::select(fire_pres, variables1[i], variables2[i])
-  dat_test2<-dat_test %>% dplyr::select(fire_pres, variables1[i], variables2[i])
-  
-  model2 <- glm (fire_pres ~ . ,
-                 data=dat_train2,
-                 family = binomial (link = "logit"))
-  
-  table.glm.climate.simple[(i+length(variables))+1,1]<-zones[h]
-  table.glm.climate.simple[(i+length(variables))+1,2]<-paste0(variables1[i],"+", variables2[i])
-  table.glm.climate.simple[(i+length(variables))+1,3]<-extractAIC(model2)[2]
-  
-  dat_test2$model2_predict <- predict.glm(model2,newdata = dat_test2,type="response")
-  roc_obj <- roc(dat_test2$fire_pres, dat_test2$model2_predict)
-  auc(roc_obj)
-  table.glm.climate.simple[(i+length(variables))+1,4]<-auc(roc_obj)
-  
-}
-
-for (i in 1: length(variables1)){
-  print(paste((variables1[i]), "x",variables2[i], (zones[h]), sep=" "))
-
-  if (dim(dat_1)[1]>200) {
-  model2 <- glm (fire_pres ~ (.)^2,
-                 data=dat_train2,
-                 family = binomial (link = "logit"))
-
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones[h]
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-extractAIC(model2)[2]
-
-  dat_test2$model2_predict <- predict.glm(model2,newdata = dat_test2,type="response")
-  roc_obj <- roc(dat_test2$fire_pres, dat_test2$model2_predict)
-  auc(roc_obj)
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),4]<-auc(roc_obj)
-  } 
-  
-  else {
-      table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones[h]
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-"NA"
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),4]<-"NA"
-  }
-    
-
-}
-
-table.glm.climate1<-table.glm.climate.simple %>% drop_na(AIC)
-
-
-#assign file names to the work
-nam1<-paste("AIC",zones[h],"run",g,sep="_") #defining the name
-assign(nam1,table.glm.climate.simple)
-filenames<-append(filenames,nam1)
-}
-}
-# Common warning message: glm.fit: fitted probabilities numerically 0 or 1 occurred
-
-
-```
-
-Save output:
-
-```{r}
-
-mkFrameList <- function(nfiles) {
-  d <- lapply(seq_len(nfiles),function(i) {
-    eval(parse(text=filenames[i]))
-  })
-  do.call(rbind,d)
-}
-
-n<-length(filenames)
-aic_bec_lightning<-mkFrameList(n) 
-
-aic_bec_lightning2<-aic_bec_lightning %>% 
-  filter(AIC != "NA") 
-
-aic_bec_lightning_summary<- aic_bec_lightning2 %>%
-  group_by(Zone, Variable) %>%
-  summarise(meanAIC=mean(AIC),
-            meanAUC=mean(AUC),
-            sdAUC=sd(AUC),
-            )
-
-aic_bec_lightning_summary2<- aic_bec_lightning_summary %>%
-  group_by(Zone) %>%
-  mutate(deltaAIC=meanAIC-min(meanAIC))
-
-aic_bec_lightning_summary2
-
-
-
-```
-
-Save file to local computer:
-
-```{r}
-write.csv(aic_bec_lightning_summary2, file="C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\climate_AIC_results_lightning_FRT.csv")
-```
-
-##########################################
-###Repeat for person-caused fires:
-##########################################
-
-# first subsample data
-
-```{r}
-#fire_ignitions2<-st_set_geometry(fire_ignitions, NULL)
-
-##Lightning caused - preparing the tables
-pre<- fire_ignitions %>%
-  filter(fire==1) %>%
-  filter(!fire_cs %in% c("Lightning", "Unknown")) %>%
-  dplyr::select(fire_yr, fire, frt) %>%
-  group_by(fire_yr, frt) %>%
-  summarize(fire_n=n())
-head(pre)
-
-##Get NA points
-pre_checkpre<- fire_ignitions %>%
-  filter(fire==0) %>%
-  dplyr::select(fire_yr, fire, frt) %>%
-  group_by(fire_yr, frt) %>%
-  summarize(abs_n=n())
-head(pre_checkpre)
-
-check<-left_join(pre, pre_checkpre)
-check %>% print(n=300) # hmm there are some NA's in the 0 column. I should probably correct that.
-
-abs_match <- fire_ignitions %>%
-  filter(fire == 0) %>%
-  group_by(fire_yr, frt) %>%   # prep for work by yr and veg type
-  nest() %>%              # --> one row per yr and vegtype
-  ungroup()
-
-df<-left_join(check, abs_match) # make sure there are not veg year combinations that are not also in the fire_pres==1 file
-
-  sampled_df<- df %>% 
-    mutate(samp = map2(data, floor(fire_n*5), sample_n, replace=TRUE)) %>%
-    dplyr::select(-data) %>%
-    unnest(samp) #%>%
-    #dplyr::select(idno:frt)
- 
-# joining my subsampled absence data back to the fire ignition presence data
-pre1<-  fire_ignitions %>%
-  filter(fire==1) %>%
-  filter(!fire_cs %in% c("Lightning", "Unknown"))
-dim(sampled_df) # 
-dim(pre1) #  15228 rows
-sampled_df<-sampled_df %>% dplyr::select(fire_yr,frt, idno:RHmin_season)
-
-dat_human<- rbind(pre1, as.data.frame(sampled_df))
-dim(dat_human) # 37673 rows good this worked I think; Cora July 5 has 45656 rows. This is fewer than the >180,000 rows of the data at the end of file 01
-table(dat_human$fire_cs)
-
-head(dat_human)
-str(dat_human)
-table(dat_human$fire_cs)
-```
-
-If all looks good from above, then save data.
-
-```{r}
-#Write file
-write.csv(dat_human, "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\dat_human_for_analysis.csv")
-
-#st_write(dat_lightning, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\dat_lightning_for_analysis.shp", delete_layer=TRUE)
-```
-
-##### Create variables for Model Selection ########
-Create groupings of variables to put into model selection loop.
-
-```{r}
-
-variables<- c("Tmax05","Tmax06", "Tmax07", "Tmax08", "Tmax09", 
-              "mean_Tmax05_Tmax06","mean_Tmax06_Tmax07", "mean_Tmax07_Tmax08", "mean_Tmax08_Tmax09", 
-              "mean_Tmax05_Tmax06_Tmax07", "mean_Tmax06_Tmax07_Tmax08","mean_Tmax07_Tmax08_Tmax09", 
-              "mean_Tmax05_Tmax06_Tmax07_Tmax08", "mean_Tmax06_Tmax07_Tmax08_Tmax09", "mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09",
-              
-              "Tave05","Tave06", "Tave07", "Tave08", "Tave09", 
-              "mean_Tave05_Tave06","mean_Tave06_Tave07", "mean_Tave07_Tave08", "mean_Tave08_Tave09", 
-              "mean_Tave05_Tave06_Tave07", "mean_Tave06_Tave07_Tave08","mean_Tave07_Tave08_Tave09", 
-              "mean_Tave05_Tave06_Tave07_Tave08", "mean_Tave06_Tave07_Tave08_Tave09", "mean_Tave05_Tave06_Tave07_Tave08_Tave09",
-              
-              "PPT05","PPT06", "PPT07", "PPT08", "PPT09",
-              "mean_PPT05_PPT06", "mean_PPT06_PPT07", "mean_PPT07_PPT08", "mean_PPT08_PPT09", 
-              "mean_PPT05_PPT06_PPT07","mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09",
-              "mean_PPT05_PPT06_PPT07_PPT08", "mean_PPT06_PPT07_PPT08_PPT09",
-              "mean_PPT05_PPT06_PPT07_PPT08_PPT09",
-              
-              "MDC_05","MDC_06", "MDC_07", "MDC_08", "MDC_09",
-              "mean_MDC05_MDC06", "mean_MDC06_MDC07", "mean_MDC07_MDC08", "mean_MDC08_MDC09", 
-              "mean_MDC05_MDC06_MDC07", "mean_MDC06_MDC07_MDC08", "mean_MDC07_MDC08_MDC09", 
-              "mean_MDC05_MDC06_MDC07_MDC08", "mean_MDC06_MDC07_MDC08_MDC09",
-              "mean_MDC05_MDC06_MDC07_MDC08_MDC09",
-              
-              "RH05","RH06", "RH07", "RH08", "RH09",
-               "mean_RH05_RH06", "mean_RH06_RH07", "mean_RH07_RH08", "mean_RH08_RH09", 
-               "mean_RH05_RH06_RH07", "mean_RH06_RH07_RH08", "mean_RH07_RH08_RH09", 
-               "mean_RH05_RH06_RH07_RH08", "mean_RH06_RH07_RH08_RH09",
-               "mean_RH05_RH06_RH07_RH08_RH09"
-              )
-
- variables1<-c("Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09",
-               "Tave05", "Tave06", "Tave07", "Tave08", "Tave09"
-               #"RH05", "RH06", "RH07", "RH08", "RH09"
-#               "Tmax05","Tmax06", "Tmax07", "Tmax08", "max09",
-#               "mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09"
-)
-variables2<-c("PPT05", "PPT06", "PPT07", "PPT08", "PPT09",
-              "PPT05", "PPT06", "PPT07", "PPT08", "PPT09"
-              #"PPT05", "PPT06", "PPT07", "PPT08", "PPT09"
-              
-              # "mdc_05", "mdc_06", "mdc_07", "mdc_08", "mdc_09",
-              # "ppt05", "ppt06", "ppt07", "ppt08", "ppt09"
-) 
+              "PPT03","PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09","PPT10", "PPT11") 
 # precipitation and MDC and temperature and MDC are quite correlated so I'm leaving this combination of variables out. 
 
 ```
@@ -1244,19 +1595,8 @@ prop<-0.75
 ```
 
 
-```{r}
-# Correlation between precipitation and relative humidity. correlations. Max = 0.66
-dist.cut.corr <- dat_human [c (35:40, 42:47)]
-corr <- round (cor (dist.cut.corr), 3)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "Correlation between total precipitation and Tave")
-
-
-```
-
 
 ```{r}
-dat_human<- dat_human %>% rename(fire_pres=fire)
 
 for (g in 1:100){
 
@@ -1269,12 +1609,12 @@ table.glm.climate.simple <- data.frame (matrix (ncol = 4, nrow = 0))
 colnames (table.glm.climate.simple) <- c ("Zone", "Variable", "AIC", "AUC")
 
 # Create test and training datasets
-dat_0<-dat2 %>% filter(fire_pres==0)
+dat_0<-dat2 %>% filter(fire==0)
 dt_0 = sort(sample(nrow(dat_0), nrow(dat_0)*prop))
 train_0<-dat_0[dt_0,]
 test_0<-dat_0[-dt_0,]
 
-dat_1<-dat2 %>% filter(fire_pres==1)
+dat_1<-dat2 %>% filter(fire==1)
 dt_1 = sort(sample(nrow(dat_1), nrow(dat_1)*prop))
 train_1<-dat_1[dt_1,]
 test_1<-dat_1[-dt_1,]
@@ -1282,7 +1622,7 @@ test_1<-dat_1[-dt_1,]
 dat_train<-rbind(train_0,train_1)
 dat_test<-rbind(test_0,test_1)
 
-model1 <- glm (fire_pres ~ 1 ,
+model1 <- glm (fire ~ 1 ,
                data=dat_train,
                family = binomial (link = "logit"))
 
@@ -1292,7 +1632,7 @@ table.glm.climate.simple[1,3]<-extractAIC(model1)[2]
 
 # lets look at fit of the Valid (validation) dataset
 dat_test$model1_predict <- predict.glm(model1,newdata = dat_test,type="response")
-roc_obj <- roc(dat_test$fire_pres, dat_test$model1_predict)
+roc_obj <- roc(dat_test$fire, dat_test$model1_predict)
 auc(roc_obj)
 table.glm.climate.simple[1,4]<-auc(roc_obj)
 
@@ -1301,11 +1641,11 @@ table.glm.climate.simple[1,4]<-auc(roc_obj)
 for (i in 1: length(variables)){
   print(paste((variables[i]), (zones[h]), sep=" "))
   
-  #model_dat<- dat2 %>% dplyr::select(fire_pres, variables[i])
-  dat_test1<-dat_test %>% dplyr::select(fire_pres, variables[i])
-  dat_train1<-dat_train %>% dplyr::select(fire_pres,variables[i])
+  #model_dat<- dat2 %>% dplyr::select(fire, variables[i])
+  dat_test1<-dat_test %>% dplyr::select(fire, variables[i])
+  dat_train1<-dat_train %>% dplyr::select(fire,variables[i])
   
-  model1 <- glm (fire_pres ~ . ,
+  model1 <- glm (fire ~ . ,
                  data=dat_train1,
                  family = binomial (link = "logit"))
   
@@ -1315,7 +1655,7 @@ for (i in 1: length(variables)){
   
   # lets look at fit of the Valid (validation) dataset
   dat_test1$model1_predict <- predict.glm(model1,newdata = dat_test1,type="response")
-  roc_obj <- roc(dat_test1$fire_pres, dat_test1$model1_predict)
+  roc_obj <- roc(dat_test1$fire, dat_test1$model1_predict)
   auc(roc_obj)
   table.glm.climate.simple[i+1,4]<-auc(roc_obj)
   
@@ -1325,10 +1665,10 @@ for (i in 1: length(variables)){
 
 for (i in 1: length(variables1)){
   print(paste((variables1[i]), variables2[i], (zones[h]), sep=" "))
-  dat_train2<- dat_train %>% dplyr::select(fire_pres, variables1[i], variables2[i])
-  dat_test2<-dat_test %>% dplyr::select(fire_pres, variables1[i], variables2[i])
+  dat_train2<- dat_train %>% dplyr::select(fire, variables1[i], variables2[i])
+  dat_test2<-dat_test %>% dplyr::select(fire, variables1[i], variables2[i])
   
-  model2 <- glm (fire_pres ~ . ,
+  model2 <- glm (fire ~ . ,
                  data=dat_train2,
                  family = binomial (link = "logit"))
   
@@ -1337,7 +1677,7 @@ for (i in 1: length(variables1)){
   table.glm.climate.simple[(i+length(variables))+1,3]<-extractAIC(model2)[2]
   
   dat_test2$model2_predict <- predict.glm(model2,newdata = dat_test2,type="response")
-  roc_obj <- roc(dat_test2$fire_pres, dat_test2$model2_predict)
+  roc_obj <- roc(dat_test2$fire, dat_test2$model2_predict)
   auc(roc_obj)
   table.glm.climate.simple[(i+length(variables))+1,4]<-auc(roc_obj)
   
@@ -1346,7 +1686,8 @@ for (i in 1: length(variables1)){
 for (i in 1: length(variables1)){
   print(paste((variables1[i]), "x",variables2[i], (zones[h]), sep=" "))
 
-  model2 <- glm (fire_pres ~ (.)^2,
+  if (dim(dat_1)[1]>150) {
+  model2 <- glm (fire ~ (.)^2,
                  data=dat_train2,
                  family = binomial (link = "logit"))
 
@@ -1355,12 +1696,22 @@ for (i in 1: length(variables1)){
   table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-extractAIC(model2)[2]
 
   dat_test2$model2_predict <- predict.glm(model2,newdata = dat_test2,type="response")
-  roc_obj <- roc(dat_test2$fire_pres, dat_test2$model2_predict)
+  roc_obj <- roc(dat_test2$fire, dat_test2$model2_predict)
   auc(roc_obj)
   table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),4]<-auc(roc_obj)
+  } 
+  
+  else {
+      table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones[h]
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-"missing"
+  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),4]<-"missing"
+  }
+    
 
 }
-table.glm.climate1<-table.glm.climate.simple %>% drop_na(AIC)
+
+#table.glm.climate1<-table.glm.climate.simple %>% drop_na(AIC)
 
 
 #assign file names to the work
@@ -1388,7 +1739,18 @@ mkFrameList <- function(nfiles) {
 n<-length(filenames)
 aic_bec_person<-mkFrameList(n) 
 
-aic_bec_person_summary<- aic_bec_person %>%
+str(aic_bec_person)
+
+aic_bec_person2<-aic_bec_person %>% 
+  filter(AIC != "missing") 
+
+aic_bec_person2$AIC<- as.numeric(aic_bec_person2$AIC)
+aic_bec_person2$AUC<-as.numeric(aic_bec_person2$AUC)
+table(is.na(aic_bec_person2$AIC))
+
+aic_bec_person2<- aic_bec_person2 %>% na.omit()
+  
+aic_bec_person_summary<- aic_bec_person2 %>%
   group_by(Zone, Variable) %>%
   summarise(meanAIC=mean(AIC),
             meanAUC=mean(AUC),
@@ -1400,6 +1762,7 @@ aic_bec_person_summary2<- aic_bec_person_summary %>%
   mutate(deltaAIC=meanAIC-min(meanAIC))
 
 head(aic_bec_person_summary2)
+
 ```
 
 Save file to local computer:
