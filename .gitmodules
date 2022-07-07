@@ -1,8 +1,6 @@
 [submodule "R/SpaDES-modules/FLEX"]
 	path = R/SpaDES-modules/FLEX
 	url = https://github.com/bcgov/FLEX
-
-[submodule "/clus.wiki"]
-	path = /clus.wiki
-	url = https://github.com/bcgov/clus.wiki.git
-
+[submodule "clus.wiki"]
+    path = clus.wiki
+    url = git@github.com:bcgov/clus.wiki.git
