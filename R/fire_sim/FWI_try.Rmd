@@ -10,6 +10,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## FWI
+I tried calculating FWI and FBP from just the monthly mean values (see suggestion below) but the results seemed dodgy so then I decided to try and pull out the daily weather values for my locations and determine FWI from those values.
+I used BioSIM to obtain the daily values. It seems to work see below. BUT I am not convinced of this approach because of various issues. In particular calculating the daily weather for every ha of the province for every year (or even every 5th year) from now to 2100 seems very onerous. This is additionally onerous as I'll have to repeat the daily calculations several times for each of the GCM scenarios Im interested in. Ill also need to do more than one scenario. Anyway, this seems like a lot but I should check with Ceres tomorrow about what she did. 
+
+
 
 From reading Wang et al ecological Processes (2017) it seems that you can calculate FWI and FBP from just a single value if you set batch =FALSE. So here Im going to try this and see if it works for just one FRT.
 
@@ -17,7 +21,8 @@ From reading Wang et al ecological Processes (2017) it seems that you can calcul
 
 ```{r cars}
 library(cffdrs)
-frt2002<-read.csv("C:\\Work\\BioSIM_try\\Output\\Daily_weather_2002.csv")
+library(dplyr)
+frt2002<-read.csv("C:\\Work\\BioSIM_try\\Output\\DailyWeather_2002_try2.csv")
 
 frt2002<-frt2002 %>% rename(year=Name)
 head(frt2002)
@@ -28,13 +33,14 @@ frt2002_2<-frt2002 %>% rename(id=KeyID,
                               yr=year,
                               mon=Month,
                               tmax=Maximum.Air.Temperature,
-                              temp=Maximum.Air.Temperature,
+                              temp=Air.Temperature,
                               rh=Relative.Humidity,
                               ws=Wind.Speed.at.10.meters,
                               prec=Total.Precipitation)
-frt2002_2$tmax<-frt2002_2$temp
 
 fs<-fireSeason(frt2002_2) # this is slow because its calculating the fire season for each of the 10000 locations
+
+
 
 frt2002_2new<-cffdrs::fwi(input = frt2002_2,
                 batch = TRUE, 
