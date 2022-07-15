@@ -87,19 +87,20 @@ Init <- function(sim) {
 
   if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")) > 0){
     #tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, dat[yieldid == .BY]$eca,  xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
-    tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
-    (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
-    (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
-    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca as eca,
-    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt,
-    (((k.crownclosure - y.crownclosure*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.crownclosure as crownclosure,
-    (((k.basalarea - y.basalarea*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.basalarea as basalarea,
-    (((k.qmd - y.qmd*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.qmd as qmd
-    FROM pixels t
-    LEFT JOIN yields y 
-    ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
-    LEFT JOIN yields k 
-    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
+    tab1<-data.table(dbGetQuery(sim$clusdb, "WITH t as (select pixelid, yieldid, age, height, crownclosure, dec_pcnt, basalarea, qmd, eca, vol from pixels where age > 0 and age <= 350) 
+SELECT pixelid,
+case when k.tvol is null then t.vol else (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol end as vol,
+case when k.height is null then t.height else (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height end as ht,
+case when k.eca is null then t.eca else (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca end as eca,
+case when k.dec_pcnt is null then t.dec_pcnt else (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt end as dec_pcnt,
+case when k.crownclosure is null then t.crownclosure else (((k.crownclosure - y.crownclosure*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.crownclosure end as crownclosure,
+case when k.basalarea is null then t.basalarea else (((k.basalarea - y.basalarea*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.basalarea end as basalarea,
+case when k.qmd is null then t.qmd else (((k.qmd - y.qmd*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.qmd end as qmd
+FROM t
+LEFT JOIN yields y 
+ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
+LEFT JOIN yields k 
+ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age;"))
     
     dbBegin(sim$clusdb)
     
@@ -108,18 +109,19 @@ Init <- function(sim) {
     dbCommit(sim$clusdb)
   }else{
     
-    tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
-    (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
-    (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
-    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt,
-    (((k.crownclosure - y.crownclosure*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.crownclosure as crownclosure,
-    (((k.basalarea - y.basalarea*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.basalarea as basalarea,
-    (((k.qmd - y.qmd*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.qmd as qmd
-    FROM pixels t
-    LEFT JOIN yields y 
-    ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
-    LEFT JOIN yields k 
-    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
+    tab1<-data.table(dbGetQuery(sim$clusdb, "WITH t as (select pixelid, yieldid, age, height, crownclosure, dec_pcnt, basalarea, qmd, eca, vol from pixels where age > 0 and age <= 350) 
+SELECT pixelid,
+case when k.tvol is null then t.vol else (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol end as vol,
+case when k.height is null then t.height else (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height end as ht,
+case when k.dec_pcnt is null then t.dec_pcnt else (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt end as dec_pcnt,
+case when k.crownclosure is null then t.crownclosure else (((k.crownclosure - y.crownclosure*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.crownclosure end as crownclosure,
+case when k.basalarea is null then t.basalarea else (((k.basalarea - y.basalarea*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.basalarea end as basalarea,
+case when k.qmd is null then t.qmd else (((k.qmd - y.qmd*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.qmd end as qmd
+FROM t
+LEFT JOIN yields y 
+ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
+LEFT JOIN yields k 
+ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age;"))
     
     dbBegin(sim$clusdb)
     
@@ -129,10 +131,7 @@ Init <- function(sim) {
     }
   
   sim$growingStockReport<-data.table(scenario = sim$scenario$name, timeperiod = time(sim)*P(sim, "periodLength", "growingStockCLUS"),  
-                                     dbGetQuery(sim$clusdb, 
-                                     paste0("SELECT sum(vol) as gs, sum(vol*thlb) as m_gs, sum(vol*thlb*dec_pcnt) as m_dec_gs, compartid as compartment FROM pixels where compartid 
-              in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')
-                         group by compartid;")))
+                                     dbGetQuery(sim$clusdb,"SELECT sum(vol) as gs, sum(vol*thlb) as m_gs, sum(vol*thlb*dec_pcnt) as m_dec_gs, compartid as compartment FROM pixels group by compartid;"))
                                      
   
   rm(tab1)
@@ -156,19 +155,21 @@ updateGS<- function(sim) {
   
   message("...update yields")
   if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1")) > 0){
-    tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
-    (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
-    (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
-    (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca as eca,
-    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt,
-    (((k.crownclosure - y.crownclosure*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.crownclosure as crownclosure,
-    (((k.basalarea - y.basalarea*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.basalarea as basalarea,
-    (((k.qmd - y.qmd*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.qmd as qmd
-    FROM pixels t
-    LEFT JOIN yields y 
-    ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
-    LEFT JOIN yields k 
-    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
+    tab1<-data.table(dbGetQuery(sim$clusdb, "WITH t as (select pixelid, yieldid, age, height, crownclosure, dec_pcnt, basalarea, qmd, eca, vol from pixels where age > 0 and age <= 350) 
+SELECT pixelid,
+case when k.tvol is null then t.vol else (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol end as vol,
+case when k.height is null then t.height else (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height end as ht,
+case when k.eca is null then t.eca else (((k.eca - y.eca*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.eca end as eca,
+case when k.dec_pcnt is null then t.dec_pcnt else (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt end as dec_pcnt,
+case when k.crownclosure is null then t.crownclosure else (((k.crownclosure - y.crownclosure*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.crownclosure end as crownclosure,
+case when k.basalarea is null then t.basalarea else (((k.basalarea - y.basalarea*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.basalarea end as basalarea,
+case when k.qmd is null then t.qmd else (((k.qmd - y.qmd*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.qmd end as qmd
+FROM t
+LEFT JOIN yields y 
+ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
+LEFT JOIN yields k 
+ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age;"))
+    
     
     dbBegin(sim$clusdb)
     
@@ -178,18 +179,19 @@ updateGS<- function(sim) {
     
   }else{
     
-    tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
-    (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
-    (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
-    (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt,
-    (((k.crownclosure - y.crownclosure*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.crownclosure as crownclosure,
-    (((k.basalarea - y.basalarea*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.basalarea as basalarea,
-    (((k.qmd - y.qmd*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.qmd as qmd
-    FROM pixels t
-    LEFT JOIN yields y 
-    ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
-    LEFT JOIN yields k 
-    ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0"))
+    tab1<-data.table(dbGetQuery(sim$clusdb, "WITH t as (select pixelid, yieldid, age, height, crownclosure, dec_pcnt, basalarea, qmd, eca, vol from pixels where age > 0 and age <= 350) 
+                                SELECT pixelid,
+                                case when k.tvol is null then t.vol else (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol end as vol,
+                                case when k.height is null then t.height else (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height end as ht,
+                                case when k.dec_pcnt is null then t.dec_pcnt else (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt end as dec_pcnt,
+                                case when k.crownclosure is null then t.crownclosure else (((k.crownclosure - y.crownclosure*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.crownclosure end as crownclosure,
+                                case when k.basalarea is null then t.basalarea else (((k.basalarea - y.basalarea*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.basalarea end as basalarea,
+                                case when k.qmd is null then t.qmd else (((k.qmd - y.qmd*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.qmd end as qmd
+                                FROM t
+                                LEFT JOIN yields y 
+                                ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
+                                LEFT JOIN yields k 
+                                ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age;"))
     
     dbBegin(sim$clusdb)
     
@@ -217,9 +219,7 @@ vacuumDB<- function(sim){
 recordGS<- function(sim) {
   message("...recording")
   sim$growingStockReport<- rbindlist(list(sim$growingStockReport, data.table(scenario = sim$scenario$name, timeperiod = time(sim)*sim$updateInterval,  
-              dbGetQuery(sim$clusdb, paste0("SELECT sum(vol) as gs, sum(vol*thlb) as m_gs, sum(vol*thlb*dec_pcnt) as m_dec_gs, compartid as compartment FROM pixels where compartid 
-              in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"')
-                         group by compartid;")))), use.names = TRUE)
+              dbGetQuery(sim$clusdb, "SELECT sum(vol) as gs, sum(vol*thlb) as m_gs, sum(vol*thlb*dec_pcnt) as m_dec_gs, compartid as compartment FROM pixels group by compartid;"))), use.names = TRUE)
   
    return(invisible(sim))
 }
