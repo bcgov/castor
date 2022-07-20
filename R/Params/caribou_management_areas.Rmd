@@ -663,7 +663,7 @@ More recently (Feb. 2021) a contiguous area that included the core caribou range
 In a GIS, we took the A2, B2 and B3 partnership agreement areas and buffered them by 40km. We then buffered the core Narraway critical habitat areas by 40km. We merged the partnership agreement areas, core critical habitat, matrix habitat and buffered area into a single spatial dataset, where partnership agreement areas superseded core habtiat, which superseded matrix habitat, which superseded the buffered area. Each of these 'zones' was maintained in the spatial data to allow for some flexibility in future analyses. 
 
 ### Proposed Land Use Order Constraints
-The initial proposed constraint for all of these areas together was maximum 35% forest age less than 25 years old. As indicated above, we maintained seperate zones in case there becomes a desire to apply different consrtaints to each zone. Below are scripts to create spatial rasters that keep different configurations of these zones (i.e., all independent, all within the buffered area together, all within teh matrix area together). 
+The initial proposed constraint for all of these areas together was maximum 35% forest age less than 25 years old. As indicated above, we maintained separate zones in case there becomes a desire to apply different constraints to each zone. Below are scripts to create spatial rasters that keep different configurations of these zones (i.e., all independent, all within the buffered area together, all within the matrix area together). 
 
 A more recent proposed order included maximum 35% forest age less than 25 years old or height less than 2.5 meters applied to the extent of the LUO boundary area (Feb. 2021). 
 
@@ -787,7 +787,6 @@ dbDisconnect(conn)
 
 ```
 
-
 The following creates the LUO boundary as of February 2021.
 ```{r, proposed LUO areas, all in matrix}
 conn <- DBI::dbConnect (dbDriver ("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
@@ -831,6 +830,51 @@ dbExecute(conn, paste0("ALTER TABLE zone.zone_scenario_central_grp_proposed_luo_
 dbDisconnect(conn)
 
 ```
+
+
+### Central Group Proposed Land Use Order Areas version July 2022
+'New' proposed LUO as determined July 2022 with Megan Watters.
+
+```{r, area-of-interest}
+
+aoi <- sf::st_read ("D:\\clus_data\\scenarios\\central_group\\union_ECCC_BC_PA_addherds\\union_ECCC_BC_PA_addherds.shp")
+
+aoi.diss <- aoi [aoi$Group_Name == "Central Group", ] %>%
+              st_buffer (0.1) %>% # 10m buffer to avid slivers 
+                st_union() %>%
+                  st_sf ()
+aoi.diss$fid <- 1
+                          
+ 
+
+  
+
+
+
+
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here (), '/R/params/du6.tif -t 100x100 rast.du6_bounds | psql postgresql://', keyring::key_get('dbuser', keyring='postgreSQL'),':',keyring::key_get('dbname', keyring='postgreSQL'),'@',keyring::key_get('dbhost', keyring='postgreSQL'),':5432/', keyring::key_get('dbpass', keyring='postgreSQL')), show.output.on.console = FALSE, invisible = TRUE)
+  
+  
+  
+  
+  
+  ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user=tmuhly password=caribou host=DG401102" C:\Work\git\clus\R\Params\nass_supply_blocks.shp nass_supply_blocks -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -lco SCHEMA=comparison_nass
+
+
+
+
+aoi <- sf::st_read ("D:\\clus_data\\scenarios\\central_group\\Mtn_Caribou_Partnership_Agreement_Zones_June_22_2021.shp")
+
+```
+
+
+
+
+
+
+
+
 
 
 
