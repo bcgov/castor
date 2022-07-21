@@ -48,14 +48,13 @@ parameters <-  list(
   .globals = list(),
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = TRUE,
-                         sqlite_dbname = "", # chilcotin_study_area
-                         nameBoundaryFile ="", # study_area_chilcotin; chilcotin_area_of_interest_habitat
-                         nameBoundaryColumn = "tsa_name", # tsa_name
-                         nameBoundary = c (), # c ('Quesnel_TSA_Matrix', 'Quesnel_TSA_HEWSR', 'Quesnel_TSA_LESR', 'Quesnel_TSA_LEWR', 'Quesnel_TSA_out', 'Williams_Lake_TSA_HEWSR', 'Williams_Lake_TSA_LESR', 'Williams_Lake_TSA_LEWR', 'Williams_Lake_TSA_Matrix', Williams_Lake_TSA_out')  
-                        # c ('Matrix', 'HEWSR', 'LESR', 'LEWR', 'out')
+                         sqlite_dbname = "central_group_july2022", 
+                         nameBoundaryFile ="central_grp_aoi_072022", 
+                         nameBoundaryColumn = "tsa_name", 
+                         nameBoundary = c ("central_group"), 
                          nameBoundaryGeom = 'wkb_geometry',
-                         nameCompartmentRaster = "rast.", #rast.study_area_chilcotin
-                         nameCompartmentTable = "vat.",
+                         nameCompartmentRaster = "rast.central_grp_aoi", #rast.study_area_chilcotin
+                         nameCompartmentTable = "vat.central_grp_aoi",
                          nameMaskHarvestLandbaseRaster ='rast.thlb_2020', 
                          nameZoneRasters=c("rast.zone_cond_beo", 
                                            "rast.zone_cond_vqo", 
@@ -75,10 +74,12 @@ parameters <-  list(
                                "rast.zone_cond_bc_kennedy_siding_crithab",
                                "rast.zone_cond_bc_moberly_crithab",
                                "rast.zone_cond_bc_quintette_crithab",
-                               "rast.zone_cond_bc_narraway_crithab"
+                               "rast.zone_cond_bc_narraway_crithab",
+                               "rast.central_grp_deferral_072022",
+                               "rast.central_grp_habitat_072022",
+                               "rast.central_grp_partner_areas_072022"
                               ),
-                         
-                        nameZoneTable="zone.constraints", 
+                         nameZoneTable="zone.constraints", 
                         # nameZonePriorityRaster = "rast.zone_cond_beo",
                         
                          nameYieldsRaster = "rast.ycid_vdyp_2020",

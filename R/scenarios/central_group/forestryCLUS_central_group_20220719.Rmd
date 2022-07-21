@@ -117,7 +117,7 @@ parameters <- list(
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
-                           nameBoundary = c (""),
+                           nameBoundary = c ("central_group"),
                            nameBoundaryGeom = 'wkb_geometry',
                            nameCompartmentRaster = "rast.",
                            nameCompartmentTable = "",
