@@ -3,4 +3,4 @@
 	url = https://github.com/bcgov/FLEX
 [submodule "clus.wiki"]
     path = clus.wiki
-    url = git@github.com:bcgov/clus.wiki.git
+    url = https://github.com/bcgov/clus.wiki.git
