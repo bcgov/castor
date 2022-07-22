@@ -85,7 +85,7 @@ Init <- function(sim) {
   sim$disturbance <- sim$pts
   message("...Get the critical habitat")
   if(P(sim, "criticalHabRaster", "disturbanceCalcCLUS") == '99999'){
-    sim$disturbance[, critical_hab:= 1]
+    sim$disturbance[, attribute := 1]
   }else{
     bounds <- data.table (V1 = RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                  srcRaster = P(sim, "criticalHabRaster", "disturbanceCalcCLUS"), 
@@ -96,7 +96,7 @@ Init <- function(sim) {
     bounds[,pixelid:=seq_len(.N)] # make a unique id to ensure it merges correctly
     if(nrow(bounds[!is.na(V1),]) > 0){ #check to see if some of the aoi overlaps with the boundary
       if(!(P(sim, "criticalHabitatTable", "disturbanceCalcCLUS") == '99999')){
-        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , crithab FROM ",P(sim, "criticalHabitatTable", "disturbanceCalcCLUS"))))
+        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , attribute FROM ",P(sim, "criticalHabitatTable", "disturbanceCalcCLUS"))))
         bounds<-merge(bounds, crit_lu, by.x = "V1", by.y = "value", all.x = TRUE)
       }else{
         stop(paste0("ERROR: need to supply a lookup table: ", P(sim, "criticalHabitatTable", "disturbanceCalcCLUS")))
@@ -105,7 +105,7 @@ Init <- function(sim) {
       stop(paste0(P(sim, "criticalHabRaster", "disturbanceCalcCLUS"), "- does not overlap with aoi"))
     }
     setorder(bounds, pixelid) #sort the bounds
-    sim$disturbance[, critical_hab:= bounds$crithab]
+    sim$disturbance[, critical_hab:= bounds$attribute]
     sim$disturbance[, compartment:= dbGetQuery(sim$clusdb, "SELECT compartid FROM pixels order by pixelid")$compartid]
     sim$disturbance[, treed:= dbGetQuery(sim$clusdb, "SELECT treed FROM pixels order by pixelid")$treed]
   }
