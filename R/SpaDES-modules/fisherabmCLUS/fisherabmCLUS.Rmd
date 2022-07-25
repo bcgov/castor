@@ -15,15 +15,7 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## TODO: use 
 
 # Overview
 
-Provide an overview of what the module does / how to use the module.
-
-Module documentation should be written so that others can use your module.
-This is a template for module documentation, and should be changed to reflect your module.
-
-## R Markdown
-
-R Markdown syntax allows R code, outputs, and figures to be rendered in the documentation.
-
+This is an agent based model (ABM) to simulate fisher life history on a landscape. 
 For help writing in R Markdown, see https://rmarkdown.rstudio.com/.
 
 # Usage
