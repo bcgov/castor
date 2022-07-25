@@ -1,13 +1,27 @@
-## Everything in this file and any files in the R directory are sourced during `simInit()`;
+# Copyright 2022 Province of British Columbia
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and limitations under the License.
+#===========================================================================================
+
+# Everything in this file and any files in the R directory are sourced during `simInit()`;
 ## all functions and objects are put into the `simList`.
 ## To use objects, use `sim$xxx` (they are globally available to all modules).
 ## Functions can be used inside any function that was sourced in this module;
 ## they are namespaced to the module, just like functions in R packages.
 ## If exact location is required, functions will be: `sim$.mods$<moduleName>$FunctionName`.
+
 defineModule(sim, list(
   name = "fisherabmCLUS",
-  description = "",
-  keywords = "",
+  description = "An agent based model (ABM) to simulate fisher life history on a landscape.",
+  keywords = "fisher, martes, agent based model",
   authors = structure(list(list(given = c("First", "Middle"), family = "Last", role = c("aut", "cre"), email = "email@example.com", comment = NULL)), class = "person"),
   childModules = character(0),
   version = list(fisherabmCLUS = "0.0.0.9000"),
@@ -18,6 +32,29 @@ defineModule(sim, list(
   reqdPkgs = list("SpaDES.core (>=1.0.10)", "ggplot2"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
+    defineParameter("female_hr_size_mean", "numeric", 3000, 100, 30000,
+                    "The mean home range (territory) size, in hectares, of a female fisher."),    
+    defineParameter("female_hr_size_sd", "numeric", 1000, 10, 30000,
+                    "The standard deviation of a home range (territory) size, in hectares, of female fisher."), 
+    defineParameter("female_max_age", "numeric", 15, 0, 20,
+                    "The maximum possible age of a female fisher."), 
+    defineParameter("female_search_radius", "numeric", 6, 0, 100,
+                    "The maximum search radius, in km, that a female fisher could ‘search’ to establish a territory."), 
+    defineParameter("den_target ", "numeric", 0.10, 0.01, 0.99,
+                    "The desired proportion of a home range that is denning habitat."), 
+    defineParameter("rest_target ", "numeric", 0.10, 0.01, 0.99,
+                    "The desired proportion of a home range that is resting habitat."),   
+    defineParameter("move_target ", "numeric", 0.40, 0.01, 0.99,
+                    "The desired proportion of a home range that is movement habitat."), 
+    defineParameter("survival_rate_table", "table", data.table(), NA, NA,
+                    "Table of fisher survial rates by sex, age and habitat quality."),
+    defineParameter("d2_survival_adj", "function", NA, NA, NA,
+                    "Function relating habitat quality to survival rate."),
+    
+    
+    
+    
+    
     defineParameter(".plots", "character", "screen", NA, NA,
                     "Used by Plots function, which can be optionally used here"),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
@@ -128,6 +165,12 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
 Init <- function(sim) {
   # # ! ----- EDIT BELOW ----- ! #
 
+  
+  ##
+  
+  
+  
+  
   # ! ----- STOP EDITING ----- ! #
 
   return(invisible(sim))
