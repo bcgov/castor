@@ -2401,5 +2401,31 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
+
+# Updated caribou herd boundary data (Tweedsmuir seems to be the only noticeable significantly different area)
+
+new_data <- data.table (computer = 'DG401102', database = 'clus', schema = 'public', 
+                        table_name = 'bc_caribou_herd_boundary_v20220725',  type = 'polygon', 
+                        script = 'caribou_management_areas.Rmd', source = 'https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc/resource/c1dd82ef-4a97-4036-8926-3ad80124a0bf',
+                        public = 'Yes', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data2 <- data.table (computer = 'DG401102', database = 'clus', schema = 'rast', 
+                        table_name = 'caribou_herd_20220725',  type = 'raster', 
+                        script = 'caribou_management_areas.Rmd', source = 'https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc/resource/c1dd82ef-4a97-4036-8926-3ad80124a0bf',
+                        public = 'Yes', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data3 <- data.table (computer = 'DG401102', database = 'clus', schema = 'vat', 
+                        table_name = 'caribou_herd_20220725',  type = 'table', 
+                        script = 'caribou_management_areas.Rmd', source = 'https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc/resource/c1dd82ef-4a97-4036-8926-3ad80124a0bf',
+                        public = 'Yes', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
 ```
 
