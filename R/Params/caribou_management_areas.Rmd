@@ -923,7 +923,7 @@ zone_hewr <- data.table (zoneid = as.integer (1),
                         percentage = 0, 
                         ndt = as.integer (0), 
                         multi_condition = as.character(""),
-                        denom = as.character(""),
+                        denom = NA,
                         start = as.integer (0), 
                         stop = as.integer (250) 
                         )
@@ -935,7 +935,7 @@ zone_lewr <- data.table (zoneid = as.integer (2),
                         percentage = 15, 
                         ndt = as.integer (0), 
                         multi_condition = as.character(""),
-                        denom = as.character(""),
+                        denom = NA,
                         start = as.integer (0), 
                         stop = as.integer (250) 
                         )
@@ -947,7 +947,7 @@ zone_martix <- data.table (zoneid = as.integer (3),
                         percentage = 15, 
                         ndt = as.integer (0), 
                         multi_condition = as.character(""),
-                        denom = as.character(""),
+                        denom = NA,
                         start = as.integer (0), 
                         stop = as.integer (250) 
                         )
