@@ -46,6 +46,11 @@ defineModule(sim, list(
                     "The desired proportion of a home range that is resting habitat."),   
     defineParameter("move_target ", "numeric", 0.40, 0.01, 0.99,
                     "The desired proportion of a home range that is movement habitat."), 
+    defineParameter("survival_rate_table", "table", data.table(), NA, NA,
+                    "Table of fisher survial rates by sex, age and habitat quality."),
+    defineParameter("d2_survival_adj", "function", NA, NA, NA,
+                    "Function relating habitat quality to survival rate."),
+
     
     
     
