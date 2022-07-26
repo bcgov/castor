@@ -114,7 +114,7 @@ Init <- function (sim) { # this function identifies the GBPUs in the 'study area
 
 predictSurvival <- function (sim) { # this function calculates survival rate at each time interval; same as on init, above
  
-  new_tableGrizzSurvivalReport <- data.table (dbGetQuery (sim$clusdb, "SELECT SUM (CASE WHEN roadyear > -1 THEN 1 ELSE 0 END) AS total_roaded, COUNT(*) AS total_area, gbpu_name FROM pixels WHERE gbpu_name IS NOT NULL GROUP BY gbpu_name;"))
+  new_tableGrizzSurvivalReport <- data.table (dbGetQuery (sim$clusdb, "SELECT SUM (CASE WHEN roadyear IS NOT NULL THEN 1 ELSE 0 END) AS total_roaded, COUNT(*) AS total_area, gbpu_name FROM pixels WHERE gbpu_name IS NOT NULL GROUP BY gbpu_name;"))
   new_tableGrizzSurvivalReport [, road_density := (total_roaded * P(sim)$roadDensity) / total_area]  
   new_tableGrizzSurvivalReport [, survival_rate := (1/(1+exp(-3.9+(road_density * 1.06))))]
   new_tableGrizzSurvivalReport [, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name,sim$boundaryInfo[[3]]) ] # add the time of the survival calc
