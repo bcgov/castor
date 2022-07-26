@@ -50,6 +50,7 @@ defineModule(sim, list(
                     "Table of fisher survial rates by sex, age and habitat quality."),
     defineParameter("d2_survival_adj", "function", NA, NA, NA,
                     "Function relating habitat quality to survival rate."),
+
     
     
     
