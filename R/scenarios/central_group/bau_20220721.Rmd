@@ -141,7 +141,7 @@ parameters <- list(
                       #harvestZonePriorityInterval = 1,
                       adjacencyConstraint = 0),
   growingStockCLUS = list (periodLength = 5),
-  roadCLUS = list(roadMethod = 'pre', 
+  roadCLUS = list(roadMethod = 'mst', # pre mst
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.ce_road_2019'),
   survivalCLUS = list (caribou_herd_density = 0.05, 
@@ -180,7 +180,6 @@ modules <- list("dataLoaderCLUS",
                 "smcaribouAbundanceCLUS",
                 "volumebyareaReportCLUS"
                 )
-
 
 scenario = data.table (name = "central_group_bau_july2022",
                        description = "Business-as-usual (BAU) scenario. Max. non-declining harvest flow = 1.5 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years).")
