@@ -32,6 +32,8 @@ defineModule(sim, list(
   reqdPkgs = list("SpaDES.core (>=1.0.10)", "ggplot2"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
+    defineParameter("n_females", "numeric", 1000, 0, 10000,
+                    "The number of females to 'seed' the landscape with."),    
     defineParameter("female_hr_size_mean", "numeric", 3000, 100, 30000,
                     "The mean home range (territory) size, in hectares, of a female fisher."),    
     defineParameter("female_hr_size_sd", "numeric", 1000, 10, 30000,
@@ -50,15 +52,18 @@ defineModule(sim, list(
                     "Table of fisher survial rates by sex, age and habitat quality."),
     defineParameter("d2_survival_adj", "function", NA, NA, NA,
                     "Function relating habitat quality to survival rate."),
-<<<<<<< HEAD
-=======
-
->>>>>>> 0928b5351edd8a6b420d8c7e8e9918f199735814
-    
-    
-    
-    
-    
+    defineParameter("reproductive_age", "numeric", 2, 1, 5,
+                    "Minimum age that a female fisher reaches sexual maturity."),
+    defineParameter("den_rate_mean", "numeric", 0.5, 0, 1,
+                    "Mean rate at which a female gets pregnant and gives birth to young (i.e., a combination of pregnancy rate and birth rate)."),
+    defineParameter("den_rate_sd", "numeric", 0.2, 0, 1,
+                    "Standard deviation of the rate at which a female gets pregnant and gives birth to young (i.e., a combination of pregnancy rate and birth rate)."),
+    defineParameter("litter_size_mean", "numeric", 2, 1, 10,
+                    "Mean number of kits born in a litter."),
+    defineParameter("sex_ratio", "numeric", 0.5, 0, 1,
+                    "The ratio of females to males in a litter."),
+    defineParameter("max_female_dispersal_dist", "numeric", 10, 1, 100,
+                    "The maximum distance, in kilometres, a female will disperse to find a territory."),
     defineParameter(".plots", "character", "screen", NA, NA,
                     "Used by Plots function, which can be optionally used here"),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
@@ -77,11 +82,11 @@ defineModule(sim, list(
   ),
   inputObjects = bindrows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
-    expectsInput(objectName = NA, objectClass = NA, desc = NA, sourceURL = NA)
+    expectsInput (objectName = NA, objectClass = NA, desc = NA, sourceURL = NA)
   ),
   outputObjects = bindrows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput(objectName = NA, objectClass = NA, desc = NA)
+    createsOutput (objectName = NA, objectClass = NA, desc = NA)
   )
 ))
 
@@ -102,33 +107,7 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
       sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "fisherabmCLUS", "plot")
       sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "fisherabmCLUS", "save")
     },
-    plot = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
-
-      plotFun(sim) # example of a plotting function
-      # schedule future event(s)
-
-      # e.g.,
-      #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "fisherabmCLUS", "plot")
-
-      # ! ----- STOP EDITING ----- ! #
-    },
-    save = {
-      # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
-
-      # e.g., call your custom functions/methods here
-      # you can define your own methods below this `doEvent` function
-
-      # schedule future event(s)
-
-      # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, "fisherabmCLUS", "save")
-
-      # ! ----- STOP EDITING ----- ! #
-    },
-    event1 = {
+    reproduce = {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
 
@@ -142,7 +121,7 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
 
       # ! ----- STOP EDITING ----- ! #
     },
-    event2 = {
+    updateHR = {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
 
@@ -154,6 +133,34 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
       # e.g.,
       # sim <- scheduleEvent(sim, time(sim) + increment, "fisherabmCLUS", "templateEvent")
 
+      # ! ----- STOP EDITING ----- ! #
+    },
+    disperse = {
+      # ! ----- EDIT BELOW ----- ! #
+      # do stuff for this event
+      
+      # e.g., call your custom functions/methods here
+      # you can define your own methods below this `doEvent` function
+      
+      # schedule future event(s)
+      
+      # e.g.,
+      # sim <- scheduleEvent(sim, time(sim) + increment, "fisherabmCLUS", "templateEvent")
+      
+      # ! ----- STOP EDITING ----- ! #
+    },
+    survive = {
+      # ! ----- EDIT BELOW ----- ! #
+      # do stuff for this event
+      
+      # e.g., call your custom functions/methods here
+      # you can define your own methods below this `doEvent` function
+      
+      # schedule future event(s)
+      
+      # e.g.,
+      # sim <- scheduleEvent(sim, time(sim) + increment, "fisherabmCLUS", "templateEvent")
+      
       # ! ----- STOP EDITING ----- ! #
     },
     warning(paste("Undefined event type: \'", current(sim)[1, "eventType", with = FALSE],
@@ -165,12 +172,45 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
 ## event functions
 #   - keep event functions short and clean, modularize by calling subroutines from section below.
 
-### template initialization
 Init <- function(sim) {
-  # # ! ----- EDIT BELOW ----- ! #
-
   
-  ##
+  message ("Initiating fisher ABM...")
+  
+  message ("Create agents table and assign values...")
+  ids <- seq (from = 1, to = P(sim, "n_females", "fisherabmCLUS"), by = 1) # sequence of individual id's from 1 to n_females
+  agents <- data.table (individual_id = ids, 
+                        sex = "F", 
+                        age = sample (1:P(sim, "max_age", "fisherabmCLUS"), length (ids), replace = T), # randomly draw ages between 1 and the max age, 
+                        pixelid = numeric (), 
+                        hr_size = rnorm (P(sim, "n_females", "fisherabmCLUS"), P(sim, "female_hr_size_mean", "fisherabmCLUS"), P(sim, "female_hr_size_sd", "fisherabmCLUS")), 
+                        d2_score = numeric ())
+  # get the pixelid's that are fisher habitat and randomly assign to the agents
+  # NOTE: this is for central interior fisher only
+  # we may need a s'witch' param for central interior or boreal
+  den.pix <- data.table (dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels WHERE age >= 125 AND crownclosure >= 30 AND qmd >=28.5 AND basalarea >= 29.75;"))
+  agents$pixelid <- sample (den.pix$pixelid, length (ids), replace = T)
+  
+  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
+    # if the table exists, write it to the db
+    DBI::dbWriteTable (sim$clusdb, "agents", agents, append = FALSE, 
+                       row.names = FALSE, overwite = FALSE)  
+  } else {
+    # if the table exists, append it to the table in the db
+    DBI::dbWriteTable (sim$clusdb, "agents", agents, append = TRUE, 
+                       row.names = FALSE, overwite = FALSE)  
+  }
+  
+  message ("Create territories table...")
+  
+  
+  
+  
+
+  # 3.	Create a female “territories” table that has the following columns:
+  # •	pixelid: identifier of location on the landscape (from ‘pixels’ table)
+  # •	individual_id: the id of the female individual that is using a pixel as part of its home range  
+  # 4.	Create Female Home Ranges
+  
   
   
   

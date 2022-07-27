@@ -29,6 +29,10 @@ getPaths() # shows where the 4 relevant paths are
 times <- list(start = 0, end = 10)
 
 parameters <- list(
+  dataloaderCLUS = list (),
+  fisherabmCLUS = list (n_females = 100,
+                         )
+    
   #.progress = list(type = "text", interval = 1), # for a progress bar
   ## If there are further modules, each can have its own set of parameters:
   #module1 = list(param1 = value1, param2 = value2),
