@@ -36,7 +36,7 @@ defineModule(sim, list(
                     "The number of females to 'seed' the landscape with."),    
     defineParameter("female_hr_size_mean", "numeric", 3000, 100, 30000,
                     "The mean home range (territory) size, in hectares, of a female fisher."),    
-    defineParameter("female_hr_size_sd", "numeric", 1000, 10, 30000,
+    defineParameter("female_hr_size_sd", "numeric", 500, 10, 30000,
                     "The standard deviation of a home range (territory) size, in hectares, of female fisher."), 
     defineParameter("female_max_age", "numeric", 15, 0, 20,
                     "The maximum possible age of a female fisher."), 
@@ -48,7 +48,7 @@ defineModule(sim, list(
                     "The desired proportion of a home range that is resting habitat."),   
     defineParameter("move_target ", "numeric", 0.40, 0.01, 0.99,
                     "The desired proportion of a home range that is movement habitat."), 
-    defineParameter("survival_rate_table", "table", data.table(), NA, NA,
+    defineParameter("survival_rate_table", "character", "table name in pgdb?", NA, NA,
                     "Table of fisher survial rates by sex, age and habitat quality."),
     defineParameter("d2_survival_adj", "function", NA, NA, NA,
                     "Function relating habitat quality to survival rate."),
@@ -56,7 +56,7 @@ defineModule(sim, list(
                     "Minimum age that a female fisher reaches sexual maturity."),
     defineParameter("den_rate_mean", "numeric", 0.5, 0, 1,
                     "Mean rate at which a female gets pregnant and gives birth to young (i.e., a combination of pregnancy rate and birth rate)."),
-    defineParameter("den_rate_sd", "numeric", 0.2, 0, 1,
+    defineParameter("den_rate_sd", "numeric", 0.1, 0, 1,
                     "Standard deviation of the rate at which a female gets pregnant and gives birth to young (i.e., a combination of pregnancy rate and birth rate)."),
     defineParameter("litter_size_mean", "numeric", 2, 1, 10,
                     "Mean number of kits born in a litter."),
@@ -64,6 +64,8 @@ defineModule(sim, list(
                     "The ratio of females to males in a litter."),
     defineParameter("max_female_dispersal_dist", "numeric", 10, 1, 100,
                     "The maximum distance, in kilometres, a female will disperse to find a territory."),
+    defineParameter("timeInterval", "numeric", 1, 1, 20,
+                    "The time step, in years, between cacluating life history events (reproduce, updateHR, survive, disperse)."),
     defineParameter(".plots", "character", "screen", NA, NA,
                     "Used by Plots function, which can be optionally used here"),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
@@ -97,15 +99,10 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
-      ### check for more detailed object dependencies:
-      ### (use `checkObject` or similar)
-
-      # do stuff for this event
+ 
       sim <- Init(sim)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "timeInterval", "fisherabmCLUS"), "fisherabmCLUS", "reproduce", 20)
 
-      # schedule future event(s)
-      sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "fisherabmCLUS", "plot")
-      sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "fisherabmCLUS", "save")
     },
     reproduce = {
       # ! ----- EDIT BELOW ----- ! #
@@ -118,7 +115,8 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
 
       # e.g.,
       # sim <- scheduleEvent(sim, time(sim) + increment, "fisherabmCLUS", "templateEvent")
-
+      sim <- scheduleEvent(sim, time(sim), "fisherabmCLUS", "updateHR", 21)
+      
       # ! ----- STOP EDITING ----- ! #
     },
     updateHR = {
@@ -132,7 +130,7 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
 
       # e.g.,
       # sim <- scheduleEvent(sim, time(sim) + increment, "fisherabmCLUS", "templateEvent")
-
+      sim <- scheduleEvent(sim, time(sim), "fisherabmCLUS", "disperse", 22)
       # ! ----- STOP EDITING ----- ! #
     },
     disperse = {
@@ -146,7 +144,7 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
       
       # e.g.,
       # sim <- scheduleEvent(sim, time(sim) + increment, "fisherabmCLUS", "templateEvent")
-      
+      sim <- scheduleEvent(sim, time(sim), "fisherabmCLUS", "survive", 23)   
       # ! ----- STOP EDITING ----- ! #
     },
     survive = {
@@ -160,7 +158,7 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
       
       # e.g.,
       # sim <- scheduleEvent(sim, time(sim) + increment, "fisherabmCLUS", "templateEvent")
-      
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "timeInterval", "fisherabmCLUS"), "fisherabmCLUS", "reproduce", 20)
       # ! ----- STOP EDITING ----- ! #
     },
     warning(paste("Undefined event type: \'", current(sim)[1, "eventType", with = FALSE],
@@ -168,6 +166,8 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
   )
   return(invisible(sim))
 }
+
+
 
 ## event functions
 #   - keep event functions short and clean, modularize by calling subroutines from section below.
@@ -201,18 +201,129 @@ Init <- function(sim) {
   }
   
   message ("Create territories table...")
+  territories <- data.table (individual_id = agents$individual_id, 
+                             pixelid = agents$pixelid)
+  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
+    # if the table exists, write it to the db
+    DBI::dbWriteTable (sim$clusdb, "territories", territories, append = FALSE, 
+                       row.names = FALSE, overwite = FALSE)  
+  } else {
+    # if the table exists, append it to the table in the db
+    DBI::dbWriteTable (sim$clusdb, "territories", territories, append = TRUE, 
+                       row.names = FALSE, overwite = FALSE)  
+  }
+  
+ ##Create Female Home Ranges
+  message ("Create female home ranges...")
+  # get the aoi raster
+  sim$aoi <- RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
+                           srcRaster = P (sim, "nameCompartmentRaster", "dataLoaderCLUS"), 
+                           clipper = P (sim, "nameBoundaryFile", "dataLoaderCLUS" ), 
+                           geom = P (sim, "nameBoundaryGeom", "dataLoaderCLUS"), 
+                           where_clause =  paste0 ( P (sim, "nameBoundaryColumn", "dataLoaderCLUS"), " in (''", paste(P(sim, "nameBoundary", "dataLoaderCLUS"), sep = "' '", collapse= "'', ''") ,"'')"),
+                           conn = NULL) 
+  # this step takes a couple seconds - can be do it faster?
+  # or get this as sim$ras form dataloderCLUS?
+  
+  # pixel id's in aoi landscape 
+  pix.for.rast <- data.table (dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels WHERE compartid IS NOT NULL;"))
+  sim$pix.rast <- sim$aoi
+  sim$pix.rast [pix.for.rast$pixelid] <- pix.for.rast$pixelid
+  
+  # fisher starting locations 
+  sim$start.rast <- sim$aoi
+  sim$start.rast [agents$pixelid] <- agents$pixelid
+  
+  # pixels in fisher search area
+  # apply fucntion - for each agent....
+  
+  
+  
+  fisherSearchArea<-SpaDES.tools::spread2(aoi, 
+                                          start = fisherLocation, 
+                                          spreadProb = 1, 
+                                          maxSize = 1000, 
+                                          allowOverlap = T, 
+                                          returnDistances = T, # Does not work?
+                                          asRaster = F)
+  
+  
+  
+  
+  
+  
+  
+  # denning pixels
+  sim$den.rast <- sim$aoi
+  sim$den.rast [den.pix$pixelid] <- den.pix$pixelid
+  
+  
+  
+  sim$harvestBlocks[queue$pixelid]<-time(sim)*sim$updateInterval
+
+    
+    
+    
+    
+  
+  pixels<-data.table(pixelid=aoi[]) #transpose then vectorize which matches the same order as adj
+  pixels[, pixelid := seq_len(.N)]
+
+  aoi []<-pixels$pixelid
+  
+  test.rast [] <- den.pix$pixelid
+  
+  
+  
+  
   
   
   
   
 
-  # 3.	Create a female “territories” table that has the following columns:
-  # •	pixelid: identifier of location on the landscape (from ‘pixels’ table)
-  # •	individual_id: the id of the female individual that is using a pixel as part of its home range  
-  # 4.	Create Female Home Ranges
   
   
   
+  sql<-paste0("SELECT pixelid, p.blockid as blockid, compartid, yieldid, height, elv, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h, (thlb*salvage_vol) as salvage_vol ", partition_case, "
+FROM pixels p
+INNER JOIN 
+(SELECT blockid, ROW_NUMBER() OVER ( 
+		ORDER BY ", P(sim, "harvestBlockPriority", "forestryCLUS"), ") as block_rank FROM blocks) b
+on p.blockid = b.blockid
+WHERE compartid = '", compart ,"' AND zone_const = 0 AND thlb > 0 AND p.blockid > 0 AND (", partition_sql, ")
+ORDER by block_rank, ", P(sim, "harvestBlockPriority", "forestryCLUS"), "
+                           LIMIT ", as.integer(sum(harvestTarget)/50))
+  
+}
+
+
+
+
+
+queue<-data.table(dbGetQuery(sim$clusdb, sql))
+
+
+
+  
+  
+  
+  sim$aoi <- 
+  
+    data.table (dbGetQuery (clusdb, "SELECT * FROM agents;"))
+  
+  den.pix
+  
+  
+  
+  
+  
+
+
+
+    
+    
+    
+
   
   
   # ! ----- STOP EDITING ----- ! #
