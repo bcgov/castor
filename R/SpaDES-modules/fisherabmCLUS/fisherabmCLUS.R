@@ -235,17 +235,36 @@ Init <- function(sim) {
   sim$start.rast [agents$pixelid] <- agents$pixelid
   
   # pixels in fisher search area
-  # apply fucntion - for each agent....
+  # apply function - for each agent....
+  searchAreas <- data.table (initialPixels = integer (),
+                             pixels = integer (),
+                             state = character ())
   
-  
-  
-  fisherSearchArea<-SpaDES.tools::spread2(aoi, 
-                                          start = fisherLocation, 
+  for (i in agents$pixelid) { 
+    search.temp <- SpaDES.tools::spread2 (sim$pix.rast, 
+                                          start = i, 
                                           spreadProb = 1, 
-                                          maxSize = 1000, 
-                                          allowOverlap = T, 
+                                          maxSize = (P(sim, "female_search_radius", "fisherabmCLUS") * 10), # convert km to 1 ha pixels
+                                          allowOverlap = F, 
                                           returnDistances = T, # Does not work?
                                           asRaster = F)
+    
+    # above rtunrs the pixels searched by teh anaimal
+    # next setps are to assign which ones are denning, 
+    # then assign those to the individual in teh territories table
+    
+    den.pix$den_hab <- 1 
+    search.den.pix <- merge (search.temp, den.pix, by.x = "pixels", 
+                             by.y = "pixelid", all.x = T)
+    
+    
+    
+    
+    
+    
+    
+    searchAreas <- rbind (searchAreas, search.temp)
+    }
   
   
   
