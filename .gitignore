@@ -14,6 +14,8 @@
 *.cpg
 *.qpj
 *.rds
+*.html
+*.md
 /list_clus_data.xlsx
 .pdf
 *.xlsx

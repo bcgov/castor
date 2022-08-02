@@ -150,9 +150,6 @@ rast.au.man <- raster::raster (paste0 (data.dir, "gisData\\grids\\AU_managed.tif
 ```
 
 
-
-
-
 ## UWR
 
 ```{r uwr}
@@ -566,7 +563,7 @@ bec.bear.fin <- raster::reclassify (bec.bear, rclmat)
 zone_beo_bear <- data.table (zoneid = as.integer (c(1,2,2,3,3)), 
                              type = c ('', 'ge', 'ge', 'ge', 'ge'),
                              variable = 'age', 
-                             threshold = as.numeric ( c(39, 41, 81, 41, 121)), 
+                             threshold = as.numeric ( c(41, 41, 81, 41, 121)), 
                              reference_zone = 'comparison_nass.rast_zone_beo_lrmp_prod', 
                              percentage = c (100, 70, 36, 78, 36), ndt = as.integer (0), 
                              label = c ('bear class 1', 'bear class 2', 'bear class 2', 'bear class 9', 'bear class 9'), 

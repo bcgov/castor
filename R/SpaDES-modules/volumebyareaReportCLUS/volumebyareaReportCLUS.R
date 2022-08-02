@@ -91,7 +91,7 @@ Init <- function(sim) {
       } else {
       stop(paste0(P(sim, "AreaofInterestRaster", "volumebyareaReportCLUS"), "- does not overlap with harvest unit"))
       }
-    sim$volumebyarea <-merge(sim$volumebyarea, aoi_bounds, by.x = "pixelid", by.y = "pixelid", all.x = T)
+    sim$volumebyarea <- merge (sim$volumebyarea, aoi_bounds, by.x = "pixelid", by.y = "pixelid", all.x = T)
     setnames(sim$volumebyarea, "attribute", "area_name")
     }
     }
