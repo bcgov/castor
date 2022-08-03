@@ -1,0 +1,248 @@
+---
+title: "forestryCLUS"
+author: ""
+date: "08 April 2019"
+output:
+  html_document: 
+    keep_md: yes
+---
+
+<!--
+Copyright 2020 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+# Overview
+
+This module provides the logic for simulating forestry decisions on the landscape. These decisions currently involve spatializing the harvest flow objectives which include: where, when and how much to harvest. These factors help determine policies related to harvest flows, opening size, seral distrubitions, road densitites, preservation areas, silvicultural systems, etc. More sophistication to these decisions would involve looking at the costs and benefits beyond the current time period; this requires optimization or improved heuristics -- which may be considered in the future. The general overview of forestryCLUS follows.
+
+At each time step, harvest units (pixels or blocks) are ranked according to a priority (e.g., oldest first), this constructs a queue. This queue of harvest units are then subject to various constraints meant to meet objectives for the study area. Harvest units are harvested until either a constraint is binding, the queue is exhausted or the harvest flow is met. Next, the age of the forest is advanced to the next time period and the process is repeated. 
+
+During the simulation various reports and information surrounding each pixel can be saved/recorded or used in a summary. Note these outputs are considered expected future outcomes given the inputs developed by the anlayst.For a historical selection of harvesting activities see [cutblockSeqPrepCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/cutblockSeqPrepCLUS). Both  cutblockSeqPrepCLUS and forestryCLUS build a list of landing locations through simulation time. One is historical while the other is one possible future realization.
+
+# Usage
+This module could be a parent module?? It relies on: 
+1. dataloadCLUS (set up the clusdb) 
+2. blockingCLUS (preforms the pixel aggregation into harvest units)
+3. growingStockCLUS (increments the age and volume in pixels)
+4. (Optionally) rsfCLUS (track resource selection functions)
+5. (Optionally) roadCLUS (preforms the access to the harvest units)
+6. uploaderCLUS (uploades the outputs to a shiny app)
+
+
+# Lakes TSA Scenarios
+business as usual (BAU); no new constraints, caribou or otherwise; establishes the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat
+
+no harvest in caribou herd or critical habtait areas; where there is cirtical habtait, no harvest in any types (includign matrix), and where therre is no critical habtiat, no harvest anywhere in the herd boudanries (assumes all critical hbaitat); establishes the 'maximum impact' that protection fo cariobu habtait might potentially have on forest harvest; in Lakes we have Takla herd boundaries, Tweedsmuir HEWSR, Tweedsmuir LESR, Tweedsmuir LEWR, and Tweedsmuir Matrix  
+
+no harvest in Chilcotin caribou critical habtiat; to support Chilcotin herd planning, we run a sceanrio with no harvest in the  Tweedsmuir HEWSR, Tweedsmuir LESR, Tweedsmuir LEWR, and Tweedsmuir Matrix; harvest is BAU in Takla; asses teh potential maximum impact of protecting Chilcotin only, assumign Takla unprotected
+
+ECCC in Chilcotin caribou critical habtiat; an alterantive to a no harvest scenario, attemps to interpret the feederal recovery strategy that stipulates no harvest in high adn low eleavtion cirtcial habtiat, and up to 35% disturabnce in matrix habtiat; this is a possible scenario if Canada were to enact an emergency order; assumes Takla unprotected
+
+DU7 (Northern group) specific scenarios developed by caribou recovery science team. These were done for each groups of herds that overlaps the TSA. For Lakes TSA, this included Tweedsmuir (group 1).
+
+First set of scenarios uses rast.zone_du7_scenario_20210305; this raster defines priority forest stands for 'protection', i.e., old or close to old stands, plus a 500m buffer. Scenarios:
+* 3a = No harvest in old forest, recruitment forest and buffered high elevation core and low elevation summer critical habitat areas, as defined by Bevan Ernst, maximum 15% disturbance (unbuffered) in low elevation winter and matrix habitat areas
+
+# Lakes TSA Parameters 
+
+## New Caribou Constraints
+BAU = beo, vqo, wha, uwr, fsw,parks and protected areas 
+
+No harvest anywhere = zone_cond_noharvest_takla_crithab_or_herd, zone_cond_noharvest_tweedsmuir_crithab_or_herd
+
+No harvest TWeedsmuir = zone_cond_noharvest_tweedsmuir_crithab_or_herd
+
+ECCC TWeedsmuir = zone_cond_eccc_tweedsmuir_crithab_or_herd
+
+DU7 - Northern group priority forest stand areas = "rast.zone_du7_scenario_20210305"
+
+
+## 'harvestPriority' parameter 
+- used oldest first
+
+- as alternative,  could focus on minimizzing 'disturabnce; for caribou, then older, higher volume stands
+  - 'dist, age DESC, vol DESC' priortize based on:
+      - 'dist', i.e., distance to disturbed pixel (closest first), then
+      - 'age DESC', i.e., descending age (oldest first), then
+      - 'vol DESC', i.e., descending volume (highest volume first)
+
+
+## 'harvestFlow'
+from Lakes 2019 determination: "The live volume harvest level of 400 000 cubic metres per year indicated in the base case can only be realized if licensees immediately focus their performance in low live volume stands.  Specifically: stands with less than 170 cubic metres per hectare; and, beetle-affected stands where the minimum live volume is 125 cubic metres per hectare for balsam-leading stands, 80 cubic metres per hectare for pine-leading stands, and 82 cubic metres per hectare for spruce-leading stands
+- average of this is 96m3/ha, so i used 100m3/ha as my min harvest volume
+
+from Lakes 2019 determination: "In the base case, an initial harvest level of 400 000 cubic metres of live volume was possible for the first 60 years." and "The managed stands are projected to provide almost the entire harvest after 60 years from now and are able to support a stable long-term harvest level of 900 000 cubic metres per year. "
+
+
+-  a harvest flow of 950,000m^3^/year was sustainable, 
+
+## Library
+
+```{r}
+library (SpaDES.core)
+library(dplyr)
+library (data.table)
+source(here::here("R/functions/R_Postgres.R"))
+#Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1')
+
+```
+
+## Run Model
+
+```{r, module, error=TRUE}
+moduleDir <- file.path(paste0(here::here(),"/R/SpaDES-modules"))
+inputDir <- file.path(paste0(here::here(),"/R/scenarios/Lakes_TSA/inputs")) %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path(paste0(here::here(),"/R/scenarios/Lakes_TSA/outputs"))
+cacheDir <- file.path(paste0(here::here(),"/R/scenarios/Lakes_TSA/"))
+times <- list(start = 0, end = 1) # 5 year interval; 200 years = 40 intervals
+
+
+parameters <- list(
+  .progress = list(type = NA, interval = NA),
+  .globals = list(),
+  dataLoaderCLUS = list( 
+                           dbName='clus',
+                           #save_clusdb = TRUE,
+                           sqlite_dbname = "Lakes_TSA",
+                           useCLUSdb = paste0(here::here(), "/R/scenarios/Lakes_TSA/Lakes_TSA_clusdb.sqlite"),
+                           #Study Area
+                           nameBoundaryFile = "tsa_aac_bounds",
+                           nameBoundaryColumn = "tsa_name",
+                           nameBoundary = "Lakes_TSA",
+                           nameBoundaryGeom = 'wkb_geometry',
+                           nameCompartmentRaster = "rast.tsa_aac_boundary",
+                           nameCompartmentTable = "vat.tsa_aac_bounds_vat",
+                           nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', #'rast.bc_thlb2018' 
+                           nameZoneRasters = c("rast.zone_cond_beo", 
+                                               "rast.zone_cond_vqo", 
+                                               "rast.zone_wha_2021", #"rast.zone_cond_wha"  
+                                               "rast.zone_uwr_2021", #"rast.zone_cond_uwr"
+                                               "rast.zone_cond_fsw",
+                                               "rast.zone_cond_nharv"
+                                               ),
+                           nameZoneTable = "zone.constraints",
+                           nameYieldsRaster = "rast.ycid_vdyp_2020",
+                        nameYieldTable = "yc_vdyp_2020",
+                        nameYieldsCurrentRaster = "rast.ycid_tipsy_current_2020",
+                        nameYieldCurrentTable = "tipsy_current_prov_2020",
+                        nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020",
+                        nameYieldTransitionTable = "tipsy_prov_2020",
+                        nameForestInventoryRaster = "rast.vri2020_id",
+                        nameForestInventoryKey = "feature_id",
+                        nameForestInventoryTable = "veg_comp_lyr_r1_poly2020",
+                        nameForestInventoryAge = "proj_age_1",
+                        nameForestInventoryHeight = "proj_height_1",
+                        nameForestInventoryCrownClosure = "crown_closure",
+                        nameForestInventoryTreed = "bclcs_level_2",
+                        nameForestInventorySiteIndex = "site_index",
+                        nameForestInventoryBasalArea= "basal_area",
+                        nameForestInventoryQMD = "quad_diam_125"),
+  blockingCLUS = list(blockMethod ='pre', 
+                      patchZone = 'rast.zone_cond_beo',
+                      patchVariation = 6,
+                      nameCutblockRaster ="rast.cns_cut_bl",
+                      useLandingsArea = FALSE, 
+                      useSpreadProbRas = FALSE),
+  forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
+                      #harvestZonePriority = "age DESC",
+                      #harvestZonePriorityInterval = 1,
+                      reportHarvestConstraints = T,
+                      adjacencyConstraint = 3),
+  growingStockCLUS = list (periodLength = 5),
+  roadCLUS = list(roadMethod = 'mst', 
+                  nameCostSurfaceRas = 'rast.rd_cost_surface', 
+                  nameRoads =  'rast.ce_road_2019'# existing road network
+                 )
+)
+
+modules <- list("dataLoaderCLUS", 
+                "growingStockCLUS", 
+                "blockingCLUS", 
+                "forestryCLUS" 
+                #"roadCLUS"  
+                )
+
+ scenario = data.table (name = "lakes_bau",
+                       description = "Business-as-usual case. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
+
+harvestFlow <- rbindlist(list(data.table(compartment ="Lakes_TSA",
+                                     partition = ' vol > 100 ', # from Lakes 2019 determination
+                                     period = rep( seq (from = 1, # run the 
+                                                      to = 10, 
+                                                      by =1),
+                                                1), 
+                                     flow = 4750000,
+                                     partition_type = 'live') #950,000m3/yr
+))
+
+patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
+                                  2,2,2,2,2,2,
+                                  3,3,3,3,3,3,
+                                  4,4,4,4,4,4,
+                                  5,5,5,5,5,5), 
+                           sizeClass = c(40,80,120,160,200,240), 
+                           freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
+                                    0.1,0.02,0.02,0.02,0.02,0.8,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1))
+
+objects <- list(harvestFlow = harvestFlow, 
+                patchSizeDist = patchSizeDist, 
+                scenario = scenario)
+
+paths <- list(cachePath = cacheDir,
+              modulePath = moduleDir,
+              inputPath = inputDir,
+              outputPath = outputDir)
+
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects, 
+                 paths = paths)
+
+#Run the model 1 time
+system.time({mysimout<-spades(mySim)})
+
+```
+
+## Algorithum
+
+The general algorithum (pseudo-code) follows as:
+
+`compartment_list`= SELECT zones FROM compartments WHERE target > 0 ORDER BY priority_compartment
+
+FOR compartment_selected in `compartment_list`
+`queue`<- SELECT pixelid, blockid FROM pixels WHERE 
+            compartment = compartment_selected AND thlb > 0 AND constraint = 0                 ORDER BY priority
+               
+IF (`queue` > 0 )
+  check constraints
+ELSE 
+  NEXT
+        
+
+# Data dependencies
+
+## Input data
+
+A SQLite db is required (output from dataloaderCLUS). A harvestFlow data.table object that includes the forest management unit (i.e., compartment, aka - 'supply block'), the partition from which the harvest flow applies (e.x., All dead pine); the year at which the flow applies and the amount of volume.
+
+## Output data
+
+A list of landings || blocks from when they are harvested.
+
+# Links to other modules
+
+dataloaderCLUS is required.
+
