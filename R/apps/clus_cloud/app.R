@@ -24,8 +24,8 @@ library(future.callr)
 
 source('src/functions.R')
 
-# plan(callr)
-plan(sequential)
+plan(multisession)
+# plan(sequential)
 
 # Available scneario Rmd files
 available_scenarios <- list.files('scenarios/')
@@ -435,7 +435,7 @@ server <- function(input, output, session) {
     input$run_scenario,
     ignoreInit = TRUE,
     {
-      browser()
+      # browser()
       # req(input$scenario)
       # req(input$sqlite)
       req(input$file_scenario)
@@ -450,10 +450,12 @@ server <- function(input, output, session) {
       ssh_keyfile_name <- ssh_keyfile_tbl$name
 
       selected_scenarios <- input$file_scenario
+      scenario_tbl <- shinyFiles::parseFilePaths(volumes, selected_scenarios)
+      scenarios <- scenario_tbl$name
       
       future.apply::future_lapply(
-        selected_scenarios,
-        run_simulation,
+        X = scenarios,
+        FUN = run_simulation,
         # scenario = scenario,
         ssh_keyfile = ssh_keyfile_tbl,
         do_droplet_size = input$droplet_size,
