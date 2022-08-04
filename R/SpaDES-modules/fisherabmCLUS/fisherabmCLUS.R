@@ -34,32 +34,24 @@ defineModule(sim, list(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("n_females", "numeric", 1000, 0, 10000,
                     "The number of females to 'seed' the landscape with."),    
-    defineParameter("female_hr_size_mean", "numeric", 3000, 100, 30000,
-                    "The mean home range (territory) size, in hectares, of a female fisher."),    
-    defineParameter("female_hr_size_sd", "numeric", 500, 10, 30000,
-                    "The standard deviation of a home range (territory) size, in hectares, of female fisher."), 
+    defineParameter("female_hr_table", "character", NA, NA, NA,
+                    "A table of mean and standard deviation of female fisher home range (territory) sizes in different populations."),    
     defineParameter("female_max_age", "numeric", 15, 0, 20,
                     "The maximum possible age of a female fisher."), 
-    defineParameter("female_search_radius", "numeric", 6, 0, 100,
+    defineParameter("female_search_radius", "numeric", 5, 0, 100,
                     "The maximum search radius, in km, that a female fisher could ‘search’ to establish a territory."), 
-    defineParameter("den_target ", "numeric", 0.10, 0.01, 0.99,
-                    "The desired proportion of a home range that is denning habitat."), 
-    defineParameter("rest_target ", "numeric", 0.10, 0.01, 0.99,
-                    "The desired proportion of a home range that is resting habitat."),   
-    defineParameter("move_target ", "numeric", 0.40, 0.01, 0.99,
-                    "The desired proportion of a home range that is movement habitat."), 
-    defineParameter("survival_rate_table", "character", "table name in pgdb?", NA, NA,
-                    "Table of fisher survial rates by sex, age and habitat quality."),
-    defineParameter("d2_survival_adj", "function", NA, NA, NA,
-                    "Function relating habitat quality to survival rate."),
-    defineParameter("reproductive_age", "numeric", 2, 1, 5,
-                    "Minimum age that a female fisher reaches sexual maturity."),
-    defineParameter("den_rate_mean", "numeric", 0.5, 0, 1,
-                    "Mean rate at which a female gets pregnant and gives birth to young (i.e., a combination of pregnancy rate and birth rate)."),
-    defineParameter("den_rate_sd", "numeric", 0.1, 0, 1,
-                    "Standard deviation of the rate at which a female gets pregnant and gives birth to young (i.e., a combination of pregnancy rate and birth rate)."),
-    defineParameter("litter_size_mean", "numeric", 2, 1, 10,
-                    "Mean number of kits born in a litter."),
+    defineParameter("den_target", "numeric", 0.1, 0, 1,
+                    "The minimum proportion of a home range that is denning habitat."), 
+    defineParameter("rest_target", "numeric", 0.2, 0, 1,
+                    "The minimum proportion of a home range that is resting habitat."),   
+    defineParameter("move_target", "numeric", 0.4, 0, 1,
+                    "The minimum proportion of a home range that is movement habitat."), 
+    defineParameter("survival_rate_table", "character", NA, NA, NA,
+                    "Table of fisher survial rates by sex, age and population."),
+    defineParameter("d2_reproduction_adj", "function", NA, NA, NA,
+                    "Function relating habitat quality to reproductive rate."),
+    defineParameter("repro_rate_table", "function", NA, NA, NA,
+                    "A table of mean and standard deviation of rate at which a female gets pregnant and gives birth to young (i.e., a combination of pregnancy rate and birth rate), minimum age that a female fisher reaches sexual maturity, mean and standard deviation of litter size in different populations"),
     defineParameter("sex_ratio", "numeric", 0.5, 0, 1,
                     "The ratio of females to males in a litter."),
     defineParameter("max_female_dispersal_dist", "numeric", 10, 1, 100,
@@ -100,7 +92,7 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
     eventType,
     init = {
  
-      sim <- Init(sim)
+      sim <- Init (sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "timeInterval", "fisherabmCLUS"), "fisherabmCLUS", "reproduce", 20)
 
     },
@@ -130,7 +122,7 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
 
       # e.g.,
       # sim <- scheduleEvent(sim, time(sim) + increment, "fisherabmCLUS", "templateEvent")
-      sim <- scheduleEvent(sim, time(sim), "fisherabmCLUS", "disperse", 22)
+      sim <- scheduleEvent (sim, time(sim), "fisherabmCLUS", "disperse", 22)
       # ! ----- STOP EDITING ----- ! #
     },
     disperse = {
@@ -144,7 +136,7 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
       
       # e.g.,
       # sim <- scheduleEvent(sim, time(sim) + increment, "fisherabmCLUS", "templateEvent")
-      sim <- scheduleEvent(sim, time(sim), "fisherabmCLUS", "survive", 23)   
+      sim <- scheduleEvent (sim, time(sim), "fisherabmCLUS", "survive", 23)   
       # ! ----- STOP EDITING ----- ! #
     },
     survive = {
@@ -158,7 +150,7 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
       
       # e.g.,
       # sim <- scheduleEvent(sim, time(sim) + increment, "fisherabmCLUS", "templateEvent")
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "timeInterval", "fisherabmCLUS"), "fisherabmCLUS", "reproduce", 20)
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "timeInterval", "fisherabmCLUS"), "fisherabmCLUS", "reproduce", 24)
       # ! ----- STOP EDITING ----- ! #
     },
     warning(paste("Undefined event type: \'", current(sim)[1, "eventType", with = FALSE],
@@ -176,20 +168,192 @@ Init <- function(sim) {
   
   message ("Initiating fisher ABM...")
   
+  
+  message ("Get the area of interest ...")
+  # get the aoi raster
+  aoi <- RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
+                           srcRaster = P (sim, "nameCompartmentRaster", "dataLoaderCLUS"), 
+                           clipper = P (sim, "nameBoundaryFile", "dataLoaderCLUS" ), 
+                           geom = P (sim, "nameBoundaryGeom", "dataLoaderCLUS"), 
+                           where_clause =  paste0 ( P (sim, "nameBoundaryColumn", "dataLoaderCLUS"), " in (''", paste(P(sim, "nameBoundary", "dataLoaderCLUS"), sep = "' '", collapse= "'', ''") ,"'')"),
+                           conn = NULL) 
+
+  # get pixel id's for aoi 
+  pix.for.rast <- data.table (dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels WHERE compartid IS NOT NULL;"))
+  pix.rast <- aoi
+  pix.rast [pix.for.rast$pixelid] <- pix.for.rast$pixelid
+  sim$pix.rast <- pix.rast
+
+  message ("Get the habitat data ...")
+  # get the fisher habitat areas
+  table.hab <- data.table (pixelid = sim$pix.rast[],
+                            den_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_denning_p" , # 
+                                                  clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                                                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                                  conn = NULL)[],
+                            rus_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_rust_p" , # 
+                                                  clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                                                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                                  conn = NULL)[],
+                            cwd_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_cwd_p" , # 
+                                                  clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                                                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                                  conn = NULL)[],
+                            cav_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_cavity_p" , # 
+                                                  clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                                                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                                  conn = NULL)[],
+                            mov_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_movement_p" , # 
+                                                  clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                                                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                                  conn = NULL)[])
+  #  identify which population a pixel is in
+  fisher.pop <- getSpatialQuery(paste0("SELECT pop,  ST_Intersection(aoi.",sim$boundaryInfo[[4]],", fisher_zones.wkb_geometry) FROM 
+                                       (SELECT ",sim$boundaryInfo[[4]]," FROM ",sim$boundaryInfo[[1]]," where ",sim$boundaryInfo[[2]]," in('", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "', '") ,"') ) as aoi 
+                                       JOIN fisher_zones ON ST_Intersects(aoi.",sim$boundaryInfo[[4]],", fisher_zones.wkb_geometry)"))
+  table.hab$fisher.pop <- fasterize::fasterize (sf = fisher.pop, raster = sim$pix.rast, field = "pop")[]
+  #---VAT for populations: 1 = SBS-wet; 2 = SBS-dry; 3 = Dry Forest; 4 = Boreal_A; 5 = Boreal_B
+  
+  table.hab <- table.hab [!is.na (pixelid), ] # remove pixels outside of the aoi
+  table.hab <- merge (table.hab, # add the habitat characteristics
+                      data.table (dbGetQuery(sim$clusdb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height  FROM pixels;")),
+                      by = "pixelid")
+  # classify the habitat
+  table.hab [den_p == 1 & age >= 125 & crownclosure >= 30 & qmd >=28.5 & basalarea >= 29.75, denning := 1][den_p == 2 & age >= 125 & crownclosure >= 20 & qmd >=28 & basalarea >= 28, denning := 1][den_p == 3 & age >= 135, denning:=1][den_p == 4 & age >= 207 & crownclosure >= 20 & qmd >= 34.3, denning:=1][den_p == 5 & age >= 88 & qmd >= 19.5 & height >= 19, denning:=1][den_p == 6 & age >= 98 & qmd >= 21.3 & height >= 22.8, denning:=1]
+  table.hab [rus_p == 1 & age > 0 & crownclosure >= 30 & qmd >= 22.7 & basalarea >= 35 & height >= 23.7, rust:=1][rus_p == 2 & age >= 72 & crownclosure >= 25 & qmd >= 19.6 & basalarea >= 32, rust:=1][rus_p == 3 & age >= 83 & crownclosure >=40 & qmd >= 20.1, rust:=1][rus_p == 5 & age >= 78 & crownclosure >=50 & qmd >= 18.5 & height >= 19 & basalarea >= 31.4, rust:=1][rus_p == 6 & age >= 68 & crownclosure >=35 & qmd >= 17 & height >= 14.8, rust:=1]
+  table.hab [cav_p == 1 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1][cav_p == 2 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1]
+  table.hab [cwd_p == 1 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 2 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 3 & age >= 100, cwd:=1][cwd_p >= 5 & age >= 78 & qmd >= 18.1 & height >= 19 & crownclosure >=60, cwd:=1]
+  table.hab [mov_p > 0 & age > 0 & crownclosure >= 40, movement:=1]
+  
+  sim$table.hab <- table.hab [, .(pixelid, fisher.pop, den_p, denning, rus_p, rust, cav_p, cavity, 
+                                  cwd_p, cwd, mov_p, movement)]
+  # sim$table.hab <- table.hab [denning != "" | rust != "" | cavity != "" | cwd != "" | movement != "", ]
+  # remove the rows with at least one NA value - don't do this....
+  rm (pix.for.rast, aoi, table.hab)
+  gc ()
+  
   message ("Create agents table and assign values...")
   ids <- seq (from = 1, to = P(sim, "n_females", "fisherabmCLUS"), by = 1) # sequence of individual id's from 1 to n_females
+  
+  
   agents <- data.table (individual_id = ids, 
                         sex = "F", 
                         age = sample (1:P(sim, "max_age", "fisherabmCLUS"), length (ids), replace = T), # randomly draw ages between 1 and the max age, 
                         pixelid = numeric (), 
-                        hr_size = rnorm (P(sim, "n_females", "fisherabmCLUS"), P(sim, "female_hr_size_mean", "fisherabmCLUS"), P(sim, "female_hr_size_sd", "fisherabmCLUS")), 
+                        hr_size = numeric (), 
                         d2_score = numeric ())
-  # get the pixelid's that are fisher habitat and randomly assign to the agents
-  # NOTE: this is for central interior fisher only
-  # we may need a s'witch' param for central interior or boreal
-  den.pix <- data.table (dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels WHERE age >= 125 AND crownclosure >= 30 AND qmd >=28.5 AND basalarea >= 29.75;"))
-  agents$pixelid <- sample (den.pix$pixelid, length (ids), replace = T)
   
+  # assign a random starting location that is a denning pixel in population range
+  agents$pixelid <- sample (table.hab [denning == 1 & !is.na (fisher.pop), pixelid], length (ids), replace = T)
+
+  # assign an HR size based on population
+    # calling a table from postgres db; is there a better, alternative way to do this?
+  
+  # conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+  #                      host=key_get("dbhost", keyring="postgreSQL"), 
+  #                      dbname = 'clus', port='5432', 
+  #                      user=key_get("dbuser", keyring="postgreSQL"), 
+  #                      password=key_get("dbpass", keyring="postgreSQL"))
+  # hr.tab <- data.table (dbGetQuery(conn, "SELECT * FROM public.fisher_home_range;")) # this table tbd 
+  
+  # using a 'dummy' table for now
+  hr.tab <- data.table (fisher.pop = c (1:5), # fisher pops: 1 = SBS-wet; 2 = SBS-dry; 3 = Dry Forest; 4 = Boreal_A; 5 = Boreal_B
+                        hr_mean = c (3000, 3000, 3000, 4000, 4000),
+                        hr_sd = c (500, 500, 500, 500, 500))
+  
+  
+  
+  
+  
+  for (i in agents$pixelid) { 
+    if (agents [pixelid == (sim$table.hab [pixelid = i & fisher.pop == 1, pixelid]), ]) {
+      
+    } else if () {
+      
+    }
+    
+  }
+    
+  
+  search.temp <- search.temp [is.na (individual_id) | individual_id == (agents [pixelid == i, individual_id]), ]
+  
+  
+  
+  
+  agents$hr_size <-
+  
+  rnorm (P(sim, "n_females", "fisherabmCLUS"), P(sim, "female_hr_size_mean", "fisherabmCLUS"), P(sim, "female_hr_size_sd", "fisherabmCLUS")), 
+  
+  
+  
+  dbDisconnect(conn)
+  
+  
+  
+  
+
+  message ("Create territories table ...")
+  territories <- data.table (individual_id = agents$individual_id, 
+                             pixelid = agents$pixelid)
+
+  for (i in agents$pixelid) { # for each individual
+    search.temp <- SpaDES.tools::spread2 (sim$pix.rast, # calculate pixels in its search radius
+                                          start = i, 
+                                          spreadProb = 1, 
+                                          maxSize = ((P(sim, "female_search_radius", "fisherabmCLUS")^2 * pi) * 100), # convert radius to area in ha
+                                          allowOverlap = F,
+                                          asRaster = F,
+                                          circle = T)
+    # calc distance between each pixel and the denning site
+    # not sure if we need this; current version doesn't use it; grabs all habitat in the search radius
+    search.temp <- cbind (search.temp, xyFromCell (sim$pix.rast, search.temp$pixels))
+    search.temp [!(pixels %in% agents$pixelid), dist := RANN::nn2 (search.temp [pixels %in% agents$pixelid, c("x","y")], search.temp [!(pixels %in% agents$pixelid), c("x","y")], k = 1)$nn.dists]
+    search.temp [is.na (dist), dist := 0]
+    
+    # remove pixels if already occupied
+    search.temp <- merge (search.temp, territories, 
+                          by.x = "pixels", by.y = "pixelid", all.x = T)
+    search.temp <- search.temp [is.na (individual_id) | individual_id == (agents [pixelid == i, individual_id]), ]
+    
+    # assign individual ID
+    search.temp$individual_id <- agents [pixelid == i, individual_id]
+    
+    # assign habitat 
+    search.hab.pix <- merge (search.temp, sim$table.hab, by.x = "pixels", 
+                             by.y = "pixelid") 
+    
+    # if proportion of habitat types are greater than the minimum target
+    if (P(sim, "rest_target", "fisherabmCLUS") <= length (which (search.hab.pix$rust == 1)) + length (which (search.hab.pix$cwd == 1)) & P(sim, "move_target", "fisherabmCLUS") <= length (which (search.hab.pix$movement == 1)) & P(sim, "den_target", "fisherabmCLUS") <= length (which (search.hab.pix$denning == 1))) {
+      # assign the pixels to territories table
+      territories <- rbind (territories, search.hab.pix [rust == 1 | cwd ==1, .(pixelid = pixels, individual_id)]) 
+    } else {
+      # delete the individual from the agents and territories table
+      territories <- territories [individual_id != (agents [pixelid == i, individual_id]), ] 
+      agents <- agents [pixelid != i]
+    } 
+  
+    
+    # then meet some habitat configuration criteria, e.g., min patch size,
+    # min distance between patches; Jo to give this some more thought
+    
+    
+    if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
+      # if the table exists, write it to the db
+      DBI::dbWriteTable (sim$clusdb, "territories", territories, append = FALSE, 
+                         row.names = FALSE, overwite = FALSE)  
+    } else {
+      # if the table exists, append it to the table in the db
+      DBI::dbWriteTable (sim$clusdb, "territories", territories, append = TRUE, 
+                         row.names = FALSE, overwite = FALSE)  
+    }
+  }
+  message ("Territories created.")
+  
+  
+  # calculate d2 score.....
+  
+  
+  # write the agents table
   if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
     # if the table exists, write it to the db
     DBI::dbWriteTable (sim$clusdb, "agents", agents, append = FALSE, 
@@ -200,149 +364,6 @@ Init <- function(sim) {
                        row.names = FALSE, overwite = FALSE)  
   }
   
-  message ("Create territories table...")
-  territories <- data.table (individual_id = agents$individual_id, 
-                             pixelid = agents$pixelid)
-  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
-    # if the table exists, write it to the db
-    DBI::dbWriteTable (sim$clusdb, "territories", territories, append = FALSE, 
-                       row.names = FALSE, overwite = FALSE)  
-  } else {
-    # if the table exists, append it to the table in the db
-    DBI::dbWriteTable (sim$clusdb, "territories", territories, append = TRUE, 
-                       row.names = FALSE, overwite = FALSE)  
-  }
-  
- ##Create Female Home Ranges
-  message ("Create female home ranges...")
-  # get the aoi raster
-  sim$aoi <- RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                           srcRaster = P (sim, "nameCompartmentRaster", "dataLoaderCLUS"), 
-                           clipper = P (sim, "nameBoundaryFile", "dataLoaderCLUS" ), 
-                           geom = P (sim, "nameBoundaryGeom", "dataLoaderCLUS"), 
-                           where_clause =  paste0 ( P (sim, "nameBoundaryColumn", "dataLoaderCLUS"), " in (''", paste(P(sim, "nameBoundary", "dataLoaderCLUS"), sep = "' '", collapse= "'', ''") ,"'')"),
-                           conn = NULL) 
-  # this step takes a couple seconds - can be do it faster?
-  # or get this as sim$ras form dataloderCLUS?
-  
-  # pixel id's in aoi landscape 
-  pix.for.rast <- data.table (dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels WHERE compartid IS NOT NULL;"))
-  sim$pix.rast <- sim$aoi
-  sim$pix.rast [pix.for.rast$pixelid] <- pix.for.rast$pixelid
-  
-  # fisher starting locations 
-  sim$start.rast <- sim$aoi
-  sim$start.rast [agents$pixelid] <- agents$pixelid
-  
-  # pixels in fisher search area
-  # apply function - for each agent....
-  searchAreas <- data.table (initialPixels = integer (),
-                             pixels = integer (),
-                             state = character ())
-  
-  for (i in agents$pixelid) { 
-    search.temp <- SpaDES.tools::spread2 (sim$pix.rast, 
-                                          start = i, 
-                                          spreadProb = 1, 
-                                          maxSize = (P(sim, "female_search_radius", "fisherabmCLUS") * 10), # convert km to 1 ha pixels
-                                          allowOverlap = F, 
-                                          returnDistances = T, # Does not work?
-                                          asRaster = F)
-    
-    # above rtunrs the pixels searched by teh anaimal
-    # next setps are to assign which ones are denning, 
-    # then assign those to the individual in teh territories table
-    
-    den.pix$den_hab <- 1 
-    search.den.pix <- merge (search.temp, den.pix, by.x = "pixels", 
-                             by.y = "pixelid", all.x = T)
-    
-    
-    
-    
-    
-    
-    
-    searchAreas <- rbind (searchAreas, search.temp)
-    }
-  
-  
-  
-  
-  
-  
-  
-  # denning pixels
-  sim$den.rast <- sim$aoi
-  sim$den.rast [den.pix$pixelid] <- den.pix$pixelid
-  
-  
-  
-  sim$harvestBlocks[queue$pixelid]<-time(sim)*sim$updateInterval
-
-    
-    
-    
-    
-  
-  pixels<-data.table(pixelid=aoi[]) #transpose then vectorize which matches the same order as adj
-  pixels[, pixelid := seq_len(.N)]
-
-  aoi []<-pixels$pixelid
-  
-  test.rast [] <- den.pix$pixelid
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  sql<-paste0("SELECT pixelid, p.blockid as blockid, compartid, yieldid, height, elv, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h, (thlb*salvage_vol) as salvage_vol ", partition_case, "
-FROM pixels p
-INNER JOIN 
-(SELECT blockid, ROW_NUMBER() OVER ( 
-		ORDER BY ", P(sim, "harvestBlockPriority", "forestryCLUS"), ") as block_rank FROM blocks) b
-on p.blockid = b.blockid
-WHERE compartid = '", compart ,"' AND zone_const = 0 AND thlb > 0 AND p.blockid > 0 AND (", partition_sql, ")
-ORDER by block_rank, ", P(sim, "harvestBlockPriority", "forestryCLUS"), "
-                           LIMIT ", as.integer(sum(harvestTarget)/50))
-  
-}
-
-
-
-
-
-queue<-data.table(dbGetQuery(sim$clusdb, sql))
-
-
-
-  
-  
-  
-  sim$aoi <- 
-  
-    data.table (dbGetQuery (clusdb, "SELECT * FROM agents;"))
-  
-  den.pix
-  
-  
-  
-  
-  
-
-
-
-    
-    
-    
-
   
   
   # ! ----- STOP EDITING ----- ! #

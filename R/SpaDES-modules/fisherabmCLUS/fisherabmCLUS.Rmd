@@ -21,7 +21,9 @@ For help writing in R Markdown, see https://rmarkdown.rstudio.com/.
 # Usage
 
 ```{r module_usage}
-library(SpaDES.core)
+library (SpaDES.core)
+library (data.table)
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 setPaths(modulePath = file.path("C:/Work/git/clus/R/SpaDES-modules"))
 getPaths() # shows where the 4 relevant paths are
@@ -30,9 +32,10 @@ times <- list(start = 0, end = 10)
 
 parameters <- list(
   dataLoaderCLUS = list(dbName='clus',
-                         save_clusdb = TRUE,
+                         save_clusdb = FALSE,
                          sqlite_dbname = "central_group_july2022", 
-                         nameBoundaryFile = "central_grp_aoi_072022", 
+                         nameBoundaryFile = "central_grp_aoi_072022",
+                         useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/fisherabmCLUS/test.sqlite"),
                          nameBoundaryColumn = "tsa_name", 
                          nameBoundary = c ("central_group"), 
                          nameBoundaryGeom = 'wkb_geometry',
@@ -66,19 +69,16 @@ parameters <- list(
                          nameForestInventoryQMD = "quad_diam_125"
                     ),
   fisherabmCLUS = list (n_females = 100,
-                        female_hr_size_mean = 3000,
-                        female_hr_size_sd = 500,
+                        female_hr_table = "call the table from the pgdb",
                         female_max_age = 10,
-                        female_search_radius = 6,
-                        den_target = 0.10,
-                        rest_target = 0.10,
-                        move_target = 0.40,
-                        survival_rate_table = "call the table from the pgdb?",
-                        d2_survival_adj = "fxn, multiplier...?",
+                        female_search_radius = 5,
+                        den_target = 0.1, # set to a proportion/data table?
+                        rest_target = 0.2,
+                        move_target = 0.4,
+                        survival_rate_table = "call the table from the pgdb",
+                        d2_reproduction_adj = "fxn, multiplier...?",
                         reproductive_age = 2,
-                        den_rate_mean = 0.5,
-                        den_rate_sd = 0.1,
-                        litter_size_mean = 2,
+                        repro_rate_table = "call the table from the pgdb",
                         sex_ratio = 0.5,
                         max_female_dispersal_dist = 10,
                         timeInterval = 1
