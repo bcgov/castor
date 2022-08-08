@@ -12,6 +12,15 @@
 #===========================================================================================
 
 # test
+version$major
+version$minor
+R_version <- paste0("R-",version$major,".",version$minor)
+
+.libPaths(paste0("C:/Program Files/R/",R_version,"/library")) # to ensure reading/writing libraries from C drive
+tz = Sys.timezone() # specify timezone in BC
+
+list.of.packages <- c("tidyverse", "data.table")
+lapply(list.of.packages, require, character.only = TRUE)
 
 # Everything in this file and any files in the R directory are sourced during `simInit()`;
 ## all functions and objects are put into the `simList`.
@@ -387,6 +396,100 @@ Init <- function(sim) {
   # ! ----- STOP EDITING ----- ! #
 
   return(invisible(sim))
+}
+
+###--- SURVIVE
+# create a function that runs each year to determine the probability of a fisher surviving to the next year
+# also need to kill off any fishers that are over the max age for females (default = 9) or having been dispersing for 2 years
+
+survive_FEMALE <- function(agents=agents, 
+                           surv_estimates,
+                           Fpop="B",
+                           maxAgeFemale=9){
+  
+  # using 'dummy' tables while working through function
+  territories <- data.table(individual_id = rep(seq_len(5),each=5),
+                            pixelid = 1:25)
+  
+  agents <- data.table(individual_id = 1:5,
+                       sex = "F",
+                       age = sample(2:8, 5, replace=T),
+                       pixelid = c(1,6,11,16,21),
+                       hr_size = rnorm(5, mean=28, sd=14),
+                       d2_score = rnorm(5, mean=4, sd=1))
+  
+  # delete the individuals older than max female age from the agents and territories table
+  agents <- agents %>% filter(age<maxAgeFemale)
+  territories <-territories %>% filter(individual_id %in% agents$individual_id)
+  
+  # start here: need to bring in survival data
+  # have age 1 = juvenile, 2+ = adult
+  # cannot die if 0
+  # use rnorm with mean +/- SE to determine if survives
+  # use rbinom with lower = mean - SE, upper = mean + SE?
+  ?log
+  ?rnorm
+  survFishers <- of(agents = fishers, var = c("who","breed","disperse","age")) # "who" of the fishers at start of survival
+  survFishers$Cohort <- toupper(paste0(rep(Fpop,times=nrow(survFishers)),rep("F",times=nrow(survFishers)),survFishers$sex,substr(survFishers$breed,1,1)))
+  
+  survFishers <- as.data.frame(left_join(survFishers,surv_estimates,by=c("Cohort")))
+  
+  survFishers[is.na(survFishers)] <- 0
+  survFishers$live <- NA
+  
+  for(i in 1:nrow(survFishers)){
+    if(survFishers[i,]$age!=0){ # can't kill off juveniles that haven't reached 6 months
+      survFishers[i,]$live <- rbinom(n=1, size=1, prob=survFishers[i,]$SurvLSE:survFishers[i,]$SurvHSE)
+    }
+  }
+  
+  dieWho <- survFishers %>% filter(live==0) # "who" of fishers which die, based on probability
+  oldF <- survFishers %>% filter(age>maxAgeFemale) # "who" of female fishers who die of 'old age' (i.e., > 9 yrs)
+  dispersing <- survFishers %>% filter(disperse=="D" & age>2) # "who" of dispersing fishers over 2
+  
+  fishers <- die(fishers, who=c(dieWho$who, oldF$who, dispersing$who))
+  return(fishers)
+}
+
+
+###--- REPRODUCE
+repro_FEMALE <- function(fishers, 
+                         repro_estimates, 
+                         Fpop) {
+  
+  # Random (binomial) selection for which adult females reproduce, based on denning rates confidence intervals
+  # Fpop="C"; fishers
+  # repro_estimates <- as_tibble(repro_estimates)
+  
+  whoFishers <- of(agents = fishers, var = c("who","breed")) # "who" of the fishers before they reproduce
+  whoAFFishers <- whoFishers[whoFishers$breed=="adult",]$who
+  
+  denCI <- repro_estimates %>% dplyr::filter(str_detect(Pop,Fpop)) %>% dplyr::filter(str_detect(Param,"CI")) %>% dplyr::select(dr)
+  repro <- rbinom(n = length(whoAFFishers), size=1, prob=min(denCI):max(denCI)) # prob can be a range - use confidence intervals
+  fishers <- NLset(turtles = fishers, agents = turtle(fishers, who=whoAFFishers), var = "repro", val = repro)
+  
+  # Random selection for which adult females reproduce, based on denning mean and SD (Central Interior)
+  whoFishers <- as.data.frame(of(agents = fishers, var = c("who","repro"))) # "who" of the fishers before they reproduce
+  reproWho <- whoFishers[whoFishers$repro==1,]$who # "who" of fishers which reproduce
+  
+  ltrM=repro_estimates[repro_estimates$Pop==Fpop & repro_estimates$Param=="mean",]$ls
+  ltrSD=repro_estimates[repro_estimates$Pop==Fpop & repro_estimates$Param=="sd",]$ls
+  
+  # if there is at least one fisher reproducing
+  # have those fishers have offspring, based on the mean and sd of empirical data
+  if (length(reproWho) > 0) {
+    fishers <- hatch(turtles = fishers, who = reproWho, n=round(rnorm(n=1, mean=ltrM, sd=ltrSD)/2),breed="juvenile") # litter size based on empirical data (divided by 2 for female only model)
+    
+    # assign all of the offsprig as dispersing, change repro and age values to reflect newborn kits rather than their moms
+    allFishers <- of(agents=fishers, var="who")
+    offspring <- allFishers[!(allFishers %in% whoFishers$who)]
+    
+    fishers <- NLset(turtles = fishers, agents = turtle(fishers, who=offspring), var = "disperse", val = "D")
+    fishers <- NLset(turtles = fishers, agents = turtle(fishers, who=offspring), var = "age", val = 0) # just born so time step 0
+    fishers <- NLset(turtles = fishers, agents = turtle(fishers, who=offspring), var = "repro", val = 0) # just born not yet reproductive
+  }
+  
+  return(fishers)
 }
 
 ### template for save events
