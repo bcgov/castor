@@ -311,8 +311,6 @@ updateRoadsTable <- function(sim){
     dbClearResult(rs)
     dbCommit(sim$clusdb)
     
-    test<<-roadUpdateAll
-    
   }
   
   sim$paths.v<-NULL
@@ -688,21 +686,15 @@ preSolve<-function(sim){
 getRoadSegment<-function(sim){
   message("getRoadSegment")
   #Convert the landings to pixelid's
-  targets<<-cellFromXY(sim$ras, sim$landings) #This should be pixelid not XY as used in other roading methods
+  targets<-cellFromXY(sim$ras, sim$landings) #This should be pixelid not XY as used in other roading methods
   sim$roadSegs<-unique(as.numeric(unlist(strsplit(sim$roadslist[landing %in% targets, ]$road, ","))))
-  roadSegs<<-unique(as.numeric(unlist(strsplit(sim$roadslist[landing %in% targets, ]$road, ","))))
-  alreadyRoaded<<-dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear IS NOT NULL and pixelid in (",paste(sim$roadSegs, collapse = ", "),")"))
+  alreadyRoaded<-dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear IS NOT NULL and pixelid in (",paste(sim$roadSegs, collapse = ", "),")"))
   
   sim$paths.v<-sim$roadSegs[!(sim$roadSegs[] %in% alreadyRoaded$pixelid)]
-  paths.v<<-sim$roadSegs[!(sim$roadSegs[] %in% alreadyRoaded$pixelid)]
-  
   
   #update the raster
   sim$road.year[sim$ras[] %in% sim$paths.v] <- time(sim)*sim$updateInterval
   sim$road.status[sim$ras[] %in% sim$roadSegs] <- time(sim)*sim$updateInterval
-  
-  road.year<<-sim$road.year
-  road.status<<- sim$road.status
   
   return(invisible(sim)) 
 }
