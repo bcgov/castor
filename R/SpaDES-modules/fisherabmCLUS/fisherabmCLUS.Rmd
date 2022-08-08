@@ -1,0 +1,147 @@
+---
+title: "fisherabmCLUS"
+author: ""
+date: "25 July 2022"
+output:
+  html_document:
+    keep_md: yes
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## TODO: use 'eval = TRUE'
+```
+
+# Overview
+
+This is an agent based model (ABM) to simulate fisher life history on a landscape. 
+For help writing in R Markdown, see https://rmarkdown.rstudio.com/.
+
+# Usage
+
+```{r module_usage}
+library (SpaDES.core)
+library (data.table)
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
+
+setPaths(modulePath = file.path("C:/Work/git/clus/R/SpaDES-modules"))
+getPaths() # shows where the 4 relevant paths are
+
+times <- list(start = 0, end = 10)
+
+parameters <- list(
+  dataLoaderCLUS = list(dbName='clus',
+                         save_clusdb = FALSE,
+                         sqlite_dbname = "central_group_july2022", 
+                         nameBoundaryFile = "central_grp_aoi_072022",
+                         useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/fisherabmCLUS/test.sqlite"),
+                         nameBoundaryColumn = "tsa_name", 
+                         nameBoundary = c ("central_group"), 
+                         nameBoundaryGeom = 'wkb_geometry',
+                         nameCompartmentRaster = "rast.central_grp_aoi",
+                         nameCompartmentTable = "vat.central_grp_aoi",
+                         nameMaskHarvestLandbaseRaster ='rast.thlb_2020', 
+                         nameZoneRasters=c("rast.zone_cond_beo", 
+                                           "rast.zone_cond_vqo", 
+                                           "rast.zone_wha_2021", 
+                                           "rast.zone_uwr_2021",  
+                                           "rast.zone_cond_nharv", 
+                                           "rast.zone_cond_fsw", 
+                                           "rast.zone_cond_cw"
+                              ),
+                         nameZoneTable="zone.constraints", 
+                         nameYieldsRaster = "rast.ycid_vdyp_2020",
+                         nameYieldTable ="yc_vdyp_2020",
+                         nameYieldsCurrentRaster = "rast.ycid_tipsy_current_2020",
+                         nameYieldCurrentTable = "tipsy_current_prov_2020",
+                         nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
+                         nameYieldTransitionTable = "tipsy_prov_2020", 
+                         nameForestInventoryRaster = "rast.vri2020_id", 
+                         nameForestInventoryKey = "feature_id",                     
+                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2020",
+                         nameForestInventoryAge = "proj_age_1",  
+                         nameForestInventoryHeight = "proj_height_1",
+                         nameForestInventoryCrownClosure = "crown_closure",
+                         nameForestInventoryTreed = "bclcs_level_2",
+                         nameForestInventorySiteIndex = "site_index",
+                         nameForestInventoryBasalArea= "basal_area",
+                         nameForestInventoryQMD = "quad_diam_125"
+                    ),
+  fisherabmCLUS = list (n_females = 100,
+                        female_hr_table = "call the table from the pgdb",
+                        female_max_age = 10,
+                        female_search_radius = 5,
+                        den_target = 0.1, # set to a proportion/data table?
+                        rest_target = 0.2,
+                        move_target = 0.4,
+                        survival_rate_table = "call the table from the pgdb",
+                        d2_reproduction_adj = "fxn, multiplier...?",
+                        reproductive_age = 2,
+                        repro_rate_table = "call the table from the pgdb",
+                        sex_ratio = 0.5,
+                        max_female_dispersal_dist = 10,
+                        timeInterval = 1
+                        )
+    
+  #.progress = list(type = "text", interval = 1), # for a progress bar
+  ## If there are further modules, each can have its own set of parameters:
+  #module1 = list(param1 = value1, param2 = value2),
+  #module2 = list(param1 = value1, param2 = value2)
+)
+modules <- list("fisherabmCLUS")
+objects <- list()
+inputs <- list()
+outputs <- list()
+
+mySim <- simInit(times = times, params = parameters, modules = modules,
+                 objects = objects)
+
+mySimOut <- spades(mySim)
+```
+
+# Parameters
+
+Provide a summary of user-visible parameters.
+
+```{r moduleParams, echo = FALSE, eval = TRUE}
+df_params <- SpaDES.core::moduleParams("fisherabmCLUS", "C:/Work/git/clus/R/SpaDES-modules")
+knitr::kable(df_params)
+```
+
+# Events
+
+Describe what happens for each event type.
+
+## Plotting
+
+Write what is plotted.
+
+## Saving
+
+Write what is saved.
+
+# Data dependencies
+
+## Input data
+
+How to obtain input data, and a description of the data required by the module.
+If `sourceURL` is specified, `downloadData("fisherabmCLUS", "C:/Work/git/clus/R/SpaDES-modules")` may be sufficient.
+
+```{r moduleInputs, echo = FALSE, eval = TRUE}
+df_inputs <- SpaDES.core::moduleInputs("fisherabmCLUS", "C:/Work/git/clus/R/SpaDES-modules")
+knitr::kable(df_inputs)
+```
+
+## Output data
+
+Description of the module outputs.
+
+```{r moduleOutputs, echo = FALSE, eval = TRUE}
+df_outputs <- SpaDES.core::moduleOutputs("fisherabmCLUS", "C:/Work/git/clus/R/SpaDES-modules")
+knitr::kable(df_outputs)
+```
+
+# Links to other modules
+
+Describe any anticipated linkages to other modules.

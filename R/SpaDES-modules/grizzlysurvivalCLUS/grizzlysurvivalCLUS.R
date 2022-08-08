@@ -94,10 +94,10 @@ Init <- function (sim) { # this function identifies the GBPUs in the 'study area
   }
   
   # The following calculates for each GBPU:
-    # 1. Number of pixels with a road (roadyear > -1) 
+    # 1. Number of pixels with a road (roadyear is not null) 
     # 2. Multiplied by the road density parameter (P(sim)$roadDensity)
     # 3. Divided by total area, to calculate GBPU road density
-  sim$tableGrizzSurvivalReport <- data.table (dbGetQuery (sim$clusdb, "SELECT SUM (CASE WHEN roadyear > -1 THEN 1 ELSE 0 END) AS total_roaded, COUNT(*) AS total_area, gbpu_name FROM pixels WHERE gbpu_name IS NOT NULL GROUP BY gbpu_name;"))
+  sim$tableGrizzSurvivalReport <- data.table (dbGetQuery (sim$clusdb, "SELECT SUM (CASE WHEN roadstatus IS NOT NULL THEN 1 ELSE 0 END) AS total_roaded, COUNT(*) AS total_area, gbpu_name FROM pixels WHERE gbpu_name IS NOT NULL GROUP BY gbpu_name;"))
   sim$tableGrizzSurvivalReport [, road_density := (total_roaded * P(sim)$roadDensity) / total_area] 
   
    # The following equation calculates the survival rate in the herd area using the Boualnger and Stenhouse (2014) model
@@ -114,7 +114,7 @@ Init <- function (sim) { # this function identifies the GBPUs in the 'study area
 
 predictSurvival <- function (sim) { # this function calculates survival rate at each time interval; same as on init, above
  
-  new_tableGrizzSurvivalReport <- data.table (dbGetQuery (sim$clusdb, "SELECT SUM (CASE WHEN roadyear > -1 THEN 1 ELSE 0 END) AS total_roaded, COUNT(*) AS total_area, gbpu_name FROM pixels WHERE gbpu_name IS NOT NULL GROUP BY gbpu_name;"))
+  new_tableGrizzSurvivalReport <- data.table (dbGetQuery (sim$clusdb, "SELECT SUM (CASE WHEN roadstatus IS NOT NULL THEN 1 ELSE 0 END) AS total_roaded, COUNT(*) AS total_area, gbpu_name FROM pixels WHERE gbpu_name IS NOT NULL GROUP BY gbpu_name;"))
   new_tableGrizzSurvivalReport [, road_density := (total_roaded * P(sim)$roadDensity) / total_area]  
   new_tableGrizzSurvivalReport [, survival_rate := (1/(1+exp(-3.9+(road_density * 1.06))))]
   new_tableGrizzSurvivalReport [, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name,sim$boundaryInfo[[3]]) ] # add the time of the survival calc

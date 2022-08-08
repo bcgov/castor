@@ -348,7 +348,7 @@ sf::st_write(sample_locations_DEM_roads_wind2, dsn = "C:\\Work\\caribou\\clus_da
 
 
 ##Save to personal drive
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_frt.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_wind_frt.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
 #ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_clim_DEM_roads_wind.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
