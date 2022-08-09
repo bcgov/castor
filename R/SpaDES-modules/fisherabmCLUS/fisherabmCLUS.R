@@ -360,7 +360,6 @@ Init <- function(sim) {
                       table.hab [, c ("pixelid", "denning", "rust", "cavity", "movement", "cwd")], 
                       by = "pixelid", all.x = T)
   # % of each habitat by territory
-
   tab.den.perc <- tab.mahal [, ((den_perc = (sum (denning, na.rm = T)) / .N) * 100), by = individual_id ]
   setnames (tab.den.perc, c ("individual_id", "den_perc"))
   
