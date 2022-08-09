@@ -422,7 +422,7 @@ survive_FEMALE <- function(sim){
   survival_rate_table <- read.csv("R/SpaDES-modules/fisherabmCLUS/data/surv_rate_table_08Aug2022.csv")
   
   # delete the individuals older than max female age from the agents and territories table
-  agents <- agents %>% filter(age<female_max_age) # likley this needs to be written in "spades" P(sim) format
+  agents <- agents %>% filter(age<female_max_age) # likely this needs to be written in "spades" P(sim) format
   territories <-territories %>% filter(individual_id %in% agents$individual_id)
   
   # have age 1 = juvenile, 2+ = adult (cannot die if 0)
@@ -434,6 +434,18 @@ survive_FEMALE <- function(sim){
   
   survFishers$Cohort <- toupper(paste0(rep(Fpop,times=nrow(survFishers)),rep("F",times=nrow(survFishers)),survFishers$age_class))
   survFishers <- left_join(survFishers,survival_rate_table,by=c("Cohort"))
+  
+  # increase the likelihood of older fishers to die, similar to age distribution figures / data from Rory Fogarty
+  survFishers <- survFishers %>% mutate(LSE = case_when(age_class=="J" ~ Mean-(1*SE),
+                                                        age_class=="A" & age < 4 ~ Mean-(1*SE),
+                                                        age_class=="A" & age < 7 ~ Mean-(2*SE),
+                                                        age_class=="A" & age >= 7 ~ Mean-(3*SE)))
+  
+  survFishers <- survFishers %>% mutate(HSE = case_when(age_class=="J" ~ Mean+(1*SE),
+                                                        age_class=="A" & age < 4 ~ Mean+(1*SE),
+                                                        age_class=="A" & age >= 4 ~ Mean+(2*SE)))
+  
+  survFishers$HSE <- ifelse(survFishers$HSE>1,1,survFishers$HSE)
   
   survFishers$live <- NA
   for(i in 1:nrow(survFishers)){
@@ -459,16 +471,26 @@ survive_FEMALE <- function(sim){
 
 
 ###--- REPRODUCE
-repro_FEMALE <- function(fishers, 
-                         repro_estimates, 
-                         Fpop) {
+repro_FEMALE <- function(sim) {
   
-  # Random (binomial) selection for which adult females reproduce, based on denning rates confidence intervals
-  # Fpop="C"; fishers
-  # repro_estimates <- as_tibble(repro_estimates)
+  # Fpop="B",
+  # female_max_age=9)
   
-  whoFishers <- of(agents = fishers, var = c("who","breed")) # "who" of the fishers before they reproduce
-  whoAFFishers <- whoFishers[whoFishers$breed=="adult",]$who
+  # using 'dummy' tables (only necessary while working through function)
+  territories <- data.table(individual_id = rep(seq_len(5),each=5),
+                            pixelid = 1:25)
+  
+  agents <- data.table(individual_id = 1:5,
+                       sex = "F",
+                       age = sample(2:8, 5, replace=T),
+                       pixelid = c(1,6,11,16,21),
+                       hr_size = rnorm(5, mean=28, sd=14),
+                       d2_score = rnorm(5, mean=4, sd=1))
+  
+  # pull in survival table (only necessary while working through function)
+  repro_rate_table <- read.csv("R/SpaDES-modules/fisherabmCLUS/data/repro_rate_table_08Aug2022.csv")
+  
+  reproFishers <- agents %>% filter(age > 1) # female fishers capable of reproducing
   
   denCI <- repro_estimates %>% dplyr::filter(str_detect(Pop,Fpop)) %>% dplyr::filter(str_detect(Param,"CI")) %>% dplyr::select(dr)
   repro <- rbinom(n = length(whoAFFishers), size=1, prob=min(denCI):max(denCI)) # prob can be a range - use confidence intervals
@@ -495,7 +517,7 @@ repro_FEMALE <- function(fishers,
     fishers <- NLset(turtles = fishers, agents = turtle(fishers, who=offspring), var = "repro", val = 0) # just born not yet reproductive
   }
   
-  return(fishers)
+  return(invisible(sim))
 }
 
 ### template for save events
