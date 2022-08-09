@@ -397,7 +397,7 @@ setGraph<- function(sim){
  
   
   sim$g<-cppRouting::makegraph(edges.weight,directed=F) 
-  sim$g<-cppRouting::cpp_simplify(sim$g) #KISS
+  #sim$g<-cppRouting::cpp_simplify(sim$g) #KISS
   
   graph.df<-cppRouting::to_df(sim$g)
   

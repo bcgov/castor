@@ -208,6 +208,7 @@ setSpreadProb<- function(sim) {
   return(invisible(sim))
 }
 
+
 preBlock <- function(sim) {
   
   edges<-sim$edgesAdj
