@@ -11,6 +11,17 @@
 # See the License for the specific language governing permissions and limitations under the License.
 #===========================================================================================
 
+# test
+version$major
+version$minor
+R_version <- paste0("R-",version$major,".",version$minor)
+
+.libPaths(paste0("C:/Program Files/R/",R_version,"/library")) # to ensure reading/writing libraries from C drive
+tz = Sys.timezone() # specify timezone in BC
+
+list.of.packages <- c("tidyverse", "data.table")
+lapply(list.of.packages, require, character.only = TRUE)
+
 # Everything in this file and any files in the R directory are sourced during `simInit()`;
 ## all functions and objects are put into the `simList`.
 ## To use objects, use `sim$xxx` (they are globally available to all modules).
@@ -35,23 +46,39 @@ defineModule(sim, list(
     defineParameter("n_females", "numeric", 1000, 0, 10000,
                     "The number of females to 'seed' the landscape with."),    
     defineParameter("female_hr_table", "character", NA, NA, NA,
-                    "A table of mean and standard deviation of female fisher home range (territory) sizes in different populations."),    
-    defineParameter("female_max_age", "numeric", 15, 0, 20,
-                    "The maximum possible age of a female fisher."), 
+                    paste0("A table of mean and standard deviation of female fisher home range (territory) sizes in different habitat zones.",
+                    "Table with the following headers:",
+                    "FHE: the four Fisher Habitat Extension zones: Boreal, Dry Forest, Sub-Boreal moist, Sub-Boreal dry",
+                    "Mean_Area_km2: the mean area for female fisher home ranges in km2 for each FHE", 
+                    "SD_Area_km2: the sd for female fisher home ranges in km2 for each FHE")),    
+    defineParameter("female_max_age", "numeric", 9, 0, 15,
+                    "The maximum possible age of a female fisher. Taken from research referenced by Roray Fogart in VORTEX_inputs_new.xlsx document."), 
     defineParameter("female_search_radius", "numeric", 5, 0, 100,
                     "The maximum search radius, in km, that a female fisher could ‘search’ to establish a territory."), 
-    defineParameter("den_target", "numeric", 0.1, 0, 1,
-                    "The minimum proportion of a home range that is denning habitat."), 
-    defineParameter("rest_target", "numeric", 0.2, 0, 1,
-                    "The minimum proportion of a home range that is resting habitat."),   
-    defineParameter("move_target", "numeric", 0.4, 0, 1,
-                    "The minimum proportion of a home range that is movement habitat."), 
+    defineParameter("den_target", "numeric", 0.10, 0.003, 0.54,
+                    "The minimum proportion of a home range that is denning habitat. Values taken from empirical female home range data across populations."), 
+    defineParameter("rest_target", "numeric", 0.26, 0.028, 0.58,
+                    "The minimum proportion of a home range that is resting habitat. Values taken from empirical female home range data across populations."),   
+    defineParameter("move_target", "numeric", 0.36, 0.091, 0.73,
+                    "The minimum proportion of a home range that is movement habitat. Values taken from empirical female home range data across populations."), 
     defineParameter("survival_rate_table", "character", NA, NA, NA,
-                    "Table of fisher survial rates by sex, age and population."),
+                    paste0("Table of fisher survial rates by sex, age and population, taken from Lofroth et al 2022 JWM vital rates manuscript.",
+                           "Table with the following headers:",
+                           "Fpop: the two populations in BC: Boreal, Coumbian",
+                           "Age_class: two classes: Adult, Juvenile",
+                           "Cohort: Fpop and Age_class combination: CFA, CFJ, BFA, BFJ",
+                           "Mean: mean survival probability",
+                           "SE: standard error of the mean",
+                           "Decided to go with SE rather than SD as confidence intervals are quite wide and stochasticity would likely drive populations to extinction. Keeping consistent with Rory Fogarty's population analysis decisions.")),
     defineParameter("d2_reproduction_adj", "function", NA, NA, NA,
                     "Function relating habitat quality to reproductive rate."),
     defineParameter("repro_rate_table", "function", NA, NA, NA,
-                    "A table of mean and standard deviation of rate at which a female gets pregnant and gives birth to young (i.e., a combination of pregnancy rate and birth rate), minimum age that a female fisher reaches sexual maturity, mean and standard deviation of litter size in different populations"),
+                    paste0("Table of fisher reproductive rates (i.e., denning rate = a combination of pregnancy rate and birth rate; and litter size = number of kits) by population, taken from Lofroth et al 2022 JWM vital rates manuscript",
+                           "Table with the following headers:",
+                           "Fpop: the two populations in BC: Boreal, Coumbian",
+                           "Param: the reproductive parameter: DR (denning rate), LS (litter size)",
+                           "Mean: mean reproductive rate per parameter and population",
+                           "SD: standard deviation of the mean reproductive rate per parameter and population")),
     defineParameter("sex_ratio", "numeric", 0.5, 0, 1,
                     "The ratio of females to males in a litter."),
     defineParameter("max_female_dispersal_dist", "numeric", 10, 1, 100,
@@ -432,6 +459,128 @@ Init <- function(sim) {
   
   # ! ----- STOP EDITING ----- ! #
 
+  return(invisible(sim))
+}
+
+###--- SURVIVE
+# create a function that runs each year to determine the probability of a fisher surviving to the next year
+# also need to kill off any fishers that are over the max age for females (default = 9) or having been dispersing for 2 years
+
+survive_FEMALE <- function(sim){
+  
+  # Fpop="C",
+  # female_max_age=9)
+
+  # using 'dummy' tables (only necessary while working through function)
+  territories <- data.table(individual_id = rep(seq_len(5),each=5),
+                            pixelid = 1:25)
+  
+  agents <- data.table(individual_id = 1:5,
+                       sex = "F",
+                       age = sample(2:8, 5, replace=T),
+                       pixelid = c(1,6,11,16,21),
+                       hr_size = rnorm(5, mean=28, sd=14),
+                       d2_score = rnorm(5, mean=4, sd=1))
+  
+  # pull in survival table (only necessary while working through function)
+  survival_rate_table <- read.csv("R/SpaDES-modules/fisherabmCLUS/data/surv_rate_table_08Aug2022.csv")
+  
+  # delete the individuals older than max female age from the agents and territories table
+  agents <- agents %>% filter(age<female_max_age) # likely this needs to be written in "spades" P(sim) format
+  territories <-territories %>% filter(individual_id %in% agents$individual_id)
+  
+  # have age 1 = juvenile, 2+ = adult (cannot die if 0)
+  # use rbinom with lower = mean - SE, upper = mean + SE
+  
+  # create temp table of fishers that need to survive (i.e., fishers < 1 cannot die)
+  survFishers <- agents %>% filter(age > 0)
+  survFishers <- survFishers %>% mutate(age_class = case_when(age<2 ~ "J", age>=2 ~ "A"))
+  
+  survFishers$Cohort <- toupper(paste0(rep(Fpop,times=nrow(survFishers)),rep("F",times=nrow(survFishers)),survFishers$age_class))
+  survFishers <- left_join(survFishers,survival_rate_table,by=c("Cohort"))
+  
+  # increase the likelihood of older fishers to die, similar to age distribution figures / data from Rory Fogarty
+  survFishers <- survFishers %>% mutate(LSE = case_when(age_class=="J" ~ Mean-(1*SE),
+                                                        age_class=="A" & age < 4 ~ Mean-(1*SE),
+                                                        age_class=="A" & age < 7 ~ Mean-(2*SE),
+                                                        age_class=="A" & age >= 7 ~ Mean-(3*SE)))
+  
+  survFishers <- survFishers %>% mutate(HSE = case_when(age_class=="J" ~ Mean+(1*SE),
+                                                        age_class=="A" & age < 4 ~ Mean+(1*SE),
+                                                        age_class=="A" & age >= 4 ~ Mean+(2*SE)))
+  
+  survFishers$HSE <- ifelse(survFishers$HSE>1,1,survFishers$HSE)
+  
+  survFishers$live <- NA
+  for(i in 1:nrow(survFishers)){
+    survFishers[i,]$live <- rbinom(n=1, size=1, prob=(survFishers[i,]$Mean-survFishers[i,]$SE):round(survFishers[i,]$Mean+survFishers[i,]$SE))
+  }
+  
+  liveFishers <- survFishers %>% filter(live==1) # the fishers who have survived
+  
+  # delete the individuals who did not survive from the agents table and the territories table
+  agents <- agents %>% filter(individual_id %in% liveFishers$individual_id)
+  territories <-territories %>% filter(individual_id %in% agents$individual_id)
+  
+  # allowing kits to survive even if mothers die as by 1 year kits able to live in territory without mom
+  # need to still deal with juveniles who are dispersing
+  # dispersing <- survFishers %>% filter(disperse=="D" & age>2) # "who" of dispersing fishers over 2
+  
+  # all remaining fishers will age 1 year
+  agents$age <- agents$age +1
+  agents
+  
+  return(invisible(sim))
+}
+
+
+###--- REPRODUCE
+repro_FEMALE <- function(sim) {
+  
+  # Fpop="B",
+  # female_max_age=9)
+  
+  # using 'dummy' tables (only necessary while working through function)
+  territories <- data.table(individual_id = rep(seq_len(5),each=5),
+                            pixelid = 1:25)
+  
+  agents <- data.table(individual_id = 1:5,
+                       sex = "F",
+                       age = sample(2:8, 5, replace=T),
+                       pixelid = c(1,6,11,16,21),
+                       hr_size = rnorm(5, mean=28, sd=14),
+                       d2_score = rnorm(5, mean=4, sd=1))
+  
+  # pull in survival table (only necessary while working through function)
+  repro_rate_table <- read.csv("R/SpaDES-modules/fisherabmCLUS/data/repro_rate_table_08Aug2022.csv")
+  
+  reproFishers <- agents %>% filter(age > 1) # female fishers capable of reproducing
+  
+  denCI <- repro_estimates %>% dplyr::filter(str_detect(Pop,Fpop)) %>% dplyr::filter(str_detect(Param,"CI")) %>% dplyr::select(dr)
+  repro <- rbinom(n = length(whoAFFishers), size=1, prob=min(denCI):max(denCI)) # prob can be a range - use confidence intervals
+  fishers <- NLset(turtles = fishers, agents = turtle(fishers, who=whoAFFishers), var = "repro", val = repro)
+  
+  # Random selection for which adult females reproduce, based on denning mean and SD (Central Interior)
+  whoFishers <- as.data.frame(of(agents = fishers, var = c("who","repro"))) # "who" of the fishers before they reproduce
+  reproWho <- whoFishers[whoFishers$repro==1,]$who # "who" of fishers which reproduce
+  
+  ltrM=repro_estimates[repro_estimates$Pop==Fpop & repro_estimates$Param=="mean",]$ls
+  ltrSD=repro_estimates[repro_estimates$Pop==Fpop & repro_estimates$Param=="sd",]$ls
+  
+  # if there is at least one fisher reproducing
+  # have those fishers have offspring, based on the mean and sd of empirical data
+  if (length(reproWho) > 0) {
+    fishers <- hatch(turtles = fishers, who = reproWho, n=round(rnorm(n=1, mean=ltrM, sd=ltrSD)/2),breed="juvenile") # litter size based on empirical data (divided by 2 for female only model)
+    
+    # assign all of the offsprig as dispersing, change repro and age values to reflect newborn kits rather than their moms
+    allFishers <- of(agents=fishers, var="who")
+    offspring <- allFishers[!(allFishers %in% whoFishers$who)]
+    
+    fishers <- NLset(turtles = fishers, agents = turtle(fishers, who=offspring), var = "disperse", val = "D")
+    fishers <- NLset(turtles = fishers, agents = turtle(fishers, who=offspring), var = "age", val = 0) # just born so time step 0
+    fishers <- NLset(turtles = fishers, agents = turtle(fishers, who=offspring), var = "repro", val = 0) # just born not yet reproductive
+  }
+  
   return(invisible(sim))
 }
 
