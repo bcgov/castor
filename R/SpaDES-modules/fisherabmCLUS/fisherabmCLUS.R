@@ -402,12 +402,12 @@ Init <- function(sim) {
 # create a function that runs each year to determine the probability of a fisher surviving to the next year
 # also need to kill off any fishers that are over the max age for females (default = 9) or having been dispersing for 2 years
 
-survive_FEMALE <- function(agents=agents, 
-                           surv_estimates,
-                           Fpop="B",
-                           maxAgeFemale=9){
+survive_FEMALE <- function(sim){
   
-  # using 'dummy' tables while working through function
+  # Fpop="C",
+  # female_max_age=9)
+
+  # using 'dummy' tables (only necessary while working through function)
   territories <- data.table(individual_id = rep(seq_len(5),each=5),
                             pixelid = 1:25)
   
@@ -418,37 +418,43 @@ survive_FEMALE <- function(agents=agents,
                        hr_size = rnorm(5, mean=28, sd=14),
                        d2_score = rnorm(5, mean=4, sd=1))
   
+  # pull in survival table (only necessary while working through function)
+  survival_rate_table <- read.csv("R/SpaDES-modules/fisherabmCLUS/data/surv_rate_table_08Aug2022.csv")
+  
   # delete the individuals older than max female age from the agents and territories table
-  agents <- agents %>% filter(age<maxAgeFemale)
+  agents <- agents %>% filter(age<female_max_age) # likley this needs to be written in "spades" P(sim) format
   territories <-territories %>% filter(individual_id %in% agents$individual_id)
   
-  # start here: need to bring in survival data
-  # have age 1 = juvenile, 2+ = adult
-  # cannot die if 0
-  # use rnorm with mean +/- SE to determine if survives
-  # use rbinom with lower = mean - SE, upper = mean + SE?
-  ?log
-  ?rnorm
-  survFishers <- of(agents = fishers, var = c("who","breed","disperse","age")) # "who" of the fishers at start of survival
-  survFishers$Cohort <- toupper(paste0(rep(Fpop,times=nrow(survFishers)),rep("F",times=nrow(survFishers)),survFishers$sex,substr(survFishers$breed,1,1)))
+  # have age 1 = juvenile, 2+ = adult (cannot die if 0)
+  # use rbinom with lower = mean - SE, upper = mean + SE
   
-  survFishers <- as.data.frame(left_join(survFishers,surv_estimates,by=c("Cohort")))
+  # create temp table of fishers that need to survive (i.e., fishers < 1 cannot die)
+  survFishers <- agents %>% filter(age > 0)
+  survFishers <- survFishers %>% mutate(age_class = case_when(age<2 ~ "J", age>=2 ~ "A"))
   
-  survFishers[is.na(survFishers)] <- 0
+  survFishers$Cohort <- toupper(paste0(rep(Fpop,times=nrow(survFishers)),rep("F",times=nrow(survFishers)),survFishers$age_class))
+  survFishers <- left_join(survFishers,survival_rate_table,by=c("Cohort"))
+  
   survFishers$live <- NA
-  
   for(i in 1:nrow(survFishers)){
-    if(survFishers[i,]$age!=0){ # can't kill off juveniles that haven't reached 6 months
-      survFishers[i,]$live <- rbinom(n=1, size=1, prob=survFishers[i,]$SurvLSE:survFishers[i,]$SurvHSE)
-    }
+    survFishers[i,]$live <- rbinom(n=1, size=1, prob=(survFishers[i,]$Mean-survFishers[i,]$SE):round(survFishers[i,]$Mean+survFishers[i,]$SE))
   }
   
-  dieWho <- survFishers %>% filter(live==0) # "who" of fishers which die, based on probability
-  oldF <- survFishers %>% filter(age>maxAgeFemale) # "who" of female fishers who die of 'old age' (i.e., > 9 yrs)
-  dispersing <- survFishers %>% filter(disperse=="D" & age>2) # "who" of dispersing fishers over 2
+  liveFishers <- survFishers %>% filter(live==1) # the fishers who have survived
   
-  fishers <- die(fishers, who=c(dieWho$who, oldF$who, dispersing$who))
-  return(fishers)
+  # delete the individuals who did not survive from the agents table and the territories table
+  agents <- agents %>% filter(individual_id %in% liveFishers$individual_id)
+  territories <-territories %>% filter(individual_id %in% agents$individual_id)
+  
+  # allowing kits to survive even if mothers die as by 1 year kits able to live in territory without mom
+  # need to still deal with juveniles who are dispersing
+  # dispersing <- survFishers %>% filter(disperse=="D" & age>2) # "who" of dispersing fishers over 2
+  
+  # all remaining fishers will age 1 year
+  agents$age <- agents$age +1
+  agents
+  
+  return(invisible(sim))
 }
 
 
