@@ -64,11 +64,12 @@ Run following query in postgres for all years 2002-2019 except 2007 and 2008. 20
 
 Depending on how the file names most recently saved, some changes may need to be made (e.g., ign_mnt versus ign_month).
 
+Data_clim_DEM_roads_wind_frt
+
 ##2002 -2006, 2009-2019
 ################################
 CREATE TABLE fire_veg_2002 AS
-(SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
-  harvest_date, proj_age_1, proj_height_1, live_stand_volume_125, 
+(SELECT feature_id, bclcs_level_1, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5, coast_interior_cd, bec_zone_code, bec_subzone, crown_closure, vri_live_stems_per_ha, vri_dead_stems_per_ha, harvest_date, earliest_nonlogging_dist_type, earliest_nonlogging_dist_date, species_cd_1, species_pct_1, species_cd_2, species_pct_2, species_cd_3, species_pct_3, species_cd_4, species_pct_4, species_cd_5, species_pct_5, species_cd_6, species_pct_6,   proj_age_1, proj_height_1, live_stand_volume_175, stand_percentage_dead, quad_diam_175,
   fire.idno, fire.fire_yr,
   veg_comp_lyr_r1_poly2002.geometry FROM veg_comp_lyr_r1_poly2002,
   (SELECT wkb_geometry, idno, fire_yr
@@ -77,33 +78,46 @@ CREATE TABLE fire_veg_2002 AS
 
 ################################
 
+
+
 ##2007
 ################################
 CREATE TABLE fire_veg_2007 AS
-(SELECT feature_id, bclcs_lv_2, bclcs_lv_3, bclcs_lv_4, bclcs_lv_5,
- upd_htdate, proj_age_1, proj_ht_1, 
- COALESCE(volsp1_125,0)+COALESCE(volsp2_125,0)+COALESCE(volsp3_125,0)+COALESCE(volsp4_125,0)+
- COALESCE(volsp5_125,0) AS live_stand_volume_125,  
+(SELECT feature_id, bclcs_lv_1, bclcs_lv_2, bclcs_lv_3, bclcs_lv_4, bclcs_lv_5, cst_int_cd, cr_closure, live_stems, dead_stems, spec_cd_1, spec_pct_1, spec_cd_2, spec_pct_2, spec_cd_3, spec_pct_3, spec_cd_4, spec_pct_4, spec_cd_5, spec_pct_5, spec_cd_6, spec_pct_6,
+ upd_htdate, proj_age_1, proj_ht_1, q_diam_175, volsp1_175, volsp2_175, volsp3_175, volsp4_175, volsp5_175, volsp6_175,  
   fire.idno, fire.fire_yr,
   veg_comp_lyr_r1_poly2007.geometry FROM veg_comp_lyr_r1_poly2007,
   (SELECT wkb_geometry, idno, fire_yr
    from data_clim_dem_roads_wind_frt where fire_yr = '2007') as fire where st_contains
   (veg_comp_lyr_r1_poly2007.geometry, fire.wkb_geometry))
+  
+  CREATE TABLE fire_veg_2007_2 AS
+(SELECT feature_id, bec_zone_code, bec_subzone, harvest_date, earliest_nonlogging_dist_type,
+ earliest_nonlogging_dist_date, stand_percentage_dead, quad_diam_175,  
+  fire.idno, fire.fire_yr,
+  veg_comp_lyr_r1_poly2006.geometry FROM veg_comp_lyr_r1_poly2006,
+  (SELECT wkb_geometry, idno, fire_yr
+   from data_clim_dem_roads_wind_frt where fire_yr = '2007') as fire where st_contains
+  (veg_comp_lyr_r1_poly2006.geometry, fire.wkb_geometry))
 ##################################
 
 ##2008
 ##################################
 CREATE TABLE fire_veg_2008 AS
-(SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
-   harvest_date, proj_age_1, proj_height_1, COALESCE(vol_per_ha_spp1_125,0)+
-     COALESCE(vol_per_ha_spp2_125,0)+COALESCE(vol_per_ha_spp3_125,0)+COALESCE(vol_per_ha_spp4_125,0)
-   +COALESCE(vol_per_ha_spp5_125,0)+COALESCE(vol_per_ha_spp6_125,0) AS live_stand_volume_125,
+(SELECT feature_id, bclcs_level_1, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5, coast_interior_cd, bec_zone_code, crown_closure, vri_live_stems_per_ha, vri_dead_stems_per_ha, harvest_date, earliest_nonlogging_dist_type, earliest_nonlogging_dist_date, species_cd_1, species_pct_1, species_cd_2, species_pct_2, species_cd_3, species_pct_3, species_cd_4, species_pct_4, species_cd_5, species_pct_5, species_cd_6, species_pct_6,   proj_age_1, proj_height_1, vol_per_ha_spp1_175, vol_per_ha_spp2_175, vol_per_ha_spp3_175, vol_per_ha_spp4_175, vol_per_ha_spp5_175, vol_per_ha_spp6_175, quad_diam_175,
   fire.idno, fire.fire_yr,
   veg_comp_lyr_r1_poly2008.geometry FROM veg_comp_lyr_r1_poly2008,
   (SELECT wkb_geometry, idno, fire_yr
    from data_clim_dem_roads_wind_frt where fire_yr = '2008') as fire where st_contains
-  (veg_comp_lyr_r1_poly2008.geometry, fire.wkb_geometry))
-  ################################
+  (veg_comp_lyr_r1_poly2008.geometry, fire.wkb_geometry))  
+  
+CREATE TABLE fire_veg_2008_2 AS
+(SELECT bec_subzone, stand_percentage_dead,
+  fire.idno, fire.fire_yr,
+  veg_comp_lyr_r1_poly2009.geometry FROM veg_comp_lyr_r1_poly2009,
+  (SELECT wkb_geometry, idno, fire_yr
+   from data_clim_dem_roads_wind_frt where fire_yr = '2008') as fire where st_contains
+  (veg_comp_lyr_r1_poly2009.geometry, fire.wkb_geometry))  ################################
 
 
 
@@ -118,17 +132,6 @@ bclcs_level_4: Classifies the vegetation types and non-vegetated cover types (as
     # upon the land base within the polygon).
 bclcs_level_5: Classifies the vegetation density classes and Non-Vegetated categories.
 
-# note that the VRI for 2008 does not have live_stand_volume so I (Liz) also tried to extract it from the 2009 VRI and put it in here -  assuming that a year would not make much difference to volume. Below is the code i used to try and do this (but note this does not seem to work.... )
-### July 2021, when ran, there already is a column for live_stand_volume_125, so this may not be necessary
-
-#ALTER TABLE fire_veg_2008
-#ADD COLUMN live_stand_volume_125 double precision;
-
-# INSERT INTO fire_veg_2008
-# SELECT live_stand_volume_125
-# FROM veg_comp_lyr_r1_poly2009,
-# (SELECT wkb_geometry from Data_ignite_AllMonths where fire_yr = '2008') as fire where st_contains
-# (veg_comp_lyr_r1_poly2009.geometry, fire.wkb_geometry)
 
 
 # Another problem is that fire_veg_2011 has a geometry column that is type MultiPolygonZ instead of MultiPolygon so this needs to be changed with the following query in postgres
@@ -194,8 +197,14 @@ fire_veg_2006 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2006")
 fire_veg_2007 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2007")
+fire_veg_2007_2 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2007_2")
+
 fire_veg_2008 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2008")
+fire_veg_2008_2 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2008_2")
+
 fire_veg_2009 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2009")
 fire_veg_2010 <- sf::st_read  (dsn = conn, # connKyle
@@ -231,25 +240,81 @@ dbDisconnect (conn) # connKyle
 We need to update naming conventions from the 2007 and 2008 data given that it is different in those VRI files than for other years.
 
 ```{r}
-# REMEMBER TO CHANGE THE 0 values in the 2007 and 2008 fire_veg datasets for volume to NULL.
+# Change a number of things for 2007 data
 
-# the VRI for 2007 had harvest_date named upd_htdate and proj_height_1, proj_height_2 as proj_ht_1, proj_ht_2. So I need to be renamed these columns
-#fire_veg_2007$harvest_date <- NA
-names(fire_veg_2007)
-names(fire_veg_2002)
-fire_veg_2007<- fire_veg_2007 %>% rename(
+fire_veg_2007_2<-st_drop_geometry(fire_veg_2007_2)
+fire_veg_2007_2 <- fire_veg_2007_2 %>% dplyr::select(bec_zone_code:bec_subzone, earliest_nonlogging_dist_type:stand_percentage_dead, idno)
+
+fire_veg_2007a<-left_join(fire_veg_2007, fire_veg_2007_2, by="idno")
+dim(fire_veg_2007)
+dim(fire_veg_2007a)
+fire_veg_2007a[duplicated(fire_veg_2007a$idno),]
+fire_veg_2007a %>% filter(idno==165838)
+fire_veg_2007a %>% filter(idno==171634)
+fire_veg_2007a %>% filter(idno==169733) # good looks like the duplicated records are the same.
+
+fire_veg_2007b<-fire_veg_2007a[!duplicated(fire_veg_2007a$idno),] # remove duplicated idno records
+
+dim(fire_veg_2007b)
+fire_veg_2007<- fire_veg_2007b %>% rename(
+  bclcs_level_1=bclcs_lv_1,
   bclcs_level_2=bclcs_lv_2,
   bclcs_level_3=bclcs_lv_3,
   bclcs_level_4=bclcs_lv_4,
   bclcs_level_5=bclcs_lv_5,
   proj_height_1=proj_ht_1, 
-  harvest_date=upd_htdate)
+  harvest_date=upd_htdate,
+  species_cd_1=spec_cd_1,
+  species_cd_2=spec_cd_2,
+  species_cd_3=spec_cd_3,
+  species_cd_4=spec_cd_4,
+  species_cd_5=spec_cd_5,
+  species_cd_6=spec_cd_6,
+  species_pct_1=spec_pct_1,
+  species_pct_2=spec_pct_2,
+  species_pct_3=spec_pct_3,
+  species_pct_4=spec_pct_4,
+  species_pct_5=spec_pct_5,
+  species_pct_6=spec_pct_6,
+  quad_diam_175=q_diam_175,
+  coast_interior_cd=cst_int_cd,
+  crown_closure=cr_closure,
+  vri_live_stems_per_ha=live_stems,
+  vri_dead_stems_per_ha=dead_stems)
+
+fire_veg_2007<- fire_veg_2007 %>% 
+  rowwise() %>%
+  mutate(live_stand_volume_175 = sum(c_across(volsp1_175:volsp6_175), na.rm = TRUE))
+
+fire_veg_2007$live_stand_volume_175<- ifelse(is.na(fire_veg_2007$volsp1_175) & is.na(fire_veg_2007$volsp2_175), NA, fire_veg_2007$live_stand_volume_175)
+
+fire_veg_2007c<-fire_veg_2007 %>% dplyr::select(feature_id:quad_diam_175, idno:live_stand_volume_175)
+
+dim(fire_veg_2007c)
+
+```
+
+Join data for 2008 and calculate live stand volume
+```{r}
+fire_veg_2008_2<-st_drop_geometry(fire_veg_2008_2)
+fire_veg_2008_2 <- fire_veg_2008_2 %>% dplyr::select(bec_subzone:idno)
+
+fire_veg_2008a<-left_join(fire_veg_2008, fire_veg_2008_2, by="idno")
+dim(fire_veg_2008)
+dim(fire_veg_2008a)
+
+fire_veg_2008a<- fire_veg_2008a %>% 
+  rowwise() %>%
+  mutate(live_stand_volume_175 = sum(c_across(vol_per_ha_spp1_175:vol_per_ha_spp6_175), na.rm = TRUE))
+
+fire_veg_2008a$live_stand_volume_175<- ifelse(is.na(fire_veg_2008a$vol_per_ha_spp1_175) & is.na(fire_veg_2008a$vol_per_ha_spp2_175), NA, fire_veg_2008a$live_stand_volume_175)
+
+fire_veg_2008b <- fire_veg_2008a %>% dplyr::select(feature_id:proj_height_1, quad_diam_175:live_stand_volume_175)
+
+dim(fire_veg_2008b)
+dim(fire_veg_2002)
 
 
-# change the 0 values in live_stand_volume_125 to NULL for both 2007 and 2008 data
-
-fire_veg_2007$live_stand_volume_125[fire_veg_2007$live_stand_volume_125 == 0] <- NA
-fire_veg_2008$live_stand_volume_125[fire_veg_2008$live_stand_volume_125 == 0] <- NA
 
 ```
 
@@ -258,15 +323,15 @@ Now we must combine all of the files together into one.
 ```{r}
 #Check all have same number columns
 names(fire_veg_2002)
-names(fire_veg_2007)
-names(fire_veg_2008)
+names(fire_veg_2007c)
+names(fire_veg_2008b)
 names(fire_veg_2020)
 
 #fire_veg_2020<-fire_veg_2002[-c(74),]??
 
 
 # join all fire_veg datasets together. This function is faster than a list of rbinds
-filenames3<- c("fire_veg_2002", "fire_veg_2003", "fire_veg_2004","fire_veg_2005", "fire_veg_2006", "fire_veg_2007","fire_veg_2008", "fire_veg_2009", "fire_veg_2010","fire_veg_2011", "fire_veg_2012", "fire_veg_2013","fire_veg_2014", "fire_veg_2015", "fire_veg_2016","fire_veg_2017", "fire_veg_2018", "fire_veg_2019", "fire_veg_2020", "fire_veg_2021")
+filenames3<- c("fire_veg_2002", "fire_veg_2003", "fire_veg_2004","fire_veg_2005", "fire_veg_2006", "fire_veg_2007c","fire_veg_2008b", "fire_veg_2009", "fire_veg_2010","fire_veg_2011", "fire_veg_2012", "fire_veg_2013","fire_veg_2014", "fire_veg_2015", "fire_veg_2016","fire_veg_2017", "fire_veg_2018", "fire_veg_2019", "fire_veg_2020", "fire_veg_2021")
 filenames3
 
 mkFrameList <- function(nfiles) {
@@ -279,14 +344,36 @@ mkFrameList <- function(nfiles) {
 n<-length(filenames3)
 fire_veg_data_B<-mkFrameList(n)
 
-dim(fire_veg_data_B) #193773
+dim(fire_veg_data_B) #508506
+
+### hmm comparing dim(sample_locations_DEM_roads_wind2) to the above I see that 25606 points got lost somewhere. why?
 
 sample_locations_DEM_roads_wind2<- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_wind_frt.shp")
-dim(sample_locations_DEM_roads_wind2) # 200298 # When I sample vegetaion from the VRI I seem to loose around 4% of the points. Not sure what to do about this.
+dim(sample_locations_DEM_roads_wind2) # 534112 # When I sample vegetaion from the VRI I seem to loose around 4% of the points. Not sure what to do about this.
 
-dim(sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2002))
-dim(fire_veg_2002)
+dim(sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2021))
+dim(fire_veg_2021)
 
+# 2002 -> 28256 to 27301
+# 2003 -> 39200 to 38158
+# 2004 -> 37840 to 36732
+# 2005 -> 15328 to 15321
+# 2006 -> 40544 to 40551 # thats weird this one increased. Maybe a duplicate. should double check
+# 2007 -> 25488 to 25484
+# 2008 -> 32080 to 23488 # this one is bad!
+# 2009 -> 48736 to 48732
+# 2010 -> 26448 to 26441
+# 2011 -> 10244 to 10220
+# 2012 -> 26048 to 20329 bad! 
+# 2013 -> 29536 to 29518
+# 2014 -> 23536 to 23534
+# 2015 -> 29632 to 29629
+# 2016 -> 16592 to 16590
+# 2017 -> 21424 to 21423
+# 2018 -> 33520 to 33519
+# 2019 -> 12816 to 12815
+# 2020 -> 10608 to 2468 REALLY BAD!!
+# 2021 -> 26256 to 26253
 ## lots of data from 2008 getting lost when we extract vegetaion from the VRI (3206 locations in total out of 12030)
 #2012 also seem to loose a lot around 2159 points.
 

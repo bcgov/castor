@@ -310,6 +310,7 @@ updateRoadsTable <- function(sim){
     rs<-dbSendQuery(sim$clusdb, 'UPDATE pixels SET roadstatus = :roadstatus WHERE pixelid = :pixelid', roadUpdateAll )
     dbClearResult(rs)
     dbCommit(sim$clusdb)
+    
   }
   
   sim$paths.v<-NULL
@@ -396,7 +397,7 @@ setGraph<- function(sim){
  
   
   sim$g<-cppRouting::makegraph(edges.weight,directed=F) 
-  sim$g<-cppRouting::cpp_simplify(sim$g) #KISS
+  #sim$g<-cppRouting::cpp_simplify(sim$g) #Removed nodes of interest see Issue #348
   
   graph.df<-cppRouting::to_df(sim$g)
   
@@ -642,8 +643,10 @@ preSolve<-function(sim){
   message("Pre-solving the roads")
   if(exists("histLandings", where = sim)){
     message("...using historical landings")
-    targets <- unique(as.character(cellFromXY(sim$ras, SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
-                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0")) )))
+    targets <- unique(c(as.character(cellFromXY(sim$ras, SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0")) )), 
+                      dbGetQuery(sim$clusdb, "SELECT landing FROM blocks WHERE landing NOT IN ( SELECT pixelid FROM pixels WHERE roadtype = 0)")$landing)) #Remove landings on permanent roads
+
   }else{
     #TODO: get the centroid instead of the maximum pixelid? This may involve having to convert to vector?
     targets <- unique(dbGetQuery(sim$clusdb, "SELECT landing FROM blocks WHERE landing NOT IN ( SELECT pixelid FROM pixels WHERE roadtype = 0)")$landing) #Remove landings on permanent roads
@@ -686,11 +689,13 @@ getRoadSegment<-function(sim){
   targets<-cellFromXY(sim$ras, sim$landings) #This should be pixelid not XY as used in other roading methods
   sim$roadSegs<-unique(as.numeric(unlist(strsplit(sim$roadslist[landing %in% targets, ]$road, ","))))
   alreadyRoaded<-dbGetQuery(sim$clusdb, paste0("SELECT pixelid from pixels where roadyear IS NOT NULL and pixelid in (",paste(sim$roadSegs, collapse = ", "),")"))
+  
   sim$paths.v<-sim$roadSegs[!(sim$roadSegs[] %in% alreadyRoaded$pixelid)]
   
   #update the raster
   sim$road.year[sim$ras[] %in% sim$paths.v] <- time(sim)*sim$updateInterval
   sim$road.status[sim$ras[] %in% sim$roadSegs] <- time(sim)*sim$updateInterval
+  
   return(invisible(sim)) 
 }
 

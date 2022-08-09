@@ -289,7 +289,7 @@ sample_locations_DEM_roads$road_dist_m<-sample_locations_DEM_roads$road_dist*100
 
 crs(sample_locations_DEM_roads)
 # remove extra lat long columns
-sample_locations_DEM_roads<-sample_locations_DEM_roads %>% select(id:dm_h_bc, Tmax02:geometry )
+sample_locations_DEM_roads<-sample_locations_DEM_roads %>% dplyr::select(id:dem_ha_bc, Tmax02:geometry )
 
 st_write(sample_locations_DEM_roads, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\DC_data_DEM_roads.shp", delete_layer=TRUE)
 
