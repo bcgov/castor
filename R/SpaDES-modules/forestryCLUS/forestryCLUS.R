@@ -423,9 +423,8 @@ getHarvestQueue <- function(sim) {
   sim$harvestPixelList <- data.table()
   land_pixels <- data.table()
   
-  #Right now its looping by compartment -- So far it will be serializable at the aoi level then
+  #Right now its looping by compartment -- it will be serializable at the aoi level then
   for(compart in sim$compartment_list){
-   # harvestTarget<-sim$harvestFlow[compartment == compart,]$flow[time(sim)]
      harvestTarget<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$flow
      harvestType<-sim$harvestFlow[compartment == compart & period == time(sim) & flow > 0,]$partition_type
   
@@ -437,7 +436,7 @@ getHarvestQueue <- function(sim) {
         partition_sql<-paste(sim$harvestFlow[compartment==compart & period == time(sim) & flow > 0,]$partition, sep = " ", collapse = " OR ")
         partition_case<-paste0(", ", paste(apply(cbind(1:length(harvestTarget), partition_raw), 1, FUN=function(x){paste0("(CASE WHEN ", x[2], " THEN 1 ELSE 0 END) as part",x[1])}) , sep = "", collapse = ", "))
       }else{
-        partition_sql<<-sim$harvestFlow[compartment==compart & period == time(sim),]$partition
+        partition_sql<-sim$harvestFlow[compartment==compart & period == time(sim),]$partition
         partition_case<-""
       }
       
@@ -446,7 +445,7 @@ getHarvestQueue <- function(sim) {
         message(paste0("Using zone priority: ",P(sim, "harvestZonePriority","forestryCLUS") ))
         name.zone.priority<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column from zone where reference_zone = '", P(sim, "nameZonePriorityRaster", "dataLoaderCLUS"),"'"))$zone_column
         
-        sql<-paste0("SELECT pixelid, p.blockid, compartid, yieldid, height, elv, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h, (thlb*salvage_vol) as salvage_vol ", partition_case, " 
+        sql<-paste0("SELECT pixelid, p.blockid, compartid, yieldid, height, elv, dist, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h, (thlb*salvage_vol) as salvage_vol ", partition_case, " 
 FROM pixels p
 INNER JOIN 
 (SELECT blockid, ROW_NUMBER() OVER ( 
@@ -463,7 +462,7 @@ ORDER by zone_rank, block_rank, ", P(sim, "harvestBlockPriority", "forestryCLUS"
       }else{
         message("Using block priority")
         
-        sql<-paste0("SELECT pixelid, p.blockid as blockid, compartid, yieldid, height, elv, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h, (thlb*salvage_vol) as salvage_vol ", partition_case, "
+        sql<-paste0("SELECT pixelid, p.blockid as blockid, compartid, yieldid, height, elv, dist, (age*thlb) as age_h, thlb, (thlb*vol) as vol_h, (thlb*salvage_vol) as salvage_vol ", partition_case, "
 FROM pixels p
 INNER JOIN 
 (SELECT blockid, ROW_NUMBER() OVER ( 
@@ -627,62 +626,6 @@ reportConstraints<- function(sim) {
   return(invisible(sim))
 }
 
-#DEPRECATED----------------------------
-#reportConstraints<- function(sim) {
-  #TODO: duplicate constraints see zoneid 319 in rast.zone_cond_cw zone7 eca
-#  if(P(sim, "forestryCLUS", "reportHarvestConstraints")){
-#    message("....reporting harvesting constraints")
-#    zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone")
-#    
-#    for(i in 1:nrow(zones)){ #for each of the specified zone rasters
-#      numConstraints<-dbGetQuery(sim$clusdb, paste0("SELECT DISTINCT variable, type FROM zoneConstraints WHERE
-#                                 zone_column = '",  zones[[1]][i] ,"' AND type IN ('ge', 'le')"))
-#      
-#      if(nrow(numConstraints) > 0){
-#        for(k in 1:nrow(numConstraints)){
-#          query_parms<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT t_area, type, zoneid, variable, reference_zone, zone_column, percentage, threshold, multi_condition
-#                                                          FROM zoneConstraints WHERE zone_column = '", zones[[1]][i],"' AND variable = '", 
-#                                                                numConstraints[[1]][k],"' AND type = '",numConstraints[[2]][k] ,"';")))
-#          switch(
-#            as.character(query_parms[1, "type"]),
-#            ge = {
-#              if(!is.na(query_parms[1, "multi_condition"])){
-#                sql<- paste0("INSERT INTO zoneManagement SELECT :zoneid as zoneid, :reference_zone as reference_zone, :zone_column as zone_column, :variable as variable, :threshold as threshold, :type as type, :percentage as percentage, :multi_condition as multi_condition, :t_area as t_area, 
-#                           avg(case when ", as.character(query_parms[1, "multi_condition"])  ," then 1 else 0 end)*100 as percent, ", as.integer(time(sim)) ," as timeperiod  from pixels where ",zones[[1]][i], " = :zoneid")
-#              }else{
-#                sql<- paste0("INSERT INTO zoneManagement SELECT :zoneid as zoneid, :reference_zone as reference_zone, :zone_column as zone_column, :variable as variable, :threshold as threshold, :type as type, :percentage as percentage, :multi_condition as multi_condition, :t_area as t_area, 
-#                           avg(case when ", numConstraints[[1]][k]  ," > :threshold then 1 else 0 end)*100 as percent, ", as.integer(time(sim)) ," as timeperiod  from pixels where ",zones[[1]][i], " = :zoneid")
-#              }
-#              
-#            },
-#            le = {
-#              if(!is.na(query_parms[1, "multi_condition"])){
-#                sql<- paste0("INSERT INTO zoneManagement SELECT :zoneid as zoneid, :reference_zone as reference_zone, :zone_column as zone_column, :variable as variable, :threshold as threshold, :type as type, :percentage as percentage, :multi_condition as multi_condition, :t_area as t_area, 
-#                           avg(case when ", as.character(query_parms[1, "multi_condition"])  ," then 1 else 0 end)*100 as percent, ", as.integer(time(sim)) ," as timeperiod  from pixels where ",zones[[1]][i], " = :zoneid")
-#              }else{
-#                sql<- paste0("INSERT INTO zoneManagement SELECT :zoneid as zoneid, :reference_zone as reference_zone, :zone_column as zone_column, :variable as variable, :threshold as threshold, :type as type, :percentage as percentage, :multi_condition as multi_condition, :t_area as t_area, 
-#                           (avg(case when ", numConstraints[[1]][k]  ," <= :threshold then 1 else 0 end)/ avg(case when ", zones[[1]][i]  ," = :zoneid then 1 else 0 end))*100 as percent, ", as.integer(time(sim)) ," as timeperiod  from pixels where ",zones[[1]][i]," = :zoneid")
-#              }
-#            }
-#          )
-#          
-#          dbBegin(sim$clusdb)
-#          rs<-dbSendQuery(sim$clusdb, sql, query_parms[,c("zoneid", "reference_zone", "zone_column", "variable", "threshold", "type", "percentage", "multi_condition", "t_area")])
-#          dbClearResult(rs)
-#          dbCommit(sim$clusdb)
-#          #test<<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement"))
-#          #stop()
-#          
-#          sim$zoneManagement<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement"))
-#          #zoneManagement<<-dbGetQuery(sim$clusdb, "SELECT * FROM zoneManagement")
-#
-#          
-#        }
-#      }
-#    }
-#  }
-#  return(invisible(sim))
-#}
 
 updateZonePriorityTable<-function(sim) {
   dbExecute(sim$clusdb, "DROP TABLE zonePriority")
