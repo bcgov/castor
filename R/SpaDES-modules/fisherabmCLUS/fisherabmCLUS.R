@@ -72,13 +72,21 @@ defineModule(sim, list(
                            "Decided to go with SE rather than SD as confidence intervals are quite wide and stochasticity would likely drive populations to extinction. Keeping consistent with Rory Fogarty's population analysis decisions.")),
     defineParameter("d2_reproduction_adj", "function", NA, NA, NA,
                     "Function relating habitat quality to reproductive rate."),
-    defineParameter("repro_rate_table", "function", NA, NA, NA,
+    defineParameter("repro_rate_table", "character", NA, NA, NA,
                     paste0("Table of fisher reproductive rates (i.e., denning rate = a combination of pregnancy rate and birth rate; and litter size = number of kits) by population, taken from Lofroth et al 2022 JWM vital rates manuscript",
                            "Table with the following headers:",
                            "Fpop: the two populations in BC: Boreal, Coumbian",
                            "Param: the reproductive parameter: DR (denning rate), LS (litter size)",
                            "Mean: mean reproductive rate per parameter and population",
-                           "SD: standard deviation of the mean reproductive rate per parameter and population")),
+                           "SD: reproductive rate standard deviation value per parameter and population")),
+    defineParameter("mahal_metric_table", "character", NA, NA, NA,
+                    paste0("Table of mahalanobis D2 values based on Fisher Habitat Extension zones, provided by Rich Weir summer 2022",
+                           "Table with the following headers:",
+                           "FHE_zone: the four fisher habitat extension zones: Boreal, Sub-Boreal moist, Sub-Boreal dry, Dry Forest",
+                           "FHE_zone_num: the corresponding FHE_zone number: Boreal = 1, Sub-Boreal moist = 2, Sub-Boreal Dry = 3, Dry Forest = 4",
+                           "Mean: mean mahalanobis D2 value per FHE zone",
+                           "SD: mahalanobis D2 standard deviation value per FHE zone",
+                           "Max: maximum mahalanobis D2 value per FHE zone")),
     defineParameter("sex_ratio", "numeric", 0.5, 0, 1,
                     "The ratio of females to males in a litter."),
     defineParameter("max_female_dispersal_dist", "numeric", 10, 1, 100,
@@ -469,18 +477,18 @@ Init <- function(sim) {
 survive_FEMALE <- function(sim){
   
   # Fpop="C",
-  # female_max_age=9)
+  # female_max_age=9
 
   # using 'dummy' tables (only necessary while working through function)
-  territories <- data.table(individual_id = rep(seq_len(5),each=5),
-                            pixelid = 1:25)
-  
-  agents <- data.table(individual_id = 1:5,
-                       sex = "F",
-                       age = sample(2:8, 5, replace=T),
-                       pixelid = c(1,6,11,16,21),
-                       hr_size = rnorm(5, mean=28, sd=14),
-                       d2_score = rnorm(5, mean=4, sd=1))
+  # territories <- data.table(individual_id = rep(seq_len(5),each=5),
+  #                           pixelid = 1:25)
+  # 
+  # agents <- data.table(individual_id = 1:5,
+  #                      sex = "F",
+  #                      age = sample(2:8, 5, replace=T),
+  #                      pixelid = c(1,6,11,16,21),
+  #                      hr_size = rnorm(5, mean=28, sd=14),
+  #                      d2_score = rnorm(5, mean=4, sd=1))
   
   # pull in survival table (only necessary while working through function)
   survival_rate_table <- read.csv("R/SpaDES-modules/fisherabmCLUS/data/surv_rate_table_08Aug2022.csv")
@@ -493,6 +501,8 @@ survive_FEMALE <- function(sim){
   # use rbinom with lower = mean - SE, upper = mean + SE
   
   # create temp table of fishers that need to survive (i.e., fishers < 1 cannot die)
+  yoyFishers <- agents %>% filter(age==0) # young of year fishers - need this later to rbind with new agents table
+  
   survFishers <- agents %>% filter(age > 0)
   survFishers <- survFishers %>% mutate(age_class = case_when(age<2 ~ "J", age>=2 ~ "A"))
   
@@ -520,15 +530,16 @@ survive_FEMALE <- function(sim){
   
   # delete the individuals who did not survive from the agents table and the territories table
   agents <- agents %>% filter(individual_id %in% liveFishers$individual_id)
+  agents <- rbind(agents, yoyFishers)
   territories <-territories %>% filter(individual_id %in% agents$individual_id)
   
   # allowing kits to survive even if mothers die as by 1 year kits able to live in territory without mom
   # need to still deal with juveniles who are dispersing
-  # dispersing <- survFishers %>% filter(disperse=="D" & age>2) # "who" of dispersing fishers over 2
+  old.dispersers <- agents %>% filter(!individual_id %in% territories$individual_id & age > 1) # fishers > 2 who aren't established
+  agents <- agents %>% filter(!individual_id %in% old.dispersers$individual_id)
   
   # all remaining fishers will age 1 year
   agents$age <- agents$age +1
-  agents
   
   return(invisible(sim))
 }
@@ -538,49 +549,88 @@ survive_FEMALE <- function(sim){
 repro_FEMALE <- function(sim) {
   
   # Fpop="B",
-  # female_max_age=9)
-  
+  # FHE = "Boreal" # this will come in from raster pixel that corresponds to the pixelid for each individual
   # using 'dummy' tables (only necessary while working through function)
-  territories <- data.table(individual_id = rep(seq_len(5),each=5),
-                            pixelid = 1:25)
-  
-  agents <- data.table(individual_id = 1:5,
-                       sex = "F",
-                       age = sample(2:8, 5, replace=T),
-                       pixelid = c(1,6,11,16,21),
-                       hr_size = rnorm(5, mean=28, sd=14),
-                       d2_score = rnorm(5, mean=4, sd=1))
+  # territories <- data.table(individual_id = rep(seq_len(5),each=5),
+  #                           pixelid = 1:25)
+  # 
+  # agents <- data.table(individual_id = 1:5,
+  #                      sex = "F",
+  #                      age = sample(2:8, 5, replace=T),
+  #                      pixelid = c(1,6,11,16,21),
+  #                      hr_size = rnorm(5, mean=28, sd=14),
+  #                      d2_score = rnorm(5, mean=4, sd=1))
   
   # pull in survival table (only necessary while working through function)
   repro_rate_table <- read.csv("R/SpaDES-modules/fisherabmCLUS/data/repro_rate_table_08Aug2022.csv")
+  mahal_metric_table <- read.csv("R/SpaDES-modules/fisherabmCLUS/data/mahal_metric_09Aug2022.csv")
+  female_hr_table <- read.csv("R/SpaDES-modules/fisherabmCLUS/data/Fisher_HR_mean_sd_km_08Aug2022.csv")
   
-  reproFishers <- agents %>% filter(age > 1) # female fishers capable of reproducing
-  
-  denCI <- repro_estimates %>% dplyr::filter(str_detect(Pop,Fpop)) %>% dplyr::filter(str_detect(Param,"CI")) %>% dplyr::select(dr)
-  repro <- rbinom(n = length(whoAFFishers), size=1, prob=min(denCI):max(denCI)) # prob can be a range - use confidence intervals
-  fishers <- NLset(turtles = fishers, agents = turtle(fishers, who=whoAFFishers), var = "repro", val = repro)
-  
-  # Random selection for which adult females reproduce, based on denning mean and SD (Central Interior)
-  whoFishers <- as.data.frame(of(agents = fishers, var = c("who","repro"))) # "who" of the fishers before they reproduce
-  reproWho <- whoFishers[whoFishers$repro==1,]$who # "who" of fishers which reproduce
-  
-  ltrM=repro_estimates[repro_estimates$Pop==Fpop & repro_estimates$Param=="mean",]$ls
-  ltrSD=repro_estimates[repro_estimates$Pop==Fpop & repro_estimates$Param=="sd",]$ls
-  
-  # if there is at least one fisher reproducing
-  # have those fishers have offspring, based on the mean and sd of empirical data
-  if (length(reproWho) > 0) {
-    fishers <- hatch(turtles = fishers, who = reproWho, n=round(rnorm(n=1, mean=ltrM, sd=ltrSD)/2),breed="juvenile") # litter size based on empirical data (divided by 2 for female only model)
+  CI_from_meanSDn <- function(mean=mean, sd=sd, n=n, alpha=0.05){
+    sample.mean <- mean
+    # print(sample.mean)
     
-    # assign all of the offsprig as dispersing, change repro and age values to reflect newborn kits rather than their moms
-    allFishers <- of(agents=fishers, var="who")
-    offspring <- allFishers[!(allFishers %in% whoFishers$who)]
+    sample.n <- n
+    sample.sd <- sd
+    sample.se <- sample.sd/sqrt(sample.n)
+    # print(sample.se)
     
-    fishers <- NLset(turtles = fishers, agents = turtle(fishers, who=offspring), var = "disperse", val = "D")
-    fishers <- NLset(turtles = fishers, agents = turtle(fishers, who=offspring), var = "age", val = 0) # just born so time step 0
-    fishers <- NLset(turtles = fishers, agents = turtle(fishers, who=offspring), var = "repro", val = 0) # just born not yet reproductive
+    alpha <- alpha
+    degrees.freedom = sample.n - 1
+    t.score = qt(p=alpha/2, df=degrees.freedom,lower.tail=F)
+    # print(t.score)
+    
+    margin.error <- t.score * sample.se
+    lower.bound <- sample.mean - margin.error
+    upper.bound <- sample.mean + margin.error
+    # print(c(lower.bound,upper.bound))
+    
+    return(c(lower.bound, upper.bound))
   }
   
+  fisher.pop = Fpop # work around to deal with different usage of Fpop (full name or initial)
+  
+  # determine which individuals will reproduce this year
+  reproFishers <- agents %>% filter(age > 1) # female fishers capable of reproducing
+  
+  if (length(reproFishers) > 0) {
+    
+    
+    # assign each female fisher 1 = reproduce or 0 = does not reproduce
+    DR <- repro_rate_table %>% dplyr::filter(str_detect(Fpop, fisher.pop)) %>% dplyr::filter(str_detect(Param,"DR"))
+    DR_CIs <- CI_from_meanSDn(mean=DR$Mean, sd=DR$SD, n=DR$n)
+    
+    reproFishers$reproduce <- rbinom(n = nrow(reproFishers), size = 1, prob = DR_CIs)
+    
+    # for those fishers who are reproducing, assign litter size
+    reproFishers <- reproFishers %>% filter(reproduce==1)
+    LS <- repro_rate_table %>% dplyr::filter(str_detect(Fpop, fisher.pop)) %>% dplyr::filter(str_detect(Param,"LS"))
+    reproFishers$num.kits <- rnorm(n=nrow(reproFishers), mean=LS$Mean, sd=LS$SD)
+    
+    # revise number of kits based on habitat quality within FHE zone, remove males and round up (whole number to make sense, give young a chance)
+    mahal_score <- mahal_metric_table %>% filter(FHE_zone==FHE) 
+    # need to check with fisher team if these habitat qualifiers make sense
+    reproFishers <- reproFishers %>% mutate(num.kits = case_when(d2_score < mahal_score$Mean ~ ceiling(num.kits/2),
+                                                                 d2_score < (mahal_score$Mean + mahal_score$SD) ~ ceiling((num.kits*0.75)/2),
+                                                                 d2_score <= mahal_score$Max ~ ceiling((num.kits*0.50)/2),
+                                                                 d2_score > mahal_score$Max ~ num.kits*0))
+    
+    female_hr_size <- female_hr_table %>% filter(FHE_zone==FHE)
+    
+    for(i in 1:nrow(reproFishers)){
+      tmp_juv <- reproFishers[rep(i, reproFishers[i,]$num.kits)]
+      tmp_juv$individual_id <- seq(from=max(agents$individual_id+1), 
+                                   to=max(agents$individual_id+reproFishers[i,]$num.kits), by=1)
+      tmp_juv$age <- 0
+      tmp_juv$hr_size = rnorm(reproFishers[i,]$num.kits, female_hr_size$Mean_Area_km2, female_hr_size$SD_Area_km2 )
+      tmp_juv$d2_score <- NA
+      
+      agents <- rbind(agents, tmp_juv %>% dplyr::select(-reproduce, -num.kits)) 
+      
+      # no update to the territories table because juveniles have not yet established a territory
+    }
+  }
+ 
   return(invisible(sim))
 }
 
