@@ -25,6 +25,7 @@ library(bcdata)
 require (dplyr)
 require (RPostgreSQL)
 require (rpostgis)
+library(ggplot2)
 
 library(keyring)
 
@@ -98,8 +99,7 @@ st_crs(bc.bnd)
 # Clip NDT here
 ndt_clipped<-st_intersection(bc.bnd, NDT)
 #plot(st_geometry(ndt_clipped), col=sf.colors(10,categorical=TRUE))
-length(unique(ndt_clipped$Cluster))
-ndt_sf<-st_as_sf(ndt_clipped)
+ndt_sf<-st_as_sf(NDT)
 
 #Clip FRT here
 frt_clipped<-st_intersection(bc.bnd, frt)
@@ -107,7 +107,7 @@ frt_clipped<-st_intersection(bc.bnd, frt)
 length(unique(frt_clipped$Cluster))
 frt_sf<-st_as_sf(frt_clipped)
 
-st_write(frt_sf, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\frt_clipped.shp", delete_dsn = TRUE)
+st_write(frt_sf, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\frt_clipped.shp", delete_dsn = TRUE)
 
 plot(frt_clipped)
 
@@ -120,9 +120,6 @@ fire.ignition.clipped<-ignit[bc.bnd,] # making sure all fire ignitions have coor
 table(ignit$FIRE_YEAR)
 table(fire.ignition.clipped$FIRE_YEAR) #We have lost a few but its not that many.
 
-fire.ignition.clipped <-fire.ignition.clipped %>% select(id: ig_mnth) # had to remove the column FIRE_CAUSE2 because st_write only takes the first 10 leters of a columns name and if that results in two columns having the same name it causes problems.
-
-
 fire.ignition_sf<-st_as_sf(fire.ignition.clipped) #convert to sf object
 st_crs(fire.ignition_sf)
 table(fire.ignition_sf$FIRE_YEAR)
@@ -132,10 +129,12 @@ table(fire.ignition_sf$FIRE_YEAR)
 # ST_Intersects is a function that takes two geometries and returns true if any part of those geometries is shared between the 2
 
 fire.ignt.frt <- st_join(fire.ignition_sf, frt_sf)
-fire.ignt.frt <- fire.ignt.frt %>% select(id:ig_mnth, PRNAME, Cluster)
+fire.ignt.frt <- fire.ignt.frt %>% dplyr::select(id:ig_mnth, PRNAME, Cluster)
 fire.igni.frt.ndt<- st_join(fire.ignt.frt, ndt_sf)
 
 table(fire.igni.frt.ndt$FIRE_YEAR, fire.igni.frt.ndt$Cluster)
+table(fire.igni.frt.ndt$FIRE_YEAR, fire.igni.frt.ndt$natural_disturbance, fire.igni.frt.ndt$Cluster )
+
 table(fire.igni.frt.ndt$FIRE_YEAR, fire.igni.frt.ndt$Cluster, fire.igni.frt.ndt$FIRE_CAUSE)
 
 
@@ -144,17 +143,16 @@ table(fire.igni.frt.ndt$FIRE_YEAR, fire.igni.frt.ndt$Cluster, fire.igni.frt.ndt$
 
 st_write(fire.igni.frt.ndt, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\bc_fire_ignition_clipped.shp", delete_dsn = TRUE)
 
-#st_write(fire.igni.frt, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\fire_ignit_by_frt.shp", delete_dsn = TRUE)
-#st_write(fire.igni.frt, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\fire_ignit_by_frt.shp", delete_dsn = TRUE) # delete these files later when I know I dont need them any more
+# good fire is a point location
 
 
 
 ##Save via OsGeo4W Shell
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
-#ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\fire_ignit_by_frt.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\bc_fire_ignition_clipped.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 
-
+# Below was not done 3 August 2022
 ## Load ignition data into postgres (either my local one or Kyles)
 #host=keyring::key_get('dbhost', keyring = 'postgreSQL')
 #user=keyring::key_get('dbuser', keyring = 'postgreSQL')
@@ -164,6 +162,5 @@ st_write(fire.igni.frt.ndt, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
 #ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
-# I wrote this to both places KylesClus and my local postgres
 # https://gdal.org/programs/ogr2ogr.html
 
