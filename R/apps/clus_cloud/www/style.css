@@ -169,6 +169,9 @@ button.btn-clus:hover {
   color: #F2F2F2;
 }
 
+button.btn-danger, button.btn-danger:hover {
+  color: #F2F2F2;
+}
 
 /* Scenarios table ------------- */
 table.clus-explorer-table {

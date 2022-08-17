@@ -21,11 +21,21 @@ library(shinyjs)
 library(future)
 library(future.apply)
 library(future.callr)
+library(rlist)
+library(fs)
+library(stringr)
+library(glue)
+library(ssh)
+library(ipc)
 
 source('src/functions.R')
 
-plan(multisession)
 # plan(sequential)
+# plan(multicore)
+plan(callr)
+# plan(multisession)
+
+# browser()
 
 # Available scneario Rmd files
 available_scenarios <- list.files('scenarios/')
@@ -44,6 +54,9 @@ uploader_size = 's-1vcpu-1gb'
 # CLUS droplet image
 snapshots <- analogsea::snapshots()
 image <- snapshots$`clus-cloud-image-202205042050`$id
+
+# SSH config
+ssh_user <- "root"
 
 # Available sizes
 sizes <- analogsea::sizes() %>%
@@ -64,9 +77,12 @@ size_choices <- setNames(
   as.character(sizes$label)
 )
 
-# SSH config
-ssh_user <- "root"
-# ssh_keyfile <- "keys/ssh_keyfile_name"
+simulation_log <- 'inst/app/log/simulation_log.csv'
+if (!file.exists(simulation_log)) {
+  file.create(simulation_log)
+}
+
+write("Timestamp,Log", file = simulation_log, append = FALSE)
 
 # UI ----
 ui <- shiny::tagList(
@@ -115,18 +131,6 @@ ui <- shiny::tagList(
                 class = 'btn-clus-light'
               ),
               hr(),
-              # verbatimTextOutput("file_sqlitedb_selected"),
-              # shinyFilesButton(
-              #   id = "file_sqlitedb",
-              #   label = "Select SQLite db",
-              #   title = "Please select a file",
-              #   multiple = TRUE,
-              #   viewtype = "detail",
-              #   buttonType = 'info',
-              #   icon = icon('database'),
-              #   class = 'btn-clus-light'
-              # ),
-              hr(),
               selectizeInput(
                 'droplet_size',
                 label = "Select droplet size",
@@ -135,17 +139,7 @@ ui <- shiny::tagList(
                 multiple = FALSE
               ),
               hr(),
-              # radioButtons(
-              #   'volume_options',
-              #   label = 'Volume options',
-              #   choices = list(
-              #     'Create new' = 'new',
-              #     'Use existing' = 'existing'
-              #   ),
-              #   inline = FALSE
-              # ),
               selectizeInput('volumes', label = 'Select a database', choices = NULL, selected = '', multiple = FALSE),
-              # checkboxInput('preserve_volume', label = "Preserve sqlite DB volume", value = TRUE),
               hr(),
               verbatimTextOutput("key_selected"),
               shinyFilesButton(
@@ -164,17 +158,46 @@ ui <- shiny::tagList(
                 'Run scenario',
                 icon = icon('play-circle'),
                 class = 'btn-clus'
-              ),
-              actionButton(
-                'include_md',
-                'Preview md',
-                icon = icon('file-alt'),
-                class = 'btn-clus'
               )
             ),
             mainPanel(
               width = 8,
-              uiOutput("preview_md")
+              tabsetPanel(
+                tabPanel(
+                  "Simulation log",
+                  p("The log will appear in real time when you run the simulations based on selected options."),
+                  tableOutput("simulation_log")
+                ),
+                tabPanel(
+                  "Simulation output",
+                  p("Use controls below to view and delete the knitted md files."),
+                  selectizeInput(
+                    inputId = 'rendered_mds', 
+                    label = 'Review scenario output', 
+                    choices = NULL, 
+                    selected = '', 
+                    multiple = FALSE
+                  ),
+                  shiny::actionButton(
+                    inputId = 'refresh_mds',
+                    label = 'Refresh md list',
+                    icon = icon('refresh')
+                  ),
+                  actionButton(
+                    'include_md',
+                    'Preview selected md',
+                    icon = icon('file-alt'),
+                    class = 'btn-clus-light'
+                  ),
+                  actionButton(
+                    'delete_mds',
+                    'Delete md files',
+                    icon = icon('trash-alt'),
+                    class = 'btn-danger'
+                  ),
+                  uiOutput("preview_md")
+                )
+              )
             )
           )
         ),
@@ -213,7 +236,7 @@ ui <- shiny::tagList(
                         shiny::tags$li('Create a volume'),
                         shiny::tags$li('Upload the database to it'),
                         shiny::tags$li('Create a volume snapshot'),
-                        shiny::tags$li('Delete the volume'),
+                        shiny::tags$li('Delete the volume')
                       ),
                       p(
                         'The volume snapshot can be used to create
@@ -444,6 +467,18 @@ server <- function(input, output, session) {
       # req(input$volume_options)
 
       stopifnot(input$droplet_size %in% sizes$slug)
+      
+      region <- 'tor1'
+      uploader_image <- 'ubuntu-20-04-x64'
+      uploader_size = 's-1vcpu-1gb'
+      
+      # CLUS droplet image
+      snaps <- analogsea::snapshots()
+      snap_image <- snaps$`clus-cloud-image-202205042050`$id
+      print(paste("Building from", snap_image))
+      
+      # SSH config
+      ssh_user <- "root"
 
       ssh_keyfile_tbl <- parseFilePaths(volumes, input$key)
       ssh_keyfile <- stringr::str_replace(ssh_keyfile_tbl$datapath, 'NULL/', '/')
@@ -453,6 +488,14 @@ server <- function(input, output, session) {
       scenario_tbl <- shinyFiles::parseFilePaths(volumes, selected_scenarios)
       scenarios <- scenario_tbl$name
       
+      if (!file.exists('inst/app/log/simulation_log.csv')) {
+        file.create('inst/app/log/simulation_log.csv')
+      }
+      
+      # Start ipc queue
+      queue <- shinyQueue()
+      queue$consumer$start()
+      
       future.apply::future_lapply(
         X = scenarios,
         FUN = run_simulation,
@@ -461,123 +504,10 @@ server <- function(input, output, session) {
         do_droplet_size = input$droplet_size,
         do_volumes = input$volumes,
         do_region = region,
-        do_image = image,
+        do_image = snap_image,
+        queue = queue,
         future.seed = TRUE
       )
-      
-      # run_simulation(
-      #   scenario = selected_scenarios,
-      #   ssh_keyfile_tbl = ssh_keyfile_tbl,
-      #   do_droplet_size = input$droplet_size,
-      #   do_volumes = input$volumes,
-      #   do_region = region,
-      #   do_image = image
-      # )
-      
-      # scenario <- input$scenario
-      # scenario_tbl <- parseFilePaths(volumes, input$file_scenario)
-      # scenario <- scenario_tbl$name
-      # scenario_path <- stringr::str_remove(scenario_tbl$datapath, 'NULL/')
-
-      # withProgress(
-      #   message = "Running scenario",
-      #   value = 0,
-      #   {
-      #     incProgress(0.1, detail = "Creating droplet")
-
-
-#           # Create actual droplet that will do the knitting ----
-#           d <- analogsea::droplet_create(
-#             name = analogsea:::random_name(),
-#             size = input$droplet_size,
-#             region = region,
-#             image = image,
-#             ssh_keys = ssh_keyfile_name,
-#             tags = c('clus_cloud')
-#           ) %>%
-#             droplet_wait()
-# 
-#           Sys.sleep(15)
-# 
-#           incProgress(0.1, detail = "Creating volume and uploading sqlite database")
-# 
-#           # Create volume from snapshot ----
-#           existing_snapshots <- analogsea::snapshots(type = 'volume')
-#           existing_snapshots_names <- rlist::list.names(existing_snapshots)
-#           
-#           if (input$volumes %in% existing_snapshots_names) {
-#             existing_snapshot <- existing_snapshots[[grep(input$volumes, names(existing_snapshots))]]
-#             
-#             volume_name <- stringr::str_remove(
-#               stringr::str_remove(
-#                 stringr::str_to_lower(
-#                   paste0(input$volumes, scenario)
-#                 ),
-#                 '_'
-#               ),
-#               '.rmd'
-#             )
-# 
-#             v <- analogsea::volume_create(
-#               snapshot_id = existing_snapshot$id, 
-#               name = volume_name,
-#               size = 10,
-#               region = region,
-#               filesystem_label = 'sqlitedb'
-#             )
-#           }
-#           
-#           volume_attach(volume = v, droplet = d, region = region)
-# 
-#           incProgress(0.1, detail = "Uploading scenario parameters")
-# 
-#           d %>% droplet_ssh("echo Connecting...",
-#             keyfile = ssh_keyfile
-#           )
-# 
-#           # volume_attach(volume = v, droplet = d, region = region)
-#           d %>%
-#             droplet_ssh(
-#               glue::glue("screen -S {volume_name} \
-# mkdir -p /mnt/{volume_name}; \
-# mount -o discard,defaults,noatime /dev/disk/by-id/scsi-0DO_Volume_{volume_name} /mnt/{volume_name}; \
-# echo '/dev/disk/by-id/scsi-0DO_Volume_{volume_name} /mnt/{volume_name} ext4 defaults,nofail,discard 0 0' | sudo tee -a /etc/fstab; \
-# git clone https://github.com/bcgov/clus; \
-# cd clus; \
-# ln -s /mnt/{volume_name}/Lakes_TSA_clusdb.sqlite ~/clus/R/scenarios/Lakes_TSA/Lakes_TSA_clusdb.sqlite"),
-#               keyfile = ssh_keyfile
-#             )
-# 
-#           incProgress(0.1, detail = "Running the scenario")
-# 
-#           # Knit the scenario ----
-#           results <- d %>%
-#             droplet_execute({
-#               knitr::knit(glue::glue('clus/R/scenarios/Lakes_TSA/forestryCLUS_lakestsa.Rmd'))
-#               # knitr::knit(glue::glue('knit.Rmd'))
-#               wd <- getwd()
-#               dc <- dir()
-#             })
-# 
-#           incProgress(0.5, detail = "Cleaning up")
-# 
-#           # Cleanup ----
-#           v %>% volume_detach(droplet = d, region = region)
-#           Sys.sleep(10)
-#           v %>% volume_delete()
-# 
-#           # Download kintted md ----
-#           d %>% droplet_download(
-#             remote = '/root/forestryCLUS_lakestsa.md',
-#             # remote = '/root/knit.md',
-#             local = './inst/app/md/',
-#             keyfile = ssh_keyfile
-#           )
-# 
-#           d %>% droplet_delete()
-          
-      #   }
-      # )
     }
   )
 
@@ -585,8 +515,27 @@ server <- function(input, output, session) {
   observeEvent(
     input$include_md,
     {
+      req(input$rendered_mds)
+      
+      isolate(input$rendered_mds)
+      
+      file_stats <- file.info(input$rendered_mds, extra_cols = FALSE)
+      file_stats <- data.frame(
+        'Created' = c(file_stats$mtime),
+        'Size' = c(file_stats$size)
+      )
+      file_stats$Created <- as.character(file_stats$Created)
+      file_stats$Size <- as.character(as_fs_bytes(file_stats$Size))
+      
       output$preview_md <- renderUI({
-        includeMarkdown('inst/app/md/forestryCLUS_lakestsa.md')
+        tagList(
+          h2('File info'),
+          hr(),
+          renderTable(file_stats),
+          h2('File content'),
+          hr(),
+          includeMarkdown(input$rendered_mds)
+        )
       })
     }
   )
@@ -595,7 +544,6 @@ server <- function(input, output, session) {
   observeEvent(
     input$new_database_create,
     {
-      browser()
       sqlitedb_tbl <- parseFilePaths(volumes, input$file_sqlitedb)
       sqlitedb <- sqlitedb_tbl$name
       sqlitedb_path <- stringr::str_remove(sqlitedb_tbl$datapath, 'NULL/')
@@ -677,6 +625,70 @@ server <- function(input, output, session) {
       analogsea::volume_delete(v)
       
       shinyjs::alert("Done.")
+    }
+  )
+
+  # Simulation log ----
+  simulation_log_data <- reactivePoll(
+    1000, session,
+    # This function returns the time that log_file was last modified
+    checkFunc = function() {
+      log_file = 'inst/app/log/simulation_log.csv'
+      if (file.exists(log_file))
+        file.info(log_file)$mtime[1]
+      else
+        ""
+      },
+    # This function returns the content of log_file
+    valueFunc = function() {
+      log_file = 'inst/app/log/simulation_log.csv'
+      if (file.exists(log_file)) {
+        read.csv(log_file)
+      }
+    }
+  )
+  
+  output$simulation_log <- renderTable({
+    simulation_log_data()
+  })
+  
+  # Refresh md files ----
+  observeEvent(
+    input$refresh_mds,
+    {
+      all_mds <- 
+          # dir_ls('R/apps/clus_cloud/inst/app/md/', type = 'file', glob = '*.md') %>%
+        dir_ls('inst/app/md/', type = 'file', glob = '*.md') %>%
+        purrr::map_chr(clean_md_path)
+      
+      all_mds <- setNames(names(all_mds), all_mds)
+      
+      shiny::updateSelectizeInput(
+        session = getDefaultReactiveDomain(),
+        'rendered_mds',
+        choices = all_mds,
+        selected = '',
+        server = TRUE
+      )
+    }
+  )
+
+  # Delete md files ----
+  observeEvent(
+    input$delete_mds,
+    {
+      all_mds <- 
+          # dir_ls('R/apps/clus_cloud/inst/app/md/', type = 'file', glob = '*.md') %>%
+        dir_ls('inst/app/md/', type = 'file', glob = '*.md') %>%
+        purrr::map(file.remove)
+      
+      shiny::updateSelectizeInput(
+        session = getDefaultReactiveDomain(),
+        'rendered_mds',
+        choices = NULL,
+        selected = '',
+        server = TRUE
+      )
     }
   )
 
