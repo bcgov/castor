@@ -2,12 +2,6 @@
 title: "forestryCLUS"
 author: ""
 date: "08 April 2019"
-params:
-  db_host: NULL
-  db_port: NULL
-  db_name: NULL
-  db_user: NULL
-  db_pass: NULL
 output:
   html_document: 
     keep_md: yes
@@ -26,13 +20,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
-## Check if params are passed
-
-```{r echo=FALSE}
-print(paste("Checking params: db_host - ", params$db_host))
-print(paste("Checking params: db_name -", params$db_name))
-```
-
 ## Check reading env vars
 
 ```{r echo=FALSE}
@@ -43,11 +30,9 @@ print(paste("Checking env vars: db_name - ", Sys.getenv("DB_NAME")))
 Use the credentials to connect to the database.
 
 ```{r echo=FALSE}
-params$db_host
-params$db_port
-# params$db_name
-# params$db_user
-# params$db_pass
-Sys.getenv("DB_HOST")
-Sys.getenv("DB_NAME")
+# Sys.getenv("DB_HOST")
+# Sys.getenv("DB_PORT")
+# Sys.getenv("DB_NAME")
+# Sys.getenv("DB_USER")
+# Sys.getenv("DB_PASS")
 ```
