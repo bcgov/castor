@@ -168,7 +168,8 @@ ln -s /mnt/{volume_name}/Lakes_TSA_clusdb.sqlite ~/clus/R/scenarios/Lakes_TSA/La
   # incProgress(0.1, detail = "Running the scenario")
 
   # Knit the scenario ----
-  scenario_to_run <- glue::glue("rmarkdown::render('clus/R/scenarios/Lakes_TSA/{scenario_name}.Rmd', params = list(db_host = '{db_host}', db_port = '{db_port}', db_name = '{db_name}', db_user = '{db_user}', db_pass = '{db_pass}'))")
+  # scenario_to_run <- glue::glue("rmarkdown::render('clus/R/scenarios/Lakes_TSA/{scenario_name}.Rmd', params = list(db_host = '{db_host}', db_port = '{db_port}', db_name = '{db_name}', db_user = '{db_user}', db_pass = '{db_pass}'))")
+  scenario_to_run <- glue::glue("knitr::knit('clus/R/scenarios/Lakes_TSA/{scenario_name}.Rmd')")
   # d %>%
   #   droplet_execute(eval(scenario_to_run))
                     
@@ -184,7 +185,16 @@ ln -s /mnt/{volume_name}/Lakes_TSA_clusdb.sqlite ~/clus/R/scenarios/Lakes_TSA/La
   )
   Sys.sleep(5)
   
-  d %>% droplet_ssh("Rscript remote.R")
+  d %>% droplet_ssh(
+    glue::glue("export DB_HOST=\"{db_host\"; \
+export DB_PORT={db_port}; \
+export DB_NAME={db_name}; \
+export DB_USER={db_user}; \
+export DB_PASS={db_pass}; \
+Rscript remote.R"
+    ),
+    keyfile = ssh_keyfile
+  )
   
   # tmp <- tempdir()
   # d %>% droplet_download(".RData", tmp)
