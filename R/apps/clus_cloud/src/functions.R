@@ -186,7 +186,7 @@ ln -s /mnt/{volume_name}/Lakes_TSA_clusdb.sqlite ~/clus/R/scenarios/Lakes_TSA/La
   Sys.sleep(5)
   
   d %>% droplet_ssh(
-    glue::glue("export DB_HOST=\"{db_host\"; \
+    glue::glue("export DB_HOST={db_host}; \
 export DB_PORT={db_port}; \
 export DB_NAME={db_name}; \
 export DB_USER={db_user}; \
