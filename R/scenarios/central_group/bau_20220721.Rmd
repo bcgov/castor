@@ -79,7 +79,7 @@ parameters <- list(
   dataLoaderCLUS = list(dbName='clus',
                          save_clusdb = FALSE,
                          sqlite_dbname = "central_group_july2022", 
-                         useCLUSdb = paste0(here::here(), "/R/scenarios/central_group/central_group_july2022_clusdb.sqlite"),
+                         useCLUSdb = paste0(here::here(), "/R/scenarios/central_group/inputs/central_group_july2022_clusdb.sqlite"),
                          nameBoundaryFile ="central_grp_aoi_072022", 
                          nameBoundaryColumn = "tsa_name", 
                          nameBoundary = c ("central_group"), 
