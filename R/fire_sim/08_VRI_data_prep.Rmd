@@ -77,6 +77,8 @@ Vector -> data management tools -> join attributes by location.
 In Base layer I put the ignition points, in join layer I put the VRI data. 
 Geometric predicate = intersects
 Fields to add = 
+'inventory_standard_cd'
+'non_productive_cd'
 'coast_interior_cd',
 'bclcs_level_1',
 'bclcs_level_2',
@@ -85,11 +87,18 @@ Fields to add =
 'bclcs_level_5',
 'interpretation_date',
 'projected_date',
+'non_veg_cover_type_1'
+'non_veg_cover_type_2'
+'non_veg_cover_type_3'
+'land_cover_class_cd_1'
+'est_cover_pct_1'
+'land_cover_class_cd_2'
+'est_cover_pct_2'
+'land_cover_class_cd_3'
+'est_cover_pct_3'
 'line_7b_disturbance_history',
-'line_8_planting_history',
 'bec_zone_code',
 'bec_subzone',
-'bec_variant',
 'earliest_nonlogging_dist_type',
 'earliest_nonlogging_dist_date',
 'stand_percentage_dead',
@@ -115,10 +124,6 @@ Fields to add =
 'branch_biomass_per_ha',
 'foliage_biomass_per_ha',
 'bark_biomass_per_ha',
-'age_1',
-'age_2',
-'height_1',
-'height_2',
 'proj_age_1',
 'proj_age_2',
 'proj_height_1',
@@ -230,9 +235,9 @@ sf::st_write(ignit_all_2021, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim
 ### Now that the ignition points have been joined to the VRI data in QGIS. I need to reimport the data so that i can join it all together and use it.
 
 ```{r}
-file.list1<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\QGIS_analysis\\For_analysis", pattern="fire_veg", all.files=FALSE, full.names=FALSE)
+file.list1<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\QGIS_analysis\\For_analysis_2022_08_23", pattern="fire_veg", all.files=FALSE, full.names=FALSE)
 y1<-gsub(".gpkg","",file.list1)
-the_dir <- "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\QGIS_analysis\\For_analysis"
+the_dir <- "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\QGIS_analysis\\For_analysis_2022_08_23"
 
 for (i in 1:length(file.list1)){
   assign(paste0(y1[i]),st_read (dsn=paste0(the_dir, "\\", file.list1[i])))
@@ -248,49 +253,23 @@ mkFrameList <- function(nfiles) {
 }
 
 n<-length(y2)
-fire_veg_02_06<-mkFrameList(n) 
-fire_veg_02_06[duplicated(fire_veg_02_06$idno),] # NO DUPLICATES
-
+fire_veg_02_07<-mkFrameList(n) 
+fire_veg_02_07[duplicated(fire_veg_02_07$idno),] # there should be no DUPLICATES
 
 # remove(age_1:height_2 columns) because they dont seem to be in later VRI's
-fire_veg_02_06 <- fire_veg_02_06 %>% dplyr::select(id:bark_biomass_per_ha, proj_age_1:geom)
-fire_veg_02_06$dead_stand_volume_175<-NA
-fire_veg_2010$dead_stand_volume_175<-NA
-fire_veg_2009$dead_stand_volume_175<-NA
+fire_veg_02_07$dead_stand_volume_175<-NA
+fire_veg_2008_joinedVRI2009$whole_stem_biomass_per_ha<-NA
+fire_veg_2008_joinedVRI2009$branch_biomass_per_ha<-NA
+fire_veg_2008_joinedVRI2009$foliage_biomass_per_ha<-NA
+fire_veg_2008_joinedVRI2009$bark_biomass_per_ha<-NA
+
 fire_veg_2009$whole_stem_biomass_per_ha<-NA
 fire_veg_2009$branch_biomass_per_ha<-NA
 fire_veg_2009$foliage_biomass_per_ha<-NA
 fire_veg_2009$bark_biomass_per_ha<-NA
 
-# make number of columns in VRi 2008 the same as the others
-fire_veg_2008_joined_VRI2009$dead_stand_volume_175<-NA
-fire_veg_2008_joined_VRI2009$whole_stem_biomass_per_ha<-NA
-fire_veg_2008_joined_VRI2009$branch_biomass_per_ha<-NA
-fire_veg_2008_joined_VRI2009$foliage_biomass_per_ha<-NA
-fire_veg_2008_joined_VRI2009$bark_biomass_per_ha<-NA
-fire_veg_2008$dead_stand_volume_175<-NA
-fire_veg_2008$whole_stem_biomass_per_ha<-NA
-fire_veg_2008$branch_biomass_per_ha<-NA
-fire_veg_2008$foliage_biomass_per_ha<-NA
-fire_veg_2008$bark_biomass_per_ha<-NA
-fire_veg_2008$bec_subzone<-NA
-fire_veg_2008$bec_variant<-NA
-fire_veg_2008$stand_percentage_dead<-NA
-fire_veg_2007_joined_VRI2009$whole_stem_biomass_per_ha<-NA
-fire_veg_2007_joined_VRI2009$branch_biomass_per_ha<-NA
-fire_veg_2007_joined_VRI2009$foliage_biomass_per_ha<-NA
-fire_veg_2007_joined_VRI2009$bark_biomass_per_ha<-NA
-
-fire_veg_2008<- fire_veg_2008 %>% 
-  dplyr::rowwise() %>%
-  dplyr::mutate(live_stand_volume_175 = sum(dplyr::c_across(vol_per_ha_spp1_175:vol_per_ha_spp6_175), na.rm = TRUE))
-# the above calculation puts zeros in rows with NA's so Im changing them back to NA
-fire_veg_2008$live_stand_volume_175<- ifelse(is.na(fire_veg_2008$vol_per_ha_spp1_175) & is.na(fire_veg_2008$vol_per_ha_spp2_175), NA, fire_veg_2008$live_stand_volume_175)
-
-fire_veg_2008_2 <- fire_veg_2008 %>% dplyr::select(id:interpretation_date, projected_date:proj_height_2, geom:live_stand_volume_175)
-dim(fire_veg_2008_2)
-
-y3<-c(y1[c(10, 12:17, 19:29)], "fire_veg_02_06", "fire_veg_2008_2")
+y3<-y1[10:13]
+y3<-c(y1[c(10, 12:17, 19:26)], "fire_veg_02_06")
 mkFrameList <- function(nfiles) {
   d <- lapply(seq_len(nfiles),function(i) {
     eval(parse(text=y3[i]))
