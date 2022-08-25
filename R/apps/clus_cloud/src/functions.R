@@ -19,7 +19,9 @@ run_simulation <- function(
   do_volumes,
   do_region,
   do_image,
-  queue
+  queue,
+  simulation_logfile,
+  simulation_logfile_lock
 ) {
   future({
     
@@ -30,9 +32,6 @@ run_simulation <- function(
     db_user <- Sys.getenv('DB_USER')
     db_pass <- Sys.getenv('DB_PASS')
   
-    simulation_log <- 'inst/app/log/simulation_log.csv'
-    simulation_log_lock <- 'inst/app/log/simulation_log.lock'
-
     ssh_keyfile <- stringr::str_replace(ssh_keyfile_tbl$datapath, 'NULL/', '/')
     ssh_keyfile_name <- ssh_keyfile_tbl$name
     print(paste(as.character(Sys.time()), ",got key", ssh_keyfile_name))
@@ -48,10 +47,10 @@ run_simulation <- function(
       "1,", scenario_name, ",0%,START PROCESSING,", as.character(Sys.time())
     )
     
-    lock <- filelock::lock(path = simulation_log_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status,
-      file = simulation_log, 
+      file = simulation_logfile, 
       append = TRUE
     )
     filelock::unlock(lock)
@@ -60,10 +59,10 @@ run_simulation <- function(
       "2,", scenario_name, ",10%,Creating droplet,", as.character(Sys.time())
     )
     
-    lock <- filelock::lock(path = simulation_log_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status,
-      file = simulation_log, 
+      file = simulation_logfile, 
       append = TRUE
     )
     filelock::unlock(lock)
@@ -83,10 +82,10 @@ run_simulation <- function(
       "3,", scenario_name, ",20%,Droplet created,", as.character(Sys.time())
     )
     
-    lock <- filelock::lock(path = simulation_log_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status, 
-      file = simulation_log, 
+      file = simulation_logfile, 
       append = TRUE
     )
     filelock::unlock(lock)
@@ -124,10 +123,10 @@ run_simulation <- function(
       status <- paste0(
         "4,", scenario_name, ",30%,Creating database volume,", as.character(Sys.time())
       )
-      lock <- filelock::lock(path = simulation_log_lock, exclusive = TRUE, timeout = 1000)
+      lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
       write(
         status,
-        file = simulation_log, 
+        file = simulation_logfile, 
         append = TRUE
       )
       filelock::unlock(lock)
@@ -144,10 +143,10 @@ run_simulation <- function(
       "5,", scenario_name, ",40%,Attaching volume to droplet,", as.character(Sys.time())
     )
     
-    lock <- filelock::lock(path = simulation_log_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status,
-      file = simulation_log, 
+      file = simulation_logfile, 
       append = TRUE
     )
     filelock::unlock(lock)
@@ -158,10 +157,10 @@ run_simulation <- function(
       "6,", scenario_name, ",50%,Connecting to droplet,", as.character(Sys.time())
     )
     
-    lock <- filelock::lock(path = simulation_log_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status,
-      file = simulation_log, 
+      file = simulation_logfile, 
       append = TRUE
     )
     filelock::unlock(lock)
@@ -171,10 +170,10 @@ run_simulation <- function(
       "7,", scenario_name, ",60%,Cloning CLUS repo,", as.character(Sys.time())
     )
     
-    lock <- filelock::lock(path = simulation_log_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status,
-      file = simulation_log, 
+      file = simulation_logfile, 
       append = TRUE
     )
     filelock::unlock(lock)
@@ -203,10 +202,10 @@ run_simulation <- function(
       "8,", scenario_name, ",70%,Running the simulation,", as.character(Sys.time())
     )
 
-    lock <- filelock::lock(path = simulation_log_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status,
-      file = simulation_log, 
+      file = simulation_logfile, 
       append = TRUE
     )
     filelock::unlock(lock)
@@ -227,10 +226,10 @@ run_simulation <- function(
       "9,", scenario_name, ",80%,Detaching and deleting the volume,", as.character(Sys.time())
     )
     
-    lock <- filelock::lock(path = simulation_log_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status, 
-      file = simulation_log, 
+      file = simulation_logfile, 
       append = TRUE
     )
     filelock::unlock(lock)
@@ -244,10 +243,10 @@ run_simulation <- function(
       "10,", scenario_name, ",90%,Downloading knitted md file,", as.character(Sys.time())
     )
     
-    lock <- filelock::lock(path = simulation_log_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status, 
-      file = simulation_log, 
+      file = simulation_logfile, 
       append = TRUE
     )
     filelock::unlock(lock)
@@ -262,10 +261,10 @@ run_simulation <- function(
       "11,", scenario_name, ",100%,Deleting the droplet,", as.character(Sys.time())
     )
     
-    lock <- filelock::lock(path = simulation_log_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status, 
-      file = simulation_log, 
+      file = simulation_logfile, 
       append = TRUE
     )
     filelock::unlock(lock)
@@ -275,10 +274,10 @@ run_simulation <- function(
       "12,", scenario_name, ",,PROCESS FINISHED,", as.character(Sys.time())
     )
 
-    lock <- filelock::lock(path = simulation_log_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status, 
-      file = simulation_log, 
+      file = simulation_logfile, 
       append = TRUE
     )
     filelock::unlock(lock)

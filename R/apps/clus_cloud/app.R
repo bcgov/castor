@@ -161,8 +161,6 @@ ui <- shiny::tagList(
                 tabPanel(
                   "Simulation log",
                   p("The log will appear in real time when you run the simulations based on selected options."),
-                  uiOutput("status_semaphore"),
-                  tableOutput("status"),
                   dataTableOutput("simulation_log")
                 ),
                 tabPanel(
@@ -450,40 +448,24 @@ server <- function(input, output, session) {
     }
   })
 
-  simulation_log <- 'inst/app/log/simulation_log.csv'
-  if (!file.exists(simulation_log)) {
-    file.create(simulation_log)
-  }
+  logfile <- tempfile(tmpdir = tempdir(check = TRUE), pattern = 'simulation_')
+  simulation_logfile <- paste0(logfile, '.csv')
+  simulation_logfile_lock <- paste0(logfile, '.lock')
   
-  simulation_status <- reactiveVal()
-  # semaphore_values <- reactiveValues()
-
   # Run simulation ----
   observeEvent(
     input$run_scenario,
     ignoreInit = TRUE,
     {
-      # browser()
-      # req(input$scenario)
-      # req(input$sqlite)
       req(input$file_scenario)
       req(input$volumes)
       req(input$droplet_size)
-      # req(input$volume_options)
 
       stopifnot(input$droplet_size %in% sizes$slug)
       
       region <- 'tor1'
       uploader_image <- 'ubuntu-20-04-x64'
       uploader_size = 's-1vcpu-1gb'
-      
-      simulation_status <- reactiveVal(value = "Getting snapshots", label = "Getting snapshots")
-      
-      write(
-        "ID,Scenario,Progress,Description,Timestamp", 
-        file = simulation_log, 
-        append = FALSE
-      )
       
       # CLUS droplet image
       snaps <- analogsea::snapshots()
@@ -501,103 +483,37 @@ server <- function(input, output, session) {
       scenario_tbl <- shinyFiles::parseFilePaths(volumes, selected_scenarios)
       scenarios <- scenario_tbl$name
       
-      if (!file.exists('inst/app/log/simulation_log.csv')) {
-        file.create('inst/app/log/simulation_log.csv')
+      if (file.exists(simulation_logfile)) {
+        file.remove(simulation_logfile)
+        file.create(simulation_logfile)
       }
       
-      # Start ipc queue
-      queue <- ipc::shinyQueue()
-      queue$consumer$start()
+      write(
+        paste0(
+          "ID,Scenario,Progress,Description,Timestamp\n", 
+          "0,,,PROCESS STARTED,", as.character(Sys.time())
+        ), 
+        file = simulation_logfile, 
+        append = FALSE
+      )
       
-      # progressr::withProgressShiny(
-      #   message = "Calculation in progress",
-      #   detail = "Starting ...",
-      #   
-      #   value = 0, {
-      #     p <- progressor(along = scenarios)
-          # future.apply::future_lapply(
-      
-      # output$status_semaphore <- renderUI({
-      #   purrr::map(scenarios, ~ textOutput(.x, NULL))
-      # })
-      
-      # lapply(
-      #   scenarios,
-      #   function(semaphore_scenario) {
-      #     semaphore_scenario_name <- stringr::str_split(
-      #       string = semaphore_scenario, 
-      #       pattern = '\\.', 
-      #       n = 2, 
-      #       simplify = TRUE
-      #     )[1,1]
-      #     assign(
-      #       paste0('semaphore_', semaphore_scenario_name),
-      #       reactiveVal()
-      #     )
-      #   }
-      # )
-      # 
-      # output$status_semaphore <- renderUI({
-      #   lapply(
-      #     scenarios,
-      #     function(semaphore_scenario) {
-      #       semaphore_scenario_name <- stringr::str_split(
-      #         string = semaphore_scenario, 
-      #         pattern = '\\.', 
-      #         n = 2, 
-      #         simplify = TRUE
-      #       )[1,1]
-      #       textOutput(semaphore_scenario_name)
-      #     }
-      #   )
-      # })
-      
-      
-          lapply(
-            X = scenarios,
-            FUN = run_simulation,
-            ssh_keyfile = ssh_keyfile_tbl,
-            do_droplet_size = input$droplet_size,
-            do_volumes = input$volumes,
-            do_region = region,
-            do_image = snap_image,
-            queue = queue
-          )
-      #   }
-      # )
+      lapply(
+        X = scenarios,
+        FUN = run_simulation,
+        ssh_keyfile = ssh_keyfile_tbl,
+        do_droplet_size = input$droplet_size,
+        do_volumes = input$volumes,
+        do_region = region,
+        do_image = snap_image,
+        simulation_logfile = simulation_logfile,
+        simulation_logfile_lock = simulation_logfile_lock,
+      )
 
-
-          # observe({
-          #   req(semaphore_values)
-          #   
-          #   lapply(
-          #     scenarios,
-          #     function(semaphore_scenario) {
-          #       
-          #       semaphore_scenario_name <- stringr::str_split(
-          #         string = semaphore_scenario, 
-          #         pattern = '\\.', 
-          #         n = 2, 
-          #         simplify = TRUE
-          #       )[1,1]
-          #       
-          #       output[[semaphore_scenario_name]] <- renderText(
-          #         semaphore_values[[semaphore_scenario_name]]
-          #       )
-          #     }
-          #   )
-          # })
-          
       # Return something other than the future so we don't block the UI
       return(NULL)
     }
   )
   
-  # set output to reactive value
-  output$status <- renderTable({
-    req(simulation_status())
-  })
-
   # Render knited md ----
   observeEvent(
     input$include_md,
@@ -720,7 +636,7 @@ server <- function(input, output, session) {
     1000, session,
     # This function returns the time that log_file was last modified
     checkFunc = function() {
-      log_file = 'inst/app/log/simulation_log.csv'
+      log_file = simulation_logfile
       if (file.exists(log_file))
         file.info(log_file)$mtime[1]
       else
@@ -728,20 +644,34 @@ server <- function(input, output, session) {
       },
     # This function returns the content of log_file
     valueFunc = function() {
-      log_file = 'inst/app/log/simulation_log.csv'
-      if (file.exists(log_file)) {
+      log_file = simulation_logfile
+      if (file.exists(log_file) & file.size(log_file) > 0) {
         read.csv(log_file)
+      } else {
+        data.frame(
+          ID = c(),
+          Scenario = c(),
+          Progress = c(),
+          Description = c(),
+          Timestamp = c()
+        )
       }
     }
   )
   
   output$simulation_log <- renderDataTable({
-    simulation_log_data() %>%
-      group_by(Scenario) %>% 
-      top_n(1, ID) %>% 
-      ungroup() %>% 
-      arrange(Scenario) %>% 
-      select(-ID)
+    data <- simulation_log_data()
+    
+    if (nrow(simulation_log_data()) > 0) {
+      data <- data %>% 
+        group_by(Scenario) %>% 
+        top_n(1, ID) %>% 
+        ungroup() %>% 
+        arrange(Scenario) %>% 
+        select(-ID)
+    }
+    
+    data
   })
   
   # Refresh md files ----
