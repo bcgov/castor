@@ -26,20 +26,913 @@ See the License for the specific language governing permissions and limitations 
 #=================================
 #  Script Name: 08_vri_data_prep.R
 #  Script Version: 1.0
-#  Script Purpose: This script creates a table of 1ha x 1ha pixels with vegetation data taken from the VRI for each year for each location.  These locations line up with the locations that I collected climate data from. 
+#  Script Purpose: This samples VRI data for each ignition location
 #  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #  Script Contributor: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #=================================
 
 #Overview:
-In this file, we acquire the VRI (Vegetation Resources Inventory) for each year by location from 2002 to 2020. This is likely already uploaded onto a network and may not need to be redone.
+In this file, we acquire the VRI (Vegetation Resources Inventory) for each year by location from 2002 to 2021. This is likely already uploaded onto a network and may not need to be redone.
 The final product will be a file with veg data along with ignition data and climate data (vegetation, climate and presence/absence of fire data).
 
-The first portion of this code cannot be run on R. Instead, you must use PgAdmin command line.
+The first portion of this code cannot be run on R.Instead use QGIS to overlay the ignition points and the VRI data. 
+
+# First get the VRI data and if you want put it in the local postgres database.
+##This first section has been completed on this computer.
+from https://catalogue.data.gov.bc.ca/dataset/vri-historical-vegetation-resource-inventory-2002-2019-
+I (Liz) then extracted this data and uploaded it into my local postgres database by running the command below in terminal. If running it in the R terminal does not work try run it in here: 
+#C:\data\localApps\QGIS10.16\OSGeo4W (the terminal window)
+
+You may get a warning indicating that this will take a long time, or that databases are not supported. You should specify a specific item within the database.
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\VEG_COMP_POLY_AND_LAYER_2020.gdb -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+Above is run or each year 2002 to 2020 separately from the data. This is already on the private server, so if you are using the private server, you do not need to run again.
+
+# rename the table in postgres if need be
+#ALTER TABLE veg_comp_lyr_r1_poly RENAME TO veg_comp_lyr_r1_poly2017
+
+# When the table name is changed the idx name is not so you might have to change that too so that more files can be uploaded into postgres by running the following command
+#ALTER INDEX veg_comp_lyr_r1_poly_shape_geom_idx RENAME TO veg_comp_lyr_r1_poly2019_geometry_geom_idx;
+# and if need be change the name of the geometry column from shape to geometry
+#ALTER TABLE veg_comp_lyr_r1_poly2019 RENAME COLUMN shape TO geometry;
 
 
 #### VEGETATION DATA #### 
-2002 to 2021 are the only years that VRI data exists, there is no earlier data. I have located a 2020 data file, but it has some too but not all columns for VRI info.
+2002 to 2021 are the only years that VRI data exists, there is no earlier data.  when you try to overlay the ignition points over the VRI data and try to extract them QGIS says tehre are many geometry problems. So first I corrected taht for each VRI layer as follows:
+
+Processing -> Toolbox -> Vector geometries -> Fix geometries 
+Alternatively after opening the toolbox type fix into the search window and it should list fix geometries. 
+Run the fix geometries for each VRI layer.
+I saved the outputs here: 
+"D:\VRI_geom_corrected".
+This took really long to run so try not to redo it!
+
+After fixing the geometries i overlayed the layers.
+First I created a separate ignition point file for each year (see code below). The files can be found here:
+"C:\Work\caribou\clus_data\Fire\Fire_sim_data\tmp\ignit_all_2002.shp"
+
+Then I extracted teh VRI data as follows:
+Vector -> data management tools -> join attributes by location. 
+
+In Base layer I put the ignition points, in join layer I put the VRI data. 
+Geometric predicate = intersects
+Fields to add = 
+'inventory_standard_cd'
+'non_productive_cd'
+'coast_interior_cd',
+'bclcs_level_1',
+'bclcs_level_2',
+'bclcs_level_3',
+'bclcs_level_4',
+'bclcs_level_5',
+'interpretation_date',
+'projected_date',
+'non_veg_cover_type_1'
+'non_veg_cover_type_2'
+'non_veg_cover_type_3'
+'land_cover_class_cd_1'
+'est_cover_pct_1'
+'land_cover_class_cd_2'
+'est_cover_pct_2'
+'land_cover_class_cd_3'
+'est_cover_pct_3'
+'line_7b_disturbance_history',
+'bec_zone_code',
+'bec_subzone',
+'earliest_nonlogging_dist_type',
+'earliest_nonlogging_dist_date',
+'stand_percentage_dead',
+'harvest_date',
+'quad_diam_175',
+'crown_closure',
+'vri_live_stems_per_ha',
+'vri_dead_stems_per_ha',
+'species_cd_1',
+'species_pct_1',
+'species_cd_2',
+'species_pct_2',
+'species_cd_3',
+'species_pct_3',
+'species_cd_4',
+'species_pct_4',
+'species_cd_5',
+'species_pct_5',
+'species_cd_6',
+'species_pct_6',
+'live_stand_volume_175',
+'whole_stem_biomass_per_ha',
+'branch_biomass_per_ha',
+'foliage_biomass_per_ha',
+'bark_biomass_per_ha',
+'proj_age_1',
+'proj_age_2',
+'proj_height_1',
+'proj_height_2'
+
+Join type = Take attributes of feature with largest overlap.
+Tick discard records which could not be joined
+save the layer in Joined layer and the layer which could not be joined. 
+
+For the values that could not be joined I then tried to join those values with the VRI of two years after. Or the year before. The goal was to get as much data as possible i.e. throw out as few records as possible. 
+
+####METHODS
+
+```{r}
+library (rgdal)
+library (RSQLite)
+library(sf)
+library(data.table)
+library(tidyverse)
+```
+
+
+# Save each fire year separately
+
+```{r}
+ignit_all_2002<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2002)
+dim(ignit_all_2002)
+sf::st_write(ignit_all_2002, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2002.shp", delete_layer=TRUE)
+
+ignit_all_2003<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2003)
+dim(ignit_all_2003)
+sf::st_write(ignit_all_2003, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2003.shp", delete_layer=TRUE)
+
+ignit_all_2004<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2004)
+dim(ignit_all_2004)
+sf::st_write(ignit_all_2004, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2004.shp", delete_layer=TRUE)
+
+ignit_all_2005<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2005)
+dim(ignit_all_2005)
+sf::st_write(ignit_all_2005, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2005.shp", delete_layer=TRUE)
+
+ignit_all_2006<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2006)
+dim(ignit_all_2006)
+sf::st_write(ignit_all_2006, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2006.shp", delete_layer=TRUE)
+
+ignit_all_2007<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2007)
+dim(ignit_all_2007)
+sf::st_write(ignit_all_2007, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2007.shp", delete_layer=TRUE)
+
+ignit_all_2008<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2008)
+dim(ignit_all_2008)
+sf::st_write(ignit_all_2008, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2008.shp", delete_layer=TRUE)
+
+ignit_all_2009<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2009)
+dim(ignit_all_2009)
+sf::st_write(ignit_all_2009, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2009.shp", delete_layer=TRUE)
+
+ignit_all_2010<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2010)
+dim(ignit_all_2010)
+sf::st_write(ignit_all_2010, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2010.shp", delete_layer=TRUE)
+
+ignit_all_2011<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2011)
+dim(ignit_all_2011)
+sf::st_write(ignit_all_2011, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2011.shp", delete_layer=TRUE)
+
+ignit_all_2012<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2012)
+dim(ignit_all_2012)
+sf::st_write(ignit_all_2012, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2012.shp", delete_layer=TRUE)
+
+ignit_all_2013<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2013)
+dim(ignit_all_2013)
+sf::st_write(ignit_all_2013, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2013.shp", delete_layer=TRUE)
+
+ignit_all_2014<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2014)
+dim(ignit_all_2014)
+sf::st_write(ignit_all_2014, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2014.shp", delete_layer=TRUE)
+
+ignit_all_2015<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2015)
+dim(ignit_all_2015)
+sf::st_write(ignit_all_2015, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2015.shp", delete_layer=TRUE)
+
+ignit_all_2016<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2016)
+dim(ignit_all_2016)
+sf::st_write(ignit_all_2016, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2016.shp", delete_layer=TRUE)
+
+ignit_all_2017<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2017)
+dim(ignit_all_2017)
+sf::st_write(ignit_all_2017, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2017.shp", delete_layer=TRUE)
+
+ignit_all_2018<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2018)
+dim(ignit_all_2018)
+sf::st_write(ignit_all_2018, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2018.shp", delete_layer=TRUE)
+
+ignit_all_2019<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2019)
+dim(ignit_all_2019)
+sf::st_write(ignit_all_2019, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2019.shp", delete_layer=TRUE)
+
+ignit_all_2020<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2020)
+dim(ignit_all_2020)
+sf::st_write(ignit_all_2020, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2020.shp", delete_layer=TRUE)
+
+ignit_all_2021<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2021)
+dim(ignit_all_2021)
+sf::st_write(ignit_all_2021, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2021.shp", delete_layer=TRUE)
+
+
+```
+
+### Now that the ignition points have been joined to the VRI data in QGIS. I need to reimport the data so that i can join it all together and use it.
+
+```{r}
+file.list1<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\QGIS_analysis\\For_analysis_2022_08_23", pattern="fire_veg", all.files=FALSE, full.names=FALSE)
+y1<-gsub(".gpkg","",file.list1)
+the_dir <- "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\QGIS_analysis\\For_analysis_2022_08_23"
+
+for (i in 1:length(file.list1)){
+  assign(paste0(y1[i]),st_read (dsn=paste0(the_dir, "\\", file.list1[i])))
+}
+
+y2<-y1[1:9]
+# combined all the DC.ignition files together
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=y2[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(y2)
+fire_veg_02_07<-mkFrameList(n) 
+fire_veg_02_07[duplicated(fire_veg_02_07$idno),] # there should be no DUPLICATES
+
+# remove(age_1:height_2 columns) because they dont seem to be in later VRI's
+fire_veg_02_07$dead_stand_volume_175<-NA
+fire_veg_2008_joinedVRI2009$whole_stem_biomass_per_ha<-NA
+fire_veg_2008_joinedVRI2009$branch_biomass_per_ha<-NA
+fire_veg_2008_joinedVRI2009$foliage_biomass_per_ha<-NA
+fire_veg_2008_joinedVRI2009$bark_biomass_per_ha<-NA
+
+fire_veg_2009$whole_stem_biomass_per_ha<-NA
+fire_veg_2009$branch_biomass_per_ha<-NA
+fire_veg_2009$foliage_biomass_per_ha<-NA
+fire_veg_2009$bark_biomass_per_ha<-NA
+
+y3<-y1[10:13]
+y3<-c(y1[c(10, 12:17, 19:26)], "fire_veg_02_06")
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=y3[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(y3)
+fire_veg<-mkFrameList(n)
+
+```
+
+# now checking for duplicates and removing them
+```{r}
+
+table(duplicated(fire_veg$idno))
+fire_veg[duplicated(fire_veg$idno),] # NO DUPLICATES
+
+fire_veg %>% dplyr::filter(fire_yr==2020 & LATITUD==50.1130)
+fire_veg %>% dplyr::filter(fire_yr==2020 & LATITUD==52.1117)
+fire_veg %>% dplyr::filter(fire_yr==2020 & LATITUD==50.9677)
+fire_veg %>% dplyr::filter(fire_yr==2020 & LATITUD==50.0613)
+fire_veg %>% dplyr::filter(fire_yr==2020 & LATITUD==51.5666 )
+fire_veg %>% dplyr::filter(fire_yr==2020 & LATITUD==50.7837 )
+fire_veg %>% dplyr::filter(fire_yr==2020 & LATITUD==51.4849  )
+
+
+fire_veg_2<-fire_veg %>% dplyr::filter(!(fire_yr==2020 & LATITUD==50.1130 & proj_age_1==13))
+fire_veg_2<-fire_veg_2 %>% dplyr::filter(!(fire_yr==2020 & LATITUD==52.1117 & projected_date =="2020-12-31 16:00:00"))
+dim(fire_veg_2)
+fire_veg_2<-fire_veg_2 %>% dplyr::filter(!(fire_yr==2020 & LATITUD==50.9677 & projected_date =="2020-12-31 16:00:00 "))
+dim(fire_veg_2)
+fire_veg_2<-fire_veg_2 %>% dplyr::filter(!(fire_yr==2020 & LATITUD==50.0613 & projected_date =="2020-12-31 16:00:00 "))
+dim(fire_veg_2)
+fire_veg_2<-fire_veg_2 %>% dplyr::filter(!(fire_yr==2020 & LATITUD==51.5666 & projected_date =="2020-12-31 16:00:00 "))
+dim(fire_veg)
+dim(fire_veg_2)
+fire_veg_2<-fire_veg_2 %>% dplyr::filter(!(fire_yr==2020 & LATITUD==50.7837 & LONGITU==-122.0802  & projected_date =="2020-12-31 16:00:00 "))
+dim(fire_veg)
+dim(fire_veg_2)
+fire_veg_2<-fire_veg_2 %>% dplyr::filter(!(fire_yr==2020 & LATITUD==51.4849 & projected_date =="2020-12-31 16:00:00 "))
+dim(fire_veg)
+dim(fire_veg_2)
+
+fire_veg_2[duplicated(fire_veg_2$idno),]
+fire_veg %>% dplyr::filter(fire_yr==2020 & LATITUD==50.7162)
+fire_veg_2<-fire_veg_2 %>% dplyr::filter(!(fire_yr==2020 & LATITUD==50.7162 & projected_date =="2020-12-31 16:00:00 "))
+fire_veg %>% dplyr::filter(fire_yr==2020 & LATITUD==50.4781)
+fire_veg_2<-fire_veg_2 %>% dplyr::filter(!(fire_yr==2020 & LATITUD==50.4781 & projected_date =="2020-12-31 16:00:00 "))
+
+dim(fire_veg)
+dim(fire_veg_2) # looks like I removed the duplicates
+
+rm( fire_veg_2002_joined_VRI2003, fire_veg_2002_joined_VRI2005, fire_veg_2003, fire_veg_2003_joined_VRI2005, fire_veg_2004, fire_veg_2004_joined_VRI2005, fire_veg_2005, fire_veg_2006, fire_veg_2007, fire_veg_2007_joined_VRI2009, fire_veg_2008, fire_veg_2008_joined_VRI2009, fire_veg_2009, fire_veg_2010, fire_veg_2011, fire_veg_2012, fire_veg_2012_all_na_joined_VRI2015, fire_veg_2012_joined_VRI2013, fire_veg_2013, fire_veg_2013_Joined_VRI2015, fire_veg_2014, fire_veg_2015, fire_veg_2016, fire_veg_2017, fire_veg_2018, fire_veg_2019,fire_veg_2020,fire_veg_2021, fire_veg_2008_2)
+
+gc()
+
+table(fire_veg_2$fire_yr)
+
+# join the files together. Also check that there are no duplicates and if there are check which on is better to use. 
+
+```
+
+# checking that I did not loose lots of records when I pulled out the VRI data
+```{r}
+ignit2002<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2012.shp")
+
+dim(ignit2002)
+head(ignit2002)
+fire_veg_2002<-fire_veg %>% filter(fire_yr=='2002')
+
+# 2002 -> 28256 to 28250
+# 2003 -> 39200 to 39185 
+# 2004 -> 37840 to 37829 
+# 2005 -> 15328 to 15320 
+# 2006 -> 40544 to 40538  
+# 2007 -> 25488 to 25485 
+# 2008 -> 32080 to 32078  
+# 2009 -> 48736 to 48732 
+# 2010 -> 26448 to 26441 
+# 2011 -> 10244 to 10220
+# 2012 -> 26048 to 26047    
+# 2013 -> 29536 to 29527 
+# 2014 -> 23536 to 23534 
+# 2015 -> 29632 to 29629 
+# 2016 -> 16592 to 16590 
+# 2017 -> 21424 to 21423
+# 2018 -> 33520 to 33519
+# 2019 -> 12816 to 12815
+# 2020 -> 10608 to 10606 
+# 2021 -> 26256 to 26253
+
+# Good. I loose some points but when i plotted them in QGIS they were all points on the boarder of BC 
+
+names(fire_veg_2)
+dim(fire_veg_2)
+fire_veg_sf<-st_as_sf(fire_veg_2)
+head(fire_veg_sf)
+
+```
+Try saving file
+```{r}
+st_write(fire_veg_sf, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(fire_veg_sf, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_everything.shp", delete_layer=TRUE, driver="ESRI Shapefile") # this one was not working
+
+#ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user= password= host=DG401102" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Fire_data_all.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI 
+
+fire_all_2<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all.gpkg")
+
+```
+
+```{r}
+##1. Remove all sites that are not classified as anything or NA's
+## Things to consider: if a site is classified as Non-treed I shold probably make a bunch of the variables 0 e.g. stand percent dead, quad diam, crown closure, vri stems, proj_age, proj_height, live stand volume, etc. 
+fire_all<-fire_veg_sf
+
+# looking at how many na values there are
+table(is.na(fire_all$bclcs_level_1))
+table(is.na(fire_all$bclcs_level_2))
+table(is.na(fire_all$bclcs_level_3))
+table(is.na(fire_all$bclcs_level_4))
+table(is.na(fire_all$bclcs_level_5))
+
+table((fire_all$bclcs_level_1)) # U=unreported, N = non-vegetated, V = vegetated
+table((fire_all$bclcs_level_2)) # T= treed, N = Non-treed, L=Land, W=water
+table((fire_all$bclcs_level_3)) # A = alpine, U = upland, W = wetland
+table((fire_all$bclcs_level_4)) # 
+table((fire_all$bclcs_level_5))
+```
+
+
+### Now Im going to try to use the VRI vegetation data to classify vegetation as Perrakis et al. (2018) British Columbia Wildfire Fuel Typing and Fuel Type Layer Description
+
+
+First I need to create some new variables i.e. time since disturbance in years and time since last harvest. 
+```{r}
+fire_all$yearHarvest<-as.numeric(as.character(stringi::stri_sub(fire_all$harvest_date,1,4)))
+fire_all<- fire_all %>% dplyr::mutate(yearsSinceHarvest = fire_yr - yearHarvest)
+
+fire_all$earliest_nonlogging_dist_type_2<-gsub('[" "]', '', fire_all$earliest_nonlogging_dist_type) # removing some weird characters
+table(fire_all$earliest_nonlogging_dist_type)
+table(fire_all$earliest_nonlogging_dist_type_2) # better
+
+fire_all$earliest_nonlogging_dist_type_2<- as.factor(fire_all$earliest_nonlogging_dist_type_2)
+levels(fire_all$earliest_nonlogging_dist_type_2)<-list(burn="B",burn="BE", burn="BR", burn="BW", burn="NB",drought="D",  disease="DF", disease="DMP", disease="DS", disease="DSG", insect="I", insect="IBB", insect="IBD", insect="IBF", insect="IBM", insect="IBS", flooding="NF", slide="NS", windthrow="NW", planting="P" ) # amalgamate some categories
+table(fire_all$earliest_nonlogging_dist_type_2)
+
+fire_all$earliest_nonlogging_dist_date
+fire_all$yearDisturb<-as.numeric(as.character(stringi::stri_sub(fire_all$earliest_nonlogging_dist_date,1,4)))
+
+fire_all$yearsSinceDisturbance<- ifelse (fire_all$fire_yr >= fire_all$yearDisturb, fire_all$fire_yr - fire_all$yearDisturb, NA)
+table(fire_all$yearsSinceDisturbance)
+
+```
+
+Now I can hopefully follow the rules outlined at the end of Perrakis et al (2018)
+First Ill code the non-vegetated areas
+```{r}
+fire_all$FWI_veg<-NA
+
+fire_all1<- fire_all %>%
+  mutate(FWI_veg=case_when(bclcs_level_1=="N" & yearsSinceHarvest %in% 6:24 ~ "O-1a/b",
+                            bclcs_level_1=="N" & yearsSinceHarvest >=25  & bec_zone_code %in% c("CWH", "IDF","CDF", "ICH") ~ "C-5", TRUE ~ as.character(FWI_veg)))
+
+table(fire_all1$FWI_veg)
+
+# not vegetated and logged
+fire_all1<- fire_all1 %>%
+  mutate(FWI_veg = case_when(
+          bclcs_level_1=="N" & yearsSinceHarvest <= 6 & coast_interior_cd=="C" ~ "S-3",
+          bclcs_level_1=="N" & yearsSinceHarvest <= 6 & coast_interior_cd =="I" ~ "S-1",
+          bclcs_level_1=="N" & yearsSinceHarvest %in% 6:24 & bec_zone_code %in% c("CWH","MH","ICH") ~ "D-1/2",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="BAFA" ~ "D-1/2",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="CWH" & bec_subzone %in% c("ds","xm") ~ "M-1/2",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="BWBS" ~ "C-2",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="SWB" ~ "M-1/2",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="SBS" ~ "C-3",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="SBPS" ~ "C-7",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="MS" ~ "C-7",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="IDF" & bec_subzone %in% c("mw","ww") ~ "C-3",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("PP","BG") ~ "O-1a/b",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="MH" ~ "D-1/2",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="ESSF" ~ "C-7",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="ICH" & bec_subzone %in% c("dk","dm","dw","xw") ~ "C-3",
+          
+# not vegetated and not logged, Recently burned   
+
+          bclcs_level_1=="N" & earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance <=3 ~"N",
+          bclcs_level_1=="N" & earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance %in% 4:6 ~"D-1/2",
+          bclcs_level_1=="N" & earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance %in% 7:10 ~"O-1a/b",
+
+# not logged and not recently burned
+          bclcs_level_1=="N" & species_pct_1 > 0 & bec_zone_code %in% c("CWH", "MH", "ICH") ~ "D-1/2",
+          bclcs_level_1=="N" & species_pct_1 > 0 & !bec_zone_code %in% c("CWH", "MH", "ICH") ~ "O-1a/b",
+          bclcs_level_2=="W" ~ "W",
+          bclcs_level_1=="N" ~ "N", # for all other "N"'s
+
+TRUE ~ as.character(FWI_veg)))
+
+# note the NA values in the fire_all table were causing ifelse statements to do weird things. This seems better. Hopefully its correct.
+
+table(fire_all1$FWI_veg)
+
+
+```
+
+
+Now coding the VEGETATED areas
+
+```{r}
+# recently burned
+fire_all1<- fire_all1 %>%
+  mutate(FWI_veg = case_when(
+          bclcs_level_1=="V" & bclcs_level_2=="T" & bclcs_level_4 == "TC" & crown_closure > 40 & earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance %in% 0:3 ~ "N",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & bclcs_level_4 == "TC" & crown_closure > 40 & earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance %in% 4:6 ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & bclcs_level_4 == "TC" & crown_closure > 40 & earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance %in% 7:10 ~ "C-5",
+           bclcs_level_1=="V" & bclcs_level_2=="T" & bclcs_level_4 == "TC" & crown_closure <= 40 & earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance <1 ~ "N",
+           bclcs_level_1=="V" & bclcs_level_2=="T" & bclcs_level_4 == "TC" & crown_closure <= 40 & earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance %in% 2:6 ~ "D-1/2",
+           bclcs_level_1=="V" & bclcs_level_2=="T" & bclcs_level_4 != "TC" &  earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance < 2 ~ "N",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & bclcs_level_4 != "TC" &  earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance %in%2:10 ~ "D-1/2",
+          TRUE ~ as.character(FWI_veg)))
+table(fire_all1$FWI_veg)
+
+#Pure lodgepole or jack or undefined pine species
+fire_all1<- fire_all1 %>%
+  mutate(FWI_veg = case_when(
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & yearsSinceHarvest<=7 ~ "S-1",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 &  bclcs_level_5=="SP" & bec_zone_code %in% c("CWH", "CDF", "MH", "ICH") & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & bclcs_level_5=="SP" & !bec_zone_code %in% c("CWH", "CDF", "MH", "ICH") & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "C-7",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 &  bclcs_level_5!="SP" & proj_height_1<=4 &species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "O-1a/b",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & bclcs_level_5!="SP" & proj_height_1 %in% 4:12 & (vri_live_stems_per_ha+vri_dead_stems_per_ha) > 8000 &species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "C-4",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & bclcs_level_5!="SP" & proj_height_1 %in% 4:12 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & bclcs_level_5!="SP" & proj_height_1 >12 & crown_closure <40 & bec_zone_code %in% c("BG", "PP", "IDF", "MS") & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "C-7",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & bclcs_level_5!="SP" & proj_height_1 >12 & crown_closure <40 & bec_zone_code %in% c("CWH", "MH", "ICH") & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "C-5",
+           bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & bclcs_level_5!="SP" & proj_height_1 >12 & crown_closure <40 &species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & earliest_nonlogging_dist_type_2=="insect" & yearsSinceDisturbance <=5 & stand_percentage_dead >50 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "M-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & earliest_nonlogging_dist_type_2=="insect" & yearsSinceDisturbance <=5 & stand_percentage_dead %in% 25:50 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "C-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & earliest_nonlogging_dist_type_2=="insect" & yearsSinceDisturbance <=5 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & earliest_nonlogging_dist_type_2=="insect" & yearsSinceDisturbance > 5 & stand_percentage_dead > 50 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "C-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & bclcs_level_4=="TC" & bclcs_level_5=="DE" & earliest_nonlogging_dist_type_2=="insect" & yearsSinceDisturbance > 5 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "C-3",
+          TRUE ~ as.character(FWI_veg)))
+          
+table(fire_all1$FWI_veg)
+
+# Pure ponderosa pine
+fire_all1<- fire_all1 %>%
+  mutate(FWI_veg = case_when(
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & yearsSinceHarvest<=10 ~ "S-1",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & proj_height_1 < 4~ "O-1a/b",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & proj_height_1 %in% 4:12 & (vri_live_stems_per_ha+vri_dead_stems_per_ha)>8000 ~ "C-4",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & proj_height_1 %in% 4:12 & (vri_live_stems_per_ha+vri_dead_stems_per_ha) %in% 3000:8000 ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & proj_height_1 %in% 4:12 ~ "C-7",
+           bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "PY" & bclcs_level_5 =="DE" & proj_height_1 %in% 12:17 ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "PY" & bclcs_level_5 =="OP" & proj_height_1 %in% 12:17 ~ "C-7",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & proj_height_1 >17 ~ "C-7",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "PY" & bclcs_level_5 =="SP" & stand_percentage_dead >=40 ~ "O-1a/b",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "PY" & bclcs_level_5 =="SP" & stand_percentage_dead <40 & yearsSinceHarvest<=10 ~ "S-1",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "PY" & bclcs_level_5 =="SP" & stand_percentage_dead <40 ~ "C-7",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("PA", "PF", "PW") & bclcs_level_5 =="DE"  ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("PA", "PF", "PW") & bclcs_level_5 %in% c("SP","OP") & (vri_live_stems_per_ha+vri_dead_stems_per_ha)>=900  ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("PA", "PF", "PW") & bclcs_level_5 %in% c("SP","OP") & (vri_live_stems_per_ha+vri_dead_stems_per_ha) %in% 600:900  ~ "C-7",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("PA", "PF", "PW") & bclcs_level_5 %in% c("SP","OP")  ~ "C-5",
+        
+          TRUE ~ as.character(FWI_veg)))
+
+table(fire_all1$FWI_veg)
+
+### pure douglas fir
+fire_all1<- fire_all1 %>%
+  mutate(FWI_veg = case_when(
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F")  & yearsSinceHarvest<=6 & bec_zone_code %in% c("CWH", "MH", "CDF") ~ "S-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F")  & yearsSinceHarvest<=6 & !bec_zone_code %in% c("CWH", "MH", "CDF") ~ "S-1",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F")  & yearsSinceHarvest<=6 & bec_zone_code =="ICH" & bec_subzone %in% c("mc", "mk", "mm", "mw", "vc", "vk", "wc", "wk") ~ "S-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F")  & yearsSinceHarvest<=6 & bec_zone_code =="ICH" & !bec_subzone %in% c("mc", "mk", "mm", "mw", "vc", "vk", "wc", "wk") ~ "S-1",
+           bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F") & bec_zone_code %in% c("CWH", "MH", "CDF") & proj_height_1 < 4 ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F") & bec_zone_code =="ICH" & bec_subzone %in% c("mc", "mk", "mm", "mw", "vc", "vk", "wc", "wk") & proj_height_1 < 4 ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F") & proj_height_1 < 4 ~ "O-1a/b",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F") & bec_zone_code %in% c("CWH", "MH", "CDF") & proj_height_1 %in% 4:12 & crown_closure > 55 ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F") & bec_zone_code =="ICH" & bec_subzone %in% c("mc", "mk", "mm", "mw", "vc", "vk", "wc", "wk") & proj_height_1 %in% 4:12 & crown_closure > 55 ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F") & proj_height_1 %in% 4:12 & crown_closure > 55 & stand_percentage_dead > 34 ~ "C-4",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F") & proj_height_1 %in% 4:12 & crown_closure > 55 ~ "C-3",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F") & bec_zone_code %in% c("CWH", "MH", "CDF") & crown_closure<26  ~ "D-1/2", 
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F") & bec_zone_code =="ICH" & bec_subzone %in% c("mc", "mk", "mm", "mw", "vc", "vk", "wc", "wk") & crown_closure<26 ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F") & crown_closure<26 ~ "O-1a/b",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F") & bec_zone_code %in% c("CWH", "MH", "CDF")  ~ "C-5", # these
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F") & bec_zone_code =="ICH" & bec_subzone %in% c("mc", "mk", "mm", "mw", "vc", "vk", "wc", "wk") ~ "C-5",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("FD", "F") ~ "C-7",
+        
+          TRUE ~ as.character(FWI_veg)))
+
+table(fire_all1$FWI_veg)
+# Pure Spruce
+
+fire_all1<- fire_all1 %>%
+  mutate(FWI_veg = case_when(
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "SE"  & yearsSinceHarvest<=10  ~ "S-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "SE" & bclcs_level_5=="SP"  ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "SE" & bclcs_level_5=="DE"  ~ "C-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "SE" & bclcs_level_5=="OP"  ~ "C-3",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "SS"  & yearsSinceHarvest<=6  ~ "S-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "SS" & bclcs_level_5=="SP"  ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "SS" & bclcs_level_5 %in% c("DE","OP")  ~ "C-5",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("SB", "SW")  & yearsSinceHarvest<=10  ~ "S-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1  %in% c("SB", "SW") & bclcs_level_5 %in% c("DE","OP")  ~ "C-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("SB", "SW") & bclcs_level_5=="SP" & bec_zone_code %in% c("BWBS", "SWB")  ~ "C-1",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("SB", "SW") & bclcs_level_5=="SP"  ~ "M-1/2",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("S", "SX")  & yearsSinceHarvest<=7  ~ "S-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("S", "SX")  &  bec_zone_code %in% c("BWBS", "SWB") & bclcs_level_5 %in% c("DE", "OP")  ~ "C-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("S", "SX")  &  bec_zone_code %in% c("BWBS", "SWB")  ~ "C-1",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("S", "SX")  &  !bec_zone_code %in% c("BWBS", "SWB") & bclcs_level_5 =="SP"  ~ "C-7",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("S", "SX")  &  bec_zone_code %in% c("CWH", "CDF") & bclcs_level_5 %in% c("DE", "OP")  ~ "C-5",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("S", "SX")  &  !bec_zone_code %in% c("BWBS", "SWB") & bclcs_level_5 %in% c("DE", "OP") & proj_height_1 < 4  ~ "O-1a/b",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("S", "SX")  &  !bec_zone_code %in% c("BWBS", "SWB") & bclcs_level_5 == "OP"  ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("S", "SX")  &  !bec_zone_code %in% c("BWBS", "SWB") & bclcs_level_5 == "DE"  ~ "C-2",
+        
+          TRUE ~ as.character(FWI_veg)))
+table(fire_all1$FWI_veg)
+
+# Pure hemlock, redcedar or yellow cedar
+
+fire_all1<- fire_all1 %>%
+  mutate(FWI_veg = case_when(
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & yearsSinceHarvest<=6  ~ "S-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="DE" & proj_height_1<4  ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="DE" & proj_height_1 %in% 4:15  ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="DE" & proj_age_1<60  ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="DE" & proj_age_1 %in% 60:99  ~ "M-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="DE"  ~ "C-5",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="OP"  ~ "C-5",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  ~ "D-1/2",
+        
+          TRUE ~ as.character(FWI_veg)))
+
+# True fir
+fire_all1<- fire_all1 %>%
+  mutate(FWI_veg = case_when(
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "BG"  ~ "C-7",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "BA"  ~ "M-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% ("B", "BB", "BL")  & bclcs_level_5=="SP"  ~ "C-7",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% ("B", "BB", "BL")  ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "T"  ~ "C-5",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 == "J"  ~ "O-1a/b",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>=80 & species_cd_1 %in% c("L","D", "DR", "A", "AC", "ACB", "ACT", "AT", "AX", "RA", "E", "EA", "EP", "EW", "VB", "M", "MB", "MV", "Q", "W", "WB","WS", "XH")  ~ "D-1/2",
+           TRUE ~ as.character(FWI_veg)))
+
+conifer<-c("C","CW","Y","YC","F","FD","FDC","FDI","B","BA","BG","BL","H","HM","HW","HXM","J","JR","JS", "P","PJ","PF","PL","PLI","PXJ","PY","PLC","PW","PA","S","SB","SE","SS","SW","SX","SXW","SXL","SXS","T","TW", "XC", "ZC")
+
+deciduous<-c("L", "LA", "LT", "LW", "D", "DR", "U", "UP", "A", "AC", "ACB", "ACT", "AX", "AT", "R", "RA", "E", "EA", "EXP", "EP", "EW", "K", "KC", "V", "VB", "VV", "VP", "G", "M", "MB", "MV", "Q", "QG", "W", "WB", "WP", "WA", "WD", "WS", "WT", "XH", "ZH")
+
+
+# NOTE: there must be a better way of doing what Im doing below. i.e. adding up the percent cover for each row that matches my specified criteria. maybe with rowwise() or something. I spent quite some time looking into this but did not come up with anything. see vignette("rowwise")
+
+# Also there are 6 columns with species and percent cover. I only add up the first three (must correct. I should extend this out to all columns but this is tedious!. 
+
+# Mixed species stand
+fire_all1<- fire_all1 %>%
+  mutate(FWI_veg = case_when(bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & 
+            ((species_cd_1 %in% conifer & species_cd_2 %in% deciduous & species_cd_3 %in% deciduous & species_pct_1<=20) |
+            (species_cd_1 %in% conifer & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & (species_pct_1 + species_pct_2)<=20) |
+            (species_cd_1 %in% conifer & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_1 + species_pct_2 +species_pct_3)<=20) |
+              (species_cd_1 %in% conifer  & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & (species_pct_1 +species_pct_3)<=20) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_2 +species_pct_3)<=20) |
+              (species_cd_1 %in% deciduous & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & species_pct_2<=20) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & species_pct_3<=20) |
+            (species_cd_1 %in% conifer & species_cd_2 %in% deciduous & species_pct_1<=20) | 
+            (species_cd_1 %in% conifer & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2)<=20) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% conifer & species_pct_2<=20))  
+              ~ "D-1/2",
+            
+            bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & yearsSinceHarvest<=6 & 
+            ((species_cd_1 %in% conifer & species_cd_2 %in% deciduous & species_cd_3 %in% deciduous & species_pct_1%in% 21:80) |
+            (species_cd_1 %in% conifer & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & (species_pct_1 + species_pct_2)%in% 21:80) |
+            (species_cd_1 %in% conifer & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_1 + species_pct_2 +species_pct_3)%in% 21:80) |
+              (species_cd_1 %in% conifer  & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & (species_pct_1 +species_pct_3)%in% 21:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_2 +species_pct_3)%in% 21:80) |
+              (species_cd_1 %in% deciduous & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & species_pct_2%in% 21:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & species_pct_3%in% 21:80) |
+            (species_cd_1 %in% conifer & species_cd_2 %in% deciduous & species_pct_1%in% 21:80) | 
+            (species_cd_1 %in% conifer & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2)%in% 21:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% conifer & species_pct_2%in% 21:80))
+             ~ "S-1",
+            
+# note for below I made the assumption that  on pg 39 of Perrakis et al. (2018) there were refering to the dominant conifer species  when they listed specific species. That is why only the first occurrence of a conifer gets the specific species            
+             bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 &
+            ((species_cd_1 %in% c("T","TW") & species_cd_2 %in% deciduous & species_cd_3 %in% deciduous & species_pct_1 %in% 41:65) |
+            (species_cd_1 %in% c("T","TW") & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & (species_pct_1 + species_pct_2)%in% 41:65) |
+            (species_cd_1 %in% c("T","TW") & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_1 + species_pct_2 +species_pct_3)%in% 41:65) |
+              (species_cd_1 %in% c("T","TW")  & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & (species_pct_1 +species_pct_3)%in% 41:65) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("T","TW") & species_cd_3 %in% conifer & (species_pct_2 +species_pct_3)%in% 41:65) |
+              (species_cd_1 %in% deciduous & species_cd_2 %in% c("T","TW") & species_cd_3 %in% deciduous & species_pct_2 %in% 41:65) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% deciduous & species_cd_3 %in% c("T","TW") & species_pct_3%in% 41:65) |
+            (species_cd_1 %in% c("T","TW") & species_cd_2 %in% deciduous & species_pct_1%in% 41:65) | 
+            (species_cd_1 %in% c("T","TW") & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2)%in% 41:65) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("T","TW") & species_pct_2%in% 41:65))  
+              ~ "C-5",
+
+# note for below I made the assumption that  on pg 39 of Perrakis et al. (2018) there were refering to the dominant conifer species  when they listed specific species. That is why only the first occurrence of a conifer gets the specific species            
+             bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 &
+            ((species_cd_1 %in% c("J","JR","JS") & species_cd_2 %in% deciduous & species_cd_3 %in% deciduous & species_pct_1 %in% 41:65) |
+            (species_cd_1 %in% c("J","JR","JS") & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & (species_pct_1 + species_pct_2)%in% 41:65) |
+            (species_cd_1 %in% c("J","JR","JS") & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_1 + species_pct_2 +species_pct_3)%in% 41:65) |
+              (species_cd_1 %in% c("J","JR","JS")  & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & (species_pct_1 +species_pct_3)%in% 41:65) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("J","JR","JS") & species_cd_3 %in% conifer & (species_pct_2 +species_pct_3)%in% 41:65) |
+               (species_cd_1 %in% deciduous & species_cd_2 %in% c("J","JR","JS") & species_cd_3 %in% deciduous & species_pct_2 %in% 41:65) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% deciduous & species_cd_3 %in% c("J","JR","JS") & species_pct_3%in% 41:65) |
+            (species_cd_1 %in% c("J","JR","JS") & species_cd_2 %in% deciduous & species_pct_1%in% 41:65) | 
+            (species_cd_1 %in% c("J","JR","JS") & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2)%in% 41:65) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("J","JR","JS") & species_pct_2%in% 41:65))  
+              ~ "O-1a/b",
+
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 &
+            ((species_cd_1 =="PY" & species_cd_2 %in% deciduous & species_cd_3 %in% deciduous & species_pct_1 %in% 65:80) |
+            (species_cd_1 =="PY" & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & (species_pct_1 + species_pct_2)%in% 65:80) |
+            (species_cd_1 =="PY" & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_1 + species_pct_2 +species_pct_3)%in% 65:80) |
+              (species_cd_1 =="PY"  & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & (species_pct_1 +species_pct_3)%in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 =="PY" & species_cd_3 %in% conifer & (species_pct_2 +species_pct_3)%in% 65:80) |
+              (species_cd_1 %in% deciduous & species_cd_2 =="PY" & species_cd_3 %in% deciduous & species_pct_2 %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% deciduous & species_cd_3 =="PY" & species_pct_3 %in% 65:80) |
+            (species_cd_1 =="PY" & species_cd_2 %in% deciduous & species_pct_1 %in% 65:80)|
+            (species_cd_1 =="PY" & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2) %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 =="PY" & species_pct_2 %in% 65:80))  
+              ~ "C-7",
+
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 &
+            ((species_cd_1 %in% c("PA", "PF", "PW") & species_cd_2 %in% deciduous & species_cd_3 %in% deciduous & species_pct_1 %in% 65:80) |
+            (species_cd_1 %in% c("PA", "PF", "PW") & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & (species_pct_1 + species_pct_2)%in% 65:80) |
+            (species_cd_1 %in% c("PA", "PF", "PW") & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_1 + species_pct_2 +species_pct_3)%in% 65:80) |
+              (species_cd_1 %in% c("PA", "PF", "PW")  & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & (species_pct_1 +species_pct_3)%in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("PA", "PF", "PW") & species_cd_3 %in% conifer & (species_pct_2 +species_pct_3) %in% 65:80) |
+              (species_cd_1 %in% deciduous & species_cd_2 %in% c("PA", "PF", "PW") & species_cd_3 %in% deciduous & species_pct_2 %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% deciduous & species_cd_3 %in% c("PA", "PF", "PW") & species_pct_3 %in% 65:80) |
+            (species_cd_1 %in% c("PA", "PF", "PW") & species_cd_2 %in% deciduous & species_pct_1 %in% 65:80)|
+            (species_cd_1 %in% c("PA", "PF", "PW") & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2) %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("PA", "PF", "PW") & species_pct_2 %in% 65:80))  
+              ~ "C-5",
+
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & bec_zone_code %in% c("CWH", "CDF", "ICH") &
+            ((species_cd_1 %in% c("F","FD","FDC") & species_cd_2 %in% deciduous & species_cd_3 %in% deciduous & species_pct_1 %in% 65:80) |
+            (species_cd_1 %in% c("F","FD","FDC") & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & (species_pct_1 + species_pct_2)%in% 65:80) |
+            (species_cd_1 %in% c("F","FD","FDC") & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_1 + species_pct_2 +species_pct_3)%in% 65:80) |
+              (species_cd_1 %in% c("F","FD","FDC")  & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & (species_pct_1 +species_pct_3)%in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("F","FD","FDC") & species_cd_3 %in% conifer & (species_pct_2 +species_pct_3) %in% 65:80) |
+              (species_cd_1 %in% deciduous & species_cd_2 %in% c("F","FD","FDC") & species_cd_3 %in% deciduous & species_pct_2 %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% deciduous & species_cd_3 %in% c("F","FD","FDC") & species_pct_3 %in% 65:80) |
+            (species_cd_1 %in% c("F","FD","FDC") & species_cd_2 %in% deciduous & species_pct_1 %in% 65:80)|
+            (species_cd_1 %in% c("F","FD","FDC") & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2) %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("F","FD","FDC") & species_pct_2 %in% 65:80))  
+              ~ "C-5",
+
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & bclcs_level_5=="DE" &
+            ((species_cd_1 %in% c("F","FD","FDC") & species_cd_2 %in% deciduous & species_cd_3 %in% deciduous & species_pct_1 %in% 65:80) |
+            (species_cd_1 %in% c("F","FD","FDC") & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & (species_pct_1 + species_pct_2)%in% 65:80) |
+            (species_cd_1 %in% c("F","FD","FDC") & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_1 + species_pct_2 +species_pct_3)%in% 65:80) |
+              (species_cd_1 %in% c("F","FD","FDC")  & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & (species_pct_1 +species_pct_3)%in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("F","FD","FDC") & species_cd_3 %in% conifer & (species_pct_2 +species_pct_3) %in% 65:80) |
+              (species_cd_1 %in% deciduous & species_cd_2 %in% c("F","FD","FDC") & species_cd_3 %in% deciduous & species_pct_2 %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% deciduous & species_cd_3 %in% c("F","FD","FDC") & species_pct_3 %in% 65:80) |
+            (species_cd_1 %in% c("F","FD","FDC") & species_cd_2 %in% deciduous & species_pct_1 %in% 65:80)|
+            (species_cd_1 %in% c("F","FD","FDC") & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2) %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("F","FD","FDC") & species_pct_2 %in% 65:80))  
+              ~ "M-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 &
+            ((species_cd_1 %in% c("F","FD","FDC") & species_cd_2 %in% deciduous & species_cd_3 %in% deciduous & species_pct_1 %in% 65:80) |
+            (species_cd_1 %in% c("F","FD","FDC") & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & (species_pct_1 + species_pct_2)%in% 65:80) |
+            (species_cd_1 %in% c("F","FD","FDC") & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_1 + species_pct_2 +species_pct_3)%in% 65:80) |
+              (species_cd_1 %in% c("F","FD","FDC")  & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & (species_pct_1 +species_pct_3)%in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("F","FD","FDC") & species_cd_3 %in% conifer & (species_pct_2 +species_pct_3) %in% 65:80) |
+              (species_cd_1 %in% deciduous & species_cd_2 %in% c("F","FD","FDC") & species_cd_3 %in% deciduous & species_pct_2 %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% deciduous & species_cd_3 %in% c("F","FD","FDC") & species_pct_3 %in% 65:80) |
+            (species_cd_1 %in% c("F","FD","FDC") & species_cd_2 %in% deciduous & species_pct_1 %in% 65:80)|
+            (species_cd_1 %in% c("F","FD","FDC") & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2) %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("F","FD","FDC") & species_pct_2 %in% 65:80))  
+              ~ "C-7",
+
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 &
+            ((species_cd_1 %in% c("SS") & species_cd_2 %in% deciduous & species_cd_3 %in% deciduous & species_pct_1 %in% 65:80) |
+            (species_cd_1 %in% c("SS") & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & (species_pct_1 + species_pct_2)%in% 65:80) |
+            (species_cd_1 %in% c("SS") & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_1 + species_pct_2 +species_pct_3)%in% 65:80) |
+              (species_cd_1 %in% c("SS")  & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & (species_pct_1 +species_pct_3)%in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("SS") & species_cd_3 %in% conifer & (species_pct_2 +species_pct_3) %in% 65:80) |
+              (species_cd_1 %in% deciduous & species_cd_2 %in% c("SS") & species_cd_3 %in% deciduous & species_pct_2 %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% deciduous & species_cd_3 %in% c("SS") & species_pct_3 %in% 65:80) |
+            (species_cd_1 %in% c("SS") & species_cd_2 %in% deciduous & species_pct_1 %in% 65:80)|
+            (species_cd_1 %in% c("SS") & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2) %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("SS") & species_pct_2 %in% 65:80))  
+              ~ "C-5",
+
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & !bec_zone_code %in% c("BWBS", "SWB") & coast_interior_cd =="C" &
+            ((species_cd_1 %in% c("S", "SX") & species_cd_2 %in% deciduous & species_cd_3 %in% deciduous & species_pct_1 %in% 65:80) |
+            (species_cd_1 %in% c("S", "SX") & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & (species_pct_1 + species_pct_2)%in% 65:80) |
+            (species_cd_1 %in% c("S", "SX") & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_1 + species_pct_2 +species_pct_3)%in% 65:80) |
+              (species_cd_1 %in% c("S", "SX")  & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & (species_pct_1 +species_pct_3)%in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("S", "SX") & species_cd_3 %in% conifer & (species_pct_2 +species_pct_3) %in% 65:80) |
+              (species_cd_1 %in% deciduous & species_cd_2 %in% c("S", "SX") & species_cd_3 %in% deciduous & species_pct_2 %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% deciduous & species_cd_3 %in% c("S", "SX") & species_pct_3 %in% 65:80) |
+            (species_cd_1 %in% c("S", "SX") & species_cd_2 %in% deciduous & species_pct_1 %in% 65:80)|
+            (species_cd_1 %in% c("S", "SX") & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2) %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("S", "SX") & species_pct_2 %in% 65:80))  
+              ~ "C-5",
+
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 &
+            ((species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM","T","TW") & species_cd_2 %in% deciduous & species_cd_3 %in% deciduous & species_pct_1 %in% 65:80) |
+            (species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM","T","TW") & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & (species_pct_1 + species_pct_2)%in% 65:80) |
+            (species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM","T","TW") & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_1 + species_pct_2 +species_pct_3)%in% 65:80) |
+              (species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM","T","TW")  & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & (species_pct_1 +species_pct_3)%in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("C","CW","Y","YC","H","HM","HW","HXM","T","TW") & species_cd_3 %in% conifer & (species_pct_2 +species_pct_3) %in% 65:80) |
+              (species_cd_1 %in% deciduous & species_cd_2 %in% c("C","CW","Y","YC","H","HM","HW","HXM","T","TW") & species_cd_3 %in% deciduous & species_pct_2 %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% deciduous & species_cd_3 %in% c("C","CW","Y","YC","H","HM","HW","HXM","T","TW") & species_pct_3 %in% 65:80) |
+            (species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM","T","TW") & species_cd_2 %in% deciduous & species_pct_1 %in% 65:80)|
+            (species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM","T","TW") & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2) %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("C","CW","Y","YC","H","HM","HW","HXM","T","TW") & species_pct_2 %in% 65:80))  
+              ~ "C-5",
+
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 &
+            ((species_cd_1 %in% c("B","BA","BG","BL","J","JR","JS") & species_cd_2 %in% deciduous & species_cd_3 %in% deciduous & species_pct_1 %in% 65:80) |
+            (species_cd_1 %in% c("B","BA","BG","BL","J","JR","JS") & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & (species_pct_1 + species_pct_2)%in% 65:80) |
+            (species_cd_1 %in% c("B","BA","BG","BL","J","JR","JS") & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_1 + species_pct_2 +species_pct_3)%in% 65:80) |
+              (species_cd_1 %in% c("B","BA","BG","BL","J","JR","JS")  & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & (species_pct_1 +species_pct_3)%in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("B","BA","BG","BL","J","JR","JS") & species_cd_3 %in% conifer & (species_pct_2 +species_pct_3) %in% 65:80) |
+              (species_cd_1 %in% deciduous & species_cd_2 %in% c("B","BA","BG","BL","J","JR","JS") & species_cd_3 %in% deciduous & species_pct_2 %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% deciduous & species_cd_3 %in% c("B","BA","BG","BL","J","JR","JS") & species_pct_3 %in% 65:80) |
+            (species_cd_1 %in% c("B","BA","BG","BL","J","JR","JS") & species_cd_2 %in% deciduous & species_pct_1 %in% 65:80)|
+            (species_cd_1 %in% c("B","BA","BG","BL","J","JR","JS") & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2) %in% 65:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% c("B","BA","BG","BL","J","JR","JS") & species_pct_2 %in% 65:80))  
+              ~ "C-7",
+            
+             bclcs_level_1=="V" & bclcs_level_2=="T" &
+            ((species_cd_1 %in% conifer & species_cd_2 %in% deciduous & species_cd_3 %in% deciduous & species_pct_1 %in% 21:80) |
+            (species_cd_1 %in% conifer & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & (species_pct_1 + species_pct_2)%in% 21:80) |
+            (species_cd_1 %in% conifer & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_1 + species_pct_2 +species_pct_3)%in% 21:80) |
+              (species_cd_1 %in% conifer  & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & (species_pct_1 +species_pct_3)%in% 21:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_2 +species_pct_3)%in% 21:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & species_pct_3%in% 21:80) |
+            (species_cd_1 %in% conifer & species_cd_2 %in% deciduous & species_pct_1%in% 21:80) | 
+            (species_cd_1 %in% conifer & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2)%in% 21:80) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% conifer & species_pct_2%in% 21:80))  
+              ~ "M-1/2",
+            
+            bclcs_level_1=="V" & bclcs_level_2=="T" &  
+            ((species_cd_1 %in% conifer & species_cd_2 %in% deciduous & species_cd_3 %in% deciduous & species_pct_1 %in% 41:65) |
+            (species_cd_1 %in% conifer & species_cd_2 %in% conifer & species_cd_3 %in% deciduous & (species_pct_1 + species_pct_2)%in% 21:40) |
+            (species_cd_1 %in% conifer & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_1 + species_pct_2 +species_pct_3)%in% 21:40) |
+              (species_cd_1 %in% conifer  & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & (species_pct_1 +species_pct_3)%in% 21:40) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% conifer & species_cd_3 %in% conifer & (species_pct_2 +species_pct_3)%in% 21:40) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% deciduous & species_cd_3 %in% conifer & species_pct_3%in% 21:40) |
+            (species_cd_1 %in% conifer & species_cd_2 %in% deciduous & species_pct_1%in% 21:40) | 
+            (species_cd_1 %in% conifer & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2)%in% 21:40) |
+            (species_cd_1 %in% deciduous & species_cd_2 %in% conifer & species_pct_2%in% 21:40))  
+              ~ "M-1/2",
+          
+          
+          
+         
+          
+          
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 &  ((species_cd_1 %in% c("T","TW") & species_cd_2 %in% deciduous & species_pct_1 %in% 41:65) | (species_cd_1 %in% c("T","TW") & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2) %in% 41:65) | (species_cd_1 %in% conifer & species_cd_2 %in% c("T","TW") & (species_pct_1 + species_pct_2) %in% 41:65) | (species_cd_1 %in% deciduous & species_cd_2 %in% c("T","TW") & species_pct_2 %in% 41:65))  ~ "C-5",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 &  ((species_cd_1 %in% c("J","JR","JS") & species_cd_2 %in% deciduous & species_pct_1 %in% 41:65) | (species_cd_1 %in% c("J","JR","JS") & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2) %in% 41:65) | (species_cd_1 %in% conifer & species_cd_2 %in% c("J","JR","JS") & (species_pct_1 + species_pct_2) %in% 41:65) | (species_cd_1 %in% deciduous & species_cd_2 %in% c("J","JR","JS") & species_pct_2 %in% 41:65))  ~ "O-1a/b",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 &  ((species_cd_1 %in% conifer & species_cd_2 %in% deciduous & species_pct_1 %in% 41:65) | (species_cd_1 %in% conifer & species_cd_2 %in% conifer & (species_pct_1 + species_pct_2) %in% 41:65) | (species_cd_1 %in% deciduous & species_cd_2 %in% conifer & species_pct_2 %in% 41:65))  ~ "M-1/2",
+          
+
+         
+
+```
+
+
+
+
+
+
+
+
+  
+```{r}  
+table((fire_all$FWI_veg))
+
+
+
+# remove 
+
+ignition_pres_abs3 <-fire_all %>%
+  filter(bclc__2!="W") %>%
+  filter(bclc__2!=" ") # this reduces the number of points from 200344 to 176706 i.e. around 12% drop. 
+# 17840 are NA and 5798 are Water. Thats a lot of NA's. Not sure what to do about that
+
+table(ignition_pres_abs3$bclc__2, ignition_pres_abs3$fire_cs) # T=treed, N =  non-treed and L = land.
+
+table(is.na(ignition_pres_abs3$bclc__2))
+table(is.na(ignition_pres_abs3$bclc__3))
+table(is.na(ignition_pres_abs3$bclc__4))
+table(is.na(ignition_pres_abs3$bclc__5))
+
+table(ignition_pres_abs3$bclc__3, ignition_pres_abs3$fire_cs)
+table(ignition_pres_abs3$fire_yr, ignition_pres_abs3$fire_cs) 
+table(ignition_pres_abs3$bclc__4, ignition_pres_abs3$fire_cs)
+str(ignition_pres_abs3)
+
+
+#Creating new variable of vegetation type and a description of how open the vegetation is
+# TB =  Treed broadleaf, TC = Treed Conifer, TM = Treed mixed, SL = short shrub, ST = tall shrubs, D = disturbed, O = open. I will combine tall and short shrub. We dont estimate shrub cover in our CLUS model so Im not sure how this will influence our results since I dont think I can track it over time. Maybe I should include it in Open or disturbed?
+
+ignition_pres_abs3$bclc__4<- as.factor(ignition_pres_abs3$bclc__4)
+ignition_pres_abs4<- ignition_pres_abs3 %>% drop_na(bclc__4) # this drops from 176706 to 176666  locations so I think its ok to remove the NA's
+unique(ignition_pres_abs4$bclc__4)
+
+ignition_pres_abs4$vegtype<-"OP" #setting anything that is not one of the categories below to Open.
+ignition_pres_abs4 <- ignition_pres_abs4 %>%
+  mutate(vegtype = if_else(bclc__4=="TC","TC", # Treed coniferous
+                           if_else(bclc__4=="TM", "TM", # Treed mixed
+                                   if_else(bclc__4== "TB","TB", #Treed broadleaf
+                                           if_else(bclc__4=="SL", "S", # shrub
+                                                   if_else(bclc__4=="ST", "S", vegtype))))))
+ignition_pres_abs4$vegtype[which(ignition_pres_abs4$prj_g_1 <16)]<-"D" # disturbed -  following Marchal et al 2017 I make anything that is younger than 15 years old to disturbed. This might be something I should check whether this assumption is ok.
+
+#ignition_pres_abs4<- ignition_pres_abs4 %>% filter(fir_typ!="Nuisance Fire") 
+table(ignition_pres_abs4$vegtype, ignition_pres_abs4$fire_cs)
+
+# look at vegetation height, volume and age as we track these in CLUS. 
+ignition_pres_abs4$prj_g_1<- as.numeric(ignition_pres_abs4$prj_g_1)
+hist(ignition_pres_abs4$prj_g_1)
+hist(ignition_pres_abs4$prj_h_1) # not sure we have height in CLUS, we do have volume though. So maybe I should include age and volume in my model. This might be a surrogate for height
+hist(ignition_pres_abs4$l___125)
+hist(log(ignition_pres_abs4$l___125))
+```
+
+Try saving file again.
+
+```{r}
+st_write(ignition_pres_abs4, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Fire_data_all_with_veg.shp", delete_layer=TRUE)
+ 
+##To save to clus, need OsGeo4W
+#Modify below with correct credentials and upload on clus as desired
+#ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user= password= host=DC052586" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_person_NA_5x_NoW.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI 
+
+#ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user= password= host=DC052586" D:\\Fire\\fire_data\\raw_data\\Fire_climate_DEM_VRI_shape_files\\fire_veg_dem_lightning_NA_5x_NoW.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI 
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+####################################################################################################
+# Everythign below here is old code and should just be ignored
+####################################################################################################
 
 ##This first section has been completed on this computer.
 from https://catalogue.data.gov.bc.ca/dataset/vri-historical-vegetation-resource-inventory-2002-2019-
@@ -64,46 +957,70 @@ Run following query in postgres for all years 2002-2019 except 2007 and 2008. 20
 
 Depending on how the file names most recently saved, some changes may need to be made (e.g., ign_mnt versus ign_month).
 
+Data_clim_DEM_roads_wind_frt
+
 ##2002 -2006, 2009-2019
 ################################
 CREATE TABLE fire_veg_2002 AS
-(SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
-  harvest_date, proj_age_1, proj_height_1, live_stand_volume_125, 
+(SELECT feature_id, bclcs_level_1, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5, coast_interior_cd, bec_zone_code, bec_subzone, crown_closure, vri_live_stems_per_ha, vri_dead_stems_per_ha, harvest_date, earliest_nonlogging_dist_type, earliest_nonlogging_dist_date, species_cd_1, species_pct_1, species_cd_2, species_pct_2, species_cd_3, species_pct_3, species_cd_4, species_pct_4, species_cd_5, species_pct_5, species_cd_6, species_pct_6,   proj_age_1, proj_height_1, live_stand_volume_175, stand_percentage_dead, quad_diam_175,
   fire.idno, fire.fire_yr,
+  data_clim_dem_roads_wind_frt.wkb_geometry FROM data_clim_dem_roads_wind_frt,
+  (SELECT geometry, idno, fire_yr
+   from data_clim_dem_roads_wind_frt where fire_yr = '2002') as fire where st_contains
+  (fire.wkb_geometry, veg_comp_lyr_r1_poly2002.geometry))
+  
+  CREATE TABLE fire_veg_2002 AS
+(SELECT 
+  idno, fire_yr,
+  vri.feature_id, vri.bclcs_level_1,vri.bclcs_level_2, vri.bclcs_level_3, vri.bclcs_level_4, vri.bclcs_level_5, vri.coast_interior_cd, vri.bec_zone_code, vri.bec_subzone, vri.crown_closure, vri.vri_live_stems_per_ha, vri.vri_dead_stems_per_ha, vri.harvest_date, vri.earliest_nonlogging_dist_type, vri.earliest_nonlogging_dist_date, vri.species_cd_1, vri.species_pct_1, vri.species_cd_2, vri.species_pct_2, vri.species_cd_3, vri.species_pct_3, vri.species_cd_4, vri.species_pct_4, vri.species_cd_5, vri.species_pct_5, vri.species_cd_6, vri.species_pct_6,   vri.proj_age_1, vri.proj_height_1, vri.live_stand_volume_175, vri.stand_percentage_dead, vri.quad_diam_175,
   veg_comp_lyr_r1_poly2002.geometry FROM veg_comp_lyr_r1_poly2002,
   (SELECT wkb_geometry, idno, fire_yr
    from data_clim_dem_roads_wind_frt where fire_yr = '2002') as fire where st_contains
-  (veg_comp_lyr_r1_poly2002.geometry, fire.wkb_geometry))
+  (fire.wkb_geometry, veg_comp_lyr_r1_poly2002.geometry))
+
 
 ################################
+
+
 
 ##2007
 ################################
 CREATE TABLE fire_veg_2007 AS
-(SELECT feature_id, bclcs_lv_2, bclcs_lv_3, bclcs_lv_4, bclcs_lv_5,
- upd_htdate, proj_age_1, proj_ht_1, 
- COALESCE(volsp1_125,0)+COALESCE(volsp2_125,0)+COALESCE(volsp3_125,0)+COALESCE(volsp4_125,0)+
- COALESCE(volsp5_125,0) AS live_stand_volume_125,  
+(SELECT feature_id, bclcs_lv_1, bclcs_lv_2, bclcs_lv_3, bclcs_lv_4, bclcs_lv_5, cst_int_cd, cr_closure, live_stems, dead_stems, spec_cd_1, spec_pct_1, spec_cd_2, spec_pct_2, spec_cd_3, spec_pct_3, spec_cd_4, spec_pct_4, spec_cd_5, spec_pct_5, spec_cd_6, spec_pct_6,
+ upd_htdate, proj_age_1, proj_ht_1, q_diam_175, volsp1_175, volsp2_175, volsp3_175, volsp4_175, volsp5_175, volsp6_175,  
   fire.idno, fire.fire_yr,
   veg_comp_lyr_r1_poly2007.geometry FROM veg_comp_lyr_r1_poly2007,
   (SELECT wkb_geometry, idno, fire_yr
    from data_clim_dem_roads_wind_frt where fire_yr = '2007') as fire where st_contains
   (veg_comp_lyr_r1_poly2007.geometry, fire.wkb_geometry))
+  
+  CREATE TABLE fire_veg_2007_2 AS
+(SELECT feature_id, bec_zone_code, bec_subzone, harvest_date, earliest_nonlogging_dist_type,
+ earliest_nonlogging_dist_date, stand_percentage_dead, quad_diam_175,  
+  fire.idno, fire.fire_yr,
+  veg_comp_lyr_r1_poly2006.geometry FROM veg_comp_lyr_r1_poly2006,
+  (SELECT wkb_geometry, idno, fire_yr
+   from data_clim_dem_roads_wind_frt where fire_yr = '2007') as fire where st_contains
+  (veg_comp_lyr_r1_poly2006.geometry, fire.wkb_geometry))
 ##################################
 
 ##2008
 ##################################
 CREATE TABLE fire_veg_2008 AS
-(SELECT feature_id, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5,
-   harvest_date, proj_age_1, proj_height_1, COALESCE(vol_per_ha_spp1_125,0)+
-     COALESCE(vol_per_ha_spp2_125,0)+COALESCE(vol_per_ha_spp3_125,0)+COALESCE(vol_per_ha_spp4_125,0)
-   +COALESCE(vol_per_ha_spp5_125,0)+COALESCE(vol_per_ha_spp6_125,0) AS live_stand_volume_125,
+(SELECT feature_id, bclcs_level_1, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5, coast_interior_cd, bec_zone_code, crown_closure, vri_live_stems_per_ha, vri_dead_stems_per_ha, harvest_date, earliest_nonlogging_dist_type, earliest_nonlogging_dist_date, species_cd_1, species_pct_1, species_cd_2, species_pct_2, species_cd_3, species_pct_3, species_cd_4, species_pct_4, species_cd_5, species_pct_5, species_cd_6, species_pct_6,   proj_age_1, proj_height_1, vol_per_ha_spp1_175, vol_per_ha_spp2_175, vol_per_ha_spp3_175, vol_per_ha_spp4_175, vol_per_ha_spp5_175, vol_per_ha_spp6_175, quad_diam_175,
   fire.idno, fire.fire_yr,
   veg_comp_lyr_r1_poly2008.geometry FROM veg_comp_lyr_r1_poly2008,
   (SELECT wkb_geometry, idno, fire_yr
    from data_clim_dem_roads_wind_frt where fire_yr = '2008') as fire where st_contains
-  (veg_comp_lyr_r1_poly2008.geometry, fire.wkb_geometry))
-  ################################
+  (veg_comp_lyr_r1_poly2008.geometry, fire.wkb_geometry))  
+  
+CREATE TABLE fire_veg_2008_2 AS
+(SELECT bec_subzone, stand_percentage_dead,
+  fire.idno, fire.fire_yr,
+  veg_comp_lyr_r1_poly2009.geometry FROM veg_comp_lyr_r1_poly2009,
+  (SELECT wkb_geometry, idno, fire_yr
+   from data_clim_dem_roads_wind_frt where fire_yr = '2008') as fire where st_contains
+  (veg_comp_lyr_r1_poly2009.geometry, fire.wkb_geometry))  ################################
 
 
 
@@ -118,17 +1035,6 @@ bclcs_level_4: Classifies the vegetation types and non-vegetated cover types (as
     # upon the land base within the polygon).
 bclcs_level_5: Classifies the vegetation density classes and Non-Vegetated categories.
 
-# note that the VRI for 2008 does not have live_stand_volume so I (Liz) also tried to extract it from the 2009 VRI and put it in here -  assuming that a year would not make much difference to volume. Below is the code i used to try and do this (but note this does not seem to work.... )
-### July 2021, when ran, there already is a column for live_stand_volume_125, so this may not be necessary
-
-#ALTER TABLE fire_veg_2008
-#ADD COLUMN live_stand_volume_125 double precision;
-
-# INSERT INTO fire_veg_2008
-# SELECT live_stand_volume_125
-# FROM veg_comp_lyr_r1_poly2009,
-# (SELECT wkb_geometry from Data_ignite_AllMonths where fire_yr = '2008') as fire where st_contains
-# (veg_comp_lyr_r1_poly2009.geometry, fire.wkb_geometry)
 
 
 # Another problem is that fire_veg_2011 has a geometry column that is type MultiPolygonZ instead of MultiPolygon so this needs to be changed with the following query in postgres
@@ -194,8 +1100,14 @@ fire_veg_2006 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2006")
 fire_veg_2007 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2007")
+fire_veg_2007_2 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2007_2")
+
 fire_veg_2008 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2008")
+fire_veg_2008_2 <- sf::st_read  (dsn = conn, # connKyle
+                               query = "SELECT * FROM public.fire_veg_2008_2")
+
 fire_veg_2009 <- sf::st_read  (dsn = conn, # connKyle
                                query = "SELECT * FROM public.fire_veg_2009")
 fire_veg_2010 <- sf::st_read  (dsn = conn, # connKyle
@@ -231,25 +1143,81 @@ dbDisconnect (conn) # connKyle
 We need to update naming conventions from the 2007 and 2008 data given that it is different in those VRI files than for other years.
 
 ```{r}
-# REMEMBER TO CHANGE THE 0 values in the 2007 and 2008 fire_veg datasets for volume to NULL.
+# Change a number of things for 2007 data
 
-# the VRI for 2007 had harvest_date named upd_htdate and proj_height_1, proj_height_2 as proj_ht_1, proj_ht_2. So I need to be renamed these columns
-#fire_veg_2007$harvest_date <- NA
-names(fire_veg_2007)
-names(fire_veg_2002)
-fire_veg_2007<- fire_veg_2007 %>% rename(
+fire_veg_2007_2<-st_drop_geometry(fire_veg_2007_2)
+fire_veg_2007_2 <- fire_veg_2007_2 %>% dplyr::select(bec_zone_code:bec_subzone, earliest_nonlogging_dist_type:stand_percentage_dead, idno)
+
+fire_veg_2007a<-left_join(fire_veg_2007, fire_veg_2007_2, by="idno")
+dim(fire_veg_2007)
+dim(fire_veg_2007a)
+fire_veg_2007a[duplicated(fire_veg_2007a$idno),]
+fire_veg_2007a %>% filter(idno==165838)
+fire_veg_2007a %>% filter(idno==171634)
+fire_veg_2007a %>% filter(idno==169733) # good looks like the duplicated records are the same.
+
+fire_veg_2007b<-fire_veg_2007a[!duplicated(fire_veg_2007a$idno),] # remove duplicated idno records
+
+dim(fire_veg_2007b)
+fire_veg_2007<- fire_veg_2007b %>% rename(
+  bclcs_level_1=bclcs_lv_1,
   bclcs_level_2=bclcs_lv_2,
   bclcs_level_3=bclcs_lv_3,
   bclcs_level_4=bclcs_lv_4,
   bclcs_level_5=bclcs_lv_5,
   proj_height_1=proj_ht_1, 
-  harvest_date=upd_htdate)
+  harvest_date=upd_htdate,
+  species_cd_1=spec_cd_1,
+  species_cd_2=spec_cd_2,
+  species_cd_3=spec_cd_3,
+  species_cd_4=spec_cd_4,
+  species_cd_5=spec_cd_5,
+  species_cd_6=spec_cd_6,
+  species_pct_1=spec_pct_1,
+  species_pct_2=spec_pct_2,
+  species_pct_3=spec_pct_3,
+  species_pct_4=spec_pct_4,
+  species_pct_5=spec_pct_5,
+  species_pct_6=spec_pct_6,
+  quad_diam_175=q_diam_175,
+  coast_interior_cd=cst_int_cd,
+  crown_closure=cr_closure,
+  vri_live_stems_per_ha=live_stems,
+  vri_dead_stems_per_ha=dead_stems)
+
+fire_veg_2007<- fire_veg_2007 %>% 
+  rowwise() %>%
+  mutate(live_stand_volume_175 = sum(c_across(volsp1_175:volsp6_175), na.rm = TRUE))
+
+fire_veg_2007$live_stand_volume_175<- ifelse(is.na(fire_veg_2007$volsp1_175) & is.na(fire_veg_2007$volsp2_175), NA, fire_veg_2007$live_stand_volume_175)
+
+fire_veg_2007c<-fire_veg_2007 %>% dplyr::select(feature_id:quad_diam_175, idno:live_stand_volume_175)
+
+dim(fire_veg_2007c)
+
+```
+
+Join data for 2008 and calculate live stand volume
+```{r}
+fire_veg_2008_2<-st_drop_geometry(fire_veg_2008_2)
+fire_veg_2008_2 <- fire_veg_2008_2 %>% dplyr::select(bec_subzone:idno)
+
+fire_veg_2008a<-left_join(fire_veg_2008, fire_veg_2008_2, by="idno")
+dim(fire_veg_2008)
+dim(fire_veg_2008a)
+
+fire_veg_2008a<- fire_veg_2008a %>% 
+  rowwise() %>%
+  mutate(live_stand_volume_175 = sum(c_across(vol_per_ha_spp1_175:vol_per_ha_spp6_175), na.rm = TRUE))
+
+fire_veg_2008a$live_stand_volume_175<- ifelse(is.na(fire_veg_2008a$vol_per_ha_spp1_175) & is.na(fire_veg_2008a$vol_per_ha_spp2_175), NA, fire_veg_2008a$live_stand_volume_175)
+
+fire_veg_2008b <- fire_veg_2008a %>% dplyr::select(feature_id:proj_height_1, quad_diam_175:live_stand_volume_175)
+
+dim(fire_veg_2008b)
+dim(fire_veg_2002)
 
 
-# change the 0 values in live_stand_volume_125 to NULL for both 2007 and 2008 data
-
-fire_veg_2007$live_stand_volume_125[fire_veg_2007$live_stand_volume_125 == 0] <- NA
-fire_veg_2008$live_stand_volume_125[fire_veg_2008$live_stand_volume_125 == 0] <- NA
 
 ```
 
@@ -258,15 +1226,15 @@ Now we must combine all of the files together into one.
 ```{r}
 #Check all have same number columns
 names(fire_veg_2002)
-names(fire_veg_2007)
-names(fire_veg_2008)
+names(fire_veg_2007c)
+names(fire_veg_2008b)
 names(fire_veg_2020)
 
 #fire_veg_2020<-fire_veg_2002[-c(74),]??
 
 
 # join all fire_veg datasets together. This function is faster than a list of rbinds
-filenames3<- c("fire_veg_2002", "fire_veg_2003", "fire_veg_2004","fire_veg_2005", "fire_veg_2006", "fire_veg_2007","fire_veg_2008", "fire_veg_2009", "fire_veg_2010","fire_veg_2011", "fire_veg_2012", "fire_veg_2013","fire_veg_2014", "fire_veg_2015", "fire_veg_2016","fire_veg_2017", "fire_veg_2018", "fire_veg_2019", "fire_veg_2020", "fire_veg_2021")
+filenames3<- c("fire_veg_2002", "fire_veg_2003", "fire_veg_2004","fire_veg_2005", "fire_veg_2006", "fire_veg_2007c","fire_veg_2008b", "fire_veg_2009", "fire_veg_2010","fire_veg_2011", "fire_veg_2012", "fire_veg_2013","fire_veg_2014", "fire_veg_2015", "fire_veg_2016","fire_veg_2017", "fire_veg_2018", "fire_veg_2019", "fire_veg_2020", "fire_veg_2021")
 filenames3
 
 mkFrameList <- function(nfiles) {
@@ -279,14 +1247,36 @@ mkFrameList <- function(nfiles) {
 n<-length(filenames3)
 fire_veg_data_B<-mkFrameList(n)
 
-dim(fire_veg_data_B) #193773
+dim(fire_veg_data_B) #508506
+
+### hmm comparing dim(sample_locations_DEM_roads_wind2) to the above I see that 25606 points got lost somewhere. why?
 
 sample_locations_DEM_roads_wind2<- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_wind_frt.shp")
-dim(sample_locations_DEM_roads_wind2) # 200298 # When I sample vegetaion from the VRI I seem to loose around 4% of the points. Not sure what to do about this.
+dim(sample_locations_DEM_roads_wind2) # 534112 # When I sample vegetaion from the VRI I seem to loose around 4% of the points. Not sure what to do about this.
 
-dim(sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2002))
-dim(fire_veg_2002)
+dim(sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2021))
+dim(fire_veg_2021)
 
+# 2002 -> 28256 to 27301
+# 2003 -> 39200 to 38158
+# 2004 -> 37840 to 36732
+# 2005 -> 15328 to 15321
+# 2006 -> 40544 to 40551 # thats weird this one increased. Maybe a duplicate. should double check
+# 2007 -> 25488 to 25484
+# 2008 -> 32080 to 23488 # this one is bad!
+# 2009 -> 48736 to 48732
+# 2010 -> 26448 to 26441
+# 2011 -> 10244 to 10220
+# 2012 -> 26048 to 20329 bad! 
+# 2013 -> 29536 to 29518
+# 2014 -> 23536 to 23534
+# 2015 -> 29632 to 29629
+# 2016 -> 16592 to 16590
+# 2017 -> 21424 to 21423
+# 2018 -> 33520 to 33519
+# 2019 -> 12816 to 12815
+# 2020 -> 10608 to 2468 REALLY BAD!!
+# 2021 -> 26256 to 26253
 ## lots of data from 2008 getting lost when we extract vegetaion from the VRI (3206 locations in total out of 12030)
 #2012 also seem to loose a lot around 2159 points.
 

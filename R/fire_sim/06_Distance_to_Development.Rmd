@@ -103,7 +103,7 @@ plot(mines[,"MEAN_ELEVATION"])
 mines2<-try(
   bcdc_query_geodata("WHSE_FOREST_VEGETATION.VEG_COMP_LYR_R1_POLY") %>%
     filter(BCLCS_LEVEL_5 %in% c("MZ", "TZ", "MI")) %>%
-    select(BCLCS_LEVEL_5) %>%
+    dplyr::select(BCLCS_LEVEL_5) %>%
     collect()
 )
 mines2 <- st_transform (mines2, 3005)
@@ -315,7 +315,7 @@ sample_locations_DEM_roads_infra$dist_rail_m<-sample_locations_DEM_roads_infra$d
 sample_locations_DEM_roads_infra$dist_urban_m<-sample_locations_DEM_roads_infra$dist_urban*100
 
 sample_locations_DEM_roads_infra <- sample_locations_DEM_roads_infra %>% 
-  select(id:road_dist_m, geometry:dist_urban_m)
+  dplyr::select(id:road_dist_m, geometry:dist_urban_m)
 
 head(sample_locations_DEM_roads_infra)
 crs(sample_locations_DEM_roads_infra)
@@ -359,11 +359,11 @@ hist(sample_locations_DEM_roads_infra$dist_urban_m)
 # change some column names
 
 sample_locations_DEM_roads_infra<- sample_locations_DEM_roads_infra %>%
-  dplyr::rename(fire_yr=FIRE_YE,
-         fire_no=FIRE_NU,
-         fire_cs=FIRE_CA,
-         size_ha=CURRENT,
-         fir_typ=FIRE_TY
+  dplyr::rename(fire_yr=FIRE_YEAR,
+         fire_no=FIRE_NUMBER,
+         fire_cs=FIRE_CAUSE,
+         size_ha=CURRENT_SIZE,
+         fir_typ=FIRE_TYPE
          )
 
 sample_locations_DEM_roads_infra<- sample_locations_DEM_roads_infra %>%
