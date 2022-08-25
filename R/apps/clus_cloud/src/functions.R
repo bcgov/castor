@@ -21,7 +21,9 @@ run_simulation <- function(
   do_image,
   queue,
   simulation_logfile,
-  simulation_logfile_lock
+  simulation_logfile_lock,
+  progress,
+  total_steps
 ) {
   future({
     
@@ -54,6 +56,7 @@ run_simulation <- function(
       append = TRUE
     )
     filelock::unlock(lock)
+    progress$inc(1 / total_steps)
     
     status <- paste0(
       "2,", scenario_name, ",10%,Creating droplet,", as.character(Sys.time())
@@ -66,6 +69,7 @@ run_simulation <- function(
       append = TRUE
     )
     filelock::unlock(lock)
+    progress$inc(1 / total_steps)
     
     # Create actual droplet that will do the knitting ----
     d <- analogsea::droplet_create(
@@ -89,6 +93,7 @@ run_simulation <- function(
       append = TRUE
     )
     filelock::unlock(lock)
+    progress$inc(1 / total_steps)
     
     Sys.sleep(10)
     
@@ -130,6 +135,8 @@ run_simulation <- function(
         append = TRUE
       )
       filelock::unlock(lock)
+      progress$inc(1 / total_steps)
+      
       v <- analogsea::volume_create(
         snapshot_id = existing_snapshot$id, 
         name = volume_name,
@@ -150,13 +157,13 @@ run_simulation <- function(
       append = TRUE
     )
     filelock::unlock(lock)
+    progress$inc(1 / total_steps)
     
     volume_attach(volume = v, droplet = d, region = do_region)
     
     status <- paste0(
       "6,", scenario_name, ",50%,Connecting to droplet,", as.character(Sys.time())
     )
-    
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status,
@@ -164,6 +171,8 @@ run_simulation <- function(
       append = TRUE
     )
     filelock::unlock(lock)
+    progress$inc(1 / total_steps)
+    
     d %>% droplet_ssh("echo Connecting...", keyfile = ssh_keyfile)
     
     status <- paste0(
@@ -177,6 +186,7 @@ run_simulation <- function(
       append = TRUE
     )
     filelock::unlock(lock)
+    progress$inc(1 / total_steps)
     
     d %>%
       droplet_ssh(
@@ -201,7 +211,6 @@ run_simulation <- function(
     status <- paste0(
       "8,", scenario_name, ",70%,Running the simulation,", as.character(Sys.time())
     )
-
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status,
@@ -209,7 +218,8 @@ run_simulation <- function(
       append = TRUE
     )
     filelock::unlock(lock)
-  
+    progress$inc(1 / total_steps)
+    
     d %>% droplet_ssh(
       glue::glue("export DB_HOST={db_host}; \
   export DB_PORT={db_port}; \
@@ -225,7 +235,6 @@ run_simulation <- function(
     status <- paste0(
       "9,", scenario_name, ",80%,Detaching and deleting the volume,", as.character(Sys.time())
     )
-    
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status, 
@@ -233,6 +242,7 @@ run_simulation <- function(
       append = TRUE
     )
     filelock::unlock(lock)
+    progress$inc(1 / total_steps)
     
     v %>% volume_detach(droplet = d, region = do_region)
     Sys.sleep(10)
@@ -242,7 +252,6 @@ run_simulation <- function(
     status <- paste0(
       "10,", scenario_name, ",90%,Downloading knitted md file,", as.character(Sys.time())
     )
-    
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status, 
@@ -250,6 +259,7 @@ run_simulation <- function(
       append = TRUE
     )
     filelock::unlock(lock)
+    progress$inc(1 / total_steps)
     
     d %>% droplet_download(
       remote = glue::glue('/root/{scenario_name}.md'),
@@ -260,7 +270,6 @@ run_simulation <- function(
     status <- paste0(
       "11,", scenario_name, ",100%,Deleting the droplet,", as.character(Sys.time())
     )
-    
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status, 
@@ -268,12 +277,13 @@ run_simulation <- function(
       append = TRUE
     )
     filelock::unlock(lock)
+    progress$inc(1 / total_steps)
+    
     d %>% droplet_delete()
     
     status <- paste0(
       "12,", scenario_name, ",,PROCESS FINISHED,", as.character(Sys.time())
     )
-
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
       status, 
@@ -281,6 +291,7 @@ run_simulation <- function(
       append = TRUE
     )
     filelock::unlock(lock)
+    progress$inc(1 / total_steps)
     
     # Return something other than the future so we don't block the UI
     return(NULL)

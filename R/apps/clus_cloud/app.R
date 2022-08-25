@@ -467,6 +467,8 @@ server <- function(input, output, session) {
       uploader_image <- 'ubuntu-20-04-x64'
       uploader_size = 's-1vcpu-1gb'
       
+      progress <- AsyncProgress$new(message="Overall job progress")
+      
       # CLUS droplet image
       snaps <- analogsea::snapshots()
       snap_image <- snaps$`clus-cloud-image-202205042050`$id
@@ -482,6 +484,8 @@ server <- function(input, output, session) {
       selected_scenarios <- input$file_scenario
       scenario_tbl <- shinyFiles::parseFilePaths(volumes, selected_scenarios)
       scenarios <- scenario_tbl$name
+      
+      total_steps <- length(scenarios) * 12
       
       if (file.exists(simulation_logfile)) {
         file.remove(simulation_logfile)
@@ -507,6 +511,8 @@ server <- function(input, output, session) {
         do_image = snap_image,
         simulation_logfile = simulation_logfile,
         simulation_logfile_lock = simulation_logfile_lock,
+        progress = progress,
+        total_steps = total_steps
       )
 
       # Return something other than the future so we don't block the UI
@@ -670,7 +676,7 @@ server <- function(input, output, session) {
         arrange(Scenario) %>% 
         select(-ID)
     }
-    
+
     data
   })
   
