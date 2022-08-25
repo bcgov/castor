@@ -12,6 +12,7 @@ library(httr)
 library(jsonlite)
 library(dplyr)
 library(magrittr)
+library(dplyr)
 library(analogsea)
 library(DBI)
 library(RSQLite)
@@ -27,6 +28,9 @@ library(stringr)
 library(glue)
 library(ssh)
 library(ipc)
+library(progressr)
+library(purrr)
+library(filelock)
 
 source('src/functions.R')
 
@@ -34,8 +38,6 @@ source('src/functions.R')
 # plan(multicore)
 plan(callr)
 # plan(multisession)
-
-# browser()
 
 # Available scneario Rmd files
 available_scenarios <- list.files('scenarios/')
@@ -76,13 +78,6 @@ size_choices <- setNames(
   as.character(sizes$slug),
   as.character(sizes$label)
 )
-
-simulation_log <- 'inst/app/log/simulation_log.csv'
-if (!file.exists(simulation_log)) {
-  file.create(simulation_log)
-}
-
-write("Timestamp,Log", file = simulation_log, append = FALSE)
 
 # UI ----
 ui <- shiny::tagList(
@@ -166,7 +161,9 @@ ui <- shiny::tagList(
                 tabPanel(
                   "Simulation log",
                   p("The log will appear in real time when you run the simulations based on selected options."),
-                  tableOutput("simulation_log")
+                  uiOutput("status_semaphore"),
+                  tableOutput("status"),
+                  dataTableOutput("simulation_log")
                 ),
                 tabPanel(
                   "Simulation output",
@@ -453,6 +450,14 @@ server <- function(input, output, session) {
     }
   })
 
+  simulation_log <- 'inst/app/log/simulation_log.csv'
+  if (!file.exists(simulation_log)) {
+    file.create(simulation_log)
+  }
+  
+  simulation_status <- reactiveVal()
+  # semaphore_values <- reactiveValues()
+
   # Run simulation ----
   observeEvent(
     input$run_scenario,
@@ -471,6 +476,14 @@ server <- function(input, output, session) {
       region <- 'tor1'
       uploader_image <- 'ubuntu-20-04-x64'
       uploader_size = 's-1vcpu-1gb'
+      
+      simulation_status <- reactiveVal(value = "Getting snapshots", label = "Getting snapshots")
+      
+      write(
+        "ID,Scenario,Progress,Description,Timestamp", 
+        file = simulation_log, 
+        append = FALSE
+      )
       
       # CLUS droplet image
       snaps <- analogsea::snapshots()
@@ -493,23 +506,97 @@ server <- function(input, output, session) {
       }
       
       # Start ipc queue
-      queue <- shinyQueue()
+      queue <- ipc::shinyQueue()
       queue$consumer$start()
       
-      future.apply::future_lapply(
-        X = scenarios,
-        FUN = run_simulation,
-        # scenario = scenario,
-        ssh_keyfile = ssh_keyfile_tbl,
-        do_droplet_size = input$droplet_size,
-        do_volumes = input$volumes,
-        do_region = region,
-        do_image = snap_image,
-        queue = queue,
-        future.seed = TRUE
-      )
+      # progressr::withProgressShiny(
+      #   message = "Calculation in progress",
+      #   detail = "Starting ...",
+      #   
+      #   value = 0, {
+      #     p <- progressor(along = scenarios)
+          # future.apply::future_lapply(
+      
+      # output$status_semaphore <- renderUI({
+      #   purrr::map(scenarios, ~ textOutput(.x, NULL))
+      # })
+      
+      # lapply(
+      #   scenarios,
+      #   function(semaphore_scenario) {
+      #     semaphore_scenario_name <- stringr::str_split(
+      #       string = semaphore_scenario, 
+      #       pattern = '\\.', 
+      #       n = 2, 
+      #       simplify = TRUE
+      #     )[1,1]
+      #     assign(
+      #       paste0('semaphore_', semaphore_scenario_name),
+      #       reactiveVal()
+      #     )
+      #   }
+      # )
+      # 
+      # output$status_semaphore <- renderUI({
+      #   lapply(
+      #     scenarios,
+      #     function(semaphore_scenario) {
+      #       semaphore_scenario_name <- stringr::str_split(
+      #         string = semaphore_scenario, 
+      #         pattern = '\\.', 
+      #         n = 2, 
+      #         simplify = TRUE
+      #       )[1,1]
+      #       textOutput(semaphore_scenario_name)
+      #     }
+      #   )
+      # })
+      
+      
+          lapply(
+            X = scenarios,
+            FUN = run_simulation,
+            ssh_keyfile = ssh_keyfile_tbl,
+            do_droplet_size = input$droplet_size,
+            do_volumes = input$volumes,
+            do_region = region,
+            do_image = snap_image,
+            queue = queue
+          )
+      #   }
+      # )
+
+
+          # observe({
+          #   req(semaphore_values)
+          #   
+          #   lapply(
+          #     scenarios,
+          #     function(semaphore_scenario) {
+          #       
+          #       semaphore_scenario_name <- stringr::str_split(
+          #         string = semaphore_scenario, 
+          #         pattern = '\\.', 
+          #         n = 2, 
+          #         simplify = TRUE
+          #       )[1,1]
+          #       
+          #       output[[semaphore_scenario_name]] <- renderText(
+          #         semaphore_values[[semaphore_scenario_name]]
+          #       )
+          #     }
+          #   )
+          # })
+          
+      # Return something other than the future so we don't block the UI
+      return(NULL)
     }
   )
+  
+  # set output to reactive value
+  output$status <- renderTable({
+    req(simulation_status())
+  })
 
   # Render knited md ----
   observeEvent(
@@ -629,7 +716,7 @@ server <- function(input, output, session) {
   )
 
   # Simulation log ----
-  simulation_log_data <- reactivePoll(
+  simulation_log_data <- shiny::reactivePoll(
     1000, session,
     # This function returns the time that log_file was last modified
     checkFunc = function() {
@@ -648,8 +735,13 @@ server <- function(input, output, session) {
     }
   )
   
-  output$simulation_log <- renderTable({
-    simulation_log_data()
+  output$simulation_log <- renderDataTable({
+    simulation_log_data() %>%
+      group_by(Scenario) %>% 
+      top_n(1, ID) %>% 
+      ungroup() %>% 
+      arrange(Scenario) %>% 
+      select(-ID)
   })
   
   # Refresh md files ----

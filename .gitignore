@@ -37,3 +37,5 @@ README.html
 /.Require
 /reports/linkpop
 clus.Rproj
+R/apps/clus_cloud/inst/app/log/simulation_log.csv
+R/apps/clus_cloud/inst/app/log/simulation_log.lock
