@@ -68,9 +68,7 @@ parameters <- list(
                          nameForestInventoryBasalArea= "basal_area",
                          nameForestInventoryQMD = "quad_diam_125"
                     ),
-  fisherabmCLUS = list (n_females = 100,
-                        female_hr_table = "call the table from the pgdb",
-                        female_max_age = 10,
+  fisherabmCLUS = list (female_max_age = 10,
                         female_search_radius = 5,
                         den_target = 0.1, # set to a proportion/data table?
                         rest_target = 0.2,
@@ -88,23 +86,22 @@ parameters <- list(
   #module2 = list(param1 = value1, param2 = value2)
 )
 
-# HR size parameter; define HR mena and SD for each pop
-# fisher pops: 1 = SBS-wet; 2 = SBS-dry; 
-                      # 3 = Dry Forest; 4 = Boreal_A; 5 = Boreal_B
+# HR size parameter; define HR mean and SD for each pop
+# fisher pops: 1 = Boreal; 2 = SBS-wet; 3 = SBS-dry; 4 = Dry Forest
 
-survival_rate_table <-data.table (Fpop = c(1,1,2,2,3,3,4,4,5,5),
-                                  age = c ("Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile"),
+survival_rate_table <-data.table (Fpop = c(1,1,2,2,3,3,4,4),
+                                  age = c ("Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile"),
                                   mean = c(),
                                   se = c())
 
-repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4,5,5),
-                                Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
-                                Mean = c(0.5,3,0.5,3,0.5,3,0.5,3,0.5,3),
-                                SD = c(0.1,1,0.1,1,0.1,1,0.1,1,0.1,1))
+repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
+                                Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
+                                Mean = c(0.5,3,0.5,3,0.5,3,0.5,3),
+                                SD = c(0.1,1,0.1,1,0.1,1,0.1,1))
 
-HRtable <- data.table (fisher_pop = c (1:5), 
-                       hr_mean = c (3000, 2500, 3000, 4000, 4000),
-                       hr_sd = c (500, 500, 500, 500, 500))
+female_hr_table <- data.table (fisher_pop = c (1:4), 
+                               hr_mean = c (3000, 4500, 4500, 3000),
+                               hr_sd = c (500, 500, 500, 500))
 
 # variance matrix for mahalanobis distance model; don't touch this unless d2 model updated
 fisher.d2.cov <- list(matrix(c(0.5,	2.7,	0.6,	3.2,	-6.5, 2.7,	82.7,	4.9,	83.3,	-75.8, 0.6,	4.9,	

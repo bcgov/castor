@@ -232,7 +232,6 @@ Init <- function(sim) {
   pix.rast [pix.for.rast$pixelid] <- pix.for.rast$pixelid
   sim$pix.rast <- pix.rast
 
-  
   message ("Get the habitat data ...")
   # get the fisher habitat areas
   table.hab <- data.table (pixelid = sim$pix.rast[],
@@ -261,8 +260,8 @@ Init <- function(sim) {
                                        (SELECT ",sim$boundaryInfo[[4]]," FROM ",sim$boundaryInfo[[1]]," where ",sim$boundaryInfo[[2]]," in('", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "', '") ,"') ) as aoi 
                                        JOIN fisher_zones ON ST_Intersects(aoi.",sim$boundaryInfo[[4]],", fisher_zones.wkb_geometry)"))
   table.hab$fisher_pop <- fasterize::fasterize (sf = fisher.pop, raster = sim$pix.rast, field = "pop")[]
-  #---VAT for populations: 1 = SBS-wet; 2 = SBS-dry; 3 = Dry Forest; 4 = Boreal
-  
+  #---VAT for populations: 1 = Boreal; 2 = SBS-wet; 3 = SBS-dry; 4 = Dry Forest
+
   table.hab <- table.hab [!is.na (pixelid), ] # remove pixels outside of the aoi
   table.hab <- merge (table.hab, # add the habitat characteristics
                       data.table (dbGetQuery(sim$clusdb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height  FROM pixels;")),
@@ -274,7 +273,7 @@ Init <- function(sim) {
   table.hab [cwd_p == 1 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 2 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 3 & age >= 100, cwd:=1][cwd_p >= 5 & age >= 78 & qmd >= 18.1 & height >= 19 & crownclosure >=60, cwd:=1]
   table.hab [mov_p > 0 & age > 0 & crownclosure >= 40, movement:=1]
   
-  # add other thigns, openness,? crown closure - cost surface?
+  # add other things, openness,? crown closure - cost surface?
   
   sim$table.hab <- table.hab [, .(pixelid, fisher_pop, den_p, denning, rus_p, rust, cav_p, cavity, 
                                   cwd_p, cwd, mov_p, movement)]
@@ -283,29 +282,43 @@ Init <- function(sim) {
   rm (pix.for.rast, aoi, table.hab)
   gc ()
   
+  
   message ("Create agents table and assign values...")
-  ids <- seq (from = 1, to = P(sim, "n_females", "fisherabmCLUS"), by = 1) # sequence of individual id's from 1 to n_females
-  
-  agents <- data.table (individual_id = ids, 
-                        sex = "F", 
-                        age = sample (1:P(sim, "max_age", "fisherabmCLUS"), length (ids), replace = T), # randomly draw ages between 1 and the max age, 
-                        pixelid = numeric (), 
-                        hr_size = numeric (),
-                        d2_score = numeric ())
-  
-  # assign a random starting location that is a denning pixel in population range
-  agents$pixelid <- sample (table.hab [denning == 1 & !is.na (fisher_pop), pixelid], length (ids), replace = T)
+  # assign agents to denning pixels
+    # systematic method
+    # this provides a 'buffer' between pixels to allow some space for fisher to form an HR; 
+    # if they are too close then it forms fewer HRs
+    den.pix <- as.data.table (sim$table.hab [denning == 1 & !is.na (fisher_pop), pixelid])
+    den.pix.sample <- den.pix [seq (1, nrow (den.pix), 50), ] # grab every ~50th pixel; ~1 pixel every 5km
+    ids <- seq (from = 1, to = nrow (den.pix.sample), by = 1)
+    agents <- data.table (individual_id = ids,
+                          sex = "F",
+                          age = sample (1:P(sim, "max_age", "fisherabmCLUS"), length (ids), replace = T), # randomly draw ages between 1 and the max age,
+                          pixelid = den.pix.sample$V1,
+                          hr_size = numeric (),
+                          d2_score = numeric ())
+
+    # user-defined method; allow user to pick the # of agents
+      # ids <- seq (from = 1, to = P(sim, "n_females", "fisherabmCLUS"), by = 1) # sequence of individual id's from 1 to n_females
+      # agents <- data.table (individual_id = ids, 
+      #                       sex = "F", 
+      #                       age = sample (1:P(sim, "max_age", "fisherabmCLUS"), length (ids), replace = T), # randomly draw ages between 1 and the max age, 
+      #                       pixelid = numeric (), 
+      #                       hr_size = numeric (),
+      #                       d2_score = numeric ())
+      # 
+      # assign a random starting location that is a denning pixel in population range
+      # agents$pixelid <- sample (table.hab [denning == 1 & !is.na (fisher_pop), pixelid], length (ids), replace = T)
 
   # assign the population ID
   agents <- merge (agents, table.hab [ , c("pixelid", "fisher_pop")], 
-                              by = "pixelid", all.x = T)
+                   by = "pixelid", all.x = T)
   
   # assign an HR size based on population
   agents [fisher_pop == 1, hr_size := round (rnorm (nrow (agents [fisher_pop == 1, ]), sim$HRtable [fisher_pop == 1, hr_mean], sim$HRtable [fisher_pop == 1, hr_sd]))]
   agents [fisher_pop == 2, hr_size := round (rnorm (nrow (agents [fisher_pop == 2, ]), sim$HRtable [fisher_pop == 2, hr_mean], sim$HRtable [fisher_pop == 2, hr_sd]))]
   agents [fisher_pop == 3, hr_size := round (rnorm (nrow (agents [fisher_pop == 3, ]), sim$HRtable [fisher_pop == 3, hr_mean], sim$HRtable [fisher_pop == 3, hr_sd]))]
   agents [fisher_pop == 4, hr_size := round (rnorm (nrow (agents [fisher_pop == 4, ]), sim$HRtable [fisher_pop == 4, hr_mean], sim$HRtable [fisher_pop == 4, hr_sd]))]
-  agents [fisher_pop == 5, hr_size := round (rnorm (nrow (agents [fisher_pop == 5, ]), sim$HRtable [fisher_pop == 5, hr_mean], sim$HRtable [fisher_pop == 5, hr_sd]))]
 
   sim$agents <- agents
   
@@ -313,32 +326,32 @@ Init <- function(sim) {
   # assign agents to territories table
   territories <- data.table (individual_id = agents$individual_id, 
                              pixelid = agents$pixelid)
+  
   # create spread probability raster
   # currently uses all denning, rust, cavity, cwd and movement habitat as 
-  # spreadProb = 1, and non-habitat as spreadProb = 0
-  # we could do something more sophisticated here, e.g., adjust by canopy closure, occupancy?
-  table.hab [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement ==1, spreadprob := 1]
-  table.hab [is.na (spreadprob), spreadprob := 0]
+  # spreadProb = 1, and non-habitat as spreadProb = 0.10; allows some spread to sub-optimal habitat
+  table.hab [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1, spreadprob := format (round (1.0, 2), nsmall = 2)]
+  table.hab [is.na (spreadprob), spreadprob := format (round (0.15, 2), 2)]
   spread.rast <- sim$pix.rast
   spread.rast [table.hab$pixelid] <- table.hab$spreadprob
   
   # create the home ranges
+  # this step took 15 mins with ~8500 starting points; 6 mins for 2174 points; 1 min for 435 points
   table.hr <- SpaDES.tools::spread2 (sim$pix.rast, # within the area of interest
                                      start = agents$pixelid, # for each individual
                                      spreadProb = spread.rast, # use spread prob raster
                                      exactSize = agents$hr_size, # spread to the size of their territory
-                                     # maxSize = ((P(sim, "female_search_radius", "fisherabmCLUS")^2 * pi) * 100), # convert radius to area in ha
-                                     allowOverlap = F, # need to decide whether we allow overlap
+                                     allowOverlap = F, # no overlap allowed
                                      asRaster = F, # output table
                                      # returnDistances = T, # not working; see below
                                      circle = F) # spread to adjacent cells
-  
+    
   # calc distance between each pixel and the denning site
       # not sure if we need this; current version doesn't use it, but keeping here until we've decided
   # table.hr <- cbind (table.hr, xyFromCell (sim$pix.rast, table.hr$pixels))
   # table.hr [!(pixels %in% agents$pixelid), dist := RANN::nn2 (table.hr [pixels %in% agents$pixelid, c("x","y")], table.hr [!(pixels %in% agents$pixelid), c("x","y")], k = 1)$nn.dists]
   # table.hr [is.na (dist), dist := 0]
-  
+
   # add individual id
   table.hr <- merge (table.hr,
                      agents [, c ("pixelid", "individual_id")],
@@ -350,7 +363,7 @@ Init <- function(sim) {
                      by.x = "pixels", by.y = "pixelid")
     
   # check to see if home range target was met; if not, remove the animal 
-  table.hr [, pix.count := sum (length (pixels)), by = initialPixels]
+  table.hr [, pix.count := sum (length (pixels)), by = individual_id]
   pix.count <- merge (agents [, c ("pixelid", "individual_id", "hr_size")],
                       table.hr [, c ("pixels", "pix.count")],
                       by.x = "pixelid", by.y = "pixels",
@@ -358,7 +371,7 @@ Init <- function(sim) {
   for (i in pix.count$individual_id) { # for each individual
     if ( pix.count [individual_id == i, pix.count] >= pix.count [individual_id == i, hr_size]) { 
       # if it achieves its home range size and minimum habitat targets 
-      # do nothing; we need to check if it meets min. habtat criteria (see below)
+      # do nothing; we need to check if it meets min. habitat criteria (see below)
     } else {
       # delete the individual from the agents and territories table
       territories <- territories [individual_id != i] 
@@ -367,11 +380,16 @@ Init <- function(sim) {
   }
 
     #  remove pixels if already occupied
-    # not used, but keeping here if we need it for the 'overlap' rules
-    # search.temp <- merge (search.temp, territories, 
-    #                       by.x = "pixels", by.y = "pixelid", all.x = T)
-    # search.temp <- search.temp [is.na (individual_id) | individual_id == (agents [pixelid == i, individual_id]), ]
-    # 
+      # not used, but keeping here if we need it for the 'overlap' rules
+        # search.temp <- merge (search.temp, territories, 
+        #                       by.x = "pixels", by.y = "pixelid", all.x = T)
+        # search.temp <- search.temp [is.na (individual_id) | individual_id == (agents [pixelid == i, individual_id]), ]
+         
+  
+  
+  
+  
+  
    
     # check if proportion of habitat types are greater than the minimum targets 
   for (i in agents$individual_id) { # for each individual
@@ -386,12 +404,7 @@ Init <- function(sim) {
       agents <- agents [individual_id != i]
     } 
   }
-    
-    
-    # then meet some habitat configuration criteria?, e.g., min patch size,
-    # min distance between patches; Jo to give this some more thought
-    
-    
+    # write the territories table
     if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
       # if the table exists, write it to the db
       DBI::dbWriteTable (sim$clusdb, "territories", territories, append = FALSE, 
