@@ -55,11 +55,11 @@ defineModule(sim, list(
                     "The maximum possible age of a female fisher. Taken from research referenced by Roray Fogart in VORTEX_inputs_new.xlsx document."), 
     defineParameter("female_search_radius", "numeric", 5, 0, 100,
                     "The maximum search radius, in km, that a female fisher could ‘search’ to establish a territory."), 
-    defineParameter("den_target", "numeric", 0.10, 0.003, 0.54,
+    defineParameter("den_target", "numeric", 0.05, 0.003, 0.54,
                     "The minimum proportion of a home range that is denning habitat. Values taken from empirical female home range data across populations."), 
-    defineParameter("rest_target", "numeric", 0.26, 0.028, 0.58,
+    defineParameter("rest_target", "numeric", 0.10, 0.028, 0.58,
                     "The minimum proportion of a home range that is resting habitat. Values taken from empirical female home range data across populations."),   
-    defineParameter("move_target", "numeric", 0.36, 0.091, 0.73,
+    defineParameter("move_target", "numeric", 0.35, 0.091, 0.73,
                     "The minimum proportion of a home range that is movement habitat. Values taken from empirical female home range data across populations."), 
     defineParameter("survival_rate_table", "character", NA, NA, NA,
                     paste0("Table of fisher survial rates by sex, age and population, taken from Lofroth et al 2022 JWM vital rates manuscript.",
@@ -275,7 +275,7 @@ Init <- function(sim) {
   
   # add other things, openness,? crown closure - cost surface?
   
-  sim$table.hab <- table.hab [, .(pixelid, fisher_pop, den_p, denning, rus_p, rust, cav_p, cavity, 
+  table.hab <- table.hab [, .(pixelid, fisher_pop, den_p, denning, rus_p, rust, cav_p, cavity, 
                                   cwd_p, cwd, mov_p, movement)]
   # sim$table.hab <- table.hab [denning != "" | rust != "" | cavity != "" | cwd != "" | movement != "", ]
   # remove the rows with at least one NA value - don't do this....
@@ -288,7 +288,7 @@ Init <- function(sim) {
     # systematic method
     # this provides a 'buffer' between pixels to allow some space for fisher to form an HR; 
     # if they are too close then it forms fewer HRs
-    den.pix <- as.data.table (sim$table.hab [denning == 1 & !is.na (fisher_pop), pixelid])
+    den.pix <- as.data.table (table.hab [denning == 1 & !is.na (fisher_pop), pixelid])
     den.pix.sample <- den.pix [seq (1, nrow (den.pix), 50), ] # grab every ~50th pixel; ~1 pixel every 5km
     ids <- seq (from = 1, to = nrow (den.pix.sample), by = 1)
     agents <- data.table (individual_id = ids,
@@ -315,12 +315,12 @@ Init <- function(sim) {
                    by = "pixelid", all.x = T)
   
   # assign an HR size based on population
-  agents [fisher_pop == 1, hr_size := round (rnorm (nrow (agents [fisher_pop == 1, ]), sim$HRtable [fisher_pop == 1, hr_mean], sim$HRtable [fisher_pop == 1, hr_sd]))]
-  agents [fisher_pop == 2, hr_size := round (rnorm (nrow (agents [fisher_pop == 2, ]), sim$HRtable [fisher_pop == 2, hr_mean], sim$HRtable [fisher_pop == 2, hr_sd]))]
-  agents [fisher_pop == 3, hr_size := round (rnorm (nrow (agents [fisher_pop == 3, ]), sim$HRtable [fisher_pop == 3, hr_mean], sim$HRtable [fisher_pop == 3, hr_sd]))]
-  agents [fisher_pop == 4, hr_size := round (rnorm (nrow (agents [fisher_pop == 4, ]), sim$HRtable [fisher_pop == 4, hr_mean], sim$HRtable [fisher_pop == 4, hr_sd]))]
+  agents [fisher_pop == 1, hr_size := round (rnorm (nrow (agents [fisher_pop == 1, ]), sim$female_hr_table [fisher_pop == 1, hr_mean], sim$female_hr_table [fisher_pop == 1, hr_sd]))]
+  agents [fisher_pop == 2, hr_size := round (rnorm (nrow (agents [fisher_pop == 2, ]), sim$female_hr_table [fisher_pop == 2, hr_mean], sim$female_hr_table [fisher_pop == 2, hr_sd]))]
+  agents [fisher_pop == 3, hr_size := round (rnorm (nrow (agents [fisher_pop == 3, ]), sim$female_hr_table [fisher_pop == 3, hr_mean], sim$female_hr_table [fisher_pop == 3, hr_sd]))]
+  agents [fisher_pop == 4, hr_size := round (rnorm (nrow (agents [fisher_pop == 4, ]), sim$female_hr_table [fisher_pop == 4, hr_mean], sim$female_hr_table [fisher_pop == 4, hr_sd]))]
 
-  sim$agents <- agents
+  # sim$agents <- agents
   
   message ("Create territories ...")
   # assign agents to territories table
@@ -330,8 +330,11 @@ Init <- function(sim) {
   # create spread probability raster
   # currently uses all denning, rust, cavity, cwd and movement habitat as 
   # spreadProb = 1, and non-habitat as spreadProb = 0.10; allows some spread to sub-optimal habitat
-  table.hab [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1, spreadprob := format (round (1.0, 2), nsmall = 2)]
-  table.hab [is.na (spreadprob), spreadprob := format (round (0.15, 2), 2)]
+  table.hab [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1, spreadprob := format (round (1.00, 2), nsmall = 2)]
+  table.hab [is.na (spreadprob), spreadprob := format (round (0.18, 2), 2)] # I tested different numbers
+                                                                            # 18% resulted in the mean proportion of home ranges consisting of denning, resting or movement habitat as 55%; 19 was 49%; 17 was 59%; 20 was 47%; 15 was 66%
+                                                                            # Caution: this parameter may be area-specific and may need to be and need to be 'tuned' for each AOI
+  # if non-habitat spreadprob
   spread.rast <- sim$pix.rast
   spread.rast [table.hab$pixelid] <- table.hab$spreadprob
   
@@ -361,7 +364,7 @@ Init <- function(sim) {
   table.hr <- merge (table.hr,
                      table.hab [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement")],
                      by.x = "pixels", by.y = "pixelid")
-    
+
   # check to see if home range target was met; if not, remove the animal 
   table.hr [, pix.count := sum (length (pixels)), by = individual_id]
   pix.count <- merge (agents [, c ("pixelid", "individual_id", "hr_size")],
@@ -379,19 +382,33 @@ Init <- function(sim) {
     } 
   }
 
-    #  remove pixels if already occupied
-      # not used, but keeping here if we need it for the 'overlap' rules
-        # search.temp <- merge (search.temp, territories, 
-        #                       by.x = "pixels", by.y = "pixelid", all.x = T)
-        # search.temp <- search.temp [is.na (individual_id) | individual_id == (agents [pixelid == i, individual_id]), ]
-         
+  # check to see if minimum habitat target was met (prop habitat = 0.15); if not, remove the animal 
+  hab.count <- table.hr [denning == 1 | rust == 1 | cwd == 1 | movement == 1, .(.N), by = individual_id]
+  hab.count <- merge (hab.count,
+                      agents [, c ("hr_size", "individual_id")],
+                      by = "individual_id")
+  hab.count$prop_hab <- hab.count$N / hab.count$hr_size
+  for (i in hab.count$individual_id) { # for each individual
+    if ( hab.count [individual_id == i, prop_hab] >= 0.15) { 
+      # if it achieves its home range size and minimum habitat targets 
+      # do nothing; we need to check if it meets min. habitat criteria (see below)
+    } else {
+      # delete the individual from the agents and territories table
+      territories <- territories [individual_id != i] 
+      agents <- agents [individual_id != i]
+    } 
+  }
+  
+        #  remove pixels if already occupied
+          # not used, but keeping here if we need it for the 'overlap' rules
+            # search.temp <- merge (search.temp, territories, 
+            #                       by.x = "pixels", by.y = "pixelid", all.x = T)
+            # search.temp <- search.temp [is.na (individual_id) | individual_id == (agents [pixelid == i, individual_id]), ]
+  
+  # check if proportion of habitat types are greater than the minimum targets 
   
   
-  
-  
-  
-   
-    # check if proportion of habitat types are greater than the minimum targets 
+  # proportions need testign; seems dennign is very limiting, may need to be alow propotion
   for (i in agents$individual_id) { # for each individual
     if (P(sim, "rest_target", "fisherabmCLUS") <= (nrow (table.hr [individual_id == i & rust == 1]) + nrow (table.hr [individual_id == i & cwd == 1])) / agents [individual_id == i, hr_size] & P(sim, "move_target", "fisherabmCLUS") <= nrow (table.hr [individual_id == i & movement == 1]) / agents [individual_id == i, hr_size] & P(sim, "den_target", "fisherabmCLUS") <= nrow (table.hr [individual_id == i & denning == 1]) / agents [individual_id == i, hr_size]
     ) {
@@ -404,6 +421,7 @@ Init <- function(sim) {
       agents <- agents [individual_id != i]
     } 
   }
+  
     # write the territories table
     if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
       # if the table exists, write it to the db

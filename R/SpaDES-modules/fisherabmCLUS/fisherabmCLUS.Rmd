@@ -70,9 +70,9 @@ parameters <- list(
                     ),
   fisherabmCLUS = list (female_max_age = 10,
                         female_search_radius = 5,
-                        den_target = 0.1, # set to a proportion/data table?
-                        rest_target = 0.2,
-                        move_target = 0.4,
+                        den_target = 0.05, 
+                        rest_target = 0.10,
+                        move_target = 0.35,
                         d2_reproduction_adj = "fxn, multiplier...?",
                         reproductive_age = 2,
                         sex_ratio = 0.5,
