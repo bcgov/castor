@@ -48,6 +48,7 @@ defineModule(sim, list(
     expectsInput(objectName = "nameCostSurfaceRas", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "bbox", objectClass ="numeric", desc = NA, sourceURL = NA),
     expectsInput(objectName = "landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "harvestPixelList", objectClass = "data.table", desc = NA, sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "raster", desc = NA, sourceURL = NA),
     expectsInput(objectName = "roadSourceID", objectClass = "integer", desc = "The source used in Dijkstra's pre-solving approach", sourceURL = NA),
     expectsInput(objectName = "updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
@@ -480,7 +481,8 @@ lcpList<- function(sim){##Get a list of paths from which there is a to and from 
 mstSolve <- function(sim){
   message('mstSolve')
   #------get the edge list between a permanent road and the landing
-  landing.cell <- data.table(landings = cellFromXY(sim$ras,sim$landings))[!(landings %in% sim$perm.roads$pixelid),] #remove landings on permanent roads
+  landing.cell <- data.table(landings = sim$harvestPixelList[sim$harvestPixelList[, .I[which.min(dist)], by=blockid]$V1]$pixelid )[!(landings %in% sim$perm.roads$pixelid),] 
+  #landing.cell <- data.table(landings = cellFromXY(sim$ras,sim$landings))[!(landings %in% sim$perm.roads$pixelid),] #remove landings on permanent roads
   weights.closest.rd <- cppRouting::get_distance_matrix(Graph=sim$g, 
                                   from=landing.cell$landings, 
                                   to=sim$roadSourceID, 

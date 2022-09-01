@@ -22,6 +22,7 @@ From reading Wang et al ecological Processes (2017) it seems that you can calcul
 ```{r cars}
 library(cffdrs)
 library(dplyr)
+library(ggplot2)
 frt2002<-read.csv("C:\\Work\\BioSIM_try\\Output\\DailyWeather_2002_try2.csv")
 
 frt2002<-frt2002 %>% rename(year=Name)

@@ -61,14 +61,16 @@ head(dat_lightning_t)
 table(dat_lightning_t$vegtype)
 table(dat_lightning_t$bclcs_level_5_2)
 
-variables_all<-c("climate1","prj_h_1", "prj_g_1", "dm_h_bc", "vegtype", "bclcs_level_5_2") 
+dat_lightning_t$vegtype_density<-paste(dat_lightning_t$vegtype, dat_lightning_t$bclcs_level_5_2,sep="_")
+
+variables_all<-c("climate1","prj_h_1", "prj_g_1", "dm_h_bc", "vegtype", "bclcs_level_5_2", "vegtype_density") # ,
 
 Cols <- variables_all
 n <- length(Cols)
 id <- unlist(lapply(1:n, function(i)combn(1:n,i,simplify=FALSE)) ,recursive=FALSE)
 Formulas <- sapply(id,function(i) paste(Cols[i]))
 
-zones1<-c("5","7","9","10","11","12","13","14","15") #Do one zone at a time
+zones1<-c("9") #,"7","9","10","11","12","13","14","15") 
 
 prop<-0.75
 
@@ -78,9 +80,11 @@ colnames (table.glm.climate.simple) <- c ("model", "edf", "aic", "auc.valid", "F
 
 dat_lightning_t$fire_veg<-paste(dat_lightning_t$fire, dat_lightning_t$vegtype)
 
+dat_lightning_t<- dat_lightning_t %>% filter(vegtype!="D")
+
 
 ########### 1. Climate and vegtype ############
-for (g in 6:50){
+for (g in 1:50){
     
     #for (i in 1: length(all.poss.mods.clim.vegtype2)){
     #  print(paste((all.poss.mods.clim.vegtype2[i]), (zones1[h]), sep=" "))
@@ -152,168 +156,9 @@ AIC_lightning_NDT1_t_ignitereed_summary_climate2<- AIC_lightning_NDT1_t_ignitere
 
 head(AIC_lightning_NDT1_t_ignitereed_summary_climate2)
 
+AIC_lightning_NDT1_t_ignitereed_summary_climate2[order(-AIC_lightning_NDT1_t_ignitereed_summary_climate2$meanAUC), ]
+
 write.csv(AIC_lightning_NDT1_t_ignitereed_summary_climate2, file="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Ignition_lightning_treed_model_results\\FRT_all_lightning_models_treed.csv")
 
-```
-
-Now open up the table of the top models
-```{r, AIC table, echo = F, message = F, eval = T}
-
-Top_mod_set_lightning_treed<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Ignition_lightning_treed_model_results\\FRT_all_lightning_models_treed_top_set.csv")
-
-head(Top_mod_set_lightning_treed) 
-
-kable (Top_mod_set_lightning_treed,
-       caption = "<b>Table 1. Top candidate variables for lightning caused fires as selected through an AIC analysis for each Fire Regime Type.<b>",
-       digits = 2) %>%
-  kable_styling (position = "left",
-                 bootstrap_options = c("striped", "hover"),
-                 fixed_thead = T,
-                 full_width = F,
-                 font_size = 11)
-
-```
-
-#Checking model fits for FRT 5
-Climate 1 = mean PPT05 to PPT07
-```{r}
-dat<- dat_lightning_t %>% dplyr::select(fire_yr, ig_mnth, frt, fire, dm_h_bc, climate1, prj_h_1, prj_g_1, vegtype, bclcs_level_5_2)
-
-dat2<- dat %>% dplyr::filter(frt == 5) %>% drop_na(prj_h_1)
-dat2$logClimate1<-log(dat2$climate1)
-dat2$logprj_h<-log(dat2$prj_h_1)
-dat2$logelev<-log(dat2$dm_h_bc)
-dat2$prj_g_1<-as.numeric(dat2$prj_g_1)
-
-mod.frt.5<-glm(fire ~ climate1 + prj_h_1 + prj_g_1 + dm_h_bc + vegtype + bclcs_level_5_2, data=dat2, family=binomial(link="logit"))
-
-library(caret)
-varImp(mod.frt.5)
-library(GmAMisc)
-modelvalid(dat2, mod.frt.5)
-
-summary(mod.frt.5)
-anova(mod.frt.5)
-Anova(mod.frt.5, type=3)
-
-# model diagnostic plots
-binnedplot (fitted(mod.frt.5), 
-            residuals(mod.frt.5), 
-            nclass = NULL, 
-            xlab = "Expected Values", 
-            ylab = "Average residual", 
-            main = paste("Binned Residual Plot - glm"))
-
-
-dat2$resids<-resid(mod.frt.5)
-
-binnedplot (log(dat2$prj_h_1), 
-            dat2$resids, 
-            nclass = NULL, 
-            xlab = "live stand volume", 
-            ylab = "Average residual", 
-            main = paste("Binned Residual Plot - glm"))
-
-binnedplot (log(dat2$climate), 
-            dat2$resids, 
-            nclass = NULL, 
-            xlab = "", 
-            ylab = "Average residual", 
-            main = paste("Binned Residual Plot - glm"))
-
-binnedplot (dat2$prj_g_1, 
-            dat2$resids, 
-            nclass = NULL, 
-            xlab = "", 
-            ylab = "Average residual", 
-            main = paste("Binned Residual Plot - glm"))
-
-binnedplot (log(dat2$dm_h_bc), 
-            dat2$resids, 
-            nclass = NULL, 
-            xlab = "", 
-            ylab = "Average residual", 
-            main = paste("Binned Residual Plot - glm"))
-
-# Diagnostic plots look good
-
-##Partial Residuals
-visreg(mod.frt.5, scale="response") # nicer plots than the ones below!
-
-visreg(mod.frt.5, "logClimate1")
-visreg(mod.frt.5, "prj_g_1")
-visreg(mod.frt.5, "logprj_h")
-visreg(mod.frt.5, "logelev")
-visreg(mod.frt.5, "vegtype")
-visreg(mod.frt.5, "bclcs_level_5_2")
-
-
-visreg(mod.frt.5, "logClimate1", by="prj_g_1")
-visreg(mod.frt.5, "logClimate1", by="logprj_h")
-visreg(mod.frt.5, "logClimate1", by="logelev")
-visreg(mod.frt.5, "logClimate1", by="vegtype")
-visreg(mod.frt.5, "logClimate1", by="bclcs_level_5_2")
-
-visreg(mod.frt.5, "logprj_h", by="prj_g_1")
-visreg(mod.frt.5, "logprj_h", by="logelev")
-visreg(mod.frt.5, "logprj_h", by="vegtype")
-visreg(mod.frt.5, "logprj_h", by="bclcs_level_5_2")
-
-visreg(mod.frt.5, "prj_g_1", by="logelev")
-visreg(mod.frt.5, "prj_g_1", by="vegtype")
-visreg(mod.frt.5, "prj_g_1", by="bclcs_level_5_2")
-
-visreg(mod.frt.5, "logprj_h", by="vegtype", overlay=TRUE)
-
-
-
-#dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2
-
-visreg(model.NDT1, "dist_mun", by="bclcs_level_5_2", overlay=TRUE) #look into these extreme points
-visreg(model.NDT1, "dist_dam")
-visreg(model.NDT1, "dist_nat", by="bclcs_level_5_2", overlay=TRUE)
-visreg(model.NDT1, "dist_mine")
-
-visreg(model.NDT1, "bclcs_level_5_2", by="dist_nat")
-visreg(model.NDT1, "bclcs_level_5_2", by="dist_mun")
-
-
-
-```
-
-
-# checking assumption of linearity (http://www.sthda.com/english/articles/36-classification-methods-essentials/148-logistic-regression-assumptions-and-diagnostics-in-r/)
-
-# all variables should be approximatly linear which is mostly true except for maybe prj_h_1
-```{r}
-
-
-# Select only numeric predictors
-str(dat2)
-
-dat2_b<-dat2 %>% dplyr::select(fire:prj_g_1 )
-probabilities <- predict(mod.frt.5, type = "response")
-predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
-
-
-mydata <- dat2_b %>%
-  dplyr::select_if(is.numeric) 
-predictors <- colnames(mydata)
-# Bind the logit and tidying the data for plot
-mydata <- mydata %>%
-  mutate(logit = log(probabilities/(1-probabilities))) %>%
-  gather(key = "predictors", value = "predictor.value", -logit)
-
-ggplot(mydata, aes(logit, predictor.value))+
-  geom_point(size = 0.5, alpha = 0.5) +
-  geom_smooth(method = "loess") + 
-  theme_bw() + 
-  facet_wrap(~predictors, scales = "free_y")
-```
-
-Checking assumption of influential values
-see: (http://www.sthda.com/english/articles/36-classification-methods-essentials/148-logistic-regression-assumptions-and-diagnostics-in-r/)
-```{r}
-plot(mod.frt.5, which = 4, id.n = 3)
 ```
 
