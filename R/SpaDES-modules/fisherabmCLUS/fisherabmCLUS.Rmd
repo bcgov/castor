@@ -68,13 +68,11 @@ parameters <- list(
                          nameForestInventoryBasalArea= "basal_area",
                          nameForestInventoryQMD = "quad_diam_125"
                     ),
-  fisherabmCLUS = list (n_females = 100,
-                        female_hr_table = "call the table from the pgdb",
-                        female_max_age = 10,
+  fisherabmCLUS = list (female_max_age = 9,
                         female_search_radius = 5,
-                        den_target = 0.1, # set to a proportion/data table?
-                        rest_target = 0.2,
-                        move_target = 0.4,
+                        den_target = 0.003, 
+                        rest_target = 0.028,
+                        move_target = 0.091,
                         d2_reproduction_adj = "fxn, multiplier...?",
                         reproductive_age = 2,
                         sex_ratio = 0.5,
@@ -88,35 +86,29 @@ parameters <- list(
   #module2 = list(param1 = value1, param2 = value2)
 )
 
-# HR size parameter; define HR mena and SD for each pop
-# fisher pops: 1 = SBS-wet; 2 = SBS-dry; 
-                      # 3 = Dry Forest; 4 = Boreal_A; 5 = Boreal_B
+# HR size parameter; define HR mean and SD for each pop
+# fisher pops: 1 = Boreal; 2 = SBS-wet; 3 = SBS-dry; 4 = Dry Forest
 
-survival_rate_table <-data.table (Fpop = c(1,1,2,2,3,3,4,4,5,5),
-                                  age = c ("Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile"),
+survival_rate_table <-data.table (Fpop = c(1,1,2,2,3,3,4,4),
+                                  age = c ("Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile"),
                                   mean = c(),
                                   se = c())
 
-repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4,5,5),
-                                Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
-                                Mean = c(0.5,3,0.5,3,0.5,3,0.5,3,0.5,3),
-                                SD = c(0.1,1,0.1,1,0.1,1,0.1,1,0.1,1))
+repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
+                                Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
+                                Mean = c(0.5,3,0.5,3,0.5,3,0.5,3),
+                                SD = c(0.1,1,0.1,1,0.1,1,0.1,1))
 
-HRtable <- data.table (fisher_pop = c (1:5), 
-                       hr_mean = c (3000, 2500, 3000, 4000, 4000),
-                       hr_sd = c (500, 500, 500, 500, 500))
+female_hr_table <- data.table (fisher_pop = c (1:4), 
+                               hr_mean = c (3000, 4500, 4500, 3000),
+                               hr_sd = c (500, 500, 500, 500))
 
 # variance matrix for mahalanobis distance model; don't touch this unless d2 model updated
-fisher.d2.cov <- list(matrix(c(0.5,	2.7,	0.6,	3.2,	-6.5, 2.7,	82.7,	4.9,	83.3,	-75.8, 0.6,	4.9,	
-                               0.9,	4,	-7.1, 3.2,	83.3,	4,	101.3,	-100.4, -6.5,	-75.8,	-7.1,	
-                               -100.4,	156.2), ncol =5, nrow =5),
-                      matrix(c(0.5,	-1.9,	-0.14288,	2.57677,	-3.82, -1.908,	96.76,	-0.71,	-2.669,
-                               57.27, -0.143,	-0.71,	0.208,	-1.059,	1.15, 2.57,	-2.6,	-1.059,	56.29,
-                               -4.85, -3.82,	57.27,	1.15,	-4.85,	77.337), ncol =5, nrow =5),
-                      matrix(c(0.7,	0.5,	6.1,	2.1, 0.5,	2.9,	4.0,	5.2, 6.1,	4.0,	62.6,	22.4, 2.1,
-                               5.2,	22.4,	42.3), ncol = 4, nrow = 4),
-                      matrix(c(193.2,	5.4,	42.1,	125.2, 5.4,	0.4,	2.,	5.2, 42.1,	2.9,	36.0,	46.5,
-                               125.2,	5.2, 46.5,	131.4), ncol = 4, nrow = 4))
+fisher_d2_cov <- list(matrix(c(193.2,	5.4,	42.1,	125.2, 5.4,	0.4,	2.,	5.2, 42.1,	2.9,	36.0,	46.5, 125.2,	5.2, 46.5,	131.4), ncol = 4, nrow = 4), # 1- boreal
+                      matrix(c(0.5,	2.7,	0.6,	3.2,	-6.5, 2.7,	82.7,	4.9,	83.3,	-75.8, 0.6,	4.9,	0.9,	4,	-7.1, 3.2,	83.3,	4,	101.3,	-100.4, -6.5,	-75.8,	-7.1,	-100.4,	156.2), ncol = 5, nrow =5), # 2- sbs-wet
+                      matrix(c(0.5,	-1.9,	-0.14288,	2.57677,	-3.82, -1.908,	96.76,	-0.71,	-2.669,	57.27, -0.143,	-0.71,	0.208,	-1.059,	1.15, 2.57,	-2.6,	-1.059,	56.29,	-4.85, -3.82,	57.27,	1.15,	-4.85,	77.337), ncol =5, nrow =5), # 3 sbs-dry
+                      matrix(c(0.7,	0.5,	6.1,	2.1, 0.5,	2.9,	4.0,	5.2, 6.1,	4.0,	62.6,	22.4, 2.1,	5.2,	22.4,	42.3), ncol=4, nrow=4) # 4 - Dr
+)
   
 
 
