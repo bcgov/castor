@@ -55,7 +55,7 @@ Adjacency was set to 0 meters to allow for maximum clustering of forest harvest.
 A partition was set as vol > 150 to ensure stands with a minimum of 150m3/ha were ahrvested, i.e., low productivity stands wouldn't be harvested. 
 
 ### harvestFlow
-First set at 1,000,000 m3/year, then 2M, 1.75 M, 1.5 M, 1.65 M, 1.6M, 1.55M; 1.5 M final.
+First set at 1,500,000 m3/year, then 1.6M, 2M;  final.
 
 ### Road recovery
 No road recovery was simulated (recovery = 300 years). 
@@ -182,7 +182,8 @@ modules <- list("dataLoaderCLUS",
                 )
 
 scenario = data.table (name = "central_group_bau_july2022",
-                       description = "Business-as-usual (BAU) scenario. Max. non-declining harvest flow = 1.5 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years).")
+                       description = "Business-as-usual (BAU) scenario. Max. non-declining harvest flow = 2.0 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years).")
+
 
 harvestFlow <- rbindlist(list(data.table(compartment ="central_group",
                                      partition = ' vol > 150 ', 
@@ -190,7 +191,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="central_group",
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 7500000, #1,500,000m3/year
+                                     flow = 10000000, #2,000,000m3/year 
                                      partition_type = 'live') 
 ))
 
