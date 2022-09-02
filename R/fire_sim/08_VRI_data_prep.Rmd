@@ -26,20 +26,354 @@ See the License for the specific language governing permissions and limitations 
 #=================================
 #  Script Name: 08_vri_data_prep.R
 #  Script Version: 1.0
-#  Script Purpose: This script creates a table of 1ha x 1ha pixels with vegetation data taken from the VRI for each year for each location.  These locations line up with the locations that I collected climate data from. 
+#  Script Purpose: This samples VRI data for each ignition location
 #  Script Author: Elizabeth Kleynhans, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #  Script Contributor: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
 #=================================
 
 #Overview:
-In this file, we acquire the VRI (Vegetation Resources Inventory) for each year by location from 2002 to 2020. This is likely already uploaded onto a network and may not need to be redone.
+In this file, we acquire the VRI (Vegetation Resources Inventory) for each year by location from 2002 to 2021. This is likely already uploaded onto a network and may not need to be redone.
 The final product will be a file with veg data along with ignition data and climate data (vegetation, climate and presence/absence of fire data).
 
-The first portion of this code cannot be run on R. Instead, you must use PgAdmin command line.
+The first portion of this code cannot be run on R.Instead use QGIS to overlay the ignition points and the VRI data. 
+
+# First get the VRI data and if you want put it in the local postgres database.
+##This first section has been completed on this computer.
+from https://catalogue.data.gov.bc.ca/dataset/vri-historical-vegetation-resource-inventory-2002-2019-
+I (Liz) then extracted this data and uploaded it into my local postgres database by running the command below in terminal. If running it in the R terminal does not work try run it in here: 
+#C:\data\localApps\QGIS10.16\OSGeo4W (the terminal window)
+
+You may get a warning indicating that this will take a long time, or that databases are not supported. You should specify a specific item within the database.
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\VEG_COMP_POLY_AND_LAYER_2020.gdb -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+Above is run or each year 2002 to 2020 separately from the data. This is already on the private server, so if you are using the private server, you do not need to run again.
+
+# rename the table in postgres if need be
+#ALTER TABLE veg_comp_lyr_r1_poly RENAME TO veg_comp_lyr_r1_poly2017
+
+# When the table name is changed the idx name is not so you might have to change that too so that more files can be uploaded into postgres by running the following command
+#ALTER INDEX veg_comp_lyr_r1_poly_shape_geom_idx RENAME TO veg_comp_lyr_r1_poly2019_geometry_geom_idx;
+# and if need be change the name of the geometry column from shape to geometry
+#ALTER TABLE veg_comp_lyr_r1_poly2019 RENAME COLUMN shape TO geometry;
 
 
 #### VEGETATION DATA #### 
-2002 to 2021 are the only years that VRI data exists, there is no earlier data. I have located a 2020 data file, but it has some too but not all columns for VRI info.
+2002 to 2021 are the only years that VRI data exists, there is no earlier data.  when you try to overlay the ignition points over the VRI data and try to extract them QGIS says tehre are many geometry problems. So first I corrected taht for each VRI layer as follows:
+
+Processing -> Toolbox -> Vector geometries -> Fix geometries 
+Alternatively after opening the toolbox type fix into the search window and it should list fix geometries. 
+Run the fix geometries for each VRI layer.
+I saved the outputs here: 
+"D:\VRI_geom_corrected".
+This took really long to run so try not to redo it!
+
+After fixing the geometries i overlayed the layers.
+First I created a separate ignition point file for each year (see code below). The files can be found here:
+"C:\Work\caribou\clus_data\Fire\Fire_sim_data\tmp\ignit_all_2002.shp"
+
+Then I extracted teh VRI data as follows:
+Vector -> data management tools -> join attributes by location. 
+
+In Base layer I put the ignition points, in join layer I put the VRI data. 
+Geometric predicate = intersects
+Fields to add = 
+'inventory_standard_cd'
+'non_productive_cd'
+'coast_interior_cd',
+'bclcs_level_1',
+'bclcs_level_2',
+'bclcs_level_3',
+'bclcs_level_4',
+'bclcs_level_5',
+'interpretation_date',
+'projected_date',
+'non_veg_cover_type_1'
+'non_veg_cover_type_2'
+'non_veg_cover_type_3'
+'land_cover_class_cd_1'
+'est_cover_pct_1'
+'land_cover_class_cd_2'
+'est_cover_pct_2'
+'land_cover_class_cd_3'
+'est_cover_pct_3'
+'line_7b_disturbance_history',
+'bec_zone_code',
+'bec_subzone',
+'earliest_nonlogging_dist_type',
+'earliest_nonlogging_dist_date',
+'stand_percentage_dead',
+'harvest_date',
+'quad_diam_175',
+'crown_closure',
+'vri_live_stems_per_ha',
+'vri_dead_stems_per_ha',
+'species_cd_1',
+'species_pct_1',
+'species_cd_2',
+'species_pct_2',
+'species_cd_3',
+'species_pct_3',
+'species_cd_4',
+'species_pct_4',
+'species_cd_5',
+'species_pct_5',
+'species_cd_6',
+'species_pct_6',
+'live_stand_volume_175',
+'whole_stem_biomass_per_ha',
+'branch_biomass_per_ha',
+'foliage_biomass_per_ha',
+'bark_biomass_per_ha',
+'proj_age_1',
+'proj_age_2',
+'proj_height_1',
+'proj_height_2'
+
+Join type = Take attributes of feature with largest overlap.
+Tick discard records which could not be joined
+save the layer in Joined layer and the layer which could not be joined. 
+
+For the values that could not be joined I then tried to join those values with the VRI of two years after. Or the year before. The goal was to get as much data as possible i.e. throw out as few records as possible. 
+
+####METHODS
+
+```{r}
+library (rgdal)
+library (RSQLite)
+library(sf)
+library(data.table)
+library(tidyverse)
+```
+
+
+# Save each fire year separately
+
+```{r}
+ignit_all_2002<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2002)
+dim(ignit_all_2002)
+sf::st_write(ignit_all_2002, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2002.shp", delete_layer=TRUE)
+
+ignit_all_2003<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2003)
+dim(ignit_all_2003)
+sf::st_write(ignit_all_2003, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2003.shp", delete_layer=TRUE)
+
+ignit_all_2004<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2004)
+dim(ignit_all_2004)
+sf::st_write(ignit_all_2004, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2004.shp", delete_layer=TRUE)
+
+ignit_all_2005<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2005)
+dim(ignit_all_2005)
+sf::st_write(ignit_all_2005, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2005.shp", delete_layer=TRUE)
+
+ignit_all_2006<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2006)
+dim(ignit_all_2006)
+sf::st_write(ignit_all_2006, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2006.shp", delete_layer=TRUE)
+
+ignit_all_2007<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2007)
+dim(ignit_all_2007)
+sf::st_write(ignit_all_2007, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2007.shp", delete_layer=TRUE)
+
+ignit_all_2008<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2008)
+dim(ignit_all_2008)
+sf::st_write(ignit_all_2008, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2008.shp", delete_layer=TRUE)
+
+ignit_all_2009<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2009)
+dim(ignit_all_2009)
+sf::st_write(ignit_all_2009, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2009.shp", delete_layer=TRUE)
+
+ignit_all_2010<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2010)
+dim(ignit_all_2010)
+sf::st_write(ignit_all_2010, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2010.shp", delete_layer=TRUE)
+
+ignit_all_2011<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2011)
+dim(ignit_all_2011)
+sf::st_write(ignit_all_2011, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2011.shp", delete_layer=TRUE)
+
+ignit_all_2012<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2012)
+dim(ignit_all_2012)
+sf::st_write(ignit_all_2012, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2012.shp", delete_layer=TRUE)
+
+ignit_all_2013<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2013)
+dim(ignit_all_2013)
+sf::st_write(ignit_all_2013, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2013.shp", delete_layer=TRUE)
+
+ignit_all_2014<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2014)
+dim(ignit_all_2014)
+sf::st_write(ignit_all_2014, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2014.shp", delete_layer=TRUE)
+
+ignit_all_2015<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2015)
+dim(ignit_all_2015)
+sf::st_write(ignit_all_2015, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2015.shp", delete_layer=TRUE)
+
+ignit_all_2016<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2016)
+dim(ignit_all_2016)
+sf::st_write(ignit_all_2016, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2016.shp", delete_layer=TRUE)
+
+ignit_all_2017<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2017)
+dim(ignit_all_2017)
+sf::st_write(ignit_all_2017, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2017.shp", delete_layer=TRUE)
+
+ignit_all_2018<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2018)
+dim(ignit_all_2018)
+sf::st_write(ignit_all_2018, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2018.shp", delete_layer=TRUE)
+
+ignit_all_2019<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2019)
+dim(ignit_all_2019)
+sf::st_write(ignit_all_2019, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2019.shp", delete_layer=TRUE)
+
+ignit_all_2020<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2020)
+dim(ignit_all_2020)
+sf::st_write(ignit_all_2020, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2020.shp", delete_layer=TRUE)
+
+ignit_all_2021<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2021)
+dim(ignit_all_2021)
+sf::st_write(ignit_all_2021, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2021.shp", delete_layer=TRUE)
+
+
+```
+
+### Now that the ignition points have been joined to the VRI data in QGIS. I need to reimport the data so that i can join it all together and use it.
+
+```{r}
+file.list1<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\QGIS_analysis\\For_analysis_2022_08_23", pattern="fire_veg", all.files=FALSE, full.names=FALSE)
+y1<-gsub(".gpkg","",file.list1)
+the_dir <- "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\QGIS_analysis\\For_analysis_2022_08_23"
+
+for (i in 1:length(file.list1)){
+  assign(paste0(y1[i]),st_read (dsn=paste0(the_dir, "\\", file.list1[i])))
+}
+
+y2<-y1[1:9]
+# combined all the DC.ignition files together
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=y2[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(y2)
+fire_veg_02_07<-mkFrameList(n) 
+fire_veg_02_07[duplicated(fire_veg_2002$idno),]$fire_yr # there should be no DUPLICATES
+
+st_crs(fire_veg_02_07)
+
+fire_veg_02_07$dead_stand_volume_175<-NA
+fire_veg_2008_joinedVRI2009$whole_stem_biomass_per_ha<-NA
+fire_veg_2008_joinedVRI2009$branch_biomass_per_ha<-NA
+fire_veg_2008_joinedVRI2009$foliage_biomass_per_ha<-NA
+fire_veg_2008_joinedVRI2009$bark_biomass_per_ha<-NA
+
+fire_veg_2009$whole_stem_biomass_per_ha<-NA
+fire_veg_2009$branch_biomass_per_ha<-NA
+fire_veg_2009$foliage_biomass_per_ha<-NA
+fire_veg_2009$bark_biomass_per_ha<-NA
+
+fire_veg_02_11<-rbind(rbind(rbind(rbind(fire_veg_2008_joinedVRI2009, fire_veg_2009), fire_veg_2010), fire_veg_2011),fire_veg_02_07)
+
+fire_veg_02_11[duplicated(fire_veg_02_11$idno),]$fire_yr
+
+# having problems with combining the files and Im not sure why.
+# when I try to combine the files its giving me problems so some of them I join manually and then it seems to work. WEIRD! 
+y3<-y1[16:24]
+file.list<-y3
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=file.list[i]))
+  })
+  do.call(rbind,d)
+}
+n1<-length(y3)
+fire_veg13_20<-mkFrameList(n1)
+
+fire_veg13_20[duplicated(fire_veg13_20$idno),]$fire_yr
+table(fire_veg13_20$fire_yr)
+dim(fire_veg13_20)
+
+
+fire_veg_2012_2<-rbind(fire_veg_2012_joinedVRI2013, fire_veg_2012)
+
+# note I messed up dead_stand_volume. i meant to sample dead_stand_volume_175 but I by mistake sampled dead_stand_volume_125 for all years except 2021. 
+fire_veg_2012_3<-fire_veg_2012_2 %>% select(!dead_stand_volume_125)
+fire_veg_02_11a<-fire_veg_02_11 %>% select(!dead_stand_volume_175)
+fire_veg13_20a<-fire_veg13_20 %>% select(!dead_stand_volume_125)
+fire_veg_2021a<-fire_veg_2021 %>% select(!dead_stand_volume_175)
+
+fire_veg<-rbind(rbind(rbind(fire_veg_02_11a, fire_veg_2012_3),fire_veg13_20a),fire_veg_2021a)
+
+```
+
+# now checking for duplicates I should have none
+
+```{r}
+
+dim(fire_veg)
+table(duplicated(fire_veg$idno))
+
+rm(fire_veg_2002, fire_veg_2002_joinedVRI2005, fire_veg_2003, fire_veg_2003_joinedVRI2005, fire_veg_2004, fire_veg_2004_joinedVRI2005, fire_veg_2005, fire_veg_2006, fire_veg_2007_joinedVRI2006, fire_veg_2008_joinedVRI2009, fire_veg_2009, fire_veg_2010, fire_veg_2011, fire_veg_2012, fire_veg_2012_joinedVRI2013, fire_veg_2013,  fire_veg_2014, fire_veg_2015, fire_veg_2016, fire_veg_2017, fire_veg_2018, fire_veg_2019,fire_veg_2020, fire_veg_2020_joinedVRI2021, fire_veg_2021, fire_veg_2021_na)
+
+gc()
+
+table(fire_veg$fire_yr)
+
+# join the files together. Also check that there are no duplicates and if there are check which on is better to use. 
+
+```
+
+# checking that I did not loose lots of records when I pulled out the VRI data
+```{r}
+ignit2002<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2012.shp")
+
+dim(ignit2002)
+head(ignit2002)
+fire_veg_2002<-fire_veg %>% filter(fire_yr=='2002')
+
+# 2002 -> 28256 to 28256
+# 2003 -> 39200 to 39185 
+# 2004 -> 37840 to 37829 
+# 2005 -> 15328 to 15320 
+# 2006 -> 40544 to 40538  
+# 2007 -> 25488 to 25478  
+# 2008 -> 32080 to 32076   
+# 2009 -> 48736 to 48732 
+# 2010 -> 26448 to 26441 
+# 2011 -> 10244 to 10220
+# 2012 -> 26048 to 26041     
+# 2013 -> 29536 to 29527 
+# 2014 -> 23536 to 23534 
+# 2015 -> 29632 to 29629 
+# 2016 -> 16592 to 16590 
+# 2017 -> 21424 to 21423
+# 2018 -> 33520 to 33519
+# 2019 -> 12816 to 12815
+# 2020 -> 10608 to 10606 
+# 2021 -> 26256 to 26253
+
+# Good. I loose some points but when i plotted them in QGIS they were all points on the boarder of BC 
+
+names(fire_veg)
+dim(fire_veg)
+fire_veg_sf<-st_as_sf(fire_veg)
+head(fire_veg_sf)
+
+```
+Try saving file
+```{r}
+st_write(fire_veg_sf, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all.gpkg", delete_layer=TRUE, driver="GPKG")
+
+#st_write(fire_veg_sf, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_everything.shp", delete_layer=TRUE, driver="ESRI Shapefile") # this one was not working
+
+#ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user= password= host=DG401102" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Fire_data_all.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI 
+
+fire_all_2<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all.gpkg")
+
+```
+
+
+
+####################################################################################################
+# Everythign below here is old code and should just be ignored
+####################################################################################################
 
 ##This first section has been completed on this computer.
 from https://catalogue.data.gov.bc.ca/dataset/vri-historical-vegetation-resource-inventory-2002-2019-
@@ -71,10 +405,20 @@ Data_clim_DEM_roads_wind_frt
 CREATE TABLE fire_veg_2002 AS
 (SELECT feature_id, bclcs_level_1, bclcs_level_2, bclcs_level_3, bclcs_level_4, bclcs_level_5, coast_interior_cd, bec_zone_code, bec_subzone, crown_closure, vri_live_stems_per_ha, vri_dead_stems_per_ha, harvest_date, earliest_nonlogging_dist_type, earliest_nonlogging_dist_date, species_cd_1, species_pct_1, species_cd_2, species_pct_2, species_cd_3, species_pct_3, species_cd_4, species_pct_4, species_cd_5, species_pct_5, species_cd_6, species_pct_6,   proj_age_1, proj_height_1, live_stand_volume_175, stand_percentage_dead, quad_diam_175,
   fire.idno, fire.fire_yr,
+  data_clim_dem_roads_wind_frt.wkb_geometry FROM data_clim_dem_roads_wind_frt,
+  (SELECT geometry, idno, fire_yr
+   from data_clim_dem_roads_wind_frt where fire_yr = '2002') as fire where st_contains
+  (fire.wkb_geometry, veg_comp_lyr_r1_poly2002.geometry))
+  
+  CREATE TABLE fire_veg_2002 AS
+(SELECT 
+  idno, fire_yr,
+  vri.feature_id, vri.bclcs_level_1,vri.bclcs_level_2, vri.bclcs_level_3, vri.bclcs_level_4, vri.bclcs_level_5, vri.coast_interior_cd, vri.bec_zone_code, vri.bec_subzone, vri.crown_closure, vri.vri_live_stems_per_ha, vri.vri_dead_stems_per_ha, vri.harvest_date, vri.earliest_nonlogging_dist_type, vri.earliest_nonlogging_dist_date, vri.species_cd_1, vri.species_pct_1, vri.species_cd_2, vri.species_pct_2, vri.species_cd_3, vri.species_pct_3, vri.species_cd_4, vri.species_pct_4, vri.species_cd_5, vri.species_pct_5, vri.species_cd_6, vri.species_pct_6,   vri.proj_age_1, vri.proj_height_1, vri.live_stand_volume_175, vri.stand_percentage_dead, vri.quad_diam_175,
   veg_comp_lyr_r1_poly2002.geometry FROM veg_comp_lyr_r1_poly2002,
   (SELECT wkb_geometry, idno, fire_yr
    from data_clim_dem_roads_wind_frt where fire_yr = '2002') as fire where st_contains
-  (veg_comp_lyr_r1_poly2002.geometry, fire.wkb_geometry))
+  (fire.wkb_geometry, veg_comp_lyr_r1_poly2002.geometry))
+
 
 ################################
 
