@@ -1,6 +1,6 @@
 ---
 title: "11_fire_ignition_model_selection_FRT10_lightning_treed"
-author: "Cora Skaien"
+author: "Cora Skaien and Elizabeth Kleynhans"
 date: "16/09/2021"
 output: html_document
 ---
@@ -52,7 +52,7 @@ See the License for the specific language governing permissions and limitations 
 #Load data back in if starting from here
 Note: depending where your geometry column was located when saved as a csv (and turned into a dataframe), you may need to manually correct column headings on the csv file before loading back in. This has been performed for the below files.
 
-# note FRT 10 had Tave08 as the climate variable
+
 ```{r}
 dat_lightning<- read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Data_Lightning.csv")
 
@@ -71,7 +71,7 @@ Now, we will make a loop that does something very similar to our last loop, but 
 2. Projected Height (proj_height_1)
 3. projected age (proj_age_1)  
 4. live_stand_volume_125
-5. vegtype
+5. vegtype and possibly some indicator of density e.g. bclcs_level_5_2
 8. elevation
 
 Variables to be added after initial model selection for next round model selection:
@@ -88,9 +88,9 @@ First we will create the variable lists that contain all of our variables of int
 ```{r}
 
 ##Create variable lists to be used in the model loop.
-variables_all<-c(climate1 = "climate1", prj_h_1 = "prj_h_1", prj_g_1 = "prj_g_1", l___125 = "l___125", elevatn ="elevatn", vegtype = "vegtype") 
+variables_all<-c(climate1 = "climate1", prj_h_1 = "prj_h_1", prj_g_1 = "prj_g_1", l___125 = "l___125", elevatn ="elevatn", vegtype = "vegtype", bclcs_level_5_2="bclcs_level_5_2") 
 
-variables_all_c1<-c(climate1 = "climate1", prj_h_1 = "prj_h_1", prj_g_1 = "prj_g_1", l___125 = "l___125", elevatn ="elevatn", vegtype = "vegtype") 
+variables_all_c1<-c(climate1 = "climate1", prj_h_1 = "prj_h_1", prj_g_1 = "prj_g_1", l___125 = "l___125", elevatn ="elevatn", vegtype = "vegtype", bclcs_level_5_2="bclcs_level_5_2") 
 
 vars.clim<-c("climate1")
 vars.clim.vegtype<-c("climate1", "vegtype")
@@ -98,6 +98,30 @@ vars.clim.vegtype<-c("climate1", "vegtype")
 
 vars.oth<-c("prj_g_1", "prj_h_1", "l___125") 
 vars.topo<-c("elevatn")
+
+variables_all<-c("climate1","prj_h_1", "prj_g_1", "l___125", "dm_h_bc", "vegtype", "bclcs_level_5_2") 
+
+Cols <- variables_all
+n <- length(Cols)
+id <- unlist(
+        lapply(1:n,
+              function(i)combn(1:n,i,simplify=FALSE)
+        )
+      ,recursive=FALSE)
+Formulas <- sapply(id,function(i)
+              paste("fire ~",paste(Cols[i],collapse="+"))
+            )
+mods.fit<-lapply(Formulas,function(i)
+    glm(as.formula(i),family=binomial, data=dat_lightning_t))
+
+form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+   mods.fit <- glm(form, family=binomial, data=df.train)
+   mod.stuff <- summary(mods.fit)
+   mod.aic <- extractAIC(mods.fit)
+
+###########
+
+
 
 
 ##Create interaction for climate and vegtype
@@ -165,6 +189,7 @@ mods.meT <- list()
 for (i in 1: length(mods.me.tmp)) {
    mods.meT[[i]] <- c(mods.me.tmp[[i]])
 }
+
 
 mods.meT
 
