@@ -52,8 +52,10 @@ source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/central_group/inputs/central_group_july2022_clusdb.sqlite"))
 
 check <- dbGetQuery (clusdb, "SELECT * from zoneconstraints WHERE reference_zone = 'rast.central_grp_partner_areas_072022'")
+dbExecute (clusdb, "UPDATE zoneconstraints SET type = 'nh' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid = 8") 
 
-dbExecute (clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid = 8") 
+dbDisconnect (clusdb)  
+
 ```
 
 ### harvestBlockPriority  
@@ -63,10 +65,10 @@ Closest to disturbance first, oldest second. Thus assumes the priority is to clu
 Adjacency was set to 0 meters to allow for maximum clustering of forest harvest.
 
 ### partition
-A partition was set as vol > 150 to ensure stands with a minimum of 150m3/ha were ahrvested, i.e., low productivity stands wouldn't be harvested. 
+A partition was set as vol > 150 to ensure stands with a minimum of 150m3/ha were harvested, i.e., low productivity stands wouldn't be harvested. 
 
 ### harvestFlow
-First set at 1,500,000 m3/year, then 1.6M, 2M, 1.75M, 1.7M, 1.65; 1.65M final. A harvest target of 1.6M m3/year provided a non-declining maximum harvest flow over a 200 year period.
+First set at 1,650,000 m3/year, 1.6M m3; target of  m3/year provided a non-declining maximum harvest flow over a 200 year period.
 
 ### Road recovery
 No road recovery was simulated (recovery = 300 years). 
@@ -193,7 +195,7 @@ modules <- list("dataLoaderCLUS",
                 )
 
 scenario = data.table (name = "central_group_bau_july2022",
-                       description = "Business-as-usual (BAU) scenario. Max. non-declining harvest flow = 1.75 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years).")
+                       description = "Business-as-usual (BAU) scenario. Max. non-declining harvest flow = 1.6 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years).")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="central_group",
@@ -202,7 +204,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="central_group",
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 8750000, #1,750,000m3/year 
+                                     flow = 8000000, #1,600,000m3/year 
                                      partition_type = 'live') 
 ))
 
