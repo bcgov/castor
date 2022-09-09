@@ -131,6 +131,7 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
       sim <- scheduleEvent(sim, time(sim) + P(sim, "timeInterval", "fisherabmCLUS"), "fisherabmCLUS", "interpolatehabitat", 19)
 
     },
+   
     interpolatehabitat = {
       
       # need some functions here to interpolate habitat degradation/improvement over the forestry simulation interval (five years)
@@ -160,6 +161,7 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
       
       # ! ----- STOP EDITING ----- ! #
     },
+    
     updateHR = {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
@@ -174,17 +176,10 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
       sim <- scheduleEvent (sim, time(sim), "fisherabmCLUS", "disperse", 22)
       # ! ----- STOP EDITING ----- ! #
     },
+    
     disperse = {
       # ! ----- EDIT BELOW ----- ! #
-      # do stuff for this event
-      
-      # e.g., call your custom functions/methods here
-      # you can define your own methods below this `doEvent` function
-      
-      # schedule future event(s)
-      
-      # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + increment, "fisherabmCLUS", "templateEvent")
+      sim <- dispersal (sim)
       sim <- scheduleEvent (sim, time(sim), "fisherabmCLUS", "survive", 23)   
       # ! ----- STOP EDITING ----- ! #
     },
@@ -227,7 +222,7 @@ Init <- function(sim) {
                            conn = NULL) 
 
   # get pixel id's for aoi 
-  pix.for.rast <- data.table (dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels WHERE compartid IS NOT NULL;"))
+  pix.for.rast <- data.table (dbGetQuery (sim$clusdb, "SELECT pixelid FROM pixels WHERE compartid IS NOT NULL;"))
   pix.rast <- aoi
   pix.rast [pix.for.rast$pixelid] <- pix.for.rast$pixelid
   sim$pix.rast <- pix.rast
@@ -327,12 +322,12 @@ Init <- function(sim) {
   # if non-habitat spreadprob
   spread.rast <- sim$pix.rast
   spread.rast [table.hab$pixelid] <- table.hab$spreadprob
-  # sim$spread.rast <- spread.rast
+  sim$spread.rast <- spread.rast
 
   # this step took 15 mins with ~8500 starting points; 6 mins for 2174 points; 1 min for 435 points
   table.hr <- SpaDES.tools::spread2 (sim$pix.rast, # within the area of interest
                                      start = agents$pixelid, # for each individual
-                                     spreadProb = spread.rast, # use spread prob raster
+                                     spreadProb = sim$spread.rast, # use spread prob raster
                                      exactSize = agents$hr_size, # spread to the size of their territory
                                      allowOverlap = F, # no overlap allowed
                                      asRaster = F, # output table
@@ -653,6 +648,39 @@ repro_FEMALE <- function(sim) {
  
   return(invisible(sim))
 }
+
+
+###--- DISPERSE
+dispersal <- function(sim) {
+
+  # get the dispersers; age 2 y.o. fishers
+  dispersers <- dbGetQuery (sim$clusdb, "SELECT * FROM agents WHERE age = 1 AND d2_score IS NULL") # grab the agents at age of dispersal
+
+  
+  
+  
+  table.hr <- SpaDES.tools::spread2 (sim$pix.rast, # within the area of interest
+                                     start = dispersers$pixelid, # for each individual
+                                     spreadProb = sim$spread.rast, # spread more in habitat (i.e., there is some 'direction' towards adjacent habitat)
+                                     exactSize = , # spread to a dispersal distance of 50km; 500 pixels = 50km 
+                                     allowOverlap = T, # overlap allowed
+                                     asRaster = F, # output as table
+                                     # returnDistances = T, # not working; see below
+                                     circle = F) # spread to adjacent cells
+  
+  # calc distance between each pixel and the denning site
+  # not sure if we need this; keeping it here in case we need it
+  # table.hr <- cbind (table.hr, xyFromCell (sim$pix.rast, table.hr$pixels))
+  # table.hr [!(pixels %in% agents$pixelid), dist := RANN::nn2 (table.hr [pixels %in% agents$pixelid, c("x","y")], table.hr [!(pixels %in% agents$pixelid), c("x","y")], k = 1)$nn.dists]
+  # table.hr [is.na (dist), dist := 0]
+  
+  
+
+
+  return(invisible(sim))
+}
+
+
 
 ### template for save events
 Save <- function(sim) {
