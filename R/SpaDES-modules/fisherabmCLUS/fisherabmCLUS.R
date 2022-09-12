@@ -460,10 +460,10 @@ Init <- function(sim) {
   tab.perc [fisher_pop == 4 & den_perc > 2.3 + stdev_pop4[1], den_perc := 2.3 + stdev_pop4[1]][fisher_pop == 4 & rust_perc > 1.6 +  stdev_pop4[2], rust_perc := 1.6  + stdev_pop4[2]][fisher_pop == 4 & cwd_perc > 10.8 + stdev_pop4[3], cwd_perc := 10.8 + stdev_pop4[3]][fisher_pop == 4 & move_perc > 21.5 + stdev_pop4[4], move_perc := 21.5+ stdev_pop4[4]]
 
   #-----D2
+  tab.perc [fisher_pop == 1, d2 := mahalanobis (tab.perc [fisher_pop == 1, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(24.0, 2.2, 17.4, 56.2), cov = sim$fisher.d2.cov[[4]])]
   tab.perc [fisher_pop == 2, d2 := mahalanobis (tab.perc [fisher_pop == 2, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.6, 36.2, 0.7, 30.4, 26.8), cov = fisher_d2_cov[[2]])]
   tab.perc [fisher_pop == 3, d2 := mahalanobis (tab.perc [fisher_pop == 3, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.16, 19.1, 0.45, 8.69, 33.06), cov = fisher_d2_cov[[3]])]
   tab.perc [fisher_pop == 4, d2 := mahalanobis (tab.perc [fisher_pop == 4, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(2.3, 1.6, 10.8, 21.5), cov = fisher_d2_cov[[4]])]
-  tab.perc [fisher_pop == 1, d2 := mahalanobis (tab.perc [fisher_pop == 1, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(24.0, 2.2, 17.4, 56.2), cov = sim$fisher.d2.cov[[4]])]
 
   agents <- merge (agents [, - ('d2_score')],
                    tab.perc [, .(individual_id, d2_score = d2)],
@@ -646,34 +646,73 @@ repro_FEMALE <- function(sim) {
     }
   }
  
-  return(invisible(sim))
+  return (invisible (sim))
 }
 
 
 ###--- DISPERSE
-dispersal <- function(sim) {
+dispersal <- function (sim) {
 
-  # get the dispersers; age 2 y.o. fishers
-  dispersers <- dbGetQuery (sim$clusdb, "SELECT * FROM agents WHERE age = 1 AND d2_score IS NULL") # grab the agents at age of dispersal
+  # get the dispersers; age 1 y.o. fishers
+  dispersers <- dbGetQuery (sim$clusdb, "SELECT * FROM agents WHERE age = 1 AND d2_score IS NULL") # grab the agents at age of dispersal; use d2_score criteria as secondary check?
 
+  # create the dispersal area; i.e., where the fisher searches 
+  table.disperse <- SpaDES.tools::spread2 (sim$pix.rast, # within the area of interest
+                                           start = dispersers$pixelid, # for each individual
+                                           spreadProb = sim$spread.rast, # spread more in habitat (i.e., there is some 'direction' towards habitat)
+                                           exactSize = 785000, # spread to a dispersal distance within a 50km radius; 
+                                                               # 500 pixels = 50km; area = pi * radius^2 
+                                                               # 50km radius = 7850km2 area, which is 1/6 of the Williams Lake TSA; realistic?
+                                           allowOverlap = T, # overlap allowed; fishers could pick the same dispersal area
+                                           asRaster = F, # output as table
+                                           # returnDistances = T, # not working; see below
+                                           circle = F) # spread to adjacent cells; not necessarily a circle
+
+  # identify pixels within mothers home range and remove them from the dispersal table
+    # WE ONLY NEED THIS IF WE DON'T REMOVE ALL OCCUPIED TERRITORIES (NEXT STEP)
+  # start.pix <- dispersers$pixelid
+  # for (i in start.pix) { # Select agents with the same starting pixel but are adults; these should be moms
+  #   query <- glue_sql ("SELECT individual_id FROM agents WHERE agents.age > 1 AND agents.pixelid = {i}")
+  #   mom <- dbGetQuery (sim$clusdb, query)
+  #   mom <- mom$individual_id # get the mom's id
+  #   query2 <- glue_sql ("SELECT * FROM territories WHERE territories.individual_id = {mom}")
+  #   mom.terr <- dbGetQuery (sim$clusdb, query2) # get the mom's territory pixels
+  #   table.disperse <- table.disperse [!pixels %in% mom.terr$pixelid] # remove pixels in the dispersal area that are in the mom's terr  
+  # } 
   
+  # identify pixels already occupied by a fisher and remove them from the dispersal table
+  terrs <- dbGetQuery (sim$clusdb, "SELECT * FROM territories")
+  table.disperse <- table.disperse [!pixels %in% terrs$pixelid]
   
+  # identify areas with more habitat (denning?)
+  inds <- unique (table.disperse$initialPixels) # unique individuals
   
-  table.hr <- SpaDES.tools::spread2 (sim$pix.rast, # within the area of interest
-                                     start = dispersers$pixelid, # for each individual
-                                     spreadProb = sim$spread.rast, # spread more in habitat (i.e., there is some 'direction' towards adjacent habitat)
-                                     exactSize = , # spread to a dispersal distance of 50km; 500 pixels = 50km 
-                                     allowOverlap = T, # overlap allowed
-                                     asRaster = F, # output as table
-                                     # returnDistances = T, # not working; see below
-                                     circle = F) # spread to adjacent cells
+  ind.disp.pix <- rast (sim$pix.rast) # raster of area - needs to be a 'SpatRaster'
+  ind.disp.pix [ind.disp.pix > 0] <- 0 # assign 0 values
   
-  # calc distance between each pixel and the denning site
-  # not sure if we need this; keeping it here in case we need it
-  # table.hr <- cbind (table.hr, xyFromCell (sim$pix.rast, table.hr$pixels))
-  # table.hr [!(pixels %in% agents$pixelid), dist := RANN::nn2 (table.hr [pixels %in% agents$pixelid, c("x","y")], table.hr [!(pixels %in% agents$pixelid), c("x","y")], k = 1)$nn.dists]
-  # table.hr [is.na (dist), dist := 0]
-  
+  for (i in inds) {
+    ind.disperse <- table.disperse [initialPixels == i] # identify dispersal pix by ind
+    tmp.ind.disp.pix <- ind.disp.pix
+    tmp.ind.disp.pix [ind.disperse$pixels] <- 1 # assign dispersal pix to raster
+    
+    # convert raster to polygon and start at centre in largest poly?
+    terra::as.polygons (tmp.ind.disp.pix)
+    
+    
+    
+    
+    
+    
+    # neighborhood method; calc sum of habitat raters in a 'neighborhood' (territory)
+    # this is waaaaaay too slow
+      # habitat.area <- terra::focal (tmp.ind.disp.pix, # pixel raster
+      #                               w = 399, # w = search area radius = 399 pixels = 5,000km2
+      #                               fun = sum, # sum the pixel values
+      #                               na.rm = TRUE # ignore NA values
+      #                               ) 
+
+    
+  }
   
 
 
