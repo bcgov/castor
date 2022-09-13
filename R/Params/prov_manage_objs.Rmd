@@ -197,7 +197,7 @@ beo.lut<-beo.lut[, id_beo := seq_len(.N)]
 beo.table<-merge(beo.table, beo.lut, by.x = "key_beo", by.y = "key_beo", all.x =T)
 ```
 
-### Create constraints table
+### Create constraints raster
 ```{r}
 #CCLUP
 cclup.beo<-data.table(read.csv("cclup_beo.csv", header =T, sep=","))#This is stored in /R/Params/
@@ -242,48 +242,60 @@ test2<-merge(test[,c("ndt", "beo", "bec", "lu_name", "id_beo", "key_beo")], bg.b
 
 #merge back to beo.lut4
 beo.lut5<-rbind(beo.lut4, test2, fill=T)
+beo.lut6<-beo.lut5[!is.na(O_targ_num), ]
+beo.lut.bg<-beo.lut5[is.na(O_targ_num), ]$id_beo
 
 #Check
 #test.id<-beo.lut5$id_beo
 #test.id.ras<-unique(beo.table$id_beo)
 
+##add ndt types to pg bio order: https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/omineca-region/princegeorge-biodiversity-order/biodiversity_order.pdf
+# unit, >1000, 101 -1000, 51 – 100, <50; labels
+# McGregor Plateau 40 45 5 10; A2-4,
+# Moist Interior - Mountain 40 30 10 20; A5, A6, D1, E1
+# Moist Interior - Plateau 70 20 5 5; A7-13, D2-D7, E2-5
+# Northern Boreal Mountains 60 30 5 5; A1, E6-8
+# Omineca - Mountain 40 30 10 20, E9-11
+# Omineca - Valley 60 30 5 5, E12-17
+# Wet Mountain 10 60 10 20; A14-17
+# Wet Trench - Mountain 10 60 10 20; A18-21
+# Wet Trench - Valley 10 60 10 20; A22-25
+beo.lut6<-beo.lut6[lu_name %in% c('A2', 'A3', 'A4'), ndt :=6][lu_name %in% c('A5', 'A6', 'D1', 'E1'), ndt :=7][lu_name %in% c('A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'D2', 'D3', 'D4', 'D5','D6', 'D7', 'E2', 'E3', 'E4', 'E5'), ndt :=8][lu_name %in% c('A1', 'E6', 'E7', 'E8'), ndt :=9][lu_name %in% c('E9', 'E10', 'E11'), ndt :=10][lu_name %in% c('E12', 'E13', 'E14', 'E15', 'E16', 'E17'), ndt :=11][lu_name %in% c('A14', 'A15', 'A16', 'A17'), ndt :=12][lu_name %in% c('A18', 'A19', 'A20', 'A21'), ndt :=13][lu_name %in% c('A22', 'A23', 'A24', 'A25'), ndt :=14]
 #### Create Raster
 beo.ras<-ProvRast
 beo.ras[beo.table$pixelid]<-beo.table$id_beo
+beo.ras[beo.table[id_beo %in% beo.lut.bg,]$pixelid]<-0
 
 writeRaster(beo.ras, "beo.tif", overwrite =TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here::here(), '/R/params/beo.tif -t 100x100 rast.zone_cond_beo_pg_cclup |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = FALSE)
 ```
 
 
-```{r, create_ras}
+```{r, create_table}
 
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here(), '/zone_beo.tif -t 100x100 rast.zone_cond_beo |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = FALSE)
+#Create constraints table
 
-library(RPostgreSQL)
-ogm.final[zone == 2435,]
-zone_beo_table<-setDT(ogm.final)[, .SD[which.max(AGE)], by=zone]
+zone_beo_table.old<-data.table(zoneid = beo.lut6$id_beo, reference_zone = 'rast.zone_cond_beo_pg_cclup', ndt =beo.lut6$ndt, variable= 'age', threshold = beo.lut6$O_def_num, type = 'ge', percentage = beo.lut6$O_targ_num, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'old_seral_beo')
 
-zone_beo_table<-zone_beo_table[,c(1,3:4, 6)]
-zone_beo_table[, reference_zone := 'rast.zone_beo']
-zone_beo_table[, variable := 'age']
-zone_beo_table[, type := 'ge']
+zone_beo_table.mpo<-data.table(zoneid = beo.lut6[!is.na(MpO_targ_num),]$id_beo, reference_zone = 'rast.zone_cond_beo_pg_cclup', ndt =beo.lut6[!is.na(MpO_targ_num),]$ndt, variable= 'age', threshold = beo.lut6[!is.na(MpO_targ_num),]$M_def_num, type = 'ge', percentage = beo.lut6[!is.na(MpO_targ_num),]$MpO_targ_num, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'mature_seral_beo')
 
-setnames(zone_beo_table, c("zoneid", "percentage", 
-                  "threshold","ndt", "reference_zone", 
-                  "variable", "type"))
-zone_beo_table[, ndt := as.integer(ndt)]
-df<-as.data.frame(zone_beo_table)
-df$label<-'beo' #TODO: label this is as high/I/L ?
+zone_beo_table.early<-data.table(zoneid =  beo.lut6[!is.na(E_targ_num),]$id_beo, reference_zone = 'rast.zone_cond_beo_pg_cclup', ndt =beo.lut6[!is.na(E_targ_num),]$ndt, variable= 'age', threshold = beo.lut6[!is.na(E_targ_num),]$E_def_num, type = '', percentage = beo.lut6[!is.na(E_targ_num),]$E_targ_num, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'early_seral_beo')
+
+zone_beo_table<-rbindlist(list(zone_beo_table.old, zone_beo_table.mpo, zone_beo_table.early))
+zone_beo_table$threshold<-as.numeric(zone_beo_table$threshold)
+zone_beo_table$percentage<-as.numeric(zone_beo_table$percentage)
+zone_beo_table$multi_condition<-as.character(zone_beo_table$multi_condition)
+zone_beo_table$denom<-as.character(zone_beo_table$denom)
+zone_beo_table$start<-as.integer(zone_beo_table$start)
+zone_beo_table$stop<-as.integer(zone_beo_table$stop)
 
 #Upload the constraint table to the db
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
- 
-DBI::dbWriteTable(conn, c("zone", "zone_beo"), value= df, row.names = FALSE, overwrite = TRUE) 
-dbDisconnect(conn)
+DBI::dbWriteTable(conn, c("zone", "zone_beo_pg_cclup"), value= zone_beo_table, row.names = FALSE, overwrite = TRUE) 
 
-rm(zone_beo_table, df, ogm.final)
-gc()
+dbExecute(conn, "ALTER TABLE zone.zone_beo_pg_cclup INHERIT zone.constraints;")
+dbDisconnect(conn)
 
 ```
 
