@@ -105,7 +105,7 @@ ui <- shiny::tagList(
     body = dashboardBody(
       # shinyjs::useShinyjs(),
       tabItems(
-        
+
         ## Run simulations ----
         tabItem(
           tabName = "run",
@@ -167,10 +167,10 @@ ui <- shiny::tagList(
                   "Simulation output",
                   p("Use controls below to view and delete the knitted md files."),
                   selectizeInput(
-                    inputId = 'rendered_mds', 
-                    label = 'Review scenario output', 
-                    choices = NULL, 
-                    selected = '', 
+                    inputId = 'rendered_mds',
+                    label = 'Review scenario output',
+                    choices = NULL,
+                    selected = '',
                     multiple = FALSE
                   ),
                   shiny::actionButton(
@@ -196,7 +196,7 @@ ui <- shiny::tagList(
             )
           )
         ),
-        
+
         ## Databases ----
         tabItem(
           tabName = "databases",
@@ -235,7 +235,7 @@ ui <- shiny::tagList(
                       ),
                       p(
                         'The volume snapshot can be used to create
-                        any number of volumes from it, to be used for running the 
+                        any number of volumes from it, to be used for running the
                         different simulations using the same sqlite database.'
                       ),
                       verbatimTextOutput("file_sqlitedb_selected"),
@@ -295,7 +295,7 @@ ui <- shiny::tagList(
             )
           )
         ),
-        
+
         ## Resources ----
         tabItem(
           tabName = "resources",
@@ -308,8 +308,8 @@ ui <- shiny::tagList(
             icon = icon('refresh')
           )
         ),
-        
-        ## Billing ---- 
+
+        ## Billing ----
         tabItem(
           tabName = "billing",
           h2('Billing')
@@ -350,14 +350,14 @@ server <- function(input, output, session) {
   )
 
   shinyFileChoose(
-    input, "file_scenario", 
-    roots = c('wd' = '.', 'scenarios' = paste0(getwd(), '/../../scenarios')), 
+    input, "file_scenario",
+    roots = c('wd' = '.', 'scenarios' = paste0(getwd(), '/../../scenarios')),
     filetypes = c('Rmd'),
     defaultPath = '', defaultRoot = 'scenarios', session = session
   )
   shinyFileChoose(
-    input, "file_sqlitedb", 
-    roots = c('wd' = '.', 'clus_repo' = paste0(getwd(), '/../../..'), 'root' = '/'), 
+    input, "file_sqlitedb",
+    roots = c('wd' = '.', 'clus_repo' = paste0(getwd(), '/../../..'), 'root' = '/'),
     filetypes = c('', 'sqlite'),
     defaultPath = '', defaultRoot = 'clus_repo', session = session
   )
@@ -379,7 +379,7 @@ server <- function(input, output, session) {
     volume$name
   }
   volume_names <- lapply(volumes, getVolumeName)
-  
+
   volume_snapshots <- analogsea::snapshots(type = 'volume')
   getVolumeSnapshotName <- function(volume_snapshot) {
     volume_snapshot$name
@@ -451,7 +451,7 @@ server <- function(input, output, session) {
   logfile <- tempfile(tmpdir = tempdir(check = TRUE), pattern = 'simulation_')
   simulation_logfile <- paste0(logfile, '.csv')
   simulation_logfile_lock <- paste0(logfile, '.lock')
-  
+
   # Run simulation ----
   observeEvent(
     input$run_scenario,
@@ -462,18 +462,18 @@ server <- function(input, output, session) {
       req(input$droplet_size)
 
       stopifnot(input$droplet_size %in% sizes$slug)
-      
+
       region <- 'tor1'
       uploader_image <- 'ubuntu-20-04-x64'
       uploader_size = 's-1vcpu-1gb'
-      
+
       progress <- AsyncProgress$new(message="Overall job progress")
-      
+
       # CLUS droplet image
       snaps <- analogsea::snapshots()
       snap_image <- snaps$`clus-cloud-image-202205042050`$id
       print(paste("Building from", snap_image))
-      
+
       # SSH config
       ssh_user <- "root"
 
@@ -484,23 +484,23 @@ server <- function(input, output, session) {
       selected_scenarios <- input$file_scenario
       scenario_tbl <- shinyFiles::parseFilePaths(volumes, selected_scenarios)
       scenarios <- scenario_tbl$name
-      
+
       total_steps <- length(scenarios) * 12
-      
+
       if (file.exists(simulation_logfile)) {
         file.remove(simulation_logfile)
         file.create(simulation_logfile)
       }
-      
+
       write(
         paste0(
-          "ID,Scenario,Progress,Description,Timestamp\n", 
+          "ID,Scenario,Progress,Description,Timestamp\n",
           "0,,,PROCESS STARTED,", as.character(Sys.time())
-        ), 
-        file = simulation_logfile, 
+        ),
+        file = simulation_logfile,
         append = FALSE
       )
-      
+
       lapply(
         X = scenarios,
         FUN = run_simulation,
@@ -519,15 +519,15 @@ server <- function(input, output, session) {
       return(NULL)
     }
   )
-  
+
   # Render knited md ----
   observeEvent(
     input$include_md,
     {
       req(input$rendered_mds)
-      
+
       isolate(input$rendered_mds)
-      
+
       file_stats <- file.info(input$rendered_mds, extra_cols = FALSE)
       file_stats <- data.frame(
         'Created' = c(file_stats$mtime),
@@ -535,7 +535,7 @@ server <- function(input, output, session) {
       )
       file_stats$Created <- as.character(file_stats$Created)
       file_stats$Size <- as.character(as_fs_bytes(file_stats$Size))
-      
+
       output$preview_md <- renderUI({
         tagList(
           h2('File info'),
@@ -556,18 +556,18 @@ server <- function(input, output, session) {
       sqlitedb_tbl <- parseFilePaths(volumes, input$file_sqlitedb)
       sqlitedb <- sqlitedb_tbl$name
       sqlitedb_path <- stringr::str_remove(sqlitedb_tbl$datapath, 'NULL/')
-      
+
       volume_snapshot_name <- stringr::str_to_lower(
         stringr::str_remove(
           stringr::str_remove_all(sqlitedb, '_'),
           '.sqlite'
         )
       )
-      
+
       ssh_keyfile_db_tbl <- parseFilePaths(volumes, input$key_db)
       ssh_keyfile_db <- stringr::str_replace(ssh_keyfile_db_tbl$datapath, 'NULL/', '/')
       ssh_keyfile_db_name <- ssh_keyfile_db_tbl$name
-      
+
       existing_snapshots <- analogsea::snapshots(type = 'volume')
       existing_snapshots_names <- rlist::list.names(existing_snapshots)
 
@@ -575,7 +575,7 @@ server <- function(input, output, session) {
         existing_snapshot <- existing_snapshots[[grep(volume_snapshot_name, names(existing_snapshots))]]
         analogsea::snapshot_delete(existing_snapshot)
       }
-      
+
       ## Create sqlite DB uploader droplet ----
       d_uploader <- analogsea::droplet_create(
         name = analogsea:::random_name(),
@@ -588,7 +588,7 @@ server <- function(input, output, session) {
         droplet_wait()
 
       Sys.sleep(15)
-      
+
       # Create volume to upload DB to ----
       volume_name <- stringr::str_to_lower(analogsea:::random_name())
       v <- volume_create(
@@ -601,7 +601,7 @@ server <- function(input, output, session) {
       )
       volume_attach(volume = v, droplet = d_uploader, region = region)
       # volume_attach(volume = v, droplet = d, region = region)
-      
+
       # Format and mount the volume ----
       # d %>%
       d_uploader %>%
@@ -612,7 +612,7 @@ server <- function(input, output, session) {
                            echo '/dev/disk/by-id/scsi-0DO_Volume_{volume_name} /mnt/{volume_name} ext4 defaults,nofail,discard 0 0' | sudo tee -a /etc/fstab"),
           keyfile = ssh_keyfile_db #
         )
-      
+
       # Upload sqlite DB to the volume ----
       # d %>%
       d_uploader %>%
@@ -622,17 +622,17 @@ server <- function(input, output, session) {
           local = paste0('../../../', sqlitedb_path),
           remote = paste0("/mnt/", sqlitedb, '/', sqlitedb)
         )
-      
+
       # Detach volume from the uploader droplet and delete the droplet ----
       v %>% volume_detach(droplet = d_uploader, region = region)
       d_uploader %>% droplet_delete()
-      
-      # Create volume snapshot 
+
+      # Create volume snapshot
       analogsea::volume_snapshot_create(v, volume_snapshot_name)
-      
+
       # Delete volume
       analogsea::volume_delete(v)
-      
+
       shinyjs::alert("Done.")
     }
   )
@@ -664,33 +664,33 @@ server <- function(input, output, session) {
       }
     }
   )
-  
+
   output$simulation_log <- renderDataTable({
     data <- simulation_log_data()
-    
+
     if (nrow(simulation_log_data()) > 0) {
-      data <- data %>% 
-        group_by(Scenario) %>% 
-        top_n(1, ID) %>% 
-        ungroup() %>% 
-        arrange(Scenario) %>% 
+      data <- data %>%
+        group_by(Scenario) %>%
+        top_n(1, ID) %>%
+        ungroup() %>%
+        arrange(Scenario) %>%
         select(-ID)
     }
 
     data
   })
-  
+
   # Refresh md files ----
   observeEvent(
     input$refresh_mds,
     {
-      all_mds <- 
+      all_mds <-
           # dir_ls('R/apps/clus_cloud/inst/app/md/', type = 'file', glob = '*.md') %>%
         dir_ls('inst/app/md/', type = 'file', glob = '*.md') %>%
         purrr::map_chr(clean_md_path)
-      
+
       all_mds <- setNames(names(all_mds), all_mds)
-      
+
       shiny::updateSelectizeInput(
         session = getDefaultReactiveDomain(),
         'rendered_mds',
@@ -705,11 +705,11 @@ server <- function(input, output, session) {
   observeEvent(
     input$delete_mds,
     {
-      all_mds <- 
+      all_mds <-
           # dir_ls('R/apps/clus_cloud/inst/app/md/', type = 'file', glob = '*.md') %>%
         dir_ls('inst/app/md/', type = 'file', glob = '*.md') %>%
         purrr::map(file.remove)
-      
+
       shiny::updateSelectizeInput(
         session = getDefaultReactiveDomain(),
         'rendered_mds',
@@ -725,9 +725,9 @@ server <- function(input, output, session) {
     input$refresh_droplets,
     {
       droplets <- analogsea::droplets()
-      droplets_df <- as.data.frame(do.call(rbind, droplets)) %>% 
+      droplets_df <- as.data.frame(do.call(rbind, droplets)) %>%
         select(id, name, memory, vcpus, disk, status, created_at)
-      
+
       output$droplets <- renderTable(droplets_df)
     }
   )
@@ -739,9 +739,9 @@ server <- function(input, output, session) {
       db_snapshots <- rlist::list.stack(
         analogsea::snapshots(type = 'volume')
       )
-      db_snapshots <- as.data.frame(db_snapshots) %>% 
+      db_snapshots <- as.data.frame(db_snapshots) %>%
         select(id, name, created_at, min_disk_size, size_gigabytes)
-      
+
       # output$database_snapshots <- renderTable(db_snapshots)
       output$database_snapshots <- renderDataTable(db_snapshots)
     }
@@ -752,12 +752,12 @@ server <- function(input, output, session) {
     input$refresh_databases,
     {
       dbs <- analogsea::volumes()
-      dbs_df <- as.data.frame(do.call(rbind, dbs)) 
+      dbs_df <- as.data.frame(do.call(rbind, dbs))
       if (nrow(dbs_df) > 0) {
-        dbs_df <- dbs_df %>% 
+        dbs_df <- dbs_df %>%
           select(id, name, created_at, size_gigabytes)
       }
-      
+
       # output$databases <- renderTable(dbs_df)
       output$databases <- renderDataTable(dbs_df)
     }
