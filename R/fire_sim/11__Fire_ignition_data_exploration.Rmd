@@ -1,0 +1,1202 @@
+---
+title: "10_Fire_ignition_model_fits_by_FRT_data_prep"
+author: "Elizabeth Kleynhans and Cora Skaien"
+contributor: "Peter Ott"
+date: "20/04/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+editor_options:
+  chunk_output_type: console
+  
+<style> 
+p.caption {
+  font-size: 1.2em;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library (kableExtra)
+library (data.table)
+library (DBI)
+library (RPostgreSQL)
+library (dplyr)
+library (ggplot2)
+library (here)
+library(ggpubr)
+library(arm)
+library(tidyr)
+library(AICcmodavg)
+library(keyring)
+library(caret)
+library(pROC)
+library(rje)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+
+## Introduction
+
+Here, we are running a glm for each separate fire regime type to develop a predictive equation so that we can extrapolate fire ignitions into the future. The data that we include in these glms is both vegetation and climate date. The top climate variable for each fire regime type was determined in the script "10_ignition_climate_variable_selection.R". 
+
+Firstly, in each FRT, we run a glm with climate and vegetation for lightning caused and human caused fires separately. 
+
+# climate variable selection
+In the script "10_ignition_climate_variable_selection.R", we performed an AIC and ROC analysis for each FRT including presence/available fire ignition points and a variety of climate variables. For this analysis, we split the data into a training and a validation data set where 75% of the data was used for training and 25% was used for validation. We then fit the model and extracted the AIC and AUC values. This was repeated 100 times and at the end we calculated the average AIC and AUC values. The variables were then sorted into those who's delta AIC value was less than 2 and within that set the variable that had the highest AUC was chosen. 
+
+ We will load tables for person and lightning caused is a summary of which climate variables fitted best for each BEC zone. 
+
+
+```{r eval=, message=FALSE, AIC table, echo=F}
+
+climate_variables_lightning<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")
+climate_variables_person<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
+
+head(climate_variables_lightning) 
+head(climate_variables_person) 
+
+kable (climate_variables_lightning,
+       caption = "<b>Table 1. Top candidate climate variables for lightning caused fires as selected through an AIC analysis for each Fire Regime Type.<b>",
+       digits = 2) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
+
+kable (climate_variables_person,
+       caption = "<b>Table 2. Top candidate climate variables for person caused fires as selected through an AIC analysis for each Fire Regime Type zone.<b>",
+       digits = 2) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
+
+```
+
+## Pull in the data for both lightning and person caused fires. Note, below seems to not be working and currently I am bringing it in from my local computer.
+
+```{r}
+dat_lightning<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
+
+# connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+#                       host = key_get('dbhost', keyring = 'postgreSQL'),
+#                       user = key_get('dbuser', keyring = 'postgreSQL'),
+#                       dbname = key_get('dbname', keyring = 'postgreSQL'),
+#                       password = key_get('dbpass', keyring = 'postgreSQL'),
+#                       port = "5432")
+# dat_lightning <- sf::st_read  (dsn = connKyle, # connKyle
+#                                query = "SELECT * FROM Data_Lightning")
+# dbDisconnect (connKyle)
+
+head(dat_lightning)
+
+```
+
+
+```{r}
+dat_person<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_human_for_analysis.csv")
+
+# connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+#                       host = key_get('dbhost', keyring = 'postgreSQL'),
+#                       user = key_get('dbuser', keyring = 'postgreSQL'),
+#                       dbname = key_get('dbname', keyring = 'postgreSQL'),
+#                       password = key_get('dbpass', keyring = 'postgreSQL'),
+#                       port = "5432")
+# dat_person_ <- sf::st_read  (dsn = connKyle, # connKyle
+#                                query = "SELECT * FROM Data_Person")
+# dbDisconnect (connKyle)
+
+```
+
+
+Now we will create additional columns that have the climate1 and climate2 variables indicated as the top variables for climate. 
+
+```{r}
+#View top variable
+names(dat_lightning)
+unique(dat_lightning$frt) # FRT 3 should not be in this list
+dat_lightning$frt<-as.numeric(dat_lightning$frt)
+
+table(dat_lightning$frt)
+
+## Create empty vector
+dat_lightning$climate1<-"NA"
+head(dat_lightning)
+
+# dat_lightning <- dat_lightning3 %>%
+#   mutate(climate1 = if_else(frt==3, mean_MDC05_MDC06,
+#                     if_else(frt==5, mean_PPT05_PPT06_PPT07, 
+#                     if_else(frt==7, mean_RH05_RH06_RH07,
+#                     if_else(frt==9, PPT09,
+#                     if_else(frt==10, Tave07, 
+#                     if_else(frt==11, Tave08,
+#                     if_else(frt==12, mean_Tmax07_Tmax08,
+#                     if_else(frt==13, mean_Tave07_Tave08,
+#                     if_else(frt==14, Tmax08,
+#                     if_else(frt==15, mean_RH07_RH08, climate1)))))))))))
+# make sure value are numbers otherwise it seems to not work.
+#dat_lightning$PPT09<-as.numeric(dat_lightning$PPT09)
+dat_lightning<-dat_lightning %>%
+    mutate(climate1 = case_when(
+                            frt == "5" ~ mean_Tave05_Tave06_Tave07_Tave08 ,
+                            frt == "7" ~ Tave07,
+                            frt == "9" ~ mean_Tave04_Tave05,
+                            frt == "10" ~ mean_Tave07_Tave08_Tave09 ,
+                            frt == "11" ~ mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08,
+                            frt == "12" ~ mean_Tmax07_Tmax08,
+                            frt == "13" ~ Tave07,
+                            frt == "14" ~ mean_Tave07_Tave08,
+                            frt == "15" ~ mean_Tave06_Tave07_Tave08 ,
+                            TRUE ~ NA_real_))
+
+#Repeat for climate 2
+dat_lightning$climate2<-"NA"
+# # 
+
+dat_lightning <- dat_lightning %>%
+  mutate(climate2 = if_else(frt==5, mean_PPT05_PPT06_PPT07_PPT08,
+                            if_else(frt==10, mean_PPT07_PPT08_PPT09,
+                                    if_else(frt==13, as.numeric(PPT07),
+                                            if_else(frt==15, mean_PPT06_PPT07_PPT08, NA_real_)))))
+                            
+# # #Perform mutate to get the applicable variable for each row
+ dat_lightning<-dat_lightning %>% 
+   mutate(climate2 = case_when(frt == "5" ~ mean_PPT05_PPT06_PPT07_PPT08,
+                               frt == "10" ~ mean_PPT07_PPT08_PPT09,
+                               frt == "13" ~ as.numeric(PPT07),
+                               frt == "15" ~ mean_PPT06_PPT07_PPT08,
+                               TRUE ~ NA_real_))
+
+head(dat_lightning)
+
+##Change vegtype to factor
+dat_lightning$FWI_veg<-as.factor(dat_lightning$FWI_veg)
+
+#create new column
+dat_lightning$fire_veg<-paste(dat_lightning$fire, dat_lightning$FWI_veg)
+
+```
+
+Repeat for person-caused fires.
+
+
+```{r}
+#View top variable
+names(dat_person)
+unique(dat_person$frt)
+
+## Create empty vector
+dat_person$climate1<-"NA"
+head(dat_person)
+
+dat_person<-dat_person %>%
+    mutate(climate1 = case_when(
+                                frt == "5" ~ mean_RH06_RH07_RH08,
+                                frt == "7" ~ mean_Tmax05_Tmax06_Tmax07_Tmax08,
+                                frt == "9" ~ mean_Tmax05_Tmax06, # NDT4
+                                frt == "10" ~ mean_PPT06_PPT07_PPT08_PPT09,
+                                frt == "11" ~ mean_Tave08_Tave09,
+                                frt == "12" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9,
+                                frt == "13" ~ mean_Tave07_Tave08_Tave09,
+                                frt == "14" ~ mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09,
+                                frt == "15" ~ mean_Tave07_Tave08_Tave09,
+                               TRUE ~ NA_real_))
+
+# #Repeat for climate 2
+ dat_person$climate2<-"NA"
+# 
+# #Perform mutate to get the applicable variable for each row
+dat_person<-dat_person %>%
+    mutate(climate2 = case_when(
+                                frt == "13" ~ mean_PPT07_PPT08_PPT09,
+                                frt == "15" ~ mean_PPT07_PPT08_PPT09,
+                               TRUE ~ NA_real_))
+
+head(dat_person)
+
+##Change vegtype to factor
+dat_person$FWI_veg<-as.factor(dat_person$FWI_veg)
+
+##Create new variable for fire presence by vegtype
+dat_person$fire_veg<-paste(dat_person$fire, dat_person$FWI_veg)
+str(dat_person$fire_veg)
+str(dat_person$fire)
+table(dat_person$fire)
+
+```
+
+Add some transformations to some of the variables.
+
+```{r}
+#Before transformations, must convert degrees to radians
+dat_lightning$aspect_radians<-(dat_lightning$aspect*pi)/180
+
+hist(dat_lightning$aspect_radians)
+
+dat_lightning$aspect_cos<-cos(dat_lightning$aspect_radians) #try cos because I hypothesize that southern aspects would be most likely to have higher likelihood of fire. 180 degrees is -1 with cos, and north is plus 1.
+```
+
+View plots.
+
+```{r}
+p <- ggplot(dat_lightning, aes(aspect, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("aspect") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_lightning, aes(aspect_cos, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("aspect_cos") + ylab("Pr (ignition)")
+p
+
+# I was wondering whether there were clearly more ignitions on one side so I decided to try and look at it as a circular plot. I assume this is doing what I think it should be doing looks like cos aspect is not working the way we think it should. Plots look weird... see below.
+library(circular)
+
+
+x<-filter(dat_lightning, fire==1)
+b_circular<-circular(x$aspect_radians)
+b_circular_asp<-circular(x$aspect)
+b_circular_cos<-circular(x$aspect_cos)
+rose.diag(b_circular, bins=36, prop=3)
+rose.diag(b_circular_asp, bins=36, prop=3)
+rose.diag(b_circular_cos, bins=36, prop=3) # weird it does not look like cos-aspect worked. 
+b<-density(x$aspect_radians, control.circular=list(units="radians"))
+
+##Seems to be minimal relationship with aspect overall
+
+p <- ggplot(dat_lightning, aes(slope, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("slope") + ylab("Pr (ignition)")
+p
+#  positive association with slope
+
+ggplot(dat_lightning, aes(x = slope)) +
+  geom_histogram(fill = "white", colour = "black") +
+  facet_grid(fire ~ .)
+##Seeing distribution of ignitions by slope makes me believe that slope is not a big factor for ignitions despite seemingly positive trend prior.
+
+ggplot(dat_lightning, aes(x = aspect)) +
+  geom_histogram(fill = "white", colour = "black") +
+  facet_grid(fire ~ .)
+
+
+#
+p <- ggplot(dat_lightning, aes(aspect*slope, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("aspect*slope") + ylab("Pr (ignition)")
+p # again there is a slightly positive slope but I bet its like above
+
+p <- ggplot(dat_lightning, aes(elevatn, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("elevation") + ylab("Pr (ignition)")
+p # seems like there is probably no relationship with elevation
+ggplot(dat_lightning, aes(x = elevatn)) +
+  geom_histogram(fill = "white", colour = "black") +
+  facet_grid(fire ~ .)
+```
+
+#Inspect each of the top climate variables for each frt 
+
+```{r}
+###################################
+# bring in shape file of FRT's
+frt_map<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\frt_clipped.shp")
+
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
+prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
+crs(prov.bnd)# this one needs to be transformed to 3005
+bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system
+
+
+# FRT 3
+
+library(grid)
+#library(gridExtra)
+
+p_3 <- ggplot(dat_lightning %>% filter(frt=="3"), aes(climate1, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_Tave07_Tave08") + ylab("Pr (ignition)")
+p_3
+
+
+p3_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map3,colour="blue", fill="blue") +
+  coord_sf()
+  
+p_3 + annotation_custom(ggplotGrob(p3_map), xmin = 55, xmax = 75, 
+                       ymin = 0.30, ymax = 0.80)
+
+
+# is there a relationship with year?
+
+# here my thinking was that if the slope of my line gets bigger (or smaller) over time then the impact of that variable is getting stronger over time. 
+climate.by.year <- data.frame (matrix (ncol = 2, nrow = 0))
+colnames (climate.by.year) <- c ("Year", "beta")
+
+year<-c("2002", "2003", "2004", "2005","2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021")
+for (i in 1:length(year)){
+  x<-dat_lightning %>% filter(frt=="3" & fire_yr==year[i])
+  if(dim(x)[1]>12) {
+  fit <- glm (fire ~ climate1,
+                 data=x,
+                 family = binomial (link = "logit"))
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-fit$coefficients[2]} else {
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-NA
+}
+}
+
+climate.by.year<-drop_na(climate.by.year)
+climate.by.year$Year<-as.numeric(climate.by.year$Year)
+gpp<- ggplot(climate.by.year, aes(Year, beta)) +
+  geom_point()
+gpp+geom_smooth(method = "lm",
+              formula = y ~ x)
+#FRT 5
+climate_variables_lightning
+p_5 <- ggplot(dat_lightning %>% filter(frt=="5"), aes(climate1, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_Tave05_Tave06_Tave07_Tave08 ") + ylab("Pr (ignition)")
+p_5
+
+p_5b <- ggplot(dat_lightning %>% filter(frt=="5"), aes(climate2, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_PPT05_PPT06_PPT07_PPT08   ") + ylab("Pr (ignition)")
+p_5b
+
+frt_map5<-frt_map %>% filter(Cluster==5)
+p5_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map5,colour="blue", fill="blue") +
+  coord_sf()
+
+p_5 + annotation_custom(ggplotGrob(p5_map), xmin = 115, xmax = 175,
+                        ymin = 0.25, ymax = 0.80)
+
+# is there a relationship with year?
+climate.by.year <- data.frame (matrix (ncol = 2, nrow = 0))
+colnames (climate.by.year) <- c ("Year", "beta")
+
+year<-c("2002", "2003", "2004", "2005","2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021")
+for (i in 1:length(year)){
+  x<-dat_lightning %>% filter(frt=="5" & fire_yr==year[i])
+  if(dim(x)[1]>12) {
+  fit <- glm (fire ~ climate1 + climate2,
+                 data=x,
+                 family = binomial (link = "logit"))
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-fit$coefficients[2]} else {
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-NA
+}
+}
+
+climate.by.year<-drop_na(climate.by.year)
+climate.by.year$Year<-as.numeric(climate.by.year$Year)
+gpp<- ggplot(climate.by.year, aes(Year, beta)) +
+  geom_point()
+gpp+geom_smooth(method = "lm",
+              formula = y ~ x)
+
+### FRT 7
+climate_variables_lightning
+p_7 <- ggplot(dat_lightning %>% filter(frt=="7"), aes(climate1, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Tave07") + ylab("Pr (ignition)")
+p_7
+
+frt_map7<-frt_map %>% filter(Cluster==7)
+p7_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map7,colour="blue", fill="blue") +
+  coord_sf()
+
+p_7 + annotation_custom(ggplotGrob(p7_map), xmin = 57, xmax = 65,
+                        ymin = 0.25, ymax = 0.80)
+
+# is there a relationship with year?
+climate.by.year <- data.frame (matrix (ncol = 2, nrow = 0))
+colnames (climate.by.year) <- c ("Year", "beta")
+
+year<-c("2002", "2003", "2004", "2005","2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021")
+for (i in 1:length(year)){
+  x<-dat_lightning %>% filter(frt=="7" & fire_yr==year[i])
+  if(dim(x)[1]>12) {
+  fit <- glm (fire ~ climate1,
+                 data=x,
+                 family = binomial (link = "logit"))
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-fit$coefficients[2]} else {
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-NA
+}
+}
+
+climate.by.year<-drop_na(climate.by.year)
+climate.by.year$Year<-as.numeric(climate.by.year$Year)
+gpp<- ggplot(climate.by.year, aes(Year, beta)) +
+  geom_point()
+gpp+geom_smooth(method = "lm",
+              formula = y ~ x)
+
+
+
+#FRT 9
+climate_variables_lightning
+p_9 <- ggplot(dat_lightning %>% filter(frt=="9"), aes(climate1
+, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab(" mean_Tave04_Tave05") + ylab("Pr (ignition)")
+p_9
+
+frt_map9<-frt_map %>% filter(Cluster==9)
+p9_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map9,colour="blue", fill="blue") +
+  coord_sf()
+
+p_9 + annotation_custom(ggplotGrob(p9_map), xmin = 75, xmax = 140,
+                        ymin = 0.25, ymax = 0.80)
+
+# is there a relationship with year?
+climate.by.year <- data.frame (matrix (ncol = 2, nrow = 0))
+colnames (climate.by.year) <- c ("Year", "beta")
+
+year<-c("2002", "2003", "2004", "2005","2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021")
+for (i in 1:length(year)){
+  x<-dat_lightning %>% filter(frt=="9" & fire_yr==year[i])
+  if(dim(x)[1]>12) {
+  fit <- glm (fire ~ climate1,
+                 data=x,
+                 family = binomial (link = "logit"))
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-fit$coefficients[2]} else {
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-NA
+}
+}
+
+climate.by.year<-drop_na(climate.by.year)
+climate.by.year$Year<-as.numeric(climate.by.year$Year)
+gpp<- ggplot(climate.by.year, aes(Year, beta)) +
+  geom_point()
+gpp+geom_smooth(method = "lm",
+              formula = y ~ x)
+
+
+#FRT 10
+climate_variables_lightning
+p_10_1 <- ggplot(dat_lightning %>% filter(frt=="10"), aes(climate1, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_Tave07_Tave08_Tave09 ") + ylab("Pr (ignition)")
+p_10_1
+
+p_10_2 <- ggplot(dat_lightning %>% filter(frt=="10"), aes(climate1, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_PPT07_PPT08_PPT09  ") + ylab("Pr (ignition)")
+p_10_2
+
+frt_map10<-frt_map %>% filter(Cluster==10)
+p10_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map10,colour="blue", fill="blue") +
+  coord_sf()
+
+p_10_1 + annotation_custom(ggplotGrob(p10_map), xmin = 2, xmax = 8,
+                        ymin = 0.25, ymax = 0.80)
+
+# is there a relationship with year?
+climate.by.year <- data.frame (matrix (ncol = 2, nrow = 0))
+colnames (climate.by.year) <- c ("Year", "beta")
+
+year<-c("2002", "2003", "2004", "2005","2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021")
+for (i in 1:length(year)){
+  x<-dat_lightning %>% filter(frt=="10" & fire_yr==year[i])
+  if(dim(x)[1]>12) {
+  fit <- glm (fire ~ climate1 + climate2,
+                 data=x,
+                 family = binomial (link = "logit"))
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-fit$coefficients[2]} else {
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-NA
+}
+}
+
+climate.by.year<-drop_na(climate.by.year)
+climate.by.year$Year<-as.numeric(climate.by.year$Year)
+gpp<- ggplot(climate.by.year, aes(Year, beta)) +
+  geom_point()
+gpp+geom_smooth(method = "lm",
+              formula = y ~ x)
+
+
+### FRT 11
+climate_variables_lightning
+p_11_1 <- ggplot(dat_lightning %>% filter(frt=="11"), aes(climate1, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08") + ylab("Pr (ignition)")
+p_11_1
+
+
+
+frt_map11<-frt_map %>% filter(Cluster==11)
+p11_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map11,colour="blue", fill="blue") +
+  coord_sf()
+
+p_11 + annotation_custom(ggplotGrob(p11_map), xmin = 7, xmax = 10,
+                        ymin = 0.25, ymax = 0.80)
+
+# is there a relationship with year?
+climate.by.year <- data.frame (matrix (ncol = 2, nrow = 0))
+colnames (climate.by.year) <- c ("Year", "beta")
+
+year<-c("2002", "2003", "2004", "2005","2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021")
+for (i in 1:length(year)){
+  x<-dat_lightning %>% filter(frt=="11" & fire_yr==year[i])
+  if(dim(x)[1]>12) {
+  fit <- glm (fire ~ climate1,
+                 data=x,
+                 family = binomial (link = "logit"))
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-fit$coefficients[2]} else {
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-NA
+}
+}
+
+climate.by.year<-drop_na(climate.by.year)
+climate.by.year$Year<-as.numeric(climate.by.year$Year)
+gpp<- ggplot(climate.by.year, aes(Year, beta)) +
+  geom_point()
+gpp+geom_smooth(method = "lm",
+              formula = y ~ x)
+
+
+####FRT 12
+climate_variables_lightning
+p_12 <- ggplot(dat_lightning %>% filter(frt=="12"), aes(climate1, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_Tmax07_Tmax08") + ylab("Pr (ignition)")
+p_12
+
+frt_map12<-frt_map %>% filter(Cluster==12)
+p12_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map12,colour="blue", fill="blue") +
+  coord_sf()
+
+p_12 + annotation_custom(ggplotGrob(p12_map), xmin = 15, xmax = 20,
+                        ymin = 0.25, ymax = 0.80)
+
+# is there a relationship with year? e.g. does the influence of temperature increase over time?
+climate.by.year <- data.frame (matrix (ncol = 2, nrow = 0))
+colnames (climate.by.year) <- c ("Year", "beta")
+
+year<-c("2002", "2003", "2004", "2005","2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021")
+for (i in 1:length(year)){
+  x<-dat_lightning %>% filter(frt=="12" & fire_yr==year[i])
+  if(dim(x)[1]>12) {
+  fit <- glm (fire ~ climate1,
+                 data=x,
+                 family = binomial (link = "logit"))
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-fit$coefficients[2]} else {
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-NA
+}
+}
+
+climate.by.year<-drop_na(climate.by.year)
+climate.by.year$Year<-as.numeric(climate.by.year$Year)
+gpp<- ggplot(climate.by.year, aes(Year, beta)) +
+  geom_point()
+gpp+geom_smooth(method = "lm",
+              formula = y ~ x)
+
+# FRT13
+climate_variables_lightning
+p_13 <- ggplot(dat_lightning %>% filter(frt=="13"), aes(climate1, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Tave07") + ylab("Pr (ignition)")
+p_13
+
+p_13b <- ggplot(dat_lightning %>% filter(frt=="13"), aes(climate2, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("PPT07 ") + ylab("Pr (ignition)")
+p_13b
+
+frt_map13<-frt_map %>% filter(Cluster==13)
+p13_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map13,colour="blue", fill="blue") +
+  coord_sf()
+
+p_13 + annotation_custom(ggplotGrob(p13_map), xmin =6, xmax = 15,
+                        ymin = 0.25, ymax = 0.80)
+
+# is there a relationship with year?
+climate.by.year <- data.frame (matrix (ncol = 2, nrow = 0))
+colnames (climate.by.year) <- c ("Year", "beta")
+
+year<-c("2002", "2003", "2004", "2005","2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021")
+for (i in 1:length(year)){
+  x<-dat_lightning %>% filter(frt=="13" & fire_yr==year[i])
+  if(dim(x)[1]>12) {
+  fit <- glm (fire ~ climate1 + climate2,
+                 data=x,
+                 family = binomial (link = "logit"))
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-fit$coefficients[2]} else {
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-NA
+}
+}
+
+climate.by.year<-drop_na(climate.by.year)
+climate.by.year$Year<-as.numeric(climate.by.year$Year)
+gpp<- ggplot(climate.by.year, aes(Year, beta)) +
+  geom_point()
+gpp+geom_smooth(method = "lm",
+              formula = y ~ x)
+
+
+#### FRT14
+climate_variables_lightning
+p_14 <- ggplot(dat_lightning %>% filter(frt=="14"), aes(climate1
+, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_Tave07_Tave08 ") + ylab("Pr (ignition)")
+p_14
+
+
+
+frt_map14<-frt_map %>% filter(Cluster==14)
+p14_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map14,colour="blue", fill="blue") +
+  coord_sf()
+
+p_14 + annotation_custom(ggplotGrob(p14_map), xmin =15, xmax = 24,
+                        ymin = 0.25, ymax = 0.80)
+
+# is there a relationship with year?
+climate.by.year <- data.frame (matrix (ncol = 2, nrow = 0))
+colnames (climate.by.year) <- c ("Year", "beta")
+
+year<-c("2002", "2003", "2004", "2005","2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021")
+for (i in 1:length(year)){
+  x<-dat_lightning %>% filter(frt=="14" & fire_yr==year[i])
+  if(dim(x)[1]>12) {
+  fit <- glm (fire ~ climate1,
+                 data=x,
+                 family = binomial (link = "logit"))
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-fit$coefficients[2]} else {
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-NA
+}
+}
+
+climate.by.year<-drop_na(climate.by.year)
+climate.by.year$Year<-as.numeric(climate.by.year$Year)
+gpp<- ggplot(climate.by.year, aes(Year, beta)) +
+  geom_point()
+gpp+geom_smooth(method = "lm",
+              formula = y ~ x)
+
+
+#### FRT 15
+climate_variables_lightning
+p_15 <- ggplot(dat_lightning %>% filter(frt=="15"), aes(climate1, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_Tave06_Tave07_Tave08 ") + ylab("Pr (ignition)")
+p_15
+
+p_15b <- ggplot(dat_lightning %>% filter(frt=="15"), aes(climate2, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_PPT06_PPT07_PPT08   ") + ylab("Pr (ignition)")
+p_15b
+
+frt_map15<-frt_map %>% filter(Cluster==15)
+p15_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map15,colour="blue") + #fill="blue") +
+  coord_sf()
+
+p_15 + annotation_custom(ggplotGrob(p15_map), xmin = 70, xmax = 90,
+                        ymin = 0.17, ymax = 0.85)
+
+# is there a relationship with year?
+climate.by.year <- data.frame (matrix (ncol = 2, nrow = 0))
+colnames (climate.by.year) <- c ("Year", "beta")
+
+year<-c("2002", "2003", "2004", "2005","2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021")
+for (i in 1:length(year)){
+  x<-dat_lightning %>% filter(frt=="15" & fire_yr==year[i])
+  if(dim(x)[1]>12) {
+  fit <- glm (fire ~ climate1,
+                 data=x,
+                 family = binomial (link = "logit"))
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-fit$coefficients[2]} else {
+climate.by.year[i,1]<-year[i]
+climate.by.year[i,2]<-NA
+}
+}
+
+climate.by.year<-drop_na(climate.by.year)
+climate.by.year$Year<-as.numeric(climate.by.year$Year)
+gpp<- ggplot(climate.by.year, aes(Year, beta)) +
+  geom_point()
+gpp+geom_smooth(method = "lm",
+              formula = y ~ x)
+
+
+# generally there is no change in the impact of the climate variable over time. At least in most cases it seems likely not to be significant. 
+
+```
+
+#VRI variables
+
+```{r}
+
+x5<-dat_lightning %>% filter(frt=="5")
+  fit <- glm (fire ~ FWI_veg + climate1 + climate2,
+                 data=x5,
+                 family = binomial (link = "logit"))
+  x5$predict<-predict(fit, type="response")
+
+
+p <- ggplot(x5, aes(x=FWI_veg, y=predict)) +
+              geom_boxplot()
+p
+
+p <- ggplot(dat_lightning, aes(proj_height_1, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("proj_height_1") + ylab("Pr (ignition)")+
+  facet_wrap(frt ~ ., ncol=3)
+p
+
+p <- ggplot(dat_lightning, aes(l___125, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("live_stand_volume_125") + ylab("Pr (ignition)")+
+  facet_wrap(frt ~ ., ncol=3)
+p
+```
+
+
+
+Repeat for Person-caused fires
+
+```{r}
+##########Repeat for person-caused fires
+hist(dat_person$aspect)
+
+dat_person$aspect_radians<-(dat_person$aspect*pi)/180
+hist(dat_person$aspect_radians)
+
+dat_person$aspect_cos<-cos(dat_person$aspect_radians)
+hist(dat_person$aspect_cos)
+```
+ 
+ View plots.
+
+```{r}
+p <- ggplot(dat_person, aes(aspect, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("aspect") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(dat_person, aes(aspect_cos, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("aspect_cos") + ylab("Pr (ignition)")
+p
+
+##Seems to be minimal relationship with aspect overall
+
+p <- ggplot(dat_person, aes(slope, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("slope") + ylab("Pr (ignition)")
+p
+#negative correlation with slope i.e. steeper slopes less ignition
+
+ggplot(dat_person, aes(x = slope)) +
+  geom_histogram(fill = "white", colour = "black") +
+  facet_grid(fire ~ .) 
+# note that there are more sampled locations with less steep slopes but thats true for both fire ignition points and not
+
+
+p_elev <- ggplot(dat_person, aes(elevatn, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("elevation") + ylab("Pr (ignition)") +
+  facet_wrap(frt ~ ., ncol=3)
+p_elev
+# lower elevations have more ignitions. This might be related to vegetation?
+
+
+p_rds <- ggplot(dat_person, aes(rd_dst_, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to roads") + ylab("Pr (ignition)") +
+  facet_wrap(frt ~ ., ncol=3)
+p_rds
+
+ggplot(dat_person, aes(x = rd_dst_)) +
+  geom_histogram(fill = "white", colour = "black") +
+  facet_grid(fire ~ .) 
+
+# very strong negative relationship i.e most ignitions are really close to roads.
+
+p_inf <- ggplot(dat_person, aes(infr_ds, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Road Density") + ylab("Pr (ignition)") +
+  facet_wrap(frt ~ ., ncol=3)
+p_inf
+
+ggplot(dat_person, aes(x = infr_ds)) +
+  geom_histogram(fill = "white", colour = "black") +
+  facet_grid(fire ~ .) 
+
+# also a negative relationship with distance to infrastructure although less strong than roads. 
+
+
+```
+
+
+#Repeat for top climate variables
+
+```{r}
+
+# FRT 5
+p_5 <- ggplot(dat_person %>% filter(frt==5), aes(climate1, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_RH06_RH07_RH08") + ylab("Pr (ignition)")
+p_5
+
+frt_map5<-frt_map %>% filter(Cluster==5)
+p5_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map5,colour="blue", fill="blue") +
+  coord_sf()
+
+p_5 + annotation_custom(ggplotGrob(p5_map), xmin = 125, xmax = 180,
+                        ymin = 0.17, ymax = 0.85)
+
+
+# FRT 7
+p_7 <- ggplot(dat_person %>% filter(frt==7), aes(climate1
+, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_Tmax05_Tmax06_Tmax07_Tmax08") + ylab("Pr (ignition)")
+p_7
+
+frt_map7<-frt_map %>% filter(Cluster==7)
+p7_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map7,colour="blue", fill="blue") +
+  coord_sf()
+
+p_7 + annotation_custom(ggplotGrob(p7_map), xmin = 16, xmax = 19,
+                        ymin = 0.17, ymax = 0.85)
+
+
+#FRT_9
+p_9 <- ggplot(dat_person %>% filter(frt==9), aes(climate1
+, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_Tmax05_Tmax06
+") + ylab("Pr (ignition)")
+p_9
+
+frt_map9<-frt_map %>% filter(Cluster==9)
+p9_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map9,colour="blue", fill="blue") +
+  coord_sf()
+
+p_9 + annotation_custom(ggplotGrob(p9_map), xmin = 10, xmax = 13,
+                        ymin = 0.17, ymax = 0.85)
+
+
+#FRT10
+p_10 <- ggplot(dat_person %>% filter(frt==10), aes(climate1
+, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_PPT06_PPT07_PPT08_PPT09") + ylab("Pr (ignition)")
+p_10
+
+frt_map10<-frt_map %>% filter(Cluster==10)
+p10_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map10,colour="blue", fill="blue") +
+  coord_sf()
+
+p_10 + annotation_custom(ggplotGrob(p10_map), xmin = 300, xmax = 500,
+                        ymin = 0.17, ymax = 0.85)
+
+
+# FRT 11
+p_11 <- ggplot(dat_person %>% filter(frt==11), aes(climate1
+, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_Tave08_Tave09") + ylab("Pr (ignition)")
+p_11
+
+frt_map11<-frt_map %>% filter(Cluster==11)
+p11_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map11,colour="blue", fill="blue") +
+  coord_sf()
+
+p_11 + annotation_custom(ggplotGrob(p11_map), xmin = 75, xmax = 125,
+                        ymin = 0.17, ymax = 0.85)
+
+
+# FRT 12
+p_12 <- ggplot(dat_person %>% filter(frt==12), aes(mean_Tave05_Tave06_Tave07_Tave08_Tave09
+, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10") + ylab("Pr (ignition)")
+p_12
+
+frt_map12<-frt_map %>% filter(Cluster==12)
+p12_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map12,colour="blue", fill="blue") +
+  coord_sf()
+
+p_12 + annotation_custom(ggplotGrob(p12_map), xmin = 7.5, xmax = 11,
+                        ymin = 0.17, ymax = 0.85)
+
+
+# FRT 13
+p_13 <- ggplot(dat_person %>% filter(frt==13), aes(climate1
+, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_Tave06_Tave07_Tave08_Tave09_Tave10") + ylab("Pr (ignition)")
+p_13
+
+frt_map13<-frt_map %>% filter(Cluster==13)
+p13_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map13,colour="blue", fill="blue") +
+  coord_sf()
+
+p_13 + annotation_custom(ggplotGrob(p13_map), xmin = 5, xmax = 10,
+                        ymin = 0.17, ymax = 0.85)
+
+
+# FRT 14
+
+p_14 <- ggplot(dat_person %>% filter(frt==14), aes(climate1
+, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10") + ylab("Pr (ignition)")
+p_14
+
+frt_map14<-frt_map %>% filter(Cluster==14)
+p14_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map14,colour="blue", fill="blue") +
+  coord_sf()
+
+p_14 + annotation_custom(ggplotGrob(p14_map), xmin = 14, xmax = 20,
+                        ymin = 0.17, ymax = 0.85)
+
+p_15 <- ggplot(dat_person %>% filter(frt==15), aes(climate1
+, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_Tmax07_Tmax08_Tmax09") + ylab("Pr (ignition)")
+p_15
+
+frt_map15<-frt_map %>% filter(Cluster==15)
+p15_map<-ggplot() +
+  geom_sf(data=bc.bnd)+
+  theme (axis.text.x=element_blank ()) +
+  theme (axis.text.y=element_blank ()) +
+  geom_sf(data=frt_map15,colour="blue", fill="blue") +
+  coord_sf()
+
+p_15 + annotation_custom(ggplotGrob(p15_map), xmin = 13, xmax = 17,
+                        ymin = 0.17, ymax = 0.85)
+
+# nice alternative figure but cant add a map or Im not sure how to.
+library(popbio)
+logi.hist.plot(dat_person$mean_Tmax07_Tmax08_Tmax09,dat_person$fire,boxp=FALSE,type="hist",col="gray")
+
+
+```
+
+
+###############DATA PREP COMPLETE###################
