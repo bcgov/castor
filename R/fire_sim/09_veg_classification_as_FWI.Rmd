@@ -67,6 +67,8 @@ str(fire_all)
 
 First I need to create some new variables i.e. time since disturbance in years and time since last harvest. 
 ```{r}
+# note: in this code fire_yr really refers to my focal year i.e. yr that i want to create this data for.
+
 fire_all$yearHarvest<-as.numeric(as.character(stringi::stri_sub(fire_all$harvest_date,1,4)))
 fire_all<- fire_all %>% dplyr::mutate(yearsSinceHarvest = fire_yr - yearHarvest)
 

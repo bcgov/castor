@@ -469,7 +469,7 @@ ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
 
 # correlation between max T and MDC. Across all the data MDC and Tmax are correlated with values ranging between 0.78 and 0.15
 dat_person<-fire_ignitions%>% filter(!fire_cs %in% c("Lightning", "Unknown"))
-dat_person<-st_set_geometry(dat_person,NULL)
+#dat_person<-st_set_geometry(dat_person,NULL)
 
 dist.cut.corr <- dat_person [c (21:28, 61:68)]
 corr <- round (cor (dist.cut.corr), 3)
@@ -1384,12 +1384,9 @@ dim(pre1) #  15228 rows
 sampled_df<-sampled_df %>% dplyr::select(!c(fire_n,abs_n))
 
 dat_human<- rbind(pre1, as.data.frame(sampled_df))
-dim(dat_human) # 37673 rows good this worked I think; Cora July 5 has 45656 rows. This is fewer than the >180,000 rows of the data at the end of file 01
+dim(dat_human) 
 table(dat_human$fire_cs)
-
-head(dat_human)
-str(dat_human)
-table(dat_human$fire_cs)
+table(dat_human$frt)
 ```
 
 If all looks good from above, then save data.
@@ -1670,6 +1667,7 @@ prop<-0.75
 for (g in 1:100){
 
 for (h in 1:length(zones)) {
+  print(paste((zones[h]), g, sep=" __"))
   dat2<- dat_human %>% dplyr::filter(frt ==zones[h])
   
 #Create frame of AIC table
@@ -1701,14 +1699,14 @@ table.glm.climate.simple[1,3]<-extractAIC(model1)[2]
 
 # lets look at fit of the Valid (validation) dataset
 dat_test$model1_predict <- predict.glm(model1,newdata = dat_test,type="response")
-roc_obj <- roc(dat_test$fire, dat_test$model1_predict)
+roc_obj <- roc(dat_test$fire, dat_test$model1_predict, quiet=TRUE)
 auc(roc_obj)
 table.glm.climate.simple[1,4]<-auc(roc_obj)
 
 #rm(model_dat,dat1,Valid)
 
 for (i in 1: length(variables)){
-  print(paste((variables[i]), (zones[h]), sep=" "))
+  #print(paste((variables[i]), (zones[h]), sep=" "))
   
   #model_dat<- dat2 %>% dplyr::select(fire, variables[i])
   dat_test1<-dat_test %>% dplyr::select(fire, variables[i])
@@ -1724,7 +1722,7 @@ for (i in 1: length(variables)){
   
   # lets look at fit of the Valid (validation) dataset
   dat_test1$model1_predict <- predict.glm(model1,newdata = dat_test1,type="response")
-  roc_obj <- roc(dat_test1$fire, dat_test1$model1_predict)
+  roc_obj <- roc(dat_test1$fire, dat_test1$model1_predict, quiet=TRUE)
   auc(roc_obj)
   table.glm.climate.simple[i+1,4]<-auc(roc_obj)
   
@@ -1733,7 +1731,7 @@ for (i in 1: length(variables)){
 # This is an addition to the table above allowing combinations of temperature and precipitation
 
 for (i in 1: length(variables1)){
-  print(paste((variables1[i]), variables2[i], (zones[h]), sep=" "))
+  #print(paste((variables1[i]), variables2[i], (zones[h]), sep=" "))
   dat_train2<- dat_train %>% dplyr::select(fire, variables1[i], variables2[i])
   dat_test2<-dat_test %>% dplyr::select(fire, variables1[i], variables2[i])
   
@@ -1746,39 +1744,39 @@ for (i in 1: length(variables1)){
   table.glm.climate.simple[(i+length(variables))+1,3]<-extractAIC(model2)[2]
   
   dat_test2$model2_predict <- predict.glm(model2,newdata = dat_test2,type="response")
-  roc_obj <- roc(dat_test2$fire, dat_test2$model2_predict)
+  roc_obj <- roc(dat_test2$fire, dat_test2$model2_predict, quiet=TRUE)
   auc(roc_obj)
   table.glm.climate.simple[(i+length(variables))+1,4]<-auc(roc_obj)
   
 }
 
-for (i in 1: length(variables1)){
-  print(paste((variables1[i]), "x",variables2[i], (zones[h]), sep=" "))
-
-  if (dim(dat_1)[1]>150) {
-  model2 <- glm (fire ~ (.)^2,
-                 data=dat_train2,
-                 family = binomial (link = "logit"))
-
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones[h]
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-extractAIC(model2)[2]
-
-  dat_test2$model2_predict <- predict.glm(model2,newdata = dat_test2,type="response")
-  roc_obj <- roc(dat_test2$fire, dat_test2$model2_predict)
-  auc(roc_obj)
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),4]<-auc(roc_obj)
-  } 
-  
-  else {
-      table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones[h]
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-"missing"
-  table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),4]<-"missing"
-  }
-    
-
-}
+# for (i in 1: length(variables1)){
+#   print(paste((variables1[i]), "x",variables2[i], (zones[h]), sep=" "))
+# 
+#   if (dim(dat_1)[1]>150) {
+#   model2 <- glm (fire ~ (.)^2,
+#                  data=dat_train2,
+#                  family = binomial (link = "logit"))
+# 
+#   table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones[h]
+#   table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
+#   table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-extractAIC(model2)[2]
+# 
+#   dat_test2$model2_predict <- predict.glm(model2,newdata = dat_test2,type="response")
+#   roc_obj <- roc(dat_test2$fire, dat_test2$model2_predict)
+#   auc(roc_obj)
+#   table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),4]<-auc(roc_obj)
+#   } 
+#   
+#   else {
+#       table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),1]<-zones[h]
+#   table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),2]<-paste0(variables1[i],"x", variables2[i])
+#   table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),3]<-"missing"
+#   table.glm.climate.simple[(i+length(variables) +length(variables1) + 1),4]<-"missing"
+#   }
+#     
+# 
+# }
 
 #table.glm.climate1<-table.glm.climate.simple %>% drop_na(AIC)
 
