@@ -269,7 +269,7 @@ Init <- function(sim) {
   table.hab [mov_p > 0 & age > 0 & crownclosure >= 40, movement:=1]
   table.hab <- table.hab [, .(pixelid, fisher_pop, den_p, denning, rus_p, rust, cav_p, cavity, 
                               cwd_p, cwd, mov_p, movement)] # could add other things, openness, crown closure, cost surface?
-  # sim$table.hab <- table.hab [denning != "" | rust != "" | cavity != "" | cwd != "" | movement != "", ]
+  sim$table.hab <- table.hab
 
   message ("Create agents table and assign values...")
   # assign agents to denning pixels
@@ -277,6 +277,7 @@ Init <- function(sim) {
       # this provides a 'buffer' between pixels to allow some space for fisher to form an HR; 
       # if they are too close then it forms fewer HRs
     den.pix <- as.data.table (table.hab [denning == 1 & !is.na (fisher_pop), pixelid])
+    setnames (den.pix, "pixelid")
     den.pix.sample <- den.pix [seq (1, nrow (den.pix), 50), ] # grab every ~50th pixel; ~1 pixel every 5km
     ids <- seq (from = 1, to = nrow (den.pix.sample), by = 1)
     agents <- data.table (individual_id = ids,
@@ -479,6 +480,19 @@ Init <- function(sim) {
     DBI::dbWriteTable (sim$clusdb, "agents", agents, append = TRUE, 
                        row.names = FALSE, overwite = FALSE)  
   }
+  
+  # create and save a den habitat raster; will use this in dispersal
+  # get the den habitat locations 
+  den.rast <- terra::rast (aoi)
+  den.rast [sim$den.pix$pixelid] <- 1 # assign 1 to den habitat
+  den.rast <- terra::classify (den.rast,
+                               matrix (c (18, 0,
+                                          1, 1),
+                                       ncol = 2,
+                                       byrow = T)
+  )
+  sim$den.rast <- den.rast
+  
   message ("Initial territories created!")
   return (invisible (sim))
 }
@@ -654,8 +668,12 @@ repro_FEMALE <- function(sim) {
 dispersal <- function (sim) {
 
   # get the dispersers; age 1 y.o. fishers
-  dispersers <- dbGetQuery (sim$clusdb, "SELECT * FROM agents WHERE age = 1 AND d2_score IS NULL") # grab the agents at age of dispersal; use d2_score criteria as secondary check?
-
+  dispersers <- as.data.table (dbGetQuery (sim$clusdb, "SELECT * FROM agents WHERE age = 1 AND d2_score IS NULL")) # grab the agents at age of dispersal; use d2_score criteria as secondary check?
+  # re-set the HR size, d2 score and fisher_pop
+  dispersers <- dispersers [, hr_size := NA]
+  dispersers <- dispersers [, d2_score := NA]
+  dispersers <- dispersers [, fisher_pop := NA]
+  
   # create the dispersal area; i.e., where the fisher searches 
   table.disperse <- SpaDES.tools::spread2 (sim$pix.rast, # within the area of interest
                                            start = dispersers$pixelid, # for each individual
@@ -681,42 +699,222 @@ dispersal <- function (sim) {
   # } 
   
   # identify pixels already occupied by a fisher and remove them from the dispersal table
-  terrs <- dbGetQuery (sim$clusdb, "SELECT * FROM territories")
-  table.disperse <- table.disperse [!pixels %in% terrs$pixelid]
+  territories <- dbGetQuery (sim$clusdb, "SELECT * FROM territories")
+  table.disperse <- table.disperse [!pixels %in% territories$pixelid]
   
-  # identify areas with more habitat (denning?)
-  inds <- unique (table.disperse$initialPixels) # unique individuals
+  # identify location where dispenser creates home range / territory
+  inds <- unique (table.disperse$initialPixels) # id the unique individuals
   
-  ind.disp.pix <- rast (sim$pix.rast) # raster of area - needs to be a 'SpatRaster'
-  ind.disp.pix [ind.disp.pix > 0] <- 0 # assign 0 values
+  ind.disp.rast <- rast (sim$pix.rast) # empty raster of the aoi - needs to be a 'SpatRaster'
+  ind.disp.rast [ind.disp.rast > 0] <- 0 # assign 0 values
   
   for (i in inds) {
     ind.disperse <- table.disperse [initialPixels == i] # identify dispersal pix by ind
-    tmp.ind.disp.pix <- ind.disp.pix
-    tmp.ind.disp.pix [ind.disperse$pixels] <- 1 # assign dispersal pix to raster
+    tmp.ind.disp.rast <- ind.disp.rast
+    tmp.ind.disp.rast [ind.disperse$pixels] <- 1 # assign dispersal pix to raster
     
-    # convert raster to polygon and start at centre in largest poly?
-    terra::as.polygons (tmp.ind.disp.pix)
+    # the next steps target denning habitat, but can be adjusted to include all habitat
+    target.rast <- sim$den.rast * tmp.ind.disp.rast
     
+    # convert raster to polygon and start at centre of largest poly
+      # not that this approach focuses on all habitat; we may want to prioritize den habitat?
+    target.polys <- terra::as.polygons (terra::patches (target.rast, # this function identifies contiguous polygons 
+                                                        directions = 8, # queen's case for neighbouring cells
+                                                        zeroAsNA = T)) 
+    # add id and area to data
+    target.polys$fid <- 1:nrow (target.polys)
+    target.polys$area_ha <- expanse (target.polys, unit = "ha")
+    # get the largest polygon
+    max.poly <- target.polys [which.max (target.polys$area_ha),]
+    # select a random point in that polygon
+    start.pnt <- terra::spatSample (max.poly,
+                                    size = 1,
+                                    method = "random")
+    # get the raster pixel id
+    target.pix <- extract (terra::rast (sim$pix.rast), 
+                           start.pnt, 
+                           method = "simple"
+                           )    
+    # make that raster pixel the dispersers pixelid
+    dispersers <- dispersers [pixelid == i, pixelid := target.pix$layer]
     
-    
-    
-    
+    # update the fisher pop
+    tmp.pop <- sim$table.hab [pixelid == target.pix$layer, fisher_pop]
+    dispersers <- dispersers [pixelid == target.pix$layer, fisher_pop := tmp.pop]
     
     # neighborhood method; calc sum of habitat raters in a 'neighborhood' (territory)
-    # this is waaaaaay too slow
+      # this is waaaaaay too slow
       # habitat.area <- terra::focal (tmp.ind.disp.pix, # pixel raster
       #                               w = 399, # w = search area radius = 399 pixels = 5,000km2
       #                               fun = sum, # sum the pixel values
       #                               na.rm = TRUE # ignore NA values
       #                               ) 
+  }
+  
+  # create new HR's
+  dispersers [fisher_pop == 1, hr_size := round (rnorm (nrow (dispersers [fisher_pop == 1, ]), sim$female_hr_table [fisher_pop == 1, hr_mean], sim$female_hr_table [fisher_pop == 1, hr_sd]))]
+  dispersers [fisher_pop == 2, hr_size := round (rnorm (nrow (dispersers [fisher_pop == 2, ]), sim$female_hr_table [fisher_pop == 2, hr_mean], sim$female_hr_table [fisher_pop == 2, hr_sd]))]
+  dispersers [fisher_pop == 3, hr_size := round (rnorm (nrow (dispersers [fisher_pop == 3, ]), sim$female_hr_table [fisher_pop == 3, hr_mean], sim$female_hr_table [fisher_pop == 3, hr_sd]))]
+  dispersers [fisher_pop == 4, hr_size := round (rnorm (nrow (dispersers [fisher_pop == 4, ]), sim$female_hr_table [fisher_pop == 4, hr_mean], sim$female_hr_table [fisher_pop == 4, hr_sd]))]
+  
+  # create the new HR's
+  table.disperse.hr <- SpaDES.tools::spread2 (sim$pix.rast, # within the area of interest
+                                              start = dispersers$pixelid, # for each individual
+                                              spreadProb = sim$spread.rast, # use spread prob raster
+                                              exactSize = dispersers$hr_size, # spread to the size of their territory
+                                              allowOverlap = F, # no overlap allowed
+                                              asRaster = F, # output table
+                                              circle = F) # spread to adjacent cells
+  
+  # add individual id and habitat
+  table.disperse.hr <- merge (merge (table.disperse.hr,
+                                     dispersers [, c ("pixelid", "individual_id")],
+                                     by.x = "initialPixels", by.y = "pixelid"), 
+                     sim$table.hab [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement")],
+                     by.x = "pixels", by.y = "pixelid")
+  
+  # check to see if home range target was met; if not, remove the animal 
+  table.disperse.hr [, pix.count := sum (length (pixels)), by = individual_id]
+  pix.count <- merge (dispersers [, c ("pixelid", "individual_id", "hr_size")],
+                      table.disperse.hr [, c ("pixels", "pix.count")],
+                      by.x = "pixelid", by.y = "pixels",
+                      all.x = T)  
+  
+  for (i in pix.count$individual_id) { # for each individual
+    if ( pix.count [individual_id == i, pix.count] >= pix.count [individual_id == i, hr_size]) { 
+      # if it achieves its home range size and minimum habitat targets 
+      # do nothing; we need to check if it meets min. habitat criteria (see below)
+    } else {
+      # delete the individual from the dispersers table
+      dispersers <- dispersers [individual_id != i]
+    } 
+  }
+  
+  # check to see if minimum habitat target was met (prop habitat = 0.15); if not, remove the animal 
+  hab.count <- sim$table.hr [denning == 1 | rust == 1 | cwd == 1 | movement == 1, .(.N), by = individual_id]
+  hab.count <- merge (hab.count,
+                      dispersers [, c ("hr_size", "individual_id")],
+                      by = "individual_id")
+  hab.count$prop_hab <- hab.count$N / hab.count$hr_size
+ 
+  for (i in hab.count$individual_id) { # for each individual
+    if ( hab.count [individual_id == i, prop_hab] >= 0.15) { 
+      # if it achieves its home range size and minimum habitat targets 
+      # do nothing; we still need to check if it meets min. habitat criteria (see below)
+    } else {
+      # delete the individual from the dispersers table
+      dispersers <- dispersers [individual_id != i]
+    } 
+  }
+  
+  agents <- as.data.table (dbGetQuery (sim$clusdb, "SELECT * FROM agents ")) 
 
-    
+  # check if proportion of habitat types are greater than the minimum thresholds 
+  for (i in dispersers$individual_id) { # for each individual
+    if (P(sim, "rest_target", "fisherabmCLUS") <= (nrow (table.disperse.hr [individual_id == i & rust == 1]) + nrow (table.disperse.hr [individual_id == i & cwd == 1])) / dispersers [individual_id == i, hr_size] & P(sim, "move_target", "fisherabmCLUS") <= nrow (table.disperse.hr [individual_id == i & movement == 1]) / dispersers [individual_id == i, hr_size] & P(sim, "den_target", "fisherabmCLUS") <= nrow (table.disperse.hr [individual_id == i & denning == 1]) / dispersers [individual_id == i, hr_size]
+    ) {
+      # check to see it meets all thresholds
+      # assign the pixels to territories table
+      territories <- rbind (territories, table.disperse.hr [individual_id == i, .(pixelid = pixels, individual_id)]) 
+    # assign dispersers to the agents table
+      agents <- rbind (agents, dispersers [individual_id == i, ]) 
+      
+    } else {
+      # delete the individual from the agents and territories table
+      dispersers <- dispersers [individual_id != i]
+    } 
+  }
+  
+  # write the territories table
+  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
+    # if the table exists, write it to the db
+    DBI::dbWriteTable (sim$clusdb, "territories", territories, append = FALSE, 
+                       row.names = FALSE, overwite = FALSE)  
+  } else {
+    # if the table exists, append it to the table in the db
+    DBI::dbWriteTable (sim$clusdb, "territories", territories, append = TRUE, 
+                       row.names = FALSE, overwite = FALSE)  
+  }
+  
+
+  
+  
+  
+
+  
+  #---Calculate D2 (Mahalanobis) 
+  # try to make this part into a function....
+  message ("Calculate habitat quality.")
+  
+  # identify which fisher pop an animal belongs to
+  terr.pop <- merge (territories, table.hab [, c ("pixelid", "fisher_pop")], 
+                     by = "pixelid", all.x = T)
+  # get the mean of pixels pop. values, rounded to get the majority; majority = pop membership
+  terr.pop [, fisher_pop := .(round (mean (fisher_pop, na.rm = T), digits = 0)), by = individual_id] 
+  terr.pop <- unique (terr.pop [, c ("individual_id", "fisher_pop")])
+  agents <- merge (agents [, -c ("fisher_pop")], # assign new fisher_pop to agents table
+                   terr.pop [, c ("individual_id", "fisher_pop")], 
+                   by = "individual_id", all.x = T)
+  
+  # get habitat for mahalanobis
+  tab.mahal <- merge (territories, 
+                      table.hab [, c ("pixelid", "denning", "rust", "cavity", "movement", "cwd")], 
+                      by = "pixelid", all.x = T)
+  # % of each habitat by territory
+  tab.perc <- Reduce (function (...) merge (..., all = TRUE, by = "individual_id"), 
+                      list (tab.mahal [, .(den_perc = ((sum (denning, na.rm = T)) / .N) * 100), by = individual_id ], 
+                            tab.mahal [, .(rust_perc = ((sum (rust, na.rm = T)) / .N) * 100), by = individual_id ], 
+                            tab.mahal [, .(cav_perc = ((sum (cavity, na.rm = T)) / .N) * 100), by = individual_id ], 
+                            tab.mahal [, .(move_perc = ((sum (movement, na.rm = T)) / .N) * 100), by = individual_id ], 
+                            tab.mahal [, .(cwd_perc = ((sum (cwd, na.rm = T)) / .N) * 100), by = individual_id ]))
+  
+  # add pop id
+  tab.perc <- merge (tab.perc, 
+                     agents [, c ("individual_id", "fisher_pop")],
+                     by = "individual_id", all.x = T)
+  # log transform the data
+  tab.perc [fisher_pop == 2 & den_perc >= 0, den_perc := log (den_perc + 1)][fisher_pop == 1 & cav_perc >= 0, cavity := log (cav_perc + 1)] # sbs-wet
+  tab.perc [fisher_pop == 3 & den_perc >= 0, den_perc := log (den_perc + 1)]# sbs-dry
+  tab.perc [fisher_pop == 1 | fisher_pop == 4 & rust_perc >= 0, rust_perc := log (rust_perc + 1)] #boreal and dry
+  
+  # truncate at the center plus one st dev
+  stdev_pop1 <- sqrt (diag (fisher_d2_cov[[1]])) # boreal
+  stdev_pop2 <- sqrt (diag (fisher_d2_cov[[2]])) # sbs-wet
+  stdev_pop3 <- sqrt (diag (fisher_d2_cov[[3]])) # sbs-dry
+  stdev_pop4 <- sqrt (diag (fisher_d2_cov[[4]])) # dry
+  
+  tab.perc [fisher_pop == 1 & den_perc > 24  + stdev_pop1[1], den_perc := 24 + stdev_pop1[1]][fisher_pop == 1 & rust_perc > 2.2 + stdev_pop1[2], rust_perc := 2.2 + stdev_pop1[2]][fisher_pop == 1 & cwd_perc > 17.4 + stdev_pop1[3], cwd_perc := 17.4 + stdev_pop1[3]][fisher_pop == 1 & move_perc > 56.2 + stdev_pop1[4], move_perc := 56.2 + stdev_pop1[4]]
+  tab.perc [fisher_pop == 2 & den_perc > 1.6 + stdev_pop2[1], den_perc := 1.6 + stdev_pop2[1]][fisher_pop == 2 & rust_perc > 36.2 + stdev_pop2[2], rust_perc := 36.2 + stdev_pop2[2]][fisher_pop == 2 & cav_perc > 0.7 + stdev_pop2[3], cav_perc := 0.7 + stdev_pop2[3]][fisher_pop == 2 & cwd_perc > 30.4 + stdev_pop2[4], cwd_perc := 30.4 + stdev_pop2[4]][fisher_pop == 2 & move_perc > 26.8 + stdev_pop2[5], move_perc := 26.8+ stdev_pop2[5]]
+  tab.perc [fisher_pop == 3 & den_perc > 1.2 + stdev_pop3[1], den_perc := 1.2 + stdev_pop3[1]][fisher_pop == 3 & rust_perc > 19.1 + stdev_pop3[2], rust_perc := 19.1 + stdev_pop3[2]][fisher_pop == 3 & cav_perc > 0.5 + stdev_pop3[3], cav_perc := 0.5 + stdev_pop3[3]][fisher_pop == 3 & cwd_perc > 10.2 + stdev_pop3[4], cwd_perc := 10.2 + stdev_pop3[4]][fisher_pop == 3 & move_perc > 33.1 + stdev_pop3[5], move_perc := 33.1+ stdev_pop3[5]]
+  tab.perc [fisher_pop == 4 & den_perc > 2.3 + stdev_pop4[1], den_perc := 2.3 + stdev_pop4[1]][fisher_pop == 4 & rust_perc > 1.6 +  stdev_pop4[2], rust_perc := 1.6  + stdev_pop4[2]][fisher_pop == 4 & cwd_perc > 10.8 + stdev_pop4[3], cwd_perc := 10.8 + stdev_pop4[3]][fisher_pop == 4 & move_perc > 21.5 + stdev_pop4[4], move_perc := 21.5+ stdev_pop4[4]]
+  
+  #-----D2
+  tab.perc [fisher_pop == 1, d2 := mahalanobis (tab.perc [fisher_pop == 1, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(24.0, 2.2, 17.4, 56.2), cov = sim$fisher.d2.cov[[4]])]
+  tab.perc [fisher_pop == 2, d2 := mahalanobis (tab.perc [fisher_pop == 2, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.6, 36.2, 0.7, 30.4, 26.8), cov = fisher_d2_cov[[2]])]
+  tab.perc [fisher_pop == 3, d2 := mahalanobis (tab.perc [fisher_pop == 3, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.16, 19.1, 0.45, 8.69, 33.06), cov = fisher_d2_cov[[3]])]
+  tab.perc [fisher_pop == 4, d2 := mahalanobis (tab.perc [fisher_pop == 4, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(2.3, 1.6, 10.8, 21.5), cov = fisher_d2_cov[[4]])]
+  
+  agents <- merge (agents [, - ('d2_score')],
+                   tab.perc [, .(individual_id, d2_score = d2)],
+                   by = "individual_id")
+  
+  # write the agents table
+  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
+    # if the table exists, write it to the db
+    DBI::dbWriteTable (sim$clusdb, "agents", agents, append = FALSE, 
+                       row.names = FALSE, overwite = FALSE)  
+  } else {
+    # if the table exists, append it to the table in the db
+    DBI::dbWriteTable (sim$clusdb, "agents", agents, append = TRUE, 
+                       row.names = FALSE, overwite = FALSE)  
   }
   
 
 
-  return(invisible(sim))
+  message ("New territories created!")
+  return (invisible (sim))
+  
+
 }
 
 

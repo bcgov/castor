@@ -99,7 +99,7 @@ Init <- function (sim) {
   # the SQL statement selects the average value of:
   # cases that meet the case criteria 'when' (case = 1) and
   # cases that do not meet the case criteria 'then' (case = 0)
-  # So, if an area of 10 pixels has 4 'dsiturbed' pixels (age 1 to 40)i.e., distance to disturbance = 0, then the statement will return
+  # So, if an area of 10 pixels has 4 'disturbed' pixels (age 1 to 40)i.e., distance to disturbance = 0, then the statement will return
   # a value of 0.4  = AVG (0,0,1,1,0,1,1,0,0,0)
   # it does this by each herd/habitat area ('GROUP BY' statement)
   # the IS NOT NULL statements drop out the non-forested areas from the calculation, i.e., the denominator is the area of forest, not all land
