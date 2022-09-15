@@ -461,7 +461,7 @@ Init <- function(sim) {
   tab.perc [fisher_pop == 4 & den_perc > 2.3 + stdev_pop4[1], den_perc := 2.3 + stdev_pop4[1]][fisher_pop == 4 & rust_perc > 1.6 +  stdev_pop4[2], rust_perc := 1.6  + stdev_pop4[2]][fisher_pop == 4 & cwd_perc > 10.8 + stdev_pop4[3], cwd_perc := 10.8 + stdev_pop4[3]][fisher_pop == 4 & move_perc > 21.5 + stdev_pop4[4], move_perc := 21.5+ stdev_pop4[4]]
 
   #-----D2
-  tab.perc [fisher_pop == 1, d2 := mahalanobis (tab.perc [fisher_pop == 1, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(24.0, 2.2, 17.4, 56.2), cov = sim$fisher.d2.cov[[4]])]
+  tab.perc [fisher_pop == 1, d2 := mahalanobis (tab.perc [fisher_pop == 1, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(24.0, 2.2, 17.4, 56.2), cov = fisher.d2.cov[[4]])]
   tab.perc [fisher_pop == 2, d2 := mahalanobis (tab.perc [fisher_pop == 2, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.6, 36.2, 0.7, 30.4, 26.8), cov = fisher_d2_cov[[2]])]
   tab.perc [fisher_pop == 3, d2 := mahalanobis (tab.perc [fisher_pop == 3, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.16, 19.1, 0.45, 8.69, 33.06), cov = fisher_d2_cov[[3]])]
   tab.perc [fisher_pop == 4, d2 := mahalanobis (tab.perc [fisher_pop == 4, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(2.3, 1.6, 10.8, 21.5), cov = fisher_d2_cov[[4]])]
@@ -667,8 +667,10 @@ repro_FEMALE <- function(sim) {
 ###--- DISPERSE
 dispersal <- function (sim) {
 
+  message ("Fisher dispersal.")
+  
   # get the dispersers; age 1 y.o. fishers
-  dispersers <- as.data.table (dbGetQuery (sim$clusdb, "SELECT * FROM agents WHERE age = 1 AND d2_score IS NULL")) # grab the agents at age of dispersal; use d2_score criteria as secondary check?
+  dispersers <- as.data.table (dbGetQuery (sim$clusdb, "SELECT * FROM agents WHERE age = 1 AND d2_score IS NULL")) # grab the agents at age of dispersal; use d2_score criteria as secondary check? OR have thove with a d2_Score > than a threhold disperse as well?
   # re-set the HR size, d2 score and fisher_pop
   dispersers <- dispersers [, hr_size := NA]
   dispersers <- dispersers [, d2_score := NA]
@@ -707,6 +709,8 @@ dispersal <- function (sim) {
   
   ind.disp.rast <- rast (sim$pix.rast) # empty raster of the aoi - needs to be a 'SpatRaster'
   ind.disp.rast [ind.disp.rast > 0] <- 0 # assign 0 values
+  
+  message ("Form new territories.")
   
   for (i in inds) {
     ind.disperse <- table.disperse [initialPixels == i] # identify dispersal pix by ind
@@ -770,8 +774,8 @@ dispersal <- function (sim) {
   table.disperse.hr <- merge (merge (table.disperse.hr,
                                      dispersers [, c ("pixelid", "individual_id")],
                                      by.x = "initialPixels", by.y = "pixelid"), 
-                     sim$table.hab [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement")],
-                     by.x = "pixels", by.y = "pixelid")
+                              sim$table.hab [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement")],
+                              by.x = "pixels", by.y = "pixelid")
   
   # check to see if home range target was met; if not, remove the animal 
   table.disperse.hr [, pix.count := sum (length (pixels)), by = individual_id]
@@ -807,6 +811,63 @@ dispersal <- function (sim) {
     } 
   }
   
+  # finalize which fisher pop an animal belongs to
+  terr.pop <- merge (table.disperse.hr, table.hab [, c ("pixelid", "fisher_pop")], 
+                     by.x = "pixels",
+                     by.y = "pixelid", all.x = T)
+  # get the mean of pixels pop. values, rounded to get the majority; majority = pop membership
+  terr.pop [, fisher_pop := .(round (mean (fisher_pop, na.rm = T), digits = 0)), by = individual_id] 
+  terr.pop <- unique (terr.pop [, c ("individual_id", "fisher_pop")])
+  dispersers <- merge (dispersers [, -c ("fisher_pop")], # assign new fisher_pop to agents table
+                       terr.pop [, c ("individual_id", "fisher_pop")], 
+                       by = "individual_id", all.x = T)
+  
+  
+  
+  #---Calculate D2 (Mahalanobis) 
+  # try to make this part into a function....
+  message ("Calculate habitat quality.")
+  
+  # % of each habitat by territory
+  tab.perc <- Reduce (function (...) merge (..., all = TRUE, by = "individual_id"), 
+                      list (table.disperse.hr [, .(den_perc = ((sum (denning, na.rm = T)) / .N) * 100), by = individual_id ], 
+                            table.disperse.hr [, .(rust_perc = ((sum (rust, na.rm = T)) / .N) * 100), by = individual_id ], 
+                            table.disperse.hr [, .(cav_perc = ((sum (cavity, na.rm = T)) / .N) * 100), by = individual_id ], 
+                            table.disperse.hr [, .(move_perc = ((sum (movement, na.rm = T)) / .N) * 100), by = individual_id ], 
+                            table.disperse.hr [, .(cwd_perc = ((sum (cwd, na.rm = T)) / .N) * 100), by = individual_id ]))
+  # add pop id
+  tab.perc <- merge (tab.perc, 
+                     agents [, c ("individual_id", "fisher_pop")],
+                     by = "individual_id", all.x = T)
+  # log transform the data
+  tab.perc [fisher_pop == 2 & den_perc >= 0, den_perc := log (den_perc + 1)][fisher_pop == 1 & cav_perc >= 0, cavity := log (cav_perc + 1)] # sbs-wet
+  tab.perc [fisher_pop == 3 & den_perc >= 0, den_perc := log (den_perc + 1)]# sbs-dry
+  tab.perc [fisher_pop == 1 | fisher_pop == 4 & rust_perc >= 0, rust_perc := log (rust_perc + 1)] #boreal and dry
+  
+  # truncate at the center plus one st dev
+  stdev_pop1 <- sqrt (diag (fisher_d2_cov[[1]])) # boreal
+  stdev_pop2 <- sqrt (diag (fisher_d2_cov[[2]])) # sbs-wet
+  stdev_pop3 <- sqrt (diag (fisher_d2_cov[[3]])) # sbs-dry
+  stdev_pop4 <- sqrt (diag (fisher_d2_cov[[4]])) # dry
+  
+  tab.perc [fisher_pop == 1 & den_perc > 24  + stdev_pop1[1], den_perc := 24 + stdev_pop1[1]][fisher_pop == 1 & rust_perc > 2.2 + stdev_pop1[2], rust_perc := 2.2 + stdev_pop1[2]][fisher_pop == 1 & cwd_perc > 17.4 + stdev_pop1[3], cwd_perc := 17.4 + stdev_pop1[3]][fisher_pop == 1 & move_perc > 56.2 + stdev_pop1[4], move_perc := 56.2 + stdev_pop1[4]]
+  tab.perc [fisher_pop == 2 & den_perc > 1.6 + stdev_pop2[1], den_perc := 1.6 + stdev_pop2[1]][fisher_pop == 2 & rust_perc > 36.2 + stdev_pop2[2], rust_perc := 36.2 + stdev_pop2[2]][fisher_pop == 2 & cav_perc > 0.7 + stdev_pop2[3], cav_perc := 0.7 + stdev_pop2[3]][fisher_pop == 2 & cwd_perc > 30.4 + stdev_pop2[4], cwd_perc := 30.4 + stdev_pop2[4]][fisher_pop == 2 & move_perc > 26.8 + stdev_pop2[5], move_perc := 26.8+ stdev_pop2[5]]
+  tab.perc [fisher_pop == 3 & den_perc > 1.2 + stdev_pop3[1], den_perc := 1.2 + stdev_pop3[1]][fisher_pop == 3 & rust_perc > 19.1 + stdev_pop3[2], rust_perc := 19.1 + stdev_pop3[2]][fisher_pop == 3 & cav_perc > 0.5 + stdev_pop3[3], cav_perc := 0.5 + stdev_pop3[3]][fisher_pop == 3 & cwd_perc > 10.2 + stdev_pop3[4], cwd_perc := 10.2 + stdev_pop3[4]][fisher_pop == 3 & move_perc > 33.1 + stdev_pop3[5], move_perc := 33.1+ stdev_pop3[5]]
+  tab.perc [fisher_pop == 4 & den_perc > 2.3 + stdev_pop4[1], den_perc := 2.3 + stdev_pop4[1]][fisher_pop == 4 & rust_perc > 1.6 +  stdev_pop4[2], rust_perc := 1.6  + stdev_pop4[2]][fisher_pop == 4 & cwd_perc > 10.8 + stdev_pop4[3], cwd_perc := 10.8 + stdev_pop4[3]][fisher_pop == 4 & move_perc > 21.5 + stdev_pop4[4], move_perc := 21.5+ stdev_pop4[4]]
+  
+  #-----D2
+  tab.perc [fisher_pop == 1, d2 := mahalanobis (tab.perc [fisher_pop == 1, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(24.0, 2.2, 17.4, 56.2), cov = fisher.d2.cov[[4]])]
+  tab.perc [fisher_pop == 2, d2 := mahalanobis (tab.perc [fisher_pop == 2, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.6, 36.2, 0.7, 30.4, 26.8), cov = fisher_d2_cov[[2]])]
+  tab.perc [fisher_pop == 3, d2 := mahalanobis (tab.perc [fisher_pop == 3, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.16, 19.1, 0.45, 8.69, 33.06), cov = fisher_d2_cov[[3]])]
+  tab.perc [fisher_pop == 4, d2 := mahalanobis (tab.perc [fisher_pop == 4, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(2.3, 1.6, 10.8, 21.5), cov = fisher_d2_cov[[4]])]
+  
+  dispersers <- merge (dispersers [, - ('d2_score')],
+                       tab.perc [, .(individual_id, d2_score = d2)],
+                       by = "individual_id")
+ 
+  message ("Habitat quality calculated!")
+  
+  # Check that min thresholds are met 
   agents <- as.data.table (dbGetQuery (sim$clusdb, "SELECT * FROM agents ")) 
 
   # check if proportion of habitat types are greater than the minimum thresholds 
@@ -836,68 +897,6 @@ dispersal <- function (sim) {
                        row.names = FALSE, overwite = FALSE)  
   }
   
-
-  
-  
-  
-
-  
-  #---Calculate D2 (Mahalanobis) 
-  # try to make this part into a function....
-  message ("Calculate habitat quality.")
-  
-  # identify which fisher pop an animal belongs to
-  terr.pop <- merge (territories, table.hab [, c ("pixelid", "fisher_pop")], 
-                     by = "pixelid", all.x = T)
-  # get the mean of pixels pop. values, rounded to get the majority; majority = pop membership
-  terr.pop [, fisher_pop := .(round (mean (fisher_pop, na.rm = T), digits = 0)), by = individual_id] 
-  terr.pop <- unique (terr.pop [, c ("individual_id", "fisher_pop")])
-  agents <- merge (agents [, -c ("fisher_pop")], # assign new fisher_pop to agents table
-                   terr.pop [, c ("individual_id", "fisher_pop")], 
-                   by = "individual_id", all.x = T)
-  
-  # get habitat for mahalanobis
-  tab.mahal <- merge (territories, 
-                      table.hab [, c ("pixelid", "denning", "rust", "cavity", "movement", "cwd")], 
-                      by = "pixelid", all.x = T)
-  # % of each habitat by territory
-  tab.perc <- Reduce (function (...) merge (..., all = TRUE, by = "individual_id"), 
-                      list (tab.mahal [, .(den_perc = ((sum (denning, na.rm = T)) / .N) * 100), by = individual_id ], 
-                            tab.mahal [, .(rust_perc = ((sum (rust, na.rm = T)) / .N) * 100), by = individual_id ], 
-                            tab.mahal [, .(cav_perc = ((sum (cavity, na.rm = T)) / .N) * 100), by = individual_id ], 
-                            tab.mahal [, .(move_perc = ((sum (movement, na.rm = T)) / .N) * 100), by = individual_id ], 
-                            tab.mahal [, .(cwd_perc = ((sum (cwd, na.rm = T)) / .N) * 100), by = individual_id ]))
-  
-  # add pop id
-  tab.perc <- merge (tab.perc, 
-                     agents [, c ("individual_id", "fisher_pop")],
-                     by = "individual_id", all.x = T)
-  # log transform the data
-  tab.perc [fisher_pop == 2 & den_perc >= 0, den_perc := log (den_perc + 1)][fisher_pop == 1 & cav_perc >= 0, cavity := log (cav_perc + 1)] # sbs-wet
-  tab.perc [fisher_pop == 3 & den_perc >= 0, den_perc := log (den_perc + 1)]# sbs-dry
-  tab.perc [fisher_pop == 1 | fisher_pop == 4 & rust_perc >= 0, rust_perc := log (rust_perc + 1)] #boreal and dry
-  
-  # truncate at the center plus one st dev
-  stdev_pop1 <- sqrt (diag (fisher_d2_cov[[1]])) # boreal
-  stdev_pop2 <- sqrt (diag (fisher_d2_cov[[2]])) # sbs-wet
-  stdev_pop3 <- sqrt (diag (fisher_d2_cov[[3]])) # sbs-dry
-  stdev_pop4 <- sqrt (diag (fisher_d2_cov[[4]])) # dry
-  
-  tab.perc [fisher_pop == 1 & den_perc > 24  + stdev_pop1[1], den_perc := 24 + stdev_pop1[1]][fisher_pop == 1 & rust_perc > 2.2 + stdev_pop1[2], rust_perc := 2.2 + stdev_pop1[2]][fisher_pop == 1 & cwd_perc > 17.4 + stdev_pop1[3], cwd_perc := 17.4 + stdev_pop1[3]][fisher_pop == 1 & move_perc > 56.2 + stdev_pop1[4], move_perc := 56.2 + stdev_pop1[4]]
-  tab.perc [fisher_pop == 2 & den_perc > 1.6 + stdev_pop2[1], den_perc := 1.6 + stdev_pop2[1]][fisher_pop == 2 & rust_perc > 36.2 + stdev_pop2[2], rust_perc := 36.2 + stdev_pop2[2]][fisher_pop == 2 & cav_perc > 0.7 + stdev_pop2[3], cav_perc := 0.7 + stdev_pop2[3]][fisher_pop == 2 & cwd_perc > 30.4 + stdev_pop2[4], cwd_perc := 30.4 + stdev_pop2[4]][fisher_pop == 2 & move_perc > 26.8 + stdev_pop2[5], move_perc := 26.8+ stdev_pop2[5]]
-  tab.perc [fisher_pop == 3 & den_perc > 1.2 + stdev_pop3[1], den_perc := 1.2 + stdev_pop3[1]][fisher_pop == 3 & rust_perc > 19.1 + stdev_pop3[2], rust_perc := 19.1 + stdev_pop3[2]][fisher_pop == 3 & cav_perc > 0.5 + stdev_pop3[3], cav_perc := 0.5 + stdev_pop3[3]][fisher_pop == 3 & cwd_perc > 10.2 + stdev_pop3[4], cwd_perc := 10.2 + stdev_pop3[4]][fisher_pop == 3 & move_perc > 33.1 + stdev_pop3[5], move_perc := 33.1+ stdev_pop3[5]]
-  tab.perc [fisher_pop == 4 & den_perc > 2.3 + stdev_pop4[1], den_perc := 2.3 + stdev_pop4[1]][fisher_pop == 4 & rust_perc > 1.6 +  stdev_pop4[2], rust_perc := 1.6  + stdev_pop4[2]][fisher_pop == 4 & cwd_perc > 10.8 + stdev_pop4[3], cwd_perc := 10.8 + stdev_pop4[3]][fisher_pop == 4 & move_perc > 21.5 + stdev_pop4[4], move_perc := 21.5+ stdev_pop4[4]]
-  
-  #-----D2
-  tab.perc [fisher_pop == 1, d2 := mahalanobis (tab.perc [fisher_pop == 1, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(24.0, 2.2, 17.4, 56.2), cov = sim$fisher.d2.cov[[4]])]
-  tab.perc [fisher_pop == 2, d2 := mahalanobis (tab.perc [fisher_pop == 2, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.6, 36.2, 0.7, 30.4, 26.8), cov = fisher_d2_cov[[2]])]
-  tab.perc [fisher_pop == 3, d2 := mahalanobis (tab.perc [fisher_pop == 3, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.16, 19.1, 0.45, 8.69, 33.06), cov = fisher_d2_cov[[3]])]
-  tab.perc [fisher_pop == 4, d2 := mahalanobis (tab.perc [fisher_pop == 4, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(2.3, 1.6, 10.8, 21.5), cov = fisher_d2_cov[[4]])]
-  
-  agents <- merge (agents [, - ('d2_score')],
-                   tab.perc [, .(individual_id, d2_score = d2)],
-                   by = "individual_id")
-  
   # write the agents table
   if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
     # if the table exists, write it to the db
@@ -909,13 +908,16 @@ dispersal <- function (sim) {
                        row.names = FALSE, overwite = FALSE)  
   }
   
-
-
   message ("New territories created!")
   return (invisible (sim))
   
-
 }
+
+
+
+
+
+
 
 
 
