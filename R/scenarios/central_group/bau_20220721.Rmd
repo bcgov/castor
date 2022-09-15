@@ -31,9 +31,10 @@ During the simulation various reports and information surrounding each pixel can
 ## Central Group Scenarios
 Here we use forestryCLUS to assess the potential impact of a hypothetical land use orders and deferral areas on timber supply within the area-of-interest for central group cariobu (east-central B.C.).
 
-Here we simautle the 'business-as-usual' (BAU) case, where we only apply existing legal constraints, caribou or otherwise. This scenario is used to establish the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat.
+Here we simulate the 'business-as-usual' (BAU) scenario, where we only apply existing legal constraints, caribou or otherwise, including the partnership agreement zones. This scenario is used to establish the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat.
 
-We identify the non-declining maximum annual harvest volume that can be achieved as the baseline level of forestry that could occur in the region, given existing legal contraints. 
+We identify the non-declining maximum annual harvest volume that can be achieved as the baseline level of forestry that could occur in the region, given existing legal constraints. 
+
 ## Model Paramters
 ### BAU Zones 
 zone_cond_beo = biodiversity emphasis options 
@@ -43,7 +44,19 @@ zone_uwr_2021 =  ungulate winter ranges
 zone_cond_fsw = fisheries sensitive watersheds
 zone_cond_nharv = parks and protected areas
 zone_cond_cw = community watersheds
-central_grp_partner_areas_072022 = Partnership Agreement areas, where no harvest is permitted in A2, B2 and B3 zones
+central_grp_partner_areas_072022 = Partnership Agreement areas, where no harvest is permitted in A2, B2, B3 and B4 zones
+
+```{r, update parnternerhsip zone constraints}
+require (DBI)
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/central_group/inputs/central_group_july2022_clusdb.sqlite"))
+
+check <- dbGetQuery (clusdb, "SELECT * from zoneconstraints WHERE reference_zone = 'rast.central_grp_partner_areas_072022'")
+dbExecute (clusdb, "UPDATE zoneconstraints SET type = 'nh' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid = 8") 
+
+dbDisconnect (clusdb)  
+
+```
 
 ### harvestBlockPriority  
 Closest to disturbance first, oldest second. Thus assumes the priority is to cluster forest harvest to minimize disturbance in caribou range. 
@@ -55,7 +68,7 @@ Adjacency was set to 0 meters to allow for maximum clustering of forest harvest.
 A partition was set as vol > 150 to ensure stands with a minimum of 150m3/ha were ahrvested, i.e., low productivity stands wouldn't be harvested. 
 
 ### harvestFlow
-First set at 1,500,000 m3/year, then 1.6M, 2M;  final.
+First set at 1,650,000 m3/year, 1.6M m3; target of  m3/year provided a non-declining maximum harvest flow over a 200 year period.
 
 ### Road recovery
 No road recovery was simulated (recovery = 300 years). 
@@ -182,7 +195,7 @@ modules <- list("dataLoaderCLUS",
                 )
 
 scenario = data.table (name = "central_group_bau_july2022",
-                       description = "Business-as-usual (BAU) scenario. Max. non-declining harvest flow = 2.0 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years).")
+                       description = "Business-as-usual (BAU) scenario. Max. non-declining harvest flow = 1.6 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years).")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="central_group",
@@ -191,7 +204,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="central_group",
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 10000000, #2,000,000m3/year 
+                                     flow = 8000000, #1,600,000m3/year 
                                      partition_type = 'live') 
 ))
 

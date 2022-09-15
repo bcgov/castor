@@ -132,8 +132,9 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
 
     },
 
-interpolatehabitat = {
-      
+   
+    interpolatehabitat = {
+
       # need some functions here to interpolate habitat degradation/improvement over the forestry simulation interval (five years)
       # the reproduce, etc. functions should happen annually, but the forestry sim interval will likely be > 1 year
       # we don't want to take the habitat at the start or end of the interval to estimate reproduction, etc.
@@ -271,12 +272,14 @@ Init <- function(sim) {
                               cwd_p, cwd, mov_p, movement)] # could add other things, openness, crown closure, cost surface?
   sim$table.hab <- table.hab
 
-message ("Create agents table and assign values...")
+
+  message ("Create agents table and assign values...")
   # assign agents to denning pixels
     # systematic method
       # this provides a 'buffer' between pixels to allow some space for fisher to form an HR; 
       # if they are too close then it forms fewer HRs
     den.pix <- as.data.table (table.hab [denning == 1 & !is.na (fisher_pop), pixelid])
+    setnames (den.pix, "pixelid")
     den.pix.sample <- den.pix [seq (1, nrow (den.pix), 50), ] # grab every ~50th pixel; ~1 pixel every 5km
     ids <- seq (from = 1, to = nrow (den.pix.sample), by = 1)
     agents <- data.table (individual_id = ids,
@@ -324,7 +327,7 @@ message ("Create agents table and assign values...")
   spread.rast [table.hab$pixelid] <- table.hab$spreadprob
   sim$spread.rast <- spread.rast
 
-# this step took 15 mins with ~8500 starting points; 6 mins for 2174 points; 1 min for 435 points
+  # this step took 15 mins with ~8500 starting points; 6 mins for 2174 points; 1 min for 435 points
   table.hr <- SpaDES.tools::spread2 (sim$pix.rast, # within the area of interest
                                      start = agents$pixelid, # for each individual
                                      spreadProb = sim$spread.rast, # use spread prob raster
@@ -615,7 +618,7 @@ repro_FEMALE <- function(sim) {
     # assign each female fisher 1 = reproduce or 0 = does not reproduce
     DR <- repro_rate_table %>% dplyr::filter(str_detect(Fpop, fisher.pop)) %>% dplyr::filter(str_detect(Param,"DR"))
     DR_CIs <- CI_from_meanSDn(mean=DR$Mean, sd=DR$SD, n=DR$n)
- 
+
     reproFishers$reproduce <- rbinom(n = nrow(reproFishers), size = 1, prob = DR_CIs)
     
     # for those fishers who are reproducing, assign litter size
@@ -896,11 +899,8 @@ dispersal <- function (sim) {
   }
   
   message ("New territories created!")
-  return (invisible (sim))  
 
 }
-
-
 
 
 

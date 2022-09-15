@@ -1,0 +1,96 @@
+---
+title: "Run models for fire ignition prediction map"
+author: "Elizabeth Kleynhans"
+date: '2022-09-09'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source(here::here("R/functions/R_Postgres.R"))
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(mapview)
+library(tmap)
+
+```
+
+# Import the data and fire regime types layer
+```{r}
+dat<-st_read( "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_Quesnell_WilliamsL_100Mile.gpkg")
+
+dat<-st_transform(dat, 3005)
+
+frt <- st_read ( dsn = "D:\\Fire\\fire_data\\Fire_Regime_Types\\FRT\\FRT_Canada.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(frt) #Retrieve coordinate reference system from sf or sfc object
+frt<-st_transform(frt, 3005) 
+#frt_sf<-st_as_sf(frt)
+
+layeraoi<-getSpatialQuery("SELECT * FROM study_area_compart limit 1")
+#Create a provincial raster
+prov.rast <- raster::raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(layeraoi)$proj4string, resolution = c(100, 100), vals = 0)
+
+ras.frt <- fasterize::fasterize (frt, prov.rast, field = "Cluster")
+plot(ras.frt)
+
+
+
+
+
+dat_sf<-st_as_sf(dat)
+dat_sf
+
+
+
+#ras.dat <- fasterize::fasterize (, , field = "zoneid") #
+
+dat_frt <- st_intersection(dat_sf, frt_sf) # takes long!
+
+dat_frt<-dat_frt %>%
+    mutate(climate1 = case_when(
+                            frt == "10" ~ mean_Tave07_Tave08_Tave09 ,
+                            frt == "12" ~ mean_Tmax07_Tmax08,
+                            frt == "13" ~ Tave07,
+                            frt == "14" ~ mean_Tave07_Tave08,
+                            frt == "15" ~ mean_Tave06_Tave07_Tave08 ,
+                            TRUE ~ NA_real_))
+
+#Repeat for climate 2
+dat_lightning$climate2<-"NA"
+# # 
+
+dat_lightning <- dat_lightning %>%
+  mutate(climate2 =if_else(frt==10, mean_PPT07_PPT08_PPT09,
+                                    if_else(frt==13, as.numeric(PPT07),
+                                            if_else(frt==15, mean_PPT06_PPT07_PPT08, NA_real_))))
+
+
+```
+
+# FRT 14
+
+```{r}
+
+frt14<- dat_frt %>% filter(Cluster==14)
+
+
+
+
+
+
+
+
+frt14_dat<-dat[frt14, ]
+
+plot(frt12_dat["Cluster"])
+
+frt12_equation<- 
+
+
+
+```
+

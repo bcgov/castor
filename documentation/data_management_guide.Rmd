@@ -22,19 +22,21 @@ Spatial and aspatial data and parameters used in CLUS are stored in [PostgreSQL 
 
 ```{r, write original spreadsheet to postgres, eval = F, echo = F, warning = F, message = F}
 # Below is the original script to upload the data list to the database; this is just an example
+
 # DO NOT RUN THIS unless you need to re-create the data form scratch
-pgdbs_data_list <- read.csv ("C:\\Work\\pgdbs_data_list.csv",
-                               header = T,
-                               sep = ",") 
-conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
-                       host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
-                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
-                       port='5432' ,
-                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
-                       password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
-DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
-                  value = pgdbs_data_list, 
-                  row.names = FALSE, overwrite = TRUE)
+
+# pgdbs_data_list <- read.csv ("C:\\Work\\pgdbs_data_list.csv",
+#                                header = T,
+#                                sep = ",") 
+# conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+#                        host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+#                        dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+#                        port='5432' ,
+#                        user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+#                        password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+# DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+#                   value = pgdbs_data_list, 
+#                   row.names = FALSE, overwrite = TRUE)
 ```
 
 The data tracking table (pgdbs_data_list) consists of 11 fields. Each row represents a unique data 'table' in a PostgreSQL database. The *computer*, *database* and *schema* fields identify the location of the PostgreSQL database that the table is stored in, and the *table_name* field identifies the name of the table in the database. The *type* field identifies whether the data table is one of three types: an aspatial 'table', spatial 'polygon', 'point' or 'line' or spatial 'raster'.  The *script* field identifies where in the CLUS script repository the data was documented and created. For example, many of the rasters and tables used to define provincial management objectives, such as visual quality objectives, are documented and created in *clus\R\Params\prov_manage_objs.Rmd*. The *source* field describes in brief what the data is and where the original data were obtained, and the *public* field describes whether the data can be shared with the public ('Yes'), or must be kept internal and confidential ('No'). The *last_updated* field documents the year the data was added to the database or last modified, and the *next_update* field documents the year the data should ideally be updated. For example, the consolidated cutblocks data should ideally be updated annually. If the data is not going to be updated and the data should be maintained long-term in the database (e.g., a 'static' landscape dataset such as a digital elevation model) the *next_update* field can be set to 'NA'. When it is not clear when an update is needed but we anticipate that a dataset will need to be updated at some point soon (e.g., the spatial boundaries of caribou population ranges) the *next_update* field can be set to 'as needed'. Finally, the *where_used* field documents where in the CLUS model the table is used, for example, in the dataLoaderCLUS module, or the CLUS scenario application. If the data are no longer used anywhere, but you don't want to delete it, the *where_used* field can be set to 'archive' (and the data moved to the archive schema of the database - see below). If the data are no longer used anywhere, but you think it should be deleted the *where_used* field can be set to 'deprecated' (see below). 
@@ -111,9 +113,9 @@ conn <- DBI::dbConnect(dbDriver("PostgreSQL"),
                        password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 # label data as deprecated
 dbExecute (conn, 
-           "UPDATE public.pgdbs_data_list set where_used = 'deprecated' where table_name = 'test';") # This example will edit the year of last update for the table called 'test'
+           "UPDATE public.pgdbs_data_list set where_used = 'deprecated' where table_name = 'test';") # This example will set a dataset to 'deprecated'; do this when deleting a dataset from the db
 
-# delete row
+# delete data
 dbExecute (conn, 
            "DELETE FROM public.pgdbs_data_list WHERE table_name = 'test';") # This example will delete the table called 'test'
 
@@ -132,6 +134,10 @@ conn <- DBI::dbConnect(dbDriver("PostgreSQL"),
 # copy table to archive schema and delete from active schema
 dbExecute (conn, 
            "SELECT * INTO archive.cb_sum FROM public.cb_sum;")
+
+# delete the old table
+dbExecute (conn, 
+           "DROP TABLE public.cb_sum;") 
 
 # label data as 'archive'
 dbExecute (conn, 
@@ -2309,6 +2315,331 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   value = pgdbs_data_list_new, 
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
+
+
+new_data <- data.table (computer = 'DG401102', database = 'clus', schema = 'public', 
+                        table_name = 'central_grp_aoi_072022',  type = 'polygon', 
+                        script = 'caribou_management_areas.Rmd', source = 'Megan Watters; area of interest for central grp tech working group',
+                        public = 'Yes', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data2 <- data.table (computer = 'DG401102', database = 'clus', schema = 'rast', 
+                        table_name = 'central_grp_aoi',  type = 'raster', 
+                        script = 'caribou_management_areas.Rmd', source = 'Megan Watters; area of interest for central grp tech working group',
+                        public = 'Yes', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data3 <- data.table (computer = 'DG401102', database = 'clus', schema = 'vat', 
+                        table_name = 'central_grp_aoi',  type = 'table', 
+                        script = 'caribou_management_areas.Rmd', source = 'Megan Watters; area of interest for central grp tech working group',
+                        public = 'Yes', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+
+new_data4 <- data.table (computer = 'DG401102', database = 'clus', schema = 'public', 
+                        table_name = 'central_grp_habitat_072022',  type = 'polygon', 
+                        script = 'caribou_management_areas.Rmd', source = 'Megan Watters; habitat for central grp tech working group',
+                        public = 'No', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data5 <- data.table (computer = 'DG401102', database = 'clus', schema = 'rast', 
+                        table_name = 'central_grp_habitat_072022',  type = 'raster', 
+                        script = 'caribou_management_areas.Rmd', source = 'Megan Watters; habitat for central grp tech working group',
+                        public = 'No', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data6 <- data.table (computer = 'DG401102', database = 'clus', schema = 'vat', 
+                        table_name = 'central_grp_habitat_072022',  type = 'table', 
+                        script = 'caribou_management_areas.Rmd', source = 'Megan Watters; habitat for central grp tech working group',
+                        public = 'No', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data7 <- data.table (computer = 'DG401102', database = 'clus', schema = 'zone', 
+                        table_name = 'central_grp_habitat_072022',  type = 'table', 
+                        script = 'caribou_management_areas.Rmd', source = 'Megan Watters; habitat for central grp tech working group',
+                        public = 'No', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+
+new_data8 <- data.table (computer = 'DG401102', database = 'clus', schema = 'public', 
+                        table_name = 'central_grp_deferral_072022',  type = 'polygon', 
+                        script = 'caribou_management_areas.Rmd', source = 'Megan Watters; deferral areas central grp tech working group',
+                        public = 'No', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data9 <- data.table (computer = 'DG401102', database = 'clus', schema = 'rast', 
+                        table_name = 'central_grp_deferral_072022',  type = 'raster', 
+                        script = 'caribou_management_areas.Rmd', source = 'Megan Watters; deferral areas central grp tech working group',
+                        public = 'No', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data10 <- data.table (computer = 'DG401102', database = 'clus', schema = 'vat', 
+                        table_name = 'central_grp_deferral_072022',  type = 'table', 
+                        script = 'caribou_management_areas.Rmd', source = 'Megan Watters; deferral areas central grp tech working group',
+                        public = 'No', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data11 <- data.table (computer = 'DG401102', database = 'clus', schema = 'zone', 
+                        table_name = 'central_grp_deferral_072022',  type = 'table', 
+                        script = 'caribou_management_areas.Rmd', source = 'Megan Watters; deferral areas central grp tech working group',
+                        public = 'No', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+
+new_data12 <- data.table (computer = 'DG401102', database = 'clus', schema = 'public', 
+                        table_name = 'central_grp_partner_areas_072022',  type = 'polygon', 
+                        script = 'caribou_management_areas.Rmd', source = 'Megan Watters; partnership agreement areas central grp tech working group',
+                        public = 'No', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data13 <- data.table (computer = 'DG401102', database = 'clus', schema = 'rast', 
+                        table_name = 'central_grp_partner_areas_072022',  type = 'raster', 
+                        script = 'caribou_management_areas.Rmd', source = 'Megan Watters; partnership agreement areas central grp tech working group',
+                        public = 'No', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data14 <- data.table (computer = 'DG401102', database = 'clus', schema = 'vat', 
+                        table_name = 'central_grp_partner_areas_072022',  type = 'table', 
+                        script = 'caribou_management_areas.Rmd', source = 'Megan Watters; partnership agreement areas central grp tech working group',
+                        public = 'No', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data15 <- data.table (computer = 'DG401102', database = 'clus', schema = 'zone', 
+                        table_name = 'central_grp_partner_areas_072022',  type = 'table', 
+                        script = 'caribou_management_areas.Rmd', source = 'Megan Watters; partnership agreement areas central grp tech working group',
+                        public = 'No', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3,
+                                     new_data4, new_data5, new_data6, new_data7, 
+                                     new_data8, new_data9, new_data10, new_data11,
+                                     new_data12, new_data13, new_data14, new_data15))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+
+# Updated caribou herd boundary data (Tweedsmuir seems to be the only noticeable significantly different area)
+
+new_data <- data.table (computer = 'DG401102', database = 'clus', schema = 'public', 
+                        table_name = 'bc_caribou_herd_boundary_v20220725',  type = 'polygon', 
+                        script = 'caribou_management_areas.Rmd', source = 'https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc/resource/c1dd82ef-4a97-4036-8926-3ad80124a0bf',
+                        public = 'Yes', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data2 <- data.table (computer = 'DG401102', database = 'clus', schema = 'rast', 
+                        table_name = 'caribou_herd_20220725',  type = 'raster', 
+                        script = 'caribou_management_areas.Rmd', source = 'https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc/resource/c1dd82ef-4a97-4036-8926-3ad80124a0bf',
+                        public = 'Yes', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+new_data3 <- data.table (computer = 'DG401102', database = 'clus', schema = 'vat', 
+                        table_name = 'caribou_herd_20220725',  type = 'table', 
+                        script = 'caribou_management_areas.Rmd', source = 'https://catalogue.data.gov.bc.ca/dataset/caribou-herd-locations-for-bc/resource/c1dd82ef-4a97-4036-8926-3ad80124a0bf',
+                        public = 'Yes', last_updated = 'July 2022', 
+                        next_update = 'as needed', where_used = 'dataLoaderCLUS')
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+# some data clean-up
+dbExecute (conn, 
+           "SELECT * INTO archive.bc_carib_poly_20090904 FROM public.bc_carib_poly_20090904;")
+dbExecute (conn, 
+           "DROP TABLE public.bc_carib_poly_20090904;") 
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set where_used = 'archive' where table_name = 'bc_carib_poly_20090904';") 
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set next_update = 'Not applicable' where table_name = 'bc_carib_poly_20090904';") 
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set schema = 'archive' where table_name = 'bc_carib_poly_20090904' AND computer = 'DG401102';") 
+dbExecute (conn, 
+           "SELECT * INTO archive.bc_caribou_core_matrix_habitat_v20190904_1 FROM public.bc_caribou_core_matrix_habitat_v20190904_1;")
+dbExecute (conn, 
+           "DROP TABLE public.bc_caribou_core_matrix_habitat_v20190904_1;") 
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set where_used = 'archive' where table_name = 'bc_caribou_core_matrix_habitat_v20190904_1';") 
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set next_update = 'Not applicable' where table_name = 'bc_caribou_core_matrix_habitat_v20190904_1';") 
+dbExecute (conn, 
+           "DROP TABLE public.boreal_caribou_zone_2019_vat;") 
+dbExecute (conn, 
+           "DROP TABLE zone.boreal_caribou_zone_2019;") 
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'boreal_caribou_zones_2019_vat';")
+dbExecute (conn, 
+           "DROP TABLE public.boreal_caribou_zones_2019;") 
+dbExecute (conn, 
+           "DROP TABLE rast.boreal_caribou_zone_2019;") 
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'boreal_caribou_zones_2019';")
+dbExecute (conn, 
+           "DROP TABLE rast.bc_gen_crithab;") 
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'bc_gen_crithab';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'beetle_1_to_5';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'beetle_6_to_9';")
+dbExecute (conn, 
+           "DROP TABLE rast.brfn_areas_fsj;")
+dbExecute (conn, 
+           "DROP TABLE zone.brfn_areas_fsj;") 		   
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'brfn_areas_fsj';")
+dbExecute (conn, 
+           "DROP TABLE public.brfnprotectionrestorationmay2021;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'BRFNProtectionRestorationMay2021';")
+dbExecute (conn, 
+           "DROP TABLE public.caribou_boreal_study_area;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'caribou_boreal_study_area';")
+dbExecute (conn, 
+           "DROP TABLE rast.caribou_herd;")
+dbExecute (conn, 
+           "DROP TABLE public.caribou_herd;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'caribou_herd';")
+dbExecute (conn, 
+           "DROP TABLE public.caribou_herd_25;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'caribou_herd_25';")
+dbExecute (conn, 
+           "DROP TABLE vat.caribou_herd_vat;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'caribou_herd_vat';")
+dbExecute (conn, 
+           "DROP TABLE public.caribou_sm_forest_area;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'caribou_sm_forest_area' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DROP TABLE public.cb_sum;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'cb_sum' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DROP TABLE public.clim_plot_data;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'clim_plot_data' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DROP TABLE public.clim_plot_data_bec;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'clim_plot_data_bec' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DROP TABLE public.clime_bec;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'clime_bec' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DROP TABLE rast.clus_herd_poly;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'clus_herd_poly' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DROP TABLE public.corepolys_pinkmnt_diss;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'corepolys_pinkmnt_diss' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DROP TABLE public.criticalhabitat;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'criticalhabitat' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DROP TABLE vat.criticalhabitat_gen_bc_vat;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'criticalhabitat_gen_bc_vat' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set schema = 'vat' where table_name = 'criticalhabitat_barkerville_vat' OR table_name = 'criticalhabitat_bc_vat' OR table_name = 'criticalhabitat_burnt_pine_vat' OR table_name = 'criticalhabitat_central_rockies_vat' OR table_name = 'criticalhabitat_central_selkirks_vat' OR table_name = 'criticalhabitat_charlotte_alplands_vat' OR table_name = 'criticalhabitat_columbia_north_vat' OR table_name = 'criticalhabitat_columbia_south_vat' OR table_name = 'criticalhabitat_frisby_boulder_vat' OR table_name = 'criticalhabitat_graham_vat' OR table_name = 'criticalhabitat_groundhog_vat' OR table_name = 'criticalhabitat_hart_ranges_vat' OR table_name = 'criticalhabitat_itcha_ilgachuz_vat' OR table_name = 'criticalhabitat_itchas_vat' OR table_name = 'criticalhabitat_kennedy_siding_vat' OR table_name = 'criticalhabitat_moberly_vat' OR table_name = 'criticalhabitat_monashee_vat' OR table_name = 'criticalhabitat_narraway_vat' OR table_name = 'criticalhabitat_narrow_lake_vat' OR table_name = 'criticalhabitat_north_cariboo_vat' OR table_name = 'criticalhabitat_purcell_central_vat' OR table_name = 'criticalhabitat_purcells_south_vat' OR table_name = 'criticalhabitat_quintette_vat' OR table_name = 'criticalhabitat_rainbows_vat' OR table_name = 'criticalhabitat_redrock_prairie_creek_vat' OR table_name = 'criticalhabitat_south_selkirks_vat' OR table_name = 'criticalhabitat_telkwa_vat' OR table_name = 'criticalhabitat_wells_gray_north_vat' OR table_name = 'criticalhabitat_wells_gray_south_vat';") 
+dbExecute (conn, 
+           "DROP TABLE rast.dem_sq;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'dem_sq' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DROP TABLE public.designated_herd_bounds;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'designated_herd_bounds' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DROP TABLE public.designated_herd_bounds2;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'designated_herd_bounds2' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DROP TABLE public.designated_herd_bounds3;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'designated_herd_bounds3' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "UPDATE public.pgdbs_data_list set schema = 'vat' where table_name = 'designatedland_vat';")
+dbExecute (conn, 
+           "DROP TABLE public.directory_clus_data;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'directory_clus_data' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'dt_agriculture' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'dt_crds_paved' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'dt_crds_resource' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'dt_cutblock_1_4' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'dt_cutblock_10_29' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'dt_cutblock_10o' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'dt_cutblock_30o' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'dt_cutblock_5_9' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'dt_cutblock_5o' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'dt_mines' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'dt_pipelines' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'dt_waterbodies' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'dt_watercourses' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'eastnessx1000' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'eastnessx1000' AND computer = 'DG401102';")
+dbExecute (conn,  "DELETE FROM public.pgdbs_data_list WHERE table_name = 'fire_1_to_5' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'fire_6_to_25' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'fire_gt_25' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'fire_not_pine_15' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'fire_old_25' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'fire_pine_15' AND computer = 'DG401102';")
+dbExecute (conn, "DROP TABLE public.fire_sum;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'fire_sum' AND computer = 'DG401102';")
+dbExecute (conn,  "DROP TABLE public.fire_sum_crithab;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'fire_sum_crithab' AND computer = 'DG401102';")
+dbExecute (conn, "DROP TABLE public.fn_aoi;")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE table_name = 'fn_aoi' AND computer = 'DG401102';")
+dbExecute (conn, "DROP TABLE zone.fn_aoi_caribou;")
+dbExecute (conn, "DROP TABLE rast.fn_aoi_caribou;")
+dbExecute (conn, "DELETE FROM public.pgdbs_data_list WHERE table_name = 'fn_aoi_caribou' AND computer = 'DG401102';")
+dbExecute (conn, "DROP TABLE zone.fn_aoi_fsj_tsa;")
+dbExecute (conn, "DROP TABLE rast.fn_aoi_fsj_tsa;")
+dbExecute (conn, "DELETE FROM public.pgdbs_data_list WHERE table_name = 'fn_aoi_fsj_tsa' AND computer = 'DG401102';")
+dbExecute (conn, "DROP TABLE public.fn_aoi_fsj_tsa_vat;")
+dbExecute (conn, "DELETE FROM public.pgdbs_data_list WHERE table_name = 'fn_aoi_fsj_tsa_vat' AND computer = 'DG401102';")
+dbExecute (conn, "DROP TABLE public.fsj_old_vri_diss;")
+dbExecute (conn, "DELETE FROM public.pgdbs_data_list WHERE table_name = 'fsj_old_vri_diss' AND computer = 'DG401102';")
+dbExecute (conn, "SELECT * INTO archive.gcbp_carib_polygon FROM public.gcbp_carib_polygon;")
+dbExecute (conn, "DROP TABLE public.gcbp_carib_polygon;") 
+dbExecute (conn, "UPDATE public.pgdbs_data_list set where_used = 'archive' where table_name = 'gcbp_carib_polygon' AND computer = 'DG401102';") 
+dbExecute (conn, "UPDATE public.pgdbs_data_list set schema = 'archive' where table_name = 'gcbp_carib_polygon' AND computer = 'DG401102';")  		
+dbExecute (conn, "DROP TABLE public.gcbp_thlb_sum;")
+dbExecute (conn, "DELETE FROM public.pgdbs_data_list WHERE table_name = 'gcbp_thlb_sum' AND computer = 'DG401102';")
+dbExecute (conn, "DROP TABLE public.gcbp_thlb_sum2;")
+dbExecute (conn, "DELETE FROM public.pgdbs_data_list WHERE table_name = 'gcbp_thlb_sum2' AND computer = 'DG401102';")
+dbExecute (conn, "DROP TABLE rast.graham_caribou_core_habitat;")
+dbExecute (conn, "DELETE FROM public.pgdbs_data_list WHERE table_name = 'graham_caribou_core_habitat' AND computer = 'DG401102';")
+dbExecute (conn, "DROP TABLE rast.graham_caribou_old;")
+dbExecute (conn, "DROP TABLE zone.graham_caribou_old;")
+dbExecute (conn, "DELETE FROM public.pgdbs_data_list WHERE table_name = 'graham_caribou_old' AND computer = 'DG401102';")
+dbExecute (conn, "DROP TABLE public.graham_core_20200623;")
+dbExecute (conn, "DELETE FROM public.pgdbs_data_list WHERE table_name = 'graham_core_20200623' AND computer = 'DG401102';")
+dbExecute (conn, "DROP TABLE zone.graham_core_caribou_habitat;")
+dbExecute (conn, "DELETE FROM public.pgdbs_data_list WHERE table_name = 'graham_core_caribou_habitat' AND computer = 'DG401102';")
+dbExecute (conn, "DROP TABLE public.graham_core_caribou_habitat_vat;")
+dbExecute (conn, "DELETE FROM public.pgdbs_data_list WHERE table_name = 'graham_core_caribou_habitat_vat' AND computer = 'DG401102';")
+
 
 ```
 

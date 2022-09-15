@@ -12,7 +12,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 ---
-title: "Database creation for Quesnel TSA Analyses Version 1.0"
+title: "Database creation for Chilcotin Caribou Analysis"
 author: "Tyler Muhly"
 date: "27 August 2021"
 output: pdf_document

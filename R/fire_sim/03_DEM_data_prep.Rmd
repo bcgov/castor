@@ -173,16 +173,18 @@ Be aware that when being saved prior, some of the column names may have been sho
 Check CRS.
 
 ```{r}
-#
-connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
-                      host = key_get('dbhost', keyring = 'postgreSQL'),
-                      user = key_get('dbuser', keyring = 'postgreSQL'),
-                      dbname = key_get('dbname', keyring = 'postgreSQL'),
-                      password = key_get('dbpass', keyring = 'postgreSQL'),
-                      port = "5432")
-sample_locations2 <- sf::st_read  (dsn = connKyle, # connKyle
-                               query = "SELECT * FROM public.DC_data_5x_AllMonths")
-dbDisconnect (connKyle)
+# #
+# connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
+#                       host = key_get('dbhost', keyring = 'postgreSQL'),
+#                       user = key_get('dbuser', keyring = 'postgreSQL'),
+#                       dbname = key_get('dbname', keyring = 'postgreSQL'),
+#                       password = key_get('dbpass', keyring = 'postgreSQL'),
+#                       port = "5432")
+# sample_locations2 <- sf::st_read  (dsn = connKyle, # connKyle
+#                                query = "SELECT * FROM public.DC_data_5x_AllMonths")
+# dbDisconnect (connKyle)
+
+sample_locations2<-st_read( "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\samp_locations_fire_all_5x_frt.shp")
 
 # if using data straight from 02b_climate_data_prep_all.Rmd script
 sample_locations2<- samp_locations_sf
