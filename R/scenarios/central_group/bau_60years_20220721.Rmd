@@ -85,7 +85,7 @@ moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/scenarios/central_group/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/scenarios/central_group/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
-times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
+times <- list(start = 0, end = 12) # 5 year interval; 60 years = 12 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -194,8 +194,8 @@ modules <- list("dataLoaderCLUS",
                 "volumebyareaReportCLUS"
                 )
 
-scenario = data.table (name = "central_group_bau_july2022",
-                       description = "Business-as-usual (BAU) scenario. Max. non-declining harvest flow = 1.6 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years).")
+scenario = data.table (name = "central_group_bau60_july2022",
+                       description = "Business-as-usual (BAU) scenario. Max. non-declining harvest flow = 1.6 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years). Simulation length = 60 years")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="central_group",

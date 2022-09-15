@@ -14,9 +14,9 @@
 *.qpj
 *.rds
 *.html
-*.md
+*.csv
 /list_clus_data.xlsx
-.pdf
+*.pdf
 *.xlsx
 *.yml
 scrap.R
@@ -36,4 +36,5 @@ README.html
 /.Require
 /reports/linkpop
 clus.Rproj
+*.Rproj
 Renviron.R
