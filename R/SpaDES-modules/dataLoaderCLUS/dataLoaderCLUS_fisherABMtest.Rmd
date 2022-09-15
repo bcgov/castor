@@ -41,8 +41,6 @@ setPaths(modulePath = here::here("R/SpaDES-modules"))
 
 getPaths() # shows where the 4 relevant paths are 
 
-
-
 times <- list(start = 0, end = 1) # 60; for estimating 'historic' road development, 1960-2020
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
