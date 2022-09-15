@@ -23,10 +23,10 @@ require (scales)
 ```{r, harvest fig}
 
 conn <- dbConnect (RPostgreSQL::PostgreSQL(),
-				          host = keyring::key_get("vmdbhost", keyring="postgreSQL"),
-                  user = keyring::key_get("vmdbuser", keyring="postgreSQL"),
-                  password = keyring::key_get("vmdbpass", keyring="postgreSQL"),
-                  dbname = keyring::key_get("vmdbname", keyring="postgreSQL"),
+				          host = keyring::key_get("vmdbwghost", keyring="postgreSQL"),
+                  user = keyring::key_get("vmdbwguser", keyring="postgreSQL"),
+                  password = keyring::key_get("vmdbwgpass", keyring="postgreSQL"),
+                  dbname = keyring::key_get("vmdbwgname", keyring="postgreSQL"),
 				          port = "5432")
 data.harvest <- dbGetQuery (conn, "SELECT * FROM chilcotin_caribou_plan.harvest") 
 dbDisconnect (conn)
@@ -35,7 +35,7 @@ data.summ <- data.harvest %>% # get summary data
                group_by (scenario, timeperiod) %>% 
                  summarise (volume = sum (volume)) %>%
                    filter (scenario == "chilcotin_bau_live_dead" | 
-                           scenario == "chilcotin_scen1a_live_dead" |
+                           #scenario == "chilcotin_scen1a_live_dead" |
                            #scenario == "chilcotin_scen1a_live_dead_10yrds" |
                            scenario == "chilcotin_scen2a_live_dead" |
                            #scenario == "chilcotin_scen2a_live_dead_10yrds" |
@@ -83,13 +83,13 @@ Interest for Each Scenario (dead priority)",
                     x = "Future Year", 
                     y = "Volume Harvested (m3)") + 
               scale_color_discrete (name = "Scenario", 
-                                    labels = c("BAU", "1a", "2a", "3a")) +
+                                    labels = c("BAU", "2a", "3a")) +
                                      #labels = c("BAU", "1a", "1b", "1c", 
                                       #         "2a", "2b", "2c", "3a", "3b", "3c")
                                         # labels = c("BAU", "1a", "1a - 10", "2a", "2a - 10",  
                                         #        "3a", "3a - 10")
               scale_linetype_discrete (name = "Scenario", 
-                                       labels = c("BAU", "1a", "2a", "3a")) +
+                                       labels = c("BAU", "2a", "3a")) +
               theme (legend.position = c (0.15, 0.15),
                      legend.title = element_text(size = 10),
                      legend.text = element_text( size = 8)) +
@@ -225,10 +225,10 @@ ggsave (filename = "C:\\Work\\git\\clus\\reports\\scenarios\\images\\harvest_sce
 ```{r, disturbance figs}
 
 conn <- dbConnect (RPostgreSQL::PostgreSQL(),
-				          host = keyring::key_get("vmdbhost", keyring="postgreSQL"),
-                  user = keyring::key_get("vmdbuser", keyring="postgreSQL"),
-                  password = keyring::key_get("vmdbpass", keyring="postgreSQL"),
-                  dbname = keyring::key_get("vmdbname", keyring="postgreSQL"),
+				          host = keyring::key_get("vmdbwghost", keyring="postgreSQL"),
+                  user = keyring::key_get("vmdbwguser", keyring="postgreSQL"),
+                  password = keyring::key_get("vmdbwgpass", keyring="postgreSQL"),
+                  dbname = keyring::key_get("vmdbwgname", keyring="postgreSQL"),
 				          port = "5432")
 data.disturb <- dbGetQuery (conn, "SELECT * FROM chilcotin_caribou_plan.disturbance") 
 dbDisconnect (conn)
@@ -286,8 +286,8 @@ data.disturb.nobuff.itcha <- data.summ.disturb.nobuff %>%
                                         critical_hab == "Itcha_Ilgachuz LEWR" | 
                                         critical_hab == "Itcha_Ilgachuz Matrix") %>%
                                 filter (scenario == "chilcotin_bau_live_dead" | 
-                                        scenario == "chilcotin_scen1a_live_dead" |
-                                        scenario == "chilcotin_scen1a_live_dead_10yrds" |
+                                        #scenario == "chilcotin_scen1a_live_dead" |
+                                        #scenario == "chilcotin_scen1a_live_dead_10yrds" |
                                         scenario == "chilcotin_scen2a_live_dead" |
                                         scenario == "chilcotin_scen2a_live_dead_10yrds" |
                                         scenario ==  "chilcotin_scen3a_live_dead" |
@@ -301,8 +301,8 @@ data.disturb.buff.itcha <- data.summ.disturb.buff %>%
                                         critical_hab == "Itcha_Ilgachuz LEWR" | 
                                         critical_hab == "Itcha_Ilgachuz Matrix") %>%
                                 filter (scenario == "chilcotin_bau_live_dead" | 
-                                        scenario == "chilcotin_scen1a_live_dead" |
-                                        scenario == "chilcotin_scen1a_live_dead_10yrds" |
+                                       # scenario == "chilcotin_scen1a_live_dead" |
+                                        #scenario == "chilcotin_scen1a_live_dead_10yrds" |
                                         scenario == "chilcotin_scen2a_live_dead" |
                                         scenario == "chilcotin_scen2a_live_dead_10yrds" |
                                         scenario ==  "chilcotin_scen3a_live_dead" |
@@ -333,8 +333,8 @@ plot.disturb.nobuff <- ggplot (data.disturb.nobuff.itcha,
                   geom_line (position = position_dodge (width = 1), size = 1) + 
                   facet_grid (. ~scenario,
                               labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", 
-                                            'chilcotin_scen1a_live_dead' = "1a", 
-                                            'chilcotin_scen1a_live_dead_10yrds' = "1a - r10",
+                                            #'chilcotin_scen1a_live_dead' = "1a", 
+                                            #'chilcotin_scen1a_live_dead_10yrds' = "1a - r10",
                                             'chilcotin_scen2a_live_dead' = "2a",
                                             'chilcotin_scen2a_live_dead_10yrds' = "2a - r10",
                                             'chilcotin_scen3a_live_dead' = "3a",
@@ -370,8 +370,8 @@ plot.disturb.buff <- ggplot (data.disturb.buff.itcha,
                   geom_line (position = position_dodge (width = 1), size = 1) + 
                   facet_grid (. ~scenario,
                               labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", 
-                                            'chilcotin_scen1a_live_dead' = "1a",
-                                            'chilcotin_scen1a_live_dead_10yrds' = "1a - r10",
+                                            #'chilcotin_scen1a_live_dead' = "1a",
+                                            #'chilcotin_scen1a_live_dead_10yrds' = "1a - r10",
                                             'chilcotin_scen2a_live_dead' = "2a",
                                             'chilcotin_scen2a_live_dead_10yrds' = "2a - r10",
                                             'chilcotin_scen3a_live_dead' = "3a",
@@ -408,7 +408,7 @@ ggsave (filename = "C:\\Work\\git\\clus\\reports\\scenarios\\images\\disturbance
         width = 9, 
         height = 6)
 
-ggsave (filename = "C:\\Work\\git\\clus\\reports\\scenarios\\images\\disturbance_itcha_buff500.jpg", 
+ggsave (filename = "C:\\Work\\git\\clus\\reports\\scenarios\\images\\disturbance_itcha_buff500_bau_2a_3a.jpg", 
         plot = plot.disturb.buff,
         dpi = 300,
         device = "jpeg",

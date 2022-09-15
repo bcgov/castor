@@ -53,24 +53,175 @@ See the License for the specific language governing permissions and limitations 
 Note: depending where your geometry column was located when saved as a csv (and turned into a dataframe), you may need to manually correct column headings on the csv file before loading back in. This has been performed for the below files.
 
 ```{r}
-dat_lightning<- read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Data_Lightning.csv")
+dat_lightning<- read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
+# to see which climate variables need to be included look at this table
+climate_variables_lightning<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")
 
-dat_lightning_t<- dat_lightning %>% filter(bclc__2=="T")
-head(dat_lightning_t)
+## Create empty vector
+dat_lightning$climate1<-"NA"
+head(dat_lightning)
 
-table(dat_lightning_t$vegtype)
-table(dat_lightning_t$bclcs_level_5_2)
+dat_lightning<-dat_lightning %>%
+    mutate(climate1 = case_when(
+                            frt == "5" ~ mean_Tave05_Tave06_Tave07_Tave08 ,
+                            frt == "7" ~ Tave07,
+                            frt == "9" ~ mean_Tave04_Tave05,
+                            frt == "10" ~ mean_Tave07_Tave08_Tave09 ,
+                            frt == "11" ~ mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08,
+                            frt == "12" ~ mean_Tmax07_Tmax08,
+                            frt == "13" ~ Tave07,
+                            frt == "14" ~ mean_Tave07_Tave08,
+                            frt == "15" ~ mean_Tave06_Tave07_Tave08 ,
+                            TRUE ~ NA_real_))
 
-dat_lightning_t$vegtype_density<-paste(dat_lightning_t$vegtype, dat_lightning_t$bclcs_level_5_2,sep="_")
+#Repeat for climate 2
+dat_lightning$climate2<-"NA"
 
-variables_all<-c("climate1","prj_h_1", "prj_g_1", "dm_h_bc", "vegtype", "bclcs_level_5_2", "vegtype_density") # ,
+dat_lightning <- dat_lightning %>%
+  mutate(climate2 = if_else(frt==5, mean_PPT05_PPT06_PPT07_PPT08,
+                            if_else(frt==10, mean_PPT07_PPT08_PPT09,
+                                    if_else(frt==13, as.numeric(PPT07),
+                                            if_else(frt==15, mean_PPT06_PPT07_PPT08, NA_real_)))))
+         
 
-Cols <- variables_all
-n <- length(Cols)
-id <- unlist(lapply(1:n, function(i)combn(1:n,i,simplify=FALSE)) ,recursive=FALSE)
-Formulas <- sapply(id,function(i) paste(Cols[i]))
+table(dat_lightning$FWI_veg)
+table(dat_lightning$bclcs_level_5)
 
-zones1<-c("9") #,"7","9","10","11","12","13","14","15") 
+dat_lightning<- write.csv(dat_lightning, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
+
+
+#dat5<-dat_lightning %>% filter(frt==5) %>%
+#  dplyr::select(fire, climate1, climate2, elevatn, FWI_veg)
+
+#tmp<-model.matrix(fire ~.^4, data=dat5)
+## FOR FRT 5, 10, 13 and 15 as they had two climate variables
+variables_all<-c("climate1", "climate2", "elevatn", "FWI_veg") # ,
+
+#######################################
+
+
+formulas <- list()
+for (i in seq_along(variables_all)) {
+  tmp <- combn(variables_all, i)
+  tmp2 <- apply(tmp, 2, paste, collapse="+")
+  #tmp <- paste0("Y~", tmp)
+  formulas[[i]] <- tmp2
+}
+
+formulas <- unlist(formulas)
+
+# for (i in 2) {
+#   tmp <- combn(variables_all, i)
+#   tmp3 <- paste0((apply(tmp, 2, paste, collapse="+")),"+",(apply(tmp, 2, paste, collapse=":")))
+# }
+# 
+# formulas2<-append(formulas,tmp3)
+# 
+# for (i in 3) {
+#   tmp3 <- combn(variables_all, i)
+#   tmp4<-apply(tmp3, 2, paste, collapse="+")
+# }
+# # 3 variables with one two-way
+# tmp <- combn(c("climate1","climate2", "elevatn"), 2)
+# tmp5 <- paste0((tmp4[1]),"+",
+#                  apply(tmp, 2, paste, collapse=":"))
+# formulas3<-append(formulas2,tmp5)
+# 
+# tmp <- combn(c("climate1","climate2", "FWI_veg"), 2)
+# tmp6 <- paste0((tmp4[2]),"+",
+#                  apply(tmp, 2, paste, collapse=":"))
+# formulas4<-append(formulas3,tmp6)
+# 
+# tmp <- combn(c("climate1","elevatn", "FWI_veg"), 2)
+# tmp7 <- paste0((tmp4[3]),"+",
+#                  apply(tmp, 2, paste, collapse=":"))
+# formulas5<-append(formulas4,tmp7)
+# 
+# tmp <- combn(c("climate2","elevatn", "FWI_veg"), 2)
+# tmp8 <- paste0((tmp4[4]),"+",
+#                  apply(tmp, 2, paste, collapse=":"))
+# formulas6<-append(formulas5,tmp8)
+# 
+# # three variables with two two-ways
+# tmp_a <- combn(c("climate1","climate2", "elevatn"), 2)
+# combinations_2way<-apply(tmp_a, 2, paste, collapse=":")
+# 
+# for (i in 1:length(combinations_2way)){
+#   for (j in 1:length(combinations_2way)){
+#     foo<- paste0(tmp4[1],"+",combinations_2way[i], "+", combinations_2way[j])
+#     formulas6<-if (i!=j) {append(formulas6,foo )} else {append(formulas6,NA)}
+#   }
+# }
+# 
+# tmp_a <- combn(c("climate1","climate2", "FWI_veg"), 2)
+# combinations_2way<-apply(tmp_a, 2, paste, collapse=":")
+# 
+# for (i in 1:length(combinations_2way)){
+#   for (j in 1:length(combinations_2way)){
+#     foo<- paste0(tmp4[2],"+",combinations_2way[i], "+", combinations_2way[j])
+#     formulas6<-if (i!=j) {append(formulas6,foo )} else {append(formulas6,NA)}
+#   }
+# }
+# 
+# tmp_a <- combn(c("climate1","elevatn", "FWI_veg"), 2)
+# combinations_2way<-apply(tmp_a, 2, paste, collapse=":")
+# 
+# for (i in 1:length(combinations_2way)){
+#   for (j in 1:length(combinations_2way)){
+#     foo<- paste0(tmp4[3],"+",combinations_2way[i], "+", combinations_2way[j])
+#     formulas6<-if (i!=j) {append(formulas6,foo )} else {append(formulas6,NA)}
+#   }
+# }
+# 
+# tmp_a <- combn(c("climate2","elevatn", "FWI_veg"), 2)
+# combinations_2way<-apply(tmp_a, 2, paste, collapse=":")
+# 
+# for (i in 1:length(combinations_2way)){
+#   for (j in 1:length(combinations_2way)){
+#     foo<- paste0(tmp4[3],"+",combinations_2way[i], "+", combinations_2way[j])
+#     formulas6<-if (i!=j) {append(formulas6,foo )} else {append(formulas6,NA)}
+#   }
+# }
+# 
+# 
+# # Get all two way combinations with all 4 variables and then stop!!
+# # one 2-way interaction
+# tmp3a <- combn(variables_all, 4)
+# tmp_a <- combn(c("climate1","climate2", "elevatn", "FWI_veg"), 2)
+# combinations_2way<-apply(tmp_a, 2, paste, collapse=":")
+# 
+# tmp9 <- paste0((apply(tmp3a, 2, paste, collapse="+")),"+",
+#                  apply(tmp_a, 2, paste, collapse=":"))
+# formulas7<-append(formulas6,tmp9)
+# 
+# # Two 2-way interactions
+# for (i in 1:length(combinations_2way)){
+#   for (j in 1:length(combinations_2way)){
+#     foo<- paste0((apply(tmp3a, 2, paste, collapse="+")),"+",combinations_2way[i], "+", combinations_2way[j])
+#     formulas7<-if (i!=j) {append(formulas7,foo )} else {append(formulas7,NA)}
+#   }
+# }
+# 
+# # Three 2-way interactions
+# 
+# for (i in 1:length(combinations_2way)){
+#   for (j in 1:length(combinations_2way)){
+#     for (k in 1:length(combinations_2way)){
+#     foo<- paste0((apply(tmp3a, 2, paste, collapse="+")),"+",combinations_2way[i], "+", combinations_2way[j], "+", combinations_2way[k])
+#     formulas7<-if (i!=j & i!=k & j!=k) {append(formulas7,foo )} else {append(formulas7,NA)}
+#     }
+#   }
+# }
+# 
+# formulas8 <- unlist(formulas7)
+# # remove NA values from list
+# formulas9 <- formulas8[!is.na(formulas8)]
+# duplicated(formulas9)
+
+##########################
+
+
+zones1<-c("5", "10", "13","15") #,"7","9","10","11","12","13","14","15") 
 
 prop<-0.75
 
@@ -78,19 +229,18 @@ prop<-0.75
 table.glm.climate.simple <- data.frame (matrix (ncol = 6, nrow = 0))
 colnames (table.glm.climate.simple) <- c ("model", "edf", "aic", "auc.valid", "FRT", "run")
 
-dat_lightning_t$fire_veg<-paste(dat_lightning_t$fire, dat_lightning_t$vegtype)
-
-dat_lightning_t<- dat_lightning_t %>% filter(vegtype!="D")
+dat_lightning$fire_veg<-paste(dat_lightning$fire, dat_lightning$FWI_veg)
 
 
 ########### 1. Climate and vegtype ############
-for (g in 1:50){
+for (g in 1:10){
     
     #for (i in 1: length(all.poss.mods.clim.vegtype2)){
     #  print(paste((all.poss.mods.clim.vegtype2[i]), (zones1[h]), sep=" "))
     
     for (i in 1: length(zones1)){
-      dat2<- dat_lightning_t %>% dplyr::filter(frt ==zones1[i])
+     # print(paste((formulas9[i]), (zones1[h]), sep=" --"))
+      dat2<- dat_lightning %>% dplyr::filter(frt ==zones1[i])
       # model_dat<- dat2 %>% dplyr::select(fire_pres, fire_veg, variables_all[i])
       model_dat<- dat2 %>% dplyr::select(fire, fire_veg, !!variables_all)
       # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
@@ -102,7 +252,7 @@ for (g in 1:50){
       Valid <- model_dat[-trainIndex,]
       
       big.mod <- function(mods.in, df.train, df.test, dep.var="fire") {
-        rhs <- paste(mods.in, collapse=" + ")
+        rhs <- mods.in
         form <- as.formula(paste(noquote(dep.var), " ~", rhs))
         mods.fit <- glm(form, family=binomial, data=df.train)
         mod.stuff <- summary(mods.fit)
@@ -114,7 +264,7 @@ for (g in 1:50){
         
       }
       
-      mods.fit <- lapply(Formulas, big.mod, df.train=dat1, df.test=Valid)
+      mods.fit <- lapply(formulas, big.mod, df.train=dat1, df.test=Valid)
       
       #terms in each model
       x1.1 <- unlist(sapply(mods.fit, '[', 1))
@@ -158,7 +308,151 @@ head(AIC_lightning_NDT1_t_ignitereed_summary_climate2)
 
 AIC_lightning_NDT1_t_ignitereed_summary_climate2[order(-AIC_lightning_NDT1_t_ignitereed_summary_climate2$meanAUC), ]
 
-write.csv(AIC_lightning_NDT1_t_ignitereed_summary_climate2, file="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Ignition_lightning_treed_model_results\\FRT_all_lightning_models_treed.csv")
+write.csv(AIC_lightning_NDT1_t_ignitereed_summary_climate2, file="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Ignition_lightning_results\\FRT_5_10_13_15_lightning_models.csv")
+
+```
+
+# for the other FRT's with only 1 climate variables
+```{r}
+variables_all<-c("climate1", "elevatn", "FWI_veg") # ,
+
+#######################################
+
+
+formulas <- list()
+for (i in seq_along(variables_all)) {
+  tmp <- combn(variables_all, i)
+  tmp2 <- apply(tmp, 2, paste, collapse="+")
+  #tmp <- paste0("Y~", tmp)
+  formulas[[i]] <- tmp2
+}
+
+for (i in 2) {
+  tmp <- combn(variables_all, i)
+  tmp3 <- paste0((apply(tmp, 2, paste, collapse="+")),"+",(apply(tmp, 2, paste, collapse=":")))
+}
+
+formulas2<-append(formulas,tmp3)
+
+for (i in 3) {
+  tmp3 <- combn(variables_all, i)
+  tmp4<-apply(tmp3, 2, paste, collapse="+")
+}
+# 3 variables with one two-way
+tmp <- combn(c("climate1", "elevatn", "FWI_veg"), 2)
+tmp5 <- paste0((tmp4[1]),"+",
+                 apply(tmp, 2, paste, collapse=":"))
+formulas3<-append(formulas2,tmp5)
+
+# three variables with two two-ways
+tmp_a <- combn(c("climate1","FWI_veg", "elevatn"), 2)
+combinations_2way<-apply(tmp_a, 2, paste, collapse=":")
+
+for (i in 1:length(combinations_2way)){
+  for (j in 1:length(combinations_2way)){
+    foo<- paste0(tmp4[1],"+",combinations_2way[i], "+", combinations_2way[j])
+    formulas3<-if (i!=j) {append(formulas3,foo )} else {append(formulas3,NA)}
+  }
+}
+
+formulas4 <- unlist(formulas3)
+# remove NA values from list
+formulas5 <- formulas4[!is.na(formulas4)]
+duplicated(formulas5)
+```
+
+# Now run the model
+
+```{r}
+zones1<-c("7", "9", "11","12","14") #,"7","9","10","11","12","13","14","15") 
+
+prop<-0.75
+
+#Create empty table
+table.glm.climate.simple <- data.frame (matrix (ncol = 6, nrow = 0))
+colnames (table.glm.climate.simple) <- c ("model", "edf", "aic", "auc.valid", "FRT", "run")
+
+dat_lightning$fire_veg<-paste(dat_lightning$fire, dat_lightning$FWI_veg)
+
+
+########### 1. Climate and vegtype ############
+for (g in 1:50){
+    
+    #for (i in 1: length(all.poss.mods.clim.vegtype2)){
+    #  print(paste((all.poss.mods.clim.vegtype2[i]), (zones1[h]), sep=" "))
+    
+    for (i in 1: length(zones1)){
+     # print(paste((formulas9[i]), (zones1[h]), sep=" --"))
+      dat2<- dat_lightning %>% dplyr::filter(frt ==zones1[i])
+      # model_dat<- dat2 %>% dplyr::select(fire_pres, fire_veg, variables_all[i])
+      model_dat<- dat2 %>% dplyr::select(fire, fire_veg, !!variables_all)
+      # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+      trainIndex <- createDataPartition(model_dat$fire_veg, p = prop,
+                                        list = FALSE,
+                                        times = 1)
+      
+      dat1 <- model_dat[ trainIndex,]
+      Valid <- model_dat[-trainIndex,]
+      
+      big.mod <- function(mods.in, df.train, df.test, dep.var="fire") {
+        rhs <- mods.in
+        form <- as.formula(paste(noquote(dep.var), " ~", rhs))
+        mods.fit <- glm(form, family=binomial, data=df.train)
+        mod.stuff <- summary(mods.fit)
+        mod.aic <- extractAIC(mods.fit)
+        mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
+        roc_obj <- roc(df.test[,dep.var], mod.valid, quiet=TRUE)
+        mod.auc <- auc(roc_obj)
+        return(list(rhs, mod.stuff, mod.aic, mod.auc))
+        
+      }
+      
+      mods.fit <- lapply(formulas5, big.mod, df.train=dat1, df.test=Valid)
+      
+      #terms in each model
+      x1.1 <- unlist(sapply(mods.fit, '[', 1))
+      x1.1
+      #Aic for models
+      x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
+      x3.1
+      #auc from validation data
+      x4.1 <- unlist(sapply(mods.fit, '[', 4))
+      x4.1
+      #combining all as df
+      tab.sum.climate <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
+      tab.sum.climate$FRT<-zones1[i]
+      tab.sum.climate$run<-g
+      tab.sum.climate 
+      
+      table.glm.climate.simple<-rbind(table.glm.climate.simple, tab.sum.climate)
+      
+       print(paste0("run = ", g, "     FRT = ", zones1[i]))
+      
+    }
+  }
+
+
+head(table.glm.climate.simple)
+table(table.glm.climate.simple$FRT, table.glm.climate.simple$run) # 100 per model
+
+AIC_lightning_NDT1_t_ignitereed_climate<-table.glm.climate.simple
+
+AIC_lightning_NDT1_t_ignitereed_summary_climate<- AIC_lightning_NDT1_t_ignitereed_climate %>%
+  group_by(FRT, model) %>%
+  summarise(meanAIC=mean(aic),
+            meanAUC=mean(auc.valid),
+            sdAUC=sd(auc.valid),
+  )
+
+AIC_lightning_NDT1_t_ignitereed_summary_climate2<- AIC_lightning_NDT1_t_ignitereed_summary_climate %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+head(AIC_lightning_NDT1_t_ignitereed_summary_climate2)
+
+AIC_lightning_NDT1_t_ignitereed_summary_climate2[order(-AIC_lightning_NDT1_t_ignitereed_summary_climate2$meanAUC), ]
+
+write.csv(AIC_lightning_NDT1_t_ignitereed_summary_climate2, file="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Ignition_lightning_results\\FRT_7_9_11_12_14_lightning_models.csv")
+
 
 ```
 

@@ -77,7 +77,7 @@ kable (climate_variables_lightning,
 ```
 For FRT 12 its mean_Tmax07_Tmax08
 
-# Now what is the top model for FRT 11?
+# Now what is the top model for FRT 13?
 
 ```{r, AIC table, echo = F, message = F, eval = T}
 Top_mod_set_lightning_treed<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Ignition_lightning_treed_model_results\\FRT_all_lightning_models_treed_top_set.csv")
@@ -96,8 +96,104 @@ kable (Top_mod_set_lightning_treed,
 ```
 climate1 + prj_h_1 + prj_g_1 + dm_h_bc + vegtype + bclcs_level_5_2	
 
+# First checking whether the missing values are random or whether there is some relationship i.e. whether some sites are more likely to have missing values than other sites.
 
-#Checking model fits for FRT 1
+```{r}
+dat<- dat_lightning_t %>% dplyr::filter(frt == 13)
+
+dat$test_vol<-if_else(is.na(dat$l___125),"yes_na","no_na")
+dat$test_height<-if_else(is.na(dat$prj_h_1),"yes_na","yes_na")
+
+ggplot(dat, aes(test_vol, climate1)) +
+  geom_boxplot()
+
+ggplot(dat, aes(test_vol, vegtype)) +
+  geom_boxplot()
+
+table(dat$test_vol, dat$vegtype, dat$fire)
+
+# it looks like most disturbed sites have no information about volume
+table(dat$test_vol, dat$vegtype, dat$fire)
+prop.fire<-c(1011/(19+1011), 62/(488+62), 4123/(4123+34734), 213/(213+1310), 184/(185), 5/(5+36), 520/(520+7503), 10/143)
+vegtype_na<-c("D_nofire", "TB_nofire", "TC_nofire", "TM_nofire", "D_fire", "TB_fire","TC_fire", "TM_fire")
+plot(as.factor(vegtype_na), prop.fire)
+
+#What about vegetation density and veg type
+dat$vegtype_density<-paste(dat$vegtype, dat$bclcs_level_5_2,sep="_") # could consider including
+table(dat$test_vol, dat$vegtype_density, dat$fire)
+
+
+```
+
+#### Quick asside to try Random forest instead of regression
+
+```{r}
+install.packages("caTools")       # For sampling the dataset
+install.packages("randomForest")  # For implementing random forest algorithm
+  
+# Loading package
+library(caTools)
+library(randomForest)
+
+# fill in values for missing data. Note: I tried this but it does not seem to be working properly
+set.seed(120)  # Setting seed
+dat2<- dat %>% dplyr::select(fire, climate1, prj_h_1, prj_g_1, l___125, dm_h_bc, vegtype, bclcs_level_5_2)
+dat2$vegtype<- as.factor(dat2$vegtype)
+dat2$bclcs_level_5_2<- as.factor(dat2$v)
+FRT13.imputed <- rfImpute(fire ~ climate1 + prj_h_1 + prj_g_1 + l___125 + dm_h_bc + vegtype + bclcs_level_5_2, dat2)
+
+# Splitting data in train and test data
+
+split<-sample(2, nrow(dat2), replace=TRUE, prob=c(0.7,0.3))
+  
+train <- dat2[split==1,]
+test <- dat2[split==2,]
+  
+# Fitting Random Forest to the train dataset
+set.seed(120)  # Setting seed
+
+classifier_RF = randomForest(fire ~ climate1 + prj_h_1 + prj_g_1 + l___125 + dm_h_bc + vegtype + bclcs_level_5_2,
+                             data=train, 
+                             importance=TRUE,
+                             proximity=TRUE,
+                             ntree = 2000,
+                             na.action = na.roughfix)
+classifier_RF
+plot(classifier_RF)
+importance(classifier_RF)
+varImpPlot(classifier_RF)
+partialPlot(classifier_RF, train, climate1)
+varUsed(classifier_RF, by.tree=FALSE, count=TRUE)
+
+dat2<- dat %>% dplyr::select(fire, Tmax02:MDC_11, mean_Tmax03_Tmax04:mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11)
+
+# Splitting data in train and test data
+
+split<-sample(2, nrow(dat2), replace=TRUE, prob=c(0.7,0.3))
+  
+train <- dat2[split==1,]
+test <- dat2[split==2,]
+  
+# Fitting Random Forest to the train dataset
+set.seed(120)  # Setting seed
+
+classifier_RF = randomForest(fire ~ .,
+                             data=train, 
+                             importance=TRUE,
+                             proximity=TRUE,
+                             ntree = 2000,
+                             na.action = na.roughfix)
+classifier_RF
+plot(classifier_RF)
+importance(classifier_RF)
+varImpPlot(classifier_RF)
+partialPlot(classifier_RF, train, climate1)
+varUsed(classifier_RF, by.tree=FALSE, count=TRUE)
+
+```
+
+
+#Checking model fits for FRT 13
 
 ```{r}
 dat<- dat_lightning_t %>% dplyr::select(fire_yr, ig_mnth, frt, fire, dm_h_bc, climate1, prj_h_1, prj_g_1, vegtype, bclcs_level_5_2)

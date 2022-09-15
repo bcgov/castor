@@ -29,17 +29,18 @@ defineModule (sim, list (
   parameters = rbind (
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter ("calculateInterval", "numeric", 1, 1, 5, "The simulation time at which survival rates are calculated"),
-    defineParameter ("nameRasSMCHerd", "character", "rast.smc_herd_habitat", NA, NA, "Name of the raster of the caribou subpopulation/herd habiat boundaries that is stored in the psql clusdb"), 
-    defineParameter ("tableSMCCoeffs", "character", "vat.smc_coeffs", NA, NA, "The look up table that contains the model coefficients to estimate abundance from disturbance, for each caribou subpopulation/herd.")
+    defineParameter ("nameRasSMCHerd", "character", "rast.smc_herd_habitat", NA, NA, "Name of the raster of the caribou subpopulation/herd habiat boundaries that is stored in the psql clusdb") 
+    #defineParameter ("tableSMCCoeffs", "character", "vat.smc_coeffs", NA, NA, "The look up table that contains the model coefficients to estimate abundance from disturbance, for each caribou subpopulation/herd.")
   ),
   inputObjects = bind_rows(
     expectsInput (objectName = "clusdb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the model. This module needs the age variable from the pixels table in the clusdb.', sourceURL = NA),
     expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
-    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
+    expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA),
+    expectsInput (objectName = "vatTable_smCoeffs", objectClass = "data.table", desc = "A data.table object.")
   ),
   outputObjects = bind_rows(
     createsOutput (objectName = "tableAbundanceReport", objectClass = "data.table", desc = "A data.table object. Consists of abundance and disturbance estimates for each subpopulation/herd in the study area at each time step. Gets saved in the 'outputs' folder of the module.")
-  )
+     )
 )
 )
 
@@ -81,9 +82,9 @@ Init <- function (sim) {
     herd_hab [, herd_habitat := as.integer (herd_habitat)] 
     herd_hab [, pixelid := seq_len(.N)] 
     
-    vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableSMCCoeffs))) 
+    #sim$vat_table_smCoeffs <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableSMCCoeffs))) #I changed this to a sim object instead of calling the database(postgres) through out the simulation
     
-    herd_hab <- merge (herd_hab, vat_table, by.x = "herd_habitat", by.y = "value", all.x = TRUE) 
+    herd_hab <- merge (herd_hab, sim$vat_table_smCoeffs, by.x = "herd_habitat", by.y = "value", all.x = TRUE) 
     #herd_hab [, herd_habitat := NULL] # drop the integer value 
     #colnames(herd_habitat) <- c("pixelid", "herd_habitat") 
     herd_hab <- herd_hab [, .(pixelid, herd_name, bc_habitat_type, herd_hab_name)]
@@ -110,8 +111,8 @@ Init <- function (sim) {
   table.disturb <- dcast(table.disturb, # reshape the table 
                          subpop_name ~ habitat_type, 
                          value.var="percent_disturb")
-  vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableSMCCoeffs))) 
-  coeffs <- unique(vat_table, by = "herd_name")
+  #sim$vat_table_smCoeffs <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableSMCCoeffs))) 
+  coeffs <- unique(vat_table_smCoeffs, by = "herd_name")
   coeffs <- coeffs [, c ("bc_habitat_type", "herd_hab_name", "value") := NULL]
   table.disturb <- merge (table.disturb , coeffs, by.x = "subpop_name", by.y = "herd_name", all.x = TRUE) # add coeffs
   
@@ -121,7 +122,7 @@ Init <- function (sim) {
   table.disturb [, abundance_avg := (abundance_r50 + abundance_c80r50 + abundance_c80)/3]
   sim$tableAbundanceReport <- table.disturb 
   sim$tableAbundanceReport [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the survival calc
-  
+  sim$tableAbundanceReport <-sim$tableAbundanceReport [,c("scenario", "subpop_name", "area", "core", "matrix", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")]
   return(invisible(sim))
 }
 
@@ -133,8 +134,7 @@ predictAbundance <- function (sim) { # this function calculates survival rate at
   new_tableAbundanceReport <- dcast(new_tableAbundanceReport, # reshape the table 
                                      subpop_name ~ habitat_type, 
                                      value.var="percent_disturb")
-  vat_table <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableSMCCoeffs)))
-  coeffs <- unique(vat_table, by = "herd_name")
+  coeffs <- unique(sim$vat_table_smCoeffs, by = "herd_name")
   coeffs <- coeffs [, c ("bc_habitat_type", "herd_hab_name", "value") := NULL]
   new_tableAbundanceReport <- merge (new_tableAbundanceReport , coeffs, by.x = "subpop_name", by.y = "herd_name", all.x = TRUE) # add coeffs
   
@@ -144,7 +144,7 @@ predictAbundance <- function (sim) { # this function calculates survival rate at
   new_tableAbundanceReport [, abundance_avg := (abundance_r50 + abundance_c80r50 + abundance_c80)/3]
   new_tableAbundanceReport [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
   
-  sim$tableAbundanceReport <- rbindlist (list(sim$tableAbundanceReport, new_tableAbundanceReport)) # bind the new survival rate table to the existing table
+  sim$tableAbundanceReport <- rbindlist (list(sim$tableAbundanceReport, new_tableAbundanceReport[,c("scenario", "subpop_name", "area", "core", "matrix", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")])) # bind the new survival rate table to the existing table
   rm (new_tableAbundanceReport) # is this necessary? -- frees up memory
   return (invisible(sim))
 }
@@ -160,5 +160,7 @@ adjustAbundanceTable <- function (sim) { # this function adds the total area of 
   #cacheTags <- c(currentModule(sim), "function:.inputObjects") ## uncomment this if Cache is being used
   dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
+  
+  vatTable_smCoeffs<- data.table()
   return(invisible(sim))
 }

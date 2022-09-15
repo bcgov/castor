@@ -69,10 +69,10 @@ We then also used a different subset of non-fire locations from the initial prun
 Note: Some climate variables resulted in delta AIC values that were very similar and had much less than 2 points difference. Also, the variable with the smallest AIC value did not always have the best AUC value. Regardless of these two issues, we decided to take the climate variable with the smallest average AIC for simplicity. Results will be loaded in for each AIC table. These files were manipulated manually and then saved on to the drive before being uploaded (i.e., it is a simplified table from that generated in the last file, 06_ignition_climate_variable_selection; code for uploading not included prior).
 
 
-```{r, AIC table, echo = F, message = F, eval = T}
+```{r eval=, message=FALSE, AIC table, echo=F}
 
-climate_variables_lightning<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/Final_Selected_Climate_Variables_Lightning_FRT.csv")
-climate_variables_person<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/Final_Selected_Climate_Variables_Person_FRT.csv")
+climate_variables_lightning<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")
+climate_variables_person<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
 
 head(climate_variables_lightning) 
 head(climate_variables_person) 
@@ -101,8 +101,6 @@ kable (climate_variables_person,
 
 ```{r}
 dat_lightning<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
-which(dat_lightning$prj_g_1 <16) # checking that I still have young forests
-
 
 # connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
 #                       host = key_get('dbhost', keyring = 'postgreSQL'),
@@ -121,7 +119,6 @@ head(dat_lightning)
 
 ```{r}
 dat_person<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_human_for_analysis.csv")
-which(dat_person$prj_g_1 <16) # checking that I still have young 
 
 # connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
 #                       host = key_get('dbhost', keyring = 'postgreSQL'),
@@ -132,71 +129,6 @@ which(dat_person$prj_g_1 <16) # checking that I still have young
 # dat_person_ <- sf::st_read  (dsn = connKyle, # connKyle
 #                                query = "SELECT * FROM Data_Person")
 # dbDisconnect (connKyle)
-
-head(dat_person)
-
-```
-
-### maybe dont do this next part because as we see later not all locations that are assumed to be disturbed are
-
-When doing the below analyses, it was noticed that disturbed areas often get eliminated when NAs are removed from the final data used for the model. Here, we investigate what variables are missing.
-
-```{r}
-dat_Disturbed<-subset(dat_lightning, dat_lightning$vegtype=="D")
-head(dat_Disturbed)
-dat_Disturbed$l___125 # l___125  must be live stand volume 125
-table(dat_Disturbed$l___125)## We see that live_stand_volume does not exist for most disturbed sites (and when it does, it is 0 or at a few sites 1 or 2. As a result Im going to change all the NA values to zero). I hope this is an ok assumption.
-
-dat_Disturbed$l___125[is.na(dat_Disturbed$l___125)]<-0
-dat_lightning2<-subset(dat_lightning, dat_lightning$vegtype!="D")
-dat_lightning3<-rbind(dat_lightning2, dat_Disturbed)
-dim(dat_lightning3)
-which(dat_lightning3$prj_g_1 <16)
-
-hist(dat_Disturbed$prj_g_1) #prj_g_1 must be proj_age_1 #All under 15 years, as expected given the classification of disturbed if below 15 years
-table(dat_Disturbed$prj_g_1)
-
-hist(dat_Disturbed$prj_h_1) # prj_h_1 must be proj_height_1. Mostly all 0-5 m, a small number ~7 m. There are no NA's
-table(dat_Disturbed$prj_h_1)
-table(is.na(dat_Disturbed$prj_h_1))
-
-#open locations have little data for age, volume and height.
-dat_Disturbed<-subset(dat_lightning, dat_lightning$vegtype=="OP")
-head(dat_Disturbed)
-table(is.na(dat_Disturbed$l___125)) # live stand volume 125: most locations have an NA. 6708 have NA and 1111 have a value. 
-hist(dat_Disturbed$l___125)
-table(is.na(dat_Disturbed$prj_g_1))
-table(is.na(dat_Disturbed$prj_h_1))
-
-
-# shrubs also seem to be missing more than half the data for volume, height and age
-dat_Disturbed<-subset(dat_lightning, dat_lightning$vegtype=="S")
-table(is.na(dat_Disturbed$l___125)) # live stand volume 125: most locations have an NA. 6708 have NA and 1111 have a value. 
-hist(dat_Disturbed$l___125)
-table(is.na(dat_Disturbed$prj_g_1))
-table(is.na(dat_Disturbed$prj_h_1))
-
-# TB not missing much data for volume, height and age 3004 locations have data and 197 do not
-dat_Disturbed<-subset(dat_lightning, dat_lightning$vegtype=="TB")
-table(is.na(dat_Disturbed$l___125))  
-hist(dat_Disturbed$l___125)
-table(is.na(dat_Disturbed$prj_g_1)) # its better even for age and height (55 locations missing data)
-table(is.na(dat_Disturbed$prj_h_1))
-
-
-# TC not missing much data for volume, height and age 3004 locations have data and 197 do not
-dat_Disturbed<-subset(dat_lightning, dat_lightning$vegtype=="TC")
-table(is.na(dat_Disturbed$l___125)) # hmm this is a little worrying 9128 locations have NA values
-hist(dat_Disturbed$l___125)
-table(is.na(dat_Disturbed$prj_g_1)) # its better  for age and height (1786 locations missing data)
-table(is.na(dat_Disturbed$prj_h_1))
-
-# TM not missing much data for volume, height and age 3004 locations have data and 197 do not
-dat_Disturbed<-subset(dat_lightning, dat_lightning$vegtype=="TM")
-table(is.na(dat_Disturbed$l___125)) # hmm 509 locations have NA values
-hist(dat_Disturbed$l___125)
-table(is.na(dat_Disturbed$prj_g_1)) # its better  for age and height (81 locations missing data)
-table(is.na(dat_Disturbed$prj_h_1))
 
 ```
 
@@ -212,9 +144,6 @@ unique(dat_lightning$frt)
 dat_lightning$frt<-as.numeric(dat_lightning$frt)
 
 table(dat_lightning$frt)
-
-frt10<-dat_lightning %>% filter(frt=="10")
-
 
 ## Create empty vector
 dat_lightning$climate1<-"NA"
@@ -234,57 +163,47 @@ head(dat_lightning)
 # make sure value are numbers otherwise it seems to not work.
 #dat_lightning$PPT09<-as.numeric(dat_lightning$PPT09)
 dat_lightning<-dat_lightning %>%
-    mutate(climate1 = case_when(frt =="3" ~ mean_Tave07_Tave08,
-                            frt == "5" ~ mean_PPT05_PPT06_PPT07,
-                            frt == "7" ~ mean_RH06_RH07,
-                            frt == "9" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9,
-                            frt == "10" ~ Tave08,
-                            frt == "11" ~ mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave9,
+    mutate(climate1 = case_when(
+                            frt == "5" ~ mean_Tave05_Tave06_Tave07_Tave08 ,
+                            frt == "7" ~ Tave07,
+                            frt == "9" ~ mean_Tave04_Tave05,
+                            frt == "10" ~ mean_Tave07_Tave08_Tave09 ,
+                            frt == "11" ~ mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08,
                             frt == "12" ~ mean_Tmax07_Tmax08,
-                            frt == "13" ~ mean_Tave07_Tave08,
-                            frt == "14" ~ Tave08,
-                            frt == "15" ~ mean_RH07_RH08,
+                            frt == "13" ~ Tave07,
+                            frt == "14" ~ mean_Tave07_Tave08,
+                            frt == "15" ~ mean_Tave06_Tave07_Tave08 ,
                             TRUE ~ NA_real_))
 
 #Repeat for climate 2
-# dat_lightning$climate2<-"NA"
+dat_lightning$climate2<-"NA"
 # # 
+
+dat_lightning <- dat_lightning %>%
+  mutate(climate2 = if_else(frt==5, mean_PPT05_PPT06_PPT07_PPT08,
+                            if_else(frt==10, mean_PPT07_PPT08_PPT09,
+                                    if_else(frt==13, as.numeric(PPT07),
+                                            if_else(frt==15, mean_PPT06_PPT07_PPT08, NA_real_)))))
+                            
 # # #Perform mutate to get the applicable variable for each row
-# dat_lightning<-dat_lightning %>% 
-#   mutate(climate2 = case_when(#frt == "10" ~ PPT07,
-#                               frt == "11" ~ PPT08))
+ dat_lightning<-dat_lightning %>% 
+   mutate(climate2 = case_when(frt == "5" ~ mean_PPT05_PPT06_PPT07_PPT08,
+                               frt == "10" ~ mean_PPT07_PPT08_PPT09,
+                               frt == "13" ~ as.numeric(PPT07),
+                               frt == "15" ~ mean_PPT06_PPT07_PPT08,
+                               TRUE ~ NA_real_))
 
 head(dat_lightning)
 
 ##Change vegtype to factor
-dat_lightning$vegtype<-as.factor(dat_lightning$vegtype)
+dat_lightning$FWI_veg<-as.factor(dat_lightning$FWI_veg)
 
 #create new column
-dat_lightning$fire_veg<-paste(dat_lightning$fire, dat_lightning$vegtype)
+dat_lightning$FWI_veg<-paste(dat_lightning$fire, dat_lightning$FWI_veg)
 
 ```
 
 Repeat for person-caused fires.
-
-```{r}
-dat_Disturbed<-subset(dat_person, dat_person$vegtype=="D")
-head(dat_Disturbed)
-dat_Disturbed$l___125 # l___125  must be live stand volume 125
-table(dat_Disturbed$l___125)## We see that live_stand_volume does not exist for most disturbed sites (and when it does, it is 0 or at a few sites 1 or 2. As a result Im going to change all the NA values to zero). I hope this is an ok assumption.
-
-dat_Disturbed$l___125[is.na(dat_Disturbed$l___125)]<-0
-dat_person2<-subset(dat_person, dat_person$vegtype!="D")
-dat_person3<-rbind(dat_person2, dat_Disturbed)
-dim(dat_person3)
-
-hist(dat_Disturbed$prj_g_1) #prj_g_1 must be proj_age_1 #All under 15 years, as expected given the classification of disturbed if below 15 years
-table(dat_Disturbed$prj_g_1)
-
-hist(dat_Disturbed$prj_h_1) # prj_h_1 must be proj_height_1. Mostly all 0-5 m, a small number ~7 m. There are no NA's
-table(dat_Disturbed$prj_h_1)
-table(is.na(dat_Disturbed$prj_h_1))
-
-```
 
 
 ```{r}
@@ -292,45 +211,35 @@ table(is.na(dat_Disturbed$prj_h_1))
 climate_variables_person
 names(dat_person)
 unique(dat_person$frt)
-dat_person3$frt<-as.numeric(dat_person3$frt)
-table(dat_person3$frt)
 
 ## Create empty vector
 dat_person$climate1<-"NA"
 head(dat_person)
 
-dat_person$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- ( dat_person$Tmax04 + dat_person$Tmax05 + dat_person$Tmax06 + dat_person$Tmax07+ dat_person$Tmax08 + dat_person$Tmax09 + dat_person$Tmax10)/7
-
-dat_person$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<- ( dat_person$Tave04 + dat_person$Tave05 + dat_person$Tave06 + dat_person$Tave07+ dat_person$Tave08 + dat_person$Tave09 + dat_person$Tave10)/7
-
-dat_person$mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10<- ( dat_person$PPT04 + dat_person$PPT05 + dat_person$PPT06 + dat_person$PPT07+ dat_person$PPT08 + dat_person$PPT09 + dat_person$PPT10)/7
-
-dat_person$mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<- (dat_person$Tave05 + dat_person$Tave06 + dat_person$Tave07+ dat_person$Tave08 + dat_person$Tave09 + dat_person$Tave10)/6
-
-dat_person$mean_Tave06_Tave07_Tave08_Tave09_Tave10<- ( dat_person$Tave06 + dat_person$Tave07+ dat_person$Tave08 + dat_person$Tave09 + dat_person$Tave10)/5
-
-dat_person$mean_Tave08_Tave09_Tave10<- (dat_person$Tave08+ dat_person$Tave09 + dat_person$Tave10)/3
-
 dat_person<-dat_person %>%
-    mutate(climate1 = case_when(frt == "3" ~ mean_RH05_RH06_RH07,
+    mutate(climate1 = case_when(
                                 frt == "5" ~ mean_PPT06_PPT07,
-                                frt == "7" ~ mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10,
-                                frt == "9" ~ mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10, # NDT4
-                                frt == "10" ~ mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10,
-                                frt == "11" ~ mean_Tave08_Tave09_Tave10,
-                                frt == "12" ~ mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10,
-                                frt == "13" ~ mean_Tave06_Tave07_Tave08_Tave09_Tave10,
-                                frt == "14" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10,
-                                frt == "15" ~ mean_Tmax07_Tmax08_Tmax09))
+                                frt == "7" ~ mean_Tave05_Tave06_Tave07_Tave08,
+                                frt == "9" ~ mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09, # NDT4
+                                frt == "10" ~ mean_Tave07_Tave08_Tave09,
+                                frt == "11" ~ mean_Tave08_Tave09,
+                                frt == "12" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9,
+                                frt == "13" ~ mean_Tave07_Tave08_Tave09,
+                                frt == "14" ~ mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09,
+                                frt == "15" ~ mean_Tave07_Tave08_Tave09,
+                               TRUE ~ NA_real_))
 
 # #Repeat for climate 2
-# dat_person$climate2<-"NA"
+ dat_person$climate2<-"NA"
 # 
 # #Perform mutate to get the applicable variable for each row
-# dat_person<-dat_person %>%
-#     mutate(climate2 = case_when(
-#                                 frt == "9" ~ PPT05,
-#                                 frt == "15" ~ PPT08))
+dat_person<-dat_person %>%
+    mutate(climate2 = case_when(
+                                frt == "7" ~ mean_PPT05_PPT06_PPT07_PPT08,
+                                frt == "10" ~ mean_PPT07_PPT08_PPT09,
+                                frt == "13" ~ mean_PPT07_PPT08_PPT09,
+                                frt == "15" ~ mean_PPT07_PPT08_PPT09,
+                               TRUE ~ NA_real_))
 
 head(dat_person)
 
