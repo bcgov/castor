@@ -82,7 +82,74 @@ Init <- function (sim) {
     herd_hab [, herd_habitat := as.integer (herd_habitat)] 
     herd_hab [, pixelid := seq_len(.N)] 
     
-    #sim$vat_table_smCoeffs <- data.table(getTableQuery(paste0("SELECT * FROM ", P(sim)$tableSMCCoeffs))) #I changed this to a sim object instead of calling the database(postgres) through out the simulation
+    # table with the regression model coefficeints
+    sim$vat_table_smCoeffs <- data.table (herd_name = c ("Barkerville", "Barkerville", "Burnt_Pine", "Graham", "Graham", "Groundhog", "Groundhog", "Moberly", "Moberly", "Monashee", "Monashee", "Narraway", "Burnt_Pine", "Central_Rockies", "Central_Rockies", "Narraway", "Quintette", "Quintette", "Rainbows", "Rainbows", "Telkwa", "Telkwa", "Tweedsmuir", "Tweedsmuir", "Narrow_Lake", "Narrow_Lake", "Itcha_Ilgachuz", "Itcha_Ilgachuz", "Central_Selkirks", "Central_Selkirks", "Charlotte_Alplands", "Charlotte_Alplands", "Columbia_North", "Columbia_North", "Columbia_South", "Columbia_South", "Frisby_Boulder", "Frisby_Boulder", "Hart_Ranges", "Hart_Ranges", "Kennedy_Siding", "Kennedy_Siding", "North_Cariboo", "North_Cariboo", "Purcell_Central", "Purcell_Central", "Purcells_South", "Purcells_South", "South_Selkirks", "South_Selkirks", "Wells_Gray_North", "Wells_Gray_North", "Wells_Gray_South", "Wells_Gray_South", "Redrock_Prairie_Creek", "Redrock_Prairie_Creek"),
+                                          bc_habitat_type = c ("core","matrix","core","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","matrix","core","core","matrix","core","matrix","core","matrix","core","matrix","core", "matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix"),
+                                          
+                                          herd_hab_name = c (
+                                          "Barkerville Core"
+                                          "Barkerville Matrix"
+                                          "Burnt_Pine Core"
+                                          "Graham Core"
+                                          Graham Matrix
+                                          Groundhog Core
+                                          Groundhog Matrix
+                                          Moberly Core
+                                          Moberly Matrix
+                                          Monashee Core
+                                          Monashee Matrix
+                                          Narraway Core
+                                          Burnt_Pine Matrix
+                                          Central_Rockies Core
+                                          Central_Rockies Matrix
+                                          Narraway Matrix
+                                          Quintette Core
+                                          Quintette Matrix
+                                          Rainbows Core
+                                          Rainbows Matrix
+                                          Telkwa Core
+                                          Telkwa Matrix
+                                          Tweedsmuir Core
+                                          Tweedsmuir Matrix
+                                          Narrow_Lake Core
+                                          Narrow_Lake Matrix
+                                          Itcha_Ilgachuz Core
+                                          Itcha_Ilgachuz Matrix
+                                          Central_Selkirks Core
+                                          Central_Selkirks Matrix
+                                          Charlotte_Alplands Core
+                                          Charlotte_Alplands Matrix
+                                          Columbia_North Matrix
+                                          Columbia_North Core
+                                          Columbia_South Core
+                                          Columbia_South Matrix
+                                          Frisby_Boulder Core
+                                          Frisby_Boulder Matrix
+                                          Hart_Ranges Core
+                                          Hart_Ranges Matrix
+                                          Kennedy_Siding Core
+                                          Kennedy_Siding Matrix
+                                          North_Cariboo Core
+                                          North_Cariboo Matrix
+                                          Purcell_Central Core
+                                          Purcell_Central Matrix
+                                          Purcells_South Core
+                                          Purcells_South Matrix
+                                          South_Selkirks Core
+                                          South_Selkirks Matrix
+                                          Wells_Gray_North Core
+                                          "Wells_Gray_North Matrix"
+                                          "Wells_Gray_South Core"
+                                          "Wells_Gray_South Matrix"
+                                          "Redrock_Prairie_Creek Core"
+                                          "Redrock_Prairie_Creek Matrix"),
+                                          
+    
+    )
+    
+    
+    
+    
     
     herd_hab <- merge (herd_hab, sim$vat_table_smCoeffs, by.x = "herd_habitat", by.y = "value", all.x = TRUE) 
     #herd_hab [, herd_habitat := NULL] # drop the integer value 
