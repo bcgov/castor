@@ -134,6 +134,7 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
 
 interpolatehabitat = {
       
+  # develop this in newer version?
       # need some functions here to interpolate habitat degradation/improvement over the forestry simulation interval (five years)
       # the reproduce, etc. functions should happen annually, but the forestry sim interval will likely be > 1 year
       # we don't want to take the habitat at the start or end of the interval to estimate reproduction, etc.
@@ -183,6 +184,7 @@ interpolatehabitat = {
       sim <- scheduleEvent (sim, time(sim), "fisherabmCLUS", "survive", 23)   
       # ! ----- STOP EDITING ----- ! #
     },
+    
     survive = {
       # ! ----- EDIT BELOW ----- ! #
       # do stuff for this event
@@ -269,14 +271,16 @@ Init <- function(sim) {
   table.hab [mov_p > 0 & age > 0 & crownclosure >= 40, movement:=1]
   table.hab <- table.hab [, .(pixelid, fisher_pop, den_p, denning, rus_p, rust, cav_p, cavity, 
                               cwd_p, cwd, mov_p, movement)] # could add other things, openness, crown closure, cost surface?
-  sim$table.hab <- table.hab
-
-message ("Create agents table and assign values...")
+  
+  message ("Create agents table and assign values...")
   # assign agents to denning pixels
     # systematic method
       # this provides a 'buffer' between pixels to allow some space for fisher to form an HR; 
       # if they are too close then it forms fewer HRs
     den.pix <- as.data.table (table.hab [denning == 1 & !is.na (fisher_pop), pixelid])
+    den.rast <- aoi
+    den.rast [table.hab$pixelid] <- table.hab$denning
+    sim$den.rast <- den.rast
     den.pix.sample <- den.pix [seq (1, nrow (den.pix), 50), ] # grab every ~50th pixel; ~1 pixel every 5km
     ids <- seq (from = 1, to = nrow (den.pix.sample), by = 1)
     agents <- data.table (individual_id = ids,
@@ -319,6 +323,7 @@ message ("Create agents table and assign values...")
   table.hab [is.na (spreadprob), spreadprob := format (round (0.18, 2), 2)] # I tested different numbers
                                                                             # 18% resulted in the mean proportion of home ranges consisting of denning, resting or movement habitat as 55%; 19 was 49%; 17 was 59%; 20 was 47%; 15 was 66%
                                                                             # Caution: this parameter may be area-specific and may need to be and need to be 'tuned' for each AOI
+  sim$table.hab <- table.hab
   # if non-habitat spreadprob
   spread.rast <- sim$pix.rast
   spread.rast [table.hab$pixelid] <- table.hab$spreadprob
@@ -656,8 +661,8 @@ dispersal <- function (sim) {
 
   message ("Fisher dispersal.")
   
-  # get the dispersers; age 1 y.o. fishers
-  dispersers <- as.data.table (dbGetQuery (sim$clusdb, "SELECT * FROM agents WHERE age = 1 AND d2_score IS NULL")) # grab the agents at age of dispersal; use d2_score criteria as secondary check? OR have thove with a d2_Score > than a threhold disperse as well?
+  # get the dispersers; fishers withou a territory, as indicated by no d2 score
+  dispersers <- as.data.table (dbGetQuery (sim$clusdb, "SELECT * FROM agents WHERE d2_score IS NULL")) # grab the agents that dont; have a home range; d2_score criteria as secondary check? OR have thove with a d2_Score > than a threhold disperse as well?
   # re-set the HR size, d2 score and fisher_pop
   dispersers <- dispersers [, hr_size := NA]
   dispersers <- dispersers [, d2_score := NA]
@@ -707,39 +712,49 @@ dispersal <- function (sim) {
     # the next steps target denning habitat, but can be adjusted to include all habitat
     target.rast <- sim$den.rast * tmp.ind.disp.rast
     
-    # convert raster to polygon and start at centre of largest poly
+    # what if den habitat not found?
+    if (1 > as.integer (minmax(target.rast)[2,])) { # if there is no dennign habitat 
+      
+      
+      # need to disperse again
+      # add it back to the agents table without a hr size or d2 score
+      
+      
+    } else {
+      
+      # convert raster to polygon and start at centre of largest poly
       # not that this approach focuses on all habitat; we may want to prioritize den habitat?
-    target.polys <- terra::as.polygons (terra::patches (target.rast, # this function identifies contiguous polygons 
-                                                        directions = 8, # queen's case for neighbouring cells
-                                                        zeroAsNA = T)) 
-    # add id and area to data
-    target.polys$fid <- 1:nrow (target.polys)
-    target.polys$area_ha <- expanse (target.polys, unit = "ha")
-    # get the largest polygon
-    max.poly <- target.polys [which.max (target.polys$area_ha),]
-    # select a random point in that polygon
-    start.pnt <- terra::spatSample (max.poly,
-                                    size = 1,
-                                    method = "random")
-    # get the raster pixel id
-    target.pix <- extract (terra::rast (sim$pix.rast), 
-                           start.pnt, 
-                           method = "simple"
-                           )    
-    # make that raster pixel the dispersers pixelid
-    dispersers <- dispersers [pixelid == i, pixelid := target.pix$layer]
-    
-    # update the fisher pop
-    tmp.pop <- sim$table.hab [pixelid == target.pix$layer, fisher_pop]
-    dispersers <- dispersers [pixelid == target.pix$layer, fisher_pop := tmp.pop]
-    
-    # neighborhood method; calc sum of habitat raters in a 'neighborhood' (territory)
-      # this is waaaaaay too slow
-      # habitat.area <- terra::focal (tmp.ind.disp.pix, # pixel raster
-      #                               w = 399, # w = search area radius = 399 pixels = 5,000km2
-      #                               fun = sum, # sum the pixel values
-      #                               na.rm = TRUE # ignore NA values
-      #                               ) 
+      target.polys <- terra::as.polygons (terra::patches (target.rast, # this function identifies contiguous polygons 
+                                                          directions = 8, # queen's case for neighbouring cells
+                                                          zeroAsNA = T)) 
+      # add id and area to data
+      target.polys$fid <- 1:nrow (target.polys)
+      target.polys$area_ha <- expanse (target.polys, unit = "ha")
+      
+      
+      # could also identify ploys that achieve a minimum site size and select random
+      # store the dispersal starts?
+      
+      # get the largest polygon
+      max.poly <- target.polys [which.max (target.polys$area_ha),]
+      # select a random point in that polygon
+      start.pnt <- terra::spatSample (max.poly,
+                                      size = 1,
+                                      method = "random")
+      # get the raster pixel id
+      target.pix <- extract (terra::rast (sim$pix.rast), 
+                             start.pnt, 
+                             method = "simple"
+      )    
+      # make that raster pixel the dispersers pixelid
+      dispersers <- dispersers [pixelid == i, pixelid := target.pix$layer]
+      
+      # update the fisher pop
+      tmp.pop <- sim$table.hab [pixelid == target.pix$layer, fisher_pop]
+      dispersers <- dispersers [pixelid == target.pix$layer, fisher_pop := tmp.pop]
+      
+    }
+
   }
   
   # create new HR's
@@ -776,6 +791,10 @@ dispersal <- function (sim) {
       # if it achieves its home range size and minimum habitat targets 
       # do nothing; we need to check if it meets min. habitat criteria (see below)
     } else {
+      
+      # instead of deleting, save them as agents without a d2score
+      
+      
       # delete the individual from the dispersers table
       dispersers <- dispersers [individual_id != i]
     } 

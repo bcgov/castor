@@ -11,12 +11,36 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## TODO: use 'eval = TRUE'
+
+
+
+
+
+
 ```
 
 # Overview
 
 This is an agent based model (ABM) to simulate fisher life history on a landscape. 
 For help writing in R Markdown, see https://rmarkdown.rstudio.com/.
+
+```{r some code to acces the sqlite db}
+# needs teh DBI pachake
+library (DBI)
+
+# connect to the db
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"))
+
+# show tables in the db
+dbListTables (clusdb)
+
+# select all contents in a table, e.g., agents
+table <- as.data.table (dbGetQuery (clusdb, "SELECT * FROM pixels"))
+
+
+```
+
+
 
 # Usage
 
