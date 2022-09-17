@@ -86,7 +86,7 @@ Init <- function(sim) {
     }
     
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "aoiName", "uploaderCLUS"), ".scenarios where scenario = '", sim$scenario$name, "';"))
-    dbExecute(connx, paste0("INSERT INTO ",P(sim, "aoiName", "uploaderCLUS"), ".scenarios (scenario, description) values ('", sim$scenario$name,"', '", sim$scenario$description, "');"))
+    dbExecute(connx, paste0("INSERT INTO ",P(sim, "aoiName", "uploaderCLUS"), ".scenarios (scenario, description, rank) values ('", sim$scenario$name,"', '", sim$scenario$description, "', 0);"))
     
     sim$zoneManagement
     if(!is.null(sim$zoneManagement)){
@@ -112,7 +112,7 @@ Init <- function(sim) {
     #Create the tables
     tableList = list(state = data.table(aoi=character(), compartment=character(), total= integer(), thlb= numeric(), early= integer(), mature= integer(), old= integer(), road = integer()),
 
-                    scenarios = data.table(scenario =character(), description= character()), 
+                    scenarios = data.table(scenario =character(), description= character(), rank = integer()), 
                     harvest = data.table(scenario = character(), timeperiod = integer(), compartment = character(), target= numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric()), # , harvest_type = character()
                     growingstock = data.table(scenario = character(), compartment = character(), timeperiod = integer(), gs = numeric(), m_gs = numeric(), m_dec_gs = numeric()), 
 
@@ -120,14 +120,9 @@ Init <- function(sim) {
 
                     survival = data.table(scenario = character(), compartment = character(), timeperiod = integer(), herd_bounds = character() , prop_age = numeric(), prop_mature = numeric(), prop_old = numeric(), survival_rate= numeric(), area = integer()),
                     grizzly_survival = data.table(scenario = character(), compartment = character(), timeperiod = integer(), gbpu_name = character(), total_roaded = numeric(), road_density = numeric(), survival_rate= numeric(), total_area = integer()),
-                    caribou_abundance = data.table(scenario = character(), compartment = character(), timeperiod = integer(), subpop_name = character(), Core = numeric(), Matrix = numeric(), 
-                                                   r50fe_int = numeric(), r50fe_core = numeric(), r50fe_matrix = numeric(),
-                                                   c80r50fe_int = numeric(), c80r50fe_core = numeric(), c80r50fe_matrix = numeric(),
-                                                   c80fe_int = numeric(), c80fe_core = numeric(), c80fe_matrix = numeric(),
-                                                   r50re_int = numeric(), r50re_core = numeric(), r50re_matrix = numeric(),
-                                                   c80r50re_int = numeric(), c80r50re_core = numeric(), c80r50re_matrix = numeric(),
-                                                   c80re_int = numeric(), c80re_core = numeric(), c80re_matrix = numeric(),
-                                                   area = integer()),
+                    caribou_abundance = data.table(scenario = character(), subpop_name = character(), timeperiod = integer(), area = integer(), core = numeric(), matrix = numeric(), 
+                                                   abundance_r50 = numeric(), abundance_c80r50= numeric(), abundance_c80= numeric(), abundance_avg= numeric()
+                                                   ),
                     disturbance = data.table(scenario = character(), compartment = character(), timeperiod= integer(),
                                              critical_hab = character(), total_area = numeric(), cut20 = numeric(), cut40 = numeric(), cut80 = numeric(), 
                                              road50 = numeric(), road250 = numeric(), road500 = numeric(),road750 = numeric(),
@@ -147,7 +142,7 @@ Init <- function(sim) {
       dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "aoiName", "uploaderCLUS"),".", tablesUpload[[i]]," to clus_project;"))
     }
     
-    dbExecute(connx, paste0("INSERT INTO ",P(sim, "aoiName", "uploaderCLUS"), ".scenarios (scenario, description) values ('", sim$scenario$name,"', '", sim$scenario$description, "');"))
+    dbExecute(connx, paste0("INSERT INTO ",P(sim, "aoiName", "uploaderCLUS"), ".scenarios (scenario, description, rank) values ('", sim$scenario$name,"', '", sim$scenario$description, "', 0);"))
     dbDisconnect(connx)
   }
   return(invisible(sim))
