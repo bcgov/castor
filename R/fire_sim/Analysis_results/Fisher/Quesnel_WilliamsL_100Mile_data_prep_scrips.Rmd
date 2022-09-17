@@ -33,6 +33,20 @@ crs(DEM)
 frt <- st_read ( dsn = "D:\\Fire\\fire_data\\Fire_Regime_Types\\FRT\\FRT_Canada.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
 st_crs(frt) #Retrieve coordinate reference system from sf or sfc object
 frt<-st_transform(frt, 3005) 
+
+# save data 
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+                  host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                  dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                  port ='5432' ,
+                  user = keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                  password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+st_write (obj = frt, 
+          dsn = conn, 
+          layer = c ("public", "frt_canada"),
+          delete_layer=TRUE)
+dbDisconnect (conn)
+
 #frt_sf<-st_as_sf(frt)
 
 layeraoi<-getSpatialQuery("SELECT * FROM study_area_compart limit 1")
@@ -47,7 +61,6 @@ prov.rast <- raster::raster ( # standardized provincial raster with no data in i
 
 ras.frt <- fasterize::fasterize (frt, prov.rast, field = "Cluster")
 plot(ras.frt)
-
 ```
 
 
@@ -59,11 +72,10 @@ st_crs(study_area2)
 plot(study_area["tsa_name"]) #check 
 
 # change grid size to 100 when this code works
-x<-st_make_grid(study_area, cellsize=c(100,100), crs=3005)
+x<-st_make_grid(study_area, cellsize=c(800,800), crs=3005)
 x2<- st_centroid(x)
 
-
-# extract DEM at each point
+# extract DEM and FRT at each point
 x3a<- st_as_sf(x2)
 x3a$idno<-1:dim(x3a)
 
@@ -75,7 +87,8 @@ head(pointCoordinates)
 #crs(pointCoordinates) #No CRS when a dataframe
 
 ##Extract DEM values from stacked layer
-rasValue2=raster::extract(DEM, pointCoordinates)
+rasStack = stack(DEM, ras.frt)
+rasValue2=raster::extract(rasStack, pointCoordinates)
 head(rasValue2)
 str(rasValue2) #200298 values
 
@@ -93,7 +106,7 @@ mapview_test_points
 
 # now extract lat long data and feed it into climate BC to get the climate data. 
 x3<- st_transform(x3_dem, crs = "+proj=longlat +datum=NAD83 / BC Albers +no_defs")
-x3<- x3 %>% rename (elev = rasValue2)
+x3<- x3 %>% rename (frt = layer)
 
 head(x3)
 
@@ -113,16 +126,17 @@ x4$latitude<- gsub(")", "", as.character(x4$latitude) )
 x4$latitude<- as.numeric(x4$latitude)
 x4$latitude<- round(x4$latitude, digits=4)
 
-x4$ID2<-"."
+#x4$ID2<-x4$frt
 export_dat<- x4 %>% rename(ID1 = idno,
+                           ID2 = frt,
                            lat = latitude,
                            lon = longitude,
-                           el = elev) %>%
+                           el = dem_ha_bc) %>%
   select(ID1, ID2, lat, lon, el)
 
-max(export_dat$lat)
+#max(export_dat$lat)
 
-write.csv(export_dat, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_BC_input\\Quesnel_WilliamsL_100Mile.csv")
+write.csv(export_dat, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_BC_input\\Quesnel_WilliamsL_100Mile.csv", row.names = FALSE)
 
 ```
 
@@ -131,12 +145,12 @@ setwd("D:/Climatebc_v730"); # set the ClimateBC root directory as the working di
 exe <- "ClimateBC_v7.30.exe"
 
 ## 2021
-inputFile = '/D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_BC_input\\Quesnel_WilliamsL_100Mile_2.csv' 
-outputFile = 'D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_BC_input\\Quesnel_WilliamsL_100Mile_out.csv'
+inputFile = '/D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_BC_input\\Quesnel_WilliamsL_100Mile.csv' 
+outputFile = '/D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_BC_input\\Quesnel_WilliamsL_100Mile_out.csv'
 yearPeriod = '/Year_2021.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
-x4_clim_dem<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_BC_input\\Quesnel_WilliamsL_100Mile_2_Year_2021M.csv")
+x4_clim_dem<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_BC_input\\Quesnel_WilliamsL_100Mile_out.csv")
 
 climate_variables_lightning<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")
 
@@ -151,7 +165,11 @@ x4_clim_dem$mean_Tave07_Tave08<- (x4_clim_dem$Tave07 + x4_clim_dem$Tave08)/2
 x4_clim_dem$mean_Tave06_Tave07_Tave08 <- (x4_clim_dem$Tave06 + x4_clim_dem$Tave07 + x4_clim_dem$Tave08)/3
 x4_clim_dem$mean_PPT06_PPT07_PPT08 <- (x4_clim_dem$PPT06 + x4_clim_dem$PPT07 + x4_clim_dem$PPT08)/3
 
-x4_clim_dem_2<- x4_clim_dem %>% select(ID1, Latitude, Longitude, Elevation, Tave07, PPT07, mean_Tave07_Tave08_Tave09:mean_PPT06_PPT07_PPT08)
+x4_clim_dem_2<- x4_clim_dem %>% select(ID1, ID2, Latitude, Longitude, Elevation, Tave07, PPT07, mean_Tave07_Tave08_Tave09:mean_PPT06_PPT07_PPT08) %>%
+  rename(idno=ID1,
+         frt=ID2)
+
+table(is.na(x4_clim_dem_2$frt))
 
 ```
 
@@ -166,16 +184,41 @@ my.sf.point <- st_as_sf(x = x4_clim_dem_2,
 
 my.sf.point <- st_transform (my.sf.point, 3005)
 
+# x_frt10<-x6 %>% filter(layer=="10")
+# x_frt12<-x6 %>% filter(layer=="12")
+# x_frt13<-x6 %>% filter(layer=="13")
+# x_frt14<-x6 %>% filter(layer=="14")
+# x_frt15<-x6 %>% filter(layer=="15")
+# 
+# 
+# st_write(x_frt10, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt10.gpkg", delete_layer=TRUE, driver="GPKG")
+# 
+# st_write(x_frt12, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt12.gpkg", delete_layer=TRUE, driver="GPKG")
+# 
+# st_write(x_frt13, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt13.gpkg", delete_layer=TRUE, driver="GPKG")
+# 
+# st_write(x_frt14, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt14.gpkg", delete_layer=TRUE, driver="GPKG")
+# 
+# st_write(x_frt15, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt15.gpkg", delete_layer=TRUE, driver="GPKG")
+# 
+# 
+# # note at the 1ha resolution saving the file as a single file is too large and makes processing in QGIS SOOO SLOW. So instead I've split it up according to FRT and will run the veg script separately for each area. 
+
+
+head(my.sf.point)
+
+
+
 st_write(my.sf.point, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile.gpkg", delete_layer=TRUE, driver="GPKG")
 
 ```
-Now in QGIS join the above layer to the VRI. I also buffered each point by 400m because I wanted the average vegetation type for the area of the pixel.
+Now in QGIS join the above layer to the VRI. I also buffered each point by 400m because I wanted the average vegetation type for the area of the pixel and my pixels are 800m apart
 
 
 ```{r}
-dat<- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_buffered_joinedVRI2021.gpkg")
+dat<- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_buffered_400_joinedVRI2021.gpkg")
 
-
+table(dat$idno)
 
 ```
 
@@ -187,8 +230,6 @@ fire_all<-dat
 
 table((fire_all$bclcs_level_1)) # U=unreported, N = non-vegetated, V = vegetated
 table((fire_all$bclcs_level_2)) # T= treed, N = Non-treed, L=Land, W=water
-table((fire_all$bclcs_level_3)) # A = alpine, U = upland, W = wetland
-table((fire_all$bclcs_level_4)) # 
 table((fire_all$bclcs_level_5))
 table(fire_all$bec_subzone)
 
@@ -839,7 +880,7 @@ table(fire_all1$FWI_veg)
 
 x<- fire_all1 %>% filter(is.na(FWI_veg)) %>% select(inventory_standard_cd:conifer_pct_cover_total)
 
-st_write(fire_all1, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_Quesnell_WilliamsL_100Mile.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(fire_all1, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_Quesnell_WilliamsL_100Mile_FRT_800m.gpkg", delete_layer=TRUE, driver="GPKG")
 ```
 
 

@@ -1,0 +1,62 @@
+---
+title: "probability of ignition - Quesnel, Williams Lake, 100-mile House TSA's"
+author: "Elizabeth Kleynhans"
+date: '2022-09-16'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source(here::here("R/functions/R_Postgres.R"))
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+
+```
+##
+
+## Probability of ignition from lightning
+
+Erni et al. 2020 (https://cdnsciencepub.com/doi/10.1139/cjfr-2019-0191) statistically classified  Canada into different fire regime types. These fire regime types (FRT) are based on cause of ignition, timing of ignition (seasonality), and fire activity (e.g. fire size). Within BC there are 10 FRT's. The Quesnel, Williams Lake and 100 Mile House TSA's overlap 5 of the 10. 
+```{r}
+frt <- getSpatialQuery("SELECT * FROM frt_canada")
+frt<-st_transform(frt, 3005) 
+frt$Cluster<- as.factor(frt$Cluster)
+
+
+study_area<-getSpatialQuery("SELECT tsa_name, wkb_geometry FROM study_area_compart where tsa_name in ('Quesnel TSA', 'Williams Lake TSA',  '100 Mile House TSA')")
+study_area2<-study_area %>% group_by (tsa_name) %>% summarise()
+study_area2<-st_transform(study_area2, 3005) 
+
+frt.bc = st_intersection(frt, study_area2)
+
+plot(frt.bc["Cluster"])
+
+```
+
+Separate statistical models were fitted for each FRT (Table 1). Each model included one or two variables for climate, a variable describing fuel type and elevation. Fuel type within each pixel was classified following the rules outlined for the British Columbia provincial Fuel Type Layer used by the BC Wildfire Service (Perrakis et al. 2018 https://cfs.nrcan.gc.ca/publications?id=39432). This fuel type layer is a composite measure of vegetation type and structure
+
+```{r, wmu survey history, echo = F}
+require (kableExtra)
+require (data.table)
+
+stats_model <- data.table (
+FRT = c ("10", "12", "13", "14", "15"),
+
+Model_Terms = c ("ignit ~ mean_Tave07_Tave08_Tave09 + mean_PPT07_PPT08_PPT09 + fuel type + elev",
+                "ignit ~ mean_Tmax07_Tmax08 + fuel type + elev",
+                "ignit ~ Tave07 + PPT07 + fuel type + elev",
+                "ignit ~ mean_Tave07_Tave08 + fuel type + elev",
+                "ignit ~ mean_PPT06_PPT07_PPT08 + fuel type + elev"),
+ 
+AUC = c (0.77, 0.63, 0.63, 0.57, 0.69)                            
+                             )
+
+kable (stats_model, 
+       caption = "Table 1. Model terms and the estimated AUC value for each fire regime type (FRT)") %>%
+  kable_styling (position = "left")
+```
+
+
+
