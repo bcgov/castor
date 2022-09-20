@@ -276,6 +276,24 @@ plot(maxint, col=rev(heat.colors(255)))
 
 writeRaster(maxint, file=" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif", format="GTiff", overwrite=TRUE)
 
+lightning.ignit<-raster(" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif")
+writeRaster(lightning.ignit, file=" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\prob_of_lighting_ignition.tif", format="GTiff", overwrite=TRUE)
+
+
+#upload to db
+#system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/prob_of_lighting_ignition.tif -t 100x100 rast.prob_lightning_ignit_quesnel_williamsl_100mile | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = TRUE, invisible = TRUE)
+
+# run this in R:
+paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/prob_of_lighting_ignition.tif -t 100x100 rast.prob_lightning_ignit_quesnel_williamsl_100mile | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus')
+# then copy the output from the above and paste it into the cmd and run that... should show Insert 0  1 lots of times.
+
+# e.g. paste this 
+#raster2pgsql -s 3005 -d -I -C -M -N 2147483648  C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/prob_of_lighting_ignition.tif -t 100x100 rast.prob_lightning_ignit_quesnel_williamsl_100mile | psql postgres://ekleynha:F1r76kL3@142.36.123.12:5432/clus
+
+#into cmd
+
+
+
 
 
 
