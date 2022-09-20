@@ -1,5 +1,5 @@
 ---
-title: "probability of ignition - Quesnel, Williams Lake, 100-mile House TSA's"
+title: "Probability of ignition from lightning in the Quesnel, Williams Lake, and 100-mile House TSA's"
 author: "Elizabeth Kleynhans"
 date: '2022-09-16'
 output: html_document
@@ -12,14 +12,25 @@ library(data.table)
 library(sf)
 library(tidyverse)
 library(rgeos)
+require (kableExtra)
+
 
 ```
 ##
 
-## Probability of ignition from lightning
+## Goal
 
-Erni et al. 2020 (https://cdnsciencepub.com/doi/10.1139/cjfr-2019-0191) statistically classified  Canada into different fire regime types. These fire regime types (FRT) are based on cause of ignition, timing of ignition (seasonality), and fire activity (e.g. fire size). Within BC there are 10 FRT's. The Quesnel, Williams Lake and 100 Mile House TSA's overlap 5 of the 10. 
-```{r}
+The aim of this document is to describe methods used to created the map of probability of ignition by lightning caused fires. 
+
+# 1.) Obtain data on observed lightning ignitions
+
+I used fire ignition point data from the BCGW (https://catalogue.data.gov.bc.ca/dataset/fire-incident-locations-historical) and pulled out the fire ignitions that were known to be caused by lightning for the years 2002 to present. This range of years was used because  these are the years that we have VRI data for. 
+
+# 2.) Split BC up into fire regime types (FRT) 
+
+Erni et al. 2020 (https://cdnsciencepub.com/doi/10.1139/cjfr-2019-0191) statistically classified  Canada into different fire regime types. These fire regime types (FRT) are based on cause of ignition, timing of ignition (seasonality), and fire activity (e.g. fire size). BC is too large and too diverse to run a single statistical model to determine which variables best predict lightning caused fires. Thus I used the FRT's determined by Erni et al.2020 to run separate statistical models for each FRT. Within BC there are 10 FRT's and the Quesnel, Williams Lake and 100 Mile House TSA's overlap 5 of the 10 (figure 1). 
+
+```{r FRT, echo=FALSE, fig.cap = "Figure 1. Fire regime types overlaping the Quesnel, Williams Lake and 100 Mile House TSA's"}
 frt <- getSpatialQuery("SELECT * FROM frt_canada")
 frt<-st_transform(frt, 3005) 
 frt$Cluster<- as.factor(frt$Cluster)
@@ -35,12 +46,25 @@ plot(frt.bc["Cluster"])
 
 ```
 
-Separate statistical models were fitted for each FRT (Table 1). Each model included one or two variables for climate, a variable describing fuel type and elevation. Fuel type within each pixel was classified following the rules outlined for the British Columbia provincial Fuel Type Layer used by the BC Wildfire Service (Perrakis et al. 2018 https://cfs.nrcan.gc.ca/publications?id=39432). This fuel type layer is a composite measure of vegetation type and structure
+# 3.) Within each FRT sample areas where lightning caused fires were not observed to occur. 
 
-```{r, wmu survey history, echo = F}
-require (kableExtra)
-require (data.table)
+Within each FRT and for each year I determined how many lightning caused fires had occurred and then I sampled double the number of points where fires had not been observed to start. 
 
+# 4.) Determine which climate variables for ignition and non-ignition locations
+
+I extracted maximum temperature, average temperature, total precipitation, and relative humidity for each location from climateBC (http://climatebc.ca/). These variables were extracted for each month between April and September for each point in its relevant year. Because fire ignitions might be more likely after several months of drought or heat or both I also calculated the average of each of these variables over two, three and four consecutive months. Using the precipitation and temperature data I also calculated monthly drought code following the methods of Bergeron et al. (2010) as this variable has previously been found to be a good predictor of fire (Marchal et al. 2020). 
+
+Separate statistical models including each single climate variable, the averages across several months as well as combinations of temperature and precipitation were fitted for each FRT (Table 1). Then the models with delta aic less than 2 were selected and the model within that set that had the highest AUC was selected.
+
+# 5.) Fit fire ignition models
+
+The final fire ignition models were fitted with the top selected climate variable/s (described above), a variable describing fuel type, and elevation (table 1). 
+
+For each year from 2002 vegetation data was extracted from the corresponding VRI for all ignition and non-ignition points. This VRI data was then used to create the British Columbia provincial Fuel Type Layer used by the BC Wildfire Service. Classification rules used to create this layer can be found in Perrakis et al. (2018) (https://cfs.nrcan.gc.ca/publications?id=39432). This fuel type layer is created using a combination of vegetation data obtained from the VRI and BEC zone information and is a composite measure of vegetation type and structure. Variables such as leading species and percent, crown closure, projected height, years since harvest, years since fire, bec zone and bec subzone are used in classifying the vegetation.  There are ~ 15 fuel types within BC and these fuel types have been shown to accurately predict fire behaviour in wildfire events (Perrakis et al. 2014) and are used to create the Candian Forest Fire Danger Rating System and in the fire behaviour prediction system.
+
+
+
+```{r, model table, echo = F}
 stats_model <- data.table (
 FRT = c ("10", "12", "13", "14", "15"),
 
@@ -56,6 +80,23 @@ AUC = c (0.77, 0.63, 0.63, 0.57, 0.69)
 kable (stats_model, 
        caption = "Table 1. Model terms and the estimated AUC value for each fire regime type (FRT)") %>%
   kable_styling (position = "left")
+```
+
+
+Using the models outlined in table 1 a probability of ignition by lightning map was created (figure 2). Data for this map was extracted at a scale of 800 x 800m. Where weather and elevation data was extracted at the centre of each 800 x 800m pixel. Vegetation data was extracted by creating a 400m buffer around each point and determining the vegetation type which most commonly was encountered in each pixel. After the models were fitted to each point the data was interpolated between points to create a smooth layer and then rasterized. 
+
+```{r echo=FALSE, fig.cap = "Figure 2. Probability of lightning ignition for the Quesnel, Williams lake and 100 Mile House TSA's"}
+#lightning.ignit<-raster(" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif"
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+lightning.ignit <- pgGetRast(conn, c("rast", "prob_lightning_ignit_quesnel_williamsl_100mile"))
+
+dbDisconnect(conn)
+#lightning.ignit<-getSpatialQuery("SELECT * FROM rast.prob_lightning_ignit_quesnel_williamsl_100mile")
+
+
+plot(lightning.ignit)
 ```
 
 
