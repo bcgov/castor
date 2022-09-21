@@ -14,7 +14,12 @@ knitr::opts_chunk$set(echo = TRUE, results = "hold")
 ## Overview
 This module estimates the abundance of subpopulations of the southern group of southern mountain caribou using the model developed by [Lochhead et al. (In Prep.)](citation). The model used an exponential generalized linear mixed-model to fit subpopulation-specific relationships between forestry disturbance estimates and caribou abundance estimates over time. Here we use the model to estimate a subpopulation abundance as a function of the amount of forested area disturbed by roads and cutblocks in each core and matrix critical habitat areas. 
 
-# Usage
+## Usage
+There are two key considerations and caveats that need to be made clear when using this module:  
+
+1. If possible, you should run the *cutblockSeqPrepCLUS* module as part of the dataLoaderCLUS module to estimate which roads are used for forest harvest. Otherwise, you will overestimate the number of roads for the abundance estimate.
+
+2. If the area of interest only partially overlaps a caribou herd, then the abundance estimate only applies to the portion of the herd that is overlapped, i.e., it is a partial estimate of abundance. 
 
 ```{r module_usage}
 
@@ -50,11 +55,13 @@ parameters <- list (
                          nameHeightRaster = "rast.vri2017_projheight1",
                          nameCrownClosureRaster = "rast.vri2017_crownclosure",
                          nameYieldTable = "yield_ex"),
- smcaribouAbundanceCLUS = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
-                                tableSMCCoeffs = "vat.smc_coeffs") 
+ smcaribouAbundanceCLUS = list (nameRasSMCHerd = "rast.smc_herd_habitat") 
 )
 
 modules <- list ("dataLoaderCLUS", "smcaribouAbundanceCLUS")
+
+
+
 objects <- list ()
 paths <- list (
   cachePath = cacheDir,
