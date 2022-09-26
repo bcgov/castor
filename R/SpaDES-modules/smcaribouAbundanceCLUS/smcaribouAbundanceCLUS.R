@@ -130,7 +130,7 @@ Init <- function (sim) {
   sim$tableAbundanceReport [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the survival calc
   total_area <- data.table (dbGetQuery (sim$clusdb, "SELECT count(*)as area, subpop_name FROM pixels WHERE subpop_name IS NOT NULL AND age Is NOT NULL GROUP BY subpop_name;"))
   sim$tableAbundanceReport <- merge (sim$tableAbundanceReport, total_area, by.x = "subpop_name", by.y = "subpop_name", all.x = TRUE )
-  sim$tableAbundanceReport <- sim$tableAbundanceReport [, c ("scenario", "subpop_name", "area", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")]
+  sim$tableAbundanceReport <- sim$tableAbundanceReport [, c ("scenario", "timeperiod", "subpop_name", "area", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")]
   return(invisible(sim))
 }
 
@@ -168,8 +168,8 @@ predictAbundance <- function (sim) { # this function calculates survival rate at
   table.disturb.new [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
   total_area <- data.table (dbGetQuery (sim$clusdb, "SELECT count(*)as area, subpop_name FROM pixels WHERE subpop_name IS NOT NULL AND age Is NOT NULL GROUP BY subpop_name;"))
   table.disturb.new <- merge (table.disturb.new, total_area, by.x = "subpop_name", by.y = "subpop_name", all.x = TRUE )
-  table.disturb.new <- table.disturb.new [, c ("scenario", "subpop_name", "area", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")]
-  sim$tableAbundanceReport <- rbindlist (list (sim$tableAbundanceReport, table.disturb.new [, c ("scenario", "subpop_name", "area", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")])) # bind the new survival rate table to the existing table
+  table.disturb.new <- table.disturb.new [, c ("scenario", "timeperiod", "subpop_name", "area", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")]
+  sim$tableAbundanceReport <- rbindlist (list (sim$tableAbundanceReport, table.disturb.new [, c ("scenario", "timeperiod", "subpop_name", "area", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")])) # bind the new survival rate table to the existing table
   return (invisible(sim))
 }
 

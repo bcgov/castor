@@ -53,7 +53,7 @@ source (paste0 (here::here (), "/R/functions/R_Postgres.R"))
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/central_group/inputs/central_group_july2022_clusdb.sqlite"))
 
 # check tables
-check <- dbGetQuery (clusdb, "SELECT * from zoneconstraints WHERE reference_zone = 'rast.central_grp_partner_areas_072022'")
+check <- dbGetQuery (clusdb, "SELECT * from zoneconstraints WHERE reference_zone = 'rast.central_grp_partner_areas_072022'") # rast.central_grp_deferral_072022
 
 # run these (if necessary)
 dbExecute (clusdb, "UPDATE zoneconstraints SET type = 'nh' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid = 8") 
