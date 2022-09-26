@@ -70,13 +70,7 @@ table(dat10$FWI_veg)
 dat10_2<-dat10 %>% filter(FWI_veg!="S-2")
 table(dat10_2$FWI_veg)
 
-# there are only 6 observations in the C1 fuel type so since this fiel type has fire spread rates similar to C3 I will change all C1 observations to C3
-# dat12$FWI_veg[dat12$FWI_veg=="C-1"]<-"C-3"
-# # apparently C-4 is very similar to C-2 so Ill also change all C-4's to C'-2's. I read this in Perakkis 
-#dat10$FWI_veg[dat10$FWI_veg=="C-4"]<-"C-2"
-## changing M-3 to M-1/2 because there are only 6 occurences of M-3 so its hard to run a model on this.
-#dat10$FWI_veg[dat10$FWI_veg=="M-3"]<-"M-1/2"
-#table(dat10$FWI_veg)
+
 
 ggplot(data=dat10_2, mapping=aes(x=as.factor(fire), y=climate1))+
   geom_boxplot()
@@ -84,7 +78,7 @@ ggplot(data=dat10_2, mapping=aes(x=as.factor(fire), y=climate1))+
 ggplot(data=dat10_2, mapping=aes(x=as.factor(fire), y=elevatn))+
   geom_boxplot()
 
-mod.frt.10<-glm(fire ~ climate1 + FWI_veg + elevatn, data=dat10_2, family=binomial(link="logit"))
+mod.frt.10<-glm(fire ~ climate1 +climate2 + FWI_veg + elevatn, data=dat10_2, family=binomial(link="logit"))
 
 # looking at difference in link function
 modclim_logit<-glm(fire ~ climate1, data=dat10_2, family=binomial(link="logit"))
@@ -104,7 +98,7 @@ lines(mydata$climate1, Pred_cloglog, col="blue")
 dat10_2$FWI_veg<- as.factor(dat10_2$FWI_veg)
 
 
-mod.frt.10<-glm(fire ~ climate1 + FWI_veg + elevatn, data=dat10_2, family=binomial(link="logit"))
+mod.frt.10<-glm(fire ~ climate1 + climate2 + FWI_veg + elevatn, data=dat10_2, family=binomial(link="logit"))
 cor(model.matrix(mod.frt.10)[,-1])
 
 hist(dat10_2$climate1)
@@ -163,7 +157,7 @@ First checking assumption of linearity
 # Select only numeric predictors
 str(dat10_2)
 
-dat2_b<-dat10_2%>% dplyr::select(fire, elevatn, climate1)
+dat2_b<-dat10_2%>% dplyr::select(fire, elevatn, climate1, climate2)
 probabilities <- predict(mod.frt.10, type = "response")
 predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
 
@@ -204,7 +198,7 @@ model.data <- augment(mod.frt.10) %>%
 
 #The data for the top 3 largest values, according to the Cook’s distance, can be displayed as follow:
 model.data %>% 
-  dplyr::select(climate1,  elevatn, FWI_veg,.std.resid, .cooksd) %>%
+  dplyr::select(climate1,climate2,  elevatn, FWI_veg,.std.resid, .cooksd) %>%
   top_n(5, .cooksd) 
 
 ggplot(model.data, aes(index, .std.resid)) + 
@@ -235,8 +229,8 @@ car::vif(mod.frt.10)
 summary(mod.frt.10)
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT12_lightningALL <- data.frame (matrix (ncol = 15, nrow = 0))
-colnames (top_mod_table_FRT12_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_N", "coef_FWI_veg_O-1a/b","coef_elevatn", "AUC")
+top_mod_table_FRT10_lightningALL <- data.frame (matrix (ncol = 16, nrow = 0))
+colnames (top_mod_table_FRT10_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_N", "coef_FWI_veg_O-1a/b","coef_elevatn", "AUC")
 
 dat10_2$fire_veg<-paste(dat10_2$fire, dat10_2$FWI_veg)
 ```
@@ -257,35 +251,36 @@ prop<-0.75
    Valid <- dat10_2[-trainIndex,]
    
 #Model   
-mod<-glm(fire ~ climate1 + FWI_veg + elevatn, data=dat1, family=binomial(link="logit"))
+mod<-glm(fire ~ climate1 + climate2 + FWI_veg + elevatn, data=dat1, family=binomial(link="logit"))
 
 mod.valid <- predict.glm(mod, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire"], mod.valid, quiet=TRUE)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT12_lightningL <- data.frame (matrix (ncol = 15, nrow = 0))
-colnames (top_mod_table_FRT12_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_N", "coef_FWI_veg_O-1a/b","coef_elevatn", "AUC")
+top_mod_table_FRT10_lightningL <- data.frame (matrix (ncol = 16, nrow = 0))
+colnames (top_mod_table_FRT10_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_N", "coef_FWI_veg_O-1a/b","coef_elevatn", "AUC")
 
 
 ##Add data for NDT1
-top_mod_table_FRT12_lightningL[1,1]<-"lightning"
-top_mod_table_FRT12_lightningL[1,2]<-"FRT14"
-top_mod_table_FRT12_lightningL[1,3]<-"fire ~ climate1 + climate2 + FWI_veg + elevatn"
-top_mod_table_FRT12_lightningL[1,4]<- coef(mod)[1] #Intercept
-top_mod_table_FRT12_lightningL[1,5]<- coef(mod)[2] #Climate variable 1
-top_mod_table_FRT12_lightningL[1,6]<- coef(mod)[3] #Climate variable 2
-top_mod_table_FRT12_lightningL[1,7]<- coef(mod)[4] #I
-top_mod_table_FRT12_lightningL[1,8]<- coef(mod)[5] #co
-top_mod_table_FRT12_lightningL[1,9]<- coef(mod)[6] #coe
-top_mod_table_FRT12_lightningL[1,10]<- coef(mod)[7] #c
-top_mod_table_FRT12_lightningL[1,11]<- coef(mod)[8] #
-top_mod_table_FRT12_lightningL[1,12]<- coef(mod)[9] #
-top_mod_table_FRT12_lightningL[1,13]<- coef(mod)[10] #pr
-top_mod_table_FRT12_lightningL[1,14]<- coef(mod)[11] #coeffic
-top_mod_table_FRT12_lightningL[1,15]<- mod.auc
+top_mod_table_FRT10_lightningL[1,1]<-"lightning"
+top_mod_table_FRT10_lightningL[1,2]<-"FRT10"
+top_mod_table_FRT10_lightningL[1,3]<-"fire ~ climate1 + climate2 + FWI_veg + elevatn"
+top_mod_table_FRT10_lightningL[1,4]<- coef(mod)[1] #Intercept
+top_mod_table_FRT10_lightningL[1,5]<- coef(mod)[2] #Climate variable 1
+top_mod_table_FRT10_lightningL[1,6]<- coef(mod)[3] #Climate variable 2
+top_mod_table_FRT10_lightningL[1,7]<- coef(mod)[4] #I
+top_mod_table_FRT10_lightningL[1,8]<- coef(mod)[5] #co
+top_mod_table_FRT10_lightningL[1,9]<- coef(mod)[6] #coe
+top_mod_table_FRT10_lightningL[1,10]<- coef(mod)[7] #c
+top_mod_table_FRT10_lightningL[1,11]<- coef(mod)[8] #
+top_mod_table_FRT10_lightningL[1,12]<- coef(mod)[9] #
+top_mod_table_FRT10_lightningL[1,13]<- coef(mod)[10] #pr
+top_mod_table_FRT10_lightningL[1,14]<- coef(mod)[11] #coeffic
+top_mod_table_FRT10_lightningL[1,15]<- coef(mod)[12] #coeffic
+top_mod_table_FRT10_lightningL[1,16]<- mod.auc
 
-top_mod_table_FRT12_lightningALL<-rbind(top_mod_table_FRT12_lightningALL, top_mod_table_FRT12_lightningL)
+top_mod_table_FRT10_lightningALL<-rbind(top_mod_table_FRT10_lightningALL, top_mod_table_FRT10_lightningL)
 
 }
 
@@ -293,29 +288,29 @@ top_mod_table_FRT12_lightningALL<-rbind(top_mod_table_FRT12_lightningALL, top_mo
 
 Check.
 ```{r}
-head(top_mod_table_FRT12_lightningALL)
-top_mod_table_FRT12_lightningALL
+head(top_mod_table_FRT10_lightningALL)
+top_mod_table_FRT10_lightningALL
 
 ```
 
 #Save coefficient table
 
 ```{r}
-write.csv(top_mod_table_FRT12_lightningALL, file="D:\\Fire\\fire_data\\raw_data\\Ignition Models\\Ignition_Model_Results_Lightning_Treed\\top_mod_table_FRT5_light_tree_all.csv")
+write.csv(top_mod_table_FRT10_lightningALL, file="D:\\Fire\\fire_data\\raw_data\\Ignition Models\\Ignition_Model_Results_Lightning_Treed\\top_mod_table_FRT5_light_tree_all.csv")
 ```
 
 Get mean values.
 
 ```{r}
-names(top_mod_table_FRT12_lightningALL)
-str(top_mod_table_FRT12_lightningALL)
+names(top_mod_table_FRT10_lightningALL)
+str(top_mod_table_FRT10_lightningALL)
 stderror <- function(x) sd(x)/sqrt(length(x))
 
-FRT12_summary_table_mean<- top_mod_table_FRT12_lightningALL %>% summarize_if(is.numeric,mean)
+FRT10_summary_table_mean<- top_mod_table_FRT10_lightningALL %>% summarize_if(is.numeric,mean)
 
-FRT12_summary_table_mean$Cause<-"Lightning"
-FRT12_summary_table_mean$FRT<-10
-FRT12_summary_table_mean$Model_terms<-"fire ~ climate1 + FWI_veg + elevatn"
+FRT10_summary_table_mean$Cause<-"Lightning"
+FRT10_summary_table_mean$FRT<-10
+FRT10_summary_table_mean$Model_terms<-"fire ~ climate1 + climate2 + FWI_veg + elevatn"
 
 
 ```
@@ -323,14 +318,14 @@ FRT12_summary_table_mean$Model_terms<-"fire ~ climate1 + FWI_veg + elevatn"
 Save table.
 
 ```{r}
-write.csv(FRT12_summary_table_mean, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT10_lightning.csv")
+write.csv(FRT10_summary_table_mean, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT10_lightning.csv")
 ```
 
 Standard deviation.
 
 ```{r}
-top_mod_table_FRT12_lightningALL_sd<-top_mod_table_FRT12_lightningALL %>% summarise_each(funs( sd( .,na.rm = TRUE)))
-top_mod_table_NDT1_light_t_SD
+top_mod_table_FRT10_lightningALL_sd<-top_mod_table_FRT10_lightningALL %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+top_mod_table_FRT10_lightningALL_sd
 
 top_mod_table_NDT1_light_t_SD[1,1]<-"lightning"
 top_mod_table_NDT1_light_t_SD[1,2]<-"NDT1"

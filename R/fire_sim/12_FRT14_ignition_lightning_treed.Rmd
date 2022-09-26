@@ -75,7 +75,7 @@ kable (climate_variables_lightning,
                  font_size = 11)
 
 ```
-For FRT 12 its mean_Tmax07_Tmax08
+For FRT 13 its Tave08
 
 # Now what is the top model for FRT 11?
 
@@ -97,12 +97,12 @@ kable (Top_mod_set_lightning_treed,
 climate1 + prj_h_1 + prj_g_1 + dm_h_bc + vegtype + bclcs_level_5_2	
 
 
-#Checking model fits for FRT 1
+#Checking model fits for FRT 14
 
 ```{r}
-dat<- dat_lightning_t %>% dplyr::select(fire_yr, ig_mnth, frt, fire, dm_h_bc, climate1, prj_h_1, prj_g_1, vegtype, bclcs_level_5_2)
+dat<- dat_lightning_t %>% dplyr::select(fire_yr, ig_mnth, frt, fire, dm_h_bc, climate1, prj_h_1, prj_g_1, l___125,win_spg, win_sum vegtype, bclcs_level_5_2)
 
-dat2<- dat %>% dplyr::filter(frt == 13) %>%
+dat2<- dat %>% dplyr::filter(frt == 14) %>%
   drop_na(prj_h_1)
 table(dat2$vegtype, dat2$fire) 
 

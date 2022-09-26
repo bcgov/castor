@@ -110,8 +110,7 @@ Anova(mod.frt.12, type=3)
 
 library(caret)
 varImp(mod.frt.12)
-library(GmAMisc)
-modelvalid(dat12, mod.frt.12)
+
 
 # model diagnostic plots
 binnedplot (fitted(mod.frt.12), 
@@ -236,12 +235,12 @@ summary(mod.frt.12)
 
 #Create a new blank table and get AUC too
 top_mod_table_FRT12_lightningALL <- data.frame (matrix (ncol = 17, nrow = 0))
-colnames (top_mod_table_FRT12_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_elevatn", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_N", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "coef_FWI_veg_S-2", "AUC")
+colnames (top_mod_table_FRT12_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_N", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "coef_FWI_veg_S-2","coef_elevatn", "AUC")
 
 dat12$fire_veg<-paste(dat12$fire, dat12$FWI_veg)
 ```
 
-Let's run it 500 times to get good mean values.
+Let's run it 100 times to get good mean values.
 
 ```{r}
 
@@ -265,7 +264,7 @@ mod.valid <- predict.glm(mod, newdata=Valid, type="response")
 
 # create model table (only do this once) and add the relevant data
 top_mod_table_FRT12_lightningL <- data.frame (matrix (ncol = 17, nrow = 0))
-colnames (top_mod_table_FRT12_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_elevatn", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_N", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "coef_FWI_veg_S-2", "AUC")
+colnames (top_mod_table_FRT12_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1",  "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_N", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "coef_FWI_veg_S-2","coef_elevatn", "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT12_lightningL[1,1]<-"lightning"
@@ -319,7 +318,7 @@ FRT12_summary_table_mean<- top_mod_table_FRT12_lightningALL %>% summarize_if(is.
 Save table.
 
 ```{r}
-write.csv(top_mod_table_NDT1_light_t_Means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT1_light_t_Means.csv")
+write.csv(FRT12_summary_table_mean, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT12_lightning.csv")
 ```
 
 Standard deviation.
