@@ -132,8 +132,10 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
 
     },
 
-interpolatehabitat = {
-      
+
+   
+    interpolatehabitat = {
+
       # need some functions here to interpolate habitat degradation/improvement over the forestry simulation interval (five years)
       # the reproduce, etc. functions should happen annually, but the forestry sim interval will likely be > 1 year
       # we don't want to take the habitat at the start or end of the interval to estimate reproduction, etc.
@@ -271,7 +273,7 @@ Init <- function(sim) {
                               cwd_p, cwd, mov_p, movement)] # could add other things, openness, crown closure, cost surface?
   sim$table.hab <- table.hab
 
-message ("Create agents table and assign values...")
+  message ("Create agents table and assign values...")
   # assign agents to denning pixels
     # systematic method
       # this provides a 'buffer' between pixels to allow some space for fisher to form an HR; 
@@ -615,7 +617,6 @@ repro_FEMALE <- function(sim) {
     # assign each female fisher 1 = reproduce or 0 = does not reproduce
     DR <- repro_rate_table %>% dplyr::filter(str_detect(Fpop, fisher.pop)) %>% dplyr::filter(str_detect(Param,"DR"))
     DR_CIs <- CI_from_meanSDn(mean=DR$Mean, sd=DR$SD, n=DR$n)
- 
     reproFishers$reproduce <- rbinom(n = nrow(reproFishers), size = 1, prob = DR_CIs)
     
     # for those fishers who are reproducing, assign litter size

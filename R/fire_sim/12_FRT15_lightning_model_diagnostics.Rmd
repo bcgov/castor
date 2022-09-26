@@ -1,5 +1,5 @@
 ---
-title: "FRT_10"
+title: "FRT_15"
 author: "Elizabeth Kleynhans"
 date: '2022-07-21'
 output: html_document
@@ -76,6 +76,7 @@ dat15 %>% filter(is.na(climate1))
 
 dat15<- dat15%>% drop_na(FWI_veg)
  
+# put in average elevation for the locations with M-1/2 vegetation type
  elevM12<-dat15 %>% filter(FWI_veg =="M-1/2") %>%
    filter(!is.na(elevatn)) %>%
    summarize(elev_mean=mean(elevatn))
