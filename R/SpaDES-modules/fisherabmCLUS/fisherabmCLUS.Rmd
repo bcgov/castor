@@ -27,6 +27,10 @@ For help writing in R Markdown, see https://rmarkdown.rstudio.com/.
 ```{r some code to acces the sqlite db}
 # needs the DBI package
 library (DBI)
+library (data.table)
+library (keyring)
+library (here)
+source (paste0 (here::here (), "/R/functions/R_Postgres.R"))
 
 # connect to the db
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"))
