@@ -30,6 +30,7 @@ library (DBI)
 library (data.table)
 library (keyring)
 library (here)
+library (terra)
 source (paste0 (here::here (), "/R/functions/R_Postgres.R"))
 
 # connect to the db
@@ -58,6 +59,9 @@ setPaths(modulePath = file.path("C:/Work/git/clus/R/SpaDES-modules"))
 getPaths() # shows where the 4 relevant paths are
 
 times <- list(start = 0, end = 10)
+
+# replicates <- 100
+# see FLEX... iterations
 
 parameters <- list(
   dataLoaderCLUS = list(dbName='clus',

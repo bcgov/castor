@@ -486,7 +486,9 @@ Init <- function(sim) {
   
   # write the agents table
     # add time step and scenario name
+    # replicate/iteration number?; add this later
   agents [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
+  
   
   if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
     # if the table exists, write it to the db
@@ -525,58 +527,47 @@ repro_FEMALE <- function (sim) {
   # sim$female_hr_table = female_hr_table <- read.csv("R/SpaDES-modules/fisherabmCLUS/data/Fisher_HR_mean_sd_km_08Aug2022.csv")
   
   # fisher.pop = Fpop # work around to deal with different usage of Fpop (full name or initial)
-  
-  
-  
-  
-  CI_from_meanSDn <- function (mean = mean, sd = sd, n = n, alpha = 0.05) {
-    sample.mean <- mean
-    sample.n <- n
-    sample.sd <- sd
-    sample.se <- sample.sd/sqrt(sample.n)
-    alpha <- alpha
-    degrees.freedom = sample.n - 1
-    t.score = qt(p=alpha/2, df=degrees.freedom,lower.tail=F)
-    margin.error <- t.score * sample.se
-    lower.bound <- sample.mean - margin.error
-    upper.bound <- sample.mean + margin.error
-    return(c(lower.bound, upper.bound))
-  }
-  
-  
-  
+
   
   
   # determine which individuals will reproduce this year
   reproFishers <- data.table (dbGetQuery (sim$clusdb, "SELECT * FROM agents WHERE sex = 'F' AND age > 1;")) # female fishers capable of reproducing
 
-  if (length (reproFishers) > 0) {
+  # assign each female fisher 1 = reproduce or 0 = does not reproduce
+    if (length (reproFishers) > 0) {
     
-    
-   repro_rate_table [Fpop == 1 & Param == 'DR', Mean]
-   repro_rate_table [Fpop == 1 & Param == 'DR', SD]
-    
-   rnorm(3, 
-         mean = repro_rate_table [Fpop == 1 & Param == 'DR', Mean], 
-         sd =  repro_rate_table [Fpop == 1 & Param == 'DR', SD])    
-   
-   
-      
-   DR_CIs <- CI_from_meanSDn (mean = repro_rate_table [Fpop == 1 & Param == 'DR', Mean], 
-                              repro_rate_table [Fpop == 1 & Param == 'DR', SD], n = 2)
-   
-      
-    sim$repro_rate_table []
-    
-    
-    # assign each female fisher 1 = reproduce or 0 = does not reproduce
-    DR <- sim$repro_rate_table %>% 
-            dplyr::filter (str_detect (Fpop, fisher.pop)) %>% 
-              dplyr::filter (str_detect (Param, "DR"))
-    DR_CIs <- CI_from_meanSDn (mean = DR$Mean, sd = DR$SD, n = DR$n)
-    reproFishers$reproduce <- rbinom (n = nrow (reproFishers), size = 1, prob = DR_CIs)
-    
+    # not sure this is equivalent to how this was done before 
+      # here I draw a survival rate (probability) form the survival rate distribution (mean and sd)
+      # I then assign that as the binomial probability to survival
+      # I do this for each fisher pop
+    for (i in unique (reproFishers$fisher_pop)) { 
+      reproFishers [fisher_pop == i, reproduce := rbinom (n = nrow (reproFishers [fisher_pop == i]),
+                                                          size = 1,
+                                                          prob = rnorm (1, 
+                                                                        mean = repro_rate_table [Fpop == i & Param == 'DR', Mean], 
+                                                                        sd =  repro_rate_table [Fpop == i & Param == 'DR', SD]))]
+    } # throws an error: Invalid .internal.selfref detected and fixed....; it works though
+
     # for those fishers who are reproducing, assign litter size
+      reproFishers <- reproFishers [reproduce == 1, ]
+     
+      for (i in unique (reproFishers$fisher_pop)) {
+      reproFishers [, kits := rbinom (n = nrow (reproFishers [fisher_pop == i]),
+                                       size = 1,
+                                       prob = rnorm (1, 
+                                                     mean = repro_rate_table [Fpop == i & Param == 'LS', Mean], 
+                                                     sd =  repro_rate_table [Fpop == i & Param == 'LS', SD]))]
+      }
+    
+    
+    
+      # the previous approach....
+      DR <- sim$repro_rate_table %>% 
+        dplyr::filter (str_detect (Fpop, fisher.pop)) %>% 
+        dplyr::filter (str_detect (Param, "DR"))
+      DR_CIs <- CI_from_meanSDn (mean = DR$Mean, sd = DR$SD, n = DR$n)
+      reproFishers$reproduce <- rbinom (n = nrow (reproFishers), size = 1, prob = DR_CIs)
+    
     reproFishers <- reproFishers %>% filter(reproduce==1)
     LS <- repro_rate_table %>% dplyr::filter(str_detect(Fpop, fisher.pop)) %>% dplyr::filter(str_detect(Param,"LS"))
     reproFishers$num.kits <- rnorm(n=nrow(reproFishers), mean=LS$Mean, sd=LS$SD)
@@ -752,7 +743,7 @@ dispersal <- function (sim) {
     target.rast <- sim$den.rast * tmp.ind.disp.rast
     
     # what if den habitat not found?
-    if (1 > as.integer (minmax(target.rast)[2,])) { # if there is no denning habitat 
+    if (1 > as.integer (terra::minmax(target.rast)[2,])) { # if there is no denning habitat 
       # need to disperse again
       # add it back to the agents table without a hr size or d2 score
       agents <- rbind (agents,
@@ -1023,10 +1014,10 @@ Event1 <- function(sim) {
                             matrix(c(0.5,	-1.9,	-0.14288,	2.57677,	-3.82, -1.908,	96.76,	-0.71,	-2.669,	57.27, -0.143,	-0.71,	0.208,	-1.059,	1.15, 2.57,	-2.6,	-1.059,	56.29,	-4.85, -3.82,	57.27,	1.15,	-4.85,	77.337), ncol =5, nrow =5), # 3 sbs-dry
                             matrix(c(0.7,	0.5,	6.1,	2.1, 0.5,	2.9,	4.0,	5.2, 6.1,	4.0,	62.6,	22.4, 2.1,	5.2,	22.4,	42.3), ncol=4, nrow=4) # 4 - Dr
                             )
-  sim$survival_rate_table <-data.table (Fpop = c(1,1,2,2,3,3,4,4),
-                                        age = c ("Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile"),
-                                        mean = c(),
-                                        se = c())
+  sim$survival_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
+                                         age = c ("Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile"),
+                                         mean = c(),
+                                         se = c())
   
   sim$repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
                                       Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
