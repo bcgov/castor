@@ -561,13 +561,6 @@ repro_FEMALE <- function (sim) {
     
     
     
-      # the previous approach....
-      DR <- sim$repro_rate_table %>% 
-        dplyr::filter (str_detect (Fpop, fisher.pop)) %>% 
-        dplyr::filter (str_detect (Param, "DR"))
-      DR_CIs <- CI_from_meanSDn (mean = DR$Mean, sd = DR$SD, n = DR$n)
-      reproFishers$reproduce <- rbinom (n = nrow (reproFishers), size = 1, prob = DR_CIs)
-    
     reproFishers <- reproFishers %>% filter(reproduce==1)
     LS <- repro_rate_table %>% dplyr::filter(str_detect(Fpop, fisher.pop)) %>% dplyr::filter(str_detect(Param,"LS"))
     reproFishers$num.kits <- rnorm(n=nrow(reproFishers), mean=LS$Mean, sd=LS$SD)
@@ -1032,21 +1025,6 @@ Event1 <- function(sim) {
   return(invisible(sim))
 }
 
-
-# Functions used in events above
-CI_from_meanSDn <- function (mean = mean, sd = sd, n = n, alpha = 0.05) {
-  sample.mean <- mean
-  sample.n <- n
-  sample.sd <- sd
-  sample.se <- sample.sd/sqrt(sample.n)
-  alpha <- alpha
-  degrees.freedom = sample.n - 1
-  t.score = qt(p=alpha/2, df=degrees.freedom,lower.tail=F)
-  margin.error <- t.score * sample.se
-  lower.bound <- sample.mean - margin.error
-  upper.bound <- sample.mean + margin.error
-  return(c(lower.bound, upper.bound))
-}
 
 
 
