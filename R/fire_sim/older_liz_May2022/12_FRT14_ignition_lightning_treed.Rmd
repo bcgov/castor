@@ -1,0 +1,569 @@
+---
+title: "FRT_14"
+author: "Elizabeth Kleynhans"
+date: '2022-07-21'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library (data.table)
+library (DBI)
+library (RPostgreSQL)
+library (dplyr)
+library (ggplot2)
+library (here)
+library(ggpubr)
+library(arm)
+library(tidyr)
+library(AICcmodavg)
+library(keyring)
+library(caret)
+library(pROC)
+library(rje)
+library(car)
+library(visreg)
+library (kableExtra)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+#=================================
+#  Script Name: 12_fire_ignition_model_selection_FRT7_lightning_treed.R
+#  Script Version: 1.0
+#  Script Purpose: Model selection, using various initial models to inform the final model selection.
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
+#Load data back in if starting from here
+Note: depending where your geometry column was located when saved as a csv (and turned into a dataframe), you may need to manually correct column headings on the csv file before loading back in. This has been performed for the below files.
+
+```{r}
+dat_lightning<- read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Data_Lightning.csv")
+
+dat_lightning_t<- dat_lightning %>% filter(bclc__2=="T")
+head(dat_lightning_t)
+```
+
+Which are the climate variables that correlate with climate1?
+```{r, AIC table, echo = F, message = F, eval = T}
+
+climate_variables_lightning<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/Final_Selected_Climate_Variables_Lightning_FRT.csv")
+
+kable (climate_variables_lightning,
+       caption = "<b>Table 1. Top candidate climate variables for lightning caused fires as selected through an AIC analysis for each Fire Regime Type.<b>",
+       digits = 2) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
+
+```
+For FRT 13 its Tave08
+
+# Now what is the top model for FRT 11?
+
+```{r, AIC table, echo = F, message = F, eval = T}
+Top_mod_set_lightning_treed<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Ignition_lightning_treed_model_results\\FRT_all_lightning_models_treed_top_set.csv")
+
+head(Top_mod_set_lightning_treed) 
+
+kable (Top_mod_set_lightning_treed,
+       caption = "<b>Table 1. Top candidate variables for lightning caused fires as selected through an AIC analysis for each Fire Regime Type.<b>",
+       digits = 2) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
+
+```
+climate1 + prj_h_1 + prj_g_1 + dm_h_bc + vegtype + bclcs_level_5_2	
+
+
+#Checking model fits for FRT 14
+
+```{r}
+dat<- dat_lightning_t %>% dplyr::select(fire_yr, ig_mnth, frt, fire, dm_h_bc, climate1, prj_h_1, prj_g_1, l___125,win_spg, win_sum vegtype, bclcs_level_5_2)
+
+dat2<- dat %>% dplyr::filter(frt == 14) %>%
+  drop_na(prj_h_1)
+table(dat2$vegtype, dat2$fire) 
+
+dat2$vegtype_density<-paste(dat2$vegtype, dat2$bclcs_level_5_2,sep="_") # could consider including
+table(dat2$vegtype_density, dat2$fire)
+
+mod.frt.13<-glm(fire ~ climate1 + prj_h_1 + prj_g_1 + dm_h_bc + vegtype_density, data=dat2, family=binomial(link="logit"))
+
+library(caret)
+varImp(mod.frt.13)
+
+summary(mod.frt.13)
+Anova(mod.frt.13, type=3)
+
+# model diagnostic plots
+binnedplot (fitted(mod.frt.13), 
+            residuals(mod.frt.13), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm"))
+
+
+dat2$resids<-resid(mod.frt.13)
+
+binnedplot (dat2$prj_g_1, 
+            dat2$resids, 
+            nclass = NULL, 
+            xlab = "live stand volume", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm"))
+
+binnedplot (dat2$prj_h_1, 
+            dat2$resids, 
+            nclass = NULL, 
+            xlab = "live stand volume", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm"))
+
+binnedplot (dat2$dm_h_bc, 
+            dat2$resids, 
+            nclass = NULL, 
+            xlab = "live stand volume", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm"))
+
+binnedplot (dat2$climate1, 
+            dat2$resids, 
+            nclass = NULL, 
+            xlab = "", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm"))
+
+
+
+##Partial Residuals
+visreg(mod.frt.13, scale="response") # nicer plots than the ones below!
+
+visreg(mod.frt.13, "climate1", by="dm_h_bc", scale="response")
+visreg(mod.frt.13, "climate1", by="prj_h_1", scale="response")
+visreg(mod.frt.13, "climate1", by="prj_g_1", scale="response")
+
+visreg(mod.frt.13, "climate1", by="vegtype_density", scale="response")
+
+```
+## checking assumptions of a logistic regression following methods outlined in  http://www.sthda.com/english/articles/36-classification-methods-essentials/148-logistic-regression-assumptions-and-diagnostics-in-r/
+
+Other good resources are 
+
+# for polynomial regression
+https://datascienceplus.com/fitting-polynomial-regression-r/
+http://www.science.smith.edu/~jcrouser/SDS293/labs/lab12-r.html 
+
+# general information about model fitting and validation can be found here:
+
+ C:\Users\ekleynha\OneDrive - Government of BC\Fire papers\Logistic_regression_general_info\giancristofaro&Salmaso.Statistica.2003_Model_performance_analysis_and_model_validation_in_logistic_regression
+ 
+https://rdrr.io/cran/GmAMisc/man/modelvalid.html
+
+C:\Users\ekleynha\OneDrive - Government of BC\Fire papers\Logistic_regression_general_info\Stoltzfus.2011.AcademicEmergencyMedicine_Logistic_Regression_A_Brief_Primer
+
+
+First checking assumption of linearity
+```{r}
+#Here, we’ll check the linear relationship between continuous predictor variables and the logit of the outcome. This can be done by visually inspecting the scatter plot between each predictor and the logit values.
+
+#Remove qualitative variables from the original data frame and bind the logit values to the data:
+
+# Select only numeric predictors
+str(dat2)
+
+dat2_b<-dat2 %>% dplyr::select(fire:prj_g_1 )
+probabilities <- predict(mod.frt.13, type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
+
+mydata <- dat2_b %>%
+  dplyr::select_if(is.numeric) 
+predictors <- colnames(mydata)
+
+# Bind the logit and tidying the data for plot
+mydata <- mydata %>%
+  mutate(logit = log(probabilities/(1-probabilities))) %>%
+  gather(key = "predictors", value = "predictor.value", -logit)
+
+ggplot(mydata, aes(logit, predictor.value))+
+  geom_point(size = 0.5, alpha = 0.5) +
+  geom_smooth(method = "loess", se=FALSE) + 
+  theme_bw() + 
+  facet_wrap(~predictors, scales = "free_y")
+
+# note the plot above is plotting the relationship between probability of an outcome and the variable of interest. 
+
+# all variables should be approximatly linear. It looks to me as if elevation is not linear i.e. there is some intermediate level of elevation where ignition is more likely and possibly for climate there is some threashold where the probability of igntion begins to climb.
+
+# this code below demonstrates what the above does
+summary(dat2$dm_h_bc)
+# at each of the quartiles calculate the probability of ignition
+mean(dat2$fire[dat2$dm_h_bc<=1056])
+p1<-mean(dat2$fire[dat2$dm_h_bc<1056])
+p2<-mean(dat2$fire[dat2$dm_h_bc>=1056 & dat2$dm_h_bc< 1321])
+p3<-mean(dat2$fire[dat2$dm_h_bc>=1321 & dat2$dm_h_bc< 1597])
+p4<-mean(dat2$fire[dat2$dm_h_bc>1597])
+
+probs<-c(p1,p2,p3,p4)
+logits<-log(probs/(1-probs))
+
+# now calculate the median value between the quartiles
+meds<-c(median(dat2$dm_h_bc[dat2$dm_h_bc<1056]), median(dat2$dm_h_bc[dat2$dm_h_bc>=1056 & dat2$dm_h_bc< 1321]), median(dat2$dm_h_bc[dat2$dm_h_bc>=1321 & dat2$dm_h_bc< 1597]), median(dat2$dm_h_bc[dat2$dm_h_bc>1597]))
+
+plot(meds,logits)
+
+library(car)
+dat2$dm_h_bc_2<-dat2$dm_h_bc+1
+dat2$prj_h_1_2<- dat2$prj_h_1 +1
+
+
+#You can use boxTidwell function from car package. In this example, climate and elev variables are tested for non-linear relationship to the mean fire adjusting for age and height variables. 
+boxTidwell(fire ~ climate1 + dm_h_bc_2 + prj_g_1, ~ prj_h_1_2, data=dat2)
+
+boxTidwell(fire ~ climate1 + dm_h_bc_2, ~ prj_g_1 +prj_h_1_2, data=dat2)
+
+#####
+hist(dat2$dm_h_bc)
+
+# Ill try fix elevation first
+mod.frt.13_2<-glm(fire ~ climate1 + prj_h_1 + prj_g_1 + poly(dm_h_bc,2) + vegtype_density, data=dat2, family=binomial(link="logit"))
+anova(mod.frt.13_2, mod.frt.13, test="Chisq")
+
+mod.frt.13_2_2<-glm(fire ~ poly(climate1,2) + prj_h_1 + prj_g_1 + poly(dm_h_bc,2) + vegtype_density, data=dat2, family=binomial(link="logit"))
+anova(mod.frt.13_2_2, mod.frt.13_2, test="Chisq")
+
+probabilities <- predict(mod.frt.13_2_2, type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
+
+mydata <- dat2_b %>%
+  dplyr::select_if(is.numeric) 
+predictors <- colnames(mydata)
+
+# Bind the logit and tidying the data for plot
+mydata <- mydata %>%
+  mutate(logit = log(probabilities/(1-probabilities))) %>%
+  gather(key = "predictors", value = "predictor.value", -logit)
+
+ggplot(mydata, aes(logit, predictor.value))+
+  geom_point(size = 0.5, alpha = 0.5) +
+  geom_smooth(method = "loess", se=FALSE) + 
+  theme_bw() + 
+  facet_wrap(~predictors, scales = "free_y")
+### now age is not linear but climate and elevation are much better. Maybe I should 
+
+mod.frt.13_2_3<-glm(fire ~ poly(climate1,2) + prj_h_1 + poly(prj_g_1,2) + poly(dm_h_bc,2) + vegtype_density, data=dat2, family=binomial(link="logit"))
+anova(mod.frt.13_2_3, mod.frt.13_2_2, test="Chisq")
+
+probabilities <- predict(mod.frt.13_2_3, type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
+
+mydata <- dat2_b %>%
+  dplyr::select_if(is.numeric) 
+predictors <- colnames(mydata)
+
+# Bind the logit and tidying the data for plot
+mydata <- mydata %>%
+  mutate(logit = log(probabilities/(1-probabilities))) %>%
+  gather(key = "predictors", value = "predictor.value", -logit)
+
+ggplot(mydata, aes(logit, predictor.value))+
+  geom_point(size = 0.5, alpha = 0.5) +
+  geom_smooth(method = "loess", se=FALSE) + 
+  theme_bw() + 
+  facet_wrap(~predictors, scales = "free_y")
+
+# the below did not help i.e. adding an additional  polynomial to age.
+mod.frt.13_2_4<-glm(fire ~ poly(climate1,2) + prj_h_1 + poly(prj_g_1,3) + poly(dm_h_bc,2) + vegtype_density, data=dat2, family=binomial(link="logit"))
+anova(mod.frt.13_2_4, mod.frt.13_2_3, test="Chisq")
+
+probabilities <- predict(mod.frt.13_2_4, type = "response")
+predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
+
+mydata <- dat2_b %>%
+  dplyr::select_if(is.numeric) 
+predictors <- colnames(mydata)
+
+# Bind the logit and tidying the data for plot
+mydata <- mydata %>%
+  mutate(logit = log(probabilities/(1-probabilities))) %>%
+  gather(key = "predictors", value = "predictor.value", -logit)
+
+ggplot(mydata, aes(logit, predictor.value))+
+  geom_point(size = 0.5, alpha = 0.5) +
+  geom_smooth(method = "loess", se=FALSE) + 
+  theme_bw() + 
+  facet_wrap(~predictors, scales = "free_y")
+
+
+# model diagnostic plots
+binnedplot (fitted(mod.frt.13_2_3), 
+            residuals(mod.frt.13_2_3), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm"))
+
+
+dat2$resids<-resid(mod.frt.13_2_3)
+
+binnedplot (dat2$prj_g_1, 
+            dat2$resids, 
+            nclass = NULL, 
+            xlab = "live stand volume", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm"))
+
+binnedplot (dat2$prj_h_1, 
+            dat2$resids, 
+            nclass = NULL, 
+            xlab = "live stand volume", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm"))
+
+
+
+
+
+```
+
+Checking assumption of influential values
+see: (http://www.sthda.com/english/articles/36-classification-methods-essentials/148-logistic-regression-assumptions-and-diagnostics-in-r/)
+```{r}
+#Influential values are extreme individual data points that can alter the quality of the logistic regression model.
+#The most extreme values in the data can be examined by visualizing the Cook’s distance values. Here we label the top 3 largest values:
+
+plot(mod.frt.13, which = 4, id.n = 3)
+
+#Note that, not all outliers are influential observations. To check whether the data contains potential influential observations, the standardized residual error can be inspected. Data points with an absolute standardized residuals above 3 represent possible outliers and may deserve closer attention.
+
+#The following R code computes the standardized residuals (.std.resid) and the Cook’s distance (.cooksd) using the R function augment() [broom package].
+
+# Extract model results
+library(broom)
+model.data <- augment(mod.frt.13) %>% 
+  mutate(index = 1:n()) 
+
+#The data for the top 3 largest values, according to the Cook’s distance, can be displayed as follow:
+model.data %>% 
+  dplyr::select(prj_h_1, climate1, .std.resid, .cooksd) %>%
+  top_n(5, .cooksd) 
+
+ggplot(model.data, aes(index, .std.resid)) + 
+  geom_point(aes(color = fire), alpha = .5) +
+  theme_bw()
+
+#Filter potential influential data points with abs(.std.res) > 3:
+
+model.data %>% 
+  filter(abs(.std.resid) > 3) # there are no data points with a standardized residual of greater than 3. So we are all good
+
+```
+
+# checking assumption of no multicollinearity
+
+```{r}
+#Multicollinearity corresponds to a situation where the data contain highly correlated predictor variables. Read more in Chapter @ref(multicollinearity).
+
+#Multicollinearity is an important issue in regression analysis and should be fixed by removing the concerned variables. It can be assessed using the R function vif() [car package], which computes the variance inflation factors:
+
+car::vif(mod.frt.13)
+
+#As a rule of thumb, a VIF value that exceeds 5 or 10 indicates a problematic amount of collinearity. 
+```
+
+
+
+
+###################################################
+#### TOP FINAL MODEL
+###################################################
+
+```{r}
+
+mod.frt.13_final<-glm(fire ~ climate1 + prj_h_1 + dm_h_bc + vegtype, data=dat2, family=binomial(link="logit"))
+summary(mod.frt.13_final)
+
+### Results of summary
+# Call:
+# glm(formula = fire ~ climate1 + prj_g_1 + prj_h_1 + vegtype, 
+#     family = binomial(link = "logit"), data = dat2)
+# 
+# Deviance Residuals: 
+#     Min       1Q   Median       3Q      Max  
+# -1.3543  -0.6355  -0.5178  -0.3874   2.4007  
+# 
+# Coefficients:
+#              Estimate Std. Error z value        Pr(>|z|)    
+# (Intercept) -6.837822   1.004951  -6.804 0.0000000000102 ***
+# climate1     0.343003   0.086533   3.964 0.0000737548272 ***
+# prj_g_1      0.002727   0.001666   1.636         0.10179    
+# prj_h_1      0.044733   0.016565   2.700         0.00693 ** 
+# vegtypeTC    1.040837   0.499412   2.084         0.03715 *  
+# vegtypeTM    0.576192   0.548835   1.050         0.29379    
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# (Dispersion parameter for binomial family taken to be 1)
+# 
+#     Null deviance: 776.74  on 858  degrees of freedom
+# Residual deviance: 733.67  on 853  degrees of freedom
+# AIC: 745.67
+# 
+# Number of Fisher Scoring iterations: 5
+
+# model diagnostic plots
+binnedplot (fitted(mod.frt.13_final), 
+            residuals(mod.frt.13_final), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm"))
+
+
+dat2$resids<-resid(mod.frt.13_final)
+
+binnedplot (dat2$prj_g_1, 
+            dat2$resids, 
+            nclass = NULL, 
+            xlab = "prj_g_1", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm"))
+binnedplot (dat2$prj_h_1, 
+            dat2$resids, 
+            nclass = NULL, 
+            xlab = "prj_h_1", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm"))
+
+binnedplot (dat2$climate1, 
+            dat2$resids, 
+            nclass = NULL, 
+            xlab = "climate1", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm"))
+binnedplot (dat2$dm_h_bc, 
+            dat2$resids, 
+            nclass = NULL, 
+            xlab = "dm_h_bc", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm"))
+
+
+
+##Partial Residuals
+visreg(mod.frt.13_final, scale="response") # nicer plots than the ones below!
+
+```
+
+```{r}
+summary(mod.frt.13_final)
+
+#Create a new blank table and get AUC too
+top_mod_table_FRT5_light_t_ALL <- data.frame (matrix (ncol = 12, nrow = 0))
+colnames (top_mod_table_FRT5_light_t_ALL ) <- c ("CAUSE", "FRT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_proj_height_1", "coef_elev", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "AUC")
+
+dat2$fire_veg<-paste(dat2$fire, dat2$vegtype)
+```
+
+Let's run it 500 times to get good mean values.
+
+```{r}
+
+for (g in 1:500){
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(dat2$fire_veg, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- dat2[ trainIndex,]
+   Valid <- dat2[-trainIndex,]
+   
+#Model   
+mod.frt.13_final<-glm(fire ~ climate1 + prj_h_1 + dm_h_bc + vegtype, data=dat2, family=binomial(link="logit"))
+
+mod.valid <- predict.glm(mod.frt.13_final, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"fire"], mod.valid, quiet=TRUE)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_NDT1_light_t <- data.frame (matrix (ncol = 12, nrow = 0))
+colnames (top_mod_table_NDT1_light_t ) <- c ("CAUSE", "FRT", "TREED", "Model_terms", "intercept", "coef_climate_1", "coef_proj_height_1", "coef_elev", "coef_vegtypeTB", "coef_vegtypeTC", "coef_vegtypeTM", "AUC")
+
+##Add data for NDT1
+top_mod_table_NDT1_light_t[1,1]<-"lightning"
+top_mod_table_NDT1_light_t[1,2]<-"FRT12"
+top_mod_table_NDT1_light_t[1,3]<-"Y"
+top_mod_table_NDT1_light_t[1,4]<-"fire ~  climate1 + prj_h_1 + dm_h_bc + vegtype"
+top_mod_table_NDT1_light_t[1,5]<- coef(mod.frt.13_final)[1] #Intercept
+top_mod_table_NDT1_light_t[1,6]<- coef(mod.frt.13_final)[2] #Climate variable 1
+top_mod_table_NDT1_light_t[1,7]<- coef(mod.frt.13_final)[3] #Climate variable 2
+top_mod_table_NDT1_light_t[1,8]<- coef(mod.frt.13_final)[4] #I
+top_mod_table_NDT1_light_t[1,9]<- coef(mod.frt.13_final)[5] #co
+top_mod_table_NDT1_light_t[1,10]<- coef(mod.frt.13_final)[6]
+top_mod_table_NDT1_light_t[1,11]<- coef(mod.frt.13_final)[7]
+top_mod_table_NDT1_light_t[1,12]<- mod.auc
+
+top_mod_table_FRT5_light_t_ALL<-rbind(top_mod_table_FRT5_light_t_ALL, top_mod_table_NDT1_light_t)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_FRT5_light_t_ALL)
+
+```
+
+#Save coefficient table
+
+```{r}
+write.csv(top_mod_table_FRT5_light_t_ALL, file="D:\\Fire\\fire_data\\raw_data\\Ignition Models\\Ignition_Model_Results_Lightning_Treed\\top_mod_table_FRT12_light_tree_all.csv")
+```
+
+Get mean values.
+
+```{r}
+names(top_mod_table_FRT5_light_t_ALL)
+str(top_mod_table_FRT5_light_t_ALL)
+stderror <- function(x) sd(x)/sqrt(length(x))
+
+FRT5_summary_table_mean<- top_mod_table_FRT5_light_t_ALL %>% summarize_if(is.numeric,mean)
+
+#   intercept coef_climate_1 coef_proj_height_1    coef_elev coef_vegtypeTB
+# -8.721512       0.288776         0.03650501 0.0008286607      -1.369267
+#   coef_vegtypeTC coef_vegtypeTM       AUC
+# -0.5101257     -0.9214367 0.6684352
+
+```
+
+Save table.
+
+```{r}
+# write.csv(top_mod_table_NDT1_light_t_Means, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT1_light_t_Means.csv")
+```
+
