@@ -67,6 +67,7 @@ table(dat$frt, dat$FWI_veg, dat$fire)
 dat15<- dat %>% dplyr::filter(frt == 15) 
 table(dat15$FWI_veg)
 
+dat15<- dat15 %>% dplyr::filter(FWI_veg != "N") 
 dat15$FWI_veg[dat15$FWI_veg=="S-1"]<-"S-3"
 dim(dat15)
 
@@ -88,13 +89,9 @@ dat15<- dat15%>% drop_na(FWI_veg)
  dat15$elevatn[is.na(dat15$elevatn) & dat15$FWI_veg=="M-1/2"]<-580.5608
  dat15$elevatn[is.na(dat15$elevatn) & dat15$FWI_veg=="C-5"]<-536.4029
  
- 
 
  
 ggplot(data=dat15, mapping=aes(x=as.factor(fire), y=climate1))+
-  geom_boxplot()
-
-ggplot(data=dat15, mapping=aes(x=as.factor(fire), y=climate2))+
   geom_boxplot()
 
 
@@ -127,10 +124,10 @@ mod.frt.10<-glm(fire ~ climate1 + climate2 + FWI_veg + elevatn, data=dat15, fami
 cor(model.matrix(mod.frt.10)[,-1])
 
 mod.frt.clim1<-glm(fire ~climate1 + climate2 + FWI_veg, data=dat15, family=binomial(link="logit"))
-# AIC = 3139
+# AIC = 2965
 
  mod.frt.elev<-glm(fire ~climate2 + FWI_veg + elevatn, data=dat15, family=binomial(link="logit"))
- # AIC = 3024
+ # AIC = 2844
  
  # Ill remove climate1 and keep in elevation
 
@@ -258,8 +255,8 @@ car::vif(mod.frt.elev)
 summary(mod.frt.elev)
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT12_lightningALL <- data.frame (matrix (ncol = 13, nrow = 0))
-colnames (top_mod_table_FRT12_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_2",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2",  "coef_FWI_veg_N", "coef_FWI_veg_S-3","coef_elevatn", "AUC")
+top_mod_table_FRT12_lightningALL <- data.frame (matrix (ncol = 12, nrow = 0))
+colnames (top_mod_table_FRT12_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_2",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_S-3","coef_elevatn", "AUC")
 
 dat15$fire_veg<-paste(dat15$fire, dat15$FWI_veg)
 ```
@@ -287,8 +284,8 @@ mod.valid <- predict.glm(mod, newdata=Valid, type="response")
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT12_lightningL <- data.frame (matrix (ncol = 13, nrow = 0))
-colnames (top_mod_table_FRT12_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_2",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2",  "coef_FWI_veg_N", "coef_FWI_veg_S-3","coef_elevatn", "AUC")
+top_mod_table_FRT12_lightningL <- data.frame (matrix (ncol = 12, nrow = 0))
+colnames (top_mod_table_FRT12_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_2",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_S-3","coef_elevatn", "AUC")
 
 
 ##Add data for NDT1
@@ -303,8 +300,7 @@ top_mod_table_FRT12_lightningL[1,8]<- coef(mod)[5] #co
 top_mod_table_FRT12_lightningL[1,9]<- coef(mod)[6] #coe
 top_mod_table_FRT12_lightningL[1,10]<- coef(mod)[7] #c
 top_mod_table_FRT12_lightningL[1,11]<- coef(mod)[8] #
-top_mod_table_FRT12_lightningL[1,12]<- coef(mod)[9] #
-top_mod_table_FRT12_lightningL[1,13]<- mod.auc 
+top_mod_table_FRT12_lightningL[1,12]<- mod.auc 
 
 top_mod_table_FRT12_lightningALL<-rbind(top_mod_table_FRT12_lightningALL, top_mod_table_FRT12_lightningL)
 

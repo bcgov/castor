@@ -67,10 +67,12 @@ table(dat$frt, dat$FWI_veg)
 dat12<- dat %>% dplyr::filter(frt == 12) 
 table(dat12$FWI_veg)
 
+# removing N and W
+dat12<-dat12 %>% filter(FWI_veg!="N")
 # there are only 6 observations in the C1 fuel type so since this fiel type has fire spread rates similar to C3 I will change all C1 observations to C3
-dat12$FWI_veg[dat12$FWI_veg=="C-1"]<-"C-3"
+#dat12$FWI_veg[dat12$FWI_veg=="C-1"]<-"C-3"
 # apparently C-4 is very similar to C-2 so Ill also change all C-4's to C'-2's
-dat12$FWI_veg[dat12$FWI_veg=="C-4"]<-"C-2"
+#dat12$FWI_veg[dat12$FWI_veg=="C-4"]<-"C-2"
 ## changing S-3 to S-1 because this is the most common type of slash in this area. 
 dat12$FWI_veg[dat12$FWI_veg=="S-3"]<-"S-1"
 table(dat12$FWI_veg)
@@ -234,8 +236,9 @@ car::vif(mod.frt.12)
 summary(mod.frt.12)
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT12_lightningALL <- data.frame (matrix (ncol = 17, nrow = 0))
-colnames (top_mod_table_FRT12_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_N", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "coef_FWI_veg_S-2","coef_elevatn", "AUC")
+
+top_mod_table_FRT12_lightningALL <- data.frame (matrix (ncol = 18, nrow = 0))
+colnames (top_mod_table_FRT12_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_FWI_veg_C-2", "coef_FWI_veg_C-3","coef_FWI_veg_C-4",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "coef_FWI_veg_S-2","coef_elevatn", "AUC")
 
 dat12$fire_veg<-paste(dat12$fire, dat12$FWI_veg)
 ```
@@ -263,8 +266,8 @@ mod.valid <- predict.glm(mod, newdata=Valid, type="response")
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT12_lightningL <- data.frame (matrix (ncol = 17, nrow = 0))
-colnames (top_mod_table_FRT12_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1",  "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_N", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "coef_FWI_veg_S-2","coef_elevatn", "AUC")
+top_mod_table_FRT12_lightningL <- data.frame (matrix (ncol = 18, nrow = 0))
+colnames (top_mod_table_FRT12_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_FWI_veg_C-2", "coef_FWI_veg_C-3","coef_FWI_veg_C-4",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "coef_FWI_veg_S-2","coef_elevatn", "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT12_lightningL[1,1]<-"lightning"
@@ -283,7 +286,8 @@ top_mod_table_FRT12_lightningL[1,13]<- coef(mod)[10] #pr
 top_mod_table_FRT12_lightningL[1,14]<- coef(mod)[11] #coeffic
 top_mod_table_FRT12_lightningL[1,15]<- coef(mod)[12]
 top_mod_table_FRT12_lightningL[1,16]<- coef(mod)[13]
-top_mod_table_FRT12_lightningL[1,17]<- mod.auc
+top_mod_table_FRT12_lightningL[1,17]<- coef(mod)[14]
+top_mod_table_FRT12_lightningL[1,18]<- mod.auc
 
 top_mod_table_FRT12_lightningALL<-rbind(top_mod_table_FRT12_lightningALL, top_mod_table_FRT12_lightningL)
 
@@ -298,11 +302,6 @@ head(top_mod_table_FRT12_lightningALL)
 ```
 
 #Save coefficient table
-
-```{r}
-write.csv(top_mod_table_FRT12_lightningALL, file="D:\\Fire\\fire_data\\raw_data\\Ignition Models\\Ignition_Model_Results_Lightning_Treed\\top_mod_table_FRT5_light_tree_all.csv")
-```
-
 Get mean values.
 
 ```{r}
