@@ -29,25 +29,27 @@ crs(DEM)
 #import FRT and change it to a raster for faster extraction
 
 ```{r}
-
+# import FRT from the D drive or Kyle Clus (below)
 frt <- st_read ( dsn = "D:\\Fire\\fire_data\\Fire_Regime_Types\\FRT\\FRT_Canada.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
 st_crs(frt) #Retrieve coordinate reference system from sf or sfc object
 frt<-st_transform(frt, 3005) 
 
-# save data 
-conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
-                  host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
-                  dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
-                  port ='5432' ,
-                  user = keyring::key_get('dbuser', keyring = 'postgreSQL') ,
-                  password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
-st_write (obj = frt, 
-          dsn = conn, 
-          layer = c ("public", "frt_canada"),
-          delete_layer=TRUE)
-dbDisconnect (conn)
+# save frt to Kyle Clus 
+# conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
+#                   host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+#                   dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+#                   port ='5432' ,
+#                   user = keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+#                   password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+# st_write (obj = frt, 
+#           dsn = conn, 
+#           layer = c ("public", "frt_canada"),
+#           delete_layer=TRUE)
+# dbDisconnect (conn)
 
 #frt_sf<-st_as_sf(frt)
+
+frt<-getSpatialQuery("SELECT * FROM frt_canada")
 
 layeraoi<-getSpatialQuery("SELECT * FROM study_area_compart limit 1")
 #Create a provincial raster
