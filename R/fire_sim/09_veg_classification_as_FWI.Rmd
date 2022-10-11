@@ -686,5 +686,10 @@ x<- fire_all1 %>% filter(is.na(FWI_veg)) %>% select(inventory_standard_cd:conife
 
 st_write(fire_all1, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg.gpkg", delete_layer=TRUE, driver="GPKG")
 
+# upload to Kyle clus. Just update the relevant credentials 
+key_get('dbpass', keyring = 'postgreSQL')
+key_get('dbhost', keyring = 'postgreSQL')
+
+#ogr2ogr -f PostgreSQL PG:"host= user= dbname=clus password= port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg.gpkg -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ```
