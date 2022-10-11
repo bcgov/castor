@@ -2640,6 +2640,66 @@ dbExecute (conn, "DELETE FROM public.pgdbs_data_list WHERE table_name = 'graham_
 dbExecute (conn, "DROP TABLE public.graham_core_caribou_habitat_vat;")
 dbExecute (conn, "DELETE FROM public.pgdbs_data_list WHERE table_name = 'graham_core_caribou_habitat_vat' AND computer = 'DG401102';")
 
+#Create new row for table
+new_data <- data.table (computer = 'DG401102', database = 'clus', schema = 'rast', 
+                        table_name = 'zone_whitebark_bc_core_habitat', 
+                        type = 'raster', script = 'R/Params/whitebark.Rmd', 
+                        source = 'Francis Iredale, Species at Risk Recovery Branch, LWRS', 
+                        public = 'No', last_updated = '2022', next_update = 'As needed', 
+                        where_used = 'R/scenarios/white_bark'
+                        )
+new_data1 <- data.table (computer = 'DG401102', database = 'clus', schema = 'zone', 
+                        table_name = 'zone_whitebark_bc_core_habitat', 
+                        type = 'raster', script = 'R/Params/whitebark.Rmd', 
+                        source = 'Francis Iredale, Species at Risk Recovery Branch, LWRS', 
+                        public = 'No', last_updated = '2022', next_update = 'As needed', 
+                        where_used = 'R/scenarios/white_bark'
+                        )
+new_data2 <- data.table (computer = 'DG401102', database = 'clus', schema = 'rast', 
+                        table_name = 'zone_whitebark_eccc_habitat', 
+                        type = 'raster', script = 'R/Params/whitebark.Rmd', 
+                        source = 'Francis Iredale, Species at Risk Recovery Branch, LWRS', 
+                        public = 'No', last_updated = '2022', next_update = 'As needed', 
+                        where_used = 'R/scenarios/white_bark'
+                        )
+new_data3 <- data.table (computer = 'DG401102', database = 'clus', schema = 'zone', 
+                        table_name = 'zone_whitebark_eccc_habitat', 
+                        type = 'raster', script = 'R/Params/whitebark.Rmd', 
+                        source = 'Francis Iredale, Species at Risk Recovery Branch, LWRS', 
+                        public = 'No', last_updated = '2022', next_update = 'As needed', 
+                        where_used = 'R/scenarios/white_bark'
+                        )
+new_data4 <- data.table (computer = 'DG401102', database = 'clus', schema = 'vat', 
+                        table_name = 'whitebark_eccc_habitat', 
+                        type = 'raster', script = 'R/Params/whitebark.Rmd', 
+                        source = 'Francis Iredale, Species at Risk Recovery Branch, LWRS', 
+                        public = 'No', last_updated = '2022', next_update = 'As needed', 
+                        where_used = 'R/scenarios/white_bark'
+                        )
+new_data5 <- data.table (computer = 'DG401102', database = 'clus', schema = 'rast', 
+                        table_name = 'zone_whitebark_potential_range', 
+                        type = 'raster', script = 'R/Params/whitebark.Rmd', 
+                        source = 'Francis Iredale, Species at Risk Recovery Branch, LWRS', 
+                        public = 'No', last_updated = '2022', next_update = 'As needed', 
+                        where_used = 'R/scenarios/white_bark'
+                        )
+new_data6 <- data.table (computer = 'DG401102', database = 'clus', schema = 'zone', 
+                        table_name = 'zone_whitebark_potential_range', 
+                        type = 'raster', script = 'R/Params/whitebark.Rmd', 
+                        source = 'Francis Iredale, Species at Risk Recovery Branch, LWRS', 
+                        public = 'No', last_updated = '2022', next_update = 'As needed', 
+                        where_used = 'R/scenarios/white_bark'
+                        )
+# merge tables
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3, new_data4, 
+                                     new_data5, new_data6))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
 
 ```
 
