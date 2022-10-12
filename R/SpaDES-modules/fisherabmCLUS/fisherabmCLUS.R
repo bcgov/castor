@@ -266,16 +266,18 @@ Init <- function(sim) {
   #---VAT for populations: 1 = Boreal; 2 = SBS-wet; 3 = SBS-dry; 4 = Dry Forest
 
   table.hab <- table.hab [!is.na (pixelid), ] # remove pixels outside of the aoi
-  table.hab <- merge (table.hab, # add the habitat characteristics
-                      data.table (dbGetQuery(sim$clusdb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height  FROM pixels;")),
-                      by = "pixelid")
+  sim$table.hab <- table.hab
+  table.hab.init <- merge (sim$table.hab, # add the habitat characteristics
+                           data.table (dbGetQuery(sim$clusdb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height  FROM pixels;")),
+                           by = "pixelid")
+
   # classify the habitat
-  table.hab [den_p == 1 & age >= 125 & crownclosure >= 30 & qmd >=28.5 & basalarea >= 29.75, denning := 1][den_p == 2 & age >= 125 & crownclosure >= 20 & qmd >=28 & basalarea >= 28, denning := 1][den_p == 3 & age >= 135, denning:=1][den_p == 4 & age >= 207 & crownclosure >= 20 & qmd >= 34.3, denning:=1][den_p == 5 & age >= 88 & qmd >= 19.5 & height >= 19, denning:=1][den_p == 6 & age >= 98 & qmd >= 21.3 & height >= 22.8, denning:=1]
-  table.hab [rus_p == 1 & age > 0 & crownclosure >= 30 & qmd >= 22.7 & basalarea >= 35 & height >= 23.7, rust:=1][rus_p == 2 & age >= 72 & crownclosure >= 25 & qmd >= 19.6 & basalarea >= 32, rust:=1][rus_p == 3 & age >= 83 & crownclosure >=40 & qmd >= 20.1, rust:=1][rus_p == 5 & age >= 78 & crownclosure >=50 & qmd >= 18.5 & height >= 19 & basalarea >= 31.4, rust:=1][rus_p == 6 & age >= 68 & crownclosure >=35 & qmd >= 17 & height >= 14.8, rust:=1]
-  table.hab [cav_p == 1 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1][cav_p == 2 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1]
-  table.hab [cwd_p == 1 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 2 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 3 & age >= 100, cwd:=1][cwd_p >= 5 & age >= 78 & qmd >= 18.1 & height >= 19 & crownclosure >=60, cwd:=1]
-  table.hab [mov_p > 0 & age > 0 & crownclosure >= 40, movement:=1]
-  table.hab <- table.hab [, .(pixelid, fisher_pop, den_p, denning, rus_p, rust, cav_p, cavity, 
+  table.hab.init [den_p == 1 & age >= 125 & crownclosure >= 30 & qmd >=28.5 & basalarea >= 29.75, denning := 1][den_p == 2 & age >= 125 & crownclosure >= 20 & qmd >=28 & basalarea >= 28, denning := 1][den_p == 3 & age >= 135, denning:=1][den_p == 4 & age >= 207 & crownclosure >= 20 & qmd >= 34.3, denning:=1][den_p == 5 & age >= 88 & qmd >= 19.5 & height >= 19, denning:=1][den_p == 6 & age >= 98 & qmd >= 21.3 & height >= 22.8, denning:=1]
+  table.hab.init [rus_p == 1 & age > 0 & crownclosure >= 30 & qmd >= 22.7 & basalarea >= 35 & height >= 23.7, rust:=1][rus_p == 2 & age >= 72 & crownclosure >= 25 & qmd >= 19.6 & basalarea >= 32, rust:=1][rus_p == 3 & age >= 83 & crownclosure >=40 & qmd >= 20.1, rust:=1][rus_p == 5 & age >= 78 & crownclosure >=50 & qmd >= 18.5 & height >= 19 & basalarea >= 31.4, rust:=1][rus_p == 6 & age >= 68 & crownclosure >=35 & qmd >= 17 & height >= 14.8, rust:=1]
+  table.hab.init [cav_p == 1 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1][cav_p == 2 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1]
+  table.hab.init [cwd_p == 1 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 2 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 3 & age >= 100, cwd:=1][cwd_p >= 5 & age >= 78 & qmd >= 18.1 & height >= 19 & crownclosure >=60, cwd:=1]
+  table.hab.init [mov_p > 0 & age > 0 & crownclosure >= 40, movement:=1]
+  table.hab.init <- table.hab.init [, .(pixelid, fisher_pop, den_p, denning, rus_p, rust, cav_p, cavity, 
                               cwd_p, cwd, mov_p, movement)] # could add other things, openness, crown closure, cost surface?
 
   
@@ -284,9 +286,9 @@ Init <- function(sim) {
     # systematic method
       # this provides a 'buffer' between pixels to allow some space for fisher to form an HR; 
       # if they are too close then it forms fewer HRs
-    den.pix <- as.data.table (table.hab [denning == 1 & !is.na (fisher_pop), pixelid])
+    den.pix <- as.data.table (table.hab.init [denning == 1 & !is.na (fisher_pop), pixelid])
     den.rast <- aoi
-    den.rast [table.hab$pixelid] <- table.hab$denning
+    den.rast [table.hab.init$pixelid] <- table.hab.init$denning
     sim$den.rast <- terra::rast (den.rast)
     den.pix.sample <- den.pix [seq (1, nrow (den.pix), 50), ] # grab every ~50th pixel; ~1 pixel every 5km
     ids <- seq (from = 1, to = nrow (den.pix.sample), by = 1)
@@ -310,7 +312,7 @@ Init <- function(sim) {
       # agents$pixelid <- sample (table.hab [denning == 1 & !is.na (fisher_pop), pixelid], length (ids), replace = T)
 
   # assign the population ID
-  agents <- merge (agents, table.hab [ , c("pixelid", "fisher_pop")], 
+  agents <- merge (agents, table.hab.init [ , c("pixelid", "fisher_pop")], 
                    by = "pixelid", all.x = T)
   # assign an HR size based on population
   agents [fisher_pop == 1, hr_size := round (rnorm (nrow (agents [fisher_pop == 1, ]), sim$female_hr_table [fisher_pop == 1, hr_mean], sim$female_hr_table [fisher_pop == 1, hr_sd]))]
@@ -326,20 +328,18 @@ Init <- function(sim) {
   # create spread probability raster
   # currently uses all denning, rust, cavity, cwd and movement habitat as 
   # spreadProb = 1, and non-habitat as spreadProb = 0.10; allows some spread to sub-optimal habitat
-  table.hab [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1, spreadprob := format (round (1.00, 2), nsmall = 2)]
-  table.hab [is.na (spreadprob), spreadprob := format (round (0.18, 2), 2)] # I tested different numbers
+  table.hab.init [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1, spreadprob := format (round (1.00, 2), nsmall = 2)]
+  table.hab.init [is.na (spreadprob), spreadprob := format (round (0.18, 2), 2)] # I tested different numbers
                                                                             # 18% resulted in the mean proportion of home ranges consisting of denning, resting or movement habitat as 55%; 19 was 49%; 17 was 59%; 20 was 47%; 15 was 66%
                                                                             # Caution: this parameter may be area-specific and may need to be and need to be 'tuned' for each AOI
-  sim$table.hab <- table.hab
   # if non-habitat spreadprob
   spread.rast <- sim$pix.rast
-  spread.rast [table.hab$pixelid] <- table.hab$spreadprob
-  sim$spread.rast <- spread.rast
+  spread.rast [table.hab.init$pixelid] <- table.hab.init$spreadprob
 
 # this step took 15 mins with ~8500 starting points; 6 mins for 2174 points; 1 min for 435 points
   table.hr <- SpaDES.tools::spread2 (sim$pix.rast, # within the area of interest
                                      start = agents$pixelid, # for each individual
-                                     spreadProb = sim$spread.rast, # use spread prob raster
+                                     spreadProb = spread.rast, # use spread prob raster
                                      exactSize = agents$hr_size, # spread to the size of their territory
                                      # returnDistances = T, # not working; see below
                                      allowOverlap = F, # no overlap allowed
@@ -356,7 +356,7 @@ Init <- function(sim) {
   table.hr <- merge (merge (table.hr,
                             agents [, c ("pixelid", "individual_id")],
                             by.x = "initialPixels", by.y = "pixelid"), 
-                     table.hab [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement")],
+                     table.hab.init [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement")],
                      by.x = "pixels", by.y = "pixelid")
 
   # check to see if home range target was met; if not, remove the animal 
@@ -433,7 +433,7 @@ Init <- function(sim) {
   message ("Calculate habitat quality.")
   
   # identify which fisher pop an animal belongs to
-  terr.pop <- merge (territories, table.hab [, c ("pixelid", "fisher_pop")], 
+  terr.pop <- merge (territories, table.hab.init [, c ("pixelid", "fisher_pop")], 
                       by = "pixelid", all.x = T)
   # get the mean of pixels pop. values, rounded to get the majority; majority = pop membership
   terr.pop [, fisher_pop := .(round (mean (fisher_pop, na.rm = T), digits = 0)), by = individual_id] 
@@ -444,7 +444,7 @@ Init <- function(sim) {
   
   # get habitat for mahalanobis
   tab.mahal <- merge (territories, 
-                      table.hab [, c ("pixelid", "denning", "rust", "cavity", "movement", "cwd")], 
+                      table.hab.init [, c ("pixelid", "denning", "rust", "cavity", "movement", "cwd")], 
                       by = "pixelid", all.x = T)
   # % of each habitat by territory
   tab.perc <- Reduce (function (...) merge (..., all = TRUE, by = "individual_id"), 
@@ -577,79 +577,174 @@ repro_FEMALE <- function (sim) {
 }
 
 
+###--- Update Home Range
+
+updateHR <- function(sim) {
+
+  # get the agents and territories tables
+  agents <- data.table (dbGetQuery (sim$clusdb, paste0 ("SELECT * FROM agents;")))
+  territories <- data.table (dbGetQuery (sim$clusdb, "SELECT * from territories;"))
+  
+  # update the habitat
+  table.hab.update <- merge (sim$table.hab, # add the habitat characteristics
+                             data.table (dbGetQuery(sim$clusdb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height  FROM pixels;")),
+                             by = "pixelid")
+  
+  # classify the habitat
+  table.hab.update [den_p == 1 & age >= 125 & crownclosure >= 30 & qmd >=28.5 & basalarea >= 29.75, denning := 1][den_p == 2 & age >= 125 & crownclosure >= 20 & qmd >=28 & basalarea >= 28, denning := 1][den_p == 3 & age >= 135, denning:=1][den_p == 4 & age >= 207 & crownclosure >= 20 & qmd >= 34.3, denning:=1][den_p == 5 & age >= 88 & qmd >= 19.5 & height >= 19, denning:=1][den_p == 6 & age >= 98 & qmd >= 21.3 & height >= 22.8, denning:=1]
+  table.hab.update [rus_p == 1 & age > 0 & crownclosure >= 30 & qmd >= 22.7 & basalarea >= 35 & height >= 23.7, rust:=1][rus_p == 2 & age >= 72 & crownclosure >= 25 & qmd >= 19.6 & basalarea >= 32, rust:=1][rus_p == 3 & age >= 83 & crownclosure >=40 & qmd >= 20.1, rust:=1][rus_p == 5 & age >= 78 & crownclosure >=50 & qmd >= 18.5 & height >= 19 & basalarea >= 31.4, rust:=1][rus_p == 6 & age >= 68 & crownclosure >=35 & qmd >= 17 & height >= 14.8, rust:=1]
+  table.hab.update [cav_p == 1 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1][cav_p == 2 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1]
+  table.hab.update [cwd_p == 1 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 2 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 3 & age >= 100, cwd:=1][cwd_p >= 5 & age >= 78 & qmd >= 18.1 & height >= 19 & crownclosure >=60, cwd:=1]
+  table.hab.update [mov_p > 0 & age > 0 & crownclosure >= 40, movement:=1]
+  table.hab.update <- table.hab.update [, .(pixelid, fisher_pop, den_p, denning, rus_p, rust, cav_p, cavity, 
+                                        cwd_p, cwd, mov_p, movement)] # could add other things, openness, crown closure, cost surface?
+  
+  # get habitat for mahalanobis
+  tab.mahal <- merge (territories, 
+                      table.hab.update [, c ("pixelid", "denning", "rust", "cavity", "movement", "cwd")], 
+                      by = "pixelid", all.x = T)
+  # % of each habitat by territory
+  tab.perc <- Reduce (function (...) merge (..., all = TRUE, by = "individual_id"), 
+                      list (tab.mahal [, .(den_perc = ((sum (denning, na.rm = T)) / .N) * 100), by = individual_id ], 
+                            tab.mahal [, .(rust_perc = ((sum (rust, na.rm = T)) / .N) * 100), by = individual_id ], 
+                            tab.mahal [, .(cav_perc = ((sum (cavity, na.rm = T)) / .N) * 100), by = individual_id ], 
+                            tab.mahal [, .(move_perc = ((sum (movement, na.rm = T)) / .N) * 100), by = individual_id ], 
+                            tab.mahal [, .(cwd_perc = ((sum (cwd, na.rm = T)) / .N) * 100), by = individual_id ]))
+  
+  # add pop id
+  tab.perc <- merge (tab.perc, 
+                     agents [, c ("individual_id", "fisher_pop")],
+                     by = "individual_id", all.x = T)
+  # log transform the data
+  tab.perc [fisher_pop == 2 & den_perc >= 0, den_perc := log (den_perc + 1)][fisher_pop == 1 & cav_perc >= 0, cavity := log (cav_perc + 1)] # sbs-wet
+  tab.perc [fisher_pop == 3 & den_perc >= 0, den_perc := log (den_perc + 1)]# sbs-dry
+  tab.perc [fisher_pop == 1 | fisher_pop == 4 & rust_perc >= 0, rust_perc := log (rust_perc + 1)] #boreal and dry
+  
+  # truncate at the center plus one st dev
+  stdev_pop1 <- sqrt (diag (sim$fisher_d2_cov[[1]])) # boreal
+  stdev_pop2 <- sqrt (diag (sim$fisher_d2_cov[[2]])) # sbs-wet
+  stdev_pop3 <- sqrt (diag (sim$fisher_d2_cov[[3]])) # sbs-dry
+  stdev_pop4 <- sqrt (diag (sim$fisher_d2_cov[[4]])) # dry
+  
+  tab.perc [fisher_pop == 1 & den_perc > 24  + stdev_pop1[1], den_perc := 24 + stdev_pop1[1]][fisher_pop == 1 & rust_perc > 2.2 + stdev_pop1[2], rust_perc := 2.2 + stdev_pop1[2]][fisher_pop == 1 & cwd_perc > 17.4 + stdev_pop1[3], cwd_perc := 17.4 + stdev_pop1[3]][fisher_pop == 1 & move_perc > 56.2 + stdev_pop1[4], move_perc := 56.2 + stdev_pop1[4]]
+  tab.perc [fisher_pop == 2 & den_perc > 1.6 + stdev_pop2[1], den_perc := 1.6 + stdev_pop2[1]][fisher_pop == 2 & rust_perc > 36.2 + stdev_pop2[2], rust_perc := 36.2 + stdev_pop2[2]][fisher_pop == 2 & cav_perc > 0.7 + stdev_pop2[3], cav_perc := 0.7 + stdev_pop2[3]][fisher_pop == 2 & cwd_perc > 30.4 + stdev_pop2[4], cwd_perc := 30.4 + stdev_pop2[4]][fisher_pop == 2 & move_perc > 26.8 + stdev_pop2[5], move_perc := 26.8+ stdev_pop2[5]]
+  tab.perc [fisher_pop == 3 & den_perc > 1.2 + stdev_pop3[1], den_perc := 1.2 + stdev_pop3[1]][fisher_pop == 3 & rust_perc > 19.1 + stdev_pop3[2], rust_perc := 19.1 + stdev_pop3[2]][fisher_pop == 3 & cav_perc > 0.5 + stdev_pop3[3], cav_perc := 0.5 + stdev_pop3[3]][fisher_pop == 3 & cwd_perc > 10.2 + stdev_pop3[4], cwd_perc := 10.2 + stdev_pop3[4]][fisher_pop == 3 & move_perc > 33.1 + stdev_pop3[5], move_perc := 33.1+ stdev_pop3[5]]
+  tab.perc [fisher_pop == 4 & den_perc > 2.3 + stdev_pop4[1], den_perc := 2.3 + stdev_pop4[1]][fisher_pop == 4 & rust_perc > 1.6 +  stdev_pop4[2], rust_perc := 1.6  + stdev_pop4[2]][fisher_pop == 4 & cwd_perc > 10.8 + stdev_pop4[3], cwd_perc := 10.8 + stdev_pop4[3]][fisher_pop == 4 & move_perc > 21.5 + stdev_pop4[4], move_perc := 21.5+ stdev_pop4[4]]
+  
+  #-----D2
+  tab.perc [fisher_pop == 1, d2 := mahalanobis (tab.perc [fisher_pop == 1, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(24.0, 2.2, 17.4, 56.2), cov = sim$fisher_d2_cov[[1]])]
+  tab.perc [fisher_pop == 2, d2 := mahalanobis (tab.perc [fisher_pop == 2, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.6, 36.2, 0.7, 30.4, 26.8), cov = sim$fisher_d2_cov[[2]])]
+  tab.perc [fisher_pop == 3, d2 := mahalanobis (tab.perc [fisher_pop == 3, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.16, 19.1, 0.45, 8.69, 33.06), cov = sim$fisher_d2_cov[[3]])]
+  tab.perc [fisher_pop == 4, d2 := mahalanobis (tab.perc [fisher_pop == 4, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(2.3, 1.6, 10.8, 21.5), cov = sim$fisher_d2_cov[[4]])]
+  
+  
+  # revisit what we want to do here 
+    # at what point does it trigger a move? if the new habitat better, worse or the same?
+  agents <- merge (agents [, - ('d2_score')],
+                   tab.perc [, .(individual_id, d2_score = d2)],
+                   by = "individual_id")
+  
+  
+  # do something based on habitat, or just recalculate the d2?
+  
+  
+  return(invisible(sim))
+  
+  }
 
 ###--- SURVIVE
 # create a function that runs each year to determine the probability of a fisher surviving to the next year
 # also need to kill off any fishers that are over the max age for females (default = 9) or having been dispersing for 2 years
+# allow kits to survive even if mothers die as by 1 year kits able to live in territory without mom
 
-survive_FEMALE <- function(sim){
+survive_FEMALE <- function(sim) {
+  # get the agents and territories tables
+  agents <- data.table (dbGetQuery (sim$clusdb, paste0 ("SELECT * FROM agents;")))
+  territories <- data.table (dbGetQuery (sim$clusdb, "SELECT * from territories;"))
   
-  # Fpop="C",
-  # female_max_age=9
-
-  # using 'dummy' tables (only necessary while working through function)
-  # territories <- data.table(individual_id = rep(seq_len(5),each=5),
-  #                           pixelid = 1:25)
-  # 
-  # agents <- data.table(individual_id = 1:5,
-  #                      sex = "F",
-  #                      age = sample(2:8, 5, replace=T),
-  #                      pixelid = c(1,6,11,16,21),
-  #                      hr_size = rnorm(5, mean=28, sd=14),
-  #                      d2_score = rnorm(5, mean=4, sd=1))
+  # old fishers die here; remove their territories
+  survivors <- agents [age < P(sim, "female_max_age", "fisherabmCLUS"), ] # remove old
+    # remove the old dead fishers
+  agents <- agents [pixelid %in% survivors$individual_id] 
+  territories <- territories [individual_id %in% survivors$individual_id] # remove territories
   
-  # pull in survival table (only necessary while working through function)
-  survival_rate_table <- read.csv("R/SpaDES-modules/fisherabmCLUS/data/surv_rate_table_08Aug2022.csv")
+  # old dispersers die here; remove their territories 
+  dead.dispersers <- survivors [age > 2 & d2_score == '', ] # older than 2 and doesn't have a territory
+    # remove the dead dispersers
+  agents <- agents [!individual_id %in% dead.dispersers$individual_id]
+  territories <- territories [!individual_id %in% dead.dispersers$individual_id] # remove territories
   
-  # delete the individuals older than max female age from the agents and territories table
-  agents <- dbGetQuery (sim$clusdb, "SELECT * from agents;")
-  territories <- dbGetQuery (sim$clusdb, "SELECT * from territories;")
-  agents <- agents [age < P(sim, "female_max_age", "fisherabmCLUS"), ] # this is the data.table way to filter
-  territories <- territories %>% filter(individual_id %in% agents$individual_id)
-  
-  # have age 1 = juvenile, 2+ = adult (cannot die if 0)
-  # use rbinom with lower = mean - SE, upper = mean + SE
-  
-  # create temp table of fishers that need to survive (i.e., fishers < 1 cannot die)
-  yoyFishers <- agents %>% filter(age==0) # young of year fishers - need this later to rbind with new agents table
-  
-  survFishers <- agents %>% filter(age > 0)
-  survFishers <- survFishers %>% mutate(age_class = case_when(age<2 ~ "J", age>=2 ~ "A"))
-  
-  survFishers$Cohort <- toupper(paste0(rep(Fpop,times=nrow(survFishers)),rep("F",times=nrow(survFishers)),survFishers$age_class))
-  survFishers <- left_join(survFishers,survival_rate_table,by=c("Cohort"))
-  
-  # increase the likelihood of older fishers to die, similar to age distribution figures / data from Rory Fogarty
-  survFishers <- survFishers %>% mutate(LSE = case_when(age_class=="J" ~ Mean-(1*SE),
-                                                        age_class=="A" & age < 4 ~ Mean-(1*SE),
-                                                        age_class=="A" & age < 7 ~ Mean-(2*SE),
-                                                        age_class=="A" & age >= 7 ~ Mean-(3*SE)))
-  
-  survFishers <- survFishers %>% mutate(HSE = case_when(age_class=="J" ~ Mean+(1*SE),
-                                                        age_class=="A" & age < 4 ~ Mean+(1*SE),
-                                                        age_class=="A" & age >= 4 ~ Mean+(2*SE)))
-  
-  survFishers$HSE <- ifelse(survFishers$HSE>1,1,survFishers$HSE)
-  
-  survFishers$live <- NA
-  for(i in 1:nrow(survFishers)){
-    survFishers[i,]$live <- rbinom(n=1, size=1, prob=(survFishers[i,]$Mean-survFishers[i,]$SE):round(survFishers[i,]$Mean+survFishers[i,]$SE))
+  # agents <- agents [pixelid %in% survivors$pixelid] # use this if we decide to kill the kits of mothers that do not survive; young share the same pixelid as mother
+  # age-class based survival rates
+    # juveniles
+  survivors.juv <- survivors [age == 1 & d2_score != '', ]
+  for (i in unique (survivors.juv$fisher_pop)) { 
+    survivors.juv <- survivors.juv [fisher_pop == i, 
+                                    survive := rbinom (n = nrow (survivors.juv [fisher_pop == i]),
+                                                       size = 1,
+                                                       prob = rnorm (1, 
+                                                                     mean = survival_rate_table [Fpop == i & age == 'Juvenile', Mean], 
+                                                                     sd =  survival_rate_table [Fpop == i & age == 'Juvenile', SD]))]
+  }
+    # adults
+  survivors.ad <- survivors [age > 1, ]
+  for (i in unique (survivors.ad$fisher_pop)) { 
+    survivors.ad <- survivors.ad [fisher_pop == i, 
+                                  survive := rbinom (n = nrow (survivors.ad [fisher_pop == i]),
+                                                     size = 1,
+                                                     prob = rnorm (1, 
+                                                                   mean = survival_rate_table [Fpop == i & age == 'Adult', Mean], 
+                                                                   sd =  survival_rate_table [Fpop == i & age == 'Adult', SD]))]
+  }
+    # dispersers
+  survivors.disp <- survivors [age > 0 & d2_score == '', ]
+  for (i in unique (survivors.disp$fisher_pop)) { 
+    survivors.disp <- survivors.juv [fisher_pop == i, 
+                                     survive := rbinom (n = nrow (survivors.disp [fisher_pop == i]),
+                                                       size = 1,
+                                                       prob = rnorm (1, 
+                                                                     mean = survival_rate_table [Fpop == i & age == 'Disperser', Mean], 
+                                                                     sd =  survival_rate_table [Fpop == i & age == 'Disperser', SD]))]
   }
   
-  liveFishers <- survFishers %>% filter(live==1) # the fishers who have survived
+  # recombine the data
+  survivors <- rbind (survivors.ad, survivors.juv, survivors.disp)
   
-  # delete the individuals who did not survive from the agents table and the territories table
-  agents <- agents %>% filter (individual_id %in% liveFishers$individual_id)
-  agents <- rbind(agents, yoyFishers)
-  territories <-territories %>% filter (individual_id %in% agents$individual_id)
+  # remove the 'dead' individuals
+  survivors <- survivors [survive == 1, ]
+  agents <- agents [pixelid %in% survivors$individual_id]
+  # agents <- agents [pixelid %in% survivors$pixelid] # use this if we decide to kill the kits of mothers that do not survive; young share the same pixelid as mother
+  territories <- territories [individual_id %in% survivors$individual_id] # remove territories
   
-  # allowing kits to survive even if mothers die as by 1 year kits able to live in territory without mom
-  # need to still deal with juveniles who are dispersing
-  old.dispersers <- agents %>% filter(!individual_id %in% territories$individual_id & age > 1) # fishers > 2 who aren't established
-  agents <- agents %>% filter(!individual_id %in% old.dispersers$individual_id)
+
+  # this is where we age the fisher; survivors age 1 year
+  agents$age <- agents$age + 1
   
-  # all remaining fishers will age 1 year
-  agents$age <- agents$age +1
+  # add time and scenario
+  agents [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
+  territories [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
+  
+  # save the  data
+  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
+    # if the table exists, write it to the db
+    DBI::dbWriteTable (sim$clusdb, "agents", agents, append = FALSE, 
+                       row.names = FALSE, overwrite = FALSE)  
+  } else {
+    # if the table exists, append it to the table in the db
+    DBI::dbWriteTable (sim$clusdb, "agents", agents, append = TRUE, 
+                       row.names = FALSE, overwrite = FALSE)  
+  }
+  
+  
+  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
+    # if the table exists, write it to the db
+    DBI::dbWriteTable (sim$clusdb, "territories", territories, append = FALSE, 
+                       row.names = FALSE, overwrite = FALSE)  
+  } else {
+    # if the table exists, append it to the table in the db
+    DBI::dbWriteTable (sim$clusdb, "territories", territories, append = TRUE, 
+                       row.names = FALSE, overwrite = FALSE)  
+  }
   
   return(invisible(sim))
 }
@@ -674,10 +769,34 @@ dispersal <- function (sim) {
   dispersers <- dispersers [, hr_size := NA]
   dispersers <- dispersers [, fisher_pop := NA]
   
+  # Update the spread probability raster
+  table.hab.update <- merge (sim$table.hab, # add the habitat characteristics
+                             data.table (dbGetQuery(sim$clusdb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height  FROM pixels;")),
+                             by = "pixelid")
+  
+  # classify the habitat
+  table.hab.update [den_p == 1 & age >= 125 & crownclosure >= 30 & qmd >=28.5 & basalarea >= 29.75, denning := 1][den_p == 2 & age >= 125 & crownclosure >= 20 & qmd >=28 & basalarea >= 28, denning := 1][den_p == 3 & age >= 135, denning:=1][den_p == 4 & age >= 207 & crownclosure >= 20 & qmd >= 34.3, denning:=1][den_p == 5 & age >= 88 & qmd >= 19.5 & height >= 19, denning:=1][den_p == 6 & age >= 98 & qmd >= 21.3 & height >= 22.8, denning:=1]
+  table.hab.update [rus_p == 1 & age > 0 & crownclosure >= 30 & qmd >= 22.7 & basalarea >= 35 & height >= 23.7, rust:=1][rus_p == 2 & age >= 72 & crownclosure >= 25 & qmd >= 19.6 & basalarea >= 32, rust:=1][rus_p == 3 & age >= 83 & crownclosure >=40 & qmd >= 20.1, rust:=1][rus_p == 5 & age >= 78 & crownclosure >=50 & qmd >= 18.5 & height >= 19 & basalarea >= 31.4, rust:=1][rus_p == 6 & age >= 68 & crownclosure >=35 & qmd >= 17 & height >= 14.8, rust:=1]
+  table.hab.update [cav_p == 1 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1][cav_p == 2 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1]
+  table.hab.update [cwd_p == 1 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 2 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 3 & age >= 100, cwd:=1][cwd_p >= 5 & age >= 78 & qmd >= 18.1 & height >= 19 & crownclosure >=60, cwd:=1]
+  table.hab.update [mov_p > 0 & age > 0 & crownclosure >= 40, movement:=1]
+  table.hab.update <- table.hab.update [, .(pixelid, fisher_pop, den_p, denning, rus_p, rust, cav_p, cavity, 
+                                            cwd_p, cwd, mov_p, movement)] # could add other things, openness, crown closure, cost surface?
+  
+  # currently uses all denning, rust, cavity, cwd and movement habitat as 
+  # spreadProb = 1, and non-habitat as spreadProb = 0.10; allows some spread to sub-optimal habitat
+  table.hab.update [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1, spreadprob := format (round (1.00, 2), nsmall = 2)]
+  table.hab.update [is.na (spreadprob), spreadprob := format (round (0.18, 2), 2)] # I tested different numbers
+  # 18% resulted in the mean proportion of home ranges consisting of denning, resting or movement habitat as 55%; 19 was 49%; 17 was 59%; 20 was 47%; 15 was 66%
+  # Caution: this parameter may be area-specific and may need to be and need to be 'tuned' for each AOI
+  # if non-habitat spreadprob
+  spread.rast <- sim$pix.rast
+  spread.rast [table.hab.update$pixelid] <- table.hab.update$spreadprob
+  
   # create the dispersal area; i.e., where the fisher searches 
   table.disperse <- SpaDES.tools::spread2 (sim$pix.rast, # within the area of interest
                                            start = dispersers$pixelid, # for each individual
-                                           spreadProb = sim$spread.rast, # spread more in habitat (i.e., there is some 'direction' towards habitat)
+                                           spreadProb = spread.rast, # spread more in habitat (i.e., there is some 'direction' towards habitat)
                                            exactSize = 785000, # spread to a dispersal distance within a 50km radius; 
                                                                # 500 pixels = 50km; area = pi * radius^2 
                                                                # 50km radius = 7850km2 area
@@ -992,15 +1111,15 @@ Event1 <- function(sim) {
                             matrix(c(0.7,	0.5,	6.1,	2.1, 0.5,	2.9,	4.0,	5.2, 6.1,	4.0,	62.6,	22.4, 2.1,	5.2,	22.4,	42.3), ncol=4, nrow=4) # 4 - Dr
                             )
   
-  sim$survival_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
-                                         age = c ("Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile"),
-                                         mean = c(),
-                                         se = c())
+  sim$survival_rate_table <- data.table (Fpop = c (1,1,1,2,2,2,3,3,3,4,4,4),
+                                         age = c ("Adult", "Juvenile", "Disperser", "Adult", "Juvenile", "Disperser", "Adult", "Juvenile", "Disperser", "Adult", "Juvenile", "Disperser"),
+                                         Mean = c (0.8, 0.6, 0.6, 0.8, 0.6, 0.6, 0.8, 0.6, 0.6, 0.8, 0.6, 0.6),
+                                         SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
   
   sim$repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
                                       Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
                                       Mean = c(0.5,3,0.5,3,0.5,3,0.5,3),
-                                      SD = c(0.1,1,0.1,1,0.1,1,0.1,1))
+                                      SD = c(0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
   
   sim$female_hr_table <- data.table (fisher_pop = c (1:4), 
                                      hr_mean = c (3000, 4500, 4500, 3000),
