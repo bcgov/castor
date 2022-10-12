@@ -735,7 +735,6 @@ survive_FEMALE <- function(sim) {
                        row.names = FALSE, overwrite = FALSE)  
   }
   
-  
   if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
     # if the table exists, write it to the db
     DBI::dbWriteTable (sim$clusdb, "territories", territories, append = FALSE, 
