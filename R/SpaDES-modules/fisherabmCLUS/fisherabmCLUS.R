@@ -581,75 +581,96 @@ repro_FEMALE <- function (sim) {
 ###--- SURVIVE
 # create a function that runs each year to determine the probability of a fisher surviving to the next year
 # also need to kill off any fishers that are over the max age for females (default = 9) or having been dispersing for 2 years
+# allow kits to survive even if mothers die as by 1 year kits able to live in territory without mom
 
-survive_FEMALE <- function(sim){
+survive_FEMALE <- function(sim) {
+  # get the agents and territories tables
+  agents <- data.table (dbGetQuery (sim$clusdb, paste0 ("SELECT * FROM agents;")))
+  territories <- data.table (dbGetQuery (sim$clusdb, "SELECT * from territories;"))
   
-  # Fpop="C",
-  # female_max_age=9
-
-  # using 'dummy' tables (only necessary while working through function)
-  # territories <- data.table(individual_id = rep(seq_len(5),each=5),
-  #                           pixelid = 1:25)
-  # 
-  # agents <- data.table(individual_id = 1:5,
-  #                      sex = "F",
-  #                      age = sample(2:8, 5, replace=T),
-  #                      pixelid = c(1,6,11,16,21),
-  #                      hr_size = rnorm(5, mean=28, sd=14),
-  #                      d2_score = rnorm(5, mean=4, sd=1))
+  # old fishers die here; remove their territories
+  survivors <- agents [age < P(sim, "female_max_age", "fisherabmCLUS"), ] # remove old
+    # remove the old dead fishers
+  agents <- agents [pixelid %in% survivors$individual_id] 
+  territories <- territories [individual_id %in% survivors$individual_id] # remove territories
   
-  # pull in survival table (only necessary while working through function)
-  survival_rate_table <- read.csv("R/SpaDES-modules/fisherabmCLUS/data/surv_rate_table_08Aug2022.csv")
+  # old dispersers die here; remove their territories 
+  dead.dispersers <- survivors [age > 2 & d2_score == '', ] # older than 2 and doesn't have a territory
+    # remove the dead dispersers
+  agents <- agents [!individual_id %in% dead.dispersers$individual_id]
+  territories <- territories [!individual_id %in% dead.dispersers$individual_id] # remove territories
   
-  # delete the individuals older than max female age from the agents and territories table
-  agents <- dbGetQuery (sim$clusdb, "SELECT * from agents;")
-  territories <- dbGetQuery (sim$clusdb, "SELECT * from territories;")
-  agents <- agents [age < P(sim, "female_max_age", "fisherabmCLUS"), ] # this is the data.table way to filter
-  territories <- territories %>% filter(individual_id %in% agents$individual_id)
-  
-  # have age 1 = juvenile, 2+ = adult (cannot die if 0)
-  # use rbinom with lower = mean - SE, upper = mean + SE
-  
-  # create temp table of fishers that need to survive (i.e., fishers < 1 cannot die)
-  yoyFishers <- agents %>% filter(age==0) # young of year fishers - need this later to rbind with new agents table
-  
-  survFishers <- agents %>% filter(age > 0)
-  survFishers <- survFishers %>% mutate(age_class = case_when(age<2 ~ "J", age>=2 ~ "A"))
-  
-  survFishers$Cohort <- toupper(paste0(rep(Fpop,times=nrow(survFishers)),rep("F",times=nrow(survFishers)),survFishers$age_class))
-  survFishers <- left_join(survFishers,survival_rate_table,by=c("Cohort"))
-  
-  # increase the likelihood of older fishers to die, similar to age distribution figures / data from Rory Fogarty
-  survFishers <- survFishers %>% mutate(LSE = case_when(age_class=="J" ~ Mean-(1*SE),
-                                                        age_class=="A" & age < 4 ~ Mean-(1*SE),
-                                                        age_class=="A" & age < 7 ~ Mean-(2*SE),
-                                                        age_class=="A" & age >= 7 ~ Mean-(3*SE)))
-  
-  survFishers <- survFishers %>% mutate(HSE = case_when(age_class=="J" ~ Mean+(1*SE),
-                                                        age_class=="A" & age < 4 ~ Mean+(1*SE),
-                                                        age_class=="A" & age >= 4 ~ Mean+(2*SE)))
-  
-  survFishers$HSE <- ifelse(survFishers$HSE>1,1,survFishers$HSE)
-  
-  survFishers$live <- NA
-  for(i in 1:nrow(survFishers)){
-    survFishers[i,]$live <- rbinom(n=1, size=1, prob=(survFishers[i,]$Mean-survFishers[i,]$SE):round(survFishers[i,]$Mean+survFishers[i,]$SE))
+  # agents <- agents [pixelid %in% survivors$pixelid] # use this if we decide to kill the kits of mothers that do not survive; young share the same pixelid as mother
+  # age-class based survival rates
+    # juveniles
+  survivors.juv <- survivors [age == 1 & d2_score != '', ]
+  for (i in unique (survivors.juv$fisher_pop)) { 
+    survivors.juv <- survivors.juv [fisher_pop == i, 
+                                    survive := rbinom (n = nrow (survivors.juv [fisher_pop == i]),
+                                                       size = 1,
+                                                       prob = rnorm (1, 
+                                                                     mean = survival_rate_table [Fpop == i & age == 'Juvenile', Mean], 
+                                                                     sd =  survival_rate_table [Fpop == i & age == 'Juvenile', SD]))]
+  }
+    # adults
+  survivors.ad <- survivors [age > 1, ]
+  for (i in unique (survivors.ad$fisher_pop)) { 
+    survivors.ad <- survivors.ad [fisher_pop == i, 
+                                  survive := rbinom (n = nrow (survivors.ad [fisher_pop == i]),
+                                                     size = 1,
+                                                     prob = rnorm (1, 
+                                                                   mean = survival_rate_table [Fpop == i & age == 'Adult', Mean], 
+                                                                   sd =  survival_rate_table [Fpop == i & age == 'Adult', SD]))]
+  }
+    # dispersers
+  survivors.disp <- survivors [age > 0 & d2_score == '', ]
+  for (i in unique (survivors.disp$fisher_pop)) { 
+    survivors.disp <- survivors.juv [fisher_pop == i, 
+                                     survive := rbinom (n = nrow (survivors.disp [fisher_pop == i]),
+                                                       size = 1,
+                                                       prob = rnorm (1, 
+                                                                     mean = survival_rate_table [Fpop == i & age == 'Disperser', Mean], 
+                                                                     sd =  survival_rate_table [Fpop == i & age == 'Disperser', SD]))]
   }
   
-  liveFishers <- survFishers %>% filter(live==1) # the fishers who have survived
+  # recombine the data
+  survivors <- rbind (survivors.ad, survivors.juv, survivors.disp)
   
-  # delete the individuals who did not survive from the agents table and the territories table
-  agents <- agents %>% filter (individual_id %in% liveFishers$individual_id)
-  agents <- rbind(agents, yoyFishers)
-  territories <-territories %>% filter (individual_id %in% agents$individual_id)
+  # remove the 'dead' individuals
+  survivors <- survivors [survive == 1, ]
+  agents <- agents [pixelid %in% survivors$individual_id]
+  # agents <- agents [pixelid %in% survivors$pixelid] # use this if we decide to kill the kits of mothers that do not survive; young share the same pixelid as mother
+  territories <- territories [individual_id %in% survivors$individual_id] # remove territories
   
-  # allowing kits to survive even if mothers die as by 1 year kits able to live in territory without mom
-  # need to still deal with juveniles who are dispersing
-  old.dispersers <- agents %>% filter(!individual_id %in% territories$individual_id & age > 1) # fishers > 2 who aren't established
-  agents <- agents %>% filter(!individual_id %in% old.dispersers$individual_id)
+
+  # this is where we age the fisher; survivors age 1 year
+  agents$age <- agents$age + 1
   
-  # all remaining fishers will age 1 year
-  agents$age <- agents$age +1
+  # add time and scenario
+  agents [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
+  territories [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
+  
+  # save the  data
+  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
+    # if the table exists, write it to the db
+    DBI::dbWriteTable (sim$clusdb, "agents", agents, append = FALSE, 
+                       row.names = FALSE, overwrite = FALSE)  
+  } else {
+    # if the table exists, append it to the table in the db
+    DBI::dbWriteTable (sim$clusdb, "agents", agents, append = TRUE, 
+                       row.names = FALSE, overwrite = FALSE)  
+  }
+  
+  
+  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
+    # if the table exists, write it to the db
+    DBI::dbWriteTable (sim$clusdb, "territories", territories, append = FALSE, 
+                       row.names = FALSE, overwrite = FALSE)  
+  } else {
+    # if the table exists, append it to the table in the db
+    DBI::dbWriteTable (sim$clusdb, "territories", territories, append = TRUE, 
+                       row.names = FALSE, overwrite = FALSE)  
+  }
   
   return(invisible(sim))
 }
@@ -992,15 +1013,15 @@ Event1 <- function(sim) {
                             matrix(c(0.7,	0.5,	6.1,	2.1, 0.5,	2.9,	4.0,	5.2, 6.1,	4.0,	62.6,	22.4, 2.1,	5.2,	22.4,	42.3), ncol=4, nrow=4) # 4 - Dr
                             )
   
-  sim$survival_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
-                                         age = c ("Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile"),
-                                         mean = c(),
-                                         se = c())
+  sim$survival_rate_table <- data.table (Fpop = c (1,1,1,2,2,2,3,3,3,4,4,4),
+                                         age = c ("Adult", "Juvenile", "Disperser", "Adult", "Juvenile", "Disperser", "Adult", "Juvenile", "Disperser", "Adult", "Juvenile", "Disperser"),
+                                         Mean = c (0.8, 0.6, 0.6, 0.8, 0.6, 0.6, 0.8, 0.6, 0.6, 0.8, 0.6, 0.6),
+                                         SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
   
   sim$repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
                                       Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
                                       Mean = c(0.5,3,0.5,3,0.5,3,0.5,3),
-                                      SD = c(0.1,1,0.1,1,0.1,1,0.1,1))
+                                      SD = c(0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
   
   sim$female_hr_table <- data.table (fisher_pop = c (1:4), 
                                      hr_mean = c (3000, 4500, 4500, 3000),
