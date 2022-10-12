@@ -509,86 +509,70 @@ Init <- function(sim) {
 ###--- REPRODUCE
 repro_FEMALE <- function (sim) {
   
-  # Fpop="B",
-  # FHE = "Boreal" # this will come in from raster pixel that corresponds to the pixelid for each individual
-  # using 'dummy' tables (only necessary while working through function)
-  # territories <- data.table(individual_id = rep(seq_len(5),each=5),
-  #                           pixelid = 1:25)
-  # 
-  # agents <- data.table(individual_id = 1:5,
-  #                      sex = "F",
-  #                      age = sample(2:8, 5, replace=T),
-  #                      pixelid = c(1,6,11,16,21),
-  #                      hr_size = rnorm(5, mean=28, sd=14),
-  #                      d2_score = rnorm(5, mean=4, sd=1))
-  
-  # sim$repro_rate_table = repro_rate_table <- read.csv("R/SpaDES-modules/fisherabmCLUS/data/repro_rate_table_08Aug2022.csv")
-  # sim$fisher_d2_cov = mahal_metric_table <- read.csv("R/SpaDES-modules/fisherabmCLUS/data/mahal_metric_09Aug2022.csv")
-  # sim$female_hr_table = female_hr_table <- read.csv("R/SpaDES-modules/fisherabmCLUS/data/Fisher_HR_mean_sd_km_08Aug2022.csv")
-  
-  # fisher.pop = Fpop # work around to deal with different usage of Fpop (full name or initial)
-
-  
-  
   # determine which individuals will reproduce this year
   reproFishers <- data.table (dbGetQuery (sim$clusdb, "SELECT * FROM agents WHERE sex = 'F' AND age > 1;")) # female fishers capable of reproducing
 
   # assign each female fisher 1 = reproduce or 0 = does not reproduce
     if (length (reproFishers) > 0) {
-    
-    # not sure this is equivalent to how this was done before 
-      # here I draw a survival rate (probability) form the survival rate distribution (mean and sd)
-      # I then assign that as the binomial probability to survival
-      # I do this for each fisher pop
+
     for (i in unique (reproFishers$fisher_pop)) { 
       reproFishers [fisher_pop == i, reproduce := rbinom (n = nrow (reproFishers [fisher_pop == i]),
                                                           size = 1,
                                                           prob = rnorm (1, 
                                                                         mean = repro_rate_table [Fpop == i & Param == 'DR', Mean], 
                                                                         sd =  repro_rate_table [Fpop == i & Param == 'DR', SD]))]
-    } # throws an error: Invalid .internal.selfref detected and fixed....; it works though
-
-    # for those fishers who are reproducing, assign litter size
-      reproFishers <- reproFishers [reproduce == 1, ]
-     
+    } 
+      
+      reproFishers <- reproFishers [reproduce == 1, ] # remove non-reproducers
+      
+    # for those fishers who are reproducing, assign litter size 
       for (i in unique (reproFishers$fisher_pop)) {
-      reproFishers [, kits := rbinom (n = nrow (reproFishers [fisher_pop == i]),
-                                       size = 1,
-                                       prob = rnorm (1, 
-                                                     mean = repro_rate_table [Fpop == i & Param == 'LS', Mean], 
-                                                     sd =  repro_rate_table [Fpop == i & Param == 'LS', SD]))]
+      reproFishers [fisher_pop == i, kits := as.integer (rnorm (1, 
+                                                         mean = repro_rate_table [Fpop == i & Param == 'LS', Mean], 
+                                                         sd =  repro_rate_table [Fpop == i & Param == 'LS', SD]))]
       }
     
-    
-    
-    reproFishers <- reproFishers %>% filter(reproduce==1)
-    LS <- repro_rate_table %>% dplyr::filter(str_detect(Fpop, fisher.pop)) %>% dplyr::filter(str_detect(Param,"LS"))
-    reproFishers$num.kits <- rnorm(n=nrow(reproFishers), mean=LS$Mean, sd=LS$SD)
-    
-    # revise number of kits based on habitat quality within FHE zone, remove males and round up (whole number to make sense, give young a chance)
-    mahal_score <- mahal_metric_table %>% filter(FHE_zone==FHE) 
-    # need to check with fisher team if these habitat qualifiers make sense
-    reproFishers <- reproFishers %>% mutate(num.kits = case_when(d2_score < mahal_score$Mean ~ ceiling(num.kits/2),
-                                                                 d2_score < (mahal_score$Mean + mahal_score$SD) ~ ceiling((num.kits*0.75)/2),
-                                                                 d2_score <= mahal_score$Max ~ ceiling((num.kits*0.50)/2),
-                                                                 d2_score > mahal_score$Max ~ num.kits*0))
-    
-    female_hr_size <- female_hr_table %>% filter(FHE_zone==FHE)
-    
-    for(i in 1:nrow(reproFishers)){
-      tmp_juv <- reproFishers[rep(i, reproFishers[i,]$num.kits)]
-      tmp_juv$individual_id <- seq(from=max(agents$individual_id+1), 
-                                   to=max(agents$individual_id+reproFishers[i,]$num.kits), by=1)
-      tmp_juv$age <- 0
-      tmp_juv$hr_size = rnorm(reproFishers[i,]$num.kits, female_hr_size$Mean_Area_km2, female_hr_size$SD_Area_km2 )
-      tmp_juv$d2_score <- NA
-      
-      agents <- rbind(agents, tmp_juv %>% dplyr::select(-reproduce, -num.kits)) 
-      
-      # no update to the territories table because juveniles have not yet established a territory
-    }
-  }
+    #------------------- 
+    ## NEED "mahal_metric_table" to do this
+    ## revise number of kits based on habitat quality within FHE zone, remove males and round up (whole number to make sense, give young a chance)
+    # mahal_score <- mahal_metric_table %>% filter (FHE_zone == FHE) 
+    ## need to check with fisher team if these habitat qualifiers make sense
+    # reproFishers <- reproFishers %>% mutate (num.kits = case_when(d2_score < mahal_score$Mean ~ ceiling(num.kits/2),
+    #                                                              d2_score < (mahal_score$Mean + mahal_score$SD) ~ ceiling((num.kits*0.75)/2),
+    #                                                              d2_score <= mahal_score$Max ~ ceiling((num.kits*0.50)/2),
+    #                                                              d2_score > mahal_score$Max ~ num.kits*0))
+    # 
+    # female_hr_size <- female_hr_table %>% filter (FHE_zone==FHE)
+    #-----------------
   
+    ## add the kits to the agents table
+      # create new agents
+    new.agents <- data.frame (lapply (reproFishers, rep, reproFishers$kits)) # repeat the rows in the reproducign fishers tabel by the numebr of kits 
+    
+      # assign whether fisher is a male or female; remove males
+    new.agents$kits <- rbinom (size = 1, n = nrow (new.agents), prob = 0.5) #50/50 prob of being a femals
+    new.agents <- setDT (new.agents)
+    new.agents <- new.agents [kits == 1, ] # female = 1; male = 0
+      # make them age 0; 
+    new.agents$age <- 0
+      # make their home range size = 0 and d2_score = 0; this gets done in the dispersal function 
+    new.agents$hr_size <- 0
+    new.agents$d2_score <- 0
+      # drop 'reproduce' and 'kits' columns
+    new.agents$reproduce <- NULL
+    new.agents$kits <- NULL
+      # update the individual id
+    agents <- as.data.table (dbGetQuery (sim$clusdb, "SELECT * FROM agents")) 
+    new.agents$individual_id <- seq (from = max (agents$individual_id + 1), 
+                                     to = (max (agents$individual_id) + nrow (new.agents)), by = 1)
+    
+    # save the agents table
+    DBI::dbWriteTable (sim$clusdb, "agents", new.agents, append = TRUE, 
+                       row.names = FALSE, overwrite = FALSE)  
+    } else {
+      message ("There are no reproducing fishers!")
+  }
+    # no update to the territories table because juveniles have not yet established a territory
   return (invisible (sim))
 }
 
@@ -1007,6 +991,7 @@ Event1 <- function(sim) {
                             matrix(c(0.5,	-1.9,	-0.14288,	2.57677,	-3.82, -1.908,	96.76,	-0.71,	-2.669,	57.27, -0.143,	-0.71,	0.208,	-1.059,	1.15, 2.57,	-2.6,	-1.059,	56.29,	-4.85, -3.82,	57.27,	1.15,	-4.85,	77.337), ncol =5, nrow =5), # 3 sbs-dry
                             matrix(c(0.7,	0.5,	6.1,	2.1, 0.5,	2.9,	4.0,	5.2, 6.1,	4.0,	62.6,	22.4, 2.1,	5.2,	22.4,	42.3), ncol=4, nrow=4) # 4 - Dr
                             )
+  
   sim$survival_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
                                          age = c ("Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile"),
                                          mean = c(),
