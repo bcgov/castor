@@ -1,0 +1,52 @@
+---
+title: "Lightning_ignition_Check_FRT_10_and _15"
+author: "Elizabeth Kleynhans"
+date: '2022-09-22'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(leaflet)
+library(mapview)
+```
+
+Plot lightning ignition locations on top of a map showing the FRT 10 and 15. 
+```{r}
+
+# connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(),
+#           host = key_get('dbhost', keyring = 'postgreSQL'),
+#           user = key_get('dbuser', keyring = 'postgreSQL'),
+#           dbname = key_get('dbname', keyring = 'postgreSQL'),
+#           password = key_get('dbpass', keyring = 'postgreSQL'),
+#           port = "5432")
+# dat_ignit <- sf::st_read  (dsn = connKyle, # connKyle
+#                                query = "SELECT * FROM fire_data_all_veg")
+# dbDisconnect (connKyle)
+
+dat_ignit2<-getSpatialQuery("SELECT fire_yr, fire_cs, fir_typ, frt, fwi_veg, geom FROM fire_data_all_veg")
+dat_ignit2<-st_transform(dat_ignit2, 3005) 
+
+frt <- getSpatialQuery("SELECT * FROM frt_canada")
+frt<-st_transform(frt, 3005) 
+frt$Cluster<- as.factor(frt$Cluster)
+
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
+bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system
+st_crs(bc.bnd)
+
+frt.bc = st_intersection(frt, bc.bnd)
+
+frt_10<- dat_ignit2 %>% filter(frt==c(10)) %>%
+  filter(fire_cs == "Lightning")
+
+mapview(frt.bc, zcol="Cluster") + 
+  mapview(frt_10)
+
+mapshot(m, url = paste0(getwd(), "/map.html"))
+
+
+```
+

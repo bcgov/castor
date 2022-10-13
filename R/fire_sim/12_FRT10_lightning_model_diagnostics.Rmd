@@ -67,10 +67,9 @@ table(dat$frt, dat$FWI_veg, dat$fire)
 dat10<- dat %>% dplyr::filter(frt == 10) 
 table(dat10$FWI_veg)
 
-dat10_2<-dat10 %>% filter(FWI_veg!="S-2")
+#dat10$FWI_veg[dat10$FWI_veg=="S-2"]<-"O-1a/b"
+dat10_2<-dat10 %>% filter(FWI_veg!="N")
 table(dat10_2$FWI_veg)
-
-
 
 ggplot(data=dat10_2, mapping=aes(x=as.factor(fire), y=climate1))+
   geom_boxplot()
@@ -230,7 +229,7 @@ summary(mod.frt.10)
 
 #Create a new blank table and get AUC too
 top_mod_table_FRT10_lightningALL <- data.frame (matrix (ncol = 16, nrow = 0))
-colnames (top_mod_table_FRT10_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_N", "coef_FWI_veg_O-1a/b","coef_elevatn", "AUC")
+colnames (top_mod_table_FRT10_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-2","coef_elevatn", "AUC")
 
 dat10_2$fire_veg<-paste(dat10_2$fire, dat10_2$FWI_veg)
 ```
@@ -259,7 +258,7 @@ mod.valid <- predict.glm(mod, newdata=Valid, type="response")
 
 # create model table (only do this once) and add the relevant data
 top_mod_table_FRT10_lightningL <- data.frame (matrix (ncol = 16, nrow = 0))
-colnames (top_mod_table_FRT10_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_N", "coef_FWI_veg_O-1a/b","coef_elevatn", "AUC")
+colnames (top_mod_table_FRT10_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_climate_2", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-2","coef_elevatn", "AUC")
 
 
 ##Add data for NDT1
@@ -293,11 +292,6 @@ top_mod_table_FRT10_lightningALL
 
 ```
 
-#Save coefficient table
-
-```{r}
-write.csv(top_mod_table_FRT10_lightningALL, file="D:\\Fire\\fire_data\\raw_data\\Ignition Models\\Ignition_Model_Results_Lightning_Treed\\top_mod_table_FRT5_light_tree_all.csv")
-```
 
 Get mean values.
 
@@ -324,18 +318,18 @@ write.csv(FRT10_summary_table_mean, file="D:\\Fire\\fire_data\\raw_data\\top_mod
 Standard deviation.
 
 ```{r}
-top_mod_table_FRT10_lightningALL_sd<-top_mod_table_FRT10_lightningALL %>% summarise_each(funs( sd( .,na.rm = TRUE)))
-top_mod_table_FRT10_lightningALL_sd
-
-top_mod_table_NDT1_light_t_SD[1,1]<-"lightning"
-top_mod_table_NDT1_light_t_SD[1,2]<-"NDT1"
-top_mod_table_NDT1_light_t_SD[1,3]<-"Treed"
-top_mod_table_NDT1_light_t_SD[1,4]<-"fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:proj_height_1 + climate1:proj_age_1  + climate2:proj_age_1  + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation" 
-top_mod_table_NDT1_light_t_SD
+# top_mod_table_FRT10_lightningALL_sd<-top_mod_table_FRT10_lightningALL %>% summarise_each(funs( sd( .,na.rm = TRUE)))
+# top_mod_table_FRT10_lightningALL_sd
+# 
+# top_mod_table_NDT1_light_t_SD[1,1]<-"lightning"
+# top_mod_table_NDT1_light_t_SD[1,2]<-"NDT1"
+# top_mod_table_NDT1_light_t_SD[1,3]<-"Treed"
+# top_mod_table_NDT1_light_t_SD[1,4]<-"fire_pres ~ climate1 + climate2 + vegtype2 + proj_height_1 + live_stand_volume_125 + proj_age_1 + climate1:climate2 + climate1:proj_height_1 + climate1:proj_age_1  + climate2:proj_age_1  + proj_height_1:proj_age_1 + dist_mun + dist_dam + dist_nat + dist_mine + bclcs_level_5_2 + dist_mun:bclcs_level_5_2 + dist_nat:bclcs_level_5_2 + dist_mine:bclcs_level_5_2 + slope + aspect_cos + elevation" 
+# top_mod_table_NDT1_light_t_SD
 ```
 
 Save sd coefficient table.
 
 ```{r}
-write.csv(top_mod_table_NDT1_light_t_SD, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT1_light_t_SD.csv")
+# write.csv(top_mod_table_NDT1_light_t_SD, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_NDT1_light_t_SD.csv")
 ```

@@ -213,14 +213,14 @@ head(dat_person)
 
 dat_person<-dat_person %>%
     mutate(climate1 = case_when(
-                                frt == "5" ~ mean_RH06_RH07_RH08,
-                                frt == "7" ~ mean_Tmax05_Tmax06_Tmax07_Tmax08,
-                                frt == "9" ~ mean_Tmax05_Tmax06, # NDT4
+                                frt == "5" ~ mean_PPT06_PPT07,
+                                frt == "7" ~ mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10,
+                                frt == "9" ~ mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10, # NDT4
                                 frt == "10" ~ mean_PPT06_PPT07_PPT08_PPT09,
-                                frt == "11" ~ mean_Tave08_Tave09,
-                                frt == "12" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9,
+                                frt == "11" ~ Tave09,
+                                frt == "12" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10,
                                 frt == "13" ~ mean_Tave07_Tave08_Tave09,
-                                frt == "14" ~ mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09,
+                                frt == "14" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10,
                                 frt == "15" ~ mean_Tave07_Tave08_Tave09,
                                TRUE ~ NA_real_))
 
@@ -921,6 +921,7 @@ p <- ggplot(dat_person, aes(aspect, as.numeric(fire))) +
   xlab("aspect") + ylab("Pr (ignition)")
 p
 
+
 p <- ggplot(dat_person, aes(aspect_cos, as.numeric(fire))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
@@ -1001,7 +1002,7 @@ p_5 <- ggplot(dat_person %>% filter(frt==5), aes(climate1, as.numeric(fire))) +
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("mean_RH06_RH07_RH08") + ylab("Pr (ignition)")
+  xlab("mean_PPT06_PPT07  ") + ylab("Pr (ignition)")
 p_5
 
 frt_map5<-frt_map %>% filter(Cluster==5)
@@ -1023,7 +1024,7 @@ p_7 <- ggplot(dat_person %>% filter(frt==7), aes(climate1
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("mean_Tmax05_Tmax06_Tmax07_Tmax08") + ylab("Pr (ignition)")
+  xlab("mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10") + ylab("Pr (ignition)")
 p_7
 
 frt_map7<-frt_map %>% filter(Cluster==7)
@@ -1045,8 +1046,7 @@ p_9 <- ggplot(dat_person %>% filter(frt==9), aes(climate1
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("mean_Tmax05_Tmax06
-") + ylab("Pr (ignition)")
+  xlab("mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10") + ylab("Pr (ignition)")
 p_9
 
 frt_map9<-frt_map %>% filter(Cluster==9)
@@ -1090,7 +1090,7 @@ p_11 <- ggplot(dat_person %>% filter(frt==11), aes(climate1
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("mean_Tave08_Tave09") + ylab("Pr (ignition)")
+  xlab("Tave09") + ylab("Pr (ignition)")
 p_11
 
 frt_map11<-frt_map %>% filter(Cluster==11)
@@ -1106,7 +1106,7 @@ p_11 + annotation_custom(ggplotGrob(p11_map), xmin = 75, xmax = 125,
 
 
 # FRT 12
-p_12 <- ggplot(dat_person %>% filter(frt==12), aes(mean_Tave05_Tave06_Tave07_Tave08_Tave09
+p_12 <- ggplot(dat_person %>% filter(frt==12), aes(mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10
 , as.numeric(fire))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
@@ -1134,8 +1134,17 @@ p_13 <- ggplot(dat_person %>% filter(frt==13), aes(climate1
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("mean_Tave06_Tave07_Tave08_Tave09_Tave10") + ylab("Pr (ignition)")
+  xlab("mean_Tave07_Tave08_Tave09") + ylab("Pr (ignition)")
 p_13
+
+p_13_2 <- ggplot(dat_person %>% filter(frt==13), aes(climate2
+, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_PPT07_PPT08_PPT09") + ylab("Pr (ignition)")
+p_13_2
 
 frt_map13<-frt_map %>% filter(Cluster==13)
 p13_map<-ggplot() +
@@ -1177,8 +1186,17 @@ p_15 <- ggplot(dat_person %>% filter(frt==15), aes(climate1
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("mean_Tmax07_Tmax08_Tmax09") + ylab("Pr (ignition)")
+  xlab("mean_Tave07_Tave08_Tave09") + ylab("Pr (ignition)")
 p_15
+
+p_15_2 <- ggplot(dat_person %>% filter(frt==15), aes(climate2
+, as.numeric(fire))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mean_PPT07_PPT08_PPT09") + ylab("Pr (ignition)")
+p_15_2
 
 frt_map15<-frt_map %>% filter(Cluster==15)
 p15_map<-ggplot() +

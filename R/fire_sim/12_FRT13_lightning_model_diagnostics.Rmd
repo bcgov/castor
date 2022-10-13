@@ -67,12 +67,13 @@ table(dat$frt, dat$FWI_veg, dat$fire)
 dat13<- dat %>% dplyr::filter(frt == 13) 
 table(dat13$FWI_veg)
 
+dat13<-dat13 %>% filter(FWI_veg!="N")
 # there are only 6 observations in the C1 fuel type so since this fiel type has fire spread rates similar to C3 I will change all C1 observations to C3
 # dat12$FWI_veg[dat12$FWI_veg=="C-1"]<-"C-3"
 # # apparently C-4 is very similar to C-2 so Ill also change all C-4's to C'-2's. I read this in Perakkis 
 dat13$FWI_veg[dat13$FWI_veg=="C-4"]<-"C-2"
 ## changing M-3 to M-1/2 because there are only 6 occurences of M-3 so its hard to run a model on this.
-dat13$FWI_veg[dat13$FWI_veg=="M-3"]<-"M-1/2"
+#dat13$FWI_veg[dat13$FWI_veg=="M-3"]<-"M-1/2"
 table(dat13$FWI_veg)
 
 # nice alternative figure but cant add a map or Im not sure how to.
@@ -253,7 +254,7 @@ summary(mod.frt.13)
 
 #Create a new blank table and get AUC too
 top_mod_table_FRT13_lightningALL <- data.frame (matrix (ncol = 18, nrow = 0))
-colnames (top_mod_table_FRT13_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_climate2", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_N", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "coef_FWI_veg_S-2",  "coef_FWI_veg_S-3","coef_elevatn", "AUC")
+colnames (top_mod_table_FRT13_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_climate2", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "coef_FWI_veg_S-2",  "coef_FWI_veg_S-3","coef_elevatn", "AUC")
 
 dat13$fire_veg<-paste(dat13$fire, dat13$FWI_veg)
 ```
@@ -282,7 +283,7 @@ mod.valid <- predict.glm(mod, newdata=Valid, type="response")
 
 # create model table (only do this once) and add the relevant data
 top_mod_table_FRT13_lightningL <- data.frame (matrix (ncol = 18, nrow = 0))
-colnames (top_mod_table_FRT13_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_climate2", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_N", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "coef_FWI_veg_S-2",  "coef_FWI_veg_S-3","coef_elevatn", "AUC")
+colnames (top_mod_table_FRT13_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_climate2", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "coef_FWI_veg_S-2",  "coef_FWI_veg_S-3","coef_elevatn", "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT13_lightningL[1,1]<-"lightning"
