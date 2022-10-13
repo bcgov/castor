@@ -37,4 +37,5 @@ README.html
 /reports/linkpop
 clus.Rproj
 *.Rproj
-Renviron.R
+.Renviron
+.httr-oauth
