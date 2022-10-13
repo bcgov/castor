@@ -85,50 +85,32 @@ Import the data created at the end of the last file (named Escape_data_lightning
 
 
 ```{r}
-fire_escapes3<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg.gpkg")
-
-fire_escapes<-fire_escapes3 %>% filter(fire==1)
-fire_escapes$size_ha<-as.numeric(as.character(fire_escapes$size_ha))
-hist(fire_escapes$size_ha)
-fire_escapes2<- fire_escapes %>% drop_na(size_ha)
-
-```
-Also go back and get the fires with cause unknown from the data warehouse as these should be used in the escape analysis
-
-```{r}
-# get latest data off BCGW
-ignit_unknown<-try(
-  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
-    filter(FIRE_YEAR > 2001) %>%
-    filter(FIRE_TYPE == "Fire") %>%
-    filter(FIRE_CAUSE =="Unknown") %>%
-    collect()
-)
-
+fire_escape2 <- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg")
 
 
 ```
 
 
-Now, select only those locations where a fire did occur. And then create a new category where if < 1 ha, then have 0, and if > 1 ha, have 1 value.
+Now create a new category where if <= 10 ha, then have 0, and if > 10 ha, have 1 value.
+I chose 10 because I was getting odd patterns in the data. See below.
 
 
 ```{r}
-dim(fire_escapes2 %>% filter(size_ha==0))
-fire_escapes2$escape10<- NA
-fire_escapes2$escape10[fire_escapes2$size_ha > 10] <- 1
-fire_escapes2$escape10[fire_escapes2$size_ha <= 10] <- 0
+dim(fire_escape2 %>% filter(size_ha==0))
+fire_escape2$escape10<- NA
+fire_escape2$escape10[fire_escape2$size_ha > 10] <- 1
+fire_escape2$escape10[fire_escape2$size_ha <= 10] <- 0
 
-table(fire_escapes2$escape10) # note originally I had escape size at 1ha but i was getting strange trends for maximum temperature and probability of escape. So I tried various sizes and decided to go with 10ha.
+table(fire_escape2$escape10) # note originally I had escape size at 1ha but i was getting strange trends for maximum temperature and probability of escape. So I tried various sizes and decided to go with 10ha.
 ```
 
 Append wind speed to timing of fire
 
 ```{r}
-fire_escapes2$wind_atfire<-0
-fire_escapes2$ig_mnth<-as.numeric(fire_escapes2$ig_mnth)
-head(fire_escapes2)
-fire_escapes2<-fire_escapes2 %>%
+fire_escape2$wind_atfire<-0
+fire_escape2$ig_mnth<-as.numeric(fire_escape2$ig_mnth)
+head(fire_escape2)
+fire_escape2<-fire_escape2 %>%
     mutate(wind_atfire = case_when(ig_mnth == 1 ~ win_spg, #even though not quite accurate
                                   ig_mnth == 2 ~ win_spg, #even though not quite accurate
                                   ig_mnth == 3 ~ win_spg,
@@ -143,15 +125,15 @@ fire_escapes2<-fire_escapes2 %>%
                                   ig_mnth == 12 ~ win_spg,#even though not quite accurate
                                   TRUE ~ win_spg))
 
-fire_escapes2$wind_atfire
-hist(fire_escapes2$wind_atfire)
+fire_escape2$wind_atfire
+hist(fire_escape2$wind_atfire)
 
 ```
 Create variable called Tdiff_atfire, PPTdiff_atfire and MDCdiff_atfire i.e. difference between the temperature/precipitation/MDC at the month of the fire and the one before.
 
 #note there are a few ignitions in the months January and December. For now Im going to filter these out but maybe I should include them in the future. Presumabily non of these fires escape
 ```{r}
-fire_escapes3<-fire_escapes2 %>% filter(ig_mnth > 1)
+fire_escapes3<-fire_escape2 %>% filter(ig_mnth > 1)
 fire_escapes3<-fire_escapes3 %>% filter(ig_mnth!=12)
 
 hist(fire_escapes3$ig_mnth)
@@ -305,66 +287,68 @@ hist(fire_escapes3$mdc_mnthbefore)
 
 fire_escapes3$mdc_2mtns<-(fire_escapes3$mdc_mnthbefore + fire_escapes3$mdc_atfire)/2
 
+st_write(fire_escapes3, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all2.gpkg")
+
 ```
 
 ```{r}
-Cluster5<-ggplot(fire_escapes3%>% filter(Cluster==5 & fire_cs != "Unknown"), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster5<-ggplot(fire_escapes3%>% filter(Cluster==5), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 5",x="Escape month", y = "Count")
 
-Cluster7<-ggplot(fire_escapes3%>% filter(Cluster==7 & fire_cs != "Unknown"), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster7<-ggplot(fire_escapes3%>% filter(Cluster==7), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 7",x="Escape month", y = "Count")
 
-Cluster9<-ggplot(fire_escapes3%>% filter(Cluster==9 & fire_cs != "Unknown"), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster9<-ggplot(fire_escapes3%>% filter(Cluster==9), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 9",x="Escape month", y = "Count")
 
-Cluster10<-ggplot(fire_escapes3%>% filter(Cluster==10 & fire_cs != "Unknown"), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster10<-ggplot(fire_escapes3%>% filter(Cluster==10), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 10",x="Escape month", y = "Count")
 
-Cluster11<-ggplot(fire_escapes3%>% filter(Cluster==11 & fire_cs != "Unknown"), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster11<-ggplot(fire_escapes3%>% filter(Cluster==11), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 11",x="Escape month", y = "Count")
 
-Cluster12<-ggplot(fire_escapes3%>% filter(Cluster==12 & fire_cs != "Unknown"), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster12<-ggplot(fire_escapes3%>% filter(Cluster==12), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 12",x="Escape month", y = "Count")
 
-Cluster13<-ggplot(fire_escapes3%>% filter(Cluster==13 & fire_cs != "Unknown"), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster13<-ggplot(fire_escapes3%>% filter(Cluster==13), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 13",x="Escape month", y = "Count")
 
-Cluster14<-ggplot(fire_escapes3%>% filter(Cluster==14 & fire_cs != "Unknown"), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster14<-ggplot(fire_escapes3%>% filter(Cluster==14), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 14",x="Escape month", y = "Count")
 
-Cluster15<-ggplot(fire_escapes3%>% filter(Cluster==15 & fire_cs != "Unknown"), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster15<-ggplot(fire_escapes3%>% filter(Cluster==15), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
@@ -427,16 +411,6 @@ logi.hist.plot(fire_escapes3$tempave_atfire,fire_escapes3$escape10,boxp=FALSE,ty
 
 logi.hist.plot(fire_escapes3$mdc_atfire,fire_escapes3$escape10,boxp=FALSE,type="hist",col="gray")
 
-
-```
-
-
-
-Save data on local machine.
-
-```{r}
-
-st_write(fire_escapes3, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\escape_data.gpkg", delete_layer=TRUE)
 
 ```
 
@@ -956,7 +930,7 @@ fire_escapes3$Cluster[fire_escapes3$Cluster==3]<-5
 # remove geometry column
 fire_escape<-st_set_geometry(fire_escapes3,NULL) # remove geometry column for dataset
 
-#esc<-st_set_geometry(fire_escapes2,NULL)
+#esc<-st_set_geometry(fire_escape2,NULL)
 #write.csv(esc, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\escape_data.csv")
 
 

@@ -89,6 +89,7 @@ head(pointCoordinates)
 #crs(pointCoordinates) #No CRS when a dataframe
 
 ##Extract DEM values from stacked layer
+
 rasStack = stack(DEM, ras.frt)
 rasValue2=raster::extract(rasStack, pointCoordinates)
 head(rasValue2)
