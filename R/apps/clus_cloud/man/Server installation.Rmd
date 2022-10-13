@@ -1,0 +1,192 @@
+---
+title: "Creating CLUS Cloud Deployment image"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Creating base image
+
+A new droplet is created with the following parameters:
+
+-   Distro: Ubuntu 20.04 LTS x64
+
+-   Plan: Shared CPU - Basic
+
+-   CPU Options:
+
+    -   Regular with SSD
+
+    -   2GB / 1 CPU
+
+    -   50GB SSD Disk
+
+    -   2TB transfer
+
+-   Data center: Toronto (TOR1)
+
+-   SSH keys: `sasha` (to be replaced by key created by FAIB team)
+
+-   Enabled monitoring
+
+-   Host name: `clus-cloud-image`
+
+## Initial Server Setup
+
+As documented at <https://www.digitalocean.com/community/tutorials/initial-server-setup-with-ubuntu-20-04>.
+
+SSH to droplet and update OS:
+
+```{bash}
+ssh root@143.110.213.222 -i ~/.ssh/clus_cloud
+apt update
+apt upgrade -y
+```
+
+Create new user:
+
+``` bash
+adduser clus
+```
+
+Pass: C1u5P4ss247#%*
+
+The rest of the steps as per doc.
+
+## Install OS Libraries
+
+``` bash
+apt install -y libsodium-dev \
+    libudunits2-dev \
+    libgdal-dev \
+    libproj-dev \
+    vim \
+    curl \
+    git \
+    fonts-roboto \
+    ghostscript \
+    libssl-dev \
+    libxml2-dev \
+    gdebi-core
+```
+
+## Install Java
+
+As per guide at https://www.digitalocean.com/community/tutorials/how-to-install-java-with-apt-on-ubuntu-20-04.
+
+```
+sudo apt install default-jre
+sudo apt install default-jdk
+```
+
+## Install R
+
+Use guide at https://www.digitalocean.com/community/tutorials/how-to-install-r-on-ubuntu-20-04
+
+install.packages('remotes')
+
+if (!'Rcpp' %in% installed.packages()) remotes::install_version('Rcpp', '1.0.8.3')
+if (!'rgeos' %in% installed.packages()) remotes::install_version('rgeos', '0.5-9')
+if (!'RANN' %in% installed.packages()) remotes::install_version('RANN', '2.6.1')
+if (!'latticeExtra' %in% installed.packages()) remotes::install_version('latticeExtra', '0.6-29')
+if (!'dplyr' %in% installed.packages()) remotes::install_version('dplyr', '1.0.8')
+if (!'cppRouting' %in% installed.packages()) remotes::install_version('cppRouting', '2.0')
+if (!'tidyr' %in% installed.packages()) remotes::install_version('tidyr', '1.2.0')
+if (!'SpaDES.core' %in% installed.packages()) remotes::install_version('SpaDES.core', '1.0.10')
+if (!'SpaDES.tools' %in% installed.packages()) remotes::install_version('SpaDES.tools', '0.3.10')
+if (!'snow' %in% installed.packages()) remotes::install_version('snow', '0.4-4')
+if (!'igraph' %in% installed.packages()) remotes::install_version('igraph', '1.2.11')
+if (!'here' %in% installed.packages()) remotes::install_version('here', '1.0.1')
+if (!'sqldf' %in% installed.packages()) remotes::install_version('sqldf', '0.4-11')
+if (!'RSQLite' %in% installed.packages()) remotes::install_version('RSQLite', '2.2.11')
+if (!'gsubfn' %in% installed.packages()) remotes::install_version('gsubfn', '0.7')  
+if (!'proto' %in% installed.packages()) remotes::install_version('proto', '1.0.0')
+if (!'rgdal' %in% installed.packages()) remotes::install_version('rgdal', '1.5-29')
+if (!'raster' %in% installed.packages()) remotes::install_version('raster', '3.5-15')
+if (!'sp' %in% installed.packages()) remotes::install_version('sp', '1.4-6')
+if (!'sf' %in% installed.packages()) remotes::install_version('sf', '1.0-7')
+if (!'rpostgis' %in% installed.packages()) remotes::install_version('rpostgis', '1.4.3')
+if (!'RPostgreSQL' %in% installed.packages()) remotes::install_version('RPostgreSQL', '0.7-3')
+if (!'DBI' %in% installed.packages()) remotes::install_version('DBI', '1.1.2')
+if (!'data.table' %in% installed.packages()) remotes::install_version('data.table', '1.14.2')
+if (!'reproducible' %in% installed.packages()) remotes::install_version('reproducible', '1.2.8')
+if (!'quickPlot' %in% installed.packages()) remotes::install_version('quickPlot', '0.1.6')
+if (!'CircStats' %in% installed.packages()) remotes::install_version('CircStats', '0.2-6')
+if (!'gdalUtilities' %in% installed.packages()) remotes::install_version('gdalUtilities', '1.2.0')
+if (!'fastdigest' %in% installed.packages()) remotes::install_version('fastdigest', '0.6-3')
+if (!'fpCompare' %in% installed.packages()) remotes::install_version('fpCompare', '0.2.3')
+if (!'bit64' %in% installed.packages()) remotes::install_version('bit64', '4.0.5')
+if (!'RColorBrewer' %in% installed.packages()) remotes::install_version('RColorBrewer', '1.1-2')
+if (!'rprojroot' %in% installed.packages()) remotes::install_version('rprojroot', '2.0.2')
+if (!'tools' %in% installed.packages()) remotes::install_version('tools', '4.1.2')
+if (!'backports' %in% installed.packages()) remotes::install_version('backports', '1.4.1')
+if (!'utf8' %in% installed.packages()) remotes::install_version('utf8', '1.2.2')
+if (!'R6' %in% installed.packages()) remotes::install_version('R6', '2.5.1')
+if (!'KernSmooth' %in% installed.packages()) remotes::install_version('KernSmooth', '2.23-20')
+if (!'colorspace' %in% installed.packages()) remotes::install_version('colorspace', '2.0-3')
+if (!'tidyselect' %in% installed.packages()) remotes::install_version('tidyselect', '1.1.2')
+if (!'bit' %in% installed.packages()) remotes::install_version('bit', '4.0.4')
+if (!'compiler' %in% installed.packages()) remotes::install_version('compiler', '4.1.2')
+if (!'chron' %in% installed.packages()) remotes::install_version('chron', '2.3-56')
+if (!'cli' %in% installed.packages()) remotes::install_version('cli', '3.2.0')
+if (!'stringfish' %in% installed.packages()) remotes::install_version('stringfish', '0.15.5')
+if (!'scales' %in% installed.packages()) remotes::install_version('scales', '1.1.1')
+if (!'checkmate' %in% installed.packages()) remotes::install_version('checkmate', '2.0.0')
+if (!'classInt' %in% installed.packages()) remotes::install_version('classInt', '0.4-3')
+if (!'proxy' %in% installed.packages()) remotes::install_version('proxy', '0.4-26')
+if (!'askpass' %in% installed.packages()) remotes::install_version('askpass', '1.1')
+if (!'digest' %in% installed.packages()) remotes::install_version('digest', '0.6.29')
+if (!'rmarkdown' %in% installed.packages()) remotes::install_version('rmarkdown', '2.13')
+if (!'jpeg' %in% installed.packages()) remotes::install_version('jpeg', '0.1-9')
+if (!'pkgconfig' %in% installed.packages()) remotes::install_version('pkgconfig', '2.0.3')
+if (!'htmltools' %in% installed.packages()) remotes::install_version('htmltools', '0.5.2')
+if (!'fastmap' %in% installed.packages()) remotes::install_version('fastmap', '1.1.0')
+if (!'rlang' %in% installed.packages()) remotes::install_version('rlang', '1.0.2')
+if (!'rstudioapi' %in% installed.packages()) remotes::install_version('rstudioapi', '0.13')
+if (!'keyring' %in% installed.packages()) remotes::install_version('keyring', '1.3.0')
+if (!'generics' %in% installed.packages()) remotes::install_version('generics', '0.1.2')
+if (!'RApiSerialize' %in% installed.packages()) remotes::install_version('RApiSerialize', '0.1.0')
+if (!'magrittr' %in% installed.packages()) remotes::install_version('magrittr', '2.0.2')
+if (!'munsell' %in% installed.packages()) remotes::install_version('munsell', '0.5.0')
+if (!'fansi' %in% installed.packages()) remotes::install_version('fansi', '1.0.2')
+if (!'lifecycle' %in% installed.packages()) remotes::install_version('lifecycle', '1.0.1')
+if (!'terra' %in% installed.packages()) remotes::install_version('terra', '1.5-21')
+if (!'whisker' %in% installed.packages()) remotes::install_version('whisker', '0.4')
+if (!'yaml' %in% installed.packages()) remotes::install_version('yaml', '2.3.5')
+if (!'MASS' %in% installed.packages()) remotes::install_version('MASS', '7.3-54')
+if (!'grid' %in% installed.packages()) remotes::install_version('grid', '4.1.2')
+if (!'blob' %in% installed.packages()) remotes::install_version('blob', '1.2.2')
+if (!'crayon' %in% installed.packages()) remotes::install_version('crayon', '1.5.0')
+if (!'Require' %in% installed.packages()) remotes::install_version('Require', '0.0.13')
+if (!'knitr' %in% installed.packages()) remotes::install_version('knitr', '1.37')
+if (!'pillar' %in% installed.packages()) remotes::install_version('pillar', '1.7.0')
+if (!'tcltk' %in% installed.packages()) remotes::install_version('tcltk', '4.1.2')
+if (!'boot' %in% installed.packages()) remotes::install_version('boot', '1.3-28')
+if (!'codetools' %in% installed.packages()) remotes::install_version('codetools', '0.2-18')
+if (!'fastmatch' %in% installed.packages()) remotes::install_version('fastmatch', '1.1-3')
+if (!'glue' %in% installed.packages()) remotes::install_version('glue', '1.6.2')
+if (!'evaluate' %in% installed.packages()) remotes::install_version('evaluate', '0.15')
+if (!'remotes' %in% installed.packages()) remotes::install_version('remotes', '2.4.2')
+if (!'RcppParallel' %in% installed.packages()) remotes::install_version('RcppParallel', '5.1.5')
+if (!'png' %in% installed.packages()) remotes::install_version('png', '0.1-7')
+if (!'vctrs' %in% installed.packages()) remotes::install_version('vctrs', '0.3.8')
+if (!'gtable' %in% installed.packages()) remotes::install_version('gtable', '0.3.0')
+if (!'openssl' %in% installed.packages()) remotes::install_version('openssl', '2.0.0')
+if (!'purrr' %in% installed.packages()) remotes::install_version('purrr', '0.3.4')
+if (!'qs' %in% installed.packages()) remotes::install_version('qs', '0.25.3')
+if (!'assertthat' %in% installed.packages()) remotes::install_version('assertthat', '0.2.1')
+if (!'cachem' %in% installed.packages()) remotes::install_version('cachem', '1.0.6')
+if (!'ggplot2' %in% installed.packages()) remotes::install_version('ggplot2', '3.3.5')
+if (!'xfun' %in% installed.packages()) remotes::install_version('xfun', '0.30')
+if (!'gridBase' %in% installed.packages()) remotes::install_version('gridBase', '0.4-7')
+if (!'e1071' %in% installed.packages()) remotes::install_version('e1071', '1.7-9')
+if (!'class' %in% installed.packages()) remotes::install_version('class', '7.3-19')
+if (!'tibble' %in% installed.packages()) remotes::install_version('tibble', '3.1.6')
+if (!'memoise' %in% installed.packages()) remotes::install_version('memoise', '2.0.1')
+if (!'units' %in% installed.packages()) remotes::install_version('units', '0.8-0')
+if (!'ellipsis' %in% installed.packages()) remotes::install_version('ellipsis', '0.3.2')
+if (!'rJava' %in% installed.packages()) remotes::install_version('rJava', '1.0-6')
+
+if (!'velox' %in% installed.packages()) remotes::install_version('velox', '0.2.1')
