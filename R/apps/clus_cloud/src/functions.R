@@ -71,9 +71,11 @@ run_simulation <- function(
     filelock::unlock(lock)
     progress$inc(1 / total_steps)
     
+    d_name <- analogsea:::random_name()
+    
     # Create actual droplet that will do the knitting ----
     d <- analogsea::droplet_create(
-      name = analogsea:::random_name(),
+      name = d_name,
       size = do_droplet_size,
       region = do_region,
       image = do_image,
@@ -243,6 +245,32 @@ run_simulation <- function(
     )
     filelock::unlock(lock)
     progress$inc(1 / total_steps)
+    
+    cost <- d %>% droplets_cost()
+    
+    create_table_query <- "CREATE TABLE IF NOT EXISTS billing (id SERIAL PRIMARY KEY, scenario_name varchar(255), droplet_name varchar(255), droplet_size varchar(40), volume_name varchar(255), cost varchar(40), _updated_at TIMESTAMP without time zone NULL DEFAULT clock_timestamp())"
+    insert_query <- glue::glue("INSERT INTO billing (scenario_name, droplet_name, droplet_size, volume_name, cost) VALUES ('{scenario_name}', '{d_name}', '{do_droplet_size}', '{volume_name}', '{cost}')")
+    billing_sql <- paste0("library(DBI)
+library(RPostgreSQL)
+tryCatch({drv <- dbDriver('PostgreSQL')
+conn <- dbConnect(drv, dbname = \"", db_name, "\", host = \"", db_host, "\", port = \"", db_port, "\", user = \"", db_user, "\", password = \"", db_pass, "\")
+dbSendQuery(conn, '", create_table_query, "')
+dbSendQuery(conn, \"", insert_query, "\")
+},
+error = function(cond) {
+print('Unable to connect to Database.')
+})"
+    )
+    
+    tmp <- tempfile()
+    writeLines(billing_sql, tmp)
+    d %>% droplet_upload(tmp, "record_cost.R")
+    
+    d %>% droplet_ssh(
+      glue::glue("Rscript record_cost.R"),
+      keyfile = ssh_keyfile
+    )
+
     
     v %>% volume_detach(droplet = d, region = do_region)
     Sys.sleep(10)

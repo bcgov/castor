@@ -15,12 +15,11 @@ library(magrittr)
 library(dplyr)
 library(analogsea)
 library(DBI)
-library(RSQLite)
+library(RPostgreSQL)
 library(shinyFiles)
 library(shinydashboard)
 library(shinyjs)
 library(future)
-library(future.apply)
 library(future.callr)
 library(rlist)
 library(fs)
@@ -28,7 +27,6 @@ library(stringr)
 library(glue)
 library(ssh)
 library(ipc)
-library(progressr)
 library(purrr)
 library(filelock)
 
@@ -46,9 +44,6 @@ available_sqlite <- list.files('sqlite/')
 
 # Digital Ocean resources ----
 api_base_url <- 'https://api.digitalocean.com/v2/'
-endpoint_snapshots <- 'snapshots'
-endpoint_droplets <- 'droplets'
-
 region <- 'tor1'
 uploader_image <- 'ubuntu-20-04-x64'
 uploader_size = 's-1vcpu-1gb'
@@ -82,7 +77,7 @@ size_choices <- setNames(
 # UI ----
 ui <- shiny::tagList(
   dashboardPage(
-    skin = 'black', title = 'CLUS Clound Deployment',
+    skin = 'black', title = 'CLUS Cloud Deployment',
     header = dashboardHeader(
       title = 'CLUS Cloud Deployment',
       titleWidth = 400
@@ -312,7 +307,15 @@ ui <- shiny::tagList(
         ## Billing ----
         tabItem(
           tabName = "billing",
-          h2('Billing')
+          h2('Billing'),
+          h3('Droplets'),
+          tableOutput('billing'),
+          shiny::actionButton(
+            inputId = 'refresh_billing',
+            label = 'Refresh',
+            icon = icon('refresh')
+          ),
+          shiny::textOutput('connection_status')
         )
       )
     )
@@ -349,6 +352,12 @@ server <- function(input, output, session) {
     need(Sys.getenv("DO_TOKEN"), "Please set Digital Ocean API token in .Renviron file.")
   )
 
+  db_host <- Sys.getenv('DB_HOST')
+  db_port <- Sys.getenv('DB_PORT')
+  db_name <- Sys.getenv('DB_NAME')
+  db_user <- Sys.getenv('DB_USER')
+  db_pass <- Sys.getenv('DB_PASS')
+  
   shinyFileChoose(
     input, "file_scenario",
     roots = c('wd' = '.', 'scenarios' = paste0(getwd(), '/../../scenarios')),
@@ -760,6 +769,31 @@ server <- function(input, output, session) {
 
       # output$databases <- renderTable(dbs_df)
       output$databases <- renderDataTable(dbs_df)
+    }
+  )
+
+  # Refresh billing ----
+  observeEvent(
+    input$refresh_billing,
+    {
+      tryCatch({
+        drv <- dbDriver('PostgreSQL')
+        conn <- dbConnect(
+          drv, 
+          dbname = db_name, 
+          host = db_host, 
+          port = db_port, 
+          user = db_user, 
+          password = db_pass
+        )
+        costs <- dbGetQuery(conn, "SELECT * FROM billing")
+        output$billing <- renderDataTable(costs)
+      },
+      error = function(cond) {
+        output$connection_status <- shiny::renderText('Unable to connect to the database.')
+        print('Unable to connect to the database.')
+      })
+
     }
   )
 
