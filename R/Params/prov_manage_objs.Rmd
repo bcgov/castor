@@ -265,9 +265,10 @@ beo.lut6<-beo.lut6[lu_name %in% c('A2', 'A3', 'A4'), ndt :=6][lu_name %in% c('A5
 beo.ras<-ProvRast
 beo.ras[beo.table$pixelid]<-beo.table$id_beo
 beo.ras[beo.table[id_beo %in% beo.lut.bg,]$pixelid]<-0
-
+if(FALSE){
 writeRaster(beo.ras, "beo.tif", overwrite =TRUE)
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here::here(), '/R/params/beo.tif -t 100x100 rast.zone_cond_beo_pg_cclup |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = FALSE)
+}
 ```
 
 
