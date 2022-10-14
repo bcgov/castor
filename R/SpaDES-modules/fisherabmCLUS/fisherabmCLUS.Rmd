@@ -25,12 +25,9 @@ This is an agent based model (ABM) to simulate fisher life history on a landscap
 For help writing in R Markdown, see https://rmarkdown.rstudio.com/.
 
 ```{r some code to acces the sqlite db}
-# needs the DBI package
 library (DBI)
 library (data.table)
-library (keyring)
 library (here)
-library (terra)
 source (paste0 (here::here (), "/R/functions/R_Postgres.R"))
 
 # connect to the db
@@ -53,6 +50,8 @@ table <- as.data.table (dbGetQuery (clusdb, "SELECT * FROM pixels"))
 library (SpaDES.core)
 library (data.table)
 library (terra)
+library (keyring)
+library (here)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 setPaths(modulePath = file.path("C:/Work/git/clus/R/SpaDES-modules"))
