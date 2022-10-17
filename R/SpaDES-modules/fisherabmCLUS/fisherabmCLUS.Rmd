@@ -100,6 +100,7 @@ parameters <- list(
                          nameForestInventoryBasalArea= "basal_area",
                          nameForestInventoryQMD = "quad_diam_125"
                     ),
+  growingStockCLUS = list (periodLength = 5),
   fisherabmCLUS = list (female_max_age = 9,
                         female_search_radius = 5,
                         den_target = 0.003, 

@@ -136,8 +136,6 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
       sim <- scheduleEvent (sim, time(sim) + P(sim, "timeInterval", "fisherabmCLUS"), "fisherabmCLUS", "save", 18)
       sim <- scheduleEvent (sim, time(sim) + P(sim, "timeInterval", "fisherabmCLUS"), "fisherabmCLUS", "runevents", 19)
     },
-
-    
     # interpolatehabitat = {
     # 
     #   # develop this in next version?
@@ -152,17 +150,14 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
     #   sim <- scheduleEvent(sim, time(sim) + P(sim, "timeInterval", "fisherabmCLUS"), "fisherabmCLUS", "reproduce", 20)
     #   
     # },
-    
-    runevents = {
+   runevents = {
       sim <- annualEvents (sim)
       sim <- scheduleEvent (sim, time(sim) + P(sim, "timeInterval", "fisherabmCLUS"), "fisherabmCLUS", "save", 20)
     },
-
-    save = {
+   save = {
       sim <- saveAgents (sim)
       
     }
-    
     warning(paste("Undefined event type: \'", current(sim)[1, "eventType", with = FALSE],
                   "\' in module \'", current(sim)[1, "moduleName", with = FALSE], "\'", sep = ""))
   )
@@ -170,9 +165,7 @@ doEvent.fisherabmCLUS = function(sim, eventTime, eventType) {
 }
 
 
-
 ## event functions
-
 Init <- function(sim) {
   
   message ("Initiating fisher ABM...")
@@ -221,13 +214,13 @@ Init <- function(sim) {
                                         JOIN fisher_zones ON ST_Intersects(aoi.",sim$boundaryInfo[[4]],", fisher_zones.wkb_geometry)"))
   table.hab$fisher_pop <- fasterize::fasterize (sf = fisher.pop, raster = sim$pix.rast, field = "pop")[]
   #---VAT for populations: 1 = Boreal; 2 = SBS-wet; 3 = SBS-dry; 4 = Dry Forest
-
   table.hab <- table.hab [!is.na (pixelid), ] # remove pixels outside of the aoi
   sim$table.hab <- table.hab
-  table.hab.init <- merge (sim$table.hab, # add the habitat characteristics
+  
+  # add the habitat characteristics
+  table.hab.init <- merge (sim$table.hab, 
                            data.table (dbGetQuery(sim$clusdb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height  FROM pixels;")),
                            by = "pixelid")
-
   # classify the habitat
   table.hab.init [den_p == 1 & age >= 125 & crownclosure >= 30 & qmd >=28.5 & basalarea >= 29.75, denning := 1][den_p == 2 & age >= 125 & crownclosure >= 20 & qmd >=28 & basalarea >= 28, denning := 1][den_p == 3 & age >= 135, denning:=1][den_p == 4 & age >= 207 & crownclosure >= 20 & qmd >= 34.3, denning:=1][den_p == 5 & age >= 88 & qmd >= 19.5 & height >= 19, denning:=1][den_p == 6 & age >= 98 & qmd >= 21.3 & height >= 22.8, denning:=1]
   table.hab.init [rus_p == 1 & age > 0 & crownclosure >= 30 & qmd >= 22.7 & basalarea >= 35 & height >= 23.7, rust:=1][rus_p == 2 & age >= 72 & crownclosure >= 25 & qmd >= 19.6 & basalarea >= 32, rust:=1][rus_p == 3 & age >= 83 & crownclosure >=40 & qmd >= 20.1, rust:=1][rus_p == 5 & age >= 78 & crownclosure >=50 & qmd >= 18.5 & height >= 19 & basalarea >= 31.4, rust:=1][rus_p == 6 & age >= 68 & crownclosure >=35 & qmd >= 17 & height >= 14.8, rust:=1]
@@ -237,8 +230,7 @@ Init <- function(sim) {
   table.hab.init <- table.hab.init [, .(pixelid, fisher_pop, den_p, denning, rus_p, rust, cav_p, cavity, 
                                     cwd_p, cwd, mov_p, movement)] # could add other things, openness, crown closure, cost surface?
 
-  
-  message ("Create agents table and assign values...")
+  message ("Create fisher agents table and assign values...")
   # assign agents to denning pixels
     # systematic method
       # this provides a 'buffer' between pixels to allow some space for fisher to form an HR; 
@@ -255,8 +247,7 @@ Init <- function(sim) {
                           pixelid = den.pix.sample$V1,
                           hr_size = numeric (),
                           d2_score = numeric ())
-
-    # user-defined method; allow user to pick the # of agents
+   # user-defined method; allow user to pick the # of agents
       # ids <- seq (from = 1, to = P(sim, "n_females", "fisherabmCLUS"), by = 1) # sequence of individual id's from 1 to n_females
       # agents <- data.table (individual_id = ids, 
       #                       sex = "F", 
@@ -267,8 +258,7 @@ Init <- function(sim) {
       # 
       # assign a random starting location that is a denning pixel in population range
       # agents$pixelid <- sample (table.hab [denning == 1 & !is.na (fisher_pop), pixelid], length (ids), replace = T)
-
-  # assign the population ID
+  # assign the population
   agents <- merge (agents, table.hab.init [ , c("pixelid", "fisher_pop")], 
                    by = "pixelid", all.x = T)
   # assign an HR size based on population
@@ -304,10 +294,10 @@ Init <- function(sim) {
                                      circle = F) # spread to adjacent cells
     
   # calc distance between each pixel and the denning site
-      # not sure if we need this; keeping it here in case we need it
-  # table.hr <- cbind (table.hr, xyFromCell (sim$pix.rast, table.hr$pixels))
-  # table.hr [!(pixels %in% agents$pixelid), dist := RANN::nn2 (table.hr [pixels %in% agents$pixelid, c("x","y")], table.hr [!(pixels %in% agents$pixelid), c("x","y")], k = 1)$nn.dists]
-  # table.hr [is.na (dist), dist := 0]
+      # not used; keeping it here in case we need it
+    # table.hr <- cbind (table.hr, xyFromCell (sim$pix.rast, table.hr$pixels))
+    # table.hr [!(pixels %in% agents$pixelid), dist := RANN::nn2 (table.hr [pixels %in% agents$pixelid, c("x","y")], table.hr [!(pixels %in% agents$pixelid), c("x","y")], k = 1)$nn.dists]
+    # table.hr [is.na (dist), dist := 0]
 
   # add individual id and habitat
   table.hr <- merge (merge (table.hr,
@@ -350,13 +340,11 @@ Init <- function(sim) {
       agents <- agents [individual_id != i]
     } 
   }
-
         #  remove pixels if already occupied
           # not used, but keeping here if we need it later
             # search.temp <- merge (search.temp, territories, 
             #                       by.x = "pixels", by.y = "pixelid", all.x = T)
             # search.temp <- search.temp [is.na (individual_id) | individual_id == (agents [pixelid == i, individual_id]), ]
-  
   
   # check if proportion of habitat types are greater than the minimum thresholds 
   for (i in agents$individual_id) { # for each individual
@@ -371,77 +359,68 @@ Init <- function(sim) {
       agents <- agents [individual_id != i]
     } 
   }
-  
-    # write the territories table
-      # add time step and scenario name
+    # write the territories table to the sim
   sim$territories <- territories
  
   #---Calculate D2 (Mahalanobis) 
-    # try to make this part into a function....
   message ("Calculate habitat quality.")
-  
-  # identify which fisher pop an animal belongs to
+    # identify which fisher pop an animal belongs to
   terr.pop <- merge (territories, table.hab.init [, c ("pixelid", "fisher_pop")], 
                       by = "pixelid", all.x = T)
-  # get the mean of pixels pop. values, rounded to get the majority; majority = pop membership
+    # get the mean of pixels pop. values, rounded to get the majority; majority = pop membership
   terr.pop [, fisher_pop := .(round (mean (fisher_pop, na.rm = T), digits = 0)), by = individual_id] 
   terr.pop <- unique (terr.pop [, c ("individual_id", "fisher_pop")])
   agents <- merge (agents [, -c ("fisher_pop")], # assign new fisher_pop to agents table
                    terr.pop [, c ("individual_id", "fisher_pop")], 
                    by = "individual_id", all.x = T)
-  
-  # get habitat for mahalanobis
+    # get habitat for mahalanobis
   tab.mahal <- merge (territories, 
                       table.hab.init [, c ("pixelid", "denning", "rust", "cavity", "movement", "cwd")], 
                       by = "pixelid", all.x = T)
-  # % of each habitat by territory
+    # % of each habitat by territory
   tab.perc <- Reduce (function (...) merge (..., all = TRUE, by = "individual_id"), 
                       list (tab.mahal [, .(den_perc = ((sum (denning, na.rm = T)) / .N) * 100), by = individual_id ], 
                             tab.mahal [, .(rust_perc = ((sum (rust, na.rm = T)) / .N) * 100), by = individual_id ], 
                             tab.mahal [, .(cav_perc = ((sum (cavity, na.rm = T)) / .N) * 100), by = individual_id ], 
                             tab.mahal [, .(move_perc = ((sum (movement, na.rm = T)) / .N) * 100), by = individual_id ], 
                             tab.mahal [, .(cwd_perc = ((sum (cwd, na.rm = T)) / .N) * 100), by = individual_id ]))
-  
-  # add pop id
+      # add pop id
   tab.perc <- merge (tab.perc, 
                      agents [, c ("individual_id", "fisher_pop")],
                      by = "individual_id", all.x = T)
-  # log transform the data
+    # log transform the data
   tab.perc [fisher_pop == 2 & den_perc >= 0, den_perc := log (den_perc + 1)][fisher_pop == 1 & cav_perc >= 0, cavity := log (cav_perc + 1)] # sbs-wet
   tab.perc [fisher_pop == 3 & den_perc >= 0, den_perc := log (den_perc + 1)]# sbs-dry
   tab.perc [fisher_pop == 1 | fisher_pop == 4 & rust_perc >= 0, rust_perc := log (rust_perc + 1)] #boreal and dry
-  
-  # truncate at the center plus one st dev
+    # truncate at the center plus one st dev
   stdev_pop1 <- sqrt (diag (sim$fisher_d2_cov[[1]])) # boreal
   stdev_pop2 <- sqrt (diag (sim$fisher_d2_cov[[2]])) # sbs-wet
   stdev_pop3 <- sqrt (diag (sim$fisher_d2_cov[[3]])) # sbs-dry
   stdev_pop4 <- sqrt (diag (sim$fisher_d2_cov[[4]])) # dry
-
   tab.perc [fisher_pop == 1 & den_perc > 24  + stdev_pop1[1], den_perc := 24 + stdev_pop1[1]][fisher_pop == 1 & rust_perc > 2.2 + stdev_pop1[2], rust_perc := 2.2 + stdev_pop1[2]][fisher_pop == 1 & cwd_perc > 17.4 + stdev_pop1[3], cwd_perc := 17.4 + stdev_pop1[3]][fisher_pop == 1 & move_perc > 56.2 + stdev_pop1[4], move_perc := 56.2 + stdev_pop1[4]]
   tab.perc [fisher_pop == 2 & den_perc > 1.6 + stdev_pop2[1], den_perc := 1.6 + stdev_pop2[1]][fisher_pop == 2 & rust_perc > 36.2 + stdev_pop2[2], rust_perc := 36.2 + stdev_pop2[2]][fisher_pop == 2 & cav_perc > 0.7 + stdev_pop2[3], cav_perc := 0.7 + stdev_pop2[3]][fisher_pop == 2 & cwd_perc > 30.4 + stdev_pop2[4], cwd_perc := 30.4 + stdev_pop2[4]][fisher_pop == 2 & move_perc > 26.8 + stdev_pop2[5], move_perc := 26.8+ stdev_pop2[5]]
   tab.perc [fisher_pop == 3 & den_perc > 1.2 + stdev_pop3[1], den_perc := 1.2 + stdev_pop3[1]][fisher_pop == 3 & rust_perc > 19.1 + stdev_pop3[2], rust_perc := 19.1 + stdev_pop3[2]][fisher_pop == 3 & cav_perc > 0.5 + stdev_pop3[3], cav_perc := 0.5 + stdev_pop3[3]][fisher_pop == 3 & cwd_perc > 10.2 + stdev_pop3[4], cwd_perc := 10.2 + stdev_pop3[4]][fisher_pop == 3 & move_perc > 33.1 + stdev_pop3[5], move_perc := 33.1+ stdev_pop3[5]]
   tab.perc [fisher_pop == 4 & den_perc > 2.3 + stdev_pop4[1], den_perc := 2.3 + stdev_pop4[1]][fisher_pop == 4 & rust_perc > 1.6 +  stdev_pop4[2], rust_perc := 1.6  + stdev_pop4[2]][fisher_pop == 4 & cwd_perc > 10.8 + stdev_pop4[3], cwd_perc := 10.8 + stdev_pop4[3]][fisher_pop == 4 & move_perc > 21.5 + stdev_pop4[4], move_perc := 21.5+ stdev_pop4[4]]
-
   #-----D2
   tab.perc [fisher_pop == 1, d2 := mahalanobis (tab.perc [fisher_pop == 1, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(24.0, 2.2, 17.4, 56.2), cov = sim$fisher_d2_cov[[1]])]
   tab.perc [fisher_pop == 2, d2 := mahalanobis (tab.perc [fisher_pop == 2, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.6, 36.2, 0.7, 30.4, 26.8), cov = sim$fisher_d2_cov[[2]])]
   tab.perc [fisher_pop == 3, d2 := mahalanobis (tab.perc [fisher_pop == 3, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.16, 19.1, 0.45, 8.69, 33.06), cov = sim$fisher_d2_cov[[3]])]
   tab.perc [fisher_pop == 4, d2 := mahalanobis (tab.perc [fisher_pop == 4, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(2.3, 1.6, 10.8, 21.5), cov = sim$fisher_d2_cov[[4]])]
-
   agents <- merge (agents [, - ('d2_score')],
                    tab.perc [, .(individual_id, d2_score = d2)],
                    by = "individual_id")
+  # save agents table to the sim
   sim$agents <- agents
-  
   message ("Territories and agents created!")
   return (invisible (sim))
 }
 
 
+
 ###--- ANNUAL EVENTS
 annualEvents <- function (sim) {
  
-  for (i in P(sim, "periodLength", "growingStockCLUS")) { # repeat this fucntion by the number of periods (years); this ties it to growingstockCLUS - make this independent?
+  for (i in P(sim, "periodLength", "growingStockCLUS")) { # repeat this function by the number of periods (years); this ties it to growingstockCLUS - make this independent?
     
     # Step 1: "Update" the Habitat Conditions 
     message ("Fishers check habitat in territory.")
@@ -720,9 +699,9 @@ annualEvents <- function (sim) {
       
       message ("Dispersal complete!")
 
-    # Step 4: Reproduce
-      
-     message ("Fishers reproduce.")
+ 
+     # Step 4: Reproduce
+      message ("Fishers reproduce.")
       
       reproFishers <- sim$agents [sex == "F" & age > 1 & !is.na (d2_score) ] # females of reproductive age in a territory
       
@@ -746,40 +725,106 @@ annualEvents <- function (sim) {
                                                                     sd =  repro_rate_table [Fpop == i & Param == 'LS', SD]))]
         }
       
+        
         # Revise the litter size based on habitat quality
-        
-        
-        # determine if the d2 score is less than the threhold for each fisher pop and individual
-        # for loop, or something else?
-        
-        
-        for (i in unique (reproFishers$fisher_pop)) {
+          # Boreal
+          reproFishersBoreal <- reproFishers [fisher_pop == 1, ]
+          mahal_score <- sim$mahal_metric_table [FHE_zone_num == 1,]
+          
+          for (i in reproFishersBoreal$individual_id) {
+              if (reproFishersBoreal [individual_id == i, d2_score] < mahal_score$Mean ) {
+                # do nothing; stay at litter size
+              } else if (mahal_score$Mean < reproFishersBoreal [individual_id == i, d2_score] & reproFishersBoreal [individual_id == i, d2_score] < (mahal_score$Mean + mahal_score$SD)) {
+                # reduce litter size by 1/4
+                reproFishersBoreal <- reproFishersBoreal [individual_id == i, kits := ceiling (kits * 0.75)]
+                
+              } else if ((mahal_score$Mean + mahal_score$SD) < reproFishersBoreal [individual_id == i, d2_score] & reproFishersBoreal [individual_id == i, d2_score] <= (mahal_score$Mean + (2 * mahal_score$SD))) {
+                # reduce litter size by 1/2
+                reproFishersBoreal <- reproFishersBoreal [individual_id == i, kits := ceiling (kits * 0.50)]
+                
+              } else if (reproFishersBoreal [individual_id == i, d2_score] > (mahal_score$Mean + (2 * mahal_score$SD))) {
+                # reduce litter size to 0
+                reproFishersBoreal <- reproFishersBoreal [individual_id == i, kits := (kits * 0)]
+              } else {
+                # do nothing
+              }
+            }
+          
+          # SBS wet
+          reproFishers_sbsw <- reproFishers [fisher_pop == 2, ]
+          mahal_score <- sim$mahal_metric_table [FHE_zone_num == 2,]
+          
+          for (i in reproFishers_sbsw$individual_id) {
+              if (reproFishers_sbsw [individual_id == i, d2_score] < mahal_score$Mean ) {
+                # do nothing; stay at litter size
+              } else if (mahal_score$Mean < reproFishers_sbsw [individual_id == i, d2_score] & reproFishers_sbsw [individual_id == i, d2_score] < (mahal_score$Mean + mahal_score$SD)) {
+                # reduce litter size by 1/4
+                reproFishers_sbsw <- reproFishers_sbsw [individual_id == i, kits := ceiling (kits * 0.75)]
+                
+              } else if ((mahal_score$Mean + mahal_score$SD) < reproFishers [individual_id == i, d2_score] & reproFishers_sbsw [individual_id == i, d2_score] <= (mahal_score$Mean + (2 * mahal_score$SD))) {
+                # reduce litter size by 1/2
+                reproFishers_sbsw <- reproFishers_sbsw [individual_id == i, kits := ceiling (kits * 0.50)]
+                
+              } else if (reproFishers_sbsw [individual_id == i, d2_score] > (mahal_score$Mean + (2 * mahal_score$SD))) {
+                # reduce litter size to 0
+                reproFishers_sbsw <- reproFishers_sbsw [individual_id == i, kits := (kits * 0)]
+              } else {
+                # do nothing
+              }
+            }
          
-         mahal_score <- sim$mahal_metric_table [FHE_zone_num == i] 
-         reproFishersi <- reproFishers [fisher_pop == i]
-         
-         if (reproFishersi$d2_score < mahal_score$Mean ) {
-           # do nothing; stay at litter size
-         } else if (mahal_score$Mean < reproFishersi$d2_score < (mahal_score$Mean + mahal_score$SD)) {
-           # reduce litter size by 1/4
-           reproFishers <- reproFishers [fisher_pop == i, kits := ceiling (kits * 0.75)]
-           
-         } else if ((mahal_score$Mean + mahal_score$SD) < reproFishersi$d2_score <= mahal_score$Max) {
-           # reduce litter size by 1/2
-           reproFishers <- reproFishers [fisher_pop == i, kits := ceiling (kits * 0.50)]
-           
-         } else if (reproFishersi$d2_score > mahal_score$Max) {
-           # reduce litter size to 0
-           reproFishers <- reproFishers [fisher_pop == i, kits := ceiling (kits * 0)]
-           
-         } else {
-          # do nothing
-         }
-           
-           
-
-         
-
+          # SBS dry
+          reproFishers_sbsd <- reproFishers [fisher_pop == 3, ]
+          mahal_score <- sim$mahal_metric_table [FHE_zone_num == 3,]
+          
+          for (i in reproFishers_sbsd$individual_id) {
+            if (reproFishers_sbsd [individual_id == i, d2_score] < mahal_score$Mean) {
+              # stay the same
+              reproFishers_sbsd <- reproFishers_sbsd [individual_id == i, kits := (kits * 1)]
+            } else if (mahal_score$Mean < reproFishers_sbsd [individual_id == i, d2_score] & reproFishers_sbsd [individual_id == i, d2_score] < (mahal_score$Mean + mahal_score$SD)) {
+              # reduce litter size by 1/4
+              reproFishers_sbsd <- reproFishers_sbsd [individual_id == i, kits := ceiling (kits * 0.75)]
+              
+            } else if ((mahal_score$Mean + mahal_score$SD) < reproFishers [individual_id == i, d2_score] & reproFishers_sbsd [individual_id == i, d2_score] <= (mahal_score$Mean + (2 * mahal_score$SD))) {
+              # reduce litter size by 1/2
+              reproFishers_sbsd <- reproFishers_sbsd [individual_id == i, kits := ceiling (kits * 0.50)]
+              
+            } else if (reproFishers_sbsd [individual_id == i, d2_score] > (mahal_score$Mean + (2 * mahal_score$SD))) {
+              # reduce litter size to 0
+              reproFishers_sbsd <- reproFishers_sbsd [individual_id == i, kits := (kits * 0)]
+            } else {
+              # do nothing
+            }
+          }
+          
+          # Dry
+          reproFishers_dry <- reproFishers [fisher_pop == 4, ]
+          mahal_score <- sim$mahal_metric_table [FHE_zone_num == 4,]
+          
+          for (i in reproFishers_dry$individual_id) {
+            if (reproFishers_dry [individual_id == i, d2_score] < mahal_score$Mean) {
+              # stay the same
+              reproFishers_dry <- reproFishers_dry [individual_id == i, kits := (kits * 1)]
+            } else if (mahal_score$Mean < reproFishers_dry [individual_id == i, d2_score] & reproFishers_dry [individual_id == i, d2_score] < (mahal_score$Mean + mahal_score$SD)) {
+              # reduce litter size by 1/4
+              reproFishers_dry <- reproFishers_dry [individual_id == i, kits := ceiling (kits * 0.75)]
+              
+            } else if ((mahal_score$Mean + mahal_score$SD) < reproFishers [individual_id == i, d2_score] & reproFishers_dry [individual_id == i, d2_score] <= (mahal_score$Mean + (2 * mahal_score$SD))) {
+              # reduce litter size by 1/2
+              reproFishers_dry <- reproFishers_dry [individual_id == i, kits := ceiling (kits * 0.50)]
+              
+            } else if (reproFishers_dry [individual_id == i, d2_score] > (mahal_score$Mean + (2 * mahal_score$SD))) {
+              # reduce litter size to 0
+              reproFishers_dry <- reproFishers_dry [individual_id == i, kits := (kits * 0)]
+            } else {
+              # do nothing
+            }
+          }
+          
+          
+        reproFishers <- rbind (reproFishers_dry, reproFishers_sbsd, reproFishers_sbsw, reproFishersBoreal)
+        reproFishers <- reproFishers [kits == 1, ] # remove females with no kits
+        
         ## add the kits to the agents table
         # create new agents
         new.agents <- data.frame (lapply (reproFishers, rep, reproFishers$kits)) # repeat the rows in the reproducing fishers table by the number of kits 
@@ -812,23 +857,74 @@ annualEvents <- function (sim) {
       message ("Kits added to population.")
       
       
-    
-    
-    
-    
-
+      # Step 5. Survive and Age 1 Year
+        # old fishers die here; remove their territories
+      survivors <- sim$agents [age < P(sim, "female_max_age", "fisherabmCLUS"), ] # remove old
+      sim$agents <- sim$agents [individual_id %in% survivors$individual_id] 
+      sim$territories <- sim$territories [individual_id %in% survivors$individual_id] # remove territories
+      
+        # old dispersers die here; remove their territories 
+      dead.dispersers <- survivors [age > 2 & d2_score == '', ] # older than 2 and doesn't have a territory
+      sim$agents <- sim$agents [!individual_id %in% dead.dispersers$individual_id]
+      sim$territories <- sim$territories [!individual_id %in% dead.dispersers$individual_id] # remove territories
+      
+      # note that the above steps could inflate the mortality rate, as old animals are presumably included in the survival rate estimate
+      
+      # age-class based survival rates
+        # juveniles
+      survivors.juv <- survivors [age == 1, ]
+      for (i in unique (survivors.juv$fisher_pop)) { 
+        survivors.juv <- survivors.juv [fisher_pop == i, 
+                                        survive := rbinom (n = nrow (survivors.juv [fisher_pop == i]),
+                                                           size = 1,
+                                                           prob = rnorm (1, 
+                                                                         mean = survival_rate_table [Fpop == i & age == 'Juvenile', Mean], 
+                                                                         sd =  survival_rate_table [Fpop == i & age == 'Juvenile', SD]))]
+      }
+        # adults
+      survivors.ad <- survivors [age > 1, ]
+      for (i in unique (survivors.ad$fisher_pop)) { 
+        survivors.ad <- survivors.ad [fisher_pop == i, 
+                                      survive := rbinom (n = nrow (survivors.ad [fisher_pop == i]),
+                                                         size = 1,
+                                                         prob = rnorm (1, 
+                                                                       mean = survival_rate_table [Fpop == i & age == 'Adult', Mean], 
+                                                                       sd =  survival_rate_table [Fpop == i & age == 'Adult', SD]))]
+      }
+        # dispersers
+      survivors.disp <- survivors [age > 0 & d2_score == '', ]
+      for (i in unique (survivors.disp$fisher_pop)) { 
+        survivors.disp <- survivors.juv [fisher_pop == i, 
+                                         survive := rbinom (n = nrow (survivors.disp [fisher_pop == i]),
+                                                            size = 1,
+                                                            prob = rnorm (1, 
+                                                                          mean = survival_rate_table [Fpop == i & age == 'Disperser', Mean], 
+                                                                          sd =  survival_rate_table [Fpop == i & age == 'Disperser', SD]))]
+      }
+      # kits
+      # they all survive?
+      survivors.kit <- survivors [age == 0, ]
+      survivors.kit$survive <- 1
+      
+      # recombine the data
+      survivors <- rbind (survivors.ad, survivors.juv, survivors.disp, survivors.kit)
+      
+      # remove the 'dead' individuals
+      survivors <- survivors [survive == 1, ]
+      sim$agents <- sim$agents [pixelid %in% survivors$individual_id]
+      # agents <- agents [pixelid %in% survivors$pixelid] # use this if we decide to kill the kits of mothers that do not survive; young share the same pixelid as mother
+      sim$territories <- sim$territories [individual_id %in% survivors$individual_id] # remove territories
+      
+      # this is where we age the fisher; survivors age 1 year
+      sim$agents$age <- sim$agents$age + 1 # time interval?
+      
+      message ("Fishers survived and aged one year.")
+      message ("Fisher annual time step complete.")
+      
     }
-  
+
   return(invisible(sim))
 }
-
-
-
-
-
-
-
-
 
 
 ###--- SAVE
@@ -838,6 +934,7 @@ saveAgents <- function (sim) {
   # replicate/iteration number?; add this later
   message ("Save the agents and territories.")
   
+  # territories
   territories.save <- sim$territories
   territories.save [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
   
@@ -851,7 +948,7 @@ saveAgents <- function (sim) {
                        row.names = FALSE, overwrite = FALSE)  
   }
   
-  
+  # agents
   agents.save <-  sim$agents
   agents.save [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
   
@@ -867,169 +964,8 @@ saveAgents <- function (sim) {
 }
 
 
-###--- REPRODUCE
-repro_FEMALE <- function (sim) {
-  
-  message ("Fishers reproduce.")
-  
-  # determine which individuals will reproduce this year
-  reproFishers <- sim$agents [sex == "F" & age > 1]
-  
-  # assign each female fisher 1 = reproduce or 0 = does not reproduce
-    if (length (reproFishers) > 0) {
-
-    for (i in unique (reproFishers$fisher_pop)) { 
-      reproFishers [fisher_pop == i, reproduce := rbinom (n = nrow (reproFishers [fisher_pop == i]),
-                                                          size = 1,
-                                                          prob = rnorm (1, 
-                                                                        mean = repro_rate_table [Fpop == i & Param == 'DR', Mean], 
-                                                                        sd =  repro_rate_table [Fpop == i & Param == 'DR', SD]))]
-    } 
-      
-      reproFishers <- reproFishers [reproduce == 1, ] # remove non-reproducers
-      
-    # for those fishers who are reproducing, assign litter size 
-      for (i in unique (reproFishers$fisher_pop)) {
-      reproFishers [fisher_pop == i, kits := as.integer (rnorm (1, 
-                                                         mean = repro_rate_table [Fpop == i & Param == 'LS', Mean], 
-                                                         sd =  repro_rate_table [Fpop == i & Param == 'LS', SD]))]
-      }
-    
-    #------------------- 
-    ## NEED "mahal_metric_table" to do this
-    ## revise number of kits based on habitat quality within FHE zone, remove males and round up (whole number to make sense, give young a chance)
-    # mahal_score <- mahal_metric_table %>% filter (FHE_zone == FHE) 
-    ## need to check with fisher team if these habitat qualifiers make sense
-    # reproFishers <- reproFishers %>% mutate (num.kits = case_when(d2_score < mahal_score$Mean ~ ceiling(num.kits/2),
-    #                                                              d2_score < (mahal_score$Mean + mahal_score$SD) ~ ceiling((num.kits*0.75)/2),
-    #                                                              d2_score <= mahal_score$Max ~ ceiling((num.kits*0.50)/2),
-    #                                                              d2_score > mahal_score$Max ~ num.kits*0))
-    # 
-    # female_hr_size <- female_hr_table %>% filter (FHE_zone==FHE)
-    #-----------------
-  
-    ## add the kits to the agents table
-      # create new agents
-    new.agents <- data.frame (lapply (reproFishers, rep, reproFishers$kits)) # repeat the rows in the reproducing fishers table by the number of kits 
-    
-      # assign whether fisher is a male or female; remove males
-    new.agents$kits <- rbinom (size = 1, n = nrow (new.agents), prob = 0.5) #50/50 prob of being a female
-    new.agents <- setDT (new.agents)
-    new.agents <- new.agents [kits == 1, ] # female = 1; male = 0
-      # make them age 0; 
-    new.agents$age <- 0
-      # make their home range size = 0 and d2_score = 0; this gets done in the dispersal function 
-    new.agents$hr_size <- 0
-    new.agents$d2_score <- 0
-      # drop 'reproduce' and 'kits' columns (and time and scenario)
-    new.agents$reproduce <- NULL
-    new.agents$kits <- NULL
-
-    # update the individual id
-    new.agents$individual_id <- seq (from = max (sim$agents$individual_id + 1), 
-                                     to = (max (sim$agents$individual_id) + nrow (new.agents)), by = 1)
-   
-    # add time, scenario
-    sim$agents <- rbind (sim$agents,
-                         new.agents) # save the new agents
-
-    } else {
-      message ("There are no reproducing fishers!")
-  }
-    # no update to the territories table because juveniles have not yet established a territory
-  message ("Kits added to population.")
-  
-  return (invisible (sim))
-}
-
-
-
-
-
-
-
-###--- SURVIVE
-# create a function that runs each year to determine the probability of a fisher surviving to the next year
-# also need to kill off any fishers that are over the max age for females (default = 9) or having been dispersing for 2 years
-# allow kits to survive even if mothers die as by 1 year kits able to live in territory without mom
-
-survive_FEMALE <- function(sim) {
-
-  # old fishers die here; remove their territories
-  survivors <- sim$agents [age < P(sim, "female_max_age", "fisherabmCLUS"), ] # remove old
-    # remove the old dead fishers
-  sim$agents <- sim$agents [individual_id %in% survivors$individual_id] 
-  sim$territories <- sim$territories [individual_id %in% survivors$individual_id] # remove territories
-  
-  # old dispersers die here; remove their territories 
-  dead.dispersers <- survivors [age > 2 & d2_score == '', ] # older than 2 and doesn't have a territory
-    # remove the dead dispersers
-  sim$agents <- sim$agents [!individual_id %in% dead.dispersers$individual_id]
-  sim$territories <- sim$territories [!individual_id %in% dead.dispersers$individual_id] # remove territories
-  
-  # agents <- agents [pixelid %in% survivors$pixelid] # use this if we decide to kill the kits of mothers that do not survive; young share the same pixelid as mother
-  # age-class based survival rates
-    # juveniles
-  survivors.juv <- survivors [age == 1, ]
-  for (i in unique (survivors.juv$fisher_pop)) { 
-    survivors.juv <- survivors.juv [fisher_pop == i, 
-                                    survive := rbinom (n = nrow (survivors.juv [fisher_pop == i]),
-                                                       size = 1,
-                                                       prob = rnorm (1, 
-                                                                     mean = survival_rate_table [Fpop == i & age == 'Juvenile', Mean], 
-                                                                     sd =  survival_rate_table [Fpop == i & age == 'Juvenile', SD]))]
-  }
-    # adults
-  survivors.ad <- survivors [age > 1, ]
-  for (i in unique (survivors.ad$fisher_pop)) { 
-    survivors.ad <- survivors.ad [fisher_pop == i, 
-                                  survive := rbinom (n = nrow (survivors.ad [fisher_pop == i]),
-                                                     size = 1,
-                                                     prob = rnorm (1, 
-                                                                   mean = survival_rate_table [Fpop == i & age == 'Adult', Mean], 
-                                                                   sd =  survival_rate_table [Fpop == i & age == 'Adult', SD]))]
-  }
-    # dispersers
-  survivors.disp <- survivors [age > 0 & d2_score == '', ]
-  for (i in unique (survivors.disp$fisher_pop)) { 
-    survivors.disp <- survivors.juv [fisher_pop == i, 
-                                     survive := rbinom (n = nrow (survivors.disp [fisher_pop == i]),
-                                                       size = 1,
-                                                       prob = rnorm (1, 
-                                                                     mean = survival_rate_table [Fpop == i & age == 'Disperser', Mean], 
-                                                                     sd =  survival_rate_table [Fpop == i & age == 'Disperser', SD]))]
-  }
-    # kits
-      # they all survive?
-  survivors.kit <- survivors [age == 0, ]
-  survivors.kit$survive <- 1
-  
-  # recombine the data
-  survivors <- rbind (survivors.ad, survivors.juv, survivors.disp, survivors.kit)
-  
-  # remove the 'dead' individuals
-  survivors <- survivors [survive == 1, ]
-  sim$agents <- sim$agents [pixelid %in% survivors$individual_id]
-  # agents <- agents [pixelid %in% survivors$pixelid] # use this if we decide to kill the kits of mothers that do not survive; young share the same pixelid as mother
-  sim$territories <- sim$territories [individual_id %in% survivors$individual_id] # remove territories
-  
-  # this is where we age the fisher; survivors age 1 year
-  sim$agents$age <- sim$agents$age + 1 # time interval?
-  
-  
-  # how do we make these events run > 1 time, to match interval time?
-  
-  
-  
-  
-  return(invisible(sim))
-}
-
 
 ###--- FUNCTIONS THAT GET CALLED
-
-
-
 .inputObjects <- function (sim) {
   # Any code written here will be run during the simInit for the purpose of creating
   # any objects required by this module and identified in the inputObjects element of defineModule.
