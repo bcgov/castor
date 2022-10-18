@@ -33,6 +33,9 @@ See the License for the specific language governing permissions and limitations 
 #Overview
 Similar to the ignition_models_fit_by_NDT file, we will be selecting the top variables for models predicting whether or not fires escaped or not, defined currently as fires that have exceeded 1 ha in size. Note, this code could also apply to the cut off of 3 hectares and 10 hectares with simple modifications as the data is already prepared for these cutoffs.
 
+
+#discussion about balancing classes
+https://towardsdatascience.com/why-balancing-classes-is-over-hyped-e382a8a410f7
 ```{r}
 #Load relevant libraries
 library(sf)
@@ -75,7 +78,7 @@ Now we must bring in the data that we created at the end of 10_fire_escape_data_
 
 ```{r}
 
-escape <- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all2.gpkg")
+escape <- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg")
 
 table(is.na(escape$Cluster)) # wierd there are 13 points that have no Cluster assigned to them.Not I tried joining them to FRT again and I still have 13 missing FRT info so Ill remove these points
 
@@ -545,4 +548,4 @@ p
 
 ```
 
-############### COMPLETE: MOVE ON TO ANALYSES FOR EACH NDT #################
+############### COMPLETE: MOVE ON TO ANALYSES FOR EACH FRT #################
