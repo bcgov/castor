@@ -63,7 +63,7 @@ Now we must bring in the data that we created at the end of 08_VRI_data_prep. We
 Note: October 21, 2021, the below files no longer appear to be on postgres
 
 ```{r}
-fire_ignitions<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg.gpkg")
+fire_ignitions<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg2.gpkg")
 
 # need to update below
 #bring in lightning caused fire data
