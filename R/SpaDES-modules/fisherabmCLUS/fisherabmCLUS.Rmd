@@ -51,28 +51,30 @@ library (SpaDES.core)
 library (data.table)
 library (terra)
 library (keyring)
+library (tidyverse)
 library (here)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
-setPaths(modulePath = file.path("C:/Work/git/clus/R/SpaDES-modules"))
+setPaths (modulePath = file.path("C:/Work/git/clus/R/SpaDES-modules/"))
 getPaths() # shows where the 4 relevant paths are
 
-times <- list(start = 0, end = 10)
+times <- list (start = 0, end = 1)
 
+#@ needs a function to simulate multiple replicates
 # replicates <- 100
 # see FLEX... iterations
 
 parameters <- list(
   dataLoaderCLUS = list(dbName='clus',
-                         save_clusdb = FALSE,
-                         sqlite_dbname = "central_group_july2022", 
-                         nameBoundaryFile = "central_grp_aoi_072022",
-                         useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/fisherabmCLUS/test.sqlite"),
+                         save_clusdb = FALSE, # Set to TRUE first time running the analysis
+                         sqlite_dbname = "fisherABM_test", 
+                         nameBoundaryFile = "tsa_aac_bounds",
+                         useCLUSdb = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"),
                          nameBoundaryColumn = "tsa_name", 
-                         nameBoundary = c ("central_group"), 
+                         nameBoundary = c ("Williams_Lake_TSA"), 
                          nameBoundaryGeom = 'wkb_geometry',
-                         nameCompartmentRaster = "rast.central_grp_aoi",
-                         nameCompartmentTable = "vat.central_grp_aoi",
+                         nameCompartmentRaster = "rast.tsa_aac_boundary",
+                         nameCompartmentTable = "vat.tsa_aac_bounds_vat",
                          nameMaskHarvestLandbaseRaster ='rast.thlb_2020', 
                          nameZoneRasters=c("rast.zone_cond_beo", 
                                            "rast.zone_cond_vqo", 
@@ -102,30 +104,24 @@ parameters <- list(
                     ),
   growingStockCLUS = list (periodLength = 5),
   fisherabmCLUS = list (female_max_age = 9,
-                        female_search_radius = 5,
                         den_target = 0.003, 
                         rest_target = 0.028,
                         move_target = 0.091,
-                        d2_reproduction_adj = "fxn, multiplier...?",
                         reproductive_age = 2,
                         sex_ratio = 0.5,
-                        max_female_dispersal_dist = 10,
-                        timeInterval = 1
-                        )
-    
-  #.progress = list(type = "text", interval = 1), # for a progress bar
-  ## If there are further modules, each can have its own set of parameters:
-  #module1 = list(param1 = value1, param2 = value2),
-  #module2 = list(param1 = value1, param2 = value2)
+                        female_dispersal = 785000,
+                        timeInterval = 1,
+                        iterations = 1)
 )
 
-# HR size parameter; define HR mean and SD for each pop
-# fisher pops: 1 = Boreal; 2 = SBS-wet; 3 = SBS-dry; 4 = Dry Forest
+scenario = data.table (name = "test",
+                       description = "Testing fisher ABM.")
 
+modules <- list ("fisherabmCLUS",
+                 "growingStockCLUS",
+                 "dataLoaderCLUS")
 
-
-modules <- list ("fisherabmCLUS")
-objects <- list (HRtable = HRtable)
+objects <- list (scenario = scenario)
 inputs <- list ()
 outputs <- list ()
 
