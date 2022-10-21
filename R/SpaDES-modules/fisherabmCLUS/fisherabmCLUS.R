@@ -153,16 +153,17 @@ Init <- function(sim) {
   # get pixel id's for aoi 
   pix.for.rast <- data.table (dbGetQuery (sim$clusdb, "SELECT pixelid FROM pixels WHERE compartid IS NOT NULL;"))
   sim$pix.rast <- sim$ras
+  sim$pix.rast [pix.for.rast$pixelid] <- pix.for.rast$pixelid
   sim$pix.rast [!pix.for.rast$pixelid] <- NA
   
   message ("Get the habitat data ...")
   # get the fisher habitat areas
   
-  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'fisherlandscape';")) == 0){
-    #Create the table in the database
-    message ("creating fisherlandscape table")
+  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'fisherlandscape';")) == 0) { # Check to see if this data exists in the sqlite db already
+    message ("Creating fisherlandscape table.")
+    # Create the habitat data table in the database if it does not exist
     dbExecute (sim$clusdb, "CREATE TABLE IF NOT EXISTS fisherlandscape (pixelid integer, den_p integer, rus_p integer, mov_p integer, cwd_p integer, cav_p integer, fisher_pop integer)")
-    sim$table.hab <- data.table (pixelid = sim$pix.rast[],
+    sim$table.hab <- data.table (pixelid = sim$pix.rast[], # this identifies and grabs ('clips') the potential habitat in the area of interest
                                  den_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_denning_p" , # 
                                                        clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
                                                        where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -189,7 +190,7 @@ Init <- function(sim) {
                                                        conn = NULL)[]
                                  ) #---VAT for populations: 1 = Boreal; 2 = SBS-wet; 3 = SBS-dry; 4 = Dry Forest
     
-    sim$table.hab <- sim$table.hab [fisher_pop > 0, ]
+    sim$table.hab <- sim$table.hab [fisher_pop > 0, ] # filter so it's only including habitat in fisher population ranges
     dbBegin (sim$clusdb) 
     rs <- dbSendQuery (sim$clusdb, paste0 ("INSERT INTO fisherlandscape (pixelid, den_p, rus_p, mov_p, cwd_p, cav_p, fisher_pop) 
                                             VALUES (:pixelid, :den_p, :rus_p, :mov_p, :cwd_p, :cav_p, :fisher_pop)"), sim$table.hab) 
@@ -211,20 +212,18 @@ Init <- function(sim) {
  
   message ("Create fisher agents table and assign values...")
   # assign agents to denning pixels
-    # systematic method
+    
+  # systematic method
       # this provides a 'buffer' between pixels to allow some space for fisher to form an HR; 
       # if they are too close then it forms fewer HRs
     den.pix <- as.data.table (table.hab.init [denning == 1 & !is.na (fisher_pop), pixelid])
-    # den.rast <- sim$ras
-    # den.rast [] <- NA
-    # den.rast [table.hab.init$pixelid] <- table.hab.init$denning
-    # den.rast <- terra::rast (den.rast)
     den.pix.sample <- den.pix [seq (1, nrow (den.pix), 50), ] # grab every ~50th pixel; ~1 pixel every 5km
     sim$agents <- data.table (individual_id = seq (from = 1, to = nrow (den.pix.sample), by = 1),
                               sex = "F",
                               age = sample (1:P(sim, "female_max_age", "fisherabmCLUS"), length (seq (from = 1, to = nrow (den.pix.sample), by = 1)), replace = T), # randomly draw ages between 1 and the max age,
                               pixelid = den.pix.sample$V1)
-   # user-defined method; allow user to pick the # of agents
+   
+    # user-defined method; allow user to pick the # of agents
       # ids <- seq (from = 1, to = P(sim, "n_females", "fisherabmCLUS"), by = 1) # sequence of individual id's from 1 to n_females
       # agents <- data.table (individual_id = ids, 
       #                       sex = "F", 
@@ -251,6 +250,7 @@ Init <- function(sim) {
                                   pixelid = sim$agents$pixelid)
   
   # create spread probability raster
+    # note: this is limited to fisher range
   spread.rast <- spreadRast (sim$pix.rast, table.hab.init)
 
 # this step took 15 mins with ~8500 starting points; 6 mins for 2174 points; 1 min for 435 points
@@ -276,23 +276,51 @@ Init <- function(sim) {
                      table.hab.init [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement")],
                      by.x = "pixels", by.y = "pixelid")
 
-  # check to see if home range target was met; if not, remove the animal 
+  # check to see if home range target was within 2 SD's of the mean; if not, remove the animal 
   table.hr [, pix.count := sum (length (pixels)), by = individual_id]
-  pix.count <- merge (sim$agents [, c ("pixelid", "individual_id", "hr_size")],
+  pix.count <- merge (sim$agents [, c ("pixelid", "individual_id", "hr_size", "fisher_pop")],
                       table.hr [, c ("pixels", "pix.count")],
                       by.x = "pixelid", by.y = "pixels",
                       all.x = T)
   
-  for (i in pix.count$individual_id) { # for each individual
-    if (pix.count [individual_id == i, pix.count] >= pix.count [individual_id == i, hr_size]) { 
-      # if it achieves its home range size and minimum habitat targets 
-      # do nothing; we need to check if it meets min. habitat criteria (see below)
+  # for each fisher population
+  for (i in pix.count [fisher_pop == 1, ]$individual_id) { # for each individual
+      if (pix.count [fisher_pop == 1 & individual_id == i, pix.count] >= (female_hr_table [fisher_pop == 1, hr_mean] - (2 *female_hr_table [fisher_pop == 1, hr_sd])) & pix.count [fisher_pop == 1 & individual_id == i, pix.count] <= (female_hr_table [fisher_pop == 1, hr_mean] + (2 * female_hr_table [fisher_pop == 1, hr_sd]))) { 
+        # if it achieves its home range size +/- 2 SD  
+        # do nothing; we need to check if it meets min. habitat criteria (see below)
+      } else {
+        # delete the individual from the agents and territories table
+        sim$territories <- sim$territories [individual_id != i] 
+        sim$agents <- sim$agents [individual_id != i]
+      } 
+  }
+  for (i in pix.count [fisher_pop == 2, ]$individual_id) { # for each individual
+    if (pix.count [fisher_pop == 2 & individual_id == i, pix.count] >= (female_hr_table [fisher_pop == 2, hr_mean] - (2 *female_hr_table [fisher_pop == 2, hr_sd])) & pix.count [fisher_pop == 2 & individual_id == i, pix.count] <= (female_hr_table [fisher_pop == 2, hr_mean] + (2 * female_hr_table [fisher_pop == 2, hr_sd]))) { 
+      
     } else {
-      # delete the individual from the agents and territories table
       sim$territories <- sim$territories [individual_id != i] 
       sim$agents <- sim$agents [individual_id != i]
     } 
   }
+  
+  for (i in pix.count [fisher_pop == 3, ]$individual_id) { # for each individual
+    if (pix.count [fisher_pop == 3 & individual_id == i, pix.count] >= (female_hr_table [fisher_pop == 3, hr_mean] - (2 *female_hr_table [fisher_pop == 3, hr_sd])) & pix.count [fisher_pop == 3 & individual_id == i, pix.count] <= (female_hr_table [fisher_pop == 3, hr_mean] + (2 * female_hr_table [fisher_pop == 3, hr_sd]))) { 
+    
+    } else {
+      sim$territories <- sim$territories [individual_id != i] 
+      sim$agents <- sim$agents [individual_id != i]
+    } 
+  }
+  
+  for (i in pix.count [fisher_pop == 4, ]$individual_id) { # for each individual
+    if (pix.count [fisher_pop == 4 & individual_id == i, pix.count] >= (female_hr_table [fisher_pop == 4, hr_mean] - (2 *female_hr_table [fisher_pop == 4, hr_sd])) & pix.count [fisher_pop == 4 & individual_id == i, pix.count] <= (female_hr_table [fisher_pop == 4, hr_mean] + (2 * female_hr_table [fisher_pop == 4, hr_sd]))) { 
+      
+    } else {
+      sim$territories <- sim$territories [individual_id != i] 
+      sim$agents <- sim$agents [individual_id != i]
+    } 
+  }
+
 
   # check to see if minimum habitat target was met (prop habitat = 0.15); if not, remove the animal 
   hab.count <- table.hr [denning == 1 | rust == 1 | cwd == 1 | movement == 1, .(.N), by = individual_id]
@@ -376,7 +404,6 @@ annualEvents <- function (sim) {
     
         # classify the habitat
     table.hab.update <- classifyHabitat (table.hab.update)
-    
     table.hab.terrs <- merge (table.hab.update,
                               sim$territories,
                               by = "pixelid"
@@ -439,9 +466,7 @@ annualEvents <- function (sim) {
     table.disperse <- SpaDES.tools::spread2 (sim$pix.rast, # within the area of interest
                                              start = dispersers$pixelid, # for each individual
                                              spreadProb = spread.rast, # spread more in habitat (i.e., there is some 'direction' towards habitat)
-                                             exactSize = P (sim, "female_dispersal", "fisherabmCLUS") , # spread to a dispersal distance within a 50km radius; 
-                                               # 500 pixels = 50km; area = pi * radius^2 
-                                               # 50km radius = 7850km2 area
+                                             exactSize = P (sim, "female_dispersal", "fisherabmCLUS"), # spread to a dispersal area 
                                              allowOverlap = T, # overlap allowed; fishers could pick the same dispersal area
                                              asRaster = F, # output as table
                                              circle = F) # spread to adjacent cells; not necessarily a circle
@@ -523,28 +548,52 @@ annualEvents <- function (sim) {
                                          by.x = "initialPixels", by.y = "pixelid"), 
                                   table.hab.update [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement")],
                                   by.x = "pixels", by.y = "pixelid")
-        # check to see if home range target was met; if not, remove the animal 
+        # check to see if home range target was within mean +/- 2 SD; if not, remove the animal 
       table.disperse.hr [, pix.count := sum (length (pixels)), by = individual_id]
       pix.count <- merge (dispersers [, c ("pixelid", "individual_id", "hr_size")],
                           table.disperse.hr [, c ("pixels", "pix.count")],
                           by.x = "pixelid", by.y = "pixels",
                           all.x = T)  
-      
-      
-      
-      # put bounds here; allow it to have asmaller territory within 95th percentile
-      for (i in pix.count$individual_id) { # for each individual
-        if ( pix.count [individual_id == i, pix.count] >= pix.count [individual_id == i, hr_size]) { 
-          # if it achieves its home range size
+        # for each fisher population
+      for (i in pix.count [fisher_pop == 1, ]$individual_id) { # for each individual
+        if (pix.count [fisher_pop == 1 & individual_id == i, pix.count] >= (female_hr_table [fisher_pop == 1, hr_mean] - (2 *female_hr_table [fisher_pop == 1, hr_sd])) & pix.count [fisher_pop == 1 & individual_id == i, pix.count] <= (female_hr_table [fisher_pop == 1, hr_mean] + (2 * female_hr_table [fisher_pop == 1, hr_sd]))) { 
+          # if its home range size is within mean +/- 2 SD
           # do nothing; we still need to check if it meets min. thresholds for each habitat type (see below)
         } else {
           # save them as agents without a d2score
           sim$agents <- rbind (sim$agents,
                                dispersers [individual_id == i])
           dispersers <- dispersers [individual_id != i] # remove from dispersers table
-          
         } 
       }
+      for (i in pix.count [fisher_pop == 2, ]$individual_id) { # for each individual
+        if (pix.count [fisher_pop == 2 & individual_id == i, pix.count] >= (female_hr_table [fisher_pop == 2, hr_mean] - (2 *female_hr_table [fisher_pop == 2, hr_sd])) & pix.count [fisher_pop == 2 & individual_id == i, pix.count] <= (female_hr_table [fisher_pop == 2, hr_mean] + (2 * female_hr_table [fisher_pop == 2, hr_sd]))) { 
+          
+        } else {
+          sim$agents <- rbind (sim$agents,
+                               dispersers [individual_id == i])
+          dispersers <- dispersers [individual_id != i] # remove from dispersers table
+        } 
+      }    
+      for (i in pix.count [fisher_pop == 3, ]$individual_id) { # for each individual
+        if (pix.count [fisher_pop == 3 & individual_id == i, pix.count] >= (female_hr_table [fisher_pop == 3, hr_mean] - (2 *female_hr_table [fisher_pop == 3, hr_sd])) & pix.count [fisher_pop == 3 & individual_id == i, pix.count] <= (female_hr_table [fisher_pop == 3, hr_mean] + (2 * female_hr_table [fisher_pop == 3, hr_sd]))) { 
+          
+        } else {
+          sim$agents <- rbind (sim$agents,
+                               dispersers [individual_id == i])
+          dispersers <- dispersers [individual_id != i] # remove from dispersers table
+        } 
+      } 
+      for (i in pix.count [fisher_pop == 4, ]$individual_id) { # for each individual
+        if (pix.count [fisher_pop == 4 & individual_id == i, pix.count] >= (female_hr_table [fisher_pop == 4, hr_mean] - (2 *female_hr_table [fisher_pop == 4, hr_sd])) & pix.count [fisher_pop == 4 & individual_id == i, pix.count] <= (female_hr_table [fisher_pop == 4, hr_mean] + (2 * female_hr_table [fisher_pop == 4, hr_sd]))) { 
+          
+        } else {
+          sim$agents <- rbind (sim$agents,
+                               dispersers [individual_id == i])
+          dispersers <- dispersers [individual_id != i] # remove from dispersers table
+        } 
+      }       
+      
       
       # check to see if minimum habitat target was met (prop habitat = 0.15); if not, remove the animal 
       hab.count <- table.disperse.hr [denning == 1 | rust == 1 | cwd == 1 | movement == 1, .(.N), by = individual_id]
@@ -618,6 +667,7 @@ annualEvents <- function (sim) {
 
       # A. Assign each female fisher 1 = reproduce or 0 = does not reproduce
       if (length (reproFishers) > 0) {
+        
         for (i in unique (reproFishers$fisher_pop)) { 
           reproFishers [fisher_pop == i, reproduce := rbinom (n = nrow (reproFishers [fisher_pop == i]),
                                                               size = 1,
@@ -625,26 +675,46 @@ annualEvents <- function (sim) {
                                                                             mean = sim$repro_rate_table [Fpop == i & Param == 'DR', Mean], 
                                                                             sd =  sim$repro_rate_table [Fpop == i & Param == 'DR', SD]))]
         } 
-        reproFishers <- reproFishers [reproduce == 1, ] # remove non-reproducers
-        # for those fishers who are reproducing, assign litter size 
-        for (i in unique (reproFishers$fisher_pop)) {
-          
-          # combine this with adjustment factor; determine kits based on habitat quality adjustment
-          
-          reproFishers [fisher_pop == i, kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
-                                                                    lambda = sim$repro_rate_table [Fpop == i & Param == 'LS', Mean]))]
-        }
-      # Revise the litter size based on habitat quality
-          # Boreal
-        reproFishersBoreal <- reproHabitatAdj (1, sim$mahal_metric_table, reproFishers)
-          # SBS wet
-        reproFishers_sbsw <- reproHabitatAdj (2, sim$mahal_metric_table, reproFishers)
-          # SBS dry
-        reproFishers_sbsd <- reproHabitatAdj (3, sim$mahal_metric_table, reproFishers)
-          # Dry
-        reproFishers_dry <- reproHabitatAdj (4, sim$mahal_metric_table, reproFishers)
         
-        reproFishers <- rbind (reproFishers_dry, reproFishers_sbsd, reproFishers_sbsw, reproFishersBoreal)
+        reproFishers <- reproFishers [reproduce == 1, ] # remove non-reproducers
+        
+        
+        
+        
+        
+        
+        
+        # for those fishers who are reproducing, assign litter size (Poisson distribution)
+        # litter size adjusted for habitat quality
+        
+        
+        litterSize <- function (fisherPop){
+          
+        }
+        
+        
+        for (i in unique (reproFishers$fisher_pop)) {
+          reproFishers [fisher_pop == i & d2_score < sim$mahal_metric_table [FHE_zone_num == i, Mean], 
+                        kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
+                                                   lambda = sim$repro_rate_table [Fpop == i & Param == 'LS', Mean]))]
+          reproFishers [fisher_pop == i & d2_score > sim$mahal_metric_table [FHE_zone_num == i, Mean] & d2_score < (sim$mahal_metric_table [FHE_zone_num == i, Mean] + sim$mahal_metric_table [FHE_zone_num == i, SD]), 
+                        kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
+                                                   lambda = (sim$repro_rate_table [Fpop == i & Param == 'LS', Mean] * 0.75)))]
+          reproFishers [fisher_pop == i & d2_score > (sim$mahal_metric_table [FHE_zone_num == i, Mean] + sim$mahal_metric_table [FHE_zone_num == i, SD]) & d2_score <+ (sim$mahal_metric_table [FHE_zone_num == i, Mean] + (2 * sim$mahal_metric_table [FHE_zone_num == i, SD])), 
+                        kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
+                                                   lambda = (sim$repro_rate_table [Fpop == i & Param == 'LS', Mean] * 0.50)))]
+          reproFishers [fisher_pop == i & d2_score > (sim$mahal_metric_table [FHE_zone_num == i, Mean] + (2 * sim$mahal_metric_table [FHE_zone_num == i, SD])), 
+                        kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
+                                                   lambda = (sim$repro_rate_table [Fpop == i & Param == 'LS', Mean] * 0)))]
+          }
+        
+        
+        
+        
+        
+        
+        
+        
         reproFishers <- reproFishers [kits >= 1, ] # remove females with no kits
         
         ## add the kits to the agents table
@@ -826,6 +896,7 @@ saveAgents <- function (sim) {
 
 
 ###--- FUNCTIONS THAT GET CALLED
+
 classifyHabitat <- function (inputTable) {
   inputTable [den_p == 1 & age >= 125 & crownclosure >= 30 & qmd >=28.5 & basalarea >= 29.75, denning := 1][den_p == 2 & age >= 125 & crownclosure >= 20 & qmd >=28 & basalarea >= 28, denning := 1][den_p == 3 & age >= 135, denning:=1][den_p == 4 & age >= 207 & crownclosure >= 20 & qmd >= 34.3, denning:=1][den_p == 5 & age >= 88 & qmd >= 19.5 & height >= 19, denning:=1][den_p == 6 & age >= 98 & qmd >= 21.3 & height >= 22.8, denning:=1]
   inputTable [rus_p == 1 & age > 0 & crownclosure >= 30 & qmd >= 22.7 & basalarea >= 35 & height >= 23.7, rust:=1][rus_p == 2 & age >= 72 & crownclosure >= 25 & qmd >= 19.6 & basalarea >= 32, rust:=1][rus_p == 3 & age >= 83 & crownclosure >=40 & qmd >= 20.1, rust:=1][rus_p == 5 & age >= 78 & crownclosure >=50 & qmd >= 18.5 & height >= 19 & basalarea >= 31.4, rust:=1][rus_p == 6 & age >= 68 & crownclosure >=35 & qmd >= 17 & height >= 14.8, rust:=1]
@@ -882,33 +953,6 @@ habitatQual <- function (inputTable, agentsTable, d2Table) {
 }
 
 
-reproHabitatAdj <- function (fisher_popn, mahalTable, reproFishers) {
-  reproFisherstemp <- reproFishers [fisher_pop == fisher_popn, ]
-  mahal_score <- mahalTable [FHE_zone_num == fisher_popn,]
-  
-  for (i in reproFisherstemp$individual_id) {
-    if (reproFisherstemp [individual_id == i, d2_score] < mahal_score$Mean ) {
-      # do nothing; stay at litter size
-    } else if (mahal_score$Mean < reproFisherstemp [individual_id == i, d2_score] & reproFisherstemp [individual_id == i, d2_score] < (mahal_score$Mean + mahal_score$SD)) {
-      # reduce litter size by 1/4
-      reproFisherstemp <- reproFisherstemp [individual_id == i, kits := ceiling (kits * 0.75)]
-      
-    } else if ((mahal_score$Mean + mahal_score$SD) < reproFisherstemp [individual_id == i, d2_score] & reproFisherstemp [individual_id == i, d2_score] <= (mahal_score$Mean + (2 * mahal_score$SD))) {
-      # reduce litter size by 1/2
-      reproFisherstemp <- reproFisherstemp [individual_id == i, kits := ceiling (kits * 0.50)]
-      
-    } else if (reproFisherstemp [individual_id == i, d2_score] > (mahal_score$Mean + (2 * mahal_score$SD))) {
-      # reduce litter size to 0
-      reproFisherstemp <- reproFisherstemp [individual_id == i, kits := (kits * 0)]
-    } else {
-      # do nothing
-    }
-  }
-  return (reproFisherstemp)
-}
-
-
-
 .inputObjects <- function (sim) {
   # Any code written here will be run during the simInit for the purpose of creating
   # any objects required by this module and identified in the inputObjects element of defineModule.
@@ -930,7 +974,7 @@ reproHabitatAdj <- function (fisher_popn, mahalTable, reproFishers) {
 
   # ! ----- EDIT BELOW ----- ! #
   
-  if (!suppliedElsewhere (ras)) {
+  if (!suppliedElsewhere (ras)) { # empty raster object for defining the area of interest
     
     sim$ras <- RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
                          srcRaster = P (sim, "nameCompartmentRaster", "dataLoaderCLUS"), 
