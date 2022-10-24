@@ -148,6 +148,19 @@ Init <- function(sim) {
   
   message ("Initiating fisher ABM...")
   
+  # instantiate table and raster for saving data
+  sim$agents.save <- data.table (n.f.adult = as.integer (), # number of adult females
+                                 n.f.juv = as.integer (), # number of juvenile females
+                                 n.f.kits = as.integer (), # number of female kits
+                                 n.f.disperse = as.integer (), # number of female dispersers 
+                                 mean.age.f = as.numeric (), # mean age of females
+                                 sd.age.f = as.numeric (), # standard dev age of females
+                                 timeperiod = as.integer (), # time step of the simulation
+                                 scenario = as.character () # simulation scenario name
+                                 )
+  sim$ras.territories <- sim$ras
+  sim$ras.territories [] <- 0
+  
   message ("Get the area of interest ...")
 
   # get pixel id's for aoi 
@@ -807,89 +820,61 @@ annualEvents <- function (sim) {
 
 ###--- SAVE
 saveAgents <- function (sim) {
-  # write the agents table
-  
-  
-  # agents save table
-    # put this in init fxn as sim$ object
-  agents.save <- data.table (n.f.adult = as.integer (), # number of adult females
-                             n.f.juv = as.integer (), # number of juvenile females
-                             n.f.kits = as.integer (), # number of female kits
-                             n.f.disperse = as.integer (), # number of female dispersers 
-                             mean.age.f = as.numeric (), # mean age of females
-                             sd.age.f = as.numeric (), # standard dev age of females
-                             timeperiod = as.integer (), # time step of the simulation
-                             scenario = as.character () # simulation scenario name
-                             )
-  
-  new.agents.save <- data.table (n.f.adult = nrow (sim$agents [sex == "F" & age > 1 & d2_score != '', ]), 
-                                 n.f.juv = nrow (sim$agents [sex == "F" & age == 1 & d2_score != '', ]), 
-                                 n.f.kits = nrow (sim$agents [sex == "F" & age == 0, ]),
-                                 n.f.disperse = nrow (sim$agents [sex == "F" & age > 0 & d2_score == '', ]), 
-                                 mean.age.f = mean (c (sim$agents [sex == "F", age])), 
-                                 sd.age.f = sd (c (sim$agents [sex == "F", age])), 
+  message ("Save the agents and territories.")
+  # save the agents table
+  # currently saving the number of agents and age of agents
+    # divide by number of iterations (i.e., the 'weight' of an iteration)
+    # then in post-processing, to calculate each value, sum by time step and scenario 
+  new.agents.save <- data.table (n.f.adult = (nrow (sim$agents [sex == "F" & age > 1 & d2_score != '', ]) / P(sim, "iterations", "fisherabmCLUS")), 
+                                 n.f.juv = nrow (sim$agents [sex == "F" & age == 1 & d2_score != '', ] / P(sim, "iterations", "fisherabmCLUS")), 
+                                 n.f.kits = nrow (sim$agents [sex == "F" & age == 0, ] / P(sim, "iterations", "fisherabmCLUS")),
+                                 n.f.disperse = nrow (sim$agents [sex == "F" & age > 0 & d2_score == '', ] / P(sim, "iterations", "fisherabmCLUS")), 
+                                 mean.age.f = mean (c (sim$agents [sex == "F", age]) / P(sim, "iterations", "fisherabmCLUS")), 
+                                 sd.age.f = sd (c (sim$agents [sex == "F", age]) / P(sim, "iterations", "fisherabmCLUS")), 
                                  timeperiod = time(sim)*sim$updateInterval, 
                                  scenario = sim$scenario$name 
                                  )
   sim$agents.save <- rbind (sim$agents.save, new.agents.save)
+  # save the territories
+    # set a territory as value = 1 divide by the number of iterations (weight)
+    # add it to the existing territories
+    # final raster is the numebr of time periods that a pixel was a territory
+  ras.territories.update <- sim$ras
+  ras.territories.update [] <- 0
+  ras.territories.update [sim$territories$pixelid] <- 1 / P(sim, "iterations", "fisherabmCLUS")
+  sim$ras.territories <- sim$ras.territories + ras.territories.update
+  writeRaster (sim$ras.territories, 
+               paste0 (sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_territories.tif"), 
+               overwrite = TRUE)
+  
+  # clean-up
+  rm (ras.territories.update, new.agents.save)
+  
+    # use below if want to save the agents table
+      # if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
+      #   # if the table exists, write it to the db
+      #   DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = FALSE, 
+      #                      row.names = FALSE, overwrite = FALSE)  
+      # } else {
+      #   # if the table exists, append it to the table in the db
+      #   DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = TRUE, 
+      #                      row.names = FALSE, overwrite = FALSE)  
+      # }
   
   
-
-  
-  # agents
-  agents.save <- sim$agents
-  agents.save [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
-  
-  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
-    # if the table exists, write it to the db
-    DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = FALSE, 
-                       row.names = FALSE, overwrite = FALSE)  
-  } else {
-    # if the table exists, append it to the table in the db
-    DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = TRUE, 
-                       row.names = FALSE, overwrite = FALSE)  
-  }
-  
-  
-  # add time step and scenario name
-  # replicate/iteration number?; add this later
-  
-  # re-jig this to create output report tables 
-  
-  
-  #Set the zone contraint raster which maps out the number of time periods a pixel is constrained
-  # sim$ras.zoneConstraint<-sim$ras
-  # sim$ras.zoneConstraint[]<-0
-  #write the constraint raster
-  # const<-sim$ras
-  # datat<-dbGetQuery(sim$clusdb, "SELECT zone_const FROM pixels ORDER BY pixelid;")
-  # const[]<-datat$zone_const
-  # 
-  # sim$ras.zoneConstraint<-sim$ras.zoneConstraint + const
-  # 
-  # rm(const)
-  # return(invisible(sim))
-  # writeRaster(sim$ras.zoneConstraint, paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]],"_constraints.tif"), overwrite=TRUE)
-  
-  
-  message ("Save the agents and territories.")
-
-  # save by weight of # iterations, e.g., if 100 iterations, wietght = 1/100
-  
-  # territories
-  territories.save <- sim$territories
-  territories.save [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
-  
-  if(nrow(dbGetQuery (sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
-    # if the table exists, write it to the db
-    DBI::dbWriteTable (sim$clusdb, "territories", territories.save, append = FALSE, 
-                       row.names = FALSE, overwrite = FALSE)  
-  } else {
-    # if the table exists, append it to the table in the db
-    DBI::dbWriteTable (sim$clusdb, "territories", territories.save, append = TRUE, 
-                       row.names = FALSE, overwrite = FALSE)  
-  }
-  
+    # use below if want to save the territories table
+      # territories.save <- sim$territories
+      # territories.save [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
+      # 
+      # if(nrow(dbGetQuery (sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
+      #   # if the table exists, write it to the db
+      #   DBI::dbWriteTable (sim$clusdb, "territories", territories.save, append = FALSE, 
+      #                      row.names = FALSE, overwrite = FALSE)  
+      # } else {
+      #   # if the table exists, append it to the table in the db
+      #   DBI::dbWriteTable (sim$clusdb, "territories", territories.save, append = TRUE, 
+      #                      row.names = FALSE, overwrite = FALSE)  
+      # }
   
   return (invisible (sim))
 }
