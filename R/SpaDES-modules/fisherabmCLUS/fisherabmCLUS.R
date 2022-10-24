@@ -678,42 +678,12 @@ annualEvents <- function (sim) {
         
         reproFishers <- reproFishers [reproduce == 1, ] # remove non-reproducers
         
-        
-        
-        
-        
-        
-        
         # for those fishers who are reproducing, assign litter size (Poisson distribution)
         # litter size adjusted for habitat quality
-        
-        
-        litterSize <- function (fisherPop){
-          
-        }
-        
-        
-        for (i in unique (reproFishers$fisher_pop)) {
-          reproFishers [fisher_pop == i & d2_score < sim$mahal_metric_table [FHE_zone_num == i, Mean], 
-                        kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
-                                                   lambda = sim$repro_rate_table [Fpop == i & Param == 'LS', Mean]))]
-          reproFishers [fisher_pop == i & d2_score > sim$mahal_metric_table [FHE_zone_num == i, Mean] & d2_score < (sim$mahal_metric_table [FHE_zone_num == i, Mean] + sim$mahal_metric_table [FHE_zone_num == i, SD]), 
-                        kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
-                                                   lambda = (sim$repro_rate_table [Fpop == i & Param == 'LS', Mean] * 0.75)))]
-          reproFishers [fisher_pop == i & d2_score > (sim$mahal_metric_table [FHE_zone_num == i, Mean] + sim$mahal_metric_table [FHE_zone_num == i, SD]) & d2_score <+ (sim$mahal_metric_table [FHE_zone_num == i, Mean] + (2 * sim$mahal_metric_table [FHE_zone_num == i, SD])), 
-                        kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
-                                                   lambda = (sim$repro_rate_table [Fpop == i & Param == 'LS', Mean] * 0.50)))]
-          reproFishers [fisher_pop == i & d2_score > (sim$mahal_metric_table [FHE_zone_num == i, Mean] + (2 * sim$mahal_metric_table [FHE_zone_num == i, SD])), 
-                        kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
-                                                   lambda = (sim$repro_rate_table [Fpop == i & Param == 'LS', Mean] * 0)))]
-          }
-        
-        
-        
-        
-        
-        
-        
+        reproFishers <- litterSize (1, sim$mahal_metric_table, sim$repro_rate_table)
+        reproFishers <- litterSize (2, sim$mahal_metric_table, sim$repro_rate_table)
+        reproFishers <- litterSize (3, sim$mahal_metric_table, sim$repro_rate_table)
+        reproFishers <- litterSize (4, sim$mahal_metric_table, sim$repro_rate_table)
         
         reproFishers <- reproFishers [kits >= 1, ] # remove females with no kits
         
@@ -759,11 +729,11 @@ annualEvents <- function (sim) {
       sim$agents <- sim$agents [!individual_id %in% dead.dispersers$individual_id]
       sim$territories <- sim$territories [!individual_id %in% dead.dispersers$individual_id] # remove territories
       
-      # note that the above steps could inflate the mortality rate, as old animals are presumably included in the survival rate estimate
+      # note that the above steps could inflate the model mortality rate, as old animals are presumably included in the survival rate estimate
       
       # age-class based survival rates
         # juveniles
-      survivors.juv <- survivors [age == 1, ]
+      survivors.juv <- survivors [age == 1 & d2_score != '', ]
       if (nrow (survivors.juv) > 0) {
        for (i in unique (survivors.juv$fisher_pop)) { 
         survivors.juv <- survivors.juv [fisher_pop == i, 
@@ -778,7 +748,7 @@ annualEvents <- function (sim) {
      }
         
         # adults
-      survivors.ad <- survivors [age > 1, ]
+      survivors.ad <- survivors [age > 1 & d2_score != '', ]
       if (nrow (survivors.ad) > 0) {
        for (i in unique (survivors.ad$fisher_pop)) { 
         survivors.ad <- survivors.ad [fisher_pop == i, 
@@ -838,6 +808,49 @@ annualEvents <- function (sim) {
 ###--- SAVE
 saveAgents <- function (sim) {
   # write the agents table
+  
+  
+  # agents save table
+    # put this in init fxn as sim$ object
+  agents.save <- data.table (n.f.adult = as.integer (), # number of adult females
+                             n.f.juv = as.integer (), # number of juvenile females
+                             n.f.kits = as.integer (), # number of female kits
+                             n.f.disperse = as.integer (), # number of female dispersers 
+                             mean.age.f = as.numeric (), # mean age of females
+                             sd.age.f = as.numeric (), # standard dev age of females
+                             timeperiod = as.integer (), # time step of the simulation
+                             scenario = as.character () # simulation scenario name
+                             )
+  
+  new.agents.save <- data.table (n.f.adult = nrow (sim$agents [sex == "F" & age > 1 & d2_score != '', ]), 
+                                 n.f.juv = nrow (sim$agents [sex == "F" & age == 1 & d2_score != '', ]), 
+                                 n.f.kits = nrow (sim$agents [sex == "F" & age == 0, ]),
+                                 n.f.disperse = nrow (sim$agents [sex == "F" & age > 0 & d2_score == '', ]), 
+                                 mean.age.f = mean (c (sim$agents [sex == "F", age])), 
+                                 sd.age.f = sd (c (sim$agents [sex == "F", age])), 
+                                 timeperiod = time(sim)*sim$updateInterval, 
+                                 scenario = sim$scenario$name 
+                                 )
+  sim$agents.save <- rbind (sim$agents.save, new.agents.save)
+  
+  
+
+  
+  # agents
+  agents.save <- sim$agents
+  agents.save [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
+  
+  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
+    # if the table exists, write it to the db
+    DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = FALSE, 
+                       row.names = FALSE, overwrite = FALSE)  
+  } else {
+    # if the table exists, append it to the table in the db
+    DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = TRUE, 
+                       row.names = FALSE, overwrite = FALSE)  
+  }
+  
+  
   # add time step and scenario name
   # replicate/iteration number?; add this later
   
@@ -877,19 +890,7 @@ saveAgents <- function (sim) {
                        row.names = FALSE, overwrite = FALSE)  
   }
   
-  # agents
-  agents.save <- sim$agents
-  agents.save [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
   
-  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
-    # if the table exists, write it to the db
-    DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = FALSE, 
-                       row.names = FALSE, overwrite = FALSE)  
-  } else {
-    # if the table exists, append it to the table in the db
-    DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = TRUE, 
-                       row.names = FALSE, overwrite = FALSE)  
-  }
   return (invisible (sim))
 }
 
@@ -951,6 +952,25 @@ habitatQual <- function (inputTable, agentsTable, d2Table) {
   tab.perc [fisher_pop == 4, d2 := mahalanobis (tab.perc [fisher_pop == 4, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(2.3, 1.6, 10.8, 21.5), cov = d2Table[[4]])]
   return (tab.perc)
 }
+
+litterSize <- function (fisherPop, mahalTable, reproTable){
+  for (i in unique (reproFishers$individual_id)) {
+    reproFishers [fisher_pop == fisherPop & d2_score < mahalTable [FHE_zone_num == fisherPop, Mean], 
+                  kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
+                                             lambda = reproTable [Fpop == fisherPop & Param == 'LS', Mean]))]
+    reproFishers [fisher_pop == fisherPop & d2_score > mahalTable [FHE_zone_num == fisherPop, Mean] & d2_score < (mahalTable [FHE_zone_num == fisherPop, Mean] + mahalTable [FHE_zone_num == fisherPop, SD]), 
+                  kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
+                                             lambda = (reproTable [Fpop == fisherPop & Param == 'LS', Mean] * 0.75)))]
+    reproFishers [fisher_pop == fisherPop & d2_score > (mahalTable [FHE_zone_num == fisherPop, Mean] + mahalTable [FHE_zone_num == fisherPop, SD]) & d2_score <+ (mahalTable [FHE_zone_num == fisherPop, Mean] + (2 * mahalTable [FHE_zone_num == fisherPop, SD])), 
+                  kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
+                                             lambda = (reproTable [Fpop == fisherPop & Param == 'LS', Mean] * 0.50)))]
+    reproFishers [fisher_pop == fisherPop & d2_score > (mahalTable [FHE_zone_num == fisherPop, Mean] + (2 * mahalTable [FHE_zone_num == fisherPop, SD])), 
+                  kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
+                                             lambda = (reproTable [Fpop == fisherPop & Param == 'LS', Mean] * 0)))]
+  }
+  return (reproFishers)
+}
+
 
 
 .inputObjects <- function (sim) {
