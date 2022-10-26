@@ -299,7 +299,7 @@ str(rasStackWind)
 Bring data back in from the end of 06_Distance_to_Development_Rmd
 
 ```{r}
-sample_locations_DEM_roads_infra<-st_read(dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_infra.shp")
+sample_locations_DEM_roads_infra<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_infra.gpkg")
 str(sample_locations_DEM_roads_infra)
 crs(sample_locations_DEM_roads_infra)
 
@@ -344,7 +344,7 @@ Save file.
 
 ```{r}
 
-sf::st_write(sample_locations_DEM_roads_wind2, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_wind_frt.shp", delete_layer=TRUE)
+sf::st_write(sample_locations_DEM_roads_wind2, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_wind_frt.gpkg", delete_layer=TRUE)
 
 
 ##Save to personal drive
