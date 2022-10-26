@@ -94,7 +94,7 @@ Init <- function(sim) {
     dbExecute(connx, paste0("DELETE FROM ",P(sim, "aoiName", "uploaderCLUS"), ".zonemanagement where scenario = '", sim$scenario$name, "';"))
     }
     
-    lapply(dbGetQuery(connx, paste0("SELECT table_name FROM information_schema.tables WHERE table_schema  = '", P(sim, "aoiName", "uploaderCLUS") ,"' and table_name in ('disturbance', 'growingstock', 'rsf',  'fisher', 'harvest', 'yielduncertainty',  'grizzly_survival') ;"))$table_name, function (x){
+    lapply(dbGetQuery(connx, paste0("SELECT table_name FROM information_schema.tables WHERE table_schema  = '", P(sim, "aoiName", "uploaderCLUS") ,"' and table_name in ('disturbance', 'growingstock', 'rsf',  'fisher', 'fisherabm', 'harvest', 'yielduncertainty',  'grizzly_survival') ;"))$table_name, function (x){
       dbExecute(connx, paste0("DELETE FROM ",P(sim, "aoiName", "uploaderCLUS"), ".",x," where scenario = '", sim$scenario$name, "' and compartment in('",paste(sim$boundaryInfo[[3]], sep = " ", collapse = "','"),"');"))
     }) 
     
@@ -133,9 +133,10 @@ Init <- function(sim) {
                     
                     yielduncertainty = data.table(scenario = character(), compartment = character(), timeperiod = integer(), projvol = numeric(), calibvol = numeric (), prob = numeric(), pred5 = numeric(), pred95 = numeric() ),
                     fisher=data.table(timeperiod = as.integer(), scenario = as.character(), compartment =  as.character(), openess = as.numeric(), zone = as.integer(), reference_zone = as.character(), rel_prob_occup = as.numeric(), denning= as.numeric(), rust= as.numeric(), cavity= as.numeric(), cwd= as.numeric(), mov= as.numeric(), d2 = as.numeric()),
+                    fisherabm = data.table (timeperiod = as.integer(), scenario = as.character(), compartment = character(), n_f_adult = as.numeric (), n_f_juv = as.numeric (), n_f_disperse = as.numeric (), mean_age_f = as.numeric (), sd_age_f = as.numeric ()),
                     zonemanagement=data.table(scenario = as.character(), zoneid = as.integer(), reference_zone = as.character(), zone_column = as.character(), variable = as.character(), threshold = as.numeric(), type = as.character(), percentage = numeric(), multi_condition = as.character(), t_area = numeric(), denom = as.character(), start = as.integer(), stop = as.integer(), percent = numeric(), timeperiod = as.integer()))
 
-    tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "disturbance", "yielduncertainty", "fisher", "zonemanagement", "grizzly_survival", "caribou_abundance")
+    tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "disturbance", "yielduncertainty", "fisher", "fisherabm", "zonemanagement", "grizzly_survival", "caribou_abundance")
     for(i in 1:length(tablesUpload)){
       dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), tablesUpload[[i]]), tableList[[tablesUpload[i]]], row.names = FALSE)
       dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "aoiName", "uploaderCLUS"),".", tablesUpload[[i]]," to appuser;"))
@@ -228,6 +229,12 @@ save.reports <-function (sim){
     DBI::dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'fisher'), 
                       sim$fisherReport, append = T, row.names = FALSE)
   }
+  #fisher ABM
+  if(!is.null(sim$fisherABMReport)){
+    message("writing fisher ABM report")
+    DBI::dbWriteTable(connx, c(P(sim, "aoiName", "uploaderCLUS"), 'fisherabm'), 
+                      sim$fisherABMReport, append = T, row.names = FALSE)
+  }
   #zonal constraints
   if(!is.null(sim$zoneManagement)){
     message("writing land cover constraint report")
@@ -288,6 +295,14 @@ save.rasters <-function (sim){
                  dbInfo = P(sim, "dbInfo", "uploaderCLUS"))
     dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "aoiName", "uploaderCLUS"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint")," to appuser;"))
     dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "aoiName", "uploaderCLUS"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_constraint")," to clus_project;"))
+    ## fisher territories
+    message('....fisher territory raster')
+    commitRaster(layer = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]], "_fisherterritories.tif"), 
+                 schema = P(sim, "aoiName", "uploaderCLUS"), 
+                 name = paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_fisherterritories"),
+                 dbInfo = P(sim, "dbInfo", "uploaderCLUS"))
+    dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "aoiName", "uploaderCLUS"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_fisherterritories")," to appuser;"))
+    dbExecute(connx, paste0("GRANT ALL ON ", P(sim, "aoiName", "uploaderCLUS"),".", paste0(sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_fisherterritories")," to clus_project;"))
     
     ##rsfEND
   }
