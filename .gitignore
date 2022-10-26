@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+.Renviron
 *.shp
 *.tif
 *.dbf
@@ -37,4 +38,7 @@ README.html
 /reports/linkpop
 clus.Rproj
 *.Rproj
-Renviron.R
+.Renviron
+.httr-oauth
+R/apps/clus_cloud/inst/app/log/simulation_log.csv
+R/apps/clus_cloud/inst/app/log/simulation_log.lock
