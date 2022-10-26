@@ -1,0 +1,557 @@
+---
+title: "fire_escape_model_fits_by_NDT_data_prep"
+author: "Cora Skaien"
+date: "25/07/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+#=================================
+#  Script Name: 12_fire_escape_model_fits_by_NDT_data_prep.R
+#  Script Version: 1.0
+#  Script Purpose: Data prep for other variables for escape models.
+#  Script Author: Cora Skaien, Ecological Modeling Specialist, Forest Analysis and Inventory Branch, B.C. Ministry of Forests, Lands, and Natural Resource Operations.
+#=================================
+
+#Overview
+Similar to the ignition_models_fit_by_NDT file, we will be selecting the top variables for models predicting whether or not fires escaped or not, defined currently as fires that have exceeded 1 ha in size. Note, this code could also apply to the cut off of 3 hectares and 10 hectares with simple modifications as the data is already prepared for these cutoffs.
+
+```{r}
+#Load relevant libraries
+library(sf)
+library(tidyverse)
+library(ggplot2)
+library (ggcorrplot)
+library (RPostgreSQL)
+library (rpostgis)
+library (dplyr)
+library (lme4)
+library (arm)
+library(ggpubr)
+library(mgcv)
+library(nlme)
+library(purrr)
+library(tidyr)
+library(caret)
+library(pROC)
+library(keyring)
+library(ggcorrplot) 
+library (kableExtra)
+library (data.table)
+library (DBI)
+library (RPostgreSQL)
+library (dplyr)
+library (ggplot2)
+library (here)
+library(AICcmodavg)
+library(caret)
+library(pROC)
+library(rje)
+library(base)
+library(car)
+library(visreg)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+Now we must bring in the data that we created at the end of 10_fire_escape_data_prep. These will be the same files as those used in 11_escape_climate_variable_selection.
+
+```{r}
+Escape_data_ALL_LandP<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Escape_data_ALL_LandP.csv")
+head(Escape_data_ALL_LandP)
+table(Escape_data_ALL_LandP$bclcs_level_2)
+
+```
+
+We will create one model for each NDT, combining all fire types (person, lightning, unknown) and treed and non-treed.
+
+#Climate variable selection review
+In the script "escape_climate_variable_selection.R", we performed an AIC and ROC analysis for each BEC zone including presence/available fire ignition points and a variety of climate variables. For this analysis, we split the data into a training and a validation data set where 75% of the data was used for training and 25% was used for validation. We then fit the model and extracted the AIC and AUC values. This was repeated 100 times and at the end we calculated the average AIC and AUC values. The climate variable that consistently resulted in the lowest average AIC value is used in this analysis. We will load tables for person and lightning caused is a summary of which climate variables fitted best for each BEC zone. 
+
+Note: Some climate variables resulted in delta AIC values that were very similar and had much less than 2 points difference. Also, the variable with the smallest AIC value did not always have the best AUC value. Regardless of these two issues, we decided to take the climate variable with the smallest average AIC for simplicity. Results will be loaded in for each AIC table. These files were manipulated manually and then saved on to the drive before being uploaded (i.e., it is a simplified table from that generated in the last file, escape_climate_variable_selection; code for uploading not included prior).
+
+```{r, AIC table, echo = F, message = F, eval = T}
+
+climate_variables_escape<-read.csv("D:/Fire/fire_data/raw_data/ClimateBC_Data/escape_climate_AIC_results_allData.csv") #This current file has all the possible models instead of the top one for each NDT as prior
+
+head(climate_variables_escape) 
+
+kable (climate_variables_escape,
+       caption = "<b>Table 3. Top candidate climate variables for the escape models for lightning caused fires as selected through an AIC analysis for each BEC zone.<b>",
+       digits = 2) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
+
+
+```
+
+When doing the below analyses, it was noticed that disturbed areas often get eliminated when NAs are removed from the final data used for the model. Here, we investigate what variables are missing.
+
+```{r}
+##Change all NA for this vegtype to 0
+Escape_data_ALL_LandP <- within(Escape_data_ALL_LandP, live_stand_volume_125[is.na(live_stand_volume_125) & vegtype == 'D'] <- 0)
+Escape_data_person <- within(Escape_data_person, live_stand_volume_125[is.na(live_stand_volume_125) & vegtype == 'D'] <- 0)
+##Because there will be no effect of stand volume on disturbed veg type, an interaction between these two variables should be included when both are in the model.
+
+```
+
+Now we will create additional columns that have the climate1 and climate2 variables indicated as the top variables for climate. 
+
+```{r}
+names(Escape_data_ALL_LandP)
+unique(Escape_data_ALL_LandP$ntrl_ds)
+Escape_data_ALL_LandP$ntrl_ds<-as.factor(Escape_data_ALL_LandP$ntrl_ds)
+Escape_data_ALL_LandP$ntrl_ds_numeric<-as.numeric(Escape_data_ALL_LandP$ntrl_ds)
+table(Escape_data_ALL_LandP$ntrl_ds_numeric)
+
+Escape_data_ALL_LandP$ntrl_ds_codes<-paste(Escape_data_ALL_LandP$ntrl_ds, Escape_data_ALL_LandP$ntrl_ds_numeric)
+unique(Escape_data_ALL_LandP$ntrl_ds_codes)
+
+## Create empty vector
+Escape_data_ALL_LandP$climate1<-0
+head(Escape_data_ALL_LandP)
+
+Escape_data_ALL_LandP<-Escape_data_ALL_LandP %>%
+    mutate(climate1 = case_when(ntrl_ds_numeric == 1 ~ tave09, # NDT1
+                                ntrl_ds_numeric == 2 ~ tave09, #NDT2
+                                ntrl_ds_numeric == 3 ~ tave09, #NDT3
+                                ntrl_ds_numeric == 4 ~ tave09, # NDT4
+                                ntrl_ds_numeric == 5 ~ tave09, # NDT5
+                                TRUE ~ NA_real_))
+
+#Repeat for climate 2
+Escape_data_ALL_LandP$climate2<-0
+Escape_data_ALL_LandP$ppt09<-as.numeric(Escape_data_ALL_LandP$ppt09)
+
+#Perform mutate to get the applicable variable for each row
+Escape_data_ALL_LandP<-Escape_data_ALL_LandP %>%
+    mutate(climate2 = case_when(ntrl_ds_numeric == 1 ~ ppt09, # NDT1
+                                ntrl_ds_numeric == 2 ~ ppt09, #NDT2
+                                ntrl_ds_numeric == 3 ~ ppt09, #NDT3
+                                ntrl_ds_numeric == 4 ~ ppt09, # NDT4
+                                ntrl_ds_numeric == 5 ~ ppt09, # NDT5
+                                TRUE ~ NA_real_))
+
+head(Escape_data_ALL_LandP)
+
+##Change vegtype to factor
+Escape_data_ALL_LandP$vegtype<-as.factor(Escape_data_ALL_LandP$vegtype)
+
+#create new column
+Escape_data_ALL_LandP$fire_veg<-paste(Escape_data_ALL_LandP$fire_pres, Escape_data_ALL_LandP$vegtype)
+
+```
+View plots.
+
+```{r}
+p <- ggplot(Escape_data_ALL_LandP, aes(aspect, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("aspect") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_ALL_LandP, aes(aspect_cos, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("aspect_cos") + ylab("Pr (escape)")
+p
+##Seems to be minimal relationship with aspect overall
+
+p <- ggplot(Escape_data_ALL_LandP, aes(slope, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("slope") + ylab("Pr (escape)")
+p
+#positive association (but minimal)
+
+ggplot(Escape_data_ALL_LandP, aes(x = slope)) +
+  geom_histogram(fill = "white", colour = "black") +
+  facet_grid(escape ~ .)
+p
+##Seeing distribution of escapes by slope makes me believe that slope is not a big factor for escapes despite seemingly positive trend prior.
+
+#
+p <- ggplot(Escape_data_ALL_LandP, aes(aspect_cos*slope, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("aspect_cos*slope") + ylab("Pr (escape)")
+p
+
+
+p <- ggplot(Escape_data_ALL_LandP, aes(elevation, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("elevation") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_ALL_LandP, aes(wind_atfire, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Wind Speed") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_ALL_LandP, aes(mdc_atfire, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("MDC at fire") + ylab("Pr (escape)")
+p
+#Unexpectedly weak and negative relationship
+# May contribute to fire size in opposite pattern though - negative correlation may reflect fire fighting efforts in drier regions?
+
+```
+
+Also check distance to roads as this may be related to fire-fighting capabilities and efforts.
+
+```{r}
+p <- ggplot(Escape_data_ALL_LandP, aes(roads_km, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Road Density (km/km2)") + ylab("Pr (escape)")
+p
+
+#Fairly weak relationship with a really long tail of more extreme values.
+```
+
+VRI.
+
+```{r}
+p <- ggplot(Escape_data_ALL_LandP, aes(proj_age_1, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("proj_age_1") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_ALL_LandP, aes(proj_height_1, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("proj_height_1") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_ALL_LandP, aes(live_stand_volume_125, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("live_stand_volume_125") + ylab("Pr (escape)")
+p
+
+```
+
+Top climate variables.
+
+```{r}
+p <- ggplot(Escape_data_ALL_LandP, aes(tave09, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("tave09") + ylab("Pr (escape)")
+p #Opposite pattern as expected - once again, may relfect forest fire fighting efforts?
+
+p <- ggplot(Escape_data_ALL_LandP, aes(ppt09, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("ppt09") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_ALL_LandP, aes(mdc_06, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("mdc_06") + ylab("Pr (escape)")
+p
+
+```
+
+#Infrastructure.
+
+```{r}
+p <- ggplot(Escape_data_ALL_LandP, aes(dist_any, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Any Infrastructure") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_ALL_LandP, aes(dist_mun, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Municipalities") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_ALL_LandP, aes(dist_mine, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Mines") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_ALL_LandP, aes(dist_nat, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Natural Power") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_ALL_LandP, aes(dist_pow, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Power Lines") + ylab("Pr (escape)")
+p
+
+p <- ggplot(Escape_data_ALL_LandP, aes(dist_dam, as.numeric(escape))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3, size=1) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Distance to Dams") + ylab("Pr (escape)")
+p
+```
+
+Make cos(aspect in degrees) to be the default aspect in case this did not carry over from previous code.
+
+```{r}
+##cos makes more sense for aspect, so make this the default in analyses
+Escape_data_ALL_LandP$aspect_degrees<-Escape_data_ALL_LandP$aspect
+Escape_data_ALL_LandP$aspect<-Escape_data_ALL_LandP$aspect_cos
+hist(Escape_data_ALL_LandP$aspect)
+
+```
+
+#Create new variable for partitioning the data
+```{r}
+Escape_data_ALL_LandP$veg_escape<-paste( Escape_data_ALL_LandP$vegtype2,  Escape_data_ALL_LandP$escape)
+table(Escape_data_ALL_LandP$veg_escape)
+
+```
+
+#Get temperature at time of fire
+```{r}
+Escape_data_ALL_LandP$T_atfire<-0
+Escape_data_ALL_LandP$ign_month<-as.numeric(Escape_data_ALL_LandP$ign_month)
+head(Escape_data_ALL_LandP)
+Escape_data_ALL_LandP_<-Escape_data_ALL_LandP %>%
+    mutate(T_atfire = case_when(ign_month == 5 ~ tave05,
+                                  ign_month == 6 ~ tave06,
+                                  ign_month == 7 ~ tave07,
+                                  ign_month == 8 ~ tave08,
+                                  ign_month == 9 ~ tave09,
+                                  ign_month == 10 ~ tave10,
+                                  ign_month == 11 ~ tave11,
+                                  ign_month == 4 ~ tave04,
+                                  ign_month == 3 ~ tave03,
+                                  ign_month == 2 ~ tave02,
+                                  ign_month == 1 ~ tave01,
+                                  TRUE ~ mean_tave05_tave06_tave07_tave08_tave09)) #Those areas without fire will receive the mean value for the season. 
+
+head(Escape_data_ALL_LandP_)
+Escape_data_ALL_LandP<-Escape_data_ALL_LandP_
+hist(Escape_data_ALL_LandP$T_atfire)
+```
+
+```{r}
+Escape_data_ALL_LandP$Tmax_atfire<-0
+Escape_data_ALL_LandP$ign_month<-as.numeric(Escape_data_ALL_LandP$ign_month)
+head(Escape_data_ALL_LandP)
+Escape_data_ALL_LandP_<-Escape_data_ALL_LandP %>%
+    mutate(Tmax_atfire = case_when(ign_month == 5 ~ tmax05,
+                                  ign_month == 6 ~ tmax06,
+                                  ign_month == 7 ~ tmax07,
+                                  ign_month == 8 ~ tmax08,
+                                  ign_month == 9 ~ tmax09,
+                                  ign_month == 10 ~ tmax10,
+                                  ign_month == 11 ~ tmax11,
+                                  ign_month == 4 ~ tmax04,
+                                  ign_month == 3 ~ tmax03,
+                                  ign_month == 2 ~ tmax02,
+                                  ign_month == 1 ~ tmax01,
+                                  TRUE ~ mean_tmax05_tmax06_tmax07_tmax08_tmax09)) #Those areas without fire will receive the mean value for the season. 
+
+head(Escape_data_ALL_LandP_)
+Escape_data_ALL_LandP<-Escape_data_ALL_LandP_
+
+hist(Escape_data_ALL_LandP$Tmax_atfire)
+```
+
+
+Get precipitation at fire
+#Get temperature at time of fire
+```{r}
+Escape_data_ALL_LandP$ppt_atfire<-0
+Escape_data_ALL_LandP$ign_month<-as.numeric(Escape_data_ALL_LandP$ign_month)
+Escape_data_ALL_LandP$ppt01<-as.numeric(Escape_data_ALL_LandP$ppt01)
+Escape_data_ALL_LandP$ppt02<-as.numeric(Escape_data_ALL_LandP$ppt02)
+Escape_data_ALL_LandP$ppt03<-as.numeric(Escape_data_ALL_LandP$ppt03)
+Escape_data_ALL_LandP$ppt04<-as.numeric(Escape_data_ALL_LandP$ppt04)
+Escape_data_ALL_LandP$ppt05<-as.numeric(Escape_data_ALL_LandP$ppt05)
+Escape_data_ALL_LandP$ppt06<-as.numeric(Escape_data_ALL_LandP$ppt06)
+Escape_data_ALL_LandP$ppt07<-as.numeric(Escape_data_ALL_LandP$ppt07)
+Escape_data_ALL_LandP$ppt08<-as.numeric(Escape_data_ALL_LandP$ppt08)
+Escape_data_ALL_LandP$ppt09<-as.numeric(Escape_data_ALL_LandP$ppt09)
+Escape_data_ALL_LandP$ppt10<-as.numeric(Escape_data_ALL_LandP$ppt10)
+Escape_data_ALL_LandP$ppt11<-as.numeric(Escape_data_ALL_LandP$ppt11)
+Escape_data_ALL_LandP$ppt12<-as.numeric(Escape_data_ALL_LandP$ppt12)
+head(Escape_data_ALL_LandP)
+Escape_data_ALL_LandP_<-Escape_data_ALL_LandP %>%
+    mutate(ppt_atfire = case_when(ign_month == 5 ~ ppt05,
+                                  ign_month == 6 ~ ppt06,
+                                  ign_month == 7 ~ ppt07,
+                                  ign_month == 8 ~ ppt08,
+                                  ign_month == 9 ~ ppt09,
+                                  ign_month == 10 ~ ppt10,
+                                  ign_month == 11 ~ ppt11,
+                                  ign_month == 4 ~ ppt04,
+                                  ign_month == 3 ~ ppt03,
+                                  ign_month == 2 ~ ppt02,
+                                  ign_month == 1 ~ ppt01,
+                                  TRUE ~ mean_ppt05_ppt06_ppt07_ppt08_ppt09)) #Those areas without fire will receive the mean value for the season. 
+
+head(Escape_data_ALL_LandP_)
+Escape_data_ALL_LandP<-Escape_data_ALL_LandP_
+```
+
+
+###Combine Some Variables
+Based on earlier model iterations where person and lightning-caused fires, and treed and non-treed polygons, were separately assessed, we gained knowledge on which variables may be simplified. For instance, distance to different types of infrastructure can be combined for those that tend to have a positive association, and those that tend to have a negative association. Some may also be deemed as non-intuitive and thus removed. 
+
+#1. Infrastructure
+Combine distances to municipalities, mines, power lines and dams. These tend to have positive associations, wherein probability of escape increases as further away from these. Distance to natural power has the opposite pattern for some reason... remove that one from distance to any, and investigate distance to these first 4 in one metric.
+
+```{r}
+Escape_data_ALL_LandP$dist_any_<-0
+Escape_data_ALL_LandP$dist_any<-0
+
+Escape_data_ALL_LandP$dist_any_<-
+  ifelse(Escape_data_ALL_LandP$dist_mine<Escape_data_ALL_LandP$dist_pow, Escape_data_ALL_LandP$dist_mine, Escape_data_ALL_LandP$dist_pow)
+str(Escape_data_ALL_LandP$dist_any_)
+
+Escape_data_ALL_LandP$dist_any<-
+  ifelse (Escape_data_ALL_LandP$dist_any_<Escape_data_ALL_LandP$dist_mun, Escape_data_ALL_LandP$dist_any_, Escape_data_ALL_LandP$dist_mun)
+str(Escape_data_ALL_LandP$dist_any)
+
+Escape_data_ALL_LandP$dist_any_<-
+  ifelse (Escape_data_ALL_LandP$dist_any<Escape_data_ALL_LandP$dist_dam, Escape_data_ALL_LandP$dist_any, Escape_data_ALL_LandP$dist_dam)
+str(Escape_data_ALL_LandP$dist_any_)
+
+Escape_data_ALL_LandP$dist_infra<-Escape_data_ALL_LandP$dist_any_
+```
+
+#2. Landuse (bclcs_level_5_2) vs vegtype
+Because we lose all the rock, water and glacier values in landuse, we should pick just one or the other.
+
+#Save data here in case get disconnected from R
+
+```{r}
+write.csv(Escape_data_ALL_LandP, "D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\All_data_escape_Dec.csv")
+
+#Load back in as needed
+Escape_data_ALL_LandP<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\All_data_escape_Dec.csv")
+head(Escape_data_ALL_LandP)
+
+```
+
+## Examining correlation between stand level variables
+
+```{r}
+# Examining the relationship between some stand level variables. Volume and height are fairly correlated (0.67) but age and volume are not (0.28) and neither are age and height (0.44). Because volume and height are very close to 0.7 in correlation I will leave out this combination of variables from my treed models. 
+
+Escape_data_ALL_LandP_t<- Escape_data_ALL_LandP %>% dplyr::filter(bclcs_level_2=="T")
+Escape_data_ALL_LandP_nt<- Escape_data_ALL_LandP %>% dplyr::filter(bclcs_level_2=="N")
+Escape_data_ALL_LandP_l<- Escape_data_ALL_LandP %>% dplyr::filter(bclcs_level_2=="L")
+
+table(Escape_data_ALL_LandP$vegtype)
+table(Escape_data_ALL_LandP_t$vegtype) #either disturbed, open, treed broadleaf, treed conifer, or treed mixed broadleaf and conifer
+table(Escape_data_ALL_LandP_nt$vegtype) #either disturbed, open or shrub
+
+ggscatter(Escape_data_ALL_LandP_t, x = "live_stand_volume_125", y = "proj_age_1", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "live stand volume", ylab = "Stand age")
+
+ggscatter(Escape_data_ALL_LandP_t, x = "live_stand_volume_125", y = "proj_height_1", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "live stand volume", ylab = "Stand height")
+
+ggscatter(Escape_data_ALL_LandP_t, x = "proj_age_1", y = "proj_height_1", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "kendall",
+          xlab = "proj_age_1", ylab = "Stand height")
+
+
+##Note that some no tree areas also have tree attributes. This is likely because the majority of the polygon has no trees, but part of the polygon might have trees which are given attributes.
+hist(Escape_data_ALL_LandP_nt$proj_height_1)
+hist(Escape_data_ALL_LandP_nt$proj_age_1)
+hist(Escape_data_ALL_LandP_nt$live_stand_volume_125) #Pretty much all NAs. Can likely assume 0.
+Escape_data_ALL_LandP_nt$proj_height_1 #Also many NAs. 
+Escape_data_ALL_LandP_nt$proj_age_1 # Also many NAs. 
+
+hist(Escape_data_ALL_LandP_l$proj_height_1)
+hist(Escape_data_ALL_LandP_l$proj_age_1)
+hist(Escape_data_ALL_LandP_l$live_stand_volume_125)
+## This is ok. Still exclude from models, because majority of polygon will not be treed
+
+head(Escape_data_ALL_LandP_t)
+
+```
+
+Save the prepped data
+
+```{r}
+write.csv(Escape_data_ALL_LandP_t, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Escape_data_ALL_LandP_trees_NDT_Dec.csv")
+
+write.csv(Escape_data_ALL_LandP_nt, file="D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Escape_data_ALL_LandP_notrees_NDT_Dec.csv")
+
+```
+
+############### COMPLETE: MOVE ON TO ANALYSES FOR EACH NDT #################
