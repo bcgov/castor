@@ -67,6 +67,12 @@ Load in the prepped data.
 Escape_data_ALL <- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg")
 head(Escape_data_ALL)
 dim(Escape_data_ALL)
+Escape_data_ALL$escape10<- NA
+Escape_data_ALL$escape10[Escape_data_ALL$size_ha > 10] <- 1
+Escape_data_ALL$escape10[Escape_data_ALL$size_ha <= 10] <- 0
+
+Escape_data_ALL<-Escape_data_ALL %>% st_drop_geometry()
+
 
 
 table(is.na(Escape_data_ALL$Cluster)) # wierd there are 13 points that have no Cluster assigned to them. I looked at these points in Qgis and all but one of them are in FRT =15.
@@ -258,6 +264,8 @@ head(Escape_data_ALL)
 # before running any models wer are going to remove W and N because fires cannot spread on this landscape type.
 
 Escape_data_ALL2<-Escape_data_ALL %>% filter(!FWI_veg %in% c("W", "N"))
+Escape_data_ALL2$veg_escape<-paste(Escape_data_ALL2$escape10, Escape_data_ALL2$FWI_veg)
+
 
 
 ```
@@ -1064,6 +1072,7 @@ table(is.na(escape_frt5$rd_dst_))
 table(is.na(escape_frt5$slope))
 table(is.na(escape_frt5$fire_cs))
 table(is.na(escape_frt5$escape10))
+st_geometry(escape_frt5)<-NULL
 
 #Divide data into training and valid
 prop<-0.75
@@ -1162,18 +1171,14 @@ binnedplot (fitted(model_ft5d),
             residuals(model_ft5d), 
             nclass = NULL, 
             xlab = "Expected Values", 
-            ylab = "Average residual", 
-            main = paste("Binned Residual Plot - glm", i))
+            ylab = "Average residual")
 
 
 escape_frt5$resids<-resid(model_ft5d)
 
 binnedplot (escape_frt5$climate1, 
             escape_frt5$resids, 
-            nclass = NULL, 
-            xlab = "live stand volume", 
-            ylab = "Average residual", 
-            main = paste("Binned Residual Plot - glm", i))
+            nclass = NULL)
 
 binnedplot (escape_frt5$elevatn, 
             escape_frt5$resids,  
@@ -1637,11 +1642,12 @@ prop<-0.75
 #Run model using dat1
 model_ft9<-glm(escape10 ~ climate1 + FWI_veg  + slope + elevatn + slope:elevatn + rd_dst_ + wind_atfire + fire_cs, family = binomial, data = dat1)
 
-AIC(model_ft9) #734.5096
+AIC(model_ft9) #106.8442
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model_ft9, newdata=Valid, type="response")
-   roc_obj1 <- roc(Valid[,"escape10"], mod.valid)
+   
+roc_obj1 <- roc(Valid[,"escape10"], mod.valid)
    mod.auc <- auc(roc_obj1)
    mod.auc #0.7157
    
@@ -1651,7 +1657,7 @@ Anova(model_ft9, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 o
 #Remove least significant interaction
 model_ft9b<-glm(escape10 ~ climate1 + FWI_veg  + slope + elevatn + rd_dst_ + wind_atfire + fire_cs, family = binomial, data = dat1)
 
-AIC(model_ft9b) #99.32052
+AIC(model_ft9b) #104.9009
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model_ft9b, newdata=Valid, type="response")
@@ -1663,9 +1669,9 @@ Anova(model_ft9b, type=3) #Lots of "glm.fit: fitted probabilities numerically 0 
 #Anova(model.NDT1.E, type=3, singular.ok = TRUE)
 
 #Remove least term ~ climate1:climate2
-model_ft9c<-glm(escape10 ~ climate1 + climate2 + FWI_veg + slope + elevatn + rd_dst_ + infr_ds + wind_atfire + fire_cs, family = binomial, data = dat1)
+model_ft9c<-glm(escape10 ~ climate1 + FWI_veg  + slope + elevatn + rd_dst_ + fire_cs, family = binomial, data = dat1)
 
-AIC(model_ft9c) #726.1786
+AIC(model_ft9c) #103.0267
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model_ft9c, newdata=Valid, type="response")
@@ -1676,9 +1682,9 @@ mod.valid <- predict.glm(model_ft9c, newdata=Valid, type="response")
 Anova(model_ft9c, type=3) 
 
 #Remove least term ~ wind_atfire
-model_ft9d<-glm(escape10 ~ climate1 + climate2 + FWI_veg + slope + elevatn + rd_dst_ + infr_ds + fire_cs, family = binomial, data = dat1)
+model_ft9d<-glm(escape10 ~ climate1 + FWI_veg  + slope + rd_dst_ + fire_cs, family = binomial, data = dat1)
 
-AIC(model_ft9d) #724.8692
+AIC(model_ft9d) #101.3001
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model_ft9d, newdata=Valid, type="response")
@@ -1689,9 +1695,9 @@ mod.valid <- predict.glm(model_ft9d, newdata=Valid, type="response")
 Anova(model_ft9d, type=3) 
 
 #Remove least term ~ slope
-model_ft9e<-glm(escape10 ~ climate1 + climate2 + FWI_veg + elevatn + rd_dst_ + infr_ds + fire_cs, family = binomial, data = dat1)
+model_ft9e<-glm(escape10 ~ climate1 + as.factor(FWI_veg)  + slope + rd_dst_, family = binomial, data = dat1)
 
-AIC(model_ft9e) #722.9476
+AIC(model_ft9e) #100.7179
 
 #Determine AUC of full model
 mod.valid <- predict.glm(model_ft9e, newdata=Valid, type="response")
@@ -1701,52 +1707,14 @@ mod.valid <- predict.glm(model_ft9e, newdata=Valid, type="response")
    
 Anova(model_ft9e, type=3) 
 
-#Remove least term ~ infr_ds
-model_ft9f<-glm(escape10 ~ climate1 + climate2 + FWI_veg + elevatn + rd_dst_ + fire_cs, family = binomial, data = dat1)
-
-AIC(model_ft9f) #721.0718
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model_ft9f, newdata=Valid, type="response")
-   roc_obj4 <- roc(Valid[,"escape10"], mod.valid)
-   mod.auc <- auc(roc_obj4)
-   mod.auc #0.7056
-   
-Anova(model_ft9f, type=3) 
-
-#Remove least term ~ slope
-model_ft9g<-glm(escape10 ~ climate1 + climate2 + FWI_veg + elevatn + fire_cs, family = binomial, data = dat1)
-
-AIC(model_ft9g) #720.4518
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model_ft9g, newdata=Valid, type="response")
-   roc_obj4 <- roc(Valid[,"escape10"], mod.valid)
-   mod.auc <- auc(roc_obj4)
-   mod.auc #0.7216
-   
-Anova(model_ft9g, type=3) 
-
-# Remove least sig term ~ FWI_veg
-model_ft9h<-glm(escape10 ~ climate1 + climate2 + FWI_veg + elevatn, family = binomial, data = dat1)
-
-AIC(model_ft9h) #718.3804
-
-#Determine AUC of full model
-mod.valid <- predict.glm(model_ft9h, newdata=Valid, type="response")
-   roc_obj4 <- roc(Valid[,"escape10"], mod.valid)
-   mod.auc <- auc(roc_obj4)
-   mod.auc #0.7166
-   
-Anova(model_ft9h, type=3) 
 
 #######################
 ### TOP MODEL
 #######################
 #Remove least term ~ slope
-model_ft9g<-glm(escape10 ~ climate1 + climate2 + FWI_veg + elevatn, family = binomial, data = escape_frt9)
+model_ft9e<-glm(escape10 ~ climate1 + as.factor(FWI_veg)  + slope + rd_dst_, family = binomial, data = escape_frt9)
 
-mod.valid <- predict.glm(model_ft9g, newdata=Valid, type="response")
+mod.valid <- predict.glm(model_ft9e, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape10"], mod.valid)
    mod.auc <- auc(roc_obj)
    mod.auc #0.7253 
@@ -1757,57 +1725,45 @@ hist(escape_frt9$rd_dst_)
 
 table(escape_frt9$escape10) #0 = 948 and 1 = 267 not bad actually.
 table(escape_frt9$FWI_veg)
-```
-
-
-
-```{r}
-model_ft9g<-glm(escape10 ~ climate1 + climate2 + FWI_veg + elevatn, family = binomial, data = escape_frt9)
 
 # model diagnostic plots
-binnedplot (fitted(model_ft9g), 
-            residuals(model_ft9g), 
+binnedplot (fitted(model_ft9e), 
+            residuals(model_ft9e), 
             nclass = NULL, 
             xlab = "Expected Values", 
-            ylab = "Average residual", 
-            main = paste("Binned Residual Plot - glm", i))
+            ylab = "Average residual")
 
 
-escape_frt9$resids<-resid(model_ft9g)
+escape_frt9$resids<-resid(model_ft9e)
 
 
 binnedplot (escape_frt9$elevatn, 
             escape_frt9$resids,  
-            nclass = NULL, 
-            xlab = "", 
-            ylab = "Average residual", 
-            main = paste("Binned Residual Plot - glm", i))
+            nclass = NULL)
 
 # Diagnostic plots look good
 
 #Partial Residuals
 
-visreg(model_ft9g)
+visreg(model_ft9e)
 
 ```
 
 We should repeat the above several times and take the mean of the coefficients.
 
 ```{r}
-summary(model_ft9g)
+summary(model_ft9e)
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT7_ALL <- data.frame (matrix (ncol = 13, nrow = 0))
-colnames (top_mod_table_FRT7_ALL ) <- c ("FRT", "Model_terms", "intercept",
+top_mod_table_FRT9_ALL <- data.frame (matrix (ncol = 11, nrow = 0))
+colnames (top_mod_table_FRT9_ALL ) <- c ("FRT", "Model_terms", "intercept",
                                          "coef_climate_1",
-                                         "coef_climate_2",
-                                         "coef_FWI_veg_C-2",
                                          "coef_FWI_veg_C-3",
                                          "coef_FWI_veg_C-7",
-                                         "coef_FWI_veg_D-1/2",
                                          "coef_FWI_veg_M-1/2",
                                          "coef_FWI_veg_O-1a/b",
-                                         "coef_elevation",
+                                         "coef_slope",
+                                         "coef_rd_dst",
                                          "AUC")
 ```
 
@@ -1829,42 +1785,38 @@ prop<-0.75
    Valid <- escape_frt9[-trainIndex,]
    
 #Model   
-model.FRT7<-glm(escape10 ~ climate1 + climate2 + as.factor(FWI_veg) + elevatn, family = binomial, data = dat1) 
+model.FRT9<-glm(escape10 ~ climate1 + as.factor(FWI_veg)  + slope + rd_dst_, family = binomial, data = dat1) 
 
-mod.valid <- predict.glm(model.FRT7, newdata=Valid, type="response")
+mod.valid <- predict.glm(model.FRT9, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"escape10"], mod.valid, quiet=TRUE)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT5 <- data.frame (matrix (ncol = 13, nrow = 0))
-colnames (top_mod_table_FRT5 ) <- c ("FRT", "Model_terms", "intercept",
+top_mod_table_FRT9 <- data.frame (matrix (ncol = 11, nrow = 0))
+colnames (top_mod_table_FRT9 ) <- c ("FRT", "Model_terms", "intercept",
                                          "coef_climate_1",
-                                         "coef_climate_2",
-                                         "coef_FWI_veg_C-2",
                                          "coef_FWI_veg_C-3",
                                          "coef_FWI_veg_C-7",
-                                         "coef_FWI_veg_D-1/2",
                                          "coef_FWI_veg_M-1/2",
                                          "coef_FWI_veg_O-1a/b",
-                                         "coef_elevation",
+                                         "coef_slope",
+                                         "coef_rd_dst",
                                          "AUC")
 
 ##Add data for NDT1
-top_mod_table_FRT5[1,1]<-"7"
-top_mod_table_FRT5[1,2]<-"escape ~ climate1 + climate2 + FWI_veg + elevatn" 
-top_mod_table_FRT5[1,3]<- coef(model.FRT7)[1] #Intercept
-top_mod_table_FRT5[1,4]<- coef(model.FRT7)[2] #
-top_mod_table_FRT5[1,5]<- coef(model.FRT7)[3] #
-top_mod_table_FRT5[1,6]<- coef(model.FRT7)[4] #coefficient 
-top_mod_table_FRT5[1,7]<- coef(model.FRT7)[5] #coefficient 
-top_mod_table_FRT5[1,8]<- coef(model.FRT7)[6] #coefficient
-top_mod_table_FRT5[1,9]<- coef(model.FRT7)[7] #
-top_mod_table_FRT5[1,10]<- coef(model.FRT7)[8] #coefficient 
-top_mod_table_FRT5[1,11]<- coef(model.FRT7)[9] #coefficient 
-top_mod_table_FRT5[1,12]<- coef(model.FRT7)[10] #coefficient
-top_mod_table_FRT5[1,13]<- mod.auc
+top_mod_table_FRT9[1,1]<-"9"
+top_mod_table_FRT9[1,2]<-"escape ~ climate1 + FWI_veg + slope + rd_dst" 
+top_mod_table_FRT9[1,3]<- coef(model.FRT9)[1] #Intercept
+top_mod_table_FRT9[1,4]<- coef(model.FRT9)[2] #
+top_mod_table_FRT9[1,5]<- coef(model.FRT9)[3] #
+top_mod_table_FRT9[1,6]<- coef(model.FRT9)[4] #coefficient 
+top_mod_table_FRT9[1,7]<- coef(model.FRT9)[5] #coefficient 
+top_mod_table_FRT9[1,8]<- coef(model.FRT9)[6] #coefficient
+top_mod_table_FRT9[1,9]<- coef(model.FRT9)[7] #
+top_mod_table_FRT9[1,10]<- coef(model.FRT9)[8] #coefficient 
+top_mod_table_FRT9[1,11]<- mod.auc
 
-top_mod_table_FRT7_ALL<-rbind(top_mod_table_FRT7_ALL, top_mod_table_FRT5)
+top_mod_table_FRT9_ALL<-rbind(top_mod_table_FRT9_ALL, top_mod_table_FRT9)
 
 }
 
@@ -1872,27 +1824,1219 @@ top_mod_table_FRT7_ALL<-rbind(top_mod_table_FRT7_ALL, top_mod_table_FRT5)
 
 Check.
 ```{r}
-head(top_mod_table_FRT7_ALL)
+head(top_mod_table_FRT9_ALL)
 
 ```
 
 Get mean values.
 
 ```{r}
-names(top_mod_table_FRT7_ALL)
-str(top_mod_table_FRT7_ALL)
+names(top_mod_table_FRT9_ALL)
+str(top_mod_table_FRT9_ALL)
 stderror <- function(x) sd(x)/sqrt(length(x))
 
-summary_top_mod_table_FRT7_ALL<- top_mod_table_FRT7_ALL %>% summarize_if(is.numeric,mean)
+summary_top_mod_table_FRT9_ALL<- top_mod_table_FRT9_ALL %>% summarize_if(is.numeric,mean)
 
-summary_top_mod_table_FRT7_ALL$FRT<-7
-summary_top_mod_table_FRT7_ALL$Model_terms<-"escape ~ climate1 + climate2 + FWI_veg + elevatn" 
+summary_top_mod_table_FRT9_ALL$FRT<-9
+summary_top_mod_table_FRT9_ALL$Model_terms<-"escape ~ climate1 + FWI_veg + slope + rd_dst" 
 
 ```
 
 Save table.
 
 ```{r}
-write.csv(summary_top_mod_table_FRT7_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT7_escape.csv")
+write.csv(summary_top_mod_table_FRT9_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT9_escape.csv")
 ```
 
+#### FRT 10
+```{r}
+# top models fro FRT 9:
+#climate1 + climate2 + FWI_veg
+# slope + elevatn + slope:elevatn
+# rd_dst_
+# wind_atfire
+
+escape_frt10<- Escape_data_ALL2 %>% filter(Cluster==10)
+table(escape_frt10$FWI_veg)
+escape_frt10$FWI_veg[escape_frt10$FWI_veg=="S-1"]<-"M-1/2"
+escape_frt10$FWI_veg[escape_frt10$FWI_veg=="S-2"]<-"M-1/2"
+escape_frt10$veg_escape<-paste(escape_frt10$fire, escape_frt10$FWI_veg)
+
+table(is.na(escape_frt10$climate1))
+table(is.na(escape_frt10$elevatn))
+table(is.na(escape_frt10$FWI_veg))
+table(is.na(escape_frt10$wind_atfire))
+table(is.na(escape_frt10$rd_dst_))
+table(is.na(escape_frt10$slope))
+table(is.na(escape_frt10$fire_cs))
+table(is.na(escape_frt10$escape10))
+
+
+#Run model using dat1
+model_ft10<-glm(escape10 ~ climate1 + climate2 + FWI_veg  + slope + elevatn + slope:elevatn + rd_dst_ + wind_atfire + fire_cs, family = binomial, data = escape_frt10)
+
+AIC(model_ft10) #412.9779
+Anova(model_ft10, type=3) 
+
+#Remove least significant interaction
+model_ft10b<-glm(escape10 ~ climate1 + climate2 + FWI_veg  + slope + elevatn + rd_dst_ + wind_atfire + fire_cs, family = binomial, data = escape_frt10)
+
+AIC(model_ft10b) #410.9786
+Anova(model_ft10b, type=3) 
+
+#Remove least term ~ elevatn
+model_ft10c<-glm(escape10 ~ climate1 + climate2 + FWI_veg  + slope + elevatn + rd_dst_ + wind_atfire, family = binomial, data = escape_frt10)
+
+AIC(model_ft10c) #407.6957
+Anova(model_ft10c, type=3) 
+
+#Remove least term ~ elevatn
+model_ft10d<-glm(escape10 ~ climate2 + FWI_veg  + slope + elevatn + rd_dst_ + wind_atfire, family = binomial, data = escape_frt10)
+
+AIC(model_ft10d) #406.1593
+Anova(model_ft10d, type=3) 
+
+
+#Remove least term ~ elevatn
+model_ft10d<-glm(escape10 ~ climate2 + FWI_veg  + slope + rd_dst_ + wind_atfire, family = binomial, data = escape_frt10)
+
+AIC(model_ft10d) #405.4694
+Anova(model_ft10d, type=3) 
+
+#Remove least term ~ elevatn
+model_ft10e<-glm(escape10 ~ climate2 + FWI_veg  + slope + rd_dst_, family = binomial, data = escape_frt10)
+
+AIC(model_ft10e) #405.348
+Anova(model_ft10e, type=3) 
+
+#Remove least term ~ elevatn
+model_ft10f<-glm(escape10 ~ climate2  + slope + rd_dst_, family = binomial, data = escape_frt10)
+
+AIC(model_ft10f) #401.6321
+Anova(model_ft10f, type=3) 
+
+
+#######################
+### TOP MODEL
+#######################
+#Remove least term ~ slope
+model_ft10e<-glm(escape10 ~ climate2  + slope + rd_dst_, family = binomial, data = escape_frt10)
+
+mod.valid <- predict.glm(model_ft10e, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape10"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.7253 
+
+hist(escape_frt10$climate2)
+hist(escape_frt10$slope)
+hist(escape_frt10$rd_dst_)
+
+table(escape_frt10$escape10) #0 = 948 and 1 = 267 not bad actually.
+
+# model diagnostic plots
+binnedplot (fitted(model_ft10e), 
+            residuals(model_ft10e), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual")
+
+
+escape_frt10$resids<-resid(model_ft10e)
+
+
+binnedplot (escape_frt10$climate2, 
+            escape_frt10$resids,  
+            nclass = NULL)
+
+binnedplot (escape_frt10$slope, 
+            escape_frt10$resids,  
+            nclass = NULL)
+
+binnedplot (escape_frt10$rd_dst_, 
+            escape_frt10$resids,  
+            nclass = NULL)
+
+# Diagnostic plots look good
+
+#Partial Residuals
+
+visreg(model_ft10e)
+
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model_ft10e)
+
+#Create a new blank table and get AUC too
+top_mod_table_FRT10_ALL <- data.frame (matrix (ncol = 7, nrow = 0))
+colnames (top_mod_table_FRT10_ALL ) <- c ("FRT", "Model_terms", "intercept",
+                                         "coef_climate_2",
+                                         "coef_slope",
+                                         "coef_rd_dst",
+                                         "AUC")
+```
+
+Let's run it 100 times to get good mean values.
+
+```{r}
+
+for (g in 1:100){
+  
+  print(g)
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(escape_frt10$veg_escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- escape_frt10[ trainIndex,]
+   Valid <- escape_frt10[-trainIndex,]
+   
+#Model   
+model.FRT10<-glm(escape10 ~ climate2  + slope + rd_dst_, family = binomial, data = dat1)
+
+mod.valid <- predict.glm(model.FRT10, newdata=Valid, type="response")
+   
+roc_obj <- roc(Valid[,"escape10"], mod.valid, quiet=TRUE)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_FRT10 <- data.frame (matrix (ncol = 7, nrow = 0))
+colnames (top_mod_table_FRT10 ) <- c ("FRT", "Model_terms", "intercept",
+                                         "coef_climate_2",
+                                         "coef_slope",
+                                         "coef_rd_dst",
+                                         "AUC")
+
+##Add data for NDT1
+top_mod_table_FRT10[1,1]<-"10"
+top_mod_table_FRT10[1,2]<-"escape ~ climate2  + slope + rd_dst_" 
+top_mod_table_FRT10[1,3]<- coef(model.FRT10)[1] #Intercept
+top_mod_table_FRT10[1,4]<- coef(model.FRT10)[2] #
+top_mod_table_FRT10[1,5]<- coef(model.FRT10)[3] #
+top_mod_table_FRT10[1,6]<- coef(model.FRT10)[4] #coefficient 
+top_mod_table_FRT10[1,7]<- mod.auc
+
+top_mod_table_FRT10_ALL<-rbind(top_mod_table_FRT10_ALL, top_mod_table_FRT10)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_FRT10_ALL)
+
+```
+
+Get mean values.
+
+```{r}
+names(top_mod_table_FRT10_ALL)
+str(top_mod_table_FRT10_ALL)
+stderror <- function(x) sd(x)/sqrt(length(x))
+
+summary_top_mod_table_FRT10_ALL<- top_mod_table_FRT10_ALL %>% summarize_if(is.numeric,mean)
+
+summary_top_mod_table_FRT10_ALL$FRT<-10
+summary_top_mod_table_FRT10_ALL$Model_terms<-"escape ~ climate2 + slope + rd_dst" 
+
+```
+
+Save table.
+
+```{r}
+write.csv(summary_top_mod_table_FRT10_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT10_escape.csv")
+```
+
+#### FRT 11
+```{r}
+escape_frt11<- Escape_data_ALL2 %>% filter(Cluster==11)
+table(escape_frt11$FWI_veg)
+escape_frt11$FWI_veg[escape_frt11$FWI_veg=="O-1a/b"]<-"C-2"
+escape_frt11$FWI_veg[escape_frt11$FWI_veg=="S-2"]<-"M-1/2"
+escape_frt11$veg_escape<-paste(escape_frt11$fire, escape_frt11$FWI_veg)
+
+table(is.na(escape_frt11$climate1))
+table(is.na(escape_frt11$elevatn))
+table(is.na(escape_frt11$FWI_veg))
+table(is.na(escape_frt11$wind_atfire))
+table(is.na(escape_frt11$rd_dst_))
+table(is.na(escape_frt11$slope))
+table(is.na(escape_frt11$fire_cs))
+table(is.na(escape_frt11$escape10))
+
+#Divide data into training and valid
+prop<-0.75
+  trainIndex <- createDataPartition(escape_frt11$veg_escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+   dat1 <- escape_frt11[ trainIndex,]
+   Valid <- escape_frt11[-trainIndex,]
+
+#Run model using dat1
+model_ft11<-glm(escape10 ~ climate1 + FWI_veg  + elevatn + elevatn:wind_atfire + rd_dst_ + wind_atfire + fire_cs, family = binomial, data = escape_frt11)
+
+AIC(model_ft11) #235.5254
+Anova(model_ft11, type=3) 
+
+#Remove least significant interaction
+model_ft11b<-glm(escape10 ~ climate1 + FWI_veg  + elevatn + rd_dst_ + wind_atfire + fire_cs, family = binomial, data = escape_frt11)
+
+
+AIC(model_ft11b) #233.645
+Anova(model_ft11b, type=3) 
+
+#Remove least term ~ FWI_veg
+model_ft11c<-glm(escape10 ~ climate1  + elevatn + rd_dst_ + wind_atfire + fire_cs, family = binomial, data = escape_frt11)
+
+AIC(model_ft11c) #223.6864
+Anova(model_ft11c, type=3) 
+
+#Remove least term ~ elevatn
+model_ft11d<-glm(escape10 ~ climate1 + rd_dst_ + wind_atfire + fire_cs, family = binomial, data = escape_frt11)
+
+AIC(model_ft11d) #221.7887
+Anova(model_ft11d, type=3) 
+
+
+#Remove least term ~ wind
+model_ft11d<-glm(escape10 ~ climate1 + rd_dst_ + fire_cs, family = binomial, data = escape_frt11)
+
+AIC(model_ft11d) #220.151
+Anova(model_ft11d, type=3) 
+
+#######################
+### TOP MODEL
+#######################
+#Remove least term ~ slope
+model_ft11e<-glm(escape10 ~ climate1 + rd_dst_ + fire_cs, family = binomial, data = escape_frt11)
+
+mod.valid <- predict.glm(model_ft11e, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape10"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.7308 
+
+hist(escape_frt11$climate1)
+hist(escape_frt11$rd_dst_)
+
+table(escape_frt11$escape10) #0 = 948 and 1 = 267 not bad actually.
+table(escape_frt11$FWI_veg)
+
+# model diagnostic plots
+binnedplot (fitted(model_ft11e), 
+            residuals(model_ft11e), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual")
+
+
+escape_frt11$resids<-resid(model_ft11e)
+
+
+binnedplot (escape_frt11$climate1, 
+            escape_frt11$resids,  
+            nclass = NULL)
+
+binnedplot (escape_frt11$rd_dst_, 
+            escape_frt11$resids,  
+            nclass = NULL)
+
+
+# Diagnostic plots look good
+
+#Partial Residuals
+
+visreg(model_ft11e)
+
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model_ft11e)
+
+#Create a new blank table and get AUC too
+top_mod_table_FRT11_ALL <- data.frame (matrix (ncol = 8, nrow = 0))
+colnames (top_mod_table_FRT11_ALL ) <- c ("FRT", "Model_terms", "intercept",
+                                         "coef_climate_1",
+                                         "coef_rd_dst",
+                                         "coef_person",
+                                         "coef_unknown",
+                                         "AUC")
+```
+
+Let's run it 100 times to get good mean values.
+
+```{r}
+
+for (g in 1:100){
+  
+  print(g)
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(escape_frt11$veg_escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- escape_frt11[ trainIndex,]
+   Valid <- escape_frt11[-trainIndex,]
+   
+#Model   
+model.FRT11<-glm(escape10 ~ climate1 + rd_dst_ + fire_cs, family = binomial, data = dat1)
+
+mod.valid <- predict.glm(model.FRT11, newdata=Valid, type="response")
+   
+roc_obj <- roc(Valid[,"escape10"], mod.valid, quiet=TRUE)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_FRT11 <- data.frame (matrix (ncol = 8, nrow = 0))
+colnames (top_mod_table_FRT11 ) <- c ("FRT", "Model_terms", "intercept",
+                                         "coef_climate_1",
+                                         "coef_rd_dst",
+                                         "coef_person",
+                                         "coef_unknown",
+                                         "AUC")
+
+##Add data for NDT1
+top_mod_table_FRT11[1,1]<-"11"
+top_mod_table_FRT11[1,2]<-"escape ~ climate1 + rd_dst_ + fire_cs" 
+top_mod_table_FRT11[1,3]<- coef(model.FRT11)[1] #Intercept
+top_mod_table_FRT11[1,4]<- coef(model.FRT11)[2] #
+top_mod_table_FRT11[1,5]<- coef(model.FRT11)[3] #
+top_mod_table_FRT11[1,6]<- coef(model.FRT11)[4] #coefficient 
+top_mod_table_FRT11[1,7]<- coef(model.FRT11)[5] #coefficient 
+top_mod_table_FRT11[1,8]<- mod.auc
+
+top_mod_table_FRT11_ALL<-rbind(top_mod_table_FRT11_ALL, top_mod_table_FRT11)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_FRT11_ALL)
+
+```
+
+Get mean values.
+
+```{r}
+names(top_mod_table_FRT11_ALL)
+str(top_mod_table_FRT11_ALL)
+stderror <- function(x) sd(x)/sqrt(length(x))
+
+summary_top_mod_table_FRT11_ALL<- top_mod_table_FRT11_ALL %>% summarize_if(is.numeric,mean)
+
+summary_top_mod_table_FRT11_ALL$FRT<-11
+summary_top_mod_table_FRT11_ALL$Model_terms<-"escape ~ climate2 + FWI_veg + slope + rd_dst" 
+
+```
+
+Save table.
+
+```{r}
+write.csv(summary_top_mod_table_FRT11_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT11_escape.csv")
+```
+
+#### FRT 12
+```{r}
+escape_frt12<- Escape_data_ALL2 %>% filter(Cluster==12)
+table(escape_frt12$FWI_veg)
+escape_frt12$FWI_veg[escape_frt12$FWI_veg=="C-4"]<-"C-1"
+escape_frt12$FWI_veg[escape_frt12$FWI_veg=="S-3"]<-"M-1/2"
+escape_frt12$veg_escape<-paste(escape_frt12$fire, escape_frt12$FWI_veg)
+
+table(is.na(escape_frt12$climate1))
+table(is.na(escape_frt12$elevatn))
+table(is.na(escape_frt12$FWI_veg))
+table(is.na(escape_frt12$wind_atfire))
+table(is.na(escape_frt12$rd_dst_))
+table(is.na(escape_frt12$slope))
+table(is.na(escape_frt12$fire_cs))
+table(is.na(escape_frt12$escape10))
+
+#Run model using dat1
+model_ft12<-glm(escape10 ~ climate1 + climate2 + FWI_veg  + slope + elevatn + wind_atfire + rd_dst_ + infr_ds + fire_cs + slope:elevatn, family = binomial, data = escape_frt12)
+
+AIC(model_ft12) #2506.315
+Anova(model_ft12, type=3) 
+
+#Remove least significant interaction
+model_ft12b<-glm(escape10 ~ climate1 + climate2 + FWI_veg  + slope + elevatn + wind_atfire + rd_dst_ + infr_ds + fire_cs, family = binomial, data = escape_frt12)
+
+
+AIC(model_ft12b) #2504.407
+Anova(model_ft12b, type=3) 
+
+#Remove least term ~ FWI_veg
+model_ft12c<-glm(escape10 ~ climate1 + climate2 + FWI_veg  + slope + elevatn + wind_atfire + rd_dst_ + infr_ds, family = binomial, data = escape_frt12)
+
+AIC(model_ft12c) #2502.295
+Anova(model_ft12c, type=3) 
+
+#Remove least term ~ elevatn
+model_ft12d<-glm(escape10 ~ climate2 + FWI_veg  + slope + elevatn + wind_atfire + rd_dst_ + infr_ds, family = binomial, data = escape_frt12)
+
+AIC(model_ft12d) #2502.022
+anova(model_ft12c,model_ft12d,test="Chisq")
+Anova(model_ft12d, type=3) 
+
+#Remove least term ~ wind
+model_ft12e<-glm(escape10 ~ climate2 + FWI_veg  + slope + elevatn + wind_atfire + infr_ds, family = binomial, data = escape_frt12)
+
+AIC(model_ft12e) #2503.351
+anova(model_ft12d,model_ft12e,test="Chisq")
+Anova(model_ft12e, type=3) 
+
+#######################
+### TOP MODEL
+#######################
+#Remove least term ~ slope
+model_ft12e<-glm(escape10 ~ climate2 + FWI_veg  + slope + elevatn + wind_atfire + infr_ds, family = binomial, data = escape_frt12)
+
+mod.valid <- predict.glm(model_ft12e, newdata=Valid, type="response")
+   roc_obj <- roc(Valid[,"escape10"], mod.valid)
+   mod.auc <- auc(roc_obj)
+   mod.auc #0.7308 
+
+hist(escape_frt12$climate2)
+hist(escape_frt12$rd_dst_)
+
+table(escape_frt12$escape10) #0 = 948 and 1 = 267 not bad actually.
+table(escape_frt12$FWI_veg)
+
+# model diagnostic plots
+binnedplot (fitted(model_ft12e), 
+            residuals(model_ft12e), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual")
+
+
+escape_frt12$resids<-resid(model_ft12e)
+
+
+binnedplot (escape_frt12$climate2, 
+            escape_frt12$resids,  
+            nclass = NULL)
+
+binnedplot (escape_frt12$rd_dst_, 
+            escape_frt12$resids,  
+            nclass = NULL)
+
+binnedplot (escape_frt12$slope, 
+            escape_frt12$resids,  
+            nclass = NULL)
+
+binnedplot (escape_frt12$elevatn, 
+            escape_frt12$resids,  
+            nclass = NULL)
+
+binnedplot (escape_frt12$infr_ds, 
+            escape_frt12$resids,  
+            nclass = NULL)
+
+
+
+# Diagnostic plots look good
+
+#Partial Residuals
+
+visreg(model_ft12e)
+
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model_ft12e)
+
+#Create a new blank table and get AUC too
+top_mod_table_FRT12_ALL <- data.frame (matrix (ncol = 19, nrow = 0))
+colnames (top_mod_table_FRT12_ALL ) <- c ("FRT", "Model_terms", "intercept",
+                                         "coef_climate_2",
+                                         "coef_FWI_vegC-2",
+                                         "coef_FWI_vegC-3",
+                                         "coef_FWI_vegC-5",
+                                         "coef_FWI_vegC-7",
+                                         "coef_FWI_vegD-1/2",
+                                         "coef_FWI_vegM-1/2",
+                                         "coef_FWI_vegM-3",
+                                         "coef_FWI_vegO-1a/b",
+                                         "coef_FWI_vegS-1",
+                                         "coef_FWI_vegS-2",
+                                         "coef_slope",
+                                         "coef_elevatn",
+                                         "coef_wind_atfire",
+                                         "coef_infr_ds",
+                                         "AUC")
+```
+
+Let's run it 100 times to get good mean values.
+
+```{r}
+
+for (g in 1:100){
+  
+  print(g)
+
+prop<-0.75
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(escape_frt12$veg_escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- escape_frt12[ trainIndex,]
+   Valid <- escape_frt12[-trainIndex,]
+   
+#Model   
+model.FRT12<-glm(escape10 ~ climate2 + FWI_veg  + slope + elevatn + wind_atfire + infr_ds, family = binomial, data = dat1)
+
+mod.valid <- predict.glm(model.FRT12, newdata=Valid, type="response")
+   
+roc_obj <- roc(Valid[,"escape10"], mod.valid, quiet=TRUE)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_FRT12 <- data.frame (matrix (ncol = 19, nrow = 0))
+colnames (top_mod_table_FRT12 ) <- c ("FRT", "Model_terms", "intercept",
+                                         "coef_climate_2",
+                                         "coef_FWI_vegC-2",
+                                         "coef_FWI_vegC-3",
+                                         "coef_FWI_vegC-5",
+                                         "coef_FWI_vegC-7",
+                                         "coef_FWI_vegD-1/2",
+                                         "coef_FWI_vegM-1/2",
+                                         "coef_FWI_vegM-3",
+                                         "coef_FWI_vegO-1a/b",
+                                         "coef_FWI_vegS-1",
+                                         "coef_FWI_vegS-2",
+                                         "coef_slope",
+                                         "coef_elevatn",
+                                         "coef_wind_atfire",
+                                         "coef_infr_ds",
+                                         "AUC")
+
+##Add data for NDT1
+top_mod_table_FRT12[1,1]<-"12"
+top_mod_table_FRT12[1,2]<-"escape ~ climate2 + FWI_veg  + slope + elevatn + wind_atfire + infr_ds" 
+top_mod_table_FRT12[1,3]<- coef(model.FRT12)[1] #Intercept
+top_mod_table_FRT12[1,4]<- coef(model.FRT12)[2] #
+top_mod_table_FRT12[1,5]<- coef(model.FRT12)[3] #
+top_mod_table_FRT12[1,6]<- coef(model.FRT12)[4] #coefficient 
+top_mod_table_FRT12[1,7]<- coef(model.FRT12)[5] #coefficient 
+top_mod_table_FRT12[1,8]<- coef(model.FRT12)[6] #Intercept
+top_mod_table_FRT12[1,9]<- coef(model.FRT12)[7] #
+top_mod_table_FRT12[1,10]<- coef(model.FRT12)[8] #
+top_mod_table_FRT12[1,11]<- coef(model.FRT12)[9] #coefficient 
+top_mod_table_FRT12[1,12]<- coef(model.FRT12)[10] #coefficient 
+top_mod_table_FRT12[1,13]<- coef(model.FRT12)[11] #Intercept
+top_mod_table_FRT12[1,14]<- coef(model.FRT12)[12] #
+top_mod_table_FRT12[1,15]<- coef(model.FRT12)[13] #
+top_mod_table_FRT12[1,16]<- coef(model.FRT12)[14] #coefficient 
+top_mod_table_FRT12[1,17]<- coef(model.FRT12)[15] #coefficient 
+top_mod_table_FRT12[1,18]<- coef(model.FRT12)[16] #Intercept
+top_mod_table_FRT12[1,19]<- mod.auc
+top_mod_table_FRT12_ALL<-rbind(top_mod_table_FRT12_ALL, top_mod_table_FRT12)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_FRT12_ALL)
+
+```
+
+Get mean values.
+
+```{r}
+names(top_mod_table_FRT12_ALL)
+str(top_mod_table_FRT12_ALL)
+stderror <- function(x) sd(x)/sqrt(length(x))
+
+summary_top_mod_table_FRT12_ALL<- top_mod_table_FRT12_ALL %>% summarize_if(is.numeric,mean)
+
+summary_top_mod_table_FRT12_ALL$FRT<-12
+summary_top_mod_table_FRT12_ALL$Model_terms<-"climate2 + FWI_veg  + slope + elevatn + wind_atfire + infr_ds" 
+
+```
+
+Save table.
+
+```{r}
+write.csv(summary_top_mod_table_FRT12_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT12_escape.csv")
+```
+
+
+#### FRT 13
+```{r}
+escape_frt13<- Escape_data_ALL2 %>% filter(Cluster==13)
+table(escape_frt13$FWI_veg)
+escape_frt13$FWI_veg[escape_frt13$FWI_veg=="C-1"]<-"C-3"
+escape_frt13$FWI_veg[escape_frt13$FWI_veg=="C-4"]<-"C-2"
+escape_frt13$veg_escape<-paste(escape_frt13$fire, escape_frt13$FWI_veg)
+
+table(is.na(escape_frt13$climate1))
+table(is.na(escape_frt13$elevatn))
+table(is.na(escape_frt13$FWI_veg))
+table(is.na(escape_frt13$wind_atfire))
+table(is.na(escape_frt13$rd_dst_))
+table(is.na(escape_frt13$slope))
+table(is.na(escape_frt13$fire_cs))
+table(is.na(escape_frt13$escape10))
+
+#Run model using dat1
+model_ft13<-glm(escape10 ~ climate1 + FWI_veg  + slope + elevatn + wind_atfire + rd_dst_ + infr_ds + fire_cs, family = binomial, data = escape_frt13)
+
+AIC(model_ft13) #5758.033
+Anova(model_ft13, type=3) 
+
+#Remove least significant interaction
+model_ft13b<-glm(escape10 ~ climate1 + FWI_veg  + slope + wind_atfire + rd_dst_ + infr_ds + fire_cs, family = binomial, data = escape_frt13)
+
+
+AIC(model_ft13b) #5757.604
+Anova(model_ft13b, type=3) 
+
+
+#######################
+### TOP MODEL
+#######################
+#Remove least term ~ slope
+model_ft13e<-glm(escape10 ~ climate1 + FWI_veg  + slope + wind_atfire + rd_dst_ + infr_ds + fire_cs, family = binomial, data = escape_frt13)
+
+hist(escape_frt13$climate1)
+hist(escape_frt13$rd_dst_)
+
+table(escape_frt13$escape10) #0 = 948 and 1 = 267 not bad actually.
+table(escape_frt13$FWI_veg)
+
+# model diagnostic plots
+binnedplot (fitted(model_ft13e), 
+            residuals(model_ft13e), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual")
+
+
+# Diagnostic plots look good
+
+#Partial Residuals
+
+visreg(model_ft13e)
+
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model_ft13e)
+
+
+#Create a new blank table and get AUC too
+top_mod_table_FRT13_ALL <- data.frame (matrix (ncol = 21, nrow = 0))
+colnames (top_mod_table_FRT13_ALL ) <- c ("FRT", "Model_terms", "intercept",
+                                         "coef_climate_1",
+                                         "coef_FWI_vegC-3",
+                                         "coef_FWI_vegC-5",
+                                         "coef_FWI_vegC-7",
+                                         "coef_FWI_vegD-1/2",
+                                         "coef_FWI_vegM-1/2",
+                                         "coef_FWI_vegM-3",
+                                         "coef_FWI_vegO-1a/b",
+                                         "coef_FWI_vegS-1",
+                                         "coef_FWI_vegS-2",
+                                         "coef_FWI_vegS-3",
+                                         "coef_slope",
+                                         "coef_wind_atfire",
+                                         "coef_rd_dst_",
+                                         "coef_infr_ds",
+                                         "coef_cause_person",
+                                         "coef_cause_unknown",
+                                         "AUC")
+```
+
+Let's run it 100 times to get good mean values.
+
+```{r}
+prop<-0.75
+
+for (g in 1:100){
+  
+  print(g)
+
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(escape_frt13$veg_escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- escape_frt13[ trainIndex,]
+   Valid <- escape_frt13[-trainIndex,]
+   
+#Model   
+model.FRT13<-glm(escape10 ~ climate1 + FWI_veg  + slope + wind_atfire + rd_dst_ + infr_ds + fire_cs, family = binomial, data = dat1)
+
+mod.valid <- predict.glm(model.FRT13, newdata=Valid, type="response")
+   
+roc_obj <- roc(Valid[,"escape10"], mod.valid, quiet=TRUE)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_FRT13 <- data.frame (matrix (ncol = 21, nrow = 0))
+colnames (top_mod_table_FRT13 ) <- c ("FRT", "Model_terms", "intercept",
+                                         "coef_climate_1",
+                                         "coef_FWI_vegC-3",
+                                         "coef_FWI_vegC-5",
+                                         "coef_FWI_vegC-7",
+                                         "coef_FWI_vegD-1/2",
+                                         "coef_FWI_vegM-1/2",
+                                         "coef_FWI_vegM-3",
+                                         "coef_FWI_vegO-1a/b",
+                                         "coef_FWI_vegS-1",
+                                         "coef_FWI_vegS-2",
+                                         "coef_FWI_vegS-3",
+                                         "coef_slope",
+                                         "coef_wind_atfire",
+                                         "coef_rd_dst_",
+                                         "coef_infr_ds",
+                                         "coef_cause_person",
+                                         "coef_cause_unknown",
+                                         "AUC")
+
+##Add data for NDT1
+top_mod_table_FRT13[1,1]<-"13"
+top_mod_table_FRT13[1,2]<-"escape ~ climate2 + FWI_veg  + slope + elevatn + wind_atfire + infr_ds" 
+top_mod_table_FRT13[1,3]<- coef(model.FRT13)[1] #Intercept
+top_mod_table_FRT13[1,4]<- coef(model.FRT13)[2] #
+top_mod_table_FRT13[1,5]<- coef(model.FRT13)[3] #
+top_mod_table_FRT13[1,6]<- coef(model.FRT13)[4] #coefficient 
+top_mod_table_FRT13[1,7]<- coef(model.FRT13)[5] #coefficient 
+top_mod_table_FRT13[1,8]<- coef(model.FRT13)[6] #Intercept
+top_mod_table_FRT13[1,9]<- coef(model.FRT13)[7] #
+top_mod_table_FRT13[1,10]<- coef(model.FRT13)[8] #
+top_mod_table_FRT13[1,11]<- coef(model.FRT13)[9] #coefficient 
+top_mod_table_FRT13[1,12]<- coef(model.FRT13)[10] #coefficient 
+top_mod_table_FRT13[1,13]<- coef(model.FRT13)[11] #Intercept
+top_mod_table_FRT13[1,14]<- coef(model.FRT13)[12] #
+top_mod_table_FRT13[1,15]<- coef(model.FRT13)[13] #
+top_mod_table_FRT13[1,16]<- coef(model.FRT13)[14] #coefficient 
+top_mod_table_FRT13[1,17]<- coef(model.FRT13)[15] #coefficient 
+top_mod_table_FRT13[1,18]<- coef(model.FRT13)[16] #Intercept
+top_mod_table_FRT13[1,19]<- coef(model.FRT13)[17] #coefficient 
+top_mod_table_FRT13[1,20]<- coef(model.FRT13)[18] #Intercept
+top_mod_table_FRT13[1,21]<- mod.auc
+top_mod_table_FRT13_ALL<-rbind(top_mod_table_FRT13_ALL, top_mod_table_FRT13)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_FRT13_ALL)
+
+```
+
+Get mean values.
+
+```{r}
+names(top_mod_table_FRT13_ALL)
+str(top_mod_table_FRT13_ALL)
+stderror <- function(x) sd(x)/sqrt(length(x))
+
+summary_top_mod_table_FRT13_ALL<- top_mod_table_FRT13_ALL %>% summarize_if(is.numeric,mean)
+
+summary_top_mod_table_FRT13_ALL$FRT<-13
+summary_top_mod_table_FRT13_ALL$Model_terms<-"climate2 + FWI_veg  + slope + elevatn + wind_atfire + infr_ds" 
+
+```
+
+Save table.
+
+```{r}
+write.csv(summary_top_mod_table_FRT13_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT13_escape.csv")
+```
+
+
+#### FRT 14
+```{r}
+escape_frt14<- Escape_data_ALL2 %>% filter(Cluster==14)
+table(escape_frt14$FWI_veg)
+escape_frt14$FWI_veg[escape_frt14$FWI_veg=="M-3"]<-"O-1a/b"
+
+
+escape_frt14$veg_escape<-paste(escape_frt14$fire, escape_frt14$FWI_veg)
+
+table(is.na(escape_frt14$climate1))
+table(is.na(escape_frt14$elevatn))
+table(is.na(escape_frt14$FWI_veg))
+table(is.na(escape_frt14$wind_atfire))
+table(is.na(escape_frt14$rd_dst_))
+table(is.na(escape_frt14$slope))
+table(is.na(escape_frt14$fire_cs))
+table(is.na(escape_frt14$escape10))
+
+#Run model using dat1
+model_ft14<-glm(escape10 ~ climate1 + climate2 + FWI_veg + elevatn + wind_atfire + rd_dst_ + fire_cs + elevatn:wind_atfire, family = binomial, data = escape_frt14)
+
+AIC(model_ft14) #3737.464
+Anova(model_ft14, type=3) 
+
+#Remove least significant interaction
+model_ft14b<-glm(escape10 ~ climate1 + climate2 + FWI_veg + elevatn + wind_atfire + rd_dst_ + fire_cs, family = binomial, data = escape_frt14)
+
+AIC(model_ft14b) #3739.792
+Anova(model_ft14b, type=3) 
+
+#Remove least significant interaction
+model_ft14c<-glm(escape10 ~ climate1 + climate2 + FWI_veg + wind_atfire + rd_dst_ + fire_cs, family = binomial, data = escape_frt14)
+
+AIC(model_ft14c) #3737.912
+Anova(model_ft14c, type=3) 
+
+#Remove least significant interaction
+model_ft14d<-glm(escape10 ~ climate1 + climate2 + FWI_veg + rd_dst_ + fire_cs, family = binomial, data = escape_frt14)
+
+AIC(model_ft14d) #3736.716
+Anova(model_ft14d, type=3) 
+
+
+
+#######################
+### TOP MODEL
+#######################
+#Remove least term ~ slope
+model_ft14e<-glm(escape10 ~ climate1 + climate2 + FWI_veg + rd_dst_ + fire_cs, family = binomial, data = escape_frt14)
+
+hist(escape_frt14$climate1)
+hist(escape_frt14$climate2)
+hist(escape_frt14$rd_dst_)
+
+table(escape_frt14$escape10) #0 = 948 and 1 = 267 not bad actually.
+table(escape_frt14$FWI_veg)
+
+# model diagnostic plots
+binnedplot (fitted(model_ft14e), 
+            residuals(model_ft14e), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual")
+
+
+# Diagnostic plots look good
+
+#Partial Residuals
+
+visreg(model_ft14e)
+
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model_ft14e)
+
+
+#Create a new blank table and get AUC too
+top_mod_table_FRT14_ALL <- data.frame (matrix (ncol = 16, nrow = 0))
+colnames (top_mod_table_FRT14_ALL ) <- c ("FRT", "Model_terms", "intercept",
+                                         "coef_climate_1",
+                                         "coef_climate_2",
+                                         "coef_FWI_vegC-3",
+                                         "coef_FWI_vegC-5",
+                                         "coef_FWI_vegC-7",
+                                         "coef_FWI_vegD-1/2",
+                                         "coef_FWI_vegM-1/2",
+                                         "coef_FWI_vegO-1a/b",
+                                         "coef_FWI_vegS-1",
+                                         "coef_rd_dst_",
+                                         "coef_cause_person",
+                                         "coef_cause_unknown",
+                                         "AUC")
+```
+
+Let's run it 100 times to get good mean values.
+
+```{r}
+prop<-0.75
+
+for (g in 1:100){
+  
+  print(g)
+
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(escape_frt14$veg_escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- escape_frt14[ trainIndex,]
+   Valid <- escape_frt14[-trainIndex,]
+   
+#Model   
+model.FRT14<-glm(escape10 ~ climate1 + FWI_veg  + slope + wind_atfire + rd_dst_ + infr_ds + fire_cs, family = binomial, data = dat1)
+
+mod.valid <- predict.glm(model.FRT14, newdata=Valid, type="response")
+   
+roc_obj <- roc(Valid[,"escape10"], mod.valid, quiet=TRUE)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_FRT14 <- data.frame (matrix (ncol = 16, nrow = 0))
+colnames (top_mod_table_FRT14 ) <- c ("FRT", "Model_terms", "intercept",
+                                         "coef_climate_1",
+                                         "coef_climate_2",
+                                         "coef_FWI_vegC-3",
+                                         "coef_FWI_vegC-5",
+                                         "coef_FWI_vegC-7",
+                                         "coef_FWI_vegD-1/2",
+                                         "coef_FWI_vegM-1/2",
+                                         "coef_FWI_vegO-1a/b",
+                                         "coef_FWI_vegS-1",
+                                         "coef_rd_dst_",
+                                         "coef_cause_person",
+                                         "coef_cause_unknown",
+                                         "AUC")
+
+##Add data for NDT1
+top_mod_table_FRT14[1,1]<-"14"
+top_mod_table_FRT14[1,2]<-"escape ~ climate1 + climate2 + FWI_veg + rd_dst + fire_cause" 
+top_mod_table_FRT14[1,3]<- coef(model.FRT14)[1] #Intercept
+top_mod_table_FRT14[1,4]<- coef(model.FRT14)[2] #
+top_mod_table_FRT14[1,5]<- coef(model.FRT14)[3] #
+top_mod_table_FRT14[1,6]<- coef(model.FRT14)[4] #coefficient 
+top_mod_table_FRT14[1,7]<- coef(model.FRT14)[5] #coefficient 
+top_mod_table_FRT14[1,8]<- coef(model.FRT14)[6] #Intercept
+top_mod_table_FRT14[1,9]<- coef(model.FRT14)[7] #
+top_mod_table_FRT14[1,10]<- coef(model.FRT14)[8] #
+top_mod_table_FRT14[1,11]<- coef(model.FRT14)[9] #coefficient 
+top_mod_table_FRT14[1,12]<- coef(model.FRT14)[10] #coefficient 
+top_mod_table_FRT14[1,13]<- coef(model.FRT14)[11] #Intercept
+top_mod_table_FRT14[1,14]<- coef(model.FRT14)[12] #
+top_mod_table_FRT14[1,15]<- coef(model.FRT14)[13] #
+top_mod_table_FRT14[1,16]<- mod.auc
+top_mod_table_FRT14_ALL<-rbind(top_mod_table_FRT14_ALL, top_mod_table_FRT14)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_FRT14_ALL)
+
+```
+
+Get mean values.
+
+```{r}
+names(top_mod_table_FRT14_ALL)
+str(top_mod_table_FRT14_ALL)
+stderror <- function(x) sd(x)/sqrt(length(x))
+
+summary_top_mod_table_FRT14_ALL<- top_mod_table_FRT14_ALL %>% summarize_if(is.numeric,mean)
+
+summary_top_mod_table_FRT14_ALL$FRT<-14
+summary_top_mod_table_FRT14_ALL$Model_terms<-"climate1 + climate2 + FWI_veg + rd_dst + fire_cause" 
+
+```
+
+Save table.
+
+```{r}
+write.csv(summary_top_mod_table_FRT14_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT14_escape.csv")
+```
+
+
+#### FRT 15
+```{r}
+escape_frt15<- Escape_data_ALL2 %>% filter(Cluster==15)
+table(escape_frt15$FWI_veg)
+escape_frt15$FWI_veg[escape_frt15$FWI_veg=="S-2"]<-"M-1/2"
+
+
+escape_frt15$veg_escape<-paste(escape_frt15$fire, escape_frt15$FWI_veg)
+
+table(is.na(escape_frt15$climate1))
+table(is.na(escape_frt15$elevatn))
+table(is.na(escape_frt15$FWI_veg))
+table(is.na(escape_frt15$wind_atfire))
+table(is.na(escape_frt15$rd_dst_))
+table(is.na(escape_frt15$slope))
+table(is.na(escape_frt15$fire_cs))
+table(is.na(escape_frt15$escape10))
+
+escape_frt15_2<- escape_frt15 %>% filter(!is.na(elevatn))
+escape_frt15_2<- escape_frt15 %>% filter(!is.na(wind_atfire))
+
+#Run model using dat1
+model_ft15<-glm(escape10 ~ climate1 + climate2 + FWI_veg + slope + wind_atfire + rd_dst_ + infr_ds + fire_cs, family = binomial, data = escape_frt15_2)
+
+AIC(model_ft15) #926.5801
+Anova(model_ft15, type=3) 
+
+#Remove least significant interaction
+model_ft15b<-glm(escape10 ~ climate1 + climate2 + FWI_veg + slope + rd_dst_ + infr_ds + fire_cs, family = binomial, data = escape_frt15_2)
+
+AIC(model_ft15b) #928.114
+Anova(model_ft15b, type=3) 
+anova(model_ft15, model_ft15b,test="Chisq")
+
+
+#######################
+### TOP MODEL
+#######################
+#Remove least term ~ slope
+model_ft15e<-glm(escape10 ~ climate1 + climate2 + FWI_veg + slope + rd_dst_ + infr_ds + fire_cs, family = binomial, data = escape_frt15_2)
+
+hist(escape_frt15$climate1)
+hist(escape_frt15$climate2)
+hist(escape_frt15$rd_dst_)
+
+table(escape_frt15$escape10) #0 = 948 and 1 = 267 not bad actually.
+table(escape_frt15$FWI_veg)
+
+# model diagnostic plots
+binnedplot (fitted(model_ft15e), 
+            residuals(model_ft15e), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual")
+
+
+# Diagnostic plots look good
+
+#Partial Residuals
+
+visreg(model_ft15e)
+
+```
+
+We should repeat the above several times and take the mean of the coefficients.
+
+```{r}
+summary(model_ft15e)
+
+
+#Create a new blank table and get AUC too
+top_mod_table_FRT15_ALL <- data.frame (matrix (ncol = 18, nrow = 0))
+colnames (top_mod_table_FRT15_ALL ) <- c ("FRT", "Model_terms", "intercept",
+                                         "coef_climate_1",
+                                         "coef_climate_2",
+                                         "coef_FWI_vegC-5",
+                                         "coef_FWI_vegC-7",
+                                         "coef_FWI_vegD-1/2",
+                                         "coef_FWI_vegM-1/2",
+                                         "coef_FWI_vegO-1a/b",
+                                         "coef_FWI_vegS-1",
+                                         "coef_FWI_vegS-3",
+                                         "coef_slope",
+                                         "coef_rd_dst_",
+                                         "coef_infr_ds",
+                                         "coef_cause_person",
+                                         "coef_cause_unknown",
+                                         "AUC")
+```
+
+Let's run it 100 times to get good mean values.
+
+```{r}
+prop<-0.75
+
+for (g in 1:100){
+  
+  print(g)
+
+# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
+  trainIndex <- createDataPartition(escape_frt15$veg_escape, p = prop,
+                                    list = FALSE,
+                                    times = 1)
+  
+   dat1 <- escape_frt15[ trainIndex,]
+   Valid <- escape_frt15[-trainIndex,]
+   
+#Model   
+model.FRT15<-glm(escape10 ~ climate1 + climate2 + FWI_veg + slope + rd_dst_ + infr_ds + fire_cs, family = binomial, data = dat1)
+
+mod.valid <- predict.glm(model.FRT15, newdata=Valid, type="response")
+   
+roc_obj <- roc(Valid[,"escape10"], mod.valid, quiet=TRUE)
+   mod.auc <- auc(roc_obj)
+
+# create model table (only do this once) and add the relevant data
+top_mod_table_FRT15 <- data.frame (matrix (ncol = 18, nrow = 0))
+colnames (top_mod_table_FRT15 ) <- c ("FRT", "Model_terms", "intercept",
+                                         "coef_climate_1",
+                                         "coef_climate_2",
+                                         "coef_FWI_vegC-5",
+                                         "coef_FWI_vegC-7",
+                                         "coef_FWI_vegD-1/2",
+                                         "coef_FWI_vegM-1/2",
+                                         "coef_FWI_vegO-1a/b",
+                                         "coef_FWI_vegS-1",
+                                         "coef_FWI_vegS-3",
+                                         "coef_slope",
+                                         "coef_rd_dst_",
+                                         "coef_infr_ds",
+                                         "coef_cause_person",
+                                         "coef_cause_unknown",
+                                         "AUC")
+
+##Add data for NDT1
+top_mod_table_FRT15[1,1]<-"15"
+top_mod_table_FRT15[1,2]<-"escape ~ climate1 + climate2 + FWI_veg + slope + rd_dst_ + infr_ds + fire_cs" 
+top_mod_table_FRT15[1,3]<- coef(model.FRT15)[1] #Intercept
+top_mod_table_FRT15[1,4]<- coef(model.FRT15)[2] #
+top_mod_table_FRT15[1,5]<- coef(model.FRT15)[3] #
+top_mod_table_FRT15[1,6]<- coef(model.FRT15)[4] #coefficient 
+top_mod_table_FRT15[1,7]<- coef(model.FRT15)[5] #coefficient 
+top_mod_table_FRT15[1,8]<- coef(model.FRT15)[6] #Intercept
+top_mod_table_FRT15[1,9]<- coef(model.FRT15)[7] #
+top_mod_table_FRT15[1,10]<- coef(model.FRT15)[8] #
+top_mod_table_FRT15[1,11]<- coef(model.FRT15)[9] #coefficient 
+top_mod_table_FRT15[1,12]<- coef(model.FRT15)[10] #coefficient 
+top_mod_table_FRT15[1,13]<- coef(model.FRT15)[11] #Intercept
+top_mod_table_FRT15[1,14]<- coef(model.FRT15)[12] #
+top_mod_table_FRT15[1,15]<- coef(model.FRT15)[13] #
+top_mod_table_FRT15[1,16]<- coef(model.FRT15)[14] #
+top_mod_table_FRT15[1,17]<- coef(model.FRT15)[15] #
+top_mod_table_FRT15[1,18]<- mod.auc
+top_mod_table_FRT15_ALL<-rbind(top_mod_table_FRT15_ALL, top_mod_table_FRT15)
+
+}
+
+```
+
+Check.
+```{r}
+head(top_mod_table_FRT15_ALL)
+
+```
+
+Get mean values.
+
+```{r}
+names(top_mod_table_FRT15_ALL)
+str(top_mod_table_FRT15_ALL)
+stderror <- function(x) sd(x)/sqrt(length(x))
+
+summary_top_mod_table_FRT15_ALL<- top_mod_table_FRT15_ALL %>% summarize_if(is.numeric,mean)
+
+summary_top_mod_table_FRT15_ALL$FRT<-15
+summary_top_mod_table_FRT15_ALL$Model_terms<-"climate1 + climate2 + FWI_veg + rd_dst + fire_cause" 
+
+```
+
+Save table.
+
+```{r}
+write.csv(summary_top_mod_table_FRT15_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT15_escape.csv")
+```
