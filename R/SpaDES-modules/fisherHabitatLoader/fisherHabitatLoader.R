@@ -161,6 +161,11 @@ Init <- function (sim) {
   table.hab.init <- classifyHabitat (table.hab.init)
  
   # map the habitat to the raster
+      # fisher population
+  ras.fisher.pop <- terra::rast (sim$ras)
+  ras.fisher.pop [] <- 0
+  table.hab.init.fisher.pop <- table.hab.init [fisher_pop > 0, ]
+  ras.fisher.pop [table.hab.init.fisher.pop$pixelid] <- table.hab.init.fisher.pop$fisher_pop 
     # denning
   ras.fisher.denning.init <- terra::rast (sim$ras)
   ras.fisher.denning.init [] <- 0
@@ -188,8 +193,8 @@ Init <- function (sim) {
   ras.fisher.movement.init [table.hab.init.movement$pixelid] <- 1
   
   # create a list of rasters (equivalent to a raster stack)
-  sim$raster.stack <- c (ras.fisher.denning.init, ras.fisher.rust.init, ras.fisher.cavity.init, ras.fisher.cwd.init, ras.fisher.movement.init)
-  names (sim$raster.stack) <- c ("ras_fisher_denning_init", "ras_fisher_rust_init", "ras_fisher_cavity_init", "ras_fisher_cwd_init", "ras_fisher_movement_init")
+  sim$raster.stack <- c (ras.fisher.pop, ras.fisher.denning.init, ras.fisher.rust.init, ras.fisher.cavity.init, ras.fisher.cwd.init, ras.fisher.movement.init)
+  names (sim$raster.stack) <- c ("ras_fisher_pop", "ras_fisher_denning_init", "ras_fisher_rust_init", "ras_fisher_cavity_init", "ras_fisher_cwd_init", "ras_fisher_movement_init")
   
   return (invisible (sim))
 }

@@ -1,5 +1,5 @@
 ---
-title: "fisherHabitatLoader"
+title: "FLEX2"
 author: ""
 date: "26 October 2022"
 output:
@@ -15,8 +15,10 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## TODO: use 
 ```
 
 ## Overview
-This is a .RMD to test the functionality of the fisherHabtiatLoader in the Williams Lake TSA. 
+This is an agent based model (ABM) to simulate fisher life history on a landscape. This version is written to input habitat data that was written as a raster output from the fisherHabitatLoader module. The fisherHabitatLoader saves rasters of the occurrence of fisher habitat types (denning, rust, cavity, resting and movement) at each interval of a forestry simulation using forestryCLUS. The forestryCLUS module is a simulation model that returns a single solution for a set of parameters (i.e., it's a deterministic model). Thus fisherHabitatLoader updates fisher habitat conditions over a simulation period. This approach  allows for faster simulation of multiple iterations of a fisher population on a landscape. as it can read the habitat conditions as predtemined by the simualtion model. I is more efficient to run the fisher ABM as a *post-hoc* analysis, rather than concurrently with forestryCLUS.
 
+## Usage
+Below runs the module
 
 ```{r module_usage}
 library (SpaDES.core)
@@ -25,14 +27,15 @@ library (terra)
 library (keyring)
 library (tidyverse)
 library (here)
+library (stringr)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
-moduleDir <- file.path (paste0 (here::here (), "/R/SpaDES-modules"))
-inputDir <- file.path (paste0 (here::here (), "/R/scenarios/test_flex2/inputs")) %>% reproducible::checkPath (create = TRUE)
-outputDir <- file.path (paste0 (here::here (), "/R/scenarios/test_flex2/outputs")) %>% reproducible::checkPath (create = TRUE)
-cacheDir <- file.path (paste0 (here::here (), "/R/scenarios/test_flex2"))
+moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
+inputDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2/inputs")) %>% reproducible::checkPath (create = TRUE)
+outputDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2/outputs")) %>% reproducible::checkPath (create = TRUE)
+cacheDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2"))
 
-times <- list (start = 0, end = 40)
+times <- list (start = 0, end = 1)
 
 parameters <- list(
   dataLoaderCLUS = list(dbName='clus',
@@ -72,69 +75,39 @@ parameters <- list(
                          nameForestInventoryBasalArea= "basal_area",
                          nameForestInventoryQMD = "quad_diam_125"
                     ),
-  blockingCLUS = list(blockMethod ='pre', 
-                      patchZone = 'rast.zone_cond_beo',
-                      patchVariation = 6,
-                      nameCutblockRaster ="rast.cns_cut_bl",
-                      useLandingsArea = FALSE, 
-                      useSpreadProbRas = FALSE),
-  forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
-                      #harvestZonePriority = "age DESC",
-                      #harvestZonePriorityInterval = 1,
-                      adjacencyConstraint = 0),
   growingStockCLUS = list (periodLength = 5),
-  fisherHabitatLoader = list (),
-  uploaderCLUS = list(aoiName = 'test_fisher_habitat_loader', 
-                      dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
-                                     keyring::key_get("vmdbuser", keyring="postgreSQL"), 
-                                     keyring::key_get("vmdbpass", keyring="postgreSQL"),  
-                                     keyring::key_get("vmdbname", keyring="postgreSQL"))
-  )
+  FLEX2 = list (female_max_age = 9,
+                den_target = 0.003, 
+                rest_target = 0.028,
+                move_target = 0.091,
+                #reproductive_age = 2,
+                sex_ratio = 0.5,
+                female_dispersal = 785000,  # ha; radius = 500 pixels = 50km = 7850km2 area
+                timeInterval = 1,
+                iterations = 1,
+                rasterStack = paste0 (here::here(), "/R/scenarios/test_flex2/outputs/test_fisher_habitat_Williams_Lake_TSA_fisher_habitat.tif")
+                ),
+    uploaderCLUS = list(aoiName = 'fisher_abm_test', 
+                        dbInfo  = list(keyring::key_get ("vmdbhost", keyring="postgreSQL"), 
+                                       keyring::key_get ("vmdbuser", keyring="postgreSQL"), 
+                                       keyring::key_get ("vmdbpass", keyring="postgreSQL"),  
+                                       keyring::key_get ("vmdbname", keyring="postgreSQL")))
 )
 
+scenario = data.table (name = "test",
+                       description = "Testing fisher ABM.")
 
-scenario = data.table (name = "test_fisher_habitat",
-                       description = "Testing fisher habitat loader on Williams Lake TSA.")
-
-harvestFlow <- rbindlist(list(data.table(compartment = "Williams_Lake_TSA",
-                                     partition = ' vol > 150 ', 
-                                     period = rep( seq (from = 1,
-                                                      to = 40, 
-                                                      by = 1),
-                                                1), 
-                                     flow = 12500000, #2,500,000m3/year 
-                                     partition_type = 'live') 
-                        ))
-
-patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
-                                  2,2,2,2,2,2,
-                                  3,3,3,3,3,3,
-                                  4,4,4,4,4,4,
-                                  5,5,5,5,5,5), 
-                           sizeClass = c(40,80,120,160,200,240), 
-                           freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
-                                    0.3,0.3,0.1,0.1,0.1, 0.1,
-                                    0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
-                                    0.1,0.02,0.02,0.02,0.02,0.8,
-                                    0.3,0.3,0.1,0.1,0.1, 0.1))
-
-modules <- list ("fisherHabitatLoader",
+modules <- list ("FLEX2",
                  "growingStockCLUS",
-                 "blockingCLUS", 
-                 "forestryCLUS", 
                  "uploaderCLUS",
                  "dataLoaderCLUS")
 
-
-
-objects <- list (scenario = scenario,
-                 harvestFlow = harvestFlow, 
-                 patchSizeDist = patchSizeDist)
-
+objects <- list (scenario = scenario)
 inputs <- list ()
-
 outputs <- data.frame (objectName = c("harvestReport",
-                                      "growingStockReport"))
+                                      "growingStockReport",
+                                      "fisherABMReport"
+                                      ))
 
 paths <- list(cachePath = cacheDir,
               modulePath = moduleDir,
