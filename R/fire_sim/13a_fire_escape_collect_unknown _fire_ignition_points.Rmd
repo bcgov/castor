@@ -1,0 +1,1317 @@
+---
+title: "13b_data_prep_ignition_points_with_cause_unknown"
+author: "Elizabeth Kleynhans"
+date: '2022-10-07'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Add FRT to ignition data
+```{r}
+# get latest data off BCGW
+ignit_unknown<-try(
+  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
+    filter(FIRE_YEAR > 2001) %>%
+    filter(FIRE_TYPE == "Fire") %>%
+    filter(FIRE_CAUSE =="Unknown") %>%
+    collect()
+)
+st_crs(ignit_unknown)
+
+table(ignit_unknown$FIRE_YEAR, ignit_unknown$FIRE_CAUSE) 
+ignit_unknown$ig_mnth<-stringi::stri_sub(ignit_unknown$IGNITION_DATE,6,7)
+
+frt <- st_read ( dsn = "D:\\Fire\\fire_data\\Fire_Regime_Types\\FRT\\FRT_Canada.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(frt) #Retrieve coordinate reference system from sf or sfc object
+
+ignt.unknown.frt <- st_join(ignit_unknown, frt)
+names(ignt.unknown.frt)
+
+table(ignt.unknown.frt$Cluster)
+
+```
+Extract elevation, slope, aspect, wind, road distance and infrastructure distance
+
+```{r}
+##Slope
+DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
+##Aspect
+DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc_3005.tif")
+#Elevation
+DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+# Roads
+roads_dist <- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
+
+# Infrastructure
+dist_rail<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
+dist_power<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
+dist_oil<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
+dist_mines<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
+dist_urban<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
+
+# create raster stack
+rasStack = stack(DEM_slope, DEM_aspect, DEM, roads_dist, dist_rail, dist_power, dist_oil, dist_mines, dist_urban)
+head(rasStack)
+str(rasStack)
+
+names(ignt.unknown.frt)
+
+##Try this first
+test<-cbind(ignt.unknown.frt, st_coordinates(ignt.unknown.frt))
+head(test)
+
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+#crs(pointCoordinates) #No CRS when a dataframe
+
+##Extract DEM values from stacked layer
+rasValue2=raster::extract(rasStack, pointCoordinates)
+head(rasValue2)
+dim(rasValue2) #200298 values
+dim(ignt.unknown.frt)#200298 values
+
+#Append new information
+ignt.unknown.frt_rasts<-cbind(ignt.unknown.frt, rasValue2)
+head(ignt.unknown.frt_rasts)
+crs(ignt.unknown.frt_rasts)
+
+
+# do some calculations on the infrastructure
+#Append new information
+ignt.unknown.frt_rasts$dist_roads_m<-ignt.unknown.frt_rasts$dist_roads*100
+ignt.unknown.frt_rasts$dist_mines_m<-ignt.unknown.frt_rasts$dist_mines*100
+ignt.unknown.frt_rasts$dist_oil_m<-ignt.unknown.frt_rasts$dist_oil*100
+ignt.unknown.frt_rasts$dist_power_m<-ignt.unknown.frt_rasts$dist_power*100
+ignt.unknown.frt_rasts$dist_rail_m<-ignt.unknown.frt_rasts$dist_rail*100
+ignt.unknown.frt_rasts$dist_urban_m<-ignt.unknown.frt_rasts$dist_urban*100
+
+ignt.unknown.frt_rasts2 <- ignt.unknown.frt_rasts %>% 
+  dplyr::select(id:dem_ha_bc, geometry:dist_urban_m)
+
+head(ignt.unknown.frt_rasts2)
+crs(ignt.unknown.frt_rasts2)
+
+ignt.unknown.frt_rasts2$dist_infrastructure_m<-0
+
+ignt.unknown.frt_rasts2$dist_infrastructure_m<-
+  ifelse(ignt.unknown.frt_rasts2$dist_rail_m < ignt.unknown.frt_rasts2$dist_power_m, ignt.unknown.frt_rasts2$dist_rail_m, ignt.unknown.frt_rasts2$dist_power_m)
+
+ignt.unknown.frt_rasts2$dist_infrastructure_m<-
+  ifelse(ignt.unknown.frt_rasts2$dist_oil_m < ignt.unknown.frt_rasts2$dist_infrastructure_m, ignt.unknown.frt_rasts2$dist_oil_m, ignt.unknown.frt_rasts2$dist_infrastructure_m)
+
+ignt.unknown.frt_rasts2$dist_infrastructure_m<-
+  ifelse(ignt.unknown.frt_rasts2$dist_mines_m < ignt.unknown.frt_rasts2$dist_infrastructure_m, ignt.unknown.frt_rasts2$dist_mines_m, ignt.unknown.frt_rasts2$dist_infrastructure_m)
+
+ignt.unknown.frt_rasts2$dist_infrastructure_m<-
+  ifelse(ignt.unknown.frt_rasts2$dist_urban_m < ignt.unknown.frt_rasts2$dist_infrastructure_m, ignt.unknown.frt_rasts2$dist_urban_m, ignt.unknown.frt_rasts2$dist_infrastructure_m)
+
+```
+
+```{r}
+# load in wind rasters here because they have a different extent to the other rasters so the data has to be extracted separately. (I should fix this!)
+
+# winds
+summer_wind_raster<- raster("D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\wind_summer_clipped_224.tif")
+
+spring_wind_raster<- raster("D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\wind_spring_raster_224.tif")
+
+rasStackWind = stack(summer_wind_raster, spring_wind_raster)
+crs(rasStackWind)
+
+##Extract Coordinates
+test<-cbind(ignt.unknown.frt_rasts2, st_coordinates(ignt.unknown.frt_rasts2))
+head(test)
+
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+#crs(pointCoordinates) #No CRS when a dataframe
+
+##Extract Wind values from stacked layer
+rasValue3=raster::extract(rasStackWind, pointCoordinates)
+head(rasValue3)
+str(rasValue3) # 200292 values
+str(ignt.unknown.frt_rasts2)# 200292 values
+
+#Append new information
+ignt.unknown.frt_rasts_wind<-cbind(ignt.unknown.frt_rasts2, rasValue3)
+head(ignt.unknown.frt_rasts_wind)
+crs(ignt.unknown.frt_rasts_wind)
+
+# rename wind
+names(ignt.unknown.frt_rasts_wind)
+ignt.unknown.frt_rasts_wind<- ignt.unknown.frt_rasts_wind %>% rename(
+  win_sum=wind_summer_clipped_224,
+  win_spg=wind_spring_raster_224)
+names(ignt.unknown.frt_rasts_wind)
+
+#get provincial boundary for clipping the layers to the area of interest i.e. removing any points that fall outside the area of interest.
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
+prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
+crs(prov.bnd)# this one needs to be transformed to 3005
+bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system
+st_crs(bc.bnd)
+
+#Clip FRT here
+unknown_clipped<-st_intersection(bc.bnd, ignt.unknown.frt_rasts_wind)
+#plot(st_geometry(frt_clipped), col=sf.colors(10,categorical=TRUE))
+length(unique(unknown_clipped$Cluster))
+dim(unknown_clipped)
+dim(ignt.unknown.frt_rasts_wind)
+unknown_clipped$idno<-1:length(unknown_clipped$FIRE_CAUSE)
+
+st_write(unknown_clipped, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\ignt.unknown.frt_rasts_wind.gpkg", delete_layer=TRUE)
+
+rm(pointCoordinates, rasValue2, test, DEM, DEM_aspect, DEM_slope) # remove some files out of memory
+gc()
+
+```
+
+
+```{r}
+years<-c("2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021")
+
+for (i in 1: length(years)) {
+  dat<- unknown_clipped %>% filter(FIRE_YEAR==years[i])
+  sample.pts.all <- data.frame (matrix (ncol = 5, nrow = nrow (dat)))
+  colnames (sample.pts.all) <- c ("ID1","ID2", "lat", "long", "el")
+  sample.pts.all$ID1<- dat$idno
+  sample.pts.all$ID2 <- dat$FIRE_YEAR
+  sample.pts.all$lat <-as.numeric(dat$LATITUDE)
+  sample.pts.all$long <- as.numeric(dat$LONGITUDE)
+  sample.pts.all$el <- as.numeric(dat$dem_ha_bc)
+  
+  nam1<-paste("unknown_ignit.points.all.frt",years[i], "csv",sep=".")
+  the_dir <- "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp"
+  write.csv(sample.pts.all, file = paste0(the_dir, "\\", basename(nam1)), row.names=FALSE)
+}
+
+
+```
+
+```{r}
+
+setwd("D:/Climatebc_v730"); # set the ClimateBC root directory as the working directory
+exe <- "ClimateBC_v7.30.exe"
+
+## 2002
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2002.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2002.csv'
+yearPeriod = '/Year_2002.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2003
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2003.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2003.csv'
+yearPeriod = '/Year_2003.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2004
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2004.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2004.csv'
+yearPeriod = '/Year_2004.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2005
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2005.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2005.csv'
+yearPeriod = '/Year_2005.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2006
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2006.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2006.csv'
+yearPeriod = '/Year_2006.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2007
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2007.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2007.csv'
+yearPeriod = '/Year_2007.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2008
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2008.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2008.csv'
+yearPeriod = '/Year_2008.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2009
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2009.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2009.csv'
+yearPeriod = '/Year_2009.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2010
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2010.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2010.csv'
+yearPeriod = '/Year_2010.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2011
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2011.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2011.csv'
+yearPeriod = '/Year_2011.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2012
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2012.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2012.csv'
+yearPeriod = '/Year_2012.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2013
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2013.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2013.csv'
+yearPeriod = '/Year_2013.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2014
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2014.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2014.csv'
+yearPeriod = '/Year_2014.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2015
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2015.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2015.csv'
+yearPeriod = '/Year_2015.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2016
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2016.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2016.csv'
+yearPeriod = '/Year_2016.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2017
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2017.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2017.csv'
+yearPeriod = '/Year_2017.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2018
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2018.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2018.csv'
+yearPeriod = '/Year_2018.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2019
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2019.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2019.csv'
+yearPeriod = '/Year_2019.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2020
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2020.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2020.csv'
+yearPeriod = '/Year_2020.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+##2021
+inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2021.csv' 
+outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2021.csv'
+yearPeriod = '/Year_2021.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+```
+
+#Import climate data and calculate Drought Code
+
+```{r}
+
+###############################
+#Import climate data per ignition and sample location
+###############################
+
+#Depending on where you saved your output, you may need to update the directory below
+file.list1<-list.files("C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output", pattern="unknown_ignit_samp_points", all.files=FALSE, full.names=FALSE)
+y1<-gsub(".csv","",file.list1)
+the_dir <- "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output"
+
+for (i in 1:length(file.list1)){
+  assign(paste0(y1[i]),read.csv (file=paste0(the_dir, "\\", file.list1[i])))
+}
+
+```
+
+Because much literature suggests that the monthly drought code (MDC) is an important factor, we will use information acquired from ClimateBC to get MDC values.
+
+```{r}
+# FOR EACH DATASET CALCULATE THE MONTHLY DROUGHT CODE
+
+#############################################
+#### Equations to calculate drought code ####
+#############################################
+   
+months<- c("02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12")
+  
+days_month<- c(31, 30, 31, 30, 31, 31, 30, 31, 30) # number of days in each month starting in Jan
+#### Daylength adjustment factor (Lf) [Development and Structure of the Canadian Forest Fire Weather Index System pg 15, https://d1ied5g1xfgpx8.cloudfront.net/pdfs/19927.pdf] ####
+# Month <- Lf value
+# LF[1] is the value for Jan
+Lf<-c( -1.6, 0.9, 3.8, 5.8, 6.4, 5.0, 2.4, 0.4, -1.6)
+####
+
+### Calculate drought code for Fire ignition data
+filenames<-list()
+for (i in 1: length(y1)){
+  
+  x<-eval(as.name(y1[i])) %>% 
+    rename(YEAR=ID2) %>%
+    dplyr::select(ID1, YEAR,Latitude, Longitude, Tmax02:Tmax11, Tave02:Tave11, PPT02:PPT11, RH02:RH11, DD18_02:DD18_11)
+  
+  x2<- x %>% filter(Tmax05 != -9999) # there are some locations that did not have climate data, probably because they were over the ocean, so Im removing these here.
+  
+  for (j in 1 : length(Lf)) {
+
+    
+    x2$MDC_02<-15 # the MDC value for Feb This assumes that the ground is saturated at the start of the season. Maybe not true for all locations... may need to think about this a little more.
+    
+    Em<- days_month[j]*((0.36*x2[[paste0("Tmax",months[j+1])]])+Lf[j])
+    Em2 <- ifelse(Em<0, 0, Em)
+    DC_half<- x2[[paste0("MDC_",months[j])]] + (0.25 * Em2)
+    precip<-x2[[paste0("PPT",months[j+1])]]
+    RMeff<-(0.83 * (x2[[paste0("PPT",months[j+1])]]))
+    Qmr<- (800 * exp((-(DC_half))/400)) + (3.937 * RMeff)
+    Qmr2 <- ifelse(Qmr>800, 800, Qmr)
+    MDC_m <- (400 * log(800/Qmr2)) + 0.25*Em2
+    x2[[paste0("MDC_",months[j+1])]] <- (x2[[paste0("MDC_",months[j])]] + MDC_m)/2
+    x2[[paste0("MDC_",months[j+1])]] <- ifelse(x2[[paste0("MDC_",months[j+1])]] <15, 15, x2[[paste0("MDC_",months[j+1])]])
+  }
+  nam1<-paste("DC.",y1[i],sep="") #defining the name
+  assign(nam1,x2)
+  filenames<-append(filenames,nam1)
+}
+
+
+# combined all the DC.ignition files together
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(filenames)
+DC.ignitions<-mkFrameList(n) 
+#DC.ignitions$ID1<- as.factor(DC.ignitions$ID1)
+
+dim(DC.ignitions) 
+names(DC.ignitions)
+names(unknown_clipped)
+dim(unknown_clipped)
+
+DC.ignitions1<- DC.ignitions %>% rename(idno=ID1,
+                                        FIRE_YEAR=YEAR)
+str(DC.ignitions1)
+DC.ignitions1$FIRE_YEAR<-as.numeric(DC.ignitions1$FIRE_YEAR)
+DC.ignitions1$idno<-as.numeric(as.character(DC.ignitions1$idno))
+
+
+unknown_clipped$idno <- as.numeric(as.character(unknown_clipped$idno))
+unknown_clipped$FIRE_YEAR <- as.numeric(as.character(unknown_clipped$FIRE_YEAR))
+str(unknown_clipped)
+
+# Now join DC.ignitions back with the original fire ignition dataset
+unknown_ignition_weather<-left_join(unknown_clipped, DC.ignitions1)
+head(unknown_ignition_weather)
+tail(unknown_ignition_weather) #Lat -Longs match
+dim(unknown_ignition_weather) 
+st_crs(unknown_ignition_weather) #Answer NA
+head(unknown_ignition_weather) #Note, there are 2 Lat/Long columns: ensure that they are the same; otherwise, you may be using the incorrect climate csvs that were manually created.
+unknown_ignition_weather <- st_as_sf(unknown_ignition_weather)
+crs(unknown_ignition_weather)
+unknown_ignition_weather<- st_transform(unknown_ignition_weather, 3005)
+crs(unknown_ignition_weather)
+
+```
+
+We want to ensure that everything lines up with the BC Boundaries, so perform below
+
+```{r}
+# Check the points line up with BC boundaries!
+ggplot() +
+  geom_sf(data=bc.bnd, col='red') +
+  geom_sf(data=unknown_ignition_weather, col='black') #looks good
+#If random points appear in middle of ocean, open in QGIS to get points and see what has happened.
+
+
+# A check of the fire ignition counts per year line up with the original data. So the number of fire ignitions seem good.
+```
+
+
+Note: in current below file saved, the lat and long do not match and thus different points were used.
+
+```{r}
+table(unknown_ignition_weather$FIRE_YEAR, unknown_ignition_weather$FIRE_CAUSE)
+
+unknown_ignition_weather2 <- unknown_ignition_weather %>% select(PRENAME,FIRE_NUMBER:FIRE_TYPE, LATITUDE:OBJECTID, ig_mnth:geometry)
+unknown_ignition_weather2$idno
+
+unknown_veg_query<-unknown_ignition_weather2 %>% select(idno, FIRE_YEAR, geometry)
+
+st_write(unknown_veg_query, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_veg_query.gpkg")
+
+
+st_write(unknown_ignition_weather2, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignition.shp")
+##Can also open in QGis to assess for any physical outliers and their information.
+
+#str(ignition_weather_crs)
+#head(ignition_weather_crs)
+#ignition_weather_crs<-st_as_sf(ignition_weather_crs)
+
+
+##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_unknown_ignition_weather_veg_15x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+##Above may not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
+
+#key_get('dbpass', keyring = 'postgreSQL')
+
+# OR my local machine
+
+# ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_unknown_ignition_weather_veg_15x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+
+```
+
+
+# Save each fire year separately
+
+```{r}
+unknown_ignit_2002<- unknown_veg_query %>% filter(FIRE_YEAR==2002)
+dim(unknown_ignit_2002)
+sf::st_write(unknown_ignit_2002, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2002.shp", delete_layer=TRUE)
+
+unknown_ignit_2003<- unknown_veg_query %>% filter(FIRE_YEAR==2003)
+dim(unknown_ignit_2003)
+sf::st_write(unknown_ignit_2003, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2003.shp", delete_layer=TRUE)
+
+unknown_ignit_2004<- unknown_veg_query %>% filter(FIRE_YEAR==2004)
+dim(unknown_ignit_2004)
+sf::st_write(unknown_ignit_2004, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2004.shp", delete_layer=TRUE)
+
+unknown_ignit_2005<- unknown_veg_query %>% filter(FIRE_YEAR==2005)
+dim(unknown_ignit_2005)
+sf::st_write(unknown_ignit_2005, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2005.shp", delete_layer=TRUE)
+
+unknown_ignit_2006<- unknown_veg_query %>% filter(FIRE_YEAR==2006)
+dim(unknown_ignit_2006)
+sf::st_write(unknown_ignit_2006, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2006.shp", delete_layer=TRUE)
+
+unknown_ignit_2007<- unknown_veg_query %>% filter(FIRE_YEAR==2007)
+dim(unknown_ignit_2007)
+sf::st_write(unknown_ignit_2007, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2007.shp", delete_layer=TRUE)
+
+unknown_ignit_2008<- unknown_veg_query %>% filter(FIRE_YEAR==2008)
+dim(unknown_ignit_2008)
+sf::st_write(unknown_ignit_2008, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2008.shp", delete_layer=TRUE)
+
+unknown_ignit_2009<- unknown_veg_query %>% filter(FIRE_YEAR==2009)
+dim(unknown_ignit_2009)
+sf::st_write(unknown_ignit_2009, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2009.shp", delete_layer=TRUE)
+
+unknown_ignit_2010<- unknown_veg_query %>% filter(FIRE_YEAR==2010)
+dim(unknown_ignit_2010)
+sf::st_write(unknown_ignit_2010, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2010.shp", delete_layer=TRUE)
+
+unknown_ignit_2011<- unknown_veg_query %>% filter(FIRE_YEAR==2011)
+dim(unknown_ignit_2011)
+sf::st_write(unknown_ignit_2011, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2011.shp", delete_layer=TRUE)
+
+unknown_ignit_2012<- unknown_veg_query %>% filter(FIRE_YEAR==2012)
+dim(unknown_ignit_2012)
+sf::st_write(unknown_ignit_2012, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2012.shp", delete_layer=TRUE)
+
+unknown_ignit_2013<- unknown_veg_query %>% filter(FIRE_YEAR==2013)
+dim(unknown_ignit_2013)
+sf::st_write(unknown_ignit_2013, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2013.shp", delete_layer=TRUE)
+
+unknown_ignit_2014<- unknown_veg_query %>% filter(FIRE_YEAR==2014)
+dim(unknown_ignit_2014)
+sf::st_write(unknown_ignit_2014, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2014.shp", delete_layer=TRUE)
+
+unknown_ignit_2015<- unknown_veg_query %>% filter(FIRE_YEAR==2015)
+dim(unknown_ignit_2015)
+sf::st_write(unknown_ignit_2015, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2015.shp", delete_layer=TRUE)
+
+unknown_ignit_2016<- unknown_veg_query %>% filter(FIRE_YEAR==2016)
+dim(unknown_ignit_2016)
+sf::st_write(unknown_ignit_2016, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2016.shp", delete_layer=TRUE)
+
+unknown_ignit_2017<- unknown_veg_query %>% filter(FIRE_YEAR==2017)
+dim(unknown_ignit_2017)
+sf::st_write(unknown_ignit_2017, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2017.shp", delete_layer=TRUE)
+
+unknown_ignit_2018<- unknown_veg_query %>% filter(FIRE_YEAR==2018)
+dim(unknown_ignit_2018)
+sf::st_write(unknown_ignit_2018, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2018.shp", delete_layer=TRUE)
+
+unknown_ignit_2019<- unknown_veg_query %>% filter(FIRE_YEAR==2019)
+dim(unknown_ignit_2019)
+sf::st_write(unknown_ignit_2019, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2019.shp", delete_layer=TRUE)
+
+unknown_ignit_2020<- unknown_veg_query %>% filter(FIRE_YEAR==2020)
+dim(unknown_ignit_2020)
+sf::st_write(unknown_ignit_2020, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2020.shp", delete_layer=TRUE)
+
+unknown_ignit_2021<- unknown_veg_query %>% filter(FIRE_YEAR==2021)
+dim(unknown_ignit_2021)
+sf::st_write(unknown_ignit_2021, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2021.shp", delete_layer=TRUE)
+```
+
+### Now that the ignition points have been joined to the VRI data in QGIS. I need to reimport the data so that i can join it all together and use it.
+
+```{r}
+file.list1<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data", pattern="Unknown_ignit", all.files=FALSE, full.names=FALSE)
+y1<-gsub(".gpkg","",file.list1)
+the_dir <- "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data"
+
+for (i in 1:length(file.list1)){
+  assign(paste0(y1[i]),st_read (dsn=paste0(the_dir, "\\", file.list1[i])))
+}
+
+y2<-y1[1:22]
+# combined all the DC.ignition files together
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=y2[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(y2)
+fire_veg<-mkFrameList(n) 
+fire_veg[duplicated(fire_veg$idno),]$FIRE_YEAR # there should be no DUPLICATES
+
+st_crs(fire_veg)
+
+fire_veg_a<- st_drop_geometry(fire_veg)
+fire_veg_a<- fire_veg_a %>% rename(FIRE_YE =FIRE_YEAR)
+
+unknown_ignition_weather2<- st_read( "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignition.shp")
+
+unknown_ignition_weather_veg<-left_join(unknown_ignition_weather2, fire_veg_a)
+```
+
+
+
+### Now Im going to try to use the VRI vegetation data to classify vegetation as Perrakis et al. (2018) British Columbia Wildfire Fuel Typing and Fuel Type Layer Description
+
+
+First I need to create some new variables i.e. time since disturbance in years and time since last harvest. 
+```{r}
+
+fire_all<- unknown_ignition_weather_veg
+
+
+fire_all$yearHarvest<-as.numeric(as.character(stringi::stri_sub(fire_all$harvest_date,1,4)))
+fire_all<- fire_all %>% dplyr::mutate(yearsSinceHarvest = FIRE_YE - yearHarvest)
+
+fire_all$earliest_nonlogging_dist_type_2<-gsub('[" "]', '', fire_all$earliest_nonlogging_dist_type) # removing some weird characters
+table(fire_all$earliest_nonlogging_dist_type)
+table(fire_all$earliest_nonlogging_dist_type_2) # better
+
+fire_all$earliest_nonlogging_dist_type<-fire_all$earliest_nonlogging_dist_type_2
+
+fire_all$earliest_nonlogging_dist_type_2<- as.factor(fire_all$earliest_nonlogging_dist_type_2)
+levels(fire_all$earliest_nonlogging_dist_type_2)<-list(burn="B",burn="BE", burn = "BG", burn="BR", burn="BW", burn="NB",drought="D",  disease="DF", disease="DMP", disease="DS", disease="DSG", insect="I", insect="IBB", insect="IBD", insect="IBF", insect="IBM", insect="IBS", flooding="NF", slide="NS", windthrow="NW", planting="P" ) # amalgamate some categories
+table(fire_all$earliest_nonlogging_dist_type_2)
+
+fire_all$earliest_nonlogging_dist_date
+fire_all$yearDisturb<-as.numeric(as.character(stringi::stri_sub(fire_all$earliest_nonlogging_dist_date,1,4)))
+
+fire_all$yearsSinceDisturbance<- ifelse (fire_all$FIRE_YE >= fire_all$yearDisturb, fire_all$FIRE_YE - fire_all$yearDisturb, NA)
+table(fire_all$yearsSinceDisturbance)
+
+```
+
+To save time and effort in coding I create a list of conifer and deciduous species and the bec_subzone codes that equate to wet areas. 
+```{r}
+conifer<-c("C","CW","Y","YC","F","FD","FDC","FDI","B","BB","BA","BG","BL","H","HM","HW","HXM","J","JR","JS","P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA","S","SB","SE","SS","SW","SX","SXW","SXL","SXS","T","TW","X", "XC","XH", "ZC")
+
+deciduous<-c("L", "LA", "LT", "LW", "D", "DR", "U", "UP", "A", "AC", "ACB", "ACT", "AX", "AT", "R", "RA", "E", "EA", "EXP", "EP", "EW", "K", "KC", "V", "VB", "VV", "VP", "G", "M", "MB", "MV", "Q", "QG", "W", "WB", "WP", "WA", "WD", "WS", "WT", "XH", "ZH")
+
+wet<-c("mc", "mcp", "mh", "mk", "mkp", "mks", "mm", "mmp", "mmw", "ms", "mv", "mvp", "mw", "mwp", "mww", "vc", "vcp", "vcw", "vh", "vk", "vks", "vm", "wc", "wcp", "wcw", "wh", "whp", "wk", "wm", "wmp", "wmu", "ws", "wv", "wvp", "ww")
+```
+
+calculating total percent cover by conifers regardless of species. Also pulling out the name of the most dominant conifer. 
+
+```{r}
+
+fire_all<- fire_all %>%
+  mutate(pct1 = ifelse(species_cd_1 %in% conifer, species_pct_1, NA),
+         pct2 = ifelse(species_cd_2 %in% conifer, species_pct_2, NA),
+         pct3 = ifelse(species_cd_3 %in% conifer, species_pct_3, NA),
+         pct4 = ifelse(species_cd_4 %in% conifer, species_pct_4, NA),
+         pct5 = ifelse(species_cd_5 %in% conifer, species_pct_5, NA),
+         pct6 = ifelse(species_cd_6 %in% conifer, species_pct_6, NA),
+         dominant_conifer = ifelse(species_cd_1 %in% conifer, species_cd_1, 
+                                   ifelse(species_cd_2 %in% conifer, species_cd_2,
+                                          ifelse(species_cd_3 %in% conifer, species_cd_3,
+                                                 ifelse(species_cd_4 %in% conifer, species_cd_4,
+                                                        ifelse(species_cd_5 %in% conifer, species_cd_5,
+                                                               ifelse(species_cd_6 %in% conifer, species_cd_6, NA)))))))
+
+table(fire_all$dominant_conifer)
+
+fire_all<-fire_all %>% mutate(conifer_pct_cover_total=rowSums(across(c(pct1:pct6)), na.rm=TRUE))
+
+# the above calculation puts zeros in rows with NA's so Im changing them back to NA
+fire_all$conifer_pct_cover_total<- ifelse(is.na(fire_all$pct1) & is.na(fire_all$pct2) & is.na(fire_all$pct3) & is.na(fire_all$pct4) & is.na(fire_all$pct5) & is.na(fire_all$pct6), NA, fire_all$conifer_pct_cover_total)
+
+tail(fire_all) # looks like it worked
+
+```
+
+
+Now I can hopefully follow the rules outlined at the end of Perrakis et al (2018)
+First Ill code the non-vegetated areas
+```{r}
+fire_all$FWI_veg<-NA
+
+#Now coding the VEGETATED areas
+
+# recently burned
+fire_all1<- fire_all %>%
+  mutate(FWI_veg = case_when(
+          bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crown_closure > 40 & earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance < 4 ~ "N",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crown_closure > 40 & earliest_nonlogging_dist_type_2=="burn" & (yearsSinceDisturbance > 3 & yearsSinceDisturbance < 7) ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crown_closure > 40 & earliest_nonlogging_dist_type_2=="burn" & (yearsSinceDisturbance > 6 & yearsSinceDisturbance < 11) ~ "C-5",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & crown_closure < 41 & earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance <2 ~ "N",
+          
+           bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crown_closure <= 40 & earliest_nonlogging_dist_type_2=="burn" & (yearsSinceDisturbance > 1 & yearsSinceDisturbance <7) ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crown_closure <= 40 & earliest_nonlogging_dist_type_2=="burn" & (yearsSinceDisturbance >6 & yearsSinceDisturbance < 11) ~ "O-1a/b",
+        
+          bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total<60 &  earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance < 2 ~ "N",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total<60 &  earliest_nonlogging_dist_type_2=="burn" & (yearsSinceDisturbance >1 & yearsSinceDisturbance <11) ~ "D-1/2",
+#          TRUE ~ as.character(FWI_veg)))
+
+#table(fire_all1$FWI_veg)
+
+#Pure lodgepole or jack or undefined pine species. Also I just included unknown conifer species (XC) here because lodgepole and jack and undefined pines are the most common conifer species. 
+
+#fire_all1<- fire_all1 %>%
+#  mutate(FWI_veg = case_when(
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") & yearsSinceHarvest<=7 ~ "S-1",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") & bclcs_level_5=="SP" & bec_zone_code %in% c("ICH") & bec_subzone %in% wet  ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") & bclcs_level_5=="SP" & bec_zone_code %in% c("CWH", "CDF", "MH")  ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & bclcs_level_5=="SP" & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-7",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 &  bclcs_level_5 %in% c("DE", "OP") & proj_height_1<=4 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "O-1a/b",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & bclcs_level_5 %in% c("DE", "OP") & (proj_height_1 > 3 & proj_height_1 < 13) & (vri_live_stems_per_ha+vri_dead_stems_per_ha) > 8000 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-4",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & bclcs_level_5 %in% c("DE", "OP") & (proj_height_1 > 3 & proj_height_1 <13) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-3",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & bclcs_level_5 %in% c("DE", "OP") & proj_height_1 >12 & crown_closure <40 & bec_zone_code %in% c("BG", "PP", "IDF", "MS") & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-7",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & bclcs_level_5 %in% c("DE", "OP") & proj_height_1 >12 & crown_closure <40 & bec_zone_code %in% c("CWH", "MH", "ICH") & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-5",
+           bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & bclcs_level_5 %in% c("DE", "OP") & proj_height_1 >12 & crown_closure <40 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-3",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & earliest_nonlogging_dist_type=="IBM" & yearsSinceDisturbance <=5 & stand_percentage_dead >50 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "M-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & earliest_nonlogging_dist_type=="IBM" & yearsSinceDisturbance <=5 & (stand_percentage_dead > 24 & stand_percentage_dead < 51) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & earliest_nonlogging_dist_type=="IBM" & yearsSinceDisturbance <=5 & stand_percentage_dead < 25 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-3",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & earliest_nonlogging_dist_type=="IBM" & yearsSinceDisturbance > 5 & stand_percentage_dead > 50 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-3",
+#          TRUE ~ as.character(FWI_veg)))
+          
+#table(fire_all1$FWI_veg)
+
+# Pure ponderosa pine
+#fire_all1<- fire_all1 %>%
+#  mutate(FWI_veg = case_when(
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>= 80 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & yearsSinceHarvest<=10 ~ "S-1",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & proj_height_1 < 4~ "O-1a/b",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & (proj_height_1 > 3 & proj_height_1 < 13) & (vri_live_stems_per_ha+vri_dead_stems_per_ha)>8000 ~ "C-4",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & (proj_height_1 > 3 & proj_height_1 < 13) & ((vri_live_stems_per_ha+vri_dead_stems_per_ha) > 2999 & (vri_live_stems_per_ha+vri_dead_stems_per_ha) < 8001) ~ "C-3",
+
+##**# # could maybe remove VRI stems part!! BELOW
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 > 79 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & (proj_height_1 > 3 & proj_height_1 < 13) & ((vri_live_stems_per_ha+vri_dead_stems_per_ha)<3000 | is.na(vri_live_stems_per_ha+vri_dead_stems_per_ha)) ~ "C-7",
+          
+           bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 > 79 & species_cd_1 == "PY" & bclcs_level_5 =="DE" & (proj_height_1 > 11 & proj_height_1 < 18) ~ "C-3",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & (proj_height_1 > 11 & proj_height_1 < 18) ~ "C-7",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & proj_height_1 >17 ~ "C-7",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & bclcs_level_5 =="SP" & stand_percentage_dead >=40 ~ "O-1a/b",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & bclcs_level_5 =="SP" & yearsSinceHarvest<=10 ~ "S-1",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & bclcs_level_5 =="SP" ~ "C-7",
+          
+# PA, PF, PW
+
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PA", "PF", "PW") & bclcs_level_5 =="DE"  ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PA", "PF", "PW") & (vri_live_stems_per_ha+vri_dead_stems_per_ha)>=900  ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PA", "PF", "PW") & ((vri_live_stems_per_ha+vri_dead_stems_per_ha) > 599 & (vri_live_stems_per_ha+vri_dead_stems_per_ha) <901)  ~ "C-7",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PA", "PF", "PW")  ~ "C-5",
+        
+#          TRUE ~ as.character(FWI_veg)))
+
+#table(fire_all1$FWI_veg)
+
+### pure douglas fir
+#fire_all1<- fire_all1 %>%
+#  mutate(FWI_veg = case_when(
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI")  & yearsSinceHarvest<=6 & bec_zone_code %in% c("CWH", "MH", "CDF") ~ "S-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI")  & yearsSinceHarvest<=6 & bec_zone_code %in% c("ICH") & bec_subzone %in% wet ~ "S-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI")  & yearsSinceHarvest<=6 ~ "S-1",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code %in% c("CWH", "MH", "CDF") & proj_height_1 < 4 ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code =="ICH" & bec_subzone %in% wet & proj_height_1 < 4 ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & proj_height_1 < 4 ~ "O-1a/b",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 > 79 & dominant_conifer %in% c("F","FD","FDC","FDI") & bec_zone_code %in% c("CWH", "MH", "CDF") & (proj_height_1 >= 4 & proj_height_1<=12) & crown_closure >= 55 ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code =="ICH" & bec_subzone %in% wet & (proj_height_1 > 3 & proj_height_1< 13) & crown_closure > 55 ~ "C-3",
+
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & (proj_height_1 >= 4 & proj_height_1<=12) & crown_closure > 55 & stand_percentage_dead > 34 ~ "C-4",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & (proj_height_1 >= 4 & proj_height_1<=12) & crown_closure > 55 ~ "C-3",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code %in% c("CWH", "MH", "CDF") & proj_height_1>12 & crown_closure > 55  ~ "C-5",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code %in% c("ICH") & bec_subzone %in% wet & crown_closure > 55 & proj_height_1>12  ~ "C-5",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & proj_height_1>12 & crown_closure > 55 ~ "C-7",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code %in% c("CWH", "MH", "CDF") & (crown_closure > 25 & crown_closure < 56)  ~ "C-5", 
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code %in% c("ICH") & bec_subzone %in% wet & (crown_closure > 25 & crown_closure < 56)  ~ "C-5", 
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & (crown_closure > 25 & crown_closure < 56)  ~ "C-7", 
+        
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code %in% c("CWH", "MH", "CDF") & crown_closure<26  ~ "D-1/2", 
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code =="ICH" & bec_subzone %in% wet & crown_closure<26 ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & crown_closure<26 ~ "O-1a/b",
+#          TRUE ~ as.character(FWI_veg)))
+
+#table(fire_all1$FWI_veg)
+# Pure Spruce
+
+#fire_all1<- fire_all1 %>%
+ # mutate(FWI_veg = case_when(
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "SE"  & yearsSinceHarvest<=10  ~ "S-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "SE" & bclcs_level_5=="SP"  ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "SE" & bclcs_level_5=="DE"  ~ "C-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "SE"  ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "SS"  & yearsSinceHarvest<=6  ~ "S-3",
+         bclcs_level_1=="V" & bclcs_level_2=="T" &  species_pct_1> 79 & species_cd_1 == "SS" & bclcs_level_5=="SP"  ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "SS" & bclcs_level_5 %in% c("DE","OP")  ~ "C-5",
+          
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("SB", "SW")  & yearsSinceHarvest<=10  ~ "S-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1  %in% c("SB", "SW") & bclcs_level_5 %in% c("DE","OP")  ~ "C-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("SB", "SW") & bec_zone_code %in% c("BWBS", "SWB")  ~ "C-1",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("SB", "SW")  ~ "M-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS")  & yearsSinceHarvest<=7  ~ "S-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS")  &  bec_zone_code %in% c("BWBS", "SWB") & bclcs_level_5 %in% c("DE", "OP")  ~ "C-2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS")  &  bec_zone_code %in% c("BWBS", "SWB")  ~ "C-1",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS")  &  !bec_zone_code %in% c("BWBS", "SWB") & bclcs_level_5 =="SP"  ~ "C-7",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS")  &  bec_zone_code %in% c("CWH", "CDF")  ~ "C-5",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS")  & proj_height_1 < 4  ~ "O-1a/b",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS")  & proj_height_1 >= 4 & bclcs_level_5 == "OP"  ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS") & proj_height_1 >= 4  ~ "C-2",
+        
+#          TRUE ~ as.character(FWI_veg)))
+#table(fire_all1$FWI_veg)
+
+# Pure hemlock, redcedar or yellow cedar
+
+#fire_all1<- fire_all1 %>%
+#  mutate(FWI_veg = case_when(
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & yearsSinceHarvest<=6  ~ "S-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="DE" & proj_height_1<4  ~ "D-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="DE" & (proj_height_1 > 3 & proj_height_1<16)  ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="DE" & proj_age_1<60  ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="DE" & (proj_age_1 > 59 & proj_age_1<100)  ~ "M-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="DE"  ~ "C-5",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="OP"  ~ "C-5",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  ~ "D-1/2",
+        
+#          TRUE ~ as.character(FWI_veg)))
+
+# True fir
+#fire_all1<- fire_all1 %>%
+#  mutate(FWI_veg = case_when(
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "BG"  ~ "C-7",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "BA"  ~ "M-1/2",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("B", "BB", "BL")  & bclcs_level_5=="SP"  ~ "C-7",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("B", "BB", "BL")  ~ "C-3",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in%  c("T","TW")  ~ "C-5",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("J","JR","JS")  ~ "O-1a/b",
+          bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% deciduous  ~ "D-1/2",
+#           TRUE ~ as.character(FWI_veg)))
+
+
+######################
+# Mixed species stand
+######################
+
+# left out the info about bclcs_level_1 and bclcs_level_2 because there were a few locations where this info was NA and so these areas were not classified.
+
+## % Conifer 0 - 65 
+
+#fire_all1<- fire_all1 %>%
+#  mutate(FWI_veg = case_when(
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 <80 & conifer_pct_cover_total<=20 ~ "D-1/2",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & is.na(conifer_pct_cover_total) ~ "D-1/2",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & yearsSinceHarvest<=6 & (conifer_pct_cover_total > 20 & conifer_pct_cover_total < 81) ~ "S-1",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 20 & conifer_pct_cover_total < 41) ~ "M-1/2",
+
+            
+# note for below I made the assumption that  on pg 39 of Perrakis et al. (2018) there were refering to the dominant conifer species  when they listed specific species. That is why only the first occurrence of a conifer gets the specific species  
+
+## conifer cover 41 - 65%
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & dominant_conifer %in% c("T","TW") & (conifer_pct_cover_total> 40 & conifer_pct_cover_total< 66) ~ "C-5",
+
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 40 & conifer_pct_cover_total<66) & dominant_conifer %in% c("J","JR","JS")  ~ "O-1a/b",
+
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 40 & conifer_pct_cover_total<66) & dominant_conifer %in% c("P","PJ","PF","PL","PLI","PY","PLC","PW","PA","F","FD","FDC","FDI","SE","S","SB","SS","SW","SX","SXW","SXL","SXS","C","CW","Y","YC","H","HM","HW","HXM","B","BB","BA","BG","BL")  ~ "M-1/2", # removed PXJ & PR 
+
+#TRUE ~ as.character(FWI_veg)))
+
+## conifer cover 65-80% 
+#fire_all1<- fire_all1 %>%
+#  mutate(FWI_veg = case_when(
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 65 & conifer_pct_cover_total < 81) & dominant_conifer %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "M-1/2",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 65 & conifer_pct_cover_total<81) & dominant_conifer =="PY" ~ "C-7",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 65 & conifer_pct_cover_total<81) & dominant_conifer %in% c("PA", "PF", "PW")  ~ "C-5",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & bec_zone_code %in% c("CWH", "CDF") & (conifer_pct_cover_total > 65 & conifer_pct_cover_total<81) & dominant_conifer %in% c("F","FD","FDC")  ~ "C-5",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & bec_zone_code %in% c("ICH") & bec_subzone %in% wet & (conifer_pct_cover_total > 65 & conifer_pct_cover_total<81) & dominant_conifer %in% c("F","FD","FDC")  ~ "C-5",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & bclcs_level_5=="DE" & (conifer_pct_cover_total > 65 & conifer_pct_cover_total<81) & dominant_conifer %in% c("F","FD","FDC") ~ "M-1/2",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 65 & conifer_pct_cover_total<81) & dominant_conifer %in% c("F","FD","FDC") ~ "C-7",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 65 & conifer_pct_cover_total<81) & dominant_conifer %in% c("SS")  ~ "C-5",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 65 & conifer_pct_cover_total < 81) & dominant_conifer %in% c("SE","S","SB","SS","SW","SX","SXW","SXL","SXS")  ~ "M-1/2",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 65 & conifer_pct_cover_total < 81) & dominant_conifer %in% c("C","CW","Y","YC","H","HM","HW","HXM","T","TW")  ~ "C-5",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 65 & conifer_pct_cover_total < 81) & dominant_conifer %in% c("B","BB","BA","BG","BL","J","JR","JS")  ~ "C-7",
+    
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 65 & conifer_pct_cover_total<81)  ~ "M-1/2",
+#TRUE ~ as.character(FWI_veg)))
+
+
+## conifer cover 81-100 %            
+#fire_all1<- fire_all1 %>%
+#  mutate(FWI_veg = case_when(
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & yearsSinceHarvest<=7 ~ "S-1",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & bclcs_level_5 == "SP" & bec_zone_code %in% c("CWH", "CDF", "MH") ~ "D-1/2",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & bclcs_level_5 == "SP" & bec_zone_code %in% c("ICH") & bec_subzone %in% wet ~ "D-1/2",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & bclcs_level_5 == "SP" & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "C-7",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & proj_height_1<4 ~ "O-1a/b", 
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")  & (proj_height_1 > 3 & proj_height_1 < 13) & (vri_live_stems_per_ha+vri_dead_stems_per_ha)>8000  ~ "C-4",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS") & (proj_height_1 > 3 & proj_height_1 < 13)  ~ "C-3",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS") & proj_height_1 > 12 & crown_closure<40 & bec_zone_code %in% c("BG", "PP", "IDF", "MS")   ~ "C-7",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS") & proj_height_1 > 12 & crown_closure<40 & bec_zone_code %in% c("CWH", "MH", "ICH")   ~ "C-5",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS") & proj_height_1 > 12 & crown_closure<40 ~ "C-3",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS") & proj_height_1 > 12 & earliest_nonlogging_dist_type=="IBM" & yearsSinceDisturbance<=5 &  stand_percentage_dead > 50 ~ "M-3",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS") & proj_height_1 > 12 & earliest_nonlogging_dist_type=="IBM" & yearsSinceDisturbance<=5 &  stand_percentage_dead >= 25 & stand_percentage_dead <= 50 ~ "C-2",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS") & bclcs_level_5=="DE" & proj_height_1 > 12 & earliest_nonlogging_dist_type=="IBM" & yearsSinceDisturbance<=5 &  stand_percentage_dead < 25 ~ "C-2",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")  & proj_height_1 > 12 & earliest_nonlogging_dist_type=="IBM" & yearsSinceDisturbance<=5 &  stand_percentage_dead < 25 ~ "C-3",
+
+# years since IBM attack > 5
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total < 101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")  & proj_height_1 > 12 & earliest_nonlogging_dist_type=="IBM" & yearsSinceDisturbance > 5 &  stand_percentage_dead >50 ~ "C-2",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")  & proj_height_1 > 12 & earliest_nonlogging_dist_type=="IBM" & yearsSinceDisturbance > 5 &  stand_percentage_dead >= 25 & stand_percentage_dead <= 50  & bclcs_level_5 == "DE" ~ "C-2",
+
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")  & proj_height_1 > 12 & earliest_nonlogging_dist_type=="IBM" & yearsSinceDisturbance > 5 &  stand_percentage_dead >= 25 & stand_percentage_dead <= 50 ~ "C-3",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")  & proj_height_1 > 12 & earliest_nonlogging_dist_type=="IBM" & yearsSinceDisturbance > 5 & stand_percentage_dead<25  ~ "C-3",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")  & proj_height_1 > 12   ~ "C-3",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & crown_closure <40 & bec_zone_code %in% c("IDF", "PP", "BG", "SBPW", "MS")   ~ "C-7",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & crown_closure <40 & bec_zone_code %in% c("CWH", "CDF", "ICH")   ~ "C-5",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") ~ "C-3",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PY") & yearsSinceHarvest<=7 ~ "S-1",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PY") & proj_height_1 < 4   ~ "O-1a/b",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PY") & bclcs_level_5=="DE"   ~ "C-3",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PY")   ~ "C-7",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PA", "PF", "PW") & bclcs_level_5=="DE"   ~ "C-3",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PA", "PF", "PW") & (vri_live_stems_per_ha+vri_dead_stems_per_ha)>=900   ~ "C-3",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PA", "PF", "PW") & (vri_live_stems_per_ha+vri_dead_stems_per_ha) >= 600 & (vri_live_stems_per_ha+vri_dead_stems_per_ha) <= 900   ~ "C-7",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & (conifer_pct_cover_total > 80 & conifer_pct_cover_total<101) & species_cd_1 %in% c("PA", "PF", "PW")   ~ "C-5",
+#TRUE ~ as.character(FWI_veg)))
+
+####################
+#sp. 1 Fd or any F
+####################
+
+#fire_all1<- fire_all1 %>%
+#  mutate(FWI_veg = case_when(
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total >20 & species_cd_1 %in% c("F","FD","FDC","FDI") & yearsSinceHarvest<=6 & bec_zone_code %in% c("CWH", "MH","CDF") ~ "S-3",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & yearsSinceHarvest<=6 & bec_zone_code %in% c("ICH") & bec_subzone %in% wet ~ "S-3",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & yearsSinceHarvest<=6 ~ "S-1",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & proj_height_1 < 4 & bec_zone_code %in% c("CWH", "MH", "CDF") ~ "D-1/2",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & proj_height_1 < 4 & bec_zone_code %in% c("ICH") & bec_subzone %in% wet ~ "D-1/2",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & proj_height_1 < 4 ~ "O-1a/b",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & (proj_height_1 > 3 & proj_height_1 < 13) & crown_closure>55 & bec_zone_code %in% c("CWH", "MH", "CDF") ~ "C-3",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & (proj_height_1 > 3 & proj_height_1 < 13) & crown_closure>55 &bec_zone_code %in% c("ICH") & bec_subzone %in% wet ~ "C-3",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & (proj_height_1 > 3 & proj_height_1 < 13) & crown_closure>55 & stand_percentage_dead >34 ~ "C-4",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & species_cd_2=="PY" & (proj_height_1 > 3 & proj_height_1 < 13) & crown_closure>55 ~ "C-7",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & (proj_height_1 > 3 & proj_height_1 < 13) & crown_closure>55 ~ "C-3",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & proj_height_1 >12 & crown_closure>55 & bec_zone_code %in% c("CWH", "MH", "CDF") ~ "C-5",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & crown_closure>55 & bec_zone_code %in% c("ICH") & bec_subzone %in% wet ~ "C-5",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & crown_closure>55  ~ "C-7",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & ((crown_closure >= 26 & crown_closure<= 55) | is.na(crown_closure)) & bec_zone_code %in% c("CWH", "MH", "CDF")  ~ "C-5",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & ((crown_closure >= 26 & crown_closure<= 55) | is.na(crown_closure)) & bec_zone_code %in% c("ICH") & bec_subzone %in% wet  ~ "C-5",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & ((crown_closure >= 26 & crown_closure<= 55) | is.na(crown_closure))  ~ "C-7",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & crown_closure < 26 & bec_zone_code %in% c("CWH", "MH", "CDF") ~ "D-1/2",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & crown_closure < 26 & bec_zone_code %in% c("ICH") & bec_subzone %in% wet ~ "D-1/2",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & crown_closure < 26 ~ "O-1a/b",
+
+#TRUE ~ as.character(FWI_veg)))
+
+#### Sp1 S(any)
+ 
+#fire_all1<- fire_all1 %>%
+#  mutate(FWI_veg = case_when(
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & yearsSinceHarvest<=6 & bec_zone_code %in% c("CWH", "MH","CDF") ~ "S-3",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & yearsSinceHarvest<=6 & bec_zone_code %in% c("ICH") & bec_subzone %in% wet ~ "S-3",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & yearsSinceHarvest<=6 ~ "S-2",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("SE") & bclcs_level_5=="SP" ~ "C-7",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("SE") & species_cd_2 %in% c("BL", "B", "PL", "P", "PLI") & bclcs_level_5=="DE" ~ "C-2",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("SE") & species_cd_2 %in% c("BL", "B", "PL", "P", "PLI") ~ "C-3",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("SE") & species_cd_2 %in% c("HW", "HM", "CW", "YC") & bclcs_level_5=="DE" ~ "C-3",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("SE") & species_cd_2 %in% c("HW", "HM", "CW", "YC") ~ "C-5",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("SE") ~ "C-3",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("SS") ~ "C-5",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("SB") & bclcs_level_5 %in% c("DE","OP") ~ "C-2",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("SB") & bec_zone_code=="BWBS" ~ "C-1",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("SB") ~ "C-3",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & bclcs_level_5 %in% c("DE") & bec_zone_code=="BWBS"  ~ "C-2",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & bclcs_level_5 %in% c("OP") & bec_zone_code=="BWBS"  ~ "C-3",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & bec_zone_code=="BWBS"  ~ "C-1",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & bec_zone_code %in% c("CWH","MH","CDF") & species_cd_2 %in% c("BL", "B", "P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA") & bclcs_level_5=="SP"  ~ "C-7",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & bec_zone_code %in% c("CWH","MH","CDF") & species_cd_2 %in% c("BL", "B", "P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA")  ~ "C-3",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & bec_zone_code %in% c("CWH","MH","CDF")  ~ "C-5",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & coast_interior_cd=="I" & bclcs_level_5=="SP"  ~ "C-7",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & coast_interior_cd=="I" & bclcs_level_5=="DE"  ~ "C-2",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & coast_interior_cd=="I" & stand_percentage_dead>34 ~ "C-2",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & coast_interior_cd=="I" & species_cd_2 %in% c("PL","PLI","P") ~ "C-2",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") ~ "C-3",
+
+#TRUE ~ as.character(FWI_veg)))
+
+### H(any), C(any), Y(any)
+
+#fire_all1<- fire_all1 %>%
+#  mutate(FWI_veg = case_when(
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM") & yearsSinceHarvest<=6 ~ "S-3",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM") & bclcs_level_5=="DE" & proj_height_1<4 ~ "D-1/2",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM") & bclcs_level_5=="DE" & proj_height_1 > 3 & proj_height_1 < 16 ~ "C-3",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM") & bclcs_level_5=="DE" & proj_age_1<60 ~ "C-3",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM") & bclcs_level_5=="DE" & proj_age_1 > 59 & proj_height_1<100 ~ "M-1/2",
+
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM") & bclcs_level_5=="SP" ~ "D-1/2",
+    bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM") ~ "C-5",
+
+#TRUE ~ as.character(FWI_veg)))
+
+### BG, BA, B etc also T
+
+#fire_all1<- fire_all1 %>%
+#  mutate(FWI_veg = case_when(
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("BG") ~ "C-7",
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("BA") & species_cd_2 %in% c("SE", "SW", "S") ~ "C-3",
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("BA") ~ "M-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("B","BB","BL") & coast_interior_cd=="C" ~ "M-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("B","BB","BL") & bclcs_level_5=="SP" ~ "C-7",
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("B","BB","BL") & bclcs_level_5=="DE" & species_cd_2 %in% c("SE", "SW", "S") ~ "C-2",
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("B","BB","BL") ~ "C-3",
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("T","TW") ~ "C-5",
+bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("J","JR","JS") ~ "C-7",
+
+TRUE ~ as.character(FWI_veg)))
+
+table(fire_all1$FWI_veg)
+
+### non-forested bclcs_level_2==N recently burned
+
+fire_all1<- fire_all1 %>%
+  mutate(FWI_veg = case_when(
+bclcs_level_1=="V" & bclcs_level_2=="N" & earliest_nonlogging_dist_type_2 == "burn" & yearsSinceDisturbance < 2 ~ "N",
+                             
+bclcs_level_1=="V" & bclcs_level_2=="N" & earliest_nonlogging_dist_type_2 == "burn" & (yearsSinceDisturbance > 1 & yearsSinceDisturbance < 4) ~ "D-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & earliest_nonlogging_dist_type_2 == "burn" & (yearsSinceDisturbance> 4 & yearsSinceDisturbance<11) ~ "O-1a/b",
+
+TRUE ~ as.character(FWI_veg)))
+
+### logged
+fire_all1<- fire_all1 %>%
+  mutate(FWI_veg = case_when(bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest<=7 & species_cd_1 %in% c("P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA") ~ "S-1",
+                             
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest<=7 & species_cd_1 %in% c("B","BB","BA","BG","BL","S","SB","SE","SS","SW","SX","SXW","SXL","SXS") ~ "S-2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest<=7 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM") ~ "S-3",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest<=7 & species_cd_1 %in% c("FD") & bec_zone_code %in% c("CWH", "ICH") ~ "S-3",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest<=7 ~ "S-1",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & (yearsSinceHarvest> 7 & yearsSinceHarvest<25) & bec_zone_code %in% c("CWH", "MH") ~ "D-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & (yearsSinceHarvest> 7 & yearsSinceHarvest<25) & bec_zone_code %in% c("ICH") & bec_subzone %in% wet ~ "D-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & (yearsSinceHarvest> 7 & yearsSinceHarvest<25) ~ "O-1a/b",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("CMA", "IMA") ~ "N",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("BAFA") ~ "D-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("CWH") & bec_subzone %in% wet ~ "C-5",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("CWH") ~ "M-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("BWBS") ~ "C-2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("SWB") ~ "M-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("SBS") ~ "C-3",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("SBPS") ~ "C-7",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("MS", "ESSF") ~ "C-3",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("IDF") & bec_subzone %in% wet ~ "C-3",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("PP", "BG") ~ "O-1a/b",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("MH") ~ "D-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("CDF", "ICH") & bec_subzone %in% wet ~ "C-5",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("IDF", "CDF") ~ "C-7",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("ICH") ~ "C-3",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest <=5 ~ "S-1",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & (yearsSinceHarvest > 5 & yearsSinceHarvest<25) & bec_zone_code %in% c("CWH", "MH", "ICH") ~ "D-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & (yearsSinceHarvest > 5 & yearsSinceHarvest<25) ~ "O-1a/b",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("CMA", "IMA") ~ "N",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("BAFA") ~ "D-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("CWH") & bec_subzone %in% wet ~ "C-5",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("CWH") ~ "M-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("BWBS") ~ "C-2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("SWB") ~ "M-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("SBS") ~ "C-3",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("SBPS") ~ "C-7",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("MS") ~ "C-7",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("IDF") & bec_subzone %in% wet ~ "M-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("IDF") ~ "C-7",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("PP", "BG") ~ "O-1a/b",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("MH") ~ "D-1/2",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("CDF", "ICH") & bec_subzone %in% wet ~ "C-5",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("ESSF", "CDF") ~ "C-7",
+
+bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("ICH") ~ "M-1/2",
+
+TRUE ~ as.character(FWI_veg)))
+
+table(fire_all1$FWI_veg)
+
+#### Unlogged
+fire_all1<- fire_all1 %>%
+  mutate(FWI_veg = case_when(bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & !is.na(species_cd_1) & bec_zone_code %in% c("CMA", "IMA")  ~ "N",
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & !is.na(species_cd_1) & bec_zone_code %in% c("CWH", "MH", "ICH", "BAFA")  ~ "D-1/2",
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & !is.na(species_cd_1)  ~ "O-1a/b",
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd >10 & non_productive_cd<14 & bec_zone_code %in% c("CWH", "MH", "ICH")  ~ "D-1/2",
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd >10 & non_productive_cd<14 ~ "O-1a/b",
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd ==35  ~ "W",
+                             
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd ==42  ~ "N",
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd=="F" & (non_productive_cd == 60 |non_productive_cd == 62 | non_productive_cd == 63)  ~ "O-1a/b",
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd=="F" &  bec_zone_code %in% c("CMA","IMA")  ~ "N",
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd=="F" & bec_zone_code %in% c("CWH","MH", "ICH", "BAFA")  ~ "D-1/2",
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd=="F" & is.na(non_productive_cd) ~ "O-1a/b",
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd=="F"  ~ "N",
+                             
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1 %in% c("LA", "RE","RL","OC")  ~ "W",
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1 %in% c("HG")  ~ "O-1a/b",
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1 %in% c("BY", "BM","BL")  ~ "D-1/2",
+                             
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & (land_cover_class_cd_1 %in% c("SL", "ST","HE","HF") |is.na(land_cover_class_cd_1)) & bec_zone_code %in% c("CMA", "IMA")  ~ "N",
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & (land_cover_class_cd_1 %in% c("SL", "ST","HE","HF") |is.na(land_cover_class_cd_1)) & bec_zone_code %in% c("CWH", "MH", "ICH")  ~ "D-1/2",
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & (land_cover_class_cd_1 %in% c("SL", "ST","HE","HF") |is.na(land_cover_class_cd_1))  ~ "O-1a/b",
+                             bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(harvest_date) & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1 %in% c("SI", "GL","PN","RO", "BR", "TA", "BI", "MZ", "LB", "EL", "RS", "ES", "LS", "RM", "BE", "LL", "BU", "RZ", "MU", "CB", "MN", "GP", "TZ", "RN", "UR", "AP", "MI", "OT", "LA", "RE", "RI", "OC")  ~ "N",
+                             
+                             TRUE ~ as.character(FWI_veg)))
+
+                             
+fire_all1<- fire_all1 %>%
+  mutate(FWI_veg = case_when(
+    non_veg_cover_type_1=="OC" ~ "W",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("CMA", "IMA")  ~ "N",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("BAFA")  ~ "D-1/2",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("CWH") & bec_subzone %in% wet  ~ "C-5",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("CWH")  ~ "M-1/2",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("BWBS")  ~ "C-2",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("SWB")  ~ "M-1/2",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("SBS")  ~ "C-3",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("SBPS")  ~ "C-7",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("MS")  ~ "C-3",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("IDF") & bec_subzone %in% wet  ~ "M-1/2",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("IDF")  ~ "C-7",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("PP")  ~ "C-7",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("BG")  ~ "O-1a/b",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("MH")  ~ "C-5",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("ESSF")  ~ "C-3",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("CDF") & bec_subzone %in% wet  ~ "C-5",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("CDF")  ~ "C-7",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("ICH") & bec_subzone %in% wet  ~ "C-5",
+    ((is.na(species_cd_1) & is.na(species_cd_2))|is.na(FWI_veg)) & bec_zone_code %in% c("ICH")  ~ "M-1/2",
+                             TRUE ~ as.character(FWI_veg)))
+
+# not vegetated and logged
+fire_all1<- fire_all1 %>%
+  mutate(FWI_veg = case_when(
+    # harvest date 0-6
+          bclcs_level_1=="N" & yearsSinceHarvest <= 6 & coast_interior_cd=="C" ~ "S-3",
+          bclcs_level_1=="N" & yearsSinceHarvest <= 6 & coast_interior_cd =="I" ~ "S-1",
+    # harvest date 7-24
+          bclcs_level_1=="N" & (yearsSinceHarvest > 6 & yearsSinceHarvest<25) & bec_zone_code %in% c("CWH","MH","ICH") ~ "D-1/2",
+          bclcs_level_1=="N" & (yearsSinceHarvest > 6 & yearsSinceHarvest<25) ~ "O-1a/b",
+    # harvest date > 25
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("CMA","IMA") ~ "N",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="BAFA" ~ "D-1/2",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="CWH" & (bec_subzone %in% wet) ~ "C-5",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="CWH" & (!bec_subzone %in% wet) ~ "M-1/2",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="BWBS" ~ "C-2",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="SWB" ~ "M-1/2",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="SBS" ~ "C-3",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="SBPS" ~ "C-7",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="MS" ~ "C-7",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="IDF" & (bec_subzone %in% wet) ~ "C-3",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="IDF" & (!bec_subzone %in% wet) ~ "C-7",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("PP","BG") ~ "O-1a/b",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="MH" ~ "D-1/2",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="ESSF" ~ "C-7",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="CDF" & (bec_subzone %in% wet) ~ "C-5",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="CDF" & (!bec_subzone %in% wet) ~ "C-7",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="ICH" & (bec_subzone %in% wet) ~ "C-5",
+          bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="ICH" & (!bec_subzone %in% wet) ~ "C-3",
+          
+# not vegetated and not logged, Recently burned   
+
+          bclcs_level_1=="N" & earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance <=3 ~"N",
+          bclcs_level_1=="N" & earliest_nonlogging_dist_type_2=="burn" & (yearsSinceDisturbance > 3 & yearsSinceDisturbance < 7) ~"D-1/2",
+          bclcs_level_1=="N" & earliest_nonlogging_dist_type_2=="burn" & (yearsSinceDisturbance > 6 & yearsSinceDisturbance < 11) ~"O-1a/b",
+
+# not logged and not recently burned
+          bclcs_level_1=="N" & (bclcs_level_2=="L" | is.na(bclcs_level_2)) & bclcs_level_3=="A" ~"N",          
+          bclcs_level_1=="N" & (bclcs_level_2=="L" | is.na(bclcs_level_2)) &  species_pct_1 > 0 & bec_zone_code %in% c("CWH", "MH", "ICH") ~ "D-1/2",
+          bclcs_level_1=="N" & (bclcs_level_2=="L" | is.na(bclcs_level_2)) & species_pct_1 > 0 ~ "O-1a/b",
+          bclcs_level_1=="N" & (bclcs_level_2=="L" | is.na(bclcs_level_2)) ~ "N",
+
+          bclcs_level_1=="N" & bclcs_level_2=="W" ~ "W",
+          bclcs_level_1=="N" ~ "N", # for all other "N"'s
+
+TRUE ~ as.character(FWI_veg)))
+
+# note the NA values in the fire_all table were causing ifelse statements to do weird things. This seems better. Hopefully its correct.
+
+table(fire_all1$FWI_veg)
+
+                             
+table(is.na(fire_all1$FWI_veg))
+
+x<- fire_all1 %>% filter(is.na(FWI_veg)) %>% dplyr::select(inventory_standard_cd:conifer_pct_cover_total)
+                             
+fire_all2<-st_drop_geometry(fire_all1)
+
+st_write(fire_all1, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\unknown_ignition_weather_veg.gpkg")
+
+write.csv(fire_all2, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\unknown_ignition_weather_veg.csv")
+```
+
+
+```{r}
+unknown<- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\unknown_ignition_weather_veg.gpkg")
+
+fire_escapes3<- fire_all1
+fire_escapes3<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg2.gpkg")
+
+fire_escapes<-fire_escapes3 %>% filter(fire==1)
+fire_escapes$size_ha<-as.numeric(as.character(fire_escapes$size_ha))
+hist(fire_escapes$size_ha)
+fire_escapes2<- fire_escapes %>% drop_na(size_ha)
+
+names(fire_escapes2)
+
+unknown_ignition_weather_veg4<-unknown %>%
+  rename(fire_no = FIRE_NU,
+    fire_yr=FIRE_YE,
+       fire_cs=FIRE_CA,
+       fir_typ=FIRE_TY,
+       size_ha = CURRENT,
+       slope = s___300,
+       aspect = a___300,
+       elevatn = dm_h_bc,
+       infr_ds = dst_nf_, 
+       rd_dst_ = dst_rb_) %>%
+       dplyr::select(fire_no, fire_yr, IGNITIO, fire_cs, FIRE_LA, ZONE, FIRE_ID, fir_typ, LATITUD, LONGITU, size_ha, ig_mnth, Cluster, idno, slope, aspect, elevatn, Tmax02:MDC_11, infr_ds, rd_dst_, win_sum, win_spg, inventory_standard_cd:FWI_veg)
+
+
+fire_escapes3 <- fire_escapes2  %>% dplyr::select(fire_no, fire_yr, IGNITIO, fire_cs, FIRE_LA, ZONE, FIRE_ID, fir_typ, LATITUD, LONGITU, size_ha, ig_mnth, Cluster, idno, slope, aspect, elevatn, Tmax02:MDC_11, infr_ds, rd_dst_, win_sum, win_spg, inventory_standard_cd:live_stand_volume_175, yearHarvest:FWI_veg)
+
+dim(fire_escapes3)
+
+fire_escapes_final<- rbind(fire_escapes3, unknown_ignition_weather_veg4)
+
+st_write(fire_escapes_final, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg", delete_layer=TRUE)
+```
+
+

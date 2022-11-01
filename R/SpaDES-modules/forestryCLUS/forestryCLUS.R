@@ -59,6 +59,7 @@ defineModule(sim, list(
     createsOutput(objectName = "harvestPeriod", objectClass = "integer", desc = NA),
     createsOutput(objectName = "harvestReport", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "harvestBlocks", objectClass = "raster", desc = NA),
+    createsOutput(objectName = "harvestBlocksVolume", objectClass = "raster", desc = NA),
     createsOutput(objectName = "harvestBlockList", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "harvestPixelList", objectClass = "data.table", desc = NA),
     createsOutput(objectName = "ras.zoneConstraint", objectClass = "raster", desc = NA),
@@ -127,6 +128,7 @@ Init <- function(sim) {
   #Needed for printing out rasters of harvest blocks
   sim$harvestBlocks<-sim$ras
   sim$harvestBlocks[]<-0
+  sim$harvestBlocksVolume<-sim$harvestBlocks
   
   #Set the zone contraint raster which maps out the number of time periods a pixel is constrained
   sim$ras.zoneConstraint<-sim$ras
@@ -316,7 +318,7 @@ setConstraints<- function(sim) {
                 dbCommit(sim$clusdb)
                 
                 sql<- paste0("INSERT INTO zoneManagement SELECT '",sim$scenario$name,"' as scenario, :zoneid as zoneid, :reference_zone as reference_zone, :zone_column as zone_column, :variable as variable, :threshold as threshold, :type as type, :percentage as percentage, :multi_condition as multi_condition, :t_area as t_area, :denom as denom, :start as start, :stop as stop, 
-                           sum(eca*thlb)/:t_area as percent, ", as.integer(time(sim)) ," as timeperiod  from pixels WHERE ",as.character(query_parms[1, "denom"])," own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid")
+                           (sum(eca*thlb)/:t_area)*100 as percent, ", as.integer(time(sim)) ," as timeperiod  from pixels WHERE ",as.character(query_parms[1, "denom"])," own = 1 AND ", as.character(query_parms[1, "zone_column"])," = :zoneid")
                 
                 
                 dbBegin(sim$clusdb)
@@ -592,6 +594,7 @@ ORDER by block_rank, ", P(sim, "harvestBlockPriority", "forestryCLUS"), "
         
         #Save the harvesting raster
         sim$harvestBlocks[queue$pixelid]<-time(sim)*sim$updateInterval
+        sim$harvestBlocksVolume[queue$pixelid]<-queue$vol_h
         
         #Create landings. pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
         land_pixels<-rbindlist(list(land_pixels, data.table(dbGetQuery(sim$clusdb, paste0("select landing from blocks where blockid in (",
@@ -609,7 +612,7 @@ ORDER by block_rank, ", P(sim, "harvestBlockPriority", "forestryCLUS"), "
   }
  
   #convert to class SpatialPoints needed for roadsCLUS
-  if(!is.null(land_pixels)){
+  if(length(land_pixels) > 0){
     sim$landings <- SpatialPoints(sim$pts[pixelid %in% land_pixels$landing, c("x", "y")],crs(sim$ras))
   }else{
     message("no landings")

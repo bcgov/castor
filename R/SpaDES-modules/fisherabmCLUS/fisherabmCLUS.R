@@ -86,8 +86,9 @@ defineModule(sim, list(
     createsOutput (objectName = "agents", objectClass = "data.table", desc = "Fisher agents table." ),
     createsOutput (objectName = "territories", objectClass = "data.table", desc = "Fisher territories table." ),
     createsOutput (objectName = "pix.rast", objectClass = "RasterLayer", desc = "A raster dataset of pixel values in the area of interest." ),
+    createsOutput (objectName = "fisherABMReport", objectClass = "data.table", desc = "A data.table object. Consists of fisher population numbers in the study area at each time step."),
     createsOutput (objectName = "table.hab", objectClass = "data.table", desc = "Table of fisher habitat metrics at pixels in the area of interest." ),
-    )
+    createsOutput (objectName = "sim.iter.annual", objectClass = "list", desc = "List of simulation iterations (a list of sims for each iteration)."))
 ))
 
 ## event types
@@ -117,17 +118,6 @@ doEvent.fisherabmCLUS = function (sim, eventTime, eventType) {
     #   
     # },
    runevents = {
-       
-     # for iterations? tryign to replciate what's in FLEX
-      # sim.iterations <- vector ('list',  P(sim, "iterations", "fisherabmCLUS"))  
-       # for(i in 1:100){
-       #   sim.iterations[[i]] <- annualEvents (sim)
-       #   
-       # }
-       # 
-       # sim$sim.iterations <- list(sim$w1, 
-       #                            sim.iterations)
-       
       sim <- annualEvents (sim)
       sim <- scheduleEvent (sim, time(sim) + P(sim, "timeInterval", "fisherabmCLUS"), "fisherabmCLUS", "runevents", 19)
     },
@@ -147,6 +137,21 @@ doEvent.fisherabmCLUS = function (sim, eventTime, eventType) {
 Init <- function(sim) {
   
   message ("Initiating fisher ABM...")
+  
+  # instantiate table and raster for saving data
+  message("Initializing the report")
+
+  sim$fisherABMReport <- data.table (n_f_adult = as.numeric (), # number of adult females
+                                     n_f_juv = as.numeric (), # number of juvenile females
+                                     n_f_disperse = as.numeric (), # number of female dispersers 
+                                     mean_age_f = as.numeric (), # mean age of females
+                                     sd_age_f = as.numeric (), # standard dev age of females
+                                     timeperiod = as.integer (), # time step of the simulation
+                                     scenario = as.character (), # simulation scenario name
+                                     compartment = character() # harvest compartments
+                                     )
+  sim$ras.territories <- sim$ras
+  sim$ras.territories [] <- 0
   
   message ("Get the area of interest ...")
 
@@ -190,6 +195,8 @@ Init <- function(sim) {
                                                        conn = NULL)[]
                                  ) #---VAT for populations: 1 = Boreal; 2 = SBS-wet; 3 = SBS-dry; 4 = Dry Forest
     
+    
+    sim$table.hab [, fisher_pop := as.numeric (fisher_pop)]
     sim$table.hab <- sim$table.hab [fisher_pop > 0, ] # filter so it's only including habitat in fisher population ranges
     dbBegin (sim$clusdb) 
     rs <- dbSendQuery (sim$clusdb, paste0 ("INSERT INTO fisherlandscape (pixelid, den_p, rus_p, mov_p, cwd_p, cav_p, fisher_pop) 
@@ -399,7 +406,7 @@ annualEvents <- function (sim) {
     
       # A. update the habitat data in the territories
     table.hab.update <- merge (sim$table.hab, # add the habitat characteristics
-                               data.table (dbGetQuery(sim$clusdb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height  FROM pixels;")),
+                               data.table (dbGetQuery (sim$clusdb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height  FROM pixels;")),
                                by = "pixelid")
     
         # classify the habitat
@@ -427,7 +434,7 @@ annualEvents <- function (sim) {
         # do nothing; we still need to check if it meets min. thresholds for each habitat type (see below)
       } else {
         # change the animals d2_score to 0; this is the criteria used to trigger a dispersal 
-        sim$agents <- sim$agents [individual_id == i, d2_score := '']
+        sim$agents <- sim$agents [individual_id == i, d2_score := NA]
         # remove the individuals territory 
         sim$territories <- sim$territories [individual_id != i] 
       } 
@@ -441,7 +448,7 @@ annualEvents <- function (sim) {
         # do nothing; the fisher maintains its territory
       } else {
         # change the animals d2_score to 0
-        sim$agents <- sim$agents [individual_id == i, d2_score := '']
+        sim$agents <- sim$agents [individual_id == i, d2_score := NA]
         # remove the individuals territory 
         sim$territories <- sim$territories [individual_id != i] 
       } 
@@ -520,7 +527,7 @@ annualEvents <- function (sim) {
           # make that raster pixel id the dispersers pixelid (i.e., staring point for forming a territory)
           dispersers <- dispersers [pixelid == i, pixelid := target.pix$layer]
           # update the fisher pop where the fisher is located
-          tmp.pop <- sim$table.hab [pixelid == target.pix$layer, fisher_pop]
+          tmp.pop <- as.numeric (sim$table.hab [pixelid == target.pix$layer, fisher_pop])
           dispersers <- dispersers [pixelid == target.pix$layer, fisher_pop := tmp.pop]
           
         }
@@ -550,7 +557,7 @@ annualEvents <- function (sim) {
                                   by.x = "pixels", by.y = "pixelid")
         # check to see if home range target was within mean +/- 2 SD; if not, remove the animal 
       table.disperse.hr [, pix.count := sum (length (pixels)), by = individual_id]
-      pix.count <- merge (dispersers [, c ("pixelid", "individual_id", "hr_size")],
+      pix.count <- merge (dispersers [, c ("pixelid", "individual_id", "hr_size", "fisher_pop")],
                           table.disperse.hr [, c ("pixels", "pix.count")],
                           by.x = "pixelid", by.y = "pixels",
                           all.x = T)  
@@ -678,42 +685,12 @@ annualEvents <- function (sim) {
         
         reproFishers <- reproFishers [reproduce == 1, ] # remove non-reproducers
         
-        
-        
-        
-        
-        
-        
         # for those fishers who are reproducing, assign litter size (Poisson distribution)
         # litter size adjusted for habitat quality
-        
-        
-        litterSize <- function (fisherPop){
-          
-        }
-        
-        
-        for (i in unique (reproFishers$fisher_pop)) {
-          reproFishers [fisher_pop == i & d2_score < sim$mahal_metric_table [FHE_zone_num == i, Mean], 
-                        kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
-                                                   lambda = sim$repro_rate_table [Fpop == i & Param == 'LS', Mean]))]
-          reproFishers [fisher_pop == i & d2_score > sim$mahal_metric_table [FHE_zone_num == i, Mean] & d2_score < (sim$mahal_metric_table [FHE_zone_num == i, Mean] + sim$mahal_metric_table [FHE_zone_num == i, SD]), 
-                        kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
-                                                   lambda = (sim$repro_rate_table [Fpop == i & Param == 'LS', Mean] * 0.75)))]
-          reproFishers [fisher_pop == i & d2_score > (sim$mahal_metric_table [FHE_zone_num == i, Mean] + sim$mahal_metric_table [FHE_zone_num == i, SD]) & d2_score <+ (sim$mahal_metric_table [FHE_zone_num == i, Mean] + (2 * sim$mahal_metric_table [FHE_zone_num == i, SD])), 
-                        kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
-                                                   lambda = (sim$repro_rate_table [Fpop == i & Param == 'LS', Mean] * 0.50)))]
-          reproFishers [fisher_pop == i & d2_score > (sim$mahal_metric_table [FHE_zone_num == i, Mean] + (2 * sim$mahal_metric_table [FHE_zone_num == i, SD])), 
-                        kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
-                                                   lambda = (sim$repro_rate_table [Fpop == i & Param == 'LS', Mean] * 0)))]
-          }
-        
-        
-        
-        
-        
-        
-        
+        reproFishers <- litterSize (1, sim$mahal_metric_table, sim$repro_rate_table)
+        reproFishers <- litterSize (2, sim$mahal_metric_table, sim$repro_rate_table)
+        reproFishers <- litterSize (3, sim$mahal_metric_table, sim$repro_rate_table)
+        reproFishers <- litterSize (4, sim$mahal_metric_table, sim$repro_rate_table)
         
         reproFishers <- reproFishers [kits >= 1, ] # remove females with no kits
         
@@ -759,11 +736,11 @@ annualEvents <- function (sim) {
       sim$agents <- sim$agents [!individual_id %in% dead.dispersers$individual_id]
       sim$territories <- sim$territories [!individual_id %in% dead.dispersers$individual_id] # remove territories
       
-      # note that the above steps could inflate the mortality rate, as old animals are presumably included in the survival rate estimate
+      # note that the above steps could inflate the model mortality rate, as old animals are presumably included in the survival rate estimate
       
       # age-class based survival rates
         # juveniles
-      survivors.juv <- survivors [age == 1, ]
+      survivors.juv <- survivors [age == 1 & !is.na (d2_score), ]
       if (nrow (survivors.juv) > 0) {
        for (i in unique (survivors.juv$fisher_pop)) { 
         survivors.juv <- survivors.juv [fisher_pop == i, 
@@ -778,7 +755,7 @@ annualEvents <- function (sim) {
      }
         
         # adults
-      survivors.ad <- survivors [age > 1, ]
+      survivors.ad <- survivors [age > 1 & !is.na (d2_score), ]
       if (nrow (survivors.ad) > 0) {
        for (i in unique (survivors.ad$fisher_pop)) { 
         survivors.ad <- survivors.ad [fisher_pop == i, 
@@ -793,7 +770,7 @@ annualEvents <- function (sim) {
       }
           
         # dispersers
-      survivors.disp <- survivors [age > 0 & d2_score == '', ]
+      survivors.disp <- survivors [age > 0 & !is.na (d2_score), ]
       if (nrow (survivors.disp) > 0) {
         for (i in unique (survivors.disp$fisher_pop)) { 
         survivors.disp <- survivors.disp [fisher_pop == i, 
@@ -837,59 +814,64 @@ annualEvents <- function (sim) {
 
 ###--- SAVE
 saveAgents <- function (sim) {
-  # write the agents table
-  # add time step and scenario name
-  # replicate/iteration number?; add this later
-  
-  # re-jig this to create output report tables 
-  
-  
-  #Set the zone contraint raster which maps out the number of time periods a pixel is constrained
-  # sim$ras.zoneConstraint<-sim$ras
-  # sim$ras.zoneConstraint[]<-0
-  #write the constraint raster
-  # const<-sim$ras
-  # datat<-dbGetQuery(sim$clusdb, "SELECT zone_const FROM pixels ORDER BY pixelid;")
-  # const[]<-datat$zone_const
-  # 
-  # sim$ras.zoneConstraint<-sim$ras.zoneConstraint + const
-  # 
-  # rm(const)
-  # return(invisible(sim))
-  # writeRaster(sim$ras.zoneConstraint, paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]],"_constraints.tif"), overwrite=TRUE)
-  
-  
   message ("Save the agents and territories.")
-
-  # save by weight of # iterations, e.g., if 100 iterations, wietght = 1/100
+  # save the agents table
+  # currently saving the number of agents and age of agents
+    # divide by number of iterations (i.e., the 'weight' of an iteration)
+    # then in post-processing, to calculate each value, sum by time step and scenario 
+  new.agents.save <- data.table (n_f_adult = as.numeric (nrow (sim$agents [sex == "F" & age > 1 & !is.na (d2_score), ]) / P(sim, "iterations", "fisherabmCLUS")), 
+                                 n_f_juv = as.numeric (nrow (sim$agents [sex == "F" & age == 1 & !is.na (d2_score), ]) / P(sim, "iterations", "fisherabmCLUS")), 
+                                 n_f_disperse = as.numeric (nrow (sim$agents [sex == "F" & age > 0 & !is.na (d2_score), ]) / P(sim, "iterations", "fisherabmCLUS")), 
+                                 mean_age_f = as.numeric (mean (c (sim$agents [sex == "F", age]) / P(sim, "iterations", "fisherabmCLUS"))), 
+                                 sd_age_f = as.numeric (sd (c (sim$agents [sex == "F", age]) / P(sim, "iterations", "fisherabmCLUS"))), 
+                                 timeperiod = as.integer (time(sim)*sim$updateInterval), 
+                                 scenario = as.character (sim$scenario$name),
+                                 compartment = as.character (sim$boundaryInfo[[3]])
+                                 )
+  sim$fisherABMReport <- rbindlist (list (sim$fisherABMReport, 
+                                          new.agents.save), 
+                                    use.names = TRUE)
   
-  # territories
-  territories.save <- sim$territories
-  territories.save [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
+  # save the territories
+    # set a territory as value = 1 divide by the number of iterations (weight)
+    # add it to the existing territories
+    # final raster is the number of time periods that a pixel was a territory
+  ras.territories.update <- sim$ras
+  ras.territories.update [] <- 0
+  ras.territories.update [sim$territories$pixelid] <- 1 / P(sim, "iterations", "fisherabmCLUS")
+  sim$ras.territories <- sim$ras.territories + ras.territories.update
+  writeRaster (x = sim$ras.territories, 
+               filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_fisherterritories.tif"), 
+               overwrite = TRUE)
+  # clean-up
+  rm (ras.territories.update, new.agents.save)
   
-  if(nrow(dbGetQuery (sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
-    # if the table exists, write it to the db
-    DBI::dbWriteTable (sim$clusdb, "territories", territories.save, append = FALSE, 
-                       row.names = FALSE, overwrite = FALSE)  
-  } else {
-    # if the table exists, append it to the table in the db
-    DBI::dbWriteTable (sim$clusdb, "territories", territories.save, append = TRUE, 
-                       row.names = FALSE, overwrite = FALSE)  
-  }
+    # use below if want to save the agents table
+      # if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
+      #   # if the table exists, write it to the db
+      #   DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = FALSE,
+      #                      row.names = FALSE, overwrite = FALSE)
+      # } else {
+      #   # if the table exists, append it to the table in the db
+      #   DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = TRUE,
+      #                      row.names = FALSE, overwrite = FALSE)
+      # }
   
-  # agents
-  agents.save <- sim$agents
-  agents.save [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
   
-  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
-    # if the table exists, write it to the db
-    DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = FALSE, 
-                       row.names = FALSE, overwrite = FALSE)  
-  } else {
-    # if the table exists, append it to the table in the db
-    DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = TRUE, 
-                       row.names = FALSE, overwrite = FALSE)  
-  }
+    # use below if want to save the territories table
+      # territories.save <- sim$territories
+      # territories.save [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
+      # 
+      # if(nrow(dbGetQuery (sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
+      #   # if the table exists, write it to the db
+      #   DBI::dbWriteTable (sim$clusdb, "territories", territories.save, append = FALSE,
+      #                      row.names = FALSE, overwrite = FALSE)
+      # } else {
+      #   # if the table exists, append it to the table in the db
+      #   DBI::dbWriteTable (sim$clusdb, "territories", territories.save, append = TRUE,
+      #                      row.names = FALSE, overwrite = FALSE)
+      # }
+  message ("Save fisher agents and territories complete.")
   return (invisible (sim))
 }
 
@@ -950,6 +932,24 @@ habitatQual <- function (inputTable, agentsTable, d2Table) {
   tab.perc [fisher_pop == 3, d2 := mahalanobis (tab.perc [fisher_pop == 3, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.16, 19.1, 0.45, 8.69, 33.06), cov = d2Table[[3]])]
   tab.perc [fisher_pop == 4, d2 := mahalanobis (tab.perc [fisher_pop == 4, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(2.3, 1.6, 10.8, 21.5), cov = d2Table[[4]])]
   return (tab.perc)
+}
+
+litterSize <- function (fisherPop, mahalTable, reproTable){
+  for (i in unique (reproFishers$individual_id)) {
+    reproFishers [fisher_pop == fisherPop & d2_score < mahalTable [FHE_zone_num == fisherPop, Mean], 
+                  kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
+                                             lambda = reproTable [Fpop == fisherPop & Param == 'LS', Mean]))]
+    reproFishers [fisher_pop == fisherPop & d2_score > mahalTable [FHE_zone_num == fisherPop, Mean] & d2_score < (mahalTable [FHE_zone_num == fisherPop, Mean] + mahalTable [FHE_zone_num == fisherPop, SD]), 
+                  kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
+                                             lambda = (reproTable [Fpop == fisherPop & Param == 'LS', Mean] * 0.75)))]
+    reproFishers [fisher_pop == fisherPop & d2_score > (mahalTable [FHE_zone_num == fisherPop, Mean] + mahalTable [FHE_zone_num == fisherPop, SD]) & d2_score <+ (mahalTable [FHE_zone_num == fisherPop, Mean] + (2 * mahalTable [FHE_zone_num == fisherPop, SD])), 
+                  kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
+                                             lambda = (reproTable [Fpop == fisherPop & Param == 'LS', Mean] * 0.50)))]
+    reproFishers [fisher_pop == fisherPop & d2_score > (mahalTable [FHE_zone_num == fisherPop, Mean] + (2 * mahalTable [FHE_zone_num == fisherPop, SD])), 
+                  kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
+                                             lambda = (reproTable [Fpop == fisherPop & Param == 'LS', Mean] * 0)))]
+  }
+  return (reproFishers)
 }
 
 

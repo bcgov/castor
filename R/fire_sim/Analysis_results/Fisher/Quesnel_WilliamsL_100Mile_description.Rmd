@@ -1,5 +1,5 @@
 ---
-title: "Probability of ignition from lightning in the Quesnel, Williams Lake, and 100-mile House TSA's"
+title: "Probability of ignition from lightning and human caused fires in the Quesnel, Williams Lake, and 100-mile House TSA's"
 author: "Elizabeth Kleynhans"
 date: '2022-09-16'
 output: html_document
@@ -20,15 +20,15 @@ require (kableExtra)
 
 ## Goal
 
-The aim of this document is to describe methods used to created the map of probability of ignition by lightning caused fires. 
+The aim of this document is to describe the methods used to created a map of the probability of ignition as a result of lightning and humans. 
 
-# 1.) Obtain data on observed lightning ignitions
+# 1.) Obtain data on observed fire ignitions
 
-I used fire ignition point data from the BCGW (https://catalogue.data.gov.bc.ca/dataset/fire-incident-locations-historical) and pulled out the fire ignitions that were known to be caused by lightning for the years 2002 to present. This range of years was used because  these are the years that we have VRI data for. 
+I used fire ignition point data from the BCGW (https://catalogue.data.gov.bc.ca/dataset/fire-incident-locations-historical). I then separated the ignitions points by cause (human or lighting) and filtered the data to obtain ignitions that occured between 2002 to present. This range of years was used because these are the years that we have VRI data for. 
 
 # 2.) Split BC up into fire regime types (FRT) 
 
-Erni et al. 2020 (https://cdnsciencepub.com/doi/10.1139/cjfr-2019-0191) statistically classified  Canada into different fire regime types. These fire regime types (FRT) are based on cause of ignition, timing of ignition (seasonality), and fire activity (e.g. fire size). BC is too large and too diverse to run a single statistical model to determine which variables best predict lightning caused fires. Thus I used the FRT's determined by Erni et al.2020 to run separate statistical models for each FRT. Within BC there are 10 FRT's and the Quesnel, Williams Lake and 100 Mile House TSA's overlap 5 of the 10 (figure 1). 
+Erni et al. 2020 (https://cdnsciencepub.com/doi/10.1139/cjfr-2019-0191) statistically classified  Canada into different fire regime types. These fire regime types (FRT) are based on cause of ignition, timing of ignition (seasonality), and fire activity (e.g. fire size). BC is too large and too diverse to run a single statistical model to determine which variables best predict fire ignitions for both lighting and human caused fires. Thus I used the FRT's determined by Erni et al.2020 to run separate statistical models for each FRT. Within BC there are 10 FRT's and the Quesnel, Williams Lake and 100 Mile House TSA's overlap 5 of the 10 (figure 1). 
 
 ```{r FRT, echo=FALSE, fig.cap = "Figure 1. Fire regime types overlaping the Quesnel, Williams Lake and 100 Mile House TSA's"}
 frt <- getSpatialQuery("SELECT * FROM frt_canada")
@@ -46,22 +46,32 @@ plot(frt.bc["Cluster"])
 
 ```
 
-# 3.) Within each FRT sample areas where lightning caused fires were not observed to occur. 
+# 3.) Within each FRT sample areas where ignitions were not observed to occur. 
 
-Within each FRT and for each year I determined how many lightning caused fires had occurred and then I sampled double the number of points where fires had not been observed to start. 
+Within each FRT and for each year I determined how many lightning caused and human caused fires had occurred and then I sampled double the number of points in locations where fires had not been observed to start for each ignition cause.
 
-# 4.) Determine which climate variables for ignition and non-ignition locations
+# 4.) Determine the climate variables that best predict ignition and non-ignition locations
 
-I extracted maximum temperature, average temperature, total precipitation, and relative humidity for each location from climateBC (http://climatebc.ca/). These variables were extracted for each month between April and September for each point in its relevant year. Because fire ignitions might be more likely after several months of drought or heat or both I also calculated the average of each of these variables over two, three and four consecutive months. Using the precipitation and temperature data I also calculated monthly drought code following the methods of Bergeron et al. (2010) as this variable has previously been found to be a good predictor of fire (Marchal et al. 2020). 
+I extracted maximum temperature, average temperature, total precipitation, and relative humidity for each location from climateBC (http://climatebc.ca/). These variables were extracted for each month between April and September for each point in its relevant year. Because fire ignitions might be more likely after several months of drought or heat or both I also calculated the average of each of these variables over two, three, four, five and six consecutive months. Using the precipitation and temperature data I also calculated monthly drought code following the methods of Bergeron et al. (2010) as this variable has previously been found to be a good predictor of fire (Marchal et al. 2020). 
 
-Separate statistical models including each single climate variable, the averages across several months as well as combinations of temperature and precipitation were fitted for each FRT (Table 1). Then the models with delta aic less than 2 were selected and the model within that set that had the highest AUC was selected.
+Separate statistical models including each single climate variable, the averages across several months as well as combinations of temperature and precipitation were fitted for each FRT (Table 1) and ignition cause (lightning or human). Then the models with delta AIC less than 2 were selected and the model within that set that had the highest AUC was selected.
 
-# 5.) Fit fire ignition models
-
-The final fire ignition models were fitted with the top selected climate variable/s (described above), a variable describing fuel type, and elevation (table 1). 
+# 5.) Obtain vegetation data and create fuel types
 
 For each year from 2002 vegetation data was extracted from the corresponding VRI for all ignition and non-ignition points. This VRI data was then used to create the British Columbia provincial Fuel Type Layer used by the BC Wildfire Service. Classification rules used to create this layer can be found in Perrakis et al. (2018) (https://cfs.nrcan.gc.ca/publications?id=39432). This fuel type layer is created using a combination of vegetation data obtained from the VRI and BEC zone information and is a composite measure of vegetation type and structure. Variables such as leading species and percent, crown closure, projected height, years since harvest, years since fire, bec zone and bec subzone are used in classifying the vegetation.  There are ~ 15 fuel types within BC and these fuel types have been shown to accurately predict fire behaviour in wildfire events (Perrakis et al. 2014) and are used to create the Candian Forest Fire Danger Rating System and in the fire behaviour prediction system.
 
+# 6.) Extract elevation data 
+
+For each point elevation data was extracted from the Digital Elevation Model of BC (https://www2.gov.bc.ca/gov/content/data/geographic-data-services/topographic-data/elevation/digital-elevation-model).
+
+# 7.) Extract distance to infrastructure and distance to roads
+
+For each point the distance to the nearest road and the nearest infrastructure was calculated. I used the digital roads atlas [Digital Road Atlas (DRA) available from the B.C. Data Catalogue]((https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e)) to determine distance to road. Roads classified as boat, overgrown, decomissioned, ferry routes, non-motorized trails, proposed roads, and pedestrian mall roads were excluded.
+Infrastructure such as mines, railways, oil and gas infrastructure, power lines, and urban were extracted and the distance from each point to the nearest infrastructure regardless of type was estimated 
+
+# 8.) Fit lightning ignition models
+
+The final lightning caused ignition models were fitted with the top selected climate variable/s (described above), a variable describing fuel type, and elevation (table 1). 
 
 
 ```{r, model table, echo = F}
@@ -78,7 +88,30 @@ AUC = c (0.77, 0.63, 0.63, 0.57, 0.69)
                              )
 
 kable (stats_model, 
-       caption = "Table 1. Model terms and the estimated AUC value for each fire regime type (FRT)") %>%
+       caption = "Table 1. Model terms and the estimated AUC value for each fire regime type (FRT) as a result of lightning caused ignitions") %>%
+  kable_styling (position = "left")
+```
+
+# 9.) Fit human caused ignition models
+
+The final human caused ignition models were fitted with the top selected climate variable/s (described above), a variable describing fuel type, elevation, distance to the nearest road and/or distance to the nearest infrastructure (table 2). 
+
+
+```{r, model table, echo = F}
+stats_model <- data.table (
+FRT = c ("10", "12", "13", "14", "15"),
+
+Model_Terms = c ("ignit ~ mean_PPT06_PPT07_PPT08_PPT09 + fuel type + log(dist road)",
+                "ignit ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10 + fuel type + elev + log(dist road) + log(dist infrastruc)",
+                "ignit ~ mean_Tave07_Tave08_Tave09 + mean_PPT07_PPT08_PPT09 + fuel type + elev + log(dist road) + log(dist infrastruc)",
+                "ignit ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10 + fuel type + elev + log(dist road) + log(dist infrastruc)",
+                "ignit ~ mean_Tave07_Tave08_Tave09 + mean_PPT07_PPT08_PPT09 + fuel type + elev + log(dist road) + log(dist infrastruc)"),
+ 
+AUC = c (0.83, 0.63, 0.63, 0.57, 0.69)                            
+                             )
+
+kable (stats_model, 
+       caption = "Table 1. Model terms and the estimated AUC value for each fire regime type (FRT) as a result of lightning caused ignitions") %>%
   kable_styling (position = "left")
 ```
 
@@ -99,5 +132,8 @@ dbDisconnect(conn)
 plot(lightning.ignit)
 ```
 
+```{r}
+
+```
 
 

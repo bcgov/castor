@@ -289,7 +289,7 @@ res(rasStackinfrastructure) # at ha scale ... perfect
 Bring back points from the 05_Distance_to_Road_Data_Prep.rmd file, jion the infrastructure data and create a new column that is the shortest distance to any infrastructure type.
 
 ```{r}
-sample_locations_DEM_roads<-sf::st_read( "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_frt.shp")
+sample_locations_DEM_roads<-sf::st_read( "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\DC_data_DEM_roads.shp")
 
 
 ##Extract Coordinates
@@ -359,18 +359,18 @@ hist(sample_locations_DEM_roads_infra$dist_urban_m)
 # change some column names
 
 sample_locations_DEM_roads_infra<- sample_locations_DEM_roads_infra %>%
-  dplyr::rename(fire_yr=FIRE_YEAR,
-         fire_no=FIRE_NUMBER,
-         fire_cs=FIRE_CAUSE,
-         size_ha=CURRENT_SIZE,
-         fir_typ=FIRE_TYPE
+  dplyr::rename(fire_yr=FIRE_YEA,
+         fire_no=FIRE_NU,
+         fire_cs=FIRE_CA,
+         size_ha=CURRENT,
+         fir_typ=FIRE_TY,
+         slope=s___300,
+         aspect=a___300,
+         elevatn=dm_h_bc
          )
 
 sample_locations_DEM_roads_infra<- sample_locations_DEM_roads_infra %>%
   dplyr::rename(
-         slope=slope_ha_bc_3005,
-         aspect=aspect_ha_bc_3005,
-         elevation=dem_ha_bc,
          mine_dist=dist_mines_m,
          oil_dist=dist_oil_m,
          power_dist=dist_power_m,
@@ -379,7 +379,7 @@ sample_locations_DEM_roads_infra<- sample_locations_DEM_roads_infra %>%
          infr_dist=dist_infrastructure_m
          )
 
-sf::st_write(sample_locations_DEM_roads_infra, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_infra.shp", delete_layer=TRUE)
+sf::st_write(sample_locations_DEM_roads_infra, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_infra.gpkg", delete_layer=TRUE)
 
 ##Save to personal drive
 #ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
