@@ -34,8 +34,6 @@ defineModule (sim, list(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     # defineParameter("n_females", "numeric", 1000, 0, 10000, # not used
     #                 "The number of females to 'seed' the landscape with."),    
-    defineParameter("timeInterval", "numeric", 1, 1, 20,
-                    "The time step, in years, between cacluating life history events (reproduce, updateHR, survive, disperse)."),
     defineParameter(".plots", "character", "screen", NA, NA,
                     "Used by Plots function, which can be optionally used here"),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
@@ -76,14 +74,20 @@ doEvent.fisherHabitatLoader = function (sim, eventTime, eventType) {
     
     init = {
       sim <- Init (sim)
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "timeInterval", "fisherHabitatLoader"), "fisherHabitatLoader", "save", 2)
+      sim <- scheduleEvent (sim, time(sim) + 1, "fisherHabitatLoader", "update", 2)
+      sim <- scheduleEvent (sim, end (sim), "fisherHabitatLoader", "save", 3)
+      
     },
 
-    save = {
-      sim <- saveHabitat (sim)
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "timeInterval", "fisherHabitatLoader"), "fisherHabitatLoader", "save", 2)
+    update = {
+      sim <- updateHabitat (sim)
+      sim <- scheduleEvent (sim, time (sim) + 1, "fisherHabitatLoader", "update", 2)
     },
    
+    save = {
+      sim <- saveHabitat (sim)
+    },
+    
     warning(paste("Undefined event type: \'", current(sim)[1, "eventType", with = FALSE],
                   "\' in module \'", current(sim)[1, "moduleName", with = FALSE], "\'", sep = ""))
   )
@@ -201,9 +205,9 @@ Init <- function (sim) {
 
 
 
-###--- Update and Save
-saveHabitat <- function (sim) {
-  message ("Updating and saving the fisher habitat rasters.")
+###--- Update Habitat
+updateHabitat <- function (sim) {
+  message ("Updating the fisher habitat...")
   
   # Update the habitat data in the territories
   table.hab.update <- merge (sim$table.hab, 
@@ -246,12 +250,25 @@ saveHabitat <- function (sim) {
                                     paste0 ("ras_fisher_cwd_", time(sim)*sim$updateInterval),
                                     paste0 ("ras_fisher_movement_", time(sim)*sim$updateInterval))
   sim$raster.stack <- c (sim$raster.stack, raster.stack.update)
+
+  rm (raster.stack.update, table.hab.update)
+
+  message ("Updating fisher habitat complete.")
+  
+  return (invisible (sim))
+}
+
+
+
+###---  Save
+saveHabitat <- function (sim) {
+  
+  message ("Saving fisher habitat...")
+  
   terra::writeRaster (x = sim$raster.stack, 
                       filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_fisher_habitat.tif"), 
                       overwrite = TRUE)
   
-  rm (raster.stack.update, table.hab.update)
-
   message ("Saving fisher habitat complete.")
   
   return (invisible (sim))

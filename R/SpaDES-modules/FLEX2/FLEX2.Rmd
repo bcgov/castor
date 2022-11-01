@@ -15,7 +15,7 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## TODO: use 
 ```
 
 ## Overview
-This is an agent based model (ABM) to simulate fisher life history on a landscape. This version is written to input habitat data that was written as a raster output from the fisherHabitatLoader module. The fisherHabitatLoader saves rasters of the occurrence of fisher habitat types (denning, rust, cavity, resting and movement) at each interval of a forestry simulation using forestryCLUS. The forestryCLUS module is a simulation model that returns a single solution for a set of parameters (i.e., it's a deterministic model). Thus fisherHabitatLoader updates fisher habitat conditions over a simulation period. This approach  allows for faster simulation of multiple iterations of a fisher population on a landscape. as it can read the habitat conditions as predtemined by the simualtion model. I is more efficient to run the fisher ABM as a *post-hoc* analysis, rather than concurrently with forestryCLUS.
+This is an agent based model (ABM) to simulate fisher life history on a landscape. This version is written to input habitat data that was written as a raster output from the fisherHabitatLoader module. The fisherHabitatLoader saves rasters of the occurrence of fisher habitat types (denning, rust, cavity, resting and movement) at each interval of a forestry simulation using forestryCLUS. The forestryCLUS module is a simulation model that returns a single solution for a set of parameters (i.e., it's a deterministic model). Thus fisherHabitatLoader updates fisher habitat conditions over a simulation period. This approach  allows for faster simulation of multiple iterations of a fisher population on a landscape. as it can read the habitat conditions as predetermined by the simulation model. I is more efficient to run the fisher ABM as a *post-hoc* analysis, rather than concurrently with forestryCLUS.
 
 ## Usage
 Below runs the module
@@ -35,79 +35,41 @@ inputDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2/inputs")) %>
 outputDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2/outputs")) %>% reproducible::checkPath (create = TRUE)
 cacheDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2"))
 
-times <- list (start = 0, end = 1)
+times <- list (start = 0, end = 2)
 
 parameters <- list(
   dataLoaderCLUS = list(dbName='clus',
-                         save_clusdb = FALSE, # Set to TRUE first time running the analysis
-                         sqlite_dbname = "fisherABM_test", 
                          nameBoundaryFile = "tsa_aac_bounds",
                          useCLUSdb = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"),
                          nameBoundaryColumn = "tsa_name", 
                          nameBoundary = c ("Williams_Lake_TSA"), 
                          nameBoundaryGeom = 'wkb_geometry',
                          nameCompartmentRaster = "rast.tsa_aac_boundary",
-                         nameCompartmentTable = "vat.tsa_aac_bounds_vat",
-                         nameMaskHarvestLandbaseRaster ='rast.thlb_2020', 
-                         nameZoneRasters=c("rast.zone_cond_beo", 
-                                           "rast.zone_cond_vqo", 
-                                           "rast.zone_wha_2021", 
-                                           "rast.zone_uwr_2021",  
-                                           "rast.zone_cond_nharv", 
-                                           "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw"
-                              ),
-                         nameZoneTable="zone.constraints", 
-                         nameYieldsRaster = "rast.ycid_vdyp_2020",
-                         nameYieldTable ="yc_vdyp_2020",
-                         nameYieldsCurrentRaster = "rast.ycid_tipsy_current_2020",
-                         nameYieldCurrentTable = "tipsy_current_prov_2020",
-                         nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
-                         nameYieldTransitionTable = "tipsy_prov_2020", 
-                         nameForestInventoryRaster = "rast.vri2020_id", 
-                         nameForestInventoryKey = "feature_id",                     
-                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2020",
-                         nameForestInventoryAge = "proj_age_1",  
-                         nameForestInventoryHeight = "proj_height_1",
-                         nameForestInventoryCrownClosure = "crown_closure",
-                         nameForestInventoryTreed = "bclcs_level_2",
-                         nameForestInventorySiteIndex = "site_index",
-                         nameForestInventoryBasalArea= "basal_area",
-                         nameForestInventoryQMD = "quad_diam_125"
+                         nameCompartmentTable = "vat.tsa_aac_bounds_vat"
                     ),
-  growingStockCLUS = list (periodLength = 5),
   FLEX2 = list (female_max_age = 9,
                 den_target = 0.003, 
                 rest_target = 0.028,
                 move_target = 0.091,
-                #reproductive_age = 2,
+                #reproductive_age = 2, # not currently implemented
                 sex_ratio = 0.5,
                 female_dispersal = 785000,  # ha; radius = 500 pixels = 50km = 7850km2 area
-                timeInterval = 1,
+                timeInterval = 5, # should be consistent with the time interval used to model habitat
+                                  # e.g., growingstockLCUS periodLength
                 iterations = 1,
                 rasterStack = paste0 (here::here(), "/R/scenarios/test_flex2/outputs/test_fisher_habitat_Williams_Lake_TSA_fisher_habitat.tif")
-                ),
-    uploaderCLUS = list(aoiName = 'fisher_abm_test', 
-                        dbInfo  = list(keyring::key_get ("vmdbhost", keyring="postgreSQL"), 
-                                       keyring::key_get ("vmdbuser", keyring="postgreSQL"), 
-                                       keyring::key_get ("vmdbpass", keyring="postgreSQL"),  
-                                       keyring::key_get ("vmdbname", keyring="postgreSQL")))
+                )
 )
 
 scenario = data.table (name = "test",
                        description = "Testing fisher ABM.")
 
 modules <- list ("FLEX2",
-                 "growingStockCLUS",
-                 "uploaderCLUS",
                  "dataLoaderCLUS")
 
 objects <- list (scenario = scenario)
 inputs <- list ()
-outputs <- data.frame (objectName = c("harvestReport",
-                                      "growingStockReport",
-                                      "fisherABMReport"
-                                      ))
+outputs <- data.frame (objectName = c())
 
 paths <- list(cachePath = cacheDir,
               modulePath = moduleDir,
