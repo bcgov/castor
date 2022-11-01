@@ -316,6 +316,7 @@ Init <- function(sim) {
                       sim$agents [, c ("hr_size", "individual_id")],
                       by = "individual_id")
   hab.count$prop_hab <- hab.count$N / hab.count$hr_size
+  hab.count$prop_hab <- as.numeric (hab.count$prop_hab)
   for (i in hab.count$individual_id) { # for each individual
     if ( hab.count [individual_id == i, prop_hab] >= 0.15) { 
       # if it achieves its home range size and minimum habitat targets 
