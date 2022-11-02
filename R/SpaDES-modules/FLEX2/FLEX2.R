@@ -44,6 +44,8 @@ defineModule(sim, list(
                     "The minimum proportion of a home range that is movement habitat. Values taken from empirical female home range data across populations."), 
     defineParameter("sex_ratio", "numeric", 0.5, 0, 1,
                     "The probability of being a female in a litter."),
+    defineParameter("reproductive_age", "numeric", 2, 0, 9,
+                    "The minimum reproductive age of a fisher."),
     defineParameter("female_dispersal", "numeric", 785000, 100, 10000000,
                     "The area, in hectares, a fisher could explore during a dispersal to find a territory."),
     defineParameter("iterations", "numeric", 1, 1, 10000,
@@ -88,6 +90,7 @@ defineModule(sim, list(
     createsOutput (objectName = "territories", objectClass = "data.table", desc = "Fisher territories table." ),
     createsOutput (objectName = "pix.rast", objectClass = "SpatRaster", desc = "A raster dataset of pixel values in the area of interest." ),
     createsOutput (objectName = "raster.stack", objectClass = "SpatRaster", desc = "The habitat data as a raster stack." ),
+    createsOutput (objectName = "ras.territories", objectClass = "SpatRaster", desc = "The territories over a sim." ),
     createsOutput (objectName = "fisherABMReport", objectClass = "data.table", desc = "A data.table object. Consists of fisher population numbers in the study area at each time step."),
     )
 ))
@@ -141,7 +144,7 @@ Init <- function(sim) {
   message ("Initiating fisher ABM...")
   
   # instantiate table and raster for saving data
-  message("Initializing the fisher reports.")
+  message ("Initializing the fisher reports.")
 
   sim$fisherABMReport <- data.table (n_f_adult = as.numeric (), # number of adult females
                                      n_f_juv = as.numeric (), # number of juvenile females
@@ -149,8 +152,7 @@ Init <- function(sim) {
                                      mean_age_f = as.numeric (), # mean age of females
                                      sd_age_f = as.numeric (), # standard dev age of females
                                      timeperiod = as.integer (), # time step of the simulation
-                                     scenario = as.character (), # simulation scenario name
-                                     compartment = character() # harvest compartments
+                                     scenario = as.character ()
                                      )
   sim$ras.territories <- sim$ras
   sim$ras.territories [] <- 0
@@ -197,7 +199,6 @@ Init <- function(sim) {
                             pixelid = den.pix.sample$pixelid)
   
 
-  
     # user-defined method; allow user to pick the # of agents
       # ids <- seq (from = 1, to = P(sim, "n_females", "FLEX2"), by = 1) # sequence of individual id's from 1 to n_females
       # agents <- data.table (individual_id = ids, 
@@ -238,7 +239,7 @@ Init <- function(sim) {
   
   # convert to raster objects for spread2
   sim$pix.raster <- raster::raster (sim$pix.rast)
-  sim$spread.rast <- spreadRast (sim$pix.raster, 
+  sim$spread.rast <- spreadRast (sim$pix.raster, # see function below
                                  table.hab.spread) 
 
 # this step took 15 mins with ~8500 starting points; 6 mins for 2174 points; 1 min for 435 points
@@ -326,12 +327,7 @@ Init <- function(sim) {
       sim$agents <- sim$agents [individual_id != i]
     } 
   }
-        #  remove pixels if already occupied
-          # not used, but keeping here if we need it later
-            # search.temp <- merge (search.temp, territories, 
-            #                       by.x = "pixels", by.y = "pixelid", all.x = T)
-            # search.temp <- search.temp [is.na (individual_id) | individual_id == (agents [pixelid == i, individual_id]), ]
-  
+
   # check if proportion of habitat types are greater than the minimum thresholds 
   for (i in sim$agents$individual_id) { # for each individual
   
@@ -379,8 +375,7 @@ Init <- function(sim) {
                                  mean_age_f = as.numeric (mean (c (sim$agents [sex == "F", age]))), 
                                  sd_age_f = as.numeric (sd (c (sim$agents [sex == "F", age]))), 
                                  timeperiod = as.integer (time(sim) * P (sim, "timeInterval", "FLEX2")), 
-                                 scenario = as.character (sim$scenario$name),
-                                 compartment = as.character (sim$boundaryInfo[[3]]))
+                                 scenario = as.character (sim$scenario$name))
 
   sim$fisherABMReport <- rbindlist (list (sim$fisherABMReport, 
                                           new.agents.save), 
@@ -786,7 +781,7 @@ annualEvents <- function (sim) {
      # Step 4: Reproduce
       message ("Fishers reproducing...")
       
-      reproFishers <- sim$agents [sex == "F" & age > 1 & !is.na (d2_score) ] # females of reproductive age in a territory
+      reproFishers <- sim$agents [sex == "F" & age >= P (sim, "reproductive_age", "FLEX2") & !is.na (d2_score) ] # females of reproductive age in a territory
 
       # A. Assign each female fisher 1 = reproduce or 0 = does not reproduce
       if (nrow (reproFishers) > 0) {
@@ -973,6 +968,14 @@ saveAgents <- function (sim) {
                filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_fisher_territories.tif"), 
                overwrite = TRUE)
 
+  # add final territories
+  ras.territories.final <- sim$ras
+  ras.territories.final [] <- 0
+  ras.territories.final [sim$territories$pixelid] <- sim$territories$individual_id
+  writeRaster (x = ras.territories.final, 
+               filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_final_fisher_territories.tif"), 
+               overwrite = TRUE)
+  
   
     # use below if want to save the agents table
       # if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
@@ -1010,8 +1013,6 @@ saveAgents <- function (sim) {
 
 spreadRast <- function (rasterInput, habitatInput) {
   spread.rast <- rasterInput
-  
-  
   # currently uses all denning, rust, cavity, cwd and movement habitat as 
   # spreadProb = 1, and non-habitat as spreadProb = 0.10; allows some spread to sub-optimal habitat
   habitatInput [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1, spreadprob := format (round (1.00, 2), nsmall = 2)] # throws error, but it works
