@@ -315,8 +315,7 @@ Init <- function(sim) {
   hab.count <- merge (hab.count,
                       sim$agents [, c ("hr_size", "individual_id")],
                       by = "individual_id")
-  hab.count$prop_hab <- hab.count$N / hab.count$hr_size
-  hab.count$prop_hab <- as.numeric (hab.count$prop_hab)
+  hab.count$prop_hab <- as.numeric (hab.count$N / hab.count$hr_size)
   for (i in hab.count$individual_id) { # for each individual
     if ( hab.count [individual_id == i, prop_hab] >= 0.15) { 
       # if it achieves its home range size and minimum habitat targets 
@@ -508,6 +507,51 @@ annualEvents <- function (sim) {
     dispersers$hr_size <- as.numeric (dispersers$hr_size)
     dispersers <- dispersers [, fisher_pop := NA]
     dispersers$fisher_pop <- as.numeric (dispersers$fisher_pop)
+    
+   
+    
+    
+    
+    
+    # identify the denning habitat 
+    den.rast <- sim$pix.rast
+    den.rast [] <- 0
+    den.rast [sim$table.hab.update [denning == 1, pixelid]] <- 1
+    den.rast [!sim$pix.rast$pixelid] <- NA
+    names (den.rast) <- "denning"
+    den.rast <- c (sim$pix.rast, den.rast)
+    
+    # THESE NEXT STEPS WOULD BE FASTER IF I COULD SUBSET THE DEN PIXELS BEFORE CONVERTING TO A TABLE: COULDN'T GET IT TO WORK AFTER MANY TRIES....
+    # convert to a table
+    den.table <- na.omit (as.data.table (den.rast []))
+    # add x and y coords
+    den.table <- cbind (den.table, crds (den.rast, df = T, na.rm = T))
+    # only denning
+    den.table <- den.table [denning == 1, ]
+    # identify unoccupied denning habitat
+    den.table <- den.table [!pixelid %in% sim$territories$pixelid]
+    
+    
+    
+    
+    # find nearest neighbours for each individual 
+    RANN::nn2 (data = den.table, # in the den site data
+               query = den.table [pixelid %in% dispersers$pixelid], # search from disperser den sites?
+               k = 10, # return maximum 10 neighbours
+               radius = # 50 km r = 7,850 km2 a
+                 
+    )
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
         # create the dispersal area; i.e., where the fisher searches 
     table.disperse <- SpaDES.tools::spread2 (sim$pix.raster, # within the area of interest
                                              start = dispersers$pixelid, # for each individual
