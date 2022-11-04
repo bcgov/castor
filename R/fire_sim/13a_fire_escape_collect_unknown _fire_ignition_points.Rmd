@@ -609,6 +609,10 @@ fire_all<- unknown_ignition_weather_veg
 
 fire_all$yearHarvest<-as.numeric(as.character(stringi::stri_sub(fire_all$harvest_date,1,4)))
 fire_all<- fire_all %>% dplyr::mutate(yearsSinceHarvest = FIRE_YE - yearHarvest)
+fire_all$yearsSinceHarvest<- ifelse(fire_all$yearsSinceHarvest<1, NA, fire_all$yearsSinceHarvest)
+fire_all %>% filter(yearsSinceHarvest<1)
+table(fire_all$yearsSinceHarvest)
+
 
 fire_all$earliest_nonlogging_dist_type_2<-gsub('[" "]', '', fire_all$earliest_nonlogging_dist_type) # removing some weird characters
 table(fire_all$earliest_nonlogging_dist_type)
@@ -623,7 +627,7 @@ table(fire_all$earliest_nonlogging_dist_type_2)
 fire_all$earliest_nonlogging_dist_date
 fire_all$yearDisturb<-as.numeric(as.character(stringi::stri_sub(fire_all$earliest_nonlogging_dist_date,1,4)))
 
-fire_all$yearsSinceDisturbance<- ifelse (fire_all$FIRE_YE >= fire_all$yearDisturb, fire_all$FIRE_YE - fire_all$yearDisturb, NA)
+fire_all$yearsSinceDisturbance<- ifelse (fire_all$FIRE_YE > fire_all$yearDisturb, fire_all$FIRE_YE - fire_all$yearDisturb, NA)
 table(fire_all$yearsSinceDisturbance)
 
 ```
@@ -1272,7 +1276,7 @@ x<- fire_all1 %>% filter(is.na(FWI_veg)) %>% dplyr::select(inventory_standard_cd
                              
 fire_all2<-st_drop_geometry(fire_all1)
 
-st_write(fire_all1, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\unknown_ignition_weather_veg.gpkg")
+st_write(fire_all1, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\unknown_ignition_weather_veg.gpkg", overwrite=TRUE)
 
 write.csv(fire_all2, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\unknown_ignition_weather_veg.csv")
 ```
@@ -1281,7 +1285,7 @@ write.csv(fire_all2, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\u
 ```{r}
 unknown<- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\unknown_ignition_weather_veg.gpkg")
 
-fire_escapes3<- fire_all1
+#fire_escapes3<- fire_all1
 fire_escapes3<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg2.gpkg")
 
 fire_escapes<-fire_escapes3 %>% filter(fire==1)
@@ -1300,14 +1304,15 @@ unknown_ignition_weather_veg4<-unknown %>%
        slope = s___300,
        aspect = a___300,
        elevatn = dm_h_bc,
-       infr_ds = dst_nf_, 
-       rd_dst_ = dst_rb_) %>%
-       dplyr::select(fire_no, fire_yr, IGNITIO, fire_cs, FIRE_LA, ZONE, FIRE_ID, fir_typ, LATITUD, LONGITU, size_ha, ig_mnth, Cluster, idno, slope, aspect, elevatn, Tmax02:MDC_11, infr_ds, rd_dst_, win_sum, win_spg, inventory_standard_cd:FWI_veg)
+       infr_dist = dst_nf_, 
+       road_dist_m = dst_rb_) %>%
+       dplyr::select(fire_no, fire_yr, IGNITIO, fire_cs, FIRE_LA, ZONE, FIRE_ID, fir_typ, LATITUD, LONGITU, size_ha, ig_mnth, Cluster, idno, slope, aspect, elevatn, Tmax02:MDC_11, infr_dist, road_dist_m, win_sum, win_spg, inventory_standard_cd:bclcs_level_5, non_veg_cover_type_1, land_cover_class_cd_1, est_coverage_pct_1, line_7b_disturbance_history:harvest_date,  crown_closure:proj_height_2, yearHarvest:FWI_veg)
 
 
-fire_escapes3 <- fire_escapes2  %>% dplyr::select(fire_no, fire_yr, IGNITIO, fire_cs, FIRE_LA, ZONE, FIRE_ID, fir_typ, LATITUD, LONGITU, size_ha, ig_mnth, Cluster, idno, slope, aspect, elevatn, Tmax02:MDC_11, infr_ds, rd_dst_, win_sum, win_spg, inventory_standard_cd:live_stand_volume_175, yearHarvest:FWI_veg)
+fire_escapes3 <- fire_escapes2  %>% dplyr::select(fire_no, fire_yr, IGNITIO, fire_cs, FIRE_LA, ZONE, FIRE_ID, fir_typ, LATITUD, LONGITU, size_ha, ig_mnth, Cluster, idno, slope, aspect, elevatn, Tmax02:MDC_11, infr_dist, road_dist_m, win_sum, win_spg, inventory_standard_cd:proj_height_2, yearHarvest:FWI_veg)
 
 dim(fire_escapes3)
+dim(unknown_ignition_weather_veg4)
 
 fire_escapes_final<- rbind(fire_escapes3, unknown_ignition_weather_veg4)
 
