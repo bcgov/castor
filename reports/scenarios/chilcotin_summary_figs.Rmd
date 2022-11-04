@@ -288,10 +288,12 @@ data.disturb.nobuff.itcha <- data.summ.disturb.nobuff %>%
                                 filter (scenario == "chilcotin_bau_live_dead" | 
                                         #scenario == "chilcotin_scen1a_live_dead" |
                                         #scenario == "chilcotin_scen1a_live_dead_10yrds" |
-                                        scenario == "chilcotin_scen2a_live_dead" |
-                                        scenario == "chilcotin_scen2a_live_dead_10yrds" |
-                                        scenario ==  "chilcotin_scen3a_live_dead" |
-                                        scenario ==  "chilcotin_scen3a_live_dead_10yrds"
+                                        # scenario == "chilcotin_scen2a_live_dead" |
+                                        # scenario == "chilcotin_scen2a_live_dead_10yrds" |
+                                        # scenario ==  "chilcotin_scen3a_live_dead" |
+                                        # scenario ==  "chilcotin_scen3a_live_dead_10yrds"
+                                        scenario ==  "chilcotin_scen3b_live_dead" |
+                                        scenario ==  "chilcotin_scen3b_live_dead_10yrds"
                                          )
 
 
@@ -303,11 +305,12 @@ data.disturb.buff.itcha <- data.summ.disturb.buff %>%
                                 filter (scenario == "chilcotin_bau_live_dead" | 
                                        # scenario == "chilcotin_scen1a_live_dead" |
                                         #scenario == "chilcotin_scen1a_live_dead_10yrds" |
-                                        scenario == "chilcotin_scen2a_live_dead" |
-                                        scenario == "chilcotin_scen2a_live_dead_10yrds" |
-                                        scenario ==  "chilcotin_scen3a_live_dead" |
-                                        scenario ==  "chilcotin_scen3a_live_dead_10yrds"
-                                           )
+                                        # scenario == "chilcotin_scen2a_live_dead" |
+                                        # scenario == "chilcotin_scen2a_live_dead_10yrds" |
+                                        # scenario ==  "chilcotin_scen3a_live_dead" |
+                                        # scenario ==  "chilcotin_scen3a_live_dead_10yrds"
+                                        scenario ==  "chilcotin_scen3b_live_dead" |
+                                        scenario ==  "chilcotin_scen3b_live_dead_10yrds"  )
 
 
                                         # scenario == "chilcotin_bau_live_dead" | 
@@ -335,10 +338,10 @@ plot.disturb.nobuff <- ggplot (data.disturb.nobuff.itcha,
                               labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", 
                                             #'chilcotin_scen1a_live_dead' = "1a", 
                                             #'chilcotin_scen1a_live_dead_10yrds' = "1a - r10",
-                                            'chilcotin_scen2a_live_dead' = "2a",
-                                            'chilcotin_scen2a_live_dead_10yrds' = "2a - r10",
-                                            'chilcotin_scen3a_live_dead' = "3a",
-                                            'chilcotin_scen3a_live_dead_10yrds' = "3a - r10"
+                                            # 'chilcotin_scen2a_live_dead' = "2a",
+                                            # 'chilcotin_scen2a_live_dead_10yrds' = "2a - r10",
+                                            'chilcotin_scen3b_live_dead' = "3b",
+                                            'chilcotin_scen3b_live_dead_10yrds' = "3b - r10"
                                             # 'chilcotin_scen1b_live_dead' = "1b",
                                             # 'chilcotin_scen1c_live_dead' = "1c",
                                             # 'chilcotin_scen2a_live_dead' = "2a",
@@ -372,10 +375,10 @@ plot.disturb.buff <- ggplot (data.disturb.buff.itcha,
                               labeller = as_labeller (c ('chilcotin_bau_live_dead' = "BAU", 
                                             #'chilcotin_scen1a_live_dead' = "1a",
                                             #'chilcotin_scen1a_live_dead_10yrds' = "1a - r10",
-                                            'chilcotin_scen2a_live_dead' = "2a",
-                                            'chilcotin_scen2a_live_dead_10yrds' = "2a - r10",
-                                            'chilcotin_scen3a_live_dead' = "3a",
-                                            'chilcotin_scen3a_live_dead_10yrds' = "3a - r10"
+                                            # 'chilcotin_scen2a_live_dead' = "2a",
+                                            # 'chilcotin_scen2a_live_dead_10yrds' = "2a - r10",
+                                            'chilcotin_scen3b_live_dead' = "3b",
+                                            'chilcotin_scen3b_live_dead_10yrds' = "3b - r10"
                                             # 'chilcotin_scen1b_live_dead' = "1b",
                                             # 'chilcotin_scen1c_live_dead' = "1c",
                                             # 'chilcotin_scen2a_live_dead' = "2a",
@@ -401,14 +404,14 @@ for Each Scenario",
                   theme_bw ()
 
 
-ggsave (filename = "C:\\Work\\git\\clus\\reports\\scenarios\\images\\disturbance_itcha_nobuff.jpg", 
+ggsave (filename = "C:\\Work\\git\\clus\\reports\\scenarios\\images\\disturbance_itcha_nobuff_3b.jpg", 
         plot = plot.disturb.nobuff,
         dpi = 300,
         device = "jpeg",
         width = 9, 
         height = 6)
 
-ggsave (filename = "C:\\Work\\git\\clus\\reports\\scenarios\\images\\disturbance_itcha_buff500_bau_2a_3a.jpg", 
+ggsave (filename = "C:\\Work\\git\\clus\\reports\\scenarios\\images\\disturbance_itcha_buff500_bau_3b.jpg", 
         plot = plot.disturb.buff,
         dpi = 300,
         device = "jpeg",
