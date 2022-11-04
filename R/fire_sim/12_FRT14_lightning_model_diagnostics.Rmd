@@ -57,7 +57,48 @@ dat_lightning<- read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp
 
 ```
 
+```{r}
+dat_lightning$climate1<-"NA"
+head(dat_lightning)
 
+# dat_lightning <- dat_lightning3 %>%
+#   mutate(climate1 = if_else(frt==3, mean_MDC05_MDC06,
+#                     if_else(frt==5, mean_PPT05_PPT06_PPT07, 
+#                     if_else(frt==7, mean_RH05_RH06_RH07,
+#                     if_else(frt==9, PPT09,
+#                     if_else(frt==10, Tave07, 
+#                     if_else(frt==11, Tave08,
+#                     if_else(frt==12, mean_Tmax07_Tmax08,
+#                     if_else(frt==13, mean_Tave07_Tave08,
+#                     if_else(frt==14, Tmax08,
+#                     if_else(frt==15, mean_RH07_RH08, climate1)))))))))))
+# make sure value are numbers otherwise it seems to not work.
+#dat_lightning$PPT09<-as.numeric(dat_lightning$PPT09)
+dat_lightning<-dat_lightning %>%
+    mutate(climate1 = case_when(
+                            frt == "5" ~ mean_Tave05_Tave06_Tave07_Tave08 ,
+                            frt == "7" ~ mean_RH05_RH06_RH07,
+                            frt == "9" ~ Tmax05,
+                            frt == "10" ~ mean_Tave07_Tave08_Tave09 ,
+                            frt == "11" ~ mean_Tmax07_Tmax08_Tmax09,
+                            frt == "12" ~ mean_Tmax07_Tmax08,
+                            frt == "13" ~ Tave07,
+                            frt == "14" ~ mean_Tave07_Tave08,
+                            frt == "15" ~ mean_Tave06_Tave07_Tave08 ,
+                            TRUE ~ NA_real_))
+
+#Repeat for climate 2
+dat_lightning$climate2<-"NA"
+# # 
+
+dat_lightning <- dat_lightning %>%
+  mutate(climate2 = if_else(frt==5, mean_PPT05_PPT06_PPT07_PPT08,
+                            if_else(frt==10, mean_PPT07_PPT08_PPT09,
+                                    if_else(frt==11, mean_PPT07_PPT08_PPT09,
+                                    if_else(frt==13, as.numeric(PPT07),
+                                            if_else(frt==15, mean_PPT06_PPT07_PPT08, NA_real_))))))
+   
+```
 #Checking model fits 
 ```{r}
 dat<- dat_lightning %>% dplyr::select(fire_yr, ig_mnth, frt, fire, elevatn, climate1, climate2, FWI_veg)
@@ -67,7 +108,7 @@ table(dat$frt, dat$FWI_veg, dat$fire)
 dat14<- dat %>% dplyr::filter(frt == 14) 
 table(dat14$FWI_veg)
 
-dat14<-dat14 %>% filter(FWI_veg!="N")
+dat14<-dat14 %>% filter(FWI_veg!="W")
 
 # there are only 6 observations in the C1 fuel type so since this fiel type has fire spread rates similar to C3 I will change all C1 observations to C3
 # dat12$FWI_veg[dat12$FWI_veg=="C-1"]<-"C-3"
@@ -230,8 +271,19 @@ car::vif(mod.frt.14)
 summary(mod.frt.14)
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT12_lightningALL <- data.frame (matrix (ncol = 14, nrow = 0))
-colnames (top_mod_table_FRT12_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "AUC")
+top_mod_table_FRT12_lightningALL <- data.frame (matrix (ncol = 15, nrow = 0))
+colnames (top_mod_table_FRT12_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept",
+                                                   "coef_climate_1", 
+                                                   "coef_FWI_veg_C-3",  
+                                                   "coef_FWI_veg_C-5",  
+                                                   "coef_FWI_veg_C-7", 
+                                                   "coef_FWI_veg_D-1/2", 
+                                                   "coef_FWI_veg_M-1/2", 
+                                                   "coef_FWI_veg_M-3",
+                                                    "coef_FWI_veg_N",
+                                                   "coef_FWI_veg_O-1a/b", 
+                                                   "coef_FWI_veg_S-1", 
+                                                   "AUC")
 
 dat14$fire_veg<-paste(dat14$fire, dat14$FWI_veg)
 ```
@@ -259,8 +311,19 @@ mod.valid <- predict.glm(mod, newdata=Valid, type="response")
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT12_lightningL <- data.frame (matrix (ncol = 14, nrow = 0))
-colnames (top_mod_table_FRT12_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "AUC")
+top_mod_table_FRT12_lightningL <- data.frame (matrix (ncol = 15, nrow = 0))
+colnames (top_mod_table_FRT12_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept",
+                                                   "coef_climate_1", 
+                                                   "coef_FWI_veg_C-3",  
+                                                   "coef_FWI_veg_C-5",  
+                                                   "coef_FWI_veg_C-7", 
+                                                   "coef_FWI_veg_D-1/2", 
+                                                   "coef_FWI_veg_M-1/2", 
+                                                   "coef_FWI_veg_M-3",
+                                                    "coef_FWI_veg_N",
+                                                   "coef_FWI_veg_O-1a/b", 
+                                                   "coef_FWI_veg_S-1", 
+                                                   "AUC")
 
 
 ##Add data for NDT1
@@ -277,7 +340,8 @@ top_mod_table_FRT12_lightningL[1,10]<- coef(mod)[7] #c
 top_mod_table_FRT12_lightningL[1,11]<- coef(mod)[8] #
 top_mod_table_FRT12_lightningL[1,12]<- coef(mod)[9] #
 top_mod_table_FRT12_lightningL[1,13]<- coef(mod)[10]
-top_mod_table_FRT12_lightningL[1,14]<- mod.auc
+top_mod_table_FRT12_lightningL[1,14]<- coef(mod)[11]
+top_mod_table_FRT12_lightningL[1,15]<- mod.auc
 
 top_mod_table_FRT12_lightningALL<-rbind(top_mod_table_FRT12_lightningALL, top_mod_table_FRT12_lightningL)
 
