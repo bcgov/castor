@@ -145,176 +145,141 @@ library(data.table)
 library(tidyverse)
 ```
 
+```{r}
+sample_locations_DEM_roads_wind2<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_wind_frt.gpkg")
+```
+
 
 # Save each fire year separately
 
 ```{r}
+
 ignit_all_2002<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2002)
 dim(ignit_all_2002)
-sf::st_write(ignit_all_2002, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2002.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2002, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2002.gpkg", delete_layer=TRUE)
 
 ignit_all_2003<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2003)
 dim(ignit_all_2003)
-sf::st_write(ignit_all_2003, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2003.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2003, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2003.gpkg", delete_layer=TRUE)
 
 ignit_all_2004<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2004)
 dim(ignit_all_2004)
-sf::st_write(ignit_all_2004, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2004.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2004, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2004.gpkg", delete_layer=TRUE)
 
 ignit_all_2005<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2005)
 dim(ignit_all_2005)
-sf::st_write(ignit_all_2005, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2005.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2005, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2005.gpkg", delete_layer=TRUE)
 
 ignit_all_2006<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2006)
 dim(ignit_all_2006)
-sf::st_write(ignit_all_2006, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2006.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2006, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2006.gpkg", delete_layer=TRUE)
 
 ignit_all_2007<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2007)
 dim(ignit_all_2007)
-sf::st_write(ignit_all_2007, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2007.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2007, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2007.gpkg", delete_layer=TRUE)
 
 ignit_all_2008<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2008)
 dim(ignit_all_2008)
-sf::st_write(ignit_all_2008, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2008.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2008, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2008.gpkg", delete_layer=TRUE)
 
 ignit_all_2009<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2009)
 dim(ignit_all_2009)
-sf::st_write(ignit_all_2009, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2009.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2009, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2009.gpkg", delete_layer=TRUE)
 
 ignit_all_2010<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2010)
 dim(ignit_all_2010)
-sf::st_write(ignit_all_2010, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2010.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2010, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2010.gpkg", delete_layer=TRUE)
 
 ignit_all_2011<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2011)
 dim(ignit_all_2011)
-sf::st_write(ignit_all_2011, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2011.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2011, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2011.gpkg", delete_layer=TRUE)
 
 ignit_all_2012<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2012)
 dim(ignit_all_2012)
-sf::st_write(ignit_all_2012, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2012.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2012, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2012.gpkg", delete_layer=TRUE)
 
 ignit_all_2013<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2013)
 dim(ignit_all_2013)
-sf::st_write(ignit_all_2013, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2013.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2013, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2013.gpkg", delete_layer=TRUE)
 
 ignit_all_2014<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2014)
 dim(ignit_all_2014)
-sf::st_write(ignit_all_2014, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2014.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2014, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2014.gpkg", delete_layer=TRUE)
 
 ignit_all_2015<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2015)
 dim(ignit_all_2015)
-sf::st_write(ignit_all_2015, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2015.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2015, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2015.gpkg", delete_layer=TRUE)
 
 ignit_all_2016<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2016)
 dim(ignit_all_2016)
-sf::st_write(ignit_all_2016, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2016.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2016, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2016.gpkg", delete_layer=TRUE)
 
 ignit_all_2017<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2017)
 dim(ignit_all_2017)
-sf::st_write(ignit_all_2017, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2017.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2017, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2017.gpkg", delete_layer=TRUE)
 
 ignit_all_2018<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2018)
 dim(ignit_all_2018)
-sf::st_write(ignit_all_2018, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2018.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2018, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2018.gpkg", delete_layer=TRUE)
 
 ignit_all_2019<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2019)
 dim(ignit_all_2019)
-sf::st_write(ignit_all_2019, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2019.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2019, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2019.gpkg", delete_layer=TRUE)
 
 ignit_all_2020<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2020)
 dim(ignit_all_2020)
-sf::st_write(ignit_all_2020, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2020.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2020, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2020.gpkg", delete_layer=TRUE)
 
 ignit_all_2021<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2021)
 dim(ignit_all_2021)
-sf::st_write(ignit_all_2021, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2021.shp", delete_layer=TRUE)
+sf::st_write(ignit_all_2021, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2021.gpkg", delete_layer=TRUE)
 
 
 ```
 
+
+
 ### Now that the ignition points have been joined to the VRI data in QGIS. I need to reimport the data so that i can join it all together and use it.
 
+# note I messed up the points. I was having trouble with some fire locations landing on FWI_veg type =N so I tried to fix this by buffering the points first by 50m, then by 150m then by 500m and extracting the most common vegetation type using QGIS. However, this did not seem to solve my problem so I decided to go back and just do as I did before. However, now Im confused about what buffer (if any) the fire_veg points got. I think its all mixed up with some points being buffered by 150m and others by only 50m. If I need this data from here I will need to re-extract the VRI data!
+
 ```{r}
-file.list1<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\QGIS_analysis\\For_analysis_2022_08_23", pattern="fire_veg", all.files=FALSE, full.names=FALSE)
+file.list1<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\QGIS_analysis\\For_analysis_2022_10_25", pattern="fire_veg", all.files=FALSE, full.names=FALSE)
 y1<-gsub(".gpkg","",file.list1)
-the_dir <- "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\QGIS_analysis\\For_analysis_2022_08_23"
+the_dir <- "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\QGIS_analysis\\For_analysis_2022_10_25"
 
 for (i in 1:length(file.list1)){
   assign(paste0(y1[i]),st_read (dsn=paste0(the_dir, "\\", file.list1[i])))
 }
 
-y2<-y1[1:9]
+
 # combined all the DC.ignition files together
 mkFrameList <- function(nfiles) {
   d <- lapply(seq_len(nfiles),function(i) {
-    eval(parse(text=y2[i]))
+    eval(parse(text=y1[i]))
   })
   do.call(rbind,d)
 }
 
-n<-length(y2)
-fire_veg_02_07<-mkFrameList(n) 
-fire_veg_02_07[duplicated(fire_veg_2002$idno),]$fire_yr # there should be no DUPLICATES
+n<-length(y1)
+fire_veg02_21<-mkFrameList(n) 
+fire_veg02_21[duplicated(fire_veg02_21$idno),]$fire_yr # there should be no DUPLICATES
 
-st_crs(fire_veg_02_07)
-
-fire_veg_02_07$dead_stand_volume_175<-NA
-fire_veg_2008_joinedVRI2009$whole_stem_biomass_per_ha<-NA
-fire_veg_2008_joinedVRI2009$branch_biomass_per_ha<-NA
-fire_veg_2008_joinedVRI2009$foliage_biomass_per_ha<-NA
-fire_veg_2008_joinedVRI2009$bark_biomass_per_ha<-NA
-
-fire_veg_2009$whole_stem_biomass_per_ha<-NA
-fire_veg_2009$branch_biomass_per_ha<-NA
-fire_veg_2009$foliage_biomass_per_ha<-NA
-fire_veg_2009$bark_biomass_per_ha<-NA
-
-fire_veg_02_11<-rbind(rbind(rbind(rbind(fire_veg_2008_joinedVRI2009, fire_veg_2009), fire_veg_2010), fire_veg_2011),fire_veg_02_07)
-
-fire_veg_02_11[duplicated(fire_veg_02_11$idno),]$fire_yr
-
-# having problems with combining the files and Im not sure why.
-# when I try to combine the files its giving me problems so some of them I join manually and then it seems to work. WEIRD! 
-y3<-y1[16:24]
-file.list<-y3
-mkFrameList <- function(nfiles) {
-  d <- lapply(seq_len(nfiles),function(i) {
-    eval(parse(text=file.list[i]))
-  })
-  do.call(rbind,d)
-}
-n1<-length(y3)
-fire_veg13_20<-mkFrameList(n1)
-
-fire_veg13_20[duplicated(fire_veg13_20$idno),]$fire_yr
-table(fire_veg13_20$fire_yr)
-dim(fire_veg13_20)
-
-
-fire_veg_2012_2<-rbind(fire_veg_2012_joinedVRI2013, fire_veg_2012)
-
-# note I messed up dead_stand_volume. i meant to sample dead_stand_volume_175 but I by mistake sampled dead_stand_volume_125 for all years except 2021. 
-fire_veg_2012_3<-fire_veg_2012_2 %>% select(!dead_stand_volume_125)
-fire_veg_02_11a<-fire_veg_02_11 %>% select(!dead_stand_volume_175)
-fire_veg13_20a<-fire_veg13_20 %>% select(!dead_stand_volume_125)
-fire_veg_2021a<-fire_veg_2021 %>% select(!dead_stand_volume_175)
-
-fire_veg<-rbind(rbind(rbind(fire_veg_02_11a, fire_veg_2012_3),fire_veg13_20a),fire_veg_2021a)
+fire_veg02_21[duplicated(fire_veg02_21$idno),]$fire_yr
 
 ```
 
 # now checking for duplicates I should have none
 
 ```{r}
-
-dim(fire_veg)
+dim(fire_veg02_21)
 table(duplicated(fire_veg$idno))
 
 rm(fire_veg_2002, fire_veg_2002_joinedVRI2005, fire_veg_2003, fire_veg_2003_joinedVRI2005, fire_veg_2004, fire_veg_2004_joinedVRI2005, fire_veg_2005, fire_veg_2006, fire_veg_2007_joinedVRI2006, fire_veg_2008_joinedVRI2009, fire_veg_2009, fire_veg_2010, fire_veg_2011, fire_veg_2012, fire_veg_2012_joinedVRI2013, fire_veg_2013,  fire_veg_2014, fire_veg_2015, fire_veg_2016, fire_veg_2017, fire_veg_2018, fire_veg_2019,fire_veg_2020, fire_veg_2020_joinedVRI2021, fire_veg_2021, fire_veg_2021_na)
 
 gc()
 
-table(fire_veg$fire_yr)
+table(fire_veg02_21$fire_yr)
 
 # join the files together. Also check that there are no duplicates and if there are check which on is better to use. 
 
@@ -351,21 +316,181 @@ fire_veg_2002<-fire_veg %>% filter(fire_yr=='2002')
 
 # Good. I loose some points but when i plotted them in QGIS they were all points on the boarder of BC 
 
-names(fire_veg)
-dim(fire_veg)
-fire_veg_sf<-st_as_sf(fire_veg)
+fire_veg_sf<-st_as_sf(fire_veg02_21)
 head(fire_veg_sf)
 
 ```
 Try saving file
 ```{r}
-st_write(fire_veg_sf, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(fire_veg_sf, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all2.gpkg", delete_layer=TRUE, driver="GPKG")
 
 #st_write(fire_veg_sf, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_everything.shp", delete_layer=TRUE, driver="ESRI Shapefile") # this one was not working
 
 #ogr2ogr -f PostgreSQL PG:"dbname=clus port=5432 user= password= host=DG401102" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Fire_data_all.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI 
 
 fire_all_2<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all.gpkg")
+
+```
+
+
+
+############################################
+# Dealing with fire locations that land on a W or N when classified for FWI_veg
+############################################
+
+
+```{r}
+y<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\fire_veg_data_N_or_W.gpkg")
+```
+
+
+# Save each fire year separately
+
+```{r}
+names(y)
+y<- y %>% dplyr::select(id:win_spg, FWI_veg) %>%
+  rename(FWI_veg_old = FWI_veg)
+
+ignit_all_2002<- y %>% filter(fire_yr==2002)
+dim(ignit_all_2002)
+sf::st_write(ignit_all_2002, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2002.gpkg", delete_layer=TRUE)
+
+ignit_all_2003<- y %>% filter(fire_yr==2003)
+dim(ignit_all_2003)
+sf::st_write(ignit_all_2003, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2003.gpkg", delete_layer=TRUE)
+
+ignit_all_2004<- y %>% filter(fire_yr==2004)
+dim(ignit_all_2004)
+sf::st_write(ignit_all_2004, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2004.gpkg", delete_layer=TRUE)
+
+ignit_all_2005<- y %>% filter(fire_yr==2005)
+dim(ignit_all_2005)
+sf::st_write(ignit_all_2005, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2005.gpkg", delete_layer=TRUE)
+
+ignit_all_2006<- y %>% filter(fire_yr==2006)
+dim(ignit_all_2006)
+sf::st_write(ignit_all_2006, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2006.gpkg", delete_layer=TRUE)
+
+ignit_all_2007<- y %>% filter(fire_yr==2007)
+dim(ignit_all_2007)
+sf::st_write(ignit_all_2007, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2007.gpkg", delete_layer=TRUE)
+
+ignit_all_2008<- y %>% filter(fire_yr==2008)
+dim(ignit_all_2008)
+sf::st_write(ignit_all_2008, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2008.gpkg", delete_layer=TRUE)
+
+ignit_all_2009<- y %>% filter(fire_yr==2009)
+dim(ignit_all_2009)
+sf::st_write(ignit_all_2009, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2009.gpkg", delete_layer=TRUE)
+
+ignit_all_2010<- y %>% filter(fire_yr==2010)
+dim(ignit_all_2010)
+sf::st_write(ignit_all_2010, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2010.gpkg", delete_layer=TRUE)
+
+ignit_all_2011<- y %>% filter(fire_yr==2011)
+dim(ignit_all_2011)
+sf::st_write(ignit_all_2011, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2011.gpkg", delete_layer=TRUE)
+
+ignit_all_2012<- y %>% filter(fire_yr==2012)
+dim(ignit_all_2012)
+sf::st_write(ignit_all_2012, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2012.gpkg", delete_layer=TRUE)
+
+ignit_all_2013<- y %>% filter(fire_yr==2013)
+dim(ignit_all_2013)
+sf::st_write(ignit_all_2013, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2013.gpkg", delete_layer=TRUE)
+
+ignit_all_2014<- y %>% filter(fire_yr==2014)
+dim(ignit_all_2014)
+sf::st_write(ignit_all_2014, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2014.gpkg", delete_layer=TRUE)
+
+ignit_all_2015<- y %>% filter(fire_yr==2015)
+dim(ignit_all_2015)
+sf::st_write(ignit_all_2015, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2015.gpkg", delete_layer=TRUE)
+
+ignit_all_2016<- y %>% filter(fire_yr==2016)
+dim(ignit_all_2016)
+sf::st_write(ignit_all_2016, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2016.gpkg", delete_layer=TRUE)
+
+ignit_all_2017<- y %>% filter(fire_yr==2017)
+dim(ignit_all_2017)
+sf::st_write(ignit_all_2017, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2017.gpkg", delete_layer=TRUE)
+
+ignit_all_2018<- y %>% filter(fire_yr==2018)
+dim(ignit_all_2018)
+sf::st_write(ignit_all_2018, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2018.gpkg", delete_layer=TRUE)
+
+ignit_all_2019<- y %>% filter(fire_yr==2019)
+dim(ignit_all_2019)
+sf::st_write(ignit_all_2019, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2019.gpkg", delete_layer=TRUE)
+
+ignit_all_2020<- y %>% filter(fire_yr==2020)
+dim(ignit_all_2020)
+sf::st_write(ignit_all_2020, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2020.gpkg", delete_layer=TRUE)
+
+ignit_all_2021<- y %>% filter(fire_yr==2021)
+dim(ignit_all_2021)
+sf::st_write(ignit_all_2021, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\corrections\\ignit_all_2021.gpkg", delete_layer=TRUE)
+
+
+```
+
+
+
+### Now that the ignition points have been joined to the VRI data in QGIS. I need to reimport the data so that i can join it all together and use it.
+
+# note I messed up the points. I was having trouble with some fire locations landing on FWI_veg type =N so I tried to fix this by buffering the points first by 50m, then by 150m then by 500m and extracting the most common vegetation type using QGIS. However, this did not seem to solve my problem so I decided to go back and just do as I did before. However, now Im confused about what buffer (if any) the fire_veg points got. I think its all mixed up with some points being buffered by 150m and others by only 50m. If I need this data from here I will need to re-extract the VRI data!
+
+```{r}
+file.list1<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\QGIS_analysis\\corrections", pattern="fire_veg", all.files=FALSE, full.names=FALSE)
+y1<-gsub(".gpkg","",file.list1)
+the_dir <- "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\QGIS_analysis\\corrections"
+
+for (i in 1:length(file.list1)){
+  assign(paste0(y1[i]),st_read (dsn=paste0(the_dir, "\\", file.list1[i])))
+}
+
+
+# combined all the DC.ignition files together
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=y1[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(y1)
+fire_veg02_21<-mkFrameList(n) 
+fire_veg02_21[duplicated(fire_veg02_21$idno),]$fire_yr # there should be no DUPLICATES
+
+fire_veg02_21[duplicated(fire_veg02_21$idno),]$fire_yr
+
+y_new<-st_drop_geometry(y) %>% dplyr::select(id, idno, win_spg)
+
+fire_veg_problems<-left_join(fire_veg02_21, y_new)
+
+
+
+```
+
+Now I should join these locations to the other file
+
+```{r}
+y<-fire_all1 %>% filter(fire==1) %>% filter(FWI_veg %in% c("N", "W"))
+
+# remove everyting after yearHarvest
+
+y3<- fire_all1 %>% filter(fire==1) %>% 
+  filter(FWI_veg %in% c("N","W")) %>% 
+  dplyr::select(idno)
+
+y4<-fire_all1 %>% filter(!idno %in% y3$idno) %>%
+  select(id:proj_height_2, FWI_veg) %>% 
+  rename(FWI_veg_old=FWI_veg)
+
+y4<-rbind(y4, fire_veg_problems)
+
+st_write(y4, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all3.gpkg", delete_layer=TRUE, driver="GPKG")
+
 
 ```
 
