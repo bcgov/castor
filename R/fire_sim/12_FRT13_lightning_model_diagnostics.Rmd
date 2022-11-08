@@ -57,6 +57,48 @@ dat_lightning<- read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp
 
 ```
 
+```{r}
+dat_lightning$climate1<-"NA"
+head(dat_lightning)
+
+# dat_lightning <- dat_lightning3 %>%
+#   mutate(climate1 = if_else(frt==3, mean_MDC05_MDC06,
+#                     if_else(frt==5, mean_PPT05_PPT06_PPT07, 
+#                     if_else(frt==7, mean_RH05_RH06_RH07,
+#                     if_else(frt==9, PPT09,
+#                     if_else(frt==10, Tave07, 
+#                     if_else(frt==11, Tave08,
+#                     if_else(frt==12, mean_Tmax07_Tmax08,
+#                     if_else(frt==13, mean_Tave07_Tave08,
+#                     if_else(frt==14, Tmax08,
+#                     if_else(frt==15, mean_RH07_RH08, climate1)))))))))))
+# make sure value are numbers otherwise it seems to not work.
+#dat_lightning$PPT09<-as.numeric(dat_lightning$PPT09)
+dat_lightning<-dat_lightning %>%
+    mutate(climate1 = case_when(
+                            frt == "5" ~ mean_Tave05_Tave06_Tave07_Tave08 ,
+                            frt == "7" ~ mean_RH05_RH06_RH07,
+                            frt == "9" ~ Tmax05,
+                            frt == "10" ~ mean_Tave07_Tave08_Tave09 ,
+                            frt == "11" ~ mean_Tmax07_Tmax08_Tmax09,
+                            frt == "12" ~ mean_Tmax07_Tmax08,
+                            frt == "13" ~ Tave07,
+                            frt == "14" ~ mean_Tave07_Tave08,
+                            frt == "15" ~ mean_Tave06_Tave07_Tave08 ,
+                            TRUE ~ NA_real_))
+
+#Repeat for climate 2
+dat_lightning$climate2<-"NA"
+# # 
+
+dat_lightning <- dat_lightning %>%
+  mutate(climate2 = if_else(frt==5, mean_PPT05_PPT06_PPT07_PPT08,
+                            if_else(frt==10, mean_PPT07_PPT08_PPT09,
+                                    if_else(frt==11, mean_PPT07_PPT08_PPT09,
+                                    if_else(frt==13, as.numeric(PPT07),
+                                            if_else(frt==15, mean_PPT06_PPT07_PPT08, NA_real_))))))
+   
+```
 
 #Checking model fits 
 ```{r}
@@ -67,13 +109,13 @@ table(dat$frt, dat$FWI_veg, dat$fire)
 dat13<- dat %>% dplyr::filter(frt == 13) 
 table(dat13$FWI_veg)
 
-dat13<-dat13 %>% filter(FWI_veg!="N")
+dat13<-dat13 %>% filter(FWI_veg!="W")
 # there are only 6 observations in the C1 fuel type so since this fiel type has fire spread rates similar to C3 I will change all C1 observations to C3
 # dat12$FWI_veg[dat12$FWI_veg=="C-1"]<-"C-3"
 # # apparently C-4 is very similar to C-2 so Ill also change all C-4's to C'-2's. I read this in Perakkis 
 dat13$FWI_veg[dat13$FWI_veg=="C-4"]<-"C-2"
 ## changing M-3 to M-1/2 because there are only 6 occurences of M-3 so its hard to run a model on this.
-#dat13$FWI_veg[dat13$FWI_veg=="M-3"]<-"M-1/2"
+dat13$FWI_veg[dat13$FWI_veg=="M-3"]<-"O-1a/b"
 table(dat13$FWI_veg)
 
 # nice alternative figure but cant add a map or Im not sure how to.
@@ -122,6 +164,11 @@ summary(mod.frt.13)
 
 Anova(mod.frt.13, type=3)
 
+mod.frt.13b<-glm(fire ~ climate1 + FWI_veg + elevatn, data=dat13, family=binomial(link="logit"))
+anova(mod.frt.13, mod.frt.13b, test="Chisq")
+
+mod.frt.13<-glm(fire ~ climate1 + FWI_veg + elevatn, data=dat13, family=binomial(link="logit"))
+
 # model diagnostic plots
 binnedplot (fitted(mod.frt.13), 
             residuals(mod.frt.13), 
@@ -154,6 +201,7 @@ binnedplot (dat13$climate2,
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm"))
 
+cor.test(dat13$climate1, dat13$elevatn)
 
 
 
@@ -180,6 +228,7 @@ First checking assumption of linearity
 
 # Select only numeric predictors
 str(dat13)
+
 
 dat2_b<-dat13%>% dplyr::select(fire, elevatn, climate1, climate2)
 probabilities <- predict(mod.frt.13, type = "response")
@@ -254,7 +303,21 @@ summary(mod.frt.13)
 
 #Create a new blank table and get AUC too
 top_mod_table_FRT13_lightningALL <- data.frame (matrix (ncol = 18, nrow = 0))
-colnames (top_mod_table_FRT13_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_climate2", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "coef_FWI_veg_S-2",  "coef_FWI_veg_S-3","coef_elevatn", "AUC")
+colnames (top_mod_table_FRT13_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept",
+                                                   "coef_climate_1", 
+                                                   "coef_climate2", 
+                                                   "coef_FWI_veg_C-3",  
+                                                   "coef_FWI_veg_C-5",  
+                                                   "coef_FWI_veg_C-7", 
+                                                   "coef_FWI_veg_D-1/2", 
+                                                   "coef_FWI_veg_M-1/2", 
+                                                   "coef_FWI_veg_N", 
+                                                   "coef_FWI_veg_O-1a/b", 
+                                                   "coef_FWI_veg_S-1", 
+                                                   "coef_FWI_veg_S-2",  
+                                                   "coef_FWI_veg_S-3",
+                                                   "coef_elevatn", 
+                                                   "AUC")
 
 dat13$fire_veg<-paste(dat13$fire, dat13$FWI_veg)
 ```
@@ -283,7 +346,20 @@ mod.valid <- predict.glm(mod, newdata=Valid, type="response")
 
 # create model table (only do this once) and add the relevant data
 top_mod_table_FRT13_lightningL <- data.frame (matrix (ncol = 18, nrow = 0))
-colnames (top_mod_table_FRT13_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_climate2", "coef_FWI_veg_C-3",  "coef_FWI_veg_C-5",  "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1", "coef_FWI_veg_S-2",  "coef_FWI_veg_S-3","coef_elevatn", "AUC")
+colnames (top_mod_table_FRT13_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept",
+                                                 "coef_climate_1", 
+                                                 "coef_climate2", 
+                                                 "coef_FWI_veg_C-3",  
+                                                 "coef_FWI_veg_C-5",  
+                                                 "coef_FWI_veg_C-7", 
+                                                 "coef_FWI_veg_D-1/2", 
+                                                 "coef_FWI_veg_M-1/2",
+                                                 "coef_FWI_veg_N",
+                                                 "coef_FWI_veg_O-1a/b", 
+                                                 "coef_FWI_veg_S-1", 
+                                                 "coef_FWI_veg_S-2", 
+                                                 "coef_FWI_veg_S-3",
+                                                 "coef_elevatn", "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT13_lightningL[1,1]<-"lightning"

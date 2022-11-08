@@ -60,7 +60,6 @@ source(here::here("R/functions/R_Postgres.R"))
 
 Now we must bring in the data that we created at the end of 08_VRI_data_prep. We need only the lightning + NA and the person + NA data sets here. 
 
-Note: October 21, 2021, the below files no longer appear to be on postgres
 
 ```{r}
 fire_ignitions<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg2.gpkg")
@@ -428,12 +427,14 @@ table(fire_ignitions$frt)
 ### NOTE: I changed the number of variables so the columns below will not be correct.
 # correlation between max T and MDC. Across all the data MDC and Tmax are correlated with values ranging between 0.23 and 0.94. 
 
-dat_lightning<-fire_ignitions%>% filter(!fire_cs %in% c("Person", "Unknown"))
-hist(dat_lightning$ig_mnth)
+dat_lightning<-fire_ignitions %>% filter(!fire_cs %in% c("Person", "Unknown"))
+hist(as.numeric(dat_lightning$ig_mnth))
+dat_lightning<-st_drop_geometry(dat_lightning)
 
 
 dist.cut.corr <- dat_lightning [c (20:29, 40:49)]
 corr <- round (cor (dist.cut.corr), 3)
+
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between maximum temperature and PPT")
 
@@ -515,8 +516,12 @@ Before we begin, we will create additional climate variables.
 #Climate variable creation for lightning data
 
 ### creating amalgamations of variables to test different combinations of variables.##
-fire_ignitions$tot_spring_PPT<-fire_ignitions$Tmax03+ fire_ignitions$Tmax04 + fire_ignitions$Tmax05
-fire_ignitions$tot_summer_PPT<-fire_ignitions$Tmax06+ fire_ignitions$Tmax07 + fire_ignitions$Tmax08
+fire_ignitions$tot_spring_PPT<-fire_ignitions$PPT04+ fire_ignitions$PPT05 + fire_ignitions$PPT06
+fire_ignitions$tot_summer_PPT<-fire_ignitions$PPT07+ fire_ignitions$PPT08 + fire_ignitions$PPT09
+fire_ignitions$spring_Tmax<-fire_ignitions$Tmax04+ fire_ignitions$Tmax05 + fire_ignitions$Tmax06
+fire_ignitions$summer_Tmax<-fire_ignitions$Tmax07+ fire_ignitions$Tmax08 + fire_ignitions$Tmax09
+fire_ignitions$spring_Tave<-fire_ignitions$Tave04+ fire_ignitions$Tave05 + fire_ignitions$Tave06
+fire_ignitions$summer_Tave<-fire_ignitions$Tave07+ fire_ignitions$Tave08 + fire_ignitions$Tave09
 
 fire_ignitions$mean_Tmax03_Tmax04<- (fire_ignitions$Tmax03+ fire_ignitions$Tmax04)/2
 fire_ignitions$mean_Tmax04_Tmax05<- (fire_ignitions$Tmax04+ fire_ignitions$Tmax05)/2
@@ -774,10 +779,10 @@ We must subsample the data since the sample sizes for the zeros are too large. A
 The step preparing the tables can take a very long time for the NAs since there are a few hundred thousand. Once you prepare these tables, you do not need to prepare them again as long as they are still saved in your R environment. Once geometry is set to null, however, the processing should be really fast.
 
 ```{r}
-#fire_ignitions2<-st_set_geometry(fire_ignitions, NULL)
+fire_ignitions2<-st_set_geometry(fire_ignitions, NULL)
 
 ##Lightning caused - preparing the tables
-pre<- fire_ignitions %>%
+pre<- fire_ignitions2 %>%
   filter(fire==1) %>%
   filter(!fire_cs %in% c("Person", "Unknown")) %>%
   dplyr::select(fire_yr, fire, frt, FWI_veg) %>%
@@ -786,7 +791,7 @@ pre<- fire_ignitions %>%
 head(pre)
 
 ##Get NA points
-pre_checkpre<- fire_ignitions %>%
+pre_checkpre<- fire_ignitions2 %>%
   filter(fire==0) %>%
   dplyr::select(fire_yr, fire, frt, FWI_veg) %>%
   group_by(fire_yr, frt, FWI_veg) %>%
@@ -803,7 +808,7 @@ check %>% print(n=300) # hmm there are some NA's in the 0 column. I should proba
 
 
 ```{r}
-abs_match <- fire_ignitions %>%
+abs_match <- fire_ignitions2 %>%
   filter(fire == 0) %>%
   group_by(fire_yr, frt, FWI_veg ) %>%   # prep for work by yr and veg type
   nest() %>%              # --> one row per yr and vegtype
@@ -823,13 +828,13 @@ Note: each time you subsample with the code below, you will end up with differen
 # here I sample from the tibble the number of data points I want for the absences
 # I should probably have replace = false but there are a few rows where there are more fire ignitions in that subzone than randomly sampled locations which is causing issues with this code. For now I'll leave it like this.
   sampled_df<- df2 %>% 
-    mutate(samp = map2(data, ceiling(fire_n*2), sample_n, replace=TRUE)) %>%
+    mutate(samp = map2(data, ceiling(fire_n*3), sample_n, replace=TRUE)) %>%
     dplyr::select(-data) %>%
     unnest(samp) #%>%
     #dplyr::select(idno:frt)
  
 # joining my subsampled absence data back to the fire ignition presence data
-pre1<- fire_ignitions %>%
+pre1<- fire_ignitions2 %>%
   filter(fire==1) %>% 
   filter(! fire_cs %in% c("Person", "Unknown"))
 dim(sampled_df) # 
@@ -874,14 +879,16 @@ Create groupings of variables to put into model selection loop.
 
 ```{r}
 
-variables<- c(#"Tmax03",
+variables<- c("spring_Tmax",
+              "summer_Tmax",
+              "Tmax03",
               "Tmax04",
               "Tmax05",
               "Tmax06",
               "Tmax07", 
               "Tmax08", 
               "Tmax09",
-              #"Tmax10", 
+              "Tmax10", 
               #"Tmax11", 
               "mean_Tmax03_Tmax04",
               "mean_Tmax04_Tmax05",
@@ -889,45 +896,47 @@ variables<- c(#"Tmax03",
               "mean_Tmax06_Tmax07", 
               "mean_Tmax07_Tmax08", 
               "mean_Tmax08_Tmax09",
-              #"mean_Tmax09_Tmax10",
+              "mean_Tmax09_Tmax10",
               #"mean_Tmax10_Tmax11", 
               "mean_Tmax03_Tmax04_Tmax05",
               "mean_Tmax04_Tmax05_Tmax06",
               "mean_Tmax05_Tmax06_Tmax07", 
               "mean_Tmax06_Tmax07_Tmax08",
               "mean_Tmax07_Tmax08_Tmax09",
-              #"mean_Tmax08_Tmax09_Tmax10",
+              "mean_Tmax08_Tmax09_Tmax10",
               #"mean_Tmax09_Tmax10_Tmax11", 
               "mean_Tmax03_Tmax04_Tmax05_Tmax06",
               "mean_Tmax04_Tmax05_Tmax06_Tmax07",
               "mean_Tmax05_Tmax06_Tmax07_Tmax08",
               "mean_Tmax06_Tmax07_Tmax08_Tmax09",
-              #"mean_Tmax07_Tmax08_Tmax09_Tmax10",
+              "mean_Tmax07_Tmax08_Tmax09_Tmax10",
               #"mean_Tmax08_Tmax09_Tmax10_Tmax11",
               "mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07",
               "mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08",
               "mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09",
-              #"mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
+              "mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
               #"mean_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
               "mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08",
               "mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9",
-              #"mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
+              "mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
               #"mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
               "mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09",
-              #"mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
+              "mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
               #"mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
-              #"mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
+              "mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
               #"mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
               #"mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
               
-              #"Tave03",
+              "spring_Tave",
+              "summer_Tave",
+              "Tave03",
               "Tave04",
               "Tave05",
               "Tave06",
               "Tave07", 
               "Tave08", 
               "Tave09",
-              #"Tave10", 
+              "Tave10", 
               #"Tave11", 
               "mean_Tave03_Tave04",
               "mean_Tave04_Tave05",
@@ -935,47 +944,48 @@ variables<- c(#"Tmax03",
               "mean_Tave06_Tave07", 
               "mean_Tave07_Tave08", 
               "mean_Tave08_Tave09",
-              #"mean_Tave09_Tave10",
+              "mean_Tave09_Tave10",
               #"mean_Tave10_Tave11", 
               "mean_Tave03_Tave04_Tave05",
               "mean_Tave04_Tave05_Tave06",
               "mean_Tave05_Tave06_Tave07", 
               "mean_Tave06_Tave07_Tave08",
               "mean_Tave07_Tave08_Tave09",
-              #"mean_Tave08_Tave09_Tave10",
+              "mean_Tave08_Tave09_Tave10",
               #"mean_Tave09_Tave10_Tave11", 
               "mean_Tave03_Tave04_Tave05_Tave06",
               "mean_Tave04_Tave05_Tave06_Tave07",
               "mean_Tave05_Tave06_Tave07_Tave08",
               "mean_Tave06_Tave07_Tave08_Tave09",
-              #"mean_Tave07_Tave08_Tave09_Tave10",
+              "mean_Tave07_Tave08_Tave09_Tave10",
               #"mean_Tave08_Tave09_Tave10_Tave11",
               "mean_Tave03_Tave04_Tave05_Tave06_Tave07",
               "mean_Tave04_Tave05_Tave06_Tave07_Tave08",
               "mean_Tave05_Tave06_Tave07_Tave08_Tave09",
-              #"mean_Tave06_Tave07_Tave08_Tave09_Tave10",
+              "mean_Tave06_Tave07_Tave08_Tave09_Tave10",
               #"mean_Tave07_Tave08_Tave09_Tave10_Tave11",
               "mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08",
               "mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave9",
-              #"mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10",
+              "mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10",
               #"mean_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
               "mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09",
-              #"mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10",
+              "mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10",
               #"mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
-              #"mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10",
+              "mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10",
               #"mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
               #"mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
               
               #"PPT03",
               "tot_spring_PPT",
               "tot_summer_PPT",
+              "PPT03",
               "PPT04",
               "PPT05",
               "PPT06",
               "PPT07", 
               "PPT08", 
               "PPT09",
-              #"PPT10", 
+              "PPT10", 
               #"PPT11", 
               "mean_PPT03_PPT04",
               "mean_PPT04_PPT05",
@@ -983,45 +993,45 @@ variables<- c(#"Tmax03",
               "mean_PPT06_PPT07", 
               "mean_PPT07_PPT08", 
               "mean_PPT08_PPT09",
-              #"mean_PPT09_PPT10",
+              "mean_PPT09_PPT10",
               #"mean_PPT10_PPT11", 
               "mean_PPT03_PPT04_PPT05",
               "mean_PPT04_PPT05_PPT06",
               "mean_PPT05_PPT06_PPT07", 
               "mean_PPT06_PPT07_PPT08",
               "mean_PPT07_PPT08_PPT09",
-              #"mean_PPT08_PPT09_PPT10",
+              "mean_PPT08_PPT09_PPT10",
               #"mean_PPT09_PPT10_PPT11", 
               "mean_PPT03_PPT04_PPT05_PPT06",
               "mean_PPT04_PPT05_PPT06_PPT07",
               "mean_PPT05_PPT06_PPT07_PPT08",
               "mean_PPT06_PPT07_PPT08_PPT09",
-              #"mean_PPT07_PPT08_PPT09_PPT10",
+              "mean_PPT07_PPT08_PPT09_PPT10",
               #"mean_PPT08_PPT09_PPT10_PPT11",
               "mean_PPT03_PPT04_PPT05_PPT06_PPT07",
               "mean_PPT04_PPT05_PPT06_PPT07_PPT08",
               "mean_PPT05_PPT06_PPT07_PPT08_PPT09",
-              #"mean_PPT06_PPT07_PPT08_PPT09_PPT10",
+              "mean_PPT06_PPT07_PPT08_PPT09_PPT10",
               #"mean_PPT07_PPT08_PPT09_PPT10_PPT11",
               "mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08",
               "mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT9",
-              #"mean_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10",
+              "mean_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10",
               #"mean_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
               "mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09",
-              #"mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10",
+              "mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10",
               #"mean_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
-              #"mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10",
+              "mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10",
               #"mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
               #"mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11",
               
-              #"RH03",
+              "RH03",
               "RH04",
               "RH05",
               "RH06",
               "RH07", 
               "RH08", 
               "RH09",
-              #"RH10", 
+              "RH10", 
               #"RH11", 
               "mean_RH03_RH04",
               "mean_RH04_RH05",
@@ -1029,45 +1039,45 @@ variables<- c(#"Tmax03",
               "mean_RH06_RH07", 
               "mean_RH07_RH08", 
               "mean_RH08_RH09",
-              #"mean_RH09_RH10",
+              "mean_RH09_RH10",
               #"mean_RH10_RH11", 
               "mean_RH03_RH04_RH05",
               "mean_RH04_RH05_RH06",
               "mean_RH05_RH06_RH07", 
               "mean_RH06_RH07_RH08",
               "mean_RH07_RH08_RH09",
-              #"mean_RH08_RH09_RH10",
+              "mean_RH08_RH09_RH10",
               #"mean_RH09_RH10_RH11", 
               "mean_RH03_RH04_RH05_RH06",
               "mean_RH04_RH05_RH06_RH07",
               "mean_RH05_RH06_RH07_RH08",
               "mean_RH06_RH07_RH08_RH09",
-              #"mean_RH07_RH08_RH09_RH10",
+              "mean_RH07_RH08_RH09_RH10",
               #"mean_RH08_RH09_RH10_RH11",
               "mean_RH03_RH04_RH05_RH06_RH07",
               "mean_RH04_RH05_RH06_RH07_RH08",
               "mean_RH05_RH06_RH07_RH08_RH09",
-              #"mean_RH06_RH07_RH08_RH09_RH10",
+              "mean_RH06_RH07_RH08_RH09_RH10",
               #"mean_RH07_RH08_RH09_RH10_RH11",
               "mean_RH03_RH04_RH05_RH06_RH07_RH08",
               "mean_RH04_RH05_RH06_RH07_RH08_RH9",
-              #"mean_RH05_RH06_RH07_RH08_RH09_RH10",
+              "mean_RH05_RH06_RH07_RH08_RH09_RH10",
               #"mean_RH06_RH07_RH08_RH09_RH10_RH11",
               "mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09",
-              #"mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10",
+              "mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10",
               #"mean_RH05_RH06_RH07_RH08_RH09_RH10_RH11",
-              #"mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10",
+              "mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10",
               #"mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11",
               #"mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11",
               
-              #"MDC_03",
+              "MDC_03",
               "MDC_04",
               "MDC_05",
               "MDC_06",
               "MDC_07", 
               "MDC_08", 
               "MDC_09",
-              #"MDC_10", 
+              "MDC_10", 
               #"MDC_11", 
               "mean_MDC_03_MDC_04",
               "mean_MDC_04_MDC_05",
@@ -1082,37 +1092,37 @@ variables<- c(#"Tmax03",
               "mean_MDC_05_MDC_06_MDC_07", 
               "mean_MDC_06_MDC_07_MDC_08",
               "mean_MDC_07_MDC_08_MDC_09",
-              #"mean_MDC_08_MDC_09_MDC_10",
+              "mean_MDC_08_MDC_09_MDC_10",
               #"mean_MDC_09_MDC_10_MDC_11", 
               "mean_MDC_03_MDC_04_MDC_05_MDC_06",
               "mean_MDC_04_MDC_05_MDC_06_MDC_07",
               "mean_MDC_05_MDC_06_MDC_07_MDC_08",
               "mean_MDC_06_MDC_07_MDC_08_MDC_09",
-              #"mean_MDC_07_MDC_08_MDC_09_MDC_10",
+              "mean_MDC_07_MDC_08_MDC_09_MDC_10",
               #"mean_MDC_08_MDC_09_MDC_10_MDC_11",
               "mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07",
               "mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08",
               "mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09",
-              #"mean_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10",
+              "mean_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10",
               #"mean_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
               "mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08",
               "mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_9",
-              #"mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10",
+              "mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10",
               #"mean_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
-              "mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09")
-              #"mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10")
+              "mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09",
+              "mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10",
               #"mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
-              #"mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10",
+              "mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10")
               #"mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
               #"mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11")
 
- variables1<-c("Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09", "mean_Tmax03_Tmax04_Tmax05", "mean_Tmax04_Tmax05_Tmax06", "mean_Tmax06_Tmax07_Tmax08", "mean_Tmax07_Tmax08_Tmax09", "mean_Tmax04_Tmax05_Tmax06_Tmax07", "mean_Tmax05_Tmax06_Tmax07_Tmax08",
-               "Tave04","Tave05", "Tave06", "Tave07", "Tave08", "Tave09", "mean_Tave03_Tave04_Tave05", "mean_Tave04_Tave05_Tave06", "mean_Tave06_Tave07_Tave08", "mean_Tave07_Tave08_Tave09", "mean_Tave04_Tave05_Tave06_Tave07", "mean_Tave05_Tave06_Tave07_Tave08",
-               "RH04","RH05", "RH06", "RH07", "RH08", "RH09", "mean_RH03_RH04_RH05", "mean_RH04_RH05_RH06", "mean_RH06_RH07_RH08", "mean_RH07_RH08_RH09", "mean_RH04_RH05_RH06_RH07", "mean_RH05_RH06_RH07_RH08")
+ variables1<-c("spring_Tmax","summer_Tmax","Tmax03", "Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09","Tmax10", "mean_Tmax03_Tmax04_Tmax05", "mean_Tmax04_Tmax05_Tmax06", "mean_Tmax06_Tmax07_Tmax08", "mean_Tmax07_Tmax08_Tmax09", "mean_Tmax04_Tmax05_Tmax06_Tmax07", "mean_Tmax05_Tmax06_Tmax07_Tmax08",
+               "spring_Tave","summer_Tave","Tave03","Tave04","Tave05", "Tave06", "Tave07", "Tave08", "Tave09", "Tave10", "mean_Tave03_Tave04_Tave05", "mean_Tave04_Tave05_Tave06", "mean_Tave06_Tave07_Tave08", "mean_Tave07_Tave08_Tave09", "mean_Tave04_Tave05_Tave06_Tave07", "mean_Tave05_Tave06_Tave07_Tave08",
+               "RH03", "RH04","RH05", "RH06", "RH07", "RH08", "RH09", "RH10", "mean_RH03_RH04_RH05", "mean_RH04_RH05_RH06", "mean_RH06_RH07_RH08", "mean_RH07_RH08_RH09", "mean_RH04_RH05_RH06_RH07", "mean_RH05_RH06_RH07_RH08")
  
-variables2<-c("PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "mean_PPT03_PPT04_PPT05", "mean_PPT04_PPT05_PPT06", "mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09", "mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08",
-              "PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "mean_PPT03_PPT04_PPT05", "mean_PPT04_PPT05_PPT06", "mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09", "mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08",
-              "PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "mean_PPT03_PPT04_PPT05", "mean_PPT04_PPT05_PPT06", "mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09","mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08") 
+variables2<-c("tot_spring_PPT","tot_summer_PPT","PPT03", "PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "PPT10", "mean_PPT03_PPT04_PPT05", "mean_PPT04_PPT05_PPT06", "mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09", "mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08",
+              "tot_spring_PPT", "tot_summer_PPT","PPT03", "PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "PPT10", "mean_PPT03_PPT04_PPT05", "mean_PPT04_PPT05_PPT06", "mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09", "mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08",
+              "PPT03", "PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "PPT10", "mean_PPT03_PPT04_PPT05", "mean_PPT04_PPT05_PPT06", "mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09","mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08") 
 # precipitation and MDC and temperature and MDC are quite correlated so I'm leaving this combination of variables out. 
 
 ```
@@ -1404,7 +1414,9 @@ Create groupings of variables to put into model selection loop.
 
 ```{r}
 
-variables<- c("Tmax03",
+variables<- c("spring_Tmax",
+              "summer_Tmax",
+              "Tmax03",
               "Tmax04",
               "Tmax05",
               "Tmax06",
@@ -1450,6 +1462,8 @@ variables<- c("Tmax03",
               #"mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
               #"mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
               
+              "spring_Tave",
+              "summer_Tave",
               "Tave03",
               "Tave04",
               "Tave05",
@@ -1637,12 +1651,12 @@ variables<- c("Tmax03",
               #"mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
               #"mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11")
 
- variables1<-c("Tmax03", "Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09","Tmax10", "mean_Tmax03_Tmax04_Tmax05", "mean_Tmax04_Tmax05_Tmax06", "mean_Tmax06_Tmax07_Tmax08", "mean_Tmax07_Tmax08_Tmax09", "mean_Tmax04_Tmax05_Tmax06_Tmax07", "mean_Tmax05_Tmax06_Tmax07_Tmax08",
-               "Tave03","Tave04","Tave05", "Tave06", "Tave07", "Tave08", "Tave09", "Tave10", "mean_Tave03_Tave04_Tave05", "mean_Tave04_Tave05_Tave06", "mean_Tave06_Tave07_Tave08", "mean_Tave07_Tave08_Tave09", "mean_Tave04_Tave05_Tave06_Tave07", "mean_Tave05_Tave06_Tave07_Tave08",
+ variables1<-c("spring_Tmax","summer_Tmax","Tmax03", "Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09","Tmax10", "mean_Tmax03_Tmax04_Tmax05", "mean_Tmax04_Tmax05_Tmax06", "mean_Tmax06_Tmax07_Tmax08", "mean_Tmax07_Tmax08_Tmax09", "mean_Tmax04_Tmax05_Tmax06_Tmax07", "mean_Tmax05_Tmax06_Tmax07_Tmax08",
+               "spring_Tave","summer_Tave","Tave03","Tave04","Tave05", "Tave06", "Tave07", "Tave08", "Tave09", "Tave10", "mean_Tave03_Tave04_Tave05", "mean_Tave04_Tave05_Tave06", "mean_Tave06_Tave07_Tave08", "mean_Tave07_Tave08_Tave09", "mean_Tave04_Tave05_Tave06_Tave07", "mean_Tave05_Tave06_Tave07_Tave08",
                "RH03", "RH04","RH05", "RH06", "RH07", "RH08", "RH09", "RH10", "mean_RH03_RH04_RH05", "mean_RH04_RH05_RH06", "mean_RH06_RH07_RH08", "mean_RH07_RH08_RH09", "mean_RH04_RH05_RH06_RH07", "mean_RH05_RH06_RH07_RH08")
  
-variables2<-c("PPT03", "PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "PPT10", "mean_PPT03_PPT04_PPT05", "mean_PPT04_PPT05_PPT06", "mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09", "mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08",
-              "PPT03", "PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "PPT10", "mean_PPT03_PPT04_PPT05", "mean_PPT04_PPT05_PPT06", "mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09", "mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08",
+variables2<-c("tot_spring_PPT","tot_summer_PPT","PPT03", "PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "PPT10", "mean_PPT03_PPT04_PPT05", "mean_PPT04_PPT05_PPT06", "mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09", "mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08",
+              "tot_spring_PPT", "tot_summer_PPT","PPT03", "PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "PPT10", "mean_PPT03_PPT04_PPT05", "mean_PPT04_PPT05_PPT06", "mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09", "mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08",
               "PPT03", "PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "PPT10", "mean_PPT03_PPT04_PPT05", "mean_PPT04_PPT05_PPT06", "mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09","mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08") 
 # precipitation and MDC and temperature and MDC are quite correlated so I'm leaving this combination of variables out. 
 
@@ -1665,7 +1679,7 @@ prop<-0.75
 
 ```{r}
 
-for (g in 1:100){
+for (g in 1:50){
 
 for (h in 1:length(zones)) {
   print(paste((zones[h]), g, sep=" __"))
@@ -1871,7 +1885,7 @@ gc(TRUE)
 ```
 
 
-############### Complete. Now move on to 09_Fire_ignition_model_fits_by_BEC wherein the results of these AIC tests will be utilized###########
+############### Complete. Now move on to 11_Fire_ignition_data_exploration.Rmd wherein the results of these AIC tests will be utilized###########
 
 Note: for person-caused fires, we still need to load the roads map and decide whether to use the roads clus to predict road occurence back in time to 2002, or keep as is.
 

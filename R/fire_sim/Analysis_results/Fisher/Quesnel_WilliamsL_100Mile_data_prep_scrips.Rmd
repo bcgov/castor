@@ -159,24 +159,47 @@ climate_variables_lightning<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_d
 
 climate_variables_lightning
 
-# for the quesnell, williams lake and 100 mile house TSA's I need data for FRT 10, 12, 13, 14, 15
+climate_variables_person<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
 
+climate_variables_person
+
+
+# CHANGE VARIABLES FOR LIGHTNING CAUSED AFTER RE_RUN!!!
+# for the quesnell, williams lake and 100 mile house TSA's I need data for FRT 10, 12, 13, 14, 15
+ # Lightning caused fires
 x4_clim_dem$mean_Tave07_Tave08_Tave09 <- (x4_clim_dem$Tave07 + x4_clim_dem$Tave08 + x4_clim_dem$Tave09)/3
 x4_clim_dem$mean_PPT07_PPT08_PPT09<-(x4_clim_dem$PPT07 + x4_clim_dem$PPT08 + x4_clim_dem$PPT09)/3
 x4_clim_dem$mean_Tmax07_Tmax08<-(x4_clim_dem$Tmax07 + x4_clim_dem$Tmax08)/2
 x4_clim_dem$mean_Tave07_Tave08<- (x4_clim_dem$Tave07 + x4_clim_dem$Tave08)/2
 x4_clim_dem$mean_Tave06_Tave07_Tave08 <- (x4_clim_dem$Tave06 + x4_clim_dem$Tave07 + x4_clim_dem$Tave08)/3
 x4_clim_dem$mean_PPT06_PPT07_PPT08 <- (x4_clim_dem$PPT06 + x4_clim_dem$PPT07 + x4_clim_dem$PPT08)/3
+x4_clim_dem$RH05_RH06_RH07<-x4_clim_dem$RH05 + x4_clim_dem$RH06 + x4_clim_dem$RH07
 
-x4_clim_dem_2<- x4_clim_dem %>% select(ID1, ID2, Latitude, Longitude, Elevation, Tmax01: PPT12, mean_Tave07_Tave08_Tave09:mean_PPT06_PPT07_PPT08) %>%
+# human caused fires
+x4_clim_dem$mean_PPT06_PPT07 <-x4_clim_dem$PPT06 + x4_clim_dem$PPT07
+
+x4_clim_dem$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<-(x4_clim_dem$Tave04 + x4_clim_dem$Tave05 + x4_clim_dem$Tave06 + x4_clim_dem$Tave07 +x4_clim_dem$Tave08 + x4_clim_dem$Tave09 + x4_clim_dem$Tave10)/7
+
+x4_clim_dem$mean_PPT06_PPT07_PPT08_PPT09 <- (x4_clim_dem$PPT06 + x4_clim_dem$PPT07 + x4_clim_dem$PPT08 + x4_clim_dem$PPT09)/4
+
+x4_clim_dem$mean_Tave08_Tave09_Tave10<-(x4_clim_dem$Tave08 + x4_clim_dem$Tave09 + x4_clim_dem$Tave10)/3
+
+x4_clim_dem$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<-(x4_clim_dem$Tmax04 + x4_clim_dem$Tmax05 + x4_clim_dem$Tmax06 + x4_clim_dem$Tmax07 +x4_clim_dem$Tmax08 + x4_clim_dem$Tmax09 + x4_clim_dem$Tmax10)/7
+
+x4_clim_dem$mean_Tave07_Tave08_Tave09<-(x4_clim_dem$Tave07 +x4_clim_dem$Tave08 + x4_clim_dem$Tave09)/3
+
+x4_clim_dem$mean_PPT07_PPT08_PPT09 <- (x4_clim_dem$PPT07 + x4_clim_dem$PPT08 + x4_clim_dem$PPT09)/3
+
+
+
+
+x4_clim_dem_2<- x4_clim_dem %>% dplyr::select(ID1, ID2, Latitude, Longitude, Elevation, Tmax01: PPT12, mean_Tave07_Tave08_Tave09:RH05_RH06_RH07) %>%
   rename(idno=ID1,
          frt=ID2)
 
 table(is.na(x4_clim_dem_2$frt))
 
 ```
-
-
 
 
 ```{R}
@@ -223,13 +246,22 @@ dat<- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_
 
 table(dat$idno)
 
+my.sf.point<-st_read( "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile.gpkg")
+
+dat<-st_drop_geometry(dat)
+
+names(dat)
+dat2<-dat %>% dplyr::select(idno, frt, inventory_standard_cd: proj_height_2)
+
+dat3<-left_join(my.sf.point, dat2)
+
 ```
 
 ### Classify vegetation into vegetation fire types
 ```{r}
 # now run the data through the code in 09_veg_classification as FWI.RMD to classify the vegetation into the FWI types. The code from this RMD is posted here
 
-fire_all<-dat
+fire_all<-dat3
 
 table((fire_all$bclcs_level_1)) # U=unreported, N = non-vegetated, V = vegetated
 table((fire_all$bclcs_level_2)) # T= treed, N = Non-treed, L=Land, W=water
@@ -940,7 +972,7 @@ table(fire_all1$FWI_veg)
                              
 table(is.na(fire_all1$FWI_veg))
 
-x<- fire_all1 %>% filter(is.na(FWI_veg)) %>% select(inventory_standard_cd:conifer_pct_cover_total)
+x<- fire_all1 %>% filter(is.na(FWI_veg)) %>% dplyr::select(inventory_standard_cd:conifer_pct_cover_total)
 
 st_write(fire_all1, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_Quesnell_WilliamsL_100Mile_FRT_800m.gpkg", delete_layer=TRUE, driver="GPKG")
 ```

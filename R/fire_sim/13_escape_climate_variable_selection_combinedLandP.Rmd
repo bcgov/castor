@@ -85,7 +85,7 @@ Import the data created at the end of the last file (named Escape_data_lightning
 
 
 ```{r}
-fire_escape2 <- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg")
+fire_escapes_final <- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg")
 
 
 ```
@@ -96,259 +96,160 @@ I chose 10 because I was getting odd patterns in the data. See below.
 
 
 ```{r}
-dim(fire_escape2 %>% filter(size_ha==0))
-fire_escape2$escape10<- NA
-fire_escape2$escape10[fire_escape2$size_ha > 10] <- 1
-fire_escape2$escape10[fire_escape2$size_ha <= 10] <- 0
+dim(fire_escapes_final %>% filter(size_ha==0))
+fire_escapes_final$escape10<- NA
+fire_escapes_final$escape10[fire_escapes_final$size_ha > 10] <- 1
+fire_escapes_final$escape10[fire_escapes_final$size_ha <= 10] <- 0
 
-table(fire_escape2$escape10) # note originally I had escape size at 1ha but i was getting strange trends for maximum temperature and probability of escape. So I tried various sizes and decided to go with 10ha.
+table(fire_escapes_final$escape10) # note originally I had escape size at 1ha but i was getting strange trends for maximum temperature and probability of escape. So I tried various sizes and decided to go with 10ha.
+table(fire_escapes_final$escape10, fire_escapes_final$fire_cs)
 ```
 
-Append wind speed to timing of fire
+Before i appended wind speed to timing of fire to create a variable called wind at fire, but Im not sure I want to do wind at fire because when I create a probability of spread map I dont know where the fire has started or when it started so I dotn think this is a very good idea. Same with temp at fire, precipt at fire etc
+
 
 ```{r}
-fire_escape2$wind_atfire<-0
-fire_escape2$ig_mnth<-as.numeric(fire_escape2$ig_mnth)
-head(fire_escape2)
-fire_escape2<-fire_escape2 %>%
-    mutate(wind_atfire = case_when(ig_mnth == 1 ~ win_spg, #even though not quite accurate
-                                  ig_mnth == 2 ~ win_spg, #even though not quite accurate
-                                  ig_mnth == 3 ~ win_spg,
-                                  ig_mnth == 4 ~ win_spg,
-                                  ig_mnth == 5 ~ win_spg,
-                                  ig_mnth == 6 ~ win_sum,
-                                  ig_mnth == 7 ~ win_sum,
-                                  ig_mnth == 8 ~ win_sum,
-                                  ig_mnth == 9 ~ win_sum,#even though not quite accurate
-                                  ig_mnth == 10 ~ win_sum,#even though not quite accurate
-                                  ig_mnth == 11 ~ win_spg,#even though not quite accurate
-                                  ig_mnth == 12 ~ win_spg,#even though not quite accurate
-                                  TRUE ~ win_spg))
+bla<-fire_escapes_final%>% filter(Cluster==10 & escape10==1)
+Cluster10 <- ggplot(bla, aes(as.numeric(ig_mnth))) +
+  geom_density(aes(fill=factor(fire_cs)), alpha=0.8, bw = "bcv") + 
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12")) + 
+    labs(title="FRT 10", 
+         x="ignition month")
 
-fire_escape2$wind_atfire
-hist(fire_escape2$wind_atfire)
+bla<-fire_escapes_final%>% filter(Cluster==12 & escape10==1)
+Cluster12 <- ggplot(bla, aes(as.numeric(ig_mnth))) +
+  geom_density(aes(fill=factor(fire_cs)), alpha=0.8, bw = "bcv") + 
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12")) + 
+    labs(title="FRT 12", 
+         x="ignition month")
 
-```
-Create variable called Tdiff_atfire, PPTdiff_atfire and MDCdiff_atfire i.e. difference between the temperature/precipitation/MDC at the month of the fire and the one before.
+bla<-fire_escapes_final%>% filter(Cluster==13 & escape10==1)
+Cluster13 <- ggplot(bla, aes(as.numeric(ig_mnth))) +
+  geom_density(aes(fill=factor(fire_cs)), alpha=0.8, bw = "bcv") + 
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12")) + 
+    labs(title="FRT 13", 
+         x="ignition month")
 
-#note there are a few ignitions in the months January and December. For now Im going to filter these out but maybe I should include them in the future. Presumabily non of these fires escape
-```{r}
-fire_escapes3<-fire_escape2 %>% filter(ig_mnth > 1)
-fire_escapes3<-fire_escapes3 %>% filter(ig_mnth!=12)
+bla<-fire_escapes_final%>% filter(Cluster==14 & escape10==1)
+Cluster14 <- ggplot(bla, aes(as.numeric(ig_mnth))) +
+  geom_density(aes(fill=factor(fire_cs)), alpha=0.8, bw = "bcv") + 
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12")) + 
+    labs(title="FRT 14", 
+         x="ignition month")
 
-hist(fire_escapes3$ig_mnth)
+bla<-fire_escapes_final%>% filter(Cluster==15 & escape10==1)
+Cluster15 <- ggplot(bla, aes(as.numeric(ig_mnth))) +
+  geom_density(aes(fill=factor(fire_cs)), alpha=0.8, bw = "bcv") + 
+  scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12")) + 
+    labs(title="FRT 15", 
+         x="ignition month")
 
-#############################################
-# Tmax temp at fire and month before
-#############################################
-fire_escapes3$temp_atfire<-0
-fire_escapes3<-fire_escapes3 %>%
-    mutate(temp_atfire = case_when(
-                                  ig_mnth == 2 ~ Tmax02, 
-                                  ig_mnth == 3 ~ Tmax03,
-                                  ig_mnth == 4 ~ Tmax04,
-                                  ig_mnth == 5 ~ Tmax05,
-                                  ig_mnth == 6 ~ Tmax06,
-                                  ig_mnth == 7 ~ Tmax07,
-                                  ig_mnth == 8 ~ Tmax08,
-                                  ig_mnth == 9 ~ Tmax09,
-                                  ig_mnth == 10 ~ Tmax10,#even though not quite accurate
-                                  ig_mnth == 11 ~ Tmax11,                                  TRUE ~ 999))
+ggarrange(Cluster12, Cluster10, Cluster13, Cluster14, Cluster15,
+          labels = c("A", "B", "C", "D", "E", "F"),
+          ncol = 3, nrow = 2, 
+          common.legend = TRUE, legend = "bottom")
 
-fire_escapes3$temp_mnthbefore<-0
-fire_escapes3<-fire_escapes3 %>%
-    mutate(temp_mnthbefore = case_when(ig_mnth == 2 ~ Tmax02,
-                                  ig_mnth == 3 ~ Tmax02,
-                                  ig_mnth == 4 ~ Tmax03,
-                                  ig_mnth == 5 ~ Tmax04,
-                                  ig_mnth == 6 ~ Tmax05,
-                                  ig_mnth == 7 ~ Tmax06,
-                                  ig_mnth == 8 ~ Tmax07,
-                                  ig_mnth == 9 ~ Tmax08,
-                                  ig_mnth == 10 ~ Tmax09,
-                                  ig_mnth == 11 ~ Tmax10,                                  TRUE ~ 999))
+# is there a difference in weather between human and lightning caused fires?
 
-hist(fire_escapes3$temp_mnthbefore)
-hist(fire_escapes3$temp_atfire)
+bla<-fire_escapes_final%>% filter(Cluster==10 & escape10==1)
+Cluster10 <- ggplot(bla, aes(Tmax07)) +
+  geom_density(aes(fill=factor(fire_cs)), alpha=0.8, bw = "bcv") + 
+    labs(title="Density plot of fire cause in FRT 5", 
+         x="Tmax07")
 
-fire_escapes3$tmax_2mtns<-(fire_escapes3$temp_mnthbefore + fire_escapes3$temp_atfire)/2
+bla<-fire_escapes_final%>% filter(Cluster==12 & escape10==1)
+Cluster12 <- ggplot(bla, aes(Tmax07)) +
+  geom_density(aes(fill=factor(fire_cs)), alpha=0.8, bw = "bcv") + 
+    labs(title="Density plot of fire cause in FRT 5", 
+         x="Tmax07")
 
-hist(fire_escapes3$tmax_2mtns)
+bla<-fire_escapes_final%>% filter(Cluster==13 & escape10==1)
+Cluster13 <- ggplot(bla, aes(Tmax07)) +
+  geom_density(aes(fill=factor(fire_cs)), alpha=0.8, bw = "bcv") + 
+    labs(title="Density plot of fire cause in FRT 5", 
+         x="Tmax07")
 
-#############################################
-# average temp at fire and month before
-#############################################
-fire_escapes3$tempave_atfire<-0
-fire_escapes3<-fire_escapes3 %>%
-    mutate(tempave_atfire = case_when(
-                                  ig_mnth == 2 ~ Tave02, 
-                                  ig_mnth == 3 ~ Tave03,
-                                  ig_mnth == 4 ~ Tave04,
-                                  ig_mnth == 5 ~ Tave05,
-                                  ig_mnth == 6 ~ Tave06,
-                                  ig_mnth == 7 ~ Tave07,
-                                  ig_mnth == 8 ~ Tave08,
-                                  ig_mnth == 9 ~ Tave09,
-                                  ig_mnth == 10 ~ Tave10,#even though not quite accurate
-                                  ig_mnth == 11 ~ Tave11,                                  TRUE ~ 999))
+bla<-fire_escapes_final%>% filter(Cluster==14 & escape10==1)
+Cluster14 <- ggplot(bla, aes(Tmax07)) +
+  geom_density(aes(fill=factor(fire_cs)), alpha=0.8, bw = "bcv") + 
+    labs(title="Density plot of fire cause in FRT 5", 
+         x="Tmax07")
 
-fire_escapes3$tempave_mnthbefore<-0
-fire_escapes3<-fire_escapes3 %>%
-    mutate(tempave_mnthbefore = case_when(ig_mnth == 2 ~ Tave02,
-                                  ig_mnth == 3 ~ Tave02,
-                                  ig_mnth == 4 ~ Tave03,
-                                  ig_mnth == 5 ~ Tave04,
-                                  ig_mnth == 6 ~ Tave05,
-                                  ig_mnth == 7 ~ Tave06,
-                                  ig_mnth == 8 ~ Tave07,
-                                  ig_mnth == 9 ~ Tave08,
-                                  ig_mnth == 10 ~ Tave09,
-                                  ig_mnth == 11 ~ Tave10,                                  TRUE ~ 999))
+bla<-fire_escapes_final%>% filter(Cluster==15 & escape10==1)
+Cluster15 <- ggplot(bla, aes(Tmax07)) +
+  geom_density(aes(fill=factor(fire_cs)), alpha=0.8, bw = "bcv")+ 
+    labs(title="Density plot of fire cause in FRT 5", 
+         x="Tmax07")
 
-hist(fire_escapes3$tempave_mnthbefore)
-hist(fire_escapes3$tempave_atfire)
+ggarrange(Cluster12, Cluster10, Cluster13, Cluster14, Cluster15,
+          labels = c("A", "B", "C", "D", "E", "F"),
+          ncol = 3, nrow = 2, 
+          common.legend = TRUE, legend = "bottom")
 
-fire_escapes3$Tave_2mtns<-(fire_escapes3$tempave_mnthbefore + fire_escapes3$tempave_atfire)/2
-
-#############################################
-# PPT at fire and month before
-#############################################
-fire_escapes3$ppt_atfire<-9999
-fire_escapes3<-fire_escapes3 %>% mutate_at (c ('PPT02','PPT03', 'PPT04','PPT05', 'PPT06', 'PPT07', 'PPT08', 'PPT09', 'PPT10','PPT11'), as.numeric)
-fire_escapes3<-fire_escapes3 %>%
-    mutate(ppt_atfire = case_when(ig_mnth == 2 ~ PPT02, 
-                                  ig_mnth == 3 ~ PPT03,
-                                  ig_mnth == 4 ~ PPT04,
-                                  ig_mnth == 5 ~ PPT05,
-                                  ig_mnth == 6 ~ PPT06,
-                                  ig_mnth == 7 ~ PPT07,
-                                  ig_mnth == 8 ~ PPT08,
-                                  ig_mnth == 9 ~ PPT09,
-                                  ig_mnth == 10 ~ PPT10,
-                                  ig_mnth == 11 ~ PPT11, 
-                                  TRUE ~ 9999))
-
-fire_escapes3$ppt_mnthbefore<-9999
-fire_escapes3<-fire_escapes3 %>%
-    mutate(ppt_mnthbefore = case_when(ig_mnth == 2 ~ PPT02,
-                                  ig_mnth == 3 ~ PPT02,
-                                  ig_mnth == 4 ~ PPT03,
-                                  ig_mnth == 5 ~ PPT04,
-                                  ig_mnth == 6 ~ PPT05,
-                                  ig_mnth == 7 ~ PPT06,
-                                  ig_mnth == 8 ~ PPT07,
-                                  ig_mnth == 9 ~ PPT08,
-                                  ig_mnth == 10 ~ PPT09,
-                                  ig_mnth == 11 ~ PPT10,                                  TRUE ~ 9999))
-
-fire_escapes3 %>% filter(ppt_atfire==9999)
-fire_escapes3 %>% filter(ppt_mnthbefore==9999)
-
-hist(fire_escapes3$ppt_mnthbefore)
-hist(fire_escapes3$ppt_atfire)
-
-fire_escapes3$ppt_2mtns<-(fire_escapes3$ppt_mnthbefore + fire_escapes3$ppt_atfire)/2
-
-#############################################
-# MDC at fire and month before
-#############################################
-fire_escapes3$mdc_atfire<-9999
-fire_escapes3<-fire_escapes3 %>%
-    mutate(mdc_atfire = case_when(ig_mnth == 2 ~ MDC_02, 
-                                  ig_mnth == 3 ~ MDC_03,
-                                  ig_mnth == 4 ~ MDC_04,
-                                  ig_mnth == 5 ~ MDC_05,
-                                  ig_mnth == 6 ~ MDC_06,
-                                  ig_mnth == 7 ~ MDC_07,
-                                  ig_mnth == 8 ~ MDC_08,
-                                  ig_mnth == 9 ~ MDC_09,
-                                  ig_mnth == 10 ~ MDC_10,
-                                  ig_mnth == 11 ~ MDC_11, 
-                                  TRUE ~ 9999))
-
-fire_escapes3$mdc_mnthbefore<-9999
-fire_escapes3<-fire_escapes3 %>%
-    mutate(mdc_mnthbefore = case_when(ig_mnth == 2 ~ MDC_02,
-                                  ig_mnth == 3 ~ MDC_02,
-                                  ig_mnth == 4 ~ MDC_03,
-                                  ig_mnth == 5 ~ MDC_04,
-                                  ig_mnth == 6 ~ MDC_05,
-                                  ig_mnth == 7 ~ MDC_06,
-                                  ig_mnth == 8 ~ MDC_07,
-                                  ig_mnth == 9 ~ MDC_08,
-                                  ig_mnth == 10 ~ MDC_09,
-                                  ig_mnth == 11 ~ MDC_10,                                  TRUE ~ 9999))
-
-fire_escapes3 %>% filter(mdc_atfire==9999)
-fire_escapes3 %>% filter(mdc_mnthbefore==9999)
-
-hist(fire_escapes3$mdc_atfire)
-hist(fire_escapes3$mdc_mnthbefore)
-
-fire_escapes3$mdc_2mtns<-(fire_escapes3$mdc_mnthbefore + fire_escapes3$mdc_atfire)/2
-
-st_write(fire_escapes3, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all2.gpkg")
 
 ```
 
+
 ```{r}
-Cluster5<-ggplot(fire_escapes3%>% filter(Cluster==5), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+fire_escapes_final$ig_mnth<- as.numeric(as.character(fire_escapes_final$ig_mnth))
+
+Cluster5<-ggplot(fire_escapes_final%>% filter(Cluster==5), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 5",x="Escape month", y = "Count")
 
-Cluster7<-ggplot(fire_escapes3%>% filter(Cluster==7), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster7<-ggplot(fire_escapes_final%>% filter(Cluster==7), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 7",x="Escape month", y = "Count")
 
-Cluster9<-ggplot(fire_escapes3%>% filter(Cluster==9), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster9<-ggplot(fire_escapes_final%>% filter(Cluster==9), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 9",x="Escape month", y = "Count")
 
-Cluster10<-ggplot(fire_escapes3%>% filter(Cluster==10), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster10<-ggplot(fire_escapes_final%>% filter(Cluster==10), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 10",x="Escape month", y = "Count")
 
-Cluster11<-ggplot(fire_escapes3%>% filter(Cluster==11), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster11<-ggplot(fire_escapes_final%>% filter(Cluster==11), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 11",x="Escape month", y = "Count")
 
-Cluster12<-ggplot(fire_escapes3%>% filter(Cluster==12), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster12<-ggplot(fire_escapes_final%>% filter(Cluster==12), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 12",x="Escape month", y = "Count")
 
-Cluster13<-ggplot(fire_escapes3%>% filter(Cluster==13), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster13<-ggplot(fire_escapes_final%>% filter(Cluster==13), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 13",x="Escape month", y = "Count")
 
-Cluster14<-ggplot(fire_escapes3%>% filter(Cluster==14), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster14<-ggplot(fire_escapes_final%>% filter(Cluster==14), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
   theme_classic() +
   labs(title="Cluster = 14",x="Escape month", y = "Count")
 
-Cluster15<-ggplot(fire_escapes3%>% filter(Cluster==15), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
+Cluster15<-ggplot(fire_escapes_final%>% filter(Cluster==15), aes(x=ig_mnth, color=as.factor(escape10), fill=as.factor(escape10))) +geom_histogram(position="dodge")+
   scale_x_discrete(limits=c("1", "2","3","4","5","6","7","8","9", "10","11", "12"))+
   theme(legend.position="right") +
   #scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"))+
@@ -368,6 +269,11 @@ ggarrange(Cluster11, Cluster12, Cluster13, Cluster14, Cluster15,
           ncol = 3, nrow = 2, 
           common.legend = TRUE, legend = "bottom")
 
+ggarrange(Cluster10, Cluster12, Cluster13, Cluster14, Cluster15,
+          labels = c("A", "B", "C", "D", "E", "F"),
+          ncol = 3, nrow = 2, 
+          common.legend = TRUE, legend = "bottom")
+
 
 ```
 
@@ -376,25 +282,22 @@ ggarrange(Cluster11, Cluster12, Cluster13, Cluster14, Cluster15,
 Inspect probability of escape10 by MDC, PPT, Tmax and Tave.
 
 ```{r}
-hist(fire_escapes3$mdc_atfire)
-plot(fire_escapes3$mdc_atfire, fire_escapes3$escape10)
-str(fire_escapes3$escape10)
 
 # nice alternative figure
 library(popbio)
 
-logi.hist.plot(fire_escapes3$temp_atfire,fire_escapes3$escape10,boxp=FALSE,type="hist",col="gray") # this seems counter intuitive. Is there something wrong?
-# Maybe some of the spreads at very low temperatures where not true. 
-summary(fire_escapes3$temp_atfire)
 
-ggplot(fire_escapes3,aes(temp_atfire, size_ha)) +
+logi.hist.plot(fire_escapes_final$Tmax07,fire_escapes_final$escape10,boxp=FALSE,type="hist",col="gray") # this seems counter intuitive. Is there something wrong?
+# Maybe some of the spreads at very low temperatures where not true. 
+
+ggplot(fire_escapes_final,aes(Tmax07, size_ha)) +
   geom_point() +
   geom_smooth(method='lm')
 
-x<-fire_escapes3%>%filter(escape10==1)
-y<-fire_escapes3%>%filter(escape10==0)
-summary(x$temp_atfire)
-summary(y$temp_atfire)
+x<-fire_escapes_final%>%filter(escape10==1)
+y<-fire_escapes_final%>%filter(escape10==0)
+summary(x$Tmax07)
+summary(y$Tmax07)
 
 # checking the data here. It looks like the fire sizes and causes are correct at least for the largest fires.
 x %>% filter (fire_yr==2021) %>% arrange(desc(size_ha))
@@ -406,10 +309,10 @@ x %>% arrange(desc(size_ha))
 x %>% filter(temp_atfire==-10.3)
 min(y$temp_atfire)
 
-logi.hist.plot(fire_escapes3$ppt_atfire,fire_escapes3$escape10,boxp=FALSE,type="hist",col="gray") # this seems more what I expect
-logi.hist.plot(fire_escapes3$tempave_atfire,fire_escapes3$escape10,boxp=FALSE,type="hist",col="gray") # this seems counter intuitive. Is there something wrong?
+logi.hist.plot(fire_escapes_final$ppt_atfire,fire_escapes_final$escape10,boxp=FALSE,type="hist",col="gray") # this seems more what I expect
+logi.hist.plot(fire_escapes_final$tempave_atfire,fire_escapes_final$escape10,boxp=FALSE,type="hist",col="gray") # this seems counter intuitive. Is there something wrong?
 
-logi.hist.plot(fire_escapes3$mdc_atfire,fire_escapes3$escape10,boxp=FALSE,type="hist",col="gray")
+logi.hist.plot(fire_escapes_final$mdc_atfire,fire_escapes_final$escape10,boxp=FALSE,type="hist",col="gray")
 
 
 ```
@@ -427,233 +330,233 @@ Before we begin, we will create additional climate variables.
 #Climate variable creation for lightning data
 
 ### creating amalgamations of variables to test different combinations of variables.##
-fire_escapes3$tot_spring_PPT<-fire_escapes3$Tmax03+ fire_escapes3$Tmax04 + fire_escapes3$Tmax05
-fire_escapes3$tot_summer_PPT<-fire_escapes3$Tmax06+ fire_escapes3$Tmax07 + fire_escapes3$Tmax08
+fire_escapes_final$tot_spring_PPT<-fire_escapes_final$Tmax03+ fire_escapes_final$Tmax04 + fire_escapes_final$Tmax05
+fire_escapes_final$tot_summer_PPT<-fire_escapes_final$Tmax06+ fire_escapes_final$Tmax07 + fire_escapes_final$Tmax08
 
-fire_escapes3$mean_Tmax03_Tmax04<- (fire_escapes3$Tmax03+ fire_escapes3$Tmax04)/2
-fire_escapes3$mean_Tmax04_Tmax05<- (fire_escapes3$Tmax04+ fire_escapes3$Tmax05)/2
-fire_escapes3$mean_Tmax05_Tmax06<- (fire_escapes3$Tmax05+ fire_escapes3$Tmax06)/2
-fire_escapes3$mean_Tmax06_Tmax07<- (fire_escapes3$Tmax06+ fire_escapes3$Tmax07)/2
-fire_escapes3$mean_Tmax07_Tmax08<- (fire_escapes3$Tmax07+ fire_escapes3$Tmax08)/2
-fire_escapes3$mean_Tmax08_Tmax09<- (fire_escapes3$Tmax08+ fire_escapes3$Tmax09)/2
-fire_escapes3$mean_Tmax09_Tmax10<- (fire_escapes3$Tmax09+ fire_escapes3$Tmax10)/2
-fire_escapes3$mean_Tmax10_Tmax11<- (fire_escapes3$Tmax10+ fire_escapes3$Tmax11)/2
+fire_escapes_final$mean_Tmax03_Tmax04<- (fire_escapes_final$Tmax03+ fire_escapes_final$Tmax04)/2
+fire_escapes_final$mean_Tmax04_Tmax05<- (fire_escapes_final$Tmax04+ fire_escapes_final$Tmax05)/2
+fire_escapes_final$mean_Tmax05_Tmax06<- (fire_escapes_final$Tmax05+ fire_escapes_final$Tmax06)/2
+fire_escapes_final$mean_Tmax06_Tmax07<- (fire_escapes_final$Tmax06+ fire_escapes_final$Tmax07)/2
+fire_escapes_final$mean_Tmax07_Tmax08<- (fire_escapes_final$Tmax07+ fire_escapes_final$Tmax08)/2
+fire_escapes_final$mean_Tmax08_Tmax09<- (fire_escapes_final$Tmax08+ fire_escapes_final$Tmax09)/2
+fire_escapes_final$mean_Tmax09_Tmax10<- (fire_escapes_final$Tmax09+ fire_escapes_final$Tmax10)/2
+fire_escapes_final$mean_Tmax10_Tmax11<- (fire_escapes_final$Tmax10+ fire_escapes_final$Tmax11)/2
 
-fire_escapes3$mean_Tmax03_Tmax04_Tmax05<- (fire_escapes3$Tmax03+ fire_escapes3$Tmax04 + fire_escapes3$Tmax05)/3
-fire_escapes3$mean_Tmax04_Tmax05_Tmax06<- (fire_escapes3$Tmax04+ fire_escapes3$Tmax05 + fire_escapes3$Tmax06)/3
-fire_escapes3$mean_Tmax05_Tmax06_Tmax07<- (fire_escapes3$Tmax05+ fire_escapes3$Tmax06 + fire_escapes3$Tmax07)/3
-fire_escapes3$mean_Tmax06_Tmax07_Tmax08<- (fire_escapes3$Tmax06+ fire_escapes3$Tmax07 + fire_escapes3$Tmax08)/3
-fire_escapes3$mean_Tmax07_Tmax08_Tmax09<- (fire_escapes3$Tmax07+ fire_escapes3$Tmax08 + fire_escapes3$Tmax09)/3
-fire_escapes3$mean_Tmax08_Tmax09_Tmax10<- (fire_escapes3$Tmax08+ fire_escapes3$Tmax09 + fire_escapes3$Tmax10)/3
-fire_escapes3$mean_Tmax09_Tmax10_Tmax11<- (fire_escapes3$Tmax09+ fire_escapes3$Tmax10 + fire_escapes3$Tmax11)/3
+fire_escapes_final$mean_Tmax03_Tmax04_Tmax05<- (fire_escapes_final$Tmax03+ fire_escapes_final$Tmax04 + fire_escapes_final$Tmax05)/3
+fire_escapes_final$mean_Tmax04_Tmax05_Tmax06<- (fire_escapes_final$Tmax04+ fire_escapes_final$Tmax05 + fire_escapes_final$Tmax06)/3
+fire_escapes_final$mean_Tmax05_Tmax06_Tmax07<- (fire_escapes_final$Tmax05+ fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07)/3
+fire_escapes_final$mean_Tmax06_Tmax07_Tmax08<- (fire_escapes_final$Tmax06+ fire_escapes_final$Tmax07 + fire_escapes_final$Tmax08)/3
+fire_escapes_final$mean_Tmax07_Tmax08_Tmax09<- (fire_escapes_final$Tmax07+ fire_escapes_final$Tmax08 + fire_escapes_final$Tmax09)/3
+fire_escapes_final$mean_Tmax08_Tmax09_Tmax10<- (fire_escapes_final$Tmax08+ fire_escapes_final$Tmax09 + fire_escapes_final$Tmax10)/3
+fire_escapes_final$mean_Tmax09_Tmax10_Tmax11<- (fire_escapes_final$Tmax09+ fire_escapes_final$Tmax10 + fire_escapes_final$Tmax11)/3
 
-fire_escapes3$mean_Tmax03_Tmax04_Tmax05_Tmax06<- (fire_escapes3$Tmax03 + fire_escapes3$Tmax04+ fire_escapes3$Tmax05 + fire_escapes3$Tmax06)/4
-fire_escapes3$mean_Tmax04_Tmax05_Tmax06_Tmax07<- (fire_escapes3$Tmax04 + fire_escapes3$Tmax05+ fire_escapes3$Tmax06 + fire_escapes3$Tmax07)/4
-fire_escapes3$mean_Tmax05_Tmax06_Tmax07_Tmax08<- (fire_escapes3$Tmax05 + fire_escapes3$Tmax06+ fire_escapes3$Tmax07 + fire_escapes3$Tmax08)/4
-fire_escapes3$mean_Tmax06_Tmax07_Tmax08_Tmax09<- (fire_escapes3$Tmax06 + fire_escapes3$Tmax07+ fire_escapes3$Tmax08 + fire_escapes3$Tmax09)/4
-fire_escapes3$mean_Tmax07_Tmax08_Tmax09_Tmax10<- (fire_escapes3$Tmax07 + fire_escapes3$Tmax08+ fire_escapes3$Tmax09 + fire_escapes3$Tmax10)/4
-fire_escapes3$mean_Tmax08_Tmax09_Tmax10_Tmax11<- (fire_escapes3$Tmax08 + fire_escapes3$Tmax09+ fire_escapes3$Tmax10 + fire_escapes3$Tmax11)/4
+fire_escapes_final$mean_Tmax03_Tmax04_Tmax05_Tmax06<- (fire_escapes_final$Tmax03 + fire_escapes_final$Tmax04+ fire_escapes_final$Tmax05 + fire_escapes_final$Tmax06)/4
+fire_escapes_final$mean_Tmax04_Tmax05_Tmax06_Tmax07<- (fire_escapes_final$Tmax04 + fire_escapes_final$Tmax05+ fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07)/4
+fire_escapes_final$mean_Tmax05_Tmax06_Tmax07_Tmax08<- (fire_escapes_final$Tmax05 + fire_escapes_final$Tmax06+ fire_escapes_final$Tmax07 + fire_escapes_final$Tmax08)/4
+fire_escapes_final$mean_Tmax06_Tmax07_Tmax08_Tmax09<- (fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07+ fire_escapes_final$Tmax08 + fire_escapes_final$Tmax09)/4
+fire_escapes_final$mean_Tmax07_Tmax08_Tmax09_Tmax10<- (fire_escapes_final$Tmax07 + fire_escapes_final$Tmax08+ fire_escapes_final$Tmax09 + fire_escapes_final$Tmax10)/4
+fire_escapes_final$mean_Tmax08_Tmax09_Tmax10_Tmax11<- (fire_escapes_final$Tmax08 + fire_escapes_final$Tmax09+ fire_escapes_final$Tmax10 + fire_escapes_final$Tmax11)/4
 
-fire_escapes3$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07<- (fire_escapes3$Tmax03 + fire_escapes3$Tmax04 + fire_escapes3$Tmax05+ fire_escapes3$Tmax06 + fire_escapes3$Tmax07)/5
-fire_escapes3$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08<- (fire_escapes3$Tmax04 + fire_escapes3$Tmax05 + fire_escapes3$Tmax06+ fire_escapes3$Tmax07 + fire_escapes3$Tmax08)/5
-fire_escapes3$mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09<- (fire_escapes3$Tmax05 + fire_escapes3$Tmax06 + fire_escapes3$Tmax07+ fire_escapes3$Tmax08 + fire_escapes3$Tmax09)/5
-fire_escapes3$mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- ( fire_escapes3$Tmax06 + fire_escapes3$Tmax07+ fire_escapes3$Tmax08 + fire_escapes3$Tmax09 + fire_escapes3$Tmax10)/5
-fire_escapes3$mean_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- ( fire_escapes3$Tmax07 + fire_escapes3$Tmax08+ fire_escapes3$Tmax09 + fire_escapes3$Tmax10 + fire_escapes3$Tmax11)/5
+fire_escapes_final$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07<- (fire_escapes_final$Tmax03 + fire_escapes_final$Tmax04 + fire_escapes_final$Tmax05+ fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07)/5
+fire_escapes_final$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08<- (fire_escapes_final$Tmax04 + fire_escapes_final$Tmax05 + fire_escapes_final$Tmax06+ fire_escapes_final$Tmax07 + fire_escapes_final$Tmax08)/5
+fire_escapes_final$mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09<- (fire_escapes_final$Tmax05 + fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07+ fire_escapes_final$Tmax08 + fire_escapes_final$Tmax09)/5
+fire_escapes_final$mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- ( fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07+ fire_escapes_final$Tmax08 + fire_escapes_final$Tmax09 + fire_escapes_final$Tmax10)/5
+fire_escapes_final$mean_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- ( fire_escapes_final$Tmax07 + fire_escapes_final$Tmax08+ fire_escapes_final$Tmax09 + fire_escapes_final$Tmax10 + fire_escapes_final$Tmax11)/5
 
-fire_escapes3$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08<- (fire_escapes3$Tmax03 + fire_escapes3$Tmax04 + fire_escapes3$Tmax05 + fire_escapes3$Tmax06 + fire_escapes3$Tmax07+ fire_escapes3$Tmax08)/6
-fire_escapes3$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9<- (fire_escapes3$Tmax04 + fire_escapes3$Tmax05 + fire_escapes3$Tmax06 + fire_escapes3$Tmax07+ fire_escapes3$Tmax08 + fire_escapes3$Tmax09)/6
-fire_escapes3$mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- (fire_escapes3$Tmax05 + fire_escapes3$Tmax06 + fire_escapes3$Tmax07+ fire_escapes3$Tmax08 + fire_escapes3$Tmax09 + fire_escapes3$Tmax10)/6
-fire_escapes3$mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- (fire_escapes3$Tmax06 + fire_escapes3$Tmax07+ fire_escapes3$Tmax08 + fire_escapes3$Tmax09 + fire_escapes3$Tmax10 + fire_escapes3$Tmax11)/6
+fire_escapes_final$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08<- (fire_escapes_final$Tmax03 + fire_escapes_final$Tmax04 + fire_escapes_final$Tmax05 + fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07+ fire_escapes_final$Tmax08)/6
+fire_escapes_final$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9<- (fire_escapes_final$Tmax04 + fire_escapes_final$Tmax05 + fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07+ fire_escapes_final$Tmax08 + fire_escapes_final$Tmax09)/6
+fire_escapes_final$mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- (fire_escapes_final$Tmax05 + fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07+ fire_escapes_final$Tmax08 + fire_escapes_final$Tmax09 + fire_escapes_final$Tmax10)/6
+fire_escapes_final$mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- (fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07+ fire_escapes_final$Tmax08 + fire_escapes_final$Tmax09 + fire_escapes_final$Tmax10 + fire_escapes_final$Tmax11)/6
 
-fire_escapes3$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09<- (fire_escapes3$Tmax03 + fire_escapes3$Tmax04 + fire_escapes3$Tmax05 + fire_escapes3$Tmax06 + fire_escapes3$Tmax07+ fire_escapes3$Tmax08 + fire_escapes3$Tmax09)/7
-fire_escapes3$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- ( fire_escapes3$Tmax04 + fire_escapes3$Tmax05 + fire_escapes3$Tmax06 + fire_escapes3$Tmax07+ fire_escapes3$Tmax08 + fire_escapes3$Tmax09 + fire_escapes3$Tmax10)/7
-fire_escapes3$mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- (fire_escapes3$Tmax05 + fire_escapes3$Tmax06 + fire_escapes3$Tmax07+ fire_escapes3$Tmax08 + fire_escapes3$Tmax09 + fire_escapes3$Tmax10 + fire_escapes3$Tmax11)/7
+fire_escapes_final$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09<- (fire_escapes_final$Tmax03 + fire_escapes_final$Tmax04 + fire_escapes_final$Tmax05 + fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07+ fire_escapes_final$Tmax08 + fire_escapes_final$Tmax09)/7
+fire_escapes_final$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- ( fire_escapes_final$Tmax04 + fire_escapes_final$Tmax05 + fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07+ fire_escapes_final$Tmax08 + fire_escapes_final$Tmax09 + fire_escapes_final$Tmax10)/7
+fire_escapes_final$mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- (fire_escapes_final$Tmax05 + fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07+ fire_escapes_final$Tmax08 + fire_escapes_final$Tmax09 + fire_escapes_final$Tmax10 + fire_escapes_final$Tmax11)/7
 
-fire_escapes3$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- (fire_escapes3$Tmax04 + fire_escapes3$Tmax05 + fire_escapes3$Tmax06 + fire_escapes3$Tmax07+ fire_escapes3$Tmax08 + fire_escapes3$Tmax09 + fire_escapes3$Tmax10 + fire_escapes3$Tmax11)/8
-fire_escapes3$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- ( fire_escapes3$Tmax03 + fire_escapes3$Tmax04 + fire_escapes3$Tmax05 + fire_escapes3$Tmax06 + fire_escapes3$Tmax07+ fire_escapes3$Tmax08 + fire_escapes3$Tmax09 + fire_escapes3$Tmax10)/8
+fire_escapes_final$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- (fire_escapes_final$Tmax04 + fire_escapes_final$Tmax05 + fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07+ fire_escapes_final$Tmax08 + fire_escapes_final$Tmax09 + fire_escapes_final$Tmax10 + fire_escapes_final$Tmax11)/8
+fire_escapes_final$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- ( fire_escapes_final$Tmax03 + fire_escapes_final$Tmax04 + fire_escapes_final$Tmax05 + fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07+ fire_escapes_final$Tmax08 + fire_escapes_final$Tmax09 + fire_escapes_final$Tmax10)/8
 
-fire_escapes3$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- ( fire_escapes3$Tmax03 + fire_escapes3$Tmax04 + fire_escapes3$Tmax05 + fire_escapes3$Tmax06 + fire_escapes3$Tmax07+ fire_escapes3$Tmax08 + fire_escapes3$Tmax09 + fire_escapes3$Tmax10 + fire_escapes3$Tmax11)/9
+fire_escapes_final$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- ( fire_escapes_final$Tmax03 + fire_escapes_final$Tmax04 + fire_escapes_final$Tmax05 + fire_escapes_final$Tmax06 + fire_escapes_final$Tmax07+ fire_escapes_final$Tmax08 + fire_escapes_final$Tmax09 + fire_escapes_final$Tmax10 + fire_escapes_final$Tmax11)/9
 
 #### Tave
 
-fire_escapes3$mean_Tave03_Tave04<- (fire_escapes3$Tave03+ fire_escapes3$Tave04)/2
-fire_escapes3$mean_Tave04_Tave05<- (fire_escapes3$Tave04+ fire_escapes3$Tave05)/2
-fire_escapes3$mean_Tave05_Tave06<- (fire_escapes3$Tave05+ fire_escapes3$Tave06)/2
-fire_escapes3$mean_Tave06_Tave07<- (fire_escapes3$Tave06+ fire_escapes3$Tave07)/2
-fire_escapes3$mean_Tave07_Tave08<- (fire_escapes3$Tave07+ fire_escapes3$Tave08)/2
-fire_escapes3$mean_Tave08_Tave09<- (fire_escapes3$Tave08+ fire_escapes3$Tave09)/2
-fire_escapes3$mean_Tave09_Tave10<- (fire_escapes3$Tave09+ fire_escapes3$Tave10)/2
-fire_escapes3$mean_Tave10_Tave11<- (fire_escapes3$Tave10+ fire_escapes3$Tave11)/2
+fire_escapes_final$mean_Tave03_Tave04<- (fire_escapes_final$Tave03+ fire_escapes_final$Tave04)/2
+fire_escapes_final$mean_Tave04_Tave05<- (fire_escapes_final$Tave04+ fire_escapes_final$Tave05)/2
+fire_escapes_final$mean_Tave05_Tave06<- (fire_escapes_final$Tave05+ fire_escapes_final$Tave06)/2
+fire_escapes_final$mean_Tave06_Tave07<- (fire_escapes_final$Tave06+ fire_escapes_final$Tave07)/2
+fire_escapes_final$mean_Tave07_Tave08<- (fire_escapes_final$Tave07+ fire_escapes_final$Tave08)/2
+fire_escapes_final$mean_Tave08_Tave09<- (fire_escapes_final$Tave08+ fire_escapes_final$Tave09)/2
+fire_escapes_final$mean_Tave09_Tave10<- (fire_escapes_final$Tave09+ fire_escapes_final$Tave10)/2
+fire_escapes_final$mean_Tave10_Tave11<- (fire_escapes_final$Tave10+ fire_escapes_final$Tave11)/2
 
-fire_escapes3$mean_Tave03_Tave04_Tave05<- (fire_escapes3$Tave03+ fire_escapes3$Tave04 + fire_escapes3$Tave05)/3
-fire_escapes3$mean_Tave04_Tave05_Tave06<- (fire_escapes3$Tave04+ fire_escapes3$Tave05 + fire_escapes3$Tave06)/3
-fire_escapes3$mean_Tave05_Tave06_Tave07<- (fire_escapes3$Tave05+ fire_escapes3$Tave06 + fire_escapes3$Tave07)/3
-fire_escapes3$mean_Tave06_Tave07_Tave08<- (fire_escapes3$Tave06+ fire_escapes3$Tave07 + fire_escapes3$Tave08)/3
-fire_escapes3$mean_Tave07_Tave08_Tave09<- (fire_escapes3$Tave07+ fire_escapes3$Tave08 + fire_escapes3$Tave09)/3
-fire_escapes3$mean_Tave08_Tave09_Tave10<- (fire_escapes3$Tave08+ fire_escapes3$Tave09 + fire_escapes3$Tave10)/3
-fire_escapes3$mean_Tave09_Tave10_Tave11<- (fire_escapes3$Tave09+ fire_escapes3$Tave10 + fire_escapes3$Tave11)/3
+fire_escapes_final$mean_Tave03_Tave04_Tave05<- (fire_escapes_final$Tave03+ fire_escapes_final$Tave04 + fire_escapes_final$Tave05)/3
+fire_escapes_final$mean_Tave04_Tave05_Tave06<- (fire_escapes_final$Tave04+ fire_escapes_final$Tave05 + fire_escapes_final$Tave06)/3
+fire_escapes_final$mean_Tave05_Tave06_Tave07<- (fire_escapes_final$Tave05+ fire_escapes_final$Tave06 + fire_escapes_final$Tave07)/3
+fire_escapes_final$mean_Tave06_Tave07_Tave08<- (fire_escapes_final$Tave06+ fire_escapes_final$Tave07 + fire_escapes_final$Tave08)/3
+fire_escapes_final$mean_Tave07_Tave08_Tave09<- (fire_escapes_final$Tave07+ fire_escapes_final$Tave08 + fire_escapes_final$Tave09)/3
+fire_escapes_final$mean_Tave08_Tave09_Tave10<- (fire_escapes_final$Tave08+ fire_escapes_final$Tave09 + fire_escapes_final$Tave10)/3
+fire_escapes_final$mean_Tave09_Tave10_Tave11<- (fire_escapes_final$Tave09+ fire_escapes_final$Tave10 + fire_escapes_final$Tave11)/3
 
-fire_escapes3$mean_Tave03_Tave04_Tave05_Tave06<- (fire_escapes3$Tave03 + fire_escapes3$Tave04+ fire_escapes3$Tave05 + fire_escapes3$Tave06)/4
-fire_escapes3$mean_Tave04_Tave05_Tave06_Tave07<- (fire_escapes3$Tave04 + fire_escapes3$Tave05+ fire_escapes3$Tave06 + fire_escapes3$Tave07)/4
-fire_escapes3$mean_Tave05_Tave06_Tave07_Tave08<- (fire_escapes3$Tave05 + fire_escapes3$Tave06+ fire_escapes3$Tave07 + fire_escapes3$Tave08)/4
-fire_escapes3$mean_Tave06_Tave07_Tave08_Tave09<- (fire_escapes3$Tave06 + fire_escapes3$Tave07+ fire_escapes3$Tave08 + fire_escapes3$Tave09)/4
-fire_escapes3$mean_Tave07_Tave08_Tave09_Tave10<- (fire_escapes3$Tave07 + fire_escapes3$Tave08+ fire_escapes3$Tave09 + fire_escapes3$Tave10)/4
-fire_escapes3$mean_Tave08_Tave09_Tave10_Tave11<- (fire_escapes3$Tave08 + fire_escapes3$Tave09+ fire_escapes3$Tave10 + fire_escapes3$Tave11)/4
+fire_escapes_final$mean_Tave03_Tave04_Tave05_Tave06<- (fire_escapes_final$Tave03 + fire_escapes_final$Tave04+ fire_escapes_final$Tave05 + fire_escapes_final$Tave06)/4
+fire_escapes_final$mean_Tave04_Tave05_Tave06_Tave07<- (fire_escapes_final$Tave04 + fire_escapes_final$Tave05+ fire_escapes_final$Tave06 + fire_escapes_final$Tave07)/4
+fire_escapes_final$mean_Tave05_Tave06_Tave07_Tave08<- (fire_escapes_final$Tave05 + fire_escapes_final$Tave06+ fire_escapes_final$Tave07 + fire_escapes_final$Tave08)/4
+fire_escapes_final$mean_Tave06_Tave07_Tave08_Tave09<- (fire_escapes_final$Tave06 + fire_escapes_final$Tave07+ fire_escapes_final$Tave08 + fire_escapes_final$Tave09)/4
+fire_escapes_final$mean_Tave07_Tave08_Tave09_Tave10<- (fire_escapes_final$Tave07 + fire_escapes_final$Tave08+ fire_escapes_final$Tave09 + fire_escapes_final$Tave10)/4
+fire_escapes_final$mean_Tave08_Tave09_Tave10_Tave11<- (fire_escapes_final$Tave08 + fire_escapes_final$Tave09+ fire_escapes_final$Tave10 + fire_escapes_final$Tave11)/4
 
-fire_escapes3$mean_Tave03_Tave04_Tave05_Tave06_Tave07<- (fire_escapes3$Tave03 + fire_escapes3$Tave04 + fire_escapes3$Tave05+ fire_escapes3$Tave06 + fire_escapes3$Tave07)/5
-fire_escapes3$mean_Tave04_Tave05_Tave06_Tave07_Tave08<- (fire_escapes3$Tave04 + fire_escapes3$Tave05 + fire_escapes3$Tave06+ fire_escapes3$Tave07 + fire_escapes3$Tave08)/5
-fire_escapes3$mean_Tave05_Tave06_Tave07_Tave08_Tave09<- (fire_escapes3$Tave05 + fire_escapes3$Tave06 + fire_escapes3$Tave07+ fire_escapes3$Tave08 + fire_escapes3$Tave09)/5
-fire_escapes3$mean_Tave06_Tave07_Tave08_Tave09_Tave10<- ( fire_escapes3$Tave06 + fire_escapes3$Tave07+ fire_escapes3$Tave08 + fire_escapes3$Tave09 + fire_escapes3$Tave10)/5
-fire_escapes3$mean_Tave07_Tave08_Tave09_Tave10_Tave11<- ( fire_escapes3$Tave07 + fire_escapes3$Tave08+ fire_escapes3$Tave09 + fire_escapes3$Tave10 + fire_escapes3$Tave11)/5
+fire_escapes_final$mean_Tave03_Tave04_Tave05_Tave06_Tave07<- (fire_escapes_final$Tave03 + fire_escapes_final$Tave04 + fire_escapes_final$Tave05+ fire_escapes_final$Tave06 + fire_escapes_final$Tave07)/5
+fire_escapes_final$mean_Tave04_Tave05_Tave06_Tave07_Tave08<- (fire_escapes_final$Tave04 + fire_escapes_final$Tave05 + fire_escapes_final$Tave06+ fire_escapes_final$Tave07 + fire_escapes_final$Tave08)/5
+fire_escapes_final$mean_Tave05_Tave06_Tave07_Tave08_Tave09<- (fire_escapes_final$Tave05 + fire_escapes_final$Tave06 + fire_escapes_final$Tave07+ fire_escapes_final$Tave08 + fire_escapes_final$Tave09)/5
+fire_escapes_final$mean_Tave06_Tave07_Tave08_Tave09_Tave10<- ( fire_escapes_final$Tave06 + fire_escapes_final$Tave07+ fire_escapes_final$Tave08 + fire_escapes_final$Tave09 + fire_escapes_final$Tave10)/5
+fire_escapes_final$mean_Tave07_Tave08_Tave09_Tave10_Tave11<- ( fire_escapes_final$Tave07 + fire_escapes_final$Tave08+ fire_escapes_final$Tave09 + fire_escapes_final$Tave10 + fire_escapes_final$Tave11)/5
 
-fire_escapes3$mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08<- (fire_escapes3$Tave03 + fire_escapes3$Tave04 + fire_escapes3$Tave05 + fire_escapes3$Tave06 + fire_escapes3$Tave07+ fire_escapes3$Tave08)/6
-fire_escapes3$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave9<- (fire_escapes3$Tave04 + fire_escapes3$Tave05 + fire_escapes3$Tave06 + fire_escapes3$Tave07+ fire_escapes3$Tave08 + fire_escapes3$Tave09)/6
-fire_escapes3$mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<- (fire_escapes3$Tave05 + fire_escapes3$Tave06 + fire_escapes3$Tave07+ fire_escapes3$Tave08 + fire_escapes3$Tave09 + fire_escapes3$Tave10)/6
-fire_escapes3$mean_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11<- (fire_escapes3$Tave06 + fire_escapes3$Tave07+ fire_escapes3$Tave08 + fire_escapes3$Tave09 + fire_escapes3$Tave10 + fire_escapes3$Tave11)/6
+fire_escapes_final$mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08<- (fire_escapes_final$Tave03 + fire_escapes_final$Tave04 + fire_escapes_final$Tave05 + fire_escapes_final$Tave06 + fire_escapes_final$Tave07+ fire_escapes_final$Tave08)/6
+fire_escapes_final$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave9<- (fire_escapes_final$Tave04 + fire_escapes_final$Tave05 + fire_escapes_final$Tave06 + fire_escapes_final$Tave07+ fire_escapes_final$Tave08 + fire_escapes_final$Tave09)/6
+fire_escapes_final$mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<- (fire_escapes_final$Tave05 + fire_escapes_final$Tave06 + fire_escapes_final$Tave07+ fire_escapes_final$Tave08 + fire_escapes_final$Tave09 + fire_escapes_final$Tave10)/6
+fire_escapes_final$mean_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11<- (fire_escapes_final$Tave06 + fire_escapes_final$Tave07+ fire_escapes_final$Tave08 + fire_escapes_final$Tave09 + fire_escapes_final$Tave10 + fire_escapes_final$Tave11)/6
 
-fire_escapes3$mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09<- (fire_escapes3$Tave03 + fire_escapes3$Tave04 + fire_escapes3$Tave05 + fire_escapes3$Tave06 + fire_escapes3$Tave07+ fire_escapes3$Tave08 + fire_escapes3$Tave09)/7
-fire_escapes3$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<- ( fire_escapes3$Tave04 + fire_escapes3$Tave05 + fire_escapes3$Tave06 + fire_escapes3$Tave07+ fire_escapes3$Tave08 + fire_escapes3$Tave09 + fire_escapes3$Tave10)/7
-fire_escapes3$mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11<- (fire_escapes3$Tave05 + fire_escapes3$Tave06 + fire_escapes3$Tave07+ fire_escapes3$Tave08 + fire_escapes3$Tave09 + fire_escapes3$Tave10 + fire_escapes3$Tave11)/7
+fire_escapes_final$mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09<- (fire_escapes_final$Tave03 + fire_escapes_final$Tave04 + fire_escapes_final$Tave05 + fire_escapes_final$Tave06 + fire_escapes_final$Tave07+ fire_escapes_final$Tave08 + fire_escapes_final$Tave09)/7
+fire_escapes_final$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<- ( fire_escapes_final$Tave04 + fire_escapes_final$Tave05 + fire_escapes_final$Tave06 + fire_escapes_final$Tave07+ fire_escapes_final$Tave08 + fire_escapes_final$Tave09 + fire_escapes_final$Tave10)/7
+fire_escapes_final$mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11<- (fire_escapes_final$Tave05 + fire_escapes_final$Tave06 + fire_escapes_final$Tave07+ fire_escapes_final$Tave08 + fire_escapes_final$Tave09 + fire_escapes_final$Tave10 + fire_escapes_final$Tave11)/7
 
-fire_escapes3$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11<- (fire_escapes3$Tave04 + fire_escapes3$Tave05 + fire_escapes3$Tave06 + fire_escapes3$Tave07+ fire_escapes3$Tave08 + fire_escapes3$Tave09 + fire_escapes3$Tave10 + fire_escapes3$Tave11)/8
-fire_escapes3$mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<- ( fire_escapes3$Tave03 + fire_escapes3$Tave04 + fire_escapes3$Tave05 + fire_escapes3$Tave06 + fire_escapes3$Tave07+ fire_escapes3$Tave08 + fire_escapes3$Tave09 + fire_escapes3$Tave10)/8
+fire_escapes_final$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11<- (fire_escapes_final$Tave04 + fire_escapes_final$Tave05 + fire_escapes_final$Tave06 + fire_escapes_final$Tave07+ fire_escapes_final$Tave08 + fire_escapes_final$Tave09 + fire_escapes_final$Tave10 + fire_escapes_final$Tave11)/8
+fire_escapes_final$mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<- ( fire_escapes_final$Tave03 + fire_escapes_final$Tave04 + fire_escapes_final$Tave05 + fire_escapes_final$Tave06 + fire_escapes_final$Tave07+ fire_escapes_final$Tave08 + fire_escapes_final$Tave09 + fire_escapes_final$Tave10)/8
 
-fire_escapes3$mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11<- ( fire_escapes3$Tave03 + fire_escapes3$Tave04 + fire_escapes3$Tave05 + fire_escapes3$Tave06 + fire_escapes3$Tave07+ fire_escapes3$Tave08 + fire_escapes3$Tave09 + fire_escapes3$Tave10 + fire_escapes3$Tave11)/9
+fire_escapes_final$mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11<- ( fire_escapes_final$Tave03 + fire_escapes_final$Tave04 + fire_escapes_final$Tave05 + fire_escapes_final$Tave06 + fire_escapes_final$Tave07+ fire_escapes_final$Tave08 + fire_escapes_final$Tave09 + fire_escapes_final$Tave10 + fire_escapes_final$Tave11)/9
 
 #### PPT
-fire_escapes3$mean_PPT03_PPT04<- (fire_escapes3$PPT03+ fire_escapes3$PPT04)/2
-fire_escapes3$mean_PPT04_PPT05<- (fire_escapes3$PPT04+ fire_escapes3$PPT05)/2
-fire_escapes3$mean_PPT05_PPT06<- (fire_escapes3$PPT05+ fire_escapes3$PPT06)/2
-fire_escapes3$mean_PPT06_PPT07<- (fire_escapes3$PPT06+ fire_escapes3$PPT07)/2
-fire_escapes3$mean_PPT07_PPT08<- (fire_escapes3$PPT07+ fire_escapes3$PPT08)/2
-fire_escapes3$mean_PPT08_PPT09<- (fire_escapes3$PPT08+ fire_escapes3$PPT09)/2
-fire_escapes3$mean_PPT09_PPT10<- (fire_escapes3$PPT09+ fire_escapes3$PPT10)/2
-fire_escapes3$mean_PPT10_PPT11<- (fire_escapes3$PPT10+ fire_escapes3$PPT11)/2
+fire_escapes_final$mean_PPT03_PPT04<- (fire_escapes_final$PPT03+ fire_escapes_final$PPT04)/2
+fire_escapes_final$mean_PPT04_PPT05<- (fire_escapes_final$PPT04+ fire_escapes_final$PPT05)/2
+fire_escapes_final$mean_PPT05_PPT06<- (fire_escapes_final$PPT05+ fire_escapes_final$PPT06)/2
+fire_escapes_final$mean_PPT06_PPT07<- (fire_escapes_final$PPT06+ fire_escapes_final$PPT07)/2
+fire_escapes_final$mean_PPT07_PPT08<- (fire_escapes_final$PPT07+ fire_escapes_final$PPT08)/2
+fire_escapes_final$mean_PPT08_PPT09<- (fire_escapes_final$PPT08+ fire_escapes_final$PPT09)/2
+fire_escapes_final$mean_PPT09_PPT10<- (fire_escapes_final$PPT09+ fire_escapes_final$PPT10)/2
+fire_escapes_final$mean_PPT10_PPT11<- (fire_escapes_final$PPT10+ fire_escapes_final$PPT11)/2
 
-fire_escapes3$mean_PPT03_PPT04_PPT05<- (fire_escapes3$PPT03+ fire_escapes3$PPT04 + fire_escapes3$PPT05)/3
-fire_escapes3$mean_PPT04_PPT05_PPT06<- (fire_escapes3$PPT04+ fire_escapes3$PPT05 + fire_escapes3$PPT06)/3
-fire_escapes3$mean_PPT05_PPT06_PPT07<- (fire_escapes3$PPT05+ fire_escapes3$PPT06 + fire_escapes3$PPT07)/3
-fire_escapes3$mean_PPT06_PPT07_PPT08<- (fire_escapes3$PPT06+ fire_escapes3$PPT07 + fire_escapes3$PPT08)/3
-fire_escapes3$mean_PPT07_PPT08_PPT09<- (fire_escapes3$PPT07+ fire_escapes3$PPT08 + fire_escapes3$PPT09)/3
-fire_escapes3$mean_PPT08_PPT09_PPT10<- (fire_escapes3$PPT08+ fire_escapes3$PPT09 + fire_escapes3$PPT10)/3
-fire_escapes3$mean_PPT09_PPT10_PPT11<- (fire_escapes3$PPT09+ fire_escapes3$PPT10 + fire_escapes3$PPT11)/3
+fire_escapes_final$mean_PPT03_PPT04_PPT05<- (fire_escapes_final$PPT03+ fire_escapes_final$PPT04 + fire_escapes_final$PPT05)/3
+fire_escapes_final$mean_PPT04_PPT05_PPT06<- (fire_escapes_final$PPT04+ fire_escapes_final$PPT05 + fire_escapes_final$PPT06)/3
+fire_escapes_final$mean_PPT05_PPT06_PPT07<- (fire_escapes_final$PPT05+ fire_escapes_final$PPT06 + fire_escapes_final$PPT07)/3
+fire_escapes_final$mean_PPT06_PPT07_PPT08<- (fire_escapes_final$PPT06+ fire_escapes_final$PPT07 + fire_escapes_final$PPT08)/3
+fire_escapes_final$mean_PPT07_PPT08_PPT09<- (fire_escapes_final$PPT07+ fire_escapes_final$PPT08 + fire_escapes_final$PPT09)/3
+fire_escapes_final$mean_PPT08_PPT09_PPT10<- (fire_escapes_final$PPT08+ fire_escapes_final$PPT09 + fire_escapes_final$PPT10)/3
+fire_escapes_final$mean_PPT09_PPT10_PPT11<- (fire_escapes_final$PPT09+ fire_escapes_final$PPT10 + fire_escapes_final$PPT11)/3
 
-fire_escapes3$mean_PPT03_PPT04_PPT05_PPT06<- (fire_escapes3$PPT03 + fire_escapes3$PPT04+ fire_escapes3$PPT05 + fire_escapes3$PPT06)/4
-fire_escapes3$mean_PPT04_PPT05_PPT06_PPT07<- (fire_escapes3$PPT04 + fire_escapes3$PPT05+ fire_escapes3$PPT06 + fire_escapes3$PPT07)/4
-fire_escapes3$mean_PPT05_PPT06_PPT07_PPT08<- (fire_escapes3$PPT05 + fire_escapes3$PPT06+ fire_escapes3$PPT07 + fire_escapes3$PPT08)/4
-fire_escapes3$mean_PPT06_PPT07_PPT08_PPT09<- (fire_escapes3$PPT06 + fire_escapes3$PPT07+ fire_escapes3$PPT08 + fire_escapes3$PPT09)/4
-fire_escapes3$mean_PPT07_PPT08_PPT09_PPT10<- (fire_escapes3$PPT07 + fire_escapes3$PPT08+ fire_escapes3$PPT09 + fire_escapes3$PPT10)/4
-fire_escapes3$mean_PPT08_PPT09_PPT10_PPT11<- (fire_escapes3$PPT08 + fire_escapes3$PPT09+ fire_escapes3$PPT10 + fire_escapes3$PPT11)/4
+fire_escapes_final$mean_PPT03_PPT04_PPT05_PPT06<- (fire_escapes_final$PPT03 + fire_escapes_final$PPT04+ fire_escapes_final$PPT05 + fire_escapes_final$PPT06)/4
+fire_escapes_final$mean_PPT04_PPT05_PPT06_PPT07<- (fire_escapes_final$PPT04 + fire_escapes_final$PPT05+ fire_escapes_final$PPT06 + fire_escapes_final$PPT07)/4
+fire_escapes_final$mean_PPT05_PPT06_PPT07_PPT08<- (fire_escapes_final$PPT05 + fire_escapes_final$PPT06+ fire_escapes_final$PPT07 + fire_escapes_final$PPT08)/4
+fire_escapes_final$mean_PPT06_PPT07_PPT08_PPT09<- (fire_escapes_final$PPT06 + fire_escapes_final$PPT07+ fire_escapes_final$PPT08 + fire_escapes_final$PPT09)/4
+fire_escapes_final$mean_PPT07_PPT08_PPT09_PPT10<- (fire_escapes_final$PPT07 + fire_escapes_final$PPT08+ fire_escapes_final$PPT09 + fire_escapes_final$PPT10)/4
+fire_escapes_final$mean_PPT08_PPT09_PPT10_PPT11<- (fire_escapes_final$PPT08 + fire_escapes_final$PPT09+ fire_escapes_final$PPT10 + fire_escapes_final$PPT11)/4
 
-fire_escapes3$mean_PPT03_PPT04_PPT05_PPT06_PPT07<- (fire_escapes3$PPT03 + fire_escapes3$PPT04 + fire_escapes3$PPT05+ fire_escapes3$PPT06 + fire_escapes3$PPT07)/5
-fire_escapes3$mean_PPT04_PPT05_PPT06_PPT07_PPT08<- (fire_escapes3$PPT04 + fire_escapes3$PPT05 + fire_escapes3$PPT06+ fire_escapes3$PPT07 + fire_escapes3$PPT08)/5
-fire_escapes3$mean_PPT05_PPT06_PPT07_PPT08_PPT09<- (fire_escapes3$PPT05 + fire_escapes3$PPT06 + fire_escapes3$PPT07+ fire_escapes3$PPT08 + fire_escapes3$PPT09)/5
-fire_escapes3$mean_PPT06_PPT07_PPT08_PPT09_PPT10<- ( fire_escapes3$PPT06 + fire_escapes3$PPT07+ fire_escapes3$PPT08 + fire_escapes3$PPT09 + fire_escapes3$PPT10)/5
-fire_escapes3$mean_PPT07_PPT08_PPT09_PPT10_PPT11<- ( fire_escapes3$PPT07 + fire_escapes3$PPT08+ fire_escapes3$PPT09 + fire_escapes3$PPT10 + fire_escapes3$PPT11)/5
+fire_escapes_final$mean_PPT03_PPT04_PPT05_PPT06_PPT07<- (fire_escapes_final$PPT03 + fire_escapes_final$PPT04 + fire_escapes_final$PPT05+ fire_escapes_final$PPT06 + fire_escapes_final$PPT07)/5
+fire_escapes_final$mean_PPT04_PPT05_PPT06_PPT07_PPT08<- (fire_escapes_final$PPT04 + fire_escapes_final$PPT05 + fire_escapes_final$PPT06+ fire_escapes_final$PPT07 + fire_escapes_final$PPT08)/5
+fire_escapes_final$mean_PPT05_PPT06_PPT07_PPT08_PPT09<- (fire_escapes_final$PPT05 + fire_escapes_final$PPT06 + fire_escapes_final$PPT07+ fire_escapes_final$PPT08 + fire_escapes_final$PPT09)/5
+fire_escapes_final$mean_PPT06_PPT07_PPT08_PPT09_PPT10<- ( fire_escapes_final$PPT06 + fire_escapes_final$PPT07+ fire_escapes_final$PPT08 + fire_escapes_final$PPT09 + fire_escapes_final$PPT10)/5
+fire_escapes_final$mean_PPT07_PPT08_PPT09_PPT10_PPT11<- ( fire_escapes_final$PPT07 + fire_escapes_final$PPT08+ fire_escapes_final$PPT09 + fire_escapes_final$PPT10 + fire_escapes_final$PPT11)/5
 
-fire_escapes3$mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08<- (fire_escapes3$PPT03 + fire_escapes3$PPT04 + fire_escapes3$PPT05 + fire_escapes3$PPT06 + fire_escapes3$PPT07+ fire_escapes3$PPT08)/6
-fire_escapes3$mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT9<- (fire_escapes3$PPT04 + fire_escapes3$PPT05 + fire_escapes3$PPT06 + fire_escapes3$PPT07+ fire_escapes3$PPT08 + fire_escapes3$PPT09)/6
-fire_escapes3$mean_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10<- (fire_escapes3$PPT05 + fire_escapes3$PPT06 + fire_escapes3$PPT07+ fire_escapes3$PPT08 + fire_escapes3$PPT09 + fire_escapes3$PPT10)/6
-fire_escapes3$mean_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11<- (fire_escapes3$PPT06 + fire_escapes3$PPT07+ fire_escapes3$PPT08 + fire_escapes3$PPT09 + fire_escapes3$PPT10 + fire_escapes3$PPT11)/6
+fire_escapes_final$mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08<- (fire_escapes_final$PPT03 + fire_escapes_final$PPT04 + fire_escapes_final$PPT05 + fire_escapes_final$PPT06 + fire_escapes_final$PPT07+ fire_escapes_final$PPT08)/6
+fire_escapes_final$mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT9<- (fire_escapes_final$PPT04 + fire_escapes_final$PPT05 + fire_escapes_final$PPT06 + fire_escapes_final$PPT07+ fire_escapes_final$PPT08 + fire_escapes_final$PPT09)/6
+fire_escapes_final$mean_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10<- (fire_escapes_final$PPT05 + fire_escapes_final$PPT06 + fire_escapes_final$PPT07+ fire_escapes_final$PPT08 + fire_escapes_final$PPT09 + fire_escapes_final$PPT10)/6
+fire_escapes_final$mean_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11<- (fire_escapes_final$PPT06 + fire_escapes_final$PPT07+ fire_escapes_final$PPT08 + fire_escapes_final$PPT09 + fire_escapes_final$PPT10 + fire_escapes_final$PPT11)/6
 
-fire_escapes3$mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09<- (fire_escapes3$PPT03 + fire_escapes3$PPT04 + fire_escapes3$PPT05 + fire_escapes3$PPT06 + fire_escapes3$PPT07+ fire_escapes3$PPT08 + fire_escapes3$PPT09)/7
-fire_escapes3$mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10<- ( fire_escapes3$PPT04 + fire_escapes3$PPT05 + fire_escapes3$PPT06 + fire_escapes3$PPT07+ fire_escapes3$PPT08 + fire_escapes3$PPT09 + fire_escapes3$PPT10)/7
-fire_escapes3$mean_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11<- (fire_escapes3$PPT05 + fire_escapes3$PPT06 + fire_escapes3$PPT07+ fire_escapes3$PPT08 + fire_escapes3$PPT09 + fire_escapes3$PPT10 + fire_escapes3$PPT11)/7
+fire_escapes_final$mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09<- (fire_escapes_final$PPT03 + fire_escapes_final$PPT04 + fire_escapes_final$PPT05 + fire_escapes_final$PPT06 + fire_escapes_final$PPT07+ fire_escapes_final$PPT08 + fire_escapes_final$PPT09)/7
+fire_escapes_final$mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10<- ( fire_escapes_final$PPT04 + fire_escapes_final$PPT05 + fire_escapes_final$PPT06 + fire_escapes_final$PPT07+ fire_escapes_final$PPT08 + fire_escapes_final$PPT09 + fire_escapes_final$PPT10)/7
+fire_escapes_final$mean_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11<- (fire_escapes_final$PPT05 + fire_escapes_final$PPT06 + fire_escapes_final$PPT07+ fire_escapes_final$PPT08 + fire_escapes_final$PPT09 + fire_escapes_final$PPT10 + fire_escapes_final$PPT11)/7
 
-fire_escapes3$mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11<- (fire_escapes3$PPT04 + fire_escapes3$PPT05 + fire_escapes3$PPT06 + fire_escapes3$PPT07+ fire_escapes3$PPT08 + fire_escapes3$PPT09 + fire_escapes3$PPT10 + fire_escapes3$PPT11)/8
-fire_escapes3$mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10<- ( fire_escapes3$PPT03 + fire_escapes3$PPT04 + fire_escapes3$PPT05 + fire_escapes3$PPT06 + fire_escapes3$PPT07+ fire_escapes3$PPT08 + fire_escapes3$PPT09 + fire_escapes3$PPT10)/8
+fire_escapes_final$mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11<- (fire_escapes_final$PPT04 + fire_escapes_final$PPT05 + fire_escapes_final$PPT06 + fire_escapes_final$PPT07+ fire_escapes_final$PPT08 + fire_escapes_final$PPT09 + fire_escapes_final$PPT10 + fire_escapes_final$PPT11)/8
+fire_escapes_final$mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10<- ( fire_escapes_final$PPT03 + fire_escapes_final$PPT04 + fire_escapes_final$PPT05 + fire_escapes_final$PPT06 + fire_escapes_final$PPT07+ fire_escapes_final$PPT08 + fire_escapes_final$PPT09 + fire_escapes_final$PPT10)/8
 
-fire_escapes3$mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11<- ( fire_escapes3$PPT03 + fire_escapes3$PPT04 + fire_escapes3$PPT05 + fire_escapes3$PPT06 + fire_escapes3$PPT07+ fire_escapes3$PPT08 + fire_escapes3$PPT09 + fire_escapes3$PPT10 + fire_escapes3$PPT11)/9
+fire_escapes_final$mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11<- ( fire_escapes_final$PPT03 + fire_escapes_final$PPT04 + fire_escapes_final$PPT05 + fire_escapes_final$PPT06 + fire_escapes_final$PPT07+ fire_escapes_final$PPT08 + fire_escapes_final$PPT09 + fire_escapes_final$PPT10 + fire_escapes_final$PPT11)/9
 
 #### RH
-fire_escapes3$mean_RH03_RH04<- (fire_escapes3$RH03+ fire_escapes3$RH04)/2
-fire_escapes3$mean_RH04_RH05<- (fire_escapes3$RH04+ fire_escapes3$RH05)/2
-fire_escapes3$mean_RH05_RH06<- (fire_escapes3$RH05+ fire_escapes3$RH06)/2
-fire_escapes3$mean_RH06_RH07<- (fire_escapes3$RH06+ fire_escapes3$RH07)/2
-fire_escapes3$mean_RH07_RH08<- (fire_escapes3$RH07+ fire_escapes3$RH08)/2
-fire_escapes3$mean_RH08_RH09<- (fire_escapes3$RH08+ fire_escapes3$RH09)/2
-fire_escapes3$mean_RH09_RH10<- (fire_escapes3$RH09+ fire_escapes3$RH10)/2
-fire_escapes3$mean_RH10_RH11<- (fire_escapes3$RH10+ fire_escapes3$RH11)/2
+fire_escapes_final$mean_RH03_RH04<- (fire_escapes_final$RH03+ fire_escapes_final$RH04)/2
+fire_escapes_final$mean_RH04_RH05<- (fire_escapes_final$RH04+ fire_escapes_final$RH05)/2
+fire_escapes_final$mean_RH05_RH06<- (fire_escapes_final$RH05+ fire_escapes_final$RH06)/2
+fire_escapes_final$mean_RH06_RH07<- (fire_escapes_final$RH06+ fire_escapes_final$RH07)/2
+fire_escapes_final$mean_RH07_RH08<- (fire_escapes_final$RH07+ fire_escapes_final$RH08)/2
+fire_escapes_final$mean_RH08_RH09<- (fire_escapes_final$RH08+ fire_escapes_final$RH09)/2
+fire_escapes_final$mean_RH09_RH10<- (fire_escapes_final$RH09+ fire_escapes_final$RH10)/2
+fire_escapes_final$mean_RH10_RH11<- (fire_escapes_final$RH10+ fire_escapes_final$RH11)/2
 
-fire_escapes3$mean_RH03_RH04_RH05<- (fire_escapes3$RH03+ fire_escapes3$RH04 + fire_escapes3$RH05)/3
-fire_escapes3$mean_RH04_RH05_RH06<- (fire_escapes3$RH04+ fire_escapes3$RH05 + fire_escapes3$RH06)/3
-fire_escapes3$mean_RH05_RH06_RH07<- (fire_escapes3$RH05+ fire_escapes3$RH06 + fire_escapes3$RH07)/3
-fire_escapes3$mean_RH06_RH07_RH08<- (fire_escapes3$RH06+ fire_escapes3$RH07 + fire_escapes3$RH08)/3
-fire_escapes3$mean_RH07_RH08_RH09<- (fire_escapes3$RH07+ fire_escapes3$RH08 + fire_escapes3$RH09)/3
-fire_escapes3$mean_RH08_RH09_RH10<- (fire_escapes3$RH08+ fire_escapes3$RH09 + fire_escapes3$RH10)/3
-fire_escapes3$mean_RH09_RH10_RH11<- (fire_escapes3$RH09+ fire_escapes3$RH10 + fire_escapes3$RH11)/3
+fire_escapes_final$mean_RH03_RH04_RH05<- (fire_escapes_final$RH03+ fire_escapes_final$RH04 + fire_escapes_final$RH05)/3
+fire_escapes_final$mean_RH04_RH05_RH06<- (fire_escapes_final$RH04+ fire_escapes_final$RH05 + fire_escapes_final$RH06)/3
+fire_escapes_final$mean_RH05_RH06_RH07<- (fire_escapes_final$RH05+ fire_escapes_final$RH06 + fire_escapes_final$RH07)/3
+fire_escapes_final$mean_RH06_RH07_RH08<- (fire_escapes_final$RH06+ fire_escapes_final$RH07 + fire_escapes_final$RH08)/3
+fire_escapes_final$mean_RH07_RH08_RH09<- (fire_escapes_final$RH07+ fire_escapes_final$RH08 + fire_escapes_final$RH09)/3
+fire_escapes_final$mean_RH08_RH09_RH10<- (fire_escapes_final$RH08+ fire_escapes_final$RH09 + fire_escapes_final$RH10)/3
+fire_escapes_final$mean_RH09_RH10_RH11<- (fire_escapes_final$RH09+ fire_escapes_final$RH10 + fire_escapes_final$RH11)/3
 
-fire_escapes3$mean_RH03_RH04_RH05_RH06<- (fire_escapes3$RH03 + fire_escapes3$RH04+ fire_escapes3$RH05 + fire_escapes3$RH06)/4
-fire_escapes3$mean_RH04_RH05_RH06_RH07<- (fire_escapes3$RH04 + fire_escapes3$RH05+ fire_escapes3$RH06 + fire_escapes3$RH07)/4
-fire_escapes3$mean_RH05_RH06_RH07_RH08<- (fire_escapes3$RH05 + fire_escapes3$RH06+ fire_escapes3$RH07 + fire_escapes3$RH08)/4
-fire_escapes3$mean_RH06_RH07_RH08_RH09<- (fire_escapes3$RH06 + fire_escapes3$RH07+ fire_escapes3$RH08 + fire_escapes3$RH09)/4
-fire_escapes3$mean_RH07_RH08_RH09_RH10<- (fire_escapes3$RH07 + fire_escapes3$RH08+ fire_escapes3$RH09 + fire_escapes3$RH10)/4
-fire_escapes3$mean_RH08_RH09_RH10_RH11<- (fire_escapes3$RH08 + fire_escapes3$RH09+ fire_escapes3$RH10 + fire_escapes3$RH11)/4
+fire_escapes_final$mean_RH03_RH04_RH05_RH06<- (fire_escapes_final$RH03 + fire_escapes_final$RH04+ fire_escapes_final$RH05 + fire_escapes_final$RH06)/4
+fire_escapes_final$mean_RH04_RH05_RH06_RH07<- (fire_escapes_final$RH04 + fire_escapes_final$RH05+ fire_escapes_final$RH06 + fire_escapes_final$RH07)/4
+fire_escapes_final$mean_RH05_RH06_RH07_RH08<- (fire_escapes_final$RH05 + fire_escapes_final$RH06+ fire_escapes_final$RH07 + fire_escapes_final$RH08)/4
+fire_escapes_final$mean_RH06_RH07_RH08_RH09<- (fire_escapes_final$RH06 + fire_escapes_final$RH07+ fire_escapes_final$RH08 + fire_escapes_final$RH09)/4
+fire_escapes_final$mean_RH07_RH08_RH09_RH10<- (fire_escapes_final$RH07 + fire_escapes_final$RH08+ fire_escapes_final$RH09 + fire_escapes_final$RH10)/4
+fire_escapes_final$mean_RH08_RH09_RH10_RH11<- (fire_escapes_final$RH08 + fire_escapes_final$RH09+ fire_escapes_final$RH10 + fire_escapes_final$RH11)/4
 
-fire_escapes3$mean_RH03_RH04_RH05_RH06_RH07<- (fire_escapes3$RH03 + fire_escapes3$RH04 + fire_escapes3$RH05+ fire_escapes3$RH06 + fire_escapes3$RH07)/5
-fire_escapes3$mean_RH04_RH05_RH06_RH07_RH08<- (fire_escapes3$RH04 + fire_escapes3$RH05 + fire_escapes3$RH06+ fire_escapes3$RH07 + fire_escapes3$RH08)/5
-fire_escapes3$mean_RH05_RH06_RH07_RH08_RH09<- (fire_escapes3$RH05 + fire_escapes3$RH06 + fire_escapes3$RH07+ fire_escapes3$RH08 + fire_escapes3$RH09)/5
-fire_escapes3$mean_RH06_RH07_RH08_RH09_RH10<- ( fire_escapes3$RH06 + fire_escapes3$RH07+ fire_escapes3$RH08 + fire_escapes3$RH09 + fire_escapes3$RH10)/5
-fire_escapes3$mean_RH07_RH08_RH09_RH10_RH11<- ( fire_escapes3$RH07 + fire_escapes3$RH08+ fire_escapes3$RH09 + fire_escapes3$RH10 + fire_escapes3$RH11)/5
+fire_escapes_final$mean_RH03_RH04_RH05_RH06_RH07<- (fire_escapes_final$RH03 + fire_escapes_final$RH04 + fire_escapes_final$RH05+ fire_escapes_final$RH06 + fire_escapes_final$RH07)/5
+fire_escapes_final$mean_RH04_RH05_RH06_RH07_RH08<- (fire_escapes_final$RH04 + fire_escapes_final$RH05 + fire_escapes_final$RH06+ fire_escapes_final$RH07 + fire_escapes_final$RH08)/5
+fire_escapes_final$mean_RH05_RH06_RH07_RH08_RH09<- (fire_escapes_final$RH05 + fire_escapes_final$RH06 + fire_escapes_final$RH07+ fire_escapes_final$RH08 + fire_escapes_final$RH09)/5
+fire_escapes_final$mean_RH06_RH07_RH08_RH09_RH10<- ( fire_escapes_final$RH06 + fire_escapes_final$RH07+ fire_escapes_final$RH08 + fire_escapes_final$RH09 + fire_escapes_final$RH10)/5
+fire_escapes_final$mean_RH07_RH08_RH09_RH10_RH11<- ( fire_escapes_final$RH07 + fire_escapes_final$RH08+ fire_escapes_final$RH09 + fire_escapes_final$RH10 + fire_escapes_final$RH11)/5
 
-fire_escapes3$mean_RH03_RH04_RH05_RH06_RH07_RH08<- (fire_escapes3$RH03 + fire_escapes3$RH04 + fire_escapes3$RH05 + fire_escapes3$RH06 + fire_escapes3$RH07+ fire_escapes3$RH08)/6
-fire_escapes3$mean_RH04_RH05_RH06_RH07_RH08_RH9<- (fire_escapes3$RH04 + fire_escapes3$RH05 + fire_escapes3$RH06 + fire_escapes3$RH07+ fire_escapes3$RH08 + fire_escapes3$RH09)/6
-fire_escapes3$mean_RH05_RH06_RH07_RH08_RH09_RH10<- (fire_escapes3$RH05 + fire_escapes3$RH06 + fire_escapes3$RH07+ fire_escapes3$RH08 + fire_escapes3$RH09 + fire_escapes3$RH10)/6
-fire_escapes3$mean_RH06_RH07_RH08_RH09_RH10_RH11<- (fire_escapes3$RH06 + fire_escapes3$RH07+ fire_escapes3$RH08 + fire_escapes3$RH09 + fire_escapes3$RH10 + fire_escapes3$RH11)/6
+fire_escapes_final$mean_RH03_RH04_RH05_RH06_RH07_RH08<- (fire_escapes_final$RH03 + fire_escapes_final$RH04 + fire_escapes_final$RH05 + fire_escapes_final$RH06 + fire_escapes_final$RH07+ fire_escapes_final$RH08)/6
+fire_escapes_final$mean_RH04_RH05_RH06_RH07_RH08_RH9<- (fire_escapes_final$RH04 + fire_escapes_final$RH05 + fire_escapes_final$RH06 + fire_escapes_final$RH07+ fire_escapes_final$RH08 + fire_escapes_final$RH09)/6
+fire_escapes_final$mean_RH05_RH06_RH07_RH08_RH09_RH10<- (fire_escapes_final$RH05 + fire_escapes_final$RH06 + fire_escapes_final$RH07+ fire_escapes_final$RH08 + fire_escapes_final$RH09 + fire_escapes_final$RH10)/6
+fire_escapes_final$mean_RH06_RH07_RH08_RH09_RH10_RH11<- (fire_escapes_final$RH06 + fire_escapes_final$RH07+ fire_escapes_final$RH08 + fire_escapes_final$RH09 + fire_escapes_final$RH10 + fire_escapes_final$RH11)/6
 
-fire_escapes3$mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09<- (fire_escapes3$RH03 + fire_escapes3$RH04 + fire_escapes3$RH05 + fire_escapes3$RH06 + fire_escapes3$RH07+ fire_escapes3$RH08 + fire_escapes3$RH09)/7
-fire_escapes3$mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10<- ( fire_escapes3$RH04 + fire_escapes3$RH05 + fire_escapes3$RH06 + fire_escapes3$RH07+ fire_escapes3$RH08 + fire_escapes3$RH09 + fire_escapes3$RH10)/7
-fire_escapes3$mean_RH05_RH06_RH07_RH08_RH09_RH10_RH11<- (fire_escapes3$RH05 + fire_escapes3$RH06 + fire_escapes3$RH07+ fire_escapes3$RH08 + fire_escapes3$RH09 + fire_escapes3$RH10 + fire_escapes3$RH11)/7
+fire_escapes_final$mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09<- (fire_escapes_final$RH03 + fire_escapes_final$RH04 + fire_escapes_final$RH05 + fire_escapes_final$RH06 + fire_escapes_final$RH07+ fire_escapes_final$RH08 + fire_escapes_final$RH09)/7
+fire_escapes_final$mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10<- ( fire_escapes_final$RH04 + fire_escapes_final$RH05 + fire_escapes_final$RH06 + fire_escapes_final$RH07+ fire_escapes_final$RH08 + fire_escapes_final$RH09 + fire_escapes_final$RH10)/7
+fire_escapes_final$mean_RH05_RH06_RH07_RH08_RH09_RH10_RH11<- (fire_escapes_final$RH05 + fire_escapes_final$RH06 + fire_escapes_final$RH07+ fire_escapes_final$RH08 + fire_escapes_final$RH09 + fire_escapes_final$RH10 + fire_escapes_final$RH11)/7
 
-fire_escapes3$mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11<- (fire_escapes3$RH04 + fire_escapes3$RH05 + fire_escapes3$RH06 + fire_escapes3$RH07+ fire_escapes3$RH08 + fire_escapes3$RH09 + fire_escapes3$RH10 + fire_escapes3$RH11)/8
-fire_escapes3$mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10<- ( fire_escapes3$RH03 + fire_escapes3$RH04 + fire_escapes3$RH05 + fire_escapes3$RH06 + fire_escapes3$RH07+ fire_escapes3$RH08 + fire_escapes3$RH09 + fire_escapes3$RH10)/8
+fire_escapes_final$mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11<- (fire_escapes_final$RH04 + fire_escapes_final$RH05 + fire_escapes_final$RH06 + fire_escapes_final$RH07+ fire_escapes_final$RH08 + fire_escapes_final$RH09 + fire_escapes_final$RH10 + fire_escapes_final$RH11)/8
+fire_escapes_final$mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10<- ( fire_escapes_final$RH03 + fire_escapes_final$RH04 + fire_escapes_final$RH05 + fire_escapes_final$RH06 + fire_escapes_final$RH07+ fire_escapes_final$RH08 + fire_escapes_final$RH09 + fire_escapes_final$RH10)/8
 
-fire_escapes3$mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11<- ( fire_escapes3$RH03 + fire_escapes3$RH04 + fire_escapes3$RH05 + fire_escapes3$RH06 + fire_escapes3$RH07+ fire_escapes3$RH08 + fire_escapes3$RH09 + fire_escapes3$RH10 + fire_escapes3$RH11)/9
+fire_escapes_final$mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11<- ( fire_escapes_final$RH03 + fire_escapes_final$RH04 + fire_escapes_final$RH05 + fire_escapes_final$RH06 + fire_escapes_final$RH07+ fire_escapes_final$RH08 + fire_escapes_final$RH09 + fire_escapes_final$RH10 + fire_escapes_final$RH11)/9
 
 ### MDC
-fire_escapes3$mean_MDC_03_MDC_04<- (fire_escapes3$MDC_03+ fire_escapes3$MDC_04)/2
-fire_escapes3$mean_MDC_04_MDC_05<- (fire_escapes3$MDC_04+ fire_escapes3$MDC_05)/2
-fire_escapes3$mean_MDC_05_MDC_06<- (fire_escapes3$MDC_05+ fire_escapes3$MDC_06)/2
-fire_escapes3$mean_MDC_06_MDC_07<- (fire_escapes3$MDC_06+ fire_escapes3$MDC_07)/2
-fire_escapes3$mean_MDC_07_MDC_08<- (fire_escapes3$MDC_07+ fire_escapes3$MDC_08)/2
-fire_escapes3$mean_MDC_08_MDC_09<- (fire_escapes3$MDC_08+ fire_escapes3$MDC_09)/2
-fire_escapes3$mean_MDC_09_MDC_10<- (fire_escapes3$MDC_09+ fire_escapes3$MDC_10)/2
-fire_escapes3$mean_MDC_10_MDC_11<- (fire_escapes3$MDC_10+ fire_escapes3$MDC_11)/2
+fire_escapes_final$mean_MDC_03_MDC_04<- (fire_escapes_final$MDC_03+ fire_escapes_final$MDC_04)/2
+fire_escapes_final$mean_MDC_04_MDC_05<- (fire_escapes_final$MDC_04+ fire_escapes_final$MDC_05)/2
+fire_escapes_final$mean_MDC_05_MDC_06<- (fire_escapes_final$MDC_05+ fire_escapes_final$MDC_06)/2
+fire_escapes_final$mean_MDC_06_MDC_07<- (fire_escapes_final$MDC_06+ fire_escapes_final$MDC_07)/2
+fire_escapes_final$mean_MDC_07_MDC_08<- (fire_escapes_final$MDC_07+ fire_escapes_final$MDC_08)/2
+fire_escapes_final$mean_MDC_08_MDC_09<- (fire_escapes_final$MDC_08+ fire_escapes_final$MDC_09)/2
+fire_escapes_final$mean_MDC_09_MDC_10<- (fire_escapes_final$MDC_09+ fire_escapes_final$MDC_10)/2
+fire_escapes_final$mean_MDC_10_MDC_11<- (fire_escapes_final$MDC_10+ fire_escapes_final$MDC_11)/2
 
-fire_escapes3$mean_MDC_03_MDC_04_MDC_05<- (fire_escapes3$MDC_03+ fire_escapes3$MDC_04 + fire_escapes3$MDC_05)/3
-fire_escapes3$mean_MDC_04_MDC_05_MDC_06<- (fire_escapes3$MDC_04+ fire_escapes3$MDC_05 + fire_escapes3$MDC_06)/3
-fire_escapes3$mean_MDC_05_MDC_06_MDC_07<- (fire_escapes3$MDC_05+ fire_escapes3$MDC_06 + fire_escapes3$MDC_07)/3
-fire_escapes3$mean_MDC_06_MDC_07_MDC_08<- (fire_escapes3$MDC_06+ fire_escapes3$MDC_07 + fire_escapes3$MDC_08)/3
-fire_escapes3$mean_MDC_07_MDC_08_MDC_09<- (fire_escapes3$MDC_07+ fire_escapes3$MDC_08 + fire_escapes3$MDC_09)/3
-fire_escapes3$mean_MDC_08_MDC_09_MDC_10<- (fire_escapes3$MDC_08+ fire_escapes3$MDC_09 + fire_escapes3$MDC_10)/3
-fire_escapes3$mean_MDC_09_MDC_10_MDC_11<- (fire_escapes3$MDC_09+ fire_escapes3$MDC_10 + fire_escapes3$MDC_11)/3
+fire_escapes_final$mean_MDC_03_MDC_04_MDC_05<- (fire_escapes_final$MDC_03+ fire_escapes_final$MDC_04 + fire_escapes_final$MDC_05)/3
+fire_escapes_final$mean_MDC_04_MDC_05_MDC_06<- (fire_escapes_final$MDC_04+ fire_escapes_final$MDC_05 + fire_escapes_final$MDC_06)/3
+fire_escapes_final$mean_MDC_05_MDC_06_MDC_07<- (fire_escapes_final$MDC_05+ fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07)/3
+fire_escapes_final$mean_MDC_06_MDC_07_MDC_08<- (fire_escapes_final$MDC_06+ fire_escapes_final$MDC_07 + fire_escapes_final$MDC_08)/3
+fire_escapes_final$mean_MDC_07_MDC_08_MDC_09<- (fire_escapes_final$MDC_07+ fire_escapes_final$MDC_08 + fire_escapes_final$MDC_09)/3
+fire_escapes_final$mean_MDC_08_MDC_09_MDC_10<- (fire_escapes_final$MDC_08+ fire_escapes_final$MDC_09 + fire_escapes_final$MDC_10)/3
+fire_escapes_final$mean_MDC_09_MDC_10_MDC_11<- (fire_escapes_final$MDC_09+ fire_escapes_final$MDC_10 + fire_escapes_final$MDC_11)/3
 
-fire_escapes3$mean_MDC_03_MDC_04_MDC_05_MDC_06<- (fire_escapes3$MDC_03 + fire_escapes3$MDC_04+ fire_escapes3$MDC_05 + fire_escapes3$MDC_06)/4
-fire_escapes3$mean_MDC_04_MDC_05_MDC_06_MDC_07<- (fire_escapes3$MDC_04 + fire_escapes3$MDC_05+ fire_escapes3$MDC_06 + fire_escapes3$MDC_07)/4
-fire_escapes3$mean_MDC_05_MDC_06_MDC_07_MDC_08<- (fire_escapes3$MDC_05 + fire_escapes3$MDC_06+ fire_escapes3$MDC_07 + fire_escapes3$MDC_08)/4
-fire_escapes3$mean_MDC_06_MDC_07_MDC_08_MDC_09<- (fire_escapes3$MDC_06 + fire_escapes3$MDC_07+ fire_escapes3$MDC_08 + fire_escapes3$MDC_09)/4
-fire_escapes3$mean_MDC_07_MDC_08_MDC_09_MDC_10<- (fire_escapes3$MDC_07 + fire_escapes3$MDC_08+ fire_escapes3$MDC_09 + fire_escapes3$MDC_10)/4
-fire_escapes3$mean_MDC_08_MDC_09_MDC_10_MDC_11<- (fire_escapes3$MDC_08 + fire_escapes3$MDC_09+ fire_escapes3$MDC_10 + fire_escapes3$MDC_11)/4
+fire_escapes_final$mean_MDC_03_MDC_04_MDC_05_MDC_06<- (fire_escapes_final$MDC_03 + fire_escapes_final$MDC_04+ fire_escapes_final$MDC_05 + fire_escapes_final$MDC_06)/4
+fire_escapes_final$mean_MDC_04_MDC_05_MDC_06_MDC_07<- (fire_escapes_final$MDC_04 + fire_escapes_final$MDC_05+ fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07)/4
+fire_escapes_final$mean_MDC_05_MDC_06_MDC_07_MDC_08<- (fire_escapes_final$MDC_05 + fire_escapes_final$MDC_06+ fire_escapes_final$MDC_07 + fire_escapes_final$MDC_08)/4
+fire_escapes_final$mean_MDC_06_MDC_07_MDC_08_MDC_09<- (fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07+ fire_escapes_final$MDC_08 + fire_escapes_final$MDC_09)/4
+fire_escapes_final$mean_MDC_07_MDC_08_MDC_09_MDC_10<- (fire_escapes_final$MDC_07 + fire_escapes_final$MDC_08+ fire_escapes_final$MDC_09 + fire_escapes_final$MDC_10)/4
+fire_escapes_final$mean_MDC_08_MDC_09_MDC_10_MDC_11<- (fire_escapes_final$MDC_08 + fire_escapes_final$MDC_09+ fire_escapes_final$MDC_10 + fire_escapes_final$MDC_11)/4
 
-fire_escapes3$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07<- (fire_escapes3$MDC_03 + fire_escapes3$MDC_04 + fire_escapes3$MDC_05+ fire_escapes3$MDC_06 + fire_escapes3$MDC_07)/5
-fire_escapes3$mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08<- (fire_escapes3$MDC_04 + fire_escapes3$MDC_05 + fire_escapes3$MDC_06+ fire_escapes3$MDC_07 + fire_escapes3$MDC_08)/5
-fire_escapes3$mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09<- (fire_escapes3$MDC_05 + fire_escapes3$MDC_06 + fire_escapes3$MDC_07+ fire_escapes3$MDC_08 + fire_escapes3$MDC_09)/5
-fire_escapes3$mean_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- ( fire_escapes3$MDC_06 + fire_escapes3$MDC_07+ fire_escapes3$MDC_08 + fire_escapes3$MDC_09 + fire_escapes3$MDC_10)/5
-fire_escapes3$mean_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- ( fire_escapes3$MDC_07 + fire_escapes3$MDC_08+ fire_escapes3$MDC_09 + fire_escapes3$MDC_10 + fire_escapes3$MDC_11)/5
+fire_escapes_final$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07<- (fire_escapes_final$MDC_03 + fire_escapes_final$MDC_04 + fire_escapes_final$MDC_05+ fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07)/5
+fire_escapes_final$mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08<- (fire_escapes_final$MDC_04 + fire_escapes_final$MDC_05 + fire_escapes_final$MDC_06+ fire_escapes_final$MDC_07 + fire_escapes_final$MDC_08)/5
+fire_escapes_final$mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09<- (fire_escapes_final$MDC_05 + fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07+ fire_escapes_final$MDC_08 + fire_escapes_final$MDC_09)/5
+fire_escapes_final$mean_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- ( fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07+ fire_escapes_final$MDC_08 + fire_escapes_final$MDC_09 + fire_escapes_final$MDC_10)/5
+fire_escapes_final$mean_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- ( fire_escapes_final$MDC_07 + fire_escapes_final$MDC_08+ fire_escapes_final$MDC_09 + fire_escapes_final$MDC_10 + fire_escapes_final$MDC_11)/5
 
-fire_escapes3$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08<- (fire_escapes3$MDC_03 + fire_escapes3$MDC_04 + fire_escapes3$MDC_05 + fire_escapes3$MDC_06 + fire_escapes3$MDC_07+ fire_escapes3$MDC_08)/6
-fire_escapes3$mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_9<- (fire_escapes3$MDC_04 + fire_escapes3$MDC_05 + fire_escapes3$MDC_06 + fire_escapes3$MDC_07+ fire_escapes3$MDC_08 + fire_escapes3$MDC_09)/6
-fire_escapes3$mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- (fire_escapes3$MDC_05 + fire_escapes3$MDC_06 + fire_escapes3$MDC_07+ fire_escapes3$MDC_08 + fire_escapes3$MDC_09 + fire_escapes3$MDC_10)/6
-fire_escapes3$mean_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- (fire_escapes3$MDC_06 + fire_escapes3$MDC_07+ fire_escapes3$MDC_08 + fire_escapes3$MDC_09 + fire_escapes3$MDC_10 + fire_escapes3$MDC_11)/6
+fire_escapes_final$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08<- (fire_escapes_final$MDC_03 + fire_escapes_final$MDC_04 + fire_escapes_final$MDC_05 + fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07+ fire_escapes_final$MDC_08)/6
+fire_escapes_final$mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_9<- (fire_escapes_final$MDC_04 + fire_escapes_final$MDC_05 + fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07+ fire_escapes_final$MDC_08 + fire_escapes_final$MDC_09)/6
+fire_escapes_final$mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- (fire_escapes_final$MDC_05 + fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07+ fire_escapes_final$MDC_08 + fire_escapes_final$MDC_09 + fire_escapes_final$MDC_10)/6
+fire_escapes_final$mean_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- (fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07+ fire_escapes_final$MDC_08 + fire_escapes_final$MDC_09 + fire_escapes_final$MDC_10 + fire_escapes_final$MDC_11)/6
 
-fire_escapes3$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09<- (fire_escapes3$MDC_03 + fire_escapes3$MDC_04 + fire_escapes3$MDC_05 + fire_escapes3$MDC_06 + fire_escapes3$MDC_07+ fire_escapes3$MDC_08 + fire_escapes3$MDC_09)/7
-fire_escapes3$mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- ( fire_escapes3$MDC_04 + fire_escapes3$MDC_05 + fire_escapes3$MDC_06 + fire_escapes3$MDC_07+ fire_escapes3$MDC_08 + fire_escapes3$MDC_09 + fire_escapes3$MDC_10)/7
-fire_escapes3$mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- (fire_escapes3$MDC_05 + fire_escapes3$MDC_06 + fire_escapes3$MDC_07+ fire_escapes3$MDC_08 + fire_escapes3$MDC_09 + fire_escapes3$MDC_10 + fire_escapes3$MDC_11)/7
+fire_escapes_final$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09<- (fire_escapes_final$MDC_03 + fire_escapes_final$MDC_04 + fire_escapes_final$MDC_05 + fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07+ fire_escapes_final$MDC_08 + fire_escapes_final$MDC_09)/7
+fire_escapes_final$mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- ( fire_escapes_final$MDC_04 + fire_escapes_final$MDC_05 + fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07+ fire_escapes_final$MDC_08 + fire_escapes_final$MDC_09 + fire_escapes_final$MDC_10)/7
+fire_escapes_final$mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- (fire_escapes_final$MDC_05 + fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07+ fire_escapes_final$MDC_08 + fire_escapes_final$MDC_09 + fire_escapes_final$MDC_10 + fire_escapes_final$MDC_11)/7
 
-fire_escapes3$mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- (fire_escapes3$MDC_04 + fire_escapes3$MDC_05 + fire_escapes3$MDC_06 + fire_escapes3$MDC_07+ fire_escapes3$MDC_08 + fire_escapes3$MDC_09 + fire_escapes3$MDC_10 + fire_escapes3$MDC_11)/8
-fire_escapes3$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- ( fire_escapes3$MDC_03 + fire_escapes3$MDC_04 + fire_escapes3$MDC_05 + fire_escapes3$MDC_06 + fire_escapes3$MDC_07+ fire_escapes3$MDC_08 + fire_escapes3$MDC_09 + fire_escapes3$MDC_10)/8
+fire_escapes_final$mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- (fire_escapes_final$MDC_04 + fire_escapes_final$MDC_05 + fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07+ fire_escapes_final$MDC_08 + fire_escapes_final$MDC_09 + fire_escapes_final$MDC_10 + fire_escapes_final$MDC_11)/8
+fire_escapes_final$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- ( fire_escapes_final$MDC_03 + fire_escapes_final$MDC_04 + fire_escapes_final$MDC_05 + fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07+ fire_escapes_final$MDC_08 + fire_escapes_final$MDC_09 + fire_escapes_final$MDC_10)/8
 
-fire_escapes3$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- ( fire_escapes3$MDC_03 + fire_escapes3$MDC_04 + fire_escapes3$MDC_05 + fire_escapes3$MDC_06 + fire_escapes3$MDC_07+ fire_escapes3$MDC_08 + fire_escapes3$MDC_09 + fire_escapes3$MDC_10 + fire_escapes3$MDC_11)/9
+fire_escapes_final$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- ( fire_escapes_final$MDC_03 + fire_escapes_final$MDC_04 + fire_escapes_final$MDC_05 + fire_escapes_final$MDC_06 + fire_escapes_final$MDC_07+ fire_escapes_final$MDC_08 + fire_escapes_final$MDC_09 + fire_escapes_final$MDC_10 + fire_escapes_final$MDC_11)/9
 # maybe also try maximum temperature, precipitation, RH and MDC for the season.
 
 ```
@@ -663,9 +566,7 @@ Create groupings of variables to put into model selection loop.
 
 ```{r}
 
-variables<- c("temp_atfire",
-              "temp_mnthbefore",
-              "tmax_2mtns",
+variables<- c(
               "Tmax03",
               "Tmax04",
               "Tmax05",
@@ -712,9 +613,6 @@ variables<- c("temp_atfire",
               #"mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
               #"mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
               
-              "tempave_atfire",
-              "tempave_mnthbefore",
-              "Tave_2mtns",
               "Tave03",
               "Tave04",
               "Tave05",
@@ -761,9 +659,7 @@ variables<- c("temp_atfire",
               #"mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
               #"mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11",
               
-              "ppt_atfire",
-              "ppt_mnthbefore",
-              "ppt_2mtns",
+              
               "PPT03",
               "tot_spring_PPT",
               "tot_summer_PPT",
@@ -858,9 +754,7 @@ variables<- c("temp_atfire",
               #"mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11",
               #"mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11",
               
-              "mdc_atfire",
-              "mdc_mnthbefore",
-              "mdc_2mtns",
+             
               "MDC_03",
               "MDC_04",
               "MDC_05",
@@ -907,11 +801,11 @@ variables<- c("temp_atfire",
               #"mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11",
               #"mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11")
 
- variables1<-c("temp_atfire", "temp_mnthbefore", "tmax_2mtns", "Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09", "mean_Tmax03_Tmax04_Tmax05", "mean_Tmax04_Tmax05_Tmax06", "mean_Tmax06_Tmax07_Tmax08", "mean_Tmax07_Tmax08_Tmax09", "mean_Tmax04_Tmax05_Tmax06_Tmax07", "mean_Tmax05_Tmax06_Tmax07_Tmax08",
+ variables1<-c("Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09", "mean_Tmax03_Tmax04_Tmax05", "mean_Tmax04_Tmax05_Tmax06", "mean_Tmax06_Tmax07_Tmax08", "mean_Tmax07_Tmax08_Tmax09", "mean_Tmax04_Tmax05_Tmax06_Tmax07", "mean_Tmax05_Tmax06_Tmax07_Tmax08",
                "Tave04","Tave05", "Tave06", "Tave07", "Tave08", "Tave09", "mean_Tave03_Tave04_Tave05", "mean_Tave04_Tave05_Tave06", "mean_Tave06_Tave07_Tave08", "mean_Tave07_Tave08_Tave09", "mean_Tave04_Tave05_Tave06_Tave07", "mean_Tave05_Tave06_Tave07_Tave08",
                "RH04","RH05", "RH06", "RH07", "RH08", "RH09", "mean_RH03_RH04_RH05", "mean_RH04_RH05_RH06", "mean_RH06_RH07_RH08", "mean_RH07_RH08_RH09", "mean_RH04_RH05_RH06_RH07", "mean_RH05_RH06_RH07_RH08")
  
-variables2<-c("ppt_atfire", "ppt_mnthbefore", "ppt_2mtns","PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "mean_PPT03_PPT04_PPT05", "mean_PPT04_PPT05_PPT06", "mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09", "mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08",
+variables2<-c("PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "mean_PPT03_PPT04_PPT05", "mean_PPT04_PPT05_PPT06", "mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09", "mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08",
               "PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "mean_PPT03_PPT04_PPT05", "mean_PPT04_PPT05_PPT06", "mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09", "mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08",
               "PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "mean_PPT03_PPT04_PPT05", "mean_PPT04_PPT05_PPT06", "mean_PPT06_PPT07_PPT08", "mean_PPT07_PPT08_PPT09","mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08") 
 # precipitation and MDC and temperature and MDC are quite correlated so I'm leaving this combination of variables out. 
@@ -921,16 +815,16 @@ variables2<-c("ppt_atfire", "ppt_mnthbefore", "ppt_2mtns","PPT04","PPT05", "PPT0
 Inspect data and create dataframe
 
 ```{r}
-table(fire_escapes3$fire_yr, fire_escapes3$escape)
-table(fire_escapes3$fire_yr, fire_escapes3$escape, fire_escapes3$Cluster)
+table(fire_escapes_final$fire_yr, fire_escapes_final$escape)
+table(fire_escapes_final$fire_yr, fire_escapes_final$escape, fire_escapes_final$Cluster)
 
 # put Cluster 3 into Cluster5
-fire_escapes3$Cluster[fire_escapes3$Cluster==3]<-5
+fire_escapes_final$Cluster[fire_escapes_final$Cluster==3]<-5
 
 # remove geometry column
-fire_escape<-st_set_geometry(fire_escapes3,NULL) # remove geometry column for dataset
+fire_escape<-st_set_geometry(fire_escapes_final,NULL) # remove geometry column for dataset
 
-#esc<-st_set_geometry(fire_escape2,NULL)
+#esc<-st_set_geometry(fire_escapes_final,NULL)
 #write.csv(esc, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\escape_data.csv")
 
 

@@ -86,6 +86,11 @@ escape$Cluster[escape$idno==238]<-13
 escape$Cluster[is.na(escape$Cluster)]<-15
 
 escape$Cluster[escape$Cluster==3]<-5
+
+escape$escape10<- NA
+escape$escape10[escape$size_ha > 10] <- 1
+escape$escape10[escape$size_ha <= 10] <- 0
+
 ```
 
 We will create one model for each FRT, combining all fire types (person, lightning, unknown) and treed and non-treed.
@@ -120,24 +125,25 @@ unique(escape$Cluster)
 escape$Cluster<-as.factor(escape$Cluster)
 escape$Cluster_numeric<-as.numeric(as.character(escape$Cluster))
 
-escape$mean_PPT04_PPT05_PPT06<-(escape$PPT04 + escape$PPT05 + escape$PPT06)/3
 escape$mean_PPT05_PPT06_PPT07_PPT08  <-(escape$PPT05 + escape$PPT06 + escape$PPT07 + escape$PPT08)/4
 escape$mean_Tave05_Tave06_Tave07_Tave08<-(escape$Tave05 + escape$Tave06 + escape$Tave07 + escape$Tave08)/4
 escape$mean_Tave04_Tave05_Tave06<-(escape$Tave04 + escape$Tave05 + escape$Tave06)/3
+escape$mean_PPT05_PPT06<- (escape$PPT05 + escape$PPT06)/2
+escape$mean_PPT04_PPT05_PPT06<- (escape$PPT04 + escape$PPT05 + escape$PPT06)/3
 
 ## Create empty vector
 escape$climate1<-0
 head(escape)
 
 escape<-escape %>%
-    mutate(climate1 = case_when(Cluster_numeric == 5 ~ PPT05, 
-                                Cluster_numeric == 7 ~ temp_mnthbefore, 
+    mutate(climate1 = case_when(Cluster_numeric == 5 ~ as.numeric(PPT05), 
+                                Cluster_numeric == 7 ~ as.numeric(PPT03), 
                                 Cluster_numeric == 9 ~ Tave05, 
                                 Cluster_numeric == 10 ~ mean_Tave05_Tave06_Tave07_Tave08,
                                 Cluster_numeric == 11 ~ Tave09, 
                                 Cluster_numeric == 12 ~ mean_Tave04_Tave05_Tave06,
                                 Cluster_numeric == 13 ~ Tmax09,
-                                Cluster_numeric == 14 ~ temp_atfire,
+                                Cluster_numeric == 14 ~ as.numeric(mean_PPT05_PPT06),
                                 Cluster_numeric == 15 ~ Tave04,
                                 TRUE ~ NA_real_))
 
@@ -146,11 +152,10 @@ escape$climate2<-0
 
 #Perform mutate to get the applicable variable for each row
 escape<-escape %>%
-    mutate(climate2 = case_when(Cluster_numeric == 7 ~ ppt_mnthbefore,
-                                Cluster_numeric == 10 ~ mean_PPT05_PPT06_PPT07_PPT08,
-                                Cluster_numeric == 12 ~ mean_PPT04_PPT05_PPT06,
-                                Cluster_numeric == 14 ~ ppt_atfire,
-                                Cluster_numeric == 15 ~ PPT04,TRUE ~ NA_real_))
+    mutate(climate2 = case_when(Cluster_numeric == 10 ~ as.numeric(mean_PPT05_PPT06_PPT07_PPT08),
+                                Cluster_numeric == 12 ~ as.numeric(mean_PPT04_PPT05_PPT06),
+                                Cluster_numeric == 15 ~ as.numeric(PPT04),
+                                TRUE ~ NA_real_))
 
 head(escape)
 
@@ -220,42 +225,40 @@ p <- ggplot(escape, aes(x=as.factor(escape10), y=elevatn)) +
   facet_wrap(~Cluster,scales='free')
 p
 
-# Wind at fire
+# Spring wind
 # no real relationship with wind
-p <- ggplot(escape, aes(wind_atfire, as.numeric(escape10))) +
+p <- ggplot(escape, aes(win_spg, as.numeric(escape10))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Wind Speed") + ylab("Pr (escape)") + 
+  xlab("Wind Spring") + ylab("Pr (escape)") + 
   facet_wrap(~Cluster,scales='free')
 p
 
-p <- ggplot(escape, aes(x=as.factor(escape10), y=wind_atfire)) + 
+p <- ggplot(escape, aes(x=as.factor(escape10), y=win_spg)) + 
   geom_boxplot() + 
   facet_wrap(~Cluster,scales='free')
 p
 
-# mdc at fire
-p <- ggplot(escape, aes(mdc_atfire, as.numeric(escape10))) +
+p <- ggplot(escape, aes(win_sum, as.numeric(escape10))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("MDC at fire") + ylab("Pr (escape)") + 
+  xlab("Wind Spring") + ylab("Pr (escape)") + 
   facet_wrap(~Cluster,scales='free')
 p
 
-p <- ggplot(escape, aes(x=as.factor(escape10), y=mdc_atfire)) + 
+p <- ggplot(escape, aes(x=as.factor(escape10), y=win_sum)) + 
   geom_boxplot() + 
   facet_wrap(~Cluster,scales='free')
 p
 
-# no obvious relationship with MDC
 
 # TMax at time of fire and month before
 # Tmax at time of fire and month before. In general it does not look like there is much difference between the 0's and 1's
-p <- ggplot(escape, aes(tmax_2mtns, as.numeric(escape10))) +
+p <- ggplot(escape, aes(climate1, as.numeric(escape10))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
@@ -264,7 +267,7 @@ p <- ggplot(escape, aes(tmax_2mtns, as.numeric(escape10))) +
   facet_wrap(~Cluster,scales='free')
 p
 
-p <- ggplot(escape, aes(x=as.factor(escape10), y=tmax_2mtns)) + 
+p <- ggplot(escape, aes(x=as.factor(escape10), y=climate1)) + 
   geom_boxplot() + 
   facet_wrap(~Cluster,scales='free')
 p
@@ -505,46 +508,36 @@ p
 
 # road distance
 # very strong relationship for all
-p <- ggplot(escape, aes(rd_dst_, as.numeric(escape10))) +
+p <- ggplot(escape, aes(road_dist_m, as.numeric(escape10))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) + 
   facet_wrap(~Cluster,scales='free')
+
 p
 
-p <- ggplot(escape, aes(x=as.factor(escape10), y=rd_dst_)) + 
+p <- ggplot(escape, aes(x=as.factor(escape10), y=road_dist_m)) + 
   geom_boxplot() + 
   facet_wrap(~Cluster,scales='free')
 p
 
 # infr_ds
-p <- ggplot(escape, aes(infr_ds, as.numeric(escape10))) +
+p <- ggplot(escape, aes(infr_dist, as.numeric(escape10))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) + 
   facet_wrap(~Cluster,scales='free')
+
+
 p
 
-p <- ggplot(escape, aes(x=as.factor(escape10), y=infr_ds)) + 
+p <- ggplot(escape, aes(x=as.factor(escape10), y=infr_dist)) + 
   geom_boxplot() + 
   facet_wrap(~Cluster,scales='free')
 p
 
-# Climate1
-p <- ggplot(escape, aes(climate1, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=climate1)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
 
 ```
 

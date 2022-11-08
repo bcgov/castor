@@ -6,8 +6,7 @@ output: html_document
 ---
 
 
-# FIX THIS TO CHECK THERE ARE NO BUGS.
-NOTE CORA found that there were not locations classified as waterand that water locations at least in teh Kootenaies were classified as M-1/2 so obviously a problem! MUST FIX!!!
+# FIX it appears some fires are found to be started in the FWI_veg type =N. I think part of the problem is that if earliest disturbance year is the same as the fire year it is making years since disturbance =0 and then as a result it is classifying vegetation type as N because that area was just burned. But I think this is actually the fire i want to get info for. So I think therea re two solutions. 1.) either I reclassify the vegetation in the VRI using the VRI from the year before so that the burn date does not appear or I include an if statement saying that if the year burnt = the same year as my fire year then I should ignore it. ill try the latter for starters but I might swithch. 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -19,48 +18,49 @@ library(tidyverse)
 
 
 ```{r}
-fire_all<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all.gpkg")
+fire_veg_sf<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all3.gpkg")
 
+fire_veg_sf<-y4
 ```
 
 
 ```{r}
 
 # looking at how many na values there are
-table(is.na(fire_all$bec_zone_code))
-table(is.na(fire_all$bclcs_level_1))
-table(is.na(fire_all$bclcs_level_2))
-table(is.na(fire_all$bclcs_level_3))
-table(is.na(fire_all$bclcs_level_4))
-table(is.na(fire_all$bclcs_level_5))
+table(is.na(fire_veg_sf$bec_zone_code))
+table(is.na(fire_veg_sf$bclcs_level_1))
+table(is.na(fire_veg_sf$bclcs_level_2))
+table(is.na(fire_veg_sf$bclcs_level_3))
+table(is.na(fire_veg_sf$bclcs_level_4))
+table(is.na(fire_veg_sf$bclcs_level_5))
 
-table((fire_all$bclcs_level_1)) # U=unreported, N = non-vegetated, V = vegetated
-table((fire_all$bclcs_level_2)) # T= treed, N = Non-treed, L=Land, W=water
-table((fire_all$bclcs_level_3)) # A = alpine, U = upland, W = wetland
-table((fire_all$bclcs_level_4)) # 
-table((fire_all$bclcs_level_5))
-table(fire_all$bec_subzone)
+table((fire_veg_sf$bclcs_level_1)) # U=unreported, N = non-vegetated, V = vegetated
+table((fire_veg_sf$bclcs_level_2)) # T= treed, N = Non-treed, L=Land, W=water
+table((fire_veg_sf$bclcs_level_3)) # A = alpine, U = upland, W = wetland
+table((fire_veg_sf$bclcs_level_4)) # 
+table((fire_veg_sf$bclcs_level_5))
+table(fire_veg_sf$bec_subzone)
 
-fire_all$stand_percentage_dead<- round(fire_all$stand_percentage_dead,2)
-fire_all$crown_closure<- round(fire_all$crown_closure,2)
-fire_all$species_pct_1<- round(fire_all$species_pct_1,0)
-fire_all$species_pct_2<- round(fire_all$species_pct_2,0)
-fire_all$species_pct_3<- round(fire_all$species_pct_3,0)
-fire_all$species_pct_4<- round(fire_all$species_pct_4,0)
-fire_all$species_pct_5<- round(fire_all$species_pct_5,0)
-fire_all$species_pct_6<- round(fire_all$species_pct_6,0)
-fire_all$proj_age_1<- round(fire_all$proj_age_1,2)
-fire_all$proj_height_1<- round(fire_all$proj_height_1,1)
-fire_all$bec_zone_code<- (as.character(fire_all$bec_zone_code))
-fire_all$bec_subzone<- as.character(fire_all$bec_subzone)
-fire_all$species_cd_1<- (as.character(fire_all$species_cd_1))
-fire_all$species_cd_2<- (as.character(fire_all$species_cd_2))
-fire_all$species_cd_3<- (as.character(fire_all$species_cd_3))
-fire_all$species_cd_4<- (as.character(fire_all$species_cd_4))
-fire_all$species_cd_5<- (as.character(fire_all$species_cd_5))
-fire_all$species_cd_6<- (as.character(fire_all$species_cd_6))
+fire_veg_sf$stand_percentage_dead<- round(fire_veg_sf$stand_percentage_dead,2)
+fire_veg_sf$crown_closure<- round(fire_veg_sf$crown_closure,2)
+fire_veg_sf$species_pct_1<- round(fire_veg_sf$species_pct_1,0)
+fire_veg_sf$species_pct_2<- round(fire_veg_sf$species_pct_2,0)
+fire_veg_sf$species_pct_3<- round(fire_veg_sf$species_pct_3,0)
+fire_veg_sf$species_pct_4<- round(fire_veg_sf$species_pct_4,0)
+fire_veg_sf$species_pct_5<- round(fire_veg_sf$species_pct_5,0)
+fire_veg_sf$species_pct_6<- round(fire_veg_sf$species_pct_6,0)
+fire_veg_sf$proj_age_1<- round(fire_veg_sf$proj_age_1,2)
+fire_veg_sf$proj_height_1<- round(fire_veg_sf$proj_height_1,1)
+fire_veg_sf$bec_zone_code<- (as.character(fire_veg_sf$bec_zone_code))
+fire_veg_sf$bec_subzone<- as.character(fire_veg_sf$bec_subzone)
+fire_veg_sf$species_cd_1<- (as.character(fire_veg_sf$species_cd_1))
+fire_veg_sf$species_cd_2<- (as.character(fire_veg_sf$species_cd_2))
+fire_veg_sf$species_cd_3<- (as.character(fire_veg_sf$species_cd_3))
+fire_veg_sf$species_cd_4<- (as.character(fire_veg_sf$species_cd_4))
+fire_veg_sf$species_cd_5<- (as.character(fire_veg_sf$species_cd_5))
+fire_veg_sf$species_cd_6<- (as.character(fire_veg_sf$species_cd_6))
 
-str(fire_all)
+str(fire_veg_sf)
 
 ```
 
@@ -72,24 +72,30 @@ First I need to create some new variables i.e. time since disturbance in years a
 ```{r}
 # note: in this code fire_yr really refers to my focal year i.e. yr that i want to create this data for.
 
-fire_all$yearHarvest<-as.numeric(as.character(stringi::stri_sub(fire_all$harvest_date,1,4)))
-fire_all<- fire_all %>% dplyr::mutate(yearsSinceHarvest = fire_yr - yearHarvest)
+fire_veg_sf$yearHarvest<-as.numeric(as.character(stringi::stri_sub(fire_veg_sf$harvest_date,1,4)))
+fire_veg_sf<- fire_veg_sf %>% dplyr::mutate(yearsSinceHarvest = fire_yr - yearHarvest)
+table(fire_veg_sf$yearsSinceHarvest)
 
-fire_all$earliest_nonlogging_dist_type_2<-gsub('[" "]', '', fire_all$earliest_nonlogging_dist_type) # removing some weird characters
-table(fire_all$earliest_nonlogging_dist_type)
-table(fire_all$earliest_nonlogging_dist_type_2) # better
+fire_veg_sf$yearsSinceHarvest<- ifelse(fire_veg_sf$yearsSinceHarvest<1, NA, fire_veg_sf$yearsSinceHarvest)
+fire_veg_sf %>% filter(yearsSinceHarvest<1)
+table(fire_veg_sf$yearsSinceHarvest)
 
-fire_all$earliest_nonlogging_dist_type<-fire_all$earliest_nonlogging_dist_type_2
 
-fire_all$earliest_nonlogging_dist_type_2<- as.factor(fire_all$earliest_nonlogging_dist_type_2)
-levels(fire_all$earliest_nonlogging_dist_type_2)<-list(burn="B",burn="BE", burn = "BG", burn="BR", burn="BW", burn="NB",drought="D",  disease="DF", disease="DMP", disease="DS", disease="DSG", insect="I", insect="IBB", insect="IBD", insect="IBF", insect="IBM", insect="IBS", flooding="NF", slide="NS", windthrow="NW", planting="P" ) # amalgamate some categories
-table(fire_all$earliest_nonlogging_dist_type_2)
+fire_veg_sf$earliest_nonlogging_dist_type_2<-gsub('[" "]', '', fire_veg_sf$earliest_nonlogging_dist_type) # removing some weird characters
+table(fire_veg_sf$earliest_nonlogging_dist_type)
+table(fire_veg_sf$earliest_nonlogging_dist_type_2) # better
 
-fire_all$earliest_nonlogging_dist_date
-fire_all$yearDisturb<-as.numeric(as.character(stringi::stri_sub(fire_all$earliest_nonlogging_dist_date,1,4)))
+fire_veg_sf$earliest_nonlogging_dist_type<-fire_veg_sf$earliest_nonlogging_dist_type_2
 
-fire_all$yearsSinceDisturbance<- ifelse (fire_all$fire_yr >= fire_all$yearDisturb, fire_all$fire_yr - fire_all$yearDisturb, NA)
-table(fire_all$yearsSinceDisturbance)
+fire_veg_sf$earliest_nonlogging_dist_type_2<- as.factor(fire_veg_sf$earliest_nonlogging_dist_type_2)
+levels(fire_veg_sf$earliest_nonlogging_dist_type_2)<-list(burn="B",burn="BE", burn = "BG", burn="BR", burn="BW", burn="NB",drought="D",  disease="DF", disease="DMP", disease="DS", disease="DSG", insect="I", insect="IBB", insect="IBD", insect="IBF", insect="IBM", insect="IBS", flooding="NF", slide="NS", windthrow="NW", planting="P" ) # amalgamate some categories
+table(fire_veg_sf$earliest_nonlogging_dist_type_2)
+
+fire_veg_sf$earliest_nonlogging_dist_date
+fire_veg_sf$yearDisturb<-as.numeric(as.character(stringi::stri_sub(fire_veg_sf$earliest_nonlogging_dist_date,1,4)))
+
+fire_veg_sf$yearsSinceDisturbance<- ifelse (fire_veg_sf$fire_yr > fire_veg_sf$yearDisturb, fire_veg_sf$fire_yr - fire_veg_sf$yearDisturb, NA)
+table(fire_veg_sf$yearsSinceDisturbance)
 
 ```
 
@@ -106,7 +112,7 @@ calculating total percent cover by conifers regardless of species. Also pulling 
 
 ```{r}
 
-fire_all<- fire_all %>%
+fire_veg_sf<- fire_veg_sf %>%
   mutate(pct1 = ifelse(species_cd_1 %in% conifer, species_pct_1, NA),
          pct2 = ifelse(species_cd_2 %in% conifer, species_pct_2, NA),
          pct3 = ifelse(species_cd_3 %in% conifer, species_pct_3, NA),
@@ -120,14 +126,14 @@ fire_all<- fire_all %>%
                                                         ifelse(species_cd_5 %in% conifer, species_cd_5,
                                                                ifelse(species_cd_6 %in% conifer, species_cd_6, NA)))))))
 
-table(fire_all$dominant_conifer)
+table(fire_veg_sf$dominant_conifer)
 
-fire_all<-fire_all %>% mutate(conifer_pct_cover_total=rowSums(across(c(pct1:pct6)), na.rm=TRUE))
+fire_veg_sf<-fire_veg_sf %>% mutate(conifer_pct_cover_total=rowSums(across(c(pct1:pct6)), na.rm=TRUE))
 
 # the above calculation puts zeros in rows with NA's so Im changing them back to NA
-fire_all$conifer_pct_cover_total<- ifelse(is.na(fire_all$pct1) & is.na(fire_all$pct2) & is.na(fire_all$pct3) & is.na(fire_all$pct4) & is.na(fire_all$pct5) & is.na(fire_all$pct6), NA, fire_all$conifer_pct_cover_total)
+fire_veg_sf$conifer_pct_cover_total<- ifelse(is.na(fire_veg_sf$pct1) & is.na(fire_veg_sf$pct2) & is.na(fire_veg_sf$pct3) & is.na(fire_veg_sf$pct4) & is.na(fire_veg_sf$pct5) & is.na(fire_veg_sf$pct6), NA, fire_veg_sf$conifer_pct_cover_total)
 
-tail(fire_all) # looks like it worked
+tail(fire_veg_sf) # looks like it worked
 
 ```
 
@@ -135,15 +141,12 @@ tail(fire_all) # looks like it worked
 Now I can hopefully follow the rules outlined at the end of Perrakis et al (2018)
 First Ill code the non-vegetated areas
 ```{r}
-fire_all$FWI_veg<-NA
-
-
-
+fire_veg_sf$FWI_veg<-NA
 
 #Now coding the VEGETATED areas
 
 # recently burned
-fire_all1<- fire_all %>%
+fire_all1<- fire_veg_sf %>%
   mutate(FWI_veg = case_when(
           bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crown_closure > 40 & earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance < 4 ~ "N",
           bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crown_closure > 40 & earliest_nonlogging_dist_type_2=="burn" & (yearsSinceDisturbance > 3 & yearsSinceDisturbance < 7) ~ "D-1/2",
@@ -736,7 +739,23 @@ table(fire_all1$FWI_veg)
                              
 table(is.na(fire_all1$FWI_veg))
 
-x<- fire_all1 %>% filter(is.na(FWI_veg)) %>% dplyr::select(inventory_standard_cd:conifer_pct_cover_total)
+x<- fire_all1 %>% filter(is.na(FWI_veg)) %>% dplyr::select(fire, inventory_standard_cd:conifer_pct_cover_total)
+
+y<-fire_all1 %>% filter(fire==1) %>% filter(FWI_veg %in% c("N", "W")) # Note there are a whole bunch of ignition points that have FWI_veg categoriezed as N. This is a problem because N means no fuel. I tried to deal with this by buffering the points 50m then 150m 
+table(y$fire_yr)
+#2002 2003 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018
+# 117  147  131   78  143  107  117  163   81   49   56   43   58   63   32   48   57 #2019 
+#39 
+#2020 2021 
+ # 26   36 
+
+table(y$FWI_veg, y$Cluster)
+tail(y)
+
+y2<-fire_all1 %>% filter(fire==1)
+
+st_write(y, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\fire_veg_data_N_or_W.gpkg", delete_layer=TRUE, driver="GPKG")
+
 
 st_write(fire_all1, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg2.gpkg", delete_layer=TRUE, driver="GPKG")
 
