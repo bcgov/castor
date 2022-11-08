@@ -46,7 +46,7 @@ zone_cond_nharv = parks and protected areas
 zone_cond_cw = community watersheds
 central_grp_partner_areas_072022 = Partnership Agreement areas, where no harvest is permitted in A2, B2, B3 and B4 zones
 
-```{r, update parnternerhsip zone constraints}
+```{r, update partnerhsip zone constraints}
 require (DBI)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/central_group/inputs/central_group_july2022_clusdb.sqlite"))

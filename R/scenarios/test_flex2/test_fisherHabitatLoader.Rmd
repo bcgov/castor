@@ -32,7 +32,7 @@ inputDir <- file.path (paste0 (here::here (), "/R/scenarios/test_flex2/inputs"))
 outputDir <- file.path (paste0 (here::here (), "/R/scenarios/test_flex2/outputs")) %>% reproducible::checkPath (create = TRUE)
 cacheDir <- file.path (paste0 (here::here (), "/R/scenarios/test_flex2"))
 
-times <- list (start = 0, end = 40)
+times <- list (start = 0, end = 10)
 
 parameters <- list(
   dataLoaderCLUS = list(dbName='clus',
@@ -93,7 +93,7 @@ parameters <- list(
 )
 
 
-scenario = data.table (name = "test_fisher_habitat",
+scenario = data.table (name = "test2_fisher_habitat",
                        description = "Testing fisher habitat loader on Williams Lake TSA.")
 
 harvestFlow <- rbindlist(list(data.table(compartment = "Williams_Lake_TSA",
