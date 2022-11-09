@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 .Renviron
+.Renviron.R
 *.shp
 *.tif
 *.dbf
