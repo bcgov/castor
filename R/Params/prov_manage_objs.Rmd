@@ -62,6 +62,21 @@ knitr::kable(data.table(objective = c(
 
 >Note: these management objectives are not inclusive of all objectives - but rather they are a set of common constraints considered in timber supply review. Remaining detailed layers indicating either zonal or harvesting constraints will be incorporated at a later time
 
+## Watershed units
+```{r}
+wau<-getSpatialQuery("select * from wau;")
+wau.ras<-fasterize::fasterize(wau, raster = ProvRast, field="ogc_fid")
+writeRaster(wau.ras, "wau.tif")
+
+zone.wau<-data.table(zoneid =  unique(wau.ras[]), reference_zone = 'rast.zone_cond_wau', ndt =0, variable= 'eca', threshold = 100, type = 'le', percentage = 100, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'watershed_analysis')
+zone.wau<-zone.wau[!is.na(zone.wau$zoneid),]
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("zone", "zone_wau"), value= zone.wau, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+
+```
+
 ## Biodiversity Emphasis Options - Zonal Constraints
 
 Biodiversity Emphasis Options (BEO) are defined during landscape level planning, typically an a landscape unit or on BEC zones (natural disturbance types) within a landscape unit. If no landscape unit has been designated for an area, or an emphasis option has not been assigned for a particular landscape unit, the default is that the area is managed using the lower biodiversity emphasis option. see [Biodiversity Guidebook](https://www.for.gov.bc.ca/ftp/hfp/external/!publish/FPC%20archive/old%20web%20site%20contents/fpc/fpcguide/BIODIV/chap1.htm#bid)
@@ -81,6 +96,23 @@ pg_bio.ras<-fasterize::fasterize(sf= pg_bio, raster = ProvRast , field = "unit")
 pg_bio.table<-data.table(unit = pg_bio$unit, old_targ = pg_bio$old_targ)
 pg_bio.table<-pg_bio.table[, pgbio_id := seq_len(.N)]
 pg_bio.table<-pg_bio.table[!is.na(unit),]
+
+
+##CCLUP
+qu<-st_read("F:/Fisher/early_seral_rating/dqu.shp")
+hm<-st_read("F:/Fisher/early_seral_rating/dmh.shp")
+cc<-st_read("F:/Fisher/early_seral_rating/dcc.shp")
+
+cclup.lut<-rbindlist(list(data.table(link_key = qu$link_key) , data.table(link_key = hm$link_key), data.table(link_key = cc$link_key)))
+cclup.lut$cclup_id<-1:nrow(cclup.lut)
+cclup.qu<-merge(qu, cclup.lut, by.x = "link_key",by.y = "link_key", all.x =T)
+cclup.hm<-merge(hm, cclup.lut, by.x = "link_key",by.y = "link_key", all.x =T)
+cclup.cc<-merge(cc, cclup.lut, by.x = "link_key",by.y = "link_key", all.x =T)
+
+cclup.qu.ras<-fasterize::fasterize(sf= cclup.qu, raster = ProvRast , field = "cclup_id")
+cclup.hm.ras<-fasterize::fasterize(sf= cclup.hm, raster = ProvRast , field = "cclup_id")
+cclup.cc.ras<-fasterize::fasterize(sf= cclup.cc, raster = ProvRast , field = "cclup_id")
+
 
 #Get the landscape units
 lu<-getSpatialQuery("SELECT lu_id, lu_name,
@@ -115,10 +147,6 @@ bec.ras<-fasterize::fasterize(sf= bec, raster = ProvRast , field = "bec_id")
 
 #Get the forested landbase
 treed<-getSpatialQuery("sELECT  shape, 1 as treed, 
-case when species_cd_1 in ('B','BB','BC','BM','BP', 'BL', 'BG', 'BA', 'F','FD','FDC','FDI') and bec_zone_code in ('IDF', 'BG') 
-then 1 else 0 end as fir, 
-case when species_cd_1 in ('P','PM','PR','PS','PX', 'PL','PLC','PLI', 'PY', 'PW', 'PJ','PXJ', 'PF', 'PA') and bec_zone_code in ('IDF', 'BG') 
-then 1 else 0 end as pine,
 case when species_cd_1 in ('AX', 'EP', 'ACB', 'EA', 'AC', 'ACT', 'AT', 'E') and bec_zone_code = 'BWBS'
 then 1 else 0 end as dec
 from public.veg_comp_lyr_r1_poly2021 
@@ -127,30 +155,38 @@ and site_index >= 5")
 
 #Rasterize the treed
 treed.ras<-fasterize::fasterize(sf= treed, raster = ProvRast , field = "treed")
-fir.ras<-fasterize::fasterize(sf= treed, raster = ProvRast , field = "fir")
-pine.ras<-fasterize::fasterize(sf= treed, raster = ProvRast , field = "pine")
 dec.ras<-fasterize::fasterize(sf= treed, raster = ProvRast , field = "dec")
 
-beo.table<-data.table(lu_id = luid.ras[], bec_id=bec.ras[], pgbio_id = pg_bio.ras[], treed=treed.ras[], dec = dec.ras[], fir=fir.ras[], pine = pine.ras[])
+#beo.table<-data.table(lu_id = luid.ras[], bec_id=bec.ras[], pgbio_id = pg_bio.ras[], treed=treed.ras[], dec = dec.ras[], fir=fir.ras[], pine = pine.ras[])
+
+beo.table<-data.table(lu_id = luid.ras[], bec_id=bec.ras[], pgbio_id = pg_bio.ras[], treed=treed.ras[], dec = dec.ras[], cclup_qu_id=cclup.qu.ras[], cclup_cc_id=cclup.cc.ras[], cclup_hm_id=cclup.hm.ras[])
 
 beo.table<-beo.table[, pixelid := seq_len(.N)]
 beo.table<-beo.table[!is.na(treed),]
 
-rm(treed.ras, fir.ras, pine.ras, dec.ras, bec.ras, luid.ras)
+rm(treed.ras, dec.ras, bec.ras, luid.ras, pg_bio.ras, cclup.cc.ras, cclup.qu.ras, cclup.hm.ras)
 gc()
 
 #get labels for pg bio order
 beo.table<-merge(beo.table, pg_bio.table[,c("pgbio_id", "unit")], by.x = "pgbio_id", by.y = "pgbio_id", all.x =T)
 
-#get lables for landscape units
+#get labels for landscape units
 luid.table<-st_drop_geometry(lu)
 beo.table<-merge(beo.table, luid.table, by.x = "lu_id", by.y = "lu_id", all.x =T)
 
+#get labels for bec
 bec.table<-st_drop_geometry(bec)
 bec.table<-unique(bec.table) #get rid of duplicates that result from non contigous zones
 beo.table<-merge(beo.table, bec.table, by.x = "bec_id", by.y = "bec_id", all.x =T)
 beo.table<-beo.table[!is.na(bec_id),]
 beo.table<-beo.table[!is.na(lu_id),]
+
+#get labels for cclup
+beo.table[, cclup_id:=cclup_cc_id][!is.na(cclup_qu_id), cclup_id:=cclup_qu_id][!is.na(cclup_hm_id), cclup_id:=cclup_hm_id]
+beo.table[, c("cclup_cc_id", "cclup_hm_id", "cclup_qu_id"):=NULL]
+
+beo.table<-merge(beo.table, cclup.lut, by.x = "cclup_id", by.y = "cclup_id", all.x =T)
+
 ```
 
 #### Biodiversity guide book
@@ -159,28 +195,11 @@ beo.table<-beo.table[!is.na(lu_id),]
 beo.table<-beo.table[, key_beo:=paste0(lu_name, "_", beo, "_", ndt, "_", zone)] 
 beo.table<-beo.table[zone == 'BWBS' & dec == 1, key_beo:=paste0(lu_name, "_", beo, "_", ndt, "_", zone,"_", "D")] 
 beo.table<-beo.table[zone == 'BWBS' & dec == 0, key_beo:=paste0(lu_name, "_", beo, "_", ndt, "_", zone,"_", "C")]
-#beo.table<-beo.table[zone == 'IDF' & fir == 1, key_beo:=paste0(lu_name, "_", beo, "_", ndt, "_", zone,"_", "F")] 
-#beo.table<-beo.table[zone == 'IDF' & pine == 1, key_beo:=paste0(lu_name, "_", beo, "_", ndt, "_", zone,"_", "P")] 
 ```
 
 #### CCLUP
 ```{r, cclup}
-#create foreign key
-cclup.beo<-data.table(read.csv("cclup_beo.csv", header =T, sep=",")) #This is stored in /R/Params/
-cclup.beo<-unique(cclup.beo)
-#check to mnake sure all the names will match
-test.cclup.beo<-unique(cclup.beo[, c("lu_name", "E_def_num")])
-test.cclup.beo<-merge(test.cclup.beo, luid.table, by.x = "lu_name", by.y = "lu_name", all.x =T)
-check.lu.names<-test.cclup.beo[is.na(beo),]
-
-
-beo.table<-beo.table[lu_name %in% unique(cclup.beo$lu_name), key_beo:=paste0(lu_name, "_", beo, "_", ndt, "_", map_label)]
-cclup_spec<-cclup.beo[!is.na(fir) | !is.na(pine), ] #list of species specific zones
-cclup_spec$cclup_spec<-1
-cclup_spec<-cclup_spec[, key_beo:=paste0(lu_name, "_", beo, "_", ndt, "_", map_label) ]
-beo.table<-merge(beo.table, unique(cclup_spec[,c("key_beo", "cclup_spec")]), by.x ="key_beo", by.y ="key_beo", all.x =T)
-beo.table<-beo.table[cclup_spec == 1 & fir == 1, key_beo:=paste0(lu_name, "_", beo, "_", ndt, "_", map_label, "_F")]
-beo.table<-beo.table[cclup_spec == 1 & pine == 1, key_beo:=paste0(lu_name, "_", beo, "_", ndt, "_", map_label, "_P")]
+beo.table<-beo.table[!is.na(cclup_id), key_beo:=link_key]
 ```
 
 #### Prince george biodiversity order
@@ -192,62 +211,62 @@ beo.table<-beo.table[!is.na(unit), key_beo:= unit]
 ```{r, spat_zones_beo}
 beo.lut<-data.table(key_beo = unique(beo.table$key_beo))
 beo.lut<-beo.lut[, id_beo := seq_len(.N)]
+saveRDS(beo.lut, "beo_lut.rds")
 
 #merge back to beo.table and write the id to raster
 beo.table<-merge(beo.table, beo.lut, by.x = "key_beo", by.y = "key_beo", all.x =T)
+saveRDS(beo.table, "beo_table.rds")
 ```
 
 ### Create constraints raster
 ```{r}
-#CCLUP
-cclup.beo<-data.table(read.csv("cclup_beo.csv", header =T, sep=","))#This is stored in /R/Params/
-cclup.beo[!is.na(fir) | !is.na(pine), cclup_spec:=1 ] #list of species specific zones
-cclup.beo[is.na(cclup_spec) , key_beo:=paste0(lu_name, "_", beo, "_", ndt, "_", map_label) ]
-cclup.beo[cclup_spec == 1 & fir == 1, key_beo:=paste0(lu_name, "_", beo, "_", ndt, "_", map_label, "_F")]
-cclup.beo[cclup_spec == 1 & pine == 1, key_beo:=paste0(lu_name, "_", beo, "_", ndt, "_", map_label, "_P")]
-cclup.beo<-unique(cclup.beo)
+beo.table<-readRDS("beo_table.rds")
+beo.lut<-readRDS("beo_lut.rds")
 
-beo.lut2<-merge(beo.lut, cclup.beo, by.x = "key_beo", by.y = "key_beo", all.x = TRUE)
-beo.lut2<-merge(beo.lut2, pg_bio.table, by.x = "key_beo", by.y = "unit", all.x = TRUE)
-beo.lut2<-beo.lut2[!is.na(pgbio_id), lu_name:= key_beo]
-beo.lut2<-beo.lut2[!is.na(pgbio_id), old_targ:= as.numeric(old_targ)*100]
-beo.lut2<-beo.lut2[!is.na(pgbio_id), O_targ:=paste0(">", old_targ)]
-beo.lut2<-beo.lut2[!is.na(pgbio_id), O_targ_num:=old_targ]
-beo.lut2<-beo.lut2[!is.na(pgbio_id), O_def:=">140"]
-beo.lut2<-beo.lut2[!is.na(pgbio_id), O_def_num:=140]  
+# CCLUP
+qu<-st_read("F:/Fisher/early_seral_rating/dqu.shp")
+hm<-st_read("F:/Fisher/early_seral_rating/dmh.shp")
+cc<-st_read("F:/Fisher/early_seral_rating/dcc.shp")
+
+cclup.lut<-rbindlist(list(data.table(link_key = qu$link_key) , data.table(link_key = hm$link_key), data.table(link_key = cc$link_key)))
+cclup.lut$cclup_id<-1:nrow(cclup.lut)
+cclup.qu<-st_drop_geometry(merge(qu, cclup.lut, by.x = "link_key",by.y = "link_key", all.x =T))
+cclup.hm<-st_drop_geometry(merge(hm, cclup.lut, by.x = "link_key",by.y = "link_key", all.x =T))
+cclup.cc<-st_drop_geometry(merge(cc, cclup.lut, by.x = "link_key",by.y = "link_key", all.x =T))
+
+cclup.table<-rbindlist(list(cclup.qu[,c("link_key", "analysis_g", "BGC_LABEL", "ZONE", "NATURAL_DI", "legal_earl", "legal_ea_1", "legal_ea_2", "legal_mato", "legal_ma_1", "legal_ma_2", "legal_old_", "legal_ol_1", "legal_ol_2")],cclup.cc[,c("link_key", "analysis_g", "BGC_LABEL","ZONE", "NATURAL_DI","legal_earl", "legal_ea_1", "legal_ea_2", "legal_mato", "legal_ma_1", "legal_ma_2", "legal_old_", "legal_ol_1", "legal_ol_2")],cclup.hm[,c("link_key", "analysis_g", "BGC_LABEL","ZONE","NATURAL_DI", "legal_earl", "legal_ea_1", "legal_ea_2", "legal_mato", "legal_ma_1", "legal_ma_2", "legal_old_", "legal_ol_1", "legal_ol_2")]))
+
+cclup.table[,"lu":=substr(analysis_g, 5, nchar(analysis_g))]
+cclup_beo<-read.csv("lu_beo_cclup.csv")
+cclup.table<-merge(cclup.table, cclup_beo, by.x = "lu", by.y = "lu", all.x =T)
+
+beo.lut.info<-merge(beo.lut, cclup.table, by.x = "key_beo", by.y = "link_key", all.x = TRUE)
+
+# PG bio order
+pg_bio<-getSpatialQuery("SELECT atrb1_val as bec_label, atrb2_val as ndu, atrb5_val as unit, atrb3_val as district,  atrb7_val as old_targ, wkb_geometry FROM rmp_lg_pl_polygon where slrp_name = 'Prince George Timber Supply Area (TSA) Legal Order - Landscape Biodiversity Objective Order - Extent'")
+pg_bio<-pg_bio %>% group_by(unit, old_targ) %>% summarize(wkb_geometry = st_union(wkb_geometry))
+pg_bio$unit<-as.factor(pg_bio$unit)
+pg_bio.table<-data.table(unit = pg_bio$unit, old_targ = pg_bio$old_targ)
+pg_bio.table<-pg_bio.table[, pgbio_id := seq_len(.N)]
+pg_bio.table<-pg_bio.table[!is.na(unit),]
+beo.lut.info<-merge(beo.lut.info, pg_bio.table, by.x = "key_beo", by.y = "unit", all.x = TRUE)
+
+beo.lut.info<-beo.lut.info[!is.na(pgbio_id), lu_name:= key_beo][!is.na(pgbio_id), old_targ:= as.numeric(old_targ)*100][!is.na(pgbio_id), O_targ:=paste0(">", old_targ)][!is.na(pgbio_id), O_targ_num:=old_targ][!is.na(pgbio_id), O_def:=">140"][!is.na(pgbio_id), O_def_num:=140]  
 # the Moist Interior – plateau sub-unit – all biogeoclimatic variants;D2-D7, E2-E5, A7-A13
 # the Omineca Valley – SBSdk, SBSdw3, BWBSdk1, SBSmc2, SBSmk1; E12, E14, E15, E16
 # the McGregor Plateau – SBS mk1 and SBSmh; A3
-beo.lut2<-beo.lut2[key_beo %in% c('D2','D3','D4','D5','D6','D7','E2','E3','E4', 'E5', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'E12', 'E14', 'E15', 'E16', 'A3'), O_def:=">120"]
-beo.lut2<-beo.lut2[key_beo %in% c('D2','D3','D4','D5','D6','D7','E2','E3','E4', 'E5', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'E12', 'E14', 'E15', 'E16', 'A3'), O_def_num:=120] 
+beo.lut.info[key_beo %in% c('D2','D3','D4','D5','D6','D7','E2','E3','E4', 'E5', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'E12', 'E14', 'E15', 'E16', 'A3'), O_def:=">120"]
+beo.lut.info[key_beo %in% c('D2','D3','D4','D5','D6','D7','E2','E3','E4', 'E5', 'A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'E12', 'E14', 'E15', 'E16', 'A3'), O_def_num:=120] 
 
 
 #Create oldgrowth look up table.see Table 3 in https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/policies-guides/old_growth_order_may18th_final.pdf
-beo.lut2<-beo.lut2[is.na(lu_name), c("lu_name", "beo", "ndt", "map_label", "species") := tstrsplit(key_beo, "_", fixed=TRUE)]
+beo.lut.info[is.na(lu_name) & is.na(analysis_g), c("lu_name", "beo", "ndt", "map_label", "species") := tstrsplit(key_beo, "_", fixed=TRUE)][!is.na(analysis_g), ndt:=substr(NATURAL_DI,4,4)][!is.na(analysis_g), map_label:=ZONE]
 
 bg.beo<-data.table(read.csv("seral_targets_BiodiversityGuidebook.csv", header =T,sep=","))#This is stored in /R/Params/
 setnames(bg.beo, "ï..bec", "bec")
-bg.beo<-bg.beo[species == "", species:=NA]
-beo.lut3<-merge(beo.lut2, bg.beo, by.x =c("ndt", "beo", "map_label", "species"), by.y =c("ndt", "beo", "bec", "species"), all.x=T)
+bg.beo<-bg.beo[species == "", species:=NA][, ndt:=as.character(ndt)]
 
-### Get the targets and definitions
-setnames(beo.lut3, c("MpO_targ.x", "O_targ.x", "M_def.x", "O_def.x", "MpO_targ_num.x", "O_targ_num.x", "M_def_num.x", "O_def_num.x"), c("MpO_targ", "O_targ", "M_def", "O_def", "MpO_targ_num","O_targ_num", "M_def_num", "O_def_num"))
-beo.lut3<-beo.lut3[is.na(O_targ), O_targ:=O_targ.y][is.na(MpO_targ), MpO_targ:=MpO_targ.y][is.na(O_targ_num), O_targ_num:=O_targ_num.y][is.na(MpO_targ_num), MpO_targ_num:=MpO_targ_num.y][is.na(M_def), M_def:=M_def.y][is.na(O_def), O_def:=O_def.y][is.na(M_def_num), M_def_num:=M_def_num.y][is.na(O_def_num), O_def_num:=O_def_num.y]
-beo.lut4<-beo.lut3[!is.na(O_targ_num),]
-
-test<-beo.lut3[is.na(O_targ_num),] #remove the pieces not accounted for
-test[map_label %like% 'ESSF', bec:='ESSF'][map_label %like% 'ICH', bec:='ICH'][map_label %like% 'CWH', bec:='CWH'][map_label %like% 'IDF', bec:='IDF'][map_label %like% 'MH', bec:='MH'][map_label %like% 'SBS', bec:='SBS'][map_label %like% 'MS', bec:='MS'][map_label %like% 'SBPS', bec:='SBPS'][map_label %like% 'BG', bec:='BG'][map_label %like% 'PP', bec:='PP'][map_label %like% 'BWBS', bec:='BWBS']
-
-test2<-merge(test[,c("ndt", "beo", "bec", "lu_name", "id_beo", "key_beo")], bg.beo[species %in% c(NA, 'C')], by.x =c("ndt", "beo", "bec"), by.y =c("ndt", "beo", "bec"), all.x=T)
-
-#merge back to beo.lut4
-beo.lut5<-rbind(beo.lut4, test2, fill=T)
-beo.lut6<-beo.lut5[!is.na(O_targ_num), ]
-beo.lut.bg<-beo.lut5[is.na(O_targ_num), ]$id_beo
-
-#Check
-#test.id<-beo.lut5$id_beo
-#test.id.ras<-unique(beo.table$id_beo)
+beo.lut.info<-merge(beo.lut.info, bg.beo, by.x =c("ndt", "beo", "map_label", "species"), by.y =c("ndt", "beo", "bec", "species"), all.x=T)
 
 ##add ndt types to pg bio order: https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/natural-resource-use/land-water-use/crown-land/land-use-plans-and-objectives/omineca-region/princegeorge-biodiversity-order/biodiversity_order.pdf
 # unit, >1000, 101 -1000, 51 – 100, <50; labels
@@ -260,11 +279,51 @@ beo.lut.bg<-beo.lut5[is.na(O_targ_num), ]$id_beo
 # Wet Mountain 10 60 10 20; A14-17
 # Wet Trench - Mountain 10 60 10 20; A18-21
 # Wet Trench - Valley 10 60 10 20; A22-25
-beo.lut6<-beo.lut6[lu_name %in% c('A2', 'A3', 'A4'), ndt :=6][lu_name %in% c('A5', 'A6', 'D1', 'E1'), ndt :=7][lu_name %in% c('A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'D2', 'D3', 'D4', 'D5','D6', 'D7', 'E2', 'E3', 'E4', 'E5'), ndt :=8][lu_name %in% c('A1', 'E6', 'E7', 'E8'), ndt :=9][lu_name %in% c('E9', 'E10', 'E11'), ndt :=10][lu_name %in% c('E12', 'E13', 'E14', 'E15', 'E16', 'E17'), ndt :=11][lu_name %in% c('A14', 'A15', 'A16', 'A17'), ndt :=12][lu_name %in% c('A18', 'A19', 'A20', 'A21'), ndt :=13][lu_name %in% c('A22', 'A23', 'A24', 'A25'), ndt :=14]
+beo.lut.info[lu_name %in% c('A2', 'A3', 'A4'), ndt :=6][lu_name %in% c('A5', 'A6', 'D1', 'E1'), ndt :=7][lu_name %in% c('A7', 'A8', 'A9', 'A10', 'A11', 'A12', 'A13', 'D2', 'D3', 'D4', 'D5','D6', 'D7', 'E2', 'E3', 'E4', 'E5'), ndt :=8][lu_name %in% c('A1', 'E6', 'E7', 'E8'), ndt :=9][lu_name %in% c('E9', 'E10', 'E11'), ndt :=10][lu_name %in% c('E12', 'E13', 'E14', 'E15', 'E16', 'E17'), ndt :=11][lu_name %in% c('A14', 'A15', 'A16', 'A17'), ndt :=12][lu_name %in% c('A18', 'A19', 'A20', 'A21'), ndt :=13][lu_name %in% c('A22', 'A23', 'A24', 'A25'), ndt :=14]
+
+
+### Get the targets and definitions
+#setnames(beo.lut3, c("MpO_targ.x", "O_targ.x", "M_def.x", "O_def.x", "MpO_targ_num.x", "O_targ_num.x", "M_def_num.x", "O_def_num.x"), c("MpO_targ", "O_targ", "M_def", "O_def", "MpO_targ_num","O_targ_num", "M_def_num", "O_def_num"))
+pg.old<-beo.lut.info[!is.na(O_targ.x), c("id_beo", "O_targ_num.x","O_def_num.x", "ndt", "key_beo")]
+setnames(pg.old, c("id_beo", "ndt", "key_beo", "O_targ_num.x", "O_def_num.x"), c("id_beo", "ndt", "key_beo", "O_targ_num.y", "O_def_num.y"))
+cclup.old<-beo.lut.info[!is.na(legal_old_), c("id_beo", "ndt", "key_beo", "beo", "legal_old_","legal_ol_1","legal_ol_2", "O_def_num.y")]
+cclup.old[beo == 1, O_targ_num.y:=legal_ol_2][beo == 2, O_targ_num.y:=legal_ol_1][beo == 3, O_targ_num.y:=legal_old_]
+cclup.old<-cclup.old[!is.na(O_targ_num.y), c("id_beo", "ndt", "key_beo", "O_targ_num.y", "O_def_num.y")][!(O_targ_num.y == "na"), ]
+bgb.old<-beo.lut.info[!is.na(lu_name) & !is.na(beo),c("id_beo", "ndt", "key_beo", "O_targ_num.y", "O_def_num.y")]
+old.zone<-rbindlist(list(pg.old, cclup.old, bgb.old), use.names =TRUE)
+
+#Mature plus Old
+cclup.mat<-beo.lut.info[!is.na(legal_mato), c("id_beo", "ndt", "key_beo", "beo", "legal_mato","legal_ma_1","legal_ma_2", "M_def_num")]
+cclup.mat[beo == 1, MpO_targ_num:=legal_ma_2][beo == 2, MpO_targ_num:=legal_ma_1][beo == 3, MpO_targ_num:=legal_mato]
+cclup.mat<-cclup.mat[!is.na(MpO_targ_num), c("id_beo", "ndt", "key_beo", "MpO_targ_num", "M_def_num")][!(MpO_targ_num == "na"), ]
+bgb.mat<-beo.lut.info[!is.na(lu_name) & !is.na(beo),c("id_beo", "ndt", "key_beo", "MpO_targ_num", "M_def_num")]
+mat.zone<-rbindlist(list(cclup.mat, bgb.mat), use.names =TRUE)
+
+#EARLY
+cclup.early<-beo.lut.info[!is.na(legal_earl), c("id_beo", "ndt", "key_beo", "beo", "legal_earl","legal_ea_1","legal_ea_2")]
+cclup.early[beo == 1, E_targ_num:=legal_ea_2][beo == 2, E_targ_num:=legal_ea_1][beo == 3, E_targ_num:=legal_earl]
+cclup.early<-cclup.early[!is.na(E_targ_num), c("id_beo", "ndt", "key_beo", "E_targ_num" )][!(E_targ_num == "na"), ]
+early.zone<-cclup.early
+
+# ALL id_bep
+id.beos<-unique(old.zone$id_beo)
+
+omitted<-beo.lut.info[!(id_beo %in% id.beos),]
+#write.csv(omitted, "mannualy_edit_cclup_beos2.csv")
+additions<-data.table(read.csv("mannualy_edit_cclup_beos.csv"))
+setnames(additions, c("O_targ_num", "O_def_num", "E_targ"),c("O_targ_num.y", "O_def_num.y","E_targ_num"), skip_absent = T)
+
+old.zone<-rbindlist(list(old.zone, additions[,c("id_beo", "ndt", "key_beo", "O_targ_num.y", "O_def_num.y")]), use.names = T)
+mat.zone<-rbindlist(list(mat.zone, additions[,c("id_beo", "ndt", "key_beo", "MpO_targ_num", "M_def_num")]), use.names = T)
+early.add<-additions[!is.na(additions$E_targ_num), ]
+early.zone<-rbindlist(list(early.zone, early.add[,c("id_beo", "ndt", "key_beo", "E_targ_num" )]), use.names = T)
+
+
 #### Create Raster
 beo.ras<-ProvRast
 beo.ras[beo.table$pixelid]<-beo.table$id_beo
-beo.ras[beo.table[id_beo %in% beo.lut.bg,]$pixelid]<-0
+
+beo.ras[beo.table[!(id_beo %in% old.zone$id_beo),]$pixelid]<-0
 if(FALSE){
 writeRaster(beo.ras, "beo.tif", overwrite =TRUE)
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here::here(), '/R/params/beo.tif -t 100x100 rast.zone_cond_beo_pg_cclup |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = FALSE)
@@ -276,11 +335,19 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M ', here::here
 
 #Create constraints table
 
-zone_beo_table.old<-data.table(zoneid = beo.lut6$id_beo, reference_zone = 'rast.zone_cond_beo_pg_cclup', ndt =beo.lut6$ndt, variable= 'age', threshold = beo.lut6$O_def_num, type = 'ge', percentage = beo.lut6$O_targ_num, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'old_seral_beo')
+zone_beo_table.old<-data.table(zoneid = old.zone$id_beo, reference_zone = 'rast.zone_cond_beo_pg_cclup', ndt =old.zone$ndt, variable= 'age', threshold = old.zone$O_def_num, type = 'ge', percentage = old.zone$O_targ_num, multi_condition =NA, denom =NA, start = 0, stop = 250, label = paste0('old_seral_beo_', old.zone$key_beo))
 
-zone_beo_table.mpo<-data.table(zoneid = beo.lut6[!is.na(MpO_targ_num),]$id_beo, reference_zone = 'rast.zone_cond_beo_pg_cclup', ndt =beo.lut6[!is.na(MpO_targ_num),]$ndt, variable= 'age', threshold = beo.lut6[!is.na(MpO_targ_num),]$M_def_num, type = 'ge', percentage = beo.lut6[!is.na(MpO_targ_num),]$MpO_targ_num, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'mature_seral_beo')
+zone_beo_table.mpo<-data.table(zoneid = mat.zone$id_beo, reference_zone = 'rast.zone_cond_beo_pg_cclup', ndt =mat.zone$ndt, variable= 'age', threshold = mat.zone$M_def_num, type = 'ge', percentage = mat.zone$MpO_targ_num, multi_condition =NA, denom =NA, start = 0, stop = 250, label = paste0('mature_seral_beo_', mat.zone$key_beo))
 
-zone_beo_table.early<-data.table(zoneid =  beo.lut6[!is.na(E_targ_num),]$id_beo, reference_zone = 'rast.zone_cond_beo_pg_cclup', ndt =beo.lut6[!is.na(E_targ_num),]$ndt, variable= 'age', threshold = beo.lut6[!is.na(E_targ_num),]$E_def_num, type = '', percentage = beo.lut6[!is.na(E_targ_num),]$E_targ_num, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'early_seral_beo')
+zone_beo_table.early<-data.table(zoneid =  early.zone$id_beo, reference_zone = 'rast.zone_cond_beo_pg_cclup', ndt =early.zone$ndt, variable= 'age', threshold = 40, type = '', percentage = early.zone$E_targ_num, multi_condition =NA, denom =NA, start = 0, stop = 250, label = paste0('early_seral_beo_', early.zone$key_beo))
+
+#fill in the NAs
+zone_beo_table.old[is.na(threshold), threshold:= min(zone_beo_table.old$threshold, na.rm =T)][is.na(percentage), percentage:= min(zone_beo_table.old$percentage, na.rm =T)]
+
+zone_beo_table.mpo[is.na(threshold), threshold:= min(zone_beo_table.mpo$threshold, na.rm =T)][is.na(percentage), percentage:= min(zone_beo_table.mpo$percentage, na.rm =T)]
+
+zone_beo_table.early[is.na(threshold), threshold:= min(zone_beo_table.early$threshold, na.rm =T)][is.na(percentage), percentage:= min(zone_beo_table.early$percentage, na.rm =T)]
+
 
 zone_beo_table<-rbindlist(list(zone_beo_table.old, zone_beo_table.mpo, zone_beo_table.early))
 zone_beo_table$threshold<-as.numeric(zone_beo_table$threshold)
@@ -289,12 +356,13 @@ zone_beo_table$multi_condition<-as.character(zone_beo_table$multi_condition)
 zone_beo_table$denom<-as.character(zone_beo_table$denom)
 zone_beo_table$start<-as.integer(zone_beo_table$start)
 zone_beo_table$stop<-as.integer(zone_beo_table$stop)
+zone_beo_table$ndt<-as.integer(zone_beo_table$ndt)
 
 #Upload the constraint table to the db
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
 DBI::dbWriteTable(conn, c("zone", "zone_beo_pg_cclup"), value= zone_beo_table, row.names = FALSE, overwrite = TRUE) 
-
+dbExecute(conn, "ALTER TABLE zone.zone_beo_pg_cclup ALTER COLUMN denom  TYPE varchar;")
 dbExecute(conn, "ALTER TABLE zone.zone_beo_pg_cclup INHERIT zone.constraints;")
 dbDisconnect(conn)
 

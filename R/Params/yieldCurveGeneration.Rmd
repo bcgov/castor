@@ -44,17 +44,17 @@ cmd <- shQuote(cmd)
 system2("psql",args=c('-d clus -c',cmd),wait=TRUE,stderr=TRUE)
 
 #----Tipsy
-meta_tbl<-read.table("D:/Data/TIPSY/2020/MSYT_prov_reference.csv", sep= ",", header = TRUE)
+meta_tbl<-read.table("F:/Data/TIPSY/2021/msyt_2021_prov/prov/MSYT_prov_reference.csv", sep= ",", header = TRUE)
 colnames(meta_tbl)<-tolower(colnames(meta_tbl))
 
-current_tbl<-read.table("D:/Data/TIPSY/2020/MSYT_prov_current_input_output.csv", sep= ",", header = FALSE,nrows = 5000)
+current_tbl<-read.table("F:/Data/TIPSY/2021/msyt_2021_prov/prov/MSYT_prov_current_input_output.csv", sep= ",", header = FALSE,nrows = 5000)
 names(current_tbl)<-c("feature_id,", "stand1", "stand2", "year", "height", " vol_gross", "vol_conifer", "basal_area", "qmd", "sph", "vpt", "crown_closure", "vol_dec", "tvol")
 
 future_tbl<-read.table("D:/Data/TIPSY/2020/MSYT_prov_future_input_output.csv", sep= ",", header = FALSE,nrows = 5000)
 names(future_tbl)<-c("feature_id,", "stand1", "stand2", "year", "height", " vol_gross", "vol_conifer", "basal_area", "qmd", "sph", "vpt", "crown_closure", "vol_dec", "tvol")
 
-future_logged_tbl<-read.table("D:/Data/TIPSY/2020/MSYT_prov_future_logged_vdyp_input_output.csv", sep= ",", header = FALSE,nrows = 5000)
-names(future_logged_tbl)<-c("feature_id,", "stand1", "stand2", "year", "height", " vol_gross", "vol_conifer", "basal_area", "qmd", "sph", "vpt", "crown_closure", "vol_dec", "tvol")
+#future_logged_tbl<-read.table("D:/Data/TIPSY/2020/MSYT_prov_future_logged_vdyp_input_output.csv", sep= ",", header = FALSE,nrows = 5000)
+#names(future_logged_tbl)<-c("feature_id,", "stand1", "stand2", "year", "height", " vol_gross", "vol_conifer", "basal_area", "qmd", "sph", "vpt", "crown_closure", "vol_dec", "tvol")
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
@@ -72,6 +72,11 @@ cmd <- shQuote(cmd)
 system2("psql",args=c('-d clus -c',cmd),wait=TRUE,stderr=TRUE)
 
 ```
+
+
+## AR2021 is the 2020 VRI
+Wildlife2 report is:
+year, volume, height, qmd,crownclosure,basalarea,vol_dec, sph,vol_total, age,vol_conifer, vpt
 
 ## Choose level of aggregation
 For VDYP curves run the following SQL : params/develop_vdyp_table_2020.sql
@@ -95,7 +100,8 @@ ProvRast <- raster(
 class(vri)
 
 yc.ras<-fasterize::fasterize(sf= st_as_sf(vri), raster = ProvRast , field = 'ycid')
-writeRaster(yc.ras, file="yc.tif", format="GTiff", overwrite=TRUE)
+yc.ras[is.na(yc.ras)]<-0
+writeRaster(yc.ras, file="yc.tif", format="GTiff",  overwrite=TRUE)
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/yc.tif -t 100x100 rast.ycid_vdyp_2020 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 ```
@@ -140,14 +146,19 @@ system2("psql",args=c('-d clus -c',cmd),wait=TRUE,stderr=TRUE)
 
 ### Create the ycid rasters
 ```{r, ras_current}
-current<- getSpatialQuery("select shape, feature_id*-1 as feature_id from veg_comp_lyr_r1_poly2020 where feature_id in (select distinct(feature_id) from tipsy_current_prov_2020);")
+current<- getSpatialQuery("select shape, feature_id*-1 as feature_id from veg_comp_lyr_r1_poly2019 where feature_id in (select distinct(feature_id) from tipsy_current_prov_2020);")
 yc.ras<-fasterize::fasterize(sf= current, raster = ProvRast , field = 'feature_id')
-writeRaster(yc.ras, "ycid_tipsy_current_2020.tif")
+yc.ras[is.na(yc.ras)]<-0
+writeRaster(yc.ras, "ycid_tipsy_current_2020.tif", datatype = 'INT4S', overwrite =T)
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/ycid_tipsy_current_2020.tif -t 100x100 rast.ycid_tipsy_current_2020 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
-current<- getSpatialQuery("select shape, feature_id as feature_id from veg_comp_lyr_r1_poly2020 where feature_id in (select distinct(feature_id) from tipsy_prov_2020);")
-yc.ras<-fasterize::fasterize(sf= current, raster = ProvRast , field = 'feature_id')
-writeRaster(yc.ras, "ycid_tipsy_prov_2020.tif")
+```
+
+```{r, ras_future}
+future<- getSpatialQuery("select shape, feature_id as feature_id from veg_comp_lyr_r1_poly2019 where feature_id in (select distinct(feature_id) from tipsy_prov_2020);")
+yc.future.ras<-fasterize::fasterize(sf= future, raster = ProvRast , field = 'feature_id')
+yc.future.ras[is.na(yc.future.ras)]<-0
+writeRaster(yc.future.ras, "ycid_tipsy_prov_2020.tif", datatype = 'INT4U', overwrite =T)
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/ycid_tipsy_prov_2020.tif -t 100x100 rast.ycid_tipsy_prov_2020 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 

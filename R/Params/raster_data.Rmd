@@ -64,12 +64,12 @@ data.table(layer=c('bc timber harvesting landbase', 'Coast timber harvesting lan
 source (here ("R/functions/R_Postgres.R"))
 
 #Get dummy layer for projection (too lazy to write it) 
-lyr<-getSpatialQuery(paste("SELECT geom FROM public.gcbp_carib_polygon"))
+lyr<-getSpatialQuery(paste("SELECT geom FROM public.gcbp_carib_polygon limit 1"))
 
 #Make an empty provincial raster aligned with hectares BC
 ProvRast <- raster(
   nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
-  crs = st_crs(lyr)$proj4string, resolution = c(100, 100), vals = 0
+  crs = crs(lyr), resolution = c(100, 100), vals = 0
 )
 ```
 
@@ -200,8 +200,8 @@ layer<-getSpatialQuery("SELECT feature_id, shape FROM public.veg_comp_lyr_r1_pol
 layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "feature_id")
 rm(layer)
 gc()
-
-writeRaster(layer.ras, file="vri2020_id.tif", format="GTiff", overwrite=TRUE)
+layer.ras[is.na(layer.ras)]<-0
+writeRaster(layer.ras, file="vri2020_id.tif", datatype = 'INT4U', format="GTiff", overwrite=TRUE)
 
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/vri2020_id.tif -t 100x100 rast.vri2020_id | psql -d clus")
 ```
@@ -214,7 +214,8 @@ layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "feature
 rm(layer)
 gc()
 
-writeRaster(layer.ras, file="vri2021_id.tif", format="GTiff", overwrite=TRUE)
+writeRaster(layer.ras, file="vri2021_id2.tif", format="GTiff", datatype = 'INT4U', overwrite=TRUE)
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/vri2021_id.tif -t 100x100 rast.vri2021_id | psql -d clus")
 ```
 ## Water
 
