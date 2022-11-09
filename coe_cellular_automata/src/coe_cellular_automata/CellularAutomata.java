@@ -14,11 +14,12 @@ public class CellularAutomata {
 	//ArrayList<Cell> cellList = new ArrayList<Cell>();
 	ArrayList<Cells> cellsList = new ArrayList<Cells>();
 	ArrayList<Integer> cellsListChangeState = new ArrayList<Integer>();
+	String clusdb = "test_Bulkley/Bulkley_TSA_clusdb.sqlite";
 	
 	//ArrayList<Cell> cellListMaximum = new ArrayList<Cell>();
 	int numIter=15000;
 	float harvestMax,harvestMin, gsMin, objValue, maxObjValue;
-	double globalWeight =0.01; // needs be of high precision
+	double globalWeight; // needs be of high precision
 	boolean finalPlan = false;
 	boolean globalConstraintsAchieved = false;
 	int lateSeralTarget;
@@ -76,14 +77,15 @@ public class CellularAutomata {
 		int counterLocalMaxState = 0;
 		int currentMaxState;
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
-		harvestMin = 100000*landscape.pl;
-		//harvestMin = 20000000;
-		gsMin = 6000000;
+		//harvestMin = 10000*landscape.pl;
+		harvestMin = 2900000;
+		harvestMax = 2950000;
+		gsMin = 30000000;
 		setLCCHarvestDelay(); //In cases no-harvesting decision does not meet the constraint -- remove harvesting during these periods and as a penalty -- thus ahciving the paritial amount
 		
 		System.out.println("");
 		landscape.setLandscapeWeight((double) 1/cellsListChangeState.size());
-		
+		globalWeight = landscape.weight; // start with equal weighting
 		setMaxCutValue();//scope all of the cells to determine the maxHarvVol	
 		randomizeStates(r);
 		
@@ -120,21 +122,23 @@ public class CellularAutomata {
 		}
 		
 		//---------------------------------------------
-		System.out.print("Setting global targets...");
+		System.out.println("Local Solution:");
 		//---------------------------------------------
 		for(int c =0; c < cellsListChangeState.size(); c++) {// Iterate through each of the cell and their corresponding state
 			planHarvestVolume = sumVector(planHarvestVolume,  forestTypeList.get(cellsList.get(cellsListChangeState.get(c)).foresttype).stateTypes.get(cellsList.get(cellsListChangeState.get(c)).state).get("harvVol"), cellsList.get(cellsListChangeState.get(c)).thlb) ;//harvest volume
 			planGSVolume = sumVector(planGSVolume,  forestTypeList.get(cellsList.get(cellsListChangeState.get(c)).foresttype).stateTypes.get(cellsList.get(cellsListChangeState.get(c)).state).get("gsVol"), cellsList.get(cellsListChangeState.get(c)).thlb) ;
 		}
 		setLandCoverConstraints(); //go through each land cover constraint and assign achievedConstraint following the local level optimization
-		System.out.println("done");
-		
+		for(int k =0; k < planHarvestVolume.length; k++){
+			System.out.print(" Vol:" + planHarvestVolume[k] + "  ");
+		}
+		System.out.println("");
 		
 		//---------------------------------------------	
-		System.out.println("Starting global optimization..");
+		System.out.println("Starting global optimization...");
 		//---------------------------------------------
 		int cell;
-		for(int g =0; g < 10000; g++) {	// allow for 10000 iterations
+		for(int g =0; g < 1000; g++) {	// allow for 1000 iterations
 			if(globalConstraintsAchieved) {
 				break;
 			}
@@ -164,6 +168,7 @@ public class CellularAutomata {
 		}
 		
 		try {
+			System.out.println("");
 			System.out.print("Saving states");
 			saveResults();
 		} catch (SQLException e) {
@@ -311,7 +316,8 @@ public class CellularAutomata {
 			isf = sumArray(harvVol, thlb)/maxCutLocal;
 	
 			age = forestTypeList.get(cellsList.get(i).foresttype).stateTypes.get(s).get("age");
-		    stateValue = 0.05*isf + 0.05*getPropNHRank(harvVol, propN[0], maxPropNH)+ 0.9*getPropNAgeRank(age, propN[1], maxPropNAge);
+		    //stateValue = 0.05*isf + 0.7*getPropNHRank(harvVol, propN[0], maxPropNH)+ 0.25*getPropNAgeRank(age, propN[1], maxPropNAge);
+		    stateValue = 0.05*isf + 0.75*getPropNHRank(harvVol, propN[0], maxPropNH)+ 0.2*getPropNAgeRank(age, propN[1], maxPropNAge);
 				
 			if(maxValue < stateValue) {
 				maxValue = stateValue;
@@ -390,17 +396,16 @@ public class CellularAutomata {
 		int harvestDelay = getMaxHarvestDelay(cellsList.get(i).landCoverList);
 		ForestType ft = forestTypeList.get(cellsList.get(i).foresttype);
 		ArrayList<Integer> lcList = cellsList.get(i).landCoverList;
-		plc = getLCRemaining(lcList);
-		
+	
 		//Adjust the global objectives
-		setObjectives(type.SUBTRACT, ft.stateTypes.get(cellsList.get(i).state), lcList);
-		
+		setObjectives(type.SUBTRACT, ft.stateTypes.get(cellsList.get(i).state), lcList,  cellsList.get(i).thlb);
+
 		//Iterate through all of the states
 		for(int s = 0; s < ft.stateTypes.size(); s++) {
 			harvVol = ft.stateTypes.get(s).get("harvVol");
 			for(int r = 0; r < harvVol.length;r ++) {
 				if(harvVol[r] > 0 && r < harvestDelay) {
-					recruitment = true;
+					recruitment = true; //Check to see if this plan/prescription harvests within the harvestDelay
 					break;
 				}
 				if(r >= harvestDelay) {
@@ -415,18 +420,20 @@ public class CellularAutomata {
 			
 			isf = sumArray(harvVol, thlb)/maxCutLocal;
 			age = ft.stateTypes.get(s).get("age");
-		    U = 0.05*isf + 0.05*getPropNHRank(harvVol, propN[0],maxPropNH)+ 0.9*getPropNAgeRank(age, propN[1],maxPropNAge);
-				
+		   // U = 0.05*isf + 0.70*getPropNHRank(harvVol, propN[0],maxPropNH)+ 0.25*getPropNAgeRank(age, propN[1],maxPropNAge);
+			U = 0.05*isf + 0.75*getPropNHRank(harvVol, propN[0],maxPropNH)+ 0.2*getPropNAgeRank(age, propN[1],maxPropNAge);
 			hfc = getHarvestFlowConstraint(harvVol, thlb);
 			gsc = getGrowingStockConstraint(ft.stateTypes.get(s).get("gsVol"), thlb);
 			lc  = getLandCoverConstraint(ft.stateTypes.get(s), lcList);
 					
-			P = 0.3*hfc + 0.1*gsc + 0.60*lc; 
+			P = 0.5*hfc + 0.25*gsc + 0.25*lc; 
 			stateValue = landscape.weight*U + globalWeight*P;
 				
 			if(maxValue < stateValue) { 
 				maxValue = stateValue; //save the top ranking state
 				stateMax = s;
+				plc = getLCRemaining(lcList);
+				
 				if( plc >= 0.999 && P > 0.999) { //this is the threshold for stopping the simulation
 					globalConstraintsAchieved = true;
 					break;
@@ -434,7 +441,7 @@ public class CellularAutomata {
 			}
 		}
 		//Adjust the global objectives now that a new state (or same) as been found
-		setObjectives(type.SUM, ft.stateTypes.get(stateMax), lcList);
+		setObjectives(type.SUM, ft.stateTypes.get(stateMax), lcList,  cellsList.get(i).thlb);
 		return stateMax;
 	}
 	
@@ -499,14 +506,7 @@ public class CellularAutomata {
 			}
 			count ++;
 		}
-		//Remove any of the land cover constraints in question
-		for(int f2 = 0; f2 < lcList.size(); f2 ++) {
-			count --;
-			if(landCoverConstraintList.get(f2).perPHAchieved >= 0.99999) { //had to set close to one- due to rounding issues
-				lcRemaining --;
-			}
-		}
-		
+	
 		return (double) lcRemaining/count;
 	}
 
@@ -515,14 +515,16 @@ public class CellularAutomata {
 	 * @param operator  either a SUBTRACT or a SUM
 	 * @param hashMap  the attributes over the planning horizon that adjust the constraint value
 	 * @param landCoverList  the list of LandCoverConstraint objects that belong to this cell
+	 * @param thlb 
 	 */
-	private void setObjectives(type operator, HashMap<String, float[]> hashMap, ArrayList<Integer> landCoverList) {
+	private void setObjectives(type operator, HashMap<String, float[]> hashMap, ArrayList<Integer> landCoverList, float thlb) {
 		switch (operator) {
 			case SUBTRACT:
 				for(int i =0; i < hashMap.get("harvVol").length; i++) {
-					planHarvestVolume[i] = planHarvestVolume[i] - hashMap.get("harvVol")[i];
-					planGSVolume[i] = planGSVolume[i] - hashMap.get("gsVol")[i];
 					
+					planHarvestVolume[i] = planHarvestVolume[i] - (hashMap.get("harvVol")[i]*thlb);
+					planGSVolume[i] = planGSVolume[i] - (hashMap.get("gsVol")[i]*thlb);
+
 				}
 				for(int lc = 0; lc < landCoverList.size(); lc++) {		
 					setSubLCConstraint(landCoverList.get(lc),hashMap.get(landCoverConstraintList.get(landCoverList.get(lc)).variable) );
@@ -530,8 +532,8 @@ public class CellularAutomata {
 				break;
 			case SUM:
 				for(int i =0; i < hashMap.get("harvVol").length; i++) {
-					planHarvestVolume[i] = planHarvestVolume[i] + hashMap.get("harvVol")[i];
-					planGSVolume[i] = planGSVolume[i] + hashMap.get("gsVol")[i];
+					planHarvestVolume[i] = planHarvestVolume[i] + (hashMap.get("harvVol")[i]*thlb);
+					planGSVolume[i] = planGSVolume[i] + (hashMap.get("gsVol")[i]*thlb);
 				}
 				for(int lc = 0; lc < landCoverList.size(); lc++) {		
 					setAddLCConstraint(landCoverList.get(lc),hashMap.get(landCoverConstraintList.get(landCoverList.get(lc)).variable) );
@@ -562,7 +564,7 @@ public class CellularAutomata {
 					
 					for(int v =landCoverConstraintList.get(constraint).delayHarvest; v < vector.length; v ++) {
 						if(  vector[v] >=  landCoverConstraintList.get(constraint).threshold) {
-							valueOut += Math.min(1.0, (currentConstraint[v]+1)/target)*weight;
+							valueOut += Math.min(1.0, (currentConstraint[v]+1)/target)*weight; //adds one because its the addition of that pixel to the constraints
 						}else {
 							valueOut += Math.min(1.0, currentConstraint[v]/target)*weight;							
 						}
@@ -616,10 +618,15 @@ public class CellularAutomata {
 		double weight = (double) 1/harvVol.length; 
 		for(int h = 0; h < harvVol.length; h++) {
 			volActual = harvVol[h]*thlb + planHarvestVolume[h];
-			if( volActual >= harvestMin) {
+			if( volActual >= harvestMin & volActual <= harvestMax) {
 				hvConstraint += weight;
 			}else {
-				hvConstraint += weight*(volActual/harvestMin);
+				if( volActual < harvestMin) {
+					hvConstraint += weight*(volActual/harvestMin);
+				}
+				if( volActual > harvestMax) {
+					hvConstraint += weight*(harvestMax/volActual);
+				}
 			}
 		}
 		return hvConstraint;
@@ -674,7 +681,7 @@ public class CellularAutomata {
 	 */
 	private void setSubLCConstraint (int constraint, float[] value) {
 		switch(landCoverConstraintList.get(constraint).type) {
-		case "nh":
+		case "nh": //no harvesting
 			break;
 		case "ge": //greater or equal to
 			for(int v =0; v < value.length; v ++) {
@@ -816,7 +823,7 @@ public class CellularAutomata {
 		}
 		
 		try { //Get the data from the db
-			Connection conn = DriverManager.getConnection("jdbc:sqlite:C:/Users/klochhea/clus/R/SpaDES-modules/dataLoaderCLUS/TFL53_clusdb.sqlite");		
+			Connection conn = DriverManager.getConnection("jdbc:sqlite:C:/Users/klochhea/clus/R/scenarios/" + clusdb);		
 			if (conn != null) {
 				Statement statement = conn.createStatement();
 					
@@ -935,7 +942,7 @@ public class CellularAutomata {
 			    System.err.println("Could not init JDBC driver - driver not found");
 			}		
 			try { //Get the data from the db
-				Connection conn = DriverManager.getConnection("jdbc:sqlite:C:/Users/klochhea/clus/R/SpaDES-modules/dataLoaderCLUS/TFL53_clusdb.sqlite");		
+				Connection conn = DriverManager.getConnection("jdbc:sqlite:C:/Users/klochhea/clus/R/scenarios/" +clusdb);		
 				if (conn != null) {
 					System.out.println("Connected to clusdb");
 					Statement statement = conn.createStatement();
@@ -1054,9 +1061,9 @@ public class CellularAutomata {
 					
 					String populate_type0 = "UPDATE pixels SET manage_type = 0 where age is not null and yieldid is not null;"; //contributing
 					statement.execute(populate_type0 );
-					String populate_type1 = "UPDATE pixels SET manage_type = 1 where thlb > 0 and age is not null and yieldid is not null and yieldid_trans is not null;"; // natural origin
+					String populate_type1 = "UPDATE pixels SET manage_type = 1 where thlb > 0 and age is not null and yieldid is not null and yieldid_trans > 0;"; // natural origin with a yield curve
 					statement.execute(populate_type1 );		
-					String populate_type2 = "UPDATE pixels SET manage_type = 2 where thlb > 0 and age is not null and yieldid is not null and yieldid_trans is not null and yieldid > 0;"; // managed origin
+					String populate_type2 = "UPDATE pixels SET manage_type = 2 where thlb > 0 and age is not null and yieldid_trans > 0 and yieldid > 0;"; // managed origin
 					statement.execute(populate_type2);	
 					
 					//Drop old table
@@ -1073,20 +1080,22 @@ public class CellularAutomata {
 					statement.execute(create_foresttype);
 					
 					//Set the states for each foresttype
-					String getForestType = "SELECT foresttype_id, age, id_yc, case when id_yc_trans = 0 then id_yc else id_yc_trans end as id_yc_trans, manage_type FROM foresttype ORDER BY foresttype_id;";
+					String getForestType = "SELECT foresttype_id, age, id_yc,  id_yc_trans, manage_type FROM foresttype ORDER BY foresttype_id;";
 					ResultSet rs2 = statement.executeQuery(getForestType);
 					forestTypeList.add(0, new ForestType()); //at id zero there is no foresttype -- add a null
 					int forestTypeID = 1;
 					while(rs2.next()) {
 						if(forestTypeID == rs2.getInt(1)) {
 							ForestType forestType = new ForestType(); //create a new ForestType object
-							forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(4), rs2.getInt(5)); //the max age a cell can have is 350
-							
-							if(yieldTable.get(rs2.getInt(4)).get("vol") == null | yieldTable.get(rs2.getInt(3)).get("vol")  == null) { //Check to make sure the yield exists
-								throw new Exception("yield Id not found for pixels transitioning from:" + rs2.getInt(3) + " to " + rs2.getInt(4));
+							if( rs2.getInt(5) == 1 & rs2.getInt(4) == 0) { //the management type is 1 but the yield_id_trans is null -- meaning there is no TIPSY curve to transition to. This should be a VDYP curve
+								forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(3), 0); //the max age a cell can have is 350	
+								forestType.setForestTypeStates(0, landscape.ageStatesTemplate.get(Math.min(350, rs2.getInt(2))), landscape.harvestStatesTemplate.get(Math.min(350, rs2.getInt(2))), yieldTable.get(rs2.getInt(3)),  yieldTable.get(rs2.getInt(3)), landscape.minHarvVol);
+								
+							}else {
+								forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(4), rs2.getInt(5)); //the max age a cell can have is 350	
+								forestType.setForestTypeStates(rs2.getInt(5), landscape.ageStatesTemplate.get(Math.min(350, rs2.getInt(2))), landscape.harvestStatesTemplate.get(Math.min(350, rs2.getInt(2))), yieldTable.get(rs2.getInt(3)),  yieldTable.get(rs2.getInt(4)), landscape.minHarvVol);	
 							}
 							
-							forestType.setForestTypeStates(rs2.getInt(5), landscape.ageStatesTemplate.get(Math.min(350, rs2.getInt(2))), landscape.harvestStatesTemplate.get(Math.min(350, rs2.getInt(2))), yieldTable.get(rs2.getInt(3)),  yieldTable.get(rs2.getInt(4)), landscape.minHarvVol);
 							forestTypeList.add(forestTypeID, forestType);
 						}else {
 							throw new Exception("forestTypeID does not coincide with the forestTypeList! Thus, the list of forestTypes will be wrong");
@@ -1240,29 +1249,15 @@ public class CellularAutomata {
 		 /**
 	     * Instantiates java objects developed in R
 	     */
-		public void setRParms(int[] to, int[] from, double[] weight, int[] dg, ArrayList<LinkedHashMap<String, Object>> histTable, double allowdiff ) {
+		public void setRParms(String db_location, int harvMin, int harvMax, int growstockMin, int ageThres, int planHorizon, int planLength, float minHarvestVolume ) {
 			//Instantiate the Edge objects from the R data.table
-			//System.out.println("Linking to java...");
-			for(int i =0;  i < to.length; i++){
-				 //this.edgeList.add( new Edges((int)to[i], (int)from[i], (double)weight[i]));
-			}
-			//System.out.println(to.length + " edges ");
-
-			//this.degree = Arrays.stream(dg).boxed().toArray( Integer[]::new );
-			//this.idegree = Arrays.stream(dg).boxed().toArray( Integer[]::new );
-			//System.out.println(degree.length + " degree ");
-			
-			//this.hist = new histogram(histTable);
-			//System.out.println(this.hist.bins.size() + " target bins have been added");
-			
-			//dg = null;
-			//histTable.clear();
-			//to = null;
-			//from =null;
-			//weight = null;
-			
-			//this.allowableDiff = allowdiff;
+			clusdb = db_location;
+			harvestMin = harvMin;
+			harvestMax = harvMax;
+			gsMin = growstockMin;
+			landscape.setLandscapeParameters( ageThres, planHorizon,  planLength,  minHarvestVolume);
 		}
+		
 
 	/** 
 	* <h4> DEPRECATED </h4>

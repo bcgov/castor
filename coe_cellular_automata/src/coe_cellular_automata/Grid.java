@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 
 public class Grid {
-	int ageThreshold=140, ph=200, pl=5;
+	int ageThreshold=140, ph=100, pl=5;
 	float  minHarvVol = 140L;
 	int colSizeLattice = 150; //Size of the grid used for dummy examples
 	double lambdaProp = 0.05;
@@ -229,5 +229,12 @@ public class Grid {
 
 	public void setLandscapeWeight(double weight) {
 		this.weight = weight;	
+	}
+	
+	public void setLandscapeParameters(int ageThres, int planHorizon, int planLength, float minHarvestVolume) {
+		ageThreshold = ageThres; 
+		ph = planHorizon; 
+		pl = planLength;
+		minHarvVol = minHarvestVolume;
 	}
 }
