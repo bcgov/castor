@@ -262,7 +262,7 @@ GDALinfo("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_roads.ti
 #plot(roads) #you may wish to plot this to inspect but just opening the tif files makes it look like its all good
 
 # if you are working from scratch import the data here
-ignition_weather_crs<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\DC_data_DEM_5x_AllMonths_frt.shp")
+ignition_weather_crs<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_fire_all_15x.shp")
 
 names(ignition_weather_crs)
 

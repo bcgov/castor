@@ -11,36 +11,66 @@ editor_options:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## TODO: use 'eval = TRUE'
+
 ```
 
-# Overview
+## Overview
+This is an agent based model (ABM) to simulate fisher life history on a landscape. This version is written to integrate in 'real-time' with Castor/CLUS modules and database. That is, the Castor/CLUS database is called at each time interval to update the fisher habitat conditions. Note that this approach is 'slow', as it waits on forestryCLUS, etc. to update the habitat conditions before simulating fishers. 
 
-This is an agent based model (ABM) to simulate fisher life history on a landscape. 
-For help writing in R Markdown, see https://rmarkdown.rstudio.com/.
+As an alternative, we're working on a version that integrates with a raster stack object, which is the output of fisher habitat conditions, as calculated from forest stand characteristics simulated in forestryCLUS, from each time interval. This approach will allow for faster simulation of multiple iterations of a fisher population. Currently, forestryCLUS is a simulation model that returns a single solution for a set of parameters (i.e., it's a deterministic model). However, the fisher agent based model includes individual randomness (i.e., it's stochastic), for example, for survival and reproduction. Since the habitat dynamics returned from forestryCLUS will always be the same result for a given simulation, it is more efficient to run the fisher ABM as a *post-hoc* analysis, rather than concurrently with forestryCLUS.
 
-# Usage
+## Castor/CLUS SQLite Database
+Below is some code to connect to and query the clusdb, which is needed to run this version of the fisher ABM.
+
+```{r some code to acces the sqlite db}
+library (DBI)
+library (data.table)
+library (here)
+source (paste0 (here::here (), "/R/functions/R_Postgres.R"))
+
+# connect to the db
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"))
+
+# show tables in the db
+dbListTables (clusdb)
+
+# select all contents in a table, e.g., agents
+table <- as.data.table (dbGetQuery (clusdb, "SELECT * FROM pixels"))
+
+
+```
+
+
+## Usage
+Below runs the module, in 'real-time' integration with other Castor/CLUS modules.
 
 ```{r module_usage}
 library (SpaDES.core)
 library (data.table)
+library (terra)
+library (keyring)
+library (tidyverse)
+library (here)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
-setPaths(modulePath = file.path("C:/Work/git/clus/R/SpaDES-modules"))
-getPaths() # shows where the 4 relevant paths are
+moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
+inputDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2/inputs")) %>% reproducible::checkPath (create = TRUE)
+outputDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2/outputs")) %>% reproducible::checkPath (create = TRUE)
+cacheDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2"))
 
-times <- list(start = 0, end = 10)
+times <- list (start = 0, end = 1)
 
 parameters <- list(
   dataLoaderCLUS = list(dbName='clus',
-                         save_clusdb = FALSE,
-                         sqlite_dbname = "central_group_july2022", 
-                         nameBoundaryFile = "central_grp_aoi_072022",
-                         useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/fisherabmCLUS/test.sqlite"),
+                         save_clusdb = FALSE, # Set to TRUE first time running the analysis
+                         sqlite_dbname = "fisherABM_test", 
+                         nameBoundaryFile = "tsa_aac_bounds",
+                         useCLUSdb = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"),
                          nameBoundaryColumn = "tsa_name", 
-                         nameBoundary = c ("central_group"), 
+                         nameBoundary = c ("Williams_Lake_TSA"), 
                          nameBoundaryGeom = 'wkb_geometry',
-                         nameCompartmentRaster = "rast.central_grp_aoi",
-                         nameCompartmentTable = "vat.central_grp_aoi",
+                         nameCompartmentRaster = "rast.tsa_aac_boundary",
+                         nameCompartmentTable = "vat.tsa_aac_bounds_vat",
                          nameMaskHarvestLandbaseRaster ='rast.thlb_2020', 
                          nameZoneRasters=c("rast.zone_cond_beo", 
                                            "rast.zone_cond_vqo", 
@@ -68,103 +98,49 @@ parameters <- list(
                          nameForestInventoryBasalArea= "basal_area",
                          nameForestInventoryQMD = "quad_diam_125"
                     ),
+  growingStockCLUS = list (periodLength = 5),
   fisherabmCLUS = list (female_max_age = 9,
-                        female_search_radius = 5,
                         den_target = 0.003, 
                         rest_target = 0.028,
                         move_target = 0.091,
-                        d2_reproduction_adj = "fxn, multiplier...?",
-                        reproductive_age = 2,
+                        #reproductive_age = 2,
                         sex_ratio = 0.5,
-                        max_female_dispersal_dist = 10,
-                        timeInterval = 1
-                        )
-    
-  #.progress = list(type = "text", interval = 1), # for a progress bar
-  ## If there are further modules, each can have its own set of parameters:
-  #module1 = list(param1 = value1, param2 = value2),
-  #module2 = list(param1 = value1, param2 = value2)
+                        female_dispersal = 785000,  # ha; radius = 500 pixels = 50km = 7850km2 area
+                        timeInterval = 1,
+                        iterations = 1),
+    uploaderCLUS = list(aoiName = 'fisher_abm_test', 
+                        dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbuser", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbpass", keyring="postgreSQL"),  
+                                     keyring::key_get("vmdbname", keyring="postgreSQL")))
 )
 
-# HR size parameter; define HR mean and SD for each pop
-# fisher pops: 1 = Boreal; 2 = SBS-wet; 3 = SBS-dry; 4 = Dry Forest
+scenario = data.table (name = "test",
+                       description = "Testing fisher ABM.")
 
-survival_rate_table <-data.table (Fpop = c(1,1,2,2,3,3,4,4),
-                                  age = c ("Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile","Adult", "Juvenile"),
-                                  mean = c(),
-                                  se = c())
+modules <- list ("fisherabmCLUS",
+                 "growingStockCLUS",
+                 "uploaderCLUS",
+                 "dataLoaderCLUS")
 
-repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
-                                Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
-                                Mean = c(0.5,3,0.5,3,0.5,3,0.5,3),
-                                SD = c(0.1,1,0.1,1,0.1,1,0.1,1))
-
-female_hr_table <- data.table (fisher_pop = c (1:4), 
-                               hr_mean = c (3000, 4500, 4500, 3000),
-                               hr_sd = c (500, 500, 500, 500))
-
-# variance matrix for mahalanobis distance model; don't touch this unless d2 model updated
-fisher_d2_cov <- list(matrix(c(193.2,	5.4,	42.1,	125.2, 5.4,	0.4,	2.,	5.2, 42.1,	2.9,	36.0,	46.5, 125.2,	5.2, 46.5,	131.4), ncol = 4, nrow = 4), # 1- boreal
-                      matrix(c(0.5,	2.7,	0.6,	3.2,	-6.5, 2.7,	82.7,	4.9,	83.3,	-75.8, 0.6,	4.9,	0.9,	4,	-7.1, 3.2,	83.3,	4,	101.3,	-100.4, -6.5,	-75.8,	-7.1,	-100.4,	156.2), ncol = 5, nrow =5), # 2- sbs-wet
-                      matrix(c(0.5,	-1.9,	-0.14288,	2.57677,	-3.82, -1.908,	96.76,	-0.71,	-2.669,	57.27, -0.143,	-0.71,	0.208,	-1.059,	1.15, 2.57,	-2.6,	-1.059,	56.29,	-4.85, -3.82,	57.27,	1.15,	-4.85,	77.337), ncol =5, nrow =5), # 3 sbs-dry
-                      matrix(c(0.7,	0.5,	6.1,	2.1, 0.5,	2.9,	4.0,	5.2, 6.1,	4.0,	62.6,	22.4, 2.1,	5.2,	22.4,	42.3), ncol=4, nrow=4) # 4 - Dr
-)
-  
-
-
-modules <- list ("fisherabmCLUS")
-objects <- list (HRtable = HRtable)
+objects <- list (scenario = scenario)
 inputs <- list ()
-outputs <- list ()
+outputs <- data.frame (objectName = c("harvestReport",
+                                      "growingStockReport",
+                                      "fisherABMReport"
+                                      ))
 
-mySim <- simInit(times = times, params = parameters, modules = modules,
-                 objects = objects)
+paths <- list(cachePath = cacheDir,
+              modulePath = moduleDir,
+              inputPath = inputDir,
+              outputPath = outputDir)
+
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects,
+                 paths = paths)
 
 mySimOut <- spades(mySim)
 ```
 
-# Parameters
-
-Provide a summary of user-visible parameters.
-
-```{r moduleParams, echo = FALSE, eval = TRUE}
-df_params <- SpaDES.core::moduleParams("fisherabmCLUS", "C:/Work/git/clus/R/SpaDES-modules")
-knitr::kable(df_params)
-```
-
-# Events
-
-Describe what happens for each event type.
-
-## Plotting
-
-Write what is plotted.
-
-## Saving
-
-Write what is saved.
-
-# Data dependencies
-
-## Input data
-
-How to obtain input data, and a description of the data required by the module.
-If `sourceURL` is specified, `downloadData("fisherabmCLUS", "C:/Work/git/clus/R/SpaDES-modules")` may be sufficient.
-
-```{r moduleInputs, echo = FALSE, eval = TRUE}
-df_inputs <- SpaDES.core::moduleInputs("fisherabmCLUS", "C:/Work/git/clus/R/SpaDES-modules")
-knitr::kable(df_inputs)
-```
-
-## Output data
-
-Description of the module outputs.
-
-```{r moduleOutputs, echo = FALSE, eval = TRUE}
-df_outputs <- SpaDES.core::moduleOutputs("fisherabmCLUS", "C:/Work/git/clus/R/SpaDES-modules")
-knitr::kable(df_outputs)
-```
-
-# Links to other modules
-
-Describe any anticipated linkages to other modules.
