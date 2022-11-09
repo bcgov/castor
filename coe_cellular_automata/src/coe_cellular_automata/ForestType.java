@@ -54,7 +54,7 @@ public class ForestType {
 		for(int h =0 ; h < ageTemplate.get(0).length; h ++) {
 			harvVol[h] =  0f;	//no harvesting in state zero!
 			
-			ageLower = Math.min(350, Math.round(ageTemplate.get(0)[h]/10)*10);
+			ageLower = (int) Math.min(350, Math.floor(ageTemplate.get(0)[h]/10)*10);
 			ageUpper = Math.min(350, (int) (Math.round((ageTemplate.get(0)[h]/10) + 0.5)*10));
 			
 			if(ageUpper == ageLower) {
@@ -84,7 +84,7 @@ public class ForestType {
 				
 				for(int t =0 ; t < harvestTemplate.get(0).length; t ++) {
 					
-					ageLower =  Math.min(350,Math.round(harvestTemplate.get(s)[t]/10)*10);
+					ageLower =  (int) Math.min(350,Math.floor(harvestTemplate.get(s)[t]/10)*10);
 					ageUpper =  Math.min(350, (int) (Math.round((harvestTemplate.get(s)[t]/10) + 0.5)*10));
 					
 					if(transitionCurve) {
@@ -99,7 +99,7 @@ public class ForestType {
 					} 	
 					
 					//Get the rest of the yields
-					ageLower =  Math.min(350, Math.round(ageTemplate.get(s)[t]/10)*10);
+					ageLower =  (int) Math.min(350,Math.floor(ageTemplate.get(s)[t]/10)*10);
 					ageUpper = Math.min(350, (int) (Math.round((ageTemplate.get(s)[t]/10) + 0.5)*10));
 					
 					if(transitionCurve) {
