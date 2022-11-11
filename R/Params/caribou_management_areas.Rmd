@@ -2001,6 +2001,60 @@ dbDisconnect(conn)
 ```
 
 
+## Central Group - Road Restoration
+This defines the area of interest for road restoration in the central group of caribou. It combines the partnership agreement areas and proposed deferral areas into an area of interest, and applies road recovery to that area. 
+
+
+```{r, central group road restore}
+
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host=key_get("dbhost", keyring="postgreSQL"), 
+                       dbname = 'clus', port='5432', 
+                       user=key_get("dbuser", keyring="postgreSQL"), 
+                       password=key_get("dbpass", keyring="postgreSQL"))
+
+defer.areas <- getSpatialQuery ("SELECT * from public.central_grp_deferral_072022;")
+partner.areas <- getSpatialQuery ("SELECT * from public.central_grp_partner_areas_072022;")
+
+defer.areas <- defer.areas [, c ("ogc_fid", "wkb_geometry")]
+partner.areas <- partner.areas  %>%
+                  filter (ogc_fid == 2 | ogc_fid == 4 | ogc_fid == 5 | ogc_fid == 6 | ogc_fid == 7 | 
+                            ogc_fid == 8) %>%
+                    select (ogc_fid, wkb_geometry)
+aoi <- rbind (defer.areas, partner.areas)
+aoi$diss <- 1
+aoi.diss <- aoi %>% group_by (diss) %>% summarize ()
+
+aoi.diss$tsa_name <- "central_grp_restore_area"
+aoi.diss$diss <- NULL
+aoi.diss$value <- 1
+
+sf::st_write (aoi.diss,
+              "D:\\clus_data\\scenarios\\central_group\\central_grp_restoration_aoi_112022.shp")
+
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = st_crs(aoi.diss)$proj4string, 
+                             resolution = c(100, 100), 
+                             vals = 0)
+
+# run this in osgeo shell with pgdb params:
+# ogr2ogr -f PostgreSQL PG:"dbname=xxxx port=xxxx user=xxxx password=xxxx host=xxxx" D:\clus_data\scenarios\central_group\central_grp_restoration_aoi_112022.shp -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -lco SCHEMA=public
+  
+# zone integer
+aoi.diss.vat <- data.table (st_drop_geometry (aoi.diss [, c ('tsa_name', "value")]))
+
+# raster
+ras.aoi.diss <- fasterize::fasterize (aoi.diss, prov.rast, field = "value")
+writeRaster (ras.aoi.diss, "central_grp_restore_aoi.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/central_grp_restore_aoi.tif -t 100x100 rast.central_grp_restore_aoi | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+# commit vat table to pg
+DBI::dbWriteTable (conn, c("vat", "central_grp_restore_aoi"), value= aoi.diss.vat, row.names = FALSE, overwrite = TRUE)
+dbDisconnect (conn)
+
+```
+
 
 
 

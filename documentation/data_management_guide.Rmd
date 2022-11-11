@@ -2700,6 +2700,37 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
+# central group restoration aoi
+new_data <- data.table (computer = 'DG401102', database = 'clus',
+                        schema = 'public', table_name = 'central_grp_restoration_aoi_112022', 
+                        type = 'polygon', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Megan Watters, caribou recovery prorgam', # description of data source
+                        public = 'No', last_updated = '2022',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/central_group' )
+new_data1 <- data.table (computer = 'DG401102', database = 'clus',
+                        schema = 'rast', table_name = 'central_grp_restore_aoi', 
+                        type = 'raster', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Megan Watters, caribou recovery prorgam', # description of data source
+                        public = 'No', last_updated = '2022',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/central_group' )
+new_data2 <- data.table (computer = 'DG401102', database = 'clus',
+                        schema = 'vat', table_name = 'central_grp_restore_aoi', 
+                        type = 'table', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Megan Watters, caribou recovery prorgam', # description of data source
+                        public = 'No', last_updated = '2022',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/central_group' )
+
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data1, new_data2))
+# re-upload data to postgres
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+
+
+
 
 ```
 
