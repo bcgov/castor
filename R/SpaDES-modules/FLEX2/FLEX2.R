@@ -311,7 +311,7 @@ Init <- function(sim) {
   }
 
   # check to see if minimum habitat target was met (prop habitat = 0.15); if not, remove the animal 
-  hab.count <- table.hr [denning == 1 | rust == 1 | cwd == 1 | movement == 1, .(.N), by = individual_id]
+  hab.count <- table.hr [denning == 1 | rust == 1 | cavity == 1 |cwd == 1 | movement == 1, .(.N), by = individual_id]
   hab.count <- merge (hab.count,
                       sim$agents [, c ("hr_size", "individual_id")],
                       by = "individual_id")
@@ -335,7 +335,7 @@ Init <- function(sim) {
   # check if proportion of habitat types are greater than the minimum thresholds 
   for (i in sim$agents$individual_id) { # for each individual
   
-      if (P(sim, "rest_target", "FLEX2") <= (nrow (table.hr [individual_id == i & rust == 1]) + nrow (table.hr [individual_id == i & cwd == 1])) / sim$agents [individual_id == i, hr_size] & P(sim, "move_target", "FLEX2") <= nrow (table.hr [individual_id == i & movement == 1]) / sim$agents [individual_id == i, hr_size] & P(sim, "den_target", "FLEX2") <= nrow (table.hr [individual_id == i & denning == 1]) / sim$agents [individual_id == i, hr_size]) {
+      if (P(sim, "rest_target", "FLEX2") <= (nrow (table.hr [individual_id == i & rust == 1]) + nrow(table.hr[individual_id == i & cavity == 1]) + nrow (table.hr [individual_id == i & cwd == 1])) / sim$agents [individual_id == i, hr_size] & P(sim, "move_target", "FLEX2") <= nrow (table.hr [individual_id == i & movement == 1]) / sim$agents [individual_id == i, hr_size] & P(sim, "den_target", "FLEX2") <= nrow (table.hr [individual_id == i & denning == 1]) / sim$agents [individual_id == i, hr_size]) {
         # check to see it meets all thresholds
         # assign the pixels to territories table
         sim$territories <- rbind (sim$territories, table.hr [individual_id == i, .(pixelid = pixels, individual_id)]) 
@@ -394,6 +394,8 @@ Init <- function(sim) {
   ras.territories.update [sim$territories$pixelid] <- 1
   sim$ras.territories <- sim$ras.territories + ras.territories.update
 
+  browser()
+  
     # clean-up
   rm (ras.territories.update, new.agents.save)
   

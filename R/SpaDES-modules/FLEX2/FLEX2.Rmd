@@ -35,7 +35,7 @@ inputDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2/inputs")) %>
 outputDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2/outputs")) %>% reproducible::checkPath (create = TRUE)
 cacheDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2"))
 
-times <- list (start = 0, end = 2)
+times <- list (start = 0, end = 1)
 
 parameters <- list(
   dataLoaderCLUS = list(dbName='clus',
