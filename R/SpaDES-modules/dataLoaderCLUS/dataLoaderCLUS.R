@@ -428,8 +428,8 @@ setTablesCLUSdb <- function(sim) {
     if(aoi == extent(ras.ylds.current)){#need to check that each of the extents are the same
       
       updateToCurrent<-data.table(yieldid=ras.ylds.current[])
-      pixels[, current_yieldid := updateToCurrent$yieldid]
-      pixels<-pixels[current_yieldid > 0, yieldid := current_yieldid]
+      pixels$current_yieldid <- updateToCurrent$yieldid
+      pixels<-pixels[!is.na(current_yieldid ), yieldid := current_yieldid]
       pixels$current_yieldid <- NULL
       rm(ras.ylds.current)
       gc()
