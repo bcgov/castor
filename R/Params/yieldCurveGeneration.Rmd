@@ -146,7 +146,7 @@ system2("psql",args=c('-d clus -c',cmd),wait=TRUE,stderr=TRUE)
 
 ### Create the ycid rasters
 ```{r, ras_current}
-current<- getSpatialQuery("select shape, feature_id*-1 as feature_id from veg_comp_lyr_r1_poly2019 where feature_id in (select distinct(feature_id) from tipsy_current_prov_2020);")
+current<- getSpatialQuery("select shape, feature_id*-1 as feature_id from veg_comp_lyr_r1_poly2019 where feature_id in (select distinct(ycid)*-1 from tipsy_current_prov_2020);")
 yc.ras<-fasterize::fasterize(sf= current, raster = ProvRast , field = 'feature_id')
 yc.ras[is.na(yc.ras[])]<-0
 
