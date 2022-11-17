@@ -58,11 +58,14 @@ check <- dbGetQuery (clusdb, "SELECT * from zoneconstraints WHERE reference_zone
 # Need to create some new rows for multiple age constraints
 dbExecute (clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
 VALUES 
-(1201,1,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,12372,41,250),
-(1202,2,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,267425,41,250),
-(1203,3,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,247416,41,250),
-(1204,4,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,354352,41,250),
-(1205,5,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,302453,41,250);")
+(1201,1,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,12372,40,250),
+(1202,2,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,267425,40,250),
+(1203,3,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,247416,40,250),
+(1204,4,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,354352,40,250),
+(1205,5,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,302453,40,250);")
+
+dbExecute (clusdb, "UPDATE zoneconstraints SET stop = 39 WHERE (id = 684) OR (id = 685) OR (id = 686) OR (id = 687) OR (id = 688)") 
+# dbExecute (clusdb, "UPDATE zoneconstraints SET start = 40 WHERE (id = 1201) OR (id = 1202) OR (id = 1203) OR (id = 1204) OR (id = 1205)") 
 dbCommit(clusdb)
 
 dbDisconnect (clusdb)  

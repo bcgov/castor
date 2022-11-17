@@ -53,16 +53,16 @@ source (paste0 (here::here (), "/R/functions/R_Postgres.R"))
 clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/central_group/inputs/central_group_july2022_clusdb.sqlite"))
 
 # check tables
-check <- dbGetQuery (clusdb, "SELECT * from zoneconstraints WHERE reference_zone = 'rast.central_grp_partner_areas_072022'") # rast.central_grp_deferral_072022
+check <- dbGetQuery (clusdb, "SELECT * from zoneconstraints WHERE reference_zone = 'rast.central_grp_deferral_072022'") # rast.central_grp_deferral_072022  rast.central_grp_partner_areas_072022
 
 # Need to create some new rows for multiple age constraints
 dbExecute (clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
 VALUES 
-(1201,1,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,12372,41,250),
-(1202,2,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,267425,41,250),
-(1203,3,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,247416,41,250),
-(1204,4,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,354352,41,250),
-(1205,5,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,302453,41,250);")
+(1201,1,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,12372,40,250),
+(1202,2,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,267425,40,250),
+(1203,3,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,247416,40,250),
+(1204,4,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,354352,40,250),
+(1205,5,'rast.central_grp_deferral_072022','zone20',0,'age',40,'le',10,NULL,NULL,302453,40,250);")
 dbCommit(clusdb)
 
 dbDisconnect (clusdb)  
@@ -79,7 +79,7 @@ Adjacency was set to 0 meters to allow for maximum clustering of forest harvest.
 A partition was set as vol > 150 to ensure stands with a minimum of 150m3/ha were harvested, i.e., low productivity stands wouldn't be harvested. 
 
 ### harvestFlow
-1,275,000 m3/year
+1,200,000 m3/year
 
 ### Road recovery
 No road recovery was simulated (recovery = 300 years). 
@@ -193,7 +193,7 @@ modules <- list("dataLoaderCLUS",
                 )
 
 scenario = data.table (name = "defer_all_nh1to40y_10ple40yo_41to200y_oct2022",
-                       description = "No harvest in all five deferral areas for the first 40 years of the simulation scenario, then maximum 10% less than or equal to 40 year old forest from years 41 to 200 of the scenario. Max. non-declining harvest flow = 1.275 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years).")
+                       description = "No harvest in all five deferral areas for the first 40 years of the simulation scenario, then maximum 10% less than or equal to 40 year old forest from years 41 to 200 of the scenario. Max. non-declining harvest flow = 1.2 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years).")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="central_group",
@@ -202,7 +202,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="central_group",
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 6375000, #1,275,000m3/year 
+                                     flow = 6000000, #1,200,000m3/year 
                                      partition_type = 'live') 
 ))
 
