@@ -45,30 +45,26 @@ times <- list(start = 0, end = 0)
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list(dbName='clus',
-                         save_clusdb = TRUE,
-                         sqlite_dbname = "Nass_TSA",
-                         nameBoundaryFile="comparison_nass.nass_supply_blocks", 
-                         nameBoundaryColumn="ts_nmbr", # spply_b for supply blocks
-                         nameBoundary = "43", # c ("Stewart_Block", "Block_E", "null_block) for supply blocks
-                         nameBoundaryGeom='wkb_geometry',
-                         nameCompartmentRaster = "comparison_nass.rast_tsa", # comparison_nass.rast_supply_blocks for supply blocks
-                         nameCompartmentTable = "vat_tsa", # vat_supply_blocks for supply blocks
-                         nameMaskHarvestLandbaseRaster='rast.thlb_nass', 
-                         
-                        
-                        
-                        
-                         nameZoneRasters = c("comparison_nass.rast_zone_uwr",
-                                             "comparison_nass.rast_zone_beo_prod",
-                                             "comparison_nass.rast_zone_beo_lrmp_prod"),
-                         nameZoneTable="comparison_nass.zone_constraints_nass", 
+  dataLoaderCLUS = list(dbName = 'clus',
+                        save_clusdb = TRUE,
+                        sqlite_dbname = "Fort_Nelson_TSA_model_compare",
+                        nameBoundaryFile = "fort_nelson_tsa.bounds_fort_nelson_tsa", 
+                        nameBoundaryColumn = "tsa_name", 
+                        nameBoundary = "Fort_Nelson_TSA", 
+                        nameBoundaryGeom = 'wkb_geometry',
+                        nameCompartmentRaster = "fort_nelson_tsa.rast_bounds_fort_nelson_tsa", 
+                        nameCompartmentTable = "fort_nelson_tsa.vat_bounds_fort_nelson_tsa", 
+                        nameMaskHarvestLandbaseRaster = 'fort_nelson_tsa.rast_thlb', 
+                        nameZoneRasters = c("comparison_nass.rast_zone_uwr",
+                                             "compaon_nass.rast_zone_beo_prod",
+                                             "comparison_nass.rastris_zone_beo_lrmp_prod"),
+                        nameZoneTable = "comparison_nass.zone_constraints_nass", 
                         
                         
                         
                         # nameZonePriorityRaster = "rast.zone_cond_beo",
                          nameYieldsRaster = "rast.ycid_vdyp_2020",# raster of stand id for VDYP ("natural origin") yields
-                         nameYieldTable ="yc_vdyp", # VDYP yield table
+                         nameYieldTable ="yc_vdyp", # fort_nelson_tsa.yc_table
                          nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
                          nameYieldTransitionTable ="yc_tipsy", 
                          nameForestInventoryRaster ="rast.vri2020_id", # raster of the forest inventory 
