@@ -146,9 +146,16 @@ system2("psql",args=c('-d clus -c',cmd),wait=TRUE,stderr=TRUE)
 
 ### Create the ycid rasters
 ```{r, ras_current}
-current<- getSpatialQuery("select shape, feature_id*-1 as feature_id from veg_comp_lyr_r1_poly2019 where feature_id in (select distinct(feature_id) from tipsy_current_prov_2020);")
+current<- getSpatialQuery("select shape, feature_id*-1 as feature_id from veg_comp_lyr_r1_poly2019 where feature_id in (select distinct(ycid)*-1 from tipsy_current_prov_2020);")
 yc.ras<-fasterize::fasterize(sf= current, raster = ProvRast , field = 'feature_id')
-yc.ras[is.na(yc.ras)]<-0
+yc.ras[is.na(yc.ras[])]<-0
+
+cns_cutblock<-getSpatialQuery("select wkb_geometry, 1 as cut from cns_cut_bl_polygon;")
+cns_cutblock.ras<-fasterize::fasterize(sf= cns_cutblock, raster = ProvRast , field = 'cut')
+cns_cutblock[is.na(cns_cutblock[])]<-0
+
+yc.ras<-yc.ras*cns_cutblock.ras
+
 writeRaster(yc.ras, "ycid_tipsy_current_2020.tif", datatype = 'INT4S', overwrite =T)
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/ycid_tipsy_current_2020.tif -t 100x100 rast.ycid_tipsy_current_2020 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
