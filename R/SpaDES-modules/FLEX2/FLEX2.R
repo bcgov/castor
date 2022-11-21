@@ -239,7 +239,7 @@ Init <- function(sim) {
 # this step took 15 mins with ~8500 starting points; 6 mins for 2174 points; 1 min for 435 points
   table.hr <- SpaDES.tools::spread2 (sim$pix.raster, # within the area of interest
                                      start = sim$agents$pixelid, # for each individual
-                                     spreadProb = sim$spread.rast, # use spread prob raster
+                                     spreadProb = sim$spread.rast[], # use spread prob raster; index [] speeds up the process
                                      exactSize = sim$agents$hr_size, # spread to the size of their territory
                                      # returnDistances = T, # not working; see below
                                      allowOverlap = F, # no overlap allowed
@@ -438,7 +438,6 @@ updateHabitat <- function (sim) {
                                  "cwd", "movement")
   # B. Update the spread probability raster
   sim$spread.rast <- spreadRast (sim$pix.raster, sim$table.hab.update)
-  
   message ("Fisher habitat data updated.")
   return (invisible (sim))
 }
@@ -494,12 +493,6 @@ annualEvents <- function (sim) {
         move.prop <- nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & movement == 1]) / sim$agents [individual_id == hab.inds.prop[i], hr_size] 
         den.prop <- nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & denning == 1]) / sim$agents [individual_id == hab.inds.prop[i], hr_size]
         
-        
-        rest.prop <<- rest.prop
-        move.prop <<- move.prop
-        den.prop <<- den.prop
-        
-        
         if (length (rest.prop) > 0 & length (move.prop) > 0 & length (den.prop) > 0) { # check it's non-zero
           
           if (P(sim, "rest_target", "FLEX2") <= rest.prop & P(sim, "move_target", "FLEX2") <= move.prop & P(sim, "den_target", "FLEX2") <= den.prop) {
@@ -544,13 +537,16 @@ annualEvents <- function (sim) {
         # create the dispersal area; i.e., where the fisher searches 
     
     ####--- this needs debugging
-    # seems to be ok the first loop through but the second loop returns the following error:
-    # Error in vecseq(f__, len__, if (allow.cartesian || notjoin || !anyDuplicated(f__,  : 
-    # Join results in 18 rows; more than 15 = nrow(x)+nrow(i). Check for duplicate key values in i each of which join to the same group in x over and over again. If that's ok, try by=.EACHI to run j for each group to avoid the large allocation. If you are sure you wish to proceed, rerun with allow.cartesian=TRUE. Otherwise, please search for this error message in the FAQ, Wiki, Stack Overflow and data.table issue tracker for advice.
+    #Error in `[.data.table`(dtRetry, clusterDT[whNeedJump], nomatch = 0) : 
+    #  When i is a data.table (or character vector), the columns to join by must be specified 
+    # using 'on=' argument (see ?data.table), by keying x (i.e. sorted, and, marked as sorted, 
+    # see ?setkey), or by sharing column names between x and i (i.e., a natural join). Keyed 
+    # joins might have further speed benefits on very large data due to x being sorted in RAM.
+    
     
     table.disperse <- SpaDES.tools::spread2 (sim$pix.raster, # within the area of interest
                                              start = dispersers$pixelid, # for each individual
-                                             spreadProb = sim$spread.rast, # spread more in habitat (i.e., there is some 'direction' towards habitat)
+                                             spreadProb = sim$spread.rast[], # spread more in habitat (i.e., there is some 'direction' towards habitat)
                                              exactSize = P (sim, "female_dispersal", "FLEX2"), # spread to a dispersal area 
                                              allowOverlap = T, # overlap allowed; fishers could pick the same dispersal area
                                              asRaster = F, # output as table
@@ -563,7 +559,7 @@ annualEvents <- function (sim) {
     inds <- c (unique (table.disperse$initialPixels)) # id the unique individuals
     ind.disp.rast <- sim$pix.rast # empty raster of the aoi - needs to be a terra 'SpatRaster' object
     ind.disp.rast [ind.disp.rast > 0] <- 0 # assign 0 values; get updated in the fxn below
-    
+
     message ("Identify fisher territory starting points...")
       
       for (i in 1:length (inds)) {
@@ -634,7 +630,7 @@ annualEvents <- function (sim) {
       
       table.disperse.hr <- SpaDES.tools::spread2 (sim$pix.raster, # within the area of interest
                                                   start = dispersers$pixelid, # for each individual
-                                                  spreadProb = sim$spread.rast, # use spread prob raster
+                                                  spreadProb = sim$spread.rast[], # use spread prob raster
                                                   exactSize = dispersers$hr_size, # spread to the size of their assgined HR size
                                                   allowOverlap = F, # no overlap allowed
                                                   asRaster = F, # output as a table
@@ -1063,9 +1059,10 @@ saveAgents <- function (sim) {
 
 spreadRast <- function (rasterInput, habitatInput) {
   spread.rast <- rasterInput
+  spread.rast [] <- 0
   # currently uses all denning, rust, cavity, cwd and movement habitat as 
   # spreadProb = 1, and non-habitat as spreadProb = 0.10; allows some spread to sub-optimal habitat
-  habitatInput [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1, spreadprob := format (round (1.00, 2), nsmall = 2)] # throws error, but it works
+  habitatInput [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1, spreadprob := format (round (1.00, 2), nsmall = 2)] 
   habitatInput [is.na (spreadprob), spreadprob := format (round (0.18, 2), 2)] # I tested different numbers
   # 18% resulted in the mean proportion of home ranges consisting of denning, resting or movement habitat as 55%; 19 was 49%; 17 was 59%; 20 was 47%; 15 was 66%
   # Caution: this parameter may be area-specific and may need to be and need to be 'tuned' for each AOI
