@@ -236,7 +236,6 @@ Init <- function(sim) {
   sim$spread.rast <- spreadRast (sim$pix.raster, # see function below
                                  table.hab.spread) 
 
-# this step took 15 mins with ~8500 starting points; 6 mins for 2174 points; 1 min for 435 points
   table.hr <- SpaDES.tools::spread2 (sim$pix.raster, # within the area of interest
                                      start = sim$agents$pixelid, # for each individual
                                      spreadProb = sim$spread.rast[], # use spread prob raster; index [] speeds up the process
