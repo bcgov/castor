@@ -18,6 +18,7 @@
 ## they are namespaced to the module, just like functions in R packages.
 ## If exact location is required, functions will be: `sim$.mods$<moduleName>$FunctionName`.
 
+
 defineModule(sim, list(
   name = "FLEX2",
   description = "An agent based model (ABM) to simulate fisher life history on a landscape.",
@@ -238,7 +239,7 @@ Init <- function(sim) {
 # this step took 15 mins with ~8500 starting points; 6 mins for 2174 points; 1 min for 435 points
   table.hr <- SpaDES.tools::spread2 (sim$pix.raster, # within the area of interest
                                      start = sim$agents$pixelid, # for each individual
-                                     spreadProb = sim$spread.rast, # use spread prob raster
+                                     spreadProb = sim$spread.rast[], # use spread prob raster; index [] speeds up the process
                                      exactSize = sim$agents$hr_size, # spread to the size of their territory
                                      # returnDistances = T, # not working; see below
                                      allowOverlap = F, # no overlap allowed
@@ -318,7 +319,7 @@ Init <- function(sim) {
   }
 
   # check to see if minimum habitat target was met (prop habitat = 0.15); if not, remove the animal 
-  hab.count <- table.hr [denning == 1 | rust == 1 | cwd == 1 | movement == 1, .(.N), by = individual_id]
+  hab.count <- table.hr [denning == 1 | rust == 1 | cavity == 1 |cwd == 1 | movement == 1, .(.N), by = individual_id]
   hab.count <- merge (hab.count,
                       sim$agents [, c ("hr_size", "individual_id")],
                       by = "individual_id")
@@ -341,7 +342,7 @@ Init <- function(sim) {
   ind.ids <- c (unique (sim$agents$individual_id))
   for (i in 1:length (ind.ids)) { # for each individual
   
-    rest.prop <- (nrow (table.hr [individual_id == ind.ids[i] & rust == 1]) + nrow (table.hr [individual_id == ind.ids[i] & cwd == 1])) / sim$agents [individual_id == ind.ids[i], hr_size]
+    rest.prop <- (nrow (table.hr [individual_id == ind.ids[i] & rust == 1]) + nrow (table.hr [individual_id == ind.ids[i] & cavity == 1]) + nrow (table.hr [individual_id == ind.ids[i] & cwd == 1])) / sim$agents [individual_id == ind.ids[i], hr_size]
     move.prop <- nrow (table.hr [individual_id == ind.ids[i] & movement == 1]) / sim$agents [individual_id == ind.ids[i], hr_size] 
     den.prop <- nrow (table.hr [individual_id == ind.ids[i] & denning == 1]) / sim$agents [individual_id == ind.ids[i], hr_size]
     
@@ -437,7 +438,6 @@ updateHabitat <- function (sim) {
                                  "cwd", "movement")
   # B. Update the spread probability raster
   sim$spread.rast <- spreadRast (sim$pix.raster, sim$table.hab.update)
-  
   message ("Fisher habitat data updated.")
   return (invisible (sim))
 }
@@ -456,7 +456,7 @@ annualEvents <- function (sim) {
     table.hab.terrs <- merge (sim$table.hab.update,
                               sim$territories,
                               by = "pixelid")
-    hab.count <- table.hab.terrs [denning == 1 | rust == 1 | cwd == 1 | movement == 1, .(.N), by = individual_id]
+    hab.count <- table.hab.terrs [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1, .(.N), by = individual_id]
     hab.count <- merge (hab.count,
                         sim$agents [, c ("hr_size", "individual_id")],
                         by = "individual_id")
@@ -473,8 +473,9 @@ annualEvents <- function (sim) {
           # do nothing; we still need to check if it meets min. thresholds for each habitat type (see below)
         } else {
           # change the animals d2_score to NA; this is the criteria used to trigger a dispersal 
-          sim$agents <- sim$agents [individual_id == hab.inds[i], d2_score := NA]
+          sim$agents [individual_id == hab.inds[i], d2_score := NA]
           sim$agents$d2_score <- as.numeric (sim$agents$d2_score)
+          # sim$agents$d2_score[sim$agents$d2_score == 0] <- NA
           # remove the individuals territory 
           sim$territories <- sim$territories [individual_id != hab.inds[i], ] 
         } 
@@ -488,15 +489,9 @@ annualEvents <- function (sim) {
       for (i in 1:length (hab.inds.prop)) { # for each individual
         
         # breaking this down to make it easier to interpret
-        rest.prop <- (nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & rust == 1]) + nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & cwd == 1])) / sim$agents [individual_id == hab.inds.prop[i], hr_size]
+        rest.prop <- (nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & rust == 1]) + nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & cavity == 1]) + nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & cwd == 1])) / sim$agents [individual_id == hab.inds.prop[i], hr_size]
         move.prop <- nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & movement == 1]) / sim$agents [individual_id == hab.inds.prop[i], hr_size] 
         den.prop <- nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & denning == 1]) / sim$agents [individual_id == hab.inds.prop[i], hr_size]
-        
-        
-        rest.prop <<- rest.prop
-        move.prop <<- move.prop
-        den.prop <<- den.prop
-        
         
         if (length (rest.prop) > 0 & length (move.prop) > 0 & length (den.prop) > 0) { # check it's non-zero
           
@@ -507,6 +502,7 @@ annualEvents <- function (sim) {
             # change the animals d2_score to NA
             sim$agents <- sim$agents [individual_id == hab.inds.prop[i], d2_score := NA]
             sim$agents$d2_score <- as.numeric (sim$agents$d2_score)
+            # sim$agents$d2_score[sim$agents$d2_score == 0] <- NA
             # remove the individuals territory 
             sim$territories <- sim$territories [individual_id != hab.inds.prop[i], ] 
           } 
@@ -522,36 +518,48 @@ annualEvents <- function (sim) {
     # Step 3: Fishers Disperse
     message ("Fishers start dispersal...")
 
-      # A. Identify each fishers 'potential' dispersal area
-        # grab the agents that don't have a home range, i.e., no d2_score 
-    dispersers <- sim$agents [is.na (sim$agents$d2_score), ] 
-
+    # A. Identify each fishers 'potential' dispersal area
+    # grab the agents that don't have a home range, i.e., no d2_score 
+    dispersers <- sim$agents [is.na(sim$agents$d2_score) |sim$agents$d2_score==0, ] 
+    # browser()
     if (nrow (dispersers) > 0) { # check to make sure there are dispersers
     
     # remove the dispersers from the agents and territories tables
     sim$agents <- sim$agents [!individual_id %in% dispersers$individual_id]
     sim$territories <- sim$territories [!individual_id %in% dispersers$individual_id]
         # re-set the dispersers HR size and fisher_pop
+    
+    # dispersers <- dispersers %>% mutate_at(vars(individual_id, pixelid, age, hr_size, fisher_pop, d2_score), ~as.numeric(as.character(.)))
     dispersers <- dispersers [, hr_size := NA]
     dispersers$hr_size <- as.numeric (dispersers$hr_size)
     dispersers <- dispersers [, fisher_pop := NA]
     dispersers$fisher_pop <- as.numeric (dispersers$fisher_pop)
         # create the dispersal area; i.e., where the fisher searches 
+    
+    ####--- this needs debugging
+    #Error in `[.data.table`(dtRetry, clusterDT[whNeedJump], nomatch = 0) : 
+    #  When i is a data.table (or character vector), the columns to join by must be specified 
+    # using 'on=' argument (see ?data.table), by keying x (i.e. sorted, and, marked as sorted, 
+    # see ?setkey), or by sharing column names between x and i (i.e., a natural join). Keyed 
+    # joins might have further speed benefits on very large data due to x being sorted in RAM.
+    
+    
     table.disperse <- SpaDES.tools::spread2 (sim$pix.raster, # within the area of interest
                                              start = dispersers$pixelid, # for each individual
-                                             spreadProb = sim$spread.rast, # spread more in habitat (i.e., there is some 'direction' towards habitat)
+                                             spreadProb = sim$spread.rast[], # spread more in habitat (i.e., there is some 'direction' towards habitat)
                                              exactSize = P (sim, "female_dispersal", "FLEX2"), # spread to a dispersal area 
                                              allowOverlap = T, # overlap allowed; fishers could pick the same dispersal area
                                              asRaster = F, # output as table
                                              circle = F) # spread to adjacent cells; not necessarily a circle
         # identify pixels already occupied by a fisher and remove them from the dispersal table
+
     table.disperse <- table.disperse [!pixels %in% sim$territories$pixelid]
     
       # B. identify where each disperser creates its territory
     inds <- c (unique (table.disperse$initialPixels)) # id the unique individuals
     ind.disp.rast <- sim$pix.rast # empty raster of the aoi - needs to be a terra 'SpatRaster' object
     ind.disp.rast [ind.disp.rast > 0] <- 0 # assign 0 values; get updated in the fxn below
-    
+
     message ("Identify fisher territory starting points...")
       
       for (i in 1:length (inds)) {
@@ -594,11 +602,11 @@ annualEvents <- function (sim) {
           
           if (nrow (target.pix) > 0) { # check that there is a pixel start point
             # make that raster pixel id the dispersers pixelid (i.e., staring point for forming a territory)
-            dispersers <- dispersers [pixelid == inds[i], pixelid := as.numeric (target.pix$pixelid)]
+            dispersers [pixelid == inds[i], pixelid := as.numeric (target.pix$pixelid)] 
           
             # update the fisher pop where the fisher is located
             tmp.pop <- as.numeric (sim$table.hab.update [pixelid == as.numeric (target.pix$pixelid), fisher_pop])
-            dispersers <- dispersers [pixelid == as.numeric (target.pix$pixelid), fisher_pop := tmp.pop]
+            dispersers [pixelid == target.pix$pixelid, fisher_pop := tmp.pop]
             
           } else {
             # need to disperse again
@@ -622,7 +630,7 @@ annualEvents <- function (sim) {
       
       table.disperse.hr <- SpaDES.tools::spread2 (sim$pix.raster, # within the area of interest
                                                   start = dispersers$pixelid, # for each individual
-                                                  spreadProb = sim$spread.rast, # use spread prob raster
+                                                  spreadProb = sim$spread.rast[], # use spread prob raster
                                                   exactSize = dispersers$hr_size, # spread to the size of their assgined HR size
                                                   allowOverlap = F, # no overlap allowed
                                                   asRaster = F, # output as a table
@@ -700,7 +708,7 @@ annualEvents <- function (sim) {
       }
 
       # check to see if minimum habitat target was met (prop habitat = 0.15); if not, remove the animal 
-      hab.count <- table.disperse.hr [denning == 1 | rust == 1 | cwd == 1 | movement == 1, .(.N), by = individual_id]
+      hab.count <- table.disperse.hr [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1, .(.N), by = individual_id]
       hab.count <- merge (hab.count,
                           dispersers [, c ("hr_size", "individual_id")],
                           by.x = "individual_id", by.y = "individual_id", all.x = TRUE)
@@ -756,7 +764,7 @@ annualEvents <- function (sim) {
         for (i in 1:length (disp.ids)) { # for each individual
           
           # breaking this down to make it easier to interpret
-          rest.prop <- (nrow (table.disperse.hr [individual_id == disp.ids[i] & rust == 1]) + nrow (table.disperse.hr [individual_id == disp.ids[i] & cwd == 1])) / dispersers [individual_id == disp.ids[i], hr_size]
+          rest.prop <- (nrow (table.disperse.hr [individual_id == disp.ids[i] & rust == 1]) + nrow (table.disperse.hr [individual_id == disp.ids[i] & cavity == 1]) + nrow (table.disperse.hr [individual_id == disp.ids[i] & cwd == 1])) / dispersers [individual_id == disp.ids[i], hr_size]
           move.prop <- nrow (table.disperse.hr [individual_id == disp.ids[i] & movement == 1]) / dispersers [individual_id == disp.ids[i], hr_size] 
           den.prop <- nrow (table.disperse.hr [individual_id == disp.ids[i] & denning == 1]) / dispersers [individual_id == disp.ids[i], hr_size]
  
@@ -791,7 +799,7 @@ annualEvents <- function (sim) {
      # Step 4: Reproduce
       message ("Fishers reproducing...")
       
-      reproFishers <- sim$agents [sex == "F" & age >= P (sim, "reproductive_age", "FLEX2") & !is.na (d2_score) ] # females of reproductive age in a territory
+      reproFishers <- sim$agents [sex == "F" & age >= P (sim, "reproductive_age", "FLEX2") & d2_score!=0 ] # females of reproductive age in a territory
 
       # A. Assign each female fisher 1 = reproduce or 0 = does not reproduce
       if (nrow (reproFishers) > 0) {
@@ -858,7 +866,7 @@ annualEvents <- function (sim) {
       sim$territories <- sim$territories [individual_id %in% survivors$individual_id] # remove territories
       
         # old dispersers die here; remove their territories 
-      dead.dispersers <- survivors [age > 2 & is.na (d2_score), ] # older than 2 and doesn't have a territory
+      dead.dispersers <- survivors [age > 2 & d2_score == 0, ] # older than 2 and doesn't have a territory
       sim$agents <- sim$agents [!individual_id %in% dead.dispersers$individual_id]
       sim$territories <- sim$territories [!individual_id %in% dead.dispersers$individual_id] # remove territories
       
@@ -866,7 +874,7 @@ annualEvents <- function (sim) {
       
       # age-class based survival rates
         # juveniles
-      survivors.juv <- survivors [age == 1 & !is.na (d2_score), ]
+      survivors.juv <- survivors [age == 1 & d2_score != 0, ]
       if (nrow (survivors.juv) > 0) {
        juv.fish.pops <- c (unique (survivors.juv$fisher_pop))
        for (i in 1:length (juv.fish.pops)) { 
@@ -884,7 +892,7 @@ annualEvents <- function (sim) {
      }
         
         # adults
-      survivors.ad <- survivors [age > 1 & !is.na (d2_score), ]
+      survivors.ad <- survivors [age > 1 & d2_score != 0, ]
       if (nrow (survivors.ad) > 0) {
        ad.fish.pops <- c (unique (survivors.ad$fisher_pop))
        for (i in 1:length(ad.fish.pops)) { 
@@ -902,7 +910,7 @@ annualEvents <- function (sim) {
       }
           
         # dispersers
-      survivors.disp <- survivors [age > 0 & is.na (d2_score), ]
+      survivors.disp <- survivors [age > 0 & d2_score == 0, ]
       if (nrow (survivors.disp) > 0) {
         disp.fish.pops <- c (unique (survivors.disp$fisher_pop))
         for (i in 1:length(disp.fish.pops)) { 
@@ -939,11 +947,12 @@ annualEvents <- function (sim) {
       sim$agents$age <- sim$agents$age + 1 
       
       message ("Fishers survived and aged one year.")
-      
-    }
-
+    
+        # browser()
+  }
+  
   return (invisible (sim))
- }
+}
 
 
 ###--- SAVE AGENTS AT TIME INTERVAL
@@ -1050,9 +1059,10 @@ saveAgents <- function (sim) {
 
 spreadRast <- function (rasterInput, habitatInput) {
   spread.rast <- rasterInput
+  spread.rast [] <- 0
   # currently uses all denning, rust, cavity, cwd and movement habitat as 
   # spreadProb = 1, and non-habitat as spreadProb = 0.10; allows some spread to sub-optimal habitat
-  habitatInput [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1, spreadprob := format (round (1.00, 2), nsmall = 2)] # throws error, but it works
+  habitatInput [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1, spreadprob := format (round (1.00, 2), nsmall = 2)] 
   habitatInput [is.na (spreadprob), spreadprob := format (round (0.18, 2), 2)] # I tested different numbers
   # 18% resulted in the mean proportion of home ranges consisting of denning, resting or movement habitat as 55%; 19 was 49%; 17 was 59%; 20 was 47%; 15 was 66%
   # Caution: this parameter may be area-specific and may need to be and need to be 'tuned' for each AOI
