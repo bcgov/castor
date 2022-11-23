@@ -238,7 +238,7 @@ Init <- function(sim) {
 
   table.hr <- SpaDES.tools::spread2 (sim$pix.raster, # within the area of interest
                                      start = sim$agents$pixelid, # for each individual
-                                     spreadProb = sim$spread.rast[], # use spread prob raster; index [] speeds up the process
+                                     spreadProb = as.numeric (sim$spread.rast[]), # use spread prob raster; index [] speeds up the process
                                      exactSize = sim$agents$hr_size, # spread to the size of their territory
                                      # returnDistances = T, # not working; see below
                                      allowOverlap = F, # no overlap allowed
@@ -438,6 +438,26 @@ updateHabitat <- function (sim) {
   # B. Update the spread probability raster
   sim$spread.rast <- spreadRast (sim$pix.raster, sim$table.hab.update)
   message ("Fisher habitat data updated.")
+  
+  # C. Update Denning Habitat
+  # identify the denning habitat 
+  den.rast <- sim$pix.rast
+  den.rast [] <- 0
+  den.rast [sim$table.hab.update [denning == 1, pixelid]] <- 1
+  den.rast [!sim$pix.rast$pixelid] <- NA
+  names (den.rast) <- "denning"
+  den.rast <- c (sim$pix.rast, den.rast)
+  # convert to a table
+  sim$den.table <- na.omit (as.data.table (den.rast []))
+  # add x and y coords
+  sim$den.table <- cbind (sim$den.table, crds (den.rast, df = T, na.rm = T))
+  # only denning
+  sim$den.table <- sim$den.table [denning == 1, ]
+  # identify unoccupied denning habitat
+  sim$den.table <- sim$den.table [!pixelid %in% sim$territories$pixelid]
+  # identifier for linking tables
+  sim$den.table$den_id <- seq (1: nrow (sim$den.table))
+  
   return (invisible (sim))
 }
 
@@ -526,98 +546,87 @@ annualEvents <- function (sim) {
     # remove the dispersers from the agents and territories tables
     sim$agents <- sim$agents [!individual_id %in% dispersers$individual_id]
     sim$territories <- sim$territories [!individual_id %in% dispersers$individual_id]
-        # re-set the dispersers HR size and fisher_pop
     
+    # re-set the dispersers HR size and fisher_pop
     # dispersers <- dispersers %>% mutate_at(vars(individual_id, pixelid, age, hr_size, fisher_pop, d2_score), ~as.numeric(as.character(.)))
     dispersers <- dispersers [, hr_size := NA]
     dispersers$hr_size <- as.numeric (dispersers$hr_size)
     dispersers <- dispersers [, fisher_pop := NA]
     dispersers$fisher_pop <- as.numeric (dispersers$fisher_pop)
-        # create the dispersal area; i.e., where the fisher searches 
-    
-    ####--- this needs debugging
-    #Error in `[.data.table`(dtRetry, clusterDT[whNeedJump], nomatch = 0) : 
-    #  When i is a data.table (or character vector), the columns to join by must be specified 
-    # using 'on=' argument (see ?data.table), by keying x (i.e. sorted, and, marked as sorted, 
-    # see ?setkey), or by sharing column names between x and i (i.e., a natural join). Keyed 
-    # joins might have further speed benefits on very large data due to x being sorted in RAM.
     
     
-    table.disperse <- SpaDES.tools::spread2 (sim$pix.raster, # within the area of interest
-                                             start = dispersers$pixelid, # for each individual
-                                             spreadProb = sim$spread.rast[], # spread more in habitat (i.e., there is some 'direction' towards habitat)
-                                             exactSize = P (sim, "female_dispersal", "FLEX2"), # spread to a dispersal area 
-                                             allowOverlap = T, # overlap allowed; fishers could pick the same dispersal area
-                                             asRaster = F, # output as table
-                                             circle = F) # spread to adjacent cells; not necessarily a circle
-        # identify pixels already occupied by a fisher and remove them from the dispersal table
+    browser ()
 
-    table.disperse <- table.disperse [!pixels %in% sim$territories$pixelid]
     
-      # B. identify where each disperser creates its territory
-    inds <- c (unique (table.disperse$initialPixels)) # id the unique individuals
-    ind.disp.rast <- sim$pix.rast # empty raster of the aoi - needs to be a terra 'SpatRaster' object
-    ind.disp.rast [ind.disp.rast > 0] <- 0 # assign 0 values; get updated in the fxn below
-
-    message ("Identify fisher territory starting points...")
-      
+    # find den sites; looping because of duplicate starts...
+      # individuals
+    inds <- dispersers$individual_id
+      # add individual locations to the den site table in case the den site habitat is now gone
+      # need to get pixelid, x and y coords of teh disperser locations
+    
+    
+    
+    
+    
+    disp.rast <- sim$pix.rast
+    disp.rast [] <- 0
+    
+    
+    if (length (inds) > 0) {
       for (i in 1:length (inds)) {
-        ind.disperse <- table.disperse [initialPixels == inds[i]] # identify dispersal pixels for each ind
-        tmp.ind.disp.rast <- ind.disp.rast
-        tmp.ind.disp.rast [ind.disperse$pixels] <- 1 # assign dispersal pix to raster
         
-        # target the denning habitat
-        table.denning <- ind.disperse [pixels %in% sim$table.hab.update [denning == 1, pixelid]]
-        
-        if (nrow (table.denning) == 0) { # if there is no denning habitat 
-          # need to disperse again
-          # add the fisher back to the agents table without a hr size or d2 score
-          sim$agents <- rbind (sim$agents,
-                               dispersers [pixelid == inds[i]])
-          # and remove the fisher from the dispersers table
-          dispersers <- dispersers [pixelid != inds[i]] 
-        } else {
-          # convert the target raster (i.e., 'patches' of denning habitat) to polygons 
-          target.rast <- sim$pix.rast
-          target.rast [] <- 0
-          target.rast [table.denning$pixels] <- 1 
-          target.polys <- terra::as.polygons (terra::patches (target.rast, # this function identifies contiguous polygons 
-                                                              directions = 8, # queen's case for neighbouring cells
-                                                              zeroAsNA = T)) 
-          # add id and area to data
-          target.polys$fid <- 1:nrow (target.polys)
-          target.polys$area_ha <- expanse (target.polys, unit = "ha")
-          # get the largest polygon
-            # alternatively, we could  identify polys that achieve a minimum site size and select random
-          max.poly <- target.polys [which.max (target.polys$area_ha),]
-          # select a random point in that polygon
-          start.pnt <- terra::spatSample (max.poly,
-                                          size = 1,
-                                          method = "random")
-          # get the raster pixel id of the point
-          target.pix <- terra::extract (sim$pix.rast, 
-                                        start.pnt, 
-                                        method = "simple")
-          
-          if (nrow (target.pix) > 0) { # check that there is a pixel start point
-            # make that raster pixel id the dispersers pixelid (i.e., staring point for forming a territory)
-            dispersers [pixelid == inds[i], pixelid := as.numeric (target.pix$pixelid)] 
-          
-            # update the fisher pop where the fisher is located
-            tmp.pop <- as.numeric (sim$table.hab.update [pixelid == as.numeric (target.pix$pixelid), fisher_pop])
-            dispersers [pixelid == target.pix$pixelid, fisher_pop := tmp.pop]
-            
-          } else {
-            # need to disperse again
-            # add the fisher back to the agents table without a hr size or d2 score
-            sim$agents <- rbind (sim$agents,
-                                 dispersers [pixelid == inds[i]])
-            # and remove the fisher from the dispersers table
-            dispersers <- dispersers [pixelid != inds[i]]
-          }
-        }
       }
-          
+    }
+    
+    
+    
+    
+    disp.rast [dispersers$pixelid] <- 1
+
+    
+    
+    disp.rast [dispersers [individual_id == inds[i], pixelid]] <- dispersers [individual_id == inds[i], pixelid]
+    
+    
+    disp.rast [!sim$pix.rast$pixelid] <- NA
+    
+    
+    dispersers$pixelid
+    
+    sim$den.table <- cbind (sim$den.table, crds (den.rast, df = T, na.rm = T))
+    
+    
+    
+      # create output table
+    den.target <- data.table (individual_id = as.numeric (), 
+                                  den_id = as.numeric ()) 
+    if (length (inds) > 0) {
+      for (i in 1:length (inds)) {
+        den.site <- RANN::nn2 (data = sim$den.table, # in the den site data
+                               query = sim$den.table [pixelid == dispersers [individual_id == inds[i], pixelid]], # location of the disperser, by individual id
+                               k = 5, # return maximum 10 neighbours
+                               radius = 500 # in hectares ; 50 km r = 7,850 km2 area
+        )
+        
+     rdm.smp <- sample (2:ncol (den.site$nn.idx), 1) # Randomly select one of the five den sites		
+     den.target.temp <- data.table (individual_id = dispersers [individual_id == inds[i], individual_id], 
+                                         den_id = den.site$nn.idx[,rdm.smp]) 	
+     den.target <- rbind (den.target, den.target.temp)	
+      }
+    }
+      
+          # update the den locations
+     den.target <- merge (den.target,
+                          sim$den.table [, c ("den_id", "pixelid")],
+                          by.x = "den_id", by.y = "den_id")
+     dispersers <- merge (dispersers [, -"pixelid"],
+                          den.target [, c ("individual_id", "pixelid")],
+                          by.x = "individual_id", by.y = "individual_id")					 
+          # update the fisher pop where the fisher is located
+     dispersers <- merge (dispersers [, -"fisher_pop"],
+                          sim$table.hab.update [, c ("fisher_pop", "pixelid")],
+                          by.x = "individual_id", by.y = "individual_id")
+
       # create new HR sizes based on which fisher pop the animal belongs to
       dispersers [fisher_pop == 1, hr_size := round (rnorm (nrow (dispersers [fisher_pop == 1, ]), sim$female_hr_table [fisher_pop == 1, hr_mean], sim$female_hr_table [fisher_pop == 1, hr_sd]))]
       dispersers [fisher_pop == 2, hr_size := round (rnorm (nrow (dispersers [fisher_pop == 2, ]), sim$female_hr_table [fisher_pop == 2, hr_mean], sim$female_hr_table [fisher_pop == 2, hr_sd]))]
@@ -629,7 +638,7 @@ annualEvents <- function (sim) {
       
       table.disperse.hr <- SpaDES.tools::spread2 (sim$pix.raster, # within the area of interest
                                                   start = dispersers$pixelid, # for each individual
-                                                  spreadProb = sim$spread.rast[], # use spread prob raster
+                                                  spreadProb = as.numeric (sim$spread.rast[]), # use spread prob raster
                                                   exactSize = dispersers$hr_size, # spread to the size of their assgined HR size
                                                   allowOverlap = F, # no overlap allowed
                                                   asRaster = F, # output as a table
