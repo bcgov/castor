@@ -562,45 +562,22 @@ annualEvents <- function (sim) {
       # individuals
     inds <- dispersers$individual_id
       # add individual locations to the den site table in case the den site habitat is now gone
-      # need to get pixelid, x and y coords of teh disperser locations
-    
-    
-    
-    
-    
     disp.rast <- sim$pix.rast
-    disp.rast [] <- 0
-    
-    
-    if (length (inds) > 0) {
-      for (i in 1:length (inds)) {
-        
-      }
-    }
-    
-    
-    
-    
-    disp.rast [dispersers$pixelid] <- 1
-
-    
-    
-    disp.rast [dispersers [individual_id == inds[i], pixelid]] <- dispersers [individual_id == inds[i], pixelid]
-    
-    
-    disp.rast [!sim$pix.rast$pixelid] <- NA
-    
-    
-    dispersers$pixelid
-    
-    sim$den.table <- cbind (sim$den.table, crds (den.rast, df = T, na.rm = T))
-    
-    
+    starts <- dispersers [individual_id == c (inds), pixelid]
+    den.starts <- data.table (terra::xyFromCell (disp.rast, starts))
+    den.starts <- cbind (data.table (starts), den.starts)
+    names (den.starts) <- c ("pixelid", "x", "y")
+    den.starts$denning <- 1
+    den.starts$den_id <- seq (from = (nrow (sim$den.table) + 1),
+                              to = (nrow (sim$den.table) + nrow (den.starts)))
+    sim$den.table <- rbind (sim$den.table,
+                            den.starts)
+    sim$den.table <-  sim$den.table [!duplicated (sim$den.table$pixelid), ] # remove any dupes; if already existing
     
       # create output table
     den.target <- data.table (individual_id = as.numeric (), 
                                   den_id = as.numeric ()) 
-    if (length (inds) > 0) {
+    if (length (inds) > 0) { # also put in a check to see if a den site is already occupied?
       for (i in 1:length (inds)) {
         den.site <- RANN::nn2 (data = sim$den.table, # in the den site data
                                query = sim$den.table [pixelid == dispersers [individual_id == inds[i], pixelid]], # location of the disperser, by individual id
