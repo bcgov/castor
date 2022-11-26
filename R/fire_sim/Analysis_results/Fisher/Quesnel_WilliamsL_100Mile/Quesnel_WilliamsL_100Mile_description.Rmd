@@ -1,8 +1,11 @@
 ---
-title: "Probability of ignition from lightning and human caused fires in the Quesnel, Williams Lake, and 100-mile House TSA's"
+title: "Probability of ignition from lightning and human caused fires in the Quesnel,
+  Williams Lake, and 100-mile House TSA's"
 author: "Elizabeth Kleynhans"
-date: '2022-09-16'
-output: html_document
+date: "2022-09-16"
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -74,17 +77,22 @@ Infrastructure such as mines, railways, oil and gas infrastructure, power lines,
 The final lightning caused ignition models were fitted with the top selected climate variable/s (described above), a variable describing fuel type, and elevation (table 1). 
 
 
-```{r, model table, echo = F}
-stats_model <- data.table (
-FRT = c ("10", "12", "13", "14", "15"),
 
-Model_Terms = c ("ignit ~ mean_Tave07_Tave08_Tave09 + mean_PPT07_PPT08_PPT09 + fuel type + elev",
-                "ignit ~ mean_Tmax07_Tmax08 + fuel type + elev",
-                "ignit ~ Tave07 + PPT07 + fuel type + elev",
-                "ignit ~ mean_Tave07_Tave08 + fuel type + elev",
-                "ignit ~ mean_PPT06_PPT07_PPT08 + fuel type + elev"),
+
+```{r, model table lightning, echo = F}
+stats_model <- data.table (
+FRT = c ("9", "10", "11", "12", "13", "14", "15"),
+
+Model_Terms = c (
+  "ignit ~ Tmax05 + fuel type + elev",
+  "ignit ~ mean_Tave07_Tave08_Tave09 + mean_PPT07_PPT08_PPT09 + fuel type + elev",
+  "ignit ~ mean_Tmax07_Tmax08_Tmax09 + mean_PPT07_PPT08_PPT09 + fuel type + elev",
+  "ignit ~ mean_Tmax07_Tmax08 + fuel type + elev",
+  "ignit ~ Tave07 + PPT07 + fuel type + elev",
+  "ignit ~ mean_Tave07_Tave08 + fuel type + elev",
+  "ignit ~ mean_PPT06_PPT07_PPT08 + fuel type + elev"),
  
-AUC = c (0.77, 0.63, 0.63, 0.57, 0.69)                            
+AUC = c (0.62, 0.77, 0.57, 0.63, 0.63, 0.56, 0.69)                            
                              )
 
 kable (stats_model, 
@@ -97,17 +105,20 @@ kable (stats_model,
 The final human caused ignition models were fitted with the top selected climate variable/s (described above), a variable describing fuel type, elevation, distance to the nearest road and/or distance to the nearest infrastructure (table 2). 
 
 
-```{r, model table, echo = F}
+```{r, model table person, echo = F}
 stats_model <- data.table (
-FRT = c ("10", "12", "13", "14", "15"),
+FRT = c ("9", "10", "11", "12", "13", "14", "15"),
 
-Model_Terms = c ("ignit ~ mean_PPT06_PPT07_PPT08_PPT09 + fuel type + log(dist road)",
+Model_Terms = c (
+  "ignit ~ Tmax05 + fuel type + log(dist_infrastruc)",
+  "ignit ~ mean_PPT06_PPT07_PPT08_PPT09 + fuel type + log(dist road)",
+  "ignit ~ mean_Tave08_Tave09_Tave10 + fuel type + log(dist_road)",
                 "ignit ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10 + fuel type + elev + log(dist road) + log(dist infrastruc)",
                 "ignit ~ mean_Tave07_Tave08_Tave09 + mean_PPT07_PPT08_PPT09 + fuel type + elev + log(dist road) + log(dist infrastruc)",
                 "ignit ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10 + fuel type + elev + log(dist road) + log(dist infrastruc)",
                 "ignit ~ mean_Tave07_Tave08_Tave09 + mean_PPT07_PPT08_PPT09 + fuel type + elev + log(dist road) + log(dist infrastruc)"),
  
-AUC = c (0.83, 0.63, 0.63, 0.57, 0.69)                            
+AUC = c (0.79, 0.81, 0.80, 0.82, 0.85, 0.81, 0.87)                            
                              )
 
 kable (stats_model, 
@@ -118,22 +129,18 @@ kable (stats_model,
 
 Using the models outlined in table 1 a probability of ignition by lightning map was created (figure 2). Data for this map was extracted at a scale of 800 x 800m. Where weather and elevation data was extracted at the centre of each 800 x 800m pixel. Vegetation data was extracted by creating a 400m buffer around each point and determining the vegetation type which most commonly was encountered in each pixel. After the models were fitted to each point the data was interpolated between points to create a smooth layer and then rasterized. 
 
-```{r echo=FALSE, fig.cap = "Figure 2. Probability of lightning ignition for the Quesnel, Williams lake and 100 Mile House TSA's"}
+
+#```{r echo=FALSE, fig.cap = "Figure 2. Probability of lightning ignition for the Quesnel, Williams lake and 100 Mile House TSA's"}
 #lightning.ignit<-raster(" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif"
 
-conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+#conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
-lightning.ignit <- pgGetRast(conn, c("rast", "prob_lightning_ignit_quesnel_williamsl_100mile"))
+#lightning.ignit <- pgGetRast(conn, c("rast", "prob_lightning_ignit_quesnel_williamsl_100mile"))
 
 dbDisconnect(conn)
-#lightning.ignit<-getSpatialQuery("SELECT * FROM rast.prob_lightning_ignit_quesnel_williamsl_100mile")
+#lightning.ignit<-getSpatialQuery("SELECT * FROM #rast.prob_lightning_ignit_quesnel_williamsl_100mile")
 
 
-plot(lightning.ignit)
-```
-
-```{r}
-
-```
-
+#plot(lightning.ignit)
+#```
 
