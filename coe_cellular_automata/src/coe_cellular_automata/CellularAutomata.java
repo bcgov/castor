@@ -14,7 +14,7 @@ public class CellularAutomata {
 	//ArrayList<Cell> cellList = new ArrayList<Cell>();
 	ArrayList<Cells> cellsList = new ArrayList<Cells>();
 	ArrayList<Integer> cellsListChangeState = new ArrayList<Integer>();
-	String clusdb = "test_Bulkley/Bulkley_TSA_clusdb.sqlite";
+	String clusdb = "C:/Users/klochhea/clus/R/SpaDES-modules/dbCreatorCASTOR/test_castordb.sqlite";
 	
 	//ArrayList<Cell> cellListMaximum = new ArrayList<Cell>();
 	int numIter=15000;
@@ -78,9 +78,9 @@ public class CellularAutomata {
 		int currentMaxState;
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
 		//harvestMin = 10000*landscape.pl;
-		harvestMin = 2900000;
-		harvestMax = 2950000;
-		gsMin = 30000000;
+		harvestMin = 2000;
+		harvestMax = 2700;
+		gsMin = 62000*0.75f; 
 		setLCCHarvestDelay(); //In cases no-harvesting decision does not meet the constraint -- remove harvesting during these periods and as a penalty -- thus ahciving the paritial amount
 		
 		System.out.println("");
@@ -112,7 +112,7 @@ public class CellularAutomata {
 				}
 			}	
 			
-			if(counterLocalMaxState == cellsListChangeState.size()) {
+			if(counterLocalMaxState >= 0.99*cellsListChangeState.size()) {
 				System.out.println("Local optimization solved");
 				System.out.print("");
 				break;
@@ -154,7 +154,7 @@ public class CellularAutomata {
 			}
 			
 			System.out.print("iter:" + g + " global weight:" + globalWeight + " Plc:" + plc );
-			globalWeight += 1; //increment the global weight
+			globalWeight += 0.1; //increment the global weight
 			
 			for(int k =0; k < planHarvestVolume.length; k++){
 				System.out.print(" Vol:" + planHarvestVolume[k] + "  ");
@@ -306,8 +306,10 @@ public class CellularAutomata {
 		int stateMax = 0;
 		float[] harvVol, age;
 		float[][] propN = getNeighborProportion(cellsList.get(i).adjCellsList);
-		float maxPropNH = sumPropN(propN[0]);
-		float maxPropNAge = sumPropN(propN[1]);
+		//float maxPropNH = sumPropN(propN[0]);
+		//float maxPropNH = landscape.numTimePeriods;
+		//float maxPropNAge = sumPropN(propN[1]);
+		//float maxPropNAge = landscape.numTimePeriods;
 		float thlb = cellsList.get(i).thlb;
 		
 		for(int s = 0; s < forestTypeList.get(cellsList.get(i).foresttype).stateTypes.size(); s++) {
@@ -317,7 +319,7 @@ public class CellularAutomata {
 	
 			age = forestTypeList.get(cellsList.get(i).foresttype).stateTypes.get(s).get("age");
 		    //stateValue = 0.05*isf + 0.7*getPropNHRank(harvVol, propN[0], maxPropNH)+ 0.25*getPropNAgeRank(age, propN[1], maxPropNAge);
-		    stateValue = 0.05*isf + 0.75*getPropNHRank(harvVol, propN[0], maxPropNH)+ 0.2*getPropNAgeRank(age, propN[1], maxPropNAge);
+		    stateValue = 0.01*isf + 0.99*getPropNeighRank(harvVol, propN[0], 0.01f)+ 0*getPropNeighRank(age, propN[1], landscape.ageThreshold);
 				
 			if(maxValue < stateValue) {
 				maxValue = stateValue;
@@ -387,8 +389,11 @@ public class CellularAutomata {
 		int stateMax = 0;
 		float[] harvVol, age;
 		float[][] propN = getNeighborProportion(cellsList.get(i).adjCellsList);
-		float maxPropNH = sumPropN(propN[0]);
-		float maxPropNAge = sumPropN(propN[1]);
+		//float maxPropNH = sumPropN(propN[0]);
+		//float maxPropNH = landscape.numTimePeriods;
+		//float maxPropNAge = sumPropN(propN[1]);
+		//float maxPropNAge = landscape.numTimePeriods;
+		
 		float thlb = cellsList.get(i).thlb;
 		boolean recruitment = false;
 		
@@ -421,20 +426,21 @@ public class CellularAutomata {
 			isf = sumArray(harvVol, thlb)/maxCutLocal;
 			age = ft.stateTypes.get(s).get("age");
 		   // U = 0.05*isf + 0.70*getPropNHRank(harvVol, propN[0],maxPropNH)+ 0.25*getPropNAgeRank(age, propN[1],maxPropNAge);
-			U = 0.05*isf + 0.75*getPropNHRank(harvVol, propN[0],maxPropNH)+ 0.2*getPropNAgeRank(age, propN[1],maxPropNAge);
+			U = 0.01*isf + 0.99*getPropNeighRank(harvVol, propN[0], 0.01f)+ 0*getPropNeighRank(age, propN[1],landscape.ageThreshold);
 			hfc = getHarvestFlowConstraint(harvVol, thlb);
 			gsc = getGrowingStockConstraint(ft.stateTypes.get(s).get("gsVol"), thlb);
 			lc  = getLandCoverConstraint(ft.stateTypes.get(s), lcList);
 					
-			P = 0.5*hfc + 0.25*gsc + 0.25*lc; 
+			//P = 0.5*hfc + 0.25*gsc + 0.25*lc; 
+			P = 0.65*hfc + 0.35*gsc; 
 			stateValue = landscape.weight*U + globalWeight*P;
 				
 			if(maxValue < stateValue) { 
 				maxValue = stateValue; //save the top ranking state
 				stateMax = s;
 				plc = getLCRemaining(lcList);
-				
-				if( plc >= 0.999 && P > 0.999) { //this is the threshold for stopping the simulation
+				if( P > 0.999) { //this is the threshold for stopping the simulation
+				//if( plc >= 0.999 && P > 0.999) { //this is the threshold for stopping the simulation
 					globalConstraintsAchieved = true;
 					break;
 				}
@@ -445,32 +451,18 @@ public class CellularAutomata {
 		return stateMax;
 	}
 	
-	private float getPropNHRank(float[] attribute, float[] propN, float maxPropN) {
-		if(maxPropN == 0f) {
-			return 0f;
-		}else {
+	private float getPropNeighRank(float[] attribute, float[] propN,  float threshold) {
+		//if(maxPropN == 0f) {
+		//	return 0f;
+		//}else {
 			float rank =0;
 			for(int r =0; r < attribute.length; r++) {
-				if(attribute[r] > 0) {
+				if(attribute[r] >= threshold) {
 					rank = rank + propN[r]; // this equates to one times the propNH
 				}
 			}
-			return (float) rank/maxPropN;
-		}
-	}
-	
-	private float getPropNAgeRank(float[] attribute, float[] propN, float maxPropN) {
-		if(maxPropN == 0f) {
-			return 0f;
-		}else {
-			float rank =0;
-			for(int r =0; r < attribute.length; r++) {
-				if(attribute[r] > 100) {
-					rank = rank + propN[r]; // this equates to one times the propNH
-				}
-			}
-			return (float) rank/maxPropN;
-		}
+			return (float) rank/landscape.numTimePeriods;
+		//}
 	}
 
 	private float sumPropN(float[] propN) {
@@ -703,12 +695,12 @@ public class CellularAutomata {
 	}
 	
 	/** 
-	 * Finds the proportion of a cells neighbors that are cut in the same time period
+	 * Finds the proportion of a cells neighbors
 	 * @param adjCellsList
-	 * @return a double representing the proportion of adjacent cells that are also cut in the same time period;
+	 * @return a double array representing the proportion of adjacent cells that are also cut in the same time period;
 	 */
 	private float[][] getNeighborProportion(ArrayList<Integer> adjCellsList) {
-		float[][] hvn = new float[2][landscape.numTimePeriods];
+		float[][] neighProp = new float[2][landscape.numTimePeriods];
 		float[] tempHVN;
 		float[] tempAgeN;
 		int state = 0;
@@ -722,16 +714,16 @@ public class CellularAutomata {
 				tempAgeN = forestTypeList.get(cellsList.get(adjCellsList.get(n)).foresttype).stateTypes.get(state).get("age");
 				for(int t = 0 ; t < landscape.numTimePeriods; t ++) {
 					if(tempHVN[t] > 0) {
-						hvn[0][t]= hvn[0][t] + (float) 1/adjCellsList.size();
+						neighProp[0][t]= neighProp[0][t] + (float) 1/adjCellsList.size();
 					}
 					
-					if(tempAgeN[t] > 100) {
-						hvn[1][t]= hvn[1][t] + (float) 1/adjCellsList.size();
+					if(tempAgeN[t] >= landscape.ageThreshold) {
+						neighProp[1][t]= neighProp[1][t] + (float) 1/adjCellsList.size();
 					}
 				}
 			}
 		}		
-		return hvn;
+		return neighProp;
 	}
 	
 	/**
@@ -823,7 +815,7 @@ public class CellularAutomata {
 		}
 		
 		try { //Get the data from the db
-			Connection conn = DriverManager.getConnection("jdbc:sqlite:C:/Users/klochhea/clus/R/scenarios/" + clusdb);		
+			Connection conn = DriverManager.getConnection("jdbc:sqlite:" + clusdb);		
 			if (conn != null) {
 				Statement statement = conn.createStatement();
 					
@@ -942,7 +934,7 @@ public class CellularAutomata {
 			    System.err.println("Could not init JDBC driver - driver not found");
 			}		
 			try { //Get the data from the db
-				Connection conn = DriverManager.getConnection("jdbc:sqlite:C:/Users/klochhea/clus/R/scenarios/" +clusdb);		
+				Connection conn = DriverManager.getConnection("jdbc:sqlite:" +clusdb);		
 				if (conn != null) {
 					System.out.println("Connected to clusdb");
 					Statement statement = conn.createStatement();
@@ -1212,10 +1204,10 @@ public class CellularAutomata {
 		private ArrayList<Integer> getNeighbourhood(int id, int cols, int[] pixelidIndex, int[] cellIndex) {
 		    ArrayList<Integer> cs = new ArrayList<Integer>(8);
 		    //check if cell is on an edge
-		    boolean l = id %  cols > 0;        //has left
-		    boolean u = id >= cols;            //has upper
-		    boolean r = id %  cols < cols - 1; //has right
-		    boolean d = id <   pixelidIndex.length - cols;   //has lower
+		    boolean l = (id-1) %  cols > 0;        //has left
+		    boolean u = (id-1) >= cols;            //has upper
+		    boolean r = (id-1) %  cols < cols - 1; //has right
+		    boolean d = (id-1) <   (pixelidIndex.length-1) - cols;   //has lower
 		    //collect all existing adjacent cells
 		    if (l && cellIndex[pixelidIndex[id - 1]] > 0) {
 		    	cs.add(cellIndex[pixelidIndex[id - 1]] );

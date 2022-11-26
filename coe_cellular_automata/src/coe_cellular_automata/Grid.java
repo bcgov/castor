@@ -6,7 +6,7 @@ import java.util.LinkedHashMap;
 
 public class Grid {
 	int ageThreshold=140, ph=100, pl=5;
-	float  minHarvVol = 140L;
+	float  minHarvVol = 150L;
 	int colSizeLattice = 150; //Size of the grid used for dummy examples
 	double lambdaProp = 0.05;
 	int ncell;
