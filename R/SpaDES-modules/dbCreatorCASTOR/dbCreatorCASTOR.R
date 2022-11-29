@@ -37,7 +37,8 @@ defineModule(sim, list(
   ),
   inputObjects = bindrows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
-    expectsInput(objectName = "extent", objectClass = "list", desc = "The exent in a list ordered by: nrows, ncols, xmin, xmax, ymin, ymax", sourceURL = NA)
+    expectsInput(objectName = "extent", objectClass = "list", desc = "The exent in a list ordered by: nrows, ncols, xmin, xmax, ymin, ymax", sourceURL = NA),
+    expectsInput(objectName = "zoneConstraint", objectClass = "data.table", desc = "The constraint to be applied", sourceURL = NA)
   ),
   outputObjects = bindrows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
@@ -151,7 +152,7 @@ setTablesCASTORdb <- function(sim) {
 
 setZoneConstraints<-function(sim){
   message("... setting ZoneConstraints table")
-  zones <- data.table(zoneid =1, zone_column = 'zone1', reference_zone = 'default', ndt =3, variable = 'age', threshold = 140, type = 'ge', percentage = 20,
+  zones <- data.table(zoneid =1, zone_column = 'zone1', reference_zone = 'default', ndt =3, variable = sim$zoneConstraint$variable, threshold = sim$zoneConstraint$threshold, type = sim$zoneConstraint$type, percentage = sim$zoneConstraint$percentage,
                       multi_condition = NA, t_area = sim$extent[[1]]*sim$extent[[2]], denom = NA, start = 0, stop = 250)
   
   dbBegin(sim$castordb)
@@ -224,6 +225,11 @@ randomRaster<-function(extent, clusterLevel){
   if (!suppliedElsewhere('extent', sim)) {
      sim$extent <- list(10,10, 0,10,0,10)
   }
+  if (!suppliedElsewhere('zoneConstraint', sim)) {
+    sim$zoneConstraint <- data.table(variable = "age", type = "ge", threshold = 140, percentage = 20)
+  }
+  
+  
   #cacheTags <- c(currentModule(sim), "function:.inputObjects") ## uncomment this if Cache is being used
   dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
