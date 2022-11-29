@@ -36,7 +36,7 @@ public class CellularAutomata {
 	public ArrayList<ForestType> forestTypeList = new ArrayList<ForestType>() ;
 	public ArrayList<LandCoverConstraint> landCoverConstraintList = new ArrayList<LandCoverConstraint>() ;
 	//Variables for simulate2
-	float maxCutLocal = 0L;
+	float maxCutLocal = 0L, lRSY = 0L, harvestClusterWeight, ageClusterWeight, harvestPriorityWeight, gs0;
 	float[] maxCutGlobal = new float[landscape.numTimePeriods];
 	double plc;
 	
@@ -78,21 +78,23 @@ public class CellularAutomata {
 		int currentMaxState;
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
 		//harvestMin = 10000*landscape.pl;
-		harvestMin = 2000;
-		harvestMax = 2700;
-		gsMin = 62000*0.75f; 
+		harvestMin = 100;
+		harvestMax = 1100;
+		harvestClusterWeight = 0;
+		ageClusterWeight = 0.1f;
+		harvestPriorityWeight = 1-(harvestClusterWeight + ageClusterWeight);
 		setLCCHarvestDelay(); //In cases no-harvesting decision does not meet the constraint -- remove harvesting during these periods and as a penalty -- thus ahciving the paritial amount
 		
 		System.out.println("");
 		landscape.setLandscapeWeight((double) 1/cellsListChangeState.size());
 		globalWeight = landscape.weight; // start with equal weighting
-		setMaxCutValue();//scope all of the cells to determine the maxHarvVol	
+		setMaxCutValue();//scope all of the cells to determine the maxHarvVol and gs0
 		randomizeStates(r);
-		
+		gsMin = gs0*0.50f;
 		//---------------------------------------------
 		System.out.println("Starting local optimization..");
 		//---------------------------------------------
-		for(int i = 0; i < 100; i ++) {
+		for(int i = 0; i < 1000; i ++) {
 			//Local level optimization
 			System.out.println("Local iter:" + i);
 			Collections.shuffle(cellsListChangeState); // randomize which cell gets selected.
@@ -154,15 +156,16 @@ public class CellularAutomata {
 			}
 			
 			System.out.print("iter:" + g + " global weight:" + globalWeight + " Plc:" + plc );
-			globalWeight += 0.1; //increment the global weight
+			globalWeight += 1; //increment the global weight
 			
 			for(int k =0; k < planHarvestVolume.length; k++){
 				System.out.print(" Vol:" + planHarvestVolume[k] + "  ");
 			}
 			System.out.println("");
 		}
-		 
-		System.out.println("Solved");
+		
+		
+		System.out.println("Constraints achieved: " + globalConstraintsAchieved);
 		for(int f =0; f < planHarvestVolume.length; f++){
 			System.out.print(" GS:" + planGSVolume[f] + "  ");
 		}
@@ -261,16 +264,16 @@ public class CellularAutomata {
 	private void setMaxCutValue() {
 		float tempCut = 0 ;	
 		for(int c =0; c < cellsListChangeState.size(); c++) {
+			gs0 += forestTypeList.get(cellsList.get(cellsListChangeState.get(c)).foresttype).stateTypes.get(0).get("gsVol")[0] ;
+			
 			for(int s= 0; s < forestTypeList.get(cellsList.get(cellsListChangeState.get(c)).foresttype).stateTypes.size(); s++ ) {				
-				
 				tempCut = tempCut + sumFloatVector(forestTypeList.get(cellsList.get(cellsListChangeState.get(c)).foresttype).stateTypes.get(s).get("harvVol")) ;	
 				if(maxCutLocal < tempCut) {
 					maxCutLocal =   tempCut;
 				}		
 				tempCut = 0L;
-			}		
+			}
 		}
-		//Note that the max og local is 1 for all periods. 
 	}
 	
 	/**
@@ -319,7 +322,7 @@ public class CellularAutomata {
 	
 			age = forestTypeList.get(cellsList.get(i).foresttype).stateTypes.get(s).get("age");
 		    //stateValue = 0.05*isf + 0.7*getPropNHRank(harvVol, propN[0], maxPropNH)+ 0.25*getPropNAgeRank(age, propN[1], maxPropNAge);
-		    stateValue = 0.01*isf + 0.99*getPropNeighRank(harvVol, propN[0], 0.01f)+ 0*getPropNeighRank(age, propN[1], landscape.ageThreshold);
+		    stateValue = harvestPriorityWeight*isf + harvestClusterWeight*getPropNeighRank(harvVol, propN[0], 0.01f)+ ageClusterWeight*getPropNeighRank(age, propN[1], landscape.ageThreshold);
 				
 			if(maxValue < stateValue) {
 				maxValue = stateValue;
@@ -389,11 +392,6 @@ public class CellularAutomata {
 		int stateMax = 0;
 		float[] harvVol, age;
 		float[][] propN = getNeighborProportion(cellsList.get(i).adjCellsList);
-		//float maxPropNH = sumPropN(propN[0]);
-		//float maxPropNH = landscape.numTimePeriods;
-		//float maxPropNAge = sumPropN(propN[1]);
-		//float maxPropNAge = landscape.numTimePeriods;
-		
 		float thlb = cellsList.get(i).thlb;
 		boolean recruitment = false;
 		
@@ -403,7 +401,7 @@ public class CellularAutomata {
 		ArrayList<Integer> lcList = cellsList.get(i).landCoverList;
 	
 		//Adjust the global objectives
-		setObjectives(type.SUBTRACT, ft.stateTypes.get(cellsList.get(i).state), lcList,  cellsList.get(i).thlb);
+		setObjectives(type.SUBTRACT, ft.stateTypes.get(cellsList.get(i).state), lcList,  thlb);
 
 		//Iterate through all of the states
 		for(int s = 0; s < ft.stateTypes.size(); s++) {
@@ -426,7 +424,7 @@ public class CellularAutomata {
 			isf = sumArray(harvVol, thlb)/maxCutLocal;
 			age = ft.stateTypes.get(s).get("age");
 		   // U = 0.05*isf + 0.70*getPropNHRank(harvVol, propN[0],maxPropNH)+ 0.25*getPropNAgeRank(age, propN[1],maxPropNAge);
-			U = 0.01*isf + 0.99*getPropNeighRank(harvVol, propN[0], 0.01f)+ 0*getPropNeighRank(age, propN[1],landscape.ageThreshold);
+			U = harvestPriorityWeight*isf + harvestClusterWeight*getPropNeighRank(harvVol, propN[0], 0.01f)+ ageClusterWeight*getPropNeighRank(age, propN[1],landscape.ageThreshold);
 			hfc = getHarvestFlowConstraint(harvVol, thlb);
 			gsc = getGrowingStockConstraint(ft.stateTypes.get(s).get("gsVol"), thlb);
 			lc  = getLandCoverConstraint(ft.stateTypes.get(s), lcList);
@@ -695,7 +693,7 @@ public class CellularAutomata {
 	}
 	
 	/** 
-	 * Finds the proportion of a cells neighbors
+	 * Finds the proportion of a cells neighbors value. Presents the incentive for clustering.
 	 * @param adjCellsList
 	 * @return a double array representing the proportion of adjacent cells that are also cut in the same time period;
 	 */
@@ -706,9 +704,14 @@ public class CellularAutomata {
 		int state = 0;
 		
 		for(int n =0; n < adjCellsList.size(); n++) {
-			state = cellsList.get(adjCellsList.get(n)).state; // the cellList is no longer in order can't use get. Need a comparator.
+			state = cellsList.get(adjCellsList.get(n)).state; 
 			if(state == 0) {
-				continue; // go to the next adjacent cell --this one has no harvesting
+				tempAgeN = forestTypeList.get(cellsList.get(adjCellsList.get(n)).foresttype).stateTypes.get(state).get("age");
+				for(int t = 0 ; t < landscape.numTimePeriods; t ++) {
+					if(tempAgeN[t] >= landscape.ageThreshold) {
+						neighProp[1][t]= neighProp[1][t] + (float) 1/adjCellsList.size();
+					}
+				}
 			}else {
 				tempHVN = forestTypeList.get(cellsList.get(adjCellsList.get(n)).foresttype).stateTypes.get(state).get("harvVol");
 				tempAgeN = forestTypeList.get(cellsList.get(adjCellsList.get(n)).foresttype).stateTypes.get(state).get("age");
@@ -1064,7 +1067,7 @@ public class CellularAutomata {
 					//statement.execute(drop_foresttype);
 					//Create the 'foresttype' table and populate it with unique forest types
 					String create_foresttype = "CREATE TABLE IF NOT EXISTS foresttype AS " +
-							" SELECT ROW_NUMBER() OVER(ORDER BY age asc, yield_lookup.id_yc, t.id_yc_trans, pixels.manage_type) AS foresttype_id, age, id_yc, id_yc_trans, pixels.manage_type, pixels.yieldid, pixels.yieldid_trans " + 
+							" SELECT ROW_NUMBER() OVER(ORDER BY age asc, yield_lookup.id_yc, t.id_yc_trans, pixels.manage_type) AS foresttype_id, age, id_yc, id_yc_trans, pixels.manage_type, pixels.yieldid, pixels.yieldid_trans, sum(thlb) as area " + 
 							" FROM pixels " + 
 							" LEFT JOIN yield_lookup ON pixels.yieldid = yield_lookup.yieldid" + 
 							" LEFT JOIN (SELECT id_yc AS id_yc_trans, yieldid FROM yield_lookup) t ON pixels.yieldid_trans = t.yieldid " + 
@@ -1072,7 +1075,7 @@ public class CellularAutomata {
 					statement.execute(create_foresttype);
 					
 					//Set the states for each foresttype
-					String getForestType = "SELECT foresttype_id, age, id_yc,  id_yc_trans, manage_type FROM foresttype ORDER BY foresttype_id;";
+					String getForestType = "SELECT foresttype_id, age, id_yc,  id_yc_trans, manage_type, area FROM foresttype ORDER BY foresttype_id;";
 					ResultSet rs2 = statement.executeQuery(getForestType);
 					forestTypeList.add(0, new ForestType()); //at id zero there is no foresttype -- add a null
 					int forestTypeID = 1;
@@ -1080,14 +1083,14 @@ public class CellularAutomata {
 						if(forestTypeID == rs2.getInt(1)) {
 							ForestType forestType = new ForestType(); //create a new ForestType object
 							if( rs2.getInt(5) == 1 & rs2.getInt(4) == 0) { //the management type is 1 but the yield_id_trans is null -- meaning there is no TIPSY curve to transition to. This should be a VDYP curve
-								forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(3), 0); //the max age a cell can have is 350	
+								forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(3), 0, yieldTable.get(rs2.getInt(3)).get("vol"), rs2.getInt(6)); //the max age a cell can have is 350	
 								forestType.setForestTypeStates(0, landscape.ageStatesTemplate.get(Math.min(350, rs2.getInt(2))), landscape.harvestStatesTemplate.get(Math.min(350, rs2.getInt(2))), yieldTable.get(rs2.getInt(3)),  yieldTable.get(rs2.getInt(3)), landscape.minHarvVol);
 								
 							}else {
-								forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(4), rs2.getInt(5)); //the max age a cell can have is 350	
+								forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(4), rs2.getInt(5), yieldTable.get(rs2.getInt(3)).get("vol"), rs2.getInt(6)); //the max age a cell can have is 350	
 								forestType.setForestTypeStates(rs2.getInt(5), landscape.ageStatesTemplate.get(Math.min(350, rs2.getInt(2))), landscape.harvestStatesTemplate.get(Math.min(350, rs2.getInt(2))), yieldTable.get(rs2.getInt(3)),  yieldTable.get(rs2.getInt(4)), landscape.minHarvVol);	
 							}
-							
+							lRSY += forestType.maxMAI*forestType.area;
 							forestTypeList.add(forestTypeID, forestType);
 						}else {
 							throw new Exception("forestTypeID does not coincide with the forestTypeList! Thus, the list of forestTypes will be wrong");
@@ -1149,7 +1152,7 @@ public class CellularAutomata {
 					System.out.println("...done");
 					
 					System.out.print("Setting constraints to cells");
-					String setConstraints = "SELECT zone_column FROM zone WHERE reference_zone IN ('rast.zone_cond_beo','rast.zone_cond_vqo','rast.zone_cond_wha', 'rast.zone_cond_uwr','rast.zone_cond_nharv');";
+					String setConstraints = "SELECT zone_column FROM zone WHERE reference_zone IN ('rast.zone_cond_beo','rast.zone_cond_vqo','rast.zone_cond_wha', 'rast.zone_cond_uwr','rast.zone_cond_nharv', 'default');";
 					ResultSet rs6 = statement.executeQuery(setConstraints);
 					ArrayList<String> zones = new ArrayList<String>();
 					while(rs6.next()) {
