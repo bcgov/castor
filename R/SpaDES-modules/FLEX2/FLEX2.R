@@ -282,7 +282,7 @@ Init <- function(sim) {
 
   pix.count.ids <- c (unique (pix.count [fisher_pop == 2, ]$individual_id))
   if (length (pix.count.ids) > 0) {
-    for (i in 1:length (pix.count.ids)) { # for each individual
+   for (i in 1:length (pix.count.ids)) { # for each individual
     if (pix.count [fisher_pop == 2 & individual_id == pix.count.ids[i], pix.count] >= (sim$female_hr_table [fisher_pop == 2, hr_mean] - (2 * sim$female_hr_table [fisher_pop == 2, hr_sd])) & pix.count [fisher_pop == 2 & individual_id == pix.count.ids[i], pix.count] <= (sim$female_hr_table [fisher_pop == 2, hr_mean] + (2 * sim$female_hr_table [fisher_pop == 2, hr_sd]))) { 
       
     } else {
@@ -294,7 +294,7 @@ Init <- function(sim) {
   
   pix.count.ids <- c (unique (pix.count [fisher_pop == 3, ]$individual_id))
   if (length (pix.count.ids) > 0) {
-  for (i in 1:length (pix.count.ids)) { # for each individual
+   for (i in 1:length (pix.count.ids)) { # for each individual
     if (pix.count [fisher_pop == 3 & individual_id == pix.count.ids[i], pix.count] >= (sim$female_hr_table [fisher_pop == 3, hr_mean] - (2 * sim$female_hr_table [fisher_pop == 3, hr_sd])) & pix.count [fisher_pop == 3 & individual_id == pix.count.ids[i], pix.count] <= (sim$female_hr_table [fisher_pop == 3, hr_mean] + (2 * sim$female_hr_table [fisher_pop == 3, hr_sd]))) { 
     
     } else {
@@ -304,10 +304,9 @@ Init <- function(sim) {
    }
   } 
   
-  
   pix.count.ids <- c (unique (pix.count [fisher_pop == 4, ]$individual_id))
   if (length (pix.count.ids) > 0) {
-  for (i in 1:length (pix.count.ids)) { # for each individual
+   for (i in 1:length (pix.count.ids)) { # for each individual
     if (pix.count [fisher_pop == 4 & individual_id == pix.count.ids[i], pix.count] >= (sim$female_hr_table [fisher_pop == 4, hr_mean] - (2 * sim$female_hr_table [fisher_pop == 4, hr_sd])) & pix.count [fisher_pop == 4 & individual_id == pix.count.ids[i], pix.count] <= (sim$female_hr_table [fisher_pop == 4, hr_mean] + (2 * sim$female_hr_table [fisher_pop == 4, hr_sd]))) { 
       
     } else {
@@ -316,6 +315,7 @@ Init <- function(sim) {
     } 
    }
   }
+
 
   # check to see if minimum habitat target was met (prop habitat = 0.15); if not, remove the animal 
   hab.count <- table.hr [denning == 1 | rust == 1 | cavity == 1 |cwd == 1 | movement == 1, .(.N), by = individual_id]
@@ -406,6 +406,9 @@ Init <- function(sim) {
   ras.territories.update [sim$territories$pixelid] <- 1
   sim$ras.territories <- sim$ras.territories + ras.territories.update
 
+  # save the largest indivdual id; need this later
+  sim$max.id <- max (sim$agents$individual_id)
+  
     # clean-up
   rm (ras.territories.update, new.agents.save)
   
@@ -539,8 +542,8 @@ annualEvents <- function (sim) {
 
     # A. Identify each fishers 'potential' dispersal area
     # grab the agents that don't have a home range, i.e., no d2_score 
-    dispersers <- sim$agents [is.na(sim$agents$d2_score) |sim$agents$d2_score==0, ] 
-    # browser()
+    dispersers <- sim$agents [is.na(sim$agents$d2_score) | sim$agents$d2_score == 0, ] 
+
     if (nrow (dispersers) > 0) { # check to make sure there are dispersers
     
     # remove the dispersers from the agents and territories tables
@@ -553,14 +556,11 @@ annualEvents <- function (sim) {
     dispersers$hr_size <- as.numeric (dispersers$hr_size)
     dispersers <- dispersers [, fisher_pop := NA]
     dispersers$fisher_pop <- as.numeric (dispersers$fisher_pop)
-    
-    
-    browser ()
 
-    
     # find den sites; looping because of duplicate starts...
-      # individuals
+    # individuals
     inds <- dispersers$individual_id
+    
       # add individual locations to the den site table in case the den site habitat is now gone
     disp.rast <- sim$pix.rast
     starts <- dispersers [individual_id == c (inds), pixelid]
@@ -572,37 +572,46 @@ annualEvents <- function (sim) {
                               to = (nrow (sim$den.table) + nrow (den.starts)))
     sim$den.table <- rbind (sim$den.table,
                             den.starts)
-    sim$den.table <-  sim$den.table [!duplicated (sim$den.table$pixelid), ] # remove any dupes; if already existing
+    sim$den.table <- sim$den.table [!duplicated (sim$den.table$pixelid), ] # remove any dupes; if already existing
     
       # create output table
-    den.target <- data.table (individual_id = as.numeric (), 
-                                  den_id = as.numeric ()) 
+    den.target <- data.table (individual_id = as.numeric (), # puttign in a dummy row so that I can run the why loop
+                              den_id = as.numeric ()) 
+
     if (length (inds) > 0) { # also put in a check to see if a den site is already occupied?
       for (i in 1:length (inds)) {
         den.site <- RANN::nn2 (data = sim$den.table, # in the den site data
                                query = sim$den.table [pixelid == dispersers [individual_id == inds[i], pixelid]], # location of the disperser, by individual id
-                               k = 5, # return maximum 10 neighbours
-                               radius = 500 # in hectares ; 50 km r = 7,850 km2 area
+                               k = 20, # return maximum 20 neighbours; keep this large to allow flexibility for dupes
+                               radius = 500 # in hectares; 100m pixels; 50 km r = 7,850 km2 area
         )
         
-     rdm.smp <- sample (2:ncol (den.site$nn.idx), 1) # Randomly select one of the five den sites		
-     den.target.temp <- data.table (individual_id = dispersers [individual_id == inds[i], individual_id], 
-                                         den_id = den.site$nn.idx[,rdm.smp]) 	
-     den.target <- rbind (den.target, den.target.temp)	
+      rdm.smp <- sample (2:ncol (den.site$nn.idx), 1) # Randomly select one of the five den sites		
+     
+     # need to check if den_id already 'occupied'
+     while (nrow (den.target [den_id == den.site$nn.idx[, rdm.smp]]) > 0) { # if the den site is already occupied
+       rdm.smp <- sample (2:ncol (den.site$nn.idx), 1) # Randomly select den site again
+     }
+     
+      # set the target location
+         den.target.temp <- data.table (individual_id = dispersers [individual_id == inds[i], individual_id], 
+                                        den_id = den.site$nn.idx[,rdm.smp]) 	
+         den.target <- rbind (den.target, den.target.temp)	
+       
       }
     }
-      
-          # update the den locations
-     den.target <- merge (den.target,
-                          sim$den.table [, c ("den_id", "pixelid")],
-                          by.x = "den_id", by.y = "den_id")
-     dispersers <- merge (dispersers [, -"pixelid"],
-                          den.target [, c ("individual_id", "pixelid")],
-                          by.x = "individual_id", by.y = "individual_id")					 
-          # update the fisher pop where the fisher is located
-     dispersers <- merge (dispersers [, -"fisher_pop"],
-                          sim$table.hab.update [, c ("fisher_pop", "pixelid")],
-                          by.x = "individual_id", by.y = "individual_id")
+  
+      # update the den locations
+       den.target <- merge (den.target,
+                            sim$den.table [, c ("den_id", "pixelid")],
+                            by.x = "den_id", by.y = "den_id")
+       dispersers <- merge (dispersers [, -"pixelid"],
+                            den.target [, c ("individual_id", "pixelid")],
+                            by.x = "individual_id", by.y = "individual_id")					 
+            # update the fisher pop where the fisher is located
+       dispersers <- merge (dispersers [, -"fisher_pop"],
+                            sim$table.hab.update [, c ("pixelid", "fisher_pop")],
+                            by.x = "pixelid", by.y = "pixelid")
 
       # create new HR sizes based on which fisher pop the animal belongs to
       dispersers [fisher_pop == 1, hr_size := round (rnorm (nrow (dispersers [fisher_pop == 1, ]), sim$female_hr_table [fisher_pop == 1, hr_mean], sim$female_hr_table [fisher_pop == 1, hr_sd]))]
@@ -637,7 +646,6 @@ annualEvents <- function (sim) {
                           all.x = T)  
  
         # for each fisher population
-      
       pix.count.ids <- c (unique (pix.count [fisher_pop == 1, ]$individual_id))
       if (length (pix.count.ids) > 0) {
        for (i in 1:length (pix.count.ids)) { # for each individual
@@ -828,8 +836,9 @@ annualEvents <- function (sim) {
         new.agents$reproduce <- NULL
         new.agents$kits <- NULL
         # update the individual id
-        new.agents$individual_id <- seq (from = max (sim$agents$individual_id) + 1, 
-                                         to = (max (sim$agents$individual_id) + nrow (new.agents)), by = 1)
+        new.agents$individual_id <- seq (from = (sim$max.id + 1), 
+                                         to =  (sim$max.id + nrow (new.agents)), by = 1)
+        sim$max.id <- max (new.agents$individual_id)
         } else {
           message ("There are no reproducing fishers!")
         }
@@ -933,7 +942,6 @@ annualEvents <- function (sim) {
       
       message ("Fishers survived and aged one year.")
     
-        # browser()
   }
   
   return (invisible (sim))
