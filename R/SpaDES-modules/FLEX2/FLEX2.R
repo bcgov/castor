@@ -582,7 +582,7 @@ annualEvents <- function (sim) {
       for (i in 1:length (inds)) {
         den.site <- RANN::nn2 (data = sim$den.table, # in the den site data
                                query = sim$den.table [pixelid == dispersers [individual_id == inds[i], pixelid]], # location of the disperser, by individual id
-                               k = 20, # return maximum 20 neighbours; keep this large to allow flexibility for dupes
+                               k = 40, # return maximum 40 neighbours; keep this large to allow flexibility for dupes
                                radius = 500 # in hectares; 100m pixels; 50 km r = 7,850 km2 area
         )
         
@@ -819,36 +819,37 @@ annualEvents <- function (sim) {
         
         reproFishers <- reproFishers [kits >= 1, ] # remove females with no kits
         
-        if (nrow (reproFishers) > 0) {
-        ## add the kits to the agents table
-        # create new agents
-        new.agents <- data.frame (lapply (reproFishers, rep, reproFishers$kits)) # repeat the rows in the reproducing fishers table by the number of kits 
-        
-        # assign whether fisher is a male or female; remove males
-        new.agents$kits <- rbinom (size = 1, n = nrow (new.agents), prob = P (sim, "sex_ratio", "FLEX2")) # prob of being a female
-        new.agents <- setDT (new.agents)
-        new.agents <- new.agents [kits == 1, ] # female = 1; male = 0
-        # make them age 0; 
-        new.agents$age <- 0
-        # make their home range size = 0 and d2_score = 0; this gets done in the dispersal function 
-        new.agents$hr_size <- 0
-        new.agents$d2_score <- 0
-        # drop 'reproduce' and 'kits' columns (and time and scenario)
-        new.agents$reproduce <- NULL
-        new.agents$kits <- NULL
-        # update the individual id
-        
-        new.agents <<- new.agents
-        agents <<- sim$agents
-        max.id <<- sim$max.id
-        
-        new.agents$individual_id <- seq (from = (sim$max.id + 1), 
-                                         to = (sim$max.id + nrow (new.agents)), 
-                                         by = 1)
-        sim$max.id <- sim$max.id + nrow (new.agents)
-        } else {
-          message ("There are no reproducing fishers!")
-        }
+          if (nrow (reproFishers) > 0) {
+          ## add the kits to the agents table
+          # create new agents
+          new.agents <- data.frame (lapply (reproFishers, rep, reproFishers$kits)) # repeat the rows in the reproducing fishers table by the number of kits 
+          
+          # assign whether fisher is a male or female; remove males
+          new.agents$kits <- rbinom (size = 1, n = nrow (new.agents), prob = P (sim, "sex_ratio", "FLEX2")) # prob of being a female
+          new.agents <- setDT (new.agents)
+          new.agents <- new.agents [kits == 1, ] # female = 1; male = 0
+          # make them age 0; 
+          new.agents$age <- 0
+          # make their home range size = 0 and d2_score = 0; this gets done in the dispersal function 
+          new.agents$hr_size <- 0
+          new.agents$d2_score <- 0
+          # drop 'reproduce' and 'kits' columns (and time and scenario)
+          new.agents$reproduce <- NULL
+          new.agents$kits <- NULL
+          
+          # update the individual id
+          if (nrow (new.agents) > 0) {
+            new.agents$individual_id <- seq (from = (sim$max.id + 1), 
+                                             to = (sim$max.id + nrow (new.agents)), 
+                                             by = 1)
+            sim$max.id <- sim$max.id + nrow (new.agents)
+            } else {
+              message ("There are no female kits!")
+            }
+          
+          } else {
+            message ("There are no reproducing fishers!")
+          }
 
         sim$agents <- rbind (sim$agents,
                              new.agents) # save the new agents
