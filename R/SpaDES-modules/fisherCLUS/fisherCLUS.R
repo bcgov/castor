@@ -229,19 +229,22 @@ getFLEXWorld<-function(sim){
   #---Note: age > 0 is added a query to remove any harvesting that occurs in the same sim time
   #TODO code out Boreal_B
   fisher.habitat <- data.table(dbGetQuery(sim$clusdb, "select fisherhabitat.pixelid, fetaid, den_p, rus_p, cav_p, cwd_p, mov_p, age, height, crownclosure, basalarea, qmd from fisherhabitat inner join pixels on fisherhabitat.pixelid = pixels.pixelid"))
-  total_cut <- sim$harvestPixelList[nrow(sim$harvestPixelList),]$cvalue/P(sim, "periodLength", "growingStockCLUS")
+  #total_cut <- sim$harvestPixelList[nrow(sim$harvestPixelList),]$cvalue/P(sim, "periodLength", "growingStockCLUS")
  
-  if(is.null(sim$harvestPixelList)){
-    estLength = 1
-  }else{
-    estLength =P(sim, "periodLength", "growingStockCLUS")
-  }
+  #if(is.null(sim$harvestPixelList)){
+  #  estLength = 1
+  #}else{
+  #  estLength =P(sim, "periodLength", "growingStockCLUS")
+  #}
+
+  #for(i in 1:estLength){
+    #if(!is.null(sim$harvestPixelList)){
+     # test<<-sim$harvestPixelList
+     # stop()
+     # fisher.habitat<-fisher.habitat[pixelid %in% sim$harvestPixelList[cvalue <= total_cut*i & cvalue > total_cut*(i-1),]$pixelid, age:=0]
+    #}
+    fisher.habitat<-fisher.habitat[pixelid %in% sim$harvestPixelList$pixelid, age:=0]
   
-  for(i in 1:estLength){
-    if(!is.null(sim$harvestPixelList)){
-      fisher.habitat<-fisher.habitat[pixelid %in% sim$harvestPixelList[cvalue <= total_cut*i & cvalue > total_cut*(i-1),]$pixelid, age:=0]
-    }
-    
 
     fisher.habitat[den_p == 1 & age >= 125 & crownclosure >= 30 & qmd >=28.5 & basalarea >= 29.75, denning:=1][den_p == 2 & age >= 125 & crownclosure >= 20 & qmd >=28 & basalarea >= 28, denning:=1][den_p == 3 & age >= 135, denning:=1][den_p == 4 & age >= 207 & crownclosure >= 20 & qmd >= 34.3, denning:=1][den_p == 5 & age >= 88 & qmd >= 19.5 & height >= 19, denning:=1][den_p == 6 & age >= 98 & qmd >= 21.3 & height >= 22.8, denning:=1]
     fisher.habitat[rus_p == 1 & age > 0 & crownclosure >= 30 & qmd >= 22.7 & basalarea >= 35 & height >= 23.7, rust:=1][rus_p == 2 & age >= 72 & crownclosure >= 25 & qmd >= 19.6 & basalarea >= 32, rust:=1][rus_p == 3 & age >= 83 & crownclosure >=40 & qmd >= 20.1, rust:=1][rus_p == 5 & age >= 78 & crownclosure >=50 & qmd >= 18.5 & height >= 19 & basalarea >= 31.4, rust:=1][rus_p == 6 & age >= 68 & crownclosure >=35 & qmd >= 17 & height >= 14.8, rust:=1]
@@ -287,30 +290,32 @@ getFLEXWorld<-function(sim){
     fisher.habitat.rs[ pop %in% c(3,4), d2:= mahalanobis(fisher.habitat.rs[ pop %in% c(3,4), c("denning", "rust", "cwd", "mov")], c(2.3, 1.6, 10.8, 21.5), cov = sim$fisher.d2.cov[[3]])]
     fisher.habitat.rs[ pop >= 5, d2:= mahalanobis(fisher.habitat.rs[ pop >= 5, c("denning", "rust", "cwd", "mov")], c(24.0, 2.2, 17.4, 56.2), cov = sim$fisher.d2.cov[[4]])]
     
+    #fisher.habitat.rs[mov < 30 & d2 < 7, d2:=10]
+    #print(nrow(fisher.habitat.rs[d2<7,]))
     fisher.habitat.mahal<-merge(fisher.habitat, fisher.habitat.rs[,c("fetaid", "d2", "pop", "mov")], by.x = "fetaid", by.y = "fetaid", all.x =T)
   
     #-----Create Raster of D2
-    ras.mahal<-sim$ras
-    ras.mahal[]<-NA
-    ras.mahal[fisher.habitat.mahal$pixelid]<-fisher.habitat.mahal$d2
+    #ras.mahal<-sim$ras
+    #ras.mahal[]<-NA
+    #ras.mahal[fisher.habitat.mahal$pixelid]<-fisher.habitat.mahal$d2
     
     #---Create Raster of movement
-    ras.mov<-sim$ras
-    ras.mov[] <- NA
-    ras.mov[fisher.habitat.mahal$pixelid]<-fisher.habitat.mahal$mov
+    #ras.mov<-sim$ras
+    #ras.mov[] <- NA
+    #ras.mov[fisher.habitat.mahal$pixelid]<-fisher.habitat.mahal$mov
 
     #Aggregate to a 30km pixels and save for FLEX
-    if(i == 1){
-      sim$flexRasWorld[[2]] <- aggregate(ras.mahal, fact =55)
-      sim$flexRasWorld[[3]] <- aggregate(ras.mov, fact =55)
-    }else{
-      sim$flexRasWorld[[2]] <- stack(sim$flexRasWorld[[2]], aggregate(ras.mahal, fact =55))
-      sim$flexRasWorld[[3]] <- stack(sim$flexRasWorld[[3]], aggregate(ras.mov, fact =55))
-    }
-  }
+    #if(i == 1){
+    #  sim$flexRasWorld[[2]] <- aggregate(ras.mahal, fact =55)
+     # sim$flexRasWorld[[3]] <- aggregate(ras.mov, fact =55)
+   # }else{
+     # sim$flexRasWorld[[2]] <- stack(sim$flexRasWorld[[2]], aggregate(ras.mahal, fact =55))
+    #  sim$flexRasWorld[[3]] <- stack(sim$flexRasWorld[[3]], aggregate(ras.mov, fact =55))
+    #}
+  #}
   
   fisherReport<-merge(occupancy, fisher.habitat.rs[, c("fetaid", "denning", "rust", "cavity", "cwd", "mov","d2")], by.x = "zone", by.y = "fetaid")
-  fisherReport[, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name, sim$boundaryInfo[[3]]) ] 
+  fisherReport[, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name, sim$boundaryInfo[[3]][[1]]) ] 
   sim$fisherReport<-rbindlist(list(sim$fisherReport, fisherReport), use.names=TRUE)
   
   return(invisible(sim)) 
