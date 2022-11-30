@@ -78,10 +78,10 @@ public class CellularAutomata {
 		int currentMaxState;
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
 		//harvestMin = 10000*landscape.pl;
-		harvestMin = 100;
-		harvestMax = 1100;
-		harvestClusterWeight = 0;
-		ageClusterWeight = 0.1f;
+		harvestMin = 175000;
+		harvestMax = 185000;
+		harvestClusterWeight = 0.99f;
+		ageClusterWeight = 0f;
 		harvestPriorityWeight = 1-(harvestClusterWeight + ageClusterWeight);
 		setLCCHarvestDelay(); //In cases no-harvesting decision does not meet the constraint -- remove harvesting during these periods and as a penalty -- thus ahciving the paritial amount
 		
@@ -115,7 +115,7 @@ public class CellularAutomata {
 			}	
 			
 			if(counterLocalMaxState >= 0.99*cellsListChangeState.size()) {
-				System.out.println("Local optimization solved");
+				System.out.println("Local optimization: Solved");
 				System.out.print("");
 				break;
 			}else {
@@ -140,7 +140,7 @@ public class CellularAutomata {
 		System.out.println("Starting global optimization...");
 		//---------------------------------------------
 		int cell;
-		for(int g =0; g < 1000; g++) {	// allow for 1000 iterations
+		for(int g =0; g < 50000; g++) {	// allow for 1000 iterations
 			if(globalConstraintsAchieved) {
 				break;
 			}
@@ -156,7 +156,7 @@ public class CellularAutomata {
 			}
 			
 			System.out.print("iter:" + g + " global weight:" + globalWeight + " Plc:" + plc );
-			globalWeight += 1; //increment the global weight
+			globalWeight += 0.01; //increment the global weight
 			
 			for(int k =0; k < planHarvestVolume.length; k++){
 				System.out.print(" Vol:" + planHarvestVolume[k] + "  ");
@@ -437,8 +437,8 @@ public class CellularAutomata {
 				maxValue = stateValue; //save the top ranking state
 				stateMax = s;
 				plc = getLCRemaining(lcList);
-				if( P > 0.999) { //this is the threshold for stopping the simulation
-				//if( plc >= 0.999 && P > 0.999) { //this is the threshold for stopping the simulation
+				//if( P > 0.999) { //this is the threshold for stopping the simulation
+				if( plc >= 0.999 && P > 0.999) { //this is the threshold for stopping the simulation
 					globalConstraintsAchieved = true;
 					break;
 				}
