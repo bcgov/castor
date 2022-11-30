@@ -385,6 +385,9 @@ Init <- function(sim) {
   sim$agents <- merge (sim$agents,
                        tab.perc [, .(individual_id, d2_score = d2)],
                        by = "individual_id")
+  
+  # save the largest individual id; need this later for setting id's of kits
+  sim$max.id <- max (sim$agents$individual_id)
 
   # save
   new.agents.save <- data.table (n_f_adult = as.numeric (nrow (sim$agents [sex == "F" & age > 1, ])), 
@@ -406,9 +409,6 @@ Init <- function(sim) {
   ras.territories.update [sim$territories$pixelid] <- 1
   sim$ras.territories <- sim$ras.territories + ras.territories.update
 
-  # save the largest indivdual id; need this later
-  sim$max.id <- max (sim$agents$individual_id)
-  
     # clean-up
   rm (ras.territories.update, new.agents.save)
   
@@ -547,7 +547,7 @@ annualEvents <- function (sim) {
     if (nrow (dispersers) > 0) { # check to make sure there are dispersers
     
     # remove the dispersers from the agents and territories tables
-    sim$agents <- sim$agents [!individual_id %in% dispersers$individual_id]
+      # sim$agents <- sim$agents [!individual_id %in% dispersers$individual_id]
     sim$territories <- sim$territories [!individual_id %in% dispersers$individual_id]
     
     # re-set the dispersers HR size and fisher_pop
@@ -654,9 +654,9 @@ annualEvents <- function (sim) {
           # do nothing; we still need to check if it meets min. thresholds for each habitat type (see below)
         } else {
           # save them as agents without a d2score
-          sim$agents <- rbind (sim$agents,
-                               dispersers [individual_id == pix.count.ids[i]])
-          dispersers <- dispersers [individual_id != pix.count.ids[i]] # remove from dispersers table
+          sim$agents <- sim$agents [fisher_pop == 1 & individual_id == pix.count.ids[i], d2_score := NA]
+          sim$agents$d2_score <- as.numeric (sim$agents$d2_score)
+          dispersers <- dispersers [fisher_pop == 1 & individual_id != pix.count.ids[i]] # remove from dispersers table
         } 
        }
       }
@@ -667,9 +667,9 @@ annualEvents <- function (sim) {
         if (pix.count [fisher_pop == 2 & individual_id == pix.count.ids[i], pix.count] >= (sim$female_hr_table [fisher_pop == 2, hr_mean] - (2 * sim$female_hr_table [fisher_pop == 2, hr_sd])) & pix.count [fisher_pop == 2 & individual_id == pix.count.ids[i], pix.count] <= (sim$female_hr_table [fisher_pop == 2, hr_mean] + (2 * sim$female_hr_table [fisher_pop == 2, hr_sd]))) { 
           
         } else {
-          sim$agents <- rbind (sim$agents,
-                               dispersers [individual_id == pix.count.ids[i]])
-          dispersers <- dispersers [individual_id != pix.count.ids[i]] # remove from dispersers table
+          sim$agents <- sim$agents [fisher_pop == 2 & individual_id == pix.count.ids[i], d2_score := NA]
+          sim$agents$d2_score <- as.numeric (sim$agents$d2_score)
+          dispersers <- dispersers [fisher_pop == 2 & individual_id != pix.count.ids[i]] # remove from dispersers table
         } 
        }
       }
@@ -680,22 +680,25 @@ annualEvents <- function (sim) {
         if (pix.count [fisher_pop == 3 & individual_id == pix.count.ids[i], pix.count] >= (sim$female_hr_table [fisher_pop == 3, hr_mean] - (2 * sim$female_hr_table [fisher_pop == 3, hr_sd])) & pix.count [fisher_pop == 3 & individual_id == pix.count.ids[i], pix.count] <= (sim$female_hr_table [fisher_pop == 3, hr_mean] + (2 * sim$female_hr_table [fisher_pop == 3, hr_sd]))) { 
           
         } else {
-          sim$agents <- rbind (sim$agents,
-                               dispersers [individual_id == pix.count.ids[i]])
-          dispersers <- dispersers [individual_id != pix.count.ids[i]] # remove from dispersers table
+          sim$agents <- sim$agents [fisher_pop == 3 & individual_id == pix.count.ids[i], d2_score := NA]
+          sim$agents$d2_score <- as.numeric (sim$agents$d2_score)
+          dispersers <- dispersers [fisher_pop == 3 & individual_id != pix.count.ids[i]] # remove from dispersers table
         } 
        }
       }
      
+      
+      # below if the function where the 'duplicate' error gets thrown
+        # there are duplicate "pix.count.ids", which originates from the dispersers individual_id's
       pix.count.ids <- c (unique (pix.count [fisher_pop == 4, ]$individual_id))
       if (length (pix.count.ids) > 0) {
       for (i in 1:length (pix.count.ids)) { # for each individual
         if (pix.count [fisher_pop == 4 & individual_id == pix.count.ids[i], pix.count] >= (sim$female_hr_table [fisher_pop == 4, hr_mean] - (2 * sim$female_hr_table [fisher_pop == 4, hr_sd])) & pix.count [fisher_pop == 4 & individual_id == pix.count.ids[i], pix.count] <= (sim$female_hr_table [fisher_pop == 4, hr_mean] + (2 * sim$female_hr_table [fisher_pop == 4, hr_sd]))) { 
           
         } else {
-          sim$agents <- rbind (sim$agents,
-                               dispersers [individual_id == pix.count.ids[i]])
-          dispersers <- dispersers [individual_id != pix.count.ids[i]] # remove from dispersers table
+          sim$agents <- sim$agents [fisher_pop == 4 & individual_id == pix.count.ids[i], d2_score := NA]
+          sim$agents$d2_score <- as.numeric (sim$agents$d2_score)
+          dispersers <- dispersers [fisher_pop == 4 & individual_id != pix.count.ids[i]] # remove from dispersers table
         } 
        }
       }
@@ -718,8 +721,8 @@ annualEvents <- function (sim) {
             # do nothing; we still need to check if it meets min. habitat criteria (see below)
           } else {
             # save them as agents without a d2score
-            sim$agents <- rbind (sim$agents,
-                                 dispersers [individual_id == hab.inds[i]])
+            sim$agents <- sim$agents [individual_id == hab.inds[i], d2_score := NA]
+            sim$agents$d2_score <- as.numeric (sim$agents$d2_score)
             # delete the individual from the dispersers table
             dispersers <- dispersers [individual_id != hab.inds[i]]
           } 
@@ -767,15 +770,13 @@ annualEvents <- function (sim) {
               # assign the pixels to the territories table
               sim$territories <- rbind (sim$territories, 
                                         table.disperse.hr [individual_id == disp.ids[i], .(pixelid = pixels, individual_id)]) 
-              # assign dispersers to the agents table
-              sim$agents <- rbind (sim$agents, 
-                                   dispersers [individual_id == disp.ids[i], ]) 
+              # update dispersers new d2_score to the agents table
+              sim$agents <- sim$agents [individual_id == disp.ids[i], d2_score := dispersers [individual_id == disp.ids[i], d2_score]] 
               
             } else {
-              # add the individual to the agents without a d2 score
-              dispersers [individual_id == disp.ids[i], d2_score := NA]
-              dispersers$d2_score <- as.numeric (dispersers$d2_score)
-              sim$agents <- rbind (sim$agents, dispersers [individual_id == disp.ids[i], ]) 
+              # update the individual d2 score to NA
+              sim$agents <- sim$agents [individual_id == disp.ids[i], d2_score := NA]
+              sim$agents$d2_score <- as.numeric (sim$agents$d2_score)
             }
           }
         }
@@ -836,9 +837,15 @@ annualEvents <- function (sim) {
         new.agents$reproduce <- NULL
         new.agents$kits <- NULL
         # update the individual id
+        
+        new.agents <<- new.agents
+        agents <<- sim$agents
+        max.id <<- sim$max.id
+        
         new.agents$individual_id <- seq (from = (sim$max.id + 1), 
-                                         to =  (sim$max.id + nrow (new.agents)), by = 1)
-        sim$max.id <- max (new.agents$individual_id)
+                                         to = (sim$max.id + nrow (new.agents)), 
+                                         by = 1)
+        sim$max.id <- sim$max.id + nrow (new.agents)
         } else {
           message ("There are no reproducing fishers!")
         }
