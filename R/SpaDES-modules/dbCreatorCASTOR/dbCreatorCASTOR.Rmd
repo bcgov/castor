@@ -34,8 +34,8 @@ parameters <- list(
                           clusterLevel = 1
                           )
 )
-extent <- list(10,10, 0,10,0,10)
-zoneConstraint = data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 50)
+extent <- list(100, 100, 0,100,0,100)
+zoneConstraint = data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
 
 modules <- list("dbCreatorCASTOR")
 objects <- list(extent = extent, zoneConstraint =  zoneConstraint ) # set various sizes landscapes
