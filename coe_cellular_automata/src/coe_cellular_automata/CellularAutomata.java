@@ -78,10 +78,10 @@ public class CellularAutomata {
 		int currentMaxState;
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
 		//harvestMin = 10000*landscape.pl;
-		harvestMin = 175000;
-		harvestMax = 185000;
-		harvestClusterWeight = 0.99f;
-		ageClusterWeight = 0f;
+		harvestMin = 205000;
+		harvestMax = 215000;
+		harvestClusterWeight = 0.8f;
+		ageClusterWeight = 0.15f;
 		harvestPriorityWeight = 1-(harvestClusterWeight + ageClusterWeight);
 		setLCCHarvestDelay(); //In cases no-harvesting decision does not meet the constraint -- remove harvesting during these periods and as a penalty -- thus ahciving the paritial amount
 		
