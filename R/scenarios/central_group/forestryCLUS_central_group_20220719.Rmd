@@ -177,7 +177,7 @@ parameters <- list(
   roadCLUS = list(roadMethod = 'pre', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.ce_road_2019'),
-  survivalCLUS = list (caribou_herd_density = 0.05, 
+  survivalCASTOR = list (caribou_herd_density = 0.05, 
                        nameRasCaribouHerd = "rast.caribou_herd", 
                        tableCaribouHerd = "public.caribou_herd_vat"), #
   disturbanceCASTOR = list(calculateInterval =  1, 
@@ -199,7 +199,7 @@ modules <- list("dataLoaderCLUS",
                 "blockingCLUS", 
                 "forestryCLUS", 
                 "roadCLUS",  
-                "survivalCLUS", 
+                "survivalCASTOR", 
                 "disturbanceCASTOR", 
                 "uploaderCLUS"
                 )

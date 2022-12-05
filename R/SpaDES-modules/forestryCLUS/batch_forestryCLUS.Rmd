@@ -124,7 +124,7 @@ foreach(i=1:length(list_input_data)) %dopar% {
     volumebyareaReportCLUS = list (calculateInterval = 1,
       AreaofInterestRaster = "rast.bc_crithab_and_herd",
       AreaofInterestTable = "public.vat_bc_crithab_and_herd"),
-    survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
+    survivalCASTOR = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                          nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                          tableCaribouHerd = "public.caribou_herd"), # look-up table of herd names
     uploaderCLUS = list(aoiName = tolower(input_data[Parameters == 'Boundary', ]$Value),
@@ -140,7 +140,7 @@ foreach(i=1:length(list_input_data)) %dopar% {
                   "blockingCLUS",
                   "forestryCLUS", 
                   "roadCLUS",  
-                  "survivalCLUS",
+                  "survivalCASTOR",
                   "disturbanceCASTOR", 
                   "volumebyareaReportCLUS",
                   "uploaderCLUS")

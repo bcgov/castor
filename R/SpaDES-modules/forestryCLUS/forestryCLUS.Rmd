@@ -87,7 +87,7 @@ parameters <- list(
   forestryCLUS = list( harvestPriority = "age DESC, vol DESC",adjacencyConstraint = TRUE),
   #roadCLUS = list(roadMethod = 'snap', nameCostSurfaceRas = 'rast.rd_cost_surface', nameRoads =  'rast.crds_resource'),
   #rsfCLUS = list(calculateInterval = 5, criticalHabitatTable = "public.criticalhabitat", writeRSFRasters = TRUE),
-  survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
+  survivalCASTOR = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "public.caribou_herd"), # look-up table of herd names
   uploaderCLUS = list(aoiName = 'test',
@@ -96,7 +96,7 @@ parameters <- list(
   yieldUncertaintyCLUS = list(elevationRaster = 'rast.dem')
 )
 
-modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS", "yieldUncertaintyCLUS", "survivalCLUS", "uploaderCLUS")
+modules <- list("dataLoaderCLUS", "growingStockCLUS", "blockingCLUS", "forestryCLUS", "yieldUncertaintyCLUS", "survivalCASTOR", "uploaderCLUS")
 
 #rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM rsf_model_coeff WHERE species = 'caribou' AND population = 'DU7' and season IN ('S', 'EW', 'LW')"))
 #rsf_model_coeff[, bounds := 'rast.crithabitat']
