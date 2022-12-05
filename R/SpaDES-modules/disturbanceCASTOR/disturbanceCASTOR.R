@@ -1,4 +1,4 @@
-# Copyright 2020rsf_ Province of British Columbia
+# Copyright 2023 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,18 +11,18 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 defineModule(sim, list(
-  name = "disturbanceCalcCLUS",
+  name = "disturbanceCASTOR",
   description = NA, #"insert module description here",
   keywords = NA, # c("insert key words here"),
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
               person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
-  version = list(SpaDES.core = "0.2.5", disturbanceCalcCLUS = "0.0.1"),
+  version = list(SpaDES.core = "0.2.5", disturbanceCASTOR = "1.0.0"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.txt", "disturbanceCalcCLUS.Rmd"),
+  documentation = list("README.txt", "disturbanceCASTOR.Rmd"),
   reqdPkgs = list("raster"),
   parameters = rbind(
     defineParameter("criticalHabitatTable", "character", '99999', NA, NA, "Value attribute table that links to the raster and describes the boundaries of the critical habitat"),
@@ -39,8 +39,8 @@ defineModule(sim, list(
   ),
   inputObjects = bind_rows(
     expectsInput(objectName = "boundaryInfo", objectClass = "character", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "clusdb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the RSF', sourceURL = NA),
-    expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataLoaderCLUS. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
+    expectsInput(objectName = "castordb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the RSF', sourceURL = NA),
+    expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataCASTOR. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
@@ -53,16 +53,16 @@ defineModule(sim, list(
   )
 ))
 
-doEvent.disturbanceCalcCLUS = function(sim, eventTime, eventType) {
+doEvent.disturbanceCASTOR = function (sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
       sim <- Init (sim) # this function inits 
-      sim <- scheduleEvent(sim, time(sim) , "disturbanceCalcCLUS", "analysis", 9)
+      sim <- scheduleEvent(sim, time(sim) , "disturbanceCASTOR", "analysis", 9)
     },
     analysis = {
       sim <- distAnalysis(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "disturbanceCalcCLUS"), "disturbanceCalcCLUS", "analysis", 9)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "disturbanceCASTOR"), "disturbanceCASTOR", "analysis", 9)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -85,54 +85,54 @@ Init <- function(sim) {
                                     c10_40r50=numeric(),  c10_40r500=numeric(), cut10_40=numeric() )
   sim$disturbance <- sim$pts
   message("...Get the critical habitat")
-  if(P(sim, "criticalHabRaster", "disturbanceCalcCLUS") == '99999'){
+  if(P(sim, "criticalHabRaster", "disturbanceCASTOR") == '99999'){
     sim$disturbance[, attribute := 1]
   }else{
     bounds <- data.table (V1 = RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                 srcRaster = P(sim, "criticalHabRaster", "disturbanceCalcCLUS"), 
-                 clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
-                 geom = sim$boundaryInfo[[4]], 
-                 where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                 conn = NULL)[])
-    bounds[,pixelid:=seq_len(.N)] # make a unique id to ensure it merges correctly
+                          srcRaster = P (sim, "criticalHabRaster", "disturbanceCASTOR"), 
+                          clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
+                          geom = sim$boundaryInfo[[4]], 
+                          where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                          conn = NULL)[])
+    bounds [, pixelid := seq_len(.N)] # make a unique id to ensure it merges correctly
     if(nrow(bounds[!is.na(V1),]) > 0){ #check to see if some of the aoi overlaps with the boundary
-      if(!(P(sim, "criticalHabitatTable", "disturbanceCalcCLUS") == '99999')){
-        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , attribute FROM ",P(sim, "criticalHabitatTable", "disturbanceCalcCLUS"))))
+      if(!(P(sim, "criticalHabitatTable", "disturbanceCASTOR") == '99999')){
+        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , attribute FROM ",P(sim, "criticalHabitatTable", "disturbanceCASTOR"))))
         bounds<-merge (bounds, crit_lu, by.x = "V1", by.y = "value", all.x = TRUE)
       }else{
-        stop(paste0("ERROR: need to supply a lookup table: ", P(sim, "criticalHabitatTable", "disturbanceCalcCLUS")))
+        stop(paste0("ERROR: need to supply a lookup table: ", P(sim, "criticalHabitatTable", "disturbanceCASTOR")))
       }
     }else{
-      stop(paste0(P(sim, "criticalHabRaster", "disturbanceCalcCLUS"), "- does not overlap with aoi"))
+      stop(paste0(P(sim, "criticalHabRaster", "disturbanceCASTOR"), "- does not overlap with aoi"))
     }
     setorder(bounds, pixelid) #sort the bounds
     sim$disturbance[, critical_hab:= bounds$attribute]
-    sim$disturbance[, compartment:= dbGetQuery(sim$clusdb, "SELECT compartid FROM pixels order by pixelid")$compartid]
-    sim$disturbance[, treed:= dbGetQuery(sim$clusdb, "SELECT treed FROM pixels order by pixelid")$treed]
+    sim$disturbance[, compartment:= dbGetQuery(sim$castordb, "SELECT compartid FROM pixels order by pixelid")$compartid]
+    sim$disturbance[, treed:= dbGetQuery(sim$castordb, "SELECT treed FROM pixels order by pixelid")$treed]
   }
   
   #get the permanent disturbance raster
-  #check it a field already in sim$clusdb?
-  if(dbGetQuery (sim$clusdb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='perm_dist';")$exists_check == 0){
+  #check it a field already in sim$castordb?
+  if(dbGetQuery (sim$castordb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='perm_dist';")$exists_check == 0){
     # add in the column
-    dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN perm_dist integer DEFAULT 0")
+    dbExecute(sim$castordb, "ALTER TABLE pixels ADD COLUMN perm_dist integer DEFAULT 0")
     # add in the raster
-    if(P(sim, "permDisturbanceRaster", "disturbanceCalcCLUS") == '99999'){
+    if(P(sim, "permDisturbanceRaster", "disturbanceCASTOR") == '99999'){
       message("WARNING: No permanent disturbance raster specified ... defaulting to no permanent disturbances")
-      dbExecute(sim$clusdb, "Update pixels set perm_dist = 0;")
+      dbExecute(sim$castordb, "Update pixels set perm_dist = 0;")
     }else{
     perm_dist <- data.table(perm_dist = RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                     srcRaster = P(sim, "permDisturbanceRaster", "disturbanceCalcCLUS"), 
+                     srcRaster = P(sim, "permDisturbanceRaster", "disturbanceCASTOR"), 
                      clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                      geom = sim$boundaryInfo[[4]], 
                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                      conn = NULL)[])
     perm_dist[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
-    #add to the clusdb
-    dbBegin(sim$clusdb)
-      rs<-dbSendQuery(sim$clusdb, "Update pixels set perm_dist = :perm_dist where pixelid = :pixelid", perm_dist)
+    #add to the castordb
+    dbBegin(sim$castordb)
+      rs<-dbSendQuery(sim$castordb, "Update pixels set perm_dist = :perm_dist where pixelid = :pixelid", perm_dist)
     dbClearResult(rs)
-    dbCommit(sim$clusdb)
+    dbCommit(sim$castordb)
     
     #clean up
     rm(perm_dist)
@@ -146,7 +146,7 @@ Init <- function(sim) {
 }
 
 distAnalysis <- function(sim) {
-  all.dist<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT age, blockid, (case when ((",time(sim)*sim$updateInterval, " - roadstatus < ",P(sim, "recovery", "disturbanceCalcCLUS")," AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) then 1 else 0 end) as road_dist, pixelid FROM pixels WHERE perm_dist > 0 OR (blockid > 0 and age >= 0) OR (",time(sim)*sim$updateInterval, " - roadstatus < ", P(sim, "recovery", "disturbanceCalcCLUS")," AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0;")))
+  all.dist<-data.table(dbGetQuery(sim$castordb, paste0("SELECT age, blockid, (case when ((",time(sim)*sim$updateInterval, " - roadstatus < ",P(sim, "recovery", "disturbanceCASTOR")," AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) then 1 else 0 end) as road_dist, pixelid FROM pixels WHERE perm_dist > 0 OR (blockid > 0 and age >= 0) OR (",time(sim)*sim$updateInterval, " - roadstatus < ", P(sim, "recovery", "disturbanceCASTOR")," AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0;")))
   
   if(nrow(all.dist) > 0){
     outPts <- merge (sim$disturbance, all.dist, by = 'pixelid', all.x =TRUE) 
@@ -244,16 +244,16 @@ distAnalysis <- function(sim) {
     sim$disturbance<-merge(sim$disturbance, outPts[,c("pixelid","dist")], by = 'pixelid', all.x =TRUE) #sim$rsfcovar contains: pixelid, x,y, population
     
     #update the pixels table
-    dbBegin(sim$clusdb)
-      rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET dist = :dist WHERE pixelid = :pixelid;", outPts[,c("pixelid","dist")])
+    dbBegin(sim$castordb)
+      rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET dist = :dist WHERE pixelid = :pixelid;", outPts[,c("pixelid","dist")])
     dbClearResult(rs)
-    dbCommit(sim$clusdb)
+    dbCommit(sim$castordb)
   
   }else{
     sim$disturbance$dist<-501
   }
   
-  #TODO:Add the volume from harvestPixelList; but see volumebyareaReportCLUS
+  #TODO:Add the volume from harvestPixelList; but see volumebyareaReportCASTOR
   tempDisturbanceReport<-data.table(Filter(function(x) !is.null(x),
                                 list (cutblock_summary, road_summary, c80r, c40r, c20r, c10_40r)) %>%
                                   Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2, by=c("compartment","critical_hab")), .))

@@ -108,7 +108,7 @@ parameters <-  list(
                              queryCutblocks = 'cutseq_centroid',
                              resetAge = TRUE
                               ),
-  disturbanceCalcCLUS = list(calculateInterval = 100, 
+  disturbanceCASTOR = list(calculateInterval = 100, 
                              criticalHabitatTable = "vat.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.perm_dist_no_rds",
@@ -146,7 +146,7 @@ modules <- list("dataLoaderCLUS",
                 "blockingCLUS", 
                 "roadCLUS",  
                 "survivalCLUS",
-                "disturbanceCalcCLUS",
+                "disturbanceCASTOR",
                 "smcaribouAbundanceCLUS",
                 "uploaderCLUS",
                 "cutblockSeqPrepCLUS")
