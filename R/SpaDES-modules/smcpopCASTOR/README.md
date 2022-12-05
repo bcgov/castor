@@ -9,7 +9,7 @@ For more details please see [Lochhead et al. (In Prep.)](citation).
 ### Input Parameters
 * *nameRasSMCHerd* - Name of the raster of the southern mountain caribou critical habitat areas. See [here](https://github.com/bcgov/clus/blob/master/R/Params/caribou_southern_mtn_pop_model.Rmd) 
 
-* *tableSMCCoeffs* - The look up table of the southern mountain caribou critical habitat name and type (core or matrix) for each unique raster value, and the random adn fixed effects coefficients for each subpopulation and model. See [here](https://github.com/bcgov/clus/blob/master/R/Params/caribou_southern_mtn_pop_model.Rmd)
+* *tableSMCCoeffs* - The look up table of the southern mountain caribou critical habitat name and type (core or matrix) for each unique raster value, and the random adn fixed effects coefficients for each subpopulation and model. See [here](https://github.com/bcgov/castor/blob/master/R/Params/caribou_southern_mtn_pop_model.Rmd)
 
 * *calculateInterval*. The interval from which to calculate the RSF(s). Default = 1 (yearly).
 
@@ -20,7 +20,7 @@ For more details please see [Lochhead et al. (In Prep.)](citation).
 
 ## Licence
 
-    Copyright 2019 Province of British Columbia
+    Copyright 2022 Province of British Columbia
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.

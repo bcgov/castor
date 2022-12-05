@@ -158,7 +158,7 @@ parameters <- list(
   survivalCLUS = list (caribou_herd_density = 0.05, 
                        nameRasCaribouHerd = "rast.caribou_herd", # if update, use rast.caribou_herd_20220725
                        tableCaribouHerd = "vat.caribou_herd_vat"), # if update, use vat.caribou_herd_20220725
-  smcaribouAbundanceCLUS = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
+  smcpopCASTOR = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
                                   tableSMCCoeffs = "vat.smc_coeffs"),
   survivalgrizzlyCASTOR = list (rasterGBPU = "rast.gbpu_2021", 
                               tableGBPU= "vat.gbpu", 
@@ -188,7 +188,7 @@ modules <- list("dataLoaderCLUS",
                 "disturbanceCASTOR", 
                 "uploaderCLUS",
                 "survivalgrizzlyCASTOR",
-                "smcaribouAbundanceCLUS",
+                "smcpopCASTOR",
                 "volumebyareaReportCLUS"
                 )
 

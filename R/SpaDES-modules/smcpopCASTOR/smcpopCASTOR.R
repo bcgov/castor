@@ -1,5 +1,5 @@
 #===========================================================================================#
-# Copyright 2021 Province of British Columbia
+# Copyright 2022 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,27 +13,27 @@
 #===========================================================================================#
 
 defineModule (sim, list (
-  name = "smcaribouAbundanceCLUS",
+  name = "smcpopCASTOR",
   description = "This module estimates habitat disturbance and abundance in caribou subpopulations/herd ranges using the model developed by Locchead et al. 2021.",
   keywords = c ("caribou", "survival", "southern mountain", "adult female"), 
   authors = c (person ("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre")),
                person ("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character (0),
-  version = list (SpaDES.core = "0.2.5", smcaribouAbundanceCLUS = "0.0.1"),
+  version = list (SpaDES.core = "0.2.5", smcpopCASTOR = "1.0.0"),
   spatialExtent = raster::extent (rep (NA_real_, 4)),
   timeframe = as.POSIXlt (c (NA, NA)),
   timeunit = "year",
   citation = list ("citation.bib"),
-  documentation = list ("README.md", "smcaribouAbundanceCLUS.Rmd"),
+  documentation = list ("README.md", "smcpopCASTOR.Rmd"),
   reqdPkgs = list (),
   parameters = rbind (
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter ("calculateInterval", "numeric", 1, 1, 5, "The simulation time at which survival rates are calculated"),
-    defineParameter ("nameRasSMCHerd", "character", "rast.smc_herd_habitat", NA, NA, "Name of the raster of the caribou subpopulation/herd habiat boundaries that is stored in the psql clusdb") 
+    defineParameter ("nameRasSMCHerd", "character", "rast.smc_herd_habitat", NA, NA, "Name of the raster of the caribou subpopulation/herd habiat boundaries that is stored in the psql castordb") 
     #defineParameter ("tableSMCCoeffs", "character", "vat.smc_coeffs", NA, NA, "The look up table that contains the model coefficients to estimate abundance from disturbance, for each caribou subpopulation/herd.")
   ),
   inputObjects = bind_rows(
-    expectsInput (objectName = "clusdb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the model. This module needs the age variable from the pixels table in the clusdb.', sourceURL = NA),
+    expectsInput (objectName = "castordb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the model. This module needs the age variable from the pixels table in the castordb', sourceURL = NA),
     expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA),
     expectsInput (objectName = "table_smCoeffs", objectClass = "data.table", desc = "A data.table object.")
@@ -44,18 +44,18 @@ defineModule (sim, list (
 )
 )
 
-doEvent.smcaribouAbundanceCLUS = function (sim, eventTime, eventType) {
+doEvent.smcpopCASTOR = function (sim, eventTime, eventType) {
   switch (
     eventType,
     init = { 
       sim <- Init (sim) 
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "smcaribouAbundanceCLUS"), "smcaribouAbundanceCLUS", "calculateAbundance", 8) 
-      #sim <- scheduleEvent (sim, end(sim), "smcaribouAbundanceCLUS", "adjustAbundanceTable", 9) 
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "smcpopCASTOR"), "smcpopCASTOR", "calculateAbundance", 8) 
+      #sim <- scheduleEvent (sim, end(sim), "smcpopCASTOR", "adjustAbundanceTable", 9) 
     },
     
     calculateAbundance = { # calculate survival rate at each time interval 
       sim <- predictAbundance (sim) 
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "smcaribouAbundanceCLUS"), "smcaribouAbundanceCLUS", "calculateAbundance", 8)
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "smcpopCASTOR"), "smcpopCASTOR", "calculateAbundance", 8)
     },
     # adjustAbundanceTable ={ 
     #   sim <- adjustAbundanceTable (sim)
@@ -68,16 +68,16 @@ doEvent.smcaribouAbundanceCLUS = function (sim, eventTime, eventType) {
 }
 
 Init <- function (sim) { 
-  if (nrow (data.table (dbGetQuery (sim$clusdb, "PRAGMA table_info(pixels)"))[name == 'herd_habitat_name',])== 0){
-    dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN subpop_name character")  
-    dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN habitat_type character")
-    dbExecute (sim$clusdb, "ALTER TABLE pixels ADD COLUMN herd_habitat_name character")  
+  if (nrow (data.table (dbGetQuery (sim$castordb, "PRAGMA table_info(pixels)"))[name == 'herd_habitat_name',])== 0){
+    dbExecute (sim$castordb, "ALTER TABLE pixels ADD COLUMN subpop_name character")  
+    dbExecute (sim$castordb, "ALTER TABLE pixels ADD COLUMN habitat_type character")
+    dbExecute (sim$castordb, "ALTER TABLE pixels ADD COLUMN herd_habitat_name character")  
     
     herd_hab <- data.table (herd_habitat = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                            srcRaster = P (sim, "nameRasSMCHerd", "smcaribouAbundanceCLUS") , 
-                            clipper = P (sim, "nameBoundaryFile", "dataLoaderCLUS"),  
-                            geom = P (sim, "nameBoundaryGeom", "dataLoaderCLUS"), 
-                            where_clause =  paste0 (P (sim, "nameBoundaryColumn", "dataLoaderCLUS"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                            srcRaster = P (sim, "nameRasSMCHerd", "smcpopCASTOR") , 
+                            clipper = P (sim, "nameBoundaryFile", "dataCASTOR"),  
+                            geom = P (sim, "nameBoundaryGeom", "dataCASTOR"), 
+                            where_clause =  paste0 (P (sim, "nameBoundaryColumn", "dataCASTOR"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                             conn = NULL)[])
     herd_hab [, herd_habitat := as.integer (herd_habitat)] 
     herd_hab [, pixelid := seq_len(.N)] 
@@ -85,10 +85,10 @@ Init <- function (sim) {
     herd_hab <- herd_hab [, .(pixelid, herd_name, bc_habitat_type, herd_hab_name)]
     setorder (herd_hab, "pixelid") 
     
-    dbBegin (sim$clusdb) # add the herd  and habitat boundary values to the pixels table 
-    rs <- dbSendQuery (sim$clusdb, "UPDATE pixels SET herd_habitat_name = :herd_hab_name, subpop_name = :herd_name, habitat_type = :bc_habitat_type WHERE pixelid = :pixelid", herd_hab) 
+    dbBegin (sim$castordb) # add the herd  and habitat boundary values to the pixels table 
+    rs <- dbSendQuery (sim$castordb, "UPDATE pixels SET herd_habitat_name = :herd_hab_name, subpop_name = :herd_name, habitat_type = :bc_habitat_type WHERE pixelid = :pixelid", herd_hab) 
     dbClearResult (rs)
-    dbCommit (sim$clusdb) # commit the new column to the db
+    dbCommit (sim$castordb) # commit the new column to the db
   }
   
   # The following calculates the proportion of 'disturbed' forested pixels in each subpop/herd core and matrix habitat area 
@@ -96,9 +96,9 @@ Init <- function (sim) {
     # cases that meet the case criteria 'when' (case = 1) and
     # cases that do not meet the case criteria 'then' (case = 0)
     # it does this by each herd/habitat area ('GROUP BY' statement)
-  table.disturb.r50 <- data.table (dbGetQuery (sim$clusdb, paste0 ("SELECT AVG (CASE WHEN ((",time(sim)*sim$updateInterval, " - roadstatus < 80 AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) THEN 1 ELSE 0 END) * 100 AS percent_r50disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND treed = 1 GROUP BY herd_habitat_name;"))) 
-  table.disturb.c80 <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN blockid > 0 AND age >= 0 AND age <= 80 THEN 1 ELSE 0 END) * 100 AS percent_c80disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND treed = 1 GROUP BY herd_habitat_name;")) 
-  table.disturb.r50c80 <- data.table (dbGetQuery (sim$clusdb, paste0 ("SELECT AVG (CASE WHEN ((",time(sim)*sim$updateInterval, " - roadstatus < 80 AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) OR blockid > 0 AND age >=0 AND age <= 80 THEN 1 ELSE 0 END) * 100 AS percent_r50c80disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND treed = 1 GROUP BY herd_habitat_name;")))
+  table.disturb.r50 <- data.table (dbGetQuery (sim$castordb, paste0 ("SELECT AVG (CASE WHEN ((",time(sim)*sim$updateInterval, " - roadstatus < 80 AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) THEN 1 ELSE 0 END) * 100 AS percent_r50disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND treed = 1 GROUP BY herd_habitat_name;"))) 
+  table.disturb.c80 <- data.table (dbGetQuery (sim$castordb, "SELECT AVG (CASE WHEN blockid > 0 AND age >= 0 AND age <= 80 THEN 1 ELSE 0 END) * 100 AS percent_c80disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND treed = 1 GROUP BY herd_habitat_name;")) 
+  table.disturb.r50c80 <- data.table (dbGetQuery (sim$castordb, paste0 ("SELECT AVG (CASE WHEN ((",time(sim)*sim$updateInterval, " - roadstatus < 80 AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) OR blockid > 0 AND age >=0 AND age <= 80 THEN 1 ELSE 0 END) * 100 AS percent_r50c80disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND treed = 1 GROUP BY herd_habitat_name;")))
    # reshape the table 
   table.disturb.r50 <- dcast (table.disturb.r50,
                               subpop_name ~ habitat_type, 
@@ -128,7 +128,7 @@ Init <- function (sim) {
   table.disturb [, abundance_avg := (abundance_r50 + abundance_c80r50 + abundance_c80)/3]
   sim$tableAbundanceReport <- table.disturb 
   sim$tableAbundanceReport [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the survival calc
-  total_area <- data.table (dbGetQuery (sim$clusdb, "SELECT count(*)as area, subpop_name FROM pixels WHERE subpop_name IS NOT NULL AND age Is NOT NULL GROUP BY subpop_name;"))
+  total_area <- data.table (dbGetQuery (sim$castordb, "SELECT count(*)as area, subpop_name FROM pixels WHERE subpop_name IS NOT NULL AND age Is NOT NULL GROUP BY subpop_name;"))
   sim$tableAbundanceReport <- merge (sim$tableAbundanceReport, total_area, by.x = "subpop_name", by.y = "subpop_name", all.x = TRUE )
   sim$tableAbundanceReport <- sim$tableAbundanceReport [, c ("scenario", "timeperiod", "subpop_name", "area", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")]
   return(invisible(sim))
@@ -138,9 +138,9 @@ Init <- function (sim) {
 predictAbundance <- function (sim) { # this function calculates survival rate at each time interval; same as on init, above
   
   message("estimating abundance")
-  table.disturb.r50.new <- data.table (dbGetQuery (sim$clusdb, paste0 ("SELECT AVG (CASE WHEN ((", time(sim)*sim$updateInterval, " - roadstatus < 80 AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) THEN 1 ELSE 0 END) * 100 AS percent_r50disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND treed = 1 GROUP BY herd_habitat_name;"))) 
-  table.disturb.c80.new <- data.table (dbGetQuery (sim$clusdb, "SELECT AVG (CASE WHEN blockid > 0 AND age >= 0 AND age <= 80 THEN 1 ELSE 0 END) * 100 AS percent_c80disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND treed = 1 GROUP BY herd_habitat_name;")) 
-  table.disturb.r50c80.new <- data.table (dbGetQuery (sim$clusdb, paste0 ("SELECT AVG (CASE WHEN ((", time(sim)*sim$updateInterval, " - roadstatus < 80 AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) OR blockid > 0 AND age >=0 AND age <= 80 THEN 1 ELSE 0 END) * 100 AS percent_r50c80disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND treed = 1 GROUP BY herd_habitat_name;"))) 
+  table.disturb.r50.new <- data.table (dbGetQuery (sim$castordb, paste0 ("SELECT AVG (CASE WHEN ((", time(sim)*sim$updateInterval, " - roadstatus < 80 AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) THEN 1 ELSE 0 END) * 100 AS percent_r50disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND treed = 1 GROUP BY herd_habitat_name;"))) 
+  table.disturb.c80.new <- data.table (dbGetQuery (sim$castordb, "SELECT AVG (CASE WHEN blockid > 0 AND age >= 0 AND age <= 80 THEN 1 ELSE 0 END) * 100 AS percent_c80disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND treed = 1 GROUP BY herd_habitat_name;")) 
+  table.disturb.r50c80.new <- data.table (dbGetQuery (sim$castordb, paste0 ("SELECT AVG (CASE WHEN ((", time(sim)*sim$updateInterval, " - roadstatus < 80 AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) OR blockid > 0 AND age >=0 AND age <= 80 THEN 1 ELSE 0 END) * 100 AS percent_r50c80disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND treed = 1 GROUP BY herd_habitat_name;"))) 
   # reshape the table 
   table.disturb.r50.new <- dcast (table.disturb.r50.new,
                                   subpop_name ~ habitat_type, 
@@ -166,7 +166,7 @@ predictAbundance <- function (sim) { # this function calculates survival rate at
                               by = "subpop_name")
   table.disturb.new [, abundance_avg := (abundance_r50 + abundance_c80r50 + abundance_c80)/3]
   table.disturb.new [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
-  total_area <- data.table (dbGetQuery (sim$clusdb, "SELECT count(*)as area, subpop_name FROM pixels WHERE subpop_name IS NOT NULL AND age Is NOT NULL GROUP BY subpop_name;"))
+  total_area <- data.table (dbGetQuery (sim$castordb, "SELECT count(*)as area, subpop_name FROM pixels WHERE subpop_name IS NOT NULL AND age Is NOT NULL GROUP BY subpop_name;"))
   table.disturb.new <- merge (table.disturb.new, total_area, by.x = "subpop_name", by.y = "subpop_name", all.x = TRUE )
   table.disturb.new <- table.disturb.new [, c ("scenario", "timeperiod", "subpop_name", "area", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")]
   sim$tableAbundanceReport <- rbindlist (list (sim$tableAbundanceReport, table.disturb.new [, c ("scenario", "timeperiod", "subpop_name", "area", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")])) # bind the new survival rate table to the existing table
@@ -174,7 +174,7 @@ predictAbundance <- function (sim) { # this function calculates survival rate at
 }
 
 # adjustAbundanceTable <- function (sim) { # this function adds the total area of the herds to be used for weighting in the dashboard
-#   total_area <- data.table (dbGetQuery (sim$clusdb, "SELECT count(*)as area, subpop_name FROM pixels WHERE subpop_name IS NOT NULL AND age Is NOT NULL GROUP BY subpop_name;"))
+#   total_area <- data.table (dbGetQuery (sim$castordb, "SELECT count(*)as area, subpop_name FROM pixels WHERE subpop_name IS NOT NULL AND age Is NOT NULL GROUP BY subpop_name;"))
 #   sim$tableAbundanceReport <- merge (sim$tableAbundanceReport, total_area, by.x = "subpop_name", by.y = "subpop_name", all.x = TRUE )
 #   return (invisible(sim))
 # }

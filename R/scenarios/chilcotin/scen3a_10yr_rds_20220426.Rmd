@@ -250,7 +250,7 @@ parameters <- list(
   volumebyareaReportCLUS = list (calculateInterval = 1,
                                  AreaofInterestRaster = "rast.chilcotin_aoi_supply_blocks",
                                  AreaofInterestTable = "vat.chilcotin_supply_blocks_vat"),
-  smcaribouAbundanceCLUS = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
+  smcpopCASTOR = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
                                   tableSMCCoeffs = "vat.smc_coeffs"),
   survivalgrizzlyCASTOR = list (rasterGBPU = "rast.gbpu_2021", 
                               tableGBPU= "vat.gbpu", 
@@ -275,7 +275,7 @@ modules <- list("dataLoaderCLUS",
                 "disturbanceCASTOR", 
                 "volumebyareaReportCLUS",
                 # "rsfCLUS", # error line 453 - need to debug
-                "smcaribouAbundanceCLUS",
+                "smcpopCASTOR",
                 "uploaderCLUS"
                 )
 
