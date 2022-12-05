@@ -12,18 +12,18 @@
 
 #===========================================================================================#
 defineModule(sim, list(
-  name = "dataLoaderCLUS",
+  name = "dataCastor",
   description = NA, #"insert module description here",
   keywords = NA, # c("insert key words here"),
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
     person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
-  version = list(SpaDES.core = "0.2.5", dataLoaderCLUS = "0.0.1"),
+  version = list(SpaDES.core = "0.2.5", dataCastor = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.txt", "dataLoaderCLUS.Rmd"),
+  documentation = list("README.txt", "dataCastor.Rmd"),
   reqdPkgs = list("sf", "rpostgis","DBI", "RSQLite", "data.table", "rpostgis", "sqldf"),
   parameters = rbind(
    defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
@@ -38,8 +38,8 @@ defineModule(sim, list(
     defineParameter("nameBoundaryColumn", "character", "herd_name", NA, NA, desc = "Name of the column within the boundary file that has the boundary name. Here we are using the herd name column in the caribou herd spatial polygon file."),
     defineParameter("nameBoundary", "character", "Muskwa", NA, NA, desc = "Name of the boundary - a spatial polygon within the boundary file. Here we are using a caribou herd name to query the caribou herd spatial polygon data, but it could be something else (e.g., a TSA name to query a TSA spatial polygon file, or a group of herds or TSA's)."),
     defineParameter("nameBoundaryGeom", "character", "geom", NA, NA, desc = "Name of the geom column in the boundary file"),
-    defineParameter("save_clusdb", "logical", FALSE, NA, NA, desc = "Save the db to a file?"),
-    defineParameter("useCLUSdb", "character", "99999", NA, NA, desc = "Use an exising db? If no, set to 99999. IOf yes, put in the postgres database name here (e.g., clus)."),
+    defineParameter("saveCastorDB", "logical", FALSE, NA, NA, desc = "Save the db to a file?"),
+    defineParameter("useCastorDB", "character", "99999", NA, NA, desc = "Use an exising db? If no, set to 99999. IOf yes, put in the postgres database name here (e.g., castor)."),
     defineParameter("nameZoneRasters", "character", "99999", NA, NA, desc = "Administrative boundary containing zones of management objectives"),
     defineParameter("nameZonePriorityRaster", "character", "99999", NA, NA, desc = "Boundary of zones where harvesting should be prioritized"),
     defineParameter("nameCompartmentRaster", "character", "99999", NA, NA, desc = "Name of the raster in a pg db that represents a compartment or supply block. Not currently in the pgdb?"),
@@ -79,72 +79,72 @@ defineModule(sim, list(
     ),
   outputObjects = bind_rows(
     createsOutput("zone.length", objectClass ="integer", desc = NA), # the number of zones to constrain on
-    createsOutput("zone.available", objectClass ="data.table", desc = NA), # the available zones of the clusdb
+    createsOutput("zone.available", objectClass ="data.table", desc = NA), # the available zones of the castordb
     createsOutput("boundaryInfo", objectClass ="character", desc = NA),
-    createsOutput("clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information"),
+    createsOutput("castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates castor realted information"),
     createsOutput("ras", objectClass ="RasterLayer", desc = "Raster Layer of the cell index"),
     createsOutput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances"),
     createsOutput(objectName = "foreststate", objectClass = "data.table", desc = "A data.table of the current state of the aoi")
   )
 ))
 
-doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
+doEvent.dataCastor = function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = { # initialization event
       #set Boundaries information object
-      sim$boundaryInfo <- list(P(sim,"nameBoundaryFile", "dataLoaderCLUS" ),P(sim,"nameBoundaryColumn","dataLoaderCLUS"),P(sim, "nameBoundary", "dataLoaderCLUS"), P(sim, "nameBoundaryGeom", "dataLoaderCLUS")) # list of boundary parameters to set the extent of where the model will be run; these parameters are expected inputs in dataLoader 
-      sim$zone.length <- length(P(sim, "nameZoneRasters", "dataLoaderCLUS")) # used to define the number of different management constraint zones
+      sim$boundaryInfo <- list(P(sim,"nameBoundaryFile", "dataCastor" ),P(sim,"nameBoundaryColumn","dataCastor"),P(sim, "nameBoundary", "dataCastor"), P(sim, "nameBoundaryGeom", "dataCastor")) # list of boundary parameters to set the extent of where the model will be run; these parameters are expected inputs in dataLoader 
+      sim$zone.length <- length(P(sim, "nameZoneRasters", "dataCastor")) # used to define the number of different management constraint zones
       
-      if(P(sim, "useCLUSdb", "dataLoaderCLUS") == "99999"){ #build clusdb
+      if(P(sim, "useCastorDB", "dataCastor") == "99999"){ #build Castordb
         
-        sim <- createCLUSdb(sim) # function (below) that creates an SQLite database
-        #populate clusdb tables
-        sim <- setTablesCLUSdb(sim)
+        sim <- createCastorDB(sim) # function (below) that creates an SQLite database
+        #populate castordb tables
+        sim <- setTablesCastorDB(sim)
         sim <- setZoneConstraints(sim)
-        sim <- setIndexesCLUSdb(sim) # creates index to facilitate db querying?
+        sim <- setIndexesCastorDB(sim) # creates index to facilitate db querying?
         sim <- updateGS(sim) # update the forest attributes
-        sim <- scheduleEvent(sim, eventTime = 0,  "dataLoaderCLUS", "forestStateNetdown", eventPriority=90)
+        sim <- scheduleEvent(sim, eventTime = 0,  "dataCastor", "forestStateNetdown", eventPriority=90)
         
-       }else{ #copy existing clusdb
+       }else{ #copy existing castordb
         sim$foreststate <- NULL
-        message(paste0("Loading existing db...", P(sim, "useCLUSdb", "dataLoaderCLUS")))
-        #Make a copy of the db so that the clusdb is in memory
-        userdb <- dbConnect(RSQLite::SQLite(), dbname = P(sim, "useCLUSdb", "dataLoaderCLUS") ) # connext to pgdb
-        sim$clusdb <- dbConnect(RSQLite::SQLite(), ":memory:") # save the pgdb in memory (object in sim)
-        RSQLite::sqliteCopyDatabase(userdb, sim$clusdb)
+        message(paste0("Loading existing db...", P(sim, "useCastorDB", "dataCastor")))
+        #Make a copy of the db so that the castordb is in memory
+        userdb <- dbConnect(RSQLite::SQLite(), dbname = P(sim, "useCastorDB", "dataCastor") ) # connext to pgdb
+        sim$castordb <- dbConnect(RSQLite::SQLite(), ":memory:") # save the pgdb in memory (object in sim)
+        RSQLite::sqliteCopyDatabase(userdb, sim$castordb)
         dbDisconnect(userdb) #Disconnect from the original user provided db
         
-        dbExecute(sim$clusdb, "PRAGMA synchronous = OFF") # update the database
-        dbExecute(sim$clusdb, "PRAGMA journal_mode = OFF")
+        dbExecute(sim$castordb, "PRAGMA synchronous = OFF") # update the database
+        dbExecute(sim$castordb, "PRAGMA journal_mode = OFF")
         
-        ras.info<-dbGetQuery(sim$clusdb, "select * from raster_info where name = 'ras'") #Get the raster information
+        ras.info<-dbGetQuery(sim$castordb, "select * from raster_info where name = 'ras'") #Get the raster information
         sim$ras<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =1:ras.info$ncell)
         raster::crs(sim$ras)<-paste0("EPSG:", ras.info$crs) #set the raster projection
         
         sim$pts <- data.table(xyFromCell(sim$ras,1:length(sim$ras))) # creates pts at centroids of raster boundary file; seems to be faster that rasterTopoints
         sim$pts <- sim$pts[, pixelid:= seq_len(.N)] #add in the pixelid which streams data in according to the cell number = pixelid
         
-        #Get the available zones for other modules to query -- In forestryCLUS the zones that are not part of the scenario get deleted.
-        sim$zone.available<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM zone;")) 
+        #Get the available zones for other modules to query -- In forestryCastor the zones that are not part of the scenario get deleted.
+        sim$zone.available<-data.table(dbGetQuery(sim$castordb, "SELECT * FROM zone;")) 
         
         #Alter the ZoneConstraints table with a data.table object that is created before the sim
         if(!is.null(sim$updateZoneConstraints)){
           message("updating zoneConstraints")
           sql<- paste0("UPDATE zoneconstraints SET type = :type, variable = :variable, percentage = :percentage where reference_zone = :reference_zone AND zoneid = :zoneid")  
-          dbBegin(sim$clusdb)
-          rs<-dbSendQuery(sim$clusdb, sql, sim$updateZoneConstraints[,c("type", "variable", "percentage", "reference_zone", "zoneid")])
+          dbBegin(sim$castordb)
+          rs<-dbSendQuery(sim$castordb, sql, sim$updateZoneConstraints[,c("type", "variable", "percentage", "reference_zone", "zoneid")])
           dbClearResult(rs)
-          dbCommit(sim$clusdb)
+          dbCommit(sim$castordb)
         }
       }
-      sim <- scheduleEvent(sim, eventTime = end(sim),  "dataLoaderCLUS", "removeDbCLUS", eventPriority=99) #disconnect the db once the sim is over
+      sim <- scheduleEvent(sim, eventTime = end(sim),  "dataCastor", "removeCastorDB", eventPriority=99) #disconnect the db once the sim is over
       },
     forestStateNetdown={
       sim <- setForestState(sim)
     },
-    removeDbCLUS={
-      sim <- disconnectDbCLUS(sim)
+    removeCastorDB={
+      sim <- disconnectCastorDB(sim)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -152,45 +152,45 @@ doEvent.dataLoaderCLUS = function(sim, eventTime, eventType, debug = FALSE) {
   return(invisible(sim))
 }
 
-disconnectDbCLUS<- function(sim) {
-  if(P(sim)$save_clusdb){
-    message('Saving clusdb')
-    con<-dbConnect(RSQLite::SQLite(), paste0(P(sim, 'sqlite_dbname', 'dataLoaderCLUS'), "_clusdb.sqlite"))
-    RSQLite::sqliteCopyDatabase(sim$clusdb, con)
-    dbDisconnect(sim$clusdb)
+disconnectCastorDB<- function(sim) {
+  if(P(sim)$saveCastorDB){
+    message('Saving castordb')
+    con<-dbConnect(RSQLite::SQLite(), paste0(P(sim, 'sqlite_dbname', 'dataCastor'), "_castordb.sqlite"))
+    RSQLite::sqliteCopyDatabase(sim$castordb, con)
+    dbDisconnect(sim$castordb)
     dbDisconnect(con)
   }else{
-    dbDisconnect(sim$clusdb)
+    dbDisconnect(sim$castordb)
   }
     
   return(invisible(sim))
 }
 
-createCLUSdb <- function(sim) {
-  message ('create clusdb')
-  #build the clusdb - a realtional database that tracks the interactions between spatial and temporal objectives
-  sim$clusdb <- dbConnect(RSQLite::SQLite(), ":memory:") #builds the db in memory; also resets any existing db! Can be set to store on disk
-  #dbExecute(sim$clusdb, "PRAGMA foreign_keys = ON;") #Turns the foreign key constraints on. 
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, dec_pcnt numeric, height numeric, qmd numeric default 0.0, basalarea numeric default 0.0, crownclosure numeric default 0.0, eca numeric);")
+createCastorDB <- function(sim) {
+  message ('create castordb')
+  #build the castordb - a realtional database that tracks the interactions between spatial and temporal objectives
+  sim$castordb <- dbConnect(RSQLite::SQLite(), ":memory:") #builds the db in memory; also resets any existing db! Can be set to store on disk
+  #dbExecute(sim$castordb, "PRAGMA foreign_keys = ON;") #Turns the foreign key constraints on. 
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS yields ( id integer PRIMARY KEY, yieldid integer, age integer, tvol numeric, dec_pcnt numeric, height numeric, qmd numeric default 0.0, basalarea numeric default 0.0, crownclosure numeric default 0.0, eca numeric);")
   #Note Zone table is created as a JOIN with zoneConstraints and zone
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS raster_info (name text, xmin numeric, xmax numeric, ymin numeric, ymax numeric, ncell integer, nrow integer, crs text);")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, denom text, multi_condition text, t_area numeric, start integer, stop integer);")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS raster_info (name text, xmin numeric, xmax numeric, ymin numeric, ymax numeric, ncell integer, nrow integer, crs text);")
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, denom text, multi_condition text, t_area numeric, start integer, stop integer);")
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
 own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, treed integer, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric, dist numeric DEFAULT 0,
 crownclosure numeric, height numeric, basalarea numeric, qmd numeric, siteindex numeric, dec_pcnt numeric, eca numeric, salvage_vol numeric default 0);")
   return(invisible(sim))
 }
 
-setTablesCLUSdb <- function(sim) {
+setTablesCastorDB <- function(sim) {
   message('...setting data tables')
   ###------------------------#
   #Set the compartment IDs----
   ###------------------------#
-  if(!(P(sim, "nameCompartmentRaster", "dataLoaderCLUS") == "99999")){
-    message(paste0('.....compartment ids: ', P(sim, "nameCompartmentRaster", "dataLoaderCLUS")))
+  if(!(P(sim, "nameCompartmentRaster", "dataCastor") == "99999")){
+    message(paste0('.....compartment ids: ', P(sim, "nameCompartmentRaster", "dataCastor")))
     sim$ras<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                          srcRaster= P(sim, "nameCompartmentRaster", "dataLoaderCLUS"), 
+                          srcRaster= P(sim, "nameCompartmentRaster", "dataCastor"), 
                           clipper=sim$boundaryInfo[[1]], 
                           geom= sim$boundaryInfo[[4]], 
                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -203,7 +203,7 @@ setTablesCLUSdb <- function(sim) {
     pixels[, pixelid := seq_len(.N)]
     
     #Set V1 to merge in the vat table values so that the column is character
-    if(!(P(sim, "nameCompartmentTable", "dataLoaderCLUS") == "99999")){
+    if(!(P(sim, "nameCompartmentTable", "dataCastor") == "99999")){
       compart_vat <- data.table(getTableQuery(glue::glue("SELECT * FROM  {P(sim)$nameCompartmentTable};")))
       pixels<- merge(pixels, compart_vat, by.x = "V1", by.y = "value", all.x = TRUE )
       pixels[, V1:= NULL]
@@ -221,7 +221,7 @@ setTablesCLUSdb <- function(sim) {
     #Add the raster_info
     ras.extent<-extent(sim$ras)
     #TODO: Hard coded for epsg 3005 need to convert to terra?
-    dbExecute(sim$clusdb, glue::glue("INSERT INTO raster_info (name, xmin, xmax, ymin, ymax, ncell, nrow, crs) values ('ras', {ras.extent[1]}, {ras.extent[2]}, {ras.extent[3]}, {ras.extent[4]}, {ncell(sim$ras)}, {nrow(sim$ras)}, '3005');"))
+    dbExecute(sim$castordb, glue::glue("INSERT INTO raster_info (name, xmin, xmax, ymin, ymax, ncell, nrow, crs) values ('ras', {ras.extent[1]}, {ras.extent[2]}, {ras.extent[3]}, {ras.extent[4]}, {ncell(sim$ras)}, {nrow(sim$ras)}, '3005');"))
     
   }else{ #Set the empty table for values not supplied in the parameters
     message('.....compartment ids: default 1')
@@ -248,10 +248,10 @@ setTablesCLUSdb <- function(sim) {
   #--------------------#
   #Set the Ownership----
   #--------------------#
-  if(!(P(sim, "nameOwnershipRaster", "dataLoaderCLUS") == "99999")){
-    message(paste0('.....ownership: ',P(sim, "nameOwnershipRaster", "dataLoaderCLUS")))
+  if(!(P(sim, "nameOwnershipRaster", "dataCastor") == "99999")){
+    message(paste0('.....ownership: ',P(sim, "nameOwnershipRaster", "dataCastor")))
     ras.own<- RASTER_CLIP2(tmpRast =paste0('temp_', sample(1:10000, 1)), 
-                           srcRaster= P(sim, "nameOwnershipRaster", "dataLoaderCLUS"), 
+                           srcRaster= P(sim, "nameOwnershipRaster", "dataCastor"), 
                            clipper=sim$boundaryInfo[[1]], 
                            geom= sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -262,7 +262,7 @@ setTablesCLUSdb <- function(sim) {
       rm(ras.own)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameOwnershipRaster", "dataLoaderCLUS")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameOwnershipRaster", "dataCastor")))
     }
   }else{
     message('.....ownership: default 1')
@@ -272,14 +272,14 @@ setTablesCLUSdb <- function(sim) {
   #-------------------#
   #Set the zone IDs----
   #-------------------#
-  if(!(P(sim, "nameZoneRasters", "dataLoaderCLUS")[1] == "99999")){
-    message(paste0('.....zones: ',P(sim, "nameZoneRasters", "dataLoaderCLUS")))
+  if(!(P(sim, "nameZoneRasters", "dataCastor")[1] == "99999")){
+    message(paste0('.....zones: ',P(sim, "nameZoneRasters", "dataCastor")))
     zones_aoi<-data.table(zoneid='', zone_column='')
     
     #Add multiple zone columns - each will have its own raster. Attributed to that raster is a table of the thresholds by zone
     for(i in 1:sim$zone.length){
       ras.zone<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                             srcRaster= P(sim, "nameZoneRasters", "dataLoaderCLUS")[i], 
+                             srcRaster= P(sim, "nameZoneRasters", "dataCastor")[i], 
                              clipper=sim$boundaryInfo[[1]], 
                              geom= sim$boundaryInfo[[4]], 
                              where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -288,29 +288,29 @@ setTablesCLUSdb <- function(sim) {
         pixels<-cbind(pixels, data.table(V1 = ras.zone[]))
         setnames(pixels, "V1", paste0('zone',i))#SET zone NAMES to RASTER layer
         
-        dbExecute(sim$clusdb, glue::glue("ALTER TABLE pixels ADD COLUMN zone{i} numeric;")) # add the zone id column and populate it with the zone names
-        dbExecute(sim$clusdb, glue::glue("INSERT INTO zone (zone_column, reference_zone) values ( 'zone{i}', '{P(sim)$nameZoneRasters[i]}');" ))
+        dbExecute(sim$castordb, glue::glue("ALTER TABLE pixels ADD COLUMN zone{i} numeric;")) # add the zone id column and populate it with the zone names
+        dbExecute(sim$castordb, glue::glue("INSERT INTO zone (zone_column, reference_zone) values ( 'zone{i}', '{P(sim)$nameZoneRasters[i]}');" ))
   
         rm(ras.zone) #clean up
         gc()
       } else{
-        stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameZoneRasters")))
+        stop(paste0("ERROR: extents are not the same check -", P(sim, "dataCastor", "nameZoneRasters")))
       }
     }
   } else{
     message('.....zone ids: default 1')
     sim$zone.length<-1
     pixels[, zone1:= 1]
-    dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN zone1 integer;")
-    dbExecute(sim$clusdb, "INSERT INTO zone (zone_column, reference_zone) values ( 'zone1', 'default');" )
+    dbExecute(sim$castordb, "ALTER TABLE pixels ADD COLUMN zone1 integer;")
+    dbExecute(sim$castordb, "INSERT INTO zone (zone_column, reference_zone) values ( 'zone1', 'default');" )
   }
   #-----------------------------#
   #Set the zonePriorityRaster----
   #-----------------------------#
   if(!P(sim)$nameZonePriorityRaster == '99999'){
-    nameZonePriorityRaster<-P(sim, "dataLoaderCLUS", "nameZonePriorityRaster")
+    nameZonePriorityRaster<-P(sim, "dataCastor", "nameZonePriorityRaster")
     #Check to see if the name of the zone priority raster is already in the zone table
-    if(!nameZonePriorityRaster %in% dbGetQuery(sim$clusdb, "SELECT reference_zone from zone;")$reference_zone){
+    if(!nameZonePriorityRaster %in% dbGetQuery(sim$castordb, "SELECT reference_zone from zone;")$reference_zone){
       message(paste0('.....zone priority raster not in zones table...fetching: ',nameZonePriorityRaster))
       ras.zone.priority<- RASTER_CLIP2(tmpRast =paste0('temp_', sample(1:10000, 1)), 
                              srcRaster= nameZonePriorityRaster, 
@@ -320,17 +320,17 @@ setTablesCLUSdb <- function(sim) {
                              conn=NULL)
       if(aoi == extent(ras.zone.priority)){#need to check that each of the extents are the same
         pixels<-cbind(pixels, data.table(V1=ras.zone.priority[]))
-        zone.priority<-paste0("zone", as.character(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM zone;")) + 1)) #find the max zone number
+        zone.priority<-paste0("zone", as.character(nrow(dbGetQuery(sim$castordb, "SELECT * FROM zone;")) + 1)) #find the max zone number
         setnames(pixels, "V1", zone.priority)#Add the column name to pixels 
         
-        dbExecute(sim$clusdb, glue::glue("INSERT INTO zone (zone_column, reference_zone) values ('{zone.priority}', '{nameZonePriorityRaster}');"))
-        dbExecute(sim$clusdb, glue::glue("ALTER TABLE pixels ADD COLUMN {zone.priority} integer;"))
+        dbExecute(sim$castordb, glue::glue("INSERT INTO zone (zone_column, reference_zone) values ('{zone.priority}', '{nameZonePriorityRaster}');"))
+        dbExecute(sim$castordb, glue::glue("ALTER TABLE pixels ADD COLUMN {zone.priority} integer;"))
     
         sim$zone.length<-sim$zone.length + 1 #Add to the zone.length needed when inserting the pixels table
         rm(ras.zone.priority,zone.priority) # clean up
         gc()
       }else{
-        stop(paste0("ERROR: extents are not the same check -", P(sim, "dataLoaderCLUS", "nameZonePriorityRaster")))
+        stop(paste0("ERROR: extents are not the same check -", P(sim, "dataCastor", "nameZonePriorityRaster")))
       }
     }
   }
@@ -338,10 +338,10 @@ setTablesCLUSdb <- function(sim) {
   #---------------#
   #Set the THLB----
   #---------------#
-  if(!(P(sim, "nameMaskHarvestLandbaseRaster", "dataLoaderCLUS") == "99999")){
-    message(paste0('.....thlb: ',P(sim, "nameMaskHarvestLandbaseRaster", "dataLoaderCLUS")))
+  if(!(P(sim, "nameMaskHarvestLandbaseRaster", "dataCastor") == "99999")){
+    message(paste0('.....thlb: ',P(sim, "nameMaskHarvestLandbaseRaster", "dataCastor")))
     ras.thlb<- RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                            srcRaster= P(sim, "nameMaskHarvestLandbaseRaster", "dataLoaderCLUS"), 
+                            srcRaster= P(sim, "nameMaskHarvestLandbaseRaster", "dataCastor"), 
                             clipper=sim$boundaryInfo[[1]], 
                             geom= sim$boundaryInfo[[4]], 
                             where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -351,7 +351,7 @@ setTablesCLUSdb <- function(sim) {
       rm(ras.thlb)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameMaskHarvestLandbaseRaster", "dataLoaderCLUS")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameMaskHarvestLandbaseRaster", "dataCastor")))
     }
     
   }else{
@@ -362,10 +362,10 @@ setTablesCLUSdb <- function(sim) {
   #--------------------#
   #Set the yield IDs----
   #--------------------#
-  if(!(P(sim, "nameYieldsRaster", "dataLoaderCLUS") == "99999")){
-    message(paste0('.....yield ids: ',P(sim, "nameYieldsRaster", "dataLoaderCLUS")))
+  if(!(P(sim, "nameYieldsRaster", "dataCastor") == "99999")){
+    message(paste0('.....yield ids: ',P(sim, "nameYieldsRaster", "dataCastor")))
     ras.ylds<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                           srcRaster= P(sim, "nameYieldsRaster", "dataLoaderCLUS"), 
+                           srcRaster= P(sim, "nameYieldsRaster", "dataCastor"), 
                            clipper=sim$boundaryInfo[[1]], 
                            geom= sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -375,12 +375,12 @@ setTablesCLUSdb <- function(sim) {
       rm(ras.ylds)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameYieldsRaster", "dataLoaderCLUS")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameYieldsRaster", "dataCastor")))
     }
     
     #Check there is a table to link the yield ids 
-    if(P(sim, "nameYieldTable", "dataLoaderCLUS") == "99999"){
-      stop(paste0("Specify the nameYieldTable =", P(sim, "nameYieldTable", "dataLoaderCLUS")))
+    if(P(sim, "nameYieldTable", "dataCastor") == "99999"){
+      stop(paste0("Specify the nameYieldTable =", P(sim, "nameYieldTable", "dataCastor")))
     }
     
     yld.ids<-paste( unique(pixels[!is.na(yieldid),"yieldid"])$yieldid, sep=" ", collapse = ", ") #get the yieldids from pixels table
@@ -393,11 +393,11 @@ setTablesCLUSdb <- function(sim) {
       
     #Set the yields table with yield curves that are only in the study area
     yields<-getTableQuery(glue::glue("SELECT ", glue::glue_collapse(colNames, sep = ", ")," FROM {P(sim)$nameYieldTable} where ycid IN ({yld.ids});"))
-    dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, glue::glue("INSERT INTO yields (",glue::glue_collapse(colNamesYieldid, sep = ", "),") 
+    dbBegin(sim$castordb)
+    rs<-dbSendQuery(sim$castordb, glue::glue("INSERT INTO yields (",glue::glue_collapse(colNamesYieldid, sep = ", "),") 
                       values (:",glue::glue_collapse(colNames, sep = ", :"),");"), yields)
     dbClearResult(rs)
-    dbCommit(sim$clusdb)
+    dbCommit(sim$castordb)
     
   }else{
     message('.....yield ids: default 1')
@@ -408,19 +408,19 @@ setTablesCLUSdb <- function(sim) {
                        dec_pcnt = 0, 
                        height = seq(1:20), 
                        eca = round(1-(seq(1:20)**2/20**2), 2))
-    dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "INSERT INTO yields (yieldid, age, tvol, dec_pcnt, height, eca ) 
+    dbBegin(sim$castordb)
+    rs<-dbSendQuery(sim$castordb, "INSERT INTO yields (yieldid, age, tvol, dec_pcnt, height, eca ) 
                       values (:yieldid, :age, :tvol, :dec_pcnt, :height, :eca)", yields)
     dbClearResult(rs)
-    dbCommit(sim$clusdb)
+    dbCommit(sim$castordb)
   }
   
   #Set the current yield IDs-----#
   #------------------------------#
-  if(!(P(sim, "nameYieldsCurrentRaster", "dataLoaderCLUS") == "99999")){
-    message(paste0('.....yield ids: ',P(sim, "nameYieldsCurrentRaster", "dataLoaderCLUS")))
+  if(!(P(sim, "nameYieldsCurrentRaster", "dataCastor") == "99999")){
+    message(paste0('.....yield ids: ',P(sim, "nameYieldsCurrentRaster", "dataCastor")))
     ras.ylds.current<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                           srcRaster= P(sim, "nameYieldsCurrentRaster", "dataLoaderCLUS"), 
+                           srcRaster= P(sim, "nameYieldsCurrentRaster", "dataCastor"), 
                            clipper=sim$boundaryInfo[[1]], 
                            geom= sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -434,12 +434,12 @@ setTablesCLUSdb <- function(sim) {
       rm(ras.ylds.current)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameYieldsCurrentRaster", "dataLoaderCLUS")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameYieldsCurrentRaster", "dataCastor")))
     }
     
     #Check there is a table to link to
-    if(P(sim, "nameYieldCurrentTable", "dataLoaderCLUS") == "99999"){
-      stop(paste0("Specify the nameYieldCurrentTable =", P(sim, "nameYieldCurrentTable", "dataLoaderCLUS")))
+    if(P(sim, "nameYieldCurrentTable", "dataCastor") == "99999"){
+      stop(paste0("Specify the nameYieldCurrentTable =", P(sim, "nameYieldCurrentTable", "dataCastor")))
     }
     
     yld.ids.current<-paste( unique(updateToCurrent[!is.na(yieldid),]$yieldid), sep=" ", collapse = ", ")
@@ -453,21 +453,21 @@ setTablesCLUSdb <- function(sim) {
     #Set the yields table with yield curves that are only in the study area
     yields.current<-getTableQuery(paste0("SELECT ",paste(colNames, collapse = ", ", sep = " ")," FROM ", P(sim)$nameYieldCurrentTable , " where ycid IN (", yld.ids.current , ");"))
     
-    dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, glue::glue("INSERT INTO yields (",glue::glue_collapse(colNamesYieldid, sep = ", "),") 
+    dbBegin(sim$castordb)
+    rs<-dbSendQuery(sim$castordb, glue::glue("INSERT INTO yields (",glue::glue_collapse(colNamesYieldid, sep = ", "),") 
                       values (:",glue::glue_collapse(colNames, sep = ", :"),");"), yields.current)
     dbClearResult(rs)
-    dbCommit(sim$clusdb)
+    dbCommit(sim$castordb)
   }
   
   #----------------------------#
   #---Set transition yields ----
   #----------------------------#
-  if(!(P(sim, "nameYieldsTransitionRaster", "dataLoaderCLUS") == "99999")){
-    message(paste0('.....yield transition ids: ',P(sim, "nameYieldsTransitionRaster", "dataLoaderCLUS")))
+  if(!(P(sim, "nameYieldsTransitionRaster", "dataCastor") == "99999")){
+    message(paste0('.....yield transition ids: ',P(sim, "nameYieldsTransitionRaster", "dataCastor")))
     
     ras.ylds_trans<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                           srcRaster= P(sim, "nameYieldsTransitionRaster", "dataLoaderCLUS"), 
+                           srcRaster= P(sim, "nameYieldsTransitionRaster", "dataCastor"), 
                            clipper=sim$boundaryInfo[[1]], 
                            geom= sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -477,11 +477,11 @@ setTablesCLUSdb <- function(sim) {
       rm(ras.ylds_trans)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameYieldsTransitionRaster", "dataLoaderCLUS")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameYieldsTransitionRaster", "dataCastor")))
     }
        #Check there is a table to link to
-    if(P(sim, "nameYieldTransitionTable", "dataLoaderCLUS") == "99999"){
-      stop(paste0("Specify the nameYieldTransitionTable =", P(sim, "nameYieldTransitionTable", "dataLoaderCLUS")))
+    if(P(sim, "nameYieldTransitionTable", "dataCastor") == "99999"){
+      stop(paste0("Specify the nameYieldTransitionTable =", P(sim, "nameYieldTransitionTable", "dataCastor")))
     }
     
     yld.ids.trans<-paste( as.integer(unique(pixels[!is.na(yieldid_trans),"yieldid_trans"])$yieldid_trans), sep=" ", collapse = ", ")    
@@ -495,11 +495,11 @@ setTablesCLUSdb <- function(sim) {
     #Set the yields table with yield curves that are only in the study area
     yields.trans<-getTableQuery(paste0("SELECT ", paste(colNames, collapse = ", ", sep = " ")," FROM ", P(sim)$nameYieldTransitionTable, " where ycid IN (", yld.ids.trans , ");"))
     
-    dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, glue::glue("INSERT INTO yields (",glue::glue_collapse(colNamesYieldid, sep = ", "),") 
+    dbBegin(sim$castordb)
+    rs<-dbSendQuery(sim$castordb, glue::glue("INSERT INTO yields (",glue::glue_collapse(colNamesYieldid, sep = ", "),") 
                       values (:",glue::glue_collapse(colNames, sep = ", :"),");"), yields.trans)
     dbClearResult(rs)
-    dbCommit(sim$clusdb)
+    dbCommit(sim$castordb)
     
     pixels[is.na(yieldid_trans) & !is.na(yieldid), yieldid_trans := yieldid] #assign the transition the same curve
     
@@ -512,10 +512,10 @@ setTablesCLUSdb <- function(sim) {
   #----------------------------#
   #----Set forest attributes----
   #----------------------------#
-  if(!P(sim, "nameForestInventoryRaster","dataLoaderCLUS") == '99999'){
+  if(!P(sim, "nameForestInventoryRaster","dataCastor") == '99999'){
     print("clipping inventory key")
     ras.fid<- RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                           srcRaster= P(sim, "nameForestInventoryRaster", "dataLoaderCLUS"), 
+                           srcRaster= P(sim, "nameForestInventoryRaster", "dataCastor"), 
                            clipper=sim$boundaryInfo[[1]], 
                            geom= sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -527,31 +527,31 @@ setTablesCLUSdb <- function(sim) {
       rm(ras.fid)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameForestInventoryRaster", "dataLoaderCLUS")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameForestInventoryRaster", "dataCastor")))
     }
     
-    if(!P(sim, "nameForestInventoryTable","dataLoaderCLUS") == '99999'){ #Get the forest inventory variables and re assign there names to be more generic than VEGCOMP
+    if(!P(sim, "nameForestInventoryTable","dataCastor") == '99999'){ #Get the forest inventory variables and re assign there names to be more generic than VEGCOMP
       
-      forest_attributes_clusdb<-sapply(c("Treed","Age","Height", "CrownClosure", "SiteIndex", "QMD", "BasalArea"), function(x){
-        if(!(P(sim, paste0("nameForestInventory", x), "dataLoaderCLUS") == '99999')){
-          return(paste0(P(sim, paste0("nameForestInventory", x), "dataLoaderCLUS"), " as ", tolower(x)))
+      forest_attributes_castordb<-sapply(c("Treed","Age","Height", "CrownClosure", "SiteIndex", "QMD", "BasalArea"), function(x){
+        if(!(P(sim, paste0("nameForestInventory", x), "dataCastor") == '99999')){
+          return(paste0(P(sim, paste0("nameForestInventory", x), "dataCastor"), " as ", tolower(x)))
         }else{
           message(paste0("WARNING: Missing parameter nameForestInventory", x, " ---Defaulting to NA"))
         }
       })
       
-      forest_attributes_clusdb<-Filter(Negate(is.null), forest_attributes_clusdb) #remove any nulls
+      forest_attributes_castordb<-Filter(Negate(is.null), forest_attributes_castordb) #remove any nulls
       
       #If there is a multi variable constraint then add them to the query
-      queryMulti<-dbGetQuery(sim$clusdb, "SELECT distinct(variable) FROM zoneConstraints WHERE multi_condition is not null or multi_condition <> 'NA' ")
+      queryMulti<-dbGetQuery(sim$castordb, "SELECT distinct(variable) FROM zoneConstraints WHERE multi_condition is not null or multi_condition <> 'NA' ")
 
       if(nrow(queryMulti) > 0){ # there is a multi-condition constraint
         multiVars<-unlist(strsplit(paste(queryMulti$variable, collapse = ', ', sep = ','), ","))
         multiVars<-unique(gsub("[[:space:]]", "", multiVars))
         multiVars<-multiVars[!multiVars[] %in% c('proj_age_1', 'proj_height_1', 'crown_closure', 'site_index', 'blockid', 'age', 'height', 'siteindex', 'crownclosure', 'dist', 'bclcs_level_2', "basal_area", "quad_diam_125")]
         if(!identical(character(0), multiVars)){
-          multiVars1<-multiVars #used for altering pixels table in clusdb i.e., adding in the required information to run the query
-          forest_attributes_clusdb<-c(forest_attributes_clusdb, multiVars) #Add the multivars to the pixels data table
+          multiVars1<-multiVars #used for altering pixels table in castordb i.e., adding in the required information to run the query
+          forest_attributes_castordb<-c(forest_attributes_castordb, multiVars) #Add the multivars to the pixels data table
           #format for pixels upload
           multiVars2<-multiVars
           multiVars2[1]<-paste0(', :',multiVars2[1])
@@ -562,12 +562,12 @@ setTablesCLUSdb <- function(sim) {
           multiVars1<-NULL
           }
         #Update the multi conditional constraints so the names match the dynamic variables
-        dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'proj_age_1', 'age') where multi_condition is not null;")
-        dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'proj_height_1', 'height') where multi_condition is not null;")
-        dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'site_index', 'siteindex') where multi_condition is not null;")
-        dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'crown_closure', 'crownclosure') where multi_condition is not null;")
-        dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'basal_area', 'basalarea') where multi_condition is not null;")
-        dbExecute(sim$clusdb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'quad_diam_125', 'qmd') where multi_condition is not null;")
+        dbExecute(sim$castordb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'proj_age_1', 'age') where multi_condition is not null;")
+        dbExecute(sim$castordb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'proj_height_1', 'height') where multi_condition is not null;")
+        dbExecute(sim$castordb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'site_index', 'siteindex') where multi_condition is not null;")
+        dbExecute(sim$castordb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'crown_closure', 'crownclosure') where multi_condition is not null;")
+        dbExecute(sim$castordb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'basal_area', 'basalarea') where multi_condition is not null;")
+        dbExecute(sim$castordb, "UPDATE zoneConstraints set multi_condition = replace(multi_condition, 'quad_diam_125', 'qmd') where multi_condition is not null;")
         
         }else{ # set defaults to blanks and null
         multiVars<-''
@@ -575,11 +575,11 @@ setTablesCLUSdb <- function(sim) {
         multiVars1<-NULL
         }
       
-      if(length(forest_attributes_clusdb) > 0){
-        print(paste0("getting inventory attributes: ", paste(forest_attributes_clusdb, collapse = ",")))
+      if(length(forest_attributes_castordb) > 0){
+        print(paste0("getting inventory attributes: ", paste(forest_attributes_castordb, collapse = ",")))
         fids<-unique(inv_id[!(is.na(fid)), fid])
-        attrib_inv<-data.table(getTableQuery(paste0("SELECT " , P(sim, "nameForestInventoryKey", "dataLoaderCLUS"), " as fid, ", paste(forest_attributes_clusdb, collapse = ","), " FROM ",
-                                                    P(sim, "nameForestInventoryTable","dataLoaderCLUS"), " WHERE ", P(sim, "nameForestInventoryKey", "dataLoaderCLUS") ," IN (",
+        attrib_inv<-data.table(getTableQuery(paste0("SELECT " , P(sim, "nameForestInventoryKey", "dataCastor"), " as fid, ", paste(forest_attributes_castordb, collapse = ","), " FROM ",
+                                                    P(sim, "nameForestInventoryTable","dataCastor"), " WHERE ", P(sim, "nameForestInventoryKey", "dataCastor") ," IN (",
                                                     paste(fids, collapse = ","),");" )))
         
         print("...merging with fid") #Merge this with the raster using fid which gives you the primary key -- pixelid
@@ -595,9 +595,9 @@ setTablesCLUSdb <- function(sim) {
         if(!is.null(multiVars1)){
           for(var in multiVars1){
             if(is.character(pixels[, eval(parse(text =var))])){
-              dbExecute(sim$clusdb, glue::glue("ALTER TABLE pixels ADD COLUMN {var} text;"))
+              dbExecute(sim$castordb, glue::glue("ALTER TABLE pixels ADD COLUMN {var} text;"))
             }else{
-              dbExecute(sim$clusdb, glue::glue("ALTER TABLE pixels ADD COLUMN {var} numeric;"))
+              dbExecute(sim$castordb, glue::glue("ALTER TABLE pixels ADD COLUMN {var} numeric;"))
             }
           }
         }
@@ -606,7 +606,7 @@ setTablesCLUSdb <- function(sim) {
         stop("No forest attributes from the inventory specified")
       }
     } else { 
-      stop(paste0('nameForestInventoryTable = ', P(sim, "nameForestInventoryTable","dataLoaderCLUS")))
+      stop(paste0('nameForestInventoryTable = ', P(sim, "nameForestInventoryTable","dataCastor")))
     }  
   } else{
     multiVars<-''
@@ -617,10 +617,10 @@ setTablesCLUSdb <- function(sim) {
   #----------------#
   #Set the Treed----
   #----------------#
-  if(!(P(sim, "nameTreedRaster", "dataLoaderCLUS") == "99999") & P(sim, "nameForestInventoryTreed", "dataLoaderCLUS") == "99999"){
-    message(paste0('.....treed: ',P(sim, "nameTreedRaster", "dataLoaderCLUS")))
+  if(!(P(sim, "nameTreedRaster", "dataCastor") == "99999") & P(sim, "nameForestInventoryTreed", "dataCastor") == "99999"){
+    message(paste0('.....treed: ',P(sim, "nameTreedRaster", "dataCastor")))
     ras.treed<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                          srcRaster= P(sim, "nameTreedRaster", "dataLoaderCLUS"), 
+                          srcRaster= P(sim, "nameTreedRaster", "dataCastor"), 
                           clipper=sim$boundaryInfo[[1]], 
                           geom= sim$boundaryInfo[[4]], 
                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -630,11 +630,11 @@ setTablesCLUSdb <- function(sim) {
       rm(ras.treed)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameTreedRaster", "dataLoaderCLUS")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameTreedRaster", "dataCastor")))
     }
   }
   
-  if(P(sim, "nameTreedRaster", "dataLoaderCLUS") == "99999" & P(sim, "nameForestInventoryTreed", "dataLoaderCLUS") == "99999"){
+  if(P(sim, "nameTreedRaster", "dataCastor") == "99999" & P(sim, "nameForestInventoryTreed", "dataCastor") == "99999"){
     message('.....treed: default 1')
     pixels[, treed := 1]
   }
@@ -642,10 +642,10 @@ setTablesCLUSdb <- function(sim) {
   #---------------#
   #Set the Age----- 
   #---------------#
-  if(!(P(sim, "nameAgeRaster", "dataLoaderCLUS") == "99999") & P(sim, "nameForestInventoryAge", "dataLoaderCLUS") == "99999"){
-    message(paste0('.....age: ',P(sim, "nameAgeRaster", "dataLoaderCLUS")))
+  if(!(P(sim, "nameAgeRaster", "dataCastor") == "99999") & P(sim, "nameForestInventoryAge", "dataCastor") == "99999"){
+    message(paste0('.....age: ',P(sim, "nameAgeRaster", "dataCastor")))
     ras.age<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                          srcRaster= P(sim, "nameAgeRaster", "dataLoaderCLUS"), 
+                          srcRaster= P(sim, "nameAgeRaster", "dataCastor"), 
                           clipper=sim$boundaryInfo[[1]], 
                           geom= sim$boundaryInfo[[4]], 
                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -656,11 +656,11 @@ setTablesCLUSdb <- function(sim) {
       rm(ras.age)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameAgeRaster", "dataLoaderCLUS")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameAgeRaster", "dataCastor")))
     }
   }
   
-  if(P(sim, "nameAgeRaster", "dataLoaderCLUS") == "99999" & P(sim, "nameForestInventoryAge", "dataLoaderCLUS") == "99999"){
+  if(P(sim, "nameAgeRaster", "dataCastor") == "99999" & P(sim, "nameForestInventoryAge", "dataCastor") == "99999"){
     message('.....age: default 120')
     pixels[, age := 120]
   }
@@ -668,10 +668,10 @@ setTablesCLUSdb <- function(sim) {
   #-------------------------#
   #Set the Crown Closure-----  
   #-------------------------#
-  if(!(P(sim, "nameCrownClosureRaster", "dataLoaderCLUS") == "99999") & P(sim, "nameForestInventoryCrownClosure", "dataLoaderCLUS") == "99999"){
-    message(paste0('.....crownclosure: ',P(sim, "nameCrownClosureRaster", "dataLoaderCLUS")))
+  if(!(P(sim, "nameCrownClosureRaster", "dataCastor") == "99999") & P(sim, "nameForestInventoryCrownClosure", "dataCastor") == "99999"){
+    message(paste0('.....crownclosure: ',P(sim, "nameCrownClosureRaster", "dataCastor")))
     ras.cc<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                         srcRaster=P(sim, "nameCrownClosureRaster", "dataLoaderCLUS"), 
+                         srcRaster=P(sim, "nameCrownClosureRaster", "dataCastor"), 
                          clipper=sim$boundaryInfo[[1]], 
                          geom= sim$boundaryInfo[[4]], 
                          where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -681,10 +681,10 @@ setTablesCLUSdb <- function(sim) {
       rm(ras.cc)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameCrownClosureRaster", "dataLoaderCLUS")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameCrownClosureRaster", "dataCastor")))
     }
   }
-  if(P(sim, "nameCrownClosureRaster", "dataLoaderCLUS") == "99999" & P(sim, "nameForestInventoryCrownClosure", "dataLoaderCLUS") == "99999"){
+  if(P(sim, "nameCrownClosureRaster", "dataCastor") == "99999" & P(sim, "nameForestInventoryCrownClosure", "dataCastor") == "99999"){
     message('.....crown closure: default 60')
     pixels[, crownclosure := 60]
   }
@@ -692,10 +692,10 @@ setTablesCLUSdb <- function(sim) {
   #-----------------#
   #Set the Height---- 
   #-----------------#
-  if(!(P(sim, "nameHeightRaster", "dataLoaderCLUS") == "99999") & P(sim, "nameForestInventoryHeight", "dataLoaderCLUS") == "99999"){
-    message(paste0('.....height: ',P(sim, "nameHeightRaster", "dataLoaderCLUS")))
+  if(!(P(sim, "nameHeightRaster", "dataCastor") == "99999") & P(sim, "nameForestInventoryHeight", "dataCastor") == "99999"){
+    message(paste0('.....height: ',P(sim, "nameHeightRaster", "dataCastor")))
     ras.ht<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                         srcRaster=P(sim, "nameHeightRaster", "dataLoaderCLUS"), 
+                         srcRaster=P(sim, "nameHeightRaster", "dataCastor"), 
                          clipper=sim$boundaryInfo[[1]], 
                          geom= sim$boundaryInfo[[4]], 
                          where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -705,10 +705,10 @@ setTablesCLUSdb <- function(sim) {
       rm(ras.ht)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameHeightRaster", "dataLoaderCLUS")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameHeightRaster", "dataCastor")))
     }
   }
-  if(P(sim, "nameHeightRaster", "dataLoaderCLUS") == "99999" & P(sim, "nameForestInventoryHeight", "dataLoaderCLUS") == "99999"){
+  if(P(sim, "nameHeightRaster", "dataCastor") == "99999" & P(sim, "nameForestInventoryHeight", "dataCastor") == "99999"){
     message('.....height: default 10')
     pixels[, height := 10]
   }
@@ -716,10 +716,10 @@ setTablesCLUSdb <- function(sim) {
   #---------------------#
   #Set the Site Index----
   #---------------------#
-  if(!(P(sim, "nameSiteIndexRaster", "dataLoaderCLUS") == "99999") & P(sim, "nameForestInventorySiteIndex", "dataLoaderCLUS") == "99999"){
-    message(paste0('.....siteindex: ',P(sim, "nameSiteIndexRaster", "dataLoaderCLUS")))
+  if(!(P(sim, "nameSiteIndexRaster", "dataCastor") == "99999") & P(sim, "nameForestInventorySiteIndex", "dataCastor") == "99999"){
+    message(paste0('.....siteindex: ',P(sim, "nameSiteIndexRaster", "dataCastor")))
     ras.si<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                         srcRaster=P(sim, "nameSiteIndexRaster", "dataLoaderCLUS"), 
+                         srcRaster=P(sim, "nameSiteIndexRaster", "dataCastor"), 
                          clipper=sim$boundaryInfo[[1]], 
                          geom= sim$boundaryInfo[[4]], 
                          where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -729,10 +729,10 @@ setTablesCLUSdb <- function(sim) {
       rm(ras.si)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameSiteIndexRaster", "dataLoaderCLUS")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameSiteIndexRaster", "dataCastor")))
     }
   }
-  if(P(sim, "nameSiteIndexRaster", "dataLoaderCLUS") == "99999" & P(sim, "nameForestInventorySiteIndex", "dataLoaderCLUS") == "99999"){
+  if(P(sim, "nameSiteIndexRaster", "dataCastor") == "99999" & P(sim, "nameForestInventorySiteIndex", "dataCastor") == "99999"){
     message('.....siteindex: default NA')
     pixels[, siteindex:= NA]
   }
@@ -740,14 +740,14 @@ setTablesCLUSdb <- function(sim) {
   #----------------#
   #Set the BasalArea----
   #----------------#
-  if(P(sim, "nameForestInventoryBasalArea", "dataLoaderCLUS") == "99999"){
+  if(P(sim, "nameForestInventoryBasalArea", "dataCastor") == "99999"){
     pixels[, basalarea := NA]
   }
   
   #----------------#
   #Set the QMD----
   #----------------#
-  if(P(sim, "nameForestInventoryQMD", "dataLoaderCLUS") == "99999"){
+  if(P(sim, "nameForestInventoryQMD", "dataCastor") == "99999"){
     pixels[, qmd := NA]
   }
   
@@ -763,26 +763,26 @@ setTablesCLUSdb <- function(sim) {
   
 
   #pixels table
-  dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, qry, pixels )
+  dbBegin(sim$castordb)
+    rs<-dbSendQuery(sim$castordb, qry, pixels )
     dbClearResult(rs)
-  dbCommit(sim$clusdb)
+  dbCommit(sim$castordb)
   
   rm(pixels)
   gc()
   return(invisible(sim))
 }
 
-setIndexesCLUSdb <- function(sim) { # making indexes helps with query speed for future querying
-  dbExecute(sim$clusdb, "CREATE UNIQUE INDEX index_pixelid on pixels (pixelid);")
-  dbExecute(sim$clusdb, "CREATE INDEX index_age on pixels (age);")
+setIndexesCastorDB <- function(sim) { # making indexes helps with query speed for future querying
+  dbExecute(sim$castordb, "CREATE UNIQUE INDEX index_pixelid on pixels (pixelid);")
+  dbExecute(sim$castordb, "CREATE INDEX index_age on pixels (age);")
   
-  zones<-dbGetQuery(sim$clusdb, "SELECT zone_column FROM zone;")
+  zones<-dbGetQuery(sim$castordb, "SELECT zone_column FROM zone;")
   for(i in 1:nrow(zones)){
-    dbExecute(sim$clusdb, glue::glue("CREATE INDEX index_zone{i} on pixels ({zones[[1]][i]});"))
+    dbExecute(sim$castordb, glue::glue("CREATE INDEX index_zone{i} on pixels ({zones[[1]][i]});"))
   }
   
-  dbExecute(sim$clusdb, "VACUUM;")
+  dbExecute(sim$castordb, "VACUUM;")
   message('...done')
   return(invisible(sim))
 }
@@ -791,10 +791,10 @@ setZoneConstraints<-function(sim){
   message("... setting ZoneConstraints table")
   if(!P(sim)$nameZoneTable == '99999'){ # zone_constraint table
     
-    zone<-dbGetQuery(sim$clusdb, "SELECT * FROM zone;") # select the name of the raster and its column name in pixels
+    zone<-dbGetQuery(sim$castordb, "SELECT * FROM zone;") # select the name of the raster and its column name in pixels
     zone_const<-rbindlist(lapply(split(zone, seq(nrow(zone))) , function(x){
-      if(nrow(dbGetQuery(sim$clusdb, glue::glue("SELECT distinct({x$zone_column}) from pixels where {x$zone_column} is not null;")))>0){
-        getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameZoneTable} WHERE reference_zone = '{x$reference_zone}' AND zoneid IN(",paste(dbGetQuery(sim$clusdb,glue::glue("SELECT distinct({x$zone_column}) as zoneid from pixels where {x$zone_column} is not null;"))$zoneid, sep ="", collapse ="," ),");"))
+      if(nrow(dbGetQuery(sim$castordb, glue::glue("SELECT distinct({x$zone_column}) from pixels where {x$zone_column} is not null;")))>0){
+        getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameZoneTable} WHERE reference_zone = '{x$reference_zone}' AND zoneid IN(",paste(dbGetQuery(sim$castordb,glue::glue("SELECT distinct({x$zone_column}) as zoneid from pixels where {x$zone_column} is not null;"))$zoneid, sep ="", collapse ="," ),");"))
       }
     })
     )
@@ -808,7 +808,7 @@ setZoneConstraints<-function(sim){
     #Get total area of the zone
     if(nrow(zone_const_default)>0){
       t_area_default<-rbindlist(lapply(unique(zone_const_default$zone_column), function (x){
-        dbGetQuery(sim$clusdb, glue::glue("SELECT count() as t_area, {x} as zoneid, '{x}' as zone_column from pixels where {x} is not null group by {x};")) 
+        dbGetQuery(sim$castordb, glue::glue("SELECT count() as t_area, {x} as zoneid, '{x}' as zone_column from pixels where {x} is not null group by {x};")) 
       }))
     }else{
       t_area_default<-data.table( t_area=as.numeric(), zoneid=as.integer(),zone_column=as.character())
@@ -816,7 +816,7 @@ setZoneConstraints<-function(sim){
     #Get total area where some inequality holds
     if(nrow(zone_const_denom)>0){
       t_area_denomt<-rbindlist(lapply(split(zone_const_denom, seq(nrow(zone_const_denom))), function (x){
-        dbGetQuery(sim$clusdb, glue::glue("SELECT count() as t_area, {x$zone_column} as zoneid, '{x$zone_column}' as zone_column from pixels where {x$denom} and {x$zone_column}= {x$zoneid};")) 
+        dbGetQuery(sim$castordb, glue::glue("SELECT count() as t_area, {x$zone_column} as zoneid, '{x$zone_column}' as zone_column from pixels where {x$denom} and {x$zone_column}= {x$zoneid};")) 
       })) 
     }else{
       t_area_denomt<-data.table( t_area=as.numeric(), zoneid=as.integer(),zone_column=as.character())
@@ -827,17 +827,17 @@ setZoneConstraints<-function(sim){
     
     #TODO:REMOVE THIS CHECK
     if(nrow(t_area_denomt) > 0){
-      dbBegin(sim$clusdb)
-      rs<-dbSendQuery(sim$clusdb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, multi_condition, t_area, denom, start , stop ) 
+      dbBegin(sim$castordb)
+      rs<-dbSendQuery(sim$castordb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, multi_condition, t_area, denom, start , stop ) 
                       values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :multi_condition, :t_area, :denom, :start, :stop);", zones)
       dbClearResult(rs)
-      dbCommit(sim$clusdb)
+      dbCommit(sim$castordb)
     }else{
-        dbBegin(sim$clusdb)
-        rs<-dbSendQuery(sim$clusdb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, multi_condition, t_area, start, stop) 
+        dbBegin(sim$castordb)
+        rs<-dbSendQuery(sim$castordb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, multi_condition, t_area, start, stop) 
                       values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :multi_condition, :t_area, :start, :stop);", zones[,c('zoneid', 'zone_column', 'reference_zone', 'ndt','variable', 'threshold', 'type', 'percentage', 'multi_condition', 't_area', 'start', 'stop')])
         dbClearResult(rs)
-        dbCommit(sim$clusdb)
+        dbCommit(sim$castordb)
       }
   }else{
     paste0(P(sim)$nameZoneTable, "...nameZoneTable not supplied. WARNING: your simulation has no zone constraints")
@@ -846,7 +846,7 @@ setZoneConstraints<-function(sim){
 }
 
 setForestState<-function(sim){ #Basic information about the state of the forest. TODO: modify this to make a more complete netdown
-  sim$foreststate<- data.table(dbGetQuery(sim$clusdb, paste0("SELECT compartid as compartment, sum(case when compartid is not null then 1 else 0 end) as total, 
+  sim$foreststate<- data.table(dbGetQuery(sim$castordb, paste0("SELECT compartid as compartment, sum(case when compartid is not null then 1 else 0 end) as total, 
            sum(thlb) as thlb, sum(case when age <= 40 and age >= 0 then 1 else 0 end) as early,
            sum(case when age > 40 and age < 140 then 1 else 0 end) as mature,
            sum(case when age >= 140 then 1 else 0 end) as old
@@ -855,10 +855,10 @@ setForestState<-function(sim){ #Basic information about the state of the forest.
                          group by compartid;"))
             )
 
-  if(dbGetQuery(sim$clusdb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='roadyear';")$exists_check == 0){
+  if(dbGetQuery(sim$castordb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('pixels') WHERE name='roadyear';")$exists_check == 0){
     sim$foreststate[,road:=0]
   }else{
-    sim$foreststate[,road:= dbGetQuery(sim$clusdb,"select count() as road from pixels where roadyear is not null;")$road]
+    sim$foreststate[,road:= dbGetQuery(sim$castordb,"select count() as road from pixels where roadyear is not null;")$road]
   }
   return(invisible(sim))
 }
@@ -867,9 +867,9 @@ updateGS<- function(sim) {
   #Note: See the SQLite approach to updating. The Update statement does not support JOIN
   #update the yields being tracked
   message("...update yields")
-  if(length(dbGetQuery(sim$clusdb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1;")) > 0){
+  if(length(dbGetQuery(sim$castordb, "SELECT variable FROM zoneConstraints WHERE variable = 'eca' LIMIT 1;")) > 0){
     #tab1[, eca:= lapply(.SD, function(x) {approx(dat[yieldid == .BY]$age, dat[yieldid == .BY]$eca,  xout=x, rule = 2)$y}), .SD = "age" , by=yieldid]
-    tab1<-data.table(dbGetQuery(sim$clusdb, "WITH t as (select pixelid, yieldid, age, height, crownclosure, dec_pcnt, basalarea, qmd, eca, vol from pixels where age > 0 and age <= 350) 
+    tab1<-data.table(dbGetQuery(sim$castordb, "WITH t as (select pixelid, yieldid, age, height, crownclosure, dec_pcnt, basalarea, qmd, eca, vol from pixels where age > 0 and age <= 350) 
 SELECT pixelid,
 case when k.tvol is null then t.vol else (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol end as vol,
 case when k.height is null then t.height else (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height end as ht,
@@ -884,14 +884,14 @@ ON t.yieldid = y.yieldid AND CAST(t.age/10 AS INT)*10 = y.age
 LEFT JOIN yields k 
 ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age;"))
     
-    dbBegin(sim$clusdb)
+    dbBegin(sim$castordb)
 
-    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca, dec_pcnt = :dec_pcnt, crownclosure = :crownclosure, qmd = :qmd, basalarea= :basalarea where pixelid = :pixelid;", tab1[,c("vol", "ht", "eca", "pixelid", "dec_pcnt", "crownclosure", "qmd", "basalarea")])
+    rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET vol = :vol, height = :ht, eca = :eca, dec_pcnt = :dec_pcnt, crownclosure = :crownclosure, qmd = :qmd, basalarea= :basalarea where pixelid = :pixelid;", tab1[,c("vol", "ht", "eca", "pixelid", "dec_pcnt", "crownclosure", "qmd", "basalarea")])
     dbClearResult(rs)
-    dbCommit(sim$clusdb)
+    dbCommit(sim$castordb)
     
   }else{
-    tab1<-data.table(dbGetQuery(sim$clusdb, "SELECT t.pixelid,
+    tab1<-data.table(dbGetQuery(sim$castordb, "SELECT t.pixelid,
     (((k.tvol - y.tvol*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.tvol as vol,
     (((k.height - y.height*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.height as ht,
     (((k.dec_pcnt - y.dec_pcnt*1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.dec_pcnt as dec_pcnt,
@@ -904,15 +904,15 @@ ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age;"))
     LEFT JOIN yields k 
     ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0;"))
     
-    dbBegin(sim$clusdb)
+    dbBegin(sim$castordb)
     
-    rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET vol = :vol, height = :ht,  dec_pcnt = :dec_pcnt, crownclosure = :crownclosure, qmd = :qmd, basalarea= :basalarea where pixelid = :pixelid;", tab1[,c("vol", "ht",  "pixelid", "dec_pcnt", "crownclosure", "qmd", "basalarea")])
+    rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET vol = :vol, height = :ht,  dec_pcnt = :dec_pcnt, crownclosure = :crownclosure, qmd = :qmd, basalarea= :basalarea where pixelid = :pixelid;", tab1[,c("vol", "ht",  "pixelid", "dec_pcnt", "crownclosure", "qmd", "basalarea")])
     dbClearResult(rs)
-    dbCommit(sim$clusdb)
+    dbCommit(sim$castordb)
   }
   
   message("...create indexes")
-  dbExecute(sim$clusdb, "CREATE INDEX index_height on pixels (height);")
+  dbExecute(sim$castordb, "CREATE INDEX index_height on pixels (height);")
   rm(tab1)
   gc()
   return(invisible(sim))

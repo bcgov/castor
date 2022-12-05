@@ -1,4 +1,4 @@
-## dataloaderCLUS 
+## dataCastor
 
 ### Required package versions of SpaDES to run these modules
 
@@ -6,7 +6,7 @@
 
 ### What it does
 
-Downloads, retrieves and manipulates data and information about the current state of the forest. The inputs require a connection to a PostgreSQL database that stores provincial scale information. The resulting outputs are formally entered into a SQLite database, named clusdb. This database is used by other modules as inputs to update and store states and other information through the duration of the simulation. This module has two functions: 1) build and save a clusdb or 2) connect to pre-existing clusdb. 
+Downloads, retrieves and manipulates data and information about the current state of the forest. The inputs require a connection to a PostgreSQL database that stores provincial scale information. The resulting outputs are formally entered into a SQLite database, named castordb. This database is used by other modules as inputs to update and store states and other information through the duration of the simulation. This module has two functions: 1) build and save a castordb or 2) connect to pre-existing castordb. 
 
 #### Management levers
 
@@ -21,8 +21,8 @@ Downloads, retrieves and manipulates data and information about the current stat
 * *nameBoundaryColumn*. Name of the column within the boundary file that has the boundary name. 
 * *nameBoundary*. Name of the boundary - a spatial polygon within the boundary file. (e.g., a TSA name to query a TSA spatial polygon file, or a group of herds or TSAs).
 * *nameBoundaryGeom*. Name of the geom column in the boundary file.
-* *save_clusdb*. Save the db to a file? Default = FALSE.
-* *useCLUSdb*. Use an exising db? Add the directory to where the database is being stored. Default = FALSE
+* *saveCastorDB*. Save the db to a file? Default = FALSE.
+* *useCastorDB*. Use an exising db? Add the directory to where the database is being stored. Default = FALSE
 * *nameCompartmentRaster*. Name of the raster that represents a compartment or supply block. 
 * *nameCompartmentTable*. Name of the table that represents a compartment or supply block value attribute look up.
 * *nameMaskHarvestLandbaseRaster*. Administrative boundary related to operability of the the timber harvesting landbase. Default = 1
@@ -46,7 +46,7 @@ Downloads, retrieves and manipulates data and information about the current stat
     
 #### Data Needs
 
-Any spatial or tabular data can be entered into the design of clusdb. The minimum amount of data needed to run the simulation includes:
+Any spatial or tabular data can be entered into the design of castordb. The minimum amount of data needed to run the simulation includes:
 
 ##### Rasters
 ----
@@ -69,14 +69,14 @@ Any spatial or tabular data can be entered into the design of clusdb. The minimu
 ### Outputs
 
 * Summary of the state of the forest in the area of interest
-* Populates the pixels, yields, zones and zoneConstraints tables in the clusdb database.
+* Populates the pixels, yields, zones and zoneConstraints tables in the castordb database.
 
-![](data/clusdb_v1.3.jpeg)<!-- -->
+![](data/castordb_v1.3.jpeg)<!-- -->
 
 
 ### Licence
 
-    Copyright 2019 Province of British Columbia
+    Copyright 2023 Province of British Columbia
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
