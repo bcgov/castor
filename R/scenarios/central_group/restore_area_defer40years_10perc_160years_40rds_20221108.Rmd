@@ -164,7 +164,7 @@ parameters <- list(
                        tableCaribouHerd = "vat.caribou_herd_20220725"), 
   smcaribouAbundanceCLUS = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
                                   tableSMCCoeffs = "vat.smc_coeffs"),
-  grizzlysurvivalCLUS = list (rasterGBPU = "rast.gbpu_2021", 
+  survivalgrizzlyCASTOR = list (rasterGBPU = "rast.gbpu_2021", 
                               tableGBPU= "vat.gbpu", 
                               roadDensity = 10),
   disturbanceCASTOR = list(calculateInterval =  1, 
@@ -191,7 +191,7 @@ modules <- list("dataLoaderCLUS",
                 "survivalCLUS", 
                 "disturbanceCASTOR", 
                 "uploaderCLUS",
-                "grizzlysurvivalCLUS",
+                "survivalgrizzlyCASTOR",
                 "smcaribouAbundanceCLUS"
                 #"volumebyareaReportCLUS"
                 )
