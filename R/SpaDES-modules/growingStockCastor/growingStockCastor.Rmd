@@ -20,16 +20,17 @@ See the License for the specific language governing permissions and limitations 
 
 # Overview
 
-This module updates db to acomodate future time. It is used to simulate growth by updating the age of the vegetation which relate to an age over yield curve.
+This module updates db to accommodate future time. It is used to simulate growth by updating the age of the vegetation which relate to an age over yield curve.
 
 # Usage
 
 ```{r module_usage}
 library(SpaDES)
 library(SpaDES.core)
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+library(dplyr)
+source(here::here("R/functions/R_Postgres.R"))
 
-setPaths(modulePath = file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules"))
+setPaths(modulePath = paste0(here::here(),"/R/SpaDES-modules"))
 getPaths() # shows where the 4 relevant paths are
 
 times <- list(start = 0, end = 1)
@@ -40,11 +41,12 @@ parameters <-  list(
                      randomLandscape = list(100,100,0,100,0,100),
                      randomLandscapeZoneConstraint = 
                        data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
-                     )
+                     ),
+  growingStockCastor = list(periodLength = 5)
 )
 
 modules <- list("dataCastor", "growingStockCastor")
-objects <- list()
+objects <- list(scenario = data.table(name="test", description = "test"))
 inputs <- list()
 outputs <- list()
 

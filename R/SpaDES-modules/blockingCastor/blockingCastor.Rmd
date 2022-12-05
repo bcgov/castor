@@ -43,9 +43,8 @@ library(dplyr)
 source(here::here("R/functions/R_Postgres.R"))
 
 moduleDir <- paste0(here::here(),"/R/SpaDES-modules")
-inputDir <- paste0(here::here(),"/R/blockingCastor") %>% reproducible::checkPath(create = TRUE)
 outputDir <- paste0(here::here(),"/R/SpaDES-modules/blockingCastor")
-cacheDir <- paste0(here::here(),"/R/SpaDES-modules/blockingCastor")
+
 times <- list(start = 0, end = 0)
 
 parameters <- list(
@@ -63,9 +62,7 @@ parameters <- list(
 modules <- list("dataCastor", "blockingCastor")
 objects <- list(scenario = data.table(name="test", description = "test"))
 paths <- list(
-  cachePath = cacheDir,
   modulePath = moduleDir,
-  inputPath = inputDir,
   outputPath = outputDir
 )
 
