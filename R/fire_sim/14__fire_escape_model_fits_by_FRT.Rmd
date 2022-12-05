@@ -78,7 +78,7 @@ Now we must bring in the data that we created at the end of 10_fire_escape_data_
 
 ```{r}
 
-escape <- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg")
+escape <- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg")
 
 table(is.na(escape$Cluster)) # wierd there are 13 points that have no Cluster assigned to them.Not I tried joining them to FRT again and I still have 13 missing FRT info so Ill remove these points
 
@@ -100,7 +100,7 @@ In the script "escape_climate_variable_selection.R", we performed an AIC and ROC
 
 ```{r, AIC table, echo = F, message = F, eval = T}
 
-climate_variables_escape<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\climate_AIC_results_escape_summary.csv") #This current file has all the possible models instead of the top one for each NDT as prior
+climate_variables_escape<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\climate_AIC_results_escape_summary.csv") #This current file has all the possible models instead of the top one for each NDT as prior
 
 head(climate_variables_escape) 
 

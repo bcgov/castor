@@ -72,7 +72,7 @@ See the License for the specific language governing permissions and limitations 
 Load in the prepped data.
 
 ```{r}
-Escape_data_ALL <- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg")
+Escape_data_ALL <- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg")
 head(Escape_data_ALL)
 dim(Escape_data_ALL)
 
