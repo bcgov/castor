@@ -74,19 +74,15 @@ defineModule(sim, list(
     defineParameter("nameForestInventorySiteIndex", "character", "99999", NA, NA, desc = "Name of the veg comp site_index")
     ),
   inputObjects = bind_rows(
-    expectsInput(objectName = "nameBoundaryFile", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "nameBoundary", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "nameBoundaryColumn", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "nameBoundaryGeom", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "updateZoneConstraints", objectClass = "data.table", desc = "Table of query parameters for updating the constraints", sourceURL = NA)
-    
     ),
   outputObjects = bind_rows(
     createsOutput("zone.length", objectClass ="integer", desc = NA), # the number of zones to constrain on
     createsOutput("zone.available", objectClass ="data.table", desc = NA), # the available zones of the castordb
     createsOutput("boundaryInfo", objectClass ="character", desc = NA),
+    createsOutput("extent", objectClass ="list", desc = NA),
     createsOutput("castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates castor realted information"),
-    createsOutput("ras", objectClass ="RasterLayer", desc = "Raster Layer of the cell index"),
+    createsOutput("ras", objectClass ="SpatRaster", desc = "Raster Layer of the cell index"),
     createsOutput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances"),
     createsOutput(objectName = "foreststate", objectClass = "data.table", desc = "A data.table of the current state of the aoi")
   )

@@ -39,51 +39,37 @@ The module sets and updates the blocks table within `castordb`. It requires - da
 ```{r module_usage}
 library(SpaDES.core)
 library(data.table)
+library(dplyr)
 source(here::here("R/functions/R_Postgres.R"))
 
-moduleDir <- here::here("/R/SpaDES-modules")
-inputDir <- here::here("/R") %>% reproducible::checkPath(create = TRUE)
-outputDir <- here::here("/R")
-cacheDir <- here::here("/R")
+moduleDir <- paste0(here::here(),"/R/SpaDES-modules")
+inputDir <- paste0(here::here(),"/R/blockingCastor") %>% reproducible::checkPath(create = TRUE)
+outputDir <- paste0(here::here(),"/R/SpaDES-modules/blockingCastor")
+cacheDir <- paste0(here::here(),"/R/SpaDES-modules/blockingCastor")
 times <- list(start = 0, end = 0)
+
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataCastor = list( dbName='clus',
-                         saveCastordb = TRUE,
-                         useCastorDB = "R/SpaDES-modules/dataCastor/clusdb.sqlite",
-                         nameBoundaryFile="study_area_compart",
-                         nameBoundaryColumn="tsb_number",
-                         nameBoundary = c ("26A", "29B", "29C"), #DU7  
-                         nameBoundaryGeom='wkb_geometry',
-                         nameCompartmentRaster = "rast.forest_tenure",
-                         nameCompartmentTable = "forest_tenure_vat"),
+                     saveCastorDB = TRUE,
+                     randomLandscape = list(100,100,0,100,0,100),
+                     randomLandscapeZoneConstraint = 
+                       data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
+                     ),
   blockingCastor = list(blockMethod='pre', 
-                      patchZone = 'rast.zone_cond_beo',
-                      patchVariation = 6,
-                      nameCutblockRaster ="rast.cns_cut_bl",
-                      useLandingsArea=FALSE, 
-                      useSpreadProbRas=FALSE)
+                      patchZone = 'default',
+                      patchVariation = 6)
                         )
 modules <- list("dataCastor", "blockingCastor")
-patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
-                                  2,2,2,2,2,2,
-                                  3,3,3,3,3,3,
-                                  4,4,4,4,4,4,
-                                  5,5,5,5,5,5), 
-                           sizeClass = c(40,80,120,160,200,240), 
-                           freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
-                                    0.3,0.3,0.1,0.1,0.1, 0.1,
-                                    0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
-                                    0.1,0.02,0.02,0.02,0.02,0.8,
-                                    0.3,0.3,0.1,0.1,0.1, 0.1))
-objects <- list(patchSizeDist=patchSizeDist)
+objects <- list()
 paths <- list(
   cachePath = cacheDir,
   modulePath = moduleDir,
   inputPath = inputDir,
   outputPath = outputDir
 )
+
 set.seed(86) # need to set a seed for solving the mst-can have many optimal solutions
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
@@ -106,11 +92,14 @@ There are two methods used in blockingCastor under the blockMethod parameter:
 
 ## Input data
 
-A SQLite db is required as an output from dataCastor.
+A 'SQLite' database connection called castordb is required as an output from dataCastor.
+A patch size distribution from the biodiversity guidebook is provided as the default.
+A homogenetiy factor 
+
 
 ## Output data
 
-A raster of block IDs, internally stored in memory in castordb
+A raster of block IDs (hu.tif).
 
 # Links to other modules
 

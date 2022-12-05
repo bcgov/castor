@@ -32,7 +32,7 @@ defineModule(sim, list(
     defineParameter("blockMethod", "character", "pre", NA, NA, "This describes the type of blocking method"),
     defineParameter("patchZone", "character", 'rast.zone_cond_beo', NA, NA, "Zones that pertain to the patch size distribution requirements"),
     defineParameter("patchVariation", "numeric",6, NA, NA, "The percent (fractional) difference between edges of the pre-blocking algorithm"),
-    defineParameter("nameCutblockRaster", "character", "rast.cns_cut_bl", NA, NA, desc = "Name of the raster with ID pertaining to cutlocks - consolidated cutblocks"),
+    defineParameter("nameCutblockRaster", "character", "99999", NA, NA, desc = "Name of the raster with ID pertaining to cutlocks - consolidated cutblocks"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -42,7 +42,7 @@ defineModule(sim, list(
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     expectsInput(objectName ="castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates castor realted information", sourceURL = NA),
-    expectsInput(objectName ="ras", objectClass ="RasterLayer", desc = NA, sourceURL = NA),
+    expectsInput(objectName ="ras", objectClass ="SpatRaster", desc = NA, sourceURL = NA),
     expectsInput(objectName ="blockMethod", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="zone.length", objectClass ="numeric", desc = "The number of zones uploaded by dataCastor", sourceURL = NA),
     expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
@@ -63,7 +63,6 @@ doEvent.blockingCastor = function(sim, eventTime, eventType, debug = FALSE) {
     eventType,
     init = {
       sim<-Init(sim) #Build the adjacent edges
-      
       switch(P(sim)$blockMethod,
              
              pre= {
@@ -154,6 +153,8 @@ getExistingCutblocks<-function(sim){
     }else{
       stop(paste0("ERROR: extents are not the same check -", P(sim, "nameCutblockRaster", "blockingCastor")))
     }
+  }else{
+    sim$existBlockId<-0
   }
 return(invisible(sim))
 }
@@ -176,10 +177,14 @@ setHistoricalLandings <- function(sim) {
   land_pixels<-data.table(dbGetQuery(sim$castordb, paste0("select landing from blocks where blockid < ", sim$existBlockId)))
   
   #print (land_pixels)
-  
-  land_coord<-sim$pts[pixelid %in% land_pixels$landing, ]
-  setnames(land_coord,c("x", "y"), c("X", "Y"))
-  sim$landings <- sp::SpatialPoints(land_coord[,c("X", "Y")],crs(sim$ras))
+  if(nrow(land_pixels) > 0 ){
+    land_coord<-sim$pts[pixelid %in% land_pixels$landing, ]
+    setnames(land_coord,c("x", "y"), c("X", "Y"))
+    sim$landings <- sp::SpatialPoints(land_coord[,c("X", "Y")],crs(sim$ras))
+  }else{
+    sim$landings <- NULL
+  }
+
   return(invisible(sim))
 }
 
