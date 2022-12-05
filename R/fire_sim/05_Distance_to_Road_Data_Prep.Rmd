@@ -70,7 +70,7 @@ roads<-try(
 # This is the way its done by the cummulative effects people and it worked when I used their script off git-hub, but I have not managed to get it to work here.
 RdsZip <- 'dra.gdb.zip'
 download.file("ftp://ftp.geobc.gov.bc.ca/sections/outgoing/bmgs/DRA_Public/dgtl_road_atlas.gdb.zip",
-              destfile = file.path("//Work//caribou//clus//R//fire_sim//data", RdsZip))
+              destfile = file.path("//Work//caribou//castor//R//fire_sim//data", RdsZip))
 unzip(file.path(DataDir, RdsZip), exdir = file.path(DataDir, "DRA"))
 
 
@@ -252,17 +252,17 @@ After making the roads raster. I used the Raster -> Analysis -> Proximity (Raste
 
 ```{r}
 # import roads distance raster
-roads_dist <- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
+roads_dist <- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
 plot(roads_dist) # looks reasonable I think
 rast_sum_len <- cellStats(roads_dist, "sum")
 cellStats(roads_dist, "max") # 8098.8 this is probably ok because it calculated the distance even to pixels in the ocean because the raster is a square rather than just BC
 cellStats(roads_dist, "min") # 0 seems appropriate
-GDALinfo("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
+GDALinfo("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
 
 #plot(roads) #you may wish to plot this to inspect but just opening the tif files makes it look like its all good
 
 # if you are working from scratch import the data here
-ignition_weather_crs<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_fire_all_15x.shp")
+ignition_weather_crs<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_fire_all_15x.shp")
 
 names(ignition_weather_crs)
 
@@ -291,7 +291,7 @@ crs(sample_locations_DEM_roads)
 # remove extra lat long columns
 sample_locations_DEM_roads<-sample_locations_DEM_roads %>% dplyr::select(id:dem_ha_bc, Tmax02:geometry )
 
-st_write(sample_locations_DEM_roads, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\DC_data_DEM_roads.shp", delete_layer=TRUE)
+st_write(sample_locations_DEM_roads, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\DC_data_DEM_roads.shp", delete_layer=TRUE)
 
 
 ```

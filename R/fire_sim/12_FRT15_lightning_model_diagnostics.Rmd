@@ -53,7 +53,7 @@ See the License for the specific language governing permissions and limitations 
 Note: depending where your geometry column was located when saved as a csv (and turned into a dataframe), you may need to manually correct column headings on the csv file before loading back in. This has been performed for the below files.
 
 ```{r}
-dat_lightning<- read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
+dat_lightning<- read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
 
 ```
 

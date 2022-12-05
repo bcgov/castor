@@ -20,7 +20,7 @@ library(tmap)
 # import elevation data
 ```{r}
 #Elevation
-DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\dem_ha_bc.tif")
 #plot(DEM)
 
 crs(DEM)
@@ -29,12 +29,12 @@ crs(DEM)
 #import FRT and change it to a raster for faster extraction
 
 ```{r}
-# import FRT from the D drive or Kyle Clus (below)
+# import FRT from the D drive or Kyle castor (below)
 frt <- st_read ( dsn = "D:\\Fire\\fire_data\\Fire_Regime_Types\\FRT\\FRT_Canada.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
 st_crs(frt) #Retrieve coordinate reference system from sf or sfc object
 frt<-st_transform(frt, 3005) 
 
-# save frt to Kyle Clus 
+# save frt to Kyle castor 
 # conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
 #                   host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
 #                   dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
@@ -155,11 +155,11 @@ system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 x4_clim_dem<-read.csv("D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\climate_BC_input\\Quesnel_WilliamsL_100Mile_out.csv")
 
-climate_variables_lightning<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")
+climate_variables_lightning<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")
 
 climate_variables_lightning
 
-climate_variables_person<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
+climate_variables_person<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
 
 climate_variables_person
 
@@ -217,15 +217,15 @@ my.sf.point <- st_transform (my.sf.point, 3005)
 # x_frt15<-x6 %>% filter(layer=="15")
 # 
 # 
-# st_write(x_frt10, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt10.gpkg", delete_layer=TRUE, driver="GPKG")
+# st_write(x_frt10, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt10.gpkg", delete_layer=TRUE, driver="GPKG")
 # 
-# st_write(x_frt12, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt12.gpkg", delete_layer=TRUE, driver="GPKG")
+# st_write(x_frt12, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt12.gpkg", delete_layer=TRUE, driver="GPKG")
 # 
-# st_write(x_frt13, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt13.gpkg", delete_layer=TRUE, driver="GPKG")
+# st_write(x_frt13, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt13.gpkg", delete_layer=TRUE, driver="GPKG")
 # 
-# st_write(x_frt14, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt14.gpkg", delete_layer=TRUE, driver="GPKG")
+# st_write(x_frt14, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt14.gpkg", delete_layer=TRUE, driver="GPKG")
 # 
-# st_write(x_frt15, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt15.gpkg", delete_layer=TRUE, driver="GPKG")
+# st_write(x_frt15, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt15.gpkg", delete_layer=TRUE, driver="GPKG")
 # 
 # 
 # # note at the 1ha resolution saving the file as a single file is too large and makes processing in QGIS SOOO SLOW. So instead I've split it up according to FRT and will run the veg script separately for each area. 
@@ -235,18 +235,18 @@ head(my.sf.point)
 
 
 
-st_write(my.sf.point, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(my.sf.point, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile.gpkg", delete_layer=TRUE, driver="GPKG")
 
 ```
 Now in QGIS join the above layer to the VRI. I also buffered each point by 400m because I wanted the average vegetation type for the area of the pixel and my pixels are 800m apart
 
 
 ```{r}
-dat<- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_buffered_400_joinedVRI2021.gpkg")
+dat<- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_buffered_400_joinedVRI2021.gpkg")
 
 table(dat$idno)
 
-my.sf.point<-st_read( "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile.gpkg")
+my.sf.point<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile.gpkg")
 
 dat<-st_drop_geometry(dat)
 
@@ -974,7 +974,7 @@ table(is.na(fire_all1$FWI_veg))
 
 x<- fire_all1 %>% filter(is.na(FWI_veg)) %>% dplyr::select(inventory_standard_cd:conifer_pct_cover_total)
 
-st_write(fire_all1, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_Quesnell_WilliamsL_100Mile_FRT_800m.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(fire_all1, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_Quesnell_WilliamsL_100Mile_FRT_800m.gpkg", delete_layer=TRUE, driver="GPKG")
 ```
 
 

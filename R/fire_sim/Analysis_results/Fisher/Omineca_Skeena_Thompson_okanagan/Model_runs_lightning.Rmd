@@ -22,7 +22,7 @@ library(tmap)
 
 dat<-fire_all1
 rm(fire_all1, fire_all)
-dat<-st_read( "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Fisher_study_area_veg_FWI.gpkg")
+dat<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Fisher_study_area_veg_FWI.gpkg")
 
 dat<-st_transform(dat, 3005)
 
@@ -383,7 +383,7 @@ hist(frt_all2$prob_ignition)
 ```
 save the data
 ```{r}
-st_write(frt_all2, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\fisher_study_area_lighting_ignit_final.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(frt_all2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\fisher_study_area_lighting_ignit_final.gpkg", delete_layer=TRUE, driver="GPKG")
 
 ```
 
@@ -430,12 +430,12 @@ plot(z, col=rev(heat.colors(255)))
 # 
 # plot(ras.aoi2)
 
-#writeRaster(maxint, file=" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif", format="GTiff", overwrite=TRUE)
+#writeRaster(maxint, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif", format="GTiff", overwrite=TRUE)
 
-writeRaster(z, file=" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Lightning_ignition_probability_2021.tif", format="GTiff", overwrite=TRUE)
+writeRaster(z, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Lightning_ignition_probability_2021.tif", format="GTiff", overwrite=TRUE)
 
 # run this in R:
-paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif -t 100x100 rast.prob_lightning_ignit_quesnel_williamsl_100mile | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus')
+paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif -t 100x100 rast.prob_lightning_ignit_quesnel_williamsl_100mile | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/castor')
 # then copy the output thats between the " " from the above and paste it into the cmd and run that... should show Insert 0  1 lots of times.
 
 ```

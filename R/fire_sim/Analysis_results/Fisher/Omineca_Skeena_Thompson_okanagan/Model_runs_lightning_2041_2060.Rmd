@@ -17,14 +17,14 @@ library(rgeos)
 
 # Import the data and fire regime types layer
 ```{r}
-dat<-st_read( "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Fisher_study_area_veg_FWI.gpkg")
+dat<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Fisher_study_area_veg_FWI.gpkg")
 
 dat<-st_transform(dat, 3005)
 
 table(dat$idno) # check there is only one record per idno
 
 # lightning caused fires
-future_clim<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Fisher_study_area_8GCMs_ensemble_ssp370_2041MP.csv")
+future_clim<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Fisher_study_area_8GCMs_ensemble_ssp370_2041MP.csv")
 
 future_clim$mean_Tave07_Tave08_Tave09<-(future_clim$Tave07 +future_clim$Tave08 + future_clim$Tave09)/3
 future_clim$mean_Tmax07_Tmax08<- (future_clim$Tmax07 + future_clim$Tmax08)/2
@@ -441,12 +441,12 @@ frtall<-frt_all %>% dplyr::select(idno:climate2_2050, logit_P:geom)
 
 hist(frtall$prob_ignition)
 
-st_write(frtall, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\fisher_study_area_lighting_ignit_2050_final.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(frtall, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\fisher_study_area_lighting_ignit_2050_final.gpkg", delete_layer=TRUE, driver="GPKG")
 
 
 names(frtall)
 frtall2<- frtall %>% select(idno, frt, prob_ignition)
-st_write(frtall2, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Prob_lighting_ignit_2050.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(frtall2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Prob_lighting_ignit_2050.gpkg", delete_layer=TRUE, driver="GPKG")
 
 
 ```
@@ -493,12 +493,12 @@ plot(z, col=rev(heat.colors(255)))
 # 
 # plot(ras.aoi2)
 
-#writeRaster(maxint, file=" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif", format="GTiff", overwrite=TRUE)
+#writeRaster(maxint, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif", format="GTiff", overwrite=TRUE)
 
-writeRaster(z, file=" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_Escape_Quesnell_WilliamsL_100Mile_allFRT_800m.tif", format="GTiff", overwrite=TRUE)
+writeRaster(z, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Probability_of_Escape_Quesnell_WilliamsL_100Mile_allFRT_800m.tif", format="GTiff", overwrite=TRUE)
 
 # run this in R:
-paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif -t 100x100 rast.prob_lightning_ignit_quesnel_williamsl_100mile | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus')
+paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif -t 100x100 rast.prob_lightning_ignit_quesnel_williamsl_100mile | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/castor')
 # then copy the output thats between the " " from the above and paste it into the cmd and run that... should show Insert 0  1 lots of times.
 
 ```

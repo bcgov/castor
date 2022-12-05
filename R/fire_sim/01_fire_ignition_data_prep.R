@@ -89,7 +89,7 @@ ggplot(data=frt) +
   coord_sf()
 
 #get provincial boundary for clipping the layers to the area of interest
-prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
 st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
 prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
 crs(prov.bnd)# this one needs to be transformed to 3005
@@ -107,7 +107,7 @@ frt_clipped<-st_intersection(bc.bnd, frt)
 length(unique(frt_clipped$Cluster))
 frt_sf<-st_as_sf(frt_clipped)
 
-st_write(frt_sf, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\frt_clipped.shp", delete_dsn = TRUE)
+st_write(frt_sf, overwrite = TRUE,  dsn="C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\frt_clipped.shp", delete_dsn = TRUE)
 
 plot(frt_clipped)
 
@@ -141,7 +141,7 @@ table(fire.igni.frt.ndt$FIRE_YEAR, fire.igni.frt.ndt$Cluster, fire.igni.frt.ndt$
 #Write fire.igni.frt.ndt to file because it takes so long to make.
 
 
-st_write(fire.igni.frt.ndt, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\bc_fire_ignition_clipped.shp", delete_dsn = TRUE)
+st_write(fire.igni.frt.ndt, overwrite = TRUE,  dsn="C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\bc_fire_ignition_clipped.shp", delete_dsn = TRUE)
 
 # good fire is a point location
 
@@ -149,7 +149,7 @@ st_write(fire.igni.frt.ndt, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\
 
 ##Save via OsGeo4W Shell
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
-#ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\bc_fire_ignition_clipped.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\bc_fire_ignition_clipped.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 
 # Below was not done 3 August 2022
@@ -160,7 +160,7 @@ st_write(fire.igni.frt.ndt, overwrite = TRUE,  dsn="C:\\Work\\caribou\\clus\\R\\
 #password=keyring::key_get('dbpass', keyring = 'postgreSQL')
 
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
-#ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\fire_ignition_hist\\bc_fire_ignition.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 # https://gdal.org/programs/ogr2ogr.html
 

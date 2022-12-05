@@ -461,7 +461,7 @@ getBlocksIDs<- function(x){
   #---------------------------------------------------------------------------------#
   message(paste0("getBlocksID for zone: ", x[][[3]])) #Let the user know what zone is being blocked
  
-  .jinit(classpath= paste0(here::here(),"/Java/bin"), parameters="-Xmx2g", force.init = TRUE) #instantiate the JVM
+  .jinit(classpath= paste0(here::here(),"/Java/forest_blocking/bin"), parameters="-Xmx2g", force.init = TRUE) #instantiate the JVM
   fhClass<-.jnew("forest_hierarchy.Forest_Hierarchy") # creates a new forest hierarchy object in java
   
   dg<- data.table(cbind(as.integer(rownames(x[][[1]])),as.integer(x[][[1]]))) #Sets the degree list
