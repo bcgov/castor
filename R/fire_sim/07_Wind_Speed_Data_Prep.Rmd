@@ -146,7 +146,7 @@ st_write(wind_data2b, overwrite = TRUE,  dsn="D:\\Fire\\fire_data\\raw_data\\Gov
 Now let's bring in the provincial boundary layer and change the crs.
 
 ```{r}
-prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
 st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
 prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
 bc.bnd <- st_transform (prov.bnd, 3005)
@@ -299,7 +299,7 @@ str(rasStackWind)
 Bring data back in from the end of 06_Distance_to_Development_Rmd
 
 ```{r}
-sample_locations_DEM_roads_infra<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_infra.gpkg")
+sample_locations_DEM_roads_infra<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_infra.gpkg")
 str(sample_locations_DEM_roads_infra)
 crs(sample_locations_DEM_roads_infra)
 
@@ -344,14 +344,14 @@ Save file.
 
 ```{r}
 
-sf::st_write(sample_locations_DEM_roads_wind2, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_wind_frt.gpkg", delete_layer=TRUE)
+sf::st_write(sample_locations_DEM_roads_wind2, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_wind_frt.gpkg", delete_layer=TRUE)
 
 
 ##Save to personal drive
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_wind_frt.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_wind_frt.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_clim_DEM_roads_wind.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=castor password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\Data_clim_DEM_roads_wind.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ##Above may not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
 
 #key_get('dbpass', keyring = 'postgreSQL')
@@ -405,7 +405,7 @@ ggplot() +
 Project in 3005 crs with BC map
 
 ```{r}
-prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
 st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
 prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
 bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system

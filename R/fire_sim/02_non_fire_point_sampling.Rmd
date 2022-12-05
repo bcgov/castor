@@ -71,7 +71,7 @@ Run the below code chunk to bring the data back in if you are starting from this
 # dbDisconnect (conn)
 
 ##Or from local device; e.g. below
- fire.igni.frt <-st_read(dsn="C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\bc_fire_ignition_clipped.shp")
+ fire.igni.frt <-st_read(dsn="C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\bc_fire_ignition_clipped.shp")
 # 
 # head(fire.ignt.frt)
 # table(fire.igni.frt$FIRE_YE, fire.igni.frt$FIRE_CA)
@@ -236,15 +236,15 @@ table(samp_locations_sf$ig_mnth)
 table(samp_locations_sf$FIRE_YEAR, samp_locations_sf$Cluster, samp_locations_sf$fire) # We see that we have oue 3 original categories, but now we also have our NA locations.
 ```
 
-Now we must save this file locally and on clus so that we do not need to create it again.
+Now we must save this file locally and on castor so that we do not need to create it again.
 
 ```{r}
 # or save it as a shape file
-st_write(samp_locations_sf, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\samp_locations_fire_all_5x_frt.shp", delete_dsn = TRUE, overwrite = TRUE)
+st_write(samp_locations_sf, dsn = "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\samp_locations_fire_all_5x_frt.shp", delete_dsn = TRUE, overwrite = TRUE)
 
-#Because it is a shape file, we will need OsGeo4W Shell to save it to clus
+#Because it is a shape file, we will need OsGeo4W Shell to save it to castor
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
-#ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\samp_locations_fire_all_5x_frt.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\samp_locations_fire_all_5x_frt.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ```
 

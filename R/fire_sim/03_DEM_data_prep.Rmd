@@ -55,35 +55,35 @@ library(DBI)
 source(here::here("R/functions/R_Postgres.R"))
 ```
 
-The Provincial DEM layers accessible to us is located here: T:\FOR\VIC\HTS\ANA\PROJECTS\CLUS\Data\dem\all_bc 
+The Provincial DEM layers accessible to us is located here: T:\FOR\VIC\HTS\ANA\PROJECTS\CASTOR\Data\dem\all_bc 
 Load in the relevant files and inspect.
 
 ```{r}
 ##Slope
-DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
+DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
 #plot(DEM_slope) #you may wish to plot this to inspect
 
-GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc.tif")
+GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\slope_ha_bc.tif")
 #DEM_slope
 
 #DEM_slope_df <- as.data.frame(DEM_slope, xy = TRUE) #Dataframe created for mapping; but we see later that the files is >2GB and thus too large to map in R
 #str(DEM_slope_df)
 
 ##Aspect
-DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc_3005.tif")
+DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\aspect_ha_bc_3005.tif")
 #plot(DEM_aspect) #you may wish to plot this to inspect
 
-GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc.tif")
+GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\aspect_ha_bc.tif")
 #DEM_aspect
 
 #DEM_aspect_df <- as.data.frame(DEM_aspect, xy = TRUE)#Dataframe created for mapping; but we see later that the files is >2GB and thus too large to map in R
 #str(DEM_aspect_df)
 
 #Elevation
-DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\dem_ha_bc.tif")
 #plot(DEM)
 
-GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+GDALinfo("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\dem_ha_bc.tif")
 #DEM_slope
 
 ##Determine resolution
@@ -184,7 +184,7 @@ Check CRS.
 #                                query = "SELECT * FROM public.DC_data_5x_AllMonths")
 # dbDisconnect (connKyle)
 
-sample_locations2<-st_read( "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\samp_locations_fire_all_5x_frt.shp")
+sample_locations2<-st_read( "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\samp_locations_fire_all_5x_frt.shp")
 
 # if using data straight from 02b_climate_data_prep_all.Rmd script
 sample_locations2<- samp_locations_sf
@@ -194,7 +194,7 @@ crs(sample_locations2)
 sample_locations2$wkb_geometry
 
 #Or can load in locally
-# sample_locations2<-st_read(dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\data\\DC_data_5x_AllMonths_frt.shp")
+# sample_locations2<-st_read(dsn = "C:\\Work\\caribou\\castor\\R\\fire_sim\\data\\DC_data_5x_AllMonths_frt.shp")
 
 
 ##Compare to DEM layer
@@ -238,16 +238,16 @@ Save this file and use for next R Markdown file (04_Road). Make sure you save it
 
 ```{r}
 
-st_write(sample_locations_DEM, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\DEM_5x_AllMonths_frt.shp", delete_layer=TRUE)
+st_write(sample_locations_DEM, dsn = "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\DEM_5x_AllMonths_frt.shp", delete_layer=TRUE)
 
 rm(pointCoordinates, rasValue2, test, DEM, DEM_aspect, DEM_slope, rasStack, rasValue2,samp_joined, samp_joined2, samp_joined_new, sample_locations2, samp_locations_sf) # remove some files out of memory
 gc()
 
 #Also write to local machine on OSGeo4W
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\DC_data_DEM_5x_AllMonths_frt.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\DC_data_DEM_5x_AllMonths_frt.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM_5x_AllMonths.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname= password= port=5432" D:\\Fire\\fire_data\\raw_data\\ClimateBC_Data\\DC_data_DEM_5x_AllMonths.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ##Above may not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
 
 #key_get('dbpass', keyring = 'postgreSQL')

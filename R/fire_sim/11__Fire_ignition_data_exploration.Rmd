@@ -1,5 +1,5 @@
 ---
-title: "10_Fire_ignition_model_fits_by_FRT_data_prep"
+title: "11_Fire_ignition_model_fits_by_FRT_data_prep"
 author: "Elizabeth Kleynhans and Cora Skaien"
 contributor: "Peter Ott"
 date: "20/04/2021"
@@ -69,8 +69,8 @@ In the script "10_ignition_climate_variable_selection.R", we performed an AIC an
 
 ```{r eval=, message=FALSE, AIC table, echo=F}
 
-climate_variables_lightning<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")
-climate_variables_person<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
+climate_variables_lightning<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")
+climate_variables_person<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
 
 head(climate_variables_lightning) 
 head(climate_variables_person) 
@@ -98,7 +98,7 @@ kable (climate_variables_person,
 ## Pull in the data for both lightning and person caused fires. Note, below seems to not be working and currently I am bringing it in from my local computer.
 
 ```{r}
-dat_lightning<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
+dat_lightning<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
 
 # connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
 #                       host = key_get('dbhost', keyring = 'postgreSQL'),
@@ -116,7 +116,7 @@ head(dat_lightning)
 
 
 ```{r}
-dat_person<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_human_for_analysis.csv")
+dat_person<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\dat_human_for_analysis.csv")
 
 # connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
 #                       host = key_get('dbhost', keyring = 'postgreSQL'),
@@ -338,9 +338,9 @@ ggplot(dat_lightning, aes(x = elevatn)) +
 ```{r}
 ###################################
 # bring in shape file of FRT's
-frt_map<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\frt_clipped.shp")
+frt_map<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\frt_clipped.shp")
 
-prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
 st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
 prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
 crs(prov.bnd)# this one needs to be transformed to 3005

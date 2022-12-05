@@ -38,7 +38,7 @@ First, we will generate separate files from above code for each year to input in
 # Load data back in if we need to.
 Note the column names will have changed so be careful!
 ```{r}
-sample_locations_DEM <-st_read(dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\DEM_5x_AllMonths_frt.shp")
+sample_locations_DEM <-st_read(dsn = "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\DEM_5x_AllMonths_frt.shp")
 head(sample_locations_DEM) 
 ```
 
@@ -58,7 +58,7 @@ for (i in 1: length(years)) {
   sample.pts.all$el <- as.numeric(dat$dem_ha_bc)
   
   nam1<-paste("sampled.points.all.frt",years[i], "csv",sep=".")
-  the_dir <- "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp"
+  the_dir <- "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp"
   write.csv(sample.pts.all, file = paste0(the_dir, "\\", basename(nam1)), row.names=FALSE)
 }
 
@@ -89,122 +89,122 @@ setwd("D:/Climatebc_v730"); # set the ClimateBC root directory as the working di
 exe <- "ClimateBC_v7.30.exe"
 
 ## 2002
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2002.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2002.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2002.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2002.csv'
 yearPeriod = '/Year_2002.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2003
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2003.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2003.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2003.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2003.csv'
 yearPeriod = '/Year_2003.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2004
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2004.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2004.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2004.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2004.csv'
 yearPeriod = '/Year_2004.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2005
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2005.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2005.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2005.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2005.csv'
 yearPeriod = '/Year_2005.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2006
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2006.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2006.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2006.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2006.csv'
 yearPeriod = '/Year_2006.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2007
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2007.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2007.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2007.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2007.csv'
 yearPeriod = '/Year_2007.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2008
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2008.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2008.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2008.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2008.csv'
 yearPeriod = '/Year_2008.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2009
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2009.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2009.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2009.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2009.csv'
 yearPeriod = '/Year_2009.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2010
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2010.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2010.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2010.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2010.csv'
 yearPeriod = '/Year_2010.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2011
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2011.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2011.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2011.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2011.csv'
 yearPeriod = '/Year_2011.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2012
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2012.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2012.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2012.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2012.csv'
 yearPeriod = '/Year_2012.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2013
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2013.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2013.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2013.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2013.csv'
 yearPeriod = '/Year_2013.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2014
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2014.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2014.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2014.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2014.csv'
 yearPeriod = '/Year_2014.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2015
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2015.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2015.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2015.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2015.csv'
 yearPeriod = '/Year_2015.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2016
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2016.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2016.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2016.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2016.csv'
 yearPeriod = '/Year_2016.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2017
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2017.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2017.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2017.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2017.csv'
 yearPeriod = '/Year_2017.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2018
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2018.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2018.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2018.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2018.csv'
 yearPeriod = '/Year_2018.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2019
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2019.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2019.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2019.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2019.csv'
 yearPeriod = '/Year_2019.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2020
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2020.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2020.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2020.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2020.csv'
 yearPeriod = '/Year_2020.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2021
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\sampled.points.all.frt.2021.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\samp_points_2021.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\sampled.points.all.frt.2021.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\samp_points_2021.csv'
 yearPeriod = '/Year_2021.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
@@ -219,9 +219,9 @@ system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 ###############################
 
 #Depending on where you saved your output, you may need to update the directory below
-file.list1<-list.files("C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output", pattern="samp.points", all.files=FALSE, full.names=FALSE)
+file.list1<-list.files("C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output", pattern="samp.points", all.files=FALSE, full.names=FALSE)
 y1<-gsub(".csv","",file.list1)
-the_dir <- "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output"
+the_dir <- "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output"
 
 for (i in 1:length(file.list1)){
   assign(paste0(y1[i]),read.csv (file=paste0(the_dir, "\\", file.list1[i])))
@@ -340,7 +340,7 @@ Note: in current below file saved, the lat and long do not match and thus differ
 ```{r}
 table(ignition_weather_crs$FIRE_YE, ignition_weather_crs$FIRE_CA)
 
-st_write(ignition_weather_crs, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_fire_all_15x.shp", delete_layer=TRUE)
+st_write(ignition_weather_crs, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_fire_all_15x.shp", delete_layer=TRUE)
 ##Can also open in QGis to assess for any physical outliers and their information.
 
 #str(ignition_weather_crs)
@@ -349,14 +349,14 @@ st_write(ignition_weather_crs, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_s
 
 
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_fire_all_15x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=castor password= port=5432" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_fire_all_15x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ##Above may not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
 
 #key_get('dbpass', keyring = 'postgreSQL')
 
 # OR my local machine
 
-# ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_fire_all_15x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+# ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_fire_all_15x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ```
 
