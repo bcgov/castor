@@ -13,24 +13,24 @@
 #===========================================================================================#
 
 defineModule(sim, list(
-  name = "rsfCLUS",
+  name = "rsfCASTOR",
   description = "This module calculates Resource Selection Functions (RSFs), i.e., 'a habitat quality indicator', for wildlife species (e.g., caribou, moose, wolves) throughout the simulation.", 
   keywords = NA, # c("insert key words here"),
   authors = c(
     person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
     person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
-  version = list(SpaDES.core = "0.2.5", rsfCLUS = "0.0.1"),
+  version = list(SpaDES.core = "0.2.5", rsfCASTOR = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.txt", "rsfCLUS.Rmd"),
+  documentation = list("README.txt", "rsfCASTOR.Rmd"),
   reqdPkgs = list(),
   parameters = rbind(
     defineParameter("calculateInterval", "numeric", 1, NA, NA, "The simulation time at which resource selection function are calculated"),
-    defineParameter("checkRasters", "logical", FALSE, NA, NA, "TRUE forces the rsfCLUS to write the covariate rasters to disk. For checking in a GIS"),
-    defineParameter("writeRSFRasters", "logical", FALSE, NA, NA, "TRUE forces the rsfCLUS to write the predicted RSF rasters. For checking in a GIS"),
+    defineParameter("checkRasters", "logical", FALSE, NA, NA, "TRUE forces the rsfCASTOR to write the covariate rasters to disk. For checking in a GIS"),
+    defineParameter("writeRSFRasters", "logical", FALSE, NA, NA, "TRUE forces the rsfCASTOR to write the predicted RSF rasters. For checking in a GIS"),
     defineParameter("criticalHabitatTable", "character", "99999", NA, NA, "The name of the look up table to convert raster values to critical habitat labels. The two values required are value (int) and crithab (chr)"),
     defineParameter("randomEffectsTable", "character", "99999", NA, NA, "The name of the look up table for rsf random effects"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
@@ -40,8 +40,8 @@ defineModule(sim, list(
   inputObjects = bind_rows(
     expectsInput(objectName = "rsf_model_coeff", objectClass = "data.table", desc = 'A User supplied data.table, currently created in the .RMD file. Contains information on the RSF model, i.e., their coefficients values and names, spatial boundary definitions, and SQL statements for querying data.', sourceURL = NA),
     expectsInput(objectName = "boundaryInfo", objectClass = "character", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "clusdb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the RSF', sourceURL = NA),
-    expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataLoaderCLUS. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
+    expectsInput(objectName = "castordb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the RSF', sourceURL = NA),
+    expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataCASTOR. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput(objectName = "landings", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
@@ -50,25 +50,25 @@ defineModule(sim, list(
     
   ),
   outputObjects = bind_rows(
-    createsOutput(objectName = "rsfCovar", objectClass = "data.table", desc = "Used in the RSQLite clusdb. Consists of covariates at each pixelid used to calculate the RSF."),
+    createsOutput(objectName = "rsfCovar", objectClass = "data.table", desc = "Used in the RSQLite castordb. Consists of covariates at each pixelid used to calculate the RSF."),
     createsOutput(objectName = "rsfGLM", objectClass = "list", desc = "Instantiated glm objects that describe the mathematical components of RSFs. Gets created at Init. Used to predict the rsf scores based on the rsfCovar values."),
     createsOutput(objectName = "rsf", objectClass = "data.table", desc = "Consists of summed predicted RSF scores for each critical habitat")
   )
 ))
 
-doEvent.rsfCLUS = function(sim, eventTime, eventType) { # in this module there are two event types, init and calculate the RSF 
+doEvent.rsfCASTOR = function(sim, eventTime, eventType) { # in this module there are two event types, init and calculate the RSF 
   switch (
     eventType,
     init = {
       sim <- Init (sim) # this function inits two new data.tables in the RSQLite db: rsfCovar and rsf; clips the RSF boundary by the analysis area boundary (e.g., TSA); then clips each RSF area to the area of analysis (e.g., TSA)
       sim <- predictRSF (sim) # this function predicts each unique RSF 
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF", 8) # schedule the next calculate RSF event 
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "rsfCASTOR", "calculateInterval"), "rsfCASTOR", "calculateRSF", 8) # schedule the next calculate RSF event 
     },
     calculateRSF = {
       sim <- updateRSFCovar(sim) # this function updates the 'updateabale' and 'distance to' covariates in the model by querying the 'pixels' table in the RSQLite db
       sim <- predictRSF(sim) #  this function predicts each uniuue RSF score at each applicable pixelid as stores in the rsf object
       sim <- saveRSF(sim) #this function saves and summarizes rsf predictions for a time step
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "rsfCLUS", "calculateInterval"), "rsfCLUS", "calculateRSF", 8) # schedule the next calculate RSF event 
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "rsfCASTOR", "calculateInterval"), "rsfCASTOR", "calculateRSF", 8) # schedule the next calculate RSF event 
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -84,9 +84,9 @@ Init <- function(sim) {
   rsf_model_coeff [layer != 'int', layer_uni:= do.call(paste, list(collapse = "_", .BY)), by = c("species", "population", "season", "layer") ] # creates a new column, 'layer_uni' concatenating species-pop-season-layer 
   sim$rsf <- data.table() #instantiate the data.table object for the rsf predictions
   
-  #The 'indicator' that this has already been run is the presence of rsfcovar in the clusdb SQLite database
-  if (nrow (dbGetQuery (sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='rsfcovar'")) == 0) { # if there is no rsfcovar table in the RSQLite db (i.e., nrow == 0)
-    sim$rsfcovar <- data.table (sim$pts) # init the rsfcovar table with the 'pts' object from dataLoaderCLUS; consists of pixelid's and x,y location centroid of the pixel 
+  #The 'indicator' that this has already been run is the presence of rsfcovar in the castordb SQLite database
+  if (nrow (dbGetQuery (sim$castordb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='rsfcovar'")) == 0) { # if there is no rsfcovar table in the RSQLite db (i.e., nrow == 0)
+    sim$rsfcovar <- data.table (sim$pts) # init the rsfcovar table with the 'pts' object from dataCASTOR; consists of pixelid's and x,y location centroid of the pixel 
     # Set all the bounds
     rsf_list <- unique (rsf_model_coeff [, c("species", "population", "bounds")]) # create a list of unique species, population, boundary types
     for(k in 1:nrow (rsf_list)) { # loop through the unique list of boundaries
@@ -102,11 +102,11 @@ Init <- function(sim) {
       bounds[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly with rsfcovar
       
       if(nrow(bounds[!is.na(V1),]) > 0){ #check to see if some of the aoi overlaps with the boundary
-        if(!(P(sim, "rsfCLUS", "criticalHabitatTable") == '99999')){
-          crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , crithab FROM ",P(sim, "rsfCLUS", "criticalHabitatTable"))))
+        if(!(P(sim, "rsfCASTOR", "criticalHabitatTable") == '99999')){
+          crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , crithab FROM ",P(sim, "rsfCASTOR", "criticalHabitatTable"))))
           bounds<-merge(bounds, crit_lu, by.x = "V1", by.y = "value", all.x = TRUE)
         }else{
-          stop(paste0("ERROR: need to supply a lookup table: ", P(sim, "rsfCLUS", "criticalHabitatTable")))
+          stop(paste0("ERROR: need to supply a lookup table: ", P(sim, "rsfCASTOR", "criticalHabitatTable")))
         }
       }else{
         stop(paste0("bounds raster does not overlap with aoi"))
@@ -129,7 +129,7 @@ Init <- function(sim) {
                      where_clause =  paste0(sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                      conn=NULL)[])
       
-      sim$rsfcovar[, (layer_name):= layer$V1] # attach each covariate data.table to the rsfCovar table in the clusdb. The name is the text in column sql. Note this changes later on in standardize method
+      sim$rsfcovar[, (layer_name):= layer$V1] # attach each covariate data.table to the rsfCovar table in the castordb. The name is the text in column sql. Note this changes later on in standardize method
     }
     
     #STATIC RECLASS 
@@ -147,7 +147,7 @@ Init <- function(sim) {
                         out_reclass = rclass_text,
                         conn=NULL)[])
       layer[is.na(V1), V1:=0] # Return a zero for the 0 reclass -- getting a NA instead of 0 for some reason???
-      sim$rsfcovar[, (layer_name):= layer$V1] # attach each covariate data.table to the rsfCovar table in the clusdb. The name is the text in column sql. Note this changes later on in standardize method
+      sim$rsfcovar[, (layer_name):= layer$V1] # attach each covariate data.table to the rsfCovar table in the castordb. The name is the text in column sql. Note this changes later on in standardize method
       #change the sql to equal the layer name
       rsf_model_coeff[layer_uni == layer_name , sql:=layer_name] #This is important to change the sql to the layer name because a unique name is needed in the standardize method
     }
@@ -158,7 +158,7 @@ Init <- function(sim) {
     re_list <- as.list (rsf_model_coeff[static == 'Y' & layer != 'int' & type == 'RE', layer_uni ]) # create a list of sql statements for each unique coefficient (row) that is static and not the intercept  
     for(layer_name in re_list){
       message(layer_name) # declare each 'name' in the list
-      if(P(sim, "rsfCLUS", "randomEffectsTable") == '99999'){
+      if(P(sim, "rsfCASTOR", "randomEffectsTable") == '99999'){
         rClass_raster<-rsf_model_coeff[layer_uni == layer_name, sql]
         rclass_text <- rsf_model_coeff[layer_uni == layer_name, reclass] # create a table of the reclass SQL statement
         layer <- data.table(V1 = RASTER_CLIP_CAT(tmpRast = paste0('temp_', sample(1:10000, 1)), 
@@ -173,7 +173,7 @@ Init <- function(sim) {
         sim$rsfcovar[, (layer_name):= layer$V1]
       }else{
         message("there is a re table")
-        re_table<-getTableQuery(paste0("SELECT ", rsf_model_coeff[layer_uni == layer_name, layer], " FROM ", P(sim, "rsfCLUS", "randomEffectsTable"), " WHERE herd_name ='", rsf_model_coeff[layer_uni == layer_name, population], "';"))
+        re_table<-getTableQuery(paste0("SELECT ", rsf_model_coeff[layer_uni == layer_name, layer], " FROM ", P(sim, "rsfCASTOR", "randomEffectsTable"), " WHERE herd_name ='", rsf_model_coeff[layer_uni == layer_name, population], "';"))
         if(nrow(re_table) == 0){
           sim$rsfcovar[, (layer_name):= 0]
         }else{
@@ -186,7 +186,7 @@ Init <- function(sim) {
     ##Slopes
     for(layer_name in re_list){
       message(layer_name) # declare each 'name' in the list
-      if(P(sim, "rsfCLUS", "randomEffectsTable") == '99999'){
+      if(P(sim, "rsfCASTOR", "randomEffectsTable") == '99999'){
         rClass_raster<-rsf_model_coeff[layer_uni == layer_name, sql]
         rclass_text <- rsf_model_coeff[layer_uni == layer_name, reclass] # create a table of the reclass SQL statement
         layer <- data.table(V1 = RASTER_CLIP_CAT(tmpRast = paste0('temp_', sample(1:10000, 1)), 
@@ -197,10 +197,10 @@ Init <- function(sim) {
                           out_reclass = rclass_text,
                           conn=NULL)[])
         layer[is.na(V1), V1:=max(layer$V1, na.rm=TRUE)] # Return a zero for the 0 reclass -- getting a NA instead of 0 for some reason???
-        sim$rsfcovar[, (paste0(layer_name, "_re")):= layer$V1] # suffix the layer name with 're' and attach to the rsfCovar table in the clusdb. 
+        sim$rsfcovar[, (paste0(layer_name, "_re")):= layer$V1] # suffix the layer name with 're' and attach to the rsfCovar table in the castordb. 
         #eval(parse(text=paste0("sim$rsfcovar[!is.na(",rsf_model_coeff[layer_uni == layer_name, population ],") && ", layer_name , "_re == 0, ",layer_name, "_re := ",max_coeff,"]")))
       }else{
-        re_table<-getTableQuery(paste0("SELECT ", rsf_model_coeff[layer_uni == layer_name, layer], " FROM ", P(sim, "rsfCLUS", "randomEffectsTable"), " WHERE herd_name ='", rsf_model_coeff[layer_uni == layer_name, population], "';"))
+        re_table<-getTableQuery(paste0("SELECT ", rsf_model_coeff[layer_uni == layer_name, layer], " FROM ", P(sim, "rsfCASTOR", "randomEffectsTable"), " WHERE herd_name ='", rsf_model_coeff[layer_uni == layer_name, population], "';"))
         if(nrow(re_table) == 0){
           print("slopes are 0")
           sim$rsfcovar[, (paste0(layer_name, "_re")):= 0]
@@ -221,15 +221,15 @@ Init <- function(sim) {
     updateRSFCovar(sim) # update the 'dynmaic' Covariates to the rsfcovar table
     
     #STORE
-    storeRSFCovar(sim) # function that stores the rsfcovar in the RSQLite clusdb for future use
+    storeRSFCovar(sim) # function that stores the rsfcovar in the RSQLite castordb for future use
     
-    if(P(sim, "rsfCLUS", "checkRasters")){
+    if(P(sim, "rsfCASTOR", "checkRasters")){
       sim <- checkRasters(sim)
     } 
     
   }else{ # if there is already an rsfcovar data.table in the RSQLite db then grab the table and load it into the sim
     message('...getting rsfcovar')
-    sim$rsfcovar<-data.table(dbGetQuery(sim$clusdb, "SELECT * FROM rsfcovar"))
+    sim$rsfcovar<-data.table(dbGetQuery(sim$castordb, "SELECT * FROM rsfcovar"))
   }
   
   #BUILD GLM OBJECT FOR PREDICTING -- this hack is easiest to do with variable names that change
@@ -266,11 +266,11 @@ updateRSFCovar<-function(sim){ #gets the variables that are dynamic - ie., 'dist
   return(invisible(sim))
 }
 
-getUPvariables<-function(sim){ #gets the updateable (internal to sim$clusdb) variables for the rsf
+getUPvariables<-function(sim){ #gets the updateable (internal to sim$castordb) variables for the rsf
   up_layers<-paste(unlist(unique(rsf_model_coeff[static == 'N' & type == 'UP',"layer"]), use.names = FALSE), sep="' '", collapse=", ") # create a list of the unique updatebale variables
   message (up_layers) 
   if(!(up_layers=="")){
-    newLayer<-data.table(dbGetQuery(sim$clusdb,paste0( "SELECT ", up_layers," FROM pixels ORDER BY pixelid"))) # loop through the list and query the 'pixels' table in the RSQLite db for each updateable variable
+    newLayer<-data.table(dbGetQuery(sim$castordb, paste0( "SELECT ", up_layers," FROM pixels ORDER BY pixelid"))) # loop through the list and query the 'pixels' table in the RSQLite db for each updateable variable
     
     test<-paste('newLayer$',colnames(newLayer), sep = '')
     test <- within(data.table(colnames(newLayer)),  equate <- paste(colnames(newLayer), test
@@ -297,7 +297,7 @@ getDTvariables<-function(sim){ #takes a sql statement and returns the distance t
   
   if(length(dt_sql) > 0 ){
     for(i in 1:length(dt_sql)){ #Loop through each of the DT layers
-      dt_select<-data.table(dbGetQuery(sim$clusdb, paste0("SELECT pixelid FROM pixels WHERE ", dt_sql[i]))) # loop through the list and query the 'pixels' table in the RSQLite db for each 'distance to' variable
+      dt_select<-data.table(dbGetQuery(sim$castordb, paste0("SELECT pixelid FROM pixels WHERE ", dt_sql[i]))) # loop through the list and query the 'pixels' table in the RSQLite db for each 'distance to' variable
       if(nrow(dt_select) > 0){ 
         print(paste0(dt_sql[i], ": TRUE"))
         dt_select[,field := 0]
@@ -381,18 +381,18 @@ getIvariables<-function(sim){
 
 storeRSFCovar <- function(sim){
   message('storing covariates in rsfcovar table')
-  #Stores the rsfCover in clusdb. This allows a clusdb to be created and used again without wait times for dataloading
-  ##Create the table in clusdb
-  dbExecute(sim$clusdb, paste0("CREATE TABLE IF NOT EXISTS rsfcovar (",
+  #Stores the rsfCover in castordb. This allows a castordb to be created and used again without wait times for dataloading
+  ##Create the table in castordb
+  dbExecute(sim$castordb, paste0("CREATE TABLE IF NOT EXISTS rsfcovar (",
                                paste(colnames(sim$rsfcovar), sep = "' '", collapse = ' numeric, '), " numeric)"))
   #Insert the values
-  dbBegin(sim$clusdb)
-  rs<-dbSendQuery(sim$clusdb, paste0("INSERT INTO rsfcovar (",
+  dbBegin(sim$castordb)
+  rs<-dbSendQuery(sim$castordb, paste0("INSERT INTO rsfcovar (",
                                      paste(colnames(sim$rsfcovar), sep = "' '", collapse = ', '), ") 
                         values (:", paste(colnames(sim$rsfcovar), sep = "' '", collapse = ',:'), ")"), sim$rsfcovar)
   dbClearResult(rs)
-  dbCommit(sim$clusdb)
-  #print(dbGetQuery(sim$clusdb, "SELECT * from rsfcovar LIMIT 7"))
+  dbCommit(sim$castordb)
+  #print(dbGetQuery(sim$castordb, "SELECT * from rsfcovar LIMIT 7"))
   
   return(invisible(sim))
 }
@@ -483,7 +483,7 @@ predictInitRSF <- function(sim){
     rsfdt[, compartment :=  sim$boundaryInfo[[3]]]
     sim$rsf<-rbindlist(list(sim$rsf, rsfdt))
     
-    if(P(sim, "rsfCLUS", "writeRSFRasters")){#----Plot the Raster
+    if(P(sim, "rsfCASTOR", "writeRSFRasters")){#----Plot the Raster
       out.ras<-sim$ras
       out.ras[]<-pred_rsf$rsf_hat
       writeRaster(out.ras, paste0(rsfPops[[1]][[i]],"_", time(sim)*sim$updateInterval, ".tif"), overwrite = TRUE)
@@ -537,7 +537,7 @@ predictRSF <- function(sim){
     rsfdt[, compartment :=  sim$boundaryInfo[[3]]]
     sim$rsf<-rbindlist(list(sim$rsf, rsfdt))
 
-    if(P(sim, "rsfCLUS", "writeRSFRasters")){#----Plot the Raster
+    if(P(sim, "rsfCASTOR", "writeRSFRasters")){#----Plot the Raster
       out.ras<-sim$ras
       out.ras[]<-unlist(pred_rsf[,eval(expr)], use.names = FALSE)
       writeRaster(out.ras, paste0(rsfPops[[1]][[i]],"_", time(sim)*sim$updateInterval, ".tif"), overwrite = TRUE)

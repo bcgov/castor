@@ -5,16 +5,16 @@
 ## just like functions in R packages.
 ## If exact location is required, functions will be: `sim$<moduleName>$FunctionName`.
 defineModule(sim, list(
-  name = "mooseforageCLUS",
+  name = "mooseforageCASTOR",
   description = "This module extimates moose forage biomass from the forest inventory, using the method developed by Doug Lewis.",
   keywords = "",
   authors = structure(list(list(given = c("Tyler", "Bryon"), family = "Muhly", role = c("aut", "cre"), email = "tyler.muhly@gov.bc.ca", comment = NULL)), class = "person"),
   childModules = character(0),
-  version = list(SpaDES.core = "1.0.3", mooseforageCLUS = "0.0.0.9000"),
+  version = list(SpaDES.core = "1.0.3", mooseforageCASTOR = "0.0.0.9000"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = deparse(list("README.txt", "mooseforageCLUS.Rmd")),
+  documentation = deparse(list("README.txt", "mooseforageCASTOR.Rmd")),
   reqdPkgs = list(),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
@@ -28,7 +28,7 @@ defineModule(sim, list(
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
-    expectsInput (objectName = "clusdb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the model. This module needs the dec_pcnt, age variable from the pixels table in the clusdb.', sourceURL = NA)  ),
+    expectsInput (objectName = "castordb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the model. This module needs the dec_pcnt, age variable from the pixels table in the castordb.', sourceURL = NA)  ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput(objectName = NA, objectClass = NA, desc = NA)
@@ -38,7 +38,7 @@ defineModule(sim, list(
 ## event types
 #   - type `init` is required for initialization
 
-doEvent.mooseforageCLUS = function(sim, eventTime, eventType) {
+doEvent.mooseforageCASTOR = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
@@ -49,8 +49,8 @@ doEvent.mooseforageCLUS = function(sim, eventTime, eventType) {
       sim <- Init(sim)
       
       # schedule future event(s)
-      sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "mooseforageCLUS", "plot")
-      sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "mooseforageCLUS", "save")
+      sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "mooseforageCASTOR", "plot")
+      sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "mooseforageCASTOR", "save")
     },
     plot = {
       # ! ----- EDIT BELOW ----- ! #
@@ -60,7 +60,7 @@ doEvent.mooseforageCLUS = function(sim, eventTime, eventType) {
       # schedule future event(s)
 
       # e.g.,
-      #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "mooseforageCLUS", "plot")
+      #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "mooseforageCASTOR", "plot")
 
       # ! ----- STOP EDITING ----- ! #
     },
@@ -74,7 +74,7 @@ doEvent.mooseforageCLUS = function(sim, eventTime, eventType) {
       # schedule future event(s)
 
       # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, "mooseforageCLUS", "save")
+      # sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, "mooseforageCASTOR", "save")
 
       # ! ----- STOP EDITING ----- ! #
     },
@@ -93,7 +93,7 @@ doEvent.mooseforageCLUS = function(sim, eventTime, eventType) {
       # schedule future event(s)
 
       # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + increment, "mooseforageCLUS", "templateEvent")
+      # sim <- scheduleEvent(sim, time(sim) + increment, "mooseforageCASTOR", "templateEvent")
 
       # ! ----- STOP EDITING ----- ! #
     },
@@ -107,7 +107,7 @@ doEvent.mooseforageCLUS = function(sim, eventTime, eventType) {
       # schedule future event(s)
 
       # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + increment, "mooseforageCLUS", "templateEvent")
+      # sim <- scheduleEvent(sim, time(sim) + increment, "mooseforageCASTOR", "templateEvent")
 
       # ! ----- STOP EDITING ----- ! #
     },

@@ -1,5 +1,5 @@
 ---
-title: "rsfCLUS"
+title: "rsfCASTOR"
 author: ""
 date: "15 April 2019"
 output:
@@ -8,7 +8,7 @@ output:
 ---
 
 <!--
-Copyright 2018 Province of British Columbia
+Copyright 2022 Province of British Columbia
  
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ See the License for the specific language governing permissions and limitations 
 
 # Overview
 
-This module tracks various Resource Selection Functions (RSF) within a CLUS simulation. 
+This module tracks various Resource Selection Functions (RSF) within a Castor model simulation. 
 
 ```{r module_usage}
 library (SpaDES.core)
@@ -32,13 +32,13 @@ source (paste0 (here(),"/R/functions/R_Postgres.R"))
 
 moduleDir <- file.path (paste0 (here(),"/R/SpaDES-modules"))
 inputDir <- file.path (paste0 (here(), "/R")) %>% reproducible::checkPath (create = TRUE)
-outputDir <- file.path (paste0 (here(), "/R/SpaDES-modules/rsfCLUS"))
+outputDir <- file.path (paste0 (here(), "/R/SpaDES-modules/rsfCASTOR"))
 cacheDir <- file.path (paste0 (here(), "/R"))
 times <- list (start = 0, end = 2)
 parameters <- list (
   .progress = list (type = NA, interval = NA),
   .globals = list (),
-  dataLoaderCLUS = list (dbName = 'clus',
+  dataCASTOR = list (dbName = 'castor',
                          nameBoundaryFile = "study_area_compart",
                          nameBoundaryColumn = "tsb_number",
                          #nameBoundary = c ("41B", "41D"), #DU8
@@ -49,16 +49,16 @@ parameters <- list (
                          nameAgeRaster= "rast.vri2017_projage1",
                          nameHeightRaster= "rast.vri2017_projheight1",
                          nameCrownClosureRaster= "rast.vri2017_crownclosure"),
-cutblockSeqPrepCLUS = list(nameCutblockRaster ="rast.cns_cut_bl"),
-roadCLUS = list(roadMethod = 'snap', 
+cutblockSeqPrepCASTOR = list(nameCutblockRaster ="rast.cns_cut_bl"),
+roadCASTOR = list(roadMethod = 'snap', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.crds_resource'),
-rsfCLUS = list(calculateInterval = 2,
+rsfCASTOR = list(calculateInterval = 2,
                writeRSFRasters = TRUE,
                criticalHabitatTable = 'public.criticalhabitat')
 )
 
-modules <- list ("dataLoaderCLUS", "cutblockSeqPrepCLUS", "roadCLUS",  "rsfCLUS")
+modules <- list ("dataCASTOR", "cutblockSeqPrepCASTOR", "roadCASTOR",  "rsfCASTOR")
 
 scenario<-data.table(name="BAU", description = "Business as usual -projecting current trends")
 rsf_model_coeff <- data.table(getTableQuery("SELECT * FROM caribou_avoid_coeff WHERE species = 'caribou' AND population = 'DU7' and season IN ('A')"))
@@ -96,7 +96,7 @@ mysimout <- spades (mySim)
 
 # Events
 
-At each user defined time step, the `rsfCLUS` module calculates the resource selection function for the user defined species, population and season.
+At each user defined time step, the `rsfCASTOR` module calculates the resource selection function for the user defined species, population and season.
 
 # Data dependencies
 
@@ -108,13 +108,13 @@ The user provides the input object: `rsf_model_coeff` that contains the resource
 
 * static := declares Y/N (yes/no) whether the covariate is static, yes meaning its value will remain the same (not updated) throughout the simulation or if no, the covariate is consiered 'dynamic' and will be updated as a result of the simulation
 
-* layer := the name of the raster stored in a psql database or the name of the updated variable in `clusdb`. 
+* layer := the name of the raster stored in a psql database or the name of the updated variable in `castordb`. 
 
 >Note: In layer column an 'int' (i.e., intercept) is needed for each rsf. If the rsf is fit with no intercept, 'int' is required but with beta = 0.
 
 * type :=  declares the type of dynamic variable. A value in this column is needed if the static column = N. The following types are used in the model: 
 
-    + UP = 'Updatable' in `clusdb`, meaning the model 'calls' a variable (e.g., forest stand age) 
+    + UP = 'Updatable' in `castordb`, meaning the model 'calls' a variable (e.g., forest stand age) 
            that is updated in the RSQLite db 
 
     + DT = 'Distance To', meaning the model recalculates a DT variable (e.g., distance to cutblock or             road) based on an updated variable  
@@ -127,7 +127,7 @@ The user provides the input object: `rsf_model_coeff` that contains the resource
     
     + RS = 'Re-sample' meaning a spatial scale effect where the data needs to be smoothed accoording to the spatial scale
 
-* sql := the `WHERE` clause of a sql statement describing the RSQLite `clusdb` variables used in the dynamic layer, or used to call the 'static' variable from the postgres clusdb 
+* sql := the `WHERE` clause of a sql statement describing the RSQLite `castordb` variables used in the dynamic layer, or used to call the 'static' variable from the postgres castordb 
 
 * reclass := the SQL for [ST_Reclass](https://postgis.net/docs/RT_ST_Reclass.html), where type = 'RC'. used to convert the reclass covariate to the beta coefficent value - follows the [reclassexpr](https://postgis.net/docs/reclassarg.html) where '(' means greater than, '[' means greater then or equal to. Ex. [a-b] = a <= x <= b in comparison to (a-b) = a < x < b
 
@@ -144,17 +144,17 @@ print(rsf_model_coeff)
 
 ## Output objects
 
-The following objects are instantiated via rsfCLUS:
+The following objects are instantiated via rsfCASTOR:
 
 * pts:= A data.table of X,Y locations - used to find distances; joined to the rsfCovar data.table (below)
 
-* rsfCovar:= A data.table of covariates used to calculate the RSF. Includes the pixelid from the provincial raster so that covariate locations can be spatially identified and is joined to the 'pts' data. This could be uploaded into clusdb? Not implemented.
+* rsfCovar:= A data.table of covariates used to calculate the RSF. Includes the pixelid from the provincial raster so that covariate locations can be spatially identified and is joined to the 'pts' data. This could be uploaded into castordb? Not implemented.
 
 * rsfGLM:= Inherits a glm class used for prediction of the RSF; creates a 'dummy' glm class object for each RSF and then overides it with the coefficient values; simplifies the rsf 'prediction' calculation by taking advantage of the 'predict' function.
 
-* rsf:= A table within the `clusdb` RSQLite database that stores the RSF scores for each pixelid.    
+* rsf:= A table within the `castordb` RSQLite database that stores the RSF scores for each pixelid.    
 
 # Links to other modules
 
-Requires dataLoaderCLUS to instantiate the `clusdb` RSQLite database.
+Requires dataCASTOR to instantiate the `castordb` RSQLite database.
 

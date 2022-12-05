@@ -1,10 +1,10 @@
-## rsfCLUS
+## rsfCASTOR
 
 ### What it does
 
 Dynamically predicts various resource selection functions (RSF) for each specified time period in the simulation. The time at which an RSF is predicted is specified by the user. Three main types of variables are used to predict an RSF: static variables that do not change in the simulation, dynamic variables that require updating in the simulation, and 'distance to' variables that calculate a distance to a feature that can be either static or dynamic.
 
-This module checks if the rsf table in [clusdb](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS) is populated or not. If this table has not been populated then the various explantory variables (X-variables) are stored into clusdb.
+This module checks if the rsf table in [castordb](https://github.com/bcgov/castor/tree/master/R/SpaDES-modules/dataCASTOR) is populated or not. If this table has not been populated then the various explanatory variables (X-variables) are stored into castordb.
 
 #### Management levers
 
@@ -28,7 +28,7 @@ RSF models to be fit and formatted into the rsf_coeff table.
 
 ## Licence
 
-    Copyright 2019 Province of British Columbia
+    Copyright 2022 Province of British Columbia
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
