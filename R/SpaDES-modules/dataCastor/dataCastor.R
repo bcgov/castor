@@ -1,4 +1,4 @@
-# Copyright 2020 Province of British Columbia
+# Copyright 2023 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ defineModule(sim, list(
     defineParameter("nameBoundaryGeom", "character", "geom", NA, NA, desc = "Name of the geom column in the boundary file"),
     defineParameter("saveCastorDB", "logical", FALSE, NA, NA, desc = "Save the db to a file?"),
     defineParameter("useCastorDB", "character", "99999", NA, NA, desc = "Use an exising db? If no, set to 99999. IOf yes, put in the postgres database name here (e.g., castor)."),
+    defineParameter("sqlite_dbname", "character", "99999", NA, NA, desc = "Name of the castordb"),
     defineParameter("nameZoneRasters", "character", "99999", NA, NA, desc = "Administrative boundary containing zones of management objectives"),
     defineParameter("nameZonePriorityRaster", "character", "99999", NA, NA, desc = "Boundary of zones where harvesting should be prioritized"),
     defineParameter("nameCompartmentRaster", "character", "99999", NA, NA, desc = "Name of the raster in a pg db that represents a compartment or supply block. Not currently in the pgdb?"),
@@ -93,7 +94,7 @@ doEvent.dataCastor = function(sim, eventTime, eventType, debug = FALSE) {
     eventType,
     init = { # initialization event
       #set Boundaries information object
-      sim$boundaryInfo <- list(P(sim,"nameBoundaryFile", "dataCastor" ),P(sim,"nameBoundaryColumn","dataCastor"),P(sim, "nameBoundary", "dataCastor"), P(sim, "nameBoundaryGeom", "dataCastor")) # list of boundary parameters to set the extent of where the model will be run; these parameters are expected inputs in dataLoader 
+      sim$boundaryInfo <- list(P(sim,"nameBoundaryFile", "dataCastor" ),P(sim,"nameBoundaryColumn","dataCastor"),P(sim, "nameBoundary", "dataCastor"), P(sim, "nameBoundaryGeom", "dataCastor")) # list of boundary parameters to set the extent of where the model will be run; these parameters are expected inputs in dataCastor
       sim$zone.length <- length(P(sim, "nameZoneRasters", "dataCastor")) # used to define the number of different management constraint zones
       
       if(P(sim, "useCastorDB", "dataCastor") == "99999"){ #build Castordb
@@ -308,7 +309,7 @@ setTablesCastorDB <- function(sim) {
   #Set the zonePriorityRaster----
   #-----------------------------#
   if(!P(sim)$nameZonePriorityRaster == '99999'){
-    nameZonePriorityRaster<-P(sim, "dataCastor", "nameZonePriorityRaster")
+    nameZonePriorityRaster<-P(sim, "nameZonePriorityRaster", "dataCastor")
     #Check to see if the name of the zone priority raster is already in the zone table
     if(!nameZonePriorityRaster %in% dbGetQuery(sim$castordb, "SELECT reference_zone from zone;")$reference_zone){
       message(paste0('.....zone priority raster not in zones table...fetching: ',nameZonePriorityRaster))
@@ -330,7 +331,7 @@ setTablesCastorDB <- function(sim) {
         rm(ras.zone.priority,zone.priority) # clean up
         gc()
       }else{
-        stop(paste0("ERROR: extents are not the same check -", P(sim, "dataCastor", "nameZonePriorityRaster")))
+        stop(paste0("ERROR: extents are not the same check -", P(sim, "nameZonePriorityRaster", "dataCastor")))
       }
     }
   }
