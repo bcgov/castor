@@ -11,17 +11,17 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 defineModule(sim, list(
-  name = "dbCreatorCASTOR",
+  name = "dbCreatorCastor",
   description = "",
   keywords = "",
   authors =  c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
                person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
-  version = list(dbCreatorCASTOR = "0.0.0.9000"),
+  version = list(dbCreatorCastor = "0.0.0.9000"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.md", "dbCreatorCASTOR.Rmd"), ## same file
+  documentation = list("README.md", "dbCreatorCastor.Rmd"), ## same file
   reqdPkgs = list("SpaDES.core (>=1.0.10)", "ggplot2", "terra", "RandomFields (>=3.0.61)"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
@@ -32,7 +32,7 @@ defineModule(sim, list(
     defineParameter(".saveInterval", "numeric", NA, NA, NA,"This describes the simulation time interval between save events."),
     defineParameter(".seed", "list", list(), NA, NA,"Named list of seeds to use for each event (names)."),
     defineParameter(".useCache", "logical", FALSE, NA, NA,"Should caching of events or module be used?"),
-    defineParameter("sqlite_dbname", "character", "test", NA, NA,"name of the castor db"),
+    defineParameter("sqlite_dbname", "character", "test", NA, NA,"name of the castordb"),
     defineParameter("clusterLevel", "numeric", 1, 0.001, 1.999,"This describes the alpha parameter in RandomFields. alpha is [0,2]")
   ),
   inputObjects = bindrows(
@@ -49,24 +49,23 @@ defineModule(sim, list(
   )
 ))
 
-doEvent.dbCreatorCASTOR = function(sim, eventTime, eventType) {
+doEvent.dbCreatorCastor = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = { # initialization event
       
       # function (below) that creates an SQLite database
-      sim <- createCASTORdb(sim) 
+      sim <- createCastorDB(sim) 
       
       #populate clusdb tables
-      sim <- setTablesCASTORdb(sim)
+      sim <- setTablesCastorDB(sim)
       sim <- setZoneConstraints(sim)
-      sim <- setIndexesCASTORdb(sim) # creates index to facilitate db querying?
+      sim <- setIndexesCastorDB(sim) # creates index to facilitate db querying?
       sim <- updateGS(sim) # update the forest attributes
-      #sim <- scheduleEvent(sim, eventTime = 0,  "dataLoaderCLUS", "forestStateNetdown", eventPriority=90)
-      sim <- scheduleEvent(sim, eventTime = end(sim),  "dbCreatorCASTOR", "removeDbCASTOR", eventPriority=99) #disconnect the db once the sim is over
+      sim <- scheduleEvent(sim, eventTime = end(sim),  "dbCreatorCastor", "removeCastorDB", eventPriority=99) #disconnect the db once the sim is over
     },
-    removeDbCASTOR={
-      sim <- disconnectDbCASTOR(sim)
+    removeCastorDB={
+      sim <- disconnectCastorDB(sim)
     },
     warning(paste("Undefined event type: \'", current(sim)[1, "eventType", with = FALSE],
                   "\' in module \'", current(sim)[1, "moduleName", with = FALSE], "\'", sep = ""))
@@ -74,7 +73,7 @@ doEvent.dbCreatorCASTOR = function(sim, eventTime, eventType) {
   return(invisible(sim))
 }
 
-createCASTORdb <- function(sim) {
+createCastorDB <- function(sim) {
   message ('create castordb')
   #build the clusdb - a realtional database that tracks the interactions between spatial and temporal objectives
   sim$castordb <- dbConnect(RSQLite::SQLite(), ":memory:") #builds the db in memory; also resets any existing db! Can be set to store on disk
@@ -91,9 +90,9 @@ crownclosure numeric, height numeric, basalarea numeric, qmd numeric, siteindex 
   return(invisible(sim))
 }
 
-setTablesCASTORdb <- function(sim) {
+setTablesCastorDB <- function(sim) {
   message('...setting data tables')
-  randomRas<-randomRaster(sim$extent, P(sim, 'clusterLevel', 'dbCreatorCASTOR'))
+  randomRas<-randomRaster(sim$extent, P(sim, 'clusterLevel', 'dbCreatorCastor'))
   
   sim$pts <- data.table(xyFromCell(randomRas,1:length(randomRas))) #Seems to be faster than rasterTopoints
   sim$pts <- sim$pts[, pixelid:= seq_len(.N)] # add in the pixelid which streams data in according to the cell number = pixelid
@@ -164,7 +163,7 @@ setZoneConstraints<-function(sim){
   return(invisible(sim))
 }
 
-setIndexesCASTORdb <- function(sim) { # making indexes helps with query speed for future querying
+setIndexesCastorDB <- function(sim) { # making indexes helps with query speed for future querying
   dbExecute(sim$castordb, "CREATE UNIQUE INDEX index_pixelid on pixels (pixelid);")
   dbExecute(sim$castordb, "CREATE INDEX index_age on pixels (age);")
   dbExecute(sim$castordb, "VACUUM;")
@@ -204,9 +203,9 @@ ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age;"))
   return(invisible(sim))
 }
 
-disconnectDbCASTOR<- function(sim) {
+disconnectCastorDB<- function(sim) {
     message('Saving castordb')
-    con<-dbConnect(RSQLite::SQLite(), paste0(getPaths()$outputPath, "/", P(sim, 'sqlite_dbname', 'dbCreatorCASTOR'), "_castorDB.sqlite"))
+    con<-dbConnect(RSQLite::SQLite(), paste0(getPaths()$outputPath, "/", P(sim, 'sqlite_dbname', 'dbCreatorCastor'), "_castorDB.sqlite"))
     RSQLite::sqliteCopyDatabase(sim$castordb, con)
     dbDisconnect(sim$castordb)
     dbDisconnect(con)

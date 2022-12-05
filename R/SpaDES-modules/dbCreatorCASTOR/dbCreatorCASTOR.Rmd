@@ -1,5 +1,5 @@
 ---
-title: "dbCreatorCASTOR"
+title: "dbCreatorCastor"
 author: "Kyle Lochhead"
 date: "24 November 2022"
 output:
@@ -22,7 +22,7 @@ library(SpaDES)
 library(data.table)
 
 setPaths(modulePath = here::here("R/SpaDES-modules"),
-         outputPath = here::here("R/SpaDES-modules/dbCreatorCASTOR"))
+         outputPath = here::here("R/SpaDES-modules/dbCreatorCastor"))
 getPaths()
 
 times <- list(start = 0, end = 0)
@@ -37,7 +37,7 @@ parameters <- list(
 extent <- list(100, 100, 0,100,0,100)
 zoneConstraint = data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
 
-modules <- list("dbCreatorCASTOR")
+modules <- list("dbCreatorCastor")
 objects <- list(extent = extent, zoneConstraint =  zoneConstraint ) # set various sizes landscapes
 inputs <- list()
 outputs <- list()
