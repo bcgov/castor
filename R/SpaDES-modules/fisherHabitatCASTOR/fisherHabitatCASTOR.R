@@ -19,16 +19,16 @@
 ## If exact location is required, functions will be: `sim$.mods$<moduleName>$FunctionName`.
 
 defineModule (sim, list(
-  name = "fisherHabitatLoader",
-  description = "An module to create spataila fisher habitat data from forest data output from forestryCLUS.",
+  name = "fisherHabitatCASTOR",
+  description = "An module to create spataila fisher habitat data from forest data output from forestryCASTOR.",
   keywords = "fisher, martes, habitat, raster",
   authors = structure(list(list(given = c("First", "Middle"), family = "Last", role = c("aut", "cre"), email = "email@example.com", comment = NULL)), class = "person"),
   childModules = character(0),
-  version = list(fisherHabitatLoader = "0.0.0.9000"),
+  version = list (fisherHabitatCASTOR = "1.0.0.0000"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.md", "fisherHabitatLoader.Rmd"), ## same file
+  documentation = list("README.md", "fisherHabitatCASTOR.Rmd"), ## same file
   reqdPkgs = list("SpaDES.core (>=1.0.10)", "data.table", "terra", "here"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
@@ -53,9 +53,9 @@ defineModule (sim, list(
   inputObjects = bindrows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     #expectsInput (objectName = NA, objectClass = NA, desc = NA, sourceURL = NA)
-    expectsInput (objectName = "clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
+    expectsInput (objectName = "castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates Castor related information", sourceURL = NA),
     expectsInput (objectName = "scenario", objectClass = "data.table", desc = "Table of scenario description.", sourceURL = NA),
-    expectsInput (objectName = "ras", objectClass = "RasterLayer", desc = "Raster of the area of interest. This is stored in the clusdb that comes from dataLoaderCLUS.", sourceURL = NA),
+    expectsInput (objectName = "ras", objectClass = "RasterLayer", desc = "Raster of the area of interest. This is stored in the castordb that comes from dataCASTOR.", sourceURL = NA),
     expectsInput (objectName = "boundaryInfo", objectClass ="character", desc = "Name of the area of interest(aoi) eg. Quesnel_TSA", sourceURL = NA),
     expectsInput (objectName = "updateInterval", objectClass = "numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
     ),
@@ -68,20 +68,20 @@ defineModule (sim, list(
 
 ## event types
 
-doEvent.fisherHabitatLoader = function (sim, eventTime, eventType) {
+doEvent.fisherHabitatCASTOR = function (sim, eventTime, eventType) {
   switch(
     eventType,
     
     init = {
       sim <- Init (sim)
-      sim <- scheduleEvent (sim, time(sim) + 1, "fisherHabitatLoader", "update", 2)
-      sim <- scheduleEvent (sim, end (sim), "fisherHabitatLoader", "save", 3)
+      sim <- scheduleEvent (sim, time(sim) + 1, "fisherHabitatCASTOR", "update", 2)
+      sim <- scheduleEvent (sim, end (sim), "fisherHabitatCASTOR", "save", 3)
       
     },
 
     update = {
       sim <- updateHabitat (sim)
-      sim <- scheduleEvent (sim, time (sim) + 1, "fisherHabitatLoader", "update", 2)
+      sim <- scheduleEvent (sim, time (sim) + 1, "fisherHabitatCASTOR", "update", 2)
     },
    
     save = {
@@ -103,17 +103,17 @@ Init <- function (sim) {
   # instantiate raster for saving data
   sim$ras.fisher.habitat <- sim$ras
   # get pixel id's for aoi 
-  pix.for.rast <- data.table (dbGetQuery (sim$clusdb, "SELECT pixelid FROM pixels WHERE compartid IS NOT NULL;"))
+  pix.for.rast <- data.table (dbGetQuery (sim$castordb, "SELECT pixelid FROM pixels WHERE compartid IS NOT NULL;"))
   sim$ras.fisher.habitat [pix.for.rast$pixelid] <- pix.for.rast$pixelid
   sim$ras.fisher.habitat [!pix.for.rast$pixelid] <- NA
   
   message ("Getting fisher habitat capability and range data...")
 
-  # below creates a 'table in the clus db that defines where fisher habitat could occur
-  if(nrow (dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'fisherlandscape';")) == 0) { # Check to see if this data exists in the sqlite db already
+  # below creates a 'table in the castordb that defines where fisher habitat could occur
+  if(nrow (dbGetQuery(sim$castordb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'fisherlandscape';")) == 0) { # Check to see if this data exists in the sqlite db already
     message ("Creating fisherlandscape table.")
     # Create the habitat data table in the database if it does not exist
-    dbExecute (sim$clusdb, "CREATE TABLE IF NOT EXISTS fisherlandscape (pixelid integer, den_p integer, rus_p integer, mov_p integer, cwd_p integer, cav_p integer, fisher_pop integer)")
+    dbExecute (sim$castordb, "CREATE TABLE IF NOT EXISTS fisherlandscape (pixelid integer, den_p integer, rus_p integer, mov_p integer, cwd_p integer, cav_p integer, fisher_pop integer)")
     sim$table.hab <- data.table (pixelid = sim$ras.fisher.habitat [], # this identifies and grabs ('clips') the potential habitat in the area of interest
                                  den_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_denning_p" , # 
                                                        clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
@@ -144,19 +144,19 @@ Init <- function (sim) {
     
     sim$table.hab [, fisher_pop := as.numeric (fisher_pop)]
     sim$table.hab <- sim$table.hab [fisher_pop > 0, ] # filter so it's only including habitat in fisher population ranges
-    dbBegin (sim$clusdb) 
-    rs <- dbSendQuery (sim$clusdb, paste0 ("INSERT INTO fisherlandscape (pixelid, den_p, rus_p, mov_p, cwd_p, cav_p, fisher_pop) 
+    dbBegin (sim$castordb) 
+    rs <- dbSendQuery (sim$castordb, paste0 ("INSERT INTO fisherlandscape (pixelid, den_p, rus_p, mov_p, cwd_p, cav_p, fisher_pop) 
                                             VALUES (:pixelid, :den_p, :rus_p, :mov_p, :cwd_p, :cav_p, :fisher_pop)"), sim$table.hab) 
     dbClearResult (rs)
-    dbCommit (sim$clusdb)
+    dbCommit (sim$castordb)
   } else {
-    sim$table.hab <- data.table (dbGetQuery (sim$clusdb, "SELECT * FROM fisherlandscape;"))
+    sim$table.hab <- data.table (dbGetQuery (sim$castordb, "SELECT * FROM fisherlandscape;"))
   }
   
   message ("Getting fisher habitat suitability data.")
 
   table.hab.init <- merge (sim$table.hab, 
-                           data.table (dbGetQuery (sim$clusdb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height FROM pixels WHERE compartid IS NOT NULL;")),
+                           data.table (dbGetQuery (sim$castordb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height FROM pixels WHERE compartid IS NOT NULL;")),
                            by.x = "pixelid",
                            by.y = "pixelid",
                            all.x = TRUE)
@@ -218,7 +218,7 @@ updateHabitat <- function (sim) {
   
   # Update the habitat data in the territories
   table.hab.update <- merge (sim$table.hab, 
-                             data.table (dbGetQuery (sim$clusdb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height  FROM pixels;")),
+                             data.table (dbGetQuery (sim$castordb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height  FROM pixels;")),
                              by = "pixelid")
   table.hab.update <- classifyHabitat (table.hab.update)
   
@@ -320,10 +320,10 @@ classifyHabitat <- function (inputTable) {
   if (!suppliedElsewhere (ras)) { # empty raster object for defining the area of interest
     
     sim$ras <- RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                         srcRaster = P (sim, "nameCompartmentRaster", "dataLoaderCLUS"), 
-                         clipper = P (sim, "nameBoundaryFile", "dataLoaderCLUS" ), 
-                         geom = P (sim, "nameBoundaryGeom", "dataLoaderCLUS"), 
-                         where_clause =  paste0 ( P (sim, "nameBoundaryColumn", "dataLoaderCLUS"), " in (''", paste(P(sim, "nameBoundary", "dataLoaderCLUS"), sep = "' '", collapse= "'', ''") ,"'')"),
+                         srcRaster = P (sim, "nameCompartmentRaster", "dataCASTOR"), 
+                         clipper = P (sim, "nameBoundaryFile", "dataCASTOR" ), 
+                         geom = P (sim, "nameBoundaryGeom", "dataCASTOR"), 
+                         where_clause =  paste0 ( P (sim, "nameBoundaryColumn", "dataCASTOR"), " in (''", paste(P(sim, "nameBoundary", "dataCASTOR"), sep = "' '", collapse= "'', ''") ,"'')"),
                          conn = NULL) 
   }
   

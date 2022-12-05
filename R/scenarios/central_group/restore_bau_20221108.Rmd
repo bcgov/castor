@@ -94,10 +94,10 @@ times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list(dbName='clus',
-                         save_clusdb = FALSE,
+  dataLoaderCLUS = list(dbName='castor',
+                         saveCastorDB = FALSE,
                          sqlite_dbname = "central_group_restore_nov2022", 
-                         useCLUSdb = paste0(here::here(), "/R/scenarios/central_group/inputs/central_group_restore_nov2022_clusdb.sqlite"),
+                         useCastorDB = paste0(here::here(), "/R/scenarios/central_group/inputs/central_group_restore_nov2022_clusdb.sqlite"),
                          nameBoundaryFile ="central_grp_restoration_aoi_112022", 
                          nameBoundaryColumn = "tsa_name", 
                          nameBoundary = "central_grp_restore_area", 

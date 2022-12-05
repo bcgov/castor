@@ -69,7 +69,7 @@ defineModule(sim, list(
   inputObjects = bindrows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
     #expectsInput (objectName = NA, objectClass = NA, desc = NA, sourceURL = NA)
-    expectsInput (objectName = "clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
+    expectsInput (objectName = "castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates castor realted information", sourceURL = NA),
     expectsInput (objectName = "fisher_d2_cov", objectClass = "data.table", desc = "variance matrix for mahalanobis distance model; don't touch this unless d2 model updated", sourceURL = NA),
     expectsInput (objectName = "survival_rate_table", objectClass = "data.table", desc = "Table of fisher survival rates by sex, age and population, taken from Lofroth et al 2022 JWM vital rates manuscript. Headers: Fpop: the two populations in BC: Boreal, Coumbian; Age_class: two classes: Adult, Juvenile; Cohort: Fpop and Age_class combination: CFA, CFJ, BFA, BFJ; Mean: mean survival probability; SE: standard error of the mean. Decided to go with SE rather than SD as confidence intervals are quite wide and stochasticity would likely drive populations to extinction. Keeping consistent with Rory Fogarty's population analysis decisions.", sourceURL = NA),
     expectsInput (objectName = "repro_rate_table", objectClass = "data.table", desc = "Table of fisher reproductive rates (i.e., denning rate = a combination of pregnancy rate and birth rate; and litter size = number of kits) by population, taken from Lofroth et al 2022 JWM vital rates manuscript. Headers: Fpop: the two populations in BC: Boreal, Coumbian; Param: the reproductive parameter: DR (denning rate), LS (litter size); Mean: mean reproductive rate per parameter and population; SD: reproductive rate standard deviation value per parameter and population.", sourceURL = NA),
@@ -156,7 +156,7 @@ Init <- function(sim) {
   message ("Get the area of interest ...")
 
   # get pixel id's for aoi 
-  pix.for.rast <- data.table (dbGetQuery (sim$clusdb, "SELECT pixelid FROM pixels WHERE compartid IS NOT NULL;"))
+  pix.for.rast <- data.table (dbGetQuery (sim$castordb, "SELECT pixelid FROM pixels WHERE compartid IS NOT NULL;"))
   sim$pix.rast <- sim$ras
   sim$pix.rast [pix.for.rast$pixelid] <- pix.for.rast$pixelid
   sim$pix.rast [!pix.for.rast$pixelid] <- NA
@@ -164,10 +164,10 @@ Init <- function(sim) {
   message ("Get the habitat data ...")
   # get the fisher habitat areas
   
-  if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'fisherlandscape';")) == 0) { # Check to see if this data exists in the sqlite db already
+  if(nrow(dbGetQuery(sim$castordb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'fisherlandscape';")) == 0) { # Check to see if this data exists in the sqlite db already
     message ("Creating fisherlandscape table.")
     # Create the habitat data table in the database if it does not exist
-    dbExecute (sim$clusdb, "CREATE TABLE IF NOT EXISTS fisherlandscape (pixelid integer, den_p integer, rus_p integer, mov_p integer, cwd_p integer, cav_p integer, fisher_pop integer)")
+    dbExecute (sim$castordb, "CREATE TABLE IF NOT EXISTS fisherlandscape (pixelid integer, den_p integer, rus_p integer, mov_p integer, cwd_p integer, cav_p integer, fisher_pop integer)")
     sim$table.hab <- data.table (pixelid = sim$pix.rast[], # this identifies and grabs ('clips') the potential habitat in the area of interest
                                  den_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_denning_p" , # 
                                                        clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
@@ -198,18 +198,18 @@ Init <- function(sim) {
     
     sim$table.hab [, fisher_pop := as.numeric (fisher_pop)]
     sim$table.hab <- sim$table.hab [fisher_pop > 0, ] # filter so it's only including habitat in fisher population ranges
-    dbBegin (sim$clusdb) 
-    rs <- dbSendQuery (sim$clusdb, paste0 ("INSERT INTO fisherlandscape (pixelid, den_p, rus_p, mov_p, cwd_p, cav_p, fisher_pop) 
+    dbBegin (sim$castordb) 
+    rs <- dbSendQuery (sim$castordb, paste0 ("INSERT INTO fisherlandscape (pixelid, den_p, rus_p, mov_p, cwd_p, cav_p, fisher_pop) 
                                             VALUES (:pixelid, :den_p, :rus_p, :mov_p, :cwd_p, :cav_p, :fisher_pop)"), sim$table.hab) 
     dbClearResult (rs)
-    dbCommit (sim$clusdb)
+    dbCommit (sim$castordb)
   } else {
-    sim$table.hab <- data.table (dbGetQuery (sim$clusdb, "SELECT * FROM fisherlandscape;"))
+    sim$table.hab <- data.table (dbGetQuery (sim$castordb, "SELECT * FROM fisherlandscape;"))
   }
   
   # add the habitat characteristics
   table.hab.init <- merge (sim$table.hab, 
-                           data.table (dbGetQuery (sim$clusdb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height FROM pixels WHERE compartid IS NOT NULL;")),
+                           data.table (dbGetQuery (sim$castordb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height FROM pixels WHERE compartid IS NOT NULL;")),
                            by.x = "pixelid",
                            by.y = "pixelid",
                            all.x = TRUE)
@@ -399,14 +399,14 @@ Init <- function(sim) {
 ###--- ANNUAL EVENTS
 annualEvents <- function (sim) {
  
-  for (i in P(sim, "periodLength", "growingStockCLUS")) { # repeat this function by the number of periods (years); this ties it to growingstockCLUS - make this independent?
+  for (i in P(sim, "periodLength", "growingStockCASTOR")) { # repeat this function by the number of periods (years); this ties it to growingstockCASTOR - make this independent?
     
     # Step 1: "Update" the Habitat Conditions 
     message ("Fishers check habitat in territory.")
     
       # A. update the habitat data in the territories
     table.hab.update <- merge (sim$table.hab, # add the habitat characteristics
-                               data.table (dbGetQuery (sim$clusdb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height  FROM pixels;")),
+                               data.table (dbGetQuery (sim$castordb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height  FROM pixels;")),
                                by = "pixelid")
     
         # classify the habitat
@@ -847,13 +847,13 @@ saveAgents <- function (sim) {
   rm (ras.territories.update, new.agents.save)
   
     # use below if want to save the agents table
-      # if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
+      # if(nrow(dbGetQuery(sim$castordb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
       #   # if the table exists, write it to the db
-      #   DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = FALSE,
+      #   DBI::dbWriteTable (sim$castordb, "agents", agents.save, append = FALSE,
       #                      row.names = FALSE, overwrite = FALSE)
       # } else {
       #   # if the table exists, append it to the table in the db
-      #   DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = TRUE,
+      #   DBI::dbWriteTable (sim$castordb, "agents", agents.save, append = TRUE,
       #                      row.names = FALSE, overwrite = FALSE)
       # }
   
@@ -862,13 +862,13 @@ saveAgents <- function (sim) {
       # territories.save <- sim$territories
       # territories.save [, c("timeperiod", "scenario") := list (time(sim)*sim$updateInterval, sim$scenario$name)  ] # add the time of the calc
       # 
-      # if(nrow(dbGetQuery (sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
+      # if(nrow(dbGetQuery (sim$castordb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
       #   # if the table exists, write it to the db
-      #   DBI::dbWriteTable (sim$clusdb, "territories", territories.save, append = FALSE,
+      #   DBI::dbWriteTable (sim$castordb, "territories", territories.save, append = FALSE,
       #                      row.names = FALSE, overwrite = FALSE)
       # } else {
       #   # if the table exists, append it to the table in the db
-      #   DBI::dbWriteTable (sim$clusdb, "territories", territories.save, append = TRUE,
+      #   DBI::dbWriteTable (sim$castordb, "territories", territories.save, append = TRUE,
       #                      row.names = FALSE, overwrite = FALSE)
       # }
   message ("Save fisher agents and territories complete.")
@@ -977,10 +977,10 @@ litterSize <- function (fisherPop, mahalTable, reproTable){
   if (!suppliedElsewhere (ras)) { # empty raster object for defining the area of interest
     
     sim$ras <- RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                         srcRaster = P (sim, "nameCompartmentRaster", "dataLoaderCLUS"), 
-                         clipper = P (sim, "nameBoundaryFile", "dataLoaderCLUS" ), 
-                         geom = P (sim, "nameBoundaryGeom", "dataLoaderCLUS"), 
-                         where_clause =  paste0 ( P (sim, "nameBoundaryColumn", "dataLoaderCLUS"), " in (''", paste(P(sim, "nameBoundary", "dataLoaderCLUS"), sep = "' '", collapse= "'', ''") ,"'')"),
+                         srcRaster = P (sim, "nameCompartmentRaster", "dataCASTOR"), 
+                         clipper = P (sim, "nameBoundaryFile", "dataCASTOR" ), 
+                         geom = P (sim, "nameBoundaryGeom", "dataCASTOR"), 
+                         where_clause =  paste0 ( P (sim, "nameBoundaryColumn", "dataCASTOR"), " in (''", paste(P(sim, "nameBoundary", "dataCASTOR"), sep = "' '", collapse= "'', ''") ,"'')"),
                          conn = NULL) 
   }
   

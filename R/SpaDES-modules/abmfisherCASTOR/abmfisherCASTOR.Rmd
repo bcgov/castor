@@ -20,7 +20,7 @@ This is an agent based model (ABM) to simulate fisher life history on a landscap
 As an alternative, we're working on a version that integrates with a raster stack object, which is the output of fisher habitat conditions, as calculated from forest stand characteristics simulated in forestryCASTOR, from each time interval. This approach will allow for faster simulation of multiple iterations of a fisher population. Currently, forestryCASTOR is a simulation model that returns a single solution for a set of parameters (i.e., it's a deterministic model). However, the fisher agent based model includes individual randomness (i.e., it's stochastic), for example, for survival and reproduction. Since the habitat dynamics returned from forestryCASTOR will always be the same result for a given simulation, it is more efficient to run the fisher ABM as a *post-hoc* analysis, rather than concurrently with forestryCASTOR
 
 ## Castor/CLUS SQLite Database
-Below is some code to connect to and query the clusdb, which is needed to run this version of the fisher ABM.
+Below is some code to connect to and query the castordb, which is needed to run this version of the fisher ABM.
 
 ```{r some code to acces the sqlite db}
 library (DBI)
@@ -61,11 +61,11 @@ cacheDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2"))
 times <- list (start = 0, end = 1)
 
 parameters <- list(
-  dataLoaderCLUS = list(dbName='clus',
-                         save_clusdb = FALSE, # Set to TRUE first time running the analysis
+  dataCASTOR = list(dbName='castor',
+                         saveCastorDB = FALSE, # Set to TRUE first time running the analysis
                          sqlite_dbname = "fisherABM_test", 
                          nameBoundaryFile = "tsa_aac_bounds",
-                         useCLUSdb = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"),
+                         useCastorDB = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"),
                          nameBoundaryColumn = "tsa_name", 
                          nameBoundary = c ("Williams_Lake_TSA"), 
                          nameBoundaryGeom = 'wkb_geometry',
@@ -98,7 +98,7 @@ parameters <- list(
                          nameForestInventoryBasalArea= "basal_area",
                          nameForestInventoryQMD = "quad_diam_125"
                     ),
-  growingStockCLUS = list (periodLength = 5),
+  growingStockCASTOR = list (periodLength = 5),
   abmfisherCASTOR = list (female_max_age = 9,
                         den_target = 0.003, 
                         rest_target = 0.028,
@@ -108,7 +108,7 @@ parameters <- list(
                         female_dispersal = 785000,  # ha; radius = 500 pixels = 50km = 7850km2 area
                         timeInterval = 1,
                         iterations = 1),
-    uploaderCLUS = list(aoiName = 'fisher_abm_test', 
+    uploaderCASTOR = list(aoiName = 'fisher_abm_test', 
                         dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -119,9 +119,9 @@ scenario = data.table (name = "test",
                        description = "Testing fisher ABM.")
 
 modules <- list ("abmfisherCASTOR",
-                 "growingStockCLUS",
-                 "uploaderCLUS",
-                 "dataLoaderCLUS")
+                 "growingStockCASTOR",
+                 "uploaderCASTOR",
+                 "dataCASTOR")
 
 objects <- list (scenario = scenario)
 inputs <- list ()

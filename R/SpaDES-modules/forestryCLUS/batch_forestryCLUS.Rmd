@@ -90,8 +90,8 @@ foreach(i=1:length(list_input_data)) %dopar% {
     .globals = list(),
     dataLoaderCLUS = list( 
       #Database connection
-      dbName='clus',
-      useCLUSdb = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/",input_data[Parameters == 'Boundary', ]$Values,"_clusdb.sqlite"),
+      dbName='castor',
+      useCastorDB = paste0(here::here(), "/R/SpaDES-modules/dataLoaderCLUS/",input_data[Parameters == 'Boundary', ]$Values,"_clusdb.sqlite"),
       #Study Area
       nameBoundaryFile="tsa_aac_bounds",
       nameBoundaryColumn="tsa_name",

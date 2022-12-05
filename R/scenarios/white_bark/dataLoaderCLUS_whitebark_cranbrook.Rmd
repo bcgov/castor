@@ -46,8 +46,8 @@ times <- list(start = 0, end = 60) # 60; for estimating 'historic' road developm
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list(dbName='clus',
-                         save_clusdb = TRUE,
+  dataLoaderCLUS = list(dbName='castor',
+                         saveCastorDB = TRUE,
                          sqlite_dbname = "whitebark_cranbrook", 
                          nameBoundaryFile = "tsa_aac_bounds", 
                          nameBoundaryColumn = "tsa_name", 

@@ -1,5 +1,5 @@
 ---
-title: "fisherHabitatLoader"
+title: "fisherHabitatCASTOR"
 author: ""
 date: "26 October 2022"
 output:
@@ -15,10 +15,10 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## TODO: use 
 ```
 
 ## Overview
-This module is used to create fisher habitat data that can be loaded into the FLEX2 fisher agent based model. The fisher habitat data is created from forestryCLUS, which updates forest stand attributes over time, and is outputed as a 'stack' of rasters stored in a .tif format. 
+This module is used to create fisher habitat data that can be loaded into the FLEX2 fisher agent based model. The fisher habitat data is created from forestryCASTOR, which updates forest stand attributes over time, and is outputed as a 'stack' of rasters stored in a .tif format. 
 
 ## Usage
-There are no parameters within this module. It relies on parameters from dataLoaderCLUS (database and boundary info) and growingStockCLUS (time interval). It is meant to be run with forestryCLUS, so that as forest stands are harvested and grow, stand characteristics change and subsequently fisher habitat changes. 
+There are no parameters within this module. It relies on parameters from dataCASTOR (database and boundary info) and growingStockCASTOR (time interval). It is meant to be run with forestryCASTOR, so that as forest stands are harvested and grow, stand characteristics change and subsequently fisher habitat changes. 
 
 
 ```{r module_usage}
@@ -38,11 +38,11 @@ cacheDir <- file.path (paste0 (here::here (), "/R/scenarios/test_flex2"))
 times <- list (start = 0, end = 2)
 
 parameters <- list(
-  dataLoaderCLUS = list(dbName='clus',
-                         save_clusdb = FALSE, # Set to TRUE first time running the analysis
+  dataCASTOR = list(dbName='castor',
+                         saveCastorDB = FALSE, # Set to TRUE first time running the analysis
                          sqlite_dbname = "fisherABM_test", 
                          nameBoundaryFile = "tsa_aac_bounds",
-                         useCLUSdb = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"),
+                         useCastorDB = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"),
                          nameBoundaryColumn = "tsa_name", 
                          nameBoundary = c ("Williams_Lake_TSA"), 
                          nameBoundaryGeom = 'wkb_geometry',
@@ -75,16 +75,16 @@ parameters <- list(
                          nameForestInventoryBasalArea= "basal_area",
                          nameForestInventoryQMD = "quad_diam_125"
                     ),
-  growingStockCLUS = list (periodLength = 5),
-  fisherHabitatLoader = list ()
+  growingStockCASTOR = list (periodLength = 5),
+  fisherHabitatCASTOR = list ()
 )
 
 scenario = data.table (name = "test",
                        description = "Testing fisher habitat loader.")
 
-modules <- list ("fisherHabitatLoader",
-                 "growingStockCLUS",
-                 "dataLoaderCLUS")
+modules <- list ("fisherHabitatCASTOR",
+                 "growingStockCASTOR",
+                 "dataCASTOR")
 
 objects <- list (scenario = scenario)
 

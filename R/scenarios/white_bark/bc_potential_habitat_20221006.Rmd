@@ -85,10 +85,10 @@ times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list(dbName='clus',
-                         save_clusdb = FALSE,
+  dataLoaderCLUS = list(dbName='castor',
+                         saveCastorDB = FALSE,
                          sqlite_dbname = "whitebark_cranbrook", 
-                         useCLUSdb = paste0(here::here(), "/R/scenarios/white_bark/whitebark_cranbrook_clusdb.sqlite"),
+                         useCastorDB = paste0(here::here(), "/R/scenarios/white_bark/whitebark_cranbrook_clusdb.sqlite"),
                          nameBoundaryFile ="tsa_aac_bounds", 
                          nameBoundaryColumn = "tsa_name", 
                          nameBoundary = "Cranbrook_TSA", 

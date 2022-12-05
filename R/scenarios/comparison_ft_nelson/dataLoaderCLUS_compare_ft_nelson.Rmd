@@ -45,8 +45,8 @@ times <- list(start = 0, end = 0)
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list(dbName = 'clus',
-                        save_clusdb = TRUE,
+  dataLoaderCLUS = list(dbName = 'castor',
+                        saveCastorDB = TRUE,
                         sqlite_dbname = "Fort_Nelson_TSA_model_compare",
                         nameBoundaryFile = "fort_nelson_tsa.bounds_fort_nelson_tsa", 
                         nameBoundaryColumn = "tsa_name", 
