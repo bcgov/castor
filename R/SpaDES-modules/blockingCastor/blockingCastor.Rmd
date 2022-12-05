@@ -51,8 +51,7 @@ times <- list(start = 0, end = 0)
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataCastor = list( dbName='clus',
-                     saveCastorDB = TRUE,
+  dataCastor = list( saveCastorDB = TRUE,
                      randomLandscape = list(100,100,0,100,0,100),
                      randomLandscapeZoneConstraint = 
                        data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
