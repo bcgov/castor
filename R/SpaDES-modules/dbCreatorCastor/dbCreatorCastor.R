@@ -213,6 +213,7 @@ disconnectCastorDB<- function(sim) {
 }
 
 randomRaster<-function(extent, clusterLevel){
+  #RandomFields::RFoptions(spConform=FALSE)
   ras <- terra::rast(nrows = extent[[1]], ncols = extent[[2]], xmin = extent[[3]], xmax = extent[[4]], ymin = extent[[5]], ymax = extent[[6]], vals = 0 )
   model <- RandomFields::RMstable(scale = 300, var = 0.003,  alpha = clusterLevel)
   data.rv<-RandomFields::RFsimulate(model, y = 1:extent[[1]],  x = 1:extent[[2]], grid = TRUE)$variable1
