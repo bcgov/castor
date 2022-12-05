@@ -34,13 +34,16 @@ defineModule(sim, list(
     defineParameter("dbPort", "character", '5432', NA, NA, "The name of the postgres port"),
     defineParameter("dbUser", "character", 'postgres', NA, NA, "The name of the postgres user"),
     defineParameter("dbPassword", "character", 'postgres', NA, NA, "The name of the postgres user password"),
+  defineParameter("randomLandscape", "list", NA, NA, NA, desc = "The exent in a list ordered by: nrows, ncols, xmin, xmax, ymin, ymax"),
+  defineParameter("randomLandscapeClusterLevel", "numeric", 1, 0.001, 1.999,"This describes the alpha parameter in RandomFields. alpha is [0,2]"),
+  defineParameter("randomLandscapeZoneConstraint", "data.table", NA, NA, NA, desc = "The constraint to be applied"),
     defineParameter("nameBoundaryFile", "character", "gcbp_carib_polygon", NA, NA, desc = "Name of the boundary file. Here we are using caribou herd boudaries, could be something else (e.g., TSA)."),
     defineParameter("nameBoundaryColumn", "character", "herd_name", NA, NA, desc = "Name of the column within the boundary file that has the boundary name. Here we are using the herd name column in the caribou herd spatial polygon file."),
     defineParameter("nameBoundary", "character", "Muskwa", NA, NA, desc = "Name of the boundary - a spatial polygon within the boundary file. Here we are using a caribou herd name to query the caribou herd spatial polygon data, but it could be something else (e.g., a TSA name to query a TSA spatial polygon file, or a group of herds or TSA's)."),
     defineParameter("nameBoundaryGeom", "character", "geom", NA, NA, desc = "Name of the geom column in the boundary file"),
     defineParameter("saveCastorDB", "logical", FALSE, NA, NA, desc = "Save the db to a file?"),
     defineParameter("useCastorDB", "character", "99999", NA, NA, desc = "Use an exising db? If no, set to 99999. IOf yes, put in the postgres database name here (e.g., castor)."),
-    defineParameter("sqlite_dbname", "character", "99999", NA, NA, desc = "Name of the castordb"),
+    defineParameter("sqlite_dbname", "character", "test", NA, NA, desc = "Name of the castordb"),
     defineParameter("nameZoneRasters", "character", "99999", NA, NA, desc = "Administrative boundary containing zones of management objectives"),
     defineParameter("nameZonePriorityRaster", "character", "99999", NA, NA, desc = "Boundary of zones where harvesting should be prioritized"),
     defineParameter("nameCompartmentRaster", "character", "99999", NA, NA, desc = "Name of the raster in a pg db that represents a compartment or supply block. Not currently in the pgdb?"),
@@ -93,12 +96,21 @@ doEvent.dataCastor = function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = { # initialization event
-      #set Boundaries information object
-      sim$boundaryInfo <- list(P(sim,"nameBoundaryFile", "dataCastor" ),P(sim,"nameBoundaryColumn","dataCastor"),P(sim, "nameBoundary", "dataCastor"), P(sim, "nameBoundaryGeom", "dataCastor")) # list of boundary parameters to set the extent of where the model will be run; these parameters are expected inputs in dataCastor
-      sim$zone.length <- length(P(sim, "nameZoneRasters", "dataCastor")) # used to define the number of different management constraint zones
       
+      #set Boundaries information object
+      if(!is.na(P(sim,"randomLandscape", "dataCastor" ))){
+        sim$extent = P(sim,"randomLandscape", "dataCastor" )
+        sim$boundaryInfo <- NULL
+        sim$zone.length <- 1
+      }else{
+        sim$extent <- NA
+        sim$boundaryInfo <- list(P(sim,"nameBoundaryFile", "dataCastor" ),P(sim,"nameBoundaryColumn","dataCastor"),P(sim, "nameBoundary", "dataCastor"), P(sim, "nameBoundaryGeom", "dataCastor")) # list of boundary parameters to set the extent of where the model will be run; these parameters are expected inputs in dataCastor
+        sim$zone.length <- length(P(sim, "nameZoneRasters", "dataCastor")) # used to define the number of different management constraint zones
+      } 
+      
+      message("Build")
       if(P(sim, "useCastorDB", "dataCastor") == "99999"){ #build Castordb
-        
+          
         sim <- createCastorDB(sim) # function (below) that creates an SQLite database
         #populate castordb tables
         sim <- setTablesCastorDB(sim)
@@ -106,8 +118,8 @@ doEvent.dataCastor = function(sim, eventTime, eventType, debug = FALSE) {
         sim <- setIndexesCastorDB(sim) # creates index to facilitate db querying?
         sim <- updateGS(sim) # update the forest attributes
         sim <- scheduleEvent(sim, eventTime = 0,  "dataCastor", "forestStateNetdown", eventPriority=90)
-        
-       }else{ #copy existing castordb
+          
+      }else{ #copy existing castordb
         sim$foreststate <- NULL
         message(paste0("Loading existing db...", P(sim, "useCastorDB", "dataCastor")))
         #Make a copy of the db so that the castordb is in memory
@@ -115,32 +127,33 @@ doEvent.dataCastor = function(sim, eventTime, eventType, debug = FALSE) {
         sim$castordb <- dbConnect(RSQLite::SQLite(), ":memory:") # save the pgdb in memory (object in sim)
         RSQLite::sqliteCopyDatabase(userdb, sim$castordb)
         dbDisconnect(userdb) #Disconnect from the original user provided db
-        
+          
         dbExecute(sim$castordb, "PRAGMA synchronous = OFF") # update the database
         dbExecute(sim$castordb, "PRAGMA journal_mode = OFF")
-        
+          
         ras.info<-dbGetQuery(sim$castordb, "select * from raster_info where name = 'ras'") #Get the raster information
         sim$ras<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =1:ras.info$ncell)
         raster::crs(sim$ras)<-paste0("EPSG:", ras.info$crs) #set the raster projection
-        
+          
         sim$pts <- data.table(xyFromCell(sim$ras,1:length(sim$ras))) # creates pts at centroids of raster boundary file; seems to be faster that rasterTopoints
         sim$pts <- sim$pts[, pixelid:= seq_len(.N)] #add in the pixelid which streams data in according to the cell number = pixelid
-        
+          
         #Get the available zones for other modules to query -- In forestryCastor the zones that are not part of the scenario get deleted.
         sim$zone.available<-data.table(dbGetQuery(sim$castordb, "SELECT * FROM zone;")) 
-        
+          
         #Alter the ZoneConstraints table with a data.table object that is created before the sim
         if(!is.null(sim$updateZoneConstraints)){
           message("updating zoneConstraints")
           sql<- paste0("UPDATE zoneconstraints SET type = :type, variable = :variable, percentage = :percentage where reference_zone = :reference_zone AND zoneid = :zoneid")  
           dbBegin(sim$castordb)
-          rs<-dbSendQuery(sim$castordb, sql, sim$updateZoneConstraints[,c("type", "variable", "percentage", "reference_zone", "zoneid")])
+            rs<-dbSendQuery(sim$castordb, sql, sim$updateZoneConstraints[,c("type", "variable", "percentage", "reference_zone", "zoneid")])
           dbClearResult(rs)
           dbCommit(sim$castordb)
         }
       }
       sim <- scheduleEvent(sim, eventTime = end(sim),  "dataCastor", "removeCastorDB", eventPriority=99) #disconnect the db once the sim is over
-      },
+      
+    },
     forestStateNetdown={
       sim <- setForestState(sim)
     },
@@ -225,26 +238,27 @@ setTablesCastorDB <- function(sim) {
     dbExecute(sim$castordb, glue::glue("INSERT INTO raster_info (name, xmin, xmax, ymin, ymax, ncell, nrow, crs) values ('ras', {ras.extent[1]}, {ras.extent[2]}, {ras.extent[3]}, {ras.extent[4]}, {ncell(sim$ras)}, {nrow(sim$ras)}, '3005');"))
     
   }else{ #Set the empty table for values not supplied in the parameters
+    
     message('.....compartment ids: default 1')
-    sim$ras <- RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                          srcRaster= 'rast.bc_bound', 
-                          clipper=sim$boundaryInfo[[1]], 
-                          geom= sim$boundaryInfo[[4]], 
-                          where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                          conn=NULL)
+    randomRas<-randomRaster(sim$extent, P(sim, 'randomLandscapeClusterLevel', 'dataCastor'))
+    sim$pts <- data.table(xyFromCell(randomRas,1:length(randomRas))) #Seems to be faster than rasterTopoints
+    sim$pts <- sim$pts[, pixelid:= seq_len(.N)] # add in the pixelid which streams data in according to the cell number = pixelid
     
-    sim$pts <- data.table(xyFromCell(sim$ras,1:length(sim$ras))) #Seems to be faster that rasterTopoints
-    sim$pts <- sim$pts[, pixelid:= seq_len(.N)] #add in the pixelid which streams data in according to the cell number = pixelid
-    
-    pixels<-data.table(pixelid=sim$ras[]) #transpose then vectorize which matches the same order as adj
+    pixels <- data.table(age = as.integer(round(randomRas[]*200,0)))
     pixels[, pixelid := seq_len(.N)]
     pixels[, compartid := 'all']
     
+    #Add the raster_info
+    ras.extent<-terra::ext(randomRas)
+    sim$ras<-terra::rast(nrows = sim$extent[[1]], ncols = sim$extent[[2]], xmin = sim$extent[[3]], xmax = sim$extent[[4]], ymin = sim$extent[[5]], ymax = sim$extent[[6]], vals = 0 )
     sim$ras[]<-pixels$pixelid
-    #sim$rasVelo<-velox::velox(sim$ras)
+    
+    #upload raster metadata
+    dbExecute(sim$castordb, glue::glue("INSERT INTO raster_info (name, xmin, xmax, ymin, ymax, ncell, nrow, crs) values ('ras', {ras.extent[1]}, {ras.extent[2]}, {ras.extent[3]}, {ras.extent[4]}, {ncell(sim$ras)}, {nrow(sim$ras)}, '3005');"))
+    
   }
   
-  aoi<-extent(sim$ras) #need to check that each of the extents are the same
+  aoi<-terra::ext(sim$ras) #need to check that each of the extents are the same
   
   #--------------------#
   #Set the Ownership----
@@ -300,7 +314,6 @@ setTablesCastorDB <- function(sim) {
     }
   } else{
     message('.....zone ids: default 1')
-    sim$zone.length<-1
     pixels[, zone1:= 1]
     dbExecute(sim$castordb, "ALTER TABLE pixels ADD COLUMN zone1 integer;")
     dbExecute(sim$castordb, "INSERT INTO zone (zone_column, reference_zone) values ( 'zone1', 'default');" )
@@ -357,7 +370,7 @@ setTablesCastorDB <- function(sim) {
     
   }else{
     message('.....thlb: default 1')
-    pixels[, thlb := 1]
+    pixels[!is.na(compartid), thlb := 1]
   }
   
   #--------------------#
@@ -402,16 +415,21 @@ setTablesCastorDB <- function(sim) {
     
   }else{
     message('.....yield ids: default 1')
-    pixels[, yieldid := 1]
+    pixels[!is.na(compartid), yieldid := 1]
     #Set the yields table with a dummy yield curve
-    yields<-data.table(yieldid= 1, age= seq(from =0, to=190, by = 10), 
-                       tvol = seq(1:20)**2, 
-                       dec_pcnt = 0, 
-                       height = seq(1:20), 
-                       eca = round(1-(seq(1:20)**2/20**2), 2))
+    yields<-data.table(yieldid= 1, 
+                       age= seq(from =0, to=250, by = 10), 
+                       tvol = c(0, 0, 0, 24.2, 98.6, 192.9, 292.4, 382.1, 482.8, 574.5, 648, 706.6, 771.6, 833.7, 885.8, 924.2, 956.2, 982.6, 1004.2, 1023.1, 1038.7, 1051.1, 1060.5, 1067.6, 1072.5, 1075.6 ), 
+                       dec_pcnt = NA, 
+                       height = c(0, 2.7, 7.1, 11.4, 15.4, 18.9, 22, 24.7, 27.1, 29.2, 31, 32.5, 33.9, 35, 36, 36.9, 37.7, 38.3, 38.9, 39.3, 39.7, 40.1, 40.4, 40.6, 40.8, 41), 
+                       eca = c(1, 1, 0.25, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1),
+                       basalarea = c(0, 0, 1.3, 8.1, 18.6, 28.6, 37.7, 45.1, 52.7, 58.9, 63.7, 67.4, 71.1, 74.6, 77.4, 79.3, 80.8, 82.1, 83.1, 83.9, 84.5, 84.9, 85.2, 85.3, 85.4, 85.4),
+                       qmd = c(0, 0.5, 5.7, 14.1, 21.5, 26.8, 30.9, 34, 36.8, 39, 40.7, 42.1, 43.4, 44.7, 45.8, 46.5, 47.2, 47.8, 48.3, 48.7, 49.1, 49.4, 49.7, 49.9, 50.1, 50.3),
+                       crownclosure = c(0, 2.8, 25.6, 64.7, 79.6, 82.5, 82.5, 82, 81.6, 81.2, 80.8, 80.3, 79.9, 79.5, 79.1, 78.6, 78.2, 77.8, 77.4, 76.9, 76.5, 76.1, 75.7, 75.2, 74.8, 74.4)
+    )
     dbBegin(sim$castordb)
-    rs<-dbSendQuery(sim$castordb, "INSERT INTO yields (yieldid, age, tvol, dec_pcnt, height, eca ) 
-                      values (:yieldid, :age, :tvol, :dec_pcnt, :height, :eca)", yields)
+    rs<-dbSendQuery(sim$castordb, "INSERT INTO yields (yieldid, age, tvol, dec_pcnt, height, eca, basalarea, qmd, crownclosure ) 
+                      values (:yieldid, :age, :tvol, :dec_pcnt, :height, :eca, :basalarea, :qmd, :crownclosure)", yields)
     dbClearResult(rs)
     dbCommit(sim$castordb)
   }
@@ -506,7 +524,7 @@ setTablesCastorDB <- function(sim) {
     
   }else{
     message('.....yield trans ids: default 1')
-    pixels[, yieldid_trans := 1]
+    pixels[!is.na(compartid), yieldid_trans := 1]
   }
   
   #**************FOREST INVENTORY - VEGETATION VARIABLES*******************#
@@ -637,7 +655,7 @@ setTablesCastorDB <- function(sim) {
   
   if(P(sim, "nameTreedRaster", "dataCastor") == "99999" & P(sim, "nameForestInventoryTreed", "dataCastor") == "99999"){
     message('.....treed: default 1')
-    pixels[, treed := 1]
+    pixels[!is.na(compartid), treed := 1]
   }
   
   #---------------#
@@ -661,9 +679,9 @@ setTablesCastorDB <- function(sim) {
     }
   }
   
-  if(P(sim, "nameAgeRaster", "dataCastor") == "99999" & P(sim, "nameForestInventoryAge", "dataCastor") == "99999"){
-    message('.....age: default 120')
-    pixels[, age := 120]
+  if(P(sim, "nameAgeRaster", "dataCastor") == "99999" && P(sim, "nameForestInventoryAge", "dataCastor") == "99999" && is.na(sim$extent[[1]])){
+    message('.....age: random age')
+    pixels[!is.na(compartid), age := as.integer(120 + runif(nrow(pixels[!is.na(compartid),]), -100, 100))]
   }
   
   #-------------------------#
@@ -687,7 +705,7 @@ setTablesCastorDB <- function(sim) {
   }
   if(P(sim, "nameCrownClosureRaster", "dataCastor") == "99999" & P(sim, "nameForestInventoryCrownClosure", "dataCastor") == "99999"){
     message('.....crown closure: default 60')
-    pixels[, crownclosure := 60]
+    pixels[!is.na(compartid), crownclosure := 60]
   }
     
   #-----------------#
@@ -711,7 +729,7 @@ setTablesCastorDB <- function(sim) {
   }
   if(P(sim, "nameHeightRaster", "dataCastor") == "99999" & P(sim, "nameForestInventoryHeight", "dataCastor") == "99999"){
     message('.....height: default 10')
-    pixels[, height := 10]
+    pixels[!is.na(compartid), height := 10]
   }
   
   #---------------------#
@@ -790,7 +808,7 @@ setIndexesCastorDB <- function(sim) { # making indexes helps with query speed fo
 
 setZoneConstraints<-function(sim){
   message("... setting ZoneConstraints table")
-  if(!P(sim)$nameZoneTable == '99999'){ # zone_constraint table
+  if(!P(sim)$nameZoneTable == '99999' && is.na(sim$extent[[1]])){ # zone_constraint table
     
     zone<-dbGetQuery(sim$castordb, "SELECT * FROM zone;") # select the name of the raster and its column name in pixels
     zone_const<-rbindlist(lapply(split(zone, seq(nrow(zone))) , function(x){
@@ -842,6 +860,20 @@ setZoneConstraints<-function(sim){
       }
   }else{
     paste0(P(sim)$nameZoneTable, "...nameZoneTable not supplied. WARNING: your simulation has no zone constraints")
+  }
+  
+  #For randomly created landscapes:
+  if(!is.na(sim$extent[[1]])){
+    message("... setting ZoneConstraints table")
+    randomLandscapeZoneConstraint<-P(sim, "randomLandscapeZoneConstraint", "dataCastor")
+    zones <- data.table(zoneid =1, zone_column = 'zone1', reference_zone = 'default', ndt =3, variable = randomLandscapeZoneConstraint$variable, threshold = randomLandscapeZoneConstraint$threshold, type = randomLandscapeZoneConstraint$type, percentage = randomLandscapeZoneConstraint$percentage,
+                        multi_condition = NA, t_area = sim$extent[[1]]*sim$extent[[2]], denom = NA, start = 0, stop = 250)
+    
+    dbBegin(sim$castordb)
+    rs<-dbSendQuery(sim$castordb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, multi_condition, t_area, start, stop) 
+                      values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :multi_condition, :t_area, :start, :stop);", zones[,c('zoneid', 'zone_column', 'reference_zone', 'ndt','variable', 'threshold', 'type', 'percentage', 'multi_condition', 't_area', 'start', 'stop')])
+    dbClearResult(rs)
+    dbCommit(sim$castordb)
   }
   return(invisible(sim))
 }
@@ -923,8 +955,17 @@ ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age;"))
   if(!suppliedElsewhere("updateZoneConstraints", sim)){ # this object adjusts the zone constraints before the sim is run
     sim$updateZoneConstraints<-NULL
   }
+
   return(invisible(sim))
 }
 
+randomRaster<-function(extent, clusterLevel){
+  #RandomFields::RFoptions(spConform=FALSE)
+  ras <- terra::rast(nrows = extent[[1]], ncols = extent[[2]], xmin = extent[[3]], xmax = extent[[4]], ymin = extent[[5]], ymax = extent[[6]], vals = 0 )
+  model <- RandomFields::RMstable(scale = 300, var = 0.003,  alpha = clusterLevel)
+  data.rv<-RandomFields::RFsimulate(model, y = 1:extent[[1]],  x = 1:extent[[2]], grid = TRUE)$variable1
+  data.rv<-(data.rv - min(data.rv))/(max(data.rv)- min(data.rv))
+  return(terra::setValues(ras, data.rv))
+}
 
 
