@@ -1,0 +1,133 @@
+---
+title: "Join roads and infrastrucutre"
+author: "Elizabeth Kleynhans"
+date: "2022-11-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source(here::here("R/functions/R_Postgres.R"))
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(raster)
+
+```
+
+# extract distance to road, distance to infrastructure and slope
+```{r}
+# bring distance rasters back in
+# import roads distance raster
+roads_dist <- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
+crs(roads_dist)
+
+# import infrastructure data
+dist_rail<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
+dist_power<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
+dist_oil<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
+dist_mines<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
+dist_urban<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
+
+DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
+```
+
+```{r}
+
+
+rasStackinfrastructure = stack(roads_dist,dist_rail, dist_power, dist_oil, dist_mines, dist_urban, DEM_slope)
+
+
+crs(rasStackinfrastructure)<- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs" # EPSG 9001. Hmm should probably change to 3005
+res(rasStackinfrastructure) # at ha scale ... perfect
+
+```
+
+Bring back points from the 05_Distance_to_Road_Data_Prep.rmd file, jion the infrastructure data and create a new column that is the shortest distance to any infrastructure type.
+
+```{r}
+dat<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\spread\\Fire_data_all_veg.gpkg")
+
+
+##Extract Coordinates
+x2<- st_centroid(dat)
+
+x<-st_coordinates(x2)
+test<-cbind(dat, x)
+
+head(test)
+
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+#crs(pointCoordinates) #No CRS when a dataframe
+##Extract Wind values from stacked layer
+rasValue3=raster::extract(rasStackinfrastructure, pointCoordinates)
+head(rasValue3)
+str(rasValue3)
+names(rasValue3)
+str(x)# 200292 values
+
+summer_wind_raster<- raster("D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\wind_summer_clipped_224.tif")
+res(summer_wind_raster)#res seems out of wack
+
+spring_wind_raster<- raster("D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\wind_spring_raster_224.tif")
+res(spring_wind_raster) #resolution seems a bit out of wack...
+
+
+rasValue4=raster::extract(summer_wind_raster, pointCoordinates)
+rasValue5=raster::extract(spring_wind_raster, pointCoordinates)
+head(rasValue4)
+
+
+#Append new information
+dat2<-cbind(cbind(cbind(dat, rasValue3), rasValue4), rasValue5) 
+
+dat2 <- dat2 %>% rename(sum_win=rasValue4,
+                        spg_win=rasValue5)
+# sample_locations_DEM_roads_infra$dist_mines_m<-sample_locations_DEM_roads_infra$dist_mines*100
+# sample_locations_DEM_roads_infra$dist_oil_m<-sample_locations_DEM_roads_infra$dist_oil*100
+# sample_locations_DEM_roads_infra$dist_power_m<-sample_locations_DEM_roads_infra$dist_power*100
+# sample_locations_DEM_roads_infra$dist_rail_m<-sample_locations_DEM_roads_infra$dist_rail*100
+# sample_locations_DEM_roads_infra$dist_urban_m<-sample_locations_DEM_roads_infra$dist_urban*100
+
+#dat2 <- dat2 %>% dplyr::select(id:road_dist_m, geometry:dist_urban_m)
+
+head(dat2)
+crs(dat2)
+
+dat2$dist_infr<-0
+
+dat2$dist_infr<-
+  ifelse(dat2$dist_rail < dat2$dist_power, dat2$dist_rail, dat2$dist_power)
+
+dat2$dist_infr<-
+  ifelse(dat2$dist_oil < dat2$dist_infr, dat2$dist_oil, dat2$dist_infr)
+
+dat2$dist_infr<-
+  ifelse(dat2$dist_mines < dat2$dist_infr, dat2$dist_mines, dat2$dist_infr)
+
+dat2$dist_infr<-
+  ifelse(dat2$dist_urban < dat2$dist_infr, dat2$dist_urban, dat2$dist_infr)
+
+dat2$dist_infr_m<-dat2$dist_infr*100
+dat2$dist_roads_m<-dat2$dist_roads*100
+
+```
+
+# Look at the infrastructure data and how correlated the variables are
+
+```{r}
+max(dat2$dist_infr)
+min(dat2$dist_infr)
+hist(dat2$dist_infr)
+dat2$dist_infr
+table(dat2$dist_ignit)
+```
+
+```{r}
+sf::st_write(dat2, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data_veg_road_infr_wind.gpkg", delete_layer=TRUE)
+
+##Save to personal drive
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+```

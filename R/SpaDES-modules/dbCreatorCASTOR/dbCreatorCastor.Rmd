@@ -1,0 +1,63 @@
+---
+title: "dbCreatorCastor"
+author: "Kyle Lochhead"
+date: "24 November 2022"
+output:
+  html_document:
+    keep_md: yes
+editor_options:
+  chunk_output_type: console
+---
+# Overview
+
+This module builds a dummy spatial databases for the CASTOR model.
+
+# Usage
+
+```{r module_usage}
+library(RandomFields)
+library(terra)
+library(RSQLite)
+library(SpaDES)
+library(data.table)
+
+setPaths(modulePath = here::here("R/SpaDES-modules"),
+         outputPath = here::here("R/SpaDES-modules/dbCreatorCastor"))
+getPaths()
+
+times <- list(start = 0, end = 0)
+
+parameters <- list(
+.progress = list(type = NA, interval = NA),
+  .globals = list(),
+  dbCreatorCASTOR = list(sqlite_dbname = 'test',
+                          clusterLevel = 1
+                          )
+)
+extent <- list(100, 100, 0,100,0,100)
+zoneConstraint = data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
+
+modules <- list("dbCreatorCastor")
+objects <- list(extent = extent, zoneConstraint =  zoneConstraint ) # set various sizes landscapes
+inputs <- list()
+outputs <- list()
+
+mySim <- simInit(times = times, params = parameters, modules = modules,
+                 objects = objects)
+
+mySimOut <- spades(mySim)
+```
+
+# Parameters
+
+Provide a summary of user-visible parameters.
+
+```{r moduleParams, echo = FALSE, eval = TRUE}
+df_params <- SpaDES.core::moduleParams("dbCreatorCASTOR", "C:/Users/klochhea/clus/R/SpaDES-modules")
+knitr::kable(df_params)
+```
+
+# Events
+
+Describe what happens for each event type.
+
