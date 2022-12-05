@@ -30,7 +30,7 @@ source(here::here("R/functions/R_Postgres.R"))
 
 
 ```{r}
-dat_person<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_human_for_analysis.csv")
+dat_person<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\dat_human_for_analysis.csv")
 
 ```
 
@@ -43,13 +43,14 @@ unique(dat_person$frt)
 dat_person$climate1<-"NA"
 head(dat_person)
 
+
 dat_person<-dat_person %>%
     mutate(climate1 = case_when(
                                 frt == "5" ~ mean_PPT06_PPT07,
                                 frt == "7" ~ mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10,
-                                frt == "9" ~ mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10, # NDT4
+                                frt == "9" ~ Tmax05, # NDT4
                                 frt == "10" ~ mean_PPT06_PPT07_PPT08_PPT09,
-                                frt == "11" ~ Tave09,
+                                frt == "11" ~ mean_Tave08_Tave09_Tave10,
                                 frt == "12" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10,
                                 frt == "13" ~ mean_Tave07_Tave08_Tave09,
                                 frt == "14" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10,
@@ -67,7 +68,6 @@ dat_person<-dat_person %>%
                                TRUE ~ NA_real_))
 
 head(dat_person)
-
 ##Change vegtype to factor
 dat_person$FWI_veg<-as.factor(dat_person$FWI_veg)
 
@@ -76,40 +76,47 @@ dat_person$FWI_veg<-as.factor(dat_person$FWI_veg)
 dat5<- dat_person %>% dplyr::filter(frt == 5) 
 table(dat5$FWI_veg)
 
-# there are only 4 observations in the C7 fuel type so since this fiel type has fire spread rates similar to C3 I will change all C1 observations to C3
-#dat5$FWI_veg[dat5$FWI_veg=="C-1"]<-"C-3" # lumping C-1 and C-3 because they have very similar ROS (See pg 9 of Perrakis)
-dat5$FWI_veg[dat5$FWI_veg=="C-7"]<-"C-3" # seems like C7 maybe most similar to C3 or C5 but since I have no C5 ill make it C3.
 ggplot(data=dat5, mapping=aes(x=as.factor(fire), y=climate1))+
   geom_boxplot()
 
 ggplot(data=dat5, mapping=aes(x=as.factor(fire), y=elevatn))+
   geom_boxplot()
 
-
-mod_frt_5a<- glm(fire ~ climate1 + elevatn + FWI_veg + rd_dst_ + infr_ds, data=dat5, family=binomial(link="logit"))
-
-mod_frt_5b<- glm(fire ~ climate1 + elevatn + FWI_veg + rd_dst_, data=dat5, family=binomial(link="logit"))
-
-mod_frt_5b_log<- glm(fire ~ climate1 + elevatn + FWI_veg + log(rd_dst_+1), data=dat5, family=binomial(link="logit"))
+cor.test(dat5$climate1, dat5$elevatn)
+cor.test(dat5$road_dist_m, dat5$infr_dist)
 
 
-mod_frt_5c<- glm(fire ~ climate1 + elevatn + FWI_veg + infr_ds, data=dat5, family=binomial(link="logit"))
+hist((dat5$road_dist_m+1))
+hist(log(dat5$infr_dist +1))
 
-mod_frt_5c_log<- glm(fire ~ climate1 + elevatn + FWI_veg + log(infr_ds+1), data=dat5, family=binomial(link="logit"))
+mod_frt_5a<- glm(fire ~ climate1 + elevatn + FWI_veg + road_dist_m + infr_dist, data=dat5, family=binomial(link="logit"))
 
-
-anova(mod_frt_5a, mod_frt_5b)
-
-anova(mod_frt_5a, mod_frt_5c)
+mod_frt_5b_log<- glm(fire ~ climate1 + elevatn + FWI_veg + log(road_dist_m+1) + log(infr_dist +1), data=dat5, family=binomial(link="logit"))
 
 # best model is mod_frt_5b_log. It has the lowest AIC (AIC=419)
 
-dat5$log_road_dist<-log(dat5$rd_dst_+1)
+dat5$log_road_dist<-log(dat5$road_dist_m+1)
+dat5$log_infr_dist<-log(dat5$infr_dist+1)
 
-mod_frt5<- glm(fire ~ climate1 + elevatn + FWI_veg + log_road_dist, data=dat5, family=binomial(link="logit"))
+mod_frt5<- glm(fire ~ climate1 + elevatn + FWI_veg + log_road_dist + log_infr_dist, data=dat5, family=binomial(link="logit"))
 
 summary(mod_frt5)
 Anova(mod_frt5, type=3)
+
+mod_frt5b<- glm(fire ~ climate1 + elevatn + log_road_dist + log_infr_dist, data=dat5, family=binomial(link="logit"))
+summary(mod_frt5b)
+Anova(mod_frt5b, type=3)
+
+mod_frt5c<- glm(fire ~ climate1 + log_road_dist + log_infr_dist, data=dat5, family=binomial(link="logit"))
+summary(mod_frt5c)
+Anova(mod_frt5c, type=3)
+anova(mod_frt5b, mod_frt5c, test="Chisq")
+
+# Ill choose to leave elevation in. so top model is
+mod_frt5<- glm(fire ~ climate1 + elevatn + log_road_dist + log_infr_dist, data=dat5, family=binomial(link="logit"))
+summary(mod_frt5b)
+Anova(mod_frt5b, type=3)
+
 
 # model diagnostic plots
 # below model looks way better with log road dist. It had some structure with just road dist
@@ -160,7 +167,7 @@ visreg(mod_frt5, scale="response") # nicer plots than the ones below!
 # Select only numeric predictors
 str(dat5)
 
-dat2_b<-dat5 %>% dplyr::select(fire, elevatn, climate1, log_road_dist)
+dat2_b<-dat5 %>% dplyr::select(fire, elevatn, climate1, log_road_dist, log_infr_dist)
 probabilities <- predict(mod_frt5, type = "response")
 predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
 
@@ -201,7 +208,7 @@ model.data <- augment(mod_frt5) %>%
 
 #The data for the top 3 largest values, according to the Cook’s distance, can be displayed as follow:
 model.data %>% 
-  dplyr::select(climate1,  elevatn, FWI_veg, log_road_dist,.std.resid, .cooksd) %>%
+  dplyr::select(climate1,  elevatn, log_road_dist, log_infr_dist,.std.resid, .cooksd) %>%
   top_n(5, .cooksd) 
 
 ggplot(model.data, aes(index, .std.resid)) + 
@@ -229,13 +236,13 @@ car::vif(mod_frt5)
 
 
 ```{r}
-mod_frt5<- glm(fire ~ climate1 + elevatn + log_road_dist + FWI_veg, data=dat5, family=binomial(link="logit"))
+mod_frt5<- glm(fire ~ climate1 + elevatn + log_road_dist + log_infr_dist, data=dat5, family=binomial(link="logit"))
 
 summary(mod_frt5)
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT5_person_All <- data.frame (matrix (ncol = 13, nrow = 0))
-colnames (top_mod_table_FRT5_person_All ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_elevatn", "coef_log_road_dist", "coef_FWI_veg_C-2",  "coef_FWI_veg_C-3", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_O-1a/b", "AUC")
+top_mod_table_FRT5_person_All <- data.frame (matrix (ncol = 9, nrow = 0))
+colnames (top_mod_table_FRT5_person_All ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate1", "coef_elevatn", "coef_log_road_dist", "coef_log_infr_dist", "AUC")
 
 dat5$fire_veg<-paste(dat5$fire, dat5$FWI_veg)
 ```
@@ -248,7 +255,7 @@ for (g in 1:100){
 
 prop<-0.75
 # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(dat5$fire_veg, p = prop,
+  trainIndex <- createDataPartition(dat5$fire, p = prop,
                                     list = FALSE,
                                     times = 1)
   
@@ -263,23 +270,19 @@ mod.valid <- predict.glm(mod, newdata=Valid, type="response")
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT5_person <- data.frame (matrix (ncol = 13, nrow = 0))
-colnames (top_mod_table_FRT5_person ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_elevatn", "coef_log_road_dist", "coef_FWI_veg_C-2",  "coef_FWI_veg_C-3", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_1a/b", "AUC")
+top_mod_table_FRT5_person <- data.frame (matrix (ncol = 9, nrow = 0))
+colnames (top_mod_table_FRT5_person ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate1", "coef_elevatn", "coef_log_road_dist", "coef_log_infr_dist", "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT5_person[1,1]<-"person"
 top_mod_table_FRT5_person[1,2]<-"FRT5"
-top_mod_table_FRT5_person[1,3]<-"fire ~ climate1 + elevatn + log_road_dist + FWI_veg"
+top_mod_table_FRT5_person[1,3]<-"fire ~ climate1 + elevatn + log_road_dist + log_infr_dist"
 top_mod_table_FRT5_person[1,4]<- coef(mod)[1] #Intercept
 top_mod_table_FRT5_person[1,5]<- coef(mod)[2] #Climate variable 1
 top_mod_table_FRT5_person[1,6]<- coef(mod)[3] #Climate variable 2
 top_mod_table_FRT5_person[1,7]<- coef(mod)[4] #I
 top_mod_table_FRT5_person[1,8]<- coef(mod)[5] #co
-top_mod_table_FRT5_person[1,9]<- coef(mod)[6] #coe
-top_mod_table_FRT5_person[1,10]<- coef(mod)[7] #c
-top_mod_table_FRT5_person[1,11]<- coef(mod)[8] #
-top_mod_table_FRT5_person[1,12]<- coef(mod)[9] #
-top_mod_table_FRT5_person[1,13]<- mod.auc
+top_mod_table_FRT5_person[1,9]<- mod.auc
 
 top_mod_table_FRT5_person_All<-rbind(top_mod_table_FRT5_person_All, top_mod_table_FRT5_person)
 
@@ -311,120 +314,3 @@ Save table.
 ```{r}
 write.csv(FRT5_summary_table_mean, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT5_person.csv")
 ```
-
-
-
-
-
-
-
-
-
-```{r}
-variables_all<-c("climate1", "elevatn", "FWI_veg", "rd_dst_", "infr_ds") # ,
-
-#######################################
-
-
-formulas <- list()
-for (i in seq_along(variables_all)) {
-  tmp <- combn(variables_all, i)
-  tmp2 <- apply(tmp, 2, paste, collapse="+")
-  #tmp <- paste0("Y~", tmp)
-  formulas[[i]] <- tmp2
-}
-
-formulas <- unlist(formulas)
-
-zones1<-c("5", "7", "9", "10", "11", "12", "14") #,"7","9","10","11","12","13","14","15") 
-
-prop<-0.75
-
-#Create empty table
-table.glm.climate.simple <- data.frame (matrix (ncol = 6, nrow = 0))
-colnames (table.glm.climate.simple) <- c ("model", "edf", "aic", "auc.valid", "FRT", "run")
-
-dat_person$fire_veg<-paste(dat_person$fire, dat_person$FWI_veg)
-
-
-########### 1. Climate and vegtype ############
-for (g in 1:50){
-    
-    #for (i in 1: length(all.poss.mods.clim.vegtype2)){
-    #  print(paste((all.poss.mods.clim.vegtype2[i]), (zones1[h]), sep=" "))
-    
-    for (i in 1: length(zones1)){
-     # print(paste((formulas9[i]), (zones1[h]), sep=" --"))
-      dat2<- dat_person %>% dplyr::filter(frt ==zones1[i])
-      # model_dat<- dat2 %>% dplyr::select(fire_pres, fire_veg, variables_all[i])
-      model_dat<- dat2 %>% dplyr::select(fire, fire_veg, !!variables_all)
-      # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-      trainIndex <- createDataPartition(model_dat$fire_veg, p = prop,
-                                        list = FALSE,
-                                        times = 1)
-      
-      dat1 <- model_dat[ trainIndex,]
-      Valid <- model_dat[-trainIndex,]
-      
-      big.mod <- function(mods.in, df.train, df.test, dep.var="fire") {
-        rhs <- mods.in
-        form <- as.formula(paste(noquote(dep.var), " ~", rhs))
-        mods.fit <- glm(form, family=binomial, data=df.train)
-        mod.stuff <- summary(mods.fit)
-        mod.aic <- extractAIC(mods.fit)
-        mod.valid <- predict.glm(mods.fit, newdata=df.test, type="response")
-        roc_obj <- roc(df.test[,dep.var], mod.valid, quiet=TRUE)
-        mod.auc <- auc(roc_obj)
-        return(list(rhs, mod.stuff, mod.aic, mod.auc))
-        
-      }
-      
-      mods.fit <- lapply(formulas, big.mod, df.train=dat1, df.test=Valid)
-      
-      #terms in each model
-      x1.1 <- unlist(sapply(mods.fit, '[', 1))
-      x1.1
-      #Aic for models
-      x3.1 <- matrix(unlist(sapply(mods.fit, '[', 3)), ncol=2, byrow=TRUE)
-      x3.1
-      #auc from validation data
-      x4.1 <- unlist(sapply(mods.fit, '[', 4))
-      x4.1
-      #combining all as df
-      tab.sum.climate <- cbind.data.frame(model=x1.1, edf=x3.1[,1], aic=x3.1[,2], auc.valid=x4.1)
-      tab.sum.climate$FRT<-zones1[i]
-      tab.sum.climate$run<-g
-      tab.sum.climate 
-      
-      table.glm.climate.simple<-rbind(table.glm.climate.simple, tab.sum.climate)
-      
-       print(paste0("run = ", g, "     FRT = ", zones1[i]))
-      
-    }
-  }
-
-
-head(table.glm.climate.simple)
-table(table.glm.climate.simple$FRT, table.glm.climate.simple$run) # 100 per model
-
-AIC_lightning_NDT1_t_ignitereed_climate<-table.glm.climate.simple
-
-AIC_lightning_NDT1_t_ignitereed_summary_climate<- AIC_lightning_NDT1_t_ignitereed_climate %>%
-  group_by(FRT, model) %>%
-  summarise(meanAIC=mean(aic),
-            meanAUC=mean(auc.valid),
-            sdAUC=sd(auc.valid),
-  )
-
-AIC_lightning_NDT1_t_ignitereed_summary_climate2<- AIC_lightning_NDT1_t_ignitereed_summary_climate %>%
-  mutate(deltaAIC=meanAIC-min(meanAIC))
-
-head(AIC_lightning_NDT1_t_ignitereed_summary_climate2)
-
-AIC_lightning_NDT1_t_ignitereed_summary_climate2[order(-AIC_lightning_NDT1_t_ignitereed_summary_climate2$meanAUC), ]
-
-write.csv(AIC_lightning_NDT1_t_ignitereed_summary_climate2, file="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Ignition_lightning_results\\FRT_5_7_9_10_11_12_14_person_models.csv")
-
-
-```
-

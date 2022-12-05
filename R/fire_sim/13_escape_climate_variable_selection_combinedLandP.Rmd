@@ -67,7 +67,7 @@ source(here::here("R/functions/R_Postgres.R"))
 Import the data created at the end of the last file (named Escape_data_lightning_lightning and Escape_data_lightning_person)
 
 ```{r}
-#Can use below if working straight from last file. Otherwise bring in from clus.
+#Can use below if working straight from last file. Otherwise bring in from castor.
 #Escape_data_lightning<-fire_veg_DEM_climate_2
 
 #connKyle <- dbConnect(drv = RPostgreSQL::PostgreSQL(), 
@@ -85,7 +85,7 @@ Import the data created at the end of the last file (named Escape_data_lightning
 
 
 ```{r}
-fire_escapes_final <- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg")
+fire_escapes_final <- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg")
 
 
 ```
@@ -1023,7 +1023,7 @@ Save files.
 
 ```{r}
 #Save AIC table
-write.csv(aic_bec_lightning_summary2, file="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\escape_climate_AIC_results_allData.csv")
+write.csv(aic_bec_lightning_summary2, file="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\escape_climate_AIC_results_allData.csv")
 
 ```
 

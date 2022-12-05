@@ -30,7 +30,7 @@ source(here::here("R/functions/R_Postgres.R"))
 
 
 ```{r}
-dat_person<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_human_for_analysis.csv")
+dat_person<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\dat_human_for_analysis.csv")
 
 ```
 
@@ -435,7 +435,7 @@ head(AIC_lightning_NDT1_t_ignitereed_summary_climate2)
 
 AIC_lightning_NDT1_t_ignitereed_summary_climate2[order(-AIC_lightning_NDT1_t_ignitereed_summary_climate2$meanAUC), ]
 
-write.csv(AIC_lightning_NDT1_t_ignitereed_summary_climate2, file="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Ignition_lightning_results\\FRT_5_7_9_10_11_12_14_person_models.csv")
+write.csv(AIC_lightning_NDT1_t_ignitereed_summary_climate2, file="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Ignition_lightning_results\\FRT_5_7_9_10_11_12_14_person_models.csv")
 
 
 ```

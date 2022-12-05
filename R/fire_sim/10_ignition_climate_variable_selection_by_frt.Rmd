@@ -62,7 +62,7 @@ Now we must bring in the data that we created at the end of 08_VRI_data_prep. We
 
 
 ```{r}
-fire_ignitions<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg2.gpkg")
+fire_ignitions<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg2.gpkg")
 
 # need to update below
 #bring in lightning caused fire data
@@ -855,11 +855,11 @@ If all looks good from above, then save data.
 
 ```{r}
 #Write file
-write.csv(dat_lightning, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
+write.csv(dat_lightning, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
 
-#st_write(dat_lightning, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv", delete_layer=TRUE)
+#st_write(dat_lightning, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv", delete_layer=TRUE)
 
-dat_lightning<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
+dat_lightning<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
 
 ```
 
@@ -1335,7 +1335,7 @@ aic_bec_lightning_summary2
 Save file to local computer:
 
 ```{r}
-write.csv(aic_bec_lightning_summary2, file="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\climate_AIC_results_lightning_FRT.csv")
+write.csv(aic_bec_lightning_summary2, file="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\climate_AIC_results_lightning_FRT.csv")
 ```
 
 ##########################################
@@ -1403,9 +1403,9 @@ If all looks good from above, then save data.
 
 ```{r}
 #Write file
-write.csv(dat_human, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_human_for_analysis.csv")
+write.csv(dat_human, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\dat_human_for_analysis.csv")
 
-#st_write(dat_lightning, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\dat_lightning_for_analysis.shp", delete_layer=TRUE)
+#st_write(dat_lightning, dsn = "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\dat_lightning_for_analysis.shp", delete_layer=TRUE)
 ```
 
 ##### Create variables for Model Selection ########
@@ -1850,7 +1850,7 @@ head(aic_bec_person_summary2)
 Save file to local computer:
 
 ```{r}
-write.csv(aic_bec_person_summary2, file="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\climate_AIC_results_person_FRT.csv")
+write.csv(aic_bec_person_summary2, file="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\climate_AIC_results_person_FRT.csv")
 
 ```
 
@@ -1860,11 +1860,11 @@ write.csv(aic_bec_person_summary2, file="C:\\Work\\caribou\\clus_data\\Fire\\Fir
 ```{r}
 
 #Save to postgre
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Person.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=castor password= port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Person.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 #ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Person.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Lightning.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=castor password= port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Lightning.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 #ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Lightning.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ```
@@ -1887,7 +1887,7 @@ gc(TRUE)
 
 ############### Complete. Now move on to 11_Fire_ignition_data_exploration.Rmd wherein the results of these AIC tests will be utilized###########
 
-Note: for person-caused fires, we still need to load the roads map and decide whether to use the roads clus to predict road occurence back in time to 2002, or keep as is.
+Note: for person-caused fires, we still need to load the roads map and decide whether to use the roads castor to predict road occurence back in time to 2002, or keep as is.
 
 
 
@@ -2516,7 +2516,7 @@ write.csv(aic_bec_person_summary2, file="D:\\Fire\\fire_data\\raw_data\\ClimateB
 
 ```
 
-Save lightning and person caused fire datasets. These are now as csv files and not as shape files, so need to find correct way to save to clus.
+Save lightning and person caused fire datasets. These are now as csv files and not as shape files, so need to find correct way to save to castor.
 
 
 ```{r}
@@ -2529,11 +2529,11 @@ write.csv(dat_person_,file="D:\\Fire\\fire_data\\raw_data\\Data_Person")
 ```{r}
 
 #Save to postgre
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Person.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=castor password= port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Person.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 #ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Person.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Lightning.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=castor password= port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Lightning.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 #ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" D:\\Fire\\fire_data\\raw_data\\Data_Lightning.csv -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ```
@@ -2556,4 +2556,4 @@ gc(TRUE)
 
 ############### Complete. Now move on to 09_Fire_ignition_model_fits_by_BEC wherein the results of these AIC tests will be utilized###########
 
-Note: for person-caused fires, we still need to load the roads map and decide whether to use the roads clus to predict road occurence back in time to 2002, or keep as is.
+Note: for person-caused fires, we still need to load the roads map and decide whether to use the roads castor to predict road occurence back in time to 2002, or keep as is.

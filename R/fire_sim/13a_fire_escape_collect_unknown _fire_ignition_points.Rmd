@@ -37,20 +37,20 @@ Extract elevation, slope, aspect, wind, road distance and infrastructure distanc
 
 ```{r}
 ##Slope
-DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
+DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
 ##Aspect
-DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc_3005.tif")
+DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\aspect_ha_bc_3005.tif")
 #Elevation
-DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\dem_ha_bc.tif")
 # Roads
-roads_dist <- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
+roads_dist <- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
 
 # Infrastructure
-dist_rail<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
-dist_power<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
-dist_oil<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
-dist_mines<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
-dist_urban<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
+dist_rail<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
+dist_power<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
+dist_oil<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
+dist_mines<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
+dist_urban<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
 
 # create raster stack
 rasStack = stack(DEM_slope, DEM_aspect, DEM, roads_dist, dist_rail, dist_power, dist_oil, dist_mines, dist_urban)
@@ -148,7 +148,7 @@ ignt.unknown.frt_rasts_wind<- ignt.unknown.frt_rasts_wind %>% rename(
 names(ignt.unknown.frt_rasts_wind)
 
 #get provincial boundary for clipping the layers to the area of interest i.e. removing any points that fall outside the area of interest.
-prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
 st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
 prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
 crs(prov.bnd)# this one needs to be transformed to 3005
@@ -163,7 +163,7 @@ dim(unknown_clipped)
 dim(ignt.unknown.frt_rasts_wind)
 unknown_clipped$idno<-1:length(unknown_clipped$FIRE_CAUSE)
 
-st_write(unknown_clipped, dsn = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\ignt.unknown.frt_rasts_wind.gpkg", delete_layer=TRUE)
+st_write(unknown_clipped, dsn = "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\ignt.unknown.frt_rasts_wind.gpkg", delete_layer=TRUE)
 
 rm(pointCoordinates, rasValue2, test, DEM, DEM_aspect, DEM_slope) # remove some files out of memory
 gc()
@@ -185,7 +185,7 @@ for (i in 1: length(years)) {
   sample.pts.all$el <- as.numeric(dat$dem_ha_bc)
   
   nam1<-paste("unknown_ignit.points.all.frt",years[i], "csv",sep=".")
-  the_dir <- "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp"
+  the_dir <- "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp"
   write.csv(sample.pts.all, file = paste0(the_dir, "\\", basename(nam1)), row.names=FALSE)
 }
 
@@ -198,122 +198,122 @@ setwd("D:/Climatebc_v730"); # set the ClimateBC root directory as the working di
 exe <- "ClimateBC_v7.30.exe"
 
 ## 2002
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2002.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2002.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2002.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2002.csv'
 yearPeriod = '/Year_2002.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2003
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2003.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2003.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2003.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2003.csv'
 yearPeriod = '/Year_2003.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2004
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2004.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2004.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2004.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2004.csv'
 yearPeriod = '/Year_2004.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2005
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2005.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2005.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2005.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2005.csv'
 yearPeriod = '/Year_2005.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2006
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2006.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2006.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2006.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2006.csv'
 yearPeriod = '/Year_2006.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2007
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2007.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2007.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2007.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2007.csv'
 yearPeriod = '/Year_2007.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2008
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2008.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2008.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2008.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2008.csv'
 yearPeriod = '/Year_2008.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2009
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2009.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2009.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2009.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2009.csv'
 yearPeriod = '/Year_2009.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2010
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2010.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2010.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2010.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2010.csv'
 yearPeriod = '/Year_2010.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2011
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2011.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2011.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2011.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2011.csv'
 yearPeriod = '/Year_2011.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2012
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2012.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2012.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2012.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2012.csv'
 yearPeriod = '/Year_2012.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2013
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2013.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2013.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2013.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2013.csv'
 yearPeriod = '/Year_2013.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2014
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2014.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2014.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2014.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2014.csv'
 yearPeriod = '/Year_2014.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2015
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2015.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2015.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2015.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2015.csv'
 yearPeriod = '/Year_2015.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2016
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2016.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2016.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2016.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2016.csv'
 yearPeriod = '/Year_2016.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2017
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2017.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2017.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2017.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2017.csv'
 yearPeriod = '/Year_2017.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2018
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2018.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2018.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2018.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2018.csv'
 yearPeriod = '/Year_2018.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2019
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2019.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2019.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2019.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2019.csv'
 yearPeriod = '/Year_2019.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2020
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2020.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2020.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2020.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2020.csv'
 yearPeriod = '/Year_2020.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ##2021
-inputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2021.csv' 
-outputFile = '/C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2021.csv'
+inputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\unknown_ignit.points.all.frt.2021.csv' 
+outputFile = '/C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output\\unknown_ignit_samp_points_2021.csv'
 yearPeriod = '/Year_2021.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
@@ -328,9 +328,9 @@ system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 ###############################
 
 #Depending on where you saved your output, you may need to update the directory below
-file.list1<-list.files("C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output", pattern="unknown_ignit_samp_points", all.files=FALSE, full.names=FALSE)
+file.list1<-list.files("C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output", pattern="unknown_ignit_samp_points", all.files=FALSE, full.names=FALSE)
 y1<-gsub(".csv","",file.list1)
-the_dir <- "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\output"
+the_dir <- "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\output"
 
 for (i in 1:length(file.list1)){
   assign(paste0(y1[i]),read.csv (file=paste0(the_dir, "\\", file.list1[i])))
@@ -454,10 +454,10 @@ unknown_ignition_weather2$idno
 
 unknown_veg_query<-unknown_ignition_weather2 %>% select(idno, FIRE_YEAR, geometry)
 
-st_write(unknown_veg_query, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_veg_query.gpkg")
+st_write(unknown_veg_query, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_veg_query.gpkg")
 
 
-st_write(unknown_ignition_weather2, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignition.shp")
+st_write(unknown_ignition_weather2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignition.shp")
 ##Can also open in QGis to assess for any physical outliers and their information.
 
 #str(ignition_weather_crs)
@@ -466,14 +466,14 @@ st_write(unknown_ignition_weather2, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_si
 
 
 ##Below needs: (1) update to relevant credentials and (2) then enter into the OSGeo4W command line and hit enter. 
-#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=clus password= port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_unknown_ignition_weather_veg_15x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host=DC052586 user= dbname=castor password= port=5432" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_unknown_ignition_weather_veg_15x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 ##Above may not work because ogc_fid is NA or not right character type, and the code is trying to set this as the FID when uploading.
 
 #key_get('dbpass', keyring = 'postgreSQL')
 
 # OR my local machine
 
-# ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_unknown_ignition_weather_veg_15x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+# ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\samp_locations_unknown_ignition_weather_veg_15x.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ```
 
@@ -483,91 +483,91 @@ st_write(unknown_ignition_weather2, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_si
 ```{r}
 unknown_ignit_2002<- unknown_veg_query %>% filter(FIRE_YEAR==2002)
 dim(unknown_ignit_2002)
-sf::st_write(unknown_ignit_2002, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2002.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2002, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2002.shp", delete_layer=TRUE)
 
 unknown_ignit_2003<- unknown_veg_query %>% filter(FIRE_YEAR==2003)
 dim(unknown_ignit_2003)
-sf::st_write(unknown_ignit_2003, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2003.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2003, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2003.shp", delete_layer=TRUE)
 
 unknown_ignit_2004<- unknown_veg_query %>% filter(FIRE_YEAR==2004)
 dim(unknown_ignit_2004)
-sf::st_write(unknown_ignit_2004, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2004.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2004, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2004.shp", delete_layer=TRUE)
 
 unknown_ignit_2005<- unknown_veg_query %>% filter(FIRE_YEAR==2005)
 dim(unknown_ignit_2005)
-sf::st_write(unknown_ignit_2005, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2005.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2005, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2005.shp", delete_layer=TRUE)
 
 unknown_ignit_2006<- unknown_veg_query %>% filter(FIRE_YEAR==2006)
 dim(unknown_ignit_2006)
-sf::st_write(unknown_ignit_2006, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2006.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2006, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2006.shp", delete_layer=TRUE)
 
 unknown_ignit_2007<- unknown_veg_query %>% filter(FIRE_YEAR==2007)
 dim(unknown_ignit_2007)
-sf::st_write(unknown_ignit_2007, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2007.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2007, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2007.shp", delete_layer=TRUE)
 
 unknown_ignit_2008<- unknown_veg_query %>% filter(FIRE_YEAR==2008)
 dim(unknown_ignit_2008)
-sf::st_write(unknown_ignit_2008, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2008.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2008, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2008.shp", delete_layer=TRUE)
 
 unknown_ignit_2009<- unknown_veg_query %>% filter(FIRE_YEAR==2009)
 dim(unknown_ignit_2009)
-sf::st_write(unknown_ignit_2009, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2009.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2009, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2009.shp", delete_layer=TRUE)
 
 unknown_ignit_2010<- unknown_veg_query %>% filter(FIRE_YEAR==2010)
 dim(unknown_ignit_2010)
-sf::st_write(unknown_ignit_2010, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2010.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2010, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2010.shp", delete_layer=TRUE)
 
 unknown_ignit_2011<- unknown_veg_query %>% filter(FIRE_YEAR==2011)
 dim(unknown_ignit_2011)
-sf::st_write(unknown_ignit_2011, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2011.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2011, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2011.shp", delete_layer=TRUE)
 
 unknown_ignit_2012<- unknown_veg_query %>% filter(FIRE_YEAR==2012)
 dim(unknown_ignit_2012)
-sf::st_write(unknown_ignit_2012, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2012.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2012, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2012.shp", delete_layer=TRUE)
 
 unknown_ignit_2013<- unknown_veg_query %>% filter(FIRE_YEAR==2013)
 dim(unknown_ignit_2013)
-sf::st_write(unknown_ignit_2013, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2013.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2013, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2013.shp", delete_layer=TRUE)
 
 unknown_ignit_2014<- unknown_veg_query %>% filter(FIRE_YEAR==2014)
 dim(unknown_ignit_2014)
-sf::st_write(unknown_ignit_2014, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2014.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2014, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2014.shp", delete_layer=TRUE)
 
 unknown_ignit_2015<- unknown_veg_query %>% filter(FIRE_YEAR==2015)
 dim(unknown_ignit_2015)
-sf::st_write(unknown_ignit_2015, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2015.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2015, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2015.shp", delete_layer=TRUE)
 
 unknown_ignit_2016<- unknown_veg_query %>% filter(FIRE_YEAR==2016)
 dim(unknown_ignit_2016)
-sf::st_write(unknown_ignit_2016, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2016.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2016, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2016.shp", delete_layer=TRUE)
 
 unknown_ignit_2017<- unknown_veg_query %>% filter(FIRE_YEAR==2017)
 dim(unknown_ignit_2017)
-sf::st_write(unknown_ignit_2017, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2017.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2017, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2017.shp", delete_layer=TRUE)
 
 unknown_ignit_2018<- unknown_veg_query %>% filter(FIRE_YEAR==2018)
 dim(unknown_ignit_2018)
-sf::st_write(unknown_ignit_2018, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2018.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2018, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2018.shp", delete_layer=TRUE)
 
 unknown_ignit_2019<- unknown_veg_query %>% filter(FIRE_YEAR==2019)
 dim(unknown_ignit_2019)
-sf::st_write(unknown_ignit_2019, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2019.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2019, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2019.shp", delete_layer=TRUE)
 
 unknown_ignit_2020<- unknown_veg_query %>% filter(FIRE_YEAR==2020)
 dim(unknown_ignit_2020)
-sf::st_write(unknown_ignit_2020, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2020.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2020, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2020.shp", delete_layer=TRUE)
 
 unknown_ignit_2021<- unknown_veg_query %>% filter(FIRE_YEAR==2021)
 dim(unknown_ignit_2021)
-sf::st_write(unknown_ignit_2021, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2021.shp", delete_layer=TRUE)
+sf::st_write(unknown_ignit_2021, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2021.shp", delete_layer=TRUE)
 ```
 
 ### Now that the ignition points have been joined to the VRI data in QGIS. I need to reimport the data so that i can join it all together and use it.
 
 ```{r}
-file.list1<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data", pattern="Unknown_ignit", all.files=FALSE, full.names=FALSE)
+file.list1<-list.files("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data", pattern="Unknown_ignit", all.files=FALSE, full.names=FALSE)
 y1<-gsub(".gpkg","",file.list1)
-the_dir <- "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data"
+the_dir <- "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data"
 
 for (i in 1:length(file.list1)){
   assign(paste0(y1[i]),st_read (dsn=paste0(the_dir, "\\", file.list1[i])))
@@ -591,7 +591,7 @@ st_crs(fire_veg)
 fire_veg_a<- st_drop_geometry(fire_veg)
 fire_veg_a<- fire_veg_a %>% rename(FIRE_YE =FIRE_YEAR)
 
-unknown_ignition_weather2<- st_read( "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignition.shp")
+unknown_ignition_weather2<- st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignition.shp")
 
 unknown_ignition_weather_veg<-left_join(unknown_ignition_weather2, fire_veg_a)
 ```
@@ -1276,17 +1276,17 @@ x<- fire_all1 %>% filter(is.na(FWI_veg)) %>% dplyr::select(inventory_standard_cd
                              
 fire_all2<-st_drop_geometry(fire_all1)
 
-st_write(fire_all1, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\unknown_ignition_weather_veg.gpkg", overwrite=TRUE)
+st_write(fire_all1, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\unknown_ignition_weather_veg.gpkg", overwrite=TRUE)
 
-write.csv(fire_all2, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\unknown_ignition_weather_veg.csv")
+write.csv(fire_all2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\unknown_ignition_weather_veg.csv")
 ```
 
 
 ```{r}
-unknown<- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\unknown_ignition_weather_veg.gpkg")
+unknown<- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\unknown_ignition_weather_veg.gpkg")
 
 #fire_escapes3<- fire_all1
-fire_escapes3<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg2.gpkg")
+fire_escapes3<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg2.gpkg")
 
 fire_escapes<-fire_escapes3 %>% filter(fire==1)
 fire_escapes$size_ha<-as.numeric(as.character(fire_escapes$size_ha))
@@ -1316,7 +1316,7 @@ dim(unknown_ignition_weather_veg4)
 
 fire_escapes_final<- rbind(fire_escapes3, unknown_ignition_weather_veg4)
 
-st_write(fire_escapes_final, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg", delete_layer=TRUE)
+st_write(fire_escapes_final, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg", delete_layer=TRUE)
 ```
 
 

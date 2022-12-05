@@ -53,9 +53,9 @@ See the License for the specific language governing permissions and limitations 
 Note: depending where your geometry column was located when saved as a csv (and turned into a dataframe), you may need to manually correct column headings on the csv file before loading back in. This has been performed for the below files.
 
 ```{r}
-dat_lightning<- read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
+dat_lightning<- read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
 # to see which climate variables need to be included look at this table
-climate_variables_lightning<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")
+climate_variables_lightning<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")
 
 ## Create empty vector
 dat_lightning$climate1<-"NA"
@@ -87,7 +87,7 @@ dat_lightning <- dat_lightning %>%
 table(dat_lightning$FWI_veg)
 table(dat_lightning$bclcs_level_5)
 
-dat_lightning<- write.csv(dat_lightning, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
+dat_lightning<- write.csv(dat_lightning, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\dat_lightning_for_analysis.csv")
 
 
 #dat5<-dat_lightning %>% filter(frt==5) %>%
@@ -308,7 +308,7 @@ head(AIC_lightning_NDT1_t_ignitereed_summary_climate2)
 
 AIC_lightning_NDT1_t_ignitereed_summary_climate2[order(-AIC_lightning_NDT1_t_ignitereed_summary_climate2$meanAUC), ]
 
-write.csv(AIC_lightning_NDT1_t_ignitereed_summary_climate2, file="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Ignition_lightning_results\\FRT_5_10_13_15_lightning_models.csv")
+write.csv(AIC_lightning_NDT1_t_ignitereed_summary_climate2, file="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Ignition_lightning_results\\FRT_5_10_13_15_lightning_models.csv")
 
 ```
 
@@ -451,7 +451,7 @@ head(AIC_lightning_NDT1_t_ignitereed_summary_climate2)
 
 AIC_lightning_NDT1_t_ignitereed_summary_climate2[order(-AIC_lightning_NDT1_t_ignitereed_summary_climate2$meanAUC), ]
 
-write.csv(AIC_lightning_NDT1_t_ignitereed_summary_climate2, file="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Ignition_lightning_results\\FRT_7_9_11_12_14_lightning_models.csv")
+write.csv(AIC_lightning_NDT1_t_ignitereed_summary_climate2, file="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Ignition_lightning_results\\FRT_7_9_11_12_14_lightning_models.csv")
 
 
 ```
