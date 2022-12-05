@@ -62,7 +62,7 @@ parameters <- list(
                       patchVariation = 6)
                         )
 modules <- list("dataCastor", "blockingCastor")
-objects <- list()
+objects <- list(scenario = data.table(name="test", description = "test"))
 paths <- list(
   cachePath = cacheDir,
   modulePath = moduleDir,

@@ -74,6 +74,7 @@ defineModule(sim, list(
     defineParameter("nameForestInventorySiteIndex", "character", "99999", NA, NA, desc = "Name of the veg comp site_index")
     ),
   inputObjects = bind_rows(
+    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName = "updateZoneConstraints", objectClass = "data.table", desc = "Table of query parameters for updating the constraints", sourceURL = NA)
     ),
   outputObjects = bind_rows(
