@@ -57,7 +57,7 @@ parameters <- list(
                          harvestPriority = " age DESC ", 
                          adjacencyConstraint = TRUE)
   )
-modules <- list("dataCastor", "blockingCastor", "forestryCastor", "roadCastor")
+modules <- list("dataCastor", "blockingCastor", "growingStockCastor", "forestryCastor", "roadCastor")
 scenario = data.table(name="test", description = "test")
 harvestFlow<- data.table(compartment ="all",
                                      partition = ' (vol > 110) ',
