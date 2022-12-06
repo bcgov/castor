@@ -1,4 +1,4 @@
-# Copyright 2020 Province of British Columbia
+# Copyright 2023 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,18 +11,18 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 defineModule(sim, list(
-  name = "blockingCLUS",
+  name = "blockingCastor",
   description = NA, #"insert module description here",
   keywords = NA, # c("insert key words here"),
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
               person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
-  version = list(SpaDES.core = "0.1.1", blockingCLUS = "0.0.1"),
+  version = list(SpaDES.core = "0.1.1", blockingCastor = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.txt", "blockingCLUS.Rmd"),
+  documentation = list("README.txt", "blockingCastor.Rmd"),
   reqdPkgs = list("here","igraph","data.table", "raster", "SpaDES.tools", "snow", "parallel", "tidyr"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
@@ -32,7 +32,7 @@ defineModule(sim, list(
     defineParameter("blockMethod", "character", "pre", NA, NA, "This describes the type of blocking method"),
     defineParameter("patchZone", "character", 'rast.zone_cond_beo', NA, NA, "Zones that pertain to the patch size distribution requirements"),
     defineParameter("patchVariation", "numeric",6, NA, NA, "The percent (fractional) difference between edges of the pre-blocking algorithm"),
-    defineParameter("nameCutblockRaster", "character", "rast.cns_cut_bl", NA, NA, desc = "Name of the raster with ID pertaining to cutlocks - consolidated cutblocks"),
+    defineParameter("nameCutblockRaster", "character", "99999", NA, NA, desc = "Name of the raster with ID pertaining to cutlocks - consolidated cutblocks"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -41,10 +41,10 @@ defineModule(sim, list(
   ),
   inputObjects = bind_rows(
     #expectsInput("objectName", "objectClass", "input object description", sourceURL, ...),
-    expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
-    expectsInput(objectName ="ras", objectClass ="RasterLayer", desc = NA, sourceURL = NA),
+    expectsInput(objectName ="castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates castor realted information", sourceURL = NA),
+    expectsInput(objectName ="ras", objectClass ="SpatRaster", desc = NA, sourceURL = NA),
     expectsInput(objectName ="blockMethod", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="zone.length", objectClass ="numeric", desc = "The number of zones uploaded by dataloaderCLUS", sourceURL = NA),
+    expectsInput(objectName ="zone.length", objectClass ="numeric", desc = "The number of zones uploaded by dataCastor", sourceURL = NA),
     expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA),
     expectsInput(objectName ="landingsArea", objectClass = "numeric", desc = NA, sourceURL = NA),
@@ -58,16 +58,15 @@ defineModule(sim, list(
   )
 ))
 
-doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
+doEvent.blockingCastor = function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     init = {
       sim<-Init(sim) #Build the adjacent edges
-      
       switch(P(sim)$blockMethod,
              
              pre= {
-               if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='blocks'")) == 0){
+               if(nrow(dbGetQuery(sim$castordb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='blocks'")) == 0){
                   message('Creating blocks...')
                   sim <- createBlocksTable(sim)#create blockid column blocks and adjacency table
                   sim <- getExistingCutblocks(sim) #updates pixels to include existing blocks
@@ -75,33 +74,33 @@ doEvent.blockingCLUS = function(sim, eventTime, eventType, debug = FALSE) {
                   sim <- setAdjTable(sim)
                   sim <- setBlocksTable(sim) #inserts values into the blocks table
                   sim <- setHistoricalLandings(sim) #inserts values into the blocks table
-                  sim <- scheduleEvent(sim, eventTime = time(sim),  "blockingCLUS", "writeBlocks", eventPriority=21) # set this last. Not that important
+                  sim <- scheduleEvent(sim, eventTime = time(sim),  "blockingCastor", "writeBlocks", eventPriority=21) # set this last. Not that important
                }else{
-                 if(dbGetQuery (sim$clusdb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('blocks') WHERE name='salvage_vol';")$exists_check == 0){
+                 if(dbGetQuery (sim$castordb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('blocks') WHERE name='salvage_vol';")$exists_check == 0){
                    # add in the column
-                   dbExecute(sim$clusdb, "ALTER TABLE blocks ADD COLUMN salvage_vol numeric DEFAULT 0")
+                   dbExecute(sim$castordb, "ALTER TABLE blocks ADD COLUMN salvage_vol numeric DEFAULT 0")
                  } 
                  #Schedule the Update 
-                 sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks",eventPriority= 2)
+                 sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCastor", "UpdateBlocks",eventPriority= 2)
                }
                
                },
              
              dynamic ={
                sim <- setSpreadProb(sim)
-               sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks")
+               sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCastor", "buildBlocks")
              }
           )
       
     },
     buildBlocks = {
       sim <- spreadBlock(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "buildBlocks", eventPriority=6)
+      sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCastor", "buildBlocks", eventPriority=6)
     },
     UpdateBlocks = {
 
       sim <- updateBlocks(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCLUS", "UpdateBlocks", eventPriority=2)
+      sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCastor", "UpdateBlocks", eventPriority=2)
     },
     writeBlocks = {
       writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
@@ -120,18 +119,18 @@ return(invisible(sim))
 
 createBlocksTable<-function(sim){
   message("create blockid, blocks and adjacentBlocks")
-  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, salvage_vol numeric, dist numeric DEFAULT 0, landing integer)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
+  dbExecute(sim$castordb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, salvage_vol numeric, dist numeric DEFAULT 0, landing integer)")
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
   return(invisible(sim)) 
 }
 
 getExistingCutblocks<-function(sim){
 
-  if(!(P(sim, "nameCutblockRaster", "blockingCLUS") == '99999')){
-    message(paste0('..getting cutblocks: ',P(sim, "nameCutblockRaster", "blockingCLUS")))
+  if(!(P(sim, "nameCutblockRaster", "blockingCastor") == '99999')){
+    message(paste0('..getting cutblocks: ',P(sim, "nameCutblockRaster", "blockingCastor")))
     ras.blk<- RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                           srcRaster= P(sim, "nameCutblockRaster", "blockingCLUS"), 
+                           srcRaster= P(sim, "nameCutblockRaster", "blockingCastor"), 
                            clipper=sim$boundaryInfo[1] , 
                            geom= sim$boundaryInfo[4] , 
                            where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -141,52 +140,58 @@ getExistingCutblocks<-function(sim){
       exist_cutblocks[, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
       exist_cutblocks<-exist_cutblocks[blockid > 0, ]
    
-      #add to the clusdb
-      dbBegin(sim$clusdb)
-        rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :blockid where pixelid = :pixelid", exist_cutblocks)
+      #add to the castordb
+      dbBegin(sim$castordb)
+        rs<-dbSendQuery(sim$castordb, "Update pixels set blockid = :blockid where pixelid = :pixelid", exist_cutblocks)
       dbClearResult(rs)
-      dbCommit(sim$clusdb)
+      dbCommit(sim$castordb)
       
-      sim$existBlockId<-dbGetQuery(sim$clusdb, "Select max(blockid) from pixels")
+      sim$existBlockId<-dbGetQuery(sim$castordb, "Select max(blockid) from pixels")
       
       rm(ras.blk,exist_cutblocks)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameCutblockRaster", "blockingCLUS")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameCutblockRaster", "blockingCastor")))
     }
+  }else{
+    sim$existBlockId<-0
   }
 return(invisible(sim))
 }
 
 setBlocksTable <- function(sim) {
   message("set the blocks table")
-  dbExecute(sim$clusdb, paste0("UPDATE blocks SET vol = 0 WHERE vol IS NULL")) 
-  dbExecute(sim$clusdb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL")) 
+  dbExecute(sim$castordb, paste0("UPDATE blocks SET vol = 0 WHERE vol IS NULL")) 
+  dbExecute(sim$castordb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL")) 
   # Use "(CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing" to get set landing as pixel
   
-  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age, height,  vol, salvage_vol, dist, landing)  
+  dbExecute(sim$castordb, paste0("INSERT INTO blocks (blockid, age, height,  vol, salvage_vol, dist, landing)  
                     SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as salvage_vol, AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
                                        FROM pixels WHERE blockid > 0 AND thlb > 0 GROUP BY blockid "))  
 
-  dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
+  dbExecute(sim$castordb, "CREATE INDEX index_blockid on blocks (blockid)")
   return(invisible(sim))
 }
 
 setHistoricalLandings <- function(sim) {
-  land_pixels<-data.table(dbGetQuery(sim$clusdb, paste0("select landing from blocks where blockid < ", sim$existBlockId)))
+  land_pixels<-data.table(dbGetQuery(sim$castordb, paste0("select landing from blocks where blockid < ", sim$existBlockId)))
   
   #print (land_pixels)
-  
-  land_coord<-sim$pts[pixelid %in% land_pixels$landing, ]
-  setnames(land_coord,c("x", "y"), c("X", "Y"))
-  sim$landings <- sp::SpatialPoints(land_coord[,c("X", "Y")],crs(sim$ras))
+  if(nrow(land_pixels) > 0 ){
+    land_coord<-sim$pts[pixelid %in% land_pixels$landing, ]
+    setnames(land_coord,c("x", "y"), c("X", "Y"))
+    sim$landings <- sp::SpatialPoints(land_coord[,c("X", "Y")],crs(sim$ras))
+  }else{
+    sim$landings <- NULL
+  }
+
   return(invisible(sim))
 }
 
 setSpreadProb<- function(sim) {
   #Create a mask for the area of interst
   sim$aoi <- sim$ras #set the area of interest as the similarity raster
-  sim$aoi[]<-dbGetQuery(sim$clusdb, "SELECT thlb FROM pixels")
+  sim$aoi[]<-dbGetQuery(sim$castordb, "SELECT thlb FROM pixels")
   sim$aoi[sim$aoi[] > 0] <- 1 # for those locations where the distance is greater than 0 assign a 1
   sim$aoi[is.na(sim$aoi[])] <- 0 # for those locations where there is no distance - they are NA, assign a 0
   
@@ -195,7 +200,7 @@ setSpreadProb<- function(sim) {
   if(!P(sim)$spreadProbRas == "99999"){
     #scale the spread probability raster so that the values are [0,1]
     sim$ras.spreadProbBlock<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                                          srcRaster= P(sim, "spreadProbRas", "blockingCLUS"), 
+                                          srcRaster= P(sim, "spreadProbRas", "blockingCastor"), 
                                           clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                                           geom = sim$boundaryInfo[[4]], 
                                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -218,7 +223,7 @@ preBlock <- function(sim) {
   edges[from < to, c("from", "to") := .(to, from)] #find the duplicates. Since this is non-directional graph no need for weights in two directions
   edges<-unique(edges)#remove the duplicates
 
-  weight<-data.table(dbGetQuery(sim$clusdb, 'SELECT pixelid, crownclosure, height FROM pixels WHERE 
+  weight<-data.table(dbGetQuery(sim$castordb, 'SELECT pixelid, crownclosure, height FROM pixels WHERE 
                                 thlb > 0 AND blockid = 0;')) # convert to a data.table - faster for large objects than data.frame
 
   #scale the crownclosure and height between 0 and 1 to remove bias of distances towards a variable
@@ -250,21 +255,21 @@ preBlock <- function(sim) {
   g<-g %>% 
     set_vertex_attr("name", value = V(g))
   g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains? The problem here is that it may delete island pixels
-  #test22<<-dbGetQuery(sim$clusdb, "select pixelid from pixels where thlb > 0 AND blockid = 0 and zone1 = 22;")
+  #test22<<-dbGetQuery(sim$castordb, "select pixelid from pixels where thlb > 0 AND blockid = 0 and zone1 = 22;")
  # stop()
-  patchSizeZone<-dbGetQuery(sim$clusdb, paste0("SELECT zone_column FROM zone where reference_zone = '",  P(sim, "patchZone", "blockingCLUS"),"'"))
+  patchSizeZone<-dbGetQuery(sim$castordb, paste0("SELECT zone_column FROM zone where reference_zone = '",  P(sim, "patchZone", "blockingCastor"),"'"))
   if(nrow(patchSizeZone) == 0){
-    stop(paste0("check ", P(sim, "patchZone", "blockingCLUS")))
+    stop(paste0("check ", P(sim, "patchZone", "blockingCastor")))
   }
   #only select those zones to apply constraints that actually have thlb in them.
-  zones<-unname(unlist(dbGetQuery(sim$clusdb, paste0("SELECT distinct(", patchSizeZone, ") FROM pixels WHERE 
+  zones<-unname(unlist(dbGetQuery(sim$castordb, paste0("SELECT distinct(", patchSizeZone, ") FROM pixels WHERE 
                                  thlb > 0 AND ", patchSizeZone, " IS NOT NULL group by ", patchSizeZone)))) 
   resultset<-list() #create an empty resultset to be appended within the for loop
   islands<-list() #create an empty list to add pixels that are islands and don't connect to the graph
 
   for(zone in zones){
     message(paste0("loading--", zone))
-    vertices<-data.table(dbGetQuery(sim$clusdb,
+    vertices<-data.table(dbGetQuery(sim$castordb,
           paste0("SELECT pixelid FROM pixels where thlb > 0 AND blockid = 0 and ", patchSizeZone, " = ", zone, ";")))
     
     islands_new<-vertices[!(pixelid %in% V(g)$name),] #check to make sure all the verticies are in the graph
@@ -288,12 +293,12 @@ preBlock <- function(sim) {
       paths.matrix[, V1 := as.integer(V1)][, V2 := as.integer(V2)]
       
       #get patch size distribution by natural disturbance type
-      natDT <- dbGetQuery(sim$clusdb,paste0("SELECT ndt, t_area FROM zoneConstraints WHERE reference_zone = '", P(sim, "patchZone", "blockingCLUS"), "' AND zoneid = ", zone))
+      natDT <- dbGetQuery(sim$castordb,paste0("SELECT ndt, t_area FROM zoneConstraints WHERE reference_zone = '", P(sim, "patchZone", "blockingCastor"), "' AND zoneid = ", zone))
       targetNum <- sim$patchSizeDist[ndt == natDT$ndt, ] # get the target patchsize
       targetNum[,targetNum:= (natDT$t_area*freq)/sizeClass][,targetNum:= ceiling(targetNum)]
       
       #Adjust the target number based on the current distribution
-      current.block.dist <- dbGetQuery(sim$clusdb,paste0("SELECT blockid, count() as area FROM pixels WHERE ",patchSizeZone," = ", zone, " And blockid > 0 group by blockid;"))
+      current.block.dist <- dbGetQuery(sim$castordb,paste0("SELECT blockid, count() as area FROM pixels WHERE ",patchSizeZone," = ", zone, " And blockid > 0 group by blockid;"))
       if(nrow(current.block.dist) > 0){
         currentNum <- data.table(sizeClass = targetNum$sizeClass)
         current.block.dist <- hist(current.block.dist$area, breaks = c(0, currentNum[max(sizeClass) == sizeClass, sizeClass:= 10000]$sizeClass), plot= F)$count
@@ -333,7 +338,7 @@ preBlock <- function(sim) {
   gc()
   
   message("Updating blocks table")
-  #Need to combine the results of blockids into clusdb. Update the pixels table and populate the blockids
+  #Need to combine the results of blockids into castordb. Update the pixels table and populate the blockids
   lastBlockID <<- 0
   result<-lapply(blockids, function(x){
       test2<-x[][[1]][x[][[1]][,1]>-1,]
@@ -347,7 +352,7 @@ preBlock <- function(sim) {
   
   blockids <- data.table(Reduce(function(...) merge(..., all=T), result))#join the list components
   #Any blockids previously loaded - respect their values
-  max_blockid<- dbGetQuery(sim$clusdb, "SELECT max(blockid) FROM pixels")
+  max_blockid<- dbGetQuery(sim$castordb, "SELECT max(blockid) FROM pixels")
   blockids[V1 > 0, V1:= V1 + as.integer(max_blockid)] #if there are previous blocks loaded-- it doesnt overwrite their ids
   
   #TODO:Add in any islands
@@ -357,15 +362,15 @@ preBlock <- function(sim) {
   max_blockid<-max(blockids$V1)
   blockids<-blockids[V2 %in% unlist(islands$islands), V1:= num + as.integer(max_blockid)]
   
-  #add to the clusdb
-  dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "Update pixels set blockid = :V1 where pixelid = :V2", blockids)
+  #add to the castordb
+  dbBegin(sim$castordb)
+    rs<-dbSendQuery(sim$castordb, "Update pixels set blockid = :V1 where pixelid = :V2", blockids)
     dbClearResult(rs)
-  dbCommit(sim$clusdb)
+  dbCommit(sim$castordb)
   
   #store the block pixel raster
   sim$harvestUnits<-sim$ras
-  sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$clusdb, 'Select blockid from pixels ORDER BY pixelid ASC')))
+  sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$castordb, 'Select blockid from pixels ORDER BY pixelid ASC')))
 
   writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
   #stop()
@@ -376,7 +381,7 @@ preBlock <- function(sim) {
 
 setAdjTable<-function(sim){
   #set the adjacency table
-  blockids<-data.table(dbGetQuery(sim$clusdb, "SELECT blockid, pixelid FROM pixels WHERE blockid > 0"))
+  blockids<-data.table(dbGetQuery(sim$castordb, "SELECT blockid, pixelid FROM pixels WHERE blockid > 0"))
   setkey(blockids, pixelid)
   edgesAdj<-merge(sim$edgesAdj, blockids,by.x="to", by.y="pixelid" )
   edgesAdj<-merge(edgesAdj, blockids,by.x="from", by.y="pixelid" )
@@ -387,12 +392,12 @@ setAdjTable<-function(sim){
   setnames(edgesAdj, c("blockid", "adjblockid")) #reformat
   
   message("set the adjacency table")
-  dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)
+  dbBegin(sim$castordb)
+    rs<-dbSendQuery(sim$castordb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)
   dbClearResult(rs)
-  dbCommit(sim$clusdb)
+  dbCommit(sim$castordb)
   
-  dbExecute(sim$clusdb, "CREATE INDEX index_adjblockid on adjacentBlocks (adjblockid)")
+  dbExecute(sim$castordb, "CREATE INDEX index_adjblockid on adjacentBlocks (adjblockid)")
   
   return(invisible(sim))
 }
@@ -438,13 +443,13 @@ spreadBlock<- function(sim) {
 
 updateBlocks<-function(sim){ #This function updates the block information used in summaries and for a queue
   message("update the blocks table")
-   new_blocks<- data.table(dbGetQuery(sim$clusdb, "SELECT blockid, round(AVG(age),0) as age , AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as s_vol, AVG(dist) as dist
+   new_blocks<- data.table(dbGetQuery(sim$castordb, "SELECT blockid, round(AVG(age),0) as age , AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as s_vol, AVG(dist) as dist
              FROM pixels WHERE blockid > 0 GROUP BY blockid;"))
     
-  dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, "UPDATE blocks SET age =  :age, height = :height, vol = :vol, salvage_vol = :s_vol, dist = :dist WHERE blockid = :blockid", new_blocks)
+  dbBegin(sim$castordb)
+    rs<-dbSendQuery(sim$castordb, "UPDATE blocks SET age =  :age, height = :height, vol = :vol, salvage_vol = :s_vol, dist = :dist WHERE blockid = :blockid", new_blocks)
   dbClearResult(rs)
-  dbCommit(sim$clusdb)
+  dbCommit(sim$castordb)
   
   rm(new_blocks)
   gc()

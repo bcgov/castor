@@ -1,10 +1,10 @@
-## blockingCLUS
+## blockingCastor
 
 ### What it does
 
 "The accuracy of any attempt to model a forest system depends largely upon the precision with which the site can be classified into homogeneous units" (Vanclay)
 
-blockingCLUS presents the logic for aggregating stands into homogeneous harvestable units or cutblocks. There are advantages to reducing forest attribute variation in the harvest block and this can be approached in two ways: 1) re-actively during the simulation (termed 'dynamic') or 2) pre-determined during the initialization of the simulation (termed 'pre'). 
+blockingCastor presents the logic for aggregating stands into homogeneous harvestable units or cutblocks. There are advantages to reducing forest attribute variation in the harvest block and this can be approached in two ways: 1) re-actively during the simulation (termed 'dynamic') or 2) pre-determined during the initialization of the simulation (termed 'pre'). 
 
 The 'pre' method uses a graph based image segmentation algorithm and agglomerative clustering to group individual pixels into cutblocks. This process begins with a graph, solving a minimum spanning tree, its cut, followed by agglomerative clustering. 
 
@@ -19,10 +19,10 @@ Agglomerative clustering begins from the bottom up where all pixels are classifi
 
 ### Input Parameters
 
-* *clusdb*. Connection to clusdb - see [clusdb](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS)
+* *castordb*. Connection to castordb - see [castordb](https://github.com/bcgov/castor/tree/master/R/SpaDES-modules/dataCastor)
 * *blockMethod*. This describes the type of blocking method (Default = 'pre', e.g., 'pre' or 'dynamic')
 * *blockSeqInterval*. Interval for simulating blocks (Default = 1)
-* *patchVariation*. Allowable distance (variation) within a block (Default = 6, -see [here](https://github.com/bcgov/clus/blob/master/reports/harvest/draft-CLUS-blocking.md)
+* *patchVariation*. Allowable distance (variation) within a block (Default = 6, -see [here](https://github.com/bcgov/castor/blob/master/reports/harvest/draft-CLUS-blocking.md)
 * *patchZone*. Raster of zones to apply patch size constraints (Default = none, e.g., Landscape units)
 * *patchDist*. The target patch size distribution (Default = < 40 ha, e.g., natural disturbance types patch size in [biodiversity guidebook](https://www.for.gov.bc.ca/hfd/library/documents/bib19715.pdf) )
 * *nameCutblockRaster*. Name of the raster with ID pertaining to cutlocks (e.g., consolidated cutblocks)
@@ -36,12 +36,12 @@ Agglomerative clustering begins from the bottom up where all pixels are classifi
 ### Outputs
 
 * *harvestUnits*. Raster of harvest units or blocks 
-* Populates blocks table -see [clusdb](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS)
-* Populates adjacenctBlocks table for use in applying harvesting adjacency constraints -see [clusdb](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS)
+* Populates blocks table -see [castordb](https://github.com/bcgov/castor/tree/master/R/SpaDES-modules/dataCastor)
+* Populates adjacenctBlocks table for use in applying harvesting adjacency constraints -see [castordb](https://github.com/bcgov/castor/tree/master/R/SpaDES-modules/dataCastor)
 
 ### Licence
 
-    Copyright 2019 Province of British Columbia
+    Copyright 2023 Province of British Columbia
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
