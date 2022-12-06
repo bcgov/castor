@@ -129,10 +129,10 @@ doEvent.dataCastor = function(sim, eventTime, eventType, debug = FALSE) {
         dbExecute(sim$castordb, "PRAGMA journal_mode = OFF")
           
         ras.info<-dbGetQuery(sim$castordb, "select * from raster_info where name = 'ras'") #Get the raster information
-        sim$ras<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =1:ras.info$ncell)
-        raster::crs(sim$ras)<-paste0("EPSG:", ras.info$crs) #set the raster projection
+        sim$ras<-terra::rast(terra::ext(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =1:ras.info$ncell)
+        terra::crs(sim$ras)<-paste0("EPSG:", ras.info$crs) #set the raster projection
           
-        sim$pts <- data.table(xyFromCell(sim$ras,1:length(sim$ras))) # creates pts at centroids of raster boundary file; seems to be faster that rasterTopoints
+        sim$pts <- data.table(terra::xyFromCell(sim$ras,1:length(sim$ras))) # creates pts at centroids of raster boundary file; seems to be faster that rasterTopoints
         sim$pts <- sim$pts[, pixelid:= seq_len(.N)] #add in the pixelid which streams data in according to the cell number = pixelid
           
         #Get the available zones for other modules to query -- In forestryCastor the zones that are not part of the scenario get deleted.
@@ -238,7 +238,7 @@ setTablesCastorDB <- function(sim) {
     
     message('.....compartment ids: default 1')
     randomRas<-randomRaster(sim$extent, P(sim, 'randomLandscapeClusterLevel', 'dataCastor'))
-    sim$pts <- data.table(xyFromCell(randomRas,1:length(randomRas))) #Seems to be faster than rasterTopoints
+    sim$pts <- data.table(terra::xyFromCell(randomRas,1:length(randomRas))) #Seems to be faster than rasterTopoints
     sim$pts <- sim$pts[, pixelid:= seq_len(.N)] # add in the pixelid which streams data in according to the cell number = pixelid
     
     pixels <- data.table(age = as.integer(round(randomRas[]*200,0)))
