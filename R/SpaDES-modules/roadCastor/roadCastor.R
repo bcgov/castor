@@ -48,7 +48,7 @@ defineModule(sim, list(
     expectsInput(objectName = "nameRoads", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "nameCostSurfaceRas", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "bbox", objectClass ="numeric", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "landings", objectClass = "integer", desc = NA, sourceURL = NA),
     expectsInput(objectName = "harvestPixelList", objectClass = "data.table", desc = NA, sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "SpatRaster", desc = NA, sourceURL = NA),
     expectsInput(objectName = "roadSourceID", objectClass = "integer", desc = "The source used in Dijkstra's pre-solving approach", sourceURL = NA),
@@ -281,7 +281,7 @@ getClosestRoad <- function(sim){ #TODO: convert to terra
   filterRas<-sim$road.type
   filterRas[filterRas < -1] <- NA
   roads.pts <- terra::crds(terra::as.points(filterRas))
-  closest.roads.pts <-RANN::nn2(roads.pts,coordinates(sim$landings), k =1) #package RANN function nn2 is much faster
+  closest.roads.pts <-RANN::nn2(roads.pts, terra::xyFromCell(sim$ras, sim$landings), k =1) #package RANN function nn2 is much faster
   sim$roads.close.XY <- as.matrix(roads.pts[closest.roads.pts$nn.idx, 1:2,drop=F]) #this function returns a matrix of x, y coordinates corresponding to the closest road
 
   rm(roads.pts, closest.roads.pts)
@@ -505,7 +505,7 @@ setEdges<- function(sim){ #Updates the graph to account for the new roads
 
 lcpList<- function(sim){##Get a list of paths from which there is a to and from point
   message('lcp List')
-  paths.matrix<-cbind(cellFromXY(sim$ras,sim$landings), cellFromXY(sim$ras,sim$roads.close.XY ))
+  paths.matrix<-cbind(sim$landings, terra::cellFromXY(sim$ras,sim$roads.close.XY ))
   sim$paths.list<-split(paths.matrix, 1:nrow(paths.matrix))
   rm(paths.matrix)
   gc()
@@ -567,7 +567,7 @@ mstSolve <- function(sim){
 mstList<- function(sim){
   message('mstList')
   rd_pts<-terra::cellFromXY(sim$ras, sim$roads.close.XY )
-  land_pts<-terra::cellFromXY(sim$ras, sim$landings)
+  land_pts<-sim$landings
 
   paths.list<-data.table(land_pts=as.integer(land_pts), rd_pts=as.integer(rd_pts))
   
@@ -631,7 +631,7 @@ mstList<- function(sim){
 
 getRoutes<-function(sim){ #for graphs using cppRouting
   message("getRoutes")
-  landing.cell <-data.table(landings = cellFromXY(sim$ras,sim$landings))[!(landings %in% sim$perm.roads$pixelid),] #remove landings on permanent roads
+  landing.cell <-data.table(landings = sim$landings)[!(landings %in% sim$perm.roads$pixelid),] #remove landings on permanent roads
   sim$roadSegs <-unique(as.integer(cppRouting::get_multi_paths(Graph = sim$g, from = sim$roadSourceID, to = landing.cell$landings, long =T )$node))
   alreadyRoaded <-dbGetQuery(sim$castordb, paste0("SELECT pixelid from pixels where roadyear is not null and pixelid in (",paste(sim$roadSegs, collapse = ", "),")"))
   
@@ -671,7 +671,7 @@ getShortestPaths<- function(sim){
 }
 
 randomLandings<-function(sim){
-  sim$landings<-xyFromCell(sim$road.type, sample(1:ncell(sim$road.type), 5), Spatial = TRUE)
+  sim$landings<-sample(1:ncell(sim$road.type), 5)
   return(invisible(sim))
 }
 
@@ -722,7 +722,7 @@ preSolve<-function(sim){
 getRoadSegment<-function(sim){
   message("getRoadSegment")
   #Convert the landings to pixelid's
-  targets<-cellFromXY(sim$ras, sim$landings) #This should be pixelid not XY as used in other roading methods
+  targets<-sim$landings #This is pixelid not XY as used in other roading methods
   sim$roadSegs<-unique(as.numeric(unlist(strsplit(sim$roadslist[landing %in% targets, ]$road, ","))))
   alreadyRoaded<-dbGetQuery(sim$castordb, paste0("SELECT pixelid from pixels where roadyear IS NOT NULL and pixelid in (",paste(sim$roadSegs, collapse = ", "),")"))
   
