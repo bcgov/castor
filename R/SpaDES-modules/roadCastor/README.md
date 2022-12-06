@@ -1,8 +1,8 @@
-## roadCLUS
+## roadCastor
 
 ### What it does
 
-Simulates the development of roads for transporting timber. Three approaches can be simulated: 1) as the crow flies; 2) as the wolf runs; and 3) a minimum spanning tree (see [here](https://github.com/bcgov/clus/blob/master/reports/roads/draft-CLUS-roads.md) )
+Simulates the development of roads for transporting timber. Three approaches can be simulated: 1) as the crow flies; 2) as the wolf runs; and 3) a minimum spanning tree (see [here](https://github.com/bcgov/castor/blob/master/reports/roads/draft-CLUS-roads.md) )
 
 >porting this code over to R package roads: https://github.com/LandSciTech/roads ???
 
@@ -27,7 +27,7 @@ Raster of Cost surface is needed. Currently using interior and coast appraisal m
 
 ## Licence
 
-    Copyright 2019 Province of British Columbia
+    Copyright 2023 Province of British Columbia
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
