@@ -53,7 +53,7 @@ defineModule(sim, list(
     ),
   outputObjects = bind_rows(
     createsOutput(objectName = "existBlockId", objectClass = "integer", desc = NA),
-    createsOutput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = NA),
+    createsOutput(objectName = "harvestUnits", objectClass = "SpatRaster", desc = NA),
     createsOutput(objectName = "edgesAdj", objectClass = "data.table", desc = "Table of adjacent edges between pixels")
   )
 ))
@@ -372,7 +372,7 @@ preBlock <- function(sim) {
   sim$harvestUnits<-sim$ras
   sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$castordb, 'Select blockid from pixels ORDER BY pixelid ASC')))
 
-  writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
+  terra::writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
   #stop()
   rm(zones, result, blockids, max_blockid)
   gc()
