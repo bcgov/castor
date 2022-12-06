@@ -1,5 +1,5 @@
 ---
-title: "abmfisherCASTOR"
+title: "abmfisherCastor"
 author: ""
 date: "25 July 2022"
 output:
@@ -15,9 +15,9 @@ knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## TODO: use 
 ```
 
 ## Overview
-This is an agent based model (ABM) to simulate fisher life history on a landscape. This version is written to integrate in 'real-time' with Castor/CLUS modules and database. That is, the Castor/CLUS database is called at each time interval to update the fisher habitat conditions. Note that this approach is 'slow', as it waits on forestryCASTOR, etc. to update the habitat conditions before simulating fishers. 
+This is an agent based model (ABM) to simulate fisher life history on a landscape. This version is written to integrate in 'real-time' with Castor/CLUS modules and database. That is, the Castor/CLUS database is called at each time interval to update the fisher habitat conditions. Note that this approach is 'slow', as it waits on forestryCastor, etc. to update the habitat conditions before simulating fishers. 
 
-As an alternative, we're working on a version that integrates with a raster stack object, which is the output of fisher habitat conditions, as calculated from forest stand characteristics simulated in forestryCASTOR, from each time interval. This approach will allow for faster simulation of multiple iterations of a fisher population. Currently, forestryCASTOR is a simulation model that returns a single solution for a set of parameters (i.e., it's a deterministic model). However, the fisher agent based model includes individual randomness (i.e., it's stochastic), for example, for survival and reproduction. Since the habitat dynamics returned from forestryCASTOR will always be the same result for a given simulation, it is more efficient to run the fisher ABM as a *post-hoc* analysis, rather than concurrently with forestryCASTOR
+As an alternative, we're working on a version that integrates with a raster stack object, which is the output of fisher habitat conditions, as calculated from forest stand characteristics simulated in forestryCastor, from each time interval. This approach will allow for faster simulation of multiple iterations of a fisher population. Currently, forestryCastor is a simulation model that returns a single solution for a set of parameters (i.e., it's a deterministic model). However, the fisher agent based model includes individual randomness (i.e., it's stochastic), for example, for survival and reproduction. Since the habitat dynamics returned from forestryCastor will always be the same result for a given simulation, it is more efficient to run the fisher ABM as a *post-hoc* analysis, rather than concurrently with forestryCastor
 
 ## Castor/CLUS SQLite Database
 Below is some code to connect to and query the castordb, which is needed to run this version of the fisher ABM.
@@ -99,7 +99,7 @@ parameters <- list(
                          nameForestInventoryQMD = "quad_diam_125"
                     ),
   growingStockCastor = list (periodLength = 5),
-  abmfisherCASTOR = list (female_max_age = 9,
+  abmfisherCastor = list (female_max_age = 9,
                         den_target = 0.003, 
                         rest_target = 0.028,
                         move_target = 0.091,
@@ -108,7 +108,7 @@ parameters <- list(
                         female_dispersal = 785000,  # ha; radius = 500 pixels = 50km = 7850km2 area
                         timeInterval = 1,
                         iterations = 1),
-    uploaderCASTOR = list(aoiName = 'fisher_abm_test', 
+    uploaderCastor = list(aoiName = 'fisher_abm_test', 
                         dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -118,10 +118,10 @@ parameters <- list(
 scenario = data.table (name = "test",
                        description = "Testing fisher ABM.")
 
-modules <- list ("abmfisherCASTOR",
-                 "growingStockCASTOR",
-                 "uploaderCASTOR",
-                 "dataCASTOR")
+modules <- list ("abmfisherCastor",
+                 "growingStockCastor",
+                 "uploaderCastor",
+                 "dataCastor")
 
 objects <- list (scenario = scenario)
 inputs <- list ()

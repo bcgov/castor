@@ -1,5 +1,5 @@
 ---
-title: "mooseforageCASTOR"
+title: "mooseforageCastor"
 author: ""
 date: "10 January 2022"
 output: pdf_document
@@ -29,9 +29,9 @@ times <- list(start = 0, end = 1)
 parameters <- list(
   .progress = list (type = NA, interval = NA),
   .globals = list (),
-  dataCASTOR = list (nameForestInventoryTable = "veg_comp_lyr_r1_poly2020", 
+  dataCastor = list (nameForestInventoryTable = "veg_comp_lyr_r1_poly2020", 
                          nameForestInventoryKey = "feature_id"),
-  mooseforageCASTOR = list (nameForestInventoryWetland = "bclcs_level_3", 
+  mooseforageCastor = list (nameForestInventoryWetland = "bclcs_level_3", 
                           nameForestInventoryWetlandClass = "W", 
                           nameForestInventoryRiparianField = "bclcs_level_5",
                           nameForestInventoryRiparianClass = "RI",
@@ -39,7 +39,7 @@ parameters <- list(
                           updateclimateRaster = FALSE
                           ) 
 )
-modules <- list ("mooseforageCASTOR")
+modules <- list ("mooseforageCastor")
 objects <- list()
 inputs <- list()
 outputs <- list()
@@ -63,7 +63,7 @@ nameForestInventoryWetland = "bclcs_level_3",
 
 
 ```{r moduleParams, echo = FALSE}
-df_params <- moduleParams("mooseforageCASTOR", "C:/Work/caribou/clus_repo/clus/R/SpaDES-modules")
+df_params <- moduleParams("mooseforageCastor", "C:/Work/caribou/clus_repo/clus/R/SpaDES-modules")
 knitr::kable(df_params)
 ```
 
@@ -84,10 +84,10 @@ Write what is saved.
 ## Input data
 
 How to obtain input data, and a description of the data required by the module.
-If `sourceURL` is specified, `downloadData("mooseforageCASTOR", "C:/Work/caribou/clus_repo/clus/R/SpaDES-modules")` may be sufficient.
+If `sourceURL` is specified, `downloadData("mooseforageCastor", "C:/Work/caribou/clus_repo/clus/R/SpaDES-modules")` may be sufficient.
 
 ```{r moduleInputs, echo = FALSE}
-df_inputs <- moduleInputs("mooseforageCASTOR", "C:/Work/caribou/clus_repo/clus/R/SpaDES-modules")
+df_inputs <- moduleInputs("mooseforageCastor", "C:/Work/caribou/clus_repo/clus/R/SpaDES-modules")
 knitr::kable(df_inputs)
 ```
 
@@ -96,7 +96,7 @@ knitr::kable(df_inputs)
 Description of the module outputs.
 
 ```{r moduleOutputs, echo = FALSE}
-df_outputs <- moduleOutputs("mooseforageCASTOR", "C:/Work/caribou/clus_repo/clus/R/SpaDES-modules")
+df_outputs <- moduleOutputs("mooseforageCastor", "C:/Work/caribou/clus_repo/clus/R/SpaDES-modules")
 knitr::kable(df_outputs)
 ```
 

@@ -13,18 +13,18 @@
 #===========================================================================================#
 
 defineModule (sim, list (
-  name = "smcpopCASTOR",
+  name = "smcpopCastor",
   description = "This module estimates habitat disturbance and abundance in caribou subpopulations/herd ranges using the model developed by Locchead et al. 2021.",
   keywords = c ("caribou", "survival", "southern mountain", "adult female"), 
   authors = c (person ("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre")),
                person ("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character (0),
-  version = list (SpaDES.core = "0.2.5", smcpopCASTOR = "1.0.0"),
+  version = list (SpaDES.core = "0.2.5", smcpopCastor = "1.0.0"),
   spatialExtent = raster::extent (rep (NA_real_, 4)),
   timeframe = as.POSIXlt (c (NA, NA)),
   timeunit = "year",
   citation = list ("citation.bib"),
-  documentation = list ("README.md", "smcpopCASTOR.Rmd"),
+  documentation = list ("README.md", "smcpopCastor.Rmd"),
   reqdPkgs = list (),
   parameters = rbind (
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
@@ -44,18 +44,18 @@ defineModule (sim, list (
 )
 )
 
-doEvent.smcpopCASTOR = function (sim, eventTime, eventType) {
+doEvent.smcpopCastor = function (sim, eventTime, eventType) {
   switch (
     eventType,
     init = { 
       sim <- Init (sim) 
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "smcpopCASTOR"), "smcpopCASTOR", "calculateAbundance", 8) 
-      #sim <- scheduleEvent (sim, end(sim), "smcpopCASTOR", "adjustAbundanceTable", 9) 
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "smcpopCastor"), "smcpopCastor", "calculateAbundance", 8) 
+      #sim <- scheduleEvent (sim, end(sim), "smcpopCastor", "adjustAbundanceTable", 9) 
     },
     
     calculateAbundance = { # calculate survival rate at each time interval 
       sim <- predictAbundance (sim) 
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "smcpopCASTOR"), "smcpopCASTOR", "calculateAbundance", 8)
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "smcpopCastor"), "smcpopCastor", "calculateAbundance", 8)
     },
     # adjustAbundanceTable ={ 
     #   sim <- adjustAbundanceTable (sim)
@@ -74,10 +74,10 @@ Init <- function (sim) {
     dbExecute (sim$castordb, "ALTER TABLE pixels ADD COLUMN herd_habitat_name character")  
     
     herd_hab <- data.table (herd_habitat = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                            srcRaster = P (sim, "nameRasSMCHerd", "smcpopCASTOR") , 
-                            clipper = P (sim, "nameBoundaryFile", "dataCASTOR"),  
-                            geom = P (sim, "nameBoundaryGeom", "dataCASTOR"), 
-                            where_clause =  paste0 (P (sim, "nameBoundaryColumn", "dataCASTOR"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                            srcRaster = P (sim, "nameRasSMCHerd", "smcpopCastor") , 
+                            clipper = P (sim, "nameBoundaryFile", "dataCastor"),  
+                            geom = P (sim, "nameBoundaryGeom", "dataCastor"), 
+                            where_clause =  paste0 (P (sim, "nameBoundaryColumn", "dataCastor"), " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                             conn = NULL)[])
     herd_hab [, herd_habitat := as.integer (herd_habitat)] 
     herd_hab [, pixelid := seq_len(.N)] 

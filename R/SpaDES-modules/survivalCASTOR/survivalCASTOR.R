@@ -13,18 +13,18 @@
 #===========================================================================================#
 
 defineModule (sim, list (
-  name = "survivalCASTOR",
+  name = "survivalCastor",
   description = "This module calculates adult female caribou survival rate in caribou herd ranges using the model developed by Wittmer et al. 2007.",
   keywords = c ("caribou", "survival", "southern mountain", "adult female"), 
   authors = c (person ("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre")),
                person ("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character (0),
-  version = list (SpaDES.core = "0.2.5", survivalCASTOR = "1.0.0"),
+  version = list (SpaDES.core = "0.2.5", survivalCastor = "1.0.0"),
   spatialExtent = raster::extent (rep (NA_real_, 4)),
   timeframe = as.POSIXlt (c (NA, NA)),
   timeunit = "year",
   citation = list ("citation.bib"),
-  documentation = list ("README.md", "survivalCASTOR.Rmd"),
+  documentation = list ("README.md", "survivalCastor.Rmd"),
   reqdPkgs = list (),
   parameters = rbind (
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
@@ -45,18 +45,18 @@ defineModule (sim, list (
   )
 )
 
-doEvent.survivalCASTOR = function (sim, eventTime, eventType) {
+doEvent.survivalCastor = function (sim, eventTime, eventType) {
   switch (
     eventType,
     init = { # identify herds in the study area, calculate survival rate at time 0 for those herds and save the survival rate estimate
       sim <- Init (sim) # identify herds in the study area and calculate survival rate at time 0; instantiate a table to save the survival rate estimates
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "survivalCASTOR"), "survivalCASTOR", "calculateSurvival", 8) # schedule the next survival calculation event 
-      sim <- scheduleEvent (sim, end(sim), "survivalCASTOR", "adjustSurvivalTable", 9) 
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "survivalCastor"), "survivalCastor", "calculateSurvival", 8) # schedule the next survival calculation event 
+      sim <- scheduleEvent (sim, end(sim), "survivalCastor", "adjustSurvivalTable", 9) 
     },
     
     calculateSurvival = { # calculate survival rate at each time interval 
       sim <- predictSurvival (sim) # this function calculates survival rate
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "survivalCASTOR"), "survivalCASTOR", "calculateSurvival", 8) # schedule the next survival calculation event  
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "survivalCastor"), "survivalCastor", "calculateSurvival", 8) # schedule the next survival calculation event  
     },
     adjustSurvivalTable ={ # calucalte the total area from which the proportions and survival rate applies
       sim <- adjustSurvivalTable (sim)
@@ -69,12 +69,12 @@ doEvent.survivalCASTOR = function (sim, eventTime, eventType) {
 }
 
 Init <- function (sim) { # this function identifies the caribou herds in the 'study area' creates the survival rate table, calculates survival rate at time = 0, and saves the survival table in the castordb
-  #Added a condition here in those cases where the dataCASTOR has already ran
+  #Added a condition here in those cases where the dataCastor has already ran
   if(nrow(data.table(dbGetQuery(sim$castordb, "PRAGMA table_info(pixels)"))[name == 'herd_bounds',])== 0){
     dbExecute (sim$castordb, "ALTER TABLE pixels ADD COLUMN herd_bounds character") # add a column to the pixel table that will define the caribou herd area   
   
     herdbounds <- data.table (herd_bounds=RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                                      srcRaster = P (sim, "nameRasCaribouHerd", "survivalCASTOR") , # clip the herd boundary raster; defined in parameters, above
+                                      srcRaster = P (sim, "nameRasCaribouHerd", "survivalCastor") , # clip the herd boundary raster; defined in parameters, above
                                       clipper=sim$boundaryInfo[[1]], 
                                       geom= sim$boundaryInfo[[4]], 
                                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -112,7 +112,7 @@ Init <- function (sim) { # this function identifies the caribou herds in the 'st
   # The following equation calculates the survival rate in the herd area using the Wittmer et al. model 
     # The model is a threshold model; if the proportion of 1 to 40 year old forest is < 0.09, 
     # then forest age has no effect; hence the two statements below
-    # Wittmer standardized his covariates; I was able to get his original spreadsheet (See C:\Work\caribou\clus_github\R\SpaDES-modules\survivalCASTOR\data\Wittmer_Figure_3.xls)
+    # Wittmer standardized his covariates; I was able to get his original spreadsheet (See C:\Work\caribou\clus_github\R\SpaDES-modules\survivalCastor\data\Wittmer_Figure_3.xls)
     # Coefficents are standardized using the values from the spreadsheet
     # Model was a logit function, so here I back-calculate to get survival rates exp(fxn)/(1+exp(fxn))
   sim$tableSurvivalReport[prop_age < 0.09, survival_rate := (exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413))))/(1+(exp(1.91 + (0.42 * ((P(sim)$caribou_herd_density - 0.0515)/0.0413)))))] 

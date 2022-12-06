@@ -1,5 +1,5 @@
 ---
-title: "disturbanceCASTOR"
+title: "disturbanceCastor"
 author: ""
 date: "5 December 2022"
 output: pdf_document
@@ -31,17 +31,17 @@ parameters <- list(
   blockingCastor = list (blockMethod = 'dynamic', 
                          nameSimilarityRas = 'ras_similar_vri2003', 
                          useLandingsArea = TRUE, useSpreadProbRas = TRUE),
-  cutblockSeqPrepCASTOR = list (queryCutblocks = 'cutseq_centroid', startHarvestYear = 2004, 
+  cutblockSeqPrepCastor = list (queryCutblocks = 'cutseq_centroid', startHarvestYear = 2004, 
                                 getArea =TRUE),
-  roadCASTOR = list (roadMethod = 'snap', nameCostSurfaceRas = 'rd_cost_surface', 
+  roadCastor = list (roadMethod = 'snap', nameCostSurfaceRas = 'rd_cost_surface', 
                    nameRoads =  'pre_roads_ras'),
-  disturbanceCASTOR = list (calculateInterval =  1, 
+  disturbanceCastor = list (calculateInterval =  1, 
                             criticalHabitatTable = "vat.vat_bc_crithab_and_herd",
                             criticalHabRaster = "rast.bc_crithab_and_herd",
                             permDisturbanceRaster = "rast.mine_ag_wind_rail",
                             recovery = 300),
 )
-modules <- list("dataCASTOR","cutblockSeqPrepCASTOR", "blockingCASTOR", "roadCASTOR", "disturbanceCASTOR")
+modules <- list("dataCastor","cutblockSeqPrepCastor", "blockingCastor", "roadCastor", "disturbanceCastor")
 objects <- list()
 paths <- list(
   cachePath = cacheDir,
@@ -60,5 +60,5 @@ mysimout<-spades(mySim,debug=TRUE)
 
 # Links to other modules
 
-The module requires dataCASTOR, roadCASTOR, blockingCASTOR to work.
+The module requires dataCastor, roadCastor, blockingCastor to work.
 
