@@ -1,23 +1,24 @@
 ---
-title: "yieldUncertaintyCLUS"
+title: "yieldUncertaintyCastor"
 author: ""
-date: "18 February 2020"
+date: "6 Dec 2022"
 output: pdf_document
 ---
 # Usage
 
+Deprecated this module - until there are resources to build upon it.
+
 ```{r module_usage}
 library(SpaDES)
 
-setPaths(modulePath = file.path("C:/Users/klochhea/clus/R/SpaDES-modules"))
-getPaths() # shows where the 4 relevant paths are
+setPaths(modulePath = here::here("R/SpaDES-modules"))
 
 times <- list(start = 0, end = 10)
 
 parameters <- list(
 )
 
-modules <- list("dataLoaderCLUS", "yieldUncertaintyCLUS")
+modules <- list("dataCastor", "yieldUncertaintyCastor")
 objects <- list()
 inputs <- list()
 outputs <- list()

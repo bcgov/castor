@@ -1,5 +1,5 @@
 #===========================================================================================#
-# Copyright 2020 Province of British Columbia
+# Copyright 2023 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,18 +13,18 @@
 #===========================================================================================#
 
 defineModule(sim, list(
-  name = "yieldUncertaintyCLUS",
+  name = "yieldUncertaintyCastor",
   description = "Calibrates yield models used in BC, conditional on observed yield data following harvesting operations", 
   keywords = NA, # c("insert key words here"),
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
               person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
-  version = list(SpaDES.core = "0.2.5", yieldUncertaintyCLUS = "0.0.1"),
+  version = list(SpaDES.core = "0.2.5", yieldUncertaintyCastor = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.md", "yieldUncertaintyCLUS.Rmd"),
+  documentation = list("README.md", "yieldUncertaintyCastor.Rmd"),
   reqdPkgs = list(),
   parameters = rbind(
     defineParameter("calculateInterval", "numeric", 1, NA, NA, "The interval for calculating total harvest uncertainty. E.g., 1,5 or 10 year"),
@@ -36,7 +36,7 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
-    expectsInput(objectName = "clusdb", objectClass ="SQLiteConnection", desc = "A rSQLite database that stores, organizes and manipulates clus realted information", sourceURL = NA),
+    expectsInput(objectName = "castordb", objectClass ="SQLiteConnection", desc = "A rSQLite database that stores, organizes and manipulates castor realted information", sourceURL = NA),
     expectsInput(objectName = "boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "harvestBlockList", objectClass = "data.table", desc = NA, sourceURL = NA),
     #expectsInput(objectName = "calb_ymodel", objectClass = "gamlss", desc = "A gamma model of volume yield uncertainty", sourceURL = NA),
@@ -51,17 +51,17 @@ defineModule(sim, list(
 ))
 
 
-doEvent.yieldUncertaintyCLUS = function(sim, eventTime, eventType) {
+doEvent.yieldUncertaintyCastor = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
       sim <- Init(sim)
       # schedule future event(s)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "yieldUncertaintyCLUS", "calculateInterval"), "yieldUncertaintyCLUS", "calculateUncertainty", eventPriority= 12)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "yieldUncertaintyCastor", "calculateInterval"), "yieldUncertaintyCastor", "calculateUncertainty", eventPriority= 12)
     },
     calculateUncertainty = {
       sim <- calculateYieldUncertainty(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "yieldUncertaintyCLUS", "calculateInterval"), "yieldUncertaintyCLUS", "calculateUncertainty", eventPriority= 12)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "yieldUncertaintyCastor", "calculateInterval"), "yieldUncertaintyCastor", "calculateUncertainty", eventPriority= 12)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -70,13 +70,13 @@ doEvent.yieldUncertaintyCLUS = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
-  #Add a column for the covariates list -- this is now hard coded -- needs to be generalized. Done in dataLoaderCLUS
-  #dbExecute(sim$clusdb, paste0("ALTER TABLE pixels ADD COLUMN elv numeric"))
+  #Add a column for the covariates list -- this is now hard coded -- needs to be generalized. Done in dataCastor
+  #dbExecute(sim$castordb, paste0("ALTER TABLE pixels ADD COLUMN elv numeric"))
   
   #Get any covariates in the calibration model. Need an indicator if this has already been run and in the database
-  if(!(dbGetQuery(sim$clusdb, "SELECT count(*) from pixels where elv > 0") > 0)){
+  if(!(dbGetQuery(sim$castordb, "SELECT count(*) from pixels where elv > 0") > 0)){
     elevation<- data.table (V1 =  RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                 srcRaster = P(sim, "yieldUncertaintyCLUS", "elevationRaster"), # for each unique spp-pop-boundary, clip each rsf boundary data, 'bounds' (e.g., rast.du6_bounds)
+                 srcRaster = P(sim, "yieldUncertaintyCastor", "elevationRaster"), # for each unique spp-pop-boundary, clip each rsf boundary data, 'bounds' (e.g., rast.du6_bounds)
                  clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                  geom = sim$boundaryInfo[[4]], 
                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -84,10 +84,10 @@ Init <- function(sim) {
     elevation[,V1:=as.integer(V1)] #make an integer for merging the values
     elevation[,pixelid:=seq_len(.N)]#make an index
   
-    dbBegin(sim$clusdb)
-      rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET elv =  :V1 WHERE pixelid = :pixelid", elevation)
+    dbBegin(sim$castordb)
+      rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET elv =  :V1 WHERE pixelid = :pixelid", elevation)
     dbClearResult(rs)
-    dbCommit(sim$clusdb)
+    dbCommit(sim$castordb)
   }
  
   sim$yieldUncertaintyCovar<- ' elv ,'
@@ -105,7 +105,7 @@ calculateYieldUncertainty <-function(sim) {
     sim$yielduncertain<-NULL
   }
   
-  #Remove any blocks from the list. This will 'accumulate' in the forestryCLUS module
+  #Remove any blocks from the list. This will 'accumulate' in the forestryCastor module
   sim$harvestBlockList<-NULL
   return(invisible(sim))
 }

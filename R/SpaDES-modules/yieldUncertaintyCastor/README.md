@@ -1,8 +1,8 @@
-## yieldUncertaintyCLUS 
+## yieldUncertaintyCastor 
 
 ### What it does
 
-Calibrates yield models used in BC to provide valuable information about timber projection uncertainty. This module builds on Robinson et al.'s (2016) approach by calibrating timber volume estimates using scale (observed) volume data to account for the uncertainty from both the forest inventory and the growth model. This module supports concepts of adaptive forest management in BC, by identifying factors leading to greater or lesser uncertainty around strategic decisions. For example, this module may inform a more robust AAC decision, by helping the Chief Forester understand situations where uncertainty in yields could lead to over or under estimates in AAC. This module will be used in the caribou and landuse simulator (CLUS) model to provide an estimate of volume yield uncertainty in the quantification of impacts from caribou conservation activities on harvest flows. 
+Calibrates yield models used in BC to provide valuable information about timber projection uncertainty. This module builds on Robinson et al.'s (2016) approach by calibrating timber volume estimates using scale (observed) volume data to account for the uncertainty from both the forest inventory and the growth model. This module supports concepts of adaptive forest management in BC, by identifying factors leading to greater or lesser uncertainty around strategic decisions. For example, this module may inform a more robust AAC decision, by helping the Chief Forester understand situations where uncertainty in yields could lead to over or under estimates in AAC. This module will be used in the castor simulator model to provide an estimate of volume yield uncertainty in the quantification of impacts from caribou conservation activities on harvest flows. 
 
 #### Management levers
 
@@ -14,7 +14,7 @@ Calibrates yield models used in BC to provide valuable information about timber 
 
 #### Data Needs
 
-A calibration model needs to be fit using [observed scale information](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/harvest-billing-system) commonly collected following harvesting operations or possibly plot data. See [here](https://github.com/bcgov/clus/blob/master/R/Params/linkHBS_VRI_Calibtation.md) 
+A calibration model needs to be fit using [observed scale information](https://www2.gov.bc.ca/gov/content/industry/forestry/competitive-forest-industry/timber-pricing/harvest-billing-system) commonly collected following harvesting operations or possibly plot data. See [here](https://github.com/bcgov/castor/blob/master/R/Params/linkHBS_VRI_Calibtation.md) 
 
 ##### Rasters
 
@@ -32,7 +32,7 @@ A calibration model needs to be fit using [observed scale information](https://w
 
 ### Licence
 
-    Copyright 2020 Province of British Columbia
+    Copyright 2023 Province of British Columbia
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
