@@ -1,8 +1,8 @@
-## forestryCLUS 
+## forestryCastor 
 
 ### What it does
 
-forestryCLUS is a convenient calculator for massive spatial calculations. Simply put, this module projects the state of the forest described in [dataLoaderCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS) into the future by taking into account management constraints for harvesting and forest growth (via [growingStock CLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/growingStockCLUS) ). It should be used to explore possible futures - to identify where and where not to harvest, explore the consequences of policy and test sensitivity. 
+forestryCastor is a convenient calculator for massive spatial calculations. Simply put, this module projects the state of the forest described in [dataCastor](https://github.com/bcgov/castor/tree/master/R/SpaDES-modules/dataCastor) into the future by taking into account management constraints for harvesting and forest growth (via [growingStock Castor](https://github.com/bcgov/castor/tree/master/R/SpaDES-modules/growingStockCastor) ). It should be used to explore possible futures - to identify where and where not to harvest, explore the consequences of policy and test sensitivity. 
 
 It was designed to provide rapid feeback - for exploring the decision space for caribou and forestry related impacts. The following diagram is a simple representation of these impacts. The solid arrows are positive impacts, while the dashed arrows are negative impacts.
 
@@ -54,7 +54,7 @@ type = refers to the inequality of the threshold {le (<=), ge (>=)}. An importan
  if 'ge', the model sets the number of no harvest pixels = percentage*(total zone area) 
  if 'le', the model sets the number of no harvest pixels = (1-percentage)*(total zone area) 
  
-**total zone area is calculated by CLUS.
+**total zone area is calculated by Castor.
  
 Both {le, ge} set a no harvest flag to pixels that first meet the logic of the inequality statement and if there aren't enough pixels, the model sorts the remaining pixels in the zone according to the variable as either ASC with le or DESC with ge. 
 
@@ -64,20 +64,20 @@ Conversely, if the type was then set to 'le' then the model will constrain no ha
 
 variable = the variable in the pixels table that is to be constraine upon. Note: there are three hard coded variables of interest: eca, dist and multi.
 
-* eca = equivalent clear cut area. This variable uses growingstockCLUS to update its value through simulation time. All cases where eca is used require type = 'le'.
+* eca = equivalent clear cut area. This variable uses growingstockCastor to update its value through simulation time. All cases where eca is used require type = 'le'.
 
-* dist = euclidean distance from a forestry disturbance. This variable uses disturbanceCalcCLUS to update its value through simulation time. All cases where dist is used require type = 'ge'.
+* dist = euclidean distance from a forestry disturbance. This variable uses disturbanceCalcCastor to update its value through simulation time. All cases where dist is used require type = 'ge'.
 
 * multi = multiple condition. This variable requires an sql statement in the multi_condition column e.g., age > 12 & blockid > 0. All cases where multi is used require type = 'ge'. Because more than one variable is used in the constraint, and if there are not enough pixels to meet the constraint, the order of the remaining pixels required will follow the order in which the mutli condition was set. Thus, for age > 12 & crown_closure > 50, the model will select the remainder from a sort as: age DESC, crown_closure DESC.
 
 ### Input Parameters
 
-* *clusdb*. Connection to clusdb - see [clusdb](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/dataLoaderCLUS)
+* *castordb*. Connection to castordb - see [castordb](https://github.com/bcgov/castor/tree/master/R/SpaDES-modules/dataCastor)
 * *useAdjacencyConstraint*. A logical variable determining if adjaceny constraints should be enforced or not. Default = FALSE.
 * *harvestPriority*. The order in which harvest units are queued for harvesting. Greatest priority first (e.g., oldest or a priority from linear programming). DESC is decending, ASC is ascending
 * *harvestFlow*. A table with the target harvest for a given time period and location.
 * *scenario*. A description of the scenario being run.
-* *calb_ymodel*. A gamma model for adjusting yields and calculating prediction intervals on timber volumes. see [here](https://github.com/bcgov/clus/blob/master/R/Params/linkHBS_VRI_Calibtation.md)
+* *calb_ymodel*. A gamma model for adjusting yields and calculating prediction intervals on timber volumes. see [here](https://github.com/bcgov/castor/blob/master/R/Params/linkHBS_VRI_Calibtation.md)
 * *growingStockConstraint*. The percentage of standing merchantable timber that must be retained through out the planning horizon. values [0,1]
 
 #### Data Needs
@@ -94,7 +94,7 @@ variable = the variable in the pixels table that is to be constraine upon. Note:
 
 ## Licence
 
-    Copyright 2019 Province of British Columbia
+    Copyright 2023 Province of British Columbia
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
