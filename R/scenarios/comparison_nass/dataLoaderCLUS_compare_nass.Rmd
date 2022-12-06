@@ -45,8 +45,8 @@ times <- list(start = 0, end = 0)
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list(dbName='clus',
-                         save_clusdb = TRUE,
+  dataLoaderCLUS = list(dbName='castor',
+                         saveCastorDB = TRUE,
                          sqlite_dbname = "Nass_TSA",
                          nameBoundaryFile="comparison_nass.nass_supply_blocks", 
                          nameBoundaryColumn="ts_nmbr", # spply_b for supply blocks
@@ -94,12 +94,12 @@ parameters <-  list(
   #                  randomEffectsTable = "public.rsf_re_coeff",
   #                  writeRSFRasters = TRUE,
   #                  checkRasters= FALSE),
-  disturbanceCalcCLUS = list(calculateInterval = 1, 
+  disturbanceCASTOR = list(calculateInterval = 1, 
                              criticalHabitatTable = "public.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.perm_dist_rds",
                              recovery = 40), # might be 30 or 40 years
-  survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
+  survivalCASTOR = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "public.caribou_herd_vat"),
   uploaderCLUS = list(aoiName = 'morice_tsa',
@@ -127,8 +127,8 @@ modules <- list("dataLoaderCLUS",
                 "blockingCLUS", 
                 "roadCLUS", 
                 #"rsfCLUS", 
-                "survivalCLUS",
-                "disturbanceCalcCLUS", 
+                "survivalCASTOR",
+                "disturbanceCASTOR", 
                 "uploaderCLUS")
 #modules <- list("dataLoaderCLUS", "roadCLUS")
 
