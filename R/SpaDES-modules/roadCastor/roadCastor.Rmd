@@ -52,10 +52,21 @@ parameters <- list(
                       patchZone = 'default',
                       patchVariation = 6),
   roadCastor = list(roadMethod = 'mst'
-                  )
+                  ),
+  forestryCastor = list( activeZoneConstraint = 'default', 
+                         harvestPriority = " age DESC ", 
+                         adjacencyConstraint = TRUE)
   )
-modules <- list("dataCastor", "blockingCastor", "roadCastor")
-objects <- list(scenario = data.table(name="test", description = "test"))
+modules <- list("dataCastor", "blockingCastor", "forestryCastor", "roadCastor")
+scenario = data.table(name="test", description = "test")
+harvestFlow<- data.table(compartment ="all",
+                                     partition = ' (vol > 110) ',
+                                     period = rep(seq(from = 1, to=2, by = 1),1), 
+                                     flow = 220000,
+                                     partition_type = 'live')
+
+objects <- list(harvestFlow = harvestFlow, scenario = scenario)
+
 paths <- list(
   modulePath = moduleDir,
   outputPath = outputDir
