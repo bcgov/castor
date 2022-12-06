@@ -246,7 +246,7 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.perm_dist_no_rds",
                              recovery = 40), # roads recover after 30 years of no use; 200 for BAU (no recovery)
-  volumebyareaReportCLUS = list (calculateInterval = 1,
+  volumebyareaReportCASTOR = list (calculateInterval = 1,
                                  AreaofInterestRaster = "rast.chilcotin_aoi_supply_blocks",
                                  AreaofInterestTable = "vat.chilcotin_supply_blocks_vat"),
   smcpopCASTOR = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
@@ -272,7 +272,7 @@ modules <- list("dataLoaderCLUS",
                 #"yieldUncertaintyCLUS", 
                 "survivalCASTOR", 
                 "disturbanceCASTOR", 
-                "volumebyareaReportCLUS",
+                "volumebyareaReportCASTOR",
                 # "rsfCLUS", # error line 453 - need to debug
                 "smcpopCASTOR",
                 "uploaderCLUS"

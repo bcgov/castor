@@ -1,4 +1,4 @@
-# Copyright 2020 Province of British Columbia
+# Copyright 2022 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,18 +11,18 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 defineModule(sim, list(
-  name = "volumebyareaReportCLUS",
+  name = "volumebyareaReportCASTOR",
   description = "This module reports out volume havrested by time step within an area of interest",
   keywords = NA, # c("insert key words here"),
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
               person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
-  version = list(SpaDES.core = "0.2.5", volumebyareaReportCLUS = "0.0.1"),
+  version = list(SpaDES.core = "0.2.5", volumebyareaReportCASTOR = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.txt", "volumebyareaReportCLUS.Rmd"),
+  documentation = list("README.txt", "volumebyareaReportCASTOR.Rmd"),
   reqdPkgs = list("raster", "data.table"),
   parameters = rbind(
     defineParameter("AreaofInterestTable", "character", '99999', NA, NA, "Value attribute table that links to the raster integer and describes each area of interest."),
@@ -36,8 +36,8 @@ defineModule(sim, list(
   ),
   inputObjects = bind_rows(
     expectsInput(objectName = "boundaryInfo", objectClass = "character", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "clusdb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the RSF', sourceURL = NA),
-    expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataLoaderCLUS. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
+    expectsInput(objectName = "castordb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the RSF', sourceURL = NA),
+    expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataCASTOR. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName = "updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA),
@@ -51,16 +51,16 @@ defineModule(sim, list(
   )
 ))
 
-doEvent.volumebyareaReportCLUS = function(sim, eventTime, eventType) {
+doEvent.volumebyareaReportCASTOR = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
       sim <- Init(sim) 
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "volumebyareaReportCLUS"), "volumebyareaReportCLUS", "analysis", 10)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "volumebyareaReportCASTOR"), "volumebyareaReportCASTOR", "analysis", 10)
     },
     analysis = {
       sim <- volAnalysis(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "volumebyareaReportCLUS"), "volumebyareaReportCLUS", "analysis", 10)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "volumebyareaReportCASTOR"), "volumebyareaReportCASTOR", "analysis", 10)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -71,25 +71,25 @@ doEvent.volumebyareaReportCLUS = function(sim, eventTime, eventType) {
 
 Init <- function(sim) {
   sim$volumebyareaReport <- data.table()
-  sim$volumebyarea <- data.table(dbGetQuery(sim$clusdb, "SELECT pixelid FROM pixels where thlb > 0 ORDER BY pixelid"))
+  sim$volumebyarea <- data.table(dbGetQuery(sim$castordb, "SELECT pixelid FROM pixels where thlb > 0 ORDER BY pixelid"))
   
   #Get the area of interest
-  if(P(sim, "AreaofInterestRaster", "volumebyareaReportCLUS") == '99999') {
+  if(P(sim, "AreaofInterestRaster", "volumebyareaReportCASTOR") == '99999') {
     sim$volumebyarea[, attribute := 1]
     } else {
     aoi_bounds <- data.table (V1 =  RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                 srcRaster = P(sim, "AreaofInterestRaster", "volumebyareaReportCLUS"), 
+                 srcRaster = P(sim, "AreaofInterestRaster", "volumebyareaReportCASTOR"), 
                  clipper = sim$boundaryInfo[[1]],  
                  geom = sim$boundaryInfo[[4]], 
                  where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                  conn = NULL)[])
     aoi_bounds [, pixelid := seq_len (.N)]
     if(nrow(aoi_bounds[!is.na(V1),]) > 0){
-      if(!(P(sim, "AreaofInterestTable", "volumebyareaReportCLUS") == '99999')){
-        aoi_lu <- data.table (getTableQuery (paste0 ("SELECT cast (value as int) AS zone, attribute FROM ",P(sim, "AreaofInterestTable", "volumebyareaReportCLUS"))))
+      if(!(P(sim, "AreaofInterestTable", "volumebyareaReportCASTOR") == '99999')){
+        aoi_lu <- data.table (getTableQuery (paste0 ("SELECT cast (value as int) AS zone, attribute FROM ",P(sim, "AreaofInterestTable", "volumebyareaReportCASTOR"))))
         aoi_bounds <- merge(aoi_bounds, aoi_lu, by.x = "V1", by.y = "zone", all.x = TRUE)
       } else {
-      stop(paste0(P(sim, "AreaofInterestRaster", "volumebyareaReportCLUS"), "- does not overlap with harvest unit"))
+      stop(paste0(P(sim, "AreaofInterestRaster", "volumebyareaReportCASTOR"), "- does not overlap with harvest unit"))
       }
     sim$volumebyarea <- merge (sim$volumebyarea, aoi_bounds, by.x = "pixelid", by.y = "pixelid", all.x = T)
     setnames(sim$volumebyarea, "attribute", "area_name")
