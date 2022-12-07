@@ -28,7 +28,6 @@ defineModule(sim, list(
   documentation = list("README.txt", "growingStockCastor.Rmd"),
   reqdPkgs = list(),
   parameters = rbind(
-    #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -39,8 +38,10 @@ defineModule(sim, list(
     defineParameter("growingStockConst", "numeric", 9999, NA, NA, "A percentage of the initial level of growingstock maintaining a minimum amount of growingstock")
   ),
   inputObjects = bind_rows(
-    expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
-    expectsInput(objectName ="castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates castor realted information", sourceURL = NA)
+    expectsInput(objectName = "castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates castor realted information", sourceURL = NA),
+    expectsInput(objectName = "scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
+    expectsInput(objectName = "boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "extent", objectClass ="list", desc = NA, sourceURL = NA)
   ),
   outputObjects = bind_rows(
     createsOutput(objectName = "growingStockReport", objectClass = "data.table", desc = NA),
@@ -54,7 +55,7 @@ doEvent.growingStockCastor = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim$updateInterval<-max(1, round(P(sim, "periodLength", "growingStockCastor")/2, 0)) #take the mid point -- less biased
-      sim <- Init(sim)
+      sim <- initGSCastor(sim)
       sim <- scheduleEvent(sim, time(sim) + 1, "growingStockCastor", "updateGrowingStock", 1)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "vacuumInterval", "growingStockCastor"), "growingStockCastor", "vacuumDB", 2)
     },
@@ -74,7 +75,7 @@ doEvent.growingStockCastor = function(sim, eventTime, eventType) {
   return(invisible(sim))
 }
 
-Init <- function(sim) {
+initGSCastor <- function(sim) {
   #Linear interpolation between yields in SQLite. Note with any linear interpolation there is a bias for higher yields at younger ages (before cMAI) and lower yields at older ages (past cMAI)
   #Rise vs run to calc the slope of the secant line between the rounded floor and ceiling values for age and yield i.e., (y1-y2)/(x1-x2)
   #Then multiply by the x value ie., slope*(age - floor.age) + floor.yield

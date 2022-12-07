@@ -1,2 +1,0 @@
-
-this module gets the spatial layer of cutblock locations. Then creates a list of points the represent the historical schedule of cutblocks. This module is useful for reconstructing the historical disturbances of the forestry sector in BC

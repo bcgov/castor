@@ -46,14 +46,14 @@ defineModule(sim, list(
     expectsInput(objectName ="blockMethod", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="zone.length", objectClass ="numeric", desc = "The number of zones uploaded by dataCastor", sourceURL = NA),
     expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="landings", objectClass = "SpatialPoints", desc = NA, sourceURL = NA),
+    expectsInput(objectName ="landings", objectClass = "integer", desc = NA, sourceURL = NA),
     expectsInput(objectName ="landingsArea", objectClass = "numeric", desc = NA, sourceURL = NA),
     expectsInput(objectName ="growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA),
     expectsInput(objectName ="patchSizeDist", objectClass = "data.table", desc = "Time series table of the total targeted harvest in m3", sourceURL = NA)
     ),
   outputObjects = bind_rows(
     createsOutput(objectName = "existBlockId", objectClass = "integer", desc = NA),
-    createsOutput(objectName = "harvestUnits", objectClass = "RasterLayer", desc = NA),
+    createsOutput(objectName = "harvestUnits", objectClass = "SpatRaster", desc = NA),
     createsOutput(objectName = "edgesAdj", objectClass = "data.table", desc = "Table of adjacent edges between pixels")
   )
 ))
@@ -175,12 +175,9 @@ setBlocksTable <- function(sim) {
 
 setHistoricalLandings <- function(sim) {
   land_pixels<-data.table(dbGetQuery(sim$castordb, paste0("select landing from blocks where blockid < ", sim$existBlockId)))
-  
   #print (land_pixels)
   if(nrow(land_pixels) > 0 ){
-    land_coord<-sim$pts[pixelid %in% land_pixels$landing, ]
-    setnames(land_coord,c("x", "y"), c("X", "Y"))
-    sim$landings <- sp::SpatialPoints(land_coord[,c("X", "Y")],crs(sim$ras))
+    sim$landings <- land_pixels$landing
   }else{
     sim$landings <- NULL
   }
@@ -372,7 +369,7 @@ preBlock <- function(sim) {
   sim$harvestUnits<-sim$ras
   sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$castordb, 'Select blockid from pixels ORDER BY pixelid ASC')))
 
-  writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
+  terra::writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
   #stop()
   rm(zones, result, blockids, max_blockid)
   gc()
@@ -411,7 +408,7 @@ spreadBlock<- function(sim) {
         size<-as.integer(runif(length(landings), 20, 100))
       }
     
-      landings<-cellFromXY(sim$aoi, sim$landings)
+      landings<-terra::cellFromXY(sim$aoi, sim$landings)
       landings<-as.data.frame(cbind(landings, size))
       landings<-landings[!duplicated(landings$landings),]
     

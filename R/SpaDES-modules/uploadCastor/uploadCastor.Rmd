@@ -1,0 +1,70 @@
+---
+title: "uploadCastor"
+author: ""
+date: "06 Dec 2022"
+output: pdf_document
+---
+
+# Overview
+
+This module uploads scenario outputs to a postgres database hosted by a virtual machine.Database information including the host, user, password, etc. can be attached using keyring or environmental variables
+
+# Usage
+
+```{r module_usage}
+library(SpaDES.core)
+library(data.table)
+library(dplyr)
+source(here::here("R/functions/R_Postgres.R"))
+
+moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
+outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCastor/outputs"))
+
+times <- list(start = 0, end = 2)
+
+parameters <- list(
+  .progress = list(type = NA, interval = NA),
+  .globals = list(),
+ dataCastor = list(saveCastorDB = TRUE,
+                     randomLandscape = list(100,100,0,100,0,100),
+                     randomLandscapeZoneConstraint = 
+                       data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
+                     ),
+  growingStockCastor = list(periodLength = 5),
+  blockingCastor = list(blockMethod='pre', 
+                      patchZone = 'default',
+                      patchVariation = 6),
+  forestryCastor = list( activeZoneConstraint = 'default', 
+                         harvestPriority = " age DESC ", 
+                         adjacencyConstraint = TRUE),
+  uploadCastor = list(aoiName = 'test', #the name of the schema
+                      dbInfo  = 
+                        list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
+                             keyring::key_get("vmdbuser", keyring="postgreSQL"), 
+                             keyring::key_get("vmdbpass", keyring="postgreSQL"),  
+                             keyring::key_get("vmdbname", keyring="postgreSQL")))
+)
+
+
+modules <- list("dataCastor", "growingStockCastor", "blockingCastor", "forestryCastor", "uploadCastor")
+scenario = data.table(name="test", description = "test")
+harvestFlow<- data.table(compartment ="all",
+                                     partition = ' (vol > 110) ',
+                                     period = rep(seq(from = 1, to=2, by = 1),1), 
+                                     flow = 220000,
+                                     partition_type = 'live')
+
+objects <- list(harvestFlow = harvestFlow, scenario = scenario)
+paths <- list(
+  modulePath = moduleDir,
+  outputPath = outputDir
+)
+
+mySim <- simInit(times = times, params = parameters, modules = modules,
+                 objects = objects, paths = paths)
+
+mySimOut <- spades(mySim)
+```
+
+
+
