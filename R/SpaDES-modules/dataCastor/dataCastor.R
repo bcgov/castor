@@ -95,7 +95,7 @@ doEvent.dataCastor = function(sim, eventTime, eventType, debug = FALSE) {
     init = { # initialization event
       
       #set Boundaries information object
-      if(!is.na(P(sim,"randomLandscape", "dataCastor" ))){
+      if(!is.na(P(sim,"randomLandscape", "dataCastor" )[[1]])){
         sim$extent = P(sim,"randomLandscape", "dataCastor" )
         sim$boundaryInfo <- NULL
         sim$zone.length <- 1
@@ -961,7 +961,7 @@ randomRaster<-function(extent, clusterLevel){
   #RandomFields::RFoptions(spConform=FALSE)
   ras <- terra::rast(nrows = extent[[1]], ncols = extent[[2]], xmin = extent[[3]], xmax = extent[[4]], ymin = extent[[5]], ymax = extent[[6]], vals = 0 )
   model <- RandomFields::RMstable(scale = 300, var = 0.003,  alpha = clusterLevel)
-  data.rv<-RandomFields::RFsimulate(model, y = 1:extent[[1]],  x = 1:extent[[2]], grid = TRUE)$variable1
+  data.rv<-RandomFields::RFsimulate(model, y = 1:extent[[1]],  x = 1:extent[[2]], grid = TRUE)
   data.rv<-(data.rv - min(data.rv))/(max(data.rv)- min(data.rv))
   return(terra::setValues(ras, data.rv))
 }
