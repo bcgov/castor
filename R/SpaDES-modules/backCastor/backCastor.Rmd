@@ -25,32 +25,27 @@ The cutblockSeqPrep uses a defined area to grab the spatial locations of cutbloc
 # Usage
 
 ```{r module_usage}
-library(igraph)
+library(SpaDES)
 library(SpaDES.core)
+library(data.table)
+library(dplyr)
+library (keyring)
 
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+source(here::here("R/functions/R_Postgres.R"))
 
-moduleDir <- file.path("C:/Users/KLOCHHEA/clus/R/SpaDES-modules")
-inputDir <- file.path(moduleDir, "inputs") %>% reproducible::checkPath(create = TRUE)
-outputDir <- file.path(moduleDir, "outputs")
-cacheDir <- file.path(outputDir, "cache")
+setPaths(modulePath = here::here("R/SpaDES-modules"))
+
 times <- list(start = 0, end = 10)
 parameters <- list(
-  cutblockSeqPrepCLUS = list(startHarvestYear = 1970,
+  backCastor = list(startHarvestYear = 1970,
                              nameCutblockRaster= 'rast.cns_cut_bl', 
                              nameCutblockTable= 'cns_cut_bl_polygon', 
                              queryCutblocks = 'cutseq_centroid',
                              resetAge = T # if True, converts road age and status from it's time sequence of simulation (e.g., simulated in year 1, 2, 3 etc.) to the time since the road was created or used (i.e., end time - roadyear and end time - roadstatus) which inverts the sequence (e.g., road was built 3, 2, 1 years ago)
                               )
 )
-modules <- list("cutblockSeqPrepCLUS")
+modules <- list("backCastor")
 objects <- list()
-paths <- list(
-  cachePath = cacheDir,
-  modulePath = moduleDir,
-  inputPath = inputDir,
-  outputPath = outputDir
-)
 
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)

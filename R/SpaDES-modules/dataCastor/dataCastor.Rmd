@@ -32,54 +32,30 @@ library(data.table)
 
 source(here::here("R/functions/R_Postgres.R"))
 
-Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jre1.8.0_241')
-#Sys.setenv(JAVA_HOME = 'C:\\Program Files (x86)\\Java\\jre1.8.0_241') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
-
-setPaths(modulePath = here::here("R/SpaDES-modules"))
-
-getPaths() # shows where the 4 relevant paths are
+moduleDir <- paste0(here::here(),"/R/SpaDES-modules")
+outputDir <- paste0(here::here(),"/R/SpaDES-modules/blockingCastor")
 
 times <- list(start = 0, end = 0)
 parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataCastor = list(dbName='clus',
-                         saveCastorDB = TRUE,
-                         sqlite_dbname = "Revelstoke_TSA",
-                         nameBoundaryFile="tsa_aac_bounds",
-                         nameBoundaryColumn="tsa_name",
-                         nameBoundary = "Revelstoke_TSA",
-                         nameBoundaryGeom='wkb_geometry',
-                         nameCompartmentRaster = "rast.tsa_aac_boundary",
-                         nameCompartmentTable = "tsa_aac_bounds_vat",
-                         nameMaskHarvestLandbaseRaster='rast.thlb_2020', #'rast.bc_thlb2018'
-                         nameZoneRasters=c("rast.zone_cond_beo", 
-                                           "rast.zone_cond_vqo",
-                                           "rast.zone_wha_2021", #"rast.zone_cond_wha" 
-                                           "rast.zone_uwr_2021", # rast.zone_cond_uwr
-                                           "rast.zone_cond_nharv", 
-                                           "rast.zone_cond_crithab"),
-                         nameZoneTable="zone.constraints",
-                         nameYieldsRaster = "rast.ycid_vdyp",
-                         nameYieldTable ="yc_vdyp",
-                         nameYieldsTransitionRaster = "rast.tipsy2018_id",
-                         nameYieldTransitionTable ="yc_tipsy",
-                         nameForestInventoryRaster ="rast.vri2018_id",
-                         nameForestInventoryKey = "feature_id",
-                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2018",
-                         nameForestInventoryAge = "proj_age_1",
-                         nameForestInventoryHeight = "proj_height_1",
-                         nameForestInventoryCrownClosure = "crown_closure",
-                         nameForestInventorySiteIndex = "site_index"
-                    )
+  dataCastor = list(saveCastorDB = TRUE,
+                     randomLandscape = list(100,100,0,100,0,100),
+                     randomLandscapeZoneConstraint = 
+                       data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
+                    ),
   )
 
-scenario = data.table(name="testing_yield_uncertainty", description = "Simple flow")
-modules <- list("dataCastor")
+scenario = data.table(name="test", description = "test")
 objects <- list(scenario = scenario)
 
+modules <- list("dataCastor")
 inputs <- list()
 outputs <- list()
+paths <- list(
+  modulePath = moduleDir,
+  outputPath = outputDir
+)
 
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects)
