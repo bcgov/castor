@@ -1,4 +1,4 @@
-# Copyright 2020 Province of British Columbia
+# Copyright 2022 Province of British Columbia
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,21 +12,20 @@
 #===========================================================================================
 
 defineModule(sim, list(
-  name = "cutblockSeqPrepCLUS",
+  name = "backCastor",
   description = NA, #"insert module description here",
   keywords = NA, # c("insert key words here"),
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
               person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
-  version = list(SpaDES.core = "0.2.5", cutblockSeqPrepCLUS = "0.0.1"),
+  version = list(SpaDES.core = "0.2.5", backCastor = "0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.txt", "cutblockSeqPrepCLUS.Rmd"),
-  reqdPkgs = list("rpostgis", "sp","sf", "dplyr", "SpaDES.core"),
+  documentation = list("README.txt", "backCastor.Rmd"),
+  reqdPkgs = list("rpostgis", "sf", "dplyr", "SpaDES.core"),
   parameters = rbind( 
-    #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
     defineParameter("queryCutblocks", "character", "cutseq", NA, NA, "This describes the type of query for the cutblocks"),
     defineParameter("getArea", "logical", FALSE, NA, NA, "This describes if the area ha should be returned for each landing"),
     defineParameter("resetAge", "logical", FALSE, NA, NA, "Set this to TRUE to define roadyear and roadstatus as the time since the road was built/used. If FALSE then it returns the sequence that the road was built/used."),
@@ -34,7 +33,7 @@ defineModule(sim, list(
     defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
     defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
     defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
-    defineParameter("cutblockSeqInterval", "numeric", 1, NA, NA, desc = "This describes the interval for the sequencing or scheduling of the cutblocks"),
+    defineParameter("stepInterval", "numeric", 1, NA, NA, desc = "This describes the interval for the sequencing or scheduling of the cutblocks"),
     defineParameter("nameCutblockRaster", "character", "99999", NA, NA, desc = "Name of the raster with ID pertaining to cutlocks - consolidated cutblocks"),
     defineParameter("nameCutblockTable", "character", "99999", NA, NA, desc = "Name of the cutblocm attribution table with ID pertaining to cutlocks - consolidated cutblocks"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
@@ -44,20 +43,19 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
-    expectsInput("boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput("harvestUnits", objectClass ="RasterLayer", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="clusdb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates clus realted information", sourceURL = NA)
+    expectsInput(objectName = "boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "harvestUnits", objectClass ="RasterLayer", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates castor realted information", sourceURL = NA)
     
   ),
   outputObjects = bind_rows(
-    createsOutput("landings", "SpatialPoints", "This describes a series of point locations representing the cutblocks or their landings", ...),
-    createsOutput("landingsArea", "numeric", "This creates a vector of area in ha for each landing", ...),
+    createsOutput(objectName = "landings", objectClass = "SpatialPoints", desc ="This describes a series of point locations representing the cutblocks or their landings", ...),
+    createsOutput(objectName = "landingsArea", objectClass ="numeric", desc ="This creates a vector of area in ha for each landing", ...),
     createsOutput(objectName = "updateInterval", objectClass = "numeric", desc = NA)
-    #createsOutput(objectName = NA, objectClass = NA, desc = NA)
   )
 ))
 
-doEvent.cutblockSeqPrepCLUS = function(sim, eventTime, eventType, debug = FALSE) {
+doEvent.backCastor = function(sim, eventTime, eventType, debug = FALSE) {
   switch(
     eventType,
     
@@ -65,25 +63,25 @@ doEvent.cutblockSeqPrepCLUS = function(sim, eventTime, eventType, debug = FALSE)
       sim<-Init(sim)
       sim <- getHistoricalLandings(sim) #Get the XY location of the historical cutblock landings
       
-      if(nrow(dbGetQuery(sim$clusdb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='blocks'")) == 0){
+      if(nrow(dbGetQuery(sim$castordb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='blocks'")) == 0){
         sim <- createBlocksTable(sim)#create blockid column blocks and adjacency table
         sim <- getExistingCutblocks(sim) #updates pixels to include existing blocks
-        sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval,"cutblockSeqPrepCLUS", "updateAge",  7)
+        sim <- scheduleEvent(sim, time(sim) + P(sim)$stepInterval,"backCastor", "updateAge",  7)
       }
       
-      sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "cutblockSeqPrep", 6)
-      sim <- scheduleEvent(sim, end(sim), "cutblockSeqPrepCLUS", "finalAge", 8)
+      sim <- scheduleEvent(sim, time(sim) + P(sim)$stepInterval, "backCastor", "cutblockSeqPrep", 6)
+      sim <- scheduleEvent(sim, end(sim), "backCastor", "finalAge", 8)
       
     },
     
     cutblockSeqPrep = {
       sim <- getLandings(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "cutblockSeqPrep",6)
+      sim <- scheduleEvent(sim, time(sim) + P(sim)$stepInterval, "backCastor", "cutblockSeqPrep",6)
     },
     
     updateAge = {
       sim <- incrementAge(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim)$cutblockSeqInterval, "cutblockSeqPrepCLUS", "updateAge", 7)
+      sim <- scheduleEvent(sim, time(sim) + P(sim)$stepInterval, "backCastor", "updateAge", 7)
     },
     
     finalAge = {
@@ -99,7 +97,7 @@ doEvent.cutblockSeqPrepCLUS = function(sim, eventTime, eventType, debug = FALSE)
 Init <- function(sim) {
   sim$landings <- NULL
   sim$landingsArea <- NULL
-  sim$updateInterval<- 1 #this object is defined in growingStockCLUS
+  sim$updateInterval<- 1 #this object is defined in growingStockCastor
   return(invisible(sim))
 }
 
@@ -117,8 +115,7 @@ getHistoricalLandings <- function(sim) {
     if(nrow(landings) > 0){
       message('getting pre landings')
       #TO DO: remove the labelling of column and rows with numbers like c(2,3) should be c("x", "y")
-      sim$landings <- SpatialPoints(coords = as.matrix(landings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
-                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"))
+      sim$landings <- terra::cellFromXY(sim$ras, landings[,c(2,3)])
       sim$landingsArea <- NULL
     }else{
       print('NO pre landings in: ')
@@ -138,8 +135,7 @@ getLandings <- function(sim) {
     if(nrow(landings) > 0){
       print(paste0('getting landings in: ', time(sim)))
       #TO DO: remove the labelling of column and rows with numbers like c(2,3) should be c("x", "y")
-      sim$landings<- SpatialPoints(coords = as.matrix(landings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
-                          +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"))
+      sim$landings<- terra::cellFromXY(sim$ras, landings[,c(2,3)])
       #TODO: put a unique statement here? so that there aren't duplicate of the same landing location
       if(P(sim)$getArea){sim$landingsArea<-landings[,4]}else {sim$landingsArea<-NULL}
       
@@ -154,50 +150,50 @@ getLandings <- function(sim) {
 
 createBlocksTable<-function(sim){
   message("create blockid, blocks and adjacentBlocks")
-  dbExecute(sim$clusdb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, salvage_vol numeric, dist numeric DEFAULT 0, landing integer)")
-  dbExecute(sim$clusdb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
+  dbExecute(sim$castordb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, salvage_vol numeric, dist numeric DEFAULT 0, landing integer)")
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
   return(invisible(sim)) 
 }
 
 
 getExistingCutblocks<-function(sim){
-  if(!(P(sim, "nameCutblockRaster", "cutblockSeqPrepCLUS") == '99999')){
-    message(paste0('..getting cutblocks: ',P(sim, "nameCutblockRaster", "cutblockSeqPrepCLUS")))
-    ras.blk<- RASTER_CLIP2(srcRaster= P(sim, "nameCutblockRaster", "cutblockSeqPrepCLUS"),
+  if(!(P(sim, "nameCutblockRaster", "backCastor") == '99999')){
+    message(paste0('..getting cutblocks: ',P(sim, "nameCutblockRaster", "backCastor")))
+    ras.blk<- terra::rast(RASTER_CLIP2(srcRaster= P(sim, "nameCutblockRaster", "backCastor"),
                            tmpRast = paste0('temp_', sample(1:10000, 1)),
                            clipper=sim$boundaryInfo[1] , 
                            geom= sim$boundaryInfo[4] , 
                            where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           conn=NULL)
-    if(extent(sim$ras) == extent(ras.blk)){
+                           conn=NULL))
+    if(ext(sim$ras) == ext(ras.blk)){
       exist_cutblocks<-data.table(blockid = ras.blk[])
       exist_cutblocks[, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
       exist_cutblocks<-exist_cutblocks[blockid > 0, ]
       
-      #add to the clusdb
+      #add to the castordb
       message('...updating blockids')
-      dbBegin(sim$clusdb)
-        rs <- dbSendQuery(sim$clusdb, "Update pixels set blockid = :blockid where pixelid = :pixelid", exist_cutblocks)
+      dbBegin(sim$castordb)
+        rs <- dbSendQuery(sim$castordb, "Update pixels set blockid = :blockid where pixelid = :pixelid", exist_cutblocks)
       dbClearResult(rs)
-      dbCommit(sim$clusdb)
+      dbCommit(sim$castordb)
       
       message('...getting age')
-      blocks.age<-getTableQuery(paste0("SELECT (", P(sim)$startHarvestYear, " - harvestyr) as age, cutblockid as blockid from ", P(sim, "nameCutblockTable", "cutblockSeqPrepCLUS"), 
+      blocks.age<-getTableQuery(paste0("SELECT (", P(sim)$startHarvestYear, " - harvestyr) as age, cutblockid as blockid from ", P(sim, "nameCutblockTable", "backCastor"), 
                                        " where cutblockid in ('",paste(unique(exist_cutblocks$blockid), collapse = "', '"), "');"))
       
-      dbExecute(sim$clusdb, "CREATE INDEX index_blockid on pixels (blockid)")
+      dbExecute(sim$castordb, "CREATE INDEX index_blockid on pixels (blockid)")
       #Set the age
       message('...updating age')
-      dbBegin(sim$clusdb)
-        rs <- dbSendQuery(sim$clusdb, "Update pixels set age = :age where blockid = :blockid", blocks.age)
+      dbBegin(sim$castordb)
+        rs <- dbSendQuery(sim$castordb, "Update pixels set age = :age where blockid = :blockid", blocks.age)
       dbClearResult(rs)
-      dbCommit(sim$clusdb)
+      dbCommit(sim$castordb)
       
       rm(ras.blk,exist_cutblocks, blocks.age)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameCutblockRaster", "blockingCLUS")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameCutblockRaster", "blockingCastor")))
     }
   }
   return(invisible(sim))
@@ -206,17 +202,18 @@ getExistingCutblocks<-function(sim){
 
 incrementAge <- function(sim) {
   message("...increment age")
-  dbExecute(sim$clusdb, "DROP INDEX index_age")
+  dbExecute(sim$castordb, "DROP INDEX index_age")
+  
   #Update the pixels table
-  dbBegin(sim$clusdb)
-  rs<-dbSendQuery(sim$clusdb, "UPDATE pixels SET age = age + 1")
+  dbBegin(sim$castordb)
+  rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = age + 1")
   dbClearResult(rs)
-  dbCommit(sim$clusdb)
-  dbExecute(sim$clusdb, "CREATE INDEX index_age on pixels (age)")
+  dbCommit(sim$castordb)
+  dbExecute(sim$castordb, "CREATE INDEX index_age on pixels (age)")
   
   #message("...write Raster")
   #sim$age<-sim$ras
-  #sim$age[]<-unlist(c(dbGetQuery(sim$clusdb, "SELECT age FROM pixels order by pixelid")), use.names =FALSE)
+  #sim$age[]<-unlist(c(dbGetQuery(sim$castordb, "SELECT age FROM pixels order by pixelid")), use.names =FALSE)
   #writeRaster(sim$age, file=paste0(P(sim)$outputPath,  sim$boundaryInfo[[3]][[1]],"_age_", time(sim), ".tif"), format="GTiff", overwrite=TRUE)
   
   return(invisible(sim))
@@ -225,11 +222,11 @@ incrementAge <- function(sim) {
 
 setBlocksTable <- function(sim) {
   message("set the blocks table")
-  dbExecute(sim$clusdb, paste0("INSERT INTO blocks (blockid, age) 
+  dbExecute(sim$castordb, paste0("INSERT INTO blocks (blockid, age) 
                     SELECT blockid, round(AVG(age),0) as age
                                        FROM pixels WHERE blockid > 0 GROUP BY blockid "))
   
-  dbExecute(sim$clusdb, "CREATE INDEX index_blockid on blocks (blockid)")
+  dbExecute(sim$castordb, "CREATE INDEX index_blockid on blocks (blockid)")
   return(invisible(sim))
 }
 
@@ -246,15 +243,15 @@ finalAgeCalc <- function (sim) { # this function inverts the roadstatus and road
     message("Setting roadyear and roadstatus as negative age.")
     
     # update the db
-    dbBegin(sim$clusdb)
-    rs<-dbSendQuery(sim$clusdb, paste0("UPDATE pixels SET roadstatus = (",  end(sim), " - roadstatus) * -1,  roadyear = (",  end(sim), " - roadyear) * -1 WHERE roadtype != 0 OR roadtype IS NULL"))    
+    dbBegin(sim$castordb)
+    rs<-dbSendQuery(sim$castordb, paste0("UPDATE pixels SET roadstatus = (",  end(sim), " - roadstatus) * -1,  roadyear = (",  end(sim), " - roadyear) * -1 WHERE roadtype != 0 OR roadtype IS NULL"))    
     dbClearResult(rs)
-    dbCommit(sim$clusdb)
+    dbCommit(sim$castordb)
     # then update the rasters
     sim$road.year<-sim$ras
-    sim$road.year[]<-dbGetQuery(sim$clusdb, 'SELECT roadyear FROM pixels')$roadyear
+    sim$road.year[]<-dbGetQuery(sim$castordb, 'SELECT roadyear FROM pixels')$roadyear
     sim$road.status<-sim$ras
-    sim$road.status[]<-dbGetQuery(sim$clusdb, 'SELECT roadstatus FROM pixels')$roadstatus
+    sim$road.status[]<-dbGetQuery(sim$castordb, 'SELECT roadstatus FROM pixels')$roadstatus
     
     
     
