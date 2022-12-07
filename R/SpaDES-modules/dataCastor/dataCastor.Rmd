@@ -31,9 +31,10 @@ library(SpaDES.core)
 library(data.table)
 
 source(here::here("R/functions/R_Postgres.R"))
-
-moduleDir <- paste0(here::here(),"/R/SpaDES-modules")
-outputDir <- paste0(here::here(),"/R/SpaDES-modules/blockingCastor")
+paths <- list(
+  modulePath = paste0(here::here(),"/R/SpaDES-modules"),
+  outputPath = paste0(here::here(),"/R/SpaDES-modules/dataCastor")
+)
 
 times <- list(start = 0, end = 0)
 parameters <-  list(
@@ -43,7 +44,7 @@ parameters <-  list(
                      randomLandscape = list(100,100,0,100,0,100),
                      randomLandscapeZoneConstraint = 
                        data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
-                    ),
+                    )
   )
 
 scenario = data.table(name="test", description = "test")
@@ -52,13 +53,10 @@ objects <- list(scenario = scenario)
 modules <- list("dataCastor")
 inputs <- list()
 outputs <- list()
-paths <- list(
-  modulePath = moduleDir,
-  outputPath = outputDir
-)
+
 
 mySim <- simInit(times = times, params = parameters, modules = modules,
-                 objects = objects)
+                 objects = objects, paths= paths)
 
 system.time({
 mysimout<-spades(mySim)
