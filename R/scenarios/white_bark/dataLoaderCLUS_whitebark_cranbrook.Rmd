@@ -102,7 +102,7 @@ parameters <-  list(
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.ce_road_2019' 
                   ),
-  cutblockSeqPrepCastor = list(startHarvestYear = 1960,
+  backCastor = list(startHarvestYear = 1960,
                              nameCutblockRaster= 'rast.cns_cut_bl', 
                              nameCutblockTable= 'cns_cut_bl_polygon', 
                              queryCutblocks = 'cutseq_centroid',
@@ -120,7 +120,7 @@ parameters <-  list(
   smcpopCastor = list (calculateInterval = 100,
                                  nameRasSMCHerd = "rast.smc_herd_habitat", 
                                  tableSMCCoeffs = "vat.smc_coeffs"),
-  uploaderCastor = list(aoiName = 'whitebark_cranbrook',
+  uploadCastor = list(aoiName = 'whitebark_cranbrook',
                         dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                        keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                        keyring::key_get("vmdbpass", keyring="postgreSQL"), 
@@ -148,8 +148,8 @@ modules <- list("dataCastor",
                 "survivalCastor",
                 "disturbanceCastor",
                 "smcpopCastor",
-                "uploaderCastor",
-                "cutblockSeqPrepCastor")
+                "uploadCastor",
+                "backCastor")
 
 objects <- list(patchSizeDist = patchSizeDist, 
                 scenario = scenario)

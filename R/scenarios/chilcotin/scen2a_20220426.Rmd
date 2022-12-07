@@ -186,7 +186,7 @@ parameters <- list(
   survivalgrizzlyCastor = list (rasterGBPU = "rast.gbpu_2021", 
                               tableGBPU= "vat.gbpu", 
                               roadDensity = 10),
-  uploaderCastor = list(aoiName = 'chilcotin_caribou_plan', # name of the schema that gets uploaded to postgres
+  uploadCastor = list(aoiName = 'chilcotin_caribou_plan', # name of the schema that gets uploaded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -206,7 +206,7 @@ modules <- list("dataCastor",
                 "volumebyareaReportCastor",
                 # "rsfCLUS", # error line 453 - need to debug
                 "smcpopCastor",
-                "uploaderCastor"
+                "uploadCastor"
                 )
 
 
