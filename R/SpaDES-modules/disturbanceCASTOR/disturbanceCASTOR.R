@@ -11,18 +11,18 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 defineModule(sim, list(
-  name = "disturbanceCASTOR",
+  name = "disturbanceCastor",
   description = NA, #"insert module description here",
   keywords = NA, # c("insert key words here"),
   authors = c(person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre")),
               person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character(0),
-  version = list(SpaDES.core = "0.2.5", disturbanceCASTOR = "1.0.0"),
+  version = list(SpaDES.core = "0.2.5", disturbanceCastor = "1.0.0"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.txt", "disturbanceCASTOR.Rmd"),
+  documentation = list("README.txt", "disturbanceCastor.Rmd"),
   reqdPkgs = list("raster"),
   parameters = rbind(
     defineParameter("criticalHabitatTable", "character", '99999', NA, NA, "Value attribute table that links to the raster and describes the boundaries of the critical habitat"),
@@ -40,7 +40,7 @@ defineModule(sim, list(
   inputObjects = bind_rows(
     expectsInput(objectName = "boundaryInfo", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "castordb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the RSF', sourceURL = NA),
-    expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataCASTOR. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
+    expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataCastor. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
@@ -53,16 +53,16 @@ defineModule(sim, list(
   )
 ))
 
-doEvent.disturbanceCASTOR = function (sim, eventTime, eventType) {
+doEvent.disturbanceCastor = function (sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
       sim <- Init (sim) # this function inits 
-      sim <- scheduleEvent(sim, time(sim) , "disturbanceCASTOR", "analysis", 9)
+      sim <- scheduleEvent(sim, time(sim) , "disturbanceCastor", "analysis", 9)
     },
     analysis = {
       sim <- distAnalysis(sim)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "disturbanceCASTOR"), "disturbanceCASTOR", "analysis", 9)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "disturbanceCastor"), "disturbanceCastor", "analysis", 9)
     },
     
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
@@ -85,25 +85,25 @@ Init <- function(sim) {
                                     c10_40r50=numeric(),  c10_40r500=numeric(), cut10_40=numeric() )
   sim$disturbance <- sim$pts
   message("...Get the critical habitat")
-  if(P(sim, "criticalHabRaster", "disturbanceCASTOR") == '99999'){
+  if(P(sim, "criticalHabRaster", "disturbanceCastor") == '99999'){
     sim$disturbance[, attribute := 1]
   }else{
     bounds <- data.table (V1 = RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                          srcRaster = P (sim, "criticalHabRaster", "disturbanceCASTOR"), 
+                          srcRaster = P (sim, "criticalHabRaster", "disturbanceCastor"), 
                           clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                           geom = sim$boundaryInfo[[4]], 
                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                           conn = NULL)[])
     bounds [, pixelid := seq_len(.N)] # make a unique id to ensure it merges correctly
     if(nrow(bounds[!is.na(V1),]) > 0){ #check to see if some of the aoi overlaps with the boundary
-      if(!(P(sim, "criticalHabitatTable", "disturbanceCASTOR") == '99999')){
-        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , attribute FROM ",P(sim, "criticalHabitatTable", "disturbanceCASTOR"))))
+      if(!(P(sim, "criticalHabitatTable", "disturbanceCastor") == '99999')){
+        crit_lu<-data.table(getTableQuery(paste0("SELECT cast(value as int) , attribute FROM ",P(sim, "criticalHabitatTable", "disturbanceCastor"))))
         bounds<-merge (bounds, crit_lu, by.x = "V1", by.y = "value", all.x = TRUE)
       }else{
-        stop(paste0("ERROR: need to supply a lookup table: ", P(sim, "criticalHabitatTable", "disturbanceCASTOR")))
+        stop(paste0("ERROR: need to supply a lookup table: ", P(sim, "criticalHabitatTable", "disturbanceCastor")))
       }
     }else{
-      stop(paste0(P(sim, "criticalHabRaster", "disturbanceCASTOR"), "- does not overlap with aoi"))
+      stop(paste0(P(sim, "criticalHabRaster", "disturbanceCastor"), "- does not overlap with aoi"))
     }
     setorder(bounds, pixelid) #sort the bounds
     sim$disturbance[, critical_hab:= bounds$attribute]
@@ -117,12 +117,12 @@ Init <- function(sim) {
     # add in the column
     dbExecute(sim$castordb, "ALTER TABLE pixels ADD COLUMN perm_dist integer DEFAULT 0")
     # add in the raster
-    if(P(sim, "permDisturbanceRaster", "disturbanceCASTOR") == '99999'){
+    if(P(sim, "permDisturbanceRaster", "disturbanceCastor") == '99999'){
       message("WARNING: No permanent disturbance raster specified ... defaulting to no permanent disturbances")
       dbExecute(sim$castordb, "Update pixels set perm_dist = 0;")
     }else{
     perm_dist <- data.table(perm_dist = RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                     srcRaster = P(sim, "permDisturbanceRaster", "disturbanceCASTOR"), 
+                     srcRaster = P(sim, "permDisturbanceRaster", "disturbanceCastor"), 
                      clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                      geom = sim$boundaryInfo[[4]], 
                      where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -146,7 +146,7 @@ Init <- function(sim) {
 }
 
 distAnalysis <- function(sim) {
-  all.dist<-data.table(dbGetQuery(sim$castordb, paste0("SELECT age, blockid, (case when ((",time(sim)*sim$updateInterval, " - roadstatus < ",P(sim, "recovery", "disturbanceCASTOR")," AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) then 1 else 0 end) as road_dist, pixelid FROM pixels WHERE perm_dist > 0 OR (blockid > 0 and age >= 0) OR (",time(sim)*sim$updateInterval, " - roadstatus < ", P(sim, "recovery", "disturbanceCASTOR")," AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0;")))
+  all.dist<-data.table(dbGetQuery(sim$castordb, paste0("SELECT age, blockid, (case when ((",time(sim)*sim$updateInterval, " - roadstatus < ",P(sim, "recovery", "disturbanceCastor")," AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) then 1 else 0 end) as road_dist, pixelid FROM pixels WHERE perm_dist > 0 OR (blockid > 0 and age >= 0) OR (",time(sim)*sim$updateInterval, " - roadstatus < ", P(sim, "recovery", "disturbanceCastor")," AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0;")))
   
   if(nrow(all.dist) > 0){
     outPts <- merge (sim$disturbance, all.dist, by = 'pixelid', all.x =TRUE) 
@@ -253,7 +253,7 @@ distAnalysis <- function(sim) {
     sim$disturbance$dist<-501
   }
   
-  #TODO:Add the volume from harvestPixelList; but see volumebyareaReportCASTOR
+  #TODO:Add the volume from harvestPixelList; but see volumebyareaReportCastor
   tempDisturbanceReport<-data.table(Filter(function(x) !is.null(x),
                                 list (cutblock_summary, road_summary, c80r, c40r, c20r, c10_40r)) %>%
                                   Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2, by=c("compartment","critical_hab")), .))

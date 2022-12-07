@@ -13,18 +13,18 @@
 #===========================================================================================#
 
 defineModule (sim, list (
-  name = "survivalgrizzlyCASTOR",
+  name = "survivalgrizzlyCastor",
   description = "This module calculates adult female grizzly bear survival rate in grizzly bear population units (GBPUs) by adapting the model developed by Boulanger and Stenhouse (2014).",
   keywords = c ("grizzly bear", "survival", "road density", "adult female"), 
   authors = c (person ("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre")),
                person ("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("aut", "cre"))),
   childModules = character (0),
-  version = list (SpaDES.core = "0.2.5", survivalgrizzlyCASTOR = "1.0.0"),
+  version = list (SpaDES.core = "0.2.5", survivalgrizzlyCastor = "1.0.0"),
   spatialExtent = raster::extent (rep (NA_real_, 4)),
   timeframe = as.POSIXlt (c (NA, NA)),
   timeunit = "year",
   citation = list ("citation.bib"),
-  documentation = list ("README.md", "survivalgrizzlyCASTOR.Rmd"),
+  documentation = list ("README.md", "survivalgrizzlyCastor.Rmd"),
   reqdPkgs = list (),
   parameters = rbind (
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
@@ -36,7 +36,7 @@ defineModule (sim, list (
   inputObjects = bind_rows(
     expectsInput (objectName = "castordb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the model. This module needs the roadyear variable from the pixels table in the castordb.', sourceURL = NA),
     expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
-    expectsInput(objectName ="roads", objectClass ="RasterLayer", desc = 'A raster of the roads; note I put this here to make sure this module is run AFTER the roadCASTOR module', sourceURL = NA),
+    expectsInput(objectName ="roads", objectClass ="RasterLayer", desc = 'A raster of the roads; note I put this here to make sure this module is run AFTER the roadCastor module', sourceURL = NA),
     expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
     ),
   outputObjects = bind_rows(
@@ -45,18 +45,18 @@ defineModule (sim, list (
   )
 )
 
-doEvent.survivalgrizzlyCASTOR = function (sim, eventTime, eventType) {
+doEvent.survivalgrizzlyCastor = function (sim, eventTime, eventType) {
   switch (
     eventType,
     init = { # identify GBPUs in the study area, calculate survival rate at time 0 for those GBPUs and save the survival rate estimate
       sim <- Init (sim) # identify GBPUs in the study area and calculate survival rate at time 0; instantiate a table to save the survival rate estimates
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "survivalgrizzlyCASTOR"), "survivalgrizzlyCASTOR", "calculateSurvival", 10) # schedule the next survival calculation event; should be after roadCASTOR
-      #sim <- scheduleEvent (sim, end(sim), "survivalgrizzlyCASTOR", "adjustSurvivalTable", 9) 
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "survivalgrizzlyCastor"), "survivalgrizzlyCastor", "calculateSurvival", 10) # schedule the next survival calculation event; should be after roadCastor
+      #sim <- scheduleEvent (sim, end(sim), "survivalgrizzlyCastor", "adjustSurvivalTable", 9) 
     },
     
     calculateSurvival = { # calculate survival rate at each time interval 
       sim <- predictSurvival (sim) # this function calculates survival rate
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "survivalgrizzlyCASTOR"), "survivalgrizzlyCASTOR", "calculateSurvival", 10) # schedule the next survival calculation event  
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "survivalgrizzlyCastor"), "survivalgrizzlyCastor", "calculateSurvival", 10) # schedule the next survival calculation event  
     },
 
     warning (paste ("Undefined event type: '", current (sim) [1, "eventType", with = FALSE],
@@ -66,13 +66,13 @@ doEvent.survivalgrizzlyCASTOR = function (sim, eventTime, eventType) {
 }
 
 Init <- function (sim) { # this function identifies the GBPUs in the 'study area' creates the survival rate table, calculates survival rate at time = 0, and saves the survival table in the castordb
-  # Added a condition here in those cases where the dataCASTOR has already ran
+  # Added a condition here in those cases where the dataCastor has already ran
   if(nrow(data.table(dbGetQuery(sim$castordb, "PRAGMA table_info(pixels)"))[name == 'gbpu_name',])== 0){
     dbExecute (sim$castordb, "ALTER TABLE pixels ADD COLUMN gbpu_name character") # add a column to the pixel table that will define the GBPU
     # clip caribou herd raster by the 'study area' set in dataLoader
     gbpubounds <- data.table (gbpu_name =
                                     RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                                      srcRaster = P (sim, "rasterGBPU", "survivalgrizzlyCASTOR") , # clip the GBPU boundary raster; defined in parameters, above
+                                      srcRaster = P (sim, "rasterGBPU", "survivalgrizzlyCastor") , # clip the GBPU boundary raster; defined in parameters, above
                                       clipper=sim$boundaryInfo[1] , 
                                       geom= sim$boundaryInfo[4] , 
                                       where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),

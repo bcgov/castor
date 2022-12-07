@@ -19,16 +19,16 @@
 ## If exact location is required, functions will be: `sim$.mods$<moduleName>$FunctionName`.
 
 defineModule(sim, list(
-  name = "abmfisherCASTOR",
+  name = "abmfisherCastor",
   description = "An agent based model (ABM) to simulate fisher life history on a landscape.",
   keywords = "fisher, martes, agent based model",
   authors = structure(list(list(given = c("First", "Middle"), family = "Last", role = c("aut", "cre"), email = "email@example.com", comment = NULL)), class = "person"),
   childModules = character(0),
-  version = list (abmfisherCASTOR = "1.0.0.0000"),
+  version = list (abmfisherCastor = "1.0.0.0000"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.md", "abmfisherCASTOR.Rmd"), ## same file
+  documentation = list("README.md", "abmfisherCastor.Rmd"), ## same file
   reqdPkgs = list("SpaDES.core (>=1.0.10)", "data.table", "terra", "keyring", "here"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
@@ -93,15 +93,15 @@ defineModule(sim, list(
 
 ## event types
 
-doEvent.abmfisherCASTOR = function (sim, eventTime, eventType) {
+doEvent.abmfisherCastor = function (sim, eventTime, eventType) {
   switch(
     eventType,
     
     init = {
       sim <- Init (sim)
       sim <- saveAgents (sim)
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "timeInterval", "abmfisherCASTOR"), "abmfisherCASTOR", "runevents", 19)
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "timeInterval", "abmfisherCASTOR"), "abmfisherCASTOR", "save", 20)
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "timeInterval", "abmfisherCastor"), "abmfisherCastor", "runevents", 19)
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "timeInterval", "abmfisherCastor"), "abmfisherCastor", "save", 20)
     },
     # interpolatehabitat = {
     # 
@@ -114,16 +114,16 @@ doEvent.abmfisherCASTOR = function (sim, eventTime, eventType) {
     #   # instead, we could calc the mid-point between the start and end as the habitat score
     #   #  this would 'smooth' the habitat effects over a five year period, probably returning more realistic results
     #   
-    #   sim <- scheduleEvent(sim, time(sim) + P(sim, "timeInterval", "abmfisherCASTOR"), "abmfisherCASTOR", "reproduce", 20)
+    #   sim <- scheduleEvent(sim, time(sim) + P(sim, "timeInterval", "abmfisherCastor"), "abmfisherCastor", "reproduce", 20)
     #   
     # },
    runevents = {
       sim <- annualEvents (sim)
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "timeInterval", "abmfisherCASTOR"), "abmfisherCASTOR", "runevents", 19)
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "timeInterval", "abmfisherCastor"), "abmfisherCastor", "runevents", 19)
     },
    save = {
       sim <- saveAgents (sim)
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "timeInterval", "abmfisherCASTOR"), "abmfisherCASTOR", "save", 20)
+      sim <- scheduleEvent (sim, time(sim) + P(sim, "timeInterval", "abmfisherCastor"), "abmfisherCastor", "save", 20)
     },
    
     warning(paste("Undefined event type: \'", current(sim)[1, "eventType", with = FALSE],
@@ -227,14 +227,14 @@ Init <- function(sim) {
     den.pix.sample <- den.pix [seq (1, nrow (den.pix), 50), ] # grab every ~50th pixel; ~1 pixel every 5km
     sim$agents <- data.table (individual_id = seq (from = 1, to = nrow (den.pix.sample), by = 1),
                               sex = "F",
-                              age = sample (1:P(sim, "female_max_age", "abmfisherCASTOR"), length (seq (from = 1, to = nrow (den.pix.sample), by = 1)), replace = T), # randomly draw ages between 1 and the max age,
+                              age = sample (1:P(sim, "female_max_age", "abmfisherCastor"), length (seq (from = 1, to = nrow (den.pix.sample), by = 1)), replace = T), # randomly draw ages between 1 and the max age,
                               pixelid = den.pix.sample$V1)
    
     # user-defined method; allow user to pick the # of agents
-      # ids <- seq (from = 1, to = P(sim, "n_females", "abmfisherCASTOR"), by = 1) # sequence of individual id's from 1 to n_females
+      # ids <- seq (from = 1, to = P(sim, "n_females", "abmfisherCastor"), by = 1) # sequence of individual id's from 1 to n_females
       # agents <- data.table (individual_id = ids, 
       #                       sex = "F", 
-      #                       age = sample (1:P(sim, "max_age", "abmfisherCASTOR"), length (ids), replace = T), # randomly draw ages between 1 and the max age, 
+      #                       age = sample (1:P(sim, "max_age", "abmfisherCastor"), length (ids), replace = T), # randomly draw ages between 1 and the max age, 
       #                       pixelid = numeric (), 
       #                       hr_size = numeric (),
       #                       d2_score = numeric ())
@@ -353,7 +353,7 @@ Init <- function(sim) {
   
   # check if proportion of habitat types are greater than the minimum thresholds 
   for (i in sim$agents$individual_id) { # for each individual
-    if (P(sim, "rest_target", "abmfisherCASTOR") <= (nrow (table.hr [individual_id == i & rust == 1]) + nrow (table.hr [individual_id == i & cwd == 1])) / sim$agents [individual_id == i, hr_size] & P(sim, "move_target", "abmfisherCASTOR") <= nrow (table.hr [individual_id == i & movement == 1]) / sim$agents [individual_id == i, hr_size] & P(sim, "den_target", "abmfisherCASTOR") <= nrow (table.hr [individual_id == i & denning == 1]) / sim$agents [individual_id == i, hr_size]
+    if (P(sim, "rest_target", "abmfisherCastor") <= (nrow (table.hr [individual_id == i & rust == 1]) + nrow (table.hr [individual_id == i & cwd == 1])) / sim$agents [individual_id == i, hr_size] & P(sim, "move_target", "abmfisherCastor") <= nrow (table.hr [individual_id == i & movement == 1]) / sim$agents [individual_id == i, hr_size] & P(sim, "den_target", "abmfisherCastor") <= nrow (table.hr [individual_id == i & denning == 1]) / sim$agents [individual_id == i, hr_size]
     ) {
       # check to see it meets all thresholds
       # assign the pixels to territories table
@@ -399,7 +399,7 @@ Init <- function(sim) {
 ###--- ANNUAL EVENTS
 annualEvents <- function (sim) {
  
-  for (i in P(sim, "periodLength", "growingStockCASTOR")) { # repeat this function by the number of periods (years); this ties it to growingstockCASTOR - make this independent?
+  for (i in P(sim, "periodLength", "growingStockCastor")) { # repeat this function by the number of periods (years); this ties it to growingstockCastor - make this independent?
     
     # Step 1: "Update" the Habitat Conditions 
     message ("Fishers check habitat in territory.")
@@ -442,7 +442,7 @@ annualEvents <- function (sim) {
     
         # B. check if proportion of habitat types are greater than the minimum thresholds 
     for (i in sim$agents$individual_id) { # for each individual
-      if (P(sim, "rest_target", "abmfisherCASTOR") <= (nrow (table.hab.terrs [individual_id == i & rust == 1]) + nrow (table.hab.terrs [individual_id == i & cwd == 1])) / sim$agents [individual_id == i, hr_size] & P(sim, "move_target", "abmfisherCASTOR") <= nrow (table.hab.terrs [individual_id == i & movement == 1]) / sim$agents [individual_id == i, hr_size] & P(sim, "den_target", "abmfisherCASTOR") <= nrow (table.hab.terrs [individual_id == i & denning == 1]) / sim$agents [individual_id == i, hr_size]
+      if (P(sim, "rest_target", "abmfisherCastor") <= (nrow (table.hab.terrs [individual_id == i & rust == 1]) + nrow (table.hab.terrs [individual_id == i & cwd == 1])) / sim$agents [individual_id == i, hr_size] & P(sim, "move_target", "abmfisherCastor") <= nrow (table.hab.terrs [individual_id == i & movement == 1]) / sim$agents [individual_id == i, hr_size] & P(sim, "den_target", "abmfisherCastor") <= nrow (table.hab.terrs [individual_id == i & denning == 1]) / sim$agents [individual_id == i, hr_size]
       ) {
         ## if it achieves its minimum thresholds for each habitat type 
         # do nothing; the fisher maintains its territory
@@ -473,7 +473,7 @@ annualEvents <- function (sim) {
     table.disperse <- SpaDES.tools::spread2 (sim$pix.rast, # within the area of interest
                                              start = dispersers$pixelid, # for each individual
                                              spreadProb = spread.rast, # spread more in habitat (i.e., there is some 'direction' towards habitat)
-                                             exactSize = P (sim, "female_dispersal", "abmfisherCASTOR"), # spread to a dispersal area 
+                                             exactSize = P (sim, "female_dispersal", "abmfisherCastor"), # spread to a dispersal area 
                                              allowOverlap = T, # overlap allowed; fishers could pick the same dispersal area
                                              asRaster = F, # output as table
                                              circle = F) # spread to adjacent cells; not necessarily a circle
@@ -647,7 +647,7 @@ annualEvents <- function (sim) {
       
       # E. Check that min. habitat thresholds are met 
       for (i in dispersers$individual_id) { # for each individual
-        if (P(sim, "rest_target", "abmfisherCASTOR") <= (nrow (table.disperse.hr [individual_id == i & rust == 1]) + nrow (table.disperse.hr [individual_id == i & cwd == 1])) / dispersers [individual_id == i, hr_size] & P(sim, "move_target", "abmfisherCASTOR") <= nrow (table.disperse.hr [individual_id == i & movement == 1]) / dispersers [individual_id == i, hr_size] & P(sim, "den_target", "abmfisherCASTOR") <= nrow (table.disperse.hr [individual_id == i & denning == 1]) / dispersers [individual_id == i, hr_size]
+        if (P(sim, "rest_target", "abmfisherCastor") <= (nrow (table.disperse.hr [individual_id == i & rust == 1]) + nrow (table.disperse.hr [individual_id == i & cwd == 1])) / dispersers [individual_id == i, hr_size] & P(sim, "move_target", "abmfisherCastor") <= nrow (table.disperse.hr [individual_id == i & movement == 1]) / dispersers [individual_id == i, hr_size] & P(sim, "den_target", "abmfisherCastor") <= nrow (table.disperse.hr [individual_id == i & denning == 1]) / dispersers [individual_id == i, hr_size]
         ) {
           # if it achieves the thresholds
           # assign the pixels to the territories table
@@ -699,7 +699,7 @@ annualEvents <- function (sim) {
         new.agents <- data.frame (lapply (reproFishers, rep, reproFishers$kits)) # repeat the rows in the reproducing fishers table by the number of kits 
         
         # assign whether fisher is a male or female; remove males
-        new.agents$kits <- rbinom (size = 1, n = nrow (new.agents), prob = P (sim, "sex_ratio", "abmfisherCASTOR")) # prob of being a female
+        new.agents$kits <- rbinom (size = 1, n = nrow (new.agents), prob = P (sim, "sex_ratio", "abmfisherCastor")) # prob of being a female
         new.agents <- setDT (new.agents)
         new.agents <- new.agents [kits == 1, ] # female = 1; male = 0
         # make them age 0; 
@@ -727,7 +727,7 @@ annualEvents <- function (sim) {
       
       # Step 5. Survive and Age 1 Year
         # old fishers die here; remove their territories
-      survivors <- sim$agents [age < P(sim, "female_max_age", "abmfisherCASTOR"), ] # remove old
+      survivors <- sim$agents [age < P(sim, "female_max_age", "abmfisherCastor"), ] # remove old
       sim$agents <- sim$agents [individual_id %in% survivors$individual_id] 
       sim$territories <- sim$territories [individual_id %in% survivors$individual_id] # remove territories
       
@@ -819,11 +819,11 @@ saveAgents <- function (sim) {
   # currently saving the number of agents and age of agents
     # divide by number of iterations (i.e., the 'weight' of an iteration)
     # then in post-processing, to calculate each value, sum by time step and scenario 
-  new.agents.save <- data.table (n_f_adult = as.numeric (nrow (sim$agents [sex == "F" & age > 1 & !is.na (d2_score), ]) / P(sim, "iterations", "abmfisherCASTOR")), 
-                                 n_f_juv = as.numeric (nrow (sim$agents [sex == "F" & age == 1 & !is.na (d2_score), ]) / P(sim, "iterations", "abmfisherCASTOR")), 
-                                 n_f_disperse = as.numeric (nrow (sim$agents [sex == "F" & age > 0 & !is.na (d2_score), ]) / P(sim, "iterations", "abmfisherCASTOR")), 
-                                 mean_age_f = as.numeric (mean (c (sim$agents [sex == "F", age]) / P(sim, "iterations", "abmfisherCASTOR"))), 
-                                 sd_age_f = as.numeric (sd (c (sim$agents [sex == "F", age]) / P(sim, "iterations", "abmfisherCASTOR"))), 
+  new.agents.save <- data.table (n_f_adult = as.numeric (nrow (sim$agents [sex == "F" & age > 1 & !is.na (d2_score), ]) / P(sim, "iterations", "abmfisherCastor")), 
+                                 n_f_juv = as.numeric (nrow (sim$agents [sex == "F" & age == 1 & !is.na (d2_score), ]) / P(sim, "iterations", "abmfisherCastor")), 
+                                 n_f_disperse = as.numeric (nrow (sim$agents [sex == "F" & age > 0 & !is.na (d2_score), ]) / P(sim, "iterations", "abmfisherCastor")), 
+                                 mean_age_f = as.numeric (mean (c (sim$agents [sex == "F", age]) / P(sim, "iterations", "abmfisherCastor"))), 
+                                 sd_age_f = as.numeric (sd (c (sim$agents [sex == "F", age]) / P(sim, "iterations", "abmfisherCastor"))), 
                                  timeperiod = as.integer (time(sim)*sim$updateInterval), 
                                  scenario = as.character (sim$scenario$name),
                                  compartment = as.character (sim$boundaryInfo[[3]])
@@ -838,7 +838,7 @@ saveAgents <- function (sim) {
     # final raster is the number of time periods that a pixel was a territory
   ras.territories.update <- sim$ras
   ras.territories.update [] <- 0
-  ras.territories.update [sim$territories$pixelid] <- 1 / P(sim, "iterations", "abmfisherCASTOR")
+  ras.territories.update [sim$territories$pixelid] <- 1 / P(sim, "iterations", "abmfisherCastor")
   sim$ras.territories <- sim$ras.territories + ras.territories.update
   writeRaster (x = sim$ras.territories, 
                filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_fisherterritories.tif"), 
@@ -977,10 +977,10 @@ litterSize <- function (fisherPop, mahalTable, reproTable){
   if (!suppliedElsewhere (ras)) { # empty raster object for defining the area of interest
     
     sim$ras <- RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                         srcRaster = P (sim, "nameCompartmentRaster", "dataCASTOR"), 
-                         clipper = P (sim, "nameBoundaryFile", "dataCASTOR" ), 
-                         geom = P (sim, "nameBoundaryGeom", "dataCASTOR"), 
-                         where_clause =  paste0 ( P (sim, "nameBoundaryColumn", "dataCASTOR"), " in (''", paste(P(sim, "nameBoundary", "dataCASTOR"), sep = "' '", collapse= "'', ''") ,"'')"),
+                         srcRaster = P (sim, "nameCompartmentRaster", "dataCastor"), 
+                         clipper = P (sim, "nameBoundaryFile", "dataCastor" ), 
+                         geom = P (sim, "nameBoundaryGeom", "dataCastor"), 
+                         where_clause =  paste0 ( P (sim, "nameBoundaryColumn", "dataCastor"), " in (''", paste(P(sim, "nameBoundary", "dataCastor"), sep = "' '", collapse= "'', ''") ,"'')"),
                          conn = NULL) 
   }
   

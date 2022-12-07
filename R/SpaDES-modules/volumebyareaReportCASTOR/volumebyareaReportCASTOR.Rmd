@@ -1,5 +1,5 @@
 ---
-title: "volumebyareaReportCASTOR"
+title: "volumebyareaReportCastor"
 author: ""
 date: "10 July 2020"
 output: pdf_document
@@ -23,20 +23,20 @@ times <- list(start = 0, end = 15)
 parameters <- list(
                   .progress = list(type = NA, interval = NA),
                   .globals = list(),
-       dataCASTOR = list(dbName='castor',
+       dataCastor = list(dbName='castor',
                              nameBoundaryFile = "tsa_aac_bounds",
                              nameBoundaryColumn = "tsa_name",
                              nameBoundary = "Revelstoke_TSA",
                              nameBoundaryGeom ='wkb_geometry',
                              nameCompartmentRaster = "rast.tsa_aac_boundary",
                              nameCompartmentTable = "tsa_aac_bounds_vat"),
-      volumebyareaReportCASTOR = list (calculateInterval = 1,
+      volumebyareaReportCastor = list (calculateInterval = 1,
                                      AreaofInterestRaster = "rast.aoi_partnership_agree",
                                      AreaofInterestTable = "partnership_agreement_vat")
                   )
-modules <- list("dataLoaderCLUS",
-                "volumebyareaReportCASTOR", 
-                "uploaderCLUS")
+modules <- list("dataCastor",
+                "volumebyareaReportCastor", 
+                "uploaderCastor")
 objects <- list(scenario = scenario)
 paths <- list(
   cachePath = cacheDir,

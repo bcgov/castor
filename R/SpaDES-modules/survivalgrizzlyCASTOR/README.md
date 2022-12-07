@@ -1,4 +1,4 @@
-## survivalgrizzlyCASTOR
+## survivalgrizzlyCastor
 
 ### What it does
 

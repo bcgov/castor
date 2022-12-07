@@ -1,5 +1,5 @@
 ---
-title: "smcpopCASTOR"
+title: "smcpopCastor"
 author: "Tyler Muhly and Kyle Lochhead"
 date: "22 July 2021"
 output: pdf_document
@@ -17,7 +17,7 @@ This module estimates the abundance of subpopulations of the southern group of s
 ## Usage
 There are two key considerations and caveats that need to be made clear when using this module:  
 
-1. If possible, you should run the *cutblockSeqPrepCASTOR* module as part of the dataCASTOR module to estimate which roads are used for forest harvest. Otherwise, you will overestimate the number of roads for the abundance estimate.
+1. If possible, you should run the *cutblockSeqPrepCastor* module as part of the dataCastor module to estimate which roads are used for forest harvest. Otherwise, you will overestimate the number of roads for the abundance estimate.
 
 2. If the area of interest only partially overlaps a caribou herd, then the abundance estimate only applies to the portion of the herd that is overlapped, i.e., it is a partial estimate of abundance. 
 
@@ -31,14 +31,14 @@ source (paste0 (here(),"/R/functions/R_Postgres.R"))
 
 moduleDir <- file.path (paste0 (here(),"/R/SpaDES-modules"))
 inputDir <- file.path (paste0 (here(), "/R")) %>% reproducible::checkPath (create = TRUE)
-outputDir <- file.path (paste0 (here(), "/R/SpaDES-modules/smcpopCASTOR/outputs"))
+outputDir <- file.path (paste0 (here(), "/R/SpaDES-modules/smcpopCastor/outputs"))
 cacheDir <- file.path (paste0 (here(), "/R"))
 times <- list (start = 0, end = 1)
 
 parameters <- list (
   .progress = list (type = NA, interval = NA),
   .globals = list (),
-  dataCASTOR = list (useCastorDB = "C:\\Work\\caribou\\clus_data\\clusdb.sqlite", # instantiated dbase
+  dataCastor = list (useCastorDB = "C:\\Work\\caribou\\clus_data\\clusdb.sqlite", # instantiated dbase
                          dbName = 'castor', # Database connection
                          saveCastorDB = FALSE, # don't save the dbase
                          # Study Area params below; make sure they are consistent with other modules
@@ -55,10 +55,10 @@ parameters <- list (
                          nameHeightRaster = "rast.vri2017_projheight1",
                          nameCrownClosureRaster = "rast.vri2017_crownclosure",
                          nameYieldTable = "yield_ex"),
- smcpopCASTOR = list (nameRasSMCHerd = "rast.smc_herd_habitat") 
+ smcpopCastor = list (nameRasSMCHerd = "rast.smc_herd_habitat") 
 )
 
-modules <- list ("dataCASTOR", "smcpopCASTOR")
+modules <- list ("dataCastor", "smcpopCastor")
 
 
 
@@ -88,11 +88,11 @@ This module is pretty simple; there are two event types: 'init' and 'calculateAb
 
 # Data dependencies
 ## Input data
-This module needs the 'dist' field (i.e., disturbed areas) from the 'pixels' table in the sim RSQLite databases (castordb) that gets instantiated at the start of the sim in the dataCASTOR. It also requires a table with model coefficients for estimating abundance from disturbance. This table is currently 'hard coded' and remains static throughout the scenario run.
+This module needs the 'dist' field (i.e., disturbed areas) from the 'pixels' table in the sim RSQLite databases (castordb) that gets instantiated at the start of the sim in the dataCastor. It also requires a table with model coefficients for estimating abundance from disturbance. This table is currently 'hard coded' and remains static throughout the scenario run.
 
 ## Output data
 This module outputs a table that has the herd name identifier, proportion of forest area that is disturbed in each subpopulations critical habitat area and the estimated abundance of the subpopulation at each time interval of the sim.
 
 # Links to other modules
-The module will only work if the dataCASTOR castordb is instantiated as part of the Castor model. Otherwise you won't have the  data needed to make the abundance estimate. 
+The module will only work if the dataCastor castordb is instantiated as part of the Castor model. Otherwise you won't have the  data needed to make the abundance estimate. 
 

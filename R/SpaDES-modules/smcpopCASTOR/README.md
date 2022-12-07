@@ -1,4 +1,4 @@
-## smcaribouAbundanceCLUS
+## smcpopCastor
 
 ### What it does
 
@@ -7,7 +7,7 @@ The purpose of this module is to estimate a southern mountain caribou (osuthern 
 For more details please see [Lochhead et al. (In Prep.)](citation).
 
 ### Input Parameters
-* *nameRasSMCHerd* - Name of the raster of the southern mountain caribou critical habitat areas. See [here](https://github.com/bcgov/clus/blob/master/R/Params/caribou_southern_mtn_pop_model.Rmd) 
+* *nameRasSMCHerd* - Name of the raster of the southern mountain caribou critical habitat areas. See [here](https://github.com/bcgov/castor/blob/master/R/Params/caribou_southern_mtn_pop_model.Rmd) 
 
 * *tableSMCCoeffs* - The look up table of the southern mountain caribou critical habitat name and type (core or matrix) for each unique raster value, and the random adn fixed effects coefficients for each subpopulation and model. See [here](https://github.com/bcgov/castor/blob/master/R/Params/caribou_southern_mtn_pop_model.Rmd)
 

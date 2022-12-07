@@ -5,16 +5,16 @@
 ## just like functions in R packages.
 ## If exact location is required, functions will be: `sim$<moduleName>$FunctionName`.
 defineModule(sim, list(
-  name = "mooseforageCASTOR",
+  name = "mooseforageCastor",
   description = "This module extimates moose forage biomass from the forest inventory, using the method developed by Doug Lewis.",
   keywords = "",
   authors = structure(list(list(given = c("Tyler", "Bryon"), family = "Muhly", role = c("aut", "cre"), email = "tyler.muhly@gov.bc.ca", comment = NULL)), class = "person"),
   childModules = character(0),
-  version = list(SpaDES.core = "1.0.3", mooseforageCASTOR = "0.0.0.9000"),
+  version = list(SpaDES.core = "1.0.3", mooseforageCastor = "0.0.0.9000"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = deparse(list("README.txt", "mooseforageCASTOR.Rmd")),
+  documentation = deparse(list("README.txt", "mooseforageCastor.Rmd")),
   reqdPkgs = list(),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
@@ -38,7 +38,7 @@ defineModule(sim, list(
 ## event types
 #   - type `init` is required for initialization
 
-doEvent.mooseforageCASTOR = function(sim, eventTime, eventType) {
+doEvent.mooseforageCastor = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
@@ -49,8 +49,8 @@ doEvent.mooseforageCASTOR = function(sim, eventTime, eventType) {
       sim <- Init(sim)
       
       # schedule future event(s)
-      sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "mooseforageCASTOR", "plot")
-      sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "mooseforageCASTOR", "save")
+      sim <- scheduleEvent(sim, P(sim)$.plotInitialTime, "mooseforageCastor", "plot")
+      sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, "mooseforageCastor", "save")
     },
     plot = {
       # ! ----- EDIT BELOW ----- ! #
@@ -60,7 +60,7 @@ doEvent.mooseforageCASTOR = function(sim, eventTime, eventType) {
       # schedule future event(s)
 
       # e.g.,
-      #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "mooseforageCASTOR", "plot")
+      #sim <- scheduleEvent(sim, time(sim) + P(sim)$.plotInterval, "mooseforageCastor", "plot")
 
       # ! ----- STOP EDITING ----- ! #
     },
@@ -74,7 +74,7 @@ doEvent.mooseforageCASTOR = function(sim, eventTime, eventType) {
       # schedule future event(s)
 
       # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, "mooseforageCASTOR", "save")
+      # sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, "mooseforageCastor", "save")
 
       # ! ----- STOP EDITING ----- ! #
     },
@@ -93,7 +93,7 @@ doEvent.mooseforageCASTOR = function(sim, eventTime, eventType) {
       # schedule future event(s)
 
       # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + increment, "mooseforageCASTOR", "templateEvent")
+      # sim <- scheduleEvent(sim, time(sim) + increment, "mooseforageCastor", "templateEvent")
 
       # ! ----- STOP EDITING ----- ! #
     },
@@ -107,7 +107,7 @@ doEvent.mooseforageCASTOR = function(sim, eventTime, eventType) {
       # schedule future event(s)
 
       # e.g.,
-      # sim <- scheduleEvent(sim, time(sim) + increment, "mooseforageCASTOR", "templateEvent")
+      # sim <- scheduleEvent(sim, time(sim) + increment, "mooseforageCastor", "templateEvent")
 
       # ! ----- STOP EDITING ----- ! #
     },

@@ -19,16 +19,16 @@
 ## If exact location is required, functions will be: `sim$.mods$<moduleName>$FunctionName`.
 
 defineModule (sim, list(
-  name = "fisherHabitatCASTOR",
-  description = "An module to create spataila fisher habitat data from forest data output from forestryCASTOR.",
+  name = "fisherHabitatCastor",
+  description = "An module to create spataila fisher habitat data from forest data output from forestryCastor.",
   keywords = "fisher, martes, habitat, raster",
   authors = structure(list(list(given = c("First", "Middle"), family = "Last", role = c("aut", "cre"), email = "email@example.com", comment = NULL)), class = "person"),
   childModules = character(0),
-  version = list (fisherHabitatCASTOR = "1.0.0.0000"),
+  version = list (fisherHabitatCastor = "1.0.0.0000"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.md", "fisherHabitatCASTOR.Rmd"), ## same file
+  documentation = list("README.md", "fisherHabitatCastor.Rmd"), ## same file
   reqdPkgs = list("SpaDES.core (>=1.0.10)", "data.table", "terra", "here"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", value, min, max, "parameter description"),
@@ -55,7 +55,7 @@ defineModule (sim, list(
     #expectsInput (objectName = NA, objectClass = NA, desc = NA, sourceURL = NA)
     expectsInput (objectName = "castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates Castor related information", sourceURL = NA),
     expectsInput (objectName = "scenario", objectClass = "data.table", desc = "Table of scenario description.", sourceURL = NA),
-    expectsInput (objectName = "ras", objectClass = "RasterLayer", desc = "Raster of the area of interest. This is stored in the castordb that comes from dataCASTOR.", sourceURL = NA),
+    expectsInput (objectName = "ras", objectClass = "RasterLayer", desc = "Raster of the area of interest. This is stored in the castordb that comes from dataCastor.", sourceURL = NA),
     expectsInput (objectName = "boundaryInfo", objectClass ="character", desc = "Name of the area of interest(aoi) eg. Quesnel_TSA", sourceURL = NA),
     expectsInput (objectName = "updateInterval", objectClass = "numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
     ),
@@ -68,20 +68,20 @@ defineModule (sim, list(
 
 ## event types
 
-doEvent.fisherHabitatCASTOR = function (sim, eventTime, eventType) {
+doEvent.fisherHabitatCastor = function (sim, eventTime, eventType) {
   switch(
     eventType,
     
     init = {
       sim <- Init (sim)
-      sim <- scheduleEvent (sim, time(sim) + 1, "fisherHabitatCASTOR", "update", 2)
-      sim <- scheduleEvent (sim, end (sim), "fisherHabitatCASTOR", "save", 3)
+      sim <- scheduleEvent (sim, time(sim) + 1, "fisherHabitatCastor", "update", 2)
+      sim <- scheduleEvent (sim, end (sim), "fisherHabitatCastor", "save", 3)
       
     },
 
     update = {
       sim <- updateHabitat (sim)
-      sim <- scheduleEvent (sim, time (sim) + 1, "fisherHabitatCASTOR", "update", 2)
+      sim <- scheduleEvent (sim, time (sim) + 1, "fisherHabitatCastor", "update", 2)
     },
    
     save = {
@@ -320,10 +320,10 @@ classifyHabitat <- function (inputTable) {
   if (!suppliedElsewhere (ras)) { # empty raster object for defining the area of interest
     
     sim$ras <- RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                         srcRaster = P (sim, "nameCompartmentRaster", "dataCASTOR"), 
-                         clipper = P (sim, "nameBoundaryFile", "dataCASTOR" ), 
-                         geom = P (sim, "nameBoundaryGeom", "dataCASTOR"), 
-                         where_clause =  paste0 ( P (sim, "nameBoundaryColumn", "dataCASTOR"), " in (''", paste(P(sim, "nameBoundary", "dataCASTOR"), sep = "' '", collapse= "'', ''") ,"'')"),
+                         srcRaster = P (sim, "nameCompartmentRaster", "dataCastor"), 
+                         clipper = P (sim, "nameBoundaryFile", "dataCastor" ), 
+                         geom = P (sim, "nameBoundaryGeom", "dataCastor"), 
+                         where_clause =  paste0 ( P (sim, "nameBoundaryColumn", "dataCastor"), " in (''", paste(P(sim, "nameBoundary", "dataCastor"), sep = "' '", collapse= "'', ''") ,"'')"),
                          conn = NULL) 
   }
   
