@@ -37,6 +37,11 @@ setPaths(modulePath = here::here("R/SpaDES-modules"))
 
 times <- list(start = 0, end = 10)
 parameters <- list(
+  dataCastor = list(saveCastorDB = TRUE,
+                     randomLandscape = list(100,100,0,100,0,100),
+                     randomLandscapeZoneConstraint = 
+                       data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
+                    ),
   backCastor = list(startHarvestYear = 1970,
                              nameCutblockRaster= 'rast.cns_cut_bl', 
                              nameCutblockTable= 'cns_cut_bl_polygon', 

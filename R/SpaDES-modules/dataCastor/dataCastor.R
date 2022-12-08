@@ -200,17 +200,17 @@ setTablesCastorDB <- function(sim) {
   ###------------------------#
   if(!(P(sim, "nameCompartmentRaster", "dataCastor") == "99999")){
     message(paste0('.....compartment ids: ', P(sim, "nameCompartmentRaster", "dataCastor")))
-    sim$ras<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    sim$ras<-terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                           srcRaster= P(sim, "nameCompartmentRaster", "dataCastor"), 
                           clipper=sim$boundaryInfo[[1]], 
                           geom= sim$boundaryInfo[[4]], 
                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                          conn=NULL)
+                          conn=NULL))
 
     sim$pts <- data.table(xyFromCell(sim$ras,1:length(sim$ras[]))) #Seems to be faster than rasterTopoints
     sim$pts <- sim$pts[, pixelid:= seq_len(.N)] # add in the pixelid which streams data in according to the cell number = pixelid
     
-    pixels <- data.table(V1 = sim$ras[])
+    pixels <- data.table(V1 = as.integer(sim$ras[]))
     pixels[, pixelid := seq_len(.N)]
     
     #Set V1 to merge in the vat table values so that the column is character
@@ -230,7 +230,7 @@ setTablesCastorDB <- function(sim) {
     #sim$rasVelo<-velox::velox(sim$ras)
     
     #Add the raster_info
-    ras.extent<-extent(sim$ras)
+    ras.extent<-terra::ext(sim$ras)
     #TODO: Hard coded for epsg 3005 need to convert to terra?
     dbExecute(sim$castordb, glue::glue("INSERT INTO raster_info (name, xmin, xmax, ymin, ymax, ncell, nrow, crs) values ('ras', {ras.extent[1]}, {ras.extent[2]}, {ras.extent[3]}, {ras.extent[4]}, {ncell(sim$ras)}, {nrow(sim$ras)}, '3005');"))
     
@@ -263,15 +263,15 @@ setTablesCastorDB <- function(sim) {
   #--------------------#
   if(!(P(sim, "nameOwnershipRaster", "dataCastor") == "99999")){
     message(paste0('.....ownership: ',P(sim, "nameOwnershipRaster", "dataCastor")))
-    ras.own<- RASTER_CLIP2(tmpRast =paste0('temp_', sample(1:10000, 1)), 
+    ras.own<- terra::rast(RASTER_CLIP2(tmpRast =paste0('temp_', sample(1:10000, 1)), 
                            srcRaster= P(sim, "nameOwnershipRaster", "dataCastor"), 
                            clipper=sim$boundaryInfo[[1]], 
                            geom= sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           conn=NULL)
+                           conn=NULL))
     
-    if(aoi == extent(ras.own)){#need to check that each of the extents are the same
-      pixels <- cbind(pixels, data.table(own = ras.own[])) # add the ownership to the pixels table
+    if(aoi == terra::ext(ras.own)){#need to check that each of the extents are the same
+      pixels <- cbind(pixels, data.table(own = as.integer(ras.own[]))) # add the ownership to the pixels table
       rm(ras.own)
       gc()
     }else{
@@ -291,14 +291,14 @@ setTablesCastorDB <- function(sim) {
     
     #Add multiple zone columns - each will have its own raster. Attributed to that raster is a table of the thresholds by zone
     for(i in 1:sim$zone.length){
-      ras.zone<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+      ras.zone<-terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                              srcRaster= P(sim, "nameZoneRasters", "dataCastor")[i], 
                              clipper=sim$boundaryInfo[[1]], 
                              geom= sim$boundaryInfo[[4]], 
                              where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                             conn=NULL)
-      if(aoi == extent(ras.zone)){#need to check that each of the extents are the same
-        pixels<-cbind(pixels, data.table(V1 = ras.zone[]))
+                             conn=NULL))
+      if(aoi == terra::ext(ras.zone)){#need to check that each of the extents are the same
+        pixels<-cbind(pixels, data.table(V1 = as.integer(ras.zone[])))
         setnames(pixels, "V1", paste0('zone',i))#SET zone NAMES to RASTER layer
         
         dbExecute(sim$castordb, glue::glue("ALTER TABLE pixels ADD COLUMN zone{i} numeric;")) # add the zone id column and populate it with the zone names
