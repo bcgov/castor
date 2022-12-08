@@ -162,7 +162,7 @@ parameters <- list(
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.ce_road_2019'# existing road network
                  ),
-  uploaderCastor = list(aoiName = 'lakes_test', 
+  uploadCastor = list(aoiName = 'lakes_test', 
                       dbInfo  = list(Sys.getenv("DB_HOST"), Sys.getenv("DB_USER"), Sys.getenv("DB_PASS"),  Sys.getenv("DB_NAME")))
 )
 
@@ -171,7 +171,7 @@ modules <- list("dataCastor",
                 "blockingCastor", 
                 "forestryCastor",
                 "roadCastor",
-                "uploaderCastor" 
+                "uploadCastor" 
                 )
 
  scenario = data.table (name = "lakes_bau",
