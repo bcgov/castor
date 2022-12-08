@@ -52,9 +52,9 @@ defineModule(sim, list(
     defineParameter("iterations", "numeric", 1, 1, 10000,
                     "Number of times to repeat the simulation."),
     defineParameter("rasterStack", "character", paste0 (here::here(), "/R/scenarios/test_flex2/test_Williams_Lake_TSA_fisher_habitat.tif"), NA, NA,
-                    "Directory where the fisher habitat raster .tif is stored. Used as habitat input to this module. A band in teh .tif exists for each time interval simulated in forestryCLUS, and each fisher habitat type (denning, movement, cwd, rust, cavity)."), # create a default somewhere??
+                    "Directory where the fisher habitat raster .tif is stored. Used as habitat input to this module. A band in teh .tif exists for each time interval simulated in forestryCASTOR, and each fisher habitat type (denning, movement, cwd, rust, cavity)."), # create a default somewhere??
     defineParameter("timeInterval", "numeric", 1, 1, 20,
-                    "The time step, in years, when habtait was updated. It should be consistent with periodLenght form growingStockCLUS. Life history events (reproduce, updateHR, survive, disperse) are calaculated this many times for each interval."),
+                    "The time step, in years, when habtait was updated. It should be consistent with periodLength form growingStockCASTOR. Life history events (reproduce, updateHR, survive, disperse) are calaculated this many times for each interval."),
     defineParameter(".plots", "character", "screen", NA, NA,
                     "Used by Plots function, which can be optionally used here"),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
@@ -992,7 +992,7 @@ updateAgents <- function (sim) {
 saveAgents <- function (sim) {
   message ("Save the agents and territories.")
   # save the agents table
-  # NOTE: this also can integrate with Castor/CLUS, as fisherABMReport is an object in uploaderCLUS 
+  # NOTE: this also can integrate with Castor/CLUS, as fisherABMReport is an object in uploaderCASTOR 
   #  thus the table can also be saved to a postgres database
   write.csv (x = sim$fisherABMReport,
              file = paste0 (outputPath (sim), "/", sim$scenario$name, "_fisher_agents.csv"))
@@ -1025,13 +1025,13 @@ saveAgents <- function (sim) {
   # 
   
     # use below if want to save the agents table
-      # if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
+      # if(nrow(dbGetQuery(sim$castordb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
       #   # if the table exists, write it to the db
-      #   DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = FALSE,
+      #   DBI::dbWriteTable (sim$castordb, "agents", agents.save, append = FALSE,
       #                      row.names = FALSE, overwrite = FALSE)
       # } else {
       #   # if the table exists, append it to the table in the db
-      #   DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = TRUE,
+      #   DBI::dbWriteTable (sim$castordb, "agents", agents.save, append = TRUE,
       #                      row.names = FALSE, overwrite = FALSE)
       # }
   
@@ -1040,13 +1040,13 @@ saveAgents <- function (sim) {
       # territories.save <- sim$territories
       # territories.save [, c("timeperiod", "scenario") := list (time(sim)*P (sim, "timeInterval", "FLEX2"), sim$scenario$name)  ] # add the time of the calc
       # 
-      # if(nrow(dbGetQuery (sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
+      # if(nrow(dbGetQuery (sim$castordb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
       #   # if the table exists, write it to the db
-      #   DBI::dbWriteTable (sim$clusdb, "territories", territories.save, append = FALSE,
+      #   DBI::dbWriteTable (sim$castordb, "territories", territories.save, append = FALSE,
       #                      row.names = FALSE, overwrite = FALSE)
       # } else {
       #   # if the table exists, append it to the table in the db
-      #   DBI::dbWriteTable (sim$clusdb, "territories", territories.save, append = TRUE,
+      #   DBI::dbWriteTable (sim$castordb, "territories", territories.save, append = TRUE,
       #                      row.names = FALSE, overwrite = FALSE)
       # }
   message ("Save fisher agents and territories complete.")

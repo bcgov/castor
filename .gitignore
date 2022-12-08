@@ -17,10 +17,12 @@
 *.rds
 *.html
 *.csv
-/list_clus_data.xlsx
 *.pdf
 *.xlsx
 *.yml
+*.xml
+*.7z
+*.zip
 scrap.R
 /global.R
 /tass/
@@ -44,3 +46,4 @@ clus.Rproj
 R/apps/clus_cloud/inst/app/log/simulation_log.csv
 R/apps/clus_cloud/inst/app/log/simulation_log.lock
 .Renviron.R
+/.metadata/

@@ -1,0 +1,30 @@
+---
+title: "yieldUncertaintyCastor"
+author: ""
+date: "6 Dec 2022"
+output: pdf_document
+---
+# Usage
+
+Deprecated this module - until there are resources to build upon it.
+
+```{r module_usage}
+library(SpaDES)
+
+setPaths(modulePath = here::here("R/SpaDES-modules"))
+
+times <- list(start = 0, end = 10)
+
+parameters <- list(
+)
+
+modules <- list("dataCastor", "yieldUncertaintyCastor")
+objects <- list()
+inputs <- list()
+outputs <- list()
+
+mySim <- simInit(times = times, params = parameters, modules = modules,
+                 objects = objects)
+
+mySimOut <- spades(mySim)
+```

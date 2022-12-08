@@ -1,0 +1,84 @@
+<!--
+Copyright 2023 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+---
+title: "roadCastor"
+author: "Kyle Lochhead"
+date: "5 Dec 2022"
+output: pdf_document
+---
+
+# Overview
+
+The roading module simulates the development of future roads within a landscape object. Based on a user defined set of points or 'landings' the roading module connects these points to the nearest existing road section using one of three possible approaches:
+1. A snapping approach that simulates the road as the crow flies;
+2. A least cost path that simulates as the wolf runs; and
+3. A minimum spanning tree with least cost paths to promote branching
+
+For a comparison on these approaches go [here](https://github.com/bcgov/castor/blob/master/reports/roads/draft-CLUS-roads.md)
+
+
+# Usage
+
+```{r module_usage}
+library(SpaDES.core)
+library(data.table)
+library(dplyr)
+source(here::here("R/functions/R_Postgres.R"))
+
+moduleDir <- paste0(here::here(),"/R/SpaDES-modules")
+outputDir <- paste0(here::here(),"/R/SpaDES-modules/roadCastor")
+
+times <- list(start = 0, end = 2)
+parameters <- list(
+  .progress = list(type = NA, interval = NA),
+  .globals = list(),
+  dataCastor = list(saveCastorDB = TRUE,
+                     randomLandscape = list(100,100,0,100,0,100),
+                     randomLandscapeZoneConstraint = 
+                       data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
+                    ),
+  blockingCastor = list(blockMethod='pre', 
+                      patchZone = 'default',
+                      patchVariation = 6),
+  roadCastor = list(roadMethod = 'mst'
+                  ),
+  forestryCastor = list( activeZoneConstraint = 'default', 
+                         harvestPriority = " age DESC ", 
+                         adjacencyConstraint = TRUE)
+  )
+modules <- list("dataCastor", "blockingCastor", "growingStockCastor", "forestryCastor", "roadCastor")
+scenario = data.table(name="test", description = "test")
+harvestFlow<- data.table(compartment ="all",
+                                     partition = ' (vol > 110) ',
+                                     period = rep(seq(from = 1, to=2, by = 1),1), 
+                                     flow = 220000,
+                                     partition_type = 'live')
+
+objects <- list(harvestFlow = harvestFlow, scenario = scenario)
+
+paths <- list(
+  modulePath = moduleDir,
+  outputPath = outputDir
+)
+
+mySim <- simInit(times = times, params = parameters, modules = modules,
+                 objects = objects, paths = paths)
+system.time({
+  mySimOut<-spades(mySim)
+})
+#eventDiagram(mySimOut)
+```
+
+
+

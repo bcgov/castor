@@ -64,17 +64,17 @@ library (data.table)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
-inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS/inputs")) %>% reproducible::checkPath(create = TRUE)
+inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCastor/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/scenarios/chilcotin"))
-cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCLUS"))
+cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCastor"))
 times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list( dbName='clus',
-                         save_clusdb = FALSE,
+  dataCastor = list( dbName='castor',
+                         saveCastorDB = FALSE,
                          sqlite_dbname = "chilcotin_study_area",
-                         useCLUSdb = paste0(here::here(), "/R/scenarios/chilcotin/chilcotin_study_area_clusdb.sqlite"),
+                         useCastorDB = paste0(here::here(), "/R/scenarios/chilcotin/chilcotin_study_area_clusdb.sqlite"),
                          nameBoundaryFile = "chilcotin_area_of_interest_habitat_v3",
                          nameBoundaryColumn = "tsa_name",
                          nameBoundary = c ('Matrix', 'HEWSR', 'LESR', 'LEWR', 'out'),
@@ -103,13 +103,13 @@ parameters <- list(
                            nameForestInventoryCrownClosure = "crown_closure",
                            nameForestInventoryTreed = "bclcs_level_2",
                            nameForestInventorySiteIndex = "site_index"),
-  blockingCLUS = list(blockMethod ='pre', 
+  blockingCastor = list(blockMethod ='pre', 
                       patchZone = 'rast.zone_cond_beo',
                       patchVariation = 6,
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCLUS = list(harvestBlockPriority = " dist, salvage_vol DESC, age DESC ", 
+  forestryCastor = list(harvestBlockPriority = " dist, salvage_vol DESC, age DESC ", 
                       # scenarios =  "dist, age DESC"  "dist, salvage_vol DESC, age DESC"
                       # query to prioritize blocks within 1km of disturbance, then 2.5km, then 5km, then everything >5km, then oldest first after that =  "CASE WHEN dist < 1000 THEN 3 WHEN dist < 2500 THEN 2 WHEN dist < 5000 THEN 1 ELSE 0 END DESC, age DESC"
                       #harvestZonePriority = "age DESC",
@@ -117,8 +117,8 @@ parameters <- list(
                       reportHarvestConstraints = T,
                       adjacencyConstraint = 0,
                       salvageRaster = 'rast.dead_vol_125_2020'),
-  growingStockCLUS = list (periodLength = 5),
-  roadCLUS = list(roadMethod = 'mst', #pre 
+  growingStockCastor = list (periodLength = 5),
+  roadCastor = list(roadMethod = 'mst', #pre 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.rds_cariboo_2022'),
   # rsfCLUS = list (calculateInterval = 10, # at what time interval to calculate RSF
@@ -126,23 +126,23 @@ parameters <- list(
   #                 randomEffectsTable = "public.rsf_re_coeff",
   #                 writeRSFRasters = TRUE,
   #                 checkRasters = FALSE),
-  survivalCLUS = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
+  survivalCastor = list (caribou_herd_density = 0.05, # assign what is appropriate for the herd
                        nameRasCaribouHerd = "rast.caribou_herd", # raster of herd boundaries
                        tableCaribouHerd = "vat.caribou_herd_vat"), # look-up table of herd names
-  disturbanceCalcCLUS = list(calculateInterval =  1, # should be 1 if using constraints on 'dist' (disturbance)
+  disturbanceCastor = list(calculateInterval =  1, # should be 1 if using constraints on 'dist' (disturbance)
                              criticalHabitatTable = "vat.vat_bc_crithab_and_herd",
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.perm_dist_no_rds",
                              recovery = 300), # roads recover after 30 years of no use; 300 for BAU (no recovery)
-  volumebyareaReportCLUS = list (calculateInterval = 1,
+  volumebyareaReportCastor = list (calculateInterval = 1,
                                  AreaofInterestRaster = "rast.chilcotin_aoi_supply_blocks",
                                  AreaofInterestTable = "vat.chilcotin_supply_blocks_vat"),
-  smcaribouAbundanceCLUS = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
+  smcpopCastor = list (nameRasSMCHerd = "rast.smc_herd_habitat", 
                                   tableSMCCoeffs = "vat.smc_coeffs"),
-  grizzlysurvivalCLUS = list (rasterGBPU = "rast.gbpu_2021", 
+  survivalgrizzlyCastor = list (rasterGBPU = "rast.gbpu_2021", 
                               tableGBPU= "vat.gbpu", 
                               roadDensity = 10),
-  uploaderCLUS = list(aoiName = 'chilcotin_caribou_plan', # name of the schema that gets uploaded to postgres
+  uploaderCastor = list(aoiName = 'chilcotin_caribou_plan', # name of the schema that gets uploaded to postgres
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -151,19 +151,19 @@ parameters <- list(
   #yieldUncertaintyCLUS = list(elevationRaster = 'rast.dem')
 )
 
-modules <- list("dataLoaderCLUS", 
-                "growingStockCLUS", 
-                "blockingCLUS", 
-                "forestryCLUS", 
-                "roadCLUS",
-                "grizzlysurvivalCLUS",
+modules <- list("dataCastor", 
+                "growingStockCastor", 
+                "blockingCastor", 
+                "forestryCastor", 
+                "roadCastor",
+                "survivalgrizzlyCastor",
                 #"yieldUncertaintyCLUS", 
-                "survivalCLUS", 
-                "disturbanceCalcCLUS", 
-                "volumebyareaReportCLUS",
+                "survivalCastor", 
+                "disturbanceCastor", 
+                "volumebyareaReportCastor",
                 # "rsfCLUS", # error line 453 - need to debug
-                "smcaribouAbundanceCLUS",
-                "uploaderCLUS"
+                "smcpopCastor",
+                "uploaderCastor"
                 )
 
 scenario = data.table (name = "chilcotin_bau_live_dead",
