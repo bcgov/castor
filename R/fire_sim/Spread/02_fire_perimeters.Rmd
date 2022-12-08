@@ -87,7 +87,7 @@ head(fire_bounds_with_igitions)
 
 Create buffers around the fire polygons
 ```{r}
-prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T)
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T)
 prov.bnd <- st_transform (prov.bnd, 3005)
 prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ]  
 
@@ -190,7 +190,7 @@ table(all_points$pttype)
 
 
 # or save it as a shape file
-st_write(all_points, dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\spread\\all_sample_points.gpkg")
+st_write(all_points, dsn="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\all_sample_points.gpkg")
 
 
 ```
@@ -199,7 +199,7 @@ st_write(all_points, dsn="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\dat
 ```{r}
 # import elevation data
 #Elevation
-DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem_ha_bc.tif")
+DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\dem_ha_bc.tif")
 #plot(DEM)
 
 crs(DEM)
@@ -208,7 +208,7 @@ crs(DEM)
 #import FRT and change it to a raster for faster extraction
 
 ```{r}
-# import FRT from the D drive or Kyle Clus (below)
+# import FRT from the D drive or Kyle CASTOR (below)
 frt<-getSpatialQuery("SELECT * FROM frt_canada")
 
 layeraoi<-getSpatialQuery("SELECT * FROM study_area_compart limit 1")
@@ -227,7 +227,7 @@ plot(ras.frt)
 
 ```{r}
 #if need to import points
-all_points<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\spread\\all_sample_points.gpkg")
+all_points<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\all_sample_points.gpkg")
 
 # extract DEM and FRT at each point
 x3a<- st_as_sf(all_points)
@@ -568,15 +568,15 @@ crs(spread_weather_crs)
 # extract distance to road and distance to infrastructure.
 ```{r}
 # import roads distance raster
-roads_dist <- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
+roads_dist <- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
 crs(roads_dist)
 
 # import infrastructure data
-dist_rail<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
-dist_power<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
-dist_oil<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
-dist_mines<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
-dist_urban<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
+dist_rail<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
+dist_power<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
+dist_oil<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
+dist_mines<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
+dist_urban<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
 
 rasStackinfrastructure = stack(roads_dist,dist_rail, dist_power, dist_oil, dist_mines, dist_urban)
 
@@ -626,20 +626,20 @@ dat2$dist_roads_m<-dat2$dist_roads*100
 
 
 ```{r}
-sf::st_write(dat2, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\spread\\Spread_dem_clim_rds_infr.gpkg", delete_layer=TRUE)
+sf::st_write(dat2, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\Spread_dem_clim_rds_infr.gpkg", delete_layer=TRUE)
 
 ##Save to personal drive
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
-#dat<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsL_100Mile_points_with_rds_infrastructure.gpkg")
+#dat<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsL_100Mile_points_with_rds_infrastructure.gpkg")
 ```
 
 ```{r}
 ##Slope
-DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc.tif")
+DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\slope_ha_bc.tif")
 
 ##Aspect
-DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\aspect_ha_bc.tif")
+DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\aspect_ha_bc.tif")
 
 rasStack = stack(DEM_slope, DEM_aspect)
 crs(rasStack)
@@ -687,12 +687,13 @@ dat4<- dat4 %>% rename(
 
 head(dat4)
 
-sf::st_write(dat4, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\spread\\Spread_dem_clim_rds_infr_wind.gpkg", delete_layer=TRUE)
+sf::st_write(dat4, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\Spread_dem_clim_rds_infr_wind.gpkg", delete_layer=TRUE)
 ```
+
 Extract distance to the ignition point of the fire
 
 ```{r}
-dat4<-sf::st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\spread\\Spread_dem_clim_rds_infr_wind.gpkg")
+dat4<-sf::st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\Spread_dem_clim_rds_infr_wind.gpkg")
 
 filenames<-list()
 years<-c("2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016","2017","2018", "2019", "2020", "2021")
@@ -703,7 +704,7 @@ for(i in 1:length(years)) {
   dat_dist<-dat4 %>% filter(year==years[i])
   coords<-st_coordinates(dat_dist)
 
-  rast<-raster::raster (paste0( "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\distance_rast\\","dist_rast_", years[i], ".tif", sep=""))
+  rast<-raster::raster (paste0( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\distance_rast\\","dist_rast_", years[i], ".tif", sep=""))
 
   rasVal=raster::extract(rast, coords)
   dat_with_dist<-cbind(dat_dist, rasVal)
@@ -737,83 +738,83 @@ Now save each file separately so that i can extract the VRI data using QGIS
 # Save each fire year separately
 ignit_all_2002<- dat_with_dist_to_ignit %>% filter(year==2002)
 dim(ignit_all_2002)
-sf::st_write(ignit_all_2002, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2002.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2002, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2002.gpkg", delete_layer=TRUE)
 
 ignit_all_2003<- dat_with_dist_to_ignit %>% filter(year==2003)
 dim(ignit_all_2003)
-sf::st_write(ignit_all_2003, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2003.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2003, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2003.gpkg", delete_layer=TRUE)
 
 ignit_all_2004<- dat_with_dist_to_ignit %>% filter(year==2004)
 dim(ignit_all_2004)
-sf::st_write(ignit_all_2004, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2004.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2004, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2004.gpkg", delete_layer=TRUE)
 
 ignit_all_2005<- dat_with_dist_to_ignit %>% filter(year==2005)
 dim(ignit_all_2005)
-sf::st_write(ignit_all_2005, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2005.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2005, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2005.gpkg", delete_layer=TRUE)
 
 ignit_all_2006<- dat_with_dist_to_ignit %>% filter(year==2006)
 dim(ignit_all_2006)
-sf::st_write(ignit_all_2006, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2006.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2006, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2006.gpkg", delete_layer=TRUE)
 
 ignit_all_2007<- dat_with_dist_to_ignit %>% filter(year==2007)
 dim(ignit_all_2007)
-sf::st_write(ignit_all_2007, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2007.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2007, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2007.gpkg", delete_layer=TRUE)
 
 ignit_all_2008<- dat_with_dist_to_ignit %>% filter(year==2008)
 dim(ignit_all_2008)
-sf::st_write(ignit_all_2008, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2008.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2008, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2008.gpkg", delete_layer=TRUE)
 
 ignit_all_2009<- dat_with_dist_to_ignit %>% filter(year==2009)
 dim(ignit_all_2009)
-sf::st_write(ignit_all_2009, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2009.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2009, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2009.gpkg", delete_layer=TRUE)
 
 ignit_all_2010<- dat_with_dist_to_ignit %>% filter(year==2010)
 dim(ignit_all_2010)
-sf::st_write(ignit_all_2010, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2010.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2010, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2010.gpkg", delete_layer=TRUE)
 
 ignit_all_2011<- dat_with_dist_to_ignit %>% filter(year==2011)
 dim(ignit_all_2011)
-sf::st_write(ignit_all_2011, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2011.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2011, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2011.gpkg", delete_layer=TRUE)
 
 ignit_all_2012<- dat_with_dist_to_ignit %>% filter(year==2012)
 dim(ignit_all_2012)
-sf::st_write(ignit_all_2012, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2012.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2012, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2012.gpkg", delete_layer=TRUE)
 
 ignit_all_2013<- dat_with_dist_to_ignit %>% filter(year==2013)
 dim(ignit_all_2013)
-sf::st_write(ignit_all_2013, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2013.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2013, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2013.gpkg", delete_layer=TRUE)
 
 ignit_all_2014<- dat_with_dist_to_ignit %>% filter(year==2014)
 dim(ignit_all_2014)
-sf::st_write(ignit_all_2014, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2014.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2014, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2014.gpkg", delete_layer=TRUE)
 
 ignit_all_2015<- dat_with_dist_to_ignit %>% filter(year==2015)
 dim(ignit_all_2015)
-sf::st_write(ignit_all_2015, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2015.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2015, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2015.gpkg", delete_layer=TRUE)
 
 ignit_all_2016<- dat_with_dist_to_ignit %>% filter(year==2016)
 dim(ignit_all_2016)
-sf::st_write(ignit_all_2016, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2016.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2016, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2016.gpkg", delete_layer=TRUE)
 
 ignit_all_2017<- dat_with_dist_to_ignit %>% filter(year==2017)
 dim(ignit_all_2017)
-sf::st_write(ignit_all_2017, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2017.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2017, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2017.gpkg", delete_layer=TRUE)
 
 ignit_all_2018<- dat_with_dist_to_ignit %>% filter(year==2018)
 dim(ignit_all_2018)
-sf::st_write(ignit_all_2018, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2018.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2018, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2018.gpkg", delete_layer=TRUE)
 
 ignit_all_2019<- dat_with_dist_to_ignit %>% filter(year==2019)
 dim(ignit_all_2019)
-sf::st_write(ignit_all_2019, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2019.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2019, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2019.gpkg", delete_layer=TRUE)
 
 ignit_all_2020<- dat_with_dist_to_ignit %>% filter(year==2020)
 dim(ignit_all_2020)
-sf::st_write(ignit_all_2020, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2020.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2020, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2020.gpkg", delete_layer=TRUE)
 
 ignit_all_2021<- dat_with_dist_to_ignit %>% filter(year==2021)
 dim(ignit_all_2021)
-sf::st_write(ignit_all_2021, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2021.gpkg", delete_layer=TRUE)
+sf::st_write(ignit_all_2021, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\spread_2021.gpkg", delete_layer=TRUE)
 
 
 ```
@@ -821,9 +822,9 @@ sf::st_write(ignit_all_2021, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim
 ### Now that the ignition points have been joined to the VRI data in QGIS. I need to reimport the data so that i can join it all together and use it.
 
 ```{r}
-file.list1<-list.files("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\Extracted", pattern="spread", all.files=FALSE, full.names=FALSE)
+file.list1<-list.files("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\Extracted", pattern="spread", all.files=FALSE, full.names=FALSE)
 y1<-gsub(".gpkg","",file.list1)
-the_dir <- "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\Extracted"
+the_dir <- "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\Extracted"
 
 for (i in 1:length(file.list1)){
   assign(paste0(y1[i]),st_read (dsn=paste0(the_dir, "\\", file.list1[i])))
@@ -842,7 +843,7 @@ n<-length(y1)
 fire_spread_02_21<-mkFrameList(n) 
 fire_spread_02_21[duplicated(fire_spread_02_21$idno),]$fire_yr # there should be no DUPLICATES
 
-sf::st_write(fire_spread_02_21, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\spread\\Spread_dem_clim_rds_infr_wind_veg.gpkg", delete_layer=TRUE)
+sf::st_write(fire_spread_02_21, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\Spread_dem_clim_rds_infr_wind_veg.gpkg", delete_layer=TRUE)
 
 table(fire_spread_02_21$bclcs_level_4, fire_spread_02_21$pttype)
 
