@@ -516,7 +516,7 @@ annualEvents <- function (sim) {
         move.prop <- nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & movement == 1]) / sim$agents [individual_id == hab.inds.prop[i], hr_size] 
         den.prop <- nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & denning == 1]) / sim$agents [individual_id == hab.inds.prop[i], hr_size]
         
-        if (length (rest.prop) > 0 & length (move.prop) > 0 & length (den.prop) > 0) { # check it's non-zero
+        if (rest.prop > 0 & move.prop > 0 & den.prop > 0) { # check it's non-zero # needed to remove the length argument because value of 0 still had length = 1
           
           if (P(sim, "rest_target", "FLEX2") <= rest.prop & P(sim, "move_target", "FLEX2") <= move.prop & P(sim, "den_target", "FLEX2") <= den.prop) {
             ## if it achieves its minimum thresholds for each habitat type 
@@ -576,7 +576,7 @@ annualEvents <- function (sim) {
     sim$den.table <- sim$den.table [!duplicated (sim$den.table$pixelid), ] # remove any dupes; if already existing
     
       # create output table
-    den.target <- data.table (individual_id = as.numeric (), # puttign in a dummy row so that I can run the why loop
+    den.target <- data.table (individual_id = as.numeric (), # putting in a dummy row so that I can run the why loop
                               den_id = as.numeric ()) 
     
       # remove den sites already occupied 
@@ -584,7 +584,7 @@ annualEvents <- function (sim) {
       for (i in 1:length (inds)) {
         den.site <- RANN::nn2 (data = sim$den.table, # in the den site data
                                query = sim$den.table [pixelid == dispersers [individual_id == inds[i], pixelid]], # location of the disperser, by individual id
-                               k = 40, # return maximum 40 neighbours; keep this large to allow flexibility for dupes
+                               k =  min(40, nrow(data)), # return maximum 40 neighbours; keep this large to allow flexibility for dupes
                                radius = 500 # in hectares; 100m pixels; 50 km r = 7,850 km2 area
         )
         
@@ -998,6 +998,10 @@ saveAgents <- function (sim) {
   write.csv (x = sim$fisherABMReport,
              file = paste0 (outputPath (sim), "/", sim$scenario$name, "_fisher_agents.csv"))
 
+  # write final agents table
+  write.csv (x = sim$agents,
+             file = paste0 (outputPath (sim), "/", sim$scenario$name, "_fisher_agents_timeinterval_end_table.csv"))
+  
   # save the territories
     # using raster::writeRaster() here
     # terra::writeRaster() throws error: [writeRaster] there are no cell values
