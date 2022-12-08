@@ -207,7 +207,7 @@ setTablesCastorDB <- function(sim) {
                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                           conn=NULL))
 
-    sim$pts <- data.table(xyFromCell(sim$ras,1:length(sim$ras[]))) #Seems to be faster than rasterTopoints
+    sim$pts <- data.table(terra::xyFromCell(sim$ras,1:ncell(sim$ras))) #Seems to be faster than rasterTopoints
     sim$pts <- sim$pts[, pixelid:= seq_len(.N)] # add in the pixelid which streams data in according to the cell number = pixelid
     
     pixels <- data.table(V1 = as.integer(sim$ras[]))
@@ -316,6 +316,7 @@ setTablesCastorDB <- function(sim) {
     dbExecute(sim$castordb, "ALTER TABLE pixels ADD COLUMN zone1 integer;")
     dbExecute(sim$castordb, "INSERT INTO zone (zone_column, reference_zone) values ( 'zone1', 'default');" )
   }
+  
   #-----------------------------#
   #Set the zonePriorityRaster----
   #-----------------------------#
@@ -352,14 +353,14 @@ setTablesCastorDB <- function(sim) {
   #---------------#
   if(!(P(sim, "nameMaskHarvestLandbaseRaster", "dataCastor") == "99999")){
     message(paste0('.....thlb: ',P(sim, "nameMaskHarvestLandbaseRaster", "dataCastor")))
-    ras.thlb<- RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    ras.thlb<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                             srcRaster= P(sim, "nameMaskHarvestLandbaseRaster", "dataCastor"), 
                             clipper=sim$boundaryInfo[[1]], 
                             geom= sim$boundaryInfo[[4]], 
                             where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                            conn=NULL)
-    if(aoi == extent(ras.thlb)){#need to check that each of the extents are the same
-      pixels<-cbind(pixels, data.table(thlb=ras.thlb[]))
+                            conn=NULL))
+    if(aoi == terra::ext(ras.thlb)){#need to check that each of the extents are the same
+      pixels<-cbind(pixels, data.table(thlb=as.numeric(ras.thlb[])))
       rm(ras.thlb)
       gc()
     }else{
@@ -376,14 +377,14 @@ setTablesCastorDB <- function(sim) {
   #--------------------#
   if(!(P(sim, "nameYieldsRaster", "dataCastor") == "99999")){
     message(paste0('.....yield ids: ',P(sim, "nameYieldsRaster", "dataCastor")))
-    ras.ylds<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    ras.ylds<-terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                            srcRaster= P(sim, "nameYieldsRaster", "dataCastor"), 
                            clipper=sim$boundaryInfo[[1]], 
                            geom= sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           conn=NULL)
-    if(aoi == extent(ras.ylds)){ #need to check that each of the extents are the same
-      pixels <- cbind(pixels, data.table(yieldid=ras.ylds[]))
+                           conn=NULL))
+    if(aoi == terra::ext(ras.ylds)){ #need to check that each of the extents are the same
+      pixels <- cbind(pixels, data.table(yieldid=as.integer(ras.ylds[])))
       rm(ras.ylds)
       gc()
     }else{
@@ -436,15 +437,15 @@ setTablesCastorDB <- function(sim) {
   #------------------------------#
   if(!(P(sim, "nameYieldsCurrentRaster", "dataCastor") == "99999")){
     message(paste0('.....yield ids: ',P(sim, "nameYieldsCurrentRaster", "dataCastor")))
-    ras.ylds.current<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    ras.ylds.current<-terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                            srcRaster= P(sim, "nameYieldsCurrentRaster", "dataCastor"), 
                            clipper=sim$boundaryInfo[[1]], 
                            geom= sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           conn=NULL)
-    if(aoi == extent(ras.ylds.current)){#need to check that each of the extents are the same
+                           conn=NULL))
+    if(aoi == terra::ext(ras.ylds.current)){#need to check that each of the extents are the same
       
-      updateToCurrent<-data.table(yieldid=ras.ylds.current[])
+      updateToCurrent<-data.table(yieldid=as.integer(ras.ylds.current[]))
       pixels$current_yieldid <- updateToCurrent$yieldid
       pixels<-pixels[!is.na(current_yieldid ) | !(current_yieldid==0), yieldid := current_yieldid]
       pixels$current_yieldid <- NULL
@@ -483,14 +484,14 @@ setTablesCastorDB <- function(sim) {
   if(!(P(sim, "nameYieldsTransitionRaster", "dataCastor") == "99999")){
     message(paste0('.....yield transition ids: ',P(sim, "nameYieldsTransitionRaster", "dataCastor")))
     
-    ras.ylds_trans<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    ras.ylds_trans<-terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                            srcRaster= P(sim, "nameYieldsTransitionRaster", "dataCastor"), 
                            clipper=sim$boundaryInfo[[1]], 
                            geom= sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           conn=NULL)
-    if(aoi == extent(ras.ylds_trans)){#need to check that each of the extents are the same
-      pixels<-cbind(pixels, data.table(yieldid_trans= ras.ylds_trans[]))
+                           conn=NULL))
+    if(aoi == terra::ext(ras.ylds_trans)){#need to check that each of the extents are the same
+      pixels<-cbind(pixels, data.table(yieldid_trans= as.integer(ras.ylds_trans[])))
       rm(ras.ylds_trans)
       gc()
     }else{
@@ -531,14 +532,14 @@ setTablesCastorDB <- function(sim) {
   #----------------------------#
   if(!P(sim, "nameForestInventoryRaster","dataCastor") == '99999'){
     print("clipping inventory key")
-    ras.fid<- RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    ras.fid<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                            srcRaster= P(sim, "nameForestInventoryRaster", "dataCastor"), 
                            clipper=sim$boundaryInfo[[1]], 
                            geom= sim$boundaryInfo[[4]], 
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           conn=NULL)
-    if(aoi == extent(ras.fid)){ #need to check that each of the extents are the same
-      inv_id<-data.table(fid = ras.fid[])
+                           conn=NULL))
+    if(aoi == terra::ext(ras.fid)){ #need to check that each of the extents are the same
+      inv_id<-data.table(fid = as.integer(ras.fid[]))
       inv_id[, pixelid:= seq_len(.N)]
       inv_id[, fid:= as.integer(fid)] #make sure the fid is an integer for merging later on
       rm(ras.fid)
@@ -636,14 +637,14 @@ setTablesCastorDB <- function(sim) {
   #----------------#
   if(!(P(sim, "nameTreedRaster", "dataCastor") == "99999") & P(sim, "nameForestInventoryTreed", "dataCastor") == "99999"){
     message(paste0('.....treed: ',P(sim, "nameTreedRaster", "dataCastor")))
-    ras.treed<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    ras.treed<-terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                           srcRaster= P(sim, "nameTreedRaster", "dataCastor"), 
                           clipper=sim$boundaryInfo[[1]], 
                           geom= sim$boundaryInfo[[4]], 
                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                          conn=NULL)
-    if(aoi == extent(ras.treed)){ # need to check that each of the extents are the same
-      pixels<-cbind(pixels, data.table(treed=ras.treed[]))
+                          conn=NULL))
+    if(aoi == terra::ext(ras.treed)){ # need to check that each of the extents are the same
+      pixels<-cbind(pixels, data.table(treed=as.numeric(ras.treed[])))
       rm(ras.treed)
       gc()
     }else{
@@ -661,14 +662,14 @@ setTablesCastorDB <- function(sim) {
   #---------------#
   if(!(P(sim, "nameAgeRaster", "dataCastor") == "99999") & P(sim, "nameForestInventoryAge", "dataCastor") == "99999"){
     message(paste0('.....age: ',P(sim, "nameAgeRaster", "dataCastor")))
-    ras.age<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    ras.age<-terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                           srcRaster= P(sim, "nameAgeRaster", "dataCastor"), 
                           clipper=sim$boundaryInfo[[1]], 
                           geom= sim$boundaryInfo[[4]], 
                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                          conn=NULL)
-    if(aoi == extent(ras.age)){ # need to check that each of the extents are the same
-      pixels<-cbind(pixels, data.table(age=ras.age[]))
+                          conn=NULL))
+    if(aoi == terra::ext(ras.age)){ # need to check that each of the extents are the same
+      pixels<-cbind(pixels, data.table(age=as.numeric(ras.age[])))
       setnames(pixels, "V1", "age")
       rm(ras.age)
       gc()
@@ -687,14 +688,14 @@ setTablesCastorDB <- function(sim) {
   #-------------------------#
   if(!(P(sim, "nameCrownClosureRaster", "dataCastor") == "99999") & P(sim, "nameForestInventoryCrownClosure", "dataCastor") == "99999"){
     message(paste0('.....crownclosure: ',P(sim, "nameCrownClosureRaster", "dataCastor")))
-    ras.cc<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    ras.cc<-terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                          srcRaster=P(sim, "nameCrownClosureRaster", "dataCastor"), 
                          clipper=sim$boundaryInfo[[1]], 
                          geom= sim$boundaryInfo[[4]], 
                          where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                         conn=NULL)
-    if(aoi == extent(ras.cc)){ # need to check that each of the extents are the same
-      pixels<-cbind(pixels, data.table(crownclosure=ras.cc[]))
+                         conn=NULL))
+    if(aoi == terra::ext(ras.cc)){ # need to check that each of the extents are the same
+      pixels<-cbind(pixels, data.table(crownclosure=as.numeric(ras.cc[])))
       rm(ras.cc)
       gc()
     }else{
@@ -711,14 +712,14 @@ setTablesCastorDB <- function(sim) {
   #-----------------#
   if(!(P(sim, "nameHeightRaster", "dataCastor") == "99999") & P(sim, "nameForestInventoryHeight", "dataCastor") == "99999"){
     message(paste0('.....height: ',P(sim, "nameHeightRaster", "dataCastor")))
-    ras.ht<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    ras.ht<-terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                          srcRaster=P(sim, "nameHeightRaster", "dataCastor"), 
                          clipper=sim$boundaryInfo[[1]], 
                          geom= sim$boundaryInfo[[4]], 
                          where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                         conn=NULL)
-    if(aoi == extent(ras.ht)){ # need to check that each of the extents are the same
-      pixels<-cbind(pixels, data.table(height=ras.ht[]))
+                         conn=NULL))
+    if(aoi == terra::ext(ras.ht)){ # need to check that each of the extents are the same
+      pixels<-cbind(pixels, data.table(height=as.numeric(ras.ht[])))
       rm(ras.ht)
       gc()
     }else{
@@ -735,14 +736,14 @@ setTablesCastorDB <- function(sim) {
   #---------------------#
   if(!(P(sim, "nameSiteIndexRaster", "dataCastor") == "99999") & P(sim, "nameForestInventorySiteIndex", "dataCastor") == "99999"){
     message(paste0('.....siteindex: ',P(sim, "nameSiteIndexRaster", "dataCastor")))
-    ras.si<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    ras.si<-terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                          srcRaster=P(sim, "nameSiteIndexRaster", "dataCastor"), 
                          clipper=sim$boundaryInfo[[1]], 
                          geom= sim$boundaryInfo[[4]], 
                          where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                         conn=NULL)
-    if(aoi == extent(ras.si)){ # need to check that each of the extents are the same
-      pixels<-cbind(pixels, data.table(siteindex= ras.si[]))
+                         conn=NULL))
+    if(aoi == terra::ext(ras.si)){ # need to check that each of the extents are the same
+      pixels<-cbind(pixels, data.table(siteindex= as.numeric(ras.si[])))
       rm(ras.si)
       gc()
     }else{
