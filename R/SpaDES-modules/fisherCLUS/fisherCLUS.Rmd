@@ -1,8 +1,0 @@
----
-title: "fisherCLUS"
-author: ""
-date: "27 August 2020"
-output: pdf_document
----
-
-
