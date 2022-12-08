@@ -1,10 +1,6 @@
 package q3;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-
-import lpsolve.*;
+0import lpsolve.*;
 
 
 public class Demo {
