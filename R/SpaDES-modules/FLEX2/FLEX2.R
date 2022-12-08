@@ -575,14 +575,14 @@ annualEvents <- function (sim) {
     sim$den.table <- sim$den.table [!duplicated (sim$den.table$pixelid), ] # remove any dupes; if already existing
     
       # create output table
-    den.target <- data.table (individual_id = as.numeric (), # puttign in a dummy row so that I can run the why loop
+    den.target <- data.table (individual_id = as.numeric (), # putting in a dummy row so that I can run the why loop
                               den_id = as.numeric ()) 
 
     if (length (inds) > 0) { # also put in a check to see if a den site is already occupied?
       for (i in 1:length (inds)) {
         den.site <- RANN::nn2 (data = sim$den.table, # in the den site data
                                query = sim$den.table [pixelid == dispersers [individual_id == inds[i], pixelid]], # location of the disperser, by individual id
-                               k = 100, # return maximum 40 neighbours; keep this large to allow flexibility for dupes
+                               k =  min(40, nrow(data)), # return maximum 40 neighbours; keep this large to allow flexibility for dupes
                                radius = 500 # in hectares; 100m pixels; 50 km r = 7,850 km2 area
         )
         
