@@ -81,7 +81,7 @@ study_area<-getSpatialQuery("SELECT * FROM public.tsa_boundaries")
 plot(study_area)
 
 # change grid size to 100 when this code works
-x<-st_make_grid(study_area, cellsize=c(800,800), crs=3005)
+x<-st_make_grid(study_area, cellsize=c(400,400), crs=3005)
 x2<- st_centroid(x)
 
 # extract DEM and FRT at each point
@@ -107,6 +107,7 @@ rasValue2
 
 x3_dem<-cbind(x3a, rasValue2)
 head(x3_dem)
+
 crs(x3_dem)
 crs(study_area)
 
@@ -150,7 +151,7 @@ export_dat$el[is.na(export_dat$el)]<-"."
 
 #max(export_dat$lat)
 
-write.csv(export_dat, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv", row.names = FALSE)
+write.csv(export_dat, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv", row.names = FALSE)
 
 ```
 
@@ -176,7 +177,7 @@ system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 Import data and pull out important fields
 ```{r}
-x4_clim_dem<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Fisher_study_area_out.csv")
+x4_clim_dem<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_clim.csv")
 
 x4_clim_dem$Tmax02<-as.numeric(x4_clim_dem$Tmax02)
 x4_clim_dem$Elevation<-as.numeric(x4_clim_dem$Elevation)
@@ -255,7 +256,7 @@ table(is.na(my.sf.point$Elevation))
 st_write(my.sf.point, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data.gpkg", delete_layer=TRUE, driver="GPKG")
 
 ```
-Now in QGIS join the above layer to the VRI. I also buffered each point by 400m because I wanted the average vegetation type for the area of the pixel and my pixels are 800m apart
+Now in QGIS join the above layer to the VRI.
 
 
 ```{r}

@@ -58,7 +58,7 @@ ras.ignit <- fasterize (ignit_all, ProvRast,
                                  background = 0) # unharvested raster cells get value = 0
 
 raster::writeRaster (ras.ignit, 
-                     filename = paste0( "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread\\","rast_ignit_", years[i], ".tiff", sep=""), 
+                     filename = paste0( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\","rast_ignit_", years[i], ".tiff", sep=""), 
                      format = "GTiff", 
                      datatype = 'INT1U')
 }
