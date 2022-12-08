@@ -129,14 +129,14 @@ getExistingCutblocks<-function(sim){
 
   if(!(P(sim, "nameCutblockRaster", "blockingCastor") == '99999')){
     message(paste0('..getting cutblocks: ',P(sim, "nameCutblockRaster", "blockingCastor")))
-    ras.blk<- RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    ras.blk<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                            srcRaster= P(sim, "nameCutblockRaster", "blockingCastor"), 
                            clipper=sim$boundaryInfo[1] , 
                            geom= sim$boundaryInfo[4] , 
                            where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                           conn=NULL)
-    if(extent(sim$ras) == extent(ras.blk)){
-      exist_cutblocks<-data.table(blockid = ras.blk[])
+                           conn=NULL))
+    if(terra::ext(sim$ras) == terra::ext(ras.blk)){
+      exist_cutblocks<-data.table(blockid = as.integer(ras.blk[]))
       exist_cutblocks[, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
       exist_cutblocks<-exist_cutblocks[blockid > 0, ]
    
@@ -196,12 +196,12 @@ setSpreadProb<- function(sim) {
   
   if(!P(sim)$spreadProbRas == "99999"){
     #scale the spread probability raster so that the values are [0,1]
-    sim$ras.spreadProbBlock<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    sim$ras.spreadProbBlock<-terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                                           srcRaster= P(sim, "spreadProbRas", "blockingCastor"), 
                                           clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                                           geom = sim$boundaryInfo[[4]], 
                                           where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                          conn=NULL)
+                                          conn=NULL))
     sim$ras.spreadProbBlock<-1-(sim$ras.spreadProbBlocks - minValue(sim$ras.spreadProbBlock))/(maxValue(sim$ras.spreadProbBlock)-minValue(sim$ras.spreadProbBlock))
   }else{
     sim$ras.spreadProbBlock<-sim$aoi
