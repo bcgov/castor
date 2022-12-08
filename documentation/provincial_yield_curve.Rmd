@@ -15,7 +15,7 @@ The goal is to have a yield curve for each 1 ha pixel in the province. Yield cur
 
 #### Set up postgreSQL
 
-The following steps outline the projection of the VRI using VDYP -- see [vdyp_curves.Rmd](https://github.com/bcgov/clus/blob/master/R/Params/vdyp_curves.Rmd).
+The following steps outline the projection of the VRI using VDYP -- see [vdyp_curves.Rmd](https://github.com/bcgov/castor/blob/master/R/Params/vdyp_curves.Rmd).
 
 1. Generate INPUT .csv files and parameter text file which are the inputs used to run Batch VDYP. These include:
 
@@ -58,14 +58,14 @@ dbDisconnect(conn)
 #Commit the .csv files to the postgreSQL database
 cmd <- paste0("\\copy vdyp_input_layer from program 'cmd /c \"type E:\\Data\\VEG_COMP_VDYP7_INPUT_LAYER_TBL_2019.csv" , "\"' delimiter ',' csv header")
 cmd <- shQuote(cmd)
-system2("psql",args=c('-d clus -c',cmd),wait=TRUE,stderr=TRUE)
+system2("psql",args=c('-d castor -c',cmd),wait=TRUE,stderr=TRUE)
 ```
 
-*Note that when committing the data to postgreSQL -- some of the fields might need be changed to a different type. For a template of the CREATE TABLE go [here](https://github.com/bcgov/clus/blob/master/SQL/develop_vdyp_table.sql)*
+*Note that when committing the data to postgreSQL -- some of the fields might need be changed to a different type. For a template of the CREATE TABLE go [here](https://github.com/bcgov/castor/blob/master/SQL/develop_vdyp_table.sql)*
 
 #### Generate yc_grp
 
-Once the vdyp projection 'output' and 'input' .csv files have become table objects in postgreSQL, the next step is the generate the yield curves. This process can take many forms -at one extreme is to keep the yield curves specific to each polygon or the other extreme is to "roll them up" or aggregate them into yield curve groups (a.k.a., analysis units). The later process uses an sql script found [here](https://github.com/bcgov/clus/blob/master/SQL/develop_vdyp_table.sql) and the steps follow:
+Once the vdyp projection 'output' and 'input' .csv files have become table objects in postgreSQL, the next step is the generate the yield curves. This process can take many forms -at one extreme is to keep the yield curves specific to each polygon or the other extreme is to "roll them up" or aggregate them into yield curve groups (a.k.a., analysis units). The later process uses an sql script found [here](https://github.com/bcgov/castor/blob/master/SQL/develop_vdyp_table.sql) and the steps follow:
 
 ##### 1. Clean
 
