@@ -14,45 +14,43 @@ This was designed for measuring disturbance specific to forestry and caribou hab
 # Usage
 
 ```{r module_usage}
-library(SpaDES.core)
-source(here::here("R/functions/R_Postgres.R"))
+library (SpaDES.core)
+library (data.table)
+library (dplyr)
+source (here::here("R/functions/R_Postgres.R"))
 
-moduleDir <- here::here("/R/SpaDES-modules")
-inputDir <- here::here("/R") %>% reproducible::checkPath(create = TRUE)
-outputDir <- here::here("/R")
-cacheDir <- here::here("/R")
-times <- list(start = 0, end = 15)
+moduleDir <- paste0(here::here(),"/R/SpaDES-modules")
+outputDir <- paste0(here::here(),"/R/SpaDES-modules/disturbanceCastor")
+
+times <- list(start = 0, end = 2)
+
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataCastor = list (nameBoundaryFile = "gcbp_carib_polygon", 
-                     nameBoundaryColumn = "herd_name",
-                     dbName = 'castor', nameBoundary ='Muskwa', nameBoundaryGeom = 'geom'),
-  blockingCastor = list (blockMethod = 'dynamic', 
-                         nameSimilarityRas = 'ras_similar_vri2003', 
-                         useLandingsArea = TRUE, useSpreadProbRas = TRUE),
-  cutblockSeqPrepCastor = list (queryCutblocks = 'cutseq_centroid', startHarvestYear = 2004, 
-                                getArea =TRUE),
-  roadCastor = list (roadMethod = 'snap', nameCostSurfaceRas = 'rd_cost_surface', 
-                   nameRoads =  'pre_roads_ras'),
+  dataCastor = list(saveCastorDB = TRUE,
+                    randomLandscape = list(100,100,0,100,0,100),
+                    randomLandscapeClusterLevel = 1.2,
+                    randomLandscapeZoneConstraint = 
+                    data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
+                     ),
   disturbanceCastor = list (calculateInterval =  1, 
                             criticalHabitatTable = "vat.vat_bc_crithab_and_herd",
                             criticalHabRaster = "rast.bc_crithab_and_herd",
                             permDisturbanceRaster = "rast.mine_ag_wind_rail",
-                            recovery = 300),
+                            recovery = 300)
 )
-modules <- list("dataCastor","cutblockSeqPrepCastor", "blockingCastor", "roadCastor", "disturbanceCastor")
-objects <- list()
+
+modules <- list("dataCastor", "disturbanceCastor")
+
+objects <- list (scenario = data.table (name = "test", description = "test"))
+
 paths <- list(
-  cachePath = cacheDir,
   modulePath = moduleDir,
-  inputPath = inputDir,
   outputPath = outputDir
 )
 
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
-
 
 mysimout<-spades(mySim,debug=TRUE) 
 ```
