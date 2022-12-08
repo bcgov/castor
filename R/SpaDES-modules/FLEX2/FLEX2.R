@@ -339,6 +339,7 @@ Init <- function(sim) {
 
   # check if proportion of habitat types are greater than the minimum thresholds 
   ind.ids <- c (unique (sim$agents$individual_id))
+
   for (i in 1:length (ind.ids)) { # for each individual
   
     rest.prop <- (nrow (table.hr [individual_id == ind.ids[i] & rust == 1]) + nrow (table.hr [individual_id == ind.ids[i] & cavity == 1]) + nrow (table.hr [individual_id == ind.ids[i] & cwd == 1])) / sim$agents [individual_id == ind.ids[i], hr_size]
@@ -506,7 +507,7 @@ annualEvents <- function (sim) {
 
         # B. check if proportion of habitat types are greater than the minimum thresholds 
     hab.inds.prop <- c (unique (table.hab.terrs$individual_id))
-    
+
     if (length (hab.inds.prop) > 0) {
       for (i in 1:length (hab.inds.prop)) { # for each individual
         
@@ -577,7 +578,8 @@ annualEvents <- function (sim) {
       # create output table
     den.target <- data.table (individual_id = as.numeric (), # puttign in a dummy row so that I can run the why loop
                               den_id = as.numeric ()) 
-
+    
+      # remove den sites already occupied 
     if (length (inds) > 0) { # also put in a check to see if a den site is already occupied?
       for (i in 1:length (inds)) {
         den.site <- RANN::nn2 (data = sim$den.table, # in the den site data
@@ -588,14 +590,14 @@ annualEvents <- function (sim) {
         
       rdm.smp <- sample (2:ncol (den.site$nn.idx), 1) # Randomly select one of the five den sites		
      
-     # need to check if den_id already 'occupied'
-     while (nrow (den.target [den_id == den.site$nn.idx[, rdm.smp]]) > 0) { # if the den site is already occupied
-       rdm.smp <- sample (2:ncol (den.site$nn.idx), 1) # Randomly select den site again
-     }
-     
+      # need to check if den_id already 'occupied'
+      while (nrow (den.target [den_id == den.site$nn.idx[, rdm.smp]]) > 0) { # if the den site is already occupied
+        rdm.smp <- sample (2:ncol (den.site$nn.idx), 1) # Randomly select den site again
+      }
+      
       # set the target location
          den.target.temp <- data.table (individual_id = dispersers [individual_id == inds[i], individual_id], 
-                                        den_id = den.site$nn.idx[,rdm.smp]) 	
+                                        den_id = den.site$nn.idx[, rdm.smp]) 	
          den.target <- rbind (den.target, den.target.temp)	
        
       }
@@ -754,7 +756,6 @@ annualEvents <- function (sim) {
       message ("Habitat quality calculated.")
       
       # E. Check that min. habitat thresholds are met 
-      
       disp.ids <- c (unique (table.disperse.hr$individual_id)) # unique individuals
       
         for (i in 1:length (disp.ids)) { # for each individual

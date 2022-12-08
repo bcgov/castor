@@ -28,13 +28,14 @@ parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataCastor = list(saveCastorDB = TRUE,
-                    randomLandscape = list(100,100,0,100,0,100),
+                    randomLandscape = list (100,100,0,100,0,100),
                     randomLandscapeClusterLevel = 1.2,
-                    randomLandscapeZoneConstraint = 
-                    data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
+                    randomLandscapeZoneConstraint = data.table (variable = 'age', 
+                                                                threshold = 140, 
+                                                                type = 'ge', percentage = 20)
                      ),
   disturbanceCastor = list (calculateInterval =  1, 
-                            criticalHabitatTable = "vat.vat_bc_crithab_and_herd",
+                            criticalHabitatTable = "vat.vat_bc_crithab_and_herd", # need a check for these, if not, make a 'dummy'
                             criticalHabRaster = "rast.bc_crithab_and_herd",
                             permDisturbanceRaster = "rast.mine_ag_wind_rail",
                             recovery = 300)
