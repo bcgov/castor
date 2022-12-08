@@ -1,0 +1,66 @@
+---
+title: "Fire_Spread_basic"
+author: "Elizabeth Kleynhans"
+date: "2022-12-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(sf)
+
+
+ignition<-raster(" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\prob_of_lightning_and_person_ignition.tif")
+escape.ras<-raster(" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_Escape_Quesnell_WilliamsL_100Mile_allFRT_800m.tif")
+
+plot(ignition)
+
+###################################
+# Choose igntion points
+###################################
+
+# initiate 10 ignitions at randomly chosen points
+startCells <- as.integer(sample(1:ncell(ignition), 10))
+#extract probability numbers from the igniton map
+probs.ignit<-qunif(ignition[startCells], 0, 1)
+#draw random number from uniform distribution
+random.num<-runif(10)
+#combine values into a datagram
+df<-as.data.frame(cbind(startCells, probs.ignit, random.num))
+#select points that have an ignition probability greater than the randomly drawn number.
+ignition.pts<- df$startCells[df$probs.ignit >= df$random.num ]
+
+fires <- spread(hab, loci = ignition.pts, 0.235, persistence = 0, numNeighs = 2,
+                mask = NULL, maxSize = 1e8, directions = 8, iterations = 1e6, id = TRUE)
+
+
+
+
+
+
+
+
+
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
