@@ -346,7 +346,7 @@ Init <- function(sim) {
     move.prop <- nrow (table.hr [individual_id == ind.ids[i] & movement == 1]) / sim$agents [individual_id == ind.ids[i], hr_size] 
     den.prop <- nrow (table.hr [individual_id == ind.ids[i] & denning == 1]) / sim$agents [individual_id == ind.ids[i], hr_size]
     
-    if (length (rest.prop) > 0 & length (move.prop) > 0 & length (den.prop) > 0) { # check the proportion values are not NA's
+    if (rest.prop > 0 & move.prop > 0 & den.prop > 0) { # check the proportion values are not NA's
       
       if (P(sim, "rest_target", "FLEX2") <= rest.prop & P(sim, "move_target", "FLEX2") <= move.prop & P(sim, "den_target", "FLEX2") <= den.prop) {
         # check to see it meets all thresholds
@@ -562,6 +562,9 @@ annualEvents <- function (sim) {
     # individuals
     inds <- dispersers$individual_id
     
+    # remove occupied den sites
+    sim$den.table <- sim$den.table [!pixelid %in% sim$territories$pixelid]
+    
       # add individual locations to the den site table in case the den site habitat is now gone
     disp.rast <- sim$pix.rast
     starts <- dispersers [individual_id == c (inds), pixelid]
@@ -576,7 +579,7 @@ annualEvents <- function (sim) {
     sim$den.table <- sim$den.table [!duplicated (sim$den.table$pixelid), ] # remove any dupes; if already existing
     
       # create output table
-    den.target <- data.table (individual_id = as.numeric (), # putting in a dummy row so that I can run the why loop
+    den.target <- data.table (individual_id = as.numeric (), # putting in a dummy row so that I can run the while loop
                               den_id = as.numeric ()) 
     
       # remove den sites already occupied 
@@ -584,7 +587,7 @@ annualEvents <- function (sim) {
       for (i in 1:length (inds)) {
         den.site <- RANN::nn2 (data = sim$den.table, # in the den site data
                                query = sim$den.table [pixelid == dispersers [individual_id == inds[i], pixelid]], # location of the disperser, by individual id
-                               k =  min(40, nrow(data)), # return maximum 40 neighbours; keep this large to allow flexibility for dupes
+                               k =  min (40, nrow (sim$den.table)), # return maximum 40 neighbours; keep this large to allow flexibility for dupes
                                radius = 500 # in hectares; 100m pixels; 50 km r = 7,850 km2 area
         )
         
@@ -765,7 +768,7 @@ annualEvents <- function (sim) {
           move.prop <- nrow (table.disperse.hr [individual_id == disp.ids[i] & movement == 1]) / dispersers [individual_id == disp.ids[i], hr_size] 
           den.prop <- nrow (table.disperse.hr [individual_id == disp.ids[i] & denning == 1]) / dispersers [individual_id == disp.ids[i], hr_size]
  
-          if (length (rest.prop) > 0 & length (move.prop) > 0 & length (den.prop) > 0) { # check the proportion values are not NA's
+          if (rest.prop > 0 & move.prop > 0 & den.prop > 0) { # check the proportion values are not NA's
            if (P(sim, "rest_target", "FLEX2") <= rest.prop & P(sim, "move_target", "FLEX2") <= move.prop & P(sim, "den_target", "FLEX2") <= den.prop) {
               # if it achieves the thresholds
               # assign the pixels to the territories table
