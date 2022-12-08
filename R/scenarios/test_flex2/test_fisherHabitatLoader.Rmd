@@ -35,11 +35,11 @@ cacheDir <- file.path (paste0 (here::here (), "/R/scenarios/test_flex2"))
 times <- list (start = 0, end = 10)
 
 parameters <- list(
-  dataLoaderCLUS = list(dbName='clus',
-                         save_clusdb = FALSE, # Set to TRUE first time running the analysis
+  dataCastor = list(dbName='castor',
+                         saveCastorDB = FALSE, # Set to TRUE first time running the analysis
                          sqlite_dbname = "fisherABM_test", 
                          nameBoundaryFile = "tsa_aac_bounds",
-                         useCLUSdb = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"),
+                         useCastorDB = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"),
                          nameBoundaryColumn = "tsa_name", 
                          nameBoundary = c ("Williams_Lake_TSA"), 
                          nameBoundaryGeom = 'wkb_geometry',
@@ -72,19 +72,19 @@ parameters <- list(
                          nameForestInventoryBasalArea= "basal_area",
                          nameForestInventoryQMD = "quad_diam_125"
                     ),
-  blockingCLUS = list(blockMethod ='pre', 
+  blockingCastor = list(blockMethod ='pre', 
                       patchZone = 'rast.zone_cond_beo',
                       patchVariation = 6,
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
+  forestryCastor = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
                       #harvestZonePriorityInterval = 1,
                       adjacencyConstraint = 0),
-  growingStockCLUS = list (periodLength = 5),
-  fisherHabitatLoader = list (),
-  uploaderCLUS = list(aoiName = 'test_fisher_habitat_loader', 
+  growingStockCastor = list (periodLength = 5),
+  fisherHabitatCastor = list (),
+  uploadCastor = list(aoiName = 'test_fisher_habitat_loader', 
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -118,12 +118,12 @@ patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                     0.1,0.02,0.02,0.02,0.02,0.8,
                                     0.3,0.3,0.1,0.1,0.1, 0.1))
 
-modules <- list ("fisherHabitatLoader",
-                 "growingStockCLUS",
-                 "blockingCLUS", 
-                 "forestryCLUS", 
-                 "uploaderCLUS",
-                 "dataLoaderCLUS")
+modules <- list ("fisherHabitatCastor",
+                 "growingStockCastor",
+                 "blockingCastor", 
+                 "forestryCastor", 
+                 "uploadCastor",
+                 "dataCastor")
 
 
 

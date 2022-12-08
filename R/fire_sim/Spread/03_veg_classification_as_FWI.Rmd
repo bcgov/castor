@@ -20,10 +20,7 @@ library(tidyverse)
 ```{r}
 fire_veg_sf<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\spread\\Spread_dem_clim_rds_infr_wind_veg.gpkg")
 
-table
-
-fire_veg_sf_w<-fire_veg_sf %>% filter(bclcs)
-
+head(fire_veg_sf)
 ```
 
 
@@ -76,7 +73,7 @@ First I need to create some new variables i.e. time since disturbance in years a
 # note: in this code fire_yr really refers to my focal year i.e. yr that i want to create this data for.
 
 fire_veg_sf$yearHarvest<-as.numeric(as.character(stringi::stri_sub(fire_veg_sf$harvest_date,1,4)))
-fire_veg_sf<- fire_veg_sf %>% dplyr::mutate(yearsSinceHarvest = fire_yr - yearHarvest)
+fire_veg_sf<- fire_veg_sf %>% dplyr::mutate(yearsSinceHarvest = year - yearHarvest)
 table(fire_veg_sf$yearsSinceHarvest)
 
 fire_veg_sf$yearsSinceHarvest<- ifelse(fire_veg_sf$yearsSinceHarvest<1, NA, fire_veg_sf$yearsSinceHarvest)
@@ -97,7 +94,7 @@ table(fire_veg_sf$earliest_nonlogging_dist_type_2)
 fire_veg_sf$earliest_nonlogging_dist_date
 fire_veg_sf$yearDisturb<-as.numeric(as.character(stringi::stri_sub(fire_veg_sf$earliest_nonlogging_dist_date,1,4)))
 
-fire_veg_sf$yearsSinceDisturbance<- ifelse (fire_veg_sf$fire_yr > fire_veg_sf$yearDisturb, fire_veg_sf$fire_yr - fire_veg_sf$yearDisturb, NA)
+fire_veg_sf$yearsSinceDisturbance<- ifelse (fire_veg_sf$year > fire_veg_sf$yearDisturb, fire_veg_sf$year - fire_veg_sf$yearDisturb, NA)
 table(fire_veg_sf$yearsSinceDisturbance)
 
 ```
@@ -742,25 +739,18 @@ table(fire_all1$FWI_veg)
                              
 table(is.na(fire_all1$FWI_veg))
 
-x<- fire_all1 %>% filter(is.na(FWI_veg)) %>% dplyr::select(fire, inventory_standard_cd:conifer_pct_cover_total)
 
-y<-fire_all1 %>% filter(fire==1) %>% filter(FWI_veg %in% c("N", "W")) # Note there are a whole bunch of ignition points that have FWI_veg categoriezed as N. This is a problem because N means no fuel. I tried to deal with this by buffering the points 50m then 150m 
-table(y$fire_yr)
+y<-fire_all1 %>% filter(pttype==1) %>% filter(FWI_veg %in% c("N", "W")) # Note there are a whole bunch of ignition points that have FWI_veg categoriezed as N. This is a problem because N means no fuel. I tried to deal with this by buffering the points 50m then 150m 
+table(y$year, y$FWI_veg)
 #2002 2003 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018
 # 117  147  131   78  143  107  117  163   81   49   56   43   58   63   32   48   57 #2019 
 #39 
 #2020 2021 
  # 26   36 
 
-table(y$FWI_veg, y$Cluster)
-tail(y)
+table(y$FWI_veg, y$frt)
 
-y2<-fire_all1 %>% filter(fire==1)
-
-st_write(y, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\fire_veg_data_N_or_W.gpkg", delete_layer=TRUE, driver="GPKG")
-
-
-st_write(fire_all1, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg2.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(fire_all1, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\spread\\Fire_data_all_veg.gpkg", delete_layer=TRUE, driver="GPKG")
 
 # upload to Kyle clus. Just update the relevant credentials 
 key_get('dbpass', keyring = 'postgreSQL')

@@ -131,7 +131,7 @@ Using the models outlined in table 1 a probability of ignition by lightning map 
 
 
 #```{r echo=FALSE, fig.cap = "Figure 2. Probability of lightning ignition for the Quesnel, Williams lake and 100 Mile House TSA's"}
-#lightning.ignit<-raster(" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif"
+#lightning.ignit<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif"
 
 #conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
