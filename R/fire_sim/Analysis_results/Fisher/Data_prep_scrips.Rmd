@@ -28,20 +28,20 @@ library(rpostgis)
 # dbDisconnect(conn)
 
 #Elevation
-DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\dem.tif")
-plot(DEM)
+DEM <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\dem.tif")
+#plot(DEM)
 
 ```
 
 #import FRT and change it to a raster for faster extraction
 
 ```{r}
-# import FRT from the D drive or Kyle Clus (below)
+# import FRT from the D drive or Kyle castor (below)
 frt <- st_read ( dsn = "D:\\Fire\\fire_data\\Fire_Regime_Types\\FRT\\FRT_Canada.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
 st_crs(frt) #Retrieve coordinate reference system from sf or sfc object
 frt<-st_transform(frt, 3005) 
 
-# save frt to Kyle Clus 
+# save frt to Kyle castor 
 # conn<-DBI::dbConnect(dbDriver("PostgreSQL"), 
 #                   host = keyring::key_get('dbhost', keyring = 'postgreSQL'), 
 #                   dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
@@ -74,19 +74,20 @@ plot(ras.frt)
 
 
 ```{r cars}
-study_area<-getSpatialQuery("SELECT * FROM public.fisher_zones")
+study_area<-getSpatialQuery("SELECT * FROM public.tsa_boundaries")
 
-#st_write(study_area, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Kyle_fisher_study_area.gpkg", delete_layer=TRUE, driver="GPKG")
+#st_write(study_area, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Kyle_fisher_study_area.gpkg", delete_layer=TRUE, driver="GPKG")
 
-plot(study_area, add=TRUE)
+plot(study_area)
 
 # change grid size to 100 when this code works
-x<-st_make_grid(study_area, cellsize=c(800,800), crs=3005)
+x<-st_make_grid(study_area, cellsize=c(400,400), crs=3005)
 x2<- st_centroid(x)
 
 # extract DEM and FRT at each point
 x3a<- st_as_sf(x2)
 x3a$idno<-1:dim(x3a)
+
 
 test<-cbind(x3a, st_coordinates(x3a))
 head(test)
@@ -106,6 +107,7 @@ rasValue2
 
 x3_dem<-cbind(x3a, rasValue2)
 head(x3_dem)
+
 crs(x3_dem)
 crs(study_area)
 
@@ -141,7 +143,7 @@ export_dat<- x4 %>% rename(ID1 = idno,
                            lat = latitude,
                            lon = longitude,
                            el = dem) %>%
-  select(ID1, ID2, lat, lon, el)
+  dplyr::select(ID1, ID2, lat, lon, el)
 
 table(is.na(export_dat$el))
 export_dat$el[is.na(export_dat$el)]<-"."
@@ -149,7 +151,7 @@ export_dat$el[is.na(export_dat$el)]<-"."
 
 #max(export_dat$lat)
 
-write.csv(export_dat, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Fisher_study_area.csv", row.names = FALSE)
+write.csv(export_dat, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv", row.names = FALSE)
 
 ```
 
@@ -158,13 +160,24 @@ setwd("D:/Climatebc_v730"); # set the ClimateBC root directory as the working di
 exe <- "ClimateBC_v7.30.exe"
 
 ## 2021
-inputFile = '/C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Fisher_study_area.csv' 
-outputFile = '/C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Fisher_study_area_out.csv'
+inputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv' 
+outputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_clim.csv'
 yearPeriod = '/Year_2021.ann'
 system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 
-x4_clim_dem<-read.csv("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Fisher_study_area_out.csv")
+## 2041_2070 Not sure if this works. Testing it now
+inputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv' 
+outputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_clim_2041_2070.csv'
+yearPeriod = '/8GCMs_ensemble_ssp370_2041-2070.gcm'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+####################
+```
+
+Import data and pull out important fields
+```{r}
+x4_clim_dem<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_clim.csv")
 
 x4_clim_dem$Tmax02<-as.numeric(x4_clim_dem$Tmax02)
 x4_clim_dem$Elevation<-as.numeric(x4_clim_dem$Elevation)
@@ -172,26 +185,38 @@ x4_clim_dem<-x4_clim_dem %>% filter(Tmax02>-100)
 
 dim(x4_clim_dem)
 
-#If you need to open the table listing the best climate
-climate_variables_lightning<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")
+table(is.na(x4_clim_dem$Elevation))
+
+#If you need to open the table listing the top climate
+climate_variables_lightning<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")
 
 climate_variables_lightning
 
-climate_variables_person<-read.csv("C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
+ # Lightning caused fires
+x4_clim_dem$mean_Tave05_Tave06_Tave07_Tave08 <- (x4_clim_dem$Tave05 + x4_clim_dem$Tave06 + x4_clim_dem$Tave07 + x4_clim_dem$Tave08)/4
+x4_clim_dem$mean_PPT05_PPT06_PPT07_PPT08<-(x4_clim_dem$PPT05 + x4_clim_dem$PPT06 + x4_clim_dem$PPT07 + x4_clim_dem$PPT08)/4
+
+x4_clim_dem$meanRH05_RH06_RH07<-(x4_clim_dem$RH05 + x4_clim_dem$RH06 + x4_clim_dem$RH07)/3
+
+x4_clim_dem$mean_Tave07_Tave08_Tave09 <- (x4_clim_dem$Tave07 + x4_clim_dem$Tave08 + x4_clim_dem$Tave09)/3
+x4_clim_dem$mean_PPT07_PPT08_PPT09<-(x4_clim_dem$PPT07 + x4_clim_dem$PPT08 + x4_clim_dem$PPT09)/3
+x4_clim_dem$mean_Tmax07_Tmax08_Tmax09<-(x4_clim_dem$Tmax07 + x4_clim_dem$Tmax08 + x4_clim_dem$Tmax09)/3
+
+x4_clim_dem$mean_Tmax07_Tmax08<-(x4_clim_dem$Tmax07 + x4_clim_dem$Tmax08)/2
+
+x4_clim_dem$mean_Tave07_Tave08<- (x4_clim_dem$Tave07 + x4_clim_dem$Tave08)/2
+
+x4_clim_dem$mean_Tave06_Tave07_Tave08 <- (x4_clim_dem$Tave06 + x4_clim_dem$Tave07 + x4_clim_dem$Tave08)/3
+x4_clim_dem$mean_PPT06_PPT07_PPT08 <- (x4_clim_dem$PPT06 + x4_clim_dem$PPT07 + x4_clim_dem$PPT08)/3
+
+
+# human caused fires
+
+climate_variables_person<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
 
 climate_variables_person
 
- # Lightning caused fires
-x4_clim_dem$mean_Tave07_Tave08_Tave09 <- (x4_clim_dem$Tave07 + x4_clim_dem$Tave08 + x4_clim_dem$Tave09)/3
-x4_clim_dem$mean_PPT07_PPT08_PPT09<-(x4_clim_dem$PPT07 + x4_clim_dem$PPT08 + x4_clim_dem$PPT09)/3
-x4_clim_dem$mean_Tmax07_Tmax08<-(x4_clim_dem$Tmax07 + x4_clim_dem$Tmax08)/2
-x4_clim_dem$mean_Tave07_Tave08<- (x4_clim_dem$Tave07 + x4_clim_dem$Tave08)/2
-x4_clim_dem$mean_Tave06_Tave07_Tave08 <- (x4_clim_dem$Tave06 + x4_clim_dem$Tave07 + x4_clim_dem$Tave08)/3
-x4_clim_dem$mean_PPT06_PPT07_PPT08 <- (x4_clim_dem$PPT06 + x4_clim_dem$PPT07 + x4_clim_dem$PPT08)/3
-x4_clim_dem$RH05_RH06_RH07<-x4_clim_dem$RH05 + x4_clim_dem$RH06 + x4_clim_dem$RH07
-
-# human caused fires
-x4_clim_dem$mean_PPT06_PPT07 <-x4_clim_dem$PPT06 + x4_clim_dem$PPT07
+x4_clim_dem$mean_PPT06_PPT07 <-(x4_clim_dem$PPT06 + x4_clim_dem$PPT07)/2
 
 x4_clim_dem$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<-(x4_clim_dem$Tave04 + x4_clim_dem$Tave05 + x4_clim_dem$Tave06 + x4_clim_dem$Tave07 +x4_clim_dem$Tave08 + x4_clim_dem$Tave09 + x4_clim_dem$Tave10)/7
 
@@ -206,13 +231,12 @@ x4_clim_dem$mean_Tave07_Tave08_Tave09<-(x4_clim_dem$Tave07 +x4_clim_dem$Tave08 +
 x4_clim_dem$mean_PPT07_PPT08_PPT09 <- (x4_clim_dem$PPT07 + x4_clim_dem$PPT08 + x4_clim_dem$PPT09)/3
 
 
-
-
-x4_clim_dem_2<- x4_clim_dem %>% dplyr::select(ID1, ID2, Latitude, Longitude, Elevation, Tmax01: PPT12, mean_Tave07_Tave08_Tave09:mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10) %>%
+x4_clim_dem_2<- x4_clim_dem %>% dplyr::select(ID1, ID2, Latitude, Longitude, Elevation, Tmax05,Tave07, PPT07, mean_Tave05_Tave06_Tave07_Tave08:mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10) %>%
   rename(idno=ID1,
          frt=ID2)
 
 table(is.na(x4_clim_dem_2$frt))
+names(x4_clim_dem_2)
 
 ```
 
@@ -225,44 +249,24 @@ my.sf.point <- st_as_sf(x = x4_clim_dem_2,
 
 my.sf.point <- st_transform (my.sf.point, 3005)
 
-# x_frt10<-x6 %>% filter(layer=="10")
-# x_frt12<-x6 %>% filter(layer=="12")
-# x_frt13<-x6 %>% filter(layer=="13")
-# x_frt14<-x6 %>% filter(layer=="14")
-# x_frt15<-x6 %>% filter(layer=="15")
-# 
-# 
-# st_write(x_frt10, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt10.gpkg", delete_layer=TRUE, driver="GPKG")
-# 
-# st_write(x_frt12, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt12.gpkg", delete_layer=TRUE, driver="GPKG")
-# 
-# st_write(x_frt13, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt13.gpkg", delete_layer=TRUE, driver="GPKG")
-# 
-# st_write(x_frt14, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt14.gpkg", delete_layer=TRUE, driver="GPKG")
-# 
-# st_write(x_frt15, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile_frt15.gpkg", delete_layer=TRUE, driver="GPKG")
-# 
-# 
-# # note at the 1ha resolution saving the file as a single file is too large and makes processing in QGIS SOOO SLOW. So instead I've split it up according to FRT and will run the veg script separately for each area. 
-
 
 tail(my.sf.point)
 
 table(is.na(my.sf.point$Elevation))
-st_write(my.sf.point, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Fisher_study_area.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(my.sf.point, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data.gpkg", delete_layer=TRUE, driver="GPKG")
 
 ```
-Now in QGIS join the above layer to the VRI. I also buffered each point by 400m because I wanted the average vegetation type for the area of the pixel and my pixels are 800m apart
+Now in QGIS join the above layer to the VRI.
 
 
 ```{r}
-dat<- st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Fisher_study_area_veg.gpkg")
+dat<- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data_veg.gpkg")
 
 rm(pointCoordinates,ras.frt, rasStack,rasValue2,test, x,x2,x3,x3_dem)
 
 table(dat$idno)
 
-#my.sf.point<-st_read( "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile.gpkg")
+#my.sf.point<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile.gpkg")
 
 
 #do this part if dat is a multiploygon. But if its a point dont worry about this
@@ -998,14 +1002,91 @@ x<- fire_all1 %>% filter(is.na(FWI_veg)) %>% dplyr::select(inventory_standard_cd
 
 Now save it
 ```{r}
-st_write(fire_all1, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Skeena_Omineca_Thompson_Okanagan\\Fisher_study_area_veg_FWI.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(fire_all1, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_Elev_clim_veg.gpkg", delete_layer=TRUE, driver="GPKG")
 
 ```
 
 
+###########################################################
+#### join slope, aspect, road, infrastructure, and wind rasters
+###########################################################
 
-############################################################
-#######IGNORE AND DELETE WHEN DONE WITH EVERYTHING ELSE
+```{r}
+##Slope
+DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
+DEM_aspect <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\aspect_ha_bc_3005.tif")
+roads_dist <- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
+dist_rail<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
+dist_power<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
+dist_oil<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
+dist_mines<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
+dist_urban<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
+
+rasStack = stack(DEM_slope, DEM_aspect, roads_dist, dist_rail, dist_power, dist_oil, dist_mines, dist_urban)
+
+##Try this first
+test<-cbind(fire_all1, st_coordinates(fire_all1))
+head(test)
+
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+#crs(pointCoordinates) #No CRS when a dataframe
+
+##Extract DEM values from stacked layer
+rasValue2=raster::extract(rasStack, pointCoordinates)
+head(rasValue2)
+str(rasValue2) #200298 values
+
+#Append new information
+fire_all1_slope_aspect<-cbind(fire_all1, rasValue2)
+head(fire_all1_slope_aspect)
+crs(fire_all1_slope_aspect)
+
+# Get wind rasters
+summer_wind_raster<- raster("D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\wind_summer_clipped_224.tif")
+res(summer_wind_raster)#res seems out of wack
+
+spring_wind_raster<- raster("D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\wind_spring_raster_224.tif")
+res(spring_wind_raster) #resolution seems a bit out of wack...
+
+rm(rasStack, rasValue2)
+rasStack<- stack(summer_wind_raster, spring_wind_raster)
+rasValue2=raster::extract(rasStack, pointCoordinates)
+fire_all1_slope_aspect_wind<-cbind(fire_all1_slope_aspect, rasValue2)
+
+# get distance to closest infrastructure
+fire_all1_slope_aspect_wind$dist_roads_m<-fire_all1_slope_aspect_wind$dist_roads*100
+fire_all1_slope_aspect_wind$dist_mines_m<-fire_all1_slope_aspect_wind$dist_mines*100
+fire_all1_slope_aspect_wind$dist_oil_m<-fire_all1_slope_aspect_wind$dist_oil*100
+fire_all1_slope_aspect_wind$dist_power_m<-fire_all1_slope_aspect_wind$dist_power*100
+fire_all1_slope_aspect_wind$dist_rail_m<-fire_all1_slope_aspect_wind$dist_rail*100
+fire_all1_slope_aspect_wind$dist_urban_m<-fire_all1_slope_aspect_wind$dist_urban*100
+
+fire_all1_slope_aspect_wind$dist_infrastructure_m<-0
+
+
+fire_all1_slope_aspect_wind$dist_infrastructure_m<-
+  ifelse(fire_all1_slope_aspect_wind$dist_rail_m < fire_all1_slope_aspect_wind$dist_power_m, fire_all1_slope_aspect_wind$dist_rail_m, fire_all1_slope_aspect_wind$dist_power_m)
+
+fire_all1_slope_aspect_wind$dist_infrastructure_m<-
+  ifelse(fire_all1_slope_aspect_wind$dist_oil_m < fire_all1_slope_aspect_wind$dist_infrastructure_m, fire_all1_slope_aspect_wind$dist_oil_m, fire_all1_slope_aspect_wind$dist_infrastructure_m)
+
+fire_all1_slope_aspect_wind$dist_infrastructure_m<-
+  ifelse(fire_all1_slope_aspect_wind$dist_mines_m < fire_all1_slope_aspect_wind$dist_infrastructure_m, fire_all1_slope_aspect_wind$dist_mines_m, fire_all1_slope_aspect_wind$dist_infrastructure_m)
+
+fire_all1_slope_aspect_wind$dist_infrastructure_m<-
+  ifelse(fire_all1_slope_aspect_wind$dist_urban_m < fire_all1_slope_aspect_wind$dist_infrastructure_m, fire_all1_slope_aspect_wind$dist_urban_m, fire_all1_slope_aspect_wind$dist_infrastructure_m)
+
+fire_all1_slope_aspect_wind2<- fire_all1_slope_aspect_wind  %>% dplyr::select(idno:mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10, bclcs_level_5, FWI_veg:aspect_ha_bc_3005, wind_summer_clipped_224,wind_spring_raster_224, dist_infrastructure_m, dist_roads_m, geom) %>% 
+  rename(win_spr = wind_spring_raster_224,
+         win_sum = wind_summer_clipped_224,
+         slope = slope_ha_bc_3005,
+         aspect = aspect_ha_bc_3005)
+
+st_write(fire_all1_slope_aspect_wind2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_Elev_clim_veg_rd_infr_wind.gpkg", delete_layer=TRUE, driver="GPKG")
+
+```
+
 
 
 ```{r}
@@ -1049,95 +1130,3 @@ plot(ras.aoi2)
 
 
 ```
-
-
-
-
-```{r cars}
-study_area<-getSpatialQuery("SELECT tsa_name, wkb_geometry FROM study_area_compart where tsa_name in ('Quesnel TSA', 'Williams Lake TSA',  '100 Mile House TSA')")
-
-study_area2<-study_area %>% group_by ( tsa_name) %>% summarise()
-st_crs(study_area2)
-plot(study_area["tsa_name"], add=TRUE) #check 
-
-x<-st_make_grid(study_area, cellsize=c(100,100), crs=3005)
-x2<- st_centroid(x)
-x3<- st_transform(x2, crs = "+proj=longlat +datum=NAD83 / BC Albers +no_defs")
-
-head(x3)
-
-x3a<- st_as_sf(x2)
-x3a$idno<-1:dim(x3a)
-
-test<-cbind(x3a, st_coordinates(x3a))
-head(test)
-
-pointCoordinates<-data.frame(test$X, test$Y)
-head(pointCoordinates)
-#crs(pointCoordinates) #No CRS when a dataframe
-
-##Extract DEM values from stacked layer
-rasValue2=raster::extract(DEM, pointCoordinates)
-head(rasValue2)
-str(rasValue2) #200298 values
-str(sample_locations2)#200298 values
-
-
-
-#getting long lat info
-#geo.prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0" 
-st_crs(x3) #Retrieve coordinate reference system to check
-
-x4a<-as.data.frame(x3)
-x4a$idno<- 1:dim(x4a[1])
-x4<- x4a %>%
-  tidyr::separate(geometry, into = c("longitude", "latitude")," ")
-x4$longitude<- gsub(",", "", as.character(x4$longitude) )
-x4$longitude<- substring(x4$longitude, 3)
-x4$longitude<- as.numeric(x4$longitude)
-#x4$longitude<- round(x4$longitude, digits=4)
-x4$latitude<- gsub(")", "", as.character(x4$latitude) )
-x4$latitude<- as.numeric(x4$latitude)
-#x4$latitude<- round(x4$latitude, digits=4)
-
-grid_dat<-left_join(x4a,x4)
-
-# convert the dataframe back into a spatial points dataframe
-my.sf.point <- st_as_sf(x = grid_dat, 
-                        coords = c("longitude", "latitude"),
-                        crs = "+proj=longlat +datum=NAD83 / BC Albers +no_defs")
-
-
-```
-
-```{r}
-my.sf.point<-cbind(my.sf.point, st_coordinates(my.sf.point))
-head(test)
-
-pointCoordinates<-data.frame(test$X, test$Y)
-head(pointCoordinates)
-#crs(pointCoordinates) #No CRS when a dataframe
-
-##Extract DEM values from stacked layer
-rasValue2=raster::extract(rasStack, pointCoordinates)
-head(rasValue2)
-str(rasValue2) #200298 values
-str(sample_locations2)#200298 values
-
-#Append new information
-sample_locations_DEM<-cbind(sample_locations2, rasValue2)
-head(sample_locations_DEM)
-crs(sample_locations_DEM)
-
-```
-
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

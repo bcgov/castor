@@ -19,7 +19,7 @@ library(tmap)
 
 # Import the data and fire regime types layer
 ```{r}
-dat<-st_read( "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_Quesnell_WilliamsL_100Mile_FRT_800m.gpkg")
+dat<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_Quesnell_WilliamsL_100Mile_FRT_800m.gpkg")
 
 dat<-st_transform(dat, 3005)
 names(dat)
@@ -75,17 +75,17 @@ table(dat$idno)
 ```{r}
 # bring distance rasters back in
 # import roads distance raster
-roads_dist <- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
+roads_dist <- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
 crs(roads_dist)
 
 # import infrastructure data
-dist_rail<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
-dist_power<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
-dist_oil<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
-dist_mines<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
-dist_urban<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
+dist_rail<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
+dist_power<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
+dist_oil<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
+dist_mines<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
+dist_urban<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
 
-DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
+DEM_slope <- raster("T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\dem\\all_bc\\slope_ha_bc_3005.tif")
 
 summer_wind_raster<- raster("D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\wind_summer_clipped_224.tif")
 res(summer_wind_raster)#res seems out of wack
@@ -169,12 +169,12 @@ dat2$dist_infr
 ```
 
 ```{r}
-sf::st_write(dat2, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsL_100Mile_points_with_rds_infrastructure_escape.gpkg", delete_layer=TRUE)
+sf::st_write(dat2, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsL_100Mile_points_with_rds_infrastructure_escape.gpkg", delete_layer=TRUE)
 
 ##Save to personal drive
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
-dat<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsL_100Mile_points_with_rds_infrastructure_escape.gpkg")
+dat<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsL_100Mile_points_with_rds_infrastructure_escape.gpkg")
 ```
 
 
@@ -496,7 +496,7 @@ frt_all
 hist(frt_all$prob_ignition)
 
 
-st_write(frt_all, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_escape_Quesnell_WilliamsL_100Mile_allFRT_800m_2.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(frt_all, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Probability_of_escape_Quesnell_WilliamsL_100Mile_allFRT_800m_2.gpkg", delete_layer=TRUE, driver="GPKG")
 dim(dat)
 
 # create raster
@@ -524,7 +524,7 @@ x<-rasterize(frt_all, ras.aoi2, field="prob_ignition", update=TRUE)
 #x<-fasterize::fasterize(frt_all, ras.aoi2, field="prob_ignition", update=TRUE)
 plot(x)
 
-writeRaster(x, file=" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_Escape_Quesnell_WilliamsL_100Mile_allFRT_800m_fasterize_try.tif", format="GTiff", overwrite=TRUE)
+writeRaster(x, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Probability_of_Escape_Quesnell_WilliamsL_100Mile_allFRT_800m_fasterize_try.tif", format="GTiff", overwrite=TRUE)
 
 ##########
 
@@ -546,10 +546,10 @@ plot(maxint, col=rev(heat.colors(255)))
 # 
 # plot(ras.aoi2)
 
-writeRaster(maxint, file=" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_Escape_Quesnell_WilliamsL_100Mile_allFRT_800m.tif", format="GTiff", overwrite=TRUE)
+writeRaster(maxint, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Probability_of_Escape_Quesnell_WilliamsL_100Mile_allFRT_800m.tif", format="GTiff", overwrite=TRUE)
 
 # run this in R:
-paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/Probability_of_Escape_Quesnell_WilliamsL_100Mile_allFRT_800m.tif -t 100x100 rast.prob_lightning_ignit_quesnel_williamsl_100mile | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus')
+paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/Probability_of_Escape_Quesnell_WilliamsL_100Mile_allFRT_800m.tif -t 100x100 rast.prob_lightning_ignit_quesnel_williamsl_100mile | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/castor')
 # then copy the output thats between the " " from the above and paste it into the cmd and run that... should show Insert 0  1 lots of times.
 
 ```

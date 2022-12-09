@@ -129,7 +129,7 @@ rast.mines.all<-overlay(ras.mines, ras.mines2, fun=function(x,y){return(x+y)})
 plot(rast.mines.all)
 
 raster::writeRaster (rast.mines.all, 
-                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\mines.tiff", 
+                     filename = "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\mines.tiff", 
                      format = "GTiff",
                      overwrite=TRUE)
 ```
@@ -163,7 +163,7 @@ ras.rail <- fasterize (rail_buf_all, ProvRast,
 
 plot(ras.rail) 
 raster::writeRaster (ras.rail, 
-                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\rail.tiff", 
+                     filename = "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\rail.tiff", 
                      format = "GTiff",
                      overwrite=TRUE)
 ```
@@ -184,7 +184,7 @@ ras.oil <- fasterize (oil, ProvRast,
                                  field = NULL,
                                  background = 0)
 raster::writeRaster (ras.oil, 
-                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\oil.tiff", 
+                     filename = "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\oil.tiff", 
                      format = "GTiff",
                      overwrite=TRUE)
 ```
@@ -215,7 +215,7 @@ ras.transmission <- fasterize (transmission.buf, ProvRast,
 ras.power<-overlay(ras.transmission, ras.dams, fun=function(x,y){return(x+y)})
 
 raster::writeRaster (ras.power, 
-                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\power.tiff", 
+                     filename = "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\power.tiff", 
                      format = "GTiff",
                      overwrite=TRUE)
 ```
@@ -253,7 +253,7 @@ ras.urban <- fasterize (urban, ProvRast,
 #ras.urban.all<-overlay(ras.urban, ras.urban2, fun=function(x,y){return(x+y)})
 
 raster::writeRaster ( ras.urban, #ras.urban.all, 
-                     filename = "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\urban.tiff", 
+                     filename = "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\urban.tiff", 
                      format = "GTiff",
                      overwrite=TRUE)
 
@@ -261,7 +261,7 @@ raster::writeRaster ( ras.urban, #ras.urban.all,
 
 # Next step:
 now calculate the distance to raster i.e. distance from each pixel to the closest occurrence of a feature. To do this I used QGIS - Raster -> Analysis -> Proximity (Raster distance) tool. The command I ran was as below replacing e.g. Power.tiff with each oilgas, mines, railways etc
-"python3 -m gdal_proximity -srcband 1 -distunits PIXEL -ot Float32 -of GTiff C:\Work\caribou\clus\R\fire_sim\tmp\TransmissionLines.tiff C:/Work/caribou/clus/R/fire_sim/data/dist_transmissionlines.tif"
+"python3 -m gdal_proximity -srcband 1 -distunits PIXEL -ot Float32 -of GTiff C:\Work\caribou\castor\R\fire_sim\tmp\TransmissionLines.tiff C:/Work/caribou/castor/R/fire_sim/data/dist_transmissionlines.tif"
 
 # free up some space if you need to
 ```{r}
@@ -272,11 +272,11 @@ gc()
 
 # bring distance rasters back in
 ```{r}
-dist_rail<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
-dist_power<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
-dist_oil<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
-dist_mines<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
-dist_urban<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
+dist_rail<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
+dist_power<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
+dist_oil<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
+dist_mines<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
+dist_urban<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
 
 rasStackinfrastructure = stack(dist_rail, dist_power, dist_oil, dist_mines, dist_urban)
 
@@ -289,7 +289,7 @@ res(rasStackinfrastructure) # at ha scale ... perfect
 Bring back points from the 05_Distance_to_Road_Data_Prep.rmd file, jion the infrastructure data and create a new column that is the shortest distance to any infrastructure type.
 
 ```{r}
-sample_locations_DEM_roads<-sf::st_read( "C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\DC_data_DEM_roads.shp")
+sample_locations_DEM_roads<-sf::st_read( "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\DC_data_DEM_roads.shp")
 
 
 ##Extract Coordinates
@@ -379,10 +379,10 @@ sample_locations_DEM_roads_infra<- sample_locations_DEM_roads_infra %>%
          infr_dist=dist_infrastructure_m
          )
 
-sf::st_write(sample_locations_DEM_roads_infra, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_infra.gpkg", delete_layer=TRUE)
+sf::st_write(sample_locations_DEM_roads_infra, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_infra.gpkg", delete_layer=TRUE)
 
 ##Save to personal drive
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ```
 

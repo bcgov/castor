@@ -18,7 +18,7 @@ library(tidyverse)
 
 
 ```{r}
-fire_veg_sf<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all3.gpkg")
+fire_veg_sf<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_data_all3.gpkg")
 
 fire_veg_sf<-y4
 ```
@@ -754,15 +754,15 @@ tail(y)
 
 y2<-fire_all1 %>% filter(fire==1)
 
-st_write(y, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\fire_veg_data_N_or_W.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(y, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\fire_veg_data_N_or_W.gpkg", delete_layer=TRUE, driver="GPKG")
 
 
-st_write(fire_all1, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg2.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(fire_all1, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg2.gpkg", delete_layer=TRUE, driver="GPKG")
 
-# upload to Kyle clus. Just update the relevant credentials 
+# upload to Kyle castor. Just update the relevant credentials 
 key_get('dbpass', keyring = 'postgreSQL')
 key_get('dbhost', keyring = 'postgreSQL')
 
-#ogr2ogr -f PostgreSQL PG:"host= user= dbname=clus password= port=5432" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg.gpkg -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f PostgreSQL PG:"host= user= dbname=castor password= port=5432" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg.gpkg -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
 ```

@@ -109,11 +109,11 @@ times <- list(start = 0, end = 1) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
-  dataLoaderCLUS = list( 
-                           dbName='clus',
-                           #save_clusdb = TRUE,
+  dataCastor = list( 
+                           dbName='castor',
+                           #saveCastorDB = TRUE,
                            sqlite_dbname = "Lakes_TSA",
-                           useCLUSdb = paste0(here::here(), "/R/scenarios/Lakes_TSA/Lakes_TSA_clusdb.sqlite"),
+                           useCastorDB = paste0(here::here(), "/R/scenarios/Lakes_TSA/Lakes_TSA_clusdb.sqlite"),
                            #Study Area
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
@@ -146,31 +146,32 @@ parameters <- list(
                         nameForestInventorySiteIndex = "site_index",
                         nameForestInventoryBasalArea= "basal_area",
                         nameForestInventoryQMD = "quad_diam_125"),
-  blockingCLUS = list(blockMethod ='pre', 
+  blockingCastor = list(blockMethod ='pre', 
                       patchZone = 'rast.zone_cond_beo',
                       patchVariation = 6,
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCLUS = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
+  forestryCastor = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
                       #harvestZonePriorityInterval = 1,
                       reportHarvestConstraints = T,
                       adjacencyConstraint = 3),
-  growingStockCLUS = list (periodLength = 5),
-  roadCLUS = list(roadMethod = 'mst', 
+  growingStockCastor = list (periodLength = 5),
+  roadCastor = list(roadMethod = 'mst', 
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.ce_road_2019'# existing road network
                  ),
-  uploaderCLUS = list(aoiName = 'lakes_test', 
+  uploadCastor = list(aoiName = 'lakes_test', 
                       dbInfo  = list(Sys.getenv("DB_HOST"), Sys.getenv("DB_USER"), Sys.getenv("DB_PASS"),  Sys.getenv("DB_NAME")))
 )
 
-modules <- list("dataLoaderCLUS", 
-                "growingStockCLUS", 
-                "blockingCLUS", 
-                "forestryCLUS",
-                "uploaderCLUS" 
+modules <- list("dataCastor", 
+                "growingStockCastor", 
+                "blockingCastor", 
+                "forestryCastor",
+                "roadCastor",
+                "uploadCastor" 
                 )
 
  scenario = data.table (name = "lakes_bau",

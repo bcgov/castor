@@ -52,9 +52,9 @@ defineModule(sim, list(
     defineParameter("iterations", "numeric", 1, 1, 10000,
                     "Number of times to repeat the simulation."),
     defineParameter("rasterStack", "character", paste0 (here::here(), "/R/scenarios/test_flex2/test_Williams_Lake_TSA_fisher_habitat.tif"), NA, NA,
-                    "Directory where the fisher habitat raster .tif is stored. Used as habitat input to this module. A band in teh .tif exists for each time interval simulated in forestryCLUS, and each fisher habitat type (denning, movement, cwd, rust, cavity)."), # create a default somewhere??
+                    "Directory where the fisher habitat raster .tif is stored. Used as habitat input to this module. A band in teh .tif exists for each time interval simulated in forestryCASTOR, and each fisher habitat type (denning, movement, cwd, rust, cavity)."), # create a default somewhere??
     defineParameter("timeInterval", "numeric", 1, 1, 20,
-                    "The time step, in years, when habtait was updated. It should be consistent with periodLenght form growingStockCLUS. Life history events (reproduce, updateHR, survive, disperse) are calaculated this many times for each interval."),
+                    "The time step, in years, when habtait was updated. It should be consistent with periodLength form growingStockCASTOR. Life history events (reproduce, updateHR, survive, disperse) are calaculated this many times for each interval."),
     defineParameter(".plots", "character", "screen", NA, NA,
                     "Used by Plots function, which can be optionally used here"),
     defineParameter(".plotInitialTime", "numeric", start(sim), NA, NA,
@@ -339,6 +339,7 @@ Init <- function(sim) {
 
   # check if proportion of habitat types are greater than the minimum thresholds 
   ind.ids <- c (unique (sim$agents$individual_id))
+
   for (i in 1:length (ind.ids)) { # for each individual
   
     rest.prop <- (nrow (table.hr [individual_id == ind.ids[i] & rust == 1]) + nrow (table.hr [individual_id == ind.ids[i] & cavity == 1]) + nrow (table.hr [individual_id == ind.ids[i] & cwd == 1])) / sim$agents [individual_id == ind.ids[i], hr_size]
@@ -506,7 +507,7 @@ annualEvents <- function (sim) {
 
         # B. check if proportion of habitat types are greater than the minimum thresholds 
     hab.inds.prop <- c (unique (table.hab.terrs$individual_id))
-    
+
     if (length (hab.inds.prop) > 0) {
       for (i in 1:length (hab.inds.prop)) { # for each individual
 
@@ -561,6 +562,9 @@ annualEvents <- function (sim) {
     # individuals
     inds <- dispersers$individual_id
     
+    # remove occupied den sites
+    sim$den.table <- sim$den.table [!pixelid %in% sim$territories$pixelid]
+    
       # add individual locations to the den site table in case the den site habitat is now gone
     disp.rast <- sim$pix.rast
     starts <- dispersers [individual_id == c (inds), pixelid]
@@ -575,27 +579,28 @@ annualEvents <- function (sim) {
     sim$den.table <- sim$den.table [!duplicated (sim$den.table$pixelid), ] # remove any dupes; if already existing
     
       # create output table
-    den.target <- data.table (individual_id = as.numeric (), # putting in a dummy row so that I can run the why loop
+    den.target <- data.table (individual_id = as.numeric (), # putting in a dummy row so that I can run the while loop
                               den_id = as.numeric ()) 
-
+    
+      # remove den sites already occupied 
     if (length (inds) > 0) { # also put in a check to see if a den site is already occupied?
       for (i in 1:length (inds)) {
         den.site <- RANN::nn2 (data = sim$den.table, # in the den site data
                                query = sim$den.table [pixelid == dispersers [individual_id == inds[i], pixelid]], # location of the disperser, by individual id
-                               k =  min(40, nrow(data)), # return maximum 40 neighbours; keep this large to allow flexibility for dupes
+                               k =  min (40, nrow (sim$den.table)), # return maximum 40 neighbours; keep this large to allow flexibility for dupes
                                radius = 500 # in hectares; 100m pixels; 50 km r = 7,850 km2 area
         )
         
       rdm.smp <- sample (2:ncol (den.site$nn.idx), 1) # Randomly select one of the five den sites		
      
-     # need to check if den_id already 'occupied'
-     while (nrow (den.target [den_id == den.site$nn.idx[, rdm.smp]]) > 0) { # if the den site is already occupied
-       rdm.smp <- sample (2:ncol (den.site$nn.idx), 1) # Randomly select den site again
-     }
-     
+      # need to check if den_id already 'occupied'
+      while (nrow (den.target [den_id == den.site$nn.idx[, rdm.smp]]) > 0) { # if the den site is already occupied
+        rdm.smp <- sample (2:ncol (den.site$nn.idx), 1) # Randomly select den site again
+      }
+      
       # set the target location
          den.target.temp <- data.table (individual_id = dispersers [individual_id == inds[i], individual_id], 
-                                        den_id = den.site$nn.idx[,rdm.smp]) 	
+                                        den_id = den.site$nn.idx[, rdm.smp]) 	
          den.target <- rbind (den.target, den.target.temp)	
        
       }
@@ -754,7 +759,6 @@ annualEvents <- function (sim) {
       message ("Habitat quality calculated.")
       
       # E. Check that min. habitat thresholds are met 
-      
       disp.ids <- c (unique (table.disperse.hr$individual_id)) # unique individuals
       
         for (i in 1:length (disp.ids)) { # for each individual
@@ -992,7 +996,7 @@ updateAgents <- function (sim) {
 saveAgents <- function (sim) {
   message ("Save the agents and territories.")
   # save the agents table
-  # NOTE: this also can integrate with Castor/CLUS, as fisherABMReport is an object in uploaderCLUS 
+  # NOTE: this also can integrate with Castor/CLUS, as fisherABMReport is an object in uploaderCASTOR 
   #  thus the table can also be saved to a postgres database
   write.csv (x = sim$fisherABMReport,
              file = paste0 (outputPath (sim), "/", sim$scenario$name, "_fisher_agents.csv"))
@@ -1029,13 +1033,13 @@ saveAgents <- function (sim) {
   # 
   
     # use below if want to save the agents table
-      # if(nrow(dbGetQuery(sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
+      # if(nrow(dbGetQuery(sim$castordb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
       #   # if the table exists, write it to the db
-      #   DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = FALSE,
+      #   DBI::dbWriteTable (sim$castordb, "agents", agents.save, append = FALSE,
       #                      row.names = FALSE, overwrite = FALSE)
       # } else {
       #   # if the table exists, append it to the table in the db
-      #   DBI::dbWriteTable (sim$clusdb, "agents", agents.save, append = TRUE,
+      #   DBI::dbWriteTable (sim$castordb, "agents", agents.save, append = TRUE,
       #                      row.names = FALSE, overwrite = FALSE)
       # }
   
@@ -1044,13 +1048,13 @@ saveAgents <- function (sim) {
       # territories.save <- sim$territories
       # territories.save [, c("timeperiod", "scenario") := list (time(sim)*P (sim, "timeInterval", "FLEX2"), sim$scenario$name)  ] # add the time of the calc
       # 
-      # if(nrow(dbGetQuery (sim$clusdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
+      # if(nrow(dbGetQuery (sim$castordb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
       #   # if the table exists, write it to the db
-      #   DBI::dbWriteTable (sim$clusdb, "territories", territories.save, append = FALSE,
+      #   DBI::dbWriteTable (sim$castordb, "territories", territories.save, append = FALSE,
       #                      row.names = FALSE, overwrite = FALSE)
       # } else {
       #   # if the table exists, append it to the table in the db
-      #   DBI::dbWriteTable (sim$clusdb, "territories", territories.save, append = TRUE,
+      #   DBI::dbWriteTable (sim$castordb, "territories", territories.save, append = TRUE,
       #                      row.names = FALSE, overwrite = FALSE)
       # }
   message ("Save fisher agents and territories complete.")

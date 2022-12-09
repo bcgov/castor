@@ -1,0 +1,117 @@
+---
+title: "survivalgrizzlyCastor"
+author: "Tyler Muhly"
+date: "5 July 2021"
+output: pdf_document
+---
+
+## Overview
+The purpose of this module is to model the relationship between grizzly bear survival and forestry road
+development. The goal is to develop an indicator to support understanding of how current and future road development for forestry might influence grizzly bear populations. 
+
+## Module Methods and Parameters
+Here I adapt a model developed by [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) that related grizzly bear survival rates to their exposure to roads in a landscape in Alberta with active forestry. I use this model to estimate the effects of roads on grizzly bear survival.  
+
+The module is broken into two steps:
+1. Estimate the amount of 'roaded' areas in a grizzly bear population unit, and assign a road density to the unit.
+2. Estimate the survival rate of female grizzly bears in a population unit from road density.
+
+### Grizzly Bear Population Units
+The module first obtains grizzly bear management units (i.e., [grizzly bear population units, or GBPUs](https://catalogue.data.gov.bc.ca/dataset/caa22f7a-87df-4f31-89e0-d5295ec5c725)) as defined by the government of British Columbia. A raster parameter (*rasterGBPU*) with a corresponding look-up table parameter (*tableGBPU*) define the location and name of GBPUs in the province. 
+
+### Estimate of Road Densities by Grizzly Bear Population Unit
+The [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) model calculated grizzly bear survival as a function of average road density within 300 m of grizzly bear locations for the duration that a bear was tracked with a GPS collar. However, the Castor model resolution (i.e., pixel size) is 1 ha, and we simply estimate whether a pixel is 'roaded' (i.e., contains a road) or not. Thus, here we assign a road density to 'roaded' pixels, and set the road density of roaded pixels (i.e., the *roadDensity* parameter) to 10km/km^2^.  Obviously, in reality there will be variety of road densities in a roaded pixels, but we believe 10km/km^2^ represents a reasonable 'standard' density. A density of 10km/km^2^ is equivalent to a 100m long road within a 1 ha pixel, which is the minimum length of road needed to traverse a pixel. This may be underestimating road density in many cases, as roads typically have some curvature. This parameter can be adjusted by the user if an alternative density is preferred.  
+
+In addition, we do not calculate density in a 300 m radius area, but simply within a single 1 ha pixel. Thus, at a fine scale, our data do not match the resolution of the [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) model. However, [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) estimated grizzly bear survival rates as a function of average road densities at grizzly bear locations, and therefore, while the 'local' road densities we estimate here are likely less precise, ultimately this may not influence the large-scale averages (i.e., average road density encountered by a bear durign it's life) in a significant way. Furthermore, we believe that measuring road density within a distance of 100 m is reasonable given that [McLellan (2015)](https://wildlife.onlinelibrary.wiley.com/doi/abs/10.1002/jwmg.896) found that 84% of human-caused grizzly bear deaths were less than 120 m from a road in southeast British Columbia and [Ciarniello et al. (2009)](https://bioone.org/journals/Wildlife-Biology/volume-15/issue-3/08-080/Comparison-of-Grizzly-Bear-Ursus-arctos-Demographics-in-Wilderness-Mountains/10.2981/08-080.short)
+found that for monitored grizzly bear, seven of nine human caused mortalities in central British Columbia were less than 100 m from a road. Thus, mortality events themselves appear to be related to being in very close proximity to roads. 
+
+To estimate road density in a GBPU, the module counts the number of 'roaded' pixels and multiplies them by the *roadDensity* parameter (10km/km^2^), then divides that by the total number of pixels (roaded + unroaded) in the GBPU.
+
+### Estimate of Grizzly Bear Survival Rate
+The module uses the [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535) model from Figure 2 to estimate adult female survival rates. Here we focus on adult females because of their importance to population dynamics, but all grizzly bear age and sex classes show a similar negative relationship between survival and road density. The equations for figure 2 are not included in [Boulanger and Stenhouse (2014)](https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0115535), therefore we approximate it in this module using the equation:
+
+S = 1 / (1 + exp (-3.9 + (D * 1.06)) 
+
+where S = survival rate and D = road density. Survival rate is 0.980 at a road density of 0km/km^2^, 0.945 at a road density of 1km/km^2^ and 0.856 at a road density of 2km/km^2^.
+
+### Usage
+The module must be used with the dataCastor initially, to identify the GBPUs in the area of interest, and then with forestryCastor to estimate survival rates over time (i.e., survivalgrizzlyCastor is a 'child' module of dataCastor for creating the database and forestryCastor for simulating surirval rates over time). The survivalgrizzlyCastor module will only function with forestryCastor if it was implemented in dataCastor
+
+### Model Parameters
+
+```{r module_usage}
+library (SpaDES.core)
+library (data.table)
+library (here)
+library (dplyr)
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
+
+moduleDir <- file.path (paste0 (here(),"/R/SpaDES-modules"))
+inputDir <- file.path (paste0 (here(), "/R")) %>% reproducible::checkPath (create = TRUE)
+outputDir <- file.path (paste0 (here(), "/R/SpaDES-modules/survivalgrizzlyCastor/outputs"))
+cacheDir <- file.path (paste0 (here(), "/R"))
+times <- list (start = 0, end = 1)
+
+parameters <- list (
+  .progress = list (type = NA, interval = NA),
+  .globals = list (),
+      dataCastor = list (useCastorDB = "C:\\Work\\caribou\\clus_data\\clusdb.sqlite", # instantiated dbase
+                         dbName = 'castor', # Database connection
+                         saveCastorDB = FALSE, # don't save the dbase
+                         # Study Area params below; make sure they are consistent with other modules
+                         nameBoundaryFile = "study_area_compart",
+                         nameBoundaryColumn = "tsb_number",
+                         nameBoundary = c ("26A", "29B", "29C"), # DU7 
+                         nameBoundaryGeom ='wkb_geometry',
+                         nameCompartmentRaster = "rast.forest_tenure",
+                         nameCompartmentTable = "forest_tenure_vat",
+                         nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
+                         nameZoneRasters = c ("rast.zone_cond_beo", "rast.zone_cond_vqo",  "rast.zone_cond_uwr", "rast.zone_cond_fsw", "rast.zone_cond_nharv"),
+                         nameZoneTable = "zone_constraints",
+                         nameAgeRaster = "rast.vri2017_projage1",
+                         nameHeightRaster = "rast.vri2017_projheight1",
+                         nameCrownClosureRaster = "rast.vri2017_crownclosure",
+                         nameYieldTable = "yield_ex"),
+  survivalgrizzlyCastor = list (rasterGBPU = "rast.gbpu_2021", 
+                              tableGBPU= "vat.gbpu", 
+                              roadDensity = 10) 
+)
+
+modules <- list ("dataCastor",  "survivalgrizzlyCastor")
+objects <- list ()
+paths <- list (
+  cachePath = cacheDir,
+  modulePath = moduleDir,
+  inputPath = inputDir,
+  outputPath = outputDir
+)
+
+mySim <- simInit (times = times, params = parameters, modules = modules,
+                  objects = objects, paths = paths)
+outputs (mySim) <- data.frame (objectName = c ("tableGrizzSurvivalReport")) 
+
+
+system.time({
+mysimout <- spades (mySim)
+})
+```
+
+# Events
+This module is pretty simple; there are two event types: 'init' and 'calculateSurvival'.
+
+The 'init' event identifies grizzly bear population units (GBPUs) in the sim study area, calculates the number of 'roaded' pixels and estimates 'average' road densities in each GBPU, then estimates the survival rate in each GBPU at time 0 and saves the survival rate estimates as a data.table in the sim. 
+
+The 'calculateSurvival' event calculates the number of 'roaded' pixels and estimates 'average' road densities in each GBPU, then estimates the survival rate in each GBPU at time 0 and saves the survival rate estimates as a data.table in the sim at each scheduled time interval. 
+
+# Data dependencies
+## Input data
+This module needs the 'roadyear' field (i.e., whether a pixel is roaded (>-1)) from the 'pixels' table in the sim RSQLite databases (castordb) that gets instantiated at the start of the sim in the dataCastor. It also requires a raster to represent the location of the GBPUs, an associated table with the GBPU names, and a road density estimate (km/km^2^) for a 'roaded' pixel that is currently set by the user and remains static throughout the scenario run.
+
+## Output data
+This module outputs a table that has the GBPU name identifier and estimated survival rate in the GBPU and at each time interval of the sim.
+
+# Links to other modules
+The module will only work if the dataCastor. castordb is instantiated as part of the Castor model. Otherwise you won't have the data needed to make the survival rate calculation. 
+
+# Future Improvements
+Could be further developed to estimate a grizzly population trend by applying the survival rate to the population estimate for bears in the GBPU. This requires assumptions on the distribution of reproductive classes in the population, their transition rates to other classes and cub recruitment rates (e.g., see [here](https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/tsr-annual-allowable-cut/wildlife-analysis/pg_grizzly_bear_popn_model_report_20161027.pdf)). Such data exists for grizzly bear populations, but implementing this approach requires many more assumptions and complexities to be integrated into the module. 

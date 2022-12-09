@@ -1,0 +1,146 @@
+---
+title: "abmfisherCastor"
+author: ""
+date: "25 July 2022"
+output:
+  html_document:
+    keep_md: yes
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## TODO: use 'eval = TRUE'
+
+```
+
+## Overview
+This is an agent based model (ABM) to simulate fisher life history on a landscape. This version is written to integrate in 'real-time' with Castor/CLUS modules and database. That is, the Castor/CLUS database is called at each time interval to update the fisher habitat conditions. Note that this approach is 'slow', as it waits on forestryCastor, etc. to update the habitat conditions before simulating fishers. 
+
+As an alternative, we're working on a version that integrates with a raster stack object, which is the output of fisher habitat conditions, as calculated from forest stand characteristics simulated in forestryCastor, from each time interval. This approach will allow for faster simulation of multiple iterations of a fisher population. Currently, forestryCastor is a simulation model that returns a single solution for a set of parameters (i.e., it's a deterministic model). However, the fisher agent based model includes individual randomness (i.e., it's stochastic), for example, for survival and reproduction. Since the habitat dynamics returned from forestryCastor will always be the same result for a given simulation, it is more efficient to run the fisher ABM as a *post-hoc* analysis, rather than concurrently with forestryCastor
+
+## Castor/CLUS SQLite Database
+Below is some code to connect to and query the castordb, which is needed to run this version of the fisher ABM.
+
+```{r some code to acces the sqlite db}
+library (DBI)
+library (data.table)
+library (here)
+source (paste0 (here::here (), "/R/functions/R_Postgres.R"))
+
+# connect to the db
+clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"))
+
+# show tables in the db
+dbListTables (clusdb)
+
+# select all contents in a table, e.g., agents
+table <- as.data.table (dbGetQuery (clusdb, "SELECT * FROM pixels"))
+
+
+```
+
+
+## Usage
+Below runs the module, in 'real-time' integration with other Castor/CLUS modules.
+
+```{r module_usage}
+library (SpaDES.core)
+library (data.table)
+library (terra)
+library (keyring)
+library (tidyverse)
+library (here)
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
+
+moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
+inputDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2/inputs")) %>% reproducible::checkPath (create = TRUE)
+outputDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2/outputs")) %>% reproducible::checkPath (create = TRUE)
+cacheDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2"))
+
+times <- list (start = 0, end = 1)
+
+parameters <- list(
+  dataCastor = list(dbName='castor',
+                         saveCastorDB = FALSE, # Set to TRUE first time running the analysis
+                         sqlite_dbname = "fisherABM_test", 
+                         nameBoundaryFile = "tsa_aac_bounds",
+                         useCastorDB = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"),
+                         nameBoundaryColumn = "tsa_name", 
+                         nameBoundary = c ("Williams_Lake_TSA"), 
+                         nameBoundaryGeom = 'wkb_geometry',
+                         nameCompartmentRaster = "rast.tsa_aac_boundary",
+                         nameCompartmentTable = "vat.tsa_aac_bounds_vat",
+                         nameMaskHarvestLandbaseRaster ='rast.thlb_2020', 
+                         nameZoneRasters=c("rast.zone_cond_beo", 
+                                           "rast.zone_cond_vqo", 
+                                           "rast.zone_wha_2021", 
+                                           "rast.zone_uwr_2021",  
+                                           "rast.zone_cond_nharv", 
+                                           "rast.zone_cond_fsw", 
+                                           "rast.zone_cond_cw"
+                              ),
+                         nameZoneTable="zone.constraints", 
+                         nameYieldsRaster = "rast.ycid_vdyp_2020",
+                         nameYieldTable ="yc_vdyp_2020",
+                         nameYieldsCurrentRaster = "rast.ycid_tipsy_current_2020",
+                         nameYieldCurrentTable = "tipsy_current_prov_2020",
+                         nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
+                         nameYieldTransitionTable = "tipsy_prov_2020", 
+                         nameForestInventoryRaster = "rast.vri2020_id", 
+                         nameForestInventoryKey = "feature_id",                     
+                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2020",
+                         nameForestInventoryAge = "proj_age_1",  
+                         nameForestInventoryHeight = "proj_height_1",
+                         nameForestInventoryCrownClosure = "crown_closure",
+                         nameForestInventoryTreed = "bclcs_level_2",
+                         nameForestInventorySiteIndex = "site_index",
+                         nameForestInventoryBasalArea= "basal_area",
+                         nameForestInventoryQMD = "quad_diam_125"
+                    ),
+  growingStockCastor = list (periodLength = 5),
+  abmfisherCastor = list (female_max_age = 9,
+                        den_target = 0.003, 
+                        rest_target = 0.028,
+                        move_target = 0.091,
+                        #reproductive_age = 2,
+                        sex_ratio = 0.5,
+                        female_dispersal = 785000,  # ha; radius = 500 pixels = 50km = 7850km2 area
+                        timeInterval = 1,
+                        iterations = 1),
+    uploaderCastor = list(aoiName = 'fisher_abm_test', 
+                        dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbuser", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbpass", keyring="postgreSQL"),  
+                                     keyring::key_get("vmdbname", keyring="postgreSQL")))
+)
+
+scenario = data.table (name = "test",
+                       description = "Testing fisher ABM.")
+
+modules <- list ("abmfisherCastor",
+                 "growingStockCastor",
+                 "uploaderCastor",
+                 "dataCastor")
+
+objects <- list (scenario = scenario)
+inputs <- list ()
+outputs <- data.frame (objectName = c("harvestReport",
+                                      "growingStockReport",
+                                      "fisherABMReport"
+                                      ))
+
+paths <- list(cachePath = cacheDir,
+              modulePath = moduleDir,
+              inputPath = inputDir,
+              outputPath = outputDir)
+
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects,
+                 paths = paths)
+
+mySimOut <- spades(mySim)
+```
+

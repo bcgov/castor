@@ -19,7 +19,7 @@ library(tmap)
 
 # Import the data and fire regime types layer
 ```{r}
-dat<-st_read( "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_Quesnell_WilliamsL_100Mile_FRT_800m.gpkg")
+dat<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_Quesnell_WilliamsL_100Mile_FRT_800m.gpkg")
 
 dat<-st_transform(dat, 3005)
 
@@ -57,15 +57,15 @@ table(dat$idno)
 ```{r}
 # bring distance rasters back in
 # import roads distance raster
-roads_dist <- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
+roads_dist <- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_roads.tif")
 crs(roads_dist)
 
 # import infrastructure data
-dist_rail<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
-dist_power<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
-dist_oil<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
-dist_mines<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
-dist_urban<- raster("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
+dist_rail<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_rail.tif")
+dist_power<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_power.tif")
+dist_oil<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_oil.tif")
+dist_mines<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_mines.tif")
+dist_urban<- raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\dist_urban.tif")
 
 rasStackinfrastructure = stack(roads_dist,dist_rail, dist_power, dist_oil, dist_mines, dist_urban)
 
@@ -123,12 +123,12 @@ dat2$dist_roads_m<-dat2$dist_roads*100
 
 
 ```{r}
-sf::st_write(dat2, dsn = "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsL_100Mile_points_with_rds_infrastructure.gpkg", delete_layer=TRUE)
+sf::st_write(dat2, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsL_100Mile_points_with_rds_infrastructure.gpkg", delete_layer=TRUE)
 
 ##Save to personal drive
-#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\clus\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+#ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
 
-dat<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsL_100Mile_points_with_rds_infrastructure.gpkg")
+dat<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsL_100Mile_points_with_rds_infrastructure.gpkg")
 ```
 
 
@@ -430,7 +430,7 @@ frt_all<- rbind(rbind(rbind(rbind(frt10_2, frt12_2), frt13_2), frt14_2), frt15_2
 frt_all
 
 
-st_write(frt_all, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_person_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(frt_all, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Probability_of_person_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.gpkg", delete_layer=TRUE, driver="GPKG")
 ```
 
 
@@ -469,14 +469,14 @@ z <- mask(maxint, ras.aoi2)
 plot(z, col=rev(heat.colors(255)))
 
 
-writeRaster(maxint, file=" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_Person_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif", format="GTiff", overwrite=TRUE)
+writeRaster(maxint, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Probability_of_Person_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif", format="GTiff", overwrite=TRUE)
 ```
 
 
 ```{r}
-person.ignit<-raster(" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_Person_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif")
+person.ignit<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Probability_of_Person_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif")
 
-lightning.ignit<-raster(" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif")
+lightning.ignit<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif")
 
 
 #P(Ignition) = P(lightning) x  (1-P(human)) + P(human) x (  1-P(lightning)) # Formula was used in this paper: https://iopscience.iop.org/article/10.1088/1748-9326/ac03da (Barros et.al. (2021) Contrasting the role of human- and lightning-caused wildfires on future fire regimes on a Central Oregon landscape. )
@@ -486,11 +486,11 @@ total.ignit <- (lightning.ignit * (1-person.ignit)) + (person.ignit * (1-lightni
 plot(total.ignit, col=rev(heat.colors(255)))
 
 
-writeRaster(total.ignit, file=" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\prob_of_lightning_and_person_ignition.tif", format="GTiff", overwrite=TRUE)
+writeRaster(total.ignit, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\prob_of_lightning_and_person_ignition.tif", format="GTiff", overwrite=TRUE)
 
 
 # run this in R:
-paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/clus_data/Fire/Fire_sim_data/data/prob_of_lighting_ignition.tif -t 100x100 rast.prob_lightning_ignit_quesnel_williamsl_100mile | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus')
+paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/prob_of_lighting_ignition.tif -t 100x100 rast.prob_lightning_ignit_quesnel_williamsl_100mile | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/castor')
 # then copy the output thats between the " " from the above and paste it into the cmd and run that... should show Insert 0  1 lots of times.
 
 ```
