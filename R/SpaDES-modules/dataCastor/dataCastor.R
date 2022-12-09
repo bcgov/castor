@@ -237,6 +237,7 @@ setTablesCastorDB <- function(sim) {
   }else{ #Set the empty table for values not supplied in the parameters
     
     message('.....compartment ids: default 1')
+    #browser()
     randomRas<-randomRaster(sim$extent, P(sim, 'randomLandscapeClusterLevel', 'dataCastor'))
     
     sim$pts <- data.table(terra::xyFromCell(randomRas,1:length(randomRas[]))) #Seems to be faster than rasterTopoints
@@ -962,7 +963,7 @@ randomRaster<-function(extent, clusterLevel){
   #RandomFields::RFoptions(spConform=FALSE)
   ras <- terra::rast(nrows = extent[[1]], ncols = extent[[2]], xmin = extent[[3]], xmax = extent[[4]], ymin = extent[[5]], ymax = extent[[6]], vals = 0 )
   model <- RandomFields::RMstable(scale = 300, var = 0.003,  alpha = clusterLevel)
-  data.rv<-RandomFields::RFsimulate(model, y = 1:extent[[1]],  x = 1:extent[[2]], grid = TRUE)
+  data.rv<-RandomFields::RFsimulate(model, y = 1:extent[[1]],  x = 1:extent[[2]], grid = TRUE)$variable1
   data.rv<-(data.rv - min(data.rv))/(max(data.rv)- min(data.rv))
   return(terra::setValues(ras, data.rv))
 }
