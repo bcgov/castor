@@ -1,6 +1,4 @@
-package coe_cellular_automata;
-
-import java.sql.SQLException;
+package castor;
 
 public class Main {
 
@@ -9,10 +7,11 @@ public class Main {
 		 if (args.length != 4) {
 	            System.err.println("Usage: java coe_cellular_automata <clusdb> <Parameters>");
 	            CellularAutomata ca = new CellularAutomata();
-	            ca.getCLUSData();
-	            ca.simulate2();
+	            ca.getCastorData();
+	            ca.coEvolutionaryCellularAutomata();
 		 }else {
 			 CellularAutomata ca = new CellularAutomata();
+			 ca.coEvolutionaryCellularAutomata();
 			 //ca.setRParms();
 		 }
 	}

@@ -1,6 +1,6 @@
 package q3;
 
-0import lpsolve.*;
+import lpsolve.*;
 
 
 public class Demo {
