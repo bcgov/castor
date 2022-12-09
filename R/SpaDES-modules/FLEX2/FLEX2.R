@@ -345,7 +345,7 @@ Init <- function(sim) {
     move.prop <- nrow (table.hr [individual_id == ind.ids[i] & movement == 1]) / sim$agents [individual_id == ind.ids[i], hr_size] 
     den.prop <- nrow (table.hr [individual_id == ind.ids[i] & denning == 1]) / sim$agents [individual_id == ind.ids[i], hr_size]
     
-    if (length (rest.prop) > 0 & length (move.prop) > 0 & length (den.prop) > 0) { # check the proportion values are not NA's
+    if (rest.prop > 0 & move.prop > 0 & den.prop > 0) { # check the proportion values are not NA's
       
       if (P(sim, "rest_target", "FLEX2") <= rest.prop & P(sim, "move_target", "FLEX2") <= move.prop & P(sim, "den_target", "FLEX2") <= den.prop) {
         # check to see it meets all thresholds
@@ -408,8 +408,8 @@ Init <- function(sim) {
   ras.territories.update [] <- 0
   ras.territories.update [sim$territories$pixelid] <- 1
   sim$ras.territories <- sim$ras.territories + ras.territories.update
-
-    # clean-up
+  
+  # clean-up
   rm (ras.territories.update, new.agents.save)
   
   message ("Territories and agents created!")
@@ -509,7 +509,7 @@ annualEvents <- function (sim) {
     
     if (length (hab.inds.prop) > 0) {
       for (i in 1:length (hab.inds.prop)) { # for each individual
-        
+
         # breaking this down to make it easier to interpret
         rest.prop <- (nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & rust == 1]) + nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & cavity == 1]) + nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & cwd == 1])) / sim$agents [individual_id == hab.inds.prop[i], hr_size]
         move.prop <- nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & movement == 1]) / sim$agents [individual_id == hab.inds.prop[i], hr_size] 
@@ -764,7 +764,7 @@ annualEvents <- function (sim) {
           move.prop <- nrow (table.disperse.hr [individual_id == disp.ids[i] & movement == 1]) / dispersers [individual_id == disp.ids[i], hr_size] 
           den.prop <- nrow (table.disperse.hr [individual_id == disp.ids[i] & denning == 1]) / dispersers [individual_id == disp.ids[i], hr_size]
  
-          if (length (rest.prop) > 0 & length (move.prop) > 0 & length (den.prop) > 0) { # check the proportion values are not NA's
+          if (rest.prop > 0 & move.prop > 0 & den.prop > 0) { # check the proportion values are not NA's
            if (P(sim, "rest_target", "FLEX2") <= rest.prop & P(sim, "move_target", "FLEX2") <= move.prop & P(sim, "den_target", "FLEX2") <= den.prop) {
               # if it achieves the thresholds
               # assign the pixels to the territories table
