@@ -29,6 +29,7 @@ The dataCastor preps the database connectivitiy and other objects required to ru
 library(SpaDES)
 library(SpaDES.core)
 library(data.table)
+library(dplyr)
 
 source(here::here("R/functions/R_Postgres.R"))
 paths <- list(
@@ -43,7 +44,7 @@ parameters <-  list(
   dataCastor = list(saveCastorDB = TRUE,
                      randomLandscape = list(100,100,0,100,0,100),
                      randomLandscapeZoneConstraint = 
-                       data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
+                       data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 10)
                     )
   )
 
