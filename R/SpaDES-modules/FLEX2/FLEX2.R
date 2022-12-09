@@ -623,7 +623,7 @@ annualEvents <- function (sim) {
       dispersers [fisher_pop == 2, hr_size := round (rnorm (nrow (dispersers [fisher_pop == 2, ]), sim$female_hr_table [fisher_pop == 2, hr_mean], sim$female_hr_table [fisher_pop == 2, hr_sd]))]
       dispersers [fisher_pop == 3, hr_size := round (rnorm (nrow (dispersers [fisher_pop == 3, ]), sim$female_hr_table [fisher_pop == 3, hr_mean], sim$female_hr_table [fisher_pop == 3, hr_sd]))]
       dispersers [fisher_pop == 4, hr_size := round (rnorm (nrow (dispersers [fisher_pop == 4, ]), sim$female_hr_table [fisher_pop == 4, hr_mean], sim$female_hr_table [fisher_pop == 4, hr_sd]))]
-      
+
       # C. Dispersers create territories
       message ("Dispersing fishers forming territories...")
       
@@ -691,8 +691,7 @@ annualEvents <- function (sim) {
         } 
        }
       }
-     
-      
+
       # below if the function where the 'duplicate' error gets thrown
         # there are duplicate "pix.count.ids", which originates from the dispersers individual_id's
       pix.count.ids <- c (unique (pix.count [fisher_pop == 4, ]$individual_id))
@@ -708,6 +707,7 @@ annualEvents <- function (sim) {
        }
       }
 
+       
       # check to see if minimum habitat target was met (prop habitat = 0.15); if not, remove the animal 
       hab.count <- table.disperse.hr [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1, .(.N), by = individual_id]
       hab.count <- merge (hab.count,
@@ -732,7 +732,7 @@ annualEvents <- function (sim) {
             dispersers <- dispersers [individual_id != hab.inds[i]]
           } 
         }
-
+  
         # finalize which fisher pop a successful disperser belongs to
       terr.pop <- merge (table.disperse.hr, sim$table.hab.update [, c ("pixelid", "fisher_pop")], 
                          by.x = "pixels",
@@ -760,6 +760,11 @@ annualEvents <- function (sim) {
       
       # E. Check that min. habitat thresholds are met 
       disp.ids <- c (unique (table.disperse.hr$individual_id)) # unique individuals
+      
+      
+      table.disperse.hr <<- table.disperse.hr
+      dispersers2 <<- dispersers
+      
       
         for (i in 1:length (disp.ids)) { # for each individual
           
