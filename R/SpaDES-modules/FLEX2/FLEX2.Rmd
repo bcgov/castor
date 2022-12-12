@@ -50,6 +50,7 @@ parameters <- list(FLEX2 = list (female_max_age = 9,
                                                     # e.g., growingstockLCUS periodLength
                                  iterations = 1, # not currently implemented
                                  rasterStack = paste0 (here::here(), "/R/scenarios/test_flex2/inputs/test2_fisher_habitat_Williams_Lake_TSA_fisher_habitat.tif")
+
                 )
 )
 
@@ -75,30 +76,30 @@ mySim <- simInit(times = times,
 
 mySimOut <- spades(mySim)
 
-str(mySimOut)
-
-mySimOut$ras.territories
-
-mySimOut$fisherABMReport
-mySimOut$ras.territories
-plot(mySimOut$ras.territories)
-
-agents <- mySimOut$agents
-territories <- mySimOut$territories
-
-length(unique(territories$individual_id))
-length(unique(agents$individual_id))
-
-agents %>% filter(!individual_id %in% unique(territories$individual_id))
-
-hist(agents$age)
-
-raster.file <- list.files("./R/scenarios/test_flex2/outputs")
-test <- terra::rast("./R/scenarios/test_flex2/outputs/test_final_fisher_territories.tif")
-
-plot(test)
-mySimOut$agents %>% filter(d2_score>0)
-plot(mySimOut$ras.territories)
+# str(mySimOut)
+# 
+# mySimOut$ras.territories
+# 
+# mySimOut$fisherABMReport
+# mySimOut$ras.territories
+# plot(mySimOut$ras.territories)
+# 
+# agents <- mySimOut$agents
+# territories <- mySimOut$territories
+# 
+# length(unique(territories$individual_id))
+# length(unique(agents$individual_id))
+# 
+# agents %>% filter(!individual_id %in% unique(territories$individual_id))
+# 
+# hist(agents$age)
+# 
+# raster.file <- list.files("./R/scenarios/test_flex2/outputs")
+# test <- terra::rast("./R/scenarios/test_flex2/outputs/test_final_fisher_territories.tif")
+# 
+# plot(test)
+# mySimOut$agents %>% filter(d2_score>0)
+# plot(mySimOut$ras.territories)
 
 
 
