@@ -27,7 +27,7 @@ public class Lp_AllocationModel {
 
         if(ret == 0) {
           /* let us name our variables. Not required, but can be useful for debugging */
-          lp.setColName(1, "YC_R1");
+          lp.setColName(1, "x11");
           lp.setColName(2, "x12");
           lp.setColName(3, "x13");
           lp.setColName(4, "x21");
@@ -48,14 +48,14 @@ public class Lp_AllocationModel {
           colno[j] = 3; /* third column */
           row[j++] = 1;
 
-          colno[j] = 4; /* fourth column */
-          row[j++] = 0;
+         // colno[j] = 4; /* fourth column */
+         // row[j++] = 0;
 
-          colno[j] = 5; /* fifth column */
-          row[j++] = 0;
+         // colno[j] = 5; /* fifth column */
+         // row[j++] = 0;
 
-          colno[j] = 6; /* sixth column */
-          row[j++] = 0;
+         // colno[j] = 6; /* sixth column */
+         // row[j++] = 0;
 
           /* add the row to lpsolve */
           lp.addConstraintex(j, row, colno, LpSolve.EQ, 120);
@@ -228,9 +228,12 @@ public class Lp_AllocationModel {
            lp.printTableau();
            lp.printDuals();
            lp.printLp();
+          
           /* we are done now */
         }
-
+        
+        lp.printSolution(0);
+        	
         /* clean up such that all used memory by lpsolve is freed */
         if(lp.getLp() != 0)
           lp.deleteLp();
