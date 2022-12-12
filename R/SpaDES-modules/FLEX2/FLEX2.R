@@ -347,7 +347,7 @@ Init <- function(sim) {
     den.prop <- nrow (table.hr [individual_id == ind.ids[i] & denning == 1]) / sim$agents [individual_id == ind.ids[i], hr_size]
     
     if (length (rest.prop) != 0 & length (move.prop) != 0 & length (den.prop) != 0) { # check the proportion values are not NA's
-      
+    
       if (P(sim, "rest_target", "FLEX2") <= rest.prop & P(sim, "move_target", "FLEX2") <= move.prop & P(sim, "den_target", "FLEX2") <= den.prop) {
         # check to see it meets all thresholds
         # assign the pixels to territories table
@@ -414,6 +414,8 @@ Init <- function(sim) {
   ras.territories.update [sim$territories$pixelid] <- 1
   sim$ras.territories <- sim$ras.territories + ras.territories.update
 
+  browser()
+  
     # clean-up
   rm (ras.territories.update, new.agents.save)
   
