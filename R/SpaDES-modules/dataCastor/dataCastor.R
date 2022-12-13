@@ -250,6 +250,7 @@ setTablesCastorDB <- function(sim) {
     #Add the raster_info
     ras.extent<-terra::ext(randomRas)
     sim$ras<-terra::rast(nrows = sim$extent[[1]], ncols = sim$extent[[2]], xmin = sim$extent[[3]], xmax = sim$extent[[4]], ymin = sim$extent[[5]], ymax = sim$extent[[6]], vals = 0 )
+    terra::crs(sim$ras)<-paste0("EPSG:3005") #set the raster projection
     sim$ras[]<-pixels$pixelid
     
     #upload raster metadata
