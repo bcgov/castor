@@ -476,7 +476,7 @@ ProvRast <- raster(
 )
 
 #ogma
-ogma<-getSpatialQuery("SELECT ogma_type, wkb_geometry FROM public.ogma_legal_polygon WHERE rt_dt Is NOT NULL")
+ogma<-getSpatialQuery("SELECT ogma_type, wkb_geometry FROM public.ogma_legal_polygon WHERE rt_dt Is NULL")
 ogma$harvest<-1
 ogma.ras<-fasterize::fasterize(sf= ogma, raster = ProvRast , field = "harvest")
 ogma.ras[is.na(ogma.ras)]<-0

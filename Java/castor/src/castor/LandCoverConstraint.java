@@ -1,4 +1,4 @@
-package coe_cellular_automata;
+package castor;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

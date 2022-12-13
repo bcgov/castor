@@ -186,15 +186,15 @@ getExistingRoads <- function(sim) {
     dbExecute(sim$castordb, "ALTER TABLE pixels ADD COLUMN roadstatus integer;")
   
     if(!is.null(sim$boundaryInfo)){
-      sim$road.type<-RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+      sim$road.type<-terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                             srcRaster= P(sim, "nameRoads", "roadCastor"), 
                             clipper=sim$boundaryInfo[[1]], 
                             geom= sim$boundaryInfo[[4]], 
                             where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                            conn = NULL)
+                            conn = NULL))
     
       #Update the pixels table to set the roaded pixels
-      roadUpdate<-data.table(V1= sim$road.type[]) #transpose then vectorize which matches the same order as adj
+      roadUpdate<-data.table(V1= as.numeric(sim$road.type[])) #transpose then vectorize which matches the same order as adj
       roadUpdate[, pixelid := seq_len(.N)]
       roadUpdate<-roadUpdate[V1 >= 0,]
     } 
@@ -219,14 +219,11 @@ getExistingRoads <- function(sim) {
   }
     
   #Initialize the road rasters
-  blankRas<-sim$ras
-  blankRas[]<-NA
-  
-  sim$road.type<-blankRas
+  sim$road.type<-sim$ras
   sim$road.type[]<-dbGetQuery(sim$castordb, 'SELECT roadtype FROM pixels order by pixelid')$roadtype
-  sim$road.year<-blankRas
+  sim$road.year<-sim$ras
   sim$road.year[]<-dbGetQuery(sim$castordb, 'SELECT roadyear FROM pixels order by pixelid')$roadyear
-  sim$road.status<-blankRas
+  sim$road.status<-sim$ras
   sim$road.status[]<-dbGetQuery(sim$castordb, 'SELECT roadstatus FROM pixels order by pixelid')$roadstatus
     
   sim$paths.v<-NULL #set the placeholder for simulated paths
@@ -240,14 +237,15 @@ getCostSurface<- function(sim){
   
   if(!is.null(sim$boundaryInfo)){
     rds<-sim$road.type #roads is the road type 0 = perm, > 0 is the distance as crow flies to mill.
-    rds[rds[] > 0] <- 0 #convert the roads that are not 'pre' start time roads back to zero
-    rds[is.na(rds[])] <- 1
+
+    rds[rds > 0] <- 0 #convert the roads that are not 'pre' start time roads back to zero
+    rds[is.na(rds)] <- 1
     
      #Add in the age to incentivize roads near older forest
     age<-sim$ras
     age[]<-abs(dbGetQuery(sim$castordb, "SELECT age from pixels order by pixelid;")$age)
-    age[is.na(age[])]<-0
-    age[]<-(1-(1/(age[] + 1)))*1000
+    age[is.na(age)]<-0
+    age[]<-(1-(1/(age + 1)))*1000
     costSurf<-terra::rast(RASTER_CLIP2(tmpRast =paste0('temp_', sample(1:10000, 1)), 
                            srcRaster=P(sim, "nameCostSurfaceRas", "roadCastor"), 
                            clipper=sim$boundaryInfo[[1]], 
@@ -256,7 +254,7 @@ getCostSurface<- function(sim){
                            conn = NULL)) 
    
     sim$costSurface<-rds*((terra::resample(costSurf, sim$ras, method = 'bilinear')*288 + 3243) + age) #multiply the cost surface by the existing roads
-    sim$costSurface[sim$costSurface[] == 0]<- 0.00000000001 #giving some weight to roaded areas
+    sim$costSurface[sim$costSurface == 0]<- 0.00000000001 #giving some weight to roaded areas
     #writeRaster(sim$costSurface, file="cost.tif", format="GTiff", overwrite=TRUE)
     
     rm(rds, costSurf, age)
@@ -382,7 +380,7 @@ setGraph<- function(sim){
     ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')"))
     bound.line<-st_buffer(bound.line, 50)
     #TODO: Need a velox workaround. Testing below
-    step.one<-data.table(c(t(raster::as.matrix(fasterize::fasterize(bound.line, sim$ras)))))[, pixelid := seq_len(.N)][V1==1,]$pixelid
+    step.one<-data.table(c(t(raster::as.matrix(fasterize::fasterize(bound.line, raster::raster(sim$ras))))))[, pixelid := seq_len(.N)][V1==1,]$pixelid
     #step.one<-unlist(sim$rasVelo$extract(bound.line), use.names = FALSE)
     
     step.two<-data.table(dbGetQuery(sim$castordb, paste0("select pixelid, roadtype from pixels where roadtype >= 0 and 
