@@ -237,7 +237,12 @@ setTablesCastorDB <- function(sim) {
   }else{ #Set the empty table for values not supplied in the parameters
     
     message('.....compartment ids: default 1')
-    #browser()
+    
+    sim$extent[[3]]<-sim$extent[[3]] + 1170000
+    sim$extent[[4]]<-sim$extent[[4]]*sim$extent[[1]] + 1170000
+    sim$extent[[5]]<-sim$extent[[5]] + 834000
+    sim$extent[[6]]<-sim$extent[[6]]*sim$extent[[2]] + 834000
+    
     randomRas<-randomRaster(sim$extent, P(sim, 'randomLandscapeClusterLevel', 'dataCastor'))
     
     sim$pts <- data.table(terra::xyFromCell(randomRas,1:length(randomRas[]))) #Seems to be faster than rasterTopoints
