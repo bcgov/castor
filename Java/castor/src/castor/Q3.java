@@ -1,17 +1,20 @@
 package castor;
 
+import java.util.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.stream.Stream;
 
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 
 public class Q3 {
 	
-	double evenFlowDeviation = 0.2;
+	double evenFlowDeviation = 0.1;
 	double percentInitalGS = 0.75;	
-	
+	boolean evenFlow = true;
+	boolean endingInventory= false;
     CellularAutomata ca = new CellularAutomata();
     
 	/** 
@@ -36,9 +39,6 @@ public class Q3 {
 		ArrayList<Double> areaConstraintsValue = new ArrayList<Double>();
 		ArrayList<double[]> areaConstraintsRows = new ArrayList<double[]>();
 		ArrayList<int[]> areaConstraintsCols = new ArrayList<int[]>();
-		
-		ArrayList<double[]> evenFlowLowerConstraintsRows = new ArrayList<double[]>();
-		ArrayList<int[]> evenFlowLowerConstraintsCols = new ArrayList<int[]>();
 		
 		
 		HashMap<Integer, ArrayList<Integer>> periodHarvestCols = new HashMap<Integer,ArrayList<Integer>>();
@@ -106,15 +106,52 @@ public class Q3 {
 			
 			m1.setAddRowmode(true);  /* makes building the model faster if it is done rows by row */
 			
+			//Area Constraints
 			for(int ac =0; ac < areaConstraintsValue.size(); ac ++) { //set the area constraints
 				m1.addConstraintex(areaConstraintsCols.get(ac).length, areaConstraintsRows.get(ac), areaConstraintsCols.get(ac), LpSolve.EQ, areaConstraintsValue.get(ac));
 			}
 			
-			for(int ef =0; ef < ca.landscape.numTimePeriods -1; ef ++) { //set the evenflow constraints
-				m1.addConstraintex(evenFlowLowerConstraintsCols.get(ef).length, evenFlowLowerConstraintsRows.get(ef), evenFlowLowerConstraintsCols.get(ef), LpSolve.LE, 0);
+			
+			//Even Flow Constraints
+			if(evenFlow) {
+				for(int ef =0; ef < periodHarvestCols.size()-1; ef ++) { //set the evenflow constraints
+					
+					//Add the cols from P1 and P2 for the columns
+					//Multiply the row vectors by negative 1 or the percent deviation
+		
+					int fal = periodHarvestCols.get(ef).size();        //determines length of firstArray  
+					int sal = periodHarvestCols.get(ef+1).size();   //determines length of secondArray  
+					int[] efCols = new int[fal + sal];
+					
+					System.arraycopy(periodHarvestCols.get(ef).stream().mapToInt(i->i).toArray(), 0, efCols, 0, fal);  
+					System.arraycopy(periodHarvestCols.get(ef+1).stream().mapToInt(i->i).toArray(), 0, efCols, fal, sal);  
+					//System.out.println(Arrays.toString(result)); 
+					
+		
+					double[] efLowerRows = new double[fal + sal];
+					double[] efUpperRows = new double[fal + sal];
+					int counter =0;
+					for(int r =0 ; r < efLowerRows.length; r ++) {
+						if(counter < fal) {
+							efLowerRows[r] = (double) periodHarvestRows.get(ef).get(r)*(1-evenFlowDeviation);
+						    efUpperRows[r] = (double) periodHarvestRows.get(ef).get(r)*(1+evenFlowDeviation);
+						    counter ++;
+						}else {
+							efLowerRows[r] = (double) periodHarvestRows.get(ef+1).get(r-counter)*-1;
+						    efUpperRows[r] = (double) periodHarvestRows.get(ef+1).get(r-counter)*-1;
+						}
+					}
+	
+					System.out.println("Adding P"+ ef+ " and P"+ (ef+1) + " constraint");
+					m1.addConstraintex(efCols.length , efLowerRows, efCols, LpSolve.LE, 0);
+					m1.addConstraintex(efCols.length , efUpperRows, efCols, LpSolve.GE, 0);
+				}
 			}
 			
-			m1.addConstraintex(objCols.size(), endingGSRows, objFncCols, LpSolve.GE, gs0*percentInitalGS); // set the ending growing stock constraint
+			//Ending Inventory Constraint
+			if(endingInventory) {
+				m1.addConstraintex(objCols.size(), endingGSRows, objFncCols, LpSolve.GE, gs0*percentInitalGS); // set the ending growing stock constraint
+			}
 			
 			m1.setAddRowmode(false);
 			 
@@ -152,6 +189,8 @@ public class Q3 {
 		}
 		return (double) outVector;
 	}
+	
+ 
 
 }
 
