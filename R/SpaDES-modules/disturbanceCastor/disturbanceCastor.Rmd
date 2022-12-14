@@ -12,12 +12,15 @@ This module takes the output from a series of *Castor* disturbance modules and c
 This was designed for measuring disturbance specific to forestry and caribou habitat, but could be modified to include other forms of disturbance metrics. 
 
 # Usage
+The module needs *dataCastor*, *roadCastor* and *blockingCastor* to run.
 
 ```{r module_usage}
 library (SpaDES.core)
 library (data.table)
 library (dplyr)
 source (here::here("R/functions/R_Postgres.R"))
+
+Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1')
 
 moduleDir <- paste0(here::here(),"/R/SpaDES-modules")
 outputDir <- paste0(here::here(),"/R/SpaDES-modules/disturbanceCastor")
@@ -34,14 +37,20 @@ parameters <- list(
                                                                 threshold = 140, 
                                                                 type = 'ge', percentage = 20)
                      ),
+  blockingCastor = list (blockMethod = 'pre', 
+                         patchZone = 'default',
+                         patchVariation = 6
+                         ),
+  roadCastor = list (roadMethod = 'mst'
+                     ),
   disturbanceCastor = list (calculateInterval =  1, 
-                            criticalHabitatTable = "vat.vat_bc_crithab_and_herd", # need a check for these, if not, make a 'dummy'
-                            criticalHabRaster = "rast.bc_crithab_and_herd",
-                            permDisturbanceRaster = "rast.mine_ag_wind_rail",
+                            #criticalHabitatTable = "vat.vat_bc_crithab_and_herd",
+                            #criticalHabRaster = "rast.bc_crithab_and_herd",
+                            #permDisturbanceRaster = "rast.mine_ag_wind_rail",
                             recovery = 300)
 )
 
-modules <- list("dataCastor", "disturbanceCastor")
+modules <- list ("dataCastor", "roadCastor", "blockingCastor", "disturbanceCastor")
 
 objects <- list (scenario = data.table (name = "test", description = "test"))
 

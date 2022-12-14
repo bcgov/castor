@@ -84,7 +84,47 @@ Init <- function(sim) {
                                     c80r500=numeric(),  c80r750=numeric(),
                                     c10_40r50=numeric(),  c10_40r500=numeric(), cut10_40=numeric() )
   sim$disturbance <- sim$pts
+  
   message("...Get the critical habitat")
+  
+  if(!is.na(sim$extent[[1]])){ # if you don't have boundary data...
+    # create some caribou herd bounds
+    # intent here is to create the boundary in the top left (northwest) quadrant of the raster
+    n.rows <-  c (0:(sim$extent[[1]]/2)) # divide 'width' of raster in two = start value of each row in raster
+    bounds <- data.table (pixelid = as.integer (), # empty table to populate with data
+                          value = as.numeric (),
+                          critical_hab = as.character ())
+    
+    for (i in 1:length (n.rows)) { # loop through each row 
+
+     temp <- data.table (pixelid = seq (from = as.integer (P (sim,"randomLandscape", "dataCastor" )[[3]] + (P(sim,"randomLandscape", "dataCastor" )[[1]]*n.rows[i]) + 1), # start at each value on left side of the raster
+                                        to =  as.integer ((P(sim,"randomLandscape", "dataCastor" )[[2]]/2) + (P(sim,"randomLandscape", "dataCastor" )[[1]]*n.rows[i])), # to value in middle of the raster, for the top value of the raster
+                                        by = 1),
+                         value = 1,
+                         critical_hab = "caribou_herd"
+                         )
+         
+      bounds <- rbind (bounds, temp)
+    }
+    
+    # join by pixelid
+    sim$disturbance <- merge (sim$disturbance,
+                              bounds,
+                              by.x = "pixelid",
+                              by.y = "pixelid", 
+                              all.x = T)
+    sim$disturbance [, compartment := dbGetQuery (sim$castordb, "SELECT compartid FROM pixels order by pixelid")$compartid]
+    sim$disturbance [, treed := dbGetQuery (sim$castordb, "SELECT treed FROM pixels order by pixelid")$treed]
+    
+    # set permanent disturbance to none
+    dbExecute (sim$castordb, "ALTER TABLE pixels ADD COLUMN perm_dist integer DEFAULT 0")
+
+  }
+  
+  
+  
+  if(!is.null(sim$boundaryInfo)){ # if you have boundary data...
+  
   if(P(sim, "criticalHabRaster", "disturbanceCastor") == '99999'){
     sim$disturbance[, attribute := 1]
   }else{
@@ -141,11 +181,13 @@ Init <- function(sim) {
   }else{
     message("...using existing permanent disturbance raster")
   }
+ } 
   
   return(invisible(sim))
 }
 
 distAnalysis <- function(sim) {
+  
   all.dist<-data.table(dbGetQuery(sim$castordb, paste0("SELECT age, blockid, (case when ((",time(sim)*sim$updateInterval, " - roadstatus < ",P(sim, "recovery", "disturbanceCastor")," AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) then 1 else 0 end) as road_dist, pixelid FROM pixels WHERE perm_dist > 0 OR (blockid > 0 and age >= 0) OR (",time(sim)*sim$updateInterval, " - roadstatus < ", P(sim, "recovery", "disturbanceCastor")," AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0;")))
   
   if(nrow(all.dist) > 0){
@@ -259,12 +301,12 @@ distAnalysis <- function(sim) {
                                   Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2, by=c("compartment","critical_hab")), .))
   
   
-  tempDisturbanceReport[, c("scenario", "timeperiod") := 
+  tempDisturbanceReport[, c ("scenario", "timeperiod") := 
                           list(sim$scenario$name,time(sim)*sim$updateInterval)]
   
-  sim$disturbanceReport<-rbindlist(list(sim$disturbanceReport, tempDisturbanceReport), use.names=TRUE, 
-                                   fill = TRUE )
-  sim$disturbance[, dist:=NULL]
+  sim$disturbanceReport <- rbindlist (list (sim$disturbanceReport, tempDisturbanceReport), use.names=TRUE, 
+                                      fill = TRUE )
+  sim$disturbance [, dist := NULL]
   
   return(invisible(sim))
 }
