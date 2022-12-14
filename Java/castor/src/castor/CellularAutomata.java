@@ -78,10 +78,10 @@ public class CellularAutomata {
 		int currentMaxState;
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
 		//harvestMin = 10000*landscape.pl;
-		harvestMin = 5000;
-		harvestMax = 5500;
-		harvestClusterWeight = 0.8f;
-		ageClusterWeight = 0.15f;
+		harvestMin = 890051;
+		harvestMax = 905000;
+		harvestClusterWeight = 0.0f;
+		ageClusterWeight = 0.0f;
 		harvestPriorityWeight = 1-(harvestClusterWeight + ageClusterWeight);
 		setLCCHarvestDelay(); //In cases no-harvesting decision does not meet the constraint -- remove harvesting during these periods and as a penalty -- thus ahciving the paritial amount
 		
@@ -90,7 +90,7 @@ public class CellularAutomata {
 		globalWeight = landscape.weight; // start with equal weighting
 		setMaxCutValue();//scope all of the cells to determine the maxHarvVol and gs0
 		randomizeStates(r);
-		gsMin = gs0*0.10f;
+		gsMin = gs0*0.0f;
 		//---------------------------------------------
 		System.out.println("Starting local optimization..");
 		//---------------------------------------------
@@ -156,16 +156,20 @@ public class CellularAutomata {
 			}
 			
 			System.out.print("iter:" + g + " global weight:" + globalWeight + " Plc:" + plc );
-			globalWeight += 1; //increment the global weight
+			globalWeight += 0.001; //increment the global weight
 			
 			for(int k =0; k < planHarvestVolume.length; k++){
 				System.out.print(" Vol:" + planHarvestVolume[k] + "  ");
+			
 			}
 			System.out.println("");
 		}
 		
-		
-		System.out.println("Constraints achieved: " + globalConstraintsAchieved);
+		double totVol = 0.0;
+		for(int k = 0; k < planHarvestVolume.length ; k++) {
+			totVol += planHarvestVolume[k];
+		}
+		System.out.println("Constraints achieved: " + globalConstraintsAchieved + " LpObj: "+ totVol);
 		for(int f =0; f < planHarvestVolume.length; f++){
 			System.out.print(" GS:" + planGSVolume[f] + "  ");
 		}
@@ -430,7 +434,7 @@ public class CellularAutomata {
 			lc  = getLandCoverConstraint(ft.stateTypes.get(s), lcList);
 					
 			//P = 0.5*hfc + 0.25*gsc + 0.25*lc; 
-			P = 0.65*hfc + 0.35*gsc; 
+			P = 0.9*hfc + 0.1*gsc; 
 			stateValue = landscape.weight*U + globalWeight*P;
 				
 			if(maxValue < stateValue) { 
