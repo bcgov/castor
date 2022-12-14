@@ -414,9 +414,8 @@ Init <- function(sim) {
   ras.territories.update [sim$territories$pixelid] <- 1
   sim$ras.territories <- sim$ras.territories + ras.territories.update
 
-  browser()
   
-    # clean-up
+  # clean-up
   rm (ras.territories.update, new.agents.save)
   
   message ("Territories and agents created!")
@@ -517,7 +516,7 @@ annualEvents <- function (sim) {
 
     if (length (hab.inds.prop) > 0) {
       for (i in 1:length (hab.inds.prop)) { # for each individual
-        
+
         # breaking this down to make it easier to interpret
         rest.prop <- (nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & rust == 1]) + nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & cavity == 1]) + nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & cwd == 1])) / sim$agents [individual_id == hab.inds.prop[i], hr_size]
         move.prop <- nrow (table.hab.terrs [individual_id == hab.inds.prop[i] & movement == 1]) / sim$agents [individual_id == hab.inds.prop[i], hr_size] 
