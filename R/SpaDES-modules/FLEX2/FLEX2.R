@@ -599,12 +599,7 @@ annualEvents <- function (sim) {
     den.target <- data.table (individual_id = as.numeric (), # putting in a dummy row so that I can run the while loop
                               den_id = as.numeric ()) 
     
-    
-    dispersers1 <<- dispersers
-    den.table <<- sim$den.table
-    
-    
-      # remove den sites already occupied 
+          # remove den sites already occupied 
     if (length (inds) > 0) { # also put in a check to see if a den site is already occupied?
       for (i in 1:length (inds)) {
         den.site <- RANN::nn2 (data = sim$den.table, # in the den site data
@@ -628,10 +623,6 @@ annualEvents <- function (sim) {
       }
     }
   
-    
-    den.target <<- den.target
-    dispersers2 <<- dispersers
-    
     
       # update the den locations
        den.target <- merge (den.target,
@@ -662,11 +653,7 @@ annualEvents <- function (sim) {
                                                   asRaster = F, # output as a table
                                                   circle = F) # spread to adjacent cells
      
-   
-      table.disperse.hr1 <<- table.disperse.hr
-      
-      
-            # add individual id and habitat
+          # add individual id and habitat
       table.disperse.hr <- merge (merge (table.disperse.hr,
                                          dispersers [, c ("pixelid", "individual_id")],
                                          by.x = "initialPixels", by.y = "pixelid", all.x = T), 
@@ -674,9 +661,6 @@ annualEvents <- function (sim) {
                                   by.x = "pixels", by.y = "pixelid",
                                   all.x = T)
       
-      table.disperse.hr2 <<- table.disperse.hr
-      
-  
         # check to see if home range target was within mean +/- 2 SD; if not, remove the disperser 
       table.disperse.hr [, pix.count := sum (length (pixels)), by = individual_id]
       table.disperse.hr.unq <- unique (table.disperse.hr, by = "individual_id")
