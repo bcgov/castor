@@ -97,9 +97,9 @@ doEvent.fisherHabitatCastor = function (sim, eventTime, eventType) {
 
 ## event functions
 Init <- function (sim) {
-  
+
   message ("Initiating fisher habitat data creation...")
-  
+
   # instantiate raster for saving data
   sim$ras.fisher.habitat <- sim$ras
   # get pixel id's for aoi 
@@ -110,45 +110,67 @@ Init <- function (sim) {
   message ("Getting fisher habitat capability and range data...")
 
   # below creates a 'table in the castordb that defines where fisher habitat could occur
-  if(nrow (dbGetQuery(sim$castordb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'fisherlandscape';")) == 0) { # Check to see if this data exists in the sqlite db already
+  if(nrow (dbGetQuery (sim$castordb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'fisherlandscape';")) == 0) { # Check to see if this data exists in the sqlite db already
+    
     message ("Creating fisherlandscape table.")
     # Create the habitat data table in the database if it does not exist
     dbExecute (sim$castordb, "CREATE TABLE IF NOT EXISTS fisherlandscape (pixelid integer, den_p integer, rus_p integer, mov_p integer, cwd_p integer, cav_p integer, fisher_pop integer)")
-    sim$table.hab <- data.table (pixelid = sim$ras.fisher.habitat [], # this identifies and grabs ('clips') the potential habitat in the area of interest
-                                 den_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_denning_p" , # 
-                                                       clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
-                                                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                                       conn = NULL)[],
-                                 rus_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_rust_p" , # 
-                                                       clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
-                                                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                                       conn = NULL)[],
-                                 cwd_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_cwd_p" , # 
-                                                       clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
-                                                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                                       conn = NULL)[],
-                                 cav_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_cavity_p" , # 
-                                                       clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
-                                                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                                       conn = NULL)[],
-                                 mov_p = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_movement_p" , # 
-                                                       clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
-                                                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                                       conn = NULL)[],
-                                 fisher_pop = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_zones" , # 
-                                                       clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
-                                                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                                       conn = NULL)[]
-                                 ) #---VAT for populations: 1 = Boreal; 2 = SBS-wet; 3 = SBS-dry; 4 = Dry Forest
+    
+    if (!is.na (sim$extent[[1]])) { # if you don't have boundary data...
+      sim$table.hab <- data.table (pixelid = as.integer (sim$ras.fisher.habitat []),
+                                   den_p = as.integer (1), # make the entire area potential habitat as default
+                                   rus_p = as.integer (1),
+                                   cwd_p = as.integer (1),
+                                   cav_p = as.integer (1),
+                                   mov_p = as.integer (1),
+                                   fisher_pop = as.integer (3) # make them all SBS-dry as default
+                                   )
+      dbBegin (sim$castordb) 
+      rs <- dbSendQuery (sim$castordb, paste0 ("INSERT INTO fisherlandscape (pixelid, den_p, rus_p, mov_p, cwd_p, cav_p, fisher_pop) 
+                                              VALUES (:pixelid, :den_p, :rus_p, :mov_p, :cwd_p, :cav_p, :fisher_pop)"), sim$table.hab) 
+      dbClearResult (rs)
+      dbCommit (sim$castordb)
+    }
     
     
-    sim$table.hab [, fisher_pop := as.numeric (fisher_pop)]
-    sim$table.hab <- sim$table.hab [fisher_pop > 0, ] # filter so it's only including habitat in fisher population ranges
-    dbBegin (sim$castordb) 
-    rs <- dbSendQuery (sim$castordb, paste0 ("INSERT INTO fisherlandscape (pixelid, den_p, rus_p, mov_p, cwd_p, cav_p, fisher_pop) 
-                                            VALUES (:pixelid, :den_p, :rus_p, :mov_p, :cwd_p, :cav_p, :fisher_pop)"), sim$table.hab) 
-    dbClearResult (rs)
-    dbCommit (sim$castordb)
+    if (!is.null (sim$boundaryInfo)){ # if you have boundary data...
+        
+      sim$table.hab <- data.table (pixelid = as.integer (sim$ras.fisher.habitat []), # this identifies and grabs ('clips') the potential habitat in the area of interest
+                                   den_p = as.integer (RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_denning_p" , # 
+                                                         clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                                                         where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                                         conn = NULL)[]),
+                                   rus_p = as.integer (RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_rust_p" , # 
+                                                         clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                                                         where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                                         conn = NULL)[]),
+                                   cwd_p = as.integer (RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_cwd_p" , # 
+                                                         clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                                                         where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                                         conn = NULL)[]),
+                                   cav_p = as.integer (RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_cavity_p" , # 
+                                                         clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                                                         where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                                         conn = NULL)[]),
+                                   mov_p = as.integer (RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_movement_p" , # 
+                                                         clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                                                         where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                                         conn = NULL)[]),
+                                   fisher_pop = as.integer (RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), srcRaster = "rast.fisher_zones" , # 
+                                                         clipper=sim$boundaryInfo[[1]], geom=sim$boundaryInfo[[4]], 
+                                                         where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                                         conn = NULL)[])
+                                   ) #---VAT for populations: 1 = Boreal; 2 = SBS-wet; 3 = SBS-dry; 4 = Dry Forest
+      
+      
+      sim$table.hab <- sim$table.hab [fisher_pop > 0, ] # filter so it's only including habitat in fisher population ranges
+      dbBegin (sim$castordb) 
+      rs <- dbSendQuery (sim$castordb, paste0 ("INSERT INTO fisherlandscape (pixelid, den_p, rus_p, mov_p, cwd_p, cav_p, fisher_pop) 
+                                              VALUES (:pixelid, :den_p, :rus_p, :mov_p, :cwd_p, :cav_p, :fisher_pop)"), sim$table.hab) 
+      dbClearResult (rs)
+      dbCommit (sim$castordb)
+    
+    }
   } else {
     sim$table.hab <- data.table (dbGetQuery (sim$castordb, "SELECT * FROM fisherlandscape;"))
   }
@@ -156,49 +178,49 @@ Init <- function (sim) {
   message ("Getting fisher habitat suitability data.")
 
   table.hab.init <- merge (sim$table.hab, 
-                           data.table (dbGetQuery (sim$castordb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height FROM pixels WHERE compartid IS NOT NULL;")),
-                           by.x = "pixelid",
-                           by.y = "pixelid",
-                           all.x = TRUE)
-  
-  # classify the habitat
+                             data.table (dbGetQuery (sim$castordb, "SELECT pixelid, age, crownclosure, qmd, basalarea, height FROM pixels WHERE compartid IS NOT NULL;")),
+                             by.x = "pixelid",
+                             by.y = "pixelid",
+                             all.x = TRUE)
+    
+    # classify the habitat
   table.hab.init <- classifyHabitat (table.hab.init)
-  
+
   # Pixelid's
-  pix.rast <- terra::rast (sim$ras)
+  pix.rast <- sim$ras
   pix.rast [] <- 0
   pix.rast [pix.for.rast$pixelid] <- pix.for.rast$pixelid
   pix.rast [!pix.for.rast$pixelid] <- NA
   names (pix.rast) <- "pixelid"
- 
+  
   # map the habitat to the raster
-      # fisher population
-  ras.fisher.pop <- terra::rast (sim$ras)
+  # fisher population
+  ras.fisher.pop <- sim$ras
   ras.fisher.pop [] <- 0
   table.hab.init.fisher.pop <- table.hab.init [fisher_pop > 0, ]
   ras.fisher.pop [table.hab.init.fisher.pop$pixelid] <- table.hab.init.fisher.pop$fisher_pop 
-    # denning
-  ras.fisher.denning.init <- terra::rast (sim$ras)
+  # denning
+  ras.fisher.denning.init <- sim$ras
   ras.fisher.denning.init [] <- 0
   table.hab.init.den <- table.hab.init [denning == 1, ]
   ras.fisher.denning.init [table.hab.init.den$pixelid] <- 1 
-    # rust
-  ras.fisher.rust.init <- terra::rast (sim$ras)
+  # rust
+  ras.fisher.rust.init <- sim$ras
   ras.fisher.rust.init [] <- 0
   table.hab.init.rust <- table.hab.init [rust == 1, ]
   ras.fisher.rust.init [table.hab.init.rust$pixelid] <- 1 
-    # cavity
-  ras.fisher.cavity.init <- terra::rast (sim$ras)
+  # cavity
+  ras.fisher.cavity.init <- sim$ras
   ras.fisher.cavity.init [] <- 0
   table.hab.init.cavity <- table.hab.init [cavity == 1, ]
   ras.fisher.cavity.init [table.hab.init.cavity$pixelid] <- 1 
-    # cwd
-  ras.fisher.cwd.init <- terra::rast (sim$ras)
+  # cwd
+  ras.fisher.cwd.init <- sim$ras
   ras.fisher.cwd.init [] <- 0
   table.hab.init.cwd <- table.hab.init [cwd == 1, ]
   ras.fisher.cwd.init [table.hab.init.cwd$pixelid] <- 1
-    # movement
-  ras.fisher.movement.init <- terra::rast (sim$ras)
+  # movement
+  ras.fisher.movement.init <- sim$ras
   ras.fisher.movement.init [] <- 0
   table.hab.init.movement <- table.hab.init [movement == 1, ]
   ras.fisher.movement.init [table.hab.init.movement$pixelid] <- 1
@@ -224,27 +246,27 @@ updateHabitat <- function (sim) {
   
   # Map the habitat to the raster
   # denning
-  ras.fisher.denning <- terra::rast (sim$ras)
+  ras.fisher.denning <- sim$ras
   ras.fisher.denning [] <- 0
   table.hab.den <- table.hab.update [denning == 1, ]
   ras.fisher.denning [table.hab.den$pixelid] <- 1 
   # rust
-  ras.fisher.rust <- terra::rast (sim$ras)
+  ras.fisher.rust <- sim$ras
   ras.fisher.rust [] <- 0
   table.hab.rust <- table.hab.update [rust == 1, ]
   ras.fisher.rust [table.hab.rust$pixelid] <- 1 
   # cavity
-  ras.fisher.cavity <- terra::rast (sim$ras)
+  ras.fisher.cavity <- sim$ras
   ras.fisher.cavity [] <- 0
   table.hab.cavity <- table.hab.update [cavity == 1, ]
   ras.fisher.cavity [table.hab.cavity$pixelid] <- 1 
   # cwd
-  ras.fisher.cwd <- terra::rast (sim$ras)
+  ras.fisher.cwd <- sim$ras
   ras.fisher.cwd [] <- 0
   table.hab.cwd <- table.hab.update [cwd == 1, ]
   ras.fisher.cwd [table.hab.cwd$pixelid] <- 1
   # movement
-  ras.fisher.movement <- terra::rast (sim$ras)
+  ras.fisher.movement <- sim$ras
   ras.fisher.movement [] <- 0
   table.hab.movement <- table.hab.update [movement == 1, ]
   ras.fisher.movement [table.hab.movement$pixelid] <- 1
@@ -272,9 +294,17 @@ saveHabitat <- function (sim) {
   
   message ("Saving fisher habitat...")
   
-  terra::writeRaster (x = sim$raster.stack, 
+  if (!is.na (sim$extent[[1]])) { # if you don't have boundary data...
+    terra::writeRaster (x = sim$raster.stack, 
+                        filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_rdm_land_fisher_habitat.tif"), 
+                        overwrite = TRUE)
+  }
+  
+  if (!is.null (sim$boundaryInfo)){ # if you have boundary data...
+    terra::writeRaster (x = sim$raster.stack, 
                       filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_", sim$boundaryInfo[[3]][[1]],"_fisher_habitat.tif"), 
                       overwrite = TRUE)
+  }
   
   message ("Saving fisher habitat complete.")
   
@@ -294,7 +324,6 @@ classifyHabitat <- function (inputTable) {
                                   cwd_p, cwd, mov_p, movement)] # could add other things, openness, crown closure, cost surface?
   return (inputTable)
 }
-
 
 .inputObjects <- function (sim) {
   # Any code written here will be run during the simInit for the purpose of creating

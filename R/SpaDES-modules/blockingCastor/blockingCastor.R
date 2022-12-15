@@ -103,7 +103,7 @@ doEvent.blockingCastor = function(sim, eventTime, eventType, debug = FALSE) {
       sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCastor", "UpdateBlocks", eventPriority=2)
     },
     writeBlocks = {
-      writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
+      terra::writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
