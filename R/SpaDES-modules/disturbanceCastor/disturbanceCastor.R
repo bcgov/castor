@@ -170,7 +170,7 @@ Init <- function(sim) {
     perm_dist[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
     #add to the castordb
     dbBegin(sim$castordb)
-      rs<-dbSendQuery(sim$castordb, "Update pixels set perm_dist = :perm_dist where pixelid = :pixelid", perm_dist)
+    rs<-dbSendQuery(sim$castordb, "Update pixels set perm_dist = :perm_dist where pixelid = :pixelid", perm_dist)
     dbClearResult(rs)
     dbCommit(sim$castordb)
     
