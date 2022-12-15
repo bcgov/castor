@@ -155,17 +155,43 @@ system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 21474836
 
 ```{r harvest constraints}
 
+# constraints table
 tab.constraints <- data.table (read.table (paste0 (data.dir, "CoverConstraints.txt"), header = T, sep = '\t'))
 
+tab.og.constraints <- tab.constraints [Layer == "rlu_oldgrw", ]
+
+
+zone_og <- data.table (zoneid = as.integer (c(1:5)), # check these.....
+                       type = 'ge',
+                       variable = 'age', 
+                       threshold = as.numeric (c (140, 100, 140, 140, 100)), 
+                       reference_zone = 'comparison_nass.rast_oldgrw', 
+                       percentage = as.numeric (c (44, 44, 37, 17, 17)), 
+                       ndt = as.integer (0), 
+                       label = c ('luAlluvial_con', 'luAlluvial_decid', 'luMountains',
+                                  'luUpland_con', 'luUpland_decid'), 
+                       multi_condition = as.character (''), 
+                       denom = as.character (''), # productive forest????
+                       start = as.integer (0), 
+                       stop = as.integer (250))
+  
+  
+# Qinglin: where is rlu_oldgrw?
+rast.og <- raster::raster (paste0 (data.dir, "gisData\\grids\\rlu_oldgrw.tif")) # ???
 
 
 
 
 
 
-rast.irm <- raster::raster (paste0 (data.dir, "gisData\\grids\\IRMzone.tif")) 
-rast.lu <- raster::raster (paste0 (data.dir, "gisData\\grids\\lu.tif")) 
-# LU classes: 1:Bear  2:Bowser  3:BrownBear  4:CambriaIcefield  5:Craven  6:GreenvilleKalum  7:Kinskuch  8:Kiteen  9:Kwinamuck  10:Madely  11:Muskaboo  12:NassRiverKalum  13:Oweegee  14:Sallysout 15:SpatsiziRiver  16:TaylorDamdochax  17:Tchitin  18:Tintina  19:White  20:Wildfire
+
+
+
+
+
+
+
+##---------
 unique(getValues(rast.lu))
 
 rast.lu.irm <- rast.irm * rast.lu
