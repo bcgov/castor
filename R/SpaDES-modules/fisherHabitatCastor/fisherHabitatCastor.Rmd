@@ -39,7 +39,7 @@ times <- list (start = 0, end = 2)
 
 parameters <- list(
   
-  # "dummy" lanscape method 
+  # "dummy" landscape method 
   dataCastor = list(saveCastorDB = TRUE, 
                     randomLandscape = list (100,100,0,100,0,100),
                     randomLandscapeClusterLevel = 1.2,
@@ -47,7 +47,8 @@ parameters <- list(
                                                                 threshold = 140, 
                                                                 type = 'ge', percentage = 20)
                      ),
-  # Castor output method
+  
+  # "real" landscape method
   # dataCastor = list(dbName='castor',
   #                        saveCastorDB = FALSE, # Set to TRUE first time running the analysis
   #                        sqlite_dbname = "fisherABM_test", 
@@ -90,7 +91,7 @@ parameters <- list(
 )
 
 scenario = data.table (name = "test",
-                       description = "Testing fisher habitat loader.")
+                       description = "Testing fisher habitat module with random landscape.")
 
 modules <- list ("fisherHabitatCastor",
                  "growingStockCastor",

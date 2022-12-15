@@ -78,11 +78,12 @@ public class CellularAutomata {
 		int currentMaxState;
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
 		//harvestMin = 10000*landscape.pl;
-		harvestMin = 890051;
-		harvestMax = 905000;
-		harvestClusterWeight = 0.0f;
-		ageClusterWeight = 0.0f;
+		harvestMin = 440051;
+		harvestMax = 458000;
+		harvestClusterWeight = 0.79f;
+		ageClusterWeight = 0.2f;
 		harvestPriorityWeight = 1-(harvestClusterWeight + ageClusterWeight);
+		double gWeightIncr = 0.1;
 		setLCCHarvestDelay(); //In cases no-harvesting decision does not meet the constraint -- remove harvesting during these periods and as a penalty -- thus ahciving the paritial amount
 		
 		System.out.println("");
@@ -156,7 +157,7 @@ public class CellularAutomata {
 			}
 			
 			System.out.print("iter:" + g + " global weight:" + globalWeight + " Plc:" + plc );
-			globalWeight += 0.001; //increment the global weight
+			globalWeight += gWeightIncr; //increment the global weight
 			
 			for(int k =0; k < planHarvestVolume.length; k++){
 				System.out.print(" Vol:" + planHarvestVolume[k] + "  ");

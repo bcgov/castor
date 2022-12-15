@@ -1,5 +1,10 @@
 package castor;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,10 +16,10 @@ import lpsolve.LpSolveException;
 
 public class Q3 {
 	
-	double evenFlowDeviation = 0.1;
-	double percentInitalGS = 0.75;	
+	double evenFlowDeviation = 0.01;
+	double percentInitalGS = 0.1;	
 	boolean evenFlow = true;
-	boolean endingInventory= false;
+	boolean endingInventory= true;
     CellularAutomata ca = new CellularAutomata();
     
 	/** 
@@ -56,7 +61,7 @@ public class Q3 {
 		float[] hvol = new float[ca.landscape.numTimePeriods];
 		
 		// Get the parameters from Cellular Automata Class
-		for( int f = 1; f < ca.forestTypeList.size(); f ++) {
+		for( int f = 1; f < ca.forestTypeList.size(); f ++) { //the 0 forestType is null
 			
 			double[] areaConstraintRowsVals = new double[ca.forestTypeList.get(f).stateTypes.size()];
 			Arrays.fill(areaConstraintRowsVals, 1);
@@ -142,7 +147,7 @@ public class Q3 {
 						}
 					}
 	
-					System.out.println("Adding P"+ ef+ " and P"+ (ef+1) + " constraint");
+					//System.out.println("Adding P"+ ef+ " and P"+ (ef+1) + " constraint");
 					m1.addConstraintex(efCols.length , efLowerRows, efCols, LpSolve.LE, 0);
 					m1.addConstraintex(efCols.length , efUpperRows, efCols, LpSolve.GE, 0);
 				}
@@ -164,17 +169,24 @@ public class Q3 {
 	            ret = 5;
 	        if(ret == 0) {// print solution
 	        	System.out.println("Solved. Value of objective function: " + m1.getObjective());
-	        	double[] var = m1.getPtrVariables();
-	        	for (int i = 0; i < var.length; i++) {
-	        		System.out.println("Value of var[" + i + "] = " + var[i]);
-	        	}
+	        	//double[] var = m1.getPtrVariables();
+	        	//for (int i = 0; i < var.length; i++) {
+	        	//	System.out.println("Value of var[" + i + "] = " + var[i]);
+	        	//}
 	        }else {
 	        	System.out.println("Infeasible. Value of objective function:" + m1.getObjective());
 	        }
-		 
+	        
+	        
+	        double[] dual =new double[ca.forestTypeList.size()];
+	    	for(int d =0; d < ca.forestTypeList.size(); d ++) { //set the area constraints
+	    		dual[d] = m1.getVarDualresult(d+1);
+	    	}
+	    		        
 		    // delete the problem and free memory
 		    m1.deleteLp();
-		     
+		    saveResults(dual);
+		    
 		} catch (LpSolveException e) {
 		       e.printStackTrace();
 		 }
@@ -188,6 +200,36 @@ public class Q3 {
 			outVector += vector[i];
 		}
 		return (double) outVector;
+	}
+	
+	private void saveResults(double dual[]) {
+		try { //Get the data from the db
+			Connection conn = DriverManager.getConnection("jdbc:sqlite:" + ca.castordb);		
+			if (conn != null) {
+					
+				String insertResults = "Update pixels set dual = ? where pixelid = ?;";
+				conn.setAutoCommit(false);
+				PreparedStatement pstmt = conn.prepareStatement(insertResults);
+				try {
+					for(int c = 0; c < ca.cellsList.size(); c++) {
+						pstmt.setDouble(1, dual[ca.cellsList.get(c).foresttype]);
+						pstmt.setInt(2, ca.cellsList.get(c).pixelid);
+				        pstmt.executeUpdate();		        	
+					}
+				}finally {
+					System.out.println("...done");
+					//pstmt.executeBatch();
+					pstmt.close();
+					conn.commit();
+					//conn.close();
+				}  
+				
+				
+			}
+			
+		} catch (SQLException e) {
+		        System.out.println(e.getMessage());
+		       }
 	}
 	
  
