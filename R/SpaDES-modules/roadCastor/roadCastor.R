@@ -378,10 +378,8 @@ setGraph<- function(sim){
     
     bound.line<-getSpatialQuery(paste0("select st_boundary(",sim$boundaryInfo[[4]],") as geom from ",sim$boundaryInfo[[1]]," where 
     ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')"))
-    bound.line<-st_buffer(bound.line, 50)
     #TODO: Need a velox workaround. Testing below
-    step.one<-data.table(c(t(raster::as.matrix(fasterize::fasterize(bound.line, raster::raster(sim$ras))))))[, pixelid := seq_len(.N)][V1==1,]$pixelid
-    #step.one<-unlist(sim$rasVelo$extract(bound.line), use.names = FALSE)
+    step.one<-extract(sim$ras, vect(bound.line), cells=TRUE, xy=FALSE, ID = FALSE)$layer
     
     step.two<-data.table(dbGetQuery(sim$castordb, paste0("select pixelid, roadtype from pixels where roadtype >= 0 and 
                                                   pixelid in (",paste(step.one, collapse = ', '),")")))
