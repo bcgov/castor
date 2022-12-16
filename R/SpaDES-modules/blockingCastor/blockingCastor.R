@@ -293,7 +293,7 @@ preBlock <- function(sim) {
       natDT <- dbGetQuery(sim$castordb,paste0("SELECT ndt, t_area FROM zoneConstraints WHERE reference_zone = '", P(sim, "patchZone", "blockingCastor"), "' AND zoneid = ", zone))
       targetNum <- sim$patchSizeDist[ndt == natDT$ndt, ] # get the target patchsize
       targetNum[,targetNum:= (natDT$t_area*freq)/sizeClass][,targetNum:= ceiling(targetNum)]
-      
+  
       #Adjust the target number based on the current distribution
       current.block.dist <- dbGetQuery(sim$castordb,paste0("SELECT blockid, count() as area FROM pixels WHERE ",patchSizeZone," = ", zone, " And blockid > 0 group by blockid;"))
       if(nrow(current.block.dist) > 0){
@@ -513,13 +513,31 @@ binFreqTable <- function(x, bins) {
                                           2,2,2,2,2,2,
                                           3,3,3,3,3,3,
                                           4,4,4,4,4,4,
-                                          5,5,5,5,5,5), 
+                                          5,5,5,5,5,5,
+                                          6,6,6,6,6,6,
+                                          7,7,7,7,7,7,
+                                          8,8,8,8,8,8,
+                                          9,9,9,9,9,9,
+                                          10,10,10,10,10,10,
+                                          11,11,11,11,11,11,
+                                          12,12,12,12,12,12,
+                                          13,13,13,13,13,13,
+                                          14,14,14,14,14,14), 
                                    sizeClass = c(40,80,120,160,200,240), 
                                    freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
                                             0.3,0.3,0.1,0.1,0.1, 0.1,
                                             0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
                                             0.1,0.02,0.02,0.02,0.02,0.8,
-                                            0.3,0.3,0.1,0.1,0.1, 0.1))
+                                            0.3,0.3,0.1,0.1,0.1, 0.1,
+                                            0.1,0.05,0.2,0.2,0.2,0.25,
+                                            0.2,0.1,0.2,0.2,0.2,0.1,
+                                            0.05,0.05,0.1,0.1,0.3,0.4,
+                                            0.05,0.05,0.1,0.2,0.3,0.3,
+                                            0.2,0.1,0.1,0.2,0.2,0.4,
+                                            0.05,0.05,0.1,0.1,0.1,0.6,
+                                            0.2,0.1,0.2,0.2,0.2,0.1,
+                                            0.2,0.1,0.2,0.2,0.2,0.1,
+                                            0.2,0.1,0.2,0.2,0.2,0.1))
   }
   return(invisible(sim))
 }
