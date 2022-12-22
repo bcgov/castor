@@ -14,8 +14,8 @@ public class CellularAutomata {
 	//ArrayList<Cell> cellList = new ArrayList<Cell>();
 	ArrayList<Cells> cellsList = new ArrayList<Cells>();
 	ArrayList<Integer> cellsListChangeState = new ArrayList<Integer>();
-	String castordb = "C:/Users/klochhea/castor/R/SpaDES-modules/dataCastor/test_castordb.sqlite";
-	
+	//String castordb = "C:/Users/klochhea/castor/R/SpaDES-modules/dataCastor/test_castordb.sqlite";
+	String castordb = "C:/Users/klochhea/castor/R/scenarios/fisher_cclup/quesnel/quesnel_castordb.sqlite";
 	//ArrayList<Cell> cellListMaximum = new ArrayList<Cell>();
 	int numIter=15000;
 	float harvestMax,harvestMin, gsMin, objValue, maxObjValue;
@@ -1088,11 +1088,11 @@ public class CellularAutomata {
 						if(forestTypeID == rs2.getInt(1)) {
 							ForestType forestType = new ForestType(); //create a new ForestType object
 							if( rs2.getInt(5) == 1 & rs2.getInt(4) == 0) { //the management type is 1 but the yield_id_trans is null -- meaning there is no TIPSY curve to transition to. This should be a VDYP curve
-								forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(3), 0, yieldTable.get(rs2.getInt(3)).get("vol"), rs2.getInt(6)); //the max age a cell can have is 350	
+								forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(3), 0, yieldTable.get(rs2.getInt(3)).get("vol"), rs2.getDouble(6)); //the max age a cell can have is 350	
 								forestType.setForestTypeStates(0, landscape.ageStatesTemplate.get(Math.min(350, rs2.getInt(2))), landscape.harvestStatesTemplate.get(Math.min(350, rs2.getInt(2))), yieldTable.get(rs2.getInt(3)),  yieldTable.get(rs2.getInt(3)), landscape.minHarvVol);
 								
 							}else {
-								forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(4), rs2.getInt(5), yieldTable.get(rs2.getInt(3)).get("vol"), rs2.getInt(6)); //the max age a cell can have is 350	
+								forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(4), rs2.getInt(5), yieldTable.get(rs2.getInt(3)).get("vol"), rs2.getDouble(6)); //the max age a cell can have is 350	
 								forestType.setForestTypeStates(rs2.getInt(5), landscape.ageStatesTemplate.get(Math.min(350, rs2.getInt(2))), landscape.harvestStatesTemplate.get(Math.min(350, rs2.getInt(2))), yieldTable.get(rs2.getInt(3)),  yieldTable.get(rs2.getInt(4)), landscape.minHarvVol);	
 							}
 							lRSY += forestType.maxMAI*forestType.area;

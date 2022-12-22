@@ -11,7 +11,7 @@ public class ForestType {
 	int id_yc_trans;
 	int manage_type;
 	float maxMAI =0f;
-	int area; // Should this be a double? set up now as pixels based or count based
+	double area; // This be a double-- used to be set up as pixels based or count based
 	
 	ArrayList<HashMap<String, float[]>> stateTypes = new ArrayList<HashMap<String, float[]>>();
 	
@@ -22,7 +22,7 @@ public class ForestType {
 
 	}
 	
-	public void setForestTypeAttributes(int id, int age, int id_yc, int id_yc_trans, int manage_type, float[] yc, int area) {
+	public void setForestTypeAttributes(int id, int age, int id_yc, int id_yc_trans, int manage_type, float[] yc, double area) {
 		this.id = id;
 		this.age = age;
 		this.id_yc = id_yc;

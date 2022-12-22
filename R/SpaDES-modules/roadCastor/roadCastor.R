@@ -379,7 +379,7 @@ setGraph<- function(sim){
     bound.line<-getSpatialQuery(paste0("select st_boundary(",sim$boundaryInfo[[4]],") as geom from ",sim$boundaryInfo[[1]]," where 
     ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')"))
     #TODO: Need a velox workaround. Testing below
-    step.one<-extract(sim$ras, vect(bound.line), cells=TRUE, xy=FALSE, ID = FALSE)$layer
+    step.one<-terra::extract(sim$ras, terra::vect(bound.line), cells=TRUE, xy=FALSE, ID = FALSE)$layer
     
     step.two<-data.table(dbGetQuery(sim$castordb, paste0("select pixelid, roadtype from pixels where roadtype >= 0 and 
                                                   pixelid in (",paste(step.one, collapse = ', '),")")))

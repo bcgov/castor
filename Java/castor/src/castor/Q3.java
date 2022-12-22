@@ -16,8 +16,8 @@ import lpsolve.LpSolveException;
 
 public class Q3 {
 	
-	double evenFlowDeviation = 0.01;
-	double percentInitalGS = 0.1;	
+	double evenFlowDeviation = 0.05;
+	double percentInitalGS = 0.8;	
 	boolean evenFlow = true;
 	boolean endingInventory= true;
     CellularAutomata ca = new CellularAutomata();
@@ -45,6 +45,7 @@ public class Q3 {
 		ArrayList<double[]> areaConstraintsRows = new ArrayList<double[]>();
 		ArrayList<int[]> areaConstraintsCols = new ArrayList<int[]>();
 		
+		ArrayList<Integer> forestType = new ArrayList<Integer>();
 		
 		HashMap<Integer, ArrayList<Integer>> periodHarvestCols = new HashMap<Integer,ArrayList<Integer>>();
 		HashMap<Integer, ArrayList<Double>> periodHarvestRows = new HashMap<Integer,ArrayList<Double>>();
@@ -56,12 +57,19 @@ public class Q3 {
 		}
 		
 		
-		int col = 1, ret =0;
+		int col = 1, ret =0, forestTypes = 0;
 		double gs0=0;
 		float[] hvol = new float[ca.landscape.numTimePeriods];
 		
+		System.out.println("Building Model I lp");
 		// Get the parameters from Cellular Automata Class
 		for( int f = 1; f < ca.forestTypeList.size(); f ++) { //the 0 forestType is null
+			
+			
+			if(ca.forestTypeList.get(f).manage_type <= 0) { //remove non timber harvesting areas
+				forestType.add(null);
+				continue;
+			}
 			
 			double[] areaConstraintRowsVals = new double[ca.forestTypeList.get(f).stateTypes.size()];
 			Arrays.fill(areaConstraintRowsVals, 1);
@@ -88,6 +96,8 @@ public class Q3 {
 				col ++;
 			}
 			
+			forestTypes += 1;
+			forestType.add(forestTypes);
 			gs0 += (double) ca.forestTypeList.get(f).stateTypes.get(0).get("gsVol")[0]*ca.forestTypeList.get(f).area; //initial growing stock
 			
 			//Add Area constraints
@@ -161,7 +171,9 @@ public class Q3 {
 			m1.setAddRowmode(false);
 			 
 		    m1.setMaxim(); // set obj to maximize
-		    
+		    System.out.println("...done");
+		    System.out.print("");
+		    System.out.println("Solving...");
 		    ret = m1.solve(); // solve the problem
 	        if(ret == LpSolve.OPTIMAL)
 	            ret = 0;
@@ -178,14 +190,14 @@ public class Q3 {
 	        }
 	        
 	        
-	        double[] dual =new double[ca.forestTypeList.size()];
-	    	for(int d =0; d < ca.forestTypeList.size(); d ++) { //set the area constraints
+	        double[] dual =new double[forestTypes];
+	    	for(int d =0; d < forestTypes; d ++) { //set the area constraints
 	    		dual[d] = m1.getVarDualresult(d+1);
 	    	}
 	    		        
 		    // delete the problem and free memory
 		    m1.deleteLp();
-		    saveResults(dual);
+		    saveResults(dual, forestType);
 		    
 		} catch (LpSolveException e) {
 		       e.printStackTrace();
@@ -202,7 +214,7 @@ public class Q3 {
 		return (double) outVector;
 	}
 	
-	private void saveResults(double dual[]) {
+	private void saveResults(double dual[], ArrayList<Integer> forestTypeLUT) {
 		try { //Get the data from the db
 			Connection conn = DriverManager.getConnection("jdbc:sqlite:" + ca.castordb);		
 			if (conn != null) {
@@ -212,9 +224,12 @@ public class Q3 {
 				PreparedStatement pstmt = conn.prepareStatement(insertResults);
 				try {
 					for(int c = 0; c < ca.cellsList.size(); c++) {
-						pstmt.setDouble(1, dual[ca.cellsList.get(c).foresttype]);
-						pstmt.setInt(2, ca.cellsList.get(c).pixelid);
-				        pstmt.executeUpdate();		        	
+						if(forestTypeLUT.get(ca.cellsList.get(c).foresttype) != null) {
+							pstmt.setDouble(1, dual[forestTypeLUT.get(ca.cellsList.get(c).foresttype)]);
+							pstmt.setInt(2, ca.cellsList.get(c).pixelid);
+							pstmt.executeUpdate();
+						}
+								        	
 					}
 				}finally {
 					System.out.println("...done");
