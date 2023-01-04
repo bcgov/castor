@@ -51,8 +51,8 @@ defineModule(sim, list(
                     "The area, in hectares, a fisher could explore during a dispersal to find a territory."),
     defineParameter("iterations", "numeric", 1, 1, 10000,
                     "Number of times to repeat the simulation."),
-    defineParameter("rasterStack", "character", paste0 (here::here(), "/R/scenarios/test_flex2/test_Williams_Lake_TSA_fisher_habitat.tif"), NA, NA,
-                    "Directory where the fisher habitat raster .tif is stored. Used as habitat input to this module. A band in teh .tif exists for each time interval simulated in forestryCASTOR, and each fisher habitat type (denning, movement, cwd, rust, cavity)."), # create a default somewhere??
+    defineParameter("rasterHabitat", "character", paste0 (here::here(), "/R/scenarios/test_flex2/test_Williams_Lake_TSA_fisher_habitat.tif"), NA, NA,
+                    "Directory where the fisher habitat raster .tif is stored. Used as habitat input to this module. A band in the .tif exists for each time interval simulated in forestryCastor, and each fisher habitat type (denning, movement, cwd, rust, cavity)."), # create a default somewhere??
     defineParameter("timeInterval", "numeric", 1, 1, 20,
                     "The time step, in years, when habtait was updated. It should be consistent with periodLength form growingStockCASTOR. Life history events (reproduce, updateHR, survive, disperse) are calaculated this many times for each interval."),
     defineParameter(".plots", "character", "screen", NA, NA,
@@ -147,7 +147,7 @@ Init <- function(sim) {
   # add the pixelid step to fisher habitat loader
   
   message ("Load the habitat data.")
-  sim$raster.stack <- terra::rast (P (sim, "rasterStack", "FLEX2")) 
+  sim$raster.stack <- terra::rast (P (sim, "rasterHabitat", "FLEX2")) 
 
   # get the pixel id raster
   sim$pix.rast <- terra::subset (sim$raster.stack,
