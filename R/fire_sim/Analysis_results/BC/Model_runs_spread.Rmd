@@ -1,0 +1,717 @@
+---
+title: "Run models for fire spread prediction map"
+author: "Elizabeth Kleynhans"
+date: '2022-09-09'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library (kableExtra)
+source(here::here("R/functions/R_Postgres.R"))
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(mapview)
+library(tmap)
+
+```
+
+# open climate table to see which variables I need for climate1 and climate2
+```{r eval=, message=FALSE, AIC table, echo=F}
+
+climate_variable<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_spread_summary.csv")
+
+kable (climate_variable,
+       caption = "<b>Table 1. Top candidate climate variables for lightning caused fires as selected through an AIC analysis for each Fire Regime Type.<b>",
+       digits = 2) %>%
+  kable_styling (position = "left",
+                 bootstrap_options = c("striped", "hover"),
+                 fixed_thead = T,
+                 full_width = F,
+                 font_size = 11)
+```
+
+# Import the data
+
+```{r}
+fire_spread<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\Fire_data_all_veg.gpkg")
+head(fire_spread)
+
+fire_spread$tot_spring_PPT<-fire_spread$PPT04+ fire_spread$PPT05 + fire_spread$PPT06
+fire_spread$spring_Tave<-(fire_spread$Tave04+ fire_spread$Tave05 + fire_spread$Tave06)/3
+
+fire_spread$mean_Tmax05_Tmax06_Tmax07<- (fire_spread$Tmax05+ fire_spread$Tmax06 + fire_spread$Tmax07)/3
+
+fire_spread$mean_Tmax05_Tmax06_Tmax07_Tmax08<- (fire_spread$Tmax05 + fire_spread$Tmax06+ fire_spread$Tmax07 + fire_spread$Tmax08)/4
+
+fire_spread$mean_PPT05_PPT06_PPT07_PPT08<- (fire_spread$PPT05 + fire_spread$PPT06+ fire_spread$PPT07 + fire_spread$PPT08)/4
+
+fire_spread$mean_PPT05_PPT06_PPT07<- (fire_spread$PPT05+ fire_spread$PPT06 + fire_spread$PPT07)/3
+
+fire_spread$mean_Tave05_Tave06_Tave07_Tave08<- (fire_spread$Tave05 + fire_spread$Tave06+ fire_spread$Tave07 + fire_spread$Tave08)/4
+
+```
+
+
+#Create climate1 and climate2 columns
+
+```{r}
+#View top variable
+names(fire_spread)
+unique(fire_spread$frt) # FRT 3 should not be in this list
+table(is.na(fire_spread$frt))
+fire_spread$frt[fire_spread$frt==3]<-5
+
+fire_spread2<-st_drop_geometry(fire_spread)
+fire_spread2<-fire_spread %>% drop_na(frt)
+fire_spread2$frt<-as.numeric(fire_spread2$frt)
+
+table(fire_spread2$frt)
+
+## Create empty vector
+fire_spread2$climate1<-"NA"
+head(fire_spread2)
+
+fire_spread2<-fire_spread2 %>%
+    mutate(climate1 = case_when(
+                            frt == "5" ~ Tave07 ,
+                            frt == "7" ~ as.numeric(spring_Tave),
+                            frt == "9" ~ spring_Tave,
+                            frt == "10" ~ mean_Tmax05_Tmax06_Tmax07_Tmax08 ,
+                            frt == "11" ~ as.numeric(RH08),
+                            frt == "12" ~ mean_Tmax05_Tmax06_Tmax07_Tmax08,
+                            frt == "13" ~ mean_Tave05_Tave06_Tave07_Tave08,
+                            frt == "14" ~ mean_Tmax05_Tmax06_Tmax07,
+                            frt == "15" ~ Tave05 ,
+                            TRUE ~ NA_real_))
+
+#Repeat for climate 2
+fire_spread2$climate2<-"NA"
+
+fire_spread2<-fire_spread2 %>%
+    mutate(climate2 = case_when(
+                            frt == "5" ~ as.numeric(PPT07),
+                            frt == "7" ~ as.numeric(tot_spring_PPT),
+                            frt == "9" ~ as.numeric(tot_spring_PPT),
+                            frt == "10" ~ as.numeric(mean_PPT05_PPT06_PPT07_PPT08) ,
+                            frt == "11" ~ as.numeric(PPT08),
+                            frt == "12" ~ as.numeric(mean_PPT05_PPT06_PPT07_PPT08),
+                            frt == "13" ~ as.numeric(mean_PPT05_PPT06_PPT07_PPT08),
+                            frt == "14" ~ as.numeric(mean_PPT05_PPT06_PPT07),
+                            frt == "15" ~ as.numeric(PPT05),
+                            TRUE ~ NA_real_))
+
+head(fire_spread2)
+
+##Change vegtype to factor
+fire_spread2$FWI_veg<-as.factor(fire_spread2$FWI_veg)
+
+#create new column
+fire_spread2$fire_veg<-paste(fire_spread2$fire, fire_spread2$FWI_veg)
+
+```
+
+#Change Aspect to N,S,E,W
+```{r}
+library(rvest)
+library(tidyverse)
+
+url <- 'http://snowfence.umn.edu/Components/winddirectionanddegreeswithouttable3.htm'
+page <- read_html(url)
+directions_raw <- page %>% html_node('td table') %>% html_table(header = TRUE)
+
+directions <- directions_raw %>% 
+    set_names(~tolower(sub(' Direction', '', .x))) %>% 
+    slice(-1) %>% 
+    separate(degree, c('degree_min', 'degree_max'), sep = '\\s+-\\s+', convert = TRUE)
+
+directions
+
+fire_spread2 <- fire_spread2 %>% 
+    mutate(aspect_cardinal = cut(
+        aspect_ha_bc, 
+        breaks = c(0, directions$degree_max, 360), 
+        labels = c(directions$cardinal, 'N')
+    ))
+
+fire_spread2$aspect_cardinal2<-0
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="N"]<-"N"
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="E"]<-"E"
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="S"]<-"S"
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="W"]<-"W"
+
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="NNE"]<-"N"
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="NNW"]<-"N"
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="NE" & fire_spread2$aspect_ha_bc<=45]<-"N"
+
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="NE" & fire_spread2$aspect_ha_bc>45]<-"E"
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="ENE"]<-"E"
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="ESE"]<-"E"
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="SE" & fire_spread2$aspect_ha_bc<=135]<-"E"
+
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="SE" & fire_spread2$aspect_ha_bc>135]<-"S"
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="SSE"]<-"S"
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="SSW"]<-"S"
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="SW" & fire_spread2$aspect_ha_bc<=225]<-"S"
+
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="SW" & fire_spread2$aspect_ha_bc>225]<-"W"
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="WSW"]<-"W"
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="WNW"]<-"W"
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="NW" & fire_spread2$aspect_ha_bc<=315]<-"W"
+fire_spread2$aspect_cardinal2[fire_spread2$aspect_cardinal=="NW" & fire_spread2$aspect_ha_bc>315]<-"N"
+
+fire_spread2
+
+table(fire_spread2$aspect_cardinal2, fire_spread2$pttype)
+ fire_spread2[fire_spread2$aspect_cardinal2=="0",]
+ fire_spread2<-fire_spread2 %>% drop_na(aspect_cardinal)
+
+
+
+x<-fire_spread2 %>% filter(pttype==1)
+
+hist(x$aspect_ha_bc)
+```
+
+
+```{r}
+# create dummy variables for FWI_veg
+
+fire_spread2$veg_C1 <- ifelse(fire_spread2$FWI_veg == 'C-1', 1, 0)
+fire_spread2$veg_C2 <- ifelse(fire_spread2$FWI_veg == 'C-2', 1, 0)
+fire_spread2$veg_C3 <- ifelse(fire_spread2$FWI_veg == 'C-3', 1, 0)
+fire_spread2$veg_C4 <- ifelse(fire_spread2$FWI_veg == 'C-4', 1, 0)
+fire_spread2$veg_C5 <- ifelse(fire_spread2$FWI_veg == 'C-5', 1, 0)
+fire_spread2$veg_C7 <- ifelse(fire_spread2$FWI_veg == 'C-7', 1, 0)
+fire_spread2$veg_D12 <- ifelse(fire_spread2$FWI_veg == 'D-1/2', 1, 0)
+fire_spread2$veg_M12 <- ifelse(fire_spread2$FWI_veg == 'M-1/2', 1, 0)
+fire_spread2$veg_M3 <- ifelse(fire_spread2$FWI_veg == 'M-3', 1, 0)
+fire_spread2$veg_N <- ifelse(fire_spread2$FWI_veg == 'N', 1, 0)
+fire_spread2$veg_O1ab <- ifelse(fire_spread2$FWI_veg == 'O-1a/b', 1, 0)
+fire_spread2$veg_S1 <- ifelse(fire_spread2$FWI_veg == 'S-1', 1, 0)
+fire_spread2$veg_S2 <- ifelse(fire_spread2$FWI_veg == 'S-2', 1, 0)
+fire_spread2$veg_S3 <- ifelse(fire_spread2$FWI_veg == 'S-3', 1, 0)
+fire_spread2$veg_W <- ifelse(fire_spread2$FWI_veg == 'W', 1, 0)
+
+names(fire_spread2)
+table(fire_spread2$frt, fire_spread2$FWI_veg)
+fire_spread2$log_dist_roads_m<-log(fire_spread2$dist_roads_m + 1)
+fire_spread2$log_dist_infr_m<-log(fire_spread2$dist_infr_m + 1)
+
+# create dummy variables for aspect
+fire_spread2$aspect_N <- ifelse(fire_spread2$aspect_cardinal2 == 'N', 1, 0)
+fire_spread2$aspect_E <- ifelse(fire_spread2$aspect_cardinal2 == 'E', 1, 0)
+fire_spread2$aspect_S <- ifelse(fire_spread2$aspect_cardinal2 == 'S', 1, 0)
+fire_spread2$aspect_W <- ifelse(fire_spread2$aspect_cardinal2 == 'W', 1, 0)
+
+```
+
+# remove water, glaciers, lakes stuff that cant burn from points
+```{r}
+no_ignition1<-fire_spread2 %>% 
+  filter(FWI_veg =="W")
+
+spread3<-fire_spread2 %>% 
+  filter(FWI_veg !="W")
+
+no_ignition2<-spread3 %>% 
+  filter(bclcs_level_5 %in% c("GL", "LA"))
+
+no_ignition<-rbind(no_ignition1, no_ignition2)
+
+spread4<-spread3 %>% 
+  filter(!bclcs_level_5 %in% c("GL", "LA"))
+
+dim(no_ignition)
+dim(fire_spread2)
+dim(spread4) # looks good
+
+
+```
+
+
+### FRT 5
+
+```{r}
+frt5<- spread4 %>% filter(frt==5)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt5_spread.csv")
+
+model_coef_table
+
+table(frt5$FWI_veg)
+
+frt5$FWI_veg[frt5$FWI_veg=="S-1"]<-"M-1/2"
+frt5$FWI_veg[frt5$FWI_veg=="C-4"]<-"C-2"
+
+
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+frt5$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt5$Latitude +
+  model_coef_table[[4]]*frt5$Longitude +
+  model_coef_table[[5]]*frt5$climate2 +
+  model_coef_table[[6]]*frt5$dem_ha_bc +
+  model_coef_table[[7]]*frt5$aspect_N +
+  model_coef_table[[8]]*frt5$aspect_S +
+  model_coef_table[[9]]*frt5$aspect_W +
+  model_coef_table[[10]]*frt5$veg_C2 +
+  model_coef_table[[11]]*frt5$veg_C3 +
+  model_coef_table[[12]]*frt5$veg_C5 +
+  model_coef_table[[13]]*frt5$veg_C7 +
+  model_coef_table[[14]]*frt5$veg_D12 +
+  model_coef_table[[15]]*frt5$veg_M12 +
+  model_coef_table[[16]]*frt5$veg_M3 +
+  model_coef_table[[17]]*frt5$veg_N +
+  model_coef_table[[18]]*frt5$veg_O1ab +
+  model_coef_table[[19]]*frt5$veg_S2 + 
+  model_coef_table[[20]]*frt5$dist_roads_m +
+  model_coef_table[[21]]*frt5$dist_infr_m +
+  model_coef_table[[22]]*frt5$win_spg
+  
+
+head(frt5)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt5$prob_ignition<-exp(frt5$logit_P)/(1+exp(frt5$logit_P))
+
+summary(frt5$prob_ignition)
+hist(frt5$prob_ignition)
+
+```
+
+FRT 7 
+```{r}
+frt7<- spread4 %>% filter(frt==7)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt7_spread.csv")
+
+model_coef_table
+
+table(frt7$FWI_veg)
+frt7$FWI_veg[frt7$FWI_veg=="C-5"]<-"C-7"
+frt7$FWI_veg[frt7$FWI_veg=="M-3"]<-"O-1a/b"
+
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+frt7$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt7$Latitude +
+  model_coef_table[[4]]*frt7$Longitude +
+  model_coef_table[[5]]*frt7$climate1 +
+  model_coef_table[[6]]*frt7$climate2 +
+  model_coef_table[[7]]*frt7$dem_ha_bc +
+  model_coef_table[[8]]*frt7$aspect_N +
+  model_coef_table[[9]]*frt7$aspect_S +
+  model_coef_table[[10]]*frt7$aspect_W +
+  model_coef_table[[11]]*frt7$veg_C2 +
+  model_coef_table[[12]]*frt7$veg_C3 +
+  model_coef_table[[13]]*frt7$veg_C4 +
+  model_coef_table[[14]]*frt7$veg_C7 +
+  model_coef_table[[15]]*frt7$veg_D12 +
+  model_coef_table[[16]]*frt7$veg_M12 +
+  model_coef_table[[17]]*frt7$veg_N +
+  model_coef_table[[18]]*frt7$veg_O1ab +
+  model_coef_table[[19]]*frt7$veg_S1 +
+  model_coef_table[[20]]*frt7$veg_S2 + 
+  model_coef_table[[21]]*frt7$log_dist_roads_m +
+  model_coef_table[[22]]*frt7$dist_infr_m +
+  model_coef_table[[23]]*frt7$win_spg
+
+head(frt7)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt7$prob_ignition<-exp(frt7$logit_P)/(1+exp(frt7$logit_P))
+
+summary(frt7$prob_ignition)
+hist(frt7$prob_ignition)
+
+```
+
+
+FRT 9 
+```{r}
+frt9<- spread4 %>% filter(frt==9)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt9_spread.csv")
+
+model_coef_table
+
+table(frt9$FWI_veg)
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+frt9$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt9$Latitude +
+  model_coef_table[[4]]*frt9$Longitude +
+  model_coef_table[[5]]*frt9$climate1 +
+  model_coef_table[[6]]*frt9$climate2 +
+  model_coef_table[[7]]*frt9$aspect_N +
+  model_coef_table[[8]]*frt9$aspect_S +
+  model_coef_table[[9]]*frt9$aspect_W +
+  model_coef_table[[10]]*frt9$veg_C2 +
+  model_coef_table[[11]]*frt9$veg_C3 +
+  model_coef_table[[12]]*frt9$veg_C7 +
+  model_coef_table[[13]]*frt9$veg_D12 +
+  model_coef_table[[14]]*frt9$veg_M12 +
+  model_coef_table[[15]]*frt9$veg_N +
+  model_coef_table[[16]]*frt9$veg_O1ab +
+  model_coef_table[[17]]*frt9$log_dist_roads_m
+
+head(frt9)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt9$prob_ignition<-exp(frt9$logit_P)/(1+exp(frt9$logit_P))
+
+summary(frt9$prob_ignition)
+hist(frt9$prob_ignition)
+
+```
+
+FRT 10 
+```{r}
+frt10<- spread4 %>% filter(frt==10)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt10_spread.csv")
+
+model_coef_table
+
+table(frt10$FWI_veg)
+frt10$FWI_veg[frt10$FWI_veg=="S-2"]<-"C-7"
+frt10$FWI_veg[frt10$FWI_veg=="M-3"]<-"O-1a/b"
+
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+frt10$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt10$Latitude +
+  model_coef_table[[4]]*frt10$Longitude +
+  model_coef_table[[5]]*frt10$climate1 +
+  model_coef_table[[6]]*frt10$climate2 +
+  model_coef_table[[7]]*frt10$aspect_N +
+  model_coef_table[[8]]*frt10$aspect_S +
+  model_coef_table[[9]]*frt10$aspect_W +
+  model_coef_table[[10]]*frt10$veg_C2 +
+  model_coef_table[[11]]*frt10$veg_C3 +
+  model_coef_table[[12]]*frt10$veg_C5 +
+  model_coef_table[[13]]*frt10$veg_C7 +
+  model_coef_table[[14]]*frt10$veg_D12 +
+  model_coef_table[[15]]*frt10$veg_M12 +
+  model_coef_table[[16]]*frt10$veg_N +
+  model_coef_table[[17]]*frt10$veg_O1ab +
+  model_coef_table[[18]]*frt10$veg_S1 + 
+  model_coef_table[[19]]*frt10$dist_roads_m +
+  model_coef_table[[20]]*frt10$dist_infr_m +
+  model_coef_table[[21]]*frt10$win_spg
+
+head(frt10)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt10$prob_ignition<-exp(frt10$logit_P)/(1+exp(frt10$logit_P))
+
+summary(frt10$prob_ignition)
+hist(frt10$prob_ignition)
+
+```
+
+
+FRT 11 
+```{r}
+frt11<- spread4 %>% filter(frt==11)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt11_spread.csv")
+
+model_coef_table
+
+table(frt11$FWI_veg)
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+frt11$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt11$Longitude +
+  model_coef_table[[4]]*frt11$climate1 +
+  model_coef_table[[5]]*frt11$climate2 +
+  model_coef_table[[6]]*frt11$dem_ha_bc +
+  model_coef_table[[7]]*frt11$aspect_N +
+  model_coef_table[[8]]*frt11$aspect_S +
+  model_coef_table[[9]]*frt11$aspect_W +
+  model_coef_table[[10]]*frt11$veg_C2 +
+  model_coef_table[[11]]*frt11$veg_C3 +
+  model_coef_table[[12]]*frt11$veg_C5 +
+  model_coef_table[[13]]*frt11$veg_C7 +
+  model_coef_table[[14]]*frt11$veg_D12 +
+  model_coef_table[[15]]*frt11$veg_M12 +
+  model_coef_table[[16]]*frt11$veg_N +
+  model_coef_table[[17]]*frt11$veg_O1ab +
+  model_coef_table[[18]]*frt11$dist_roads_m +
+  model_coef_table[[19]]*frt11$win_spg
+
+head(frt11)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt11$prob_ignition<-exp(frt11$logit_P)/(1+exp(frt11$logit_P))
+
+summary(frt11$prob_ignition)
+hist(frt11$prob_ignition)
+
+```
+
+
+FRT 12
+```{r}
+frt12<- spread4 %>% filter(frt==12)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt12_spread.csv")
+
+model_coef_table
+
+table(frt12$FWI_veg)
+
+frt12$FWI_veg[frt12$FWI_veg=="S-3"]<-"C-7"
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+frt12$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt12$Latitude +
+  model_coef_table[[4]]*frt12$Longitude +
+  model_coef_table[[5]]*frt12$climate1 +
+  model_coef_table[[6]]*frt12$climate2 +
+  model_coef_table[[7]]*frt12$dem_ha_bc +
+  model_coef_table[[8]]*frt12$aspect_N +
+  model_coef_table[[9]]*frt12$aspect_S +
+  model_coef_table[[10]]*frt12$aspect_W +
+  model_coef_table[[11]]*frt12$veg_C2 +
+  model_coef_table[[12]]*frt12$veg_C3 +
+  model_coef_table[[13]]*frt12$veg_C4 +
+  model_coef_table[[14]]*frt12$veg_C5 +
+  model_coef_table[[15]]*frt12$veg_C7 +
+  model_coef_table[[16]]*frt12$veg_D12 +
+  model_coef_table[[17]]*frt12$veg_M12 +
+  model_coef_table[[18]]*frt12$veg_M3 +
+  model_coef_table[[19]]*frt12$veg_N +
+  model_coef_table[[20]]*frt12$veg_O1ab +
+  model_coef_table[[21]]*frt12$veg_S1 +
+  model_coef_table[[22]]*frt12$veg_S2 +
+  model_coef_table[[23]]*frt12$log_dist_roads_m +
+  model_coef_table[[24]]*frt12$log_dist_infr_m +
+  model_coef_table[[25]]*frt12$win_spg
+
+head(frt12)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt12$prob_ignition<-exp(frt12$logit_P)/(1+exp(frt12$logit_P))
+
+summary(frt12$prob_ignition)
+hist(frt12$prob_ignition)
+
+```
+
+FRT 13
+```{r}
+frt13<- spread4 %>% filter(frt==13)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt13_spread.csv")
+
+model_coef_table
+
+table(frt13$FWI_veg)
+
+frt13$FWI_veg[frt13$FWI_veg=="C-1"]<-"C-7"
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+frt13$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt13$Latitude +
+  model_coef_table[[4]]*frt13$Longitude +
+  model_coef_table[[5]]*frt13$climate2 +
+  model_coef_table[[6]]*frt13$dem_ha_bc +
+  model_coef_table[[7]]*frt13$aspect_N +
+  model_coef_table[[8]]*frt13$aspect_S +
+  model_coef_table[[9]]*frt13$aspect_W +
+  model_coef_table[[10]]*frt13$veg_C3 +
+  model_coef_table[[11]]*frt13$veg_C4 +
+  model_coef_table[[12]]*frt13$veg_C5 +
+  model_coef_table[[13]]*frt13$veg_C7 +
+  model_coef_table[[14]]*frt13$veg_D12 +
+  model_coef_table[[15]]*frt13$veg_M12 +
+  model_coef_table[[16]]*frt13$veg_M3 +
+  model_coef_table[[17]]*frt13$veg_N +
+  model_coef_table[[18]]*frt13$veg_O1ab +
+  model_coef_table[[19]]*frt13$veg_S1 +
+  model_coef_table[[20]]*frt13$veg_S2 +
+  model_coef_table[[21]]*frt13$veg_S3 +
+  model_coef_table[[22]]*frt13$log_dist_roads_m +
+  model_coef_table[[23]]*frt13$log_dist_infr_m +
+  model_coef_table[[24]]*frt13$win_sum
+
+head(frt13)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt13$prob_ignition<-exp(frt13$logit_P)/(1+exp(frt13$logit_P))
+
+summary(frt13$prob_ignition)
+hist(frt13$prob_ignition)
+
+```
+
+#### START HERE!
+FRT 14
+```{r}
+frt14<- spread4 %>% filter(frt==14)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt14_spread.csv")
+
+model_coef_table
+
+table(frt14$FWI_veg)
+
+frt14$FWI_veg[frt14$FWI_veg=="C-4"]<-"C-2"
+frt14$FWI_veg[frt14$FWI_veg=="S-2"]<-"C-7"
+frt14$FWI_veg[frt14$FWI_veg=="S-3"]<-"M-1/2"
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+frt14$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt14$Latitude +
+  model_coef_table[[4]]*frt14$climate2 +
+  model_coef_table[[5]]*frt14$dem_ha_bc +
+  model_coef_table[[6]]*frt14$aspect_N +
+  model_coef_table[[7]]*frt14$aspect_S +
+  model_coef_table[[8]]*frt14$aspect_W +
+  model_coef_table[[9]]*frt14$veg_C3 +
+  model_coef_table[[10]]*frt14$veg_C5 +
+  model_coef_table[[11]]*frt14$veg_C7 +
+  model_coef_table[[12]]*frt14$veg_D12 +
+  model_coef_table[[13]]*frt14$veg_M12 +
+  model_coef_table[[14]]*frt14$veg_M3 +
+  model_coef_table[[15]]*frt14$veg_N +
+  model_coef_table[[16]]*frt14$veg_O1ab +
+  model_coef_table[[17]]*frt14$veg_S1 +
+  model_coef_table[[18]]*frt14$log_dist_roads_m +
+  model_coef_table[[19]]*frt14$log_dist_infr_m +
+  model_coef_table[[20]]*frt14$win_sum
+
+head(frt14)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt14$prob_ignition<-exp(frt14$logit_P)/(1+exp(frt14$logit_P))
+
+summary(frt14$prob_ignition)
+hist(frt14$prob_ignition)
+
+```
+
+FRT 15
+```{r}
+frt15<- spread4 %>% filter(frt==15)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt15_spread.csv")
+
+model_coef_table
+
+table(frt15$FWI_veg)
+
+frt15$FWI_veg[frt15$FWI_veg=="M-3"]<-"O-1a/b"
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+frt15$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt15$climate2 +
+  model_coef_table[[4]]*frt15$dem_ha_bc +
+  model_coef_table[[5]]*frt15$aspect_N +
+  model_coef_table[[6]]*frt15$aspect_S +
+  model_coef_table[[7]]*frt15$aspect_W +
+  model_coef_table[[8]]*frt15$veg_C5 +
+  model_coef_table[[9]]*frt15$veg_C7 +
+  model_coef_table[[10]]*frt15$veg_D12 +
+  model_coef_table[[11]]*frt15$veg_M12 +
+  model_coef_table[[12]]*frt15$veg_N +
+  model_coef_table[[13]]*frt15$veg_O1ab +
+  model_coef_table[[14]]*frt15$veg_S1 +
+  model_coef_table[[15]]*frt15$veg_S3 +
+  model_coef_table[[16]]*frt15$log_dist_infr_m +
+  model_coef_table[[17]]*frt15$win_sum
+
+head(frt15)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt15$prob_ignition<-exp(frt15$logit_P)/(1+exp(frt15$logit_P))
+
+summary(frt15$prob_ignition)
+hist(frt15$prob_ignition)
+
+```
+
+
+### now combine all FRT's and plot it
+```{r}
+frt_all<- rbind(rbind(rbind(rbind(rbind(rbind(rbind(rbind(frt5, frt7), frt9), frt10), frt11), frt12), frt13), frt14), frt15)
+
+dim(frt_all)
+hist(frt_all$prob_ignition)
+
+no_ignition$prob_ignition<-0
+no_ignition$logit_P<-0
+
+frt_all2<-rbind(no_ignition, frt_all)
+
+dim(frt_all2)
+st_write(frt_all2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_prob_spread_final.gpkg", delete_layer=TRUE, driver="GPKG")
+dim(dat)
+
+# create raster
+
+layeraoi<-getSpatialQuery("SELECT * FROM study_area_compart limit 1")
+#Create a provincial raster
+prov.rast <- raster::raster ( # standardized provincial raster with no data in it
+                              nrows = 15744, ncols = 17216, 
+                              xmn = 159587.5, xmx = 1881187.5, 
+                              ymn = 173787.5, ymx = 1748187.5, 
+                              crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs", 
+                              resolution = c(100, 100),                               
+                              vals = 0)
+
+
+study_area<-getSpatialQuery("SELECT tsa_name, tsa_number, wkb_geometry FROM study_area_compart where tsa_name in ('Quesnel TSA', 'Williams Lake TSA',  '100 Mile House TSA')")
+
+study_area2<-study_area %>% group_by ( tsa_name, tsa_number) %>% summarise()
+st_crs(study_area2)
+
+study_area2<-st_as_sf(study_area2)
+ras.aoi2 <- crop(prov.rast, study_area2)
+
+x<-rasterize(frt_all, ras.aoi2, field="prob_ignition", update=TRUE)
+#x<-fasterize::fasterize(frt_all, ras.aoi2, field="prob_ignition", update=TRUE)
+plot(x)
+
+writeRaster(x, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Probability_of_Escape_Quesnell_WilliamsL_100Mile_allFRT_800m_fasterize_try.tif", format="GTiff", overwrite=TRUE)
+
+##########
+
+library(sp)
+library(rgdal)
+library(raster)
+library(gstat)
+fit.p.ign <- gstat::gstat(formula = prob_ignition ~ 1, data = frt_all, nmax = 4, set = list(idp = .5))
+
+maxint <- raster::interpolate(ras.aoi2, model=fit.p.ign) # this is pretty slow
+plot(maxint, col=rev(heat.colors(255)))
+
+# can I just do matrix maths on the rasters?
+
+
+
+# ras.frt <- fasterize::fasterize (frt_all, prov.rast, field = "prob_ignition")
+# plot(ras.frt)
+# 
+# plot(ras.aoi2)
+
+writeRaster(maxint, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Probability_of_Escape_Quesnell_WilliamsL_100Mile_allFRT_800m.tif", format="GTiff", overwrite=TRUE)
+
+# run this in R:
+paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/Probability_of_Escape_Quesnell_WilliamsL_100Mile_allFRT_800m.tif -t 100x100 rast.prob_lightning_ignit_quesnel_williamsl_100mile | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/castor')
+# then copy the output thats between the " " from the above and paste it into the cmd and run that... should show Insert 0  1 lots of times.
+
+```
+
+Test whether fire map makes sense.
+```{r}
+
+```
+
+
