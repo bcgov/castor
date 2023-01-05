@@ -151,7 +151,8 @@ export_dat$el[is.na(export_dat$el)]<-"."
 
 #max(export_dat$lat)
 
-write.csv(export_dat, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv", row.names = FALSE)
+write.csv(export_dat, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv", row.names = FALSE)
+
 
 ```
 
@@ -178,6 +179,8 @@ system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 Import data and pull out important fields
 ```{r}
 x4_clim_dem<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_clim.csv")
+
+
 
 x4_clim_dem$Tmax02<-as.numeric(x4_clim_dem$Tmax02)
 x4_clim_dem$Elevation<-as.numeric(x4_clim_dem$Elevation)
@@ -249,11 +252,17 @@ my.sf.point <- st_as_sf(x = x4_clim_dem_2,
 
 my.sf.point <- st_transform (my.sf.point, 3005)
 
+# note the elevation seems to have been messed up. Im not sure why
+my.sf.point<-my.sf.point %>% select(!Elevation)
+x<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv")
 
-tail(my.sf.point)
+x<- x %>% select(ID1, ID2, el) %>% rename(idno=ID1,
+                                          frt=ID2)
 
-table(is.na(my.sf.point$Elevation))
-st_write(my.sf.point, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data.gpkg", delete_layer=TRUE, driver="GPKG")
+my.sf.point.joined<-left_join(my.sf.point, x)
+head(my.sf.point.joined)
+
+st_write(my.sf.point.joined, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data.gpkg", delete_layer=TRUE, driver="GPKG")
 
 ```
 Now in QGIS join the above layer to the VRI.
