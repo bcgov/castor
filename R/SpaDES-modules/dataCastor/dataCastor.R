@@ -237,6 +237,12 @@ setTablesCastorDB <- function(sim) {
   }else{ #Set the empty table for values not supplied in the parameters
     
     message('.....compartment ids: default 1')
+    
+    sim$extent[[3]]<-sim$extent[[3]] + 1170000
+    sim$extent[[4]]<-sim$extent[[4]]*sim$extent[[1]] + 1170000
+    sim$extent[[5]]<-sim$extent[[5]] + 834000
+    sim$extent[[6]]<-sim$extent[[6]]*sim$extent[[2]] + 834000
+    
     randomRas<-randomRaster(sim$extent, P(sim, 'randomLandscapeClusterLevel', 'dataCastor'))
     
     sim$pts <- data.table(terra::xyFromCell(randomRas,1:length(randomRas[]))) #Seems to be faster than rasterTopoints
@@ -249,6 +255,7 @@ setTablesCastorDB <- function(sim) {
     #Add the raster_info
     ras.extent<-terra::ext(randomRas)
     sim$ras<-terra::rast(nrows = sim$extent[[1]], ncols = sim$extent[[2]], xmin = sim$extent[[3]], xmax = sim$extent[[4]], ymin = sim$extent[[5]], ymax = sim$extent[[6]], vals = 0 )
+    terra::crs(sim$ras)<-paste0("EPSG:3005") #set the raster projection
     sim$ras[]<-pixels$pixelid
     
     #upload raster metadata
@@ -444,10 +451,9 @@ setTablesCastorDB <- function(sim) {
                            where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                            conn=NULL))
     if(aoi == terra::ext(ras.ylds.current)){#need to check that each of the extents are the same
-      
       updateToCurrent<-data.table(yieldid=as.integer(ras.ylds.current[]))
       pixels$current_yieldid <- updateToCurrent$yieldid
-      pixels<-pixels[!is.na(current_yieldid ) | !(current_yieldid==0), yieldid := current_yieldid]
+      pixels<-pixels[!(current_yieldid==0), yieldid := current_yieldid]
       pixels$current_yieldid <- NULL
       rm(ras.ylds.current)
       gc()
@@ -962,7 +968,7 @@ randomRaster<-function(extent, clusterLevel){
   #RandomFields::RFoptions(spConform=FALSE)
   ras <- terra::rast(nrows = extent[[1]], ncols = extent[[2]], xmin = extent[[3]], xmax = extent[[4]], ymin = extent[[5]], ymax = extent[[6]], vals = 0 )
   model <- RandomFields::RMstable(scale = 300, var = 0.003,  alpha = clusterLevel)
-  data.rv<-RandomFields::RFsimulate(model, y = 1:extent[[1]],  x = 1:extent[[2]], grid = TRUE)
+  data.rv<-RandomFields::RFsimulate(model, y = 1:extent[[1]],  x = 1:extent[[2]], grid = TRUE)$variable1
   data.rv<-(data.rv - min(data.rv))/(max(data.rv)- min(data.rv))
   return(terra::setValues(ras, data.rv))
 }

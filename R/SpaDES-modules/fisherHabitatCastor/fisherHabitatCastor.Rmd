@@ -38,49 +38,60 @@ cacheDir <- file.path (paste0 (here::here (), "/R/scenarios/test_flex2"))
 times <- list (start = 0, end = 2)
 
 parameters <- list(
-  dataCastor = list(dbName='castor',
-                         saveCastorDB = FALSE, # Set to TRUE first time running the analysis
-                         sqlite_dbname = "fisherABM_test", 
-                         nameBoundaryFile = "tsa_aac_bounds",
-                         useCastorDB = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"),
-                         nameBoundaryColumn = "tsa_name", 
-                         nameBoundary = c ("Williams_Lake_TSA"), 
-                         nameBoundaryGeom = 'wkb_geometry',
-                         nameCompartmentRaster = "rast.tsa_aac_boundary",
-                         nameCompartmentTable = "vat.tsa_aac_bounds_vat",
-                         nameMaskHarvestLandbaseRaster ='rast.thlb_2020', 
-                         nameZoneRasters=c("rast.zone_cond_beo", 
-                                           "rast.zone_cond_vqo", 
-                                           "rast.zone_wha_2021", 
-                                           "rast.zone_uwr_2021",  
-                                           "rast.zone_cond_nharv", 
-                                           "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw"
-                              ),
-                         nameZoneTable="zone.constraints", 
-                         nameYieldsRaster = "rast.ycid_vdyp_2020",
-                         nameYieldTable ="yc_vdyp_2020",
-                         nameYieldsCurrentRaster = "rast.ycid_tipsy_current_2020",
-                         nameYieldCurrentTable = "tipsy_current_prov_2020",
-                         nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
-                         nameYieldTransitionTable = "tipsy_prov_2020", 
-                         nameForestInventoryRaster = "rast.vri2020_id", 
-                         nameForestInventoryKey = "feature_id",                     
-                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2020",
-                         nameForestInventoryAge = "proj_age_1",  
-                         nameForestInventoryHeight = "proj_height_1",
-                         nameForestInventoryCrownClosure = "crown_closure",
-                         nameForestInventoryTreed = "bclcs_level_2",
-                         nameForestInventorySiteIndex = "site_index",
-                         nameForestInventoryBasalArea= "basal_area",
-                         nameForestInventoryQMD = "quad_diam_125"
-                    ),
+  
+  # "dummy" landscape method 
+  dataCastor = list(saveCastorDB = TRUE, 
+                    randomLandscape = list (100,100,0,100,0,100),
+                    randomLandscapeClusterLevel = 1.2,
+                    randomLandscapeZoneConstraint = data.table (variable = 'age', 
+                                                                threshold = 140, 
+                                                                type = 'ge', percentage = 20)
+                     ),
+  
+  # "real" landscape method
+  # dataCastor = list(dbName='castor',
+  #                        saveCastorDB = FALSE, # Set to TRUE first time running the analysis
+  #                        sqlite_dbname = "fisherABM_test", 
+  #                        nameBoundaryFile = "tsa_aac_bounds",
+  #                        useCastorDB = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"),
+  #                        nameBoundaryColumn = "tsa_name", 
+  #                        nameBoundary = c ("Williams_Lake_TSA"), 
+  #                        nameBoundaryGeom = 'wkb_geometry',
+  #                        nameCompartmentRaster = "rast.tsa_aac_boundary",
+  #                        nameCompartmentTable = "vat.tsa_aac_bounds_vat",
+  #                        nameMaskHarvestLandbaseRaster ='rast.thlb_2020', 
+  #                        nameZoneRasters=c("rast.zone_cond_beo", 
+  #                                          "rast.zone_cond_vqo", 
+  #                                          "rast.zone_wha_2021", 
+  #                                          "rast.zone_uwr_2021",  
+  #                                          "rast.zone_cond_nharv", 
+  #                                          "rast.zone_cond_fsw", 
+  #                                          "rast.zone_cond_cw"
+  #                             ),
+  #                        nameZoneTable="zone.constraints", 
+  #                        nameYieldsRaster = "rast.ycid_vdyp_2020",
+  #                        nameYieldTable ="yc_vdyp_2020",
+  #                        nameYieldsCurrentRaster = "rast.ycid_tipsy_current_2020",
+  #                        nameYieldCurrentTable = "tipsy_current_prov_2020",
+  #                        nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
+  #                        nameYieldTransitionTable = "tipsy_prov_2020", 
+  #                        nameForestInventoryRaster = "rast.vri2020_id", 
+  #                        nameForestInventoryKey = "feature_id",                     
+  #                        nameForestInventoryTable = "veg_comp_lyr_r1_poly2020",
+  #                        nameForestInventoryAge = "proj_age_1",  
+  #                        nameForestInventoryHeight = "proj_height_1",
+  #                        nameForestInventoryCrownClosure = "crown_closure",
+  #                        nameForestInventoryTreed = "bclcs_level_2",
+  #                        nameForestInventorySiteIndex = "site_index",
+  #                        nameForestInventoryBasalArea= "basal_area",
+  #                        nameForestInventoryQMD = "quad_diam_125"
+  #                   ),
   growingStockCastor = list (periodLength = 5),
   fisherHabitatCastor = list ()
 )
 
 scenario = data.table (name = "test",
-                       description = "Testing fisher habitat loader.")
+                       description = "Testing fisher habitat module with random landscape.")
 
 modules <- list ("fisherHabitatCastor",
                  "growingStockCastor",

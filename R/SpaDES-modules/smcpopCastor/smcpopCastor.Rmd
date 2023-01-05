@@ -28,41 +28,40 @@ library (data.table)
 library (here)
 library (dplyr)
 source (paste0 (here(),"/R/functions/R_Postgres.R"))
+Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1')
+
 
 moduleDir <- file.path (paste0 (here(),"/R/SpaDES-modules"))
 inputDir <- file.path (paste0 (here(), "/R")) %>% reproducible::checkPath (create = TRUE)
 outputDir <- file.path (paste0 (here(), "/R/SpaDES-modules/smcpopCastor/outputs"))
 cacheDir <- file.path (paste0 (here(), "/R"))
-times <- list (start = 0, end = 1)
+times <- list (start = 0, end = 2)
 
 parameters <- list (
   .progress = list (type = NA, interval = NA),
   .globals = list (),
-  dataCastor = list (useCastorDB = "C:\\Work\\caribou\\clus_data\\clusdb.sqlite", # instantiated dbase
-                         dbName = 'castor', # Database connection
-                         saveCastorDB = FALSE, # don't save the dbase
-                         # Study Area params below; make sure they are consistent with other modules
-                         nameBoundaryFile = "study_area_compart",
-                         nameBoundaryColumn = "tsb_number",
-                         nameBoundary = c ("26A", "29B", "29C"), # DU7 
-                         nameBoundaryGeom ='wkb_geometry',
-                         nameCompartmentRaster = "rast.forest_tenure",
-                         nameCompartmentTable = "forest_tenure_vat",
-                         nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
-                         nameZoneRasters = c ("rast.zone_cond_beo", "rast.zone_cond_vqo",  "rast.zone_cond_uwr", "rast.zone_cond_fsw", "rast.zone_cond_nharv"),
-                         nameZoneTable = "zone_constraints",
-                         nameAgeRaster = "rast.vri2017_projage1",
-                         nameHeightRaster = "rast.vri2017_projheight1",
-                         nameCrownClosureRaster = "rast.vri2017_crownclosure",
-                         nameYieldTable = "yield_ex"),
- smcpopCastor = list (nameRasSMCHerd = "rast.smc_herd_habitat") 
+  dataCastor = list (saveCastorDB = TRUE,
+                     randomLandscape = list (100,100,0,100,0,100),
+                     randomLandscapeClusterLevel = 1.2,
+                     randomLandscapeZoneConstraint = data.table (variable = 'age',                                                                                threshold = 140, 
+                                                                 type = 'ge',
+                                                                 percentage = 20)
+                     ),
+  roadCastor = list (roadMethod = 'mst'
+                     ),
+  blockingCastor = list (blockMethod = 'pre', 
+                         patchZone = 'default',
+                         patchVariation = 6
+                         ),
+  smcpopCastor = list (nameRasSMCHerd = "rast.smc_herd_habitat") 
 )
 
-modules <- list ("dataCastor", "smcpopCastor")
+modules <- list ("dataCastor", "roadCastor", "blockingCastor", "smcpopCastor")
 
 
 
-objects <- list ()
+objects <- list (scenario = data.table (name = "test", description = "test"))
+
 paths <- list (
   cachePath = cacheDir,
   modulePath = moduleDir,

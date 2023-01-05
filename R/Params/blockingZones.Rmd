@@ -8,7 +8,7 @@ date: '2022-09-12'
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 library(data.table)
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+source("C:/Users/KLOCHHEA/castor/R/functions/R_Postgres.R")
 ProvRast <- raster(
   nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
   crs = st_crs(getSpatialQuery("select * from bec_zone limit 1;"))$proj4string, resolution = c(100, 100), vals = 0

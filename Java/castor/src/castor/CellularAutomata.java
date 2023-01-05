@@ -1,4 +1,4 @@
-package coe_cellular_automata;
+package castor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -14,8 +14,8 @@ public class CellularAutomata {
 	//ArrayList<Cell> cellList = new ArrayList<Cell>();
 	ArrayList<Cells> cellsList = new ArrayList<Cells>();
 	ArrayList<Integer> cellsListChangeState = new ArrayList<Integer>();
-	String clusdb = "C:/Users/klochhea/castor/R/SpaDES-modules/dbCreatorCASTOR/test_castordb.sqlite";
-	
+	//String castordb = "C:/Users/klochhea/castor/R/SpaDES-modules/dataCastor/test_castordb.sqlite";
+	String castordb = "C:/Users/klochhea/castor/R/scenarios/fisher_cclup/quesnel/quesnel_castordb.sqlite";
 	//ArrayList<Cell> cellListMaximum = new ArrayList<Cell>();
 	int numIter=15000;
 	float harvestMax,harvestMin, gsMin, objValue, maxObjValue;
@@ -71,18 +71,19 @@ public class CellularAutomata {
 	* <h4>References</h4>
 	* <p> Heinonen, T., and T. Pukkala. 2007. The use of cellular automaton approach in forest planning. Canadian Journal of Forest Research. 37(11): 2188-2200. https://doi.org/10.1139/X07-073
 	*/
-	public void simulate2() {
+	public void coEvolutionaryCellularAutomata() {
 		boolean mutate = false;
 		boolean innovate = true;
 		int counterLocalMaxState = 0;
 		int currentMaxState;
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
 		//harvestMin = 10000*landscape.pl;
-		harvestMin = 205000;
-		harvestMax = 215000;
-		harvestClusterWeight = 0.8f;
-		ageClusterWeight = 0.15f;
+		harvestMin = 440051;
+		harvestMax = 458000;
+		harvestClusterWeight = 0.79f;
+		ageClusterWeight = 0.2f;
 		harvestPriorityWeight = 1-(harvestClusterWeight + ageClusterWeight);
+		double gWeightIncr = 0.1;
 		setLCCHarvestDelay(); //In cases no-harvesting decision does not meet the constraint -- remove harvesting during these periods and as a penalty -- thus ahciving the paritial amount
 		
 		System.out.println("");
@@ -90,7 +91,7 @@ public class CellularAutomata {
 		globalWeight = landscape.weight; // start with equal weighting
 		setMaxCutValue();//scope all of the cells to determine the maxHarvVol and gs0
 		randomizeStates(r);
-		gsMin = gs0*0.50f;
+		gsMin = gs0*0.0f;
 		//---------------------------------------------
 		System.out.println("Starting local optimization..");
 		//---------------------------------------------
@@ -156,16 +157,20 @@ public class CellularAutomata {
 			}
 			
 			System.out.print("iter:" + g + " global weight:" + globalWeight + " Plc:" + plc );
-			globalWeight += 0.01; //increment the global weight
+			globalWeight += gWeightIncr; //increment the global weight
 			
 			for(int k =0; k < planHarvestVolume.length; k++){
 				System.out.print(" Vol:" + planHarvestVolume[k] + "  ");
+			
 			}
 			System.out.println("");
 		}
 		
-		
-		System.out.println("Constraints achieved: " + globalConstraintsAchieved);
+		double totVol = 0.0;
+		for(int k = 0; k < planHarvestVolume.length ; k++) {
+			totVol += planHarvestVolume[k];
+		}
+		System.out.println("Constraints achieved: " + globalConstraintsAchieved + " LpObj: "+ totVol);
 		for(int f =0; f < planHarvestVolume.length; f++){
 			System.out.print(" GS:" + planGSVolume[f] + "  ");
 		}
@@ -430,7 +435,7 @@ public class CellularAutomata {
 			lc  = getLandCoverConstraint(ft.stateTypes.get(s), lcList);
 					
 			//P = 0.5*hfc + 0.25*gsc + 0.25*lc; 
-			P = 0.65*hfc + 0.35*gsc; 
+			P = 0.9*hfc + 0.1*gsc; 
 			stateValue = landscape.weight*U + globalWeight*P;
 				
 			if(maxValue < stateValue) { 
@@ -818,7 +823,7 @@ public class CellularAutomata {
 		}
 		
 		try { //Get the data from the db
-			Connection conn = DriverManager.getConnection("jdbc:sqlite:" + clusdb);		
+			Connection conn = DriverManager.getConnection("jdbc:sqlite:" + castordb);		
 			if (conn != null) {
 				Statement statement = conn.createStatement();
 					
@@ -904,17 +909,17 @@ public class CellularAutomata {
 	}
 	
 	 	/**
-	 	 * Gets the landscape data from a clusdb sqlite databases and assigns various tables to 
+	 	 * Gets the landscape data from a castordb sqlite databases and assigns various tables to 
 	 	 * plain old java objects (POJO).
 	 	 * 
-	 	 *<p> A number of tables in clusdb are used and manipulated. The process begins by
+	 	 *<p> A number of tables in castordb are used and manipulated. The process begins by
 	 	 * fetching the yields table which includes a primary key for each yield curve 
 	 	 * (a forest type can contain two different yield curves) and is converted to a hashMap 
 	 	 * {@code yieldTable}. Following the instantiation of {@code yieldTable} an
-	 	 * aggregate field within the clusdb called forest_type is generated which is a unique identifier 
+	 	 * aggregate field within the castordb called forest_type is generated which is a unique identifier 
 	 	 * for management type (see below) and describes the transition assumptions following harvesting. 
 	 	 * All of the forest types are then stored in {@code forestTypeList} which 
-	 	 * stores {@code ForestType} objects. Next, spatial information is retrieved from clusdb in order
+	 	 * stores {@code ForestType} objects. Next, spatial information is retrieved from castordb in order
 	 	 * to instantiate the {@code landscape} object. Then, each cell is instantiated and stored as
 	 	 * {@code cellsList}. Lastly, landcover constraint objects are instantiated
 	 	 * and stored in {@code landCoverConstraintList} and each cell
@@ -930,16 +935,16 @@ public class CellularAutomata {
 	 	 * 
 	 	 * @throws Exception  sqlite
 	 	 */
-		public void getCLUSData() throws Exception {
+		public void getCastorData() throws Exception {
 			try { // Load the driver
 			    Class.forName("org.sqlite.JDBC");
 			} catch (ClassNotFoundException eString) {
 			    System.err.println("Could not init JDBC driver - driver not found");
 			}		
 			try { //Get the data from the db
-				Connection conn = DriverManager.getConnection("jdbc:sqlite:" +clusdb);		
+				Connection conn = DriverManager.getConnection("jdbc:sqlite:" +castordb);		
 				if (conn != null) {
-					System.out.println("Connected to clusdb");
+					System.out.println("Connected to castordb");
 					Statement statement = conn.createStatement();
 					System.out.print("Getting yield information");
 					
@@ -1083,11 +1088,11 @@ public class CellularAutomata {
 						if(forestTypeID == rs2.getInt(1)) {
 							ForestType forestType = new ForestType(); //create a new ForestType object
 							if( rs2.getInt(5) == 1 & rs2.getInt(4) == 0) { //the management type is 1 but the yield_id_trans is null -- meaning there is no TIPSY curve to transition to. This should be a VDYP curve
-								forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(3), 0, yieldTable.get(rs2.getInt(3)).get("vol"), rs2.getInt(6)); //the max age a cell can have is 350	
+								forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(3), 0, yieldTable.get(rs2.getInt(3)).get("vol"), rs2.getDouble(6)); //the max age a cell can have is 350	
 								forestType.setForestTypeStates(0, landscape.ageStatesTemplate.get(Math.min(350, rs2.getInt(2))), landscape.harvestStatesTemplate.get(Math.min(350, rs2.getInt(2))), yieldTable.get(rs2.getInt(3)),  yieldTable.get(rs2.getInt(3)), landscape.minHarvVol);
 								
 							}else {
-								forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(4), rs2.getInt(5), yieldTable.get(rs2.getInt(3)).get("vol"), rs2.getInt(6)); //the max age a cell can have is 350	
+								forestType.setForestTypeAttributes(rs2.getInt(1), Math.min(350, rs2.getInt(2)), rs2.getInt(3), rs2.getInt(4), rs2.getInt(5), yieldTable.get(rs2.getInt(3)).get("vol"), rs2.getDouble(6)); //the max age a cell can have is 350	
 								forestType.setForestTypeStates(rs2.getInt(5), landscape.ageStatesTemplate.get(Math.min(350, rs2.getInt(2))), landscape.harvestStatesTemplate.get(Math.min(350, rs2.getInt(2))), yieldTable.get(rs2.getInt(3)),  yieldTable.get(rs2.getInt(4)), landscape.minHarvVol);	
 							}
 							lRSY += forestType.maxMAI*forestType.area;
@@ -1177,10 +1182,10 @@ public class CellularAutomata {
 					}
 					System.out.println("...done");
 
-					//Close all connections to the clusdb	
+					//Close all connections to the castordb	
 					statement.close();
 					conn.close();
-					System.out.println("Disconnected from clusdb");
+					System.out.println("Disconnected from castordb");
 					
 					System.out.print("Setting neighbourhood information");	
 					int cols = (int) landscape.ncell/landscape.nrow;
@@ -1246,7 +1251,7 @@ public class CellularAutomata {
 	     */
 		public void setRParms(String db_location, int harvMin, int harvMax, int growstockMin, int ageThres, int planHorizon, int planLength, float minHarvestVolume ) {
 			//Instantiate the Edge objects from the R data.table
-			clusdb = db_location;
+			castordb = db_location;
 			harvestMin = harvMin;
 			harvestMax = harvMax;
 			gsMin = growstockMin;

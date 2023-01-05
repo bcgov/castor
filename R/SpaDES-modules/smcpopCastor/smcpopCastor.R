@@ -36,6 +36,8 @@ defineModule (sim, list (
     expectsInput (objectName = "castordb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the model. This module needs the age variable from the pixels table in the castordb', sourceURL = NA),
     expectsInput(objectName ="scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName ="updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA),
+    expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataCastor. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
+    expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput (objectName = "table_smCoeffs", objectClass = "data.table", desc = "A data.table object.")
   ),
   outputObjects = bind_rows(
@@ -68,11 +70,15 @@ doEvent.smcpopCastor = function (sim, eventTime, eventType) {
 }
 
 Init <- function (sim) { 
-  if (nrow (data.table (dbGetQuery (sim$castordb, "PRAGMA table_info(pixels)"))[name == 'herd_habitat_name',])== 0){
+  
+   if (nrow (data.table (dbGetQuery (sim$castordb, "PRAGMA table_info(pixels)"))[name == 'herd_habitat_name',])== 0){
+    
     dbExecute (sim$castordb, "ALTER TABLE pixels ADD COLUMN subpop_name character")  
     dbExecute (sim$castordb, "ALTER TABLE pixels ADD COLUMN habitat_type character")
     dbExecute (sim$castordb, "ALTER TABLE pixels ADD COLUMN herd_habitat_name character")  
     
+    if(!is.null(sim$boundaryInfo)){ # if you have boundary data...
+      
     herd_hab <- data.table (herd_habitat = RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
                             srcRaster = P (sim, "nameRasSMCHerd", "smcpopCastor") , 
                             clipper = P (sim, "nameBoundaryFile", "dataCastor"),  
@@ -89,6 +95,50 @@ Init <- function (sim) {
     rs <- dbSendQuery (sim$castordb, "UPDATE pixels SET herd_habitat_name = :herd_hab_name, subpop_name = :herd_name, habitat_type = :bc_habitat_type WHERE pixelid = :pixelid", herd_hab) 
     dbClearResult (rs)
     dbCommit (sim$castordb) # commit the new column to the db
+    }
+    
+    
+    if (!is.na (sim$extent[[1]])) { # if you don't have boundary data...
+      
+      
+      herd_hab <- data.table (pixelid = as.integer (), # empty table to populate with data
+                              herd_name = as.character (),
+                              bc_habitat_type = as.character (), 
+                              herd_hab_name = as.character ())
+      
+      n.rows <- c (0:(sim$extent[[1]]/2)) # divide 'width' of raster in two = start value of each row in raster
+      n.rows.core <- c (0:(max (n.rows)/2)) # divide into core and matrix habitat
+      n.rows.matrix <- c (((max (n.rows)/2)+1):max (n.rows))
+
+      
+      for (i in 1:length (n.rows.core)) { # loop through each row 
+        temp <- data.table (pixelid = seq (from = as.integer (P (sim,"randomLandscape", "dataCastor" )[[3]] + (P(sim,"randomLandscape", "dataCastor" )[[1]]*n.rows.core[i]) + 1), # start at each value on left side of the raster
+                                           to =  as.integer ((P(sim,"randomLandscape", "dataCastor" )[[2]]/2) + (P(sim,"randomLandscape", "dataCastor" )[[1]]*n.rows.core[i])), # to value in middle of the raster, for the top value of the raster
+                                           by = 1),
+                            herd_name = "caribou_herd",
+                            bc_habitat_type = "core",
+                            herd_hab_name = "caribou_herd core")
+        herd_hab <- rbind (herd_hab, temp)
+        
+      }
+      
+      
+      for (i in 1:length (n.rows.matrix)) { # loop through each row 
+        temp <- data.table (pixelid = seq (from = as.integer (P (sim,"randomLandscape", "dataCastor" )[[3]] + (P(sim,"randomLandscape", "dataCastor" )[[1]]*n.rows.matrix[i]) + 1), # start at each value on left side of the raster
+                                           to =  as.integer ((P(sim,"randomLandscape", "dataCastor" )[[2]]/2) + (P(sim,"randomLandscape", "dataCastor" )[[1]]*n.rows.matrix[i])), # to value in middle of the raster, for the top value of the raster
+                                           by = 1),
+                            herd_name = "caribou_herd",
+                            bc_habitat_type = "matrix",
+                            herd_hab_name = "caribou_herd matrix")
+        herd_hab <- rbind (herd_hab, temp)
+        
+      }
+      
+      setorder (herd_hab, "pixelid") 
+      dbBegin (sim$castordb) # add the herd  and habitat boundary values to the pixels table 
+      rs <- dbSendQuery (sim$castordb, "UPDATE pixels SET herd_habitat_name = :herd_hab_name, subpop_name = :herd_name, habitat_type = :bc_habitat_type WHERE pixelid = :pixelid", herd_hab) 
+      dbClearResult (rs)
+      dbCommit (sim$castordb)
   }
   
   # The following calculates the proportion of 'disturbed' forested pixels in each subpop/herd core and matrix habitat area 
@@ -132,11 +182,10 @@ Init <- function (sim) {
   sim$tableAbundanceReport <- merge (sim$tableAbundanceReport, total_area, by.x = "subpop_name", by.y = "subpop_name", all.x = TRUE )
   sim$tableAbundanceReport <- sim$tableAbundanceReport [, c ("scenario", "timeperiod", "subpop_name", "area", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")]
   return(invisible(sim))
+  }
 }
 
-
 predictAbundance <- function (sim) { # this function calculates survival rate at each time interval; same as on init, above
-  
   message("estimating abundance")
   table.disturb.r50.new <- data.table (dbGetQuery (sim$castordb, paste0 ("SELECT AVG (CASE WHEN ((", time(sim)*sim$updateInterval, " - roadstatus < 80 AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) THEN 1 ELSE 0 END) * 100 AS percent_r50disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND treed = 1 GROUP BY herd_habitat_name;"))) 
   table.disturb.c80.new <- data.table (dbGetQuery (sim$castordb, "SELECT AVG (CASE WHEN blockid > 0 AND age >= 0 AND age <= 80 THEN 1 ELSE 0 END) * 100 AS percent_c80disturb, herd_habitat_name, subpop_name, habitat_type FROM pixels WHERE herd_habitat_name IS NOT NULL AND treed = 1 GROUP BY herd_habitat_name;")) 
@@ -170,6 +219,7 @@ predictAbundance <- function (sim) { # this function calculates survival rate at
   table.disturb.new <- merge (table.disturb.new, total_area, by.x = "subpop_name", by.y = "subpop_name", all.x = TRUE )
   table.disturb.new <- table.disturb.new [, c ("scenario", "timeperiod", "subpop_name", "area", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")]
   sim$tableAbundanceReport <- rbindlist (list (sim$tableAbundanceReport, table.disturb.new [, c ("scenario", "timeperiod", "subpop_name", "area", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")])) # bind the new survival rate table to the existing table
+  
   return (invisible(sim))
 }
 
@@ -185,10 +235,10 @@ predictAbundance <- function (sim) { # this function calculates survival rate at
   dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
   
-  sim$table_smCoeffs <- data.table (herd_name = c ("Barkerville", "Barkerville", "Burnt_Pine", "Graham", "Graham", "Groundhog", "Groundhog", "Moberly", "Moberly", "Monashee", "Monashee", "Narraway", "Burnt_Pine", "Central_Rockies", "Central_Rockies", "Narraway", "Quintette", "Quintette", "Rainbows", "Rainbows", "Telkwa", "Telkwa", "Tweedsmuir", "Tweedsmuir", "Narrow_Lake", "Narrow_Lake", "Itcha_Ilgachuz", "Itcha_Ilgachuz", "Central_Selkirks", "Central_Selkirks", "Charlotte_Alplands", "Charlotte_Alplands", "Columbia_North", "Columbia_North", "Columbia_South", "Columbia_South", "Frisby_Boulder", "Frisby_Boulder", "Hart_Ranges", "Hart_Ranges", "Kennedy_Siding", "Kennedy_Siding", "North_Cariboo", "North_Cariboo", "Purcell_Central", "Purcell_Central", "Purcells_South", "Purcells_South", "South_Selkirks", "South_Selkirks", "Wells_Gray_North", "Wells_Gray_North", "Wells_Gray_South", "Wells_Gray_South", "Redrock_Prairie_Creek", "Redrock_Prairie_Creek"),
-                                    bc_habitat_type = c ("core","matrix","core","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","matrix","core","core","matrix","core","matrix","core","matrix","core","matrix","core", "matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix"),
-                                    herd_hab_name = c ("Barkerville Core", "Barkerville Matrix", "Burnt_Pine Core", "Graham Core", "Graham Matrix", "Groundhog Core", "Groundhog Matrix", "Moberly Core", 'Moberly Matrix', "Monashee Core", "Monashee Matrix", "Narraway Core", "Burnt_Pine Matrix", "Central_Rockies Core", "Central_Rockies Matrix", "Narraway Matrix", "Quintette Core", "Quintette Matrix","Rainbows Core", "Rainbows Matrix", "Telkwa Core", "Telkwa Matrix", "Tweedsmuir Core", "Tweedsmuir Matrix", "Narrow_Lake Core", "Narrow_Lake Matrix", "Itcha_Ilgachuz Core", "Itcha_Ilgachuz Matrix", "Central_Selkirks Core", "Central_Selkirks Matrix", "Charlotte_Alplands Core", "Charlotte_Alplands Matrix", "Columbia_North Matrix", "Columbia_North Core", "Columbia_South Core", "Columbia_South Matrix", "Frisby_Boulder Core", "Frisby_Boulder Matrix", "Hart_Ranges Core", "Hart_Ranges Matrix", "Kennedy_Siding Core", "Kennedy_Siding Matrix", "North_Cariboo Core", "North_Cariboo Matrix", "Purcell_Central Core", "Purcell_Central Matrix", "Purcells_South Core", "Purcells_South Matrix", "South_Selkirks Core", "South_Selkirks Matrix", "Wells_Gray_North Core", "Wells_Gray_North Matrix", "Wells_Gray_South Core", "Wells_Gray_South Matrix", "Redrock_Prairie_Creek Core", "Redrock_Prairie_Creek Matrix"),
-                                    value = c (1:56),
+  sim$table_smCoeffs <- data.table (herd_name = c ("Barkerville", "Barkerville", "Burnt_Pine", "Graham", "Graham", "Groundhog", "Groundhog", "Moberly", "Moberly", "Monashee", "Monashee", "Narraway", "Burnt_Pine", "Central_Rockies", "Central_Rockies", "Narraway", "Quintette", "Quintette", "Rainbows", "Rainbows", "Telkwa", "Telkwa", "Tweedsmuir", "Tweedsmuir", "Narrow_Lake", "Narrow_Lake", "Itcha_Ilgachuz", "Itcha_Ilgachuz", "Central_Selkirks", "Central_Selkirks", "Charlotte_Alplands", "Charlotte_Alplands", "Columbia_North", "Columbia_North", "Columbia_South", "Columbia_South", "Frisby_Boulder", "Frisby_Boulder", "Hart_Ranges", "Hart_Ranges", "Kennedy_Siding", "Kennedy_Siding", "North_Cariboo", "North_Cariboo", "Purcell_Central", "Purcell_Central", "Purcells_South", "Purcells_South", "South_Selkirks", "South_Selkirks", "Wells_Gray_North", "Wells_Gray_North", "Wells_Gray_South", "Wells_Gray_South", "Redrock_Prairie_Creek", "Redrock_Prairie_Creek", "caribou_herd", "caribou_herd"),
+                                    bc_habitat_type = c ("core","matrix","core","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","matrix","core","core","matrix","core","matrix","core","matrix","core","matrix","core", "matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix","core","matrix", "core","matrix"),
+                                    herd_hab_name = c ("Barkerville Core", "Barkerville Matrix", "Burnt_Pine Core", "Graham Core", "Graham Matrix", "Groundhog Core", "Groundhog Matrix", "Moberly Core", 'Moberly Matrix', "Monashee Core", "Monashee Matrix", "Narraway Core", "Burnt_Pine Matrix", "Central_Rockies Core", "Central_Rockies Matrix", "Narraway Matrix", "Quintette Core", "Quintette Matrix","Rainbows Core", "Rainbows Matrix", "Telkwa Core", "Telkwa Matrix", "Tweedsmuir Core", "Tweedsmuir Matrix", "Narrow_Lake Core", "Narrow_Lake Matrix", "Itcha_Ilgachuz Core", "Itcha_Ilgachuz Matrix", "Central_Selkirks Core", "Central_Selkirks Matrix", "Charlotte_Alplands Core", "Charlotte_Alplands Matrix", "Columbia_North Matrix", "Columbia_North Core", "Columbia_South Core", "Columbia_South Matrix", "Frisby_Boulder Core", "Frisby_Boulder Matrix", "Hart_Ranges Core", "Hart_Ranges Matrix", "Kennedy_Siding Core", "Kennedy_Siding Matrix", "North_Cariboo Core", "North_Cariboo Matrix", "Purcell_Central Core", "Purcell_Central Matrix", "Purcells_South Core", "Purcells_South Matrix", "South_Selkirks Core", "South_Selkirks Matrix", "Wells_Gray_North Core", "Wells_Gray_North Matrix", "Wells_Gray_South Core", "Wells_Gray_South Matrix", "Redrock_Prairie_Creek Core", "Redrock_Prairie_Creek Matrix", "caribou_herd core", "caribou_herd matrix"),
+                                    value = c (1:58),
                                     r50fe_int = 7.689,
                                     r50fe_core = 0.108,
                                     r50fe_matrix = -0.551,
@@ -198,12 +248,12 @@ predictAbundance <- function (sim) { # this function calculates survival rate at
                                     c80fe_int = 7.14,
                                     c80fe_core = -0.122,
                                     c80fe_matrix = -0.102,
-                                    r50re_int = c (-3.374, -3.374, 0, 0, 0, 0, 0, 0, 0, -2.484, -2.484, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2.493, 2.493, 0, 0, 1.429, 1.429, 0, 0, -0.67, -0.67, 1.239, 1.239, -1.499, -1.499, 1.523, 1.523, 0, 0, 1.686, 1.686, -2.719, -2.719, 0.818, 0.818, 0, 0, 1.558, 1.558, 0, 0, 0, 0),
-                                    r50re_core = c (0.945, 0.945, 0, 0, 0, 0, 0, 0, 0, 0.636, 0.636, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0.718, -0.718, 0, 0, -0.387, -0.387, 0,  0, 0.326, 0.326, -0.84, -0.84, 0.663, 0.663, -0.45, -0.45, 0, 0, -0.515, -0.515, 0.791, 0.791, -0.303, -0.303, 0, 0, -0.146, -0.146, 0, 0, 0, 0),
-                                    c80r50re_int = c (-4.363, -4.363, 0, 0, 0, 0, 0, 0, 0, -3.749, -3.749, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4.919, 4.919, 0, 0, 1.212, 1.212, 0, 0, -0.563, -0.563, 0.917, 0.917, -0.483, -0.483, 1.25, 1.25, 0, 0, 2.492, 2.492, -3.979, -3.979, 1.334, 1.334, 0, 0, 1.013, 1.013, 0, 0, 0, 0),
-                                    c80r50re_core = c (0.38, 0.38, 0, 0, 0, 0, 0, 0, 0, 0.243, 0.243, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0.265, -0.265, 0, 0, -0.191, -0.191, 0, 0, 0.129, 0.129, -0.26, -0.26, 0.048, 0.048, -0.098, -0.098, 0, 0, -0.178, -0.178, .293, 0.293, -0.12, -0.12, 0, 0, 0.019, 0.019, 0, 0, 0, 0),
-                                    c80re_int = c (-4.259, -4.259, 0, 0, 0, 0, 0, 0, 0, -3.438, -3.438, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4.205, 4.205, 0, 0, 1.215, 1.215, 0, 0, -0.46, -0.46, 0.772, 0.772, -0.441, -0.441, 1.467, 1.467, 0, 0, 2.685, 2.685, -3.949, -3.949, 1.176, 1.176, 0, 0, 1.027, 1.027, 0, 0, 0, 0),
-                                    c80re_core = c (0.454, 0.454, 0, 0, 0, 0, 0, 0, 0, 0.209, 0.209, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0.133, -0.133, 0, 0, -0.269, -0.269, 0, 0, 0.141, 0.141, -0.343, -0.343, 0.035, 0.035, -0.126, -0.126, 0, 0, -0.166, -0.166, 0.306, 0.306, -0.148, -0.148, 0, 0, 0.041, 0.041, 0, 0, 0, 0)
+                                    r50re_int = c (-3.374, -3.374, 0, 0, 0, 0, 0, 0, 0, -2.484, -2.484, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2.493, 2.493, 0, 0, 1.429, 1.429, 0, 0, -0.67, -0.67, 1.239, 1.239, -1.499, -1.499, 1.523, 1.523, 0, 0, 1.686, 1.686, -2.719, -2.719, 0.818, 0.818, 0, 0, 1.558, 1.558, 0, 0, 0, 0, 0, 0),
+                                    r50re_core = c (0.945, 0.945, 0, 0, 0, 0, 0, 0, 0, 0.636, 0.636, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0.718, -0.718, 0, 0, -0.387, -0.387, 0,  0, 0.326, 0.326, -0.84, -0.84, 0.663, 0.663, -0.45, -0.45, 0, 0, -0.515, -0.515, 0.791, 0.791, -0.303, -0.303, 0, 0, -0.146, -0.146, 0, 0, 0, 0, 0, 0),
+                                    c80r50re_int = c (-4.363, -4.363, 0, 0, 0, 0, 0, 0, 0, -3.749, -3.749, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4.919, 4.919, 0, 0, 1.212, 1.212, 0, 0, -0.563, -0.563, 0.917, 0.917, -0.483, -0.483, 1.25, 1.25, 0, 0, 2.492, 2.492, -3.979, -3.979, 1.334, 1.334, 0, 0, 1.013, 1.013, 0, 0, 0, 0, 0, 0),
+                                    c80r50re_core = c (0.38, 0.38, 0, 0, 0, 0, 0, 0, 0, 0.243, 0.243, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0.265, -0.265, 0, 0, -0.191, -0.191, 0, 0, 0.129, 0.129, -0.26, -0.26, 0.048, 0.048, -0.098, -0.098, 0, 0, -0.178, -0.178, .293, 0.293, -0.12, -0.12, 0, 0, 0.019, 0.019, 0, 0, 0, 0, 0, 0),
+                                    c80re_int = c (-4.259, -4.259, 0, 0, 0, 0, 0, 0, 0, -3.438, -3.438, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4.205, 4.205, 0, 0, 1.215, 1.215, 0, 0, -0.46, -0.46, 0.772, 0.772, -0.441, -0.441, 1.467, 1.467, 0, 0, 2.685, 2.685, -3.949, -3.949, 1.176, 1.176, 0, 0, 1.027, 1.027, 0, 0, 0, 0, 0, 0),
+                                    c80re_core = c (0.454, 0.454, 0, 0, 0, 0, 0, 0, 0, 0.209, 0.209, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -0.133, -0.133, 0, 0, -0.269, -0.269, 0, 0, 0.141, 0.141, -0.343, -0.343, 0.035, 0.035, -0.126, -0.126, 0, 0, -0.166, -0.166, 0.306, 0.306, -0.148, -0.148, 0, 0, 0.041, 0.041, 0, 0, 0, 0, 0, 0)
   )
   
   return(invisible(sim))
