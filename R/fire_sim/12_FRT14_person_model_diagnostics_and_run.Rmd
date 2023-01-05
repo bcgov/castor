@@ -248,6 +248,7 @@ car::vif(mod_frt14)
 ```{r}
 mod_frt14<- glm(fire ~ climate1 + log_road_dist + log_inf_dist + FWI_veg, data=dat14, family=binomial(link="logit"))
 
+
 summary(mod_frt14)
 table(dat14$FWI_veg)
 
