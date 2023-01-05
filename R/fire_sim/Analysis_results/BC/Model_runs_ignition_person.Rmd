@@ -1,0 +1,504 @@
+---
+title: "Run models for fire ignition prediction map"
+author: "Elizabeth Kleynhans"
+date: '2022-09-09'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source(here::here("R/functions/R_Postgres.R"))
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+
+```
+
+# Import the data and fire regime types layer
+```{r}
+dat<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_Elev_clim_veg_rd_infr_wind.gpkg")
+
+names(dat)
+dat<-st_transform(dat, 3005)
+dat$frt<-as.factor(dat$frt)
+
+climate_variable<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
+
+dat<-dat %>%
+    mutate(climate1 = case_when(
+                                frt == "5" ~ as.numeric(mean_PPT06_PPT07),
+                                frt == "7" ~ mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10,
+                                frt == "9" ~ Tmax05, # NDT4
+                                frt == "10" ~ mean_PPT06_PPT07_PPT08_PPT09,
+                                frt == "11" ~ mean_Tave08_Tave09_Tave10,
+                                frt == "12" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10,
+                                frt == "13" ~ mean_Tave07_Tave08_Tave09,
+                                frt == "14" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10,
+                                frt == "15" ~ mean_Tave07_Tave08_Tave09,
+                               TRUE ~ NA_real_))
+
+# #Repeat for climate 2
+ dat$climate2<-"NA"
+# 
+# #Perform mutate to get the applicable variable for each row
+dat<-dat %>%
+    mutate(climate2 = case_when(
+                                frt == "13" ~ as.numeric(mean_PPT07_PPT08_PPT09),
+                                frt == "15" ~ as.numeric(mean_PPT07_PPT08_PPT09),
+                               TRUE ~ NA_real_))
+
+
+names(dat)
+
+# create dummy variables for FWI_veg
+dat$veg_C1 <- ifelse(dat$FWI_veg == 'C-1', 1, 0)
+dat$veg_C2 <- ifelse(dat$FWI_veg == 'C-2', 1, 0)
+dat$veg_C3 <- ifelse(dat$FWI_veg == 'C-3', 1, 0)
+dat$veg_C4 <- ifelse(dat$FWI_veg == 'C-4', 1, 0)
+dat$veg_C5 <- ifelse(dat$FWI_veg == 'C-5', 1, 0)
+dat$veg_C7 <- ifelse(dat$FWI_veg == 'C-7', 1, 0)
+dat$veg_D12 <- ifelse(dat$FWI_veg == 'D-1/2', 1, 0)
+dat$veg_M12 <- ifelse(dat$FWI_veg == 'M-1/2', 1, 0)
+dat$veg_M3 <- ifelse(dat$FWI_veg == 'M-3', 1, 0)
+dat$veg_N <- ifelse(dat$FWI_veg == 'N', 1, 0)
+dat$veg_O1ab <- ifelse(dat$FWI_veg == 'O-1a/b', 1, 0)
+dat$veg_S1 <- ifelse(dat$FWI_veg == 'S-1', 1, 0)
+dat$veg_S2 <- ifelse(dat$FWI_veg == 'S-2', 1, 0)
+dat$veg_S3 <- ifelse(dat$FWI_veg == 'S-3', 1, 0)
+#dat$veg_W <- ifelse(dat$FWI_veg == 'W', 1, 0)
+
+names(dat)
+table(dat$frt, dat$FWI_veg)
+
+dat$frt[dat$frt==3]<-5
+
+no_ignition1<-dat %>% 
+  filter(FWI_veg =="W")
+
+ignition1<-dat %>% 
+  filter(FWI_veg !="W")
+
+no_ignition2<-ignition1 %>% 
+  filter(bclcs_level_5 %in% c("GL", "LA"))
+
+no_ignition<-rbind(no_ignition1, no_ignition2)
+
+ignition2<-ignition1 %>% 
+  filter(!bclcs_level_5 %in% c("GL", "LA"))
+
+dim(no_ignition)
+dim(dat)
+dim(ignition2) # looks good
+```
+
+### FRT 5
+
+```{r}
+frt5<- ignition2 %>% filter(frt==5)
+
+# note vegetation got kicked out of the final model
+
+model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT5_person.csv")
+
+model_coef_table
+
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+frt5$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt5$climate1 +
+  model_coef_table[[4]]*frt5$Elevation +
+  model_coef_table[[5]]*(log(frt5$dist_roads_m+1))+
+  model_coef_table[[6]]*(log(frt5$dist_infrastructure_m+1))
+  
+
+head(frt5)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt5$prob_ignition<-exp(frt5$logit_P)/(1+exp(frt5$logit_P))
+
+summary(frt5$prob_ignition)
+hist(frt5$prob_ignition)
+
+```
+
+FRT 7 
+```{r}
+frt7<- ignition2 %>% filter(frt==7)
+
+model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT7_person.csv")
+
+model_coef_table
+
+table(frt7$FWI_veg)
+
+#NOTE C-1 is the intercept
+frt7$FWI_veg[frt7$FWI_veg=="C-4"]<-"C-2"
+frt7$FWI_veg[frt7$FWI_veg=="C-5"]<-"C-7"
+frt7$FWI_veg[frt7$FWI_veg=="S-1"]<-"M-1/2"
+frt7$FWI_veg[frt7$FWI_veg=="S-2"]<-"C-7"
+
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+frt7$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt7$climate1 +
+  model_coef_table[[4]]*frt7$veg_C2 +
+  model_coef_table[[5]]*frt7$veg_C3 +
+  model_coef_table[[6]]*frt7$veg_C7 +
+  model_coef_table[[7]]*frt7$veg_D12 +
+  model_coef_table[[8]]*frt7$veg_M12 +
+  model_coef_table[[9]]*frt7$veg_M3 +
+  model_coef_table[[10]]*frt7$veg_N +
+  model_coef_table[[11]]*frt7$veg_O1ab + 
+  model_coef_table[[12]]*(log(frt7$dist_roads_m+1))+
+  model_coef_table[[13]]*(log(frt7$dist_infrastructure_m+1))
+
+head(frt7)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt7$prob_ignition<-exp(frt7$logit_P)/(1+exp(frt7$logit_P))
+
+summary(frt7$prob_ignition)
+hist(frt7$prob_ignition)
+
+```
+
+
+
+### FRT 9
+
+```{r}
+frt9<- ignition2 %>% filter(frt==9)
+
+# no FWI_veg in model
+
+model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt9_person.csv")
+
+model_coef_table
+
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+frt9$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt9$climate1 +
+  model_coef_table[[4]]*frt9$Elevation  +
+  model_coef_table[[5]]*frt9$dist_infrastructure_m
+
+head(frt9)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt9$prob_ignition<-exp(frt9$logit_P)/(1+exp(frt9$logit_P))
+
+summary(frt9$prob_ignition)
+hist(frt9$prob_ignition)
+
+
+```
+
+### FRT 10
+
+```{r}
+frt10<- ignition2 %>% filter(frt==10)
+
+table(frt10$FWI_veg)
+#NOTE C-2 is the intercept
+frt10$FWI_veg[frt10$FWI_veg=="C-1"]<-"C-3"
+frt10$FWI_veg[frt10$FWI_veg=="C-4"]<-"C-2"
+frt10$FWI_veg[frt10$FWI_veg=="M-1/2"]<-"C-5"
+frt10$FWI_veg[frt10$FWI_veg=="O-1a/b"]<-"C-3"
+frt10$FWI_veg[frt10$FWI_veg=="S-1"]<-"C-4"
+frt10$FWI_veg[frt10$FWI_veg=="S-2"]<-"C-7"
+
+model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT10_person.csv")
+
+model_coef_table
+
+#C-2 is the intercept
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+frt10$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt10$climate1 +
+  model_coef_table[[4]]*frt10$veg_C3 +
+  model_coef_table[[5]]*frt10$veg_C5 +
+  model_coef_table[[6]]*frt10$veg_C7 +
+  model_coef_table[[7]]*frt10$veg_N +
+  model_coef_table[[8]]*(log(frt10$dist_roads_m+1))
+
+head(frt10)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt10$prob_ignition<-exp(frt10$logit_P)/(1+exp(frt10$logit_P))
+
+summary(frt10$prob_ignition)
+hist(frt10$prob_ignition)
+
+
+```
+
+# FRT 11
+```{r}
+frt11<- ignition2 %>% filter(frt==11)
+
+model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt11_person.csv")
+model_coef_table
+
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+
+frt11$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt11$climate1 +
+  model_coef_table[[4]]*log(frt11$dist_roads_m+1) +
+  model_coef_table[[5]]*log(frt11$dist_infrastructure_m+1) 
+
+head(frt11)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt11$prob_ignition<-exp(frt11$logit_P)/(1+exp(frt11$logit_P))
+
+summary(frt11$prob_ignition)
+hist(frt11$prob_ignition)
+
+```
+
+
+# FRT 12
+```{r}
+frt12<- ignition2 %>% filter(frt==12)
+
+#NOTE C-2 is the intercept
+table(frt12$FWI_veg)
+frt12$FWI_veg[frt12$FWI_veg=="C-1"]<-"C-3"
+frt12$FWI_veg[frt12$FWI_veg=="C-4"]<-"C-2"
+frt12$FWI_veg[frt12$FWI_veg=="M-3"]<-"O-1a/b"
+frt12$FWI_veg[frt12$FWI_veg=="S-2"]<-"C-7"
+frt12$FWI_veg[frt12$FWI_veg=="S-3"]<-"S-1"
+
+model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT12_person.csv")
+model_coef_table
+
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+
+frt12$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt12$climate1 +
+  model_coef_table[[4]]*frt12$Elevation + 
+  model_coef_table[[5]]*log(frt12$dist_roads_m+1) +
+  model_coef_table[[6]]*log(frt12$dist_infrastructure_m+1) +
+  model_coef_table[[7]]*frt12$veg_C3 +
+  model_coef_table[[8]]*frt12$veg_C5 +
+  model_coef_table[[9]]*frt12$veg_C7 +
+  model_coef_table[[10]]*frt12$veg_D12 +
+  model_coef_table[[11]]*frt12$veg_M12 +
+  model_coef_table[[12]]*frt12$veg_N +
+  model_coef_table[[13]]*frt12$veg_O1ab +
+  model_coef_table[[14]]*frt12$veg_S1 
+  
+
+head(frt12)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt12$prob_ignition<-exp(frt12$logit_P)/(1+exp(frt12$logit_P))
+
+summary(frt12$prob_ignition)
+hist(frt12$prob_ignition)
+
+```
+
+# FRT 13
+```{r}
+frt13<- ignition2 %>% filter(frt==13)
+
+table(frt13$FWI_veg)
+# NOTE C2 is the intercept
+#frt13$FWI_veg[frt13$FWI_veg=="C-2"]<-"C-3"
+frt13$FWI_veg[frt13$FWI_veg=="C-4"]<-"C-2"
+frt13$FWI_veg[frt13$FWI_veg=="C-1"]<-"C-3"
+frt13$FWI_veg[frt13$FWI_veg=="S-2"]<-"C-7"
+
+model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT13_person.csv")
+model_coef_table
+
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+
+frt13$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt13$climate1 +
+  model_coef_table[[4]]*frt13$climate2 +
+  model_coef_table[[5]]*frt13$Elevation + 
+  model_coef_table[[6]]*log(frt13$dist_roads_m+1) +
+  model_coef_table[[7]]*log(frt13$dist_infrastructure_m+1) +
+  model_coef_table[[8]]*frt13$veg_C3 +
+  model_coef_table[[9]]*frt13$veg_C5 +
+  model_coef_table[[10]]*frt13$veg_C7 +
+  model_coef_table[[11]]*frt13$veg_D12 +
+  model_coef_table[[12]]*frt13$veg_M12 +
+  model_coef_table[[13]]*frt13$veg_M3 +
+  model_coef_table[[14]]*frt13$veg_N +
+  model_coef_table[[15]]*frt13$veg_O1ab +
+  model_coef_table[[16]]*frt13$veg_S1 +
+  model_coef_table[[17]]*frt13$veg_S3 
+
+head(frt13)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt13$prob_ignition<-exp(frt13$logit_P)/(1+exp(frt13$logit_P))
+
+summary(frt13$prob_ignition)
+
+hist(frt13$prob_ignition)
+
+```
+
+# FRT 14
+
+```{r}
+
+frt14<- ignition2 %>% filter(frt==14)
+
+table(frt14$FWI_veg)
+# NOTE C-2 is the intercept
+frt14$FWI_veg[frt14$FWI_veg=="C-4"]<-"C-2"
+frt14$FWI_veg[frt14$FWI_veg=="M-3"]<-"O-1a/b" 
+frt14$FWI_veg[frt14$FWI_veg=="S-3"]<-"S-1"
+
+model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT14_person.csv")
+model_coef_table
+
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+
+frt14$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt14$climate1 +
+  model_coef_table[[4]]*log(frt14$dist_roads_m+1) +
+  model_coef_table[[5]]*log(frt14$dist_infrastructure_m+1) +
+  model_coef_table[[6]]*frt14$veg_C3 +
+  model_coef_table[[7]]*frt14$veg_C5 +
+  model_coef_table[[8]]*frt14$veg_C7 +
+  model_coef_table[[9]]*frt14$veg_D12 +
+  model_coef_table[[10]]*frt14$veg_M12 +
+  model_coef_table[[11]]*frt14$veg_N +
+  model_coef_table[[12]]*frt14$veg_O1ab +
+  model_coef_table[[13]]*frt14$veg_S1 
+
+head(frt14)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt14$prob_ignition<-exp(frt14$logit_P)/(1+exp(frt14$logit_P))
+
+summary(frt14$prob_ignition)
+hist(frt14$prob_ignition)
+
+#plot(frt14[frt14$prob_ignition,])
+```
+
+# FRT 15
+
+```{r}
+
+frt15<- ignition2 %>% filter(frt==15)
+table(frt15$FWI_veg)
+# C-3 is the intercept
+frt15$FWI_veg[frt15$FWI_veg=="C-2"]<-"C-3" 
+frt15$FWI_veg[frt15$FWI_veg=="C-7"]<-"C-5" 
+frt15$FWI_veg[frt15$FWI_veg=="S-1"]<-"S-3" 
+
+
+
+model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT15_person.csv")
+model_coef_table
+
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+
+# note climate 1 and elevation were correlated 0.76 so I removed climate 1 because the model without climate 1 but with elevation had a smaller AIC than the opposite
+frt15$logit_P<- model_coef_table[[2]] + 
+  model_coef_table[[3]]*frt15$climate1 +
+  model_coef_table[[4]]*frt15$climate2 +
+   model_coef_table[[5]]*log(frt15$dist_roads_m+1) +
+  model_coef_table[[6]]*frt15$dist_infrastructure_m +
+  model_coef_table[[7]]*frt15$veg_C5 +
+  model_coef_table[[8]]*frt15$veg_D12 +
+  model_coef_table[[9]]*frt15$veg_M12 +
+  model_coef_table[[10]]*frt15$veg_N +
+  model_coef_table[[11]]*frt15$veg_O1ab +
+  model_coef_table[[12]]*frt15$veg_S3
+
+head(frt15)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+frt15$prob_ignition<-exp(frt15$logit_P)/(1+exp(frt15$logit_P))
+
+summary(frt15$prob_ignition)
+
+hist(frt15$prob_ignition)
+#plot(frt15[frt15$prob_ignition,])
+```
+
+
+### now combine all FRT's and plot it
+```{r}
+frt_all<-rbind(rbind(rbind(rbind(rbind(rbind(rbind(rbind(frt10, frt12), frt13), frt14), frt15), frt9), frt11), frt5),frt7)
+
+names(frt_all)
+frtall<-frt_all %>% dplyr::select(idno:climate2, logit_P:geom)
+names(no_ignition)
+names(frtall)
+no_ignition<-no_ignition %>% dplyr::select(idno:climate2, geom)
+no_ignition$logit_P<-0
+no_ignition$prob_ignition<-0
+
+frt_all2<-rbind(frtall, no_ignition)
+hist(frt_all2$prob_ignition)
+
+```
+save the data
+```{r}
+st_write(frt_all2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_person_ignit_final.gpkg", delete_layer=TRUE, driver="GPKG")
+
+```
+
+
+# create raster
+
+```{r}
+frt_all2<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_lighting_ignit_final.gpkg")
+
+
+
+layeraoi<-getSpatialQuery("SELECT * FROM study_area_compart limit 1")
+#Create a provincial raster
+prov.rast <- raster::raster ( # standardized provincial raster with no data in it
+                              nrows = 15744, ncols = 17216, 
+                              xmn = 159587.5, xmx = 1881187.5, 
+                              ymn = 173787.5, ymx = 1748187.5, 
+                              crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs", 
+                              resolution = c(100, 100),                               
+                              vals = 0)
+
+
+study_area<-getSpatialQuery("SELECT * FROM study_area_compart")
+
+study_area2<-study_area %>% group_by ( tsa_name, tsa_number) %>% summarise()
+st_crs(study_area2)
+
+study_area2<-st_as_sf(study_area2)
+ras.aoi2 <- crop(prov.rast, study_area2)
+
+##########
+
+library(sp)
+library(rgdal)
+library(raster)
+library(gstat)
+fit.p.ign <- gstat::gstat(formula = prob_ignition ~ 1, data = frt_all2, nmax = 4)
+
+maxint <- raster::interpolate(prov.rast, model=fit.p.ign) # this is pretty slow
+z <- mask(maxint, prov.rast)
+plot(z, col=rev(heat.colors(255)))
+
+
+
+# ras.frt <- fasterize::fasterize (frt_all, prov.rast, field = "prob_ignition")
+# plot(ras.frt)
+# 
+# plot(ras.aoi2)
+
+#writeRaster(maxint, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif", format="GTiff", overwrite=TRUE)
+
+writeRaster(z, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_Lightning_ignition_probability_2021.tif", format="GTiff", overwrite=TRUE)
+
+# run this in R:
+paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/Probability_of_lightning_Ignition_Quesnell_WilliamsL_100Mile_allFRT_800m.tif -t 100x100 rast.prob_lightning_ignit_quesnel_williamsl_100mile | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/castor')
+# then copy the output thats between the " " from the above and paste it into the cmd and run that... should show Insert 0  1 lots of times.
+
+```
+
+
