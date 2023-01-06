@@ -188,10 +188,10 @@ setHistoricalLandings <- function(sim) {
 setSpreadProb<- function(sim) {
   #Create a mask for the area of interst
   sim$aoi <- sim$ras #set the area of interest as the similarity raster
-  sim$aoi[]<-dbGetQuery(sim$castordb, "SELECT thlb FROM pixels")
-  sim$aoi[sim$aoi[] > 0] <- 1 # for those locations where the distance is greater than 0 assign a 1
-  sim$aoi[is.na(sim$aoi[])] <- 0 # for those locations where there is no distance - they are NA, assign a 0
-  
+  sim$aoi[] <- as.numeric (unlist (dbGetQuery(sim$castordb, "SELECT thlb FROM pixels"))) # set as.numeric, else a data type issue error....
+  sim$aoi[sim$aoi > 0] <- 1 # for those locations where the distance is thlb than 0 assign a 1
+  sim$aoi <- terra::subst (sim$aoi, NA, 0) # for those locations where there is no thlb - they are NA, assign a 0
+
   sim$harvestUnits<-NULL
   
   if(!P(sim)$spreadProbRas == "99999"){
