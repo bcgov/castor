@@ -74,6 +74,7 @@ dat_person$FWI_veg<-as.factor(dat_person$FWI_veg)
 
 # FRT 9
 dat11<- dat_person %>% dplyr::filter(frt == 11) 
+
 table(dat11$FWI_veg)
 
 # there are only 9 observations in the C5 fuel type
@@ -84,6 +85,7 @@ table(dat11$FWI_veg)
 
 # remove observations that fall in water or over non-vegetation areas (N). Will fill these back in at the end as a zero
 dat11<- dat11 %>% filter(!FWI_veg %in%  c( "W"))
+
 table(dat11$FWI_veg)
 
 
@@ -96,18 +98,20 @@ ggplot(data=dat11, mapping=aes(x=as.factor(fire), y=elevatn))+
 
 cor.test(dat11$climate1, dat11$elevatn)# note climat1 and elevation are correlated.
 
-mod_frt_10a<- glm(fire ~ climate1 + elevatn + FWI_veg + road_dist_m + infr_dist, data=dat11, family=binomial(link="logit"))
+mod_frt_10a<- glm(fire ~ climate1 + elevatn + FWI_veg + log(road_dist_m+1) + log(infr_dist+1), data=dat11, family=binomial(link="logit"))
 Anova(mod_frt_10a, type=3)
-mod_frt_10a2<- glm(fire ~ climate1 + FWI_veg + road_dist_m + infr_dist, data=dat11, family=binomial(link="logit"))
-mod_frt_10a3<- glm(fire ~ elevatn + FWI_veg + road_dist_m + infr_dist, data=dat11, family=binomial(link="logit"))
+mod_frt_10a2<- glm(fire ~ climate1 + FWI_veg + log(road_dist_m+1) + log(infr_dist+1), data=dat11, family=binomial(link="logit"))
+mod_frt_10a3<- glm(fire ~elevatn + FWI_veg + log(road_dist_m+1) + log(infr_dist+1), data=dat11, family=binomial(link="logit"))
 # althoug elevation seems to be better I would rather keep climate1
 
 
-mod_frt11b<- glm(fire ~ climate1 + FWI_veg + road_dist_m + infr_dist, data=dat11, family=binomial(link="logit"))
+mod_frt11b<- glm(fire ~ climate1 + FWI_veg + log(road_dist_m+1) + log(infr_dist+1), data=dat11, family=binomial(link="logit"))
 Anova(mod_frt11b, type=3)
 
-mod_frt11c<- glm(fire ~ climate1 + FWI_veg + road_dist_m, data=dat11, family=binomial(link="logit"))
+mod_frt11c<- glm(fire ~ climate1 + log(road_dist_m+1) + log(infr_dist+1), data=dat11, family=binomial(link="logit"))
 Anova(mod_frt11c, type=3)
+
+anova(mod_frt11b, mod_frt11c, test="Chisq")
 
 
 # model diagnostic plots
@@ -218,24 +222,20 @@ car::vif(mod_frt11c)
 
 
 ```{r}
-mod_frt11<- glm(fire ~ climate1 + road_dist_m  + FWI_veg, data=dat11, family=binomial(link="logit"))
+mod_frt11<- glm(fire ~ climate1 + log(road_dist_m+1) + log(infr_dist+1), data=dat11, family=binomial(link="logit"))
 
 summary(mod_frt11)
 table(dat11$FWI_veg)
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT5_person_All <- data.frame (matrix (ncol = 12, nrow = 0))
+top_mod_table_FRT5_person_All <- data.frame (matrix (ncol = 8, nrow = 0))
 colnames (top_mod_table_FRT5_person_All ) <- c ("CAUSE", 
                                     "FRT",  
                                     "Model_terms", 
                                     "intercept", 
                                     "coef_climate_1", 
-                                    "coef_road_dist_m", 
-                                    "coef_FWI_veg_C-3",
-                                    "coef_FWI_veg_C-5",
-                                    "coef_FWI_veg_D-1/2", 
-                                    "coef_FWI_veg_M-1/2", 
-                                    "coef_FWI_veg_O-1a/b",
+                                    "coef_log_road_dist_m", 
+                                    "coef_log_infr_dist_m",
                                     "AUC")
 
 dat11$fire_veg<-paste(dat11$fire, dat11$FWI_veg)
@@ -249,7 +249,7 @@ for (g in 1:100){
 
 prop<-0.75
 # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(dat11$fire_veg, p = prop,
+  trainIndex <- createDataPartition(dat11$fire, p = prop,
                                     list = FALSE,
                                     times = 1)
   
@@ -257,40 +257,32 @@ prop<-0.75
    Valid <- dat11[-trainIndex,]
    
 #Model   
-mod<-glm(fire ~ climate1 + road_dist_m + FWI_veg, data=dat1, family=binomial(link="logit"))
+mod<-glm(fire ~ climate1 + log(road_dist_m+1) + log(infr_dist+1), data=dat1, family=binomial(link="logit"))
 
 mod.valid <- predict.glm(mod, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire"], mod.valid, quiet=TRUE)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT5_person <- data.frame (matrix (ncol = 12, nrow = 0))
+top_mod_table_FRT5_person <- data.frame (matrix (ncol = 8, nrow = 0))
 colnames (top_mod_table_FRT5_person ) <- c ("CAUSE", 
                                     "FRT",  
                                     "Model_terms", 
                                     "intercept", 
                                     "coef_climate_1", 
-                                    "coef_road_dist_m", 
-                                    "coef_FWI_veg_C-3",
-                                    "coef_FWI_veg_C-5",
-                                    "coef_FWI_veg_D-1/2", 
-                                    "coef_FWI_veg_M-1/2", 
-                                    "coef_FWI_veg_O-1a/b",
+                                    "coef_log_road_dist_m", 
+                                    "coef_log_infr_dist_m",
                                     "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT5_person[1,1]<-"person"
 top_mod_table_FRT5_person[1,2]<-"frt11"
-top_mod_table_FRT5_person[1,3]<-"fire ~ climate1 + road_dist_m + FWI_veg"
+top_mod_table_FRT5_person[1,3]<-"fire ~ climate1 + log_road_dist_m + log_infr_dist"
 top_mod_table_FRT5_person[1,4]<- coef(mod)[1] #Intercept
 top_mod_table_FRT5_person[1,5]<- coef(mod)[2] #Climate variable 1
 top_mod_table_FRT5_person[1,6]<- coef(mod)[3] 
 top_mod_table_FRT5_person[1,7]<- coef(mod)[4] 
-top_mod_table_FRT5_person[1,8]<- coef(mod)[5] 
-top_mod_table_FRT5_person[1,9]<- coef(mod)[6] 
-top_mod_table_FRT5_person[1,10]<- coef(mod)[7] 
-top_mod_table_FRT5_person[1,11]<- coef(mod)[8] 
-top_mod_table_FRT5_person[1,12]<- mod.auc
+top_mod_table_FRT5_person[1,8]<- mod.auc
 
 top_mod_table_FRT5_person_All<-rbind(top_mod_table_FRT5_person_All, top_mod_table_FRT5_person)
 

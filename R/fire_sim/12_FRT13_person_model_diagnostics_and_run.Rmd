@@ -101,24 +101,15 @@ ggplot(data=dat13, mapping=aes(x=as.factor(fire), y=infr_dist))+
   geom_boxplot()
 
 cor.test(dat13$elevatn, dat13$climate1) # correlation is -0.65
+cor.test(dat13$road_dist_m, dat13$infr_dist)
+cor.test(dat13$climate2, dat13$climate1) 
+cor.test(dat13$elevatn, dat13$climate2) 
 
 
 
-mod_frt_13a<- glm(fire ~ climate1 + climate2 + elevatn + FWI_veg + road_dist_m + infr_dist, data=dat13, family=binomial(link="logit"))
+mod_frt_13a<- glm(fire ~ climate1 + climate2 + elevatn + FWI_veg + log(road_dist_m+1) + log(infr_dist+1), data=dat13, family=binomial(link="logit"))
 Anova(mod_frt_13a, type=3)
 
-mod_frt13b<- glm(fire ~ climate1 + climate2 + elevatn + FWI_veg + road_dist_m, data=dat13, family=binomial(link="logit"))
-anova(mod_frt_13a,mod_frt13b, test="Chisq") 
-
-mod_frt13c<- glm(fire ~ climate1 + climate2 + elevatn + FWI_veg + infr_dist, data=dat13, family=binomial(link="logit"))
-anova(mod_frt_13a,mod_frt13c, test="Chisq") 
-
-mod_frt_13d<- glm(fire ~ climate1 + climate2 + FWI_veg + road_dist_m + infr_dist, data=dat13, family=binomial(link="logit"))
-anova(mod_frt_13a,mod_frt_13d, test="Chisq") 
-
-mod_frt_13a_log<- glm(fire ~ climate1 + elevatn + FWI_veg + log(road_dist_m+1) + log(infr_dist+1), data=dat13, family=binomial(link="logit"))
-
-# best model is mod_frt_5a_log. It has the lowest AIC 
 
 dat13$log_road_dist<-log(dat13$road_dist_m+1)
 dat13$log_inf_dist<-log(dat13$infr_dist+1)
@@ -272,7 +263,7 @@ car::vif(mod_frt13)
 
 
 ```{r}
-mod_frt13<- glm(fire ~ climate1 + climate2 + elevatn + log_road_dist + log_inf_dist + FWI_veg, data=dat13_2, family=binomial(link="logit"))
+mod_frt13<- glm(fire ~ climate1 + climate2 + elevatn + log_road_dist + log_inf_dist + FWI_veg, data=dat13, family=binomial(link="logit"))
 
 summary(mod_frt13)
 
@@ -310,12 +301,12 @@ for (g in 1:100){
 
 prop<-0.75
 # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(dat13_2$fire_veg, p = prop,
+  trainIndex <- createDataPartition(dat13$fire_veg, p = prop,
                                     list = FALSE,
                                     times = 1)
   
-   dat1 <- dat13_2[ trainIndex,]
-   Valid <- dat13_2[-trainIndex,]
+   dat1 <- dat13[ trainIndex,]
+   Valid <- dat13[-trainIndex,]
    
 #Model   
 mod<-glm(fire ~ climate1 + climate2 + elevatn + log_road_dist + log_inf_dist + FWI_veg, data=dat1, family=binomial(link="logit"))
