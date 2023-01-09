@@ -74,11 +74,11 @@ parameters <-  list (
                           nameForestInventoryTreed = "bclcs_lv_2",
                           nameForestInventorySiteIndex = "site_index" 
                           ),
-        blockingCastor = list (blockMethod = 'dynamic',
-                               patchZone = 'rast.zone_cond_beo',
-                               patchVariation = 6,
-                               nameCutblockRaster ="rast.cns_cut_bl",
-                               useLandingsArea = FALSE),
+        # blockingCastor = list (blockMethod = 'dynamic',
+        #                        patchZone = 'rast.zone_cond_beo',
+        #                        patchVariation = 6,
+        #                        nameCutblockRaster ="rast.cns_cut_bl",
+        #                        useLandingsArea = FALSE),
         # roadCastor = list (roadMethod = 'pre', 
         #                    nameCostSurfaceRas = 'rast.rd_cost_surface', 
         #                    nameRoads =  'rast.crds_all'
@@ -106,7 +106,7 @@ patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                     0.1,0.02,0.02,0.02,0.02,0.8,
                                     0.3,0.3,0.1,0.1,0.1, 0.1))
 modules <- list("dataCastor", 
-                "blockingCastor", 
+                # "blockingCastor", no blocking needed
                 # "roadCastor", 
                 "uploadCastor")
 
