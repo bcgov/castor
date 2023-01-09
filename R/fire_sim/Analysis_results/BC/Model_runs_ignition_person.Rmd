@@ -17,13 +17,31 @@ library(rgeos)
 
 # Import the data and fire regime types layer
 ```{r}
-dat<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_Elev_clim_veg_rd_infr_wind.gpkg")
+dat<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_all_dat_400m_final.gpkg")
 
 names(dat)
 dat<-st_transform(dat, 3005)
 dat$frt<-as.factor(dat$frt)
 
 climate_variable<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
+
+# human caused fires
+
+dat$mean_PPT06_PPT07 <-(dat$PPT06 + dat$PPT07)/2
+
+dat$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<-(dat$Tave04 + dat$Tave05 + dat$Tave06 + dat$Tave07 +dat$Tave08 + dat$Tave09 + dat$Tave10)/7
+
+dat$mean_PPT06_PPT07_PPT08_PPT09 <- (dat$PPT06 + dat$PPT07 + dat$PPT08 + dat$PPT09)/4
+
+dat$mean_Tave08_Tave09_Tave10<-(dat$Tave08 + dat$Tave09 + dat$Tave10)/3
+
+dat$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<-(dat$Tmax04 + dat$Tmax05 + dat$Tmax06 + dat$Tmax07 +dat$Tmax08 + dat$Tmax09 + dat$Tmax10)/7
+
+dat$mean_Tave07_Tave08_Tave09<-(dat$Tave07 +dat$Tave08 + dat$Tave09)/3
+
+dat$mean_PPT07_PPT08_PPT09 <- (dat$PPT07 + dat$PPT08 + dat$PPT09)/3
+
+
 
 dat<-dat %>%
     mutate(climate1 = case_when(
@@ -108,7 +126,7 @@ model_coef_table
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
 frt5$logit_P<- model_coef_table[[2]] + 
   model_coef_table[[3]]*frt5$climate1 +
-  model_coef_table[[4]]*frt5$Elevation +
+  model_coef_table[[4]]*frt5$elevation +
   model_coef_table[[5]]*(log(frt5$dist_roads_m+1))+
   model_coef_table[[6]]*(log(frt5$dist_infrastructure_m+1))
   
@@ -181,7 +199,7 @@ model_coef_table
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
 frt9$logit_P<- model_coef_table[[2]] + 
   model_coef_table[[3]]*frt9$climate1 +
-  model_coef_table[[4]]*frt9$Elevation  +
+  model_coef_table[[4]]*frt9$elevation  +
   model_coef_table[[5]]*frt9$dist_infrastructure_m
 
 head(frt9)
@@ -276,7 +294,7 @@ model_coef_table
 
 frt12$logit_P<- model_coef_table[[2]] + 
   model_coef_table[[3]]*frt12$climate1 +
-  model_coef_table[[4]]*frt12$Elevation + 
+  model_coef_table[[4]]*frt12$elevation + 
   model_coef_table[[5]]*log(frt12$dist_roads_m+1) +
   model_coef_table[[6]]*log(frt12$dist_infrastructure_m+1) +
   model_coef_table[[7]]*frt12$veg_C3 +
@@ -317,7 +335,7 @@ model_coef_table
 frt13$logit_P<- model_coef_table[[2]] + 
   model_coef_table[[3]]*frt13$climate1 +
   model_coef_table[[4]]*frt13$climate2 +
-  model_coef_table[[5]]*frt13$Elevation + 
+  model_coef_table[[5]]*frt13$elevation + 
   model_coef_table[[6]]*log(frt13$dist_roads_m+1) +
   model_coef_table[[7]]*log(frt13$dist_infrastructure_m+1) +
   model_coef_table[[8]]*frt13$veg_C3 +
@@ -428,10 +446,10 @@ hist(frt15$prob_ignition)
 frt_all<-rbind(rbind(rbind(rbind(rbind(rbind(rbind(rbind(frt10, frt12), frt13), frt14), frt15), frt9), frt11), frt5),frt7)
 
 names(frt_all)
-frtall<-frt_all %>% dplyr::select(idno:climate2, logit_P:geom)
+frtall<-frt_all %>% dplyr::select(idno:elevation, bclcs_level_4, bclcs_level_5,FWI_veg:dist_roads_m, dist_infrastructure_m:Tmax12, Tave01:RH12, climate1, climate2, logit_P:geom)
 names(no_ignition)
 names(frtall)
-no_ignition<-no_ignition %>% dplyr::select(idno:climate2, geom)
+no_ignition<-no_ignition %>% dplyr::select(idno:elevation, bclcs_level_4, bclcs_level_5,FWI_veg:dist_roads_m, dist_infrastructure_m:Tmax12, Tave01:RH12, climate1:geom)
 no_ignition$logit_P<-0
 no_ignition$prob_ignition<-0
 
