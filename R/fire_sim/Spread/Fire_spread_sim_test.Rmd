@@ -8,14 +8,277 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+source(here::here("R/functions/R_Postgres.R"))
+library(data.table)
 library(sf)
+library(tidyverse)
+library(rgeos)
+library(mapview)
+library(tmap)
+library(raster)
+library(SpaDES.tools)
+library(SpaDES)
+library(SpaDES.core)
+library(SpaDES.addins)
+library(terra)
+
+lightning_ignition<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_lightning_ignit_400m_2.tif")
+human_ignition<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_human_ignit_400m_2.tif")
+escape.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_escape_400m.tif")
+spread.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_spread_400m_2.tif")
+
+crs(spread.ras)
+crs(escape.ras)
+
+# assign negative values (no data values) NA
+lightning_ignition <- reclassify(lightning_ignition, cbind(-Inf, 0, NA), right=FALSE)
+human_ignition <- reclassify(human_ignition, cbind(-Inf, 0, NA), right=FALSE)
+escape.ras <- reclassify(escape.ras, cbind(-Inf, 0, NA), right=FALSE)
+spread.ras <- reclassify(spread.ras, cbind(-Inf, 0, NA), right=FALSE)
+
+dim(escape.ras)
+dim(spread.ras)
+
+# combine lightning and person caused fires to create general ignition map.
+
+#P(Ignition) = P(lightning) x  (1-P(human)) + P(human) x (  1-P(lightning)) # Formula was used in this paper: https://iopscience.iop.org/article/10.1088/1748-9326/ac03da (Barros et.al. (2021) Contrasting the role of human- and lightning-caused wildfires on future fire regimes on a Central Oregon landscape. )
+
+total.ignit <- (lightning_ignition * (1-human_ignition)) + (human_ignition * (1-lightning_ignition))
+
+plot(total.ignit, col=rev(heat.colors(255)))
 
 
-ignition<-raster(" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\prob_of_lightning_and_person_ignition.tif")
-escape.ras<-raster(" C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\Probability_of_Escape_Quesnell_WilliamsL_100Mile_allFRT_800m.tif")
+```
 
-plot(ignition)
+# clip rasters and check how correlated are the rasters
+```{r}
 
+study_area<-getSpatialQuery("SELECT tsa_name, wkb_geometry FROM study_area_compart where tsa_name in ('Quesnel TSA', 'Williams Lake TSA',  '100 Mile House TSA')")
+
+study_area2<-study_area %>% group_by ( tsa_name) %>% summarise()
+st_crs(study_area2)
+plot(study_area2["tsa_name"]) #check 
+
+# crop the lidar raster using the vector extent
+ignit_crop <- crop(total.ignit, study_area2)
+escape_crop <- crop(escape.ras, study_area2)
+spread_crop <- crop(spread.ras, study_area2)
+
+# its seems like there are some null values in the escape_crop layer
+table(is.na(escape_crop[]))
+table(is.na(ignit_crop[]))
+table(is.na(spread_crop[]))
+
+# replacing NA's by zero
+escape_crop[is.na(escape_crop[])] <- 0 
+ignit_crop[is.na(ignit_crop[])] <- 0 
+spread_crop[is.na(spread_crop[])] <- 0 
+
+# can check how correlated the rasters are but they need to be SpatRaster i.e. imported with terra using rast
+# 
+# lightning_ignition<-rast(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_lightning_ignit_400m_2.tif")
+# human_ignition<-rast(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_human_ignit_400m_2.tif")
+# escape.ras<-rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_escape_400m.tif")
+# spread.ras<-rast("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_spread_400m_2.tif")
+# 
+# # assign negative values (no data values) NA
+# lightning_ignition <- ifel(lightning_ignition < 0, NA, lightning_ignition)
+# human_ignition <- ifel(human_ignition < 0, NA, human_ignition)
+# escape.ras <- ifel(escape.ras < 0, NA, escape.ras)
+# spread.ras <- ifel(spread.ras < 0, NA, spread.ras)
+
+# 
+# r.cor <- rasterCorrelation(ignit_crop, escape_crop, s = 11, type = "pearson")
+#    plot(r.cor)
+# 
+# r.cor <- rasterCorrelation(ignit_crop, spread_crop, s = 11, type = "pearson")
+#    plot(r.cor)
+# 
+# r.cor <- rasterCorrelation(escape_crop, spread_crop, s = 11, type = "pearson")
+#    plot(r.cor)
+   
+   
+```
+
+
+# FIRE SIM
+
+```{r}
+####################
+# Spread with Escape FUNCTION
+# Iterative calling -- create a function with escape and spread probability
+####################
+
+spreadWithEscape <- function(ras, start, escapeProb, spreadProb) {
+  out <- spread2(ras, start = start, spreadProb = escapeProb, asRaster = FALSE)
+  while (any(out$state == "sourceActive")) {
+    # pass in previous output as start
+    out <- spread2(ras, start = out, spreadProb = spreadProb,
+                   asRaster = FALSE, skipChecks = TRUE) # skipChecks for speed
+  }
+  out
+}
+
+#create landscape  raster with each pixel having a different idno
+a <- raster(extent(ignit_crop), 
+  crs = st_crs(ignit_crop)$proj4string, resolution = c(400, 400), vals = 1:ncell(ignit_crop))
+
+no_ignitions=100 # number of ignitions (FIX this so its drawn from a distribution or pulled off a map or something)
+n<-500 # number of reps
+out<-list()
+set.seed(123)
+
+for (i in 1:n) {
+  
+  # initiate ignitions at randomly chosen points
+startCells <- as.integer(sample(1:ncell(ignit_crop), no_ignitions))
+#extract probability numbers from the igniton map
+probs.ignit<-ignit_crop[startCells]
+#draw random number from uniform distribution
+random.num<-runif(10)
+#combine values into a datagram
+df<-as.data.frame(cbind(startCells, probs.ignit, random.num))
+#select points that have an ignition probability greater than the randomly drawn number.
+ignition.pts<- df$startCells[df$probs.ignit > df$random.num ]
+
+out[[i]]  <- spreadWithEscape(a, start = ignition.pts, escapeProb = escape_crop , spreadProb = spread_crop)
+
+}
+
+out2<-data.table::rbindlist(out)
+b<-table(a[out2$pixels])/n
+
+b.tab<-data.table(b)
+b.tab$V1<-as.numeric(b.tab$V1)
+a[]<-0
+a[b.tab$V1]<-b.tab$N
+clearPlot()
+Plot(a)
+
+# some other stats but note I have not managed to get this to work quite right. I want to get out distributions of the fire sizes
+number_ignits<-list()
+
+fire_size_end <- data.frame (matrix (ncol = 3, nrow = 0)) # add 'data' to the points
+  colnames (fire_size_end) <- c ("Var1", "Freq", "rep")
+
+for (i in 1:n) {
+  number_ignits[[i]]<-length(unique(out[[i]]$initialPixels))
+  
+  fire_size_intermediate<-as.data.frame(table(out[[i]]$initialPixels))
+  fire_size_intermediate$rep<-i
+  
+  fire_size_end<-rbind(fire_size_end, fire_size_intermediate)
+  
+}
+
+  hist(fire_size_end$Freq)
+
+```
+
+
+# I was trying to extract the data and use a data table to put the ignition values in the spread2 sim, but this did not seem to help
+
+```{r}
+dat<-data.table(terra::xyFromCell(ignit_crop,1:length(ignit_crop[]))) # creates pts at centroids of raster boundary file; seems to be faster that rasterTopoints
+
+rasStack<- stack(ignit_crop, escape_crop, spread_crop)
+crs(rasStack)
+head(rasStack)
+str(rasStack)
+
+rasValue2=raster::extract(rasStack, dat)
+head(rasValue2)
+
+rasValue3<-cbind(dat, rasValue2)
+head(rasValue3)
+rasValue3<-rasValue3 %>% rename(rast_ignit = layer,
+                                rast_escape=rast_escape_400m,
+                                rast_spread = rast_spread_400m_2)
+
+rasValue3$idno<-1:length(rasValue3$x)
+
+```
+
+
+```{r}
+
+plot(ignit_crop, main = "Cropped ignition")
+plot(escape_crop, main = "Cropped escape")
+plot(spread_crop, main = "Cropped spread")
+```
+
+
+```{r}
+
+# creating a blank landscape
+a <- raster(extent(ignit_crop), 
+  crs = st_crs(ignit_crop)$proj4string, resolution = c(400, 400), vals = 1:ncell(ignit_crop))
+
+#ras <- raster(a)
+#ras[] <- 1
+
+n <- 5 # number of reps
+out<-list()
+
+for (i in 1:n) {
+  out[[i]] <- spread2(a, spreadProb = ignit_crop,
+                   start =  as.integer(sample(1:ncell(a), 1)),
+                   asRaster = FALSE)
+}
+
+out2<-data.table::rbindlist(out)
+b<-table(a[out2$pixels])/n
+
+b.tab<-data.table(b)
+b.tab$V1<-as.numeric(b.tab$V1)
+a[]<-0
+a[b.tab$V1]<-b.tab$N
+clearPlot()
+Plot(a)
+
+####################
+# Spread with Escape FUNCTION
+# Iterative calling -- create a function with a high escape probability
+####################
+
+spreadWithEscape <- function(ras, start, escapeProb, spreadProb) {
+  out <- spread2(ras, start = sams, spreadProb = escapeProb, asRaster = FALSE)
+  while (any(out$state == "sourceActive")) {
+    # pass in previous output as start
+    out <- spread2(ras, start = out, spreadProb = spreadProb,
+                   asRaster = FALSE, skipChecks = TRUE) # skipChecks for speed
+  }
+  out
+}
+
+#create landscape  raster
+a <- raster(extent(ignit_crop), 
+  crs = st_crs(ignit_crop)$proj4string, resolution = c(400, 400), vals = 1:ncell(ignit_crop))
+no.ignitions <- 1 # number of ignitions
+n<-10 # number of reps
+out<-list()
+set.seed(123)
+
+for (i in 1:n) {
+  
+sams<- as.integer(sample(1:ncell(a), no.ignitions))
+out[[i]]  <- spreadWithEscape(a, start = sams, escapeProb = escape_crop , spreadProb = spread_crop)
+
+}
+
+out2<-data.table::rbindlist(out)
+b<-table(a[out2$pixels])/n
+
+b.tab<-data.table(b)
+b.tab$V1<-as.numeric(b.tab$V1)
+a[]<-0
+a[b.tab$V1]<-b.tab$N
+clearPlot()
+Plot(a)
+```
+
+
+```{r setup, include=FALSE}
 ###################################
 # Choose igntion points
 ###################################
@@ -36,14 +299,48 @@ fires <- spread(hab, loci = ignition.pts, 0.235, persistence = 0, numNeighs = 2,
 
 
 
+```
+
+```{r}
+# this little piece of code lists the pixels that got burned during each run of the loop. The values of each pixel gets recorded in out and then they get summed in the tabulate function. 
+
+a <- raster(extent(0, 10, 0, 10), res = 1, vals=1:100)
+#ras <- raster(a)
+#ras[] <- 1
+
+n <- 100
+out<-list()
+
+for (i in 1:n) {
+  out[[i]] <- spread2(a, spreadProb = 0.225,
+                   start =  as.integer(sample(1:ncell(ras), 1)),
+                   asRaster = FALSE)
+}
+
+out2<-data.table::rbindlist(out)
+#b<-table(out2$pixels)/100 # or table(a[out2$pixels])
+b<-tabulate(out2$pixels)/100
+
+b.ras<-raster(extent(0,10,0,10),res=1, vals=b)
+Plot(b.ras)
 
 
+# Iterative calling -- create a function with a high escape probability
+spreadWithEscape <- function(ras, start, escapeProb, spreadProb) {
+  out <- spread2(ras, start = sams, spreadProb = escapeProb, asRaster = FALSE)
+  while (any(out$state == "sourceActive")) {
+    # pass in previous output as start
+    out <- spread2(ras, start = out, spreadProb = spreadProb,
+                   asRaster = FALSE, skipChecks = TRUE) # skipChecks for speed
+  }
+  out
+}
 
-
-
-
+set.seed(421)
+out1 <- spreadWithEscape(a, sams, escapeProb = 0.25, spreadProb = 0.225)
 
 ```
+
 
 ## R Markdown
 
