@@ -106,7 +106,7 @@ modules <- list("dataCastor",
                 )
 
 scenario = data.table (name = "oldest_noroads_noblocks",
-                       description = "Priority queue = oldest first. Adjacency constraint = None. No roads or blocks. Maximum even live harvest flow: 2,500,000m3/year. Minimum harvest volume = xxxx")
+                       description = "Priority queue = oldest first. Adjacency constraint = None. No roads or blocks. Maximum even live harvest flow: 3,500,000m3/year. Minimum harvest age = 50")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Fort_Nelson_TSA",
@@ -115,27 +115,13 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Fort_Nelson_TSA",
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 12500000, #2,500,000m3/year 
+                                     flow = 17500000, # 3,500,000m3/year 
                                      partition_type = 'live') 
 ))
 
 
 
-patchSizeDist <- data.table(ndt= c(1,1,1,1,1,1,
-                                   2,2,2,2,2,2,
-                                   3,3,3,3,3,3,
-                                   4,4,4,4,4,4,
-                                   5,5,5,5,5,5), 
-                            sizeClass = c(40,80,120,160,200,240), 
-                            freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
-                                     0.3,0.3,0.1,0.1,0.1, 0.1,
-                                     0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
-                                     0.1,0.02,0.02,0.02,0.02,0.8,
-                                     0.3,0.3,0.1,0.1,0.1, 0.1))
-
-
 objects <- list(harvestFlow = harvestFlow, 
-                patchSizeDist = patchSizeDist, 
                 scenario = scenario)
 
 paths <- list(cachePath = cacheDir,

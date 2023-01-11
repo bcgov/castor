@@ -133,3 +133,50 @@ mysimout<-spades(mySim)
 })
 
 ```
+
+## Create 'Blocks' Tables
+Use the script below to replicate the STSM approach of not creating 'blocks' (i.e., each pixel is a block) in the castor db.
+
+```{r, create blocks}
+castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_ft_nelson/ftnelson_stsmcompare_noroads_noblocks_castordb.sqlite"))
+# update pixels table 
+dbExecute (castordb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
+dbBegin (castordb)
+rs <- dbSendQuery (castordb, "UPDATE pixels SET blockid = pixelid;")
+dbClearResult (rs)
+dbCommit (castordb)
+
+# create blocks table
+dbExecute (castordb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, salvage_vol numeric, dist numeric DEFAULT 0, landing integer)")  
+dbExecute (castordb, paste0("UPDATE blocks SET vol = 0 WHERE vol IS NULL")) 
+dbExecute (castordb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL"))
+dbExecute (castordb, paste0("INSERT INTO blocks (blockid, age, height,  vol, salvage_vol, dist, landing)  
+                    SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as salvage_vol, AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
+                                       FROM pixels WHERE blockid > 0 AND thlb > 0 GROUP BY blockid "))  
+dbExecute (castordb, "CREATE INDEX index_blockid on blocks (blockid)")
+
+# create adjacent blocks table
+ras <- terra::rast (ncol = 5223, nrow = 2947, xmin = 830187.5, 
+			              xmax = 1352488, ymin = 1388088, ymax = 1682788,)  
+terra::crs(ras)  <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs"  
+edgesAdj <- data.table(SpaDES.tools::adj(returnDT= TRUE, 
+                                         directions = 8, numCol = ncol(ras), numCell=ncol(ras)*nrow(ras),
+                                         cells = 1:as.integer(ncol(ras)*nrow(ras)))) 
+blockids <- data.table (dbGetQuery (castordb, "SELECT blockid, pixelid FROM pixels WHERE blockid > 0"))
+setkey (blockids, pixelid)  
+edgesAdj <- merge (edgesAdj, blockids, by.x = "to", by.y = "pixelid" )  
+edgesAdj <- merge (edgesAdj, blockids, by.x = "from", by.y ="pixelid" )
+edgesAdj <- data.table (edgesAdj[, c ("blockid.x", "blockid.y")])
+edgesAdj <- edgesAdj[blockid.x  != blockid.y]
+edgesAdj <- edgesAdj[blockid.x  > 0 & blockid.y  > 0]
+edgesAdj <- unique (edgesAdj)
+setnames(edgesAdj, c ("blockid", "adjblockid")) 
+  
+dbExecute(castordb, "CREATE TABLE IF NOT EXISTS adjacentBlocks (id integer PRIMARY KEY, adjblockid integer, blockid integer)")  
+dbBegin(castordb)  
+rs <- dbSendQuery (castordb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)  
+dbClearResult(rs)
+dbCommit(castordb) 
+dbExecute(castordb, "CREATE INDEX index_adjblockid on adjacentBlocks (adjblockid)")
+```
+
