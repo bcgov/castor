@@ -59,7 +59,6 @@ dbDisconnect(conn)
 ```
 
 ## Inventory
-
 ```{r, inventory data}
 
 fn.vri <- st_make_valid (st_read (dsn = paste0 (data.dir, "fn_spatial.gdb"),
@@ -79,7 +78,6 @@ system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648
 ```
 
 ## Growth and Yield
-
 ```{r, g and y data}
 ## TABLES
 tab.au.info <- data.table (read.table (paste0 (data.dir, "AUInfo.txt"), header = T, sep = '\t'))
@@ -135,7 +133,6 @@ system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 214748364
 
 ```
 
-
 ## THLB
 ```{r thlb}
 
@@ -149,9 +146,7 @@ system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 21474836
 
 ```
 
-
 ## Harvest Constraint Zones
-
 ```{r harvest constraints}
 
 conn <- DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
@@ -196,5 +191,108 @@ DBI::dbWriteTable (conn, c("fort_nelson_tsa", "constraints"), value = zone_og, r
 dbDisconnect (conn)
 ```
 
+## Analysis Units
+```{r analysis units}
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, 'tsa08_au2016.tif -t 100x100 fort_nelson_tsa.rast_au | psql postgres://', keyring::key_get ('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get ('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get ('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+
+
+### use script below if you want to replicate the STSM approach of not creating 'blocks' (i.e., each pixel is a block) to the castor db
+castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_ft_nelson/ftnelson_stsmcompare_noroads_noblocks_castordb.sqlite"))
+# update pixels table 
+dbExecute (castordb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
+dbBegin (castordb)
+rs <- dbSendQuery (castordb, "UPDATE pixels SET blockid = pixelid;")
+dbClearResult (rs)
+dbCommit (castordb)
+
+# create blocks table
+dbExecute (castordb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, salvage_vol numeric, dist numeric DEFAULT 0, landing integer)")  
+dbExecute (castordb, paste0("UPDATE blocks SET vol = 0 WHERE vol IS NULL")) 
+dbExecute (castordb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL"))
+dbExecute (castordb, paste0("INSERT INTO blocks (blockid, age, height,  vol, salvage_vol, dist, landing)  
+                    SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as salvage_vol, AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
+                                       FROM pixels WHERE blockid > 0 AND thlb > 0 GROUP BY blockid "))  
+dbExecute (castordb, "CREATE INDEX index_blockid on blocks (blockid)")
+
+# create adjacent blocks table
+ras <- terra::rast (ncol = 5223, nrow = 2947, xmin = 830187.5, 
+			              xmax = 1352488, ymin = 1388088, ymax = 1682788,)  
+terra::crs(ras)  <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs"  
+edgesAdj <- data.table(SpaDES.tools::adj(returnDT= TRUE, 
+                                         directions = 8, numCol = ncol(ras), numCell=ncol(ras)*nrow(ras),
+                                         cells = 1:as.integer(ncol(ras)*nrow(ras)))) 
+blockids <- data.table (dbGetQuery (castordb, "SELECT blockid, pixelid FROM pixels WHERE blockid > 0"))
+setkey (blockids, pixelid)  
+edgesAdj <- merge (edgesAdj, blockids, by.x = "to", by.y = "pixelid" )  
+edgesAdj <- merge (edgesAdj, blockids, by.x = "from", by.y ="pixelid" )
+edgesAdj <- data.table (edgesAdj[, c ("blockid.x", "blockid.y")])
+edgesAdj <- edgesAdj[blockid.x  != blockid.y]
+edgesAdj <- edgesAdj[blockid.x  > 0 & blockid.y  > 0]
+edgesAdj <- unique (edgesAdj)
+setnames(edgesAdj, c ("blockid", "adjblockid")) 
+  
+dbExecute(castordb, "CREATE TABLE IF NOT EXISTS adjacentBlocks (id integer PRIMARY KEY, adjblockid integer, blockid integer)")  
+dbBegin(castordb)  
+rs <- dbSendQuery (castordb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)  
+dbClearResult(rs)
+dbCommit(castordb) 
+dbExecute(castordb, "CREATE INDEX index_adjblockid on adjacentBlocks (adjblockid)")
+
+
+### use script below if you want to add analysis units (AU's) as blocks to the castor db
+castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_ft_nelson/ftnelson_stsmcompare_noroads_noblocks_castordb.sqlite"))
+
+tab.au <- data.table (blockid = as.integer (RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
+								                                          srcRaster = "fort_nelson_tsa.rast_au" , # 
+                                                          clipper = "fort_nelson_tsa.bounds_fort_nelson_tsa", 
+								                                          geom = "wkb_geometry", 
+                                                          where_clause = " tsa_name in (''Fort_Nelson_TSA'')",
+                                            conn = NULL)[]))
+tab.au [, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
+tab.au <- tab.au[blockid > 0, ]  
+	 
+# update pixels table 
+dbExecute (castordb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
+dbBegin (castordb)
+rs <- dbSendQuery (castordb, "Update pixels set blockid = :blockid where pixelid = :pixelid", tab.au)
+dbClearResult (rs)
+dbCommit (castordb)
+
+# create blocks table
+dbExecute(castordb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, salvage_vol numeric, dist numeric DEFAULT 0, landing integer)")  
+dbExecute(castordb, paste0("UPDATE blocks SET vol = 0 WHERE vol IS NULL")) 
+dbExecute(castordb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL"))
+dbExecute(castordb, paste0("INSERT INTO blocks (blockid, age, height,  vol, salvage_vol, dist, landing)  
+                    SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as salvage_vol, AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
+                                       FROM pixels WHERE blockid > 0 AND thlb > 0 GROUP BY blockid "))  
+dbExecute(castordb, "CREATE INDEX index_blockid on blocks (blockid)")
+
+# create adjacent blocks table
+ras <- terra::rast (ncol = 5223, nrow = 2947, xmin=830187.5, 
+			        xmax=1352488, ymin=1388088, ymax=1682788,)  
+terra::crs(ras)  <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs"  
+edgesAdj <- data.table(SpaDES.tools::adj(returnDT= TRUE, 
+directions = 8, numCol = ncol(ras), numCell=ncol(ras)*nrow(ras),
+                                             cells = 1:as.integer(ncol(ras)*nrow(ras)))) 
+blockids <- data.table (dbGetQuery (castordb, "SELECT blockid, pixelid FROM pixels WHERE blockid > 0"))
+setkey (blockids, pixelid)  
+edgesAdj <- merge (edgesAdj, blockids, by.x = "to", by.y = "pixelid" )  
+edgesAdj <- merge (edgesAdj, blockids, by.x = "from", by.y ="pixelid" )
+edgesAdj <- data.table (edgesAdj[, c ("blockid.x", "blockid.y")])
+edgesAdj <- edgesAdj[blockid.x  != blockid.y]
+edgesAdj <- edgesAdj[blockid.x  > 0 & blockid.y  > 0]
+edgesAdj <- unique (edgesAdj)
+setnames(edgesAdj, c ("blockid", "adjblockid")) 
+  
+dbExecute(castordb, "CREATE TABLE IF NOT EXISTS adjacentBlocks (id integer PRIMARY KEY, adjblockid integer, blockid integer)")  
+dbBegin(castordb)  
+rs <- dbSendQuery (castordb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)  
+dbClearResult(rs)
+dbCommit(castordb) 
+dbExecute(castordb, "CREATE INDEX index_adjblockid on adjacentBlocks (adjblockid)")
+  
+```
 
 
