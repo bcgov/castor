@@ -580,6 +580,63 @@ gc()
 
 ```{r}
 st_write(frt_all2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_prob_escape_final.gpkg", delete_layer=TRUE, driver="GPKG")
+
+
+# rasterizing the above file in QGIS:
+
+# go to raster -> Conversion -> Rasterize (Vector to raster)
+
+# then use the shapefile as the input layer, prob ignition as the field to use for burn-in value. 
+# output raster size units -> georeferenced units
+# resolution = 400m
+# note: make sure you use the file rast.bc_bounds as the extent. Its found in postgres kyle clus. If you dont do this the extent will be wrong and the rasterization wont work properly.
+
+# the full commonad should look something like this:
+
+# gdal_rasterize -l BC_prob_escape_final -a prob_ignition -tr 400.0 400.0 -a_nodata 0.0 -te 159587.5 173787.5 1881187.5 1748187.5 -ot Float32 -of GTiff C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/BC/BC_prob_escape_final.gpkg C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/BC/rast_escape_400m.tif
+
+
+
+
+```
+
+
+```{r}
+x<- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_prob_escape_final.gpkg")
+
+layeraoi<-getSpatialQuery("SELECT * FROM study_area_compart limit 1")
+#Create a provincial raster
+prov.rast <- raster::raster(
+  nrows = 3936, ncols = 4304, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(layeraoi)$proj4string, resolution = c(400, 400), vals = 0)
+
+study_area<-x %>% dplyr::select(idno, frt, prob_ignition)
+st_crs(study_area)
+
+ras.aoi2 <- crop(prov.rast, study_area2)
+
+r<-raster(ras.aoi2)
+r<-fasterize()
+
+study_area2<-st_as_sf(study_area)
+study_area3<-st_cast(study_area2, to="POLYGON")
+study_area3<-st_cast(study_area3, to="MULTIPOLYGON")
+
+x<-st_make_grid(study_area2, cellsize=c(400,400), crs=3005)
+x2<-st_coordinates(st_centroid(study_area2))
+# Transform the data
+library(proj4)
+lon_lat <- project(x2, st_crs(layeraoi)$proj4string)
+
+# convert to a data frame
+data.frame(lon = lon_lat$x, lat = lon_lat$y)
+
+
+x3<-as.data.frame(x2)
+colnames(x3) <- c("longitude", "latitude")
+x3$idno<-1:length(x3$latitude)
+
+ras.aoi <- fasterize::fasterize (study_area2, prov.rast, field = "prob_ignition")
 ```
 
 
@@ -641,7 +698,19 @@ paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/cast
 
 Test whether fire map makes sense.
 ```{r}
+library(raster)
+library(fasterize)
+library(sf)
 
+head(x)
+p1 <- rbind(x$Latitude, x$Longitude)
+
+p1 <- list(p1)
+pols <- st_sf(value = list(x$prob_ignition),
+             geometry = st_sfc((p1), st_polygon))
+r <- raster(pols, res = 1)
+r <- fasterize(pols, r, field = "value", fun="sum")
+plot(r)
 ```
 
 
