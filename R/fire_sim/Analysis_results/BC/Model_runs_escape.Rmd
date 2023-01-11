@@ -586,14 +586,18 @@ st_write(frt_all2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\B
 
 # go to raster -> Conversion -> Rasterize (Vector to raster)
 
-# then use the shapefile as the input layer, prob ignition as the field to use for burn-in value. 
+# then use the shapefile as the input layer, 
+# prob ignition as the field to use for burn-in value. 
 # output raster size units -> georeferenced units
 # resolution = 400m
 # note: make sure you use the file rast.bc_bounds as the extent. Its found in postgres kyle clus. If you dont do this the extent will be wrong and the rasterization wont work properly.
+# Assign a specified nodata value - make this -9 or some negative number. You need to do this or it will make no data values 0 and then change all actual values to NA so it throws out the actual 0% chance of ignion points.
+
+# I also told it to Pre-initialize the output image with a value of -9. I did this for the same reason as just mentioned above but Im not sure how neccessary this one is. 
 
 # the full commonad should look something like this:
 
-# gdal_rasterize -l BC_prob_escape_final -a prob_ignition -tr 400.0 400.0 -a_nodata 0.0 -te 159587.5 173787.5 1881187.5 1748187.5 -ot Float32 -of GTiff C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/BC/BC_prob_escape_final.gpkg C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/BC/rast_escape_400m.tif
+# gdal_rasterize -l BC_prob_escape_final -a prob_ignition -tr 400.0 400.0 -init -9.0 -a_nodata -9.0 -te 159587.5 173787.5 1881187.5 1748187.5 -ot Float32 -of GTiff C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/BC/BC_prob_escape_final.gpkg C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/BC/rast_escape_400m.tif
 
 
 

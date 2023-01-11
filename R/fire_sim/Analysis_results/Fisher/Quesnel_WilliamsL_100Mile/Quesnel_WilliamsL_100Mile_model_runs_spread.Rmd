@@ -56,7 +56,6 @@ dat$mean_PPT05_PPT06_PPT07_PPT08<- (dat$PPT05 + dat$PPT06 + dat$PPT07 + dat$PPT0
 
 dat$mean_Tave05_Tave06_Tave07_Tave08<-(dat$Tave05 + dat$Tave06 + dat$Tave07 + dat$Tave08)/4
 
-dat$mean_Tave05_Tave06_Tave07_Tave08<-(dat$Tave05 + dat$Tave06 + dat$Tave07 + dat$Tave08)/4
 dat$mean_Tave04_Tave05_Tave06<-(dat$Tave04 + dat$Tave05 + dat$Tave06)/3
 dat$mean_PPT05_PPT06<- (dat$PPT05 + dat$PPT06)/2
 dat$mean_PPT04_PPT05_PPT06<- (dat$PPT04 + dat$PPT05 + dat$PPT06)/3
@@ -66,15 +65,15 @@ dat$climate1<-0
 head(dat)
 
 dat<-dat %>%
-    mutate(climate1 = case_when(frt == 5 ~ as.numeric(PPT05), 
-                                frt == 7 ~ as.numeric(PPT03), 
-                                frt == 9 ~ Tave05, 
-                                frt == 10 ~ mean_Tave05_Tave06_Tave07_Tave08,
-                                frt == 11 ~ Tave09, 
-                                frt == 12 ~ mean_Tave04_Tave05_Tave06,
-                                frt == 13 ~ Tmax09,
-                                frt == 14 ~ as.numeric(mean_PPT05_PPT06),
-                                frt == 15 ~ Tave04,
+    mutate(climate1 = case_when(frt == 5 ~ as.numeric(Tave07), 
+                                frt == 7 ~ spring_Tave, 
+                                frt == 9 ~ spring_Tave, 
+                                frt == 10 ~ mean_Tmax05_Tmax06_Tmax07_Tmax08,
+                                frt == 11 ~ RH08, 
+                                frt == 12 ~ mean_Tmax05_Tmax06_Tmax07_Tmax08,
+                                frt == 13 ~ mean_Tave05_Tave06_Tave07_Tave08,
+                                frt == 14 ~ mean_Tmax05_Tmax06_Tmax07,
+                                frt == 15 ~ Tave05,
                                 TRUE ~ NA_real_))
 
 #Repeat for climate 2
@@ -82,9 +81,15 @@ dat$climate2<-0
 
 #Perform mutate to get the applicable variable for each row
 dat<-dat %>%
-    mutate(climate2 = case_when(frt == 10 ~ as.numeric(mean_PPT05_PPT06_PPT07_PPT08),
-                                frt == 12 ~ as.numeric(mean_PPT04_PPT05_PPT06),
-                                frt == 15 ~ as.numeric(PPT04),
+    mutate(climate2 = case_when(frt == 5 ~ as.numeric(PPT07), 
+                                frt == 7 ~ as.numeric(tot_spring_PPT), 
+                                frt == 9 ~ as.numeric(tot_spring_PPT), 
+                                frt == 10 ~ as.numeric(mean_PPT05_PPT06_PPT07_PPT08),
+                                frt == 11 ~ as.numeric(PPT08), 
+                                frt == 12 ~ as.numeric(mean_PPT05_PPT06_PPT07_PPT08),
+                                frt == 13 ~ as.numeric(mean_PPT05_PPT06_PPT07_PPT08),
+                                frt == 14 ~ as.numeric(mean_PPT05_PPT06_PPT07),
+                                frt == 15 ~ as.numeric(PPT05),
                                 TRUE ~ NA_real_))
 
 head(dat)
