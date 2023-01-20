@@ -58,7 +58,7 @@ parameters <-  list (
                           nameCompartmentRaster = "fort_nelson_tsa.rast_bounds_fort_nelson_tsa", 
                           nameCompartmentTable = "fort_nelson_tsa.vat_bounds_fort_nelson_tsa", 
                           nameMaskHarvestLandbaseRaster = 'fort_nelson_tsa.rast_thlb', 
-                          nameZoneRasters = c("fort_nelson_tsa.rast_oldgrw_prod"),
+                          nameZoneRasters = "fort_nelson_tsa.rast_oldgrw_prod",
                           nameZoneTable = "fort_nelson_tsa.constraints", 
                           # natural and managed stands yield curves are the same    
                           nameYieldsRaster = "fort_nelson_tsa.rast_ycid_fort_nelson_tsa", 
@@ -74,11 +74,11 @@ parameters <-  list (
                           nameForestInventoryTreed = "bclcs_lv_2",
                           nameForestInventorySiteIndex = "site_index" 
                           ),
-        # blockingCastor = list (blockMethod = 'dynamic',
-        #                        patchZone = 'rast.zone_cond_beo',
-        #                        patchVariation = 6,
-        #                        nameCutblockRaster ="rast.cns_cut_bl",
-        #                        useLandingsArea = FALSE),
+        blockingCastor = list(blockMethod='pre', 
+                              patchZone = 'rast.zone_cond_beo',
+                              patchVariation = 6,
+                              nameCutblockRaster ="rast.cns_cut_bl",
+                              useLandingsArea=FALSE),
         # roadCastor = list (roadMethod = 'pre', 
         #                    nameCostSurfaceRas = 'rast.rd_cost_surface', 
         #                    nameRoads =  'rast.crds_all'
@@ -128,6 +128,11 @@ mySim <- simInit(times = times,
                  objects = objects,
                  paths = paths)
 
+# outputs to keep; these are tables that get used in the uploader
+outputs(mySim) <- data.frame (objectName = c("harvestReport",
+                                             "growingStockReport"
+                                             ))
+
 system.time({
 mysimout<-spades(mySim)
 })
@@ -170,7 +175,7 @@ edgesAdj <- data.table (edgesAdj[, c ("blockid.x", "blockid.y")])
 edgesAdj <- edgesAdj[blockid.x  != blockid.y]
 edgesAdj <- edgesAdj[blockid.x  > 0 & blockid.y  > 0]
 edgesAdj <- unique (edgesAdj)
-setnames(edgesAdj, c ("blockid", "adjblockid")) 
+setnames (edgesAdj, c ("blockid", "adjblockid")) 
   
 dbExecute(castordb, "CREATE TABLE IF NOT EXISTS adjacentBlocks (id integer PRIMARY KEY, adjblockid integer, blockid integer)")  
 dbBegin(castordb)  
