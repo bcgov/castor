@@ -155,11 +155,11 @@ a[b.tab$V1]<-b.tab$N
 clearPlot()
 Plot(a)
 
-# some other stats but note I have not managed to get this to work quite right. I want to get out distributions of the fire sizes
+# some other stats 
 number_ignits<-list()
 
 fire_size_end <- data.frame (matrix (ncol = 3, nrow = 0)) # add 'data' to the points
-  colnames (fire_size_end) <- c ("Var1", "Freq", "rep")
+colnames (fire_size_end) <- c ("Var1", "Freq", "rep")
 
 for (i in 1:n) {
   number_ignits[[i]]<-length(unique(out[[i]]$initialPixels))
@@ -171,7 +171,7 @@ for (i in 1:n) {
   
 }
 
-  hist(fire_size_end$Freq)
+  hist(fire_size_end$Freq) # gives distribution of fire sizes
 
 ```
 
