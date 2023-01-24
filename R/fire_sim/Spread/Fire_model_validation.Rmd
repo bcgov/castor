@@ -40,8 +40,10 @@ Here I want to test the simulation to check that its performing as expected i.e.
 
 2.) If I allow fires to spread out from those ignition points do I get a similar distribution of fire sizes as I observe in the data?
 
+- I should do 1 and 2 for 2022 fires as an independent check of the data. 
+
 3.) Something else to check is whether the probability of escape is similar to the probability of spread. Also are these similar for fires that dont escape as they are for fires that do escape? 
-To do this I can just regress the probability of escape on the probability of spread at the same locations i.e. locations where ignition occured. 
+To do this if I regress the probability of escape on the probability of spread at the same locations i.e. locations where ignition occured. 
 
 4.) I dont thinkg this will influence anything but I could also play with the number of neightbours that can ignite. Spread2 allows either 4 or 8 neighbours for spreading each simulation. Does this make any difference?
 
@@ -114,6 +116,8 @@ dim(spread.ras)
 total.ignit <- (lightning_ignition * (1-human_ignition)) + (human_ignition * (1-lightning_ignition))
 
 plot(total.ignit, col=rev(heat.colors(255)))
+plot(spread.ras, col=rev(heat.colors(255)))
+plot(escape.ras, col=rev(heat.colors(255)))
 
 # crop the raster using the vector extent
 ignit_crop <- crop(total.ignit, study_area2)
@@ -125,27 +129,12 @@ escape_crop[is.na(escape_crop[])] <- 0
 ignit_crop[is.na(ignit_crop[])] <- 0 
 spread_crop[is.na(spread_crop[])] <- 0 
 
+# replacing NA's by zero
+escape.ras[is.na(escape.ras[])] <- 0 
+total.ignit[is.na(total.ignit[])] <- 0 
+spread.ras[is.na(spread.ras[])] <- 0 
+
 ```
-
-# FIRE SIM
-
-```{r}
-####################
-# Spread with Escape FUNCTION
-# Iterative calling -- create a function with escape and spread probability
-####################
-
-spreadWithEscape <- function(ras, start, escapeProb, spreadProb) {
-  out <- spread2(ras, start = start, spreadProb = escapeProb, asRaster = FALSE, allowOverlap = FALSE, iterations=1, directions=4)
-  while (any(out$state == "activeSource")) {
-    # pass in previous output as start
-    out <- spread2(ras, start = out, spreadProb = spreadProb,
-                   asRaster = FALSE, allowOverlap = FALSE, skipChecks = FALSE) # skipChecks for speed
-  }
-  out
-}
-```
-
 
 ```{r}
 #create landscape  raster with each pixel having a different idno
@@ -167,7 +156,7 @@ start_points<- unique(start_points) # there appear to be two starting cells that
 
 #####
 # plotting points on raster to check they are still correct
-ignit_pts <- rasterToPoints(spread_crop, spatial = TRUE)
+ignit_pts <- rasterToPoints(escape_crop, spatial = TRUE)
 # Then to a 'conventional' dataframe
 ignit_pts_df  <- data.frame(ignit_pts)
 
@@ -176,11 +165,411 @@ ignit_subset<-ignit_subset %>%
                            CURRENT_SIZE <= 10 ~ 0))
 
 ggplot() +
- geom_raster(data = ignit_pts_df , aes(x = x, y = y, fill = rast_spread_400m_2)) +
+ geom_raster(data = ignit_pts_df , aes(x = x, y = y, fill = rast_escape_400m)) +
   geom_sf(data=ignit_subset, aes(color = as.factor(escaped)))  #+
   #geom_point(data = pointCoordinates, aes(x = test.X, y = test.Y))
 #####
 ```
+
+#### TRY 2
+
+After playing with this for a while, I realize that at each iteration it test whether it can spread into all 8 adjacent cells. Thus for the escape step the fire starts at its ignition point and then spreads / or not into some of the adjacent cells. I want to test whether if i rather make escape more like ignition. Testing whether a single point can escape i.e. test its value agains some random number. if the random number is smaller than the escape probability then the fire is allowed to spread using spread2. Rather than letting spread2 act on both the escape an spread probability rasters
+```{r}
+#create landscape  raster with each pixel having a different idno
+a <- raster(extent(ignit_crop), 
+  crs = st_crs(ignit_crop)$proj4string, resolution = c(400, 400), vals = 1:ncell(ignit_crop))
+
+#no_ignitions=length(ignit_subset$CURRENT_SIZE) # number of ignitions (FIX this so its drawn from a distribution or pulled off a map or something)
+n<-100 # number of reps
+out<-list()
+set.seed(123)
+
+#####
+ignition.pts<-start_points
+tot.area.burned<-integer(n)
+tot.escapes<-integer(n)
+
+for (i in 1:n) {
+  
+# initiate ignitions at randomly chosen points
+#startCells <- as.integer(sample(1:ncell(ignit_crop), no_ignitions))
+#startCells<-start_points
+
+#extract probability numbers from the igniton map
+#probs.ignit<-ignit_crop[startCells]
+#draw random number from uniform distribution
+#random.num<-runif(no_ignitions)
+#combine values into a datagram
+#df<-as.data.frame(cbind(startCells, probs.ignit, random.num))
+#select points that have an ignition probability greater than the randomly drawn number.
+#ignition.pts<- df$startCells[df$probs.ignit > df$random.num ]
+
+# Now test if the fire can escape from the ignition point
+  #extract probability numbers from the escape map
+probs.escape<-escape_crop[ignition.pts]
+#draw random number from uniform distribution
+random.num<-runif(length(ignition.pts))
+#combine values into a datagram
+df<-as.data.frame(cbind(ignition.pts, probs.escape, random.num))
+#select points that have an ignition probability greater than the randomly drawn number.
+escape.pts<- df$ignition.pts[df$probs.escape > df$random.num ]
+
+tot.escapes[i]<-length(escape.pts)
+
+
+#dim(ignit_subset[(ignit_subset$CURRENT_SIZE>10),])
+
+out[[i]]  <- spread2(a, start = escape.pts, spreadProb = spread_crop, asRaster = FALSE, allowOverlap = FALSE)
+tot.area.burned[i]<-out[[i]][,.N]
+
+}
+
+out2<-data.table::rbindlist(out)
+b<-table(a[out2$pixels])
+b1<-b/n
+
+b.tab<-data.table(b1)
+b.tab$V1<-as.numeric(b.tab$V1)
+a[]<-0
+a[b.tab$V1]<-b.tab$N
+
+plot(a)
+
+```
+
+
+```{r}
+#question is it burning this many pixels because it runs out of pixels? Test this by increasing the area that is availabel to burn
+
+# some other stats 
+number_ignits<-list()
+
+fire_size_end <- data.frame (matrix (ncol = 3, nrow = 0)) # add 'data' to the points
+colnames (fire_size_end) <- c ("Var1", "Freq", "rep")
+
+for (i in 1:n) {
+  
+  number_ignits[[i]]<-out[[i]][, .N, by = "initialPixels"]$N
+  #number_ignits[[i]]<-length(unique(out[[i]]$initialPixels))
+  
+  fire_size_intermediate<-as.data.frame(table(out[[i]]$initialPixels))
+  fire_size_intermediate$rep<-i
+  
+  fire_size_end<-rbind(fire_size_end, fire_size_intermediate)
+  
+}
+
+fire_size_end$Freq<-as.numeric(fire_size_end$Freq)
+x<-aggregate(fire_size_end$Freq, by=list(Category=fire_size_end$Var1), FUN=mean)
+
+x<-x %>% rename(start_points=Category,
+                size = x)
+
+x$start_points<-as.numeric(as.character(x$start_points))
+x2<-left_join(test2, x)
+x2 <- x2 %>% mutate(size = ifelse(is.na(size), 1, size))
+
+ggplot(data=x2) +    
+   geom_histogram(aes(x=size), fill = "blue") 
+ggplot(data=x2) +    
+   geom_histogram(aes(x=CURRENT_SIZE), fill = "green") 
+
+hist(x2$CURRENT_SIZE, breaks=50, xlim=c(0,80000))
+
+library(reshape2)
+# reshape data from wide to long format
+long <- melt(x2, id= "start_points", measure.vars = c("size", "CURRENT_SIZE"))
+g <- long%>%
+  ggplot(aes(x=value, fill=variable)) +
+  geom_histogram(alpha=0.3) #+
+  #scale_x_log10()
+
+g
+```
+
+
+```{r}
+###########################
+# how many fires escaped i.e. grew bigger than 10 ha?
+
+rep<-1:n
+number_escaped<-as.data.frame(cbind(rep, tot.escapes, tot.area.burned))
+number_escaped$tot.escapes
+length(ignit_subset_10$CURRENT_SIZE)
+
+
+# Basic density
+p <- ggplot(number_escaped, aes(x=tot.escapes)) + 
+  geom_density() + 
+   xlim(0, 100)
+# Add mean line
+p + geom_vline(aes(xintercept=length(ignit_subset_10$CURRENT_SIZE)), color="blue", linetype="dashed", size=1)
+
+# Basic density
+# p2 <- ggplot(number_escaped, aes(x=tot.area.burned)) + 
+#   geom_density() + 
+#    xlim(0, 400000)
+# # Add mean line
+# p2 + geom_vline(aes(xintercept=sum(ignit_subset_10$CURRENT_SIZE)), color="blue", linetype="dashed", size=1)
+#          
+
+```
+
+
+
+##### Try the same for the whole of BC
+
+```{r}
+#create landscape  raster with each pixel having a different idno
+a <- raster(extent(spread.ras), 
+  crs = st_crs(spread.ras)$proj4string, resolution = c(400, 400), vals = 1:ncell(spread.ras))
+
+# make the starting locations the same as the actual ignition locations. Expect to see similar distribution of fire sizes as seen in the original data.
+test<-cbind(ignit_subset, st_coordinates(ignit_subset))
+head(test)
+
+
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+
+start_points=raster::extract(a, pointCoordinates)
+test2<-cbind(test,start_points )
+
+start_points<- unique(start_points) # there appear to be two starting cells that get ignited twice so Im removing the duplicates
+
+#####
+# plotting points on raster to check they are still correct
+escape_pts <- rasterToPoints(spread.ras, spatial = TRUE)
+# Then to a 'conventional' dataframe
+escape_pts_df  <- data.frame(spread.ras)
+
+ggplot() +
+ geom_raster(data = escape_pts_df , aes(x = x, y = y, fill = rast_spread_400m_2)) +
+  geom_point(data = pointCoordinates, aes(x = test.X, y = test.Y))
+#####
+```
+
+
+```{r}
+#create landscape  raster with each pixel having a different idno
+a <- raster(extent(escape.ras), 
+  crs = st_crs(escape.ras)$proj4string, resolution = c(400, 400), vals = 1:ncell(escape.ras))
+
+#no_ignitions=length(ignit_subset$CURRENT_SIZE) # number of ignitions (FIX this so its drawn from a distribution or pulled off a map or something)
+n<-100 # number of reps
+out<-list()
+set.seed(123)
+
+#####
+ignition.pts<-start_points
+tot.area.burned<-integer(n)
+tot.escapes<-integer(n)
+
+
+for (i in 1:n) {
+  
+# initiate ignitions at randomly chosen points
+#startCells <- as.integer(sample(1:ncell(ignit_crop), no_ignitions))
+#startCells<-start_points
+
+#extract probability numbers from the igniton map
+#probs.ignit<-ignit_crop[startCells]
+#draw random number from uniform distribution
+#random.num<-runif(no_ignitions)
+#combine values into a datagram
+#df<-as.data.frame(cbind(startCells, probs.ignit, random.num))
+#select points that have an ignition probability greater than the randomly drawn number.
+#ignition.pts<- df$startCells[df$probs.ignit > df$random.num ]
+
+# Now test if the fire can escape from the ignition point
+  #extract probability numbers from the escape map
+probs.escape<-escape.ras[ignition.pts]
+#draw random number from uniform distribution
+random.num<-runif(length(ignition.pts))
+#combine values into a datagram
+df<-as.data.frame(cbind(ignition.pts, probs.escape, random.num))
+#select points that have an ignition probability greater than the randomly drawn number.
+escape.pts<- df$ignition.pts[df$probs.escape > df$random.num ]
+
+tot.escapes[i]<-length(escape.pts)
+
+
+#dim(ignit_subset[(ignit_subset$CURRENT_SIZE>10),])
+
+out[[i]]  <- spread2(a, start = escape.pts, spreadProb = spread.ras, asRaster = FALSE, allowOverlap = FALSE)
+
+tot.area.burned[i]<-out[[i]][,.N]
+
+}
+
+out2<-data.table::rbindlist(out)
+b<-table(a[out2$pixels])
+b1<-b/n
+
+b.tab<-data.table(b1)
+b.tab$V1<-as.numeric(b.tab$V1)
+a[]<-0
+a[b.tab$V1]<-b.tab$N
+#clearPlot()
+plot(a)
+```
+
+
+```{r}
+#question is it burning this many pixels because it runs out of pixels? Test this by increasing the area that is availabel to burn
+
+# some other stats 
+number_ignits<-list()
+
+fire_size_end <- data.frame (matrix (ncol = 3, nrow = 0)) # add 'data' to the points
+colnames (fire_size_end) <- c ("Var1", "Freq", "rep")
+
+for (i in 1:n) {
+  
+  number_ignits[[i]]<-out[[i]][, .N, by = "initialPixels"]$N
+  #number_ignits[[i]]<-length(unique(out[[i]]$initialPixels))
+  
+  fire_size_intermediate<-as.data.frame(table(out[[i]]$initialPixels))
+  fire_size_intermediate$rep<-i
+  
+  fire_size_end<-rbind(fire_size_end, fire_size_intermediate)
+  
+}
+
+fire_size_end$Freq<-as.numeric(fire_size_end$Freq)
+x<-aggregate(fire_size_end$Freq, by=list(Category=fire_size_end$Var1), FUN=mean)
+
+x<-x %>% rename(start_points=Category,
+                size = x)
+x$size<-as.numeric(x$size)
+
+x$start_points<-as.numeric(as.character(x$start_points))
+x2<-left_join(test2, x)
+x2 <- x2 %>% mutate(size = ifelse(is.na(size), 0.001, size))
+
+ggplot(data=x2) +    
+   geom_histogram(aes(x=size), fill = "blue") 
+ggplot(data=x2) +    
+   geom_histogram(aes(x=CURRENT_SIZE), fill = "green") 
+
+hist(x2$CURRENT_SIZE, breaks=50, xlim=c(0,80000))
+
+library(reshape2)
+# reshape data from wide to long format
+long <- melt(x2, id= "start_points", measure.vars = c("size", "CURRENT_SIZE"))
+g <- long%>%
+  ggplot(aes(x=value, fill=variable)) +
+  geom_histogram(alpha=0.3) #+
+  #scale_x_log10()
+
+g
+```
+
+
+```{r}
+###########################
+# how many fires escaped i.e. grew bigger than 10 ha?
+
+rep<-1:n
+number_escaped<-as.data.frame(cbind(rep, tot.escapes, tot.area.burned))
+
+# Basic density
+p <- ggplot(number_escaped, aes(x=tot.escapes)) + 
+  geom_density() + 
+   xlim(0, 100)
+# Add mean line
+p + geom_vline(aes(xintercept=length(ignit_subset_10$CURRENT_SIZE)), color="blue", linetype="dashed", size=1)
+
+# Basic density
+# p2 <- ggplot(number_escaped, aes(x=tot.area.burned)) + 
+#   geom_density() + 
+#    xlim(0, 400000)
+# # Add mean line
+# p2 + geom_vline(aes(xintercept=sum(ignit_subset_10$CURRENT_SIZE)), color="blue", linetype="dashed", size=1)
+#          
+
+```
+
+
+```{r}
+# some other stats 
+number_ignits<-list()
+
+fire_size_end <- data.frame (matrix (ncol = 3, nrow = 0)) # add 'data' to the points
+colnames (fire_size_end) <- c ("Var1", "Freq", "rep")
+
+for (i in 1:n) {
+  
+  number_ignits[[i]]<-out[[i]][, .N, by = "initialPixels"]$N
+  #number_ignits[[i]]<-length(unique(out[[i]]$initialPixels))
+  
+  fire_size_intermediate<-as.data.frame(table(out[[i]]$initialPixels))
+  fire_size_intermediate$rep<-i
+  
+  fire_size_end<-rbind(fire_size_end, fire_size_intermediate)
+  
+}
+
+hist(fire_size_end$Freq, breaks=50) # gives distribution of fire sizes
+```
+
+
+```{r}
+###########################
+# how many fires escaped i.e. grew bigger than 10 ha?
+number_escaped <- data.frame (matrix (ncol = 2, nrow = 0)) # add 'data' to the points
+colnames (number_escaped) <- c ("rep", "tot_escaped")
+
+for (i in 1:n) {
+  no_fires_escaped<-fire_size_end %>% filter(rep==i & Freq>1) 
+  number_escaped[i,1]<-i
+  number_escaped[i,2]<-length(no_fires_escaped$Freq)
+}
+
+
+library(ggplot2)
+# Basic density
+p <- ggplot(number_escaped, aes(x=tot_escaped)) + 
+  geom_density(fill="purple") + 
+   xlim(200, 900)
+
+ignit_10ha<-ignit %>% filter(CURRENT_SIZE>1)
+# Add mean line
+p + geom_vline(aes(xintercept=length(ignit_10ha$CURRENT_SIZE)), color="blue", linetype="dashed", size=1)
+         
+```
+
+# Here Im going to test whether escape or spread generally has a higher probability of occuring at each of the ignition points
+```{r}
+test<-cbind(ignit, st_coordinates(ignit))
+head(test)
+
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+
+rasStack<-stack(escape.ras, spread.ras)
+
+pts=raster::extract(rasStack, pointCoordinates)
+
+ignit_pts_info<-ignit %>% dplyr::select(FIRE_CAUSE, CURRENT_SIZE )
+
+ignit_pts_info<- cbind(ignit_pts_info, pts)
+ignit_pts_info<-ignit_pts_info %>%
+  mutate(escape = case_when(CURRENT_SIZE > 10 ~ 1,
+                           CURRENT_SIZE <= 10 ~ 0))
+
+ignit_pts_info$escape<-as.character(ignit_pts_info$escape)
+
+ggplot(ignit_pts_info, aes(x=rast_spread_400m_2, y=rast_escape_400m, color=escape, shape=escape)) +
+  geom_point() + 
+  geom_smooth(method=lm, aes(fill=escape))
+
+
+start_points<- unique(start_points) # there appear to be two starting cells that get ignited twice so Im removing the duplicates
+
+```
+
+## I dont think the below is correct
 #### TRY 1
 
 Running this with only escape and spread. The ignition points are the same as the data that I got for 2021.
@@ -190,6 +579,29 @@ It looks like Im getting around double the number of escaped fires as I should i
 I should check this for other areas as well.
 
 After playing with this for a while, I realize that at each iteration it test whether it can spread into all 8 adjacent cells. Thus for the escape step the fire starts at its ignition point and then spreads / or not into some of the adjacent cells. I want to test whether if i rather make escape more like ignition. Testing whether a single point can escape i.e. test its value agains some random number. if the random number is smaller than the escape probability then the fire is allowed to spread using spread2. Rather than letting spread2 act on both the escape an spread probability rasters
+
+
+
+# FIRE SIM
+
+```{r}
+####################
+# Spread with Escape FUNCTION
+# Iterative calling -- create a function with escape and spread probability
+####################
+
+spreadWithEscape <- function(ras, start, escapeProb, spreadProb) {
+  out <- spread2(ras, start = start, spreadProb = escapeProb, asRaster = FALSE, allowOverlap = FALSE, iterations=1, directions=4)
+  while (any(out$state == "activeSource")) {
+    # pass in previous output as start
+    out <- spread2(ras, start = out, spreadProb = spreadProb,
+                   asRaster = FALSE, allowOverlap = FALSE, skipChecks = FALSE) # skipChecks for speed
+  }
+  out
+}
+```
+
+
 ```{r}
 #create landscape  raster with each pixel having a different idno
 a <- raster(extent(ignit_crop), 
@@ -279,300 +691,6 @@ p + geom_vline(aes(xintercept=length(ignit_subset_10$CURRENT_SIZE)), color="blue
          
 
 ```
-
-#### TRY 2
-
-After playing with this for a while, I realize that at each iteration it test whether it can spread into all 8 adjacent cells. Thus for the escape step the fire starts at its ignition point and then spreads / or not into some of the adjacent cells. I want to test whether if i rather make escape more like ignition. Testing whether a single point can escape i.e. test its value agains some random number. if the random number is smaller than the escape probability then the fire is allowed to spread using spread2. Rather than letting spread2 act on both the escape an spread probability rasters
-```{r}
-#create landscape  raster with each pixel having a different idno
-a <- raster(extent(ignit_crop), 
-  crs = st_crs(ignit_crop)$proj4string, resolution = c(400, 400), vals = 1:ncell(ignit_crop))
-
-#no_ignitions=length(ignit_subset$CURRENT_SIZE) # number of ignitions (FIX this so its drawn from a distribution or pulled off a map or something)
-n<-100 # number of reps
-out<-list()
-set.seed(123)
-
-#####
-ignition.pts<-start_points
-tot.area.burned<-integer(n)
-tot.escapes<-integer(n)
-
-for (i in 1:n) {
-  
-# initiate ignitions at randomly chosen points
-#startCells <- as.integer(sample(1:ncell(ignit_crop), no_ignitions))
-#startCells<-start_points
-
-#extract probability numbers from the igniton map
-#probs.ignit<-ignit_crop[startCells]
-#draw random number from uniform distribution
-#random.num<-runif(no_ignitions)
-#combine values into a datagram
-#df<-as.data.frame(cbind(startCells, probs.ignit, random.num))
-#select points that have an ignition probability greater than the randomly drawn number.
-#ignition.pts<- df$startCells[df$probs.ignit > df$random.num ]
-
-# Now test if the fire can escape from the ignition point
-  #extract probability numbers from the escape map
-probs.escape<-escape_crop[ignition.pts]
-#draw random number from uniform distribution
-random.num<-runif(length(ignition.pts))
-#combine values into a datagram
-df<-as.data.frame(cbind(ignition.pts, probs.escape, random.num))
-#select points that have an ignition probability greater than the randomly drawn number.
-escape.pts<- df$ignition.pts[df$probs.escape > df$random.num ]
-
-tot.escapes[i]<-length(escape.pts)
-
-
-#dim(ignit_subset[(ignit_subset$CURRENT_SIZE>10),])
-
-out[[i]]  <- spread2(a, start = escape.pts, spreadProb = spread_crop, asRaster = FALSE, allowOverlap = FALSE)
-tot.area.burned[i]<-out[[i]][,.N]
-
-}
-
-out2<-data.table::rbindlist(out)
-b<-table(a[out2$pixels])
-b1<-b/n
-
-b.tab<-data.table(b1)
-b.tab$V1<-as.numeric(b.tab$V1)
-a[]<-0
-a[b.tab$V1]<-b.tab$N
-clearPlot()
-Plot(a)
-
-# some other stats 
-number_ignits<-list()
-
-fire_size_end <- data.frame (matrix (ncol = 3, nrow = 0)) # add 'data' to the points
-colnames (fire_size_end) <- c ("Var1", "Freq", "rep")
-
-for (i in 1:n) {
-  
-  number_ignits[[i]]<-out[[i]][, .N, by = "initialPixels"]$N
-  #number_ignits[[i]]<-length(unique(out[[i]]$initialPixels))
-  
-  fire_size_intermediate<-as.data.frame(table(out[[i]]$initialPixels))
-  fire_size_intermediate$rep<-i
-  
-  fire_size_end<-rbind(fire_size_end, fire_size_intermediate)
-  
-}
-
-fire_size_end$Freq<-as.numeric(fire_size_end$Freq)
-x<-aggregate(fire_size_end$Freq, by=list(Category=fire_size_end$Var1), FUN=mean)
-
-x<-x %>% rename(start_points=Category,
-                size = x)
-
-x$start_points<-as.numeric(as.character(x$start_points))
-x2<-left_join(test2, x)
-
-ggplot() +               
-  geom_density(data = x2, aes(x=CURRENT_SIZE), 
-             fill = "dark green")+
-  geom_density(data = x2, aes(x=size*16), 
-             fill = "blue")+
-  labs(x = "X-Data", y = "Y-Data")+
-  ggtitle("Combined Plot")
-
-x3<-cbind(x2$start_points, x2$CURRENT_SIZE)
-
-p3 <- ggplot(x2, aes(x=CURRENT_SIZE)) + 
-  geom_density() +
-  geom_density(data=ignit_subset_10$CURRENT_SIZE, fill="purple")
-
-p4<-ggplot(ignit_subset_10, aes(x=CURRENT_SIZE)) +
-  geom_density()
-
-p3 + p4
-# Add mean line
-p3 + geom_vline(aes(xintercept=(ignit_subset_10$CURRENT_SIZE)), color="blue", linetype="dashed", size=1)
-
-hist(x$x) # gives distribution of fire sizes
-  
-###########################
-# how many fires escaped i.e. grew bigger than 10 ha?
-
-rep<-1:n
-number_escaped<-as.data.frame(cbind(rep, tot.escapes, tot.area.burned))
-
-# Basic density
-p <- ggplot(number_escaped, aes(x=tot.escapes)) + 
-  geom_density() + 
-   xlim(0, 100)
-# Add mean line
-p + geom_vline(aes(xintercept=length(ignit_subset_10$CURRENT_SIZE)), color="blue", linetype="dashed", size=1)
-
-# Basic density
-p2 <- ggplot(number_escaped, aes(x=tot.area.burned)) + 
-  geom_density() + 
-   xlim(0, 400000)
-# Add mean line
-p2 + geom_vline(aes(xintercept=sum(ignit_subset_10$CURRENT_SIZE)), color="blue", linetype="dashed", size=1)
-         
-
-```
-
-
-
-
-
-##### Try the same for the whole of BC
-
-```{r}
-#create landscape  raster with each pixel having a different idno
-a <- raster(extent(escape.ras), 
-  crs = st_crs(escape.ras)$proj4string, resolution = c(400, 400), vals = 1:ncell(escape.ras))
-
-# make the starting locations the same as the actual ignition locations. Expect to see similar distribution of fire sizes as seen in the original data.
-test<-cbind(ignit, st_coordinates(ignit))
-head(test)
-
-pointCoordinates<-data.frame(test$X, test$Y)
-head(pointCoordinates)
-
-start_points=raster::extract(a, pointCoordinates)
-
-start_points<- unique(start_points) # there appear to be two starting cells that get ignited twice so Im removing the duplicates
-
-#####
-# plotting points on raster to check they are still correct
-escape.ras[is.na(escape.ras[])] <- 0 
-escape_pts <- rasterToPoints(escape.ras, spatial = TRUE)
-# Then to a 'conventional' dataframe
-escape_pts_df  <- data.frame(escape_pts)
-
-ggplot() +
- geom_raster(data = escape_pts_df , aes(x = x, y = y, fill = rast_escape_400m)) +
-  geom_point(data = pointCoordinates, aes(x = test.X, y = test.Y))
-#####
-```
-
-
-```{r}
-#create landscape  raster with each pixel having a different idno
-a <- raster(extent(escape.ras), 
-  crs = st_crs(escape.ras)$proj4string, resolution = c(400, 400), vals = 1:ncell(escape.ras))
-
-#no_ignitions=length(ignit_subset$CURRENT_SIZE) # number of ignitions (FIX this so its drawn from a distribution or pulled off a map or something)
-n<-5 # number of reps
-out<-list()
-set.seed(123)
-
-#####
-ignition.pts<-start_points
-
-for (i in 1:n) {
-  
-  # initiate ignitions at randomly chosen points
-#startCells <- as.integer(sample(1:ncell(ignit_crop), no_ignitions))
-#startCells<-start_points
-
-#extract probability numbers from the igniton map
-#probs.ignit<-ignit_crop[startCells]
-#draw random number from uniform distribution
-#random.num<-runif(no_ignitions)
-#combine values into a datagram
-#df<-as.data.frame(cbind(startCells, probs.ignit, random.num))
-#select points that have an ignition probability greater than the randomly drawn number.
-#ignition.pts<- df$startCells[df$probs.ignit > df$random.num ]
-
-
-#dim(ignit_subset[(ignit_subset$CURRENT_SIZE>10),])
-
-out[[i]]  <- spreadWithEscape(a, start = ignition.pts, escapeProb = escape.ras , spreadProb = spread.ras)
-
-}
-
-out2<-data.table::rbindlist(out)
-b<-table(a[out2$pixels])
-b1<-b/n
-
-b.tab<-data.table(b1)
-b.tab$V1<-as.numeric(b.tab$V1)
-a[]<-0
-a[b.tab$V1]<-b.tab$N
-clearPlot()
-Plot(a)
-
-# some other stats 
-number_ignits<-list()
-
-fire_size_end <- data.frame (matrix (ncol = 3, nrow = 0)) # add 'data' to the points
-colnames (fire_size_end) <- c ("Var1", "Freq", "rep")
-
-for (i in 1:n) {
-  
-  number_ignits[[i]]<-out[[i]][, .N, by = "initialPixels"]$N
-  #number_ignits[[i]]<-length(unique(out[[i]]$initialPixels))
-  
-  fire_size_intermediate<-as.data.frame(table(out[[i]]$initialPixels))
-  fire_size_intermediate$rep<-i
-  
-  fire_size_end<-rbind(fire_size_end, fire_size_intermediate)
-  
-}
-
-hist(fire_size_end$Freq, breaks=50) # gives distribution of fire sizes
-  
-###########################
-# how many fires escaped i.e. grew bigger than 10 ha?
-number_escaped <- data.frame (matrix (ncol = 2, nrow = 0)) # add 'data' to the points
-colnames (number_escaped) <- c ("rep", "tot_escaped")
-
-for (i in 1:n) {
-  no_fires_escaped<-fire_size_end %>% filter(rep==i & Freq>1) 
-  number_escaped[i,1]<-i
-  number_escaped[i,2]<-length(no_fires_escaped$Freq)
-}
-
-
-library(ggplot2)
-# Basic density
-p <- ggplot(number_escaped, aes(x=tot_escaped)) + 
-  geom_density() + 
-   xlim(200, 900)
-
-ignit_10ha<-ignit %>% filter(CURRENT_SIZE>1)
-# Add mean line
-p + geom_vline(aes(xintercept=length(ignit_10ha$CURRENT_SIZE)), color="blue", linetype="dashed", size=1)
-         
-```
-
-# Here Im going to test whether escape or spread generally has a higher probability of occuring at each of the ignition points
-```{r}
-test<-cbind(ignit, st_coordinates(ignit))
-head(test)
-
-pointCoordinates<-data.frame(test$X, test$Y)
-head(pointCoordinates)
-
-rasStack<-stack(escape.ras, spread.ras)
-
-pts=raster::extract(rasStack, pointCoordinates)
-
-ignit_pts_info<-ignit %>% dplyr::select(FIRE_CAUSE, CURRENT_SIZE )
-
-ignit_pts_info<- cbind(ignit_pts_info, pts)
-ignit_pts_info<-ignit_pts_info %>%
-  mutate(escape = case_when(CURRENT_SIZE > 10 ~ 1,
-                           CURRENT_SIZE <= 10 ~ 0))
-
-ignit_pts_info$escape<-as.character(ignit_pts_info$escape)
-
-ggplot(ignit_pts_info, aes(x=rast_spread_400m_2, y=rast_escape_400m, color=escape, shape=escape)) +
-  geom_point() + 
-  geom_smooth(method=lm, aes(fill=escape))
-
-
-start_points<- unique(start_points) # there appear to be two starting cells that get ignited twice so Im removing the duplicates
-
-```
-
 
 
 1.) test that the distribution of escaped fires matches the actual data:
