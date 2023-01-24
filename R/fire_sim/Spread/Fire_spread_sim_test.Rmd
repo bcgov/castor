@@ -17,6 +17,8 @@ library(mapview)
 library(tmap)
 library(raster)
 library(SpaDES.tools)
+library(quickPlot)
+
 library(SpaDES)
 library(SpaDES.core)
 library(SpaDES.addins)
