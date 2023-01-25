@@ -15,7 +15,8 @@ public class CellularAutomata {
 	ArrayList<Cells> cellsList = new ArrayList<Cells>();
 	ArrayList<Integer> cellsListChangeState = new ArrayList<Integer>();
 	//String castordb = "C:/Users/klochhea/castor/R/SpaDES-modules/dataCastor/test_castordb.sqlite";
-	String castordb = "C:/Users/klochhea/castor/R/scenarios/fisher_cclup/quesnel/quesnel_castordb.sqlite";
+	//String castordb = "C:/Users/klochhea/castor/R/scenarios/fisher_cclup/quesnel/quesnel_castordb.sqlite";
+	String castordb = "C:/Users/klochhea/castor/R/scenarios/test_391/test_rcb_castordb.sqlite";
 	//ArrayList<Cell> cellListMaximum = new ArrayList<Cell>();
 	int numIter=15000;
 	float harvestMax,harvestMin, gsMin, objValue, maxObjValue;

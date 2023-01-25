@@ -14,12 +14,21 @@ import java.util.stream.Stream;
 import lpsolve.LpSolve;
 import lpsolve.LpSolveException;
 
+//import org.gnu.glpk.GLPK;
+//import org.gnu.glpk.glp_prob;
+//import org.gnu.glpk.GlpkException;
+//import org.gnu.glpk.GLPKConstants;
+
 public class Q3 {
+	//glp_prob lp;
 	
 	double evenFlowDeviation = 0.05;
-	double percentInitalGS = 0.8;	
+	double percentInitalGS = 0.8;
+	double maxHarvestAreaBudget = 0.02;
 	boolean evenFlow = true;
 	boolean endingInventory= true;
+	boolean harvestAreaBudget= true;
+	
     CellularAutomata ca = new CellularAutomata();
     
 	/** 
@@ -58,7 +67,7 @@ public class Q3 {
 		
 		
 		int col = 1, ret =0, forestTypes = 0;
-		double gs0=0;
+		double gs0=0, tarea =0;
 		float[] hvol = new float[ca.landscape.numTimePeriods];
 		
 		System.out.println("Building Model I lp");
@@ -104,6 +113,8 @@ public class Q3 {
 			areaConstraintsRows.add(areaConstraintRowsVals);
 			areaConstraintsCols.add(areaConstraintColsVals);
 			areaConstraintsValue.add((double) ca.forestTypeList.get(f).area);
+			
+			tarea += ca.forestTypeList.get(f).area;
 		}
 		
 		// Build the Model I Linear Program//
@@ -116,6 +127,10 @@ public class Q3 {
 			int[] objFncCols = objCols.stream().mapToInt(i -> i).toArray();
 			
 			/*Build the lp*/
+			//lp = GLPK.glp_create_prob();
+			//GLPK.glp_set_prob_name(lp, "Model I: timber supply");
+			//GLPK.glp_add_cols(lp, objCols.size());
+			
 			LpSolve m1 = LpSolve.makeLp(0, objCols.size());
 			m1.setObjFnex(objCols.size(), objFncRows, objFncCols); // set the objective function
 			
@@ -168,13 +183,29 @@ public class Q3 {
 				m1.addConstraintex(objCols.size(), endingGSRows, objFncCols, LpSolve.GE, gs0*percentInitalGS); // set the ending growing stock constraint
 			}
 			
+			if(harvestAreaBudget) {
+				
+				for(int r =0 ; r < periodHarvestCols.size(); r ++) {
+					int[] hab = new int[periodHarvestCols.get(r).size()];		
+					double[] harvestAreaRows = new double[hab.length];
+					Arrays.fill(harvestAreaRows, 1);
+					System.arraycopy(periodHarvestCols.get(r).stream().mapToInt(i->i).toArray(), 0, hab, 0, hab.length); 
+					m1.addConstraintex(hab.length, harvestAreaRows, hab, LpSolve.LE, maxHarvestAreaBudget*tarea); // set the ending growing stock constraint
+			
+				}
+			}
+			
 			m1.setAddRowmode(false);
 			 
 		    m1.setMaxim(); // set obj to maximize
 		    System.out.println("...done");
 		    System.out.print("");
+		    m1.writeMps("C:/Users/klochhea/castor/R/test.mps");
+		    
 		    System.out.println("Solving...");
+		    
 		    ret = m1.solve(); // solve the problem
+		    
 	        if(ret == LpSolve.OPTIMAL)
 	            ret = 0;
 	          else
