@@ -111,134 +111,72 @@ head(x3_dem)
 crs(x3_dem)
 crs(study_area)
 
+#### **NOTE I now do the climate extraction at the end and then join it back**
 
-# now extract lat long data and feed it into climate BC to get the climate data. 
-x3<- st_transform(x3_dem, crs = "+proj=longlat +datum=NAD83 / BC Albers +no_defs")
-x3<- x3 %>% rename (frt = layer)
-
-head(x3)
-
-#getting long lat info
-#geo.prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0" 
-st_crs(x3) #Retrieve coordinate reference system to check
-
-x3a<-x3 %>% drop_na(frt)
-x3a<-x3a %>% drop_na(dem)
-
-x4a<-as.data.frame(x3a)
-#x4a$idno<- 1:dim(x4a[1])
-x4<- x4a %>%
-  tidyr::separate(x, into = c("longitude", "latitude")," ")
-x4$longitude<- gsub(",", "", as.character(x4$longitude) )
-x4$longitude<- substring(x4$longitude, 3)
-x4$longitude<- as.numeric(x4$longitude)
-x4$longitude<- round(x4$longitude, digits=4)
-x4$latitude<- gsub(")", "", as.character(x4$latitude) )
-x4$latitude<- as.numeric(x4$latitude)
-x4$latitude<- round(x4$latitude, digits=4)
-
-#x4$ID2<-x4$frt
-export_dat<- x4 %>% rename(ID1 = idno,
-                           ID2 = frt,
-                           lat = latitude,
-                           lon = longitude,
-                           el = dem) %>%
-  dplyr::select(ID1, ID2, lat, lon, el)
-
-table(is.na(export_dat$el))
-export_dat$el[is.na(export_dat$el)]<-"."
-
-
-#max(export_dat$lat)
-
-write.csv(export_dat, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv", row.names = FALSE)
+# # now extract lat long data and feed it into climate BC to get the climate data. 
+# x3<- st_transform(x3_dem, crs = "+proj=longlat +datum=NAD83 / BC Albers +no_defs")
+# x3<- x3 %>% rename (frt = layer)
+# 
+# head(x3)
+# 
+# #getting long lat info
+# #geo.prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0" 
+# st_crs(x3) #Retrieve coordinate reference system to check
+# 
+# x3a<-x3 %>% drop_na(frt)
+# x3a<-x3a %>% drop_na(dem)
+# 
+# x4a<-as.data.frame(x3a)
+# #x4a$idno<- 1:dim(x4a[1])
+# x4<- x4a %>%
+#   tidyr::separate(x, into = c("longitude", "latitude")," ")
+# x4$longitude<- gsub(",", "", as.character(x4$longitude) )
+# x4$longitude<- substring(x4$longitude, 3)
+# x4$longitude<- as.numeric(x4$longitude)
+# x4$longitude<- round(x4$longitude, digits=4)
+# x4$latitude<- gsub(")", "", as.character(x4$latitude) )
+# x4$latitude<- as.numeric(x4$latitude)
+# x4$latitude<- round(x4$latitude, digits=4)
+# 
+# #x4$ID2<-x4$frt
+# export_dat<- x4 %>% rename(ID1 = idno,
+#                            ID2 = frt,
+#                            lat = latitude,
+#                            lon = longitude,
+#                            el = dem) %>%
+#   dplyr::select(ID1, ID2, lat, lon, el)
+# 
+# table(is.na(export_dat$el))
+# export_dat$el[is.na(export_dat$el)]<-"."
+# 
+# 
+# #max(export_dat$lat)
+# 
+# write.csv(export_dat, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv", row.names = FALSE)
+# 
 
 ```
 
 ```{r}
-setwd("D:/Climatebc_v730"); # set the ClimateBC root directory as the working directory
-exe <- "ClimateBC_v7.30.exe"
-
-## 2021
-inputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv' 
-outputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_clim.csv'
-yearPeriod = '/Year_2021.ann'
-system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
-
-
-## 2041_2070 Not sure if this works. Testing it now
-inputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv' 
-outputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_clim_2041_2070.csv'
-yearPeriod = '/8GCMs_ensemble_ssp370_2041-2070.gcm'
-system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+# setwd("D:/Climatebc_v730"); # set the ClimateBC root directory as the working directory
+# exe <- "ClimateBC_v7.30.exe"
+# 
+# ## 2021
+# inputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv' 
+# outputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_clim.csv'
+# yearPeriod = '/Year_2021.ann'
+# system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+# 
+# 
+# ## 2041_2070 Not sure if this works. Testing it now
+# inputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv' 
+# outputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_clim_2041_2070.csv'
+# yearPeriod = '/8GCMs_ensemble_ssp370_2041-2070.gcm'
+# system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
 
 ####################
 ```
 
-Import data and pull out important fields
-```{r}
-x4_clim_dem<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_clim.csv")
-
-x4_clim_dem$Tmax02<-as.numeric(x4_clim_dem$Tmax02)
-x4_clim_dem$Elevation<-as.numeric(x4_clim_dem$Elevation)
-x4_clim_dem<-x4_clim_dem %>% filter(Tmax02>-100)
-
-dim(x4_clim_dem)
-
-table(is.na(x4_clim_dem$Elevation))
-
-#If you need to open the table listing the top climate
-climate_variables_lightning<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")
-
-climate_variables_lightning
-
- # Lightning caused fires
-x4_clim_dem$mean_Tave05_Tave06_Tave07_Tave08 <- (x4_clim_dem$Tave05 + x4_clim_dem$Tave06 + x4_clim_dem$Tave07 + x4_clim_dem$Tave08)/4
-x4_clim_dem$mean_PPT05_PPT06_PPT07_PPT08<-(x4_clim_dem$PPT05 + x4_clim_dem$PPT06 + x4_clim_dem$PPT07 + x4_clim_dem$PPT08)/4
-
-x4_clim_dem$meanRH05_RH06_RH07<-(x4_clim_dem$RH05 + x4_clim_dem$RH06 + x4_clim_dem$RH07)/3
-
-x4_clim_dem$mean_Tave07_Tave08_Tave09 <- (x4_clim_dem$Tave07 + x4_clim_dem$Tave08 + x4_clim_dem$Tave09)/3
-x4_clim_dem$mean_PPT07_PPT08_PPT09<-(x4_clim_dem$PPT07 + x4_clim_dem$PPT08 + x4_clim_dem$PPT09)/3
-x4_clim_dem$mean_Tmax07_Tmax08_Tmax09<-(x4_clim_dem$Tmax07 + x4_clim_dem$Tmax08 + x4_clim_dem$Tmax09)/3
-
-x4_clim_dem$mean_Tmax07_Tmax08<-(x4_clim_dem$Tmax07 + x4_clim_dem$Tmax08)/2
-
-x4_clim_dem$mean_Tave07_Tave08<- (x4_clim_dem$Tave07 + x4_clim_dem$Tave08)/2
-
-x4_clim_dem$mean_Tave06_Tave07_Tave08 <- (x4_clim_dem$Tave06 + x4_clim_dem$Tave07 + x4_clim_dem$Tave08)/3
-x4_clim_dem$mean_PPT06_PPT07_PPT08 <- (x4_clim_dem$PPT06 + x4_clim_dem$PPT07 + x4_clim_dem$PPT08)/3
-
-
-# human caused fires
-
-climate_variables_person<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
-
-climate_variables_person
-
-x4_clim_dem$mean_PPT06_PPT07 <-(x4_clim_dem$PPT06 + x4_clim_dem$PPT07)/2
-
-x4_clim_dem$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<-(x4_clim_dem$Tave04 + x4_clim_dem$Tave05 + x4_clim_dem$Tave06 + x4_clim_dem$Tave07 +x4_clim_dem$Tave08 + x4_clim_dem$Tave09 + x4_clim_dem$Tave10)/7
-
-x4_clim_dem$mean_PPT06_PPT07_PPT08_PPT09 <- (x4_clim_dem$PPT06 + x4_clim_dem$PPT07 + x4_clim_dem$PPT08 + x4_clim_dem$PPT09)/4
-
-x4_clim_dem$mean_Tave08_Tave09_Tave10<-(x4_clim_dem$Tave08 + x4_clim_dem$Tave09 + x4_clim_dem$Tave10)/3
-
-x4_clim_dem$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<-(x4_clim_dem$Tmax04 + x4_clim_dem$Tmax05 + x4_clim_dem$Tmax06 + x4_clim_dem$Tmax07 +x4_clim_dem$Tmax08 + x4_clim_dem$Tmax09 + x4_clim_dem$Tmax10)/7
-
-x4_clim_dem$mean_Tave07_Tave08_Tave09<-(x4_clim_dem$Tave07 +x4_clim_dem$Tave08 + x4_clim_dem$Tave09)/3
-
-x4_clim_dem$mean_PPT07_PPT08_PPT09 <- (x4_clim_dem$PPT07 + x4_clim_dem$PPT08 + x4_clim_dem$PPT09)/3
-
-
-x4_clim_dem_2<- x4_clim_dem %>% dplyr::select(ID1, ID2, Latitude, Longitude, Elevation, Tmax05,Tave07, PPT07, mean_Tave05_Tave06_Tave07_Tave08:mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10) %>%
-  rename(idno=ID1,
-         frt=ID2)
-
-table(is.na(x4_clim_dem_2$frt))
-names(x4_clim_dem_2)
-
-```
 
 
 ```{R}
@@ -249,11 +187,17 @@ my.sf.point <- st_as_sf(x = x4_clim_dem_2,
 
 my.sf.point <- st_transform (my.sf.point, 3005)
 
+# note the elevation seems to have been messed up. Im not sure why
+my.sf.point<-my.sf.point %>% select(!Elevation)
+x<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv")
 
-tail(my.sf.point)
+x<- x %>% select(ID1, ID2, el) %>% rename(idno=ID1,
+                                          frt=ID2)
 
-table(is.na(my.sf.point$Elevation))
-st_write(my.sf.point, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data.gpkg", delete_layer=TRUE, driver="GPKG")
+my.sf.point.joined<-left_join(my.sf.point, x)
+head(my.sf.point.joined)
+
+st_write(my.sf.point.joined, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data.gpkg", delete_layer=TRUE, driver="GPKG")
 
 ```
 Now in QGIS join the above layer to the VRI.
@@ -283,7 +227,7 @@ dat3<-left_join(my.sf.point, dat2)
 ```{r}
 # now run the data through the code in 09_veg_classification as FWI.RMD to classify the vegetation into the FWI types. The code from this RMD is posted here
 
-fire_all<-dat
+fire_all<-dat2
 rm(dat)
 
 table((fire_all$bclcs_level_1)) # U=unreported, N = non-vegetated, V = vegetated
@@ -998,11 +942,12 @@ table(is.na(fire_all1$FWI_veg))
 
 x<- fire_all1 %>% filter(is.na(FWI_veg)) %>% dplyr::select(inventory_standard_cd:conifer_pct_cover_total)
 
+
 ```
 
 Now save it
 ```{r}
-st_write(fire_all1, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_Elev_clim_veg.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(fire_all1, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_Elev_veg.gpkg", delete_layer=TRUE, driver="GPKG")
 
 ```
 
@@ -1041,7 +986,8 @@ str(rasValue2) #200298 values
 fire_all1_slope_aspect<-cbind(fire_all1, rasValue2)
 head(fire_all1_slope_aspect)
 crs(fire_all1_slope_aspect)
-
+dim(fire_all1)
+dim(fire_all1_slope_aspect)
 # Get wind rasters
 summer_wind_raster<- raster("D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\wind_summer_clipped_224.tif")
 res(summer_wind_raster)#res seems out of wack
@@ -1083,9 +1029,106 @@ fire_all1_slope_aspect_wind2<- fire_all1_slope_aspect_wind  %>% dplyr::select(id
          slope = slope_ha_bc_3005,
          aspect = aspect_ha_bc_3005)
 
-st_write(fire_all1_slope_aspect_wind2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_Elev_clim_veg_rd_infr_wind.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(fire_all1_slope_aspect_wind, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_Elev_veg_rd_infr_wind.gpkg", delete_layer=TRUE, driver="GPKG")
 
 ```
+
+
+
+
+```{r}
+# now extract lat long data and feed it into climate BC to get the climate data. 
+
+fire_all1_slope_aspect_wind<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_Elev_veg_rd_infr_wind.gpkg")
+x3<- st_transform(fire_all1_slope_aspect_wind, crs = "+proj=longlat +datum=NAD83 / BC Albers +no_defs")
+
+head(x3)
+
+#getting long lat info
+#geo.prj <- "+proj=longlat +datum=WGS84 +ellps=WGS84 +towgs84=0,0,0" 
+st_crs(x3) #Retrieve coordinate reference system to check
+
+
+x4a<-as.data.frame(x3)
+#x4a$idno<- 1:dim(x4a[1])
+x4<- x4a %>%
+  tidyr::separate(geom, into = c("longitude", "latitude")," ")
+x4$longitude<- gsub(",", "", as.character(x4$longitude) )
+x4$longitude<- substring(x4$longitude, 3)
+x4$longitude<- as.numeric(x4$longitude)
+x4$longitude<- round(x4$longitude, digits=4)
+x4$latitude<- gsub(")", "", as.character(x4$latitude) )
+x4$latitude<- as.numeric(x4$latitude)
+x4$latitude<- round(x4$latitude, digits=4)
+
+#x4$ID2<-x4$frt
+export_dat<- x4 %>% rename(ID1 = idno,
+                           ID2 = frt,
+                           lat = latitude,
+                           lon = longitude) %>%
+  dplyr::select(ID1, ID2, lat, lon, el)
+
+table(is.na(export_dat$el))
+export_dat$el[is.na(export_dat$el)]<-"."
+
+
+#max(export_dat$lat)
+
+write.csv(export_dat, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv", row.names = FALSE)
+
+
+```
+
+```{r}
+setwd("D:/Climatebc_v730"); # set the ClimateBC root directory as the working directory
+exe <- "ClimateBC_v7.30.exe"
+
+## 2021
+inputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv' 
+outputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_clim2.csv'
+yearPeriod = '/Year_2021.ann'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+
+## 2041_2070 Not sure if this works. Testing it now
+inputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv' 
+outputFile = '/C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_clim_2041_2070.csv'
+yearPeriod = '/8GCMs_ensemble_ssp370_2041-2070.gcm'
+system2(exe,args= c('/M', yearPeriod, inputFile, outputFile))
+
+####################
+```
+
+now join climate data back to fire_all1_slope_aspect_wind and save the whole file.
+Then run the model for spread for the whole of BC and generate a spread probability map.
+
+Repeat the end step for escape!
+
+
+```{r}
+x4<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_clim2.csv")
+head(fire_all1_slope_aspect_wind)
+
+x5<-x4 %>% dplyr::select(ID1:Longitude, Tmax01:PPT12, RH01:RH12) %>%
+  dplyr::rename(idno=ID1,
+         frt=ID2)
+
+dat_final<-left_join(fire_all1_slope_aspect_wind, x5)
+
+
+dat_final<- dat_final  %>% dplyr::select(idno:el, bclcs_level_1:bclcs_level_5, land_cover_class_cd_1:yearsSinceDisturbance, FWI_veg:aspect_ha_bc_3005, wind_summer_clipped_224:geom) %>% 
+  rename(win_spr = wind_spring_raster_224,
+         win_sum = wind_summer_clipped_224,
+         slope = slope_ha_bc_3005,
+         aspect = aspect_ha_bc_3005,
+         elevation=el)
+
+st_write(dat_final, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_all_dat_400m_final.gpkg", delete_layer=TRUE, driver="GPKG")
+
+```
+
+
+
 
 
 

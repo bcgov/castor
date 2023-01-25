@@ -74,20 +74,22 @@ dat_person$FWI_veg<-as.factor(dat_person$FWI_veg)
 
 # FRT 12
 dat12<- dat_person %>% dplyr::filter(frt == 12) 
-table(dat12$FWI_veg)
+table(dat12$FWI_veg, dat12$fire)
 
 # there are only 3 observations in the C1 fuel type
-dat12$
-  FWI_veg[dat12$FWI_veg=="C-1"]<-"C-3" # C_1 and C-3 are apparently similar in spread rates so will change C-1 to C-3
+dat12$FWI_veg[dat12$FWI_veg=="C-1"]<-"C-3" # C_1 and C-3 are apparently similar in spread rates so will change C-1 to C-3
 
-# tehre are only 6 observations in the M-3 fuel type. So Ill switch it M-1/2
-#dat12$FWI_veg[dat12$FWI_veg=="M-3"]<-"M-1/2"
+# tehre are only 6 observations in the M-3 fuel type. So Ill switch it O-1a/b
+dat12$FWI_veg[dat12$FWI_veg=="M-3"]<-"O-1a/b"
 # going to combine slash categories because S-2 only has 6 obs.
-dat12$FWI_veg[dat12$FWI_veg=="S-2"]<-"S-1"
+dat12$FWI_veg[dat12$FWI_veg=="S-2"]<-"C-7"
 
 # also remove water and N
 dat12<- dat12 %>% filter(!FWI_veg %in%  c("W"))
 table(dat12$FWI_veg)
+
+cor.test(dat12$elevatn, dat12$climate1)
+cor.test(dat12$road_dist_m, dat12$infr_dist)
 
 
 ggplot(data=dat12, mapping=aes(x=as.factor(fire), y=climate1))+
@@ -100,28 +102,15 @@ ggplot(data=dat12, mapping=aes(x=as.factor(fire), y=road_dist_m))+
   geom_boxplot()
 
 
-mod_frt_12a<- glm(fire ~ climate1 + elevatn + FWI_veg + road_dist_m + infr_dist, data=dat12, family=binomial(link="logit"))
+mod_frt_12a<- glm(fire ~ climate1 + elevatn + FWI_veg + log(road_dist_m+1) + log(infr_dist+1), data=dat12, family=binomial(link="logit"))
 Anova(mod_frt_12a, type=3)
 
-mod_frt12b<- glm(fire ~ climate1 + elevatn + FWI_veg + road_dist_m, data=dat12, family=binomial(link="logit"))
-anova(mod_frt_12a,mod_frt12b, test="Chisq") 
-
-mod_frt12c<- glm(fire ~ climate1 + elevatn + FWI_veg + infr_dist, data=dat12, family=binomial(link="logit"))
-anova(mod_frt_12a,mod_frt12c, test="Chisq") 
-
-mod_frt_12d<- glm(fire ~ climate1 + FWI_veg + road_dist_m + infr_dist, data=dat12, family=binomial(link="logit"))
-anova(mod_frt_12a,mod_frt_12d, test="Chisq") 
-
-
-# best model is mod_frt_12a It has the lowest AIC (AIC=6080)
 
 dat12$log_road_dist<-log(dat12$road_dist_m+1)
 dat12$log_inf_dist<-log(dat12$infr_dist+1)
 
-mod_frt12<- glm(fire ~ climate1 + elevatn + FWI_veg + log_road_dist + log_inf_dist, data=dat12, family=binomial(link="logit"))
+mod_frt_12a<- glm(fire ~ climate1 + elevatn + FWI_veg + log_road_dist + log_inf_dist, data=dat12, family=binomial(link="logit"))
 
-summary(mod_frt12)
-Anova(mod_frt12, type=3)
 
 #checking whether the model is over or under dispersed
 z <- glm(fire ~ climate1 + elevatn + FWI_veg + log_road_dist + log_inf_dist, family = quasibinomial(link="logit"), data = dat12)
@@ -131,15 +120,15 @@ anova(z, test = "F")
 
 # model diagnostic plots
 # below model looks way better with log road dist. It had some structure with just road dist
-binnedplot (fitted(mod_frt12), 
-            residuals(mod_frt12), 
+binnedplot (fitted(mod_frt_12a), 
+            residuals(mod_frt_12a), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm"))
 
 
-dat12$resids<-resid(mod_frt12)
+dat12$resids<-resid(mod_frt_12a)
 
 binnedplot (dat12$climate1, 
             dat12$resids, 
@@ -174,7 +163,8 @@ binnedplot (dat12$log_inf_dist,
 
 
 ##Partial Residuals
-visreg(mod_frt12, scale="response") # nicer plots than the ones below!
+visreg(mod_frt_12a)
+visreg(mod_frt_12a, scale="response") # nicer plots than the ones below!
 
 ```
 
@@ -187,7 +177,7 @@ visreg(mod_frt12, scale="response") # nicer plots than the ones below!
 str(dat12)
 
 dat2_b<-dat12 %>% dplyr::select(fire, elevatn, climate1, log_road_dist, log_inf_dist)
-probabilities <- predict(mod_frt12, type = "response")
+probabilities <- predict(mod_frt_12a, type = "response")
 predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
 
 mydata <- dat2_b %>%
@@ -214,7 +204,7 @@ see: (http://www.sthda.com/english/articles/36-classification-methods-essentials
 #Influential values are extreme individual data points that can alter the quality of the logistic regression model.
 #The most extreme values in the data can be examined by visualizing the Cook’s distance values. Here we label the top 3 largest values:
 
-plot(mod_frt12, which = 4, id.n = 3)
+plot(mod_frt_12a, which = 4, id.n = 3)
 
 #Note that, not all outliers are influential observations. To check whether the data contains potential influential observations, the standardized residual error can be inspected. Data points with an absolute standardized residuals above 3 represent possible outliers and may deserve closer attention.
 
@@ -222,7 +212,7 @@ plot(mod_frt12, which = 4, id.n = 3)
 
 # Extract model results
 library(broom)
-model.data <- augment(mod_frt12) %>% 
+model.data <- augment(mod_frt_12a) %>% 
   mutate(index = 1:n()) 
 
 #The data for the top 3 largest values, according to the Cook’s distance, can be displayed as follow:
@@ -265,9 +255,24 @@ mod_frt12<- glm(fire ~ climate1 + elevatn + log_road_dist + log_inf_dist + FWI_v
 summary(mod_frt12)
 table(dat12$FWI_veg)
 
-#Create a new blank table and get AUC too
-top_mod_table_FRT5_person_All <- data.frame (matrix (ncol = 18, nrow = 0))
-colnames (top_mod_table_FRT5_person_All ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_elevatn", "coef_log_road_dist", "coef_log_inf_dist", "coef_FWI_veg_C-3", "coef_FWI_veg_C-5", "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_N","coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1",  "AUC")
+#Create a new blank table and get AUC too 
+# Note C-2 is the intercept
+top_mod_table_FRT5_person_All <- data.frame (matrix (ncol = 17, nrow = 0))
+colnames (top_mod_table_FRT5_person_All ) <- c ("CAUSE", "FRT",  "Model_terms",
+                                                "intercept",
+                                                "coef_climate_1",
+                                                "coef_elevatn",
+                                                "coef_log_road_dist",
+                                                "coef_log_inf_dist",
+                                                "coef_FWI_veg_C-3",
+                                                "coef_FWI_veg_C-5",
+                                                "coef_FWI_veg_C-7",
+                                                "coef_FWI_veg_D-1/2",
+                                                "coef_FWI_veg_M-1/2",
+                                                "coef_FWI_veg_N",
+                                                "coef_FWI_veg_O-1a/b",
+                                                "coef_FWI_veg_S-1",
+                                                "AUC")
 
 dat12$fire_veg<-paste(dat12$fire, dat12$FWI_veg)
 ```
@@ -295,8 +300,22 @@ mod.valid <- predict.glm(mod, newdata=Valid, type="response")
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT5_person <- data.frame (matrix (ncol = 18, nrow = 0))
-colnames (top_mod_table_FRT5_person ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1", "coef_elevatn", "coef_log_road_dist", "coef_log_inf_dist", "coef_FWI_veg_C-3", "coef_FWI_veg_C-5", "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2", "coef_FWI_veg_M-1/2", "coef_FWI_veg_M-3", "coef_FWI_veg_N","coef_FWI_veg_O-1a/b", "coef_FWI_veg_S-1",  "AUC")
+top_mod_table_FRT5_person <- data.frame (matrix (ncol = 17, nrow = 0))
+colnames (top_mod_table_FRT5_person ) <- c ("CAUSE", "FRT",  "Model_terms",
+                                                "intercept",
+                                                "coef_climate_1",
+                                                "coef_elevatn",
+                                                "coef_log_road_dist",
+                                                "coef_log_inf_dist",
+                                                "coef_FWI_veg_C-3",
+                                                "coef_FWI_veg_C-5",
+                                                "coef_FWI_veg_C-7",
+                                                "coef_FWI_veg_D-1/2",
+                                                "coef_FWI_veg_M-1/2",
+                                                "coef_FWI_veg_N",
+                                                "coef_FWI_veg_O-1a/b",
+                                                "coef_FWI_veg_S-1",
+                                                "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT5_person[1,1]<-"person"
@@ -315,8 +334,7 @@ top_mod_table_FRT5_person[1,13]<- coef(mod)[10] #c
 top_mod_table_FRT5_person[1,14]<- coef(mod)[11] #c
 top_mod_table_FRT5_person[1,15]<- coef(mod)[12] #c
 top_mod_table_FRT5_person[1,16]<- coef(mod)[13] #c
-top_mod_table_FRT5_person[1,17]<- coef(mod)[14] #c
-top_mod_table_FRT5_person[1,18]<- mod.auc
+top_mod_table_FRT5_person[1,17]<- mod.auc
 
 top_mod_table_FRT5_person_All<-rbind(top_mod_table_FRT5_person_All, top_mod_table_FRT5_person)
 

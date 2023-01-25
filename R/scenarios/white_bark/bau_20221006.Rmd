@@ -86,14 +86,6 @@ parameters <- list(
                          nameCompartmentRaster = "rast.tsa_aac_boundary",
                          nameCompartmentTable = "vat.tsa_aac_bounds_vat",
                          nameMaskHarvestLandbaseRaster ='rast.thlb_2020', 
-                         nameZoneRasters=c("rast.zone_cond_beo", 
-                                           "rast.zone_cond_vqo", 
-                                           "rast.zone_wha_2021", 
-                                           "rast.zone_uwr_2021",  
-                                           "rast.zone_cond_nharv", 
-                                           "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw"
-                              ),
                          nameZoneTable="zone.constraints", 
                         # nameZonePriorityRaster = "rast.zone_cond_beo",
                         
@@ -123,7 +115,15 @@ parameters <- list(
   forestryCastor = list(harvestBlockPriority = "dist, age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
                       #harvestZonePriorityInterval = 1,
-                      adjacencyConstraint = 0),
+                      adjacencyConstraint = 0,
+                      activeZoneConstraint = c("rast.zone_cond_beo", 
+                                           "rast.zone_cond_vqo", 
+                                           "rast.zone_wha_2021", 
+                                           "rast.zone_uwr_2021",  
+                                           "rast.zone_cond_nharv", 
+                                           "rast.zone_cond_fsw", 
+                                           "rast.zone_cond_cw")
+                         ),
   growingStockCastor = list (periodLength = 5),
   roadCastor = list(roadMethod = 'mst', # pre mst
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 

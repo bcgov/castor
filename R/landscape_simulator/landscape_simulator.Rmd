@@ -1,0 +1,437 @@
+---
+title: "landscape simulator"
+author: "Tyler Muhly"
+date: '2023-01-12'
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library (terra)
+library (data.table)
+```
+
+## Landscape Simulator
+Here I try create 'dummy' landscapes for estimating the effects of landscape configuration on simulation models. For example, to test for the effects of habitat amount, patch size and patch size distribution on fisher population abundance using an agent-based model (ABMs).
+
+## Methods
+First, create a raster. This example creates a 100km x 100km landscape centered (roughly) around 100 Mile House. Also create a table to document the scenario characteristics. 
+```{r, raster of area of interest}
+raster.land <- terra::rast (nrows = 1000, #1,000 * 1 ha cells = 100 km 
+                            ncols = 1000, 
+                            xmin = 1279755, 
+                            xmax = 1279755 + 1000, 
+                            ymin = 686680, 
+                            ymax = 686680 + 1000, 
+                            vals = 0)
+
+crs (raster.land) <-  "epsg:3005"
+
+tab.scenario <- data.table (scenario = character (),
+                            habitat_area_km2 = numeric (),
+                            patch_size_km2 = numeric (),
+                            n_patches = numeric (),
+                            patch_dist_km = numeric (),
+                            patch_quality = character ())
+```
+
+Next create a series of landscapes with different amounts of habitat and patch configurations. Here, *h* is the percentage of the landscape that is habitat, *p* is the number of habitat patches and *d* is the distance between patches in kilometers. 
+
+### All Habitat 
+The entire landscape is habitat.
+```{r, all habitat, h100.p1.d0}
+h100.p1.d0 <- raster.land
+h100.p1.d0 [] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h100.p1.d0"),
+                        habitat_area_km2 = as.numeric (10000),
+                        patch_size_km2 = as.numeric (10000),
+                        n_patches = as.numeric (1),
+                        patch_dist_km = as.numeric (0),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+```
+
+### 50% Habitat
+Half the landscape is habitat. 
+
+#### One Patch, Fully Connected
+Habitat occurs in a single contiguous patch. 
+```{r, h50.p1.d0}
+h50.p1.d0 <- raster.land 
+h50.p1.d0 [250:750, 1:1000] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h50.p1.d0"),
+                        habitat_area_km2 = as.numeric (5000),
+                        patch_size_km2 = as.numeric (5000),
+                        n_patches = as.numeric (1),
+                        patch_dist_km = as.numeric (0),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+
+```
+
+#### Two Patches, Partially Connected
+The landscape is divided into two patches of equal size that make up 50% of the landscape in top left and bottom right quadrants. Connected via 'queens' case. 
+```{r, h50.p2.d0}
+h50.p2.d0 <- raster.land 
+h50.p2.d0 [1:500, 1:500] <- 1
+h50.p2.d0 [501:1000, 501:1000] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h50.p2.d0"),
+                        habitat_area_km2 = as.numeric (5000),
+                        patch_size_km2 = as.numeric (2500),
+                        n_patches = as.numeric (2),
+                        patch_dist_km = as.numeric (0),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+```
+
+#### Two Patches, Not Connected, Close
+The landscape is divided into two patches of equal size that make up 50% of the landscape, separated by 25km.  
+```{r, h50.p2.d25}
+h50.p2.d25 <- raster.land 
+h50.p2.d25 [1:1000, 125:375] <- 1
+h50.p2.d25 [1:1000, 625:875] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h50.p2.d25"),
+                        habitat_area_km2 = as.numeric (5000),
+                        patch_size_km2 = as.numeric (2500),
+                        n_patches = as.numeric (2),
+                        patch_dist_km = as.numeric (25),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+```
+
+#### Two Patches, Not Connected, Far
+The landscape is divided into two patches of equal size that make up 50% of the landscape, separated by 50km.
+```{r, h50.p2.d50}
+h50.p2.d50 <- raster.land 
+h50.p2.d50 [1:1000, 1:250] <- 1
+h50.p2.d50 [1:1000, 751:1000] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h50.p2.d50"),
+                        habitat_area_km2 = as.numeric (5000),
+                        patch_size_km2 = as.numeric (2500),
+                        n_patches = as.numeric (2),
+                        patch_dist_km = as.numeric (50),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+
+```                                   
+
+#### Four Patches, Partially Connected
+The landscape is divided into four patches of equal size that make up 50% of the landscape. Connected via 'queens' case. 
+```{r, h50.p4.d0}
+h50.p4.d0 <- raster.land 
+h50.p4.d0 [1:500, 1:250] <- 1
+h50.p4.d0 [501:1000, 251:500] <- 1
+h50.p4.d0 [1:500, 501:750] <- 1
+h50.p4.d0 [501:1000, 751:1000] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h50.p4.d0"),
+                        habitat_area_km2 = as.numeric (5000),
+                        patch_size_km2 = as.numeric (1250),
+                        n_patches = as.numeric (4),
+                        patch_dist_km = as.numeric (0),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+```
+
+#### Four Patches, Not Connected, Close
+The landscape is divided into four patches of equal size that make up 50% of the landscape. Not connected, has one patch (25km) of spacing between patches. 
+```{r, h50.p4.d25}
+h50.p4.d25 <- raster.land 
+h50.p4.d25 [21:375, 625:979] <- 1
+h50.p4.d25 [625:979, 21:375] <- 1
+h50.p4.d25 [21:375, 21:375] <- 1
+h50.p4.d25 [625:979, 625:979] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h50.p4.d25"),
+                        habitat_area_km2 = as.numeric (5000),
+                        patch_size_km2 = as.numeric (1250),
+                        n_patches = as.numeric (4),
+                        patch_dist_km = as.numeric (25),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+```
+
+### 25% Habitat
+One quarter of the landscape is habitat. 
+
+#### One Patch, Fully Connected
+Habitat occurs in a single contiguous patch. 
+```{r, h25.p1.d0}
+h25.p1.d0 <- raster.land 
+h25.p1.d0 [251:750, 251:750] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h25.p1.d0"),
+                        habitat_area_km2 = as.numeric (2500),
+                        patch_size_km2 = as.numeric (2500),
+                        n_patches = as.numeric (1),
+                        patch_dist_km = as.numeric (0),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+
+```
+
+#### Two Patches, Partially Connected
+The landscape is divided into two patches of equal size that make up 25% of the landscape. Connected via 'queens' case. 
+```{r, h25.p2.d0}
+h25.p2.d0 <- raster.land 
+h25.p2.d0 [146:500, 146:500] <- 1
+h25.p2.d0 [501:854, 501:854] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h25.p2.d0"),
+                        habitat_area_km2 = as.numeric (2500),
+                        patch_size_km2 = as.numeric (1250),
+                        n_patches = as.numeric (2),
+                        patch_dist_km = as.numeric (0),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+```
+
+#### Two Patches, Not Connected, Close
+The landscape is divided into two patches of equal size that make up 25% of the landscape, separated by 25km.  
+```{r, h25.p2.d25}
+h25.p2.d25 <- raster.land 
+h25.p2.d25 [323:677, 21:375] <- 1
+h25.p2.d25 [323:677, 625:979] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h25.p2.d25"),
+                        habitat_area_km2 = as.numeric (2500),
+                        patch_size_km2 = as.numeric (1250),
+                        n_patches = as.numeric (2),
+                        patch_dist_km = as.numeric (25),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+```
+
+#### Two Patches, Not Connected, Far
+The landscape is divided into two patches of equal size that make up 25% of the landscape, separated by 50 km  
+```{r, h25.p2.d50}
+h25.p2.d50 <- raster.land 
+h25.p2.d50 [251:750, 1:250] <- 1
+h25.p2.d50 [251:750, 751:1000] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h25.p2.d50"),
+                        habitat_area_km2 = as.numeric (2500),
+                        patch_size_km2 = as.numeric (1250),
+                        n_patches = as.numeric (2),
+                        patch_dist_km = as.numeric (50),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+
+```
+
+#### Four Patches, Partially Connected
+The landscape is divided into four patches of equal size that make up 25% of the landscape. Connected via 'queens' case. 
+```{r, h25.p4.d0}
+h25.p4.d0 <- raster.land 
+h25.p4.d0 [1:250, 251:500] <- 1
+h25.p4.d0 [251:500, 501:750] <- 1
+h25.p4.d0 [501:750, 251:500] <- 1
+h25.p4.d0 [751:1000, 501:750] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h25.p4.d0"),
+                        habitat_area_km2 = as.numeric (2500),
+                        patch_size_km2 = as.numeric (625),
+                        n_patches = as.numeric (4),
+                        patch_dist_km = as.numeric (0),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+```
+
+#### Four Patches, Not Connected, Close
+The landscape is divided into four patches of equal size that make up 25% of the landscape, separated by 25km.  
+```{r, h25.p4.d25}
+h25.p4.d25 <- raster.land 
+h25.p4.d25 [125:375, 125:375] <- 1
+h25.p4.d25 [125:375, 625:875] <- 1
+h25.p4.d25 [625:875, 125:375] <- 1
+h25.p4.d25 [625:875, 625:875] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h25.p4.d25"),
+                        habitat_area_km2 = as.numeric (2500),
+                        patch_size_km2 = as.numeric (625),
+                        n_patches = as.numeric (4),
+                        patch_dist_km = as.numeric (25),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+
+```
+
+#### Four Patches, Not Connected, Far
+The landscape is divided into four patches of equal size that make up 25% of the landscape, separated by 50km.  
+```{r, h25.p4.d50}
+h25.p4.d50 <- raster.land 
+h25.p4.d50 [1:250, 1:250] <- 1
+h25.p4.d50 [751:1000, 1:250] <- 1
+h25.p4.d50 [1:250, 751:1000] <- 1
+h25.p4.d50 [751:1000, 751:1000] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h25.p4.d50"),
+                        habitat_area_km2 = as.numeric (2500),
+                        patch_size_km2 = as.numeric (625),
+                        n_patches = as.numeric (4),
+                        patch_dist_km = as.numeric (50),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+
+```
+
+### 10% Habitat
+Approximately one tenth of the landscape is habitat. 
+
+#### One Patch, Fully Connected
+Habitat occurs in a single contiguous patch. 
+```{r, h10.p1.d0}
+h10.p1.d0 <- raster.land 
+h10.p1.d0 [342:658, 342:658] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h10.p1.d0"),
+                        habitat_area_km2 = as.numeric (1000),
+                        patch_size_km2 = as.numeric (1000),
+                        n_patches = as.numeric (1),
+                        patch_dist_km = as.numeric (0),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+
+```
+
+#### Two Patches, Partially Connected
+The landscape is divided into two patches of equal size that make up ~10% of the landscape. Connected via 'queens' case. 
+```{r, h10.p2.d0}
+h10.p2.d0 <- raster.land 
+h10.p2.d0 [276:500, 276:500] <- 1
+h10.p2.d0 [501:725, 501:725] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h10.p2.d0"),
+                        habitat_area_km2 = as.numeric (1000),
+                        patch_size_km2 = as.numeric (500),
+                        n_patches = as.numeric (2),
+                        patch_dist_km = as.numeric (0),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+```
+
+#### Two Patches, Not Connected, Close
+The landscape is divided into two patches of equal size that make up 10% of the landscape, separated by 25km.  
+```{r, h10.p2.d25}
+h10.p2.d25 <- raster.land 
+h10.p2.d25 [388:612, 151:375] <- 1
+h10.p2.d25 [388:612, 625:849] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h10.p2.d25"),
+                        habitat_area_km2 = as.numeric (1000),
+                        patch_size_km2 = as.numeric (500),
+                        n_patches = as.numeric (2),
+                        patch_dist_km = as.numeric (25),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+```
+
+#### Two Patches, Not Connected, Far
+The landscape is divided into two patches of equal size that make up 10% of the landscape, separated by 50km.  
+```{r, h10.p2.d50}
+h10.p2.d50 <- raster.land 
+h10.p2.d50 [388:612, 26:250] <- 1
+h10.p2.d50 [388:612, 750:974] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h10.p2.d50"),
+                        habitat_area_km2 = as.numeric (1000),
+                        patch_size_km2 = as.numeric (500),
+                        n_patches = as.numeric (2),
+                        patch_dist_km = as.numeric (50),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+```
+
+#### Four Patches, Partially Connected
+The landscape is divided into four patches of equal size that make up ~10% of the landscape . Connected via 'queens' case. 
+```{r, h10.p4.d0}
+h10.p4.d0 <- raster.land 
+h10.p4.d0 [184:342, 342:500] <- 1
+h10.p4.d0 [343:501, 501:659] <- 1
+h10.p4.d0 [502:660, 342:500] <- 1
+h10.p4.d0 [661:819, 501:659] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h10.p4.d0"),
+                        habitat_area_km2 = as.numeric (1000),
+                        patch_size_km2 = as.numeric (250),
+                        n_patches = as.numeric (4),
+                        patch_dist_km = as.numeric (0),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+```
+
+#### Four Patches, Not Connected, Close
+The landscape is divided into four patches of equal size that make up 10% of the landscape, separated by 25km.  
+```{r, h10.p4.d25}
+h10.p4.d25 <- raster.land 
+h10.p4.d25 [217:375, 625:783] <- 1
+h10.p4.d25 [217:375, 217:375] <- 1
+h10.p4.d25 [625:783, 625:783] <- 1
+h10.p4.d25 [625:783, 217:375] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h10.p4.d25"),
+                        habitat_area_km2 = as.numeric (1000),
+                        patch_size_km2 = as.numeric (250),
+                        n_patches = as.numeric (4),
+                        patch_dist_km = as.numeric (25),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+
+```
+
+#### Four Patches, Not Connected, Far
+The landscape is divided into four patches of equal size that make up 10% of the landscape, separated by 50km.  
+```{r, h10.p4.d50}
+h10.p4.d50 <- raster.land 
+h10.p4.d50 [92:250, 750:908] <- 1
+h10.p4.d50 [750:908, 92:250] <- 1
+h10.p4.d50 [92:250, 92:250] <- 1
+h10.p4.d50 [750:908, 750:908] <- 1
+
+tab.temp <- data.table (scenario = as.character ("h10.p4.d50"),
+                        habitat_area_km2 = as.numeric (1000),
+                        patch_size_km2 = as.numeric (250),
+                        n_patches = as.numeric (4),
+                        patch_dist_km = as.numeric (50),
+                        patch_quality = as.character ("High"))
+tab.scenario <- rbind (tab.scenario, tab.temp)
+
+```
+
+### Save Data
+Combine all data together into a raster "stack" (multi-band .tif). Save the .tif and 'landscape design' table. 
+```{r, save data }
+
+raster.stack <- c (h100.p1.d0, h50.p1.d0, h50.p2.d0, h50.p2.d25, h50.p2.d50, h50.p4.d0, h50.p4.d25,
+                   h25.p1.d0, h25.p2.d0, h25.p2.d25, h25.p2.d50, h25.p4.d0, h25.p4.d25, h25.p4.d50,
+                   h10.p1.d0, h10.p2.d0, h10.p2.d25, h10.p2.d50, h10.p4.d0, h10.p4.d25, h10.p4.d50)
+
+names (raster.stack) <- c ("h100.p1.d0", 
+                           "h50.p1.d0", 
+                           "h50.p2.d0", "h50.p2.d25", "h50.p2.d50", 
+                           "h50.p4.d0", "h50.p4.d25",
+                           "h25.p1.d0", 
+                           "h25.p2.d0", "h25.p2.d25", "h25.p2.d50", 
+                           "h25.p4.d0", "h25.p4.d25", "h25.p4.d50",
+                           "h10.p1.d0", 
+                           "h10.p2.d0", "h10.p2.d25", "h10.p2.d50",
+                           "h10.p4.d0", "h10.p4.d25", "h10.p4.d50")
+
+terra::writeRaster (x = raster.stack, 
+                    filename = paste0 (here::here(),  "/R/SpaDES-modules/FLEX2/rast_sim_landscapes.tif"), 
+                    overwrite = TRUE) 
+
+write.csv (tab.scenario, paste0 (here::here(), "/R/SpaDES-modules/FLEX2/table_sim_landscapes.csv"))
+                     
+```
+
+
+Notes:
+* minimum patch size = fisher mean home range size = 3,000 ha
+* high habitat quality cell value = 4 = ~ mean d2 score and no adjustment to litter size
+* low habitat quality cell value = 4 > mean d2 + 2 sd's, = 50% reduction to litter size
