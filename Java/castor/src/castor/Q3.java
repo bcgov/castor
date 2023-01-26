@@ -24,7 +24,7 @@ public class Q3 {
 	
 	double evenFlowDeviation = 0.05;
 	double percentInitalGS = 0.8;
-	double maxHarvestAreaBudget = 0.02;
+	double maxHarvestAreaBudget = 0.06;
 	boolean evenFlow = true;
 	boolean endingInventory= true;
 	boolean harvestAreaBudget= true;
@@ -72,11 +72,11 @@ public class Q3 {
 		
 		System.out.println("Building Model I lp");
 		// Get the parameters from Cellular Automata Class
-		for( int f = 1; f < ca.forestTypeList.size(); f ++) { //the 0 forestType is null
+		for( int f = 0; f < ca.forestTypeList.size(); f ++) { //the 0 forestType is null
 			
 			
 			if(ca.forestTypeList.get(f).manage_type <= 0) { //remove non timber harvesting areas
-				forestType.add(null);
+				forestType.add(0);
 				continue;
 			}
 			
@@ -105,8 +105,10 @@ public class Q3 {
 				col ++;
 			}
 			
-			forestTypes += 1;
-			forestType.add(forestTypes);
+			//forestTypes += 1;
+			forestType.add(f);
+			
+			
 			gs0 += (double) ca.forestTypeList.get(f).stateTypes.get(0).get("gsVol")[0]*ca.forestTypeList.get(f).area; //initial growing stock
 			
 			//Add Area constraints
@@ -221,9 +223,10 @@ public class Q3 {
 	        }
 	        
 	        
-	        double[] dual =new double[forestTypes];
-	    	for(int d =0; d < forestTypes; d ++) { //set the area constraints
-	    		dual[d] = m1.getVarDualresult(d+1);
+	        double[] dual =new double[areaConstraintsValue.size()+1];
+	        dual[0] = 0;
+	    	for(int d =1; d < areaConstraintsValue.size()+1; d ++) { //set the area constraints
+	    		dual[d] = m1.getVarDualresult(d); //add one because zero is the objective function
 	    	}
 	    		        
 		    // delete the problem and free memory
@@ -255,7 +258,13 @@ public class Q3 {
 				PreparedStatement pstmt = conn.prepareStatement(insertResults);
 				try {
 					for(int c = 0; c < ca.cellsList.size(); c++) {
-						if(forestTypeLUT.get(ca.cellsList.get(c).foresttype) != null) {
+						if(ca.cellsList.get(c).manage_type > 0) {
+							
+							if(forestTypeLUT.get(ca.cellsList.get(c).foresttype) > 200) {
+								System.out.println();
+							}
+							
+							
 							pstmt.setDouble(1, dual[forestTypeLUT.get(ca.cellsList.get(c).foresttype)]);
 							pstmt.setInt(2, ca.cellsList.get(c).pixelid);
 							pstmt.executeUpdate();
