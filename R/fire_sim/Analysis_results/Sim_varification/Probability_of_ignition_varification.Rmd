@@ -1,10 +1,10 @@
 ---
-title: "Model_valiperson_22aion_ignition"
+title: "Model_validation_ignition"
 author: "Elizabeth Kleynhans"
-person_22ae: "2023-01-18"
+date: "2023-01-18"
 output: html_document
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -75,7 +75,7 @@ person_22a<-left_join(person, x)
 # notes I think person_22a should work for both lightning and person ignitions.
 ```
 
-
+Get climate variables and make climate1 and climate2 columns
 ```{r}
 #If you need to open the table listing the top climate
 climate_variables_lightning<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\climate_AIC_results_lightning_FRT_summary.csv")
@@ -165,7 +165,7 @@ ignition2<-ignition1 %>%
 dim(no_ignition)
 ```
 
-# Create proability of ignition map for all of BC in 2022
+# Create proability of ignition by lightning map for all of BC in 2022
 
 ```{r}
 frt5<- ignition2 %>% filter(frt==5)
@@ -549,7 +549,7 @@ gc()
 ```
 
 ######################
-## Probability of person caused fires
+# Probability of person caused fires for all of BC
 
 ```{r}
 climate_variable<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
@@ -966,6 +966,7 @@ plot(total.ignit, col=rev(heat.colors(255)))
 
 ```
 
+
 # Predict RSF values and reclassify pixels into ordinal classes or rank bins of a specified number
 ```{r}
 x<- as.data.frame(total.ignit)
@@ -1010,6 +1011,8 @@ plot(y2$bins, y2$Area)
 ```
 
 
+
+## Getting data from an independent data set
 # 6.) Count the number of used observations from an independent data set that fall in each RSF bin. 
 
 For this I will extract the probability of ignition points from my fire map at each of the points
@@ -1783,4 +1786,21 @@ t_value_one <- (my.slope["Estimate"] - 1) / my.slope["Std. Error"] # tests if sl
 2*pt(t_value_one, df=my.df, lower.tail=(t_value_one<0)) # two sided test
 ```
 
+```{r}
+library(ggpubr)
 
+p_bc
+
+ggarrange(#p_bc, 
+          p_frt5,
+          p_frt7,
+          p_frt9,
+          p_frt10,
+          p_frt11,
+          p_frt12,
+          p_frt13,
+          p_frt14,
+          p_frt15 + rremove("x.text"), 
+          labels = c("FRT 5", "FRT 7", "FRT 9", "FRT 10", "FRT 11", "FRT 12", "FRT 13", "FRT 14", "FRT15"),
+          ncol = 3, nrow = 3)
+```
