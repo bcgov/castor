@@ -36,6 +36,7 @@ defineModule(sim, list(
     defineParameter("dbPassword", "character", 'postgres', NA, NA, "The name of the postgres user password"),
   defineParameter("randomLandscape", "list", NA, NA, NA, desc = "The exent in a list ordered by: nrows, ncols, xmin, xmax, ymin, ymax"),
   defineParameter("randomLandscapeClusterLevel", "numeric", 1, 0.001, 1.999,"This describes the alpha parameter in RandomFields. alpha is [0,2]"),
+  defineParameter("randomLandscapeZoneNumber", "integer", 1, 0, 10,"The number of zones using spades spread function"),
   defineParameter("randomLandscapeZoneConstraint", "data.table", NA, NA, NA, desc = "The constraint to be applied"),
     defineParameter("nameBoundaryFile", "character", "gcbp_carib_polygon", NA, NA, desc = "Name of the boundary file. Here we are using caribou herd boudaries, could be something else (e.g., TSA)."),
     defineParameter("nameBoundaryColumn", "character", "herd_name", NA, NA, desc = "Name of the column within the boundary file that has the boundary name. Here we are using the herd name column in the caribou herd spatial polygon file."),
@@ -314,12 +315,18 @@ setTablesCastorDB <- function(sim) {
         rm(ras.zone) #clean up
         gc()
       } else{
-        stop(paste0("ERROR: extents are not the same check -", P(sim, "dataCastor", "nameZoneRasters")))
+        stop(paste0("ERROR: extents are not the same check -", P(sim, "nameZoneRasters", "dataCastor")))
       }
     }
   } else{
-    message('.....zone ids: default 1')
-    pixels[, zone1:= 1]
+    message(paste0('.....zone ids: randomly created: ' ,  P(sim, "randomLandscapeZoneNumber", "dataCastor")))
+    if(P(sim, "randomLandscapeZoneNumber", "dataCastor") > 1){
+      ras_dummy<-raster(extent(0,sim$extent[[1]],0, sim$extent[[2]]), ncols = sim$extent[[1]], nrows=sim$extent[[2]], vals = 0)
+      pixels[, zone1:= randomPolygons(ras = ras_dummy, numTypes = P(sim, "randomLandscapeZoneNumber", "dataCastor"))[]]
+    }else{
+      pixels[, zone1:= 1]
+    }
+   
     dbExecute(sim$castordb, "ALTER TABLE pixels ADD COLUMN zone1 integer;")
     dbExecute(sim$castordb, "INSERT INTO zone (zone_column, reference_zone) values ( 'zone1', 'default');" )
   }
@@ -869,14 +876,20 @@ setZoneConstraints<-function(sim){
   
   #For randomly created landscapes:
   if(!is.na(sim$extent[[1]])){
-    message("... setting ZoneConstraints table")
+    
+    if(nrow(P(sim,"randomLandscapeZoneConstraint", "dataCastor")) != P(sim,"randomLandscapeZoneNumber", "dataCastor")){
+      stop("The randomLandscapeZoneNumber does not equal number of randomLandscapeZoneConstraint")
+    }
+    
+    message("... setting ZoneConstraints table using randomLandscapeZoneConstraint")
+
     randomLandscapeZoneConstraint<-P(sim, "randomLandscapeZoneConstraint", "dataCastor")
-    zones <- data.table(zoneid =1, zone_column = 'zone1', reference_zone = 'default', ndt =3, variable = randomLandscapeZoneConstraint$variable, threshold = randomLandscapeZoneConstraint$threshold, type = randomLandscapeZoneConstraint$type, percentage = randomLandscapeZoneConstraint$percentage,
-                        multi_condition = NA, t_area = sim$extent[[1]]*sim$extent[[2]], denom = NA, start = 0, stop = 250)
+    randomLandscapeZoneConstraint<-merge(randomLandscapeZoneConstraint, dbGetQuery(sim$castordb, "select count(*) as t_area, zone1 as zoneid from pixels group by zone1;"), by.x = "zoneid", by.y = "zoneid", all.x =T)
+    randomLandscapeZoneConstraint[, `:=` (zone_column = 'zone1',reference_zone='default', ndt =3, multi_condition = NA, denom = NA, start =0, stop = 250  )]
     
     dbBegin(sim$castordb)
     rs<-dbSendQuery(sim$castordb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, multi_condition, t_area, start, stop) 
-                      values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :multi_condition, :t_area, :start, :stop);", zones[,c('zoneid', 'zone_column', 'reference_zone', 'ndt','variable', 'threshold', 'type', 'percentage', 'multi_condition', 't_area', 'start', 'stop')])
+                      values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :multi_condition, :t_area, :start, :stop);", randomLandscapeZoneConstraint[,c('zoneid', 'zone_column', 'reference_zone', 'ndt','variable', 'threshold', 'type', 'percentage', 'multi_condition', 't_area', 'start', 'stop')])
     dbClearResult(rs)
     dbCommit(sim$castordb)
   }

@@ -42,9 +42,20 @@ parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataCastor = list(saveCastorDB = TRUE,
+                    randomLandscapeZoneNumber = 10,
                      randomLandscape = list(1000,1000,0, 1000, 0, 1000),
-                     randomLandscapeZoneConstraint = 
-                       data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 0)
+                     randomLandscapeZoneConstraint = rbindlist(list(
+                       data.table(zoneid = 1,  variable = 'age', threshold = 140, type = 'ge', percentage = 0),
+                       data.table(zoneid = 2,  variable = 'age', threshold = 140, type = 'ge', percentage = 0),
+                       data.table(zoneid = 3,  variable = 'age', threshold = 140, type = 'ge', percentage = 0),
+                       data.table(zoneid = 4,  variable = 'age', threshold = 140, type = 'ge', percentage = 0),
+                       data.table(zoneid = 5,  variable = 'age', threshold = 140, type = 'ge', percentage = 0),
+                       data.table(zoneid = 6,  variable = 'age', threshold = 140, type = 'ge', percentage = 0),
+                       data.table(zoneid = 7,  variable = 'age', threshold = 140, type = 'ge', percentage = 0),
+                       data.table(zoneid = 8,  variable = 'age', threshold = 140, type = 'ge', percentage = 0),
+                       data.table(zoneid = 9,  variable = 'age', threshold = 140, type = 'ge', percentage = 0),
+                       data.table(zoneid = 10, variable = 'age', threshold = 140, type = 'ge', percentage = 0)
+                     ))
                     )
   )
 
