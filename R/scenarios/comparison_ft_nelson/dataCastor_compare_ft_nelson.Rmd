@@ -62,8 +62,8 @@ parameters <-  list (
                           nameZoneTable = "fort_nelson_tsa.constraints", 
                           # natural and managed stands yield curves are the same    
                           nameYieldsRaster = "fort_nelson_tsa.rast_ycid_fort_nelson_tsa", 
-                          nameYieldTable = "fort_nelson_tsa.yc_table", # fort_nelson_tsa.yc_table
                           nameYieldsTransitionRaster = "fort_nelson_tsa.rast_ycid_fort_nelson_tsa", 
+                          nameYieldTable = "fort_nelson_tsa.yc_table", # fort_nelson_tsa.yc_table
                           nameYieldTransitionTable = "fort_nelson_tsa.yc_table", 
                           nameForestInventoryRaster = "fort_nelson_tsa.rast_vri_id_fort_nelson_tsa", 
                           nameForestInventoryKey = "vri_fid", # unique id of each polygon 
