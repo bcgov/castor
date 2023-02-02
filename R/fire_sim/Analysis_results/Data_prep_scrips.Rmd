@@ -111,6 +111,8 @@ head(x3_dem)
 crs(x3_dem)
 crs(study_area)
 
+
+
 #### **NOTE I now do the climate extraction at the end and then join it back**
 
 # # now extract lat long data and feed it into climate BC to get the climate data. 
@@ -181,15 +183,20 @@ crs(study_area)
 
 ```{R}
 # convert the dataframe back into a spatial points dataframe
+x4_clim_dem_2<- x3_dem
+hist(x4_clim_dem_2$dem)
+
 my.sf.point <- st_as_sf(x = x4_clim_dem_2, 
                         coords = c("Longitude", "Latitude"),
                         crs = "+proj=longlat +datum=NAD83 / BC Albers +no_defs")
 
 my.sf.point <- st_transform (my.sf.point, 3005)
 
+
 # note the elevation seems to have been messed up. Im not sure why
 my.sf.point<-my.sf.point %>% select(!Elevation)
 x<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv")
+hist(x$el)
 
 x<- x %>% select(ID1, ID2, el) %>% rename(idno=ID1,
                                           frt=ID2)
@@ -200,26 +207,78 @@ head(my.sf.point.joined)
 st_write(my.sf.point.joined, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data.gpkg", delete_layer=TRUE, driver="GPKG")
 
 ```
-Now in QGIS join the above layer to the VRI.
+Now in QGIS join the above layer to the VRI. 
+
+Fields to add = 
+'inventory_standard_cd'
+'non_productive_cd'
+'coast_interior_cd',
+'bclcs_level_1',
+'bclcs_level_2',
+'bclcs_level_3',
+'bclcs_level_4',
+'bclcs_level_5',
+'non_veg_cover_type_1'
+'land_cover_class_cd_1'
+'est_cover_pct_1'
+'line_7b_disturbance_history',
+'bec_zone_code',
+'bec_subzone',
+'earliest_nonlogging_dist_type',
+'earliest_nonlogging_dist_date',
+'stand_percentage_dead',
+'harvest_date',
+'crown_closure',
+'vri_live_stems_per_ha',
+'vri_dead_stems_per_ha',
+'species_cd_1',
+'species_pct_1',
+'species_cd_2',
+'species_pct_2',
+'species_cd_3',
+'species_pct_3',
+'species_cd_4',
+'species_pct_4',
+'species_cd_5',
+'species_pct_5',
+'species_cd_6',
+'species_pct_6',
+'proj_age_1',
+'proj_age_2',
+'proj_height_1',
+'proj_height_2'
 
 
 ```{r}
-dat<- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data_veg.gpkg")
+dat<- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data_veg_VRI2001.gpkg")
+head(dat)
+names(dat)
+
+dat1<- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data_veg_VRI2003.gpkg")
+dat2<- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data_veg_VRI2004.gpkg")
+dat3<- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data_veg_VRI2005.gpkg")
+
+dat_all<-rbind(rbind(rbind(dat, dat1), dat2), dat3)
+dim(dat_all)
+dat_all$idno[duplicated(dat_all$idno)] # no duplicates good
+
+
 
 rm(pointCoordinates,ras.frt, rasStack,rasValue2,test, x,x2,x3,x3_dem)
-
-table(dat$idno)
+rm(dat, dat1, dat2, dat3)
+gc()
+table(dat_all$idno)
 
 #my.sf.point<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Quesnel_WilliamsLake_100Mile.gpkg")
 
 
 #do this part if dat is a multiploygon. But if its a point dont worry about this
-dat<-st_drop_geometry(dat)
+#dat<-st_drop_geometry(dat)
 
-names(dat)
-dat2<-dat %>% dplyr::select(idno, frt, inventory_standard_cd: proj_height_2)
+names(dat_all)
+dat_all2<-dat_all %>% dplyr::select(idno, frt,el, inventory_standard_cd: proj_height_1, geom)
 
-dat3<-left_join(my.sf.point, dat2)
+#dat3<-left_join(my.sf.point, dat2)
 
 ```
 
@@ -227,8 +286,8 @@ dat3<-left_join(my.sf.point, dat2)
 ```{r}
 # now run the data through the code in 09_veg_classification as FWI.RMD to classify the vegetation into the FWI types. The code from this RMD is posted here
 
-fire_all<-dat2
-rm(dat)
+fire_all<-dat_all2
+rm(dat_all2)
 
 table((fire_all$bclcs_level_1)) # U=unreported, N = non-vegetated, V = vegetated
 table((fire_all$bclcs_level_2)) # T= treed, N = Non-treed, L=Land, W=water
@@ -264,7 +323,7 @@ str(fire_all)
 
 First I need to create some new variables i.e. time since disturbance in years and time since last harvest. 
 ```{r}
-focal_yr<-2021
+focal_yr<-2001
 
 fire_all$yearHarvest<-as.numeric(as.character(stringi::stri_sub(fire_all$harvest_date,1,4)))
 fire_all<- fire_all %>% dplyr::mutate(yearsSinceHarvest = focal_yr - yearHarvest)
@@ -947,7 +1006,7 @@ x<- fire_all1 %>% filter(is.na(FWI_veg)) %>% dplyr::select(inventory_standard_cd
 
 Now save it
 ```{r}
-st_write(fire_all1, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_Elev_veg.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(fire_all1, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_Elev_veg_2001_joined.gpkg", delete_layer=TRUE, driver="GPKG")
 
 ```
 
@@ -1023,13 +1082,16 @@ fire_all1_slope_aspect_wind$dist_infrastructure_m<-
 fire_all1_slope_aspect_wind$dist_infrastructure_m<-
   ifelse(fire_all1_slope_aspect_wind$dist_urban_m < fire_all1_slope_aspect_wind$dist_infrastructure_m, fire_all1_slope_aspect_wind$dist_urban_m, fire_all1_slope_aspect_wind$dist_infrastructure_m)
 
-fire_all1_slope_aspect_wind2<- fire_all1_slope_aspect_wind  %>% dplyr::select(idno:mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10, bclcs_level_5, FWI_veg:aspect_ha_bc_3005, wind_summer_clipped_224,wind_spring_raster_224, dist_infrastructure_m, dist_roads_m, geom) %>% 
+fire_all1_slope_aspect_wind2<- fire_all1_slope_aspect_wind  %>% dplyr::select(idno:el, bclcs_level_4, bclcs_level_5, FWI_veg:aspect_ha_bc_3005, wind_summer_clipped_224,wind_spring_raster_224, dist_infrastructure_m, dist_roads_m, geom) %>% 
   rename(win_spr = wind_spring_raster_224,
          win_sum = wind_summer_clipped_224,
          slope = slope_ha_bc_3005,
          aspect = aspect_ha_bc_3005)
+```
 
-st_write(fire_all1_slope_aspect_wind, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_Elev_veg_rd_infr_wind.gpkg", delete_layer=TRUE, driver="GPKG")
+
+```{r}
+st_write(fire_all1_slope_aspect_wind2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_Elev_veg_rd_infr_wind_2001.gpkg", delete_layer=TRUE, driver="GPKG")
 
 ```
 
@@ -1106,14 +1168,16 @@ Repeat the end step for escape!
 
 
 ```{r}
-x4<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_clim2.csv")
-head(fire_all1_slope_aspect_wind)
+x4<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_Year_2001M.csv")
+head(fire_all1_slope_aspect_wind2)
 
-x5<-x4 %>% dplyr::select(ID1:Longitude, Tmax01:PPT12, RH01:RH12) %>%
+x5<-x4 %>% dplyr::select(ID1:Longitude, Tmax01:Tmax12, Tave01:PPT12, RH01:RH12) %>%
   dplyr::rename(idno=ID1,
          frt=ID2)
 
-dat_final<-left_join(fire_all1_slope_aspect_wind, x5)
+dat_final<-left_join(fire_all1_slope_aspect_wind2, x5)
+
+names(dat_final)
 
 
 dat_final<- dat_final  %>% dplyr::select(idno:el, bclcs_level_1:bclcs_level_5, land_cover_class_cd_1:yearsSinceDisturbance, FWI_veg:aspect_ha_bc_3005, wind_summer_clipped_224:geom) %>% 
@@ -1123,7 +1187,7 @@ dat_final<- dat_final  %>% dplyr::select(idno:el, bclcs_level_1:bclcs_level_5, l
          aspect = aspect_ha_bc_3005,
          elevation=el)
 
-st_write(dat_final, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_all_dat_400m_final.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(dat_final, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_all_dat_400m_final_2001.gpkg", delete_layer=TRUE, driver="GPKG")
 
 ```
 
