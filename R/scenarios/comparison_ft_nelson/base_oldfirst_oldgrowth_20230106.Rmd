@@ -24,17 +24,18 @@ See the License for the specific language governing permissions and limitations 
 This scenario was developed to compare the basic STSM-SELES timber supply model to the Castor timber supply model. Both of these models are deterministic, spatial, simulation models. The same datasets and parameters were used in each model to assess whether they determine similar spatial timber supply outcomes. 
 
 # Scenario
-This is a simple scenario where the harvest flow target is the maximum even flow over a 200 year period. The harvest priority queue is 'oldest first' and no constraints, blocking or roading is implemented in the model. 
+This is a simple scenario where the harvest flow target is the maximum even flow over a 200 year period. The harvest priority queue is 'oldest first' and no constraints, blocking or roading is implemented in the model. In addition, an old growth management constraint is applied that establishes old forest targets for 5 zones within the TSA. 
 
 
 # Parameters 
 ## Zone Constraints
-None
+Old growth
 
 ## 'harvestPriority' parameter 
 oldest first 
 
 ## 'harvestFlow'
+Maximum even-flow 200 years
 
 ## adjacencyConstraint
 None
@@ -84,7 +85,7 @@ parameters <- list(
                         #harvestZonePriority = "age DESC",
                         #harvestZonePriorityInterval = 1,
                         #adjacencyConstraint = 0,
-                        #activeZoneConstraint = c ("fort_nelson_tsa.rast_oldgrw_prod")
+                        activeZoneConstraint = "fort_nelson_tsa.rast_oldgrw_prod",
                         reportHarvestConstraints = T
                         ),
   blockingCastor = list(blockMethod = 'pre', 
@@ -105,8 +106,8 @@ modules <- list("dataCastor",
                 "uploadCastor"
                 )
 
-scenario = data.table (name = "oldest_noroads_noblocks",
-                       description = "Priority queue = oldest first. Adjacency constraint = None. No roads or blocks. Maximum even live harvest flow: 3,150,000 m3/year. Minimum harvest age = 50")
+scenario = data.table (name = "oldest_oldgrowth_noroads_noblocks",
+                       description = "Priority queue = oldest first. Adjacency constraint = None. No roads or blocks. Maximum even live harvest flow: 3,150,000 m3/year. Minimum harvest age = 50. Old growth constraints included.")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Fort_Nelson_TSA",
@@ -137,12 +138,7 @@ mySim <- simInit(times = times,
 
 # outputs to keep; these are tables that get used in the uploader
 outputs(mySim) <- data.frame (objectName = c("harvestReport",
-                                             "growingStockReport",
-                                             "tableSurvivalReport",
-                                             "disturbanceReport",
-                                             "volumebyareaReport",
-                                             "tableGrizzSurvivalReport",
-                                             "tableAbundanceReport"
+                                             "growingStockReport"
                                              ))
 
 #Run the model 1 time
