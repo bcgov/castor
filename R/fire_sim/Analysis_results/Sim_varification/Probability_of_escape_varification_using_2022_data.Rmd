@@ -34,20 +34,13 @@ library(SpaDES.core)
 
 ## Introduction
 
-Here I want to test the simulation to check that its performing as expected i.e. that its somewhat mimicking real fires on the landscape.
+## Validating fire ignition map
 
-#Ideas on how to test this:
+Following methods outlined in Johnson et. al. (2006) Resource selection functions based on use-availability data: Theoretical motivation and evaluation methods.Journal of wildlife management 70: 347-357. I will test whether my ignition points are reasonably estimated by my logistic regression equation. Basically, the idea is to take my probability of ignition map and bin the predicted probabilities into bins. Then weight these bins by the amount of area they cover on the maps. by multiplying the mid point of the probability bin by its area we can estimate the proportion of ignition points we expect to fall in that bin. Then using an independent data set (such as 2022 ignition points) we can check whether our expected number of ignition points actually lines up with our actual data. if the two match then by ploting predicted proportion of igntions in each bin by actual proportion of igntions in each bin I should see a line that has a slope of 1 and intercept of 0. If I get this it indicates that my model is proportional to the probability of use. 
 
-1) If I input all actual ignition points observed for an area into the simulation does a similar proportion of fires escape. For the purpose of my escape layer I included only fires taht got bigger than 10ha. THus, here I check whether I get similar numbers of fires that are larger than 10ha's with my simulation as I do in real life.
+This is what the paper says: 
 
-2.) If I allow fires to spread out from those ignition points do I get a similar distribution of fire sizes as I observe in the data?
-
-- I should do 1 and 2 for 2022 fires as an independent check of the data. 
-
-3.) Something else to check is whether the probability of escape is similar to the probability of spread. Also are these similar for fires that dont escape as they are for fires that do escape? 
-To do this if I regress the probability of escape on the probability of spread at the same locations i.e. locations where ignition occured. 
-
-4.) I dont thinkg this will influence anything but I could also play with the number of neightbours that can ignite. Spread2 allows either 4 or 8 neighbours for spreading each simulation. Does this make any difference?
+"First,  assess  the  slope  of  the  regression  line  for  a  significant difference   from   a   slope   of   zero   where   use   would   equal availability   and   therefore   indicate   that   the   model   is   not different  from  that  of  a  random  or  neutral  model.  Second, assess whether the slope is different from 1.0, which is the slope expected for a model that is proportional to the probability of use.  Third,  assess  the  constant  for  an  intercept  of  zero,  the intercept  expected  for  a  model  that  is  approximately  proportional to probability of use. And finally, use both the R2 of the model and Chi2 goodness-of-fit test to assess fit. A model that was  proportional  to  probability  of  use  would  have  a  slope different from 0, but not different from 1, an intercept of 0, and a high R2 value with a nonsignificant Chi2 goodness-of-fit value.Finally, chi2 tests for each observed and expected proportion can be used to determine in which RSF bins the observed frequency differs from expected. If these conditions are not satisfied, the user  might  consider  revisiting  the  process  starting  at  step  3 (reclassify the RSF using a different model), rebinning the RSF values,  or  estimating  a  model  with  different  environmental factors".
 
 # import my ignition locations for 2022
 ```{r, echo=TRUE}
@@ -93,34 +86,8 @@ length(ignit_escape$CURRENT_SIZE) # out of a total of 1647 fires only 263 of the
 hist(ignit_escape$CURRENT_SIZE, breaks=50)
 ```
 
-# select a study area
-```{r}
-# get study area
-
-#study_area<-getSpatialQuery("SELECT tsa_name, wkb_geometry FROM study_area_compart where tsa_name in ('Quesnel TSA', 'Williams Lake TSA',  '100 Mile House TSA')")
-
-frt_12<-frt_clipped %>% filter(Cluster == 12) %>% group_by ( Cluster) %>% summarise()
-st_crs(frt_12)
-
-ignit_subset <- ignit[frt_12, ]
-ignit_subset_10<- ignit_subset %>% filter(CURRENT_SIZE >10)
-
-length(ignit_subset$CURRENT_SIZE) # 167 locations caught fire
-length(ignit_subset_10$CURRENT_SIZE) # 9 locations had fires > 10ha
-```
-
-
-```{r, study area with ignition points, eval = F, echo = T}
-# look at where the ignition points are on the map
-ggplot() +
-  geom_sf(data=frt_12) + 
-  geom_sf(data=ignit_subset)  +
-  geom_sf(dat=ignit_subset_10, col="red")
-
-```
-
 ##################################
-# create escape and spread rasters for 2022
+# create escape rasters for 2022
 ##################################
 ```{r}
 x<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_lighting_ignit_final_2022.gpkg")
@@ -621,6 +588,9 @@ st_write(frt_all2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\B
 # gdal_rasterize -l BC_prob_escape_final -a prob_ignition -tr 400.0 400.0 -init -9.0 -a_nodata -9.0 -te 159587.5 173787.5 1881187.5 1748187.5 -ot Float32 -of GTiff C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/BC/BC_prob_escape_final.gpkg C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/BC/rast_escape_400m.tif
 
 ```
+
+
+
 
 #######################################
 #Create spread raster for 2022
@@ -1307,6 +1277,11 @@ st_write(frt_all2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\B
 escape.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_escape_2022.tif")
 spread.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_spread_2022.tif")
 
+# run this in R to save these files to KylesClus:
+paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_lightning_ignit_400m_2.tif -t 400x400 rast.prob_lightning_ignit_bc_2021 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus')
+# then copy the output thats between the " " from the above and paste it into the cmd and run that... should show Insert 0  1 lots of times.
+
+
 crs(spread.ras)
 crs(escape.ras)
 raster::crs(spread.ras) <- "EPSG:3005"
@@ -1342,12 +1317,7 @@ rm(r2, r3)
 x<- as.data.frame(escape.ras)
 hist(x$rast_escape_2022)
 
-bins<-quantile(x$rast_escape_2022, probs = seq(0, 1, 1/10), na.rm=TRUE)
-
-# 
-# y<-x %>% mutate(x_bin = ntile(layer, n=10))
-# table(y$x_bin)
-
+#bins<-quantile(x$rast_escape_2022, probs = seq(0, 1, 1/10), na.rm=TRUE)
 y_alt<-x %>% mutate(x_bin = cut(rast_escape_2022, breaks=10))
 #y_alt2<-x%>% mutate(x_bin = cut(layer, breaks =c(0, 0.1269326, 0.1959398, 0.2403519, 0.2758387, 0.3081048, 0.3397820, 0.3772622, 0.4259310, 0.4935676, 1.0))) # This method uses the quantiles identified above.
 
@@ -1392,22 +1362,22 @@ ignit<-try(
   bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_CURRENT_FIRE_PNTS_SP") %>%    
     filter(FIRE_TYPE == "Fire") %>%
     collect()
-)
+) # extract 2022 data
 
-ignit2<-try(
-  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
-    filter(FIRE_YEAR > 2019) %>%
-    filter(FIRE_TYPE == "Fire") %>%
-    collect()
-)
+# ignit2<-try(
+#   bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
+#     filter(FIRE_YEAR > 2019) %>%
+#     filter(FIRE_TYPE == "Fire") %>%
+#     collect()
+# ) # I did not end up doing this but I was considering extracting 2021 and 2020 data as well as 2022 data and running the test on all that data together. i was considering doing this because my sample sizes for spread for 2022 are quite low particularly in some frt's.
 
 names(ignit)
-names(ignit2)
+#names(ignit2)
 
 ignit<- ignit %>% select(id:IGNITION_DATE, FIRE_CAUSE, FIRE_TYPE, CURRENT_SIZE, geometry)
-ignit2<- ignit2 %>% select(id:IGNITION_DATE, FIRE_CAUSE, FIRE_TYPE, CURRENT_SIZE, geometry)
+#ignit2<- ignit2 %>% select(id:IGNITION_DATE, FIRE_CAUSE, FIRE_TYPE, CURRENT_SIZE, geometry)
 
-ignit3<-rbind(ignit, ignit2)
+#ignit3<-rbind(ignit, ignit2)
 
 # first join the ignition points to frt so that I can see whether different frt react differently i.e. whether some are better than others.
 frt <- st_read ( dsn = "D:\\Fire\\fire_data\\Fire_Regime_Types\\FRT\\FRT_Canada.shp", stringsAsFactors = T) # Read simple features from file or person_22aabase, or retrieve layer names and their geometry type(s)
@@ -1428,7 +1398,7 @@ frt_clipped<-st_intersection(bc.bnd, frt)
 length(unique(frt_clipped$Cluster))
 frt_sf<-st_as_sf(frt_clipped)
 
-fire.ignt.frt <- st_join(ignit3, frt_clipped)
+fire.ignt.frt <- st_join(ignit, frt_clipped)
 table(fire.ignt.frt$Cluster)
 table(is.na(fire.ignt.frt$Cluster))
 
@@ -2181,6 +2151,7 @@ t_value_one <- (my.slope["Estimate"] - 1) / my.slope["Std. Error"] # tests if sl
 # conclusion for this FRT. intercept is not different to zero and slope is not different than 1. GOOD
 ```
 
+# Plot all frt data together in one panel
 ```{r}
 library(ggpubr)
 
