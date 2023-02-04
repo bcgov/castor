@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+source (here::here("R/functions/R_Postgres.R"))
 library (raster)
 library (sf)
 library (data.table)
@@ -78,6 +79,13 @@ dbDisconnect(conn)
 ```
 
 ```{r, rasterize and vat the vri}
+
+vri <- getSpatialQuery ("SELECT * FROM fisher_boreal.vri_2008_fin;")
+
+ras.vri <- fasterize::fasterize (st_cast (vri, "MULTIPOLYGON"), prov.rast, field = "fid_veg_comp_lyr_r1_2008")
+writeRaster (ras.vri, paste0 (data.dir, "vri_2008_fid.tif"), overwrite = T)
+
+system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, 'vri_2008_fid.tif -t 100x100 fisher_boreal.rast_vri_fid | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 ```
 
