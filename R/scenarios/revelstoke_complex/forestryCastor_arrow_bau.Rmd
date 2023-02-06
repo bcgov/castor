@@ -112,6 +112,7 @@ parameters <- list(
 )
 
 modules <- list("dataCastor",
+                "forestryCastor",
                 "growingStockCastor",
                 "blockingCastor", 
                 "roadCastor",
@@ -122,7 +123,7 @@ modules <- list("dataCastor",
                 "uploadCastor")
 
 scenario = data.table (name = "arrow_bau",
-                       description = "Business as usual (BAU). Adjacency = 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/year. No road recovery. Even live harvest flow: 550,000 m3/year. Growing stock sustainable (flat) at year 100-200. No road recovery (300 years).")
+                       description = "Business as usual (BAU). Adjacency = 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/year. No road recovery. Even live harvest flow: 320,000 m3/year. Growing stock sustainable (flat) at year 100-200. No road recovery (300 years).")
 
 
 harvestFlow <- rbindlist(list(
@@ -132,7 +133,8 @@ harvestFlow <- rbindlist(list(
                                                            to = 20,
                                                            by = 1),
                                                      1),
-                                          flow = 5500000) # 550,000
+                                          partition_type = 'live',
+                                          flow = 3200000) # 320,000
                               ))
 
 

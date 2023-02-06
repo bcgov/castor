@@ -46,7 +46,7 @@ In order to use the application to manage cloud resources on Digital Ocean platf
 
 ### Digital Ocean Personal Access Token
 
-The first step and prerequesitite is to authenticate the application to the Digital Ocean using the token. The token needs to be obtained from the [Digital Ocean control panel](https://cloud.digitalocean.com). Navigate to the "API" link in the right navigation sidebar and activate the "Token/Keys" tab in the main panel.
+The first step and prerequisite is to authenticate the application to the Digital Ocean using the token. The token needs to be obtained from the [Digital Ocean control panel](https://cloud.digitalocean.com). Navigate to the "API" link in the right navigation sidebar and activate the "Token/Keys" tab in the main panel.
 
 ![](inst/app/img/DO-token.png)
 

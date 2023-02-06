@@ -112,6 +112,7 @@ parameters <- list(
 )
 
 modules <- list("dataCastor",
+                "forestryCastor",
                 "growingStockCastor",
                 "blockingCastor", 
                 "roadCastor",
@@ -132,6 +133,7 @@ harvestFlow <- rbindlist(list(
                                                            to = 20,
                                                            by = 1),
                                                      1),
+                                          partition_type = 'live',
                                           flow = 3000000) # 300,000
                               ))
 
