@@ -49,6 +49,7 @@ dbClearResult(rs)
 dbCommit(clusdb)
 
 ### create territory query
+#TODO: do we grab the closest denning habitat pixels up to the target; then grab the closest movement?
 territory<-dbGetQuery(clusdb, glue::glue("with 
 search as (select fisherLocation, searchArea, dist from fisherSearchArea ),
 habitat as (select pixelid, den, mov from pixels where den = 1 or mov =1)
