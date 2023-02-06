@@ -28,6 +28,7 @@ public class Demo {
 		      //80%P3-P4 < = 0
 		      solver.strAddConstraint("0 0 -240 0 340 -520 0 0 -240 0 720 -1050", LpSolve.LE, 0);
 
+		      
 		      //Upper Bound
 		      //120%(P1) - P2 harvest < = 0
 		      solver.strAddConstraint("0 348 348 -350 0 0 0 762 762 -760 0 0", LpSolve.GE, 0);
