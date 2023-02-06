@@ -42,7 +42,6 @@ defineModule(sim, list(
   outputObjects = bind_rows(
     createsOutput (objectName = "fisher.feta.info", objectClass = "data.table", desc = "A data.table object containg which fisher zone a feta belongs to based on a majority rule"),
     createsOutput (objectName = "fisher.d2.cov", objectClass = "list", desc = "A list object containing a covariance matrix for each fisher zone required to compute d2"),
-    createsOutput (objectName = "flexRasWorld", objectClass = "RasterLayer", desc = "A list of raster with 1st specifying the fisher habitat zones (1 to 4); 2nd a stack of mahalanobis distance through time and; 3rd a stack of movement habitat through time"),
     createsOutput (objectName = "fisherReport", objectClass = "data.table", desc = "A data.table object. Consists of fisher occupancy estimates for each territory in the study area at each time step. Gets saved in the 'outputs' folder of the module.")
   )
 ))
@@ -128,8 +127,7 @@ Init <- function(sim) {
     }else{
       stop("Specify a new fisher habitat raster. The fisher zone is already specified as another zone")
     }
-  
-  #---------FLEX modelling
+
     message("creating permanent habitat table")
     
     hab_p <- data.table(
@@ -179,11 +177,10 @@ Init <- function(sim) {
 setFisherD2Parameters<-function(sim){ #sets up the world object
   # 1: Boreal, 2: SBS-wet, 3: Sbs-dry, 4 = Dry Forest
   sim$fisher.feta.info <- data.table(dbGetQuery(sim$castordb, "with freqs as (select count(mov_p) as freq, mov_p, fetaid from fisherhabitat group by fetaid, mov_p) select max(freq), mov_p as pop, fetaid from freqs group by fetaid;"))#the population each feta belong to
-  sim$fisher.d2.cov <- list(matrix(c(193.235, 	5.418, 	42.139, 	125.177, 	-117.128, 	5.418, 	0.423, 	2.926, 	5.229, 	-4.498, 	42.139, 	2.926, 	36.03, 	46.52, 	-42.571, 	125.177, 	5.229, 	46.52, 	131.377, 	-101.195, 	-117.128, 	-4.498, 	-42.571, 	-101.195, 	105.054), ncol =5, nrow =5),
-                            matrix(c(0.536,	2.742,	0.603,	3.211,	-2.735,	1.816,	2.742,	82.721,	4.877,	83.281,	7.046,	-21.269,	0.603,	4.877,	0.872,	4.033,	-0.67,	-0.569,	3.211,	83.281,	4.033,	101.315,	-15.394,	-1.31,	-2.735,	7.046,	-0.67,	-15.394,	56.888,	-48.228,	1.816,	-21.269,	-0.569,	-1.31,	-48.228,	47.963), nrow =6, ncol =6),
-                            matrix(c(0.525,	-1.909,	-0.143,	2.826,	-6.891,	3.264,	-1.909,	96.766,	-0.715,	-39.021,	69.711,	-51.688,	-0.143,	-0.715,	0.209,	-0.267,	1.983,	-0.176,	2.826,	-39.021,	-0.267,	58.108,	-21.928,	22.234,	-6.891,	69.711,	1.983,	-21.928,	180.113,	-96.369,	3.264,	-51.688,	-0.176,	22.234,	-96.369,	68.499), nrow =6, ncol =6),
-                            matrix(c(2.905,	0.478,	4.04,	1.568,	-3.89,	0.478,	0.683,	6.131,	8.055,	-8.04,	4.04,	6.131,	62.64,	73.82,	-62.447,	1.568,	8.055,	73.82,	126.953,	-130.153,	-3.89,	-8.04,	-62.447,	-130.153,	197.783), nrow =5, ncol =5)
-  )
+  sim$fisher.d2.cov <- fisher.d2.cov <- list(matrix(c(0.536,	2.742,	0.603,	3.211,	-2.735,	1.816,	2.742,	82.721,	4.877,	83.281,	7.046,	-21.269,	0.603,	4.877,	0.872,	4.033,	-0.67,	-0.569,	3.211,	83.281,	4.033,	101.315,	-15.394,	-1.31,	-2.735,	7.046,	-0.67,	-15.394,	56.888,	-48.228,	1.816,	-21.269,	-0.569,	-1.31,	-48.228,	47.963), ncol =6, nrow =6),
+                                             matrix(c(0.525,	-1.909,	-0.143,	2.826,	-6.891,	3.264,	-1.909,	96.766,	-0.715,	-39.021,	69.711,	-51.688,	-0.143,	-0.715,	0.209,	-0.267,	1.983,	-0.176,	2.826,	-39.021,	-0.267,	58.108,	-21.928,	22.234,	-6.891,	69.711,	1.983,	-21.928,	180.113,	-96.369,	3.264,	-51.688,	-0.176,	22.234,	-96.369,	68.499), ncol =6, nrow =6),
+                                             matrix(c(2.905,	0.478,	4.04,	1.568,	-3.89,	0.478,	0.683,	6.131,	8.055,	-8.04,	4.04,	6.131,	62.64,	73.82,	-62.447,	1.568,	8.055,	73.82,	126.953,	-130.153,	-3.89,	-8.04,	-62.447,	-130.153,	197.783), ncol=5, nrow=5),
+                                             matrix(c(193.235,	5.418,	42.139,	125.177,	-117.128,	5.418,	0.423,	2.926,	5.229,	-4.498,	42.139,	2.926,	36.03,	46.52,	-42.571,	125.177,	5.229,	46.52,	131.377,	-101.195,	-117.128,	-4.498,	-42.571,	-101.195,	105.054), ncol =5, nrow =5))
   return(invisible(sim))
 }
 
@@ -197,7 +194,7 @@ getFisherSuitability<-function(sim){
   #---Model from Weir and Corbould 2010
   occupancy[, rel_prob_occup:= ((exp(-0.219*openess))/(1+exp(-0.219*openess )))/0.5]
   
-  message("calc flex world")
+  message("calc fisher suitability")
   #---VAT for regional models: 1 = SBS-wet; 2 = SBS-dry; 3 = Dry Forest; 4 = Boreal_A; 5 = Boreal_B
   #---Note: age > 0 is added a query to remove any harvesting that occurs in the same sim time
   fisher.habitat <- data.table(dbGetQuery(sim$castordb, "select fisherhabitat.pixelid, fetaid, den_p, rus_p, cav_p, cwd_p, mov_p, age, height, crownclosure, basalarea, qmd from fisherhabitat inner join pixels on fisherhabitat.pixelid = pixels.pixelid"))
@@ -208,8 +205,8 @@ getFisherSuitability<-function(sim){
   fisher.habitat[rus_p == 1 & age > 0 & crownclosure >= 30 & qmd >= 22.7 & basalarea >= 35 & height >= 23.7, rust:=1][rus_p == 2 & age >= 72 & crownclosure >= 25 & qmd >= 19.6 & basalarea >= 32, rust:=1][rus_p == 3 & age >= 83 & crownclosure >=40 & qmd >= 20.1, rust:=1][rus_p == 5 & age >= 78 & crownclosure >=50 & qmd >= 18.5 & height >= 19 & basalarea >= 31.4, rust:=1][rus_p == 6 & age >= 68 & crownclosure >=35 & qmd >= 17 & height >= 14.8, rust:=1]
   fisher.habitat[cav_p == 1 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1][cav_p == 2 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1]
   fisher.habitat[cwd_p == 1 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 2 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 3 & age >= 100, cwd:=1][cwd_p >= 5 & age >= 78 & qmd >= 18.1 & height >= 19 & crownclosure >=60, cwd:=1]
-  fisher.habitat[mov_p == 1 & age > 0 & crownclosure > 30, movement:=1]
-    
+  fisher.habitat[mov_p == 1 & age > 0 & crownclosure > 30, movement:=1][mov_p == 2 & age > 0 & crownclosure > 25, movement:=1][mov_p == 3 & age > 0 & crownclosure > 20, movement:=1][mov_p == 5 & age > 0 & crownclosure > 50, movement:=1]
+  fisher.habitat[is.na(crownclosure) | crownclosure <= 10, open:=1]  
     
   #---Summarize habitat by the feta
   den<-fisher.habitat[den_p > 0, .(denning = (sum(denning, na.rm =T)/3000)*100), by = fetaid]
@@ -217,75 +214,31 @@ getFisherSuitability<-function(sim){
   rus<-fisher.habitat[rus_p > 0, .(rust = (sum(rust, na.rm =T)/3000)*100), by = fetaid] 
   cwd<-fisher.habitat[cwd_p > 0, .(cwd =(sum(cwd, na.rm =T)/3000)*100), by = fetaid]
   mov<-fisher.habitat[mov_p > 0, .(mov = (sum(movement, na.rm =T)/3000)*100), by = fetaid]
+  opn<-fisher.habitat[, .(opn = (sum(open, na.rm =T)/3000)*100), by = fetaid]
   
     #---Merge all habitat data.table together
-    fisher.habitat.rs <- Reduce(function(...) merge(..., all = TRUE), list(sim$fisher.feta.info, den,cav,rus,cwd,mov))
+    fisher.habitat.rs <- Reduce(function(...) merge(..., all = TRUE), list(sim$fisher.feta.info, den,cav,rus,cwd,mov, opn))
     #fisher.d2.cov<<-sim$fisher.d2.cov
     #stop()
     #---Calculate D2 (Mahalanobis)
     #-----Add log transforms
     fisher.habitat.rs[is.na(fisher.habitat.rs)] <-0
-    fisher.habitat.rs[ pop == 1 & denning >= 0, denning:=log(denning + 1)][ pop == 1 & cavity >= 0, cavity:=log(cavity + 1)]
-    fisher.habitat.rs[ pop == 2 & denning >= 0, denning:=log(denning + 1)]
-    fisher.habitat.rs[ pop >= 3 & rust >= 0, rust:=log(rust + 1)]
-    #fisher.habitat.rs[is.na(fisher.habitat.rs)] <-0.0000000001
+    fisher.habitat.rs[ mov_p == 1 & denning >= 0, denning:=log(denning + 1)][ mov_p == 1 & cavity >= 0, cavity:=log(cavity + 1)]
+    fisher.habitat.rs[ mov_p == 2 & denning >= 0, denning:=log(denning + 1)]
+    fisher.habitat.rs[ mov_p >= 3 & rust >= 0, rust:=log(rust + 1)]
     
-    #-----Truncate at the center plus one st dev
-    stdev_pop1<-sqrt(diag(sim$fisher.d2.cov[[1]]))
-    stdev_pop2<-sqrt(diag(sim$fisher.d2.cov[[2]]))
-    stdev_pop3<-sqrt(diag(sim$fisher.d2.cov[[3]]))
-    stdev_pop4<-sqrt(diag(sim$fisher.d2.cov[[4]]))
-    
-    #fisher.habitat.rs[ pop == 1 & denning > 1.6 + stdev_pop1[1], denning := 1.6 + stdev_pop1[1]][ pop == 1 & rust > 36.2 + stdev_pop1[2], rust :=36.2 + stdev_pop1[2]][ pop == 1 & cavity > 0.7 + stdev_pop1[3], cavity :=0.7+ stdev_pop1[3]][ pop == 1 & cwd > 30.4+ stdev_pop1[4], cwd :=30.4+ stdev_pop1[4]][ pop == 1 & mov > 26.8+ stdev_pop1[5], mov :=26.8+ stdev_pop1[5]]
-    #fisher.habitat.rs[ pop == 2 & denning > 1.2 + stdev_pop2[1], denning := 1.2 + stdev_pop2[1]][ pop == 2 & rust > 19.1 + stdev_pop2[2], rust :=19.1 + stdev_pop2[2]][ pop == 2 & cavity > 0.5 + stdev_pop2[3], cavity :=0.5+ stdev_pop2[3]][ pop == 2 & cwd > 10.2+ stdev_pop2[4], cwd :=10.2+ stdev_pop2[4]][ pop == 2 & mov > 33.1+ stdev_pop2[5], mov :=33.1+ stdev_pop2[5]]
-    #fisher.habitat.rs[ pop %in% c(3,4) & denning > 2.3 + stdev_pop3[1], denning := 2.3 + stdev_pop3[1]][ pop %in% c(3,4) & rust > 1.6 +  stdev_pop3[2], rust :=1.6  + stdev_pop3[2]][ pop %in% c(3,4) & cwd > 10.8+ stdev_pop3[3], cwd :=10.8 + stdev_pop3[3]][ pop %in% c(3,4) & mov > 21.5+ stdev_pop3[4], mov :=21.5+ stdev_pop3[4]]
-    #fisher.habitat.rs[ pop >= 5 & denning > 24  + stdev_pop4[1], denning:=24+ stdev_pop4[1] ][ pop >= 5 & rust > 2.2+ stdev_pop4[2], rust :=2.2+ stdev_pop4[2]][ pop >= 5 & cwd > 17.4 + stdev_pop4[3], cwd :=17.4+ stdev_pop4[3]][ pop >= 5 & mov > 56.2+ stdev_pop4[4], mov :=56.2+ stdev_pop4[4]]
-    
-    #fisher.habitat.rs[ pop == 1 & denning > 1.6 , denning := 1.6 ][ pop == 1 & rust > 36.2, rust :=36.2][ pop == 1 & cavity > 0.7, cavity :=0.7][ pop == 1 & cwd > 30.4, cwd :=30.4][ pop == 1 & mov > 50, mov :=50]
-    #fisher.habitat.rs[ pop == 2 & denning > 1.2 , denning := 1.2 ][ pop == 2 & rust > 19.1, rust :=19.1][ pop == 2 & cavity > 0.5, cavity :=0.5][ pop == 2 & cwd > 10.2, cwd :=10.2][ pop == 2 & mov > 50, mov :=50]
-    #fisher.habitat.rs[ pop %in% c(3,4) & denning > 2.3 , denning := 2.3 ][ pop %in% c(3,4) & rust > 1.6, rust :=1.6][ pop %in% c(3,4) & cwd > 10.8, cwd :=10.8][ pop %in% c(3,4) & mov > 50, mov :=50]
-    #fisher.habitat.rs[ pop >= 5 & denning > 24, denning:=24 ][ pop >= 5 & rust > 2.2, rust :=2.2][ pop >= 5 & cwd > 17.4, cwd :=17.4][ pop >= 5 & mov > 56.2, mov :=56.2]
-    
-    fisher.habitat.rs[ pop == 1 & denning > 1.6 , denning := 1.6 ][ pop == 1 & rust > 36.2, rust :=36.2][ pop == 1 & cavity > 0.7, cavity :=0.7][ pop == 1 & cwd > 30.4, cwd :=30.4][ pop == 1 & mov > 26.8, mov :=26.8]
-    fisher.habitat.rs[ pop == 2 & denning > 1.2 , denning := 1.2 ][ pop == 2 & rust > 19.1, rust :=19.1][ pop == 2 & cavity > 0.5, cavity :=0.5][ pop == 2 & cwd > 10.2, cwd :=10.2][ pop == 2 & mov > 33.06, mov :=33.06]
-    fisher.habitat.rs[ pop %in% c(3,4) & denning > 2.3 , denning := 2.3 ][ pop %in% c(3,4) & rust > 1.6, rust :=1.6][ pop %in% c(3,4) & cwd > 10.8, cwd :=10.8][ pop %in% c(3,4) & mov > 21.5, mov :=21.5]
-    fisher.habitat.rs[ pop >= 5 & denning > 24, denning:=24 ][ pop >= 5 & rust > 2.2, rust :=2.2][ pop >= 5 & cwd > 17.4, cwd :=17.4][ pop >= 5 & mov > 56.2, mov :=56.2]
-    
+    #-----Truncate at the center
+    fisher.habitat.rs[ mov_p == 1 & denning > 1.57 , denning := 1.57 ][ mov_p == 1 & rust > 36.2, rust :=36.2][ mov_p == 1 & cavity > 0.685 , cavity :=0.685][ mov_p == 1 & cwd > 30.38, cwd :=30.38][ mov_p == 1 & mov > 61.5, mov :=61.5][ mov_p == 1 & opn < 32.7, opn :=32.7]
+    fisher.habitat.rs[ mov_p == 2 & denning > 1.16, denning := 1.16][ mov_p == 2 & rust > 19.1, rust :=19.1][ mov_p == 2 & cavity > 0.45 , cavity :=0.45][ mov_p == 2 & cwd > 12.7, cwd :=12.7][mov_p == 2 & mov > 51.3, mov :=51.3][ mov_p == 2 & opn < 37.3, opn :=37.3]
+    fisher.habitat.rs[ mov_p == 3 & denning > 2.3, denning := 2.3][ mov_p == 3 & rust > 1.6, rust :=1.6][ mov_p == 3 & cwd > 10.8, cwd :=10.8][ mov_p == 3 & mov > 58.1, mov := 58.1][ mov_p == 3 & opn < 15.58, opn := 15.58]
+    fisher.habitat.rs[ mov_p == 5 & denning > 24 , denning:=24 ][ mov_p ==5 & rust > 2.2, rust :=2.2][ mov_p ==5 & cwd > 17.4 , cwd :=17.4][ mov_p ==5 & mov > 56.2, mov :=56.2][ mov_p == 5 & opn < 31.2, opn := 31.2]
     
     #-----D2
-    fisher.habitat.rs[ pop == 1, d2:= mahalanobis(fisher.habitat.rs[ pop == 1, c("denning", "rust", "cavity", "cwd", "mov")], c(1.6, 36.2, 0.7, 30.4, 26.8), cov = sim$fisher.d2.cov[[1]])]
-    fisher.habitat.rs[ pop == 2, d2:= mahalanobis(fisher.habitat.rs[ pop == 2, c("denning", "rust", "cavity", "cwd", "mov")], c(1.16, 19.1, 0.45, 8.69, 33.06), cov = sim$fisher.d2.cov[[2]])]
-    fisher.habitat.rs[ pop %in% c(3,4), d2:= mahalanobis(fisher.habitat.rs[ pop %in% c(3,4), c("denning", "rust", "cwd", "mov")], c(2.3, 1.6, 10.8, 21.5), cov = sim$fisher.d2.cov[[3]])]
-    fisher.habitat.rs[ pop >= 5, d2:= mahalanobis(fisher.habitat.rs[ pop >= 5, c("denning", "rust", "cwd", "mov")], c(24.0, 2.2, 17.4, 56.2), cov = sim$fisher.d2.cov[[4]])]
-   
-    #fisher.habitat.rs[ pop == 1, d2:= mahalanobis(fisher.habitat.rs[ pop == 1, c("denning", "rust", "cavity", "cwd", "mov")], c(1.6, 36.2, 0.7, 30.4, 50), cov = sim$fisher.d2.cov[[1]])]
-    #fisher.habitat.rs[ pop == 2, d2:= mahalanobis(fisher.habitat.rs[ pop == 2, c("denning", "rust", "cavity", "cwd", "mov")], c(1.16, 19.1, 0.45, 8.69, 50), cov = sim$fisher.d2.cov[[2]])]
-    #fisher.habitat.rs[ pop %in% c(3,4), d2:= mahalanobis(fisher.habitat.rs[ pop %in% c(3,4), c("denning", "rust", "cwd", "mov")], c(2.3, 1.6, 10.8, 50), cov = sim$fisher.d2.cov[[3]])]
-    #fisher.habitat.rs[ pop >= 5, d2:= mahalanobis(fisher.habitat.rs[ pop >= 5, c("denning", "rust", "cwd", "mov")], c(24.0, 2.2, 17.4, 56.2), cov = sim$fisher.d2.cov[[4]])]
-    
-    #fisher.habitat.rs[mov < 30 & d2 < 7, d2:=10]
-    #print(nrow(fisher.habitat.rs[d2<7,]))
-    fisher.habitat.mahal<-merge(fisher.habitat, fisher.habitat.rs[,c("fetaid", "d2", "pop", "mov")], by.x = "fetaid", by.y = "fetaid", all.x =T)
-  
-    #-----Create Raster of D2
-    #ras.mahal<-sim$ras
-    #ras.mahal[]<-NA
-    #ras.mahal[fisher.habitat.mahal$pixelid]<-fisher.habitat.mahal$d2
-    
-    #---Create Raster of movement
-    #ras.mov<-sim$ras
-    #ras.mov[] <- NA
-    #ras.mov[fisher.habitat.mahal$pixelid]<-fisher.habitat.mahal$mov
+    fisher.habitat.rs[ mov_p == 1, d2:= mahalanobis(fisher.habitat.rs[ mov_p == 1, c("denning", "rust", "cavity", "cwd", "mov", "opn")], c(1.57, 36.2, 0.68, 30.38, 61.5, 32.72), cov = fisher.d2.cov[[1]])]
+    fisher.habitat.rs[ mov_p == 2, d2:= mahalanobis(fisher.habitat.rs[ mov_p == 2, c("denning", "rust", "cavity", "cwd", "mov", "opn")], c(1.16, 19.1, 0.4549, 12.76, 51.25, 37.27), cov = fisher.d2.cov[[2]])]
+    fisher.habitat.rs[ mov_p == 3, d2:= mahalanobis(fisher.habitat.rs[ mov_p == 3, c("denning", "rust", "cwd", "mov", "opn")], c(2.31, 1.63, 10.8, 58.1, 15.58), cov = fisher.d2.cov[[3]])]
+    fisher.habitat.rs[ mov_p == 5, d2:= mahalanobis(fisher.habitat.rs[ mov_p == 5, c("denning", "rust", "cwd", "mov", "opn")], c(23.98, 2.24, 17.4, 56.2, 31.2), cov = fisher.d2.cov[[4]])]
 
-    #Aggregate to a 30km pixels and save for FLEX
-    #if(i == 1){
-    #  sim$flexRasWorld[[2]] <- aggregate(ras.mahal, fact =55)
-     # sim$flexRasWorld[[3]] <- aggregate(ras.mov, fact =55)
-   # }else{
-     # sim$flexRasWorld[[2]] <- stack(sim$flexRasWorld[[2]], aggregate(ras.mahal, fact =55))
-    #  sim$flexRasWorld[[3]] <- stack(sim$flexRasWorld[[3]], aggregate(ras.mov, fact =55))
-    #}
-  #}
   
   fisherReport<-merge(occupancy, fisher.habitat.rs[, c("fetaid", "denning", "rust", "cavity", "cwd", "mov","d2")], by.x = "zone", by.y = "fetaid")
   fisherReport[, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name, sim$boundaryInfo[[3]][[1]]) ] 
