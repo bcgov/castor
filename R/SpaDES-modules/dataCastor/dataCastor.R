@@ -829,7 +829,7 @@ setZoneConstraints<-function(sim){
       }
     })
     )
-    
+     
     zone_list<-merge(zone_const, zone, by.x = 'reference_zone',by.y = 'reference_zone')
     
     #Split into two sections: one for denom values, the other for default denom which is the total area of the zone

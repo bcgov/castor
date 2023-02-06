@@ -93,7 +93,7 @@ doEvent.roadCastor = function(sim, eventTime, eventType, debug = FALSE) {
     buildRoads = { # Builds or simulates roads at the roading interval
       if(!is.null(sim$landings)){ #Check if there are cutblock landings to simulate roading
         switch(P(sim)$roadMethod,
-            snap={ # Individiually links landings to closest road segment with a straight line
+            snap={ # Individually links landings to closest road segment with a straight line
               sim <- getClosestRoad(sim) # Uses nearest neighbour to find the closest road segement to the target
               sim <- buildSnapRoads(sim)
               sim <- updateRoadsTable(sim) # Updates the pixels table in castordb to the proper year that pixel was roaded

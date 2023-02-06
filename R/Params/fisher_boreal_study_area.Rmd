@@ -1,0 +1,95 @@
+---
+title: "Fisher Boreal Study Area"
+author: "Tyler Muhly"
+date: '2023-01-20'
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source (here::here("R/functions/R_Postgres.R"))
+library (raster)
+library (sf)
+library (data.table)
+library (DBI)
+library (dplyr)
+```
+
+## Background
+This script is to create the data for estimating fisher abundance in a portion of the boreal forest using the Castor model. Fisher were radio-tagged in a portion of the boreal forest in 2008. The estimated home range boundaries and vegetation inventory data from 2008 are included in the dataset.
+
+### Load the Data 
+Data is sourced from a gdb provided by Rich Weir, Provincial Mesocarnivore Biologist. Note that the VIR data provided by Rich had 'empty' polygons in the study area. According to Rich, these were unforested areas, like agricultural lands dn urban areas, and thus ultimately should provide no habitat value to fisher. I tried to fill those polygons using sf st_intersection() functionality but found I was getting geometry errors, even after using st_make_valid() or repair geometry in ArcGIS. So, I ended up doing the pre-processing in Arc, using erase and then unioning some unforested polygons into the VRI data. In short, I filled the empty polygons with unforested polygons.
+
+Also note that the study area included portions of Alberta, which I edited in Arc, so now the study area only includes B.C.
+
+```{r, load the data}
+
+data.dir <- "D:/fisher/"
+
+vri <- sf::st_make_valid (sf::st_read (dsn = paste0 (data.dir, "/Fisher_test_boreal.gdb"),
+                                       layer= "vri_2008_fin")
+                          )
+
+sa <- sf::st_make_valid (sf::st_read (dsn = paste0 (data.dir, "/Fisher_test_boreal.gdb"),
+                                      layer= "KPF_broad_outline")
+                         )
+sa$tsa_name <- "study_area"
+sa$value <- as.integer (1)
+sa$ORIG_OID <- NULL
+sa$TEXT <- NULL
+sa$SHAPE_Length <- NULL
+sa$SHAPE_Area <- NULL
+st_write (sa, paste0 (data.dir, "bounds_fisher_boreal_sa.shp"))
+
+### add data to the db - run in OSGEO with db creds
+  
+  # ogr2ogr -f PostgreSQL PG:"dbname=xxxx port=xxxx user=xxxx password=xxxx host=xxxx ACTIVE_SCHEMA=fisher_boreal" D:\fisher\Fisher_test_boreal.gdb vri_2008_fin -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+    # ALTER TABLE fisher_boreal.vri_2008_fin RENAME COLUMN geometry TO wkb_geometry;
+
+# ogr2ogr -f PostgreSQL PG:"dbname=xxxx port=xxxx user=xxxx password=xxxx host=xxxx ACTIVE_SCHEMA=fisher_boreal" D:\fisher\bounds_fisher_boreal_sa.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
+  # ALTER TABLE fisher_boreal.vri_2008_fin RENAME COLUMN geometry TO wkb_geometry;
+
+```
+
+### Rasterize the Data
+
+```{r, rasterize and vat study area}
+
+prov.rast <- raster::raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(sa)$proj4string, resolution = c(100, 100), vals = 0)
+
+vat.sa <- as.data.table (unique (sa$tsa_name))
+vat.sa [, value := seq_len(.N)]
+
+# Rasterize 
+ras.sa <- fasterize::fasterize (st_cast (sa, "MULTIPOLYGON"), prov.rast, field = "value")
+writeRaster (ras.sa, paste0 (data.dir, "bounds_fisher_boreal.tif"), overwrite = T)
+
+# write data
+conn <- DBI::dbConnect (RPostgreSQL::PostgreSQL(), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+setnames (vat.sa, c ("attribute", "value")) # Note use convention; always name these value and attribute
+DBI::dbWriteTable (conn, c("fisher_boreal", "vat_bounds"), value = vat.sa, row.names = FALSE, overwrite = TRUE)
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, 'bounds_fisher_boreal.tif -t 100x100 fisher_boreal.rast_bounds | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+dbDisconnect(conn)
+```
+
+```{r, rasterize and vat the vri}
+
+vri <- getSpatialQuery ("SELECT * FROM fisher_boreal.vri_2008_fin;")
+
+ras.vri <- fasterize::fasterize (st_cast (vri, "MULTIPOLYGON"), prov.rast, field = "fid_veg_comp_lyr_r1_2008")
+writeRaster (ras.vri, paste0 (data.dir, "vri_2008_fid.tif"), overwrite = T)
+
+system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, 'vri_2008_fid.tif -t 100x100 fisher_boreal.rast_vri_fid | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+```
+
+
+
+### UPload Data to the GDB
+

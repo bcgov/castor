@@ -12,14 +12,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.-->
 
 ---
-title: "Database creation for Fort Nelson TSA Comparison Analysis Between STSM and Castor"
+title: "Database creation for Boreal Fisher Habitat Calibration"
 author: "Tyler Muhly"
-date: "6 January 2023"
+date: "23 January 2023"
 output: pdf_document
 ---
 
 # Overview
-
+Creating a sqlite db of a boreal landscape in 2008 to 'calibrate' the fisher agent-based model. Here we assume a static landscape (no harvesting, no forest stand growth and yield) to test for the effect of the specific landscape configuration on fisher abundance estimated from an agent-based model (ABM). The ABM  territory locations (and population estimates) can be compared to field-data derived home ranges (and population estimates?) to assess the ABM's accuracy.
 
 
 
@@ -48,22 +48,20 @@ parameters <-  list (
         .globals = list (),
         dataCastor = list(dbName = 'castor',
                           saveCastorDB = TRUE,
-                          sqlite_dbname = "ftnelson_stsmcompare_noroads_noblocks", 
-                                          # ftnelson_stsmcompare_noroads_noblocks  
-                                          # ftnelson_stsmcompare_noroads_yesblocks
-                          nameBoundaryFile = "fort_nelson_tsa.bounds_fort_nelson_tsa", 
+                          sqlite_dbname = "fisher_boreal_2008",
+                          nameBoundaryFile = "fisher_boreal.bounds_fisher_boreal_sa", 
                           nameBoundaryColumn = "tsa_name", 
-                          nameBoundary = "Fort_Nelson_TSA", 
+                          nameBoundary = "study_area", 
                           nameBoundaryGeom = 'wkb_geometry',
-                          nameCompartmentRaster = "fort_nelson_tsa.rast_bounds_fort_nelson_tsa", 
-                          nameCompartmentTable = "fort_nelson_tsa.vat_bounds_fort_nelson_tsa", 
-                          nameMaskHarvestLandbaseRaster = 'fort_nelson_tsa.rast_thlb', 
-                          nameZoneRasters = "fort_nelson_tsa.rast_oldgrw_prod",
-                          nameZoneTable = "fort_nelson_tsa.constraints", 
+                          nameCompartmentRaster = "fisher_boreal.rast_bounds", 
+                          nameCompartmentTable = "fisher_boreal.vat_bounds", 
+                          # nameMaskHarvestLandbaseRaster = 'rast.thlb_2020', # won't be used 
+                          # nameZoneRasters = "fort_nelson_tsa.rast_oldgrw_prod", # no mgt zones
+                          # nameZoneTable = "fort_nelson_tsa.constraints", # no constraints
                           # natural and managed stands yield curves are the same    
-                          nameYieldsRaster = "fort_nelson_tsa.rast_ycid_fort_nelson_tsa", 
-                          nameYieldsTransitionRaster = "fort_nelson_tsa.rast_ycid_fort_nelson_tsa", 
+                          # nameYieldsRaster = "fort_nelson_tsa.rast_ycid_fort_nelson_tsa", # not dynamic
                           nameYieldTable = "fort_nelson_tsa.yc_table", # fort_nelson_tsa.yc_table
+                          nameYieldsTransitionRaster = "fort_nelson_tsa.rast_ycid_fort_nelson_tsa", 
                           nameYieldTransitionTable = "fort_nelson_tsa.yc_table", 
                           nameForestInventoryRaster = "fort_nelson_tsa.rast_vri_id_fort_nelson_tsa", 
                           nameForestInventoryKey = "vri_fid", # unique id of each polygon 
