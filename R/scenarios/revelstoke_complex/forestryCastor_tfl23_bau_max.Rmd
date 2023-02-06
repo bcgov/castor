@@ -122,7 +122,7 @@ modules <- list("dataCastor",
                 "volumebyareaReportCastor",
                 "uploadCastor")
 
-scenario = data.table (name = "tfl23_bau",
+scenario = data.table (name = "tfl23_bau_max",
                        description = "Business as usual (BAU). Adjacency = 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/year. No road recovery. Even live harvest flow: 500,000 m3/year. Growing stock sustainable (flat) at year 100-200. No road recovery (300 years).")
 
 
