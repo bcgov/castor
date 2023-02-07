@@ -123,7 +123,7 @@ modules <- list("dataCastor",
                 "uploadCastor")
 
 scenario = data.table (name = "golden_bau_max",
-                       description = "Business as usual (BAU) max non-declining harvest flow. . Adjacency = 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/year. No road recovery. Even live harvest flow: 450,000 m3/year. No growing stock constraint. No road recovery (300 years).")
+                       description = "Business as usual (BAU) max non-declining harvest flow. Adjacency = 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/year. No road recovery. Maximum non-declining live harvest flow: 400,000 m3/year. No growing stock constraint. No road recovery (300 years).")
 
 
 harvestFlow <- rbindlist(list(
@@ -134,7 +134,7 @@ harvestFlow <- rbindlist(list(
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 4500000) # 450,000
+                                          flow = 4000000) # 400,000
                               ))
 
 
