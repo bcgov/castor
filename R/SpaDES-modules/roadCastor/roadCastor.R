@@ -473,6 +473,7 @@ getGraph<- function(sim){
   
   if(P(sim)$roadMethod %in% c('lcp', 'mst')){ #Need a vector of permanent roads for cases where the landing falls on one -- since these roads are simplified to a single pixel with many edges.
     sim$perm.roads<-dbGetQuery(sim$castordb, "select pixelid from pixels where roadtype = 0;")
+    sim$nodes <-unique(c(sim$edges.weight$to, sim$edges.weight$from))
   }
   
   #------make the igraph -- TO BE DEPRECATED
@@ -511,7 +512,7 @@ lcpList<- function(sim){##Get a list of paths from which there is a to and from 
 mstSolve <- function(sim){
   message('mstSolve')
   #------get the edge list between a permanent road and the landing
-  landing.cell <- data.table(landings = sim$harvestPixelList[sim$harvestPixelList[, .I[which.min(dist)], by=blockid]$V1]$pixelid )[!(landings %in% sim$perm.roads$pixelid),] 
+  landing.cell <- data.table(landings = sim$harvestPixelList[sim$harvestPixelList[, .I[which.min(dist)], by=blockid]$V1]$pixelid )[!(landings %in% sim$perm.roads$pixelid),][ landings %in% sim$nodes, ]
   #landing.cell <- data.table(landings = cellFromXY(sim$ras,sim$landings))[!(landings %in% sim$perm.roads$pixelid),] #remove landings on permanent roads
   weights.closest.rd <- cppRouting::get_distance_matrix(Graph=sim$g, 
                                   from=landing.cell$landings, 
