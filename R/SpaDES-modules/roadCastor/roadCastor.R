@@ -61,6 +61,7 @@ defineModule(sim, list(
     createsOutput(objectName = "road.year", objectClass = "SpatRaster", desc = "A raster of the time period roads were used"),
     createsOutput(objectName = "roadslist", objectClass = "data.table", desc = "A table of the road segments for every pixel"),
     createsOutput(objectName = "perm.roads", objectClass = "integer", desc = "A vector of pixelids that correspond to permanent roads"),
+    createsOutput(objectName = "nodes", objectClass = "integer", desc = "A vector of pixelids in the graph"),
     createsOutput(objectName = "node.coords", objectClass = "data.frame", desc = "A table of coordinates for each node"),
     createsOutput(objectName = "edges.weight", objectClass = "data.table", desc = "A table of the edges (to, from and weight) to build the network")
     
