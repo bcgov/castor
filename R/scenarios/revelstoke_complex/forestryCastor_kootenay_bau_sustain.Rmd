@@ -44,11 +44,11 @@ parameters <- list(
   .globals = list(),
   dataCastor = list( dbName = 'castor',
                           saveCastorDB = FALSE,
-                          sqlite_dbname = "tfl23_bau_20230203",
-                      useCastorDB = paste0(here::here(), "/R/scenarios/revelstoke_complex/tfl23_bau_20230203_castordb.sqlite"),
+                          sqlite_dbname = "kootenay_bau_20230203",
+                          useCastorDB = paste0(here::here(), "/R/scenarios/revelstoke_complex/kootenay_bau_20230203_castordb.sqlite"),
                           nameBoundaryFile = "public.tsa_aac_bounds", 
                           nameBoundaryColumn = "tsa_name", 
-                          nameBoundary = "TFL23", 
+                          nameBoundary = "Kootenay_Lake_TSA", 
                           nameBoundaryGeom = 'wkb_geometry',
                           nameCompartmentRaster = "rast.tsa_aac_boundary", 
                           nameCompartmentTable = "vat.tsa_aac_bounds_vat", 
@@ -122,19 +122,19 @@ modules <- list("dataCastor",
                 "volumebyareaReportCastor",
                 "uploadCastor")
 
-scenario = data.table (name = "tfl23_bau_max",
-                       description = "Business as usual (BAU) max non-declining harvest flow. Adjacency = 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/year. Maximum non-declining live harvest flow: 435,000 m3/year. No growing stock constraint. No road recovery (300 years).")
+scenario = data.table (name = "kootenay_lake_bau_sustain",
+                       description = "Business as usual (BAU) sustainable Adjacency = 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/year. Even live harvest flow: 375,000 m3/year. Growing stock sustainable (flat) at year 100-200. No road recovery (300 years).")
 
 
 harvestFlow <- rbindlist(list(
-                              data.table (compartment ="TFL23",
+                              data.table (compartment ="Kootenay_Lake_TSA",
                                           partition = ' vol > 150  ', 
                                           period = rep( seq (from = 1,
                                                            to = 20,
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 4350000) # 435,000
+                                          flow = 3750000) # 375,000
                               ))
 
 
@@ -159,6 +159,7 @@ outputs(mySim) <- data.frame (objectName = c("harvestReport",
                                              "tableSurvival",
                                              "disturbanceReport",
                                              "volumebyareaReport",
+                                             "zoneManagement",
                                              "tableAbundanceReport"
                                              ))
 

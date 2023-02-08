@@ -44,11 +44,11 @@ parameters <- list(
   .globals = list(),
   dataCastor = list( dbName = 'castor',
                           saveCastorDB = FALSE,
-                          sqlite_dbname = "revelstoke_bau_20230203",
-                     useCastorDB = paste0(here::here(), "/R/scenarios/revelstoke_complex/revelstoke_bau_20230203_castordb.sqlite"),
+                          sqlite_dbname = "tfl23_bau_20230203",
+                      useCastorDB = paste0(here::here(), "/R/scenarios/revelstoke_complex/tfl23_bau_20230203_castordb.sqlite"),
                           nameBoundaryFile = "public.tsa_aac_bounds", 
                           nameBoundaryColumn = "tsa_name", 
-                          nameBoundary = "Revelstoke_TSA", 
+                          nameBoundary = "TFL23", 
                           nameBoundaryGeom = 'wkb_geometry',
                           nameCompartmentRaster = "rast.tsa_aac_boundary", 
                           nameCompartmentTable = "vat.tsa_aac_bounds_vat", 
@@ -122,19 +122,19 @@ modules <- list("dataCastor",
                 "volumebyareaReportCastor",
                 "uploadCastor")
 
-scenario = data.table (name = "revelstoke_bau",
-                       description = "Business as usual (BAU). Adjacency = 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/year. No road recovery. Even live harvest flow: 200,000 m3/year. Growing stock sustainable (flat) at year 100-200. No road recovery (300 years).")
+scenario = data.table (name = "tfl23_bau_sustain",
+                       description = "Business as usual (BAU) sustainable.  Adjacency = 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/year. Even live harvest flow: 300,000 m3/year. Growing stock sustainable (flat) at year 100-200, or similar growing stock value at start and end of sim. No road recovery (300 years).")
 
 
 harvestFlow <- rbindlist(list(
-                              data.table (compartment ="Revelstoke_TSA",
+                              data.table (compartment ="TFL23",
                                           partition = ' vol > 150  ', 
                                           period = rep( seq (from = 1,
                                                            to = 20,
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 2000000) # 200,000
+                                          flow = 3000000) # 300,000
                               ))
 
 
