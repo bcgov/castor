@@ -125,8 +125,8 @@ modules <- list("dataCastor",
                 "uploadCastor"
                 )
 
-scenario = data.table (name = "oldest_stsm_sustain_oldgrowth_extreme",
-                       description = "Priority queue = oldest first. Adjacency constraint = None. No roads or blocks. Maximum even live harvest flow: 1,850,000 m3/year, which assumes growing stock is non-declining after 100 years, replicating the SELES-STSM run. Minimum harvest age = 50. Old growth constraints included with 75% threshold.")
+scenario = data.table (name = "oldest_stsm_2Mm3_oldgrowth_extreme",
+                       description = "Priority queue = oldest first. Adjacency constraint = None. No roads or blocks. Maximum even live harvest flow: 2,000,000 m3/year, which assumes growing stock is non-declining after 100 years, replicating the SELES-STSM run. Minimum harvest age = 50. Old growth constraints included with 75% threshold.")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Fort_Nelson_TSA",
@@ -135,7 +135,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Fort_Nelson_TSA",
                                                       to = 20, 
                                                       by = 1),
                                                 1), 
-                                     flow = 18500000, # 1,850,000m3/year 
+                                     flow = 20000000, # 2,000,000m3/year 
                                      partition_type = 'live') 
 ))
 

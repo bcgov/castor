@@ -44,11 +44,11 @@ parameters <- list(
   .globals = list(),
   dataCastor = list( dbName = 'castor',
                           saveCastorDB = FALSE,
-                          sqlite_dbname = "kootenay_bau_20230203",
-                          useCastorDB = paste0(here::here(), "/R/scenarios/revelstoke_complex/kootenay_bau_20230203_castordb.sqlite"),
+                          sqlite_dbname = "kamloops_bau_20230203",
+                          useCastorDB = paste0(here::here(), "/R/scenarios/revelstoke_complex/kamloops_bau_20230203_castordb.sqlite"),
                           nameBoundaryFile = "public.tsa_aac_bounds", 
                           nameBoundaryColumn = "tsa_name", 
-                          nameBoundary = "Kootenay_Lake_TSA", 
+                          nameBoundary = "Kamloops_TSA", 
                           nameBoundaryGeom = 'wkb_geometry',
                           nameCompartmentRaster = "rast.tsa_aac_boundary", 
                           nameCompartmentTable = "vat.tsa_aac_bounds_vat", 
@@ -122,19 +122,19 @@ modules <- list("dataCastor",
                 "volumebyareaReportCastor",
                 "uploadCastor")
 
-scenario = data.table (name = "kootenay_lake_bau",
-                       description = "Business as usual (BAU). Adjacency = 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/year. No road recovery. Even live harvest flow: 600,000 m3/year. Growing stock sustainable (flat) at year 150-200. No road recovery (300 years).")
+scenario = data.table (name = "kamloops_bau_max",
+                       description = "Business as usual (BAU) max non-declining harvest flow. Adjacency = 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/year. No road recovery. Maximum non-declining live harvest flow: 1,100,000 m3/year. No growing stock constraint. No road recovery (300 years).")
 
 
 harvestFlow <- rbindlist(list(
-                              data.table (compartment ="Kootenay_Lake_TSA",
+                              data.table (compartment ="Kamloops_TSA",
                                           partition = ' vol > 150  ', 
                                           period = rep( seq (from = 1,
                                                            to = 20,
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 6000000) # 600,000
+                                          flow = 11000000) # 1,100,000
                               ))
 
 
