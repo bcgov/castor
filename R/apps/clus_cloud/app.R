@@ -12,7 +12,7 @@ library(httr)
 library(jsonlite)
 library(dplyr)
 library(magrittr)
-library(dplyr)
+
 library(analogsea)
 library(DBI)
 library(RPostgreSQL)
@@ -29,7 +29,7 @@ library(ssh)
 library(ipc)
 library(purrr)
 library(filelock)
-
+library(dplyr)
 source('src/functions.R')
 
 # plan(sequential)

@@ -61,6 +61,7 @@ defineModule(sim, list(
     createsOutput(objectName = "road.year", objectClass = "SpatRaster", desc = "A raster of the time period roads were used"),
     createsOutput(objectName = "roadslist", objectClass = "data.table", desc = "A table of the road segments for every pixel"),
     createsOutput(objectName = "perm.roads", objectClass = "integer", desc = "A vector of pixelids that correspond to permanent roads"),
+    createsOutput(objectName = "nodes", objectClass = "integer", desc = "A vector of pixelids in the graph"),
     createsOutput(objectName = "node.coords", objectClass = "data.frame", desc = "A table of coordinates for each node"),
     createsOutput(objectName = "edges.weight", objectClass = "data.table", desc = "A table of the edges (to, from and weight) to build the network")
     
@@ -93,7 +94,7 @@ doEvent.roadCastor = function(sim, eventTime, eventType, debug = FALSE) {
     buildRoads = { # Builds or simulates roads at the roading interval
       if(!is.null(sim$landings)){ #Check if there are cutblock landings to simulate roading
         switch(P(sim)$roadMethod,
-            snap={ # Individiually links landings to closest road segment with a straight line
+            snap={ # Individually links landings to closest road segment with a straight line
               sim <- getClosestRoad(sim) # Uses nearest neighbour to find the closest road segement to the target
               sim <- buildSnapRoads(sim)
               sim <- updateRoadsTable(sim) # Updates the pixels table in castordb to the proper year that pixel was roaded
@@ -473,6 +474,7 @@ getGraph<- function(sim){
   
   if(P(sim)$roadMethod %in% c('lcp', 'mst')){ #Need a vector of permanent roads for cases where the landing falls on one -- since these roads are simplified to a single pixel with many edges.
     sim$perm.roads<-dbGetQuery(sim$castordb, "select pixelid from pixels where roadtype = 0;")
+    sim$nodes <-unique(c(sim$edges.weight$to, sim$edges.weight$from))
   }
   
   #------make the igraph -- TO BE DEPRECATED
@@ -511,7 +513,7 @@ lcpList<- function(sim){##Get a list of paths from which there is a to and from 
 mstSolve <- function(sim){
   message('mstSolve')
   #------get the edge list between a permanent road and the landing
-  landing.cell <- data.table(landings = sim$harvestPixelList[sim$harvestPixelList[, .I[which.min(dist)], by=blockid]$V1]$pixelid )[!(landings %in% sim$perm.roads$pixelid),] 
+  landing.cell <- data.table(landings = sim$harvestPixelList[sim$harvestPixelList[, .I[which.min(dist)], by=blockid]$V1]$pixelid )[!(landings %in% sim$perm.roads$pixelid),][ landings %in% sim$nodes, ]
   #landing.cell <- data.table(landings = cellFromXY(sim$ras,sim$landings))[!(landings %in% sim$perm.roads$pixelid),] #remove landings on permanent roads
   weights.closest.rd <- cppRouting::get_distance_matrix(Graph=sim$g, 
                                   from=landing.cell$landings, 
