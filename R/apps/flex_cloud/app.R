@@ -32,6 +32,8 @@ library(filelock)
 
 source('src/functions.R')
 
+options(shiny.error = browser)
+
 # plan(sequential)
 # plan(multicore)
 plan(callr)
@@ -513,7 +515,7 @@ server <- function(input, output, session) {
         FUN = run_simulation,
         ssh_keyfile = ssh_keyfile_tbl,
         do_droplet_size = input$droplet_size,
-        do_volumes = volume_name,
+        do_volume = volume_name,
         do_region = region,
         do_image = snap_image,
         simulation_logfile = simulation_logfile,

@@ -3,7 +3,7 @@
 #' @param scenario Simulation scenario
 #' @param ssh_keyfile_tbl SSH key file
 #' @param do_droplet_size Digital Ocean droplet size
-#' @param do_volumes Digital Ocean existing volume snapshots holding the scenarios
+#' @param do_volume Digital Ocean existing volume snapshots holding the scenarios
 #' @param do_region Digital Ocean region
 #' @param do_image Digital Ocean image with preinstalled packages to run the simulation
 #' @param queue ipc queue
@@ -16,7 +16,7 @@ run_simulation <- function(
   scenario,
   ssh_keyfile_tbl,
   do_droplet_size,
-  do_volumes,
+  do_volume,
   do_region,
   do_image,
   queue,
@@ -98,19 +98,20 @@ run_simulation <- function(
     existing_snapshots <- analogsea::snapshots(type = 'volume')
     existing_snapshots_names <- rlist::list.names(existing_snapshots)
 
-    if (do_volumes %in% existing_snapshots_names) {
-      existing_snapshot <- existing_snapshots[[grep(do_volumes, names(existing_snapshots))]]
+    if (do_volume %in% existing_snapshots_names) {
+      existing_snapshot <- existing_snapshots[[grep(do_volume, names(existing_snapshots))]]
 
-      volume_name <- stringr::str_remove(
-        stringr::str_remove_all(
-          stringr::str_to_lower(
-            paste0(do_volumes)
-          ),
-          '_'
-        ),
-        '.tif'
-      )
-print(volume_name)
+      # volume_name <- stringr::str_remove(
+      #   stringr::str_remove_all(
+      #     stringr::str_to_lower(
+      #       paste0(do_volume)
+      #     ),
+      #     '_'
+      #   ),
+      #   '.tif'
+      # )
+#       volume_name <- stringr::str_to_lower(analogsea:::random_name())
+# print(volume_name)
       # Check if volume with the same name already exists
       # v <- analogsea::volume(volume_name)
       # if (length(v) > 0) {
@@ -133,10 +134,10 @@ print(volume_name)
       )
       filelock::unlock(lock)
       progress$inc(1 / total_steps)
-browser()
+# browser()
       v <- analogsea::volume_create(
         snapshot_id = existing_snapshot$id,
-        name = volume_name,
+        name = do_volume,
         size = 10,
         region = do_region,
         filesystem_label = 'scenario'
@@ -184,22 +185,29 @@ browser()
     )
     filelock::unlock(lock)
     progress$inc(1 / total_steps)
-
-    d %>%
-      droplet_ssh(
-        glue::glue("screen -S scenario \
-  mkdir -p /mnt/scenario; \
-  mount -o discard,defaults,noatime /dev/disk/by-id/scsi-0DO_Volume_scenario /mnt/scenario; \
-  echo '/dev/disk/by-id/scsi-0DO_Volume_scenario /mnt/scenario ext4 defaults,nofail,discard 0 0' | sudo tee -a /etc/fstab; \
-  git clone https://github.com/bcgov/castor; \
-  cd castor; \
-  git checkout cloud_deploy; \
-  ln -s /mnt/scenario/{volume_name} ~/castor/R/"),
-        keyfile = ssh_keyfile
-      )
+browser()
+    tryCatch({
+      d %>%
+        droplet_ssh(
+          glue::glue("screen -S scenario; \
+curl -sSL https://repos.insights.digitalocean.com/install.sh | sudo bash; \
+mkdir -p /mnt/scenario; \
+mount -o discard,defaults,noatime /dev/disk/by-id/scsi-0DO_Volume_{do_volume} /mnt/scenario; \
+echo '/dev/disk/by-id/scsi-0DO_Volume_{do_volume} /mnt/scenario ext4 defaults,nofail,discard 0 0' | sudo tee -a /etc/fstab; \
+git clone https://github.com/sasha-ruby/castor; \
+cd castor; \
+git checkout flex_cloud; \
+mkdir -p ~/castor/R/scenarios/fisher/inputs; \
+ln -s /mnt/scenario/scenario.tif ~/castor/R/scenarios/fisher/inputs/scenario.tif;"),
+          keyfile = ssh_keyfile
+        )
+    }, error = function(e) {
+      # shiny:::reactiveStop(conditionMessage(e))
+      debug_msg(e$message)
+    })
 
     # Knit the scenario ----
-    scenario_to_run <- glue::glue("knitr::knit('castor/R/{SpaDES-modules/FLEX2/FLEX2.Rmd')")
+    scenario_to_run <- glue::glue("knitr::knit('castor/R/SpaDES-modules/FLEX2/fisher.Rmd')")
 
     tmp <- tempfile()
     writeLines(scenario_to_run, tmp)
@@ -238,28 +246,28 @@ browser()
 
     cost <- d %>% droplets_cost()
 
-    create_table_query <- "CREATE TABLE IF NOT EXISTS billing (id SERIAL PRIMARY KEY, scenario_name varchar(255), droplet_name varchar(255), droplet_size varchar(40), volume_name varchar(255), cost varchar(40), _updated_at TIMESTAMP without time zone NULL DEFAULT clock_timestamp())"
-    insert_query <- glue::glue("INSERT INTO billing (scenario_name, droplet_name, droplet_size, volume_name, cost) VALUES ('{scenario_name}', '{d_name}', '{do_droplet_size}', '{volume_name}', '{cost}')")
-    billing_sql <- paste0("library(DBI)
-library(RPostgreSQL)
-tryCatch({drv <- dbDriver('PostgreSQL')
-conn <- dbConnect(drv, dbname = \"", db_name, "\", host = \"", db_host, "\", port = \"", db_port, "\", user = \"", db_user, "\", password = \"", db_pass, "\")
-dbSendQuery(conn, '", create_table_query, "')
-dbSendQuery(conn, \"", insert_query, "\")
-},
-error = function(cond) {
-print('Unable to connect to Database.')
-})"
-    )
-
-    tmp <- tempfile()
-    writeLines(billing_sql, tmp)
-    d %>% droplet_upload(tmp, "record_cost.R")
-
-    d %>% droplet_ssh(
-      glue::glue("Rscript record_cost.R"),
-      keyfile = ssh_keyfile
-    )
+#     create_table_query <- "CREATE TABLE IF NOT EXISTS billing (id SERIAL PRIMARY KEY, scenario_name varchar(255), droplet_name varchar(255), droplet_size varchar(40), volume_name varchar(255), cost varchar(40), _updated_at TIMESTAMP without time zone NULL DEFAULT clock_timestamp())"
+#     insert_query <- glue::glue("INSERT INTO billing (scenario_name, droplet_name, droplet_size, volume_name, cost) VALUES ('{scenario_name}', '{d_name}', '{do_droplet_size}', '{do_volume}', '{cost}')")
+#     billing_sql <- paste0("library(DBI)
+# library(RPostgreSQL)
+# tryCatch({drv <- dbDriver('PostgreSQL')
+# conn <- dbConnect(drv, dbname = \"", db_name, "\", host = \"", db_host, "\", port = \"", db_port, "\", user = \"", db_user, "\", password = \"", db_pass, "\")
+# dbSendQuery(conn, '", create_table_query, "')
+# dbSendQuery(conn, \"", insert_query, "\")
+# },
+# error = function(cond) {
+# print('Unable to connect to Database.')
+# })"
+#     )
+# 
+#     tmp <- tempfile()
+#     writeLines(billing_sql, tmp)
+#     d %>% droplet_upload(tmp, "record_cost.R")
+# 
+#     d %>% droplet_ssh(
+#       glue::glue("Rscript record_cost.R"),
+#       keyfile = ssh_keyfile
+#     )
 
 
     v %>% volume_detach(droplet = d, region = do_region)
@@ -267,24 +275,24 @@ print('Unable to connect to Database.')
     v %>% volume_delete()
 
     # Download kintted md ----
-    status <- paste0(
-      "10,", scenario_name, ",90%,Downloading knitted md file,", as.character(Sys.time())
-    )
-    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
-    write(
-      status,
-      file = simulation_logfile,
-      append = TRUE
-    )
-    filelock::unlock(lock)
-    progress$inc(1 / total_steps)
-
-    d %>% droplet_download(
-      remote = glue::glue('/root/{scenario_name}.md'),
-      local = './inst/app/md/',
-      keyfile = ssh_keyfile
-    )
-
+    # status <- paste0(
+    #   "10,", scenario_name, ",90%,Downloading knitted md file,", as.character(Sys.time())
+    # )
+    # lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+    # write(
+    #   status,
+    #   file = simulation_logfile,
+    #   append = TRUE
+    # )
+    # filelock::unlock(lock)
+    # progress$inc(1 / total_steps)
+    # 
+    # d %>% droplet_download(
+    #   remote = glue::glue('/root/{scenario_name}.md'),
+    #   local = './inst/app/md/',
+    #   keyfile = ssh_keyfile
+    # )
+    # 
     status <- paste0(
       "11,", scenario_name, ",100%,Deleting the droplet,", as.character(Sys.time())
     )
@@ -383,7 +391,7 @@ create_scenario_volume <- function(
   # volume_name <- stringr::str_remove(
   #   stringr::str_remove_all(
   #     stringr::str_to_lower(
-  #       paste0(do_volumes, scenario)
+  #       paste0(do_volume, scenario)
   #     ),
   #     '_'
   #   ),
@@ -405,23 +413,25 @@ create_scenario_volume <- function(
   # browser()
   d_uploader %>%
     droplet_ssh(
-      glue::glue("sudo mkfs.ext4 /dev/disk/by-id/scsi-0DO_Volume_scenario; \
+      glue::glue("sudo mkfs.ext4 /dev/disk/by-id/scsi-0DO_Volume_{volume_name}; \
                        mkdir -p /mnt/scenario; \
-                       mount -o discard,defaults,noatime /dev/disk/by-id/scsi-0DO_Volume_scenario /mnt/scenario; \
-                       echo '/dev/disk/by-id/scsi-0DO_Volume_scenario /mnt/scenario ext4 defaults,nofail,discard 0 0' | sudo tee -a /etc/fstab"),
+                       mount -o discard,defaults,noatime /dev/disk/by-id/scsi-0DO_Volume_{volume_name} /mnt/scenario; \
+                       echo '/dev/disk/by-id/scsi-0DO_Volume_{volume_name} /mnt/scenario ext4 defaults,nofail,discard 0 0' | sudo tee -a /etc/fstab"),
       keyfile = ssh_keyfile #
     )
   
   # Upload scenario to the volume ----
-  browser()
+  # browser()
   d_uploader %>%
     droplet_upload(
       user = ssh_user,
       keyfile = ssh_keyfile,
       local = paste0('scenarios/', selected_scenario_path),
-      # remote = paste0('/mnt/{volume_name}/', selected_scenario)
-      remote = paste0('/mnt/scenario/', selected_scenario)
+      # remote = paste0('/mnt/scenario/', selected_scenario)
+      remote = paste0('/mnt/scenario/scenario.tif')
     )
+  
+  browser()
   
   # Detach volume from the uploader droplet and delete the droplet ----
   v %>% volume_detach(droplet = d_uploader, region = region)
@@ -455,5 +465,25 @@ snapshots_with_params <- function(type = NULL, page = 1, per_page = 20, ...) {
     )
   )
 }
+
+#' Print error message when caught
+#'
+#' @param ... Error message
+#'
+#' @return
+#' @export
+debug_msg <- function(...) {
+  # is_local <- Sys.getenv('SHINY_PORT') == ""
+  # in_shiny <- !is.null(shiny::getDefaultReactiveDomain())
+  txt <- toString(list(...))
+  # if (is_local) {
+  #   message(txt)
+  # }
+  # if (in_shiny) {
+    # shinyjs::runjs(sprintf("console.debug(\"%s\")", txt))
+    showNotification(paste('The error occorred:', txt), '', type = "error")
+  # }
+}
+
 
 
