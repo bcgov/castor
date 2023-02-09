@@ -1,26 +1,26 @@
----
-title: "FLEX2"
-author: ""
-date: "2 February 2023"
-output:
-  html_document:
-    keep_md: yes
-editor_options:
-  chunk_output_type: console
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## TODO: use 'eval = TRUE'
-
-```
+# ---
+# title: "FLEX2"
+# author: ""
+# date: "2 February 2023"
+# output:
+#   html_document:
+#     keep_md: yes
+# editor_options:
+#   chunk_output_type: console
+# ---
+# 
+# ```{r setup, include=FALSE}
+# knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## TODO: use 'eval = TRUE'
+# 
+# ```
 
 ## Overview
-This is an agent based model (ABM) to simulate fisher life history on a landscape. This version is written to input habitat data that was written as a raster output from the fisherHabitatLoader module. The fisherHabitatLoader saves rasters of the occurrence of fisher habitat types (denning, rust, cavity, resting and movement) at each interval of a forestry simulation using forestryCLUS. The forestryCLUS module is a simulation model that returns a single solution for a set of parameters (i.e., it's a deterministic model). Thus fisherHabitatLoader updates fisher habitat conditions over a simulation period. This approach  allows for faster simulation of multiple iterations of a fisher population on a landscape. as it can read the habitat conditions as predetermined by the simulation model. I is more efficient to run the fisher ABM as a *post-hoc* analysis, rather than concurrently with forestryCLUS.
+# This is an agent based model (ABM) to simulate fisher life history on a landscape. This version is written to input habitat data that was written as a raster output from the fisherHabitatLoader module. The fisherHabitatLoader saves rasters of the occurrence of fisher habitat types (denning, rust, cavity, resting and movement) at each interval of a forestry simulation using forestryCLUS. The forestryCLUS module is a simulation model that returns a single solution for a set of parameters (i.e., it's a deterministic model). Thus fisherHabitatLoader updates fisher habitat conditions over a simulation period. This approach  allows for faster simulation of multiple iterations of a fisher population on a landscape. as it can read the habitat conditions as predetermined by the simulation model. I is more efficient to run the fisher ABM as a *post-hoc* analysis, rather than concurrently with forestryCLUS.
+# 
+# ## Usage
+# Below runs the module
 
-## Usage
-Below runs the module
-
-```{r module_usage}
+# ```{r module_usage}
 library (SpaDES.core)
 library (data.table)
 library (terra)
@@ -30,7 +30,7 @@ library (here)
 library (stringr)
 library (truncnorm)
 library (RANN)
-source (paste0 (here::here(), "/R/functions/R_Postgres.R"))
+# source (paste0 (here::here(), "/R/functions/R_Postgres.R"))
 
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/scenarios/fisher/inputs")) %>% reproducible::checkPath (create = TRUE)
@@ -104,5 +104,5 @@ mySimOut <- spades(mySim)
 
 
 
-```
+# ```
 

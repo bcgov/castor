@@ -207,7 +207,7 @@ ln -s /mnt/scenario/scenario.tif ~/castor/R/scenarios/fisher/inputs/scenario.tif
     })
 
     # Knit the scenario ----
-    scenario_to_run <- glue::glue("knitr::knit('castor/R/SpaDES-modules/FLEX2/fisher.Rmd')")
+    scenario_to_run <- glue::glue("knitr::knit('castor/R/SpaDES-modules/FLEX2/fisher.R')")
 
     tmp <- tempfile()
     writeLines(scenario_to_run, tmp)
