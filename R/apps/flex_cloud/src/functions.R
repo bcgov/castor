@@ -207,11 +207,11 @@ ln -s /mnt/scenario/scenario.tif ~/castor/R/scenarios/fisher/inputs/scenario.tif
     })
 
     # Knit the scenario ----
-    scenario_to_run <- glue::glue("knitr::knit('castor/R/SpaDES-modules/FLEX2/fisher.R')")
+    # scenario_to_run <- glue::glue("knitr::knit('castor/R/SpaDES-modules/FLEX2/fisher.R')")
 
-    tmp <- tempfile()
-    writeLines(scenario_to_run, tmp)
-    d %>% droplet_upload(tmp, "remote.R")
+    # tmp <- tempfile()
+    # writeLines(scenario_to_run, tmp)
+    # d %>% droplet_upload(tmp, "remote.R")
 
     status <- paste0(
       "8,", scenario_name, ",70%,Running the simulation,", as.character(Sys.time())
@@ -226,7 +226,7 @@ ln -s /mnt/scenario/scenario.tif ~/castor/R/scenarios/fisher/inputs/scenario.tif
     progress$inc(1 / total_steps)
 
     d %>% droplet_ssh(
-      glue::glue("Rscript remote.R"
+      glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX2/fisher.R"
       ),
       keyfile = ssh_keyfile
     )
@@ -431,7 +431,7 @@ create_scenario_volume <- function(
       remote = paste0('/mnt/scenario/scenario.tif')
     )
   
-  browser()
+  # browser()
   
   # Detach volume from the uploader droplet and delete the droplet ----
   v %>% volume_detach(droplet = d_uploader, region = region)
