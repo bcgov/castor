@@ -51,13 +51,13 @@ doEvent.smcpopCastor = function (sim, eventTime, eventType) {
     eventType,
     init = { 
       sim <- Init (sim) 
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "smcpopCastor"), "smcpopCastor", "calculateAbundance", 8) 
+      sim <- scheduleEvent (sim, eventTime = time(sim) + P(sim, "calculateInterval", "smcpopCastor"), "smcpopCastor", "calculateAbundance", 8) 
       #sim <- scheduleEvent (sim, end(sim), "smcpopCastor", "adjustAbundanceTable", 9) 
     },
     
     calculateAbundance = { # calculate survival rate at each time interval 
       sim <- predictAbundance (sim) 
-      sim <- scheduleEvent (sim, time(sim) + P(sim, "calculateInterval", "smcpopCastor"), "smcpopCastor", "calculateAbundance", 8)
+      sim <- scheduleEvent (sim, eventTime = time(sim) + P(sim, "calculateInterval", "smcpopCastor"), "smcpopCastor", "calculateAbundance", 8)
     },
     # adjustAbundanceTable ={ 
     #   sim <- adjustAbundanceTable (sim)
@@ -181,8 +181,8 @@ Init <- function (sim) {
   total_area <- data.table (dbGetQuery (sim$castordb, "SELECT count(*)as area, subpop_name FROM pixels WHERE subpop_name IS NOT NULL AND age Is NOT NULL GROUP BY subpop_name;"))
   sim$tableAbundanceReport <- merge (sim$tableAbundanceReport, total_area, by.x = "subpop_name", by.y = "subpop_name", all.x = TRUE )
   sim$tableAbundanceReport <- sim$tableAbundanceReport [, c ("scenario", "timeperiod", "subpop_name", "area", "abundance_r50", "abundance_c80r50", "abundance_c80", "abundance_avg")]
+   }
   return(invisible(sim))
-  }
 }
 
 predictAbundance <- function (sim) { # this function calculates survival rate at each time interval; same as on init, above

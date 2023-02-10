@@ -910,8 +910,10 @@ annualEvents <- function (sim) {
             message ("There are no reproducing fishers!")
           }
 
+        if (nrow (new.agents) > 0) {
         sim$agents <- rbind (sim$agents,
                              new.agents) # save the new agents
+        }
      
         # if there are kits, move first one pixel over from mother and each sibling one pixel over
         while (any (duplicated (sim$agents$pixelid))) { # loop in case there is > 2 kits
