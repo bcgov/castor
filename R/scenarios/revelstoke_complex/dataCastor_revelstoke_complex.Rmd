@@ -74,6 +74,7 @@ parameters <-  list (
                                                "rast.zone_cond_bc_central_selkirks_crithab",
                                                "rast.zone_cond_bc_groundhog_crithab",
                                                "rast.zone_cond_bc_wells_gray_south_crithab",
+                                               "rast.zone_cond_pri_old_deferral", # TAP proposed old growth deferral areas
                                                "rast.xxxx"),
                           nameZoneTable = "zone.constraints", 
                           # natural and managed stands yield curves are the same    
@@ -94,7 +95,7 @@ parameters <-  list (
                           nameForestInventoryQMD = "quad_diam_125",
                           nameForestInventorySiteIndex = "site_index" 
                           ),
-        growingStockCastor = list (periodLength = 5),
+        growingStockCastor = list (periodLength = 10),
         blockingCastor = list(blockMethod = 'pre', 
                               patchZone = 'rast.zone_cond_beo',
                               patchVariation = 6,
@@ -136,7 +137,8 @@ modules <- list("dataCastor",
                 "volumebyareaReportCastor",
                 "uploadCastor")
 
-objects <- list (scenario = scenario)
+objects <- list (scenario = scenario
+                 )
 
 paths <- list(cachePath = cacheDir,
               modulePath = moduleDir,

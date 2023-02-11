@@ -2059,6 +2059,102 @@ dbDisconnect (conn)
 
 
 
+
+## Revelstoke Scenarios Feb. 2023
+This defines the management zones for caribou herds in the "Revelstoke Complex" (Central Selkirks, Groundhog, and Columbia North). Wells Gray South is included 
+
+
+```{r, revelstoke Feb. 2023}
+# zone.tier1 <- sf::st_read("D:\\clus_data\\scenarios\\revelstoke\\Footprint_to_model_Feb_10_2023.gpkg", 
+#                           layer = 'Tier_1')
+# zone.tier2 <- sf::st_read("D:\\clus_data\\scenarios\\revelstoke\\Footprint_to_model_Feb_10_2023.gpkg", 
+#                           layer = 'Tier_2')
+# zone.tier3 <- sf::st_read("D:\\clus_data\\scenarios\\revelstoke\\Footprint_to_model_Feb_10_2023.gpkg", 
+#                           layer = 'Tier_3')
+# zone.tier4 <- sf::st_read("D:\\clus_data\\scenarios\\revelstoke\\Footprint_to_model_Feb_10_2023.gpkg", 
+#                           layer = 'Tier_4')
+
+### run these in osgeo shell with pgdb params:
+# ogr2ogr -f PostgreSQL PG:"dbname=clus port=xxxx user=xxxx password=xxxx host=xxxx" D:\clus_data\scenarios\revelstoke\Footprint_to_model_Feb_10_2023.gpkg Tier_1 -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -nln revelstoke_tier1_feb2023
+# 
+# ogr2ogr -f PostgreSQL PG:"dbname=clus port=xxxx user=xxxx password=xxxx host=xxxx" D:\clus_data\scenarios\revelstoke\Footprint_to_model_Feb_10_2023.gpkg Tier_2 -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -nln revelstoke_tier2_feb2023
+# 
+# ogr2ogr -f PostgreSQL PG:"dbname=clus port=xxxx user=xxxx password=xxxx host=xxxx" D:\clus_data\scenarios\revelstoke\Footprint_to_model_Feb_10_2023.gpkg Tier_3 -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -nln revelstoke_tier3_feb2023
+# 
+# ogr2ogr -f PostgreSQL PG:"dbname=clus port=xxxx user=xxxx password=xxxx host=xxxx" D:\clus_data\scenarios\revelstoke\Footprint_to_model_Feb_10_2023.gpkg Tier_4 -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -nln revelstoke_tier4_feb2023
+
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host=key_get("dbhost", keyring="postgreSQL"), 
+                       dbname = 'clus', port='5432', 
+                       user=key_get("dbuser", keyring="postgreSQL"), 
+                       password=key_get("dbpass", keyring="postgreSQL"))
+
+zone.tier1 <- getSpatialQuery ("SELECT * from public.revelstoke_tier1_feb2023;")
+zone.tier2 <- getSpatialQuery ("SELECT * from public.revelstoke_tier2_feb2023;")
+zone.tier3 <- getSpatialQuery ("SELECT * from public.revelstoke_tier3_feb2023;")
+zone.tier4 <- getSpatialQuery ("SELECT * from public.revelstoke_tier4_feb2023;")
+
+zone.tier1$attribute <- paste0 (zone.tier1$herd_name, "_", zone.tier1$bchab_code)
+zone.tier2$attribute <- paste0 (zone.tier2$herd_name, "_", zone.tier2$bchab_code) 
+zone.tier3$attribute <- paste0 (zone.tier3$herd_name, "_", zone.tier3$bchab_code) 
+zone.tier4$attribute <- paste0 (zone.tier4$herd_name, "_", zone.tier4$bchab_code) 
+
+zone.tier1$value <- match (zone.tier1$attribute, unique(zone.tier1$attribute))
+zone.tier2$value <- match (zone.tier2$attribute, unique(zone.tier2$attribute))
+zone.tier3$value <- match (zone.tier3$attribute, unique(zone.tier3$attribute))
+zone.tier4$value <- match (zone.tier4$attribute, unique(zone.tier4$attribute))
+
+vat.zone.tier1 <- data.table (unique (st_drop_geometry (zone.tier1 [, c ('value', 'attribute')]))) 
+vat.zone.tier2 <- data.table (unique (st_drop_geometry (zone.tier2 [, c ('value', 'attribute')])))  
+vat.zone.tier3 <- data.table (unique (st_drop_geometry (zone.tier3 [, c ('value', 'attribute')])))  
+vat.zone.tier4 <- data.table (unique (st_drop_geometry (zone.tier4 [, c ('value', 'attribute')])))  
+
+
+
+
+
+
+
+
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs", 
+                             resolution = c(100, 100), 
+                             vals = 0)
+ras_proposed_wha <- fasterize::fasterize (proposed.wha, prov.rast, field = "value")
+writeRaster (ras_proposed_wha, "ras_chilcotin_proposed_wha.tif", overwrite = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_chilcotin_proposed_wha.tif -t 100x100 rast.zone_chilcotin_proposed_wha | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+
+#Create zone constraint table for raster with all zones
+zone_nh <- data.table (zoneid = as.integer(c(1:3)), 
+                         type = 'nh', variable = '', threshold = 0, 
+                         reference_zone = 'rast.zone_chilcotin_proposed_wha', 
+                         percentage = 0, ndt = as.integer(0), multi_condition = as.character(NA),
+                         denom = as.character(NA), 
+                         start = as.integer(0),
+                         stop = as.integer(250))
+
+DBI::dbWriteTable(conn, c("vat", "zone_chilcotin_proposed_wha"), value = proposed.wha.vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable(conn, c("zone", "zone_chilcotin_proposed_wha"), value = zone_nh, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, paste0("ALTER TABLE zone.zone_chilcotin_proposed_wha ALTER COLUMN denom TYPE VARCHAR;"))
+dbExecute(conn, paste0("ALTER TABLE zone.zone_chilcotin_proposed_wha INHERIT zone.constraints"))
+dbDisconnect(conn)
+
+
+```
+
+
+
+
+
+
+
+
 ## Modify Constraints Defined in SQLite Databases
 If necessary, the script below provides an example of how to modify proposed constraints in the SQLite databases created using dataLoaderCLUS.
 ```{r, zone_update}
