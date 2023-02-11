@@ -21,6 +21,7 @@ dat<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC
 
 dat<-st_transform(dat, 3005)
 dat$frt<-as.factor(dat$frt)
+dat$frt[dat$frt==3]<-5
 ```
 
 #Change Aspect to N,S,E,W
@@ -651,7 +652,8 @@ rm(frt9)
 
 frt9<- ignition2 %>% filter(frt==9)
 #table(is.na(frt9$climate1_lightning))
-frt9$climate1_lightning[is.na(frt9$climate1_lightning)] <- mean(frt9$climate1_lightning, na.rm = TRUE)
+table(is.na(frt9$climate1_person))
+frt9$climate1_person[is.na(frt9$climate1_person)] <- mean(frt9$climate1_person, na.rm = TRUE)
 
 # no FWI_veg in model
 
@@ -677,7 +679,8 @@ hist(prob_ignition_person)
 # escape
 frt9<- ignition2 %>% filter(frt==9)
 #table(is.na(frt9$climate1_lightning))
-frt9$climate1_lightning[is.na(frt9$climate1_lightning)] <- mean(frt9$climate1_lightning, na.rm = TRUE)
+table(is.na(frt9$climate1_escape))
+frt9$climate1_escape[is.na(frt9$climate1_escape)] <- mean(frt9$climate1_escape, na.rm = TRUE)
 
 
 model_coef_table_escape<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt9_escape.csv")
@@ -701,7 +704,10 @@ hist(prob_ignition_escape)
 # spread
 frt9<- ignition2 %>% filter(frt==9)
 #table(is.na(frt9$climate1_lightning))
-frt9$climate1_lightning[is.na(frt9$climate1_lightning)] <- mean(frt9$climate1_lightning, na.rm = TRUE)
+table(is.na(frt9$climate1_spread))
+frt9$climate1_spread[is.na(frt9$climate1_spread)] <- mean(frt9$climate1_spread, na.rm = TRUE)
+frt9$climate2_spread[is.na(frt9$climate2_spread)] <- mean(frt9$climate2_spread, na.rm = TRUE)
+
 
 model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt9_spread.csv")
 
@@ -1736,6 +1742,26 @@ frt_all2[is.na(frt_all2$prob_ignition_spread),]
 
 # save it!
 ```{r}
-
+st_write(frt_all2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_ignit_escape_spread_final_2001.gpkg", delete_layer=TRUE, driver="GPKG")
 ```
+
+
+# Now open QGIS and make each probability layer into a raster
+
+rasterizing the above file in QGIS:
+
+ go to raster -> Conversion -> Rasterize (Vector to raster)
+
+ then use the shapefile as the input layer, 
+ prob ignition as the field to use for burn-in value. 
+ output raster size units -> georeferenced units
+ resolution = 400m
+ note: make sure you use the file rast.bc_bounds as the extent. Its found in postgres kyle clus. If you dont do this the extent will be wrong and the rasterization wont work properly.
+ Assign a specified nodata value - make this -9 or some negative number. You need to do this or it will make no data values 0 and then change all actual values to NA so it throws out the actual 0% chance of ignion points.
+
+ I also told it to Pre-initialize the output image with a value of -9. I did this for the same reason as just mentioned above but Im not sure how neccessary this one is. 
+
+ the full commonad should look something like this:
+
+ gdal_rasterize -l BC_prob_escape_final -a prob_ignition -tr 400.0 400.0 -init -9.0 -a_nodata -9.0 -te 159587.5 173787.5 1881187.5 1748187.5 -ot Float32 -of GTiff C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/BC/BC_prob_escape_final.gpkg C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/BC/rast_escape_400m.tif
 
