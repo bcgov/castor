@@ -173,11 +173,20 @@ if (!'tidyverse' %in% installed.packages()) remotes::install_version('tidyverse'
 if (!'keyring' %in% installed.packages()) remotes::install_version('keyring', '1.3.0')
 if (!'terra' %in% installed.packages()) remotes::install_version('terra', '1.6-17')
 if (!'data.table' %in% installed.packages()) remotes::install_version('data.table', '1.14.4')
-if (!'SpaDES.core' %in% installed.packages()) remotes::install_version('SpaDES.core', '1.1.0')
+if (!'SpaDES.core' %in% installed.packages()) remotes::install_version('SpaDES.core', '1.1.1')
 ```
 
-If installation of `SpaDES.core` fails, run the following
-(reference https://github.com/PredictiveEcology/SpaDES.core/issues/232):
+If installation of `SpaDES.core` fails, run the following (reference https://github.com/PredictiveEcology/SpaDES.core/issues/232 ):
+
+```
+remotes::install_github("PredictiveEcology/SpaDES.core@development")
+```
+
+or 
+
+```
+install.packages("SpaDES.core", repos = c("https://predictiveecology.r-universe.dev/", "https://cloud.r-project.org"))
+```
 
 Proceed with other packages:
 
