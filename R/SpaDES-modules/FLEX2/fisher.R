@@ -74,7 +74,9 @@ mySim <- simInit(times = times,
                  objects = objects,
                  paths = paths)
 
-mySimOut <- spades(mySim)
+fisherSimOut <- spades(mySim)
+
+saveRDS(fisherSimOut, file = '/tmp/fisherSimOut')
 
 # str(mySimOut)
 # 
