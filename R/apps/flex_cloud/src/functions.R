@@ -36,7 +36,7 @@ run_simulation <- function(
 
     # SSH config
     ssh_user <- "root"
-    
+
     # Simulation parameters
     female_max_age <- sim_params$female_max_age
     den_target <- sim_params$den_target
@@ -320,13 +320,13 @@ mkdir -p /tmp/fisher/; \
       )
       filelock::unlock(lock)
       progress$inc(1 / total_steps)
-      
+browser()      
       filename <- uuid::UUIDgenerate(use.time = TRUE)
 
       tryCatch({
+        command <- glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX2/fisher.R {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {timeInterval} {iterations} {filename};")
         d %>% droplet_ssh(
-          glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX2/fisher.R {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {timeInterval} {iterations}"
-          ),
+          command,
           keyfile = ssh_keyfile
         )
       }, error = function(e) {
@@ -395,7 +395,7 @@ mkdir -p /tmp/fisher/; \
 
     # Find the way to save unique name
     d %>% droplet_download(
-      remote = glue::glue('/tmp/fisher/{filename}.Rds'),
+      remote = glue::glue('/tmp/fisher/{filename}'),
       local = './inst/app/',
       keyfile = ssh_keyfile
     )

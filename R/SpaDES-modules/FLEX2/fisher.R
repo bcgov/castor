@@ -35,18 +35,16 @@ if (length(args) != 9) {
   stop("All arguments must be supplied.\n", call.=FALSE)
 }
 
-
-
-# library (SpaDES.core)
-# library (data.table)
-# library (terra)
-# library (keyring)
-# library (tidyverse)
-# library (here)
-# library (stringr)
-# library (truncnorm)
-# library (RANN)
-# source (paste0 (here::here(), "/R/functions/R_Postgres.R"))
+library (SpaDES.core)
+library (data.table)
+library (terra)
+library (keyring)
+library (tidyverse)
+library (here)
+library (stringr)
+library (truncnorm)
+library (RANN)
+source (paste0 (here::here(), "/R/functions/R_Postgres.R"))
 
 female_max_age <- args[1]
 den_target <- args[2]
@@ -57,6 +55,7 @@ sex_ratio <- args[6]
 female_dispersal <- args[7]
 timeInterval <- args[8]
 iterations <- args[9]
+filename <- args[10]
 
 print("Parameters")
 print(female_max_age)
@@ -113,7 +112,7 @@ mySim <- simInit(times = times,
 
 fisherSimOut <- spades(mySim)
 
-filename <- uuid::UUIDgenerate(use.time = TRUE)
+# filename <- uuid::UUIDgenerate(use.time = TRUE)
 
 saveRDS(fisherSimOut, file = paste0('/tmp/fisher/', filename))
 
