@@ -38,15 +38,15 @@ run_simulation <- function(
     ssh_user <- "root"
 
     # Simulation parameters
-    female_max_age <- sim_params$female_max_age
-    den_target <- sim_params$den_target
-    rest_target <- sim_params$rest_target
-    move_target <- sim_params$move_target
-    reproductive_age <- sim_params$reproductive_age
-    sex_ratio <- sim_params$sex_ratio
-    female_dispersal <- sim_params$female_dispersal
-    timeInterval <- sim_params$timeInterval
-    iterations <- sim_params$iterations
+    female_max_age <- as.numeric(sim_params$female_max_age)
+    den_target <- as.numeric(sim_params$den_target)
+    rest_target <- as.numeric(sim_params$rest_target)
+    move_target <- as.numeric(sim_params$move_target)
+    reproductive_age <- as.numeric(sim_params$reproductive_age)
+    sex_ratio <- as.numeric(sim_params$sex_ratio)
+    female_dispersal <- as.numeric(sim_params$female_dispersal)
+    timeInterval <- as.numeric(sim_params$timeInterval)
+    iterations <- as.numeric(sim_params$iterations)
 
     print(paste(as.character(Sys.time()), ",got key", ssh_keyfile_name))
 

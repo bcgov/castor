@@ -31,7 +31,7 @@ thisPath <- function() {
 setwd(thisPath())
 
 args = commandArgs(trailingOnly = TRUE)
-if (length(args) != 9) {
+if (length(args) != 10) {
   stop("All arguments must be supplied.\n", call.=FALSE)
 }
 
@@ -46,16 +46,16 @@ library (truncnorm)
 library (RANN)
 source (paste0 (here::here(), "/R/functions/R_Postgres.R"))
 
-female_max_age <- args[1]
-den_target <- args[2]
-rest_target <- args[3]
-move_target <- args[4]
-reproductive_age <- args[5]
-sex_ratio <- args[6]
-female_dispersal <- args[7]
-timeInterval <- args[8]
-iterations <- args[9]
-filename <- args[10]
+female_max_age <- as.numeric(args[1])
+den_target <- as.numeric(args[2])
+rest_target <- as.numeric(args[3])
+move_target <- as.numeric(args[4])
+reproductive_age <- as.numeric(args[5])
+sex_ratio <- as.numeric(args[6])
+female_dispersal <- as.numeric(args[7])
+timeInterval <- as.numeric(args[8])
+iterations <- as.numeric(args[9])
+filename <- as.character(args[10])
 
 print("Parameters")
 print(female_max_age)
