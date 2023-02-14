@@ -1,36 +1,73 @@
-# ---
-# title: "FLEX2"
-# author: ""
-# date: "2 February 2023"
-# output:
-#   html_document:
-#     keep_md: yes
-# editor_options:
-#   chunk_output_type: console
-# ---
-# 
-# ```{r setup, include=FALSE}
-# knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## TODO: use 'eval = TRUE'
-# 
-# ```
+#!/usr/bin/env Rscript
 
-## Overview
-# This is an agent based model (ABM) to simulate fisher life history on a landscape. This version is written to input habitat data that was written as a raster output from the fisherHabitatLoader module. The fisherHabitatLoader saves rasters of the occurrence of fisher habitat types (denning, rust, cavity, resting and movement) at each interval of a forestry simulation using forestryCLUS. The forestryCLUS module is a simulation model that returns a single solution for a set of parameters (i.e., it's a deterministic model). Thus fisherHabitatLoader updates fisher habitat conditions over a simulation period. This approach  allows for faster simulation of multiple iterations of a fisher population on a landscape. as it can read the habitat conditions as predetermined by the simulation model. I is more efficient to run the fisher ABM as a *post-hoc* analysis, rather than concurrently with forestryCLUS.
-# 
-# ## Usage
-# Below runs the module
+stub <- function() {}
+thisPath <- function() {
+  cmdArgs <- commandArgs(trailingOnly = FALSE)
+  if (length(grep("^-f$", cmdArgs)) > 0) {
+    # R console option
+    normalizePath(dirname(cmdArgs[grep("^-f", cmdArgs) + 1]))[1]
+  } else if (length(grep("^--file=", cmdArgs)) > 0) {
+    # Rscript/R console option
+    scriptPath <- normalizePath(dirname(sub("^--file=", "", cmdArgs[grep("^--file=", cmdArgs)])))[1]
+  } else if (Sys.getenv("RSTUDIO") == "1") {
+    if (rstudioapi::isAvailable(version_needed=NULL,child_ok=FALSE)) {
+      # RStudio interactive
+      dirname(rstudioapi::getSourceEditorContext()$path)
+    } else if (is.null(knitr::current_input(dir = TRUE)) == FALSE) {
+      # Knit
+      knitr::current_input(dir = TRUE)
+    } else {
+      # R markdown on RStudio
+      getwd()
+    }
+  } else if (is.null(attr(stub, "srcref")) == FALSE) {
+    # sourced via R console
+    dirname(normalizePath(attr(attr(stub, "srcref"), "srcfile")$filename))
+  } else {
+    stop("Cannot find file path")
+  }
+}
 
-# ```{r module_usage}
-library (SpaDES.core)
-library (data.table)
-library (terra)
-library (keyring)
-library (tidyverse)
-library (here)
-library (stringr)
-library (truncnorm)
-library (RANN)
+setwd(thisPath())
+
+args = commandArgs(trailingOnly = TRUE)
+if (length(args) != 9) {
+  stop("All arguments must be supplied.\n", call.=FALSE)
+}
+
+
+
+# library (SpaDES.core)
+# library (data.table)
+# library (terra)
+# library (keyring)
+# library (tidyverse)
+# library (here)
+# library (stringr)
+# library (truncnorm)
+# library (RANN)
 # source (paste0 (here::here(), "/R/functions/R_Postgres.R"))
+
+female_max_age <- args[1]
+den_target <- args[2]
+rest_target <- args[3]
+move_target <- args[4]
+reproductive_age <- args[5]
+sex_ratio <- args[6]
+female_dispersal <- args[7]
+timeInterval <- args[8]
+iterations <- args[9]
+
+print("Parameters")
+print(female_max_age)
+print(den_target)
+print(rest_target)
+print(move_target)
+print(reproductive_age)
+print(sex_ratio)
+print(female_dispersal)
+print(timeInterval)
+print(iterations)
 
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/scenarios/fisher/inputs")) %>% reproducible::checkPath (create = TRUE)
@@ -39,16 +76,16 @@ cacheDir <- file.path(paste0(here::here(), "/R/scenarios/fisher"))
 
 times <- list (start = 0, end = 2)
 
-parameters <- list(FLEX2 = list (female_max_age = 9,
-                                 den_target = 0.003, 
-                                 rest_target = 0.028,
-                                 move_target = 0.091,
-                                 reproductive_age = 2, 
-                                 sex_ratio = 0.5,
-                                 female_dispersal = 785000,  # ha; radius = 500 pixels = 50km = 7850km2 area
-                                 timeInterval = 5, # should be consistent with the time interval used to model habitat
+parameters <- list(FLEX2 = list (female_max_age = female_max_age,
+                                 den_target = den_target,
+                                 rest_target = rest_target,
+                                 move_target = move_target,
+                                 reproductive_age = reproductive_age,
+                                 sex_ratio = sex_ratio,
+                                 female_dispersal = female_dispersal,  # ha; radius = 500 pixels = 50km = 7850km2 area
+                                 timeInterval = timeInterval, # should be consistent with the time interval used to model habitat
                                                     # e.g., growingstockLCUS periodLength
-                                 iterations = 1, # not currently implemented
+                                 iterations = iterations, # not currently implemented
                                  rasterHabitat = paste0 (here::here(), "/R/scenarios/fisher/inputs/scenario.tif")
 
                 )
@@ -68,15 +105,17 @@ paths <- list(cachePath = cacheDir,
               inputPath = inputDir,
               outputPath = outputDir)
 
-mySim <- simInit(times = times, 
-                 params = parameters, 
+mySim <- simInit(times = times,
+                 params = parameters,
                  modules = modules,
                  objects = objects,
                  paths = paths)
 
 fisherSimOut <- spades(mySim)
 
-saveRDS(fisherSimOut, file = '/tmp/fisherSimOut')
+filename <- uuid::UUIDgenerate(use.time = TRUE)
+
+saveRDS(fisherSimOut, file = paste0('/tmp/fisher/', filename))
 
 # str(mySimOut)
 # 
@@ -102,9 +141,3 @@ saveRDS(fisherSimOut, file = '/tmp/fisherSimOut')
 # plot(test)
 # mySimOut$agents %>% filter(d2_score>0)
 # plot(mySimOut$ras.territories)
-
-
-
-
-# ```
-

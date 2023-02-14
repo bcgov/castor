@@ -25,7 +25,8 @@ run_simulation <- function(
   simulation_logfile_lock,
   progress,
   total_steps,
-  d_uploader
+  d_uploader,
+  sim_params
 ) {
   # future({
   # browser()
@@ -35,6 +36,17 @@ run_simulation <- function(
 
     # SSH config
     ssh_user <- "root"
+    
+    # Simulation parameters
+    female_max_age <- sim_params$female_max_age
+    den_target <- sim_params$den_target
+    rest_target <- sim_params$rest_target
+    move_target <- sim_params$move_target
+    reproductive_age <- sim_params$reproductive_age
+    sex_ratio <- sim_params$sex_ratio
+    female_dispersal <- sim_params$female_dispersal
+    timeInterval <- sim_params$timeInterval
+    iterations <- sim_params$iterations
 
     print(paste(as.character(Sys.time()), ",got key", ssh_keyfile_name))
 
@@ -252,6 +264,9 @@ mkdir -p /tmp/fisher/; \
           keyfile = ssh_keyfile
         )
   
+      # Remove public key from local file system
+      fs::file_delete('tmp/id_rsa.pub')
+      
       # Add scenario droplet private IP address to known hosts on the droplet ----
       # Copy the scenario file from scenario droplet to droplet ----
       d %>%
@@ -305,10 +320,12 @@ mkdir -p /tmp/fisher/; \
       )
       filelock::unlock(lock)
       progress$inc(1 / total_steps)
+      
+      filename <- uuid::UUIDgenerate(use.time = TRUE)
 
       tryCatch({
         d %>% droplet_ssh(
-          glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX2/fisher.R"
+          glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX2/fisher.R {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {timeInterval} {iterations}"
           ),
           keyfile = ssh_keyfile
         )
@@ -378,7 +395,7 @@ mkdir -p /tmp/fisher/; \
 
     # Find the way to save unique name
     d %>% droplet_download(
-      remote = glue::glue('/tmp/fisher/fisherSimOut'),
+      remote = glue::glue('/tmp/fisher/{filename}.Rds'),
       local = './inst/app/',
       keyfile = ssh_keyfile
     )

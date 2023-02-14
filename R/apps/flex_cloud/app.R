@@ -104,7 +104,6 @@ ui <- shiny::tagList(
       ),
       sidebarMenu(
         menuItem("Run Simulations", tabName = "run", icon = icon("play-circle")),
-        menuItem("Disk Storage", tabName = "databases", icon = icon("database")),
         menuItem("Cloud Servers", tabName = "resources", icon = icon("server")),
         menuItem("Billing", tabName = "billing", icon = icon("search-dollar")),
         menuItem("Settings", tabName = "settings", icon = icon("cog"))
@@ -133,7 +132,7 @@ ui <- shiny::tagList(
                 icon = icon('file-code'),
                 class = 'btn-flex-light'
               ),
-              hr(),
+              # hr(),
               selectizeInput(
                 'droplet_size',
                 label = "Cloud server config",
@@ -141,8 +140,52 @@ ui <- shiny::tagList(
                 selected = '',
                 multiple = FALSE
               ),
-              hr(),
+              # hr(),
               sliderInput('iterations', label = 'Number of iterations', value = 50, min = 0, max = 100, step = 1),
+              hr(),
+              # female_max_age
+              # den_target
+              # rest_target
+              # move_target
+              # reproductive_age
+              # sex_ratio
+              # female_dispersal
+              # timeInterval
+              # iterations
+              numericInput(
+                inputId = 'female_max_age',  label = "Female max age", 
+                min = 0, max = 15, value = 9
+              ),
+              numericInput(
+                inputId = 'den_target',  label = "Den target", 
+                min = 0, max = 0.015, value = 0.003, step = 0.001
+              ),
+              numericInput(
+                inputId = 'rest_target',  label = "Rest target", 
+                min = 0, max = 0.050, value = 0.028
+              ),
+              numericInput(
+                inputId = 'move_target',  label = "Move target", 
+                min = 0, max = 0.2, value = 0.091
+              ),
+              numericInput(
+                inputId = 'reprodictive_age',  label = "Reproductive age", 
+                min = 0, max = 10, value = 2
+              ),
+              numericInput(
+                inputId = 'sex_ratio',  label = "Sex ratio", 
+                min = 0, max = 1, value = 0.5
+              ),
+              textInput(
+                inputId = 'female_dispersal',  label = "Female dispersal", value = '785000'
+              ),
+              numericInput(
+                inputId = 'time_interval',  label = "Time interval", 
+                min = 0, max = 50, value = 5
+              ),
+              textInput(
+                inputId = 'iterations',  label = "Iterations", value = 1
+              ),
               hr(),
               actionButton(
                 'run_scenario',
@@ -191,105 +234,6 @@ ui <- shiny::tagList(
               )
             )
           )
-        ),
-
-        ## Databases ----
-        tabItem(
-          tabName = "databases",
-          # tabsetPanel(
-          #   type = 'tabs',
-          #   id = 'databases-tabset-panel',
-          #   tabPanel(
-          #     title = 'Database Snapshots',
-          #     value = 'databases_snapshots',
-          #     tagList(
-          #       h3('Database Snapshots'),
-          #       # tableOutput('database_snapshots'),
-          #       dataTableOutput('database_snapshots'),
-          #       shiny::actionButton(
-          #         inputId = 'refresh_database_snapshots',
-          #         label = 'Refresh',
-          #         icon = icon('refresh')
-          #       )
-          #     )
-          #   ),
-          #   tabPanel(
-          #     title = 'New Database',
-          #     value = 'new_database',
-          #     tagList(
-          #       h3('New Database'),
-          #       sidebarLayout(
-          #         sidebarPanel(
-          #           width = 4,
-          #           tagList(
-          #             p('Select sqlite database to upload. The application will:'),
-          #             shiny::tags$ol(
-          #               shiny::tags$li('Create a volume'),
-          #               shiny::tags$li('Upload the database to it'),
-          #               shiny::tags$li('Create a volume snapshot'),
-          #               shiny::tags$li('Delete the volume')
-          #             ),
-          #             p(
-          #               'The volume snapshot can be used to create
-          #               any number of volumes from it, to be used for running the
-          #               different simulations using the same sqlite database.'
-          #             ),
-          #             verbatimTextOutput("file_sqlitedb_selected"),
-          #             shinyFilesButton(
-          #               id = "file_sqlitedb",
-          #               label = "Select SQLite db",
-          #               title = "Please select a file",
-          #               multiple = FALSE,
-          #               viewtype = "detail",
-          #               buttonType = 'info',
-          #               icon = icon('database'),
-          #               class = 'btn-flex-light'
-          #             ),
-          #             hr(),
-          #             verbatimTextOutput("key_selected_db"),
-          #             shinyFilesButton(
-          #               id = "key_db",
-          #               label = "Select private key",
-          #               title = "Please select a file",
-          #               multiple = FALSE,
-          #               viewtype = "detail",
-          #               buttonType = 'info',
-          #               icon = icon('key'),
-          #               class = 'btn-flex-light'
-          #             ),
-          #             hr(),
-          #             actionButton(
-          #               'new_database_create',
-          #               'Create database',
-          #               icon = icon('plus-circle'),
-          #               class = 'btn-flex'
-          #             )
-          #           )
-          #         ),
-          #         mainPanel(
-          #           width = 8,
-          #           tagList(
-          #             uiOutput("preview_new_database")
-          #           )
-          #         )
-          #       )
-          #     )
-          #   ),
-          #   tabPanel(
-          #     title = 'Databases',
-          #     value = 'databases',
-          #     tagList(
-          #       h3('Databases'),
-          #       dataTableOutput('databases'),
-          #       # tableOutput('databases'),
-          #       shiny::actionButton(
-          #         inputId = 'refresh_databases',
-          #         label = 'Refresh',
-          #         icon = icon('refresh')
-          #       )
-          #     )
-          #   )
-          # )
         ),
 
         ## Resources ----
@@ -451,13 +395,6 @@ server <- function(input, output, session) {
     selected = ''
   )
 
-  # shiny::updateSelectizeInput(
-  #   session = getDefaultReactiveDomain(),
-  #   'volumes',
-  #   choices = volume_snapshot_names,
-  #   selected = ''
-  # )
-
   # Droplet size
   shiny::updateSelectizeInput(
     session = getDefaultReactiveDomain(),
@@ -482,22 +419,9 @@ server <- function(input, output, session) {
         ssh_keyfile <- cookies$key_path
         ssh_keyfile_name <- cookies$key_name
         print(ssh_keyfile)
-        # if (ssh_keyfile != '' | ssh_keyfile_name != '') {
-        #   cat("SSH key has not been selected")
-        # } else {
-        #   ssh_keyfile
-        # }
       })
     }
   )
-
-  # output$key_selected_db <- renderPrint({
-  #   if (is.integer(input$key_db)) {
-  #     cat("SSH key has not been selected")
-  #   } else {
-  #     parseFilePaths(volumes, input$key_db)$name
-  #   }
-  # })
 
   logfile <- tempfile(tmpdir = tempdir(check = TRUE), pattern = 'simulation_')
   simulation_logfile <- paste0(logfile, '.csv')
@@ -531,9 +455,7 @@ server <- function(input, output, session) {
 
       # SSH config
       ssh_user <- "root"
-      # ssh_keyfile_tbl <- parseFilePaths(volumes, input$key)
-      # ssh_keyfile <- stringr::str_replace(ssh_keyfile_tbl$datapath, 'NULL/', '/')
-      # ssh_keyfile_name <- ssh_keyfile_tbl$name
+      
 # browser()
       # Scenario
       selected_scenario <- input$file_scenario
@@ -544,7 +466,7 @@ server <- function(input, output, session) {
       region <- 'tor1'
       uploader_image <- 'ubuntu-20-04-x64'
       uploader_size = 's-1vcpu-1gb'
-# browser()
+
       d_uploader <- create_scenario_droplet(
         scenario = selected_scenario,
         ssh_keyfile = ssh_keyfile,
@@ -553,9 +475,6 @@ server <- function(input, output, session) {
       )
       
       scenario_droplet_ip <- get_private_ip(d_uploader)
-
-      # stopifnot(FALSE)
-      # stopifnot(input$droplet_size %in% sizes$slug)
 
       progress <- AsyncProgress$new(message="Overall job progress")
 
@@ -581,6 +500,18 @@ server <- function(input, output, session) {
         file = simulation_logfile,
         append = FALSE
       )
+      
+      sim_params <- list(
+        female_max_age = input$female_max_age,
+        den_target = input$den_target,
+        rest_target = input$rest_target,
+        move_target = input$move_target,
+        reproductive_age = input$reproductive_age,
+        sex_ratio = input$sex_ratio,
+        female_dispersal = input$female_dispersal,
+        timeInterval = input$timeInterval,
+        iterations = input$iterations
+      )
 
       lapply(
         X = selected_scenario,
@@ -595,7 +526,8 @@ server <- function(input, output, session) {
         simulation_logfile_lock = simulation_logfile_lock,
         progress = progress,
         total_steps = total_steps,
-        d_uploader = d_uploader
+        d_uploader = d_uploader,
+        sim_params = sim_params
       )
       # run_simulation(
       #   scenario = selected_scenario,
