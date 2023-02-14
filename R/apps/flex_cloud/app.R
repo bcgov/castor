@@ -29,6 +29,8 @@ library(ssh)
 library(ipc)
 library(purrr)
 library(filelock)
+library(shinyjs)
+library(glouton)
 
 source('src/functions.R')
 
@@ -49,25 +51,26 @@ uploader_image <- 'ubuntu-20-04-x64'
 uploader_size = 's-1vcpu-1gb'
 
 # FLEX droplet image
-snapshots <- analogsea::snapshots()
-image <- snapshots$`flex-cloud-image-20230127`$id
+# snapshots <- analogsea::snapshots()
+# image <- snapshots$`flex-cloud-image-20230210`$id
 
 # SSH config
 ssh_user <- "root"
 
 # Available sizes
-sizes <- analogsea::sizes() %>%
+sizes <- analogsea::sizes(per_page = 200) %>%
   filter(
     available == TRUE,
     grepl("tor1", region),
     !grepl("-amd", slug),
     !grepl("-intel", slug),
-    memory > 2000
+    memory > 8000
   ) %>%
   mutate(
     label = paste0(
       memory / 1024,
       'GB (', disk, 'GB disk, ',
+      vcpus, ' vCPUs, ',
       scales::dollar(price_hourly, prefix = '', suffix = '¢', accuracy = 0.01, scale = 100),
       ' hourly)'
     )
@@ -81,6 +84,10 @@ size_choices <- setNames(
 
 # UI ----
 ui <- shiny::tagList(
+
+  shinyjs::useShinyjs(),
+  glouton::use_glouton(),
+
   dashboardPage(
     skin = 'black', title = 'FLEX Cloud Deployment',
     header = dashboardHeader(
@@ -136,18 +143,6 @@ ui <- shiny::tagList(
               ),
               hr(),
               sliderInput('iterations', label = 'Number of iterations', value = 50, min = 0, max = 100, step = 1),
-              hr(),
-              verbatimTextOutput("key_selected"),
-              shinyFilesButton(
-                id = "key",
-                label = "Select private key",
-                title = "Please select a file",
-                multiple = FALSE,
-                viewtype = "detail",
-                buttonType = 'info',
-                icon = icon('key'),
-                class = 'btn-flex-light'
-              ),
               hr(),
               actionButton(
                 'run_scenario',
@@ -323,11 +318,58 @@ ui <- shiny::tagList(
           ),
           shiny::textOutput('connection_status')
         ),
-        
+
         ## Settings ----
         tabItem(
           tabName = "settings",
-          h2('Settings')
+          h2('Settings'),
+          hr(),
+          h3('Authentication'),
+          fluidRow(
+            column(
+              width = 5,
+              p(
+                'Select a private key to be used to be able to connect and manage 
+                Digital Ocean cloud resources.'
+              ),
+              shinyFilesButton(
+                id = "key",
+                label = "Select private key",
+                title = "Please select a file",
+                multiple = FALSE,
+                viewtype = "detail",
+                buttonType = 'info',
+                icon = icon('key'),
+                class = 'btn-flex-light'
+              ),
+            ),
+            column(
+              width = 6, offset = 1,
+              p(
+                'Check which private key (if any) is currently set to be used 
+                to connect and manage Digital Ocean cloud resources.'
+              ),
+              actionButton(
+                inputId = "check_key",
+                label = "Check private key",
+                icon = icon('user-shield'),
+                class = 'btn-flex-light'
+              ),
+              verbatimTextOutput("key_selected"),
+            )
+          ),
+          hr(),
+          fluidRow(
+            column(
+              width = 12,
+              actionButton(
+                'save_settings',
+                'Save settings',
+                icon = icon('cog'),
+                class = 'btn-flex'
+              )
+            )
+          )
         )
       )
     )
@@ -432,13 +474,22 @@ server <- function(input, output, session) {
     }
   })
 
-  output$key_selected <- renderPrint({
-    if (is.integer(input$key)) {
-      cat("SSH key has not been selected")
-    } else {
-      parseFilePaths(volumes, input$key)$name
+  observeEvent(
+    input$check_key,
+    {
+      output$key_selected <- renderPrint({
+        cookies <- glouton::fetch_cookies()
+        ssh_keyfile <- cookies$key_path
+        ssh_keyfile_name <- cookies$key_name
+        print(ssh_keyfile)
+        # if (ssh_keyfile != '' | ssh_keyfile_name != '') {
+        #   cat("SSH key has not been selected")
+        # } else {
+        #   ssh_keyfile
+        # }
+      })
     }
-  })
+  )
 
   # output$key_selected_db <- renderPrint({
   #   if (is.integer(input$key_db)) {
@@ -452,6 +503,9 @@ server <- function(input, output, session) {
   simulation_logfile <- paste0(logfile, '.csv')
   simulation_logfile_lock <- paste0(logfile, '.lock')
 
+  ssh_keyfile <- ''
+  ssh_keyfile_name <- ''
+  
   # Run simulation ----
   observeEvent(
     input$run_scenario,
@@ -460,15 +514,27 @@ server <- function(input, output, session) {
       req(input$file_scenario)
       req(input$droplet_size)
 
-      # stopifnot(FALSE)
+      cookies <- glouton::fetch_cookies()
+      ssh_keyfile <- cookies$key_path
+      ssh_keyfile_name <- cookies$key_name
+
+      if (length(ssh_keyfile) == 0 | length(ssh_keyfile_name) == 0) {
+        shinyjs::alert('SSH key has not been set. Please go to Settings tab to configure it.')
+      }
+      req(length(ssh_keyfile) > 0 & length(ssh_keyfile_name) > 0)
+
+      if (!file.exists(ssh_keyfile)) {
+        shinyjs::alert('Configured SSH key does not exist. Please go to Settings tab to configure a new key.')
+      }
+      req(file.exists(ssh_keyfile))
       # stopifnot(input$droplet_size %in% sizes$slug)
 
       # SSH config
       ssh_user <- "root"
-      ssh_keyfile_tbl <- parseFilePaths(volumes, input$key)
-      ssh_keyfile <- stringr::str_replace(ssh_keyfile_tbl$datapath, 'NULL/', '/')
-      ssh_keyfile_name <- ssh_keyfile_tbl$name
-
+      # ssh_keyfile_tbl <- parseFilePaths(volumes, input$key)
+      # ssh_keyfile <- stringr::str_replace(ssh_keyfile_tbl$datapath, 'NULL/', '/')
+      # ssh_keyfile_name <- ssh_keyfile_tbl$name
+# browser()
       # Scenario
       selected_scenario <- input$file_scenario
       scenario_tbl <- shinyFiles::parseFilePaths(volumes, selected_scenario)
@@ -478,20 +544,26 @@ server <- function(input, output, session) {
       region <- 'tor1'
       uploader_image <- 'ubuntu-20-04-x64'
       uploader_size = 's-1vcpu-1gb'
-
-      volume_name <- create_scenario_volume(
-        scenario = selected_scenario, 
-        ssh_keyfile_tbl = ssh_keyfile_tbl
+# browser()
+      d_uploader <- create_scenario_droplet(
+        scenario = selected_scenario,
+        ssh_keyfile = ssh_keyfile,
+        ssh_keyfile_name = ssh_keyfile_name,
+        ssh_user = ssh_user
       )
       
+      scenario_droplet_ip <- get_private_ip(d_uploader)
+
       # stopifnot(FALSE)
       # stopifnot(input$droplet_size %in% sizes$slug)
 
       progress <- AsyncProgress$new(message="Overall job progress")
+
+      print(paste("Simulation log file ", simulation_logfile))
       
       # FLEX droplet image ----
       snapshots <- snapshots_with_params(per_page = 200)
-      snap_image <- snapshots$`flex-cloud-image-20230127`$id
+      snap_image <- snapshots$`flex-cloud-image-20230210`$id
       print(paste("Building from snapshot ID ", snap_image))
 
       total_steps <- length(scenarios) * 12
@@ -511,18 +583,37 @@ server <- function(input, output, session) {
       )
 
       lapply(
-        X = scenarios,
+        X = selected_scenario,
         FUN = run_simulation,
-        ssh_keyfile = ssh_keyfile_tbl,
+        ssh_keyfile = ssh_keyfile,
+        ssh_keyfile_name = ssh_keyfile_name,
         do_droplet_size = input$droplet_size,
-        do_volume = volume_name,
+        scenario_droplet_ip = scenario_droplet_ip,
         do_region = region,
         do_image = snap_image,
         simulation_logfile = simulation_logfile,
         simulation_logfile_lock = simulation_logfile_lock,
         progress = progress,
-        total_steps = total_steps
+        total_steps = total_steps,
+        d_uploader = d_uploader
       )
+      # run_simulation(
+      #   scenario = selected_scenario,
+      #   ssh_keyfile = ssh_keyfile,
+      #   ssh_keyfile_name = ssh_keyfile_name,
+      #   do_droplet_size = input$droplet_size,
+      #   scenario_droplet_ip = scenario_droplet_ip,
+      #   do_region = region,
+      #   do_image = snap_image,
+      #   simulation_logfile = simulation_logfile,
+      #   simulation_logfile_lock = simulation_logfile_lock,
+      #   progress = progress,
+      #   total_steps = total_steps,
+      #   d_uploader = d_uploader
+      # )
+      
+      # Delete the scenario droplet
+      d_uploader %>% droplet_delete()
 
       # Return something other than the future so we don't block the UI
       return(NULL)
@@ -689,6 +780,10 @@ server <- function(input, output, session) {
     data
   })
 
+  # Load saved simulation outputs ---- 
+  # fisherSimOut <- readRDS('R/apps/flex_cloud/inst/app/fisherSimOut.Rdata')
+  # This is only one... find the way to load
+  
   # Refresh md files ----
   # observeEvent(
   #   input$refresh_mds,
@@ -809,6 +904,24 @@ server <- function(input, output, session) {
   #
   #   }
   # )
+
+  # Save settings ----
+  observeEvent(
+    input$save_settings,
+    ignoreInit = TRUE,
+    {
+      req(input$key)
+
+      # SSH config
+      ssh_user <- "root"
+      ssh_keyfile_tbl <- parseFilePaths(volumes, input$key)
+      ssh_keyfile <- stringr::str_replace(ssh_keyfile_tbl$datapath, 'NULL/', '/')
+      ssh_keyfile_name <- ssh_keyfile_tbl$name
+
+      glouton::add_cookie('key_path', ssh_keyfile)
+      glouton::add_cookie('key_name', ssh_keyfile_name)
+    }
+  )
 
 }
 

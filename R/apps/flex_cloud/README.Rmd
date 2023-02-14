@@ -35,6 +35,7 @@ R packages required to run the app are imported as the first step in `app.R` fil
 -   `{ipc}`
 -   `{purrr}`
 -   `{filelock}`
+-   `{ColinFay/glouton}`
 
 and they need to be installed on the host running the app.
 
