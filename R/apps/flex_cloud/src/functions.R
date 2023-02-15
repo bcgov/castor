@@ -13,6 +13,7 @@
 #'
 #' @examples
 run_simulation <- function(
+  iteration,
   scenario,
   ssh_keyfile,
   ssh_keyfile_name,
@@ -28,7 +29,8 @@ run_simulation <- function(
   d_uploader,
   sim_params
 ) {
-  # future({
+  future({
+  # a %<-% {
   # browser()
     errored <- FALSE
 
@@ -38,31 +40,34 @@ run_simulation <- function(
     ssh_user <- "root"
 
     # Simulation parameters
-    female_max_age <- as.numeric(sim_params$female_max_age)
-    den_target <- as.numeric(sim_params$den_target)
-    rest_target <- as.numeric(sim_params$rest_target)
-    move_target <- as.numeric(sim_params$move_target)
-    reproductive_age <- as.numeric(sim_params$reproductive_age)
-    sex_ratio <- as.numeric(sim_params$sex_ratio)
-    female_dispersal <- as.numeric(sim_params$female_dispersal)
-    timeInterval <- as.numeric(sim_params$timeInterval)
-    iterations <- as.numeric(sim_params$iterations)
-
+    female_max_age <- sim_params$female_max_age
+    den_target <- sim_params$den_target
+    rest_target <- sim_params$rest_target
+    move_target <- sim_params$move_target
+    reproductive_age <- sim_params$reproductive_age
+    sex_ratio <- sim_params$sex_ratio
+    female_dispersal <- sim_params$female_dispersal
+    time_interval <- sim_params$time_interval
+    iterations <- sim_params$iterations
+    filename <- uuid::UUIDgenerate(use.time = TRUE)
+  
+    command <- glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX2/fisher.R {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {time_interval} {iterations} {filename}")
+    
     print(paste(as.character(Sys.time()), ",got key", ssh_keyfile_name))
 
     selected_scenario_tbl <- parseFilePaths(volumes, scenario)
     selected_scenario <- selected_scenario_tbl$name
     selected_scenario_path <- stringr::str_remove(selected_scenario_tbl$datapath, 'NULL/')
 
-    scenario_name <- stringr::str_split(
-      string = scenario,
-      pattern = '\\.',
-      n = 2,
-      simplify = TRUE
-    )[1,1]
+    # scenario_name <- stringr::str_split(
+    #   string = scenario,
+    #   pattern = '\\.',
+    #   n = 2,
+    #   simplify = TRUE
+    # )[1,1]
 
     status <- paste0(
-      "1,", scenario_name, ",0%,START PROCESSING,", as.character(Sys.time())
+      "1,", paste0("Iteration ", iteration), ",0%,START PROCESSING,", as.character(Sys.time())
     )
 
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
@@ -75,7 +80,7 @@ run_simulation <- function(
     progress$inc(1 / total_steps)
 
     status <- paste0(
-      "2,", scenario_name, ",10%,Creating droplet,", as.character(Sys.time())
+      "2,", paste0("Iteration ", iteration), ",10%,Creating droplet,", as.character(Sys.time())
     )
 
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
@@ -87,7 +92,7 @@ run_simulation <- function(
     filelock::unlock(lock)
     progress$inc(1 / total_steps)
 
-    d_name <- analogsea:::random_name()
+    d_name <- do_namify(paste0(ids::adjective_animal(), iteration))
 
     # Create actual droplet that will do the knitting ----
     d <- analogsea::droplet_create(
@@ -101,7 +106,7 @@ run_simulation <- function(
       droplet_wait()
 
     status <- paste0(
-      "3,", scenario_name, ",20%,Droplet created,", as.character(Sys.time())
+      "3,", paste0("Iteration ", iteration), ",20%,Droplet created,", as.character(Sys.time())
     )
 
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
@@ -113,75 +118,10 @@ run_simulation <- function(
     filelock::unlock(lock)
     progress$inc(1 / total_steps)
 
-    Sys.sleep(30)
-
-    # Create volume from snapshot ----
-#     existing_snapshots <- analogsea::snapshots(type = 'volume')
-#     existing_snapshots_names <- rlist::list.names(existing_snapshots)
-#
-#     if (do_volume %in% existing_snapshots_names) {
-#       existing_snapshot <- existing_snapshots[[grep(do_volume, names(existing_snapshots))]]
-#
-#       # volume_name <- stringr::str_remove(
-#       #   stringr::str_remove_all(
-#       #     stringr::str_to_lower(
-#       #       paste0(do_volume)
-#       #     ),
-#       #     '_'
-#       #   ),
-#       #   '.tif'
-#       # )
-# #       volume_name <- stringr::str_to_lower(analogsea:::random_name())
-# # print(volume_name)
-#       # Check if volume with the same name already exists
-#       # v <- analogsea::volume(volume_name)
-#       # if (length(v) > 0) {
-#       #   print(paste(as.character(Sys.time()), ",found following volume", v$id, "exists with volume_name", volume_name))
-#       #   print(paste(as.character(Sys.time()), ",trying to detach and delete volume", v$id))
-#       #   if (v %>% analogsea::as.volume())
-#       #   v %>%
-#       #     volume_detach(droplet = d, region = do_region) %>%
-#       #     volume_delete()
-#       # }
-#
-#       status <- paste0(
-#         "4,", scenario_name, ",30%,Creating database volume,", as.character(Sys.time())
-#       )
-#       lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
-#       write(
-#         status,
-#         file = simulation_logfile,
-#         append = TRUE
-#       )
-#       filelock::unlock(lock)
-#       progress$inc(1 / total_steps)
-# # browser()
-#       v <- analogsea::volume_create(
-#         snapshot_id = existing_snapshot$id,
-#         name = do_volume,
-#         size = 10,
-#         region = do_region,
-#         filesystem_label = 'scenario'
-#       )
-#     }
-#
-#     status <- paste0(
-#       "5,", scenario_name, ",40%,Attaching volume to droplet,", as.character(Sys.time())
-#     )
-#
-#     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
-#     write(
-#       status,
-#       file = simulation_logfile,
-#       append = TRUE
-#     )
-#     filelock::unlock(lock)
-#     progress$inc(1 / total_steps)
-#
-#     volume_attach(volume = v, droplet = d, region = do_region)
+    Sys.sleep(60)
 
     status <- paste0(
-      "6,", scenario_name, ",50%,Connecting to droplet,", as.character(Sys.time())
+      "4,", paste0("Iteration ", iteration), ",30%,Connecting to droplet,", as.character(Sys.time())
     )
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
@@ -192,20 +132,30 @@ run_simulation <- function(
     filelock::unlock(lock)
     progress$inc(1 / total_steps)
 
-    d <- droplet(d$id)
+    # d <- droplet(d$id)
     
     tryCatch({
       d %>% droplet_ssh("echo Connecting...", keyfile = ssh_keyfile)
     }, error = function(e) {
-      # shiny:::reactiveStop(conditionMessage(e))
-      debug_msg(e$message)
-      shinyjs::alert("There was an error connecting to the droplet, retrying.")
+      status <- paste0(
+        "5,", paste0("Iteration ", iteration), ",30%,Couldn't connect to droplet - retrying,", as.character(Sys.time())
+      )
+      lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+      write(
+        status,
+        file = simulation_logfile,
+        append = TRUE
+      )
+      filelock::unlock(lock)
+      
+      # debug_msg(e$message)
+      # shinyjs::alert("There was an error connecting to the droplet, retrying.")
       # errored <- TRUE
       Sys.sleep(30)
     })
 
     status <- paste0(
-      "7,", scenario_name, ",60%,Cloning castor repo,", as.character(Sys.time())
+      "6,", paste0("Iteration ", iteration), ",40%,Cloning castor repo,", as.character(Sys.time())
     )
 
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
@@ -220,18 +170,27 @@ run_simulation <- function(
     tryCatch({
       d %>%
         droplet_ssh(
-          glue::glue("git clone https://github.com/sasha-ruby/castor; \
+          glue::glue("curl -sSL https://repos.insights.digitalocean.com/install.sh | sudo bash; \
+git clone https://github.com/sasha-ruby/castor; \
 cd castor; \
 git checkout flex_cloud; \
 mkdir -p ~/castor/R/scenarios/fisher/inputs; \
-mkdir -p /tmp/fisher/; \
-"),
+mkdir -p /tmp/fisher/;"),
           keyfile = ssh_keyfile
         )
     }, error = function(e) {
-      # shiny:::reactiveStop(conditionMessage(e))
-      debug_msg(e$message)
-      shinyjs::alert("There was an error setting up the castor repo, cleaning up.")
+      status <- paste0(
+        "7,", paste0("Iteration ", iteration), ",40%,ERROR cloning castor repo,", as.character(Sys.time())
+      )
+      lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+      write(
+        status,
+        file = simulation_logfile,
+        append = TRUE
+      )
+      filelock::unlock(lock)
+      # debug_msg(e$message)
+      # shinyjs::alert("There was an error setting up the castor repo, cleaning up.")
       errored <- TRUE
     })
 # screen -S scenario; \
@@ -241,68 +200,139 @@ mkdir -p /tmp/fisher/; \
 # echo '/dev/disk/by-id/scsi-0DO_Volume_{do_volume} /mnt/scenario ext4 defaults,nofail,discard 0 0' | sudo tee -a /etc/fstab; \
 # ln -s /mnt/scenario/scenario.tif ~/castor/R/scenarios/fisher/inputs/scenario.tif;
 
-
-    tryCatch({
-      # Download pubkey from droplet to tmp directory ----
-      droplet_download(
-        d, 
-        remote = '/root/.ssh/id_rsa.pub', 
-        local = 'tmp/', 
-        keyfile = ssh_keyfile
-      )
-  
-      # Add pubkey to authorized_keys on scenario droplet ----
-      droplet_upload(
-        d_uploader, 
-        local = 'tmp/id_rsa.pub', 
-        remote = '/root/id_rsa.pub', 
-        keyfile = ssh_keyfile
-      )
-      d_uploader %>%
-        droplet_ssh(
-          glue::glue("cat /root/id_rsa.pub >> '/root/.ssh/authorized_keys'"),
+    if (!errored) {
+      tryCatch({
+        # Download pubkey from droplet to tmp directory ----
+        status <- paste0(
+          "8,", paste0("Iteration ", iteration), ",50%,Getting scenario public key,", as.character(Sys.time())
+        )
+        
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+        write(
+          status,
+          file = simulation_logfile,
+          append = TRUE
+        )
+        filelock::unlock(lock)
+        progress$inc(1 / total_steps)
+        
+        droplet_download(
+          d, 
+          remote = '/root/.ssh/id_rsa.pub', 
+          local = 'tmp/', 
           keyfile = ssh_keyfile
         )
-  
-      # Remove public key from local file system
-      fs::file_delete('tmp/id_rsa.pub')
-      
-      # Add scenario droplet private IP address to known hosts on the droplet ----
-      # Copy the scenario file from scenario droplet to droplet ----
-      d %>%
-        droplet_ssh(
-          glue::glue(
-            "ssh-keyscan {scenario_droplet_ip} >> ~/.ssh/known_hosts; \
-  scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/inputs"),
+    
+        # Add pubkey to authorized_keys on scenario droplet ----
+        status <- paste0(
+          "9,", paste0("Iteration ", iteration), ",60%,Adding public key,", as.character(Sys.time())
+        )
+        
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+        write(
+          status,
+          file = simulation_logfile,
+          append = TRUE
+        )
+        filelock::unlock(lock)
+        progress$inc(1 / total_steps)
+        
+        droplet_upload(
+          d_uploader, 
+          local = 'tmp/id_rsa.pub', 
+          remote = '/root/id_rsa.pub', 
           keyfile = ssh_keyfile
         )
-    }, error = function(e) {
-      # shiny:::reactiveStop(conditionMessage(e))
-      debug_msg(e$message)
-      shinyjs::alert("There was an error getting the scenario, cleaning up.")
-      errored <- TRUE
-    })
-
-    # if (!errored) {
-    #   tryCatch({
-    #     d %>%
-    #       droplet_upload(
-    #         user = ssh_user,
-    #         keyfile = ssh_keyfile,
-    #         local = paste0('scenarios/', selected_scenario_path),
-    #         # remote = paste0('/mnt/scenario/', selected_scenario)
-    #         remote = paste0('/root/castor/R/scenarios/fisher/inputs/scenario.tif')
-    #       )
-    #   }, error = function(e) {
-    #     # shiny:::reactiveStop(conditionMessage(e))
-    #     debug_msg(e$message)
-    #     shinyjs::alert("There was an error uploading the scenario, cleaning up.")
-    #     errored <- TRUE
-    #   })
-    # }
-
-    # Knit the scenario ----
-    # scenario_to_run <- glue::glue("knitr::knit('castor/R/SpaDES-modules/FLEX2/fisher.R')")
+        
+        status <- paste0(
+          "10,", paste0("Iteration ", iteration), ",65%,Adding key to authorized keys,", as.character(Sys.time())
+        )
+        
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+        write(
+          status,
+          file = simulation_logfile,
+          append = TRUE
+        )
+        filelock::unlock(lock)
+        progress$inc(1 / total_steps)
+        
+        d_uploader %>%
+          droplet_ssh(
+            glue::glue("cat /root/id_rsa.pub >> '/root/.ssh/authorized_keys'"),
+            keyfile = ssh_keyfile
+          )
+    
+        # Remove public key from local file system
+        # fs::file_delete('tmp/id_rsa.pub')
+        
+      }, error = function(e) {
+        status <- paste0(
+          "10,", paste0("Iteration ", iteration), ",60%,ERROR adding key to authorized keys - cleaning up,", as.character(Sys.time())
+        )
+        
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+        write(
+          status,
+          file = simulation_logfile,
+          append = TRUE
+        )
+        filelock::unlock(lock)
+        errored <- TRUE
+      })
+    }
+    
+    # status <- glue::glue("11,Iteration {iteration},70%,Copying scenario to droplet from {scenario_droplet_ip},", as.character(Sys.time()))
+    # 
+    # lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+    # write(
+    #   status,
+    #   file = simulation_logfile,
+    #   append = TRUE
+    # )
+    # filelock::unlock(lock)
+    # progress$inc(1 / total_steps)
+    
+    # Add scenario droplet private IP address to known hosts on the droplet ----
+    # Copy the scenario file from scenario droplet to droplet ----
+    if (!errored) {
+      tryCatch({
+        status <- paste0(
+          "11,", paste0("Iteration ", iteration), ",70%,Copying scenario to droplet from", scenario_droplet_ip, ",", as.character(Sys.time())
+        )
+        
+        # status <- glue::glue("11,Iteration {iteration},70%,Copying scenario to droplet from {scenario_droplet_ip},", as.character(Sys.time()))
+        
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+        write(
+          status,
+          file = simulation_logfile,
+          append = TRUE
+        )
+        filelock::unlock(lock)
+        progress$inc(1 / total_steps)
+        
+        d %>%
+          droplet_ssh(
+            glue::glue("ssh-keyscan {scenario_droplet_ip} >> ~/.ssh/known_hosts; \
+scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/inputs"),
+            keyfile = ssh_keyfile
+          )
+      }, error = function(e) {
+        status <- paste0(
+          "11,", paste0("Iteration ", iteration), ",70%,ERROR copying scenario to droplet from", scenario_droplet_ip, ",", as.character(Sys.time())
+        )
+        
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+        write(
+          status,
+          file = simulation_logfile,
+          append = TRUE
+        )
+        filelock::unlock(lock)
+        errored <- TRUE
+      })
+    }
 
     # tmp <- tempfile()
     # writeLines(scenario_to_run, tmp)
@@ -310,7 +340,7 @@ mkdir -p /tmp/fisher/; \
 
     if (!errored) {
       status <- paste0(
-        "8,", scenario_name, ",70%,Running the simulation,", as.character(Sys.time())
+        "12,", paste0("Iteration ", iteration), ",80%,Running the simulation,", as.character(Sys.time())
       )
       lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
       write(
@@ -320,26 +350,32 @@ mkdir -p /tmp/fisher/; \
       )
       filelock::unlock(lock)
       progress$inc(1 / total_steps)
-browser()      
-      filename <- uuid::UUIDgenerate(use.time = TRUE)
 
       tryCatch({
-        command <- glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX2/fisher.R {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {timeInterval} {iterations} {filename};")
         d %>% droplet_ssh(
           command,
           keyfile = ssh_keyfile
         )
       }, error = function(e) {
-        # shiny:::reactiveStop(conditionMessage(e))
-        debug_msg(e$message)
-        shinyjs::alert("There was an error running the simulation, cleaning up.")
+        status <- paste0(
+          "13,", paste0("Iteration ", iteration), ",80%,ERROR running the simulation,", as.character(Sys.time())
+        )
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+        write(
+          status,
+          file = simulation_logfile,
+          append = TRUE
+        )
+        filelock::unlock(lock)
+        # debug_msg(e$message)
+        # shinyjs::alert("There was an error running the simu1lation, cleaning up.")
         errored <- TRUE
       })
     }
 
     # Cleanup ----
     status <- paste0(
-      "9,", scenario_name, ",80%,Detaching and deleting the volume,", as.character(Sys.time())
+      "14,", paste0("Iteration ", iteration), ",90%,Detaching and deleting the volume,", as.character(Sys.time())
     )
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
@@ -375,14 +411,9 @@ browser()
 #       keyfile = ssh_keyfile
 #     )
 
-
-    # v %>% volume_detach(droplet = d, region = do_region)
-    # Sys.sleep(10)
-    # v %>% volume_delete()
-
     # Download simulation output ----
     status <- paste0(
-      "10,", scenario_name, ",90%,Downloading simulation output,", as.character(Sys.time())
+      "15,", paste0("Iteration ", iteration), ",95%,Downloading simulation output,", as.character(Sys.time())
     )
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
@@ -393,15 +424,20 @@ browser()
     filelock::unlock(lock)
     progress$inc(1 / total_steps)
 
-    # Find the way to save unique name
+    # d %>% droplet_download(
+    #   remote = '/root/castor/R/scenarios/fisher/outputs/*',
+    #   local = glue::glue('inst/app/{filename}/'),
+    #   keyfile = ssh_keyfile
+    # )
+
     d %>% droplet_download(
-      remote = glue::glue('/tmp/fisher/{filename}'),
+      remote = glue::glue('/tmp/fisher/{filename}/sim_out'),
       local = './inst/app/',
       keyfile = ssh_keyfile
     )
-# browser()
+
     status <- paste0(
-      "11,", scenario_name, ",100%,Deleting the droplet,", as.character(Sys.time())
+      "16,", paste0("Iteration ", iteration), ",100%,Deleting the droplet,", as.character(Sys.time())
     )
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
@@ -412,10 +448,10 @@ browser()
     filelock::unlock(lock)
     progress$inc(1 / total_steps)
 
-    d %>% droplet_delete()
+    # d %>% droplet_delete()
 
     status <- paste0(
-      "12,", scenario_name, ",,PROCESS FINISHED,", as.character(Sys.time())
+      "17,", paste0("Iteration ", iteration), ",,PROCESS FINISHED,", as.character(Sys.time())
     )
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
     write(
@@ -427,8 +463,9 @@ browser()
     progress$inc(1 / total_steps)
 
     # Return something other than the future so we don't block the UI
+  # }
     return(NULL)
-  # })
+  })
 }
 
 #' Remove the full path for knitted scenario md files
@@ -448,7 +485,8 @@ create_scenario_droplet <- function(
     scenario,
     ssh_keyfile,
     ssh_keyfile_name,
-    ssh_user = 'root'
+    ssh_user = 'root',
+    progressOne
 ) {
   # browser()
   # DO scenario uploader config
@@ -462,27 +500,13 @@ create_scenario_droplet <- function(
   selected_scenario <- selected_scenario_tbl$name
   selected_scenario_path <- stringr::str_remove(selected_scenario_tbl$datapath, 'NULL/')
 
-  # volume_snapshot_name <- stringr::str_to_lower(
-  #   stringr::str_remove(
-  #     stringr::str_remove_all(selected_scenario, '_'),
-  #     '.tif'
-  #   )
-  # )
-  #
-  # # SSH config
-  # ssh_user <- "root"
-  #
-  # existing_snapshots <- snapshots_with_params(type = 'volume', per_page = 200)
-  # existing_snapshots_names <- rlist::list.names(existing_snapshots)
-  #
-  # if (volume_snapshot_name %in% existing_snapshots_names) {
-  #   existing_snapshot <- existing_snapshots[[grep(volume_snapshot_name, names(existing_snapshots))]]
-  #   analogsea::snapshot_delete(existing_snapshot)
-  # }
-
+  progressOne$set(value = 2)
+  
+  droplet_name <- ids::adjective_animal()
+  
   ## Create scenario uploader droplet ----
   d_uploader <- analogsea::droplet_create(
-    name = analogsea:::random_name(),
+    name = do_namify(ids::adjective_animal()),
     size = uploader_size,
     region = region,
     image = uploader_image,
@@ -491,65 +515,44 @@ create_scenario_droplet <- function(
   ) %>%
     droplet_wait()
 
+  progressOne$set(value = 5, detail = 'Waiting for connectivity')
+  
   Sys.sleep(60)
 
-  # Create volume to upload the scenario file to it ----
-  volume_name <- stringr::str_to_lower(analogsea:::random_name())
-  # volume_name <- stringr::str_remove(
-  #   stringr::str_remove_all(
-  #     stringr::str_to_lower(
-  #       paste0(do_volume, scenario)
-  #     ),
-  #     '_'
-  #   ),
-  #   '.rmd'
-  # )
-  # v <- volume_create(
-  #   volume_name,
-  #   size = 10,
-  #   region = region,
-  #   # snapshot_id = NULL,
-  #   filesystem_label = 'scenario'#,
-  #   # tags = c('flex_cloud')
-  # )
-  #
-  # volume_attach(volume = v, droplet = d_uploader, region = region)
+  progressOne$set(8, detail = 'Uplaoding scenario')
+  
+  # Upload scenario to the droplet ----
 
-  # Format and mount the volume ----
-  # browser()
-  # d_uploader %>%
-  #   droplet_ssh(
-  #     glue::glue("sudo mkfs.ext4 /dev/disk/by-id/scsi-0DO_Volume_{volume_name}; \
-  #                      mkdir -p /mnt/scenario; \
-  #                      mount -o discard,defaults,noatime /dev/disk/by-id/scsi-0DO_Volume_{volume_name} /mnt/scenario; \
-  #                      echo '/dev/disk/by-id/scsi-0DO_Volume_{volume_name} /mnt/scenario ext4 defaults,nofail,discard 0 0' | sudo tee -a /etc/fstab"),
-  #     keyfile = ssh_keyfile #
-  #   )
-
-  # Upload scenario to the volume ----
-  # browser()
-  d_uploader %>%
-    droplet_upload(
-      user = ssh_user,
-      keyfile = ssh_keyfile,
-      local = paste0('scenarios/', selected_scenario_path),
-      # remote = paste0('/mnt/scenario/', selected_scenario)
-      remote = paste0('/root/scenario.tif')
-    )
-
-  # browser()
-
-  # Detach volume from the uploader droplet and delete the droplet ----
-  # v %>% volume_detach(droplet = d_uploader, region = region)
-  # d_uploader %>% droplet_delete()
-  #
-  # # Create volume snapshot ----
-  # analogsea::volume_snapshot_create(v, volume_snapshot_name)
-  #
-  # # Delete volume ----
-  # analogsea::volume_delete(v)
-
-  # volume_snapshot_name
+  tryCatch({  
+    d_uploader <- droplet(d_uploader$id)
+  }, error = function(e) {
+    # debug_msg(e$message)
+    # shinyjs::alert("There was an error running the simu1lation, cleaning up.")
+    progressOne$set(9, detail = "Couldnt connect to droplet, retrying")
+    
+    Sys.sleep(30)
+  })
+  
+  tryCatch({  
+    d_uploader %>%
+      droplet_upload(
+        user = ssh_user,
+        keyfile = ssh_keyfile,
+        local = paste0('scenarios/', selected_scenario_path),
+        # remote = paste0('/mnt/scenario/', selected_scenario)
+        remote = paste0('/root/scenario.tif')
+      )
+    d_uploader <- droplet(d_uploader$id)
+  }, error = function(e) {
+    # debug_msg(e$message)
+    # shinyjs::alert("There was an error running the simu1lation, cleaning up.")
+    progressOne$set(9, detail = "Couldnt connect to droplet, cleaning up")
+    d_uploader %>% droplet_delete()
+    return(NULL)
+  })
+  
+  progressOne$set(9, detail = 'Completing the upload')
+  
   d_uploader
 }
 
@@ -608,3 +611,13 @@ get_private_ip <- function(droplet) {
   }
   ip
 }
+
+do_namify <- function(name) {
+  stringr::str_remove_all(
+    stringr::str_to_title(
+      stringr::str_replace_all(name, '_', ' ')
+    ),
+    ' '
+  )
+}
+

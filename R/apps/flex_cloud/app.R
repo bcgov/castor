@@ -21,6 +21,7 @@ library(shinydashboard)
 library(shinyjs)
 library(future)
 library(future.callr)
+library(future.apply)
 library(rlist)
 library(fs)
 library(stringr)
@@ -34,7 +35,7 @@ library(glouton)
 
 source('src/functions.R')
 
-options(shiny.error = browser)
+# options(shiny.error = browser)
 
 # plan(sequential)
 # plan(multicore)
@@ -132,7 +133,7 @@ ui <- shiny::tagList(
                 icon = icon('file-code'),
                 class = 'btn-flex-light'
               ),
-              # hr(),
+              hr(),
               selectizeInput(
                 'droplet_size',
                 label = "Cloud server config",
@@ -141,7 +142,7 @@ ui <- shiny::tagList(
                 multiple = FALSE
               ),
               # hr(),
-              sliderInput('iterations', label = 'Number of iterations', value = 50, min = 0, max = 100, step = 1),
+              sliderInput('iterations', label = 'Number of iterations', value = 2, min = 1, max = 100, step = 1),
               hr(),
               # female_max_age
               # den_target
@@ -153,38 +154,38 @@ ui <- shiny::tagList(
               # timeInterval
               # iterations
               numericInput(
-                inputId = 'female_max_age',  label = "Female max age", 
+                inputId = 'female_max_age',  label = "Female max age",
                 min = 0, max = 15, value = 9
               ),
               numericInput(
-                inputId = 'den_target',  label = "Den target", 
+                inputId = 'den_target',  label = "Den target",
                 min = 0, max = 0.015, value = 0.003, step = 0.001
               ),
               numericInput(
-                inputId = 'rest_target',  label = "Rest target", 
-                min = 0, max = 0.050, value = 0.028
+                inputId = 'rest_target',  label = "Rest target",
+                min = 0, max = 0.050, value = 0.028, step = 0.001
               ),
               numericInput(
-                inputId = 'move_target',  label = "Move target", 
-                min = 0, max = 0.2, value = 0.091
+                inputId = 'move_target',  label = "Move target",
+                min = 0, max = 0.2, value = 0.091, step = 0.001
               ),
               numericInput(
-                inputId = 'reprodictive_age',  label = "Reproductive age", 
-                min = 0, max = 10, value = 2
+                inputId = 'reproductive_age',  label = "Reproductive age",
+                min = 0, max = 10, value = 2, step = 1
               ),
               numericInput(
-                inputId = 'sex_ratio',  label = "Sex ratio", 
-                min = 0, max = 1, value = 0.5
+                inputId = 'sex_ratio',  label = "Sex ratio",
+                min = 0, max = 1, value = 0.5, step = 0.1
               ),
               textInput(
                 inputId = 'female_dispersal',  label = "Female dispersal", value = '785000'
               ),
               numericInput(
-                inputId = 'time_interval',  label = "Time interval", 
-                min = 0, max = 50, value = 5
+                inputId = 'time_interval',  label = "Time interval",
+                min = 0, max = 50, value = 5, step = 5
               ),
               textInput(
-                inputId = 'iterations',  label = "Iterations", value = 1
+                inputId = 'sim_iterations',  label = "Iterations", value = 1
               ),
               hr(),
               actionButton(
@@ -273,7 +274,7 @@ ui <- shiny::tagList(
             column(
               width = 5,
               p(
-                'Select a private key to be used to be able to connect and manage 
+                'Select a private key to be used to be able to connect and manage
                 Digital Ocean cloud resources.'
               ),
               shinyFilesButton(
@@ -290,7 +291,7 @@ ui <- shiny::tagList(
             column(
               width = 6, offset = 1,
               p(
-                'Check which private key (if any) is currently set to be used 
+                'Check which private key (if any) is currently set to be used
                 to connect and manage Digital Ocean cloud resources.'
               ),
               actionButton(
@@ -429,7 +430,7 @@ server <- function(input, output, session) {
 
   ssh_keyfile <- ''
   ssh_keyfile_name <- ''
-  
+
   # Run simulation ----
   observeEvent(
     input$run_scenario,
@@ -453,10 +454,16 @@ server <- function(input, output, session) {
       req(file.exists(ssh_keyfile))
       # stopifnot(input$droplet_size %in% sizes$slug)
 
+      progressOne <- Progress$new(session, min = 1, max = 10)
+      on.exit(progressOne$close())
+      progressOne$set(message = 'Creating droplet to host the scenario',
+                   detail = 'This will take about a minute.')
+      
+      
       # SSH config
       ssh_user <- "root"
-      
-# browser()
+
+      # browser()
       # Scenario
       selected_scenario <- input$file_scenario
       scenario_tbl <- shinyFiles::parseFilePaths(volumes, selected_scenario)
@@ -465,27 +472,39 @@ server <- function(input, output, session) {
       # DO scenario uploader config
       region <- 'tor1'
       uploader_image <- 'ubuntu-20-04-x64'
-      uploader_size = 's-1vcpu-1gb'
+      uploader_size = 's-1vcpu-2gb'
 
+      progressOne$set(1, detail = 'Creating droplet')
+      
       d_uploader <- create_scenario_droplet(
         scenario = selected_scenario,
         ssh_keyfile = ssh_keyfile,
         ssh_keyfile_name = ssh_keyfile_name,
-        ssh_user = ssh_user
+        ssh_user = ssh_user,
+        progressOne = progressOne
       )
+      # progressOne$close()
+
+      if (is.null(d_uploader)) {
+        shinyjs::alert("Error has occrred, please refresh the page and try again.")
+      }
+      req(d_uploader)
       
       scenario_droplet_ip <- get_private_ip(d_uploader)
+      # d_uploader <- 'abc'
+      # scenario_droplet_ip <- '10.1.2.3'
 
       progress <- AsyncProgress$new(message="Overall job progress")
-
-      print(paste("Simulation log file ", simulation_logfile))
       
+      print(paste("Simulation log file ", simulation_logfile))
+
       # FLEX droplet image ----
       snapshots <- snapshots_with_params(per_page = 200)
       snap_image <- snapshots$`flex-cloud-image-20230210`$id
       print(paste("Building from snapshot ID ", snap_image))
 
-      total_steps <- length(scenarios) * 12
+      sim_sequence <- input$iterations
+      total_steps <- sim_sequence * 14
 
       if (file.exists(simulation_logfile)) {
         file.remove(simulation_logfile)
@@ -500,7 +519,7 @@ server <- function(input, output, session) {
         file = simulation_logfile,
         append = FALSE
       )
-      
+
       sim_params <- list(
         female_max_age = input$female_max_age,
         den_target = input$den_target,
@@ -509,46 +528,56 @@ server <- function(input, output, session) {
         reproductive_age = input$reproductive_age,
         sex_ratio = input$sex_ratio,
         female_dispersal = input$female_dispersal,
-        timeInterval = input$timeInterval,
-        iterations = input$iterations
+        time_interval = input$time_interval,
+        iterations = input$sim_iterations
       )
 
-      lapply(
-        X = selected_scenario,
-        FUN = run_simulation,
-        ssh_keyfile = ssh_keyfile,
-        ssh_keyfile_name = ssh_keyfile_name,
-        do_droplet_size = input$droplet_size,
-        scenario_droplet_ip = scenario_droplet_ip,
-        do_region = region,
-        do_image = snap_image,
-        simulation_logfile = simulation_logfile,
-        simulation_logfile_lock = simulation_logfile_lock,
-        progress = progress,
-        total_steps = total_steps,
-        d_uploader = d_uploader,
-        sim_params = sim_params
-      )
-      # run_simulation(
-      #   scenario = selected_scenario,
-      #   ssh_keyfile = ssh_keyfile,
-      #   ssh_keyfile_name = ssh_keyfile_name,
-      #   do_droplet_size = input$droplet_size,
-      #   scenario_droplet_ip = scenario_droplet_ip,
-      #   do_region = region,
-      #   do_image = snap_image,
-      #   simulation_logfile = simulation_logfile,
-      #   simulation_logfile_lock = simulation_logfile_lock,
-      #   progress = progress,
-      #   total_steps = total_steps,
-      #   d_uploader = d_uploader
-      # )
-      
+      # tryCatch({
+        lapply(
+        # future_lapply(
+          X = seq(1:sim_sequence),
+          FUN = run_simulation,
+          scenario = selected_scenario,
+          ssh_keyfile = ssh_keyfile,
+          ssh_keyfile_name = ssh_keyfile_name,
+          do_droplet_size = input$droplet_size,
+          scenario_droplet_ip = scenario_droplet_ip,
+          do_region = region,
+          do_image = snap_image,
+          simulation_logfile = simulation_logfile,
+          simulation_logfile_lock = simulation_logfile_lock,
+          progress = progress,
+          total_steps = total_steps,
+          d_uploader = d_uploader,
+          sim_params = sim_params
+        )
+        # run_simulation(
+        #   scenario = selected_scenario,
+        #   ssh_keyfile = ssh_keyfile,
+        #   ssh_keyfile_name = ssh_keyfile_name,
+        #   do_droplet_size = input$droplet_size,
+        #   scenario_droplet_ip = scenario_droplet_ip,
+        #   do_region = region,
+        #   do_image = snap_image,
+        #   simulation_logfile = simulation_logfile,
+        #   simulation_logfile_lock = simulation_logfile_lock,
+        #   progress = progress,
+        #   total_steps = total_steps,
+        #   d_uploader = d_uploader
+        # )
+      # }, error = function(e) {
+      #   # shiny:::reactiveStop(conditionMessage(e))
+      #   debug_msg(e$message)
+      #   shinyjs::alert("There was an error running the simulation, cleaning up.")
+      #   # errored <- TRUE
+      # })
+
+      # browser()
       # Delete the scenario droplet
-      d_uploader %>% droplet_delete()
+      # d_uploader %>% droplet_delete()
 
       # Return something other than the future so we don't block the UI
-      return(NULL)
+      # return(NULL)
     }
   )
 
@@ -581,94 +610,6 @@ server <- function(input, output, session) {
   #   }
   # )
 
-  # Upload new database ----
-  # observeEvent(
-  #   input$new_database_create,
-  #   {
-  #     sqlitedb_tbl <- parseFilePaths(volumes, input$file_sqlitedb)
-  #     sqlitedb <- sqlitedb_tbl$name
-  #     sqlitedb_path <- stringr::str_remove(sqlitedb_tbl$datapath, 'NULL/')
-  #
-  #     volume_snapshot_name <- stringr::str_to_lower(
-  #       stringr::str_remove(
-  #         stringr::str_remove_all(sqlitedb, '_'),
-  #         '.sqlite'
-  #       )
-  #     )
-  #
-  #     ssh_keyfile_db_tbl <- parseFilePaths(volumes, input$key_db)
-  #     ssh_keyfile_db <- stringr::str_replace(ssh_keyfile_db_tbl$datapath, 'NULL/', '/')
-  #     ssh_keyfile_db_name <- ssh_keyfile_db_tbl$name
-  #
-  #     existing_snapshots <- analogsea::snapshots(type = 'volume')
-  #     existing_snapshots_names <- rlist::list.names(existing_snapshots)
-  #
-  #     if (volume_snapshot_name %in% existing_snapshots_names) {
-  #       existing_snapshot <- existing_snapshots[[grep(volume_snapshot_name, names(existing_snapshots))]]
-  #       analogsea::snapshot_delete(existing_snapshot)
-  #     }
-  #
-  #     ## Create sqlite DB uploader droplet ----
-  #     d_uploader <- analogsea::droplet_create(
-  #       name = analogsea:::random_name(),
-  #       size = uploader_size,
-  #       region = region,
-  #       image = uploader_image,
-  #       ssh_keys = ssh_keyfile_db_name,
-  #       tags = c('flex_cloud')
-  #     ) %>%
-  #       droplet_wait()
-  #
-  #     Sys.sleep(15)
-  #
-  #     # Create volume to upload DB to ----
-  #     volume_name <- stringr::str_to_lower(analogsea:::random_name())
-  #     v <- volume_create(
-  #       volume_name,
-  #       size = 10,
-  #       region = region,
-  #       # snapshot_id = NULL,
-  #       filesystem_label = 'sqlitedb'#,
-  #       # tags = c('FLEX_cloud')
-  #     )
-  #     volume_attach(volume = v, droplet = d_uploader, region = region)
-  #     # volume_attach(volume = v, droplet = d, region = region)
-  #
-  #     # Format and mount the volume ----
-  #     # d %>%
-  #     d_uploader %>%
-  #       droplet_ssh(
-  #         glue::glue("sudo mkfs.ext4 /dev/disk/by-id/scsi-0DO_Volume_{volume_name}; \
-  #                          mkdir -p /mnt/{volume_name}; \
-  #                          mount -o discard,defaults,noatime /dev/disk/by-id/scsi-0DO_Volume_{volume_name} /mnt/{volume_name}; \
-  #                          echo '/dev/disk/by-id/scsi-0DO_Volume_{volume_name} /mnt/{volume_name} ext4 defaults,nofail,discard 0 0' | sudo tee -a /etc/fstab"),
-  #         keyfile = ssh_keyfile_db #
-  #       )
-  #
-  #     # Upload sqlite DB to the volume ----
-  #     # d %>%
-  #     d_uploader %>%
-  #       droplet_upload(
-  #         user = ssh_user,
-  #         keyfile = ssh_keyfile_db,
-  #         local = paste0('../../../', sqlitedb_path),
-  #         remote = paste0("/mnt/", sqlitedb, '/', sqlitedb)
-  #       )
-  #
-  #     # Detach volume from the uploader droplet and delete the droplet ----
-  #     v %>% volume_detach(droplet = d_uploader, region = region)
-  #     d_uploader %>% droplet_delete()
-  #
-  #     # Create volume snapshot
-  #     analogsea::volume_snapshot_create(v, volume_snapshot_name)
-  #
-  #     # Delete volume
-  #     analogsea::volume_delete(v)
-  #
-  #     shinyjs::alert("Done.")
-  #   }
-  # )
-
   # Simulation log ----
   simulation_log_data <- shiny::reactivePoll(
     1000, session,
@@ -679,7 +620,7 @@ server <- function(input, output, session) {
         file.info(log_file)$mtime[1]
       else
         ""
-      },
+    },
     # This function returns the content of log_file
     valueFunc = function() {
       log_file = simulation_logfile
@@ -712,10 +653,10 @@ server <- function(input, output, session) {
     data
   })
 
-  # Load saved simulation outputs ---- 
+  # Load saved simulation outputs ----
   # fisherSimOut <- readRDS('R/apps/flex_cloud/inst/app/fisherSimOut.Rdata')
   # This is only one... find the way to load
-  
+
   # Refresh md files ----
   # observeEvent(
   #   input$refresh_mds,
@@ -771,7 +712,7 @@ server <- function(input, output, session) {
           tags = map_lgl(
             tags,
             filter_by_tag,
-            'flex'
+            'flex_cloud'
           )
         ) %>%
         filter(tags == TRUE) %>%
@@ -780,37 +721,6 @@ server <- function(input, output, session) {
       output$droplets <- renderTable(droplets_df)
     }
   )
-
-  # Refresh volume snapshots ----
-  # observeEvent(
-  #   input$refresh_database_snapshots,
-  #   {
-  #     db_snapshots <- rlist::list.stack(
-  #       analogsea::snapshots(type = 'volume')
-  #     )
-  #     db_snapshots <- as.data.frame(db_snapshots) %>%
-  #       select(id, name, created_at, min_disk_size, size_gigabytes)
-  #
-  #     # output$database_snapshots <- renderTable(db_snapshots)
-  #     output$database_snapshots <- renderDataTable(db_snapshots)
-  #   }
-  # )
-
-  # Refresh volumes ----
-  # observeEvent(
-  #   input$refresh_databases,
-  #   {
-  #     dbs <- analogsea::volumes()
-  #     dbs_df <- as.data.frame(do.call(rbind, dbs))
-  #     if (nrow(dbs_df) > 0) {
-  #       dbs_df <- dbs_df %>%
-  #         select(id, name, created_at, size_gigabytes)
-  #     }
-  #
-  #     # output$databases <- renderTable(dbs_df)
-  #     output$databases <- renderDataTable(dbs_df)
-  #   }
-  # )
 
   # Refresh billing ----
   # observeEvent(
