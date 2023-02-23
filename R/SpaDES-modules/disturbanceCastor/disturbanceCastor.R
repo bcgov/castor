@@ -38,6 +38,7 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
+    expectsInput(objectName = "disturbanceFlow", objectClass = "data.table", desc = "Time series table of annual area disturbed", sourceURL = NA),
     expectsInput(objectName = "boundaryInfo", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "castordb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the RSF', sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataCastor. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
@@ -59,6 +60,15 @@ doEvent.disturbanceCastor = function (sim, eventTime, eventType) {
     init = {
       sim <- Init (sim) # this function inits 
       sim <- scheduleEvent(sim, time(sim) , "disturbanceCastor", "analysis", 9)
+      
+      if(nrow(sim$disturbanceFlow) > 0){
+         sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "disturbanceCastor") , "disturbanceCastor", "disturbProcess", 9)
+      }
+    },
+    disturbProcess ={
+      sim<-distProcess(sim)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "disturbanceCastor"), "disturbanceCastor", "disturbProcess", 9)
+      
     },
     analysis = {
       sim <- distAnalysis(sim)
@@ -311,6 +321,37 @@ distAnalysis <- function(sim) {
   return(invisible(sim))
 }
 
+distProcess <- function(sim) {
+  
+  ras.info<-dbGetQuery(sim$castordb, "Select * from raster_info limit 1;")
+  spreadRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
+  spreadRas[]<-dbGetQuery(sim$castordb, "Select treed from pixels order by pixelid;")$treed
+  
+  for(compart in sim$compartment_list){
+    
+    ndTarget<-sim$disturbanceFlow[compartment == compart & period == time(sim) & flow > 0,]$flow
+    ndType<-sim$disturbanceFlow[compartment == compart &  period == time(sim) & flow > 0,]$partition
+    
+    if(length(ndTarget) > 0){
+      distStarts<-data.table(size = as.integer(rlnorm(1000, meanlog = 4.75, sdlog = 2.47)))[, cvalue:=cumsum(size)][cvalue <= ndTarget,]
+      distStarts$starts <- dbGetQuery(sim$castordb, paste0("select pixelid from pixels where ", ndType, " ORDER BY RANDOM() limit ", nrow(distStarts)))$pixelid
+      
+      if(nrow(distStarts) > 0){
+        out <- spread2(landscape = spreadRas, start = distStarts$starts, exactSize = distStarts$size, spreadProbRel = spreadRas, asRaster = FALSE)
+        dbBegin(sim$castordb)
+          rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, vol = 0, salvage_vol = 0 WHERE pixelid = :pixels", out[, "pixels"])
+        dbClearResult(rs)
+        dbCommit(sim$castordb)
+      }
+     
+    }
+    
+  }
+  
+  
+  return(invisible(sim))
+}
+
 patchAnalysis <- function(sim) {
   #calculates the patch size distributions
   #For each landscape unit that has a patch size constraint
@@ -321,7 +362,12 @@ patchAnalysis <- function(sim) {
 }
 
 .inputObjects <- function(sim) {
-  
+  if(!suppliedElsewhere("disturbanceFlow", sim)){
+    sim$disturbanceFlow<-data.table(compartment = as.character(),
+                                    partition  = as.character(), 
+                                    period  = as.integer(), 
+                                    flow = as.numeric())
+  }
   return(invisible(sim))
 }
 
