@@ -7,7 +7,7 @@ date: '2022-05-17'
 ```{r setup, include=FALSE, eval = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(data.table)
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+source("C:/Users/KLOCHHEA/castor/R/functions/R_Postgres.R")
 ```
 
 ## Background
