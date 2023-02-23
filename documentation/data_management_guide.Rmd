@@ -2729,8 +2729,95 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
 dbDisconnect(conn)
 
 
+## Revelstoke Complex Scenarios Feb. 2023
+new_data <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'public', table_name = 'revelstoke_tier1_feb2023', 
+                        type = 'polygon', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Bevan Enrst, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data2 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'public', table_name = 'revelstoke_tier2_feb2023', 
+                        type = 'polygon', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Bevan Enrst, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data3 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'public', table_name = 'revelstoke_tier3_feb2023', 
+                        type = 'polygon', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Bevan Enrst, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data4 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'public', table_name = 'revelstoke_tier4_feb2023', 
+                        type = 'polygon', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Bevan Enrst, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data5 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'rast', table_name = 'zone_revelstoke_tier1_caribou', 
+                        type = 'raster', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Bevan Enrst, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data6 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'rast', table_name = 'zone_revelstoke_tier2_caribou', 
+                        type = 'raster', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Bevan Enrst, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data7 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'rast', table_name = 'zone_revelstoke_tier3_caribou', 
+                        type = 'raster', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Bevan Enrst, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data8 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'rast', table_name = 'zone_revelstoke_tier4_caribou', 
+                        type = 'raster', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Bevan Enrst, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data9 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'vat', table_name = 'revelstoke_tier1_caribou', 
+                        type = 'table', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Bevan Enrst, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data10 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'vat', table_name = 'revelstoke_tier2_caribou', 
+                        type = 'table', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Bevan Enrst, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data11 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'vat', table_name = 'revelstoke_tier3_caribou', 
+                        type = 'table', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Bevan Enrst, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data12 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'vat', table_name = 'revelstoke_tier4_caribou', 
+                        type = 'table', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Bevan Enrst, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data13 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'zone', table_name = 'revelstoke_tiers_caribou', 
+                        type = 'table', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Bevan Enrst, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
 
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3, new_data4,
+                                     new_data5, new_data6, new_data7, new_data8, new_data9,
+                                     new_data10, new_data11, new_data12, new_data13))
 
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
 
 ```
 

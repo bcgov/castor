@@ -1,6 +1,7 @@
 ### additional functions
 library(rpostgis)
 library(sf)
+library (terra)
 library(raster)
 library(RPostgreSQL)
 library(rgdal)

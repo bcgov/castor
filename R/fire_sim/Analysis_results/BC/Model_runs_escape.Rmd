@@ -234,11 +234,11 @@ model_coef_table
 
 table(frt5$FWI_veg)
 
-frt5$FWI_veg[frt5$FWI_veg=="S-1"]<-"M-1/2"
-frt5$FWI_veg[frt5$FWI_veg=="S-2"]<-"M-1/2"
-frt5$FWI_veg[frt5$FWI_veg=="C-4"]<-"C-2"
-frt5$FWI_veg[frt5$FWI_veg=="C-5"]<-"D-1/2"
-frt5$FWI_veg[frt5$FWI_veg=="C-7"]<-"D-1/2"
+frt5$veg_D12 <- ifelse(frt5$FWI_veg == 'C-5', 1, frt5$veg_D12) # change C-5 to C-7
+frt5$veg_C2 <- ifelse(frt5$FWI_veg == 'C-4', 1, frt5$veg_C2) # change C-4 to C-2
+frt5$veg_D12 <- ifelse(frt5$FWI_veg == 'C-7', 1, frt5$veg_D12)
+frt5$veg_M12 <- ifelse(frt5$FWI_veg == 'S-1', 1, frt5$veg_M12)
+frt5$veg_M12 <- ifelse(frt5$FWI_veg == 'S-2', 1, frt5$veg_M12)
 
 #remove FWI_veg type = N as there apparently were none in the model. 
 
@@ -381,11 +381,10 @@ model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt12_e
 model_coef_table
 
 table(frt12$FWI_veg)
-
-frt12$FWI_veg[frt12$FWI_veg=="C-4"]<-"C-2"
-frt12$FWI_veg[frt12$FWI_veg=="S-1"]<-"M-1/2"
-frt12$FWI_veg[frt12$FWI_veg=="S-2"]<-"C-7"
-frt12$FWI_veg[frt12$FWI_veg=="S-3"]<-"M-1/2"
+frt12$veg_C2 <- ifelse(frt12$FWI_veg == 'C-4', 1, frt12$veg_C2)
+frt12$veg_M12 <- ifelse(frt12$FWI_veg == 'S-3', 1, frt12$veg_M12)
+frt12$veg_M12 <- ifelse(frt12$FWI_veg == 'S-1', 1, frt12$veg_M12)
+frt12$veg_C7 <- ifelse(frt12$FWI_veg == 'S-2', 1, frt12$veg_C7)
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -423,11 +422,10 @@ model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt13_e
 model_coef_table
 
 table(frt13$FWI_veg)
-
-frt13$FWI_veg[frt13$FWI_veg=="C-1"]<-"C-7"
-frt13$FWI_veg[frt13$FWI_veg=="C-4"]<-"C-2"
-frt13$FWI_veg[frt13$FWI_veg=="M-3"]<-"O-1a/b"
-frt13$FWI_veg[frt13$FWI_veg=="S-2"]<-"C-7"
+frt13$veg_C3 <- ifelse(frt13$FWI_veg == 'C-1', 1, frt13$veg_C3)
+frt13$veg_C2 <- ifelse(frt13$FWI_veg == 'C-4', 1, frt13$veg_C2)
+frt13$veg_C7 <- ifelse(frt13$FWI_veg == 'S-2', 1, frt13$veg_C7)
+frt13$veg_O1ab <- ifelse(frt13$FWI_veg == 'M-3', 1, frt13$veg_O1ab)
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -468,11 +466,11 @@ model_coef_table
 
 table(frt14$FWI_veg)
 
-frt14$FWI_veg[frt14$FWI_veg=="C-2"]<-"C-3"
-frt14$FWI_veg[frt14$FWI_veg=="C-4"]<-"C-3"
-frt14$FWI_veg[frt14$FWI_veg=="S-2"]<-"C-7"
-frt14$FWI_veg[frt14$FWI_veg=="S-1"]<-"M-1/2"
-frt14$FWI_veg[frt14$FWI_veg=="S-3"]<-"M-1/2"
+frt14$veg_C3 <- ifelse(frt14$FWI_veg == 'C-4', 1, frt14$veg_C3)
+frt14$veg_C3 <- ifelse(frt14$FWI_veg == 'C-2', 1, frt14$veg_C3)
+frt14$veg_M12 <- ifelse(frt14$FWI_veg == 'S-1', 1, frt14$veg_M12)
+frt14$veg_C7 <- ifelse(frt14$FWI_veg == 'S-2', 1, frt14$veg_C7)
+frt14$veg_M12 <- ifelse(frt14$FWI_veg == 'S-3', 1, frt14$veg_M12)
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -508,10 +506,10 @@ model_coef_table
 
 table(frt15$FWI_veg)
 
-frt15$FWI_veg[frt15$FWI_veg=="C-2"]<-"C-3"
-frt15$FWI_veg[frt15$FWI_veg=="C-7"]<-"C-5"
-frt15$FWI_veg[frt15$FWI_veg=="O-1a/b"]<-"C-3"
-frt15$FWI_veg[frt15$FWI_veg=="S-1"]<-"S-3"
+frt15$veg_C3 <- ifelse(frt15$FWI_veg == 'C-2', 1, frt15$veg_C3)
+frt15$veg_C5 <- ifelse(frt15$FWI_veg == 'C-7', 1, frt15$veg_C5)
+frt15$veg_S3 <- ifelse(frt15$FWI_veg == 'S-1', 1, frt15$veg_S3)
+frt15$veg_C3 <- ifelse(frt15$FWI_veg == 'O-1a/b', 1, frt15$veg_C3)
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk

@@ -17,10 +17,11 @@ library(rgeos)
 
 # Import the data and fire regime types layer
 ```{r}
-dat<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_all_dat_400m_final_2001.gpkg")
+dat<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_all_dat_400m_final.gpkg")
 
 dat<-st_transform(dat, 3005)
 dat$frt<-as.factor(dat$frt)
+dat$frt[dat$frt==3]<-5
 ```
 
 #Change Aspect to N,S,E,W
@@ -310,10 +311,10 @@ table(frt5$FWI_veg)
 #NOTE C-2 is the intercept
 frt5$veg_C7 <- ifelse(frt5$FWI_veg == 'C-5', 1, frt5$veg_C7) # change C-5 to C-7
 frt5$veg_C2 <- ifelse(frt5$FWI_veg == 'C-4', 1, frt5$veg_C2) # change C-4 to C-2
-frt5$veg_M12 <- ifelse(frt5$FWI_veg == 'M-1/2', 1, frt5$veg_M12) # change S-1 to M-1/2
+frt5$veg_M12 <- ifelse(frt5$FWI_veg == 'S-1', 1, frt5$veg_M12) # change S-1 to M-1/2
 frt5$veg_C7 <- ifelse(frt5$FWI_veg == 'S-2', 1, frt5$veg_C7)
 
-model_coef_table_lightning<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt5_lightning.csv")
+model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt5_lightning.csv")
 
 model_coef_table_lightning
 
@@ -342,7 +343,7 @@ rm(frt5)
 # PErson ignitions
 frt5<- ignition2 %>% filter(frt==5)
 
-model_coef_table_person<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT5_person.csv")
+model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT5_person.csv")
 
 model_coef_table_person
 # put coefficients into model formula
@@ -366,7 +367,7 @@ rm(frt5)
 
 frt5<- ignition2 %>% filter(frt==5)
 
-model_coef_table_escape<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt5_escape.csv")
+model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt5_escape.csv")
 
 model_coef_table_escape
 
@@ -375,6 +376,8 @@ table(frt5$FWI_veg)
 frt5$veg_D12 <- ifelse(frt5$FWI_veg == 'C-5', 1, frt5$veg_D12) # change C-5 to C-7
 frt5$veg_C2 <- ifelse(frt5$FWI_veg == 'C-4', 1, frt5$veg_C2) # change C-4 to C-2
 frt5$veg_D12 <- ifelse(frt5$FWI_veg == 'C-7', 1, frt5$veg_D12)
+frt5$veg_M12 <- ifelse(frt5$FWI_veg == 'S-1', 1, frt5$veg_M12)
+frt5$veg_M12 <- ifelse(frt5$FWI_veg == 'S-2', 1, frt5$veg_M12)
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -403,12 +406,13 @@ rm(frt5)
 
 frt5<- ignition2 %>% filter(frt==5)
 
-model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt5_spread.csv")
+model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt5_spread.csv")
 
 model_coef_table_spread
 
 table(frt5$FWI_veg)
 frt5$veg_C2 <- ifelse(frt5$FWI_veg == 'C-4', 1, frt5$veg_C2) # change C-4 to C-2
+frt5$veg_M12 <- ifelse(frt5$FWI_veg == 'S-1', 1, frt5$veg_M12)
 
 # there are some Na values for wind so Ill fill in those values with the average.
 table(is.na(frt5$win_spr))
@@ -470,9 +474,13 @@ table(frt7$FWI_veg)
 
 #NOTE C-2 is the intercept
 frt7$veg_C2 <- ifelse(frt7$FWI_veg == 'C-4', 1, frt7$veg_C2)
-frt7$veg_M12 <- ifelse(frt7$FWI_veg == 'C-7', 1, frt7$veg_M1)
+frt7$veg_M12 <- ifelse(frt7$FWI_veg == 'C-7', 1, frt7$veg_M12)
+frt7$veg_M12 <- ifelse(frt7$FWI_veg == 'C-5', 1, frt7$veg_M12)
+frt7$veg_M12 <- ifelse(frt7$FWI_veg == 'S-1', 1, frt7$veg_M12)
+frt7$veg_M12 <- ifelse(frt7$FWI_veg == 'S-2', 1, frt7$veg_M12)
 
-model_coef_table_lightning<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt7_lightning.csv")
+
+model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt7_lightning.csv")
 
 model_coef_table_lightning
 
@@ -499,12 +507,16 @@ rm(frt7)
 # Ignition Person
 frt7<- ignition2 %>% filter(frt==7) # I wipe this clean everytime because I change some dummy fields a round and I dont want those changes to be reflected in the next model. 
 
-model_coef_table_person<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT7_person.csv")
+model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT7_person.csv")
 
 model_coef_table_person
 
 table(frt7$FWI_veg)
 frt7$veg_C2 <- ifelse(frt7$FWI_veg == 'C-4', 1, frt7$veg_C2)
+frt7$veg_C7 <- ifelse(frt7$FWI_veg == 'C-5', 1, frt7$veg_C7)
+frt7$veg_M12 <- ifelse(frt7$FWI_veg == 'S-1', 1, frt7$veg_M12)
+frt7$veg_M12 <- ifelse(frt7$FWI_veg == 'S-2', 1, frt7$veg_M12)
+
 
 #NOTE C-1 is the intercept
 # put coefficients into model formula
@@ -534,7 +546,7 @@ rm(frt7)
 # escape
 frt7<- ignition2 %>% filter(frt==7)
 
-model_coef_table_escape<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt7_escape.csv")
+model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt7_escape.csv")
 
 model_coef_table_escape
 
@@ -556,10 +568,13 @@ hist(prob_ignition_escape)
 
 frt7<- ignition2 %>% filter(frt==7)
 
-model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt7_spread.csv")
+model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt7_spread.csv")
 
 model_coef_table_spread
 table(frt7$FWI_veg)
+
+frt7$veg_C7 <- ifelse(frt7$FWI_veg == 'C-5', 1, frt7$veg_C7)
+frt7$veg_O1ab <- ifelse(frt7$FWI_veg == 'M-3', 1, frt7$veg_O1ab)
 
 table(is.na(frt7$win_spr))
 frt7$win_spr[is.na(frt7$win_spr)] <- mean(frt7$win_spr, na.rm = TRUE)
@@ -626,7 +641,7 @@ frt9$veg_C7 <- ifelse(frt9$FWI_veg == 'D-1/2', 1, frt9$veg_C7)
 frt9$veg_C7 <- ifelse(frt9$FWI_veg == 'C-5', 1, frt9$veg_C7)
 frt9$veg_M12 <- ifelse(frt9$FWI_veg == 'S-1', 1, frt9$veg_M12)
 
-model_coef_table_lightning<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt9_lightning.csv")
+model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_lightning.csv")
 model_coef_table_lightning
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -651,11 +666,12 @@ rm(frt9)
 
 frt9<- ignition2 %>% filter(frt==9)
 #table(is.na(frt9$climate1_lightning))
-frt9$climate1_lightning[is.na(frt9$climate1_lightning)] <- mean(frt9$climate1_lightning, na.rm = TRUE)
+table(is.na(frt9$climate1_person))
+frt9$climate1_person[is.na(frt9$climate1_person)] <- mean(frt9$climate1_person, na.rm = TRUE)
 
 # no FWI_veg in model
 
-model_coef_table_person<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt9_person.csv")
+model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_person.csv")
 model_coef_table_person
 
 
@@ -677,10 +693,11 @@ hist(prob_ignition_person)
 # escape
 frt9<- ignition2 %>% filter(frt==9)
 #table(is.na(frt9$climate1_lightning))
-frt9$climate1_lightning[is.na(frt9$climate1_lightning)] <- mean(frt9$climate1_lightning, na.rm = TRUE)
+table(is.na(frt9$climate1_escape))
+frt9$climate1_escape[is.na(frt9$climate1_escape)] <- mean(frt9$climate1_escape, na.rm = TRUE)
 
 
-model_coef_table_escape<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt9_escape.csv")
+model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_escape.csv")
 
 model_coef_table_escape
 
@@ -701,9 +718,12 @@ hist(prob_ignition_escape)
 # spread
 frt9<- ignition2 %>% filter(frt==9)
 #table(is.na(frt9$climate1_lightning))
-frt9$climate1_lightning[is.na(frt9$climate1_lightning)] <- mean(frt9$climate1_lightning, na.rm = TRUE)
+table(is.na(frt9$climate1_spread))
+frt9$climate1_spread[is.na(frt9$climate1_spread)] <- mean(frt9$climate1_spread, na.rm = TRUE)
+frt9$climate2_spread[is.na(frt9$climate2_spread)] <- mean(frt9$climate2_spread, na.rm = TRUE)
 
-model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt9_spread.csv")
+
+model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_spread.csv")
 
 model_coef_table_spread
 
@@ -753,7 +773,7 @@ gc()
 ```{r}
 frt10<- ignition2 %>% filter(frt==10)
 
-model_coef_table_lightning<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT10_lightning.csv")
+model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT10_lightning.csv")
 
 model_coef_table_lightning
 table(frt10$FWI_veg)
@@ -789,7 +809,7 @@ hist(prob_ignition_lightning)
 frt10<- ignition2 %>% filter(frt==10)
 
 #NOTE C-2 is the intercept
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT10_person.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT10_person.csv")
 model_coef_table
 table(frt10$FWI_veg)
 
@@ -822,7 +842,7 @@ rm(frt10)
 # escape
 frt10<- ignition2 %>% filter(frt==10)
 
-model_coef_table_escape<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt10_escape.csv")
+model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt10_escape.csv")
 
 model_coef_table_escape
 
@@ -852,7 +872,7 @@ table(is.na(frt10$win_spr))
 frt10$win_spr[is.na(frt10$win_spr)] <- mean(frt10$win_spr, na.rm = TRUE)
 
 
-model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt10_spread.csv")
+model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt10_spread.csv")
 
 model_coef_table_spread
 table(frt10$FWI_veg)
@@ -910,7 +930,7 @@ frt11<- ignition2 %>% filter(frt==11)
 #NOTE C-3 is the intercept
 table(frt11$FWI_veg)
 
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT11_lightning.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT11_lightning.csv")
 model_coef_table
 
 frt11$veg_C7 <- ifelse(frt11$FWI_veg == 'C-5', 1, frt11$veg_C7)
@@ -942,7 +962,7 @@ hist(prob_ignition_lightning)
 #Person
 frt11<- ignition2 %>% filter(frt==11)
 
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt11_person.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_person.csv")
 model_coef_table
 
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -964,7 +984,7 @@ hist(prob_ignition_person)
 
 frt11<- ignition2 %>% filter(frt==11)
 
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt11_escape.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_escape.csv")
 
 model_coef_table
 
@@ -989,7 +1009,7 @@ frt11<- ignition2 %>% filter(frt==11)
 table(is.na(frt11$win_spr))
 frt11$win_spr[is.na(frt11$win_spr)] <- mean(frt11$win_spr, na.rm = TRUE)
 
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt11_spread.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_spread.csv")
 
 model_coef_table
 
@@ -1045,7 +1065,7 @@ frt12<- ignition2 %>% filter(frt==12)
 #NOTE C-1 is the intercept
 table(frt12$FWI_veg)
 
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT12_lightning.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT12_lightning.csv")
 model_coef_table
 
 frt12$veg_S1 <- ifelse(frt12$FWI_veg == 'S-3', 1, frt12$veg_S1)
@@ -1088,7 +1108,7 @@ frt12$veg_C3 <- ifelse(frt12$FWI_veg == 'C-1', 1, frt12$veg_C3)
 frt12$veg_C2 <- ifelse(frt12$FWI_veg == 'C-4', 1, frt12$veg_C2)
 frt12$veg_O1ab <- ifelse(frt12$FWI_veg == 'M-3', 1, frt12$veg_O1ab)
 
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT12_person.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT12_person.csv")
 model_coef_table
 
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -1122,7 +1142,7 @@ table(is.na(frt12$win_sum))
 frt12$win_sum[is.na(frt12$win_sum)] <- mean(frt12$win_sum, na.rm = TRUE)
 
 
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt12_escape.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt12_escape.csv")
 
 model_coef_table
 
@@ -1165,7 +1185,7 @@ frt12<- ignition2 %>% filter(frt==12)
 table(is.na(frt12$win_spr))
 frt12$win_spr[is.na(frt12$win_spr)] <- mean(frt12$win_spr, na.rm = TRUE)
 
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt12_spread.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt12_spread.csv")
 
 model_coef_table
 table(frt12$FWI_veg)
@@ -1227,7 +1247,7 @@ table(frt13$FWI_veg)
 frt13$veg_C2 <- ifelse(frt13$FWI_veg == 'C-4', 1, frt13$veg_C2)
 frt13$veg_C3 <- ifelse(frt13$FWI_veg == 'C-1', 1, frt13$veg_C3)
 frt13$veg_O1ab <- ifelse(frt13$FWI_veg == 'M-3', 1, frt13$veg_O1ab)
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT13_lightning.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT13_lightning.csv")
 model_coef_table
 
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -1264,10 +1284,9 @@ table(frt13$FWI_veg)
 #frt13$FWI_veg[frt13$FWI_veg=="C-2"]<-"C-3"
 frt13$veg_C3 <- ifelse(frt13$FWI_veg == 'C-1', 1, frt13$veg_C3)
 frt13$veg_C2 <- ifelse(frt13$FWI_veg == 'C-4', 1, frt13$veg_C2)
-frt13$veg_C3 <- ifelse(frt13$FWI_veg == 'C-1', 1, frt13$veg_C3)
 frt13$veg_C7 <- ifelse(frt13$FWI_veg == 'S-2', 1, frt13$veg_C7)
 
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT13_person.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT13_person.csv")
 model_coef_table
 
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -1303,7 +1322,7 @@ table(is.na(frt13$win_sum))
 frt13$win_sum[is.na(frt13$win_sum)] <- mean(frt13$win_sum, na.rm = TRUE)
 
 
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt13_escape.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt13_escape.csv")
 
 model_coef_table
 
@@ -1344,7 +1363,7 @@ hist(prob_ignition_escape)
 frt13<- ignition2 %>% filter(frt==13)
 frt13$win_sum[is.na(frt13$win_sum)] <- mean(frt13$win_sum, na.rm = TRUE)
 
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt13_spread.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt13_spread.csv")
 
 model_coef_table
 
@@ -1403,11 +1422,11 @@ frt14<- ignition2 %>% filter(frt==14)
 table(frt14$FWI_veg)
 # NOTE C-2 is the intercept
 
-frt13$veg_C2 <- ifelse(frt13$FWI_veg == 'C-4', 1, frt13$veg_C2)
-frt13$veg_C7 <- ifelse(frt13$FWI_veg == 'S-2', 1, frt13$veg_C7)
-frt13$veg_M12 <- ifelse(frt13$FWI_veg == 'S-3', 1, frt13$veg_M12)
+frt14$veg_C2 <- ifelse(frt14$FWI_veg == 'C-4', 1, frt14$veg_C2)
+frt14$veg_C7 <- ifelse(frt14$FWI_veg == 'S-2', 1, frt14$veg_C7)
+frt14$veg_M12 <- ifelse(frt14$FWI_veg == 'S-3', 1, frt14$veg_M12)
 
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT14_lightning.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT14_lightning.csv")
 model_coef_table
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
 
@@ -1440,7 +1459,7 @@ frt14$veg_C2 <- ifelse(frt14$FWI_veg == 'C-4', 1, frt14$veg_C2)
 frt14$veg_O1ab <- ifelse(frt14$FWI_veg == 'M-3', 1, frt14$veg_O1ab)
 frt14$veg_S1 <- ifelse(frt14$FWI_veg == 'S-3', 1, frt14$veg_S1)
 
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT14_person.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT14_person.csv")
 model_coef_table
 
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -1470,7 +1489,7 @@ hist(prob_ignition_person)
 frt14<- ignition2 %>% filter(frt==14)
 frt14$win_sum[is.na(frt14$win_sum)] <- mean(frt14$win_sum, na.rm = TRUE)
 
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt14_escape.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt14_escape.csv")
 
 model_coef_table
 
@@ -1511,7 +1530,7 @@ frt14<- ignition2 %>% filter(frt==14)
 frt14$win_sum[is.na(frt14$win_sum)] <- mean(frt14$win_sum, na.rm = TRUE)
 
 
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt14_spread.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt14_spread.csv")
 
 model_coef_table
 table(frt14$FWI_veg)
@@ -1567,7 +1586,7 @@ table(frt15$FWI_veg)
 frt15$veg_C3 <- ifelse(frt15$FWI_veg == 'C-2', 1, frt15$veg_C3)
 frt15$veg_C3 <- ifelse(frt15$FWI_veg == 'O-1a/b', 1, frt15$veg_C3)
 
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT15_lightning.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT15_lightning.csv")
 model_coef_table
 
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -1600,7 +1619,7 @@ frt15$veg_C3 <- ifelse(frt15$FWI_veg == 'C-2', 1, frt15$veg_C3)
 frt15$veg_C5 <- ifelse(frt15$FWI_veg == 'C-7', 1, frt15$veg_C5)
 frt15$veg_S3 <- ifelse(frt15$FWI_veg == 'S-1', 1, frt15$veg_S3)
 
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT15_person.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT15_person.csv")
 model_coef_table
 
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -1630,7 +1649,7 @@ hist(prob_ignition_person)
 
 frt15<- ignition2 %>% filter(frt==15)
 
-model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_frt15_escape.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt15_escape.csv")
 model_coef_table
 
 table(frt15$FWI_veg)
@@ -1665,7 +1684,7 @@ frt15<- ignition2 %>% filter(frt==15)
 
 frt15$win_sum[is.na(frt15$win_sum)] <- mean(frt15$win_sum, na.rm = TRUE)
 
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt15_spread.csv")
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt15_spread.csv")
 model_coef_table
 table(frt15$FWI_veg)
 
@@ -1736,6 +1755,26 @@ frt_all2[is.na(frt_all2$prob_ignition_spread),]
 
 # save it!
 ```{r}
-
+st_write(frt_all2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_ignit_escape_spread_final_2001.gpkg", delete_layer=TRUE, driver="GPKG")
 ```
+
+
+# Now open QGIS and make each probability layer into a raster
+
+rasterizing the above file in QGIS:
+
+ go to raster -> Conversion -> Rasterize (Vector to raster)
+
+ then use the shapefile as the input layer, 
+ prob ignition as the field to use for burn-in value. 
+ output raster size units -> georeferenced units
+ resolution = 400m
+ note: make sure you use the file rast.bc_bounds as the extent. Its found in postgres kyle clus. If you dont do this the extent will be wrong and the rasterization wont work properly.
+ Assign a specified nodata value - make this -9 or some negative number. You need to do this or it will make no data values 0 and then change all actual values to NA so it throws out the actual 0% chance of ignion points.
+
+ I also told it to Pre-initialize the output image with a value of -9. I did this for the same reason as just mentioned above but Im not sure how neccessary this one is. 
+
+ the full commonad should look something like this:
+
+ gdal_rasterize -l BC_prob_escape_final -a prob_ignition -tr 400.0 400.0 -init -9.0 -a_nodata -9.0 -te 159587.5 173787.5 1881187.5 1748187.5 -ot Float32 -of GTiff C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/BC/BC_prob_escape_final.gpkg C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/BC/rast_escape_400m.tif
 

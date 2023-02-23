@@ -239,9 +239,8 @@ model_coef_table
 
 table(frt5$FWI_veg)
 
-frt5$FWI_veg[frt5$FWI_veg=="S-1"]<-"M-1/2"
-frt5$FWI_veg[frt5$FWI_veg=="C-4"]<-"C-2"
-
+frt5$veg_C2 <- ifelse(frt5$FWI_veg == 'C-4', 1, frt5$veg_C2) # change C-4 to C-2
+frt5$veg_M12 <- ifelse(frt5$FWI_veg == 'S-1', 1, frt5$veg_M12)
 
 
 # put coefficients into model formula
@@ -287,8 +286,8 @@ model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\
 model_coef_table
 
 table(frt7$FWI_veg)
-frt7$FWI_veg[frt7$FWI_veg=="C-5"]<-"C-7"
-frt7$FWI_veg[frt7$FWI_veg=="M-3"]<-"O-1a/b"
+frt7$veg_C7 <- ifelse(frt7$FWI_veg == 'C-5', 1, frt7$veg_C7)
+frt7$veg_O1ab <- ifelse(frt7$FWI_veg == 'M-3', 1, frt7$veg_O1ab)
 
 
 # put coefficients into model formula
@@ -335,10 +334,9 @@ model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\
 model_coef_table
 
 table(frt9$FWI_veg)
-
-frt9$FWI_veg[frt9$FWI_veg=="C-5"]<-"C-7"
-frt9$FWI_veg[frt9$FWI_veg=="C-4"]<-"C-2"
-frt9$FWI_veg[frt9$FWI_veg=="S-1"]<-"M-1/2"
+frt9$veg_C2 <- ifelse(frt9$FWI_veg == 'C-4', 1, frt9$veg_C2)
+frt9$veg_C7 <- ifelse(frt9$FWI_veg == 'C-5', 1, frt9$veg_C7)
+frt9$veg_M12 <- ifelse(frt9$FWI_veg == 'S-1', 1, frt9$veg_M12)
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -377,9 +375,9 @@ model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\
 model_coef_table
 
 table(frt10$FWI_veg)
-frt10$FWI_veg[frt10$FWI_veg=="C-4"]<-"C-2"
-frt10$FWI_veg[frt10$FWI_veg=="S-2"]<-"C-7"
-frt10$FWI_veg[frt10$FWI_veg=="M-3"]<-"O-1a/b"
+frt10$veg_C2 <- ifelse(frt10$FWI_veg == 'C-4', 1, frt10$veg_C2)
+frt10$veg_C7 <- ifelse(frt10$FWI_veg == 'S-2', 1, frt10$veg_C7)
+frt10$veg_O1ab <- ifelse(frt10$FWI_veg == 'M-3', 1, frt10$veg_O1ab)
 
 
 # put coefficients into model formula
@@ -425,9 +423,9 @@ model_coef_table
 
 table(frt11$FWI_veg)
 
-frt11$FWI_veg[frt11$FWI_veg=="S-2"]<-"C-7"
-frt11$FWI_veg[frt11$FWI_veg=="S-1"]<-"M-1/2"
-frt11$FWI_veg[frt11$FWI_veg=="S-3"]<-"M-1/2"
+frt11$veg_C7 <- ifelse(frt11$FWI_veg == 'S-2', 1, frt11$veg_C7)
+frt11$veg_M12 <- ifelse(frt11$FWI_veg == 'S-1', 1, frt11$veg_M12)
+frt11$veg_M12 <- ifelse(frt11$FWI_veg == 'S-3', 1, frt11$veg_M12)
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -470,7 +468,7 @@ model_coef_table
 
 table(frt12$FWI_veg)
 
-frt12$FWI_veg[frt12$FWI_veg=="S-3"]<-"M-1/2"
+frt12$veg_M12 <- ifelse(frt12$FWI_veg == 'S-3', 1, frt12$veg_M12)
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -517,8 +515,7 @@ model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\
 model_coef_table
 
 table(frt13$FWI_veg)
-
-frt13$FWI_veg[frt13$FWI_veg=="C-1"]<-"C-7"
+frt13$veg_C3 <- ifelse(frt13$FWI_veg == 'C-1', 1, frt13$veg_C3)
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -564,10 +561,9 @@ model_coef_table<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\
 model_coef_table
 
 table(frt14$FWI_veg)
-
-frt14$FWI_veg[frt14$FWI_veg=="C-4"]<-"C-2"
-frt14$FWI_veg[frt14$FWI_veg=="S-2"]<-"C-7"
-frt14$FWI_veg[frt14$FWI_veg=="S-3"]<-"M-1/2"
+frt14$veg_C2 <- ifelse(frt14$FWI_veg == 'C-4', 1, frt14$veg_C2)
+frt14$veg_C7 <- ifelse(frt14$FWI_veg == 'S-2', 1, frt14$veg_C7)
+frt14$veg_M12 <- ifelse(frt14$FWI_veg == 'S-3', 1, frt14$veg_M12)
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -610,8 +606,8 @@ model_coef_table
 
 table(frt15$FWI_veg)
 
-frt15$FWI_veg[frt15$FWI_veg=="C-2"]<-"C-3"
-frt15$FWI_veg[frt15$FWI_veg=="M-3"]<-"O-1a/b"
+frt15$veg_C3 <- ifelse(frt15$FWI_veg == 'C-2', 1, frt15$veg_C3)
+frt15$veg_O1ab <- ifelse(frt15$FWI_veg == 'M-3', 1, frt15$veg_O1ab)
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
