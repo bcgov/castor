@@ -62,7 +62,11 @@ doEvent.disturbanceCastor = function (sim, eventTime, eventType) {
       sim <- scheduleEvent(sim, time(sim) , "disturbanceCastor", "analysis", 9)
       
       if(nrow(sim$disturbanceFlow) > 0){
-         sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "disturbanceCastor") , "disturbanceCastor", "disturbProcess", 9)
+        ras.info<-dbGetQuery(sim$castordb, "Select * from raster_info limit 1;")
+        sim$spreadRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
+        sim$spreadRas[]<-dbGetQuery(sim$castordb, "Select treed from pixels order by pixelid;")$treed
+        sim$disturbanceProcessReport<-data.table(compartment = as.character(), partition = as.character(), mean = as.numeric(), sd = as.numeric(), period = as.integer(), flow = as.numeric(), count = as.numeric(), med = as.numeric(), total = as.numeric(), thlb = as.numeric() )
+        sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "disturbanceCastor") , "disturbanceCastor", "disturbProcess", 9)
       }
     },
     disturbProcess ={
@@ -322,26 +326,20 @@ distAnalysis <- function(sim) {
 }
 
 distProcess <- function(sim) {
-  
-  ras.info<-dbGetQuery(sim$castordb, "Select * from raster_info limit 1;")
-  spreadRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
-  spreadRas[]<-dbGetQuery(sim$castordb, "Select treed from pixels order by pixelid;")$treed
-  
   for(compart in sim$compartment_list){
-    
-    ndTarget<-sim$disturbanceFlow[compartment == compart & period == time(sim) & flow > 0,]$flow
-    ndStartAreas<-sim$disturbanceFlow[compartment == compart &  period == time(sim) & flow > 0,]$partition
-    
-    if(length(ndTarget) > 0){
-      distStarts<-data.table(size = as.integer(rlnorm(1000, meanlog = 4.75, sdlog = 2.47)))[, cvalue:=cumsum(size)][cvalue <= ndTarget,]
-      distStarts$starts <- sample(dbGetQuery(sim$castordb, paste0("select pixelid from pixels where ", ndStartAreas))$pixelid, nrow(distStarts), replace = FALSE)
-       
+    distParms<-sim$disturbanceFlow[compartment == compart & period == time(sim) & flow > 0,]
+    if(nrow(distParms) > 0){
+      distStarts<-data.table(size = as.integer(rlnorm(1000, meanlog = distParms$mean, sdlog =distParms$sd)))[, cvalue:=cumsum(size)][cvalue <= distParms$flow,]
+      distStarts<-distStarts[size > 0,]
+      distStarts$starts <- sample(dbGetQuery(sim$castordb, paste0("select pixelid from pixels where ", distParms$partition))$pixelid, nrow(distStarts), replace = FALSE)
       if(nrow(distStarts) > 0){
-        out <- spread2(landscape = spreadRas, start = distStarts$starts, exactSize = distStarts$size, spreadProbRel = spreadRas, asRaster = FALSE)
+        out <- spread2(landscape = sim$spreadRas, start = distStarts$starts, exactSize = distStarts$size, spreadProbRel = sim$spreadRas, asRaster = FALSE)
         dbBegin(sim$castordb)
           rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, vol = 0, salvage_vol = 0 WHERE pixelid = :pixels", out[, "pixels"])
         dbClearResult(rs)
         dbCommit(sim$castordb)
+        tempReport<-data.table(sim$disturbanceFlow[compartment == compart & period == time(sim) & flow > 0,], count=nrow(distStarts), med=median(distStarts$size), total=sum(distStarts$size), thlb = dbGetQuery(sim$castordb, paste0(" select sum(thlb) as thlb from pixels where pixelid in (", paste(out$pixels, sep = "", collapse = ","), ");"))$thlb)
+        sim$disturbanceProcessReport<-rbindlist(list(sim$disturbanceProcessReport,tempReport ))
       }
      
     }
@@ -367,6 +365,9 @@ patchAnalysis <- function(sim) {
                                     partition  = as.character(), 
                                     period  = as.integer(), 
                                     flow = as.numeric())
+  }
+  if(!suppliedElsewhere("compartment_list", sim)){
+    sim$compartment_list<-unique(sim$disturbanceFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
   }
   return(invisible(sim))
 }

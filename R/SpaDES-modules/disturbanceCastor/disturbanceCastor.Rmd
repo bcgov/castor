@@ -51,7 +51,9 @@ parameters <- list(
 modules <- list ("dataCastor", "roadCastor", "blockingCastor", "disturbanceCastor")
 disturbanceFlow<- data.table(compartment ="all",
                                      partition = ' treed = 1 ',
-                                     period = rep(seq(from = 1, to=2, by = 1),1), 
+                                     mean = 1.75,
+                                     sd = 2.47,
+                                     period = rep(seq(from = 1, to=10, by = 1),1), 
                                      flow = 1000)
 objects <- list (scenario = data.table (name = "test", description = "test"), disturbanceFlow=disturbanceFlow) #omit the disturbanceFlow object to remove disturbance processes
 
@@ -62,6 +64,7 @@ paths <- list(
 
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
+outputs(mySim) <- data.frame (objectName = c("disturbanceProcessReport"))
 
 mysimout<-spades(mySim,debug=TRUE) 
 ```
