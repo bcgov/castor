@@ -330,12 +330,12 @@ distProcess <- function(sim) {
   for(compart in sim$compartment_list){
     
     ndTarget<-sim$disturbanceFlow[compartment == compart & period == time(sim) & flow > 0,]$flow
-    ndType<-sim$disturbanceFlow[compartment == compart &  period == time(sim) & flow > 0,]$partition
+    ndStartAreas<-sim$disturbanceFlow[compartment == compart &  period == time(sim) & flow > 0,]$partition
     
     if(length(ndTarget) > 0){
       distStarts<-data.table(size = as.integer(rlnorm(1000, meanlog = 4.75, sdlog = 2.47)))[, cvalue:=cumsum(size)][cvalue <= ndTarget,]
-      distStarts$starts <- dbGetQuery(sim$castordb, paste0("select pixelid from pixels where ", ndType, " ORDER BY RANDOM() limit ", nrow(distStarts)))$pixelid
-      
+      distStarts$starts <- sample(dbGetQuery(sim$castordb, paste0("select pixelid from pixels where ", ndStartAreas))$pixelid, nrow(distStarts), replace = FALSE)
+       
       if(nrow(distStarts) > 0){
         out <- spread2(landscape = spreadRas, start = distStarts$starts, exactSize = distStarts$size, spreadProbRel = spreadRas, asRaster = FALSE)
         dbBegin(sim$castordb)
