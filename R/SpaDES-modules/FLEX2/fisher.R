@@ -46,18 +46,18 @@ library (truncnorm)
 library (RANN)
 source (paste0 (here::here(), "/R/functions/R_Postgres.R"))
 
-female_max_age <- as.numeric(args[1])
-den_target <- as.numeric(args[2])
-rest_target <- as.numeric(args[3])
-move_target <- as.numeric(args[4])
-reproductive_age <- as.numeric(args[5])
-sex_ratio <- as.numeric(args[6])
-female_dispersal <- as.numeric(args[7])
-timeInterval <- as.numeric(args[8])
-iterations <- as.numeric(args[9])
-filename <- as.character(args[10])
+times <- as.numeric(args[1])
+female_max_age <- as.numeric(args[2])
+den_target <- as.numeric(args[3])
+rest_target <- as.numeric(args[4])
+move_target <- as.numeric(args[5])
+reproductive_age <- as.numeric(args[6])
+sex_ratio <- as.numeric(args[7])
+female_dispersal <- as.numeric(args[8])
+timeInterval <- as.numeric(args[9])
 
 print("Parameters")
+print(times)
 print(female_max_age)
 print(den_target)
 print(rest_target)
@@ -66,14 +66,13 @@ print(reproductive_age)
 print(sex_ratio)
 print(female_dispersal)
 print(timeInterval)
-print(iterations)
 
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/scenarios/fisher/inputs")) %>% reproducible::checkPath (create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/scenarios/fisher/outputs")) %>% reproducible::checkPath (create = TRUE)
 cacheDir <- file.path(paste0(here::here(), "/R/scenarios/fisher"))
 
-times <- list (start = 0, end = 2)
+times <- list (start = 0, end = times)
 
 parameters <- list(FLEX2 = list (female_max_age = female_max_age,
                                  den_target = den_target,
@@ -84,7 +83,7 @@ parameters <- list(FLEX2 = list (female_max_age = female_max_age,
                                  female_dispersal = female_dispersal,  # ha; radius = 500 pixels = 50km = 7850km2 area
                                  timeInterval = timeInterval, # should be consistent with the time interval used to model habitat
                                                     # e.g., growingstockLCUS periodLength
-                                 iterations = iterations, # not currently implemented
+                                 iterations = 1, # not currently implemented
                                  rasterHabitat = paste0 (here::here(), "/R/scenarios/fisher/inputs/scenario.tif")
 
                 )
@@ -111,10 +110,6 @@ mySim <- simInit(times = times,
                  paths = paths)
 
 fisherSimOut <- spades(mySim)
-
-# filename <- uuid::UUIDgenerate(use.time = TRUE)
-
-saveRDS(fisherSimOut, file = paste0('/tmp/fisher/', filename))
 
 # str(mySimOut)
 # 
