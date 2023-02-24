@@ -23,6 +23,7 @@ R packages required to run the app are imported as the first step in `app.R` fil
 -   `{analogsea}`
 -   `{DBI}`
 -   `{shinyFiles}`
+-   `{shinyWidgets}`
 -   `{shinydashboard}`
 -   `{shinyjs}`
 -   `{future}`

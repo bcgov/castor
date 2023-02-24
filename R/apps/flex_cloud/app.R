@@ -32,6 +32,7 @@ library(purrr)
 library(filelock)
 library(shinyjs)
 library(glouton)
+library(shinyWidgets)
 
 source('src/functions.R')
 
@@ -65,7 +66,7 @@ sizes <- analogsea::sizes(per_page = 200) %>%
     grepl("tor1", region),
     !grepl("-amd", slug),
     !grepl("-intel", slug),
-    memory > 8000
+    memory > 16000
   ) %>%
   mutate(
     label = paste0(
@@ -144,48 +145,47 @@ ui <- shiny::tagList(
               # hr(),
               sliderInput('iterations', label = 'Number of iterations', value = 2, min = 1, max = 100, step = 1),
               hr(),
-              # female_max_age
-              # den_target
-              # rest_target
-              # move_target
-              # reproductive_age
-              # sex_ratio
-              # female_dispersal
-              # timeInterval
-              # iterations
-              numericInput(
-                inputId = 'female_max_age',  label = "Female max age",
-                min = 0, max = 15, value = 9
-              ),
-              numericInput(
-                inputId = 'den_target',  label = "Den target",
-                min = 0, max = 0.015, value = 0.003, step = 0.001
-              ),
-              numericInput(
-                inputId = 'rest_target',  label = "Rest target",
-                min = 0, max = 0.050, value = 0.028, step = 0.001
-              ),
-              numericInput(
-                inputId = 'move_target',  label = "Move target",
-                min = 0, max = 0.2, value = 0.091, step = 0.001
-              ),
-              numericInput(
-                inputId = 'reproductive_age',  label = "Reproductive age",
-                min = 0, max = 10, value = 2, step = 1
-              ),
-              numericInput(
-                inputId = 'sex_ratio',  label = "Sex ratio",
-                min = 0, max = 1, value = 0.5, step = 0.1
-              ),
-              textInput(
-                inputId = 'female_dispersal',  label = "Female dispersal", value = '785000'
-              ),
-              numericInput(
-                inputId = 'time_interval',  label = "Time interval",
-                min = 0, max = 50, value = 5, step = 5
-              ),
-              textInput(
-                inputId = 'sim_iterations',  label = "Iterations", value = 1
+              
+              dropdownButton(
+                inputId = "mydropdown",
+                label = "Settings",
+                icon = icon("sliders"),
+                status = "btn-flex-light",
+                circle = FALSE,
+                textInput(
+                  inputId = 'times',  label = "Times", value = 2
+                ),
+                numericInput(
+                  inputId = 'female_max_age',  label = "Female max age",
+                  min = 0, max = 15, value = 9
+                ),
+                numericInput(
+                  inputId = 'den_target',  label = "Den target",
+                  min = 0, max = 0.015, value = 0.003, step = 0.001
+                ),
+                numericInput(
+                  inputId = 'rest_target',  label = "Rest target",
+                  min = 0, max = 0.050, value = 0.028, step = 0.001
+                ),
+                numericInput(
+                  inputId = 'move_target',  label = "Move target",
+                  min = 0, max = 0.2, value = 0.091, step = 0.001
+                ),
+                numericInput(
+                  inputId = 'reproductive_age',  label = "Reproductive age",
+                  min = 0, max = 10, value = 2, step = 1
+                ),
+                numericInput(
+                  inputId = 'sex_ratio',  label = "Sex ratio",
+                  min = 0, max = 1, value = 0.5, step = 0.1
+                ),
+                textInput(
+                  inputId = 'female_dispersal',  label = "Female dispersal", value = '785000'
+                ),
+                numericInput(
+                  inputId = 'time_interval',  label = "Time interval",
+                  min = 0, max = 50, value = 5, step = 5
+                )
               ),
               hr(),
               actionButton(
@@ -200,37 +200,23 @@ ui <- shiny::tagList(
               tabsetPanel(
                 tabPanel(
                   "Simulation log",
-                  p("The log will appear in real time when you run the simulations based on selected options."),
-                  dataTableOutput("simulation_log")
+                  fluidRow(
+                    p("The log will appear in real time when you run the simulations based on selected options."),
+                    dataTableOutput("simulation_log")
+                  )
                 ),
                 tabPanel(
                   "Simulation output",
-                  p("Use controls below to view and manage the simulation output files."),
-                  # selectizeInput(
-                  #   inputId = 'rendered_mds',
-                  #   label = 'Review scenario output',
-                  #   choices = NULL,
-                  #   selected = '',
-                  #   multiple = FALSE
-                  # ),
-                  # shiny::actionButton(
-                  #   inputId = 'refresh_mds',
-                  #   label = 'Refresh md list',
-                  #   icon = icon('refresh')
-                  # ),
-                  # actionButton(
-                  #   'include_md',
-                  #   'Preview selected md',
-                  #   icon = icon('file-alt'),
-                  #   class = 'btn-flex-light'
-                  # ),
-                  # actionButton(
-                  #   'delete_mds',
-                  #   'Delete md files',
-                  #   icon = icon('trash-alt'),
-                  #   class = 'btn-danger'
-                  # ),
-                  # uiOutput("preview_md")
+                  fluidRow(
+                    p("Use controls below to view and manage the simulation output files."),
+                    actionButton(
+                      'include_md',
+                      'Generate simulation report',
+                      icon = icon('file-alt'),
+                      class = 'btn-flex-light'
+                    ),
+                    uiOutput("preview_md")
+                  )
                 )
               )
             )
@@ -351,12 +337,12 @@ server <- function(input, output, session) {
     need(Sys.getenv("DO_TOKEN"), "Please set Digital Ocean API token in .Renviron file.")
   )
 
-  # db_host <- Sys.getenv('DB_HOST')
-  # db_port <- Sys.getenv('DB_PORT')
-  # db_name <- Sys.getenv('DB_NAME')
-  # db_user <- Sys.getenv('DB_USER')
-  # db_pass <- Sys.getenv('DB_PASS')
-
+  rv <- reactiveValues(
+    d_uploader = NULL,
+    progress = NULL,
+    sim_params = list()
+  )
+  
   shinyFileChoose(
     input, "file_scenario",
     roots = c('wd' = '.', 'scenarios' = paste0(getwd(), '/scenarios')),
@@ -454,6 +440,21 @@ server <- function(input, output, session) {
       req(file.exists(ssh_keyfile))
       # stopifnot(input$droplet_size %in% sizes$slug)
 
+      # Disable controls while the simulation is running ----
+      disable('file_scenario')
+      disable('droplet_size')
+      disable('iterations')
+      disable('times')
+      disable('female_max_age')
+      disable('den_target')
+      disable('rest_target')
+      disable('move_target')
+      disable('reproductive_age')
+      disable('sex_ratio')
+      disable('female_dispersal')
+      disable('time_interval')
+      disable('run_scenario')
+
       progressOne <- Progress$new(session, min = 1, max = 10)
       on.exit(progressOne$close())
       progressOne$set(message = 'Creating droplet to host the scenario',
@@ -476,7 +477,7 @@ server <- function(input, output, session) {
 
       progressOne$set(1, detail = 'Creating droplet')
       
-      d_uploader <- create_scenario_droplet(
+      rv$d_uploader <- create_scenario_droplet(
         scenario = selected_scenario,
         ssh_keyfile = ssh_keyfile,
         ssh_keyfile_name = ssh_keyfile_name,
@@ -484,17 +485,17 @@ server <- function(input, output, session) {
         progressOne = progressOne
       )
       # progressOne$close()
-
-      if (is.null(d_uploader)) {
+      
+      if (is.null(rv$d_uploader)) {
         shinyjs::alert("Error has occrred, please refresh the page and try again.")
       }
-      req(d_uploader)
+      req(rv$d_uploader)
       
-      scenario_droplet_ip <- get_private_ip(d_uploader)
+      scenario_droplet_ip <- get_private_ip(rv$d_uploader)
       # d_uploader <- 'abc'
       # scenario_droplet_ip <- '10.1.2.3'
 
-      progress <- AsyncProgress$new(message="Overall job progress")
+      rv$progress <- AsyncProgress$new(message="Overall job progress")
       
       print(paste("Simulation log file ", simulation_logfile))
 
@@ -504,7 +505,7 @@ server <- function(input, output, session) {
       print(paste("Building from snapshot ID ", snap_image))
 
       sim_sequence <- input$iterations
-      total_steps <- sim_sequence * 14
+      total_steps <- sim_sequence * 13
 
       if (file.exists(simulation_logfile)) {
         file.remove(simulation_logfile)
@@ -520,7 +521,8 @@ server <- function(input, output, session) {
         append = FALSE
       )
 
-      sim_params <- list(
+      rv$sim_params <- list(
+        times = input$times,
         female_max_age = input$female_max_age,
         den_target = input$den_target,
         rest_target = input$rest_target,
@@ -528,10 +530,21 @@ server <- function(input, output, session) {
         reproductive_age = input$reproductive_age,
         sex_ratio = input$sex_ratio,
         female_dispersal = input$female_dispersal,
-        time_interval = input$time_interval,
-        iterations = input$sim_iterations
+        time_interval = input$time_interval
       )
 
+      simulation_id <- stringr::str_replace_all(
+        paste(
+          as.character(lubridate::now()),
+          uuid::UUIDgenerate(use.time = TRUE)
+        ),
+        ' ',
+        '_'
+      )
+      fs::dir_create(paste0('inst/app/', simulation_id))
+      
+      rv$sim_params$simulation_id <- simulation_id
+      
       # tryCatch({
         lapply(
         # future_lapply(
@@ -546,38 +559,15 @@ server <- function(input, output, session) {
           do_image = snap_image,
           simulation_logfile = simulation_logfile,
           simulation_logfile_lock = simulation_logfile_lock,
-          progress = progress,
+          progress = rv$progress,
           total_steps = total_steps,
-          d_uploader = d_uploader,
-          sim_params = sim_params
+          d_uploader = rv$d_uploader,
+          sim_params = rv$sim_params,
+          simulation_id = simulation_id
         )
-        # run_simulation(
-        #   scenario = selected_scenario,
-        #   ssh_keyfile = ssh_keyfile,
-        #   ssh_keyfile_name = ssh_keyfile_name,
-        #   do_droplet_size = input$droplet_size,
-        #   scenario_droplet_ip = scenario_droplet_ip,
-        #   do_region = region,
-        #   do_image = snap_image,
-        #   simulation_logfile = simulation_logfile,
-        #   simulation_logfile_lock = simulation_logfile_lock,
-        #   progress = progress,
-        #   total_steps = total_steps,
-        #   d_uploader = d_uploader
-        # )
-      # }, error = function(e) {
-      #   # shiny:::reactiveStop(conditionMessage(e))
-      #   debug_msg(e$message)
-      #   shinyjs::alert("There was an error running the simulation, cleaning up.")
-      #   # errored <- TRUE
-      # })
 
-      # browser()
       # Delete the scenario droplet
       # d_uploader %>% droplet_delete()
-
-      # Return something other than the future so we don't block the UI
-      # return(NULL)
     }
   )
 
@@ -650,6 +640,39 @@ server <- function(input, output, session) {
         select(-ID)
     }
 
+    if (nrow(data) > 0) {
+      if (nrow(data %>% filter(isTruthy(Scenario))) > 0) {
+        non_finished <- data %>% 
+          filter(
+            Scenario != '',
+            Description != 'PROCESS FINISHED'
+          )
+        
+        print(non_finished)
+        if (nrow(non_finished) == 0) {
+          shinyjs::alert("The overall process has finished.")
+          
+          rv$progress$close()
+          cost_uploader <- rv$d_uploader %>% droplets_cost()
+          rv$d_uploader %>% droplet_delete()
+          
+          enable('file_scenario')
+          enable('droplet_size')
+          enable('iterations')
+          enable('times')
+          enable('female_max_age')
+          enable('den_target')
+          enable('rest_target')
+          enable('move_target')
+          enable('reproductive_age')
+          enable('sex_ratio')
+          enable('female_dispersal')
+          enable('time_interval')
+          enable('run_scenario')
+        }
+      }
+    }
+    
     data
   })
 

@@ -1,3 +1,4 @@
+# Run simulation ----
 #' Run simulation
 #'
 #' @param scenario Simulation scenario
@@ -27,11 +28,17 @@ run_simulation <- function(
   progress,
   total_steps,
   d_uploader,
-  sim_params
+  sim_params,
+  simulation_id
 ) {
-  future({
-  # a %<-% {
   # browser()
+  download_path <- glue::glue('inst/app/{simulation_id}/{iteration}/')
+  fs::dir_create(download_path)
+  
+  sim_params$iteration <- iteration
+  write(unlist(sim_params), file = glue::glue("{download_path}params.txt"))
+  
+  future({
     errored <- FALSE
 
     Sys.getenv("DO_PAT")
@@ -40,6 +47,7 @@ run_simulation <- function(
     ssh_user <- "root"
 
     # Simulation parameters
+    times <- sim_params$times
     female_max_age <- sim_params$female_max_age
     den_target <- sim_params$den_target
     rest_target <- sim_params$rest_target
@@ -48,10 +56,9 @@ run_simulation <- function(
     sex_ratio <- sim_params$sex_ratio
     female_dispersal <- sim_params$female_dispersal
     time_interval <- sim_params$time_interval
-    iterations <- sim_params$iterations
     filename <- uuid::UUIDgenerate(use.time = TRUE)
   
-    command <- glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX2/fisher.R {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {time_interval} {iterations} {filename}")
+    command <- glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX2/fisher.R {times} {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {time_interval}")
     
     print(paste(as.character(Sys.time()), ",got key", ssh_keyfile_name))
 
@@ -70,7 +77,7 @@ run_simulation <- function(
       "1,", paste0("Iteration ", iteration), ",0%,START PROCESSING,", as.character(Sys.time())
     )
 
-    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
     write(
       status,
       file = simulation_logfile,
@@ -83,7 +90,7 @@ run_simulation <- function(
       "2,", paste0("Iteration ", iteration), ",10%,Creating droplet,", as.character(Sys.time())
     )
 
-    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
     write(
       status,
       file = simulation_logfile,
@@ -106,10 +113,10 @@ run_simulation <- function(
       droplet_wait()
 
     status <- paste0(
-      "3,", paste0("Iteration ", iteration), ",20%,Droplet created,", as.character(Sys.time())
+      "3,", paste0("Iteration ", iteration), ",20%,Awaiting connectivity,", as.character(Sys.time())
     )
 
-    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
     write(
       status,
       file = simulation_logfile,
@@ -123,7 +130,7 @@ run_simulation <- function(
     status <- paste0(
       "4,", paste0("Iteration ", iteration), ",30%,Connecting to droplet,", as.character(Sys.time())
     )
-    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
     write(
       status,
       file = simulation_logfile,
@@ -140,7 +147,7 @@ run_simulation <- function(
       status <- paste0(
         "5,", paste0("Iteration ", iteration), ",30%,Couldn't connect to droplet - retrying,", as.character(Sys.time())
       )
-      lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+      lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
       write(
         status,
         file = simulation_logfile,
@@ -158,7 +165,7 @@ run_simulation <- function(
       "6,", paste0("Iteration ", iteration), ",40%,Cloning castor repo,", as.character(Sys.time())
     )
 
-    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
     write(
       status,
       file = simulation_logfile,
@@ -182,7 +189,7 @@ mkdir -p /tmp/fisher/;"),
       status <- paste0(
         "7,", paste0("Iteration ", iteration), ",40%,ERROR cloning castor repo,", as.character(Sys.time())
       )
-      lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+      lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
       write(
         status,
         file = simulation_logfile,
@@ -207,7 +214,7 @@ mkdir -p /tmp/fisher/;"),
           "8,", paste0("Iteration ", iteration), ",50%,Getting scenario public key,", as.character(Sys.time())
         )
         
-        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
         write(
           status,
           file = simulation_logfile,
@@ -228,7 +235,7 @@ mkdir -p /tmp/fisher/;"),
           "9,", paste0("Iteration ", iteration), ",60%,Adding public key,", as.character(Sys.time())
         )
         
-        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
         write(
           status,
           file = simulation_logfile,
@@ -248,7 +255,7 @@ mkdir -p /tmp/fisher/;"),
           "10,", paste0("Iteration ", iteration), ",65%,Adding key to authorized keys,", as.character(Sys.time())
         )
         
-        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
         write(
           status,
           file = simulation_logfile,
@@ -271,7 +278,7 @@ mkdir -p /tmp/fisher/;"),
           "10,", paste0("Iteration ", iteration), ",60%,ERROR adding key to authorized keys - cleaning up,", as.character(Sys.time())
         )
         
-        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
         write(
           status,
           file = simulation_logfile,
@@ -284,7 +291,7 @@ mkdir -p /tmp/fisher/;"),
     
     # status <- glue::glue("11,Iteration {iteration},70%,Copying scenario to droplet from {scenario_droplet_ip},", as.character(Sys.time()))
     # 
-    # lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+    # lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
     # write(
     #   status,
     #   file = simulation_logfile,
@@ -303,7 +310,7 @@ mkdir -p /tmp/fisher/;"),
         
         # status <- glue::glue("11,Iteration {iteration},70%,Copying scenario to droplet from {scenario_droplet_ip},", as.character(Sys.time()))
         
-        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
         write(
           status,
           file = simulation_logfile,
@@ -323,7 +330,7 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
           "11,", paste0("Iteration ", iteration), ",70%,ERROR copying scenario to droplet from", scenario_droplet_ip, ",", as.character(Sys.time())
         )
         
-        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
         write(
           status,
           file = simulation_logfile,
@@ -342,7 +349,7 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
       status <- paste0(
         "12,", paste0("Iteration ", iteration), ",80%,Running the simulation,", as.character(Sys.time())
       )
-      lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+      lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
       write(
         status,
         file = simulation_logfile,
@@ -360,7 +367,7 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
         status <- paste0(
           "13,", paste0("Iteration ", iteration), ",80%,ERROR running the simulation,", as.character(Sys.time())
         )
-        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
         write(
           status,
           file = simulation_logfile,
@@ -368,23 +375,23 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
         )
         filelock::unlock(lock)
         # debug_msg(e$message)
-        # shinyjs::alert("There was an error running the simu1lation, cleaning up.")
+        # shinyjs::alert("There was an error running the simulation, cleaning up.")
         errored <- TRUE
       })
     }
 
     # Cleanup ----
-    status <- paste0(
-      "14,", paste0("Iteration ", iteration), ",90%,Detaching and deleting the volume,", as.character(Sys.time())
-    )
-    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
-    write(
-      status,
-      file = simulation_logfile,
-      append = TRUE
-    )
-    filelock::unlock(lock)
-    progress$inc(1 / total_steps)
+    # status <- paste0(
+    #   "14,", paste0("Iteration ", iteration), ",90%,Detaching and deleting the volume,", as.character(Sys.time())
+    # )
+    # lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
+    # write(
+    #   status,
+    #   file = simulation_logfile,
+    #   append = TRUE
+    # )
+    # filelock::unlock(lock)
+    # progress$inc(1 / total_steps)
 
     cost <- d %>% droplets_cost()
 
@@ -412,10 +419,36 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
 #     )
 
     # Download simulation output ----
+    if (!errored) {
+      status <- paste0(
+        "14,", paste0("Iteration ", iteration), ",95%,Downloading simulation output,", as.character(Sys.time())
+      )
+      lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
+      write(
+        status,
+        file = simulation_logfile,
+        append = TRUE
+      )
+      filelock::unlock(lock)
+      progress$inc(1 / total_steps)
+  
+      d %>% droplet_download(
+        remote = '/root/castor/R/scenarios/fisher/outputs/test_final_fisher_territories.tif',
+        local = download_path,
+        keyfile = ssh_keyfile
+      )
+  
+      d %>% droplet_download(
+        remote = '/root/castor/R/scenarios/fisher/outputs/test_fisher_agents.csv',
+        local = download_path,
+        keyfile = ssh_keyfile
+      )
+    }
+    
     status <- paste0(
-      "15,", paste0("Iteration ", iteration), ",95%,Downloading simulation output,", as.character(Sys.time())
+      "15,", paste0("Iteration ", iteration), ",100%,Deleting the droplet,", as.character(Sys.time())
     )
-    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
     write(
       status,
       file = simulation_logfile,
@@ -424,36 +457,12 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
     filelock::unlock(lock)
     progress$inc(1 / total_steps)
 
-    # d %>% droplet_download(
-    #   remote = '/root/castor/R/scenarios/fisher/outputs/*',
-    #   local = glue::glue('inst/app/{filename}/'),
-    #   keyfile = ssh_keyfile
-    # )
-
-    d %>% droplet_download(
-      remote = glue::glue('/tmp/fisher/{filename}/sim_out'),
-      local = './inst/app/',
-      keyfile = ssh_keyfile
-    )
+    d %>% droplet_delete()
 
     status <- paste0(
-      "16,", paste0("Iteration ", iteration), ",100%,Deleting the droplet,", as.character(Sys.time())
+      "16,", paste0("Iteration ", iteration), ",,PROCESS FINISHED,", as.character(Sys.time())
     )
-    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
-    write(
-      status,
-      file = simulation_logfile,
-      append = TRUE
-    )
-    filelock::unlock(lock)
-    progress$inc(1 / total_steps)
-
-    # d %>% droplet_delete()
-
-    status <- paste0(
-      "17,", paste0("Iteration ", iteration), ",,PROCESS FINISHED,", as.character(Sys.time())
-    )
-    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE, timeout = 1000)
+    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
     write(
       status,
       file = simulation_logfile,
@@ -463,7 +472,6 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
     progress$inc(1 / total_steps)
 
     # Return something other than the future so we don't block the UI
-  # }
     return(NULL)
   })
 }
@@ -481,6 +489,7 @@ clean_md_path <- function(md_path) {
   md_path_parts[[1]][length(md_path_parts[[1]])]
 }
 
+# Create scenario droplet ----
 create_scenario_droplet <- function(
     scenario,
     ssh_keyfile,
@@ -545,9 +554,10 @@ create_scenario_droplet <- function(
     d_uploader <- droplet(d_uploader$id)
   }, error = function(e) {
     # debug_msg(e$message)
-    # shinyjs::alert("There was an error running the simu1lation, cleaning up.")
     progressOne$set(9, detail = "Couldnt connect to droplet, cleaning up")
     d_uploader %>% droplet_delete()
+    
+    shinyjs::alert("There was an error running the simulation. Please refresh the page and try again/")
     return(NULL)
   })
   
@@ -621,3 +631,6 @@ do_namify <- function(name) {
   )
 }
 
+# wait_for_connectivity <- function(droplet) {
+#   analogsea:::droplet_ip_safe()
+# }
