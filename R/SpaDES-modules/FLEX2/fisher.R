@@ -31,7 +31,7 @@ thisPath <- function() {
 setwd(thisPath())
 
 args = commandArgs(trailingOnly = TRUE)
-if (length(args) != 9) {
+if (length(args) != 10) {
   stop("All arguments must be supplied.\n", call.=FALSE)
 }
 
@@ -55,21 +55,11 @@ reproductive_age <- as.numeric(args[6])
 sex_ratio <- as.numeric(args[7])
 female_dispersal <- as.numeric(args[8])
 timeInterval <- as.numeric(args[9])
-
-print("Parameters")
-print(times)
-print(female_max_age)
-print(den_target)
-print(rest_target)
-print(move_target)
-print(reproductive_age)
-print(sex_ratio)
-print(female_dispersal)
-print(timeInterval)
+appx <- as.numeric(args[10])
 
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/scenarios/fisher/inputs")) %>% reproducible::checkPath (create = TRUE)
-outputDir <- file.path(paste0(here::here(), "/R/scenarios/fisher/outputs")) %>% reproducible::checkPath (create = TRUE)
+outputDir <- file.path(paste0(here::here(), "/R/scenarios/fisher/outputs/", appx)) %>% reproducible::checkPath (create = TRUE)
 cacheDir <- file.path(paste0(here::here(), "/R/scenarios/fisher"))
 
 times <- list (start = 0, end = times)
