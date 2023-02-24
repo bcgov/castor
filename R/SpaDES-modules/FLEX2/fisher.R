@@ -47,7 +47,7 @@ library (RANN)
 library(future)
 library(future.callr)
 
-plan(callr)
+plan(multisession)
 
 times <- as.numeric(args[1])
 female_max_age <- as.numeric(args[2])
