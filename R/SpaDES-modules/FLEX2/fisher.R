@@ -60,20 +60,6 @@ female_dispersal <- as.numeric(args[8])
 time_interval <- as.numeric(args[9])
 appx <- as.numeric(args[10])
 
-lapply(
-  X = 1:appx,
-  FUN = run_iteration,
-  times,
-  female_max_age,
-  den_target,
-  rest_target,
-  move_target,
-  reproductive_age,
-  sex_ratio,
-  female_dispersal,
-  time_interval
-)
-
 run_iteration <- function(
     iteration,
     times,
@@ -104,7 +90,7 @@ run_iteration <- function(
         sex_ratio = sex_ratio,
         female_dispersal = female_dispersal,  # ha; radius = 500 pixels = 50km = 7850km2 area
         time_interval = time_interval, # should be consistent with the time interval used to model habitat
-                          # e.g., growingstockLCUS periodLength
+        # e.g., growingstockLCUS periodLength
         iterations = 1, # not currently implemented
         rasterHabitat = paste0 (here::here(), "/R/scenarios/fisher/inputs/scenario.tif")
       )
@@ -134,6 +120,20 @@ run_iteration <- function(
     return(NULL)
   })
 }
+
+lapply(
+  X = 1:appx,
+  FUN = run_iteration,
+  times,
+  female_max_age,
+  den_target,
+  rest_target,
+  move_target,
+  reproductive_age,
+  sex_ratio,
+  female_dispersal,
+  time_interval
+)
 
 
 # str(mySimOut)
