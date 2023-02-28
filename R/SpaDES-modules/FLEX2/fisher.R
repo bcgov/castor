@@ -36,6 +36,7 @@ if (length(args) != 10) {
 }
 
 library (SpaDES.core)
+library (SpaDES.tools)
 library (data.table)
 library (terra)
 library (keyring)
@@ -44,10 +45,11 @@ library (here)
 library (stringr)
 library (truncnorm)
 library (RANN)
-library(future)
-library(future.callr)
+# library(future)
+# library(future.callr)
+library(parallel)
 
-plan(multisession)
+# plan(multisession)
 
 times <- as.numeric(args[1])
 female_max_age <- as.numeric(args[2])
@@ -72,7 +74,7 @@ run_iteration <- function(
     female_dispersal,
     time_interval
 ) {
-  future({
+  # future({
     moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
     inputDir <- file.path(paste0(here::here(), "/R/scenarios/fisher/inputs")) %>% reproducible::checkPath (create = TRUE)
     outputDir <- file.path(paste0(here::here(), "/R/scenarios/fisher/outputs/", iteration)) %>% reproducible::checkPath (create = TRUE)
@@ -89,10 +91,10 @@ run_iteration <- function(
         reproductive_age = reproductive_age,
         sex_ratio = sex_ratio,
         female_dispersal = female_dispersal,  # ha; radius = 500 pixels = 50km = 7850km2 area
-        time_interval = time_interval, # should be consistent with the time interval used to model habitat
+        timeInterval = time_interval, # should be consistent with the time interval used to model habitat
         # e.g., growingstockLCUS periodLength
         iterations = 1, # not currently implemented
-        rasterHabitat = paste0 (here::here(), "/R/scenarios/fisher/inputs/scenario.tif")
+        rasterHabitat = paste0(here::here(), "/R/scenarios/fisher/inputs/scenario.tif")
       )
     )
     
@@ -118,12 +120,15 @@ run_iteration <- function(
     
     fisherSimOut <- spades(mySim)
     return(NULL)
-  })
+  # })
 }
 
-lapply(
+cores <- parallel::detectCores()
+
+parallel::mclapply(
   X = 1:appx,
   FUN = run_iteration,
+  mc.cores = cores,
   times,
   female_max_age,
   den_target,
@@ -135,28 +140,3 @@ lapply(
   time_interval
 )
 
-
-# str(mySimOut)
-# 
-# mySimOut$ras.territories
-# 
-# mySimOut$fisherABMReport
-# mySimOut$ras.territories
-# plot(mySimOut$ras.territories)
-# 
-# agents <- mySimOut$agents
-# territories <- mySimOut$territories
-# 
-# length(unique(territories$individual_id))
-# length(unique(agents$individual_id))
-# 
-# agents %>% filter(!individual_id %in% unique(territories$individual_id))
-# 
-# hist(agents$age)
-# 
-# raster.file <- list.files("./R/scenarios/fisher/outputs")
-# test <- terra::rast("./R/scenarios/fisher/outputs/test_final_fisher_territories.tif")
-# 
-# plot(test)
-# mySimOut$agents %>% filter(d2_score>0)
-# plot(mySimOut$ras.territories)
