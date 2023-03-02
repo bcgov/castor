@@ -40,7 +40,7 @@ source('src/functions.R')
 
 # plan(sequential)
 # plan(multicore)
-plan(callr)
+plan(list(callr, multisession))
 # plan(multisession)
 
 # Available scneario Rmd files
@@ -54,7 +54,7 @@ uploader_size = 's-1vcpu-1gb'
 
 # FLEX droplet image
 # snapshots <- analogsea::snapshots()
-# image <- snapshots$`flex-cloud-image-20230210`$id
+# image <- snapshots$`flex-cloud-image-20230224`$id
 
 # SSH config
 ssh_user <- "root"
@@ -66,18 +66,24 @@ sizes <- analogsea::sizes(per_page = 200) %>%
     grepl("tor1", region),
     !grepl("-amd", slug),
     !grepl("-intel", slug),
-    memory > 16000
+    memory > 16000,
+    vcpus > 4,
   ) %>%
   mutate(
+    processes_by_core = vcpus,
+    processes_by_memory = memory / 1024 / 4,
+    processes = pmin(processes_by_core, processes_by_memory),
+    price_per_process = price_hourly / processes,
     label = paste0(
-      memory / 1024,
-      'GB (', disk, 'GB disk, ',
-      vcpus, ' vCPUs, ',
-      scales::dollar(price_hourly, prefix = '', suffix = '¢', accuracy = 0.01, scale = 100),
-      ' hourly)'
+      processes, ' parallel processes, ',
+      scales::dollar(price_per_process, prefix = '', suffix = '¢', accuracy = 0.01, scale = 100), ' per process (',
+      scales::dollar(price_hourly, prefix = '', suffix = '¢', accuracy = 0.01, scale = 100), ' hourly, ',
+      memory / 1024, 'GB, ', 
+      vcpus, ' vCPUs)'
     )
   ) %>%
-  select(slug, label)
+  arrange(price_per_process) %>% 
+  select(slug, label, processes)
 
 size_choices <- setNames(
   as.character(sizes$slug),
@@ -123,18 +129,21 @@ ui <- shiny::tagList(
           sidebarLayout(
             sidebarPanel(
               width = 4,
-              verbatimTextOutput("file_scenario_selected"),
-              shinyFilesButton(
-                id = "file_scenario",
-                label = "Select scenario",
-                title = "Please select a file",
-                multiple = FALSE,
-                viewtype = "detail",
-                buttonType = 'info',
-                icon = icon('file-code'),
-                class = 'btn-flex-light'
+              div(
+                class = "form-group",
+                verbatimTextOutput("file_scenario_selected"),
+                shinyFilesButton(
+                  id = "file_scenario",
+                  label = "Select scenario",
+                  title = "Please select a file",
+                  multiple = FALSE,
+                  viewtype = "detail",
+                  buttonType = 'info',
+                  icon = icon('file-code'),
+                  class = 'btn-flex-light'
+                ),
               ),
-              hr(),
+              # hr(),
               selectizeInput(
                 'droplet_size',
                 label = "Cloud server config",
@@ -144,55 +153,61 @@ ui <- shiny::tagList(
               ),
               # hr(),
               sliderInput('iterations', label = 'Number of iterations', value = 2, min = 1, max = 100, step = 1),
-              hr(),
-              
-              dropdownButton(
-                inputId = "mydropdown",
-                label = "Settings",
-                icon = icon("sliders"),
-                status = "btn-flex-light",
-                circle = FALSE,
-                textInput(
-                  inputId = 'times',  label = "Times", value = 2
-                ),
-                numericInput(
-                  inputId = 'female_max_age',  label = "Female max age",
-                  min = 0, max = 15, value = 9
-                ),
-                numericInput(
-                  inputId = 'den_target',  label = "Den target",
-                  min = 0, max = 0.015, value = 0.003, step = 0.001
-                ),
-                numericInput(
-                  inputId = 'rest_target',  label = "Rest target",
-                  min = 0, max = 0.050, value = 0.028, step = 0.001
-                ),
-                numericInput(
-                  inputId = 'move_target',  label = "Move target",
-                  min = 0, max = 0.2, value = 0.091, step = 0.001
-                ),
-                numericInput(
-                  inputId = 'reproductive_age',  label = "Reproductive age",
-                  min = 0, max = 10, value = 2, step = 1
-                ),
-                numericInput(
-                  inputId = 'sex_ratio',  label = "Sex ratio",
-                  min = 0, max = 1, value = 0.5, step = 0.1
-                ),
-                textInput(
-                  inputId = 'female_dispersal',  label = "Female dispersal", value = '785000'
-                ),
-                numericInput(
-                  inputId = 'time_interval',  label = "Time interval",
-                  min = 0, max = 50, value = 5, step = 5
+              # hr(),
+              div(
+                class = "form-group",
+                dropdownButton(
+                  inputId = "settings_dropdown",
+                  label = "Settings",
+                  icon = icon("sliders"),
+                  status = "btn-flex-light",
+                  margin = '25px',
+                  circle = FALSE,
+                  textInput(
+                    inputId = 'times',  label = "Times", value = 2
+                  ),
+                  numericInput(
+                    inputId = 'female_max_age',  label = "Female max age",
+                    min = 0, max = 15, value = 9
+                  ),
+                  numericInput(
+                    inputId = 'den_target',  label = "Den target",
+                    min = 0, max = 0.015, value = 0.003, step = 0.001
+                  ),
+                  numericInput(
+                    inputId = 'rest_target',  label = "Rest target",
+                    min = 0, max = 0.050, value = 0.028, step = 0.001
+                  ),
+                  numericInput(
+                    inputId = 'move_target',  label = "Move target",
+                    min = 0, max = 0.2, value = 0.091, step = 0.001
+                  ),
+                  numericInput(
+                    inputId = 'reproductive_age',  label = "Reproductive age",
+                    min = 0, max = 10, value = 2, step = 1
+                  ),
+                  numericInput(
+                    inputId = 'sex_ratio',  label = "Sex ratio",
+                    min = 0, max = 1, value = 0.5, step = 0.1
+                  ),
+                  textInput(
+                    inputId = 'female_dispersal',  label = "Female dispersal", value = '785000'
+                  ),
+                  numericInput(
+                    inputId = 'time_interval',  label = "Time interval",
+                    min = 0, max = 50, value = 5, step = 5
+                  )
                 )
               ),
               hr(),
-              actionButton(
-                'run_scenario',
-                'Run scenario',
-                icon = icon('play-circle'),
-                class = 'btn-flex'
+              div(
+                class = "form-group",
+                actionButton(
+                  'run_scenario',
+                  'Run scenario',
+                  icon = icon('play-circle'),
+                  class = 'btn-flex'
+                )
               )
             ),
             mainPanel(
@@ -201,21 +216,25 @@ ui <- shiny::tagList(
                 tabPanel(
                   "Simulation log",
                   fluidRow(
-                    p("The log will appear in real time when you run the simulations based on selected options."),
+                    shiny::helpText("The log will appear in real time when you run the simulations based on selected options."),
                     dataTableOutput("simulation_log")
                   )
                 ),
                 tabPanel(
                   "Simulation output",
                   fluidRow(
-                    p("Use controls below to view and manage the simulation output files."),
-                    actionButton(
-                      'include_md',
-                      'Generate simulation report',
-                      icon = icon('file-alt'),
-                      class = 'btn-flex-light'
+                    shiny::helpText("Use controls below to view and manage the simulation output files."),
+                    div(
+                      class = 'form-group',
+                      actionButton(
+                        'run_report',
+                        'Generate simulation report',
+                        icon = icon('file-alt'),
+                        class = 'btn-flex-light'
+                      )
                     ),
-                    uiOutput("preview_md")
+                    htmlOutput("preview_report")
+                    # uiOutput("preview_report")
                   )
                 )
               )
@@ -259,32 +278,39 @@ ui <- shiny::tagList(
           fluidRow(
             column(
               width = 5,
-              p(
+              shiny::helpText(
                 'Select a private key to be used to be able to connect and manage
                 Digital Ocean cloud resources.'
               ),
-              shinyFilesButton(
-                id = "key",
-                label = "Select private key",
-                title = "Please select a file",
-                multiple = FALSE,
-                viewtype = "detail",
-                buttonType = 'info',
-                icon = icon('key'),
-                class = 'btn-flex-light'
+              div(
+                class = "form-group",
+                shinyFilesButton(
+                  id = "key",
+                  label = "Select private key",
+                  title = "Please select a file",
+                  multiple = FALSE,
+                  viewtype = "detail",
+                  buttonType = 'info',
+                  icon = icon('key'),
+                  class = 'btn-flex-light'
+                )
               ),
+              textInput('cores', "Local machine CPU cores"),
             ),
             column(
               width = 6, offset = 1,
-              p(
+              shiny::helpText(
                 'Check which private key (if any) is currently set to be used
                 to connect and manage Digital Ocean cloud resources.'
               ),
-              actionButton(
-                inputId = "check_key",
-                label = "Check private key",
-                icon = icon('user-shield'),
-                class = 'btn-flex-light'
+              div(
+                class = "form-group",
+                actionButton(
+                  inputId = "get_settings",
+                  label = "Current settings",
+                  icon = icon('cog'),
+                  class = 'btn-flex-light'
+                )
               ),
               verbatimTextOutput("key_selected"),
             )
@@ -399,13 +425,18 @@ server <- function(input, output, session) {
   })
 
   observeEvent(
-    input$check_key,
+    input$get_settings,
     {
       output$key_selected <- renderPrint({
         cookies <- glouton::fetch_cookies()
+        
         ssh_keyfile <- cookies$key_path
         ssh_keyfile_name <- cookies$key_name
-        print(ssh_keyfile)
+        
+        cores <- cookies$cores
+        
+        print(paste("SSH key:", ssh_keyfile))
+        print(paste("CPU cores:", cores))
       })
     }
   )
@@ -428,6 +459,7 @@ server <- function(input, output, session) {
       cookies <- glouton::fetch_cookies()
       ssh_keyfile <- cookies$key_path
       ssh_keyfile_name <- cookies$key_name
+      cores <- cookies$cores
 
       if (length(ssh_keyfile) == 0 | length(ssh_keyfile_name) == 0) {
         shinyjs::alert('SSH key has not been set. Please go to Settings tab to configure it.')
@@ -464,7 +496,6 @@ server <- function(input, output, session) {
       # SSH config
       ssh_user <- "root"
 
-      # browser()
       # Scenario
       selected_scenario <- input$file_scenario
       scenario_tbl <- shinyFiles::parseFilePaths(volumes, selected_scenario)
@@ -485,15 +516,13 @@ server <- function(input, output, session) {
         progressOne = progressOne
       )
       # progressOne$close()
-      
+
       if (is.null(rv$d_uploader)) {
         shinyjs::alert("Error has occrred, please refresh the page and try again.")
       }
       req(rv$d_uploader)
-      
+
       scenario_droplet_ip <- get_private_ip(rv$d_uploader)
-      # d_uploader <- 'abc'
-      # scenario_droplet_ip <- '10.1.2.3'
 
       rv$progress <- AsyncProgress$new(message="Overall job progress")
       
@@ -501,10 +530,12 @@ server <- function(input, output, session) {
 
       # FLEX droplet image ----
       snapshots <- snapshots_with_params(per_page = 200)
-      snap_image <- snapshots$`flex-cloud-image-20230210`$id
+      snap_image <- snapshots$`flex-cloud-image-20230224`$id
       print(paste("Building from snapshot ID ", snap_image))
-
-      sim_sequence <- input$iterations
+# browser()
+      droplet_properties <- sizes %>% filter(slug == input$droplet_size)
+      droplet_sequence <- droplet_properties %>% pull(processes)
+      sim_sequence <- ceiling(input$iterations / droplet_sequence)
       total_steps <- sim_sequence * 13
 
       if (file.exists(simulation_logfile)) {
@@ -514,8 +545,8 @@ server <- function(input, output, session) {
 
       write(
         paste0(
-          "ID,Scenario,Progress,Description,Timestamp\n",
-          "0,,,PROCESS STARTED,", as.character(Sys.time())
+          "ID,Droplet,Progress,Description,Timestamp,Cost\n",
+          "0,,,PROCESS STARTED,", as.character(Sys.time()), ","
         ),
         file = simulation_logfile,
         append = FALSE
@@ -534,9 +565,13 @@ server <- function(input, output, session) {
       )
 
       simulation_id <- stringr::str_replace_all(
-        paste(
-          as.character(lubridate::now()),
-          uuid::UUIDgenerate(use.time = TRUE)
+        stringr::str_replace_all(
+          paste(
+            as.character(lubridate::now())#,
+            # uuid::UUIDgenerate(use.time = TRUE)
+          ),
+          ':',
+          ''
         ),
         ' ',
         '_'
@@ -545,60 +580,63 @@ server <- function(input, output, session) {
       
       rv$sim_params$simulation_id <- simulation_id
       
-      # tryCatch({
-        lapply(
-        # future_lapply(
-          X = seq(1:sim_sequence),
-          FUN = run_simulation,
-          scenario = selected_scenario,
-          ssh_keyfile = ssh_keyfile,
-          ssh_keyfile_name = ssh_keyfile_name,
-          do_droplet_size = input$droplet_size,
-          scenario_droplet_ip = scenario_droplet_ip,
-          do_region = region,
-          do_image = snap_image,
-          simulation_logfile = simulation_logfile,
-          simulation_logfile_lock = simulation_logfile_lock,
-          progress = rv$progress,
-          total_steps = total_steps,
-          d_uploader = rv$d_uploader,
-          sim_params = rv$sim_params,
-          simulation_id = simulation_id
-        )
-
-      # Delete the scenario droplet
-      # d_uploader %>% droplet_delete()
+      # parallel::mclapply(
+      lapply(
+        X = seq(1:sim_sequence),
+        FUN = run_simulation,
+        # mc.cores = parallel::detectCores(),
+        scenario = selected_scenario,
+        ssh_keyfile = ssh_keyfile,
+        ssh_keyfile_name = ssh_keyfile_name,
+        do_droplet_size = input$droplet_size,
+        scenario_droplet_ip = scenario_droplet_ip,
+        do_region = region,
+        do_image = snap_image,
+        simulation_logfile = simulation_logfile,
+        simulation_logfile_lock = simulation_logfile_lock,
+        progress = rv$progress,
+        total_steps = total_steps,
+        d_uploader = rv$d_uploader,
+        sim_params = rv$sim_params,
+        simulation_id = simulation_id,
+        droplet_sequence = droplet_sequence
+      )
     }
   )
 
-  # Render knited md ----
-  # observeEvent(
-  #   input$include_md,
-  #   {
-  #     req(input$rendered_mds)
-  #
-  #     isolate(input$rendered_mds)
-  #
-  #     file_stats <- file.info(input$rendered_mds, extra_cols = FALSE)
-  #     file_stats <- data.frame(
-  #       'Created' = c(file_stats$mtime),
-  #       'Size' = c(file_stats$size)
-  #     )
-  #     file_stats$Created <- as.character(file_stats$Created)
-  #     file_stats$Size <- as.character(as_fs_bytes(file_stats$Size))
-  #
-  #     output$preview_md <- renderUI({
-  #       tagList(
-  #         h2('File info'),
-  #         hr(),
-  #         renderTable(file_stats),
-  #         h2('File content'),
-  #         hr(),
-  #         includeMarkdown(input$rendered_mds)
-  #       )
-  #     })
-  #   }
-  # )
+  # Render report ----
+  observeEvent(
+    input$run_report,
+    {
+      data <- bind_rows(
+        readr::read_csv('inst/app/sample/test_fisher_agents1.csv'),
+        readr::read_csv('inst/app/sample/test_fisher_agents2.csv'),
+        readr::read_csv('inst/app/sample/test_fisher_agents3.csv'),
+        readr::read_csv('inst/app/sample/test_fisher_agents4.csv'),
+        readr::read_csv('inst/app/sample/test_fisher_agents5.csv'),
+        readr::read_csv('inst/app/sample/test_fisher_agents6.csv'),
+      )
+      params <- list(
+        data = data,
+        sim_params = rv$sim_params
+      )
+      output$preview_report <- renderUI({
+        includeHTML(
+          rmarkdown::render(
+            input = 'inst/app/report.Rmd',
+            # output_format = output_format,
+            # output_file = filepath,
+            # output_dir = output_dir,
+            params = params#,
+            # run_pandoc = TRUE,
+            # envir = new.env(parent = globalenv()),
+            # clean = TRUE,
+            # quiet = TRUE
+          )
+        )
+      })
+    }
+  )
 
   # Simulation log ----
   simulation_log_data <- shiny::reactivePoll(
@@ -633,24 +671,24 @@ server <- function(input, output, session) {
 
     if (nrow(simulation_log_data()) > 0) {
       data <- data %>%
-        group_by(Scenario) %>%
+        group_by(Droplet) %>%
         top_n(1, ID) %>%
         ungroup() %>%
-        arrange(Scenario) %>%
+        arrange(Droplet) %>%
         select(-ID)
     }
 
     if (nrow(data) > 0) {
-      if (nrow(data %>% filter(isTruthy(Scenario))) > 0) {
+      if (nrow(data %>% filter(isTruthy(Droplet))) > 0) {
         non_finished <- data %>% 
           filter(
-            Scenario != '',
+            Droplet != '',
             Description != 'PROCESS FINISHED'
           )
         
         print(non_finished)
         if (nrow(non_finished) == 0) {
-          shinyjs::alert("The overall process has finished.")
+          # shinyjs::alert("The overall process has finished.")
           
           rv$progress$close()
           cost_uploader <- rv$d_uploader %>% droplets_cost()
@@ -675,50 +713,6 @@ server <- function(input, output, session) {
     
     data
   })
-
-  # Load saved simulation outputs ----
-  # fisherSimOut <- readRDS('R/apps/flex_cloud/inst/app/fisherSimOut.Rdata')
-  # This is only one... find the way to load
-
-  # Refresh md files ----
-  # observeEvent(
-  #   input$refresh_mds,
-  #   {
-  #     all_mds <-
-  #         # dir_ls('R/apps/flex_cloud/inst/app/md/', type = 'file', glob = '*.md') %>%
-  #       dir_ls('inst/app/md/', type = 'file', glob = '*.md') %>%
-  #       purrr::map_chr(clean_md_path)
-  #
-  #     all_mds <- setNames(names(all_mds), all_mds)
-  #
-  #     shiny::updateSelectizeInput(
-  #       session = getDefaultReactiveDomain(),
-  #       'rendered_mds',
-  #       choices = all_mds,
-  #       selected = '',
-  #       server = TRUE
-  #     )
-  #   }
-  # )
-
-  # Delete md files ----
-  # observeEvent(
-  #   input$delete_mds,
-  #   {
-  #     all_mds <-
-  #         # dir_ls('R/apps/flex_cloud/inst/app/md/', type = 'file', glob = '*.md') %>%
-  #       dir_ls('inst/app/md/', type = 'file', glob = '*.md') %>%
-  #       purrr::map(file.remove)
-  #
-  #     shiny::updateSelectizeInput(
-  #       session = getDefaultReactiveDomain(),
-  #       'rendered_mds',
-  #       choices = NULL,
-  #       selected = '',
-  #       server = TRUE
-  #     )
-  #   }
-  # )
 
   # Refresh droplets ----
   filter_by_tag <- function(x, tag) {
@@ -745,31 +739,6 @@ server <- function(input, output, session) {
     }
   )
 
-  # Refresh billing ----
-  # observeEvent(
-  #   input$refresh_billing,
-  #   {
-  #     tryCatch({
-  #       drv <- dbDriver('PostgreSQL')
-  #       conn <- dbConnect(
-  #         drv,
-  #         dbname = db_name,
-  #         host = db_host,
-  #         port = db_port,
-  #         user = db_user,
-  #         password = db_pass
-  #       )
-  #       costs <- dbGetQuery(conn, "SELECT * FROM billing")
-  #       output$billing <- renderDataTable(costs)
-  #     },
-  #     error = function(cond) {
-  #       output$connection_status <- shiny::renderText('Unable to connect to the database.')
-  #       print('Unable to connect to the database.')
-  #     })
-  #
-  #   }
-  # )
-
   # Save settings ----
   observeEvent(
     input$save_settings,
@@ -782,7 +751,11 @@ server <- function(input, output, session) {
       ssh_keyfile_tbl <- parseFilePaths(volumes, input$key)
       ssh_keyfile <- stringr::str_replace(ssh_keyfile_tbl$datapath, 'NULL/', '/')
       ssh_keyfile_name <- ssh_keyfile_tbl$name
+      
+      # Available CPU cores on local machine
+      cores <- input$cores
 
+      glouton::add_cookie('cores', cores)
       glouton::add_cookie('key_path', ssh_keyfile)
       glouton::add_cookie('key_name', ssh_keyfile_name)
     }
