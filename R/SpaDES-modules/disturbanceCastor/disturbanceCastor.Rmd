@@ -25,17 +25,15 @@ Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1')
 moduleDir <- paste0(here::here(),"/R/SpaDES-modules")
 outputDir <- paste0(here::here(),"/R/SpaDES-modules/disturbanceCastor")
 
-times <- list(start = 0, end = 2)
+times <- list(start = 0, end = 10)
 
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataCastor = list(saveCastorDB = TRUE,
-                    randomLandscape = list (100,100,0,100,0,100),
-                    randomLandscapeClusterLevel = 1.2,
-                    randomLandscapeZoneConstraint = data.table (variable = 'age', 
-                                                                threshold = 140, 
-                                                                type = 'ge', percentage = 20)
+                     randomLandscapeZoneNumber = 1,
+                     randomLandscape = list(100,100,0, 100, 0, 100),
+                     randomLandscapeZoneConstraint = data.table(zoneid = 1,  variable = 'age', threshold = 140, type = 'ge', percentage = 0)
                      ),
   blockingCastor = list (blockMethod = 'pre', 
                          patchZone = 'default',
@@ -51,8 +49,13 @@ parameters <- list(
 )
 
 modules <- list ("dataCastor", "roadCastor", "blockingCastor", "disturbanceCastor")
-
-objects <- list (scenario = data.table (name = "test", description = "test"))
+disturbanceFlow<- data.table(compartment ="all",
+                                     partition = ' treed = 1 ',
+                                     mean = 1.75,
+                                     sd = 2.47,
+                                     period = rep(seq(from = 1, to=10, by = 1),1), 
+                                     flow = 1000)
+objects <- list (scenario = data.table (name = "test", description = "test"), disturbanceFlow=disturbanceFlow) #omit the disturbanceFlow object to remove disturbance processes
 
 paths <- list(
   modulePath = moduleDir,
@@ -61,6 +64,7 @@ paths <- list(
 
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
+outputs(mySim) <- data.frame (objectName = c("disturbanceProcessReport"))
 
 mysimout<-spades(mySim,debug=TRUE) 
 ```

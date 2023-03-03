@@ -41,7 +41,6 @@ denning.ras<-fasterize::fasterize(sf= denning, raster = ProvRast , field = "regi
 denning.ras[is.na(denning.ras[])]<-0
 writeRaster(denning.ras, "den.tif", overwrite = T)
 ```
-
 # Rust
 ```{r, rust}
 rust<-getSpatialQuery("select shape, 
@@ -57,7 +56,6 @@ rust.ras<-fasterize::fasterize(sf= rust, raster = ProvRast , field = "region")
 rust.ras[is.na(rust.ras[])]<-0
 writeRaster(rust.ras, "rus.tif", overwrite = T)
 ```
-
 # Cavity
 ```{r, cavity}
 cavity<-getSpatialQuery("select shape, 
@@ -70,7 +68,6 @@ cavity.ras<-fasterize::fasterize(sf= cavity, raster = ProvRast , field = "region
 cavity.ras[is.na(cavity.ras[])]<-0
 writeRaster(cavity.ras, "cav.tif", overwrite = T)
 ```
-
 #CWD
 ```{r, cwd}
 cwd<-getSpatialQuery("select shape, 
@@ -85,7 +82,6 @@ cwd.ras<-fasterize::fasterize(sf= cwd, raster = ProvRast , field = "region")
 cwd.ras[is.na(cwd.ras[])]<-0
 writeRaster(cwd.ras, "cwd.tif", overwrite = T)
 ```
-
 #mov (this is really an id for fisher zone tho)
 ```{r, movement.fisher}
 mov<-getSpatialQuery("select shape, 
@@ -95,11 +91,11 @@ mov<-getSpatialQuery("select shape,
                                WHEN ((bec_zone_code = 'BWBS' and bec_subzone in ('dk', 'mw', 'mk', 'wk')) or (bec_zone_code ='SBS' and bec_subzone = 'wk' and bec_variant ='2')) THEN 5
                                WHEN ((bec_zone_code = 'BWBS' and bec_subzone in ('dk', 'mw', 'mk', 'wk')) or (bec_zone_code ='SBS' and bec_subzone = 'wk' and bec_variant ='2')) THEN 6
                                ELSE 0
-                               END as region from public.veg_comp_lyr_r1_poly2020 where bec_zone_code in ('SBS', 'IDF', 'MS', 'SBPS', 'BWBS')")
+                               END as region from public.veg_comp_lyr_r1_poly2021 where bec_zone_code in ('SBS', 'IDF', 'MS', 'SBPS', 'BWBS')")
 
-mov.ras<-fasterize::fasterize(sf= mov, raster = ProvRast , field = "region")
-mov.ras[is.na(mov.ras[])]<-0
-writeRaster(mov.ras, "mov.tif", overwrite = T)
+movp.ras<-fasterize::fasterize(sf= mov, raster = ProvRast , field = "region")
+movp.ras[is.na(movp.ras[])]<-0
+writeRaster(movp.ras, "movp.tif", overwrite = T)
 ```
 
 #FETAS
