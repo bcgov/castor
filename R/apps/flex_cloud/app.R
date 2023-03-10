@@ -33,6 +33,10 @@ library(filelock)
 library(shinyjs)
 library(glouton)
 library(shinyWidgets)
+library(raster)
+library(plotly)
+library(ggplot2)
+# library(tmap)
 
 source('src/functions.R')
 
@@ -40,7 +44,7 @@ source('src/functions.R')
 
 # plan(sequential)
 # plan(multicore)
-plan(list(callr, multisession))
+plan(callr)
 # plan(multisession)
 
 # Available scneario Rmd files
@@ -61,13 +65,14 @@ ssh_user <- "root"
 
 # Available sizes
 sizes <- analogsea::sizes(per_page = 200) %>%
-  filter(
+  dplyr::filter(
     available == TRUE,
     grepl("tor1", region),
     !grepl("-amd", slug),
     !grepl("-intel", slug),
     memory > 16000,
     vcpus > 4,
+    disk >= 320
   ) %>%
   mutate(
     processes_by_core = vcpus,
@@ -76,7 +81,7 @@ sizes <- analogsea::sizes(per_page = 200) %>%
     price_per_process = price_hourly / processes,
     label = paste0(
       processes, ' parallel processes, ',
-      scales::dollar(price_per_process, prefix = '', suffix = '¢', accuracy = 0.01, scale = 100), ' per process (',
+      scales::dollar(price_per_process, prefix = '', suffix = '¢', accuracy = 0.01, scale = 100), ' per process per hour (',
       scales::dollar(price_hourly, prefix = '', suffix = '¢', accuracy = 0.01, scale = 100), ' hourly, ',
       memory / 1024, 'GB, ', 
       vcpus, ' vCPUs)'
@@ -152,7 +157,7 @@ ui <- shiny::tagList(
                 multiple = FALSE
               ),
               # hr(),
-              sliderInput('iterations', label = 'Number of iterations', value = 2, min = 1, max = 100, step = 1),
+              sliderInput('iterations', label = 'Number of iterations', value = 48, min = 1, max = 100, step = 4),
               # hr(),
               div(
                 class = "form-group",
@@ -226,6 +231,20 @@ ui <- shiny::tagList(
                     shiny::helpText("Use controls below to view and manage the simulation output files."),
                     div(
                       class = 'form-group',
+                      shiny::radioButtons(
+                        inputId = 'report_currency', 
+                        label = 'Select simulation',
+                        choiceNames = c('Current', 'Previous'),
+                        choiceValues = c('current', 'previous'),
+                        selected = 'current', inline = TRUE
+                      ),
+                      shiny::selectizeInput(
+                        inputId = 'report_simulation',
+                        label = "Previous simulations",
+                        choices = NULL,
+                        selected = '',
+                        multiple = FALSE
+                      ),
                       actionButton(
                         'run_report',
                         'Generate simulation report',
@@ -233,7 +252,9 @@ ui <- shiny::tagList(
                         class = 'btn-flex-light'
                       )
                     ),
-                    htmlOutput("preview_report")
+                    plotlyOutput('plot_csv', height = '900px'),
+                    plotlyOutput('plot_tif', height = '600px')
+                    # htmlOutput("preview_report")
                     # uiOutput("preview_report")
                   )
                 )
@@ -413,6 +434,15 @@ server <- function(input, output, session) {
     session = getDefaultReactiveDomain(),
     'droplet_size',
     choices = size_choices,
+    selected = ''
+  )
+
+  # Previous simulations
+  prev_simulations <- dir('inst/app/', no.. = TRUE, pattern = '^202')
+  shiny::updateSelectizeInput(
+    session = getDefaultReactiveDomain(),
+    'report_simulation',
+    choices = prev_simulations,
     selected = ''
   )
 
@@ -608,33 +638,329 @@ server <- function(input, output, session) {
   observeEvent(
     input$run_report,
     {
+      # getwd()
+      # setwd('R/apps/flex_cloud/')
+      # rv <- list()
+      # rv$sim_params$simulation_id <- '2023-03-01_224824'
+      # rv$sim_params$simulation_id <- '2023-03-01_142704'
+      
+      if (input$report_currency == 'current') {
+        dir <- paste0('inst/app/', rv$sim_params$simulation_id, '/downloads/')
+      } else {
+        dir <- paste0('inst/app/', input$report_simulation, '/downloads/')
+      }
+      
+      progressReport <- Progress$new(session, min = 1, max = 10)
+      on.exit(progressReport$close())
+      progressReport$set(
+        message = 'Loading report data',
+        detail = 'Fetching CSV files.'
+      )
+      
+      csv_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_fisher_agents.csv$')
+      
       data <- bind_rows(
-        readr::read_csv('inst/app/sample/test_fisher_agents1.csv'),
-        readr::read_csv('inst/app/sample/test_fisher_agents2.csv'),
-        readr::read_csv('inst/app/sample/test_fisher_agents3.csv'),
-        readr::read_csv('inst/app/sample/test_fisher_agents4.csv'),
-        readr::read_csv('inst/app/sample/test_fisher_agents5.csv'),
-        readr::read_csv('inst/app/sample/test_fisher_agents6.csv'),
-      )
-      params <- list(
-        data = data,
-        sim_params = rv$sim_params
-      )
-      output$preview_report <- renderUI({
-        includeHTML(
-          rmarkdown::render(
-            input = 'inst/app/report.Rmd',
-            # output_format = output_format,
-            # output_file = filepath,
-            # output_dir = output_dir,
-            params = params#,
-            # run_pandoc = TRUE,
-            # envir = new.env(parent = globalenv()),
-            # clean = TRUE,
-            # quiet = TRUE
-          )
+        parallel::mclapply(
+          csv_files, 
+          mc.cores = parallel::detectCores(),
+          function(file, dir) {
+            file <- paste0(dir, file)
+            readr::read_csv(file)
+          },
+          dir
         )
-      })
+      ) %>% 
+        mutate(timeperiod = as.factor(timeperiod))
+      
+      progressReport$set(
+        value = 2,
+        detail = 'Processing CSV data.'
+      )
+      
+      group_data <- data %>%
+        group_by(timeperiod) %>%
+        summarize(
+          mean_val = mean(n_f_adult),
+          lower_ci = mean_val - qt(0.975, n() - 1) * sd(n_f_adult) / sqrt(n()),
+          upper_ci = mean_val + qt(0.975, n() - 1) * sd(n_f_adult) / sqrt(n())
+        )
+
+      progressReport$set(
+        value = 3,
+        detail = 'Plotting CSV data.'
+      )
+      
+      # Create a scatter plot for the actual observations
+      p1 <- plot_ly(
+        data, 
+        x = ~timeperiod, 
+        y = ~n_f_adult, 
+        type = "scatter", 
+        mode = "markers", 
+        marker = list(
+          opacity = 0.1, color = "#1A5A96", size = 10, 
+          line = list(color = 'rgba(0, 0, 152, 1)', width = 2)
+        ),
+        legendgroup = ~timeperiod
+      )
+      
+      # Create a scatter plot with error bars for the mean and confidence intervals
+      p2 <- plot_ly(
+        group_data, 
+        x = ~timeperiod, 
+        y = ~mean_val, 
+        type = "scatter", 
+        # mode = "lines+markers",
+        mode = "markers",
+        marker = list(
+          opacity = 0.8, color = "#1A5A96", size = 3, 
+          line = list(color = "#003366", width = 2)
+        ),
+        # line = list(color = "#1A5A96", width = 2),
+        error_y = list(type = "data", symmetric = TRUE, color = "#1A5A96"),
+        legendgroup = ~timeperiod
+      )
+      
+      # Add the mean values and confidence intervals as error bars
+      for (i in 1:nrow(group_data)) {
+        p2 <- add_trace(
+          p2, 
+          x = group_data$timeperiod[i], 
+          y = group_data$mean_val[i],
+          error_y = list(
+            array = c(
+              group_data$mean_val[i] - group_data$lower_ci[i],
+              group_data$upper_ci[i] - group_data$mean_val[i]
+            ),
+            type = "data", 
+            symmetric = TRUE
+          ),
+          name = paste0("Time period ", group_data$timeperiod[i]))
+      }
+      
+      # Update the layout of the first plot with a title and axis labels
+      p1 <- plotly::layout(
+        p1, title = "Number of female adults by time period",
+        xaxis = list(title = "Time period"), yaxis = list(title = "Number of female adults")
+      )
+      
+      # Update the layout of the second plot with a title and axis labels
+      p2 <- plotly::layout(
+        p2, title = "Number of female adults by time period with mean values and 95% confidence intervals",
+        xaxis = list(title = "Time period"), yaxis = list(title = "Number of female adults"), 
+        margin = list(l = 50, r = 50, b = 50, t = 50, pad = 4)
+      )
+      
+      # Combine the two plots into a single panel
+      output$plot_csv <- renderPlotly(
+        ggplotly(
+          subplot(
+            p1, p2, nrows = 2, shareX = TRUE
+            # , heights = c(0.7, 0.3)
+            , titleX = TRUE, titleY = TRUE, shareY = TRUE
+          ) 
+        ) %>% 
+          plotly::layout(showlegend = FALSE)
+      )
+      
+      # plot_csv <- ggplot(
+      #   data = data_csv %>% mutate(timeperiod = as.factor(timeperiod)), 
+      #   aes(x = timeperiod, y = n_f_adult)) + 
+      #   geom_point() +
+      #   # coord_flip() + 
+      #   ggtitle("Number of female adults per time period") + 
+      #   labs(x = "Time period", y = "Number of female adults") + 
+      #   theme_minimal()
+      # 
+      # output$plot_csv <- renderPlotly(ggplotly(plot_csv))
+      
+      # params <- list(
+      #   data = data_csv,
+      #   sim_params = rv$sim_params
+      # )
+      # output$preview_report <- renderUI({
+      #   includeHTML(
+      #     rmarkdown::render(
+      #       input = 'inst/app/report.Rmd',
+      #       # output_format = output_format,
+      #       # output_file = filepath,
+      #       # output_dir = output_dir,
+      #       params = params#,
+      #       # run_pandoc = TRUE,
+      #       # envir = new.env(parent = globalenv()),
+      #       # clean = TRUE,
+      #       # quiet = TRUE
+      #     )
+      #   )
+      # })
+      
+      progressReport$set(
+        value = 4,
+        detail = 'Fetching TIFF files.'
+      )
+      
+      tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_final_fisher_territories.tif$')
+      
+      # Using tmap
+      # map <- NULL
+      # for (i in 1:length(tif_files)) {
+      #   file <- paste0(dir, tif_files[i])
+      #   r <- raster(file)
+      #   map <- map + tm_shape(r) + tm_raster(alpha = 0.5, legend.show = FALSE)
+      # }
+      # map
+      # 
+      # # Using ggplot2
+      # g <- ggplot()
+      # for (i in 1:length(tif_files)) {
+      #   file <- paste0(dir, tif_files[i])
+      #   r <- raster(file)
+      #   r_df <- as.data.frame(r, xy = TRUE)
+      #   g <- g + geom_raster(data = r_df , aes(x = x, y = y, fill = layer))
+      # }
+      # 
+      # g <- g +
+      #   scale_fill_viridis_c() +
+      #   coord_quickmap()
+      # 
+      # g
+      # toc()
+      # ggplotly(g)
+        
+      library(tictoc)
+      # tic("Processing first tif file")
+      # 
+      # # Aggregate first
+      # r_all <- NULL
+      # 
+      # file <- paste0(dir, tif_files[1])
+      # r_all <- as.data.frame(
+      #   raster(file), xy = TRUE
+      # )
+      # r_other <- NULL
+      # 
+      # toc()
+      tic("Overall process")
+      tic("Processing other tif files", quiet = TRUE)
+      
+      # for (i in 1:length(tif_files)) {
+      #   file <- paste0(dir, tif_files[i])
+      #   # Read raster file, cast to data frame and bind with all previous rasters
+      #   
+      #   r <- as.data.frame(
+      #     raster(file), xy = TRUE
+      #   ) %>% filter(layer > 0)
+      #   # if (i > 1) {
+      #   #   r <- r %>% filter(layer > 0)
+      #   # }
+      #   
+      #   r_other <- bind_rows(r_other, r)
+      #   
+      # }
+      
+      data_tif <- bind_rows(
+        parallel::mclapply(
+          tif_files, 
+          mc.cores = parallel::detectCores(),
+          function(file, dir) {
+            file <- paste0(dir, file)
+            # Read raster file, cast to data frame and bind with all previous rasters
+
+              r <- as.data.frame(
+                raster(file), xy = TRUE
+              ) %>% filter(layer > 0)
+          },
+          dir
+        )
+      ) %>% 
+        group_by(x, y) %>%
+        summarize(layer = sum(layer))
+      
+      toc()
+      
+      
+      
+      # extent <- raster::extent(r)
+      # xmin <- extent@xmin
+      # ymin <- extent@ymin
+      # xmax <- extent@xmax
+      # ymax <- extent@ymax
+      # r_all <- bind_rows(
+      #   r_all,
+      #   as.data.frame(x = xmin, y = ymin, layer = 0),
+      #   as.data.frame(x = xmin, y = ymax, layer = 0),
+      #   as.data.frame(x = xmax, y = ymin, layer = 0),
+      #   as.data.frame(x = xmax, y = ymax, layer = 0)
+      # )
+      
+      # tic("Binding, grouping and summarizing tif files")
+      
+      # Group and summarize right away for smaller memory footprint
+      # r_all <- bind_rows(r_all, r_other) %>% 
+      # r_all <- r_other %>% 
+      #   group_by(x, y) %>%
+      #   summarize(layer = sum(layer))# %>% 
+      #   # ungroup()
+      # 
+      # toc()
+      tic("Visualizing tif files", quiet = TRUE)
+      
+      progressReport$set(
+        value = 7,
+        detail = 'Plotting TIFF files.'
+      )
+      
+      g <- ggplot() +
+        geom_raster(data = data_tif , aes(x = x, y = y, fill = layer)) +
+        # geom_tile(data = r_all , aes(x = x, y = y, fill = layer)) +
+        scale_fill_viridis_c(direction = -1) +
+        # coord_quickmap() +
+        theme_minimal()# +
+        # theme(legend.position = "none")
+      
+      # g
+      toc()
+      toc()
+      
+      output$plot_tif <- renderPlotly(ggplotly(g))
+        
+      progressReport$set(
+        value = 10,
+        message = 'Done',
+        detail = ''
+      )
+      
+      # df_all <- NULL
+      # for (i in 1:length(tif_files)) {
+      #   file <- paste0(dir, tif_files[i])
+      #   r <- raster(file)
+      #   df <- data.frame(rasterToPoints(r))
+      #   df$layer <- tif_files[i]
+      #   df_all <- rbind(df_all, df)
+      # }        
+      # ggplot(df, aes(x = x, y = y, fill = value, alpha = value, layer = layer)) +
+      #   geom_raster() +
+      #   scale_fill_gradient(low = "white", high = "blue") +
+      #   scale_alpha(range = c(0, 1)) +
+      #   theme_void()
+      # 
+      # data_tif <- bind_rows(
+      #   # parallel::mclapply(
+      #   lapply(
+      #     tif_files, 
+      #     function(file, dir) {
+      #       browser()
+      #       file <- paste0(dir, file)
+      #       r <- raster::raster(file)
+      #       # df <- ggplot2::fortify(r)
+      #       # df$layer <- file
+      #       df <- data.frame(raster::rasterToPoints(r))
+      #       df$layer <- file
+      #     },
+      #     dir
+      #   )
+      # )
+      
     }
   )
 

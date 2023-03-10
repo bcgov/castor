@@ -238,6 +238,18 @@ table.flex-explorer-table td.checkbox-container {
   margin: 20px 0;
 }
 
+.dropdown-menu {
+  box-shadow: 0 6px 12px rgba(0,0,0,.175);
+}
+
+h1.title {
+  font-size: 24px;
+}
+
+h4 {
+  font-size: 18px;
+}
+
 /* Footer ------------- */
 footer {
   background-color: #036;

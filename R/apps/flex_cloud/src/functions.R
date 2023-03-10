@@ -292,7 +292,7 @@ keyfile = ssh_keyfile
     if (!errored) {
       tryCatch({
         status <- paste0(
-          "11,", paste0("Iteration ", iteration), ",70%,Copying scenario to droplet from", scenario_droplet_ip, ",", as.character(Sys.time()), ","
+          "11,", paste0("Iteration ", iteration), ",70%,Copying scenario to droplet,", as.character(Sys.time()), ","
         )
         
         # status <- glue::glue("11,Iteration {iteration},70%,Copying scenario to droplet from {scenario_droplet_ip},", as.character(Sys.time()), ",")
@@ -420,7 +420,7 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
     
     cost <- d %>% droplets_cost()
     
-    # d %>% droplet_delete()
+    d %>% droplet_delete()
     
     status <- paste0(
       "16,", paste0("Iteration ", iteration), ",,PROCESS FINISHED,", as.character(Sys.time()), ",", cost$total

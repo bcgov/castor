@@ -1,0 +1,50 @@
+---
+title: |
+  Fisher Landscape Explorer Simulation Results
+author: "Ministry of Forests"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+params:
+  sim_params: list()
+  data: null
+---
+
+```{r setup, include=FALSE}
+library(dplyr, quietly = TRUE, warn.conflicts = FALSE)
+library(magrittr, quietly = TRUE, warn.conflicts = FALSE)
+library(forcats, quietly = TRUE, warn.conflicts = FALSE)
+library(scales, quietly = TRUE, warn.conflicts = FALSE)
+library(data.table, quietly = TRUE, warn.conflicts = FALSE)
+library(ggplot2, quietly = TRUE, warn.conflicts = FALSE)
+library(kableExtra, quietly = TRUE, warn.conflicts = FALSE)
+library(gplots)
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE)
+```
+
+In this document we summarize the outputs from a Fisher Landscape Explorer simulation.
+
+The simulations were run using the following parameters:
+
+```{r echo=FALSE, eval=TRUE}
+sim_params <- params$sim_params
+lapply(sim_params, cat)
+```
+
+
+```{r}
+ggplot(
+  data = data %>% mutate(timeperiod = as.factor(timeperiod)), 
+  aes(x = timeperiod, y = n_f_adult, )) + 
+  geom_point() +
+  # coord_flip() + 
+  ggtitle("Number of female adults per time period") + 
+  labs(x = "Time period", y = "Number of female adults") + 
+  theme_minimal()
+
+plotmeans(
+  n_f_adult ~ timeperiod, 
+  data = data, 
+  frame = FALSE, xlab = "Time period", ylab = "Mean number of female adults"
+)
+```
