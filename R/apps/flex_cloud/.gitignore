@@ -6,4 +6,4 @@
 *.tif
 *.csv
 *.pub
-params.txt
+inst/app/20*

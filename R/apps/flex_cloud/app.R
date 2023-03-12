@@ -34,9 +34,9 @@ library(shinyjs)
 library(glouton)
 library(shinyWidgets)
 library(raster)
-library(plotly)
 library(ggplot2)
-# library(tmap)
+library(tictoc)
+library(ggthemes)
 
 source('src/functions.R')
 
@@ -62,38 +62,6 @@ uploader_size = 's-1vcpu-1gb'
 
 # SSH config
 ssh_user <- "root"
-
-# Available sizes
-sizes <- analogsea::sizes(per_page = 200) %>%
-  dplyr::filter(
-    available == TRUE,
-    grepl("tor1", region),
-    !grepl("-amd", slug),
-    !grepl("-intel", slug),
-    memory > 16000,
-    vcpus > 4,
-    disk >= 320
-  ) %>%
-  mutate(
-    processes_by_core = vcpus,
-    processes_by_memory = memory / 1024 / 4,
-    processes = pmin(processes_by_core, processes_by_memory),
-    price_per_process = price_hourly / processes,
-    label = paste0(
-      processes, ' parallel processes, ',
-      scales::dollar(price_per_process, prefix = '', suffix = '¢', accuracy = 0.01, scale = 100), ' per process per hour (',
-      scales::dollar(price_hourly, prefix = '', suffix = '¢', accuracy = 0.01, scale = 100), ' hourly, ',
-      memory / 1024, 'GB, ', 
-      vcpus, ' vCPUs)'
-    )
-  ) %>%
-  arrange(price_per_process) %>% 
-  select(slug, label, processes)
-
-size_choices <- setNames(
-  as.character(sizes$slug),
-  as.character(sizes$label)
-)
 
 # UI ----
 ui <- shiny::tagList(
@@ -148,7 +116,7 @@ ui <- shiny::tagList(
                   class = 'btn-flex-light'
                 ),
               ),
-              # hr(),
+              sliderInput('iterations', label = 'Number of iterations', value = 48, min = 4, max = 100, step = 4),
               selectizeInput(
                 'droplet_size',
                 label = "Cloud server config",
@@ -156,9 +124,6 @@ ui <- shiny::tagList(
                 selected = '',
                 multiple = FALSE
               ),
-              # hr(),
-              sliderInput('iterations', label = 'Number of iterations', value = 48, min = 1, max = 100, step = 4),
-              # hr(),
               div(
                 class = "form-group",
                 dropdownButton(
@@ -252,10 +217,12 @@ ui <- shiny::tagList(
                         class = 'btn-flex-light'
                       )
                     ),
-                    plotlyOutput('plot_csv', height = '900px'),
-                    plotlyOutput('plot_tif', height = '600px')
-                    # htmlOutput("preview_report")
-                    # uiOutput("preview_report")
+                    plotOutput('plot_csv'),
+                    plotOutput('plot_tif', height = '600px')
+                  ),
+                  fluidRow(
+                    h4("Parameters used in this simulation"),
+                    tableOutput('params_used')
                   )
                 )
               )
@@ -430,11 +397,74 @@ server <- function(input, output, session) {
   )
 
   # Droplet size
+  # Available sizes
+  # required_processes <- reactiveValue({
+  #   input$iterations / 
+  # })
+  
+  sizes <- analogsea::sizes(per_page = 200) %>%
+    dplyr::filter(
+      available == TRUE,
+      grepl("tor1", region),
+      !grepl("-amd", slug),
+      !grepl("-intel", slug),
+      memory > 16000,
+      vcpus > 4,
+      disk >= 320
+    ) %>%
+    mutate(
+      processes_by_core = vcpus,
+      processes_by_memory = memory / 1024 / 4,
+      processes = pmin(processes_by_core, processes_by_memory),
+      price_per_process = price_hourly / processes,
+      label = paste0(
+        processes, ' parallel processes, ',
+        scales::dollar(price_per_process, prefix = '', suffix = '¢', accuracy = 0.01, scale = 100), ' per process per hour (',
+        scales::dollar(price_hourly, prefix = '', suffix = '¢', accuracy = 0.01, scale = 100), ' hourly, ',
+        memory / 1024, 'GB, ', 
+        vcpus, ' vCPUs)'
+      )
+    ) %>%
+    arrange(price_per_process) %>% 
+    select(slug, label, processes)
+  
+  size_choices <- setNames(
+    as.character(sizes$slug),
+    as.character(sizes$label)
+  )
+  
   shiny::updateSelectizeInput(
     session = getDefaultReactiveDomain(),
     'droplet_size',
     choices = size_choices,
     selected = ''
+  )
+
+  # Change of iterations
+  observeEvent(
+    input$iterations,
+    ignoreInit = TRUE,
+    {
+      # browser()
+      cookies <- glouton::fetch_cookies()
+      cores <- as.numeric(cookies$cores)
+      
+      required_processes <- ceiling(input$iterations / cores)
+      refined_sizes <- sizes %>% 
+        filter(processes > required_processes)
+      
+      refined_size_choices <- setNames(
+        as.character(refined_sizes$slug),
+        as.character(refined_sizes$label)
+      )
+      
+      shiny::updateSelectizeInput(
+        session = getDefaultReactiveDomain(),
+        'droplet_size',
+        choices = refined_size_choices,
+        selected = ''
+      )
+    }
   )
 
   # Previous simulations
@@ -501,6 +531,11 @@ server <- function(input, output, session) {
       }
       req(file.exists(ssh_keyfile))
       # stopifnot(input$droplet_size %in% sizes$slug)
+
+      if (length(cores) == 0) {
+        shinyjs::alert('Number of cores has not been set. Please go to Settings tab to configure it.')
+      }
+      req(length(cores) > 0)
 
       # Disable controls while the simulation is running ----
       disable('file_scenario')
@@ -606,8 +641,14 @@ server <- function(input, output, session) {
         ' ',
         '_'
       )
-      fs::dir_create(paste0('inst/app/', simulation_id))
       
+      download_path <- glue::glue('inst/app/{simulation_id}')
+      fs::dir_create(download_path)
+      
+      # Save params
+      sim_params_df <- as_tibble(rv$sim_params)
+      saveRDS(object = sim_params_df, file = glue::glue("{download_path}/params.rds"))
+
       rv$sim_params$simulation_id <- simulation_id
       
       # parallel::mclapply(
@@ -638,17 +679,30 @@ server <- function(input, output, session) {
   observeEvent(
     input$run_report,
     {
+      cookies <- glouton::fetch_cookies()
+      cores <- as.numeric(cookies$cores)
+      
       # getwd()
       # setwd('R/apps/flex_cloud/')
       # rv <- list()
-      # rv$sim_params$simulation_id <- '2023-03-01_224824'
-      # rv$sim_params$simulation_id <- '2023-03-01_142704'
-      
+      # rv$sim_params$simulation_id <- '2023-03-12_143930'
+      # cores <- 6
+
       if (input$report_currency == 'current') {
         dir <- paste0('inst/app/', rv$sim_params$simulation_id, '/downloads/')
       } else {
         dir <- paste0('inst/app/', input$report_simulation, '/downloads/')
       }
+      
+      params <- readRDS(file = glue::glue("{dir}../params.rds"))
+      params <- params %>% 
+        mutate(
+          times = as.numeric(times),
+          female_dispersal = as.numeric(female_dispersal)
+        ) %>% 
+        pivot_longer(cols = colnames(params)) %>% 
+        mutate(value = as.character(value))
+      output$params_used <- renderTable(params)
       
       progressReport <- Progress$new(session, min = 1, max = 10)
       on.exit(progressReport$close())
@@ -662,7 +716,7 @@ server <- function(input, output, session) {
       data <- bind_rows(
         parallel::mclapply(
           csv_files, 
-          mc.cores = parallel::detectCores(),
+          mc.cores = cores,
           function(file, dir) {
             file <- paste0(dir, file)
             readr::read_csv(file)
@@ -690,110 +744,50 @@ server <- function(input, output, session) {
         detail = 'Plotting CSV data.'
       )
       
-      # Create a scatter plot for the actual observations
-      p1 <- plot_ly(
-        data, 
-        x = ~timeperiod, 
-        y = ~n_f_adult, 
-        type = "scatter", 
-        mode = "markers", 
-        marker = list(
-          opacity = 0.1, color = "#1A5A96", size = 10, 
-          line = list(color = 'rgba(0, 0, 152, 1)', width = 2)
-        ),
-        legendgroup = ~timeperiod
-      )
-      
-      # Create a scatter plot with error bars for the mean and confidence intervals
-      p2 <- plot_ly(
-        group_data, 
-        x = ~timeperiod, 
-        y = ~mean_val, 
-        type = "scatter", 
-        # mode = "lines+markers",
-        mode = "markers",
-        marker = list(
-          opacity = 0.8, color = "#1A5A96", size = 3, 
-          line = list(color = "#003366", width = 2)
-        ),
-        # line = list(color = "#1A5A96", width = 2),
-        error_y = list(type = "data", symmetric = TRUE, color = "#1A5A96"),
-        legendgroup = ~timeperiod
-      )
-      
-      # Add the mean values and confidence intervals as error bars
-      for (i in 1:nrow(group_data)) {
-        p2 <- add_trace(
-          p2, 
-          x = group_data$timeperiod[i], 
-          y = group_data$mean_val[i],
-          error_y = list(
-            array = c(
-              group_data$mean_val[i] - group_data$lower_ci[i],
-              group_data$upper_ci[i] - group_data$mean_val[i]
+      output$plot_csv <- renderPlot(
+        ggplot(
+          data = data %>% mutate(timeperiod = as.factor(timeperiod)), 
+          aes(
+            x = timeperiod, y = n_f_adult
+          )
+        ) + 
+          geom_point(size = 3, 
+                     alpha = 0.2, 
+                     colour = '#1A5A96') +
+          stat_summary(
+            fun.data = "mean_cl_normal",
+            geom = "crossbar",
+            colour = "#D8292F",
+            linewidth = 0.75,
+            width = 0.1,
+            fatten = 2
+          ) +
+          geom_text(
+            x = as.integer(group_data$timeperiod) + 0.1, 
+            y = group_data$mean_val, 
+            aes(
+              label = paste0(
+                "Upper CI: ", round(upper_ci, 2), "\n",
+                "Mean: ", round(mean_val, 2), "\n",
+                "Lower CI: ", round(lower_ci, 2)
+              ),
+              
             ),
-            type = "data", 
-            symmetric = TRUE
-          ),
-          name = paste0("Time period ", group_data$timeperiod[i]))
-      }
-      
-      # Update the layout of the first plot with a title and axis labels
-      p1 <- plotly::layout(
-        p1, title = "Number of female adults by time period",
-        xaxis = list(title = "Time period"), yaxis = list(title = "Number of female adults")
+            hjust = 0,
+            data = group_data
+          ) +
+          ggtitle(
+            paste0("Number of female adults per time period (", length(csv_files), " observations)")
+          ) + 
+          labs(
+            x = "Time period", 
+            y = "Number of female adults"
+          ) + 
+          theme_minimal()
       )
       
-      # Update the layout of the second plot with a title and axis labels
-      p2 <- plotly::layout(
-        p2, title = "Number of female adults by time period with mean values and 95% confidence intervals",
-        xaxis = list(title = "Time period"), yaxis = list(title = "Number of female adults"), 
-        margin = list(l = 50, r = 50, b = 50, t = 50, pad = 4)
-      )
-      
-      # Combine the two plots into a single panel
-      output$plot_csv <- renderPlotly(
-        ggplotly(
-          subplot(
-            p1, p2, nrows = 2, shareX = TRUE
-            # , heights = c(0.7, 0.3)
-            , titleX = TRUE, titleY = TRUE, shareY = TRUE
-          ) 
-        ) %>% 
-          plotly::layout(showlegend = FALSE)
-      )
-      
-      # plot_csv <- ggplot(
-      #   data = data_csv %>% mutate(timeperiod = as.factor(timeperiod)), 
-      #   aes(x = timeperiod, y = n_f_adult)) + 
-      #   geom_point() +
-      #   # coord_flip() + 
-      #   ggtitle("Number of female adults per time period") + 
-      #   labs(x = "Time period", y = "Number of female adults") + 
-      #   theme_minimal()
-      # 
-      # output$plot_csv <- renderPlotly(ggplotly(plot_csv))
-      
-      # params <- list(
-      #   data = data_csv,
-      #   sim_params = rv$sim_params
-      # )
-      # output$preview_report <- renderUI({
-      #   includeHTML(
-      #     rmarkdown::render(
-      #       input = 'inst/app/report.Rmd',
-      #       # output_format = output_format,
-      #       # output_file = filepath,
-      #       # output_dir = output_dir,
-      #       params = params#,
-      #       # run_pandoc = TRUE,
-      #       # envir = new.env(parent = globalenv()),
-      #       # clean = TRUE,
-      #       # quiet = TRUE
-      #     )
-      #   )
-      # })
-      
+      ggsave(file=paste0(dir, "../n_f_adults.png"))
+
       progressReport$set(
         value = 4,
         detail = 'Fetching TIFF files.'
@@ -801,108 +795,31 @@ server <- function(input, output, session) {
       
       tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_final_fisher_territories.tif$')
       
-      # Using tmap
-      # map <- NULL
-      # for (i in 1:length(tif_files)) {
-      #   file <- paste0(dir, tif_files[i])
-      #   r <- raster(file)
-      #   map <- map + tm_shape(r) + tm_raster(alpha = 0.5, legend.show = FALSE)
-      # }
-      # map
-      # 
-      # # Using ggplot2
-      # g <- ggplot()
-      # for (i in 1:length(tif_files)) {
-      #   file <- paste0(dir, tif_files[i])
-      #   r <- raster(file)
-      #   r_df <- as.data.frame(r, xy = TRUE)
-      #   g <- g + geom_raster(data = r_df , aes(x = x, y = y, fill = layer))
-      # }
-      # 
-      # g <- g +
-      #   scale_fill_viridis_c() +
-      #   coord_quickmap()
-      # 
-      # g
-      # toc()
-      # ggplotly(g)
-        
-      library(tictoc)
-      # tic("Processing first tif file")
-      # 
-      # # Aggregate first
-      # r_all <- NULL
-      # 
-      # file <- paste0(dir, tif_files[1])
-      # r_all <- as.data.frame(
-      #   raster(file), xy = TRUE
-      # )
-      # r_other <- NULL
-      # 
-      # toc()
       tic("Overall process")
       tic("Processing other tif files", quiet = TRUE)
-      
-      # for (i in 1:length(tif_files)) {
-      #   file <- paste0(dir, tif_files[i])
-      #   # Read raster file, cast to data frame and bind with all previous rasters
-      #   
-      #   r <- as.data.frame(
-      #     raster(file), xy = TRUE
-      #   ) %>% filter(layer > 0)
-      #   # if (i > 1) {
-      #   #   r <- r %>% filter(layer > 0)
-      #   # }
-      #   
-      #   r_other <- bind_rows(r_other, r)
-      #   
-      # }
       
       data_tif <- bind_rows(
         parallel::mclapply(
           tif_files, 
-          mc.cores = parallel::detectCores(),
+          mc.cores = cores,
           function(file, dir) {
             file <- paste0(dir, file)
-            # Read raster file, cast to data frame and bind with all previous rasters
 
-              r <- as.data.frame(
-                raster(file), xy = TRUE
-              ) %>% filter(layer > 0)
+            # Read raster file, cast to data frame and bind with all previous rasters
+            as.data.frame(
+              raster(file), xy = TRUE
+            ) %>% 
+              filter(layer > 0) %>%
+              mutate(layer = 1)
           },
           dir
         )
       ) %>% 
         group_by(x, y) %>%
         summarize(layer = sum(layer))
-      
+
       toc()
-      
-      
-      
-      # extent <- raster::extent(r)
-      # xmin <- extent@xmin
-      # ymin <- extent@ymin
-      # xmax <- extent@xmax
-      # ymax <- extent@ymax
-      # r_all <- bind_rows(
-      #   r_all,
-      #   as.data.frame(x = xmin, y = ymin, layer = 0),
-      #   as.data.frame(x = xmin, y = ymax, layer = 0),
-      #   as.data.frame(x = xmax, y = ymin, layer = 0),
-      #   as.data.frame(x = xmax, y = ymax, layer = 0)
-      # )
-      
-      # tic("Binding, grouping and summarizing tif files")
-      
-      # Group and summarize right away for smaller memory footprint
-      # r_all <- bind_rows(r_all, r_other) %>% 
-      # r_all <- r_other %>% 
-      #   group_by(x, y) %>%
-      #   summarize(layer = sum(layer))# %>% 
-      #   # ungroup()
-      # 
-      # toc()
+
       tic("Visualizing tif files", quiet = TRUE)
       
       progressReport$set(
@@ -912,55 +829,26 @@ server <- function(input, output, session) {
       
       g <- ggplot() +
         geom_raster(data = data_tif , aes(x = x, y = y, fill = layer)) +
-        # geom_tile(data = r_all , aes(x = x, y = y, fill = layer)) +
         scale_fill_viridis_c(direction = -1) +
-        # coord_quickmap() +
-        theme_minimal()# +
-        # theme(legend.position = "none")
+        coord_equal() +
+        ggtitle(
+          paste0("Composite raster file (", length(csv_files), " observations)")
+        ) + 
+        theme_minimal()
       
-      # g
-      toc()
-      toc()
+      toc() # Visualizing tif files
+      toc() # Overall process
       
-      output$plot_tif <- renderPlotly(ggplotly(g))
-        
+      output$plot_tif <- renderPlot(g)
+
+      rm(data_tif)
+      ggsave(file=paste0(dir, "../heatmap.png"))
+      
       progressReport$set(
         value = 10,
         message = 'Done',
         detail = ''
       )
-      
-      # df_all <- NULL
-      # for (i in 1:length(tif_files)) {
-      #   file <- paste0(dir, tif_files[i])
-      #   r <- raster(file)
-      #   df <- data.frame(rasterToPoints(r))
-      #   df$layer <- tif_files[i]
-      #   df_all <- rbind(df_all, df)
-      # }        
-      # ggplot(df, aes(x = x, y = y, fill = value, alpha = value, layer = layer)) +
-      #   geom_raster() +
-      #   scale_fill_gradient(low = "white", high = "blue") +
-      #   scale_alpha(range = c(0, 1)) +
-      #   theme_void()
-      # 
-      # data_tif <- bind_rows(
-      #   # parallel::mclapply(
-      #   lapply(
-      #     tif_files, 
-      #     function(file, dir) {
-      #       browser()
-      #       file <- paste0(dir, file)
-      #       r <- raster::raster(file)
-      #       # df <- ggplot2::fortify(r)
-      #       # df$layer <- file
-      #       df <- data.frame(raster::rasterToPoints(r))
-      #       df$layer <- file
-      #     },
-      #     dir
-      #   )
-      # )
-      
     }
   )
 
@@ -1014,12 +902,11 @@ server <- function(input, output, session) {
         
         print(non_finished)
         if (nrow(non_finished) == 0) {
-          # shinyjs::alert("The overall process has finished.")
-          
           rv$progress$close()
           cost_uploader <- rv$d_uploader %>% droplets_cost()
           rv$d_uploader %>% droplet_delete()
-          
+          fs::file_delete('tmp/id_rsa.pub')
+
           enable('file_scenario')
           enable('droplet_size')
           enable('iterations')
@@ -1081,9 +968,9 @@ server <- function(input, output, session) {
       # Available CPU cores on local machine
       cores <- input$cores
 
-      glouton::add_cookie('cores', cores)
-      glouton::add_cookie('key_path', ssh_keyfile)
-      glouton::add_cookie('key_name', ssh_keyfile_name)
+      glouton::add_cookie('cores', cores, options = cookie_options(expires = 2026))
+      glouton::add_cookie('key_path', ssh_keyfile, options = cookie_options(expires = 365))
+      glouton::add_cookie('key_name', ssh_keyfile_name, options = cookie_options(expires = 365))
     }
   )
 
