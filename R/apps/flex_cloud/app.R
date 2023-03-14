@@ -36,7 +36,6 @@ library(shinyWidgets)
 library(raster)
 library(ggplot2)
 library(tictoc)
-library(ggthemes)
 
 source('src/functions.R')
 
@@ -426,7 +425,7 @@ server <- function(input, output, session) {
       )
     ) %>%
     arrange(price_per_process) %>% 
-    select(slug, label, processes)
+    dplyr::select(slug, label, processes)
   
   size_choices <- setNames(
     as.character(sizes$slug),
@@ -700,7 +699,7 @@ server <- function(input, output, session) {
           times = as.numeric(times),
           female_dispersal = as.numeric(female_dispersal)
         ) %>% 
-        pivot_longer(cols = colnames(params)) %>% 
+        tidyr::pivot_longer(cols = colnames(params)) %>% 
         mutate(value = as.character(value))
       output$params_used <- renderTable(params)
       

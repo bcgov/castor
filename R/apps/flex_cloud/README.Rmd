@@ -2,7 +2,7 @@
 
 ## About
 
-FLEX Cloud Deployment (FCD) is a Shiny app that uses the power of cloud computing to offload the memory- and CPU-intensive simulations performed using FLEX package in a distributed manner.
+FLEX Cloud Deployment (FCD) is a Shiny app that uses the power of cloud computing to offload the memory- and CPU-intensive simulations performed using SpaDES package and FLEX module in a distributed manner.
 
 The engine of the FCD is the `{analogsea}` R package (<https://pacha.dev/analogsea/index.html>), which is a wrapper around Digital Ocean REST API (<https://docs.digitalocean.com/reference/api/api-reference/>).
 
@@ -37,6 +37,10 @@ R packages required to run the app are imported as the first step in `app.R` fil
 -   `{purrr}`
 -   `{filelock}`
 -   `{ColinFay/glouton}`
+-   `{shinyWidgets}`
+-   `{raster}`
+-   `{ggplot2}`
+-   `{tictoc}`
 
 and they need to be installed on the host running the app.
 
@@ -48,7 +52,7 @@ In order to use the application to manage cloud resources on Digital Ocean platf
 
 ### Digital Ocean Personal Access Token
 
-The first step and prerequesitite is to authenticate the application to the Digital Ocean using the token. The token needs to be obtained from the [Digital Ocean control panel](https://cloud.digitalocean.com). Navigate to the "API" link in the right navigation sidebar and activate the "Token/Keys" tab in the main panel.
+The first step and prerequesitite is to authenticate the application to the Digital Ocean using the token. The token needs to be obtained from the [Digital Ocean control panel](https://cloud.digitalocean.com). Navigate to the "API" link in the left navigation sidebar and activate the "Tokens" tab in the main panel.
 
 ![](inst/app/img/DO-token.png)
 
@@ -64,31 +68,42 @@ This will authenticate the application with Digital Ocean so that new resources 
 
 ### SSH Public-Private Key Pair
 
-There is another layer of authentication, and that is the SSH key that the application will use to SSH to the droplets to be able to perform actions like formatting and mounting the volumes, issuing shell commands and finally executing R commands to run the simulations.
+There is another layer of authentication, and that is the SSH key that the application will use to securely connect to the droplets using SSH, in order to be able to perform actions like issuing required shell commands which prepare and execute R commands to run the simulations.
 
-In [Digital Ocean control panel](https://cloud.digitalocean.com), navigate to "Settings" link in the right sidebar and activate the Security tab in the main panel. Click the `Add SSH Key` button and follow the instructions in the popup to create a new SSH key and add it to the Digital Ocean.
+In [Digital Ocean control panel](https://cloud.digitalocean.com), navigate to "Settings" link in the left sidebar and activate the Security tab in the main panel. Click the `Add SSH Key` button and follow the instructions in the popup to create a new SSH key and add it to the Digital Ocean.
 
 ![](inst/app/img/add-ssh-key.png)
 
-You will need to select the private key from this key pair when using the application (uploading new databases and running the simulations).
-
-## Managing Persisted Scenarios
+You will need to select the private key from this key pair when using the application to run the simulations.
 
 ## Running the Simulations
 
-This is the central point of the application.
+This is the central point of the application and it satisfies the requirement to run a big number of simulation iterations of the same scenario by running the iterations in parallel. 
+
+The parallelization happens on two levels. First level are multiple cloud servers that run in parallel. The second level is the parallelization that happens on each cloud server so that a number of iterations can run in parallel on each.
+
+For example, if we run 80 simulation iterations and the local machine has 4 CPU cores, the job can be completed by creating it configurations like:
+
+1. 2 cloud servers that can support running 40 parallel processes each.
+2. 4 cloud servers that can support running 20 parallel processes each.
 
 ### Selecting the Options
 
 The user needs to select the following options before running the simulations:
 
-...
+-   **Scenario** - The TIFF file containting the scenario to be used in the simulation.
+
+-   **Number of iterations** - The number of iterations to be run for the simulation. The results of all iterations will be aggregated for the output analysis.
+
+-   **Cloud server config** - Server configuration (in terms of RAM and CPU cores). The options available for selection are limited by number of CPU cores on the local machine (this number limits the number of servers that can be created) and number of simulation iterations. Each seAfter benchmarking the performance, it was established that each iteration requires up to 4GB of RAM. The listed options include information about the hourly cost of running such server, and relative cost per iteration per hour.
+
+-   **Settings (optional)** - In addition, sumulation settings can be changed from default values by clicking the Settings button and changing any settings as needed.
 
 ### Running the simulations
 
 When the options are selected, clicking the `Run scenario` button will kick off the process. Simulations are run asynchronously, with the help of `{future}` and `{future.callr}` R packages. This has several benefits:
 
--   The simulations can be run in parallel, reducing the overall time to get the results.
+-   The iterations can be run in parallel, reducing the overall time to get the results.
 
 -   The application can report in real time about the current stage each simulation is at (with the help of `{ipc}` R package), as well as about the overall progress.
 
@@ -98,43 +113,50 @@ The overall process consists of the following steps:
 
 1.  Parse the given input options.
 
-2.  Use `lapply` function to iterate over selected scenarios by applying the `run_simulation` function for each scenario, where each iteration starts a new `{future}` asynchronous process.
+2.  Create a small droplet that will host the scenario during the execution stage.
 
-3.  Observe changes in simulation log file (using `shiny::reactivePoll` function) to report on progress for each simulation, as well as the overall process.
+3.  Create required number of cloud servers using `lapply` function and apply the `run_simulation` function for each server, where each server is created a new `{future}` asynchronous process in parallel.
+
+4.  Observe changes in simulation log file (using `shiny::reactivePoll` function) to report on progress on each server, as well as the overall process.
 
 ### Asynchronous Processes
 
-Each scenario is processed in a background R process by calling the `run_simulation` function. The following steps are performed in this function:
+The simulation iterations run on each server in a background R process by calling the `run_simulation` function. The following steps are performed in this function:
 
 1.  Fetch environment variables (DO_PAT for authentication with Digital Ocean, and any other).
 
 2.  Create the droplet.
 
-3.  Create the volume from the snapshot containing the relevant `.tif` file.
+3.  Clone the main `castor` repo.
 
-4.  Attach the volume to the droplet.
+4.  Connect to the droplet that hosts the scenario TIFF file and download it to the droplet.
 
-5.  SSH to the droplet, clone the main `castor` repo, mount the volume to the droplet and create a symbolic link in the working directory to the mounted volume containing the database.
+5.  Run the simulation by executing `run_iteration` function. This function executes remotely `R/SpaDES-modules/FLEX2/fisher.R` R script and passes in the settings that were set in the selected options. The remote `R/SpaDES-modules/FLEX2/fisher.R` in itself will spin a number of parallel processes that can run the cloud server.
 
-6.  Run the simulation by executing `knitr::knit` R command.
+6.  Download generated output files to be used for the simulation analysis. On the local machine, a folder is created for each simulation in `R/apps/flex_cloud/inst/app` folder. The simulation ID (and folder name) is the timestamp when the simulation ran, in the `YYYY-MM-DD_HHiiss` format, for example `2023-03-12_143930`. Each folder contains the `downloads` folder where all `.csv` and `.tif` files that were created as simulation output are contained. The individual filenames are prefixed with server and iteration identifiers in the format `dXiY...` where X is the server number and Y is the iteration number on each server. For example, if four iterations ran on two servers, the file prefixes are d1i1, d1i2, d1i3, d1i4, d2i1, d2i2, d2i3, and d2i4.
 
-7.  Detach and delete the volume.
-
-8.  Download knitted `md` file for the preview of the results.
-
-9.  Download generated output files to be used for the simulation analysis.
-
-10. Visualize the results.
-
-11.  Delete the droplet.
+7. Get the cost and delete the droplet.
 
 ### Simulation Log
 
-Each simulation logs its progress to the simulation log file. The log file is created in the temporary folder (using `tempfile` R function. This file is observed for changes in the main application thread, and is used to report on the progress of each simulation in the DataTables object in Simulation Log tab of the main panel.
+Each server logs its progress to the simulation log file. The log file is created in the temporary folder (using `tempfile` R function). This file is observed for changes in the main application thread, and is used to report on the progress of the execution on each droplet in the DataTables object in Simulation Log tab of the main panel.
 
 ### Previewing Results
 
-## Managing Other Resources
+Simulation analysys is performed on the "Simulation output" tab. The application facilitates the analysis of current simulation, or previous simulations, depending on the selected option of "Select simulation" radio button.
+
+If "Current" option is selected, "Previous simulations" dropdown can remain empty. If "Previous" option is selected, the simulation has to be selected in "Previous simulations" dropdown.
+
+The plots are created by clicking the "Generate simulation report" button.
+
+The application creates two plots:
+
+1. Scatterplot of number of female fisher adults per time period from each simulation iteration, which also includes plotted mean values with 95% confidence intervals for each time period.
+2. Composite heatmap which contains the aggregated final fisher habitat from all simulation iterations.
+
+The parameters used with the selected simulation are also shown for the reference.
+
+## Cloud Servers
 
 **Resources** screen is used to manage existing Digital Ocean droplets. At this moment, it only retrieves the list of any currently existing droplets when the `Refresh` button is clicked.
 
@@ -144,9 +166,18 @@ In the future, this screen can also include buttons to manage the droplets (e.g.
 
 ## Billing
 
-This section is intended to run the reports on the cost for each individual scenario or area of interest.
+This section was intended to run the reports on the cost for each individual simulation run.
 
-At this moment this function is not available as we need create a persistent storage to be able store the cost at the scenario run-time, before the droplets are destroyed.
+At this moment this function is not available because persistent storage is required where the cost would be stored when the simulation is finished. Instead, the cost of each server is reported in the Simulation Log table.
+
+## Settings
+
+These are required to be set before running the simulations. Currently two settings are being persisted into cookies. They are:
+
+1.  The path to SSH key on local machine (so it doesn't have to be selected each time the simualations are being run).
+2.  Number of CPU cores on the local machine. This setting is important for resolving the Digital Oceal droplet configurations that can support the required number of simulation iterations. The number of CPU cores currently limits the number of cloud servers that can be created at the same time.
+
+The cookie expires 7 days after being set.
 
 ## Core Team
 
