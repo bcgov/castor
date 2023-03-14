@@ -133,9 +133,9 @@ The simulation iterations run on each server in a background R process by callin
 
 5.  Run the simulation by executing `run_iteration` function. This function executes remotely `R/SpaDES-modules/FLEX2/fisher.R` R script and passes in the settings that were set in the selected options. The remote `R/SpaDES-modules/FLEX2/fisher.R` in itself will spin a number of parallel processes that can run the cloud server.
 
-6.  Download generated output files to be used for the simulation analysis. On the local machine, a folder is created for each simulation in `R/apps/flex_cloud/inst/app` folder. The simulation ID (and folder name) is the timestamp when the simulation ran, in the `YYYY-MM-DD_HHiiss` format, for example `2023-03-12_143930`. Each folder contains the `downloads` folder where all `.csv` and `.tif` files that were created as simulation output are contained. The individual filenames are prefixed with server and iteration identifiers in the format `dXiY...` where X is the server number and Y is the iteration number on each server. For example, if four iterations ran on two servers, the file prefixes are d1i1, d1i2, d1i3, d1i4, d2i1, d2i2, d2i3, and d2i4.
+6.  Download generated output files to be used for the simulation analysis. On the local machine, a folder is created for each simulation in `R/apps/flex_cloud/inst/app` folder. The simulation ID (and folder name) is the timestamp when the simulation ran, in the `YYYY-MM-DD_HHiiss` format, for example `2023-03-12_143930`. Each folder contains the `downloads` folder where all `.csv` and `.tif` files that were created as simulation output are contained. The individual filenames are prefixed with server and iteration identifiers in the format `dXiY...` where X is the server number and Y is the iteration number on each server. For example, if four iterations ran on two servers, the file prefixes are d1i1*, d1i2*, d1i3*, d1i4*, d2i1*, d2i2*, d2i3*, and d2i4* and files are saved in `R/apps/flex_cloud/inst/app/2023-03-12_143930/downlaods` folder.
 
-7. Get the cost and delete the droplet.
+7. Get the droplet cost and delete it.
 
 ### Simulation Log
 
@@ -154,7 +154,13 @@ The application creates two plots:
 1. Scatterplot of number of female fisher adults per time period from each simulation iteration, which also includes plotted mean values with 95% confidence intervals for each time period.
 2. Composite heatmap which contains the aggregated final fisher habitat from all simulation iterations.
 
-The parameters used with the selected simulation are also shown for the reference.
+### Saved simulation parameters
+
+The parameters used with the selected simulation are also shown for the reference. The parameters are saved as a dataframe in the simulation output forlder (for example `R/apps/flex_cloud/inst/app/2023-03-12_143930/`).
+
+### Saved plots
+
+When the report with plots is generated after clicking the "Generate simulation report" button, both plots (scatterplot with mean values and the heatmap) are also saved in the simulation output folder (for example `R/apps/flex_cloud/inst/app/2023-03-12_143930/`).
 
 ## Cloud Servers
 
