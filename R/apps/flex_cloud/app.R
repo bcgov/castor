@@ -358,18 +358,12 @@ server <- function(input, output, session) {
   
   shinyFileChoose(
     input, "file_scenario",
-    roots = c('wd' = '.', 'scenarios' = paste0(getwd(), '/scenarios')),
+    roots = c('wd' = '.', 'root' = '/', 'home' = fs::path_home()),
     filetypes = c('tif'),
-    defaultPath = '', defaultRoot = 'scenarios', session = session
+    defaultPath = '', defaultRoot = 'home', session = session
   )
   shinyFileChoose(
     input, "key",
-    roots = c('wd' = '.', 'root' = '/', 'home' = fs::path_home()),
-    hidden = TRUE,
-    defaultPath = '', defaultRoot = 'root', session = session
-  )
-  shinyFileChoose(
-    input, "key_db",
     roots = c('wd' = '.', 'root' = '/', 'home' = fs::path_home()),
     hidden = TRUE,
     defaultPath = '', defaultRoot = 'root', session = session
