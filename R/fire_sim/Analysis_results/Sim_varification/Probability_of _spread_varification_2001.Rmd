@@ -1,16 +1,15 @@
 ---
-title: "Model_validation_ignition"
+title: "Probability_of_spread_varification"
 author: "Elizabeth Kleynhans"
-date: "2023-01-18"
+date: "2023-01-26"
 output: html_document
-editor_options: 
-  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 source(here::here("R/functions/R_Postgres.R"))
+library (kableExtra)
 library(tidyverse)
 require (sf)
 require (RPostgreSQL)
@@ -21,11 +20,16 @@ require (dplyr)
 library(bcdata)
 library(SpaDES.tools)
 library(terra)
+library(quickPlot)
+library(data.table)
 library(ggplot2)
+library(SpaDES.addins)
+library(SpaDES)
+library(SpaDES.core)
 
 ```
 
-## Validating fire ignition map
+## Validating fire spread map
 
 Following methods outlined in Johnson et. al. (2006) Resource selection functions based on use-availability data: Theoretical motivation and evaluation methods.Journal of wildlife management 70: 347-357. I will test whether my ignition points are reasonably estimated by my logistic regression equation. Basically, the idea is to take my probability of ignition map and bin the predicted probabilities into bins. Then weight these bins by the amount of area they cover on the maps. by multiplying the mid point of the probability bin by its area we can estimate the proportion of ignition points we expect to fall in that bin. Then using an independent data set (such as 2022 ignition points) we can check whether our expected number of ignition points actually lines up with our actual data. if the two match then by ploting predicted proportion of igntions in each bin by actual proportion of igntions in each bin I should see a line that has a slope of 1 and intercept of 0. If I get this it indicates that my model is proportional to the probability of use. 
 
@@ -33,60 +37,49 @@ This is what the paper says:
 
 "First,  assess  the  slope  of  the  regression  line  for  a  significant difference   from   a   slope   of   zero   where   use   would   equal availability   and   therefore   indicate   that   the   model   is   not different  from  that  of  a  random  or  neutral  model.  Second, assess whether the slope is different from 1.0, which is the slope expected for a model that is proportional to the probability of use.  Third,  assess  the  constant  for  an  intercept  of  zero,  the intercept  expected  for  a  model  that  is  approximately  proportional to probability of use. And finally, use both the R2 of the model and Chi2 goodness-of-fit test to assess fit. A model that was  proportional  to  probability  of  use  would  have  a  slope different from 0, but not different from 1, an intercept of 0, and a high R2 value with a nonsignificant Chi2 goodness-of-fit value.Finally, chi2 tests for each observed and expected proportion can be used to determine in which RSF bins the observed frequency differs from expected. If these conditions are not satisfied, the user  might  consider  revisiting  the  process  starting  at  step  3 (reclassify the RSF using a different model), rebinning the RSF values,  or  estimating  a  model  with  different  environmental factors".
 
-## General methods:
+#########
+Import spread raster and bin the probabilities of spread. Then calculate the area on the map within each bin
 
-# 1.) Create proability of ignition map
-
-# 2.) extract 2022 ignition data from BCGW
-
-# 3.) get the proability of ignition for each new ignition point. Either extract it from the ignition map by overlaying the two, or determine them again by extracting all the data i.e. vegetation data, climate data, elevation data, distance to infrastructure data etc for each ignition point. I just extracted the values off the map, but it might be better to actually recalculate them for each point since my map is at 400 x 400m resolution. 
-
-# Overlay proability of lightning ignition on probability of human ignition and create single map of proability of ignition from both.
 ```{r}
-lightning_ignition<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_lightning_ignit_2001.tif")
-setMinMax(lightning_ignition)
+spread.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_spread_2001.tif")
 
-human_ignition<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_person_ignit_2001.tif")
-setMinMax(human_ignition)
+crs(spread.ras)
+raster::crs(spread.ras) <- "EPSG:3005"
 
-# assign negative values (no data values) NA
-#lightning_ignition <- reclassify(lightning_ignition, cbind(-Inf, -1, NA), right=FALSE)
-#human_ignition <- reclassify(human_ignition, cbind(-Inf, -1, NA), right=FALSE)
+# this next step may not be neccessary but here I change all NA values into zero. Then I cut out the boarder of BC to remove the zero's in the ocean. I did this because I think some areas on land are classified as NA when they should be zero e.g. because they are water. 
+# replacing NA's by zero
+spread.ras[is.na(spread.ras[])] <- 0 
 
-total.ignit <- (lightning_ignition * (1-human_ignition)) + (human_ignition * (1-lightning_ignition))
+#get provincial boundary for clipping the layers to the area of interest
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
+prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
+crs(prov.bnd)# this one needs to be transformed to 3005
+bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system
+st_crs(bc.bnd)
 
-plot(total.ignit, col=rev(heat.colors(255)))
+bc.bnd<-sf::st_as_sf(bc.bnd) %>% st_combine() %>% st_sf() #flatten layer
 
-# run this in R if you want to save the raster to Kyles postgres database
-#paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_lightning_ignit_2022.tif -t 400x400 rast.prob_lightning_ignit_bc_2022 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/castor')
-# then copy the output thats between the " " from the above and paste it into the cmd and run that... should show Insert 0  1 lots of times.
+r2 <- crop(spread.ras, extent(bc.bnd))
+r3 <- mask(r2, bc.bnd)
+spread.ras<-r3
+plot(spread.ras)
 
-#paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_human_ignit_2022.tif -t 400x400 rast.prob_human_ignit_bc_2022 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus')
 
+rm(r2, r3)
 
 ```
 
-
 # Predict RSF values and reclassify pixels into ordinal classes or rank bins of a specified number
 ```{r}
-x<- as.data.frame(total.ignit)
-hist(x$layer)
-
-#bins<-quantile(x$layer, probs = seq(0, 1, 1/10), na.rm=TRUE)
-#hist(x$layer, breaks=c(0, 0.1269326, 0.1959398, 0.2403519, 0.2758387, 0.3081048, 0.3397820, 0.3772622, 0.4259310, 0.4935676, 0.9)) # I dont believe this is working properly
-# 
-# y<-x %>% mutate(x_bin = ntile(layer, n=10))
-# table(y$x_bin)
-
-y_alt<-x %>% mutate(x_bin = cut(layer, breaks=10))
-#y_alt2<-x%>% mutate(x_bin = cut(layer, breaks =c(0, 0.1269326, 0.1959398, 0.2403519, 0.2758387, 0.3081048, 0.3397820, 0.3772622, 0.4259310, 0.4935676, 1.0))) # This method uses the quantiles identified above.
+x<- as.data.frame(spread.ras)
+hist(x$rast_spread_2001)
+y_alt<-x %>% mutate(x_bin = cut(rast_spread_2001, breaks=10))
 
 table(y_alt$x_bin)
 
 y <- y_alt %>% drop_na()
 plot(y$x_bin)
-
-
 y2<-as.data.frame(table(y$x_bin))
 
 # determine midpoints of each bin
@@ -100,23 +93,107 @@ y2$Ui<- y2$wi_Ai/sum(y2$wi_Ai)
 y2<- y2 %>% rename(bins=Var1,
                    Area = Freq)
 plot(y2$bins, y2$Area)
+plot(y2$bins, y2$Ui)
 ```
+
 
 ## Getting data from an independent data set
 # 6.) Count the number of used observations from an independent data set that fall in each RSF bin. 
 
 For this I will extract the probability of ignition points from my fire map at each of the points
 
-```{r ignitions}
-
-ignit<-try(
-  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
+# import spread polygons for 2022
+```{r}
+fire_bounds_hist<-try(
+  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_FIRE_POLYS_SP") %>%
     filter(FIRE_YEAR == 2001) %>%
-    filter(FIRE_TYPE == "Fire") %>%
     collect()
 )
 
-# first join the ignition points to frt so that I can see whether different frt react differently i.e. whether some are better than others.
+table(fire_bounds_hist$FIRE_YEAR)
+
+names(fire_bounds_hist)
+hist(fire_bounds_hist$FIRE_SIZE_HECTARES)
+fire_bounds_hist2<-fire_bounds_hist %>% filter(FIRE_SIZE_HECTARES>10)
+dim(fire_bounds_hist)
+dim(fire_bounds_hist2)
+```
+
+
+```{r}
+foo_sp<-as(fire_bounds_hist2,"Spatial")
+samp_points <- spsample (foo_sp, cellsize = c (1000, 1000), type = "regular")
+samp_points_new <- data.frame (matrix (ncol = 2, nrow = nrow (samp_points@coords))) # add 'data' to the points
+colnames (samp_points_new) <- c ("pttype","year")
+samp_points_new$pttype <- 1
+samp_points_new$year<-2001
+      
+sampled_points <- SpatialPointsDataFrame (samp_points, data = samp_points_new)
+sampled_points_sf<-st_as_sf(sampled_points)
+      
+##########################
+
+test<-cbind(sampled_points_sf, st_coordinates(sampled_points_sf))
+head(test)
+
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+#crs(pointCoordinates) #No CRS when a dataframe
+
+##Extract spread values from stacked layer
+rasValue2=raster::extract(spread.ras, pointCoordinates)
+head(rasValue2)
+str(rasValue2) #200298 values
+str(sampled_points_sf)#200298 values
+
+#Append new information
+sampled_points_sf1<-cbind(sampled_points_sf, rasValue2)
+head(sampled_points_sf1)
+
+table(is.na(sampled_points_sf1$rasValue2))
+
+breakno<-unique(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(y2$bins)), ","))))
+sampled_points_sf1<-sampled_points_sf1 %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
+
+y3<-as.data.frame(table(sampled_points_sf1$points_bin))
+y2$used_obs<-y3$Freq
+
+y2$expected_no_obs<-sum(y2$used_obs)*y2$Ui
+
+ggplot(data=y2) +
+  geom_line(aes(midpoint, used_obs), col="red") +
+  geom_line(aes(midpoint, expected_no_obs), col="blue")
+
+y2$prop_used<-y2$used_obs/(sum(y2$used_obs))
+y2$prop_expected<-y2$expected_no_obs/(sum(y2$expected_no_obs))
+
+relationship.fit<-lm(prop_used ~ prop_expected, data=y2)
+anova(relationship.fit)
+summary(relationship.fit) # slope looks close to 1 and intercept is at 0
+
+p_bc <- ggplot(data=y2, aes(x=prop_expected, y=prop_used)) +
+  geom_point() +
+  geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) + 
+  geom_abline(slope =1, intercept=0, linetype=2)
+p_bc
+
+Xsq<-chisq.test(y2$used_obs, p=y2$prop_expected, simulate.p.value = TRUE)  
+Xsq
+
+my.slope <- summary(relationship.fit)$coef["prop_expected", c("Estimate", "Std. Error")]
+my.df <- summary(relationship.fit)$df[2]
+t_value_zero <- my.slope["Estimate"] / my.slope["Std. Error"] # tests if the slope is different to zero
+2*pt(t_value_zero, df=my.df, lower.tail=(t_value_zero<0)) # two sided test
+summary(relationship.fit)
+t_value_one <- (my.slope["Estimate"] - 1) / my.slope["Std. Error"] # tests if slope different to 1
+2*pt(t_value_one, df=my.df, lower.tail=(t_value_one<0)) # two sided test
+
+```
+
+# Get FRT data
+
+```{r}
+# first join the spread points to frt so that I can see whether different frt react differently i.e. whether some are better than others.
 frt <- st_read ( dsn = "D:\\Fire\\fire_data\\Fire_Regime_Types\\FRT\\FRT_Canada.shp", stringsAsFactors = T) # Read simple features from file or person_22aabase, or retrieve layer names and their geometry type(s)
 st_crs(frt) #Retrieve coordinate reference system from sf or sfc object
 frt<-st_transform(frt, 3005) #transform coordinate system to 3005 - that for BC, Canada
@@ -135,108 +212,24 @@ frt_clipped<-st_intersection(bc.bnd, frt)
 length(unique(frt_clipped$Cluster))
 frt_sf<-st_as_sf(frt_clipped)
 
-fire.ignt.frt <- st_join(ignit, frt_clipped)
-table(fire.ignt.frt$Cluster)
-table(is.na(fire.ignt.frt$Cluster))
+fire.spread.frt <- st_join(sampled_points_sf1, frt_clipped)
+table(fire.spread.frt$Cluster)
+table(is.na(fire.spread.frt$Cluster))
 
 # change any ignition points in FRT =3 to frt=5
-fire.ignt.frt$Cluster[fire.ignt.frt$Cluster ==3] <- 5
-```
+fire.spread.frt$Cluster[fire.spread.frt$Cluster ==3] <- 5
 
-# now extract the probability of ignition from the raster at each ignition point.
+# plotting points on raster to check they are still correct
+spread_pts <- rasterToPoints(spread.ras, spatial = TRUE)
+# Then to a 'conventional' dataframe
+spread_pts_df  <- data.frame(spread_pts)
 
-```{r}
-fire.ignt.frt2 <- fire.ignt.frt %>%
-  dplyr::select("id", "FIRE_NUMBER", "FIRE_YEAR", "IGNITION_DATE", "FIRE_CAUSE", "LATITUDE", "LONGITUDE","CURRENT_SIZE", "Cluster","geometry")
-
-raster::crs(total.ignit) <- "EPSG:3005"
-
-test<-cbind(fire.ignt.frt2, st_coordinates(fire.ignt.frt2))
-head(test)
-
-pointCoordinates<-data.frame(test$X, test$Y)
-head(pointCoordinates)
-#crs(pointCoordinates) #No CRS when a dataframe
-
-##Extract DEM values from stacked layer
-rasValue2=raster::extract(total.ignit, pointCoordinates)
-head(rasValue2)
-str(rasValue2) #200298 values
-str(fire.ignt.frt2)#200298 values
-
-#Append new information
-fire.ignt.frt3<-cbind(fire.ignt.frt2, rasValue2)
-head(fire.ignt.frt3)
-breakno<-unique(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(y2$bins)), ","))))
-fire.ignt.frt3<-fire.ignt.frt3 %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
-table(fire.ignt.frt3$points_bin)
-
-y3<-as.data.frame(table(fire.ignt.frt3$points_bin))
-y2$used_obs<-y3$Freq
-
-plot(y2$bins, y2$used_obs)
-
-y2$expected_no_obs<-sum(y2$used_obs)*y2$Ui
-
-ggplot(data=y2) +
-  geom_line(aes(midpoint, used_obs), col="red") +
-  geom_line(aes(midpoint, expected_no_obs), col="blue")
-
-y2$prop_used<-y2$used_obs/(sum(y2$used_obs))
-y2$prop_expected<-y2$expected_no_obs/(sum(y2$expected_no_obs))
-
-relationship.fit<-lm(prop_used~prop_expected, data=y2)
-anova(relationship.fit)
-summary(relationship.fit)
-
-Xsq<-chisq.test(y2$used_obs, p=y2$prop_expected, simulate.p.value = TRUE)  
-Xsq
-
-#Chi-squared test for given probabilities with simulated p-value (based on
-#	2000 replicates)
-
-#data:  y2$used_obs
-#X-squared = 96.4, df = NA, p-value = 0.0004998
-
-Xsq$observed   # observed counts 
-Xsq$expected   # expected counts under the null
-Xsq$residuals  # Pearson residuals
-Xsq$stdres     # standardized residuals
-
-# looks like there are more zero values than predicted. 
-
-
-# plot(y2$prop_expected, y2$prop_used, xlim=c(0,0.18), ylim=c(0, 0.18))
-# abline(0,1)
-# abline(relationship.fit$coefficients[1], relationship.fit$coefficients[2], col="blue", lw=2)
-p_bc <- ggplot(data=y2, aes(x=prop_expected, y=prop_used),label = lm_eqn(y2), parse = TRUE) +
-  geom_point() +
-  geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) + 
-  geom_abline(slope =1, intercept=0, linetype=2)
-p_bc
-
-# looks like intercept  is close to zero and slope is close to 1 but chisqr test is singnifcant. 
-
-# Take home ignition points happen at the same proportion as their predicted probabilities. ie.my model is close to the probability of use. When I look at it across the entire province. Now what about specific FRT's
-
-# now see if any specific bins differ from predicted proportion of use - TO DO
-
-
+ggplot() +
+ geom_raster(data = spread_pts_df , aes(x = x, y = y, fill = rast_spread_2001)) +
+  geom_sf(data=fire.spread.frt)
 
 ```
 
-##Now lets test the same thing but within each frt
-Steps 
-1. clip out frt from fire ignition map. 
-2. calculate proporion of each binned category
-3. extract observed values and determine number in each category.
-4. do stats 
-5. look at whether some frt's respond differently to others. Which are better, which are worse.
-
-QUESTION: should I create new bins in each FRT or should I use the province wide ones? Does it matter?
-I probably want the same bins so that I can compare between regions and have points at the same midpoint value. Although, my midpoint values are on a line and so maybe its does not matter. 
-
-# Current problem How to merge FRT3 and FRT 5
 
 # FRT 5
 ```{r}
@@ -245,31 +238,45 @@ I probably want the same bins so that I can compare between regions and have poi
 frt5<-frt_clipped %>% filter(Cluster %in% c(3,5))
 frt5<-sf::st_as_sf(frt5) %>% st_combine() %>% st_sf() #flatten layer
 
-r2 <- crop(total.ignit, extent(frt5))
+r2 <- crop(spread.ras, extent(frt5))
 r3 <- mask(r2, frt5)
 plot(r3)
 
-x<- as.data.frame(r3)
+x_frt5<- as.data.frame(r3)
 #hist(x$layer, breaks=c(0, 0.125, 0.2, 0.24, 0.28, 0.31, 0.34, 0.38, 0.43,0.5, 1.0))
-x2<-x %>% mutate(points_bin = cut(layer, breaks=10))
-y <- x2 %>% drop_na()
-y2_frt5<-as.data.frame(table(y$points_bin))
+rm(r2, r3)
+
+y_alt5<-x_frt5 %>% mutate(x_bin = cut(rast_spread_2001, breaks=10))
+
+table(y_alt5$x_bin)
+
+y5 <- y_alt5 %>% drop_na()
+plot(y5$x_bin)
+y2_frt5<-as.data.frame(table(y5$x_bin))
+
+# determine midpoints of each bin
+get_midpoint <- function(cut_label) {
+  mean(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(cut_label)), ","))))
+}
+
 y2_frt5$midpoint <- sapply(y2_frt5$Var1, get_midpoint)
 y2_frt5$wi_Ai<- y2_frt5$midpoint * y2_frt5$Freq
 y2_frt5$Ui<- y2_frt5$wi_Ai/sum(y2_frt5$wi_Ai)
 y2_frt5<- y2_frt5 %>% rename(bins=Var1,
                    Area = Freq)
+plot(y2_frt5$bins, y2_frt5$Area)
 
 # now extract probabilty of ignition from fires points in FRT5
 ## Start here!
 
-frt5_ignit<-fire.ignt.frt3 %>% filter(Cluster==5)
+frt5_spread<-fire.spread.frt %>% filter(Cluster==5)
 breakno<-unique(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(y2_frt5$bins)), ","))))
-frt5_ignit<-frt5_ignit %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
-y3_frt5<-as.data.frame(table(frt5_ignit$points_bin))
-y2_frt5$used_obs<-y3_frt5$Freq
+frt5_spread<-frt5_spread %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
 
+y3_frt5<-as.data.frame(table(frt5_spread$points_bin))
+y2_frt5$used_obs<-y3_frt5$Freq
 y2_frt5$expected_no_obs<-sum(y2_frt5$used_obs)*y2_frt5$Ui
+
 
 ggplot(data=y2_frt5) +
   geom_line(aes(midpoint, used_obs), col="red") +
@@ -278,7 +285,7 @@ ggplot(data=y2_frt5) +
 y2_frt5$prop_used<-y2_frt5$used_obs/(sum(y2_frt5$used_obs))
 y2_frt5$prop_expected<-y2_frt5$expected_no_obs/(sum(y2_frt5$expected_no_obs))
 
-relationship.fit<-lm(prop_used~prop_expected, data=y2_frt5)
+relationship.fit<-lm(prop_used ~ prop_expected, data=y2_frt5)
 anova(relationship.fit)
 summary(relationship.fit) # slope looks close to 1 and intercept is at 0
 
@@ -286,18 +293,12 @@ summary(relationship.fit) # slope looks close to 1 and intercept is at 0
 p_frt5 <- ggplot(data=y2_frt5, aes(x=prop_expected, y=prop_used)) +
   geom_point() +
   geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) + 
-  geom_abline(slope =1, intercept=0, linetype=2, size = 0.5)
+  geom_abline(slope =1, intercept=0, linetype=2)
 p_frt5
 
 Xsq<-chisq.test(y2_frt5$used_obs, p=y2_frt5$prop_expected, simulate.p.value = TRUE)  
 Xsq
 
-# Chi-squared test for given probabilities with simulated p-value (based on
-# 	2000 replicates)
-# 
-# data:  y2_frt5$used_obs
-# X-squared = 3.8941, df = NA, p-value = 0.7166
-Xsq$residuals  # Pearson residuals
 
 my.slope <- summary(relationship.fit)$coef["prop_expected", c("Estimate", "Std. Error")]
 my.df <- summary(relationship.fit)$df[2]
@@ -312,39 +313,50 @@ t_value_one <- (my.slope["Estimate"] - 1) / my.slope["Std. Error"] # tests if sl
 
 # FRT 7
 ```{r}
+
+# first work out proportion of habitat types across the landscape
 frt7<-frt_clipped %>% filter(Cluster == 7)
-plot(frt7)
 frt7<-sf::st_as_sf(frt7) %>% st_combine() %>% st_sf() #flatten layer
 
-
-r2 <- crop(total.ignit, extent(frt7))
+r2 <- crop(spread.ras, extent(frt7))
 r3 <- mask(r2, frt7)
 plot(r3)
 
-x<- as.data.frame(r3)
-hist(x$layer)
+x_frt7<- as.data.frame(r3)
+#hist(x$layer, breaks=c(0, 0.125, 0.2, 0.24, 0.28, 0.31, 0.34, 0.38, 0.43,0.5, 1.0))
+rm(r2, r3)
 
-#bins<-quantile(x$layer, probs = seq(0, 1, 1/10), na.rm=TRUE)
-x2<-x %>% mutate(points_bin = cut(layer, breaks=10))
-y <- x2 %>% drop_na()
-y2_frt7<-as.data.frame(table(y$points_bin))
+y_alt7<-x_frt7 %>% mutate(x_bin = cut(rast_spread_2001, breaks=10))
+
+table(y_alt7$x_bin)
+
+y7 <- y_alt7 %>% drop_na()
+plot(y7$x_bin)
+y2_frt7<-as.data.frame(table(y7$x_bin))
+
+# determine midpoints of each bin
+get_midpoint <- function(cut_label) {
+  mean(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(cut_label)), ","))))
+}
+
 y2_frt7$midpoint <- sapply(y2_frt7$Var1, get_midpoint)
 y2_frt7$wi_Ai<- y2_frt7$midpoint * y2_frt7$Freq
 y2_frt7$Ui<- y2_frt7$wi_Ai/sum(y2_frt7$wi_Ai)
 y2_frt7<- y2_frt7 %>% rename(bins=Var1,
                    Area = Freq)
-
+plot(y2_frt7$bins, y2_frt7$Area)
 
 # now extract probabilty of ignition from fires points in frt7
 ## Start here!
 
-frt7_ignit<-fire.ignt.frt3 %>% filter(Cluster==7)
+frt7_spread<-fire.spread.frt %>% filter(Cluster==7)
 breakno<-unique(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(y2_frt7$bins)), ","))))
-frt7_ignit<-frt7_ignit %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
-y3<-as.data.frame(table(frt7_ignit$points_bin))
-y2_frt7$used_obs<-y3$Freq
+frt7_spread<-frt7_spread %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
 
-y2_frt7$expected_no_obs<-sum(y2_frt7$used_obs)*y2$Ui
+y3_frt7<-as.data.frame(table(frt7_spread$points_bin))
+y2_frt7$used_obs<-y3_frt7$Freq
+y2_frt7$expected_no_obs<-sum(y2_frt7$used_obs)*y2_frt7$Ui
+
 
 ggplot(data=y2_frt7) +
   geom_line(aes(midpoint, used_obs), col="red") +
@@ -353,18 +365,20 @@ ggplot(data=y2_frt7) +
 y2_frt7$prop_used<-y2_frt7$used_obs/(sum(y2_frt7$used_obs))
 y2_frt7$prop_expected<-y2_frt7$expected_no_obs/(sum(y2_frt7$expected_no_obs))
 
-relationship.fit<-lm(prop_used~prop_expected, data=y2_frt7)
+relationship.fit<-lm(prop_used ~ prop_expected, data=y2_frt7)
 anova(relationship.fit)
-summary(relationship.fit) # Hmm this is not good! my intercept is somewhat close to 0 but my slope is pretty much zero. HMMMMMM!
+summary(relationship.fit) # slope looks close to 1 and intercept is at 0
+
 
 p_frt7 <- ggplot(data=y2_frt7, aes(x=prop_expected, y=prop_used)) +
   geom_point() +
   geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) + 
-  geom_abline(slope =1, intercept=0, linetype=2, size = 0.5)
+  geom_abline(slope =1, intercept=0, linetype=2)
 p_frt7
 
 Xsq<-chisq.test(y2_frt7$used_obs, p=y2_frt7$prop_expected, simulate.p.value = TRUE)  
 Xsq
+
 
 my.slope <- summary(relationship.fit)$coef["prop_expected", c("Estimate", "Std. Error")]
 my.df <- summary(relationship.fit)$df[2]
@@ -374,39 +388,55 @@ summary(relationship.fit)
 t_value_one <- (my.slope["Estimate"] - 1) / my.slope["Std. Error"] # tests if slope different to 1
 2*pt(t_value_one, df=my.df, lower.tail=(t_value_one<0)) # two sided test
 
-# intercept is not different to zero but note that slope overlaps both zero and 1 i.e. confidence intervals are huge. Slope is 0.5842
+# conclusion for this FRT. intercept is not different to zero and slope is not different than 1. GOOD
 ```
 
 # FRT 9
 ```{r}
+
+# first work out proportion of habitat types across the landscape
 frt9<-frt_clipped %>% filter(Cluster == 9)
-#plot(frt9)
 frt9<-sf::st_as_sf(frt9) %>% st_combine() %>% st_sf() #flatten layer
-r2 <- crop(total.ignit, extent(frt9))
+
+r2 <- crop(spread.ras, extent(frt9))
 r3 <- mask(r2, frt9)
 plot(r3)
 
-x<- as.data.frame(r3)
-hist(x$layer)
+x_frt9<- as.data.frame(r3)
+#hist(x$layer, breaks=c(0, 0.125, 0.2, 0.24, 0.28, 0.31, 0.34, 0.38, 0.43,0.5, 1.0))
+rm(r2, r3)
 
-x2<-x %>% mutate(points_bin = cut(layer, breaks=10))
-y <- x2 %>% drop_na()
-y2_frt9<-as.data.frame(table(y$points_bin))
+y_alt7<-x_frt9 %>% mutate(x_bin = cut(rast_spread_2001, breaks=10))
+
+table(y_alt7$x_bin)
+
+y7 <- y_alt7 %>% drop_na()
+plot(y7$x_bin)
+y2_frt9<-as.data.frame(table(y7$x_bin))
+
+# determine midpoints of each bin
+get_midpoint <- function(cut_label) {
+  mean(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(cut_label)), ","))))
+}
+
 y2_frt9$midpoint <- sapply(y2_frt9$Var1, get_midpoint)
 y2_frt9$wi_Ai<- y2_frt9$midpoint * y2_frt9$Freq
 y2_frt9$Ui<- y2_frt9$wi_Ai/sum(y2_frt9$wi_Ai)
 y2_frt9<- y2_frt9 %>% rename(bins=Var1,
                    Area = Freq)
+plot(y2_frt9$bins, y2_frt9$Area)
 
 # now extract probabilty of ignition from fires points in frt9
 ## Start here!
 
-frt9_ignit<-fire.ignt.frt3 %>% filter(Cluster==9)
+frt9_spread<-fire.spread.frt %>% filter(Cluster==9)
 breakno<-unique(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(y2_frt9$bins)), ","))))
-frt9_ignit<-frt9_ignit %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
-y3<-as.data.frame(table(frt9_ignit$points_bin))
-y2_frt9$used_obs<-y3$Freq
-y2_frt9$expected_no_obs<-sum(y2_frt9$used_obs)*y2$Ui
+frt9_spread<-frt9_spread %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
+
+y3_frt9<-as.data.frame(table(frt9_spread$points_bin))
+y2_frt9$used_obs<-y3_frt9$Freq
+y2_frt9$expected_no_obs<-sum(y2_frt9$used_obs)*y2_frt9$Ui
+
 
 ggplot(data=y2_frt9) +
   geom_line(aes(midpoint, used_obs), col="red") +
@@ -415,18 +445,20 @@ ggplot(data=y2_frt9) +
 y2_frt9$prop_used<-y2_frt9$used_obs/(sum(y2_frt9$used_obs))
 y2_frt9$prop_expected<-y2_frt9$expected_no_obs/(sum(y2_frt9$expected_no_obs))
 
-relationship.fit<-lm(prop_used~prop_expected, data=y2_frt9)
+relationship.fit<-lm(prop_used ~ prop_expected, data=y2_frt9)
 anova(relationship.fit)
-summary(relationship.fit) 
+summary(relationship.fit) # slope looks close to 1 and intercept is at 0
+
 
 p_frt9 <- ggplot(data=y2_frt9, aes(x=prop_expected, y=prop_used)) +
   geom_point() +
   geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) + 
-  geom_abline(slope =1, intercept=0, linetype=2, size = 0.5)
+  geom_abline(slope =1, intercept=0, linetype=2)
 p_frt9
 
 Xsq<-chisq.test(y2_frt9$used_obs, p=y2_frt9$prop_expected, simulate.p.value = TRUE)  
 Xsq
+
 
 my.slope <- summary(relationship.fit)$coef["prop_expected", c("Estimate", "Std. Error")]
 my.df <- summary(relationship.fit)$df[2]
@@ -436,42 +468,55 @@ summary(relationship.fit)
 t_value_one <- (my.slope["Estimate"] - 1) / my.slope["Std. Error"] # tests if slope different to 1
 2*pt(t_value_one, df=my.df, lower.tail=(t_value_one<0)) # two sided test
 
-# my slope is significantly different to zero but not significantly differetn from 1. my intercept is not significantly different to zero GOOD!
-
+# conclusion for this FRT. intercept is not different to zero and slope is not different than 1. GOOD
 ```
 
 # FRT 10
 ```{r}
+
+# first work out proportion of habitat types across the landscape
 frt10<-frt_clipped %>% filter(Cluster == 10)
-#plot(frt10)
 frt10<-sf::st_as_sf(frt10) %>% st_combine() %>% st_sf() #flatten layer
 
-
-r2 <- crop(total.ignit, extent(frt10))
+r2 <- crop(spread.ras, extent(frt10))
 r3 <- mask(r2, frt10)
 plot(r3)
 
-x<- as.data.frame(r3)
-#hist(x$layer)
-x2<-x %>% mutate(points_bin = cut(layer, breaks=10))
-y <- x2 %>% drop_na()
-y2_frt10<-as.data.frame(table(y$points_bin))
+x_frt10<- as.data.frame(r3)
+#hist(x$layer, breaks=c(0, 0.125, 0.2, 0.24, 0.28, 0.31, 0.34, 0.38, 0.43,0.5, 1.0))
+rm(r2, r3)
+
+y_alt7<-x_frt10 %>% mutate(x_bin = cut(rast_spread_2001, breaks=10))
+
+table(y_alt7$x_bin)
+
+y7 <- y_alt7 %>% drop_na()
+plot(y7$x_bin)
+y2_frt10<-as.data.frame(table(y7$x_bin))
+
+# determine midpoints of each bin
+get_midpoint <- function(cut_label) {
+  mean(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(cut_label)), ","))))
+}
+
 y2_frt10$midpoint <- sapply(y2_frt10$Var1, get_midpoint)
 y2_frt10$wi_Ai<- y2_frt10$midpoint * y2_frt10$Freq
 y2_frt10$Ui<- y2_frt10$wi_Ai/sum(y2_frt10$wi_Ai)
 y2_frt10<- y2_frt10 %>% rename(bins=Var1,
                    Area = Freq)
+plot(y2_frt10$bins, y2_frt10$Area)
+
 # now extract probabilty of ignition from fires points in frt10
 ## Start here!
 
-frt10_ignit<-fire.ignt.frt3 %>% filter(Cluster==10)
+frt10_spread<-fire.spread.frt %>% filter(Cluster==10)
 breakno<-unique(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(y2_frt10$bins)), ","))))
-frt10_ignit<-frt10_ignit %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
+frt10_spread<-frt10_spread %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
 
-y3<-as.data.frame(table(frt10_ignit$points_bin))
-y2_frt10$used_obs<-y3$Freq
+y3_frt10<-as.data.frame(table(frt10_spread$points_bin))
+y2_frt10$used_obs<-y3_frt10$Freq
+y2_frt10$expected_no_obs<-sum(y2_frt10$used_obs)*y2_frt10$Ui
 
-y2_frt10$expected_no_obs<-sum(y2_frt10$used_obs)*y2$Ui
 
 ggplot(data=y2_frt10) +
   geom_line(aes(midpoint, used_obs), col="red") +
@@ -480,24 +525,20 @@ ggplot(data=y2_frt10) +
 y2_frt10$prop_used<-y2_frt10$used_obs/(sum(y2_frt10$used_obs))
 y2_frt10$prop_expected<-y2_frt10$expected_no_obs/(sum(y2_frt10$expected_no_obs))
 
-relationship.fit<-lm(prop_used~prop_expected, data=y2_frt10)
+relationship.fit<-lm(prop_used ~ prop_expected, data=y2_frt10)
 anova(relationship.fit)
-summary(relationship.fit) 
+summary(relationship.fit) # slope looks close to 1 and intercept is at 0
+
 
 p_frt10 <- ggplot(data=y2_frt10, aes(x=prop_expected, y=prop_used)) +
   geom_point() +
   geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) + 
-  geom_abline(slope =1, intercept=0, linetype=2, size = 0.5)
+  geom_abline(slope =1, intercept=0, linetype=2)
 p_frt10
 
 Xsq<-chisq.test(y2_frt10$used_obs, p=y2_frt10$prop_expected, simulate.p.value = TRUE)  
 Xsq
 
-# 	Chi-squared test for given probabilities with simulated p-value (based on
-# 	2000 replicates)
-# 
-# data:  y2_frt10$used_obs
-# X-squared = 54.932, df = NA, p-value = 0.0009995
 
 my.slope <- summary(relationship.fit)$coef["prop_expected", c("Estimate", "Std. Error")]
 my.df <- summary(relationship.fit)$df[2]
@@ -507,41 +548,55 @@ summary(relationship.fit)
 t_value_one <- (my.slope["Estimate"] - 1) / my.slope["Std. Error"] # tests if slope different to 1
 2*pt(t_value_one, df=my.df, lower.tail=(t_value_one<0)) # two sided test
 
-# outcome: slope significantly different to zero but not to 1 and intercept is not significantly different to zero. GOOD
+# conclusion for this FRT. intercept is not different to zero and slope is not different than 1. GOOD
 ```
-
 
 # FRT 11
 ```{r}
+
+# first work out proportion of habitat types across the landscape
 frt11<-frt_clipped %>% filter(Cluster == 11)
 frt11<-sf::st_as_sf(frt11) %>% st_combine() %>% st_sf() #flatten layer
 
-
-r2 <- crop(total.ignit, extent(frt11))
+r2 <- crop(spread.ras, extent(frt11))
 r3 <- mask(r2, frt11)
 plot(r3)
 
-x<- as.data.frame(r3)
-hist(x$layer)
+x_frt11<- as.data.frame(r3)
+#hist(x$layer, breaks=c(0, 0.125, 0.2, 0.24, 0.28, 0.31, 0.34, 0.38, 0.43,0.5, 1.0))
+rm(r2, r3)
 
-x2<-x %>% mutate(points_bin = cut(layer, breaks=10))
-y <- x2 %>% drop_na()
-y2_frt11<-as.data.frame(table(y$points_bin))
+y_alt7<-x_frt11 %>% mutate(x_bin = cut(rast_spread_2001, breaks=10))
+
+table(y_alt7$x_bin)
+
+y7 <- y_alt7 %>% drop_na()
+plot(y7$x_bin)
+y2_frt11<-as.data.frame(table(y7$x_bin))
+
+# determine midpoints of each bin
+get_midpoint <- function(cut_label) {
+  mean(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(cut_label)), ","))))
+}
+
 y2_frt11$midpoint <- sapply(y2_frt11$Var1, get_midpoint)
 y2_frt11$wi_Ai<- y2_frt11$midpoint * y2_frt11$Freq
 y2_frt11$Ui<- y2_frt11$wi_Ai/sum(y2_frt11$wi_Ai)
 y2_frt11<- y2_frt11 %>% rename(bins=Var1,
                    Area = Freq)
+plot(y2_frt11$bins, y2_frt11$Area)
+
 # now extract probabilty of ignition from fires points in frt11
 ## Start here!
 
-frt11_ignit<-fire.ignt.frt3 %>% filter(Cluster==11)
+frt11_spread<-fire.spread.frt %>% filter(Cluster==11)
 breakno<-unique(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(y2_frt11$bins)), ","))))
-frt11_ignit<-frt11_ignit %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
-y3<-as.data.frame(table(frt11_ignit$points_bin))
-y2_frt11$used_obs<-y3$Freq
+frt11_spread<-frt11_spread %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
 
-y2_frt11$expected_no_obs<-sum(y2_frt11$used_obs)*y2$Ui
+y3_frt11<-as.data.frame(table(frt11_spread$points_bin))
+y2_frt11$used_obs<-y3_frt11$Freq
+y2_frt11$expected_no_obs<-sum(y2_frt11$used_obs)*y2_frt11$Ui
+
 
 ggplot(data=y2_frt11) +
   geom_line(aes(midpoint, used_obs), col="red") +
@@ -550,18 +605,20 @@ ggplot(data=y2_frt11) +
 y2_frt11$prop_used<-y2_frt11$used_obs/(sum(y2_frt11$used_obs))
 y2_frt11$prop_expected<-y2_frt11$expected_no_obs/(sum(y2_frt11$expected_no_obs))
 
-relationship.fit<-lm(prop_used~prop_expected, data=y2_frt11)
+relationship.fit<-lm(prop_used ~ prop_expected, data=y2_frt11)
 anova(relationship.fit)
-summary(relationship.fit) # Hmm this is not good! my intercept is somewhat close to 0 but my slope is pretty much zero. HMMMMMM!
+summary(relationship.fit) # slope looks close to 1 and intercept is at 0
+
 
 p_frt11 <- ggplot(data=y2_frt11, aes(x=prop_expected, y=prop_used)) +
   geom_point() +
   geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) + 
-  geom_abline(slope =1, intercept=0, linetype=2, size = 0.5)
+  geom_abline(slope =1, intercept=0, linetype=2)
 p_frt11
 
 Xsq<-chisq.test(y2_frt11$used_obs, p=y2_frt11$prop_expected, simulate.p.value = TRUE)  
 Xsq
+
 
 my.slope <- summary(relationship.fit)$coef["prop_expected", c("Estimate", "Std. Error")]
 my.df <- summary(relationship.fit)$df[2]
@@ -571,39 +628,55 @@ summary(relationship.fit)
 t_value_one <- (my.slope["Estimate"] - 1) / my.slope["Std. Error"] # tests if slope different to 1
 2*pt(t_value_one, df=my.df, lower.tail=(t_value_one<0)) # two sided test
 
-
+# conclusion for this FRT. intercept is not different to zero and slope is not different than 1. GOOD
 ```
 
 # FRT 12
 ```{r}
+
+# first work out proportion of habitat types across the landscape
 frt12<-frt_clipped %>% filter(Cluster == 12)
 frt12<-sf::st_as_sf(frt12) %>% st_combine() %>% st_sf() #flatten layer
-r2 <- crop(total.ignit, extent(frt12))
+
+r2 <- crop(spread.ras, extent(frt12))
 r3 <- mask(r2, frt12)
 plot(r3)
 
-x<- as.data.frame(r3)
-hist(x$layer)
+x_frt12<- as.data.frame(r3)
+#hist(x$layer, breaks=c(0, 0.125, 0.2, 0.24, 0.28, 0.31, 0.34, 0.38, 0.43,0.5, 1.0))
+#rm(r2, r3, y_alt7, y7)
 
-x2<-x %>% mutate(points_bin = cut(layer, breaks=10))
-y <- x2 %>% drop_na()
-y2_frt12<-as.data.frame(table(y$points_bin))
+y_alt7<-x_frt12 %>% mutate(x_bin = cut(rast_spread_2001, breaks=10))
+
+table(y_alt7$x_bin)
+
+y7 <- y_alt7 %>% drop_na()
+plot(y7$x_bin)
+y2_frt12<-as.data.frame(table(y7$x_bin))
+
+# determine midpoints of each bin
+get_midpoint <- function(cut_label) {
+  mean(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(cut_label)), ","))))
+}
+
 y2_frt12$midpoint <- sapply(y2_frt12$Var1, get_midpoint)
 y2_frt12$wi_Ai<- y2_frt12$midpoint * y2_frt12$Freq
 y2_frt12$Ui<- y2_frt12$wi_Ai/sum(y2_frt12$wi_Ai)
 y2_frt12<- y2_frt12 %>% rename(bins=Var1,
                    Area = Freq)
+plot(y2_frt12$midpoint, y2_frt12$Ui)
+
 # now extract probabilty of ignition from fires points in frt12
 ## Start here!
 
-frt12_ignit<-fire.ignt.frt3 %>% filter(Cluster==12)
+frt12_spread<-fire.spread.frt %>% filter(Cluster==12)
 breakno<-unique(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(y2_frt12$bins)), ","))))
-frt12_ignit<-frt12_ignit %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
+frt12_spread<-frt12_spread %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
 
-y3<-as.data.frame(table(frt12_ignit$points_bin))
-y2_frt12$used_obs<-y3$Freq
+y3_frt12<-as.data.frame(table(frt12_spread$points_bin))
+y2_frt12$used_obs<-y3_frt12$Freq
+y2_frt12$expected_no_obs<-(sum(y2_frt12$used_obs))*y2_frt12$Ui
 
-y2_frt12$expected_no_obs<-sum(y2_frt12$used_obs)*y2$Ui
 
 ggplot(data=y2_frt12) +
   geom_line(aes(midpoint, used_obs), col="red") +
@@ -612,18 +685,20 @@ ggplot(data=y2_frt12) +
 y2_frt12$prop_used<-y2_frt12$used_obs/(sum(y2_frt12$used_obs))
 y2_frt12$prop_expected<-y2_frt12$expected_no_obs/(sum(y2_frt12$expected_no_obs))
 
-relationship.fit<-lm(prop_used~prop_expected, data=y2_frt12)
+relationship.fit<-lm(prop_used ~ prop_expected, data=y2_frt12)
 anova(relationship.fit)
-summary(relationship.fit) # Hmm this is not good! my intercept is somewhat close to 0 but my slope is pretty much zero. HMMMMMM!
+summary(relationship.fit) # slope looks close to 1 and intercept is at 0
+
 
 p_frt12 <- ggplot(data=y2_frt12, aes(x=prop_expected, y=prop_used)) +
   geom_point() +
   geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) + 
-  geom_abline(slope =1, intercept=0, linetype=2, size = 0.5)
+  geom_abline(slope =1, intercept=0, linetype=2)
 p_frt12
 
 Xsq<-chisq.test(y2_frt12$used_obs, p=y2_frt12$prop_expected, simulate.p.value = TRUE)  
 Xsq
+
 
 my.slope <- summary(relationship.fit)$coef["prop_expected", c("Estimate", "Std. Error")]
 my.df <- summary(relationship.fit)$df[2]
@@ -632,39 +707,64 @@ t_value_zero <- my.slope["Estimate"] / my.slope["Std. Error"] # tests if the slo
 summary(relationship.fit)
 t_value_one <- (my.slope["Estimate"] - 1) / my.slope["Std. Error"] # tests if slope different to 1
 2*pt(t_value_one, df=my.df, lower.tail=(t_value_one<0)) # two sided test
+
+# plotting points on raster to check they are still correct
+spread_pts <- rasterToPoints(r3, spatial = TRUE)
+# Then to a 'conventional' dataframe
+spread_pts_df  <- data.frame(spread_pts)
+
+ggplot() +
+ geom_raster(data = spread_pts_df , aes(x = x, y = y, fill = rast_spread_2001)) +
+  geom_sf(data=frt12_spread, col="red")
+
+
 ```
 
 # FRT 13
 ```{r}
+
+# first work out proportion of habitat types across the landscape
 frt13<-frt_clipped %>% filter(Cluster == 13)
 frt13<-sf::st_as_sf(frt13) %>% st_combine() %>% st_sf() #flatten layer
 
-r2 <- crop(total.ignit, extent(frt13))
+r2 <- crop(spread.ras, extent(frt13))
 r3 <- mask(r2, frt13)
 plot(r3)
 
-x<- as.data.frame(r3)
-hist(x$layer)
+x_frt13<- as.data.frame(r3)
+#hist(x$layer, breaks=c(0, 0.125, 0.2, 0.24, 0.28, 0.31, 0.34, 0.38, 0.43,0.5, 1.0))
+rm(r2, r3)
 
-x2<-x %>% mutate(points_bin = cut(layer, breaks=10))
-y <- x2 %>% drop_na()
-y2_frt13<-as.data.frame(table(y$points_bin))
+y_alt7<-x_frt13 %>% mutate(x_bin = cut(rast_spread_2001, breaks=10))
+
+table(y_alt7$x_bin)
+
+y7 <- y_alt7 %>% drop_na()
+plot(y7$x_bin)
+y2_frt13<-as.data.frame(table(y7$x_bin))
+
+# determine midpoints of each bin
+get_midpoint <- function(cut_label) {
+  mean(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(cut_label)), ","))))
+}
+
 y2_frt13$midpoint <- sapply(y2_frt13$Var1, get_midpoint)
 y2_frt13$wi_Ai<- y2_frt13$midpoint * y2_frt13$Freq
 y2_frt13$Ui<- y2_frt13$wi_Ai/sum(y2_frt13$wi_Ai)
 y2_frt13<- y2_frt13 %>% rename(bins=Var1,
                    Area = Freq)
+plot(y2_frt13$bins, y2_frt13$Area)
 
 # now extract probabilty of ignition from fires points in frt13
 ## Start here!
 
-frt13_ignit<-fire.ignt.frt3 %>% filter(Cluster==13)
+frt13_spread<-fire.spread.frt %>% filter(Cluster==13)
 breakno<-unique(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(y2_frt13$bins)), ","))))
-frt13_ignit<-frt13_ignit %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
-y3<-as.data.frame(table(frt13_ignit$points_bin))
-y2_frt13$used_obs<-y3$Freq
+frt13_spread<-frt13_spread %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
 
-y2_frt13$expected_no_obs<-sum(y2_frt13$used_obs)*y2$Ui
+y3_frt13<-as.data.frame(table(frt13_spread$points_bin))
+y2_frt13$used_obs<-y3_frt13$Freq
+y2_frt13$expected_no_obs<-sum(y2_frt13$used_obs)*y2_frt13$Ui
 
 ggplot(data=y2_frt13) +
   geom_line(aes(midpoint, used_obs), col="red") +
@@ -673,18 +773,20 @@ ggplot(data=y2_frt13) +
 y2_frt13$prop_used<-y2_frt13$used_obs/(sum(y2_frt13$used_obs))
 y2_frt13$prop_expected<-y2_frt13$expected_no_obs/(sum(y2_frt13$expected_no_obs))
 
-relationship.fit<-lm(prop_used~prop_expected, data=y2_frt13)
+relationship.fit<-lm(prop_used ~ prop_expected, data=y2_frt13)
 anova(relationship.fit)
-summary(relationship.fit) # Hmm this is not good! my intercept is somewhat close to 0 but my slope is pretty much zero. HMMMMMM!
+summary(relationship.fit) # slope looks close to 1 and intercept is at 0
+
 
 p_frt13 <- ggplot(data=y2_frt13, aes(x=prop_expected, y=prop_used)) +
   geom_point() +
   geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) + 
-  geom_abline(slope =1, intercept=0, linetype=2, size = 0.5)
+  geom_abline(slope =1, intercept=0, linetype=2)
 p_frt13
 
 Xsq<-chisq.test(y2_frt13$used_obs, p=y2_frt13$prop_expected, simulate.p.value = TRUE)  
 Xsq
+
 
 my.slope <- summary(relationship.fit)$coef["prop_expected", c("Estimate", "Std. Error")]
 my.df <- summary(relationship.fit)$df[2]
@@ -694,41 +796,55 @@ summary(relationship.fit)
 t_value_one <- (my.slope["Estimate"] - 1) / my.slope["Std. Error"] # tests if slope different to 1
 2*pt(t_value_one, df=my.df, lower.tail=(t_value_one<0)) # two sided test
 
+# conclusion for this FRT. intercept is not different to zero and slope is not different than 1. GOOD
 ```
-
 
 # FRT 14
 ```{r}
+
+# first work out proportion of habitat types across the landscape
 frt14<-frt_clipped %>% filter(Cluster == 14)
 frt14<-sf::st_as_sf(frt14) %>% st_combine() %>% st_sf() #flatten layer
 
-r2 <- crop(total.ignit, extent(frt14))
+r2 <- crop(spread.ras, extent(frt14))
 r3 <- mask(r2, frt14)
 plot(r3)
 
-x<- as.data.frame(r3)
-hist(x$layer)
+x_frt14<- as.data.frame(r3)
+#hist(x$layer, breaks=c(0, 0.125, 0.2, 0.24, 0.28, 0.31, 0.34, 0.38, 0.43,0.5, 1.0))
+rm(r2, r3)
 
-x2<-x %>% mutate(points_bin = cut(layer, breaks=10))
-y <- x2 %>% drop_na()
-y2_frt14<-as.data.frame(table(y$points_bin))
+y_alt7<-x_frt14 %>% mutate(x_bin = cut(rast_spread_2001, breaks=10))
+
+table(y_alt7$x_bin)
+
+y7 <- y_alt7 %>% drop_na()
+plot(y7$x_bin)
+y2_frt14<-as.data.frame(table(y7$x_bin))
+
+# determine midpoints of each bin
+get_midpoint <- function(cut_label) {
+  mean(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(cut_label)), ","))))
+}
+
 y2_frt14$midpoint <- sapply(y2_frt14$Var1, get_midpoint)
 y2_frt14$wi_Ai<- y2_frt14$midpoint * y2_frt14$Freq
 y2_frt14$Ui<- y2_frt14$wi_Ai/sum(y2_frt14$wi_Ai)
 y2_frt14<- y2_frt14 %>% rename(bins=Var1,
                    Area = Freq)
-
+plot(y2_frt14$bins, y2_frt14$Area)
 
 # now extract probabilty of ignition from fires points in frt14
 ## Start here!
 
-frt14_ignit<-fire.ignt.frt3 %>% filter(Cluster==14)
+frt14_spread<-fire.spread.frt %>% filter(Cluster==14)
 breakno<-unique(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(y2_frt14$bins)), ","))))
-frt14_ignit<-frt14_ignit %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
-y3<-as.data.frame(table(frt14_ignit$points_bin))
-y2_frt14$used_obs<-y3$Freq
+frt14_spread<-frt14_spread %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
 
-y2_frt14$expected_no_obs<-sum(y2_frt14$used_obs)*y2$Ui
+y3_frt14<-as.data.frame(table(frt14_spread$points_bin))
+y2_frt14$used_obs<-y3_frt14$Freq
+y2_frt14$expected_no_obs<-sum(y2_frt14$used_obs)*y2_frt14$Ui
+
 
 ggplot(data=y2_frt14) +
   geom_line(aes(midpoint, used_obs), col="red") +
@@ -737,22 +853,20 @@ ggplot(data=y2_frt14) +
 y2_frt14$prop_used<-y2_frt14$used_obs/(sum(y2_frt14$used_obs))
 y2_frt14$prop_expected<-y2_frt14$expected_no_obs/(sum(y2_frt14$expected_no_obs))
 
-relationship.fit<-lm(prop_used~prop_expected, data=y2_frt14)
+relationship.fit<-lm(prop_used ~ prop_expected, data=y2_frt14)
 anova(relationship.fit)
-summary(relationship.fit) # Hmm this is not good! my intercept is somewhat close to 0 but my slope is pretty much zero. HMMMMMM!
+summary(relationship.fit) # slope looks close to 1 and intercept is at 0
+
 
 p_frt14 <- ggplot(data=y2_frt14, aes(x=prop_expected, y=prop_used)) +
   geom_point() +
   geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) + 
-  geom_abline(slope =1, intercept=0, linetype=2, size = 0.5)
+  geom_abline(slope =1, intercept=0, linetype=2)
 p_frt14
 
 Xsq<-chisq.test(y2_frt14$used_obs, p=y2_frt14$prop_expected, simulate.p.value = TRUE)  
 Xsq
 
-Xsq$observed   # observed counts 
-Xsq$expected   # expected counts under the null
-Xsq$residuals  # Pearson residuals
 
 my.slope <- summary(relationship.fit)$coef["prop_expected", c("Estimate", "Std. Error")]
 my.df <- summary(relationship.fit)$df[2]
@@ -761,38 +875,56 @@ t_value_zero <- my.slope["Estimate"] / my.slope["Std. Error"] # tests if the slo
 summary(relationship.fit)
 t_value_one <- (my.slope["Estimate"] - 1) / my.slope["Std. Error"] # tests if slope different to 1
 2*pt(t_value_one, df=my.df, lower.tail=(t_value_one<0)) # two sided test
+
+# conclusion for this FRT. intercept is not different to zero and slope is not different than 1. GOOD
 ```
 
 # FRT 15
 ```{r}
+
+# first work out proportion of habitat types across the landscape
 frt15<-frt_clipped %>% filter(Cluster == 15)
 frt15<-sf::st_as_sf(frt15) %>% st_combine() %>% st_sf() #flatten layer
 
-r2 <- crop(total.ignit, extent(frt15))
+r2 <- crop(spread.ras, extent(frt15))
 r3 <- mask(r2, frt15)
 plot(r3)
 
-x<- as.data.frame(r3)
-x2<-x %>% mutate(points_bin = cut(layer, breaks=10))
-y <- x2 %>% drop_na()
-y2_frt15<-as.data.frame(table(y$points_bin))
+x_frt15<- as.data.frame(r3)
+#hist(x$layer, breaks=c(0, 0.125, 0.2, 0.24, 0.28, 0.31, 0.34, 0.38, 0.43,0.5, 1.0))
+rm(r2, r3)
+
+y_alt7<-x_frt15 %>% mutate(x_bin = cut(rast_spread_2001, breaks=10))
+
+table(y_alt7$x_bin)
+
+y7 <- y_alt7 %>% drop_na()
+plot(y7$x_bin)
+y2_frt15<-as.data.frame(table(y7$x_bin))
+
+# determine midpoints of each bin
+get_midpoint <- function(cut_label) {
+  mean(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(cut_label)), ","))))
+}
+
 y2_frt15$midpoint <- sapply(y2_frt15$Var1, get_midpoint)
 y2_frt15$wi_Ai<- y2_frt15$midpoint * y2_frt15$Freq
 y2_frt15$Ui<- y2_frt15$wi_Ai/sum(y2_frt15$wi_Ai)
 y2_frt15<- y2_frt15 %>% rename(bins=Var1,
                    Area = Freq)
-
+plot(y2_frt15$bins, y2_frt15$Area)
 
 # now extract probabilty of ignition from fires points in frt15
 ## Start here!
 
-frt15_ignit<-fire.ignt.frt3 %>% filter(Cluster==15)
+frt15_spread<-fire.spread.frt %>% filter(Cluster==15)
 breakno<-unique(as.numeric(unlist(strsplit(gsub("\\(|\\)|\\[|\\]", "", as.character(y2_frt15$bins)), ","))))
-frt15_ignit<-frt15_ignit %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
-y3<-as.data.frame(table(frt15_ignit$points_bin))
-y2_frt15$used_obs<-y3$Freq
+frt15_spread<-frt15_spread %>% mutate(points_bin = cut(rasValue2, breaks=breakno))
 
-y2_frt15$expected_no_obs<-sum(y2_frt15$used_obs)*y2$Ui
+y3_frt15<-as.data.frame(table(frt15_spread$points_bin))
+y2_frt15$used_obs<-y3_frt15$Freq
+y2_frt15$expected_no_obs<-sum(y2_frt15$used_obs)*y2_frt15$Ui
+
 
 ggplot(data=y2_frt15) +
   geom_line(aes(midpoint, used_obs), col="red") +
@@ -801,22 +933,20 @@ ggplot(data=y2_frt15) +
 y2_frt15$prop_used<-y2_frt15$used_obs/(sum(y2_frt15$used_obs))
 y2_frt15$prop_expected<-y2_frt15$expected_no_obs/(sum(y2_frt15$expected_no_obs))
 
-relationship.fit<-lm(prop_used~prop_expected, data=y2_frt15)
+relationship.fit<-lm(prop_used ~ prop_expected, data=y2_frt15)
 anova(relationship.fit)
-summary(relationship.fit) # Hmm this is not good! my intercept is somewhat close to 0 but my slope is pretty much zero. HMMMMMM!
+summary(relationship.fit) # slope looks close to 1 and intercept is at 0
+
 
 p_frt15 <- ggplot(data=y2_frt15, aes(x=prop_expected, y=prop_used)) +
   geom_point() +
   geom_smooth(method=lm , color="red", fill="#69b3a2", se=TRUE) + 
-  geom_abline(slope =1, intercept=0, linetype=2, size = 0.5)
+  geom_abline(slope =1, intercept=0, linetype=2)
 p_frt15
 
 Xsq<-chisq.test(y2_frt15$used_obs, p=y2_frt15$prop_expected, simulate.p.value = TRUE)  
 Xsq
 
-Xsq$observed   # observed counts 
-Xsq$expected   # expected counts under the null
-Xsq$residuals  # Pearson residuals
 
 my.slope <- summary(relationship.fit)$coef["prop_expected", c("Estimate", "Std. Error")]
 my.df <- summary(relationship.fit)$df[2]
@@ -825,23 +955,27 @@ t_value_zero <- my.slope["Estimate"] / my.slope["Std. Error"] # tests if the slo
 summary(relationship.fit)
 t_value_one <- (my.slope["Estimate"] - 1) / my.slope["Std. Error"] # tests if slope different to 1
 2*pt(t_value_one, df=my.df, lower.tail=(t_value_one<0)) # two sided test
+
+# conclusion for this FRT. intercept is not different to zero and slope is not different than 1. GOOD
 ```
 
+
+
+# Plot all frt data together in one panel
 ```{r}
 library(ggpubr)
 
 p_bc
 
 ggarrange(#p_bc, 
-          p_frt5,
-          p_frt7,
-          p_frt9,
-          p_frt10,
-          p_frt11,
-          p_frt12,
+          # p_frt5,
+          # p_frt7,
+          # p_frt9,
+          # p_frt10,
+          # p_frt11,
+          # p_frt12,
           p_frt13,
-          p_frt14,
-          p_frt15 + rremove("x.text"), 
-          labels = c("FRT 5", "FRT 7", "FRT 9", "FRT 10", "FRT 11", "FRT 12", "FRT 13", "FRT 14", "FRT15"),
-          ncol = 3, nrow = 3)
+          p_frt14 + rremove("x.text"), 
+          labels = c("FRT 13", "FRT 14"),
+          ncol = 1, nrow = 2)
 ```

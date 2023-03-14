@@ -385,7 +385,7 @@ setGraph<- function(sim){
     step.two<-data.table(dbGetQuery(sim$castordb, paste0("select pixelid, roadtype from pixels where roadtype >= 0 and 
                                                   pixelid in (",paste(step.one, collapse = ', '),")")))
     
-    step.two.xy<-data.table(xyFromCell(sim$ras, step.two$pixelid)) #Get the euclidean distance -- maybe this could be a pre-solved road network instead?
+    step.two.xy<-data.table (terra::xyFromCell(sim$ras, step.two$pixelid)) #Get the euclidean distance -- maybe this could be a pre-solved road network instead?
     step.two.xy[, id:= seq_len(.N)] # create a label (id) for each record to be able to join back
     
     sim$roadSourceID<-step.two[order(roadtype)][1]$pixelid #Assign the road source to any one of the perm roads

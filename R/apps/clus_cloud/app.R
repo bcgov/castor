@@ -66,8 +66,10 @@ sizes <- analogsea::sizes() %>%
   ) %>%
   mutate(
     label = paste0(memory / 1024, 'GB (', disk, 'GB disk, $', price_monthly, ' monthly)')
-  ) %>%
-  select(slug, label)
+  ) 
+
+#%>%
+#  select(slug, label)
 
 size_choices <- setNames(
   as.character(sizes$slug),
@@ -629,7 +631,7 @@ server <- function(input, output, session) {
           user = ssh_user,
           keyfile = ssh_keyfile_db,
           local = paste0('../../../', sqlitedb_path),
-          remote = paste0("/mnt/", sqlitedb, '/', sqlitedb)
+          remote = paste0("/mnt/", volume_name, '/', sqlitedb)
         )
 
       # Detach volume from the uploader droplet and delete the droplet ----

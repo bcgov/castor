@@ -1,0 +1,292 @@
+---
+title: "revelstoke_summary_figs"
+author: "Tyler Muhly"
+date: "02/24/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require (data.table)
+require (DBI)
+require (RPostgreSQL)
+require (dplyr)
+require (ggplot2)
+require (here)
+require (scales)
+```
+
+
+## Figures for Visualizing Harvest Results
+
+
+```{r, harvest fig}
+conn <- dbConnect (RPostgreSQL::PostgreSQL(),
+				          host = keyring::key_get("vmdbhost", keyring="postgreSQL"),
+                  user = keyring::key_get("vmdbuser", keyring="postgreSQL"),
+                  password = keyring::key_get("vmdbpass", keyring="postgreSQL"),
+                  dbname = keyring::key_get("vmdbname", keyring="postgreSQL"),
+				          port = "5432")
+data.harvest <- dbGetQuery (conn, "SELECT * FROM revelstoke_complex_caribou.harvest") 
+data.disturb <- dbGetQuery (conn, "SELECT scenario, compartment, timeperiod, critical_hab, total_area, cut40, road50, c40r50, c40r500 FROM revelstoke_complex_caribou.disturbance") 
+dbDisconnect (conn)
+
+# total volume by scenario and period
+data.volume.total <- data.harvest %>% # get summary data
+                       group_by (scenario, timeperiod) %>% 
+                         summarise (volume = round (sum (volume), digits = 0)) %>%
+                           filter (scenario == "bau_all" | 
+                                   scenario == "old_growth_all" |
+                                   scenario == "tier1" |
+                                   scenario == "tier2" |
+                                   scenario == "tier3" |
+                                   scenario == "tier4" 
+                                   )  
+data.volume.total$percent_of_bau <- round (100 * (data.volume.total$volume / 4449791), digits = 0)
+
+# average volume by scenario
+data.volume.avg <- data.volume.total %>%
+                    group_by (scenario) %>% 
+                        summarise (avg.volume = round (sum (volume/20), digits = 0))
+data.volume.avg$percent_of_bau <- round (100 * (data.volume.avg$avg.volume / 4449791), digit = 0)
+
+# total volume by compartment, scenario and period
+data.volume.compart <- data.harvest %>% # get summary data
+                       group_by (scenario, timeperiod, compartment) %>% 
+                         summarise (volume = round (sum (volume), digits = 0)) %>%
+                           filter (scenario == "bau_all" | 
+                                   scenario == "old_growth_all" |
+                                   scenario == "tier1" |
+                                   scenario == "tier2" |
+                                   scenario == "tier3" |
+                                   scenario == "tier4" 
+                                   )  
+data.volume.max.compart <- data.volume.compart %>%
+                             group_by (scenario, compartment) %>% 
+                                summarise (max.volume = round (max (volume), digits = 0)) %>%
+                                   filter (scenario == "bau_all")
+data.volume.compart <- merge (data.volume.compart, data.volume.max.compart [, c ("compartment", "max.volume")], by.x = "compartment", by.y = "compartment")
+data.volume.compart$percent_of_bau <- round (100 * (data.volume.compart$volume / data.volume.compart$max.volume), digit = 0)
+
+# select compartment
+data.volume.compart <- data.volume.compart  %>% 
+                              filter (compartment == "Revelstoke_TSA") 
+# "Arrow_TSA"         "Cascadia_TKO_TSA"  "Golden_TSA"        "Kamloops_TSA"      "Kootenay_Lake_TSA" "Okanagan_TSA"     
+# "Revelstoke_TSA"    "Robson_Valley_TSA" "TFL14"             "TFL23"             "TFL55"             "TFL56"  
+
+
+
+
+# average volume by compartment and scenario
+data.volume.avg.compart <- data.volume.compart %>%
+                             group_by (compartment, scenario) %>% 
+                                summarise (avg.volume = round (sum (volume/20), digits = 0))
+data.volume.max.compart <- data.volume.compart %>%
+                             group_by (compartment, scenario) %>% 
+                                summarise (max.volume = round (max (volume), digits = 0))
+data.volume.max.compart <- data.volume.max.compart %>% distinct (compartment, .keep_all = TRUE)
+data.volume.avg.compart <- merge (data.volume.avg.compart, data.volume.max.compart [, c ("compartment", "max.volume")], by.x = "compartment", by.y = "compartment")
+data.volume.avg.compart$percent_of_bau <- 100 * (data.volume.avg.compart$avg.volume / data.volume.avg.compart$max.volume)
+
+
+
+# PLOTS
+plot.volume.percent <- ggplot (data.volume.total, aes (x = timeperiod, 
+                                                       y = percent_of_bau, color = scenario, linetype = scenario)) +
+                            geom_line (position = position_dodge (width = 1), size = 1) + 
+                            #facet_grid (. ~scenario) +
+                            labs (x = "Future Year", y = "Percent of BAU Volume Harvested") + 
+                            scale_color_discrete (name = "Scenario", 
+                                                  labels = c("BAU", "Old Growth", "Tier 1", "Tier 2", "Tier 3", "Tier 4")) +
+                            scale_linetype_discrete (name = "Scenario", 
+                                                    labels = c("BAU", "Old Growth", "Tier 1", "Tier 2", "Tier 3", "Tier 4")) +
+                            theme (legend.position = c (0.15, 0.15),
+                                   legend.title = element_text(size = 10),
+                                   legend.text = element_text( size = 8)) +
+                            scale_x_continuous (breaks = seq(0,200,25)) +
+                            scale_y_continuous (label = comma, breaks = seq (40, 100, 5)) +
+                            theme_classic()
+
+
+plot.volume.total <- ggplot (data.volume.total, aes (x = timeperiod, y = volume, color = scenario, linetype = scenario)) +
+                      geom_line (position = position_dodge (width = 1), size = 1) + 
+                      #facet_grid (. ~scenario) +
+                      labs (title = "Annual Volume Harvested in the Area of Interest for Each Scenario", 
+                            x = "Future Year", y = "Volume Harvested (m3)") + 
+                      scale_color_discrete (name = "Scenario", 
+                                            labels = c("BAU", "Old Growth", "Tier 1", "Tier 2", "Tier 3", "Tier 4")) +
+                      scale_linetype_discrete (name = "Scenario", 
+                                              labels = c("BAU", "Old Growth", "Tier 1", "Tier 2", "Tier 3", "Tier 4")) +
+              theme (legend.position = c (0.15, 0.15),
+                     legend.title = element_text(size = 10),
+                     legend.text = element_text( size = 8)) +
+              scale_x_continuous (breaks = seq(0,200,25)) +
+              scale_y_continuous (label = comma, breaks = seq(3500000,5000000,100000)) +
+              theme_classic()
+
+
+plot.volume.percent.compart <- ggplot (data.volume.compart, aes (x = timeperiod, 
+                                                       y = percent_of_bau, color = scenario, linetype = scenario)) +
+                            geom_line (position = position_dodge (width = 1), size = 1) + 
+                            #facet_grid (. ~scenario) +
+                            labs (x = "Future Year", y = "Percent of BAU Volume Harvested") + 
+                            scale_color_discrete (name = "Scenario", 
+                                                  labels = c("BAU", "Old Growth", "Tier 1", "Tier 2", "Tier 3", "Tier 4")) +
+                            scale_linetype_discrete (name = "Scenario", 
+                                                    labels = c("BAU", "Old Growth", "Tier 1", "Tier 2", "Tier 3", "Tier 4")) +
+                            theme (legend.position = c (0.15, 0.15),
+                                   legend.title = element_text(size = 10),
+                                   legend.text = element_text( size = 8)) +
+                            scale_x_continuous (breaks = seq(0,200,25)) +
+                            scale_y_continuous (label = comma, breaks = seq(40,100,5)) +
+                            theme_classic()
+
+
+
+
+
+ggsave (filename = "C:\\Work\\git\\clus\\reports\\scenarios\\images\\harvest.jpg", 
+        plot = harvest,
+        dpi = 300,
+        device = "jpeg",
+        width = 6, 
+        height = 4)
+
+
+
+```
+
+
+
+```{r, disturbance figs}
+
+data.disturb$perc_dist_nobuff <- (data.disturb$c40r50 / data.disturb$total_area) * 100 # get percentages
+data.disturb$perc_dist_buff <- (data.disturb$c40r500 / data.disturb$total_area) * 100
+
+data.summ.disturb.nobuff <- data.disturb %>% # get summary data, weighted averages
+                               group_by (scenario, timeperiod, critical_hab) %>% 
+                                summarise (disturb = weighted.mean (perc_dist_nobuff, total_area)) %>%
+                                 filter (scenario == "bau_all" | 
+                                         scenario == "old_growth_all" |
+                                         scenario == "tier1" |
+                                         scenario == "tier2" |
+                                         scenario == "tier3" |
+                                         scenario == "tier4" 
+                                         )  
+
+data.summ.disturb.buff <- data.disturb %>% # get summary data, weighted averages
+                               group_by (scenario, timeperiod, critical_hab) %>% 
+                                summarise (disturb = weighted.mean (perc_dist_buff, total_area)) %>%
+                                 filter (scenario == "bau_all" | 
+                                         scenario == "old_growth_all" |
+                                         scenario == "tier1" |
+                                         scenario == "tier2" |
+                                         scenario == "tier3" |
+                                         scenario == "tier4" 
+                                         )  
+
+data.disturb.reve.herds <- data.summ.disturb.buff %>%
+                            filter (critical_hab == "Central_Selkirks HEWSR" |
+                                    critical_hab == "Central_Selkirks Matrix" |
+                                    critical_hab == "Groundhog HEWSR" |  
+                                    critical_hab == "Groundhog Matrix" |
+                                    critical_hab == "Columbia_North HEWSR" |
+                                    critical_hab == "Columbia_North Matrix" 
+                                    )
+
+data.disturb.reve.herds.nobuff <- data.summ.disturb.nobuff %>%
+                                    filter (critical_hab == "Central_Selkirks HEWSR" |
+                                            critical_hab == "Central_Selkirks Matrix" |
+                                            critical_hab == "Groundhog HEWSR" |  
+                                            critical_hab == "Groundhog Matrix" |
+                                            critical_hab == "Columbia_North HEWSR" |
+                                            critical_hab == "Columbia_North Matrix" 
+                                            )
+
+# "Central_Selkirks HEWSR" "Central_Selkirks Matrix"  "Columbia_North HEWSR"  "Columbia_North Matrix"  "Groundhog HEWSR"  "Groundhog Matrix" 
+
+# "Central_Rockies HEWSR"        "Central_Rockies Matrix"       "Central_Selkirks HEWSR"       "Central_Selkirks Matrix"     
+# "Columbia_North HEWSR"         "Columbia_North Matrix"        "Columbia_South HEWSR"         "Columbia_South Matrix"       
+# "Frisby_Boulder HEWSR"         "Frisby_Boulder Matrix"        "Groundhog HEWSR"              "Groundhog Matrix"            
+# "Hart_Ranges HEWSR"            "Hart_Ranges Matrix"           "Monashee HEWSR"               "Monashee Matrix"             
+# "North_Cariboo HEWSR"          "North_Cariboo Matrix"         "Purcell_Central HEWSR"        "Purcell_Central Matrix"      
+# "Purcells_South HEWSR"         "Purcells_South Matrix"        "Redrock_Prairie_Creek HESR"   "Redrock_Prairie_Creek Matrix"
+# "South_Selkirks HEWSR"         "South_Selkirks Matrix"        "Wells_Gray_North HEWSR"       "Wells_Gray_North Matrix"     
+# "Wells_Gray_South HEWSR"       "Wells_Gray_South Matrix"  
+
+plot.disturb.buff.reve.herds <- ggplot (data.disturb.reve.herds, 
+                                        aes (x = timeperiod, y = disturb, 
+                                            color = critical_hab, linetype = critical_hab)) +
+                                        geom_line (position = position_dodge (width = 1), size = 1) + 
+                                        facet_grid (. ~scenario,
+                                                    labeller = as_labeller (c ('bau_all' = "BAU", 
+                                                                               'old_growth_all' = "Old growth",
+                                                                               'tier1' = "Tier 1",
+                                                                               'tier2' = "Tier 2",
+                                                                               'tier3' = "Tier 3",
+                                                                               'tier4' = "Tier 4"))) +
+                                        labs (x = "Future Year", 
+                                              y = "Percent Disturbance") + 
+                                        scale_color_discrete (name = "Critical Habitat", 
+                                                              labels = c ("Central Selkirks HEWSR", "Central Selkirks Matrix",
+                                                                          "Groundhog HEWSR", "Groundhog Matrix",
+                                                                          "Columbia North HEWSR", "Columbia North Matrix")) +
+                                        scale_linetype_discrete (name = "Critical Habitat", 
+                                                                 labels = c ("Central Selkirks HEWSR", "Central Selkirks Matrix",
+                                                                          "Groundhog HEWSR", "Groundhog Matrix",
+                                                                          "Columbia North HEWSR", "Columbia North Matrix")) +
+                                        theme (legend.position = c (0.15, 0.15),
+                                               legend.title = element_text(size = 10),
+                                               legend.text = element_text( size = 8)) +
+                                        scale_x_continuous (limits = c(0, 80), breaks = seq(0,80,20)) +
+                                        scale_y_continuous (label = comma, breaks = seq(0,100,10)) +
+                                        theme_bw ()
+
+
+
+plot.disturb.nobuff.reve.herds <- ggplot (data.disturb.reve.herds.nobuff, 
+                                        aes (x = timeperiod, y = disturb, 
+                                            color = critical_hab, linetype = critical_hab)) +
+                                        geom_line (position = position_dodge (width = 1), size = 1) + 
+                                        facet_grid (. ~scenario,
+                                                    labeller = as_labeller (c ('bau_all' = "BAU", 
+                                                                               'old_growth_all' = "Old growth",
+                                                                               'tier1' = "Tier 1",
+                                                                               'tier2' = "Tier 2",
+                                                                               'tier3' = "Tier 3",
+                                                                               'tier4' = "Tier 4"))) +
+                                        labs (x = "Future Year", 
+                                              y = "Percent Disturbance (not buffered)") + 
+                                        scale_color_discrete (name = "Critical Habitat", 
+                                                              labels = c ("Central Selkirks HEWSR", "Central Selkirks Matrix",
+                                                                          "Groundhog HEWSR", "Groundhog Matrix",
+                                                                          "Columbia North HEWSR", "Columbia North Matrix")) +
+                                        scale_linetype_discrete (name = "Critical Habitat", 
+                                                                 labels = c ("Central Selkirks HEWSR", "Central Selkirks Matrix",
+                                                                          "Groundhog HEWSR", "Groundhog Matrix",
+                                                                          "Columbia North HEWSR", "Columbia North Matrix")) +
+                                        theme (legend.position = c (0.15, 0.15),
+                                               legend.title = element_text(size = 10),
+                                               legend.text = element_text( size = 8)) +
+                                        scale_x_continuous (limits = c(0, 80), breaks = seq(0,80,20)) +
+                                        scale_y_continuous (label = comma, breaks = seq(0,100,10)) +
+                                        theme_bw ()
+
+
+
+
+ggsave (filename = "C:\\Work\\git\\clus\\reports\\scenarios\\images\\disturbance_itcha_buff500_bau_3b.jpg", 
+        plot = plot.disturb.buff,
+        dpi = 300,
+        device = "jpeg",
+        width = 9, 
+        height = 6)
+
+
+
+```
+
+
+
+
+

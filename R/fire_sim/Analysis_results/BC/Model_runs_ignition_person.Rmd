@@ -151,10 +151,10 @@ model_coef_table
 table(frt7$FWI_veg)
 
 #NOTE C-1 is the intercept
-frt7$FWI_veg[frt7$FWI_veg=="C-4"]<-"C-2"
-frt7$FWI_veg[frt7$FWI_veg=="C-5"]<-"C-7"
-frt7$FWI_veg[frt7$FWI_veg=="S-1"]<-"M-1/2"
-frt7$FWI_veg[frt7$FWI_veg=="S-2"]<-"C-7"
+frt7$veg_C2 <- ifelse(frt7$FWI_veg == 'C-4', 1, frt7$veg_C2)
+frt7$veg_C7 <- ifelse(frt7$FWI_veg == 'C-5', 1, frt7$veg_C7)
+frt7$veg_M12 <- ifelse(frt7$FWI_veg == 'S-1', 1, frt7$veg_M12)
+frt7$veg_M12 <- ifelse(frt7$FWI_veg == 'S-2', 1, frt7$veg_M12)
 
 
 # put coefficients into model formula
@@ -219,12 +219,13 @@ frt10<- ignition2 %>% filter(frt==10)
 
 table(frt10$FWI_veg)
 #NOTE C-2 is the intercept
-frt10$FWI_veg[frt10$FWI_veg=="C-1"]<-"C-3"
-frt10$FWI_veg[frt10$FWI_veg=="C-4"]<-"C-2"
-frt10$FWI_veg[frt10$FWI_veg=="M-1/2"]<-"C-5"
-frt10$FWI_veg[frt10$FWI_veg=="O-1a/b"]<-"C-3"
-frt10$FWI_veg[frt10$FWI_veg=="S-1"]<-"C-4"
-frt10$FWI_veg[frt10$FWI_veg=="S-2"]<-"C-7"
+frt10$veg_C3 <- ifelse(frt10$FWI_veg == 'C-1', 1, frt10$veg_C3)
+frt10$veg_C2 <- ifelse(frt10$FWI_veg == 'C-4', 1, frt10$veg_C2)
+frt10$veg_C4 <- ifelse(frt10$FWI_veg == 'S-1', 1, frt10$veg_C4)
+frt10$veg_C7 <- ifelse(frt10$FWI_veg == 'S-2', 1, frt10$veg_C7)
+frt10$veg_C5 <- ifelse(frt10$FWI_veg == 'M-1/2', 1, frt10$veg_C5)
+frt10$veg_C3 <- ifelse(frt10$FWI_veg == 'O-1a/b', 1, frt10$veg_C3)
+
 
 model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT10_person.csv")
 
@@ -281,11 +282,11 @@ frt12<- ignition2 %>% filter(frt==12)
 
 #NOTE C-2 is the intercept
 table(frt12$FWI_veg)
-frt12$FWI_veg[frt12$FWI_veg=="C-1"]<-"C-3"
-frt12$FWI_veg[frt12$FWI_veg=="C-4"]<-"C-2"
-frt12$FWI_veg[frt12$FWI_veg=="M-3"]<-"O-1a/b"
-frt12$FWI_veg[frt12$FWI_veg=="S-2"]<-"C-7"
-frt12$FWI_veg[frt12$FWI_veg=="S-3"]<-"S-1"
+frt12$veg_S1 <- ifelse(frt12$FWI_veg == 'S-3', 1, frt12$veg_S1)
+frt12$veg_C7 <- ifelse(frt12$FWI_veg == 'S-2', 1, frt12$veg_C7)
+frt12$veg_C3 <- ifelse(frt12$FWI_veg == 'C-1', 1, frt12$veg_C3)
+frt12$veg_C2 <- ifelse(frt12$FWI_veg == 'C-4', 1, frt12$veg_C2)
+frt12$veg_O1ab <- ifelse(frt12$FWI_veg == 'M-3', 1, frt12$veg_O1ab)
 
 model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT12_person.csv")
 model_coef_table
@@ -323,9 +324,9 @@ frt13<- ignition2 %>% filter(frt==13)
 table(frt13$FWI_veg)
 # NOTE C2 is the intercept
 #frt13$FWI_veg[frt13$FWI_veg=="C-2"]<-"C-3"
-frt13$FWI_veg[frt13$FWI_veg=="C-4"]<-"C-2"
-frt13$FWI_veg[frt13$FWI_veg=="C-1"]<-"C-3"
-frt13$FWI_veg[frt13$FWI_veg=="S-2"]<-"C-7"
+frt13$veg_C3 <- ifelse(frt13$FWI_veg == 'C-1', 1, frt13$veg_C3)
+frt13$veg_C2 <- ifelse(frt13$FWI_veg == 'C-4', 1, frt13$veg_C2)
+frt13$veg_C7 <- ifelse(frt13$FWI_veg == 'S-2', 1, frt13$veg_C7)
 
 model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT13_person.csv")
 model_coef_table
@@ -367,9 +368,9 @@ frt14<- ignition2 %>% filter(frt==14)
 
 table(frt14$FWI_veg)
 # NOTE C-2 is the intercept
-frt14$FWI_veg[frt14$FWI_veg=="C-4"]<-"C-2"
-frt14$FWI_veg[frt14$FWI_veg=="M-3"]<-"O-1a/b" 
-frt14$FWI_veg[frt14$FWI_veg=="S-3"]<-"S-1"
+frt14$veg_C2 <- ifelse(frt14$FWI_veg == 'C-4', 1, frt14$veg_C2)
+frt14$veg_O1ab <- ifelse(frt14$FWI_veg == 'M-3', 1, frt14$veg_O1ab)
+frt14$veg_S1 <- ifelse(frt14$FWI_veg == 'S-3', 1, frt14$veg_S1)
 
 model_coef_table<-read.csv("D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT14_person.csv")
 model_coef_table
@@ -406,9 +407,9 @@ hist(frt14$prob_ignition)
 frt15<- ignition2 %>% filter(frt==15)
 table(frt15$FWI_veg)
 # C-3 is the intercept
-frt15$FWI_veg[frt15$FWI_veg=="C-2"]<-"C-3" 
-frt15$FWI_veg[frt15$FWI_veg=="C-7"]<-"C-5" 
-frt15$FWI_veg[frt15$FWI_veg=="S-1"]<-"S-3" 
+frt15$veg_C3 <- ifelse(frt15$FWI_veg == 'C-2', 1, frt15$veg_C3)
+frt15$veg_C5 <- ifelse(frt15$FWI_veg == 'C-7', 1, frt15$veg_C5)
+frt15$veg_S3 <- ifelse(frt15$FWI_veg == 'S-1', 1, frt15$veg_S3)
 
 
 

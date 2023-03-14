@@ -122,8 +122,8 @@ modules <- list("dataCastor",
                 "volumebyareaReportCastor",
                 "uploadCastor")
 
-scenario = data.table (name = "robson_bau_max",
-                       description = "Business as usual (BAU) max non-declining harvest flow. Adjacency = 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/year.Maximum non-declining live harvest flow: 235,000 m3/year. No growing stock constraint. No road recovery (300 years).")
+scenario = data.table (name = "robson_bau_sustain",
+                       description = "Business as usual (BAU) sustainable.  Adjacency = 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/year. Even live harvest flow: 150,000 m3/year. Growing stock sustainable (flat) at year 100-200, or similar growing stock value at start and end of sim. No road recovery (300 years).")
 
 
 harvestFlow <- rbindlist(list(
@@ -134,7 +134,7 @@ harvestFlow <- rbindlist(list(
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 2350000) # 235,000
+                                          flow = 1500000) # 150,000
                               ))
 
 
