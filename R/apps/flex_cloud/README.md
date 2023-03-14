@@ -60,7 +60,7 @@ Click `Generate New Token` button. In the popup, give token a name, select the d
 
 ![](inst/app/img/generate-token.png)
 
-When the token is created, it will be visible in the list of tokens. Copy the new token (it won't be shown again for security reasons). It now needs to be added in `.Renviron` file in the root directory of the FLEX repo, with the key name `DO_PAT`. The format of this assignment in `.Renviron` is:
+When the token is created, it will be visible in the list of tokens. Copy the new token (it won't be shown again for security reasons). It now needs to be added in `.Renviron` file in the root directory of the `castor` repo, with the key name `DO_PAT`. The format of this assignment in `.Renviron` is:
 
     DO_PAT=actual_token_pasted_here
 
