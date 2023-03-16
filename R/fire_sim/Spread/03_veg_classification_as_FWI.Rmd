@@ -18,7 +18,9 @@ library(tidyverse)
 
 
 ```{r}
-fire_veg_sf<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\spread\\Spread_dem_clim_rds_infr_wind_veg.gpkg")
+#fire_veg_sf<-st_read("C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\spread\\Spread_dem_clim_rds_infr_wind_veg.gpkg")
+
+fire_veg_sf<-fire_spread_02_21
 
 head(fire_veg_sf)
 ```
@@ -750,7 +752,7 @@ table(y$year, y$FWI_veg)
 
 table(y$FWI_veg, y$frt)
 
-st_write(fire_all1, "C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\data\\spread\\Fire_data_all_veg.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(fire_all1, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\Fire_spread_data_all_veg.gpkg", delete_layer=TRUE, driver="GPKG")
 
 # upload to Kyle clus. Just update the relevant credentials 
 key_get('dbpass', keyring = 'postgreSQL')

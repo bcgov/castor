@@ -91,7 +91,9 @@ prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\adm
 prov.bnd <- st_transform (prov.bnd, 3005)
 prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ]  
 
-fire_bounds_with_igitions_1km_buff<-st_buffer(fire_bounds_with_igitions,dist=2000)
+fire_bounds_with_igitions_16<- fire_bounds_with_igitions %>% filter(FIRE_SIZE_HECTARES>16)
+
+fire_bounds_with_igitions_1km_buff<-st_buffer(fire_bounds_with_igitions_16,dist=1000)
 fire_bounds_with_igitions_1km_buff_sf <- sf::st_as_sf(fire_bounds_with_igitions_1km_buff) %>% st_cast("MULTIPOLYGON")
 
 ggplot() +
@@ -125,7 +127,7 @@ filenames<-list()
       # change sf feature to a SpatialPolygonDataFrame
       foo3_sp<-as(foo3, "Spatial")
       class(foo3_sp)
-      samp_points <- spsample (foo3_sp, cellsize = c (500, 500), type = "regular")
+      samp_points <- spsample (foo3_sp, cellsize = c (400, 400), type = "regular")
       samp_points_new <- data.frame (matrix (ncol = 2, nrow = nrow (samp_points@coords))) # add 'data' to the points
       colnames (samp_points_new) <- c ("pttype","year")
       samp_points_new$pttype <- 0
@@ -165,7 +167,7 @@ for (j in 1:length(years)) {
   fire_bounds<-fire_bounds_with_igitions %>%
     filter(FIRE_YEAR==years[j])
         foo_sp<-as(fire_bounds,"Spatial")
-        samp_points <- spsample (foo_sp, cellsize = c (500, 500), type = "regular")
+        samp_points <- spsample (foo_sp, cellsize = c (400, 400), type = "regular")
         samp_points_new <- data.frame (matrix (ncol = 2, nrow = nrow (samp_points@coords))) # add 'data' to the points
       colnames (samp_points_new) <- c ("pttype","year")
       samp_points_new$pttype <- 1
@@ -189,8 +191,9 @@ all_points<-rbind(samp_locations_fire_bounds_points_df, samp_locations_beyond_fi
 table(all_points$pttype)
 
 
+
 # or save it as a shape file
-st_write(all_points, dsn="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\all_sample_points.gpkg")
+st_write(all_points, dsn="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\all_sample_points_400m.gpkg")
 
 
 ```
@@ -270,7 +273,7 @@ st_crs(x3) #Retrieve coordinate reference system to check
 x4a<-as.data.frame(x3)
 #x4a$idno<- 1:dim(x4a[1])
 x4<- x4a %>%
-  tidyr::separate(geom, into = c("longitude", "latitude")," ")
+  tidyr::separate(geometry, into = c("longitude", "latitude")," ")
 x4$longitude<- gsub(",", "", as.character(x4$longitude) )
 x4$longitude<- substring(x4$longitude, 3)
 x4$longitude<- as.numeric(x4$longitude)
@@ -319,6 +322,7 @@ You will need to download ClimateBC (http://climatebc.ca/downloads/download.html
 6. Repeat for each year
 
 Once the above has been completed for the random points and known fire locations you have created in code earlier in this R Markdown file, proceed to the next code chunk.
+
 
 ```{r}
 # Note from this project you probably wont be able to change the Working directory. Unfortunately I think this needs to be done because of instructions in the exe file and it needs to know where to point. So probably copy this code chunk into a new R session that is not part of any project then run this and come back after.
@@ -495,7 +499,7 @@ for (i in 1: length(y1)){
   
   x<-eval(as.name(y1[i])) %>% 
     rename(YEAR=ID2) %>%
-    dplyr::select(ID1, YEAR,Latitude, Longitude, Tmax02:Tmax11, Tave02:Tave11, PPT02:PPT11, RH02:RH11, DD18_02:DD18_11)
+    dplyr::select(ID1, YEAR,Latitude, Longitude, Tmax02:Tmax11, Tave02:Tave11, PPT02:PPT11, RH02:RH11, DD18_02:DD18_11, CMI02:CMI11)
   
   x2<- x %>% filter(Tmax05 != -9999) # there are some locations that did not have climate data, probably because they were over the ocean, so Im removing these here.
   
@@ -626,7 +630,7 @@ dat2$dist_roads_m<-dat2$dist_roads*100
 
 
 ```{r}
-sf::st_write(dat2, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\Spread_dem_clim_rds_infr.gpkg", delete_layer=TRUE)
+sf::st_write(dat2, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\Spread_dem_clim_rds_infr_400m.gpkg", delete_layer=TRUE)
 
 ##Save to personal drive
 #ogr2ogr -f "PostgreSQL" PG:"host=localhost user=postgres dbname=postgres password=postgres port=5432" C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\Data_clim_DEM_roads_wind_infra.shp -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI
@@ -687,7 +691,7 @@ dat4<- dat4 %>% rename(
 
 head(dat4)
 
-sf::st_write(dat4, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\Spread_dem_clim_rds_infr_wind.gpkg", delete_layer=TRUE)
+sf::st_write(dat4, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\Spread_dem_clim_rds_infr_wind_400m.gpkg", delete_layer=TRUE)
 ```
 
 Extract distance to the ignition point of the fire
@@ -822,7 +826,7 @@ sf::st_write(ignit_all_2021, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_s
 ### Now that the ignition points have been joined to the VRI data in QGIS. I need to reimport the data so that i can join it all together and use it.
 
 ```{r}
-file.list1<-list.files("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\Extracted", pattern="spread", all.files=FALSE, full.names=FALSE)
+file.list1<-list.files("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\Extracted", pattern="Spread", all.files=FALSE, full.names=FALSE)
 y1<-gsub(".gpkg","",file.list1)
 the_dir <- "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\for_veg_extraction\\Extracted"
 

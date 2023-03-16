@@ -61,8 +61,8 @@ head(ignit)
 table(ignit$FIRE_YEAR)
 length(ignit$CURRENT_SIZE)
 
-ignit_escape<- ignit %>% filter(CURRENT_SIZE >10)
-length(ignit_escape$CURRENT_SIZE) # out of a total of 1647 fires only 263 of them escaped.
+ignit_escape<- ignit %>% filter(CURRENT_SIZE >16)
+length(ignit_escape$CURRENT_SIZE) # out of a total of 235 fires only 263 of them escaped.
 hist(ignit_escape$CURRENT_SIZE, breaks=50)
 ```
 
@@ -75,7 +75,7 @@ study_area2<-study_area %>% group_by ( tsa_name) %>% summarise()
 st_crs(study_area2)
 
 ignit_subset <- ignit[study_area2, ]
-ignit_subset_10<- ignit_subset %>% filter(CURRENT_SIZE >10)
+ignit_subset_10<- ignit_subset %>% filter(CURRENT_SIZE >16)
 
 length(ignit_subset$CURRENT_SIZE) # 249 locations caught fire
 length(ignit_subset_10$CURRENT_SIZE) # 42 locations had fires > 10ha
@@ -94,8 +94,8 @@ ggplot() +
 ```{r}
 lightning_ignition<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_lightning_ignit_400m_2.tif")
 human_ignition<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_human_ignit_400m_2.tif")
-escape.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_escape_400m.tif")
-spread.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_spread_400m_2.tif")
+escape.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_escape_2021.tif")
+spread.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_spread_2021.tif")
 
 crs(spread.ras)
 crs(escape.ras)
@@ -161,11 +161,11 @@ ignit_pts <- rasterToPoints(escape_crop, spatial = TRUE)
 ignit_pts_df  <- data.frame(ignit_pts)
 
 ignit_subset<-ignit_subset %>%
-  mutate(escaped = case_when(CURRENT_SIZE > 10 ~ 1,
-                           CURRENT_SIZE <= 10 ~ 0))
+  mutate(escaped = case_when(CURRENT_SIZE > 16 ~ 1,
+                           CURRENT_SIZE <= 16 ~ 0))
 
 ggplot() +
- geom_raster(data = ignit_pts_df , aes(x = x, y = y, fill = rast_escape_400m)) +
+ geom_raster(data = ignit_pts_df , aes(x = x, y = y, fill = rast_escape_2021)) +
   geom_sf(data=ignit_subset, aes(color = as.factor(escaped)))  #+
   #geom_point(data = pointCoordinates, aes(x = test.X, y = test.Y))
 #####
@@ -180,7 +180,7 @@ a <- raster(extent(ignit_crop),
   crs = st_crs(ignit_crop)$proj4string, resolution = c(400, 400), vals = 1:ncell(ignit_crop))
 
 #no_ignitions=length(ignit_subset$CURRENT_SIZE) # number of ignitions (FIX this so its drawn from a distribution or pulled off a map or something)
-n<-100 # number of reps
+n<-10 # number of reps
 out<-list()
 set.seed(123)
 
@@ -259,7 +259,7 @@ for (i in 1:n) {
   
 }
 
-fire_size_end$Freq<-as.numeric(fire_size_end$Freq)
+fire_size_end$Freq<-as.numeric(fire_size_end$Freq)*16
 x<-aggregate(fire_size_end$Freq, by=list(Category=fire_size_end$Var1), FUN=mean)
 
 x<-x %>% rename(start_points=Category,
