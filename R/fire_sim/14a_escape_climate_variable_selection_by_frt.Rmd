@@ -1,0 +1,878 @@
+---
+title: "14a_escape_climate_variable_selection"
+author: "Elizabeth Kleynhans and Cora Skaien"
+date: "08/07/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+<!--
+Copyright 2021 Province of British Columbia
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
+
+#Overview
+The purpose of this script is to select the climate variable that best determines whether a cell with a fire escapes 
+
+```{r}
+
+library(sf)
+
+library(ggplot2)
+library (ggcorrplot)
+library (RPostgreSQL)
+library (rpostgis)
+
+library (lme4)
+library (arm)
+library(ggpubr)
+library(mgcv)
+library(nlme)
+library(purrr)
+library(tidyr)
+library(caret)
+library(pROC)
+library(keyring)
+
+source(here::here("R/functions/R_Postgres.R"))
+```
+
+Now we must bring in the data that we created at the end of 08_VRI_data_prep. We need only the lightning + NA and the person + NA data sets here. 
+
+
+```{r}
+escape <- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\escape_weather_veg.gpkg")
+
+#("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg")
+
+table(is.na(escape$Cluster)) # wierd there are  points that have no Cluster assigned to them.Not I tried joining them to Cluster again and I still have 13 missing Cluster info. I looked at them in QGIS and decided that the following assignments were correct
+
+escape$Cluster[escape$idno==15511]<-13
+escape$Cluster[escape$idno==31609]<-13
+escape$Cluster[escape$idno==15214]<-13
+escape$Cluster[escape$idno==15507]<-13
+escape$Cluster[escape$idno==10828]<-13
+escape$Cluster[escape$idno==119]<-14
+escape$Cluster[escape$idno==20067]<-14
+escape$Cluster[escape$idno==965]<-14
+escape$Cluster[escape$idno==22140]<-14
+escape$Cluster[escape$idno==26529]<-14
+escape$Cluster[escape$idno==32226]<-14
+escape$Cluster[escape$idno==27182]<-14
+escape$Cluster[escape$idno==719]<-14
+escape$Cluster[escape$idno==14884]<-14
+escape$Cluster[escape$idno==23161]<-14
+escape$Cluster[escape$idno==20054]<-14
+escape$Cluster[escape$idno==21163]<-14
+escape$Cluster[escape$idno==1832]<-14
+escape$Cluster[escape$idno==31495]<-14
+
+escape$Cluster[is.na(escape$Cluster)]<-15
+escape$Cluster[escape$Cluster==3]<-5
+
+```
+
+
+Inspect the fire ignition data.
+
+```{r}
+escape2<-st_set_geometry(escape,NULL) # remove geometry column for dataset
+
+head(escape2)
+names(escape2) 
+
+# plot climate varibales over time to see if it looks ok.
+
+escape10<- escape2 %>% filter(Cluster==10)
+table(escape10$FIRE_YEAR, escape10$ig_mnth)
+
+escape2_summary<- escape2 %>%
+  group_by(Cluster, FIRE_YEAR) %>%
+  dplyr::summarize(Tmax02=mean(Tmax02),
+         Tmax03=mean(Tmax03),
+         Tmax04=mean(Tmax04),
+         Tmax05=mean(Tmax05),
+         Tmax06=mean(Tmax06),
+         Tmax07=mean(Tmax07),
+         Tmax08=mean(Tmax08),
+         Tmax09=mean(Tmax09),
+         Tmax10=mean(Tmax10),
+         Tmax11=mean(Tmax11),
+         Tave02=mean(Tave02),
+         Tave03=mean(Tave03),
+         Tave04=mean(Tave04),
+         Tave05=mean(Tave05),
+         Tave06=mean(Tave06),
+         Tave07=mean(Tave07),
+         Tave08=mean(Tave08),
+         Tave09=mean(Tave09),
+         Tave10=mean(Tave10),
+         Tave11=mean(Tave11),
+         PPT02=mean(PPT02),
+         PPT03=mean(PPT03),
+         PPT04=mean(PPT04),
+         PPT05=mean(PPT05),
+         PPT06=mean(PPT06),
+         PPT07=mean(PPT07),
+         PPT08=mean(PPT08),
+         PPT09=mean(PPT09),
+         PPT10=mean(PPT10),
+         PPT11=mean(PPT11),
+         RH02=mean(RH02),
+         RH03=mean(RH03),
+         RH04=mean(RH04),
+         RH05=mean(RH05),
+         RH06=mean(RH06),
+         RH07=mean(RH07),
+         RH08=mean(RH08),
+         RH09=mean(RH09),
+         RH10=mean(RH10),
+         RH11=mean(RH11),
+         MDC_02=mean(MDC_02),
+         MDC_03=mean(MDC_03),
+         MDC_04=mean(MDC_04),
+         MDC_05=mean(MDC_05),
+         MDC_06=mean(MDC_06),
+         MDC_07=mean(MDC_07),
+         MDC_08=mean(MDC_08),
+         MDC_09=mean(MDC_09),
+         MDC_10=mean(MDC_10),
+         MDC_11=mean(MDC_11), 
+         CMI02=mean(CMI02),
+         CMI03=mean(CMI03),
+         CMI04=mean(CMI04),
+         CMI05=mean(CMI05),
+         CMI06=mean(CMI06),
+         CMI07=mean(CMI07),
+         CMI08=mean(CMI08),
+         CMI09=mean(CMI09),
+         CMI10=mean(CMI10),
+         CMI11=mean(CMI11))
+
+# Tave
+tave<-escape2_summary %>% dplyr::select(Cluster, Tave02,Tave03,Tave04,Tave05,Tave06,Tave07, Tave08, Tave09, Tave10, Tave11)
+
+xtave<-pivot_longer(tave, cols=2:11, names_to="Month", values_to="Tave")
+xtave$Tave<- as.numeric(xtave$Tave)
+table(tave$Cluster)
+
+p<-ggplot(data=xtave, aes(x=Month, y=Tave, group= Cluster)) +
+  geom_line(aes(colour=Cluster)) +
+  geom_point(aes(colour=Cluster)) 
+p
+
+#
+
+xtave_3<-xtave %>% filter(Cluster=="3") # not sure why but filter was not working when I put c("3", "5", "7") so I had to do it separaetly for each. WEIRD
+xtave_5<-xtave %>% filter(Cluster=="5")
+xtave_7<-xtave %>% filter(Cluster=="7")
+xtave357<-rbind(rbind(xtave_3, xtave_5), xtave_7)
+
+ggplot(data=xtave357, aes(x=Month, y=Tave, group= Cluster)) +
+  geom_line(aes(colour=Cluster)) +
+  geom_point(aes(colour=Cluster))
+
+
+# Tmax
+Tmax<-escape2_summary %>% dplyr::select(Cluster, Tmax02,Tmax03,Tmax04,Tmax05,Tmax06,Tmax07, Tmax08, Tmax09, Tmax10, Tmax11)
+
+xTmax<-pivot_longer(Tmax, cols=2:11, names_to="Month", values_to="Tmax")
+xTmax$Tmax<- as.numeric(xTmax$Tmax)
+
+p<-ggplot(data=xTmax, aes(x=Month, y=Tmax, group= Cluster)) +
+  geom_line(aes(colour=Cluster)) +
+  geom_point(aes(colour=Cluster)) 
+p
+
+xtave_3<-xTmax %>% filter(Cluster=="3") # not sure why but filter was not working when I put c("3", "5", "7") so I had to do it separaetly for each. WEIRD
+xtave_5<-xTmax %>% filter(Cluster=="5")
+xtave_7<-xTmax %>% filter(Cluster=="7")
+xtave357<-rbind(rbind(xtave_3, xtave_5), xtave_7)
+
+ggplot(data=xtave357, aes(x=Month, y=Tmax, group= Cluster)) +
+  geom_line(aes(colour=Cluster)) +
+  geom_point(aes(colour=Cluster))
+
+# PPT
+PPT<-escape2_summary %>% dplyr::select(Cluster, PPT02,PPT03,PPT04,PPT05,PPT06,PPT07, PPT08, PPT09, PPT10, PPT11)
+
+xPPT<-pivot_longer(PPT, cols=2:11, names_to="Month", values_to="PPT")
+xPPT$PPT<- as.numeric(xPPT$PPT)
+
+p<-ggplot(data=xPPT, aes(x=Month, y=PPT, group= Cluster)) +
+  geom_line(aes(colour=Cluster)) +
+  geom_point(aes(colour=Cluster)) 
+p
+
+
+# RH
+RH<-escape2_summary %>% dplyr::select(Cluster, RH02,RH03,RH04,RH05,RH06,RH07, RH08, RH09, RH10, RH11)
+
+xRH<-pivot_longer(RH, cols=2:11, names_to="Month", values_to="RH")
+xRH$RH<- as.numeric(xRH$RH)
+
+p<-ggplot(data=xRH, aes(x=Month, y=RH, group= Cluster)) +
+  geom_line(aes(colour=Cluster)) +
+  geom_point(aes(colour=Cluster)) 
+p
+
+
+# MDC
+MDC_<-escape2_summary %>% dplyr::select(Cluster, MDC_02,MDC_03,MDC_04,MDC_05,MDC_06,MDC_07, MDC_08, MDC_09, MDC_10, MDC_11)
+
+xMDC_<-pivot_longer(MDC_, cols=2:11, names_to="Month", values_to="MDC_")
+xMDC_$MDC_<- as.numeric(xMDC_$MDC_)
+
+p<-ggplot(data=xMDC_, aes(x=Month, y=MDC_, group= Cluster)) +
+  geom_line(aes(colour=Cluster)) +
+  geom_point(aes(colour=Cluster)) 
+p
+
+# CMI
+CMI<-escape2_summary %>% dplyr::select(Cluster, CMI02,CMI03,CMI04,CMI05,CMI06,CMI07, CMI08, CMI09, CMI10, CMI11)
+
+CMIx<-pivot_longer(CMI, cols=2:11, names_to="Month", values_to="CMI")
+CMIx$CMI<- as.numeric(CMIx$CMI)
+
+p<-ggplot(data=CMIx, aes(x=Month, y=CMI, group= Cluster)) +
+  geom_line(aes(colour=Cluster)) +
+  geom_point(aes(colour=Cluster)) 
+p
+
+# CMI
+CMI<-escape2_summary %>% dplyr::select(Cluster, CMI02,CMI03,CMI04,CMI05,CMI06,CMI07, CMI08, CMI09, CMI10, CMI11)
+
+CMIx<-pivot_longer(CMI, cols=2:11, names_to="Month", values_to="CMI")
+CMIx$CMI<- as.numeric(CMIx$CMI)
+
+p<-ggplot(data=CMIx, aes(x=Month, y=CMI, group= Cluster)) +
+  geom_line(aes(colour=Cluster)) +
+  geom_point(aes(colour=Cluster)) 
+p
+
+
+```
+
+Now that the data is prepped from 09_veg_classification_as_FWI, we can move on to the analysis for selecting the best climatic variable(s) for each Fire Regime Type (Cluster)  The loop below will be run first for lightning caused fires, and then for person-caused fires.
+
+To select the best single fire weather covariate we first conducted exploratory graphical analyses of the correlations between fire frequency and various fire weather variables. Then we fit generalized linear models for each fire weather variable (Eq. 1) using a binomial error structure with logarithmic link. Candidate variables were monthly average temperature, monthly maximum temperature, monthly precipitations and the six mean drought codes (MDC’s). We also added various two, three or fourth-month means of these values (e.g. for May, June, July and August) to test for seasonal effects (e.g. spring vs. summer).
+
+Before we begin the analyses we will combine Cluster 3 with Cluster 5 and also look at some correlations.
+
+```{r}
+# combining Cluster 3 with Cluster 5 because Cluster3 consists of two tiny slivers on the boarder of BC.
+table(escape2$Cluster)
+
+escape2$Cluster[escape2$Cluster=="3"]<-"5"
+
+table(escape2$Cluster)
+
+#### looking at correlations between variables####
+
+dist.cut.corr <- escape2 [c (77:83, 97:103)]
+corr <- round (cor (dist.cut.corr), 3)
+
+ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Correlation between maximum temperature and PPT") # not really correlated
+
+dist.cut.corr <- escape2 [c (77:83, 107:113)]
+corr <- round (cor (dist.cut.corr), 3)
+ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Correlation between maximum temperature and RH") # a little correlated 0.62
+
+dist.cut.corr <- escape2 [c (77:83, 127:133)]
+corr <- round (cor (dist.cut.corr), 3)
+ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Correlation between maximum temperature and CMI") # very corrleated 0.8
+
+dist.cut.corr <- escape2 [c (97:103, 107:113)]
+corr <- round (cor (dist.cut.corr), 3)
+
+ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Correlation between PPT and RH") # not really correlated
+
+dist.cut.corr <- escape2 [c (97:103, 127:133)]
+corr <- round (cor (dist.cut.corr), 3)
+
+ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
+            title = "Correlation between PPT and CMI") # not really correlated
+# PPT and CMI are highly highly correlated 0.87 - 0.99
+
+
+```
+
+Before we begin, we will create additional climate variables.
+
+```{r}
+#Climate variable creation for lightning data
+
+### creating amalgamations of variables to test different combinations of variables.##
+escape2$tot_spring_PPT<-escape2$PPT04+ escape2$PPT05 + escape2$PPT06
+escape2$tot_summer_PPT<-escape2$PPT07+ escape2$PPT08 + escape2$PPT09
+
+escape2$spring_Tmax<-(escape2$Tmax04+ escape2$Tmax05 + escape2$Tmax06)/3
+escape2$summer_Tmax<-(escape2$Tmax07+ escape2$Tmax08 + escape2$Tmax09)/3
+escape2$spring_Tave<-(escape2$Tave04+ escape2$Tave05 + escape2$Tave06)/3
+escape2$summer_Tave<-(escape2$Tave07+ escape2$Tave08 + escape2$Tave09)/3
+
+escape2$mean_Tmax04_Tmax05<- (escape2$Tmax04+ escape2$Tmax05)/2
+escape2$mean_Tmax05_Tmax06<- (escape2$Tmax05+ escape2$Tmax06)/2
+escape2$mean_Tmax06_Tmax07<- (escape2$Tmax06+ escape2$Tmax07)/2
+escape2$mean_Tmax07_Tmax08<- (escape2$Tmax07+ escape2$Tmax08)/2
+escape2$mean_Tmax08_Tmax09<- (escape2$Tmax08+ escape2$Tmax09)/2
+escape2$mean_Tmax09_Tmax10<- (escape2$Tmax09+ escape2$Tmax10)/2
+
+escape2$mean_Tmax04_Tmax05_Tmax06<- (escape2$Tmax04+ escape2$Tmax05 + escape2$Tmax06)/3
+escape2$mean_Tmax05_Tmax06_Tmax07<- (escape2$Tmax05+ escape2$Tmax06 + escape2$Tmax07)/3
+escape2$mean_Tmax06_Tmax07_Tmax08<- (escape2$Tmax06+ escape2$Tmax07 + escape2$Tmax08)/3
+escape2$mean_Tmax07_Tmax08_Tmax09<- (escape2$Tmax07+ escape2$Tmax08 + escape2$Tmax09)/3
+escape2$mean_Tmax08_Tmax09_Tmax10<- (escape2$Tmax08+ escape2$Tmax09 + escape2$Tmax10)/3
+
+escape2$mean_Tmax04_Tmax05_Tmax06_Tmax07<- (escape2$Tmax04 + escape2$Tmax05+ escape2$Tmax06 + escape2$Tmax07)/4
+escape2$mean_Tmax05_Tmax06_Tmax07_Tmax08<- (escape2$Tmax05 + escape2$Tmax06+ escape2$Tmax07 + escape2$Tmax08)/4
+escape2$mean_Tmax06_Tmax07_Tmax08_Tmax09<- (escape2$Tmax06 + escape2$Tmax07+ escape2$Tmax08 + escape2$Tmax09)/4
+escape2$mean_Tmax07_Tmax08_Tmax09_Tmax10<- (escape2$Tmax07 + escape2$Tmax08+ escape2$Tmax09 + escape2$Tmax10)/4
+
+escape2$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08<- (escape2$Tmax04 + escape2$Tmax05 + escape2$Tmax06+ escape2$Tmax07 + escape2$Tmax08)/5
+escape2$mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09<- (escape2$Tmax05 + escape2$Tmax06 + escape2$Tmax07+ escape2$Tmax08 + escape2$Tmax09)/5
+escape2$mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- ( escape2$Tmax06 + escape2$Tmax07+ escape2$Tmax08 + escape2$Tmax09 + escape2$Tmax10)/5
+
+escape2$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9<- (escape2$Tmax04 + escape2$Tmax05 + escape2$Tmax06 + escape2$Tmax07+ escape2$Tmax08 + escape2$Tmax09)/6
+escape2$mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- (escape2$Tmax05 + escape2$Tmax06 + escape2$Tmax07+ escape2$Tmax08 + escape2$Tmax09 + escape2$Tmax10)/6
+
+escape2$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- ( escape2$Tmax04 + escape2$Tmax05 + escape2$Tmax06 + escape2$Tmax07+ escape2$Tmax08 + escape2$Tmax09 + escape2$Tmax10)/7
+
+#### Tave
+
+escape2$mean_Tave04_Tave05<- (escape2$Tave04+ escape2$Tave05)/2
+escape2$mean_Tave05_Tave06<- (escape2$Tave05+ escape2$Tave06)/2
+escape2$mean_Tave06_Tave07<- (escape2$Tave06+ escape2$Tave07)/2
+escape2$mean_Tave07_Tave08<- (escape2$Tave07+ escape2$Tave08)/2
+escape2$mean_Tave08_Tave09<- (escape2$Tave08+ escape2$Tave09)/2
+escape2$mean_Tave09_Tave10<- (escape2$Tave09+ escape2$Tave10)/2
+
+escape2$mean_Tave04_Tave05_Tave06<- (escape2$Tave04+ escape2$Tave05 + escape2$Tave06)/3
+escape2$mean_Tave05_Tave06_Tave07<- (escape2$Tave05+ escape2$Tave06 + escape2$Tave07)/3
+escape2$mean_Tave06_Tave07_Tave08<- (escape2$Tave06+ escape2$Tave07 + escape2$Tave08)/3
+escape2$mean_Tave07_Tave08_Tave09<- (escape2$Tave07+ escape2$Tave08 + escape2$Tave09)/3
+escape2$mean_Tave08_Tave09_Tave10<- (escape2$Tave08+ escape2$Tave09 + escape2$Tave10)/3
+
+escape2$mean_Tave04_Tave05_Tave06_Tave07<- (escape2$Tave04 + escape2$Tave05+ escape2$Tave06 + escape2$Tave07)/4
+escape2$mean_Tave05_Tave06_Tave07_Tave08<- (escape2$Tave05 + escape2$Tave06+ escape2$Tave07 + escape2$Tave08)/4
+escape2$mean_Tave06_Tave07_Tave08_Tave09<- (escape2$Tave06 + escape2$Tave07+ escape2$Tave08 + escape2$Tave09)/4
+escape2$mean_Tave07_Tave08_Tave09_Tave10<- (escape2$Tave07 + escape2$Tave08+ escape2$Tave09 + escape2$Tave10)/4
+
+escape2$mean_Tave04_Tave05_Tave06_Tave07_Tave08<- (escape2$Tave04 + escape2$Tave05 + escape2$Tave06+ escape2$Tave07 + escape2$Tave08)/5
+escape2$mean_Tave05_Tave06_Tave07_Tave08_Tave09<- (escape2$Tave05 + escape2$Tave06 + escape2$Tave07+ escape2$Tave08 + escape2$Tave09)/5
+escape2$mean_Tave06_Tave07_Tave08_Tave09_Tave10<- ( escape2$Tave06 + escape2$Tave07+ escape2$Tave08 + escape2$Tave09 + escape2$Tave10)/5
+
+escape2$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave9<- (escape2$Tave04 + escape2$Tave05 + escape2$Tave06 + escape2$Tave07+ escape2$Tave08 + escape2$Tave09)/6
+escape2$mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<- (escape2$Tave05 + escape2$Tave06 + escape2$Tave07+ escape2$Tave08 + escape2$Tave09 + escape2$Tave10)/6
+
+escape2$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<- ( escape2$Tave04 + escape2$Tave05 + escape2$Tave06 + escape2$Tave07+ escape2$Tave08 + escape2$Tave09 + escape2$Tave10)/7
+
+#### PPT
+escape2$mean_PPT04_PPT05<- (escape2$PPT04+ escape2$PPT05)/2
+escape2$mean_PPT05_PPT06<- (escape2$PPT05+ escape2$PPT06)/2
+escape2$mean_PPT06_PPT07<- (escape2$PPT06+ escape2$PPT07)/2
+escape2$mean_PPT07_PPT08<- (escape2$PPT07+ escape2$PPT08)/2
+escape2$mean_PPT08_PPT09<- (escape2$PPT08+ escape2$PPT09)/2
+escape2$mean_PPT09_PPT10<- (escape2$PPT09+ escape2$PPT10)/2
+
+escape2$mean_PPT04_PPT05_PPT06<- (escape2$PPT04+ escape2$PPT05 + escape2$PPT06)/3
+escape2$mean_PPT05_PPT06_PPT07<- (escape2$PPT05+ escape2$PPT06 + escape2$PPT07)/3
+escape2$mean_PPT06_PPT07_PPT08<- (escape2$PPT06+ escape2$PPT07 + escape2$PPT08)/3
+escape2$mean_PPT07_PPT08_PPT09<- (escape2$PPT07+ escape2$PPT08 + escape2$PPT09)/3
+escape2$mean_PPT08_PPT09_PPT10<- (escape2$PPT08+ escape2$PPT09 + escape2$PPT10)/3
+
+escape2$mean_PPT04_PPT05_PPT06_PPT07<- (escape2$PPT04 + escape2$PPT05+ escape2$PPT06 + escape2$PPT07)/4
+escape2$mean_PPT05_PPT06_PPT07_PPT08<- (escape2$PPT05 + escape2$PPT06+ escape2$PPT07 + escape2$PPT08)/4
+escape2$mean_PPT06_PPT07_PPT08_PPT09<- (escape2$PPT06 + escape2$PPT07+ escape2$PPT08 + escape2$PPT09)/4
+escape2$mean_PPT07_PPT08_PPT09_PPT10<- (escape2$PPT07 + escape2$PPT08+ escape2$PPT09 + escape2$PPT10)/4
+
+escape2$mean_PPT04_PPT05_PPT06_PPT07_PPT08<- (escape2$PPT04 + escape2$PPT05 + escape2$PPT06+ escape2$PPT07 + escape2$PPT08)/5
+escape2$mean_PPT05_PPT06_PPT07_PPT08_PPT09<- (escape2$PPT05 + escape2$PPT06 + escape2$PPT07+ escape2$PPT08 + escape2$PPT09)/5
+escape2$mean_PPT06_PPT07_PPT08_PPT09_PPT10<- ( escape2$PPT06 + escape2$PPT07+ escape2$PPT08 + escape2$PPT09 + escape2$PPT10)/5
+
+escape2$mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT9<- (escape2$PPT04 + escape2$PPT05 + escape2$PPT06 + escape2$PPT07+ escape2$PPT08 + escape2$PPT09)/6
+escape2$mean_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10<- (escape2$PPT05 + escape2$PPT06 + escape2$PPT07+ escape2$PPT08 + escape2$PPT09 + escape2$PPT10)/6
+
+escape2$mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10<- ( escape2$PPT04 + escape2$PPT05 + escape2$PPT06 + escape2$PPT07+ escape2$PPT08 + escape2$PPT09 + escape2$PPT10)/7
+
+#### RH
+escape2$mean_RH04_RH05<- (escape2$RH04+ escape2$RH05)/2
+escape2$mean_RH05_RH06<- (escape2$RH05+ escape2$RH06)/2
+escape2$mean_RH06_RH07<- (escape2$RH06+ escape2$RH07)/2
+escape2$mean_RH07_RH08<- (escape2$RH07+ escape2$RH08)/2
+escape2$mean_RH08_RH09<- (escape2$RH08+ escape2$RH09)/2
+escape2$mean_RH09_RH10<- (escape2$RH09+ escape2$RH10)/2
+
+escape2$mean_RH04_RH05_RH06<- (escape2$RH04+ escape2$RH05 + escape2$RH06)/3
+escape2$mean_RH05_RH06_RH07<- (escape2$RH05+ escape2$RH06 + escape2$RH07)/3
+escape2$mean_RH06_RH07_RH08<- (escape2$RH06+ escape2$RH07 + escape2$RH08)/3
+escape2$mean_RH07_RH08_RH09<- (escape2$RH07+ escape2$RH08 + escape2$RH09)/3
+escape2$mean_RH08_RH09_RH10<- (escape2$RH08+ escape2$RH09 + escape2$RH10)/3
+
+escape2$mean_RH04_RH05_RH06_RH07<- (escape2$RH04 + escape2$RH05+ escape2$RH06 + escape2$RH07)/4
+escape2$mean_RH05_RH06_RH07_RH08<- (escape2$RH05 + escape2$RH06+ escape2$RH07 + escape2$RH08)/4
+escape2$mean_RH06_RH07_RH08_RH09<- (escape2$RH06 + escape2$RH07+ escape2$RH08 + escape2$RH09)/4
+escape2$mean_RH07_RH08_RH09_RH10<- (escape2$RH07 + escape2$RH08+ escape2$RH09 + escape2$RH10)/4
+
+escape2$mean_RH04_RH05_RH06_RH07_RH08<- (escape2$RH04 + escape2$RH05 + escape2$RH06+ escape2$RH07 + escape2$RH08)/5
+escape2$mean_RH05_RH06_RH07_RH08_RH09<- (escape2$RH05 + escape2$RH06 + escape2$RH07+ escape2$RH08 + escape2$RH09)/5
+escape2$mean_RH06_RH07_RH08_RH09_RH10<- ( escape2$RH06 + escape2$RH07+ escape2$RH08 + escape2$RH09 + escape2$RH10)/5
+
+escape2$mean_RH04_RH05_RH06_RH07_RH08_RH9<- (escape2$RH04 + escape2$RH05 + escape2$RH06 + escape2$RH07+ escape2$RH08 + escape2$RH09)/6
+escape2$mean_RH05_RH06_RH07_RH08_RH09_RH10<- (escape2$RH05 + escape2$RH06 + escape2$RH07+ escape2$RH08 + escape2$RH09 + escape2$RH10)/6
+
+escape2$mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10<- ( escape2$RH04 + escape2$RH05 + escape2$RH06 + escape2$RH07+ escape2$RH08 + escape2$RH09 + escape2$RH10)/7
+
+### MDC
+escape2$mean_MDC_04_MDC_05<- (escape2$MDC_04+ escape2$MDC_05)/2
+escape2$mean_MDC_05_MDC_06<- (escape2$MDC_05+ escape2$MDC_06)/2
+escape2$mean_MDC_06_MDC_07<- (escape2$MDC_06+ escape2$MDC_07)/2
+escape2$mean_MDC_07_MDC_08<- (escape2$MDC_07+ escape2$MDC_08)/2
+escape2$mean_MDC_08_MDC_09<- (escape2$MDC_08+ escape2$MDC_09)/2
+escape2$mean_MDC_09_MDC_10<- (escape2$MDC_09+ escape2$MDC_10)/2
+
+escape2$mean_MDC_04_MDC_05_MDC_06<- (escape2$MDC_04+ escape2$MDC_05 + escape2$MDC_06)/3
+escape2$mean_MDC_05_MDC_06_MDC_07<- (escape2$MDC_05+ escape2$MDC_06 + escape2$MDC_07)/3
+escape2$mean_MDC_06_MDC_07_MDC_08<- (escape2$MDC_06+ escape2$MDC_07 + escape2$MDC_08)/3
+escape2$mean_MDC_07_MDC_08_MDC_09<- (escape2$MDC_07+ escape2$MDC_08 + escape2$MDC_09)/3
+escape2$mean_MDC_08_MDC_09_MDC_10<- (escape2$MDC_08+ escape2$MDC_09 + escape2$MDC_10)/3
+
+escape2$mean_MDC_04_MDC_05_MDC_06_MDC_07<- (escape2$MDC_04 + escape2$MDC_05+ escape2$MDC_06 + escape2$MDC_07)/4
+escape2$mean_MDC_05_MDC_06_MDC_07_MDC_08<- (escape2$MDC_05 + escape2$MDC_06+ escape2$MDC_07 + escape2$MDC_08)/4
+escape2$mean_MDC_06_MDC_07_MDC_08_MDC_09<- (escape2$MDC_06 + escape2$MDC_07+ escape2$MDC_08 + escape2$MDC_09)/4
+escape2$mean_MDC_07_MDC_08_MDC_09_MDC_10<- (escape2$MDC_07 + escape2$MDC_08+ escape2$MDC_09 + escape2$MDC_10)/4
+
+escape2$mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08<- (escape2$MDC_04 + escape2$MDC_05 + escape2$MDC_06+ escape2$MDC_07 + escape2$MDC_08)/5
+escape2$mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09<- (escape2$MDC_05 + escape2$MDC_06 + escape2$MDC_07+ escape2$MDC_08 + escape2$MDC_09)/5
+escape2$mean_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- ( escape2$MDC_06 + escape2$MDC_07+ escape2$MDC_08 + escape2$MDC_09 + escape2$MDC_10)/5
+
+escape2$mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_9<- (escape2$MDC_04 + escape2$MDC_05 + escape2$MDC_06 + escape2$MDC_07+ escape2$MDC_08 + escape2$MDC_09)/6
+escape2$mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- (escape2$MDC_05 + escape2$MDC_06 + escape2$MDC_07+ escape2$MDC_08 + escape2$MDC_09 + escape2$MDC_10)/6
+
+escape2$mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- ( escape2$MDC_04 + escape2$MDC_05 + escape2$MDC_06 + escape2$MDC_07+ escape2$MDC_08 + escape2$MDC_09 + escape2$MDC_10)/7
+
+#### CMI
+escape2$mean_CMI04_CMI05<- (escape2$CMI04+ escape2$CMI05)/2
+escape2$mean_CMI05_CMI06<- (escape2$CMI05+ escape2$CMI06)/2
+escape2$mean_CMI06_CMI07<- (escape2$CMI06+ escape2$CMI07)/2
+escape2$mean_CMI07_CMI08<- (escape2$CMI07+ escape2$CMI08)/2
+escape2$mean_CMI08_CMI09<- (escape2$CMI08+ escape2$CMI09)/2
+escape2$mean_CMI09_CMI10<- (escape2$CMI09+ escape2$CMI10)/2
+
+escape2$mean_CMI04_CMI05_CMI06<- (escape2$CMI04+ escape2$CMI05 + escape2$CMI06)/3
+escape2$mean_CMI05_CMI06_CMI07<- (escape2$CMI05+ escape2$CMI06 + escape2$CMI07)/3
+escape2$mean_CMI06_CMI07_CMI08<- (escape2$CMI06+ escape2$CMI07 + escape2$CMI08)/3
+escape2$mean_CMI07_CMI08_CMI09<- (escape2$CMI07+ escape2$CMI08 + escape2$CMI09)/3
+escape2$mean_CMI08_CMI09_CMI10<- (escape2$CMI08+ escape2$CMI09 + escape2$CMI10)/3
+
+escape2$mean_CMI04_CMI05_CMI06_CMI07<- (escape2$CMI04 + escape2$CMI05+ escape2$CMI06 + escape2$CMI07)/4
+escape2$mean_CMI05_CMI06_CMI07_CMI08<- (escape2$CMI05 + escape2$CMI06+ escape2$CMI07 + escape2$CMI08)/4
+escape2$mean_CMI06_CMI07_CMI08_CMI09<- (escape2$CMI06 + escape2$CMI07+ escape2$CMI08 + escape2$CMI09)/4
+escape2$mean_CMI07_CMI08_CMI09_CMI10<- (escape2$CMI07 + escape2$CMI08+ escape2$CMI09 + escape2$CMI10)/4
+
+escape2$mean_CMI04_CMI05_CMI06_CMI07_CMI08<- (escape2$CMI04 + escape2$CMI05 + escape2$CMI06+ escape2$CMI07 + escape2$CMI08)/5
+escape2$mean_CMI05_CMI06_CMI07_CMI08_CMI09<- (escape2$CMI05 + escape2$CMI06 + escape2$CMI07+ escape2$CMI08 + escape2$CMI09)/5
+escape2$mean_CMI06_CMI07_CMI08_CMI09_CMI10<- ( escape2$CMI06 + escape2$CMI07+ escape2$CMI08 + escape2$CMI09 + escape2$CMI10)/5
+
+escape2$mean_CMI04_CMI05_CMI06_CMI07_CMI08_CMI9<- (escape2$CMI04 + escape2$CMI05 + escape2$CMI06 + escape2$CMI07+ escape2$CMI08 + escape2$CMI09)/6
+escape2$mean_CMI05_CMI06_CMI07_CMI08_CMI09_CMI10<- (escape2$CMI05 + escape2$CMI06 + escape2$CMI07+ escape2$CMI08 + escape2$CMI09 + escape2$CMI10)/6
+
+escape2$mean_CMI04_CMI05_CMI06_CMI07_CMI08_CMI09_CMI10<- ( escape2$CMI04 + escape2$CMI05 + escape2$CMI06 + escape2$CMI07+ escape2$CMI08 + escape2$CMI09 + escape2$CMI10)/7
+
+
+```
+
+
+
+
+
+#################################
+# ANALYSIS OF CLIMATE VARIABLES
+#################################
+
+Loosely following the methods of Marchal et al. (2017) Ecography (https://onlinelibrary.wiley.com/doi/full/10.1111/ecog.01849) Supporting Information Appendix 1 I try to figure out which is the best climate variable or climate variables to include in my model. I run simple models of the form:
+
+     logb(p/1-p) = B0 + B1x1 or logb(p/1-p) = B0 + B1x1 + B2x2
+
+and extract the AIC as a means for comparison. I also calculate the AUC by splitting the data into a training and validation data set. Finally I repeat the analysis calculating the AIC and AUC using training and validation data sets 10 times taking the average of both the AIC and AUC values. These are the values that I spit out into a csv file so that I can examine which climate variable is best for each Fire regime type, BEC zone, or natural disturbance type. 
+
+
+##### Create variables for Model Selection ########
+Create groupings of variables to put into model selection loop.
+
+```{r}
+
+#Not when you look at count of ignition for each month in each Cluster the months when most fires occur are 05 - 08, so Ill focus the anlysis on these months.There seems to be one exception and that is Cluster 7 where most ignitions occur in 04 and 05 so maybe do a separate analysis for that Cluster
+
+variables<- c("spring_Tmax",
+              "summer_Tmax",
+              #"Tmax03",
+              #"Tmax04",
+              "Tmax05",
+              "Tmax06",
+              "Tmax07", 
+              "Tmax08", 
+              #"Tmax09",
+              #"Tmax10", 
+              #"Tmax11", 
+              #"mean_Tmax03_Tmax04",
+              #"mean_Tmax04_Tmax05",
+              "mean_Tmax05_Tmax06",
+              "mean_Tmax06_Tmax07", 
+              "mean_Tmax07_Tmax08", 
+              #"mean_Tmax08_Tmax09",
+              #"mean_Tmax09_Tmax10",
+              #"mean_Tmax10_Tmax11", 
+              #"mean_Tmax03_Tmax04_Tmax05",
+              #"mean_Tmax04_Tmax05_Tmax06",
+              "mean_Tmax05_Tmax06_Tmax07", 
+              "mean_Tmax06_Tmax07_Tmax08",
+              #"mean_Tmax07_Tmax08_Tmax09",
+              #"mean_Tmax08_Tmax09_Tmax10",
+              #"mean_Tmax09_Tmax10_Tmax11", 
+              #"mean_Tmax03_Tmax04_Tmax05_Tmax06",
+              #"mean_Tmax04_Tmax05_Tmax06_Tmax07",
+              "mean_Tmax05_Tmax06_Tmax07_Tmax08",
+              
+              "spring_Tave",
+              "summer_Tave",
+              #"Tave03",
+              #"Tave04",
+              "Tave05",
+              "Tave06",
+              "Tave07", 
+              "Tave08", 
+              #"Tave09",
+              #"Tave10", 
+              #"Tave11", 
+              #"mean_Tave03_Tave04",
+              #"mean_Tave04_Tave05",
+              "mean_Tave05_Tave06",
+              "mean_Tave06_Tave07", 
+              "mean_Tave07_Tave08", 
+              #"mean_Tave08_Tave09",
+              #"mean_Tave09_Tave10",
+              #"mean_Tave10_Tave11", 
+              #"mean_Tave03_Tave04_Tave05",
+              #"mean_Tave04_Tave05_Tave06",
+              "mean_Tave05_Tave06_Tave07", 
+              "mean_Tave06_Tave07_Tave08",
+              #"mean_Tave07_Tave08_Tave09",
+              #"mean_Tave08_Tave09_Tave10",
+              #"mean_Tave09_Tave10_Tave11", 
+              #"mean_Tave03_Tave04_Tave05_Tave06",
+              #"mean_Tave04_Tave05_Tave06_Tave07",
+              "mean_Tave05_Tave06_Tave07_Tave08",
+              
+              "tot_spring_PPT",
+              "tot_summer_PPT",
+              #"PPT03",
+              #"PPT04",
+              "PPT05",
+              "PPT06",
+              "PPT07", 
+              "PPT08", 
+              #"PPT09",
+              #"PPT10", 
+              #"PPT11", 
+              #"mean_PPT03_PPT04",
+              #"mean_PPT04_PPT05",
+              "mean_PPT05_PPT06",
+              "mean_PPT06_PPT07", 
+              "mean_PPT07_PPT08", 
+              #"mean_PPT08_PPT09",
+              #"mean_PPT09_PPT10",
+              #"mean_PPT10_PPT11", 
+              #"mean_PPT03_PPT04_PPT05",
+              #"mean_PPT04_PPT05_PPT06",
+              "mean_PPT05_PPT06_PPT07", 
+              "mean_PPT06_PPT07_PPT08",
+              #"mean_PPT07_PPT08_PPT09",
+              #"mean_PPT08_PPT09_PPT10",
+              #"mean_PPT09_PPT10_PPT11", 
+              #"mean_PPT03_PPT04_PPT05_PPT06",
+              #"mean_PPT04_PPT05_PPT06_PPT07",
+              "mean_PPT05_PPT06_PPT07_PPT08",
+              
+              #"RH03",
+              #"RH04",
+              "RH05",
+              "RH06",
+              "RH07", 
+              "RH08", 
+              #"RH09",
+              #"RH10", 
+              #"RH11", 
+              #"mean_RH03_RH04",
+              #"mean_RH04_RH05",
+              "mean_RH05_RH06",
+              "mean_RH06_RH07", 
+              "mean_RH07_RH08", 
+              #"mean_RH08_RH09",
+              #"mean_RH09_RH10",
+              #"mean_RH10_RH11", 
+              #"mean_RH03_RH04_RH05",
+              #"mean_RH04_RH05_RH06",
+              "mean_RH05_RH06_RH07", 
+              "mean_RH06_RH07_RH08",
+              #"mean_RH07_RH08_RH09",
+              #"mean_RH08_RH09_RH10",
+              #"mean_RH09_RH10_RH11", 
+              #"mean_RH03_RH04_RH05_RH06",
+              #"mean_RH04_RH05_RH06_RH07",
+              "mean_RH05_RH06_RH07_RH08",
+              
+              #"MDC_03",
+              #"MDC_04",
+              "MDC_05",
+              "MDC_06",
+              "MDC_07", 
+              "MDC_08", 
+              #"MDC_09",
+              #"MDC_10", 
+              #"MDC_11", 
+              #"mean_MDC_03_MDC_04",
+              #"mean_MDC_04_MDC_05",
+              "mean_MDC_05_MDC_06",
+              "mean_MDC_06_MDC_07", 
+              "mean_MDC_07_MDC_08", 
+              #"mean_MDC_08_MDC_09",
+              #"mean_MDC_09_MDC_10",
+              #"mean_MDC_10_MDC_11", 
+              #"mean_MDC_03_MDC_04_MDC_05",
+              #"mean_MDC_04_MDC_05_MDC_06",
+              "mean_MDC_05_MDC_06_MDC_07", 
+              "mean_MDC_06_MDC_07_MDC_08",
+              #"mean_MDC_07_MDC_08_MDC_09",
+              #"mean_MDC_08_MDC_09_MDC_10",
+              #"mean_MDC_09_MDC_10_MDC_11", 
+              #"mean_MDC_03_MDC_04_MDC_05_MDC_06",
+              #"mean_MDC_04_MDC_05_MDC_06_MDC_07",
+              "mean_MDC_05_MDC_06_MDC_07_MDC_08"
+              )
+
+ variables1<-c("spring_Tmax","summer_Tmax",
+               "Tmax05", "Tmax06", "Tmax07", "Tmax08", 
+               "mean_Tmax05_Tmax06_Tmax07",
+               "mean_Tmax06_Tmax07_Tmax08",
+               "mean_Tmax05_Tmax06_Tmax07_Tmax08",
+               "spring_Tave","summer_Tave",
+               "Tave05", "Tave06", "Tave07", "Tave08", 
+               "mean_Tave05_Tave06_Tave07",
+               "mean_Tave06_Tave07_Tave08",
+               "mean_Tave05_Tave06_Tave07_Tave08",
+               
+               "RH05", "RH06", "RH07", "RH08",
+               "mean_RH05_RH06_RH07", 
+               "mean_RH06_RH07_RH08",
+               "mean_RH05_RH06_RH07_RH08")
+ 
+variables2<-c("tot_spring_PPT","tot_summer_PPT",
+              "PPT05", "PPT06", "PPT07", "PPT08",
+              "mean_PPT05_PPT06_PPT07",
+              "mean_PPT06_PPT07_PPT08",
+              "mean_PPT05_PPT06_PPT07_PPT08",
+              "tot_spring_PPT","tot_summer_PPT",
+              "PPT05", "PPT06", "PPT07", "PPT08", 
+              "mean_PPT05_PPT06_PPT07",
+              "mean_PPT06_PPT07_PPT08",
+              "mean_PPT05_PPT06_PPT07_PPT08",
+              
+              "PPT05", "PPT06", "PPT07", "PPT08",
+              "mean_PPT05_PPT06_PPT07", "mean_PPT06_PPT07_PPT08", "mean_PPT05_PPT06_PPT07_PPT08") 
+# precipitation and MDC and temperature and MDC are quite correlated so I'm leaving this combination of variables out. 
+
+```
+
+
+#################################
+#### Running simple logistic regression model
+#################################
+
+Now that the data is prepped, we are ready to run the logistic regression model for the lightning and person caused fires separately to determine the best climate variables.
+
+We have three main options: separate by BEC zone (14), by Natural Disturbance Type (NDT), or by fire regime type (Cluster). The initial code, now saved in the "old" folder, assesses by BEC zones independently. Cora did it by NDT and here we will run by fire regime type.
+
+
+```{r}
+# create loop to do variable selection of climate data
+unique(escape2$Cluster)
+str(escape2$Cluster)
+escape2$Cluster<-as.factor(escape2$Cluster)
+zones<- c("5", "12", "15", "7", "9", "10", "11", "13", "14")
+
+filenames<-list()
+prop<-0.75
+
+```
+
+
+Model selection for lightning caused fires:
+
+```{r}
+
+for (g in 1:100){
+   print(paste(g))
+
+for (h in 1:length(zones)) {
+  #print(paste((variables[i]), (zones[h]), sep=" "))
+  print(paste(zones[h], g, sep=" --"))
+  dat2<- escape2 %>% dplyr::filter(Cluster ==zones[h])
+  
+#Create frame of AIC table
+# summary table
+table.glm.climate.simple <- data.frame (matrix (ncol = 4, nrow = 0))
+colnames (table.glm.climate.simple) <- c ("Zone", "Variable", "AIC", "AUC")
+
+# Create test and training datasets
+dat_0<-dat2 %>% filter(pttype==0)
+dt_0 = sort(sample(nrow(dat_0), nrow(dat_0)*prop))
+train_0<-dat_0[dt_0,]
+test_0<-dat_0[-dt_0,]
+
+dat_1<-dat2 %>% filter(pttype==1)
+dt_1 = sort(sample(nrow(dat_1), nrow(dat_1)*prop))
+train_1<-dat_1[dt_1,]
+test_1<-dat_1[-dt_1,]
+
+dat_train<-rbind(train_0,train_1)
+dat_test<-rbind(test_0,test_1)
+
+model1 <- glm (pttype ~ Latitude + Longitude ,
+               data=dat_train,
+               family = binomial (link = "logit"))
+
+table.glm.climate.simple[1,1]<-zones[h]
+table.glm.climate.simple[1,2]<-"lat + long"
+table.glm.climate.simple[1,3]<-extractAIC(model1)[2]
+
+# lets look at fit of the Valid (validation) dataset
+dat_test$model1_predict <- predict.glm(model1,newdata = dat_test,type="response")
+roc_obj <- roc(dat_test$pttype, dat_test$model1_predict, quiet=TRUE)
+auc(roc_obj)
+table.glm.climate.simple[1,4]<-auc(roc_obj)
+
+#rm(model_dat,dat1,Valid)
+
+for (i in 1: length(variables)){
+  #print(paste((variables[i]), (zones[h]), sep=" "))
+  
+  #model_dat<- dat2 %>% dplyr::select(pttype, variables[i])
+  dat_test1<-dat_test %>% dplyr::select(pttype,Latitude, Longitude, variables[i])
+  dat_train1<-dat_train %>% dplyr::select(pttype,Latitude, Longitude,variables[i])
+  
+  model1 <- glm (pttype ~ . ,
+                 data=dat_train1,
+                 family = binomial (link = "logit"))
+  
+  table.glm.climate.simple[i+1,1]<-zones[h]
+  table.glm.climate.simple[i+1,2]<-paste("lat + long +", variables[i])
+  table.glm.climate.simple[i+1,3]<-extractAIC(model1)[2]
+  
+  # lets look at fit of the Valid (validation) dataset
+  dat_test1$model1_predict <- predict.glm(model1,newdata = dat_test1,type="response")
+  roc_obj <- roc(dat_test1$pttype, dat_test1$model1_predict, quiet=TRUE)
+  auc(roc_obj)
+  table.glm.climate.simple[i+1,4]<-auc(roc_obj)
+  
+}
+
+# This is an addition to the table above allowing combinations of temperature and precipitation
+
+for (i in 1: length(variables1)){
+  #print(paste((variables1[i]), variables2[i], (zones[h]), sep=" "))
+  dat_train2<- dat_train %>% dplyr::select(pttype,Latitude, Longitude, variables1[i], variables2[i])
+  dat_test2<-dat_test %>% dplyr::select(pttype,Latitude, Longitude, variables1[i], variables2[i])
+  
+  model2 <- glm (pttype ~ . ,
+                 data=dat_train2,
+                 family = binomial (link = "logit"))
+  
+  table.glm.climate.simple[(i+length(variables))+1,1]<-zones[h]
+  table.glm.climate.simple[(i+length(variables))+1,2]<-paste0(variables1[i],"+", variables2[i])
+  table.glm.climate.simple[(i+length(variables))+1,3]<-extractAIC(model2)[2]
+  
+  dat_test2$model2_predict <- predict.glm(model2,newdata = dat_test2,type="response")
+  roc_obj <- roc(dat_test2$pttype, dat_test2$model2_predict,quiet=TRUE)
+  auc(roc_obj)
+  table.glm.climate.simple[(i+length(variables))+1,4]<-auc(roc_obj)
+  
+}
+
+
+#assign file names to the work
+nam1<-paste("AIC",zones[h],"run",g,sep="_") #defining the name
+assign(nam1,table.glm.climate.simple)
+filenames<-append(filenames,nam1)
+}
+}
+# Common warning message: glm.fit: fitted probabilities numerically 0 or 1 occurred
+
+
+```
+
+Save output:
+
+```{r}
+
+mkFrameList <- function(nfiles) {
+  d <- lapply(seq_len(nfiles),function(i) {
+    eval(parse(text=filenames[i]))
+  })
+  do.call(rbind,d)
+}
+
+n<-length(filenames)
+aic_bec_lightning<-mkFrameList(n) 
+
+str(aic_bec_lightning)
+
+aic_bec_lightning_a<-aic_bec_lightning %>% 
+  filter(AIC != "missing") 
+
+aic_bec_lightning$AIC<- as.numeric(aic_bec_lightning$AIC)
+aic_bec_lightning$AUC<-as.numeric(aic_bec_lightning$AUC)
+table(is.na(aic_bec_lightning$AIC))
+
+aic_bec_lightning2<- aic_bec_lightning %>% na.omit()
+  
+aic_bec_lightning_summary<- aic_bec_lightning2 %>%
+  group_by(Zone, Variable) %>%
+  summarise(meanAIC=mean(AIC),
+            meanAUC=mean(AUC),
+            sdAUC=sd(AUC),
+            )
+
+aic_bec_lightning_summary2<- aic_bec_lightning_summary %>%
+  group_by(Zone) %>%
+  mutate(deltaAIC=meanAIC-min(meanAIC))
+
+aic_bec_lightning_summary2
+
+```
+
+Save file to local computer:
+
+```{r}
+write.csv(aic_bec_lightning_summary2, file="C:\\Work\\caribou\\clus_data\\Fire\\Fire_sim_data\\tmp\\spread_climate_AIC_results_Cluster.csv")
+```
+
+############### Complete. Now move on to 06_Fire_spread_data_expolration.Rmd wherein the results of these AIC tests will be utilized###########
+
