@@ -1,0 +1,695 @@
+---
+title: "Constant_Coefficients_table"
+author: "Elizabeth Kleynhans"
+date: "2023-03-09"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source(here::here("R/functions/R_Postgres.R"))
+library(data.table)
+library(sf)
+library(tidyverse)
+#library(rgeos)
+
+```
+
+## Purpose of Script
+
+The purpose of this script is to take the ignition, escape and spread models and calculate the sum of the coefficients in the model that are static for each pixel. Basically, create a raster map with the static values from the model. This should save time because then I only need to extract climate and vegetation data and add those changing coefficients to my static coefficeint map.
+
+
+```{r}
+dat<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_ignit_escape_spread_final_2022.gpkg")
+
+dat<-st_transform(dat, 3005)
+dat$frt<-as.factor(dat$frt)
+dat$frt[dat$frt==3]<-5
+
+# for escaped fires I combine frt 9 and 11 because the number of escaped fires are very small and this bolsters my sample size. I dont do it for the others though because I think the fire dynamics are a little different in the two different areas and so its better to leave them separate. 
+dat$frt_escape<-dat$frt
+dat$frt_escape[dat$frt_escape==9]<-11
+```
+
+#Change Aspect to N,S,E,W
+```{r}
+library(rvest)
+library(tidyverse)
+
+url <- 'http://snowfence.umn.edu/Components/winddirectionanddegreeswithouttable3.htm'
+page <- read_html(url)
+directions_raw <- page %>% html_node('td table') %>% html_table(header = TRUE)
+
+directions <- directions_raw %>% 
+    set_names(~tolower(sub(' Direction', '', .x))) %>% 
+    slice(-1) %>% 
+    separate(degree, c('degree_min', 'degree_max'), sep = '\\s+-\\s+', convert = TRUE)
+
+directions
+
+dat <- dat %>% 
+    mutate(aspect_cardinal = cut(
+        aspect, 
+        breaks = c(0, directions$degree_max, 360), 
+        labels = c(directions$cardinal, 'N')
+    ))
+
+dat$aspect_cardinal2<-0
+dat$aspect_cardinal2[dat$aspect_cardinal=="N"]<-"N"
+dat$aspect_cardinal2[dat$aspect_cardinal=="E"]<-"E"
+dat$aspect_cardinal2[dat$aspect_cardinal=="S"]<-"S"
+dat$aspect_cardinal2[dat$aspect_cardinal=="W"]<-"W"
+
+dat$aspect_cardinal2[dat$aspect_cardinal=="NNE"]<-"N"
+dat$aspect_cardinal2[dat$aspect_cardinal=="NNW"]<-"N"
+dat$aspect_cardinal2[dat$aspect_cardinal=="NE" & dat$aspect<=45]<-"N"
+
+dat$aspect_cardinal2[dat$aspect_cardinal=="NE" & dat$aspect>45]<-"E"
+dat$aspect_cardinal2[dat$aspect_cardinal=="ENE"]<-"E"
+dat$aspect_cardinal2[dat$aspect_cardinal=="ESE"]<-"E"
+dat$aspect_cardinal2[dat$aspect_cardinal=="SE" & dat$aspect<=135]<-"E"
+
+dat$aspect_cardinal2[dat$aspect_cardinal=="SE" & dat$aspect>135]<-"S"
+dat$aspect_cardinal2[dat$aspect_cardinal=="SSE"]<-"S"
+dat$aspect_cardinal2[dat$aspect_cardinal=="SSW"]<-"S"
+dat$aspect_cardinal2[dat$aspect_cardinal=="SW" & dat$aspect<=225]<-"S"
+
+dat$aspect_cardinal2[dat$aspect_cardinal=="SW" & dat$aspect>225]<-"W"
+dat$aspect_cardinal2[dat$aspect_cardinal=="WSW"]<-"W"
+dat$aspect_cardinal2[dat$aspect_cardinal=="WNW"]<-"W"
+dat$aspect_cardinal2[dat$aspect_cardinal=="NW" & dat$aspect<=315]<-"W"
+dat$aspect_cardinal2[dat$aspect_cardinal=="NW" & dat$aspect>315]<-"N"
+
+table(dat$aspect_cardinal2)
+dat[dat$aspect_cardinal2=="0",]
+dat<-dat %>% drop_na(aspect_cardinal)
+
+names(dat)
+# create dummy variables for aspect
+dat$aspect_N <- ifelse(dat$aspect_cardinal2 == 'N', 1, 0)
+dat$aspect_E <- ifelse(dat$aspect_cardinal2 == 'E', 1, 0)
+dat$aspect_S <- ifelse(dat$aspect_cardinal2 == 'S', 1, 0)
+dat$aspect_W <- ifelse(dat$aspect_cardinal2 == 'W', 1, 0)
+```
+
+### FRT 5
+```{r}
+frt5<- dat %>% filter(frt==5)
+head(frt5)
+
+model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt5_lightning.csv")
+
+model_coef_table_lightning
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+logit_P_lightning_coef<- model_coef_table_lightning$intercept + 
+  model_coef_table_lightning$coef_elevatn * frt5$elevation
+
+frt5$logit_P_lightning_coef<-logit_P_lightning_coef
+
+####################################
+# PErson ignitions
+
+model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT5_person.csv")
+model_coef_table_person
+
+logit_P_person_coef<- model_coef_table_person$intercept + 
+  model_coef_table_person$coef_log_road_dist*(log(frt5$dist_roads_m+1))+
+  model_coef_table_person$coef_log_infr_dist*(log(frt5$dist_infrastructure_m+1))
+
+frt5$logit_P_person_coef<-logit_P_person_coef
+
+##########################
+# probability of escape
+
+model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt5_escape.csv")
+
+model_coef_table_escape
+
+logit_P_escape_coef<- model_coef_table_escape$intercept + 
+  model_coef_table_escape$coef_elevation*frt5$elevation + 
+  model_coef_table_escape$coef_log_road*log(frt5$dist_roads_m+1)+
+  model_coef_table_escape$coef_dist_infra*frt5$dist_infrastructure_m
+  
+frt5$logit_P_escape_coef<-logit_P_escape_coef
+
+##################################
+# spread probabilities
+
+model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt5_spread.csv")
+
+model_coef_table_spread
+
+# there are some Na values for wind so Ill fill in those values with the average.
+table(is.na(frt5$win_spr))
+frt5$win_spr[is.na(frt5$win_spr)] <- mean(frt5$win_spr, na.rm = TRUE)
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+logit_P_spread_coef<- model_coef_table_spread$intercept + 
+  model_coef_table_spread$coef_elevation*frt5$elevation +
+  model_coef_table_spread$coef_aspect_N*frt5$aspect_N +
+  model_coef_table_spread$coef_aspect_S*frt5$aspect_S +
+  model_coef_table_spread$coef_aspect_W*frt5$aspect_W +
+  model_coef_table_spread$coef_dist_roads*frt5$dist_roads_m +
+  model_coef_table_spread$coef_dist_infr*(log(frt5$dist_infrastructure_m+1)) +
+  model_coef_table_spread$coef_win_spg*frt5$win_spr
+  
+frt5$logit_P_spread_coef<-logit_P_spread_coef
+
+rm(model_coef_table, model_coef_table_escape, model_coef_table_lightning, model_coef_table_person, model_coef_table_spread)
+gc()
+```
+
+## FRT 7
+```{r}
+frt7<- dat %>% filter(frt==7)
+
+model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt7_lightning.csv")
+
+model_coef_table_lightning
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+logit_P_lightning_coef<- model_coef_table_lightning$intercept
+
+frt7$logit_P_lightning_coef<-logit_P_lightning_coef
+
+#####################
+# Ignition Person
+model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT7_person.csv")
+
+model_coef_table_person
+
+logit_P_person_coef<- model_coef_table_person$intercept + 
+  model_coef_table_person$coef_log_road_dist*(log(frt7$dist_roads_m+1))+
+  model_coef_table_person$coef_infr_dist*(log(frt7$dist_infrastructure_m+1))
+
+frt7$logit_P_person_coef<-logit_P_person_coef
+
+###################
+# escape
+model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT7_escape.csv")
+
+model_coef_table_escape
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+logit_P_escape_coef<- model_coef_table_escape$intercept + 
+  model_coef_table_escape$coef_log_roads*log(frt7$dist_roads_m +1) 
+
+frt7$logit_P_escape_coef<-logit_P_escape_coef
+
+######################
+## spread
+model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt7_spread.csv")
+
+model_coef_table_spread
+
+logit_P_spread_coef<- model_coef_table_spread$intercept + 
+  model_coef_table_spread$coef_slope*frt7$slope +
+  model_coef_table_spread$coef_aspect_N*frt7$aspect_N +
+  model_coef_table_spread$coef_aspect_S*frt7$aspect_S +
+  model_coef_table_spread$coef_aspect_W*frt7$aspect_W +
+  model_coef_table_spread$coef_log_dist_roads*log(frt7$dist_roads_m+1) +
+  model_coef_table_spread$coef_dist_infr*frt7$dist_infrastructure_m
+
+frt7$logit_P_spread_coef<-logit_P_spread_coef
+
+rm(model_coef_table, model_coef_table_escape, model_coef_table_lightning, model_coef_table_person, model_coef_table_spread)
+gc()
+
+
+```
+
+## FRT9
+
+```{r}
+frt9<- dat %>% filter(frt==9)
+
+model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_lightning.csv")
+model_coef_table_lightning
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+logit_P_lightning_coef<- model_coef_table_lightning$intercept + 
+  model_coef_table_lightning$coef_elevatn*frt9$elevation
+
+frt9$logit_P_lightning_coef<-logit_P_lightning_coef
+######################################3
+# person caused ignitions
+
+model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_person.csv")
+model_coef_table_person
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+logit_P_person_coef<- model_coef_table_person$intercept + 
+  model_coef_table_person$coef_elevatn*frt9$elevation  +
+  model_coef_table_person$coef_infr_dist*frt9$dist_infrastructure_m
+
+
+frt9$logit_P_person_coef<-logit_P_person_coef
+
+##################################
+# escape
+model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_escape.csv")
+
+model_coef_table_escape
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+logit_P_escape_coef<- model_coef_table_escape$intercept +
+  model_coef_table_escape$coef_log_infra*(log(frt9$dist_infrastructure_m+1))
+
+frt9$logit_P_escape_coef<-logit_P_escape_coef
+
+################################
+# spread
+model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_spread.csv")
+
+model_coef_table_spread
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+logit_P_spread<- model_coef_table_spread$intercept +
+  model_coef_table_spread$coef_elev*frt9$elevation +
+  model_coef_table_spread$coef_aspect_N*frt9$aspect_N +
+  model_coef_table_spread$coef_aspect_S*frt9$aspect_S +
+  model_coef_table_spread$coef_aspect_W*frt9$aspect_W +
+  model_coef_table_spread$coef_log_dist_roads*log(frt9$dist_roads_m+1)+
+  model_coef_table_spread$coef_dist_infr_m*frt9$dist_infrastructure_m
+
+logit_P_spread
+
+frt9$logit_P_spread_coef<-logit_P_spread
+
+rm(model_coef_table, model_coef_table_escape, model_coef_table_lightning, model_coef_table_person, model_coef_table_spread)
+gc()
+
+```
+
+## FRT10
+```{r}
+frt10<- dat %>% filter(frt==10)
+
+model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT10_lightning.csv")
+
+model_coef_table_lightning
+
+logit_P_lightning_coef<- model_coef_table_lightning$intercept + 
+  model_coef_table_lightning$coef_elevatn*frt10$elevation
+
+frt10$logit_P_lightning_coef<-logit_P_lightning_coef
+
+########################################
+# Person
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT10_person.csv")
+model_coef_table
+
+logit_P_person_coef<- model_coef_table$intercept + 
+  model_coef_table$coef_log_road_dist*(log(frt10$dist_roads_m+1))
+
+frt10$logit_P_person_coef<-logit_P_person_coef
+
+#################################
+# escape
+model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt10_escape.csv")
+
+model_coef_table_escape
+
+logit_P_escape<- model_coef_table_escape$intercept + 
+  model_coef_table_escape$coef_slope*frt10$slope +
+  model_coef_table_escape$coef_road_dist*frt10$dist_roads_m +
+  model_coef_table_escape$coef_log_infr_dist*log(frt10$dist_infrastructure_m +1)
+
+frt10$logit_P_escape_coef<-logit_P_escape
+
+###########################
+# Spread
+
+table(is.na(frt10$win_spr))
+frt10$win_spr[is.na(frt10$win_spr)] <- mean(frt10$win_spr, na.rm = TRUE)
+
+
+model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt10_spread.csv")
+
+model_coef_table_spread
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+logit_P_spread<- model_coef_table_spread$intercept +
+  model_coef_table_spread$coef_elevation*frt10$elevation +
+  model_coef_table_spread$coef_slope*frt10$slope +
+  model_coef_table_spread$coef_aspect_N*frt10$aspect_N +
+  model_coef_table_spread$coef_aspect_S*frt10$aspect_S +
+  model_coef_table_spread$coef_aspect_W*frt10$aspect_W +
+  model_coef_table_spread$coef_dist_infr*frt10$dist_infrastructure_m
+
+frt10$logit_P_spread_coef<-logit_P_spread
+
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+rm(model_coef_table, model_coef_table_escape, model_coef_table_lightning, model_coef_table_person, model_coef_table_spread, prob_ignition_escape, prob_ignition_lightning, prob_ignition_person, prob_ignition_spread, logit_P_escape, logit_P_lightning, logit_P_person, logit_P_spread)
+gc()
+
+```
+
+
+## FRT 11 
+
+```{r}
+frt11<- dat %>% filter(frt==11)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT11_lightning.csv")
+model_coef_table
+
+logit_P_lightning_coef<- model_coef_table$intercept
+
+frt11$logit_P_lightning_coef<-logit_P_lightning_coef
+
+##########################
+#Person
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_person.csv")
+model_coef_table
+
+logit_P_person_coef<- model_coef_table$intercept +
+  model_coef_table$coef_log_road_dist*log(frt11$dist_roads_m+1) +
+  model_coef_table$coef_log_infr_dist_m*log(frt11$dist_infrastructure_m+1) 
+
+frt11$logit_P_person_coef<-logit_P_person_coef
+
+
+################################
+# Escape
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_escape.csv")
+
+model_coef_table
+
+logit_P_escape_coef<- model_coef_table$intercept + 
+  model_coef_table$coef_log_infra*log(frt11$dist_infrastructure_m + 1)
+
+frt11$logit_P_escape_coef<-logit_P_escape_coef
+
+##########################
+# Spread
+
+table(is.na(frt11$win_sum))
+frt11$win_sum[is.na(frt11$win_sum)] <- mean(frt11$win_sum, na.rm = TRUE)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_spread.csv")
+
+model_coef_table
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+logit_P_spread<- model_coef_table$intercept + 
+  model_coef_table$coef_slope*frt11$slope +
+  model_coef_table$coef_aspect_N*frt11$aspect_N +
+  model_coef_table$coef_aspect_S*frt11$aspect_S +
+  model_coef_table$coef_aspect_W*frt11$aspect_W +
+  model_coef_table$coef_dist_roads*frt11$dist_roads_m +
+  model_coef_table$coef_dist_infr*frt11$dist_infrastructure_m +
+  model_coef_table$coef_wind_summer*frt11$win_sum
+
+frt11$logit_P_spread_coef<-logit_P_spread
+
+```
+
+## FRT 12
+
+```{r}
+frt12<- dat %>% filter(frt==12)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT12_lightning.csv")
+model_coef_table
+
+logit_P_lightning_coef<- model_coef_table$intercept + 
+  model_coef_table$coef_elevatn*frt12$elevation
+
+frt12$logit_P_lightning_coef<-logit_P_lightning_coef
+
+##########################
+# Person
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT12_person.csv")
+model_coef_table
+
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+
+logit_P_person_coef<- model_coef_table$intercept + 
+  model_coef_table$coef_elevatn*frt12$elevation + 
+  model_coef_table$coef_log_road_dist*log(frt12$dist_roads_m+1) +
+  model_coef_table$coef_log_inf_dist*log(frt12$dist_infrastructure_m+1)
+  
+frt12$logit_P_person_coef<-logit_P_person_coef
+
+##################################
+#escape
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt12_escape.csv")
+
+model_coef_table
+
+logit_P_escape_coef<- model_coef_table$intercept +
+  model_coef_table$coef_slope*frt12$slope +
+  model_coef_table$coef_elev*frt12$elevation +
+  model_coef_table$coef_win_sum*frt12$win_sum + 
+  model_coef_table$coef_dist_roads_m*frt12$dist_roads_m +
+  model_coef_table$coef_log_infr_dist*log(frt12$dist_infrastructure_m+1)
+
+frt12$logit_P_escape_coef<-logit_P_escape_coef
+
+########################
+# Spread
+
+table(is.na(frt12$win_sum))
+frt12$win_sum[is.na(frt12$win_sum)] <- mean(frt12$win_sum, na.rm = TRUE)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt12_spread.csv")
+
+model_coef_table
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+logit_P_spread<- model_coef_table$intercept +
+  model_coef_table$coef_elevation*frt12$elevation +
+  model_coef_table$coef_slope*frt12$slope +
+  model_coef_table$coef_log_dist_roads*log(frt12$dist_roads_m+1) +
+  model_coef_table$coef_log_dist_infra*log(frt12$dist_infrastructure_m+1) +
+  model_coef_table$coef_wind_summer*frt12$win_sum
+
+logit_P_spread
+frt12$logit_P_spread_coef<-logit_P_spread
+
+
+```
+
+## FRT13
+```{r}
+frt13<- dat %>% filter(frt==13)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT13_lightning.csv")
+model_coef_table
+
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+
+logit_P_lightning_coef<- model_coef_table$intercept + 
+  model_coef_table$coef_elev*frt13$elevation
+
+frt13$logit_P_lightning_coef<-logit_P_lightning_coef
+
+#############################
+# person
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT13_person.csv")
+model_coef_table
+
+logit_P_person_coef<- model_coef_table$intercept + 
+  model_coef_table$coef_elevatn*frt13$elevation + 
+  model_coef_table$coef_log_road_dist*log(frt13$dist_roads_m+1) +
+  model_coef_table$coef_log_inf_dist*log(frt13$dist_infrastructure_m+1)
+
+frt13$logit_P_person_coef<-logit_P_person_coef
+
+################################
+#escape
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt13_escape.csv")
+model_coef_table
+
+logit_P_escape_coef<- model_coef_table$intercept + 
+  model_coef_table$coef_slope*frt13$slope +
+  model_coef_table$coef_win_sum*frt13$win_sum +
+  model_coef_table$coef_roads_m*frt13$dist_roads_m +
+  model_coef_table$coef_log_infr*log(frt13$dist_infrastructure_m+1) 
+
+frt13$logit_P_escape_coef<-logit_P_escape_coef
+
+##########################
+#spread
+
+frt13$win_sum[is.na(frt13$win_sum)] <- mean(frt13$win_sum, na.rm = TRUE)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt13_spread.csv")
+
+model_coef_table
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+logit_P_spread<- model_coef_table$intercept + 
+  model_coef_table$coef_elevation*frt13$elevation +
+  model_coef_table$coef_aspect_N*frt13$aspect_N +
+  model_coef_table$coef_aspect_S*frt13$aspect_S +
+  model_coef_table$coef_aspect_W*frt13$aspect_W +
+  model_coef_table$coef_log_dist_roads*log(frt13$dist_roads_m+1) +
+  model_coef_table$coef_log_dist_infra*log(frt13$dist_infrastructure_m+1) +
+  model_coef_table$coef_wind_summer*frt13$win_sum
+
+logit_P_spread
+frt13$logit_P_spread_coef<-logit_P_spread
+
+```
+
+#FRT 14
+```{r}
+frt14<- dat %>% filter(frt==14)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT14_lightning.csv")
+model_coef_table
+
+logit_P_lightning_coef<- model_coef_table$intercept
+frt14$logit_P_lightning_coef<-logit_P_lightning_coef
+
+############################
+# person
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT14_person.csv")
+model_coef_table
+
+logit_P_person_coef<- model_coef_table$intercept + 
+  model_coef_table$coef_log_road_dist*log(frt14$dist_roads_m+1) +
+  model_coef_table$coef_log_inf_dist*log(frt14$dist_infrastructure_m+1)
+
+frt14$logit_P_person_coef<-logit_P_person_coef
+
+##############################
+#escape  
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt14_escape.csv")
+model_coef_table
+
+logit_P_escape_coef<- model_coef_table$intercept + 
+  model_coef_table$coef_win_sum*frt14$win_sum +
+  model_coef_table$coef_dist_road_m*log(frt14$dist_roads_m+1) +
+  model_coef_table$coef_dist_infr_m*log(frt14$dist_infrastructure_m+1)
+  
+frt14$logit_P_escape_coef<-logit_P_escape_coef
+
+################################
+#spread
+
+frt14$win_sum[is.na(frt14$win_sum)] <- mean(frt14$win_sum, na.rm = TRUE)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt14_spread.csv")
+
+model_coef_table
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+logit_P_spread<- model_coef_table$intercept + 
+  model_coef_table$coef_elevation*frt14$elevation +
+  model_coef_table$coef_aspect_N*frt14$aspect_N +
+  model_coef_table$coef_aspect_S*frt14$aspect_S +
+  model_coef_table$coef_aspect_W*frt14$aspect_W +
+  model_coef_table$coef_dist_roads*log(frt14$dist_roads_m+1) +
+  model_coef_table$coef_log_dist_infra*log(frt14$dist_infrastructure_m+1) +
+  model_coef_table$coef_wind_summer*frt14$win_sum
+
+logit_P_spread
+frt14$logit_P_spread_coef<-logit_P_spread
+
+```
+
+## FRT15
+```{r}
+frt15<- dat %>% filter(frt==15)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT15_lightning.csv")
+model_coef_table
+
+logit_P_lightning_coef<- model_coef_table$intercept + 
+  model_coef_table$coef_elevatn*frt15$elevation
+
+frt15$logit_P_lightning_coef<-logit_P_lightning_coef
+
+################################
+# Person
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT15_person.csv")
+model_coef_table
+
+logit_P_person_coef<- model_coef_table$intercept + 
+   model_coef_table$coef_log_road_dist*log(frt15$dist_roads_m+1) +
+  model_coef_table$coef_infr_dist*frt15$dist_infrastructure_m 
+
+frt15$logit_P_person_coef<-logit_P_person_coef
+
+################################
+# escape
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt15_escape.csv")
+model_coef_table
+
+logit_P_escape_coef<- model_coef_table$intercept + 
+  model_coef_table$coef_slope*frt15$slope +
+  model_coef_table$coef_log_infr_ds*log(frt15$dist_infrastructure_m+1)
+
+frt15$logit_P_escape_coef<-logit_P_escape_coef
+
+#################################
+# spread
+frt15$win_sum[is.na(frt15$win_sum)] <- mean(frt15$win_sum, na.rm = TRUE)
+
+model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt15_spread.csv")
+model_coef_table
+
+# put coefficients into model formula
+#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+logit_P_spread<- model_coef_table$intercept + 
+  model_coef_table$coef_slope*frt15$slope +
+  model_coef_table$coef_aspect_N*frt15$aspect_N +
+  model_coef_table$coef_aspect_S*frt15$aspect_S +
+  model_coef_table$coef_aspect_W*frt15$aspect_W +
+  model_coef_table$coef_log_dist_infra*log(frt15$dist_infrastructure_m+1) +
+  model_coef_table$coef_wind_summer*frt15$win_sum
+
+logit_P_spread
+frt15$logit_P_spread_coef<-logit_P_spread
+
+
+rm(model_coef_table, model_coef_table_escape, model_coef_table_lightning, model_coef_table_person, model_coef_table_spread, prob_ignition_escape, prob_ignition_lightning, prob_ignition_person, prob_ignition_spread, logit_P_escape, logit_P_lightning, logit_P_person, logit_P_spread)
+gc()
+
+table(is.na(frt15$prob_ignition_spread))
+
+```
+
+# now join all the frt's back together. 
+```{r}
+frt_all<-rbind(rbind(rbind(rbind(rbind(rbind(rbind(rbind(frt5, frt7), frt9), frt10), frt11), frt12), frt13), frt14), frt15)
+
+dim(frt_all)
+
+table(is.na(frt_all$logit_P_lightning_coef ))
+table(is.na(frt_all$logit_P_person_coef))
+table(is.na(frt_all$logit_P_escape_coef ))
+table(is.na(frt_all$logit_P_spread_coef))
+```
+
+# save it!
+```{r}
+st_write(frt_all, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_ignit_escape_spread_final_constant_coefficients.gpkg", delete_layer=TRUE, driver="GPKG")
+```
+
