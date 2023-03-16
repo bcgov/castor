@@ -2819,5 +2819,19 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
+
+
+
+
+public.central_group_chra_032023
+public.central_group_chma_032023
+rast.central_group_chra_032023 
+rast.central_group_chma_032023
+vat", "central_group_chra_032023
+vat", "central_group_chma_032023
+
+
+
+
 ```
 
