@@ -22,6 +22,10 @@ dat<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC
 dat<-st_transform(dat, 3005)
 dat$frt<-as.factor(dat$frt)
 dat$frt[dat$frt==3]<-5
+
+# for escaped fires I combine frt 9 and 11 because the number of escaped fires are very small and this bolsters my sample size. I dont do it for the others though because I think the fire dynamics are a little different in the two different areas and so its better to leave them separate. 
+dat$frt_escape<-dat$frt
+dat$frt_escape[dat$frt_escape==9]<-11
 ```
 
 #Change Aspect to N,S,E,W
@@ -87,7 +91,12 @@ names(dat)
 #If you need to open the table listing the top climate
 climate_variables_lightning<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")
 
+climate_variables_person<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
+
+climate_escape<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\climate_AIC_results_escape_summary_March2023.csv")
+
 climate_variables_lightning
+climate_variables_person
 
  # Lightning caused fires
 dat$mean_Tave05_Tave06_Tave07_Tave08 <- (dat$Tave05 + dat$Tave06 + dat$Tave07 + dat$Tave08)/4
@@ -106,6 +115,7 @@ dat$mean_Tave07_Tave08<- (dat$Tave07 + dat$Tave08)/2
 dat$mean_Tave06_Tave07_Tave08 <- (dat$Tave06 + dat$Tave07 + dat$Tave08)/3
 dat$mean_PPT06_PPT07_PPT08 <- (dat$PPT06 + dat$PPT07 + dat$PPT08)/3
 
+# ignition person
 dat$mean_PPT06_PPT07 <-(dat$PPT06 + dat$PPT07)/2
 
 dat$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<-(dat$Tave04 + dat$Tave05 + dat$Tave06 + dat$Tave07 +dat$Tave08 + dat$Tave09 + dat$Tave10)/7
@@ -116,11 +126,14 @@ dat$mean_Tave08_Tave09_Tave10<-(dat$Tave08 + dat$Tave09 + dat$Tave10)/3
 
 dat$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<-(dat$Tmax04 + dat$Tmax05 + dat$Tmax06 + dat$Tmax07 +dat$Tmax08 + dat$Tmax09 + dat$Tmax10)/7
 
+# escape
 
 dat$mean_Tave04_Tave05_Tave06<- (dat$Tave04 + dat$Tave05 + dat$Tave06 )/3
-
-dat$mean_PPT04_PPT05_PPT06<- (dat$PPT04 + dat$PPT05 + dat$PPT06)/3
-
+dat$tot_spring_PPT<-dat$PPT04+ dat$PPT05 + dat$PPT06
+dat$summer_Tave<-(dat$Tave07+ dat$Tave08 + dat$Tave09)/3
+dat$spring_Tave<-(dat$Tave04+ dat$Tave05 + dat$Tave06)/3
+dat$tot_summer_PPT<-dat$PPT07+ dat$PPT08 + dat$PPT09
+dat$summer_Tmax<-(dat$Tmax07+ dat$Tmax08 + dat$Tmax09)/3
 dat$mean_PPT05_PPT06<- (dat$PPT05 + dat$PPT06)/2
 
 #Spread
@@ -188,21 +201,25 @@ dat<-dat %>%
                                 frt == "15" ~ as.numeric(mean_PPT07_PPT08_PPT09),
                                TRUE ~ NA_real_))
 
+###############
+##escape
+###############
+climate_escape<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\climate_AIC_results_escape_summary_March2023.csv")
 dat$climate1_escape<-"NA"
 
 names(dat)
 
 dat<-dat %>%
     mutate(climate1_escape = case_when(
-                            frt == "5" ~ as.numeric(PPT05) ,
-                            frt == "7" ~ as.numeric(PPT03),
-                            frt == "9" ~ Tave05,
-                            frt == "10" ~ mean_Tave05_Tave06_Tave07_Tave08 ,
-                            frt == "11" ~ Tave09,
-                            frt == "12" ~ mean_Tave04_Tave05_Tave06,
-                            frt == "13" ~ Tave09,
-                            frt == "14" ~ as.numeric(mean_PPT05_PPT06),
-                            frt == "15" ~ Tave04 ,
+                            frt_escape == "5" ~ as.numeric(PPT05) ,
+                            frt_escape == "7" ~ as.numeric(mean_PPT06_PPT07_PPT08),
+                            #frt_escape == "9" ~ Tave05,
+                            frt_escape == "10" ~ as.numeric(tot_spring_PPT),
+                            frt_escape == "11" ~ summer_Tave,
+                            frt_escape == "12" ~ spring_Tave,
+                            frt_escape == "13" ~ summer_Tmax,
+                            frt_escape == "14" ~ as.numeric(mean_PPT05_PPT06),
+                            frt_escape == "15" ~ summer_Tave ,
                             TRUE ~ NA_real_))
 
 #Repeat for climate 2
@@ -210,11 +227,14 @@ dat$climate2_escape<-"NA"
 
 dat<-dat %>%
     mutate(climate2_escape = case_when(
-                            frt == "10" ~ as.numeric(mean_PPT05_PPT06_PPT07_PPT08) ,
-                            frt == "12" ~ as.numeric(mean_PPT04_PPT05_PPT06),
-                            frt == "15" ~ as.numeric(PPT04),
+                            frt_escape == "12" ~ as.numeric(tot_spring_PPT) ,
+                            frt_escape == "13" ~ as.numeric(tot_summer_PPT),
+                            frt_escape == "15" ~ as.numeric(tot_summer_PPT),
                             TRUE ~ NA_real_))
 
+###################
+##Spread
+###################
 dat$climate1_spread<-"NA"
 head(dat)
 
@@ -389,7 +409,8 @@ logit_P_escape<- model_coef_table_escape[[2]] +
   model_coef_table_escape[[7]]*frt5$veg_M12 +
   model_coef_table_escape[[8]]*frt5$veg_O1ab +
   model_coef_table_escape[[9]]*frt5$el + 
-  model_coef_table_escape[[10]]*log(frt5$dist_infrastructure_m+1)
+  model_coef_table_escape[[10]]*log(frt5$dist_roads_m+1)
+  model_coef_table_escape[[11]]*frt5$dist_infrastructure_m
   
 
 head(frt5)
@@ -545,6 +566,14 @@ rm(frt7)
 ###################
 # escape
 frt7<- ignition2 %>% filter(frt==7)
+table(frt7$FWI_veg)
+
+frt7$veg_C2 <- ifelse(frt7$FWI_veg == 'C-4', 1, frt7$veg_C2)
+frt7$veg_D12 <- ifelse(frt7$FWI_veg == 'C-5', 1, frt7$veg_D12)
+frt7$veg_D12 <- ifelse(frt7$FWI_veg == 'C-7', 1, frt7$veg_D12)
+frt7$veg_M12 <- ifelse(frt7$FWI_veg == 'S-1', 1, frt7$veg_M12)
+frt7$veg_M12 <- ifelse(frt7$FWI_veg == 'S-2', 1, frt7$veg_M12)
+
 
 model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt7_escape.csv")
 
@@ -554,7 +583,13 @@ model_coef_table_escape
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
 logit_P_escape<- model_coef_table_escape[[2]] + 
   model_coef_table_escape[[3]]*frt7$climate1_escape +
-  model_coef_table_escape[[4]]*log(frt7$dist_infrastructure_m +1) 
+  model_coef_table_escape[[4]]*frt7$veg_C2 +
+  model_coef_table_escape[[5]]*frt7$veg_C3 +
+  model_coef_table_escape[[6]]*frt7$veg_D12 +
+  model_coef_table_escape[[7]]*frt7$veg_M12 +
+  model_coef_table_escape[[8]]*frt7$veg_N +
+  model_coef_table_escape[[9]]*frt7$veg_O1ab + 
+  model_coef_table_escape[[10]]*log(frt7$dist_roads_m +1) 
 
 head(frt7)
 # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
@@ -697,7 +732,7 @@ table(is.na(frt9$climate1_escape))
 frt9$climate1_escape[is.na(frt9$climate1_escape)] <- mean(frt9$climate1_escape, na.rm = TRUE)
 
 
-model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_escape.csv")
+model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_escape.csv")
 
 model_coef_table_escape
 
@@ -705,7 +740,7 @@ model_coef_table_escape
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
 logit_P_escape<- model_coef_table_escape[[2]] +
   model_coef_table_escape[[3]]*frt9$climate1_escape +
-  model_coef_table_escape[[4]]*(log(frt9$dist_roads_m+1))
+  model_coef_table_escape[[4]]*(log(frt9$dist_infrastructure_m+1))
 
 logit_P_escape
 # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
@@ -851,9 +886,9 @@ model_coef_table_escape
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
 logit_P_escape<- model_coef_table_escape[[2]] + 
   model_coef_table_escape[[3]]*frt10$climate1_escape +
-  model_coef_table_escape[[4]]*frt10$climate2_escape +
-  model_coef_table_escape[[5]]*log(frt10$dist_roads_m+1) +
-  model_coef_table_escape[[6]]*frt10$dist_infrastructure_m 
+  model_coef_table_escape[[4]]*frt10$slope +
+  model_coef_table_escape[[5]]*frt10$dist_roads_m +
+  model_coef_table_escape[[6]]*log(frt10$dist_infrastructure_m +1)
 
 logit_P_escape
 # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
@@ -992,8 +1027,7 @@ model_coef_table
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
 logit_P_escape<- model_coef_table[[2]] + 
   model_coef_table[[3]]*frt11$climate1_escape +
-  model_coef_table[[4]]*log(frt11$dist_roads_m+1) +
-  model_coef_table[[5]]*log(frt11$dist_infrastructure_m + 1)
+  model_coef_table[[4]]*log(frt11$dist_infrastructure_m + 1)
 
 logit_P_escape
 # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
@@ -1149,27 +1183,28 @@ model_coef_table
 table(frt12$FWI_veg)
 
 frt12$veg_C2 <- ifelse(frt12$FWI_veg == 'C-4', 1, frt12$veg_C2)
-frt12$veg_M12 <- ifelse(frt12$FWI_veg == 'S-3', 1, frt12$veg_M12)
-frt12$veg_M12 <- ifelse(frt12$FWI_veg == 'S-1', 1, frt12$veg_M12)
+frt12$veg_S1 <- ifelse(frt12$FWI_veg == 'S-3', 1, frt12$veg_S1)
+frt12$veg_O1ab <- ifelse(frt12$FWI_veg == 'M-3', 1, frt12$veg_O1ab)
 frt12$veg_C7 <- ifelse(frt12$FWI_veg == 'S-2', 1, frt12$veg_C7)
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
 logit_P_escape<- model_coef_table[[2]] +
-  model_coef_table[[3]]*frt12$climate1_escape +
+  model_coef_table[[3]]*frt12$climate2_escape +
   model_coef_table[[4]]*frt12$veg_C2 +
   model_coef_table[[5]]*frt12$veg_C3 +
   model_coef_table[[6]]*frt12$veg_C5 +
   model_coef_table[[7]]*frt12$veg_C7 +
   model_coef_table[[8]]*frt12$veg_D12 +
   model_coef_table[[9]]*frt12$veg_M12 +
-  model_coef_table[[10]]*frt12$veg_M3 +
-  model_coef_table[[11]]*frt12$veg_N +
-  model_coef_table[[12]]*frt12$veg_O1ab +
+  model_coef_table[[10]]*frt12$veg_N +
+  model_coef_table[[11]]*frt12$veg_O1ab +
+  model_coef_table[[12]]*frt12$veg_S1 +
   model_coef_table[[13]]*frt12$slope +
-  model_coef_table[[14]]*frt12$win_sum + 
-  model_coef_table[[15]]*log(frt12$dist_roads_m+1) +
-  model_coef_table[[16]]*log(frt12$dist_infrastructure_m+1)
+  model_coef_table[[14]]*frt12$el +
+  model_coef_table[[15]]*frt12$win_sum + 
+  model_coef_table[[16]]*frt12$dist_roads_m +
+  model_coef_table[[17]]*log(frt12$dist_infrastructure_m+1)
 
 logit_P_escape
 # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
@@ -1330,26 +1365,26 @@ table(frt13$FWI_veg)
 
 frt13$veg_C3 <- ifelse(frt13$FWI_veg == 'C-1', 1, frt13$veg_C3)
 frt13$veg_C2 <- ifelse(frt13$FWI_veg == 'C-4', 1, frt13$veg_C2)
-frt13$veg_C7 <- ifelse(frt13$FWI_veg == 'S-2', 1, frt13$veg_C7)
-frt13$veg_O1ab <- ifelse(frt13$FWI_veg == 'M-3', 1, frt13$veg_O1ab)
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
 logit_P_escape<- model_coef_table[[2]] + 
   model_coef_table[[3]]*frt13$climate1_escape +
-  model_coef_table[[4]]*frt13$veg_C3 +
-  model_coef_table[[5]]*frt13$veg_C5 +
-  model_coef_table[[6]]*frt13$veg_C7 +
-  model_coef_table[[7]]*frt13$veg_D12 +
-  model_coef_table[[8]]*frt13$veg_M12 +
-  model_coef_table[[9]]*frt13$veg_N +
-  model_coef_table[[10]]*frt13$veg_O1ab +
-  model_coef_table[[11]]*frt13$veg_S1 +
-  model_coef_table[[12]]*frt13$veg_S3 +
-  model_coef_table[[13]]*frt13$slope +
-  model_coef_table[[14]]*frt13$el +
-  model_coef_table[[15]]*frt13$win_sum +
-  model_coef_table[[16]]*log(frt13$dist_roads_m+1) +
-  model_coef_table[[17]]*log(frt13$dist_infrastructure_m+1) 
+  model_coef_table[[4]]*frt13$climate2_escape +
+  model_coef_table[[5]]*frt13$veg_C3 +
+  model_coef_table[[6]]*frt13$veg_C5 +
+  model_coef_table[[7]]*frt13$veg_C7 +
+  model_coef_table[[8]]*frt13$veg_D12 +
+  model_coef_table[[9]]*frt13$veg_M12 +
+  model_coef_table[[10]]*frt13$veg_M3 +
+  model_coef_table[[11]]*frt13$veg_N +
+  model_coef_table[[12]]*frt13$veg_O1ab +
+  model_coef_table[[13]]*frt13$veg_S1 +
+  model_coef_table[[14]]*frt13$veg_S2 +
+  model_coef_table[[15]]*frt13$veg_S3 +
+  model_coef_table[[16]]*frt13$slope +
+  model_coef_table[[17]]*frt13$win_sum +
+  model_coef_table[[18]]*frt13$dist_roads_m +
+  model_coef_table[[19]]*log(frt13$dist_infrastructure_m+1) 
   
 logit_P_escape
 # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
@@ -1728,6 +1763,7 @@ gc()
 table(is.na(frt15$prob_ignition_spread))
 
 ```
+
 # now join all the frt's back together. 
 ```{r}
 frt_all<-rbind(rbind(rbind(rbind(rbind(rbind(rbind(rbind(frt5, frt7), frt9), frt10), frt11), frt12), frt13), frt14), frt15)
@@ -1755,7 +1791,16 @@ frt_all2[is.na(frt_all2$prob_ignition_spread),]
 
 # save it!
 ```{r}
-st_write(frt_all2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_ignit_escape_spread_final_2001.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(frt_all2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_ignit_escape_spread_final_2022.gpkg", delete_layer=TRUE, driver="GPKG")
+```
+
+
+```{r}
+library("ggpubr")
+ggscatter(frt_all2, x = "prob_ignition_escape", y = "prob_ignition_spread", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "Prob escape", ylab = "Prob spread")
 ```
 
 
