@@ -78,7 +78,9 @@ Now we must bring in the data that we created at the end of 10_fire_escape_data_
 
 ```{r}
 
-escape <- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg")
+escape <- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\fire_escape_with_CMI_dat.gpkg")
+
+#("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg")
 
 table(is.na(escape$Cluster)) # wierd there are 13 points that have no Cluster assigned to them.Not I tried joining them to FRT again and I still have 13 missing FRT info so Ill remove these points
 
@@ -87,9 +89,9 @@ escape$Cluster[is.na(escape$Cluster)]<-15
 
 escape$Cluster[escape$Cluster==3]<-5
 
-escape$escape10<- NA
-escape$escape10[escape$size_ha > 10] <- 1
-escape$escape10[escape$size_ha <= 10] <- 0
+escape$escape9<- NA
+escape$escape9[escape$size_ha > 9] <- 1
+escape$escape9[escape$size_ha <= 9] <- 0
 
 ```
 

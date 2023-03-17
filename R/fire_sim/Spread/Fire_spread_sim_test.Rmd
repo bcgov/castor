@@ -44,7 +44,7 @@ dim(spread.ras)
 # combine lightning and person caused fires to create general ignition map.
 
 #P(Ignition) = P(lightning) x  (1-P(human)) + P(human) x (  1-P(lightning)) # Formula was used in this paper: https://iopscience.iop.org/article/10.1088/1748-9326/ac03da (Barros et.al. (2021) Contrasting the role of human- and lightning-caused wildfires on future fire regimes on a Central Oregon landscape. )
-
+# one suggestion was to weight the person and lightning caused fires by their frequency in the region. I should try this out I think. 
 total.ignit <- (lightning_ignition * (1-human_ignition)) + (human_ignition * (1-lightning_ignition))
 
 plot(total.ignit, col=rev(heat.colors(255)))

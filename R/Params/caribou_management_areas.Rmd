@@ -1259,13 +1259,135 @@ dbDisconnect(conn)
 ```
 
 
+### Central Group land use order zones March 2023
+These are the land use order areas as of March 2023.
+
+Consists of:
+
+•	Caribou Habitat Recovery Areas (CHRAs) – 3rd order watershed sub-units in which there will be no industrial development until the habitat in these sub-units have recovered. 
+  o	Recovered = 50% or more of the CHRA unit is > 100 years old, except in BWBS pine dominated stands, where it must be > 60 years old. Sub-units need to be in recovered condition for ten years. 
+    	No disturbances other than permanent disturbances (agriculture, dam, railway, reservoir, urban, transmission line, wells, pipelines, and airstrips). 
+    	All linear features, other than permanent, will be restored, either actively or passively. Partnership Agreement zones A2, B2 and B3, and CHRAs will be the subject of restoration from linear feature offsetting.
+    	CHRAs will be automatically renewed unless one or more watershed areas is exchanged with CHMA watershed areas identified as available for exchange (see .shp) upon recovery.
+  o	OR: For the purposes of this socio-economic assessment, assume that there will be no industrial development for an average of 60 years.
+
+
+•	Caribou Habitat Management Areas (CHMAs) – 3rd order watershed sub-units in which there will be some industrial development, but with the expectation of habitat recovery. 
+  o	All development must apply the Operational Requirements for work conducted in CHMAs. 
+  o	CHMAs will be subject to landscape level planning and industrial coordination. Industry-driven, provides motivation for industry to coordinate,      plan, and apply offsets.
+  o	Recovered CHMAs identified as available for exchange (see .shp) can be traded for similar CHRAs that have been recovered for at least ten years.     Otherwise, CHMAs are renewed in perpetuity.
+  
+
+```{r, central group orders March 2023}
+
+# put the CHRA and CHMA zones into the db
+## NOTE ##
+## CHRA was unioned with BWBS and pine dominant (pine leading spp. >= 70%) stands to create sub-zones inside and outside BWBS/pine to address the different age criteria
+poly.chra <- sf::st_make_valid (sf::st_read (dsn = "D:\\clus_data\\scenarios\\central_group\\luo_march2023\\chra.gdb",
+                                             layer = "chra_bwbs_pine"))
+poly.chma <- sf::st_make_valid (sf::st_read ("D:\\clus_data\\scenarios\\central_group\\luo_march2023\\CHMAs_07Feb2023\\CHMAs_07Feb2023.shp"))
+
+# zone integer
+poly.chra$attribute <- paste (poly.chra$FID_CHRA_07Feb2023, poly.chra$bwbs_pine, sep = "_")
+vat.chra <- data.table (st_drop_geometry (poly.chra))
+vat.chra [, value := seq_len(.N)]
+poly.chra <- merge (poly.chra, vat.chra [, c ("attribute", "value")], by.x = "attribute", by.y = "attribute")
+poly.chra <- poly.chra [, c ("attribute", "value", "bwbs_pine", "FID_CHRA_07Feb2023", "geometry")]
+vat.chra <- vat.chra [, c ("attribute", "value")]
+poly.chma <- poly.chma [, "WATERSHED_"]
+setnames (poly.chma, "WATERSHED_", "attribute")
+vat.chma <- data.table (st_drop_geometry (poly.chma))
+vat.chma [, value := seq_len(.N)]
+poly.chma <- merge (poly.chma, vat.chma [, c ("attribute", "value")], by.x = "attribute", by.y = "attribute")
+
+sf::st_write (poly.chra,
+              "D:\\clus_data\\scenarios\\central_group\\luo_march2023\\castor_db\\central_group_chra_032023.shp")
+sf::st_write (poly.chma,
+              "D:\\clus_data\\scenarios\\central_group\\luo_march2023\\castor_db\\central_group_chma_032023.shp")
+
+# run this in osgeo shell with pgdb params:
+# ogr2ogr -f PostgreSQL PG:"dbname=xxxx port=xxxx user=xxxx password=xxxx host=xxxx" D:\clus_data\scenarios\central_group\luo_march2023\castor_db\central_group_chra_032023.shp -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -lco SCHEMA=public
+# ogr2ogr -f PostgreSQL PG:"dbname=xxxx port=xxxx user=xxxx password=xxxx host=xxxx" D:\clus_data\scenarios\central_group\luo_march2023\castor_db\central_group_chma_032023.shp -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -lco SCHEMA=public
+
+# raster
+ras.chra <- fasterize::fasterize (poly.chra, prov.rast, field = "value")
+ras.chma <- fasterize::fasterize (st_cast (poly.chma, to = "MULTIPOLYGON"), prov.rast, field = "value")
+
+raster::writeRaster (ras.chra ,"D:\\clus_data\\scenarios\\central_group\\luo_march2023\\castor_db\\central_group_chra_032023.tif", overwrite = TRUE)
+raster::writeRaster (ras.chma ,"D:\\clus_data\\scenarios\\central_group\\luo_march2023\\castor_db\\central_group_chma_032023.tif", overwrite = TRUE)
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648   D:/clus_data/scenarios/central_group/luo_march2023/castor_db/central_group_chra_032023.tif -t 100x100 rast.central_group_chra_032023 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648   D:/clus_data/scenarios/central_group/luo_march2023/castor_db/central_group_chma_032023.tif -t 100x100 rast.central_group_chma_032023 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+# commit vat table to pg
+conn <- DBI::dbConnect (dbDriver("PostgreSQL"), 
+                        host=keyring::key_get ('dbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), 
+                        port = '5432' ,
+                        user = keyring::key_get ('dbuser', keyring = 'postgreSQL') ,
+                        password = keyring::key_get ('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable (conn, c("vat", "central_group_chra_032023"), value = vat.chra, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable (conn, c("vat", "central_group_chma_032023"), value = vat.chma, row.names = FALSE, overwrite = TRUE)
+
+#Create zone constraint table
+zone <- data.table (zoneid = as.integer (c (1:264)), 
+                        type = 'ge', 
+                        variable = 'age', 
+                        threshold = 100, 
+                        reference_zone = 'rast.central_group_chra_032023', 
+                        percentage = 50, 
+                        ndt = as.integer (0), 
+                        multi_condition = as.character(""),
+                        denom = as.character(""),
+                        start = as.integer (0), 
+                        stop = as.integer (250) 
+                        )
+zone_pine <- data.table (zoneid = as.integer (c (265:288)), 
+                          type = 'ge', 
+                          variable = 'age', 
+                          threshold = 60, 
+                          reference_zone = 'rast.central_group_chra_032023', 
+                          percentage = 50, 
+                          ndt = as.integer (0), 
+                          multi_condition = as.character(""),
+                          denom = as.character(""),
+                          start = as.integer (0), 
+                          stop = as.integer (250) 
+                          )
+zone_chma <- data.table (zoneid = as.integer (c (1:301)), 
+                          type = '', 
+                          variable = '', 
+                          threshold = 100, 
+                          reference_zone = 'rast.central_group_chma_032023', 
+                          percentage = 50, 
+                          ndt = as.integer (0), 
+                          multi_condition = as.character(""),
+                          denom = as.character(""),
+                          start = as.integer (0), 
+                          stop = as.integer (250) 
+                          )
+zone_merge <- rbindlist (list (zone, zone_pine, zone_chma))
+
+# commit tables to pg
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host=keyring::key_get('dbhost', keyring = 'postgreSQL'), 
+                       dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), 
+                       port='5432' ,
+                       user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
+                       password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable (conn, c ("zone", "central_grp_chma_chra_032023"), value = zone_merge, row.names = FALSE, overwrite = TRUE)
+dbExecute (conn, paste0("ALTER TABLE zone.central_grp_chma_chra_032023 ALTER COLUMN denom TYPE VARCHAR")) 
+dbExecute (conn, paste0("ALTER TABLE zone.central_grp_chma_chra_032023 INHERIT zone.constraints"))
+dbDisconnect(conn)
+```
 
 
 
-## Buffered Caribou Herd and Desginatable Unit Boundaries
+
+## Buffered Caribou Herd and Designatable Unit Boundaries
 Here we develop rasters of caribou evolutionary designatable units (DUs). These are used used to define the appropriate caribou resource selection function model to apply to an analysis (rsfCLUS).
 
-Below we define herd boundary areas plus a 25km buffer. These can be used for sampling or measuring habitat characterstics in and around caribou herd boundaries. 
+Below we define herd boundary areas plus a 25km buffer. These can be used for sampling or measuring habitat characteristics in and around caribou herd boundaries. 
 ```{r, herd areas buffered by 25km}
 poly.caribou <- getSpatialQuery("SELECT * FROM bc_caribou_herd_boundary_v20200507") # data from BCGW
 poly.caribou.25<-st_buffer(poly.caribou, 25000)

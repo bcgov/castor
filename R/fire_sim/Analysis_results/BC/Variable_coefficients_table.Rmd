@@ -235,6 +235,39 @@ dat<-dat %>%
 ###################
 ##Spread
 ###################
+dat<-dat %>%
+    mutate(climate1_spread = case_when(
+                            frt == "5" ~ Tmax07 ,
+                            frt == "7" ~ summer_Tmax,
+                            frt == "9" ~ spring_Tave,
+                            frt == "10" ~ as.numeric(mean_RH05_RH06_RH07_RH08),
+                            frt == "11" ~ as.numeric(RH08),
+                            frt == "12" ~ mean_Tave05_Tave06_Tave07_Tave08,
+                            frt == "13" ~ mean_Tave05_Tave06_Tave07_Tave08,
+                            frt == "14" ~ mean_Tave05_Tave06_Tave07,
+                            frt == "15" ~ Tave05 ,
+                            TRUE ~ NA_real_))
+
+#Repeat for climate 2
+fire_spread2$climate2<-"NA"
+
+fire_spread2<-fire_spread2 %>%
+    mutate(climate1_spread = case_when(
+                            frt == "5" ~ as.numeric(PPT07),
+                            frt == "7" ~ as.numeric(tot_summer_PPT),
+                            frt == "9" ~ as.numeric(tot_spring_PPT),
+                            frt == "10" ~ as.numeric(mean_PPT05_PPT06_PPT07_PPT08) ,
+                            frt == "11" ~ as.numeric(PPT08),
+                            frt == "12" ~ as.numeric(mean_PPT05_PPT06_PPT07_PPT08),
+                            frt == "13" ~ as.numeric(mean_PPT05_PPT06_PPT07_PPT08),
+                            frt == "14" ~ as.numeric(mean_PPT05_PPT06_PPT07),
+                            frt == "15" ~ as.numeric(PPT05),
+                            TRUE ~ NA_real_))
+
+head(fire_spread2)
+
+
+
 dat$climate1_spread<-"NA"
 head(dat)
 

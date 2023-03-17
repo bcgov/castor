@@ -16,7 +16,7 @@ ignit_unknown<-try(
   bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
     filter(FIRE_YEAR > 2001) %>%
     filter(FIRE_TYPE == "Fire") %>%
-    filter(FIRE_CAUSE =="Unknown") %>%
+    #filter(FIRE_CAUSE =="Unknown") %>%
     collect()
 )
 st_crs(ignit_unknown)
@@ -26,6 +26,7 @@ ignit_unknown$ig_mnth<-stringi::stri_sub(ignit_unknown$IGNITION_DATE,6,7)
 
 frt <- st_read ( dsn = "D:\\Fire\\fire_data\\Fire_Regime_Types\\FRT\\FRT_Canada.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
 st_crs(frt) #Retrieve coordinate reference system from sf or sfc object
+frt <- st_transform (frt, 3005)
 
 ignt.unknown.frt <- st_join(ignit_unknown, frt)
 names(ignt.unknown.frt)
@@ -70,8 +71,8 @@ head(pointCoordinates)
 ##Extract DEM values from stacked layer
 rasValue2=raster::extract(rasStack, pointCoordinates)
 head(rasValue2)
-dim(rasValue2) #200298 values
-dim(ignt.unknown.frt)#200298 values
+dim(rasValue2) #33724 values
+dim(ignt.unknown.frt)#33724 values
 
 #Append new information
 ignt.unknown.frt_rasts<-cbind(ignt.unknown.frt, rasValue2)
@@ -120,6 +121,9 @@ spring_wind_raster<- raster("D:\\Fire\\fire_data\\raw_data\\GovCanadaWindFiles\\
 
 rasStackWind = stack(summer_wind_raster, spring_wind_raster)
 crs(rasStackWind)
+rasStackWind <- projectRaster(rasStackWind,
+                crs = crs(ignt.unknown.frt_rasts))
+
 
 ##Extract Coordinates
 test<-cbind(ignt.unknown.frt_rasts2, st_coordinates(ignt.unknown.frt_rasts2))
@@ -156,17 +160,19 @@ bc.bnd <- st_transform (prov.bnd, 3005) #Transform coordinate system
 st_crs(bc.bnd)
 
 #Clip FRT here
-unknown_clipped<-st_intersection(bc.bnd, ignt.unknown.frt_rasts_wind)
+#unknown_clipped<-st_intersection(bc.bnd, ignt.unknown.frt_rasts_wind)
 #plot(st_geometry(frt_clipped), col=sf.colors(10,categorical=TRUE))
 length(unique(unknown_clipped$Cluster))
 dim(unknown_clipped)
 dim(ignt.unknown.frt_rasts_wind)
-unknown_clipped$idno<-1:length(unknown_clipped$FIRE_CAUSE)
+ignt.unknown.frt_rasts_wind$idno<-1:length(ignt.unknown.frt_rasts_wind$FIRE_CAUSE)
 
-st_write(unknown_clipped, dsn = "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\ignt.unknown.frt_rasts_wind.gpkg", delete_layer=TRUE)
+st_write(ignt.unknown.frt_rasts_wind, dsn = "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\ignt.all.frt_rasts_wind1.gpkg", delete_layer=TRUE)
 
 rm(pointCoordinates, rasValue2, test, DEM, DEM_aspect, DEM_slope) # remove some files out of memory
 gc()
+
+unknown_clipped<-ignt.unknown.frt_rasts_wind
 
 ```
 
@@ -362,7 +368,7 @@ for (i in 1: length(y1)){
   
   x<-eval(as.name(y1[i])) %>% 
     rename(YEAR=ID2) %>%
-    dplyr::select(ID1, YEAR,Latitude, Longitude, Tmax02:Tmax11, Tave02:Tave11, PPT02:PPT11, RH02:RH11, DD18_02:DD18_11)
+    dplyr::select(ID1, YEAR,Latitude, Longitude, Tmax02:Tmax11, Tave02:Tave11, PPT02:PPT11, RH02:RH11, CMD02:CMD11, CMI02:CMI11, DD18_02:DD18_11)
   
   x2<- x %>% filter(Tmax05 != -9999) # there are some locations that did not have climate data, probably because they were over the ocean, so Im removing these here.
   
@@ -449,15 +455,15 @@ Note: in current below file saved, the lat and long do not match and thus differ
 ```{r}
 table(unknown_ignition_weather$FIRE_YEAR, unknown_ignition_weather$FIRE_CAUSE)
 
-unknown_ignition_weather2 <- unknown_ignition_weather %>% select(PRENAME,FIRE_NUMBER:FIRE_TYPE, LATITUDE:OBJECTID, ig_mnth:geometry)
+unknown_ignition_weather2 <- unknown_ignition_weather %>% select(FIRE_NUMBER:FIRE_TYPE, LATITUDE:OBJECTID, ig_mnth:geometry)
 unknown_ignition_weather2$idno
 
-unknown_veg_query<-unknown_ignition_weather2 %>% select(idno, FIRE_YEAR, geometry)
+unknown_veg_query<-unknown_ignition_weather %>% select(idno, FIRE_YEAR, geometry)
 
-st_write(unknown_veg_query, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_veg_query.gpkg")
+st_write(unknown_veg_query, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_veg_query1.gpkg")
 
 
-st_write(unknown_ignition_weather2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignition.shp")
+#st_write(unknown_ignition_weather2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignition.shp")
 ##Can also open in QGis to assess for any physical outliers and their information.
 
 #str(ignition_weather_crs)
@@ -562,18 +568,21 @@ dim(unknown_ignit_2021)
 sf::st_write(unknown_ignit_2021, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignit_2021.shp", delete_layer=TRUE)
 ```
 
+
+Extract vegetation data from the VRI
+
 ### Now that the ignition points have been joined to the VRI data in QGIS. I need to reimport the data so that i can join it all together and use it.
 
 ```{r}
-file.list1<-list.files("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data", pattern="Unknown_ignit", all.files=FALSE, full.names=FALSE)
+file.list1<-list.files("C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\", pattern="Unknown_ignit_veg", all.files=FALSE, full.names=FALSE)
 y1<-gsub(".gpkg","",file.list1)
-the_dir <- "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data"
+the_dir <- "C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\"
 
 for (i in 1:length(file.list1)){
   assign(paste0(y1[i]),st_read (dsn=paste0(the_dir, "\\", file.list1[i])))
 }
 
-y2<-y1[1:22]
+y2<-y1
 # combined all the DC.ignition files together
 mkFrameList <- function(nfiles) {
   d <- lapply(seq_len(nfiles),function(i) {
@@ -589,11 +598,8 @@ fire_veg[duplicated(fire_veg$idno),]$FIRE_YEAR # there should be no DUPLICATES
 st_crs(fire_veg)
 
 fire_veg_a<- st_drop_geometry(fire_veg)
-fire_veg_a<- fire_veg_a %>% rename(FIRE_YE =FIRE_YEAR)
 
-unknown_ignition_weather2<- st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\unknown_ignition.shp")
-
-unknown_ignition_weather_veg<-left_join(unknown_ignition_weather2, fire_veg_a)
+unknown_ignition_weather_veg<-left_join(unknown_ignition_weather, fire_veg_a)
 ```
 
 
@@ -608,7 +614,7 @@ fire_all<- unknown_ignition_weather_veg
 
 
 fire_all$yearHarvest<-as.numeric(as.character(stringi::stri_sub(fire_all$harvest_date,1,4)))
-fire_all<- fire_all %>% dplyr::mutate(yearsSinceHarvest = FIRE_YE - yearHarvest)
+fire_all<- fire_all %>% dplyr::mutate(yearsSinceHarvest = FIRE_YEAR - yearHarvest)
 fire_all$yearsSinceHarvest<- ifelse(fire_all$yearsSinceHarvest<1, NA, fire_all$yearsSinceHarvest)
 fire_all %>% filter(yearsSinceHarvest<1)
 table(fire_all$yearsSinceHarvest)
@@ -627,7 +633,7 @@ table(fire_all$earliest_nonlogging_dist_type_2)
 fire_all$earliest_nonlogging_dist_date
 fire_all$yearDisturb<-as.numeric(as.character(stringi::stri_sub(fire_all$earliest_nonlogging_dist_date,1,4)))
 
-fire_all$yearsSinceDisturbance<- ifelse (fire_all$FIRE_YE > fire_all$yearDisturb, fire_all$FIRE_YE - fire_all$yearDisturb, NA)
+fire_all$yearsSinceDisturbance<- ifelse (fire_all$FIRE_YEAR > fire_all$yearDisturb, fire_all$FIRE_YEAR - fire_all$yearDisturb, NA)
 table(fire_all$yearsSinceDisturbance)
 
 ```
@@ -1276,7 +1282,17 @@ x<- fire_all1 %>% filter(is.na(FWI_veg)) %>% dplyr::select(inventory_standard_cd
                              
 fire_all2<-st_drop_geometry(fire_all1)
 
-st_write(fire_all1, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\unknown_ignition_weather_veg.gpkg", overwrite=TRUE)
+fire_all_reduced<-fire_all1 %>% dplyr::select(FIRE_YEAR:FIRE_CAUSE, LATITUDE:CURRENT_SIZE, ig_mnth:dist_roads_m, dist_infrastructure_m:idno, Tmax02:RH11, CMI02:CMI11, MDC_02:MDC_11, FWI_veg, conifer_pct_cover_total, yearHarvest:yearsSinceDisturbance)
+
+table(is.na(fire_all_reduced$FWI_veg))
+
+fire_all_reduced<-fire_all_reduced %>% drop_na(FWI_veg)
+
+```
+
+
+```{r}
+st_write(fire_all_reduced, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\escape_weather_veg.gpkg", overwrite=TRUE)
 
 write.csv(fire_all2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\unknown_ignition_weather_veg.csv")
 ```

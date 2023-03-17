@@ -82,6 +82,7 @@ plot(study_area)
 
 # change grid size to 100 when this code works
 x<-st_make_grid(study_area, cellsize=c(400,400), crs=3005)
+#x<-st_make_grid(study_area, cellsize=c(400,400), crs=3005)
 x2<- st_centroid(x)
 
 # extract DEM and FRT at each point
@@ -106,9 +107,10 @@ str(rasValue2) #200298 values
 rasValue2
 
 x3_dem<-cbind(x3a, rasValue2)
-head(x3_dem)
+hist(x3_dem$rasValue2)
 
 crs(x3_dem)
+
 crs(study_area)
 
 
@@ -185,6 +187,8 @@ crs(study_area)
 # convert the dataframe back into a spatial points dataframe
 x4_clim_dem_2<- x3_dem
 hist(x4_clim_dem_2$dem)
+rm(x3_dem)
+gc()
 
 my.sf.point <- st_as_sf(x = x4_clim_dem_2, 
                         coords = c("Longitude", "Latitude"),
@@ -194,17 +198,17 @@ my.sf.point <- st_transform (my.sf.point, 3005)
 
 
 # note the elevation seems to have been messed up. Im not sure why
-my.sf.point<-my.sf.point %>% select(!Elevation)
-x<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv")
-hist(x$el)
-
-x<- x %>% select(ID1, ID2, el) %>% rename(idno=ID1,
-                                          frt=ID2)
-
-my.sf.point.joined<-left_join(my.sf.point, x)
-head(my.sf.point.joined)
-
-st_write(my.sf.point.joined, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data.gpkg", delete_layer=TRUE, driver="GPKG")
+# my.sf.point<-my.sf.point %>% select(!Elevation)
+# x<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt.csv")
+# hist(x$el)
+# 
+# x<- x %>% select(ID1, ID2, el) %>% rename(idno=ID1,
+#                                           frt=ID2)
+# 
+# my.sf.point.joined<-left_join(my.sf.point, x)
+# head(my.sf.point.joined)
+# 
+st_write(my.sf.point, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_data2.gpkg", delete_layer=TRUE, driver="GPKG")
 
 ```
 Now in QGIS join the above layer to the VRI. 

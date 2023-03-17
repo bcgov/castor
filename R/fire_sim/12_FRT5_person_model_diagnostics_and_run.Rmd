@@ -113,9 +113,9 @@ Anova(mod_frt5c, type=3)
 anova(mod_frt5b, mod_frt5c, test="Chisq")
 
 # Ill choose to leave elevation in. so top model is
-mod_frt5<- glm(fire ~ climate1 + elevatn + log_road_dist + log_infr_dist, data=dat5, family=binomial(link="logit"))
-summary(mod_frt5b)
-Anova(mod_frt5b, type=3)
+mod_frt5<- glm(fire ~ climate1 + log_road_dist + log_infr_dist, data=dat5, family=binomial(link="logit"))
+summary(mod_frt5)
+Anova(mod_frt5, type=3)
 
 
 # model diagnostic plots
@@ -236,13 +236,13 @@ car::vif(mod_frt5)
 
 
 ```{r}
-mod_frt5<- glm(fire ~ climate1 + elevatn + log_road_dist + log_infr_dist, data=dat5, family=binomial(link="logit"))
+mod_frt5<- glm(fire ~ climate1 + log_road_dist + log_infr_dist, data=dat5, family=binomial(link="logit"))
 
 summary(mod_frt5)
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT5_person_All <- data.frame (matrix (ncol = 9, nrow = 0))
-colnames (top_mod_table_FRT5_person_All ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate1", "coef_elevatn", "coef_log_road_dist", "coef_log_infr_dist", "AUC")
+top_mod_table_FRT5_person_All <- data.frame (matrix (ncol = 8, nrow = 0))
+colnames (top_mod_table_FRT5_person_All ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate1", "coef_log_road_dist", "coef_log_infr_dist", "AUC")
 
 dat5$fire_veg<-paste(dat5$fire, dat5$FWI_veg)
 ```
@@ -263,26 +263,25 @@ prop<-0.75
    Valid <- dat5[-trainIndex,]
    
 #Model   
-mod<-glm(fire ~ climate1 + elevatn + log_road_dist + FWI_veg, data=dat1, family=binomial(link="logit"))
+mod<-glm(fire ~ climate1 + log_road_dist + log_infr_dist, data=dat1, family=binomial(link="logit"))
 
 mod.valid <- predict.glm(mod, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire"], mod.valid, quiet=TRUE)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT5_person <- data.frame (matrix (ncol = 9, nrow = 0))
-colnames (top_mod_table_FRT5_person ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate1", "coef_elevatn", "coef_log_road_dist", "coef_log_infr_dist", "AUC")
+top_mod_table_FRT5_person <- data.frame (matrix (ncol = 8, nrow = 0))
+colnames (top_mod_table_FRT5_person ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate1", "coef_log_road_dist", "coef_log_infr_dist", "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT5_person[1,1]<-"person"
 top_mod_table_FRT5_person[1,2]<-"FRT5"
-top_mod_table_FRT5_person[1,3]<-"fire ~ climate1 + elevatn + log_road_dist + log_infr_dist"
+top_mod_table_FRT5_person[1,3]<-"fire ~ climate1 + log_road_dist + log_infr_dist"
 top_mod_table_FRT5_person[1,4]<- coef(mod)[1] #Intercept
 top_mod_table_FRT5_person[1,5]<- coef(mod)[2] #Climate variable 1
 top_mod_table_FRT5_person[1,6]<- coef(mod)[3] #Climate variable 2
 top_mod_table_FRT5_person[1,7]<- coef(mod)[4] #I
-top_mod_table_FRT5_person[1,8]<- coef(mod)[5] #co
-top_mod_table_FRT5_person[1,9]<- mod.auc
+top_mod_table_FRT5_person[1,8]<- mod.auc
 
 top_mod_table_FRT5_person_All<-rbind(top_mod_table_FRT5_person_All, top_mod_table_FRT5_person)
 

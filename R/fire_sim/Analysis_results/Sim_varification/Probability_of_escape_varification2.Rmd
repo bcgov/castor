@@ -22,6 +22,7 @@ require (dplyr)
 library(bcdata)
 library(SpaDES.tools)
 library(terra)
+library(quickPlot)
 library(data.table)
 library(ggplot2)
 library(SpaDES.addins)
@@ -50,19 +51,26 @@ To do this if I regress the probability of escape on the probability of spread a
 # import my ignition locations
 ```{r, echo=TRUE}
 # get latest data off BCGW
+# ignit<-try(
+#   bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
+#     filter(FIRE_YEAR > 2020) %>%
+#     filter(FIRE_TYPE == "Fire") %>%
+#     collect()
+# )
+
 ignit<-try(
-  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
-    filter(FIRE_YEAR > 2020) %>%
+  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_CURRENT_FIRE_PNTS_SP") %>%    
     filter(FIRE_TYPE == "Fire") %>%
     collect()
 )
+
 
 head(ignit)
 table(ignit$FIRE_YEAR)
 length(ignit$CURRENT_SIZE)
 
-ignit_escape<- ignit %>% filter(CURRENT_SIZE >16)
-length(ignit_escape$CURRENT_SIZE) # out of a total of 235 fires only 263 of them escaped.
+ignit_escape<- ignit %>% filter(CURRENT_SIZE >10)
+length(ignit_escape$CURRENT_SIZE) # out of a total of 1647 fires only 263 of them escaped.
 hist(ignit_escape$CURRENT_SIZE, breaks=50)
 ```
 
@@ -75,7 +83,7 @@ study_area2<-study_area %>% group_by ( tsa_name) %>% summarise()
 st_crs(study_area2)
 
 ignit_subset <- ignit[study_area2, ]
-ignit_subset_10<- ignit_subset %>% filter(CURRENT_SIZE >16)
+ignit_subset_10<- ignit_subset %>% filter(CURRENT_SIZE >10)
 
 length(ignit_subset$CURRENT_SIZE) # 249 locations caught fire
 length(ignit_subset_10$CURRENT_SIZE) # 42 locations had fires > 10ha
@@ -92,10 +100,10 @@ ggplot() +
 ```
 
 ```{r}
-lightning_ignition<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_lightning_ignit_400m_2.tif")
-human_ignition<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_human_ignit_400m_2.tif")
-escape.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_escape_2021.tif")
-spread.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_spread_2021.tif")
+lightning_ignition<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_lightning_ignit_2022.tif")
+human_ignition<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_human_ignit_2022.tif")
+escape.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_escape_2022.tif")
+spread.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_spread_2022.tif")
 
 crs(spread.ras)
 crs(escape.ras)
@@ -161,11 +169,11 @@ ignit_pts <- rasterToPoints(escape_crop, spatial = TRUE)
 ignit_pts_df  <- data.frame(ignit_pts)
 
 ignit_subset<-ignit_subset %>%
-  mutate(escaped = case_when(CURRENT_SIZE > 16 ~ 1,
-                           CURRENT_SIZE <= 16 ~ 0))
+  mutate(escaped = case_when(CURRENT_SIZE > 10 ~ 1,
+                           CURRENT_SIZE <= 10 ~ 0))
 
 ggplot() +
- geom_raster(data = ignit_pts_df , aes(x = x, y = y, fill = rast_escape_2021)) +
+ geom_raster(data = ignit_pts_df , aes(x = x, y = y, fill = rast_escape_2022)) +
   geom_sf(data=ignit_subset, aes(color = as.factor(escaped)))  #+
   #geom_point(data = pointCoordinates, aes(x = test.X, y = test.Y))
 #####
@@ -180,7 +188,7 @@ a <- raster(extent(ignit_crop),
   crs = st_crs(ignit_crop)$proj4string, resolution = c(400, 400), vals = 1:ncell(ignit_crop))
 
 #no_ignitions=length(ignit_subset$CURRENT_SIZE) # number of ignitions (FIX this so its drawn from a distribution or pulled off a map or something)
-n<-10 # number of reps
+n<-100 # number of reps
 out<-list()
 set.seed(123)
 
@@ -259,7 +267,7 @@ for (i in 1:n) {
   
 }
 
-fire_size_end$Freq<-as.numeric(fire_size_end$Freq)*16
+fire_size_end$Freq<-as.numeric(fire_size_end$Freq)
 x<-aggregate(fire_size_end$Freq, by=list(Category=fire_size_end$Var1), FUN=mean)
 
 x<-x %>% rename(start_points=Category,
@@ -301,7 +309,7 @@ length(ignit_subset_10$CURRENT_SIZE)
 # Basic density
 p <- ggplot(number_escaped, aes(x=tot.escapes)) + 
   geom_density() + 
-   xlim(0, 100)
+   xlim(0, 30)
 # Add mean line
 p + geom_vline(aes(xintercept=length(ignit_subset_10$CURRENT_SIZE)), color="blue", linetype="dashed", size=1)
 
@@ -344,7 +352,7 @@ escape_pts <- rasterToPoints(spread.ras, spatial = TRUE)
 escape_pts_df  <- data.frame(spread.ras)
 
 ggplot() +
- geom_raster(data = escape_pts_df , aes(x = x, y = y, fill = rast_spread_400m_2)) +
+ geom_raster(data = escape_pts_df , aes(x = x, y = y, fill = rast_spread_2022 )) +
   geom_point(data = pointCoordinates, aes(x = test.X, y = test.Y))
 #####
 ```
@@ -437,6 +445,15 @@ for (i in 1:n) {
 }
 
 fire_size_end$Freq<-as.numeric(fire_size_end$Freq)
+x<-fire_size_end %>% filter(rep==1)
+p <- ggplot(fire_size_end, aes(x=Freq, color = rep)) + 
+  geom_density() 
+# Add mean line
+p + geom_vline(aes(xintercept=length(ignit_subset_10$CURRENT_SIZE)), color="blue", linetype="dashed", size=1)
+
+
+
+
 x<-aggregate(fire_size_end$Freq, by=list(Category=fire_size_end$Var1), FUN=mean)
 
 x<-x %>% rename(start_points=Category,

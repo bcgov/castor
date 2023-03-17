@@ -1,0 +1,9 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+.httr-oauth
+*.tif
+*.csv
+*.pub
+inst/app/20*

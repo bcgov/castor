@@ -1,6 +1,5 @@
 ---
-title: "Probability of ignition from lightning and human caused fires in the Quesnel,
-  Williams Lake, and 100-mile House TSA's"
+title: "Probability of ignition from lightning and human caused fires, probability of escape, and probability of spread"
 author: "Elizabeth Kleynhans"
 date: "2023-02-10"
 output:
@@ -150,7 +149,7 @@ kable (stats_model,
 ```
 
 
-Using the models outlined in table 1 a probability of ignition by lightning map was created (figure 2). Data for this map was extracted at a scale of 400 x 400m. Weather, elevation, vegetation, distance to road and distance to infrastructure data was extracted at the center of each pixel. After the models were fitted to each point the data was rasterized. 
+Using the models outlined in table 1 and table 2 maps of the probability of ignition by lightning and by humans were created (figure 2). Data for these maps were extracted at a scale of 400 x 400m. Weather, elevation, vegetation, distance to road and distance to infrastructure data was extracted at the center of each pixel. After the models were fitted to each point the data was rasterized. 
 
 
 ```{r echo=FALSE, fig.cap = "Figure 2. Probability of lightning ignition for BC"}
@@ -179,7 +178,7 @@ dbDisconnect(conn)
 plot(human.ignit_2021)
 ```
 
-Following Barros et al. 2021 the lightnin and human caused fire rasters are joined together to create a single ignition layer. The following equation is used to combine the two rasters P(Igit) = P(lightning) x (1-P(human)) + P(human) x (  1-P(lightning)). 
+Following Barros et al. 2021 the lightnin and human caused fire rasters were joined together to create a single ignition layer. The following equation is used to combine the two rasters P(Igit) = P(lightning) x (1-P(human)) + P(human) x (  1-P(lightning)). 
 
 ```{r}
 prob_ignit<-(lightning.ignit_2021 * (1-human.ignit_2021)) + (human.ignit_2021 * (1-lightning.ignit_2021))
@@ -189,6 +188,10 @@ plot(prob_ignit)
 
 
 # 10.) Fit fire escape models
+
+Many papers consider a fire that escapes to be one that grew larger than 1ha, e.g. Marchal et al. 2020, larger than 3 ha (e.g., Wang et al. 2016, International Journal of Wildland Fire), or larger than 10 ha (e.g., Parisien et al. 2013, Natural Hazards). We plotted fire escape relative to environmental variables and decided that classifying a fire as escaped as one that grew larger than 10ha was the best because the relationship between escaped fires and other environmental, topographical, and human landuse variables were most as expected. 
+
+We fit logistic regression models to fires that escaped (grew >10ha) (1's) and fires that did not escape (fires that were 10ha or smaller) (0's). The top models,  and their fits are indicated in table 3
 
 
 ```{r, model table escape, echo = F}
@@ -216,6 +219,7 @@ kable (stats_model,
   kable_styling (position = "left")
 ```
 
+
 ```{r echo=FALSE, fig.cap = "Figure 5. Probability of escape for BC"}
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
@@ -232,6 +236,7 @@ plot(escape_2021)
 
 # 10.) Fit fire spread models
 
+To determine whether areas taht burned are different to areas that did not I again performed logistic regression models. To do this I sampled points every 500m within the burn polygon, those were considered as the 1's. I then created a 2km buffer around each fire and sampled points again every 500m in the buffer these were considered the 0's. The top models are listed in table 4
 
 ```{r, model table spread, echo = F}
 stats_model <- data.table (
@@ -263,11 +268,11 @@ kable (stats_model,
 
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
-escape_2021 <- pgGetRast(conn, c("rast", "prob_escape_bc_2021"))
+spread_2021 <- pgGetRast(conn, c("rast", "prob_spread_bc_2021"))
 
 dbDisconnect(conn)
 #lightning.ignit<-getSpatialQuery("SELECT * FROM #rast.prob_lightning_ignit_quesnel_williamsl_100mile")
 
 
-plot(escape_2021)
+plot(spread_2021)
 ```
