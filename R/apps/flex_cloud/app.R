@@ -37,6 +37,7 @@ library(raster)
 library(ggplot2)
 library(tictoc)
 library(ids)
+library(Hmisc)
 
 source('src/functions.R')
 
@@ -645,11 +646,9 @@ server <- function(input, output, session) {
 
       rv$sim_params$simulation_id <- simulation_id
       
-      # parallel::mclapply(
       lapply(
         X = seq(1:sim_sequence),
         FUN = run_simulation,
-        # mc.cores = parallel::detectCores(),
         scenario = selected_scenario,
         ssh_keyfile = ssh_keyfile,
         ssh_keyfile_name = ssh_keyfile_name,
@@ -707,18 +706,18 @@ server <- function(input, output, session) {
       
       csv_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_fisher_agents.csv$')
       
-      data <- bind_rows(
-        parallel::mclapply(
+      data_csv <- future_lapply(
           csv_files, 
-          mc.cores = cores,
           function(file, dir) {
             file <- paste0(dir, file)
-            readr::read_csv(file)
+            readr::read_csv(file, show_col_types = FALSE) %>% 
+              dplyr::select(timeperiod, n_f_adult)
           },
           dir
         )
-      ) %>% 
-        mutate(timeperiod = as.factor(timeperiod))
+
+      data <- dplyr::bind_rows(data_csv) %>% 
+        dplyr::mutate(timeperiod = as.factor(timeperiod))
       
       progressReport$set(
         value = 2,
@@ -726,8 +725,8 @@ server <- function(input, output, session) {
       )
       
       group_data <- data %>%
-        group_by(timeperiod) %>%
-        summarize(
+        dplyr::group_by(timeperiod) %>%
+        dplyr::summarize(
           mean_val = mean(n_f_adult),
           lower_ci = mean_val - qt(0.975, n() - 1) * sd(n_f_adult) / sqrt(n()),
           upper_ci = mean_val + qt(0.975, n() - 1) * sd(n_f_adult) / sqrt(n())
@@ -740,7 +739,8 @@ server <- function(input, output, session) {
       
       output$plot_csv <- renderPlot(
         ggplot(
-          data = data %>% mutate(timeperiod = as.factor(timeperiod)), 
+          data = data %>% 
+            dplyr::mutate(timeperiod = as.factor(timeperiod)), 
           aes(
             x = timeperiod, y = n_f_adult
           )
@@ -792,25 +792,24 @@ server <- function(input, output, session) {
       tic("Overall process")
       tic("Processing other tif files", quiet = TRUE)
       
-      data_tif <- bind_rows(
-        parallel::mclapply(
-          tif_files, 
-          mc.cores = cores,
-          function(file, dir) {
-            file <- paste0(dir, file)
+     data_tif <- future_lapply(
+        tif_files, 
+        function(file, dir) {
+          file <- paste0(dir, file)
 
-            # Read raster file, cast to data frame and bind with all previous rasters
-            as.data.frame(
-              raster(file), xy = TRUE
-            ) %>% 
-              filter(layer > 0) %>%
-              mutate(layer = 1)
-          },
-          dir
-        )
-      ) %>% 
-        group_by(x, y) %>%
-        summarize(layer = sum(layer))
+          # Read raster file, cast to data frame and bind with all previous rasters
+          as.data.frame(
+            raster(file), xy = TRUE
+          ) %>% 
+            dplyr::filter(layer > 0) %>%
+            dplyr::mutate(layer = 1)
+        },
+        dir
+      )
+     
+      data_tif <- bind_rows(data_tif) %>% 
+        dplyr::group_by(x, y) %>%
+        dplyr::summarize(layer = sum(layer))
 
       toc()
 
