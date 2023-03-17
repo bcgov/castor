@@ -416,7 +416,7 @@ setTablesCastorDB <- function(sim) {
     testColumnNames<-getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameYieldTable} LIMIT 1;"))
     colNames<- names(testColumnNames)[names(testColumnNames) %in% c("ycid", "age", "tvol", "dec_pcnt", "height", "eca", "basalarea", "qmd", "crownclosure")]
     colNamesYieldid <-colNames
-    colNamesYieldid[1]<-"yieldid"
+    colNamesYieldid[colNamesYieldid=='ycid']<-"yieldid"
       
     #Set the yields table with yield curves that are only in the study area
     yields<-getTableQuery(glue::glue("SELECT ", glue::glue_collapse(colNames, sep = ", ")," FROM {P(sim)$nameYieldTable} where ycid IN ({yld.ids});"))
@@ -474,12 +474,12 @@ setTablesCastorDB <- function(sim) {
     }
     
     yld.ids.current<-paste( unique(updateToCurrent[!is.na(yieldid),]$yieldid), sep=" ", collapse = ", ")
-    
+   
     #Check to see what yields are available
     testColumnNames<-getTableQuery(paste0("SELECT * FROM ",P(sim)$nameYieldCurrentTable , " LIMIT 1"))
     colNames<- names(testColumnNames)[names(testColumnNames) %in% c("ycid", "age", "tvol", "dec_pcnt", "height", "eca", "basalarea", "qmd", "crownclosure")]
     colNamesYieldid <-colNames
-    colNamesYieldid[1]<-"yieldid"
+    colNamesYieldid[colNamesYieldid=='ycid']<-"yieldid"
     
     #Set the yields table with yield curves that are only in the study area
     yields.current<-getTableQuery(paste0("SELECT ",paste(colNames, collapse = ", ", sep = " ")," FROM ", P(sim)$nameYieldCurrentTable , " where ycid IN (", yld.ids.current , ");"))
@@ -521,7 +521,7 @@ setTablesCastorDB <- function(sim) {
     testColumnNames<-getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameYieldTransitionTable} LIMIT 1;"))
     colNames<- names(testColumnNames)[names(testColumnNames) %in% c("ycid", "age", "tvol", "dec_pcnt", "height", "eca", "basalarea", "qmd", "crownclosure")]
     colNamesYieldid <-colNames
-    colNamesYieldid[1]<-"yieldid"
+    colNamesYieldid[colNamesYieldid=='ycid']<-"yieldid"
     
     #Set the yields table with yield curves that are only in the study area
     yields.trans<-getTableQuery(paste0("SELECT ", paste(colNames, collapse = ", ", sep = " ")," FROM ", P(sim)$nameYieldTransitionTable, " where ycid IN (", yld.ids.trans , ");"))
