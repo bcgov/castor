@@ -1278,21 +1278,22 @@ Consists of:
   o	Recovered CHMAs identified as available for exchange (see .shp) can be traded for similar CHRAs that have been recovered for at least ten years.     Otherwise, CHMAs are renewed in perpetuity.
   
 
-```{r, central grouop orders March 2023}
+```{r, central group orders March 2023}
 
 # put the CHRA and CHMA zones into the db
 ## NOTE ##
-## CHRA was unioned with BWBS to create sub-zones inside adn otuside BWBS to address teh different age criteria
-poly.chra <- sf::st_make_valid (sf::st_read ("D:\\clus_data\\scenarios\\central_group\\luo_march2023\\chra_bwbs_union.shp"))
+## CHRA was unioned with BWBS and pine dominant (pine leading spp. >= 70%) stands to create sub-zones inside and outside BWBS/pine to address the different age criteria
+poly.chra <- sf::st_make_valid (sf::st_read (dsn = "D:\\clus_data\\scenarios\\central_group\\luo_march2023\\chra.gdb",
+                                             layer = "chra_bwbs_pine"))
 poly.chma <- sf::st_make_valid (sf::st_read ("D:\\clus_data\\scenarios\\central_group\\luo_march2023\\CHMAs_07Feb2023\\CHMAs_07Feb2023.shp"))
 
 # zone integer
-poly.chra$attribute <- paste (poly.chra$FID_CHRA_0, poly.chra$zone, sep = "_")
+poly.chra$attribute <- paste (poly.chra$FID_CHRA_07Feb2023, poly.chra$bwbs_pine, sep = "_")
 vat.chra <- data.table (st_drop_geometry (poly.chra))
 vat.chra [, value := seq_len(.N)]
 poly.chra <- merge (poly.chra, vat.chra [, c ("attribute", "value")], by.x = "attribute", by.y = "attribute")
+poly.chra <- poly.chra [, c ("attribute", "value", "bwbs_pine", "FID_CHRA_07Feb2023", "geometry")]
 vat.chra <- vat.chra [, c ("attribute", "value")]
-
 poly.chma <- poly.chma [, "WATERSHED_"]
 setnames (poly.chma, "WATERSHED_", "attribute")
 vat.chma <- data.table (st_drop_geometry (poly.chma))
@@ -1328,16 +1329,8 @@ conn <- DBI::dbConnect (dbDriver("PostgreSQL"),
 DBI::dbWriteTable (conn, c("vat", "central_group_chra_032023"), value = vat.chra, row.names = FALSE, overwrite = TRUE)
 DBI::dbWriteTable (conn, c("vat", "central_group_chma_032023"), value = vat.chma, row.names = FALSE, overwrite = TRUE)
 
-
-
-# Questions for Megan:
-#  > 60 year old threshold for all BWBS or just pine? if just pine, ok to use 100 yo.?
-# no harvest for first 60 years and then age constraint, or age constraint for entire period?
-
-
-
 #Create zone constraint table
-zone_a1 <- data.table (zoneid = as.integer (c (1:257, 259:262)), 
+zone <- data.table (zoneid = as.integer (c (1:264)), 
                         type = 'ge', 
                         variable = 'age', 
                         threshold = 100, 
@@ -1349,118 +1342,31 @@ zone_a1 <- data.table (zoneid = as.integer (c (1:257, 259:262)),
                         start = as.integer (0), 
                         stop = as.integer (250) 
                         )
-zone_a2 <- data.table (zoneid = as.integer (c (258, 263:342)), 
-                        type = 'ge', 
-                        variable = 'age', 
-                        threshold = 60, 
-                        reference_zone = 'rast.central_grp_partner_areas_072022', 
-                        percentage = 50, 
-                        ndt = as.integer (0), 
-                        multi_condition = as.character(""),
-                        denom = as.character(""),
-                        start = as.integer (0), 
-                        stop = as.integer (250) 
-                        )
-zone_b1 <- data.table (zoneid = as.integer (3), 
-                        type = '', 
-                        variable = '', 
-                        threshold = 0, 
-                        reference_zone = 'central_group_chma_032023', 
-                        percentage = 0, 
-                        ndt = as.integer (0), 
-                        multi_condition = as.character(""),
-                        denom = as.character(""),
-                        start = as.integer (0), 
-                        stop = as.integer (250) 
-                        )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-zone_b2 <- data.table (zoneid = as.integer (4), 
-                        type = 'nh', 
-                        variable = '', 
-                        threshold = 0, 
-                        reference_zone = 'rast.central_grp_partner_areas_072022', 
-                        percentage = 0, 
-                        ndt = as.integer (0), 
-                        multi_condition = as.character(""),
-                        denom = as.character(""),
-                        start = as.integer (0), 
-                        stop = as.integer (250) 
-                        )
-zone_b2_p <- data.table (zoneid = as.integer (5), 
-                        type = 'nh', 
-                        variable = '', 
-                        threshold = 0, 
-                        reference_zone = 'rast.central_grp_partner_areas_072022', 
-                        percentage = 0, 
-                        ndt = as.integer (0), 
-                        multi_condition = as.character(""),
-                        denom = as.character(""),
-                        start = as.integer (0), 
-                        stop = as.integer (250) 
-                        )
-zone_b3 <- data.table (zoneid = as.integer (6), 
-                        type = 'nh', 
-                        variable = '', 
-                        threshold = 0, 
-                        reference_zone = 'rast.central_grp_partner_areas_072022', 
-                        percentage = 0, 
-                        ndt = as.integer (0), 
-                        multi_condition = as.character(""),
-                        denom = as.character(""),
-                        start = as.integer (0), 
-                        stop = as.integer (250) 
-                        )
-zone_b3_p <- data.table (zoneid = as.integer (7), 
-                        type = 'nh', 
-                        variable = '', 
-                        threshold = 0, 
-                        reference_zone = 'rast.central_grp_partner_areas_072022', 
-                        percentage = 0, 
-                        ndt = as.integer (0), 
-                        multi_condition = as.character(""),
-                        denom = as.character(""),
-                        start = as.integer (0), 
-                        stop = as.integer (250) 
-                        )
-zone_b4 <- data.table (zoneid = as.integer (8), 
-                        type = 'ge', 
-                        variable = 'age', 
-                        threshold = 40, 
-                        reference_zone = 'rast.central_grp_partner_areas_072022', 
-                        percentage = 80, 
-                        ndt = as.integer (0), 
-                        multi_condition = as.character(""),
-                        denom = as.character(""),
-                        start = as.integer (0), 
-                        stop = as.integer (250) 
-                        )
-zone_b5 <- data.table (zoneid = as.integer (9), 
-                        type = '', 
-                        variable = '', 
-                        threshold = 0, 
-                        reference_zone = 'rast.central_grp_partner_areas_072022', 
-                        percentage = 0, 
-                        ndt = as.integer (0), 
-                        multi_condition = as.character(""),
-                        denom = as.character(""),
-                        start = as.integer (0), 
-                        stop = as.integer (250) 
-                        )
-
-zone_pa <- rbindlist(list(zone_a1, zone_a2, zone_b1, zone_b2, zone_b2_p, zone_b3, zone_b3_p, zone_b4, zone_b5))
+zone_pine <- data.table (zoneid = as.integer (c (265:288)), 
+                          type = 'ge', 
+                          variable = 'age', 
+                          threshold = 60, 
+                          reference_zone = 'rast.central_group_chra_032023', 
+                          percentage = 50, 
+                          ndt = as.integer (0), 
+                          multi_condition = as.character(""),
+                          denom = as.character(""),
+                          start = as.integer (0), 
+                          stop = as.integer (250) 
+                          )
+zone_chma <- data.table (zoneid = as.integer (c (1:301)), 
+                          type = '', 
+                          variable = '', 
+                          threshold = 100, 
+                          reference_zone = 'rast.central_group_chma_032023', 
+                          percentage = 50, 
+                          ndt = as.integer (0), 
+                          multi_condition = as.character(""),
+                          denom = as.character(""),
+                          start = as.integer (0), 
+                          stop = as.integer (250) 
+                          )
+zone_merge <- rbindlist (list (zone, zone_pine, zone_chma))
 
 # commit tables to pg
 conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
@@ -1469,9 +1375,9 @@ conn <- DBI::dbConnect(dbDriver("PostgreSQL"),
                        port='5432' ,
                        user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
                        password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
-DBI::dbWriteTable(conn, c("zone", "central_grp_partner_areas_072022"), value = zone_pa, row.names = FALSE, overwrite = TRUE)
-dbExecute (conn, paste0("ALTER TABLE zone.central_grp_partner_areas_072022 ALTER COLUMN denom TYPE VARCHAR")) 
-dbExecute (conn, paste0("ALTER TABLE zone.central_grp_partner_areas_072022 INHERIT zone.constraints"))
+DBI::dbWriteTable (conn, c ("zone", "central_grp_chma_chra_032023"), value = zone_merge, row.names = FALSE, overwrite = TRUE)
+dbExecute (conn, paste0("ALTER TABLE zone.central_grp_chma_chra_032023 ALTER COLUMN denom TYPE VARCHAR")) 
+dbExecute (conn, paste0("ALTER TABLE zone.central_grp_chma_chra_032023 INHERIT zone.constraints"))
 dbDisconnect(conn)
 ```
 

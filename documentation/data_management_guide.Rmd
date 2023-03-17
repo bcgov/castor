@@ -2819,19 +2819,196 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
+# DELETE SOME DATA
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'archive' AND table_name = 'northern_group_scenario_20210305' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'archive' AND table_name = 'zone_du7_scenario_20210305' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'archive' AND table_name = 'zone_du7_scenarios_20210305_vat' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'comaprison_nass' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'pink_mtn_caribou_old ' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'zone' AND table_name = 'pink_mtn_caribou_old' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'public' AND table_name = 'pink_mtn_caribou_habitat_vat' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'pink_mtn_habitat' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'zone' AND table_name = 'pink_mtn_caribou_habitat' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'whitesail_bec_20210527' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'whitesail_management_20210527' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'whitesail_noharvest_20210527' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'whitesail_smz_calving_20210527' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'whitesail_smz_highelev_20210527' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'whitesail_smz_movecorr_20210527' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_barkerville_groundhog_zones_20210303' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_barkerville_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_burnt_pine_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_central_rockies_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_central_selkirks_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_charlotte_alplands_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_columbia_north_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_columbia_south_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_frisby_boulder_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_graham_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_groundhog_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_hart_ranges_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_itcha_ilgachuz_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_kennedy_siding_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_moberly_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_monashee_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_narraway_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_narrow_lake_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_north_cariboo_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_purcell_central_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_purcells_south_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_quintette_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_rainbows_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_redrock_prairie_creek_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_south_selkirks_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_telkwa_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_wells_gray_north_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_cond_nh_crit_wells_gray_south_crithab' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'zone_du7_scenario_20210330' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'zone' AND table_name = 'whitesail_bec_20210527' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'zone' AND table_name = 'whitesail_management_20210527' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'zone' AND table_name = 'whitesail_noharvest_20210527' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'zone' AND table_name = 'whitesail_smz_calving_20210527' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'zone' AND table_name = 'whitesail_smz_highelev_20210527' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'zone' AND table_name = 'whitesail_smz_movecorr_2021052' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'public' AND table_name = 'whitesail_bec_vat' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'public' AND table_name = 'whitesail_management_vat' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'public' AND table_name = 'whitesail_noharvest_vat' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'public' AND table_name = 'whitesail_smz_highelev_vat' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'public' AND table_name = 'whitesail_smz_movecorr_vat' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'public' AND table_name = 'whitesail_wha_may2021_bec' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'public' AND table_name = 'whitesail_wha_may2021_manage' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'public' AND table_name = 'whitesail_wha_may2021_no_harvest' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'public' AND table_name = 'whitesail_wha_may2021_smz_calving' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'public' AND table_name = 'whitesail_wha_may2021_smz_he' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'public' AND table_name = 'whitesail_wha_may2021_smz_move' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'map' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'mat' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'pas' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'pas_wt' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'ppt_sm' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'tave_sm' AND computer = 'DG401102';")
+dbExecute (conn, 
+           "DELETE FROM public.pgdbs_data_list WHERE schema = 'rast' AND table_name = 'tave_wt' AND computer = 'DG401102';")
 
+# Central group zones March 2023
+new_data <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'public', table_name = 'central_group_chra_032023', 
+                        type = 'polygon', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Magan Watters, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data2 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'public', table_name = 'central_group_chma_032023', 
+                        type = 'polygon', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Magan Watters, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data3 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'rast', table_name = 'central_group_chra_032023 ', 
+                        type = 'raster', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Magan Watters, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data4 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'rast', table_name = 'central_group_chma_032023', 
+                        type = 'raster', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Magan Watters, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data5 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'vat', table_name = 'central_group_chra_032023', 
+                        type = 'table', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Magan Watters, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data6 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'vat', table_name = 'central_group_chma_032023', 
+                        type = 'table', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Magan Watters, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
+new_data7 <- data.table (computer = 'DG401102', database = 'castor',
+                        schema = 'zone', table_name = 'central_grp_chma_chra_032023', 
+                        type = 'table', script = 'R/Params/caribou_management_areas.Rmd',
+                        source = 'Magan Watters, caribou recovery program', # description of data source
+                        public = 'No', last_updated = '2023',  next_update = 'As needed',  
+                        where_used = 'R/scenarios/revelstoke_complex' )
 
+pgdbs_data_list_new <- Reduce (function (dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2, new_data3, new_data4,
+                                     new_data5, new_data6, new_data7))
 
-
-public.central_group_chra_032023
-public.central_group_chma_032023
-rast.central_group_chra_032023 
-rast.central_group_chma_032023
-vat", "central_group_chra_032023
-vat", "central_group_chma_032023
-
-
-
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
 
 ```
 
