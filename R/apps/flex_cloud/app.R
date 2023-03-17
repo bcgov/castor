@@ -36,6 +36,7 @@ library(shinyWidgets)
 library(raster)
 library(ggplot2)
 library(tictoc)
+library(ids)
 
 source('src/functions.R')
 
@@ -394,7 +395,7 @@ server <- function(input, output, session) {
   # required_processes <- reactiveValue({
   #   input$iterations / 
   # })
-  
+
   sizes <- analogsea::sizes(per_page = 200) %>%
     dplyr::filter(
       available == TRUE,
@@ -882,7 +883,7 @@ server <- function(input, output, session) {
         top_n(1, ID) %>%
         ungroup() %>%
         arrange(Droplet) %>%
-        select(-ID)
+        dplyr::select(-ID)
     }
 
     if (nrow(data) > 0) {
@@ -930,7 +931,7 @@ server <- function(input, output, session) {
     {
       droplets <- analogsea::droplets()
       droplets_df <- as.data.frame(do.call(rbind, droplets)) %>%
-        select(id, name, memory, vcpus, disk, status, tags, created_at) %>%
+        dplyr::select(id, name, memory, vcpus, disk, status, tags, created_at) %>%
         mutate(
           tags = map_lgl(
             tags,
@@ -939,7 +940,7 @@ server <- function(input, output, session) {
           )
         ) %>%
         filter(tags == TRUE) %>%
-        select(-tags)
+        dplyr::select(-tags)
 
       output$droplets <- renderTable(droplets_df)
     }
@@ -955,7 +956,11 @@ server <- function(input, output, session) {
       # SSH config
       ssh_user <- "root"
       ssh_keyfile_tbl <- parseFilePaths(volumes, input$key)
-      ssh_keyfile <- stringr::str_replace(ssh_keyfile_tbl$datapath, 'NULL/', '/')
+      ssh_keyfile <- stringr::str_replace(
+        ssh_keyfile_tbl$datapath, 
+        'NULL/', 
+        paste0(fs::path_home(), '/')
+      )
       ssh_keyfile_name <- ssh_keyfile_tbl$name
       
       # Available CPU cores on local machine
