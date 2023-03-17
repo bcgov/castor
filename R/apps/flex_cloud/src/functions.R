@@ -454,7 +454,16 @@ create_scenario_droplet <- function(
   # Scenario
   selected_scenario_tbl <- parseFilePaths(volumes, scenario)
   selected_scenario <- selected_scenario_tbl$name
-  selected_scenario_path <- stringr::str_remove(selected_scenario_tbl$datapath, 'NULL/')
+  selected_scenario_path <- stringr::str_replace(
+    selected_scenario_tbl$datapath, 
+    'NULL/',
+    paste0(fs::path_home(), '/')
+  )
+  
+  if (!file.exists(selected_scenario_path)) {
+    shinyjs::alert("Wrong path supplied for scenario file. Please refresh the page and try again.")
+    return(NULL)
+  }
   
   progressOne$set(value = 2)
   
@@ -489,12 +498,13 @@ create_scenario_droplet <- function(
     Sys.sleep(30)
   })
   
+  error <- FALSE
   tryCatch({  
     d_uploader %>%
       droplet_upload(
         user = ssh_user,
         keyfile = ssh_keyfile,
-        local = paste0('scenarios/', selected_scenario_path),
+        local = selected_scenario_path,
         # remote = paste0('/mnt/scenario/', selected_scenario)
         remote = paste0('/root/scenario.tif')
       )
@@ -503,10 +513,14 @@ create_scenario_droplet <- function(
     # debug_msg(e$message)
     progressOne$set(9, detail = "Couldnt connect to droplet, cleaning up")
     d_uploader %>% droplet_delete()
+    error <- FALSE
     
     shinyjs::alert("There was an error running the simulation. Please refresh the page and try again/")
-    return(NULL)
   })
+  
+  if (error) {
+    return(NULL)
+  }
   
   progressOne$set(9, detail = 'Completing the upload')
   
