@@ -686,10 +686,27 @@ table(is.na(frt_all$logit_P_lightning_coef ))
 table(is.na(frt_all$logit_P_person_coef))
 table(is.na(frt_all$logit_P_escape_coef ))
 table(is.na(frt_all$logit_P_spread_coef))
+
+frt_const<-frt_all %>% dplyr::select(idno, frt, logit_P_lightning_coef:logit_P_spread_coef) %>%
+            rename(logit_P_lightning_coef_const =logit_P_lightning_coef,
+                   logit_P_person_coef_const=logit_P_person_coef, 
+                   logit_P_escape_coef_const=logit_P_escape_coef,
+                   logit_P_spread_coef_const=logit_P_spread_coef)
+
+
 ```
 
 # save it!
 ```{r}
-st_write(frt_all, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_ignit_escape_spread_final_constant_coefficients.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(frt_const, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_final_constant_coefficients.gpkg", delete_layer=TRUE, driver="GPKG")
+```
+
+
+```{r}
+frt_const<- frt_const %>% st_drop_geometry()
+
+frt_coefficients<-left_join(frt_var, frt_const)
+
+st_write(frt_coefficients, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_final_all_coefficients_2021.gpkg", delete_layer=TRUE, driver="GPKG")
 ```
 
