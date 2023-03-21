@@ -1,0 +1,179 @@
+---
+title: "Multiple_year_fire_spread_sim"
+author: "Elizabeth Kleynhans"
+date: "2023-03-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+source(here::here("R/functions/R_Postgres.R"))
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(mapview)
+library(tmap)
+library(raster)
+library(SpaDES.tools)
+library(quickPlot)
+
+library(SpaDES)
+library(SpaDES.core)
+library(SpaDES.addins)
+library(terra)
+```
+
+
+## import tables with the constant and variable coefficient values
+```{r}
+const_coef<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_final_constant_coefficients_2021.gpkg")
+
+var_coef_2024<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2021.gpkg")
+
+var_coef_2024<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2024.gpkg")
+
+var_coef_2029<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2029.gpkg")
+
+var_coef_2034<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2034.gpkg")
+
+var_coef_2039<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2039.gpkg")
+
+var_coef_2044<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2044.gpkg")
+
+var_coef_2049<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2049.gpkg")
+```
+
+# not for each year calculate the probability of ignition, escape and spread by combining the coefficients.
+```{r}
+const_coef<-st_drop_geometry(const_coef)
+const_coef$frt<-as.numeric(as.character(const_coef$frt))
+coef_2024<-left_join(var_coef_2024,const_coef)
+
+names(coef_2024)
+
+coef_2024$logit_P_lightning<-coef_2024$logit_P_lightning_coef_const + coef_2024$varying_coef_lightning
+coef_2024$logit_P_person<-coef_2024$logit_P_person_coef_const + coef_2024$varying_coef_person
+coef_2024$logit_P_escape<-coef_2024$logit_P_escape_coef_const + coef_2024$varying_coef_escape
+coef_2024$logit_P_spread<-coef_2024$logit_P_spread_coef_const + coef_2024$varying_coef_spread
+
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+coef_2024$prob_ignition_lightning<-exp(coef_2024$logit_P_lightning)/(1+exp(coef_2024$logit_P_lightning))
+coef_2024$prob_ignition_person<-exp(coef_2024$logit_P_person)/(1+exp(coef_2024$logit_P_person))
+coef_2024$prob_escape<-exp(coef_2024$logit_P_escape)/(1+exp(coef_2024$logit_P_escape))
+coef_2024$prob_spread<-exp(coef_2024$logit_P_spread)/(1+exp(coef_2024$logit_P_spread))
+
+head(coef_2024)
+## make sure that water, glaciers and some frt with veg =N should have a probability of zero. Ill change these here
+
+coef_2024$prob_ignition_lightning[coef_2024$& coef_2024$FWI_veg=="N"]<-0
+coef_2024$prob_escape[coef_2024$FWI_veg=="N"]<-0
+
+hist(coef_2024$prob_escape)
+hist(coef_2024$prob_ignition_lightning)
+hist(coef_2024$prob_ignition_person)
+hist(coef_2024$prob_spread)
+```
+
+
+```{r cars}
+# 2021 rasters 
+lightning21<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_lightning_ignit_2021.tif")
+human21<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_person_ignit_2021.tif")
+escape.ras21<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_escape_2021.tif")
+spread.ras21<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_spread_2021.tif")
+
+# 2022 rasters
+lightning22<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_lightning_ignit_2022.tif")
+human22<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_person_ignit_2022.tif")
+escape.ras22<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_escape_2022.tif")
+spread.ras22<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_spread_2022.tif")
+
+crs(spread.ras22)
+crs(escape.ras22)
+```
+
+
+```{r cars}
+# combine lightning and person caused fires to create general ignition map.
+
+#P(Ignition) = P(lightning) x  (1-P(human)) + P(human) x (  1-P(lightning)) # Formula was used in this paper: https://iopscience.iop.org/article/10.1088/1748-9326/ac03da (Barros et.al. (2021) Contrasting the role of human- and lightning-caused wildfires on future fire regimes on a Central Oregon landscape. )
+# one suggestion was to weight the person and lightning caused fires by their frequency in the region. I should try this out I think. 
+total.ignit21 <- (lightning21 * (1-human21)) + (human21 * (1-lightning21))
+total.ignit22 <- (lightning22 * (1-human22)) + (human22 * (1-lightning22))
+
+plot(total.ignit21, col=rev(heat.colors(255)))
+plot(total.ignit22, col=rev(heat.colors(255)))
+
+# replacing NA's by zero. Most NA's are in the ocean, so I think this makes sense
+escape.ras21[is.na(escape.ras21[])] <- 0 
+total.ignit21[is.na(total.ignit21[])] <- 0 
+spread.ras21[is.na(spread.ras21[])] <- 0 
+escape.ras22[is.na(escape.ras22[])] <- 0 
+total.ignit22[is.na(total.ignit22[])] <- 0 
+spread.ras22[is.na(spread.ras22[])] <- 0 
+```
+
+```{r}
+#create landscape  raster with each pixel having a different idno
+a <- raster(extent(total.ignit21), 
+  crs = st_crs(total.ignit21)$proj4string, resolution = c(400, 400), vals = 1:ncell(total.ignit21))
+
+no_ignitions=500# number of ignitions (FIX this so its drawn from a distribution or pulled off a map or something)
+n<-2 # number of reps
+out<-list()
+set.seed(123)
+
+#####
+tot.area.burned<-integer(n)
+tot.escapes<-integer(n)
+
+ignit_ras<-c(total.ignit21, total.ignit22)
+years<-c(21, 22)
+
+for (i in 1:n) {
+  
+# initiate ignitions at randomly chosen points
+startCells <- as.integer(sample(1:ncell(total.ignit21), no_ignitions))
+
+#extract probability numbers from the igniton map
+probs.ignit<-total.ignit21[startCells]
+#draw random number from uniform distribution
+random.num<-runif(no_ignitions)
+#combine values into a datagram, I dotn think this step is neccessary
+#df<-as.data.frame(cbind(startCells, probs.ignit, random.num))
+#select points that have an ignition probability greater than the randomly drawn number.
+ignition.pts<- startCells[probs.ignit > random.num ]
+
+# Now test if the fire can escape from the ignition point
+  #extract probability numbers from the escape map
+probs.escape<-escape.ras21[ignition.pts]
+#draw random number from uniform distribution
+random.num<-runif(length(ignition.pts))
+#combine values into a datagram
+#df<-as.data.frame(cbind(ignition.pts, probs.escape, random.num))
+#select points that have an ignition probability greater than the randomly drawn number.
+escape.pts<- ignition.pts[probs.escape > random.num ]
+
+
+tot.escapes[i]<-length(escape.pts)
+
+
+out[[i]]  <- spread2(a, start = escape.pts, spreadProb = spread.ras21, asRaster = FALSE, allowOverlap = FALSE)
+tot.area.burned[i]<-out[[i]][,.N]
+
+}
+
+out2<-data.table::rbindlist(out)
+b<-table(a[out2$pixels])
+b1<-b/n
+
+b.tab<-data.table(b1)
+b.tab$V1<-as.numeric(b.tab$V1)
+a[]<-0
+a[b.tab$V1]<-b.tab$N
+
+plot(a)
+```
+
