@@ -47,6 +47,8 @@ ignition2<-ignition1 %>%
 ```
 
 ```{r}
+clim2021<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\bc_dem_frt_clim_2021.csv")
+
 clim2024<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\Future_climate_bc\\bc_dem_frt_8GCMs_ensemble_ssp370_2024M.csv")
 
 clim2029<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\Future_climate_bc\\bc_dem_frt_8GCMs_ensemble_ssp370_2029M.csv")
@@ -55,9 +57,9 @@ clim2034<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\B
 
 clim2039<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\Future_climate_bc\\bc_dem_frt_8GCMs_ensemble_ssp370_2039M.csv")
 
-clim2044<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\Future_climate_bc\\bc_dem_frt_8GCMs_ensemble_ssp370_2039M.csv")
+clim2044<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\Future_climate_bc\\bc_dem_frt_8GCMs_ensemble_ssp370_2044M.csv")
 
-clim2049<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\Future_climate_bc\\bc_dem_frt_8GCMs_ensemble_ssp370_2039M.csv")
+clim2049<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\Future_climate_bc\\bc_dem_frt_8GCMs_ensemble_ssp370_2049M.csv")
 ```
 
 ```{r}
@@ -112,7 +114,7 @@ clim$mean_PPT05_PPT06_PPT07<- (clim$PPT05+ clim$PPT06 + clim$PPT07)/3
 ###################################################
 # get variables for climate for lightning ignitions
 ###################################################
-clim<-clim %>% select(idno, frt, mean_Tave05_Tave06_Tave07_Tave08,
+clim<-clim %>% select(ID1, ID2, mean_Tave05_Tave06_Tave07_Tave08,
                       meanRH05_RH06_RH07,
                       Tmax05,
                       Tave07,

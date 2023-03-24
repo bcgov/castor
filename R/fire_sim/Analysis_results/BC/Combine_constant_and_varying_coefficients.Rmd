@@ -18,6 +18,7 @@ library(tmap)
 library(raster)
 library(SpaDES.tools)
 library(quickPlot)
+library(bcdata)
 
 library(SpaDES)
 library(SpaDES.core)
@@ -25,12 +26,13 @@ library(SpaDES.addins)
 library(terra)
 ```
 
+# Look into this: Why do I have so many locations with missing climate data? Figure out what is going on and why Im missing this information. Ok I think for some reason data for frt3 never got extracted. Ill leave this for now and myabe come back to it. Usually I lump frt3 with frt5 becauase frt3 has such a small area in the province.
 
 ## import tables with the constant and variable coefficient values
 ```{r}
 const_coef<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_final_constant_coefficients_2021.gpkg")
 
-var_coef_2024<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2021.gpkg")
+var_coef_2021<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2021.gpkg")
 
 var_coef_2024<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2024.gpkg")
 
@@ -45,10 +47,66 @@ var_coef_2044<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\da
 var_coef_2049<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2049.gpkg")
 ```
 
+I forgot to attach the bclcs_level_5 info to the coefficients. So Ill join it to the constant coef table here instead
+```{r}
+dat<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\BC_all_dat_400m_final.gpkg")
+
+dat2<-dat %>% dplyr::select(idno, frt, bclcs_level_5)
+
+dat2<-st_drop_geometry(dat2)
+```
+
+
 # not for each year calculate the probability of ignition, escape and spread by combining the coefficients.
+
+## 2021
 ```{r}
 const_coef<-st_drop_geometry(const_coef)
 const_coef$frt<-as.numeric(as.character(const_coef$frt))
+const_coef<-left_join(const_coef, dat2)
+
+coef_2021<-left_join(var_coef_2021,const_coef)
+
+names(coef_2021)
+
+coef_2021$logit_P_lightning<-coef_2021$logit_P_lightning_coef_const + coef_2021$varying_coef_lightning
+coef_2021$logit_P_person<-coef_2021$logit_P_person_coef_const + coef_2021$varying_coef_person
+coef_2021$logit_P_escape<-coef_2021$logit_P_escape_coef_const + coef_2021$varying_coef_escape
+coef_2021$logit_P_spread<-coef_2021$logit_P_spread_coef_const + coef_2021$varying_coef_spread
+
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+coef_2021$prob_ignition_lightning<-exp(coef_2021$logit_P_lightning)/(1+exp(coef_2021$logit_P_lightning))
+coef_2021$prob_ignition_person<-exp(coef_2021$logit_P_person)/(1+exp(coef_2021$logit_P_person))
+coef_2021$prob_escape<-exp(coef_2021$logit_P_escape)/(1+exp(coef_2021$logit_P_escape))
+coef_2021$prob_spread<-exp(coef_2021$logit_P_spread)/(1+exp(coef_2021$logit_P_spread))
+
+head(coef_2021)
+## make sure that water, glaciers and some frt with veg =N should have a probability of zero. Ill change these here
+
+coef_2021<-coef_2021 %>% 
+  mutate(prob_ignition_lightning=ifelse(FWI_veg == "W", 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(FWI_veg == "W", 0, prob_ignition_person),
+         prob_escape=ifelse(FWI_veg == "W", 0, prob_escape),
+         prob_spread=ifelse(FWI_veg == "W", 0, prob_spread))
+
+coef_2021<-coef_2021 %>% 
+  mutate(prob_ignition_lightning=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_person),
+         prob_escape=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_escape),
+         prob_spread=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_spread))
+
+coef_2021$prob_ignition_lightning[coef_2021$frt==5 & coef_2021$FWI_veg=="N"]<-0
+coef_2021$prob_escape[coef_2021$frt==5 & coef_2021$FWI_veg=="N"]<-0
+coef_2021$prob_ignition_lightning[coef_2021$frt==7 & coef_2021$FWI_veg=="N"]<-0
+
+hist(coef_2021$prob_escape)
+hist(coef_2021$prob_ignition_lightning)
+hist(coef_2021$prob_ignition_person)
+hist(coef_2021$prob_spread)
+```
+
+## 2024
+```{r}
 coef_2024<-left_join(var_coef_2024,const_coef)
 
 names(coef_2024)
@@ -67,8 +125,21 @@ coef_2024$prob_spread<-exp(coef_2024$logit_P_spread)/(1+exp(coef_2024$logit_P_sp
 head(coef_2024)
 ## make sure that water, glaciers and some frt with veg =N should have a probability of zero. Ill change these here
 
-coef_2024$prob_ignition_lightning[coef_2024$& coef_2024$FWI_veg=="N"]<-0
-coef_2024$prob_escape[coef_2024$FWI_veg=="N"]<-0
+coef_2024<-coef_2024 %>% 
+  mutate(prob_ignition_lightning=ifelse(FWI_veg == "W", 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(FWI_veg == "W", 0, prob_ignition_person),
+         prob_escape=ifelse(FWI_veg == "W", 0, prob_escape),
+         prob_spread=ifelse(FWI_veg == "W", 0, prob_spread))
+
+coef_2024<-coef_2024 %>% 
+  mutate(prob_ignition_lightning=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_person),
+         prob_escape=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_escape),
+         prob_spread=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_spread))
+
+coef_2024$prob_ignition_lightning[coef_2024$frt==5 & coef_2024$FWI_veg=="N"]<-0
+coef_2024$prob_escape[coef_2024$frt==5 & coef_2024$FWI_veg=="N"]<-0
+coef_2024$prob_ignition_lightning[coef_2024$frt==7 & coef_2024$FWI_veg=="N"]<-0
 
 hist(coef_2024$prob_escape)
 hist(coef_2024$prob_ignition_lightning)
@@ -76,104 +147,443 @@ hist(coef_2024$prob_ignition_person)
 hist(coef_2024$prob_spread)
 ```
 
+# 2029
+```{r}
+coef_2029<-left_join(var_coef_2029,const_coef)
 
-```{r cars}
-# 2021 rasters 
-lightning21<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_lightning_ignit_2021.tif")
-human21<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_person_ignit_2021.tif")
-escape.ras21<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_escape_2021.tif")
-spread.ras21<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_spread_2021.tif")
+names(coef_2029)
 
-# 2022 rasters
-lightning22<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_lightning_ignit_2022.tif")
-human22<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_person_ignit_2022.tif")
-escape.ras22<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_escape_2022.tif")
-spread.ras22<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_spread_2022.tif")
+coef_2029$logit_P_lightning<-coef_2029$logit_P_lightning_coef_const + coef_2029$varying_coef_lightning
+coef_2029$logit_P_person<-coef_2029$logit_P_person_coef_const + coef_2029$varying_coef_person
+coef_2029$logit_P_escape<-coef_2029$logit_P_escape_coef_const + coef_2029$varying_coef_escape
+coef_2029$logit_P_spread<-coef_2029$logit_P_spread_coef_const + coef_2029$varying_coef_spread
 
-crs(spread.ras22)
-crs(escape.ras22)
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+coef_2029$prob_ignition_lightning<-exp(coef_2029$logit_P_lightning)/(1+exp(coef_2029$logit_P_lightning))
+coef_2029$prob_ignition_person<-exp(coef_2029$logit_P_person)/(1+exp(coef_2029$logit_P_person))
+coef_2029$prob_escape<-exp(coef_2029$logit_P_escape)/(1+exp(coef_2029$logit_P_escape))
+coef_2029$prob_spread<-exp(coef_2029$logit_P_spread)/(1+exp(coef_2029$logit_P_spread))
+
+head(coef_2029)
+## make sure that water, glaciers and some frt with veg =N should have a probability of zero. Ill change these here
+
+coef_2029<-coef_2029 %>% 
+  mutate(prob_ignition_lightning=ifelse(FWI_veg == "W", 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(FWI_veg == "W", 0, prob_ignition_person),
+         prob_escape=ifelse(FWI_veg == "W", 0, prob_escape),
+         prob_spread=ifelse(FWI_veg == "W", 0, prob_spread))
+
+coef_2029<-coef_2029 %>% 
+  mutate(prob_ignition_lightning=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_person),
+         prob_escape=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_escape),
+         prob_spread=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_spread))
+
+coef_2029$prob_ignition_lightning[coef_2029$frt==5 & coef_2029$FWI_veg=="N"]<-0
+coef_2029$prob_escape[coef_2029$frt==5 & coef_2029$FWI_veg=="N"]<-0
+coef_2029$prob_ignition_lightning[coef_2029$frt==7 & coef_2029$FWI_veg=="N"]<-0
+
+hist(coef_2029$prob_escape)
+hist(coef_2029$prob_ignition_lightning)
+hist(coef_2029$prob_ignition_person)
+hist(coef_2029$prob_spread)
+```
+
+## 2034
+```{r}
+coef_2034<-left_join(var_coef_2034,const_coef)
+
+names(coef_2034)
+
+coef_2034$logit_P_lightning<-coef_2034$logit_P_lightning_coef_const + coef_2034$varying_coef_lightning
+coef_2034$logit_P_person<-coef_2034$logit_P_person_coef_const + coef_2034$varying_coef_person
+coef_2034$logit_P_escape<-coef_2034$logit_P_escape_coef_const + coef_2034$varying_coef_escape
+coef_2034$logit_P_spread<-coef_2034$logit_P_spread_coef_const + coef_2034$varying_coef_spread
+
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+coef_2034$prob_ignition_lightning<-exp(coef_2034$logit_P_lightning)/(1+exp(coef_2034$logit_P_lightning))
+coef_2034$prob_ignition_person<-exp(coef_2034$logit_P_person)/(1+exp(coef_2034$logit_P_person))
+coef_2034$prob_escape<-exp(coef_2034$logit_P_escape)/(1+exp(coef_2034$logit_P_escape))
+coef_2034$prob_spread<-exp(coef_2034$logit_P_spread)/(1+exp(coef_2034$logit_P_spread))
+
+head(coef_2034)
+## make sure that water, glaciers and some frt with veg =N should have a probability of zero. Ill change these here
+
+coef_2034<-coef_2034 %>% 
+  mutate(prob_ignition_lightning=ifelse(FWI_veg == "W", 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(FWI_veg == "W", 0, prob_ignition_person),
+         prob_escape=ifelse(FWI_veg == "W", 0, prob_escape),
+         prob_spread=ifelse(FWI_veg == "W", 0, prob_spread))
+
+coef_2034<-coef_2034 %>% 
+  mutate(prob_ignition_lightning=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_person),
+         prob_escape=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_escape),
+         prob_spread=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_spread))
+
+coef_2034$prob_ignition_lightning[coef_2034$frt==5 & coef_2034$FWI_veg=="N"]<-0
+coef_2034$prob_escape[coef_2034$frt==5 & coef_2034$FWI_veg=="N"]<-0
+coef_2034$prob_ignition_lightning[coef_2034$frt==7 & coef_2034$FWI_veg=="N"]<-0
+
+hist(coef_2034$prob_escape)
+hist(coef_2034$prob_ignition_lightning)
+hist(coef_2034$prob_ignition_person)
+hist(coef_2034$prob_spread)
 ```
 
 
-```{r cars}
-# combine lightning and person caused fires to create general ignition map.
+##2039
+```{r}
+coef_2039<-left_join(var_coef_2039,const_coef)
 
-#P(Ignition) = P(lightning) x  (1-P(human)) + P(human) x (  1-P(lightning)) # Formula was used in this paper: https://iopscience.iop.org/article/10.1088/1748-9326/ac03da (Barros et.al. (2021) Contrasting the role of human- and lightning-caused wildfires on future fire regimes on a Central Oregon landscape. )
-# one suggestion was to weight the person and lightning caused fires by their frequency in the region. I should try this out I think. 
-total.ignit21 <- (lightning21 * (1-human21)) + (human21 * (1-lightning21))
-total.ignit22 <- (lightning22 * (1-human22)) + (human22 * (1-lightning22))
+names(coef_2039)
 
-plot(total.ignit21, col=rev(heat.colors(255)))
-plot(total.ignit22, col=rev(heat.colors(255)))
+coef_2039$logit_P_lightning<-coef_2039$logit_P_lightning_coef_const + coef_2039$varying_coef_lightning
+coef_2039$logit_P_person<-coef_2039$logit_P_person_coef_const + coef_2039$varying_coef_person
+coef_2039$logit_P_escape<-coef_2039$logit_P_escape_coef_const + coef_2039$varying_coef_escape
+coef_2039$logit_P_spread<-coef_2039$logit_P_spread_coef_const + coef_2039$varying_coef_spread
 
-# replacing NA's by zero. Most NA's are in the ocean, so I think this makes sense
-escape.ras21[is.na(escape.ras21[])] <- 0 
-total.ignit21[is.na(total.ignit21[])] <- 0 
-spread.ras21[is.na(spread.ras21[])] <- 0 
-escape.ras22[is.na(escape.ras22[])] <- 0 
-total.ignit22[is.na(total.ignit22[])] <- 0 
-spread.ras22[is.na(spread.ras22[])] <- 0 
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+coef_2039$prob_ignition_lightning<-exp(coef_2039$logit_P_lightning)/(1+exp(coef_2039$logit_P_lightning))
+coef_2039$prob_ignition_person<-exp(coef_2039$logit_P_person)/(1+exp(coef_2039$logit_P_person))
+coef_2039$prob_escape<-exp(coef_2039$logit_P_escape)/(1+exp(coef_2039$logit_P_escape))
+coef_2039$prob_spread<-exp(coef_2039$logit_P_spread)/(1+exp(coef_2039$logit_P_spread))
+
+head(coef_2039)
+## make sure that water, glaciers and some frt with veg =N should have a probability of zero. Ill change these here
+
+coef_2039<-coef_2039 %>% 
+  mutate(prob_ignition_lightning=ifelse(FWI_veg == "W", 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(FWI_veg == "W", 0, prob_ignition_person),
+         prob_escape=ifelse(FWI_veg == "W", 0, prob_escape),
+         prob_spread=ifelse(FWI_veg == "W", 0, prob_spread))
+
+coef_2039<-coef_2039 %>% 
+  mutate(prob_ignition_lightning=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_person),
+         prob_escape=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_escape),
+         prob_spread=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_spread))
+
+coef_2039$prob_ignition_lightning[coef_2039$frt==5 & coef_2039$FWI_veg=="N"]<-0
+coef_2039$prob_escape[coef_2039$frt==5 & coef_2039$FWI_veg=="N"]<-0
+coef_2039$prob_ignition_lightning[coef_2039$frt==7 & coef_2039$FWI_veg=="N"]<-0
+
+hist(coef_2039$prob_escape)
+hist(coef_2039$prob_ignition_lightning)
+hist(coef_2039$prob_ignition_person)
+hist(coef_2039$prob_spread)
+```
+
+##2044
+```{r}
+coef_2044<-left_join(var_coef_2044,const_coef)
+
+names(coef_2044)
+
+coef_2044$logit_P_lightning<-coef_2044$logit_P_lightning_coef_const + coef_2044$varying_coef_lightning
+coef_2044$logit_P_person<-coef_2044$logit_P_person_coef_const + coef_2044$varying_coef_person
+coef_2044$logit_P_escape<-coef_2044$logit_P_escape_coef_const + coef_2044$varying_coef_escape
+coef_2044$logit_P_spread<-coef_2044$logit_P_spread_coef_const + coef_2044$varying_coef_spread
+
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+coef_2044$prob_ignition_lightning<-exp(coef_2044$logit_P_lightning)/(1+exp(coef_2044$logit_P_lightning))
+coef_2044$prob_ignition_person<-exp(coef_2044$logit_P_person)/(1+exp(coef_2044$logit_P_person))
+coef_2044$prob_escape<-exp(coef_2044$logit_P_escape)/(1+exp(coef_2044$logit_P_escape))
+coef_2044$prob_spread<-exp(coef_2044$logit_P_spread)/(1+exp(coef_2044$logit_P_spread))
+
+head(coef_2044)
+## make sure that water, glaciers and some frt with veg =N should have a probability of zero. Ill change these here
+
+coef_2044<-coef_2044 %>% 
+  mutate(prob_ignition_lightning=ifelse(FWI_veg == "W", 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(FWI_veg == "W", 0, prob_ignition_person),
+         prob_escape=ifelse(FWI_veg == "W", 0, prob_escape),
+         prob_spread=ifelse(FWI_veg == "W", 0, prob_spread))
+
+coef_2044<-coef_2044 %>% 
+  mutate(prob_ignition_lightning=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_person),
+         prob_escape=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_escape),
+         prob_spread=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_spread))
+
+coef_2044$prob_ignition_lightning[coef_2044$frt==5 & coef_2044$FWI_veg=="N"]<-0
+coef_2044$prob_escape[coef_2044$frt==5 & coef_2044$FWI_veg=="N"]<-0
+coef_2044$prob_ignition_lightning[coef_2044$frt==7 & coef_2044$FWI_veg=="N"]<-0
+
+hist(coef_2044$prob_escape)
+hist(coef_2044$prob_ignition_lightning)
+hist(coef_2044$prob_ignition_person)
+hist(coef_2044$prob_spread)
+```
+
+## 2049
+```{r}
+coef_2049<-left_join(var_coef_2049,const_coef)
+
+names(coef_2049)
+
+coef_2049$logit_P_lightning<-coef_2049$logit_P_lightning_coef_const + coef_2049$varying_coef_lightning
+coef_2049$logit_P_person<-coef_2049$logit_P_person_coef_const + coef_2049$varying_coef_person
+coef_2049$logit_P_escape<-coef_2049$logit_P_escape_coef_const + coef_2049$varying_coef_escape
+coef_2049$logit_P_spread<-coef_2049$logit_P_spread_coef_const + coef_2049$varying_coef_spread
+
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+coef_2049$prob_ignition_lightning<-exp(coef_2049$logit_P_lightning)/(1+exp(coef_2049$logit_P_lightning))
+coef_2049$prob_ignition_person<-exp(coef_2049$logit_P_person)/(1+exp(coef_2049$logit_P_person))
+coef_2049$prob_escape<-exp(coef_2049$logit_P_escape)/(1+exp(coef_2049$logit_P_escape))
+coef_2049$prob_spread<-exp(coef_2049$logit_P_spread)/(1+exp(coef_2049$logit_P_spread))
+
+head(coef_2049)
+## make sure that water, glaciers and some frt with veg =N should have a probability of zero. Ill change these here
+
+coef_2049<-coef_2049 %>% 
+  mutate(prob_ignition_lightning=ifelse(FWI_veg == "W", 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(FWI_veg == "W", 0, prob_ignition_person),
+         prob_escape=ifelse(FWI_veg == "W", 0, prob_escape),
+         prob_spread=ifelse(FWI_veg == "W", 0, prob_spread))
+
+coef_2049<-coef_2049 %>% 
+  mutate(prob_ignition_lightning=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_person),
+         prob_escape=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_escape),
+         prob_spread=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_spread))
+
+coef_2049$prob_ignition_lightning[coef_2049$frt==5 & coef_2049$FWI_veg=="N"]<-0
+coef_2049$prob_escape[coef_2049$frt==5 & coef_2049$FWI_veg=="N"]<-0
+coef_2049$prob_ignition_lightning[coef_2049$frt==7 & coef_2049$FWI_veg=="N"]<-0
+
+hist(coef_2049$prob_escape)
+hist(coef_2049$prob_ignition_lightning)
+hist(coef_2049$prob_ignition_person)
+hist(coef_2049$prob_spread)
+```
+
+
+```{r}
+coef_2021<- coef_2021 %>% 
+  dplyr::select(idno, frt, prob_ignition_lightning:prob_spread) %>% 
+  rename(prob_ignition_lightning_2021=prob_ignition_lightning,
+         prob_ignition_person_2021=prob_ignition_person,
+         prob_escape_2021=prob_escape,
+         prob_spread_2021=prob_spread)
+coef_2024<- coef_2024 %>% 
+  dplyr::select(idno, frt, prob_ignition_lightning:prob_spread)%>% 
+  rename(prob_ignition_lightning_2024=prob_ignition_lightning,
+         prob_ignition_person_2024=prob_ignition_person,
+         prob_escape_2024=prob_escape,
+         prob_spread_2024=prob_spread)
+coef_2029<- coef_2029 %>% 
+  dplyr::select(idno, frt, prob_ignition_lightning:prob_spread) %>% 
+  rename(prob_ignition_lightning_2029=prob_ignition_lightning,
+         prob_ignition_person_2029=prob_ignition_person,
+         prob_escape_2029=prob_escape,
+         prob_spread_2029=prob_spread)
+coef_2034<- coef_2034 %>% 
+  dplyr::select(idno, frt, prob_ignition_lightning:prob_spread)%>% 
+  rename(prob_ignition_lightning_2034=prob_ignition_lightning,
+         prob_ignition_person_2034=prob_ignition_person,
+         prob_escape_2034=prob_escape,
+         prob_spread_2034=prob_spread)
+coef_2039<- coef_2039 %>%
+  dplyr::select(idno, frt, prob_ignition_lightning:prob_spread)%>% 
+  rename(prob_ignition_lightning_2039=prob_ignition_lightning,
+         prob_ignition_person_2039=prob_ignition_person,
+         prob_escape_2039=prob_escape,
+         prob_spread_2039=prob_spread)
+coef_2044<- coef_2044 %>%
+  dplyr::select(idno, frt, prob_ignition_lightning:prob_spread)%>% 
+  rename(prob_ignition_lightning_2044=prob_ignition_lightning,
+         prob_ignition_person_2044=prob_ignition_person,
+         prob_escape_2044=prob_escape,
+         prob_spread_2044=prob_spread)
+coef_2049<- coef_2049 %>%
+  dplyr::select(idno, frt, prob_ignition_lightning:prob_spread)%>% 
+  rename(prob_ignition_lightning_2049=prob_ignition_lightning,
+         prob_ignition_person_2049=prob_ignition_person,
+         prob_escape_2049=prob_escape,
+         prob_spread_2049=prob_spread)
+
 ```
 
 ```{r}
-#create landscape  raster with each pixel having a different idno
-a <- raster(extent(total.ignit21), 
-  crs = st_crs(total.ignit21)$proj4string, resolution = c(400, 400), vals = 1:ncell(total.ignit21))
+coef_2024<-st_drop_geometry(coef_2024)
+coef_2029<-st_drop_geometry(coef_2029)
+coef_2034<-st_drop_geometry(coef_2034)
+coef_2039<-st_drop_geometry(coef_2039)
+coef_2044<-st_drop_geometry(coef_2044)
+coef_2049<-st_drop_geometry(coef_2049)
 
-no_ignitions=500# number of ignitions (FIX this so its drawn from a distribution or pulled off a map or something)
-n<-2 # number of reps
-out<-list()
-set.seed(123)
+coef_all<-left_join(coef_2021, coef_2024)
+coef_all<-left_join(coef_all, coef_2029)
+coef_all<-left_join(coef_all, coef_2034)
+coef_all<-left_join(coef_all, coef_2039)
+coef_all<-left_join(coef_all, coef_2044)
+coef_all<-left_join(coef_all, coef_2049)
 
-#####
-tot.area.burned<-integer(n)
-tot.escapes<-integer(n)
+head(coef_all)
 
-ignit_ras<-c(total.ignit21, total.ignit22)
-years<-c(21, 22)
+```
 
-for (i in 1:n) {
-  
-# initiate ignitions at randomly chosen points
-startCells <- as.integer(sample(1:ncell(total.ignit21), no_ignitions))
-
-#extract probability numbers from the igniton map
-probs.ignit<-total.ignit21[startCells]
-#draw random number from uniform distribution
-random.num<-runif(no_ignitions)
-#combine values into a datagram, I dotn think this step is neccessary
-#df<-as.data.frame(cbind(startCells, probs.ignit, random.num))
-#select points that have an ignition probability greater than the randomly drawn number.
-ignition.pts<- startCells[probs.ignit > random.num ]
-
-# Now test if the fire can escape from the ignition point
-  #extract probability numbers from the escape map
-probs.escape<-escape.ras21[ignition.pts]
-#draw random number from uniform distribution
-random.num<-runif(length(ignition.pts))
-#combine values into a datagram
-#df<-as.data.frame(cbind(ignition.pts, probs.escape, random.num))
-#select points that have an ignition probability greater than the randomly drawn number.
-escape.pts<- ignition.pts[probs.escape > random.num ]
+```{r}
+st_write(coef_all, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\Prob_ignit_escape_spread_2021-2049.gpkg", delete_layer=TRUE, driver="GPKG")
+```
 
 
-tot.escapes[i]<-length(escape.pts)
+## create total ignition probabilities of fire by weighting lightning caused or human caused fires by their proportions
+
+```{r}
+prob_fire<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\Prob_ignit_escape_spread_2021-2049.gpkg")
+
+# extract BC data
+ignit<-try(
+   bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
+     filter(FIRE_YEAR > 1990) %>%
+     filter(FIRE_TYPE == "Fire") %>%
+     collect()
+ )
+ignit<-st_transform(ignit, 3005) #transform coordinate system to 3005 - that for BC, Canada
+
+frt <- st_read ( dsn = "D:\\Fire\\fire_data\\Fire_Regime_Types\\FRT\\FRT_Canada.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+st_crs(frt) #Retrieve coordinate reference system from sf or sfc object
+frt<-st_transform(frt, 3005) #transform coordinate system to 3005 - that for BC, Canada
+ignit_sf<-st_as_sf(ignit)
+frt_sf<-st_as_sf(frt)
+
+fire.ignt.frt <- st_join(ignit_sf, frt_sf)
+```
 
 
-out[[i]]  <- spread2(a, start = escape.pts, spreadProb = spread.ras21, asRaster = FALSE, allowOverlap = FALSE)
-tot.area.burned[i]<-out[[i]][,.N]
+```{r}
+head(fire.ignt.frt)
 
-}
+x<-table(fire.ignt.frt$Cluster, fire.ignt.frt$FIRE_CAUSE)
 
-out2<-data.table::rbindlist(out)
-b<-table(a[out2$pixels])
-b1<-b/n
 
-b.tab<-data.table(b1)
-b.tab$V1<-as.numeric(b.tab$V1)
-a[]<-0
-a[b.tab$V1]<-b.tab$N
+frt5<-1503/(1503+272) # 84% lightning
+frt7<- 250/(250+1294) # 16% lightning
+frt9<- 143/(143+61) #70% lightning
+frt10<- 1036/(1036+167) # 86% lightning
+frt11<-184/(284+150) # 42% lightning
+frt12<-3786/(3786+4123) # 48% lightning
+frt13<-17426/(17426+3448) #83% lightning
+frt14<-6200/(6200+8957) # 41% lightning
+frt15<-1374/(1374+3474) # 28% lightning
+```
 
-plot(a)
+```{r}
+prob_fire<-prob_fire %>%
+    mutate(tot_ignit_2021 = case_when(
+                            frt == "5" ~ (prob_ignition_lightning_2021*0.84) + (prob_ignition_person_2021*0.16),
+                            frt == "7" ~ (prob_ignition_lightning_2021*0.16) + (prob_ignition_person_2021*0.84),
+                            frt == "9" ~ 
+  (prob_ignition_lightning_2021*0.7) + (prob_ignition_person_2021*0.3),
+                            frt == "10" ~ (prob_ignition_lightning_2021*0.86) + (prob_ignition_person_2021*0.14),
+                            frt == "11" ~ (prob_ignition_lightning_2021*0.42) + (prob_ignition_person_2021*0.58),
+                            frt == "12" ~ (prob_ignition_lightning_2021*0.48) + (prob_ignition_person_2021*0.52),
+                            frt == "13" ~ (prob_ignition_lightning_2021*0.83) + (prob_ignition_person_2021*0.17),
+                            frt == "14" ~ (prob_ignition_lightning_2021*0.41) + (prob_ignition_person_2021*0.59),
+                            frt == "15" ~ (prob_ignition_lightning_2021*0.28) + (prob_ignition_person_2021*0.72) ,
+                            TRUE ~ NA_real_))
+
+prob_fire<-prob_fire %>%
+    mutate(tot_ignit_2024 = case_when(
+                            frt == "5" ~ (prob_ignition_lightning_2024*0.84) + (prob_ignition_person_2024*0.16),
+                            frt == "7" ~ (prob_ignition_lightning_2024*0.16) + (prob_ignition_person_2024*0.84),
+                            frt == "9" ~ 
+  (prob_ignition_lightning_2024*0.7) + (prob_ignition_person_2024*0.3),
+                            frt == "10" ~ (prob_ignition_lightning_2024*0.86) + (prob_ignition_person_2024*0.14),
+                            frt == "11" ~ (prob_ignition_lightning_2024*0.42) + (prob_ignition_person_2024*0.58),
+                            frt == "12" ~ (prob_ignition_lightning_2024*0.48) + (prob_ignition_person_2024*0.52),
+                            frt == "13" ~ (prob_ignition_lightning_2024*0.83) + (prob_ignition_person_2024*0.17),
+                            frt == "14" ~ (prob_ignition_lightning_2024*0.41) + (prob_ignition_person_2024*0.59),
+                            frt == "15" ~ (prob_ignition_lightning_2024*0.28) + (prob_ignition_person_2024*0.72) ,
+                            TRUE ~ NA_real_))
+
+prob_fire<-prob_fire %>%
+    mutate(tot_ignit_2029 = case_when(
+                            frt == "5" ~ (prob_ignition_lightning_2029*0.84) + (prob_ignition_person_2029*0.16),
+                            frt == "7" ~ (prob_ignition_lightning_2029*0.16) + (prob_ignition_person_2029*0.84),
+                            frt == "9" ~ 
+  (prob_ignition_lightning_2029*0.7) + (prob_ignition_person_2029*0.3),
+                            frt == "10" ~ (prob_ignition_lightning_2029*0.86) + (prob_ignition_person_2029*0.14),
+                            frt == "11" ~ (prob_ignition_lightning_2029*0.42) + (prob_ignition_person_2029*0.58),
+                            frt == "12" ~ (prob_ignition_lightning_2029*0.48) + (prob_ignition_person_2029*0.52),
+                            frt == "13" ~ (prob_ignition_lightning_2029*0.83) + (prob_ignition_person_2029*0.17),
+                            frt == "14" ~ (prob_ignition_lightning_2029*0.41) + (prob_ignition_person_2029*0.59),
+                            frt == "15" ~ (prob_ignition_lightning_2029*0.28) + (prob_ignition_person_2029*0.72) ,
+                            TRUE ~ NA_real_))
+
+prob_fire<-prob_fire %>%
+    mutate(tot_ignit_2034 = case_when(
+                            frt == "5" ~ (prob_ignition_lightning_2034*0.84) + (prob_ignition_person_2034*0.16),
+                            frt == "7" ~ (prob_ignition_lightning_2034*0.16) + (prob_ignition_person_2034*0.84),
+                            frt == "9" ~ 
+  (prob_ignition_lightning_2034*0.7) + (prob_ignition_person_2034*0.3),
+                            frt == "10" ~ (prob_ignition_lightning_2034*0.86) + (prob_ignition_person_2034*0.14),
+                            frt == "11" ~ (prob_ignition_lightning_2034*0.42) + (prob_ignition_person_2034*0.58),
+                            frt == "12" ~ (prob_ignition_lightning_2034*0.48) + (prob_ignition_person_2034*0.52),
+                            frt == "13" ~ (prob_ignition_lightning_2034*0.83) + (prob_ignition_person_2034*0.17),
+                            frt == "14" ~ (prob_ignition_lightning_2034*0.41) + (prob_ignition_person_2034*0.59),
+                            frt == "15" ~ (prob_ignition_lightning_2034*0.28) + (prob_ignition_person_2034*0.72) ,
+                            TRUE ~ NA_real_))
+
+prob_fire<-prob_fire %>%
+    mutate(tot_ignit_2039 = case_when(
+                            frt == "5" ~ (prob_ignition_lightning_2039*0.84) + (prob_ignition_person_2039*0.16),
+                            frt == "7" ~ (prob_ignition_lightning_2039*0.16) + (prob_ignition_person_2039*0.84),
+                            frt == "9" ~ 
+  (prob_ignition_lightning_2039*0.7) + (prob_ignition_person_2039*0.3),
+                            frt == "10" ~ (prob_ignition_lightning_2039*0.86) + (prob_ignition_person_2039*0.14),
+                            frt == "11" ~ (prob_ignition_lightning_2039*0.42) + (prob_ignition_person_2039*0.58),
+                            frt == "12" ~ (prob_ignition_lightning_2039*0.48) + (prob_ignition_person_2039*0.52),
+                            frt == "13" ~ (prob_ignition_lightning_2039*0.83) + (prob_ignition_person_2039*0.17),
+                            frt == "14" ~ (prob_ignition_lightning_2039*0.41) + (prob_ignition_person_2039*0.59),
+                            frt == "15" ~ (prob_ignition_lightning_2039*0.28) + (prob_ignition_person_2039*0.72) ,
+                            TRUE ~ NA_real_))
+
+prob_fire<-prob_fire %>%
+    mutate(tot_ignit_2044 = case_when(
+                            frt == "5" ~ (prob_ignition_lightning_2044*0.84) + (prob_ignition_person_2044*0.16),
+                            frt == "7" ~ (prob_ignition_lightning_2044*0.16) + (prob_ignition_person_2044*0.84),
+                            frt == "9" ~ 
+  (prob_ignition_lightning_2044*0.7) + (prob_ignition_person_2044*0.3),
+                            frt == "10" ~ (prob_ignition_lightning_2044*0.86) + (prob_ignition_person_2044*0.14),
+                            frt == "11" ~ (prob_ignition_lightning_2044*0.42) + (prob_ignition_person_2044*0.58),
+                            frt == "12" ~ (prob_ignition_lightning_2044*0.48) + (prob_ignition_person_2044*0.52),
+                            frt == "13" ~ (prob_ignition_lightning_2044*0.83) + (prob_ignition_person_2044*0.17),
+                            frt == "14" ~ (prob_ignition_lightning_2044*0.41) + (prob_ignition_person_2044*0.59),
+                            frt == "15" ~ (prob_ignition_lightning_2044*0.28) + (prob_ignition_person_2044*0.72) ,
+                            TRUE ~ NA_real_))
+
+prob_fire<-prob_fire %>%
+    mutate(tot_ignit_2049 = case_when(
+                            frt == "5" ~ (prob_ignition_lightning_2049*0.84) + (prob_ignition_person_2049*0.16),
+                            frt == "7" ~ (prob_ignition_lightning_2049*0.16) + (prob_ignition_person_2049*0.84),
+                            frt == "9" ~ 
+  (prob_ignition_lightning_2049*0.7) + (prob_ignition_person_2049*0.3),
+                            frt == "10" ~ (prob_ignition_lightning_2049*0.86) + (prob_ignition_person_2049*0.14),
+                            frt == "11" ~ (prob_ignition_lightning_2049*0.42) + (prob_ignition_person_2049*0.58),
+                            frt == "12" ~ (prob_ignition_lightning_2049*0.48) + (prob_ignition_person_2049*0.52),
+                            frt == "13" ~ (prob_ignition_lightning_2049*0.83) + (prob_ignition_person_2049*0.17),
+                            frt == "14" ~ (prob_ignition_lightning_2049*0.41) + (prob_ignition_person_2049*0.59),
+                            frt == "15" ~ (prob_ignition_lightning_2049*0.28) + (prob_ignition_person_2049*0.72) ,
+                            TRUE ~ NA_real_))
+
+hist(prob_fire$prob_ignition_lightning_2021)
+hist(prob_fire$prob_ignition_lightning_2024)
+hist(prob_fire$prob_ignition_lightning_2029)
+hist(prob_fire$prob_ignition_lightning_2034)
+hist(prob_fire$prob_ignition_lightning_2039)
+hist(prob_fire$prob_ignition_lightning_2044)
+hist(prob_fire$prob_ignition_lightning_2049)
+
+hist(prob_fire$prob_spread_2021)
+hist(prob_fire$prob_spread_2024)
+hist(prob_fire$prob_spread_2029)
+hist(prob_fire$prob_spread_2034)
+hist(prob_fire$prob_spread_2039)
+hist(prob_fire$prob_spread_2044)
+hist(prob_fire$prob_spread_2049)
+
 ```
 
