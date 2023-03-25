@@ -771,7 +771,10 @@ server <- function(input, output, session) {
             data = group_data
           ) +
           ggtitle(
-            paste0("Number of female adults per time period (", length(csv_files), " observations)")
+            paste0(
+              "Female fishers with established territory at the end of 
+              each time interval (", length(csv_files), " iterations)"
+            )
           ) + 
           labs(
             x = "Time period", 
@@ -780,7 +783,7 @@ server <- function(input, output, session) {
           theme_minimal()
       )
       
-      ggsave(file=paste0(dir, "../n_f_adults.png"))
+      ggsave(file = paste0(dir, "../n_f_adults.png"))
 
       progressReport$set(
         value = 4,
@@ -802,7 +805,7 @@ server <- function(input, output, session) {
             raster(file), xy = TRUE
           ) %>% 
             dplyr::filter(layer > 0) %>%
-            dplyr::mutate(layer = 1)
+            dplyr::mutate(layer = round(1 / length(tif_files) * 100, 2))
         },
         dir
       )
@@ -822,20 +825,28 @@ server <- function(input, output, session) {
       
       g <- ggplot() +
         geom_raster(data = data_tif , aes(x = x, y = y, fill = layer)) +
-        scale_fill_viridis_c(direction = -1) +
+        scale_fill_gradient(
+          name = 'Times pixel\nwas selected',
+          labels = scales::percent_format(scale = 1),
+          low = '#deebf7',
+          high = '#003366'
+        ) +
         coord_equal() +
         ggtitle(
-          paste0("Composite raster file (", length(csv_files), " observations)")
+          paste0(
+            "Sum of established territories at the end of 
+            simulation (", length(tif_files), " iterations)"
+          )
         ) + 
         theme_minimal()
-      
+
       toc() # Visualizing tif files
       toc() # Overall process
       
       output$plot_tif <- renderPlot(g)
 
       rm(data_tif)
-      ggsave(file=paste0(dir, "../heatmap.png"))
+      ggsave(file = paste0(dir, "../heatmap.png"))
       
       progressReport$set(
         value = 10,
