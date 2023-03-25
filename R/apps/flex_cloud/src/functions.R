@@ -158,7 +158,7 @@ run_simulation <- function(
       d %>%
         droplet_ssh(
           glue::glue("curl -sSL https://repos.insights.digitalocean.com/install.sh | sudo bash; \
-git clone https://github.com/sasha-ruby/castor; \
+git clone https://github.com/bcgov/castor; \
 cd castor; \
 git checkout flex_cloud; \
 mkdir -p ~/castor/R/scenarios/fisher/inputs; \
