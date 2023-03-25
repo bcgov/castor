@@ -457,7 +457,11 @@ create_scenario_droplet <- function(
   selected_scenario_path <- stringr::str_replace(
     selected_scenario_tbl$datapath, 
     'NULL/',
-    paste0(fs::path_home(), '/')
+    ifelse(
+      stringr::str_to_lower(Sys.info()[1]) == 'windows',
+      paste0(fs::path_(), '/'),
+      ''
+    )
   )
   
   if (!file.exists(selected_scenario_path)) {

@@ -958,7 +958,11 @@ server <- function(input, output, session) {
       ssh_keyfile <- stringr::str_replace(
         ssh_keyfile_tbl$datapath, 
         'NULL/', 
-        paste0(fs::path_home(), '/')
+        ifelse(
+          stringr::str_to_lower(Sys.info()[1]) == 'windows',
+          paste0(fs::path_home(), '/'),
+          '/'
+        )
       )
       ssh_keyfile_name <- ssh_keyfile_tbl$name
       
