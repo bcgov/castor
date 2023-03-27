@@ -27,7 +27,7 @@ A new droplet is created with the following parameters:
 
 -   Data center: Toronto (TOR1)
 
--   SSH keys: `sasha` (to be replaced by key created by FAIB team)
+-   SSH keys: select all
 
 -   Enabled monitoring
 
@@ -37,10 +37,10 @@ A new droplet is created with the following parameters:
 
 As documented at <https://www.digitalocean.com/community/tutorials/initial-server-setup-with-ubuntu-22-04>.
 
-SSH to droplet and update OS:
+SSH to droplet and update OS (replace DROPLET_IP_ADDRESS with actual public IP address of the droplet:
 
 ```{bash}
-ssh root@167.99.186.59 -i ~/.ssh/sasha
+ssh root@DROPLET_IP_ADDRESS -i ~/.ssh/sasha
 apt update
 apt upgrade -y
 ```
@@ -60,7 +60,7 @@ The rest of the steps as per doc.
 From the tutorial at https://www.digitalocean.com/community/tutorials/how-to-add-swap-space-on-ubuntu-20-04.
 
 ```{bash}
-sudo fallocate -l 4G /swapfile
+sudo fallocate -l 16G /swapfile
 sudo chmod 600 /swapfile
 sudo mkswap /swapfile
 sudo swapon /swapfile
@@ -77,6 +77,15 @@ Add the following settings at the bottom of the file:
 ```
 vm.swappiness=10
 vm.vfs_cache_pressure=50
+```
+
+## Generate public-private key pair for communication with scenario droplet
+
+Generate public-private key pair for communication with scenario droplet, to be able to download the
+scenario to the droplet running the simulation.
+
+```
+ssh-keygen
 ```
 
 ## Install OS Libraries
@@ -280,18 +289,14 @@ if (!'units' %in% installed.packages()) remotes::install_version('units', '0.8-0
 if (!'ellipsis' %in% installed.packages()) remotes::install_version('ellipsis', '0.3.2')
 if (!'knitr' %in% installed.packages()) remotes::install_version('knitr', '1.37')
 
+q()
+```
 
-<!-- if (!'latticeExtra' %in% installed.packages()) remotes::install_version('latticeExtra', '0.6-29') -->
-<!-- if (!'cppRouting' %in% installed.packages()) remotes::install_version('cppRouting', '2.0') -->
-<!-- if (!'snow' %in% installed.packages()) remotes::install_version('snow', '0.4-4') -->
-<!-- if (!'gdalUtilities' %in% installed.packages()) remotes::install_version('gdalUtilities', '1.2.0') -->
-<!-- if (!'rmarkdown' %in% installed.packages()) remotes::install_version('rmarkdown', '2.13') -->
-<!-- if (!'jpeg' %in% installed.packages()) remotes::install_version('jpeg', '0.1-9') -->
-<!-- if (!'htmltools' %in% installed.packages()) remotes::install_version('htmltools', '0.5.2') -->
-<!-- if (!'yaml' %in% installed.packages()) remotes::install_version('yaml', '2.3.5') -->
-<!-- if (!'png' %in% installed.packages()) remotes::install_version('png', '0.1-7') -->
-<!-- if (!'openssl' %in% installed.packages()) remotes::install_version('openssl', '2.0.0') -->
-<!-- if (!'xfun' %in% installed.packages()) remotes::install_version('xfun', '0.30') -->
-<!-- if (!'rJava' %in% installed.packages()) remotes::install_version('rJava', '1.0-6') -->
+Shutdown the droplet in Digital Ocean:
 
-<!-- if (!'velox' %in% installed.packages()) remotes::install_version('velox', '0.2.1') -->
+```{bash}
+shutdown now
+```
+
+Create the snapshot with the following name: `flex-cloud-image-YYYYmmdd`, 
+replacing the `YYYYmmdd` portion with actual date.
