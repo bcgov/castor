@@ -509,7 +509,7 @@ create_scenario_droplet <- function(
   
   progressOne$set(value = 5, detail = 'Waiting for connectivity')
   
-  Sys.sleep(5)
+  Sys.sleep(30)
   
   progressOne$set(8, detail = 'Uplaoding scenario')
   
