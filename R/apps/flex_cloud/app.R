@@ -405,7 +405,7 @@ server <- function(input, output, session) {
       !grepl("-intel", slug),
       memory > 16000,
       vcpus > 4,
-      disk >= 320
+      disk >= 50
     ) %>%
     mutate(
       processes_by_core = vcpus,
@@ -547,6 +547,16 @@ server <- function(input, output, session) {
       disable('time_interval')
       disable('run_scenario')
 
+      # FLEX droplet image ----
+      snapshots <- snapshots_with_params(per_page = 200)
+      snap_image <- snapshots$`flex-cloud-image-20230325`$id
+      if (is.null(snap_image)) {
+        shinyjs::alert(
+        "Snapshot flex-cloud-image-20230325 does not exist in your Digital Ocean account. Please recreate it using Server Installation guide and restart the app."
+        )
+        return(NULL)
+      }
+      
       progressOne <- Progress$new(session, min = 1, max = 10)
       on.exit(progressOne$close())
       progressOne$set(message = 'Creating droplet to host the scenario',
@@ -588,11 +598,6 @@ server <- function(input, output, session) {
       
       print(paste("Simulation log file ", simulation_logfile))
 
-      # FLEX droplet image ----
-      snapshots <- snapshots_with_params(per_page = 200)
-      snap_image <- snapshots$`flex-cloud-image-20230224`$id
-      print(paste("Building from snapshot ID ", snap_image))
-# browser()
       droplet_properties <- sizes %>% filter(slug == input$droplet_size)
       droplet_sequence <- droplet_properties %>% pull(processes)
       sim_sequence <- ceiling(input$iterations / droplet_sequence)
@@ -665,6 +670,15 @@ server <- function(input, output, session) {
         simulation_id = simulation_id,
         droplet_sequence = droplet_sequence
       )
+      
+      # values <- lapply(
+      #   X = l,
+      #   FUN = function(x) {
+      #     stdout <- capture.output(a <- value(x))
+      #     stdout
+      #   }
+      # )
+      # print(values)
     }
   )
 
@@ -940,18 +954,22 @@ server <- function(input, output, session) {
     input$refresh_droplets,
     {
       droplets <- analogsea::droplets()
-      droplets_df <- as.data.frame(do.call(rbind, droplets)) %>%
-        dplyr::select(id, name, memory, vcpus, disk, status, tags, created_at) %>%
-        mutate(
-          tags = map_lgl(
-            tags,
-            filter_by_tag,
-            'flex_cloud'
-          )
-        ) %>%
-        filter(tags == TRUE) %>%
-        dplyr::select(-tags)
-
+      droplets_df <- as.data.frame(do.call(rbind, droplets)) 
+      
+      if (nrow(droplets_df) > 0) {
+        droplets_df <- droplets_df %>%
+          dplyr::select(id, name, memory, vcpus, disk, status, tags, created_at) %>%
+          dplyr::mutate(
+            tags = map_lgl(
+              tags,
+              filter_by_tag,
+              'flex_cloud'
+            )
+          ) %>%
+          dplyr::filter(tags == TRUE) %>%
+          dplyr::select(-tags)
+      }
+      
       output$droplets <- renderTable(droplets_df)
     }
   )
