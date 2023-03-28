@@ -1,5 +1,5 @@
 ---
-title: "Business-as-usual Simulation for Central Group Caribou Recovery Planning"
+title: "Caribou habitat  Simulation for Central Group Caribou Recovery Planning"
 author: ""
 date: "21 July 2022"
 output:
@@ -22,16 +22,16 @@ See the License for the specific language governing permissions and limitations 
 
 ## Overview
 
-This module provides the logic for simulating forestry decisions on the landscape. These decisions currently involve spatializing the harvest flow objectives which include: where, when and how much to harvest. These factors help determine policies related to harvest flows, opening size, seral distrubitions, road densitites, preservation areas, silvicultural systems, etc. More sophistication to these decisions would involve looking at the costs and benefits beyond the current time period; this requires optimization or improved heuristics -- which may be considered in the future. The general overview of forestryCLUS follows.
+This module provides the logic for simulating forestry decisions on the landscape. These decisions currently involve spatializing the harvest flow objectives which include: where, when and how much to harvest. These factors help determine policies related to harvest flows, opening size, seral distributions, road densities, preservation areas, silvicultural systems, etc. More sophistication to these decisions would involve looking at the costs and benefits beyond the current time period; this requires optimization or improved heuristics -- which may be considered in the future. The general overview of forestryCLUS follows.
 
 At each time step, harvest units (pixels or blocks) are ranked according to a priority (e.g., oldest first), this constructs a queue. This queue of harvest units are then subject to various constraints meant to meet objectives for the study area. Harvest units are harvested until either a constraint is binding, the queue is exhausted or the harvest flow is met. Next, the age of the forest is advanced to the next time period and the process is repeated. 
 
 During the simulation various reports and information surrounding each pixel can be saved/recorded or used in a summary. Note these outputs are considered expected future outcomes given the inputs developed by the anlayst.For a historical selection of harvesting activities see [cutblockSeqPrepCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/cutblockSeqPrepCLUS). Both  cutblockSeqPrepCLUS and forestryCLUS build a list of landing locations through simulation time. One is historical while the other is one possible future realization.
 
 ## Central Group Scenarios
-Here we use forestryCLUS to assess the potential impact of a hypothetical land use orders and deferral areas on timber supply within the area-of-interest for central group cariobu (east-central B.C.).
+Here we use forestryCLUS to assess the potential impact of a hypothetical land use orders and deferral areas on timber supply within the area-of-interest for central group caribou (east-central B.C.).
 
-Here we simulate the 'business-as-usual' (BAU) scenario, where we only apply existing legal constraints, caribou or otherwise, including the partnership agreement zones. This scenario is used to establish the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat.
+Here we simulate the application of caribou habitat recovery areas in addition to the business-as-usual (BAU) scenario. In this scenario early seral forest constraints are applied to 3rd order watershed sub-units. Within these units at least 50% of the area must be greater than 100 year old forest, unless it is a BWBS pine dominated stand, in which case 50% of the area must be greater than 60 year old forest.
 
 We identify the non-declining maximum annual harvest volume that can be achieved as the baseline level of forestry that could occur in the region, given existing legal constraints. 
 
@@ -44,19 +44,19 @@ zone_uwr_2021 =  ungulate winter ranges
 zone_cond_fsw = fisheries sensitive watersheds
 zone_cond_nharv = parks and protected areas
 zone_cond_cw = community watersheds
-central_grp_partner_areas_072022 = Partnership Agreement areas, where no harvest is permitted in A2, B2, B3 and B4 zones; A1, B1, B5 max 10% <40 years old
+central_grp_partner_areas_072022 = Partnership Agreement areas, where no harvest is permitted in A2, B2, B3 and B4 zones
+rast.central_group_chra_032023 = 3rd order watershed units with early seral forest constraints
 
 ```{r, update partnerhsip zone constraints}
 require (DBI)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
-castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/central_group/inputs/central_group_tsu_march2023_castordb.sqlite"))
+castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/central_group/inputs/central_group_march2023_castordb.sqlite"))
 
-check <- dbGetQuery (castordb, "SELECT * from zoneconstraints WHERE reference_zone = 'rast.central_grp_partner_areas_072022'")
-dbExecute (castordb, "UPDATE zoneconstraints SET type = 'nh' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid = 8") 
-dbExecute (castordb, "UPDATE zoneconstraints SET type = 'ge' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 9)") 
-dbExecute (castordb, "UPDATE zoneconstraints SET variable = 'age' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 9)") 
-dbExecute (castordb, "UPDATE zoneconstraints SET threshold = 41 WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 9)")
-dbExecute (castordb, "UPDATE zoneconstraints SET percentage = 90 WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 9)")
+check <- dbGetQuery (castordb, "SELECT * from zoneconstraints WHERE reference_zone = 'rast.central_group_chra_032023'")
+
+dbExecute (castordb, "UPDATE zoneconstraints SET threshold = 100 WHERE reference_zone = 'rast.central_group_chra_032023' AND threshold = 41")
+dbExecute (castordb, "UPDATE zoneconstraints SET percentage = 50 WHERE reference_zone = 'rast.central_group_chra_032023' AND percentage = 90")
+dbExecute (castordb, "UPDATE zoneconstraints SET multi_condition = NULL WHERE reference_zone = 'rast.central_group_chra_032023' AND multi_condition = ''")
 
 dbDisconnect (castordb)  
 
@@ -66,13 +66,13 @@ dbDisconnect (castordb)
 Closest to disturbance first, oldest second. Thus assumes the priority is to cluster forest harvest to minimize disturbance in caribou range. 
 
 ### adjacencyConstraint
-Adjacency was set to 0 metres to allow for maximum clustering of forest harvest.
+Adjacency was set to 0 meters to allow for maximum clustering of forest harvest.
 
 ### partition
-A partition was set as vol > 150 to ensure stands with a minimum of 150m3/ha were harvested, i.e., low productivity stands wouldn't be harvested. 
+A partition was set as vol > 150 to ensure stands with a minimum of 150m3/ha were ahrvested, i.e., low productivity stands wouldn't be harvested. 
 
 ### harvestFlow
- 1,500,000 m3/year provided a non-declining maximum harvest flow over a 200 year period.
+1,425,000 m3/year a non-declining maximum harvest flow over a 200 year period.
 
 ### Road recovery
 No road recovery was simulated (recovery = 300 years). 
@@ -118,7 +118,7 @@ parameters <- list(
                           nameForestInventoryHeight = "proj_height_1",
                           nameForestInventoryCrownClosure = "crown_closure",                             
                           nameForestInventoryTreed = "bclcs_level_2",
-                          nameForestInventoryBasalArea = "basal_area",
+                          nameForestInventoryBasalArea= "basal_area",
                           nameForestInventoryQMD = "quad_diam_125",
                           nameForestInventorySiteIndex = "site_index"
                     ),
@@ -139,7 +139,8 @@ parameters <- list(
                                            "rast.zone_cond_nharv", 
                                            "rast.zone_cond_fsw", 
                                            "rast.zone_cond_cw",
-                                           "rast.central_grp_partner_areas_072022"
+                                           "rast.central_grp_partner_areas_072022",
+                                           "rast.central_group_chra_032023"
                               )),
   growingStockCastor = list (periodLength = 5),
   roadCastor = list(roadMethod = 'mst', # pre mst
@@ -181,8 +182,8 @@ modules <- list("dataCastor",
                 "volumebyareaReportCastor"
                 )
 
-scenario = data.table (name = "central_group_bau_macrh2023",
-                       description = "Business-as-usual (BAU) scenario. Max. non-declining harvest flow = 1.5 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years). Partnership areas included (A2, B2, B3, B4 = no harvest; A1, B1, B5 = 90% > 40 years old).")
+scenario = data.table (name = "central_group_chra_march2023",
+                       description = "Caribou Habitat Recovery Areas (CHRA) scenario. Constraint = 50% or more of the CHRA unit is > 100 years old forest, except in BWBS pine dominated stands, where it must be > 60 years old forest. Max. non-declining harvest flow = 1.425 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years). Partnership areas included (A2, B2, B3, B4 = no harvest; A1, B1, B5 = 90% > 40 years old).")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="central_group",
@@ -191,7 +192,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="central_group",
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 7500000, #1,500,000m3/year 
+                                     flow = 7125000, #1,425,000m3/year 
                                      partition_type = 'live') 
 ))
 
