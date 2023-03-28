@@ -405,7 +405,7 @@ server <- function(input, output, session) {
       !grepl("-intel", slug),
       memory > 16000,
       vcpus > 4,
-      disk >= 320
+      disk >= 50
     ) %>%
     mutate(
       processes_by_core = vcpus,
@@ -547,6 +547,16 @@ server <- function(input, output, session) {
       disable('time_interval')
       disable('run_scenario')
 
+      # FLEX droplet image ----
+      snapshots <- snapshots_with_params(per_page = 200)
+      snap_image <- snapshots$`flex-cloud-image-20230325`$id
+      if (is.null(snap_image)) {
+        shinyjs::alert(
+        "Snapshot flex-cloud-image-20230325 does not exist in your Digital Ocean account. Please recreate it using Server Installation guide and restart the app."
+        )
+        return(NULL)
+      }
+      
       progressOne <- Progress$new(session, min = 1, max = 10)
       on.exit(progressOne$close())
       progressOne$set(message = 'Creating droplet to host the scenario',
@@ -588,11 +598,6 @@ server <- function(input, output, session) {
       
       print(paste("Simulation log file ", simulation_logfile))
 
-      # FLEX droplet image ----
-      snapshots <- snapshots_with_params(per_page = 200)
-      snap_image <- snapshots$`flex-cloud-image-20230224`$id
-      print(paste("Building from snapshot ID ", snap_image))
-# browser()
       droplet_properties <- sizes %>% filter(slug == input$droplet_size)
       droplet_sequence <- droplet_properties %>% pull(processes)
       sim_sequence <- ceiling(input$iterations / droplet_sequence)
@@ -665,6 +670,15 @@ server <- function(input, output, session) {
         simulation_id = simulation_id,
         droplet_sequence = droplet_sequence
       )
+      
+      # values <- lapply(
+      #   X = l,
+      #   FUN = function(x) {
+      #     stdout <- capture.output(a <- value(x))
+      #     stdout
+      #   }
+      # )
+      # print(values)
     }
   )
 
@@ -771,7 +785,10 @@ server <- function(input, output, session) {
             data = group_data
           ) +
           ggtitle(
-            paste0("Number of female adults per time period (", length(csv_files), " observations)")
+            paste0(
+              "Female fishers with established territory at the end of 
+              each time interval (", length(csv_files), " iterations)"
+            )
           ) + 
           labs(
             x = "Time period", 
@@ -780,7 +797,7 @@ server <- function(input, output, session) {
           theme_minimal()
       )
       
-      ggsave(file=paste0(dir, "../n_f_adults.png"))
+      ggsave(file = paste0(dir, "../n_f_adults.png"))
 
       progressReport$set(
         value = 4,
@@ -802,7 +819,7 @@ server <- function(input, output, session) {
             raster(file), xy = TRUE
           ) %>% 
             dplyr::filter(layer > 0) %>%
-            dplyr::mutate(layer = 1)
+            dplyr::mutate(layer = round(1 / length(tif_files) * 100, 2))
         },
         dir
       )
@@ -822,20 +839,28 @@ server <- function(input, output, session) {
       
       g <- ggplot() +
         geom_raster(data = data_tif , aes(x = x, y = y, fill = layer)) +
-        scale_fill_viridis_c(direction = -1) +
+        scale_fill_gradient(
+          name = 'Times pixel\nwas selected',
+          labels = scales::percent_format(scale = 1),
+          low = '#deebf7',
+          high = '#003366'
+        ) +
         coord_equal() +
         ggtitle(
-          paste0("Composite raster file (", length(csv_files), " observations)")
+          paste0(
+            "Sum of established territories at the end of 
+            simulation (", length(tif_files), " iterations)"
+          )
         ) + 
         theme_minimal()
-      
+
       toc() # Visualizing tif files
       toc() # Overall process
       
       output$plot_tif <- renderPlot(g)
 
       rm(data_tif)
-      ggsave(file=paste0(dir, "../heatmap.png"))
+      ggsave(file = paste0(dir, "../heatmap.png"))
       
       progressReport$set(
         value = 10,
@@ -929,18 +954,22 @@ server <- function(input, output, session) {
     input$refresh_droplets,
     {
       droplets <- analogsea::droplets()
-      droplets_df <- as.data.frame(do.call(rbind, droplets)) %>%
-        dplyr::select(id, name, memory, vcpus, disk, status, tags, created_at) %>%
-        mutate(
-          tags = map_lgl(
-            tags,
-            filter_by_tag,
-            'flex_cloud'
-          )
-        ) %>%
-        filter(tags == TRUE) %>%
-        dplyr::select(-tags)
-
+      droplets_df <- as.data.frame(do.call(rbind, droplets)) 
+      
+      if (nrow(droplets_df) > 0) {
+        droplets_df <- droplets_df %>%
+          dplyr::select(id, name, memory, vcpus, disk, status, tags, created_at) %>%
+          dplyr::mutate(
+            tags = map_lgl(
+              tags,
+              filter_by_tag,
+              'flex_cloud'
+            )
+          ) %>%
+          dplyr::filter(tags == TRUE) %>%
+          dplyr::select(-tags)
+      }
+      
       output$droplets <- renderTable(droplets_df)
     }
   )
@@ -958,7 +987,11 @@ server <- function(input, output, session) {
       ssh_keyfile <- stringr::str_replace(
         ssh_keyfile_tbl$datapath, 
         'NULL/', 
-        paste0(fs::path_home(), '/')
+        ifelse(
+          stringr::str_to_lower(Sys.info()[1]) == 'windows',
+          paste0(fs::path_home(), '/'),
+          '/'
+        )
       )
       ssh_keyfile_name <- ssh_keyfile_tbl$name
       

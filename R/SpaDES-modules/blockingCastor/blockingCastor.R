@@ -277,8 +277,8 @@ preBlock <- function(sim) {
     
     #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
     g.sub<-induced_subgraph(g, vids = as.character(vertices$pixelid))
-    
-    if(length(get.edgelist(g.sub)) > 0){
+   #browser()
+    if(length(V(g.sub)) > 1){
       lut<-data.table(verts = as_ids(V(g.sub)))[, ind := seq_len(.N)]
       g.sub2<-g.sub %>% set_vertex_attr("name", value = lut$ind)
     
@@ -304,9 +304,12 @@ preBlock <- function(sim) {
         patchDist <- list(targetNum$sizeClass ,  targetNum$targetNum )
       }
       #make list of blocking parameters
-      resultset <-append(resultset, list(list(as.matrix(degree(g.mst_sub)), paths.matrix, zone, patchDist, P(sim)$patchVariation, lut))) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
-      
+      if(nrow(paths.matrix) > 1){
+        resultset <-append(resultset, list(list(as.matrix(degree(g.mst_sub)), paths.matrix, zone, patchDist, P(sim)$patchVariation, lut))) #the degree list (which is the number of connections to other pixels) and the edge list describing the to-from connections - with their weights
       }else{
+        message(paste0(zone, " has length<1"))
+      }
+    }else{
         message(paste0(zone, " has length<0"))
         next
     }
