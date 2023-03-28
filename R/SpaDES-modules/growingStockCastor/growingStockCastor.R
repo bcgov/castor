@@ -35,8 +35,9 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
     defineParameter("periodLength", "integer", 5, NA, NA, "The length of the time period. Ex, 1 year, 5 year"),
     defineParameter("vacuumInterval", "integer", 5, NA, NA, "The interval when the database should be vacuumed"),
-    defineParameter("growingStockConst", "numeric", 9999, NA, NA, "A percentage of the initial level of growingstock maintaining a minimum amount of growingstock")
-  ),
+    defineParameter("growingStockConst", "numeric", 9999, NA, NA, "A percentage of the initial level of growingstock maintaining a minimum amount of growingstock"),
+    defineParameter("maxYieldAge", "integer", 350, 0, 500, "Maximum age of the yield curves.")
+    ),
   inputObjects = bind_rows(
     expectsInput(objectName = "castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates castor realted information", sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
@@ -150,7 +151,7 @@ updateGS<- function(sim) {
   message("...increment age by:",sim$updateInterval)
   #Update the pixels table
   dbBegin(sim$castordb)
-    rs<-dbSendQuery(sim$castordb, paste0("UPDATE pixels SET age = age + ", sim$updateInterval," WHERE age >= 0"))
+    rs<-dbSendQuery(sim$castordb, paste0("UPDATE pixels SET age = age + ", sim$updateInterval," WHERE age >= 0 AND age <", P (sim, "maxYieldAge", "growingStockCastor")))
   dbClearResult(rs)
   dbCommit(sim$castordb)
   
