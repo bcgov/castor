@@ -482,7 +482,7 @@ create_scenario_droplet <- function(
     'NULL/',
     ifelse(
       stringr::str_to_lower(Sys.info()[1]) == 'windows',
-      paste0(fs::path_(), '/'),
+      paste0(fs::path_home(), '/'),
       ''
     )
   )
