@@ -40,6 +40,8 @@ run_simulation <- function(
   sim_params$iteration <- iteration
 
   future({
+    options(do.wait_time = 15)
+    
     errored <- FALSE
     
     Sys.getenv("DO_PAT")
@@ -80,52 +82,21 @@ run_simulation <- function(
     progress$inc(1 / total_steps)
     
     d_name <- do_namify(paste0(ids::adjective_animal(), iteration))
-    
-    # Create actual droplet that will do the knitting ----
-    d <- analogsea::droplet_create(
-      name = d_name,
-      size = do_droplet_size,
-      region = do_region,
-      image = do_image,
-      ssh_keys = ssh_keyfile_name,
-      tags = c('flex_cloud')
-    ) %>%
-      droplet_wait()
-    
-    status <- paste0(
-      "3,", paste0("Iteration ", iteration), ",20%,Awaiting connectivity,", as.character(Sys.time()), ","
-    )
-    
-    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
-    write(
-      status,
-      file = simulation_logfile,
-      append = TRUE
-    )
-    filelock::unlock(lock)
-    progress$inc(1 / total_steps)
-    
-    Sys.sleep(60)
-    
-    status <- paste0(
-      "4,", paste0("Iteration ", iteration), ",30%,Connecting to droplet,", as.character(Sys.time()), ","
-    )
-    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
-    write(
-      status,
-      file = simulation_logfile,
-      append = TRUE
-    )
-    filelock::unlock(lock)
-    progress$inc(1 / total_steps)
-    
-    # d <- droplet(d$id)
-    
+
     tryCatch({
-      d %>% droplet_ssh("echo Connecting...", keyfile = ssh_keyfile)
+      d <- analogsea::droplet_create(
+        name = d_name,
+        size = do_droplet_size,
+        region = do_region,
+        image = do_image,
+        ssh_keys = ssh_keyfile_name,
+        tags = c('flex_cloud')
+      ) %>%
+        droplet_wait()
+      print(paste("Droplet created, ID:", d$id))
     }, error = function(e) {
       status <- paste0(
-        "5,", paste0("Iteration ", iteration), ",30%,Couldn't connect to droplet - retrying,", as.character(Sys.time()), ","
+        "3,", paste0("Iteration ", iteration), ",20%,ERROR:", glue::trim(e), ". Cleaning up.,", as.character(Sys.time()), ","
       )
       lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
       write(
@@ -137,37 +108,27 @@ run_simulation <- function(
       
       # debug_msg(e$message)
       # shinyjs::alert("There was an error connecting to the droplet, retrying.")
-      # errored <- TRUE
-      Sys.sleep(30)
+      errored <- TRUE
     })
-    
-    status <- paste0(
-      "6,", paste0("Iteration ", iteration), ",40%,Cloning castor repo,", as.character(Sys.time()), ","
-    )
-    
-    lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
-    write(
-      status,
-      file = simulation_logfile,
-      append = TRUE
-    )
-    filelock::unlock(lock)
-    progress$inc(1 / total_steps)
-    # browser()
-    tryCatch({
-      d %>%
-        droplet_ssh(
-          glue::glue("curl -sSL https://repos.insights.digitalocean.com/install.sh | sudo bash; \
-git clone https://github.com/sasha-ruby/castor; \
-cd castor; \
-git checkout flex_cloud; \
-mkdir -p ~/castor/R/scenarios/fisher/inputs; \
-mkdir -p /tmp/fisher/;"),
-keyfile = ssh_keyfile
-        )
-    }, error = function(e) {
+
+    if (!errored) {
       status <- paste0(
-        "7,", paste0("Iteration ", iteration), ",40%,ERROR cloning castor repo,", as.character(Sys.time()), ","
+        "3,", paste0("Iteration ", iteration), ",20%,Awaiting connectivity,", as.character(Sys.time()), ","
+      )
+      
+      lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
+      write(
+        status,
+        file = simulation_logfile,
+        append = TRUE
+      )
+      filelock::unlock(lock)
+      progress$inc(1 / total_steps)
+      
+      Sys.sleep(5)
+      
+      status <- paste0(
+        "4,", paste0("Iteration ", iteration), ",30%,Connecting to droplet,", as.character(Sys.time()), ","
       )
       lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
       write(
@@ -176,10 +137,70 @@ keyfile = ssh_keyfile
         append = TRUE
       )
       filelock::unlock(lock)
-      # debug_msg(e$message)
-      # shinyjs::alert("There was an error setting up the castor repo, cleaning up.")
-      errored <- TRUE
-    })
+      progress$inc(1 / total_steps)
+      
+      # d <- droplet(d$id)
+      
+      tryCatch({
+        d %>% droplet_ssh("echo Connecting...", keyfile = ssh_keyfile)
+      }, error = function(e) {
+        status <- paste0(
+          "5,", paste0("Iteration ", iteration), ",30%,Couldn't connect to droplet - retrying,", as.character(Sys.time()), ","
+        )
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
+        write(
+          status,
+          file = simulation_logfile,
+          append = TRUE
+        )
+        filelock::unlock(lock)
+        
+        # debug_msg(e$message)
+        # shinyjs::alert("There was an error connecting to the droplet, retrying.")
+        # errored <- TRUE
+        Sys.sleep(30)
+      })
+      
+      status <- paste0(
+        "6,", paste0("Iteration ", iteration), ",40%,Cloning castor repo,", as.character(Sys.time()), ","
+      )
+      
+      lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
+      write(
+        status,
+        file = simulation_logfile,
+        append = TRUE
+      )
+      filelock::unlock(lock)
+      progress$inc(1 / total_steps)
+      # browser()
+  # git checkout flex_cloud; \
+      tryCatch({
+        d %>%
+          droplet_ssh(
+            glue::glue("curl -sSL https://repos.insights.digitalocean.com/install.sh | sudo bash; \
+  git clone https://github.com/bcgov/castor; \
+  cd castor; \
+  mkdir -p ~/castor/R/scenarios/fisher/inputs; \
+  mkdir -p /tmp/fisher/;"),
+  keyfile = ssh_keyfile
+          )
+      }, error = function(e) {
+        status <- paste0(
+          "7,", paste0("Iteration ", iteration), ",40%,ERROR cloning castor repo,", as.character(Sys.time()), ","
+        )
+        lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
+        write(
+          status,
+          file = simulation_logfile,
+          append = TRUE
+        )
+        filelock::unlock(lock)
+        # debug_msg(e$message)
+        # shinyjs::alert("There was an error setting up the castor repo, cleaning up.")
+        errored <- TRUE
+      })
+    }
 
     if (!errored) {
       tryCatch({
@@ -445,6 +466,8 @@ create_scenario_droplet <- function(
     ssh_user = 'root',
     progressOne
 ) {
+  options(do.wait_time = 30)
+  
   # DO scenario uploader config
   region <- 'tor1'
   uploader_image <- 'ubuntu-22-04-x64'
@@ -457,7 +480,11 @@ create_scenario_droplet <- function(
   selected_scenario_path <- stringr::str_replace(
     selected_scenario_tbl$datapath, 
     'NULL/',
-    paste0(fs::path_home(), '/')
+    ifelse(
+      stringr::str_to_lower(Sys.info()[1]) == 'windows',
+      paste0(fs::path_home(), '/'),
+      ''
+    )
   )
   
   if (!file.exists(selected_scenario_path)) {
@@ -482,7 +509,7 @@ create_scenario_droplet <- function(
   
   progressOne$set(value = 5, detail = 'Waiting for connectivity')
   
-  Sys.sleep(60)
+  Sys.sleep(30)
   
   progressOne$set(8, detail = 'Uplaoding scenario')
   
@@ -493,7 +520,7 @@ create_scenario_droplet <- function(
   }, error = function(e) {
     # debug_msg(e$message)
     # shinyjs::alert("There was an error running the simu1lation, cleaning up.")
-    progressOne$set(9, detail = "Couldnt connect to droplet, retrying")
+    progressOne$set(9, detail = "Couldn't connect to droplet, retrying")
     
     Sys.sleep(30)
   })

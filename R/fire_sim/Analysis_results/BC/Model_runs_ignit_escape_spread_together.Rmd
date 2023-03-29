@@ -1576,10 +1576,10 @@ frt14$veg_M12 <- ifelse(frt14$FWI_veg == 'S-3', 1, frt14$veg_M12)
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
-logit_P_spread<- model_coef_table[[2]] + 
-  model_coef_table[[3]]*frt14$Latitude +
-  model_coef_table[[4]]*frt14$climate2_spread +
-  model_coef_table[[5]]*frt14$el +
+logit_P_spread<- model_coef_table[[2]] +
+  model_coef_table[[3]]*frt14$climate2_spread +
+  model_coef_table[[4]]*frt14$elevation +
+  model_coef_table[[5]]*frt14$slope +
   model_coef_table[[6]]*frt14$aspect_N +
   model_coef_table[[7]]*frt14$aspect_S +
   model_coef_table[[8]]*frt14$aspect_W +
@@ -1588,13 +1588,12 @@ logit_P_spread<- model_coef_table[[2]] +
   model_coef_table[[11]]*frt14$veg_C7 +
   model_coef_table[[12]]*frt14$veg_D12 +
   model_coef_table[[13]]*frt14$veg_M12 +
-  model_coef_table[[14]]*frt14$veg_M3 +
-  model_coef_table[[15]]*frt14$veg_N +
-  model_coef_table[[16]]*frt14$veg_O1ab +
-  model_coef_table[[17]]*frt14$veg_S1 +
-  model_coef_table[[18]]*log(frt14$dist_roads_m+1) +
-  model_coef_table[[19]]*log(frt14$dist_infrastructure_m+1) +
-  model_coef_table[[20]]*frt14$win_sum
+  model_coef_table[[14]]*frt14$veg_N +
+  model_coef_table[[15]]*frt14$veg_O1ab +
+  model_coef_table[[16]]*frt14$veg_S1 +
+  model_coef_table[[17]]*frt14$dist_roads_m +
+  model_coef_table[[18]]*log(frt14$dist_infrastructure_m+1) +
+  model_coef_table[[19]]*frt14$win_sum
 
 logit_P_spread
 # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
