@@ -148,6 +148,7 @@ updateGS<- function(sim) {
   dbExecute(sim$castordb, "DROP INDEX index_height")
   
   message("...increment age by:",sim$updateInterval)
+  #Using mid points see Barber (1985) The Aggregation of Age Classes in Timber Resources Scheduling Models: Its Effects and Bias Forest Science, Volume 31, Issue 1, March 1985, Pages 73–82, https://doi.org/10.1093/forestscience/31.1.73
   #Update the pixels table
   dbBegin(sim$castordb)
     rs<-dbSendQuery(sim$castordb, paste0("UPDATE pixels SET age = age + ", sim$updateInterval," WHERE age >= 0"))
