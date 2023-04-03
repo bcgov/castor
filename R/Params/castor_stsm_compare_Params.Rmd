@@ -1,0 +1,303 @@
+---
+title: "Scripts for creating parameters to run Castor model for a portion of the interior of B.C. for comparison to SELES/STSM"
+output: html_document
+---
+
+All data comes from Kelly Izzard, and is the data used to support timber supply model training.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source (here::here("R/functions/R_Postgres.R"))
+library (data.table)
+library (sf)
+library (tidyverse)
+library (raster)
+library (fasterize)
+
+data.dir <- "D:\\clus_data\\castor_stsm\\Castor_benchmarking\\TSA99\\DTFolderStructure\\"
+
+#Create a provincial raster
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs", 
+                             resolution = c (100, 100), vals = 0)
+```
+
+## Area of Interest
+```{r aoi}
+
+aoi <- st_make_valid (st_read (dsn = paste0 (data.dir, "tsa99_2022.gdb"),
+                               layer = "bnd"))
+aoi$tsa_name <- "tsa99"
+aoi$value <- as.integer (1)
+aoi$TSA_NUMBER <- NULL
+aoi$bnd_fid <- NULL
+aoi$included <- NULL
+aoi$Shape_Length <- NULL
+aoi$Shape_Area <- NULL
+
+st_write (aoi, paste0 ("D:\\clus_data\\castor_stsm\\castor\\bounds_tsa99.shp"))
+# ogr2ogr -f PostgreSQL PG:"dbname= port=5432 user= password= host=" D:\clus_data\castor_stsm\castor\bounds_tsa99.shp -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -lco SCHEMA=castor_stsm_compare
+aoi.vat <- as.data.table (st_drop_geometry (aoi))
+
+# Rasterize 
+ras.aoi <- fasterize::fasterize (st_cast (aoi, "MULTIPOLYGON"), prov.rast, field = "value")
+writeRaster (ras.aoi, paste0 ("D:\\clus_data\\castor_stsm\\castor\\bounds_tsa99.tif"), overwrite = T)
+
+# write data
+conn<-DBI::dbConnect (dbDriver("PostgreSQL"), host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), port='5432' ,user = keyring::key_get ('dbuser', keyring = 'postgreSQL'), password = keyring::key_get ('dbpass', keyring = 'postgreSQL'))
+
+setnames (aoi.vat, c ("attribute", "value")) # Note use convention; always name these value and attribute
+DBI::dbWriteTable(conn, c("castor_stsm_compare", "vat_bounds_tsa99"), value = aoi.vat, row.names = FALSE, overwrite = TRUE)
+
+system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  D:/clus_data/castor_stsm/castor/bounds_tsa99.tif -t 100x100 castor_stsm_compare.rast_bounds_tsa99 | psql postgres://', keyring::key_get ('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get ('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get ('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+dbDisconnect(conn)
+```
+
+## Inventory
+```{r, inventory data}
+
+vri <- st_make_valid (st_read (dsn = paste0 (data.dir, "tsa99_2022.gdb"),
+                                  layer = "vri"))
+# ogr2ogr -f PostgreSQL PG:"dbname= port=5432 user= password= host=" D:\clus_data\castor_stsm\Castor_benchmarking\TSA99\DTFolderStructure\tsa99_2022.gdb vri -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -nln vri -lco SCHEMA=castor_stsm_compare
+
+# Rasterize 
+ras.vri <- fasterize::fasterize (st_cast (vri, "MULTIPOLYGON"), prov.rast, field = "vri_fid")
+writeRaster (ras.vri, "D:\\clus_data\\castor_stsm\\castor\\raster_vri_fid.tif", overwrite = T)
+
+# write data
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  D:/clus_data/castor_stsm/castor/raster_vri_fid.tif -t 100x100 castor_stsm_compare.rast_vri_id | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+```
+
+## THLB
+```{r thlb}
+
+thlb <- raster::raster (paste0 (data.dir, "\\STSM\\STSM\\TSA99\\gisData\\grids\\tsa99_thlb.tif")) 
+# values have been multiplied to make them 0 to 10,000; divide by 10,000 to make it a value 0 to 1
+thlb <- thlb / 10000
+## Upload data to db
+crs(thlb) <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs"
+writeRaster (thlb, file = "D:\\clus_data\\castor_stsm\\castor\\raster_thlb.tif", format = "GTiff", overwrite = TRUE)
+system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 2147483648 D:\\clus_data\\castor_stsm\\castor\\raster_thlb.tif -t 100x100 castor_stsm_compare.rast_thlb | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+```
+
+## Growth and Yield
+```{r, G&Y data}
+
+## TABLES
+tab.vol <- data.table (read.table (paste0 (data.dir, "STSM\\STSM\\TSA99\\inputFiles\\volume.txt"), header = T, sep = '\t')) # use this for both 'natural' and 'managed' stands 
+tab.au.info <- data.table (read.table (paste0 (data.dir, "STSM\\STSM\\TSA99\\inputFiles\\auinfo_mockup.txt"), header = T, sep = '\t'))
+
+# Check for dupes 
+# tab.count <- tab.vol %>%
+#               group_by (au) %>%
+#                tally ()
+# check <- tab.count %>%
+#           dplyr::filter (n > 1)
+
+# Format
+colnames (tab.vol) <- c ('ycid', "0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100", "110", "120", "130", "140", "150", "160", "170", "180", "190", "200", "210", "220", "230", "240", "250")
+tab.au.info <- tab.au.info [, c ("auid", "feature_id", "RegenDelay", "MHA", "MHV", "StandType", "LeadSpp", "pPlantedAU1", "PlantedAU1", "UnmanagedAU")]
+colnames (tab.au.info) <- c ("ycid", "feature_id", "regen_delay", "mha", "mhv", "standtype", "leadspp", "perc_planted", "managed_ycid", "natural_ycid")
+
+# reshape the table to long form
+tab.vol <- melt (tab.vol, 
+                 id.vars = "ycid",
+                 measure.vars = list (age = c ("0", "10", "20", "30", "40", "50", "60", "70", "80", "90", "100", "110", "120", "130", "140", "150", "160", "170", "180", "190", "200", "210", "220", "230", "240", "250")),
+                  value.name = "tvol",
+                  variable.name = "age")
+# join the tables
+tab.gy <- merge (tab.au.info,
+                 tab.vol, 
+                 by.x = "ycid",
+                 by.y = "ycid",
+                 all.x = T)
+
+tab.gy [, dec_pcnt := 0]
+tab.gy [, height := 0]
+tab.gy [, qmd := 0]
+tab.gy [, basalarea := 0]
+tab.gy [, crownclosure := 0]
+tab.gy [, eca := 0]
+
+# vdyp
+tab.vdyp <- tab.gy [ycid < 32868, c ("ycid", "feature_id", "age", "tvol", "dec_pcnt", "height", "qmd", "basalarea", "crownclosure", "eca")]
+tab.vdyp$ycid <- tab.vdyp$ycid * -1 # make id negative
+
+rast.vdyp.auid <- raster::raster (paste0 (data.dir, "\\STSM\\STSM\\TSA99\\gisData\\grids\\tsa99_au.tif")) 
+rast.vdyp.auid <- rast.vdyp.auid * -1
+
+writeRaster (rast.vdyp.auid, paste0 (data.dir, "\\STSM\\STSM\\TSA99\\gisData\\grids\\rast_ycid_vdyp.tif"), overwrite = T)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, '\\STSM\\STSM\\TSA99\\gisData\\grids\\rast_ycid_vdyp.tif -t 100x100 castor_stsm_compare.rast_ycid_vdyp | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), port ='5432' ,user = keyring::key_get ('dbuser', keyring = 'postgreSQL'), password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable (conn, c ("castor_stsm_compare", "vdyp"), value = tab.vdyp, row.names = FALSE, overwrite = TRUE)
+
+
+# tipsy 
+tab.tipsy <- tab.gy [ycid > 32867, c ("ycid", "feature_id", "age", "tvol", "dec_pcnt", "height", "qmd", "basalarea", "crownclosure", "eca")]
+tab.transition <- unique (tab.gy [ycid < 32868, c ("ycid", "managed_ycid")])
+tab.transition$ycid <- tab.transition$ycid * -1
+rast.tipsy <- rast.vdyp.auid
+rast.tipsy <- raster::subs (rast.tipsy, tab.transition, by = "ycid", which = "managed_ycid")
+
+writeRaster (rast.tipsy, paste0 (data.dir, "\\STSM\\STSM\\TSA99\\gisData\\grids\\rast_ycid_tipsy.tif"), overwrite = T)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, '\\STSM\\STSM\\TSA99\\gisData\\grids\\rast_ycid_tipsy.tif -t 100x100 castor_stsm_compare.rast_ycid_tipsy | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+DBI::dbWriteTable (conn, c ("castor_stsm_compare", "tipsy"), value = tab.tipsy, row.names = FALSE, overwrite = TRUE)
+#DBI::dbWriteTable (conn, c("castor_stsm_compare", "vdyp_tipsy_vat"), value = tab.transition, row.names = FALSE, overwrite = TRUE)
+
+dbDisconnect (conn)
+
+```
+
+## Harvest Constraint Zones
+Here we use a raster of wildlife zones as a no harvest area to add as a constraint.
+```{r harvest constraints}
+# raster data
+rast.wildlife <- raster::raster (paste0 (data.dir, "\\STSM\\STSM\\TSA99\\gisData\\grids\\tsa99_wildlife_ras.tif")) # wildlife zones
+# write raster data to db
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, '\\STSM\\STSM\\TSA99\\gisData\\grids\\tsa99_wildlife_ras.tif -t 100x100 castor_stsm_compare.rast_wildlife_zones | psql postgres://', keyring::key_get ('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get ('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get ('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+# constraints table
+zone <- data.table (zoneid = as.integer (1), # check these.....
+                    type = 'nh',
+                    variable = 'age', 
+                    threshold = as.numeric (100), 
+                    reference_zone = 'castor_stsm_compare.rast_wildlife_zones', 
+                    percentage = as.numeric (80), 
+                    ndt = as.integer (0), 
+                    label = 'wildlife_zone', 
+                    multi_condition = as.character (''), 
+                    denom = as.character (''), 
+                    start = as.integer (0), 
+                    stop = as.integer (250))
+
+
+# vat table
+vat <- data.table (value = as.integer (1),
+                   attribute = "wildlife_zone")
+
+#save
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), host = keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432', user = keyring::key_get('dbuser', keyring = 'postgreSQL'), password = keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable (conn, c("castor_stsm_compare", "vat_wildlife_zones"), value = vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable (conn, c("castor_stsm_compare", "constraints"), value = zone, row.names = FALSE, overwrite = TRUE)
+
+DBI::dbExecute (conn, "UPDATE castor_stsm_compare.constraints SET multi_condition = NULL WHERE multi_condition = '';")
+DBI::dbExecute (conn, "UPDATE castor_stsm_compare.constraints SET denom = NULL WHERE denom = '';")
+
+dbDisconnect (conn)
+```
+
+## Blocking
+```{r blocking}
+
+### use script below to replicate the STSM approach of not creating 'blocks' (i.e., each pixel is a block) to the castor db
+#### note the spread function in castor is not complete
+
+castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_castordb.sqlite"))
+# update pixels table 
+dbExecute (castordb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
+dbBegin (castordb)
+rs <- dbSendQuery (castordb, "UPDATE pixels SET blockid = pixelid;")
+dbClearResult (rs)
+dbCommit (castordb)
+
+# create blocks table
+dbExecute (castordb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, salvage_vol numeric, dist numeric DEFAULT 0, landing integer)")  
+dbExecute (castordb, paste0("UPDATE blocks SET vol = 0 WHERE vol IS NULL")) 
+dbExecute (castordb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL"))
+dbExecute (castordb, paste0("INSERT INTO blocks (blockid, age, height,  vol, salvage_vol, dist, landing)  
+                    SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as salvage_vol, AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
+                                       FROM pixels WHERE blockid > 0 AND thlb > 0 GROUP BY blockid "))  
+dbExecute (castordb, "CREATE INDEX index_blockid on blocks (blockid)")
+
+# create adjacent blocks table
+ras <- terra::rast (ncol = 5223, nrow = 2947, xmin = 830187.5, 
+			              xmax = 1352488, ymin = 1388088, ymax = 1682788,)  
+terra::crs(ras)  <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs"  
+edgesAdj <- data.table(SpaDES.tools::adj(returnDT= TRUE, 
+                                         directions = 8, numCol = ncol(ras), numCell=ncol(ras)*nrow(ras),
+                                         cells = 1:as.integer(ncol(ras)*nrow(ras)))) 
+blockids <- data.table (dbGetQuery (castordb, "SELECT blockid, pixelid FROM pixels WHERE blockid > 0"))
+setkey (blockids, pixelid)  
+edgesAdj <- merge (edgesAdj, blockids, by.x = "to", by.y = "pixelid" )  
+edgesAdj <- merge (edgesAdj, blockids, by.x = "from", by.y ="pixelid" )
+edgesAdj <- data.table (edgesAdj[, c ("blockid.x", "blockid.y")])
+edgesAdj <- edgesAdj[blockid.x  != blockid.y]
+edgesAdj <- edgesAdj[blockid.x  > 0 & blockid.y  > 0]
+edgesAdj <- unique (edgesAdj)
+setnames(edgesAdj, c ("blockid", "adjblockid")) 
+  
+dbExecute(castordb, "CREATE TABLE IF NOT EXISTS adjacentBlocks (id integer PRIMARY KEY, adjblockid integer, blockid integer)")  
+dbBegin(castordb)  
+rs <- dbSendQuery (castordb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)  
+dbClearResult(rs)
+dbCommit(castordb) 
+dbExecute(castordb, "CREATE INDEX index_adjblockid on adjacentBlocks (adjblockid)")
+
+
+
+
+
+### use script below if you want to add analysis units (AU's) as blocks to the castor db
+castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_ft_nelson/ftnelson_stsmcompare_noroads_noblocks_castordb.sqlite"))
+
+tab.au <- data.table (blockid = as.integer (RASTER_CLIP2 (tmpRast = paste0('temp_', sample(1:10000, 1)), 
+								                                          srcRaster = "fort_nelson_tsa.rast_au" , # 
+                                                          clipper = "fort_nelson_tsa.bounds_fort_nelson_tsa", 
+								                                          geom = "wkb_geometry", 
+                                                          where_clause = " tsa_name in (''Fort_Nelson_TSA'')",
+                                            conn = NULL)[]))
+tab.au [, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
+tab.au <- tab.au[blockid > 0, ]  
+	 
+# update pixels table 
+dbExecute (castordb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
+dbBegin (castordb)
+rs <- dbSendQuery (castordb, "Update pixels set blockid = :blockid where pixelid = :pixelid", tab.au)
+dbClearResult (rs)
+dbCommit (castordb)
+
+# create blocks table
+dbExecute(castordb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, salvage_vol numeric, dist numeric DEFAULT 0, landing integer)")  
+dbExecute(castordb, paste0("UPDATE blocks SET vol = 0 WHERE vol IS NULL")) 
+dbExecute(castordb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL"))
+dbExecute(castordb, paste0("INSERT INTO blocks (blockid, age, height,  vol, salvage_vol, dist, landing)  
+                    SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as salvage_vol, AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
+                                       FROM pixels WHERE blockid > 0 AND thlb > 0 GROUP BY blockid "))  
+dbExecute(castordb, "CREATE INDEX index_blockid on blocks (blockid)")
+
+# create adjacent blocks table
+ras <- terra::rast (ncol = 5223, nrow = 2947, xmin=830187.5, 
+			        xmax=1352488, ymin=1388088, ymax=1682788,)  
+terra::crs(ras)  <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs"  
+edgesAdj <- data.table(SpaDES.tools::adj(returnDT= TRUE, 
+directions = 8, numCol = ncol(ras), numCell=ncol(ras)*nrow(ras),
+                                             cells = 1:as.integer(ncol(ras)*nrow(ras)))) 
+blockids <- data.table (dbGetQuery (castordb, "SELECT blockid, pixelid FROM pixels WHERE blockid > 0"))
+setkey (blockids, pixelid)  
+edgesAdj <- merge (edgesAdj, blockids, by.x = "to", by.y = "pixelid" )  
+edgesAdj <- merge (edgesAdj, blockids, by.x = "from", by.y ="pixelid" )
+edgesAdj <- data.table (edgesAdj[, c ("blockid.x", "blockid.y")])
+edgesAdj <- edgesAdj[blockid.x  != blockid.y]
+edgesAdj <- edgesAdj[blockid.x  > 0 & blockid.y  > 0]
+edgesAdj <- unique (edgesAdj)
+setnames(edgesAdj, c ("blockid", "adjblockid")) 
+  
+dbExecute(castordb, "CREATE TABLE IF NOT EXISTS adjacentBlocks (id integer PRIMARY KEY, adjblockid integer, blockid integer)")  
+dbBegin(castordb)  
+rs <- dbSendQuery (castordb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)  
+dbClearResult(rs)
+dbCommit(castordb) 
+dbExecute(castordb, "CREATE INDEX index_adjblockid on adjacentBlocks (adjblockid)")
+  
+```
+
+

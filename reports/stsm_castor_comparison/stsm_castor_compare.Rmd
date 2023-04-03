@@ -1,0 +1,190 @@
+---
+title: "Comaprison of SELES/STSM to Castor/SpaDES"
+author: "Tyler Muhly"
+date: '2023-03-22'
+output: html_document
+---
+
+
+
+```{r, load packages, data}
+library (terra)
+library (DBI)
+library (keyring)
+
+data.dir <- "G:\\!Workgrp\\Analysts\\tmuhly\\clus_stsm_comparison\\results"
+conn <- DBI::dbConnect (RPostgreSQL::PostgreSQL(), 
+                        host=keyring::key_get('vmdbhost', keyring = 'postgreSQL'), 
+                        dbname = keyring::key_get('vmdbname', keyring = 'postgreSQL'), 
+                        port='5432',
+                        user = keyring::key_get('vmdbuser', keyring = 'postgreSQL'),
+                        password = keyring::key_get('vmdbpass', keyring = 'postgreSQL'))
+
+
+# Fort Nelson Data
+castordb.ftnels <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_ft_nelson/ftnelson_stsmcompare_noroads_noblocks_castordb.sqlite"))
+
+rast.aoi <- terra::rast (nrow = 15744, 
+                         xmin = 830188, xmax = 1352488, 
+                         ymin = 1388088, ymax = 1682788, 
+                         crs = "epsg:3005")
+
+rast.castor.ftnels.blocks10 <- terra::rast (paste0 (data.dir, "\\castor\\oldest_stsm_sustain_noroads_noblocks_10year_Fort_Nelson_TSA_harvestBlocks.tif"))
+
+stsm.ftnels.blocks <- data.table (read.table (paste0 (data.dir, "\\stsm\\2.45_even_detailed_harvest_data.txt"), 
+                                       header = TRUE))
+stsm.ftnels.blocks10 <- stsm.ftnels.blocks [CurrYear == 1, ]
+rast.stsm.ftnels.blocks <- rast.aoi
+rast.stsm.ftnels.blocks [] <- stsm.ftnels.blocks10
+
+stsm.ftnels.harvest.flow <- data.table (read.table (paste0 (data.dir, "\\stsm\\2.45harvestRecord.txt"), 
+                                             header = TRUE))
+castor.ftnels.harvest.flow <- dbGetQuery (conn, "SELECT * from ftnelson_stsm_compare.harvest")
+castor.ftnels.grow.stock <- dbGetQuery (conn, "SELECT * from ftnelson_stsm_compare.growingstock")
+
+
+
+```
+
+## Introduction
+The purpose of this report is to present and compare the outputs from [Castor, a forestry and land use simulator model](https://github.com/bcgov/castor) built using the [Spatial Discrete Event Simulation (SpaDES)](https://spades-core.predictiveecology.org/) platform in program R, to the Spatially Explicit
+Timber Supply Model (STSM) built using the [SELES](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=14729e8f5430035cead9f38e708f4507c543ff9d) platform. These models were compared to test whether the Castor model approximates results from a STSM model, and thus to assess the logic of the Castor model relative to STSM. If the Castor model closely approximates the STSM model than it will improve confidence in forest harvest results from Castor and open the opportunity to use Castor as a model for timber supply reviews. This comparison also provides an opportunity to explore and discuss alternative logical approaches to simulating timber harvest and future forest conditions. 
+
+Both the Castor and STSM models can be used to spatially simulate forest condition and harvest, and estimate 'timber supply' (i.e.,t eh amount of wood volume that can be harvested in a landscape). However, STSM has been used to estimate timber supply in support of timber supply reviews in British Columbia since the mid-2000's. Therefore, it has been refined over a relatively long-period of time and it has been accepted as a valid model for completing timber supply reviews. Castor was developed starting in 2017 and has primarily been used to support strategic decisions around habitat protections for species-at-risk such as caribou. Therefore, Castor has not been as widely tested or developed as STSM.
+
+Neither Castor nor STSM are optimization models, but they both simulate timber harvest based on heuristics regarding forest harvest patterns. In summary, they are both programmed to harvest and calculate harvested timber volume based on meeting a volume demand, following a harvest priority queue (e.g., oldest stands first), potentially with 'partitions' of the volume (i.e., spatial sub-zones or 'compartments', or forest stand types), within the 'constraints' of the land base (i.e.,, zones with some rules that restrict forest harvest in some way to meet some objective, such as wildlife habitat).
+
+Castor was developed internally to the Forest Analysis and Inventory Branch as an open source tool using the [programming language R](https://www.r-project.org/). It was created to take advantage of the R programming language, which provides a relative large user and developer base with a diversity of analytical functions (including data wrangling, statistical analyses and data visualization). By 
+
+## Methods
+To compare the two models, a simplified timber supply area (350,000 ha in size) was created in the center of British Columbia. The current (2022) forest inventory, growth and yield and timber harvest land base data were obtained for that area to use as the forest estate for the area of interest. In both models, the forest inventory provides the current state-of-the-forest, growth and yield models (Variable Density Yield Projection (VDYP) models for natural stands, Table Interpolation Program for Stand Yields (TIPSY) models for planted stands) provided future stand characteristics and the THLB defined the area available for forest harvest.
+
+### Model Parameters
+In addition to forest condition, the models were set-up with the same timber supply modeling parameters.
+
+
+
+
+
+d.	Min 50 year harvest age
+e.	Even-flow harvest
+f.	Harvest queue
+g.	“blocking” at pixel scale – no spatial blocking
+h.	No adjacency constraints
+
+
+#### Castor Yield Update
+-	Mid-point
+o	Forest Estate Model Sample Clauses | Law Insider
+o	Aggregation of Age Classes in Timber Resources Scheduling Models: Its Effects and Bias | Forest Science | Oxford Academic (oup.com)
+-	5 year increment
+
+[‎2023-‎02-‎01 12:19 PM]  Lochhead, Kyle FLNR:EX:  
+they say what is currently out there aka time = 0....use that volume and harvest 10 years worth of timber....then at time period 2, increase the age by 10 years
+for us its report the time=0 (no harvesting goes on), then increase the age by the midpoint of the timperiod (5 years) then go find 10 years worth of timber, then in timperiod 2 increase by 10 years....so time period 1 = 5 years, timperiod 2 = 15, as increments , timperiod 3 = 25
+
+
+
+Probability of initiation fo cutblock is driven by a number of parameters, depnign on how coarse/fine the analyst makes; sort cells based on preferences; preference value for cells; random selection; set seed
+-	Oldest first; harvest queue
+
+
+
+#### STSM Yield Update
+- annualized harvest in a time interval (e.g., a decade)
+- divides harvest request across years in a time interval; so if harvets request is 10 years, it gets divdied by ten
+- first 10% (year 1) of queue gets advanced one year in age and volume, then harvested and age set to 0; becomes age 10 in next interval
+- second 10% (year 2) of queue gets advanced two years in age and volume, then harvested and age set to -1; becomes age 9 in next interval
+- etc.
+- ninth 10% (year 9) of queue gets advanced two years in age and volume, then harvested and age set to -9; becomes age 1 in next interval
+
+
+#### Castor blocking
+- agglomerative clustering; pixels (ha) get grouped together based on stand characteristics (similarities determined using mahalanobis distance statistic) and block size target
+- block size drawn from patch size distribution targets 
+
+#### STSM blocking
+- starts with 'preferred' cell in harvest queue
+- then identifies a patch size target, but these are 'soft targets' so as not to become too constraining
+- then sorts cells in the patch by harvest queue preference
+- but also can parameterize it to 'spread' to pixels based on age threshold criteria, e.g., must be within 20% of age
+- also looks for fragments in the patch
+- initially a 'pattern analysis' is done to match patterns of created to exciting blocks
+
+
+#### STSM roading
+- does pre-processign of roads
+- uses existing road network
+- builds 'potential' future roads using a static costs surface (physical features, like slope, terrain, waterbodies)
+- in pre-roading, road segments (~1km long) are built using the cost surface to access every pixel in the THLB within some threshold distance (e.g., 1 km; so each pixel will be 1km form a road)
+- priority of a pixel could be adjusted by it's distance to road or by the amount of road that can be active in a period or cost of building the road as a proportion of the relative value of wood in an area, for example
+- can therefore limit harvest based on road access, road building 'budget' and cost/value of road
+- goal of making sure the model achieves a cost/value threshold can help ensure the model doesn't suddenly harvest in remote areas when timber volume is limited during a particular time period
+- thus it dynamically changes the TLHB, where an area of THLB may be removed for a priroity queue if it doesnt achieve teh roading threholds (e.g., it is too far or too costly to build the roads to access the area)
+- generally this feature has the effect of concentrating logging
+
+- roading can add parameters to the harvest priority queue
+- a landing is identified in a selected block and the model builds roads between that and the nearest road segment (either existing or pre-determined)
+- if the block landing is connected to an existing or future road network, then those roads are 'activate', or else it builds a 'spur' road (straight-line, as a crow flies) connection between the landing and nearest road
+
+
+#### STSM Harvest Queue
+- can have multiple 'preference' criteria
+- in a simple example, oldest first, it orders teh pixels by age
+- but it can have multiple preferences, e.g., oldest first, closest to road, in which case the preferences get multiplied and then the queue re-ordered based on the multiplied preferences
+- the harvest queue is updated (re-ordered) four times a year; so the queue gets re-ordered 4 times a year as the model harvests
+
+
+#### STSM Constraints
+- contraints are assessed four times per year
+- detailed check of constraints at pixel scale
+
+
+
+
+
+‘look-ahead’ in STSM the anaylts can hit flag itn eh model, and the model will look at year 9 in 10 yar time step and determine when initiating whether a span meets min age requirements at year 9
+-	In tiem step, will satnd achieve min age or volume ,or both target, if yes, then harvest
+-	Could affect spatial distribution
+-	Most analysts use this fxn
+
+
+## Model Scenarios
+
+a.	Oldest first 
+b.	High volume first
+c.	Old growth
+
+
+## 4.	Model Results
+a.	Indicators
+i.	Annual
+1.	Harvest Volume Flow
+2.	Growing Stock
+3.	Area harvested
+4.	Volume/ha harvested
+5.	Average age harvested
+6.	LRSY
+a.	
+ii.	Spatial
+1.	Harvesting Pattern under the same harvest queue
+a.	Map output
+
+### 2.7 M m3 non-declining harvest flow
+model with a 2.7 M m^3^ annual harvest flow target over 200 year time period. Oldest first priority queue and minimum stand age at harvest of 50. 
+
+
+growgin stock was...
+
+```{r, harvest flow, echo = F, message = F, eval = T}
+
+tab.harvest.flow.fig <- castor.grow.stock [scenario == "oldest_stsm_sustain_noroads_noblocks_", c ("scenario", "timeperiod", "m_gs")]
+
+
+
+```
+
+
+
+
+

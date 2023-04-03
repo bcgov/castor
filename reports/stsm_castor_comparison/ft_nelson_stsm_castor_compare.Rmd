@@ -1,7 +1,7 @@
 ---
-title: "ft_nelson_stsm_castor_report"
+title: "Comaprison of SELES/STSM to Castor/SpaDES"
 author: "Tyler Muhly"
-date: '2023-02-02'
+date: '2023-03-22'
 output: html_document
 ---
 
@@ -19,27 +19,28 @@ conn <- DBI::dbConnect (RPostgreSQL::PostgreSQL(),
                         port='5432',
                         user = keyring::key_get('vmdbuser', keyring = 'postgreSQL'),
                         password = keyring::key_get('vmdbpass', keyring = 'postgreSQL'))
-castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_ft_nelson/ftnelson_stsmcompare_noroads_noblocks_castordb.sqlite"))
+
+
+# Fort Nelson Data
+castordb.ftnels <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_ft_nelson/ftnelson_stsmcompare_noroads_noblocks_castordb.sqlite"))
 
 rast.aoi <- terra::rast (nrow = 15744, 
                          xmin = 830188, xmax = 1352488, 
                          ymin = 1388088, ymax = 1682788, 
                          crs = "epsg:3005")
 
-rast.castor.blocks10 <- terra::rast (paste0 (data.dir, "\\castor\\oldest_stsm_sustain_noroads_noblocks_10year_Fort_Nelson_TSA_harvestBlocks.tif"))
+rast.castor.ftnels.blocks10 <- terra::rast (paste0 (data.dir, "\\castor\\oldest_stsm_sustain_noroads_noblocks_10year_Fort_Nelson_TSA_harvestBlocks.tif"))
 
-stsm.blocks <- data.table (read.table (paste0 (data.dir, "\\stsm\\2.45_even_detailed_harvest_data.txt"), 
+stsm.ftnels.blocks <- data.table (read.table (paste0 (data.dir, "\\stsm\\2.45_even_detailed_harvest_data.txt"), 
                                        header = TRUE))
-stsm.blocks10 <- stsm.blocks [CurrYear == 1, ]
-rast.stsm.blocks <- rast.aoi
-rast.stsm.blocks [] <- stsm.blocks10
+stsm.ftnels.blocks10 <- stsm.ftnels.blocks [CurrYear == 1, ]
+rast.stsm.ftnels.blocks <- rast.aoi
+rast.stsm.ftnels.blocks [] <- stsm.ftnels.blocks10
 
-
-
-stsm.harvest.flow <- data.table (read.table (paste0 (data.dir, "\\stsm\\2.45harvestRecord.txt"), 
+stsm.ftnels.harvest.flow <- data.table (read.table (paste0 (data.dir, "\\stsm\\2.45harvestRecord.txt"), 
                                              header = TRUE))
-castor.harvest.flow <- dbGetQuery (conn, "SELECT * from ftnelson_stsm_compare.harvest")
-castor.grow.stock <- dbGetQuery (conn, "SELECT * from ftnelson_stsm_compare.growingstock")
+castor.ftnels.harvest.flow <- dbGetQuery (conn, "SELECT * from ftnelson_stsm_compare.harvest")
+castor.ftnels.grow.stock <- dbGetQuery (conn, "SELECT * from ftnelson_stsm_compare.growingstock")
 
 
 
@@ -47,27 +48,34 @@ castor.grow.stock <- dbGetQuery (conn, "SELECT * from ftnelson_stsm_compare.grow
 
 ## Introduction
 The purpose of this report is to present and compare the outputs from a [Castor forestry and land use simulator model](https://github.com/bcgov/castor) built using the [Spatial Discrete Event Simulation (SpaDES)](https://spades-core.predictiveecology.org/) platform in program R, to the Spatially Explicit
-Timber Supply Model (STSM) built using the [SELES](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=14729e8f5430035cead9f38e708f4507c543ff9d).
+Timber Supply Model (STSM) built using the [SELES](https://citeseerx.ist.psu.edu/document?repid=rep1&type=pdf&doi=14729e8f5430035cead9f38e708f4507c543ff9d) platform.
 
-The Castor and STSM models can be used to simulate forest harvest and estimate timber supply. They are not optimization models, they 
-
-
-STSM has been used to estimate timber supply in support of timber supply reviews in British Columbia for over 15 years. 
+The Castor and STSM models are used to simulate forest harvest and estimate timber supply. STSM has been used to estimate timber supply in support of timber supply reviews in British Columbia since the mid-2000's. Castor was developed starting in 2017 and has primarily been used to support strategic decisions around habitat protections for species-at-risk such as caribou.  
 
 
 
+However, they are not optimization models, but they simulate timber harvest based on heuristics 
 
 
--	Purpose is to compare Casto and STSM spatial timber supply models in a simple framework
+
+
+
+
+
+
+-	Purpose is to compare Castor and STSM spatial timber supply models in a simple framework
 -	Why are we comparing to STSM?
 o	“Validate” Castor for other non-TSR processes
 	i Castor e., increase confidence in forest harvest results
-o	Have CLUS as another option in the model toolkit
-	i.e., use CLUS for TSR, if of interest
+o	Have Castor as another option in the model toolkit for TSR
 •	Attractive aspects are open source, internally developed, may be more flexible in development
 
 
 ## Model Inputs
+- took a  
+
+
+
 a.	Fort Nelson timber supply area
 b.	Forest inventory and GandY curves from last determination
 c.	Old growth constraints
