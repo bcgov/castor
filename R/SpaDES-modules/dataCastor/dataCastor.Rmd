@@ -43,8 +43,8 @@ parameters <-  list(
   .globals = list(),
   dataCastor = list(saveCastorDB = TRUE,
                     randomLandscapeZoneNumber = 1,
-                     randomLandscape = list(100,100,0, 100, 0, 100),
-                     randomLandscapeZoneConstraint = data.table(zoneid = 1,  variable = 'age', threshold = 140, type = 'ge', percentage = 0)
+                    randomLandscape = list(100,100,0, 100, 0, 100),
+                    randomLandscapeZoneConstraint = data.table(zoneid = 1,  variable = 'age', threshold = 140, type = 'ge', percentage = 0)
                     )
   )
 
