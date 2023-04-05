@@ -101,7 +101,7 @@ parameters <- list(
                           nameForestInventoryTreed = "bclcs_lv_2",
                           nameForestInventorySiteIndex = "site_index"    
                      ),
-  forestryCastor = list(harvestBlockPriority = " age DESC ", 
+  forestryCastor = list(harvestBlockPriority = " age DESC, vol DESC ", 
                         reportHarvestConstraints = F
                         ),
   blockingCastor = list(blockMethod = 'pre',
@@ -118,9 +118,9 @@ parameters <- list(
 
 modules <- list("dataCastor", 
                 "growingStockCastor", 
-                "forestryCastor", 
-                #"blockingCastor",
-                "uploadCastor"
+                "forestryCastor" 
+                "blockingCastor"
+                #"uploadCastor"
                 )
 
 scenario = data.table (name = "oldest_annual_noroads_noblocks",
@@ -133,7 +133,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="tsa99",
                                                       to = 250, 
                                                       by = 1),
                                                 1), 
-                                     flow = 128000, # 128,000m3/year 
+                                     flow = 132000, # 128,000m3/year 
                                      partition_type = 'live') 
 ))
 
