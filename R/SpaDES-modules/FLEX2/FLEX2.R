@@ -180,7 +180,7 @@ Init <- function(sim) {
   
   # assign agents to denning pixels
     
-  # dennign habitat
+  # denning habitat
       # select the init denning raster
   den.pix <- table.habitat.init [ras_fisher_denning_init == 1, c ("pixelid", "ras_fisher_denning_init")]
       # sample the pixels where there is denning habitat
@@ -1241,7 +1241,7 @@ litterSize <- function (fisherPop, mahalTable, reproTable, reproFishers){
   
   sim$female_hr_table <- data.table (fisher_pop = c (1:4), 
                                      hr_mean = c (3000, 4500, 4500, 3000),
-                                     hr_sd = c (500, 500, 500, 500))
+                                     hr_sd = c (1400, 1600, 3400, 1500)) # updating to actual SD for each zone
   
   sim$mahal_metric_table <- data.table (FHE_zone = c ("Boreal", "Sub-Boreal moist", "Sub-Boreal dry", "Dry Forest"),
                                         FHE_zone_num = c (1:4),
