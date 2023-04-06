@@ -224,10 +224,16 @@ Init <- function (sim) {
   ras.fisher.movement.init [] <- 0
   table.hab.init.movement <- table.hab.init [movement == 1, ]
   ras.fisher.movement.init [table.hab.init.movement$pixelid] <- 1
+  # openness
+  ras.fisher.open.init <- sim$ras
+  ras.fisher.open.init [] <- 0
+  table.hab.init.open <- table.hab.init [open == 1, ]
+  ras.fisher.open.init [table.hab.init.open$pixelid] <- 1
+  
   
   # create a list of rasters (equivalent to a raster stack)
-  sim$raster.stack <- c (pix.rast, ras.fisher.pop, ras.fisher.denning.init, ras.fisher.rust.init, ras.fisher.cavity.init, ras.fisher.cwd.init, ras.fisher.movement.init)
-  names (sim$raster.stack) <- c ("pixelid", "ras_fisher_pop", "ras_fisher_denning_init", "ras_fisher_rust_init", "ras_fisher_cavity_init", "ras_fisher_cwd_init", "ras_fisher_movement_init")
+  sim$raster.stack <- c (pix.rast, ras.fisher.pop, ras.fisher.denning.init, ras.fisher.rust.init, ras.fisher.cavity.init, ras.fisher.cwd.init, ras.fisher.movement.init, ras.fisher.open.init)
+  names (sim$raster.stack) <- c ("pixelid", "ras_fisher_pop", "ras_fisher_denning_init", "ras_fisher_rust_init", "ras_fisher_cavity_init", "ras_fisher_cwd_init", "ras_fisher_movement_init", "ras_fisher_open_init")
   
   return (invisible (sim))
 }
@@ -270,14 +276,20 @@ updateHabitat <- function (sim) {
   ras.fisher.movement [] <- 0
   table.hab.movement <- table.hab.update [movement == 1, ]
   ras.fisher.movement [table.hab.movement$pixelid] <- 1
+  # openness
+  ras.fisher.open <- sim$ras
+  ras.fisher.open [] <- 0
+  table.hab.open <- table.hab.update [open == 1, ]
+  ras.fisher.open [table.hab.open$pixelid] <- 1
   
   # create a list of rasters (equivalent to a raster stack)
-  raster.stack.update <- c (ras.fisher.denning, ras.fisher.rust, ras.fisher.cavity, ras.fisher.cwd, ras.fisher.movement)
+  raster.stack.update <- c (ras.fisher.denning, ras.fisher.rust, ras.fisher.cavity, ras.fisher.cwd, ras.fisher.movement, ras.fisher.open)
   names (raster.stack.update) <- c (paste0 ("ras_fisher_denning_", time(sim)*sim$updateInterval), 
                                     paste0 ("ras_fisher_rust_", time(sim)*sim$updateInterval), 
                                     paste0 ("ras_fisher_cavity_", time(sim)*sim$updateInterval),
                                     paste0 ("ras_fisher_cwd_", time(sim)*sim$updateInterval),
-                                    paste0 ("ras_fisher_movement_", time(sim)*sim$updateInterval))
+                                    paste0 ("ras_fisher_movement_", time(sim)*sim$updateInterval),
+                                    paste0 ("ras_fisher_open_", time(sim)*sim$updateInterval))
   sim$raster.stack <- c (sim$raster.stack, raster.stack.update)
 
   rm (raster.stack.update, table.hab.update)
@@ -319,9 +331,11 @@ classifyHabitat <- function (inputTable) {
   inputTable [rus_p == 1 & age > 0 & crownclosure >= 30 & qmd >= 22.7 & basalarea >= 35 & height >= 23.7, rust:=1][rus_p == 2 & age >= 72 & crownclosure >= 25 & qmd >= 19.6 & basalarea >= 32, rust:=1][rus_p == 3 & age >= 83 & crownclosure >=40 & qmd >= 20.1, rust:=1][rus_p == 5 & age >= 78 & crownclosure >=50 & qmd >= 18.5 & height >= 19 & basalarea >= 31.4, rust:=1][rus_p == 6 & age >= 68 & crownclosure >=35 & qmd >= 17 & height >= 14.8, rust:=1]
   inputTable [cav_p == 1 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1][cav_p == 2 & age > 0 & crownclosure >= 25 & qmd >= 30 & basalarea >= 32 & height >=35, cavity:=1]
   inputTable [cwd_p == 1 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 2 & age >= 135 & qmd >= 22.7 & height >= 23.7, cwd:=1][cwd_p == 3 & age >= 100, cwd:=1][cwd_p >= 5 & age >= 78 & qmd >= 18.1 & height >= 19 & crownclosure >=60, cwd:=1]
-  inputTable [mov_p > 0 & age > 0 & crownclosure >= 40, movement:=1]
+  inputTable [mov_p == 1 & age > 0 & crownclosure > 30, movement:=1][mov_p == 2 & age > 0 & crownclosure > 25, movement:=1][mov_p == 3 & age > 0 & crownclosure > 20, movement:=1][mov_p == 5 & age > 0 & crownclosure > 50, movement:=1]
+  inputTable [is.na(crownclosure) | crownclosure <= 10, open := 1] 
+  
   inputTable <- inputTable [, .(pixelid, fisher_pop, den_p, denning, rus_p, rust, cav_p, cavity, 
-                                  cwd_p, cwd, mov_p, movement)] # could add other things, openness, crown closure, cost surface?
+                                  cwd_p, cwd, mov_p, movement, open)] # could add other things,crown closure, cost surface?
   return (inputTable)
 }
 

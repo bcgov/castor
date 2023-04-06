@@ -175,7 +175,7 @@ Init <- function(sim) {
 }
 
 setFisherD2Parameters<-function(sim){ #sets up the world object
-  # 1: Boreal, 2: SBS-wet, 3: Sbs-dry, 4 = Dry Forest
+  # 1: SBS-wet, 2: Sbs-dry, 3 = Dry Forest; 4 = Boreal
   sim$fisher.feta.info <- data.table(dbGetQuery(sim$castordb, "with freqs as (select count(mov_p) as freq, mov_p, fetaid from fisherhabitat group by fetaid, mov_p) select max(freq), mov_p as pop, fetaid from freqs group by fetaid;"))#the population each feta belong to
   sim$fisher.d2.cov <- fisher.d2.cov <- list(matrix(c(0.536,	2.742,	0.603,	3.211,	-2.735,	1.816,	2.742,	82.721,	4.877,	83.281,	7.046,	-21.269,	0.603,	4.877,	0.872,	4.033,	-0.67,	-0.569,	3.211,	83.281,	4.033,	101.315,	-15.394,	-1.31,	-2.735,	7.046,	-0.67,	-15.394,	56.888,	-48.228,	1.816,	-21.269,	-0.569,	-1.31,	-48.228,	47.963), ncol =6, nrow =6),
                                              matrix(c(0.525,	-1.909,	-0.143,	2.826,	-6.891,	3.264,	-1.909,	96.766,	-0.715,	-39.021,	69.711,	-51.688,	-0.143,	-0.715,	0.209,	-0.267,	1.983,	-0.176,	2.826,	-39.021,	-0.267,	58.108,	-21.928,	22.234,	-6.891,	69.711,	1.983,	-21.928,	180.113,	-96.369,	3.264,	-51.688,	-0.176,	22.234,	-96.369,	68.499), ncol =6, nrow =6),
@@ -195,7 +195,7 @@ getFisherSuitability<-function(sim){
   occupancy[, rel_prob_occup:= ((exp(-0.219*openess))/(1+exp(-0.219*openess )))/0.5]
   
   message("calc fisher suitability")
-  #---VAT for regional models: 1 = SBS-wet; 2 = SBS-dry; 3 = Dry Forest; 4 = Boreal_A; 5 = Boreal_B
+  #---VAT for regional models: 1 = SBS-wet; 2 = SBS-dry; 3 = Dry Forest; 4 = Boreal_A; 5 = Boreal_B 
   #---Note: age > 0 is added a query to remove any harvesting that occurs in the same sim time
   fisher.habitat <- data.table(dbGetQuery(sim$castordb, "select fisherhabitat.pixelid, fetaid, den_p, rus_p, cav_p, cwd_p, mov_p, age, height, crownclosure, basalarea, qmd from fisherhabitat inner join pixels on fisherhabitat.pixelid = pixels.pixelid"))
   fisher.habitat<-fisher.habitat[pixelid %in% sim$harvestPixelList$pixelid, age:=0]
@@ -247,7 +247,6 @@ getFisherSuitability<-function(sim){
     fisher.habitat.rs[ pop  == 3, d2:= mahalanobis(fisher.habitat.rs[ pop  == 3, c("denning", "rust", "cwd", "mov", "opn")], c(2.31, 1.63, 10.8, 58.1, 15.58), cov = sim$fisher.d2.cov[[3]])]
     fisher.habitat.rs[ pop  == 5, d2:= mahalanobis(fisher.habitat.rs[ pop  == 5, c("denning", "rust", "cwd", "mov", "opn")], c(23.98, 2.24, 17.4, 56.2, 31.2), cov = sim$fisher.d2.cov[[4]])]
 
-  
   fisherReport<-merge(occupancy, fisher.habitat.rs[, c("fetaid", "denning", "rust", "cavity", "cwd", "mov","d2")], by.x = "zone", by.y = "fetaid")
   fisherReport[, c("timeperiod", "scenario", "compartment") := list(time(sim)*sim$updateInterval, sim$scenario$name, sim$boundaryInfo[[3]][[1]]) ] 
   sim$fisherReport<-rbindlist(list(sim$fisherReport, fisherReport), use.names=TRUE)
