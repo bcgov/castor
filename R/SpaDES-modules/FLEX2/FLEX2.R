@@ -445,7 +445,7 @@ updateHabitat <- function (sim) {
   sim$table.hab.update <- sim$table.hab.update [ras_fisher_pop > 0, ]
   sim$table.hab.update$ras_fisher_pop <- as.numeric (sim$table.hab.update$ras_fisher_pop)
   names (sim$table.hab.update) <- c ("pixelid", "fisher_pop", "denning", "rust", "cavity",
-                                 "cwd", "movement")
+                                 "cwd", "movement", "open")
   # B. Update the spread probability raster
   sim$spread.rast <- spreadRast (sim$pix.raster, sim$table.hab.update)
   message ("Fisher habitat data updated.")
