@@ -53,10 +53,10 @@ castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scena
 
 check <- dbGetQuery (castordb, "SELECT * from zoneconstraints WHERE reference_zone = 'rast.central_grp_partner_areas_072022'")
 dbExecute (castordb, "UPDATE zoneconstraints SET type = 'nh' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid = 8") 
-dbExecute (castordb, "UPDATE zoneconstraints SET type = 'ge' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 9)") 
-dbExecute (castordb, "UPDATE zoneconstraints SET variable = 'age' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 9)") 
-dbExecute (castordb, "UPDATE zoneconstraints SET threshold = 41 WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 9)")
-dbExecute (castordb, "UPDATE zoneconstraints SET percentage = 90 WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND (zoneid = 1) OR (zoneid = 3) OR (zoneid = 9)")
+dbExecute (castordb, "UPDATE zoneconstraints SET type = 'ge' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid IN (1, 3, 9)") 
+dbExecute (castordb, "UPDATE zoneconstraints SET variable = 'age' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid IN (1, 3, 9)") 
+dbExecute (castordb, "UPDATE zoneconstraints SET threshold = 41 WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid IN (1, 3, 9)")
+dbExecute (castordb, "UPDATE zoneconstraints SET percentage = 90 WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid IN (1, 3, 9)")
 
 dbDisconnect (castordb)  
 

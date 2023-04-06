@@ -70,9 +70,9 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenari
 ################################################################
 #### Chilcotin Scenarios 1a, b and c - Sept. 2021 #### 
 ### To remove existing caribou WHA GARs; forest age constraints applied to critical habitat
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.zone_wha_2021' AND (zoneid = 263) OR (zoneid = 264) OR (zoneid = 3779) OR (zoneid = 3780) OR (zoneid = 3781)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.zone_wha_2021' AND zoneid IN (263, 264, 3779, 3780, 3781)") 
 ### To remove existing caribou conditional harvest WHA GARs; forest age constraints applied to critical habitat
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.zone_wha_2021' AND (zoneid = 263) OR (zoneid = 3779) OR (zoneid = 3780) OR (zoneid = 3781)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.zone_wha_2021' AND zoneid IN (263, 3779, 3780, 3781)") 
 
 #################
 ### Scenario 1a forest age constraints applied to all to critical habitat ##
@@ -80,10 +80,10 @@ dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = '
 # Seral stage >80 = 45%; Seral stage >100 = 37%; Seral stage >120 = 30%; Seral stage >140 = 25%
 
 ## Itcha ##
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 4)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 4)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 141 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 4)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 4)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND zoneid IN (0, 3, 4)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND zoneid IN (0, 3, 4)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 141 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND zoneid IN (0, 3, 4)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_itcha_ilgachuz_crithab' AND zoneid IN (0, 3, 4)")
 
 # Need to create some new rows for multiple age constraints
 dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
@@ -99,10 +99,10 @@ VALUES
 (1475,4,'rast.zone_cond_bc_itcha_ilgachuz_crithab','zone17',0,'age',81,'ge',45,NULL,NULL,790764,0,250);")
 
 ## Rainbows ##
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 141 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND zoneid IN (0, 3, 2)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND zoneid IN (0, 3, 2)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 141 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND zoneid IN (0, 3, 2)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_rainbows_crithab' AND zoneid IN (0, 3, 2)")
 dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
 VALUES 
 (1476,0,'rast.zone_cond_bc_rainbows_crithab','zone18',0,'age',121,'ge',30,NULL,NULL,41182,0,250),
@@ -117,10 +117,10 @@ VALUES
 
 
 ## Charlotte ##
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 141 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
-dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND (zoneid = 0) OR (zoneid = 3) OR (zoneid = 2)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = 'ge' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND zoneid IN (0, 3, 2)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET variable = 'age' where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND zoneid IN (0, 3, 2)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET threshold = 141 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND zoneid IN (0, 3, 2)")
+dbExecute(clusdb, "UPDATE zoneconstraints SET percentage = 25 where reference_zone = 'rast.zone_cond_bc_charlotte_alplands_crithab' AND zoneid IN (0, 3, 2)")
 dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)
 VALUES 
 (3528,0,'rast.zone_cond_bc_charlotte_alplands_crithab','zone16',0,'age',121,'ge',30,NULL,NULL,93677,0,250),
