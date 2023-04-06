@@ -66,6 +66,7 @@ None
 ```{r module_usage}
 library (SpaDES.core)
 library (data.table)
+library (dplyr)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
@@ -78,8 +79,8 @@ parameters <- list(
   .globals = list(),
   dataCastor = list (dbName='castor',
                      saveCastorDB = FALSE,
-                     sqlite_dbname = "stsm_compare_noroads_noblocks",
-                     useCastorDB = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_castordb.sqlite"),
+                     sqlite_dbname = "stsm_compare_noroads_noblocks_age0",
+                     useCastorDB = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_castordb_age0.sqlite"),
                      nameBoundaryFile = "castor_stsm_compare.bounds_tsa99", 
                           nameBoundaryColumn = "tsa_name", 
                           nameBoundary = "tsa99", 
@@ -119,12 +120,12 @@ parameters <- list(
 modules <- list("dataCastor", 
                 "growingStockCastor", 
                 "forestryCastor", 
-                #"blockingCastor",
+                "blockingCastor",
                 "uploadCastor"
                 )
 
-scenario = data.table (name = "oldest_annual_noroads_noblocks",
-                       description = "Priority queue = oldest first. Adjacency constraint = None. No roads or blocks. Maximum even live harvest flow: 128,000 m3/year. Minimum harvest age = 80 and minimum harvest volume = 150")
+scenario = data.table (name = "oldest_annual_noroads_noblocks_136000",
+                       description = "Priority queue = oldest first. Adjacency constraint = None. No roads or blocks. Maximum even live harvest flow: 136,000 m3/year. Minimum harvest age = 80 and minimum harvest volume = 150")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="tsa99",
@@ -133,7 +134,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="tsa99",
                                                       to = 250, 
                                                       by = 1),
                                                 1), 
-                                     flow = 128000, # 128,000m3/year 
+                                     flow = 136000, # 136,000m3/year 
                                      partition_type = 'live') 
 ))
 
