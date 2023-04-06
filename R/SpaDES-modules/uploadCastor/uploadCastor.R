@@ -137,9 +137,10 @@ Init <- function(sim) {
                     yielduncertainty = data.table(scenario = character(), compartment = character(), timeperiod = integer(), projvol = numeric(), calibvol = numeric (), prob = numeric(), pred5 = numeric(), pred95 = numeric() ),
                     fisher=data.table(timeperiod = as.integer(), scenario = as.character(), compartment =  as.character(), openess = as.numeric(), zone = as.integer(), reference_zone = as.character(), rel_prob_occup = as.numeric(), denning= as.numeric(), rust= as.numeric(), cavity= as.numeric(), cwd= as.numeric(), mov= as.numeric(), d2 = as.numeric()),
                     fisherabm = data.table (timeperiod = as.integer(), scenario = as.character(), compartment = character(), n_f_adult = as.numeric (), n_f_juv = as.numeric (), n_f_disperse = as.numeric (), mean_age_f = as.numeric (), sd_age_f = as.numeric ()),
+                    earlyseralrisk = data.table(timeperiod = as.integer(), scenario = as.character(), compartment =  as.character(),  zone = as.integer(), total_area = as.integer(), per_early_seral = as.numeric()),
                     zonemanagement=data.table(scenario = as.character(), zoneid = as.integer(), reference_zone = as.character(), zone_column = as.character(), variable = as.character(), threshold = as.numeric(), type = as.character(), percentage = numeric(), multi_condition = as.character(), t_area = numeric(), denom = as.character(), start = as.integer(), stop = as.integer(), percent = numeric(), timeperiod = as.integer()))
 
-    tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "disturbance", "yielduncertainty", "fisher", "fisherabm", "zonemanagement", "grizzly_survival", "caribou_abundance")
+    tablesUpload<-c("state", "scenarios", "harvest","growingstock", "rsf", "survival", "disturbance", "yielduncertainty", "fisher", "fisherabm", "zonemanagement", "grizzly_survival", "caribou_abundance", "earlyseralrisk")
     for(i in 1:length(tablesUpload)){
       dbWriteTable(connx, c(P(sim, "aoiName", "uploadCastor"), tablesUpload[[i]]), tableList[[tablesUpload[i]]], row.names = FALSE)
       dbExecute(connx, paste0("GRANT SELECT ON ", P(sim, "aoiName", "uploadCastor"),".", tablesUpload[[i]]," to appuser;"))
@@ -255,6 +256,12 @@ save.reports <-function (sim){
     message("writing abundance report")
     dbWriteTable(connx, c(P(sim, "aoiName", "uploadCastor"), 'caribou_abundance'), 
                  sim$tableAbundanceReport, append = T,row.names = FALSE)
+  }
+  # early seral risk
+  if(!is.null(sim$earlySeralRiskReport)){
+    message("writing early seral risk report")
+    dbWriteTable(connx, c(P(sim, "aoiName", "uploadCastor"), 'earlyseralrisk'), 
+                 sim$earlySeralRiskReport, append = T,row.names = FALSE)
   }
   dbDisconnect(connx)
   
