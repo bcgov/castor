@@ -1247,7 +1247,7 @@ litterSize <- function (fisherPop, mahalTable, reproTable, reproFishers){
   
   sim$female_hr_table <- data.table (fisher_pop = c (1:4), 
                                      hr_mean = c (3000, 4500, 4500, 3000),
-                                     hr_sd = c (1400, 1600, 3400, 1500)) # updating to actual SD for each zone
+                                     hr_sd = c (1500, 1500, 1500, 1500)) # updating to more realistic SD (higher for SBD but then crashes)
   
   sim$mahal_metric_table <- data.table (FHE_zone = c ("Boreal", "Sub-Boreal moist", "Sub-Boreal dry", "Dry Forest"),
                                         FHE_zone_num = c (1:4),
