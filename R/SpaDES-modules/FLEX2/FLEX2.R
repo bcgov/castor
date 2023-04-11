@@ -659,7 +659,7 @@ annualEvents <- function (sim) {
       table.disperse.hr <- merge (merge (table.disperse.hr,
                                          dispersers [, c ("pixelid", "individual_id")],
                                          by.x = "initialPixels", by.y = "pixelid", all.x = T), 
-                                  sim$table.hab.update [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement")],
+                                  sim$table.hab.update [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")],
                                   by.x = "pixels", by.y = "pixelid",
                                   all.x = T)
       
