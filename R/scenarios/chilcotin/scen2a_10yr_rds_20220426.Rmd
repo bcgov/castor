@@ -79,7 +79,7 @@ clusdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenari
 ### NOTE: IF UPDATED DB, MAKE SURE TO CHECK zone_column and t_area
 #----------------------
 ### To remove existing caribou conditional harvest WHA GARs; forest age constraints applied to critical habitat
-dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.zone_wha_2021' AND (zoneid = 263) OR (zoneid = 3779) OR (zoneid = 3780) OR (zoneid = 3781)") 
+dbExecute(clusdb, "UPDATE zoneconstraints SET type = '' WHERE reference_zone = 'rast.zone_wha_2021' AND zoneid IN (263, 3779, 3780, 3781)") 
 
 # Need to create some new rows for multiple age constraints
 dbExecute(clusdb, "INSERT INTO zoneconstraints (id, zoneid, reference_zone, zone_column, ndt, variable, threshold, type, percentage, denom, multi_condition, t_area, start, stop)

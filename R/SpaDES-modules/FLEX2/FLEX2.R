@@ -228,8 +228,8 @@ Init <- function(sim) {
   # create spread probability raster
     # note: this is limited to fisher range
   table.hab.spread <- table.habitat.init [ras_fisher_pop > 0, 
-                                         c ("pixelid", "ras_fisher_denning_init", "ras_fisher_rust_init", "ras_fisher_cavity_init", "ras_fisher_cwd_init", "ras_fisher_movement_init")]
-  names (table.hab.spread) <- c ("pixelid", "denning", "rust", "cavity", "cwd", "movement")
+                                         c ("pixelid", "ras_fisher_denning_init", "ras_fisher_rust_init", "ras_fisher_cavity_init", "ras_fisher_cwd_init", "ras_fisher_movement_init", "ras_fisher_open_init")]
+  names (table.hab.spread) <- c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")
   
   # convert to raster objects for spread2
   sim$pix.raster <- raster::raster (sim$pix.rast)
@@ -255,7 +255,7 @@ Init <- function(sim) {
   table.hr <- merge (merge (table.hr,
                             sim$agents [, c ("pixelid", "individual_id")],
                             by.x = "initialPixels", by.y = "pixelid"), 
-                     table.hab.spread [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement")],
+                     table.hab.spread [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")],
                      by.x = "pixels", by.y = "pixelid")
 
   # check to see if home range target was within 2 SD's of the mean; if not, remove the animal 
@@ -317,7 +317,8 @@ Init <- function(sim) {
   }
 
 
-  # check to see if minimum habitat target was met (prop habitat = 0.15); if not, remove the animal 
+  # check to see if minimum habitat target was met (prop habitat = 0.15); if not, remove the animal
+    # not considering opennes here
   hab.count <- table.hr [denning == 1 | rust == 1 | cavity == 1 |cwd == 1 | movement == 1, .(.N), by = individual_id]
   hab.count <- merge (hab.count,
                       sim$agents [, c ("hr_size", "individual_id")],
@@ -338,6 +339,7 @@ Init <- function(sim) {
   }
 
   # check if proportion of habitat types are greater than the minimum thresholds 
+    # not considering openness here
   ind.ids <- c (unique (sim$agents$individual_id))
 
   for (i in 1:length (ind.ids)) { # for each individual
@@ -381,7 +383,7 @@ Init <- function(sim) {
  
   # get habitat for mahalanobis
   tab.mahal <- merge (sim$territories, 
-                      table.hab.spread [, c ("pixelid", "denning", "rust", "cavity", "movement", "cwd")], 
+                      table.hab.spread [, c ("pixelid", "denning", "rust", "cavity", "movement", "cwd", "open")], 
                       by = "pixelid", all.x = T)
 
   # calculate habitat quality 
@@ -435,7 +437,8 @@ updateHabitat <- function (sim) {
              paste0 ("ras_fisher_rust_", (time(sim) * P (sim, "timeInterval", "FLEX2"))), 
              paste0 ("ras_fisher_cavity_", (time(sim) * P (sim, "timeInterval", "FLEX2"))), 
              paste0 ("ras_fisher_cwd_", (time(sim) * P (sim, "timeInterval", "FLEX2"))), 
-             paste0 ("ras_fisher_movement_", (time(sim) * P (sim, "timeInterval", "FLEX2"))))
+             paste0 ("ras_fisher_movement_", (time(sim) * P (sim, "timeInterval", "FLEX2"))),
+             paste0 ("ras_fisher_open_", (time(sim) * P (sim, "timeInterval", "FLEX2"))))
   raster.stack.update <- terra::subset (sim$raster.stack,
                                         cols)
   # convert data to table
@@ -443,7 +446,7 @@ updateHabitat <- function (sim) {
   sim$table.hab.update <- sim$table.hab.update [ras_fisher_pop > 0, ]
   sim$table.hab.update$ras_fisher_pop <- as.numeric (sim$table.hab.update$ras_fisher_pop)
   names (sim$table.hab.update) <- c ("pixelid", "fisher_pop", "denning", "rust", "cavity",
-                                 "cwd", "movement")
+                                 "cwd", "movement", "open")
   # B. Update the spread probability raster
   sim$spread.rast <- spreadRast (sim$pix.raster, sim$table.hab.update)
   message ("Fisher habitat data updated.")
@@ -656,7 +659,7 @@ annualEvents <- function (sim) {
       table.disperse.hr <- merge (merge (table.disperse.hr,
                                          dispersers [, c ("pixelid", "individual_id")],
                                          by.x = "initialPixels", by.y = "pixelid", all.x = T), 
-                                  sim$table.hab.update [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement")],
+                                  sim$table.hab.update [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")],
                                   by.x = "pixels", by.y = "pixelid",
                                   all.x = T)
       
@@ -910,11 +913,13 @@ annualEvents <- function (sim) {
             message ("There are no reproducing fishers!")
           }
 
-        if (nrow (new.agents) > 0) {
-        sim$agents <- rbind (sim$agents,
-                             new.agents) # save the new agents
+        if (exists ("new.agents")) {
+          if (nrow (new.agents) > 0) {
+          sim$agents <- rbind (sim$agents,
+                               new.agents) # save the new agents
+          }
         }
-     
+        
         # if there are kits, move first one pixel over from mother and each sibling one pixel over
         while (any (duplicated (sim$agents$pixelid))) { # loop in case there is > 2 kits
           sim$agents$pixelid <-  replace (sim$agents$pixelid, 
@@ -1137,9 +1142,9 @@ saveAgents <- function (sim) {
 spreadRast <- function (rasterInput, habitatInput) {
   spread.rast <- rasterInput
   spread.rast [] <- 0
-  # currently uses all denning, rust, cavity, cwd and movement habitat as 
+  # currently uses all denning, rust, cavity, cwd, movement  and 'closed' (not open) habitat as 
   # spreadProb = 1, and non-habitat as spreadProb = 0.10; allows some spread to sub-optimal habitat
-  habitatInput [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1, spreadprob := format (round (1.00, 2), nsmall = 2)] 
+  habitatInput [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1 | open == 0, spreadprob := format (round (1.00, 2), nsmall = 2)] 
   habitatInput [is.na (spreadprob), spreadprob := format (round (0.18, 2), 2)] # I tested different numbers
   # 18% resulted in the mean proportion of home ranges consisting of denning, resting or movement habitat as 55%; 19 was 49%; 17 was 59%; 20 was 47%; 15 was 66%
   # Caution: this parameter may be area-specific and may need to be and need to be 'tuned' for each AOI
@@ -1153,29 +1158,33 @@ habitatQual <- function (inputTable, agentsTable, d2Table) {
                             inputTable [, .(rust_perc = ((sum (rust, na.rm = T)) / .N) * 100), by = individual_id ], 
                             inputTable [, .(cav_perc = ((sum (cavity, na.rm = T)) / .N) * 100), by = individual_id ], 
                             inputTable [, .(move_perc = ((sum (movement, na.rm = T)) / .N) * 100), by = individual_id ], 
-                            inputTable [, .(cwd_perc = ((sum (cwd, na.rm = T)) / .N) * 100), by = individual_id ]))
+                            inputTable [, .(cwd_perc = ((sum (cwd, na.rm = T)) / .N) * 100), by = individual_id ],
+                            inputTable [, .(open_perc = ((sum (open, na.rm =T)) / .N) * 100), by = individual_id])
+                            )
   tab.perc <- merge (tab.perc, 
                      agentsTable [, c ("individual_id", "fisher_pop")],
                      by = "individual_id", all.x = T)
   # log transform the data
-  tab.perc [fisher_pop == 2 & den_perc >= 0, den_perc := log (den_perc + 1)][fisher_pop == 1 & cav_perc >= 0, cavity := log (cav_perc + 1)] # sbs-wet
+  tab.perc [fisher_pop == 2 & den_perc >= 0, den_perc := log (den_perc + 1)][fisher_pop == 2 & cav_perc >= 0, cavity := log (cav_perc + 1)] # sbs-wet
   tab.perc [fisher_pop == 3 & den_perc >= 0, den_perc := log (den_perc + 1)]# sbs-dry
-  tab.perc [fisher_pop == 1 | fisher_pop == 4 & rust_perc >= 0, rust_perc := log (rust_perc + 1)] #boreal and dry
-  # truncate at the center plus one st dev
-  stdev_pop1 <- sqrt (diag (d2Table[[1]])) # boreal
-  stdev_pop2 <- sqrt (diag (d2Table[[2]])) # sbs-wet
-  stdev_pop3 <- sqrt (diag (d2Table[[3]])) # sbs-dry
-  stdev_pop4 <- sqrt (diag (d2Table[[4]])) # dry
+  tab.perc [fisher_pop == 4 & rust_perc >= 0, rust_perc := log (rust_perc + 1)] # dry
+
+  # truncate at the center 
+   # 1 = boreal
+   # 2 = sbs-wet
+   # 3 = sbs-dry
+   # 4 = dry
   
-  tab.perc [fisher_pop == 1 & den_perc > 24  + stdev_pop1[1], den_perc := 24 + stdev_pop1[1]][fisher_pop == 1 & rust_perc > 2.2 + stdev_pop1[2], rust_perc := 2.2 + stdev_pop1[2]][fisher_pop == 1 & cwd_perc > 17.4 + stdev_pop1[3], cwd_perc := 17.4 + stdev_pop1[3]][fisher_pop == 1 & move_perc > 56.2 + stdev_pop1[4], move_perc := 56.2 + stdev_pop1[4]]
-  tab.perc [fisher_pop == 2 & den_perc > 1.6 + stdev_pop2[1], den_perc := 1.6 + stdev_pop2[1]][fisher_pop == 2 & rust_perc > 36.2 + stdev_pop2[2], rust_perc := 36.2 + stdev_pop2[2]][fisher_pop == 2 & cav_perc > 0.7 + stdev_pop2[3], cav_perc := 0.7 + stdev_pop2[3]][fisher_pop == 2 & cwd_perc > 30.4 + stdev_pop2[4], cwd_perc := 30.4 + stdev_pop2[4]][fisher_pop == 2 & move_perc > 26.8 + stdev_pop2[5], move_perc := 26.8+ stdev_pop2[5]]
-  tab.perc [fisher_pop == 3 & den_perc > 1.2 + stdev_pop3[1], den_perc := 1.2 + stdev_pop3[1]][fisher_pop == 3 & rust_perc > 19.1 + stdev_pop3[2], rust_perc := 19.1 + stdev_pop3[2]][fisher_pop == 3 & cav_perc > 0.5 + stdev_pop3[3], cav_perc := 0.5 + stdev_pop3[3]][fisher_pop == 3 & cwd_perc > 10.2 + stdev_pop3[4], cwd_perc := 10.2 + stdev_pop3[4]][fisher_pop == 3 & move_perc > 33.1 + stdev_pop3[5], move_perc := 33.1+ stdev_pop3[5]]
-  tab.perc [fisher_pop == 4 & den_perc > 2.3 + stdev_pop4[1], den_perc := 2.3 + stdev_pop4[1]][fisher_pop == 4 & rust_perc > 1.6 +  stdev_pop4[2], rust_perc := 1.6  + stdev_pop4[2]][fisher_pop == 4 & cwd_perc > 10.8 + stdev_pop4[3], cwd_perc := 10.8 + stdev_pop4[3]][fisher_pop == 4 & move_perc > 21.5 + stdev_pop4[4], move_perc := 21.5+ stdev_pop4[4]]
+  tab.perc [fisher_pop == 1 & den_perc > 24, den_perc := 24][fisher_pop == 1 & rust_perc > 2.2, rust_perc := 2.2][fisher_pop == 1 & cwd_perc > 17.4, cwd_perc := 17.4][fisher_pop == 1 & move_perc > 56.2, move_perc := 56.2][fisher_pop == 1 & open_perc < 31.2, open_perc := 31.2]
+  tab.perc [fisher_pop == 2 & den_perc > 1.57, den_perc := 1.57][fisher_pop == 2 & rust_perc > 36.2, rust_perc := 36.2][fisher_pop == 2 & cav_perc > 0.685, cav_perc := 0.685][fisher_pop == 2 & cwd_perc > 30.38, cwd_perc := 30.38][fisher_pop == 2 & move_perc > 61.5, move_perc := 61.5][fisher_pop == 2 & open_perc < 32.7, open_perc := 32.7]
+  tab.perc [fisher_pop == 3 & den_perc > 1.16, den_perc := 1.16][fisher_pop == 3 & rust_perc > 19.1, rust_perc := 19.1][fisher_pop == 3 & cav_perc > 0.45, cav_perc := 0.45][fisher_pop == 3 & cwd_perc > 12.7, cwd_perc := 12.7][fisher_pop == 3 & move_perc > 51.3, move_perc := 51.3][fisher_pop == 3 & open_perc < 37.3, open_perc := 37.3]
+  tab.perc [fisher_pop == 4 & den_perc > 2.3, den_perc := 2.3][fisher_pop == 4 & rust_perc > 1.6, rust_perc := 1.6][fisher_pop == 4 & cwd_perc > 10.8, cwd_perc := 10.8][fisher_pop == 4 & move_perc > 58.1, move_perc := 58.1][fisher_pop == 4 & open_perc < 15.58, open_perc := 15.58]
   
-  tab.perc [fisher_pop == 1, d2 := mahalanobis (tab.perc [fisher_pop == 1, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(24.0, 2.2, 17.4, 56.2), cov = d2Table[[1]])]
-  tab.perc [fisher_pop == 2, d2 := mahalanobis (tab.perc [fisher_pop == 2, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.6, 36.2, 0.7, 30.4, 26.8), cov = d2Table[[2]])]
-  tab.perc [fisher_pop == 3, d2 := mahalanobis (tab.perc [fisher_pop == 3, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc")], c(1.16, 19.1, 0.45, 8.69, 33.06), cov = d2Table[[3]])]
-  tab.perc [fisher_pop == 4, d2 := mahalanobis (tab.perc [fisher_pop == 4, c ("den_perc", "rust_perc", "cwd_perc", "move_perc")], c(2.3, 1.6, 10.8, 21.5), cov = d2Table[[4]])]
+  tab.perc [fisher_pop == 1, d2 := mahalanobis (tab.perc [fisher_pop == 1, c ("den_perc", "rust_perc", "cwd_perc", "move_perc", "open_perc")], c(23.98, 2.24, 17.4, 56.2, 31.2), cov = d2Table[[1]])]
+  tab.perc [fisher_pop == 2, d2 := mahalanobis (tab.perc [fisher_pop == 2, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc", "open_perc")], c(1.57, 36.2, 0.68, 30.38, 61.5, 32.72), cov = d2Table[[2]])]
+  tab.perc [fisher_pop == 3, d2 := mahalanobis (tab.perc [fisher_pop == 3, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc", "open_perc")], c(1.16, 19.1, 0.4549, 12.76, 51.25, 37.27), cov = d2Table[[3]])]
+  tab.perc [fisher_pop == 4, d2 := mahalanobis (tab.perc [fisher_pop == 4, c ("den_perc", "rust_perc", "cwd_perc", "move_perc", "open_perc")], c(2.31, 1.63, 10.8, 58.1, 15.58), cov = d2Table[[4]])]
+  
   return (tab.perc)
 }
 
@@ -1223,10 +1232,10 @@ litterSize <- function (fisherPop, mahalTable, reproTable, reproFishers){
 
   
   ###---INPUT TABLES - Edit as needed
-  sim$fisher_d2_cov <- list(matrix(c(193.2,	5.4,	42.1,	125.2, 5.4,	0.4,	2.,	5.2, 42.1,	2.9,	36.0,	46.5, 125.2,	5.2, 46.5,	131.4), ncol = 4, nrow = 4), # 1- boreal
-                            matrix(c(0.5,	2.7,	0.6,	3.2,	-6.5, 2.7,	82.7,	4.9,	83.3,	-75.8, 0.6,	4.9,	0.9,	4,	-7.1, 3.2,	83.3,	4,	101.3,	-100.4, -6.5,	-75.8,	-7.1,	-100.4,	156.2), ncol = 5, nrow =5), # 2- sbs-wet
-                            matrix(c(0.5,	-1.9,	-0.14288,	2.57677,	-3.82, -1.908,	96.76,	-0.71,	-2.669,	57.27, -0.143,	-0.71,	0.208,	-1.059,	1.15, 2.57,	-2.6,	-1.059,	56.29,	-4.85, -3.82,	57.27,	1.15,	-4.85,	77.337), ncol =5, nrow =5), # 3 sbs-dry
-                            matrix(c(0.7,	0.5,	6.1,	2.1, 0.5,	2.9,	4.0,	5.2, 6.1,	4.0,	62.6,	22.4, 2.1,	5.2,	22.4,	42.3), ncol=4, nrow=4) # 4 - Dr
+  sim$fisher_d2_cov <- list(matrix(c(193.235,	5.418,	42.139,	125.177, -117.128, 5.418,	0.423,	2.926,	5.229, -4.498, 42.139,	2.926,	36.03,	46.52, -42.571, 125.177,	5.229, 46.52,	131.377, -101.195,	-117.128,	-4.498,	-42.571,	-101.195,	105.054), ncol = 5, nrow = 5), # 1- boreal
+                            matrix(c(0.536,	2.742,	0.603,	3.211,	-2.735, 1.816, 2.742,	82.721,	4.877,	83.281,	7.046, -21.269, 0.603,	4.877,	0.872,	4.033,	-0.67, -0.569, 3.211,	83.281,	4.033,	101.315,	-15.394, -1.31,	-2.735,	7.046,	-0.67,	-15.394,	56.888,	-48.228,	1.816,	-21.269,	-0.569,	-1.31,	-48.228,	47.963), ncol = 6, nrow = 6), # 2- sbs-wet
+                            matrix(c(0.525,	-1.909,	-0.143,	2.826,	-6.891, 3.264, -1.909,	96.766,	-0.715,	-39.021,	69.711, -51.688,	-0.143, -0.715,	0.209,	-0.267,	1.983, -0.176, 2.826,	-39.021,	-0.267,	58.108,	-21.928, 22.234, -6.891,	69.711,	1.983,	-21.928,	180.113, -96.369,	3.264,	-51.688,	-0.176,	22.234,	-96.369,	68.499), ncol = 6, nrow = 6), # 3 sbs-dry
+                            matrix(c(2.905,	0.478,	4.04,	1.568, -3.89, 0.478,	0.683,	6.131,	8.055,	-8.04,	4.04,	6.131,	62.64,	73.82,	-62.447,	1.568,	8.055,	73.82,	126.953,	-130.153,	-3.89,	-8.04,	-62.447,	-130.153,	197.783), ncol = 5, nrow = 5) # 4 - Dry
                             )
   
   sim$survival_rate_table <- data.table (Fpop = c (1,1,1,2,2,2,3,3,3,4,4,4),
@@ -1241,7 +1250,7 @@ litterSize <- function (fisherPop, mahalTable, reproTable, reproFishers){
   
   sim$female_hr_table <- data.table (fisher_pop = c (1:4), 
                                      hr_mean = c (3000, 4500, 4500, 3000),
-                                     hr_sd = c (1400, 1600, 3400, 1500)) # updating to actual SD for each zone
+                                     hr_sd = c (500, 500, 500, 500)) # updating to more realistic SD (higher for SBD but then crashes)
   
   sim$mahal_metric_table <- data.table (FHE_zone = c ("Boreal", "Sub-Boreal moist", "Sub-Boreal dry", "Dry Forest"),
                                         FHE_zone_num = c (1:4),

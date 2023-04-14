@@ -58,8 +58,8 @@ check <- dbGetQuery (clusdb, "SELECT * from zoneconstraints WHERE reference_zone
 # run these (if necessary)
 dbExecute (clusdb, "UPDATE zoneconstraints SET stop = 39 WHERE (id = 1129) OR (id = 1130) OR (id = 1131) OR (id = 1132) OR (id = 1133)") 
 dbExecute (clusdb, "UPDATE zoneconstraints SET type = 'nh' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid = 8") 
-dbExecute (clusdb, "UPDATE zoneconstraints SET type = 'nh' WHERE reference_zone = 'rast.central_grp_deferral_072022' AND (zoneid = 1) OR (zoneid = 2) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5)") 
-dbExecute (clusdb, "UPDATE zoneconstraints SET stop = 39 WHERE reference_zone = 'rast.central_grp_deferral_072022' AND (zoneid = 1) OR (zoneid = 2) OR (zoneid = 3) OR (zoneid = 4) OR (zoneid = 5)") 
+dbExecute (clusdb, "UPDATE zoneconstraints SET type = 'nh' WHERE reference_zone = 'rast.central_grp_deferral_072022' AND zoneid IN (1, 2, 3, 4, 5)") 
+dbExecute (clusdb, "UPDATE zoneconstraints SET stop = 39 WHERE reference_zone = 'rast.central_grp_deferral_072022' AND zoneid IN (1, 2, 3, 4, 5)") 
 dbExecute (clusdb, "UPDATE zoneconstraints SET type = '' WHERE (id = 1201) OR (id = 1202) OR (id = 1203) OR (id = 1204) OR (id = 1205)") 
 
 dbDisconnect (clusdb)  

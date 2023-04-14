@@ -185,3 +185,13 @@ dbClearResult(rs)
 dbCommit(castordb) 
 dbExecute(castordb, "CREATE INDEX index_adjblockid on adjacentBlocks (adjblockid)")
 ```
+
+
+## Update Stands in THLB with NUll age to age = 0
+
+```{r}
+db <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_castordb_age0.sqlite"))
+
+dbExecute (db, "UPDATE pixels SET age = 0 WHERE age IS NULL AND thlb > 0;") 
+```
+
