@@ -32,7 +32,16 @@ library(terra)
 ```{r}
 const_coef<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_final_constant_coefficients_2021.gpkg")
 
-var_coef_2021<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2021.gpkg")
+var_coef_2011_2020<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2010_2020.gpkg")
+
+var_coef_2021_2040<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2021_2040.gpkg")
+
+var_coef_2041_2060<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2041_2060.gpkg")
+
+var_coef_2061_2080<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2061_2080.gpkg")
+
+var_coef_2061_2080<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2081_2100.gpkg")
+
 
 var_coef_2024<-st_read( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\estimated_coefficients\\BC_ignit_escape_spread_varying_coefficient_2024.gpkg")
 
@@ -58,6 +67,73 @@ dat2<-st_drop_geometry(dat2)
 
 
 # not for each year calculate the probability of ignition, escape and spread by combining the coefficients.
+
+## 2020
+```{r}
+const_coef<-st_drop_geometry(const_coef)
+const_coef$frt<-as.numeric(as.character(const_coef$frt))
+#const_coef<-left_join(const_coef, dat2)
+
+coef_2020<-left_join(var_coef_2061_2080,const_coef)
+
+names(coef_2020)
+
+coef_2020$logit_P_lightning<-coef_2020$logit_P_lightning_coef_const + coef_2020$varying_coef_lightning
+coef_2020$logit_P_person<-coef_2020$logit_P_person_coef_const + coef_2020$varying_coef_person
+coef_2020$logit_P_escape<-coef_2020$logit_P_escape_coef_const + coef_2020$varying_coef_escape
+coef_2020$logit_P_spread<-coef_2020$logit_P_spread_coef_const + coef_2020$varying_coef_spread
+
+# y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+coef_2020$prob_ignition_lightning<-exp(coef_2020$logit_P_lightning)/(1+exp(coef_2020$logit_P_lightning))
+coef_2020$prob_ignition_person<-exp(coef_2020$logit_P_person)/(1+exp(coef_2020$logit_P_person))
+coef_2020$prob_escape<-exp(coef_2020$logit_P_escape)/(1+exp(coef_2020$logit_P_escape))
+coef_2020$prob_spread<-exp(coef_2020$logit_P_spread)/(1+exp(coef_2020$logit_P_spread))
+
+head(coef_2020)
+## make sure that water, glaciers and some frt with veg =N should have a probability of zero. Ill change these here
+
+coef_2020<-coef_2020 %>% 
+  mutate(prob_ignition_lightning=ifelse(FWI_veg == "W", 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(FWI_veg == "W", 0, prob_ignition_person),
+         prob_escape=ifelse(FWI_veg == "W", 0, prob_escape),
+         prob_spread=ifelse(FWI_veg == "W", 0, prob_spread))
+
+coef_2020<-coef_2020 %>% 
+  mutate(prob_ignition_lightning=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_lightning),
+         prob_ignition_person=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_ignition_person),
+         prob_escape=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_escape),
+         prob_spread=ifelse(bclcs_level_5 %in% c("GL", "LA", "OC", "PN", "TA", "GP", "TZ", "RE"), 0, prob_spread))
+
+coef_2020$prob_ignition_lightning[coef_2020$frt==5 & coef_2020$FWI_veg=="N"]<-0
+coef_2020$prob_escape[coef_2020$frt==5 & coef_2020$FWI_veg=="N"]<-0
+coef_2020$prob_ignition_lightning[coef_2020$frt==7 & coef_2020$FWI_veg=="N"]<-0
+coef_2020$prob_spread2<-coef_2020$prob_spread
+coef_2020$prob_spread[coef_2020$frt==10 & coef_2020$FWI_veg=="N"]<-0
+
+hist(coef_2020$prob_escape)
+hist(coef_2020$prob_ignition_lightning)
+hist(coef_2020$prob_ignition_person)
+hist(coef_2020$prob_spread)
+
+# calculate ignition from lightning and humans
+coef_2020<-coef_2020 %>%
+    mutate(tot_ignit_2020 = case_when(
+                            frt == "5" ~ (prob_ignition_lightning*0.84) + (prob_ignition_person*0.16),
+                            frt == "7" ~ (prob_ignition_lightning*0.16) + (prob_ignition_person*0.84),
+                            frt == "9" ~ (prob_ignition_lightning*0.7) + (prob_ignition_person*0.3),
+                            frt == "10" ~ (prob_ignition_lightning*0.86) + (prob_ignition_person*0.14),
+                            frt == "11" ~ (prob_ignition_lightning*0.42) + (prob_ignition_person*0.58),
+                            frt == "12" ~ (prob_ignition_lightning*0.48) + (prob_ignition_person*0.52),
+                            frt == "13" ~ (prob_ignition_lightning*0.83) + (prob_ignition_person*0.17),
+                            frt == "14" ~ (prob_ignition_lightning*0.41) + (prob_ignition_person*0.59),
+                            frt == "15" ~ (prob_ignition_lightning*0.28) + (prob_ignition_person*0.72) ,
+                            TRUE ~ NA_real_))
+hist(coef_2020$tot_ignit_2020)
+
+st_write(coef_2020, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\Prob_ignit_escape_spread_2081_2100.gpkg", delete_layer=TRUE, driver="GPKG")
+
+```
+
 
 ## 2021
 ```{r}
@@ -585,5 +661,9 @@ hist(prob_fire$prob_spread_2039)
 hist(prob_fire$prob_spread_2044)
 hist(prob_fire$prob_spread_2049)
 
+```
+
+```{r}
+st_write(prob_fire, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\Prob_ignit_escape_spread_2021-2049.gpkg", delete_layer=TRUE, driver="GPKG")
 ```
 

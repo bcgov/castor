@@ -18,13 +18,14 @@ require (RPostgreSQL)
 require (rpostgis)
 require (fasterize)
 require (raster)
-require (dplyr)
+require (tidyverse)
 library(bcdata)
-library(SpaDES.tools)
+
 library(terra)
 library(quickPlot)
 library(data.table)
 library(ggplot2)
+library(SpaDES.tools)
 library(SpaDES.addins)
 library(SpaDES)
 library(SpaDES.core)
@@ -51,12 +52,12 @@ To do this if I regress the probability of escape on the probability of spread a
 # import my ignition locations
 ```{r, echo=TRUE}
 # get latest data off BCGW
-# ignit<-try(
-#   bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
-#     filter(FIRE_YEAR > 2020) %>%
-#     filter(FIRE_TYPE == "Fire") %>%
-#     collect()
-# )
+ ignit<-try(
+   bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
+     filter(FIRE_YEAR > 2020) %>%
+     filter(FIRE_TYPE == "Fire") %>%
+     collect()
+ )
 
 ignit<-try(
   bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_CURRENT_FIRE_PNTS_SP") %>%    
@@ -72,6 +73,7 @@ length(ignit$CURRENT_SIZE)
 ignit_escape<- ignit %>% filter(CURRENT_SIZE >10)
 length(ignit_escape$CURRENT_SIZE) # out of a total of 1647 fires only 263 of them escaped.
 hist(ignit_escape$CURRENT_SIZE, breaks=50)
+summary(ignit_escape$CURRENT_SIZE)
 ```
 
 # select a study area
@@ -100,10 +102,10 @@ ggplot() +
 ```
 
 ```{r}
-lightning_ignition<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_lightning_ignit_2022.tif")
-human_ignition<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_human_ignit_2022.tif")
-escape.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_escape_2022.tif")
-spread.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rast_spread_2022.tif")
+lightning_ignition<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rasters\\Prob_lightning_2021.tif")
+human_ignition<-raster(" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rasters\\Prob_person_2021.tif")
+escape.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rasters\\Prob_escape_2021.tif")
+spread.ras<-raster("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\rasters\\Prob_spread_2021.tif")
 
 crs(spread.ras)
 crs(escape.ras)
@@ -173,7 +175,7 @@ ignit_subset<-ignit_subset %>%
                            CURRENT_SIZE <= 10 ~ 0))
 
 ggplot() +
- geom_raster(data = ignit_pts_df , aes(x = x, y = y, fill = rast_escape_2022)) +
+ geom_raster(data = ignit_pts_df , aes(x = x, y = y, fill = Prob_escape_2021)) +
   geom_sf(data=ignit_subset, aes(color = as.factor(escaped)))  #+
   #geom_point(data = pointCoordinates, aes(x = test.X, y = test.Y))
 #####
@@ -309,7 +311,7 @@ length(ignit_subset_10$CURRENT_SIZE)
 # Basic density
 p <- ggplot(number_escaped, aes(x=tot.escapes)) + 
   geom_density() + 
-   xlim(0, 30)
+   xlim(0, 50)
 # Add mean line
 p + geom_vline(aes(xintercept=length(ignit_subset_10$CURRENT_SIZE)), color="blue", linetype="dashed", size=1)
 
@@ -349,10 +351,10 @@ start_points<- unique(start_points) # there appear to be two starting cells that
 # plotting points on raster to check they are still correct
 escape_pts <- rasterToPoints(spread.ras, spatial = TRUE)
 # Then to a 'conventional' dataframe
-escape_pts_df  <- data.frame(spread.ras)
+escape_pts_df  <- data.frame(escape_pts)
 
 ggplot() +
- geom_raster(data = escape_pts_df , aes(x = x, y = y, fill = rast_spread_2022 )) +
+ geom_raster(data = escape_pts_df , aes(x = x, y = y, fill = Prob_spread_2021 )) +
   geom_point(data = pointCoordinates, aes(x = test.X, y = test.Y))
 #####
 ```
@@ -454,7 +456,7 @@ p + geom_vline(aes(xintercept=length(ignit_subset_10$CURRENT_SIZE)), color="blue
 
 
 
-x<-aggregate(fire_size_end$Freq, by=list(Category=fire_size_end$Var1), FUN=mean)
+x<-aggregate(fire_size_end$Freq, by=list(Category=fire_size_end$Var1), FUN=median)
 
 x<-x %>% rename(start_points=Category,
                 size = x)
@@ -465,7 +467,7 @@ x2<-left_join(test2, x)
 x2 <- x2 %>% mutate(size = ifelse(is.na(size), 0.001, size))
 
 ggplot(data=x2) +    
-   geom_histogram(aes(x=size), fill = "blue") 
+   geom_histogram(aes(x=size *16), fill = "blue") 
 ggplot(data=x2) +    
    geom_histogram(aes(x=CURRENT_SIZE), fill = "green") 
 
@@ -476,7 +478,8 @@ library(reshape2)
 long <- melt(x2, id= "start_points", measure.vars = c("size", "CURRENT_SIZE"))
 g <- long%>%
   ggplot(aes(x=value, fill=variable)) +
-  geom_histogram(alpha=0.3) #+
+  geom_histogram(alpha=0.3) + 
+  xlim(c(20, 100000))#+
   #scale_x_log10()
 
 g

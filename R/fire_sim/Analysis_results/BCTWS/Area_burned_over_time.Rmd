@@ -1,0 +1,52 @@
+---
+title: "Untitled"
+author: "Elizabeth Kleynhans"
+date: "2023-03-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(bcdata)
+library(ggplot2)
+
+ignit<-try(
+  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
+    filter(FIRE_YEAR > 1920) %>%
+    filter(FIRE_TYPE == "Fire") %>%
+    collect()
+)
+
+```
+
+```{r}
+ignit_size<-ignit %>% group_by(FIRE_YEAR, FIRE_CAUSE) %>%
+  drop_na(CURRENT_SIZE) %>%
+  filter(CURRENT_SIZE>16) %>%
+  filter(FIRE_YEAR>1970) %>%
+  summarize(Area_burned=sum(CURRENT_SIZE))
+
+ggplot(ignit_size, aes(x=FIRE_YEAR, y=Area_burned, fill=FIRE_CAUSE)) + 
+  geom_bar(stat='identity')
+```
+
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

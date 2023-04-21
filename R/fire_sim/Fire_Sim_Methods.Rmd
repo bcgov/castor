@@ -44,7 +44,7 @@ source(here::here("R/functions/R_Postgres.R"))
 # get latest data off BCGW
 ignit<-try(
   bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
-    #filter(FIRE_YEAR > 2001) %>%
+    filter(FIRE_YEAR > 2000) %>%
     filter(FIRE_TYPE == "Fire") %>%
     collect()
 )
@@ -60,7 +60,7 @@ st_crs(frt) #Retrieve coordinate reference system from sf or sfc object
 frt<-st_transform(frt, 3005) #transform coordinate system to 3005 - that for BC, Canada
 
 #get provincial boundary for clipping the layers to the area of interest
-prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CLUS\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+prov.bnd <- st_read ( dsn = "T:\\FOR\\VIC\\HTS\\ANA\\PROJECTS\\CASTOR\\Data\\admin_boundaries\\province\\gpr_000b11a_e.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
 st_crs(prov.bnd) #Retrieve coordinate reference system from sf or sfc object
 prov.bnd <- prov.bnd [prov.bnd$PRENAME == "British Columbia", ] 
 crs(prov.bnd)# this one needs to be transformed to 3005
