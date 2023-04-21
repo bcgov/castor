@@ -11,6 +11,11 @@ output: html_document
 library (terra)
 library (DBI)
 library (keyring)
+library (data.table)
+library (ggplot2)
+library (scales)
+library (terra)
+# library (rasterVis)
 
 data.dir <- "G:\\!Workgrp\\Analysts\\tmuhly\\clus_stsm_comparison\\results"
 conn <- DBI::dbConnect (RPostgreSQL::PostgreSQL(), 
@@ -20,29 +25,30 @@ conn <- DBI::dbConnect (RPostgreSQL::PostgreSQL(),
                         user = keyring::key_get('vmdbuser', keyring = 'postgreSQL'),
                         password = keyring::key_get('vmdbpass', keyring = 'postgreSQL'))
 
+# Data
+castor.harvest.flow <- data.table (dbGetQuery (conn, "SELECT * from stsm_compare.harvest"))
+castor.grow.stock <- data.table (dbGetQuery (conn, "SELECT * from stsm_compare.growingstock"))
+castor.preblocks <- data.table (read.csv ("D:\\clus_data\\castor_stsm\\castor\\blocks.csv"))
 
-# Fort Nelson Data
-castordb.ftnels <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_ft_nelson/ftnelson_stsmcompare_noroads_noblocks_castordb.sqlite"))
-
-rast.aoi <- terra::rast (nrow = 15744, 
-                         xmin = 830188, xmax = 1352488, 
-                         ymin = 1388088, ymax = 1682788, 
-                         crs = "epsg:3005")
-
-rast.castor.ftnels.blocks10 <- terra::rast (paste0 (data.dir, "\\castor\\oldest_stsm_sustain_noroads_noblocks_10year_Fort_Nelson_TSA_harvestBlocks.tif"))
-
-stsm.ftnels.blocks <- data.table (read.table (paste0 (data.dir, "\\stsm\\2.45_even_detailed_harvest_data.txt"), 
-                                       header = TRUE))
-stsm.ftnels.blocks10 <- stsm.ftnels.blocks [CurrYear == 1, ]
-rast.stsm.ftnels.blocks <- rast.aoi
-rast.stsm.ftnels.blocks [] <- stsm.ftnels.blocks10
-
-stsm.ftnels.harvest.flow <- data.table (read.table (paste0 (data.dir, "\\stsm\\2.45harvestRecord.txt"), 
+stsm.annual.harvest.flow <- data.table (read.table (paste0 (data.dir, "\\stsm\\tsa99\\annual_run\\harvestRecord.txt"), 
                                              header = TRUE))
-castor.ftnels.harvest.flow <- dbGetQuery (conn, "SELECT * from ftnelson_stsm_compare.harvest")
-castor.ftnels.grow.stock <- dbGetQuery (conn, "SELECT * from ftnelson_stsm_compare.growingstock")
+stsm.annual.grow.stock <- data.table (read.table (paste0 (data.dir, "\\stsm\\tsa99\\annual_run\\growingStock.txt"), 
+                                             header = TRUE))
+stsm.decadal.harvest.flow <- data.table (read.table (paste0 (data.dir, "\\stsm\\tsa99\\decadal_run\\oScn250\\harvestRecord.txt"), 
+                                             header = TRUE))
+stsm.decadal.grow.stock <- data.table (read.table (paste0 (data.dir, "\\stsm\\tsa99\\decadal_run\\oScn250\\growingStock.txt"), 
+                                             header = TRUE))
 
+dbDisconnect (conn)
 
+rast.castor.harvest.blocks.50.annual.133 <- terra::rast (paste0 (data.dir, "\\castor\\rasters\\spatial_50_oldest_annual_noroads_noblocks_133600_tsa99_harvestBlocks.tif"))
+rast.stsm.harvest.blocks.50.annual <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\annual_run\\oScn250_1yr\\grids\\Logged_1_5.tif"))
+rast.stsm.preblocks <- terra::rast ("D:\\clus_data\\castor_stsm\\castor\\hu_blocks_noroads.tif")
+
+rast.castor.road.status <- terra::rast ("D:\\clus_data\\castor_stsm\\castor\\oldest_decadal_roads_blocks_tsa99_mst_status_250.tif")
+rast.castor.road.year <- terra::rast ("D:\\clus_data\\castor_stsm\\castor\\oldest_decadal_roads_blocks_tsa99_mst_year_250.tif")
+
+rast.castor.road.init <- terra::rast ("D:\\clus_data\\castor_stsm\\castor\\rast_roads_init.tif")
 
 ```
 
@@ -60,17 +66,28 @@ Castor was developed internally to the Forest Analysis and Inventory Branch as a
 To compare the two models, a simplified timber supply area (350,000 ha in size) was created in the center of British Columbia. The current (2022) forest inventory, growth and yield and timber harvest land base data were obtained for that area to use as the forest estate for the area of interest. In both models, the forest inventory provides the current state-of-the-forest, growth and yield models (Variable Density Yield Projection (VDYP) models for natural stands, Table Interpolation Program for Stand Yields (TIPSY) models for planted stands) provided future stand characteristics and the THLB defined the area available for forest harvest.
 
 ### Model Parameters
-In addition to forest condition, the models were set-up with the same timber supply modeling parameters.
+In addition to using the same initial and projected forest conditions, the models were set-up with the same timber supply modeling parameters. This included a minimum harvest age of 80 years old and minimum harvest volume of 150 m^3^/ha.  
 
 
 
 
 
-d.	Min 50 year harvest age
 e.	Even-flow harvest
 f.	Harvest queue
 g.	“blocking” at pixel scale – no spatial blocking
 h.	No adjacency constraints
+
+
+### Model Scenarios
+
+
+- annual time step for 250 years, no blocks, no roads
+- decadal time step for 250 years (25 intervals), no blocks, no roads
+- decadal time step for 250 years (25 intervals), blocks, no roads
+- decadal time step for 250 years (25 intervals), blocks, roads
+
+
+- all	oldest first priority queue
 
 
 #### Castor Yield Update
@@ -88,6 +105,8 @@ for us its report the time=0 (no harvesting goes on), then increase the age by t
 Probability of initiation fo cutblock is driven by a number of parameters, depnign on how coarse/fine the analyst makes; sort cells based on preferences; preference value for cells; random selection; set seed
 -	Oldest first; harvest queue
 
+
+- in annual time step, castor takes the yiled at time = 1, stsm at time = 0
 
 
 #### STSM Yield Update
@@ -143,46 +162,397 @@ Probability of initiation fo cutblock is driven by a number of parameters, depni
 
 
 
-‘look-ahead’ in STSM the anaylts can hit flag itn eh model, and the model will look at year 9 in 10 yar time step and determine when initiating whether a span meets min age requirements at year 9
+‘look-ahead’ in STSM the analysts can hit flag in the model, and the model will look at year 9 in 10 yar time step and determine when initiating whether a span meets min age requirements at year 9
 -	In tiem step, will satnd achieve min age or volume ,or both target, if yes, then harvest
 -	Could affect spatial distribution
 -	Most analysts use this fxn
 
 
-## Model Scenarios
-
-a.	Oldest first 
-b.	High volume first
-c.	Old growth
 
 
-## 4.	Model Results
-a.	Indicators
-i.	Annual
-1.	Harvest Volume Flow
-2.	Growing Stock
-3.	Area harvested
-4.	Volume/ha harvested
-5.	Average age harvested
-6.	LRSY
-a.	
-ii.	Spatial
-1.	Harvesting Pattern under the same harvest queue
-a.	Map output
-
-### 2.7 M m3 non-declining harvest flow
-model with a 2.7 M m^3^ annual harvest flow target over 200 year time period. Oldest first priority queue and minimum stand age at harvest of 50. 
 
 
-growgin stock was...
 
-```{r, harvest flow, echo = F, message = F, eval = T}
 
-tab.harvest.flow.fig <- castor.grow.stock [scenario == "oldest_stsm_sustain_noroads_noblocks_", c ("scenario", "timeperiod", "m_gs")]
+
+##	Results
+The initial states of both models were the same. The study area was 355,253 ha in size, of which 73,300 hectares was THLB, the an initial merchantable growing stock was 9,717,000 m^3^. In the Castor model, the long-run sustained yield (LRSY) of current stands was calculated at 108,881 m^3^, the mean volume/ha was 179 m^3^ and the average mean annual increment (MAI) was 1.48 m^3^. The LRSY of managed stands was calculated at 235,930 m^3^. 
+
+We then compared the maximum non-declining harvest flow of each model on an annual and decadal basis. We then adjusted the Castor maximum non-declining harvest flow to fit the STSM harvest flow and compared other indicators, including average harvest age, area harvested and merchantable growing stock (amount of volume available to be harvested in the THLB).   
+
+### Annual Harvest Model
+#### Harvest Flow
+When modeling the maximum non-declining harvest flow of each model on an annual basis, the Castor model was able to harvest approximately 136,000 m^3^ per year. STSM was able to harvest approximately 134,000 m^3^ per year. Thus, Castor was able to harvest slightly more volume (~2,000 m^3^ per year, or 1.6%).
+
+```{r, annual harvest flow, echo = F, message = F, eval = T}
+
+tab.harvest.flow <- castor.harvest.flow [scenario == "oldest_annual_noroads_noblocks_136000", c ("scenario", "timeperiod", "volume")]
+tab.harvest.flow$model <- "castor"
+
+stsm.fig <- stsm.annual.harvest.flow [ScenarioId == 1, c ("Year", "vHarv_1")]
+names (stsm.fig) <- c ( "timeperiod", "volume")
+stsm.fig$model <- "stsm"
+stsm.fig$scenario <- "oldest_annual_noroads_noblocks_136000"
+
+tab.harvest.flow <- rbind (tab.harvest.flow, stsm.fig)
+
+ggplot (tab.harvest.flow, aes (x = timeperiod, y = volume, color = model, linetype = model)) +
+              geom_line (position = position_dodge (width = 1), size = 1) + 
+              labs (x = "Future Year", 
+                    y = "Volume Harvested (m3)") + 
+              scale_color_discrete (name = "Model", 
+                                    labels = c("Castor", "STSM")) +
+              scale_linetype_discrete (name = "Model", 
+                                      labels = c("Castor", "STSM")) +
+              theme (legend.position = c (0.15, 0.15),
+                     legend.title = element_text(size = 10),
+                     legend.text = element_text( size = 8)) +
+              scale_x_continuous (breaks = seq(0, 250, 25)) +
+              scale_y_continuous (label = comma, breaks = seq (130000, 140000, 500)) +
+              theme_classic()
+
+#tab.harvest.flow[ , list (mean = mean (volume)), by = model]
+
+
+```
+
+#### Area Harvested 
+When modeling a harvest flow of approximately 133,600 m^3^ per year, the Castor model and STSM had comparable harvest area patterns, i.e., peaks and troughs in area harvested over time generally coincided in both models. However, the models began to diverge slightly at approximately year 130, where STSM harvested more area than the Castor model. From that point on, while both models followed a similar general trend in area harvested (i.e., a trough between approximately years 150 to 175 troughs a peak at approximately year 180) there were approximately 5-year differences in the timing of the peaks and troughs.
+
+```{r, annual area harvested, echo = F, message = F, eval = T}
+tab.harvest.area <- castor.harvest.flow [scenario == "oldest_annual_noroads_noblocks_133600", c ("scenario", "timeperiod", "area")]
+tab.harvest.area$model <- "castor"
+
+stsm.fig <- stsm.annual.harvest.flow [ScenarioId == 1, c ("Year", "aHarv_1")]
+names (stsm.fig) <- c ( "timeperiod", "area")
+stsm.fig$model <- "stsm"
+stsm.fig$scenario <- "oldest_annual_noroads_noblocks_133600"
+
+tab.harvest.area <- rbind (tab.harvest.area, stsm.fig)
+
+ggplot (tab.harvest.area, aes (x = timeperiod, y = area, color = model, linetype = model)) +
+              geom_line (position = position_dodge (width = 1), size = 1) + 
+              labs (x = "Future Year", 
+                    y = "Area Harvested (ha)") + 
+              scale_color_discrete (name = "Model", 
+                                    labels = c("Castor", "STSM")) +
+              scale_linetype_discrete (name = "Model", 
+                                      labels = c("Castor", "STSM")) +
+              theme (legend.position = c (0.15, 0.15),
+                     legend.title = element_text (size = 10),
+                     legend.text = element_text (size = 8)) +
+              scale_x_continuous (breaks = seq(0, 250, 25)) +
+              scale_y_continuous (label = comma, breaks = seq (250, 700, 50)) +
+              theme_classic()
+
+```
+
+#### Average Age Harvested
+The Castor model and STSM harvested similar aged stands for the first 100 years when modeling a harvest flow of approximately 133,600 m^3^ per year. However, during the first 10 to 15 years of the simulation, the Castor model appears to harvest stands at maximum 250 years old, compared to STSM which harvested stands 310 to 250 years old. This was because the Castor model was set-up to make stands greater than 250 years old equal to 250 years old to make stand ages consistent with the yield curves, i.e., the yield curves used in both models only went to 250 years old. Therefore, volumes peaked at 250 years old and were level thereafter in both models, but Castor tracked these stands as 250 year old stands. Despite this difference both models harvested essentially identical aged stands from approximately year 15 to 100, suggesting this had no effect on model outputs. The average age of harvested stands differed from years 100 to 250, where the age in the Castor model steadily increased over time, whereas the age in STSM essentially was level. This difference was likely because the Castor model could potentially harvest 2% more volume over the long-term, resulting in stands being able to age slightly.
+
+```{r, annual average age harvested, echo = F, message = F, eval = T}
+tab.harvest.age <- castor.harvest.flow [scenario == "oldest_annual_noroads_noblocks_133600", c ("scenario", "timeperiod", "age")]
+tab.harvest.age$model <- "castor"
+
+stsm.fig <- stsm.annual.harvest.flow [ScenarioId == 1, c ("Year", "mnHAge_1")]
+names (stsm.fig) <- c ( "timeperiod", "age")
+stsm.fig$model <- "stsm"
+stsm.fig$scenario <- "oldest_annual_noroads_noblocks_133600"
+
+tab.harvest.age <- rbind (tab.harvest.age, stsm.fig)
+
+ggplot (tab.harvest.age, aes (x = timeperiod, y = age, color = model, linetype = model)) +
+              geom_line (position = position_dodge (width = 1), size = 1) + 
+              labs (x = "Future Year", 
+                    y = "Average Age Harvested") + 
+              scale_color_discrete (name = "Model", 
+                                    labels = c("Castor", "STSM")) +
+              scale_linetype_discrete (name = "Model", 
+                                      labels = c("Castor", "STSM")) +
+              theme (legend.position = c (0.15, 0.15),
+                     legend.title = element_text (size = 10),
+                     legend.text = element_text (size = 8)) +
+              scale_x_continuous (breaks = seq(0, 250, 25)) +
+              scale_y_continuous (label = comma, breaks = seq (50, 320, 20)) +
+              theme_classic()
+
+```
+
+#### Merchantable Growing Stock
+The trends in merchantable growing stock (i.e., volume in the THLB available for harvest) were similar between the Castor model and STSM. The amount of growing stock was close to the same between the models for the first 60 years, although STSM was consistently slightly less for the duration. However, a key difference here was that growing stock in year 1 was 9,769,019 m^3^ in Castor and 9,634,761 m^3^ in STSM. This was because Castor updates the volume at year 1 to grow stands by 1 year and then calculates the harvest and growing stock, whereas STSM does not advance one year, but instead calculates the harvest and growing stock based on the initial growing stock. This results in slightly higher volumes in Castor at the start of the simulation, which accumulate over time to allow for Castor to harvest slightly more volume. In addtion, while the trends were the same after 60 years, the amount of growing stock began to diverge between the models, where growing stock in STSM was increasingly less than growing stock in the Castor model, up to a 9% (645,000 m^3^) difference by year 250. 
+
+```{r, annual growing stock, echo = F, message = F, eval = T}
+tab.grow.stock <- castor.grow.stock [scenario == "oldest_annual_noroads_noblocks_133600" & compartment == "tsa99", c ("scenario", "timeperiod", "m_gs")]
+names (tab.grow.stock) <- c ("scenario", "timeperiod", "growing_stock")
+tab.grow.stock$model <- "castor"
+
+stsm.fig <- stsm.annual.grow.stock [ScenarioId == 1, c ("Year", "THLB_1")]
+names (stsm.fig) <- c ( "timeperiod", "growing_stock")
+stsm.fig$model <- "stsm"
+stsm.fig$scenario <- "oldest_annual_noroads_noblocks_133600"
+
+tab.grow.stock <- rbind (tab.grow.stock, stsm.fig)
+
+ggplot (tab.grow.stock, aes (x = timeperiod, y = growing_stock, color = model, linetype = model)) +
+              geom_line (position = position_dodge (width = 1), size = 1) + 
+              labs (x = "Future Year", 
+                    y = "Growing Stock (m3)") + 
+              scale_color_discrete (name = "Model", 
+                                    labels = c("Castor", "STSM")) +
+              scale_linetype_discrete (name = "Model", 
+                                      labels = c("Castor", "STSM")) +
+              theme (legend.position = c (0.15, 0.15),
+                     legend.title = element_text (size = 10),
+                     legend.text = element_text (size = 8)) +
+              scale_x_continuous (breaks = seq(0, 250, 25)) +
+              scale_y_continuous (label = comma, breaks = seq (5000000, 10000000, 500000)) +
+              theme_classic()
+
+```
+
+#### Spatial Harvest Location
+The spatial harvest sequence was very similar for both models in the first 50 years of the simulation. However, there were some slight differences in areas that were harvested, and these differences may have contributed to the divergent harvest flows seen in both models.
+
+```{r, stsm annual model 50 year harvest blocks map, echo = F, message = F, eval = T}
+m <- c (390,400,5, 380,390,4,  370,380,3, 360,370,2, 350,360,1, 0,350,0)
+rclmat <- matrix (m, ncol = 3, byrow = TRUE)
+rast.stsm.harvest.blocks.50.annual.rcl <- classify (rast.stsm.harvest.blocks.50.annual, 
+                                                    rcl = rclmat,
+                                                    include.lowest = T,
+                                                    right = T)
+plot (rast.stsm.harvest.blocks.50.annual.rcl,
+      col = c ("forestgreen", "yellow1", "olivedrab1", "seagreen1", "dodgerblue3", "darkorchid4"),
+      type = "classes",
+      plg = list (title = "Decade Harvested"))
+
+```
+
+```{r castor annual harvest blocks map, echo = F, message = F, eval = T}
+
+m <- c (1,10,1, 10,20,2, 20,30,3, 30,40,4, 40,50,5, 50,100,0, 0,0,0)
+rclmat <- matrix (m, ncol = 3, byrow = TRUE)
+rast.castor.harvest.blocks.50.annual.rcl <- classify (rast.castor.harvest.blocks.50.annual.133, 
+                                                    rcl = rclmat,
+                                                    include.lowest = T,
+                                                    right = T)
+
+plot (rast.castor.harvest.blocks.50.annual.rcl,
+      col = c ("forestgreen", "yellow1", "olivedrab1", "seagreen1", "dodgerblue3", "darkorchid4"),
+      type = "classes",
+      plg = list (title = "Decade Harvested"))
+
+```
+
+### Decadal Harvest Model
+#### Harvest Flow
+When modeling the maximum non-declining harvest flow of each model on a decadal basis, the Castor model was able to harvest approximately 135,000 m^3^ per year, approximately 1,000 m^3^ per year (<1%) less than in the annual model.
+```{r, decadal harvest flow, echo = F, message = F, eval = T}
+
+tab.harvest.flow <- castor.harvest.flow [scenario == "oldest_decadal_noroads_noblocks_135000", c ("scenario", "timeperiod", "volume")]
+tab.harvest.flow$model <- "castor"
+
+stsm.fig <- stsm.decadal.harvest.flow [ScenarioId == 1, c ("Year", "vHarv_1")]
+names (stsm.fig) <- c ( "timeperiod", "volume")
+stsm.fig$model <- "stsm"
+stsm.fig$scenario <- "oldest_annual_noroads_noblocks_135000"
+
+tab.harvest.flow <- rbind (tab.harvest.flow, stsm.fig)
+
+ggplot (tab.harvest.flow, aes (x = timeperiod, y = volume, color = model, linetype = model)) +
+              geom_line (position = position_dodge (width = 1), size = 1) + 
+              labs (x = "Future Year", 
+                    y = "Volume Harvested (m3)") + 
+              scale_color_discrete (name = "Model", 
+                                    labels = c("Castor", "STSM")) +
+              scale_linetype_discrete (name = "Model", 
+                                      labels = c("Castor", "STSM")) +
+              theme (legend.position = c (0.15, 0.15),
+                     legend.title = element_text(size = 10),
+                     legend.text = element_text( size = 8)) +
+              scale_x_continuous (breaks = seq(0, 250, 25)) +
+              scale_y_continuous (label = comma, breaks = seq (130000, 140000, 500)) +
+              theme_classic()
+
+#tab.harvest.flow[ , list (mean = mean (volume)), by = model]
+
+
+```
+
+#### Area Harvested 
+When modeling a harvest flow of approximately 133,600 m^3^ per year, the Castor model and STSM had comparable harvest area patterns, i.e., peaks and troughs in area harvested over time generally coincided in both models. However, the models began to diverge slightly at approximately year 100, where STSM harvested more area than the Castor model. From that point on, while both models followed a similar general trend in area harvested (i.e., a trough between approximately years 150 to 175 troughs a peak at approximately year 190), STSM generally harvested more area than Castor.
+
+```{r, decadal area harvested, echo = F, message = F, eval = T}
+tab.harvest.area <- castor.harvest.flow [scenario == "oldest_decadal_noroads_noblocks_133600", c ("scenario", "timeperiod", "area")]
+tab.harvest.area$model <- "castor"
+
+stsm.fig <- stsm.decadal.harvest.flow [ScenarioId == 1, c ("Year", "aHarv_1")]
+names (stsm.fig) <- c ( "timeperiod", "area")
+stsm.fig$model <- "stsm"
+stsm.fig$scenario <- "oldest_decadal_noroads_noblocks_133600"
+
+tab.harvest.area <- rbind (tab.harvest.area, stsm.fig)
+
+ggplot (tab.harvest.area, aes (x = timeperiod, y = area, color = model, linetype = model)) +
+              geom_line (position = position_dodge (width = 1), size = 1) + 
+              labs (x = "Future Year", 
+                    y = "Area Harvested (ha)") + 
+              scale_color_discrete (name = "Model", 
+                                    labels = c("Castor", "STSM")) +
+              scale_linetype_discrete (name = "Model", 
+                                      labels = c("Castor", "STSM")) +
+              theme (legend.position = c (0.15, 0.15),
+                     legend.title = element_text (size = 10),
+                     legend.text = element_text (size = 8)) +
+              scale_x_continuous (breaks = seq(0, 250, 10)) +
+              scale_y_continuous (label = comma, breaks = seq (250, 700, 50)) +
+              theme_classic () +
+              theme (axis.text.x = element_text (angle = 45, hjust = 1))
+
+```
+
+#### Merchantable Growing Stock
+The trends in merchantable growing stock (i.e., volume in the THLB available for harvest) were similar between the Castor model and STSM. However, while the initial growing stock was the same, at the first time interval (year 10) Castor had a significantly higher growing stock compared to STSM (i.e., ~10M m^3^ to 8.9M m^3^). This was because Castor calculates volume at the mid-point of each time interval (i.e., year 5 when simulating at decadal intervals) whereas STSM calculates volume at the start of the interval. This results in consistently higher growing stock estimates in the Castor model. Similar to the annual model, the amount of growing stock began to diverge between the model at year 60. 
+
+```{r, decadal growing stock, echo = F, message = F, eval = T}
+tab.grow.stock <- castor.grow.stock [scenario == "oldest_decadal_noroads_noblocks_133600" & compartment == "tsa99", c ("scenario", "timeperiod", "m_gs")]
+names (tab.grow.stock) <- c ("scenario", "timeperiod", "growing_stock")
+tab.grow.stock$model <- "castor"
+
+stsm.fig <- stsm.decadal.grow.stock [ScenarioId == 1, c ("Year", "THLB_1")]
+names (stsm.fig) <- c ( "timeperiod", "growing_stock")
+stsm.fig$model <- "stsm"
+stsm.fig$scenario <- "oldest_decadal_noroads_noblocks_133600"
+
+tab.grow.stock <- rbind (tab.grow.stock, stsm.fig)
+
+ggplot (tab.grow.stock, aes (x = timeperiod, y = growing_stock, color = model, linetype = model)) +
+              geom_line (position = position_dodge (width = 1), size = 1) + 
+              labs (x = "Future Year", 
+                    y = "Growing Stock (m3)") + 
+              scale_color_discrete (name = "Model", 
+                                    labels = c("Castor", "STSM")) +
+              scale_linetype_discrete (name = "Model", 
+                                      labels = c("Castor", "STSM")) +
+              theme (legend.position = c (0.15, 0.15),
+                     legend.title = element_text (size = 10),
+                     legend.text = element_text (size = 8)) +
+              scale_x_continuous (breaks = seq(0, 250, 10)) +
+              scale_y_continuous (label = comma, breaks = seq (5000000, 10000000, 500000)) +
+              theme_classic() +
+              theme (axis.text.x = element_text (angle = 45, hjust = 1))
+
+```
+
+
+### Blocking Model
+#### Characteristics of Harvest Blocks 
+In the Castor model, block sizes were right-skewed (i.e., there were many smaller blocks and few large blocks). The mean block size was 28 ha, median block size was 7 ha and maximum block size was 320 ha.
+
+```{r, block sizes}
+hist (castor.preblocks$N, 
+      main = "Frequency of Castor Harvest Block Sizes",
+      xlab = "Block Size (ha)",
+      xlim = c (0, 350),
+      breaks = 35
+      ) 
+```
+
+The spatial distribution of blocks developed in the Castor model is shown in the map below. 
+```{r castor harvest units}
+plot (rast.stsm.preblocks,
+      breaks = c (seq (from = 100000, to = 450000, 1)),
+      col = topo.colors(10),
+      legend = F)
+```
+
+With blocking, the Castor model harvested less volume (124,500 m^3^/year) than the Castor model without blocking (135,000 m^3^/year). Therefore, pre-defining blocks resulted in lower timber supply.  
+```{r, decadal harvest flow block vs. no block, echo = F, message = F, eval = T}
+
+tab.harvest.flow <- castor.harvest.flow [scenario == "oldest_decadal_noroads_noblocks_135000" | scenario == "oldest_decadal_noroads_blocks", c ("scenario", "timeperiod", "volume")]
+
+tab.harvest.flow$model <- "castor"
+
+# stsm.fig <- stsm.decadal.harvest.flow [ScenarioId == 1, c ("Year", "vHarv_1")]
+# names (stsm.fig) <- c ( "timeperiod", "volume")
+# stsm.fig$model <- "stsm"
+# stsm.fig$scenario <- "oldest_annual_noroads_noblocks_135000"
+
+# tab.harvest.flow <- rbind (tab.harvest.flow, stsm.fig)
+
+ggplot (tab.harvest.flow, aes (x = timeperiod, y = volume, color = scenario, linetype = scenario)) +
+              geom_line (position = position_dodge (width = 1), size = 1) + 
+              labs (x = "Future Year", 
+                    y = "Volume Harvested (m3)") + 
+              scale_color_discrete (name = "Model", 
+                                    labels = c("Castor With Blocking", "Castor Without Blocking")) +
+              scale_linetype_discrete (name = "Model", 
+                                      labels = c("Castor With Blocking", "Castor Without Blocking")) +
+              theme (legend.position = c (0.15, 0.15),
+                     legend.title = element_text(size = 10),
+                     legend.text = element_text( size = 8)) +
+              scale_x_continuous (breaks = seq(0, 250, 25)) +
+              scale_y_continuous (label = comma, breaks = seq (120000, 140000, 1000)) +
+              theme_classic()
+
+#tab.harvest.flow[ , list (mean = mean (volume)), by = model]
+
+
+```
+
+### Roads Model
+In the initial state of the models there were 23,915 ha (~7% of the study area) that were classified as being roaded. 
+```{r initial roads map}
+
+
+m <- c (0,6,1)
+rclmat <- matrix (m, ncol = 3, byrow = TRUE)
+rast.castor.road.init.rcl <- classify (rast.castor.road.init, 
+                                                    rcl = rclmat,
+                                                    include.lowest = T,
+                                                    right = T)
+# sum (rast.castor.road.init.rcl[], na.rm = T)  = 23,915 ha have a road
+raster::plot (rast.castor.road.init.rcl,
+              col = c ("grey0"),
+              legend = F) 
+legend ("topright", legend = "Existing Road", fill = "grey0", cex = 0.75,  pt.cex = 1)
+
+```
+
+In the first 10 years 
+
+
+
+
+```{r castor count roads }
+
+
+rast.castor.road.year
 
 
 
 ```
+
+
+- count ha's of roads built in first 10 years, 50 yeas, 100 years, 250 years
+- ...
+
+
+```{r coutn roads built by year}
+
+```
+
+
+
+
+## Conclusions
+
+- Castor and STSM models are closely aligned in terms of estimating long-term timber supply; suggesting the logic of both models is consistent.
+
+- however, Castor was able to  harvest ~2% more volume/year, because of how it updates volumes stock; in annual steps, year 1 updates volumes by 1 year, i.e., assumes harvest at the end of the year, whereas STSM does not, ie assumes harvest at the start of the year; in a decadal steps, Castor uses the mid-point volume (i.e., in the first step of the simulation it updates volumes to year 5, and then harvest and calculates growing stock) whereas STSM uses the start year volume (i.e., in the first step of the simulation it calculates harvest and growing stock); therefore Castor is a slightly more optimistic model in terms of timber supply estimates
+
+- blocking reduces timber supply; makes sense because it contains harvest to follow patterns of homogeneous forest stands; likely reflects reality better than no blocking
+
+- Castor could be used as a timber supply model to support allowable annual cut dertmeiantions
 
 
 

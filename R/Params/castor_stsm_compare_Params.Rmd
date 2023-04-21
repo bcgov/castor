@@ -195,6 +195,43 @@ dbDisconnect (conn)
 ## Harvest Constraint Zones
 Here we use a raster of wildlife zones as a no harvest area to add as a constraint.
 ```{r harvest constraints}
+
+## BEOs
+zone.test <- st_make_valid (st_read ("G:\\!Workgrp\\Analysts\\tmuhly\\clus_stsm_comparison\\zone_test\\zone_test.shp"))
+zone.test$id <- as.integer (1)
+### Rasterize 
+ras.zone.test <- fasterize::fasterize (zone.test, prov.rast, field = "id")
+writeRaster (ras.zone.test, paste0 ("D:\\clus_data\\castor_stsm\\castor\\zone_test.tif"), overwrite = T)
+
+# write data
+conn<-DBI::dbConnect (dbDriver("PostgreSQL"), host = keyring::key_get ('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get ('dbname', keyring = 'postgreSQL'), port='5432' ,user = keyring::key_get ('dbuser', keyring = 'postgreSQL'), password = keyring::key_get ('dbpass', keyring = 'postgreSQL'))
+
+system ("cmd.exe", input = paste0 ('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  D:/clus_data/castor_stsm/castor/zone_test.tif -t 100x100 castor_stsm_compare.rast_zone_test | psql postgres://', keyring::key_get ('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get ('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get ('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+# constraints table
+zone <- data.table (zoneid = as.integer (1),
+                    type = 'nh',
+                    variable = 'age', 
+                    threshold = as.numeric (100), 
+                    reference_zone = 'castor_stsm_compare.rast_zone_test', 
+                    percentage = as.numeric (80), 
+                    ndt = as.integer (0), 
+                    label = 'constraint_zone', 
+                    multi_condition = as.character (''), 
+                    denom = as.character (''), 
+                    start = as.integer (0), 
+                    stop = as.integer (250))
+
+# vat table
+vat <- data.table (value = as.integer (1),
+                   attribute = "constraint_zone")
+
+#save
+DBI::dbWriteTable (conn, c("castor_stsm_compare", "vat_zone_test"), value = vat, row.names = FALSE, overwrite = TRUE)
+DBI::dbWriteTable (conn, c("castor_stsm_compare", "constraints_zone_test"), value = zone, row.names = FALSE, overwrite = TRUE)
+dbExecute(conn, "ALTER TABLE castor_stsm_compare.constraints_zone_test ALTER COLUMN denom TYPE VARCHAR;")
+dbExecute(conn, "ALTER TABLE castor_stsm_compare.constraints_zone_test INHERIT castor_stsm_compare.constraints")
+
 # raster data
 rast.wildlife <- raster::raster (paste0 (data.dir, "\\STSM\\STSM\\TSA99\\gisData\\grids\\tsa99_wildlife_ras.tif")) # wildlife zones
 # write raster data to db
@@ -335,5 +372,27 @@ dbCommit(castordb)
 dbExecute(castordb, "CREATE INDEX index_adjblockid on adjacentBlocks (adjblockid)")
   
 ```
+
+## Roads
+
+```{r roads}
+
+# existing roads
+roads <- raster::raster (paste0 (data.dir, "STSM\\STSM\\TSA99\\gisData\\grids\\rdClsC.tif")) 
+m <- c(-Inf, 0, NA,  1, 2, 0)
+rclmat <- matrix (m, ncol=3, byrow=TRUE)
+roads.reclass <- reclassify (roads, rclmat, right = NA) # set 0's to NA's
+
+writeRaster (roads.reclass, paste0 (data.dir, "\\STSM\\STSM\\TSA99\\gisData\\grids\\road_reclass.tif"), overwrite = T)
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, 'STSM\\STSM\\TSA99\\gisData\\grids\\road_reclass.tif -t 100x100 castor_stsm_compare.rast_roads | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+# cost surface
+cost.surf <- raster::raster (paste0 (data.dir, "STSM\\STSM\\TSA99\\Outputs\\Access\\Scn1\\grids\\AccessCostSurface.tif")) 
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, 'STSM\\STSM\\TSA99\\Outputs\\Access\\Scn1\\grids\\AccessCostSurface.tif -t 100x100 castor_stsm_compare.rast_road_cost | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+```
+
+
 
 

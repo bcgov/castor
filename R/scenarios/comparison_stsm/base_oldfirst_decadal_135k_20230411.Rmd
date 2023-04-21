@@ -26,35 +26,6 @@ This scenario was developed to compare the basic STSM-SELES timber supply model 
 ## Scenario
 This is a simple scenario where the harvest flow target is the maximum even flow over a 200 year period. The harvest priority queue is 'oldest first' and no constraints, blocking or roading is implemented in the model. 
 
-## Calculate Some Diagnostics
-
-```{r, Diagnostics}
-
-db <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_castordb.sqlite"))
-
-pixels <- data.table (dbGetQuery(db, "SELECT * FROM pixels;"))
-thlb.area <- sum(pixels$thlb, na.rm = T) # 73,332 hectares
-yields <- data.table (dbGetQuery(db, "SELECT * FROM yields;"))
-yields [, mai := (tvol/age)]
-max.yield <- yields [yields [, .I [which.max(mai)], by = yieldid]$V1]
-yield.counts <- pixels  [, .(count = .N, count_thlb = sum (thlb, na.rm = T)), by = yieldid]
-yield.counts <- merge (yield.counts, max.yield, by.x = "yieldid", by.y = "yieldid")
-yield.counts [, total_vol := (mai*count_thlb)]
-lrsy <- sum (yield.counts$total_vol) # 108,881 m3
-yield.counts [, weight_vol := (tvol*(count_thlb/thlb.area))]
-mean.vol.ha <- sum (yield.counts$weight_vol) # 179 m3
-yield.counts [, weight_mai := (mai*(count_thlb/thlb.area))]
-mean.mai <- sum (yield.counts$weight_mai) # 1.48 m3
-
-yield.trans <- yields [yieldid > 0]
-max.yield.trans <- yield.trans [yield.trans [, .I [which.max(mai)], by = yieldid]$V1]
-yield.counts.trans <- pixels  [, .(count = .N, count_thlb = sum (thlb, na.rm = T)), by = yieldid_trans]
-yield.counts.trans <- merge  (yield.counts.trans, max.yield.trans, by.x = "yieldid_trans", by.y = "yieldid")
-yield.counts.trans [, total_vol := (mai*count_thlb)]
-lrsy.trans <- sum (yield.counts.trans$total_vol) # 235,930 m3
-
-```
-
 
 ## Parameters 
 ### Zone Constraints
@@ -131,8 +102,8 @@ modules <- list("dataCastor",
                 "uploadCastor"
                 )
 
-scenario = data.table (name = "oldest_decadal_noroads_noblocks_133600",
-                       description = "Priority queue = oldest first. Adjacency constraint = None. No roads or blocks. Maximum even live harvest flow: 133,600 m3/year. Minimum harvest age = 80 and minimum harvest volume = 150")
+scenario = data.table (name = "oldest_decadal_noroads_noblocks_135000",
+                       description = "Priority queue = oldest first. Adjacency constraint = None. No roads or blocks. Maximum even live harvest flow: 135,000 m3/year. Minimum harvest age = 80 and minimum harvest volume = 150")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="tsa99",
@@ -141,7 +112,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="tsa99",
                                                       to = 25, 
                                                       by = 1),
                                                 1), 
-                                     flow = 1336000, # 133,600m3/year 
+                                     flow = 1350000, # 135,000m3/year 
                                      partition_type = 'live') 
 ))
 
