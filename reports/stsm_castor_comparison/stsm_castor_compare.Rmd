@@ -26,9 +26,11 @@ conn <- DBI::dbConnect (RPostgreSQL::PostgreSQL(),
                         password = keyring::key_get('vmdbpass', keyring = 'postgreSQL'))
 
 # Data
+## TABLES
 castor.harvest.flow <- data.table (dbGetQuery (conn, "SELECT * from stsm_compare.harvest"))
 castor.grow.stock <- data.table (dbGetQuery (conn, "SELECT * from stsm_compare.growingstock"))
 castor.preblocks <- data.table (read.csv ("D:\\clus_data\\castor_stsm\\castor\\blocks.csv"))
+dbDisconnect (conn)
 
 stsm.annual.harvest.flow <- data.table (read.table (paste0 (data.dir, "\\stsm\\tsa99\\annual_run\\harvestRecord.txt"), 
                                              header = TRUE))
@@ -38,18 +40,37 @@ stsm.decadal.harvest.flow <- data.table (read.table (paste0 (data.dir, "\\stsm\\
                                              header = TRUE))
 stsm.decadal.grow.stock <- data.table (read.table (paste0 (data.dir, "\\stsm\\tsa99\\decadal_run\\oScn250\\growingStock.txt"), 
                                              header = TRUE))
+stsm.blocking.grow.stock <- data.table (read.table (paste0 (data.dir, "\\stsm\\tsa99\\spatial_no_roads\\oScn250\\growingStock.txt"), 
+                                             header = TRUE))
+stsm.blocking.harvest.flow <- data.table (read.table (paste0 (data.dir, "\\stsm\\tsa99\\spatial_no_roads\\oScn250\\harvestRecord.txt"), 
+                                             header = TRUE))
+stsm.blocking.block.size <- data.table (read.table (paste0 (data.dir, "\\stsm\\tsa99\\spatial_no_roads\\oScn250\\BlockLIst.txt"), 
+                                             header = TRUE))
+stsm.road.grow.stock <- data.table (read.table (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\growingStock.txt"), 
+                                             header = TRUE))
+stsm.road.harvest.flow <- data.table (read.table (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\harvestRecord.txt"), 
+                                             header = TRUE))
+stsm.road.record <- data.table (read.table (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\roadRecord.txt"), 
+                                             header = TRUE))
 
-dbDisconnect (conn)
-
+## RASTERS
+### BLOCKS
 rast.castor.harvest.blocks.50.annual.133 <- terra::rast (paste0 (data.dir, "\\castor\\rasters\\spatial_50_oldest_annual_noroads_noblocks_133600_tsa99_harvestBlocks.tif"))
+rast.castor.harvest.blocks.50.block <- terra::rast (paste0 (data.dir, "\\castor\\rasters\\oldest_decadal_noroads_blocks_tsa99_harvestBlocks_50yrs.tif"))
 rast.stsm.harvest.blocks.50.annual <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\annual_run\\oScn250_1yr\\grids\\Logged_1_5.tif"))
-rast.stsm.preblocks <- terra::rast ("D:\\clus_data\\castor_stsm\\castor\\hu_blocks_noroads.tif")
+rast.stsm.harvest.blocks.50.blocking <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_no_roads\\oScn250\\grids\\Logged_1_5.tif"))
+rast.castor.preblocks <- terra::rast ("D:\\clus_data\\castor_stsm\\castor\\hu_blocks_noroads.tif")
 
-rast.castor.road.status <- terra::rast ("D:\\clus_data\\castor_stsm\\castor\\oldest_decadal_roads_blocks_tsa99_mst_status_250.tif")
-rast.castor.road.year <- terra::rast ("D:\\clus_data\\castor_stsm\\castor\\oldest_decadal_roads_blocks_tsa99_mst_year_250.tif")
+rast.stsm.blocking.harvest.blocks.1 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_no_roads\\oScn250\\grids\\Logged_1_1.tif"))
+rast.stsm.blocking.harvest.blocks.2 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_no_roads\\oScn250\\grids\\Logged_1_2.tif"))
+rast.stsm.blocking.harvest.blocks.3 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_no_roads\\oScn250\\grids\\Logged_1_3.tif"))
+rast.stsm.blocking.harvest.blocks.4 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_no_roads\\oScn250\\grids\\Logged_1_4.tif"))
+rast.stsm.blocking.harvest.blocks.5 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_no_roads\\oScn250\\grids\\Logged_1_5.tif"))
 
-rast.castor.road.init <- terra::rast ("D:\\clus_data\\castor_stsm\\castor\\rast_roads_init.tif")
-
+### ROADS
+rast.castor.road.init <- terra::rast (paste0 (data.dir, "\\castor\\rasters\\rast_roads_init.tif"))
+rast.castor.road.status <- terra::rast (paste0 (data.dir, "\\castor\\rasters\\oldest_decadal_roads_blocks_tsa99_mst_status_250.tif"))
+rast.castor.road.year <- terra::rast (paste0 (data.dir, "\\castor\\rasters\\oldest_decadal_roads_blocks_tsa99_mst_year_250.tif"))
 ```
 
 ## Introduction
@@ -131,6 +152,20 @@ Probability of initiation fo cutblock is driven by a number of parameters, depni
 - initially a 'pattern analysis' is done to match patterns of created to exciting blocks
 
 
+•	Initiate in the absolute oldest first. Availability is based on MHA/V > 80yrs/150m3/ha
+•	Available patches must be > = 10 ha.
+•	Target block sizes are selected from a uniform distribution between 20-300 hectares. If the patch is < twice the target size (between 40 and 600 ha) it will attempt to log the whole patch
+•	The age differential within a block can be no more then +/- 20% of the age in the initiating cell
+
+Under scenario 2  the median block size is 8 ha while the mean is 20 ha. An even flow of 127 000 m3/yr. can be achieved
+
+#### Castor roading
+
+queens case
+- needed ot incrase the costs of traversing moutnain in Casto - values between 1 and 62 betwen a flat valley and steep maintain were not different enough to drive Castor to select least costs paths; i.e., needed to make the differences between the costs amplified to account for the fact that builign up the slope of amoutnain is orders of magnitude more costsly than a valley
+- took the stsm cost suface which was between 1 and 62 and took teh squared value to get values between 1 and 3844; this made mountains 100's to 1000's of times more costly to traverse than valleys 
+
+
 #### STSM roading
 - does pre-processign of roads
 - uses existing road network
@@ -146,6 +181,16 @@ Probability of initiation fo cutblock is driven by a number of parameters, depni
 - a landing is identified in a selected block and the model builds roads between that and the nearest road segment (either existing or pre-determined)
 - if the block landing is connected to an existing or future road network, then those roads are 'activate', or else it builds a 'spur' road (straight-line, as a crow flies) connection between the landing and nearest road
 
+It assumes:
+•	All blocks must initiate within 2 km of the active road network
+•	The default active road network is the existing road network at the beginning of the projection
+•	Probability of initiation is weighted linearly by distance to active road. Default weight slope coefficient is -0.00056
+•	Available stands within 200 m. of an active road have a weight coefficient of 1.
+•	New roads (future roads) are added (activated) to the active road network as necessary to meet the harvest request. All things being equal the model will prioritize harvest nearest the existing network first.
+•	Scenario 2 blocking assumptions are applied
+
+- rooks case
+- building min density of roads; effciciency 
 
 #### STSM Harvest Queue
 - can have multiple 'preference' criteria
@@ -279,7 +324,7 @@ ggplot (tab.harvest.age, aes (x = timeperiod, y = age, color = model, linetype =
 ```
 
 #### Merchantable Growing Stock
-The trends in merchantable growing stock (i.e., volume in the THLB available for harvest) were similar between the Castor model and STSM. The amount of growing stock was close to the same between the models for the first 60 years, although STSM was consistently slightly less for the duration. However, a key difference here was that growing stock in year 1 was 9,769,019 m^3^ in Castor and 9,634,761 m^3^ in STSM. This was because Castor updates the volume at year 1 to grow stands by 1 year and then calculates the harvest and growing stock, whereas STSM does not advance one year, but instead calculates the harvest and growing stock based on the initial growing stock. This results in slightly higher volumes in Castor at the start of the simulation, which accumulate over time to allow for Castor to harvest slightly more volume. In addtion, while the trends were the same after 60 years, the amount of growing stock began to diverge between the models, where growing stock in STSM was increasingly less than growing stock in the Castor model, up to a 9% (645,000 m^3^) difference by year 250. 
+The trends in merchantable growing stock (i.e., volume in the THLB available for harvest) were similar between the Castor model and STSM. The amount of growing stock was close to identical between the models for the first 60 years, although STSM was consistently slightly less for the duration. While the trends were the same after 60 years, the amount of growing stock began to diverge between the models, where growing stock in STSM was increasingly less than growing stock in the Castor model, up to a 9% (645,000 m^3^) difference by year 250. 
 
 ```{r, annual growing stock, echo = F, message = F, eval = T}
 tab.grow.stock <- castor.grow.stock [scenario == "oldest_annual_noroads_noblocks_133600" & compartment == "tsa99", c ("scenario", "timeperiod", "m_gs")]
@@ -309,7 +354,6 @@ ggplot (tab.grow.stock, aes (x = timeperiod, y = growing_stock, color = model, l
               theme_classic()
 
 ```
-
 #### Spatial Harvest Location
 The spatial harvest sequence was very similar for both models in the first 50 years of the simulation. However, there were some slight differences in areas that were harvested, and these differences may have contributed to the divergent harvest flows seen in both models.
 
@@ -443,50 +487,138 @@ ggplot (tab.grow.stock, aes (x = timeperiod, y = growing_stock, color = model, l
 
 ```
 
-
 ### Blocking Model
 #### Characteristics of Harvest Blocks 
-In the Castor model, block sizes were right-skewed (i.e., there were many smaller blocks and few large blocks). The mean block size was 28 ha, median block size was 7 ha and maximum block size was 320 ha.
+The spatial distribution of blocks that were predetermined in the Castor model is shown in the map below. 
 
-```{r, block sizes}
-hist (castor.preblocks$N, 
-      main = "Frequency of Castor Harvest Block Sizes",
-      xlab = "Block Size (ha)",
-      xlim = c (0, 350),
-      breaks = 35
-      ) 
-```
-
-The spatial distribution of blocks developed in the Castor model is shown in the map below. 
 ```{r castor harvest units}
-plot (rast.stsm.preblocks,
+plot (rast.castor.preblocks,
       breaks = c (seq (from = 100000, to = 450000, 1)),
       col = topo.colors(10),
       legend = F)
 ```
 
-With blocking, the Castor model harvested less volume (124,500 m^3^/year) than the Castor model without blocking (135,000 m^3^/year). Therefore, pre-defining blocks resulted in lower timber supply.  
-```{r, decadal harvest flow block vs. no block, echo = F, message = F, eval = T}
+In the Castor model, the predetermined block sizes were right-skewed (i.e., there were many smaller blocks and few large blocks). The Castor initial mean block size was 28 ha, median block size was 7 ha and maximum block size was 320 ha. This block size distribution was used to parameterize STSM and subsequent output block sizes had a mean block size of 20 ha and median block size of 8 ha. Output blocks from the Castor model had a mean block size of 22 ha and median block size of 6 ha. 
 
-tab.harvest.flow <- castor.harvest.flow [scenario == "oldest_decadal_noroads_noblocks_135000" | scenario == "oldest_decadal_noroads_blocks", c ("scenario", "timeperiod", "volume")]
+The models harvested a similar distribution of block sizes but STSM harvested more medium sized blocks (20-40 ha in size), fewer large blocks (100-200 ha in size), and more very large blocks (greater than 260 ha in size) than Castor.
+
+```{r, block sizes}
+
+castor.init.block.sizes <- castor.preblocks [, c ("blockid", "N")]
+names (castor.init.block.sizes) <- c ( "blockid", "size")
+castor.init.block.sizes$Model <- "Initial Castor Blocks"
+#mean (castor.init.block.sizes$size)
+#median (castor.init.block.sizes$size)
+
+blocksdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_blocks_noroads_castordb.sqlite"))
+raster.info <- data.table (dbGetQuery (blocksdb, "SELECT * FROM raster_info;"))	
+ras <- terra::rast (terra::ext (raster.info$xmin, raster.info$xmax, raster.info$ymin,
+                                raster.info$ymax), nrow = raster.info$nrow, 
+                                ncol = raster.info$ncell/raster.info$nrow, 
+                                vals =1: raster.info$ncell)
+pixels <- data.table (dbGetQuery (blocksdb, "SELECT * FROM pixels;"))
+dbDisconnect (blocksdb)
+ras [] <- pixels$blockid
+crs (ras)  <- "epsg:3005"
+
+m <- c (9,11,1, 0,9,0,  11,Inf,0)
+rclmat <- matrix (m, ncol = 3, byrow = TRUE)
+rast.castor.harvest.blocks.50.block.10 <- classify (rast.castor.harvest.blocks.50.block, 
+                                                    rcl = rclmat,
+                                                    include.lowest = T,
+                                                    right = T)
+rast.castor.harvest.blocks.50.block.10 <- rast.castor.harvest.blocks.50.block.10 * ras
+castor.block.sizes.10 <- data.table (terra::freq (rast.castor.harvest.blocks.50.block.10))
+m <- c (19,21,1, 0,19,0,  21,Inf,0)
+rclmat <- matrix (m, ncol = 3, byrow = TRUE)
+rast.castor.harvest.blocks.50.block.20 <- classify (rast.castor.harvest.blocks.50.block, 
+                                                    rcl = rclmat,
+                                                    include.lowest = T,
+                                                    right = T)
+rast.castor.harvest.blocks.50.block.20 <- rast.castor.harvest.blocks.50.block.20 * ras
+castor.block.sizes.20 <- data.table (terra::freq (rast.castor.harvest.blocks.50.block.20))
+m <- c (29,31,1, 0,29,0,  31,Inf,0)
+rclmat <- matrix (m, ncol = 3, byrow = TRUE)
+rast.castor.harvest.blocks.50.block.30 <- classify (rast.castor.harvest.blocks.50.block, 
+                                                    rcl = rclmat,
+                                                    include.lowest = T,
+                                                    right = T)
+rast.castor.harvest.blocks.50.block.30 <- rast.castor.harvest.blocks.50.block.30 * ras
+castor.block.sizes.30 <- data.table (terra::freq (rast.castor.harvest.blocks.50.block.30))
+m <- c (39,41,1, 0,39,0,  41,Inf,0)
+rclmat <- matrix (m, ncol = 3, byrow = TRUE)
+rast.castor.harvest.blocks.50.block.40 <- classify (rast.castor.harvest.blocks.50.block, 
+                                                    rcl = rclmat,
+                                                    include.lowest = T,
+                                                    right = T)
+rast.castor.harvest.blocks.50.block.40 <- rast.castor.harvest.blocks.50.block.40 * ras
+castor.block.sizes.40 <- data.table (terra::freq (rast.castor.harvest.blocks.50.block.40))
+m <- c (49,51,1, 0,49,0,  51,Inf,0)
+rclmat <- matrix (m, ncol = 3, byrow = TRUE)
+rast.castor.harvest.blocks.50.block.50 <- classify (rast.castor.harvest.blocks.50.block, 
+                                                    rcl = rclmat,
+                                                    include.lowest = T,
+                                                    right = T)
+rast.castor.harvest.blocks.50.block.50 <- rast.castor.harvest.blocks.50.block.50 * ras
+castor.block.sizes.50 <- data.table (terra::freq (rast.castor.harvest.blocks.50.block.50))
+castor.block.sizes <- rbind (castor.block.sizes.10, castor.block.sizes.20, castor.block.sizes.30,
+                             castor.block.sizes.40, castor.block.sizes.50)
+castor.block.sizes <- castor.block.sizes [, c ("value", "count")]
+names (castor.block.sizes) <- c ( "blockid", "size")
+castor.block.sizes$Model <- "Castor Harvest Blocks"
+castor.block.sizes <- castor.block.sizes [blockid > 0]
+#mean (castor.block.sizes$size)
+#median (castor.block.sizes$size)
+
+stsm.block.sizes <- stsm.blocking.block.size [Year < 51, c ("blockNum", "blockSize")]
+names (stsm.block.sizes) <- c ( "blockid", "size")
+stsm.block.sizes$Model <- "STSM Harvest Blocks"
+#mean (stsm.block.sizes$size)
+#median (stsm.block.sizes$size)
+
+tab.block.sizes <- rbind (castor.init.block.sizes, castor.block.sizes, stsm.block.sizes)
+tab.block.sizes$Model <- as.factor (tab.block.sizes$Model)
+tab.block.sizes$Model <- factor(tab.block.sizes$Model, 
+                                levels = c ("Initial Castor Blocks", "Castor Harvest Blocks", "STSM Harvest Blocks"))
+
+ggplot (tab.block.sizes, 
+        aes (x = size, group = Model, fill = Model)) +
+  geom_histogram (aes(y = ..density..),
+                  position  ="dodge",
+                  binwidth = 20) +
+  theme_bw () +
+  scale_x_continuous (breaks = c(0, 40, 80, 120, 160, 200, 240, 280, 320, 360, 400, 440))
+```
+
+#### Harvest Flow
+Both models harvested less volume when blocking was implemented. The Castor model harvested 124,500 m^3^/year with blocking, a 7% decline from the baseline model with a 133,600 m^3^/year harvest flow. The STSM model with blocking harvested 127,000 m^3^/year,a 5% decline from the baseline model harvest flow. There was a 2% difference in harvest flows between the Castor and STSM when blocking was simulated in the models. Therefore, pre-defining blocks resulted in lower timber supply in both models, but the Castor method was slightly more constraining on timber supply.
+
+```{r, blocking harvest flow block vs. no block, echo = F, message = F, eval = T}
+
+tab.harvest.flow <- castor.harvest.flow [scenario == "oldest_decadal_noroads_noblocks_133600" | scenario == "oldest_decadal_noroads_blocks", c ("scenario", "timeperiod", "volume")]
 
 tab.harvest.flow$model <- "castor"
 
-# stsm.fig <- stsm.decadal.harvest.flow [ScenarioId == 1, c ("Year", "vHarv_1")]
-# names (stsm.fig) <- c ( "timeperiod", "volume")
-# stsm.fig$model <- "stsm"
-# stsm.fig$scenario <- "oldest_annual_noroads_noblocks_135000"
+stsm.decadal <- stsm.decadal.harvest.flow [ScenarioId == 1, c ("Year", "vHarv_1")]
+names (stsm.decadal) <- c ( "timeperiod", "volume")
+stsm.decadal$model <- "stsm"
+stsm.decadal$scenario <- "oldest_decadal_noroads_noblocks_133600"
 
-# tab.harvest.flow <- rbind (tab.harvest.flow, stsm.fig)
+stsm.block <- stsm.blocking.harvest.flow [ScenarioId == 1, c ("Year", "vHarv_1")]
+names (stsm.block) <- c ( "timeperiod", "volume")
+stsm.block$model <- "stsm"
+stsm.block$scenario <- "oldest_decadal_noroads_blocks"
 
-ggplot (tab.harvest.flow, aes (x = timeperiod, y = volume, color = scenario, linetype = scenario)) +
-              geom_line (position = position_dodge (width = 1), size = 1) + 
+tab.harvest.flow <- rbind (tab.harvest.flow, stsm.decadal, stsm.block)
+
+ggplot (tab.harvest.flow, aes (x = timeperiod, y = volume, color = scenario)) +
+              geom_line (position = position_dodge (width = 1), size = 1, aes (linetype = model)) + 
               labs (x = "Future Year", 
                     y = "Volume Harvested (m3)") + 
-              scale_color_discrete (name = "Model", 
-                                    labels = c("Castor With Blocking", "Castor Without Blocking")) +
+              scale_color_discrete (name = "Scenario", 
+                                    labels = c("Blocking", "No Blocking")) +
               scale_linetype_discrete (name = "Model", 
-                                      labels = c("Castor With Blocking", "Castor Without Blocking")) +
+                                      labels = c("Castor", "STSM")) +
               theme (legend.position = c (0.15, 0.15),
                      legend.title = element_text(size = 10),
                      legend.text = element_text( size = 8)) +
@@ -499,11 +631,108 @@ ggplot (tab.harvest.flow, aes (x = timeperiod, y = volume, color = scenario, lin
 
 ```
 
+#### Area Harvested 
+When blocking was implemented in the models they had similar overall patterns in the amount of area harvested over the simulation, with corresponding timing in the peaks and valleys in area harvested. There were small differences in area harvested within those patterns. For example, the Castor model harvested more area in the first three decades of the simulation and then STSM harvested more area in the fourth to sixth decades. 
+
+```{r, blocking area harvested, echo = F, message = F, eval = T}
+tab.harvest.area <- castor.harvest.flow [scenario == "oldest_decadal_noroads_blocks", c ("scenario", "timeperiod", "area")]
+tab.harvest.area$model <- "castor"
+
+stsm.block <- stsm.blocking.harvest.flow [ScenarioId == 1, c ("Year", "aHarv_1")]
+names (stsm.block) <- c ( "timeperiod", "area")
+stsm.block$model <- "stsm"
+stsm.block$scenario <- "oldest_decadal_noroads_blocks"
+
+tab.harvest.area <- rbind (tab.harvest.area, stsm.block)
+
+ggplot (tab.harvest.area, aes (x = timeperiod, y = area, color = model, linetype = model)) +
+              geom_line (position = position_dodge (width = 1), size = 1) + 
+              labs (x = "Future Year", 
+                    y = "Area Harvested (ha)") + 
+              scale_color_discrete (name = "Model", 
+                                    labels = c("Castor", "STSM")) +
+              scale_linetype_discrete (name = "Model", 
+                                      labels = c("Castor", "STSM")) +
+              theme (legend.position = c (0.15, 0.15),
+                     legend.title = element_text (size = 10),
+                     legend.text = element_text (size = 8)) +
+              scale_x_continuous (breaks = seq(0, 250, 10)) +
+              scale_y_continuous (label = comma, breaks = seq (250, 700, 50)) +
+              theme_classic () +
+              theme (axis.text.x = element_text (angle = 45, hjust = 1))
+
+```
+#### Merchantable Growing Stock
+The trends in merchantable growing stock were similar between the Castor model and STSM. However, the models diverged at approximately year 80, where Castor growing stock had an overall slightly declining trend compared to STSM which had a slight increasing trend. 
+
+```{r, decadal growing stock, echo = F, message = F, eval = T}
+tab.grow.stock <- castor.grow.stock [scenario == "oldest_decadal_noroads_blocks" & compartment == "tsa99", c ("scenario", "timeperiod", "m_gs")]
+names (tab.grow.stock) <- c ("scenario", "timeperiod", "growing_stock")
+tab.grow.stock$model <- "castor"
+
+stsm.fig <- stsm.decadal.grow.stock [ScenarioId == 1, c ("Year", "THLB_1")]
+names (stsm.fig) <- c ( "timeperiod", "growing_stock")
+stsm.fig$model <- "stsm"
+stsm.fig$scenario <- "oldest_decadal_noroads_blocks"
+
+tab.grow.stock <- rbind (tab.grow.stock, stsm.fig)
+
+ggplot (tab.grow.stock, aes (x = timeperiod, y = growing_stock, color = model, linetype = model)) +
+              geom_line (position = position_dodge (width = 1), size = 1) + 
+              labs (x = "Future Year", 
+                    y = "Growing Stock (m3)") + 
+              scale_color_discrete (name = "Model", 
+                                    labels = c("Castor", "STSM")) +
+              scale_linetype_discrete (name = "Model", 
+                                      labels = c("Castor", "STSM")) +
+              theme (legend.position = c (0.15, 0.15),
+                     legend.title = element_text (size = 10),
+                     legend.text = element_text (size = 8)) +
+              scale_x_continuous (breaks = seq(0, 250, 10)) +
+              scale_y_continuous (label = comma, breaks = seq (5000000, 10000000, 500000)) +
+              theme_classic() +
+              theme (axis.text.x = element_text (angle = 45, hjust = 1))
+
+```
+
+#### Spatial Harvest Location
+Despite the similarities in harvest volume, blocking resulted in some differences in the spatial distribution of harvest in the two models over the first 50 years of the simulation. At the scale of the area-of-interest, the spatial distribution was generally similar, with more harvest in the southwest and northern parts in the first two to three decades of the simulation, shifting to more harvest in the eastern portion of the area in the fourth and fifth decades. However, there were some differences at finer scales. For example, there was more harvest in the northwest portion fo the area in alter decades in the Castor model compared to STSM.
+
+```{r, stsm blocking model 50 year harvest blocks map, echo = F, message = F, eval = T, warning = F}
+m <- c (390,400,5, 380,390,4,  370,380,3, 360,370,2, 350,360,1, 0,350,0)
+rclmat <- matrix (m, ncol = 3, byrow = TRUE)
+rast.stsm.harvest.blocks.50.block.rcl <- classify (rast.stsm.harvest.blocks.50.blocking, 
+                                                    rcl = rclmat,
+                                                    include.lowest = T,
+                                                    right = T)
+plot (rast.stsm.harvest.blocks.50.block.rcl,
+      col = c ("forestgreen", "yellow1", "olivedrab1", "seagreen1", "dodgerblue3", "darkorchid4"),
+      type = "classes",
+      plg = list (title = "Decade Harvested"))
+
+```
+
+```{r castor blocking harvest blocks map, echo = F, message = F, eval = T}
+
+m <- c (1,10,1, 10,20,2, 20,30,3, 30,40,4, 40,50,5, 50,100,0, 0,0,0)
+rclmat <- matrix (m, ncol = 3, byrow = TRUE)
+rast.castor.harvest.blocks.50.block.rcl <- classify (rast.castor.harvest.blocks.50.block, 
+                                                    rcl = rclmat,
+                                                    include.lowest = T,
+                                                    right = T)
+
+plot (rast.castor.harvest.blocks.50.block.rcl,
+      col = c ("forestgreen", "yellow1", "olivedrab1", "seagreen1", "dodgerblue3", "darkorchid4"),
+      type = "classes",
+      plg = list (title = "Decade Harvested"))
+
+```
+
+
 ### Roads Model
-In the initial state of the models there were 23,915 ha (~7% of the study area) that were classified as being roaded. 
+In the initial state of the models there were 23,938 ha (~7% of the study area) that were classified as being roaded. 
 ```{r initial roads map}
-
-
+# sum (terra::freq (rast.castor.road.init)) # initial road count
 m <- c (0,6,1)
 rclmat <- matrix (m, ncol = 3, byrow = TRUE)
 rast.castor.road.init.rcl <- classify (rast.castor.road.init, 
@@ -521,12 +750,26 @@ legend ("topright", legend = "Existing Road", fill = "grey0", cex = 0.75,  pt.ce
 In the first 10 years 
 
 
-
-
 ```{r castor count roads }
 
+castor.road.count.year <- data.table (terra::freq (rast.castor.road.year))
+castor.road.count.year <- castor.road.count.year [value > 0, c ("value", "count")]
+names (castor.road.count.year) <- c ( "timeperiod", "count")
+castor.road.count.year$Model <- "Castor"
 
-rast.castor.road.year
+stsm.road.count.year <- stsm.road.record [, c ("Year", "KmRdsBuilt")]
+names (stsm.road.count.year) <- c ( "timeperiod", "count")
+stsm.road.count.year$count <- stsm.road.count.year$count * 10 # convert km to m (x1,000) and assume 1 ha = 100 m of road (/100)
+stsm.road.count.year$Model <- "STSM"
+
+tab.road.count <- rbind (castor.road.count.year, stsm.road.count.year)
+
+
+ggplot (tab.road.count, 
+        aes (x = timeperiod, y = count, group = Model, fill = Model)) +
+  geom_bar (stat="identity", position=position_dodge())
+
+  
 
 
 
@@ -537,11 +780,6 @@ rast.castor.road.year
 - ...
 
 
-```{r coutn roads built by year}
-
-```
-
-
 
 
 ## Conclusions
@@ -550,7 +788,7 @@ rast.castor.road.year
 
 - however, Castor was able to  harvest ~2% more volume/year, because of how it updates volumes stock; in annual steps, year 1 updates volumes by 1 year, i.e., assumes harvest at the end of the year, whereas STSM does not, ie assumes harvest at the start of the year; in a decadal steps, Castor uses the mid-point volume (i.e., in the first step of the simulation it updates volumes to year 5, and then harvest and calculates growing stock) whereas STSM uses the start year volume (i.e., in the first step of the simulation it calculates harvest and growing stock); therefore Castor is a slightly more optimistic model in terms of timber supply estimates
 
-- blocking reduces timber supply; makes sense because it contains harvest to follow patterns of homogeneous forest stands; likely reflects reality better than no blocking
+- blocking reduces timber supply; makes sense because it contrains harvest to spceific spatial locations; both models harvested a similar volume with blocking (2% less in Castor); Castor approach of pre-blocking, or identifying homeoegnous stands that fit a block-szie distrbituion at the initiano of teh analysis had a slightly greater efefct on timber harvest flows than the STSM method of spreading to a defined patch size from a satrtign pixel; Castor allows for less spatial freedom for the model to harvest  
 
 - Castor could be used as a timber supply model to support allowable annual cut dertmeiantions
 

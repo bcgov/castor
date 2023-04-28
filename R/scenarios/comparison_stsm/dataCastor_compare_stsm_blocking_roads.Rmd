@@ -80,7 +80,7 @@ parameters <-  list (
                               nameCutblockRaster = "rast.cns_cut_bl",
                               useLandingsArea = FALSE),
         roadCastor = list (roadMethod = 'pre',
-                           nameCostSurfaceRas = 'castor_stsm_compare.rast_road_cost',
+                           nameCostSurfaceRas = 'castor_stsm_compare.rast_road_cost_adj',
                            nameRoads =  'castor_stsm_compare.rast_roads'
                            ),
         uploadCastor = list(aoiName = 'stsm_compare',

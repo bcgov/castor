@@ -391,6 +391,13 @@ system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 214748364
 cost.surf <- raster::raster (paste0 (data.dir, "STSM\\STSM\\TSA99\\Outputs\\Access\\Scn1\\grids\\AccessCostSurface.tif")) 
 
 system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', data.dir, 'STSM\\STSM\\TSA99\\Outputs\\Access\\Scn1\\grids\\AccessCostSurface.tif -t 100x100 castor_stsm_compare.rast_road_cost | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+# adjusted for Castor
+cost.surf.adj <- cost.surf^2
+writeRaster (cost.surf.adj, paste0 ("D:\\clus_data\\castor_stsm\\castor\\cost_surface_adjusted.tif"), overwrite = T)
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  D:\\clus_data\\castor_stsm\\castor\\cost_surface_adjusted.tif -t 100x100 castor_stsm_compare.rast_road_cost_adj | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
 ```
 
 
