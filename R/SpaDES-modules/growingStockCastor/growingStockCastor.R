@@ -58,13 +58,17 @@ doEvent.growingStockCastor = function(sim, eventTime, eventType) {
       sim$updateInterval<-max(1, round(P(sim, "periodLength", "growingStockCastor")/2, 0)) #take the mid point -- less biased
       sim <- initGSCastor(sim)
       sim <- scheduleEvent(sim, time(sim) + 1, "growingStockCastor", "updateGrowingStock", 1)
+      sim <- scheduleEvent(sim, time(sim) + 1, "growingStockCastor", "reportGrowingStock", 90)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "vacuumInterval", "growingStockCastor"), "growingStockCastor", "vacuumDB", 2)
     },
     updateGrowingStock= {
       sim <- updateGS(sim)
       sim$updateInterval<-P(sim, "periodLength", "growingStockCastor")
-      sim <- recordGS(sim)
       sim <- scheduleEvent(sim, time(sim) + 1, "growingStockCastor", "updateGrowingStock", 1)
+    },
+    reportGrowingStock= {
+      sim <- recordGS(sim)
+      sim <- scheduleEvent(sim, time(sim) + 1, "growingStockCastor", "reportGrowingStock", 90)
     },
     vacuumDB ={
       sim <- vacuumDB(sim)
