@@ -324,7 +324,7 @@ ggplot (tab.harvest.age, aes (x = timeperiod, y = age, color = model, linetype =
 ```
 
 #### Merchantable Growing Stock
-The trends in merchantable growing stock (i.e., volume in the THLB available for harvest) were similar between the Castor model and STSM. The amount of growing stock was close to identical between the models for the first 60 years, although STSM was consistently slightly less for the duration. While the trends were the same after 60 years, the amount of growing stock began to diverge between the models, where growing stock in STSM was increasingly less than growing stock in the Castor model, up to a 9% (645,000 m^3^) difference by year 250. 
+The trends in merchantable growing stock (i.e., volume in the THLB available for harvest) were similar between the Castor model and STSM. The amount of growing stock was close to identical between the models for the first 60 years. While the trends were the same after 60 years, the amount of growing stock began to diverge between the models, where growing stock in STSM was increasingly less than growing stock in the Castor model, up to a 9% (645,000 m^3^) difference by year 250. 
 
 ```{r, annual growing stock, echo = F, message = F, eval = T}
 tab.grow.stock <- castor.grow.stock [scenario == "oldest_annual_noroads_noblocks_133600" & compartment == "tsa99", c ("scenario", "timeperiod", "m_gs")]
@@ -423,7 +423,7 @@ ggplot (tab.harvest.flow, aes (x = timeperiod, y = volume, color = model, linety
 ```
 
 #### Area Harvested 
-When modeling a harvest flow of approximately 133,600 m^3^ per year, the Castor model and STSM had comparable harvest area patterns, i.e., peaks and troughs in area harvested over time generally coincided in both models. However, the models began to diverge slightly at approximately year 100, where STSM harvested more area than the Castor model. From that point on, while both models followed a similar general trend in area harvested (i.e., a trough between approximately years 150 to 175 troughs a peak at approximately year 190), STSM generally harvested more area than Castor.
+When modeling a harvest flow of approximately 133,600 m^3^ per year, the Castor model and STSM had comparable harvest area patterns, i.e., peaks and troughs in area harvested over time generally coincided in both models. However, the models began to diverge slightly at approximately year 70, where STSM harvested more area than the Castor model. From that point on, while both models followed a similar general trend in area harvested (i.e., a trough between approximately years 150 to 175 troughs a peak at approximately year 190), STSM generally harvested more area than Castor.
 
 ```{r, decadal area harvested, echo = F, message = F, eval = T}
 tab.harvest.area <- castor.harvest.flow [scenario == "oldest_decadal_noroads_noblocks_133600", c ("scenario", "timeperiod", "area")]
@@ -455,7 +455,7 @@ ggplot (tab.harvest.area, aes (x = timeperiod, y = area, color = model, linetype
 ```
 
 #### Merchantable Growing Stock
-The trends in merchantable growing stock (i.e., volume in the THLB available for harvest) were similar between the Castor model and STSM. However, while the initial growing stock was the same, at the first time interval (year 10) Castor had a significantly higher growing stock compared to STSM (i.e., ~10M m^3^ to 8.9M m^3^). This was because Castor calculates volume at the mid-point of each time interval (i.e., year 5 when simulating at decadal intervals) whereas STSM calculates volume at the start of the interval. This results in consistently higher growing stock estimates in the Castor model. Similar to the annual model, the amount of growing stock began to diverge between the model at year 60. 
+The trends in merchantable growing stock (i.e., volume in the THLB available for harvest) were similar between the Castor model and STSM. However, STSM had consistently higher growing stock estimates than the Castor model up to year 80, and then both models began to converge between years 80 and 250. 
 
 ```{r, decadal growing stock, echo = F, message = F, eval = T}
 tab.grow.stock <- castor.grow.stock [scenario == "oldest_decadal_noroads_noblocks_133600" & compartment == "tsa99", c ("scenario", "timeperiod", "m_gs")]
@@ -519,7 +519,7 @@ ras <- terra::rast (terra::ext (raster.info$xmin, raster.info$xmax, raster.info$
 pixels <- data.table (dbGetQuery (blocksdb, "SELECT * FROM pixels;"))
 dbDisconnect (blocksdb)
 ras [] <- pixels$blockid
-crs (ras)  <- "epsg:3005"
+terra::crs(ras) <- "epsg:3005"
 
 m <- c (9,11,1, 0,9,0,  11,Inf,0)
 rclmat <- matrix (m, ncol = 3, byrow = TRUE)
@@ -632,7 +632,7 @@ ggplot (tab.harvest.flow, aes (x = timeperiod, y = volume, color = scenario)) +
 ```
 
 #### Area Harvested 
-When blocking was implemented in the models they had similar overall patterns in the amount of area harvested over the simulation, with corresponding timing in the peaks and valleys in area harvested. There were small differences in area harvested within those patterns. For example, the Castor model harvested more area in the first three decades of the simulation and then STSM harvested more area in the fourth to sixth decades. 
+When blocking was implemented in the models they had similar overall patterns in the amount of area harvested over the simulation, with corresponding timing in the peaks and valleys in area harvested. However, there were differences in area harvested within those patterns. For example, the Castor model harvested more area in the first three decades of the simulation and then STSM harvested more area in the fourth to sixth decades. 
 
 ```{r, blocking area harvested, echo = F, message = F, eval = T}
 tab.harvest.area <- castor.harvest.flow [scenario == "oldest_decadal_noroads_blocks", c ("scenario", "timeperiod", "area")]
@@ -662,13 +662,17 @@ ggplot (tab.harvest.area, aes (x = timeperiod, y = area, color = model, linetype
               theme (axis.text.x = element_text (angle = 45, hjust = 1))
 
 ```
+
 #### Merchantable Growing Stock
-The trends in merchantable growing stock were similar between the Castor model and STSM. However, the models diverged at approximately year 80, where Castor growing stock had an overall slightly declining trend compared to STSM which had a slight increasing trend. 
+The trends in merchantable growing stock were similar between the Castor model and STSM. However, the models increasingly diverged, and this divergence became notably large at approximately year 70, where the Castor growing stock reached its plateau at approximately 5M m^3^ compared to STSM which reached its plateau at approximately 6M m^3^ before increasing to approximately 6.5M m^3^ at year 250.
 
 ```{r, decadal growing stock, echo = F, message = F, eval = T}
 tab.grow.stock <- castor.grow.stock [scenario == "oldest_decadal_noroads_blocks" & compartment == "tsa99", c ("scenario", "timeperiod", "m_gs")]
 names (tab.grow.stock) <- c ("scenario", "timeperiod", "growing_stock")
 tab.grow.stock$model <- "castor"
+tab.grow.stock$timeperiod <- c (seq (from = 10, to = 260, by = 10)) # need to shift the values for reporting
+tab.grow.stock [26, 2] <- 0
+tab.grow.stock [26, 3] <- 9716881
 
 stsm.fig <- stsm.decadal.grow.stock [ScenarioId == 1, c ("Year", "THLB_1")]
 names (stsm.fig) <- c ( "timeperiod", "growing_stock")
