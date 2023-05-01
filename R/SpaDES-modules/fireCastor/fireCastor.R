@@ -204,8 +204,9 @@ setTablesCastorDB <- function(sim) {
     message(print(ras.extent))
     
     browser()
+    print( paste0("INSERT INTO raster_info (name, xmin, xmax, ymin, ymax, ncell, nrow, crs) values ('ras2', ",ras.extent[1],", ",ras.extent[2],", ", ras.extent[3], ", ",ras.extent[4], ", ",ncell(sim$ras), ", ",nrow(sim$ras),", '3005');"))
     #TODO: Hard coded for epsg 3005 need to convert to terra?
-    dbExecute(sim$castordb, glue::glue("INSERT INTO raster_info (name, xmin, xmax, ymin, ymax, ncell, nrow, crs) values ('ras', {ras.extent[1]}, {ras.extent[2]}, {ras.extent[3]}, {ras.extent[4]}, {ncell(sim$ras)}, {nrow(sim$ras)}, '3005');"))
+    DBI::dbExecute(sim$castordb, paste0("INSERT INTO raster_info (name, xmin, xmax, ymin, ymax, ncell, nrow, crs) values ('ras2', ",ras.extent[1],", ",ras.extent[2],", ", ras.extent[3], ", ",ras.extent[4], ", ",ncell(sim$ras), ", ",nrow(sim$ras),", '3005');"))
     
   }else{ #Set the empty table for values not supplied in the parameters
     
