@@ -5,8 +5,6 @@ date: '2023-03-22'
 output: html_document
 ---
 
-
-
 ```{r, load packages, data}
 library (terra)
 library (DBI)
@@ -29,7 +27,7 @@ conn <- DBI::dbConnect (RPostgreSQL::PostgreSQL(),
 ## TABLES
 castor.harvest.flow <- data.table (dbGetQuery (conn, "SELECT * from stsm_compare.harvest"))
 castor.grow.stock <- data.table (dbGetQuery (conn, "SELECT * from stsm_compare.growingstock"))
-castor.preblocks <- data.table (read.csv ("D:\\clus_data\\castor_stsm\\castor\\blocks.csv"))
+castor.preblocks <- data.table (read.csv (paste0 (data.dir, "\\castor\\blocks.csv")))
 dbDisconnect (conn)
 
 stsm.annual.harvest.flow <- data.table (read.table (paste0 (data.dir, "\\stsm\\tsa99\\annual_run\\harvestRecord.txt"), 
@@ -59,7 +57,7 @@ rast.castor.harvest.blocks.50.annual.133 <- terra::rast (paste0 (data.dir, "\\ca
 rast.castor.harvest.blocks.50.block <- terra::rast (paste0 (data.dir, "\\castor\\rasters\\oldest_decadal_noroads_blocks_tsa99_harvestBlocks_50yrs.tif"))
 rast.stsm.harvest.blocks.50.annual <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\annual_run\\oScn250_1yr\\grids\\Logged_1_5.tif"))
 rast.stsm.harvest.blocks.50.blocking <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_no_roads\\oScn250\\grids\\Logged_1_5.tif"))
-rast.castor.preblocks <- terra::rast ("D:\\clus_data\\castor_stsm\\castor\\hu_blocks_noroads.tif")
+rast.castor.preblocks <- terra::rast ("D:\\clus_data\\castor_stsm\\castor\\hu_blocks_no_roads.tif")
 
 rast.stsm.blocking.harvest.blocks.1 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_no_roads\\oScn250\\grids\\Logged_1_1.tif"))
 rast.stsm.blocking.harvest.blocks.2 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_no_roads\\oScn250\\grids\\Logged_1_2.tif"))
@@ -71,6 +69,41 @@ rast.stsm.blocking.harvest.blocks.5 <- terra::rast (paste0 (data.dir, "\\stsm\\t
 rast.castor.road.init <- terra::rast (paste0 (data.dir, "\\castor\\rasters\\rast_roads_init.tif"))
 rast.castor.road.status <- terra::rast (paste0 (data.dir, "\\castor\\rasters\\oldest_decadal_roads_blocks_tsa99_mst_status_250.tif"))
 rast.castor.road.year <- terra::rast (paste0 (data.dir, "\\castor\\rasters\\oldest_decadal_roads_blocks_tsa99_mst_year_250.tif"))
+
+rast.stsm.road.10 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_1.tif"))
+rast.stsm.road.20 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_2.tif"))
+rast.stsm.road.30 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_3.tif"))
+rast.stsm.road.40 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_4.tif"))
+rast.stsm.road.50 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_5.tif"))
+rast.stsm.road.60 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_6.tif"))
+rast.stsm.road.70 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_7.tif"))
+rast.stsm.road.80 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_8.tif"))
+rast.stsm.road.90 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_9.tif"))
+rast.stsm.road.100 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_10.tif"))
+rast.stsm.road.110 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_11.tif"))
+rast.stsm.road.120 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_12.tif"))
+rast.stsm.road.130 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_13.tif"))
+rast.stsm.road.140 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_14.tif"))
+rast.stsm.road.150 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_15.tif"))
+rast.stsm.road.160 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_16.tif"))
+rast.stsm.road.170 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_17.tif"))
+rast.stsm.road.180 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_18.tif"))
+rast.stsm.road.190 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_19.tif"))
+rast.stsm.road.200 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_20.tif"))
+rast.stsm.road.210 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_21.tif"))
+rast.stsm.road.220 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_22.tif"))
+rast.stsm.road.230 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_23.tif"))
+rast.stsm.road.240 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_24.tif"))
+rast.stsm.road.250 <- terra::rast (paste0 (data.dir, "\\stsm\\tsa99\\spatial_roaded\\oScn250_roaded\\grids\\RoadState_1_25.tif"))
+
+rast.stsm.road.all <- rast.stsm.road.250 + rast.stsm.road.240 + rast.stsm.road.230 +
+                      rast.stsm.road.220 + rast.stsm.road.210 + rast.stsm.road.200 + 
+                      rast.stsm.road.190 + rast.stsm.road.180 + rast.stsm.road.170 + 
+                      rast.stsm.road.160 + rast.stsm.road.150 + rast.stsm.road.140 +
+                      rast.stsm.road.130 + rast.stsm.road.120 + rast.stsm.road.110 +
+                      rast.stsm.road.100 + rast.stsm.road.90 + rast.stsm.road.80 +
+                      rast.stsm.road.70 + rast.stsm.road.60 + rast.stsm.road.50 +
+                      rast.stsm.road.40 + rast.stsm.road.30 + rast.stsm.road.20 + rast.stsm.road.10
 ```
 
 ## Introduction
@@ -591,7 +624,7 @@ ggplot (tab.block.sizes,
 ```
 
 #### Harvest Flow
-Both models harvested less volume when blocking was implemented. The Castor model harvested 124,500 m^3^/year with blocking, a 7% decline from the baseline model with a 133,600 m^3^/year harvest flow. The STSM model with blocking harvested 127,000 m^3^/year,a 5% decline from the baseline model harvest flow. There was a 2% difference in harvest flows between the Castor and STSM when blocking was simulated in the models. Therefore, pre-defining blocks resulted in lower timber supply in both models, but the Castor method was slightly more constraining on timber supply.
+Both models harvested less volume when blocking was implemented. The Castor model harvested 130,000 m^3^/year with blocking, a 3% decline from the baseline model with a 133,600 m^3^/year harvest flow. The STSM model with blocking harvested 127,000 m^3^/year,a 5% decline from the baseline model harvest flow. There was a 2% difference in harvest flows between the Castor and STSM when blocking was simulated in the models. Therefore, pre-defining blocks resulted in lower timber supply in both models, but the Castor method was slightly more constraining on timber supply.
 
 ```{r, blocking harvest flow block vs. no block, echo = F, message = F, eval = T}
 
@@ -670,9 +703,9 @@ The trends in merchantable growing stock were similar between the Castor model a
 tab.grow.stock <- castor.grow.stock [scenario == "oldest_decadal_noroads_blocks" & compartment == "tsa99", c ("scenario", "timeperiod", "m_gs")]
 names (tab.grow.stock) <- c ("scenario", "timeperiod", "growing_stock")
 tab.grow.stock$model <- "castor"
-tab.grow.stock$timeperiod <- c (seq (from = 10, to = 260, by = 10)) # need to shift the values for reporting
-tab.grow.stock [26, 2] <- 0
-tab.grow.stock [26, 3] <- 9716881
+# tab.grow.stock$timeperiod <- c (seq (from = 10, to = 260, by = 10)) # need to shift the values for reporting
+# tab.grow.stock [26, 2] <- 0
+# tab.grow.stock [26, 3] <- 9716881
 
 stsm.fig <- stsm.decadal.grow.stock [ScenarioId == 1, c ("Year", "THLB_1")]
 names (stsm.fig) <- c ( "timeperiod", "growing_stock")
@@ -725,16 +758,19 @@ rast.castor.harvest.blocks.50.block.rcl <- classify (rast.castor.harvest.blocks.
                                                     include.lowest = T,
                                                     right = T)
 
-plot (rast.castor.harvest.blocks.50.block.rcl,
-      col = c ("forestgreen", "yellow1", "olivedrab1", "seagreen1", "dodgerblue3", "darkorchid4"),
-      type = "classes",
-      plg = list (title = "Decade Harvested"))
+terra::plot (rast.castor.harvest.blocks.50.block.rcl,
+              col = c ("forestgreen", "yellow1", "olivedrab1", 
+                       "seagreen1", "dodgerblue3", "darkorchid4"),
+              type = "classes",
+              plg = list (title = "Decade Harvested"))
 
 ```
 
 
 ### Roads Model
-In the initial state of the models there were 23,938 ha (~7% of the study area) that were classified as being roaded. 
+#### Road Development Pattern
+In the initial state of the models there were 23,938 ha (7% of the study area) that were classified as being roaded. Existing roads were concentrated in the northeast, central and southwest portions of the area of interest. Few existing roads were located in the northwest portion fo the area of interest. 
+
 ```{r initial roads map}
 # sum (terra::freq (rast.castor.road.init)) # initial road count
 m <- c (0,6,1)
@@ -743,15 +779,61 @@ rast.castor.road.init.rcl <- classify (rast.castor.road.init,
                                                     rcl = rclmat,
                                                     include.lowest = T,
                                                     right = T)
-# sum (rast.castor.road.init.rcl[], na.rm = T)  = 23,915 ha have a road
-raster::plot (rast.castor.road.init.rcl,
+# sum (rast.castor.road.init.rcl[], na.rm = T)  # 23,915 ha have a road
+terra::plot (rast.castor.road.init.rcl,
               col = c ("grey0"),
               legend = F) 
 legend ("topright", legend = "Existing Road", fill = "grey0", cex = 0.75,  pt.cex = 1)
 
 ```
 
-In the first 10 years 
+At the end of the simulation Castor had simulated roads in 38,671 ha (11%) and STSM simulated roads in 39,991 ha (11%) of the study area. Thus, STSM simulated slightly more roaded areas than Castor but they are remarkably similar (i.e., less than 1% of the area of interest).
+
+The difference in road development patterns are illustrated below in the northwest corner of the study area where there were few existing roads at the start of the simulation. Existing roads are indicated in black and roads simulated by Castor are indicated in purple in the top figure. The bottom figure shows all roads in STSM, including existing and simulated. While the branching pattern fo the roads is somewhat different, the overall broad pattern is similar, as roads followed the least-cost path to develop a road system. 
+
+```{r final roads castor}
+# sum (terra::freq (rast.castor.road.year))
+m <- c (0,0,1, 1,251,2)
+rclmat <- matrix (m, ncol = 3, byrow = TRUE)
+rast.castor.road.year.rcl <- classify (rast.castor.road.year, 
+                                                    rcl = rclmat,
+                                                    include.lowest = T,
+                                                    right = T)
+
+e <- ext (999987.5, 1030000, 1200000, 1223387.5)
+rast.castor.road.year.rcl.crop <- terra::crop (rast.castor.road.year.rcl, e)
+
+terra::plot (rast.castor.road.year.rcl.crop,
+      col = c ("black", "darkorchid4"),
+      type = "classes",
+      levels = c ("Existing Road", "New Road"),
+      plg = list (title = "Road Types"))
+
+```
+
+```{r final roads stsm}
+m <- c (0,0,0, 1,150,1)
+rclmat <- matrix (m, ncol = 3, byrow = TRUE)
+rast.stsm.road.all.rcl <- classify (rast.stsm.road.all, 
+                                                    rcl = rclmat,
+                                                    include.lowest = T,
+                                                    right = T)
+# terra::freq (rast.stsm.road.all.rcl)
+e <- ext (999987.5, 1030000, 1200000, 1223387.5)
+rast.stsm.road.all.rcl.crop <- terra::crop (rast.stsm.road.all.rcl, e)
+terra::plot (rast.stsm.road.all.rcl.crop,
+      col = c ("white", "darkorchid4"),
+      type = "classes",
+      levels = c ("Not Roaded", "Road"),
+      plg = list (title = "Road Type"))
+
+```
+
+  
+Despite the broad-scale similarites in road development, the patterns of road development were notably different between the two models. Castor built the bulk of its roads early in the simualtion
+
+
+
 
 
 ```{r castor count roads }
@@ -771,12 +853,10 @@ tab.road.count <- rbind (castor.road.count.year, stsm.road.count.year)
 
 ggplot (tab.road.count, 
         aes (x = timeperiod, y = count, group = Model, fill = Model)) +
-  geom_bar (stat="identity", position=position_dodge())
-
-  
-
-
-
+  geom_bar (stat = "identity", position = position_dodge ()) +
+  scale_y_continuous (breaks = c (0,500,1000,1500,2000,2500,3000)) +
+  scale_x_continuous (breaks = c (0,25,50,75,100,125,150,175,200,225,250)) +
+  labs (x = "Year", y = "Number of Roaded Pixels")
 ```
 
 
@@ -794,9 +874,11 @@ ggplot (tab.road.count,
 
 - blocking reduces timber supply; makes sense because it contrains harvest to spceific spatial locations; both models harvested a similar volume with blocking (2% less in Castor); Castor approach of pre-blocking, or identifying homeoegnous stands that fit a block-szie distrbituion at the initiano of teh analysis had a slightly greater efefct on timber harvest flows than the STSM method of spreading to a defined patch size from a satrtign pixel; Castor allows for less spatial freedom for the model to harvest  
 
-- Castor could be used as a timber supply model to support allowable annual cut dertmeiantions
+- Castor could be used as a timber supply model to support allowable annual cut determinations
 
+- Castor adn STSM simualte similar road networks broadly speaking. there are differences in the pattern at fine-scales, but these are likely trivial for long-term simulation models 
 
+- differences in periods of road development were likely due to constains in STSM on raod development (i.e., blocks coudl only be activiate within 2km of an existign road)
 
 
 
