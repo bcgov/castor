@@ -441,7 +441,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 5500000, #1,100,000m3/year
+                                     flow = 5500000, #1,100,000m3/year -1.3
                                      partition_type = 'live'),
                               data.table(compartment = "TFL48",
                                      partition = ' vol > 150 ', 
@@ -449,7 +449,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 2000000, #400,000m3/year 
+                                     flow = 2000000, #400,000m3/year -425
                                      partition_type = 'live')
 ))
 
