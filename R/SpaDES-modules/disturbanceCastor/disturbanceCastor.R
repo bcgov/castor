@@ -50,7 +50,8 @@ defineModule(sim, list(
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput("disturbance", "data.table", "Disturbance table for every pixel"),
-    createsOutput("disturbanceReport", "data.table", "Summary per simulation period of the disturbance indicators")
+    createsOutput("disturbanceReport", "data.table", "Summary per simulation period of the disturbance indicators"),
+    createsOutput("road_distance", "data.table", "a data.table of road distance by pixelid")
   )
 ))
 
@@ -70,7 +71,7 @@ doEvent.disturbanceCastor = function (sim, eventTime, eventType) {
       }
     },
     disturbProcess ={
-      sim<-distProcess(sim)
+      sim <- distProcess(sim)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "disturbanceCastor"), "disturbanceCastor", "disturbProcess", 9)
       
     },
@@ -197,6 +198,8 @@ Init <- function(sim) {
   }
  } 
   
+  
+ 
   return(invisible(sim))
 }
 
@@ -224,6 +227,7 @@ distAnalysis <- function(sim) {
   
     outPts<-outPts[is.na(field) , rds_dist := nearNeigh_rds$nn.dists] # assign the distances
     outPts[is.na(rds_dist), rds_dist:=0] # those that are the distance to pixels, assign 
+    sim$road_distance<-outPts[, c("pixelid", "rds_dist")]
     road_summary<-Filter(function(x) dim(x)[1] > 0,
                              list(outPts[rds_dist == 0  & !is.na(critical_hab), .(road50 = uniqueN(.I)), by = c("compartment","critical_hab")],
                                   outPts[rds_dist <= 250 & !is.na(critical_hab), .(road250 = uniqueN(.I)), by = c("compartment","critical_hab")],
