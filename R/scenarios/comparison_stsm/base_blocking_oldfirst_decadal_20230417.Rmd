@@ -125,7 +125,7 @@ modules <- list("dataCastor",
                 )
 
 scenario = data.table (name = "oldest_decadal_noroads_blocks",
-                       description = "Priority queue = oldest first. Adjacency constraint = None. No roads or blocks. Maximum even live harvest flow: 124,500 m3/year. Minimum harvest age = 80 and minimum harvest volume = 150")
+                       description = "Priority queue = oldest first. Adjacency constraint = None. No roads or blocks. Maximum even live harvest flow: 130,000 m3/year. Minimum harvest age = 80 and minimum harvest volume = 150")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="tsa99",
@@ -134,7 +134,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="tsa99",
                                                       to = 25, 
                                                       by = 1),
                                                 1), 
-                                     flow = 1245000, # 124,500m3/year 
+                                     flow = 1300000, # 130,000m3/year 
                                      partition_type = 'live') 
 ))
 

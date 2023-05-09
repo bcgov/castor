@@ -47,14 +47,13 @@ zone_cond_cw = community watersheds
 central_grp_partner_areas_072022 = Partnership Agreement areas, where no harvest is permitted in A2, B2, B3 and B4 zones; A1, B1, B5 max 10% <40 years old
 central_group_chra_032023 = No harvest
 
-```{r, update partnerhsip zone constraints}
+```{r, update chra zone constraints}
 require (DBI)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
-castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/central_group/inputs/central_group_tsu_march2023_castordb.sqlite"))
+castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/central_group/inputs/central_group_tsu_march2023_castordb_chra_modified.sqlite"))
 
 check <- dbGetQuery (castordb, "SELECT * from zoneconstraints WHERE reference_zone = 'rast.central_group_chra_032023'") # rast.central_group_chra_032023
-dbExecute (castordb, "UPDATE zoneconstraints SET type = 'nh' WHERE reference_zone = 'rast.central_group_chra_032023'") 
-#dbExecute (castordb, "UPDATE zoneconstraints SET type = 'ge' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid IN (1, 3, 9)") 
+dbExecute (castordb, "UPDATE zoneconstraints SET percentage = 90 WHERE percentage = 95 AND reference_zone = 'rast.central_group_chra_032023'") 
 
 dbDisconnect (castordb)  
 
@@ -98,8 +97,8 @@ parameters <- list(
   .globals = list(),
   dataCastor = list(dbName='castor',
                          saveCastorDB = FALSE,
-                         sqlite_dbname = "central_group_march2023", 
-                         useCastorDB = paste0(here::here(), "/R/scenarios/central_group/inputs/central_group_tsu_march2023_castordb.sqlite"),
+                         sqlite_dbname = "central_group_tsu_march2023_castordb_chra_modified", 
+                         useCastorDB = paste0(here::here(), "/R/scenarios/central_group/inputs/central_group_tsu_march2023_castordb_chra_modified.sqlite"),
                          nameBoundaryFile = "public.tsa_aac_bounds", 
                           nameBoundaryColumn = "tsa_name", 
                           nameBoundary = c ("Dawson_Creek_TSA", "TFL48"), 
@@ -182,8 +181,8 @@ modules <- list("dataCastor",
                 "volumebyareaReportCastor"
                 )
 
-scenario = data.table (name = "central_group_chra_no_harvest_tfl48_dawsonck_april2023",
-                       description = "No Harvest in caribou Habitat Recovery Areas (CHRA) scenario. Max. non-declining harvest flow; TFL 48 = 395,000 m3/yr; Dawson Creek TSA = 1.08 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years). Partnership areas included (A2, B2, B3, B4 = no harvest; A1, B1, B5 = 90% > 40 years old).")
+scenario = data.table (name = "chra_nh_80y_90ge40_120y_tfl48_dawsonck_may2023",
+                       description = "No Harvest in caribou Habitat Recovery Areas (CHRA) for first 80 years, then maximum 5% early seral (<40 y.o.) years 81 to 200. Max. non-declining harvest flow; TFL 48 = 410,000 m3/yr; Dawson Creek TSA = 1.2 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years). Partnership areas included (A2, B2, B3, B4 = no harvest; A1, B1, B5 = 90% > 40 years old).")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
@@ -192,7 +191,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 5400000, #1,080,000m3/year
+                                     flow = 6000000, #1,200,000m3/year -1.3
                                      partition_type = 'live'),
                               data.table(compartment = "TFL48",
                                      partition = ' vol > 150 ', 
@@ -200,7 +199,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 1975000, #395,000m3/year 
+                                     flow = 2050000, #410,000m3/year -425
                                      partition_type = 'live')
 ))
 
@@ -210,7 +209,7 @@ patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   3,3,3,3,3,3,
                                   4,4,4,4,4,4,
                                   5,5,5,5,5,5), 
-                           sizeClass = c(40,80,120,160,200,240), 
+                           sizeClass = c(40,81,120,160,200,240), 
                            freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
                                     0.3,0.3,0.1,0.1,0.1, 0.1,
                                     0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
