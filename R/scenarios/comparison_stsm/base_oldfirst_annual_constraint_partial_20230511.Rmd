@@ -26,16 +26,38 @@ This scenario was developed to compare the basic STSM-SELES timber supply model 
 ## Scenario
 This is a simple scenario where the harvest flow target is the maximum even flow over a 200 year period. The harvest priority queue is 'oldest first' and no constraints, blocking or roading is implemented in the model. 
 
+## Calculate Some Diagnostics
+
 ## Update constraint
 
 ```{r, update constraints}
 
-castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_constraint_castordb.sqlite"))
-check <- dbGetQuery (castordb, "SELECT * from zoneconstraints WHERE reference_zone = 'castor_stsm_compare.rast_zone_test'") 
-dbExecute (castordb, "UPDATE zoneconstraints SET type = 'nh' WHERE reference_zone = 'castor_stsm_compare.rast_zone_test'")
-dbDisconnect(castordb)
+## add AFLB data to pixels table
+tab.aflb <- data.table (pixelid = terra::rast ("G:\\!Workgrp\\Analysts\\tmuhly\\clus_stsm_comparison\\results\\pixelid.tif")[],
+aflb = terra::rast ("G:\\!Workgrp\\Analysts\\tmuhly\\clus_stsm_comparison\\results\\tsa99_aflb.tif")[]/10000)
 
+names (tab.aflb) <- c ("pixels", "aflb")
+
+castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_constraint_aflb_castordb.sqlite")) # a copy of stsm_compare_noroads_noblocks_constraint_castordb
+
+dbExecute (castordb, "ALTER TABLE pixels ADD COLUMN aflb numeric DEFAULT 0")
+
+rs <- dbSendQuery(castordb, "UPDATE pixels SET aflb = :aflb WHERE pixelid = :pixels", tab.aflb)
+dbClearResult(rs)
+dbCommit(castordb) 
+
+## Update zoneconstraints table
+castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_constraint_aflb_castordb.sqlite"))
+check <- dbGetQuery (castordb, "SELECT * from zoneconstraints WHERE reference_zone = 'castor_stsm_compare.rast_zone_test'") 
+dbExecute (castordb, "UPDATE zoneconstraints SET multi_condition = NULL;") 
+dbExecute (castordb, "UPDATE zoneconstraints SET type = 'ge' WHERE reference_zone = 'castor_stsm_compare.rast_zone_test'")
+dbExecute (castordb, "UPDATE zoneconstraints SET percentage = 75 WHERE reference_zone = 'castor_stsm_compare.rast_zone_test'") 
+dbExecute (castordb, "UPDATE zoneconstraints SET threshold = 175 WHERE reference_zone = 'castor_stsm_compare.rast_zone_test'") 
+dbExecute (castordb, "UPDATE zoneconstraints SET denom = ' aflb > 0 ' WHERE reference_zone = 'castor_stsm_compare.rast_zone_test'") 
+
+dbDisconnect(castordb)
 ```
+
 
 ## Parameters 
 ### Zone Constraints
@@ -61,14 +83,14 @@ moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCastor/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/scenarios/comparison_stsm/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/forestryCastor"))
-times <- list(start = 0, end = 25) # 10 year interval; 250 years = 25 intervals
+times <- list(start = 0, end = 250) # 1 year interval; 250 years = 250 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataCastor = list (dbName='castor',
                      saveCastorDB = FALSE,
-                     sqlite_dbname = "stsm_compare_noroads_noblocks_constraint",
-                     useCastorDB = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_constraint_castordb.sqlite"),
+                     sqlite_dbname = "stsm_compare_noroads_noblocks_age0",
+                     useCastorDB = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_constraint_aflb_castordb.sqlite"),
                      nameBoundaryFile = "castor_stsm_compare.bounds_tsa99", 
                           nameBoundaryColumn = "tsa_name", 
                           nameBoundary = "tsa99", 
@@ -97,7 +119,7 @@ parameters <- list(
   blockingCastor = list(blockMethod = 'pre',
                         patchZone = 'default',
                         patchVariation = 6),
-  growingStockCastor = list (periodLength = 10,
+  growingStockCastor = list (periodLength = 1,
                              maxYieldAge = 250),
   uploadCastor = list(aoiName = 'stsm_compare',
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
@@ -113,17 +135,17 @@ modules <- list("dataCastor",
                 "uploadCastor"
                 )
 
-scenario = data.table (name = "oldest_decadal_noroads_noblocks_constraint",
-                       description = "Priority queue = oldest first. No harvest zone constraint. Adjacency constraint = None. No roads or blocks. Maximum even live harvest flow: 117,500 m3/year. Minimum harvest age = 80 and minimum harvest volume = 150")
+scenario = data.table (name = "oldest_annual_noroads_noblocks_constraint_modified_aflb",
+                       description = "Priority queue = oldest first. Adjacency constraint = None. Constraint zone: 75% >= 175 years old. No roads or blocks. Maximum even live harvest flow: 118,500 m3/year. Minimum harvest age = 80 and minimum harvest volume = 150")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="tsa99",
                                      partition = ' age > 79 AND vol > 149 ', 
                                      period = rep( seq (from = 1,
-                                                      to = 25, 
+                                                      to = 250, 
                                                       by = 1),
                                                 1), 
-                                     flow = 1175000, # 117,500m3/year 117-118
+                                     flow = 118500, # 118,500m3/year
                                      partition_type = 'live') 
 ))
 

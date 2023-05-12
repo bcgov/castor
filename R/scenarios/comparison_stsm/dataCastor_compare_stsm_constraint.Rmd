@@ -186,7 +186,10 @@ dbDisconnect(castordb)
 
 ```{r}
 db <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_constraint_castordb.sqlite"))
-
 dbExecute (db, "UPDATE pixels SET age = 0 WHERE age IS NULL AND thlb > 0;") 
+dbExecute (db, "UPDATE pixels SET age = 249 WHERE age > 249;") 
+
+dbDisconnect(db)
+
 ```
 

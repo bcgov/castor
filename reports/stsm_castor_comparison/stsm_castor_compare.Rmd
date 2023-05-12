@@ -137,51 +137,36 @@ We simulated five scenarios:
 * decadal time step; no blocking, no roads
 * blocking; decadal time step; no roads
 * blocking and roads; decadal time step
-* harvest constraint; decadal time step; no blocking, no roads 
+* no harvest constraint; decadal time step; no blocking, no roads 
+* modified harvest constraint; annual time step; no blocking, no roads 
 
 Two simulations had no roading and no harvest block definition, i.e., each 1 ha pixel was considered a harvest 'block'. Of these two simulations, one was simulated with an annual time step to compare the two models without the effect of interpolating yield values between decadal periods. A second was simulated with a decadal time step to show the effect of the different yield interpolation methods used by each model (see *Yield Update* below). The blocking scenario allowed for comparison of how each model simulated harvest blocks (see *Harvest Blocking* below).
 
+The no harvest constraint scenario essentially removed a hypothetical zone of interest from the THLB. The modified harvest scenario applied an age-based constraint to the same zone of interest, where 50% of productive forest land base of the zone (i.e., forested areas with a site productivity greater than 5) had to be greater than or equal to 175 years of age.    
+
 ###  Yield Update
-The Castor and STSM models have different approaches for updating growth and yield values (e.g., volume, height) over time.
-
-
-
-
+The Castor and STSM models have different approaches for updating growth and yield values (e.g., volume, height) at simulation period intervals. The effect of these different approaches on timber supply estimates were tested.  
 
 #### Castor
--	Mid-point
-o	Forest Estate Model Sample Clauses | Law Insider
-o	Aggregation of Age Classes in Timber Resources Scheduling Models: Its Effects and Bias | Forest Science | Oxford Academic (oup.com)
--	5 year increment
-
-[‎2023-‎02-‎01 12:19 PM]  Lochhead, Kyle FLNR:EX:  
-they say what is currently out there aka time = 0....use that volume and harvest 10 years worth of timber....then at time period 2, increase the age by 10 years
-for us its report the time=0 (no harvesting goes on), then increase the age by the midpoint of the timperiod (5 years) then go find 10 years worth of timber, then in timperiod 2 increase by 10 years....so time period 1 = 5 years, timperiod 2 = 15, as increments , timperiod 3 = 25
-
-
-
-Probability of initiation fo cutblock is driven by a number of parameters, depnign on how coarse/fine the analyst makes; sort cells based on preferences; preference value for cells; random selection; set seed
--	Oldest first; harvest queue
-
-
-- in annual time step, castor takes the yiled at time = 1, stsm at time = 0
-
+The Castor model updates growth and yield values at the mid-point of a simulation period. Therefore, if a simulation period is a decade, in the first period Castor updates growth and yield estimates to year 5 of the simulation by interpolating the estimates between the initial (year 0) and 10 year estimates from the growth and yield model. For example, if the initial stand volume is 150 m^3^/ha at year 0, and 170 m^3^/ha at year 10, then the Castor model will use 160 m^3^/ha as the value for the first interval. The age of forest stands harvested at the mid-point is set to 0. Castor then updates stand age and growth and yield estimates at 10 year intervals from there, but the key point is that things like volume harvested are first accounted for at the middle of the interval, not the beginning or end of the interval.  
 
 #### STSM
-- annualized harvest in a time interval (e.g., a decade)
-- divides harvest request across years in a time interval; so if harvets request is 10 years, it gets divdied by ten
-- first 10% (year 1) of queue gets advanced one year in age and volume, then harvested and age set to 0; becomes age 10 in next interval
-- second 10% (year 2) of queue gets advanced two years in age and volume, then harvested and age set to -1; becomes age 9 in next interval
-- etc.
-- ninth 10% (year 9) of queue gets advanced two years in age and volume, then harvested and age set to -9; becomes age 1 in next interval
-
+In contrast to Castor, STSM does not update growth and yield estimates at the mid-point of an interval. Instead, it accounts for growth and yield estimates at each year of the interval. Therefore, teh harvest request is divided equally by the number of years in the interval. For example, when using a 10 year interval, it will update and harvest stand volume at year 1, year 2, year 3, etc., up to year 10. The interval that each stand is harvested is multiplied by -1 (e.g., year 1 = -1, year 2 = -2, year 3 = -3,  etc.) and then in the next interval stands are aged 10 years (i.e., stand ages become 9, 8, 7, etc.). In addition it harvests stands at the start of the interval, i.e., the harvest request begins at year 0, and thus the volume is not updated in the first year. 
 
 ###  Harvest Blocking
+In this analysis, scenarios with and without blocking were simulated to compare how the two models created harvest blocks, and its potential effects on harvest flow. When blocking was not simulated, both models selected harvest areas at a 1 ha spatial resolution (a pixel) using the harvest priority criteria (i.e., oldest first). Therefore, each block was harvested interdependently, in order of its age, and there was no defined spatial pattern or aggregation of pixels to form blocks.    
+
 #### Castor
-- agglomerative clustering; pixels (ha) get grouped together based on stand characteristics (similarities determined using mahalanobis distance statistic) and block size target
-- block size drawn from patch size distribution targets 
+Castor uses the agglomerative hierarchical clustering method to pre-define harvest blocks. This method searches the landscape and groups pixels (i.e., ha) into blocks with similar forest characteristics (i.e., crown closure and height) and in close spatial proximity (i.e., Euclidean distance). It evaluates whether to cluster pixels together using the mahalanobis distance statistic, which measures how far a pixels stand characteristics are from the distribution of the mean value of those characteristics in neighbouring pixels. If the mahalanobis distance is below a threshold (in this case the default value of 6), then a pixel gets grouped into the cluster, otherwise it gets grouped into another cluster, or forms its own cluster.     
+
+Once clustering is complete, block sizes are determined by drawing from a distribution of block sizes, where larger blocks are placed on the landscape first and subsequently smaller blocksare added until blocking is complete.
 
 #### STSM
+STSM uses a spreading algortihm to
+
+
+
+
 - starts with 'preferred' cell in harvest queue
 - then identifies a patch size target, but these are 'soft targets' so as not to become too constraining
 - then sorts cells in the patch by harvest queue preference
@@ -228,13 +213,24 @@ It assumes:
 •	Scenario 2 blocking assumptions are applied
 
 - rooks case
-- building min density of roads; effciciency 
+- building min density of roads; efficiency 
 
 
 
 
-#### STSM Constraints
-- contraints are assessed four times per year
+### Constraints
+- no harvest zone
+- for same zone, applied a harvest constraint where 75% of the productive forest (i.e., forested areas with a site index > 5) had to be greater than or equal to 250 years old; (note that i used the aflb data form STSM)
+
+
+#### Castor
+
+
+#### STSM
+
+- constraints from minimum of threshold (e.g., age) to increaign values up until teh percetnate is achieved; so in case of an age cosntaint, with a 100 year threhold, ti tcoudl reserve satnd from 100 to 120 years old adn leave stands > 120 uyears old if the percentage is met
+
+-  contraints are assessed four times per year
 - detailed check of constraints at pixel scale
 
 
@@ -261,7 +257,7 @@ We then compared the maximum non-declining harvest flow of each model on an annu
 
 ### Annual Harvest Simulation
 #### Harvest Flow
-When modeling the maximum non-declining harvest flow of each model on an annual basis, the Castor model was able to harvest approximately 136,000 m^3^ per year. STSM was able to harvest approximately 134,000 m^3^ per year. Thus, Castor was able to harvest slightly more volume (~2,000 m^3^ per year, or 1.6%).
+When modeling the maximum non-declining harvest flow of each model on an annual basis, the Castor model was able to harvest approximately 136,000 m^3^ per year. STSM was able to harvest approximately 133,600 m^3^ per year. Thus, Castor was able to harvest slightly more volume (~1,400 m^3^ per year, or 2%).
 
 ```{r, annual harvest flow, echo = F, message = F, eval = T}
 
@@ -860,7 +856,7 @@ ggplot (tab.road.count,
 - ...
 
 ### No Harvest Constraint Simulation
-When the models were run with a hypothetical no harvest zone in the eastern portion of the area of interest (outlined in green over the timber harvest land base), the Castor model harvested 108,500 m^3^/year, 19% less than without the no harvest zone, and the STSM model harvested xxxxxx m^3^/year, xx% less than without the no harvest zone.
+When the models were run with a hypothetical no harvest zone in the eastern portion of the area of interest (outlined in green over the timber harvest land base), the Castor model harvested 117,500 m^3^/year, 12% less than without the no harvest zone, and the STSM model harvested 120,216 m^3^/year, 10% less than without the no harvest zone. Thus the two models were approximately 2% different.
 
 ```{r zone constraint map}
 
@@ -882,7 +878,7 @@ terra::polys (poly.zone.constraint, border="green", lwd = 3, alpha = 0)
 
 ```
 
-```{r harvest flow contraint}
+```{r harvest flow contraint, no harvest}
 
 tab.harvest.flow <- castor.harvest.flow [scenario == "oldest_decadal_noroads_noblocks_133600" | scenario == "oldest_decadal_noroads_noblocks_constraint", c ("scenario", "timeperiod", "volume")]
 tab.harvest.flow$model <- "castor"
@@ -911,18 +907,59 @@ ggplot (tab.harvest.flow, aes (x = timeperiod, y = volume, color = scenario)) +
                      legend.title = element_text(size = 10),
                      legend.text = element_text( size = 8)) +
               scale_x_continuous (breaks = seq(0, 250, 25)) +
-              scale_y_continuous (label = comma, breaks = seq (100000, 140000, 2000)) +
+              scale_y_continuous (label = comma, breaks = seq (100000, 140000, 1000)) +
               theme_classic()
 
 #tab.harvest.flow[ , list (mean = mean (volume)), by = model]
 
 ```
 
+### Partial Harvest Constraint Simulation
+When the models were run with a modified harvest zone (i.e., at least 50% of the zone greater than 175 years old forest) in the eastern portion of the area of interest (outlined in green over the timber harvest land base), the Castor model harvested 118,500 m^3^/year, 11% less than without the modified harvest zone, and the STSM model harvested xxxx m^3^/year, xx% less than without the no modified zone. The difference between the two models was xxxxx m^3^/year, or approximately 4%
+
+```{r harvest flow constraint, modifed harvest}
+
+tab.harvest.flow <- castor.harvest.flow [scenario == "", c ("scenario", "timeperiod", "volume")]
+tab.harvest.flow$model <- "castor"
+
+stsm.decadal <- stsm.decadal.harvest.flow [ScenarioId == 1, c ("Year", "vHarv_1")]
+names (stsm.decadal) <- c ( "timeperiod", "volume")
+stsm.decadal$model <- "stsm"
+stsm.decadal$scenario <- "oldest_decadal_noroads_noblocks_133600"
+
+# stsm.constraint <- stsm.constraint.harvest.flow [ScenarioId == 1, c ("Year", "vHarv_1")]
+# names (stsm.constraint) <- c ( "timeperiod", "volume")
+# stsm.constraint$model <- "stsm"
+# stsm.constraint$scenario <- "oldest_decadal_noroads_noblocks_constraint"
+
+tab.harvest.flow <- rbind (tab.harvest.flow, stsm.decadal, stsm.constraint)
+
+ggplot (tab.harvest.flow, aes (x = timeperiod, y = volume, color = scenario)) +
+              geom_line (position = position_dodge (width = 1), size = 1, aes (linetype = model)) + 
+              labs (x = "Future Year", 
+                    y = "Volume Harvested (m3)") + 
+              scale_color_discrete (name = "Scenario", 
+                                    labels = c("No Constraint", "Constraint")) +
+              scale_linetype_discrete (name = "Model", 
+                                      labels = c("Castor", "STSM")) +
+              theme (legend.position = c (0.15, 0.15),
+                     legend.title = element_text(size = 10),
+                     legend.text = element_text( size = 8)) +
+              scale_x_continuous (breaks = seq(0, 250, 25)) +
+              scale_y_continuous (label = comma, breaks = seq (100000, 140000, 1000)) +
+              theme_classic()
+
+#tab.harvest.flow[ , list (mean = mean (volume)), by = model]
+
+```
+
+
 ## Conclusions
 
-- Castor and STSM models are closely aligned in terms of estimating long-term timber supply; suggesting the logic of both models is consistent.
+- Castor and STSM models are closely aligned in terms of estimating long-term timber supply; suggesting the overall logic of both models is consistent.
 
 - however, Castor was able to  harvest ~2% more volume/year, because of how it updates volumes stock; in annual steps, year 1 updates volumes by 1 year, i.e., assumes harvest at the end of the year, whereas STSM does not, ie assumes harvest at the start of the year; in a decadal steps, Castor uses the mid-point volume (i.e., in the first step of the simulation it updates volumes to year 5, and then harvest and calculates growing stock) whereas STSM uses the start year volume (i.e., in the first step of the simulation it calculates harvest and growing stock); therefore Castor is a slightly more optimistic model in terms of timber supply estimates
+
 
 - blocking reduces timber supply; makes sense because it contrains harvest to spceific spatial locations; both models harvested a similar volume with blocking (2% less in Castor); Castor approach of pre-blocking, or identifying homeoegnous stands that fit a block-szie distrbituion at the initiano of teh analysis had a slightly greater efefct on timber harvest flows than the STSM method of spreading to a defined patch size from a satrtign pixel; Castor allows for less spatial freedom for the model to harvest  
 
@@ -934,5 +971,5 @@ ggplot (tab.harvest.flow, aes (x = timeperiod, y = volume, color = scenario)) +
 
 - differences in periods of road development were likely due to contraints in STSM on road development (i.e., blocks could only be activated within 2km of an existing roads)
 
-
+- effects of no harvest constraints were consistent with overall differences (~2%)
 
