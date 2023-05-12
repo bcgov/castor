@@ -182,7 +182,7 @@ modules <- list("dataCastor",
                 )
 
 scenario = data.table (name = "chra_nh_80y_90ge40_120y_tfl48_dawsonck_may2023",
-                       description = "No Harvest in caribou Habitat Recovery Areas (CHRA) for first 80 years, then maximum 5% early seral (<40 y.o.) years 81 to 200. Max. non-declining harvest flow; TFL 48 = 410,000 m3/yr; Dawson Creek TSA = 1.2 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years). Partnership areas included (A2, B2, B3, B4 = no harvest; A1, B1, B5 = 90% > 40 years old).")
+                       description = "No Harvest in caribou Habitat Recovery Areas (CHRA) for first 80 years, then maximum 5% early seral (<40 y.o.) years 81 to 200. Max. non-declining harvest flow; TFL 48 = 415,000 m3/yr; Dawson Creek TSA = 1.175 M m3/yr. Adjacency was set to 0m. Priority queue = Closest to disturbance first, oldest second. Minimum volume: 150 m3/ha. No road recovery (300 years). Partnership areas included (A2, B2, B3, B4 = no harvest; A1, B1, B5 = 90% > 40 years old).")
 
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
@@ -191,7 +191,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 6000000, #1,200,000m3/year -1.3
+                                     flow = 5875000, #1,175,000m3/year 
                                      partition_type = 'live'),
                               data.table(compartment = "TFL48",
                                      partition = ' vol > 150 ', 
@@ -199,7 +199,7 @@ harvestFlow <- rbindlist(list(data.table(compartment ="Dawson_Creek_TSA",
                                                       to = 40, 
                                                       by = 1),
                                                 1), 
-                                     flow = 2050000, #410,000m3/year -425
+                                     flow = 2075000, #415,000m3/year 
                                      partition_type = 'live')
 ))
 
