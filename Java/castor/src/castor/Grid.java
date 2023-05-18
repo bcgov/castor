@@ -5,22 +5,17 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 
 public class Grid {
-	int ageThreshold=100, ph=50, pl=5;
-	float  minHarvVol = 150L;
-	int colSizeLattice = 150; //Size of the grid used for dummy examples
+	int ageThreshold, ph, pl;
+	float  minHarvVol;
+	int colSizeLattice; //Size of the grid used for dummy examples
 	double lambdaProp = 0.05;
 	int ncell;
 	int nrow;
-	
-	int numCells = colSizeLattice*colSizeLattice;
-	int numTimePeriods = ph/pl;
+	int numCells;
+	int numTimePeriods;
 	//int[][] grid;
-	int[] cellList = new int[numCells];
-	public double[] lambda = new double[numTimePeriods];
-	public double[] oneMinusLambda = new double[numTimePeriods];
-	public double[] alpha = new double[numTimePeriods];
-	public double[] beta = new double[numTimePeriods];
-	public double[] gamma = new double[numTimePeriods];
+	int[] cellList;
+	public double[] lambda, oneMinusLambda, alpha, beta, gamma;
 	public ArrayList<ArrayList<float[]>> ageStatesTemplate = new ArrayList<ArrayList<float[]>>();
 	public ArrayList<ArrayList<float[]>> harvestStatesTemplate = new ArrayList<ArrayList<float[]>>();
 	
@@ -29,12 +24,35 @@ public class Grid {
 	* Class constructor.
 	*/
 	Grid(){
+	};
+	
+	public void setGrid (int ncell, int nrow) {
+		this.ncell = ncell;
+		this.nrow = nrow;
+		this.colSizeLattice = ncell/nrow;
+		this.numCells = colSizeLattice*colSizeLattice;
+		this.cellList = new int[numCells];
+		
 		//Assign the cellList needed for adjacency 
 		for(int i =0; i < numCells; i++) {
 			cellList[i] = i+1;
 		}
 		setStatesTemplates(numTimePeriods, pl);
-	};
+	}
+	
+	public void setLandscapeParameters(int ageThres, int planHorizon, int planLength, float minHarvestVolume) {
+		this.ageThreshold = ageThres; 
+		this.ph = planHorizon; 
+		this.pl = planLength;
+		this.minHarvVol = minHarvestVolume;
+		this.numTimePeriods = planHorizon/planLength;
+		
+		this.lambda = new double[numTimePeriods];
+		this.oneMinusLambda = new double[numTimePeriods];
+		this.alpha = new double[numTimePeriods];
+		this.beta = new double[numTimePeriods];
+		this.gamma = new double[numTimePeriods];
+	}
 	
 	private void setStatesTemplates(int numTimePeriods2, int pl2) {
 		ArrayList<ArrayList<float[]>> ageStatesTemplate = new ArrayList<ArrayList<float[]>>() ;
@@ -221,20 +239,10 @@ public class Grid {
 		return outVector;
 	}
 	
-	public void setGrid (int ncell, int nrow) {
-		this.ncell = ncell;
-		this.nrow = nrow;
-		this.colSizeLattice = ncell/nrow;
-	}
 
 	public void setLandscapeWeight(double weight) {
 		this.weight = weight;	
 	}
 	
-	public void setLandscapeParameters(int ageThres, int planHorizon, int planLength, float minHarvestVolume) {
-		ageThreshold = ageThres; 
-		ph = planHorizon; 
-		pl = planLength;
-		minHarvVol = minHarvestVolume;
-	}
+
 }
