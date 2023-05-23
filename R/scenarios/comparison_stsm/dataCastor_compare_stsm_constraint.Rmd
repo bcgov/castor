@@ -185,10 +185,14 @@ dbDisconnect(castordb)
 ## Update Stands in THLB with NUll age to age = 0
 
 ```{r}
-db <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_constraint_castordb.sqlite"))
+# db <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_constraint_castordb.sqlite"))
+
+db <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_constraint_aflb_castordb.sqlite"))
 dbExecute (db, "UPDATE pixels SET age = 0 WHERE age IS NULL AND thlb > 0;") 
 dbExecute (db, "UPDATE pixels SET age = 249 WHERE age > 249;") 
-
+dbExecute (db, "UPDATE pixels SET zone1 = 0 WHERE aflb = 0;") 
+dbExecute (db, "UPDATE zoneconstraints SET t_area = (SELECT COUNT(aflb) FROM pixels WHERE zone1 = 1) WHERE zoneid = 1;") 
+check <- dbGetQuery (db, "SELECT * from zoneconstraints WHERE reference_zone = 'castor_stsm_compare.rast_zone_test'")
 dbDisconnect(db)
 
 ```
