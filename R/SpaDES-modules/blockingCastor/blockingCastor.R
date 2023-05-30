@@ -89,7 +89,21 @@ doEvent.blockingCastor = function(sim, eventTime, eventType, debug = FALSE) {
              dynamic ={
                sim <- setSpreadProb(sim)
                sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCastor", "buildBlocks")
-             }
+             },
+            
+             none ={
+               if(nrow(dbGetQuery(sim$castordb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='blocks'")) == 0){
+                 message('Creating blocks...')
+                 sim <- createBlocksTable(sim)#create blockid column blocks and adjacency table
+                 sim <- getExistingCutblocks(sim) # defaults to nothing if the existing blocks raster is not included
+                 sim <- assignNoBlocks(sim)
+                 sim <- setAdjTable(sim)
+                 sim <- setBlocksTable(sim) #inserts values into the blocks table
+                 sim <- setHistoricalLandings(sim) #inserts values into the blocks table
+                 sim <- scheduleEvent(sim, eventTime = time(sim),  "blockingCastor", "writeBlocks", eventPriority=21) # set this last. Not that important
+               }
+               sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCastor", "UpdateBlocks",eventPriority= 2)
+            }
           )
       
     },
@@ -103,7 +117,14 @@ doEvent.blockingCastor = function(sim, eventTime, eventType, debug = FALSE) {
       sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCastor", "UpdateBlocks", eventPriority=2)
     },
     writeBlocks = {
-      terra::writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
+      if(!is.null(sim$harvestUnits)){
+        terra::writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
+      }else{
+        sim$harvestUnits<-sim$ras
+        sim$harvestUnits[]<- unlist(c(dbGetQuery(sim$castordb, 'Select blockid from pixels ORDER BY pixelid ASC')))
+        terra::writeRaster(sim$harvestUnits, "hu.tif", overwrite = TRUE)
+      }
+      
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -456,6 +477,12 @@ updateBlocks<-function(sim){ #This function updates the block information used i
   return(invisible(sim))
 }
 
+assignNoBlocks <-function(sim){
+  dbExecute(sim$castordb, "Update pixels set blockid = pixelid where thlb > 0;")
+  return(invisible(sim))
+}
+
+
 ### additional functions
 getBlocksIDs<- function(x){ 
   #---------------------------------------------------------------------------------#
@@ -483,9 +510,7 @@ getBlocksIDs<- function(x){
   weight<-.jarray(as.matrix(x[][[2]][,3])) #set the "weight" list as a java object
   fhClass$setRParms(to, from, weight, d, h, x[][[5]]) # sets the input R parameters <Edges> <Degree> <Histogram> <variation>
   fhClass$blockEdges2() # builds the blocks
-  #blockids<-cbind(convertToR(fhClass$getBlocks()), as.integer(unlist(dg[,1]))) #creates a link between pixelid and blockid
   blockids<-cbind(convertToR(fhClass$getBlocks()), as.integer(x[][[6]]$verts)) #creates a link between pixelid and blockid
-  #stop()
   fhClass$clearInfo() #This method clears the object so it can be sent for garbage collection
   
   rm(fhClass, dg, h, to, from, weight) #remove from memory
@@ -509,6 +534,7 @@ binFreqTable <- function(x, bins) {
   ranges = paste(head(freq$breaks,-1), freq$breaks[-1], sep=" - ")
   return(data.frame(range = ranges, frequency = freq$counts))
 }
+
 
 .inputObjects <- function(sim) {
   if(!suppliedElsewhere("patchSizeDist", sim)){
