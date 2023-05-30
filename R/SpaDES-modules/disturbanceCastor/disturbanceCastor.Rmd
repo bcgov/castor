@@ -25,7 +25,7 @@ Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1')
 moduleDir <- paste0(here::here(),"/R/SpaDES-modules")
 outputDir <- paste0(here::here(),"/R/SpaDES-modules/disturbanceCastor")
 
-times <- list(start = 0, end = 10)
+times <- list(start = 0, end = 100)
 
 parameters <- list(
   .progress = list(type = NA, interval = NA),
@@ -35,10 +35,9 @@ parameters <- list(
                      randomLandscape = list(100,100,0, 100, 0, 100),
                      randomLandscapeZoneConstraint = data.table(zoneid = 1,  variable = 'age', threshold = 140, type = 'ge', percentage = 0)
                      ),
-  blockingCastor = list (blockMethod = 'pre', 
-                         patchZone = 'default',
-                         patchVariation = 6
+  blockingCastor = list (blockMethod = 'none'
                          ),
+  growingStockCastor = list(periodLength = 5, maxYieldAge = 1000),
   roadCastor = list (roadMethod = 'mst'
                      ),
   disturbanceCastor = list (calculateInterval =  1, 
@@ -48,12 +47,12 @@ parameters <- list(
                             recovery = 300)
 )
 
-modules <- list ("dataCastor", "roadCastor", "blockingCastor", "disturbanceCastor")
+modules <- list ("dataCastor", "blockingCastor", "roadCastor", "growingStockCastor", "disturbanceCastor")
 disturbanceFlow<- data.table(compartment ="all",
                                      partition = ' treed = 1 ',
                                      mean = 1.75,
                                      sd = 2.47,
-                                     period = rep(seq(from = 1, to=10, by = 1),1), 
+                                     period = rep(seq(from = 1, to=500, by = 1),1), 
                                      flow = 1000)
 objects <- list (scenario = data.table (name = "test", description = "test"), disturbanceFlow=disturbanceFlow) #omit the disturbanceFlow object to remove disturbance processes
 
@@ -67,8 +66,19 @@ mySim <- simInit(times = times, params = parameters, modules = modules,
 outputs(mySim) <- data.frame (objectName = c("disturbanceProcessReport"))
 
 mysimout<-spades(mySim,debug=TRUE) 
+
+
 ```
 
+## plot fires
+```{r, fire_plot}
+userdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/disturbanceCastor/test_castordb.sqlite") ) 
+ ras.info<-dbGetQuery(userdb, "Select * from raster_info limit 1;")
+ras<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0, crs = 3005)
+ras[]<-dbGetQuery(userdb, "select age from pixels order by pixelid")$age
+plot(ras)
+dbDisconnect(userdb)
+```
 
 # Links to other modules
 
