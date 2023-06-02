@@ -11,7 +11,7 @@ bc_sf <- st_transform(bc_sf , crs = 3005)
 bc_buffer <- st_buffer(bc_sf, 400)
 
 
-if(TRUE){
+if(F){
   ProvRast <- raster(
   nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
   crs = st_crs(getSpatialQuery("select * from bec_zone limit 1;"))$proj4string, resolution = c(100, 100), vals = 0
@@ -26,7 +26,7 @@ bc_buffer$treed<- exactextractr::exact_extract(treed,bc_buffer,c('sum'))
 climate_treed<-bc_buffer[bc_buffer$treed>1,]$ID1
 
 
-aoi<-getSpatialQuery("SELECT tsa_number, wkb_geometry from tsa;")
+aoi<-getSpatialQuery("SELECT tsa_number, wkb_geometry from tsa where rtrmntdt is null;")
 aoi_lut<-data.table(st_drop_geometry(aoi))[, tsa_index := 1:.N]
 bc_points<-bc_sf[bc_sf $ID1 %in% climate_treed,]
 tsa_pts<-st_intersects(bc_points, aoi)
@@ -35,12 +35,12 @@ bc_points$tsa_index<-unlist(tsa_pts2)
 
 lut<-merge(data.table(st_drop_geometry(bc_points))[,c("ID1", "tsa_index")], aoi_lut, by.x = "tsa_index", by.y = "tsa_index", all.x =T)
 
-climateData<-lapply(seq(1980, 2040, 1), function(x){
+climateData<-lapply(seq(1970, 2040, 1), function(x){
   message(x)
   data<-data.table::fread(paste0("C:/Data/localApps/Climatebc_v730/test", x, ".csv"))
   data<-data[ID1 %in% climate_treed, ]
-  data<-data[, `:=`(CMI = rowMeans(.SD, na.rm=T)), .SDcols=c("CMI04","CMI05", "CMI06","CMI07","CMI08","CMI09")]
-  data<-data[, `:=`(TEMP = rowMeans(.SD, na.rm=T)), .SDcols=c("Tmax04","Tmax05", "Tmax06","Tmax07","Tmax08","Tmax09")]
+  data<-data[, `:=`(CMI = rowMeans(.SD, na.rm=T)), .SDcols=c("CMI05", "CMI06","CMI07","CMI08")]
+  data<-data[, `:=`(TEMP = rowMeans(.SD, na.rm=T)),.SDcols=c("Tmax05","Tmax06") ]
   data<-data[,c("ID1", "CMI", "TEMP")]
   data<-merge(data, lut, by.x = "ID1", by.y = "ID1", all.x = TRUE)
   data<-data[, .(CMI = median(CMI, na.rm=T), TEMP = median(TEMP, na.rm=T)), by = tsa_number]
@@ -53,38 +53,53 @@ ggplot( data = climateData[tsa_number %in% c(26,23,29)], aes(y = CMI, x = year, 
   geom_line(linetype = 1, color = "red", data = climateData[tsa_number %in% c(26,23,29) & year >=2021,]) + 
   facet_wrap(~tsa_number, ncol = 1)
 
+#Get aah
+harvestData<-getSpatialQuery("select * from cns_cut_bl_polygon where harvestyr >= 1970;")
+harvestArea<-lapply(seq(1970, 2021, 1), function(x){
+  message(x)
+  harvYear<-harvestData[harvestData$harvestyr == x, ]
+  harvArea<-st_intersection(aoi, harvYear)
+  harvArea$area<-st_area(harvArea)
+  harvArea$area<-units::set_units(x = harvArea$area, value = ha)
+  harvArea$area<-units::drop_units(x = harvArea$area)
+  harvArea<- harvArea[harvArea$area >0, ]
+  harvSummary<-data.table(st_drop_geometry(harvArea))[, sum(area), by = c("tsa_number","harvestyr")]
+  harvSummary
+})
+harvestSummary<-rbindlist(harvestArea)
+saveRDS(harvestSummary, "harvestsummary.rds")
 #Get fire data
 fireData<-try(
   bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_FIRE_POLYS_SP") %>%
-    filter(FIRE_YEAR >= 1980) %>%
+    filter(FIRE_YEAR >= 1970) %>%
     collect()
 )
 fireData.nogeom<-data.table(st_drop_geometry(fireData))
-ggplot(data =fireData.nogeom[FIRE_YEAR >= 1980, sum(FIRE_SIZE_HECTARES), by = month(FIRE_DATE)], aes(x = as.factor(month), y =V1)) + geom_bar(stat= "identity") +xlab("Month") + ylab("Area Burned (ha)")
+ggplot(data =fireData.nogeom[FIRE_YEAR >= 1970, sum(FIRE_SIZE_HECTARES), by = month(FIRE_DATE)], aes(x = as.factor(month), y =V1)) + geom_bar(stat= "identity") +xlab("Month") + ylab("Area Burned (ha)")
 
-fireSize<-lapply(seq(1980, 2021, 1), function(x){
+fireSize<-lapply(seq(1970, 2021, 1), function(x){
   fireYear<-fireData[fireData$FIRE_YEAR == x, ]
   fireArea<-st_intersection(aoi, fireYear)
   fireArea$area<-st_area(fireArea)
   fireArea$area<-units::set_units(x = fireArea$area, value = ha)
   fireArea$area<-units::drop_units(x = fireArea$area)
   fireArea<- fireArea[fireArea$area >0, ]
-  fireSummary<-data.table(st_drop_geometry(fireArea))[, c("FIRE_YEAR", "area", "tsa_number")]
+  fireSummary<-data.table(st_drop_geometry(fireArea))[, c("FIRE_YEAR", "FIRE_DATE", "area", "tsa_number")]
   fireSummary
 })
 fireSize<-rbindlist(fireSize)
 fireSize<-fireSize[, size:= round(area, 0)]
-fireSize<-fireSize[, `:=` (total_area= sum(size, rm.na=T)), by =tsa_number]
+fireSize<-fireSize[, `:=` (total_area= sum(size, rm.na=T)), by =c("tsa_number", "FIRE_YEAR")]
 
 thresholds_size<-lapply(unique(fireSize$tsa_number), function(x){
   fdata<-fireSize[tsa_number == x,]
   fdata<-fdata[order(-size)]
-  data.table(tsa_number =x, thres_size = max(fdata[, cvalue:=cumsum(size)][, pct_contrib:=cvalue/total_area][pct_contrib > 0.99, ]$size))
+  data.table(tsa_number =x, thres_size = max(fdata[, cvalue:=cumsum(size)][, pct_contrib:=cvalue/total_area][pct_contrib >= 0.95, ]$size))
 })
 thresholds_size<-rbindlist(thresholds_size)
-thresholds_size$thres_size<-16
+thresholds_size$thres_size<-200
 
-fireAAB<-lapply(seq(1980, 2021, 1), function(x){
+fireAAB<-lapply(seq(1970, 2021, 1), function(x){
   fireYear<-fireData[fireData$FIRE_YEAR == x, ]
   fireArea<-st_intersection(aoi, fireYear)
   fireArea$area<-st_area(fireArea)
@@ -97,7 +112,7 @@ fireAAB<-lapply(seq(1980, 2021, 1), function(x){
 })
 fireAAB<-rbindlist(fireAAB)
 
-fireSize<-lapply(seq(1980, 2021, 1), function(x){
+fireSize<-lapply(seq(1970, 2021, 1), function(x){
   fireYear<-fireData[fireData$FIRE_YEAR == x, ]
   fireArea<-st_intersection(aoi, fireYear)
   fireArea$area<-st_area(fireArea)
@@ -117,28 +132,10 @@ xlab("Year") +
 ylab("Area Burned (ha)") +
 facet_wrap(~tsa_number, ncol = 1)
 
-library(dplyr)
-climateData_scaled <- climateData[tsa_number %in% c("26","29","23") & year <= 2000,][, .(avg = mean (CMI), sd = sd(CMI)), by = tsa_number] 
-climateData2<-merge(climateData, climateData_scaled, by = "tsa_number")
-climateData2<-climateData2[, p1:=(CMI-avg)/sd]
-
-fireAAB_scaled <- fireAAB[tsa_number %in% c("26","29","23") & year <= 2000,][, .(avg = mean (area_burned), sd = sd(area_burned)), by = tsa_number] 
-fireAAB2<-merge(fireAAB, fireAAB_scaled, by = "tsa_number")
-fireAAB2<-fireAAB2[, p2:=(area_burned-avg)/sd]
-fireAAB2$p2<-units::drop_units(fireAAB2$p2)
-fireAAB2<-fireAAB2[p2>5, p2:=5]
-
-ggplot(data = climateData2 , aes(x = year, y = p1)) +
-  geom_line() + 
-  facet_wrap(~tsa_number, ncol = 3) + 
-  geom_smooth() + 
-  geom_bar(data = fireAAB2, stat= "identity", aes(y= p2)) +
-  scale_y_continuous(name="Area Burned (ha)", sec.axis=sec_axis(~., name="CMI")) + ylim(-3,5) 
-
 
 #fill in the zero fire years
 fill<-rbindlist(lapply (unique(fireAAB$tsa_number), function(x){
-  data.table(tsa_number = x,year = seq(1980, 2021, 1))
+  data.table(tsa_number = x,year = seq(1970, 2021, 1))
   }))
 data<-merge(fill, fireAAB, by.x = c("tsa_number", "year"),by.y = c("tsa_number", "year"), all.x =T)
 data<-data[is.na(area_burned), area_burned :=0]
@@ -149,21 +146,21 @@ fire_num<-merge(data, climateData, by.x = c("tsa_number", "year"), by.y = c("tsa
 
 tsa_names <- as_labeller(
   c(`26` = "Quesnel", `29` = "Williams Lake", `23` = "100 Mile House", `14` = "Lakes", `24`= "Prince George", `11` = "Kamloops", `22` = "Okanagan", `16`= "MacKenzie", `18` ="Merrit"))
-ggplot(data = fire_num[tsa_number %in% c("26","29","23", "14", "24", "11", "22", "16", "18" ) & year > 1980,] , aes(x =scale(CMI), y = count)) +
+ggplot(data = fire_num[tsa_number %in% c("26","29","23", "14", "24", "11", "22", "16", "18" ),] , aes(x =scale(CMI), y = count)) +
   geom_point() + 
   facet_wrap(~tsa_number, ncol = 3, labeller = tsa_names) + 
   geom_smooth(method='lm', formula= y~exp(-x))
 
 #fill in the zero fire years
 fill<-rbindlist(lapply (unique(fireSize$tsa_number), function(x){
-  data.table(tsa_number = x,FIRE_YEAR = seq(1980, 2021, 1))
+  data.table(tsa_number = x,FIRE_YEAR = seq(1970, 2021, 1))
 }))
 dataSize<-merge(fill, fireSize, by.x = c("tsa_number", "FIRE_YEAR"),by.y = c("tsa_number", "FIRE_YEAR"), all.x =T)
 dataSize<-dataSize[is.na(area), area:=0]
 
 #create fire number data set
 fire_size<-merge(dataSize, climateData, by.x = c("tsa_number", "FIRE_YEAR"), by.y = c("tsa_number", "year"), all.x= T)
-df<-fire_size[tsa_number %in% c("26","29","23", "14", "24", "11", "22", "16", "18" ) & FIRE_YEAR > 1980,]
+df<-fire_size[tsa_number %in% c("26","29","23", "14", "24", "11", "22", "16", "18" ),]
 ggplot(df)+
   geom_point(aes(x =scale(CMI), y = scale(area))) + 
   scale_y_continuous(limits = c(-1, 2))+
@@ -176,10 +173,11 @@ library(gamlss.nl)
 tsas_not_intrest<-c(25,21,10,44,38,45,37,48,39,47)
 
 #### Number of fires
-test_tsa_num<-fire_num[tsa_number == 26,]
-num0<-gamlss(count ~ CMI,
-       sigma.formula = ~TEMP,
-       #sigma.formula = ~1,
+test_tsa_num<-fire_num[tsa_number == 29,]
+test_tsa_num<-test_tsa_num[order(year),][,cmi5:=frollmean(CMI,n=5,na.rm=T)]
+test_tsa_num<-na.omit(test_tsa_num)
+num0<-gamlss(count ~ CMI*cmi5,
+       sigma.formula = ~ 1 + TEMP ,
        sigma.link = "log",
        family = NBI(), 
        data =  na.omit(test_tsa_num), 
@@ -194,12 +192,18 @@ plot(num0_predict$mu, num0_predict$y)
 abline(0,1)
 test_tsa_num$mu_nbi<-num0_predict$mu
 test_tsa_num$sigma_nbi<-num0_predict$sigma
+ggplot(data = test_tsa_num) + geom_line(aes(x = year, y = mu_nbi), color = "red") + geom_line(aes(x = year, y = count), color = "blue")
 
 #### Size of fire
-test_tsa<-fire_size[tsa_number == 26 & area > 0,]
-n0<-gamlss(area ~ CMI*TEMP,
-           sigma.formula = ~ CMI+TEMP ,
-           #sigma.formula = ~ 1,
+test_tsa<-fire_size[tsa_number == 29 & area > 0,]
+ggplot(data = test_tsa) + 
+  geom_point(aes(x = FIRE_YEAR, y = log(area)), color = "red") + 
+  geom_line(aes(x = FIRE_YEAR, y = CMI), color = "blue") +
+  scale_y_continuous(name="Size (ha)", sec.axis=sec_axis(~., name="CMI"))
+
+n0<-gamlss(area ~ CMI,
+           #sigma.formula = ~ CMI ,
+           sigma.formula = ~ 1 + TEMP,
            sigma.link = "log",
            family = GA(), 
            data =  na.omit(test_tsa), 
@@ -217,8 +221,10 @@ test_tsa$sigma_ga<-n0_predict$sigma
 
 test_aab<-test_tsa[, .(obs =sum(area), mu_ga =max(mu_ga), sigma_ga = max(sigma_ga)), by = FIRE_YEAR]
 test_aab<-merge(test_aab, test_tsa_num, by.x = "FIRE_YEAR", by.y = "year")
+
 sim_out<-lapply(1:nrow(test_aab), function(x){
-  num_fires<-data.table(num_f = rNBI(100, test_aab$mu_nbi[x], test_aab$sigma_nbi[x]))
+ num_fires<-data.table(num_f = rNBI(500, test_aab$mu_nbi[x], test_aab$sigma_nbi[x]))
+  #num_fires<-data.table(num_f = test_aab$count[x])
   for(n in 1:nrow(num_fires)){
     if(num_fires[n,]$num_f == 0){
       num_fires[n, aab:=0]
@@ -226,17 +232,21 @@ sim_out<-lapply(1:nrow(test_aab), function(x){
       num_fires[n, aab:=sum(rGA(num_fires[n,]$num_f, test_aab$mu_ga[x], test_aab$sigma_ga[x]))]
     }
   }
-  data.table(year = test_aab[x]$FIRE_YEAR, mean = quantile(num_fires$aab, 0.5), p66 = quantile(num_fires$aab, 0.66), p33 = quantile(num_fires$aab, 0.33))
+  data.table(year = test_aab[x]$FIRE_YEAR, mean = quantile(num_fires$aab, 0.5), p01 = quantile(num_fires$aab, 0.01), p66 = quantile(num_fires$aab, 0.66), p33 = quantile(num_fires$aab, 0.33), p99 = quantile(num_fires$aab, 0.99))
   
 })
 
 sim_out<-rbindlist(sim_out)
 compare<-merge(test_aab, sim_out, by.x = "FIRE_YEAR", by.y = "year")
 ggplot(data= compare) +
-  geom_bar(aes(x = FIRE_YEAR,y = obs), fill = "blue", stat = "identity", col = "blue") +
+  #geom_bar(aes(x = FIRE_YEAR,y = obs), fill = "blue", stat = "identity", col = "blue") +
+  geom_line(aes(x = FIRE_YEAR,y = obs), col = "blue") +
   geom_line(aes(x = FIRE_YEAR, y = mean), col = "red") +
   geom_line(aes(x = FIRE_YEAR, y = p33), col = "red", linetype =2) +
-  geom_line(aes(x = FIRE_YEAR, y = p66), col = "red", linetype =2)
+  geom_line(aes(x = FIRE_YEAR, y = p66), col = "red", linetype =2) +
+  geom_line(aes(x = FIRE_YEAR, y = p01), col = "red", linetype =3) +
+  geom_line(aes(x = FIRE_YEAR, y = p99), col = "red", linetype =3) 
+  
   
 median(compare$mean)  
 median(compare$obs)
