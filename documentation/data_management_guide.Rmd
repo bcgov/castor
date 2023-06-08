@@ -3010,5 +3010,75 @@ DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"),
                   row.names = FALSE, overwrite = TRUE)
 dbDisconnect(conn)
 
+
+
+new_data <- data.table (computer = 'DG401102', 
+                        database = 'Castor', 
+                        schema = 'public',
+                        table_name = 'integrated_roads_2021', 
+                        type = 'line', 
+                        script = 'Params\\delivered_wood_costs.Rmd', 
+                        source = 'Cumulative Effects program roads - line', 
+                        public = 'No', 
+                        last_updated = '2023', 
+                        next_update = 'As needed', 
+                        where_used = 'delivered wood costs; any roading' 
+                        )
+new_data2 <- data.table (computer = 'DG401102', 
+                        database = 'Castor', 
+                        schema = 'rast',
+                        table_name = 'ce_road_2021', 
+                        type = 'raster', 
+                        script = 'Params\\delivered_wood_costs.Rmd', 
+                        source = 'Cumulative Effects program roads; rasterzied to 1 ha', 
+                        public = 'No', 
+                        last_updated = '2023', 
+                        next_update = 'As needed', 
+                        where_used = 'delivered wood costs; any roading' 
+                        )
+
+pgdbs_data_list_new <- Reduce (function(dtf1, dtf2) merge (dtf1, dtf2, all = TRUE), 
+                               list (pgdbs_data_list, new_data, new_data2))
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+new_data <- data.table (computer = 'DG401102', 
+                        database = 'Castor',  
+                        schema = 'public', 
+                        table_name = 'ecas_cycle_time_harvest_system_points', 
+                        type = 'point', 
+                        script = 'Params\\delivered_wood_costs.Rmd', 
+                        source = 'ECAS Source: G:\\!Transfr\\Stone_queries; RESULTS Source: https://catalogue.data.gov.bc.ca/dataset/results-openings-svw', 
+                        public = 'public', 
+                        last_updated = '2023', 
+                        next_update = '2024', 
+                        where_used = 'delivered wood costs model') 
+pgdbs_data_list_new <- merge (pgdbs_data_list, new_data, all = T)
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+
+new_data <- data.table (computer = 'DG401102', 
+                        database = 'Castor',  
+                        schema = 'public', 
+                        table_name = 'regional_districts_2023', 
+                        type = 'polygon', 
+                        script = 'Params\\delivered_wood_costs.Rmd', 
+                        source = 'https://catalogue.data.gov.bc.ca/dataset/d1aff64e-dbfe-45a6-af97-582b7f6418b9', 
+                        public = 'public', 
+                        last_updated = '2023', 
+                        next_update = '2028', 
+                        where_used = 'delivered wood costs model') 
+pgdbs_data_list_new <- merge (pgdbs_data_list, new_data, all = T)
+DBI::dbWriteTable(conn, c("public", "pgdbs_data_list"), 
+                  value = pgdbs_data_list_new, 
+                  row.names = FALSE, overwrite = TRUE)
+dbDisconnect(conn)
+
+
 ```
 
