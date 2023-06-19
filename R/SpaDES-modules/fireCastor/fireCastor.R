@@ -44,6 +44,8 @@ defineModule(sim, list(
     expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataCastor. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
+    expectsInput(objectName = "updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
+    expectsInput(objectName = "calendarStartYear", objectClass ="numeric", desc = 'The calendar year of the first simulation', sourceURL = NA)
     expectsInput(objectName = "road_distance", objectClass = "data.table", desc = 'The euclidian distance to the nearest road', sourceURL = NA)
     #expectsInput(objectName = "harvestPixelList", objectClass = "data.table", desc = 'A list of the pixels that are harvested at each time point', sourceURL = NA)
   ),
@@ -534,7 +536,7 @@ createVegetationTable <- function(sim) {
   
   message("create fuel types table")
   
-  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS fueltype (pixelid integer, bclcs_level_1 character, bclcs_level_2 character, bclcs_level_3 character,  bclcs_level_5 character, inventory_standard_cd character, non_productive_cd character, coast_interior_cd character,  land_cover_class_cd_1 character, bec_zone_code character, bec_subzone character, earliest_nonlogging_dist_type character, earliest_nonlogging_dist_date timestamp, vri_live_stems_per_ha numeric, vri_dead_stems_per_ha numeric, species_cd_1 character, species_pct_1 numeric, species_cd_2 character, species_pct_2 numeric, species_cd_3 character, species_pct_3 numeric, species_cd_4 character, species_pct_4 numeric, species_cd_5 character, species_pct_5 numeric, species_cd_6 character, species_pct_6 numeric)")
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS fueltype (pixelid integer, bclcs_level_1 character, bclcs_level_2 character, bclcs_level_3 character,  bclcs_level_5 character, inventory_standard_cd character, non_productive_cd character, coast_interior_cd character,  land_cover_class_cd_1 character, bec_zone_code character, bec_subzone character, earliest_nonlogging_dist_type character, years_since_nonlogging_dist integer, vri_live_stems_per_ha numeric, vri_dead_stems_per_ha numeric, species_cd_1 character, species_pct_1 numeric, species_cd_2 character, species_pct_2 numeric, dominant_conifer character, conifer_pct_cover_total numeric)")
   
 
   #**************FOREST INVENTORY - VEGETATION VARIABLES*******************#
@@ -567,24 +569,58 @@ createVegetationTable <- function(sim) {
       if(length(fuel_attributes_castordb) > 0){
         print(paste0("getting inventory attributes to create fuel types: ", paste(forest_attributes_castordb, collapse = ",")))
         fids<-unique(inv_id[!(is.na(fid)), fid])
-        attrib_inv<-data.table(getTableQuery(paste0("SELECT " , P(sim, "nameForestInventoryKey", "dataCastor"), " as fid, ", paste(forest_attributes_castordb, collapse = ","), " FROM ",
+        attrib_inv<-data.table(getTableQuery(paste0("SELECT " , P(sim, "nameForestInventoryKey", "dataCastor"), " as fid, ", paste(fuel_attributes_castordb, collapse = ","), " FROM ",
                                                     P(sim, "nameForestInventoryTable2","dataCastor"), " WHERE ", P(sim, "nameForestInventoryKey", "dataCastor") ," IN (",
                                                     paste(fids, collapse = ","),");" )))
         
         print("...merging with fid") #Merge this with the raster using fid which gives you the primary key -- pixelid
         inv<-merge(x=inv_id, y=attrib_inv, by.x = "fid", by.y = "fid", all.x = TRUE) 
-        
         inv<-inv[, fid:=NULL] # remove the fid key
         
-        message('populating fuel type table')
+        print("calculating time since disturbance")
+        inv[, earliest_nonlogging_dist_date := substr(earliest_nonlogging_dist_date,1,4)]
+        inv[, earliest_nonlogging_dist_date := as.integer(earliest_nonlogging_dist_date)]
+        inv[, years_since_nonlogging_dist:=NA][, years_since_nonlogging_dist:=(time(sim)*sim$updateInterval) + sim$calendarStartYear - earliest_nonlogging_dist_date, ]
+        inv<-inv[, earliest_nonlogging_dist_date:=NULL]
+      
+        print("calculating % conifer and dominant conifer species")
         
-        qry<-paste0('INSERT INTO fueltype (pixelid, bclcs_level_1, bclcs_level_2, bclcs_level_3, bclcs_level_5, inventory_standard_cd, non_productive_cd, coast_interior_cd, land_cover_class_cd_1, bec_zone_code, bec_subzone, earliest_nonlogging_dist_type, earliest_nonlogging_dist_date, vri_live_stems_per_ha, vri_dead_stems_per_ha, species_cd_1, species_pct_1, species_cd_2, species_pct_2, species_cd_3, species_pct_3, species_cd_4, species_pct_4, species_cd_5, species_pct_5, species_cd_6, species_pct_6) values (:pixelid, :bclcs_level_1, :bclcs_level_2, :bclcs_level_3, :bclcs_level_5, :inventory_standard_cd, :non_productive_cd, :coast_interior_cd, :land_cover_class_cd_1, :bec_zone_code, :bec_subzone, :earliest_nonlogging_dist_type, :earliest_nonlogging_dist_date, :vri_live_stems_per_ha, :vri_dead_stems_per_ha, :species_cd_1, :species_pct_1, :species_cd_2, :species_pct_2, :species_cd_3, :species_pct_3, :species_cd_4, :species_pct_4, :species_cd_5, :species_pct_5, :species_cd_6, :species_pct_6)')
+        conifer<-c("C","CW","Y","YC","F","FD","FDC","FDI","B","BB","BA","BG","BL","H","HM","HW","HXM","J","JR","JS","P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA","S","SB","SE","SS","SW","SX","SXW","SXL","SXS","T","TW","X", "XC","XH", "ZC")
+        
+        inv[, pct1:=0][species_cd_1 %in% conifer, pct1:=species_pct_1]
+        inv[, pct2:=0][species_cd_2 %in% conifer, pct2:=species_pct_2]
+        inv[, pct3:=0][species_cd_3 %in% conifer, pct3:=species_pct_3]
+        inv[, pct4:=0][species_cd_4 %in% conifer, pct4:=species_pct_4]
+        inv[, pct5:=0][species_cd_5 %in% conifer, pct5:=species_pct_5]
+        inv[, pct6:=0][species_cd_6 %in% conifer, pct6:=species_pct_6]
+        
+        # create dominant conifer column and populate
+        inv[, dominant_conifer:="none"]
+        inv[species_cd_1 %in% conifer, dominant_conifer:=species_cd_1]
+        inv[!species_cd_1 %in% conifer & species_cd_2 %in% conifer, dominant_conifer:=species_cd_2]
+        inv[!species_cd_1 %in% conifer & !species_cd_2 %in% conifer & species_cd_3 %in% conifer, dominant_conifer:=species_cd_3]
+        inv[!species_cd_1 %in% conifer & !species_cd_2 %in% conifer & !species_cd_3 %in% conifer & species_cd_4 %in% conifer, dominant_conifer:=species_cd_4]
+        inv[!species_cd_1 %in% conifer & !species_cd_2 %in% conifer & !species_cd_3 %in% conifer & !species_cd_4 %in% conifer & species_cd_5 %in% conifer, dominant_conifer:=species_cd_5]
+        inv[!species_cd_1 %in% conifer & !species_cd_2 %in% conifer & !species_cd_3 %in% conifer & !species_cd_4 %in% conifer & !species_cd_5 %in% conifer & species_cd_6 %in% conifer, dominant_conifer:=species_cd_6]
+        
+        #determing total percent cover of conifer species
+        inv[,conifer_pct_cover_total:=pct1+pct2+pct3+pct4+pct5+pct6]
+        
+        # remove extra unneccesary columns
+        inv<-inv[, c("species_cd_3", "species_cd_4", "species_cd_5", "species_cd_6", "species_pct_3", "species_pct_4", "species_pct_5", "species_pct_6","pct1", "pct2", "pct3", "pct4", "pct5", "pct6"):=NULL] 
+      
+        print('populating fuel type table')
+        
+        qry<-paste0('INSERT INTO fueltype (pixelid, bclcs_level_1, bclcs_level_2, bclcs_level_3, bclcs_level_5, inventory_standard_cd, non_productive_cd, coast_interior_cd, land_cover_class_cd_1, bec_zone_code, bec_subzone, earliest_nonlogging_dist_type, years_since_nonlogging_dist, vri_live_stems_per_ha, vri_dead_stems_per_ha, species_cd_1, species_pct_1, species_cd_2, species_pct_2, dominant_conifer, conifer_pct_cover_total) values (:pixelid, :bclcs_level_1, :bclcs_level_2, :bclcs_level_3, :bclcs_level_5, :inventory_standard_cd, :non_productive_cd, :coast_interior_cd, :land_cover_class_cd_1, :bec_zone_code, :bec_subzone, :earliest_nonlogging_dist_type, :years_since_nonlogging_dist, :vri_live_stems_per_ha, :vri_dead_stems_per_ha, :species_cd_1, :species_pct_1, :species_cd_2, :species_pct_2, :dominant_conifer, :conifer_pct_cover_total)')
         
         #fueltype table
         dbBegin(sim$castordb)
-        rs<-dbSendQuery(sim$castordb, qry, pixels)
+        rs<-dbSendQuery(sim$castordb, qry, inv)
         dbClearResult(rs)
         dbCommit(sim$castordb)
+        
+        rm(inv_id, attrib_inv, inv)
+        gc()
     
   
     ###Note in forestryCastor it looks like he updates harvest by setting age and volume to zero. Maybe I can use this somehow for my vegetation types because I think I need the field harvest date. 
@@ -612,21 +648,237 @@ calcFuelTypes<- function(sim) {
   
   wet<-c("mc", "mcp", "mh", "mk", "mkp", "mks", "mm", "mmp", "mmw", "ms", "mv", "mvp", "mw", "mwp", "mww", "vc", "vcp", "vcw", "vh", "vk", "vks", "vm", "wc", "wcp", "wcw", "wh", "whp", "wk", "wm", "wmp", "wmu", "ws", "wv", "wvp", "ww")
   
-  dbGetQuery(castordb, "SELECT species_cd_1, species_cd_2, species_cd_3, species_cd_4, species_cd_5, species_cd_6, species_pct_1, species_pct_2")
+  burn<-c("B","BE", "BG", "BR", "BW", "NB")
   
-  fire_veg_sf<- fire_veg_sf %>%
-    mutate(pct1 = ifelse(species_cd_1 %in% conifer, species_pct_1, NA),
-           pct2 = ifelse(species_cd_2 %in% conifer, species_pct_2, NA),
-           pct3 = ifelse(species_cd_3 %in% conifer, species_pct_3, NA),
-           pct4 = ifelse(species_cd_4 %in% conifer, species_pct_4, NA),
-           pct5 = ifelse(species_cd_5 %in% conifer, species_pct_5, NA),
-           pct6 = ifelse(species_cd_6 %in% conifer, species_pct_6, NA),
-           dominant_conifer = ifelse(species_cd_1 %in% conifer, species_cd_1, 
-                                     ifelse(species_cd_2 %in% conifer, species_cd_2,
-                                            ifelse(species_cd_3 %in% conifer, species_cd_3,
-                                                   ifelse(species_cd_4 %in% conifer, species_cd_4,
-                                                          ifelse(species_cd_5 %in% conifer, species_cd_5,
-                                                                 ifelse(species_cd_6 %in% conifer, species_cd_6, NA)))))))
+  # get cutblock age
+ # cutblock_age<-data.table(dbGetQuery(sim$castordb, paste0("SELECT age, blockid, pixelid FROM pixels WHERE perm_dist > 0 OR (blockid > 0 and age >= 0)")))
+  veg<-data.table(dbGetQuery(sim$castordb, "SELECT * FROM fueltype"))
+  veg_attributes<- data.table(dbGetQuery(sim$castordb, "SELECT pixelid, treed, crownclosure, age, vol, height, dec_pcnt, blockid, perm_dist FROM pixels"))
+  
+  veg2<-merge(veg, veg_attributes, by.x="pixelid", by.y = "pixelid")
+  
+  veg2[, earliest_nonlogging_dist_type := gsub('[" "]', '', earliest_nonlogging_dist_type)]
+  
+  message("categorize data into fuel types")
+  
+  #### Calculate fuel types ####
+  
+  # running the query from least specific to most specific so that I dont overwrite fuel types
+  veg2[, fwveg:=0]
+  
+  veg2[bclcs_level_1=="N" & blockid>0 & age<= 6 & coast_interior_cd=="C", fwveg:="S-3"][bclcs_level_1=="N" & blockid>0 & age<= 6 & coast_interior_cd =="I",fwveg:="S-1"]
+  
+       # harvest date 7-24
+       veg2[bclcs_level_1=="N" & blockid>0 & age > 6 & age<25 & bec_zone_code %in% c("CWH","MH","ICH"), fwveg:="D-1/2"][bclcs_level_1=="N" & (age > 6 & age<25), fwveg:="O-1a/b"]
+       
+       
+       # harvest date > 25
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("CMA","IMA") ~ "N",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="BAFA" ~ "D-1/2",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="CWH" & (bec_subzone %in% wet) ~ "C-5",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="CWH" & (!bec_subzone %in% wet) ~ "M-1/2",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="BWBS" ~ "C-2",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="SWB" ~ "M-1/2",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="SBS" ~ "C-3",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="SBPS" ~ "C-7",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="MS" ~ "C-7",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="IDF" & (bec_subzone %in% wet) ~ "C-3",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="IDF" & (!bec_subzone %in% wet) ~ "C-7",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("PP","BG") ~ "O-1a/b",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="MH" ~ "D-1/2",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="ESSF" ~ "C-7",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="CDF" & (bec_subzone %in% wet) ~ "C-5",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="CDF" & (!bec_subzone %in% wet) ~ "C-7",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="ICH" & (bec_subzone %in% wet) ~ "C-5",
+       bclcs_level_1=="N" & yearsSinceHarvest >=25 & bec_zone_code=="ICH" & (!bec_subzone %in% wet) ~ "C-3",]
+  
+  # not vegetated and logged
+  fire_all1<- fire_all1 %>%
+    mutate(FWI_veg = case_when(
+      # harvest date 0-6
+      
+      
+      # not vegetated and not logged, Recently burned   
+      
+      bclcs_level_1=="N" & earliest_nonlogging_dist_type_2=="burn" & yearsSinceDisturbance <=3 ~"N",
+      bclcs_level_1=="N" & earliest_nonlogging_dist_type_2=="burn" & (yearsSinceDisturbance > 3 & yearsSinceDisturbance < 7) ~"D-1/2",
+      bclcs_level_1=="N" & earliest_nonlogging_dist_type_2=="burn" & (yearsSinceDisturbance > 6 & yearsSinceDisturbance < 11) ~"O-1a/b",
+      
+      # not logged and not recently burned
+      bclcs_level_1=="N" & (bclcs_level_2=="L" | is.na(bclcs_level_2)) & bclcs_level_3=="A" ~"N",          
+      bclcs_level_1=="N" & (bclcs_level_2=="L" | is.na(bclcs_level_2)) &  species_pct_1 > 0 & bec_zone_code %in% c("CWH", "MH", "ICH") ~ "D-1/2",
+      bclcs_level_1=="N" & (bclcs_level_2=="L" | is.na(bclcs_level_2)) & species_pct_1 > 0 ~ "O-1a/b",
+      bclcs_level_1=="N" & (bclcs_level_2=="L" | is.na(bclcs_level_2)) ~ "N",
+      
+      bclcs_level_1=="N" & bclcs_level_2=="W" ~ "W",
+      bclcs_level_1=="N" ~ "N", # for all other "N"'s
+      
+      TRUE ~ as.character(FWI_veg)))
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  ### logged
+  fire_all1<- fire_all1 %>%
+    mutate(FWI_veg = case_when(bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest<=7 & species_cd_1 %in% c("P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA") ~ "S-1",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest<=7 & species_cd_1 %in% c("B","BB","BA","BG","BL","S","SB","SE","SS","SW","SX","SXW","SXL","SXS") ~ "S-2",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest<=7 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM") ~ "S-3",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest<=7 & species_cd_1 %in% c("FD") & bec_zone_code %in% c("CWH", "ICH") ~ "S-3",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest<=7 ~ "S-1",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & (yearsSinceHarvest> 7 & yearsSinceHarvest<25) & bec_zone_code %in% c("CWH", "MH") ~ "D-1/2",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & (yearsSinceHarvest> 7 & yearsSinceHarvest<25) & bec_zone_code %in% c("ICH") & bec_subzone %in% wet ~ "D-1/2",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & (yearsSinceHarvest> 7 & yearsSinceHarvest<25) ~ "O-1a/b",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("CMA", "IMA") ~ "N",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("BAFA") ~ "D-1/2",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("CWH") & bec_subzone %in% wet ~ "C-5",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("CWH") ~ "M-1/2",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("BWBS") ~ "C-2",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("SWB") ~ "M-1/2",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("SBS") ~ "C-3",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("SBPS") ~ "C-7",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("MS", "ESSF") ~ "C-3",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("IDF") & bec_subzone %in% wet ~ "C-3",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("PP", "BG") ~ "O-1a/b",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("MH") ~ "D-1/2",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("CDF", "ICH") & bec_subzone %in% wet ~ "C-5",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("IDF", "CDF") ~ "C-7",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & yearsSinceHarvest >=25 & bec_zone_code %in% c("ICH") ~ "C-3",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest <=5 ~ "S-1",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & (yearsSinceHarvest > 5 & yearsSinceHarvest<25) & bec_zone_code %in% c("CWH", "MH", "ICH") ~ "D-1/2",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & (yearsSinceHarvest > 5 & yearsSinceHarvest<25) ~ "O-1a/b",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("CMA", "IMA") ~ "N",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("BAFA") ~ "D-1/2",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("CWH") & bec_subzone %in% wet ~ "C-5",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("CWH") ~ "M-1/2",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("BWBS") ~ "C-2",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("SWB") ~ "M-1/2",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("SBS") ~ "C-3",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("SBPS") ~ "C-7",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("MS") ~ "C-7",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("IDF") & bec_subzone %in% wet ~ "M-1/2",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("IDF") ~ "C-7",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("PP", "BG") ~ "O-1a/b",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("MH") ~ "D-1/2",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("CDF", "ICH") & bec_subzone %in% wet ~ "C-5",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("ESSF", "CDF") ~ "C-7",
+                               
+                               bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(species_cd_1) & yearsSinceHarvest >= 25 & bec_zone_code %in% c("ICH") ~ "M-1/2",
+                               
+  
+  
+
+  veg2[conifer_pct_cover_total>=60 & crownclosure > 40 & (earliest_nonlogging_dist_type %in% burn) & years_since_nonlogging_dist < 4, fwveg:="N"]
+  
+  
+  veg2$fwveg<-0
+  
+  veg2<- veg2 %>%
+    mutate(fwveg = case_when(conifer_pct_cover_total>=60 & crownclosure > 40 & earliest_nonlogging_dist_type %in% burn & years_since_nonlogging_dist < 4 ~ "N",
+      conifer_pct_cover_total>=60 & crownclosure > 40 & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist > 3 & years_since_nonlogging_dist < 7) ~ "D-1/2",
+      conifer_pct_cover_total>=60 & crownclosure > 40 & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist > 6 & years_since_nonlogging_dist < 11) ~ "C-5",
+      crownclosure < 41 & earliest_nonlogging_dist_type %in% burn & years_since_nonlogging_dist <2 ~ "N",
+      conifer_pct_cover_total>=60 & crownclosure <= 40 & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist > 1 & years_since_nonlogging_dist <7) ~ "D-1/2",
+      conifer_pct_cover_total>=60 & crownclosure <= 40 & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist >6 & years_since_nonlogging_dist < 11) ~ "O-1a/b",
+      conifer_pct_cover_total<60 &  earliest_nonlogging_dist_type %in% burn & years_since_nonlogging_dist < 2 ~ "N",
+      conifer_pct_cover_total<60 &  earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist >1 & years_since_nonlogging_dist <11) ~ "D-1/2",
+               #TRUE ~ as.character(fwveg)))
+      
+      species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") & (blockid>0 & age<=7) ~ "S-1",
+      species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") & bclcs_level_5=="SP" & bec_zone_code %in% c("ICH") & bec_subzone %in% wet  ~ "D-1/2",
+      species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") & bclcs_level_5=="SP" & bec_zone_code %in% c("CWH", "CDF", "MH")  ~ "D-1/2",
+      species_pct_1> 79 & bclcs_level_5=="SP" & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-7",
+      species_pct_1> 79 &  bclcs_level_5 %in% c("DE", "OP") & height<=4 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "O-1a/b",
+      species_pct_1> 79 & bclcs_level_5 %in% c("DE", "OP") & (height > 3 & height < 13) & (vri_live_stems_per_ha+vri_dead_stems_per_ha) > 8000 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-4",
+      species_pct_1> 79 & bclcs_level_5 %in% c("DE", "OP") & (height > 3 & height <13) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-3",
+      
+      species_pct_1> 79 & bclcs_level_5 %in% c("DE", "OP") & height >12 & crown_closure <40 & bec_zone_code %in% c("BG", "PP", "IDF", "MS") & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-7",
+      species_pct_1> 79 & bclcs_level_5 %in% c("DE", "OP") & height >12 & crown_closure <40 & bec_zone_code %in% c("CWH", "MH", "ICH") & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-5",
+      species_pct_1> 79 & bclcs_level_5 %in% c("DE", "OP") & height >12 & crown_closure <40 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-3",
+      
+      species_pct_1> 79 & earliest_nonlogging_dist_type=="IBM" & years_since_nonlogging_dist <=5 & dec_pcnt >50 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "M-3",
+      species_pct_1> 79 & earliest_nonlogging_dist_type=="IBM" & years_since_nonlogging_dist <=5 & (dec_pcnt > 24 & dec_pcnt < 51) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-2",
+     species_pct_1> 79 & earliest_nonlogging_dist_type=="IBM" & years_since_nonlogging_dist <=5 & dec_pcnt < 25 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-3",
+      
+      species_pct_1> 79 & earliest_nonlogging_dist_type=="IBM" & years_since_nonlogging_dist > 5 & dec_pcnt > 50 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-2",
+      species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") ~ "C-3",
+      #          TRUE ~ as.character(FWI_veg)))
+     
+     # Pure ponderosa pine
+     #fire_all1<- fire_all1 %>%
+     #  mutate(FWI_veg = case_when(
+     species_pct_1>= 80 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & (blockid>0 & age<=10) ~ "S-1",
+     species_pct_1> 79 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & height < 4~ "O-1a/b",
+     species_pct_1> 79 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & (height > 3 & height < 13) & (vri_live_stems_per_ha+vri_dead_stems_per_ha)>8000 ~ "C-4",
+     species_pct_1> 79 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & (height > 3 & height < 13) & ((vri_live_stems_per_ha+vri_dead_stems_per_ha) > 2999 & (vri_live_stems_per_ha+vri_dead_stems_per_ha) < 8001) ~ "C-3",
+     
+     ##**# # could maybe remove VRI stems part!! BELOW
+      
+  
+  
+
+  
+  dbExecute (sim$castordb, "ALTER TABLE fueltype ADD COLUMN percentconifer integer")
+  dbBegin(sim$castordb)
+  rs<-dbSendQuery(sim$castordb, 'UPDATE fueltype SET percentconifer = :conifer_pct_cover_total WHERE pixelid = :pixelid', percent_conifer2)
+  dbClearResult(rs)
+  dbCommit(sim$castordb)
+  
+  
+  
+  
   
   
   
