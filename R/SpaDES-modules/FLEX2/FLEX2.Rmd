@@ -37,7 +37,7 @@ inputDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2/inputs")) %>
 outputDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2/outputs")) %>% reproducible::checkPath (create = TRUE)
 cacheDir <- file.path(paste0(here::here(), "/R/scenarios/test_flex2"))
 
-times <- list (start = 0, end = 2)
+times <- list (start = 0, end = 0)
 
 parameters <- list(FLEX2 = list (female_max_age = 9,
                                  den_target = 0.003, 

@@ -88,6 +88,7 @@ defineModule(sim, list(
     createsOutput (objectName = "territories", objectClass = "data.table", desc = "Fisher territories table." ),
     createsOutput (objectName = "pix.rast", objectClass = "SpatRaster", desc = "A raster dataset of pixel values in the area of interest." ),
     createsOutput (objectName = "raster.stack", objectClass = "SpatRaster", desc = "The habitat data as a raster stack." ),
+    createsOutput (objectName = "spread.rast", objectClass = "RasterLayer", desc = "The raster layer describing how fisher search for habitat." ),
     createsOutput (objectName = "ras.territories", objectClass = "SpatRaster", desc = "The territories over a sim." ),
     createsOutput (objectName = "fisherABMReport", objectClass = "data.table", desc = "A data.table object. Consists of fisher population numbers in the study area at each time step."),
     )
@@ -101,7 +102,9 @@ doEvent.FLEX2 = function (sim, eventTime, eventType) {
     
     init = {
       sim <- Init (sim)
+      sim <- getFisherHR (sim)
       sim <- saveAgents (sim)
+      
       sim <- scheduleEvent (sim, time (sim) + 1, "FLEX2", "runevents", 19)
       sim <- scheduleEvent (sim, end (sim), "FLEX2", "save", 20)
     },
@@ -136,23 +139,13 @@ doEvent.FLEX2 = function (sim, eventTime, eventType) {
   return(invisible(sim))
 }
 
-
-## event functions
 Init <- function(sim) {
-  
-  message ("Initiating fisher ABM...")
-  
-  message ("Get the area of interest ...")
-  # get pixel id's for aoi 
-  # add the pixelid step to fisher habitat loader
   
   message ("Load the habitat data.")
   sim$raster.stack <- terra::rast (P (sim, "rasterHabitat", "FLEX2")) 
 
   # get the pixel id raster
-  sim$pix.rast <- terra::subset (sim$raster.stack,
-                                 grep ("pixelid", 
-                                        names (sim$raster.stack)))
+  sim$pix.rast <- terra::subset (sim$raster.stack, grep ("pixelid", names (sim$raster.stack)))
  
   # grab the init data and fisher pop data only; convert to a table
   raster.stack.init <- terra::subset (sim$raster.stack,
@@ -179,7 +172,6 @@ Init <- function(sim) {
   message ("Create fisher agents table and assign values...")
   
   # assign agents to denning pixels
-    
   # denning habitat
       # select the init denning raster
   den.pix <- table.habitat.init [ras_fisher_denning_init == 1, c ("pixelid", "ras_fisher_denning_init")]
@@ -213,28 +205,31 @@ Init <- function(sim) {
                        tab.fisher.pop [ , c("pixelid", "fisher_pop")], 
                        by.x = "pixelid", by.y = "pixelid", all.x = T)
 
-
   # assign an HR size based on population
   sim$agents [fisher_pop == 1, hr_size := round (rnorm (nrow (sim$agents [fisher_pop == 1, ]), sim$female_hr_table [fisher_pop == 1, hr_mean], sim$female_hr_table [fisher_pop == 1, hr_sd]))]
   sim$agents [fisher_pop == 2, hr_size := round (rnorm (nrow (sim$agents [fisher_pop == 2, ]), sim$female_hr_table [fisher_pop == 2, hr_mean], sim$female_hr_table [fisher_pop == 2, hr_sd]))]
   sim$agents [fisher_pop == 3, hr_size := round (rnorm (nrow (sim$agents [fisher_pop == 3, ]), sim$female_hr_table [fisher_pop == 3, hr_mean], sim$female_hr_table [fisher_pop == 3, hr_sd]))]
   sim$agents [fisher_pop == 4, hr_size := round (rnorm (nrow (sim$agents [fisher_pop == 4, ]), sim$female_hr_table [fisher_pop == 4, hr_mean], sim$female_hr_table [fisher_pop == 4, hr_sd]))]
 
-  message ("Create territories ...")
+  message ("Initiate fisher territories ...")
   # assign agents to territories table
   sim$territories <- data.table (individual_id = sim$agents$individual_id, 
                                   pixelid = sim$agents$pixelid)
   
   # create spread probability raster
     # note: this is limited to fisher range
-  table.hab.spread <- table.habitat.init [ras_fisher_pop > 0, 
+  sim$table.hab.spread <- table.habitat.init [ras_fisher_pop > 0, 
                                          c ("pixelid", "ras_fisher_denning_init", "ras_fisher_rust_init", "ras_fisher_cavity_init", "ras_fisher_cwd_init", "ras_fisher_movement_init", "ras_fisher_open_init")]
-  names (table.hab.spread) <- c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")
+  names (sim$table.hab.spread) <- c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")
   
   # convert to raster objects for spread2
-  sim$pix.raster <- raster::raster (sim$pix.rast)
-  sim$spread.rast <- spreadRast (sim$pix.raster, # see function below
-                                 table.hab.spread) 
+  sim$spread.rast <- spreadRast (raster::raster (sim$pix.rast), # see function below
+                                 sim$table.hab.spread) 
+  
+  return (invisible (sim))
+}
+  
+restofCode <- function(sim){
 
   table.hr <- SpaDES.tools::spread2 (sim$pix.raster, # within the area of interest
                                      start = sim$agents$pixelid, # for each individual
@@ -1135,6 +1130,30 @@ saveAgents <- function (sim) {
 }
 
 
+getFisherHR<- function(sim){
+  #This function gets fisher home ranges by initially saturating the landscape with fisher agents, allowing the fisher agents to create territories in an interative fashion. 
+  # The process is iterative since more than one fisher could design a territory that overlaps
+  #repeat{
+  browser()
+  
+  contingentHR<-SpaDES.tools::spread2 (sim$spread.rast, 
+                                       start = sim$agents$pixelid, 
+                                       spreadProb = as.numeric (sim$spread.rast[]),
+                                       exactSize = sim$agents$hr_size, 
+                                       allowOverlap = T, asRaster = F, circle = F)
+  
+  contingentHR <- merge(merge (contingentHR, sim$agents, by.x = "initialPixels", by.y = "pixelid"),
+                        sim$table.hab.spread [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")],
+                        by.x = "pixels", by.y = "pixelid")
+  
+  # calculate habitat quality 
+  tab.perc <- habitatQual (contingentHR, sim$agents, sim$fisher_d2_cov)
+  
+  #   if(condition) { break }
+  # }
+  
+  return(invisible(sim))
+}
 
 ###--- FUNCTIONS THAT GET CALLED
 
@@ -1206,7 +1225,6 @@ litterSize <- function (fisherPop, mahalTable, reproTable, reproFishers){
   }
   return (reproFishers)
 }
-
 
 .inputObjects <- function (sim) {
   # Any code written here will be run during the simInit for the purpose of creating
