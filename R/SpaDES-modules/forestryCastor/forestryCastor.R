@@ -639,6 +639,17 @@ updateZonePriorityTable<-function(sim) {
   return(invisible(sim))
 }
 
+runCoCela<-function(sim){
+  library(rJava) #Calling the rJava library instantiates the JVM. Note: cannot instantiate the same JVM on both the cores and the master. 
+  library(jdx)
+  .jinit(classpath= paste0(here::here(),"/Java/castor/bin"), parameters="-Xmx2g", force.init = TRUE) #instantiate the JVM
+  .jaddClassPath(paste0(here::here(), "/Java/castor/sqlite-jdbc-3.41.2.1.jar"))
+  fhClass<-.jnew("castor.CellularAutomata")
+  fhClass$getCastorData()
+  fhClass$coEvolutionaryCellularAutomata()
+  return(invisible(sim))
+}
+
 .inputObjects <- function(sim) {
   return(invisible(sim))
 }
