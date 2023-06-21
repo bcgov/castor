@@ -1,0 +1,55 @@
+---
+title: "yieldUncertaintyCastor"
+author: ""
+date: "6 Dec 2022"
+output: pdf_document
+---
+# Usage
+
+Deprecated this module - until there are resources to build upon it.
+
+```{r module_usage}
+library (SpaDES.core)
+library (data.table)
+library (terra)
+library (keyring)
+library (tidyverse)
+library (here)
+library (stringr)
+library (truncnorm)
+library (RANN)
+source (paste0 (here::here(), "/R/functions/R_Postgres.R"))
+
+moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
+paths <- list(
+  modulePath = paste0(here::here(),"/R/SpaDES-modules"),
+  outputPath = paste0(here::here(),"/R/SpaDES-modules/FLEXplorer")
+)
+
+times <- list (start = 0, end = 0)
+
+parameters <- list(FLEXplorer = list (female_max_age = 9,
+                                 den_target = 0.003, 
+                                 rest_target = 0.028,
+                                 move_target = 0.091,
+                                 reproductive_age = 2, 
+                                 sex_ratio = 0.5,
+                                 female_dispersal = 785000,  # ha; radius = 500 pixels = 50km = 7850km2 area
+                                 timeInterval = 5, # should be consistent with the time interval used to model habitat
+                                                    # e.g., growingstockLCUS periodLength
+                                 rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX2/rast_sim_landscapes.tif")
+
+                )
+)
+
+modules <- list ("FLEXplorer")
+
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects,
+                 paths = paths)
+
+mySimOut <- spades(mySim)
+
+```
