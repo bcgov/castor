@@ -37,6 +37,9 @@ defineModule(sim, list(
     defineParameter("female_dispersal", "numeric", 785000, 100, 10000000,"The area, in hectares, a fisher could explore during a dispersal to find a territory."),
     defineParameter("rasterHabitat", "character", paste0 (here::here(), "/R/scenarios/test_flex2/test_Williams_Lake_TSA_fisher_habitat.tif"), NA, NA, "Directory where the fisher habitat raster .tif is stored. Used as habitat input to this module. A band in the .tif exists for each time interval simulated in forestryCastor, and each fisher habitat type (denning, movement, cwd, rust, cavity)."), # create a default somewhere??
     defineParameter("timeInterval", "numeric", 1, 1, 20, "The time step, in years, when habtait was updated. It should be consistent with periodLength form growingStockCASTOR. Life history events (reproduce, updateHR, survive, disperse) are calaculated this many times for each interval."),
+    defineParameter("den_target", "numeric", 0.001, 0, 1,"The minimum proportion of a home range that is denning habitat. Values taken from empirical female home range data across populations."), 
+    defineParameter("rest_target", "numeric", 0.001, 0, 1, "The minimum proportion of a home range that is resting habitat. Values taken from empirical female home range data across populations."),   
+    defineParameter("move_target", "numeric", 0.001, 0, 1, "The minimum proportion of a home range that is movement habitat. Values taken from empirical female home range data across populations."), 
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -44,6 +47,7 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
+    expectsInput (objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput (objectName = "fisher_d2_cov", objectClass = "data.table", desc = "variance matrix for mahalanobis distance model; don't touch this unless d2 model updated", sourceURL = NA),
     expectsInput (objectName = "survival_rate_table", objectClass = "data.table", desc = "Table of fisher survival rates by sex, age and population, taken from Lofroth et al 2022 JWM vital rates manuscript. Headers: Fpop: the two populations in BC: Boreal, Coumbian; Age_class: two classes: Adult, Juvenile; Cohort: Fpop and Age_class combination: CFA, CFJ, BFA, BFJ; Mean: mean survival probability; SE: standard error of the mean. Decided to go with SE rather than SD as confidence intervals are quite wide and stochasticity would likely drive populations to extinction. Keeping consistent with Rory Fogarty's population analysis decisions.", sourceURL = NA),
     expectsInput (objectName = "repro_rate_table", objectClass = "data.table", desc = "Table of fisher reproductive rates (i.e., denning rate = a combination of pregnancy rate and birth rate; and litter size = number of kits) by population, taken from Lofroth et al 2022 JWM vital rates manuscript. Headers: Fpop: the two populations in BC: Boreal, Coumbian; Param: the reproductive parameter: DR (denning rate), LS (litter size); Mean: mean reproductive rate per parameter and population; SD: reproductive rate standard deviation value per parameter and population.", sourceURL = NA),
@@ -52,12 +56,14 @@ defineModule(sim, list(
     ),
   outputObjects = bind_rows(
     createsOutput (objectName = "agents", objectClass = "data.table", desc = "Fisher agents table." ),
+    createsOutput (objectName = "dispersers", objectClass = "data.table", desc = "Fisher dispersers table." ),
     createsOutput (objectName = "territories", objectClass = "data.table", desc = "Fisher territories table." ),
     createsOutput (objectName = "pix.rast", objectClass = "SpatRaster", desc = "A raster dataset of pixel values in the area of interest." ),
     createsOutput (objectName = "raster.stack", objectClass = "SpatRaster", desc = "The habitat data as a raster stack." ),
     createsOutput (objectName = "spread.rast", objectClass = "RasterLayer", desc = "The raster layer describing how fisher search for habitat." ),
     createsOutput (objectName = "table.hab.spread", objectClass = "data.table", desc = "Fisher habitat categoires table." ),
-    #createsOutput (objectName = "ras.territories", objectClass = "SpatRaster", desc = "The territories over a sim." ),
+    createsOutput (objectName = "ras.territories", objectClass = "SpatRaster", desc = "The territories over a sim." ),
+    createsOutput (objectName = "max.id", objectClass = "integer", desc = "The maximum territory identifier" ),
     createsOutput (objectName = "fisherABMReport", objectClass = "data.table", desc = "A data.table object. Consists of fisher population numbers in the study area at each time step."),
     
   )
@@ -69,8 +75,30 @@ doEvent.FLEXplorer = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init(sim)
-      sim <- getFisherHR(sim)
+      sim <- getInitialFisherHR(sim)
+      #sim <- saveABMReport(sim)
+      sim <- scheduleEvent (sim, time (sim) + 1, "FLEXplorer", "runevents", 19)
+      sim <- scheduleEvent (sim, end (sim), "FLEXplorer", "save", 20)
+    },
+    runevents = {
       
+      sim <- updateHabitat (sim)
+      
+      for (i in 1:P(sim, "timeInterval", "FLEXplorer")) {
+        #sim <- annualEvents (sim)
+        #Step 1.
+        sim <- checkHabitatNeeds(sim)
+        sim <- disperseFisher(sim)
+        sim <- reproduceFisher(sim)
+        sim <- survivalFisher(sim)
+        sim <- updateAgents (sim)
+      }
+      
+      sim <- scheduleEvent (sim, time(sim) + 1, "FLEXplorer", "runevents", 19)
+    },
+    
+    save = {
+      sim <- saveAgents (sim)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -135,7 +163,6 @@ Init <- function(sim) {
                             sex = "F",
                             age = sample (1:P (sim, "female_max_age", "FLEXplorer"), length (seq (from = 1, to = nrow (denning.starts), by = 1)), replace = T), # randomly draw ages between 1 and the max age,
                             pixelid = den.pix.coords[denning.starts$loc]$pixelid)
-  
   #---- assign the population to sim$agents table
   tab.fisher.pop <- table.habitat.init [ras_fisher_pop > 0, c ("pixelid", "ras_fisher_pop")]
   names (tab.fisher.pop) <- c ("pixelid", "fisher_pop")
@@ -155,20 +182,17 @@ Init <- function(sim) {
   sim$agents [fisher_pop == 3, hr_size_lb := sim$female_hr_table [fisher_pop == 3, hr_mean]- 2*sim$female_hr_table [fisher_pop == 3, hr_sd]]
   sim$agents [fisher_pop == 4, hr_size_lb := sim$female_hr_table [fisher_pop == 4, hr_mean]- 2*sim$female_hr_table [fisher_pop == 4, hr_sd]]
  
-  message ("Initiate fisher territories ...")
-  # assign agents to territories table
-  sim$territories <- data.table (individual_id = sim$agents$individual_id,  pixelid = sim$agents$pixelid)
-  
   # create spread probability raster. Note: this is limited to fisher range
   sim$table.hab.spread <- table.habitat.init [ras_fisher_pop > 0, 
                                               c ("pixelid", "ras_fisher_denning_init", "ras_fisher_rust_init", "ras_fisher_cavity_init", "ras_fisher_cwd_init", "ras_fisher_movement_init", "ras_fisher_open_init")]
   names (sim$table.hab.spread) <- c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")
   
+  sim$dispersers<-sim$agents[sex == 'M',] #this is done to create an empty table
 
   return(invisible(sim))
 }
 
-getFisherHR<-function(sim){
+getInitialFisherHR<-function(sim){
   message ("Establishing fisher territories ...")
   # convert to raster objects for spread2
   sim$spread.rast <- spreadRast (raster::raster (sim$pix.rast), sim$table.hab.spread)
@@ -191,20 +215,224 @@ getFisherHR<-function(sim){
   check_habitat <- merge(contingentHR, sim$table.hab.spread[, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")],
                        by.x = "pixels", by.y = "pixelid", all.x =TRUE)
   
-  browser()
   hab.count <- check_habitat [denning == 1 | rust == 1 | cavity == 1 |cwd == 1 | movement == 1, .(total_hab = .N), by = initialPixels]
   hab.count <- merge (hab.count, sim$agents [, c ("hr_size", "pixelid", "individual_id")], by.x = "initialPixels", by.y = "pixelid", all.x=T)
   
   remove_fisher<- hab.count[total_hab/hr_size < 0.15, ]
   sim$agents<-sim$agents[!(individual_id %in% remove_fisher$individual_id), ]
   contingentHR<-contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
+  check_habitat <- check_habitat[!(initialPixels %in% remove_fisher$initialPixels),]
   
   #---- 3. Habitat Quality Criteria
-  tab.perc <- habitatQual (contingentHR, sim$agents, sim$fisher_d2_cov)
+  tab.perc <- habitatQual (check_habitat, sim$agents, sim$fisher_d2_cov)
+  remove_fisher<- tab.perc[d2 > 7 | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer")| move_perc < P(sim, "move_target", "FLEXplorer"), ]
+  sim$agents<-sim$agents[!(individual_id %in% remove_fisher$individual_id), ]
+  contingentHR<-contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
   
+  # Report Outputs
+  sim$agents <- merge (sim$agents,
+                       tab.perc [, .(individual_id, d2_score = d2)],
+                       by = "individual_id")
+  
+  # save the largest individual id; need this later for setting id's of kits
+  sim$max.id <- max (sim$agents$individual_id)
+  
+  # territories raster set a territory as value = 1 
+  # final raster is the number of time periods that a pixel was a territory
+  sim$ras.territories[contingentHR$pixels]<-contingentHR$initialPixels
+  sim$territories<-contingentHR
+  
+  message ("Territories and agents created!")
   return(invisible(sim))
 }
 
+
+disperseFisher<- function(sim){
+  message ("Fishers dispersal...")
+  if (nrow (sim$dispersers) > 0) { # check to make sure there are dispersers
+    # re-set the dispersers HR size and fisher_pop and d2_score
+    sim$dispersers <- sim$dispersers[, d2_score := NA]
+    
+    # PREVIOUSLY ESTABLISHED
+    # Allow fisher who territory have degraded to change shape
+    est.fisher<-sim$dispersers[!is.na(individual_id),]
+    if(nrow(est.fisher) > 0){
+      #check to find the nearest denning habitat to their current
+      den.available <- sim$table.hab.spread[denning == 1 & !(pixelid %in% sim$territories$pixelid),]
+      den.available.coords <- data.table(xyFromCell(sim$pix.rast, den.available$pixelid))
+      current.location.coords <- data.table(xyFromCell(sim$pix.rast, est.fisher$pixelid))
+      
+      den.site.potentials <- RANN::nn2 (data =  den.available.coords[,c("x", "y")], 
+                                       query = current.location.coords[,c("x", "y")], k =  1)
+      est.fisher$new_location_dist<-den.site.potentials$nn.dist
+      est.fisher$pixelid<-den.available[den.site.potentials$nn.idx]$pixelid
+      
+      #Set a maximum distance fisher can move to re-establish thier territory
+      est.fisher.max.move<-est.fisher[new_location_dist < 1500, ]
+      if(nrow(est.fisher.max.move) > 0 ){
+        contingentHR <- SpaDES.tools::spread2 (sim$spread.rast, 
+                                           start = est.fisher.max.move$pixelid, 
+                                           spreadProb = as.numeric (sim$spread.rast[]),
+                                           exactSize = est.fisher.max.move$hr_size, 
+                                           allowOverlap = F, asRaster = F, circle = F)
+      
+        check_size <- merge(contingentHR[, .(size_achieved = .N), by = initialPixels], est.fisher.max.move [, c ("pixelid", "individual_id", "hr_size", "hr_size_lb")],
+                            by.x = "initialPixels", by.y = "pixelid")
+        remove_fisher <- check_size[size_achieved < hr_size_lb, ]
+        est.fisher.max.move <- est.fisher.max.move[!(individual_id %in% remove_fisher$individual_id), ]
+        contingentHR <- contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
+      }
+      #---- 2. Absolute amount of habitat
+      if(nrow(est.fisher.max.move) > 0){
+        check_habitat <- merge(contingentHR, sim$table.hab.spread[, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")],
+                               by.x = "pixels", by.y = "pixelid", all.x =TRUE)
+        
+        hab.count <- check_habitat [denning == 1 | rust == 1 | cavity == 1 |cwd == 1 | movement == 1, .(total_hab = .N), by = initialPixels]
+        hab.count <- merge (hab.count, est.fisher.max.move [, c ("hr_size", "pixelid", "individual_id")], by.x = "initialPixels", by.y = "pixelid", all.x=T)
+          
+        remove_fisher<- hab.count[total_hab/hr_size < 0.15, ]
+        est.fisher.max.move <- est.fisher.max.move[!(individual_id %in% remove_fisher$individual_id), ]
+        contingentHR <- contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
+        check_habitat <- check_habitat[!(initialPixels %in% remove_fisher$initialPixels),]
+      }
+        
+      #---- 3. Habitat Quality Criteria
+      if(nrow(est.fisher.max.move) > 0){
+        tab.perc <- habitatQual (check_habitat, est.fisher.max.move, sim$fisher_d2_cov)
+        remove_fisher<- tab.perc[d2 > 7 | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer")| move_perc < P(sim, "move_target", "FLEXplorer"), ]
+        est.fisher.max.move <- est.fisher.max.move[!(individual_id %in% remove_fisher$individual_id), ]
+        contingentHR<-contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
+      }
+      # Include the agent and territory - fisher were able to re-establish
+      if(nrow(est.fisher.max.move) > 0){
+        est.fisher.max.move<-merge(est.fisher.max.move, tab.perc[,c("individual_id", "d2")], by.x = "individual_id", by.y = "individual_id")
+        sim$agents<-rbindlist(list(sim$agents, est.fisher.max.move))
+        sim$territories[contingentHR$pixels]<-contingentHR$initialPixels
+        sim$dispersers<-sim$dispersers[!(individual_id == est.fisher.max.move$individual_id), ]
+      }
+    }
+    
+    #---JUVINLES
+    est.fisher<-sim$dispersers[is.na(individual_id),]
+    
+    # remove occupied den sites
+    den.available <- sim$table.hab.spread[denning == 1 & !(pixelid %in% sim$territories$pixelid),]
+    den.available.coords <- data.table(xyFromCell(sim$pix.rast, den.available$pixelid))
+    current.location.coords <-data.table(xyFromCell(sim$pix.rast, dispersers$pixelid))
+    
+    den.site.potentials <-RANN::nn2 (data =  den.available.coords[,c("x", "y")], 
+                        query =current.location.coords[,c("x", "y")] , k =  min (40, nrow (sim$den.table)), radius = 500 )
+    current.location.coords
+    
+  }
+  return(invisible(sim))
+}
+
+checkHabitatNeeds <- function(sim){
+  message ("Fisher checking habitat quality...")
+  # Check if Fisher Habitat Needs are Being Met
+  # if not, the animal gets a null d2 score and will disperse
+  # A. check to see if minimum habitat target was met (prop habitat = 0.15); if not, remove the animal 
+  #---- 1. Absolute amount of habitat
+  check_habitat <- merge(sim$territories, sim$table.hab.spread[, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")],
+                         by.x = "pixels", by.y = "pixelid", all.x =TRUE)
+  
+  hab.count <- check_habitat [denning == 1 | rust == 1 | cavity == 1 |cwd == 1 | movement == 1, .(total_hab = .N), by = initialPixels]
+  hab.count <- merge (hab.count, sim$agents [, c ("hr_size", "pixelid", "individual_id")], by.x = "initialPixels", by.y = "pixelid", all.x=T)
+  
+  remove_fisher<- hab.count[total_hab/hr_size < 0.15, ]
+  #add to disperses table
+  sim$dispersers<-rbindlist(list(sim$dispersers, sim$agents[individual_id %in% remove_fisher$individual_id, ]), fill=TRUE)
+  sim$agents<-sim$agents[!(individual_id %in% remove_fisher$individual_id), ]
+  sim$territories<-sim$territories[!(initialPixels %in% remove_fisher$initialPixels), ]
+  
+  #---- 3. Habitat Quality Criteria
+  tab.perc <- habitatQual (check_habitat, sim$agents, sim$fisher_d2_cov)
+  remove_fisher<- tab.perc[d2 > 7 | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer") | move_perc < P(sim, "move_target", "FLEXplorer"), ]
+  #add to disperses table
+  sim$dispersers<-rbindlist(list(sim$dispersers, sim$agents[individual_id %in% remove_fisher$individual_id, ]), fill = TRUE)
+  sim$agents<-sim$agents[!(individual_id %in% remove_fisher$individual_id), ]
+  sim$territories<-sim$territories[!(initialPixels %in% remove_fisher$initialPixels), ]
+  
+  message ("Habitat checked by fishers.")
+  return(invisible(sim))
+}
+
+saveABMReport<-function(sim){
+  # save
+  new.agents.save <- data.table (n_f_adult = as.numeric (nrow (sim$agents [sex == "F" & age > 1, ])), 
+                                 n_f_juv = as.numeric (nrow (sim$agents [sex == "F" & age == 1, ])), 
+                                 mean_age_f = as.numeric (mean (c (sim$agents [sex == "F", age]))), 
+                                 sd_age_f = as.numeric (sd (c (sim$agents [sex == "F", age]))), 
+                                 timeperiod = as.integer (time(sim) * P (sim, "timeInterval", "FLEX2")), 
+                                 scenario = as.character (sim$scenario$name))
+  
+  sim$fisherABMReport <- rbindlist (list (sim$fisherABMReport, new.agents.save), use.names = TRUE)
+  return(invisible(sim))
+}
+
+updateHabitat <- function (sim) {
+  message ("Update fisher habitat data...")
+  # 1. update the habitat data in the territories
+  # subset data for the time interval
+  cols <- c ("pixelid", "ras_fisher_pop",  
+             paste0 ("ras_fisher_denning_", (time(sim) * P (sim, "timeInterval", "FLEXplorer"))), 
+             paste0 ("ras_fisher_rust_", (time(sim) * P (sim, "timeInterval", "FLEXplorer"))), 
+             paste0 ("ras_fisher_cavity_", (time(sim) * P (sim, "timeInterval", "FLEXplorer"))), 
+             paste0 ("ras_fisher_cwd_", (time(sim) * P (sim, "timeInterval", "FLEXplorer"))), 
+             paste0 ("ras_fisher_movement_", (time(sim) * P (sim, "timeInterval", "FLEXplorer"))),
+             paste0 ("ras_fisher_open_", (time(sim) * P (sim, "timeInterval", "FLEXplorer"))))
+  raster.stack.update <- terra::subset (sim$raster.stack, cols)
+  
+  # convert data to table
+  table.hab.update <- na.omit (as.data.table (raster.stack.update []))
+  sim$table.hab.spread <- table.hab.update [ras_fisher_pop > 0, ]
+  names (sim$table.hab.spread) <- c ("pixelid", "fisher_pop", "denning", "rust", "cavity", "cwd", "movement", "open")
+  
+  # B. Update the spread probability raster
+  sim$spread.rast <- spreadRast (sim$pix.raster, sim$table.hab.spread)
+  message ("Fisher habitat data updated.")
+  
+  return (invisible (sim))
+}
+
+
+
+habitatQual <- function (inputTable, agentsTable, d2Table) {
+  tab.perc <- Reduce (function (...) merge (..., all = TRUE, by = "initialPixels"), 
+                      list (inputTable [, .(den_perc = ((sum (denning, na.rm = T)) / .N) * 100), by = initialPixels ], 
+                            inputTable [, .(rust_perc = ((sum (rust, na.rm = T)) / .N) * 100), by = initialPixels ], 
+                            inputTable [, .(cav_perc = ((sum (cavity, na.rm = T)) / .N) * 100), by = initialPixels ], 
+                            inputTable [, .(move_perc = ((sum (movement, na.rm = T)) / .N) * 100), by = initialPixels ], 
+                            inputTable [, .(cwd_perc = ((sum (cwd, na.rm = T)) / .N) * 100), by = initialPixels ],
+                            inputTable [, .(open_perc = ((sum (open, na.rm =T)) / .N) * 100), by = initialPixels])
+  )
+  tab.perc <- merge (tab.perc, 
+                     agentsTable [, c ("pixelid", "individual_id", "fisher_pop")],
+                     by.x = "initialPixels",by.y = "pixelid", all.x = T)
+  # log transform the data
+  tab.perc [fisher_pop == 2 & den_perc >= 0, den_perc := log (den_perc + 1)][fisher_pop == 2 & cav_perc >= 0, cavity := log (cav_perc + 1)] # sbs-wet
+  tab.perc [fisher_pop == 3 & den_perc >= 0, den_perc := log (den_perc + 1)]# sbs-dry
+  tab.perc [fisher_pop == 4 & rust_perc >= 0, rust_perc := log (rust_perc + 1)] # dry
+  
+  # truncate at the center 
+  # 1 = boreal
+  # 2 = sbs-wet
+  # 3 = sbs-dry
+  # 4 = dry
+  
+  tab.perc [fisher_pop == 1 & den_perc > 24, den_perc := 24][fisher_pop == 1 & rust_perc > 2.2, rust_perc := 2.2][fisher_pop == 1 & cwd_perc > 17.4, cwd_perc := 17.4][fisher_pop == 1 & move_perc > 56.2, move_perc := 56.2][fisher_pop == 1 & open_perc < 31.2, open_perc := 31.2]
+  tab.perc [fisher_pop == 2 & den_perc > 1.57, den_perc := 1.57][fisher_pop == 2 & rust_perc > 36.2, rust_perc := 36.2][fisher_pop == 2 & cav_perc > 0.685, cav_perc := 0.685][fisher_pop == 2 & cwd_perc > 30.38, cwd_perc := 30.38][fisher_pop == 2 & move_perc > 61.5, move_perc := 61.5][fisher_pop == 2 & open_perc < 32.7, open_perc := 32.7]
+  tab.perc [fisher_pop == 3 & den_perc > 1.16, den_perc := 1.16][fisher_pop == 3 & rust_perc > 19.1, rust_perc := 19.1][fisher_pop == 3 & cav_perc > 0.45, cav_perc := 0.45][fisher_pop == 3 & cwd_perc > 12.7, cwd_perc := 12.7][fisher_pop == 3 & move_perc > 51.3, move_perc := 51.3][fisher_pop == 3 & open_perc < 37.3, open_perc := 37.3]
+  tab.perc [fisher_pop == 4 & den_perc > 2.3, den_perc := 2.3][fisher_pop == 4 & rust_perc > 1.6, rust_perc := 1.6][fisher_pop == 4 & cwd_perc > 10.8, cwd_perc := 10.8][fisher_pop == 4 & move_perc > 58.1, move_perc := 58.1][fisher_pop == 4 & open_perc < 15.58, open_perc := 15.58]
+  
+  tab.perc [fisher_pop == 1, d2 := mahalanobis (tab.perc [fisher_pop == 1, c ("den_perc", "rust_perc", "cwd_perc", "move_perc", "open_perc")], c(23.98, 2.24, 17.4, 56.2, 31.2), cov = d2Table[[1]])]
+  tab.perc [fisher_pop == 2, d2 := mahalanobis (tab.perc [fisher_pop == 2, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc", "open_perc")], c(1.57, 36.2, 0.68, 30.38, 61.5, 32.72), cov = d2Table[[2]])]
+  tab.perc [fisher_pop == 3, d2 := mahalanobis (tab.perc [fisher_pop == 3, c ("den_perc", "rust_perc", "cav_perc", "cwd_perc", "move_perc", "open_perc")], c(1.16, 19.1, 0.4549, 12.76, 51.25, 37.27), cov = d2Table[[3]])]
+  tab.perc [fisher_pop == 4, d2 := mahalanobis (tab.perc [fisher_pop == 4, c ("den_perc", "rust_perc", "cwd_perc", "move_perc", "open_perc")], c(2.31, 1.63, 10.8, 58.1, 15.58), cov = d2Table[[4]])]
+  
+  return (tab.perc)
+}
 
 spreadRast <- function (rasterInput, habitatInput) {
   #TODO: Net out current maintained territories so that NEW fisher can't spread into established territories
@@ -222,6 +450,73 @@ spreadRast <- function (rasterInput, habitatInput) {
   return (out.rast)	
 }
 
+saveAgents <- function (sim) {
+  message ("Save the agents and territories.")
+  # save the agents table
+  # NOTE: this also can integrate with Castor/CLUS, as fisherABMReport is an object in uploaderCASTOR 
+  #  thus the table can also be saved to a postgres database
+  write.csv (x = sim$fisherABMReport,
+             file = paste0 (outputPath (sim), "/", sim$scenario$name, "_fisher_agents.csv"))
+  
+  # write final agents table
+  write.csv (x = sim$agents,
+             file = paste0 (outputPath (sim), "/", sim$scenario$name, "_fisher_agents_timeinterval_end_table.csv"))
+  
+  # save the territories
+  # using raster::writeRaster() here
+  # terra::writeRaster() throws error: [writeRaster] there are no cell values
+  # but there are values in the raster; possible bug?
+  
+  raster::writeRaster (x = raster::raster (sim$ras.territories),
+                       filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_fisher_territories.tif"),
+                       overwrite = TRUE)
+  
+  # terra::writeRaster (x = terra::rast (sim$ras.territories), 
+  #                    filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_fisher_territories.tif"), 
+  #                    overwrite = TRUE)
+  
+  # add final territories
+  ras.territories.final <- sim$pix.rast
+  ras.territories.final [] <- 0
+  ras.territories.final [sim$territories$pixelid] <- sim$territories$individual_id
+  
+  raster::writeRaster (x = raster::raster (ras.territories.final),
+                       filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_final_fisher_territories.tif"),
+                       overwrite = TRUE)
+  
+  # terra::writeRaster (x = terra::rast (ras.territories.final), 
+  #                      filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_final_fisher_territories.tif"), 
+  #                      overwrite = TRUE)
+  # 
+  
+  # use below if want to save the agents table
+  # if(nrow(dbGetQuery(sim$castordb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'agents';")) == 0){
+  #   # if the table exists, write it to the db
+  #   DBI::dbWriteTable (sim$castordb, "agents", agents.save, append = FALSE,
+  #                      row.names = FALSE, overwrite = FALSE)
+  # } else {
+  #   # if the table exists, append it to the table in the db
+  #   DBI::dbWriteTable (sim$castordb, "agents", agents.save, append = TRUE,
+  #                      row.names = FALSE, overwrite = FALSE)
+  # }
+  
+  
+  # use below if want to save the territories table
+  # territories.save <- sim$territories
+  # territories.save [, c("timeperiod", "scenario") := list (time(sim)*P (sim, "timeInterval", "FLEX2"), sim$scenario$name)  ] # add the time of the calc
+  # 
+  # if(nrow(dbGetQuery (sim$castordb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name = 'territories';")) == 0){
+  #   # if the table exists, write it to the db
+  #   DBI::dbWriteTable (sim$castordb, "territories", territories.save, append = FALSE,
+  #                      row.names = FALSE, overwrite = FALSE)
+  # } else {
+  #   # if the table exists, append it to the table in the db
+  #   DBI::dbWriteTable (sim$castordb, "territories", territories.save, append = TRUE,
+  #                      row.names = FALSE, overwrite = FALSE)
+  # }
+  message ("Save fisher agents and territories complete.")
+  return (invisible (sim))
+}
 
 .inputObjects <- function(sim) {
   dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
