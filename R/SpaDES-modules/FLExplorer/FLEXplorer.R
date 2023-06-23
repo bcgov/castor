@@ -249,13 +249,13 @@ getInitialFisherHR<-function(sim){
 
 disperseFisher<- function(sim){
   message ("Fishers dispersal...")
+  browser()
+  sim$dispersers<-sim$agents[5:9]
   if (nrow (sim$dispersers) > 0) { # check to make sure there are dispersers
-    # re-set the dispersers HR size and fisher_pop and d2_score
-    sim$dispersers <- sim$dispersers[, d2_score := NA]
-    
-    # PREVIOUSLY ESTABLISHED
-    # Allow fisher who territory have degraded to change shape
-    est.fisher<-sim$dispersers[!is.na(individual_id),]
+   
+    # PREVIOUSLY ESTABLISHED--Allow fisher whose territories have been degraded are allowed to change their territory shape
+    est.fisher<-sim$dispersers[!is.na(individual_id),] # fisher who have and individual id had a territory
+    est.fisher<-sim$dispersers
     if(nrow(est.fisher) > 0){
       #check to find the nearest denning habitat to their current
       den.available <- sim$table.hab.spread[denning == 1 & !(pixelid %in% sim$territories$pixelid),]
@@ -263,67 +263,82 @@ disperseFisher<- function(sim){
       current.location.coords <- data.table(xyFromCell(sim$pix.rast, est.fisher$pixelid))
       
       den.site.potentials <- RANN::nn2 (data =  den.available.coords[,c("x", "y")], 
-                                       query = current.location.coords[,c("x", "y")], k =  1)
-      est.fisher$new_location_dist<-den.site.potentials$nn.dist
-      est.fisher$pixelid<-den.available[den.site.potentials$nn.idx]$pixelid
+                                       query = current.location.coords[,c("x", "y")], searchtype = 'radius', radius =  50000, k =10)
+      # add cap on max distance
+      est.fisher<-merge(est.fisher[, row := 1:.N], data.table(which(den.site.potentials$nn.idx != 0, arr.ind = T))[, max(col), by = row], by = "row")
+      est.fisher<-est.fisher[!is.na(V1), ] #Remove any fisher too isolated from denning habitat
+      est.fisher$seed<- apply(est.fisher, 1, function(x) sample(1:x["V1"], 1)) #randomly sample the 10 closest unoccupied denning locations
+      est.fisher$pixelid<-den.available[den.site.potentials$nn.idx[cbind(est.fisher$row,est.fisher$seed)]]$pixelid #Fisher have moved
       
-      #Set a maximum distance fisher can move to re-establish thier territory
-      est.fisher.max.move<-est.fisher[new_location_dist < 1500, ]
-      if(nrow(est.fisher.max.move) > 0 ){
+      #Fisher have moved so next iteration they start in different location
+      sim$dispersers[individual_id %in% est.fisher$individual_id, ]$pixelid<-est.fisher$pixelid 
+    
+      if(nrow(est.fisher) > 0 ){
         contingentHR <- SpaDES.tools::spread2 (sim$spread.rast, 
-                                           start = est.fisher.max.move$pixelid, 
+                                           start = est.fisher$pixelid, 
                                            spreadProb = as.numeric (sim$spread.rast[]),
-                                           exactSize = est.fisher.max.move$hr_size, 
+                                           exactSize = est.fisher$hr_size, # try to find same home range size
                                            allowOverlap = F, asRaster = F, circle = F)
       
-        check_size <- merge(contingentHR[, .(size_achieved = .N), by = initialPixels], est.fisher.max.move [, c ("pixelid", "individual_id", "hr_size", "hr_size_lb")],
+        check_size <- merge(contingentHR[, .(size_achieved = .N), by = initialPixels], est.fisher [, c ("pixelid", "individual_id", "hr_size", "hr_size_lb")],
                             by.x = "initialPixels", by.y = "pixelid")
         remove_fisher <- check_size[size_achieved < hr_size_lb, ]
-        est.fisher.max.move <- est.fisher.max.move[!(individual_id %in% remove_fisher$individual_id), ]
+        est.fisher <- est.fisher[!(individual_id %in% remove_fisher$individual_id), ]
         contingentHR <- contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
-      }
-      #---- 2. Absolute amount of habitat
-      if(nrow(est.fisher.max.move) > 0){
-        check_habitat <- merge(contingentHR, sim$table.hab.spread[, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")],
-                               by.x = "pixels", by.y = "pixelid", all.x =TRUE)
         
-        hab.count <- check_habitat [denning == 1 | rust == 1 | cavity == 1 |cwd == 1 | movement == 1, .(total_hab = .N), by = initialPixels]
-        hab.count <- merge (hab.count, est.fisher.max.move [, c ("hr_size", "pixelid", "individual_id")], by.x = "initialPixels", by.y = "pixelid", all.x=T)
+        #---- 2. Absolute amount of habitat
+        if(nrow(est.fisher) > 0){
+          check_habitat <- merge(contingentHR, sim$table.hab.spread[, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")],
+                                 by.x = "pixels", by.y = "pixelid", all.x =TRUE)
           
-        remove_fisher<- hab.count[total_hab/hr_size < 0.15, ]
-        est.fisher.max.move <- est.fisher.max.move[!(individual_id %in% remove_fisher$individual_id), ]
-        contingentHR <- contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
-        check_habitat <- check_habitat[!(initialPixels %in% remove_fisher$initialPixels),]
-      }
-        
-      #---- 3. Habitat Quality Criteria
-      if(nrow(est.fisher.max.move) > 0){
-        tab.perc <- habitatQual (check_habitat, est.fisher.max.move, sim$fisher_d2_cov)
-        remove_fisher<- tab.perc[d2 > 7 | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer")| move_perc < P(sim, "move_target", "FLEXplorer"), ]
-        est.fisher.max.move <- est.fisher.max.move[!(individual_id %in% remove_fisher$individual_id), ]
-        contingentHR<-contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
-      }
-      # Include the agent and territory - fisher were able to re-establish
-      if(nrow(est.fisher.max.move) > 0){
-        est.fisher.max.move<-merge(est.fisher.max.move, tab.perc[,c("individual_id", "d2")], by.x = "individual_id", by.y = "individual_id")
-        sim$agents<-rbindlist(list(sim$agents, est.fisher.max.move))
-        sim$territories[contingentHR$pixels]<-contingentHR$initialPixels
-        sim$dispersers<-sim$dispersers[!(individual_id == est.fisher.max.move$individual_id), ]
+          hab.count <- check_habitat [denning == 1 | rust == 1 | cavity == 1 |cwd == 1 | movement == 1, .(total_hab = .N), by = initialPixels]
+          hab.count <- merge (hab.count, est.fisher [, c ("hr_size", "pixelid", "individual_id")], by.x = "initialPixels", by.y = "pixelid", all.x=T)
+            
+          remove_fisher<- hab.count[total_hab/hr_size < 0.15, ]
+          est.fisher <- est.fisher[!(individual_id %in% remove_fisher$individual_id), ]
+          contingentHR <- contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
+          check_habitat <- check_habitat[!(initialPixels %in% remove_fisher$initialPixels),]
+          
+          #---- 3. Habitat Quality Criteria
+          if(nrow(est.fisher) > 0){
+            tab.perc <- habitatQual (check_habitat, est.fisher, sim$fisher_d2_cov)
+            remove_fisher<- tab.perc[d2 > 7 | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer")| move_perc < P(sim, "move_target", "FLEXplorer"), ]
+            est.fisher <- est.fisher[!(individual_id %in% remove_fisher$individual_id), ]
+            contingentHR<-contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
+            
+            # fisher were able to re-establish. Include the agent and territory - 
+            if(nrow(est.fisher) > 0){
+              tab.perc<-tab.perc[, d2_score:=d2]
+              est.fisher$seed<-NULL #remove the seed
+              est.fisher$d2_score<-NULL
+              est.fisher$V1 <- NULL
+              est.fisher<-merge(est.fisher, tab.perc[,c("individual_id", "d2_score")], by.x = "individual_id", by.y = "individual_id")
+              sim$agents<-rbindlist(list(sim$agents, est.fisher)) # add the individuals back to the agents table
+              sim$territories[contingentHR$pixels]<-contingentHR$initialPixels
+              sim$dispersers<-sim$dispersers[!(individual_id == est.fisher$individual_id), ] #Fisher stay in the dispersers table
+            }
+          }
+        }
       }
     }
     
-    #---JUVINLES
-    est.fisher<-sim$dispersers[is.na(individual_id),]
-    
-    # remove occupied den sites
-    den.available <- sim$table.hab.spread[denning == 1 & !(pixelid %in% sim$territories$pixelid),]
-    den.available.coords <- data.table(xyFromCell(sim$pix.rast, den.available$pixelid))
-    current.location.coords <-data.table(xyFromCell(sim$pix.rast, dispersers$pixelid))
-    
-    den.site.potentials <-RANN::nn2 (data =  den.available.coords[,c("x", "y")], 
-                        query =current.location.coords[,c("x", "y")] , k =  min (40, nrow (sim$den.table)), radius = 500 )
-    current.location.coords
-    
+    #---JUVENILES try disperse after the adults (larger sized animals win)
+    juv.fisher<-sim$dispersers[is.na(individual_id),]
+    if(nrow(juv.fisher) > 0){
+      #check to find the nearest denning habitat to their current
+      #TODO: sample the same way as the init allowing some juveniles to disperse
+      den.available <- sim$table.hab.spread[denning == 1 & !(pixelid %in% sim$territories$pixelid),] #Need this because the sim$territories may have changed when adults have re-established territories
+      den.available.coords <- data.table(xyFromCell(sim$pix.rast, den.available$pixelid))
+      current.location.coords <- data.table(xyFromCell(sim$pix.rast, juv.fisher$pixelid))
+      
+      den.site.potentials <- RANN::nn2 (data =  den.available.coords[,c("x", "y")], 
+                                        query = current.location.coords[,c("x", "y")], 
+                                        searchtype = 'radius', radius = 50000) #search within 50 km
+      
+      est.fisher$seed<-sample(1:10, nrow(est.fisher)) #randomly sample the 10 closest unoccupied denning locations
+      est.fisher$pixelid<-den.available[den.site.potentials[est.fisher$seed]$nn.idx]$pixelid
+    }
+ 
   }
   return(invisible(sim))
 }
@@ -390,7 +405,7 @@ updateHabitat <- function (sim) {
   names (sim$table.hab.spread) <- c ("pixelid", "fisher_pop", "denning", "rust", "cavity", "cwd", "movement", "open")
   
   # B. Update the spread probability raster
-  sim$spread.rast <- spreadRast (sim$pix.raster, sim$table.hab.spread)
+  sim$spread.rast <- spreadRast (raster::raster (sim$pix.rast), sim$table.hab.spread)
   message ("Fisher habitat data updated.")
   
   return (invisible (sim))
