@@ -47,7 +47,7 @@ modules <- list ("FLEXplorer")
 mySim <- simInit(times = times, 
                  params = parameters, 
                  modules = modules,
-                 objects = objects,
+                 objects = list(),
                  paths = paths)
 
 mySimOut <- spades(mySim)
