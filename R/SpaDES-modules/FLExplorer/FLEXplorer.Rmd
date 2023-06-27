@@ -18,6 +18,8 @@ library (here)
 library (stringr)
 library (truncnorm)
 library (RANN)
+library(sampling)
+library(BalancedSampling)
 source (paste0 (here::here(), "/R/functions/R_Postgres.R"))
 
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
