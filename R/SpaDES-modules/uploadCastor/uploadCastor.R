@@ -192,7 +192,6 @@ save.reports <-function (sim){
   #GrowingStockReport
   if(!is.null(sim$growingStockReport)){
     message("writing growingstock report")
-    test<<-sim$growingStockReport
     dbWriteTable(connx, c(P(sim, "aoiName", "uploadCastor"), 'growingstock'), 
                  sim$growingStockReport, append = T,
                  row.names = FALSE)

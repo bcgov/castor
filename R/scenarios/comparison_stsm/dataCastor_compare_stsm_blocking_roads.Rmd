@@ -28,7 +28,7 @@ Set parameters for creating the database in the code chunk below.
 
 ```{r module_usage}
 library (SpaDES)
-library (SpaDES.core)
+library (SpaDES.tools)
 library (data.table)
 library (keyring)
 
