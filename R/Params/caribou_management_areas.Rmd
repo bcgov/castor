@@ -16,6 +16,7 @@ library (sf)
 library (DBI)
 library (data.table)
 library (dplyr)
+library (keyring)
 
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
@@ -2178,14 +2179,8 @@ dbDisconnect (conn)
 
 ```
 
-
-
-
-
-
 ## Revelstoke Scenarios Feb. 2023
 This defines the management zones for caribou herds in the "Revelstoke Complex" (Central Selkirks, Groundhog, and Columbia North). Wells Gray South is included 
-
 
 ```{r, revelstoke Feb. 2023}
 # zone.tier1 <- sf::st_read("D:\\clus_data\\scenarios\\revelstoke\\Footprint_to_model_Feb_10_2023.gpkg", 
@@ -2309,8 +2304,187 @@ dbDisconnect (conn)
 
 ```
 
+## Revelstoke Scenarios June 2023
+This defines the management zones for caribou herds in the "Revelstoke Complex". The previous zones were updated to inlcude more areas.
 
+```{r, revelstoke June 2023}
 
+### run these in osgeo shell with pgdb params:
+# ogr2ogr -f PostgreSQL PG:"dbname=clus port=xxxx user=xxxx password=xxxx host=xxxx" D:\clus_data\scenarios\revelstoke\MODEL_TIERS_2023.gdb Tier_1_Footprint -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -nln revelstoke_tier1_june2023
+# ogr2ogr -f PostgreSQL PG:"dbname=clus port=xxxx user=xxxx password=xxxx host=xxxx" D:\clus_data\scenarios\revelstoke\MODEL_TIERS_2023.gdb Tier_2_Footprint -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -nln revelstoke_tier2_june2023
+# ogr2ogr -f PostgreSQL PG:"dbname=clus port=xxxx user=xxxx password=xxxx host=xxxx" D:\clus_data\scenarios\revelstoke\MODEL_TIERS_2023.gdb Tier_3_Footprint -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -nln revelstoke_tier3_june2023
+# ogr2ogr -f PostgreSQL PG:"dbname=clus port=xxxx user=xxxx password=xxxx host=xxxx" D:\clus_data\scenarios\revelstoke\MODEL_TIERS_2023.gdb MU_Tier_1_Footprint_MU -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -nln revelstoke_tier1_moose_june2023
+# ogr2ogr -f PostgreSQL PG:"dbname=clus port=xxxx user=xxxx password=xxxx host=xxxx" D:\clus_data\scenarios\revelstoke\MODEL_TIERS_2023.gdb MU_Tier_2_Footprint_MU -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -nln revelstoke_tier2_moose_june2023
+# ogr2ogr -f PostgreSQL PG:"dbname=clus port=xxxx user=xxxx password=xxxx host=xxxx" D:\clus_data\scenarios\revelstoke\MODEL_TIERS_2023.gdb MU_Tier_3_Footprint_MU -overwrite -a_srs EPSG:3005 -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -nln revelstoke_tier3_moose_june2023
+
+conn <- DBI::dbConnect(dbDriver("PostgreSQL"), 
+                       host=key_get("dbhost", keyring="postgreSQL"), 
+                       dbname = 'clus', port='5432', 
+                       user=key_get("dbuser", keyring="postgreSQL"), 
+                       password=key_get("dbpass", keyring="postgreSQL"))
+
+zone.tier1 <- getSpatialQuery ("SELECT * from public.revelstoke_tier1_june2023;")
+zone.tier2 <- getSpatialQuery ("SELECT * from public.revelstoke_tier2_june2023;")
+zone.tier3 <- getSpatialQuery ("SELECT * from public.revelstoke_tier3_june2023;")
+zone.tier1.moose <- getSpatialQuery ("SELECT * from public.revelstoke_tier1_moose_june2023;")
+zone.tier2.moose <- getSpatialQuery ("SELECT * from public.revelstoke_tier2_moose_june2023;")
+zone.tier3.moose <- getSpatialQuery ("SELECT * from public.revelstoke_tier3_moose_june2023;")
+
+zone.tier1$value <- match (zone.tier1$zone, unique(zone.tier1$zone))
+zone.tier2$value <- match (zone.tier2$zone, unique(zone.tier2$zone))
+zone.tier3$value <- match (zone.tier3$zone, unique(zone.tier3$zone))
+zone.tier1.moose$value <- match (zone.tier1.moose$zone, unique(zone.tier1.moose$zone))
+zone.tier2.moose$value <- match (zone.tier2.moose$zone, unique(zone.tier2.moose$zone))
+zone.tier3.moose$value <- match (zone.tier3.moose$zone, unique(zone.tier3.moose$zone))
+
+vat.zone.tier1 <- data.table (unique (st_drop_geometry (zone.tier1 [, c ('value', 'zone')]))) 
+vat.zone.tier2 <- data.table (unique (st_drop_geometry (zone.tier2 [, c ('value', 'zone')])))  
+vat.zone.tier3 <- data.table (unique (st_drop_geometry (zone.tier3 [, c ('value', 'zone')])))  
+vat.zone.tier1.moose <- data.table (unique (st_drop_geometry (zone.tier1.moose [, c ('value', 'zone')]))) 
+vat.zone.tier2.moose <- data.table (unique (st_drop_geometry (zone.tier2.moose [, c ('value', 'zone')])))  
+vat.zone.tier3.moose <- data.table (unique (st_drop_geometry (zone.tier3.moose [, c ('value', 'zone')]))) 
+
+names (vat.zone.tier1) <- c ('value', 'attribute')
+names (vat.zone.tier2) <- c ('value', 'attribute')
+names (vat.zone.tier3) <- c ('value', 'attribute')
+names (vat.zone.tier1.moose) <- c ('value', 'attribute')
+names (vat.zone.tier2.moose) <- c ('value', 'attribute')
+names (vat.zone.tier3.moose) <- c ('value', 'attribute')
+
+# raster with all zones
+prov.rast <- raster::raster (nrows = 15744, ncols = 17216, 
+                             xmn = 159587.5, xmx = 1881187.5, 
+                             ymn = 173787.5, ymx = 1748187.5, 
+                             crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs", 
+                             resolution = c(100, 100), 
+                             vals = 0)
+
+ras_tier1 <- fasterize::fasterize (zone.tier1, prov.rast, field = "value")
+ras_tier2 <- fasterize::fasterize (zone.tier2, prov.rast, field = "value")
+ras_tier3 <- fasterize::fasterize (zone.tier3, prov.rast, field = "value")
+ras_tier1_moose <- fasterize::fasterize (zone.tier1.moose, prov.rast, field = "value")
+ras_tier2_moose <- fasterize::fasterize (zone.tier2.moose, prov.rast, field = "value")
+ras_tier3_moose <- fasterize::fasterize (zone.tier3.moose, prov.rast, field = "value")
+
+writeRaster (ras_tier1, "ras_tier1.tif", overwrite = TRUE)
+writeRaster (ras_tier2, "ras_tier2.tif", overwrite = TRUE)
+writeRaster (ras_tier3, "ras_tier3.tif", overwrite = TRUE)
+writeRaster (ras_tier1_moose, "ras_tier1_moose.tif", overwrite = TRUE)
+writeRaster (ras_tier2_moose, "ras_tier2_moose.tif", overwrite = TRUE)
+writeRaster (ras_tier3_moose, "ras_tier3_moose.tif", overwrite = TRUE)
+
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_tier1.tif -t 100x100 rast.zone_revelstoke_tier1_caribou_june2023 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_tier2.tif -t 100x100 rast.zone_revelstoke_tier2_caribou_june2023 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_tier3.tif -t 100x100 rast.zone_revelstoke_tier3_caribou_june2023 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_tier1_moose.tif -t 100x100 rast.zone_revelstoke_tier1_caribou_moose_june2023 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_tier2_moose.tif -t 100x100 rast.zone_revelstoke_tier2_caribou_moose_june2023 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+system ("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 
+                                  here::here(), '/R/params/ras_tier3_moose.tif -t 100x100 rast.zone_revelstoke_tier3_caribou_moose_june2023 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+#Create zone constraint table for raster with all zones
+zone_tier1 <- data.table (zoneid = as.integer(c(1:2)), 
+                          type = c ('le', 'nh'), 
+                          variable = c ('age', ''), 
+                          threshold = c (40, 0), 
+                          reference_zone = 'rast.zone_revelstoke_tier1_caribou_june2023', 
+                          percentage = c (12, 0), 
+                          ndt = as.integer(0), multi_condition = as.character(NA), 
+                          denom = as.character(NA), 
+                          start = as.integer(0), stop = as.integer(250))
+zone_tier2 <- data.table (zoneid = as.integer(c(1:2)), 
+                          type = c ('le', 'nh'), 
+                          variable = c ('age', ''), 
+                          threshold = c (40, 0), 
+                          reference_zone = 'rast.zone_revelstoke_tier2_caribou_june2023', 
+                          percentage = c (12, 0), 
+                          ndt = as.integer(0), multi_condition = as.character(NA), 
+                          denom = as.character(NA), 
+                          start = as.integer(0), stop = as.integer(250))
+zone_tier3 <- data.table (zoneid = as.integer(c(1:2)), 
+                          type = c ('le', 'nh'), 
+                          variable = c ('age', ''), 
+                          threshold = c (40, 0), 
+                          reference_zone = 'rast.zone_revelstoke_tier3_caribou_june2023', 
+                          percentage = c (12, 0), 
+                          ndt = as.integer(0), multi_condition = as.character(NA), 
+                          denom = as.character(NA), 
+                          start = as.integer(0), stop = as.integer(250))
+zone_tier1_moose_limit <- data.table (zoneid = as.integer(c(1:28, 71:132, 181:253, 265:303)), 
+                                type = c ('le'), 
+                                variable = c ('age'), 
+                                threshold = c (40), 
+                                reference_zone =
+                                'rast.zone_revelstoke_tier1_caribou_moose_june2023', 
+                                percentage = c (12), 
+                                ndt = as.integer(0), multi_condition = as.character(NA), 
+                                denom = as.character(NA), 
+                                start = as.integer(0), stop = as.integer(250))
+zone_tier1_moose_exclude <- data.table (zoneid = as.integer(c(29:70, 133:180, 254:264)), 
+                                type = c ('nh'), 
+                                variable = c (''), 
+                                threshold = c (0), 
+                                reference_zone =
+                                'rast.zone_revelstoke_tier1_caribou_moose_june2023', 
+                                percentage = c (0), 
+                                ndt = as.integer(0), multi_condition = as.character(NA), 
+                                denom = as.character(NA), 
+                                start = as.integer(0), stop = as.integer(250))
+zone_tier2_moose_limit <- data.table (zoneid = as.integer(c(1:24, 39:87, 133:199, 209:240)), 
+                                type = c ('le'), 
+                                variable = c ('age'), 
+                                threshold = c (40), 
+                                reference_zone =
+                                'rast.zone_revelstoke_tier2_caribou_moose_june2023', 
+                                percentage = c (12), 
+                                ndt = as.integer(0), multi_condition = as.character(NA), 
+                                denom = as.character(NA), 
+                                start = as.integer(0), stop = as.integer(250))
+zone_tier2_moose_exclude <- data.table (zoneid = as.integer(c(25:38, 88:132, 200:208)), 
+                                type = c ('nh'), 
+                                variable = c (''), 
+                                threshold = c (0), 
+                                reference_zone =
+                                'rast.zone_revelstoke_tier2_caribou_moose_june2023', 
+                                percentage = c (0), 
+                                ndt = as.integer(0), multi_condition = as.character(NA), 
+                                denom = as.character(NA), 
+                                start = as.integer(0), stop = as.integer(250))
+zone_tier3_moose_limit <- data.table (zoneid = as.integer(c(1:24,37:82,126:192,196:223)), 
+                                type = c ('le'), 
+                                variable = c ('age'), 
+                                threshold = c (40), 
+                                reference_zone =
+                                'rast.zone_revelstoke_tier3_caribou_moose_june2023', 
+                                percentage = c (12), 
+                                ndt = as.integer(0), multi_condition = as.character(NA), 
+                                denom = as.character(NA), 
+                                start = as.integer(0), stop = as.integer(250))
+zone_tier3_moose_exclude <- data.table (zoneid = as.integer(c(25:36,83:125,193:195)), 
+                                type = c ('nh'), 
+                                variable = c (''), 
+                                threshold = c (0), 
+                                reference_zone =
+                                'rast.zone_revelstoke_tier3_caribou_moose_june2023', 
+                                percentage = c (0), 
+                                ndt = as.integer(0), multi_condition = as.character(NA), 
+                                denom = as.character(NA), 
+                                start = as.integer(0), stop = as.integer(250))
+zones <- rbindlist (list (zone_tier1, zone_tier2, zone_tier3, zone_tier1_moose_limit, zone_tier1_moose_exclude, zone_tier2_moose_limit, zone_tier2_moose_exclude, zone_tier3_moose_limit, zone_tier3_moose_exclude))
+
+DBI::dbWriteTable (conn, c("zone", "revelstoke_tiers_caribou_june2023"), value = zones, row.names = FALSE, overwrite = TRUE)
+
+dbExecute (conn, paste0("ALTER TABLE zone.revelstoke_tiers_caribou_june2023 ALTER COLUMN denom TYPE VARCHAR;"))
+dbExecute (conn, paste0("ALTER TABLE zone.revelstoke_tiers_caribou_june2023 ALTER COLUMN multi_condition TYPE TEXT;"))
+dbExecute (conn, paste0("UPDATE zone.revelstoke_tiers_caribou_june2023 SET multi_condition = null WHERE multi_condition IS NOT null;"))
+dbExecute (conn, paste0("ALTER TABLE zone.revelstoke_tiers_caribou_june2023 INHERIT zone.constraints"))
+dbDisconnect (conn)
+
+```
 
 
 
