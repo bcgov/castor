@@ -16,7 +16,7 @@ defineModule(sim, list(
   name = "FLEXplorer",
   description = "An agent based model for fisher", 
   keywords = NA, # c("insert key words here"),
-  authors = c(person("Joanna", "Burger", email = "Joanna.Burger@gov.bc.ca", role = c("aut", "cre")),
+  authors = c(person("Joanna", "Burgar", email = "Joanna.Burgar@gov.bc.ca", role = c("aut", "cre")),
               person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre")),
               person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("cre"))),
   childModules = character(0),
@@ -28,6 +28,8 @@ defineModule(sim, list(
   documentation = list("README.md", "FLEXplorer.Rmd"),
   reqdPkgs = list("BalancedSampling"),
   parameters = rbind(
+
+    defineParameter("d2_target", "integer", 7, 1, 10, "The D2 threshold"), 
     defineParameter("initialFisherPop", "integer", 9999, 1, 600, "The number of fisher to populate the landscape. If set to default 9999 then an estimate of the intital fisher pop is preformed"), 
     defineParameter("female_max_age", "numeric", 9, 0, 15, "The maximum possible age of a female fisher. Taken from research referenced by Roray Fogart in VORTEX_inputs_new.xlsx document."), 
     defineParameter("sex_ratio", "numeric", 0.5, 0, 1,"The probability of being a female in a litter."),
@@ -86,11 +88,11 @@ doEvent.FLEXplorer = function(sim, eventTime, eventType) {
       
       for (i in 1:P(sim, "timeInterval", "FLEXplorer")) { #What should this order be?
         
-        sim <- disperseFisher(sim)
+        sim <- survivalFisher(sim) #overall surival for the year -- remove mothers and unborn kits before the year starts
+        sim <- disperseFisher(sim) #go find a territory if the habitat changed or kits born year previously
         sim <- plot_territories(sim)
-        sim <- reproduceFisher(sim)
-        sim <- survivalFisher(sim)
-        sim <- ageFisher(sim)
+        sim <- reproduceFisher(sim) #since territories are established -- can reproduce and have kits age = 0.
+        sim <- ageFisher(sim) # age the fisher so the kits are one year starting in the next i
         sim <- recordABMReport(sim, i)
       }
       sim <- scheduleEvent (sim, time(sim) + 1, "FLEXplorer", "runevents", 19)
@@ -167,7 +169,7 @@ Init <- function(sim) {
   # create agents table  
   sim$agents <- data.table (individual_id = seq (from = 1, to = nrow (denning.starts), by = 1),
                             sex = "F",
-                            age = sample (1:P (sim, "female_max_age", "FLEXplorer"), length (seq (from = 1, to = nrow (denning.starts), by = 1)), replace = T), # randomly draw ages between 1 and the max age,
+                            age = sample(x = c(1,2,3,4,5,6,7,8,9,10,11,12), nrow (denning.starts), replace = T, prob = c(0.44, 0.27, 0.08, 0.08, 0.06, 0.03, 0.02, 0.01,0.0025,0.0025,0.0025,0.0025)), # randomly draw ages from discrete distribution Rich Weir sample data
                             pixelid = denning.starts$pixelid)
   #---- assign the population to sim$agents table
   tab.fisher.pop <- table.habitat.init [ras_fisher_pop > 0, c ("pixelid", "ras_fisher_pop")]
@@ -229,7 +231,7 @@ getInitialFisherHR<-function(sim){
   
   #---- 3. Habitat Quality Criteria
   tab.perc <- habitatQual (check_habitat, sim$agents, sim$fisher_d2_cov)
-  remove_fisher<- tab.perc[d2 > 7 | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer")| move_perc < P(sim, "move_target", "FLEXplorer"), ]
+  remove_fisher<- tab.perc[d2 > P(sim, "d2_target", "FLEXplorer") | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer")| move_perc < P(sim, "move_target", "FLEXplorer"), ]
   sim$dispersers<- rbindlist(list(sim$dispersers, sim$agents[individual_id %in% remove_fisher$individual_id, ]))
   sim$agents<-sim$agents[!(individual_id %in% remove_fisher$individual_id), ]
   contingentHR<-contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
@@ -255,6 +257,7 @@ getInitialFisherHR<-function(sim){
 
 
 disperseFisher<- function(sim){
+  browser()
   message (paste0("disperseFisher: # dispersing:", nrow(sim$dispersers)))
   if (nrow (sim$dispersers) > 0) { # check to make sure there are dispersers
     # PREVIOUSLY ESTABLISHED--Allow fisher whose territories have been degraded are allowed to change their territory shape
@@ -556,6 +559,7 @@ checkHabitatNeeds <- function(sim){
 
 reproduceFisher<-function(sim){
   # Step 4: Reproduce
+  browser()
   reproFishers <- sim$agents [sex == "F" & age >= P (sim, "reproductive_age", "FLEXplorer"), ] # females of reproductive age in a territory
   message (paste0("reproduceFisher: # reproducing: ", nrow(reproFishers)))
   # A. Assign each female fisher 1 = reproduce or 0 = does not reproduce
@@ -634,7 +638,7 @@ reproduceFisher<-function(sim){
 }
 
 survivalFisher<-function(sim){
-  
+  #survival -- establish a territory: [1, 2], [3,5], [5,8], [9+] -- best, dispersers ---[1, 2],[3,5], [5,8], [9+]
   # Step 5. Survive and Age 1 Year
   n_adults<-nrow(sim$agents[age > 1 ,])
   n_dispersers<-nrow(sim$dispersers)
@@ -644,7 +648,7 @@ survivalFisher<-function(sim){
   #message(paste0("survivalFisher: # dispersers ", nrow(sim$dispersers), " dispersers"))
   # old dispersers die here 
   sim$dispersers [!is.na(individual_id) & age < P(sim, "female_max_age", "FLEXplorer"), keep:=1] # older fisher and doesn't have a territory
-  sim$dispersers [is.na(individual_id) & age < 2, keep:=1 ] # older than 2 and doesn't have a territory
+  sim$dispersers [is.na(individual_id) & age <= 2, keep:=1 ] # older than 2 and doesn't have a territory
   sim$dispersers<-sim$dispersers[keep ==1, ]
   sim$dispersers$keep<- NULL
   
@@ -688,7 +692,7 @@ survivalFisher<-function(sim){
     }
     survive_agents<-c(survive_agents, survivors.ad[survive == 1, ]$individual_id)
     survive_agents_territories<-c(survive_agents_territories, survivors.ad[survive == 1, ]$pixelid)
-    
+  
   }
   
   # dispersers -- different rate for adults and juvies?
@@ -712,8 +716,6 @@ survivalFisher<-function(sim){
   
   
   # remove the 'dead' individuals
-  #survive_agents<-c(survivors.ad[survive == 1, ]$individual_id, survivors.juv[survive == 1, ]$individual_id)
-  #survive_agents_territories<-c(survivors.ad[survive == 1, ]$pixelid, survivors.juv[survive == 1, ]$pixelid)
   sim$agents <- sim$agents [individual_id %in% survive_agents,]
   sim$territories <- sim$territories [initialPixels %in% survive_agents_territories,] # remove territories
   
@@ -735,7 +737,7 @@ ageFisher<-function(sim){
 }
 
 recordABMReport<-function(sim, i){
-  new.agents.save <- data.table (n_f_adult = as.numeric (nrow (sim$agents [sex == "F" & age >= 1, ])), 
+  new.agents.save <- data.table (n_f_adult = as.numeric (nrow (sim$agents [sex == "F" & age > 1, ])), 
                                  n_f_juv = as.numeric (nrow (sim$dispersers [sex == "F" & age < 3 & age > 0, ])),
                                  #n_f_kits = as.numeric (nrow (sim$dispersers [sex == "F" & age == 0, ])),
                                  mean_age_f = as.numeric (mean (c (sim$agents [sex == "F", age]))), 
