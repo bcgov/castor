@@ -193,29 +193,80 @@ dat<-pixels
 dat<-dat %>% drop_na(dem)
 ```
 
+Try plotting some of the layers to check them and to see where the NA's are. Looks like data for vancouver island and Haida Gwaii are missing for dem, slope and aspect. Otherwise the data looks ok. 
+```{r}
+
+setorder(pixels, cols = "pixelid")
+
+prov.rast <- raster::raster ( # standardized provincial raster with no data in it
+                              nrows = 15744, ncols = 17216,
+                              xmn = 159587.5, xmx = 1881187.5,
+                              ymn = 173787.5, ymx = 1748187.5,
+                              crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
+                              resolution = c(100, 100),
+                              vals = 0)
+        
+emptyRas<-raster(extent(159587.5, 1881187.5, 173787.5, 1748187.5), nrow = 15744, ncol = 17216, vals =0)
+emptyRas[]<-pixels$aspect
+
+
+plot(emptyRas)
+
+```
+
 
 ```{r}
 #Change Aspect to N,S,E,W
 
-library(tidyverse)
 
-dat<- dat %>% 
-  mutate(aspect_cardinal = if_else(aspect > 315 & aspect <= 45, "N",
-                 if_else(aspect > 45 & aspect <= 135, "E",
-                         if_else(aspect > 135 & aspect <= 225, "S",
-                                 if_else(aspect > 225 & aspect <= 315, "W", "NA")))))
+pixels[, aspect_cardinal:="flat"]
+pixels[aspect>315, aspect_cardinal:="N"]
+pixels[aspect<=45, aspect_cardinal:="N"]
+pixels[aspect>45 & aspect<=135, aspect_cardinal:="E"]
+pixels[aspect>135 & aspect<=225, aspect_cardinal:="S"]
+pixels[aspect>225 & aspect<=315, aspect_cardinal:="W"]
 
-names(dat)
+# pixels<- pixels %>% 
+#   mutate(aspect_cardinal = if_else(aspect > 315, "N",
+#               if_else(aspect <= 45, "N",
+#                  if_else(aspect > 45 & aspect <= 135, "E",
+#                          if_else(aspect > 135 & aspect <= 225, "S",
+#                                  if_else(aspect > 225 & aspect <= 315, "W", "NA"))))))
+
+# assume that when there is a value for elevation but not for slope or aspect that then those locations are flat ground so there is no aspect and slope is 0. 
+pixels[dem>=0 & is.na(slope), slope:=0]
+pixels[is.na(slope), slope:=0]
+
+pixels[!is.na(aspect_cardinal),]
+
 # create dummy variables for aspect
-dat$aspect_N <- ifelse(dat$aspect_cardinal == 'N', 1, 0)
-dat$aspect_E <- ifelse(dat$aspect_cardinal == 'E', 1, 0)
-dat$aspect_S <- ifelse(dat$aspect_cardinal == 'S', 1, 0)
-dat$aspect_W <- ifelse(dat$aspect_cardinal == 'W', 1, 0)
+pixels[, aspect_N:=0]
+pixels[aspect_cardinal == "N", aspect_N:=1]
+pixels[,aspect_E:=0]
+pixels[aspect_cardinal == "E", aspect_E:=1]
+pixels[, aspect_S:=0]
+pixels[aspect_cardinal == "S", aspect_S:=1]
+pixels[, aspect_W:=0]
+pixels[aspect_cardinal == "W", aspect_W:=1]
+pixels[, aspect_flat:=0]
+pixels[aspect_cardinal == "flat", aspect_flat:=1]
+
+pixels[!is.na(aspect),]
+
+rm(aoi, dat, frt, prov.rast, pts)
+gc()
+
 ```
+
+for na values I guess the best is to make them the mean value or the median value than just an NA. I want to keep as much information as I can. 
 
 ### FRT 5
 ```{r}
-frt5<- dat %>% filter(frt==5)
+frt5<-pixels[frt==5,]
+
+medianDem<-median(frt5$dem, na.rm=TRUE)
+
+frt5[is.na(dem), dem:=medianDem]
 
 model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt5_lightning.csv")
 
@@ -260,8 +311,14 @@ model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analy
 model_coef_table_spread
 
 # there are some Na values for wind so Ill fill in those values with the average.
-table(is.na(frt5$springwind))
 frt5$springwind[is.na(frt5$springwind)] <- mean(frt5$springwind, na.rm = TRUE)
+
+# there are NA values for aspect. I think Ill assume that aspect is flat and so Ill workout midpoint of the coefficient between N and S and assume that is about how it should be for flat areas. 
+
+#estimating ti via the model seem not good because there are not many flat locations.
+
+model_coef_table_spread$coef_aspect_flat<-model_coef_table_spread$coef_aspect_S- ((abs(model_coef_table_spread$coef_aspect_N) + abs(model_coef_table_spread$coef_aspect_S))/2)
+
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
 logit_P_spread_coef<- model_coef_table_spread$intercept + 
@@ -269,6 +326,7 @@ logit_P_spread_coef<- model_coef_table_spread$intercept +
   model_coef_table_spread$coef_aspect_N*frt5$aspect_N +
   model_coef_table_spread$coef_aspect_S*frt5$aspect_S +
   model_coef_table_spread$coef_aspect_W*frt5$aspect_W +
+  model_coef_table_spread$coef_aspect_flat*frt5$aspect_flat +
   model_coef_table_spread$coef_dist_infr*(log(frt5$distinfrastructure+1)) +
   model_coef_table_spread$coef_win_spg*frt5$springwind
   
@@ -281,7 +339,7 @@ gc()
 
 ## FRT 7
 ```{r}
-frt7<- dat %>% filter(frt==7)
+frt7<-pixels[frt==7,]
 
 model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt7_lightning.csv")
 
@@ -318,29 +376,38 @@ frt7$logit_P_escape_coef<-logit_P_escape_coef
 
 ######################
 ## spread
-model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt7_spread.csv")
 
+medianDem<-median(frt7$dem, na.rm=TRUE)
+frt7[is.na(dem), dem:=medianDem]
+
+
+model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt7_spread.csv")
 model_coef_table_spread
+
+model_coef_table_spread$coef_aspect_flat<-model_coef_table_spread$coef_aspect_N - ((abs(model_coef_table_spread$coef_aspect_N) + abs(model_coef_table_spread$coef_aspect_S))/2)
+
 
 logit_P_spread_coef<- model_coef_table_spread$intercept + 
   model_coef_table_spread$coef_slope*frt7$slope +
   model_coef_table_spread$coef_aspect_N*frt7$aspect_N +
   model_coef_table_spread$coef_aspect_S*frt7$aspect_S +
   model_coef_table_spread$coef_aspect_W*frt7$aspect_W +
+  model_coef_table_spread$coef_aspect_flat*frt7$aspect_flat +
   model_coef_table_spread$coef_dist_infr*frt7$distinfrastructure
 
 frt7$logit_P_spread_coef<-logit_P_spread_coef
 
-rm(model_coef_table, model_coef_table_escape, model_coef_table_lightning, model_coef_table_person, model_coef_table_spread)
+rm(model_coef_table_escape, model_coef_table_lightning, model_coef_table_person, model_coef_table_spread)
 gc()
-
 
 ```
 
 ## FRT9
 
 ```{r}
-frt9<- dat %>% filter(frt==9)
+frt9<- pixels[frt==9,]
+medianDem<-median(frt9$dem, na.rm=TRUE)
+frt9[is.na(dem), dem:=medianDem]
 
 model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_lightning.csv")
 model_coef_table_lightning
@@ -381,8 +448,10 @@ frt9$logit_P_escape_coef<-logit_P_escape_coef
 ################################
 # spread
 model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_spread.csv")
-
 model_coef_table_spread
+
+model_coef_table_spread$coef_aspect_flat<-model_coef_table_spread$coef_aspect_S-((abs(model_coef_table_spread$coef_aspect_N) + abs(model_coef_table_spread$coef_aspect_S))/2)
+
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -391,20 +460,24 @@ logit_P_spread<- model_coef_table_spread$intercept +
   model_coef_table_spread$coef_aspect_N*frt9$aspect_N +
   model_coef_table_spread$coef_aspect_S*frt9$aspect_S +
   model_coef_table_spread$coef_aspect_W*frt9$aspect_W +
+  model_coef_table_spread$coef_aspect_flat*frt9$aspect_flat +
   model_coef_table_spread$coef_dist_infr_m*frt9$distinfrastructure
 
 logit_P_spread
 
 frt9$logit_P_spread_coef<-logit_P_spread
 
-rm(model_coef_table, model_coef_table_escape, model_coef_table_lightning, model_coef_table_person, model_coef_table_spread)
+rm(model_coef_table_escape, model_coef_table_lightning, model_coef_table_person, model_coef_table_spread)
 gc()
 
 ```
 
 ## FRT10
 ```{r}
-frt10<- dat %>% filter(frt==10)
+frt10<- pixels[frt==10,]
+medianDem<-median(frt10$dem, na.rm=TRUE)
+frt10[is.na(dem), dem:=medianDem]
+
 
 model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT10_lightning.csv")
 
@@ -442,6 +515,8 @@ frt10$logit_P_escape_coef<-logit_P_escape
 model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt10_spread.csv")
 
 model_coef_table_spread
+model_coef_table_spread$coef_aspect_flat<-model_coef_table_spread$coef_aspect_S-((abs(model_coef_table_spread$coef_aspect_N) + abs(model_coef_table_spread$coef_aspect_S))/2)
+
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -451,12 +526,13 @@ logit_P_spread<- model_coef_table_spread$intercept +
   model_coef_table_spread$coef_aspect_N*frt10$aspect_N +
   model_coef_table_spread$coef_aspect_S*frt10$aspect_S +
   model_coef_table_spread$coef_aspect_W*frt10$aspect_W +
+  model_coef_table_spread$coef_aspect_flat*frt10$aspect_flat +
   model_coef_table_spread$coef_dist_infr*frt10$distinfrastructure
 
 frt10$logit_P_spread_coef<-logit_P_spread
 
 # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
-rm(model_coef_table, model_coef_table_escape, model_coef_table_lightning, model_coef_table_person, model_coef_table_spread, prob_ignition_escape, prob_ignition_lightning, prob_ignition_person, prob_ignition_spread, logit_P_escape, logit_P_lightning, logit_P_person, logit_P_spread)
+rm(model_coef_table_escape, model_coef_table_lightning, model_coef_table_person, model_coef_table_spread, prob_ignition_escape, prob_ignition_lightning, prob_ignition_person, prob_ignition_spread, logit_P_escape, logit_P_lightning, logit_P_person, logit_P_spread)
 gc()
 
 ```
@@ -465,7 +541,7 @@ gc()
 ## FRT 11 
 
 ```{r}
-frt11<- dat %>% filter(frt==11)
+frt11<- pixels[frt==11,]
 
 model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT11_lightning.csv")
 model_coef_table
@@ -504,8 +580,9 @@ table(is.na(frt11$summerwind))
 frt11$summerwind[is.na(frt11$summerwind)] <- mean(frt11$summerwind, na.rm = TRUE)
 
 model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_spread.csv")
-
 model_coef_table
+model_coef_table$coef_aspect_flat<-model_coef_table$coef_aspect_N-((abs(model_coef_table$coef_aspect_N) + abs(model_coef_table$coef_aspect_S))/2)
+
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -514,17 +591,25 @@ logit_P_spread<- model_coef_table$intercept +
   model_coef_table$coef_aspect_N*frt11$aspect_N +
   model_coef_table$coef_aspect_S*frt11$aspect_S +
   model_coef_table$coef_aspect_W*frt11$aspect_W +
+  model_coef_table$coef_aspect_flat*frt11$aspect_flat +
   model_coef_table$coef_dist_infr*frt11$distinfrastructure +
   model_coef_table$coef_wind_summer*frt11$summerwind
 
 frt11$logit_P_spread_coef<-logit_P_spread
+
+rm(model_coef_table_spread, model_coef_table_escape, model_coef_table_lightning, model_coef_table_person)
+gc()
 
 ```
 
 ## FRT 12
 
 ```{r}
-frt12<- dat %>% filter(frt==12)
+frt12<- pixels[frt==12,]
+
+frt12$summerwind[is.na(frt12$summerwind)] <- mean(frt12$summerwind, na.rm = TRUE)
+medianDem<-median(frt12$dem, na.rm=TRUE)
+frt12[is.na(dem), dem:=medianDem]
 
 model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT12_lightning.csv")
 model_coef_table
@@ -563,9 +648,6 @@ frt12$logit_P_escape_coef<-logit_P_escape_coef
 ########################
 # Spread
 
-table(is.na(frt12$summerwind))
-frt12$summerwind[is.na(frt12$summerwind)] <- mean(frt12$summerwind, na.rm = TRUE)
-
 model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt12_spread.csv")
 
 model_coef_table
@@ -589,7 +671,11 @@ gc()
 
 ## FRT13
 ```{r}
-frt13<- dat %>% filter(frt==13)
+frt13<- pixels[frt==13,]
+
+frt13$summerwind[is.na(frt13$summerwind)] <- mean(frt13$summerwind, na.rm = TRUE)
+medianDem<-median(frt13$dem, na.rm=TRUE)
+frt13[is.na(dem), dem:=medianDem]
 
 model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT13_lightning.csv")
 model_coef_table
@@ -629,11 +715,11 @@ frt13$logit_P_escape_coef<-logit_P_escape_coef
 ##########################
 #spread
 
-frt13$summerwind[is.na(frt13$summerwind)] <- mean(frt13$summerwind, na.rm = TRUE)
-
 model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt13_spread.csv")
-
 model_coef_table
+
+model_coef_table$coef_aspect_flat<-model_coef_table$coef_aspect_S-((abs(model_coef_table$coef_aspect_N) + abs(model_coef_table$coef_aspect_S))/2)
+
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -642,17 +728,25 @@ logit_P_spread<- model_coef_table$intercept +
   model_coef_table$coef_aspect_N*frt13$aspect_N +
   model_coef_table$coef_aspect_S*frt13$aspect_S +
   model_coef_table$coef_aspect_W*frt13$aspect_W +
+  model_coef_table$coef_aspect_flat*frt13$aspect_flat +
   model_coef_table$coef_log_dist_infra*log(frt13$distinfrastructure+1) +
   model_coef_table$coef_wind_summer*frt13$summerwind
 
 logit_P_spread
 frt13$logit_P_spread_coef<-logit_P_spread
 
+rm(model_coef_table)
+gc()
+
 ```
 
 #FRT 14
 ```{r}
-frt14<- dat %>% filter(frt==14)
+frt14<- pixels[frt==14,]
+
+frt14$summerwind[is.na(frt14$summerwind)] <- mean(frt14$summerwind, na.rm = TRUE)
+medianDem<-median(frt14$dem, na.rm=TRUE)
+frt14[is.na(dem), dem:=medianDem]
 
 model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT14_lightning.csv")
 model_coef_table
@@ -688,11 +782,12 @@ frt14$logit_P_escape_coef<-logit_P_escape_coef
 ################################
 #spread
 
-frt14$summerwind[is.na(frt14$summerwind)] <- mean(frt14$summerwind, na.rm = TRUE)
-
 model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt14_spread.csv")
 
 model_coef_table
+
+model_coef_table$coef_aspect_flat<-model_coef_table$coef_aspect_N-((abs(model_coef_table$coef_aspect_N) + abs(model_coef_table$coef_aspect_S))/2)
+
 
 # put coefficients into model formula
 #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
@@ -702,6 +797,7 @@ logit_P_spread<- model_coef_table$intercept +
   model_coef_table$coef_aspect_N*frt14$aspect_N +
   model_coef_table$coef_aspect_S*frt14$aspect_S +
   model_coef_table$coef_aspect_W*frt14$aspect_W +
+  model_coef_table$coef_aspect_flat*frt14$aspect_flat +
   model_coef_table$coef_log_dist_infra*log(frt14$distinfrastructure+1) +
   model_coef_table$coef_wind_summer*frt14$summerwind
 
@@ -712,7 +808,11 @@ frt14$logit_P_spread_coef<-logit_P_spread
 
 ## FRT15
 ```{r}
-frt15<- dat %>% filter(frt==15)
+frt15<- pixels[frt==15,]
+
+frt15$summerwind[is.na(frt15$summerwind)] <- mean(frt15$summerwind, na.rm = TRUE)
+medianDem<-median(frt15$dem, na.rm=TRUE)
+frt15[is.na(dem), dem:=medianDem]
 
 model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT15_lightning.csv")
 model_coef_table
@@ -747,7 +847,6 @@ frt15$logit_P_escape_coef<-logit_P_escape_coef
 
 #################################
 # spread
-frt15$summerwind[is.na(frt15$summerwind)] <- mean(frt15$summerwind, na.rm = TRUE)
 
 model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt15_spread.csv")
 model_coef_table
@@ -766,10 +865,9 @@ logit_P_spread
 frt15$logit_P_spread_coef<-logit_P_spread
 
 
-rm(model_coef_table, model_coef_table_escape, model_coef_table_lightning, model_coef_table_person, model_coef_table_spread, prob_ignition_escape, prob_ignition_lightning, prob_ignition_person, prob_ignition_spread, logit_P_escape, logit_P_lightning, logit_P_person, logit_P_spread)
+rm(model_coef_table, model_coef_table_escape, model_coef_table_lightning, model_coef_table_person, model_coef_table_spread, prob_ignition_escape, prob_ignition_lightning, prob_ignition_person, prob_ignition_spread, logit_P_escape, logit_P_lightning, logit_P_person, logit_P_spread, logit_P_escape_coef, logit_P_lightning_coef, logit_P_person_coef, logit_P_spread_coef, medianDem, pixels)
 gc()
 
-table(is.na(frt15$prob_ignition_spread))
 
 ```
 
@@ -777,25 +875,20 @@ table(is.na(frt15$prob_ignition_spread))
 ```{r}
 #frt_all<-rbind(rbind(rbind(rbind(rbind(rbind(rbind(rbind(frt5, frt7), frt9), frt10), frt11), frt12), frt13), frt14), frt15)
 
-frt_all <- do.call("rbind", list(frt5, frt7, frt9, frt10, frt11, frt12, frt13, frt14, frt15))
+frt_all <- rbindlist(list(frt5, frt7, frt9, frt10, frt11, frt12, frt13, frt14, frt15))
 
 dim(frt_all)
 table(frt_all$frt)
-table(pixels$frt)
 
-table(is.na(frt_all$logit_P_lightning_coef ))
-table(is.na(frt_all$logit_P_person_coef))
-table(is.na(frt_all$logit_P_escape_coef ))
-table(is.na(frt_all$logit_P_spread_coef))
-
-frt_const<-frt_all %>% dplyr::select(pixelid, x, y,  frt: springwind, logit_P_lightning_coef:logit_P_spread_coef) %>%
-            rename(logit_P_lightning_coef_const =logit_P_lightning_coef,
+frt_const<-frt_all %>% 
+  dplyr::select(pixelid,frt, logit_P_lightning_coef:logit_P_spread_coef) %>%
+  rename(logit_P_lightning_coef_const =logit_P_lightning_coef,
                    logit_P_person_coef_const=logit_P_person_coef, 
                    logit_P_escape_coef_const=logit_P_escape_coef,
                    logit_P_spread_coef_const=logit_P_spread_coef)
 
 
-table(frt_all$frt)
+table(frt_const$frt)
 
 names(frt_const)
 names(pixels)
@@ -819,19 +912,15 @@ prov.rast <- raster::raster ( # standardized provincial raster with no data in i
                               vals = 0)
 
    
-    pts <- data.table(terra::xyFromCell(prov.rast,1:ncell(prov.rast))) #Seems to be faster than rasterTopoints
-    pts <- pts[, pixelid:= seq_len(.N)] # add in the pixelid which streams data in according to the cell number = pixelid
-    
     pixels <- data.table(V1 = as.integer(prov.rast[]))
     pixels[, pixelid := seq_len(.N)]
     
-    pixels<-left_join(pixels, pts)
+    pixels<-left_join(pixels, frt_all)
+    
+    pixels<-merge(pixels, frt_const, by.x="pixelid", by.y="pixelid", all.x=TRUE)
     setorder(pixels, "pixelid")#sort the pixels table so that pixelid is in order.
     
-    prov.rast[]<-pixels$pixelid
-    
-    setorder(const_coef_data, "pixelid")
-    prov.rast[]<-const_coef_data$logit_P_lightning_coef_const
+    prov.rast[]<-pixels$logit_P_lightning_coef_const
     
 # upload const_coef_lighting_raster to postgres
     
@@ -841,29 +930,10 @@ prov.rast <- raster::raster ( # standardized provincial raster with no data in i
  paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/rast_const_coef_lighting.tif -t 100x100 rast.const_coef_lightning_ignit | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/castor')
 # then copy the output thats between the " " from the above and paste it into the cmd and run that... should show Insert 0  1 lots of times.
 
- rm(prov.rast, pixels)    
- gc()
- 
 #############################
  #constant coeffieitn values for human caused ignitions
  
-prov.rast <- raster::raster ( # standardized provincial raster with no data in it
-                              nrows = 15744, ncols = 17216,
-                              xmn = 159587.5, xmx = 1881187.5,
-                              ymn = 173787.5, ymx = 1748187.5,
-                              crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
-                              resolution = c(100, 100),
-                              vals = 0)
-
-  
-pixels <- data.table(V1 = as.integer(prov.rast[]))
-pixels[, pixelid := seq_len(.N)]
-setorder(pixels, "pixelid")#sort the pixels table so that pixelid is in order.
-    
-prov.rast[]<-pixels$pixelid
-    
-setorder(const_coef_data, "pixelid")
-prov.rast[]<-const_coef_data$logit_P_person_coef_const
+prov.rast[]<-pixels$logit_P_person_coef_const
     
 # upload const_coef_lighting_raster to postgres
     
@@ -876,23 +946,7 @@ prov.rast[]<-const_coef_data$logit_P_person_coef_const
 #############################
  #constant coeffieitn values for escaped fires
  
-prov.rast <- raster::raster ( # standardized provincial raster with no data in it
-                              nrows = 15744, ncols = 17216,
-                              xmn = 159587.5, xmx = 1881187.5,
-                              ymn = 173787.5, ymx = 1748187.5,
-                              crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
-                              resolution = c(100, 100),
-                              vals = 0)
-
-  
-pixels <- data.table(V1 = as.integer(prov.rast[]))
-pixels[, pixelid := seq_len(.N)]
-setorder(pixels, "pixelid")#sort the pixels table so that pixelid is in order.
-    
-prov.rast[]<-pixels$pixelid
-    
-setorder(const_coef_data, "pixelid")
-prov.rast[]<-const_coef_data$logit_P_escape_coef_const
+prov.rast[]<-pixels$logit_P_escape_coef_const
     
 # upload const_coef_lighting_raster to postgres
     
@@ -905,23 +959,7 @@ prov.rast[]<-const_coef_data$logit_P_escape_coef_const
 #############################
  #constant coeffieitn values for spreading fires
  
-prov.rast <- raster::raster ( # standardized provincial raster with no data in it
-                              nrows = 15744, ncols = 17216,
-                              xmn = 159587.5, xmx = 1881187.5,
-                              ymn = 173787.5, ymx = 1748187.5,
-                              crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
-                              resolution = c(100, 100),
-                              vals = 0)
-
-  
-pixels <- data.table(V1 = as.integer(prov.rast[]))
-pixels[, pixelid := seq_len(.N)]
-setorder(pixels, "pixelid")#sort the pixels table so that pixelid is in order.
-    
-prov.rast[]<-pixels$pixelid
-    
-setorder(const_coef_data, "pixelid")
-prov.rast[]<-const_coef_data$logit_P_spread_coef_const
+prov.rast[]<-pixels$logit_P_spread_coef_const
     
 # upload const_coef_lighting_raster to postgres
     

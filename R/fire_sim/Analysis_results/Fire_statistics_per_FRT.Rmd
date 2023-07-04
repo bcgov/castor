@@ -17,7 +17,7 @@ library(ggplot2)
 
 ```
 
-The point of this script is to summarize the fire statistics in each FRT. In Erni et al. 2020 there is a summary table (Table A2) that descirbes fire attributes and metrics of each Fire Regime Type. For esample it has the size of the area, the population in that area, the average fire size (ha) The Frequency of fires, Burn Rate, proportion of fires that occur in spring and summer and proportion of fires that area cuased by humans versus lightning. this script attemps to get similar metrics for the FRT's in BC and summaries for those area in BC.
+The point of this script is to summarize the fire statistics in each FRT. In Erni et al. 2020 there is a summary table (Table A2) that descirbes fire attributes and metrics of each Fire Regime Type. For example it has the size of the area, the population in that area, the average fire size (ha) The Frequency of fires, Burn Rate, proportion of fires that occur in spring and summer and proportion of fires that area cuased by humans versus lightning. this script attemps to get similar metrics for the FRT's in BC and summaries for those area in BC.
 
 ```{r ignitions}
 
