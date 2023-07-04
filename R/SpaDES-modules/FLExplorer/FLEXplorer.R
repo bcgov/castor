@@ -131,7 +131,7 @@ Init <- function(sim) {
   message ("Initializing the fisher report.")
   sim$fisherABMReport <- data.table (n_f_adult = as.numeric (), # number of adult females
                                      n_f_juv = as.numeric (), # number of juvenile females
-                                     #n_f_kits = as.numeric (), # number of kit females
+                                     n_f_disp  = as.numeric (), # number of kit females
                                      mean_age_f = as.numeric (), # mean age of females
                                      sd_age_f = as.numeric (), # standard dev age of females
                                      timeperiod = as.integer (), # time step of the simulation
@@ -376,9 +376,10 @@ disperseFisher<- function(sim){
           }
         }
       }
-      
- 
+      sim$dispersers<-sim$dispersers[, id := 0]
+      sim$dispersers<-sim$dispersers[, `:=`(id = NULL)]
     }
+    
     
     #---JUVENILES try disperse after the adults (larger sized animals win)
     #TODO: check the individual_id post habitatQual calls, assign an individual_id to these establish juvies
@@ -447,7 +448,13 @@ disperseFisher<- function(sim){
         juv.fisher.found.site [fisher_pop == 3, hr_size_lb := sim$female_hr_table [fisher_pop == 3, hr_mean]- 2*sim$female_hr_table [fisher_pop == 3, hr_sd]]
         juv.fisher.found.site [fisher_pop == 4, hr_size_lb := sim$female_hr_table [fisher_pop == 4, hr_mean]- 2*sim$female_hr_table [fisher_pop == 4, hr_sd]]
         
-        test<<-juv.fisher.found.site 
+        #test<<-juv.fisher.found.site 
+        #test3<-unique(juv.fisher.found.site, by = "pixelid")
+        juv.fisher.found.site<- unique(juv.fisher.found.site, by = "pixelid")
+        #if(!(nrow(test) == nrow(test3))){
+        #  browser()
+        #}
+        
         contingentHR <- SpaDES.tools::spread2 (sim$spread.rast, 
                                                start = juv.fisher.found.site$pixelid, 
                                                spreadProb = as.numeric (sim$spread.rast[]),
@@ -640,31 +647,32 @@ reproduceFisher<-function(sim){
 survivalFisher<-function(sim){
   #survival -- establish a territory: [1, 2], [3,5], [5,8], [9+] -- best, dispersers ---[1, 2],[3,5], [5,8], [9+]
   # Step 5. Survive and Age 1 Year
-  n_adults<-nrow(sim$agents[age > 1 ,])
+  n_adults<-nrow(sim$agents[age > 0 ,])
   n_dispersers<-nrow(sim$dispersers)
-  n_juv<-nrow(sim$agents[age <= 1 ,])
+  #n_juv<-nrow(sim$agents[age <= 1 ,])
   
-  #Merge in the corresponding survival_rate_table to the dispersers and the agents
-  sim$agents[,  cohort:= fcase(age <= 2, "Juvenile", age >2 & age <= 5, "Adult", age > 5 & age <= 8, "Senior", age >= 9, "Old")]
-  sim$dispersers[,  cohort:= fcase(age <= 2, "Juvenile", age >2 & age <= 5, "Adult", age > 5 & age <= 8, "Senior", age >= 9, "Old")]
-  
-  sim$agents<-merge(sim$agents, sim$survival_rate_table[type == "Established", ], by.x = c("fisher_pop", "cohort"), by.y = c("fisher_pop", "cohort") , all.x =T)
-  sim$dispersers<-merge(sim$dispersers, sim$survival_rate_table[type == "Disperser", ], by.x = c("fisher_pop", "cohort"), by.y = c("fisher_pop", "cohort") , all.x =T)
+  if(n_dispersers > 0 ){
+    sim$dispersers[,  cohort:= fcase(age <= 2, "Juvenile", age >2 & age <= 5, "Adult", age > 5 & age <= 8, "Senior", age >= 9, "Old")]
+    sim$dispersers<-merge(sim$dispersers, sim$survival_rate_table[type == "Disperser", ], by.x = c("fisher_pop", "cohort"), by.y = c("fisher_pop", "cohort") , all.x =T)
+    sim$dispersers[,  survive := rbinom (n = .N, size = 1, prob = rtruncnorm (1, a = 0, b = 1, mean = Mean, sd = SD))]
+    
+    sim$dispersers<-sim$dispersers [survive == 1, ]# remove the 'dead' individuals
+    #Remove columns: Mean, SD, cohort, type, survive
+    sim$dispersers[,`:=`(Mean = NULL, SD = NULL, cohort = NULL, type = NULL, survive = NULL)]
+  }
+  if(n_adults > 0){
+    #Merge in the corresponding survival_rate_table to the dispersers and the agents
+    sim$agents[,  cohort:= fcase(age <= 2, "Juvenile", age >2 & age <= 5, "Adult", age > 5 & age <= 8, "Senior", age >= 9, "Old")]
+    sim$agents<-merge(sim$agents, sim$survival_rate_table[type == "Established", ], by.x = c("fisher_pop", "cohort"), by.y = c("fisher_pop", "cohort") , all.x =T)
+    sim$agents[,  survive := rbinom (n = .N, size = 1, prob = rtruncnorm (1, a = 0, b = 1, mean = Mean, sd = SD))]
+    sim$agents <- sim$agents [ survive == 1,]# remove the 'dead' individuals
+    sim$territories <- sim$territories [initialPixels %in% sim$agents$pixelid,] # remove territories
+    #Remove columns: Mean, SD, cohort, type, survive
+    sim$agents[, `:=`(Mean = NULL,  SD = NULL, cohort = NULL, type = NULL, survive = NULL)]
+  }
 
-  sim$agents[,  survive := rbinom (n = .N, size = 1, prob = rtruncnorm (1, a = 0, b = 1, mean = Mean, sd = SD))]
-  sim$dispersers[,  survive := rbinom (n = .N, size = 1, prob = rtruncnorm (1, a = 0, b = 1, mean = Mean, sd = SD))]
-
-  # remove the 'dead' individuals
-  sim$dispersers<-sim$dispersers [survive == 1, ]
-  sim$agents <- sim$agents [ survive == 1,]
-  sim$territories <- sim$territories [initialPixels %in% sim$agents$pixelid,] # remove territories
-  
-  #Remove columns: Mean, SD, cohort, type, survive
-  sim$dispersers[,`:=`(Mean = NULL, SD = NULL, cohort = NULL, type = NULL, survive = NULL)]
-  sim$agents[, `:=`(Mean = NULL,  SD = NULL, cohort = NULL, type = NULL, survive = NULL)]
-  
-  message(paste0("survivalFisher: Adults: " , n_adults, " and ", nrow(sim$agents[age > 1,]), " survived" ))
-  message(paste0("survivalFisher: Juveniles: " , n_juv, " and ", nrow(sim$agents[age <= 1,]), " survived" ))
+  message(paste0("survivalFisher: Adults: " , n_adults, " and ", nrow(sim$agents[age > 0,]), " survived" ))
+  #message(paste0("survivalFisher: Juveniles: " , n_juv, " and ", nrow(sim$agents[age <= 1,]), " survived" ))
   message(paste0("survivalFisher: Dispersers: " , n_dispersers, " and ", nrow(sim$dispersers), " survived" ))
   
   return(invisible(sim))
@@ -681,12 +689,12 @@ ageFisher<-function(sim){
 }
 
 recordABMReport<-function(sim, i){
-  new.agents.save <- data.table (n_f_adult = as.numeric (nrow (sim$agents [sex == "F" & age > 1, ])), 
-                                 n_f_juv = as.numeric (nrow (sim$dispersers [sex == "F" & age < 3 & age > 0, ])),
-                                 #n_f_kits = as.numeric (nrow (sim$dispersers [sex == "F" & age == 0, ])),
+  new.agents.save <- data.table (n_f_adult = as.numeric (nrow (sim$agents [sex == "F" & age > 2, ])), 
+                                 n_f_juv = as.numeric (nrow (sim$agents [sex == "F" & age <= 2 & age > 0, ])),
+                                 n_f_disp = as.numeric (nrow (sim$dispersers [sex == "F" & age > 0, ])),
                                  mean_age_f = as.numeric (mean (c (sim$agents [sex == "F", age]))), 
                                  sd_age_f = as.numeric (sd (c (sim$agents [sex == "F", age]))), 
-                                 timeperiod = as.integer (min(0, time(sim)-1) * P (sim, "timeInterval", "FLEXplorer") + i), 
+                                 timeperiod = as.integer (min(0, time(sim)) * P (sim, "timeInterval", "FLEXplorer") + i), 
                                  scenario = as.character (sim$scenario$name))
   
   sim$fisherABMReport <- rbindlist (list (sim$fisherABMReport, new.agents.save), use.names = TRUE)
@@ -850,13 +858,13 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
       data.table (fisher_pop = c (1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4),
                   type = "Established",
                   cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
-                  Mean = c (0.8, 0.6, 0.6, 0.2,  0.8, 0.6, 0.6, 0.2, 0.8, 0.8, 0.8,0.2, 0.8, 0.6, 0.6,0.2),
-                  SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1, 0.1,0.1,0.1,0.1,0.1,0.1,0.1)), 
+                  Mean = c (0.8, 0.6, 0.8, 0.2,  0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8,0.2),
+                  SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1, 0.2,0.1,0.1,0.1,0.1,0.1,0.1)), 
       data.table (fisher_pop = c (1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4),
                   type = "Disperser",
                   cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
-                  Mean = c (0.8, 0.6, 0.6, 0.2,  0.8, 0.6, 0.6, 0.2, 0.8, 0.6, 0.6,0.2, 0.8, 0.6, 0.6,0.2),
-                  SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1, 0.1,0.1,0.1,0.1,0.1,0.1,0.1))
+                  Mean = c (0.8, 0.6, 0.8, 0.2,  0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8, 0.2),
+                  SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1, 0.2,0.1,0.1,0.1,0.1,0.1,0.1))
                                 ))
    
   }
