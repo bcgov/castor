@@ -55,7 +55,11 @@ mySim <- simInit(times = times,
 outputs(mySim) <- data.frame (objectName = c("fisherABMReport"))
 mySimOut <- spades(mySim)
 
-plot(abmReport$timeperiod,abmReport$n_f_adult+abmReport$n_f_juv, ylim =c(0,45))     
-points(abmReport$timeperiod,abmReport$n_f_disp, col = "red")
+library(ggplot2)
+ggplot(data = abmReport, aes(x=timeperiod,y=n_f_adult+n_f_juv)) +
+  geom_point() +
+  geom_smooth() +
+  geom_point(data = abmReport, aes(x=timeperiod, y = n_f_disp), color = 'red', shape=3)
+
 
 ```

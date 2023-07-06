@@ -249,7 +249,7 @@ setTablesCastorDB <- function(sim) {
     sim$pts <- data.table(terra::xyFromCell(randomRas,1:length(randomRas[]))) #Seems to be faster than rasterTopoints
     sim$pts <- sim$pts[, pixelid:= seq_len(.N)] # add in the pixelid which streams data in according to the cell number = pixelid
 
-    pixels <- data.table(age = as.integer(round(randomRas[]*200,0)))
+    pixels <- data.table(age = as.integer(round(randomRas[]*180,0)))
     pixels[, pixelid := seq_len(.N)]
     pixels[, compartid := 'all']
     

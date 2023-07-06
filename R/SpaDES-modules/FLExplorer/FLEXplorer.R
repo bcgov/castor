@@ -288,7 +288,7 @@ disperseFisher<- function(sim){
       #Allocate adults to denning sites. See which adults are the closest to each of the denning.starts
       den.site.potentials <- RANN::nn2 (data =  denning.starts[,c("x", "y")], 
                                         query = current.location.coords[,c("x", "y")], 
-                                        searchtype = 'radius', radius =  50000, k =10)
+                                        searchtype = 'radius', radius =  50000, k =min(10, nrow(denning.starts[,c("x", "y")])))
       
       
       temp_sites<-getClosestWellSpreadDenningSites(den.site.potentials$nn.idx, den.site.potentials$nn.dists) #TODO: test for ties -- same initialPixels
@@ -413,7 +413,7 @@ disperseFisher<- function(sim){
       #Allocate juveniles to denning sites. See which juveniles are the closest to each of the denning.starts
       den.site.potentials <- RANN::nn2 (data =  denning.starts[,c("x", "y")], 
                                         query = current.location.coords[,c("x", "y")], 
-                                        searchtype = 'radius', radius =  50000, k =10)
+                                        searchtype = 'radius', radius =  50000, k =min(10, nrow(denning.starts[,c("x", "y")])))
       
       
       temp_sites<-getClosestWellSpreadDenningSites(den.site.potentials$nn.idx, den.site.potentials$nn.dists) #TODO: test for ties -- same initialPixels
@@ -831,11 +831,11 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
         juv.idx[element, ] <- Inf #make the whole row Inf
       }
     }
+    if(min(temp$ds.indx) > 0 | j == 11 | min(juv.dist) == Inf){ # all of the fisher got site or there are no sites left out of the 10
+      break # all fisher found a site or all neighbors have been exhausted
+    }  
     if(min(juv.dist[,j]) == Inf){ # their are no more denning sites closest (the jth Nearest Neighbour) go to the next nearest neighbour
       j = j + 1
-    }
-    if(min(temp$ds.indx) > 0 | j == 11){ # all of the fisher got site or there are no sites left out of the 10
-      break # all fisher found a site or all neighbors have been exhausted
     }
   }
   
