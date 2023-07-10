@@ -77,6 +77,7 @@ doEvent.FLEXplorer = function(sim, eventTime, eventType) {
       sim <- Init(sim)
       sim <- getInitialFisherHR(sim)
       sim <- disperseFisher(sim)
+      sim <- reproduceFisher(sim)
       sim <- recordABMReport(sim, 0)
       sim <- plot_territories(sim)
       sim <- scheduleEvent (sim, time (sim) + 1, "FLEXplorer", "runevents", 19)
@@ -263,7 +264,7 @@ disperseFisher<- function(sim){
     # PREVIOUSLY ESTABLISHED--Allow fisher whose territories have been degraded are allowed to change their territory shape
     est.fisher<-sim$dispersers[!is.na(individual_id),] # fisher who have and individual id had a territory
     if(nrow(est.fisher) > 0){
-      sim$dispersers[!is.na(individual_id), id := .I] # Need id (an identifier for the adults)
+      sim$dispersers[sim$dispersers[,!is.na(individual_id)],id:= .I ] # Need id (an identifier for the adults)
       #check to find the nearest denning habitat to their current
       den.available <- sim$table.hab.spread[denning == 1 & !(pixelid %in% sim$territories$pixels),]
       den.available.coords <- data.table(xyFromCell(sim$pix.rast, den.available$pixelid))
@@ -310,7 +311,7 @@ disperseFisher<- function(sim){
         adult.fisher.found.site<-adult.fisher[!is.na(new_pixelid), ]
         adult.fisher.found.site<-adult.fisher.found.site[, pixelid := new_pixelid]
         sim$spread.rast <- spreadRast (raster::raster (sim$pix.rast), sim$table.hab.spread, sim$territories)
-        
+       
         contingentHR <- SpaDES.tools::spread2 (sim$spread.rast, 
                                                start = adult.fisher.found.site$pixelid, 
                                                spreadProb = as.numeric (sim$spread.rast[]),
@@ -385,7 +386,8 @@ disperseFisher<- function(sim){
     #TODO: check the individual_id post habitatQual calls, assign an individual_id to these establish juvies
     #sim$dispersers[,individual_id := NA ]
     if(nrow(sim$dispersers[is.na(individual_id) & age > 0,]) > 0){
-      sim$dispersers[is.na(individual_id) & age > 0, id := .I] # Need id (an identifier for the juvenile)
+      #sim$dispersers[is.na(individual_id) & age > 0, id := .I] # Need id (an identifier for the juvenile)
+      sim$dispersers[sim$dispersers[,is.na(individual_id) & age > 0],id:= .I ]
       juv.fisher <- sim$dispersers[id > 0, ] 
       
       current.location.coords <- data.table(xyFromCell(sim$pix.rast, juv.fisher$pixelid))
@@ -521,7 +523,8 @@ disperseFisher<- function(sim){
           }
         }
       }
-      
+      sim$dispersers<-sim$dispersers[, id := 0]
+      sim$dispersers<-sim$dispersers[, `:=`(id = NULL)]
     }
  
   }else{
@@ -694,7 +697,7 @@ recordABMReport<-function(sim, i){
                                  n_f_disp = as.numeric (nrow (sim$dispersers [sex == "F" & age > 0, ])),
                                  mean_age_f = as.numeric (mean (c (sim$agents [sex == "F", age]))), 
                                  sd_age_f = as.numeric (sd (c (sim$agents [sex == "F", age]))), 
-                                 timeperiod = as.integer (min(0, time(sim)) * P (sim, "timeInterval", "FLEXplorer") + i), 
+                                 timeperiod = as.integer ( time(sim) * P (sim, "timeInterval", "FLEXplorer") + i), 
                                  scenario = as.character (sim$scenario$name))
   
   sim$fisherABMReport <- rbindlist (list (sim$fisherABMReport, new.agents.save), use.names = TRUE)
@@ -706,8 +709,10 @@ plot_territories<- function(sim) {
   sim$ras.territories[] <- 0
   sim$ras.territories[sim$territories$pixels]<-sim$territories$initialPixels
   terra::plot(sim$ras.territories)
+  if(time(sim) == 0){
+    terr.ras<<-sim$ras.territories
+  }
   
-  terr.ras<<-sim$territories
   return(invisible(sim))
 }
 
@@ -858,12 +863,12 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
       data.table (fisher_pop = c (1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4),
                   type = "Established",
                   cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
-                  Mean = c (0.8, 0.6, 0.8, 0.2,  0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8,0.2),
+                  Mean = c (0.8, 0.6, 0.8, 0.2,  1.0, 1.0, 1.0, 0.2,0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8,0.2),
                   SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1, 0.2,0.1,0.1,0.1,0.1,0.1,0.1)), 
       data.table (fisher_pop = c (1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4),
                   type = "Disperser",
                   cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
-                  Mean = c (0.8, 0.6, 0.8, 0.2,  0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8, 0.2),
+                  Mean = c (0.8, 0.6, 0.8, 0.2,  0.8, 0.6, 0.8, 0.2, 1.0, 1.0, 1.0, 0.2, 0.8, 0.6, 0.8, 0.2),
                   SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1, 0.2,0.1,0.1,0.1,0.1,0.1,0.1))
                                 ))
    
@@ -876,7 +881,7 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
   }
   if(!suppliedElsewhere("female_hr_table", sim)){
     sim$female_hr_table <- data.table (fisher_pop = c (1:4), 
-                                     hr_mean = c (3000, 4500, 4500, 3000),
+                                     hr_mean = c (3000, 2800, 4500, 3000),
                                      hr_sd = c (500, 500, 500, 500)) # updating to more realistic SD (higher for SBD but then crashes)
   }
   if(!suppliedElsewhere("mahal_metric_table", sim)){
