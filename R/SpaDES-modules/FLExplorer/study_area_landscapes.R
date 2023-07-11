@@ -8,7 +8,7 @@ beaver.valley<-study.areas[study.areas$NOTE == 'Beaver Valley',]
 chilcotin_west<-study.areas[study.areas$NOTE =='Chilcotin',]
 chilcotin_east<-study.areas[study.areas$NOTE == 'Chiclotin',]
 
-chilcotin_west2<-st_buffer(chilcotin_west, 5000)
+chilcotin_east<-st_buffer(chilcotin_east, 10000)
 
 den2003<-rast("C:/Users/klochhea/fetaMapper/data-raw/habitat_categories/denning2003.tif")
 den2010<-rast("C:/Users/klochhea/fetaMapper/data-raw/habitat_categories/denning2010.tif")
@@ -57,8 +57,8 @@ cavity<-c(cav2003, cav2010, cav2015, cav2021, fisher_pop)
 names(cavity)<- c("ras_fisher_cavity_init","ras_fisher_cavity_5","ras_fisher_cavity_10","ras_fisher_cavity_15", "ras_fisher_pop")
 
 landscape<-c(denning, cavity, movement, rust, open, cwd)
-x <- crop(landscape, ext(williston) + .01)
-y <- mask(x, williston)
+x <- crop(landscape, ext(chilcotin_east) + .01)
+y <- mask(x, chilcotin_east)
 
 pixelid<- terra::subset (y, "ras_fisher_pop")
 pixelid[]<-1:ncell(pixelid)
@@ -66,5 +66,5 @@ names(pixelid) <- "pixelid"
 
 y<-c(y,pixelid)
 
-terra::writeRaster (x = y, filename = "C:/Users/klochhea/castor/R/SpaDES-modules/FLExplorer/williston.tif", overwrite = TRUE)
+terra::writeRaster (x = y, filename = "C:/Users/klochhea/castor/R/SpaDES-modules/FLExplorer/chilcotin_east.tif", overwrite = TRUE)
 
