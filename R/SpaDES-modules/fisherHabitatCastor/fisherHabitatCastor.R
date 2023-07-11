@@ -62,7 +62,7 @@ defineModule (sim, list(
   outputObjects = bindrows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     #createsOutput (objectName = NA, objectClass = NA, desc = NA)
-    createsOutput (objectName = "habitat.rast.stack", objectClass = "raster stack", desc = "A raster stack of fisher habitat over time." )
+    createsOutput (objectName = "rast.stack", objectClass = "raster stack", desc = "A raster stack of fisher habitat over time." )
     )
 ))
 

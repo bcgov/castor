@@ -28,8 +28,8 @@ defineModule(sim, list(
   documentation = list("README.md", "FLEXplorer.Rmd"),
   reqdPkgs = list("BalancedSampling"),
   parameters = rbind(
-
-    defineParameter("d2_target", "integer", 7, 1, 10, "The D2 threshold"), 
+    defineParameter("burnInLength", "integer", 5, 1, 100, "The number of iterations to burn in"),
+    defineParameter("d2_target", "integer", 7, 1, 15, "The D2 threshold"), 
     defineParameter("initialFisherPop", "integer", 9999, 1, 600, "The number of fisher to populate the landscape. If set to default 9999 then an estimate of the intital fisher pop is preformed"), 
     defineParameter("female_max_age", "numeric", 9, 0, 15, "The maximum possible age of a female fisher. Taken from research referenced by Roray Fogart in VORTEX_inputs_new.xlsx document."), 
     defineParameter("sex_ratio", "numeric", 0.5, 0, 1,"The probability of being a female in a litter."),
@@ -76,18 +76,23 @@ doEvent.FLEXplorer = function(sim, eventTime, eventType) {
     init = {
       sim <- Init(sim)
       sim <- getInitialFisherHR(sim)
-      sim <- disperseFisher(sim)
+      for (i in 1:P(sim, "burnInLength", "FLEXplorer")) { #What should this order be?
+        sim <- survivalFisher(sim) #overall surival for the year -- remove mothers and unborn kits before the year starts
+        sim <- disperseFisher(sim) #go find a territory if the habitat changed or kits born year previously
+        sim <- reproduceFisher(sim) #since territories are established -- can reproduce and have kits age = 0.
+        sim <- ageFisher(sim) # age the fisher so the kits are one year starting in the next i
+      }
+      
       sim <- recordABMReport(sim, 0)
       sim <- plot_territories(sim)
       sim <- scheduleEvent (sim, time (sim) + 1, "FLEXplorer", "runevents", 19)
-     # sim <- scheduleEvent (sim, time (sim) + 1, "FLEXplorer", "reportFisherABM", 20)
     },
     runevents = {
+      
       sim <- updateHabitat (sim)
       sim <- checkHabitatNeeds(sim)
       
       for (i in 1:P(sim, "timeInterval", "FLEXplorer")) { #What should this order be?
-        
         sim <- survivalFisher(sim) #overall surival for the year -- remove mothers and unborn kits before the year starts
         sim <- disperseFisher(sim) #go find a territory if the habitat changed or kits born year previously
         sim <- plot_territories(sim)
@@ -95,6 +100,7 @@ doEvent.FLEXplorer = function(sim, eventTime, eventType) {
         sim <- ageFisher(sim) # age the fisher so the kits are one year starting in the next i
         sim <- recordABMReport(sim, i)
       }
+      
       sim <- scheduleEvent (sim, time(sim) + 1, "FLEXplorer", "runevents", 19)
     },
     
@@ -131,7 +137,7 @@ Init <- function(sim) {
   message ("Initializing the fisher report.")
   sim$fisherABMReport <- data.table (n_f_adult = as.numeric (), # number of adult females
                                      n_f_juv = as.numeric (), # number of juvenile females
-                                     #n_f_kits = as.numeric (), # number of kit females
+                                     n_f_disp  = as.numeric (), # number of kit females
                                      mean_age_f = as.numeric (), # mean age of females
                                      sd_age_f = as.numeric (), # standard dev age of females
                                      timeperiod = as.integer (), # time step of the simulation
@@ -257,13 +263,13 @@ getInitialFisherHR<-function(sim){
 
 
 disperseFisher<- function(sim){
-  browser()
+
   message (paste0("disperseFisher: # dispersing:", nrow(sim$dispersers)))
   if (nrow (sim$dispersers) > 0) { # check to make sure there are dispersers
     # PREVIOUSLY ESTABLISHED--Allow fisher whose territories have been degraded are allowed to change their territory shape
     est.fisher<-sim$dispersers[!is.na(individual_id),] # fisher who have and individual id had a territory
     if(nrow(est.fisher) > 0){
-      sim$dispersers[!is.na(individual_id), id := .I] # Need id (an identifier for the adults)
+      sim$dispersers[sim$dispersers[,!is.na(individual_id)],id:= .I ] # Need id (an identifier for the adults)
       #check to find the nearest denning habitat to their current
       den.available <- sim$table.hab.spread[denning == 1 & !(pixelid %in% sim$territories$pixels),]
       den.available.coords <- data.table(xyFromCell(sim$pix.rast, den.available$pixelid))
@@ -288,7 +294,7 @@ disperseFisher<- function(sim){
       #Allocate adults to denning sites. See which adults are the closest to each of the denning.starts
       den.site.potentials <- RANN::nn2 (data =  denning.starts[,c("x", "y")], 
                                         query = current.location.coords[,c("x", "y")], 
-                                        searchtype = 'radius', radius =  50000, k =10)
+                                        searchtype = 'radius', radius =  50000, k =min(10, nrow(denning.starts[,c("x", "y")])))
       
       
       temp_sites<-getClosestWellSpreadDenningSites(den.site.potentials$nn.idx, den.site.potentials$nn.dists) #TODO: test for ties -- same initialPixels
@@ -310,7 +316,7 @@ disperseFisher<- function(sim){
         adult.fisher.found.site<-adult.fisher[!is.na(new_pixelid), ]
         adult.fisher.found.site<-adult.fisher.found.site[, pixelid := new_pixelid]
         sim$spread.rast <- spreadRast (raster::raster (sim$pix.rast), sim$table.hab.spread, sim$territories)
-        
+       
         contingentHR <- SpaDES.tools::spread2 (sim$spread.rast, 
                                                start = adult.fisher.found.site$pixelid, 
                                                spreadProb = as.numeric (sim$spread.rast[]),
@@ -344,7 +350,7 @@ disperseFisher<- function(sim){
           #---- 3. Habitat Quality Criteria
           if(nrow(adult.fisher.found.site) > 0){
             tab.perc <- habitatQual (check_habitat, adult.fisher.found.site, sim$fisher_d2_cov)
-            remove_fisher<- tab.perc[d2 > 7 | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer")| move_perc < P(sim, "move_target", "FLEXplorer"), ]
+            remove_fisher<- tab.perc[d2 > P(sim, "d2_target", "FLEXplorer") | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer")| move_perc < P(sim, "move_target", "FLEXplorer"), ]
             adult.fisher.found.site <- adult.fisher.found.site [!(pixelid %in% remove_fisher$initialPixels), ]
             contingentHR<-contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
             
@@ -376,15 +382,17 @@ disperseFisher<- function(sim){
           }
         }
       }
-      
- 
+      sim$dispersers<-sim$dispersers[, id := 0]
+      sim$dispersers<-sim$dispersers[, `:=`(id = NULL)]
     }
+    
     
     #---JUVENILES try disperse after the adults (larger sized animals win)
     #TODO: check the individual_id post habitatQual calls, assign an individual_id to these establish juvies
     #sim$dispersers[,individual_id := NA ]
     if(nrow(sim$dispersers[is.na(individual_id) & age > 0,]) > 0){
-      sim$dispersers[is.na(individual_id) & age > 0, id := .I] # Need id (an identifier for the juvenile)
+      #sim$dispersers[is.na(individual_id) & age > 0, id := .I] # Need id (an identifier for the juvenile)
+      sim$dispersers[sim$dispersers[,is.na(individual_id) & age > 0],id:= .I ]
       juv.fisher <- sim$dispersers[id > 0, ] 
       
       current.location.coords <- data.table(xyFromCell(sim$pix.rast, juv.fisher$pixelid))
@@ -412,7 +420,7 @@ disperseFisher<- function(sim){
       #Allocate juveniles to denning sites. See which juveniles are the closest to each of the denning.starts
       den.site.potentials <- RANN::nn2 (data =  denning.starts[,c("x", "y")], 
                                         query = current.location.coords[,c("x", "y")], 
-                                        searchtype = 'radius', radius =  50000, k =10)
+                                        searchtype = 'radius', radius =  50000, k =min(10, nrow(denning.starts[,c("x", "y")])))
       
       
       temp_sites<-getClosestWellSpreadDenningSites(den.site.potentials$nn.idx, den.site.potentials$nn.dists) #TODO: test for ties -- same initialPixels
@@ -447,7 +455,13 @@ disperseFisher<- function(sim){
         juv.fisher.found.site [fisher_pop == 3, hr_size_lb := sim$female_hr_table [fisher_pop == 3, hr_mean]- 2*sim$female_hr_table [fisher_pop == 3, hr_sd]]
         juv.fisher.found.site [fisher_pop == 4, hr_size_lb := sim$female_hr_table [fisher_pop == 4, hr_mean]- 2*sim$female_hr_table [fisher_pop == 4, hr_sd]]
         
-        test<<-juv.fisher.found.site 
+        #test<<-juv.fisher.found.site 
+        #test3<-unique(juv.fisher.found.site, by = "pixelid")
+        juv.fisher.found.site<- unique(juv.fisher.found.site, by = "pixelid")
+        #if(!(nrow(test) == nrow(test3))){
+        #  browser()
+        #}
+        
         contingentHR <- SpaDES.tools::spread2 (sim$spread.rast, 
                                                start = juv.fisher.found.site$pixelid, 
                                                spreadProb = as.numeric (sim$spread.rast[]),
@@ -481,7 +495,7 @@ disperseFisher<- function(sim){
           #---- 3. Habitat Quality Criteria
           if(nrow(juv.fisher.found.site) > 0){
             tab.perc <- habitatQual (check_habitat, juv.fisher.found.site, sim$fisher_d2_cov)
-            remove_fisher<- tab.perc[d2 > 7 | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer")| move_perc < P(sim, "move_target", "FLEXplorer"), ]
+            remove_fisher<- tab.perc[d2 > P(sim, "d2_target", "FLEXplorer") | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer")| move_perc < P(sim, "move_target", "FLEXplorer"), ]
             juv.fisher.found.site <- juv.fisher.found.site [!(pixelid %in% remove_fisher$initialPixels), ]
             contingentHR<-contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
             
@@ -514,7 +528,8 @@ disperseFisher<- function(sim){
           }
         }
       }
-      
+      sim$dispersers<-sim$dispersers[, id := 0]
+      sim$dispersers<-sim$dispersers[, `:=`(id = NULL)]
     }
  
   }else{
@@ -544,7 +559,7 @@ checkHabitatNeeds <- function(sim){
   
   #---- 3. Habitat Quality Criteria
   tab.perc <- habitatQual (check_habitat, sim$agents, sim$fisher_d2_cov)
-  remove_fisher<- tab.perc[d2 > 7 | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer") | move_perc < P(sim, "move_target", "FLEXplorer"), ]
+  remove_fisher<- tab.perc[d2 > P(sim, "d2_target", "FLEXplorer") | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer") | move_perc < P(sim, "move_target", "FLEXplorer"), ]
   n_hab_lost<-n_hab_lost + nrow(remove_fisher)
   #add to dispersers table
   sim$dispersers<-rbindlist(list(sim$dispersers, sim$agents[individual_id %in% remove_fisher$individual_id, ]), fill = TRUE)
@@ -559,7 +574,7 @@ checkHabitatNeeds <- function(sim){
 
 reproduceFisher<-function(sim){
   # Step 4: Reproduce
-  browser()
+  
   reproFishers <- sim$agents [sex == "F" & age >= P (sim, "reproductive_age", "FLEXplorer"), ] # females of reproductive age in a territory
   message (paste0("reproduceFisher: # reproducing: ", nrow(reproFishers)))
   # A. Assign each female fisher 1 = reproduce or 0 = does not reproduce
@@ -640,87 +655,32 @@ reproduceFisher<-function(sim){
 survivalFisher<-function(sim){
   #survival -- establish a territory: [1, 2], [3,5], [5,8], [9+] -- best, dispersers ---[1, 2],[3,5], [5,8], [9+]
   # Step 5. Survive and Age 1 Year
-  n_adults<-nrow(sim$agents[age > 1 ,])
+  n_adults<-nrow(sim$agents[age > 0 ,])
   n_dispersers<-nrow(sim$dispersers)
-  survivors <- sim$agents [age < P(sim, "female_max_age", "FLEXplorer"), ] # remove old
-  sim$agents <- sim$agents [individual_id %in% survivors$individual_id] 
-  sim$territories <- sim$territories [initialPixels %in% survivors$pixelid,] # remove territories
-  #message(paste0("survivalFisher: # dispersers ", nrow(sim$dispersers), " dispersers"))
-  # old dispersers die here 
-  sim$dispersers [!is.na(individual_id) & age < P(sim, "female_max_age", "FLEXplorer"), keep:=1] # older fisher and doesn't have a territory
-  sim$dispersers [is.na(individual_id) & age <= 2, keep:=1 ] # older than 2 and doesn't have a territory
-  sim$dispersers<-sim$dispersers[keep ==1, ]
-  sim$dispersers$keep<- NULL
+  #n_juv<-nrow(sim$agents[age <= 1 ,])
   
-  survive_agents <- NULL
-  survive_agents_territories <- NULL
-  # note that the above steps could inflate the model mortality rate, as old animals are presumably included in the survival rate estimate
-  # age-class based survival rates
-  # juveniles
-  survivors.juv <- sim$agents [age == 1 & !is.na (d2_score), ]
-  n_juv<-nrow(survivors.juv )
-  
-  if (nrow (survivors.juv) > 0) {
-    juv.fish.pops <- c (unique (survivors.juv$fisher_pop))
-    for (i in 1:length (juv.fish.pops)) { 
-      survivors.juv [fisher_pop == juv.fish.pops[i], 
-                     survive := rbinom (n = nrow (survivors.juv [fisher_pop == juv.fish.pops[i], ]),
-                                        size = 1,
-                                        prob = rtruncnorm (1,
-                                                           a = 0, # lower bounds
-                                                           b = 1, # upper bounds
-                                                           mean = sim$survival_rate_table [Fpop == juv.fish.pops[i] & age == 'Juvenile', Mean], 
-                                                           sd = sim$survival_rate_table [Fpop == juv.fish.pops[i] & age == 'Juvenile', SD]))]
-    }
-    survive_agents<-c(survive_agents, survivors.juv[survive == 1, ]$individual_id)
-    survive_agents_territories<-c(survive_agents_territories, survivors.juv[survive == 1, ]$pixelid)
-  } 
-  
-  # adults
-  survivors.ad <- sim$agents [age > 1 & !is.na (d2_score), ]
-  if (nrow (survivors.ad) > 0) {
-    ad.fish.pops <- c (unique (survivors.ad$fisher_pop))
-    for (i in 1:length(ad.fish.pops)) { 
-      survivors.ad [fisher_pop == ad.fish.pops[i], 
-                    survive := rbinom (n = nrow (survivors.ad [fisher_pop == ad.fish.pops[i], ]),
-                                       size = 1,
-                                       prob = rtruncnorm (1, # use rtruncnorm() to runcate valeus between 0 and 1
-                                                          a = 0, # lower bounds
-                                                          b = 1, # upper bounds
-                                                          mean = sim$survival_rate_table [Fpop == ad.fish.pops[i] & age == 'Adult', Mean], 
-                                                          sd = sim$survival_rate_table [Fpop == ad.fish.pops[i] & age == 'Adult', SD]))]
-    }
-    survive_agents<-c(survive_agents, survivors.ad[survive == 1, ]$individual_id)
-    survive_agents_territories<-c(survive_agents_territories, survivors.ad[survive == 1, ]$pixelid)
-  
+  if(n_dispersers > 0 ){
+    sim$dispersers[,  cohort:= fcase(age <= 2, "Juvenile", age >2 & age <= 5, "Adult", age > 5 & age <= 8, "Senior", age >= 9, "Old")]
+    sim$dispersers<-merge(sim$dispersers, sim$survival_rate_table[type == "Disperser", ], by.x = c("fisher_pop", "cohort"), by.y = c("fisher_pop", "cohort") , all.x =T)
+    sim$dispersers[,  survive := rbinom (n = .N, size = 1, prob = rtruncnorm (1, a = 0, b = 1, mean = Mean, sd = SD))]
+    
+    sim$dispersers<-sim$dispersers [survive == 1, ]# remove the 'dead' individuals
+    #Remove columns: Mean, SD, cohort, type, survive
+    sim$dispersers[,`:=`(Mean = NULL, SD = NULL, cohort = NULL, type = NULL, survive = NULL)]
   }
-  
-  # dispersers -- different rate for adults and juvies?
-  #browser()
-  survivors.disp <- sim$dispersers[age > 0, ]
-  if (nrow (survivors.disp) > 0) {
-    disp.fish.pops <- c (unique (survivors.disp$fisher_pop))
-    for (i in 1:length(disp.fish.pops)) { 
-      survivors.disp [fisher_pop == disp.fish.pops[i], 
-                      survive := rbinom (n = nrow (survivors.disp [fisher_pop == disp.fish.pops[i], ]),
-                                         size = 1,
-                                         prob = rtruncnorm (1,
-                                                            a = 0, # lower bounds
-                                                            b = 1, # upper bounds
-                                                            mean = sim$survival_rate_table [Fpop == disp.fish.pops[i] & age == 'Disperser', Mean], 
-                                                            sd =  sim$survival_rate_table [Fpop == disp.fish.pops[i] & age == 'Disperser', SD]))]
-    }
-    keep_fisher<- c(sim$dispersers[age == 0, ]$pixelid, survivors.disp[survive == 1, ]$pixelid)
-    sim$dispersers <- sim$dispersers[pixelid %in% keep_fisher, ]
-  } 
-  
-  
-  # remove the 'dead' individuals
-  sim$agents <- sim$agents [individual_id %in% survive_agents,]
-  sim$territories <- sim$territories [initialPixels %in% survive_agents_territories,] # remove territories
-  
-  message(paste0("survivalFisher: Adults: " , n_adults, " and ", nrow(sim$agents[age > 1,]), " survived" ))
-  message(paste0("survivalFisher: Juveniles: " , n_juv, " and ", nrow(sim$agents[age == 1,]), " survived" ))
+  if(n_adults > 0){
+    #Merge in the corresponding survival_rate_table to the dispersers and the agents
+    sim$agents[,  cohort:= fcase(age <= 2, "Juvenile", age >2 & age <= 5, "Adult", age > 5 & age <= 8, "Senior", age >= 9, "Old")]
+    sim$agents<-merge(sim$agents, sim$survival_rate_table[type == "Established", ], by.x = c("fisher_pop", "cohort"), by.y = c("fisher_pop", "cohort") , all.x =T)
+    sim$agents[,  survive := rbinom (n = .N, size = 1, prob = rtruncnorm (1, a = 0, b = 1, mean = Mean, sd = SD))]
+    sim$agents <- sim$agents [ survive == 1,]# remove the 'dead' individuals
+    sim$territories <- sim$territories [initialPixels %in% sim$agents$pixelid,] # remove territories
+    #Remove columns: Mean, SD, cohort, type, survive
+    sim$agents[, `:=`(Mean = NULL,  SD = NULL, cohort = NULL, type = NULL, survive = NULL)]
+  }
+
+  message(paste0("survivalFisher: Adults: " , n_adults, " and ", nrow(sim$agents[age > 0,]), " survived" ))
+  #message(paste0("survivalFisher: Juveniles: " , n_juv, " and ", nrow(sim$agents[age <= 1,]), " survived" ))
   message(paste0("survivalFisher: Dispersers: " , n_dispersers, " and ", nrow(sim$dispersers), " survived" ))
   
   return(invisible(sim))
@@ -737,12 +697,12 @@ ageFisher<-function(sim){
 }
 
 recordABMReport<-function(sim, i){
-  new.agents.save <- data.table (n_f_adult = as.numeric (nrow (sim$agents [sex == "F" & age > 1, ])), 
-                                 n_f_juv = as.numeric (nrow (sim$dispersers [sex == "F" & age < 3 & age > 0, ])),
-                                 #n_f_kits = as.numeric (nrow (sim$dispersers [sex == "F" & age == 0, ])),
+  new.agents.save <- data.table (n_f_adult = as.numeric (nrow (sim$agents [sex == "F" & age > 2, ])), 
+                                 n_f_juv = as.numeric (nrow (sim$agents [sex == "F" & age <= 2 & age > 0, ])),
+                                 n_f_disp = as.numeric (nrow (sim$dispersers [sex == "F" & age > 0, ])),
                                  mean_age_f = as.numeric (mean (c (sim$agents [sex == "F", age]))), 
                                  sd_age_f = as.numeric (sd (c (sim$agents [sex == "F", age]))), 
-                                 timeperiod = as.integer (min(0, time(sim)-1) * P (sim, "timeInterval", "FLEXplorer") + i), 
+                                 timeperiod = as.integer ( time(sim) * P (sim, "timeInterval", "FLEXplorer") + (i-1)), 
                                  scenario = as.character (sim$scenario$name))
   
   sim$fisherABMReport <- rbindlist (list (sim$fisherABMReport, new.agents.save), use.names = TRUE)
@@ -754,8 +714,10 @@ plot_territories<- function(sim) {
   sim$ras.territories[] <- 0
   sim$ras.territories[sim$territories$pixels]<-sim$territories$initialPixels
   terra::plot(sim$ras.territories)
+  if(time(sim) == 0){
+    terr.ras<<-sim$ras.territories
+  }
   
-  terr.ras<<-sim$territories
   return(invisible(sim))
 }
 
@@ -879,11 +841,11 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
         juv.idx[element, ] <- Inf #make the whole row Inf
       }
     }
+    if(min(temp$ds.indx) > 0 | j == 11 | min(juv.dist) == Inf){ # all of the fisher got site or there are no sites left out of the 10
+      break # all fisher found a site or all neighbors have been exhausted
+    }  
     if(min(juv.dist[,j]) == Inf){ # their are no more denning sites closest (the jth Nearest Neighbour) go to the next nearest neighbour
       j = j + 1
-    }
-    if(min(temp$ds.indx) > 0 | j == 11){ # all of the fisher got site or there are no sites left out of the 10
-      break # all fisher found a site or all neighbors have been exhausted
     }
   }
   
@@ -902,14 +864,19 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
     )
   }
   if(!suppliedElsewhere("survival_rate_table", sim)){
-    sim$survival_rate_table <- data.table (Fpop = c (1,1,1,2,2,2,3,3,3,4,4,4),
-                                         age = c ("Adult", "Juvenile", "Disperser", "Adult", "Juvenile", "Disperser", "Adult", "Juvenile", "Disperser", "Adult", "Juvenile", "Disperser"),
-                                         Mean = c (0.8, 0.6, 0.6, 0.8, 0.6, 0.6, 0.8, 0.6, 0.6, 0.8, 0.6, 0.6),
-                                         SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
-    #sim$survival_rate_table <- data.table (Fpop = c (1,1,1,2,2,2,3,3,3,4,4,4),
-    #                                       age = c ("Adult", "Juvenile", "Disperser", "Adult", "Juvenile", "Disperser", "Adult", "Juvenile", "Disperser", "Adult", "Juvenile", "Disperser"),
-    #                                       Mean = c (0.8, 0.6, 0.6, 0.8, 0.6, 0.6, 0.8, 0.8, 0.9, 0.8, 0.6, 0.6),
-    #                                       SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
+    sim$survival_rate_table <- rbindlist(list(
+      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4),
+                  type = "Established",
+                  cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
+                  Mean = c (0.8, 0.6, 0.8, 0.2,  0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8,0.2),
+                  SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1, 0.2,0.1,0.1,0.1,0.1,0.1,0.1)), 
+      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4),
+                  type = "Disperser",
+                  cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
+                  Mean = c (0.75, 0.6, 0.75, 0.2,  0.75, 0.6, 0.75, 0.2, 0.75, 0.6, 0.75, 0.2, 0.75, 0.6, 0.75, 0.2),
+                  SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1, 0.1,0.1,0.1,0.1,0.1,0.1,0.1))
+                                ))
+   
   }
   if(!suppliedElsewhere("repro_rate_table", sim)){
     sim$repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
@@ -919,7 +886,7 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
   }
   if(!suppliedElsewhere("female_hr_table", sim)){
     sim$female_hr_table <- data.table (fisher_pop = c (1:4), 
-                                     hr_mean = c (3000, 4500, 4500, 3000),
+                                     hr_mean = c (3000, 3000, 4500, 3000),
                                      hr_sd = c (500, 500, 500, 500)) # updating to more realistic SD (higher for SBD but then crashes)
   }
   if(!suppliedElsewhere("mahal_metric_table", sim)){

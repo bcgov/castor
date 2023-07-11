@@ -27,7 +27,7 @@ paths <- list(
   outputPath = paste0(here::here(),"/R/SpaDES-modules/FLEXplorer")
 )
 
-times <- list (start = 0, end = 1)
+times <- list (start = 0, end = 3)
 
 parameters <- list(FLEXplorer = list (female_max_age = 9,
                                  den_target = 0.003, 
@@ -36,9 +36,9 @@ parameters <- list(FLEXplorer = list (female_max_age = 9,
                                  reproductive_age = 2, 
                                  sex_ratio = 0.5,
                                  female_dispersal = 785000,  # ha; radius = 500 pixels = 50km = 7850km2 area
-                                 timeInterval = 10, # should be consistent with the time interval used to model habitat
+                                 timeInterval = 5, # should be consistent with the time interval used to model habitat
                                                     # e.g., growingstockLCUS periodLength
-                                 rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX2/rast_sim_landscapes.tif")
+                                 rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEXplorer/beaver_valley.tif")
 
                 )
 )
@@ -53,5 +53,14 @@ mySim <- simInit(times = times,
 
 outputs(mySim) <- data.frame (objectName = c("fisherABMReport"))
 mySimOut <- spades(mySim)
+```
 
+#Plot
+```{r}
+library(ggplot2)
+ggplot(data = abmReport, aes(x=timeperiod,y=n_f_adult+n_f_juv)) +
+  geom_point() +
+  geom_smooth() +
+  geom_point(data = abmReport, aes(x=timeperiod, y = n_f_disp), color = 'red', shape=3)
+#writeRaster(terr.ras, "test_terr2.tif", overwrite = T)
 ```
