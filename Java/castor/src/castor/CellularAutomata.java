@@ -78,7 +78,7 @@ public class CellularAutomata {
 		int currentMaxState;
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
 		harvestPriorityWeight = 1-(harvestClusterWeight + ageClusterWeight);
-		double gWeightIncr = 0.1;
+		double gWeightIncr = 0.01;
 		
 		planHarvestVolume = new float[landscape.numTimePeriods];
 		planGSVolume = new float[landscape.numTimePeriods];

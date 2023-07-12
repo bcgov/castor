@@ -102,8 +102,10 @@ doEvent.FLEX2 = function (sim, eventTime, eventType) {
     
     init = {
       sim <- Init (sim)
-      sim <- getFisherHR (sim)
-      sim <- saveAgents (sim)
+      
+      
+      #sim <- getFisherHR (sim)
+      #sim <- saveAgents (sim)
       
       sim <- scheduleEvent (sim, time (sim) + 1, "FLEX2", "runevents", 19)
       sim <- scheduleEvent (sim, end (sim), "FLEX2", "save", 20)
@@ -225,11 +227,7 @@ Init <- function(sim) {
   # convert to raster objects for spread2
   sim$spread.rast <- spreadRast (raster::raster (sim$pix.rast), # see function below
                                  sim$table.hab.spread) 
-  
-  return (invisible (sim))
-}
-  
-restofCode <- function(sim){
+
 
   table.hr <- SpaDES.tools::spread2 (sim$pix.raster, # within the area of interest
                                      start = sim$agents$pixelid, # for each individual
@@ -1130,30 +1128,7 @@ saveAgents <- function (sim) {
 }
 
 
-getFisherHR<- function(sim){
-  #This function gets fisher home ranges by initially saturating the landscape with fisher agents, allowing the fisher agents to create territories in an interative fashion. 
-  # The process is iterative since more than one fisher could design a territory that overlaps
-  #repeat{
-  browser()
-  
-  contingentHR<-SpaDES.tools::spread2 (sim$spread.rast, 
-                                       start = sim$agents$pixelid, 
-                                       spreadProb = as.numeric (sim$spread.rast[]),
-                                       exactSize = sim$agents$hr_size, 
-                                       allowOverlap = T, asRaster = F, circle = F)
-  
-  contingentHR <- merge(merge (contingentHR, sim$agents, by.x = "initialPixels", by.y = "pixelid"),
-                        sim$table.hab.spread [, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")],
-                        by.x = "pixels", by.y = "pixelid")
-  
-  # calculate habitat quality 
-  tab.perc <- habitatQual (contingentHR, sim$agents, sim$fisher_d2_cov)
-  
-  #   if(condition) { break }
-  # }
-  
-  return(invisible(sim))
-}
+
 
 ###--- FUNCTIONS THAT GET CALLED
 
