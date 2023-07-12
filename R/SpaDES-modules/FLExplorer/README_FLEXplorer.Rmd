@@ -1,4 +1,17 @@
-## FLEXplorer Documentation
+---
+title: "flexplorer readme"
+author: "Tyler Muhly"
+date: "2023-07-10"
+output:
+  html_document:
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library (data.table)
+library (ggplot2)
+```
 
 ### Introduction
 The *FLEXplorer* module was developed to estimate the effects of forest change on fisher populations. It is an agent-based model, which are models that simulate the actions of agents (in this case, individual fisher) in response to their environment (i.e., habitat) based on their ecology and behaviour. Therefore, it is a 'bottom-up' approach, where the behaviours of individuals are simulated to understand the collective impacts to a population.
@@ -19,14 +32,66 @@ The user can either specify the number of fisher to distribute on the landscape 
 To estimate the number of fisher on the landscape, first the model aggregates the existing pixels (typically 1 ha) in the area of interest into larger pixels with the size of the average home range for fisher across all fisher habitat types (i.e., 3,750 ha). Then the number of aggregated pixels with greater than 1% denning habitat within them are summed to determine the number of fisher to distribute across the landscape. 
 
 #### Distributing Fisher Across the Landscape
-Fisher are randomly distributed across the landscape following a well-balanced sampling design (see: [Brus 2003](https://dickbrus.github.io/SpatialSamplingwithR/BalancedSpreaded.html#LPM)). Specifically, the local pivot method 
+Fisher are randomly distributed across the landscape following a well-balanced sampling design (see: [Brus 2003](https://dickbrus.github.io/SpatialSamplingwithR/BalancedSpreaded.html#LPM)). Specifically, the local pivot method was used, where the first location was selected randomly, and then additional locations are selected where locations in closer proximity are less likely to be selected, until the target number of locations (i.e., the number of fisher) are met. The method also considers inclusion probabilities, which are currently set as equal across all locations.
+
+#### Fisher Agent Creation
+Once the starting number of fisher are distributed across the landscape, an "agents" table is created where each starting fisher receives a unique identifier, the location on the landscape (pixelid) of its starting point, a sex (currently all fisher in the model are female) and an age, selected randomly, based on the estimated distribution of fisher ages from populations in British Columbia (see table below).
+
+```{r, age distribution}
+
+data <- data.table (age = c(1,2,3,4,5,6,7,8,9,10,11,12), 
+                    prob = c(0.44, 0.27, 0.08, 0.08, 0.06, 0.03, 0.02, 
+                             0.01,0.0025,0.0025,0.0025,0.0025))
+
+ggplot (data,
+        aes (x = age, y = prob)) + 
+  geom_bar (stat ="identity")
+
+
+
+```
+
+Each fisher in the agents table then gets assigned a target amount of habitat it needs to from a territory. In this model, the quality of habitat is not quantified. Therefore rather than have the fisher form a territory by aggregating habitat until it achieves a specified, minimum amount of quality habitat, the amount of habitat each fisher needs is assigned randomly. *TBD: The amount of habitat each fisher is assigned is drawn from a normal distribution of the amount and variability in habitat from known fisher home ranges (see table below).* Note that in this case, the amount of habitat in a territory may be less than estimated home range sizes for fisher, depending on the method used (e.g., kernel density estimator or minimum convex polygon), and specifically if the home range estimate included areas that are not necessarily fisher habitat.
+
+```{r, habitat for territory}
+data.table (fisher_pop = c (1:4), 
+            hr_mean = c (3000, 4500, 4500, 3000),
+            hr_sd = c (500, 500, 500, 500))
+
+```
+
+#### Fisher Territory Formation
+Each fisher in the agents table then forms a territory by 'spreading' from it's starting den site location to adjacent habitat, until it achieves it's habitat target, or it is no longer able to spread to adjacent areas because it is not habitat. The model uses the [spread2 function](https://rdrr.io/cran/SpaDES.tools/man/spread2.html) in the [SpaDES R package](https://spades.predictiveecology.org/) to form territories, where the  
+
+
+
+habitat data parameter (rasterHabitat)
+
+
+sim$spread.rast, 
+                                       start = sim$agents$pixelid, 
+                                       spreadProb = as.numeric (sim$spread.rast[]),
+                                       exactSize = sim$agents$hr_size, 
+                                       allowOverlap = F, asRaster = F, circle = F)
+                                       
+                                       
+                                       
+
+
+Spread to form territories
+s
+-	Open = spread_prob 0.09
+-	No habtiat = spread_prob 0.18
+-	Habtait spread = spread_prob 1
+-	Check to see if achieved mean hr size – 2 sd and amount of habtiat 15% 
+
+-	Meet tthrehdolsds of habtait caterogies and d2 therhfolds as set by the user
+-	if animal doesn’t meet the threholds then ift gets put into the diespersers table
 
 
 
 
-well balanced sampling design see:  
 
-inclusionprobabilities
 
 
 
@@ -76,13 +141,8 @@ Aggregation to define the number of fisher on the landcapes
 -	That is the number of fisher to star-
 -	 or can input directly 
  
-then Sample dennign lcoaitons using the lpm method
--	Randomly picks a location, but hen slects additoan locations base do ten degree of cluserting of den sites and number o samples
--	Fewer samples, and more spread out den pixels means more dispered samples; this variable, contional on the samp,es
 
-Agents tables
--	Attributes of female fihers with terriroties
--	Only these have an id
+
 
 Dispersers table
 -	Attributes of dispersers without a territory 
@@ -90,14 +150,8 @@ Dispersers table
 Table_hab_spread
 -	Updated, conditional on habtait classes
 
-Spread to form territories
--	Input is the Table_hab_spread ad agents
--	Open = spread_prob 0.09
--	No habtiat = spread_prob 0.18
--	Habtait spread = spread_prob 1
--	Check to see if achieved mean hr size – 2 sd and amount of habtiat 15% 
--	Meet tthrehdolsds of habtait caterogies and d2 therhfolds as set by the user
--	- if animal doesn’t meet the threholds then ift gets put into the diespersers table
+
+
 
 Then dispersers attempt to find a new territory 
 -	Finds dennign pixels not in a territory
@@ -123,13 +177,6 @@ Survival first
 Age and terriorty based survival rates
 1-2, 3-5, 5-8, >8
 Dispersers and non-dispersers
-
-Age distribution is poission
-
-
-
-
-
-
+efefcts of habitat on survival is through the transition from an animal with a terriotry to a disperers, i.e., if the habtiat quliuty of a home rnage degrades to the poiint the anaimal disperses, then the animal gets a lower surival rate  
 
 
