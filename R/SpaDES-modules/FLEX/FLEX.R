@@ -13,19 +13,19 @@
 #===========================================================================================#
 
 defineModule(sim, list(
-  name = "FLEXplorer",
+  name = "FLEX",
   description = "An agent based model for fisher", 
   keywords = NA, # c("insert key words here"),
   authors = c(person("Joanna", "Burgar", email = "Joanna.Burgar@gov.bc.ca", role = c("aut", "cre")),
               person("Tyler", "Muhly", email = "tyler.muhly@gov.bc.ca", role = c("aut", "cre")),
               person("Kyle", "Lochhead", email = "kyle.lochhead@gov.bc.ca", role = c("cre"))),
   childModules = character(0),
-  version = list(SpaDES.core = "0.2.5", FLEXplorer = "0.0.1"),
+  version = list(SpaDES.core = "0.2.5", FLEX = "2.1.2"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.md", "FLEXplorer.Rmd"),
+  documentation = list("README.md", "FLEX.Rmd"),
   reqdPkgs = list("BalancedSampling"),
   parameters = rbind(
     defineParameter("burnInLength", "integer", 5, 1, 100, "The number of iterations to burn in"),
@@ -70,13 +70,13 @@ defineModule(sim, list(
 ))
 
 
-doEvent.FLEXplorer = function(sim, eventTime, eventType) {
+doEvent.FLEX = function(sim, eventTime, eventType) {
   switch(
     eventType,
     init = {
       sim <- Init(sim)
       sim <- getInitialFisherHR(sim)
-      for (i in 1:P(sim, "burnInLength", "FLEXplorer")) { #What should this order be?
+      for (i in 1:P(sim, "burnInLength", "FLEX")) { #What should this order be?
         sim <- survivalFisher(sim) #overall surival for the year -- remove mothers and unborn kits before the year starts
         sim <- disperseFisher(sim) #go find a territory if the habitat changed or kits born year previously
         sim <- reproduceFisher(sim) #since territories are established -- can reproduce and have kits age = 0.
@@ -85,14 +85,14 @@ doEvent.FLEXplorer = function(sim, eventTime, eventType) {
       
       sim <- recordABMReport(sim, 0)
       sim <- plot_territories(sim)
-      sim <- scheduleEvent (sim, time (sim) + 1, "FLEXplorer", "runevents", 19)
+      sim <- scheduleEvent (sim, time (sim) + 1, "FLEX", "runevents", 19)
     },
     runevents = {
       
       sim <- updateHabitat (sim)
       sim <- checkHabitatNeeds(sim)
       
-      for (i in 1:P(sim, "timeInterval", "FLEXplorer")) { #What should this order be?
+      for (i in 1:P(sim, "timeInterval", "FLEX")) { #What should this order be?
         sim <- survivalFisher(sim) #overall surival for the year -- remove mothers and unborn kits before the year starts
         sim <- disperseFisher(sim) #go find a territory if the habitat changed or kits born year previously
         sim <- plot_territories(sim)
@@ -101,12 +101,12 @@ doEvent.FLEXplorer = function(sim, eventTime, eventType) {
         sim <- recordABMReport(sim, i)
       }
       
-      sim <- scheduleEvent (sim, time(sim) + 1, "FLEXplorer", "runevents", 19)
+      sim <- scheduleEvent (sim, time(sim) + 1, "FLEX", "runevents", 19)
     },
     
     reportFisherABM = {
       sim <- recordABMReport (sim)
-      sim <- scheduleEvent (sim, time (sim) + 1, "FLEXplorer", "reportFisherABM", 20)
+      sim <- scheduleEvent (sim, time (sim) + 1, "FLEX", "reportFisherABM", 20)
     },
     
     plot = {
@@ -120,7 +120,7 @@ doEvent.FLEXplorer = function(sim, eventTime, eventType) {
 
 Init <- function(sim) {
   message ("Load the habitat data.")
-  sim$raster.stack <- terra::rast (P (sim, "rasterHabitat", "FLEXplorer")) 
+  sim$raster.stack <- terra::rast (P (sim, "rasterHabitat", "FLEX")) 
   
   # get the pixel id raster
   sim$pix.rast <- terra::subset (sim$raster.stack, grep ("pixelid", names (sim$raster.stack)))
@@ -156,11 +156,11 @@ Init <- function(sim) {
   
   #POPULATE LANDSCAPE WITH FISHER
   #Get the initial number of fisher from user or estimate. 
-  if(P(sim, "initialFisherPop", "FLEXplorer") == 9999 ){ # estimate the initial number of fisher
+  if(P(sim, "initialFisherPop", "FLEX") == 9999 ){ # estimate the initial number of fisher
    den.rast.ag <- aggregate(den.rast, fact=round(sqrt(mean(sim$female_hr_table$hr_mean)),0)) #fact is the number of pixels to expand by -- so 50 = 60 x 60 ha ~ 3600 ha or 25 km2
    init_n_fisher <- nrow(den.rast.ag[den.rast.ag[] > 0.01]) # Remove remote areas (i.e., lakes) that have no denning within 2500 ha
   }else{ #use the user specified initial number of fisher
-    init_n_fisher <- P(sim, "initialFisherPop", "FLEXplorer")
+    init_n_fisher <- P(sim, "initialFisherPop", "FLEX")
   }
                  
   den.pix.coords<- data.table(xyFromCell(sim$pix.rast, den.pix$pixelid))
@@ -237,7 +237,7 @@ getInitialFisherHR<-function(sim){
   
   #---- 3. Habitat Quality Criteria
   tab.perc <- habitatQual (check_habitat, sim$agents, sim$fisher_d2_cov)
-  remove_fisher<- tab.perc[d2 > P(sim, "d2_target", "FLEXplorer") | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer")| move_perc < P(sim, "move_target", "FLEXplorer"), ]
+  remove_fisher<- tab.perc[d2 > P(sim, "d2_target", "FLEX") | den_perc < P(sim, "den_target", "FLEX") | cwd_perc < P(sim, "rest_target", "FLEX")| move_perc < P(sim, "move_target", "FLEX"), ]
   sim$dispersers<- rbindlist(list(sim$dispersers, sim$agents[individual_id %in% remove_fisher$individual_id, ]))
   sim$agents<-sim$agents[!(individual_id %in% remove_fisher$individual_id), ]
   contingentHR<-contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
@@ -350,7 +350,7 @@ disperseFisher<- function(sim){
           #---- 3. Habitat Quality Criteria
           if(nrow(adult.fisher.found.site) > 0){
             tab.perc <- habitatQual (check_habitat, adult.fisher.found.site, sim$fisher_d2_cov)
-            remove_fisher<- tab.perc[d2 > P(sim, "d2_target", "FLEXplorer") | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer")| move_perc < P(sim, "move_target", "FLEXplorer"), ]
+            remove_fisher<- tab.perc[d2 > P(sim, "d2_target", "FLEX") | den_perc < P(sim, "den_target", "FLEX") | cwd_perc < P(sim, "rest_target", "FLEX")| move_perc < P(sim, "move_target", "FLEX"), ]
             adult.fisher.found.site <- adult.fisher.found.site [!(pixelid %in% remove_fisher$initialPixels), ]
             contingentHR<-contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
             
@@ -495,7 +495,7 @@ disperseFisher<- function(sim){
           #---- 3. Habitat Quality Criteria
           if(nrow(juv.fisher.found.site) > 0){
             tab.perc <- habitatQual (check_habitat, juv.fisher.found.site, sim$fisher_d2_cov)
-            remove_fisher<- tab.perc[d2 > P(sim, "d2_target", "FLEXplorer") | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer")| move_perc < P(sim, "move_target", "FLEXplorer"), ]
+            remove_fisher<- tab.perc[d2 > P(sim, "d2_target", "FLEX") | den_perc < P(sim, "den_target", "FLEX") | cwd_perc < P(sim, "rest_target", "FLEX")| move_perc < P(sim, "move_target", "FLEX"), ]
             juv.fisher.found.site <- juv.fisher.found.site [!(pixelid %in% remove_fisher$initialPixels), ]
             contingentHR<-contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
             
@@ -559,7 +559,7 @@ checkHabitatNeeds <- function(sim){
   
   #---- 3. Habitat Quality Criteria
   tab.perc <- habitatQual (check_habitat, sim$agents, sim$fisher_d2_cov)
-  remove_fisher<- tab.perc[d2 > P(sim, "d2_target", "FLEXplorer") | den_perc < P(sim, "den_target", "FLEXplorer") | cwd_perc < P(sim, "rest_target", "FLEXplorer") | move_perc < P(sim, "move_target", "FLEXplorer"), ]
+  remove_fisher<- tab.perc[d2 > P(sim, "d2_target", "FLEX") | den_perc < P(sim, "den_target", "FLEX") | cwd_perc < P(sim, "rest_target", "FLEX") | move_perc < P(sim, "move_target", "FLEX"), ]
   n_hab_lost<-n_hab_lost + nrow(remove_fisher)
   #add to dispersers table
   sim$dispersers<-rbindlist(list(sim$dispersers, sim$agents[individual_id %in% remove_fisher$individual_id, ]), fill = TRUE)
@@ -575,7 +575,7 @@ checkHabitatNeeds <- function(sim){
 reproduceFisher<-function(sim){
   # Step 4: Reproduce
   
-  reproFishers <- sim$agents [sex == "F" & age >= P (sim, "reproductive_age", "FLEXplorer"), ] # females of reproductive age in a territory
+  reproFishers <- sim$agents [sex == "F" & age >= P (sim, "reproductive_age", "FLEX"), ] # females of reproductive age in a territory
   message (paste0("reproduceFisher: # reproducing: ", nrow(reproFishers)))
   # A. Assign each female fisher 1 = reproduce or 0 = does not reproduce
   if (nrow (reproFishers) > 0) {
@@ -606,7 +606,7 @@ reproduceFisher<-function(sim){
       # create new agents
       new.agents <- data.frame (lapply (reproFishers, rep, reproFishers$kits)) # repeat the rows in the reproducing fishers table by the number of kits 
       # assign whether fisher is a male or female; remove males
-      new.agents$kits <- rbinom (size = 1, n = nrow (new.agents), prob = P (sim, "sex_ratio", "FLEXplorer")) # prob of being a female
+      new.agents$kits <- rbinom (size = 1, n = nrow (new.agents), prob = P (sim, "sex_ratio", "FLEX")) # prob of being a female
       new.agents <- setDT (new.agents)
       new.agents <- new.agents [kits == 1, ] # female = 1; male = 0
       # make them age 0; 
@@ -702,7 +702,7 @@ recordABMReport<-function(sim, i){
                                  n_f_disp = as.numeric (nrow (sim$dispersers [sex == "F" & age > 0, ])),
                                  mean_age_f = as.numeric (mean (c (sim$agents [sex == "F", age]))), 
                                  sd_age_f = as.numeric (sd (c (sim$agents [sex == "F", age]))), 
-                                 timeperiod = as.integer ( time(sim) * P (sim, "timeInterval", "FLEXplorer") + (i-1)), 
+                                 timeperiod = as.integer ( time(sim) * P (sim, "timeInterval", "FLEX") + (i-1)), 
                                  scenario = as.character (sim$scenario$name))
   
   sim$fisherABMReport <- rbindlist (list (sim$fisherABMReport, new.agents.save), use.names = TRUE)
@@ -726,12 +726,12 @@ updateHabitat <- function (sim) {
   # 1. update the habitat data in the territories
   # subset data for the time interval
   cols <- c ("pixelid", "ras_fisher_pop",  
-             paste0 ("ras_fisher_denning_", (time(sim) * P (sim, "timeInterval", "FLEXplorer"))), 
-             paste0 ("ras_fisher_rust_", (time(sim) * P (sim, "timeInterval", "FLEXplorer"))), 
-             paste0 ("ras_fisher_cavity_", (time(sim) * P (sim, "timeInterval", "FLEXplorer"))), 
-             paste0 ("ras_fisher_cwd_", (time(sim) * P (sim, "timeInterval", "FLEXplorer"))), 
-             paste0 ("ras_fisher_movement_", (time(sim) * P (sim, "timeInterval", "FLEXplorer"))),
-             paste0 ("ras_fisher_open_", (time(sim) * P (sim, "timeInterval", "FLEXplorer"))))
+             paste0 ("ras_fisher_denning_", (time(sim) * P (sim, "timeInterval", "FLEX"))), 
+             paste0 ("ras_fisher_rust_", (time(sim) * P (sim, "timeInterval", "FLEX"))), 
+             paste0 ("ras_fisher_cavity_", (time(sim) * P (sim, "timeInterval", "FLEX"))), 
+             paste0 ("ras_fisher_cwd_", (time(sim) * P (sim, "timeInterval", "FLEX"))), 
+             paste0 ("ras_fisher_movement_", (time(sim) * P (sim, "timeInterval", "FLEX"))),
+             paste0 ("ras_fisher_open_", (time(sim) * P (sim, "timeInterval", "FLEX"))))
   raster.stack.update <- terra::subset (sim$raster.stack, cols)
   
   # convert data to table

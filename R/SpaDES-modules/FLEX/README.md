@@ -7,11 +7,7 @@ output:
     keep_md: yes
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library (data.table)
-library (ggplot2)
-```
+
 
 ### Introduction
 The *FLEX* module was developed to estimate the effects of forest change on fisher populations. It is an agent-based model, which are models that simulate the actions of agents (in this case, individual fisher) in response to their environment (i.e., habitat) based on their ecology and behaviour. Therefore, it is a 'bottom-up' approach, where the behaviours of individuals are simulated to understand the collective impacts to a population.
@@ -37,8 +33,8 @@ Fisher are randomly distributed across the landscape following a well-balanced s
 #### Fisher Agent Creation
 Once the starting number of fisher are distributed across the landscape, an "agents" table is created where each starting fisher receives a unique identifier, the location on the landscape (pixelid) of its starting point, a sex (currently all fisher in the model are female) and an age, selected randomly, based on the estimated distribution of fisher ages from populations in British Columbia (see table below).
 
-```{r, age distribution}
 
+```r
 data <- data.table (age = c(1,2,3,4,5,6,7,8,9,10,11,12), 
                     prob = c(0.44, 0.27, 0.08, 0.08, 0.06, 0.03, 0.02, 
                              0.01,0.0025,0.0025,0.0025,0.0025))
@@ -46,18 +42,25 @@ data <- data.table (age = c(1,2,3,4,5,6,7,8,9,10,11,12),
 ggplot (data,
         aes (x = age, y = prob)) + 
   geom_bar (stat ="identity")
-
-
-
 ```
+
+![](README_FLEX_files/figure-html/age distribution-1.png)<!-- -->
 
 Each fisher in the agents table then gets assigned a target amount of habitat it needs to from a territory. In this model, the quality of habitat is not quantified. Therefore rather than have the fisher form a territory by aggregating habitat until it achieves a specified, minimum amount of quality habitat, the amount of habitat each fisher needs is assigned randomly. *TBD: The amount of habitat each fisher is assigned is drawn from a normal distribution of the amount and variability in habitat from known fisher home ranges (see table below).* Note that in this case, the amount of habitat in a territory may be less than estimated home range sizes for fisher, depending on the method used (e.g., kernel density estimator or minimum convex polygon), and specifically if the home range estimate included areas that are not necessarily fisher habitat.
 
-```{r, habitat for territory}
+
+```r
 data.table (fisher_pop = c (1:4), 
             hr_mean = c (3000, 4500, 4500, 3000),
             hr_sd = c (500, 500, 500, 500))
+```
 
+```
+##    fisher_pop hr_mean hr_sd
+## 1:          1    3000   500
+## 2:          2    4500   500
+## 3:          3    4500   500
+## 4:          4    3000   500
 ```
 
 #### Fisher Territory Formation
