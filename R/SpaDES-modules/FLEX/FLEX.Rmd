@@ -1,5 +1,5 @@
 ---
-title: "FLEXplorer"
+title: "FLEX"
 author: ""
 date: "July 2023"
 output: pdf_document
@@ -24,12 +24,12 @@ source (paste0 (here::here(), "/R/functions/R_Postgres.R"))
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 paths <- list(
   modulePath = paste0(here::here(),"/R/SpaDES-modules"),
-  outputPath = paste0(here::here(),"/R/SpaDES-modules/FLEXplorer")
+  outputPath = paste0(here::here(),"/R/SpaDES-modules/FLEX")
 )
 
 times <- list (start = 0, end = 3)
 
-parameters <- list(FLEXplorer = list (female_max_age = 9,
+parameters <- list(FLEX = list (female_max_age = 9,
                                  den_target = 0.003, 
                                  rest_target = 0.028,
                                  move_target = 0.091,
@@ -38,12 +38,12 @@ parameters <- list(FLEXplorer = list (female_max_age = 9,
                                  female_dispersal = 785000,  # ha; radius = 500 pixels = 50km = 7850km2 area
                                  timeInterval = 5, # should be consistent with the time interval used to model habitat
                                                     # e.g., growingstockLCUS periodLength
-                                 rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEXplorer/beaver_valley.tif")
+                                 rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/beaver_valley.tif")
 
                 )
 )
 
-modules <- list ("FLEXplorer")
+modules <- list ("FLEX")
 
 mySim <- simInit(times = times, 
                  params = parameters, 

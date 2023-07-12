@@ -1,30 +1,19 @@
----
-title: "flexplorer readme"
-author: "Tyler Muhly"
-date: "2023-07-10"
-output:
-  html_document:
-    keep_md: yes
----
+[![img](https://img.shields.io/badge/Lifecycle-Experimental-339999)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-badges.md)
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library (data.table)
-library (ggplot2)
-```
+## Welcome to FLEX! The Fisher Landscape EXplorer - agent based model
 
 ### Introduction
-The *FLEXplorer* module was developed to estimate the effects of forest change on fisher populations. It is an agent-based model, which are models that simulate the actions of agents (in this case, individual fisher) in response to their environment (i.e., habitat) based on their ecology and behaviour. Therefore, it is a 'bottom-up' approach, where the behaviours of individuals are simulated to understand the collective impacts to a population.
+The *FLEX* module was developed to estimate the effects of forest change on fisher populations. It is an agent-based model, which are models that simulate the actions of agents (in this case, individual fisher) in response to their environment (i.e., habitat) based on their ecology and behaviour. Therefore, it is a 'bottom-up' approach, where the behaviours of individuals are simulated to understand the collective impacts to a population.
 
-Here we describe the logic of how *FLEXplorer* simulates the ecology and behaviour of individual fisher. *FLEXplorer* works with within the Castor set of models through the *fisherHabitatCastor* module, where *fisherHabitatCastor* estimates fisher habitat attributes from forest stand attributes that are estimated from *forestryCastor* (a forest simulator). Therefore, the fisher agents simulated in *FLEXplorer* interact with landscapes simulated from *forestryCastor*. This version of the model only simulates female fisher, and therefore assumes the landscape does not affect interactions, and thus mating rates, between males and females.  
+Here we describe the logic of how *FLEX* simulates the ecology and behaviour of individual fisher. *FLEX* works with within the Castor set of models through the *fisherHabitatCastor* module, where *fisherHabitatCastor* estimates fisher habitat attributes from forest stand attributes that are estimated from *forestryCastor* (a forest simulator). Therefore, the fisher agents simulated in *FLEX* interact with landscapes simulated from *forestryCastor*. This version of the model only simulates female fisher, and therefore assumes the landscape does not affect interactions, and thus mating rates, between males and females.  
 
-The *FLEXplorer* module consists of an initiation (init) phase that establishes fisher on the landscape, and an annual simulation phase, that iteratively simulates individual fisher life-history events and behaviours over the coruse of a year, including survival, dispersal and territory formation, reproduction and aging. Below we describe these phases and events in more detail.
+The *FLEX* module consists of an initiation (init) phase that establishes fisher on the landscape, and an annual simulation phase, that iteratively simulates individual fisher life-history events and behaviours over the coruse of a year, including survival, dispersal and territory formation, reproduction and aging. Below we describe these phases and events in more detail.
 
-### Habitat Input to FLEXplorer
-The *FLEXplorer* module interacts with the landscape and fisher habitat though the habitat data parameter (rasterHabitat), which is specified as a multi-band raster in Tag Image File Format (TIFF). This includes data on the location of fisher habitat sub-populations, and the location (presence or absence) of each fisher habitat type (denning, rust, movement, coarse-woody debris, cavity and open) across the simulation area of interest for each simulation interval, as specified in the forest simulator (i.e., *forestryCastor*). Therefore, it provides estimates of the location of key fisher habitat types over time as it changes in response to forest dynamics, including potentially disturbances such as forestry or fire. The rasterHabitat parameter is provided as an output from *fisherHabitatCastor* when run concurrently with *forestryCastor*. 
+### Habitat Input to FLEX
+The *FLEX* module interacts with the landscape and fisher habitat though the habitat data parameter (rasterHabitat), which is specified as a multi-band raster in Tag Image File Format (TIFF). This includes data on the location of fisher habitat sub-populations, and the location (presence or absence) of each fisher habitat type (denning, rust, movement, coarse-woody debris, cavity and open) across the simulation area of interest for each simulation interval, as specified in the forest simulator (i.e., *forestryCastor*). Therefore, it provides estimates of the location of key fisher habitat types over time as it changes in response to forest dynamics, including potentially disturbances such as forestry or fire. The rasterHabitat parameter is provided as an output from *fisherHabitatCastor* when run concurrently with *forestryCastor*. 
 
 ### Initiation of the Fisher Population 
-The *FLEXplorer* module starts by establishing a fisher population on the landscape, which consists of placing adult female fisher within denning habitat across the landscape. The general objective of the init phase is to 'saturate' the landscape with fisher, i.e., identify the number of fisher territories that can be supported by the habitat in the landscape. To do that, the init phase identifies the number of fisher that potentially could be supported on the landscape, distributes them across the landscape based on the distribution of fisher denning habitat, and then determines which fisher can form a territory. The result of that process is a landscape at or close to its maximum potential for fisher occupancy. Therefore the assumed starting point of the model is a fisher population at its carrying capacity for the habitat in the landscape. 
+The *FLEX* module starts by establishing a fisher population on the landscape, which consists of placing adult female fisher within denning habitat across the landscape. The general objective of the init phase is to 'saturate' the landscape with fisher, i.e., identify the number of fisher territories that can be supported by the habitat in the landscape. To do that, the init phase identifies the number of fisher that potentially could be supported on the landscape, distributes them across the landscape based on the distribution of fisher denning habitat, and then determines which fisher can form a territory. The result of that process is a landscape at or close to its maximum potential for fisher occupancy. Therefore the assumed starting point of the model is a fisher population at its carrying capacity for the habitat in the landscape. 
 
 #### Identifying the Number of Fisher to Place on the Landscape
 The user can either specify the number of fisher to distribute on the landscape using the initialFisherPop, or estimate the number of fisher to distribute on the landscape based on the average fisher home range size and the distribution of denning habitat across the study area. We currently recommend using the latter approach to ensure that a saturated landscape is achieved. 
@@ -37,8 +26,8 @@ Fisher are randomly distributed across the landscape following a well-balanced s
 #### Fisher Agent Creation
 Once the starting number of fisher are distributed across the landscape, an "agents" table is created where each starting fisher receives a unique identifier, the location on the landscape (pixelid) of its starting point, a sex (currently all fisher in the model are female) and an age, selected randomly, based on the estimated distribution of fisher ages from populations in British Columbia (see table below).
 
-```{r, age distribution}
 
+```r
 data <- data.table (age = c(1,2,3,4,5,6,7,8,9,10,11,12), 
                     prob = c(0.44, 0.27, 0.08, 0.08, 0.06, 0.03, 0.02, 
                              0.01,0.0025,0.0025,0.0025,0.0025))
@@ -46,29 +35,33 @@ data <- data.table (age = c(1,2,3,4,5,6,7,8,9,10,11,12),
 ggplot (data,
         aes (x = age, y = prob)) + 
   geom_bar (stat ="identity")
-
-
-
 ```
+
+![](README_FLEX_files/figure-html/age distribution-1.png)<!-- -->
 
 Each fisher in the agents table then gets assigned a target amount of habitat it needs to from a territory. In this model, the quality of habitat is not quantified. Therefore rather than have the fisher form a territory by aggregating habitat until it achieves a specified, minimum amount of quality habitat, the amount of habitat each fisher needs is assigned randomly. *TBD: The amount of habitat each fisher is assigned is drawn from a normal distribution of the amount and variability in habitat from known fisher home ranges (see table below).* Note that in this case, the amount of habitat in a territory may be less than estimated home range sizes for fisher, depending on the method used (e.g., kernel density estimator or minimum convex polygon), and specifically if the home range estimate included areas that are not necessarily fisher habitat.
 
-```{r, habitat for territory}
+
+```r
 data.table (fisher_pop = c (1:4), 
             hr_mean = c (3000, 4500, 4500, 3000),
             hr_sd = c (500, 500, 500, 500))
+```
 
+```
+##    fisher_pop hr_mean hr_sd
+## 1:          1    3000   500
+## 2:          2    4500   500
+## 3:          3    4500   500
+## 4:          4    3000   500
 ```
 
 #### Fisher Territory Formation
-Each fisher in the agents table then forms a territory by 'spreading' from it's starting den site location to adjacent habitat, until it achieves it's habitat target, or it is no longer able to spread to adjacent areas because it is not habitat. The model uses the [spread2 function](https://rdrr.io/cran/SpaDES.tools/man/spread2.html) in the [SpaDES R package](https://spades.predictiveecology.org/) to form territories. In this function, a raster of spread probabilities is used to define where the fisher can 'spread', and locations (i.e., 1 ha pixels in the raster) with denning, rust, cavity, cwd, or movement habitat have a 100% spread probability, locations with open habitat have a 9% spread probability and all other locations have an 18% spread probability.
+Each fisher in the agents table then forms a territory by 'spreading' from it's starting den site location to adjacent habitat, until it achieves it's habitat target, or it is no longer able to spread to adjacent areas because it is not habitat. The model uses the [spread2 function](https://rdrr.io/cran/SpaDES.tools/man/spread2.html) in the [SpaDES R package](https://spades.predictiveecology.org/) to form territories, where the  
 
 
 
-
-
-
-
+habitat data parameter (rasterHabitat)
 
 
 sim$spread.rast, 
@@ -102,7 +95,7 @@ s
 
 
 ### Input Parameters
-The *FLEXplorer* module requires that the user specify the fisher habitat data and several ecological parameters for fisher.
+The *FLEX* module requires that the user specify the fisher habitat data and several ecological parameters for fisher.
 
 
 
