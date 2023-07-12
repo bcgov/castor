@@ -1,13 +1,6 @@
----
-title: "flex readme"
-author: "Tyler Muhly"
-date: "2023-07-10"
-output:
-  html_document:
-    keep_md: yes
----
+[![img](https://img.shields.io/badge/Lifecycle-Experimental-339999)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-badges.md)
 
-
+## Welcome to FLEX! The Fisher Landscape EXplorer - agent based model
 
 ### Introduction
 The *FLEX* module was developed to estimate the effects of forest change on fisher populations. It is an agent-based model, which are models that simulate the actions of agents (in this case, individual fisher) in response to their environment (i.e., habitat) based on their ecology and behaviour. Therefore, it is a 'bottom-up' approach, where the behaviours of individuals are simulated to understand the collective impacts to a population.
