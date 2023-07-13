@@ -271,8 +271,8 @@ preBlock <- function(sim) {
   E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
   #V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
   g<-g %>% 
-    set_vertex_attr("name", value = V(g))
-  g<-delete.vertices(g, degree(g) == 0) #not sure this is actually needed for speed gains? The problem here is that it may delete island pixels
+    igraph::set_vertex_attr("name", value = V(g))
+  g<-igraph::delete_vertices(g, igraph::degree(g) == 0) #not sure this is actually needed for speed gains? The problem here is that it may delete island pixels
   #test22<<-dbGetQuery(sim$castordb, "select pixelid from pixels where thlb > 0 AND blockid = 0 and zone1 = 22;")
  # stop()
   patchSizeZone<-dbGetQuery(sim$castordb, paste0("SELECT zone_column FROM zone where reference_zone = '",  P(sim, "patchZone", "blockingCastor"),"'"))

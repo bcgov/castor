@@ -61,11 +61,14 @@ data.table (fisher_pop = c (1:4),
 ```
 
 #### Fisher Territory Formation
-Each fisher in the agents table then forms a territory by 'spreading' from it's starting den site location to adjacent habitat, until it achieves it's habitat target, or it is no longer able to spread to adjacent areas because it is not habitat. The model uses the [spread2 function](https://rdrr.io/cran/SpaDES.tools/man/spread2.html) in the [SpaDES R package](https://spades.predictiveecology.org/) to form territories, where the  
+Each fisher in the agents table then forms a territory by 'spreading' from it's starting den site location to adjacent habitat, until it achieves it's habitat target, or it is no longer able to spread to adjacent areas because it is not habitat. The model uses the [spread2 function](https://rdrr.io/cran/SpaDES.tools/man/spread2.html) in the [SpaDES R package](https://spades.predictiveecology.org/) to form territories. In this function, a raster of spread probabilities is used to define where the fisher can 'spread', and locations (i.e., 1 ha pixels in the raster) with denning, rust, cavity, cwd, or movement habitat have a 100% spread probability, locations with open habitat have a 9% spread probability and all other locations have an 18% spread probability.
 
 
 
-habitat data parameter (rasterHabitat)
+
+
+
+
 
 
 sim$spread.rast, 

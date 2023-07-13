@@ -222,9 +222,11 @@ save.reports <-function (sim){
   }
   #volumebyarea
   if(!is.null(sim$volumebyareaReport)){
+    if (nrow (sim$volumebyareaReport) > 0) {
     message("writing volume by area report")
     DBI::dbWriteTable(connx, c(P(sim, "aoiName", "uploadCastor"), 'volumebyarea'), 
                       sim$volumebyareaReport, append = T, row.names = FALSE)
+    }
   }
   #fisher
   if(!is.null(sim$fisherReport)){

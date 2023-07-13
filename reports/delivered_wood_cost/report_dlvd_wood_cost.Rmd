@@ -52,9 +52,33 @@ point.ecas$dist_road <- point.ecas.d.road [, -1]
 point.ecas.dem <- terra::extract (rast.dem, point.ecas)
 point.ecas$elev <- point.ecas.dem [, -1]
 
-### Convert to sf obkect for use in gstat pacakge
+### Convert to sf object for use in gstat package
 point.ecas.sf <- sf::st_as_sf (point.ecas)
+
+# remove some duplicate locations
+point.ecas.sf <- point.ecas.sf %>%
+                  dplyr::mutate(x = sf::st_coordinates(.)[,1],
+                                y = sf::st_coordinates(.)[,2])
+point.ecas.sf <- point.ecas.sf [!duplicated (point.ecas.sf [c (17,18)]),]
 rm (dist.rd, point.ecas.d.road, point.ecas.dem, point.ecas, rast.dem)
+gc ()
+
+
+## areas of interest
+### memory issues...
+#### needs to be sub-divided areas for prediction (the province is too big)
+tsa.williams.lake <- getSpatialQuery (paste0 ("SELECT * FROM tsa_aac_bounds where tsa_name in ('Williams_Lake_TSA')"))
+tsa.gold <- getSpatialQuery (paste0 ("SELECT * FROM tsa_aac_bounds where tsa_name in ('Golden_TSA')"))
+tsa.morice <- getSpatialQuery (paste0 ("SELECT * FROM tsa_aac_bounds where tsa_name in ('Morice_TSA')"))
+tsa.cran <- getSpatialQuery (paste0 ("SELECT * FROM tsa_aac_bounds where tsa_name in ('Cranbrook_TSA')"))
+
+prov.rast.rast <- as (prov.rast.stars, "Raster")
+tsa.wl.rast <- crop (prov.rast.rast, tsa.williams.lake)
+tsa.gold.rast <- crop (prov.rast.rast, tsa.gold)
+tsa.morice.rast <- crop (prov.rast.rast, tsa.morice)
+tsa.cran.rast <- crop (prov.rast.rast, tsa.cran)
+
+rm (prov.rast.rast, tsa.williams.lake, tsa.gold, tsa.morice, tsa.cran)
 gc ()
 ```
 
@@ -91,35 +115,11 @@ gc ()
 - in sum, costs is ultimately a function of slope and cycle time
 
 ### Haul Distance
-- cycle tiem model
+- cycle time model
 - compare:
-  - inverse distance weighted
-  - ordinary kriging (no covariates)
-  - universal kriging (distance to road covaraiate)
+  - inverse distance weighted (idw)
   
-- compared predictive accuracy with leave-some-out 
-  - remove 20% of data five times and fit model with 80% off data
-  - see how well model predicts actual cycle time at withehdl points
-
-
-```{r cycle time interpolation, echo = F, message = F, eval = T, include = F}
-
-# memory issues...
-# needs to be sub-divided areas for prediction (the province is too big)
-tsa.williams.lake <- getSpatialQuery (paste0 ("SELECT * FROM tsa_aac_bounds where tsa_name in ('Williams_Lake_TSA')"))
-tsa.gold <- getSpatialQuery (paste0 ("SELECT * FROM tsa_aac_bounds where tsa_name in ('Golden_TSA')"))
-tsa.morice <- getSpatialQuery (paste0 ("SELECT * FROM tsa_aac_bounds where tsa_name in ('Morice_TSA')"))
-tsa.cran <- getSpatialQuery (paste0 ("SELECT * FROM tsa_aac_bounds where tsa_name in ('Cranbrook_TSA')"))
-
-prov.rast.rast <- as (prov.rast.stars, "Raster")
-tsa.wl.rast <- crop (prov.rast.rast, tsa.williams.lake)
-tsa.gold.rast <- crop (prov.rast.rast, tsa.gold)
-tsa.morice.rast <- crop (prov.rast.rast, tsa.morice)
-tsa.cran.rast <- crop (prov.rast.rast, tsa.cran)
-
-rm (prov.rast.rast, tsa.williams.lake, tsa.gold, tsa.morice, tsa.cran)
-gc ()
-
+```{r cycle time idw, echo = F, message = F, eval = T, include = F}
 #### Inverse-distance weighted
 mod.idw <- gstat (formula = p_cyc_time ~ 1, data = point.ecas.sf) # run model
 
@@ -146,40 +146,51 @@ write_stars (pred.idw.tsa.cran, dsn = "D:\\clus_data\\dlvd_wood_cost\\output\\id
 rm (pred.idw.tsa.wl, pred.idw.tsa.gold, pred.idw.tsa.morice, pred.idw.tsa.cran)
 gc () 
 
-
+```
+  
+  - ordinary kriging (ok - no covariates)
+  
+```{r cycle time ok, echo = F, message = F, eval = T, include = F}
 
 #### Ordinary Kriging
 var.ord.krig <- variogram (p_cyc_time ~ 1, point.ecas.sf)
 plot (var.ord.krig)
 
-# fir variogram model; convert sf to sp object for use in this function
+# fit variogram model; convert sf to sp object for use in this function
 mod.var.ord.krig <- automap::autofitVariogram (p_cyc_time ~ 1, as (point.ecas.sf, "Spatial"))
 plot (mod.var.ord.krig)
 
-mod.ok <- gstat (formula = p_cyc_time ~ 1, model = mod.var.ord.krig$var_model, data = point.ecas.sf)
-
-# predictive surface
-pred.ok.tsa.wl <- predict (mod.ok, st_as_stars (tsa.wl.rast))
-
-
-
-
-
-
-
-
-
-pred.ok.tsa.gold <- predict (mod.ok, st_as_stars (tsa.gold.rast))
-pred.ok.tsa.morice <- predict (mod.ok, st_as_stars (tsa.morice.rast))
-pred.ok.tsa.cran <- predict (mod.ok, st_as_stars (tsa.cran.rast))
+# fit the kriging model
+mod.ok <- gstat (formula = p_cyc_time ~ 1, 
+                 model = mod.var.ord.krig$var_model, 
+                 data = point.ecas.sf,
+                 nmax = 100 # 10, 100
+                        # fit the model within a 'neighbourhood' of points to speed up prediction
+                 )
+# predict 
+tsa.gold.pts <- st_as_sf (as.data.frame (tsa.gold.rast, xy = TRUE, ra.rm = TRUE),  
+                          coords = c("x", "y"), 
+                          crs = crs (point.ecas.sf)) # create a point sf object
+pred.ok.gold <- predict (mod.ok, 
+                         newdata = tsa.gold.pts, 
+                         na.action = na.omit)
 
 
 
-write_stars (pred.ok.tsa.wl, dsn = "D:\\clus_data\\dlvd_wood_cost\\output\\ok_williams_lake.tif", layer = 1)
-write_stars (pred.ok.tsa.gold, dsn = "D:\\clus_data\\dlvd_wood_cost\\output\\ok_golden.tif", layer = 1)
-write_stars (pred.ok.tsa.morice, dsn = "D:\\clus_data\\dlvd_wood_cost\\output\\ok_morice.tif", layer = 1)
-write_stars (pred.ok.tsa.cran, dsn = "D:\\clus_data\\dlvd_wood_cost\\output\\ok_cranbrook.tif", layer = 1)
-rm (pred.ok.tsa.wl, pred.ok.tsa.gold, pred.ok.tsa.morice, pred.ok.tsa.cran)
+
+
+
+
+
+#write_stars (pred.ok.tsa.wl, dsn = "D:\\clus_data\\dlvd_wood_cost\\output\\ok_williams_lake.tif", layer = 1)
+pred.ok.gold.rast <- st_rasterize (pred.ok.gold %>% dplyr::select (var1.pred, geometry))
+write_stars (pred.ok.gold.rast, dsn = "D:\\clus_data\\dlvd_wood_cost\\output\\ok_golden100.tif", layer = 1)
+
+
+
+
+
+rm ()
 gc () 
 
 
@@ -200,7 +211,7 @@ plot (mod.var.ord.krig)
 mod.ok <- gstat (formula = p_cyc_time ~ 1, model = mod.var.ord.krig$var_model, data = point.ecas.sf)
 
 # predictive surface
-pred.ok.tsa.wl <- predict (mod.ok, st_as_stars (tsa.wl.rast))
+#pred.ok.tsa.wl <- predict (mod.ok, st_as_stars (tsa.wl.rast))
 
 
 pred.ok.tsa.gold <- predict (mod.ok, st_as_stars (tsa.gold.rast))
@@ -209,7 +220,7 @@ pred.ok.tsa.cran <- predict (mod.ok, st_as_stars (tsa.cran.rast))
 
 
 
-write_stars (pred.ok.tsa.wl, dsn = "D:\\clus_data\\dlvd_wood_cost\\output\\ok_williams_lake.tif", layer = 1)
+#write_stars (pred.ok.tsa.wl, dsn = "D:\\clus_data\\dlvd_wood_cost\\output\\ok_williams_lake.tif", layer = 1)
 write_stars (pred.ok.tsa.gold, dsn = "D:\\clus_data\\dlvd_wood_cost\\output\\ok_golden.tif", layer = 1)
 write_stars (pred.ok.tsa.morice, dsn = "D:\\clus_data\\dlvd_wood_cost\\output\\ok_morice.tif", layer = 1)
 write_stars (pred.ok.tsa.cran, dsn = "D:\\clus_data\\dlvd_wood_cost\\output\\ok_cranbrook.tif", layer = 1)
@@ -218,6 +229,16 @@ gc ()
 
 
 ```
+  
+  
+  - universal kriging (uk - distance to road adn elevation covaraiates - test models with each and both)
+  
+- compared predictive accuracy with leave-some-out (k-fold)
+  - remove 20% of data five times and fit model with 80% off data
+  - see how well model predicts actual cycle time at withehdl points
+
+
+
 
 
 ### Harvest Type

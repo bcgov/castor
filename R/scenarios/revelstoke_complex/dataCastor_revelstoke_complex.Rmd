@@ -26,6 +26,8 @@ o	There are three ‘tiers’ or protection (scenarios) to model
 o	TSA’s: Kamloops, Robson Valley, Golden, Revelstoke, TFL 55, TFL 56, Okanagan, TFL14, Arrow, Cascadia-Okanagan (TKO), TFL23, TFL14, Kootenay Lake
 
 
+- updated with new management zones ('tiers') in July 2023
+
 
 # Usage
 Set parameters for creating the database in the code chunk below.
@@ -74,17 +76,28 @@ parameters <-  list (
                                                "rast.zone_cond_bc_central_selkirks_crithab",
                                                "rast.zone_cond_bc_groundhog_crithab",
                                                "rast.zone_cond_bc_wells_gray_south_crithab",
-                                               "rast.zone_cond_pri_old_deferral", # TAP proposed old growth deferral areas
-                                               "rast.zone_revelstoke_tier1_caribou",
-                                               "rast.zone_revelstoke_tier2_caribou",
-                                               "rast.zone_revelstoke_tier3_caribou",
-                                               "rast.zone_revelstoke_tier4_caribou"),
+                                               
+                                               # TAP proposed old growth deferral areas
+                                               "rast.zone_cond_pri_old_deferral", 
+                                               
+                                               ### July 2023 caribou zones ### 
+                                               "rast.zone_revelstoke_tier1_caribou_june2023",
+                                               "rast.zone_revelstoke_tier2_caribou_june2023",
+                                               "rast.zone_revelstoke_tier3_caribou_june2023",
+                                               "rast.zone_revelstoke_tier1_caribou_moose_june2023",
+                                               "rast.zone_revelstoke_tier2_caribou_moose_june2023",
+                                               "rast.zone_revelstoke_tier3_caribou_moose_june2023"
+                                               ### Feb. 2023 caribou zones ###
+                                               # "rast.zone_revelstoke_tier1_caribou",                                                              # "rast.zone_revelstoke_tier2_caribou",
+                                               # "rast.zone_revelstoke_tier3_caribou",
+                                               # "rast.zone_revelstoke_tier4_caribou"
+                                               ),
                           nameZoneTable = "zone.constraints", 
                           # natural and managed stands yield curves are the same    
                           nameYieldsRaster = "rast.ycid_vdyp_2020", 
                           nameYieldTable = "yc_vdyp_2020", 
                           nameYieldsCurrentRaster = "rast.ycid_tipsy_current_2020",
-                          nameYieldCurrentTable = "tipsy_current_prov_2020",
+                          nameYieldCurrentTable = "tipsy_prov_current_2020",
                           nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
                           nameYieldTransitionTable = "tipsy_prov_2020",  
                           nameForestInventoryRaster = "rast.vri2020_id", 
@@ -128,7 +141,7 @@ parameters <-  list (
                                              keyring::key_get ("vmdbname", keyring="postgreSQL")))
         )
 
-scenario = data.table (name = "load_data_reve_complex", description = "dataCastor output")
+scenario = data.table (name = "load_data_reve_complex_July2023", description = "dataCastor output")
 
 modules <- list("dataCastor",
                 "growingStockCastor",
