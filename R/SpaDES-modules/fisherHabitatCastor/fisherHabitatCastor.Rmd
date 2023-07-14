@@ -31,9 +31,9 @@ library (here)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 moduleDir <- file.path (paste0 (here::here (), "/R/SpaDES-modules"))
-inputDir <- file.path (paste0 (here::here (), "/R/scenarios/test_flex2/inputs")) %>% reproducible::checkPath (create = TRUE)
-outputDir <- file.path (paste0 (here::here (), "/R/scenarios/test_flex2/outputs")) %>% reproducible::checkPath (create = TRUE)
-cacheDir <- file.path (paste0 (here::here (), "/R/scenarios/test_flex2"))
+inputDir <- file.path (paste0 (here::here (), "/R/SpaDES-modules/fisherHabitatCastor")) %>% reproducible::checkPath (create = TRUE)
+outputDir <- file.path (paste0 (here::here (), "/R/SpaDES-modules/fisherHabitatCastor")) %>% reproducible::checkPath (create = TRUE)
+cacheDir <- file.path (paste0 (here::here (), "/R/SpaDES-modules/fisherHabitatCastor"))
 
 times <- list (start = 0, end = 4)
 
@@ -49,61 +49,32 @@ parameters <- list(
                                                                 type = 'ge', percentage = 20)
                      ),
   
-  # "real" landscape method
-  # dataCastor = list(dbName='castor',
-  #                        saveCastorDB = FALSE, # Set to TRUE first time running the analysis
-  #                        sqlite_dbname = "fisherABM_test", 
-  #                        nameBoundaryFile = "tsa_aac_bounds",
-  #                        useCastorDB = paste0(here::here(), "/R/scenarios/test_flex2/fisherABM_test_clusdb.sqlite"),
-  #                        nameBoundaryColumn = "tsa_name", 
-  #                        nameBoundary = c ("Williams_Lake_TSA"), 
-  #                        nameBoundaryGeom = 'wkb_geometry',
-  #                        nameCompartmentRaster = "rast.tsa_aac_boundary",
-  #                        nameCompartmentTable = "vat.tsa_aac_bounds_vat",
-  #                        nameMaskHarvestLandbaseRaster ='rast.thlb_2020', 
-  #                        nameZoneRasters=c("rast.zone_cond_beo", 
-  #                                          "rast.zone_cond_vqo", 
-  #                                          "rast.zone_wha_2021", 
-  #                                          "rast.zone_uwr_2021",  
-  #                                          "rast.zone_cond_nharv", 
-  #                                          "rast.zone_cond_fsw", 
-  #                                          "rast.zone_cond_cw"
-  #                             ),
-  #                        nameZoneTable="zone.constraints", 
-  #                        nameYieldsRaster = "rast.ycid_vdyp_2020",
-  #                        nameYieldTable ="yc_vdyp_2020",
-  #                        nameYieldsCurrentRaster = "rast.ycid_tipsy_current_2020",
-  #                        nameYieldCurrentTable = "tipsy_current_prov_2020",
-  #                        nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
-  #                        nameYieldTransitionTable = "tipsy_prov_2020", 
-  #                        nameForestInventoryRaster = "rast.vri2020_id", 
-  #                        nameForestInventoryKey = "feature_id",                     
-  #                        nameForestInventoryTable = "veg_comp_lyr_r1_poly2020",
-  #                        nameForestInventoryAge = "proj_age_1",  
-  #                        nameForestInventoryHeight = "proj_height_1",
-  #                        nameForestInventoryCrownClosure = "crown_closure",
-  #                        nameForestInventoryTreed = "bclcs_level_2",
-  #                        nameForestInventorySiteIndex = "site_index",
-  #                        nameForestInventoryBasalArea= "basal_area",
-  #                        nameForestInventoryQMD = "quad_diam_125"
-  #                   ),
-  growingStockCastor = list (periodLength = 5),
+  blockingCastor = list (blockMethod = 'none'
+                         ),
+  growingStockCastor = list(periodLength = 5, maxYieldAge = 1000),
+  roadCastor = list (roadMethod = 'mst'
+                     ),
+  disturbanceCastor = list (calculateInterval =  1, 
+                            #criticalHabitatTable = "vat.vat_bc_crithab_and_herd",
+                            #criticalHabRaster = "rast.bc_crithab_and_herd",
+                            #permDisturbanceRaster = "rast.mine_ag_wind_rail",
+                            recovery = 300),
   fisherHabitatCastor = list ()
 )
 
 scenario = data.table (name = "test",
                        description = "Testing fisher habitat module with random landscape.")
 
-modules <- list ("fisherHabitatCastor",
-                 "growingStockCastor",
-                 "dataCastor")
-
-objects <- list (scenario = scenario)
-
+modules <- list ("dataCastor", "blockingCastor", "roadCastor", "growingStockCastor", "disturbanceCastor", "fisherHabitatCastor")
+disturbanceFlow<- data.table(compartment ="all",
+                                     partition = ' treed = 1 and age > 15 ',
+                                     mean = log(2000),
+                                     sd = 1,
+                                     period = rep(seq(from = 1, to=500, by = 1),1), 
+                                     flow = 162500)
+objects <- list (scenario = data.table (name = "test", description = "test"), disturbanceFlow=disturbanceFlow) 
 inputs <- list ()
-
 outputs <- data.frame (objectName = c())
-
 paths <- list(cachePath = cacheDir,
               modulePath = moduleDir,
               inputPath = inputDir,

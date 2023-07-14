@@ -332,11 +332,14 @@ distAnalysis <- function(sim) {
 distProcess <- function(sim) {
   for(compart in sim$compartment_list){
     distParms<-sim$disturbanceFlow[compartment == compart & period == time(sim) & flow > 0,]
+    #browser()
     if(nrow(distParms) > 0){
-      distStarts<-data.table(size = as.integer(rlnorm(1000, meanlog = distParms$mean, sdlog =distParms$sd)))[, cvalue:=cumsum(size)][cvalue <= distParms$flow,]
+      distStarts<-data.table(size = as.integer(rlnorm(distParms$flow, meanlog = distParms$mean, sdlog =distParms$sd)))[, cvalue:=cumsum(size)][cvalue <= distParms$flow,]
       distStarts<-distStarts[size > 0,]
       distStarts$starts <- sample(dbGetQuery(sim$castordb, paste0("select pixelid from pixels where ", distParms$partition))$pixelid, nrow(distStarts), replace = FALSE)
       if(nrow(distStarts) > 0){
+        sim$spreadRas[]<-0
+        sim$spreadRas[dbGetQuery(sim$castordb, paste0("select pixelid from pixels where ", distParms$partition))$pixelid]<-1
         out <- spread2(landscape = sim$spreadRas, start = distStarts$starts, exactSize = distStarts$size, spreadProbRel = sim$spreadRas, asRaster = FALSE)
         dbBegin(sim$castordb)
           rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, vol = 0, salvage_vol = 0 WHERE pixelid = :pixels", out[, "pixels"])
