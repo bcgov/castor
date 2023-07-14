@@ -1,12 +1,24 @@
 ---
-title: "FLEX"
+title: "FLEX2"
 author: ""
-date: "July 2023"
-output: pdf_document
+date: "26 October 2022"
+output:
+  html_document:
+    keep_md: yes
+#editor_options:
+#  chunk_output_type: console
 ---
-# Usage
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## TODO: use 'eval = TRUE'
+```
+
+## Overview
+This is an agent based model (ABM) to simulate fisher life history on a landscape. This version is written to input habitat data that was written as a raster output from the fisherHabitatLoader module. The fisherHabitatLoader saves rasters of the occurrence of fisher habitat types (denning, rust, cavity, resting and movement) at each interval of a forestry simulation using forestryCastor. The forestryCastor module is a simulation model that returns a single solution for a set of parameters (i.e., it's a deterministic model). Thus fisherHabitatLoader updates fisher habitat conditions over a simulation period. This approach  allows for faster simulation of multiple iterations of a fisher population on a landscape. as it can read the habitat conditions as predetermined by the simulation model. I is more efficient to run the fisher ABM as a *post-hoc* analysis, rather than concurrently with forestryCastor.
 
 
+### Usage
+Run the model below
 ```{r module_usage}
 library (SpaDES.core)
 library (data.table)
@@ -27,7 +39,7 @@ paths <- list(
   outputPath = paste0(here::here(),"/R/SpaDES-modules/FLEX")
 )
 
-times <- list (start = 0, end = 3)
+times <- list (start = 0, end = 4)
 
 parameters <- list(FLEX = list (female_max_age = 9,
                                  den_target = 0.003, 
@@ -38,7 +50,8 @@ parameters <- list(FLEX = list (female_max_age = 9,
                                  female_dispersal = 785000,  # ha; radius = 500 pixels = 50km = 7850km2 area
                                  timeInterval = 5, # should be consistent with the time interval used to model habitat
                                                     # e.g., growingstockLCUS periodLength
-                                 rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/beaver_valley.tif")
+                                # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
+                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/fisherHabitatCastor/test_rdm_land_fisher_habitat.tif")
 
                 )
 )
@@ -57,6 +70,17 @@ mySimOut <- spades(mySim)
 
 #Plot
 ```{r}
+rast.stk<- rast(paste0 (here::here(), "/R/SpaDES-modules/fisherHabitatCastor/test_rdm_land_fisher_habitat.tif"))
+plot(rast.stk["ras_fisher_movement_init"])
+plot(rast.stk["ras_fisher_movement_5"])
+plot(rast.stk["ras_fisher_movement_10"])
+plot(rast.stk["ras_fisher_movement_15"])
+plot(rast.stk["ras_fisher_movement_20"])
+plot(rast.stk["ras_fisher_denning_init"])
+plot(rast.stk["ras_fisher_denning_5"])
+plot(rast.stk["ras_fisher_denning_10"])
+plot(rast.stk["ras_fisher_denning_15"])
+plot(rast.stk["ras_fisher_denning_20"])
 library(ggplot2)
 ggplot(data = abmReport, aes(x=timeperiod,y=n_f_adult+n_f_juv)) +
   geom_point() +

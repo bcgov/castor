@@ -26,7 +26,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.md", "FLEX.Rmd"),
-  reqdPkgs = list("BalancedSampling"),
+  reqdPkgs = list("sampling", "BalancedSampling", "RANN", "truncnorm"),
   parameters = rbind(
     defineParameter("burnInLength", "integer", 5, 1, 100, "The number of iterations to burn in"),
     defineParameter("d2_target", "integer", 7, 1, 15, "The D2 threshold"), 
@@ -83,7 +83,7 @@ doEvent.FLEX = function(sim, eventTime, eventType) {
         sim <- ageFisher(sim) # age the fisher so the kits are one year starting in the next i
       }
       
-      sim <- recordABMReport(sim, 0)
+      sim <- recordABMReport(sim, 1)
       sim <- plot_territories(sim)
       sim <- scheduleEvent (sim, time (sim) + 1, "FLEX", "runevents", 19)
     },
