@@ -524,20 +524,25 @@ mstSolve <- function(sim){
  
   #------get the edge list between the closest landings
   message('...get nearest neighbours')
-  nnlandings <- RANN::nn2(terra::xyFromCell(sim$ras, landing.cell$landings), k =2)
-  edge.list.inner <- data.table(from= landing.cell$landings, id=nnlandings$nn.idx[,1], idnn =nnlandings$nn.idx[,2] )
-  edge.list.outer <- data.table(to =edge.list.inner$from, id =edge.list.inner$idnn) 
-  edge.list.nn <- merge(edge.list.inner, edge.list.outer, by.x = "id", by.y = "id")
-  edge.list.nn <- edge.list.nn[from < to, c("from", "to") := .(to, from)][,c("to", 'from')]
-  edge.list.nn <- unique(edge.list.nn)
-  
-  edge.list2 <- data.table(to = edge.list.nn$to, 
-                          from = edge.list.nn$from, 
-                          weight = cppRouting::get_distance_pair(Graph=sim$g, from=edge.list.nn$from,to=edge.list.nn$to, algorithm = "NBA",constant = 110/0.06, allcores=FALSE))
-  
-  message('...solve the mst')
-  #------solve the mst
-  edges.all <- rbindlist(list(edge.list, edge.list2), use.names=TRUE)
+  #browser()
+  if(nrow(landing.cell) > 1){
+    nnlandings <- RANN::nn2(terra::xyFromCell(sim$ras, landing.cell$landings), k =2)
+    edge.list.inner <- data.table(from= landing.cell$landings, id=nnlandings$nn.idx[,1], idnn =nnlandings$nn.idx[,2] )
+    edge.list.outer <- data.table(to =edge.list.inner$from, id =edge.list.inner$idnn) 
+    edge.list.nn <- merge(edge.list.inner, edge.list.outer, by.x = "id", by.y = "id")
+    edge.list.nn <- edge.list.nn[from < to, c("from", "to") := .(to, from)][,c("to", 'from')]
+    edge.list.nn <- unique(edge.list.nn)
+    
+    edge.list2 <- data.table(to = edge.list.nn$to, 
+                            from = edge.list.nn$from, 
+                            weight = cppRouting::get_distance_pair(Graph=sim$g, from=edge.list.nn$from,to=edge.list.nn$to, algorithm = "NBA",constant = 110/0.06, allcores=FALSE))
+    
+    message('...solve the mst')
+    #------solve the mst
+    edges.all <- rbindlist(list(edge.list, edge.list2), use.names=TRUE)
+  }else{
+    edges.all<-edge.list
+  }
   gi.mst <- igraph::mst(graph_from_data_frame(edges.all, directed=FALSE))
   paths.matrix <- data.table(get.edgelist(gi.mst, names=TRUE)) #Is this getting the edgelist using the vertex ids -yes!
   #V1 = from, V2 = to...we set the 'to' using roadSourceID on line 506
@@ -545,21 +550,28 @@ mstSolve <- function(sim){
   
   message('...getting paths')
   #------get the shortest paths
-  #The solution from the mst will inevitably contain paths from a landing to the existing road network (roadSourceID)...try to seperate those going to sourceID and those going to other locations. Can this have saving since only one destination?
-  toRoadSourceID<-unique(as.integer(cppRouting::get_multi_paths(Graph = sim$g, from = sim$roadSourceID, to=paths.matrix[V2==sim$roadSourceID,"V1"]$V1, long =T )$node))
-  toOthers<-unique(as.integer(cppRouting::get_path_pair(Graph = sim$g, from = paths.matrix.tothers$V2, to=paths.matrix.tothers$V1 , algorithm = "NBA", constant = 110/0.06, long =T )$node))
-  
-  sim$roadSegs <- unique(c(toOthers, toRoadSourceID))
-  alreadyRoaded <- dbGetQuery(sim$castordb, paste0("SELECT pixelid from pixels where roadyear is not null and pixelid in (",paste(sim$roadSegs, collapse = ", "),")"))
-  
-  sim$paths.v <- sim$roadSegs[!(sim$roadSegs[] %in% alreadyRoaded$pixelid)]
-  #update the raster
-  sim$road.year[sim$ras[] %in% sim$paths.v] <- time(sim)*sim$updateInterval
-  sim$road.status[sim$ras[] %in% sim$roadSegs] <- time(sim)*sim$updateInterval
-  
-  #------Clean up
-  rm(landing.cell,weights.closest.rd,edge.list,nnlandings,edge.list.inner,edge.list.outer,edge.list.nn ,edge.list2,edges.all,gi.mst,paths.matrix,paths.matrix.tothers,toRoadSourceID,toOthers,alreadyRoaded)
-  gc()
+  if(nrow(paths.matrix) > 0){
+    #The solution from the mst will inevitably contain paths from a landing to the existing road network (roadSourceID)...try to seperate those going to sourceID and those going to other locations. Can this have saving since only one destination?
+    if(nrow(paths.matrix.tothers) > 0){
+      toRoadSourceID<-unique(as.integer(cppRouting::get_multi_paths(Graph = sim$g, from = sim$roadSourceID, to=paths.matrix[V2==sim$roadSourceID,"V1"]$V1, long =T )$node))
+      toOthers<-unique(as.integer(cppRouting::get_path_pair(Graph = sim$g, from = paths.matrix.tothers$V2, to=paths.matrix.tothers$V1 , algorithm = "NBA", constant = 110/0.06, long =T )$node))
+      sim$roadSegs <- unique(c(toOthers, toRoadSourceID))
+    }else{
+      toRoadSourceID<-unique(as.integer(cppRouting::get_multi_paths(Graph = sim$g, from = sim$roadSourceID, to=paths.matrix[V2==sim$roadSourceID,"V1"]$V1, long =T )$node))
+      sim$roadSegs <- unique(toRoadSourceID)
+    }
+    
+    alreadyRoaded <- dbGetQuery(sim$castordb, paste0("SELECT pixelid from pixels where roadyear is not null and pixelid in (",paste(sim$roadSegs, collapse = ", "),")"))
+    
+    sim$paths.v <- sim$roadSegs[!(sim$roadSegs[] %in% alreadyRoaded$pixelid)]
+    #update the raster
+    sim$road.year[sim$ras[] %in% sim$paths.v] <- time(sim)*sim$updateInterval
+    sim$road.status[sim$ras[] %in% sim$roadSegs] <- time(sim)*sim$updateInterval
+    
+    #------Clean up
+    rm(landing.cell,weights.closest.rd,edge.list,edges.all,gi.mst,paths.matrix,toRoadSourceID,alreadyRoaded)
+    gc()
+  }
   return(invisible(sim)) 
 }
 
