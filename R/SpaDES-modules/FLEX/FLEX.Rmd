@@ -5,8 +5,8 @@ date: "26 October 2022"
 output:
   html_document:
     keep_md: yes
-#editor_options:
-#  chunk_output_type: console
+editor_options:
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -21,6 +21,7 @@ This is an agent based model (ABM) to simulate fisher life history on a landscap
 Run the model below
 ```{r module_usage}
 library (SpaDES.core)
+library(SpaDES.experiment)
 library (data.table)
 library (terra)
 library (keyring)
@@ -36,7 +37,7 @@ source (paste0 (here::here(), "/R/functions/R_Postgres.R"))
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 paths <- list(
   modulePath = paste0(here::here(),"/R/SpaDES-modules"),
-  outputPath = paste0(here::here(),"/R/SpaDES-modules/FLEX")
+  outputPath = paste0(here::here(),"/R/scenarios/test_flex2/outputs")
 )
 
 times <- list (start = 0, end = 4)
@@ -65,7 +66,8 @@ mySim <- simInit(times = times,
                  paths = paths)
 
 outputs(mySim) <- data.frame (objectName = c("fisherABMReport"))
-mySimOut <- spades(mySim)
+#mySimOut <- spades(mySim)
+experiment(mySim, replicates = 50)
 ```
 
 #Plot
@@ -82,9 +84,12 @@ plot(rast.stk["ras_fisher_denning_10"])
 plot(rast.stk["ras_fisher_denning_15"])
 plot(rast.stk["ras_fisher_denning_20"])
 library(ggplot2)
-ggplot(data = abmReport, aes(x=timeperiod,y=n_f_adult+n_f_juv)) +
-  geom_point() +
-  geom_smooth() +
-  geom_point(data = abmReport, aes(x=timeperiod, y = n_f_disp), color = 'red', shape=3)
+dir_reps<-data.table(dir(paste0(here::here(),"R/scenarios/test_flex2/outputs")))[V1 %like% "rep",]
+abmReport<-rbindlist(lapply(dir_reps$V1, function(x) {
+  readRDS(paste0(here::here(),"/R/scenarios/test_flex2/outputs/",x,"/fisherABMReport_year4.rds"))}))
+
+ggplot(data = abmReport, aes(x=timeperiod,y=n_f_adult)) +
+   stat_binhex() +
+  geom_smooth()
 #writeRaster(terr.ras, "test_terr2.tif", overwrite = T)
 ```
