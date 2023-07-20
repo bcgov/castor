@@ -80,10 +80,10 @@ doEvent.blockingCastor = function(sim, eventTime, eventType, debug = FALSE) {
                    # add in the column
                    dbExecute(sim$castordb, "ALTER TABLE blocks ADD COLUMN salvage_vol numeric DEFAULT 0")
                  } 
-                 #Schedule the Update 
-                 sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCastor", "UpdateBlocks",eventPriority= 2)
                }
                
+               #Schedule the Update 
+               sim <- scheduleEvent(sim, time(sim) + P(sim)$blockSeqInterval, "blockingCastor", "UpdateBlocks",eventPriority= 2)
                },
              
              dynamic ={

@@ -54,19 +54,24 @@ parameters <- list(
   .globals = list(),
   dataCastor = list(saveCastorDB = TRUE,
                      randomLandscape = list(100,100,0,100,0,100),
-                     randomLandscapeZoneConstraint = 
-                       data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
+                     randomLandscapeZoneConstraint = data.table(zoneid = 1,  variable = 'age', threshold = 80, type = 'ge', percentage = 0)
                      ),
   growingStockCastor = list(periodLength = 5),
   blockingCastor = list(blockMethod='pre', 
                       patchZone = 'default',
                       patchVariation = 6),
   forestryCastor = list( activeZoneConstraint = 'default', 
-                         harvestPriority = " age DESC ", 
-                         adjacencyConstraint = TRUE)
+                         harvestPriority = " vol DESC, age DESC ", 
+                         adjacencyConstraint = TRUE),
+  roadCastor = list (roadMethod = 'mst'
+                     ),
+  disturbanceCastor = list (calculateInterval =  1, 
+                            recovery = 300)
 )
 
 modules <- list("dataCastor", "growingStockCastor", "blockingCastor", "forestryCastor")
+#modules <- list("dataCastor", "growingStockCastor", "blockingCastor", "forestryCastor","roadCastor")
+#modules <- list("dataCastor", "growingStockCastor", "blockingCastor", "forestryCastor","roadCastor", "disturbanceCastor")
 
 
 scenario = data.table(name="test", description = "test")
@@ -76,7 +81,13 @@ harvestFlow<- data.table(compartment ="all",
                                      flow = 220000,
                                      partition_type = 'live')
 
-objects <- list(harvestFlow = harvestFlow, scenario = scenario)
+disturbanceFlow<- data.table(compartment ="all",
+                                     partition = ' treed = 1 ',
+                                     mean = log(30),
+                                     sd = 1,
+                                     period = rep(seq(from = 1, to=500, by = 1),1), 
+                                     flow = 500)
+objects <- list(harvestFlow = harvestFlow, disturbanceFlow=disturbanceFlow, scenario = scenario)
 
 paths <- list(
   modulePath = moduleDir,
@@ -84,7 +95,8 @@ paths <- list(
 
 mySim <- simInit(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
-system.time({mysimout<-spades(mySim)})
+outputs(mySim) <- data.frame (objectName = c("harvestReport", "growingStockReport"))
+mysimout<-spades(mySim, debug = T)
 
 ```
 
@@ -97,6 +109,21 @@ library(SpaDES.core)
 eventDiagram(mysimout)
 ```
 
+## plots
+```{r, plots}
+userdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/forestryCastor/test_castordb.sqlite") ) 
+ ras.info<-dbGetQuery(userdb, "Select * from raster_info limit 1;")
+ras<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0, crs = 3005)
+ras[]<-dbGetQuery(userdb, "select age from pixels order by pixelid")$age
+plot(ras)
+#ras[]<-0
+#ras[]<-dbGetQuery(userdb, "select roadyear from pixels order by pixelid")$roadyear
+#plot(ras)
+ras[]<-0
+ras[]<-dbGetQuery(userdb, "select age from pixels order by pixelid")$age
+plot(ras)
+dbDisconnect(userdb)
+```
 ## Algorithum
 
 The general algorithum (pseudo-code) follows as:

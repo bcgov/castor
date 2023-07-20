@@ -196,6 +196,27 @@ setConstraints<- function(sim) {
     nhConstraints[,qry:= paste( zone_column,'=',zoneid)]
     dbExecute(sim$castordb, paste0("UPDATE pixels SET zone_const = 1 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
   }
+  
+  if(nrow(dbGetQuery(sim$castordb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='zonePrescription'")) == 0){
+    nhPrescriptions<-data.table(merge(dbGetQuery(sim$castordb, paste0("SELECT  zoneid, reference_zone, minHarvestVariable, minHarvestThreshold FROM zonePrescription WHERE start <= ", time(sim)*sim$updateInterval, " and stop >= ", time(sim)*sim$updateInterval)),
+                                    dbGetQuery(sim$castordb, "SELECT zone_column, reference_zone FROM zone"), 
+                                    by.x = "reference_zone", by.y = "reference_zone"))#For each zone, zoneid, variable
+    
+    nhPrescriptions<-nhPrescriptions[complete.cases(nhPrescriptions),]#Remove rows that have NA
+    if(nrow(nhPrescriptions) > 0 ){
+      #set up a parameterized query need a list by zone_column, minHarvestVariable
+      nhPrescriptions[, id:= paste0(zone_column, minHarvestVariable)]
+      setPrescriptions<-split(nhPrescriptions, nhPrescriptions$id)
+      rs_batch<-lapply(setPrescriptions, function(x){
+        sql <- paste0("UPDATE pixels SET zone_const = 1 where ", x$zone_column[1], " = :zoneid and ", x$minHarvestVariable[1], " < :minHarvestThreshold")
+        dbBegin(sim$castordb)
+        rs<-dbSendQuery(sim$castordb, sql, x[,c("zoneid", "minHarvestThreshold")])
+        dbClearResult(rs)
+        dbCommit(sim$castordb)
+      })
+    }
+  }
+  
   #Get the zones that are listed for this specific scenario
   zones<-dbGetQuery(sim$castordb, paste0("SELECT zone_column FROM zone WHERE reference_zone in ('",paste(P(sim, "activeZoneConstraint", "forestryCastor"), sep= ' ', collapse = "', '"),"')"))
   for(i in 1:nrow(zones)){ #for each of the specified zone rasters

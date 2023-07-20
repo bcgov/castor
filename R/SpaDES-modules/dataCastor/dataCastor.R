@@ -34,10 +34,10 @@ defineModule(sim, list(
     defineParameter("dbPort", "character", '5432', NA, NA, "The name of the postgres port"),
     defineParameter("dbUser", "character", 'postgres', NA, NA, "The name of the postgres user"),
     defineParameter("dbPassword", "character", 'postgres', NA, NA, "The name of the postgres user password"),
-  defineParameter("randomLandscape", "list", NA, NA, NA, desc = "The exent in a list ordered by: nrows, ncols, xmin, xmax, ymin, ymax"),
-  defineParameter("randomLandscapeClusterLevel", "numeric", 1, 0.001, 1.999,"This describes the alpha parameter in RandomFields. alpha is [0,2]"),
-  defineParameter("randomLandscapeZoneNumber", "integer", 1, 0, 10,"The number of zones using spades spread function"),
-  defineParameter("randomLandscapeZoneConstraint", "data.table", NA, NA, NA, desc = "The constraint to be applied"),
+    defineParameter("randomLandscape", "list", NA, NA, NA, desc = "The exent in a list ordered by: nrows, ncols, xmin, xmax, ymin, ymax"),
+    defineParameter("randomLandscapeClusterLevel", "numeric", 1, 0.001, 1.999,"This describes the alpha parameter in RandomFields. alpha is [0,2]"),
+    defineParameter("randomLandscapeZoneNumber", "integer", 1, 0, 10,"The number of zones using spades spread function"),
+    defineParameter("randomLandscapeZoneConstraint", "data.table", NA, NA, NA, desc = "The constraint to be applied"),
     defineParameter("nameBoundaryFile", "character", "public.gcbp_carib_polygon", NA, NA, desc = "Name of the boundary file. Here we are using caribou herd boudaries, could be something else (e.g., TSA)."),
     defineParameter("nameBoundaryColumn", "character", "herd_name", NA, NA, desc = "Name of the column within the boundary file that has the boundary name. Here we are using the herd name column in the caribou herd spatial polygon file."),
     defineParameter("nameBoundary", "character", "Muskwa", NA, NA, desc = "Name of the boundary - a spatial polygon within the boundary file. Here we are using a caribou herd name to query the caribou herd spatial polygon data, but it could be something else (e.g., a TSA name to query a TSA spatial polygon file, or a group of herds or TSA's)."),
@@ -56,6 +56,7 @@ defineModule(sim, list(
     defineParameter("nameCrownClosureRaster", "character", "99999", NA, NA, desc = "Raster containing pixel crown closure. Note this could be a raster using VCF:http://glcf.umd.edu/data/vcf/"),
     defineParameter("nameHeightRaster", "character", "99999", NA, NA, desc = "Raster containing pixel height. EX. Canopy height model"),
     defineParameter("nameZoneTable", "character", "99999", NA, NA, desc = "Name of the table documenting the zone types"),
+    defineParameter("nameZonePrescriptionTable", "character", "99999", NA, NA, desc = "Name of the table documenting the prescriptions to apply for each zone"),
     defineParameter("nameYieldsRaster", "character", "99999", NA, NA, desc = "Name of the raster with id's for yield tables"),
     defineParameter("nameYieldsCurrentRaster", "character", "99999", NA, NA, desc = "Name of the raster with id's for yield tables"),
     defineParameter("nameYieldsTransitionRaster", "character", "99999", NA, NA, desc = "Name of the raster with id's for yield tables that transition to a new table"),
@@ -113,6 +114,7 @@ doEvent.dataCastor = function(sim, eventTime, eventType, debug = FALSE) {
         #populate castordb tables
         sim <- setTablesCastorDB(sim)
         sim <- setZoneConstraints(sim)
+        sim <- setZonePrescriptions(sim)
         sim <- setIndexesCastorDB(sim) # creates index to facilitate db querying?
         sim <- updateGS(sim) # update the forest attributes
         sim <- scheduleEvent(sim, eventTime = 0,  "dataCastor", "forestStateNetdown", eventPriority=90)
@@ -188,6 +190,7 @@ createCastorDB <- function(sim) {
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS raster_info (name text, xmin numeric, xmax numeric, ymin numeric, ymax numeric, ncell integer, nrow integer, crs text);")
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS zone (zone_column text, reference_zone text)")
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS zoneConstraints ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, ndt integer, variable text, threshold numeric, type text, percentage numeric, denom text, multi_condition text, t_area numeric, start integer, stop integer);")
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS zonePrescription ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, minHarvestVariable text, minHarvestThreshold numeric, start integer default 0, stop integer default 500);")
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
 own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, treed integer, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric, dist numeric DEFAULT 0,
 crownclosure numeric, height numeric, basalarea numeric, qmd numeric, siteindex numeric, dec_pcnt numeric, eca numeric, salvage_vol numeric default 0, dual numeric);")
@@ -249,7 +252,7 @@ setTablesCastorDB <- function(sim) {
     sim$pts <- data.table(terra::xyFromCell(randomRas,1:length(randomRas[]))) #Seems to be faster than rasterTopoints
     sim$pts <- sim$pts[, pixelid:= seq_len(.N)] # add in the pixelid which streams data in according to the cell number = pixelid
 
-    pixels <- data.table(age = as.integer(round(randomRas[]*180,0)))
+    pixels <- data.table(age = as.integer(round(randomRas[]*250,0)))
     pixels[, pixelid := seq_len(.N)]
     pixels[, compartid := 'all']
     
@@ -890,6 +893,27 @@ setZoneConstraints<-function(sim){
     dbBegin(sim$castordb)
     rs<-dbSendQuery(sim$castordb, "INSERT INTO zoneConstraints (zoneid, reference_zone, zone_column, ndt, variable, threshold, type ,percentage, multi_condition, t_area, start, stop) 
                       values (:zoneid, :reference_zone, :zone_column, :ndt, :variable, :threshold, :type, :percentage, :multi_condition, :t_area, :start, :stop);", randomLandscapeZoneConstraint[,c('zoneid', 'zone_column', 'reference_zone', 'ndt','variable', 'threshold', 'type', 'percentage', 'multi_condition', 't_area', 'start', 'stop')])
+    dbClearResult(rs)
+    dbCommit(sim$castordb)
+  }
+  return(invisible(sim))
+}
+
+setZonePrescriptions<-function(sim){
+  if(!(P(sim, "nameZonePrescriptionTable", "dataCastor") == "99999")){
+    
+    zone<-dbGetQuery(sim$castordb, "SELECT * FROM zone;") # select the name of the raster and its column name in pixels
+    zone_rx<-rbindlist(lapply(split(zone, seq(nrow(zone))) , function(x){
+      if(nrow(dbGetQuery(sim$castordb, glue::glue("SELECT distinct({x$zone_column}) from pixels where {x$zone_column} is not null;")))>0){
+        getTableQuery(glue::glue("SELECT * FROM {P(sim)$nameZonePrescriptionTable} WHERE reference_zone = '{x$reference_zone}' AND zoneid IN(",paste(dbGetQuery(sim$castordb,glue::glue("SELECT distinct({x$zone_column}) as zoneid from pixels where {x$zone_column} is not null;"))$zoneid, sep ="", collapse ="," ),");"))
+      }
+    })
+    )
+    
+    rx_list<-merge(zone_rx, zone, by.x = 'reference_zone',by.y = 'reference_zone')
+    dbBegin(sim$castordb)
+    rs<-dbSendQuery(sim$castordb, "INSERT INTO zonePrescription (zoneid, zone_column, reference_zone, zone_column,minHarvestVariable, minHarvestThreshold, start, stop) 
+                      values (:zoneid, :zone_column, :reference_zone,:minharvestvariable, :minharvestthreshold, :start, :stop);", rx_list[,c('zoneid', 'zone_column', 'reference_zone', 'minharvestvariable', 'minharvestthreshold', 'start', 'stop')])
     dbClearResult(rs)
     dbCommit(sim$castordb)
   }

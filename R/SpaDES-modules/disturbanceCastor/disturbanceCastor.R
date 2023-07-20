@@ -41,7 +41,7 @@ defineModule(sim, list(
     expectsInput(objectName = "disturbanceFlow", objectClass = "data.table", desc = "Time series table of annual area disturbed", sourceURL = NA),
     expectsInput(objectName = "boundaryInfo", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "castordb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the RSF', sourceURL = NA),
-    expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataCastor. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
+    expectsInput(objectName = "ras", objectClass = "SpatRaster", desc = "A raster object created in dataCastor. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName = "updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
@@ -50,6 +50,7 @@ defineModule(sim, list(
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
     createsOutput("disturbance", "data.table", "Disturbance table for every pixel"),
+    createsOutput("dist.ras", "SpatRaster", "Disturbance raster"),
     createsOutput("disturbanceReport", "data.table", "Summary per simulation period of the disturbance indicators"),
     createsOutput("road_distance", "data.table", "a data.table of road distance by pixelid")
   )
@@ -99,6 +100,8 @@ Init <- function(sim) {
                                     c80r500=numeric(),  c80r750=numeric(),
                                     c10_40r50=numeric(),  c10_40r500=numeric(), cut10_40=numeric() )
   sim$disturbance <- sim$pts
+  sim$dist.ras<-sim$ras
+  sim$dist.ras[]<-0
   
   message("...Get the critical habitat")
   
@@ -330,18 +333,25 @@ distAnalysis <- function(sim) {
 }
 
 distProcess <- function(sim) {
+  
   for(compart in sim$compartment_list){
     distParms<-sim$disturbanceFlow[compartment == compart & period == time(sim) & flow > 0,]
+    #browser()
     if(nrow(distParms) > 0){
-      distStarts<-data.table(size = as.integer(rlnorm(1000, meanlog = distParms$mean, sdlog =distParms$sd)))[, cvalue:=cumsum(size)][cvalue <= distParms$flow,]
+      distStarts<-data.table(size = as.integer(rlnorm(distParms$flow, meanlog = distParms$mean, sdlog =distParms$sd)))[, cvalue:=cumsum(size)][cvalue <= distParms$flow,]
       distStarts<-distStarts[size > 0,]
       distStarts$starts <- sample(dbGetQuery(sim$castordb, paste0("select pixelid from pixels where ", distParms$partition))$pixelid, nrow(distStarts), replace = FALSE)
       if(nrow(distStarts) > 0){
-        out <- spread2(landscape = sim$spreadRas, start = distStarts$starts, exactSize = distStarts$size, spreadProbRel = sim$spreadRas, asRaster = FALSE)
+        sim$spreadRas[]<-0
+        sim$spreadRas[dbGetQuery(sim$castordb, paste0("select pixelid from pixels where ", distParms$partition))$pixelid]<-1
+        out <- spread2(landscape = sim$spreadRas, start = distStarts$starts, exactSize = distStarts$size, spreadProb = 0.4, asRaster = FALSE)
         dbBegin(sim$castordb)
           rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, vol = 0, salvage_vol = 0 WHERE pixelid = :pixels", out[, "pixels"])
         dbClearResult(rs)
         dbCommit(sim$castordb)
+        
+        sim$dist.ras[out$pixels]<-time(sim)
+        
         tempReport<-data.table(sim$disturbanceFlow[compartment == compart & period == time(sim) & flow > 0,], count=nrow(distStarts), med=median(distStarts$size), total=sum(distStarts$size), thlb = dbGetQuery(sim$castordb, paste0(" select sum(thlb) as thlb from pixels where pixelid in (", paste(out$pixels, sep = "", collapse = ","), ");"))$thlb)
         sim$disturbanceProcessReport<-rbindlist(list(sim$disturbanceProcessReport,tempReport ))
       }
@@ -350,7 +360,7 @@ distProcess <- function(sim) {
     
   }
   
-  
+  terra::plot(sim$dist.ras)
   return(invisible(sim))
 }
 

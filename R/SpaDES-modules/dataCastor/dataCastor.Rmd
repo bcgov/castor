@@ -20,7 +20,7 @@ output: pdf_document
 
 # Overview
 
-The dataCastor preps the database connectivitiy and other objects required to run Castor. A SQLite database is stored in memory called castordb. This database can be saved to file using `saveCastorDB = TRUE` or an existing castordb can be used by specifying the path with `useCastorDB = ".../_castordb.sqlite"`
+The dataCastor preps the database connectivity and other objects required to run Castor. A SQLite database is stored in memory called castordb. This database can be saved to file using `saveCastorDB = TRUE` or an existing castordb can be used by specifying the path with `useCastorDB = ".../_castordb.sqlite"`
 
 
 # Usage
