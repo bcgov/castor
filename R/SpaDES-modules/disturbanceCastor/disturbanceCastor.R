@@ -145,6 +145,9 @@ Init <- function(sim) {
   
   if(P(sim, "criticalHabRaster", "disturbanceCastor") == '99999'){
     sim$disturbance[, attribute := 1]
+    sim$disturbance[, critical_hab:= "all"]
+    sim$disturbance[, compartment:= dbGetQuery(sim$castordb, "SELECT compartid FROM pixels order by pixelid")$compartid]
+    sim$disturbance[, treed:= dbGetQuery(sim$castordb, "SELECT treed FROM pixels order by pixelid")$treed]
   }else{
     bounds <- data.table (V1 = RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                           srcRaster = P (sim, "criticalHabRaster", "disturbanceCastor"), 
@@ -209,7 +212,6 @@ Init <- function(sim) {
 distAnalysis <- function(sim) {
   
   all.dist<-data.table(dbGetQuery(sim$castordb, paste0("SELECT age, blockid, (case when ((",time(sim)*sim$updateInterval, " - roadstatus < ",P(sim, "recovery", "disturbanceCastor")," AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) then 1 else 0 end) as road_dist, pixelid FROM pixels WHERE perm_dist > 0 OR (blockid > 0 and age >= 0) OR (",time(sim)*sim$updateInterval, " - roadstatus < ", P(sim, "recovery", "disturbanceCastor")," AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0;")))
-  
   if(nrow(all.dist) > 0){
     outPts <- merge (sim$disturbance, all.dist, by = 'pixelid', all.x =TRUE) 
     message("Get the cutblock summaries")
@@ -288,13 +290,13 @@ distAnalysis <- function(sim) {
                  )) %>%
       Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2, by=c("compartment","critical_hab")), .)
     outPts<-outPts[,c("dist","field") := list(NULL, NA)]
-    
     outPts[road_dist > 0 | (blockid > 0 & age >=0 & age <= 80), field:=0]
-    nearNeigh<-RANN::nn2(outPts[ field ==0, c('x', 'y')], 
+    if(nrow(outPts[is.na(field),]) > 0 ){
+      nearNeigh<-RANN::nn2(outPts[ field ==0, c('x', 'y')], 
                          outPts[is.na(field), c('x', 'y')], 
                          k = 1)
-    
-    outPts<-outPts[is.na(field), dist:=nearNeigh$nn.dists] # assign the distances
+      outPts<-outPts[is.na(field), dist:=nearNeigh$nn.dists] # assign the distances
+    }
     outPts[is.na(dist), dist:=0] # those that are the distance to pixels, assign 
     
     c80r<-Filter(function(x) dim(x)[1] > 0,

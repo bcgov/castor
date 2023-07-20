@@ -141,7 +141,7 @@ return(invisible(sim))
 createBlocksTable<-function(sim){
   message("create blockid, blocks and adjacentBlocks")
   dbExecute(sim$castordb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
-  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, salvage_vol numeric, dist numeric DEFAULT 0, landing integer)")
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, salvage_vol numeric, dist numeric DEFAULT 0, landing integer, priority numeric)")
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS adjacentBlocks ( id integer PRIMARY KEY, adjblockid integer, blockid integer)")
   return(invisible(sim)) 
 }
@@ -186,8 +186,8 @@ setBlocksTable <- function(sim) {
   dbExecute(sim$castordb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL")) 
   # Use "(CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing" to get set landing as pixel
   
-  dbExecute(sim$castordb, paste0("INSERT INTO blocks (blockid, age, height,  vol, salvage_vol, dist, landing)  
-                    SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as salvage_vol, AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
+  dbExecute(sim$castordb, paste0("INSERT INTO blocks (blockid, age, height,  vol, salvage_vol, dist, landing, priority)  
+                    SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as salvage_vol, AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing, AVG(priority) as priority
                                        FROM pixels WHERE blockid > 0 AND thlb > 0 GROUP BY blockid "))  
 
   dbExecute(sim$castordb, "CREATE INDEX index_blockid on blocks (blockid)")

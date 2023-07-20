@@ -53,6 +53,7 @@ parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataCastor = list(saveCastorDB = TRUE,
+                    
                      randomLandscape = list(100,100,0,100,0,100),
                      randomLandscapeZoneConstraint = data.table(zoneid = 1,  variable = 'age', threshold = 80, type = 'ge', percentage = 0)
                      ),
@@ -62,16 +63,16 @@ parameters <- list(
                       patchVariation = 6),
   forestryCastor = list( activeZoneConstraint = 'default', 
                          harvestPriority = " vol DESC, age DESC ", 
-                         adjacencyConstraint = TRUE),
+                         adjacencyConstraint = 9999),
   roadCastor = list (roadMethod = 'mst'
                      ),
   disturbanceCastor = list (calculateInterval =  1, 
                             recovery = 300)
 )
 
-modules <- list("dataCastor", "growingStockCastor", "blockingCastor", "forestryCastor")
+#modules <- list("dataCastor", "growingStockCastor", "blockingCastor", "forestryCastor")
 #modules <- list("dataCastor", "growingStockCastor", "blockingCastor", "forestryCastor","roadCastor")
-#modules <- list("dataCastor", "growingStockCastor", "blockingCastor", "forestryCastor","roadCastor", "disturbanceCastor")
+modules <- list("dataCastor", "growingStockCastor", "blockingCastor", "forestryCastor","roadCastor", "disturbanceCastor")
 
 
 scenario = data.table(name="test", description = "test")
@@ -109,24 +110,24 @@ library(SpaDES.core)
 eventDiagram(mysimout)
 ```
 
-## plots
+## plots and things
 ```{r, plots}
 userdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/forestryCastor/test_castordb.sqlite") ) 
+dbGetQuery(userdb, "SELECT name FROM sqlite_schema WHERE type ='table' AND name NOT LIKE 'sqlite_%';")
  ras.info<-dbGetQuery(userdb, "Select * from raster_info limit 1;")
 ras<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0, crs = 3005)
 ras[]<-dbGetQuery(userdb, "select age from pixels order by pixelid")$age
 plot(ras)
-#ras[]<-0
-#ras[]<-dbGetQuery(userdb, "select roadyear from pixels order by pixelid")$roadyear
-#plot(ras)
 ras[]<-0
-ras[]<-dbGetQuery(userdb, "select age from pixels order by pixelid")$age
+ras[]<-dbGetQuery(userdb, "select roadyear from pixels order by pixelid")$roadyear
 plot(ras)
 dbDisconnect(userdb)
-```
-## Algorithum
+terra::plot(rast(paste0(here::here(), "/R/SpaDES-modules/forestryCastor/hu.tif")))
 
-The general algorithum (pseudo-code) follows as:
+```
+## Algorithm
+
+The general algorithm (pseudo-code) follows as:
 
 `compartment_list`= SELECT zones FROM compartments WHERE target > 0 ORDER BY priority_compartment
 
@@ -135,7 +136,7 @@ FOR compartment_selected in `compartment_list`
             compartment = compartment_selected AND thlb > 0 AND constraint = 0                 ORDER BY priority
                
 IF (`queue` > 0 )
-  check constraints
+  harvest
 ELSE 
   NEXT
         

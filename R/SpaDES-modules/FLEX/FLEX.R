@@ -63,6 +63,7 @@ defineModule(sim, list(
     createsOutput (objectName = "spread.rast", objectClass = "RasterLayer", desc = "The raster layer describing how fisher search for habitat." ),
     createsOutput (objectName = "table.hab.spread", objectClass = "data.table", desc = "Fisher habitat categoires table." ),
     createsOutput (objectName = "ras.territories", objectClass = "SpatRaster", desc = "The territories over a sim." ),
+    #createsOutput (objectName = "fisherHRStack", objectClass = "SpatRaster", desc = "The territories over a sim." ),
     createsOutput (objectName = "max.id", objectClass = "integer", desc = "The maximum territory identifier" ),
     createsOutput (objectName = "fisherABMReport", objectClass = "data.table", desc = "A data.table object. Consists of fisher population numbers in the study area at each time step."),
     
@@ -81,10 +82,9 @@ doEvent.FLEX = function(sim, eventTime, eventType) {
         sim <- disperseFisher(sim) #go find a territory if the habitat changed or kits born year previously
         sim <- reproduceFisher(sim) #since territories are established -- can reproduce and have kits age = 0.
         sim <- ageFisher(sim) # age the fisher so the kits are one year starting in the next i
+        sim <- recordABMReport(sim, i)
+        sim <- plot_territories(sim)
       }
-      
-      sim <- recordABMReport(sim, 1)
-      sim <- plot_territories(sim)
       sim <- scheduleEvent (sim, time (sim) + 1, "FLEX", "runevents", 19)
     },
     runevents = {
@@ -143,7 +143,7 @@ Init <- function(sim) {
                                      timeperiod = as.integer (), # time step of the simulation
                                      scenario = as.character ()
   )
-  
+
   sim$ras.territories <- sim$pix.rast
   sim$ras.territories [] <- 0
   
@@ -706,7 +706,10 @@ recordABMReport<-function(sim, i){
                                  scenario = as.character (sim$scenario$name))
   
   sim$fisherABMReport <- rbindlist (list (sim$fisherABMReport, new.agents.save), use.names = TRUE)
-  abmReport<<-sim$fisherABMReport
+  #abmReport<<-sim$fisherABMReport
+  #browser()
+  terra::writeRaster(sim$ras.territories, paste0(SpaDES.core::outputPath(sim),"/hr_",time(sim) * P (sim, "timeInterval", "FLEX") + i, ".tif"), overwrite = T)
+  
   return(invisible(sim))
 }
 
@@ -714,10 +717,6 @@ plot_territories<- function(sim) {
   sim$ras.territories[] <- 0
   sim$ras.territories[sim$territories$pixels]<-sim$territories$initialPixels
   terra::plot(sim$ras.territories)
-  if(time(sim) == 0){
-    terr.ras<<-sim$ras.territories
-  }
-  
   return(invisible(sim))
 }
 

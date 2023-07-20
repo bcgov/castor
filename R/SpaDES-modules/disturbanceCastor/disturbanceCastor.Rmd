@@ -25,7 +25,7 @@ Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1')
 moduleDir <- paste0(here::here(),"/R/SpaDES-modules")
 outputDir <- paste0(here::here(),"/R/SpaDES-modules/disturbanceCastor")
 
-times <- list(start = 0, end = 25)
+times <- list(start = 0, end = 0)
 
 parameters <- list(
   .progress = list(type = NA, interval = NA),

@@ -67,7 +67,7 @@ mySim <- simInit(times = times,
 
 outputs(mySim) <- data.frame (objectName = c("fisherABMReport"))
 #mySimOut <- spades(mySim)
-experiment(mySim, replicates = 50)
+experiment(mySim, replicates = 2)
 ```
 
 #Plot

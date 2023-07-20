@@ -40,7 +40,7 @@ defineModule(sim, list(
     defineParameter("randomLandscapeZoneConstraint", "data.table", NA, NA, NA, desc = "The constraint to be applied"),
     defineParameter("nameBoundaryFile", "character", "public.gcbp_carib_polygon", NA, NA, desc = "Name of the boundary file. Here we are using caribou herd boudaries, could be something else (e.g., TSA)."),
     defineParameter("nameBoundaryColumn", "character", "herd_name", NA, NA, desc = "Name of the column within the boundary file that has the boundary name. Here we are using the herd name column in the caribou herd spatial polygon file."),
-    defineParameter("nameBoundary", "character", "Muskwa", NA, NA, desc = "Name of the boundary - a spatial polygon within the boundary file. Here we are using a caribou herd name to query the caribou herd spatial polygon data, but it could be something else (e.g., a TSA name to query a TSA spatial polygon file, or a group of herds or TSA's)."),
+    defineParameter("nameBoundary", "character", "test", NA, NA, desc = "Name of the boundary - a spatial polygon within the boundary file. Here we are using a caribou herd name to query the caribou herd spatial polygon data, but it could be something else (e.g., a TSA name to query a TSA spatial polygon file, or a group of herds or TSA's)."),
     defineParameter("nameBoundaryGeom", "character", "geom", NA, NA, desc = "Name of the geom column in the boundary file"),
     defineParameter("saveCastorDB", "logical", FALSE, NA, NA, desc = "Save the db to a file?"),
     defineParameter("useCastorDB", "character", "99999", NA, NA, desc = "Use an exising db? If no, set to 99999. IOf yes, put in the postgres database name here (e.g., castor)."),
@@ -193,7 +193,7 @@ createCastorDB <- function(sim) {
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS zonePrescription ( id integer PRIMARY KEY, zoneid integer, reference_zone text, zone_column text, minHarvestVariable text, minHarvestThreshold numeric, start integer default 0, stop integer default 500);")
   dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS pixels ( pixelid integer PRIMARY KEY, compartid character, 
 own integer, yieldid integer, yieldid_trans integer, zone_const integer DEFAULT 0, treed integer, thlb numeric , elv numeric DEFAULT 0, age numeric, vol numeric, dist numeric DEFAULT 0,
-crownclosure numeric, height numeric, basalarea numeric, qmd numeric, siteindex numeric, dec_pcnt numeric, eca numeric, salvage_vol numeric default 0, dual numeric);")
+crownclosure numeric, height numeric, basalarea numeric, qmd numeric, siteindex numeric, dec_pcnt numeric, eca numeric, salvage_vol numeric default 0, dual numeric, priority numeric default 0);")
   return(invisible(sim))
 }
 
