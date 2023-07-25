@@ -77,7 +77,7 @@ parameters <- list(
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCastor = list(harvestBlockPriority = " age DESC ", # " dist, age DESC ", 
+  forestryCastor = list(harvestBlockPriority = "  dist, age DESC ", # " dist, age DESC ", 
                         reportHarvestConstraints = T,
                         adjacencyConstraint = 0,
                         activeZoneConstraint = c("rast.zone_cond_beo", 
@@ -124,8 +124,8 @@ modules <- list("dataCastor",
                 "volumebyareaReportCastor",
                 "uploadCastor")
 
-scenario = data.table (name = "bau_all_old_first",
-                       description = "Business as usual (BAU) sustainable max non-declining harvest flow. Adjacency = 0m. Priority queue = oldest first. Minimum volume: 150 m3/year. Even live max. non-declining harvest flow: Arrow: 400,000 m3/year; Cascadia: 90,000 m3/year; Golden: 500,000 m3/year; Kamloops: 1,400,000 m3/year; Kootenay Lake: 575,000 m3/year; Okanagan: 1,400,000 m3/year; Revelstoke: 225,000 m3/year; Robson Valley: 300,000 m3/year; TFL 14: 145,000 m3/year; TFL 23: 500,000 m3/year; TFL 55: 60,000 m3/year; TFL 56: 40,000 m3/year. No growing stock constraint. No road recovery (300 years).")
+scenario = data.table (name = "bau_all",
+                       description = "Business as usual (BAU) sustainable max non-declining harvest flow. Adjacency = 0m. Priority queue = closest to disturbance, then oldest first. Minimum volume: 150 m3/year. Even live max. non-declining harvest flow: Arrow: 325,000 m3/year; Cascadia: 75,000 m3/year; Golden: 415,000 m3/year; Kamloops: 1,250,000 m3/year; Kootenay Lake: 480,000 m3/year; Okanagan: 1,185,000 m3/year; Revelstoke: 185,000 m3/year; Robson Valley: 265,000 m3/year; TFL 14: 130,000 m3/year; TFL 23: 445,000 m3/year; TFL 55: 50,000 m3/year; TFL 56: 35,000 m3/year. No growing stock constraint. No road recovery (300 years).")
 
 
 harvestFlow <- rbindlist(list(
@@ -136,7 +136,7 @@ harvestFlow <- rbindlist(list(
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 4000000), # 400,000 
+                                          flow = 3250000), # 325,000 
                               data.table (compartment ="Cascadia_TKO_TSA",
                                           partition = ' vol > 150  ', 
                                           period = rep( seq (from = 1,
@@ -144,7 +144,7 @@ harvestFlow <- rbindlist(list(
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 900000), # 90,000 
+                                          flow = 750000), # 75,000 
                               data.table (compartment ="Golden_TSA",
                                           partition = ' vol > 150  ', 
                                           period = rep( seq (from = 1,
@@ -152,7 +152,7 @@ harvestFlow <- rbindlist(list(
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 5000000), # 500,000 
+                                          flow = 4150000), # 415,000
                               data.table (compartment ="Kamloops_TSA",
                                           partition = ' vol > 150  ', 
                                           period = rep( seq (from = 1,
@@ -160,7 +160,7 @@ harvestFlow <- rbindlist(list(
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 14000000), # 1,400,000 
+                                          flow = 12500000), # 1,250,000 
                               data.table (compartment ="Kootenay_Lake_TSA",
                                           partition = ' vol > 150  ', 
                                           period = rep( seq (from = 1,
@@ -168,7 +168,7 @@ harvestFlow <- rbindlist(list(
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 5750000), # 575,000 
+                                          flow = 4800000), # 480,000 
                               data.table (compartment ="Okanagan_TSA",
                                           partition = ' vol > 150  ', 
                                           period = rep( seq (from = 1,
@@ -176,7 +176,7 @@ harvestFlow <- rbindlist(list(
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 14000000), # 1,400,000
+                                          flow = 11850000), # 1,185,000 ;
                               data.table (compartment ="Revelstoke_TSA",
                                           partition = ' vol > 150  ', 
                                           period = rep( seq (from = 1,
@@ -184,7 +184,7 @@ harvestFlow <- rbindlist(list(
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 2100000), # 210,000 
+                                          flow = 1850000), # 185,000 
                               data.table (compartment ="Robson_Valley_TSA",
                                           partition = ' vol > 150  ', 
                                           period = rep( seq (from = 1,
@@ -192,7 +192,7 @@ harvestFlow <- rbindlist(list(
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 3000000), # 300,000 
+                                          flow = 2650000), # 265,000 
                               data.table (compartment ="TFL14",
                                           partition = ' vol > 150  ', 
                                           period = rep( seq (from = 1,
@@ -200,7 +200,7 @@ harvestFlow <- rbindlist(list(
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 1450000), # 145,000
+                                          flow = 1300000), # 130,000 
                               data.table (compartment ="TFL23",
                                           partition = ' vol > 150  ', 
                                           period = rep( seq (from = 1,
@@ -208,7 +208,7 @@ harvestFlow <- rbindlist(list(
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 5000000), # 500,000 
+                                          flow = 4450000), # 445,000 
                               data.table (compartment ="TFL55",
                                           partition = ' vol > 150  ', 
                                           period = rep( seq (from = 1,
@@ -216,7 +216,7 @@ harvestFlow <- rbindlist(list(
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 600000), # 60,000 
+                                          flow = 500000), # 50,000 
                               data.table (compartment ="TFL56",
                                           partition = ' vol > 150  ', 
                                           period = rep( seq (from = 1,
@@ -224,7 +224,7 @@ harvestFlow <- rbindlist(list(
                                                            by = 1),
                                                      1),
                                           partition_type = 'live',
-                                          flow = 400000) # 40,000
+                                          flow = 350000) # 35,000
                               ))
 
 
