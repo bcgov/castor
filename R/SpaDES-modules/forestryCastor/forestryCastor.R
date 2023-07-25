@@ -197,7 +197,7 @@ setConstraints<- function(sim) {
     dbExecute(sim$castordb, paste0("UPDATE pixels SET zone_const = 1 WHERE ", paste(nhConstraints$qry, collapse = " OR ")))
   }
   
-  if(nrow(dbGetQuery(sim$castordb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='zonePrescription'")) == 0){
+  if(nrow(dbGetQuery(sim$castordb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='zonePrescription'")) > 0){
     nhPrescriptions<-data.table(merge(dbGetQuery(sim$castordb, paste0("SELECT  zoneid, reference_zone, minHarvestVariable, minHarvestThreshold FROM zonePrescription WHERE start <= ", time(sim)*sim$updateInterval, " and stop >= ", time(sim)*sim$updateInterval)),
                                     dbGetQuery(sim$castordb, "SELECT zone_column, reference_zone FROM zone"), 
                                     by.x = "reference_zone", by.y = "reference_zone"))#For each zone, zoneid, variable
