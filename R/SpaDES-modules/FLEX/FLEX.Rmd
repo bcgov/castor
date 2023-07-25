@@ -32,6 +32,7 @@ library (truncnorm)
 library (RANN)
 library(sampling)
 library(BalancedSampling)
+library(ggplot2)
 source (paste0 (here::here(), "/R/functions/R_Postgres.R"))
 
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
@@ -83,7 +84,7 @@ plot(rast.stk["ras_fisher_denning_5"])
 plot(rast.stk["ras_fisher_denning_10"])
 plot(rast.stk["ras_fisher_denning_15"])
 plot(rast.stk["ras_fisher_denning_20"])
-library(ggplot2)
+
 dir_reps<-data.table(dir(paste0(here::here(),"R/scenarios/test_flex2/outputs")))[V1 %like% "rep",]
 abmReport<-rbindlist(lapply(dir_reps$V1, function(x) {
   readRDS(paste0(here::here(),"/R/scenarios/test_flex2/outputs/",x,"/fisherABMReport_year4.rds"))}))

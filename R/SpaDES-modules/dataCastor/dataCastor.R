@@ -26,10 +26,13 @@ defineModule(sim, list(
   documentation = list("README.txt", "dataCastor.Rmd"),
   reqdPkgs = list("sf", "rpostgis","DBI", "RSQLite", "data.table", "rpostgis", "sqldf"),
   parameters = rbind(
+    
    defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
     defineParameter("startTime", "numeric", start(sim), NA, NA, desc = "Simulation time at which to start"),
     defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
-    defineParameter("dbName", "character", "postgres", NA, NA, "The name of the postgres dataabse"),
+   defineParameter("seedRandomLandscape", "integer", 123, 1, 100000, "The seed for building random landscapes"),
+   defineParameter("maxAgeRandomLandscape", "integer", 250, 1, 400, "The maximum age for building random landscapes"),
+   defineParameter("dbName", "character", "postgres", NA, NA, "The name of the postgres dataabse"),
     defineParameter("dbHost", "character", 'localhost', NA, NA, "The name of the postgres host"),
     defineParameter("dbPort", "character", '5432', NA, NA, "The name of the postgres port"),
     defineParameter("dbUser", "character", 'postgres', NA, NA, "The name of the postgres user"),
@@ -246,13 +249,13 @@ setTablesCastorDB <- function(sim) {
     sim$extent[[4]]<-sim$extent[[4]]*sim$extent[[1]] + 1170000
     sim$extent[[5]]<-sim$extent[[5]] + 834000
     sim$extent[[6]]<-sim$extent[[6]]*sim$extent[[2]] + 834000
-    
+    set.seed(P(sim, 'seedRandomLandscape', 'dataCastor'))
     randomRas<-randomRaster(sim$extent, P(sim, 'randomLandscapeClusterLevel', 'dataCastor'))
     
     sim$pts <- data.table(terra::xyFromCell(randomRas,1:length(randomRas[]))) #Seems to be faster than rasterTopoints
     sim$pts <- sim$pts[, pixelid:= seq_len(.N)] # add in the pixelid which streams data in according to the cell number = pixelid
 
-    pixels <- data.table(age = as.integer(round(randomRas[]*250,0)))
+    pixels <- data.table(age = as.integer(round(randomRas[]*P(sim, 'maxAgeRandomLandscape', 'dataCastor'),0)))
     pixels[, pixelid := seq_len(.N)]
     pixels[, compartid := 'all']
     
@@ -1003,6 +1006,7 @@ ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age;"))
 
 randomRaster<-function(extent, clusterLevel){
   #RandomFields::RFoptions(spConform=FALSE)
+  
   ras <- terra::rast(nrows = extent[[1]], ncols = extent[[2]], xmin = extent[[3]], xmax = extent[[4]], ymin = extent[[5]], ymax = extent[[6]], vals = 0 )
   model <- RandomFields::RMstable(scale = 300, var = 0.003,  alpha = clusterLevel)
   data.rv<-RandomFields::RFsimulate(model, y = 1:extent[[1]],  x = 1:extent[[2]], grid = TRUE)$variable1

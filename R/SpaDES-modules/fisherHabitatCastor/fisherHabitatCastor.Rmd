@@ -42,7 +42,9 @@ parameters <- list(
   # "dummy" landscape method 
   dataCastor = list(saveCastorDB = TRUE, 
                     randomLandscape = list (500,500,0,500,0,500),
-                    randomLandscapeClusterLevel = 0.3,
+                    randomLandscapeClusterLevel = 1.8, #1.8 for low; 1.6 for med; 0.1 for high
+                    seedRandomLandscape = 123,
+                    maxAgeRandomLandscape = 180, #180 for low; 250 for med and high
                     randomLandscapeZoneConstraint = data.table (zoneid = 1,
                                                                 variable = 'age', 
                                                                 threshold = 140, 
@@ -65,9 +67,10 @@ parameters <- list(
 scenario = data.table (name = "test",
                        description = "Testing fisher habitat module with random landscape.")
 
-modules <- list ("dataCastor", "blockingCastor", "roadCastor", "growingStockCastor", "disturbanceCastor", "fisherHabitatCastor")
+modules <- list ("dataCastor", "blockingCastor", "roadCastor", "growingStockCastor",  "fisherHabitatCastor")
+#modules <- list ("dataCastor", "blockingCastor", "roadCastor", "growingStockCastor", "disturbanceCastor", "fisherHabitatCastor")
 disturbanceFlow<- data.table(compartment ="all",
-                                     partition = ' treed = 1 and age > 15 ',
+                                     partition = ' treed = 1 and age > 10 ',
                                      mean = log(2000),
                                      sd = 1,
                                      period = rep(seq(from = 1, to=500, by = 1),1), 
@@ -89,3 +92,29 @@ mySim <- simInit(times = times,
 mySimOut <- spades(mySim)
 ```
 
+
+```{r}
+ras.stack<-terra::rast(paste0 (here::here (), "/R/SpaDES-modules/fisherHabitatCastor/test_rdm_land_fisher_habitat.tif"))
+names(ras.stack)
+plot(ras.stack["ras_fisher_denning_init"])
+plot(ras.stack["ras_fisher_denning_20"])
+```
+
+#static scenario creation
+```{r}
+ras.stack<-terra::rast(paste0 (here::here (), "/R/SpaDES-modules/fisherHabitatCastor/medium_to_low_habitat.tif"))
+names(ras.stack)
+static<-subset(ras.stack, c("pixelid", "ras_fisher_pop","ras_fisher_denning_init","ras_fisher_movement_init","ras_fisher_rust_init", "ras_fisher_cavity_init", "ras_fisher_cwd_init", "ras_fisher_open_init"))
+staticaged5<-subset(ras.stack, c("ras_fisher_denning_init","ras_fisher_movement_init","ras_fisher_rust_init", "ras_fisher_cavity_init", "ras_fisher_cwd_init", "ras_fisher_open_init"))
+staticaged10<-subset(ras.stack, c("ras_fisher_denning_init","ras_fisher_movement_init","ras_fisher_rust_init", "ras_fisher_cavity_init", "ras_fisher_cwd_init", "ras_fisher_open_init"))
+staticaged15<-subset(ras.stack, c("ras_fisher_denning_init","ras_fisher_movement_init","ras_fisher_rust_init", "ras_fisher_cavity_init", "ras_fisher_cwd_init", "ras_fisher_open_init"))
+staticaged20<-subset(ras.stack, c("ras_fisher_denning_init","ras_fisher_movement_init","ras_fisher_rust_init", "ras_fisher_cavity_init", "ras_fisher_cwd_init", "ras_fisher_open_init"))
+names(staticaged5)<-c("ras_fisher_denning_5","ras_fisher_movement_5","ras_fisher_rust_5", "ras_fisher_cavity_5", "ras_fisher_cwd_5", "ras_fisher_open_5")
+names(staticaged10)<-c("ras_fisher_denning_10","ras_fisher_movement_10","ras_fisher_rust_10", "ras_fisher_cavity_10", "ras_fisher_cwd_10", "ras_fisher_open_10")
+names(staticaged15)<-c("ras_fisher_denning_15","ras_fisher_movement_15","ras_fisher_rust_15", "ras_fisher_cavity_15", "ras_fisher_cwd_15", "ras_fisher_open_15")
+names(staticaged20)<-c("ras_fisher_denning_20","ras_fisher_movement_20","ras_fisher_rust_20", "ras_fisher_cavity_20", "ras_fisher_cwd_20", "ras_fisher_open_20")
+static_out<-rast(list(static,staticaged5,staticaged10,staticaged15,staticaged20))
+writeRaster(static_out, paste0(here::here (), "/R/SpaDES-modules/fisherHabitatCastor/scen1b_static_medium.tif"))
+
+
+```
