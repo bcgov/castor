@@ -288,6 +288,7 @@ if (!'memoise' %in% installed.packages()) remotes::install_version('memoise', '2
 if (!'units' %in% installed.packages()) remotes::install_version('units', '0.8-0')
 if (!'ellipsis' %in% installed.packages()) remotes::install_version('ellipsis', '0.3.2')
 if (!'knitr' %in% installed.packages()) remotes::install_version('knitr', '1.37')
+install.packages(c('sampling', 'BalancedSampling'))
 
 q()
 ```
