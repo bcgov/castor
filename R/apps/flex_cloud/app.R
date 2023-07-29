@@ -720,153 +720,161 @@ server <- function(input, output, session) {
       
       csv_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_fisher_agents.csv$')
       
-      data_csv <- future_lapply(
-          csv_files, 
+      if (length(csv_files) == 0) {
+        shinyjs::alert('No CSV files have been found, cannot produce the scatter plot.')
+      } else {
+        data_csv <- future_lapply(
+            csv_files, 
+            function(file, dir) {
+              file <- paste0(dir, file)
+              readr::read_csv(file, show_col_types = FALSE) %>% 
+                dplyr::select(timeperiod, n_f_adult)
+            },
+            dir
+          )
+  
+        data <- dplyr::bind_rows(data_csv) %>% 
+          dplyr::mutate(timeperiod = as.factor(timeperiod))
+        
+        progressReport$set(
+          value = 2,
+          detail = 'Processing CSV data.'
+        )
+        
+        group_data <- data %>%
+          dplyr::group_by(timeperiod) %>%
+          dplyr::summarize(
+            mean_val = mean(n_f_adult),
+            lower_ci = mean_val - qt(0.975, n() - 1) * sd(n_f_adult) / sqrt(n()),
+            upper_ci = mean_val + qt(0.975, n() - 1) * sd(n_f_adult) / sqrt(n())
+          )
+  
+        progressReport$set(
+          value = 3,
+          detail = 'Plotting CSV data.'
+        )
+        
+        output$plot_csv <- renderPlot(
+          ggplot(
+            data = data %>% 
+              dplyr::mutate(timeperiod = as.factor(timeperiod)), 
+            aes(
+              x = timeperiod, y = n_f_adult
+            )
+          ) + 
+            geom_point(size = 3, 
+                       alpha = 0.2, 
+                       colour = '#1A5A96') +
+            stat_summary(
+              fun.data = "mean_cl_normal",
+              geom = "crossbar",
+              colour = "#D8292F",
+              linewidth = 0.75,
+              width = 0.1,
+              fatten = 2
+            ) +
+            geom_text(
+              x = as.integer(group_data$timeperiod) + 0.1, 
+              y = group_data$mean_val, 
+              aes(
+                label = paste0(
+                  "Upper CI: ", round(upper_ci, 2), "\n",
+                  "Mean: ", round(mean_val, 2), "\n",
+                  "Lower CI: ", round(lower_ci, 2)
+                ),
+                
+              ),
+              hjust = 0,
+              data = group_data
+            ) +
+            ggtitle(
+              paste0(
+                "Female fishers with established territory at the end of 
+                each time interval (", length(csv_files), " iterations)"
+              )
+            ) + 
+            labs(
+              x = "Time period", 
+              y = "Number of female adults"
+            ) + 
+            theme_minimal()
+        )
+        
+        ggsave(file = paste0(dir, "../n_f_adults.png"))
+  
+        progressReport$set(
+          value = 4,
+          detail = 'Fetching TIFF files.'
+        )
+      }
+
+      tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_final_fisher_territories.tif$')
+        
+      if (length(tif_files) == 0) {
+        shinyjs::alert('No TIFF files have been found, cannot produce the heatmap.')
+      } else {
+        tic("Overall process")
+        tic("Processing other tif files", quiet = TRUE)
+        
+        data_tif <- future_lapply(
+          tif_files, 
           function(file, dir) {
             file <- paste0(dir, file)
-            readr::read_csv(file, show_col_types = FALSE) %>% 
-              dplyr::select(timeperiod, n_f_adult)
+  
+            # Read raster file, cast to data frame and bind with all previous rasters
+            as.data.frame(
+              raster(file), xy = TRUE
+            ) %>% 
+              dplyr::filter(layer > 0) %>%
+              dplyr::mutate(layer = round(1 / length(tif_files) * 100, 2))
           },
           dir
         )
-
-      data <- dplyr::bind_rows(data_csv) %>% 
-        dplyr::mutate(timeperiod = as.factor(timeperiod))
-      
-      progressReport$set(
-        value = 2,
-        detail = 'Processing CSV data.'
-      )
-      
-      group_data <- data %>%
-        dplyr::group_by(timeperiod) %>%
-        dplyr::summarize(
-          mean_val = mean(n_f_adult),
-          lower_ci = mean_val - qt(0.975, n() - 1) * sd(n_f_adult) / sqrt(n()),
-          upper_ci = mean_val + qt(0.975, n() - 1) * sd(n_f_adult) / sqrt(n())
+       
+        data_tif <- bind_rows(data_tif) %>% 
+          dplyr::group_by(x, y) %>%
+          dplyr::summarize(layer = sum(layer))
+  
+        toc()
+  
+        tic("Visualizing tif files", quiet = TRUE)
+        
+        progressReport$set(
+          value = 7,
+          detail = 'Plotting TIFF files.'
         )
-
-      progressReport$set(
-        value = 3,
-        detail = 'Plotting CSV data.'
-      )
-      
-      output$plot_csv <- renderPlot(
-        ggplot(
-          data = data %>% 
-            dplyr::mutate(timeperiod = as.factor(timeperiod)), 
-          aes(
-            x = timeperiod, y = n_f_adult
-          )
-        ) + 
-          geom_point(size = 3, 
-                     alpha = 0.2, 
-                     colour = '#1A5A96') +
-          stat_summary(
-            fun.data = "mean_cl_normal",
-            geom = "crossbar",
-            colour = "#D8292F",
-            linewidth = 0.75,
-            width = 0.1,
-            fatten = 2
+        
+        g <- ggplot() +
+          geom_raster(data = data_tif , aes(x = x, y = y, fill = layer)) +
+          scale_fill_gradient(
+            name = 'Times pixel\nwas selected',
+            labels = scales::percent_format(scale = 1),
+            low = '#deebf7',
+            high = '#003366'
           ) +
-          geom_text(
-            x = as.integer(group_data$timeperiod) + 0.1, 
-            y = group_data$mean_val, 
-            aes(
-              label = paste0(
-                "Upper CI: ", round(upper_ci, 2), "\n",
-                "Mean: ", round(mean_val, 2), "\n",
-                "Lower CI: ", round(lower_ci, 2)
-              ),
-              
-            ),
-            hjust = 0,
-            data = group_data
-          ) +
+          coord_equal() +
           ggtitle(
             paste0(
-              "Female fishers with established territory at the end of 
-              each time interval (", length(csv_files), " iterations)"
+              "Sum of established territories at the end of 
+              simulation (", length(tif_files), " iterations)"
             )
           ) + 
-          labs(
-            x = "Time period", 
-            y = "Number of female adults"
-          ) + 
           theme_minimal()
-      )
-      
-      ggsave(file = paste0(dir, "../n_f_adults.png"))
-
-      progressReport$set(
-        value = 4,
-        detail = 'Fetching TIFF files.'
-      )
-      
-      tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_final_fisher_territories.tif$')
-      
-      tic("Overall process")
-      tic("Processing other tif files", quiet = TRUE)
-      
-     data_tif <- future_lapply(
-        tif_files, 
-        function(file, dir) {
-          file <- paste0(dir, file)
-
-          # Read raster file, cast to data frame and bind with all previous rasters
-          as.data.frame(
-            raster(file), xy = TRUE
-          ) %>% 
-            dplyr::filter(layer > 0) %>%
-            dplyr::mutate(layer = round(1 / length(tif_files) * 100, 2))
-        },
-        dir
-      )
-     
-      data_tif <- bind_rows(data_tif) %>% 
-        dplyr::group_by(x, y) %>%
-        dplyr::summarize(layer = sum(layer))
-
-      toc()
-
-      tic("Visualizing tif files", quiet = TRUE)
-      
-      progressReport$set(
-        value = 7,
-        detail = 'Plotting TIFF files.'
-      )
-      
-      g <- ggplot() +
-        geom_raster(data = data_tif , aes(x = x, y = y, fill = layer)) +
-        scale_fill_gradient(
-          name = 'Times pixel\nwas selected',
-          labels = scales::percent_format(scale = 1),
-          low = '#deebf7',
-          high = '#003366'
-        ) +
-        coord_equal() +
-        ggtitle(
-          paste0(
-            "Sum of established territories at the end of 
-            simulation (", length(tif_files), " iterations)"
-          )
-        ) + 
-        theme_minimal()
-
-      toc() # Visualizing tif files
-      toc() # Overall process
-      
-      output$plot_tif <- renderPlot(g)
-
-      rm(data_tif)
-      ggsave(file = paste0(dir, "../heatmap.png"))
-      
-      progressReport$set(
-        value = 10,
-        message = 'Done',
-        detail = ''
-      )
+  
+        toc() # Visualizing tif files
+        toc() # Overall process
+        
+        output$plot_tif <- renderPlot(g)
+  
+        rm(data_tif)
+        ggsave(file = paste0(dir, "../heatmap.png"))
+        
+        progressReport$set(
+          value = 10,
+          message = 'Done',
+          detail = ''
+        )
+      }
     }
   )
 
