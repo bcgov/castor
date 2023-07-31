@@ -73,7 +73,7 @@ experiment(mySim, replicates = 2)
 
 #Plot
 ```{r}
-rast.stk<- rast(paste0 (here::here(), "/R/SpaDES-modules/fisherHabitatCastor/test_rdm_land_fisher_habitat.tif"))
+rast.stk<- rast(paste0 (here::here(), "/R/SpaDES-modules/fisherHabitatCastor/high_to_low.tif"))
 plot(rast.stk["ras_fisher_movement_init"])
 plot(rast.stk["ras_fisher_movement_5"])
 plot(rast.stk["ras_fisher_movement_10"])

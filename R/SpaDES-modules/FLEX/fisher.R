@@ -83,7 +83,7 @@ run_iteration <- function(
     times <- list (start = 0, end = times)
     
     parameters <- list(
-      FLEX2 = list(
+      FLEX = list(
         female_max_age = female_max_age,
         den_target = den_target,
         rest_target = rest_target,
@@ -101,7 +101,7 @@ run_iteration <- function(
     scenario = data.table (name = "test",
                            description = "Testing fisher ABM.")
     
-    modules <- list ("FLEX2")
+    modules <- list ("FLEX")
     
     objects <- list (scenario = scenario)
     inputs <- list ()
