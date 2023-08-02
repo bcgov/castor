@@ -420,11 +420,14 @@ run_iteration <- function(d_iteration, d, sim_params, ssh_keyfile, simulation_id
   sex_ratio <- sim_params$sex_ratio
   female_dispersal <- sim_params$female_dispersal
   time_interval <- sim_params$time_interval
+  burn_in_length <- sim_params$burn_in_length
+  d2_target <- sim_params$d2_target
+  initial_fisher_pop <- sim_params$initial_fisher_pop
   # filename <- uuid::UUIDgenerate(use.time = TRUE)
 
   download_path <- glue::glue('inst/app/{simulation_id}/')
   # fs::dir_create(download_path)
-  command_run <- glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX/fisher.R {times} {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {time_interval} {d_iteration}; ")
+  command_run <- glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX/fisher.R {times} {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {time_interval} {burn_in_length} {d2_target} {initial_fisher_pop} {d_iteration}; ")
 
   output_dir <- '/root/castor/R/scenarios/fisher/outputs'
   downloads_dir <- '/root/castor/R/scenarios/fisher/downloads'

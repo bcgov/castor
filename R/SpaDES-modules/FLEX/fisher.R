@@ -60,7 +60,10 @@ reproductive_age <- as.numeric(args[6])
 sex_ratio <- as.numeric(args[7])
 female_dispersal <- as.numeric(args[8])
 time_interval <- as.numeric(args[9])
-appx <- as.numeric(args[10])
+burn_in_length <- as.numeric(args[10])
+d2_target <- as.numeric(args[11])
+initial_fisher_pop <- as.numeric(args[12])
+appx <- as.numeric(args[13])
 
 run_iteration <- function(
     iteration,
@@ -72,7 +75,10 @@ run_iteration <- function(
     reproductive_age,
     sex_ratio,
     female_dispersal,
-    time_interval
+    time_interval,
+    burn_in_length,
+    d2_target,
+    initial_fisher_pop
 ) {
   # future({
     moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
@@ -92,6 +98,9 @@ run_iteration <- function(
         sex_ratio = sex_ratio,
         female_dispersal = female_dispersal,  # ha; radius = 500 pixels = 50km = 7850km2 area
         timeInterval = time_interval, # should be consistent with the time interval used to model habitat
+        burnInLength = burn_in_length, 
+        d2_target = d2_target,
+        initialFisherPop = initial_fisher_pop,
         # e.g., growingstockLCUS periodLength
         iterations = 1, # not currently implemented
         rasterHabitat = paste0(here::here(), "/R/scenarios/fisher/inputs/scenario.tif")
@@ -137,6 +146,9 @@ parallel::mclapply(
   reproductive_age,
   sex_ratio,
   female_dispersal,
-  time_interval
+  time_interval,
+  burn_in_length,
+  d2_target,
+  initial_fisher_pop
 )
 
