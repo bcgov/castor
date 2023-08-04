@@ -44,3 +44,11 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+### Purpose of Castor
+The purpose of Castor is *compare* alternative *plausible* scenarios of various human-centric forestry decisions in a simulation environment. The relative comparison between scenarios is the true value/purpose of these analyses, whereas, the absolute values of the outcomes should be used with caution. What is deemed *plausible* is left to the quality of the information being used and the resulting logic of the human-centric decisions about harvest scheduling.  
+
+###	Assumptions and Overview
+The Castor model is a spatial strategic model used for quantifying and accounting the impacts of forest management on various indicators over long time periods. Thus, its ability to design site specific plans and their corresponding operations is very limited. Fine scale, operational decisions are important but their complexity is simplified in Castor to meet the resolution (e.g., 1 ha)  and scale (e.g., multiple Timber Supply Areas, very large landscapes (> 1 M ha), long time horizons > 100 years) of the study area. The model uses empirical yield curves (from provincial growth models) to project the forest inventory (VRI) attributes into the future. Human-centric decisions around harvest scheduling are the main assumptions which include WHAT, WHERE, WHEN and HOW much timber to harvest. The model is given a demand of timber volume for each time period (i.e., the HOW much) and the goal of Castor is to “find” that timber volume while meeting various constraints like no harvest areas and aspatial land cover constraints. Castor uses some rules around minimum harvest criteria (i.e, merchantable volume > 150 m3 per ha, etc) to determine WHAT gets harvested. Castor uses a priority (closest to disturbance, oldest age, etc) to figure out the WHERE and WHEN to “find” the timber volume in a specific time period. Castor is “greedy” in that it can’t figure out how to find the optimal harvest schedule. The result of a Castor simulation is a *plausible* harvesting sequence that allows cutblock size, adjacency and other spatial considerations.
+
+
