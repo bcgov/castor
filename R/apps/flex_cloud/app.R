@@ -167,6 +167,18 @@ ui <- shiny::tagList(
                   numericInput(
                     inputId = 'time_interval',  label = "Time interval",
                     min = 0, max = 50, value = 5, step = 5
+                  ),
+                  numericInput(
+                    inputId = 'burn_in_length',  label = "Burn In length",
+                    min = 1, max = 100, value = 5, step = 1
+                  ),
+                  numericInput(
+                    inputId = 'd2_target',  label = "The D2 threshold",
+                    min = 1, max = 15, value = 7, step = 1
+                  ),
+                  textInput(
+                    inputId = 'initial_fisher_pop',  label = "Initial fisher population", 
+                    value = 9999
                   )
                 )
               ),
@@ -545,14 +557,17 @@ server <- function(input, output, session) {
       disable('sex_ratio')
       disable('female_dispersal')
       disable('time_interval')
+      disable('burn_in_length')
+      disable('d2_target')
+      disable('initial_fisher_pop')
       disable('run_scenario')
 
       # FLEX droplet image ----
       snapshots <- snapshots_with_params(per_page = 200)
-      snap_image <- snapshots$`flex-cloud-image-20230325`$id
+      snap_image <- snapshots$`flex-cloud-image-20230728`$id
       if (is.null(snap_image)) {
         shinyjs::alert(
-        "Snapshot flex-cloud-image-20230325 does not exist in your Digital Ocean account. Please recreate it using Server Installation guide and restart the app."
+        "Snapshot flex-cloud-image-20230728 does not exist in your Digital Ocean account. Please recreate it using Server Installation guide and restart the app."
         )
         return(NULL)
       }
@@ -626,7 +641,10 @@ server <- function(input, output, session) {
         reproductive_age = input$reproductive_age,
         sex_ratio = input$sex_ratio,
         female_dispersal = input$female_dispersal,
-        time_interval = input$time_interval
+        time_interval = input$time_interval,
+        burn_in_length = input$burn_in_length,
+        d2_target = input$d2_target,
+        initial_fisher_pop = input$initial_fisher_pop
       )
 
       simulation_id <- stringr::str_replace_all(
@@ -945,6 +963,9 @@ server <- function(input, output, session) {
           enable('sex_ratio')
           enable('female_dispersal')
           enable('time_interval')
+          enable('burn_in_length')
+          enable('d2_target')
+          enable('initial_fisher_pop')
           enable('run_scenario')
         }
       }

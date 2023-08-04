@@ -1,0 +1,359 @@
+---
+title: "fire_count_model"
+output: html_document
+date: '2023-08-01'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source(here::here("R/functions/R_Postgres.R"))
+library(data.table)
+library(sf)
+library(bcdata)
+
+year_vri <- 2010
+wet<-c("mc", "mcp", "mh", "mk", "mkp", "mks", "mm", "mmp", "mmw", "ms", "mv", "mvp", "mw", "mwp", "mww", "vc", "vcp", "vcw", "vh", "vk", "vks", "vm", "wc", "wcp", "wcw", "wh", "whp", "wk", "wm", "wmp", "wmu", "ws", "wv", "wvp", "ww")
+conifer<-c("C","CW","Y","YC","F","FD","FDC","FDI","B","BB","BA","BG","BL","H","HM","HW","HXM","J","JR","JS","P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA","S","SB","SE","SS","SW","SX","SXW","SXL","SXS","T","TW","X", "XC","XH", "ZC")
+deciduous<-c("L", "LA", "LT", "LW", "D", "DR", "U", "UP", "A", "AC", "ACB", "ACT", "AX", "AT", "R", "RA", "E", "EA", "EXP", "EP", "EW", "K", "KC", "V", "VB", "VV", "VP", "G", "M", "MB", "MV", "Q", "QG", "W", "WB", "WP", "WA", "WD", "WS", "WT", "XH", "ZH")
+```
+
+### Pessaki Fuel Type Algorithm
+#### Non-vegetated fuel types
+```{r}
+non_veg_logged<-getTableQuery(glue::glue("select feature_id, (case 
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  <= 6 AND coast_interior_cd = 'C' then 'S-3' 
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  <= 6 AND coast_interior_cd = 'I' then 'S-1' 
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 6 AND {year_vri} - EXTRACT('Year' FROM harvest_date) < 25 AND bec_zone_code in('CWH', 'MH', 'ICH') then 'D-1/2' 
+when EXTRACT('Year' FROM projected_date)- EXTRACT('Year' FROM harvest_date)  > 6 AND EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) < 25 AND bec_zone_code not in('CWH', 'MH', 'ICH') then 'O-1a/b' 
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 25 AND bec_zone_code in ('CMA', 'IMA') then 'N' 
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 25 AND bec_zone_code in ('BAFA','MH') then 'D-1/2' 
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 25 AND bec_zone_code = 'CWH' and bec_subzone not in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}') then 'M-1/2' 
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 25 AND bec_zone_code = 'CWH' and bec_subzone in ('{glue::glue_collapse(wet,  sep ='\\',\\'')}') then 'C-5'
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 25 AND bec_zone_code = 'BWBS' then 'C-2'
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 25 AND bec_zone_code = 'SWB' then 'M-1/2'
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 25 AND bec_zone_code = 'SBS' then 'C-3'
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 25 AND (bec_zone_code in ('SBPS', 'MS', 'ESSF') OR (bec_zone_code in('IDF', 'CDF') AND bec_subzone not in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}'))) then 'C-7'
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 25 AND bec_zone_code = 'IDF' AND bec_subzone in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}') then 'C-3'
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 25 AND bec_zone_code in ('CDF', 'ICH') AND bec_subzone in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}') then 'C-5'
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 25 AND bec_zone_code = 'ICH' AND bec_subzone not in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}') then 'C-3'
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 25 AND bec_zone_code in ('PP', 'BG') then 'O-1a/b'
+end) as fuel_type from veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'N' AND harvest_date is not NULL;"))
+
+non_veg_non_logged<- getTableQuery(glue::glue("select feature_id, (
+case when earliest_nonlogging_dist_type in ('B','BE','BG','BW','BR','NB') and EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date)  <= 3 then 'N'
+when earliest_nonlogging_dist_type in ('B','BE','BG','BW','BR','NB') and {year_vri} - EXTRACT('Year' FROM earliest_nonlogging_dist_date) > 3 and EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) <= 6 then 'D-1/2'
+when earliest_nonlogging_dist_type in ('B','BE','BG','BW','BR','NB') and {year_vri} - EXTRACT('Year' FROM earliest_nonlogging_dist_date) > 6 and EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) <= 10 then 'O-1a/b'
+when bclcs_level_2 = 'L' or bclcs_level_2 is null and bclcs_level_3 = 'A' then 'N'
+when bclcs_level_2 = 'L' or bclcs_level_2 is null and species_cd_1 is not null and bec_zone_code in('CWH', 'MH', 'ICH') then 'D-1/2'
+when bclcs_level_2 = 'L' or bclcs_level_2 is null and species_cd_1 is not null then 'O-1a/b'
+when bclcs_level_2 = 'L' or bclcs_level_2 is null and species_cd_1 is null then 'N'
+when bclcs_level_2 = 'W' then 'W'
+when earliest_nonlogging_dist_type not in ('B','BE','BG','BW','BR','NB') then 'N'
+end) as fuel_type from veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'N' AND harvest_date is NULL;"))
+
+non_veg<-rbind(non_veg_logged, non_veg_non_logged)
+```
+
+#### Vegetated fuel types
+Instead of adding percent conifer to the VRI -- doing this in data.table 
+##### Forested and Recently Burned
+```{r}
+veg_recent_burned <-data.table(getTableQuery(glue::glue("Select feature_id, species_cd_1, species_cd_2, species_cd_3, species_cd_4, species_cd_5, species_pct_1, species_pct_2, species_pct_3, species_pct_3, species_pct_4, species_pct_5, EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) as tsf, crown_closure FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND earliest_nonlogging_dist_type in ('B','BE','BG','BW','BR','NB') and EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) < 11;")))
+veg_recent_burned[tsf< 0, tsf:=0][species_cd_1 %in% conifer, c1:= species_pct_1][species_cd_2 %in% conifer, c2:= species_pct_2][species_cd_3 %in% conifer, c3:= species_pct_3][species_cd_4 %in% conifer, c4:= species_pct_4][species_cd_5 %in% conifer, c5:= species_pct_5][, con_pct:=sum(c1,c2,c3,c4,c5, na.rm =T), by= seq_len(nrow(veg_recent_burned))]
+#get rid of the 5 columns created for conifer percentage
+veg_recent_burned<-veg_recent_burned[, `:=`(c1 = NULL,c2= NULL,c3= NULL,c4= NULL,c5= NULL)]
+
+veg_recent_burned[con_pct >= 60 & crown_closure > 40 & tsf <=3, fuel_type := 'N']
+veg_recent_burned[con_pct >= 60 & crown_closure > 40 & tsf > 3 & tsf <=6, fuel_type := 'D-1/2']
+veg_recent_burned[con_pct >= 60 & crown_closure > 40 & tsf > 6 & tsf <=10, fuel_type := 'C-5']
+veg_recent_burned[con_pct >= 60 & crown_closure <= 40 & tsf <=1, fuel_type := 'N']
+veg_recent_burned[con_pct >= 60 & crown_closure <= 40 & tsf > 1 & tsf <=6, fuel_type := 'D-1/2']
+veg_recent_burned[con_pct >= 60 & crown_closure <= 40 & tsf > 6 & tsf <=10, fuel_type := 'O-1a/b']
+veg_recent_burned[con_pct < 60 & tsf < 1, fuel_type := 'N']
+veg_recent_burned[con_pct < 60 & tsf > 1 & tsf <= 10, fuel_type := 'D-1/2']
+```
+
+##### Forested and Single Species
+###### Lodgepole and Jack Pine
+```{r}
+veg_con_pure_lodgepole_jack <-data.table(getTableQuery(glue::glue("Select feature_id, (case 
+     when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  <= 7 then 'S-1'
+     when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 7 or harvest_date is null and bclcs_level_5 = 'SP' AND (bec_zone_code in('CWH', 'CDF', 'MH') OR (bec_zone_code = 'ICH' AND bec_subzone in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}') )) then 'D-1/2'
+     when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 7 or harvest_date is null and bclcs_level_5 = 'SP' AND (bec_zone_code not in ('CWH', 'CDF', 'MH') OR (bec_zone_code not in ('ICH') AND bec_subzone in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}') )) then 'C-7'
+     when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 7 or harvest_date is null and bclcs_level_5 in ('DE', 'OP') and COALESCE(proj_height_1,0)  < 4  then 'O-1a/b'
+     when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 7 or harvest_date is null and bclcs_level_5 in ('DE', 'OP') and proj_height_1 >= 4 and proj_height_1 < 12 and COALESCE(vri_live_stems_per_ha, 0) + COALESCE(vri_dead_stems_per_ha,0) > 8000  then 'C-4'
+     when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 7 or harvest_date is null and bclcs_level_5 in ('DE', 'OP') and proj_height_1 >= 4 and proj_height_1 < 12 and COALESCE(vri_live_stems_per_ha,0) + COALESCE(vri_dead_stems_per_ha,0) < 8000 or (vri_live_stems_per_ha is null and vri_dead_stems_per_ha is null)  then 'C-3'
+     when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 7 or harvest_date is null and bclcs_level_5 in ('DE', 'OP') and proj_height_1 >= 12 and crown_closure < 40 and bec_zone_code in ('BG', 'PP', 'IDF', 'MS')  then 'C-7'
+     when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 7 or harvest_date is null and bclcs_level_5 in ('DE', 'OP') and proj_height_1 >= 12 and crown_closure < 40 and bec_zone_code in ('CWH', 'MH', 'ICH')  then 'C-5'
+     when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 7 or harvest_date is null and bclcs_level_5 in ('DE', 'OP') and proj_height_1 >= 12 and crown_closure < 40 and bec_zone_code not in ('BG', 'PP', 'IDF', 'MS', 'CWH', 'MH', 'ICH')  then 'C-3'
+     when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 7 or harvest_date is null and bclcs_level_5 in ('DE', 'OP') and proj_height_1 >= 12 and (crown_closure >= 40 or crown_closure is null) and earliest_nonlogging_dist_type = 'IBM' AND EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) <= 5 AND stand_percentage_dead > 50 then 'M-3'
+     when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 7 or harvest_date is null and bclcs_level_5 in ('DE', 'OP') and proj_height_1 >= 12 and (crown_closure >= 40 or crown_closure is null) and earliest_nonlogging_dist_type = 'IBM' AND EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) <= 5 AND stand_percentage_dead < 50 AND stand_percentage_dead >= 25 then 'C-2'
+     when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 7 or harvest_date is null and bclcs_level_5 in ('DE', 'OP') and proj_height_1 >= 12 and (crown_closure >= 40 or crown_closure is null) and earliest_nonlogging_dist_type = 'IBM' AND EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) <= 5 AND (stand_percentage_dead < 25 or stand_percentage_dead is null) then 'C-3'
+     when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 7 or harvest_date is null and bclcs_level_5 in ('DE', 'OP') and proj_height_1 >= 12 and (crown_closure >= 40 or crown_closure is null) and earliest_nonlogging_dist_type = 'IBM' AND EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) > 5 AND stand_percentage_dead > 50 then 'C-2'
+     when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 7 or harvest_date is null and bclcs_level_5 in ('DE', 'OP') and proj_height_1 >= 12 and (crown_closure >= 40 or crown_closure is null) and earliest_nonlogging_dist_type = 'IBM' AND EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) > 5 AND (stand_percentage_dead < 50 or stand_percentage_dead is null) then 'C-3'
+     when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  >= 7 or harvest_date is null and bclcs_level_5 in ('DE', 'OP') and proj_height_1 >= 12 and (crown_closure >= 40 or crown_closure is null) and (earliest_nonlogging_dist_type not in ('IBM') or earliest_nonlogging_dist_type is null)  then 'C-3'
+     end) as fuel_type FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('PL', 'PLI', 'PLC', 'PJ', 'P', 'PXJ', 'PLL');")))
+```
+
+###### Ponderosa Pine
+```{r}
+veg_con_pure_ponderosa <-data.table(getTableQuery(glue::glue("Select feature_id, (case 
+when bclcs_level_5 in ('DE', 'OP') AND EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  <= 10 then 'S-1'                                                           when bclcs_level_5 in ('DE', 'OP') AND (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 10 OR harvest_date is null) and COALESCE(proj_height_1,0)  < 4 then 'O-1a/b'
+when bclcs_level_5 in ('DE', 'OP') AND (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 10 OR harvest_date is null) and proj_height_1 >= 4 and proj_height_1 <= 12 and  COALESCE(vri_live_stems_per_ha,0) + COALESCE(vri_dead_stems_per_ha,0) >= 8000  then 'C-4'
+when bclcs_level_5 in ('DE', 'OP') AND (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 10 OR harvest_date is null) and proj_height_1 >= 4 and proj_height_1 <= 12 and  COALESCE(vri_live_stems_per_ha,0) + COALESCE(vri_dead_stems_per_ha,0) >= 3000  and  COALESCE(vri_live_stems_per_ha,0) + COALESCE(vri_dead_stems_per_ha,0) < 8000  then 'C-3' 
+when bclcs_level_5 in ('DE', 'OP') AND (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 10 OR harvest_date is null) and proj_height_1 >= 4 and proj_height_1 <= 12 and  (COALESCE(vri_live_stems_per_ha,0) + COALESCE(vri_dead_stems_per_ha,0) < 3000  
+OR (vri_live_stems_per_ha is null and vri_dead_stems_per_ha is null))  then 'C-7'
+when bclcs_level_5 = 'DE' AND (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 10 OR harvest_date is null) and proj_height_1 > 12 and proj_height_1 <=17 then 'C-3'
+when bclcs_level_5 = 'OP' AND (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 10 OR harvest_date is null) and proj_height_1 > 12 and proj_height_1 <=17 then 'C-7'
+when bclcs_level_5 in ('DE', 'OP') AND (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 10 OR harvest_date is null) and proj_height_1 > 17 then 'C-7'
+when bclcs_level_5 = 'SP' AND stand_percentage_dead >= 40 then 'O-1a/b'
+when bclcs_level_5 = 'SP' AND COALESCE(stand_percentage_dead,0) < 40 and EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  <= 10 then 'S-1'
+when bclcs_level_5 = 'SP' AND COALESCE(stand_percentage_dead,0) < 40 and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 10 or harvest_date is null) then 'C-7'
+end) as fuel_type  
+FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 = 'PY';")))
+```
+
+###### Other Pine
+```{r}
+veg_con_pure_other_pine <-data.table(getTableQuery(glue::glue("Select feature_id, (case 
+when bclcs_level_5 = 'DE' then 'C-3' 
+when bclcs_level_5 in ('SP', 'OP') and COALESCE(vri_live_stems_per_ha,0) + COALESCE(vri_dead_stems_per_ha,0) >= 900 then 'C-3' 
+when bclcs_level_5 in ('SP', 'OP') and COALESCE(vri_live_stems_per_ha,0) + COALESCE(vri_dead_stems_per_ha,0) >= 600 and COALESCE(vri_live_stems_per_ha,0) + COALESCE(vri_dead_stems_per_ha,0) < 900 then 'C-7' 
+when bclcs_level_5 in ('SP', 'OP') and COALESCE(vri_live_stems_per_ha,0) + COALESCE(vri_dead_stems_per_ha,0) < 600  then 'C-5' 
+end) as fuel_type  
+FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('PA', 'PF', 'PW');")))
+```
+
+###### Douglas-fir
+```{r}
+veg_con_pure_fd <-data.table(getTableQuery(glue::glue("Select feature_id, (case 
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  <= 6 and (bec_zone_code in ('CWH', 'MH', 'CDF') OR (bec_zone_code = 'ICH' and bec_subzone in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}'))) then 'S-3' 
+when EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  <= 6 and (bec_zone_code not in ('CWH', 'MH', 'CDF') OR (bec_zone_code = 'ICH' and bec_subzone not in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}'))) then 'S-1' 
+when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 6 or harvest_date is null) and COALESCE(proj_height_1,0) < 4  and (bec_zone_code  in ('CWH', 'MH', 'CDF') OR (bec_zone_code = 'ICH' and bec_subzone  in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}'))) then 'D-1/2' 
+when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 6 or harvest_date is null) and COALESCE(proj_height_1,0)  < 4  and (bec_zone_code not in ('CWH', 'MH', 'CDF') OR (bec_zone_code = 'ICH' and bec_subzone not in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}'))) then 'O-1a/b' 
+when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 6 or harvest_date is null) and proj_height_1 >= 4 and proj_height_1 < 12 and crown_closure >= 55 and (bec_zone_code in ('CWH', 'MH', 'CDF') OR (bec_zone_code = 'ICH' and bec_subzone in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}'))) then 'C-3' 
+when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 6 or harvest_date is null) and proj_height_1 >= 4 and proj_height_1 < 12 and crown_closure >= 55 and (bec_zone_code not in ('CWH', 'MH', 'CDF') OR (bec_zone_code = 'ICH' and bec_subzone not in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}'))) and stand_percentage_dead > 34 then 'C-4'
+when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 6 or harvest_date is null) and proj_height_1 >= 4 and proj_height_1 < 12 and crown_closure >= 55 and (bec_zone_code not in ('CWH', 'MH', 'CDF') OR (bec_zone_code = 'ICH' and bec_subzone not in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}'))) and COALESCE(stand_percentage_dead, 0) <= 34 then 'C-3'
+when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 6 or harvest_date is null) and proj_height_1 >= 12 and crown_closure >= 55 and (bec_zone_code  in ('CWH', 'MH', 'CDF') OR (bec_zone_code = 'ICH' and bec_subzone  in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}')))  then 'C-5'
+when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 6 or harvest_date is null) and  proj_height_1 >= 12 and crown_closure >= 55 and (bec_zone_code not in ('CWH', 'MH', 'CDF') OR (bec_zone_code = 'ICH' and bec_subzone  not in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}')))  then 'C-7'
+when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 6 or harvest_date is null) and proj_height_1 >= 4 and (crown_closure >=26 and crown_closure < 55 or crown_closure is null) and (bec_zone_code in ('CWH', 'MH', 'CDF') OR (bec_zone_code = 'ICH' and bec_subzone in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}')))  then 'C-5'
+when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 6 or harvest_date is null) and proj_height_1 >= 4 and (crown_closure >=26 and crown_closure < 55 or crown_closure is null) and (bec_zone_code not in ('CWH', 'MH', 'CDF') OR (bec_zone_code = 'ICH' and bec_subzone not in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}')))  then 'C-7'
+when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 6 or harvest_date is null) and proj_height_1 >= 4 and crown_closure < 26 and (bec_zone_code in ('CWH', 'MH', 'CDF') OR (bec_zone_code = 'ICH' and bec_subzone in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}')))  then 'D-1/2'
+when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 6 or harvest_date is null) and proj_height_1 >= 4 and crown_closure < 26 and (bec_zone_code not in ('CWH', 'MH', 'CDF') OR (bec_zone_code = 'ICH' and bec_subzone not in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}')))  then 'O-1a/b'
+end) as fuel_type  
+FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('F','FD','FDC','FDI');")))
+```
+
+###### Spruce
+```{r}
+veg_con_pure_sx <-data.table(getTableQuery(glue::glue("Select feature_id, (case
+when species_cd_1 = 'SE' and EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  <= 10 then 'S-2'
+when species_cd_1 = 'SE' and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 10 or harvest_date is null) and bclcs_level_5 = 'SP' then 'D-1/2'
+when species_cd_1 = 'SE' and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 10 or harvest_date is null) and bclcs_level_5 = 'DE' then 'C-2'
+when species_cd_1 = 'SE' and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 10 or harvest_date is null) and bclcs_level_5 = 'OP' then 'C-3'
+when species_cd_1 = 'SS' and EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  <= 6 then 'S-3'
+when species_cd_1 = 'SS' and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 6 or harvest_date is null) and bclcs_level_5 = 'SP' then 'D-1/2'
+when species_cd_1 = 'SS' and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 6 or harvest_date is null) and bclcs_level_5 in('DE', 'OP') then 'C-5'
+when species_cd_1  in ('SB', 'SW', 'SXW') and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  <= 10) then 'S-3'
+when species_cd_1  in ('SB', 'SW', 'SXW') and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 10 or harvest_date is null)  and bclcs_level_5 in ('DE', 'OP') then 'C-2'
+when species_cd_1  in ('SB', 'SW', 'SXW') and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 10 or harvest_date is null)  and bclcs_level_5 = 'SP' and bec_zone_code in ('BWBS', 'SWB') then 'C-1'
+when species_cd_1  in ('SB', 'SW', 'SXW') and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 10 or harvest_date is null)  and bclcs_level_5 = 'SP' and bec_zone_code not in ('BWBS', 'SWB') then 'M-1/2'
+when species_cd_1  in ('S', 'SX', 'SXL', 'SXS') and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  <= 7)  then 'S-2'
+when species_cd_1  in ('S', 'SX', 'SXL', 'SXS') and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 7 or harvest_date is null) and bec_zone_code in ('BWBS', 'SWB') and bclcs_level_5 in ('DE', 'OP')  then 'C-2'
+when species_cd_1  in ('S', 'SX', 'SXL', 'SXS') and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 7 or harvest_date is null) and bec_zone_code in ('BWBS', 'SWB') and bclcs_level_5 = 'SP'  then 'C-1'
+when species_cd_1  in ('S', 'SX', 'SXL', 'SXS') and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) > 7 or harvest_date is null) and bec_zone_code not in ('BWBS', 'SWB') and bclcs_level_5  = 'SP' then 'C-7'
+when species_cd_1  in ('S', 'SX', 'SXL', 'SXS') and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) > 7 or harvest_date is null) and bec_zone_code in ('CWH', 'CDF') and bclcs_level_5  in ('DE', 'OP')  then 'C-5'
+when species_cd_1  in ('S', 'SX', 'SXL', 'SXS') and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) > 7 or harvest_date is null) and bec_zone_code not in ('BWBS', 'SWB','CWH', 'CDF') and bclcs_level_5 in ('DE', 'OP') and COALESCE (proj_height_1, 0 ) <= 4 then '0-1a/b'
+when species_cd_1  in ('S', 'SX', 'SXL', 'SXS') and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) > 7 or harvest_date is null) and bec_zone_code not in ('BWBS', 'SWB','CWH', 'CDF') and bclcs_level_5 ='DE' and COALESCE (proj_height_1, 0 ) > 4 then 'C-2'
+when species_cd_1  in ('S', 'SX', 'SXL', 'SXS') and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) > 7 or harvest_date is null) and bec_zone_code not in ('BWBS', 'SWB','CWH', 'CDF') and bclcs_level_5 ='OP' and COALESCE (proj_height_1, 0 ) > 4 then 'C-3'
+end) as fuel_type  
+FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('S','SB','SE','SS','SW','SX','SXW','SXL','SXS');")))
+```
+
+###### Hemlock
+```{r}
+veg_con_pure_hw <-data.table(getTableQuery(glue::glue("Select feature_id, (case
+   when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) <= 6) then 'S-3'             when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) > 6 or harvest_date is null) and bclcs_level_5 = 'DE' and COALESCE(proj_height_1, 0) <= 4 then 'D-1/2' 
+   when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) > 6 or harvest_date is null) and bclcs_level_5 = 'DE' and COALESCE(proj_height_1, 0) > 4 and proj_height_1 <= 15 then 'C-3'
+   when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) > 6 or harvest_date is null) and bclcs_level_5 = 'DE' and proj_height_1 >  15 and COALESCE(proj_age_1,0) <= 60 then 'C-3' 
+   when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) > 6 or harvest_date is null) and bclcs_level_5 = 'DE' and proj_height_1 >  15 and proj_age_1 > 60 and proj_age_1 <= 99 then 'M-1/2' 
+   when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) > 6 or harvest_date is null) and bclcs_level_5 = 'DE' and proj_height_1 >  15 and proj_age_1 > 99 then 'C-5' 
+   when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) > 6 or harvest_date is null) and bclcs_level_5 = 'OP' then 'C-5' 
+   when (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) > 6 or harvest_date is null) and bclcs_level_5 = 'SP' then 'D-1/2'
+   end)  as fuel_type 
+FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('H','HM','HW','HXM', 'C','CW','Y','YC');")))
+```
+
+###### True Fir
+```{r}
+veg_con_pure_fir <-data.table(getTableQuery(glue::glue("Select feature_id, (case
+when species_cd_1 = 'BG' then 'C-7'
+when species_cd_1 = 'BA' then 'M-1/2'
+when species_cd_1 in ('B','BB','BL') and bclcs_level_5 = 'SP' then 'C-7'
+when species_cd_1 in ('B','BB','BL') and (bclcs_level_5 not in ('SP') or bclcs_level_5 is null) then 'C-3'
+when species_cd_1 in ('T','TW') then 'C-5'
+when species_cd_1 in ('J','JR','JS') then 'O-1a/b'
+   end)  as fuel_type 
+FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('BG', 'BA', 'B','BB','BL', 'T','TW','J','JR','JS');")))
+```
+
+
+###### Deciduous
+```{r}
+veg_dec_pure <-data.table(getTableQuery(glue::glue("Select feature_id, 'D-1/2' as fuel_type 
+FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('{glue::glue_collapse(deciduous,  sep = '\\',\\'')}');")))
+```
+
+##### Forested and Mixed species
+```{r}
+veg_mixed <-data.table(getTableQuery(glue::glue("Select feature_id, coast_interior_cd, bclcs_level_5, bec_zone_code, bec_subzone, proj_height_1, COALESCE(vri_live_stems_per_ha,0) as vri_live_stems_per_ha, COALESCE(vri_dead_stems_per_ha,0) as vri_dead_stems_per_ha, COALESCE (stand_percentage_dead, 0) as stand_percentage_dead, species_cd_1, species_cd_2, species_cd_3, species_cd_4, species_cd_5,species_cd_6, species_pct_1, species_pct_2, species_pct_3, species_pct_3, species_pct_4, species_pct_5,species_pct_6, EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as ys_log, EXTRACT('Year' FROM projected_date)- EXTRACT('Year' FROM earliest_nonlogging_dist_date) as ys_dist, earliest_nonlogging_dist_type, proj_age_1, crown_closure FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 < 80;")))
+veg_mixed[species_cd_1 %in% conifer, c1:= species_pct_1][species_cd_2 %in% conifer, c2:= species_pct_2][species_cd_3 %in% conifer, c3:= species_pct_3][species_cd_4 %in% conifer, c4:= species_pct_4][species_cd_5 %in% conifer, c5:= species_pct_5][, con_pct:=sum(c1,c2,c3,c4,c5, na.rm =T), by= seq_len(nrow(veg_mixed))]
+#Get the dominant conifer species
+veg_mixed[, dcsp := ifelse(species_cd_1 %in% conifer, species_cd_1, 
+                                   ifelse(species_cd_2 %in% conifer, species_cd_2,
+                                          ifelse(species_cd_3 %in% conifer, species_cd_3,
+                                                 ifelse(species_cd_4 %in% conifer, species_cd_4,
+                                                        ifelse(species_cd_5 %in% conifer, species_cd_5,
+                                                               ifelse(species_cd_6 %in% conifer, species_cd_6, NA))))))]
+#get rid of the 5 columns created for conifer percentage
+veg_mixed<-veg_mixed[, `:=`(c1 = NULL,c2= NULL,c3= NULL,c4= NULL,c5= NULL)]
+
+# Conifer < 20%
+veg_mixed[con_pct <= 20, fuel_type := 'D-1/2' ]
+
+# Conifer 20 to 40%
+veg_mixed[con_pct > 20 & con_pct <= 40 & ys_log <= 6, fuel_type := 'S-1' ]
+veg_mixed[con_pct > 20 & con_pct <= 40 & (ys_log > 6 | is.na(ys_log)), fuel_type := 'M-1/2' ]
+
+# Conifer 40 to 65%
+veg_mixed[con_pct > 40 & con_pct <= 65 & ys_log <= 6, fuel_type := 'S-1' ]
+veg_mixed[con_pct > 40 & con_pct <= 65 & (ys_log > 6 | is.na(ys_log)) & !(dcsp %in% c('T','TW', 'J','JR','JS')), fuel_type := 'M-1/2' ]
+veg_mixed[con_pct > 40 & con_pct <= 65 & (ys_log > 6 | is.na(ys_log)) & dcsp %in% c('T','TW'), fuel_type := 'C-5' ]
+veg_mixed[con_pct > 40 & con_pct <= 65 & (ys_log > 6 | is.na(ys_log)) & dcsp %in% c('J','JR','JS'), fuel_type := 'O-1a/b' ]
+
+# Conifer 65 to 80%
+veg_mixed[con_pct > 65 & con_pct <= 80 & ys_log <= 6, fuel_type := 'S-1' ]
+veg_mixed[con_pct > 65 & con_pct <= 80 & (ys_log > 6 | is.na(ys_log)) & dcsp %in% c('PLI', 'PL', 'PLC', 'PJ', 'P'), fuel_type := 'M-1/2' ]
+veg_mixed[con_pct > 65 & con_pct <= 80 & (ys_log > 6 | is.na(ys_log)) & dcsp == 'PY', fuel_type := 'C-7' ]
+veg_mixed[con_pct > 65 & con_pct <= 80 & (ys_log > 6 | is.na(ys_log)) & dcsp %in% c('PA', 'PF', 'PW'), fuel_type := 'C-5' ]
+veg_mixed[con_pct > 65 & con_pct <= 80 & (ys_log > 6 | is.na(ys_log)) & dcsp %in% c('F', 'FDC', 'FDI', 'FD') & (bec_zone_code %in% c('CWH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)) , fuel_type := 'C-5' ]
+veg_mixed[con_pct > 65 & con_pct <= 80 & (ys_log > 6 | is.na(ys_log)) & dcsp %in% c('F', 'FDC', 'FDI', 'FD') & !(bec_zone_code %in% c('CWH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)) & bclcs_level_5 == 'DE', fuel_type := 'M-1/2' ]
+veg_mixed[con_pct > 65 & con_pct <= 80 & (ys_log > 6 | is.na(ys_log)) & dcsp %in% c('F', 'FDC', 'FDI', 'FD') & !(bec_zone_code %in% c('CWH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)) & !(bclcs_level_5 == 'DE'), fuel_type := 'C-7' ]
+veg_mixed[con_pct > 65 & con_pct <= 80 & (ys_log > 6 | is.na(ys_log)) & dcsp %in% c('SE', 'SB', 'SW') , fuel_type := 'M-1/2' ]
+veg_mixed[con_pct > 65 & con_pct <= 80 & (ys_log > 6 | is.na(ys_log)) & dcsp == 'SS' , fuel_type := 'C-5' ]
+veg_mixed[con_pct > 65 & con_pct <= 80 & (ys_log > 6 | is.na(ys_log)) & dcsp %in% c('SX', 'S', 'SXL', 'SXS', 'SXW') & bec_zone_code %in% c('BWBS', 'SWB') , fuel_type := 'M-1/2' ]
+veg_mixed[con_pct > 65 & con_pct <= 80 & (ys_log > 6 | is.na(ys_log)) & dcsp %in% c('SX', 'S', 'SXL', 'SXS', 'SXW') & !(bec_zone_code %in% c('BWBS', 'SWB')) & bclcs_level_5 == 'SP' , fuel_type := 'M-1/2']
+veg_mixed[con_pct > 65 & con_pct <= 80 & (ys_log > 6 | is.na(ys_log)) & dcsp %in% c('SX', 'S', 'SXL', 'SXS', 'SXW') & !(bec_zone_code %in% c('BWBS', 'SWB')) & bclcs_level_5 %in% c('OP', 'DE') & coast_interior_cd == 'I' , fuel_type := 'M-1/2']
+veg_mixed[con_pct > 65 & con_pct <= 80 & (ys_log > 6 | is.na(ys_log)) & dcsp %in% c('SX', 'S', 'SXL', 'SXS', 'SXW') & !(bec_zone_code %in% c('BWBS', 'SWB')) & bclcs_level_5 %in% c('OP', 'DE') & coast_interior_cd == 'C' , fuel_type := 'C-5']
+veg_mixed[con_pct > 65 & con_pct <= 80 & (ys_log > 6 | is.na(ys_log)) & dcsp %in% c('H','HM','HW', 'HXM','TW','T','CW','C','YC','Y') , fuel_type := 'C-5' ]
+veg_mixed[con_pct > 65 & con_pct <= 80 & (ys_log > 6 | is.na(ys_log)) & dcsp %in% c('B','BA', 'BL', 'BB', 'BG', 'J', 'JR', 'JS') , fuel_type := 'C-7' ]
+
+# Conifer 81 to 100%
+####---PL/PJ
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & ys_log <= 7, fuel_type := 'S-1' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'SP' & (bec_zone_code %in% c('CWH', 'CDF', 'MH') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)), fuel_type := 'D-1/2' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'SP' & !(bec_zone_code %in% c('CWH', 'CDF', 'MH') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)), fuel_type := 'C-7' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & (proj_height_1 < 4 | is.na(proj_height_1)), fuel_type := 'O-1a/b' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW') & proj_height_1 <= 12 & vri_live_stems_per_ha + vri_dead_stems_per_ha >= 8000, fuel_type := 'C-4' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW') & proj_height_1 <= 12 & (vri_live_stems_per_ha + vri_dead_stems_per_ha < 8000 | (vri_live_stems_per_ha == 0 & vri_dead_stems_per_ha == 0)), fuel_type := 'C-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW') & proj_height_1 > 12 & crown_closure < 40 & bec_zone_code %in% c('BG', 'PP','IDF', 'MS'), fuel_type := 'C-7' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW') & proj_height_1 > 12 & crown_closure < 40 & bec_zone_code %in% c('CWH', 'MH', 'ICH'), fuel_type := 'C-5' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW') & proj_height_1 > 12 & crown_closure < 40 & !(bec_zone_code %in% c('BG', 'PP','IDF', 'MS', 'CWH', 'MH', 'ICH')), fuel_type := 'C-3' ]
+
+####---PL/PJ BEETLE
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW') & proj_height_1 > 12 & earliest_nonlogging_dist_type == 'IBM' & ys_dist <=5 & bclcs_level_5 == 'DE' & stand_percentage_dead >= 50 & crown_closure >= 40, fuel_type := 'M-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW') & proj_height_1 > 12 & earliest_nonlogging_dist_type == 'IBM' & ys_dist <=5 & bclcs_level_5 == 'DE' & stand_percentage_dead < 50 & crown_closure >= 40, fuel_type := 'C-2' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW') & proj_height_1 > 12 & earliest_nonlogging_dist_type == 'IBM' & ys_dist <=5 & !(bclcs_level_5 == 'DE') & stand_percentage_dead >= 50 & crown_closure >= 40, fuel_type := 'M-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW') & proj_height_1 > 12 & earliest_nonlogging_dist_type == 'IBM' & ys_dist <=5 & !(bclcs_level_5 == 'DE') & stand_percentage_dead < 50 & stand_percentage_dead > 25 & crown_closure >= 40, fuel_type := 'C-2' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW') & proj_height_1 > 12 & earliest_nonlogging_dist_type == 'IBM' & ys_dist <=5 & !(bclcs_level_5 == 'DE') & stand_percentage_dead < 25 & crown_closure >= 40, fuel_type := 'C-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW') & proj_height_1 > 12 & earliest_nonlogging_dist_type == 'IBM' & ys_dist > 5 & bclcs_level_5 == 'DE' & stand_percentage_dead > 25 & crown_closure >= 40, fuel_type := 'C-2' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW') & proj_height_1 > 12 & earliest_nonlogging_dist_type == 'IBM' & ys_dist > 5 & bclcs_level_5 == 'DE' & stand_percentage_dead <= 25 & crown_closure >= 40, fuel_type := 'C-3' ]
+
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW') & proj_height_1 > 12 & earliest_nonlogging_dist_type == 'IBM' & ys_dist > 5 & !(bclcs_level_5 == 'DE') & stand_percentage_dead >= 50 & crown_closure >= 40, fuel_type := 'C-2' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW') & proj_height_1 > 12 & earliest_nonlogging_dist_type == 'IBM' & ys_dist > 5 & !(bclcs_level_5 == 'DE') & stand_percentage_dead < 50 & crown_closure >= 40, fuel_type := 'C-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW') & proj_height_1 > 12 & crown_closure >= 40, fuel_type := 'C-3' ]
+
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & !(species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW')) & crown_closure < 40 & bec_zone_code %in% c('IDF', 'PP', 'BG', 'SBPS', 'MS'), fuel_type := 'C-7' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & !(species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW')) & crown_closure < 40 & bec_zone_code %in% c('CWH', 'CDF', 'ICH'), fuel_type := 'C-5' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & !(species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW')) & crown_closure < 40 & !(bec_zone_code %in% c('CWH', 'CDF', 'ICH', 'IDF', 'PP', 'BG', 'SBPS', 'MS')), fuel_type := 'C-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PLI', 'PL', 'PLC', 'PJ', 'P') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 %in% c('DE', 'OP') & proj_height_1 >= 4 & !(species_cd_2 %in% c('B','BA', 'BL', 'BB', 'BG', 'S', 'SE', 'SB', 'SW', 'SX', 'SS', 'SXL', 'SXS', 'SXW')) & (crown_closure >= 40 | is.na(crown_closure)) , fuel_type := 'C-3' ]
+
+####---PY
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PY') & ys_log <= 7 , fuel_type := 'S-1' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PY') & (ys_log > 7 | is.na(ys_log)) & proj_height_1 < 4 , fuel_type := 'O-1a/b' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PY') & (ys_log > 7 | is.na(ys_log)) & proj_height_1 >= 4 & bclcs_level_5 == 'DE', fuel_type := 'C-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PY') & (ys_log > 7 | is.na(ys_log)) & proj_height_1 >= 4 & !(bclcs_level_5 == 'DE'), fuel_type := 'C-7' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PA', 'PF', 'PW') & bclcs_level_5 == 'DE' , fuel_type := 'C-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PA', 'PF', 'PW') & !(bclcs_level_5 == 'DE') & vri_live_stems_per_ha + vri_dead_stems_per_ha >=900 , fuel_type := 'C-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PA', 'PF', 'PW') & !(bclcs_level_5 == 'DE') & vri_live_stems_per_ha + vri_dead_stems_per_ha < 900 & vri_live_stems_per_ha + vri_dead_stems_per_ha > 600, fuel_type := 'C-7' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('PA', 'PF', 'PW') & !(bclcs_level_5 == 'DE') & vri_live_stems_per_ha + vri_dead_stems_per_ha <= 600, fuel_type := 'C-5' ]
+
+####---FD
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('F','FD','FDC','FDI') & ys_log <= 6 & (bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)), fuel_type := 'S-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('F','FD','FDC','FDI') & ys_log <= 6 & !(bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)), fuel_type := 'S-1' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('F','FD','FDC','FDI') & (ys_log > 7 | is.na(ys_log)) & proj_height_1 < 4 & (bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)), fuel_type := 'D-1/2' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('F','FD','FDC','FDI') & (ys_log > 7 | is.na(ys_log)) & proj_height_1 < 4 & !(bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)), fuel_type := 'O-1a/b' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('F','FD','FDC','FDI') & (ys_log > 7 | is.na(ys_log)) & proj_height_1 >= 4 & proj_height_1 < 12 & crown_closure > 55 & (bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)), fuel_type := 'C-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('F','FD','FDC','FDI') & (ys_log > 7 | is.na(ys_log)) & proj_height_1 >= 4 & proj_height_1 < 12 & crown_closure > 55 & !(bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)) & stand_percentage_dead > 34, fuel_type := 'C-4' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('F','FD','FDC','FDI') & (ys_log > 7 | is.na(ys_log)) & proj_height_1 >= 4 & proj_height_1 < 12 & crown_closure > 55 & !(bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)) & stand_percentage_dead < 34 & species_cd_2 == 'PY', fuel_type := 'C-7' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('F','FD','FDC','FDI') & (ys_log > 7 | is.na(ys_log)) & proj_height_1 >= 4 & proj_height_1 < 12 & crown_closure > 55 & !(bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)) & stand_percentage_dead < 34 & !(species_cd_2 == 'PY'), fuel_type := 'C-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('F','FD','FDC','FDI') & (ys_log > 7 | is.na(ys_log)) & proj_height_1 >= 12 & crown_closure > 55 & (bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)), fuel_type := 'C-5' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('F','FD','FDC','FDI') & (ys_log > 7 | is.na(ys_log)) & proj_height_1 >= 12 & crown_closure > 55 & !(bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)), fuel_type := 'C-7' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('F','FD','FDC','FDI') & (ys_log > 7 | is.na(ys_log)) & ((crown_closure < 55 & crown_closure > 26) | is.na(crown_closure)) & (bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)), fuel_type := 'C-5' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('F','FD','FDC','FDI') & (ys_log > 7 | is.na(ys_log)) & ((crown_closure < 55 & crown_closure > 26) | is.na(crown_closure)) & !(bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)), fuel_type := 'C-7' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('F','FD','FDC','FDI') & (ys_log > 7 | is.na(ys_log)) & crown_closure <  26 & (bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)), fuel_type := 'D-1/2' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('F','FD','FDC','FDI') & (ys_log > 7 | is.na(ys_log)) & crown_closure <  26 & !(bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)), fuel_type := 'O-1a/b' ]
+
+####---S
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S', 'SB','SE','SS','SW','SX','SXW','SXL','SXS') & ys_log <= 6 & (bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)), fuel_type := 'S-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S', 'SB','SE','SS','SW','SX','SXW','SXL','SXS') & ys_log <= 6 & !(bec_zone_code %in% c('CWH', 'MH', 'CDF') | (bec_zone_code == 'ICH' & bec_subzone %in% wet)), fuel_type := 'S-2' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S', 'SB','SE','SS','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & species_cd_1 == 'SE' & bclcs_level_5 == 'SP', fuel_type := 'C-7' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S', 'SB','SE','SS','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & species_cd_1 == 'SE' & bclcs_level_5 == 'DE' & species_cd_2 %in% c('BL', 'B', 'PL', 'P', 'PLI'), fuel_type := 'C-2' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S', 'SB','SE','SS','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & species_cd_1 == 'SE' & bclcs_level_5 == 'OP' & species_cd_2 %in% c('BL', 'B', 'PL', 'P', 'PLI'), fuel_type := 'C-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S', 'SB','SE','SS','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & species_cd_1 == 'SE' & bclcs_level_5 == 'DE' & species_cd_2 %in% c('HW', 'HM', 'CW', 'YC'), fuel_type := 'C-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S', 'SB','SE','SS','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & species_cd_1 == 'SE' & bclcs_level_5 == 'OP' & species_cd_2 %in% c('HW', 'HM', 'CW', 'YC'), fuel_type := 'C-5' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S', 'SB','SE','SS','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & species_cd_1 == 'SE' & bclcs_level_5 %in% c('OP', 'DE') & !(species_cd_2 %in% c('HW', 'HM', 'CW', 'YC', 'BL', 'B', 'PL', 'P', 'PLI')), fuel_type := 'C-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S', 'SB','SE','SS','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & species_cd_1 == 'SS', fuel_type := 'C-5' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S', 'SB','SE','SS','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & species_cd_1 == 'SB' & bclcs_level_5 %in% c('OP', 'DE'), fuel_type := 'C-2' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S', 'SB','SE','SS','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & species_cd_1 == 'SB' & bclcs_level_5 == 'SP' & bec_zone_code == 'BWBS', fuel_type := 'C-1' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S', 'SB','SE','SS','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & species_cd_1 == 'SB' & bclcs_level_5 == 'SP' & !(bec_zone_code == 'BWBS'), fuel_type := 'C-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'DE' & (bec_zone_code == 'BWBS'), fuel_type := 'C-2' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'OP' & (bec_zone_code == 'BWBS'), fuel_type := 'C-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'SP' & (bec_zone_code == 'BWBS'), fuel_type := 'C-1' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'SP' & !(bec_zone_code == 'BWBS') & bec_zone_code %in% c('CWH', 'MH', 'CDF') & species_cd_2 %in% c('P', 'P','PJ','PF','PL','PR','PLI','PXJ','PY','PLC','PW','PA', 'BL', 'B'), fuel_type := 'C-7' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & !(bec_zone_code == 'BWBS') & bec_zone_code %in% c('CWH', 'MH', 'CDF') & species_cd_2 %in% c('P', 'P','PJ','PF','PL','PR','PLI','PXJ','PY','PLC','PW','PA', 'BL', 'B') & !(bclcs_level_5 == 'SP'), fuel_type := 'C-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'SP' & !(bec_zone_code == 'BWBS') & !(bec_zone_code %in% c('CWH', 'MH', 'CDF')), fuel_type := 'C-7' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'DE' & !(bec_zone_code == 'BWBS') & !(bec_zone_code %in% c('CWH', 'MH', 'CDF')), fuel_type := 'C-2' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'OP' & !(bec_zone_code == 'BWBS') & !(bec_zone_code %in% c('CWH', 'MH', 'CDF')) & stand_percentage_dead > 34, fuel_type := 'C-2' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'OP' & !(bec_zone_code == 'BWBS') & !(bec_zone_code %in% c('CWH', 'MH', 'CDF')) & (stand_percentage_dead <= 34 | is.na(stand_percentage_dead)) & species_cd_2 %in% c('P', 'PLI', 'PL'), fuel_type := 'C-2' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('S','SW','SX','SXW','SXL','SXS') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'OP' & !(bec_zone_code == 'BWBS') & !(bec_zone_code %in% c('CWH', 'MH', 'CDF')) & (stand_percentage_dead <= 34 | is.na(stand_percentage_dead)) & !(species_cd_2 %in% c('P', 'PLI', 'PL')), fuel_type := 'C-3' ]
+
+####---H, C, Y
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('H','HW','HM','HXM','C','CW','Y','YC') & ys_log <= 6 , fuel_type := 'S-3' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('H','HW','HM','HXM','C','CW','Y','YC') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'DE' & proj_height_1 <= 4 , fuel_type := 'D-1/2' ]
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('H','HW','HM','HXM','C','CW','Y','YC') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'DE' & proj_height_1 > 4 & proj_height_1 <= 15 , fuel_type := 'C-3']
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('H','HW','HM','HXM','C','CW','Y','YC') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'DE' & proj_height_1 > 15 & proj_age_1 <= 60, fuel_type := 'C-3']
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('H','HW','HM','HXM','C','CW','Y','YC') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'DE' & proj_height_1 > 15 & proj_age_1 > 60 & proj_age_1 <= 99, fuel_type := 'M-1/2']
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('H','HW','HM','HXM','C','CW','Y','YC') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'DE' & proj_height_1 > 15 & proj_age_1 >  99, fuel_type := 'C-5']
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('H','HW','HM','HXM','C','CW','Y','YC') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'OP', fuel_type := 'C-5']
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('H','HW','HM','HXM','C','CW','Y','YC') & (ys_log > 7 | is.na(ys_log)) & bclcs_level_5 == 'SP', fuel_type := 'D-1/2']
+
+####---BG
+veg_mixed[con_pct > 80 & species_cd_1 == 'BG', fuel_type := 'C-7']
+veg_mixed[con_pct > 80 & species_cd_1 == 'BA' & species_cd_2 %in% c('SE', 'SW', 'S'), fuel_type := 'C-3']
+veg_mixed[con_pct > 80 & species_cd_1 == 'BA' & !(species_cd_2 %in% c('SE', 'SW', 'S')), fuel_type := 'M-1/2']
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('BL', 'BB', 'B') & coast_interior_cd == 'C', fuel_type := 'M-1/2']
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('BL', 'BB', 'B') & coast_interior_cd == 'I' & bclcs_level_5 == 'SP', fuel_type := 'C-7']
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('BL', 'BB', 'B') & coast_interior_cd == 'I' & bclcs_level_5 == 'OP', fuel_type := 'C-3']
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('BL', 'BB', 'B') & coast_interior_cd == 'I' & bclcs_level_5 == 'DE' & species_cd_2 %in% c('SE', 'SW', 'S'), fuel_type := 'C-2']
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('BL', 'BB', 'B') & coast_interior_cd == 'I' & bclcs_level_5 == 'DE' & !(species_cd_2 %in% c('SE', 'SW', 'S')), fuel_type := 'C-3']
+
+####---Left overs
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('T', 'TW') , fuel_type := 'C-5']
+veg_mixed[con_pct > 80 & species_cd_1 %in% c('J', 'JR', 'JS') , fuel_type := 'C-7']
+```
+
+##### Non-Forested
+```{r}
+non_forested <-data.table(getTableQuery(glue::glue("Select feature_id, coast_interior_cd, bclcs_level_5, bec_zone_code, bec_subzone, proj_height_1, COALESCE(vri_live_stems_per_ha,0) as vri_live_stems_per_ha, COALESCE(vri_dead_stems_per_ha,0) as vri_dead_stems_per_ha, COALESCE (stand_percentage_dead, 0) as stand_percentage_dead, species_cd_1, species_cd_2, species_cd_3, species_cd_4, species_cd_5,species_cd_6, species_pct_1, species_pct_2, species_pct_3, species_pct_3, species_pct_4, species_pct_5,species_pct_6, EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as ys_log, EXTRACT('Year' FROM projected_date)- EXTRACT('Year' FROM earliest_nonlogging_dist_date) as ys_dist, earliest_nonlogging_dist_type, proj_age_1, crown_closure FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 < 80;")))
+```
