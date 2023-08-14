@@ -53,7 +53,7 @@ parameters <- list(FLEX = list (female_max_age = 9,
                                  timeInterval = 5, # should be consistent with the time interval used to model habitat
                                                     # e.g., growingstockLCUS periodLength
                                 # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
-                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/fisherHabitatCastor/test_rdm_land_fisher_habitat.tif")
+                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/fisherHabitatCastor/scen1c_static_high.tif")
 
                 )
 )
@@ -73,7 +73,7 @@ experiment(mySim, replicates = 2)
 
 #Plot
 ```{r}
-rast.stk<- rast(paste0 (here::here(), "/R/SpaDES-modules/fisherHabitatCastor/high_to_low.tif"))
+rast.stk<- rast(paste0 (here::here(), "/R/SpaDES-modules/fisherHabitatCastor/scen1c_static_high.tif"))
 plot(rast.stk["ras_fisher_movement_init"])
 plot(rast.stk["ras_fisher_movement_5"])
 plot(rast.stk["ras_fisher_movement_10"])
@@ -85,12 +85,15 @@ plot(rast.stk["ras_fisher_denning_10"])
 plot(rast.stk["ras_fisher_denning_15"])
 plot(rast.stk["ras_fisher_denning_20"])
 
-dir_reps<-data.table(dir(paste0(here::here(),"R/scenarios/test_flex2/outputs")))[V1 %like% "rep",]
+dir_reps<-data.table(dir(paste0(here::here(),"/R/scenarios/test_flex2/outputs/static_high/columbia/")))[V1 %like% "rep",]
 abmReport<-rbindlist(lapply(dir_reps$V1, function(x) {
-  readRDS(paste0(here::here(),"/R/scenarios/test_flex2/outputs/",x,"/fisherABMReport_year4.rds"))}))
+  readRDS(paste0(here::here(),"/R/scenarios/test_flex2/outputs/static_high/columbia/",x,"/fisherABMReport_year4.rds"))}))
 
 ggplot(data = abmReport, aes(x=timeperiod,y=n_f_adult)) +
    stat_binhex() +
   geom_smooth()
 #writeRaster(terr.ras, "test_terr2.tif", overwrite = T)
+
+ggplot(data = abmReport, aes(x=timeperiod,y=n_f_adult, group = timeperiod)) +
+  geom_boxplot()
 ```

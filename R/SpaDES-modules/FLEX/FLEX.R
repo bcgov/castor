@@ -63,7 +63,7 @@ defineModule(sim, list(
     createsOutput (objectName = "spread.rast", objectClass = "RasterLayer", desc = "The raster layer describing how fisher search for habitat." ),
     createsOutput (objectName = "table.hab.spread", objectClass = "data.table", desc = "Fisher habitat categoires table." ),
     createsOutput (objectName = "ras.territories", objectClass = "SpatRaster", desc = "The territories over a sim." ),
-    #createsOutput (objectName = "fisherHRStack", objectClass = "SpatRaster", desc = "The territories over a sim." ),
+    createsOutput (objectName = "ras.territories.stack", objectClass = "SpatRaster", desc = "The territories over a sim as a stacked raster." ),
     createsOutput (objectName = "max.id", objectClass = "integer", desc = "The maximum territory identifier" ),
     createsOutput (objectName = "fisherABMReport", objectClass = "data.table", desc = "A data.table object. Consists of fisher population numbers in the study area at each time step."),
     
@@ -86,6 +86,7 @@ doEvent.FLEX = function(sim, eventTime, eventType) {
         sim <- plot_territories(sim)
       }
       sim <- scheduleEvent (sim, time (sim) + 1, "FLEX", "runevents", 19)
+      sim <- scheduleEvent (sim, end(sim), "FLEX", "save_fisher_reports", 20)
     },
     runevents = {
       
@@ -111,6 +112,9 @@ doEvent.FLEX = function(sim, eventTime, eventType) {
     
     plot = {
       sim <- plot_territories(sim)
+    },
+    save_fisher_reports = {
+      sim <- saveFisherReports(sim)
     },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -706,10 +710,25 @@ recordABMReport<-function(sim, i){
                                  scenario = as.character (sim$scenario$name))
   
   sim$fisherABMReport <- rbindlist (list (sim$fisherABMReport, new.agents.save), use.names = TRUE)
-  #abmReport<<-sim$fisherABMReport
-  #browser()
-  terra::writeRaster(sim$ras.territories, paste0(SpaDES.core::outputPath(sim),"/hr_",time(sim) * P (sim, "timeInterval", "FLEX") + i, ".tif"), overwrite = T)
+  #terra::writeRaster(sim$ras.territories, paste0(SpaDES.core::outputPath(sim),"/hr_",time(sim) * P (sim, "timeInterval", "FLEX") + i, ".tif"), overwrite = T)
+  names(sim$ras.territories) <- paste0("hr_", as.integer ( time(sim) * P (sim, "timeInterval", "FLEX") + (i-1)))
+  if(is.null(sim$ras.territories.stack)){
+    sim$ras.territories.stack <- sim$ras.territories
+    
+  }else{
+    sim$ras.territories.stack <- rast(list(sim$ras.territories.stack,sim$ras.territories))
+  }
   
+  
+  return(invisible(sim))
+}
+
+saveFisherReports<-function(sim){
+  write.csv (x = sim$fisherABMReport,
+             file = paste0 (outputPath (sim), "/", sim$scenario$name, "_fisher_agents.csv"))
+  writeRaster (x = sim$ras.territories.stack,
+                       filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_fisher_territories.tif"),
+                       overwrite = TRUE)
   return(invisible(sim))
 }
 
@@ -864,12 +883,12 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
   }
   if(!suppliedElsewhere("survival_rate_table", sim)){
     sim$survival_rate_table <- rbindlist(list(
-      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4),
+      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,30,30,30,30,3,3,3,3),
                   type = "Established",
                   cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
                   Mean = c (0.8, 0.6, 0.8, 0.2,  0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8,0.2),
                   SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1, 0.2,0.1,0.1,0.1,0.1,0.1,0.1)), 
-      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4),
+      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,30,30,30,30,3,3,3,3),
                   type = "Disperser",
                   cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
                   Mean = c (0.75, 0.6, 0.75, 0.2,  0.75, 0.6, 0.75, 0.2, 0.75, 0.6, 0.75, 0.2, 0.75, 0.6, 0.75, 0.2),
@@ -878,7 +897,7 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
    
   }
   if(!suppliedElsewhere("repro_rate_table", sim)){
-    sim$repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
+    sim$repro_rate_table <- data.table (Fpop = c(1,1,2,2,30,30,3,3),
                                       Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
                                       Mean = c(0.5,3,0.5,3,0.5,3,0.5,3),
                                       SD = c(0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
