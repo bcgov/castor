@@ -31,7 +31,7 @@ thisPath <- function() {
 setwd(thisPath())
 
 args = commandArgs(trailingOnly = TRUE)
-if (length(args) != 10) {
+if (length(args) != 13) {
   stop("All arguments must be supplied.\n", call.=FALSE)
 }
 
