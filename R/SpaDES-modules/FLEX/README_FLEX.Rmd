@@ -61,7 +61,12 @@ data.table (fisher_pop = c (1:4),
 ```
 
 #### Fisher Territory Formation
-Each fisher in the agents table then forms a territory by 'spreading' from it's starting den site location to adjacent habitat, until it achieves it's habitat target, or it is no longer able to spread to adjacent areas because it is not habitat. The model uses the [spread2 function](https://rdrr.io/cran/SpaDES.tools/man/spread2.html) in the [SpaDES R package](https://spades.predictiveecology.org/) to form territories. In this function, a raster of spread probabilities is used to define where the fisher can 'spread', and locations (i.e., 1 ha pixels in the raster) with denning, rust, cavity, cwd, or movement habitat have a 100% spread probability, locations with open habitat have a 9% spread probability and all other locations have an 18% spread probability.
+Each fisher in the agents table then forms a territory by 'spreading' from it's starting den site location to adjacent habitat, until it achieves it's habitat target, or it is no longer able to spread to adjacent areas because it is poor habitat or is occupied by another fisher (i.e., overlap of potential territories is not allowed). The model uses the [spread2 function](https://rdrr.io/cran/SpaDES.tools/man/spread2.html) in the [SpaDES R package](https://spades.predictiveecology.org/) to form territories. In this function, a raster of spread probabilities is used to define where the fisher can 'spread'. In the FLEX model, locations (i.e., 1 ha pixels in the raster) with denning, rust, cavity, coarse-woody debris (cwd), or movement habitats have a 100% spread probability, locations with open habitat have a 9% spread probability and all other locations have an 18% spread probability. The function then 'spreads' across the raster from the starting den site into adjacent areas, preferentially but not exclusively into fisher habitat types, until it either reaches its target amount of habitat, or is unable to spread further. Each unique spread area is then identified as the potential territory area for each fisher. 
+
+Once the potential territory is identified, it is checked to make sure it meets several habitat criteria. If it meets the criteria then it is considered an active territory for the individual fisher occupying it. Otherwise, the potential territory gets removed from the landscape (i.e., is not considered occupied) and the fisher gets re-assigned as a 'disperser' without an active territory. To be considered an active territory, the territory must achieve the target habitat size, consist of a minimum of 85% of its area as denning, rust, cavity, cwd, or movement habitat and consist of a minimum amount of denning, resting (i.e., rust, cavity, and cwd added togethe) and movement habitat types. The minimum amount criteria can be set as parameters by the user, i.e., *den_target*, *rest_target* and *move_target*, respectively. 
+
+#### Fisher Survival 
+Once territories are formed, the surivial of individual fisher is 
 
 
 
@@ -69,29 +74,38 @@ Each fisher in the agents table then forms a territory by 'spreading' from it's 
 
 
 
+#### Fisher Dispersal 
+Fishers that don't form an active territory in the previous step are provided an opportunity to disperse and attempt to form a territory elsewhere. This helps to 'saturate' the landscape with fisher as part of the initiation phase of the model (i.e., maximize the amount of fisher territories that are occupied in the landscape). 
+
+In this dispersal step, the locations of all denning habitat pixels that are unoccupied in the area of interest are identified. The landscape is then aggregated (i.e., the resolution of the pixels on the landscape) from 1 ha pixels to the average size of a female fisher home range (i.e., 3,375 ha), and aggregated pixels that contain greater than 1% of denning habitat are considered as candidate areas for dispersal. A sub-set of these areas is sampled based on the number of dispersing fisher (i.e., fishers that were unable to form a territory in the initial territory formation step), using the well-balanced sampling design local pivot method, to ensure they are adequately spaced. The distance from each dispersing fisher location to each den site location in the sample of candidate areas is then calculated, and each fisher is assigned to the nearest potential den site location within the well-balanced sample of potential candidate den site areas. The location of each dispersing fisher is updated to the new den site location.
+
+Once each dispersing fisher is assigned to a new den site location, each fisher again forms a territory by 'spreading' from it's den site location to adjacent habitat, until it achieves it's habitat target. Similar to the initial territory formation step, the potential territories are checked to ensure they meet minimum size and habitat configuration requirements. If the criteria are not met, then the fisher remains as a disperser.  
+
+This disperseal step is completed in two phases, where first adults disperse and then juveniles. This ensures that more mature animals are given priority in forming territories.  
 
 
-sim$spread.rast, 
-                                       start = sim$agents$pixelid, 
-                                       spreadProb = as.numeric (sim$spread.rast[]),
-                                       exactSize = sim$agents$hr_size, 
-                                       allowOverlap = F, asRaster = F, circle = F)
+
+
+
+
+Then dispersers attempt to find a new territory 
+-	Finds dennign pixels not in a territory
+-	Identifies potential # terriotires using eth ggregation function
+o	If more dispersers than potential, then some fisher sdont; get a locations
+-	Then use well spread sampling to disperse fisher
+-	 Finds the closest denning site for a fisher; the closest fisher gets the dennign site
+-	Adults get priority over juveniles in the denning too 
+-	Successful dispersers then attempt to spread a territory and check that needs are met
+
+
+
+
+
+
+
                                        
                                        
                                        
-
-
-Spread to form territories
-s
--	Open = spread_prob 0.09
--	No habtiat = spread_prob 0.18
--	Habtait spread = spread_prob 1
--	Check to see if achieved mean hr size – 2 sd and amount of habtiat 15% 
-
--	Meet tthrehdolsds of habtait caterogies and d2 therhfolds as set by the user
--	if animal doesn’t meet the threholds then ift gets put into the diespersers table
-
-
 
 
 
