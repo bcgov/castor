@@ -720,10 +720,12 @@ server <- function(input, output, session) {
       }
       
       params <- readRDS(file = glue::glue("{dir}../params.rds"))
+      
       params <- params %>% 
         mutate(
           times = as.numeric(times),
-          female_dispersal = as.numeric(female_dispersal)
+          female_dispersal = as.numeric(female_dispersal),
+          initial_fisher_pop = as.numeric(initial_fisher_pop)
         ) %>% 
         tidyr::pivot_longer(cols = colnames(params)) %>% 
         mutate(value = as.character(value))
