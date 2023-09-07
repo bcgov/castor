@@ -39,7 +39,7 @@ library(tictoc)
 library(ids)
 library(Hmisc)
 
-source('src/functions.R')
+source(here::here('R/apps/flex_cloud/src/functions.R'))
 
 # options(shiny.error = browser)
 
