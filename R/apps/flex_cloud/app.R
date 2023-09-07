@@ -563,7 +563,7 @@ server <- function(input, output, session) {
       disable('run_scenario')
 
       # FLEX droplet image ----
-      snapshots <- snapshots_with_params(per_page = 200)
+      snapshots <- analogsea::snapshots(per_page = 200)
       snap_image <- snapshots$`flex-cloud-image-20230728`$id
       if (is.null(snap_image)) {
         shinyjs::alert(
