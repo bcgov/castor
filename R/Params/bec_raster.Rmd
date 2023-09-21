@@ -88,7 +88,7 @@ DBI::dbWriteTable (conn, c("vat", "bec_zone_vat"), value = lu_bec_cat,
 writeRaster (ras.bec, file = "bec.tif", format = "GTiff", overwrite = TRUE)
 
 #Upload to PostgreSQL
-system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/bec.tif -t 100x100 rast.bec_current2 |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/bec.tif -t 100x100 rast.bec_current |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 
 ```
 

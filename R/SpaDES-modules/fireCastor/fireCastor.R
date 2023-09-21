@@ -24,28 +24,27 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "fireCastor.Rmd"),
-  reqdPkgs = list("here","data.table", "raster", "SpaDES.tools", "tidyr"),
+  reqdPkgs = list("here","data.table", "raster", "SpaDES.tools", "tidyr", "ClimateNAr"),
   parameters = rbind(
     
     #defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
     defineParameter("calculateInterval", "numeric", 1, NA, NA, "The simulation time at which disturbance indicators are calculated"),
-    defineParameters("nameFrtRaster", "numeric", NA, NA, NA, "Raster of the fire regime types across Canada"),
-    defineParameters("nameStaticLightningIgnitRaster", "numeric", NA, NA, NA, "Raster with the values of the coefficients that are constant (e.g. intercept + b1*elevation) in the lightning ignition model"),
-    defineParameters("nameStaticHumanIgnitRaster", "numeric", NA, NA, NA, "Raster with the values of the coefficients that are constant (e.g. intercept + b1*elevation + b2*distance_to_infrastructure) in the human ignition model"),
-    defineParameters("nameStaticEscapeRaster", "numeric", NA, NA, NA, "Raster with the values of the coefficients that are constant (e.g. intercept + b1*elevation + b2*distance_to_infrastructure) in the fire escape model"),
-    defineParameters("nameStaticSpreadRaster", "numeric", NA, NA, NA, "Raster with the values of the coefficients that are constant (e.g. intercept + b1*elevation + b2*distance_to_infrastructure + b3*spring_wind) in the spread model"),
-    defineParameters("nameRoadsRast", "numeric", NA, NA, NA, "Raster of roads across BC. This is here incase roadsCastor is not run"),
-    defineParameters("nameElevationRaster", "numeric", NA, NA, NA, "Digital elevation map of BC This is here incase elevation data is not supplied in another module"),
-    defineParameters("simStartYear", "numeric", 2020, NA, NA, "The simulation year at which fire spread is first simulated"),
-    defineParameters("nameBecRast", "numeric", NA, NA, NA, "Raster of bec zones across BC."),
-    defineParameters("nameBecTable", "character", '99999', NA, NA, "Value attribute table that links to the raster and describes the bec zone and bec subzone information"),
-    defineParameters("nameForestInventoryRaster", "numeric", NA, NA, NA, "Raster of VRI feature id"),
-    defineParameters("nameForestInventoryTable2", "character", "99999", NA, NA, desc = "Name of the veg comp table - the forest inventory"),
+    defineParameter("nameFrtRaster", "numeric", NA, NA, NA, "Raster of the fire regime types across Canada"),
+    defineParameter("nameStaticLightningIgnitRaster", "numeric", NA, NA, NA, "Raster with the values of the coefficients that are constant (e.g. intercept + b1*elevation) in the lightning ignition model"),
+    defineParameter("nameStaticHumanIgnitRaster", "numeric", NA, NA, NA, "Raster with the values of the coefficients that are constant (e.g. intercept + b1*elevation + b2*distance_to_infrastructure) in the human ignition model"),
+    defineParameter("nameStaticEscapeRaster", "numeric", NA, NA, NA, "Raster with the values of the coefficients that are constant (e.g. intercept + b1*elevation + b2*distance_to_infrastructure) in the fire escape model"),
+    defineParameter("nameStaticSpreadRaster", "numeric", NA, NA, NA, "Raster with the values of the coefficients that are constant (e.g. intercept + b1*elevation + b2*distance_to_infrastructure + b3*spring_wind) in the spread model"),
+    defineParameter("nameRoadsRast", "numeric", NA, NA, NA, "Raster of roads across BC. This is here incase roadsCastor is not run"),
+    defineParameter("nameElevationRaster", "numeric", NA, NA, NA, "Digital elevation map of BC This is here incase elevation data is not supplied in another module"),
+    defineParameter("simStartYear", "numeric", 2020, NA, NA, "The simulation year at which fire spread is first simulated"),
+    defineParameter("nameBecRast", "numeric", NA, NA, NA, "Raster of bec zones across BC."),
+    defineParameter("nameBecTable", "character", '99999', NA, NA, "Value attribute table that links to the raster and describes the bec zone and bec subzone information"),
+    defineParameter("futureClimateProjection", "character", '99999', NA, NA, "Climate projection from which to get future climate data e.g. 8GCMs_ensemble_ssp370"),
+    defineParameter("nameForestInventoryRaster", "numeric", NA, NA, NA, "Raster of VRI feature id"),
+    defineParameter("nameForestInventoryTable2", "character", "99999", NA, NA, desc = "Name of the veg comp table - the forest inventory"),
     defineParameter("nameForestInventoryKey", "character", "99999", NA, NA, desc = "Name of the veg comp primary key that links the table to the raster"),
-    
-    
-    
-    
+    defineParameter("numberFireReps", "numerical", "99999", NA, NA, desc = "value with the number of fire simulation repetitions needed"),
+    defineParameter("firemodelcoeftbl", "numerical", "99999", NA, NA, desc = "Table with coefficient values to parameterze models for each fire regime type"),
     defineParameter(".plotInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first plot event should occur"),
     defineParameter(".plotInterval", "numeric", NA, NA, NA, "This describes the simulation time interval between plot events"),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA, "This describes the simulation time at which the first save event should occur"),
@@ -53,20 +52,17 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bind_rows(
-    #expectsInput(objectName = "disturbanceFlow", objectClass = "data.table", desc = "Time series table of annual area disturbed", sourceURL = NA),
-    #expectsInput(objectName = "boundaryInfo", objectClass = "character", desc = NA, sourceURL = NA),
     expectsInput(objectName = "castordb", objectClass = "SQLiteConnection", desc = 'A database that stores dynamic variables used in the RSF', sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "RasterLayer", desc = "A raster object created in dataCastor. It is a raster defining the area of analysis (e.g., supply blocks/TSAs).", sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "Centroid x,y locations of the ras.", sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass = "data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
-    expectsInput(objectName = "updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
-    expectsInput(objectName = "calendarStartYear", objectClass ="numeric", desc = 'The calendar year of the first simulation', sourceURL = NA)
+    expectsInput(objectName = "updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA),
+    expectsInput(objectName = "simStartYear", objectClass ="numeric", desc = 'The calendar year of the first simulation', sourceURL = NA),
     expectsInput(objectName = "road_distance", objectClass = "data.table", desc = 'The euclidian distance to the nearest road', sourceURL = NA)
-    #expectsInput(objectName = "harvestPixelList", objectClass = "data.table", desc = 'A list of the pixels that are harvested at each time point', sourceURL = NA)
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput("firedisturbance", "data.table", "Disturbance by fire table for every pixel"),
+    createsOutput("firedisturbanceTable", "data.table", "Disturbance by fire table for every pixel"),
     createsOutput("fireReport", "data.table", "Summary per simulation period of the fire indicators")
   )
 ))
@@ -78,38 +74,29 @@ doEvent.fireCastor = function(sim, eventTime, eventType, debug = FALSE){
     eventType,
     init = {
       sim <- Init (sim) # this function inits 
+      sim <- scheduleEvent(sim, time(sim), "fireCastor", "getStaticFireVariables", 11)
+      sim <- scheduleEvent(sim, time(sim), "fireCastor", "roadDistanceCalc", 11)
+      sim <- scheduleEvent(sim, time(sim), "fireCastor", "getClimateFireVariables", 11)
+      sim <- scheduleEvent(sim, time(sim), "fireCastor", "getVegVariables", 11)
+      sim <- scheduleEvent(sim, time(sim), "fireCastor", "determineFuelTypes", 12)
+      sim <- scheduleEvent(sim, time(sim), "fireCastor", "calcProbabilityFire", 13)
       
-      sim <- scheduleEvent(sim, time(sim), "fireCastor", "getStaticFireVariables")
-      
-      if(nrow(sim$road_distance) < 1){
-        sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "roadDistanceCalc", 2)
+      if (!suppliedElsewhere(sim$fit_g)) {
+        sim <- numberStarts(sim) 
+        #sim <- scheduleEvent(sim, time(sim), "fireCastor", "getIgnitionDistribution", 15)
       }
-      #sim <- scheduleEvent(sim, time(sim) + 1, "fireCastor", "roadDistanceCalc", 2)
-      sim <- scheduleEvent(sim, time(sim), "fireCastor", "getClimateFireVariables", 3)
-      sim <- scheduleEvent(sim, time(sim), "fireCastor", "getVegVariables", 4)
-      sim <- scheduleEvent(sim, time(sim), "fireCastor", "determineFuelTypes", 5)
-      sim <- scheduleEvent(sim, time(sim), "fireCastor", "calcProbabilityFire", 6)
-      sim <- scheduleEvent(sim, time(sim), "fireCastor", "simulateFire", 9)
+     
+      #if (suppliedElsewhere(sim$probFireRasts)) {
+
+     # sim$fireReport<-data.table(timeperiod= integer(), numberstarts = integer(), numberescaped = integer(), totalareaburned = integer(), thlbburned = integer())
       
-      if(nrow(sim$probFireRasts) > 0){
+     # sim$firedisturbanceTable<-data.table(scenario = scenario$name, numberFireReps = numberFireReps, pixelid = pts$pixelid, numberTimesBurned = as.integer(0))
+
+        sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "simulateFire", 5)
+     # }
         
-        setorder(sim$probFireRasts, cols = "pixelid")
         
-        ras.info<-dbGetQuery(sim$castordb, "Select * from raster_info limit 1;")
-        
-        sim$ignitionRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
-        sim$ignitionRas[]<-sim$probFireRasts$prob_tot_ignit
-        
-        sim$escapeRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
-        sim$escapeRas[]<-sim$probFireRasts$prob_ignition_escape
-        
-        sim$spreadRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
-        sim$spreadRas[]<-sim$probFireRasts$prob_ignition_spread
-        
-        sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "simulateFire", 9)
-      }
-      
-    }
+    },
       
 getStaticFireVariables = {
       sim <- getStaticVariables(sim) # create table with static fire variables to calculate probability of ignition, escape, spread. Dont reschedule because I only need this once
@@ -117,16 +104,17 @@ getStaticFireVariables = {
 
 roadDistanceCalc ={
   sim <- roadDistCalc(sim) # if there is no road data then do this, and dont reschedule as because roading is not happening so I dont need to recalculate distance to roads.
+  sim <- scheduleEvent(sim, time(sim) +P(sim, "calculateInterval", "fireCastor") , "fireCastor", "roadDistanceCalc", 11)
   },
 
 getClimateFireVariables = {
     sim <- getClimateVariables (sim)
-    sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor"), "fireCastor", "getClimateFireVariables", 3)
+    sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor"), "fireCastor", "getClimateFireVariables", 11)
 },
 
 getVegVariables = {
   if(nrow(dbGetQuery(sim$castordb, "SELECT * FROM sqlite_master WHERE type = 'table' and name ='fueltype'")) == 0){
-        message('Creating fueltypes table')
+        message('need to creating fueltypes table')
         
       sim <- createVegetationTable(sim)
       #sim <- scheduleEvent(sim, eventTime = time(sim),  "fireCastor", "getVegVariables", eventPriority=8) # 
@@ -137,23 +125,22 @@ getVegVariables = {
   
 determineFuelTypes = {
       sim <- calcFuelTypes(sim)
-      sim <- scheduleEvent(sim, eventTime = time(sim) + P(sim, "calculateInterval", "fireCastor"),  "fireCastor", "determineFuelTypes", eventPriority=4) # 
+      sim <- scheduleEvent(sim, eventTime = time(sim) + P(sim, "calculateInterval", "fireCastor"),  "fireCastor", "determineFuelTypes", eventPriority=12) # 
 },
 
 calcProbabilityFire = {
       sim <- calcProbFire(sim) 
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "calcProbabilityFire", 5)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "calcProbabilityFire", 13)
+},
+
+getIgnitionDistribution = {
+  sim <- numberStarts(sim) # create table with static fire variables to calculate probability of ignition, escape, spread. Dont reschedule because I only need this once
 },
 
 simulateFire ={
   sim<-distProcess(sim)
-  sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor"), "fireCastor", "simulateFire", 6)
+  sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor"), "fireCastor", "simulateFire", 5)
   },
-
-analysis = {
-  sim <- fireAnalysis(sim)
-  sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor"), "fireCastor", "analysis", 9)
-},
 
 warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
               "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -163,17 +150,23 @@ warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FAL
 
 Init <- function(sim) {
   
-  sim$fireReport<-data.table(scenario = character(), timeperiod= integer(),
-                             critical_hab = character(), pixelid = integer(),
-                             number_sims = numeric(), number_times_burned = numeric())
   sim$firedisturbance <- sim$pts
+  sim$ras.info<-dbGetQuery(sim$castordb, "Select * from raster_info limit 1;")
+  
+  sim$firedisturbanceTable<-data.table(scenario = scenario$name, numberFireReps = P(sim, "numberFireReps", "fireCastor"), pixelid = sim$pts$pixelid, numberTimesBurned = as.integer(0))
+  
+  #sim$firedisturbanceTable<-data.table(scenario = as.character(), numberFireReps = as.numeric(), pixelid = as.numeric(), numberTimesBurned = as.integer())
+  
+  sim$fireReport<-data.table(timeperiod= integer(), numberstarts = integer(), numberescaped = integer(), totalareaburned = integer(), thlbburned = integer())
+  
+  
   
   return(invisible(sim))
   
 }
 
 getStaticVariables<-function(sim){
-  if(nrow(sim$fire_static) == 0){
+  if(!suppliedElsewhere(sim$fire_static)){
   
   message("get fire regime type")
   #constant coefficients
@@ -260,7 +253,7 @@ getStaticVariables<-function(sim){
     fire_static<-merge(ignit_lightning_static,ignit_human_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
     fire_static<-merge(fire_static,escape_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
     fire_static<-merge(fire_static,spread_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-    sim$fire_static<-merge(fire_static, frt_id, by.x="pixelid", by.y="pixelid", all.x=TRUE)
+    sim$fire_static<-merge(fire_static, sim$frt_id, by.x="pixelid", by.y="pixelid", all.x=TRUE)
     
     #add to the castordb
     # dbBegin(sim$castordb)
@@ -296,7 +289,7 @@ getStaticVariables<-function(sim){
 
 roadDistCalc <- function(sim) { 
   
-  road.dist<-data.table(dbGetQuery(sim$castordb, paste0("SELECT (case when ((",time(sim)*sim$updateInterval, " - roadstatus < ",P(sim, "recovery", "fireCastor")," AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) then 1 else 0 end) as road_dist, pixelid FROM pixels")))
+  road.dist<-data.table(dbGetQuery(sim$castordb, paste0("SELECT (case when ((",time(sim)*sim$updateInterval, " - roadstatus < ",P(sim, "recovery", "disturbanceCastor")," AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) then 1 else 0 end) as road_dist, pixelid FROM pixels")))
   
   if(exists("road.dist")){
     outPts <- merge (sim$firedisturbance, road.dist, by = 'pixelid', all.x =TRUE) 
@@ -355,13 +348,13 @@ roadDistCalc <- function(sim) {
 
 getClimateVariables <- function(sim) {
   
-  qry<-paste0("SELECT COUNT(*) as exists_check FROM sqlite_master WHERE type='table' AND name='firevariables", time(sim)*sim$updateInterval + 'P(sim, "simStartYear", "fireCastor")', "';")
+  qry<-paste0("SELECT COUNT(*) as exists_check FROM sqlite_master WHERE type='table' AND name='firevariables", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"), "';")
   
-  if(dbGetQuery(castordb, qry)$exists_check==0) {
+  if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
   
-  message(paste0("create empty table of climate variables for year ", time(sim)*sim$updateInterval + 'P(sim, "simStartYear", "fireCastor")'," needed to calculate fire probabilities"))
+  message(paste0("create empty table of climate variables for year ", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor")))
   
-  qry<-paste0("CREATE TABLE IF NOT EXISTS firevariables", time(sim)*sim$updateInterval + 'P(sim, "simStartYear", "fireCastor")'," (pixelid integer, frt integer,  year integer, climate1lightning numeric, climate2lightning numeric, climate1person numeric, climate2person numeric, climate1escape numeric, climate2escape numeric, climate1spread numeric, climate2spread numeric)")
+  qry<-paste0("CREATE TABLE IF NOT EXISTS firevariables", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor")," (pixelid integer, frt integer,  year integer, climate1lightning numeric, climate2lightning numeric, climate1person numeric, climate2person numeric, climate1escape numeric, climate2escape numeric, climate1spread numeric, climate2spread numeric)")
   
   dbExecute(sim$castordb, qry)
   
@@ -390,17 +383,24 @@ getClimateVariables <- function(sim) {
     dbClearResult(rs)
     dbCommit(sim$castordb)
     
+    # rast.elev<-raster(ras.elev)
+    # NAvalue(rast.elev) <- -9999
+    # 
+    # writeRaster(rast.elev, file = paste0(here::here(), '/R/SpaDES-modules/fireCastor/inputs/DEM.asc'),overwrite=TRUE)  
+    
     rm(ras.elev)
     gc()
   }else{
     stop(paste0("ERROR: extents are not the same check -", P(sim, "nameElevationRaster", "fireCastor")))
   }
-  } 
+  } else {message("elevation already extracted")}
   
   
  # sim$elev<-data.table(dbGetQuery(sim$castordb, paste0("SELECT elv, pixelid FROM pixels")))
   
-  message("change data format for download of climate data")
+  if (!file.exists(paste0(here::here(), "/R/SpaDES-modules/fireCastor/inputs/", scenario$name,"_sample_pts.csv"))) {
+  
+  message("change data format for download of climate data and save sample points")
   
   ras2<-terra::project(sim$ras, "EPSG:4326")
   lat_lon_pts<-data.table(terra::xyFromCell(ras2,1:length(ras2[])))
@@ -423,26 +423,45 @@ getClimateVariables <- function(sim) {
  samp.pts<-samp.pts%>% dplyr::select(ID1, ID2, lat, long, el)
   
  #write the points to file so that we can use Tongli's Climate BC program to grab climate for our year of interest
-  write.csv(samp.pts, file = paste0(here::here(), "\\R\\SpaDES-modules\\fireCastor\\inputs\\sample_pts.csv"), row.names=FALSE)
+  write.csv(samp.pts, file = paste0(here::here(), "\\R\\SpaDES-modules\\fireCastor\\inputs\\", scenario$name,"_sample_pts.csv"), row.names=FALSE)
   
-  # seems to be very sensitive to slashes 
-  # I should maybe allow the user to specify the name or link it to the climate variable people are downloading
-  library(ClimateNAr)
+  }
+  
+  if (!file.exists(paste0(here::here(), "/R/SpaDES-modules/fireCastor/outputs/", scenario$name, time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),'_M.csv'))) {
   
   wkDir = "D:/Climatebc_v731/"
   exe = "ClimateBC_v7.31.exe"
-  period = paste0("Year_", time(sim)*sim$updateInterval + 'P(sim, "simStartYear", "fireCastor")', '.ann') #'Year_2021.ann' 
-  inFile =  paste0(here::here(), '\\R\\SpaDES-modules\\fireCastor\\inputs\\sample_pts.csv')
+  
+  if (time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor") < 2022){
+  period = paste0("Year_", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"), '.ann') #'Year_2021.ann' 
+  inFile =  paste0(here::here(), "\\R\\SpaDES-modules\\fireCastor\\inputs\\", scenario$name,"_sample_pts.csv")
   inputFile = gsub("/","\\\\", inFile)
-  outFile = paste0(here::here(), '\\R\\SpaDES-modules\\fireCastor\\outputs\\',"Year_", time(sim)*sim$updateInterval + 'P(sim, "simStartYear", "fireCastor")','_M.csv')
+  outFile = paste0(here::here(), '\\R\\SpaDES-modules\\fireCastor\\outputs\\', scenario$name, time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),'_M.csv')
   outputFile = gsub("/", "\\\\",outFile)
   
-  message("Downloading climate data from climateBC ...")
-  
-  ClimateNA_cmdLine(exe, wkDir, period, MSY='M',inputFile, outputFile) #this did not work. Did not give me any data
   #system2(exe,args= c('/M', paste0("/",period), paste0("/",inputFile), paste0("/",outputFile)))
+  } else {
+    period = paste0(P(sim, "futureClimateProjection", "fireCastor"), '@', time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"), '.gcm') 
+    inFile =  paste0(here::here(), "\\R\\SpaDES-modules\\fireCastor\\inputs\\", scenario$name,"_sample_pts.csv")
+    inputFile = gsub("/","\\\\", inFile)
+    outFile = paste0(here::here(), '\\R\\SpaDES-modules\\fireCastor\\outputs\\',"Year_test_", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),'_M.csv')
+    outputFile = gsub("/", "\\\\",outFile)
+    
+  }
+  
+  message("Downloading climate data from climateBC ...")
+  ClimateNA_cmdLine(exe, wkDir, period, MSY='M',inputFile, outputFile) 
   
   climate<-read.csv(outputFile)
+  
+  } else {
+    outputFile = paste0(here::here(), '/R/SpaDES-modules/fireCastor/outputs/',"Year_test_", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),'_M.csv')
+    
+    climate<-read.csv(outputFile)
+    
+  }
+  
+  message("... done")
   
   # remove unneccessary columns
   
@@ -470,6 +489,8 @@ getClimateVariables <- function(sim) {
   ### Calculate drought code for Fire ignition data
 
     #x2<- climate2 %>% dplyr::filter(Tmax05 != -9999) # there are some locations that did not have climate data, probably because they were over the ocean, so Im removing these here.
+  
+  message("calculate monthly drought code")
     
     for (j in 1 : length(Lf)) {
       
@@ -540,7 +561,7 @@ getClimateVariables <- function(sim) {
   climate2<-climate2 %>%
     dplyr::mutate(climate1_escape = dplyr::case_when(
       frt == "5" ~ as.numeric(PPT05) ,
-      frt == "7" ~ Tave06,
+      frt == "7" ~ as.numeric(PPT06),
       frt == "9" ~ Tave05,
       frt == "10" ~ as.numeric((PPT04 + PPT05 + PPT06)/3),
       frt == "11" ~ MDC_06,
@@ -552,7 +573,7 @@ getClimateVariables <- function(sim) {
   
   climate2<-climate2 %>%
     dplyr::mutate(climate2_escape = dplyr::case_when(
-      frt == "7" ~ as.numeric(PPT06),
+      frt == "7" ~ Tave06,
       frt == "12" ~ as.numeric((PPT07 + PPT08 + PPT09)/3) ,
       frt == "13" ~ as.numeric((PPT07 + PPT08 + PPT09)/3),
       frt == "15" ~ as.numeric((PPT07 + PPT08 + PPT09)/3),
@@ -588,11 +609,13 @@ getClimateVariables <- function(sim) {
       frt == "15" ~ as.numeric(PPT05),
       TRUE ~ NA_real_))
   
-  climate2[,year:=time(sim)*sim$updateInterval + 'P(sim, "simStartYear", "fireCastor")']
+  climate2[, year:=time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor")]
   
   fire_variables<-climate2 %>% dplyr::select(pixelid, frt, year, climate1_lightning, climate2_lightning, climate1_person, climate2_person, climate1_escape, climate2_escape, climate1_spread, climate2_spread)
+  
+  print(fire_variables)
   # 
-  qry<-paste0("INSERT INTO firevariables", time(sim)*sim$updateInterval + 'P(sim, "simStartYear", "fireCastor")', " (pixelid, frt, year, climate1lightning, climate2lightning, climate1person, climate2person, climate1escape, climate2escape, climate1spread, climate2spread) VALUES (:pixelid, :frt, :year, :climate1_lightning, :climate2_lightning, :climate1_person, :climate2_person, :climate1_escape, :climate2_escape, :climate1_spread, :climate2_spread)")
+  qry<-paste0("INSERT INTO firevariables", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"), " (pixelid, frt, year, climate1lightning, climate2lightning, climate1person, climate2person, climate1escape, climate2escape, climate1spread, climate2spread) VALUES (:pixelid, :frt, :year, :climate1_lightning, :climate2_lightning, :climate1_person, :climate2_person, :climate1_escape, :climate2_escape, :climate1_spread, :climate2_spread)")
               
    dbBegin(sim$castordb)
    rs<-dbSendQuery(sim$castordb, qry, fire_variables)
@@ -611,11 +634,11 @@ createVegetationTable <- function(sim) {
   
   message("create fuel types table")
   
-  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS fueltype (pixelid integer, bclcs_level_1 character, bclcs_level_2 character, bclcs_level_3 character,  bclcs_level_5 character, inventory_standard_cd character, non_productive_cd character, coast_interior_cd character,  land_cover_class_cd_1 character, zone character, subzone character, earliest_nonlogging_dist_type character, years_since_nonlogging_dist integer, vri_live_stems_per_ha numeric, vri_dead_stems_per_ha numeric, species_cd_1 character, species_pct_1 numeric, species_cd_2 character, species_pct_2 numeric, dominant_conifer character, conifer_pct_cover_total numeric)")
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS fueltype (pixelid integer, bclcs_level_1 character, bclcs_level_2 character, bclcs_level_3 character,  bclcs_level_5 character, inventory_standard_cd character, non_productive_cd character, coast_interior_cd character,  land_cover_class_cd_1 character, zone character, subzone character, earliest_nonlogging_dist_type character,earliest_nonlogging_dist_date, integer years_since_nonlogging_dist integer, vri_live_stems_per_ha numeric, vri_dead_stems_per_ha numeric, species_cd_1 character, species_pct_1 numeric, species_cd_2 character, species_pct_2 numeric, dominant_conifer character, conifer_pct_cover_total numeric)")
   
   # Get bec zone and bec subzone
   
-  print("getting BEC information")
+  message("getting BEC information")
   
   ras.bec<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                                      srcRaster= P(sim, "nameBecRast", "fireCastor"), 
@@ -645,7 +668,7 @@ createVegetationTable <- function(sim) {
   #----Set forest attributes----
   #----------------------------#
   if(!P(sim, "nameForestInventoryRaster","dataCastor") == '99999'){
-    print("clipping inventory key")
+    message("clipping inventory key")
     ras.fid<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                                        srcRaster= P(sim, "nameForestInventoryRaster", "dataCastor"), 
                                        clipper=sim$boundaryInfo[[1]], 
@@ -663,34 +686,31 @@ createVegetationTable <- function(sim) {
     }
     
     
-    if(!P(sim, "nameForestInventoryTable2","dataCastor") == '99999'){ #Get the forest inventory variables 
+    if(!P(sim, "nameForestInventoryTable2","fireCastor") == '99999'){ #Get the forest inventory variables 
       
       fuel_attributes_castordb<-c('bclcs_level_1', 'bclcs_level_2', 'bclcs_level_3',  'bclcs_level_5', 'inventory_standard_cd', 'non_productive_cd', 'coast_interior_cd',  'land_cover_class_cd_1', 'earliest_nonlogging_dist_type', 'earliest_nonlogging_dist_date','vri_live_stems_per_ha', 'vri_dead_stems_per_ha','species_cd_1','species_pct_1','species_cd_2', 'species_pct_2', 'species_cd_3', 'species_pct_3','species_cd_4','species_pct_4', 'species_cd_5', 'species_pct_5', 'species_cd_6', 'species_pct_6')
       
       if(length(fuel_attributes_castordb) > 0){
         print(paste0("getting inventory attributes to create fuel types: ", paste(fuel_attributes_castordb, collapse = ",")))
         fids<-unique(inv_id[!(is.na(fid)), fid])
-        attrib_inv<-data.table(getTableQuery(paste0("SELECT " , "feature_id", " as fid, ", paste(fuel_attributes_castordb, collapse = ","), " FROM ",
-                                                    "public.veg_comp_lyr_r1_poly2020", " WHERE ", "feature_id" ," IN (",
+        attrib_inv<-data.table(getTableQuery(paste0("SELECT " , "feature_id", " as fid, ", paste(fuel_attributes_castordb, collapse = ","), " FROM ",P(sim, "nameForestInventoryTable2","fireCastor"), " WHERE ", "feature_id" ," IN (",
                                                     paste(fids, collapse = ","),");" )))
         
         # attrib_inv<-data.table(getTableQuery(paste0("SELECT " , P(sim, "nameForestInventoryKey", "dataCastor"), " as fid, ", paste(fuel_attributes_castordb, collapse = ","), " FROM ",
         #                                             P(sim, "nameForestInventoryTable2","dataCastor"), " WHERE ", P(sim, "nameForestInventoryKey", "dataCastor") ," IN (",
         #                                             paste(fids, collapse = ","),");" )))
         
-        print("...merging with fid") #Merge this with the raster using fid which gives you the primary key -- pixelid
+        message("...merging with fid") #Merge this with the raster using fid which gives you the primary key -- pixelid
         inv<-merge(x=inv_id, y=attrib_inv, by.x = "fid", by.y = "fid", all.x = TRUE) 
         inv<-inv[, fid:=NULL] # remove the fid key
         
         inv<-merge(x=inv, y=bec, by.x="pixelid", by.y="pixelid", all.x=TRUE)
         
-        print("calculating time since disturbance")
         inv[, earliest_nonlogging_dist_date := substr(earliest_nonlogging_dist_date,1,4)]
         inv[, earliest_nonlogging_dist_date := as.integer(earliest_nonlogging_dist_date)]
-        inv[, years_since_nonlogging_dist:=NA][, years_since_nonlogging_dist:=(time(sim)*sim$updateInterval) + sim$simStartYear - earliest_nonlogging_dist_date, ]
-        inv<-inv[, earliest_nonlogging_dist_date:=NULL]
       
-        print("calculating % conifer and dominant conifer species")
+      
+        message("calculating % conifer and dominant conifer species")
         
         conifer<-c("C","CW","Y","YC","F","FD","FDC","FDI","B","BB","BA","BG","BL","H","HM","HW","HXM","J","JR","JS","P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA","S","SB","SE","SS","SW","SX","SXW","SXL","SXS","T","TW","X", "XC","XH", "ZC")
         
@@ -749,10 +769,10 @@ calcFuelTypes<- function(sim) {
   burn<-c("B","BE", "BG", "BR", "BW", "NB")
   
   ## extract data from BEC instead of pulling it off the vri. I think it will be better!
-print("getting vegetation data")
+message("getting vegetation data")
 
 if (nrow(sim$inv)<1){
-  inv<-data.table(dbGetQuery(sim$castordb, "SELECT * FROM fueltype"))
+  sim$inv<-data.table(dbGetQuery(sim$castordb, "SELECT * FROM fueltype"))
 }
 
   veg_attributes<- data.table(dbGetQuery(sim$castordb, "SELECT pixelid, crownclosure, age, vol, height, dec_pcnt, blockid FROM pixels"))
@@ -761,10 +781,13 @@ if (nrow(sim$inv)<1){
   
   rm(veg_attributes)
   gc()
+
+  message("calculating time since disturbance")
+
+  veg2[, years_since_nonlogging_dist:=NA_integer_]
+  veg2[, years_since_nonlogging_dist:=(time(sim)*sim$updateInterval) + P(sim, "simStartYear","fireCastor") - earliest_nonlogging_dist_date]
   
-}
-  
-  print("categorizing data into fuel types")
+  message("categorizing data into fuel types")
   
   #### Calculate fuel types ####
   
@@ -833,8 +856,8 @@ if (nrow(sim$inv)<1){
   
   # not vegetated, not logged, but burned fairly recently
   veg2[bclcs_level_1=="N" & earliest_nonlogging_dist_type %in% burn & years_since_nonlogging_dist  <=3, fwveg:="N"]
-  veg2[bclcs_level_1=="N" & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist %between% c(4, 6)), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="N" & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist %between% c(7,10)), fwveg:="O-1a/b"]
+  veg2[bclcs_level_1=="N" & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist >=4 & years_since_nonlogging_dist <= 6), fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="N" & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist >= 7 & years_since_nonlogging_dist <=10), fwveg:="O-1a/b"]
       
   ##------------------------------------------------##
   #### bclcs_level_1 == "V" & bclcs_level_2 =="N" ####
@@ -843,8 +866,8 @@ if (nrow(sim$inv)<1){
   ### non-forested bclcs_level_2==N recently burned
   
   veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & earliest_nonlogging_dist_type %in% burn & years_since_nonlogging_dist < 2, fwveg:="N"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & earliest_nonlogging_dist_type %in% burn & years_since_nonlogging_dist %between% c(2,3), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & earliest_nonlogging_dist_type %in% burn & years_since_nonlogging_dist %between% c(4,10), fwveg:="O-1a/b"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist >=2 & years_since_nonlogging_dist<= 3), fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist >=4 & years_since_nonlogging_dist<= 10), fwveg:="O-1a/b"]
   
   ### logged
   veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & blockid>0 & age<=7, fwveg:="S-1"]
@@ -924,16 +947,16 @@ if (nrow(sim$inv)<1){
   #Also I just included unknown conifer species (XC) here because lodgepole and jack and undefined pines are the most common conifer species.
   
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crownclosure > 40 & earliest_nonlogging_dist_type %in% "burn" & years_since_nonlogging_dist  < 4, fwveg:="N"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crownclosure > 40 & earliest_nonlogging_dist_type %in% "burn" & years_since_nonlogging_dist  %between% c(4, 6), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crownclosure > 40 & earliest_nonlogging_dist_type %in% "burn" & years_since_nonlogging_dist  %between% c(7, 10), fwveg:= "C-5"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crownclosure > 40 & earliest_nonlogging_dist_type %in% "burn" & (years_since_nonlogging_dist >= 4 & years_since_nonlogging_dist <= 6), fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crownclosure > 40 & earliest_nonlogging_dist_type %in% "burn" & (years_since_nonlogging_dist  >= 7 & years_since_nonlogging_dist <= 10), fwveg:= "C-5"]
   
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC"), fwveg:="C-3"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & bclcs_level_5=="SP" & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC"), fwveg:="C-7"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & crownclosure <= 40 & earliest_nonlogging_dist_type %in% "burn" & years_since_nonlogging_dist < 2, fwveg:="N"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crownclosure <= 40 & earliest_nonlogging_dist_type %in% "burn" & years_since_nonlogging_dist  %between% c(2,6), fwveg:= "D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crownclosure <= 40 & earliest_nonlogging_dist_type %in% "burn" & years_since_nonlogging_dist  %between% c(7,10), fwveg:="O-1a/b"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crownclosure <= 40 & earliest_nonlogging_dist_type %in% "burn" & (years_since_nonlogging_dist  >= 2 & years_since_nonlogging_dist <=6), fwveg:= "D-1/2"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crownclosure <= 40 & earliest_nonlogging_dist_type %in% "burn" & (years_since_nonlogging_dist >= 7 & years_since_nonlogging_dist<= 10), fwveg:="O-1a/b"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total<60 &  earliest_nonlogging_dist_type %in% "burn" & years_since_nonlogging_dist  < 2, fwveg:="N"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total<60 &  earliest_nonlogging_dist_type %in% "burn" & years_since_nonlogging_dist  %between% c(2, 10), fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total<60 &  earliest_nonlogging_dist_type %in% "burn" & (years_since_nonlogging_dist >=2 & years_since_nonlogging_dist <= 10), fwveg:="D-1/2"]
    veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") & blockid>0 & age<=7, fwveg:="S-1"]
    veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") & bclcs_level_5=="SP" & zone=="ICH" & subzone %in% wet, fwveg:= "D-1/2"]
    veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") & bclcs_level_5=="SP" & zone %in% c("CWH", "CDF", "MH"), fwveg:="D-1/2"]
@@ -1201,7 +1224,7 @@ veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_co
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("T","TW"), fwveg:="C-5"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("J","JR","JS"), fwveg:="C-7"]
   
-  veg2[, c("crownclosure", "age", "vol", "height", "dec_pcnt", "blockid"):=NULL]
+  veg2[, c("crownclosure", "age", "vol", "height", "dec_pcnt", "blockid", "years_since_nonlogging_dist"):=NULL]
   
   #veg2[, c("bclcs_level_1", "bclcs_level_2", "bclcs_level_3", "bclcs_level_5", "inventory_standard_cd", "non_productive_cd", "coast_interior_cd", "land_cover_class_cd_1", "zone", "subzone", "earliest_nonlogging_dist_type", "years_since_nonlogging_dist", "vri_live_stems_per_ha", "vri_dead_stems_per_ha", "species_cd_1", "species_pct_1", "species_cd_2", "species_pct_2", "dominant_conifer", "conifer_pct_cover_total", "crownclosure", "age", "vol", "height", "dec_pcnt", "blockid"):=NULL]
   
@@ -1210,15 +1233,15 @@ veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_co
   
   #### uploading fueltype layer to postgres ####
   
-  print("updating fueltype table with fwveg data") 
+  message("updating fueltype table with fwveg data") 
   
   # for some reason updating the fueltype table takes for ever. So Ill drop the fueltype table and add it back. That's faster. Chat to Kyle about this later to find better solution.
   
   dbExecute(sim$castordb, "DROP TABLE fueltype")
   
-  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS fueltype (pixelid integer, bclcs_level_1 character, bclcs_level_2 character, bclcs_level_3 character,  bclcs_level_5 character, inventory_standard_cd character, non_productive_cd character, coast_interior_cd character,  land_cover_class_cd_1 character, zone character, subzone character, earliest_nonlogging_dist_type character, years_since_nonlogging_dist integer, vri_live_stems_per_ha numeric, vri_dead_stems_per_ha numeric, species_cd_1 character, species_pct_1 numeric, species_cd_2 character, species_pct_2 numeric, dominant_conifer character, conifer_pct_cover_total numeric, fwveg character)")
+  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS fueltype (pixelid integer, bclcs_level_1 character, bclcs_level_2 character, bclcs_level_3 character,  bclcs_level_5 character, inventory_standard_cd character, non_productive_cd character, coast_interior_cd character,  land_cover_class_cd_1 character, zone character, subzone character, earliest_nonlogging_dist_type character, earliest_nonlogging_dist_date integer, vri_live_stems_per_ha numeric, vri_dead_stems_per_ha numeric, species_cd_1 character, species_pct_1 numeric, species_cd_2 character, species_pct_2 numeric, dominant_conifer character, conifer_pct_cover_total numeric, fwveg character)")
   
-  qry<-paste0('INSERT INTO fueltype (pixelid, bclcs_level_1, bclcs_level_2, bclcs_level_3, bclcs_level_5, inventory_standard_cd, non_productive_cd, coast_interior_cd, land_cover_class_cd_1,  earliest_nonlogging_dist_type, vri_live_stems_per_ha, vri_dead_stems_per_ha, species_cd_1, species_pct_1, species_cd_2, species_pct_2, zone, subzone,years_since_nonlogging_dist, dominant_conifer, conifer_pct_cover_total, fwveg) values (:pixelid, :bclcs_level_1, :bclcs_level_2, :bclcs_level_3, :bclcs_level_5, :inventory_standard_cd, :non_productive_cd, :coast_interior_cd, :land_cover_class_cd_1, :earliest_nonlogging_dist_type, :vri_live_stems_per_ha, :vri_dead_stems_per_ha, :species_cd_1, :species_pct_1, :species_cd_2, :species_pct_2,:zone, :subzone, :years_since_nonlogging_dist, :dominant_conifer, :conifer_pct_cover_total, :fwveg)')
+  qry<-paste0('INSERT INTO fueltype (pixelid, bclcs_level_1, bclcs_level_2, bclcs_level_3, bclcs_level_5, inventory_standard_cd, non_productive_cd, coast_interior_cd, land_cover_class_cd_1,  earliest_nonlogging_dist_type, vri_live_stems_per_ha, vri_dead_stems_per_ha, species_cd_1, species_pct_1, species_cd_2, species_pct_2, zone, subzone,earliest_nonlogging_dist_date, dominant_conifer, conifer_pct_cover_total, fwveg) values (:pixelid, :bclcs_level_1, :bclcs_level_2, :bclcs_level_3, :bclcs_level_5, :inventory_standard_cd, :non_productive_cd, :coast_interior_cd, :land_cover_class_cd_1, :earliest_nonlogging_dist_type, :vri_live_stems_per_ha, :vri_dead_stems_per_ha, :species_cd_1, :species_pct_1, :species_cd_2, :species_pct_2,:zone, :subzone, :earliest_nonlogging_dist_date, :dominant_conifer, :conifer_pct_cover_total, :fwveg)')
   
   #fueltype table
   dbBegin(sim$castordb)
@@ -1244,7 +1267,7 @@ veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_co
   #   
   # }
   # 
-  rm(veg2, veg3)
+  rm(veg2)
   gc()
 
   return(invisible(sim)) 
@@ -1257,20 +1280,21 @@ calcProbFire<-function(sim){
   
   fwveg<-dbGetQuery(sim$castordb, "SELECT pixelid, fwveg from fueltype")
   
-  qry<-paste0("SELECT * from firevariables", time(sim)*sim$updateInterval + 'P(sim, "simStartYear", "fireCastor")')
+  qry<-paste0("SELECT * from firevariables", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"))
   
   climate_variables<-dbGetQuery(sim$castordb, qry)
   
   dat<-merge(fwveg, climate_variables, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   dat<-merge(dat, sim$road_distance, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   dat<-merge(dat, sim$elev, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-  dat<-merge(dat,sim$fire_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   
-  print("get coefficient table")
+  dat<-merge(dat,sim$fire_static, all.x=TRUE)
   
-  if (!suppliedElsewhere(sim$coefficients)) {
-  sim$coefficients<-as.data.table(getTableQuery("SELECT * FROM fire_model_coef_tbl; "))
-  } else { print("coefficient table already loaded")}
+  message("get coefficient table")
+  
+  #if (!suppliedElsewhere(sim$coefficients)) {
+  sim$coefficients<-as.data.table(getTableQuery(paste0("SELECT * FROM " ,P(sim, "firemodelcoeftbl","fireCastor"), ";")))
+ # } else { print("coefficient table already loaded")}
   
   # create dummy variables for fwveg
   dat$veg_C1 <- ifelse(dat$fwveg == 'C-1', 1, 0)
@@ -1399,6 +1423,9 @@ calcProbFire<-function(sim){
          sim$coefficients[cause == 'spread' & frt==5,]$coef_road_dist * rds_dist]
   
   frt5[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+  
+  
+  # currently I weight the total probability of ignition by the frequency of each cause.But I calculated this once and assume its static. Probably I should actually calculate this once during the simulation for my AOI and then assume it does not change over time. Or I should use that equation that weights them equally since we dont know whats going to happen inthe future.
   
   frt5[, prob_tot_ignit := prob_ignition_lightning*0.84 + prob_ignition_person*0.16]
   
@@ -2417,31 +2444,40 @@ calcProbFire<-function(sim){
   
   #### rbind frt data ####
   
-  sim$probFireRasts<- do.call("rbind", list(frt5, frt7, frt9, frt10, frt11, frt12, frt13, frt14, frt15))
+  probFireRast<- do.call("rbind", list(frt5, frt7, frt9, frt10, frt11, frt12, frt13, frt14, frt15))
   
+  sim$probFireRasts<-merge(fwveg, probFireRast, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   
+  print("number of NA values in probFireRasts$prob_ignition_lightning")
+  print(table(is.na(sim$probFireRasts$prob_ignition_lightning)))
   
-  
- 
   return(invisible(sim))
 }
 
 distProcess <- function(sim) {
   
-  total_area_burned= integer(P(sim, "numberFireReps", "fireCastor"))
-  number_escaped = as.numeric()
-  
-  
   if (suppliedElsewhere(sim$probFireRasts)) {
     
-    probfire<-na.omit(sim$probFireRasts)
+    probfire<-as.data.table(na.omit(sim$probFireRasts))
     
-    no_ignitions<-round(rgamma(1, shape=sim$fit_g$estimate[1], rate=sim$fit_g$estimate[2]))
+    # create area raster
+    ras.info<-dbGetQuery(sim$castordb, "Select * from raster_info limit 1;")
+    sim$area<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
+    
+    sim$area[]<-sim$probFireRasts$prob_ignition_spread
+    sim$area <- reclassify(sim$area, c(-Inf, 0, 0, 0, 1, 1))
+    
+    message("create spread raster")
+    sim$spreadRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
+    sim$spreadRas[]<-sim$probFireRasts$prob_ignition_spread
+    
+    #for (i in 1:numberFireReps) {
+    
+    no_ignitions<-(round(rgamma(1, shape=sim$fit_g$estimate[1], rate=sim$fit_g$estimate[2])))*sim$updateInterval
 
-    no_ignitions<-ifelse(no_ignitions < sim$min_ignit, sim$min_ignit, no_ignitions)
+    no_ignitions<-ifelse(no_ignitions < (sim$min_ignit*sim$updateInterval), (sim$min_ignit*sim$updateInterval), no_ignitions)
     
-    
-    no_starts_sample<-ceiling((mean(sim$ignit_data) + 10*sd(sim$ignit_data)))
+    no_starts_sample<-sim$max_ignit*5*sim$updateInterval
     # sample more starting locations than needed and then discard extra after testing whether those locations actually ignite comparing its probability of igntion to a random number
     # get starting pixelids
     starts<-sample(probfire$pixelid, no_starts_sample, replace=FALSE)
@@ -2452,46 +2488,46 @@ distProcess <- function(sim) {
     
     # take top ignition points up to the number of (no_ignitions) discard the rest. 
     
-    starts<-start[1:sim$no_ignitions]
+    starts<-start[1:no_ignitions]
     starts$randomnumber<-runif(nrow(starts))
     #escaped fires
     escape.pts<- starts[prob_ignition_escape  > randomnumber, ]
-    number_escaped[i]<-nrow(escape.pts)
     
-    # working here! TRYING TO GET SPREAD TO WORK
-    
-    out <- spread2(landscape = sim$probFireRasts$prob_tot_ignit, start = escape.pts[,"pixelid"], spreadProb = sim$probFireRasts$prob_ignition_spread, asRaster = FALSE)
-    dbBegin(sim$castordb)
-    rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, vol = 0,  salvage_vol = 0, earliest_nonlogging_dist_type = 'burn', years_since_nonlogging_dist = 0, vri_live_stems_per_ha = 0 WHERE pixelid = :pixels", out[, "pixels"])
-    
-
-    #    gsub('\"', '', sim$boundaryInfo[[3]])
+    message("simulating fire")
   
+    out <- spread2(landscape = sim$area, start = as.matrix(starts[,"pixelid"]), spreadProb = sim$spreadRas, asRaster = FALSE, allowOverlap = FALSE)
     
-#      starts <- sample(dbGetQuery(sim$castordb, paste0("select pixelid from pixels where compartid == \'", sim$boundaryInfo[[3]],"\'"))$pixelid, sim$no_ignitions, replace = FALSE)
-      
-      # figure out how to get the cell numbers that are no NA. Then test if they ignite and if they do keep those numbers otherwise discard and retry a different number.
-      
-      
-      #extract probability numbers from the igniton map
-      if(sim$probFireRasts$prob_tot_ignit[starts] > 0 { 
-        ignit<-
-      } 
-      #draw random number from uniform distribution
-      random.num<-runif(sim$no_ignitions)
-      
-      
-    # test if fires escape   
-    distStarts$escape<-sim$escapeRas[distStarts$starts]>runif(length(distStarts$starts))
-        
-        out <- spread2(landscape = sim$spreadRas, start = distStarts$escape, exactSize = distStarts$size, spreadProbRel = sim$spreadRas, asRaster = FALSE)
-        dbBegin(sim$castordb)
-        rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, vol = 0,  salvage_vol = 0, earliest_nonlogging_dist_type = 'burn', years_since_nonlogging_dist = 0, vri_live_stems_per_ha = 0 WHERE pixelid = :pixels", out[, "pixels"])
-        dbClearResult(rs)
-        dbCommit(sim$castordb)
-        tempReport<-data.table(sim$disturbanceFlow[compartment == compart & period == time(sim) & flow > 0,], count=nrow(distStarts), med=median(distStarts$size), total=sum(distStarts$size), thlb = dbGetQuery(sim$castordb, paste0(" select sum(thlb) as thlb from pixels where pixelid in (", paste(out$pixels, sep = "", collapse = ","), ");"))$thlb)
-        sim$disturbanceProcessReport<-rbindlist(list(sim$disturbanceProcessReport,tempReport ))
-      }
+    print(out)
+ 
+    message("updating pixels tables")
+    
+    dbBegin(sim$castordb)
+    rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, vol = 0, salvage_vol = 0 WHERE pixelid = :pixels", out[, "pixels"])
+    dbClearResult(rs)
+    dbCommit(sim$castordb)
+    
+    message("updating fueltype table")
+    
+    qry<-paste0("UPDATE fueltype SET earliest_nonlogging_dist_type = 'burn', earliest_nonlogging_dist_date = ", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"), " WHERE pixelid = :pixels")
+    dbBegin(sim$castordb)
+    rs<-dbSendQuery(sim$castordb,qry , out[, "pixels"])
+    dbClearResult(rs)
+    dbCommit(sim$castordb)
+    
+    #sim$dist.ras[out$pixels]<-time(sim)
+    
+    message("updating firedisturbanceTable")
+    
+    sim$firedisturbanceTable[pixelid %in% out$pixels, numberTimesBurned := numberTimesBurned+1]
+    
+    x<-as.data.frame(table(out$initialPixels))
+    
+    message("updating fire Report")
+    
+    tempfireReport<-data.table(timeperiod = time(sim), numberstarts = nrow(starts), numberescaped = nrow(x %>% filter(Freq>1)), totalareaburned=out[,.N], thlbburned = dbGetQuery(sim$castordb, paste0(" select sum(thlb) as thlb from pixels where pixelid in (", paste(out$pixels, sep = "", collapse = ","), ");"))$thlb)
+    sim$fireReport<-rbindlist(list(sim$fireReport,tempfireReport ))
+    
+    sim$firedisturbanceTable
       
     
   }
@@ -2502,6 +2538,7 @@ distProcess <- function(sim) {
 
 numberStarts<-function(sim){
   
+  message("downloading historical fire data and clip to aoi")
   library(bcdata)
   ignit<-try(
     bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
@@ -2510,19 +2547,22 @@ numberStarts<-function(sim){
       collect()
   )
   
-  study_area<-getSpatialQuery(paste0("SELECT * FROM ", sim$boundaryInfo[[1]]))
+  
+  study_area<-getSpatialQuery(paste0("SELECT * FROM ", sim$boundaryInfo[[1]], " WHERE ", sim$boundaryInfo[[2]], " in ('", paste(sim$boundaryInfo[[3]], sep = " '", collapse= "', '") ,"')"))
   
   ignit <- ignit[study_area, ]
+  message("...done")
   
   library(dplyr)
   
   data <- ignit %>% group_by(FIRE_YEAR) %>% summarize(n=n()) %>% mutate(freq=n/sum(n)) 
   
-  sim$ignit_data<-data$n
+  sim$fit_g  <- fitdistrplus::fitdist(data$n, "gamma")
   
-  sim$fit_g  <- fitdistrplus::fitdist(sim$ignit_data, "gamma")
+  sim$min_ignit<-min(data$n)
+  sim$max_ignit<-max(data$n)
   
-  sim$min_ignit<-min(sim$ignit_data)
+  return(invisible(sim))
 }
 
  
