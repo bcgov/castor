@@ -557,26 +557,6 @@ create_scenario_droplet <- function(
   d_uploader
 }
 
-# @TODO: This function is needed only until analogsea PR
-# https://github.com/pachadotdev/analogsea/pull/218
-# is merged and package updated
-snapshots_with_params <- function(type = NULL, page = 1, per_page = 20, ...) {
-  per_page = min(per_page, 200)
-  analogsea:::as.snapshot(
-    analogsea:::do_GET(
-      analogsea:::snapshot_url(),
-      query = analogsea:::ascompact(
-        list(
-          resource_type = type,
-          page = page,
-          per_page = per_page
-        )
-      ),
-      ...
-    )
-  )
-}
-
 #' Print error message when caught
 #'
 #' @param ... Error message

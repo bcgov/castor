@@ -11,7 +11,7 @@ library(data.table)
 library(sf)
 library(bcdata)
 
-year_vri <- 2021
+year_vri <- 2022
 geom_column <- 'shape'
 wet<-c("mc", "mcp", "mh", "mk", "mkp", "mks", "mm", "mmp", "mmw", "ms", "mv", "mvp", "mw", "mwp", "mww", "vc", "vcp", "vcw", "vh", "vk", "vks", "vm", "wc", "wcp", "wcw", "wh", "whp", "wk", "wm", "wmp", "wmu", "ws", "wv", "wvp", "ww")
 conifer<-c("C","CW","Y","YC","F","FD","FDC","FDI","B","BB","BA","BG","BL","H","HM","HW","HXM","J","JR","JS","P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA","S","SB","SE","SS","SW","SX","SXW","SXL","SXS","T","TW","X", "XC","XH", "ZC")
@@ -38,7 +38,7 @@ when CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date
 when CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer)  >= 25 AND bec_zone_code in ('CDF', 'ICH') AND bec_subzone in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}') then 'C-5'
 when CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer)  >= 25 AND bec_zone_code = 'ICH' AND bec_subzone not in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}') then 'C-3'
 when CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer)  >= 25 AND bec_zone_code in ('PP', 'BG') then 'O-1a/b'
-end) as fuel_type from veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'N' AND harvest_date is not NULL;"))
+end) as fuel_type from vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'N' AND harvest_date is not NULL;"))
 
 non_veg_non_logged<- getTableQuery(glue::glue("select feature_id, (
 case when earliest_nonlogging_dist_type in ('B','BE','BG','BW','BR','NB') and CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) as integer)  <= 3 then 'N'
@@ -50,16 +50,17 @@ when bclcs_level_2 = 'L' or bclcs_level_2 is null and species_cd_1 is not null t
 when bclcs_level_2 = 'L' or bclcs_level_2 is null and species_cd_1 is null then 'N'
 when bclcs_level_2 = 'W' then 'W'
 when earliest_nonlogging_dist_type not in ('B','BE','BG','BW','BR','NB') then 'N'
-end) as fuel_type from veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'N' AND harvest_date is NULL;"))
+end) as fuel_type from vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'N' AND harvest_date is NULL;"))
 
-non_veg<-rbind(non_veg_logged, non_veg_non_logged)
+non_veg<-data.table(rbind(non_veg_logged, non_veg_non_logged))
+
 ```
 
 #### Vegetated fuel types
 Instead of adding percent conifer to the VRI -- doing this in data.table 
 ##### Forested and Recently Burned
 ```{r, recent_burned}
-veg_recent_burned <-data.table(getTableQuery(glue::glue("Select feature_id, species_cd_1, species_cd_2, species_cd_3, species_cd_4, species_cd_5, species_pct_1, species_pct_2, species_pct_3, species_pct_3, species_pct_4, species_pct_5, CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) as integer) as tsf, crown_closure FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND earliest_nonlogging_dist_type in ('B','BE','BG','BW','BR','NB');")))
+veg_recent_burned <-data.table(getTableQuery(glue::glue("Select feature_id, species_cd_1, species_cd_2, species_cd_3, species_cd_4, species_cd_5, species_pct_1, species_pct_2, species_pct_3, species_pct_3, species_pct_4, species_pct_5, CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) as integer) as tsf, crown_closure FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND earliest_nonlogging_dist_type in ('B','BE','BG','BW','BR','NB');")))
 veg_recent_burned[tsf< 0, tsf:=0][species_cd_1 %in% conifer, c1:= species_pct_1][species_cd_2 %in% conifer, c2:= species_pct_2][species_cd_3 %in% conifer, c3:= species_pct_3][species_cd_4 %in% conifer, c4:= species_pct_4][species_cd_5 %in% conifer, c5:= species_pct_5][, con_pct:=sum(c1,c2,c3,c4,c5, na.rm =T), by= seq_len(nrow(veg_recent_burned))]
 #get rid of the 5 columns created for conifer percentage
 veg_recent_burned<-veg_recent_burned[, `:=`(c1 = NULL,c2= NULL,c3= NULL,c4= NULL,c5= NULL)]
@@ -95,7 +96,7 @@ veg_con_pure_lodgepole_jack <-data.table(getTableQuery(glue::glue("Select featur
      when (CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer)  >= 7 or harvest_date is null) and bclcs_level_5 in ('DE', 'OP') and proj_height_1 >= 12 and (crown_closure >= 40 or crown_closure is null) and earliest_nonlogging_dist_type = 'IBM' AND CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) as integer) > 5 AND stand_percentage_dead > 50 then 'C-2'
      when (CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer)  >= 7 or harvest_date is null) and bclcs_level_5 in ('DE', 'OP') and proj_height_1 >= 12 and (crown_closure >= 40 or crown_closure is null) and earliest_nonlogging_dist_type = 'IBM' AND CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) as integer) > 5 AND (stand_percentage_dead < 50 or stand_percentage_dead is null) then 'C-3'
      when (CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer)  >= 7 or harvest_date is null) and bclcs_level_5 in ('DE', 'OP') and proj_height_1 >= 12 and (crown_closure >= 40 or crown_closure is null) and (earliest_nonlogging_dist_type not in ('IBM') or earliest_nonlogging_dist_type is null)  then 'C-3'
-     end) as fuel_type FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('PL', 'PLI', 'PLC', 'PJ', 'P', 'PXJ', 'PLL');")))
+     end) as fuel_type FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('PL', 'PLI', 'PLC', 'PJ', 'P', 'PXJ', 'PLL') AND (earliest_nonlogging_dist_type not in ('B','BE','BG','BW','BR','NB') OR earliest_nonlogging_dist_type is null);")))
 ```
 
 ###### Ponderosa Pine
@@ -113,7 +114,7 @@ when bclcs_level_5 = 'SP' AND stand_percentage_dead >= 40 then 'O-1a/b'
 when bclcs_level_5 = 'SP' AND COALESCE(stand_percentage_dead,0) < 40 and EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  <= 10 then 'S-1'
 when bclcs_level_5 = 'SP' AND COALESCE(stand_percentage_dead,0) < 40 and (EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date)  > 10 or harvest_date is null) then 'C-7'
 end) as fuel_type  
-FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 = 'PY';")))
+FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 = 'PY' AND (earliest_nonlogging_dist_type not in ('B','BE','BG','BW','BR','NB') OR earliest_nonlogging_dist_type is null);")))
 ```
 
 ###### Other Pine
@@ -124,7 +125,7 @@ when bclcs_level_5 in ('SP', 'OP') and COALESCE(vri_live_stems_per_ha,0) + COALE
 when bclcs_level_5 in ('SP', 'OP') and COALESCE(vri_live_stems_per_ha,0) + COALESCE(vri_dead_stems_per_ha,0) >= 600 and COALESCE(vri_live_stems_per_ha,0) + COALESCE(vri_dead_stems_per_ha,0) < 900 then 'C-7' 
 when bclcs_level_5 in ('SP', 'OP') and COALESCE(vri_live_stems_per_ha,0) + COALESCE(vri_dead_stems_per_ha,0) < 600  then 'C-5' 
 end) as fuel_type  
-FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('PA', 'PF', 'PW');")))
+FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('PA', 'PF', 'PW') AND (earliest_nonlogging_dist_type not in ('B','BE','BG','BW','BR','NB') OR earliest_nonlogging_dist_type is null);")))
 ```
 
 ###### Douglas-fir
@@ -144,7 +145,7 @@ when (CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_dat
 when (CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer)  > 6 or harvest_date is null) and proj_height_1 >= 4 and crown_closure < 26 and (bec_zone_code in ('CWH', 'MH', 'CDF') OR (bec_zone_code = 'ICH' and bec_subzone in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}')))  then 'D-1/2'
 when (CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer)  > 6 or harvest_date is null) and proj_height_1 >= 4 and crown_closure < 26 and (bec_zone_code not in ('CWH', 'MH', 'CDF') OR (bec_zone_code = 'ICH' and bec_subzone not in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}')))  then 'O-1a/b'
 end) as fuel_type  
-FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('F','FD','FDC','FDI');")))
+FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('F','FD','FDC','FDI') AND (earliest_nonlogging_dist_type not in ('B','BE','BG','BW','BR','NB') OR earliest_nonlogging_dist_type is null);")))
 ```
 
 ###### Spruce
@@ -170,7 +171,7 @@ when species_cd_1  in ('S', 'SX', 'SXL', 'SXS') and (CAST(EXTRACT('Year' FROM pr
 when species_cd_1  in ('S', 'SX', 'SXL', 'SXS') and (CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer) > 7 or harvest_date is null) and bec_zone_code not in ('BWBS', 'SWB','CWH', 'CDF') and bclcs_level_5 ='DE' and COALESCE (proj_height_1, 0 ) > 4 then 'C-2'
 when species_cd_1  in ('S', 'SX', 'SXL', 'SXS') and (CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer) > 7 or harvest_date is null) and bec_zone_code not in ('BWBS', 'SWB','CWH', 'CDF') and bclcs_level_5 ='OP' and COALESCE (proj_height_1, 0 ) > 4 then 'C-3'
 end) as fuel_type  
-FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('S','SB','SE','SS','SW','SX','SXW','SXL','SXS');")))
+FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('S','SB','SE','SS','SW','SX','SXW','SXL','SXS') AND (earliest_nonlogging_dist_type not in ('B','BE','BG','BW','BR','NB') OR earliest_nonlogging_dist_type is null);")))
 ```
 
 ###### Hemlock
@@ -185,7 +186,7 @@ veg_con_pure_hw <-data.table(getTableQuery(glue::glue("Select feature_id, (case
    when (CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer) > 6 or harvest_date is null) and bclcs_level_5 = 'OP' then 'C-5' 
    when (CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer) > 6 or harvest_date is null) and bclcs_level_5 = 'SP' then 'D-1/2'
    end)  as fuel_type 
-FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('H','HM','HW','HXM', 'C','CW','Y','YC');")))
+FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('H','HM','HW','HXM', 'C','CW','Y','YC') AND (earliest_nonlogging_dist_type not in ('B','BE','BG','BW','BR','NB') OR earliest_nonlogging_dist_type is null);")))
 ```
 
 ###### True Fir
@@ -198,19 +199,19 @@ when species_cd_1 in ('B','BB','BL') and (bclcs_level_5 not in ('SP') or bclcs_l
 when species_cd_1 in ('T','TW') then 'C-5'
 when species_cd_1 in ('J','JR','JS') then 'O-1a/b'
    end)  as fuel_type 
-FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('BG', 'BA', 'B','BB','BL', 'T','TW','J','JR','JS');")))
+FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('BG', 'BA', 'B','BB','BL', 'T','TW','J','JR','JS') AND (earliest_nonlogging_dist_type not in ('B','BE','BG','BW','BR','NB') OR earliest_nonlogging_dist_type is null);")))
 ```
 
 
 ###### Deciduous
 ```{r, deciduous}
 veg_dec_pure <-data.table(getTableQuery(glue::glue("Select feature_id, 'D-1/2' as fuel_type 
-FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('{glue::glue_collapse(deciduous,  sep = '\\',\\'')}');")))
+FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 >= 80 AND species_cd_1 in ('{glue::glue_collapse(deciduous,  sep = '\\',\\'')}') AND (earliest_nonlogging_dist_type not in ('B','BE','BG','BW','BR','NB') OR earliest_nonlogging_dist_type is null);")))
 ```
 
 ##### Forested and Mixed species
 ```{r, mixed}
-veg_mixed <-data.table(getTableQuery(glue::glue("Select feature_id, coast_interior_cd, bclcs_level_5, bec_zone_code, bec_subzone, proj_height_1, COALESCE(vri_live_stems_per_ha,0) as vri_live_stems_per_ha, COALESCE(vri_dead_stems_per_ha,0) as vri_dead_stems_per_ha, COALESCE (stand_percentage_dead, 0) as stand_percentage_dead, species_cd_1, species_cd_2, species_cd_3, species_cd_4, species_cd_5,species_cd_6, species_pct_1, species_pct_2, species_pct_3, species_pct_3, species_pct_4, species_pct_5,species_pct_6, CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer) as ys_log, CAST(EXTRACT('Year' FROM projected_date)- EXTRACT('Year' FROM earliest_nonlogging_dist_date) as integer) as ys_dist, earliest_nonlogging_dist_type, proj_age_1, crown_closure FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 < 80;")))
+veg_mixed <-data.table(getTableQuery(glue::glue("Select feature_id, coast_interior_cd, bclcs_level_5, bec_zone_code, bec_subzone, proj_height_1, COALESCE(vri_live_stems_per_ha,0) as vri_live_stems_per_ha, COALESCE(vri_dead_stems_per_ha,0) as vri_dead_stems_per_ha, COALESCE (stand_percentage_dead, 0) as stand_percentage_dead, species_cd_1, species_cd_2, species_cd_3, species_cd_4, species_cd_5,species_cd_6, species_pct_1, species_pct_2, species_pct_3, species_pct_3, species_pct_4, species_pct_5,species_pct_6, CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer) as ys_log, CAST(EXTRACT('Year' FROM projected_date)- EXTRACT('Year' FROM earliest_nonlogging_dist_date) as integer) as ys_dist, earliest_nonlogging_dist_type, proj_age_1, crown_closure FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'T' AND species_pct_1 < 80 AND (earliest_nonlogging_dist_type not in ('B','BE','BG','BW','BR','NB') OR earliest_nonlogging_dist_type is null);")))
 veg_mixed[species_cd_1 %in% conifer, c1:= species_pct_1][species_cd_2 %in% conifer, c2:= species_pct_2][species_cd_3 %in% conifer, c3:= species_pct_3][species_cd_4 %in% conifer, c4:= species_pct_4][species_cd_5 %in% conifer, c5:= species_pct_5][, con_pct:=sum(c1,c2,c3,c4,c5, na.rm =T), by= seq_len(nrow(veg_mixed))]
 #Get the dominant conifer species
 veg_mixed[, dcsp := ifelse(species_cd_1 %in% conifer, species_cd_1, 
@@ -366,7 +367,7 @@ non_forested_burned <-data.table(getTableQuery(glue::glue("Select feature_id, (c
 when CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) AS integer) < 2 then 'N'
 when CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) AS integer)  > 1 AND CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) AS integer) < 4 then 'D-1/2'
 when CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) AS integer)  > 3 AND CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) AS integer)  < 11 then 'O-1a/b'
-end) as fuel_type FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'N' AND earliest_nonlogging_dist_type in ('B', 'BE', 'BG', 'BW', 'BR', 'NB') AND CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) AS integer) < 11; ")))
+end) as fuel_type FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'N' AND earliest_nonlogging_dist_type in ('B', 'BE', 'BG', 'BW', 'BR', 'NB') AND CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM earliest_nonlogging_dist_date) AS integer) < 11; ")))
 ```
 
 ###### Harvested
@@ -410,7 +411,7 @@ when species_cd_1 is null AND CAST(EXTRACT('Year' FROM projected_date) - EXTRACT
 when species_cd_1 is null AND CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer) > 24 and bec_zone_code = 'CDF' and bec_subzone not in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}') then 'C-7'
 when species_cd_1 is null AND CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer) > 24 and bec_zone_code = 'ICH' and bec_subzone not in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}') then 'M-1/2'
 when species_cd_1 is null AND CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) as integer) > 24 and bec_zone_code = 'ICH' and bec_subzone in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}') then 'C-5'
-end) as fuel_type FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'N' AND harvest_date is not null; ")))
+end) as fuel_type FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'N' AND harvest_date is not null AND (earliest_nonlogging_dist_type not in ('B', 'BE', 'BG', 'BW', 'BR', 'NB') or earliest_nonlogging_dist_type is null); ")))
 ```
 
 ###### Non-harvested
@@ -435,7 +436,7 @@ when species_cd_1 is null and inventory_standard_cd in ('V', 'I') and (land_cove
 when species_cd_1 is null and inventory_standard_cd in ('V', 'I') and (land_cover_class_cd_1 in ('L','ST', 'HE', 'HF') or land_cover_class_cd_1 is null) and bec_zone_code in ('CWH', 'MH', 'ICH') then 'D-1/2'
 when species_cd_1 is null and inventory_standard_cd in ('V', 'I') and (land_cover_class_cd_1 in ('L','ST', 'HE', 'HF') or land_cover_class_cd_1 is null) and bec_zone_code not in ('CMA', 'IMA', 'CWH', 'MH', 'ICH') then 'O-1a/b'
 when species_cd_1 is null and inventory_standard_cd in ('V', 'I') and (land_cover_class_cd_1 not in ('L','ST', 'HE', 'HF') or land_cover_class_cd_1 is not null) then 'N'
-end) as fuel_type FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'N' AND harvest_date is null; ")))
+end) as fuel_type FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' AND bclcs_level_2 = 'N' AND harvest_date is null AND (earliest_nonlogging_dist_type not in ('B', 'BE', 'BG', 'BW', 'BR', 'NB') or earliest_nonlogging_dist_type is null); ")))
 ```
 
 #### Unknowns
@@ -443,7 +444,7 @@ end) as fuel_type FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'V' 
 if(FALSE){
 unknown <-data.table(getTableQuery(glue::glue("Select feature_id, (case
 when bclcs_level_4 = '101' then 'C-1'
-end) as fuel_type FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_4 is null and bclcs_level_4 in ('101', '102', '103', '104', '105', '106', '107', '108', '109', '110', 
+end) as fuel_type FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_4 is null and bclcs_level_4 in ('101', '102', '103', '104', '105', '106', '107', '108', '109', '110', 
 															   '111', '112', '113', '114', '115', '116', '117', '118', '119', '120', '121', '122', '123'); ")))
 }
 
@@ -466,31 +467,142 @@ when bec_zone_code = 'CDF' and bec_subzone not in ('{glue::glue_collapse(wet,  s
 when bec_zone_code = 'CDF' and bec_subzone in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}')  then 'C-5'
 when bec_zone_code = 'ICH' and bec_subzone not in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}')  then 'M-1/2'
 when bec_zone_code = 'ICH' and bec_subzone in ('{glue::glue_collapse(wet,  sep = '\\',\\'')}')  then 'C-5'
-end) as fuel_type FROM veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'U'")))
+end) as fuel_type FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 = 'U'")))
 ```
 
 ## Compilation
 ```{r, compile}
+non_veg[, source:='non_veg']
+veg_recent_burn[, source:='veg_recent_burn']
+veg_con_pure_lodgepole_jack[, source:='veg_con_pure_lodgepole_jack']
+veg_con_pure_ponderosa[, source:='veg_con_pure_ponderosa']
+veg_con_pure_other_pine[, source:='veg_con_pure_other_pine']
+veg_con_pure_fd[, source:='veg_con_pure_fd']
+veg_con_pure_sx[, source:='veg_con_pure_sx']
+veg_con_pure_hw[, source:='veg_con_pure_hw']
+veg_con_pure_fir[, source:='veg_con_pure_fir']
+ veg_dec_pure[, source:=' veg_dec_pure']
+veg_mix[, source:='veg_mix']
+non_forested_burned[, source:='non_forested_burned']
+non_forested_logged[, source:='non_forested_logged']
+non_forested_non_logged[, source:='non_forested_non_logged']
+unknown[, source:='unknown']
+
 ft_vri<-rbindlist(list(non_veg,veg_recent_burn, veg_con_pure_lodgepole_jack, veg_con_pure_ponderosa, veg_con_pure_other_pine ,veg_con_pure_fd , veg_con_pure_sx , veg_con_pure_hw , veg_con_pure_fir, veg_dec_pure, veg_mix, non_forested_burned, non_forested_logged ,non_forested_non_logged , unknown))
 
-ft_vri$dups = duplicated(ft_vri, by = key(ft_vri));
+ft_vri$dups = duplicated(ft_vri, by = "feature_id")
 check_dups<-ft_vri[feature_id %in% ft_vri[dups == T,]$feature_id, ][order(feature_id),]
 
 ft_vri_out<-ft_vri[dups == F & !is.na(fuel_type), ]
 ft_vri_out$dups <- NULL
 
+rm(veg_con_pure_fd, veg_con_pure_fir, veg_con_pure_hw, veg_con_pure_lodgepole_jack, veg_con_pure_ponderosa, veg_con_pure_sx, veg_dec_pure, veg_mix, veg_mixed, veg_recent_burn, veg_recent_burned, ft_vri, non_forested_burned, non_forested_logged, non_forested_non_logged, non_veg, non_veg_logged, non_veg_non_logged)
+gc()
 ```
 
 ### Spatial
 ```{r, spatial}
-vri<- getSpatialQuery(glue::glue("SELECT feature_id, {geom_column} FROM veg_comp_lyr_r1_poly{year_vri} "))
-vri_out<-merge(vri, ft_vri_out, by = "feature_id")
-st_write(vri_out, paste0("C:/Users/klochhea/castor/vri",year_vri,"_ft.gpkg"))
+vri<- getSpatialQuery(glue::glue("SELECT feature_id, {geom_column} FROM vri.veg_comp_lyr_r1_poly{year_vri} "))
+
+restest = c(100, 100)
+prov.rast <- raster( # standardized provincial raster with no data in it
+  nrows = 15744, ncols = 17216,
+  xmn = 159587.5, xmx = 1881187.5,
+  ymn = 173787.5, ymx = 1748187.5,
+  crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
+  resolution = restest,
+  vals = 0)
+
+ras.prov<-fasterize::fasterize(vri, prov.rast, field = "feature_id")
+rm(vri)
+gc()
+
+pixel.grid<-data.table(feature_id = ras.prov[])[, pixelid := seq_len(.N)]
+
+out<-merge(pixel.grid, ft_vri_out, by.x= "feature_id", by.y = "feature_id", all.x = T)
+out<-out[, flammable:=1][is.na(fuel_type) | fuel_type %in% c('W', 'N'), flammable:=0]
+out<-out[order(pixelid)]
+ras.prov[]<-out$flammable
+ras.flame<-terra::crop(terra::aggregate(terra::rast(ras.prov), fact = 100, fun = sum ),ras.prov)
+writeRaster(ras.flame, glue::glue("flammable_{year_vri}_10k.tif "))
+out$flammable<-NULL
+#C1
+out<-out[, c1:=0][fuel_type== 'C-1', c1:=1]
+out<-out[order(pixelid)]
+ras.prov[]<-out$c1
+ras.flame<-terra::crop(terra::aggregate(terra::rast(ras.prov), fact = 100, fun = sum ),ras.prov)
+writeRaster(ras.flame, glue::glue("c1_{year_vri}_10k.tif "))
+out$c1<-NULL
+#C2
+out<-out[, c2:=0][fuel_type== 'C-2', c2:=1]
+out<-out[order(pixelid)]
+ras.prov[]<-out$c2
+ras.flame<-terra::crop(terra::aggregate(terra::rast(ras.prov), fact = 100, fun = sum ),ras.prov)
+writeRaster(ras.flame, glue::glue("c2_{year_vri}_10k.tif "))
+out$c2<-NULL
+#C3
+out<-out[, c3:=0][fuel_type== 'C-3', c3:=1]
+out<-out[order(pixelid)]
+ras.prov[]<-out$c3
+ras.flame<-terra::crop(terra::aggregate(terra::rast(ras.prov), fact = 100, fun = sum ),ras.prov)
+writeRaster(ras.flame, glue::glue("c3_{year_vri}_10k.tif "))
+out$c3<-NULL
+#C4
+out<-out[, c4:=0][fuel_type== 'C-4', c4:=1]
+out<-out[order(pixelid)]
+ras.prov[]<-out$c4
+ras.flame<-terra::crop(terra::aggregate(terra::rast(ras.prov), fact = 100, fun = sum ),ras.prov)
+writeRaster(ras.flame, glue::glue("c4_{year_vri}_10k.tif "))
+out$c4<-NULL
+#C5
+out<-out[, c5:=0][fuel_type== 'C-5', c5:=1]
+out<-out[order(pixelid)]
+ras.prov[]<-out$c5
+ras.flame<-terra::crop(terra::aggregate(terra::rast(ras.prov), fact = 100, fun = sum ),ras.prov)
+writeRaster(ras.flame, glue::glue("c5_{year_vri}_10k.tif "))
+out$c5<-NULL
+
+#C7
+out<-out[, c7:=0][fuel_type== 'C-7', c7:=1]
+out<-out[order(pixelid)]
+ras.prov[]<-out$c7
+ras.flame<-terra::crop(terra::aggregate(terra::rast(ras.prov), fact = 100, fun = sum ),ras.prov)
+writeRaster(ras.flame, glue::glue("c7_{year_vri}_10k.tif "))
+out$c7<-NULL
+#D-1/2
+out<-out[, d:=0][fuel_type== 'D-1/2', d:=1]
+out<-out[order(pixelid)]
+ras.prov[]<-out$d
+ras.flame<-terra::crop(terra::aggregate(terra::rast(ras.prov), fact = 100, fun = sum ),ras.prov)
+writeRaster(ras.flame, glue::glue("d_{year_vri}_10k.tif "))
+out$d<-NULL
+#M-1/2
+out<-out[, m:=0][fuel_type %in% c('M-1/2', 'M-3') , m:=1]
+out<-out[order(pixelid)]
+ras.prov[]<-out$m
+ras.flame<-terra::crop(terra::aggregate(terra::rast(ras.prov), fact = 100, fun = sum ),ras.prov)
+writeRaster(ras.flame, glue::glue("m_{year_vri}_10k.tif "))
+out$m<-NULL
+#'O-1a/b'
+out<-out[, o:=0][fuel_type == c('O-1a/b') , o:=1]
+out<-out[order(pixelid)]
+ras.prov[]<-out$o
+ras.flame<-terra::crop(terra::aggregate(terra::rast(ras.prov), fact = 100, fun = sum ),ras.prov)
+writeRaster(ras.flame, glue::glue("o_{year_vri}_10k.tif "))
+out$o<-NULL
+
+#S-1,S-2,S-3
+out<-out[, s:=0][fuel_type %in% c('S-1', 'S-2', 'S-3') , s:=1]
+out<-out[order(pixelid)]
+ras.prov[]<-out$s
+ras.flame<-terra::crop(terra::aggregate(terra::rast(ras.prov), fact = 100, fun = sum ),ras.prov)
+writeRaster(ras.flame, glue::glue("s_{year_vri}_10k.tif "))
+out$s<-NULL
 ```
 
 ### Comparison with 2021 DataBC Fuel type map
 The 2021 VRI fuel type mapping can be found [here](https://catalogue.data.gov.bc.ca/dataset/bc-wildfire-fire-fuel-types-public). The following is a confusion matrix for a sample area near Prince George with 199,843 polygons.
-```{r}
+```{r, eval=F}
 sample_ft2021<-data.table(st_drop_geometry(st_read(paste0("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/PROT_FUEL_TYPE_SP/PROTFUELTY_polygon.shp"))))[, c("FEATURE_ID", "FL_TYP_CD")]
 
 compare_2021<-merge(ft_vri_out, sample_ft2021, by.x = "feature_id", by.y = "FEATURE_ID", all.x= T)
