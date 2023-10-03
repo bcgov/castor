@@ -95,6 +95,7 @@ doEvent.fireCastor = function(sim, eventTime, eventType, debug = FALSE){
      # sim$firedisturbanceTable<-data.table(scenario = scenario$name, numberFireReps = numberFireReps, pixelid = pts$pixelid, numberTimesBurned = as.integer(0))
 
         sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "simulateFire", 5)
+        sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "saveFireRasters", 6)
      # }
         
         
@@ -143,6 +144,13 @@ simulateFire ={
   sim<-distProcess(sim)
   sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor"), "fireCastor", "simulateFire", 5)
   },
+
+saveFireRasters = {
+  sim<-savefirerast(sim)
+  sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor"), "fireCastor", "saveFireRasters", 6)
+  
+},
+
 
 warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
               "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
@@ -351,7 +359,7 @@ getClimateVariables <- function(sim) {
   
   qry<-paste0("SELECT COUNT(*) as exists_check FROM sqlite_master WHERE type='table' AND name='firevariables", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"), "';")
   
-  if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
+ # if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
   
   message(paste0("create empty table of climate variables for year ", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor")))
   
@@ -779,12 +787,12 @@ message("Downloading climate data from climateBC ...")
    dbClearResult(rs)
    dbCommit(sim$castordb)
    
-  rm(climate2, rast_id,rast_id2, days_month, DC_half, Em, Em2, MDC_m, precip, Qmr, Qmr2, RMeff)
+  rm(clim_dat, rast_id,rast_id2, days_month, DC_half, Em, Em2, MDC_m, precip, Qmr, Qmr2, RMeff)
   
   gc()
   return(invisible(sim))
   
-  } else {message ("climate data already collected")}
+  #} else {message ("climate data already collected")}
 }
 
 createVegetationTable <- function(sim) {
@@ -2609,7 +2617,7 @@ calcProbFire<-function(sim){
   
   probFireRast<- do.call("rbind", list(frt5, frt7, frt9, frt10, frt11, frt12, frt13, frt14, frt15))
   
-  sim$probFireRasts<-merge(fwveg, probFireRast, by.x="pixelid", by.y="pixelid", all.x=TRUE)
+  sim$probFireRasts<-merge(sim$veg3, probFireRast, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   
   sim$probFireRasts<-data.table(sim$probFireRasts)
   sim$probFireRasts[fwveg=="W",prob_tot_ignit:=0]
@@ -2688,12 +2696,8 @@ distProcess <- function(sim) {
     sim$out  <- spreadWithEscape(sim$area, start = random.starts, escapeProb = sim$escapeRas , spreadProb = sim$spreadRas)
   
     
-  
-   # out <- spread2(landscape = sim$area, start = as.matrix(escape.pts[,"pixelid"]), spreadProb = sim$spreadRas, asRaster = FALSE, allowOverlap = FALSE)
-    
-    #
-    
     print(sim$out)
+    
  
     message("updating pixels tables")
     
@@ -2719,11 +2723,11 @@ distProcess <- function(sim) {
     
     sim$firedisturbanceTable[pixelid %in% sim$out$pixels, numberTimesBurned := numberTimesBurned+1]
     
-    x<-as.data.frame(table(sim$out$initialPixels))
+    sim$x<-as.data.frame(table(sim$out$initialPixels))
     
     message("updating fire Report")
     
-    tempfireReport<-data.table(timeperiod = time(sim), numberstarts = length(unique(x)), numberescaped = nrow(x %>% dplyr::filter(Freq>1)), totalareaburned=sim$out[,.N], thlbburned = dbGetQuery(sim$castordb, paste0(" select sum(thlb) as thlb from pixels where pixelid in (", paste(sim$out$pixels, sep = "", collapse = ","), ");"))$thlb)
+    tempfireReport<-data.table(timeperiod = time(sim), numberstarts = no_ignitions, numberescaped = nrow(sim$x %>% dplyr::filter(Freq>1)), totalareaburned=sim$out[,.N], thlbburned = dbGetQuery(sim$castordb, paste0(" select sum(thlb) as thlb from pixels where pixelid in (", paste(sim$out$pixels, sep = "", collapse = ","), ");"))$thlb)
     print(tempfireReport)
     print(sim$fireReport)
     
@@ -2735,6 +2739,27 @@ distProcess <- function(sim) {
   
   return(invisible(sim))
 }
+
+savefirerast<-function(sim){
+  
+  message("saving rasters of fire locations")
+  
+  firepts<-sim$pts[,c("pixelid", "treed")]
+  firepts[, burned:=0]
+  
+  firepts[pixelid %in% sim$out$pixels, burned := 1]
+  
+  ras.info<-dbGetQuery(sim$castordb, "Select * from raster_info limit 1;")
+  burnpts<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
+  
+  burnpts[]<-firepts$burned
+  
+  terra::writeRaster(burnpts, file = paste0 ("burn_polygons_", time(sim)*sim$updateInterval, ".tif"),  overwrite=TRUE)
+  
+  return(invisible(sim))
+}
+
+
 
 numberStarts<-function(sim){
   
