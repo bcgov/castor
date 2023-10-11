@@ -725,9 +725,9 @@ recordABMReport<-function(sim, i){
 
 saveFisherReports<-function(sim){
   write.csv (x = sim$fisherABMReport,
-             file = paste0 (outputPath (sim), "/", sim$scenario$name, "_fisher_agents.csv"))
+             file = paste0 (outputPath (sim), "/fisher_agents.csv"))
   writeRaster (x = sim$ras.territories.stack,
-                       filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_fisher_territories.tif"),
+                       filename = paste0 (outputPath (sim), "/fisher_territories.tif"),
                        overwrite = TRUE)
   return(invisible(sim))
 }
@@ -914,6 +914,8 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
                                         SD = c (2.71, 1.09, 2.33, 1.62),
                                         Max = c (9.88, 6.01, 6.63, 7.5))
   }
-
+  if(!suppliedElsewhere("scenario", sim)){
+    sim$scenario <- data.table(name="test_final", description = "test")
+  }
   return(invisible(sim))
 }
