@@ -433,8 +433,12 @@ getClimateVariables <- function(sim) {
 #  if (!file.exists(paste0(here::here(), "/R/SpaDES-modules/fireCastor/outputs/", scenario$name, time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),'_M.csv'))) {
 message("Downloading climate data from climateBC ...")  
 
+if (!exists("dbCon")){
+  dbCon <- climRdev::data_connect() ##connect to database
+  } else { message("connection to dbCon already made")}
+
     thebb <- get_bb(sim$samp.pts2) ##get bounding box based on input points
-    dbCon <- climRdev::data_connect() ##connect to database
+    #dbCon <- climRdev::data_connect() ##connect to database
     normal <- normal_input_postgis(dbCon = dbCon, bbox = thebb, cache = TRUE) ##get normal data and lapse rates
     gcm_ts <- gcm_ts_input(dbCon, bbox = thebb, 
                            gcm = (P(sim, "gcm", "fireCastor")), 
@@ -464,7 +468,8 @@ message("Downloading climate data from climateBC ...")
       dat3<-dat[,c("long","lat", "el")]
       
     }
-      
+    
+    message("downscale Tmax")
     results_Tmax <- downscale(
       xyz = as.data.frame(dat3),
       normal = normal,
@@ -472,6 +477,7 @@ message("Downloading climate data from climateBC ...")
       vars = sprintf(c("Tmax%02d"),1:11)
     )
     
+    message("downscale PPT")
     results_PPT <- downscale(
       xyz = as.data.frame(dat3),
       normal = normal,
@@ -479,6 +485,7 @@ message("Downloading climate data from climateBC ...")
       vars = sprintf(c("PPT%02d"),1:11)
     )
     
+    message("downscale Tave")
     results_Tave <-downscale(
       xyz = as.data.frame(dat3),
       normal = normal,
@@ -486,6 +493,7 @@ message("Downloading climate data from climateBC ...")
       vars = sprintf(c("Tave%02d"),4:10)
     )
     
+    message("downscale RH")
     results_RH <-downscale(
       xyz = as.data.frame(dat3),
       normal = normal,
@@ -577,7 +585,7 @@ message("Downloading climate data from climateBC ...")
     dplyr::mutate(climate1_person = dplyr::case_when(
       frt == "5" ~ as.numeric((PPT06 + PPT07)/2),
       frt == "7" ~ (Tave04 + Tave05 + Tave06 + Tave07 +Tave08 + Tave09 + Tave10)/7,
-      frt == "9" ~ Tmax05, # NDT4
+      frt == "9" ~ Tmax05, 
       frt == "10" ~ as.numeric(PPT06 + PPT07 + PPT08 + PPT09)/4,
       frt == "11" ~ (Tave08 + Tave09 + Tave10)/3,
       frt == "12" ~ (Tmax04 + Tmax05 + Tmax06 + Tmax07 + Tmax08 + Tmax09 + Tmax10)/7,
@@ -669,6 +677,8 @@ message("Downloading climate data from climateBC ...")
   names(lightning1) <- c('ID','climate1_lightning','pixelid')
   lightning1<-lightning1[,c('climate1_lightning','pixelid')]
   
+  rm(rast_id, rast_id2)
+  
   
   # lightning2
   rast_id<-raster(extent(ext(normal[[1]])[1], ext(normal[[1]])[2], ext(normal[[1]])[3], ext(normal[[1]])[4]), nrow = dim(normal[[1]])[1], ncol = dim(normal[[1]])[2], vals =0)
@@ -682,7 +692,7 @@ message("Downloading climate data from climateBC ...")
   lightning2$pixelid<-sp$pixelid
   names(lightning2) <- c('ID','climate2_lightning','pixelid')
   lightning2<-lightning2[,c('climate2_lightning','pixelid')]
-  
+  rm(rast_id, rast_id2)
   
   # person1
   rast_id<-raster(extent(ext(normal[[1]])[1], ext(normal[[1]])[2], ext(normal[[1]])[3], ext(normal[[1]])[4]), nrow = dim(normal[[1]])[1], ncol = dim(normal[[1]])[2], vals =0)
@@ -697,6 +707,7 @@ message("Downloading climate data from climateBC ...")
   names(person1) <- c('ID','climate1_person','pixelid')
   person1<-person1[,c('climate1_person','pixelid')]
   
+  rm(rast_id, rast_id2)
   
   # person2
   rast_id<-raster(extent(ext(normal[[1]])[1], ext(normal[[1]])[2], ext(normal[[1]])[3], ext(normal[[1]])[4]), nrow = dim(normal[[1]])[1], ncol = dim(normal[[1]])[2], vals =0)
@@ -710,7 +721,7 @@ message("Downloading climate data from climateBC ...")
   person2$pixelid<-sp$pixelid
   names(person2) <- c('ID','climate2_person','pixelid')
   person2<-person2[,c('climate2_person','pixelid')]
-  
+  rm(rast_id, rast_id2)
 
   # escape1
   rast_id<-raster(extent(ext(normal[[1]])[1], ext(normal[[1]])[2], ext(normal[[1]])[3], ext(normal[[1]])[4]), nrow = dim(normal[[1]])[1], ncol = dim(normal[[1]])[2], vals =0)
@@ -724,6 +735,7 @@ message("Downloading climate data from climateBC ...")
   escape1$pixelid<-sp$pixelid
   names(escape1) <- c('ID','climate1_escape','pixelid')
   escape1<-escape1[,c('climate1_escape','pixelid')]
+  rm(rast_id, rast_id2)
   
   # escape2
   rast_id<-raster(extent(ext(normal[[1]])[1], ext(normal[[1]])[2], ext(normal[[1]])[3], ext(normal[[1]])[4]), nrow = dim(normal[[1]])[1], ncol = dim(normal[[1]])[2], vals =0)
@@ -737,6 +749,7 @@ message("Downloading climate data from climateBC ...")
   escape2$pixelid<-sp$pixelid
   names(escape2) <- c('ID','climate2_escape','pixelid')
   escape2<-escape2[,c('climate2_escape','pixelid')]
+  rm(rast_id, rast_id2)
   
   # spread 1
   rast_id<-raster(extent(ext(normal[[1]])[1], ext(normal[[1]])[2], ext(normal[[1]])[3], ext(normal[[1]])[4]), nrow = dim(normal[[1]])[1], ncol = dim(normal[[1]])[2], vals =0)
@@ -750,6 +763,7 @@ message("Downloading climate data from climateBC ...")
   spread1$pixelid<-sp$pixelid
   names(spread1) <- c('ID','climate1_spread','pixelid')
   spread1<-spread1[,c('climate1_spread','pixelid')]
+  rm(rast_id, rast_id2)
   
   # spread 2
   rast_id<-raster(extent(ext(normal[[1]])[1], ext(normal[[1]])[2], ext(normal[[1]])[3], ext(normal[[1]])[4]), nrow = dim(normal[[1]])[1], ncol = dim(normal[[1]])[2], vals =0)
@@ -763,6 +777,8 @@ message("Downloading climate data from climateBC ...")
   spread2$pixelid<-sp$pixelid
   names(spread2) <- c('ID','climate2_spread','pixelid')
   spread2<-spread2[,c('climate2_spread','pixelid')]
+  
+  sim$results4<-results4
   
   # Merge the dataframes
   #library(tidyverse)
@@ -2765,18 +2781,18 @@ numberStarts<-function(sim){
   
   message("downloading historical fire data and clip to aoi")
   library(bcdata)
-  # ignit<-try(
-  #   bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
-  #     dplyr::filter(FIRE_YEAR > 2000) %>%
-  #     dplyr::filter(FIRE_TYPE == "Fire") %>%
-  #     collect()
-  # )
+  ignit<-try(
+    bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
+      dplyr::filter(FIRE_YEAR > 2000) %>%
+      dplyr::filter(FIRE_TYPE == "Fire") %>%
+      collect()
+  )
   
-  ignit<- st_read ( dsn = "C:\\Users\\ekleynha\\Downloads\\BCGW_7113060B_1695444895226_2864\\PROT_HISTORICAL_INCIDENTS_SP\\H_FIRE_PNT_point.shp", stringsAsFactors = T) # Read simple features from file or database, or retrieve layer names and their geometry type(s)
+  # ignit<- st_read ( dsn = "C:\\Users\\ekleynha\\Downloads\\BCGW_7113060B_1695444895226_2864\\PROT_HISTORICAL_INCIDENTS_SP\\H_FIRE_PNT_point.shp", stringsAsFactors = T) 
   
-  ignit<- ignit%>%
-         dplyr::filter(FIRE_YEAR > 2002) %>%
-         dplyr::filter(FIRE_TYPE == "Fire")
+  # ignit<- ignit%>%
+  #        dplyr::filter(FIRE_YEAR > 2002) %>%
+  #        dplyr::filter(FIRE_TYPE == "Fire")
 
   
   message("done")
