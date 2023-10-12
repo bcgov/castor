@@ -58,7 +58,7 @@ Above is run or each year 2002 to 2020 separately from the data. This is already
 
 
 #### VEGETATION DATA #### 
-2002 to 2021 are the only years that VRI data exists, there is no earlier data.  when you try to overlay the ignition points over the VRI data and try to extract them QGIS says tehre are many geometry problems. So first I corrected taht for each VRI layer as follows:
+2002 to 2022 are the only years that VRI data exists, there is no earlier data.  when you try to overlay the ignition points over the VRI data and try to extract them QGIS says tehre are many geometry problems. So first I corrected taht for each VRI layer as follows:
 
 Processing -> Toolbox -> Vector geometries -> Fix geometries 
 Alternatively after opening the toolbox type fix into the search window and it should list fix geometries. 
@@ -147,7 +147,16 @@ library(tidyverse)
 
 ```{r}
 sample_locations_DEM_roads_wind2<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\Data_clim_DEM_roads_wind_frt.gpkg")
+
+# get the bounding box of the points
+#thebbox<-st_bbox(sample_locations_DEM_roads_wind2)
+
+#import the  fid values raster for the vri 
+#ras.fid<-getRasterQuery("rast.vri2020_id", thebbox) # this takes a while
+#plot(ras.fid)
 ```
+
+
 
 
 # Save each fire year separately
@@ -198,7 +207,7 @@ ignit_all_2012<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2012)
 dim(ignit_all_2012)
 sf::st_write(ignit_all_2012, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2012.gpkg", delete_layer=TRUE)
 
-ignit_all_2013<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2013)
+ignit_all_2013<- sample_locations_DEM_roads_wind2 %>% filter(FIRE_YE==2013)
 dim(ignit_all_2013)
 sf::st_write(ignit_all_2013, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2013.gpkg", delete_layer=TRUE)
 
@@ -234,6 +243,10 @@ ignit_all_2021<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2021)
 dim(ignit_all_2021)
 sf::st_write(ignit_all_2021, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2021.gpkg", delete_layer=TRUE)
 
+ignit_all_2022<- sample_locations_DEM_roads_wind2 %>% filter(fire_yr==2022)
+dim(ignit_all_2022)
+sf::st_write(ignit_all_2022, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2021.gpkg", delete_layer=TRUE)
+
 
 ```
 
@@ -244,9 +257,9 @@ sf::st_write(ignit_all_2021, dsn = "C:\\Work\\caribou\\castor_data\\Fire\\Fire_s
 # note I messed up the points. I was having trouble with some fire locations landing on FWI_veg type =N so I tried to fix this by buffering the points first by 50m, then by 150m then by 500m and extracting the most common vegetation type using QGIS. However, this did not seem to solve my problem so I decided to go back and just do as I did before. However, now Im confused about what buffer (if any) the fire_veg points got. I think its all mixed up with some points being buffered by 150m and others by only 50m. If I need this data from here I will need to re-extract the VRI data!
 
 ```{r}
-file.list1<-list.files("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\QGIS_analysis\\For_analysis_2022_10_25", pattern="fire_veg", all.files=FALSE, full.names=FALSE)
+file.list1<-list.files("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\QGIS_analysis", pattern="ignit_all", all.files=FALSE, full.names=FALSE)
 y1<-gsub(".gpkg","",file.list1)
-the_dir <- "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\QGIS_analysis\\For_analysis_2022_10_25"
+the_dir <- "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\QGIS_analysis"
 
 for (i in 1:length(file.list1)){
   assign(paste0(y1[i]),st_read (dsn=paste0(the_dir, "\\", file.list1[i])))
@@ -261,25 +274,41 @@ mkFrameList <- function(nfiles) {
   do.call(rbind,d)
 }
 
-n<-length(y1)
-fire_veg02_21<-mkFrameList(n) 
-fire_veg02_21[duplicated(fire_veg02_21$idno),]$fire_yr # there should be no DUPLICATES
+#VRI from 2008 is missing bec_subzone and standpercent_dead. So I collected those fields from VRI 2006
+extra2009<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\QGIS_analysis\\Ignit_all_2009_veg_extra_fields.gpkg")
+extra2009<-extra2009 %>% select(idno, bec_subzone, stand_percentage_dead)
+extra2009<-st_set_geometry(extra2009, NULL)
 
-fire_veg02_21[duplicated(fire_veg02_21$idno),]$fire_yr
+ignit_all_2009_veg<-left_join(ignit_all_2009_veg, extra2009)
+ignit_all_2009_veg2<-left_join(ignit_all_2009_veg2, extra2009)
+
+
+n<-length(y1)
+fire_veg03_21<-mkFrameList(n) 
+fire_veg03_21[duplicated(fire_veg03_21$idno),]$fire_yr # there should be no DUPLICATES
+
+fire_veg03_21[duplicated(fire_veg03_21$idno),]
+
+fire_veg03_21dt<-data.table(fire_veg03_21)
+
+fire_veg03_21dt[idno=="160104",]
+
+fire_veg03_21_2<-fire_veg03_21[!duplicated(fire_veg03_21$idno), ]
 
 ```
 
 # now checking for duplicates I should have none
 
 ```{r}
-dim(fire_veg02_21)
-table(duplicated(fire_veg$idno))
+dim(fire_veg03_21_2)
+table(duplicated(fire_veg03_21_2$idno))
 
-rm(fire_veg_2002, fire_veg_2002_joinedVRI2005, fire_veg_2003, fire_veg_2003_joinedVRI2005, fire_veg_2004, fire_veg_2004_joinedVRI2005, fire_veg_2005, fire_veg_2006, fire_veg_2007_joinedVRI2006, fire_veg_2008_joinedVRI2009, fire_veg_2009, fire_veg_2010, fire_veg_2011, fire_veg_2012, fire_veg_2012_joinedVRI2013, fire_veg_2013,  fire_veg_2014, fire_veg_2015, fire_veg_2016, fire_veg_2017, fire_veg_2018, fire_veg_2019,fire_veg_2020, fire_veg_2020_joinedVRI2021, fire_veg_2021, fire_veg_2021_na)
+rm(ignit_all_2022, ignit_all_2021, ignit_all_2020, ignit_all_2019, ignit_all_2018, ignit_all_2017, ignit_all_2016, ignit_all_2015, ignit_all_2014, ignit_all_2012, ignit_all_2013, ignit_all_2011, ignit_all_2010, ignit_all_2009, ignit_all_2008,ignit_all_2007, ignit_all_2006, ignit_all_2005, ignit_all_2004, ignit_all_2003, ignit_all_2003_veg, ignit_all_2003_veg2, ignit_all_2004_veg, ignit_all_2005_veg, ignit_all_2005_veg2, ignit_all_2006_veg, ignit_all_2007_veg, ignit_all_2008_veg, ignit_all_2009_veg, ignit_all_2009_veg2, ignit_all_2010_veg, ignit_all_2011_veg, ignit_all_2013_veg, ignit_all_2013_veg2, ignit_all_2014_veg, ignit_all_2015_veg, ignit_all_2016_veg, ignit_all_2017_veg, ignit_all_2018_veg, ignit_all_2019_veg, ignit_all_2020_veg, ignit_all_2021_veg, ignit_all_2021_veg2, ignit_all_2022_veg)
+
 
 gc()
 
-table(fire_veg02_21$fire_yr)
+table(fire_veg03_21_2$fire_yr)
 
 # join the files together. Also check that there are no duplicates and if there are check which on is better to use. 
 
@@ -287,11 +316,12 @@ table(fire_veg02_21$fire_yr)
 
 # checking that I did not loose lots of records when I pulled out the VRI data
 ```{r}
-ignit2002<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2012.shp")
+ignit2003<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\ignit_all_2003.gpkg")
 
-dim(ignit2002)
-head(ignit2002)
-fire_veg_2002<-fire_veg %>% filter(fire_yr=='2002')
+dim(ignit2003)
+head(ignit2003)
+fire_veg_2002<-fire_veg03_21_2 %>% filter(fire_yr=='2003')
+dim(fire_veg_2002)
 
 # 2002 -> 28256 to 28256
 # 2003 -> 39200 to 39185 
@@ -316,7 +346,7 @@ fire_veg_2002<-fire_veg %>% filter(fire_yr=='2002')
 
 # Good. I loose some points but when i plotted them in QGIS they were all points on the boarder of BC 
 
-fire_veg_sf<-st_as_sf(fire_veg02_21)
+fire_veg_sf<-st_as_sf(fire_veg03_21_2)
 head(fire_veg_sf)
 
 ```
