@@ -53,7 +53,7 @@ parameters <- list(FLEX = list (female_max_age = 9,
                                  timeInterval = 5, # should be consistent with the time interval used to model habitat
                                                     # e.g., growingstockLCUS periodLength
                                 # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
-                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/fisherHabitatCastor/scen1c_static_high.tif")
+                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/fisherHabitatCastor/low_to_low_habitat.tif")
 
                 )
 )
@@ -67,8 +67,8 @@ mySim <- simInit(times = times,
                  paths = paths)
 
 #outputs(mySim) <- data.frame (objectName = c("fisherABMReport"))
-#mySimOut <- spades(mySim)
-experiment(mySim, replicates = 2)
+mySimOut <- spades(mySim)
+#experiment(mySim, replicates = 2)
 ```
 
 #Plot
