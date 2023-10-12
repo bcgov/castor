@@ -44,7 +44,6 @@ zone_uwr_2021 =  ungulate winter ranges
 zone_cond_fsw = fisheries sensitive watersheds
 zone_cond_nharv = parks and protected areas
 zone_cond_cw = community watersheds
-central_grp_partner_areas_072022 = Partnership Agreement areas, where no harvest is permitted in A2, B2, B3 and B4 zones; A1, B1, B5 max 10% <40 years old
 
 ### harvestBlockPriority  
 Closest to disturbance first, oldest second. Thus assumes the priority is to cluster forest harvest to minimize disturbance in caribou range. 
@@ -61,13 +60,24 @@ A partition was set as vol > 150 to ensure stands with a minimum of 150m3/ha wer
 ### Road recovery
 No road recovery was simulated (recovery = 300 years). 
 
+### Fire
+Forest fire can be included in this simulation through fireCastor. Fire ignitions are randomly thrown down on the landscape and then the probability that the fire starts, escapes and spreads is determined from rasters. Fires are spread using a percolation model. The landscape is updated through changes to forestry, roads and climate where the climate data for a specific year is grabbed from climateBC. This module needs multiple simulations over the same time period because starting locations are random i.e. we need monte carlo style simulations to determine average area burned, average impact to harvest and the bounds of all variables (95% CI).
+
 #### Usage
-Set parameters for running the model simulation below and run the code chunk. 
+Set parameters for running the model simulation below and run the code chunk.
+
+```{r}
+library(climRdev)
+dbCon <- data_connect() ##connect to climate database
+
+#dbCon <- climRdev::data_connect() ##connect to database
+```
+
 
 ```{r module_usage}
 Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1') 
 library(climRdev)
-dbCon <- data_connect() ##connect to database
+#dbCon <- data_connect() ##connect to climate database
 
 
 library (SpaDES.core)
@@ -78,7 +88,7 @@ moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/fireCastor/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/fireCastor/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/tests"))
-times <- list(start = 0, end = 10) # 5 year interval; 200 years = 40 intervals
+times <- list(start = 0, end = 16) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -194,8 +204,8 @@ modules <- list("dataCastor",
                 #"volumebyareaReportCastor"
                 )
 
-scenario = data.table (name = "morice_bau_no_fire",
-                       description = "Business-as-usual case. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first. With no fire")
+scenario = data.table (name = "morice_fire_test",
+                       description = "Business-as-usual case. Harvest flow = 950,000m3/yr. Adjacency = 3m. Oldest first.")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Morice_TSA",
                                      partition = ' vol > 100 ', # from Lakes 2019 determination
@@ -263,7 +273,10 @@ Check that things are working as I think they should:
 library(igraph)
 library(DiagrammeR)
 depsEdgeList(mySim, FALSE)
-moduleDiagram(mySim)    
+moduleDiagram(mySim, type="Plot")  
+modDia <- depsGraph(mySim, plot = TRUE)
+plot(modDia, layout=layout_in_circle
+
 objectDiagram(mySim)
 eventDiagram(mySim)
 
@@ -271,12 +284,22 @@ eventDiagram(mySim)
 
 Make some maps
 ```{r}
-castordb <- dbConnect(sqlite,"C:/Work/caribou/castor/fire_test_Lakes_tsa_castordb.sqlite")
+library(RSQLite)
+sqlite <- dbDriver("SQLite")
+
+
+castordb <- dbConnect(sqlite,"C:/Work/caribou/castor/fire_moriceTsa_test_castordb.sqlite")
 ras.info<-dbGetQuery(castordb, "Select * from raster_info limit 1;")
 areaBurned<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
     
-areaBurned[]<-mySim$probFireRasts$prob_ignition_escape
+areaBurned[]<-mySim$probFireRasts$prob_ignition_lightning
+
 plot(areaBurned)
+
+# Two issues, my spread values for these locations are too high and I seem to be missing lightning info. Correct these two bugs
+# the issues are in FRT 10. GO FIX
+
+x<-mySim$probFireRasts[prob_ignition_spread>0.8,]
 
 
 
