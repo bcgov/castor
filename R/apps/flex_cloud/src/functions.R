@@ -181,6 +181,7 @@ run_simulation <- function(
             glue::glue("curl -sSL https://repos.insights.digitalocean.com/install.sh | sudo bash; \
   git clone https://github.com/bcgov/castor; \
   cd castor; \
+  git checkout troubleshooting; \
   mkdir -p ~/castor/R/scenarios/fisher/inputs; \
   mkdir -p /tmp/fisher/;"),
   keyfile = ssh_keyfile
@@ -389,7 +390,7 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
     
     cost <- d %>% droplets_cost()
     
-    d %>% droplet_delete()
+    # d %>% droplet_delete()
     
     status <- paste0(
       "16,", paste0("Iteration ", iteration), ",,PROCESS FINISHED,", as.character(Sys.time()), ",", cost$total
@@ -427,8 +428,9 @@ run_iteration <- function(d_iteration, d, sim_params, ssh_keyfile, simulation_id
 
   download_path <- glue::glue('inst/app/{simulation_id}/')
   # fs::dir_create(download_path)
-  command_run <- glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX/fisher.R {times} {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {time_interval} {burn_in_length} {d2_target} {initial_fisher_pop} {d_iteration}; ")
-
+  # command_run <- glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX/fisher.R {times} {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {time_interval} {burn_in_length} {d2_target} {initial_fisher_pop} {d_iteration}; ")
+  command_run <- glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX/fisher-spades.R {times} {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {time_interval} {burn_in_length} {d2_target} {initial_fisher_pop} {d_iteration} >> /tmp/fisher/output.log; ")
+  
   output_dir <- '/root/castor/R/scenarios/fisher/outputs'
   downloads_dir <- '/root/castor/R/scenarios/fisher/downloads'
   command_move_files <- glue::glue("mkdir -p {downloads_dir}; i=1; for DIRNAME in {output_dir}/*/; do for FILENAME in $DIRNAME/*; do cp $FILENAME {downloads_dir}/d{iteration}i$i`basename $FILENAME`; done; i=$((i+1)); done")
