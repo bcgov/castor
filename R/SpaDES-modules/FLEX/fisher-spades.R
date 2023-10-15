@@ -128,13 +128,15 @@ run_iteration <- function(
                    paths = paths)
   
   fisherSimOut <- spades(mySim)
+  
+  paste("Iteration", iteration, "successfull.")
   #return(NULL)
   # })
 }
 
 cores <- parallel::detectCores()
 
-parallel::mclapply(
+r <- parallel::mclapply(
   X = 1:appx,
   FUN = run_iteration,
   mc.cores = cores,
@@ -151,4 +153,6 @@ parallel::mclapply(
   d2_target,
   initial_fisher_pop
 )
+
+str(r)
 
