@@ -315,7 +315,7 @@ sample_locations_DEM_roads_infra$dist_rail_m<-sample_locations_DEM_roads_infra$d
 sample_locations_DEM_roads_infra$dist_urban_m<-sample_locations_DEM_roads_infra$dist_urban*100
 
 sample_locations_DEM_roads_infra <- sample_locations_DEM_roads_infra %>% 
-  dplyr::select(id:road_dist_m, geometry:dist_urban_m)
+  dplyr::select(id:road_dist_m, geometry:dist_infrastructure_m)
 
 head(sample_locations_DEM_roads_infra)
 crs(sample_locations_DEM_roads_infra)
