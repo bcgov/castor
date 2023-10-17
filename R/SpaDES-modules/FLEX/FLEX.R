@@ -726,8 +726,8 @@ recordABMReport<-function(sim, i){
 saveFisherReports<-function(sim){
   write.csv (x = sim$fisherABMReport,
              file = paste0 (outputPath (sim), "/fisher_agents.csv"))
-  writeRaster (x = sim$ras.territories.stack,
-                       filename = paste0 (outputPath (sim), "/fisher_territories.tif"),
+  terra::writeRaster (x = sim$ras.territories.stack,
+                       filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_final_fisher_territories.tif"),
                        overwrite = TRUE)
   return(invisible(sim))
 }
