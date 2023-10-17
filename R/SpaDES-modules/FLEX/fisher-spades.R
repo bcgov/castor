@@ -45,11 +45,12 @@ library (here)
 library (stringr)
 library (truncnorm)
 library (RANN)
-# library(future)
-# library(future.callr)
+library(future)
+library(future.callr)
+library(future.apply)
 library(parallel)
 
-# plan(multisession)
+plan(callr)
 
 times <- as.numeric(args[1])
 female_max_age <- as.numeric(args[2])
@@ -64,6 +65,26 @@ burn_in_length <- as.numeric(args[10])
 d2_target <- as.numeric(args[11])
 initial_fisher_pop <- as.numeric(args[12])
 appx <- as.numeric(args[13])
+
+plot_what_is_done <- function(counts) {
+     for (kk in seq_along(counts)) {
+         f <- counts[[kk]]
+     
+           ## Already plotted?
+           if (!inherits(f, "Future")) next
+     
+         ## Not resolved?
+         if (!resolved(f)) next
+     
+         # message(sprintf("Plotting tile #%d ...", kk))
+         # counts[[kk]] <- value(f)
+         # screen(kk)
+         # plot(counts[[kk]])
+       }
+   
+     counts
+  }
+
 
 run_iteration <- function(
     iteration,
@@ -80,66 +101,74 @@ run_iteration <- function(
     d2_target,
     initial_fisher_pop
 ) {
-  # future({
-  moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
-  inputDir <- file.path(paste0(here::here(), "/R/scenarios/fisher/inputs")) %>% reproducible::checkPath (create = TRUE)
-  outputDir <- file.path(paste0(here::here(), "/R/scenarios/fisher/outputs/", iteration)) %>% reproducible::checkPath (create = TRUE)
-  cacheDir <- file.path(paste0(here::here(), "/R/scenarios/fisher"))
-  
-  times <- list (start = 0, end = times)
-  
-  parameters <- list(
-    FLEX = list(
-      female_max_age = female_max_age,
-      den_target = den_target,
-      rest_target = rest_target,
-      move_target = move_target,
-      reproductive_age = reproductive_age,
-      sex_ratio = sex_ratio,
-      female_dispersal = female_dispersal,  # ha; radius = 500 pixels = 50km = 7850km2 area
-      timeInterval = time_interval, # should be consistent with the time interval used to model habitat
-      burnInLength = burn_in_length, 
-      d2_target = d2_target,
-      initialFisherPop = initial_fisher_pop,
-      # e.g., growingstockLCUS periodLength
-      iterations = 1, # not currently implemented
-      rasterHabitat = paste0(here::here(), "/R/scenarios/fisher/inputs/scenario.tif")
-    )
+  message(" ", iteration, appendLF = FALSE)
+  future(
+    {
+      moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
+      paths <- list(
+        modulePath = paste0(here::here(),"/R/SpaDES-modules"),
+        outputPath = paste0(here::here(),"/R/scenarios/fisher/outputs/", iteration)
+      )
+      
+      times <- list (start = 0, end = 4)
+      message(sprintf("Running iteration #%d of %d ...", iteration, 4), appendLF = FALSE)
+      parameters <- list(FLEX = list (female_max_age = 9,
+                                      den_target = 0.003, 
+                                      rest_target = 0.028,
+                                      move_target = 0.091,
+                                      reproductive_age = 2, 
+                                      sex_ratio = 0.5,
+                                      female_dispersal = 785000,  # ha; radius = 500 pixels = 50km = 7850km2 area
+                                      timeInterval = 5, # should be consistent with the time interval used to model habitat
+                                      burnInLength = burn_in_length, 
+                                      d2_target = d2_target,
+                                      initialFisherPop = initial_fisher_pop,
+                                      # e.g., growingstockLCUS periodLength
+                                      # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
+                                      rasterHabitat = paste0 (here::here(), "/R/scenarios/fisher/inputs/scenario.tif")
+                                      
+      )
+      )
+      
+      modules <- list ("FLEX")
+      
+      mySim <- simInit(times = times, 
+                       params = parameters, 
+                       modules = modules,
+                       objects = list(scenario = data.table(name = "test")),
+                       paths = paths)
+      
+      #outputs(mySim) <- data.frame (objectName = c("fisherABMReport"))
+      mySimOut <- spades(mySim)
+      message(" done")
+    }, 
+    lazy = TRUE
   )
-  
-  scenario = data.table (name = "test",
-                         description = "Testing fisher ABM.")
-  
-  modules <- list ("FLEX")
-  
-  objects <- list (scenario = scenario)
-  inputs <- list ()
-  outputs <- data.frame (objectName = c())
-  
-  paths <- list(cachePath = cacheDir,
-                modulePath = moduleDir,
-                inputPath = inputDir,
-                outputPath = outputDir)
-  
-  mySim <- simInit(times = times,
-                   params = parameters,
-                   modules = modules,
-                   objects = objects,
-                   paths = paths)
-  
-  fisherSimOut <- spades(mySim)
-  
-  paste("Iteration", iteration, "successfull.")
-  #return(NULL)
-  # })
 }
 
-cores <- parallel::detectCores()
+# run_iteration(
+#   times,
+#   female_max_age,
+#   den_target,
+#   rest_target,
+#   move_target,
+#   reproductive_age,
+#   sex_ratio,
+#   female_dispersal,
+#   time_interval,
+#   burn_in_length,
+#   d2_target,
+#   initial_fisher_pop
+# )
 
-r <- parallel::mclapply(
-  X = 1:appx,
+cores <- floor(parallel::detectCores() / 2)
+# 
+# r <- future_lapply(
+counts <- lapply(
+  # future.seed = TRUE,
+  X = 1:cores,
   FUN = run_iteration,
-  mc.cores = cores,
+  # mc.cores = cores,
   times,
   female_max_age,
   den_target,
@@ -154,5 +183,32 @@ r <- parallel::mclapply(
   initial_fisher_pop
 )
 
-str(r)
+repeat {
+   counts <- plot_what_is_done(counts)
+   # if (!any(sapply(counts, FUN = inherits, "Future"))) break
+}
 
+# counts <- lapply(
+#   seq_along(Cs), 
+#   FUN=function(ii) {
+#     message(" ", ii, appendLF = FALSE)
+#     C <- Cs[[ii]]
+#     future(
+#       {
+#         message(sprintf("Calculating tile #%d of %d ...", ii, n), appendLF = FALSE)
+#         fit <- mandelbrot(C)
+#         
+#         ## Emulate slowness
+#         delay(fit)
+#         
+#         message(" done")
+#         fit
+#       }, 
+#       lazy = TRUE
+#     )
+#   }
+#   )
+
+# 
+# str(r)
+# 
