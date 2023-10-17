@@ -69,63 +69,63 @@ initial_fisher_pop <- as.numeric(args[12])
 appx <- as.numeric(args[13])
 
 run_iteration <- function(
-    cores,
-    times,
-    female_max_age,
-    den_target,
-    rest_target,
-    move_target,
-    reproductive_age,
-    sex_ratio,
-    female_dispersal,
-    time_interval,
-    burn_in_length,
-    d2_target,
-    initial_fisher_pop
+  cores,
+  times,
+  female_max_age,
+  den_target,
+  rest_target,
+  move_target,
+  reproductive_age,
+  sex_ratio,
+  female_dispersal,
+  time_interval,
+  burn_in_length,
+  d2_target,
+  initial_fisher_pop
 ) {
-  moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
-  paths <- list(
-    modulePath = paste0(here::here(),"/R/SpaDES-modules"),
-    outputPath = paste0(here::here(),"/R/scenarios/fisher/outputs")
-  )
-  
-  times <- times - 1
-  times <- list (start = 0, end = times)
-  
-  parameters <- list(
-    FLEX = list(
-      female_max_age = female_max_age,
-      den_target = den_target, 
-      rest_target = rest_target,
-      move_target = move_target,
-      reproductive_age = reproductive_age, 
-      sex_ratio = sex_ratio,
-      female_dispersal = female_dispersal,  # ha; radius = 500 pixels = 50km = 7850km2 area
-      timeInterval = time_interval, # should be consistent with the time interval used to model habitat
-      burnInLength = burn_in_length, 
-      d2_target = d2_target,
-      initialFisherPop = initial_fisher_pop,
-      # e.g., growingstockLCUS periodLength
-      # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
-      rasterHabitat = paste0 (here::here(), "/R/scenarios/fisher/inputs/scenario.tif")
-    )
-  )
-  
-  modules <- list ("FLEX")
-  
-  mySim <- simInit(
-    times = times, 
-    params = parameters, 
-    modules = modules,
-    objects = list(scenario = data.table(name = "test")),
-    paths = paths
-  )
-  
-  raster::beginCluster()
-  experiment(mySim, replicates = cores)
-  raster::endCluster()
-  
-  message(" done")
+      moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
+      paths <- list(
+        modulePath = paste0(here::here(),"/R/SpaDES-modules"),
+        outputPath = paste0(here::here(),"/R/scenarios/fisher/outputs")
+      )
+      
+      times <- times - 1
+      times <- list (start = 0, end = times)
+      
+      parameters <- list(
+        FLEX = list(
+          female_max_age = female_max_age,
+          den_target = den_target, 
+          rest_target = rest_target,
+          move_target = move_target,
+          reproductive_age = reproductive_age, 
+          sex_ratio = sex_ratio,
+          female_dispersal = female_dispersal,  # ha; radius = 500 pixels = 50km = 7850km2 area
+          timeInterval = time_interval, # should be consistent with the time interval used to model habitat
+          burnInLength = burn_in_length, 
+          d2_target = d2_target,
+          initialFisherPop = initial_fisher_pop,
+          # e.g., growingstockLCUS periodLength
+          # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
+          rasterHabitat = paste0 (here::here(), "/R/scenarios/fisher/inputs/scenario.tif")
+        )
+      )
+      
+      modules <- list ("FLEX")
+      
+      mySim <- simInit(
+        times = times, 
+        params = parameters, 
+        modules = modules,
+        objects = list(scenario = data.table(name = "test")),
+        paths = paths
+      )
+      
+      raster::beginCluster()
+      experiment(mySim, replicates = cores)
+      raster::endCluster()
+
+      message(" done")
 }
 
 cores <- floor(parallel::detectCores())

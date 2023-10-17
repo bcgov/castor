@@ -475,7 +475,10 @@ server <- function(input, output, session) {
   )
 
   # Previous simulations
-  prev_simulations <- dir('inst/app/', no.. = TRUE, pattern = '^202')
+  prev_simulations <- sort(
+    dir('inst/app/', no.. = TRUE, pattern = '^202'),
+    decreasing = TRUE
+  )
   shiny::updateSelectizeInput(
     session = getDefaultReactiveDomain(),
     'report_simulation',
@@ -564,10 +567,10 @@ server <- function(input, output, session) {
 
       # FLEX droplet image ----
       snapshots <- analogsea::snapshots(per_page = 200)
-      snap_image <- snapshots$`flex-cloud-image-20230728`$id
+      snap_image <- snapshots$`flex-cloud-image-20231015`$id
       if (is.null(snap_image)) {
         shinyjs::alert(
-        "Snapshot flex-cloud-image-20230728 does not exist in your Digital Ocean account. Please recreate it using Server Installation guide and restart the app."
+        "Snapshot flex-cloud-image-20231015 does not exist in your Digital Ocean account. Please recreate it using Server Installation guide and restart the app."
         )
         return(NULL)
       }
@@ -633,6 +636,7 @@ server <- function(input, output, session) {
       )
 
       rv$sim_params <- list(
+        iterations = input$iterations,
         times = input$times,
         female_max_age = input$female_max_age,
         den_target = input$den_target,
@@ -720,13 +724,22 @@ server <- function(input, output, session) {
       }
       
       params <- readRDS(file = glue::glue("{dir}../params.rds"))
-      
       params <- params %>% 
         mutate(
           times = as.numeric(times),
-          female_dispersal = as.numeric(female_dispersal),
-          initial_fisher_pop = as.numeric(initial_fisher_pop)
-        ) %>% 
+          female_dispersal = as.numeric(female_dispersal)
+        )
+      if ('initial_fisher_pop' %in% colnames(params)) {
+        params <- params %>% 
+          mutate(initial_fisher_pop = as.numeric(initial_fisher_pop))
+      }
+      
+      used_iterations <- NULL
+      if ('iterations' %in% colnames(params)) {
+        used_iterations <- params$iterations
+      }
+      
+      params <- params %>% 
         tidyr::pivot_longer(cols = colnames(params)) %>% 
         mutate(value = as.character(value))
       output$params_used <- renderTable(params)
@@ -738,8 +751,14 @@ server <- function(input, output, session) {
         detail = 'Fetching CSV files.'
       )
       
-      csv_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_fisher_agents.csv$')
+      # csv_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_fisher_agents.csv$')
+      csv_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+fisher_agents.csv$')
       
+
+      if (!is.null(used_iterations)) {
+        csv_files <- csv_files[1:used_iterations]
+      }
+  
       if (length(csv_files) == 0) {
         shinyjs::alert('No CSV files have been found, cannot produce the scatter plot.')
       } else {
@@ -752,7 +771,7 @@ server <- function(input, output, session) {
             },
             dir
           )
-  
+        
         data <- dplyr::bind_rows(data_csv) %>% 
           dplyr::mutate(timeperiod = as.factor(timeperiod))
         
@@ -796,13 +815,13 @@ server <- function(input, output, session) {
             geom_text(
               x = as.integer(group_data$timeperiod) + 0.1, 
               y = group_data$mean_val, 
+              size = 3,
               aes(
                 label = paste0(
                   "Upper CI: ", round(upper_ci, 2), "\n",
                   "Mean: ", round(mean_val, 2), "\n",
                   "Lower CI: ", round(lower_ci, 2)
-                ),
-                
+                )
               ),
               hjust = 0,
               data = group_data
@@ -828,8 +847,13 @@ server <- function(input, output, session) {
         )
       }
 
-      tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_final_fisher_territories.tif$')
+      # tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_final_fisher_territories.tif$')
+      tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+fisher_territories.tif$')
         
+      if (!is.null(used_iterations)) {
+        tif_files <- tif_files[1:used_iterations]
+      }
+      
       if (length(tif_files) == 0) {
         shinyjs::alert('No TIFF files have been found, cannot produce the heatmap.')
       } else {
@@ -837,23 +861,33 @@ server <- function(input, output, session) {
         tic("Processing other tif files", quiet = TRUE)
         
         data_tif <- future_lapply(
+        # data_tif <- lapply(
           tif_files, 
           function(file, dir) {
             file <- paste0(dir, file)
-  
+  # browser()
             # Read raster file, cast to data frame and bind with all previous rasters
-            as.data.frame(
+            tif_data <- as.data.frame(
               raster(file), xy = TRUE
-            ) %>% 
-              dplyr::filter(layer > 0) %>%
-              dplyr::mutate(layer = round(1 / length(tif_files) * 100, 2))
+            ) 
+            
+            if (nrow(tif_data) > 0) {
+              tif_data <- tif_data %>% 
+                dplyr::filter(hr_0 > 0)
+            }
+            
+            if (nrow(tif_data) > 0) {
+              tif_data <- tif_data %>% 
+                dplyr::mutate(hr_0 = round(1 / length(tif_files) * 100, 2))
+            }
+            tif_data
           },
           dir
         )
        
         data_tif <- bind_rows(data_tif) %>% 
           dplyr::group_by(x, y) %>%
-          dplyr::summarize(layer = sum(layer))
+          dplyr::summarize(hr_0 = sum(hr_0))
   
         toc()
   
@@ -865,7 +899,7 @@ server <- function(input, output, session) {
         )
         
         g <- ggplot() +
-          geom_raster(data = data_tif , aes(x = x, y = y, fill = layer)) +
+          geom_raster(data = data_tif , aes(x = x, y = y, fill = hr_0)) +
           scale_fill_gradient(
             name = 'Times pixel\nwas selected',
             labels = scales::percent_format(scale = 1),

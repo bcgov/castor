@@ -38,7 +38,7 @@ source(here::here("R/functions/R_Postgres.R"))
 # get latest data off BCGW
 ignit<-try(
   bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
-    filter(FIRE_YEAR > 2001) %>%
+    filter(FIRE_YEAR > 2000) %>%
     filter(FIRE_TYPE == "Fire") %>%
     collect()
 )
@@ -66,16 +66,16 @@ ignition2 <- st_transform (ignit, 3005)
 NDT<-getSpatialQuery("SELECT objectid, feature_class_skey, zone, subzone, natural_disturbance, zone_name, wkb_geometry FROM public.bec_zone")
 
 #OR BCGW (slower)
-try(bcdc_describe_feature("WHSE_FOREST_VEGETATION.BEC_BIOGEOCLIMATIC_POLY"))
-
-NDT<-try(
-  bcdc_query_geodata("WHSE_FOREST_VEGETATION.BEC_BIOGEOCLIMATIC_POLY") %>%
-    select(ZONE, ZONE_NAME, NATURAL_DISTURBANCE, NATURAL_DISTURBANCE_NAME, GEOMETRY, OBJECTID) %>% # keeping data from 2002 on because this is when the VRI data is available
-    collect()
-)
-
-st_crs(NDT)
-NDT<-st_transform(NDT, 3005)
+# try(bcdc_describe_feature("WHSE_FOREST_VEGETATION.BEC_BIOGEOCLIMATIC_POLY"))
+# 
+# NDT<-try(
+#   bcdc_query_geodata("WHSE_FOREST_VEGETATION.BEC_BIOGEOCLIMATIC_POLY") %>%
+#     select(ZONE, ZONE_NAME, NATURAL_DISTURBANCE, NATURAL_DISTURBANCE_NAME, GEOMETRY, OBJECTID) %>% # keeping data from 2002 on because this is when the VRI data is available
+#     collect()
+# )
+# 
+# st_crs(NDT)
+# NDT<-st_transform(NDT, 3005)
 
 
 # An alternative to natural disturbance types is to use the fire regime units or zone outlined in Erni et al. 2020 Developing a two-level fire regime zonation system for Canada. I downloaded the shapefiles from https://zenodo.org/record/4458156#.YjTUVI_MJPY
@@ -130,18 +130,18 @@ table(fire.ignition_sf$FIRE_YEAR)
 
 fire.ignt.frt <- st_join(fire.ignition_sf, frt_sf)
 fire.ignt.frt <- fire.ignt.frt %>% dplyr::select(id:ig_mnth, PRNAME, Cluster)
-fire.igni.frt.ndt<- st_join(fire.ignt.frt, ndt_sf)
-
-table(fire.igni.frt.ndt$FIRE_YEAR, fire.igni.frt.ndt$Cluster)
-table(fire.igni.frt.ndt$FIRE_YEAR, fire.igni.frt.ndt$natural_disturbance, fire.igni.frt.ndt$Cluster )
-
-table(fire.igni.frt.ndt$FIRE_YEAR, fire.igni.frt.ndt$Cluster, fire.igni.frt.ndt$FIRE_CAUSE)
+# fire.igni.frt.ndt<- st_join(fire.ignt.frt, ndt_sf)
+# 
+# table(fire.igni.frt.ndt$FIRE_YEAR, fire.igni.frt.ndt$Cluster)
+# table(fire.igni.frt.ndt$FIRE_YEAR, fire.igni.frt.ndt$natural_disturbance, fire.igni.frt.ndt$Cluster )
+# 
+# table(fire.igni.frt.ndt$FIRE_YEAR, fire.igni.frt.ndt$Cluster, fire.igni.frt.ndt$FIRE_CAUSE)
 
 
 #Write fire.igni.frt.ndt to file because it takes so long to make.
 
 
-st_write(fire.igni.frt.ndt, overwrite = TRUE,  dsn="C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\bc_fire_ignition_clipped.shp", delete_dsn = TRUE)
+st_write(fire.ignt.frt, overwrite = TRUE,  dsn="C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\bc_fire_ignition_clipped.shp", delete_dsn = TRUE)
 
 # good fire is a point location
 
