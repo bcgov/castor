@@ -815,7 +815,7 @@ server <- function(input, output, session) {
             geom_text(
               x = as.integer(group_data$timeperiod) + 0.1, 
               y = group_data$mean_val, 
-              size = 5,
+              size = 3,
               aes(
                 label = paste0(
                   "Upper CI: ", round(upper_ci, 2), "\n",
