@@ -988,7 +988,9 @@ server <- function(input, output, session) {
           rv$progress$close()
           cost_uploader <- rv$d_uploader %>% droplets_cost()
           rv$d_uploader %>% droplet_delete()
-          fs::file_delete('tmp/id_rsa.pub')
+          if (file.exists('tmp/id_rsa.pub')) {
+            fs::file_delete('tmp/id_rsa.pub')
+          }
 
           enable('file_scenario')
           enable('droplet_size')
