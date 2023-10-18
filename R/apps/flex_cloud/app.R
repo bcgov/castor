@@ -216,12 +216,15 @@ ui <- shiny::tagList(
                         choiceValues = c('current', 'previous'),
                         selected = 'current', inline = TRUE
                       ),
-                      shiny::selectizeInput(
-                        inputId = 'report_simulation',
-                        label = "Previous simulations",
-                        choices = NULL,
-                        selected = '',
-                        multiple = FALSE
+                      conditionalPanel(
+                        condition = "input.report_currency == 'previous'",
+                        shiny::selectizeInput(
+                          inputId = 'report_simulation',
+                          label = "Previous simulations",
+                          choices = NULL,
+                          selected = '',
+                          multiple = FALSE
+                        )
                       ),
                       actionButton(
                         'run_report',
@@ -847,8 +850,8 @@ server <- function(input, output, session) {
         )
       }
 
-      # tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_final_fisher_territories.tif$')
-      tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+fisher_territories.tif$')
+      tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_final_fisher_territories.tif$')
+      # tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+fisher_territories.tif$')
         
       if (!is.null(used_iterations)) {
         tif_files <- tif_files[1:used_iterations]
