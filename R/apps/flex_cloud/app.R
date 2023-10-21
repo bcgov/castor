@@ -233,12 +233,17 @@ ui <- shiny::tagList(
                         class = 'btn-flex-light'
                       )
                     ),
+                    uiOutput('plot_header'),
                     plotOutput('plot_csv'),
                     plotOutput('plot_tif', height = '600px')
                   ),
                   fluidRow(
                     h4("Parameters used in this simulation"),
                     tableOutput('params_used')
+                  ),
+                  fluidRow(
+                    h4("Debug output"),
+                    uiOutput('debug_output')
                   )
                 )
               )
@@ -517,6 +522,9 @@ server <- function(input, output, session) {
   logfile <- tempfile(tmpdir = tempdir(check = TRUE), pattern = 'simulation_')
   simulation_logfile <- paste0(logfile, '.csv')
   simulation_logfile_lock <- paste0(logfile, '.lock')
+  debug_file <- tempfile(tmpdir = tempdir(check = TRUE), pattern = 'simulation_')
+  simulation_debug_file <- paste0(debug_file, '.txt')
+  simulation_debug_file_lock <- paste0(debug_file, '.lock')
 
   ssh_keyfile <- ''
   ssh_keyfile_name <- ''
@@ -618,6 +626,7 @@ server <- function(input, output, session) {
       rv$progress <- AsyncProgress$new(message="Overall job progress")
       
       print(paste("Simulation log file ", simulation_logfile))
+      print(paste("Simulation debug file ", simulation_debug_file))
 
       droplet_properties <- sizes %>% filter(slug == input$droplet_size)
       droplet_sequence <- droplet_properties %>% pull(processes)
@@ -639,6 +648,7 @@ server <- function(input, output, session) {
       )
 
       rv$sim_params <- list(
+        scenario = scenarios,
         iterations = input$iterations,
         times = input$times,
         female_max_age = input$female_max_age,
@@ -670,6 +680,18 @@ server <- function(input, output, session) {
       download_path <- glue::glue('inst/app/{simulation_id}')
       fs::dir_create(download_path)
       
+      lock <- filelock::lock(path = simulation_debug_file_lock, exclusive = TRUE)
+      wd <- getwd()
+      write(
+        paste(
+          "Local working directory", wd, "\n", 
+          "Created simulation directory", download_path, "\n"
+        ),
+        file = simulation_debug_file,
+        append = TRUE
+      )
+      filelock::unlock(lock)
+
       # Save params
       sim_params_df <- as_tibble(rv$sim_params)
       saveRDS(object = sim_params_df, file = glue::glue("{download_path}/params.rds"))
@@ -693,7 +715,9 @@ server <- function(input, output, session) {
         d_uploader = rv$d_uploader,
         sim_params = rv$sim_params,
         simulation_id = simulation_id,
-        droplet_sequence = droplet_sequence
+        droplet_sequence = droplet_sequence,
+        simulation_debug_file = simulation_debug_file,
+        simulation_debug_file_lock = simulation_debug_file_lock
       )
       
       # values <- lapply(
@@ -714,17 +738,12 @@ server <- function(input, output, session) {
       cookies <- glouton::fetch_cookies()
       cores <- as.numeric(cookies$cores)
       
-      # getwd()
-      # setwd('R/apps/flex_cloud/')
-      # rv <- list()
-      # rv$sim_params$simulation_id <- '2023-03-12_143930'
-      # cores <- 6
-
       if (input$report_currency == 'current') {
-        dir <- paste0('inst/app/', rv$sim_params$simulation_id, '/downloads/')
+        sim_id <- rv$sim_params$simulation_id
       } else {
-        dir <- paste0('inst/app/', input$report_simulation, '/downloads/')
+        sim_id <- input$report_simulation
       }
+      dir <- paste0('inst/app/', sim_id, '/downloads/')
       
       params <- readRDS(file = glue::glue("{dir}../params.rds"))
       params <- params %>% 
@@ -737,15 +756,39 @@ server <- function(input, output, session) {
           mutate(initial_fisher_pop = as.numeric(initial_fisher_pop))
       }
       
+      output$plot_header <- renderUI({
+        tagList(
+          h2(paste0("Outcomes of simulation ", sim_id)),
+          h4(
+            paste(
+              "Based on scenario", 
+              ifelse(
+                'scenario' %in% colnames(params),
+                params$scenario,
+                "unknown"
+              )
+            )
+          )
+        )
+      })
+
       used_iterations <- NULL
       if ('iterations' %in% colnames(params)) {
         used_iterations <- params$iterations
       }
       
-      params <- params %>% 
-        tidyr::pivot_longer(cols = colnames(params)) %>% 
+      params_used <- params %>% 
+        dplyr::select(-scenario) %>% 
+        mutate(
+          times = as.numeric(times),
+          female_dispersal = as.numeric(female_dispersal),
+          initial_fisher_pop = as.numeric(initial_fisher_pop)
+        )
+      params_used <- params_used %>% 
+        # tidyr::pivot_longer(cols = colnames(params[,2:14])) %>% 
+        tidyr::pivot_longer(cols = colnames(params_used)) %>% 
         mutate(value = as.character(value))
-      output$params_used <- renderTable(params)
+      output$params_used <- renderTable(params_used)
       
       progressReport <- Progress$new(session, min = 1, max = 10)
       on.exit(progressReport$close())
@@ -754,17 +797,39 @@ server <- function(input, output, session) {
         detail = 'Fetching CSV files.'
       )
       
+      lock <- filelock::lock(path = simulation_debug_file_lock, exclusive = TRUE)
+      wd <- getwd()
+      write(
+        paste(
+          "Local working directory", wd, "\n",
+          "Looking for CSV and TIF files in", dir, "\n",
+          "Folder content:\n"
+        ),
+        file = simulation_debug_file,
+        append = TRUE
+      )
+      write(unlist(list.files(dir)), file = simulation_debug_file, append = TRUE)
+      filelock::unlock(lock)
+      
+      output$debug_output <- renderUI({
+        HTML(
+          paste(
+            readLines(simulation_debug_file),
+            collapse = "<br>"
+          )
+        )
+      })
+      
       # csv_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_fisher_agents.csv$')
       csv_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+fisher_agents.csv$')
-      
-
-      if (!is.null(used_iterations)) {
-        csv_files <- csv_files[1:used_iterations]
-      }
   
       if (length(csv_files) == 0) {
         shinyjs::alert('No CSV files have been found, cannot produce the scatter plot.')
       } else {
+        if (!is.null(used_iterations)) {
+          csv_files <- csv_files[1:used_iterations]
+        }
+
         data_csv <- future_lapply(
             csv_files, 
             function(file, dir) {
@@ -853,15 +918,15 @@ server <- function(input, output, session) {
       tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_final_fisher_territories.tif$')
       # tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+fisher_territories.tif$')
         
-      if (!is.null(used_iterations)) {
-        tif_files <- tif_files[1:used_iterations]
-      }
-      
       if (length(tif_files) == 0) {
         shinyjs::alert('No TIFF files have been found, cannot produce the heatmap.')
       } else {
         tic("Overall process")
         tic("Processing other tif files", quiet = TRUE)
+        
+        if (!is.null(used_iterations)) {
+          tif_files <- tif_files[1:used_iterations]
+        }
         
         data_tif <- future_lapply(
         # data_tif <- lapply(

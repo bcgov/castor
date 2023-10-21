@@ -29,11 +29,13 @@ run_simulation <- function(
     d_uploader,
     sim_params,
     simulation_id,
-    droplet_sequence
+    droplet_sequence,
+    simulation_debug_file,
+    simulation_debug_file_lock
 ) {
   # browser()
   download_path <- glue::glue('inst/app/{simulation_id}/')
-  fs::dir_create(download_path)
+  # fs::dir_create(download_path)
   
   # capture.output(unlist(sim_params), file = glue::glue("{download_path}params.txt"))
   
@@ -341,7 +343,9 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
           sim_params,
           ssh_keyfile,
           simulation_id,
-          iteration
+          iteration,
+          simulation_debug_file,
+          simulation_debug_file_lock
         )
       }, error = function(e) {
         status <- paste0(
@@ -408,7 +412,16 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
   })
 }
 
-run_iteration <- function(d_iteration, d, sim_params, ssh_keyfile, simulation_id, iteration) {
+run_iteration <- function(
+  d_iteration,
+  d,
+  sim_params,
+  ssh_keyfile,
+  simulation_id,
+  iteration,
+  simulation_debug_file,
+  simulation_debug_file_lock
+) {
   # browser()
   # Simulation parameters
   times <- sim_params$times
@@ -425,8 +438,23 @@ run_iteration <- function(d_iteration, d, sim_params, ssh_keyfile, simulation_id
   initial_fisher_pop <- sim_params$initial_fisher_pop
   # filename <- uuid::UUIDgenerate(use.time = TRUE)
 
+  wd <- getwd()
   download_path <- glue::glue('inst/app/{simulation_id}/')
   # fs::dir_create(download_path)
+  
+  # Log debug info
+  lock <- filelock::lock(path = simulation_debug_file_lock, exclusive = TRUE)
+  write(
+    paste(
+      "Running iterations on droplet", iteration, "\n",
+      "Local working directory", wd, "\n", 
+      "Local download path", download_path, "\n"
+    ),
+    file = simulation_debug_file,
+    append = TRUE
+  )
+  filelock::unlock(lock)
+  
   # command_run <- glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX/fisher.R {times} {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {time_interval} {burn_in_length} {d2_target} {initial_fisher_pop} {d_iteration}; ")
   command_run <- glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX/fisher.R {times} {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {time_interval} {burn_in_length} {d2_target} {initial_fisher_pop} {d_iteration} >> /tmp/fisher/output.log; ")
   
@@ -443,11 +471,23 @@ run_iteration <- function(d_iteration, d, sim_params, ssh_keyfile, simulation_id
   )
   
   # Download files
-  d %>% droplet_download(
-    remote = downloads_dir,
-    local = download_path,
-    keyfile = ssh_keyfile
-  )
+  downloaded <- d %>% droplet_download(
+      remote = downloads_dir,
+      local = download_path,
+      keyfile = ssh_keyfile
+    )
+  
+  # Log debug info
+  lock <- filelock::lock(path = simulation_debug_file_lock, exclusive = TRUE)
+  if (!downloaded) {
+    write(paste("Download NOT successful for iteration", iteration), file = simulation_debug_file, append = TRUE)
+  } else {
+    write(paste("Download successful for iteration", iteration), file = simulation_debug_file, append = TRUE)
+    
+    downloaded_files <- list.files(download_path)
+    write(unlist(downloaded_files), file = simulation_debug_file, append = TRUE)
+  }
+  filelock::unlock(lock)
 }
 
 #' Remove the full path for knitted scenario md files
