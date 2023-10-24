@@ -743,9 +743,10 @@ server <- function(input, output, session) {
       } else {
         sim_id <- input$report_simulation
       }
-      dir <- paste0('inst/app/', sim_id, '/downloads/')
+      sim_dir <- paste0('inst/app/', sim_id)
+      dir <- paste0(sim_dir, '/downloads/')
       
-      params <- readRDS(file = glue::glue("{dir}../params.rds"))
+      params <- readRDS(file = glue::glue("{sim_dir}/params.rds"))
       params <- params %>% 
         mutate(
           times = as.numeric(times),

@@ -439,8 +439,13 @@ run_iteration <- function(
   # filename <- uuid::UUIDgenerate(use.time = TRUE)
 
   wd <- getwd()
-  download_path <- glue::glue('inst/app/{simulation_id}/')
-  # fs::dir_create(download_path)
+  
+  path_prefix <- ''
+  if (basename(wd) == 'castor') {
+    path_prefix <- 'R/apps/flex_cloud/'
+  }
+  
+  download_path <- glue::glue('{path_prefix}inst/app/{simulation_id}/')
   
   # Log debug info
   lock <- filelock::lock(path = simulation_debug_file_lock, exclusive = TRUE)
