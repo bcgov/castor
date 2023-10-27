@@ -676,15 +676,20 @@ server <- function(input, output, session) {
         ' ',
         '_'
       )
-      
-      download_path <- glue::glue('inst/app/{simulation_id}')
-      fs::dir_create(download_path)
-      
-      lock <- filelock::lock(path = simulation_debug_file_lock, exclusive = TRUE)
+
       wd <- getwd()
+      path_prefix <- ''
+      if (basename(wd) == 'castor') {
+        path_prefix <- 'R/apps/flex_cloud/'
+      }
+
+      download_path <- glue::glue('{path_prefix}inst/app/{simulation_id}')
+      fs::dir_create(download_path)
+
+      lock <- filelock::lock(path = simulation_debug_file_lock, exclusive = TRUE)
       write(
         paste(
-          "Local working directory", wd, "\n", 
+          "Local working directory", wd, "\n",
           "Created simulation directory", download_path, "\n"
         ),
         file = simulation_debug_file,
@@ -737,32 +742,39 @@ server <- function(input, output, session) {
     {
       cookies <- glouton::fetch_cookies()
       cores <- as.numeric(cookies$cores)
-      
+
+      wd <- getwd()
+      path_prefix <- ''
+      if (basename(wd) == 'castor') {
+        path_prefix <- 'R/apps/flex_cloud/'
+      }
+
       if (input$report_currency == 'current') {
         sim_id <- rv$sim_params$simulation_id
       } else {
         sim_id <- input$report_simulation
       }
-      sim_dir <- paste0('inst/app/', sim_id)
-      dir <- paste0(sim_dir, '/downloads/')
-      
+
+      sim_dir <- glue::glue('{path_prefix}inst/app/{sim_id}')
+      dir <- glue::glue('{sim_dir}/downloads/')
+
       params <- readRDS(file = glue::glue("{sim_dir}/params.rds"))
-      params <- params %>% 
+      params <- params %>%
         mutate(
           times = as.numeric(times),
           female_dispersal = as.numeric(female_dispersal)
         )
       if ('initial_fisher_pop' %in% colnames(params)) {
-        params <- params %>% 
+        params <- params %>%
           mutate(initial_fisher_pop = as.numeric(initial_fisher_pop))
       }
-      
+
       output$plot_header <- renderUI({
         tagList(
           h2(paste0("Outcomes of simulation ", sim_id)),
           h4(
             paste(
-              "Based on scenario", 
+              "Based on scenario",
               ifelse(
                 'scenario' %in% colnames(params),
                 params$scenario,
