@@ -1,0 +1,271 @@
+---
+title: "fire_occurrence"
+output: html_document
+date: '2023-09-11'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source(here::here("R/functions/R_Postgres.R"))
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(rpostgis)
+library(keyring)
+library(bcdata)
+```
+
+## Data
+```{r, data_capture}
+# Create a grid
+restest = c(10000, 10000)
+prov.rast <- raster::raster ( # standardized provincial raster with no data in it
+  nrows = 15744, ncols = 17216,
+  xmn = 159587.5, xmx = 1881187.5,
+  ymn = 173787.5, ymx = 1748187.5,
+  crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
+  resolution = restest,
+  vals = 0)
+pixel.grid <- data.table(V1 = as.integer(prov.rast[]))[, pixelid := seq_len(.N)]
+setorder(pixel.grid, "pixelid")#sort the pixels table so that pixelid is in order.
+pixel.grid$V1 <- NULL
+prov.rast[]<-pixel.grid$pixelid
+
+#Get veg_comp information using the previous year
+pixel.table<-rbindlist(lapply(as.list(seq(2010,2022,1)), function(x){
+  data.table(FIRE_YEAR =x, flam =rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/flammable_{x-1}_10k.tif"))[], c1 = rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c1_{x-1}_10k.tif"))[],c2 = rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c2_{x-1}_10k.tif"))[], c3=rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c3_{x-1}_10k.tif"))[],c4= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c4_{x-1}_10k.tif"))[],c5= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c5_{x-1}_10k.tif"))[], c7= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c7_{x-1}_10k.tif"))[], dec= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/d_{x-1}_10k.tif"))[], mixed =  rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m_{x-1}_10k.tif"))[], open= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/o_{x-1}_10k.tif"))[], slash= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/s_{x-1}_10k.tif"))[])
+}))
+pixel.table<-cbind(pixel.grid ,pixel.table)
+
+# Get the Fire Regime Types
+frt<-getSpatialQuery("SELECT * FROM frt_canada")
+ras.frt <- fasterize::fasterize (frt, prov.rast, field = "Cluster")
+
+if(terra::ext(prov.rast) == terra::ext(ras.frt)){ # need to check that each of the extents are the same
+  pixel.frt <-cbind(pixel.grid , data.table(frt= as.numeric(ras.frt[])))
+  rm(ras.frt)
+  gc()
+}else{
+  stop(paste0("ERROR: extents are not the same check -"))
+}
+
+#Get the climate data
+bc_grid <- data.table::fread("C:/Data/localApps/Climatebc_v730/bc_dem_frt_Kyle.csv")
+bc_sf <- st_transform(st_as_sf(bc_grid, coords = c("lon", "lat"), crs = 4326, agr = "constant"), crs = 3005)
+bc_dem <- terra::rasterize(bc_sf, prov.rast, field = "el")
+
+climateData<-rbindlist(lapply(seq(2008, 2022, 1), function(x){
+  message(x)
+  data<-data.table::fread(paste0("C:/Data/localApps/Climatebc_v730/test", x, ".csv"))
+  data<-data[, `:=`(CMI = rowMeans(.SD, na.rm=T)), .SDcols=c("CMI05", "CMI06","CMI07","CMI08")]
+  data<-data[, `:=`(TEMP = rowMeans(.SD, na.rm=T)),.SDcols=c("Tmax05","Tmax06","Tmax07","Tmax08") ]
+  data<-data[,c("ID1", "CMI", "TEMP")]
+  data<-merge(data, bc_grid[,c("ID1", "lat", "lon")] , by = "ID1")
+  data_sf <- st_transform(st_as_sf(data, coords = c("lon", "lat"), crs = 4326, agr = "constant"), crs = 3005)
+  data_ras_CMI <- terra::rasterize(data_sf, prov.rast, field = "CMI")
+  data_ras_TEMP <- terra::rasterize(data_sf, prov.rast, field = "TEMP")
+  pixel.data <- data.table(TEMP = data_ras_TEMP [], CMI = data_ras_CMI [])[, pixelid := seq_len(.N)][, year := x]
+  pixel.data
+}))
+
+#Join provincial raster data to the ignition data
+# try extract pixel id's of each fire location and cbind it to the igntion data
+ignit<-try(
+  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
+    filter(FIRE_YEAR >= 2009) %>%
+    filter(FIRE_TYPE == "Fire") %>%
+    filter(CURRENT_SIZE >= 10) %>%
+    filter(FIRE_CAUSE == "Lightning") %>%
+    collect()
+)
+
+head(ignit)
+ignition2 <- sf::st_transform (ignit, 3005)
+pixelid <- terra::extract(prov.rast, ignition2)
+ignition2<-data.table(cbind(ignition2, pixelid))
+
+ignit_unknown<-rbindlist(lapply(seq(2009,2022,1), function(y){
+  yearx<-st_as_sf(ignition2[FIRE_YEAR == y,])
+  test<-rbindlist(lapply(st_as_text(yearx$geometry), function(x){
+    out<-getTableQuery(glue::glue("select bclcs_level_1 from vri.veg_comp_lyr_r1_poly{y-1} 
+    where st_intersects(st_buffer(st_geomfromtext('{x}', 3005), 50),shape) = TRUE 
+    order by bclcs_level_1 DESC limit 1;"))
+    if(nrow(out) == 0) {
+      out<- rbind(out, data.table(bclcs_level_1 = 'U')) 
+    }
+    out
+    }))
+  yearx$bclcs_level_1<-test$bclcs_level_1
+  yearx
+}))
+
+
+
+# Fire causes
+lightning<-ignit_unknown[FIRE_CAUSE=="Lightning" & bclcs_level_1 != 'U', .(count=.N), by = c("pixelid", "FIRE_YEAR")]
+#human<-ignition2[FIRE_CAUSE=="Person", .(count=.N), by = c("pixelid", "FIRE_YEAR")]
+
+data.lightning<-merge(pixel.table, lightning, by.x = c("pixelid", "FIRE_YEAR"), by.y =c("pixelid", "FIRE_YEAR"), all.x = T)
+data.lightning<-data.lightning[is.na(count), count :=0]
+data.lightning<-merge(data.lightning, pixel.frt, by = "pixelid")
+data.lightning<-data.lightning[!is.na(frt),]
+XYs<-xyFromCell(prov.rast, data.lightning$pixelid)
+data.lightning$x<-XYs[,1]/1000 #make units of kilometers
+data.lightning$y<-XYs[,2]/1000
+
+data.lightning<-merge(data.lightning, climateData, by.x =c("pixelid", "FIRE_YEAR"),  by.y=c("pixelid","year"))
+
+data.lightning<-data.lightning[!is.na(CMI),] # remove the banner voxels
+
+#Rolling average
+data.lightning[, CMI5yr := frollmean(.SD, n=5), by = "pixelid", .SDcols = "CMI"]
+data.lightning[, CMI3yr := frollmean(.SD, n=3), by = "pixelid", .SDcols = "CMI"]
+data.lightning[, CMI2yr := frollmean(.SD, n=2), by = "pixelid", .SDcols = "CMI"]
+saveRDS(data.lightning, "data.lightning.rds")
+```
+
+
+## Model
+```{r}
+data.lightning<-readRDS("data.lightning.rds")
+library(glmmTMB)
+library(DHARMa)
+test<-data.lightning[flam.layer >0,][!is.na(CMI3yr),][,dCMI3yr:=CMI - CMI3yr][, coast:=0][frt==15, coast:=1][is.na(dec.layer), dec.layer:=0][is.na(mixed.layer), mixed.layer:=0][is.na(open.layer), open.layer:=0]
+
+l12_nb_3yr <- glmmTMB(count ~ 1 + CMI + CMI3yr + (frt|FIRE_YEAR), offset = log(flam.layer), family = nbinom2, ziformula = ~0, data=test)
+
+simulationOutput <- simulateResiduals(fittedModel = l12_nb_3yr)
+plot(simulationOutput)
+
+test$pred_mu<-data.table(mu= predict(l12_nb_3yr, newdata = test[, c("flam.layer", "CMI", "CMI3yr")][,FIRE_YEAR := NA][,frt := NA], type="response"))
+ggplot2::ggplot(data=test[ FIRE_YEAR %in% c( 2012, 2016, 2017, 2018, 2020, 2022)], aes(x=x, y=y, color = pred_mu)) + facet_wrap(~FIRE_YEAR) + geom_point()
+test[, sim:= rnbinom(n = 1, size = 0.251, mu =pred_mu )]
+ 
+sim1=simulate(l12_nb_3yr, nsim = 1)
+Simdat=test[!is.na(CMI3yr),]
+Simdat$count=sim1[[1]]
+Simdat=transform(Simdat,  
+            type="simulated")
+test$type = "observed"  
+Dat=rbind(test[!is.na(CMI3yr),], Simdat) 
+ggplot(Dat[, sum(count), by = c("FIRE_YEAR", "type")],  aes(x=FIRE_YEAR, y =V1, colour=type))+geom_line()
+ggplot(Dat,  aes(x=CMI, y =as.factor(count), colour=type))+geom_boxplot() + facet_grid(~type)
+
+library(sdmTMB)
+spde <- make_mesh(test[!is.na(CMI3yr),c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
+
+m0 <- sdmTMB(data = test, count ~ 1 + CMI + CMI3yr , offset = log(test$flam.layer), family = nbinom2(), time = "FIRE_YEAR",  mesh = spde, spatial = FALSE, spatiotemporal = FALSE, reml=T)
+
+m1 <- sdmTMB(data = test, count ~ 1 + CMI + dCMI3yr , offset = log(test$flam.layer), family = nbinom2(), time = "FIRE_YEAR",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=T)
+
+m2 <- sdmTMB(data = test, count ~ 1 + CMI + dCMI3yr + as.factor(coast) , offset = log(test$flam.layer), family = nbinom2(), time = "FIRE_YEAR",  mesh = spde, spatial = T, spatiotemporal = FALSE)
+# Adding FRT was only signifcant for the coast so made a indicator variable for the coast vs other.
+#m2a <- sdmTMB(data = test[frt!=15,], count ~ 1 + CMI + dCMI3yr + as.factor(frt), offset = log(test[frt!=15,]$flam.layer), family = nbinom2(), time = "FIRE_YEAR",  mesh = spde2, spatial = T, spatiotemporal = FALSE)
+
+#m2b <- sdmTMB(data = test[frt!=15,], count ~ 1 + CMI + dCMI3yr , offset = log(test[frt!=15,]$flam.layer), family = nbinom2(), time = "FIRE_YEAR",  mesh = spde2, spatial = T, spatiotemporal = FALSE)
+
+##Vegetation typing
+test<-test[,conif:=c1.layer + c2.layer + c3.layer+ c4.layer+c5.layer+ c7.layer][,lconif:=log(conif+1)]
+
+m3 <- sdmTMB(count ~ 1 + CMI + dCMI3yr + as.factor(coast) + log(dec.layer+1) + log(slash.layer +1)+ +log(mixed.layer +1) + lconif, offset = log(test$flam.layer), family = nbinom2(), time = "FIRE_YEAR", data = test, mesh = spde, spatial = T, spatiotemporal = FALSE)
+
+m4 <- sdmTMB(count ~ 1 + CMI + dCMI3yr + as.factor(coast) + lconif, offset = log(test$flam.layer), family = nbinom2(), time = "FIRE_YEAR", data = test, mesh = spde, spatial = T, spatiotemporal = FALSE)
+
+```
+
+
+## Diagnostics
+```{r}
+test$resids <- residuals(m4) # randomized quantile residuals
+qqnorm(test$resids)
+qqline(test$resids)
+
+sim1<-simulate(m4, nsim=500)
+#sim1<-simulate(m4, nsim=1000)
+Simdat<-test
+simdata<-rbindlist(lapply(seq(1,500,1), function(rep_sim){
+  Simdat$count<-sim1[,rep_sim]
+  Simdat=transform(Simdat,  
+            type=paste0("simulated_rep",rep_sim))
+}))
+
+test$type = "observed"  
+Dat=rbind(test, simdata) 
+data_sim_ag<-Dat[, sum(count), by = c("FIRE_YEAR", "type", "coast")]
+#data_sim_ag[type != 'observed', type := 'simulated']
+ggplot()+
+  geom_boxplot(data=data_sim_ag[type != 'observed'],  aes(x=as.factor(FIRE_YEAR), y =V1)) +
+  geom_point(data=data_sim_ag[type == 'observed'],  aes(x=as.factor(FIRE_YEAR), y =V1, color = 'red')) +
+  facet_wrap(~coast, scales = "free")
+
+ggplot(Dat,  aes(x=CMI, y =as.factor(count), colour=type))+geom_boxplot() + facet_grid(~type)
+
+ggplot(test, aes(x, y, col = resids)) +
+  scale_colour_gradient2() +
+  geom_point() +
+  facet_wrap(~FIRE_YEAR) +
+  coord_fixed()
+
+nd <- data.frame(
+    dCMI3yr = seq(min(test$dCMI3yr), 
+      max(test$dCMI3yr), length.out = 100),  
+    lconif = mean(test$lconif), CMI = mean(test$CMI), mixed.layer = mean(test$mixed.layer),
+    FIRE_YEAR = 2020, coast =0, flam.layer = 1, x = mean(test$x), y = mean(test$y))
+
+p <- predict(m4, newdata = nd, se_fit = F, re_form = T)
+p$est2<- -15.89-0.07*p$CMI -0.26*p$dCMI3yr -1.79*p$coast +0.22*p$lconif
+ggplot(p, aes(dCMI3yr, exp(est), 
+              ymin = exp(est - 1.96 * est_se), 
+              ymax = exp(est + 1.96 * est_se))) +
+    geom_line() + geom_ribbon(alpha = 0.4)
+```
+
+
+## GMRF
+```{r}
+#Some functions to use later
+# Matern correlation
+cMatern <- function(h, nu, kappa) {
+  ifelse(h > 0, besselK(h * kappa, nu) * (h * kappa)^nu / 
+    (gamma(nu) * 2^(nu - 1)), 1)
+}
+
+#create some data such that its a single line of 250 points each 1/25 away from each other
+loc <- 0:249 / 25 
+#Calculate the adjacency matrix
+mdist <- as.matrix(dist(loc))
+
+#parameters to show sensitivity
+nu <- c(0.5, 1, 2.5, 3, 4.5)
+range <- c(1,2,3,4)
+params <- cbind(nu = rep(nu, length(range)), range = rep(range, each = length(nu)))
+
+# Sample error five times - white noise gaussian standard normal ~ N(0, 1)
+set.seed(123)
+z <- matrix(rnorm(nrow(mdist) * 5), ncol = 5)
+
+# Compute the correlated samples
+# Scenarios (i.e., different set of parameters)
+yy <- lapply(1:nrow(params), function(j) { 
+  param <- c(params[j, 1], sqrt(8 * params[j, 1]) / params[j, 2], 
+    params[j, 2])
+  v <- cMatern(mdist, param[1], param[2])
+
+  # fix the diagonal to avoid numerical issues
+  diag(v) <- 1 + 1e-9 
+
+  # Parameter scenario and computed sample
+  return(list(params = param, y = crossprod(chol(v), z)))
+})
+
+#Conclusion: the nu parameter adds inflections, the range parameter add smoothness
+```
+
+##Example sample
+```{r}
+vox.pix<-data.table(pixel=seq(1,10,1), prob= runif(10))
+vox.pix[, wt:=sum(prob)][, freq_exp:= prob/wt]
+vox.ex<-table(sample(vox.pix$pixel,10000,prob=vox.pix$prob, replace = T))
+
+```

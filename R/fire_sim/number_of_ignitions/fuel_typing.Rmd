@@ -21,6 +21,7 @@ deciduous<-c("L", "LA", "LT", "LW", "D", "DR", "U", "UP", "A", "AC", "ACB", "ACT
 ### Pessaki Fuel Type Algorithm
 #### Non-vegetated fuel types
 ```{r, non_veg}
+print(year_vri)
 non_veg_logged<-getTableQuery(glue::glue("select feature_id, (case 
 when CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) As integer)  <= 6 AND coast_interior_cd = 'C' then 'S-3' 
 when CAST(EXTRACT('Year' FROM projected_date) - EXTRACT('Year' FROM harvest_date) AS integer) <= 6 AND coast_interior_cd = 'I' then 'S-1' 
@@ -502,7 +503,7 @@ gc()
 
 ### Spatial
 ```{r, spatial}
-vri<- getSpatialQuery(glue::glue("SELECT feature_id, {geom_column} FROM vri.veg_comp_lyr_r1_poly{year_vri} "))
+vri<- getSpatialQuery(glue::glue("SELECT feature_id, {geom_column} FROM vri.veg_comp_lyr_r1_poly{year_vri} where bclcs_level_1 <> 'U'"))
 
 restest = c(100, 100)
 prov.rast <- raster( # standardized provincial raster with no data in it
@@ -528,7 +529,7 @@ writeRaster(ras.flame, glue::glue("flammable_{year_vri}_10k.tif "))
 out$flammable<-NULL
 #C1
 out<-out[, c1:=0][fuel_type== 'C-1', c1:=1]
-out<-out[order(pixelid)]
+#out<-out[order(pixelid)]
 ras.prov[]<-out$c1
 ras.flame<-terra::crop(terra::aggregate(terra::rast(ras.prov), fact = 100, fun = sum ),ras.prov)
 writeRaster(ras.flame, glue::glue("c1_{year_vri}_10k.tif "))
