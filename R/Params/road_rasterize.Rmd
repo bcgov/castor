@@ -19,6 +19,16 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(sf)
+library(rpostgis)
+library(raster)
+source(paste0(here::here(),"/R/functions/R_Postgres.R"))
+# Set up Provincial raster based on hectares BC extent, 1ha resolution and projection
+prov.rast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = 3005, resolution = c(100, 100), vals = 0
+)
+
 ```
 
 ## Purpose
@@ -26,15 +36,10 @@ knitr::opts_chunk$set(echo = TRUE)
 This code converts the line geometry of roads to raster form. Where each pixel value represents the presence of roads.
 
 ```{r, roads}
-library(sf)
-library(rpostgis)
-library(raster)
-source(paste0(here::here(),"/R/functions/R_Postgres.R"))
-
 # Roads layers to make
 # the key provincial-scale roads data source here is the cumulative effects program integrated roads data; public.integrated_roads
-roads_sf_perm <- getSpatialQuery("SELECT shape,  -2  as road FROM public.integrated_roads where integrated_road_class_num <= 2 or (dra_road_name_full is not null AND dra_road_class <> 'trail');")
-roads_sf <- getSpatialQuery("SELECT shape,  -1  as road FROM public.integrated_roads where integrated_road_class_num > 2")
+roads_sf_perm <- getSpatialQuery("SELECT shape,  -2  as road FROM public.integrated_roads_2021 where integrated_road_class_num <= 2 or (dra_road_name_full is not null AND dra_road_class <> 'trail');")
+roads_sf <- getSpatialQuery("SELECT shape,  -1  as road FROM public.integrated_roads_2021 where integrated_road_class_num > 2")
 
 # the above logic defines highways and roads with a name that are not trails as 'permanent' roads (-2), and all other roads types as non-permanent (-1)
 
@@ -50,12 +55,6 @@ roads_sf_perm <- getSpatialQuery("SELECT shape,  -2  as road FROM public.cariboo
 roads_sf <- getSpatialQuery("SELECT shape,  -1  as road FROM public.cariboo_consolidated_roads where TRANSPORT_LINE_SURFACE_CODE <> 'P'")
 # above queries follow the same logic as with integrated_roads
 
-# Set up Provincial raster based on hectares BC extent, 1ha resolution and projection
-prov.rast <- raster(
-  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
-  crs = st_crs(roads_sf)$proj4string, resolution = c(100, 100), vals = 0
-)
-
 #Buffer the MULTILINESTRINGS
 roads_sf_perm<-roads_sf_perm %>% st_buffer(dist = 51)
 roads_sf<-roads_sf %>% st_buffer(dist = 51)
@@ -69,7 +68,7 @@ road[is.na(road[])]<-0
 
 out_road<-road_perm + road
 out_road[out_road[] < -2]<- -2
-writeRaster(out_road, "ce_road_class.tif", overwrite = TRUE)
+writeRaster(out_road, "ce_road_class_2022.tif", overwrite = TRUE)
 
 #upload to db
 #system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/ften_road.tif -t 100x100 rast.rds_ften | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
@@ -84,21 +83,21 @@ library(raster)
 library(data.table)
 
 
-out_road<-raster("ce_road_class.tif")
+out_road<-raster("ce_road_class_2022.tif")
 pixels <- data.table(c(t(raster::as.matrix(out_road)))) 
 pixels <- pixels[, pixelid := seq_len(.N)][V1 < 0, ]
         
 outPts <- data.table(xyFromCell(out_road,pixels$pixelid))
 
-mill_sinks<-data.table(read.csv("mill_locations_2019.csv", sep =","))
+mill_sinks<-data.table(read.csv("mill_locations_2023.csv", sep =","))
 
-dist<-RANN::nn2(mill_sinks[, c('X', 'Y')], 
+dist<-RANN::nn2(mill_sinks[, c('xcoord', 'ycoord')], 
                        outPts[, c('x', 'y')], 
                        k = 1)
 pixels$dist<-dist$nn.dists
 
 out_road[pixels$pixelid]<-pixels$dist
-writeRaster(out_road, "ce_road_dists.tif")
+writeRaster(out_road, "ce_road_dists_2022.tif")
  
 ```
 
@@ -108,8 +107,8 @@ writeRaster(out_road, "ce_road_dists.tif")
 library(raster)
 library(data.table)
 
-road.dists<-raster("ce_road_dists.tif")
-road.class<-raster("ce_road_class.tif")
+road.dists<-raster("ce_road_dists_2022.tif")
+road.class<-raster("ce_road_class_2022.tif")
 
 #reclass the road class
 road.class[road.class[]==0]<-NA
@@ -119,7 +118,7 @@ road.class[road.class[] == -1] <- 1
 road.dists[road.dists[]==0]<-NA
 
 road.out<-road.class*road.dists
-writeRaster(road.out, "ce_road_clus.tif", overwrite =T)
+writeRaster(road.out, "ce_road_2022.tif", overwrite =T)
 
 #system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/R/params/road_clus.tif -t 100x100 rast.rds_cariboo_2022 | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
 ```

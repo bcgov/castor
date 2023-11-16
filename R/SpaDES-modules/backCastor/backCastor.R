@@ -44,7 +44,7 @@ defineModule(sim, list(
   ),
   inputObjects = bind_rows(
     expectsInput(objectName = "boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName = "harvestUnits", objectClass ="RasterLayer", desc = NA, sourceURL = NA),
+    expectsInput(objectName = "harvestUnits", objectClass ="SpatRaster", desc = NA, sourceURL = NA),
     expectsInput(objectName = "castordb", objectClass ="SQLiteConnection", desc = "A rsqlite database that stores, organizes and manipulates castor realted information", sourceURL = NA)
     
   ),
@@ -107,6 +107,7 @@ getHistoricalLandings <- function(sim) {
               WHERE h.", sim$boundaryInfo[[4]] ," && ",  P(sim)$queryCutblocks, ".point 
                                          AND ST_Contains(h.", sim$boundaryInfo[[4]]," ,",P(sim)$queryCutblocks,".point) ORDER BY harvestyr"))
   
+  
   if(length(sim$histLandings)==0){ 
     message("histLandings is NULL")
     sim$histLandings <- NULL
@@ -166,8 +167,10 @@ getExistingCutblocks<-function(sim){
                            geom= sim$boundaryInfo[4] , 
                            where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                            conn=NULL))
+  
     if(ext(sim$ras) == ext(ras.blk)){
       exist_cutblocks<-data.table(blockid = ras.blk[])
+      setnames(exist_cutblocks, "blockid.layer", "blockid")
       exist_cutblocks[, pixelid := seq_len(.N)][, blockid := as.integer(blockid)]
       exist_cutblocks<-exist_cutblocks[blockid > 0, ]
       

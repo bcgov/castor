@@ -46,8 +46,8 @@ defineModule(sim, list(
     expectsInput(objectName ="blockMethod", objectClass ="character", desc = NA, sourceURL = NA),
     expectsInput(objectName ="zone.length", objectClass ="numeric", desc = "The number of zones uploaded by dataCastor", sourceURL = NA),
     expectsInput(objectName ="boundaryInfo", objectClass ="character", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="landings", objectClass = "integer", desc = NA, sourceURL = NA),
-    expectsInput(objectName ="landingsArea", objectClass = "numeric", desc = NA, sourceURL = NA),
+    #expectsInput(objectName ="landings", objectClass = "integer", desc = NA, sourceURL = NA),
+    #expectsInput(objectName ="landingsArea", objectClass = "numeric", desc = NA, sourceURL = NA),
     expectsInput(objectName ="growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA),
     expectsInput(objectName ="patchSizeDist", objectClass = "data.table", desc = "Time series table of the total targeted harvest in m3", sourceURL = NA)
     ),

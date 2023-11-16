@@ -319,6 +319,7 @@ buildSnapRoads <- function(sim){ #Deprecate this?
 updateRoadsTable <- function(sim){
   message('updateRoadsTable')
   roadUpdate<-data.table(sim$paths.v)
+  
   if(nrow(roadUpdate) > 0){
     setnames(roadUpdate, "pixelid")
     roadUpdate[,roadyear := time(sim)*sim$updateInterval]
@@ -687,10 +688,11 @@ randomLandings<-function(sim){
 }
 
 preSolve<-function(sim){
+  
   message("Pre-solving the roads")
   if(exists("histLandings", where = sim)){
     message("...using historical landings")
-    targets <- unique(c(as.character(cellFromXY(sim$ras, SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
+    targets <- unique(c(as.character(cellFromXY(raster(sim$ras), SpatialPoints(coords = as.matrix(sim$histLandings[,c(2,3)]), proj4string = CRS("+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83
                           +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0")) )), 
                       dbGetQuery(sim$castordb, "SELECT landing FROM blocks WHERE landing NOT IN ( SELECT pixelid FROM pixels WHERE roadtype = 0)")$landing)) #Remove landings on permanent roads
 
@@ -713,8 +715,8 @@ preSolve<-function(sim){
   #sim$roadslist<-rbindlist(lapply(pre.paths$vpath ,function(x){
   #  data.table(landing = x[][]$name[length(x[][]$name)],road = toString(x[][]$name[]))
   #   }))
-  sim$roadslist<-rbindlist(lapply(1:length(pre.paths[[1]]) , function(x){
-    data.table(landing = as.integer(pre.paths[[1]][[x]][1]), road = toString(pre.paths[[1]][[x]])) 
+  sim$roadslist<-rbindlist(lapply(names(pre.paths[[1]]) , function(x){
+    data.table(landing = as.integer(x), road = toString(pre.paths[[1]][[x]])) 
                }))
   # store roadslist in castordb
   message("store road list in castordb")

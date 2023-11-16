@@ -64,7 +64,7 @@ data.table(layer=c('bc timber harvesting landbase', 'Coast timber harvesting lan
 source (here ("R/functions/R_Postgres.R"))
 
 #Get dummy layer for projection (too lazy to write it) 
-lyr<-getSpatialQuery(paste("SELECT geom FROM public.gcbp_carib_polygon limit 1"))
+lyr<-getSpatialQuery(paste("SELECT wkb_geometry FROM public.bec_zone limit 1"))
 
 #Make an empty provincial raster aligned with hectares BC
 ProvRast <- raster(
@@ -94,6 +94,11 @@ writeRaster(layer.ras, file="thlb_nir_Lyr.tif", format="GTiff", overwrite=TRUE)
 layer<-getSpatialQuery(paste("SELECT thlb_fact, wkb_geometry FROM public.bc_thlb"))
 layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "thlb_fact")
 writeRaster(layer.ras, file="thlb2018", format="GTiff", overwrite=TRUE)
+
+#get 2023 THLB
+layer<-getSpatialQuery(paste("SELECT thlb_fact, shape FROM public.bc_thlb_2022"))
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "thlb_fact")
+writeRaster(layer.ras, file="thlb2022", format="GTiff", overwrite=TRUE)
 
 #Upload to PostgreSQL
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/thlb_nir_Lyr.tif -t 100x100 public.ras_thlb_nir_Lyr2018 | psql -d clus")
@@ -131,30 +136,33 @@ system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/c
 [Harvested areas of bc](https://catalogue.data.gov.bc.ca/dataset/harvested-areas-of-bc-consolidated-cutblocks-). Used to depict the timing of harvest operations.
 
 ```{r, cutblocks}
+
 #Harvest locations year
-layer<-getSpatialQuery("SELECT harvestyr, wkb_geometry FROM public.cns_cut_bl_polygon WHERE areaha >= 0.5 ORDER BY harvestyr")
-
+#layer<-getSpatialQuery("SELECT harvestyr, wkb_geometry FROM public.cns_cut_bl_polygon WHERE areaha >= 0.5 ORDER BY harvestyr")
+layer<-getSpatialQuery("SELECT harvestyr, shape FROM public.cut_block_all_bc WHERE areaha >= 0.5 ORDER BY harvestyr")
 layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "harvestyr")
-writeRaster(layer.ras, file="cns_cutblk.tif", format="GTiff", overwrite=TRUE)
 
-system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/cns_cutblk.tif -t 100x100 rast.cns_cut_bl_year | psql -d clus")
+writeRaster(layer.ras, file="cns_cutblk_year_2022.tif", format="GTiff", overwrite=TRUE)
+
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/cns_cutblk_year_2022.tif -t 100x100 rast.cns_cut_bl_year_2022 | psql -d clus")
 
 #Harvest locations id
-layer<-getSpatialQuery("SELECT cutblockid, wkb_geometry FROM public.cns_cut_bl_polygon WHERE data_source <> 'Landsat' ORDER BY cutblockid")
+layer<-getSpatialQuery("SELECT objectid, shape FROM public.cut_block_all_bc WHERE data_source <> 'Landsat' ORDER BY objectid")
 
-layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "cutblockid")
-writeRaster(layer.ras, file="cns_cutblk.tif", format="GTiff", overwrite=TRUE)
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "objectid")
+writeRaster(layer.ras, file="cns_cutblk_2022.tif", format="GTiff", overwrite=TRUE)
 
-system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/cns_cutblk.tif -t 100x100 rast.cns_cut_bl | psql -d clus")
+system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/cns_cutblk_2022.tif -t 100x100 rast.cns_cut_bl_2022 | psql -d clus")
 
 #Harvest locations for vri 2002
+if(FALSE){
 layer<-getSpatialQuery("SELECT cutblockid, wkb_geometry FROM public.cns_cut_bl_polygon WHERE areaha >= 1 AND harvestyr < 2002 ORDER BY cutblockid")
 
 layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "cutblockid")
 writeRaster(layer.ras, file="cns_cutblk2002.tif", format="GTiff", overwrite=TRUE)
 
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/cns_cutblk2002.tif -t 100x100 rast.cns_cut_bl2002 | psql -d clus")
-
+}
 ```
 
 ## VEG COMP 2018 feature id
@@ -206,7 +214,6 @@ writeRaster(layer.ras, file="vri2020_id.tif", datatype = 'INT4U', format="GTiff"
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/vri2020_id.tif -t 100x100 rast.vri2020_id | psql -d clus")
 ```
 ## VEG comp 2021
-#Harvest locations year
 ```{r}
 layer<-getSpatialQuery("SELECT feature_id, shape FROM public.veg_comp_lyr_r1_poly2021")
 
@@ -216,6 +223,18 @@ gc()
 
 writeRaster(layer.ras, file="vri2021_id2.tif", format="GTiff", datatype = 'INT4U', overwrite=TRUE)
 system("cmd.exe", input = "raster2pgsql -s 3005 -d -I -C -M  C:/Users/KLOCHHEA/clus/R/Params/vri2021_id.tif -t 100x100 rast.vri2021_id | psql -d clus")
+```
+
+## VEG comp 2022
+```{r}
+layer<-getSpatialQuery("SELECT feature_id, shape FROM vri.veg_comp_lyr_r1_poly2022")
+
+layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "feature_id")
+rm(layer)
+gc()
+
+writeRaster(layer.ras, file="vri2022_id.tif", format="GTiff", datatype = 'INT4U', overwrite=TRUE)
+
 ```
 ## Water
 
