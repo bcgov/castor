@@ -61,30 +61,17 @@ dat_lightning<- read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\t
 dat_lightning$climate1<-"NA"
 head(dat_lightning)
 
-# dat_lightning <- dat_lightning3 %>%
-#   mutate(climate1 = if_else(frt==3, mean_MDC05_MDC06,
-#                     if_else(frt==5, mean_PPT05_PPT06_PPT07, 
-#                     if_else(frt==7, mean_RH05_RH06_RH07,
-#                     if_else(frt==9, PPT09,
-#                     if_else(frt==10, Tave07, 
-#                     if_else(frt==11, Tave08,
-#                     if_else(frt==12, mean_Tmax07_Tmax08,
-#                     if_else(frt==13, mean_Tave07_Tave08,
-#                     if_else(frt==14, Tmax08,
-#                     if_else(frt==15, mean_RH07_RH08, climate1)))))))))))
-# make sure value are numbers otherwise it seems to not work.
-#dat_lightning$PPT09<-as.numeric(dat_lightning$PPT09)
 dat_lightning<-dat_lightning %>%
     mutate(climate1 = case_when(
-                            frt == "5" ~ mean_Tave05_Tave06_Tave07_Tave08 ,
-                            frt == "7" ~ mean_RH05_RH06_RH07,
-                            frt == "9" ~ Tmax05,
-                            frt == "10" ~ mean_Tave07_Tave08_Tave09 ,
-                            frt == "11" ~ mean_Tmax07_Tmax08_Tmax09,
+                            frt == "5" ~ mean_Tave05_Tave06_Tave07_Tave08,
+                            frt == "7" ~ mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08,
+                            frt == "9" ~ mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave9,
+                            frt == "10" ~ mean_Tave07_Tave08 ,
+                            frt == "11" ~ mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08,
                             frt == "12" ~ mean_Tmax07_Tmax08,
                             frt == "13" ~ Tave07,
-                            frt == "14" ~ mean_Tave07_Tave08,
-                            frt == "15" ~ mean_Tave06_Tave07_Tave08 ,
+                            frt == "14" ~ CMI07,
+                            frt == "15" ~ mean_Tave07_Tave08 ,
                             TRUE ~ NA_real_))
 
 #Repeat for climate 2
@@ -93,57 +80,61 @@ dat_lightning$climate2<-"NA"
 
 dat_lightning <- dat_lightning %>%
   mutate(climate2 = if_else(frt==5, mean_PPT05_PPT06_PPT07_PPT08,
-                            if_else(frt==10, mean_PPT07_PPT08_PPT09,
-                                    if_else(frt==11, mean_PPT07_PPT08_PPT09,
+                            if_else(frt==10, mean_PPT07_PPT08,
                                     if_else(frt==13, as.numeric(PPT07),
-                                            if_else(frt==15, mean_PPT06_PPT07_PPT08, NA_real_))))))
+                                            if_else(frt==15, mean_PPT07_PPT08, NA_real_)))))
+                            
+head(dat_lightning)
    
 ```
 
 
 #Checking model fits 
 ```{r}
-dat<- dat_lightning %>% dplyr::select(fire_yr, ig_mnth, frt, fire, elevatn, climate1, climate2, FWI_veg)
+dat<- dat_lightning %>% dplyr::select(fire_yr, ig_mnth, frt, fire, dm_h_bc, climate1, climate2, fwveg)
 
-table(dat$frt, dat$FWI_veg, dat$fire)
+table(dat$frt, dat$fwveg, dat$fire)
 
 dat5<- dat %>% dplyr::filter(frt == 5) 
-table(dat5$FWI_veg, dat5$fire)
+table(dat5$fwveg, dat5$fire)
 
-dat5_2<-dat5 %>% filter(!FWI_veg %in% c("N", "W"))
-table(dat5_2$FWI_veg)
+frt5<-veg2[Cluster==5 & !fwveg %in% c("W", "S-1","S-2", "N"),]
 
-dat5_2$FWI_veg <- factor(dat5_2$FWI_veg, levels=c("C-2","C-1","C-3","C-7", "D-1/2","M-1/2", "O-1a/b"))
+
+dat5_2<-dat5 %>% filter(!fwveg %in% c("N", "W","S-1","S-2"))
+table(dat5_2$fwveg)
+
+dat5_2$fwveg <- factor(dat5_2$fwveg, levels=c("C-1","C-2","C-3","C-7", "D-1/2","M-1/2", "O-1a/b"))
 
 ggplot(data=dat5_2, mapping=aes(x=as.factor(fire), y=climate1))+
   geom_boxplot()
 
-ggplot(data=dat5_2, mapping=aes(x=as.factor(fire), y=elevatn))+
+ggplot(data=dat5_2, mapping=aes(x=as.factor(fire), y=dm_h_bc))+
   geom_boxplot()
 
-cor.test(dat5$climate1, dat5$elevatn) # elevation and climate are correlated
-cor.test(dat5$climate2, dat5$elevatn)
+cor.test(dat5$climate1, dat5$dm_h_bc) # elevation and climate are correlated
+cor.test(dat5$climate2, dat5$dm_h_bc)
 cor.test(dat5$climate1, dat5$climate2)
 
 head(dat5_2)
 
-table(is.na(dat5_2$elevatn))
-dat5_3<-dat5_2 %>% drop_na(elevatn)
+table(is.na(dat5_2$dm_h_bc))
+dat5_3<-dat5_2 %>% drop_na(dm_h_bc)
 
-mod.frt.5a<-glm(fire ~ climate1 + climate2 + FWI_veg + elevatn, data=dat5_3, family=binomial(link="logit"))
+mod.frt.5a<-glm(fire ~ climate1 + climate2 + fwveg + dm_h_bc, data=dat5_3, family=binomial(link="logit"))
 
-mod.frt.5b<-glm(fire ~ climate2 + FWI_veg + elevatn, data=dat5_3, family=binomial(link="logit"))
+mod.frt.5b<-glm(fire ~ climate2 + fwveg + dm_h_bc, data=dat5_3, family=binomial(link="logit"))
 
-mod.frt.5c<-glm(fire ~ climate1 + climate2 + FWI_veg, data=dat5_3, family=binomial(link="logit"))
+mod.frt.5c<-glm(fire ~ climate1 + climate2 + fwveg, data=dat5_3, family=binomial(link="logit"))
 
 # keeping elevation and throwing out climate1 is best. Since I have climate2 ill do this.
 
-mod.frt.5<-glm(fire ~ climate2 + FWI_veg + elevatn, data=dat5_3, family=binomial(link="logit"))
+mod.frt.5<-glm(fire ~ climate2 + fwveg + climate1, data=dat5_3, family=binomial(link="logit"))
 
 cor(model.matrix(mod.frt.5)[,-1])
 
 hist(dat5_3$climate2)
-hist(dat5_3$elevatn)
+hist(dat5_3$climate1)
 summary(mod.frt.5)
 
 Anova(mod.frt.5, type=3)
@@ -162,11 +153,11 @@ dat5_3$resids<-resid(mod.frt.5)
 binnedplot (dat5_3$climate2, 
             dat5_3$resids, 
             nclass = NULL, 
-            xlab = "climate1", 
+            xlab = "climate2", 
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm"))
 
-binnedplot (dat5_3$elevatn, 
+binnedplot (dat5_3$climate1, 
             dat5_3$resids, 
             nclass = NULL, 
             xlab = "elevation", 
@@ -177,9 +168,9 @@ binnedplot (dat5_3$elevatn,
 ##Partial Residuals
 visreg(mod.frt.5, scale="response") # nicer plots than the ones below!
 
-visreg(mod.frt.5, "climate2", by="elevatn", scale="response")
-visreg(mod.frt.5, "elevatn", by="FWI_veg", scale="response")
-visreg(mod.frt.5, "climate2", by="FWI_veg", overlay=TRUE, scale="response")
+visreg(mod.frt.5, "climate2", by="climate1", scale="response")
+visreg(mod.frt.5, "climate1", by="fwveg", scale="response")
+visreg(mod.frt.5, "climate2", by="fwveg", scale="response")
 
 ```
 ## checking assumptions of a logistic regression following methods outlined in  http://www.sthda.com/english/articles/36-classification-methods-essentials/108-logistic-regression-assumptions-and-diagnostics-in-r/
@@ -193,7 +184,7 @@ First checking assumption of linearity
 # Select only numeric predictors
 str(dat5_3)
 
-dat2_b<-dat5_3%>% dplyr::select(fire, elevatn, climate2)
+dat2_b<-dat5_3%>% dplyr::select(fire, climate1, climate2)
 probabilities <- predict(mod.frt.5, type = "response")
 predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
 
@@ -234,7 +225,7 @@ model.data <- augment(mod.frt.5) %>%
 
 #The data for the top 3 largest values, according to the Cook’s distance, can be displayed as follow:
 model.data %>% 
-  dplyr::select(climate2,  elevatn, FWI_veg,.std.resid, .cooksd) %>%
+  dplyr::select(climate2,  climate1, fwveg,.std.resid, .cooksd) %>%
   top_n(5, .cooksd) 
 
 ggplot(model.data, aes(index, .std.resid)) + 
@@ -266,9 +257,9 @@ summary(mod.frt.5)
 
 #Create a new blank table and get AUC too
 top_mod_table_FRT10_lightningALL <- data.frame (matrix (ncol = 13, nrow = 0))
-colnames (top_mod_table_FRT10_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_2", "coef_FWI_veg_C-1","coef_FWI_veg_C-3", "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2","coef_FWI_veg_M-1/2",  "coef_FWI_veg_O-1a/b", "coef_elevatn", "AUC")
+colnames (top_mod_table_FRT10_lightningALL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1","coef_climate_2", "coef_fwveg_C-2","coef_fwveg_C-3", "coef_fwveg_C-7", "coef_fwveg_D-1/2","coef_fwveg_M-1/2",  "coef_fwveg_O-1a/b", "AUC")
 
-dat5_2$fire_veg<-paste(dat5_2$fire, dat5_2$FWI_veg)
+dat5_2$fire_veg<-paste(dat5_2$fire, dat5_2$fwveg)
 ```
 
 Let's run it 100 times to get good mean values.
@@ -287,7 +278,7 @@ prop<-0.75
    Valid <- dat5_2[-trainIndex,]
    
 #Model   
-mod<-glm(fire ~ climate2 + FWI_veg + elevatn, data=dat1, family=binomial(link="logit"))
+mod<-glm(fire ~ climate1 + climate2 + fwveg, data=dat1, family=binomial(link="logit"))
 
 mod.valid <- predict.glm(mod, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire"], mod.valid, quiet=TRUE)
@@ -295,13 +286,13 @@ mod.valid <- predict.glm(mod, newdata=Valid, type="response")
 
 # create model table (only do this once) and add the relevant data
 top_mod_table_FRT10_lightningL <- data.frame (matrix (ncol = 13, nrow = 0))
-colnames (top_mod_table_FRT10_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_2", "coef_FWI_veg_C-1","coef_FWI_veg_C-3", "coef_FWI_veg_C-7", "coef_FWI_veg_D-1/2","coef_FWI_veg_M-1/2",  "coef_FWI_veg_O-1a/b", "coef_elevatn", "AUC")
+colnames (top_mod_table_FRT10_lightningL ) <- c ("CAUSE", "FRT",  "Model_terms", "intercept", "coef_climate_1","coef_climate_2", "coef_fwveg_C-2","coef_fwveg_C-3", "coef_fwveg_C-7", "coef_fwveg_D-1/2","coef_fwveg_M-1/2",  "coef_fwveg_O-1a/b", "AUC")
 
 
 ##Add data for NDT1
 top_mod_table_FRT10_lightningL[1,1]<-"lightning"
 top_mod_table_FRT10_lightningL[1,2]<-"FRT5"
-top_mod_table_FRT10_lightningL[1,3]<-"fire ~ climate2 + FWI_veg + elevatn"
+top_mod_table_FRT10_lightningL[1,3]<-"fire ~ climate1 + climate2 + fwveg"
 top_mod_table_FRT10_lightningL[1,4]<- coef(mod)[1] #Intercept
 top_mod_table_FRT10_lightningL[1,5]<- coef(mod)[2] #Climate variable 1
 top_mod_table_FRT10_lightningL[1,6]<- coef(mod)[3] #Climate variable 2
@@ -338,8 +329,8 @@ FRT10_summary_table_mean<- top_mod_table_FRT10_lightningALL %>% summarize_if(is.
 
 FRT10_summary_table_mean$Cause<-"Lightning"
 FRT10_summary_table_mean$FRT<-5
-FRT10_summary_table_mean$intercept_veg<-"C-2"
-FRT10_summary_table_mean$Model_terms<-"fire ~ climate2 + FWI_veg + elevatn"
+FRT10_summary_table_mean$intercept_veg<-"C-1"
+FRT10_summary_table_mean$Model_terms<-"fire ~ climate1 + climate2 + fwveg"
 
 
 ```

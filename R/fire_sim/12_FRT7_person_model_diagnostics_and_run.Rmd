@@ -30,82 +30,85 @@ source(here::here("R/functions/R_Postgres.R"))
 
 
 ```{r}
-dat_person<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\dat_human_for_analysis.csv")
+dat_human<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\dat_human_for_analysis.csv")
 
 ```
 
 ```{r}
 #View top variable
-names(dat_person)
-unique(dat_person$frt)
+names(dat_human)
+unique(dat_human$frt)
 
 ## Create empty vector
-dat_person$climate1<-"NA"
-head(dat_person)
+dat_human$climate1<-"NA"
+head(dat_human)
 
 
-dat_person<-dat_person %>%
+dat_human<-dat_human %>%
     mutate(climate1 = case_when(
                                 frt == "5" ~ mean_PPT06_PPT07,
-                                frt == "7" ~ mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10,
-                                frt == "9" ~ Tmax05, # NDT4
-                                frt == "10" ~ mean_PPT06_PPT07_PPT08_PPT09,
-                                frt == "11" ~ mean_Tave08_Tave09_Tave10,
-                                frt == "12" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10,
-                                frt == "13" ~ mean_Tave07_Tave08_Tave09,
-                                frt == "14" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10,
-                                frt == "15" ~ mean_Tave07_Tave08_Tave09,
+                                frt == "7" ~ mean_Tmax05_Tmax06_Tmax07_Tmax08,
+                                frt == "9" ~ mean_Tave04_Tave05_Tave06_Tave07, # NDT4
+                                frt == "10" ~ mean_CMI07_CMI08_CMI09,
+                                frt == "11" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07,
+                                frt == "12" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9,
+                                frt == "13" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9,
+                                frt == "14" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9,
+                                frt == "15" ~ summer_Tave, #summer_Tave =  mean_Tave06_Tave07_Tave08
                                TRUE ~ NA_real_))
 
 # #Repeat for climate 2
- dat_person$climate2<-"NA"
+ dat_human$climate2<-"NA"
 # 
 # #Perform mutate to get the applicable variable for each row
-dat_person<-dat_person %>%
+dat_human<-dat_human %>%
     mutate(climate2 = case_when(
-                                frt == "13" ~ mean_PPT07_PPT08_PPT09,
-                                frt == "15" ~ mean_PPT07_PPT08_PPT09,
+      frt == "9" ~ mean_PPT04_PPT05_PPT06_PPT07, 
+      frt == "11" ~ mean_PPT04_PPT05_PPT06_PPT07,
+      frt == "15" ~ tot_summer_PPT,
                                TRUE ~ NA_real_))
 
-head(dat_person)
+head(dat_human)
 ##Change vegtype to factor
-dat_person$FWI_veg<-as.factor(dat_person$FWI_veg)
+dat_human$fwveg<-as.factor(dat_human$fwveg)
 ```
 
 
 ```{r}
 # FRT 7
-dat7<- dat_person %>% dplyr::filter(frt == 7) 
-table(dat7$FWI_veg)
+dat7<- dat_human %>% dplyr::filter(frt == 7) 
+table(dat7$fwveg)
 
-dat7<-dat7 %>% filter(FWI_veg!="W")
+dat7<-dat7 %>% filter(!fwveg %in% c("W", "N"))
+frt7[fwveg=="S-2", fwveg:="S-1"]
+dat7$fwveg[dat7$fwveg == "S-2"]<-"S-1"
 
 ggplot(data=dat7, mapping=aes(x=as.factor(fire), y=climate1))+
   geom_boxplot()
 
-ggplot(data=dat7, mapping=aes(x=as.factor(fire), y=elevatn))+
+ggplot(data=dat7, mapping=aes(x=as.factor(fire), y=dm_h_bc))+
   geom_boxplot()
 
-cor.test(dat7$climate1, dat7$elevatn) # elevation and climate are highly correlated!!!
-cor.test(dat7$road_dist_m, dat7$infr_dist)
+cor.test(dat7$climate1, dat7$dm_h_bc) # elevation and climate are highly correlated!!!
+cor.test(dat7$road_dist_m, dat7$dist_infrastructure_m)
 
 
 hist(log(dat7$road_dist_m+1))
-hist(log(dat7$infr_dist +1))
+hist(log(dat7$dist_infrastructure_m +1))
 
 table(is.na(dat7$climate1))
-table(is.na(dat7$elevatn))
+table(is.na(dat7$dm_h_bc))
 
-mod_frt_7a<- glm(fire ~ climate1 + elevatn + FWI_veg + log(road_dist_m+1) + infr_dist, data=dat7, family=binomial(link="logit"))
+mod_frt_7a<- glm(fire ~ climate1 + fwveg + road_dist_m+1 + dist_infrastructure_m, data=dat7, family=binomial(link="logit"))
 
-mod_frt_7b<- glm(fire ~ climate1 + FWI_veg + log(road_dist_m+1) + infr_dist, data=dat7, family=binomial(link="logit"))
+mod_frt_7b<- glm(fire ~ climate1 + fwveg + log(road_dist_m+1) + dist_infrastructure_m, data=dat7, family=binomial(link="logit"))
 
-mod_frt_7c_log<- glm(fire ~ climate1 + FWI_veg + log(road_dist_m+1) + log(infr_dist+1), data=dat7, family=binomial(link="logit"))
+mod_frt_7c_log<- glm(fire ~ climate1 + fwveg + log(road_dist_m+1) + log(dist_infrastructure_m+1), data=dat7, family=binomial(link="logit"))
 
 dat7$log_road_dist<-log(dat7$road_dist_m+1)
-#dat7$log_infr_dist<-log(dat7$infr_dist+1)
+dat7$log_dist_infrastructure_m<-log(dat7$dist_infrastructure_m+1)
 
-mod_frt7<- glm(fire ~ climate1 + FWI_veg + log_road_dist + infr_dist, data=dat7, family=binomial(link="logit"))
+mod_frt7<- glm(fire ~ climate1 + fwveg + log_road_dist + log_dist_infrastructure_m, data=dat7, family=binomial(link="logit"))
 
 summary(mod_frt7)
 Anova(mod_frt7, type=3)
@@ -136,7 +139,7 @@ binnedplot (dat7$log_road_dist,
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm"))
 
-binnedplot (dat7$infr_dist, 
+binnedplot (dat7$dist_infrastructure_m, 
             dat7$resids, 
             nclass = NULL, 
             xlab = "road dist", 
@@ -159,7 +162,7 @@ visreg(mod_frt7, scale="response") # nicer plots than the ones below!
 # Select only numeric predictors
 str(dat7)
 
-dat2_b<-dat7 %>% dplyr::select(fire, climate1, log_road_dist, infr_dist)
+dat2_b<-dat7 %>% dplyr::select(fire, climate1, log_road_dist, log_dist_infrastructure_m)
 probabilities <- predict(mod_frt7, type = "response")
 predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
 
@@ -200,7 +203,7 @@ model.data <- augment(mod_frt7) %>%
 
 #The data for the top 3 largest values, according to the Cook’s distance, can be displayed as follow:
 model.data %>% 
-  dplyr::select(climate1, log_road_dist, infr_dist,.std.resid, .cooksd) %>%
+  dplyr::select(climate1, log_road_dist, dist_infrastructure_m,.std.resid, .cooksd) %>%
   top_n(5, .cooksd) 
 
 ggplot(model.data, aes(index, .std.resid)) + 
@@ -228,30 +231,28 @@ car::vif(mod_frt7)
 
 
 ```{r}
-mod_frt7<- glm(fire ~ climate1 + FWI_veg + log_road_dist + infr_dist, data=dat7, family=binomial(link="logit"))
+mod_frt7<- glm(fire ~ climate1 + fwveg + log_road_dist + log_dist_infrastructure_m, data=dat7, family=binomial(link="logit"))
 
 summary(mod_frt7)
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT5_person_All <- data.frame (matrix (ncol = 16, nrow = 0))
+top_mod_table_FRT5_person_All <- data.frame (matrix (ncol = 14, nrow = 0))
 colnames (top_mod_table_FRT5_person_All ) <- c ("CAUSE",
                                                 "FRT", 
                                                 "Model_terms",
                                                 "intercept",
                                                 "coef_climate1",
-                                                "coef_FWI_veg_C-2",
-                                                "coef_FWI_veg_C-3",
-                                                "coef_FWI_veg_C-7",
-                                              "coef_FWI_veg_D-1/2",
-                                              "coef_FWI_veg_M-1/2",
-                                              "coef_FWI_veg_M-3",
-                                              "coef_FWI_veg_N",
-                                            "coef_FWI_veg_O-1a/b",
+                                                "coef_fwveg_C-2",
+                                                "coef_fwveg_C-3",
+                                              "coef_fwveg_D-1/2",
+                                              "coef_fwveg_M-1/2",
+                                            "coef_fwveg_O-1a/b",
+                                            "coef_fwveg_S-1",
                                               "coef_log_road_dist",
-                                              "coef_infr_dist",
+                                              "coef_log_dist_infrastructure_m",
                                               "AUC")
 
-dat7$fire_veg<-paste(dat7$fire, dat7$FWI_veg)
+dat7$fire_veg<-paste(dat7$fire, dat7$fwveg)
 ```
 
 Let's run it 100 times to get good mean values.
@@ -270,35 +271,33 @@ prop<-0.75
    Valid <- dat7[-trainIndex,]
    
 #Model   
-mod<-glm(fire ~ climate1 + FWI_veg + log_road_dist + infr_dist, data=dat1, family=binomial(link="logit"))
+mod<-glm(fire ~ climate1 + fwveg + log_road_dist + log_dist_infrastructure_m, data=dat1, family=binomial(link="logit"))
 
 mod.valid <- predict.glm(mod, newdata=Valid, type="response")
    roc_obj <- roc(Valid[,"fire"], mod.valid, quiet=TRUE)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT5_person <- data.frame (matrix (ncol = 16, nrow = 0))
+top_mod_table_FRT5_person <- data.frame (matrix (ncol = 14, nrow = 0))
 colnames (top_mod_table_FRT5_person ) <- c ("CAUSE",
                                                 "FRT", 
                                                 "Model_terms",
                                                 "intercept",
                                                 "coef_climate1",
-                                                "coef_FWI_veg_C-2",
-                                                "coef_FWI_veg_C-3",
-                                                "coef_FWI_veg_C-7",
-                                              "coef_FWI_veg_D-1/2",
-                                              "coef_FWI_veg_M-1/2",
-                                              "coef_FWI_veg_M-3",
-                                              "coef_FWI_veg_N",
-                                            "coef_FWI_veg_O-1a/b",
+                                                "coef_fwveg_C-2",
+                                                "coef_fwveg_C-3",
+                                              "coef_fwveg_D-1/2",
+                                              "coef_fwveg_M-1/2",
+                                            "coef_fwveg_O-1a/b",
+                                            "coef_fwveg_S-1",
                                               "coef_log_road_dist",
-                                              "coef_infr_dist",
+                                              "coef_log_dist_infrastructure_m",
                                               "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT5_person[1,1]<-"person"
 top_mod_table_FRT5_person[1,2]<-"FRT7"
-top_mod_table_FRT5_person[1,3]<-"fire ~ climate1 + FWI_veg + log_road_dist + infr_dist"
+top_mod_table_FRT5_person[1,3]<-"fire ~ climate1 + fwveg + log_road_dist + log_dist_infrastructure_m"
 top_mod_table_FRT5_person[1,4]<- coef(mod)[1] #Intercept
 top_mod_table_FRT5_person[1,5]<- coef(mod)[2] #Climate variable 1
 top_mod_table_FRT5_person[1,6]<- coef(mod)[3] #Climate variable 2
@@ -308,10 +307,8 @@ top_mod_table_FRT5_person[1,9]<- coef(mod)[6] #Intercept
 top_mod_table_FRT5_person[1,10]<- coef(mod)[7] #Climate variable 1
 top_mod_table_FRT5_person[1,11]<- coef(mod)[8] #Climate variable 2
 top_mod_table_FRT5_person[1,12]<- coef(mod)[9] #I
-top_mod_table_FRT5_person[1,13]<- coef(mod)[10] #co
-top_mod_table_FRT5_person[1,14]<- coef(mod)[11] #Climate variable 2
-top_mod_table_FRT5_person[1,15]<- coef(mod)[12] #I
-top_mod_table_FRT5_person[1,16]<- mod.auc
+top_mod_table_FRT5_person[1,13]<- coef(mod)[10]
+top_mod_table_FRT5_person[1,14]<- mod.auc
 
 top_mod_table_FRT5_person_All<-rbind(top_mod_table_FRT5_person_All, top_mod_table_FRT5_person)
 

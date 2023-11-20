@@ -64,103 +64,86 @@ See the License for the specific language governing permissions and limitations 
 Load in the prepped data.
 
 ```{r}
-escape <- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\escape_weather_veg.gpkg")
-head(escape)
-dim(escape)
-escape$escape9<- NA
-escape$escape9[escape$CURRENT_SIZE > 1.5] <- 1
-escape$escape9[escape$CURRENT_SIZE <= 1.5] <- 0
+escape<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\escape_data_clean.csv")
 
-escape<-escape %>% st_drop_geometry()
+escape2<-escape %>%
+  distinct(id, .keep_all = TRUE)
+
+escape2<-data.table(escape2)
+
+escape2<-escape2[!is.na(CURRENT),]
+escape2[CURRENT>1.5, escape:=1]
+escape2[CURRENT<=1.5, escape:=0]
+escape2[frt==9, frt:=11]
+```
+
+There are some spots where FRT was not categorized. So I import these points in QGIS and manually looked them up
+```{r}
+#x<-escape2[is.na(frt),]
+#write.csv(x, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\FRT_na.csv")
 
 
+escape2[idno %in% c(9867, 31071, 35426, 3697, 24997, 6632,4126, 3905,21723, 17134, 29149, 32626,34666,34591, 17321), frt:=14]
 
-table(is.na(escape$Cluster)) # wierd there are 13 points that have no Cluster assigned to them. I looked at these points in Qgis and all but one of them are in FRT =15.
-escape$Cluster[escape$idno==15511]<-13
-escape$Cluster[escape$idno==31609]<-13
-escape$Cluster[escape$idno==15214]<-13
-escape$Cluster[escape$idno==15507]<-13
-escape$Cluster[escape$idno==10828]<-13
-escape$Cluster[escape$idno==119]<-14
-escape$Cluster[escape$idno==20067]<-14
-escape$Cluster[escape$idno==965]<-14
-escape$Cluster[escape$idno==22140]<-14
-escape$Cluster[escape$idno==26529]<-14
-escape$Cluster[escape$idno==32226]<-14
-escape$Cluster[escape$idno==27182]<-14
-escape$Cluster[escape$idno==719]<-14
-escape$Cluster[escape$idno==14884]<-14
-escape$Cluster[escape$idno==23161]<-14
-escape$Cluster[escape$idno==20054]<-14
-escape$Cluster[escape$idno==21163]<-14
-escape$Cluster[escape$idno==1832]<-14
-escape$Cluster[escape$idno==31495]<-14
+escape2[idno %in% c(20588, 9744, 5748, 34377, 35183, 10459, 18956, 27789, 18167, 8193, 16061, 34001), frt:=13]
 
-escape$Cluster[is.na(escape$Cluster)]<-15
-escape$Cluster[escape$Cluster==3]<-5
-escape$Cluster[escape$Cluster==9]<-11
+escape2[is.na(frt), frt:=15]
 
-# note Im going to combine frt9 and frt11. I re-ran the climate variable selection with both frt 9 and 11 combined results in the top climate variable being summer_Tave
-#11,	summer_Tave,	mean_AIC=338.338939,	means_AUC=0.647411386,	sd_AUC=0.054643964,	delta_AIC=0
-
-table(escape$Cluster)
-table(escape$ig_mnth)
- 
 ```
 
 #note there are a few ignitions in the months January and December. For now Im going to filter these out but maybe I should include them in the future. Presumabily non of these fires escape
 ```{r}
-hist(as.numeric(escape$ig_mnth))
+hist(as.numeric(escape2$ig_mnth))
+
 
 ggplot(data = escape2, aes(as.numeric(as.character(ig_mnth)))) +
   geom_histogram() +
-  facet_wrap(~Cluster, scales="free_y")
+  facet_wrap(~frt, scales="free_y")
 
 
-climate_escape<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\climate_AIC_results_escape_summary_March2023.csv")
+climate_variables_escape<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\climate_AIC_results_escape_summary_Oct23.csv") #This current file has all the possible models instead of the top one for each NDT as prior
 
-escape$Cluster_numeric<-as.numeric(as.character(escape$Cluster))
+escape2[frt==5, climate1:=(Tmax04+Tmax05)/2]
+escape2[frt==5, climate2:=(PPT04+PPT05)/2]
+escape2[frt==7, climate1:=CMI04]
+escape2[frt==10, climate1:=(CMD04+CMD05+CMD06)/3]
+escape2[frt==11, climate1:=Tave05]
+escape2[frt==11, climate2:=PPT05]
+escape2[frt==12, climate1:=(Tmax04+Tmax05+Tmax06)/3]
+escape2[frt==12, climate2:=(PPT04+PPT05+PPT06)/3]
+escape2[frt==13, climate1:=(Tmax07+Tmax08)/2]
+escape2[frt==13, climate2:=(PPT07+PPT08)/2]
+escape2[frt==14, climate1:=(Tmax04+Tmax05+Tmax06)/3]
+escape2[frt==14, climate2:=(PPT04+PPT05+PPT06)/3]
+escape2[frt==15, climate1:=(CMD07 +CMD08)/2]
 
-escape$tot_spring_PPT<-escape$PPT04+ escape$PPT05 + escape$PPT06
-escape$tot_summer_PPT<-escape$PPT07+ escape$PPT08 + escape$PPT09
-escape$summer_Tmax<-(escape$Tmax07+ escape$Tmax08 + escape$Tmax09)/3
-escape$summer_Tave<-(escape$Tave07+ escape$Tave08 + escape$Tave09)/3
-escape$mean_MDC_05_MDC_06_MDC_07_MDC_08   <-(escape$MDC_05 + escape$MDC_06 + escape$MDC_07 + escape$MDC_08)/4
+escape2[, aspect_cardinal:="O"]
+escape2[a___300 >315, aspect_cardinal:="N"]
+escape2[a___300 <=45, aspect_cardinal:="N"]
+escape2[a___300 >45 & a___300 <=135, aspect_cardinal:="O"]
+escape2[a___300 >135 & a___300<=225, aspect_cardinal:="S"]
+escape2[a___300 >225 & a___300 <=315, aspect_cardinal:="O"]
 
-
-## Create empty vector
-escape$climate1<-0
-head(escape)
-
-escape<-escape %>%
-    mutate(climate1 = case_when(Cluster_numeric == 5 ~ as.numeric(PPT05), 
-                                Cluster_numeric == 7 ~ as.numeric(PPT06), 
-                                #Cluster_numeric == 9 ~ Tave05, 
-                                Cluster_numeric == 10 ~ as.numeric(tot_spring_PPT),
-                                Cluster_numeric == 11 ~ as.numeric(MDC_06), 
-                                Cluster_numeric == 12 ~ summer_Tmax,
-                                Cluster_numeric == 13 ~ summer_Tmax,
-                                Cluster_numeric == 14 ~ as.numeric(mean_MDC_05_MDC_06_MDC_07_MDC_08),
-                                Cluster_numeric == 15 ~ summer_Tave,
-                                TRUE ~ NA_real_))
-
-#Repeat for climate 2
-escape$climate2<-0
-
-#Perform mutate to get the applicable variable for each row
-escape<-escape %>%
-    mutate(climate2 = case_when(Cluster_numeric == 7 ~ as.numeric(Tave06),
-                                Cluster_numeric == 12 ~ as.numeric(tot_summer_PPT),
-                                Cluster_numeric == 13 ~ as.numeric(tot_summer_PPT),
-                                Cluster_numeric == 15 ~ as.numeric(tot_summer_PPT),
-                                TRUE ~ NA_real_))
-
-head(escape)
+escape2$fwveg<-as.factor(escape2$fwveg)
+escape2$aspect_cardinal<-as.factor((escape2$aspect_cardinal))
 
 # before running any models wer are going to remove W and N because fires cannot spread on this landscape type.
+escape2[frt==3, frt:=5]
+escape2<-escape2 %>% filter(!fwveg %in% c("W", "N"))
+escape2$veg_escape<-paste(escape2$escape, escape2$fwveg)
 
-escape2<-escape %>% filter(FWI_veg != "W")
-escape2$veg_escape<-paste(escape2$escape9, escape2$FWI_veg)
+table(escape2$frt, escape2$fwveg)
+
+escape2[fwveg=="M-3", fwveg:="M-1/2"]
+escape2[fwveg=="S-2", fwveg:="S-1"]
+escape2[fwveg=="S-3", fwveg:="S-1"]
+
+setorder(escape2, cols = - "climate1") 
+
+table(is.na(escape2$climate1))
+escape2<-escape2[!is.na(climate1), ]
+
+#write.csv(escape2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\escape_data_clean.csv")
 ```
 
 
@@ -182,137 +165,141 @@ Because there would be far too many models to investigate including all variable
 #### FRT 5
 ```{r}
 
-escape_frt5<- escape2 %>% filter(Cluster==5)
+escape_frt5<- escape2 %>% filter(frt==5)
 
 table(is.na(escape_frt5$climate1))
-table(is.na(escape_frt5$dem_ha_bc))
-table(is.na(escape_frt5$FWI_veg))
-table(is.na(escape_frt5$dist_roads_m))
-table(is.na(escape_frt5$slope_ha_bc_3005))
-table(is.na(escape_frt5$escape9))
+table(is.na(escape_frt5$dm_h_bc))
+table(is.na(escape_frt5$fwveg))
+table(is.na(escape_frt5$road_dist_m))
+table(is.na(escape_frt5$s___300))
+table(is.na(escape_frt5$escape))
 
-cor.test(escape_frt5$climate1, escape_frt5$dem_ha_bc)
-cor.test(escape_frt5$climate1, escape_frt5$slope_ha_bc_3005)
-cor.test(escape_frt5$dem_ha_bc, escape_frt5$slope_ha_bc_3005)
-cor.test(escape_frt5$dist_roads_m, escape_frt5$dist_infrastructure_m)
 
-escape_frt5$log_road<-log(escape_frt5$dist_roads_m+1)
+cor.test(escape_frt5$climate1, escape_frt5$dm_h_bc)
+cor.test(escape_frt5$climate2, escape_frt5$dm_h_bc)
+cor.test(escape_frt5$climate1, escape_frt5$s___300)
+cor.test(escape_frt5$dm_h_bc, escape_frt5$s___300)
+cor.test(escape_frt5$road_dist_m, escape_frt5$dist_infrastructure_m)
+# roads and infrastructure are correlated (0.85)
+ggplot(escape_frt5, aes(x=as.factor(escape), y=dist_infrastructure_m)) + 
+  geom_boxplot()
+escape_frt5<-escape_frt5[!dist_infrastructure_m>50000,]
+ggplot(escape_frt5, aes(x=as.factor(escape), y=road_dist_m)) + 
+  geom_boxplot()
+ggplot(escape_frt5, aes(x=as.factor(escape), y=dist_infrastructure_m)) + 
+  geom_boxplot()
+
+
+escape_frt5$log_road<-log(escape_frt5$road_dist_m+1)
 escape_frt5$log_infra<-log(escape_frt5$dist_infrastructure_m+1)
 
-table(escape_frt5$FWI_veg, escape_frt5$escape9)
+table(escape_frt5$fwveg, escape_frt5$escape)
 
-escape_frt5$FWI_veg[escape_frt5$FWI_veg=="C-7"]<-"D-1/2"
+escape_frt5$fwveg[escape_frt5$fwveg=="C-7"]<-"M-1/2"
+escape_frt5$fwveg[escape_frt5$fwveg=="S-1"]<-"M-1/2"
+escape_frt5<-escape_frt5[!is.na(fwveg),]
 
-#escape_frt5<- escape_frt5 %>% filter(FWI_veg!="N")
+escape_frt5$veg_escape<-paste(escape_frt5$escape, escape_frt5$fwveg)
+table(escape_frt5$veg_escape)
+
 
 #Run model using dat1
-model_ft5<-glm(escape9 ~ climate1 + FWI_veg + slope_ha_bc_3005 + dem_ha_bc + win_spg + log_road +log_infra, family = binomial, data = escape_frt5)
-# 1571
+model_ft5<-glm(escape ~ climate1 + climate2 + fwveg + s___300 + aspect_cardinal + dm_h_bc + win_spg + road_dist_m +dist_infrastructure_m, family = binomial, data = escape_frt5)
+# 1546
 
-model_ft5<-glm(escape9 ~ climate1 + FWI_veg + slope_ha_bc_3005 + dem_ha_bc + win_spg + dist_roads_m +log_infra, family = binomial, data = escape_frt5)
-# 1569
+model_ft5a<-glm(escape ~ climate1 + climate2  + fwveg + s___300 + aspect_cardinal + dm_h_bc + win_spg +dist_infrastructure_m, family = binomial, data = escape_frt5) # 1545
 
-model_ft5<-glm(escape9 ~ climate1 + FWI_veg + slope_ha_bc_3005 + dem_ha_bc + win_spg + log_road +dist_infrastructure_m, family = binomial, data = escape_frt5)
-# 1563
+model_ft5b<-glm(escape ~ climate1 + climate2  + fwveg + s___300 + aspect_cardinal + dm_h_bc + win_spg + road_dist_m, family = binomial, data = escape_frt5)# 1547
 
-model_ft5<-glm(escape9 ~ climate1 + FWI_veg + slope_ha_bc_3005 + dem_ha_bc + win_spg + dist_roads_m +dist_infrastructure_m, family = binomial, data = escape_frt5)
-# 1564
+#Ok distance to infrastructure is better and its better not to log it
 
-model_ft5<-glm(escape9 ~ climate1 + FWI_veg + slope_ha_bc_3005 + dem_ha_bc + win_spg + log_road +dist_infrastructure_m, family = binomial, data = escape_frt5)
-AIC(model_ft5) #1563.224
+model_ft5c<-glm(escape ~ climate1 + climate2 + fwveg + s___300 + aspect_cardinal + dm_h_bc + win_spg +log_infra, family = binomial, data = escape_frt5)
+# 1551
+
+model_ft5<-glm(escape ~ climate1 + climate2 + fwveg + s___300 + dm_h_bc + aspect_cardinal + win_spg +dist_infrastructure_m, family = binomial, data = escape_frt5)
+AIC(model_ft5) #1571
 Anova(model_ft5, type=3)
 
-#chop win_spg
-model_ft5b<-glm(escape9 ~ climate1 + FWI_veg + slope_ha_bc_3005 + dem_ha_bc + log_road +dist_infrastructure_m, family = binomial, data = escape_frt5)
+#chop asepct
+model_ft5b<-glm(escape ~ climate1 + climate2 + fwveg + s___300 + dm_h_bc + win_spg +dist_infrastructure_m, family = binomial, data = escape_frt5)
 
 AIC(model_ft5b) #1563.862
 Anova(model_ft5b, type=3)
 
-#chop slope
-model_ft5c<-glm(escape9 ~ climate1 + FWI_veg + dem_ha_bc + log_road +dist_infrastructure_m, family = binomial, data = escape_frt5)
-AIC(model_ft5c) #1562.108
+#chop win_sp
+model_ft5c<-glm(escape ~ climate1 + climate2 + fwveg + s___300 + dm_h_bc + dist_infrastructure_m, family = binomial, data = escape_frt5)
+AIC(model_ft5c) #1566.132
 Anova(model_ft5c, type=3)
+visreg(model_ft5c)
 
-#chop logroad
-model_ft5d<-glm(escape9 ~ climate1 + FWI_veg + dem_ha_bc +dist_infrastructure_m, family = binomial, data = escape_frt5)
-AIC(model_ft5d) #1562.086
-Anova(model_ft5d, type=3)
+#chop climate1
+model_ft5c<-glm(escape ~ climate2 + fwveg + s___300 + dm_h_bc + dist_infrastructure_m, family = binomial, data = escape_frt5)
+AIC(model_ft5c) #1566.132
+Anova(model_ft5c, type=3)
+visreg(model_ft5c)
+
+# chop slope
+model_ft5c<-glm(escape ~ climate2 + fwveg + dm_h_bc + dist_infrastructure_m, family = binomial, data = escape_frt5)
+AIC(model_ft5c) #1541.128
+Anova(model_ft5c, type=3)
+visreg(model_ft5c)
+
+# try chopping fwveg no apparently fwveg is actually helping 
+model_ft5c<-glm(escape ~ climate2 + dm_h_bc + dist_infrastructure_m, family = binomial, data = escape_frt5)
+AIC(model_ft5c) #1584.124
+Anova(model_ft5c, type=3)
+visreg(model_ft5c)
+
 
 #######################
 ### TOP MODEL
 #######################
-model_ft5d<-glm(escape9 ~ climate1 + FWI_veg + dem_ha_bc +dist_infrastructure_m, family = binomial, data = escape_frt5)
+model_ft5b<-glm(escape ~ climate2 + fwveg + dm_h_bc + dist_infrastructure_m, family = binomial, data = escape_frt5)
 
-hist(escape_frt5$climate1)
-escape_frt5<-escape_frt5 %>% drop_na(escape9)
-hist(escape_frt5$dem_ha_bc)
+hist(escape_frt5$climate2)
+escape_frt5<-escape_frt5 %>% drop_na(escape)
+hist(escape_frt5$dm_h_bc)
 hist(escape_frt5$dist_infrastructure_m)
-hist(escape_frt5$log_road)
 
-ggplot(escape_frt5, aes(x=as.character(escape9), y=climate1)) +
+ggplot(escape_frt5, aes(x=as.character(escape), y=climate2)) +
   geom_boxplot() #climate1 = PPT05
-ggplot(escape_frt5, aes(x=as.character(escape9), y=dem_ha_bc)) +
+ggplot(escape_frt5, aes(x=as.character(escape), y=dm_h_bc)) +
   geom_boxplot() #climate1 = PPT05
-ggplot(escape_frt5, aes(x=as.character(escape9), y=dist_infrastructure_m)) +
+ggplot(escape_frt5, aes(x=as.character(escape), y=dist_infrastructure_m)) +
   geom_boxplot() 
 
-
-
-table(escape_frt5$escape9) #0 = 699 and 1 = 500 not bad actually.
-table(escape_frt5$FWI_veg)
 ```
 
 
 ```{r}
 # model diagnostic plots
-binnedplot (fitted(model_ft5d), 
-            residuals(model_ft5d), 
+binnedplot (fitted(model_ft5b), 
+            residuals(model_ft5b), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual")
-
-escape_frt5<-escape_frt5 %>% drop_na(dem_ha_bc)
-escape_frt5<-escape_frt5 %>% drop_na(escape9)
-escape_frt5$resids<-resid(model_ft5d)
-
-binnedplot (escape_frt5$climate1, 
-            escape_frt5$resids, 
-            nclass = NULL)
-
-binnedplot (escape_frt5$dem_ha_bc, 
-            escape_frt5$resids,  
-            nclass = NULL)
-
-binnedplot (escape_frt5$dist_infrastructure_m, 
-            escape_frt5$resids,  
-            nclass = NULL)
-
-# Diagnostic plots look good
-
-#Partial Residuals
-library(visreg)
-visreg(model_ft5d)
 
 ```
 
 We should repeat the above several times and take the mean of the coefficients.
 
 ```{r}
-summary(model_ft5d)
+summary(model_ft5b)
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT5_ALL <- data.frame (matrix (ncol = 13, nrow = 0))
+top_mod_table_FRT5_ALL <- data.frame (matrix (ncol = 12, nrow = 0))
 colnames (top_mod_table_FRT5_ALL ) <- c ("FRT", "Model_terms", "intercept",
-                                         "coef_climate_1",
-                                         "coef_FWI_veg_C-2",
-                                         "coef_FWI_veg_C-3",
-                                         "coef_FWI_veg_D-1/2",
-                                         "coef_FWI_veg_M-1/2",
-                                         "coef_FWI_veg_N",
-                                         "coef_FWI_veg_O-1a/b",
+                                         "coef_climate_2",
+                                         "coef_fwveg_C-2",
+                                         "coef_fwveg_C-3",
+                                         "coef_fwveg_D-1/2",
+                                         "coef_fwveg_M-1/2",
+                                         "coef_fwveg_O-1a/b",
                                          "coef_elevation",
                                          "coef_dist_infra",
                                          "AUC")
+
+escape_frt5<-as.data.frame(escape_frt5)
 ```
 
 Let's run it 500 times to get good mean values.
@@ -333,29 +320,28 @@ prop<-0.75
    Valid <- escape_frt5[-trainIndex,]
    
 #Model   
-model.FRT5<-glm(escape9 ~ climate1 + FWI_veg + dem_ha_bc + dist_infrastructure_m, family = binomial, data = dat1) 
+model.FRT5<-glm(escape ~ climate2 + fwveg + dm_h_bc + dist_infrastructure_m, family = binomial, data = dat1) 
 
 mod.valid <- predict.glm(model.FRT5, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"escape9"], mod.valid, quiet=TRUE)
+   roc_obj <- roc(Valid[,"escape"], mod.valid, quiet=TRUE)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT5 <- data.frame (matrix (ncol = 13, nrow = 0))
+top_mod_table_FRT5 <- data.frame (matrix (ncol = 12, nrow = 0))
 colnames (top_mod_table_FRT5 ) <- c ("FRT", "Model_terms", "intercept",
-                                         "coef_climate_1",
-                                         "coef_FWI_veg_C-2",
-                                         "coef_FWI_veg_C-3",
-                                         "coef_FWI_veg_D-1/2",
-                                         "coef_FWI_veg_M-1/2",
-                                         "coef_FWI_veg_N",
-                                         "coef_FWI_veg_O-1a/b",
+                                         "coef_climate_2",
+                                         "coef_fwveg_C-2",
+                                         "coef_fwveg_C-3",
+                                         "coef_fwveg_D-1/2",
+                                         "coef_fwveg_M-1/2",
+                                         "coef_fwveg_O-1a/b",
                                          "coef_elevation",
                                          "coef_dist_infra",
                                          "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT5[1,1]<-"5"
-top_mod_table_FRT5[1,2]<-"escape16 ~ climate1 + FWI_veg + dem_ha_bc + log_road +dist_infrastructure_m" 
+top_mod_table_FRT5[1,2]<-"escape16 ~ climate2 + fwveg + dm_h_bc + dist_infrastructure_m" 
 top_mod_table_FRT5[1,3]<- coef(model.FRT5)[1] #Intercept
 top_mod_table_FRT5[1,4]<- coef(model.FRT5)[2] #
 top_mod_table_FRT5[1,5]<- coef(model.FRT5)[3] #
@@ -365,8 +351,7 @@ top_mod_table_FRT5[1,8]<- coef(model.FRT5)[6] #coefficient
 top_mod_table_FRT5[1,9]<- coef(model.FRT5)[7] #
 top_mod_table_FRT5[1,10]<- coef(model.FRT5)[8] #coefficient 
 top_mod_table_FRT5[1,11]<- coef(model.FRT5)[9] #coefficient
-top_mod_table_FRT5[1,12]<- coef(model.FRT5)[10] #coefficient
-top_mod_table_FRT5[1,13]<- mod.auc
+top_mod_table_FRT5[1,12]<- mod.auc
 
 top_mod_table_FRT5_ALL<-rbind(top_mod_table_FRT5_ALL, top_mod_table_FRT5)
 
@@ -390,7 +375,7 @@ stderror <- function(x) sd(x)/sqrt(length(x))
 FRT5_summary_table_mean<- top_mod_table_FRT5_ALL %>% summarize_if(is.numeric,mean)
 
 FRT5_summary_table_mean$FRT<-5
-FRT5_summary_table_mean$Model_terms<-"escape16 ~ climate1 + FWI_veg + dem_ha_bc + dist_infrastructure_m"
+FRT5_summary_table_mean$Model_terms<-"escape ~ climate2 + fwveg + dm_h_bc + dist_infrastructure_m"
 
 ```
 
@@ -404,124 +389,97 @@ write.csv(FRT5_summary_table_mean, file="D:\\Fire\\fire_data\\raw_data\\top_mod_
 #### FRT 7
 ```{r}
 
-escape_frt7<- escape2 %>% filter(Cluster==7)
-table(escape_frt7$FWI_veg, escape_frt7$escape9)
-#escape_frt7$FWI_veg[escape_frt7$FWI_veg=="C-1"]<-"C-3"
-#escape_frt7$FWI_veg[escape_frt7$FWI_veg=="N"]<-"D-1/2"
-escape_frt7$FWI_veg[escape_frt7$FWI_veg=="C-7"]<-"M-1/2"
-escape_frt7$FWI_veg[escape_frt7$FWI_veg=="S-1"]<-"M-1/2"
-escape_frt7$veg_escape<-paste(escape_frt7$fire, escape_frt7$FWI_veg)
+escape_frt7<- escape2 %>% filter(frt==7)
+table(escape_frt7$fwveg, escape_frt7$escape)
+escape_frt7$fwveg[escape_frt7$fwveg=="C-7"]<-"M-1/2"
+escape_frt7$fwveg[escape_frt7$fwveg=="S-1"]<-"M-1/2"
+escape_frt7$veg_escape<-paste(escape_frt7$escape, escape_frt7$fwveg)
 
 table(is.na(escape_frt7$climate1))
-table(is.na(escape_frt7$dem_ha_bc))
-table(is.na(escape_frt7$FWI_veg))
-table(is.na(escape_frt7$dist_roads_m))
-table(is.na(escape_frt7$slope_ha_bc_3005))
+table(is.na(escape_frt7$dm_h_bc))
+table(is.na(escape_frt7$fwveg))
+table(is.na(escape_frt7$road_dist_m))
+table(is.na(escape_frt7$s___300))
 table(is.na(escape_frt7$win_spg))
-table(is.na(escape_frt7$escape9))
+table(is.na(escape_frt7$escape))
 
 
-cor.test(escape_frt7$climate1, escape_frt7$dem_ha_bc)
-cor.test(escape_frt7$climate1, escape_frt7$slope_ha_bc_3005)
-cor.test(escape_frt7$climate2, escape_frt7$dem_ha_bc)
-cor.test(escape_frt7$climate2, escape_frt7$slope_ha_bc_3005)
-cor.test(escape_frt7$dem_ha_bc, escape_frt7$slope_ha_bc_3005)
-cor.test(escape_frt7$dist_roads_m, escape_frt7$dist_infrastructure_m  )
+cor.test(escape_frt7$climate1, escape_frt7$dm_h_bc)
+cor.test(escape_frt7$climate1, escape_frt7$s___300)
+cor.test(escape_frt7$dm_h_bc, escape_frt7$s___300)
+cor.test(escape_frt7$road_dist_m, escape_frt7$dist_infrastructure_m  ) # highly correlated
 
-escape_frt7$log_road<-log(escape_frt7$dist_roads_m+1)
+escape_frt7$log_road<-log(escape_frt7$road_dist_m+1)
 escape_frt7$log_infr<-log(escape_frt7$dist_infrastructure_m  +1)
 
+ggplot(escape_frt7, aes(x=as.factor(escape), y=road_dist_m))+
+  geom_boxplot()
+ggplot(escape_frt7, aes(x=as.factor(escape), y=dist_infrastructure_m)) + 
+  geom_boxplot()
+ggplot(escape_frt7, aes(x=as.factor(escape), y=log_road))+
+  geom_boxplot()
+ggplot(escape_frt7, aes(x=as.factor(escape), y=log_infr)) + 
+  geom_boxplot()
+hist(escape_frt7$road_dist_m)
+hist(escape_frt7$log_road)
+hist(escape_frt7$log_infr)
+
+
+
 #Run model using dat1
-model_ft7<-glm(escape9 ~ climate1 + climate2 + FWI_veg + slope_ha_bc_3005 + dem_ha_bc + log_road + log_infr + win_spg, family = binomial, data = escape_frt7)
-#1431
+model_ft7<-glm(escape ~ climate1 + fwveg + s___300 + dm_h_bc + aspect_cardinal + log_road + log_infr + win_spg, family = binomial, data = escape_frt7)
+#1223
 
-model_ft7<-glm(escape9 ~ climate1 + climate2 + FWI_veg + slope_ha_bc_3005 + dem_ha_bc + dist_roads_m + log_infr + win_spg, family = binomial, data = escape_frt7)
-# 1431
+model_ft7b<-glm(escape ~ climate1 + fwveg + s___300 + dm_h_bc + aspect_cardinal + log_road + win_spg, family = binomial, data = escape_frt7)
+AIC(model_ft7b)#1223
 
-model_ft7<-glm(escape9 ~ climate1 + climate2 + FWI_veg + slope_ha_bc_3005 + dem_ha_bc + log_road + dist_infrastructure_m + win_spg, family = binomial, data = escape_frt7)
-# 1432
-
-model_ft7<-glm(escape9 ~ climate1 + climate2 + FWI_veg + slope_ha_bc_3005 + dem_ha_bc + dist_roads_m + dist_infrastructure_m + win_spg, family = binomial, data = escape_frt7) # 1432
-
-model_ft7<-glm(escape9 ~ climate1 + climate2 + FWI_veg + slope_ha_bc_3005 + dem_ha_bc + log_road + log_infr + win_spg, family = binomial, data = escape_frt7)
-
-AIC(model_ft7) #1431.374
-Anova(model_ft7, type=3) 
-
-#remove win_spg
-model_ft7b<-glm(escape9 ~ climate1 + climate2 + FWI_veg + slope_ha_bc_3005 + dem_ha_bc + log_road + log_infr, family = binomial, data = escape_frt7)
-
-AIC(model_ft7b) #1430.679
-Anova(model_ft7b, type=3) 
-
-#remove log_road
-model_ft7c<-glm(escape9 ~ climate1 + climate2 + FWI_veg + slope_ha_bc_3005 + dem_ha_bc + log_infr, family = binomial, data = escape_frt7)
-
-AIC(model_ft7c) #1428.779
+model_ft7c<-glm(escape ~ climate1 + fwveg + s___300 + dm_h_bc + aspect_cardinal + log_infr + win_spg, family = binomial, data = escape_frt7) #1222
+AIC(model_ft7c)
 Anova(model_ft7c, type=3) 
 
-# remove slope
-model_ft7d<-glm(escape9 ~ climate1 + climate2 + FWI_veg + dem_ha_bc + log_infr, family = binomial, data = escape_frt7)
+#toss out slope
+model_ft7<-glm(escape ~ climate1 + fwveg + dm_h_bc + aspect_cardinal + log_infr + win_spg, family = binomial, data = escape_frt7)
+Anova(model_ft7, type=3) 
 
-AIC(model_ft7d) #1427.393
-Anova(model_ft7d, type=3) 
+#toss out win spg
+model_ft7<-glm(escape ~ climate1 + fwveg + dm_h_bc + aspect_cardinal + log_infr, family = binomial, data = escape_frt7)
+Anova(model_ft7, type=3) 
 
-#remove elevation
-model_ft7e<-glm(escape9 ~ climate1 + climate2 + FWI_veg + log_infr, family = binomial, data = escape_frt7)
+#toss out log_infr
+model_ft7<-glm(escape ~ climate1 + fwveg + dm_h_bc + aspect_cardinal, family = binomial, data = escape_frt7)
+Anova(model_ft7, type=3) 
 
-AIC(model_ft7e) #1426.907
-Anova(model_ft7e, type=3) 
+#toss out elevation
+model_ft7<-glm(escape ~ climate1 + fwveg + aspect_cardinal, family = binomial, data = escape_frt7)
+#1227
+Anova(model_ft7, type=3) 
 
-# remove infra
-model_ft7f<-glm(escape9 ~ climate1 + climate2 + FWI_veg, family = binomial, data = escape_frt7)
-
-AIC(model_ft7f) #1427.029
-Anova(model_ft7f, type=3) 
-
-# remove infra
-model_ft7f<-glm(escape9 ~ climate2 + FWI_veg, family = binomial, data = escape_frt7)
-
-AIC(model_ft7f) #1427.029
-Anova(model_ft7f, type=3) 
+#toss out aspect
+model_ft7<-glm(escape ~ climate1 + fwveg, family = binomial, data = escape_frt7) #1228
+Anova(model_ft7, type=3) 
 
 
 #######################
 ### TOP MODEL
 #######################
-model_ft7e<-glm(escape9 ~ climate2 + FWI_veg, family = binomial, data = escape_frt7)
+model_ft7e<-glm(escape ~ climate1 + fwveg, family = binomial, data = escape_frt7)
 hist(escape_frt7$climate1)
-hist(escape_frt7$climate2)
 
-ggplot(escape_frt7, aes(x=as.character(escape9), y=climate1)) +
+ggplot(escape_frt7, aes(x=as.character(escape), y=climate1)) +
   geom_boxplot() 
-ggplot(escape_frt7, aes(x=as.character(escape9), y=climate2)) +
-  geom_boxplot()
 
 table(is.na(escape_frt7$climate1))
-table(is.na(escape_frt7$escape9))
 ```
 
 
 
 ```{r}
-model_ft7g<-glm(escape9 ~ climate2 + FWI_veg, family = binomial, data = escape_frt7)
+model_ft7g<-glm(escape ~ climate1 + fwveg, family = binomial, data = escape_frt7)
 
 # model diagnostic plots
 binnedplot (fitted(model_ft7g), 
             residuals(model_ft7g), 
             nclass = NULL)
-
-escape_frt7<- escape_frt7 %>% drop_na(escape9)
-
-
-escape_frt7$resids<-resid(model_ft7g)
-
-
-binnedplot (escape_frt7$climate1, 
-            escape_frt7$resids,  
-            nclass = NULL)
-
-# Diagnostic plots look good
 
 #Partial Residuals
 
@@ -532,22 +490,27 @@ visreg(model_ft7g)
 We should repeat the above several times and take the mean of the coefficients.
 
 ```{r}
-summary(model_ft7g)
 
 #change order of vegetation factors as there are not many C1 observations
-escape_frt7$FWI_veg <- factor(escape_frt7$FWI_veg, levels=c("C-2","C-1","C-3","D-1/2", "M-1/2", "N", "O-1a/b"))
+escape_frt7$fwveg <- factor(escape_frt7$fwveg, levels=c("D-1/2", "C-1", "C-2","C-3","M-1/2", "N", "O-1a/b"))
+
+model_ft7g<-glm(escape ~ climate1 + fwveg, family = binomial, data = escape_frt7)
+summary(model_ft7g)
+
+
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT7_ALL <- data.frame (matrix (ncol = 11, nrow = 0))
+top_mod_table_FRT7_ALL <- data.frame (matrix (ncol = 10, nrow = 0))
 colnames (top_mod_table_FRT7_ALL ) <- c ("FRT", "Model_terms", "intercept",
-                                         "coef_climate_2",
-                                         "coef_FWI_veg_C-1",
-                                         "coef_FWI_veg_C-3",
-                                         "coef_FWI_veg_D-1/2",
-                                         "coef_FWI_veg_M-1/2",
-                                         "coef_FWI_veg_N",
-                                         "coef_FWI_veg_O-1a/b",
+                                         "coef_climate_1",
+                                         "coef_fwveg_C-1",
+                                         "coef_fwveg_C-2",
+                                         "coef_fwveg_C-3",
+                                         "coef_fwveg_M-1/2",
+                                         "coef_fwveg_O-1a/b",
                                          "AUC")
+
+escape_frt7<-as.data.frame(escape_frt7)
 ```
 
 Let's run it 100 times to get good mean values.
@@ -568,27 +531,26 @@ prop<-0.75
    Valid <- escape_frt7[-trainIndex,]
    
 #Model   
-model.FRT7<-glm(escape9 ~ climate2 + FWI_veg, family = binomial, data = dat1) 
+model.FRT7<-glm(escape ~ climate1 + fwveg, family = binomial, data = dat1) 
 
 mod.valid <- predict.glm(model.FRT7, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"escape9"], mod.valid, quiet=TRUE)
+   roc_obj <- roc(Valid[,"escape"], mod.valid, quiet=TRUE)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT5 <- data.frame (matrix (ncol = 11, nrow = 0))
+top_mod_table_FRT5 <- data.frame (matrix (ncol = 10, nrow = 0))
 colnames (top_mod_table_FRT5 ) <- c ("FRT", "Model_terms", "intercept",
-                                         "coef_climate_2",
-                                         "coef_FWI_veg_C-1",
-                                         "coef_FWI_veg_C-3",
-                                         "coef_FWI_veg_D-1/2",
-                                         "coef_FWI_veg_M-1/2",
-                                         "coef_FWI_veg_N",
-                                         "coef_FWI_veg_O-1a/b",
+                                         "coef_climate_1",
+                                         "coef_fwveg_C-1",
+                                         "coef_fwveg_C-2",
+                                         "coef_fwveg_C-3",
+                                         "coef_fwveg_M-1/2",
+                                         "coef_fwveg_O-1a/b",
                                          "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT5[1,1]<-"7"
-top_mod_table_FRT5[1,2]<-"escape ~ climate2 + FWI_veg" 
+top_mod_table_FRT5[1,2]<-"escape ~ climate1 + fwveg" 
 top_mod_table_FRT5[1,3]<- coef(model.FRT7)[1] #Intercept
 top_mod_table_FRT5[1,4]<- coef(model.FRT7)[2] #
 top_mod_table_FRT5[1,5]<- coef(model.FRT7)[3] 
@@ -596,8 +558,7 @@ top_mod_table_FRT5[1,6]<- coef(model.FRT7)[4] #Intercept
 top_mod_table_FRT5[1,7]<- coef(model.FRT7)[5] #
 top_mod_table_FRT5[1,8]<- coef(model.FRT7)[6] 
 top_mod_table_FRT5[1,9]<- coef(model.FRT7)[7] #Intercept
-top_mod_table_FRT5[1,10]<- coef(model.FRT7)[8] 
-top_mod_table_FRT5[1,11]<- mod.auc
+top_mod_table_FRT5[1,10]<- mod.auc
 
 top_mod_table_FRT7_ALL<-rbind(top_mod_table_FRT7_ALL, top_mod_table_FRT5)
 
@@ -621,8 +582,8 @@ stderror <- function(x) sd(x)/sqrt(length(x))
 summary_top_mod_table_FRT7_ALL<- top_mod_table_FRT7_ALL %>% summarize_if(is.numeric,mean)
 
 summary_top_mod_table_FRT7_ALL$FRT<-7
-summary_top_mod_table_FRT7_ALL$Model_terms<-"escape16 ~ climate2 + FWI_veg" 
-summary_top_mod_table_FRT7_ALL$Model_Intercept<-"C-2" 
+summary_top_mod_table_FRT7_ALL$Model_terms<-"escape ~ climate1 + fwveg" 
+summary_top_mod_table_FRT7_ALL$Model_Intercept<-"D-1/2" 
 
 ```
 
@@ -632,290 +593,96 @@ Save table.
 write.csv(summary_top_mod_table_FRT7_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT7_escape.csv")
 ```
 
-
-<!-- #### FRT 9 -->
-<!-- ```{r} -->
-<!-- escape_frt9<- escape2 %>% filter(Cluster==9) -->
-<!-- table(escape_frt9$FWI_veg) -->
-<!-- escape_frt9$FWI_veg[escape_frt9$FWI_veg=="C-1"]<-"C-2" -->
-<!-- escape_frt9$FWI_veg[escape_frt9$FWI_veg=="D-1/2"]<-"C-7" -->
-<!-- escape_frt9$veg_escape<-paste(escape_frt9$fire, escape_frt9$FWI_veg) -->
-
-<!-- table(is.na(escape_frt9$climate1)) -->
-<!-- table(is.na(escape_frt9$dem_ha_bc)) -->
-<!-- table(is.na(escape_frt9$FWI_veg)) -->
-<!-- table(is.na(escape_frt9$dist_roads_m)) -->
-<!-- table(is.na(escape_frt9$slope_ha_bc_3005)) -->
-
-<!-- cor.test(escape_frt9$dist_roads_m, escape_frt9$dist_infrastructure_m) # these are correlated so just include 1 -->
-<!-- cor.test(escape_frt9$climate1, escape_frt9$dem_ha_bc) # these are correlated! -->
-<!-- cor.test(escape_frt9$dem_ha_bc, escape_frt9$slope_ha_bc_3005) -->
-<!-- cor.test(escape_frt9$win_sum, escape_frt9$win_spg) # very correlated -->
-
-<!-- escape_frt9$log_road<-log(escape_frt9$dist_roads_m+1) -->
-<!-- escape_frt9$log_infr<- log(escape_frt9$dist_infrastructure_m+1) -->
-
-<!-- #Run model using dat1 -->
-<!-- model_ft9<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + win_sum + log_road, family = binomial, data = escape_frt9) -->
-
-<!-- AIC(model_ft9)  #153.3184 -->
-<!-- Anova(model_ft9, type=3) -->
-
-<!-- model_ft9b<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + log_road, family = binomial, data = escape_frt9) -->
-
-<!-- AIC(model_ft9b) #151.3221 -->
-<!-- Anova(model_ft9b, type=3) -->
-
-
-<!-- model_ft9c<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 + log_road, family = binomial, data = escape_frt9) -->
-
-<!-- AIC(model_ft9c) #149.366 -->
-<!-- Anova(model_ft9c, type=3) -->
-
-<!-- model_ft9d<-glm(escape9 ~ climate1  + slope_ha_bc_3005 + log_road, family = binomial, data = escape_frt9) -->
-
-<!-- AIC(model_ft9d) #143.891 -->
-<!-- Anova(model_ft9d, type=3) -->
-
-<!-- model_ft9e<-glm(escape9 ~ climate1 + log_road, family = binomial, data = escape_frt9) -->
-
-<!-- AIC(model_ft9e) #143.0078 -->
-<!-- Anova(model_ft9e, type=3) -->
-
-<!-- # model diagnostic plots -->
-<!-- binnedplot (fitted(model_ft9e),  -->
-<!--             residuals(model_ft9e),  -->
-<!--             nclass = NULL,  -->
-<!--             xlab = "Expected Values",  -->
-<!--             ylab = "Average residual") -->
-
-
-<!-- escape_frt9$resids<-resid(model_ft9e) -->
-
-
-<!-- binnedplot (escape_frt9$climate1,  -->
-<!--             escape_frt9$resids,   -->
-<!--             nclass = NULL) -->
-
-<!-- binnedplot (escape_frt9$log_road,  -->
-<!--             escape_frt9$resids,   -->
-<!--             nclass = NULL) -->
-
-<!-- # Diagnostic plots look good -->
-
-<!-- #Partial Residuals -->
-
-<!-- visreg(model_ft9e) -->
-
-<!-- ``` -->
-
-<!-- We should repeat the above several times and take the mean of the coefficients. -->
-
-<!-- ```{r} -->
-<!-- summary(model_ft9e) -->
-
-<!-- #Create a new blank table and get AUC too -->
-<!-- top_mod_table_FRT9_ALL <- data.frame (matrix (ncol = 6, nrow = 0)) -->
-<!-- colnames (top_mod_table_FRT9_ALL ) <- c ("FRT", "Model_terms", "intercept", -->
-<!--                                          "coef_climate_1", -->
-<!--                                          "coef_log_rd_dst", -->
-<!--                                          "AUC") -->
-<!-- ``` -->
-
-<!-- Let's run it 100 times to get good mean values. -->
-
-<!-- ```{r} -->
-
-<!-- for (g in 1:100){ -->
-
-<!--   print(g) -->
-
-<!-- prop<-0.75 -->
-<!-- # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG -->
-<!--   trainIndex <- createDataPartition(escape_frt9$veg_escape, p = prop, -->
-<!--                                     list = FALSE, -->
-<!--                                     times = 1) -->
-
-<!--    dat1 <- escape_frt9[ trainIndex,] -->
-<!--    Valid <- escape_frt9[-trainIndex,] -->
-
-<!-- #Model    -->
-<!-- model.FRT9<-glm(escape9 ~ climate1 + log_road, family = binomial, data = dat1)  -->
-
-<!-- mod.valid <- predict.glm(model.FRT9, newdata=Valid, type="response") -->
-<!--    roc_obj <- roc(Valid[,"escape9"], mod.valid, quiet=TRUE) -->
-<!--    mod.auc <- auc(roc_obj) -->
-
-<!-- # create model table (only do this once) and add the relevant data -->
-<!-- top_mod_table_FRT9 <- data.frame (matrix (ncol = 6, nrow = 0)) -->
-<!-- colnames (top_mod_table_FRT9 ) <- c ("FRT", "Model_terms", "intercept", -->
-<!--                                          "coef_climate_1", -->
-<!--                                          "coef_log_rd_dst", -->
-<!--                                          "AUC") -->
-
-<!-- ##Add data for NDT1 -->
-<!-- top_mod_table_FRT9[1,1]<-"9" -->
-<!-- top_mod_table_FRT9[1,2]<-"escape ~ climate1 + log_rd_dst"  -->
-<!-- top_mod_table_FRT9[1,3]<- coef(model.FRT9)[1] #Intercept -->
-<!-- top_mod_table_FRT9[1,4]<- coef(model.FRT9)[2] # -->
-<!-- top_mod_table_FRT9[1,5]<- coef(model.FRT9)[3] # -->
-<!-- top_mod_table_FRT9[1,6]<- mod.auc -->
-
-<!-- top_mod_table_FRT9_ALL<-rbind(top_mod_table_FRT9_ALL, top_mod_table_FRT9) -->
-
-<!-- } -->
-
-<!-- ``` -->
-
-<!-- Check. -->
-<!-- ```{r} -->
-<!-- head(top_mod_table_FRT9_ALL) -->
-
-<!-- ``` -->
-
-<!-- Get mean values. -->
-
-<!-- ```{r} -->
-<!-- names(top_mod_table_FRT9_ALL) -->
-<!-- str(top_mod_table_FRT9_ALL) -->
-<!-- stderror <- function(x) sd(x)/sqrt(length(x)) -->
-
-<!-- summary_top_mod_table_FRT9_ALL<- top_mod_table_FRT9_ALL %>% summarize_if(is.numeric,mean) -->
-
-<!-- summary_top_mod_table_FRT9_ALL$FRT<-9 -->
-<!-- summary_top_mod_table_FRT9_ALL$Model_terms<-"escape ~ climate1 + log_rd_dst"  -->
-
-<!-- ``` -->
-
-<!-- Save table. -->
-
-<!-- ```{r} -->
-<!-- write.csv(summary_top_mod_table_FRT9_ALL, file="D:\\Fire\\fire_data\\raw_data\\top_mod_table_FRT9_escape.csv") -->
-<!-- ``` -->
+# note FRT 9 was joined with FRT 11 because of lack of data for both locations and because they are next to one another in the north.
 
 
 #### FRT 10
 ```{r}
-# top models fro FRT 9:
-#climate1 + climate2 + FWI_veg
-# slope_ha_bc_3005 + dem_ha_bc + slope_ha_bc_3005:dem_ha_bc
-# rd_dst_
-# wind_atfire
-
-escape_frt10<- escape2 %>% filter(Cluster==10)
-table(escape_frt10$FWI_veg, escape_frt10$escape9)
-escape_frt10$FWI_veg[escape_frt10$FWI_veg=="S-1"]<-"M-1/2"
-escape_frt10$FWI_veg[escape_frt10$FWI_veg=="S-2"]<-"M-1/2"
-escape_frt10$FWI_veg[escape_frt10$FWI_veg=="O-1a/b"]<-"M-3"
-escape_frt10$veg_escape<-paste(escape_frt10$fire, escape_frt10$FWI_veg)
+escape_frt10<- escape2 %>% filter(frt==10)
+table(escape_frt10$fwveg, escape_frt10$escape)
+escape_frt10$fwveg[escape_frt10$fwveg=="S-1"]<-"M-1/2"
+escape_frt10$veg_escape<-paste(escape_frt10$escape, escape_frt10$fwveg)
 
 table(is.na(escape_frt10$climate1))
-table(is.na(escape_frt10$dem_ha_bc))
-table(is.na(escape_frt10$FWI_veg))
+table(is.na(escape_frt10$dm_h_bc))
+table(is.na(escape_frt10$fwveg))
 table(is.na(escape_frt10$win_sum))
-table(is.na(escape_frt10$dist_roads_m))
-table(is.na(escape_frt10$slope_ha_bc_3005))
+table(is.na(escape_frt10$road_dist_m))
+table(is.na(escape_frt10$s___300))
 #table(is.na(escape_frt10$fire_cs))
-table(is.na(escape_frt10$escape9))
+table(is.na(escape_frt10$escape))
 
-cor.test(escape_frt10$dist_roads_m, escape_frt10$dist_infrastructure_m)
-cor.test(escape_frt10$climate1, escape_frt10$slope_ha_bc_3005)
-cor.test(escape_frt10$climate1, escape_frt10$dem_ha_bc)
+cor.test(escape_frt10$road_dist_m, escape_frt10$dist_infrastructure_m)
+cor.test(escape_frt10$climate1, escape_frt10$s___300)
+cor.test(escape_frt10$climate1, escape_frt10$dm_h_bc)
 
-escape_frt10$FWI_veg <- factor(escape_frt10$FWI_veg, levels=c("C-3","C-2","C-5", "C-7","D-1/2", "M-1/2", "M-3", "N"))
+
+escape_frt10$log_infra<-log(escape_frt10$dist_infrastructure_m+1)
+
+escape_frt10$fwveg <- factor(escape_frt10$fwveg, levels=c("C-3","C-2","C-5", "C-7","D-1/2", "M-1/2", "M-3", "N"))
 
 #Run model using dat1
-model_ft10<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + dist_roads_m + dist_infrastructure_m + win_sum, family = binomial, data = escape_frt10) # 726.5
+model_ft10<-glm(escape ~ climate1 + fwveg  + s___300 + dm_h_bc +aspect_cardinal + road_dist_m + dist_infrastructure_m + win_sum, family = binomial, data = escape_frt10) # 602.9
 
-model_ft10<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + log(dist_roads_m+1) + dist_infrastructure_m + win_sum, family = binomial, data = escape_frt10) # 730.3
+model_ft10<-glm(escape ~ climate1 + fwveg  + s___300 + dm_h_bc  +aspect_cardinal + log(road_dist_m+1) + dist_infrastructure_m + win_sum, family = binomial, data = escape_frt10) # 602.9
 
-model_ft10<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + dist_roads_m + log(dist_infrastructure_m+1) + win_sum, family = binomial, data = escape_frt10) # 724.7
+model_ft10<-glm(escape ~ climate1 + fwveg  + s___300 + dm_h_bc + aspect_cardinal + road_dist_m + log(dist_infrastructure_m+1) + win_sum, family = binomial, data = escape_frt10) # 605
 
-model_ft10<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + log(dist_roads_m+1) + log(dist_infrastructure_m+1) + win_sum, family = binomial, data = escape_frt10) # 729.3
+model_ft10<-glm(escape ~ climate1 + fwveg  + s___300 + dm_h_bc +aspect_cardinal + log(road_dist_m+1) + log(dist_infrastructure_m+1) + win_sum, family = binomial, data = escape_frt10) # 603
 
 
-model_ft10<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + dist_roads_m + log(dist_infrastructure_m+1) + win_sum, family = binomial, data = escape_frt10) # 724.7146
-
-AIC(model_ft10) #724.7146
+model_ft10<-glm(escape ~ climate1 + fwveg  + s___300 + dm_h_bc  +aspect_cardinal + road_dist_m + log(dist_infrastructure_m+1) + win_sum, family = binomial, data = escape_frt10) # 601
 Anova(model_ft10, type=3) 
 
 #Remove least significant interaction
-model_ft10b<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + dist_roads_m + log(dist_infrastructure_m+1), family = binomial, data = escape_frt10) 
-visreg(model_ft10b)
+model_ft10<-glm(escape ~ climate1 + fwveg  + s___300 + dm_h_bc +aspect_cardinal + road_dist_m + log(dist_infrastructure_m+1) + win_sum, family = binomial, data = escape_frt10) # 724.7146
+Anova(model_ft10, type=3) 
 
-AIC(model_ft10b) #722.7832
-Anova(model_ft10b, type=3) 
+model_ft10<-glm(escape ~ climate1 + fwveg  + s___300 + dm_h_bc + road_dist_m + log(dist_infrastructure_m+1) + win_sum, family = binomial, data = escape_frt10) # 724.7146
+Anova(model_ft10, type=3) 
 
-#Remove least term ~ FWI_veg
-model_ft10c<-glm(escape9 ~ climate1  + slope_ha_bc_3005 + dem_ha_bc + dist_roads_m + log(dist_infrastructure_m+1), family = binomial, data = escape_frt10) 
+model_ft10<-glm(escape ~ climate1 + fwveg  + s___300 + road_dist_m + log(dist_infrastructure_m+1) + win_sum, family = binomial, data = escape_frt10) # 724.7146
+Anova(model_ft10, type=3) 
 
-AIC(model_ft10c) #710.8893
-Anova(model_ft10c, type=3) 
+model_ft10<-glm(escape ~ climate1 + fwveg  + s___300 + road_dist_m + log(dist_infrastructure_m+1), family = binomial, data = escape_frt10) # 724.7146
+Anova(model_ft10, type=3) 
 
-#Remove least term ~ slope
-model_ft10d<-glm(escape9 ~ climate1 + dem_ha_bc + dist_roads_m + log(dist_infrastructure_m+1), family = binomial, data = escape_frt10) 
+model_ft10<-glm(escape ~ climate1  + s___300 + road_dist_m + log(dist_infrastructure_m+1), family = binomial, data = escape_frt10) # 724.7146
+Anova(model_ft10, type=3) 
 
-AIC(model_ft10d) #712.6573
-Anova(model_ft10d, type=3) 
+model_ft10<-glm(escape ~ climate1  + s___300 + log_infra, family = binomial, data = escape_frt10) # 724.7146
+Anova(model_ft10, type=3) 
+
+visreg(model_ft10)
+
 
 #######################
 ### TOP MODEL
 #######################
-#Remove least term ~ slope_ha_bc_3005
+#Remove least term ~ s___300
 
-escape_frt10$log_infr<-log(escape_frt10$dist_infrastructure_m+1)
-model_ft10d<-glm(escape9 ~ climate1  + dem_ha_bc + dist_roads_m + log_infr, family = binomial, data = escape_frt10)
+model_ft10<-glm(escape ~ climate1  + s___300 + log_infra, family = binomial, data = escape_frt10) # 724.7146
 
 hist(escape_frt10$climate1)
-hist(escape_frt10$slope_ha_bc_3005)
-hist(escape_frt10$dist_roads_m)
-hist(escape_frt10$log_infr)
+hist(escape_frt10$s___300)
+hist(escape_frt10$log_infra)
 
-escape_frt10<- escape_frt10 %>% drop_na(escape9)
-ggplot(escape_frt10, aes(x=as.character(escape9), y=climate1)) +
+ggplot(escape_frt10, aes(x=as.character(escape), y=climate1)) +
   geom_boxplot() 
-ggplot(escape_frt10, aes(x=as.character(escape9), y=dem_ha_bc)) +
+ggplot(escape_frt10, aes(x=as.character(escape), y=s___300)) +
   geom_boxplot()
-ggplot(escape_frt10, aes(x=as.character(escape9), y=dist_roads_m)) +
-  geom_boxplot()
-ggplot(escape_frt10, aes(x=as.character(escape9), y=log_infr)) +
+ggplot(escape_frt10, aes(x=as.character(escape), y=log_infra)) +
   geom_boxplot()
 
 
-table(escape_frt10$escape9) #0 = 475 and 1 = 171 not bad actually.
+table(escape_frt10$escape) #0 = 475 and 1 = 171 not bad actually.
 
 # model diagnostic plots
-binnedplot (fitted(model_ft10d), 
-            residuals(model_ft10d), 
+binnedplot (fitted(model_ft10), 
+            residuals(model_ft10), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual")
-
-escape_frt10 <- escape_frt10 %>% drop_na(escape9)
-
-escape_frt10$resids<-resid(model_ft10d)
-
-binnedplot (escape_frt10$climate1, 
-            escape_frt10$resids,  
-            nclass = NULL)
-
-binnedplot (escape_frt10$slope_ha_bc_3005, 
-            escape_frt10$resids,  
-            nclass = NULL)
-
-binnedplot (escape_frt10$log_infr, 
-            escape_frt10$resids,  
-            nclass = NULL)
-
-binnedplot (escape_frt10$dist_roads_m, 
-            escape_frt10$resids,  
-            nclass = NULL)
-
-# Diagnostic plots look good
-
-#Partial Residuals
-
-visreg(model_ft10d)
 
 
 ```
@@ -923,16 +690,17 @@ visreg(model_ft10d)
 We should repeat the above several times and take the mean of the coefficients.
 
 ```{r}
-summary(model_ft10d)
+summary(model_ft10)
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT10_ALL <- data.frame (matrix (ncol = 8, nrow = 0))
+top_mod_table_FRT10_ALL <- data.frame (matrix (ncol = 7, nrow = 0))
 colnames (top_mod_table_FRT10_ALL ) <- c ("FRT", "Model_terms", "intercept",
                                           "coef_climate_1",
-                                         "coef_elevation",
-                                         "coef_road_dist",
-                                         "coef_log_infr_dist",
+                                         "coef_slope",
+                                         "coef_log_infr",
                                          "AUC")
+
+escape_frt10<-as.data.frame(escape_frt10)
 ```
 
 Let's run it 100 times to get good mean values.
@@ -945,7 +713,7 @@ for (g in 1:100){
 
 prop<-0.75
 # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(escape_frt10$escape9, p = prop,
+  trainIndex <- createDataPartition(escape_frt10$escape, p = prop,
                                     list = FALSE,
                                     times = 1)
   
@@ -953,32 +721,29 @@ prop<-0.75
    Valid <- escape_frt10[-trainIndex,]
    
 #Model   
-model.FRT10<-glm(escape9 ~ climate1  + dem_ha_bc + dist_roads_m + log_infr, family = binomial, data = dat1)
+model.FRT10<-glm(escape ~ climate1  + s___300 + log_infra, family = binomial, data = dat1)
 
 mod.valid <- predict.glm(model.FRT10, newdata=Valid, type="response")
    
-roc_obj <- roc(Valid[,"escape9"], mod.valid, quiet=TRUE)
+roc_obj <- roc(Valid[,"escape"], mod.valid, quiet=TRUE)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT10 <- data.frame (matrix (ncol = 8, nrow = 0))
+top_mod_table_FRT10 <- data.frame (matrix (ncol = 7, nrow = 0))
 colnames (top_mod_table_FRT10 ) <- c ("FRT", "Model_terms", "intercept",
                                           "coef_climate_1",
-                                         "coef_elevation",
-                                         "coef_road_dist",
-                                         "coef_log_infr_dist",
+                                         "coef_slope",
+                                         "coef_log_infr",
                                          "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT10[1,1]<-"10"
-top_mod_table_FRT10[1,2]<-"escape ~ climate1 + elevation  + dist_roads + log_infra_dist" 
+top_mod_table_FRT10[1,2]<-"escape ~ climate1 + slope  + log_infra" 
 top_mod_table_FRT10[1,3]<- coef(model.FRT10)[1] 
 top_mod_table_FRT10[1,4]<- coef(model.FRT10)[2] 
 top_mod_table_FRT10[1,5]<- coef(model.FRT10)[3] 
 top_mod_table_FRT10[1,6]<- coef(model.FRT10)[4] 
-top_mod_table_FRT10[1,7]<- coef(model.FRT10)[5] 
-
-top_mod_table_FRT10[1,8]<- mod.auc
+top_mod_table_FRT10[1,7]<- mod.auc
 
 top_mod_table_FRT10_ALL<-rbind(top_mod_table_FRT10_ALL, top_mod_table_FRT10)
 
@@ -1002,7 +767,7 @@ stderror <- function(x) sd(x)/sqrt(length(x))
 summary_top_mod_table_FRT10_ALL<- top_mod_table_FRT10_ALL %>% summarize_if(is.numeric,mean)
 
 summary_top_mod_table_FRT10_ALL$FRT<-10
-summary_top_mod_table_FRT10_ALL$Model_terms<-"escape16 ~ climate1 + elevation  + dist_roads + log_infra_dist" 
+summary_top_mod_table_FRT10_ALL$Model_terms<-"escape ~ climate1 + slope + log_infra" 
 
 ```
 
@@ -1015,91 +780,107 @@ write.csv(summary_top_mod_table_FRT10_ALL, file="D:\\Fire\\fire_data\\raw_data\\
 #### FRT 11
 
 ```{r}
-# top models fro FRT 11:
-#climate1 + climate2 + FWI_veg
-# slope_ha_bc_3005 + dem_ha_bc + slope_ha_bc_3005:dem_ha_bc
-# rd_dst_
-# wind_atfire
+escape_frt11<- escape2 %>% filter(frt==11)
+ggplot(escape_frt11, aes(ig_mnth, fill = as.factor(escape))) +
+  geom_histogram()
 
-escape_frt11<- escape2 %>% filter(Cluster==11)
-table(escape_frt11$FWI_veg)
-escape_frt11$veg_escape<-paste(escape_frt11$fire, escape_frt11$FWI_veg)
+ggplot(escape_frt11, aes(x=as.factor(escape), y=Tave05)) +
+  geom_boxplot()
 
-table(escape_frt11$FWI_veg, escape_frt11$escape9)
+ggplot(escape_frt11, aes(x=as.factor(escape), y=PPT05)) +
+  geom_boxplot()
 
-escape_frt11$FWI_veg <- factor(escape_frt11$FWI_veg, levels=c("C-3", "C-1", "C-2","C-5", "C-7","D-1/2", "M-1/2", "N"))
+table(escape_frt11$escape,escape_frt11$fwveg)
+escape_frt11[fwveg=="S-1", fwveg:="M-1/2"]
+escape_frt11<-escape_frt11[!fwveg %in% c("W", "N"),]
+escape_frt11$veg_escape<-paste(escape_frt11$escape, escape_frt11$fwveg)
+
+table(escape_frt11$fwveg, escape_frt11$escape)
+
+escape_frt11$fwveg <- factor(escape_frt11$fwveg, levels=c("C-3", "C-1", "C-2","C-5", "C-7","D-1/2", "M-1/2", "O-1a/b"))
 
 table(is.na(escape_frt11$climate1))
-table(is.na(escape_frt11$dem_ha_bc))
-table(is.na(escape_frt11$FWI_veg))
+table(is.na(escape_frt11$dm_h_bc))
+table(is.na(escape_frt11$fwveg))
 table(is.na(escape_frt11$win_sum))
-table(is.na(escape_frt11$dist_roads_m))
-table(is.na(escape_frt11$slope_ha_bc_3005))
+table(is.na(escape_frt11$road_dist_m))
+table(is.na(escape_frt11$s___300))
 
-escape_frt11$log_road<-log(escape_frt11$dist_roads_m+1)
+escape_frt11$log_road<-log(escape_frt11$road_dist_m+1)
 escape_frt11$log_infr<- log(escape_frt11$dist_infrastructure_m+1)
 
-cor.test(escape_frt11$dist_roads_m, escape_frt11$dist_infrastructure_m) # correlated 0.72
-cor.test(escape_frt11$log_road, escape_frt11$log_infr)
-cor.test(escape_frt11$climate1, escape_frt11$dem_ha_bc) # elevation and climate are correlated -0.89
-cor.test(escape_frt11$dem_ha_bc, escape_frt11$slope_ha_bc_3005)
-cor.test(escape_frt11$dem_ha_bc, escape_frt11$win_sum)
+cor.test(escape_frt11$road_dist_m, escape_frt11$dist_infrastructure_m) # correlated 0.72
+cor.test(escape_frt11$climate1, escape_frt11$dm_h_bc) # elevation and climate are correlated -0.89
+cor.test(escape_frt11$climate2, escape_frt11$dm_h_bc)
+cor.test(escape_frt11$dm_h_bc, escape_frt11$s___300)
+cor.test(escape_frt11$dm_h_bc, escape_frt11$win_sum)
+
+ggplot(escape_frt11, aes(x=as.factor(escape), y=road_dist_m)) +
+  geom_boxplot()
+
+ggplot(escape_frt11, aes(x=as.factor(escape), y=dist_infrastructure_m)) +
+  geom_boxplot()
+
+ggplot(escape_frt11, aes(x=as.factor(escape), y=log(dist_infrastructure_m+1))) +
+  geom_boxplot()
+
+hist(escape_frt11$dist_infrastructure_m)
+hist(log(escape_frt11$dist_infrastructure_m+1))
+
+# there is one rainfall value that is way bigger tan the others and Im worried its driving the patterns so Ill remove it
+escape_frt11<-escape_frt11[climate2<150,]
 
 
 #Run model using dat1 checking if log road or log infrastructure is better
-model_ft11<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + dist_roads_m +dist_infrastructure_m + win_sum, family = binomial, data = escape_frt11)
-AIC(model_ft11)
+model_ft11<-glm(escape ~ climate1 +climate2 + fwveg  + s___300 + aspect_cardinal + road_dist_m +dist_infrastructure_m + win_sum, family = binomial, data = escape_frt11)
+AIC(model_ft11) # 431
 
-model_ft11<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc +dist_infrastructure_m + win_sum, family = binomial, data = escape_frt11)
-AIC(model_ft11)
+model_ft11<-glm(escape ~ climate1+climate2 + fwveg  + s___300 + aspect_cardinal + road_dist_m + win_sum, family = binomial, data = escape_frt11) # 442
 
-model_ft11<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + dist_roads_m + win_sum, family = binomial, data = escape_frt11)
-AIC(model_ft11)
+model_ft11<-glm(escape ~ climate1+climate2 + fwveg  + s___300 + aspect_cardinal + dist_infrastructure_m + win_sum, family = binomial, data = escape_frt11) # 429
 
-model_ft11<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc +log_infr + win_sum, family = binomial, data = escape_frt11)
-AIC(model_ft11)
-
-# log infra is a little better than roads
-
-model_ft11<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc +dist_infrastructure_m + win_sum, family = binomial, data = escape_frt11)
-AIC(model_ft11)
+model_ft11<-glm(escape ~ climate1+climate2 + fwveg  + s___300 + aspect_cardinal + log(dist_infrastructure_m+1) + win_sum, family = binomial, data = escape_frt11) # 427
 Anova(model_ft11, type=3)
 
-model_ft11b<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc +dist_infrastructure_m, family = binomial, data = escape_frt11)
-AIC(model_ft11b)
+# drop win_sum
+model_ft11<-glm(escape ~ climate1 + climate2 + fwveg  + s___300 + aspect_cardinal + log(dist_infrastructure_m+1), family = binomial, data = escape_frt11) # 426
+Anova(model_ft11, type=3)
+
+# remove aspect
+model_ft11a<-glm(escape ~ climate1 + climate2 + fwveg +  s___300 + log(dist_infrastructure_m+1), family = binomial, data = escape_frt11)  # 427
+Anova(model_ft11a, type=3)
+
+# drop fwveg
+model_ft11b<-glm(escape ~ climate1 + climate2 +  s___300 + log(dist_infrastructure_m+1), family = binomial, data = escape_frt11)  # 421
+anova(model_ft11a, model_ft11b, test="Chisq")
 Anova(model_ft11b, type=3)
+visreg(model_ft11b)
+setorder(escape_frt11, cols = - "climate2")   
 
-model_ft11c<-glm(escape9 ~ climate1 + FWI_veg  + slope_ha_bc_3005 +dist_infrastructure_m, family = binomial, data = escape_frt11)
-AIC(model_ft11c)
-Anova(model_ft11c, type=3)
+model_ft11<-glm(escape ~ climate1 + climate2  + s___300 + log(dist_infrastructure_m+1), family = binomial, data = escape_frt11) # 818
+Anova(model_ft11, type=3)
 
-model_ft11d<-glm(escape9 ~ climate1 + FWI_veg + dist_infrastructure_m, family = binomial, data = escape_frt11)
-AIC(model_ft11d)
-Anova(model_ft11d, type=3)
-
-model_ft11e<-glm(escape9 ~ climate1 + dist_infrastructure_m, family = binomial, data = escape_frt11)
-AIC(model_ft11e)
-Anova(model_ft11e, type=3)
 
 #######################
 ### TOP MODEL
 #######################
-#Remove least term ~ slope_ha_bc_3005
+#Remove least term ~ s___300
 
 hist(escape_frt11$climate1)
+hist(escape_frt11$climate2)
 hist(escape_frt11$dist_infrastructure_m)
 
-table(escape_frt11$escape9) 
+table(escape_frt11$escape) 
 
 # model diagnostic plots
-binnedplot (fitted(model_ft11e), 
-            residuals(model_ft11e), 
+binnedplot (fitted(model_ft11), 
+            residuals(model_ft11), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual")
 
-escape_frt11<- escape_frt11 %>% drop_na(escape9)
-escape_frt11$resids<-resid(model_ft11e)
+escape_frt11<- escape_frt11 %>% drop_na(escape)
+escape_frt11$resids<-resid(model_ft11)
 
 binnedplot (escape_frt11$climate1, 
             escape_frt11$resids,  
@@ -1110,24 +891,23 @@ binnedplot (escape_frt11$dist_infrastructure_m,
             nclass = NULL)
 
 # Diagnostic plots look good
-
-#Partial Residuals
-
-visreg(model_ft11e)
-
 ```
 
 We should repeat the above several times and take the mean of the coefficients.
 
 ```{r}
-summary(model_ft11e)
+summary(model_ft11)
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT11_ALL <- data.frame (matrix (ncol = 6, nrow = 0))
+top_mod_table_FRT11_ALL <- data.frame (matrix (ncol = 8, nrow = 0))
 colnames (top_mod_table_FRT11_ALL ) <- c ("FRT", "Model_terms", "intercept",
                                           "coef_climate_1",
-                                         "coef_dist_infra_m",
+                                          "coef_climate_2",
+                                          "coef_slope",
+                                         "coef_log_dist_infra",
                                          "AUC")
+
+escape_frt11<-as.data.frame(escape_frt11)
 ```
 
 Let's run it 100 times to get good mean values.
@@ -1140,7 +920,7 @@ for (g in 1:100){
 
 prop<-0.75
 # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(escape_frt11$escape9, p = prop,
+  trainIndex <- createDataPartition(escape_frt11$escape, p = prop,
                                     list = FALSE,
                                     times = 1)
   
@@ -1148,27 +928,31 @@ prop<-0.75
    Valid <- escape_frt11[-trainIndex,]
    
 #Model   
-model.FRT11<-glm(escape9 ~ climate1 + dist_infrastructure_m, family = binomial, data = dat1)
+model.FRT11<-glm(escape ~ climate1 + climate2  + s___300 + log_infr, family = binomial, data = dat1)
 
 mod.valid <- predict.glm(model.FRT11, newdata=Valid, type="response")
    
-roc_obj <- roc(Valid[,"escape9"], mod.valid, quiet=TRUE)
+roc_obj <- roc(Valid[,"escape"], mod.valid, quiet=TRUE)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT11 <- data.frame (matrix (ncol = 6, nrow = 0))
+top_mod_table_FRT11 <- data.frame (matrix (ncol = 8, nrow = 0))
 colnames (top_mod_table_FRT11 ) <- c ("FRT", "Model_terms", "intercept",
                                           "coef_climate_1",
-                                         "coef_dist_infra_m",
+                                          "coef_climate_2",
+                                          "coef_slope",
+                                         "coef_log_dist_infra",
                                          "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT11[1,1]<-"11"
-top_mod_table_FRT11[1,2]<-"escape ~ climate1 + dist_infra_m" 
+top_mod_table_FRT11[1,2]<-"escape ~ climate1 + climate2 + slope + log_dist_infra" 
 top_mod_table_FRT11[1,3]<- coef(model.FRT11)[1] #Intercept
 top_mod_table_FRT11[1,4]<- coef(model.FRT11)[2] #
 top_mod_table_FRT11[1,5]<- coef(model.FRT11)[3] #
-top_mod_table_FRT11[1,6]<- mod.auc
+top_mod_table_FRT11[1,6]<- coef(model.FRT11)[4] #
+top_mod_table_FRT11[1,7]<- coef(model.FRT11)[5] #
+top_mod_table_FRT11[1,8]<- mod.auc
 
 top_mod_table_FRT11_ALL<-rbind(top_mod_table_FRT11_ALL, top_mod_table_FRT11)
 
@@ -1192,7 +976,7 @@ stderror <- function(x) sd(x)/sqrt(length(x))
 summary_top_mod_table_FRT11_ALL<- top_mod_table_FRT11_ALL %>% summarize_if(is.numeric,mean)
 
 summary_top_mod_table_FRT11_ALL$FRT<-11
-summary_top_mod_table_FRT11_ALL$Model_terms<-"escape ~ climate1 + dist_infra_m" 
+summary_top_mod_table_FRT11_ALL$Model_terms<-"escape ~ climate1 + climate2 + slope + dist_infra_m" 
 
 ```
 
@@ -1204,108 +988,107 @@ write.csv(summary_top_mod_table_FRT11_ALL, file="D:\\Fire\\fire_data\\raw_data\\
 
 #### FRT 12
 ```{r}
-escape_frt12<- escape2 %>% filter(Cluster==12)
-table(escape2$Cluster)
+escape_frt12<- escape2 %>% filter(frt==12)
+table(escape2$frt)
 dim(escape_frt12)
-table(escape_frt12$escape9,escape_frt12$FWI_veg)
-escape_frt12$FWI_veg[escape_frt12$FWI_veg=="C-4"]<-"C-2"
-escape_frt12$FWI_veg[escape_frt12$FWI_veg=="C-1"]<-"C-3"
-escape_frt12$FWI_veg[escape_frt12$FWI_veg=="S-3"]<-"S-1"
-escape_frt12$FWI_veg[escape_frt12$FWI_veg=="M-3"]<-"O-1a/b"
-#escape_frt12$FWI_veg[escape_frt12$FWI_veg=="S-2"]<-"M-1/2"
-escape_frt12$veg_escape<-paste(escape_frt12$fire, escape_frt12$FWI_veg)
+table(escape_frt12$escape,escape_frt12$fwveg)
+escape_frt12$fwveg[escape_frt12$fwveg=="C-1"]<-"C-3"
+escape_frt12$veg_escape<-paste(escape_frt12$escape, escape_frt12$fwveg)
 
-escape_frt12$FWI_veg <- factor(escape_frt12$FWI_veg, levels=c("C-3", "C-2","C-5", "C-7","D-1/2", "M-1/2", "N", "O-1a/b", "S-1", "S-2"))
+escape_frt12$fwveg <- factor(escape_frt12$fwveg, levels=c("C-3", "C-2","C-5", "C-7","D-1/2", "M-1/2", "O-1a/b"))
+escape_frt12$log_road<-log(escape_frt12$road_dist_m+1)
+escape_frt12$log_infr<-log(escape_frt12$dist_infrastructure_m+1)
 
 table(is.na(escape_frt12$climate1))
-table(is.na(escape_frt12$dem_ha_bc))
-table(is.na(escape_frt12$FWI_veg))
+table(is.na(escape_frt12$dm_h_bc))
+table(is.na(escape_frt12$fwveg))
 table(is.na(escape_frt12$win_sum))
-table(is.na(escape_frt12$dist_roads_m))
-table(is.na(escape_frt12$slope_ha_bc_3005))
-table(is.na(escape_frt12$FIRE_CAUSE))
-table(is.na(escape_frt12$escape9))
+table(is.na(escape_frt12$road_dist_m))
+table(is.na(escape_frt12$s___300))
+table(is.na(escape_frt12$escape))
 
-cor.test(escape_frt12$dist_roads_m, escape_frt12$dist_infrastructure_m)
+cor.test(escape_frt12$road_dist_m, escape_frt12$dist_infrastructure_m)
 cor.test(escape_frt12$log_road, escape_frt12$log_infr)
 cor.test(escape_frt12$climate1, escape_frt12$climate2)
-cor.test(escape_frt12$climate1, escape_frt12$dem_ha_bc) # these are correlated!
-cor.test(escape_frt12$dem_ha_bc, escape_frt12$climate2)
+cor.test(escape_frt12$climate1, escape_frt12$dm_h_bc) # these are correlated!
+cor.test(escape_frt12$dm_h_bc, escape_frt12$climate2)
 cor.test(escape_frt12$win_sum, escape_frt12$win_spg) # very correlated
 
 #Run model using dat1
-escape_frt12$log_road<-log(escape_frt12$dist_roads_m+1)
-escape_frt12$log_infr<-log(escape_frt12$dist_infrastructure_m+1)
 
-model_ft12<-glm(escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + win_sum + log_road + log_infr, family = binomial, data = escape_frt12)
-#4604
+model_ft12<-glm(escape ~ climate1 + climate2 + fwveg  + s___300 + dm_h_bc + aspect_cardinal + win_sum + log_road + log_infr, family = binomial, data = escape_frt12)
+#3900
 
-model_ft12<-glm(escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + win_sum + dist_roads_m + log_infr, family = binomial, data = escape_frt12)
-#4585
-model_ft12<-glm(escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + win_sum + log_road + dist_infrastructure_m, family = binomial, data = escape_frt12)
-#4590
-model_ft12<-glm(escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + win_sum + dist_roads_m + dist_infrastructure_m, family = binomial, data = escape_frt12)
-#4583
+model_ft12<-glm(escape ~ climate1 + climate2 + fwveg  + s___300 + dm_h_bc + aspect_cardinal + win_sum + road_dist_m + log_infr, family = binomial, data = escape_frt12)
+#3884
+model_ft12<-glm(escape ~ climate1 + climate2 + fwveg  + s___300 + dm_h_bc + aspect_cardinal + win_sum + log_road + dist_infrastructure_m, family = binomial, data = escape_frt12)
+#3895
+model_ft12<-glm(escape ~ climate1 + climate2 + fwveg  + s___300 + dm_h_bc + aspect_cardinal + win_sum + road_dist_m + dist_infrastructure_m, family = binomial, data = escape_frt12)
+#3890
 
 
-model_ft12<-glm(escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + win_sum + dist_roads_m + dist_infrastructure_m, family = binomial, data = escape_frt12)
+model_ft12<-glm(escape ~ climate1 + climate2 + fwveg  + s___300 + dm_h_bc + aspect_cardinal + win_sum + road_dist_m + log_infr, family = binomial, data = escape_frt12)
 #4583
 Anova(model_ft12, type=3)
 
-model_ft12<-glm(escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + win_sum + dist_roads_m + dist_infrastructure_m, family = binomial, data = escape_frt12)
-#4583
+#drop elevatiom
+model_ft12<-glm(escape ~ climate1 + climate2 + fwveg  + s___300 + aspect_cardinal + win_sum + road_dist_m + log_infr, family = binomial, data = escape_frt12)
+#3898
 Anova(model_ft12, type=3)
 
-model_ft12<-glm(escape9 ~ climate1 + climate2 + FWI_veg + win_sum + dist_roads_m + dist_infrastructure_m, family = binomial, data = escape_frt12)
-#4583
+# drop climate1
+model_ft12<-glm(escape ~ climate2 + fwveg  + s___300 + aspect_cardinal + win_sum + road_dist_m + log_infr, family = binomial, data = escape_frt12)
+#3898
 Anova(model_ft12, type=3)
+
+#drop slope
+model_ft12a<-glm(escape ~ climate2 + fwveg + aspect_cardinal + win_sum + road_dist_m + log_infr, family = binomial, data = escape_frt12)
+#3898
+Anova(model_ft12, type=3)
+
+# drop aspect
+model_ft12b<-glm(escape ~ climate2 + fwveg + win_sum + road_dist_m + log_infr, family = binomial, data = escape_frt12)
+#3898
+Anova(model_ft12b, type=3)
+anova(model_ft12a, model_ft12b, test="Chisq")
+visreg(model_ft12b)
+
+# Im going to remove wind because it does not change the fit very much and is only adding 0.03% information 
 
 
 #######################
 ### TOP MODEL
 #######################
-#Remove least term ~ slope_ha_bc_3005
-model_ft12e<-glm(escape9 ~ climate1 + climate2 + FWI_veg + win_sum + dist_roads_m + dist_infrastructure_m, family = binomial, data = escape_frt12)
+#Remove least term ~ s___300
+
+ggplot(escape_frt12, aes(x=as.factor(escape), y=climate1))+
+  geom_boxplot()
+
+ggplot(escape_frt12, aes(x=as.factor(escape), y=climate2))+
+  geom_boxplot()
+
 
 hist(escape_frt12$climate2)
 hist(escape_frt12$win_sum)
 hist(escape_frt12$dist_infrastructure_m)
-hist(escape_frt12$dist_roads_m)
+hist(escape_frt12$road_dist_m)
 
-table(escape_frt12$escape9) 
-table(escape_frt12$FWI_veg)
+ggplot(escape_frt12, aes(x=as.factor(escape), y=win_sum)) +
+  geom_boxplot()
+ggplot(escape_frt12, aes(x=as.factor(escape), y=road_dist_m)) +
+  geom_boxplot()
+ggplot(escape_frt12, aes(x=as.factor(escape), y=log_infr)) +
+  geom_boxplot()
+
+table(escape_frt12$escape) 
+table(escape_frt12$fwveg)
 
 # model diagnostic plots
-binnedplot (fitted(model_ft12e), 
-            residuals(model_ft12e), 
+binnedplot (fitted(model_ft12b), 
+            residuals(model_ft12b), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual")
-
-table(is.na(escape_frt12$escape9))
-escape_frt12<-escape_frt12 %>% drop_na(escape9)
-escape_frt12$resids<-resid(model_ft12e)
-
-
-binnedplot (escape_frt12$climate2, 
-            escape_frt12$resids,  
-            nclass = NULL)
-
-binnedplot (escape_frt12$dist_roads_m, 
-            escape_frt12$resids,  
-            nclass = NULL)
-
-binnedplot (escape_frt12$log_infr, 
-            escape_frt12$resids,  
-            nclass = NULL)
-
-
-
-# Diagnostic plots look ok ish
-
-#Partial Residuals
-
-visreg(model_ft12e)
 
 
 ```
@@ -1313,26 +1096,24 @@ visreg(model_ft12e)
 We should repeat the above several times and take the mean of the coefficients.
 
 ```{r}
-summary(model_ft12e)
+summary(model_ft12b)
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT12_ALL <- data.frame (matrix (ncol = 18, nrow = 0))
+top_mod_table_FRT12_ALL <- data.frame (matrix (ncol = 14, nrow = 0))
 colnames (top_mod_table_FRT12_ALL ) <- c ("FRT", "Model_terms", "intercept",
-                                          "coef_climate_1",
-                                         "coef_climate_2",
-                                         "coef_FWI_vegC-2",
-                                         "coef_FWI_vegC-5",
-                                         "coef_FWI_vegC-7",
-                                         "coef_FWI_vegD-1/2",
-                                         "coef_FWI_vegM-1/2",
-                                         "coef_FWI_vegN",
-                                         "coef_FWI_vegO-1a/b",
-                                         "coef_FWI_vegS-1",
-                                         "coef_FWI_vegS-2",
+                                          "coef_climate_2",
+                                         "coef_fwvegC-2",
+                                         "coef_fwvegC-5",
+                                         "coef_fwvegC-7",
+                                         "coef_fwvegD-1/2",
+                                         "coef_fwvegM-1/2",
+                                         "coef_fwvegO-1a/b",
                                          "coef_win_sum",
-                                         "coef_dist_roads_m",
-                                         "coef_dist_infr_m",
+                                         "coef_road_dist_m",
+                                         "coef_log_dist_infr",
                                          "AUC")
+
+escape_frt12<-as.data.frame(escape_frt12)
 ```
 
 Let's run it 100 times to get good mean values.
@@ -1353,35 +1134,31 @@ prop<-0.75
    Valid <- escape_frt12[-trainIndex,]
    
 #Model   
-model.FRT12<-glm(escape9 ~ climate1 + climate2 + FWI_veg + win_sum + dist_roads_m + dist_infrastructure_m, family = binomial, data = dat1)
+model.FRT12<-glm(escape ~ climate2 + fwveg + win_sum + road_dist_m + log_infr, family = binomial, data = dat1)
 
 mod.valid <- predict.glm(model.FRT12, newdata=Valid, type="response")
    
-roc_obj <- roc(Valid[,"escape9"], mod.valid, quiet=TRUE)
+roc_obj <- roc(Valid[,"escape"], mod.valid, quiet=TRUE)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT12 <- data.frame (matrix (ncol = 18, nrow = 0))
+top_mod_table_FRT12 <- data.frame (matrix (ncol = 14, nrow = 0))
 colnames (top_mod_table_FRT12 ) <- c ("FRT", "Model_terms", "intercept",
-                                          "coef_climate_1",
-                                         "coef_climate_2",
-                                         "coef_FWI_vegC-2",
-                                         "coef_FWI_vegC-5",
-                                         "coef_FWI_vegC-7",
-                                         "coef_FWI_vegD-1/2",
-                                         "coef_FWI_vegM-1/2",
-                                         "coef_FWI_vegN",
-                                         "coef_FWI_vegO-1a/b",
-                                         "coef_FWI_vegS-1",
-                                         "coef_FWI_vegS-2",
+                                          "coef_climate_2",
+                                         "coef_fwvegC-2",
+                                         "coef_fwvegC-5",
+                                         "coef_fwvegC-7",
+                                         "coef_fwvegD-1/2",
+                                         "coef_fwvegM-1/2",
+                                         "coef_fwvegO-1a/b",
                                          "coef_win_sum",
-                                         "coef_dist_roads_m",
-                                         "coef_dist_infr_m",
+                                         "coef_road_dist_m",
+                                         "coef_log_dist_infr",
                                          "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT12[1,1]<-"12"
-top_mod_table_FRT12[1,2]<-"escape ~ climate1 + climate2 + FWI_veg + win_sum + dist_roads_m + dist_infrastructure_m" 
+top_mod_table_FRT12[1,2]<-"escape ~ climate1 + climate2 + fwveg + win_sum + road_dist_m + dist_infrastructure_m" 
 top_mod_table_FRT12[1,3]<- coef(model.FRT12)[1] #Intercept
 top_mod_table_FRT12[1,4]<- coef(model.FRT12)[2] #
 top_mod_table_FRT12[1,5]<- coef(model.FRT12)[3] #
@@ -1393,11 +1170,7 @@ top_mod_table_FRT12[1,10]<- coef(model.FRT12)[8] #
 top_mod_table_FRT12[1,11]<- coef(model.FRT12)[9] #coefficient 
 top_mod_table_FRT12[1,12]<- coef(model.FRT12)[10] #coefficient 
 top_mod_table_FRT12[1,13]<- coef(model.FRT12)[11] #Intercept
-top_mod_table_FRT12[1,14]<- coef(model.FRT12)[12] #
-top_mod_table_FRT12[1,15]<- coef(model.FRT12)[13] #
-top_mod_table_FRT12[1,16]<- coef(model.FRT12)[14] #coefficient 
-top_mod_table_FRT12[1,17]<- coef(model.FRT12)[15] #
-top_mod_table_FRT12[1,18]<- mod.auc
+top_mod_table_FRT12[1,14]<- mod.auc
 top_mod_table_FRT12_ALL<-rbind(top_mod_table_FRT12_ALL, top_mod_table_FRT12)
 
 }
@@ -1420,7 +1193,9 @@ stderror <- function(x) sd(x)/sqrt(length(x))
 summary_top_mod_table_FRT12_ALL<- top_mod_table_FRT12_ALL %>% summarize_if(is.numeric,mean)
 
 summary_top_mod_table_FRT12_ALL$FRT<-12
-summary_top_mod_table_FRT12_ALL$Model_terms<-"escape ~ climate1 + climate2 + FWI_veg + win_sum + dist_roads_m + dist_infrastructure_m" 
+summary_top_mod_table_FRT12_ALL$intercept_veg<-"C-3"
+
+summary_top_mod_table_FRT12_ALL$Model_terms<-"escape ~ climate2 + fwveg + win_sum + road_dist_m + log_dist_infrastructure" 
 
 ```
 
@@ -1433,89 +1208,95 @@ write.csv(summary_top_mod_table_FRT12_ALL, file="D:\\Fire\\fire_data\\raw_data\\
 
 #### FRT 13
 ```{r}
-escape_frt13<- escape2 %>% filter(Cluster==13)
-table(escape_frt13$FWI_veg, escape_frt13$escape9)
-escape_frt13$FWI_veg[escape_frt13$FWI_veg=="C-1"]<-"C-3"
-escape_frt13$FWI_veg[escape_frt13$FWI_veg=="C-4"]<-"C-2"
-escape_frt13$veg_escape<-paste(escape_frt13$fire, escape_frt13$FWI_veg)
+escape_frt13<- escape2 %>% filter(frt==13)
+table(escape_frt13$fwveg, escape_frt13$escape)
+escape_frt13$fwveg[escape_frt13$fwveg=="C-1"]<-"C-3"
+escape_frt13$veg_escape<-paste(escape_frt13$escape, escape_frt13$fwveg)
+escape_frt13$fwveg <- factor(escape_frt13$fwveg, levels=c("C-3", "C-2","C-5", "C-7","D-1/2", "M-1/2", "O-1a/b", "S-1"))
+
+
+table(escape_frt13$fwveg, escape_frt13$escape)
 
 table(is.na(escape_frt13$climate1))
-table(is.na(escape_frt13$dem_ha_bc))
-table(is.na(escape_frt13$FWI_veg))
-table(is.na(escape_frt13$dist_roads_m))
-table(is.na(escape_frt13$slope_ha_bc_3005))
-table(is.na(escape_frt13$escape9))
+table(is.na(escape_frt13$dm_h_bc))
+table(is.na(escape_frt13$fwveg))
+table(is.na(escape_frt13$road_dist_m))
+table(is.na(escape_frt13$s___300))
+table(is.na(escape_frt13$escape))
+
+ggplot(escape_frt13, aes(x=as.factor(escape), y=climate1)) +
+  geom_boxplot()
+
+ggplot(escape_frt13, aes(x=as.factor(escape), y=climate2)) +
+  geom_boxplot()
+ggplot(escape_frt13, aes(x=as.factor(escape), y=(CMI08+CMI09)/2)) +
+  geom_boxplot()
+
+
 
 # start here
 
-cor.test(escape_frt13$dist_roads_m,escape_frt13$dist_infrastructure_m)
+cor.test(escape_frt13$road_dist_m,escape_frt13$dist_infrastructure_m)
+cor.test(escape_frt13$climate1, escape_frt13$dm_h_bc) # these are almost correlated 0.69!
+cor.test(escape_frt13$climate2, escape_frt13$dm_h_bc) 
 cor.test(escape_frt13$climate1, escape_frt13$climate2)
-cor.test(escape_frt13$climate1, escape_frt13$dem_ha_bc) # these are correlated!
-cor.test(escape_frt13$climate2, escape_frt13$dem_ha_bc) # these are correlated!
-
-cor.test(escape_frt13$dem_ha_bc, escape_frt13$slope_ha_bc_3005)
+cor.test(escape_frt13$dm_h_bc, escape_frt13$s___300)
 cor.test(escape_frt13$win_sum, escape_frt13$win_spg) # very correlated
+cor.test(escape_frt13$dm_h_bc, escape_frt13$dist_infrastructure_m)
 
-escape_frt13$log_road<-log(escape_frt13$dist_roads_m+1)
+escape_frt13$log_road<-log(escape_frt13$road_dist_m+1)
 escape_frt13$log_infr<- log(escape_frt13$dist_infrastructure_m+1)
 
 #Run model using dat1
-model_ft13<-glm(escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + win_sum + log_road + log_infr, family = binomial, data = escape_frt13)
-#9715
+model_ft13<-glm(escape ~ climate2 + fwveg  + s___300 + dm_h_bc + aspect_cardinal + win_sum + log_road + log_infr, family = binomial, data = escape_frt13)
+Anova(model_ft13, type=3)
+#9437
 
-model_ft13<-glm(escape9 ~ climate2 + FWI_veg  + slope_ha_bc_3005 + dem_ha_bc + win_sum + log_road + log_infr, family = binomial, data = escape_frt13)
+
+model_ft13<-glm(escape ~ climate1 + climate2 + fwveg  + s___300 +aspect_cardinal + win_sum + log_road + log_infr, family = binomial, data = escape_frt13)
+Anova(model_ft13, type=3)
+visreg(model_ft13)
 #9761
-
-model_ft13<-glm(escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + win_sum + log_road + log_infr, family = binomial, data = escape_frt13)
-#9724
 
 # Best one leaves out dem
 
-model_ft13<-glm(escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + win_sum + dist_roads_m + log_infr, family = binomial, data = escape_frt13)
-#9666
-model_ft13<-glm(escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + win_sum + dist_roads_m + dist_infrastructure_m, family = binomial, data = escape_frt13)
-#9657
-model_ft13<-glm(escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + win_sum + log_road + dist_infrastructure_m, family = binomial, data = escape_frt13)
-#9680
+model_ft13<-glm(escape ~ climate2 + fwveg  + dm_h_bc + s___300 + aspect_cardinal + road_dist_m + log_infr, family = binomial, data = escape_frt13)
+#9365
 
-model_ft13<-glm(escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + win_sum + dist_roads_m + dist_infrastructure_m, family = binomial, data = escape_frt13)
-AIC(model_ft13) #9656.702
-Anova(model_ft13, type=3) 
+model_ft13<-glm(escape ~ climate2 + fwveg  + dm_h_bc + s___300 + aspect_cardinal + win_sum + road_dist_m + dist_infrastructure_m, family = binomial, data = escape_frt13)
+#9374
 
 # Top model
-model_ft13<-glm(escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + win_sum + dist_roads_m + dist_infrastructure_m, family = binomial, data = escape_frt13)
-Anova(model_ft13, type=3) 
+model_ft13<-glm(escape ~ climate2 + fwveg  + dm_h_bc + s___300 + aspect_cardinal + win_sum + road_dist_m + log_infr, family = binomial, data = escape_frt13)
 
+AIC(model_ft13) #9656.702
+Anova(model_ft13, type=3)
+summary(model_ft13)
+visreg(model_ft13)
 
 #######################
 ### TOP MODEL
 #######################
-#Remove least term ~ slope_ha_bc_3005
-model_ft13e<-glm(escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + win_sum + dist_roads_m + dist_infrastructure_m, family = binomial, data = escape_frt13)
-
 hist(escape_frt13$climate1)
 hist(escape_frt13$climate2)
-hist(escape_frt13$dist_roads_m)
+hist(escape_frt13$road_dist_m)
 
-escape_frt13<- escape_frt13 %>% drop_na(escape9)
+ggplot(escape_frt13, aes(x=as.character(escape), y=dist_infrastructure_m)) +
+  geom_boxplot()
+ggplot(escape_frt13, aes(x=as.character(escape), y=road_dist_m)) +
+  geom_boxplot()
+ggplot(escape_frt13, aes(x=as.character(escape), y=climate1)) +
+  geom_boxplot()
+ggplot(escape_frt13, aes(x=as.character(escape), y=climate2)) +
+  geom_boxplot()
+ggplot(escape_frt13, aes(x=as.character(escape), y=s___300)) +geom_boxplot()
+ggplot(escape_frt13, aes(x=as.character(escape), y=win_sum)) +geom_boxplot()
 
-ggplot(escape_frt13, aes(x=as.character(escape9), y=dist_infrastructure_m)) +
-  geom_boxplot()
-ggplot(escape_frt13, aes(x=as.character(escape9), y=dist_roads_m)) +
-  geom_boxplot()
-ggplot(escape_frt13, aes(x=as.character(escape9), y=climate1)) +
-  geom_boxplot()
-ggplot(escape_frt13, aes(x=as.character(escape9), y=climate2)) +
-  geom_boxplot()
-ggplot(escape_frt13, aes(x=as.character(escape9), y=slope_ha_bc_3005)) +geom_boxplot()
-ggplot(escape_frt13, aes(x=as.character(escape9), y=win_sum)) +geom_boxplot()
-
-table(escape_frt13$escape9) #0 = 948 and 1 = 267 not bad actually.
-table(escape_frt13$FWI_veg)
+table(escape_frt13$fwveg)
 
 # model diagnostic plots
-binnedplot (fitted(model_ft13e), 
-            residuals(model_ft13e), 
+binnedplot (fitted(model_ft13), 
+            residuals(model_ft13), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual")
@@ -1524,7 +1305,12 @@ binnedplot (fitted(model_ft13e),
 
 #Partial Residuals
 
-visreg(model_ft13e)
+visreg(model_ft13)
+
+escape_frt13<-data.table(escape_frt13)
+
+escape_frt13<-escape_frt13[!is.na(fwveg),]
+escape_frt13<-escape_frt13[aspect_cardinal!="O",]
 
 
 ```
@@ -1532,31 +1318,32 @@ visreg(model_ft13e)
 We should repeat the above several times and take the mean of the coefficients.
 
 ```{r}
-summary(model_ft13e)
+summary(model_ft13)
 
 
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT13_ALL <- data.frame (matrix (ncol = 21, nrow = 0))
+top_mod_table_FRT13_ALL <- data.frame (matrix (ncol = 19, nrow = 0))
 colnames (top_mod_table_FRT13_ALL ) <- c ("FRT", "Model_terms", "intercept",
-                                         "coef_climate_1",
                                          "coef_climate_2",
-                                         "coef_FWI_vegC-3",
-                                         "coef_FWI_vegC-5",
-                                         "coef_FWI_vegC-7",
-                                         "coef_FWI_vegD-1/2",
-                                         "coef_FWI_vegM-1/2",
-                                         "coef_FWI_vegM-3",
-                                         "coef_FWI_vegN",
-                                         "coef_FWI_vegO-1a/b",
-                                         "coef_FWI_vegS-1",
-                                         "coef_FWI_vegS-2",
-                                         "coef_FWI_vegS-3",
+                                         "coef_fwvegC-2",
+                                         "coef_fwvegC-5",
+                                         "coef_fwvegC-7",
+                                         "coef_fwvegD-1/2",
+                                         "coef_fwvegM-1/2",
+                                         "coef_fwvegO-1a/b",
+                                         "coef_fwvegS-1",
+                                         "coef_elevation",
                                          "coef_slope",
+                                         "coef_aspect_S",
+                                         "coef_aspect_O",
                                          "coef_win_sum",
                                          "coef_roads_m",
-                                         "coef_infr_m",
+                                         "coef_log_infr",
                                          "AUC")
+
+escape_frt13<-as.data.frame(escape_frt13)
+
 ```
 
 Let's run it 100 times to get good mean values.
@@ -1577,38 +1364,35 @@ for (g in 1:100){
    Valid <- escape_frt13[-trainIndex,]
    
 #Model   
-model.FRT13<-glm(escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + win_sum + dist_roads_m + dist_infrastructure_m, family = binomial, data = dat1)
+model.FRT13<-glm(escape ~ climate2 + fwveg  + dm_h_bc + s___300 + aspect_cardinal + win_sum + road_dist_m + log_infr, family = binomial, data = dat1)
 
 mod.valid <- predict.glm(model.FRT13, newdata=Valid, type="response")
    
-roc_obj <- roc(Valid[,"escape9"], mod.valid, quiet=TRUE)
+roc_obj <- roc(Valid[,"escape"], mod.valid, quiet=TRUE)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT13 <- data.frame (matrix (ncol = 21, nrow = 0))
+top_mod_table_FRT13 <- data.frame (matrix (ncol = 19, nrow = 0))
 colnames (top_mod_table_FRT13 ) <- c ("FRT", "Model_terms", "intercept",
-                                         "coef_climate_1",
                                          "coef_climate_2",
-                                         "coef_FWI_vegC-3",
-                                         "coef_FWI_vegC-5",
-                                         "coef_FWI_vegC-7",
-                                         "coef_FWI_vegD-1/2",
-                                         "coef_FWI_vegM-1/2",
-                                         "coef_FWI_vegM-3",
-                                         "coef_FWI_vegN",
-                                         "coef_FWI_vegO-1a/b",
-                                         "coef_FWI_vegS-1",
-                                         "coef_FWI_vegS-2",
-                                         "coef_FWI_vegS-3",
+                                         "coef_fwvegC-2",
+                                         "coef_fwvegC-5",
+                                         "coef_fwvegC-7",
+                                         "coef_fwvegD-1/2",
+                                         "coef_fwvegM-1/2",
+                                         "coef_fwvegO-1a/b",
+                                         "coef_fwvegS-1",
+                                         "coef_elevation",
                                          "coef_slope",
+                                         "coef_aspect_S",
+                                         "coef_aspect_O",
                                          "coef_win_sum",
                                          "coef_roads_m",
-                                         "coef_infr_m",
+                                         "coef_log_infr",
                                          "AUC")
-
 ##Add data for NDT1
 top_mod_table_FRT13[1,1]<-"13"
-top_mod_table_FRT13[1,2]<-"escape9 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + win_sum + dist_roads_m + log_infr" 
+top_mod_table_FRT13[1,2]<-"escape ~ climate2 + fwveg  + dm_h_bc + s___300 + aspect_cardinal + win_sum + road_dist_m + log_infr" 
 top_mod_table_FRT13[1,3]<- coef(model.FRT13)[1] #Intercept
 top_mod_table_FRT13[1,4]<- coef(model.FRT13)[2] #
 top_mod_table_FRT13[1,5]<- coef(model.FRT13)[3] #
@@ -1623,11 +1407,9 @@ top_mod_table_FRT13[1,13]<- coef(model.FRT13)[11] #Intercept
 top_mod_table_FRT13[1,14]<- coef(model.FRT13)[12] #
 top_mod_table_FRT13[1,15]<- coef(model.FRT13)[13] #
 top_mod_table_FRT13[1,16]<- coef(model.FRT13)[14] #coefficient 
-top_mod_table_FRT13[1,17]<- coef(model.FRT13)[15] #coefficient 
-top_mod_table_FRT13[1,18]<- coef(model.FRT13)[16] #Intercept
-top_mod_table_FRT13[1,19]<- coef(model.FRT13)[17] #coefficient 
-top_mod_table_FRT13[1,20]<- coef(model.FRT13)[18] #Intercept
-top_mod_table_FRT13[1,21]<- mod.auc
+top_mod_table_FRT13[1,17]<- coef(model.FRT13)[15]
+top_mod_table_FRT13[1,18]<- coef(model.FRT13)[16]
+top_mod_table_FRT13[1,19]<- mod.auc
 top_mod_table_FRT13_ALL<-rbind(top_mod_table_FRT13_ALL, top_mod_table_FRT13)
 
 }
@@ -1650,7 +1432,9 @@ stderror <- function(x) sd(x)/sqrt(length(x))
 summary_top_mod_table_FRT13_ALL<- top_mod_table_FRT13_ALL %>% summarize_if(is.numeric,mean)
 
 summary_top_mod_table_FRT13_ALL$FRT<-13
-summary_top_mod_table_FRT13_ALL$Model_terms<-"escape16 ~ climate1 + climate2 + FWI_veg  + slope_ha_bc_3005 + win_sum + dist_roads_m + infr_m" 
+summary_top_mod_table_FRT13_ALL$intercept_veg<-"C-3"
+
+summary_top_mod_table_FRT13_ALL$Model_terms<-"escape ~ climate2 + fwveg  + dm_h_bc + s___300 + aspect_cardinal + win_sum + road_dist_m + log_infr" 
 
 ```
 
@@ -1663,119 +1447,119 @@ write.csv(summary_top_mod_table_FRT13_ALL, file="D:\\Fire\\fire_data\\raw_data\\
 
 #### FRT 14
 ```{r}
-escape_frt14<- escape2 %>% filter(Cluster==14)
-table(escape_frt14$FWI_veg, escape_frt14$escape9)
+escape_frt14<- escape2 %>% filter(frt==14)
+table(escape_frt14$fwveg, escape_frt14$escape)
 
-escape_frt14$FWI_veg[escape_frt14$FWI_veg=="M-3"]<-"O-1a/b"
-escape_frt14$FWI_veg[escape_frt14$FWI_veg=="C-5"]<-"C-7"
-escape_frt14$FWI_veg[escape_frt14$FWI_veg=="S-1"]<-"M-1/2"
-escape_frt14$FWI_veg[escape_frt14$FWI_veg=="C-2"]<-"C-3"
+escape_frt14$fwveg[escape_frt14$fwveg=="C-5"]<-"C-7"
+escape_frt14$fwveg[escape_frt14$fwveg=="S-1"]<-"M-1/2"
+escape_frt14$fwveg <- factor(escape_frt14$fwveg, levels=c("C-7", "C-2", "C-3", "D-1/2", "M-1/2", "O-1a/b"))
 
-escape_frt14$veg_escape<-paste(escape_frt14$fire, escape_frt14$FWI_veg)
 
-cor.test(escape_frt14$dist_roads_m, escape_frt14$dist_infrastructure_m)
-cor.test(escape_frt14$climate1, escape_frt14$dem_ha_bc) # these are correlated!
-cor.test(escape_frt14$dem_ha_bc, escape_frt14$slope_ha_bc_3005)
+escape_frt14$veg_escape<-paste(escape_frt14$escape, escape_frt14$fwveg)
+
+cor.test(escape_frt14$road_dist_m, escape_frt14$dist_infrastructure_m)
+cor.test(escape_frt14$climate1, escape_frt14$dm_h_bc) # these are correlated!
+cor.test(escape_frt14$climate2, escape_frt14$dm_h_bc)
+cor.test(escape_frt14$dm_h_bc, escape_frt14$s___300)
 hist(as.numeric(escape_frt14$ig_mnth))
 
-escape_frt14$log_road<-log(escape_frt14$dist_roads_m+1)
+escape_frt14$log_road<-log(escape_frt14$road_dist_m+1)
 escape_frt14$log_infr<- log(escape_frt14$dist_infrastructure_m+1)
 
-table(is.na(escape_frt14$climate1))
-table(is.na(escape_frt14$dem_ha_bc))
-table(is.na(escape_frt14$FWI_veg))
-table(is.na(escape_frt14$win_sum))
-table(is.na(escape_frt14$dist_roads_m))
-table(is.na(escape_frt14$slope_ha_bc_3005))
-table(is.na(escape_frt14$escape9))
+escape_frt14<-escape_frt14[aspect_cardinal != "flat",]
 
-escape_frt14<-escape_frt14 %>% filter(!is.na(escape9))
+table(is.na(escape_frt14$climate1))
+table(is.na(escape_frt14$dm_h_bc))
+table(is.na(escape_frt14$fwveg))
+table(is.na(escape_frt14$win_sum))
+table(is.na(escape_frt14$road_dist_m))
+table(is.na(escape_frt14$s___300))
+table(is.na(escape_frt14$escape))
+
+escape_frt14<-escape_frt14 %>% filter(!is.na(escape))
 
 #Run model using dat1
-model_ft14<-glm(escape9 ~ climate1 + FWI_veg + dem_ha_bc + slope_ha_bc_3005 + win_sum + log_road + log_infr, family = binomial, data = escape_frt14)
-#7828
+model_ft14<-glm(escape ~ climate1 + climate2 + fwveg + dm_h_bc + s___300 + aspect_cardinal + win_sum + log_road + log_infr, family = binomial, data = escape_frt14)
+#6817
 
-model_ft14<-glm(escape9 ~ climate1 + FWI_veg + dem_ha_bc + slope_ha_bc_3005 + win_sum + dist_roads_m + log_infr, family = binomial, data = escape_frt14)
-#7806
+model_ft14<-glm(escape ~ climate1 + climate2 + fwveg + dm_h_bc + s___300 + aspect_cardinal + win_sum + road_dist_m + log_infr, family = binomial, data = escape_frt14)
+#6792
 
-model_ft14<-glm(escape9 ~ climate1 + FWI_veg + dem_ha_bc + slope_ha_bc_3005 + win_sum + log_road + dist_infrastructure_m  , family = binomial, data = escape_frt14)
-#7810
+model_ft14<-glm(escape ~ climate1 + climate2 + fwveg + dm_h_bc + s___300 + aspect_cardinal + win_sum + log_road + dist_infrastructure_m  , family = binomial, data = escape_frt14)
+#6796
 
-model_ft14<-glm(escape9 ~ climate1 + FWI_veg + dem_ha_bc + slope_ha_bc_3005 + win_sum + dist_roads_m + dist_infrastructure_m  , family = binomial, data = escape_frt14) #7798
+model_ft14<-glm(escape ~ climate1 + climate2 + fwveg + dm_h_bc + s___300 + aspect_cardinal + win_sum + road_dist_m + dist_infrastructure_m  , family = binomial, data = escape_frt14) #6790
+
+model_ft14<-glm(escape ~ climate1 + climate2 + fwveg + s___300 + aspect_cardinal + win_sum + road_dist_m + dist_infrastructure_m  , family = binomial, data = escape_frt14) #6825
+
+model_ft14<-glm(escape ~ climate2 + fwveg + dm_h_bc + s___300 + aspect_cardinal + win_sum + road_dist_m + dist_infrastructure_m  , family = binomial, data = escape_frt14) #6791
+
 
 #best model
-model_ft14<-glm(escape9 ~ climate1 + FWI_veg + dem_ha_bc + slope_ha_bc_3005 + win_sum + dist_roads_m + dist_infrastructure_m  , family = binomial, data = escape_frt14)
+model_ft14<-glm(escape ~ climate2 + fwveg + dm_h_bc + s___300 + aspect_cardinal + win_sum + road_dist_m + dist_infrastructure_m, family = binomial, data = escape_frt14)
 
-AIC(model_ft14) #3737.464
+AIC(model_ft14) #6788
 Anova(model_ft14, type=3) 
+visreg(model_ft14)
 
-#Remove least significant term
-model_ft14<-glm(escape9 ~ climate1 + FWI_veg + dem_ha_bc + slope_ha_bc_3005 + win_sum + dist_roads_m, family = binomial, data = escape_frt14)
-AIC(model_ft14) #3737.464 # cant actually compare these two models because slope is missing to values and so there are different datasets
-Anova(model_ft14, type=3) 
+model_ft14<-glm(escape ~ climate1 + climate2 + fwveg + s___300 + aspect_cardinal + win_sum + road_dist_m + dist_infrastructure_m, family = binomial, data = escape_frt14) #6821
 
+# take out wind summer. Although its significant Im going to leave it out because I dont want to over fit the model
 
-#######################
-### TOP MODEL
-#######################
-#Remove least term ~ slope_ha_bc_3005
-model_ft14e<-glm(escape9 ~ climate1 + FWI_veg + dem_ha_bc + slope_ha_bc_3005 + win_sum + dist_roads_m + dist_infrastructure_m, family = binomial, data = escape_frt14)
+model_ft14<-glm(escape ~ climate1 + climate2 + fwveg + s___300 + aspect_cardinal + road_dist_m + dist_infrastructure_m, family = binomial, data = escape_frt14) #6821
 
 hist(escape_frt14$climate1)
-hist(escape_frt14$dem_ha_bc)
-hist(escape_frt14$dist_roads_m)
+hist(escape_frt14$climate2)
+hist(escape_frt14$road_dist_m)
 hist(escape_frt14$dist_infrastructure_m)
 
-ggplot(escape_frt14, aes(x=as.character(escape9), y=climate1)) +
+ggplot(escape_frt14, aes(x=as.character(escape), y=climate1)) +
   geom_boxplot()
-ggplot(escape_frt14, aes(x=as.character(escape9), y=dem_ha_bc)) +
+ggplot(escape_frt14, aes(x=as.character(escape), y=climate2)) +
   geom_boxplot()
-ggplot(escape_frt14, aes(x=as.character(escape9), y=slope_ha_bc_3005)) + geom_boxplot()
-ggplot(escape_frt14, aes(x=as.character(escape9), y=win_sum)) +
+ggplot(escape_frt14, aes(x=as.character(escape), y=s___300)) + geom_boxplot()
+ggplot(escape_frt14, aes(x=as.character(escape), y=win_sum)) +
   geom_boxplot()
-ggplot(escape_frt14, aes(x=as.character(escape9), y=dist_roads_m)) +
+ggplot(escape_frt14, aes(x=as.character(escape), y=road_dist_m)) +
   geom_boxplot()
-ggplot(escape_frt14, aes(x=as.character(escape9), y=dist_infrastructure_m)) + geom_boxplot()
+ggplot(escape_frt14, aes(x=as.character(escape), y=dist_infrastructure_m)) + geom_boxplot()
 
-table(escape_frt14$escape9) #0 = 9123 and 1 = 556 not bad actually.
-table(escape_frt14$FWI_veg)
+table(escape_frt14$escape) #0 = 9123 and 1 = 556 not bad actually.
+table(escape_frt14$fwveg)
 
 # model diagnostic plots
-binnedplot (fitted(model_ft14e), 
-            residuals(model_ft14e), 
+binnedplot (fitted(model_ft14), 
+            residuals(model_ft14), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual")
-
-
-
-#Partial Residuals
-
-visreg(model_ft14e)
 
 ```
 
 We should repeat the above several times and take the mean of the coefficients.
 
 ```{r}
-summary(model_ft14e)
+summary(model_ft14)
 
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT14_ALL <- data.frame (matrix (ncol = 15, nrow = 0))
+top_mod_table_FRT14_ALL <- data.frame (matrix (ncol = 16, nrow = 0))
 colnames (top_mod_table_FRT14_ALL ) <- c ("FRT", "Model_terms", "intercept",
                                          "coef_climate_1",
-                                         "coef_FWI_vegC-7",
-                                         "coef_FWI_vegD-1/2",
-                                         "coef_FWI_vegM-1/2",
-                                         "coef_FWI_vegN",
-                                         "coef_FWI_vegO-1a/b",
-                                         "coef_elev",
+                                         "coef_climate_2",
+                                         "coef_fwvegC-2",
+                                         "coef_fwvegC-3",
+                                         "coef_fwvegD-1/2",
+                                         "coef_fwvegM-1/2",
+                                         "coef_fwvegO-1a/b",
                                          "coef_slope",
-                                         "coef_win_sum",
+                                         "coef_aspect_S",
+                                         "coef_aspect_O",
                                          "coef_dist_road_m",
                                          "coef_dist_infr_m",
                                          "AUC")
+escape_frt14<-as.data.frame(escape_frt14)
+
 ```
 
 Let's run it 100 times to get good mean values.
@@ -1796,32 +1580,33 @@ for (g in 1:100){
    Valid <- escape_frt14[-trainIndex,]
    
 #Model   
-model.FRT14<-glm(escape9 ~ climate1 + FWI_veg + dem_ha_bc + slope_ha_bc_3005 + win_sum + dist_roads_m + dist_infrastructure_m, family = binomial, data = dat1)
+model.FRT14<-glm(escape ~ climate1 + climate2 + fwveg + s___300 + aspect_cardinal + road_dist_m + dist_infrastructure_m, family = binomial, data = dat1)
 
 mod.valid <- predict.glm(model.FRT14, newdata=Valid, type="response")
    
-roc_obj <- roc(Valid[,"escape9"], mod.valid, quiet=TRUE)
+roc_obj <- roc(Valid[,"escape"], mod.valid, quiet=TRUE)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT14 <- data.frame (matrix (ncol = 15, nrow = 0))
+top_mod_table_FRT14 <- data.frame (matrix (ncol = 16, nrow = 0))
 colnames (top_mod_table_FRT14 ) <- c ("FRT", "Model_terms", "intercept",
                                          "coef_climate_1",
-                                         "coef_FWI_vegC-7",
-                                         "coef_FWI_vegD-1/2",
-                                         "coef_FWI_vegM-1/2",
-                                         "coef_FWI_vegN",
-                                         "coef_FWI_vegO-1a/b",
-                                         "coef_elev",
+                                         "coef_climate_2",
+                                         "coef_fwvegC-2",
+                                         "coef_fwvegC-3",
+                                         "coef_fwvegD-1/2",
+                                         "coef_fwvegM-1/2",
+                                         "coef_fwvegO-1a/b",
                                          "coef_slope",
-                                         "coef_win_sum",
+                                         "coef_aspect_S",
+                                         "coef_aspect_O",
                                          "coef_dist_road_m",
                                          "coef_dist_infr_m",
                                          "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT14[1,1]<-"14"
-top_mod_table_FRT14[1,2]<-"escape9 ~ climate1 + FWI_veg + dem_ha_bc + slope_ha_bc_3005 + win_sum + dist_roads_m + dist_infrastructure_m" 
+top_mod_table_FRT14[1,2]<-"climate1 + climate2 + fwveg + s___300 + aspect_cardinal + road_dist_m + dist_infrastructure_m" 
 top_mod_table_FRT14[1,3]<- coef(model.FRT14)[1] #Intercept
 top_mod_table_FRT14[1,4]<- coef(model.FRT14)[2] #
 top_mod_table_FRT14[1,5]<- coef(model.FRT14)[3] #
@@ -1834,7 +1619,8 @@ top_mod_table_FRT14[1,11]<- coef(model.FRT14)[9] #coefficient
 top_mod_table_FRT14[1,12]<- coef(model.FRT14)[10] #coefficient 
 top_mod_table_FRT14[1,13]<- coef(model.FRT14)[11] #Intercept
 top_mod_table_FRT14[1,14]<- coef(model.FRT14)[12] #Intercept
-top_mod_table_FRT14[1,15]<- mod.auc
+top_mod_table_FRT14[1,15]<- coef(model.FRT14)[13] #Intercept
+top_mod_table_FRT14[1,16]<- mod.auc
 top_mod_table_FRT14_ALL<-rbind(top_mod_table_FRT14_ALL, top_mod_table_FRT14)
 
 }
@@ -1857,7 +1643,8 @@ stderror <- function(x) sd(x)/sqrt(length(x))
 summary_top_mod_table_FRT14_ALL<- top_mod_table_FRT14_ALL %>% summarize_if(is.numeric,mean)
 
 summary_top_mod_table_FRT14_ALL$FRT<-14
-summary_top_mod_table_FRT14_ALL$Model_terms<-"escape9 ~ climate1 + FWI_veg + dem_ha_bc + slope_ha_bc_3005 + win_sum + dist_roads_m + dist_infrastructure_m" 
+summary_top_mod_table_FRT14_ALL$intercept_veg<-"C-7"
+summary_top_mod_table_FRT14_ALL$Model_terms<-"escape ~ climate1 + climate2 + fwveg + s___300 + aspect_cardinal + road_dist_m + dist_infrastructure_m" 
 
 ```
 
@@ -1870,106 +1657,100 @@ write.csv(summary_top_mod_table_FRT14_ALL, file="D:\\Fire\\fire_data\\raw_data\\
 
 #### FRT 15
 ```{r}
-escape_frt15<- escape2 %>% filter(Cluster==15)
-table(escape_frt15$FWI_veg, escape_frt15$escape9)
-escape_frt15$FWI_veg[escape_frt15$FWI_veg=="S-1"]<-"S-3"
-escape_frt15$FWI_veg[escape_frt15$FWI_veg=="C-7"]<-"C-5"
-escape_frt15$FWI_veg[escape_frt15$FWI_veg=="O-1a/b"]<-"C-3"
-escape_frt15$FWI_veg[escape_frt15$FWI_veg=="S-2"]<-"C-5"
+escape_frt15<- escape2 %>% filter(frt==15)
+table(escape_frt15$fwveg, escape_frt15$escape)
+#escape_frt15$fwveg[escape_frt15$fwveg=="C-7"]<-"C-5"
+#escape_frt15$fwveg[escape_frt15$fwveg=="O-1a/b"]<-"C-3"
+escape_frt15$fwveg[escape_frt15$fwveg=="S-1"]<-"M-1/2"
+escape_frt15$fwveg <- factor(escape_frt15$fwveg, levels=c("C-5", "C-3", "C-7", "D-1/2", "M-1/2", "O-1a/b"))
 
-escape_frt15$log_road<-log(escape_frt15$dist_roads_m+1)
+escape_frt15$log_road<-log(escape_frt15$road_dist_m+1)
 escape_frt15$log_infr<- log(escape_frt15$dist_infrastructure_m+1)
 
+ggplot(escape_frt15, aes(x=as.character(escape), y=(Tmax06 + Tmax07 + Tmax08)/3)) +
+  geom_boxplot()
 
-escape_frt15$veg_escape<-paste(escape_frt15$escape9, escape_frt15$FWI_veg)
+ggplot(escape_frt15, aes(x=as.character(escape), y=(PPT06 + PPT07 + PPT08)/3)) +
+  geom_boxplot()
 
-cor.test(escape_frt15$dist_roads_m, escape_frt15$dist_infrastructure_m)
-cor.test(escape_frt15$climate1, escape_frt15$climate2)
-cor.test(escape_frt15$climate1, escape_frt15$dem_ha_bc) # these are correlated!
-cor.test(escape_frt15$climate2, escape_frt15$dem_ha_bc) 
-cor.test(escape_frt15$dem_ha_bc, escape_frt15$slope_ha_bc_3005)
+escape_frt15$climate1<-(escape_frt15$CMD07 + escape_frt15$CMD08)/3
+
+ggplot(escape_frt15, aes(x=as.character(escape), y=climate1)) +
+  geom_boxplot()
+
+escape_frt15$veg_escape<-paste(escape_frt15$escape, escape_frt15$fwveg)
+
+cor.test(escape_frt15$road_dist_m, escape_frt15$dist_infrastructure_m)
+cor.test(escape_frt15$climate1, escape_frt15$dm_h_bc) 
+cor.test(escape_frt15$climate2, escape_frt15$dm_h_bc)
+cor.test(escape_frt15$dm_h_bc, escape_frt15$s___300)
 
 table(is.na(escape_frt15$climate1))
-table(is.na(escape_frt15$dem_ha_bc))
-table(is.na(escape_frt15$FWI_veg))
+table(is.na(escape_frt15$dm_h_bc))
+table(is.na(escape_frt15$fwveg))
 table(is.na(escape_frt15$win_sum))
 table(is.na(escape_frt15$log_infr))
-table(is.na(escape_frt15$slope_ha_bc_3005))
-table(is.na(escape_frt15$fire_cs))
-table(is.na(escape_frt15$escape9))
+table(is.na(escape_frt15$s___300))
+table(is.na(escape_frt15$escape))
 
 hist(as.numeric(escape_frt15$ig_mnth))
 table(as.numeric(escape_frt15$ig_mnth)) # most fires in july and aug so use win_sum
 
-#escape_frt15<- escape_frt15 %>% filter(!is.na(dem_ha_bc))
+#escape_frt15<- escape_frt15 %>% filter(!is.na(dm_h_bc))
 #escape_frt15<- escape_frt15 %>% filter(!is.na(win_sum))
 
+
 #Run model using dat1 and test if log road or log infra works best
-model_ft15<-glm(escape9 ~ climate1 + climate2 + FWI_veg + slope_ha_bc_3005 + win_sum + log_road + log_infr, family = binomial, data = escape_frt15)
+model_ft15<-glm(escape ~ climate1 + fwveg + dm_h_bc + s___300 + aspect_cardinal + log_road + log_infr, family = binomial, data = escape_frt15)
 
-AIC(model_ft15) #2087.507
+AIC(model_ft15) #2052
 Anova(model_ft15, type=3) 
 
-model_ft15<-glm(escape9 ~ climate1 + climate2 + FWI_veg + slope_ha_bc_3005 + win_sum + dist_roads_m + log_infr, family = binomial, data = escape_frt15)
-#2085
-model_ft15<-glm(escape9 ~ climate1 + climate2 + FWI_veg + slope_ha_bc_3005 + win_sum + log_road + dist_infrastructure_m, family = binomial, data = escape_frt15)
-#2090
-model_ft15<-glm(escape9 ~ climate1 + climate2 + FWI_veg + slope_ha_bc_3005 + win_sum + dist_roads_m + dist_infrastructure_m, family = binomial, data = escape_frt15)
-#2089
+model_ft15<-glm(escape ~ climate1 + fwveg + dm_h_bc + s___300 + aspect_cardinal + road_dist_m + log_infr, family = binomial, data = escape_frt15)
+#2050
+model_ft15<-glm(escape ~ climate1 + fwveg + dm_h_bc + s___300 + aspect_cardinal + log_road + dist_infrastructure_m, family = binomial, data = escape_frt15)
+#2057
+model_ft15<-glm(escape ~ climate1 + fwveg + dm_h_bc + s___300 + aspect_cardinal + road_dist_m + dist_infrastructure_m, family = binomial, data = escape_frt15)
+#2056
 
-#Test if climate1 or dem should stay
-model_ft15<-glm(escape9 ~ climate1 + climate2 + FWI_veg + dem_ha_bc + slope_ha_bc_3005 + win_sum + dist_roads_m + log_infr, family = binomial, data = escape_frt15)
-#2085
-
-model_ft15<-glm(escape9 ~climate2 + FWI_veg + dem_ha_bc + slope_ha_bc_3005  + win_sum + dist_roads_m + log_infr, family = binomial, data = escape_frt15)
-#2084
-
-model_ft15<-glm(escape9 ~ climate1 + climate2 + FWI_veg + slope_ha_bc_3005 + win_sum + dist_roads_m + log_infr, family = binomial, data = escape_frt15)
+# kick out least significant variables
+model_ft15<-glm(escape ~ climate1 + fwveg + dm_h_bc + s___300 + aspect_cardinal + road_dist_m + log_infr, family = binomial, data = escape_frt15)
+Anova(model_ft15, type=3) 
 #2085
 
-# Ok its the same climate1 and elevation so Ill keep climate 1
-
-# work from here to remove least signiticant term
-
-model_ft15<-glm(escape9 ~ climate1 + climate2 + FWI_veg + slope_ha_bc_3005 + win_sum + dist_roads_m + log_infr, family = binomial, data = escape_frt15)
-
-AIC(model_ft15) #2085.388
+model_ft15<-glm(escape ~ climate1 + dm_h_bc + s___300 + aspect_cardinal + road_dist_m + log_infr, family = binomial, data = escape_frt15)
 Anova(model_ft15, type=3) 
 
-model_ft15b<-glm(escape9 ~ climate1 + climate2 + FWI_veg + slope_ha_bc_3005 + dist_roads_m + log_infr, family = binomial, data = escape_frt15)
+model_ft15<-glm(escape ~ climate1 + s___300 + aspect_cardinal + road_dist_m + log_infr, family = binomial, data = escape_frt15)
+Anova(model_ft15, type=3) 
 
-AIC(model_ft15b) #2083.709
-Anova(model_ft15b, type=3) 
+model_ft15<-glm(escape ~ climate1 + s___300 + aspect_cardinal + log_infr, family = binomial, data = escape_frt15)
+Anova(model_ft15, type=3) 
+visreg(model_ft15, scale = "response")
+summary(model_ft15)
 
-# choose to leave out elevation
-model_ft15c<-glm(escape9 ~ climate2 + FWI_veg + slope_ha_bc_3005 + dist_roads_m + log_infr, family = binomial, data = escape_frt15)
-
-AIC(model_ft15c) #2081.946
-Anova(model_ft15c, type=3) 
-
-#rm 
-model_ft15d<-glm(escape9 ~ climate2 + FWI_veg + slope_ha_bc_3005 + log_infr, family = binomial, data = escape_frt15)
-
-AIC(model_ft15d) #2081.953
-Anova(model_ft15d, type=3) 
 
 
 #######################
 ### TOP MODEL
 #######################
-#Remove least term ~ slope_ha_bc_3005
-model_ft15e<-glm(escape9 ~ climate2 + FWI_veg + slope_ha_bc_3005 + log_infr, family = binomial, data = escape_frt15)
+#Remove least term ~ s___300
+model_ft15<-glm(escape ~ climate1 + s___300 + aspect_cardinal + log_infr, family = binomial, data = escape_frt15)
 
-hist(escape_frt15$slope_ha_bc_3005)
-hist(escape_frt15$climate2)
+hist(escape_frt15$s___300)
+hist(escape_frt15$climate1)
+escape_frt15 %>%
+  ggplot( aes(x=climate1, fill=as.factor(escape))) +
+    geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity')
+
 hist(escape_frt15$log_infr)
 
-table(escape_frt15$escape9) #0 = 948 and 1 = 267 not bad actually.
-table(escape_frt15$FWI_veg, escape_frt15$escape9)
+table(escape_frt15$escape) #0 = 948 and 1 = 267 not bad actually.
+table(escape_frt15$fwveg, escape_frt15$escape)
 
 # model diagnostic plots
-binnedplot (fitted(model_ft15e), 
-            residuals(model_ft15e), 
+binnedplot (fitted(model_ft15), 
+            residuals(model_ft15), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual")
@@ -1979,28 +1760,28 @@ binnedplot (fitted(model_ft15e),
 
 #Partial Residuals
 
-visreg(model_ft15e)
+visreg(model_ft15, scale = "response")
 
 ```
 
 We should repeat the above several times and take the mean of the coefficients.
 
 ```{r}
-summary(model_ft15e)
+summary(model_ft15)
 
 
 #Create a new blank table and get AUC too
-top_mod_table_FRT15_ALL <- data.frame (matrix (ncol = 12, nrow = 0))
+top_mod_table_FRT15_ALL <- data.frame (matrix (ncol = 9, nrow = 0))
 colnames (top_mod_table_FRT15_ALL ) <- c ("FRT", "Model_terms", "intercept",
-                                         "coef_climate_2",
-                                         "coef_FWI_vegC-5",
-                                         "coef_FWI_vegD-1/2",
-                                         "coef_FWI_vegM-1/2",
-                                         "coef_FWI_vegN",
-                                         "coef_FWI_vegS-3",
+                                         "coef_climate_1",
                                          "coef_slope",
+                                         "coef_aspect_S",
+                                         "coef_aspect_O",
                                          "coef_log_infr",
                                          "AUC")
+
+escape_frt15<-escape_frt15[!is.na(s___300),]
+escape_frt15<-as.data.frame(escape_frt15)
 ```
 
 Let's run it 100 times to get good mean values.
@@ -2012,43 +1793,40 @@ for (g in 1:100){
   
   print(g)
   
-trainIndex <- createDataPartition(escape_frt15$escape9, p = prop,
+trainIndex <- createDataPartition(escape_frt15$escape, p = prop,
                                     list = FALSE,
                                     times = 1)
 # Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
   dat1 <- escape_frt15[ trainIndex,] # note only 6% of obs are 1's so Im going to sample to get my sample size up to 30% 1's.
    # in total I need 1589 1's
-   dat1_1<-dat1 %>% filter(escape9==1)
-   dat1_0<-dat1 %>% filter(escape9==0)
-   dat1_1_samp<- sample_n(dat1_1, round(length(dat1$escape9)*0.1,0), replace = TRUE)
+   dat1_1<-dat1 %>% filter(escape==1)
+   dat1_0<-dat1 %>% filter(escape==0)
+   dat1_1_samp<- sample_n(dat1_1, round(length(dat1$escape)*0.1,0), replace = TRUE)
    
    dat<-rbind(dat1_0, dat1_1_samp)
    Valid <- escape_frt15[-trainIndex,]
    
 #Model   
-model.FRT15<-glm(escape9 ~ climate2 + FWI_veg + slope_ha_bc_3005 + log_infr, family = binomial, data = dat)
+model.FRT15<-glm(escape ~ climate1 + s___300 + aspect_cardinal + log_infr, family = binomial, data = dat)
 
 mod.valid <- predict.glm(model.FRT15, newdata=Valid, type="response")
    
-roc_obj <- roc(Valid[,"escape9"], mod.valid, quiet=TRUE)
+roc_obj <- roc(Valid[,"escape"], mod.valid, quiet=TRUE)
    mod.auc <- auc(roc_obj)
 
 # create model table (only do this once) and add the relevant data
-top_mod_table_FRT15 <- data.frame (matrix (ncol = 12, nrow = 0))
+top_mod_table_FRT15 <- data.frame (matrix (ncol = 9, nrow = 0))
 colnames (top_mod_table_FRT15 ) <- c ("FRT", "Model_terms", "intercept",
-                                         "coef_climate_2",
-                                         "coef_FWI_vegC-5",
-                                         "coef_FWI_vegD-1/2",
-                                         "coef_FWI_vegM-1/2",
-                                         "coef_FWI_vegN",
-                                         "coef_FWI_vegS-3",
+                                         "coef_climate_1",
                                          "coef_slope",
-                                         "coef_log_infr_ds",
+                                         "coef_aspect_S",
+                                         "coef_aspect_O",
+                                         "coef_log_infr",
                                          "AUC")
 
 ##Add data for NDT1
 top_mod_table_FRT15[1,1]<-"15"
-top_mod_table_FRT15[1,2]<-"escape ~ climate2 + FWI_veg + slope + log_infr" 
+top_mod_table_FRT15[1,2]<-"escape ~ climate1 + s___300 + aspect_cardinal + log_infr" 
 
 top_mod_table_FRT15[1,3]<- coef(model.FRT15)[1] #Intercept
 top_mod_table_FRT15[1,4]<- coef(model.FRT15)[2] #
@@ -2056,10 +1834,7 @@ top_mod_table_FRT15[1,5]<- coef(model.FRT15)[3] #
 top_mod_table_FRT15[1,6]<- coef(model.FRT15)[4] #coefficient 
 top_mod_table_FRT15[1,7]<- coef(model.FRT15)[5] #
 top_mod_table_FRT15[1,8]<- coef(model.FRT15)[6] #
-top_mod_table_FRT15[1,9]<- coef(model.FRT15)[7]
-top_mod_table_FRT15[1,10]<- coef(model.FRT15)[8] #
-top_mod_table_FRT15[1,11]<- coef(model.FRT15)[9] #
-top_mod_table_FRT15[1,12]<- mod.auc
+top_mod_table_FRT15[1,9]<- mod.auc
 top_mod_table_FRT15_ALL<-rbind(top_mod_table_FRT15_ALL, top_mod_table_FRT15)
 
 }
@@ -2084,7 +1859,8 @@ stderror <- function(x) sd(x)/sqrt(length(x))
 summary_top_mod_table_FRT15_ALL<- top_mod_table_FRT15_ALL %>% summarize_if(is.numeric,mean)
 
 summary_top_mod_table_FRT15_ALL$FRT<-15
-summary_top_mod_table_FRT15_ALL$Model_terms<-"escape16 ~ climate2 + FWI_veg + slope + log_infr" 
+summary_top_mod_table_FRT15_ALL$intercept_veg<-"C-5"
+summary_top_mod_table_FRT15_ALL$Model_terms<-"escape ~ climate1 + s___300 + aspect_cardinal + log_infr" 
 
 ```
 

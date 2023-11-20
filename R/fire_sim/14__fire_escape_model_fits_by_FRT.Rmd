@@ -78,21 +78,22 @@ Now we must bring in the data that we created at the end of 10_fire_escape_data_
 
 ```{r}
 
-escape <- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\fire_escape_with_CMI_dat.gpkg")
+escape<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\escape_data.csv")
+#escape <- st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\fire_escape_with_CMI_dat.gpkg")
 
 #("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_escape_data_all.gpkg")
 
-table(is.na(escape$Cluster)) # wierd there are 13 points that have no Cluster assigned to them.Not I tried joining them to FRT again and I still have 13 missing FRT info so Ill remove these points
+table(is.na(escape$frt)) # wierd there are 13 points that have no frt assigned to them.Not I tried joining them to FRT again and I still have 13 missing FRT info so Ill remove these points
 
-escape$Cluster[escape$idno==238]<-13
-escape$Cluster[is.na(escape$Cluster)]<-15
+escape2<-escape %>%
+  distinct(id, .keep_all = TRUE)
+table(is.na(escape2$frt))
+escape2<-escape2[!is.na(frt),]
 
-escape$Cluster[escape$Cluster==3]<-5
+escape2$frt[escape2$frt==3]<-5
 
-escape$escape9<- NA
-escape$escape9[escape$size_ha > 9] <- 1
-escape$escape9[escape$size_ha <= 9] <- 0
-
+escape2[CURRENT>1, escape:=1]
+escape2[CURRENT<=1, escape:=0]
 ```
 
 We will create one model for each FRT, combining all fire types (person, lightning, unknown) and treed and non-treed.
@@ -102,7 +103,7 @@ In the script "escape_climate_variable_selection.R", we performed an AIC and ROC
 
 ```{r, AIC table, echo = F, message = F, eval = T}
 
-climate_variables_escape<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\climate_AIC_results_escape_summary.csv") #This current file has all the possible models instead of the top one for each NDT as prior
+climate_variables_escape<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\climate_AIC_results_escape_summary_Oct23.csv") #This current file has all the possible models instead of the top one for each NDT as prior
 
 head(climate_variables_escape) 
 
@@ -122,422 +123,186 @@ kable (climate_variables_escape,
 Now we will create additional columns that have the climate1 and climate2 variables indicated as the top variables for climate. 
 
 ```{r}
-names(escape)
-unique(escape$Cluster)
-escape$Cluster<-as.factor(escape$Cluster)
-escape$Cluster_numeric<-as.numeric(as.character(escape$Cluster))
+escape2[frt==5, climate1:=(Tmax04+Tmax05)/2]
+escape2[frt==5, climate2:=(PPT04+PPT05)/2]
+escape2[frt==7, climate1:=CMI04]
+escape2[frt==9, climate1:=Tmax05]
+escape2[frt==9, climate2:=PPT05]
+escape2[frt==10, climate1:=(CMD04+CMD05+CMD06)/3]
+escape2[frt==11, climate1:=Tave09]
+escape2[frt==12, climate1:=Tmax09]
+escape2[frt==12, climate2:=PPT09]
+escape2[frt==13, climate1:=Tmax09]
+escape2[frt==14, climate1:=(Tmax04+Tmax05+Tmax06)/3]
+escape2[frt==14, climate2:=(PPT04+PPT05+PPT06)/3]
+escape2[frt==15, climate1:=Tave09]
+escape2[frt==15, climate2:=PPT09]
 
-escape$mean_PPT05_PPT06_PPT07_PPT08  <-(escape$PPT05 + escape$PPT06 + escape$PPT07 + escape$PPT08)/4
-escape$mean_Tave05_Tave06_Tave07_Tave08<-(escape$Tave05 + escape$Tave06 + escape$Tave07 + escape$Tave08)/4
-escape$mean_Tave04_Tave05_Tave06<-(escape$Tave04 + escape$Tave05 + escape$Tave06)/3
-escape$mean_PPT05_PPT06<- (escape$PPT05 + escape$PPT06)/2
-escape$mean_PPT04_PPT05_PPT06<- (escape$PPT04 + escape$PPT05 + escape$PPT06)/3
 
-## Create empty vector
-escape$climate1<-0
-head(escape)
-
-escape<-escape %>%
-    mutate(climate1 = case_when(Cluster_numeric == 5 ~ as.numeric(PPT05), 
-                                Cluster_numeric == 7 ~ as.numeric(PPT03), 
-                                Cluster_numeric == 9 ~ Tave05, 
-                                Cluster_numeric == 10 ~ mean_Tave05_Tave06_Tave07_Tave08,
-                                Cluster_numeric == 11 ~ Tave09, 
-                                Cluster_numeric == 12 ~ mean_Tave04_Tave05_Tave06,
-                                Cluster_numeric == 13 ~ Tmax09,
-                                Cluster_numeric == 14 ~ as.numeric(mean_PPT05_PPT06),
-                                Cluster_numeric == 15 ~ Tave04,
-                                TRUE ~ NA_real_))
-
-#Repeat for climate 2
-escape$climate2<-0
-
-#Perform mutate to get the applicable variable for each row
-escape<-escape %>%
-    mutate(climate2 = case_when(Cluster_numeric == 10 ~ as.numeric(mean_PPT05_PPT06_PPT07_PPT08),
-                                Cluster_numeric == 12 ~ as.numeric(mean_PPT04_PPT05_PPT06),
-                                Cluster_numeric == 15 ~ as.numeric(PPT04),
-                                TRUE ~ NA_real_))
-
-head(escape)
-
-##Change vegtype to factor
-escape$FWI_veg<-as.factor(escape$FWI_veg)
+escape2$fwveg<-as.factor(escape2$fwveg)
 
 #create new column
-escape$FWI_veg<-paste(escape$escape, escape$FWI_veg)
+escape2$fwveg_fire<-paste(escape2$escape, escape2$fwveg)
+
+escape2<-escape2 %>% rename(aspect=a___300,
+                            slope = s___300,
+                            elevatn = dm_h_bc)
+
 
 ```
 View plots.
 
 ```{r}
 # Aspect
-p <- ggplot(escape, aes(aspect, as.numeric(escape10))) +
+p <- ggplot(escape2, aes(aspect, as.numeric(escape))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("aspect") + ylab("Pr (escape)") + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 
 # this confirms it too. There is not difference between escaped and confined fires.
-p <- ggplot(escape, aes(x=as.factor(escape10), y=aspect)) + 
+p <- ggplot(escape2, aes(x=as.factor(escape), y=aspect)) + 
   geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 
 ## SLOPE
-p <- ggplot(escape, aes(slope, as.numeric(escape10))) +
+p <- ggplot(escape2, aes(slope, as.numeric(escape))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("slope") + ylab("Pr (escape)") + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 # There is a slight relationship with slope in FRT 13 and 15
-ggplot(escape, aes(x = slope)) +
+ggplot(escape2, aes(x = slope)) +
   geom_histogram(fill = "white", colour = "black") +
-  facet_grid(escape10 ~ .)
+  facet_grid(escape ~ .)
 
-p <- ggplot(escape, aes(x=as.factor(escape10), y=slope)) + 
+p <- ggplot(escape2, aes(x=as.factor(escape), y=slope)) + 
   geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 
 
 # ELEVATION
 
-p <- ggplot(escape, aes(elevatn, as.numeric(escape10))) +
+p <- ggplot(escape2, aes(elevatn, as.numeric(escape
+                                             ))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("slope") + ylab("Pr (escape)") + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 # There is a positive relationship with elevation in FRT 9, 11, 13 and 15
-ggplot(escape, aes(x = elevatn)) +
+ggplot(escape2, aes(x = elevatn)) +
   geom_histogram(fill = "white", colour = "black") +
-  facet_grid(escape10 ~ .)
+  facet_grid(escape ~ .)
 
-p <- ggplot(escape, aes(x=as.factor(escape10), y=elevatn)) + 
+p <- ggplot(escape2, aes(x=as.factor(escape), y=elevatn)) + 
   geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 
 # Spring wind
 # no real relationship with wind
-p <- ggplot(escape, aes(win_spg, as.numeric(escape10))) +
+p <- ggplot(escape2, aes(win_spg, as.numeric(escape))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("Wind Spring") + ylab("Pr (escape)") + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 
-p <- ggplot(escape, aes(x=as.factor(escape10), y=win_spg)) + 
+p <- ggplot(escape2, aes(x=as.factor(escape), y=win_spg)) + 
   geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 
-p <- ggplot(escape, aes(win_sum, as.numeric(escape10))) +
+p <- ggplot(escape2, aes(win_sum, as.numeric(escape))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("Wind Spring") + ylab("Pr (escape)") + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 
 p <- ggplot(escape, aes(x=as.factor(escape10), y=win_sum)) + 
   geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 
 
 # TMax at time of fire and month before
 # Tmax at time of fire and month before. In general it does not look like there is much difference between the 0's and 1's
-p <- ggplot(escape, aes(climate1, as.numeric(escape10))) +
+p <- ggplot(escape2, aes(climate1, as.numeric(escape))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("Tmax in month of and month before fire") + ylab("Pr (escape)") + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 
-p <- ggplot(escape, aes(x=as.factor(escape10), y=climate1)) + 
+p <- ggplot(escape2, aes(x=as.factor(escape), y=climate1)) + 
   geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 
-# PPT05
-p <- ggplot(escape, aes(PPT05, as.numeric(escape10))) +
+p <- ggplot(escape2, aes(climate2, as.numeric(escape))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("Tmax in month of and month before fire") + ylab("Pr (escape)") + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 
-p <- ggplot(escape, aes(x=as.factor(escape10), y=PPT05)) + 
+p <- ggplot(escape2, aes(x=as.factor(escape), y=climate2)) + 
   geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-# temp_mnthbefore
-p <- ggplot(escape, aes(temp_mnthbefore, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("Tmax in month of and month before fire") + ylab("Pr (escape)") + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=temp_mnthbefore)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-#ppt_mnthbefore
-p <- ggplot(escape, aes(ppt_mnthbefore, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("PPT in month before fire") + ylab("Pr (escape)") + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=ppt_mnthbefore)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-# Tave05
-p <- ggplot(escape, aes(Tave05, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("PPT in month before fire") + ylab("Pr (escape)") + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=Tave05)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-# mean_Tave05_Tave06_Tave07_Tave08
-
-p <- ggplot(escape, aes(mean_Tave05_Tave06_Tave07_Tave08, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) +
-  xlab("PPT in month before fire") + ylab("Pr (escape)") + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=mean_Tave05_Tave06_Tave07_Tave08)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-# mean_PPT05_PPT06_PPT07_PPT08
-p <- ggplot(escape, aes(mean_PPT05_PPT06_PPT07_PPT08, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=mean_PPT05_PPT06_PPT07_PPT08)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-# Tave09
-p <- ggplot(escape, aes(Tave09, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=Tave09)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-#mean_Tave04_Tave05_Tave06
-p <- ggplot(escape, aes(mean_Tave04_Tave05_Tave06, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=mean_Tave04_Tave05_Tave06)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-#mean_PPT04_PPT05_PPT06
-p <- ggplot(escape, aes(mean_PPT04_PPT05_PPT06, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=mean_PPT04_PPT05_PPT06)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-#Tmax09
-p <- ggplot(escape, aes(Tmax09, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=Tmax09)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-#temp_atfire
-p <- ggplot(escape, aes(temp_atfire, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=temp_atfire)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-#ppt_atfire
-p <- ggplot(escape, aes(ppt_atfire, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=ppt_atfire)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-#ppt_atfire
-p <- ggplot(escape, aes(Tave04, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=Tave04)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-#PPT04
-p <- ggplot(escape, aes(PPT04, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=PPT04)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-# what about interaction between temp at fire and precipitation at fire
-escape$temp_atfirexprecip<-escape$temp_atfire * escape$ppt_atfire
-p <- ggplot(escape, aes(temp_atfirexprecip, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=temp_atfirexprecip)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-# what about interaction between temp and PPT for two months before fire
-escape$temp_PPT_twoMths<-escape$tmax_2mtns * escape$ppt_2mtns
-p <- ggplot(escape, aes(temp_PPT_twoMths, as.numeric(escape10))) +
-  geom_smooth(method="glm", formula=y~x,
-              method.args=list(family="binomial"),
-              alpha=0.3, size=1) +
-  geom_point(position=position_jitter(height=0.03, width=0)) + 
-  facet_wrap(~Cluster,scales='free')
-p
-
-p <- ggplot(escape, aes(x=as.factor(escape10), y=temp_PPT_twoMths)) + 
-  geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 
 
 
 # road distance
 # very strong relationship for all
-p <- ggplot(escape, aes(road_dist_m, as.numeric(escape10))) +
+p <- ggplot(escape2, aes(road_dist_m, as.numeric(escape))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 
 p
 
-p <- ggplot(escape, aes(x=as.factor(escape10), y=road_dist_m)) + 
+p <- ggplot(escape2, aes(x=as.factor(escape), y=road_dist_m)) + 
   geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 
 # infr_ds
-p <- ggplot(escape, aes(infr_dist, as.numeric(escape10))) +
+p <- ggplot(escape2, aes(dist_infrastructure_m, as.numeric(escape))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3, size=1) +
   geom_point(position=position_jitter(height=0.03, width=0)) + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 
 
 p
 
-p <- ggplot(escape, aes(x=as.factor(escape10), y=infr_dist)) + 
+p <- ggplot(escape2, aes(x=as.factor(escape), y=dist_infrastructure_m)) + 
   geom_boxplot() + 
-  facet_wrap(~Cluster,scales='free')
+  facet_wrap(~frt,scales='free')
 p
 
 
