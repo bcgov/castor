@@ -76,7 +76,7 @@ dbCon <- data_connect() ##connect to climate database
 
 ```{r module_usage}
 Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1') 
-library(climRdev)
+#library(climRdev)
 #dbCon <- data_connect() ##connect to climate database
 
 
@@ -88,7 +88,7 @@ moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/fireCastor/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/fireCastor/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/tests"))
-times <- list(start = 0, end = 16) # 5 year interval; 200 years = 40 intervals
+times <- list(start = 0, end = 2) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -171,7 +171,10 @@ parameters <- list(
                     nameElevationRaster = "rast.dem",
                     simStartYear = 2020,
                     gcm = c("MPI-ESM1-2-HR"),
+                    gcmName=c("mpi_esm1_2_HR"),
                     ssp = c("ssp370"),
+                    maxRun = 2, 
+                    run = c("r1i1p1f1"),
                     nameBecRast = "rast.bec_current",
                     nameBecTable = "vat.bec_zone_vat",
                     futureClimateProjection = "8GCMs_ensemble_ssp370", #"MPI-ESM1-2-HR"
