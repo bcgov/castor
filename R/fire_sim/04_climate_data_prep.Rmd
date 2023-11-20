@@ -260,7 +260,7 @@ for (i in 1: length(y1)){
   
   x<-eval(as.name(y1[i])) %>% 
     rename(YEAR=ID2) %>%
-    dplyr::select(ID1, YEAR,Latitude, Longitude, Tmax02:Tmax11, Tave02:Tave11, PPT02:PPT11, RH02:RH11, CMI02:CMI11, Tmin02:Tmin11)
+    dplyr::select(ID1, YEAR,Latitude, Longitude, Tmax02:Tmax11, Tave02:Tave11, PPT02:PPT11, RH02:RH11, CMI02:CMI11,CMD02: CMD11, Tmin02:Tmin11)
   
   x2<- x %>% filter(Tmax05 != -9999) # there are some locations that did not have climate data, probably because they were over the ocean, so Im removing these here.
   
@@ -304,7 +304,7 @@ names(sample_locations_DEM)
 dim(sample_locations_DEM)
 
 DC.ignitions1<- DC.ignitions %>% rename(idno=ID1,
-                                        FIRE_YEAR=YEAR)
+                                        fire_yr=YEAR)
 str(DC.ignitions1)
 DC.ignitions1$FIRE_YEAR<-as.numeric(DC.ignitions1$FIRE_YEAR)
 DC.ignitions1$idno<-as.numeric(as.character(DC.ignitions1$idno))
