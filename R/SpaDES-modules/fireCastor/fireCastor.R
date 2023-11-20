@@ -42,6 +42,8 @@ defineModule(sim, list(
     defineParameter("nameBecTable", "character", '99999', NA, NA, "Value attribute table that links to the raster and describes the bec zone and bec subzone information"),
     defineParameter("gcm", "character", '99999', NA, NA, "Global climate model from which to get future climate data e.g. ACCESS-ESM1-5"),
     defineParameter("ssp", "character", '99999', NA, NA, "Climate projection from which to get future climate data e.g. ssp370"),
+    defineParameter("maxRun", "integer", '99999', NA, NA, "Maximum number of model runs to include. A value of 0 is ensembleMean only."),
+    defineParameter("run", "character", '99999', NA, NA, "The run of the climate projection from which to get future climate data e.g. r1i1p1f1"),
     defineParameter("nameForestInventoryRaster", "numeric", NA, NA, NA, "Raster of VRI feature id"),
     defineParameter("nameForestInventoryTable2", "character", "99999", NA, NA, desc = "Name of the veg comp table - the forest inventory"),
     defineParameter("nameForestInventoryKey", "character", "99999", NA, NA, desc = "Name of the veg comp primary key that links the table to the raster"),
@@ -64,12 +66,24 @@ defineModule(sim, list(
   ),
   outputObjects = bind_rows(
     #createsOutput("objectName", "objectClass", "output object description", ...),
-    createsOutput("firedisturbanceTable", "data.table", "Disturbance by fire table for every pixel"),
-    createsOutput("fireReport", "data.table", "Summary per simulation period of the fire indicators")
+    createsOutput("firedisturbanceTable", "data.table", "Disturbance by fire table for every pixel i.e. every time a pixel is burned it is updated by one so that at the end of the simulation time period we know how many times each pixel was burned"),
+    createsOutput("fireReport", "data.table", "Summary per simulation period of the fire indicators i.e. total area burned, number of fire starts"),
+    createsOutput("ras.frt", "raster", "Raster of fire regime types (maybe not needed)"),
+    createsOutput("frt_id", "data.table", "List of fire regime types (maybe not needed)"),
+    createsOutput("veg3", "data.table", "Table with pixelid and fuel type category. This table gets passed to calcProbFire"),
+    createsOutput("coefficients", "data.table", "Table of coefficient values for variables that vary e.g. climate, fuel type and distance to roads. This table is used to calculate the probability rasters at every simulation time step."),
+    createsOutput("fire_static", "data.table", "Table of static values for model parameters and variables that dont change across the simulation. These values are sampled from rasters produced for the whole province with a different value for each pixel according to each model e.g. lightning, person, escape, spread.  e.g. P(person) = intercept + B1*elevation + B2 * distance. "),
+    createsOutput("probFireRasts", "data.table", "Table of calculated probability values for ignition, escape and spread for every pixel"),
+    createsOutput("inv", "data.table", "Table of vegetation variables collected from the VRI. These variables are passed to calcFuelTypes to calculate the fuel type categories"),
+    createsOutput("out", "data.table", "Table of starting location of fires and pixel id's of locations burned during the simulation"),
+    createsOutput("ras.elev", "raster", "Raster of elevation for aoi"),
+    createsOutput("samp.pts", "data.table", "Table of latitude, longitude, and elevation of points at a scale of 800m x 800m across the area of interest for climate data extraction"),
+    createsOutput("fit_g", "vector", "Shape and rate parameters for the gamma distribution used to fit the distribution of ignition points"),
+    createsOutput("min_ignit", "value", "Minimum number of fires observed"),
+    createsOutput("max_ignit", "value", "Maximum number of ignitions observed multiplied by 5. I oversample the initial number of ignition locations and then select from the list of locations the ones that have a probability of ignition greater than a randomly drawn value until the number of drawn ignition locations is the same as the number I sampled from the gamma distribution.")
   )
 ))
 
-# TO DO: Currently, the simulation is set up for a single run but because we want to simulate fire many times for the same time point I should not need to get all of the data again. e.g. I should only collect climate data once for each simulation year. I need to think about how to do this.... 
 
 doEvent.fireCastor = function(sim, eventTime, eventType, debug = FALSE){
   switch(
@@ -160,8 +174,8 @@ warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FAL
 
 Init <- function(sim) {
   
-  sim$firedisturbance <- sim$pts
-  sim$ras.info<-dbGetQuery(sim$castordb, "Select * from raster_info limit 1;")
+  #sim$firedisturbance <- sim$pts
+  #sim$ras.info<-dbGetQuery(sim$castordb, "Select * from raster_info limit 1;")
   
   sim$firedisturbanceTable<-data.table(scenario = scenario$name, numberFireReps = P(sim, "numberFireReps", "fireCastor"), pixelid = sim$pts$pixelid, numberTimesBurned = as.integer(0))
   
@@ -301,7 +315,7 @@ roadDistCalc <- function(sim) {
   road.dist<-data.table(dbGetQuery(sim$castordb, paste0("SELECT (case when ((",time(sim)*sim$updateInterval, " - roadstatus < ",P(sim, "recovery", "disturbanceCastor")," AND (roadtype != 0 OR roadtype IS NULL)) OR roadtype = 0) then 1 else 0 end) as road_dist, pixelid FROM pixels")))
   
   if(exists("road.dist")){
-    outPts <- merge (sim$firedisturbance, road.dist, by = 'pixelid', all.x =TRUE) 
+    outPts <- merge (sim$pts, road.dist, by = 'pixelid', all.x =TRUE) 
     outPts [road_dist > 0, field := 0] 
     nearNeigh_rds <- RANN::nn2(outPts[field == 0, c('x', 'y')], 
                                outPts[is.na(field), c('x', 'y')], 
@@ -336,7 +350,7 @@ roadDistCalc <- function(sim) {
     dbCommit(sim$castordb)  
     
     road.dist<-data.table(dbGetQuery(sim$castordb, paste0("SELECT (case when ((roadtype != 0 OR roadtype IS NULL) OR roadtype = 0) then 1 else 0 end) as road_dist, pixelid FROM pixels")))
-      outPts <- merge (sim$firedisturbance, road.dist, by = 'pixelid', all.x =TRUE) 
+      outPts <- merge (sim$pts, road.dist, by = 'pixelid', all.x =TRUE) 
       outPts [road_dist > 0, field := 0] 
       nearNeigh_rds <- RANN::nn2(outPts[field == 0, c('x', 'y')], 
                                  outPts[is.na(field), c('x', 'y')], 
@@ -357,23 +371,21 @@ roadDistCalc <- function(sim) {
 
 getClimateVariables <- function(sim) {
   
-  qry<-paste0("SELECT COUNT(*) as exists_check FROM sqlite_master WHERE type='table' AND name='firevariables", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"), "';")
+  qry<-paste0("SELECT COUNT(*) as exists_check FROM sqlite_master WHERE type='table' AND name='climate_", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),"_",P(sim, "gcmName", "fireCastor"),"_",P(sim, "ssp", "fireCastor"), "';")
   
- # if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
+  if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
   
   message(paste0("create empty table of climate variables for year ", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor")))
   
-  qry<-paste0("CREATE TABLE IF NOT EXISTS firevariables", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor")," (pixelid integer,  year integer, climate1lightning numeric, climate2lightning numeric, climate1person numeric, climate2person numeric, climate1escape numeric, climate2escape numeric, climate1spread numeric, climate2spread numeric)")
+  qry<-paste0("CREATE TABLE IF NOT EXISTS climate_", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),"_",P(sim, "gcmName", "fireCastor"),"_",P(sim, "ssp", "fireCastor")," (pixelid integer,  year integer, climate1lightning numeric, climate2lightning numeric, climate1person numeric, climate2person numeric, climate1escape numeric, climate2escape numeric, climate1spread numeric, climate2spread numeric)")
   
   dbExecute(sim$castordb, qry)
   
-  # I think I need to put in an if statement to test if the climate data has already been extracted for that year. I was thinking I could assign the climate data to a name related to year as below, but this does not seem to work. 
-  # sim$(assign(paste0("fire_variables_",time(sim)*sim$updateInterval + 2020), mySim$millLocations))
-
-  if ((dbGetQuery(sim$castordb, paste0("SELECT MAX(elv) FROM pixels"))) < 2 ) {
+  message("extract elevation raster")
   
-  message("extract elevation")
-  #We need elevation to because climate BC adjusts the climate according to the elevation of the sampling location
+  #We need elevation because climate BC adjusts the climate according to the elevation of the sampling location. 
+  
+  #### get elevation and frt rasters ####
   sim$ras.elev<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                                       srcRaster= P(sim, "nameElevationRaster", "fireCastor"), 
                                       clipper=sim$boundaryInfo[1] , 
@@ -381,70 +393,72 @@ getClimateVariables <- function(sim) {
                                       where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                                       conn=NULL))
   
+  if ((dbGetQuery(sim$castordb, paste0("SELECT MAX(elv) FROM pixels"))) < 2 ) {
+    
+    message("Passing elevation to pixels table as seems to be missing")
+  
   if(terra::ext(sim$ras) == terra::ext(sim$ras.elev)){
     elev<-data.table(elv = as.numeric(sim$ras.elev[]))
     elev[, pixelid := seq_len(.N)][, elv := as.numeric(elv)]
-    sim$elev<-elev[elv > -10, ]
+    elev<-elev[elv > -10, ]
     
     #add to the castordb
     dbBegin(sim$castordb)
-    rs<-dbSendQuery(sim$castordb, "UPDATE pixels set elv = :elv where pixelid = :pixelid", sim$elev)
+    rs<-dbSendQuery(sim$castordb, "UPDATE pixels set elv = :elv where pixelid = :pixelid", elev)
     dbClearResult(rs)
     dbCommit(sim$castordb)
-    
     gc()
   }else{
     stop(paste0("ERROR: extents are not the same check -", P(sim, "nameElevationRaster", "fireCastor")))
   }
-  } else {message("elevation already extracted")}
-  
-  
-  #if (!file.exists(sim$samp.pts2)) {
+  } else {
+    message("elevation already in pixels table ... extracting")
+    elev<-dbGetQuery(sim$castordb, paste0("SELECT elv, pixelid FROM pixels"))
+    }
   
   message("change data format for download of climate data and save sample points")
     
     #a<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, crs="+proj=longlat +datum=WGS84")
     
     #ras2 <- terra::project(sim$ras, a)
+  #### reproject lat long points ####
   
   ras2<-terra::project(sim$ras, "EPSG:4326")
   lat_lon_pts<-data.table(terra::xyFromCell(ras2,1:length(ras2[])))
   lat_lon_pts <- lat_lon_pts[, pixelid:= seq_len(.N)]
   
-  sample.pts<-merge (lat_lon_pts, sim$elev, by = 'pixelid', all.x =TRUE)
-#  sample.pts2<-merge(sample.pts, sim$frt_id, by='pixelid', all.x=TRUE)
+  sample.pts<-merge (lat_lon_pts, elev, by = 'pixelid', all.x =TRUE)
   
   #rm(ras2, lat_lon_pts)
   gc()
-  # now pull out the points where there is data for compartid and save only that
- #sim$samp.pts<- sample.pts[!is.na(elv),]
- #colnames(sim$samp.pts)[colnames(sim$samp.pts) == "pixelid"] <- "ID1"
- #colnames(samp.pts)[colnames(samp.pts) == "frt"] <- "ID2"
+  
  colnames(sample.pts)[colnames(sample.pts) == "y"] <- "lat"
  colnames(sample.pts)[colnames(sample.pts) == "x"] <- "long"
  colnames(sample.pts)[colnames(sample.pts) == "elv"] <- "el"
  
  # I dont think climR works with more than three rows in the data.frame so Im removing the ID column
- sim$samp.pts2<-sample.pts[,c("long", "lat", "el")]
+ sim$samp.pts<-sample.pts[,c("long", "lat", "el")]
   #} else {
-  #  message("climate data points already extracted")
-  #  }
+   # message("climate sample points already extracted")
+   #}
   
 #  if (!file.exists(paste0(here::here(), "/R/SpaDES-modules/fireCastor/outputs/", scenario$name, time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),'_M.csv'))) {
+ 
+ #### climR data collection####
 message("Downloading climate data from climateBC ...")  
 
 if (!exists("dbCon")){
   dbCon <- climRdev::data_connect() ##connect to database
   } else { message("connection to dbCon already made")}
 
-    thebb <- get_bb(sim$samp.pts2) ##get bounding box based on input points
+    thebb <- get_bb(sim$samp.pts) ##get bounding box based on input points
     #dbCon <- climRdev::data_connect() ##connect to database
     normal <- normal_input_postgis(dbCon = dbCon, bbox = thebb, cache = TRUE) ##get normal data and lapse rates
     gcm_ts <- gcm_ts_input(dbCon, bbox = thebb, 
                            gcm = (P(sim, "gcm", "fireCastor")), 
                            ssp = (P(sim, "ssp", "fireCastor")),# c("ssp370"), 
                            years = time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),
-                           max_run = 0,
+                           max_run = (P(sim, "maxRun", "fireCastor")),
                            cache = TRUE)
     
     lat_lon_pts2<-data.table(terra::xyFromCell(normal[[1]],1:ncell(normal[[1]])))
@@ -493,23 +507,33 @@ if (!exists("dbCon")){
       vars = sprintf(c("Tave%02d"),4:10)
     )
     
+    message("downscale CMD")
+    results_CMD <-downscale(
+      xyz = as.data.frame(dat3),
+      normal = normal,
+      gcm_ts = gcm_ts,
+      vars = sprintf(c("CMD%02d"),2:10)
+    )
+    
     message("downscale RH")
     results_RH <-downscale(
       xyz = as.data.frame(dat3),
       normal = normal,
       gcm_ts = gcm_ts,
-      vars = sprintf(c("RH%02d"),4:9)
+      vars = sprintf(c("RH%02d"),2:10)
     )
    
     results<-merge(results_Tmax, results_PPT, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
     results<-merge(results, results_Tave, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
     results<-merge(results, results_RH, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
     
-    results2<-cbind(dat[,c("long","lat", "pixelid_clim")], results)
-    results3<-merge(dat[,c("pixelid_clim", "el")], results2, by.x="pixelid_clim", by.y="pixelid_clim", all.x=TRUE)
-    results4<-merge(results3, frt, by.x="pixelid_clim", by.y="pixelid_clim")
-    # 
+    # Why do I do the step at results 3 or results 2. DOUBLE CHECK
     
+    results2<-merge(dat[,c("long","lat", "pixelid_clim", "el")], results, by.x="pixelid_clim", by.y="ID")
+    results4<-merge(results2, frt, by.x="pixelid_clim", by.y="pixelid_clim")
+    
+    results4<-results4[RUN == (P(sim, "run", "fireCastor")),]
+    # 
     
   message("... done")
   message("...calculating MDC and assimilating climate variables by frt")
@@ -518,7 +542,7 @@ if (!exists("dbCon")){
   # FOR EACH DATASET CALCULATE THE MONTHLY DROUGHT CODE Following Girardin & Wotton (2009)
   
   #_-------------------------------------------#
-  #### Equations to calculate drought code ####
+  #### Calculate drought code ####
   #____________________________________________#
   months<- c("01","02", "03", "04", "05", "06", "07", "08", "09", "10", "11")
   
@@ -656,7 +680,7 @@ if (!exists("dbCon")){
   
  # climate2[, year:=time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor")]
   
-  #### change extent of climate variables ####
+  #### change extent of climate variables back ####
   
   # extract pixelid values for larger raster and relate it to the pixel values of the 100x 100m landscape. Then I can join fire variable data back to the original data through the pixelid of the larger area raster. I tried to do this but it kept messing up so eventually I gave up. 
   
@@ -778,7 +802,7 @@ if (!exists("dbCon")){
   names(spread2) <- c('ID','climate2_spread','pixelid')
   spread2<-spread2[,c('climate2_spread','pixelid')]
   
-  sim$results4<-results4
+  #sim$results4<-results4
   
   # Merge the dataframes
   #library(tidyverse)
@@ -796,7 +820,7 @@ if (!exists("dbCon")){
   # clim[]<-clim_dat$climate1_spread
   # plot(clim)
 
-  qry<-paste0("INSERT INTO firevariables", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"), " (pixelid, year, climate1lightning, climate2lightning, climate1person, climate2person, climate1escape, climate2escape, climate1spread, climate2spread) VALUES (:pixelid, :year, :climate1_lightning, :climate2_lightning, :climate1_person, :climate2_person, :climate1_escape, :climate2_escape, :climate1_spread, :climate2_spread)")
+  qry<-paste0("INSERT INTO climate_", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),"_",P(sim, "gcmName", "fireCastor"),"_",P(sim, "ssp", "fireCastor"), " (pixelid, year, climate1lightning, climate2lightning, climate1person, climate2person, climate1escape, climate2escape, climate1spread, climate2spread) VALUES (:pixelid, :year, :climate1_lightning, :climate2_lightning, :climate1_person, :climate2_person, :climate1_escape, :climate2_escape, :climate1_spread, :climate2_spread)")
               
    dbBegin(sim$castordb)
    rs<-dbSendQuery(sim$castordb, qry, clim_dat)
@@ -804,8 +828,10 @@ if (!exists("dbCon")){
    dbCommit(sim$castordb)
    
   rm(clim_dat, rast_id,rast_id2, days_month, DC_half, Em, Em2, MDC_m, precip, Qmr, Qmr2, RMeff)
-  
   gc()
+  } else {
+    "climate variable table already exists"}
+  
   return(invisible(sim))
   
   #} else {message ("climate data already collected")}
@@ -1467,13 +1493,13 @@ calcProbFire<-function(sim){
  # fwveg<-dbGetQuery(sim$castordb, "SELECT pixelid, fwveg from fueltype")
   
   
-  qry<-paste0("SELECT * from firevariables", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"))
+  qry<-paste0("SELECT * from climate_", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),"_",P(sim, "gcmName", "fireCastor"),"_",P(sim, "ssp", "fireCastor"))
   
   climate_variables<-dbGetQuery(sim$castordb, qry)
   
   dat<-merge(sim$veg3, climate_variables, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   dat<-merge(dat, sim$road_distance, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-  dat<-merge(dat, sim$elev, by.x="pixelid", by.y="pixelid", all.x=TRUE)
+  #dat<-merge(dat, sim$elev, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   
   dat<-merge(dat,sim$fire_static, all.x=TRUE)
   
@@ -2650,24 +2676,24 @@ distProcess <- function(sim) {
   if (suppliedElsewhere(sim$probFireRasts)) {
     
     probfire<-as.data.table(na.omit(sim$probFireRasts))
-    print(probfire)
+    #print(probfire)
     
     # create area raster
     ras.info<-dbGetQuery(sim$castordb, "Select * from raster_info limit 1;")
-    sim$area<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
+    area<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
     
-    sim$area[]<-sim$probFireRasts$prob_ignition_spread
-    sim$area <- reclassify(sim$area, c(-Inf, 0, 0, 0, 1, 1))
-    print(sim$area)
+    area[]<-sim$probFireRasts$prob_ignition_spread
+    area <- reclassify(area, c(-Inf, 0, 0, 0, 1, 1))
+    print(area)
     
     message("create escape raster")
-    sim$escapeRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
-    sim$escapeRas[]<-sim$probFireRasts$prob_ignition_escape
+    escapeRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
+    escapeRas[]<-sim$probFireRasts$prob_ignition_escape
     
     
     message("create spread raster")
-    sim$spreadRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
-    sim$spreadRas[]<-sim$probFireRasts$prob_ignition_spread
+    spreadRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
+    spreadRas[]<-sim$probFireRasts$prob_ignition_spread
   
     #for (i in 1:numberFireReps) {
     message("get fire ignition locations")
@@ -2709,7 +2735,7 @@ distProcess <- function(sim) {
       out
     }
     
-    sim$out  <- spreadWithEscape(sim$area, start = random.starts, escapeProb = sim$escapeRas , spreadProb = sim$spreadRas)
+    sim$out  <- spreadWithEscape(area, start = random.starts, escapeProb = escapeRas , spreadProb = spreadRas)
   
     
     print(sim$out)
@@ -2739,15 +2765,15 @@ distProcess <- function(sim) {
     
     sim$firedisturbanceTable[pixelid %in% sim$out$pixels, numberTimesBurned := numberTimesBurned+1]
     
-    sim$x<-as.data.frame(table(sim$out$initialPixels))
+    x<-as.data.frame(table(sim$out$initialPixels))
     
     message("updating fire Report")
     
-    tempfireReport<-data.table(timeperiod = time(sim), numberstarts = no_ignitions, numberescaped = nrow(sim$x %>% dplyr::filter(Freq>1)), totalareaburned=sim$out[,.N], thlbburned = dbGetQuery(sim$castordb, paste0(" select sum(thlb) as thlb from pixels where pixelid in (", paste(sim$out$pixels, sep = "", collapse = ","), ");"))$thlb)
-    print(tempfireReport)
-    print(sim$fireReport)
+    tempfireReport<-data.table(timeperiod = time(sim), numberstarts = no_ignitions, numberescaped = nrow(x %>% dplyr::filter(Freq>1)), totalareaburned=sim$out[,.N], thlbburned = dbGetQuery(sim$castordb, paste0(" select sum(thlb) as thlb from pixels where pixelid in (", paste(sim$out$pixels, sep = "", collapse = ","), ");"))$thlb)
+    
     
     sim$fireReport<-rbindlist(list(sim$fireReport,tempfireReport ))
+    print(sim$fireReport)
       
     
   }
