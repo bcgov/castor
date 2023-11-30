@@ -9,23 +9,28 @@ jgc <- function() .jcall("java/lang/System", method = "gc")
 
 cocelaClass<-.jnew("castor.CellularAutomata")
 cocelaClass$setRParms(
-  as.character(paste0(here::here(),"/R/SpaDES-modules/disturbanceCastor/test_castordb.sqlite")), # db_location
-  as.integer(290000), #harvMin
-  as.integer(309000), #harvMaxm
-  .jfloat(0.85), #growstockPercentage 
-  as.integer(110), # ageThres
-  as.integer(50), # planHorizon
+  as.character(paste0(here::here(),"/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_castordb2.sqlite")), # db_location
+  as.integer(660000), #harvMin
+  as.integer(669000), #harvMaxm
+  .jfloat(0.0), #growstockPercentage 
+  as.integer(100), # ageThres
+  as.integer(100), # planHorizon
   as.integer(5), # planLength
   .jfloat(150.0),# minHarvestVolume 
-  .jfloat(0.001), # ageClusterWeight
-  .jfloat(0.95) # harvestCluster Weight
+  .jfloat(0.0), # ageClusterWeight
+  .jfloat(0.2) # harvestCluster Weight
 )
 cocelaClass$getCastorData()
 cocelaClass$coEvolutionaryCellularAutomata()
 jgc()
 rm(cocelaClass)
 gc()
-test()
+
+
+
+
+
+
 
 test<-function(){
 userdb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/disturbanceCastor/test_castordb.sqlite") ) 

@@ -78,7 +78,7 @@ public class CellularAutomata {
 		int currentMaxState;
 		Random r = new Random(15); // needed for mutation or innovation probabilities? 
 		harvestPriorityWeight = 1-(harvestClusterWeight + ageClusterWeight);
-		double gWeightIncr = 0.01;
+		double gWeightIncr = 2.0;
 		
 		planHarvestVolume = new float[landscape.numTimePeriods];
 		planGSVolume = new float[landscape.numTimePeriods];
@@ -448,7 +448,7 @@ public class CellularAutomata {
 					stateMax = s;
 					rankNeighObjSelected = rankNeighObj;
 					pSelected = P;
-					plc = getLCRemaining(lcList);
+					plc = getLCRemaining();
 					//if( P > 0.999) { //this is the threshold for stopping the simulation
 					if( plc >= 0.999 && P > 0.999) { //this is the threshold for stopping the simulation
 						globalConstraintsAchieved = true;
@@ -507,10 +507,12 @@ public class CellularAutomata {
 
 	/**
 	 * Gets the remaining percentage of land cover constraints that are achieved through out the planning horizon
-	 * @param lcList  the land cover constraints that are not be included in the remaining percentage
 	 * @return  a double value of the percentage of land cover constraints achieved
 	 */
-	private double getLCRemaining(ArrayList<Integer> lcList) {
+	private double getLCRemaining() {
+		if(landCoverConstraintList.size() <= 1) {
+			return (double) 1.0;
+		}else {
 		int lcRemaining = 0;
 		int count = 0;
 		for(int f = 1; f < landCoverConstraintList.size(); f ++) { //note that the index 0 is reserved as a null landcover constraint
@@ -524,6 +526,7 @@ public class CellularAutomata {
 		}
 	
 		return (double) lcRemaining/count;
+		}
 	}
 
 	/**
@@ -566,42 +569,45 @@ public class CellularAutomata {
 		double valueOut =0.0;
 		float[] vector, currentConstraint;
 		int constraint, target;
-		
-		for(int lcc = 0; lcc < landCoverList.size(); lcc++) {
-			constraint = landCoverList.get(lcc);
-			vector = hashMap.get(landCoverConstraintList.get(constraint).variable);
-			currentConstraint = landCoverConstraintList.get(constraint).achievedConstraint;
-			target = landCoverConstraintList.get(constraint).target_cover;
-			double weight;
-			
-			switch(landCoverConstraintList.get(constraint).type) {
-				case "nh":
-					break;
-				case "ge": //greater or equal to
-					weight = (double) 1/(vector.length-landCoverConstraintList.get(constraint).delayHarvest)*((double) 1/landCoverList.size());
-					
-					for(int v =landCoverConstraintList.get(constraint).delayHarvest; v < vector.length; v ++) {
-						if(  vector[v] >=  landCoverConstraintList.get(constraint).threshold) {
-							valueOut += Math.min(1.0, (currentConstraint[v]+1)/target)*weight; //adds one because its the addition of that pixel to the constraints
-						}else {
-							valueOut += Math.min(1.0, currentConstraint[v]/target)*weight;							
-						}
-					}
-					break;
-				case "le": //lesser or equal to
-					weight = (double) 1/(vector.length-landCoverConstraintList.get(constraint).delayHarvest)*((double) 1/landCoverList.size());
-					
-					for(int v =landCoverConstraintList.get(constraint).delayHarvest; v < vector.length; v ++) {
-						if(  vector[v] <=  landCoverConstraintList.get(constraint).threshold) {
-							valueOut += Math.min(1.0, target/(currentConstraint[v]+1))*weight;
-						}else {
-							valueOut += Math.min(1.0, target/currentConstraint[v])*weight;							
-						}
-					}
-					break;
-			}
+		if(landCoverList.size() <= 1) {
+			valueOut =1.0;
 		}
+		for(int lcc = 0; lcc < landCoverList.size(); lcc++) {
+				constraint = landCoverList.get(lcc);
+				vector = hashMap.get(landCoverConstraintList.get(constraint).variable);
+				currentConstraint = landCoverConstraintList.get(constraint).achievedConstraint;
+				target = landCoverConstraintList.get(constraint).target_cover;
+				double weight;
+				
+				switch(landCoverConstraintList.get(constraint).type) {
+					case "nh":
+						break;
+					case "ge": //greater or equal to
+						weight = (double) 1/(vector.length-landCoverConstraintList.get(constraint).delayHarvest)*((double) 1/landCoverList.size());
+						
+						for(int v =landCoverConstraintList.get(constraint).delayHarvest; v < vector.length; v ++) {
+							if(  vector[v] >=  landCoverConstraintList.get(constraint).threshold) {
+								valueOut += Math.min(1.0, (currentConstraint[v]+1)/target)*weight; //adds one because its the addition of that pixel to the constraints
+							}else {
+								valueOut += Math.min(1.0, currentConstraint[v]/target)*weight;							
+							}
+						}
+						break;
+					case "le": //lesser or equal to
+						weight = (double) 1/(vector.length-landCoverConstraintList.get(constraint).delayHarvest)*((double) 1/landCoverList.size());
+						
+						for(int v =landCoverConstraintList.get(constraint).delayHarvest; v < vector.length; v ++) {
+							if(  vector[v] <=  landCoverConstraintList.get(constraint).threshold) {
+								valueOut += Math.min(1.0, target/(currentConstraint[v]+1))*weight;
+							}else {
+								valueOut += Math.min(1.0, target/currentConstraint[v])*weight;							
+							}
+						}
+						break;
+				}
+			}
 		return valueOut;
+	
 	}
 
 
@@ -1172,7 +1178,7 @@ public class CellularAutomata {
 					System.out.print("Getting constraint information");
 					landCoverConstraintList.add(0, new LandCoverConstraint()); // zero is a null landCoverConstraint
 					counter =0;
-					String getConstraintObjects = "SELECT id, variable, threshold, type, percentage, t_area FROM zoneConstraints ORDER BY id;";
+					String getConstraintObjects = "SELECT id, variable, threshold, type, percentage, t_area FROM zoneConstraints WHERE reference_zone IN ('rast.zone_cond_beo','rast.zone_cond_vqo','rast.zone_cond_wha', 'rast.zone_cond_uwr','rast.zone_cond_nharv', 'default') ORDER BY id;";
 					ResultSet rs5 = statement.executeQuery(getConstraintObjects);
 					while(rs5.next()) {
 						counter ++;
@@ -1293,13 +1299,13 @@ public class CellularAutomata {
 	     */
 		public void setDefaultParams() {
 			// TODO Auto-generated method stub
-			this.castordb = "C:/Users/klochhea/castor/R/SpaDES-modules/dataCastor/test_castordb.sqlite";
-			this.harvestMin = 257900;
-			this.harvestMax = 259900;
+			this.castordb = "C:/Users/klochhea/castor/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_castordb2.sqlite";
+			this.harvestMin = 691000;
+			this.harvestMax = 694000;
 			this.gsMinPer = 0.0f;
-			this.landscape.setLandscapeParameters( 100, 50,  5,  150.0f);
-			this.harvestClusterWeight = 0.65f;
-			this.ageClusterWeight = 0.3f;
+			this.landscape.setLandscapeParameters( 100, 200,  5,  149.0f); // int ageThres, int planHorizon, int planLength, float minHarvestVolume
+			this.harvestClusterWeight = 0.001f;
+			this.ageClusterWeight = 0.0f;
 		}
 
 	/** 

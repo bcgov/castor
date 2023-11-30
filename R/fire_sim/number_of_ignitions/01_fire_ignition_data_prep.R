@@ -7,13 +7,13 @@ library(rpostgis)
 library(keyring)
 library(bcdata)
 
-# Here we are trying to do the same as Marchal et al 2017. To estimate the number of ignitions per grid cell. But first I want to determine what grid cell size is the best. 
-
 # get ignition data
 ignit<-try(
   bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
     filter(FIRE_YEAR > 2001) %>%
     filter(FIRE_TYPE == "Fire") %>%
+    filter(CURRENT_SIZE >= 10) %>%
+    filter(FIRE_CAUSE >= "Lightning") %>%
     collect()
 )
 

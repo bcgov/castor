@@ -64,7 +64,7 @@ ras.coast[coast$pixelid]<-coast$coast
 ## Dynamic variables in the forecast
 Get the information/covariates to parameterize the model. In this example using the information from 2012
 ```{r}
-dynamic_vars<-preds.all[FIRE_YEAR == 2012, c("pixelid", "lconif", "CMI", "dCMI3yr", "flam.layer")]
+dynamic_vars<-preds.all[FIRE_YEAR == 2021, c("pixelid", "lconif", "CMI", "dCMI3yr", "flam.layer")]
 ras.flam<-prov.ras
 ras.flam[dynamic_vars$pixelid]<-dynamic_vars$flam.layer
 ras.pixelid<-prov.ras
@@ -86,7 +86,7 @@ fire.num[, pred_mu:= exp(-15.88805271 + (-0.07208596*cmi) + (-0.25905605*dcmi3yr
 
 ### Take random draws as an inhomogenous poisson process
 ```{r}
-set.seed(928)
+set.seed(8883)
 fire.num$sim_fire<-unlist(lapply (fire.num$pred_mu, function (x) { rnbinom(n = 1, size = 0.43, mu =x ) })) # note that the rnbinom follows same parameterization as rbinom2 in sdmTMB. Also, the dispersion parameter is fixed at 0.43 as per the model assumptions. This could change if we use another type of approach via distribution regression or other.
 
 sum(fire.num$sim_fire, na.rm=T)

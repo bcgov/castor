@@ -1,6 +1,6 @@
 #-------------------------------------------------------------------------------------------------
 # Define UI
-shinyUI(fluidPage(theme = shinytheme("lumen"),  
+shinyUI(fluidPage(  
                 titlePanel("CLUS: Scenario Tool"),
                 sidebarLayout(
                   sidebarPanel(

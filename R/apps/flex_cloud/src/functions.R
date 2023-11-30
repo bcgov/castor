@@ -33,7 +33,7 @@ run_simulation <- function(
     simulation_debug_file,
     simulation_debug_file_lock
 ) {
-  # browser()
+   browser()
   download_path <- glue::glue('inst/app/{simulation_id}/')
   # fs::dir_create(download_path)
   
@@ -42,6 +42,7 @@ run_simulation <- function(
   sim_params$iteration <- iteration
 
   future({
+    browser()
     options(do.wait_time = 15)
     
     errored <- FALSE
