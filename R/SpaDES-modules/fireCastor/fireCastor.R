@@ -515,17 +515,18 @@ if (!exists("dbCon")){
       vars = sprintf(c("CMD%02d"),2:10)
     )
     
-    message("downscale RH")
-    results_RH <-downscale(
-      xyz = as.data.frame(dat3),
-      normal = normal,
-      gcm_ts = gcm_ts,
-      vars = sprintf(c("RH%02d"),2:10)
-    )
+    #message("downscale RH")
+    # results_RH <-downscale(
+    #   xyz = as.data.frame(dat3),
+    #   normal = normal,
+    #   gcm_ts = gcm_ts,
+    #   vars = sprintf(c("RH%02d"),2:10)
+    # )
    
     results<-merge(results_Tmax, results_PPT, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
     results<-merge(results, results_Tave, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
-    results<-merge(results, results_RH, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
+    #results<-merge(results, results_RH, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
+    results<-merge(results, results_CMD, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
     
     # Why do I do the step at results 3 or results 2. DOUBLE CHECK
     
@@ -580,53 +581,40 @@ if (!exists("dbCon")){
   
   # Lightning climate variables
   #climate_variables_lightning<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")  
-  results4<-results4 %>%
-    dplyr::mutate(climate1_lightning = dplyr::case_when(
-      frt == "5" ~ (Tave05 + Tave06 + Tave07 +Tave08)/4 ,
-      frt == "7" ~ (RH05 + RH06 + RH07)/3,
-      frt == "9" ~ Tmax05,
-      frt == "10" ~ (Tave07 + Tave08 + Tave09)/3 ,
-      frt == "11" ~ (Tmax07 + Tmax08 + Tmax09)/3,
-      frt == "12" ~ (Tmax07 + Tmax08)/2,
-      frt == "13" ~ Tave07,
-      frt == "14" ~ (Tave07 + Tave08)/2,
-      frt == "15" ~ (Tave06 + Tave07 + Tave08)/3 ,
-      TRUE ~ NA_real_))
   
-  results4 <- results4 %>%
-    dplyr::mutate(climate2_lightning = dplyr::case_when(
-      frt == "5" ~ as.numeric((PPT05 + PPT06 +PPT07 + PPT08)/4) ,
-      frt == "10" ~ as.numeric((PPT07 + PPT08 + PPT09)/3) ,
-      frt == "11" ~ as.numeric((PPT07 + PPT08 + PPT09)/3),
-      frt == "13" ~ as.numeric(PPT07),
-      frt == "15" ~ as.numeric((PPT06 + PPT07 + PPT08)/3),
-      TRUE ~ NA_real_))
-
+  results4[frt=="5",climate1_lightning:=(Tave05 + Tave06 + Tave07 + Tave08)/4]
+  results4[frt=="5",climate2_lightning:=(PPT05 + PPT06 + PPT07 + PPT08)/4]
+  results4[frt=="7", climate1_lightning:=(Tmax03 + Tmax04 + Tmax05 + Tmax06 + Tmax07 + Tmax08)/6]
+  results4[frt=="9", climate1_lightning:=(Tave04 + Tave05 + Tave06 +Tave07 +Tave08 + Tave09)/6]
+  results4[frt=="10", climate1_lightning:=(Tave08 + Tave09)/2]
+  results4[frt=="10", climate2_lightning:=(PPT07 + PPT08)/2]
+  results4[frt=="11", climate1_lightning:=(Tave03 + Tave04 + Tave05 + Tave06 + Tave07 + Tave08)/6]
+  results4[frt=="12", climate1_lightning:=(Tmax07 + Tmax08)/2]
+  results4[frt=="13", climate1_lightning:=Tave07]
+  results4[frt=="13", climate2_lightning:=PPT07]
+  results4[frt=="14", climate1_lightning:=CMD07]
+  results4[frt=="15", climate1_lightning:=(Tave07 + Tave08)/2]
+  results4[frt=="15", climate2_lightning:=(PPT07 + PPT08)/2]
+  
+  
   # Person Climate variables not included in lightning
   #climate_variables_person<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
   
-  results4<-results4 %>%
-    dplyr::mutate(climate1_person = dplyr::case_when(
-      frt == "5" ~ as.numeric((PPT06 + PPT07)/2),
-      frt == "7" ~ (Tave04 + Tave05 + Tave06 + Tave07 +Tave08 + Tave09 + Tave10)/7,
-      frt == "9" ~ Tmax05, 
-      frt == "10" ~ as.numeric(PPT06 + PPT07 + PPT08 + PPT09)/4,
-      frt == "11" ~ (Tave08 + Tave09 + Tave10)/3,
-      frt == "12" ~ (Tmax04 + Tmax05 + Tmax06 + Tmax07 + Tmax08 + Tmax09 + Tmax10)/7,
-      frt == "13" ~ (Tave07 + Tave08 + Tave09)/3,
-      frt == "14" ~ (Tmax04 + Tmax05 + Tmax06 + Tmax07 + Tmax08 + Tmax09 + Tmax10)/7,
-      frt == "15" ~ (Tave07 + Tave08 + Tave09)/3,
-      TRUE ~ NA_real_))
-  
-  # #Repeat for climate 2
-  results4<-results4 %>%
-    dplyr::mutate(climate2_person = dplyr::case_when(
-      frt == "13" ~ as.numeric((PPT07 + PPT08 + PPT09)/3),
-      frt == "15" ~ as.numeric((PPT07 + PPT08 + PPT09)/3),
-      TRUE ~ NA_real_))
+  results4[frt==5, climate1_person:=(PPT06+PPT07)/2]
+  results4[frt==7, climate1_person:=(Tmax05+Tmax06+Tmax07+Tmax08)/4]
+  results4[frt==9, climate1_person:=(Tave04+Tave05+Tave06+Tave07)/4]
+  results4[frt==9, climate2_person:=(PPT04+PPT05+PPT06+PPT07)/4]
+  results4[frt==10, climate1_person:=(CMD06 + CMD07 + CMD08 + CMD09)/4]
+  results4[frt==11, climate1_person:=(Tmax04+ Tmax05 + Tmax06+ Tmax07)/4]
+  results4[frt==11, climate2_person:=(PPT04+ PPT05 + PPT06+ PPT07)/4]
+  results4[frt==12, climate1_person:=(Tmax04+ Tmax05 + Tmax06+ Tmax07 + Tmax08 +Tmax09)/6]
+  results4[frt==13, climate1_person:=(Tmax04+ Tmax05 + Tmax06+ Tmax07 + Tmax08 +Tmax09)/6]
+  results4[frt==14, climate1_person:=(Tmax04+ Tmax05 + Tmax06+ Tmax07 + Tmax08 +Tmax09)/6]
+  results4[frt==15, climate1_person:=(Tave06+ Tave07 + Tave08)/3]
+  results4[frt==15, climate2_person:=(PPT06+ PPT07 + PPT08)/3]
   
   # escape variables not listed above
-  #climate_escape<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\climate_AIC_results_escape_summary_March2023.csv")
+  #climate_escape<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\climate_AIC_results_escape_summary_Oct23.csv")
   results4<-results4 %>%
     dplyr::mutate(climate1_escape = dplyr::case_when(
       frt == "5" ~ as.numeric(PPT05) ,
