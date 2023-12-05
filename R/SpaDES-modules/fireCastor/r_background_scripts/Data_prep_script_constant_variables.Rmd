@@ -254,21 +254,13 @@ plot(emptyRas)
 #Change Aspect to N,S,E,W
 
 
-pixels[, aspect_cardinal:="flat"]
+pixels[, aspect_cardinal:="O"]
 pixels[aspect>315, aspect_cardinal:="N"]
 pixels[aspect<=45, aspect_cardinal:="N"]
-pixels[aspect>45 & aspect<=135, aspect_cardinal:="E"]
+pixels[aspect>45 & aspect<=135, aspect_cardinal:="O"]
 pixels[aspect>135 & aspect<=225, aspect_cardinal:="S"]
-pixels[aspect>225 & aspect<=315, aspect_cardinal:="W"]
+pixels[aspect>225 & aspect<=315, aspect_cardinal:="O"]
 
-# pixels<- pixels %>% 
-#   mutate(aspect_cardinal = if_else(aspect > 315, "N",
-#               if_else(aspect <= 45, "N",
-#                  if_else(aspect > 45 & aspect <= 135, "E",
-#                          if_else(aspect > 135 & aspect <= 225, "S",
-#                                  if_else(aspect > 225 & aspect <= 315, "W", "NA"))))))
-
-# assume that when there is a value for elevation but not for slope or aspect that then those locations are flat ground so there is no aspect and slope is 0. 
 pixels[!is.na(dem) & is.na(slope), slope:=0]
 pixels[is.na(slope), slope:=0]
 
@@ -277,16 +269,12 @@ pixels[!is.na(aspect_cardinal),]
 # create dummy variables for aspect
 pixels[, aspect_N:=0]
 pixels[aspect_cardinal == "N", aspect_N:=1]
-pixels[,aspect_E:=0]
-pixels[aspect_cardinal == "E", aspect_E:=1]
+pixels[,aspect_O:=0]
+pixels[aspect_cardinal == "O", aspect_O:=1]
 pixels[, aspect_S:=0]
 pixels[aspect_cardinal == "S", aspect_S:=1]
-pixels[, aspect_W:=0]
-pixels[aspect_cardinal == "W", aspect_W:=1]
-pixels[, aspect_flat:=0]
-pixels[aspect_cardinal == "flat", aspect_flat:=1]
 
-pixels[!is.na(aspect),]
+pixels[!is.na(frt),]
 
 rm(aoi, dat, frt, prov.rast, pts)
 gc()
