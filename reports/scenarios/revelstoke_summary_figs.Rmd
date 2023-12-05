@@ -29,6 +29,7 @@ conn <- dbConnect (RPostgreSQL::PostgreSQL(),
 				          port = "5432")
 data.harvest <- dbGetQuery (conn, "SELECT * FROM revelstoke_complex_caribou.harvest") 
 data.disturb <- dbGetQuery (conn, "SELECT scenario, compartment, timeperiod, critical_hab, total_area, cut40, road50, c40r50, c40r500 FROM revelstoke_complex_caribou.disturbance") 
+data.seral <- dbGetQuery (conn, "SELECT * FROM revelstoke_complex_caribou.survival") 
 dbDisconnect (conn)
 
 # total volume by scenario and period
@@ -36,30 +37,27 @@ data.volume.total <- data.harvest %>% # get summary data
                        group_by (scenario, timeperiod) %>% 
                          summarise (volume = round (sum (volume), digits = 0)) %>%
                            filter (scenario == "bau_all" | 
-                                   scenario == "old_growth_all" |
-                                   scenario == "tier1" |
-                                   scenario == "tier2" |
-                                   scenario == "tier3" |
-                                   scenario == "tier4" 
+                                   scenario == "tier1_12p_jun2023" |
+                                   scenario == "tier2_12p_jun2023" |
+                                   scenario == "tier3_12p_jun2023" 
                                    )  
-data.volume.total$percent_of_bau <- round (100 * (data.volume.total$volume / 4449791), digits = 0)
+mean(data.volume.total[data.volume.total$scenario == 'bau_all', ]$volume)
+data.volume.total$percent_of_bau <- round (100 * (data.volume.total$volume / mean(data.volume.total[data.volume.total$scenario == 'bau_all', ]$volume)), digits = 0)
 
 # average volume by scenario
 data.volume.avg <- data.volume.total %>%
                     group_by (scenario) %>% 
                         summarise (avg.volume = round (sum (volume/20), digits = 0))
-data.volume.avg$percent_of_bau <- round (100 * (data.volume.avg$avg.volume / 4449791), digit = 0)
+data.volume.avg$percent_of_bau <- round (100 * (data.volume.avg$avg.volume / mean(data.volume.total[data.volume.total$scenario == 'bau_all', ]$volume)), digit = 0)
 
 # total volume by compartment, scenario and period
 data.volume.compart <- data.harvest %>% # get summary data
                        group_by (scenario, timeperiod, compartment) %>% 
                          summarise (volume = round (sum (volume), digits = 0)) %>%
                            filter (scenario == "bau_all" | 
-                                   scenario == "old_growth_all" |
-                                   scenario == "tier1" |
-                                   scenario == "tier2" |
-                                   scenario == "tier3" |
-                                   scenario == "tier4" 
+                                   scenario == "tier1_12p_jun2023" |
+                                   scenario == "tier2_12p_jun2023" |
+                                   scenario == "tier3_12p_jun2023"  
                                    )  
 data.volume.max.compart <- data.volume.compart %>%
                              group_by (scenario, compartment) %>% 
@@ -69,8 +67,8 @@ data.volume.compart <- merge (data.volume.compart, data.volume.max.compart [, c 
 data.volume.compart$percent_of_bau <- round (100 * (data.volume.compart$volume / data.volume.compart$max.volume), digit = 0)
 
 # select compartment
-data.volume.compart <- data.volume.compart  %>% 
-                              filter (compartment == "Revelstoke_TSA") 
+#data.volume.compart <- data.volume.compart  %>% 
+#                              filter (compartment == "Revelstoke_TSA") 
 # "Arrow_TSA"         "Cascadia_TKO_TSA"  "Golden_TSA"        "Kamloops_TSA"      "Kootenay_Lake_TSA" "Okanagan_TSA"     
 # "Revelstoke_TSA"    "Robson_Valley_TSA" "TFL14"             "TFL23"             "TFL55"             "TFL56"  
 
@@ -97,9 +95,9 @@ plot.volume.percent <- ggplot (data.volume.total, aes (x = timeperiod,
                             #facet_grid (. ~scenario) +
                             labs (x = "Future Year", y = "Percent of BAU Volume Harvested") + 
                             scale_color_discrete (name = "Scenario", 
-                                                  labels = c("BAU", "Old Growth", "Tier 1", "Tier 2", "Tier 3", "Tier 4")) +
+                                                  labels = c("BAU",  "Tier 1", "Tier 2", "Tier 3")) +
                             scale_linetype_discrete (name = "Scenario", 
-                                                    labels = c("BAU", "Old Growth", "Tier 1", "Tier 2", "Tier 3", "Tier 4")) +
+                                                    labels = c("BAU",  "Tier 1", "Tier 2", "Tier 3")) +
                             theme (legend.position = c (0.15, 0.15),
                                    legend.title = element_text(size = 10),
                                    legend.text = element_text( size = 8)) +
@@ -107,46 +105,28 @@ plot.volume.percent <- ggplot (data.volume.total, aes (x = timeperiod,
                             scale_y_continuous (label = comma, breaks = seq (40, 100, 5)) +
                             theme_classic()
 
+# "Arrow_TSA"         "Cascadia_TKO_TSA"  "Golden_TSA"        "Kamloops_TSA"      "Kootenay_Lake_TSA" "Okanagan_TSA"     
+# "Revelstoke_TSA"    "Robson_Valley_TSA" 
 
-plot.volume.total <- ggplot (data.volume.total, aes (x = timeperiod, y = volume, color = scenario, linetype = scenario)) +
+plot.volume.total <- ggplot (data.volume.compart %>% 
+                              filter (compartment == "Robson_Valley_TSA"), aes (x = timeperiod, y = volume, color = scenario, linetype = scenario)) +
                       geom_line (position = position_dodge (width = 1), size = 1) + 
                       #facet_grid (. ~scenario) +
-                      labs (title = "Annual Volume Harvested in the Area of Interest for Each Scenario", 
+                      labs (title = "Annual Volume Harvested Robson Valley TSA", 
                             x = "Future Year", y = "Volume Harvested (m3)") + 
                       scale_color_discrete (name = "Scenario", 
-                                            labels = c("BAU", "Old Growth", "Tier 1", "Tier 2", "Tier 3", "Tier 4")) +
+                                            labels = c("BAU",  "Tier 1", "Tier 2", "Tier 3")) +
                       scale_linetype_discrete (name = "Scenario", 
-                                              labels = c("BAU", "Old Growth", "Tier 1", "Tier 2", "Tier 3", "Tier 4")) +
+                                              labels = c("BAU",  "Tier 1", "Tier 2", "Tier 3")) +
               theme (legend.position = c (0.15, 0.15),
                      legend.title = element_text(size = 10),
                      legend.text = element_text( size = 8)) +
               scale_x_continuous (breaks = seq(0,200,25)) +
-              scale_y_continuous (label = comma, breaks = seq(3500000,5000000,100000)) +
+              #scale_y_continuous (label = comma, breaks = seq(3500000,5000000,100000)) +
               theme_classic()
 
-
-plot.volume.percent.compart <- ggplot (data.volume.compart, aes (x = timeperiod, 
-                                                       y = percent_of_bau, color = scenario, linetype = scenario)) +
-                            geom_line (position = position_dodge (width = 1), size = 1) + 
-                            #facet_grid (. ~scenario) +
-                            labs (x = "Future Year", y = "Percent of BAU Volume Harvested") + 
-                            scale_color_discrete (name = "Scenario", 
-                                                  labels = c("BAU", "Old Growth", "Tier 1", "Tier 2", "Tier 3", "Tier 4")) +
-                            scale_linetype_discrete (name = "Scenario", 
-                                                    labels = c("BAU", "Old Growth", "Tier 1", "Tier 2", "Tier 3", "Tier 4")) +
-                            theme (legend.position = c (0.15, 0.15),
-                                   legend.title = element_text(size = 10),
-                                   legend.text = element_text( size = 8)) +
-                            scale_x_continuous (breaks = seq(0,200,25)) +
-                            scale_y_continuous (label = comma, breaks = seq(40,100,5)) +
-                            theme_classic()
-
-
-
-
-
-ggsave (filename = "C:\\Work\\git\\clus\\reports\\scenarios\\images\\harvest.jpg", 
-        plot = harvest,
+ggsave (filename = paste0(here::here(), "/R/scenarios/revelstoke_complex/outputs/robson_valley_tsa_harvest_vol_june2023.jpg"), 
+        plot = plot.volume.total,
         dpi = 300,
         device = "jpeg",
         width = 6, 
@@ -167,22 +147,18 @@ data.summ.disturb.nobuff <- data.disturb %>% # get summary data, weighted averag
                                group_by (scenario, timeperiod, critical_hab) %>% 
                                 summarise (disturb = weighted.mean (perc_dist_nobuff, total_area)) %>%
                                  filter (scenario == "bau_all" | 
-                                         scenario == "old_growth_all" |
-                                         scenario == "tier1" |
-                                         scenario == "tier2" |
-                                         scenario == "tier3" |
-                                         scenario == "tier4" 
+                                   scenario == "tier1_12p_jun2023" |
+                                   scenario == "tier2_12p_jun2023" |
+                                   scenario == "tier3_12p_jun2023"  
                                          )  
 
 data.summ.disturb.buff <- data.disturb %>% # get summary data, weighted averages
                                group_by (scenario, timeperiod, critical_hab) %>% 
                                 summarise (disturb = weighted.mean (perc_dist_buff, total_area)) %>%
                                  filter (scenario == "bau_all" | 
-                                         scenario == "old_growth_all" |
-                                         scenario == "tier1" |
-                                         scenario == "tier2" |
-                                         scenario == "tier3" |
-                                         scenario == "tier4" 
+                                   scenario == "tier1_12p_jun2023" |
+                                   scenario == "tier2_12p_jun2023" |
+                                   scenario == "tier3_12p_jun2023" 
                                          )  
 
 data.disturb.reve.herds <- data.summ.disturb.buff %>%
@@ -219,12 +195,10 @@ plot.disturb.buff.reve.herds <- ggplot (data.disturb.reve.herds,
                                             color = critical_hab, linetype = critical_hab)) +
                                         geom_line (position = position_dodge (width = 1), size = 1) + 
                                         facet_grid (. ~scenario,
-                                                    labeller = as_labeller (c ('bau_all' = "BAU", 
-                                                                               'old_growth_all' = "Old growth",
-                                                                               'tier1' = "Tier 1",
-                                                                               'tier2' = "Tier 2",
-                                                                               'tier3' = "Tier 3",
-                                                                               'tier4' = "Tier 4"))) +
+                                                    labeller = as_labeller (c ('bau_all' = "BAU",
+                                                                               'tier1_12p_jun2023' = "Tier 1",
+                                                                               'tier2_12p_jun2023' = "Tier 2",
+                                                                               'tier3_12p_jun2023' = "Tier 3"))) +
                                         labs (x = "Future Year", 
                                               y = "Percent Disturbance") + 
                                         scale_color_discrete (name = "Critical Habitat", 
@@ -286,7 +260,41 @@ ggsave (filename = "C:\\Work\\git\\clus\\reports\\scenarios\\images\\disturbance
 
 ```
 
+# EArly Seral
+```{r}
+data.seral.groundhog <- data.seral %>%
+                      filter (herd_bounds == "Central Selkirks") %>%
+                       filter (scenario != "load_data") %>%
+                           filter (scenario == "bau_all" | 
+                                   scenario == "tier1_12p_jun2023" |
+                                   scenario == "tier2_12p_jun2023" |
+                                   scenario == "tier3_12p_jun2023"
+                                   )
 
+plot.seral.groundhog <- ggplot (data.seral.groundhog, 
+                               aes (x = timeperiod, y = (prop_age * 100), 
+                                    color = scenario, linetype = scenario)) +
+                            geom_line (position = position_dodge (width = 1), size = 1) + 
+                            labs (title = "Percent Early Seral in Central Selkirks Herd for Each Scenario", 
+                                  x = "Future Year", 
+                                  y = "Percent Early Seral") + 
+                            scale_color_discrete (name = "Scenario", 
+                                                  labels = c("BAU", "Tier 1", "Tier 2", "Tier 3")) +
+                            scale_linetype_discrete (name = "Scenario", 
+                                                     labels = c("BAU", "Tier 1", "Tier 2", "Tier 3")) +
+                            theme (legend.position = c (0.15, 0.15),
+                                   legend.title = element_text(size = 10),
+                                   legend.text = element_text( size = 8)) +
+                            #scale_x_continuous (limits = c(0, 80), breaks = seq(0,60,20)) +
+                           #scale_y_continuous (label = comma, breaks = seq(0,50,2)) +
+                            theme_classic ()
+ggsave (filename = paste0(here::here(), "/R/scenarios/revelstoke_complex/outputs/es_central_selkirks_june2023.jpg"), 
+        plot = plot.seral.groundhog,
+        dpi = 300,
+        device = "jpeg",
+        width = 9, 
+        height = 6)
+```
 
 
 

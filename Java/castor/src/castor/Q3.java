@@ -27,7 +27,7 @@ public class Q3 {
 	double maxHarvestAreaBudget = 0.06;
 	boolean evenFlow = true;
 	boolean endingInventory= true;
-	boolean harvestAreaBudget= true;
+	boolean harvestAreaBudget= false;
 	
     CellularAutomata ca = new CellularAutomata();
     
@@ -37,6 +37,7 @@ public class Q3 {
 	*/
 	public Q3(){
 		try {
+			ca.setDefaultParams();
 			ca.getCastorData();
 		} catch (Exception e) {
 			e.printStackTrace();
