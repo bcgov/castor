@@ -194,7 +194,7 @@ getExistingRoads <- function(sim) {
                             geom= sim$boundaryInfo[[4]], 
                             where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
                             conn = NULL))
-    
+      sim$road.type[sim$road.type[] < 0]<-NA
       #Update the pixels table to set the roaded pixels
       roadUpdate<-data.table(V1= as.numeric(sim$road.type[])) #transpose then vectorize which matches the same order as adj
       roadUpdate[, pixelid := seq_len(.N)]
