@@ -67,7 +67,7 @@ Forest fire can be included in this simulation through fireCastor. Fire ignition
 Set parameters for running the model simulation below and run the code chunk.
 
 ```{r}
-library(climRdev)
+library(climr)
 dbCon <- data_connect() ##connect to climate database
 
 #dbCon <- climRdev::data_connect() ##connect to database
@@ -169,6 +169,8 @@ parameters <- list(
                     nameRoadsRast = "rast.ce_road_2019",
                     #recovery = 300,
                     nameElevationRaster = "rast.dem",
+                    nameClimateIdnoRast="rast.climate_prism_base_layer",
+                    nameClimateTable = "vat.climate_prism_lat_lon_lookup",
                     simStartYear = 2020,
                     gcm = c("MPI-ESM1-2-HR"),
                     gcmName=c("mpi_esm1_2_HR"),

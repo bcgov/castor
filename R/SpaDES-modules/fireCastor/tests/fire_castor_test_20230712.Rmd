@@ -46,39 +46,12 @@ zone_cond_nharv = parks and protected areas
 zone_cond_cw = community watersheds
 central_grp_partner_areas_072022 = Partnership Agreement areas, where no harvest is permitted in A2, B2, B3 and B4 zones; A1, B1, B5 max 10% <40 years old
 
-```{r, update partnerhsip zone constraints}
-require (DBI)
-source (paste0(here::here(), "/R/functions/R_Postgres.R"))
-castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/central_group/inputs/central_group_march2023_castordb.sqlite"))
+```{r}
+library(climRdev)
+dbCon <- data_connect() ##connect to climate database
 
-check <- dbGetQuery (castordb, "SELECT * from zoneconstraints WHERE reference_zone = 'rast.central_grp_partner_areas_072022'")
-dbExecute (castordb, "UPDATE zoneconstraints SET type = 'nh' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid = 8") 
-dbExecute (castordb, "UPDATE zoneconstraints SET type = 'ge' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid IN (1, 3, 9)") 
-dbExecute (castordb, "UPDATE zoneconstraints SET variable = 'age' WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid IN (1, 3, 9)") 
-dbExecute (castordb, "UPDATE zoneconstraints SET threshold = 41 WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid IN (1, 3, 9)")
-dbExecute (castordb, "UPDATE zoneconstraints SET percentage = 90 WHERE reference_zone = 'rast.central_grp_partner_areas_072022' AND zoneid IN (1, 3, 9)")
-
-dbDisconnect (castordb)  
-
+#dbCon <- climRdev::data_connect() ##connect to database
 ```
-
-### harvestBlockPriority  
-Closest to disturbance first, oldest second. Thus assumes the priority is to cluster forest harvest to minimize disturbance in caribou range. 
-
-### adjacencyConstraint
-Adjacency was set to 0 metres to allow for maximum clustering of forest harvest.
-
-### partition
-A partition was set as vol > 150 to ensure stands with a minimum of 150m3/ha were harvested, i.e., low productivity stands wouldn't be harvested. 
-
-### harvestFlow
- 1,500,000 m3/year provided a non-declining maximum harvest flow over a 200 year period.
-
-### Road recovery
-No road recovery was simulated (recovery = 300 years). 
-
-#### Usage
-Set parameters for running the model simulation below and run the code chunk. 
 
 ```{r module_usage}
 library (SpaDES.core)
@@ -103,10 +76,10 @@ parameters <- list(
                          nameBoundaryColumn = "lu_name",
                          nameBoundary = c ("Burnt - Lemoray", "Highhat"), 
                          nameBoundaryGeom = 'wkb_geometry',
-                         nameCompartmentRaster = "rast.central_grp_aoi",
-                         nameCompartmentTable = "vat.central_grp_aoi",
+                         nameCompartmentRaster = "rast.tsa_aac_boundary",
+                         nameCompartmentTable = "vat.tsa_aac_bounds_vat",
                          nameMaskHarvestLandbaseRaster ='rast.thlb_2020', 
-                          nameZoneTable = "zone.constraints", 
+                         nameZoneTable = "zone.constraints", 
                          nameZoneRasters = c ("rast.zone_cond_beo" ),
                           nameYieldsRaster = "rast.ycid_vdyp_2020_adj",
                           nameYieldTable = "yc_vdyp_2020_adj", 
@@ -126,24 +99,23 @@ parameters <- list(
                           nameForestInventorySiteIndex = "site_index"
                     ),
   blockingCastor = list(blockMethod ='pre', 
-                      patchZone = 'rast.zone_cond_beo',
+                      patchZone = c('rast.zone_cond_beo'),
                       patchVariation = 6,
                       nameCutblockRaster ="rast.cns_cut_bl",
                       useLandingsArea = FALSE, 
                       useSpreadProbRas = FALSE),
-  forestryCastor = list(harvestBlockPriority = "dist, age DESC", # "dist, age DESC, vol DESC"
+  forestryCastor = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
                       #harvestZonePriorityInterval = 1,
-                      adjacencyConstraint = 0,
+                      reportHarvestConstraints = T,
+                      adjacencyConstraint = 3,
                       activeZoneConstraint = c("rast.zone_cond_beo", 
-                                           "rast.zone_cond_vqo", 
-                                           "rast.zone_wha_2021", 
-                                           "rast.zone_uwr_2021",  
-                                           "rast.zone_cond_nharv", 
-                                           "rast.zone_cond_fsw", 
-                                           "rast.zone_cond_cw",
-                                           "rast.central_grp_partner_areas_072022"
-                              )),
+                                               "rast.zone_cond_vqo", 
+                                               "rast.zone_wha_2021", #"rast.zone_cond_wha"  
+                                               "rast.zone_uwr_2021", #"rast.zone_cond_uwr"
+                                               "rast.zone_cond_fsw",
+                                               "rast.zone_cond_nharv")
+                           ),
   growingStockCastor = list (periodLength = 5),
   roadCastor = list(roadMethod = 'mst', # pre mst
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
@@ -161,7 +133,7 @@ parameters <- list(
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 300), # no road recovery
   
-  fireCastor = list(#updateInterval =1,
+  fireCastor = list(calculateInterval =1,
                     #calendarStartYear = 2020,
                     nameFrtRaster = "rast.frt",
                     nameStaticLightningIgnitRaster = "rast.const_coef_lightning_ignit",
@@ -171,14 +143,21 @@ parameters <- list(
                     nameRoadsRast = "rast.ce_road_2019",
                     #recovery = 300,
                     nameElevationRaster = "rast.dem",
-                    simStartYear = 2020, 
+                    nameClimateIdnoRast="rast.climate_prism_base_layer",
+                    nameClimateTable = "vat.climate_prism_lat_lon_lookup",
+                    simStartYear = 2020,
+                    gcm = c("MPI-ESM1-2-HR"),
+                    gcmName=c("mpi_esm1_2_HR"),
+                    ssp = c("ssp370"),
+                    maxRun = 2, 
+                    run = c("r1i1p1f1"),
                     nameBecRast = "rast.bec_current",
                     nameBecTable = "vat.bec_zone_vat",
-                    futureClimateProjection = "8GCMs_ensemble_ssp370",
+                    futureClimateProjection = "8GCMs_ensemble_ssp370", #"MPI-ESM1-2-HR"
                     nameForestInventoryRaster = "rast.vri2020_id",
                     nameForestInventoryTable2 = "vri.veg_comp_lyr_r1_poly2020",
                     nameForestInventoryKey = "feature_id",
-                    firemodelcoeftbl = "public.fire_model_coef_tbl", 
+                    firemodelcoeftbl = "public.fire_model_coef_tbl",
                     numberFireReps = 1)
 )
   
