@@ -33,35 +33,33 @@ run_simulation <- function(
     simulation_debug_file,
     simulation_debug_file_lock
 ) {
-   browser()
   download_path <- glue::glue('inst/app/{simulation_id}/')
   # fs::dir_create(download_path)
-  
+
   # capture.output(unlist(sim_params), file = glue::glue("{download_path}params.txt"))
-  
+
   sim_params$iteration <- iteration
 
   future({
-    browser()
     options(do.wait_time = 15)
-    
+
     errored <- FALSE
-    
+
     Sys.getenv("DO_PAT")
-    
+
     # SSH config
     ssh_user <- "root"
-    
+
     print(paste(as.character(Sys.time()), ",got key", ssh_keyfile_name))
-    
+
     selected_scenario_tbl <- parseFilePaths(volumes, scenario)
     selected_scenario <- selected_scenario_tbl$name
     selected_scenario_path <- stringr::str_remove(selected_scenario_tbl$datapath, 'NULL/')
-    
+
     status <- paste0(
       "1,", paste0("Iteration ", iteration), ",0%,START PROCESSING,", as.character(Sys.time()), ","
     )
-    
+
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
     write(
       status,

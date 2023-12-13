@@ -20,7 +20,7 @@ library(shinyFiles)
 library(shinydashboard)
 library(shinyjs)
 library(future)
-library(future.callr)
+# library(future.callr)
 library(future.apply)
 library(rlist)
 library(fs)
@@ -45,8 +45,9 @@ source(here::here('R/apps/flex_cloud/src/functions.R'))
 
 # plan(sequential)
 # plan(multicore)
-plan(callr)
+# plan(callr)
 # plan(multisession)
+plan(cluster)
 
 # Available scneario Rmd files
 available_scenarios <- list.files('scenarios/')
@@ -578,20 +579,20 @@ server <- function(input, output, session) {
 
       # FLEX droplet image ----
       snapshots <- analogsea::snapshots(per_page = 200)
-      snap_image <- snapshots$`flex-cloud-image-20231015`$id
+      snap_image <- snapshots$`flex-cloud-image-20231212`$id
       if (is.null(snap_image)) {
         shinyjs::alert(
-        "Snapshot flex-cloud-image-20231015 does not exist in your Digital Ocean account. Please recreate it using Server Installation guide and restart the app."
+        "Snapshot flex-cloud-image-20231212 does not exist in your Digital Ocean account. Please recreate it using Server Installation guide and restart the app."
         )
         return(NULL)
       }
-      
+
       progressOne <- Progress$new(session, min = 1, max = 10)
       on.exit(progressOne$close())
       progressOne$set(message = 'Creating droplet to host the scenario',
                    detail = 'This will take about a minute.')
-      
-      
+
+
       # SSH config
       ssh_user <- "root"
 
@@ -789,27 +790,27 @@ server <- function(input, output, session) {
       if ('iterations' %in% colnames(params)) {
         used_iterations <- params$iterations
       }
-      
-      params_used <- params %>% 
-        dplyr::select(-scenario) %>% 
+
+      params_used <- params %>%
+        dplyr::select(-scenario) %>%
         mutate(
           times = as.numeric(times),
           female_dispersal = as.numeric(female_dispersal),
           initial_fisher_pop = as.numeric(initial_fisher_pop)
         )
-      params_used <- params_used %>% 
-        # tidyr::pivot_longer(cols = colnames(params[,2:14])) %>% 
-        tidyr::pivot_longer(cols = colnames(params_used)) %>% 
+      params_used <- params_used %>%
+        # tidyr::pivot_longer(cols = colnames(params[,2:14])) %>%
+        tidyr::pivot_longer(cols = colnames(params_used)) %>%
         mutate(value = as.character(value))
       output$params_used <- renderTable(params_used)
-      
+
       progressReport <- Progress$new(session, min = 1, max = 10)
       on.exit(progressReport$close())
       progressReport$set(
         message = 'Loading report data',
         detail = 'Fetching CSV files.'
       )
-      
+
       lock <- filelock::lock(path = simulation_debug_file_lock, exclusive = TRUE)
       wd <- getwd()
       write(
@@ -844,23 +845,26 @@ server <- function(input, output, session) {
         }
 
         data_csv <- future_lapply(
-            csv_files, 
+        # data_csv <- lapply(
+            csv_files,
             function(file, dir) {
               file <- paste0(dir, file)
-              readr::read_csv(file, show_col_types = FALSE) %>% 
-                dplyr::select(timeperiod, n_f_adult)
+              if (file.exists(file)) {
+                readr::read_csv(file, show_col_types = FALSE) %>%
+                  dplyr::select(timeperiod, n_f_adult)
+              }
             },
             dir
           )
-        
-        data <- dplyr::bind_rows(data_csv) %>% 
+
+        data <- dplyr::bind_rows(data_csv) %>%
           dplyr::mutate(timeperiod = as.factor(timeperiod))
-        
+
         progressReport$set(
           value = 2,
           detail = 'Processing CSV data.'
         )
-        
+
         group_data <- data %>%
           dplyr::group_by(timeperiod) %>%
           dplyr::summarize(
@@ -930,55 +934,63 @@ server <- function(input, output, session) {
 
       tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_final_fisher_territories.tif$')
       # tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+fisher_territories.tif$')
-        
+
       if (length(tif_files) == 0) {
         shinyjs::alert('No TIFF files have been found, cannot produce the heatmap.')
       } else {
         tic("Overall process")
         tic("Processing other tif files", quiet = TRUE)
-        
+
         if (!is.null(used_iterations)) {
           tif_files <- tif_files[1:used_iterations]
         }
-        
+
+        # browser()
         data_tif <- future_lapply(
         # data_tif <- lapply(
-          tif_files, 
+          tif_files,
           function(file, dir) {
             file <- paste0(dir, file)
   # browser()
             # Read raster file, cast to data frame and bind with all previous rasters
-            tif_data <- as.data.frame(
-              raster(file), xy = TRUE
-            ) 
-            
-            if (nrow(tif_data) > 0) {
-              tif_data <- tif_data %>% 
-                dplyr::filter(hr_0 > 0)
+#             tif_data_raster <- raster::raster(file)
+# print(tif_data_raster)
+# plot(tif_data_raster)
+            if (file.exists(file)) {
+              tif_data_terra <- terra::rast(file)
+
+# print(tif_data_terra)
+# plot(tif_data_terra)
+              tif_data <- as.data.frame(tif_data_terra, xy = TRUE)
+
+              if (nrow(tif_data) > 0) {
+                tif_data <- tif_data %>%
+                  dplyr::filter(hr_0 > 0)
+              }
+
+              if (nrow(tif_data) > 0) {
+                tif_data <- tif_data %>%
+                  dplyr::mutate(hr_0 = round(1 / length(tif_files) * 100, 2))
+              }
+              tif_data
             }
-            
-            if (nrow(tif_data) > 0) {
-              tif_data <- tif_data %>% 
-                dplyr::mutate(hr_0 = round(1 / length(tif_files) * 100, 2))
-            }
-            tif_data
           },
           dir
         )
-       
-        data_tif <- bind_rows(data_tif) %>% 
+
+        data_tif <- bind_rows(data_tif) %>%
           dplyr::group_by(x, y) %>%
           dplyr::summarize(hr_0 = sum(hr_0))
-  
+
         toc()
-  
+
         tic("Visualizing tif files", quiet = TRUE)
-        
+
         progressReport$set(
           value = 7,
           detail = 'Plotting TIFF files.'
         )
-        
+
         g <- ggplot() +
           geom_raster(data = data_tif , aes(x = x, y = y, fill = hr_0)) +
           scale_fill_gradient(
