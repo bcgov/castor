@@ -59,6 +59,10 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
     },
     
     getClimateData <- function(sim) {
+      
+      qry<-paste0("SELECT COUNT(*) as exists_check FROM sqlite_master WHERE type='table' AND name='climate_", P(sim, "gcmName", "fireCastor"),"_",P(sim, "ssp", "fireCastor"), "';")
+      
+      if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
      
       message("extract climate_id values from raster")
       
@@ -78,6 +82,13 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
         stop(paste0("ERROR: extents are not the same check -", P(sim, "nameClimateIdnoRast", "climateCastor")))
       }
       
+      message("add pixelid_climate to pixels table")
+      dbBegin(sim$castordb)
+      rs<-dbSendQuery(sim$castordb, "UPDATE pixels set pixelid_climate = :pixelid_climate where pixelid = :pixelid", climate_id)
+      dbClearResult(rs)
+      dbCommit(sim$castordb)
+      gc()
+
       message("look up lat, lon and elevation of climate_pixels")
       
       climate_id_key<-unique(climate_id[!(is.na(pixelid_climate )), pixelid_climate])
@@ -146,7 +157,7 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
                                           run = RUN,
                                           period = PERIOD)
       
-      message("upload data to sqlitedb")
+      message("upload climate data to sqlitedb")
       
       climate_dat[,c("ID", "lat", "long", "el"):=NULL]
     
@@ -161,10 +172,10 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
       dbClearResult(rs)
       dbCommit(sim$castordb)
       
+      } else {
+        message("climate data already extracted")
+      }
       
-    warning(paste("Undefined event type: \'", current(sim)[1, "eventType", with = FALSE],
-                  "\' in module \'", current(sim)[1, "moduleName", with = FALSE], "\'", sep = ""))
-  )
   return(invisible(sim))
 }
 
