@@ -82,6 +82,7 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
         stop(paste0("ERROR: extents are not the same check -", P(sim, "nameClimateIdnoRast", "climateCastor")))
       }
       
+      dbExecute(sim$castordb, ("ALTER TABLE pixels ADD COLUMN pixelid_climate numeric;"))
       message("add pixelid_climate to pixels table")
       dbBegin(sim$castordb)
       rs<-dbSendQuery(sim$castordb, "UPDATE pixels set pixelid_climate = :pixelid_climate where pixelid = :pixelid", climate_id)
