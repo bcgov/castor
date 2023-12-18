@@ -828,18 +828,18 @@ server <- function(input, output, session) {
       # write(unlist(list.files(dir)), file = simulation_debug_file, append = TRUE)
       # filelock::unlock(lock)
 
-      output$debug_output <- renderUI({
-        HTML(
-          paste(
-            readLines(simulation_debug_file),
-            collapse = "<br>"
-          )
-        )
-      })
-      
+      # output$debug_output <- renderUI({
+      #   HTML(
+      #     paste(
+      #       readLines(simulation_debug_file),
+      #       collapse = "<br>"
+      #     )
+      #   )
+      # })
+
       # csv_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_fisher_agents.csv$')
       csv_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+fisher_agents.csv$')
-  
+
       if (length(csv_files) == 0) {
         shinyjs::alert('No CSV files have been found, cannot produce the scatter plot.')
       } else {
