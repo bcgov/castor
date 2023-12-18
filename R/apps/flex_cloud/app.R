@@ -703,29 +703,32 @@ server <- function(input, output, session) {
       saveRDS(object = sim_params_df, file = glue::glue("{download_path}/params.rds"))
 
       rv$sim_params$simulation_id <- simulation_id
-      
-      lapply(
-        X = seq(1:sim_sequence),
-        FUN = run_simulation,
-        scenario = selected_scenario,
-        ssh_keyfile = ssh_keyfile,
-        ssh_keyfile_name = ssh_keyfile_name,
-        do_droplet_size = input$droplet_size,
-        scenario_droplet_ip = scenario_droplet_ip,
-        do_region = region,
-        do_image = snap_image,
-        simulation_logfile = simulation_logfile,
-        simulation_logfile_lock = simulation_logfile_lock,
-        progress = rv$progress,
-        total_steps = total_steps,
-        d_uploader = rv$d_uploader,
-        sim_params = rv$sim_params,
-        simulation_id = simulation_id,
-        droplet_sequence = droplet_sequence,
-        simulation_debug_file = simulation_debug_file,
-        simulation_debug_file_lock = simulation_debug_file_lock
-      )
-      
+
+      tryCatch({
+        lapply(
+          X = seq(1:sim_sequence),
+          FUN = run_simulation,
+          scenario = selected_scenario,
+          ssh_keyfile = ssh_keyfile,
+          ssh_keyfile_name = ssh_keyfile_name,
+          do_droplet_size = input$droplet_size,
+          scenario_droplet_ip = scenario_droplet_ip,
+          do_region = region,
+          do_image = snap_image,
+          simulation_logfile = simulation_logfile,
+          simulation_logfile_lock = simulation_logfile_lock,
+          progress = rv$progress,
+          total_steps = total_steps,
+          d_uploader = rv$d_uploader,
+          sim_params = rv$sim_params,
+          simulation_id = simulation_id,
+          droplet_sequence = droplet_sequence,
+          simulation_debug_file = simulation_debug_file,
+          simulation_debug_file_lock = simulation_debug_file_lock
+        )
+      }, error = function(e) {
+      })
+
       # values <- lapply(
       #   X = l,
       #   FUN = function(x) {
@@ -811,20 +814,20 @@ server <- function(input, output, session) {
         detail = 'Fetching CSV files.'
       )
 
-      lock <- filelock::lock(path = simulation_debug_file_lock, exclusive = TRUE)
+      # lock <- filelock::lock(path = simulation_debug_file_lock, exclusive = TRUE)
       wd <- getwd()
-      write(
-        paste(
-          "Local working directory", wd, "\n",
-          "Looking for CSV and TIF files in", dir, "\n",
-          "Folder content:\n"
-        ),
-        file = simulation_debug_file,
-        append = TRUE
-      )
-      write(unlist(list.files(dir)), file = simulation_debug_file, append = TRUE)
-      filelock::unlock(lock)
-      
+      # write(
+      #   paste(
+      #     "Local working directory", wd, "\n",
+      #     "Looking for CSV and TIF files in", dir, "\n",
+      #     "Folder content:\n"
+      #   ),
+      #   file = simulation_debug_file,
+      #   append = TRUE
+      # )
+      # write(unlist(list.files(dir)), file = simulation_debug_file, append = TRUE)
+      # filelock::unlock(lock)
+
       output$debug_output <- renderUI({
         HTML(
           paste(
