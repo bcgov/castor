@@ -178,7 +178,7 @@ ui <- shiny::tagList(
                     min = 1, max = 15, value = 7, step = 1
                   ),
                   textInput(
-                    inputId = 'initial_fisher_pop',  label = "Initial fisher population", 
+                    inputId = 'initial_fisher_pop',  label = "Initial fisher population",
                     value = 9999
                   )
                 )
@@ -211,7 +211,7 @@ ui <- shiny::tagList(
                     div(
                       class = 'form-group',
                       shiny::radioButtons(
-                        inputId = 'report_currency', 
+                        inputId = 'report_currency',
                         label = 'Select simulation',
                         choiceNames = c('Current', 'Previous'),
                         choiceValues = c('current', 'previous'),
@@ -378,7 +378,7 @@ server <- function(input, output, session) {
     progress = NULL,
     sim_params = list()
   )
-  
+
   shinyFileChoose(
     input, "file_scenario",
     roots = c('wd' = '.', 'root' = '/', 'home' = fs::path_home()),
@@ -415,7 +415,7 @@ server <- function(input, output, session) {
   # Droplet size
   # Available sizes
   # required_processes <- reactiveValue({
-  #   input$iterations / 
+  #   input$iterations /
   # })
 
   sizes <- analogsea::sizes(per_page = 200) %>%
@@ -437,18 +437,18 @@ server <- function(input, output, session) {
         processes, ' parallel processes, ',
         scales::dollar(price_per_process, prefix = '', suffix = '¢', accuracy = 0.01, scale = 100), ' per process per hour (',
         scales::dollar(price_hourly, prefix = '', suffix = '¢', accuracy = 0.01, scale = 100), ' hourly, ',
-        memory / 1024, 'GB, ', 
+        memory / 1024, 'GB, ',
         vcpus, ' vCPUs)'
       )
     ) %>%
-    arrange(price_per_process) %>% 
+    arrange(price_per_process) %>%
     dplyr::select(slug, label, processes)
-  
+
   size_choices <- setNames(
     as.character(sizes$slug),
     as.character(sizes$label)
   )
-  
+
   shiny::updateSelectizeInput(
     session = getDefaultReactiveDomain(),
     'droplet_size',
@@ -464,16 +464,16 @@ server <- function(input, output, session) {
       # browser()
       cookies <- glouton::fetch_cookies()
       cores <- as.numeric(cookies$cores)
-      
+
       required_processes <- ceiling(input$iterations / cores)
-      refined_sizes <- sizes %>% 
+      refined_sizes <- sizes %>%
         filter(processes > required_processes)
-      
+
       refined_size_choices <- setNames(
         as.character(refined_sizes$slug),
         as.character(refined_sizes$label)
       )
-      
+
       shiny::updateSelectizeInput(
         session = getDefaultReactiveDomain(),
         'droplet_size',
@@ -508,12 +508,12 @@ server <- function(input, output, session) {
     {
       output$key_selected <- renderPrint({
         cookies <- glouton::fetch_cookies()
-        
+
         ssh_keyfile <- cookies$key_path
         ssh_keyfile_name <- cookies$key_name
-        
+
         cores <- cookies$cores
-        
+
         print(paste("SSH key:", ssh_keyfile))
         print(paste("CPU cores:", cores))
       })
@@ -579,10 +579,10 @@ server <- function(input, output, session) {
 
       # FLEX droplet image ----
       snapshots <- analogsea::snapshots(per_page = 200)
-      snap_image <- snapshots$`flex-cloud-image-20231212`$id
+      snap_image <- snapshots$`flex-cloud-image-20240110`$id
       if (is.null(snap_image)) {
         shinyjs::alert(
-        "Snapshot flex-cloud-image-20231212 does not exist in your Digital Ocean account. Please recreate it using Server Installation guide and restart the app."
+        "Snapshot flex-cloud-image-20240110 does not exist in your Digital Ocean account. Please recreate it using Server Installation guide and restart the app."
         )
         return(NULL)
       }
@@ -607,7 +607,7 @@ server <- function(input, output, session) {
       uploader_size = 's-1vcpu-2gb'
 
       progressOne$set(1, detail = 'Creating droplet')
-      
+
       rv$d_uploader <- create_scenario_droplet(
         scenario = selected_scenario,
         ssh_keyfile = ssh_keyfile,
@@ -625,7 +625,7 @@ server <- function(input, output, session) {
       scenario_droplet_ip <- get_private_ip(rv$d_uploader)
 
       rv$progress <- AsyncProgress$new(message="Overall job progress")
-      
+
       print(paste("Simulation log file ", simulation_logfile))
       print(paste("Simulation debug file ", simulation_debug_file))
 
@@ -875,22 +875,22 @@ server <- function(input, output, session) {
             lower_ci = mean_val - qt(0.975, n() - 1) * sd(n_f_adult) / sqrt(n()),
             upper_ci = mean_val + qt(0.975, n() - 1) * sd(n_f_adult) / sqrt(n())
           )
-  
+
         progressReport$set(
           value = 3,
           detail = 'Plotting CSV data.'
         )
-        
+
         output$plot_csv <- renderPlot(
           ggplot(
-            data = data %>% 
-              dplyr::mutate(timeperiod = as.factor(timeperiod)), 
+            data = data %>%
+              dplyr::mutate(timeperiod = as.factor(timeperiod)),
             aes(
               x = timeperiod, y = n_f_adult
             )
-          ) + 
-            geom_point(size = 3, 
-                       alpha = 0.2, 
+          ) +
+            geom_point(size = 3,
+                       alpha = 0.2,
                        colour = '#1A5A96') +
             stat_summary(
               fun.data = "mean_cl_normal",
@@ -901,8 +901,8 @@ server <- function(input, output, session) {
               fatten = 2
             ) +
             geom_text(
-              x = as.integer(group_data$timeperiod) + 0.1, 
-              y = group_data$mean_val, 
+              x = as.integer(group_data$timeperiod) + 0.1,
+              y = group_data$mean_val,
               size = 3,
               aes(
                 label = paste0(
@@ -916,19 +916,19 @@ server <- function(input, output, session) {
             ) +
             ggtitle(
               paste0(
-                "Female fishers with established territory at the end of 
+                "Female fishers with established territory at the end of
                 each time interval (", length(csv_files), " iterations)"
               )
-            ) + 
+            ) +
             labs(
-              x = "Time period", 
+              x = "Time period",
               y = "Number of female adults"
-            ) + 
+            ) +
             theme_minimal()
         )
-        
+
         ggsave(file = paste0(dir, "../n_f_adults.png"))
-  
+
         progressReport$set(
           value = 4,
           detail = 'Fetching TIFF files.'
@@ -1005,20 +1005,20 @@ server <- function(input, output, session) {
           coord_equal() +
           ggtitle(
             paste0(
-              "Sum of established territories at the end of 
+              "Sum of established territories at the end of
               simulation (", length(tif_files), " iterations)"
             )
-          ) + 
+          ) +
           theme_minimal()
-  
+
         toc() # Visualizing tif files
         toc() # Overall process
-        
+
         output$plot_tif <- renderPlot(g)
-  
+
         rm(data_tif)
         ggsave(file = paste0(dir, "../heatmap.png"))
-        
+
         progressReport$set(
           value = 10,
           message = 'Done',
@@ -1070,12 +1070,12 @@ server <- function(input, output, session) {
 
     if (nrow(data) > 0) {
       if (nrow(data %>% filter(isTruthy(Droplet))) > 0) {
-        non_finished <- data %>% 
+        non_finished <- data %>%
           filter(
             Droplet != '',
             Description != 'PROCESS FINISHED'
           )
-        
+
         print(non_finished)
         if (nrow(non_finished) == 0) {
           rv$progress$close()
@@ -1104,7 +1104,7 @@ server <- function(input, output, session) {
         }
       }
     }
-    
+
     data
   })
 
@@ -1117,8 +1117,8 @@ server <- function(input, output, session) {
     input$refresh_droplets,
     {
       droplets <- analogsea::droplets()
-      droplets_df <- as.data.frame(do.call(rbind, droplets)) 
-      
+      droplets_df <- as.data.frame(do.call(rbind, droplets))
+
       if (nrow(droplets_df) > 0) {
         droplets_df <- droplets_df %>%
           dplyr::select(id, name, memory, vcpus, disk, status, tags, created_at) %>%
@@ -1132,7 +1132,7 @@ server <- function(input, output, session) {
           dplyr::filter(tags == TRUE) %>%
           dplyr::select(-tags)
       }
-      
+
       output$droplets <- renderTable(droplets_df)
     }
   )
@@ -1148,8 +1148,8 @@ server <- function(input, output, session) {
       ssh_user <- "root"
       ssh_keyfile_tbl <- parseFilePaths(volumes, input$key)
       ssh_keyfile <- stringr::str_replace(
-        ssh_keyfile_tbl$datapath, 
-        'NULL/', 
+        ssh_keyfile_tbl$datapath,
+        'NULL/',
         ifelse(
           stringr::str_to_lower(Sys.info()[1]) == 'windows',
           paste0(fs::path_home(), '/'),
@@ -1157,7 +1157,7 @@ server <- function(input, output, session) {
         )
       )
       ssh_keyfile_name <- ssh_keyfile_tbl$name
-      
+
       # Available CPU cores on local machine
       cores <- input$cores
 
