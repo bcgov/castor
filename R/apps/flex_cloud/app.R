@@ -1081,7 +1081,7 @@ Please refresh the page and try again.")
         if (nrow(non_finished) == 0) {
           rv$progress$close()
           cost_uploader <- rv$d_uploader %>% droplets_cost()
-          # rv$d_uploader %>% droplet_delete()
+          rv$d_uploader %>% droplet_delete()
           if (file.exists('tmp/id_rsa.pub')) {
             fs::file_delete('tmp/id_rsa.pub')
           }

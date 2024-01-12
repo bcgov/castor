@@ -392,7 +392,7 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
 
     cost <- d %>% droplets_cost()
 
-    # d %>% droplet_delete()
+    d %>% droplet_delete()
 
     status <- paste0(
       "16,", paste0("Iteration ", iteration), ",,PROCESS FINISHED,", as.character(Sys.time()), ",", scales::dollar(cost$total)
@@ -583,7 +583,7 @@ create_scenario_droplet <- function(
     d_uploader
   }, error = function(e) {
     progressOne$set(9, detail = "Couldnt connect to droplet, cleaning up")
-    # d_uploader %>% droplet_delete()
+    d_uploader %>% droplet_delete()
 
     return(NULL)
   })
