@@ -68,11 +68,11 @@ run_simulation <- function(
     )
     filelock::unlock(lock)
     progress$inc(1 / total_steps)
-    
+
     status <- paste0(
       "2,", paste0("Iteration ", iteration), ",10%,Creating droplet,", as.character(Sys.time()), ","
     )
-    
+
     lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
     write(
       status,
@@ -81,7 +81,7 @@ run_simulation <- function(
     )
     filelock::unlock(lock)
     progress$inc(1 / total_steps)
-    
+
     d_name <- do_namify(paste0(ids::adjective_animal(), iteration))
 
     tryCatch({
@@ -106,7 +106,7 @@ run_simulation <- function(
         append = TRUE
       )
       filelock::unlock(lock)
-      
+
       # debug_msg(e$message)
       # shinyjs::alert("There was an error connecting to the droplet, retrying.")
       errored <- TRUE
@@ -116,7 +116,7 @@ run_simulation <- function(
       status <- paste0(
         "3,", paste0("Iteration ", iteration), ",20%,Awaiting connectivity,", as.character(Sys.time()), ","
       )
-      
+
       lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
       write(
         status,
@@ -125,9 +125,9 @@ run_simulation <- function(
       )
       filelock::unlock(lock)
       progress$inc(1 / total_steps)
-      
+
       Sys.sleep(5)
-      
+
       status <- paste0(
         "4,", paste0("Iteration ", iteration), ",30%,Connecting to droplet,", as.character(Sys.time()), ","
       )
@@ -139,9 +139,9 @@ run_simulation <- function(
       )
       filelock::unlock(lock)
       progress$inc(1 / total_steps)
-      
+
       # d <- droplet(d$id)
-      
+
       tryCatch({
         d %>% droplet_ssh("echo Connecting...", keyfile = ssh_keyfile)
       }, error = function(e) {
@@ -155,17 +155,17 @@ run_simulation <- function(
           append = TRUE
         )
         filelock::unlock(lock)
-        
+
         # debug_msg(e$message)
         # shinyjs::alert("There was an error connecting to the droplet, retrying.")
         # errored <- TRUE
         Sys.sleep(30)
       })
-      
+
       status <- paste0(
         "6,", paste0("Iteration ", iteration), ",40%,Cloning castor repo,", as.character(Sys.time()), ","
       )
-      
+
       lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
       write(
         status,
@@ -209,7 +209,7 @@ run_simulation <- function(
         status <- paste0(
           "8,", paste0("Iteration ", iteration), ",50%,Getting scenario public key,", as.character(Sys.time()), ","
         )
-        
+
         lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
         write(
           status,
@@ -218,19 +218,19 @@ run_simulation <- function(
         )
         filelock::unlock(lock)
         progress$inc(1 / total_steps)
-        
+
         droplet_download(
-          d, 
-          remote = '/root/.ssh/id_rsa.pub', 
-          local = 'tmp/', 
+          d,
+          remote = '/root/.ssh/id_rsa.pub',
+          local = 'tmp/',
           keyfile = ssh_keyfile
         )
-        
+
         # Add pubkey to authorized_keys on scenario droplet ----
         status <- paste0(
           "9,", paste0("Iteration ", iteration), ",60%,Adding public key,", as.character(Sys.time()), ","
         )
-        
+
         lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
         write(
           status,
@@ -239,18 +239,18 @@ run_simulation <- function(
         )
         filelock::unlock(lock)
         progress$inc(1 / total_steps)
-        
+
         droplet_upload(
-          d_uploader, 
-          local = 'tmp/id_rsa.pub', 
-          remote = '/root/id_rsa.pub', 
+          d_uploader,
+          local = 'tmp/id_rsa.pub',
+          remote = '/root/id_rsa.pub',
           keyfile = ssh_keyfile
         )
-        
+
         status <- paste0(
           "10,", paste0("Iteration ", iteration), ",65%,Adding key to authorized keys,", as.character(Sys.time()), ","
         )
-        
+
         lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
         write(
           status,
@@ -259,18 +259,18 @@ run_simulation <- function(
         )
         filelock::unlock(lock)
         progress$inc(1 / total_steps)
-        
+
         d_uploader %>%
           droplet_ssh(
             glue::glue("cat /root/id_rsa.pub >> '/root/.ssh/authorized_keys'"),
             keyfile = ssh_keyfile
           )
-        
+
       }, error = function(e) {
         status <- paste0(
           "10,", paste0("Iteration ", iteration), ",60%,ERROR adding key to authorized keys - cleaning up,", as.character(Sys.time()), ","
         )
-        
+
         lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
         write(
           status,
@@ -281,7 +281,7 @@ run_simulation <- function(
         errored <- TRUE
       })
     }
-    
+
     # Add scenario droplet private IP address to known hosts on the droplet ----
     # Copy the scenario file from scenario droplet to droplet ----
     if (!errored) {
@@ -289,7 +289,7 @@ run_simulation <- function(
         status <- paste0(
           "11,", paste0("Iteration ", iteration), ",70%,Copying scenario to droplet,", as.character(Sys.time()), ","
         )
-        
+
         lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
         write(
           status,
@@ -298,7 +298,7 @@ run_simulation <- function(
         )
         filelock::unlock(lock)
         progress$inc(1 / total_steps)
-        
+
         d %>%
           droplet_ssh(
             glue::glue("ssh-keyscan {scenario_droplet_ip} >> ~/.ssh/known_hosts; \
@@ -309,7 +309,7 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
         status <- paste0(
           "11,", paste0("Iteration ", iteration), ",70%,ERROR copying scenario to droplet from", scenario_droplet_ip, ",", as.character(Sys.time()), ","
         )
-        
+
         lock <- filelock::lock(path = simulation_logfile_lock, exclusive = TRUE)
         write(
           status,
@@ -320,7 +320,7 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
         errored <- TRUE
       })
     }
-    
+
     if (!errored) {
       status <- paste0(
         "12,", paste0("Iteration ", iteration), ",80%,Running the simulation,", as.character(Sys.time()), ","
@@ -377,7 +377,7 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
       filelock::unlock(lock)
       progress$inc(1 / total_steps)
     }
-    
+
     status <- paste0(
       "15,", paste0("Iteration ", iteration), ",100%,Deleting the droplet,", as.character(Sys.time()), ","
     )
@@ -389,11 +389,11 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
     )
     filelock::unlock(lock)
     progress$inc(1 / total_steps)
-    
+
     cost <- d %>% droplets_cost()
-    
-    d %>% droplet_delete()
-    
+
+    # d %>% droplet_delete()
+
     status <- paste0(
       "16,", paste0("Iteration ", iteration), ",,PROCESS FINISHED,", as.character(Sys.time()), ",", scales::dollar(cost$total)
     )
@@ -405,7 +405,7 @@ scp root@{scenario_droplet_ip}:/root/scenario.tif ~/castor/R/scenarios/fisher/in
     )
     filelock::unlock(lock)
     progress$inc(1 / total_steps)
-    
+
     # Return something other than the future so we don't block the UI
     return(NULL)
   })
@@ -438,30 +438,30 @@ run_iteration <- function(
   # filename <- uuid::UUIDgenerate(use.time = TRUE)
 
   wd <- getwd()
-  
+
   path_prefix <- ''
   if (basename(wd) == 'castor') {
     path_prefix <- 'R/apps/flex_cloud/'
   }
-  
+
   download_path <- glue::glue('{path_prefix}inst/app/{simulation_id}/')
-  
+
   # Log debug info
   lock <- filelock::lock(path = simulation_debug_file_lock, exclusive = TRUE)
   write(
     paste(
       "Running iterations on droplet", iteration, "\n",
-      "Local working directory", wd, "\n", 
+      "Local working directory", wd, "\n",
       "Local download path", download_path, "\n"
     ),
     file = simulation_debug_file,
     append = TRUE
   )
   filelock::unlock(lock)
-  
+
   # command_run <- glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX/fisher.R {times} {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {time_interval} {burn_in_length} {d2_target} {initial_fisher_pop} {d_iteration}; ")
   command_run <- glue::glue("cd castor/; Rscript R/SpaDES-modules/FLEX/fisher.R {times} {female_max_age} {den_target} {rest_target} {move_target} {reproductive_age} {sex_ratio} {female_dispersal} {time_interval} {burn_in_length} {d2_target} {initial_fisher_pop} {d_iteration} >> /tmp/fisher/output.log; ")
-  
+
   output_dir <- '/root/castor/R/scenarios/fisher/outputs'
   downloads_dir <- '/root/castor/R/scenarios/fisher/downloads'
   command_move_files <- glue::glue("mkdir -p {downloads_dir}; i=1; for DIRNAME in {output_dir}/rep*; do for FILENAME in $DIRNAME/*; do cp $FILENAME {downloads_dir}/d{iteration}i$i`basename $FILENAME`; done; i=$((i+1)); done")
@@ -473,21 +473,21 @@ run_iteration <- function(
     command,
     keyfile = ssh_keyfile
   )
-  
+
   # Download files
   downloaded <- d %>% droplet_download(
       remote = downloads_dir,
       local = download_path,
       keyfile = ssh_keyfile
     )
-  
+
   # Log debug info
   lock <- filelock::lock(path = simulation_debug_file_lock, exclusive = TRUE)
   if (!downloaded) {
     write(paste("Download NOT successful for iteration", iteration), file = simulation_debug_file, append = TRUE)
   } else {
     write(paste("Download successful for iteration", iteration), file = simulation_debug_file, append = TRUE)
-    
+
     downloaded_files <- list.files(download_path)
     write(unlist(downloaded_files), file = simulation_debug_file, append = TRUE)
   }
@@ -515,18 +515,18 @@ create_scenario_droplet <- function(
     progressOne
 ) {
   options(do.wait_time = 30)
-  
+
   # DO scenario uploader config
   region <- 'tor1'
   uploader_image <- 'ubuntu-22-04-x64'
   # uploader_size = 's-1vcpu-1gb'
   uploader_size = 's-1vcpu-2gb'
-  
+
   # Scenario
   selected_scenario_tbl <- parseFilePaths(volumes, scenario)
   selected_scenario <- selected_scenario_tbl$name
   selected_scenario_path <- stringr::str_replace(
-    selected_scenario_tbl$datapath, 
+    selected_scenario_tbl$datapath,
     'NULL/',
     ifelse(
       stringr::str_to_lower(Sys.info()[1]) == 'windows',
@@ -534,16 +534,16 @@ create_scenario_droplet <- function(
       ''
     )
   )
-  
+
   if (!file.exists(selected_scenario_path)) {
     shinyjs::alert("Wrong path supplied for scenario file. Please refresh the page and try again.")
     return(NULL)
   }
-  
+
   progressOne$set(value = 2)
-  
+
   droplet_name <- ids::adjective_animal()
-  
+
   ## Create scenario uploader droplet ----
   d_uploader <- analogsea::droplet_create(
     name = do_namify(ids::adjective_animal()),
@@ -554,27 +554,23 @@ create_scenario_droplet <- function(
     tags = c('flex_cloud')
   ) %>%
     droplet_wait()
-  
+
   progressOne$set(value = 5, detail = 'Waiting for connectivity')
-  
+
   Sys.sleep(30)
-  
+
   progressOne$set(8, detail = 'Uplaoding scenario')
-  
+
   # Upload scenario to the droplet ----
-  
-  tryCatch({  
+  tryCatch({
     d_uploader <- droplet(d_uploader$id)
   }, error = function(e) {
-    # debug_msg(e$message)
-    # shinyjs::alert("There was an error running the simu1lation, cleaning up.")
     progressOne$set(9, detail = "Couldn't connect to droplet, retrying")
-    
+
     Sys.sleep(30)
   })
-  
-  error <- FALSE
-  tryCatch({  
+
+  d_uploader <- tryCatch({
     d_uploader %>%
       droplet_upload(
         user = ssh_user,
@@ -583,23 +579,16 @@ create_scenario_droplet <- function(
         # remote = paste0('/mnt/scenario/', selected_scenario)
         remote = paste0('/root/scenario.tif')
       )
-    d_uploader <- droplet(d_uploader$id)
+    progressOne$set(9, detail = 'Completing the upload')
+    d_uploader
   }, error = function(e) {
-    # debug_msg(e$message)
     progressOne$set(9, detail = "Couldnt connect to droplet, cleaning up")
     d_uploader %>% droplet_delete()
-    error <- FALSE
-    
-    shinyjs::alert("There was an error running the simulation. Please refresh the page and try again/")
-  })
-  
-  if (error) {
+
     return(NULL)
-  }
-  
-  progressOne$set(9, detail = 'Completing the upload')
-  
-  d_uploader
+  })
+
+  return(d_uploader)
 }
 
 #' Print error message when caught

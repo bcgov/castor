@@ -615,10 +615,11 @@ server <- function(input, output, session) {
         ssh_user = ssh_user,
         progressOne = progressOne
       )
-      # progressOne$close()
 
       if (is.null(rv$d_uploader)) {
-        shinyjs::alert("Error has occrred, please refresh the page and try again.")
+        shinyjs::alert("Error has occurred when uploading the scenario file. Make sure you've set the correct private key in the Settings tab.
+
+Please refresh the page and try again.")
       }
       req(rv$d_uploader)
 
@@ -1080,7 +1081,7 @@ server <- function(input, output, session) {
         if (nrow(non_finished) == 0) {
           rv$progress$close()
           cost_uploader <- rv$d_uploader %>% droplets_cost()
-          rv$d_uploader %>% droplet_delete()
+          # rv$d_uploader %>% droplet_delete()
           if (file.exists('tmp/id_rsa.pub')) {
             fs::file_delete('tmp/id_rsa.pub')
           }
