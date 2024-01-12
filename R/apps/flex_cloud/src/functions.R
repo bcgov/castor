@@ -583,7 +583,7 @@ create_scenario_droplet <- function(
     d_uploader
   }, error = function(e) {
     progressOne$set(9, detail = "Couldnt connect to droplet, cleaning up")
-    d_uploader %>% droplet_delete()
+    # d_uploader %>% droplet_delete()
 
     return(NULL)
   })
