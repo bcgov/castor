@@ -49,7 +49,7 @@ dat_human<-dat_human %>%
                                 frt == "5" ~ mean_PPT06_PPT07,
                                 frt == "7" ~ mean_Tmax05_Tmax06_Tmax07_Tmax08,
                                 frt == "9" ~ mean_Tave04_Tave05_Tave06_Tave07, # NDT4
-                                frt == "10" ~ mean_CMI07_CMI08_CMI09,
+                                frt == "10" ~ mean_CMD06_CMD07_CMD08_CMD09,
                                 frt == "11" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07,
                                 frt == "12" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9,
                                 frt == "13" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9,

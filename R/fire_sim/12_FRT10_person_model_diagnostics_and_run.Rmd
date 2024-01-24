@@ -48,7 +48,7 @@ dat_human<-dat_human %>%
                                 frt == "5" ~ mean_PPT06_PPT07,
                                 frt == "7" ~ mean_Tmax05_Tmax06_Tmax07_Tmax08,
                                 frt == "9" ~ mean_Tave04_Tave05_Tave06_Tave07, # NDT4
-                                frt == "10" ~ mean_CMI07_CMI08_CMI09,
+                                frt == "10" ~ mean_CMD06_CMD07_CMD08_CMD09,
                                 frt == "11" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07,
                                 frt == "12" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9,
                                 frt == "13" ~ mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9,
@@ -98,17 +98,19 @@ cor.test(dat10$road_dist_m, dat10$dist_infrastructure_m)
 mod_frt_10a<- glm(fire ~ climate1 + dm_h_bc + fwveg + road_dist_m + dist_infrastructure_m, data=dat10, family=binomial(link="logit"))
 Anova(mod_frt_10a, type=3)
 
-mod_frt10b<- glm(fire ~ climate1 + dm_h_bc + fwveg + road_dist_m, data=dat10, family=binomial(link="logit"))
+mod_frt10b<- glm(fire ~ climate1 + dm_h_bc + road_dist_m + dist_infrastructure_m, data=dat10, family=binomial(link="logit"))
 anova(mod_frt_10a,mod_frt10b, test="Chisq") # removing infrastructure is fine
 Anova(mod_frt10b, type=3)
 
-mod_frt10c<-glm(fire ~ climate1 + fwveg + road_dist_m, data=dat10, family=binomial(link="logit"))
+mod_frt10c<-glm(fire ~ climate1 + dm_h_bc + road_dist_m, data=dat10, family=binomial(link="logit"))
 anova(mod_frt10b,mod_frt10c, test="Chisq") 
 Anova(mod_frt10c, type=3)
 
 mod_frt10d<-glm(fire ~ climate1 + road_dist_m, data=dat10, family=binomial(link="logit"))
+Anova(mod_frt10d, type=3)
 
 mod_frt10d<-glm(fire ~ climate1 + log(road_dist_m+1), data=dat10, family=binomial(link="logit"))
+Anova(mod_frt10d, type=3)
 
 # log road looks better
 
