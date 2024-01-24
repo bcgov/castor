@@ -88,7 +88,7 @@ moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/fireCastor/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/fireCastor/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/tests"))
-times <- list(start = 0, end = 2) # 5 year interval; 200 years = 40 intervals
+times <- list(start = 0, end = 1) # 5 year interval; 200 years = 40 intervals
 parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
@@ -158,6 +158,15 @@ parameters <- list(
                              criticalHabRaster = "rast.bc_crithab_and_herd",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 300), # no road recovery
+  climateCastor = list(calculateInterval = 1,
+                    gcm = c("MPI-ESM1-2-HR"),
+                    gcmname = "ESM1_2_HR", 
+                    ssp = c("ssp370"),
+                    climateYears = c(2020, 2025),
+                    maxRun = 1, 
+                    run = c("r1i1p1f1"),
+                    nameClimateIdnoRast = "rast.climate_prism_base_layer",
+                    nameClimateTable = "vat.climate_prism_lat_lon_lookup"),
   
   fireCastor = list(calculateInterval =1,
                     #calendarStartYear = 2020,
@@ -169,14 +178,14 @@ parameters <- list(
                     nameRoadsRast = "rast.ce_road_2019",
                     #recovery = 300,
                     nameElevationRaster = "rast.dem",
-                    nameClimateIdnoRast="rast.climate_prism_base_layer",
-                    nameClimateTable = "vat.climate_prism_lat_lon_lookup",
+                    #nameClimateIdnoRast="rast.climate_prism_base_layer",
+                    #nameClimateTable = "vat.climate_prism_lat_lon_lookup",
                     simStartYear = 2020,
-                    gcm = c("MPI-ESM1-2-HR"),
-                    gcmName=c("mpi_esm1_2_HR"),
-                    ssp = c("ssp370"),
-                    maxRun = 2, 
-                    run = c("r1i1p1f1"),
+                    #gcm = c("MPI-ESM1-2-HR"),
+                    #gcmName=c("mpi_esm1_2_HR"),
+                    #ssp = c("ssp370"),
+                    #maxRun = 2, 
+                    #run = c("r1i1p1f1"),
                     nameBecRast = "rast.bec_current",
                     nameBecTable = "vat.bec_zone_vat",
                     futureClimateProjection = "8GCMs_ensemble_ssp370", #"MPI-ESM1-2-HR"
@@ -204,6 +213,7 @@ modules <- list("dataCastor",
                 "forestryCastor", 
                 "roadCastor",  
                 "disturbanceCastor",
+                "climateCastor",
                 "fireCastor"
                 #"uploadCastor",
                 #"volumebyareaReportCastor"
