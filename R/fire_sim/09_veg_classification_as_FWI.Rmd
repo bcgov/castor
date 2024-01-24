@@ -27,7 +27,7 @@ fire_veg_sf<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\
 ```{r}
 
 # looking at how many na values there are
-table(is.na(fire_veg_sf$bec_bec_zone_code_code))
+table(is.na(fire_veg_sf$bec_zone_code))
 table(is.na(fire_veg_sf$bclcs_level_1))
 table(is.na(fire_veg_sf$bclcs_level_2))
 table(is.na(fire_veg_sf$bclcs_level_3))
@@ -39,7 +39,7 @@ table((fire_veg_sf$bclcs_level_2)) # T= treed, N = Non-treed, L=Land, W=water
 table((fire_veg_sf$bclcs_level_3)) # A = alpine, U = upland, W = wetland
 table((fire_veg_sf$bclcs_level_4)) # 
 table((fire_veg_sf$bclcs_level_5))
-table(fire_veg_sf$bec_bec_subzone)
+table(fire_veg_sf$bec_subzone)
 
 # fire_veg_sf$stand_percentage_dead<- round(fire_veg_sf$stand_percentage_dead,2)
 # fire_veg_sf$crown_closure<- round(fire_veg_sf$crown_closure,2)
@@ -50,9 +50,9 @@ table(fire_veg_sf$bec_bec_subzone)
 # fire_veg_sf$species_pct_5<- round(fire_veg_sf$species_pct_5,0)
 # fire_veg_sf$species_pct_6<- round(fire_veg_sf$species_pct_6,0)
 #fire_veg_sf$proj_age_1<- round(fire_veg_sf$proj_age_1,2)
-fire_veg_sf$proj_proj_height_1_1<- round(fire_veg_sf$proj_proj_height_1_1,1)
-fire_veg_sf$bec_bec_zone_code_code<- (as.character(fire_veg_sf$bec_bec_zone_code_code))
-fire_veg_sf$bec_bec_subzone<- as.character(fire_veg_sf$bec_bec_subzone)
+fire_veg_sf$proj_height_1<- round(fire_veg_sf$proj_height_1,1)
+fire_veg_sf$bec_zone_code<- (as.character(fire_veg_sf$bec_zone_code))
+fire_veg_sf$bec_subzone<- as.character(fire_veg_sf$bec_subzone)
 fire_veg_sf$species_cd_1<- (as.character(fire_veg_sf$species_cd_1))
 fire_veg_sf$species_cd_2<- (as.character(fire_veg_sf$species_cd_2))
 fire_veg_sf$species_cd_3<- (as.character(fire_veg_sf$species_cd_3))
@@ -96,7 +96,7 @@ fire_veg_1$dist_yr<-NA
 fire_veg_1$dist_yr<-as.numeric(stringi::stri_sub(fire_veg_1$line_7b_disturbance_history,2,3))
 unique(fire_veg_1$dist_yr)
 # make the year into a proper date year e.g. 2004 or 1985 etc
-fire_veg_1$dist_yr<-ifelse(fire_veg_1$dist_yr<=20 & as.numeric(fire_veg_1$fire_yr)>fire_veg_1$dist_yr, fire_veg_1$dist_yr+2000, fire_veg_1$dist_yr+1900)
+fire_veg_1$dist_yr<-ifelse(fire_veg_1$dist_yr<=21 & as.numeric(fire_veg_1$fire_yr)>fire_veg_1$dist_yr, fire_veg_1$dist_yr+2000, fire_veg_1$dist_yr+1900)
 unique(fire_veg_1$dist_yr)
 
 # dealing with logging L% or L# where I think the % was changed to a # 
@@ -113,14 +113,16 @@ fire_veg_2$dist_yr<-ifelse(fire_veg_2$dist_yr<=20 & as.numeric(fire_veg_2$fire_y
 unique(fire_veg_2$dist_yr)
 
 fire_veg_2$dist_hist<-ifelse(fire_veg_2$dist_precent<50, NA, fire_veg_2$dist_hist)
+fire_veg_2<-data.table(fire_veg_2)
 fire_veg_2[,dist_precent:=NULL]
 
-fire_veg_sf<-rbind(fire_veg_1, fire_veg_2)
+fire_veg_sf<-rbind(data.table(fire_veg_1), fire_veg_2)
 
 fire_veg_sf$yearHarvest<-as.numeric(as.character(stringi::stri_sub(fire_veg_sf$harvest_date,1,4)))
 fire_veg_sf[yearHarvest==2026, yearHarvest:=1926]
 fire_veg_sf$fire_yr<-as.numeric(fire_veg_sf$fire_yr)
 fire_veg_sf<- fire_veg_sf %>% dplyr::mutate(yearsSinceHarvest = fire_yr - yearHarvest)
+
 unique(fire_veg_sf$yearsSinceHarvest)
 
 x<-fire_veg_sf %>% dplyr::select(dist_hist,dist_yr, yearHarvest, earliest_nonlogging_dist_type, earliest_nonlogging_dist_date)
@@ -156,7 +158,20 @@ unique(fire_veg_sf$yearsSinceDisturbance)
 
 ```
 
-To save time and effort in coding I create a list of conifer and deciduous species and the bec_bec_subzone codes that equate to wet areas. 
+
+```{r}
+veg2[non_productive_descriptor_cd==" ",non_productive_descriptor_cd:=NA]
+veg2[bclcs_level_2==" ",bclcs_level_2:=NA]
+veg2[bclcs_level_3==" ",bclcs_level_3:=NA]
+veg2[bclcs_level_4==" ",bclcs_level_4:=NA]
+veg2[bclcs_level_5==" ",bclcs_level_5:=NA]
+veg2[line_7b_disturbance_history==" ",bclcs_level_5:=NA]
+
+
+unique(veg2$line_7b_disturbance_history)
+```
+
+To save time and effort in coding I create a list of conifer and deciduous species and the bec_subzone codes that equate to wet areas. 
 ```{r}
 conifer<-c("C","CW","Y","YC","F","FD","FDC","FDI","B","BB","BA","BG","BL","H","HM","HW","HXM","J","JR","JS","P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA","S","SB","SE","SS","SW","SX","SXW","SXL","SXS","T","TW","X", "XC","XH", "ZC")
 
@@ -200,7 +215,7 @@ First Ill code the non-vegetated areas
 ```{r}
 #fire_veg_sf$fwveg<-NA
 
-#veg2<-fire_veg_sf
+veg2<-fire_veg_sf
 
 #Now coding the VEGETATED areas
 
@@ -347,13 +362,27 @@ veg2$crown_closure<-as.numeric(veg2$crown_closure)
   veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & !is.na(species_cd_1) & bec_zone_code %in% c("CMA", "IMA"), fwveg:="N"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & !is.na(species_cd_1) & bec_zone_code %in% c("CWH", "MH", "ICH", "BAFA"), fwveg:="D-1/2"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & non_productive_cd %in% c(11,12,13), fwveg:="O-1a/b"]
+  #veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & non_productive_descriptor_cd %in% c("NPBR","NP","NPBU"), fwveg:="O-1a/b"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & non_productive_cd %in% c(11, 12,13) & bec_zone_code %in% c("CWH", "MH", "ICH"), fwveg:="D-1/2"]
+  #veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & non_productive_descriptor_cd %in% c("NPBR","NP","NPBU") & bec_zone_code %in% c("CWH", "MH", "ICH"), fwveg:="D-1/2"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & non_productive_cd ==35, fwveg:="W"]
+  #veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & non_productive_descriptor_cd =="S", fwveg:="W"]
+  
   veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & non_productive_cd ==42, fwveg:="N"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & (non_productive_cd == 60 |non_productive_cd == 62 | non_productive_cd == 63), fwveg:="O-1a/b"]
+ # veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & non_productive_descriptor_cd =="C", fwveg:="N"]
+  
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & (non_productive_descriptor_cd == 60 |non_productive_descriptor_cd == 62 | non_productive_descriptor_cd == 63), fwveg:="O-1a/b"]
+  #veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & (non_productive_descriptor_cd == "P" |non_productive_descriptor_cd == "M" | non_productive_descriptor_cd == "OR"), fwveg:="O-1a/b"]
+  
   veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & is.na(non_productive_cd) &  bec_zone_code %in% c("CMA","IMA"), fwveg:="N"]
+ # veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & is.na(non_productive_descriptor_cd) &  bec_zone_code %in% c("CMA","IMA"), fwveg:="N"]
+  
   veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & is.na(non_productive_cd) & bec_zone_code %in% c("CWH","MH", "ICH", "BAFA"), fwveg:="D-1/2"]
+  #veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & is.na(non_productive_descriptor_cd) & bec_zone_code %in% c("CWH","MH", "ICH", "BAFA"), fwveg:="D-1/2"]
+  
   veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & is.na(non_productive_cd) & !bec_zone_code %in% c("CMA","IMA","CWH","MH", "ICH", "BAFA"), fwveg:="O-1a/b"]
+  #veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & is.na(non_productive_descriptor_cd) & !bec_zone_code %in% c("CMA","IMA","CWH","MH", "ICH", "BAFA"), fwveg:="O-1a/b"]
+  
   veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & is.na(fwveg), fwveg:="N"]
   
   veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & is.na(yearHarvest) & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1 %in% c("LA", "RE","RL","OC"), fwveg:="W"]
@@ -422,22 +451,22 @@ veg2$crown_closure<-as.numeric(veg2$crown_closure)
   
   
   #### Pure douglas fir ####
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & (proj_height_1>12 | is.na(proj_height_1)) & crown_closure > 55, fwveg:="C-7"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & (proj_height_1>=12 | is.na(proj_height_1)) & crown_closure > 55, fwveg:="C-7"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI")  & yearsSinceHarvest<=6, fwveg:="S-1"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI")  & yearsSinceHarvest<=6 & bec_zone_code %in% c("CWH", "MH", "CDF"), fwveg:="S-3"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI")  & yearsSinceHarvest<=6 & bec_zone_code=="ICH" & bec_subzone %in% wet, fwveg:="S-3"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & proj_height_1 < 4 & (is.na(yearHarvest) | (yearsSinceHarvest>6)), fwveg:="O-1a/b"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code %in% c("CWH", "MH", "CDF") & proj_height_1 < 4 & (is.na(yearHarvest) | (yearsSinceHarvest>6)), fwveg:="D-1/2"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code =="ICH" & bec_subzone %in% wet & proj_height_1 < 4 & (is.na(yearHarvest) | (yearsSinceHarvest>6)), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 > 79 & dominant_conifer %in% c("F","FD","FDC","FDI") & bec_zone_code %in% c("CWH", "MH", "CDF") & proj_height_1 %between% c(4, 12) & (is.na(yearHarvest) | (yearsSinceHarvest>6)) & crown_closure >= 55, fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code =="ICH" & bec_subzone %in% wet & proj_height_1 %between% c(4, 12) & crown_closure > 55  & (is.na(yearHarvest) | (yearsSinceHarvest>6)), fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & proj_height_1 %between% c(4,12) & crown_closure > 55 & stand_percentage_dead > 34  & (is.na(yearHarvest) | (yearsSinceHarvest>6)), fwveg:="C-4"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & proj_height_1 %between% c(4,12) & crown_closure > 55  & (is.na(yearHarvest) | (yearsSinceHarvest>6)), fwveg:="C-3"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 > 79 & dominant_conifer %in% c("F","FD","FDC","FDI") & bec_zone_code %in% c("CWH", "MH", "CDF") & proj_height_1 >=4 & proj_height_1 <= 12 & (is.na(yearHarvest) | (yearsSinceHarvest>6)) & crown_closure >= 55, fwveg:="C-3"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code =="ICH" & bec_subzone %in% wet & proj_height_1 >=4 & proj_height_1 <= 12 & crown_closure > 55  & (is.na(yearHarvest) | (yearsSinceHarvest>6)), fwveg:="C-3"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & proj_height_1 >=4 & proj_height_1 <= 12 & crown_closure > 55 & stand_percentage_dead > 34  & (is.na(yearHarvest) | (yearsSinceHarvest>6)), fwveg:="C-4"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & proj_height_1 >=4 & proj_height_1 <= 12 & crown_closure > 55  & (is.na(yearHarvest) | (yearsSinceHarvest>6)), fwveg:="C-3"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code %in% c("CWH", "MH", "CDF") & proj_height_1>12 & crown_closure > 55, fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code=="ICH" & bec_subzone %in% wet & crown_closure > 55 & proj_height_1>12, fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code %in% c("CWH", "MH", "CDF") & crown_closure %between% c(26,55), fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code=="ICH" & bec_subzone %in% wet & crown_closure %between% c(26, 55), fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & crown_closure %between% c(26, 55), fwveg:="C-7"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code=="ICH" & bec_subzone %in% wet & crown_closure > 55 & proj_height_1>=12, fwveg:="C-5"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code %in% c("CWH", "MH", "CDF") & crown_closure >=26 & crown_closure <=55, fwveg:="C-5"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code=="ICH" & bec_subzone %in% wet & crown_closure >=26 & crown_closure <=55, fwveg:="C-5"]
+  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & crown_closure >=26 & crown_closure <=55, fwveg:="C-7"]
    veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & (crown_closure<26 | is.na(crown_closure)) & is.na(fwveg), fwveg:="O-1a/b"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code %in% c("CWH", "MH", "CDF") & crown_closure<26, fwveg:= "D-1/2"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & bec_zone_code =="ICH" & bec_subzone %in% wet & crown_closure<26, fwveg:="D-1/2"]
@@ -654,7 +683,9 @@ veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_co
   
   # classify species that are not classified into a class already
   veg2[is.na(fwveg) & bclcs_level_4 == "TB", fwveg:="D-1/2"]
+  veg2[is.na(fwveg) & bclcs_level_4 == "TM", fwveg:="M-1/2"]
   veg2[is.na(fwveg) & bclcs_level_2 == "N", fwveg:="N"]
+  
   
   
   veg2[bclcs_level_5 %in% c("GL","LA"), fwveg := "W"]
@@ -670,7 +701,7 @@ table(is.na(veg2$fwveg))
 
 x<- veg2 %>% filter(is.na(fwveg)) %>% dplyr::select(fire, inventory_standard_cd:conifer_pct_cover_total)
 
-y<-veg2 %>% filter(fire==1) %>% filter(fwveg %in% c("N")) # Note there are a whole bunch of ignition points that have FWI_veg categoriezed as N. This is a problem because N means no fuel. I tried to deal with this by buffering the points 50m then 150m. Buffering did not seem to help.
+y<-veg2 %>% filter(pttype==1) %>% filter(fwveg %in% c("N")) # Note there are a whole bunch of ignition points that have FWI_veg categoriezed as N. This is a problem because N means no fuel. I tried to deal with this by buffering the points 50m then 150m. Buffering did not seem to help.
 table(y$fire_yr)
 #2002 2003 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018
 # 117  147  131   78  143  107  117  163   81   49   56   43   58   63   32   48   57 #2019 
@@ -681,7 +712,7 @@ table(y$fire_yr)
 
 
 ```{r}
-table(y$FWI_veg, y$Cluster)
+table(y$fwveg, y$frt)
 tail(y)
 
 y2<-fire_all1 %>% filter(fire==1)
@@ -689,7 +720,7 @@ y2<-fire_all1 %>% filter(fire==1)
 st_write(y, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\fire_veg_data_N_or_W.gpkg", delete_layer=TRUE, driver="GPKG")
 
 
-st_write(veg2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg2.gpkg", delete_layer=TRUE, driver="GPKG")
+st_write(veg2, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\Fire_data_all_veg_Dec23.gpkg", delete_layer=TRUE, driver="GPKG")
 
 # upload to Kyle castor. Just update the relevant credentials 
 key_get('dbpass', keyring = 'postgreSQL')
@@ -704,15 +735,16 @@ Quick statistical test of importance of the different vegetation types
 FRT 5
 ```{r}
 veg2$fwveg<-as.factor(veg2$fwveg)
-veg3<-veg2
-veg2[Cluster==3, Cluster:=5]
 
-frt5<-veg2[Cluster==5 & !fwveg %in% c("W", "S-1","S-2", "N"),]
+veg2[frt==3, frt:=5]
+
+frt5<-veg2[frt==5 & !fwveg %in% c("W", "N"),]
 frt5[fwveg == "M-3", fwveg:="M-1/2"]
-table(frt5$fwveg, frt5$fire)
+frt5[fwveg == "S-2", fwveg:="S-1"]
+table(frt5$fwveg, frt5$pttype)
 
-z <- glm(fire ~ fwveg, family = binomial(link="logit"), data = frt5, na.action = na.exclude)
-z_null<-glm(fire ~ 1, family = binomial(link="logit"), data=frt5)
+z <- glm(pttype ~ fwveg, family = binomial(link="logit"), data = frt5, na.action = na.exclude)
+z_null<-glm(pttype ~ 1, family = binomial(link="logit"), data=frt5)
 
 #pseudo R2 = (null deviance- residual deviance)/ null deviance
 # pseudo R2 = 0.024
@@ -730,10 +762,10 @@ plot(print(confint(mod)))
 # retry model with C-7 moved to C3
 
 frt5[fwveg == "C-7", fwveg:="C-3"]
-table(frt5$fwveg, frt5$fire)
+table(frt5$fwveg, frt5$pttype)
 
-z <- glm(fire ~ fwveg, family = binomial(link="logit"), data = frt5, na.action = na.exclude)
-z_null<-glm(fire ~ 1, family = binomial(link="logit"), data=frt5)
+z <- glm(pttype ~ fwveg, family = binomial(link="logit"), data = frt5, na.action = na.exclude)
+z_null<-glm(pttype ~ 1, family = binomial(link="logit"), data=frt5)
 
 #pseudo R2 = (null deviance- residual deviance)/ null deviance
 # pseudo R2 = 0.024 only slight decline
@@ -750,13 +782,21 @@ M-1/2
 D-1/2
 But for now I will leave the categories as is for now.
 
+For Fire spread:
+C-1 is different,
+C-2, C-3 and C-7 are the same,
+D-1/2 is lowest
+O-1/2 is next and different
+M-1/2 is 3rd lowest and different.
+S-1 has few observations so huge confidence intervals so overlaps all but it seems to ahve the fastest spread rate.
+
 
 ################################
 #### FRT 7 ####
 ################################
 ```{r}
-frt7<-veg2[Cluster==7 & !fwveg %in% c("W", "N"),]
-table(frt7$fwveg, frt7$fire)
+frt7<-veg2[frt==7 & !fwveg %in% c("W", "N"),]
+table(frt7$fwveg, frt7$pttype)
 
 # combine slash categories and out C-7 with C-3 and M-1/2 together with M-3
 frt7[fwveg=="S-2", fwveg:="S-1"]
@@ -764,7 +804,7 @@ frt7[fwveg == "C-7", fwveg:="C-3"]
 frt7[fwveg == "M-3", fwveg:="M-1/2"]
 
 
-z <- glm(fire ~ fwveg, family = binomial(link="logit"), data = frt7, na.action = na.exclude)
+z <- glm(pttype ~ fwveg, family = binomial(link="logit"), data = frt7, na.action = na.exclude)
 
 #pseudo R2 = (null deviance- residual deviance)/ null deviance
 # pseudo R2 = 0.014
@@ -779,17 +819,26 @@ plot(print(confint(mod)))
 ```
  for FRT7 it looks like M-1/2, O-1a/b is statistically different to the rest. All the C categories are very similar and that D-1/2 is kind of its own thing. S-1/2 is a mix of everything i.e. because it does not have many data point ... I think.
  
+ For spread
+ C-1 is different to all
+ C-2 should be separate
+ Could combine C-3 and C-7
+ D-1/2 has lowest spread rate and should be separate
+ M-1/2 intermediate but not same as any other
+ O-1a/b second lowest should be separate
+ S-1 is fast and again big spread due to few observations but should be separate I think. Or could combine it with C-1
+ 
 
 
 ################################
 #### FRT 9 ####
 ################################
 ```{r}
-frt9<-veg2[Cluster==9 & !fwveg %in% c("W", "N"),]
-table(frt9$fwveg, frt9$fire)
+frt9<-veg2[frt==9 & !fwveg %in% c("W", "N"),]
+table(frt9$fwveg, frt9$pttype)
 
 
-z <- glm(fire ~ fwveg, family = binomial(link="logit"), data = frt9, na.action = na.exclude)
+z <- glm(pttype ~ fwveg, family = binomial(link="logit"), data = frt9, na.action = na.exclude)
 
 #pseudo R2 = (null deviance- residual deviance)/ null deviance
 # pseudo R2 = 0.014 vegetation only explains 1.4% of the variance.
@@ -804,21 +853,31 @@ plot(print(confint(mod)))
 ```
 For FRT9 there is no difference between the vegetation categories i.e. I could basically choose to lump them all together as no veg category is different to any other.
 
+Spread:
+C-1 and C-2 could be combined if need be.
+C-3 should be separate and has highest spread
+C-7 should be separate but could be combined with C-3 if need be. as it also has a high spread
+D-1/2 has lowest spread
+M-1/2 intermediate
+O-1a/b slightly higher than D but not mcuch could be combined with D-1/2. Actually possibly should be combined with D-1/2
+
+
 ################################
 #### FRT 10 ####
 ################################
 ```{r}
-frt10<-veg2[Cluster==10 & !fwveg %in% c("W", "N"),]
-table(frt10$fwveg, frt10$fire)
+frt10<-veg2[frt==10 & !fwveg %in% c("W", "N"),]
+table(frt10$fwveg, frt10$pttype)
 
 frt10[fwveg == "M-3", fwveg := "M-1/2"]
-frt10[fwveg == "C-1", fwveg := "C-3"]
+#frt10[fwveg == "C-1", fwveg := "C-3"]
 frt10[fwveg == "S-2", fwveg := "S-1"]
+frt10[fwveg == "S-3", fwveg := "S-1"]
 
 # combine some vegetation types that dont have much data
-z <- glm(fire ~ fwveg, family = binomial(link="logit"), data = frt10, na.action = na.exclude)
+z <- glm(pttype ~ fwveg, family = binomial(link="logit"), data = frt10, na.action = na.exclude)
 
-#pseudo R2 = (null deviance- residual deviance)/ null deviance
+#pseudo R2 = (http://127.0.0.1:22491/graphics/plot_zoom_png?width=762&height=398null deviance- residual deviance)/ null deviance
 # pseudo R2 = 0.046 vegetation only explains 1.4% of the variance.
 
 visreg(z, rug = 2, scale = "response") 
@@ -832,15 +891,22 @@ plot(print(confint(mod)))
 C1 and C2 could be lumped
 Also C-3 and C-7 could be lumped
 
+Spread
+C-1 and C-3 could be lumped
+rest C's should be separate
+D-1/2 lowest, then O-1a/b,
+M-1/2 is similar to the C's
+S-1 has highest spread with large confidence intervals
+
 ################################
 #### FRT 11 ####
 ################################
 ```{r}
-frt11<-veg2[Cluster==11 & !fwveg %in% c("W", "N", "S-1"),]
-table(frt11$fwveg, frt11$fire)
+frt11<-veg2[frt==11 & !fwveg %in% c("W", "N", "S-1"),]
+table(frt11$fwveg, frt11$pttype)
 
 # combine some vegetation types that dont have much data
-z <- glm(fire ~ fwveg, family = binomial(link="logit"), data = frt11, na.action = na.exclude)
+z <- glm(pttype ~ fwveg, family = binomial(link="logit"), data = frt11, na.action = na.exclude)
 
 #pseudo R2 = (null deviance- residual deviance)/ null deviance
 # pseudo R2 = 0.008 vegetation only explains 0.8% of the variance.
@@ -854,19 +920,36 @@ old.par <- par(mai=c(1,1.25,1,1), no.readonly = TRUE)
 plot(print(confint(mod)))
 ```
 
+
+```{r}
+?sample
+
+dim(frt11)
+frt11_1<-frt11[pttype==1,]
+frt11_0<-frt11[pttype==0,]
+
+frt11_1_samp_no<-sample(frt11_1$idno, 5000, replace=FALSE)
+
+dat<-rbind(frt11_1[idno %in% frt11_1_samp_no,], frt11_0)
+
+
+z <- glm(pttype ~ fwveg, family = binomial(link="logit"), data = dat, na.action = na.exclude)
+visreg(z, rug = 2, scale = "response") 
+```
+
 ################################
 #### FRT 12 ####
 ################################
 ```{r}
-frt12<-veg2[Cluster==12 & !fwveg %in% c("W", "N"),]
-table(frt12$fwveg, frt12$fire)
+frt12<-veg2[frt==12 & !fwveg %in% c("W", "N"),]
+table(frt12$fwveg, frt12$pttype)
 
 # combine some vegetation types that dont have much data
 frt12[fwveg=="S-3", fwveg:="S-1"]
 frt12[fwveg=="S-2", fwveg:="S-1"]
 frt12[fwveg=="M-3", fwveg:="M-1/2"]
 
-z <- glm(fire ~ fwveg, family = binomial(link="logit"), data = frt12, na.action = na.exclude)
+z <- glm(pttype ~ fwveg, family = binomial(link="logit"), data = frt12, na.action = na.exclude)
 
 #pseudo R2 = (null deviance- residual deviance)/ null deviance
 # pseudo R2 = 0.0058 vegetation only explains 0.5% of the variance.
@@ -886,8 +969,8 @@ for frt12 I can definitely combine open and slash, C-7 and D-1/2, and C-2 and C-
 #### FRT 13 ####
 ################################
 ```{r}
-frt13<-veg2[Cluster==13 & !fwveg %in% c("W", "N"),]
-table(frt13$fwveg, frt13$fire)
+frt13<-veg2[frt==13 & !fwveg %in% c("W", "N"),]
+table(frt13$fwveg, frt13$pttype)
 
 # combine some vegetation types that dont have much data
 frt13[fwveg=="S-3", fwveg:="S-1"]
@@ -896,7 +979,7 @@ frt13[fwveg=="M-3", fwveg:="M-1/2"]
 # combine C-1 and C-3 because there is not much data for C-1 and they have similar qualities
 frt13[fwveg=="C-1", fwveg:="C-3"]
 
-z <- glm(fire ~ fwveg, family = binomial(link="logit"), data = frt13, na.action = na.exclude)
+z <- glm(pttype ~ fwveg, family = binomial(link="logit"), data = frt13, na.action = na.exclude)
 
 #pseudo R2 = (null deviance- residual deviance)/ null deviance
 # pseudo R2 = 0.019 vegetation only explains 1.9% of the variance.
@@ -915,15 +998,15 @@ plot(print(confint(mod)))
 #### FRT 14 ####
 ################################
 ```{r}
-frt14<-veg2[Cluster==14 & !fwveg %in% c("W", "N", "C-4"),]
-table(frt14$fwveg, frt14$fire)
+frt14<-veg2[frt==14 & !fwveg %in% c("W", "N", "C-4"),]
+table(frt14$fwveg, frt14$pttype)
 
 # combine some vegetation types that dont have much data
 frt14[fwveg=="S-3", fwveg:="S-1"]
 frt14[fwveg=="S-2", fwveg:="S-1"]
 frt14[fwveg=="M-3", fwveg:="M-1/2"]
 
-z <- glm(fire ~ fwveg, family = binomial(link="logit"), data = frt14, na.action = na.exclude)
+z <- glm(pttype ~ fwveg, family = binomial(link="logit"), data = frt14, na.action = na.exclude)
 
 #pseudo R2 = (null deviance- residual deviance)/ null deviance
 # pseudo R2 = 0.0061 vegetation only explains 1.9% of the variance.
@@ -948,14 +1031,14 @@ frt14[fwveg=="C-7", fwveg:="C-5"]
 #### FRT 15 ####
 ################################
 ```{r}
-frt15<-veg2[Cluster==15 & !fwveg %in% c("W", "N"),]
-table(frt15$fwveg, frt15$fire)
+frt15<-veg2[frt==15 & !fwveg %in% c("W", "N"),]
+table(frt15$fwveg, frt15$pttype)
 
 # combine some vegetation types that dont have much data
 frt15[fwveg=="S-3", fwveg:="S-1"]
 frt15[fwveg=="S-2", fwveg:="S-1"]
 
-z <- glm(fire ~ fwveg, family = binomial(link="logit"), data = frt15, na.action = na.exclude)
+z <- glm(pttype ~ fwveg, family = binomial(link="logit"), data = frt15, na.action = na.exclude)
 
 #pseudo R2 = (null deviance- residual deviance)/ null deviance
 # pseudo R2 = 0.025 vegetation only explains 2.5% of the variance.
