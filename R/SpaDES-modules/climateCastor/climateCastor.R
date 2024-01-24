@@ -13,7 +13,7 @@
 #===========================================================================================#
 
 defineModule (sim, list (
-  name = "fireCastor",
+  name = "climateCastor",
   description = "This module grabs the climate data from climateNA using climR for any area within the province",
   keywords = c ("climate", "gcm", "ssp", "future climate"), 
   authors = c (person ("Elizabeth", "Kleynhans", email = "elizabeth.kleynhans@gov.bc.ca", role = c("aut", "cre")),
@@ -58,9 +58,15 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
       sim <- getClimateData(sim)
     },
     
+    warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
+                  "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
+  )
+  return(invisible(sim))
+}
+    
     getClimateData <- function(sim) {
       
-      qry<-paste0("SELECT COUNT(*) as exists_check FROM sqlite_master WHERE type='table' AND name='climate_", P(sim, "gcmName", "fireCastor"),"_",P(sim, "ssp", "fireCastor"), "';")
+      qry<-paste0("SELECT COUNT(*) as exists_check FROM sqlite_master WHERE type='table' AND name='climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), "';")
       
       if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
      
@@ -162,14 +168,14 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
       
       climate_dat[,c("ID", "lat", "long", "el"):=NULL]
     
-      qry<-paste0("CREATE TABLE IF NOT EXISTS climate_", P(sim, "gcmName", "fireCastor"),"_",P(sim, "ssp", "fireCastor")," (pixelid_climate integer,  gcm character, ssp character, run character, period integer, Tmax01 numeric, Tmax02 numeric, Tmax03 numeric, Tmax04 numeric, Tmax05 numeric,  Tmax06 numeric, Tmax07 numeric, Tmax08 numeric, Tmax09 numeric, Tmax10 numeric, Tmax11 numeric, Tmax12 numeric, PPT01 numeric, PPT02 numeric, PPT03 numeric, PPT04 numeric, PPT05 numeric, PPT06 numeric, PPT07 numeric, PPT08 numeric, PPT09 numeric, PPT10 numeric, PPT11 numeric, PPT12 numeric, Tave01 numeric, Tave02 numeric, Tave03 numeric, Tave04 numeric, Tave05 numeric, Tave06 numeric, Tave07 numeric, Tave08 numeric, Tave09 numeric, Tave10 numeric, Tave11 numeric, Tave12 numeric, CMD01 numeric, CMD02 numeric, CMD03 numeric, CMD04 numeric, CMD05 numeric, CMD06 numeric, CMD07 numeric, CMD08 numeric, CMD09 numeric, CMD10 numeric, CMD11 numeric, CMD12 numeric)")
+      qry<-paste0("CREATE TABLE IF NOT EXISTS climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor")," (pixelid_climate integer,  gcm character, ssp character, run character, period integer, Tmax01 numeric, Tmax02 numeric, Tmax03 numeric, Tmax04 numeric, Tmax05 numeric,  Tmax06 numeric, Tmax07 numeric, Tmax08 numeric, Tmax09 numeric, Tmax10 numeric, Tmax11 numeric, Tmax12 numeric, PPT01 numeric, PPT02 numeric, PPT03 numeric, PPT04 numeric, PPT05 numeric, PPT06 numeric, PPT07 numeric, PPT08 numeric, PPT09 numeric, PPT10 numeric, PPT11 numeric, PPT12 numeric, Tave01 numeric, Tave02 numeric, Tave03 numeric, Tave04 numeric, Tave05 numeric, Tave06 numeric, Tave07 numeric, Tave08 numeric, Tave09 numeric, Tave10 numeric, Tave11 numeric, Tave12 numeric, CMD01 numeric, CMD02 numeric, CMD03 numeric, CMD04 numeric, CMD05 numeric, CMD06 numeric, CMD07 numeric, CMD08 numeric, CMD09 numeric, CMD10 numeric, CMD11 numeric, CMD12 numeric)")
       
       dbExecute(sim$castordb, qry)
       
-      qry<-paste0("INSERT INTO climate_", P(sim, "gcmName", "fireCastor"),"_",P(sim, "ssp", "fireCastor"), " (pixelid_climate,  gcm, ssp, run, period, Tmax01, Tmax02, Tmax03, Tmax04, Tmax05,  Tmax06, Tmax07, Tmax08, Tmax09, Tmax10, Tmax11, Tmax12, PPT01, PPT02, PPT03, PPT04, PPT05, PPT06, PPT07, PPT08, PPT09, PPT10, PPT11, PPT12, Tave01, Tave02, Tave03, Tave04, Tave05, Tave06, Tave07, Tave08, Tave09, Tave10, Tave11, Tave12, CMD01, CMD02, CMD03, CMD04, CMD05, CMD06, CMD07, CMD08, CMD09, CMD10, CMD11, CMD12) VALUES (:pixelid_climate, :gcm, :ssp, :run, :period, :Tmax01, :Tmax02, :Tmax03, :Tmax04, :Tmax05, :Tmax06, :Tmax07, :Tmax08, :Tmax09, :Tmax10, :Tmax11, :Tmax12, :PPT01, :PPT02, :PPT03, :PPT04, :PPT05, :PPT06, :PPT07, :PPT08, :PPT09, :PPT10, :PPT11, :PPT12, :Tave01, :Tave02, :Tave03, :Tave04, :Tave05, :Tave06, :Tave07, :Tave08, :Tave09, :Tave10, :Tave11, :Tave12, :CMD01, :CMD02, :CMD03, :CMD04, :CMD05, :CMD06, :CMD07, :CMD08, :CMD09, :CMD10, :CMD11, :CMD12)")
+      qry<-paste0("INSERT INTO climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), " (pixelid_climate,  gcm, ssp, run, period, Tmax01, Tmax02, Tmax03, Tmax04, Tmax05,  Tmax06, Tmax07, Tmax08, Tmax09, Tmax10, Tmax11, Tmax12, PPT01, PPT02, PPT03, PPT04, PPT05, PPT06, PPT07, PPT08, PPT09, PPT10, PPT11, PPT12, Tave01, Tave02, Tave03, Tave04, Tave05, Tave06, Tave07, Tave08, Tave09, Tave10, Tave11, Tave12, CMD01, CMD02, CMD03, CMD04, CMD05, CMD06, CMD07, CMD08, CMD09, CMD10, CMD11, CMD12) VALUES (:pixelid_climate, :gcm, :ssp, :run, :period, :Tmax01, :Tmax02, :Tmax03, :Tmax04, :Tmax05, :Tmax06, :Tmax07, :Tmax08, :Tmax09, :Tmax10, :Tmax11, :Tmax12, :PPT01, :PPT02, :PPT03, :PPT04, :PPT05, :PPT06, :PPT07, :PPT08, :PPT09, :PPT10, :PPT11, :PPT12, :Tave01, :Tave02, :Tave03, :Tave04, :Tave05, :Tave06, :Tave07, :Tave08, :Tave09, :Tave10, :Tave11, :Tave12, :CMD01, :CMD02, :CMD03, :CMD04, :CMD05, :CMD06, :CMD07, :CMD08, :CMD09, :CMD10, :CMD11, :CMD12)")
       
       dbBegin(sim$castordb)
-      rs<-dbSendQuery(sim$castordb, qry, clim_dat)
+      rs<-dbSendQuery(sim$castordb, qry, climate_dat)
       dbClearResult(rs)
       dbCommit(sim$castordb)
       
@@ -177,32 +183,6 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
         message("climate data already extracted")
       }
       
-  return(invisible(sim))
-}
-
-
-.inputObjects <- function(sim) {
-  # Any code written here will be run during the simInit for the purpose of creating
-  # any objects required by this module and identified in the inputObjects element of defineModule.
-  # This is useful if there is something required before simulation to produce the module
-  # object dependencies, including such things as downloading default datasets, e.g.,
-  # downloadData("LCC2005", modulePath(sim)).
-  # Nothing should be created here that does not create a named object in inputObjects.
-  # Any other initiation procedures should be put in "init" eventType of the doEvent function.
-  # Note: the module developer can check if an object is 'suppliedElsewhere' to
-  # selectively skip unnecessary steps because the user has provided those inputObjects in the
-  # simInit call, or another module will supply or has supplied it. e.g.,
-  # if (!suppliedElsewhere('defaultColor', sim)) {
-  #   sim$map <- Cache(prepInputs, extractURL('map')) # download, extract, load file from url in sourceURL
-  # }
-
-  #cacheTags <- c(currentModule(sim), "function:.inputObjects") ## uncomment this if Cache is being used
-  dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
-  message(currentModule(sim), ": using dataPath '", dPath, "'.")
-
-  # ! ----- EDIT BELOW ----- ! #
-
-  # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
 }
 
