@@ -32,13 +32,14 @@ frt_sf<-st_as_sf(frt_clipped)
 fire.ignt.frt <- st_join(fire_bounds_hist, frt_sf)
 
 spread_5<- fire.ignt.frt %>% filter(Cluster=="5")
-hist(spread_5$ig_mnth)
 spread_5$ig_mnth<-as.numeric(spread_5$ig_mnth)
 hist(spread_5$ig_mnth)
 table(spread_5$ig_mnth)
 
 spread_size<-spread_5 %>% group_by(ig_mnth) %>%
   summarize(area_burned = sum(FIRE_SIZE_HECTARES))
+
+plot(spread_size$ig_mnth, spread_size$area_burned, )
 
 ### FRT 7 
 spread_7<- fire.ignt.frt %>% filter(Cluster=="7")

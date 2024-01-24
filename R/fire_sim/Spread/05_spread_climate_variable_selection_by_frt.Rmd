@@ -54,10 +54,12 @@ Now we must bring in the data that we created at the end of 08_VRI_data_prep. We
 
 
 ```{r}
-fire_spread<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\Fire_spread_data_all_veg.gpkg")
+fire_spread<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\Fire_data_all_veg_Dec23.gpkg")
+  
+  #st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\Fire_spread_data_all_veg.gpkg")
 
-fire_spread<-fire_all1
-rm(fire_all1)
+fire_spread<-veg2
+
 
 ```
 
@@ -65,14 +67,14 @@ rm(fire_all1)
 Inspect the fire ignition data.
 
 ```{r}
-fire_spread2<-st_set_geometry(fire_spread,NULL) # remove geometry column for dataset
+#fire_spread2<-st_set_geometry(fire_spread,NULL) # remove geometry column for dataset
 
-head(fire_spread2)
-names(fire_spread2) 
+head(fire_spread)
+names(fire_spread) 
 
 # plot climate varibales over time to see if it looks ok.
 
-fire_spread2_summary<- fire_spread2 %>%
+fire_spread2_summary<- fire_spread %>%
   group_by(frt) %>%
   dplyr::summarize(Tmax02=mean(Tmax02),
          Tmax03=mean(Tmax03),
@@ -204,17 +206,17 @@ p<-ggplot(data=xMDC_, aes(x=Month, y=MDC_, group= frt)) +
   geom_point(aes(colour=frt)) 
 p
 
-p<-ggplot(fire_spread2, aes(x=as.factor(pttype), y=Tmax07)) +
+p<-ggplot(fire_spread, aes(x=as.factor(pttype), y=Tmax07)) +
   geom_boxplot() +
    facet_wrap(~frt, ncol = 3)
 p
 
-p<-ggplot(fire_spread2, aes(x=as.factor(pttype), y=Tmax08)) +
+p<-ggplot(fire_spread, aes(x=as.factor(pttype), y=Tmax08)) +
   geom_boxplot() +
    facet_wrap(~frt, ncol = 3)
 p
 
-p<-ggplot(fire_spread2, aes(x=as.factor(pttype), y=Tmax08)) +
+p<-ggplot(fire_spread, aes(x=as.factor(pttype), y=PPT07)) +
   geom_boxplot() +
    facet_wrap(~frt, ncol = 3)
 p
@@ -241,45 +243,38 @@ Before we begin the analyses we will combine FRT 3 with FRT 5 and also look at s
 
 ```{r}
 # combining FRT 3 with FRT 5 because FRT3 consists of two tiny slivers on the boarder of BC.
-table(fire_spread2$frt)
+table(fire_spread$frt)
 
-fire_spread2$frt[fire_spread2$frt=="3"]<-"5"
+fire_spread$frt[fire_spread$frt=="3"]<-"5"
 
-table(fire_spread2$frt, fire_spread$pttype)
+table(fire_spread$frt, fire_spread$pttype)
 #### looking at correlations between variables####
 
 ####1. Lightning ########
 
 
-dist.cut.corr <- fire_spread2 [c (8:17, 28:37)]
+dist.cut.corr <- fire_spread [,c(9:20, 21:31)]
 corr <- round (cor (dist.cut.corr), 3)
 
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between maximum temperature and PPT")
 
-dist.cut.corr <- fire_spread2 [c (8:17, 38:47)]
+dist.cut.corr <- fire_spread [c (8:17, 38:47)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between maximum temperature and RH") # somewhat corrleated -0.67
 
-dist.cut.corr <- fire_spread2 [c (8:17, 58:67)]
+dist.cut.corr <- fire_spread [c (8:17, 58:67)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between maximum temperature and MDC") # very corrleated 0.8
 
-dist.cut.corr <- fire_spread2 [c (28:37, 38:47)]
+dist.cut.corr <- fire_spread [c (28:37, 68:77)]
 corr <- round (cor (dist.cut.corr), 3)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
             title = "Correlation between PPT and RH") # somewhat corrleated 0.66 but not enough to be concerned I  dont think
 
-fire_spread2<-fire_spread2 %>% mutate_at (c( "PPT03", "PPT04", "PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "PPT10", "CMI03", "CMI04", "CMI05", "CMI06", "CMI07", "CMI08", "CMI09", "CMI10"), as.numeric)
-
-dist.cut.corr <- fire_spread2 [c (318:325, 318:325)]
-corr <- round (cor (dist.cut.corr), 2)
-ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3,
-            title = "Correlation between PPT and RH") # somewhat corrleated 0.66 but not enough to be concerned I  dont think
-
-str(dist.cut.corr)
+fire_spread2<-fire_spread %>% mutate_at (c( "PPT02","PPT03", "PPT04", "PPT05", "PPT06", "PPT07", "PPT08", "PPT09", "PPT10","PPT11","CMD02", "CMD03", "CMD04", "CMD05", "CMD06", "CMD07", "CMD08", "CMD09", "CMD10","CMD11"), as.numeric)
 
 
 ```
@@ -290,17 +285,20 @@ Before we begin, we will create additional climate variables.
 #Climate variable creation for lightning data
 
 ### creating amalgamations of variables to test different combinations of variables.##
-fire_spread2$tot_spring_PPT<-fire_spread2$PPT04+ fire_spread2$PPT05 + fire_spread2$PPT06
-fire_spread2$tot_summer_PPT<-fire_spread2$PPT07+ fire_spread2$PPT08 + fire_spread2$PPT09
-fire_spread2$tot_spring_CMI<-fire_spread2$CMI04+ fire_spread2$CMI05 + fire_spread2$CMI06
-fire_spread2$tot_summer_CMI<-fire_spread2$CMI07+ fire_spread2$CMI08 + fire_spread2$CMI09
-fire_spread2$tot_spring_RH<-fire_spread2$RH04+ fire_spread2$RH05 + fire_spread2$RH06
-fire_spread2$tot_summer_RH<-fire_spread2$RH07+ fire_spread2$RH08 + fire_spread2$RH09
+fire_spread2$tot_spring_PPT<-(fire_spread2$PPT03+ fire_spread2$PPT04 + fire_spread2$PPT05)/3
+fire_spread2$tot_summer_PPT<-(fire_spread2$PPT06+ fire_spread2$PPT07 + fire_spread2$PPT08)/3
 
-fire_spread2$spring_Tmax<-(fire_spread2$Tmax04+ fire_spread2$Tmax05 + fire_spread2$Tmax06)/3
-fire_spread2$summer_Tmax<-(fire_spread2$Tmax07+ fire_spread2$Tmax08 + fire_spread2$Tmax09)/3
-fire_spread2$spring_Tave<-(fire_spread2$Tave04+ fire_spread2$Tave05 + fire_spread2$Tave06)/3
-fire_spread2$summer_Tave<-(fire_spread2$Tave07+ fire_spread2$Tave08 + fire_spread2$Tave09)/3
+fire_spread2$spring_Tmax<-(fire_spread2$Tmax03+ fire_spread2$Tmax04 + fire_spread2$Tmax05)/3
+fire_spread2$summer_Tmax<-(fire_spread2$Tmax06+ fire_spread2$Tmax07 + fire_spread2$Tmax08)/3
+
+fire_spread2$spring_Tave<-(fire_spread2$Tave03+ fire_spread2$Tave04 + fire_spread2$Tave05)/3
+fire_spread2$summer_Tave<-(fire_spread2$Tave06+ fire_spread2$Tave07 + fire_spread2$Tave08)/3
+
+fire_spread2$spring_Tmin<-(fire_spread2$Tmin03+ fire_spread2$Tmin04 + fire_spread2$Tmin05)/3
+fire_spread2$summer_Tmin<-(fire_spread2$Tmin06+ fire_spread2$Tmin07 + fire_spread2$Tmin08)/3
+
+fire_spread2$tot_spring_CMD<-(fire_spread2$CMD03+ fire_spread2$CMD04 + fire_spread2$CMD05)/3
+fire_spread2$tot_summer_CMD<-(fire_spread2$CMD06+ fire_spread2$CMD07 + fire_spread2$CMD08)/3
 
 fire_spread2$mean_Tmax03_Tmax04<- (fire_spread2$Tmax03+ fire_spread2$Tmax04)/2
 fire_spread2$mean_Tmax04_Tmax05<- (fire_spread2$Tmax04+ fire_spread2$Tmax05)/2
@@ -308,43 +306,28 @@ fire_spread2$mean_Tmax05_Tmax06<- (fire_spread2$Tmax05+ fire_spread2$Tmax06)/2
 fire_spread2$mean_Tmax06_Tmax07<- (fire_spread2$Tmax06+ fire_spread2$Tmax07)/2
 fire_spread2$mean_Tmax07_Tmax08<- (fire_spread2$Tmax07+ fire_spread2$Tmax08)/2
 fire_spread2$mean_Tmax08_Tmax09<- (fire_spread2$Tmax08+ fire_spread2$Tmax09)/2
-fire_spread2$mean_Tmax09_Tmax10<- (fire_spread2$Tmax09+ fire_spread2$Tmax10)/2
-fire_spread2$mean_Tmax10_Tmax11<- (fire_spread2$Tmax10+ fire_spread2$Tmax11)/2
 
 fire_spread2$mean_Tmax03_Tmax04_Tmax05<- (fire_spread2$Tmax03+ fire_spread2$Tmax04 + fire_spread2$Tmax05)/3
 fire_spread2$mean_Tmax04_Tmax05_Tmax06<- (fire_spread2$Tmax04+ fire_spread2$Tmax05 + fire_spread2$Tmax06)/3
 fire_spread2$mean_Tmax05_Tmax06_Tmax07<- (fire_spread2$Tmax05+ fire_spread2$Tmax06 + fire_spread2$Tmax07)/3
 fire_spread2$mean_Tmax06_Tmax07_Tmax08<- (fire_spread2$Tmax06+ fire_spread2$Tmax07 + fire_spread2$Tmax08)/3
 fire_spread2$mean_Tmax07_Tmax08_Tmax09<- (fire_spread2$Tmax07+ fire_spread2$Tmax08 + fire_spread2$Tmax09)/3
-fire_spread2$mean_Tmax08_Tmax09_Tmax10<- (fire_spread2$Tmax08+ fire_spread2$Tmax09 + fire_spread2$Tmax10)/3
-fire_spread2$mean_Tmax09_Tmax10_Tmax11<- (fire_spread2$Tmax09+ fire_spread2$Tmax10 + fire_spread2$Tmax11)/3
 
 fire_spread2$mean_Tmax03_Tmax04_Tmax05_Tmax06<- (fire_spread2$Tmax03 + fire_spread2$Tmax04+ fire_spread2$Tmax05 + fire_spread2$Tmax06)/4
 fire_spread2$mean_Tmax04_Tmax05_Tmax06_Tmax07<- (fire_spread2$Tmax04 + fire_spread2$Tmax05+ fire_spread2$Tmax06 + fire_spread2$Tmax07)/4
 fire_spread2$mean_Tmax05_Tmax06_Tmax07_Tmax08<- (fire_spread2$Tmax05 + fire_spread2$Tmax06+ fire_spread2$Tmax07 + fire_spread2$Tmax08)/4
 fire_spread2$mean_Tmax06_Tmax07_Tmax08_Tmax09<- (fire_spread2$Tmax06 + fire_spread2$Tmax07+ fire_spread2$Tmax08 + fire_spread2$Tmax09)/4
-fire_spread2$mean_Tmax07_Tmax08_Tmax09_Tmax10<- (fire_spread2$Tmax07 + fire_spread2$Tmax08+ fire_spread2$Tmax09 + fire_spread2$Tmax10)/4
-fire_spread2$mean_Tmax08_Tmax09_Tmax10_Tmax11<- (fire_spread2$Tmax08 + fire_spread2$Tmax09+ fire_spread2$Tmax10 + fire_spread2$Tmax11)/4
 
 fire_spread2$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07<- (fire_spread2$Tmax03 + fire_spread2$Tmax04 + fire_spread2$Tmax05+ fire_spread2$Tmax06 + fire_spread2$Tmax07)/5
 fire_spread2$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08<- (fire_spread2$Tmax04 + fire_spread2$Tmax05 + fire_spread2$Tmax06+ fire_spread2$Tmax07 + fire_spread2$Tmax08)/5
 fire_spread2$mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09<- (fire_spread2$Tmax05 + fire_spread2$Tmax06 + fire_spread2$Tmax07+ fire_spread2$Tmax08 + fire_spread2$Tmax09)/5
-fire_spread2$mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- ( fire_spread2$Tmax06 + fire_spread2$Tmax07+ fire_spread2$Tmax08 + fire_spread2$Tmax09 + fire_spread2$Tmax10)/5
-fire_spread2$mean_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- ( fire_spread2$Tmax07 + fire_spread2$Tmax08+ fire_spread2$Tmax09 + fire_spread2$Tmax10 + fire_spread2$Tmax11)/5
 
 fire_spread2$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08<- (fire_spread2$Tmax03 + fire_spread2$Tmax04 + fire_spread2$Tmax05 + fire_spread2$Tmax06 + fire_spread2$Tmax07+ fire_spread2$Tmax08)/6
+
 fire_spread2$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9<- (fire_spread2$Tmax04 + fire_spread2$Tmax05 + fire_spread2$Tmax06 + fire_spread2$Tmax07+ fire_spread2$Tmax08 + fire_spread2$Tmax09)/6
-fire_spread2$mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- (fire_spread2$Tmax05 + fire_spread2$Tmax06 + fire_spread2$Tmax07+ fire_spread2$Tmax08 + fire_spread2$Tmax09 + fire_spread2$Tmax10)/6
-fire_spread2$mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- (fire_spread2$Tmax06 + fire_spread2$Tmax07+ fire_spread2$Tmax08 + fire_spread2$Tmax09 + fire_spread2$Tmax10 + fire_spread2$Tmax11)/6
 
 fire_spread2$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09<- (fire_spread2$Tmax03 + fire_spread2$Tmax04 + fire_spread2$Tmax05 + fire_spread2$Tmax06 + fire_spread2$Tmax07+ fire_spread2$Tmax08 + fire_spread2$Tmax09)/7
-fire_spread2$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- ( fire_spread2$Tmax04 + fire_spread2$Tmax05 + fire_spread2$Tmax06 + fire_spread2$Tmax07+ fire_spread2$Tmax08 + fire_spread2$Tmax09 + fire_spread2$Tmax10)/7
-fire_spread2$mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- (fire_spread2$Tmax05 + fire_spread2$Tmax06 + fire_spread2$Tmax07+ fire_spread2$Tmax08 + fire_spread2$Tmax09 + fire_spread2$Tmax10 + fire_spread2$Tmax11)/7
 
-fire_spread2$mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- (fire_spread2$Tmax04 + fire_spread2$Tmax05 + fire_spread2$Tmax06 + fire_spread2$Tmax07+ fire_spread2$Tmax08 + fire_spread2$Tmax09 + fire_spread2$Tmax10 + fire_spread2$Tmax11)/8
-fire_spread2$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10<- ( fire_spread2$Tmax03 + fire_spread2$Tmax04 + fire_spread2$Tmax05 + fire_spread2$Tmax06 + fire_spread2$Tmax07+ fire_spread2$Tmax08 + fire_spread2$Tmax09 + fire_spread2$Tmax10)/8
-
-fire_spread2$mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11<- ( fire_spread2$Tmax03 + fire_spread2$Tmax04 + fire_spread2$Tmax05 + fire_spread2$Tmax06 + fire_spread2$Tmax07+ fire_spread2$Tmax08 + fire_spread2$Tmax09 + fire_spread2$Tmax10 + fire_spread2$Tmax11)/9
 
 #### Tave
 
@@ -354,43 +337,56 @@ fire_spread2$mean_Tave05_Tave06<- (fire_spread2$Tave05+ fire_spread2$Tave06)/2
 fire_spread2$mean_Tave06_Tave07<- (fire_spread2$Tave06+ fire_spread2$Tave07)/2
 fire_spread2$mean_Tave07_Tave08<- (fire_spread2$Tave07+ fire_spread2$Tave08)/2
 fire_spread2$mean_Tave08_Tave09<- (fire_spread2$Tave08+ fire_spread2$Tave09)/2
-fire_spread2$mean_Tave09_Tave10<- (fire_spread2$Tave09+ fire_spread2$Tave10)/2
-fire_spread2$mean_Tave10_Tave11<- (fire_spread2$Tave10+ fire_spread2$Tave11)/2
 
 fire_spread2$mean_Tave03_Tave04_Tave05<- (fire_spread2$Tave03+ fire_spread2$Tave04 + fire_spread2$Tave05)/3
 fire_spread2$mean_Tave04_Tave05_Tave06<- (fire_spread2$Tave04+ fire_spread2$Tave05 + fire_spread2$Tave06)/3
 fire_spread2$mean_Tave05_Tave06_Tave07<- (fire_spread2$Tave05+ fire_spread2$Tave06 + fire_spread2$Tave07)/3
 fire_spread2$mean_Tave06_Tave07_Tave08<- (fire_spread2$Tave06+ fire_spread2$Tave07 + fire_spread2$Tave08)/3
 fire_spread2$mean_Tave07_Tave08_Tave09<- (fire_spread2$Tave07+ fire_spread2$Tave08 + fire_spread2$Tave09)/3
-fire_spread2$mean_Tave08_Tave09_Tave10<- (fire_spread2$Tave08+ fire_spread2$Tave09 + fire_spread2$Tave10)/3
-fire_spread2$mean_Tave09_Tave10_Tave11<- (fire_spread2$Tave09+ fire_spread2$Tave10 + fire_spread2$Tave11)/3
 
 fire_spread2$mean_Tave03_Tave04_Tave05_Tave06<- (fire_spread2$Tave03 + fire_spread2$Tave04+ fire_spread2$Tave05 + fire_spread2$Tave06)/4
 fire_spread2$mean_Tave04_Tave05_Tave06_Tave07<- (fire_spread2$Tave04 + fire_spread2$Tave05+ fire_spread2$Tave06 + fire_spread2$Tave07)/4
 fire_spread2$mean_Tave05_Tave06_Tave07_Tave08<- (fire_spread2$Tave05 + fire_spread2$Tave06+ fire_spread2$Tave07 + fire_spread2$Tave08)/4
 fire_spread2$mean_Tave06_Tave07_Tave08_Tave09<- (fire_spread2$Tave06 + fire_spread2$Tave07+ fire_spread2$Tave08 + fire_spread2$Tave09)/4
-fire_spread2$mean_Tave07_Tave08_Tave09_Tave10<- (fire_spread2$Tave07 + fire_spread2$Tave08+ fire_spread2$Tave09 + fire_spread2$Tave10)/4
-fire_spread2$mean_Tave08_Tave09_Tave10_Tave11<- (fire_spread2$Tave08 + fire_spread2$Tave09+ fire_spread2$Tave10 + fire_spread2$Tave11)/4
 
 fire_spread2$mean_Tave03_Tave04_Tave05_Tave06_Tave07<- (fire_spread2$Tave03 + fire_spread2$Tave04 + fire_spread2$Tave05+ fire_spread2$Tave06 + fire_spread2$Tave07)/5
 fire_spread2$mean_Tave04_Tave05_Tave06_Tave07_Tave08<- (fire_spread2$Tave04 + fire_spread2$Tave05 + fire_spread2$Tave06+ fire_spread2$Tave07 + fire_spread2$Tave08)/5
 fire_spread2$mean_Tave05_Tave06_Tave07_Tave08_Tave09<- (fire_spread2$Tave05 + fire_spread2$Tave06 + fire_spread2$Tave07+ fire_spread2$Tave08 + fire_spread2$Tave09)/5
-fire_spread2$mean_Tave06_Tave07_Tave08_Tave09_Tave10<- ( fire_spread2$Tave06 + fire_spread2$Tave07+ fire_spread2$Tave08 + fire_spread2$Tave09 + fire_spread2$Tave10)/5
-fire_spread2$mean_Tave07_Tave08_Tave09_Tave10_Tave11<- ( fire_spread2$Tave07 + fire_spread2$Tave08+ fire_spread2$Tave09 + fire_spread2$Tave10 + fire_spread2$Tave11)/5
 
 fire_spread2$mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08<- (fire_spread2$Tave03 + fire_spread2$Tave04 + fire_spread2$Tave05 + fire_spread2$Tave06 + fire_spread2$Tave07+ fire_spread2$Tave08)/6
 fire_spread2$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave9<- (fire_spread2$Tave04 + fire_spread2$Tave05 + fire_spread2$Tave06 + fire_spread2$Tave07+ fire_spread2$Tave08 + fire_spread2$Tave09)/6
-fire_spread2$mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<- (fire_spread2$Tave05 + fire_spread2$Tave06 + fire_spread2$Tave07+ fire_spread2$Tave08 + fire_spread2$Tave09 + fire_spread2$Tave10)/6
-fire_spread2$mean_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11<- (fire_spread2$Tave06 + fire_spread2$Tave07+ fire_spread2$Tave08 + fire_spread2$Tave09 + fire_spread2$Tave10 + fire_spread2$Tave11)/6
 
 fire_spread2$mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09<- (fire_spread2$Tave03 + fire_spread2$Tave04 + fire_spread2$Tave05 + fire_spread2$Tave06 + fire_spread2$Tave07+ fire_spread2$Tave08 + fire_spread2$Tave09)/7
-fire_spread2$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<- ( fire_spread2$Tave04 + fire_spread2$Tave05 + fire_spread2$Tave06 + fire_spread2$Tave07+ fire_spread2$Tave08 + fire_spread2$Tave09 + fire_spread2$Tave10)/7
-fire_spread2$mean_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11<- (fire_spread2$Tave05 + fire_spread2$Tave06 + fire_spread2$Tave07+ fire_spread2$Tave08 + fire_spread2$Tave09 + fire_spread2$Tave10 + fire_spread2$Tave11)/7
 
-fire_spread2$mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11<- (fire_spread2$Tave04 + fire_spread2$Tave05 + fire_spread2$Tave06 + fire_spread2$Tave07+ fire_spread2$Tave08 + fire_spread2$Tave09 + fire_spread2$Tave10 + fire_spread2$Tave11)/8
-fire_spread2$mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10<- ( fire_spread2$Tave03 + fire_spread2$Tave04 + fire_spread2$Tave05 + fire_spread2$Tave06 + fire_spread2$Tave07+ fire_spread2$Tave08 + fire_spread2$Tave09 + fire_spread2$Tave10)/8
 
-fire_spread2$mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08_Tave09_Tave10_Tave11<- ( fire_spread2$Tave03 + fire_spread2$Tave04 + fire_spread2$Tave05 + fire_spread2$Tave06 + fire_spread2$Tave07+ fire_spread2$Tave08 + fire_spread2$Tave09 + fire_spread2$Tave10 + fire_spread2$Tave11)/9
+#### Tmin
+fire_spread2$mean_Tmin03_Tmin04<- (fire_spread2$Tmin03+ fire_spread2$Tmin04)/2
+fire_spread2$mean_Tmin04_Tmin05<- (fire_spread2$Tmin04+ fire_spread2$Tmin05)/2
+fire_spread2$mean_Tmin05_Tmin06<- (fire_spread2$Tmin05+ fire_spread2$Tmin06)/2
+fire_spread2$mean_Tmin06_Tmin07<- (fire_spread2$Tmin06+ fire_spread2$Tmin07)/2
+fire_spread2$mean_Tmin07_Tmin08<- (fire_spread2$Tmin07+ fire_spread2$Tmin08)/2
+fire_spread2$mean_Tmin08_Tmin09<- (fire_spread2$Tmin08+ fire_spread2$Tmin09)/2
+
+fire_spread2$mean_Tmin03_Tmin04_Tmin05<- (fire_spread2$Tmin03+ fire_spread2$Tmin04 + fire_spread2$Tmin05)/3
+fire_spread2$mean_Tmin04_Tmin05_Tmin06<- (fire_spread2$Tmin04+ fire_spread2$Tmin05 + fire_spread2$Tmin06)/3
+fire_spread2$mean_Tmin05_Tmin06_Tmin07<- (fire_spread2$Tmin05+ fire_spread2$Tmin06 + fire_spread2$Tmin07)/3
+fire_spread2$mean_Tmin06_Tmin07_Tmin08<- (fire_spread2$Tmin06+ fire_spread2$Tmin07 + fire_spread2$Tmin08)/3
+fire_spread2$mean_Tmin07_Tmin08_Tmin09<- (fire_spread2$Tmin07+ fire_spread2$Tmin08 + fire_spread2$Tmin09)/3
+
+fire_spread2$mean_Tmin03_Tmin04_Tmin05_Tmin06<- (fire_spread2$Tmin03 + fire_spread2$Tmin04+ fire_spread2$Tmin05 + fire_spread2$Tmin06)/4
+fire_spread2$mean_Tmin04_Tmin05_Tmin06_Tmin07<- (fire_spread2$Tmin04 + fire_spread2$Tmin05+ fire_spread2$Tmin06 + fire_spread2$Tmin07)/4
+fire_spread2$mean_Tmin05_Tmin06_Tmin07_Tmin08<- (fire_spread2$Tmin05 + fire_spread2$Tmin06+ fire_spread2$Tmin07 + fire_spread2$Tmin08)/4
+fire_spread2$mean_Tmin06_Tmin07_Tmin08_Tmin09<- (fire_spread2$Tmin06 + fire_spread2$Tmin07+ fire_spread2$Tmin08 + fire_spread2$Tmin09)/4
+
+fire_spread2$mean_Tmin03_Tmin04_Tmin05_Tmin06_Tmin07<- (fire_spread2$Tmin03 + fire_spread2$Tmin04 + fire_spread2$Tmin05+ fire_spread2$Tmin06 + fire_spread2$Tmin07)/5
+fire_spread2$mean_Tmin04_Tmin05_Tmin06_Tmin07_Tmin08<- (fire_spread2$Tmin04 + fire_spread2$Tmin05 + fire_spread2$Tmin06+ fire_spread2$Tmin07 + fire_spread2$Tmin08)/5
+fire_spread2$mean_Tmin05_Tmin06_Tmin07_Tmin08_Tmin09<- (fire_spread2$Tmin05 + fire_spread2$Tmin06 + fire_spread2$Tmin07+ fire_spread2$Tmin08 + fire_spread2$Tmin09)/5
+
+fire_spread2$mean_Tmin03_Tmin04_Tmin05_Tmin06_Tmin07_Tmin08<- (fire_spread2$Tmin03 + fire_spread2$Tmin04 + fire_spread2$Tmin05 + fire_spread2$Tmin06 + fire_spread2$Tmin07+ fire_spread2$Tmin08)/6
+fire_spread2$mean_Tmin04_Tmin05_Tmin06_Tmin07_Tmin08_Tmin9<- (fire_spread2$Tmin04 + fire_spread2$Tmin05 + fire_spread2$Tmin06 + fire_spread2$Tmin07+ fire_spread2$Tmin08 + fire_spread2$Tmin09)/6
+
+fire_spread2$mean_Tmin03_Tmin04_Tmin05_Tmin06_Tmin07_Tmin08_Tmin09<- (fire_spread2$Tmin03 + fire_spread2$Tmin04 + fire_spread2$Tmin05 + fire_spread2$Tmin06 + fire_spread2$Tmin07+ fire_spread2$Tmin08 + fire_spread2$Tmin09)/7
+
 
 #### PPT
 fire_spread2$mean_PPT03_PPT04<- (fire_spread2$PPT03+ fire_spread2$PPT04)/2
@@ -399,175 +395,57 @@ fire_spread2$mean_PPT05_PPT06<- (fire_spread2$PPT05+ fire_spread2$PPT06)/2
 fire_spread2$mean_PPT06_PPT07<- (fire_spread2$PPT06+ fire_spread2$PPT07)/2
 fire_spread2$mean_PPT07_PPT08<- (fire_spread2$PPT07+ fire_spread2$PPT08)/2
 fire_spread2$mean_PPT08_PPT09<- (fire_spread2$PPT08+ fire_spread2$PPT09)/2
-fire_spread2$mean_PPT09_PPT10<- (fire_spread2$PPT09+ fire_spread2$PPT10)/2
-fire_spread2$mean_PPT10_PPT11<- (fire_spread2$PPT10+ fire_spread2$PPT11)/2
 
 fire_spread2$mean_PPT03_PPT04_PPT05<- (fire_spread2$PPT03+ fire_spread2$PPT04 + fire_spread2$PPT05)/3
 fire_spread2$mean_PPT04_PPT05_PPT06<- (fire_spread2$PPT04+ fire_spread2$PPT05 + fire_spread2$PPT06)/3
 fire_spread2$mean_PPT05_PPT06_PPT07<- (fire_spread2$PPT05+ fire_spread2$PPT06 + fire_spread2$PPT07)/3
 fire_spread2$mean_PPT06_PPT07_PPT08<- (fire_spread2$PPT06+ fire_spread2$PPT07 + fire_spread2$PPT08)/3
 fire_spread2$mean_PPT07_PPT08_PPT09<- (fire_spread2$PPT07+ fire_spread2$PPT08 + fire_spread2$PPT09)/3
-fire_spread2$mean_PPT08_PPT09_PPT10<- (fire_spread2$PPT08+ fire_spread2$PPT09 + fire_spread2$PPT10)/3
-fire_spread2$mean_PPT09_PPT10_PPT11<- (fire_spread2$PPT09+ fire_spread2$PPT10 + fire_spread2$PPT11)/3
 
 fire_spread2$mean_PPT03_PPT04_PPT05_PPT06<- (fire_spread2$PPT03 + fire_spread2$PPT04+ fire_spread2$PPT05 + fire_spread2$PPT06)/4
 fire_spread2$mean_PPT04_PPT05_PPT06_PPT07<- (fire_spread2$PPT04 + fire_spread2$PPT05+ fire_spread2$PPT06 + fire_spread2$PPT07)/4
 fire_spread2$mean_PPT05_PPT06_PPT07_PPT08<- (fire_spread2$PPT05 + fire_spread2$PPT06+ fire_spread2$PPT07 + fire_spread2$PPT08)/4
 fire_spread2$mean_PPT06_PPT07_PPT08_PPT09<- (fire_spread2$PPT06 + fire_spread2$PPT07+ fire_spread2$PPT08 + fire_spread2$PPT09)/4
-fire_spread2$mean_PPT07_PPT08_PPT09_PPT10<- (fire_spread2$PPT07 + fire_spread2$PPT08+ fire_spread2$PPT09 + fire_spread2$PPT10)/4
-fire_spread2$mean_PPT08_PPT09_PPT10_PPT11<- (fire_spread2$PPT08 + fire_spread2$PPT09+ fire_spread2$PPT10 + fire_spread2$PPT11)/4
 
 fire_spread2$mean_PPT03_PPT04_PPT05_PPT06_PPT07<- (fire_spread2$PPT03 + fire_spread2$PPT04 + fire_spread2$PPT05+ fire_spread2$PPT06 + fire_spread2$PPT07)/5
 fire_spread2$mean_PPT04_PPT05_PPT06_PPT07_PPT08<- (fire_spread2$PPT04 + fire_spread2$PPT05 + fire_spread2$PPT06+ fire_spread2$PPT07 + fire_spread2$PPT08)/5
 fire_spread2$mean_PPT05_PPT06_PPT07_PPT08_PPT09<- (fire_spread2$PPT05 + fire_spread2$PPT06 + fire_spread2$PPT07+ fire_spread2$PPT08 + fire_spread2$PPT09)/5
-fire_spread2$mean_PPT06_PPT07_PPT08_PPT09_PPT10<- ( fire_spread2$PPT06 + fire_spread2$PPT07+ fire_spread2$PPT08 + fire_spread2$PPT09 + fire_spread2$PPT10)/5
-fire_spread2$mean_PPT07_PPT08_PPT09_PPT10_PPT11<- ( fire_spread2$PPT07 + fire_spread2$PPT08+ fire_spread2$PPT09 + fire_spread2$PPT10 + fire_spread2$PPT11)/5
 
 fire_spread2$mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08<- (fire_spread2$PPT03 + fire_spread2$PPT04 + fire_spread2$PPT05 + fire_spread2$PPT06 + fire_spread2$PPT07+ fire_spread2$PPT08)/6
 fire_spread2$mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT9<- (fire_spread2$PPT04 + fire_spread2$PPT05 + fire_spread2$PPT06 + fire_spread2$PPT07+ fire_spread2$PPT08 + fire_spread2$PPT09)/6
-fire_spread2$mean_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10<- (fire_spread2$PPT05 + fire_spread2$PPT06 + fire_spread2$PPT07+ fire_spread2$PPT08 + fire_spread2$PPT09 + fire_spread2$PPT10)/6
-fire_spread2$mean_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11<- (fire_spread2$PPT06 + fire_spread2$PPT07+ fire_spread2$PPT08 + fire_spread2$PPT09 + fire_spread2$PPT10 + fire_spread2$PPT11)/6
 
 fire_spread2$mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09<- (fire_spread2$PPT03 + fire_spread2$PPT04 + fire_spread2$PPT05 + fire_spread2$PPT06 + fire_spread2$PPT07+ fire_spread2$PPT08 + fire_spread2$PPT09)/7
-fire_spread2$mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10<- ( fire_spread2$PPT04 + fire_spread2$PPT05 + fire_spread2$PPT06 + fire_spread2$PPT07+ fire_spread2$PPT08 + fire_spread2$PPT09 + fire_spread2$PPT10)/7
-fire_spread2$mean_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11<- (fire_spread2$PPT05 + fire_spread2$PPT06 + fire_spread2$PPT07+ fire_spread2$PPT08 + fire_spread2$PPT09 + fire_spread2$PPT10 + fire_spread2$PPT11)/7
 
-fire_spread2$mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11<- (fire_spread2$PPT04 + fire_spread2$PPT05 + fire_spread2$PPT06 + fire_spread2$PPT07+ fire_spread2$PPT08 + fire_spread2$PPT09 + fire_spread2$PPT10 + fire_spread2$PPT11)/8
-fire_spread2$mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10<- ( fire_spread2$PPT03 + fire_spread2$PPT04 + fire_spread2$PPT05 + fire_spread2$PPT06 + fire_spread2$PPT07+ fire_spread2$PPT08 + fire_spread2$PPT09 + fire_spread2$PPT10)/8
 
-fire_spread2$mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08_PPT09_PPT10_PPT11<- ( fire_spread2$PPT03 + fire_spread2$PPT04 + fire_spread2$PPT05 + fire_spread2$PPT06 + fire_spread2$PPT07+ fire_spread2$PPT08 + fire_spread2$PPT09 + fire_spread2$PPT10 + fire_spread2$PPT11)/9
+### CMD
 
-#### RH
-fire_spread2$mean_RH03_RH04<- (fire_spread2$RH03+ fire_spread2$RH04)/2
-fire_spread2$mean_RH04_RH05<- (fire_spread2$RH04+ fire_spread2$RH05)/2
-fire_spread2$mean_RH05_RH06<- (fire_spread2$RH05+ fire_spread2$RH06)/2
-fire_spread2$mean_RH06_RH07<- (fire_spread2$RH06+ fire_spread2$RH07)/2
-fire_spread2$mean_RH07_RH08<- (fire_spread2$RH07+ fire_spread2$RH08)/2
-fire_spread2$mean_RH08_RH09<- (fire_spread2$RH08+ fire_spread2$RH09)/2
-fire_spread2$mean_RH09_RH10<- (fire_spread2$RH09+ fire_spread2$RH10)/2
-fire_spread2$mean_RH10_RH11<- (fire_spread2$RH10+ fire_spread2$RH11)/2
+fire_spread2$mean_CMD03_CMD04<- (fire_spread2$CMD03+ fire_spread2$CMD04)/2
+fire_spread2$mean_CMD04_CMD05<- (fire_spread2$CMD04+ fire_spread2$CMD05)/2
+fire_spread2$mean_CMD05_CMD06<- (fire_spread2$CMD05+ fire_spread2$CMD06)/2
+fire_spread2$mean_CMD06_CMD07<- (fire_spread2$CMD06+ fire_spread2$CMD07)/2
+fire_spread2$mean_CMD07_CMD08<- (fire_spread2$CMD07+ fire_spread2$CMD08)/2
+fire_spread2$mean_CMD08_CMD09<- (fire_spread2$CMD08+ fire_spread2$CMD09)/2
 
-fire_spread2$mean_RH03_RH04_RH05<- (fire_spread2$RH03+ fire_spread2$RH04 + fire_spread2$RH05)/3
-fire_spread2$mean_RH04_RH05_RH06<- (fire_spread2$RH04+ fire_spread2$RH05 + fire_spread2$RH06)/3
-fire_spread2$mean_RH05_RH06_RH07<- (fire_spread2$RH05+ fire_spread2$RH06 + fire_spread2$RH07)/3
-fire_spread2$mean_RH06_RH07_RH08<- (fire_spread2$RH06+ fire_spread2$RH07 + fire_spread2$RH08)/3
-fire_spread2$mean_RH07_RH08_RH09<- (fire_spread2$RH07+ fire_spread2$RH08 + fire_spread2$RH09)/3
-fire_spread2$mean_RH08_RH09_RH10<- (fire_spread2$RH08+ fire_spread2$RH09 + fire_spread2$RH10)/3
-fire_spread2$mean_RH09_RH10_RH11<- (fire_spread2$RH09+ fire_spread2$RH10 + fire_spread2$RH11)/3
+fire_spread2$mean_CMD03_CMD04_CMD05<- (fire_spread2$CMD03+ fire_spread2$CMD04 + fire_spread2$CMD05)/3
+fire_spread2$mean_CMD04_CMD05_CMD06<- (fire_spread2$CMD04+ fire_spread2$CMD05 + fire_spread2$CMD06)/3
+fire_spread2$mean_CMD05_CMD06_CMD07<- (fire_spread2$CMD05+ fire_spread2$CMD06 + fire_spread2$CMD07)/3
+fire_spread2$mean_CMD06_CMD07_CMD08<- (fire_spread2$CMD06+ fire_spread2$CMD07 + fire_spread2$CMD08)/3
+fire_spread2$mean_CMD07_CMD08_CMD09<- (fire_spread2$CMD07+ fire_spread2$CMD08 + fire_spread2$CMD09)/3
 
-fire_spread2$mean_RH03_RH04_RH05_RH06<- (fire_spread2$RH03 + fire_spread2$RH04+ fire_spread2$RH05 + fire_spread2$RH06)/4
-fire_spread2$mean_RH04_RH05_RH06_RH07<- (fire_spread2$RH04 + fire_spread2$RH05+ fire_spread2$RH06 + fire_spread2$RH07)/4
-fire_spread2$mean_RH05_RH06_RH07_RH08<- (fire_spread2$RH05 + fire_spread2$RH06+ fire_spread2$RH07 + fire_spread2$RH08)/4
-fire_spread2$mean_RH06_RH07_RH08_RH09<- (fire_spread2$RH06 + fire_spread2$RH07+ fire_spread2$RH08 + fire_spread2$RH09)/4
-fire_spread2$mean_RH07_RH08_RH09_RH10<- (fire_spread2$RH07 + fire_spread2$RH08+ fire_spread2$RH09 + fire_spread2$RH10)/4
-fire_spread2$mean_RH08_RH09_RH10_RH11<- (fire_spread2$RH08 + fire_spread2$RH09+ fire_spread2$RH10 + fire_spread2$RH11)/4
+fire_spread2$mean_CMD03_CMD04_CMD05_CMD06<- (fire_spread2$CMD03 + fire_spread2$CMD04+ fire_spread2$CMD05 + fire_spread2$CMD06)/4
+fire_spread2$mean_CMD04_CMD05_CMD06_CMD07<- (fire_spread2$CMD04 + fire_spread2$CMD05+ fire_spread2$CMD06 + fire_spread2$CMD07)/4
+fire_spread2$mean_CMD05_CMD06_CMD07_CMD08<- (fire_spread2$CMD05 + fire_spread2$CMD06+ fire_spread2$CMD07 + fire_spread2$CMD08)/4
+fire_spread2$mean_CMD06_CMD07_CMD08_CMD09<- (fire_spread2$CMD06 + fire_spread2$CMD07+ fire_spread2$CMD08 + fire_spread2$CMD09)/4
 
-fire_spread2$mean_RH03_RH04_RH05_RH06_RH07<- (fire_spread2$RH03 + fire_spread2$RH04 + fire_spread2$RH05+ fire_spread2$RH06 + fire_spread2$RH07)/5
-fire_spread2$mean_RH04_RH05_RH06_RH07_RH08<- (fire_spread2$RH04 + fire_spread2$RH05 + fire_spread2$RH06+ fire_spread2$RH07 + fire_spread2$RH08)/5
-fire_spread2$mean_RH05_RH06_RH07_RH08_RH09<- (fire_spread2$RH05 + fire_spread2$RH06 + fire_spread2$RH07+ fire_spread2$RH08 + fire_spread2$RH09)/5
-fire_spread2$mean_RH06_RH07_RH08_RH09_RH10<- ( fire_spread2$RH06 + fire_spread2$RH07+ fire_spread2$RH08 + fire_spread2$RH09 + fire_spread2$RH10)/5
-fire_spread2$mean_RH07_RH08_RH09_RH10_RH11<- ( fire_spread2$RH07 + fire_spread2$RH08+ fire_spread2$RH09 + fire_spread2$RH10 + fire_spread2$RH11)/5
+fire_spread2$mean_CMD03_CMD04_CMD05_CMD06_CMD07<- (fire_spread2$CMD03 + fire_spread2$CMD04 + fire_spread2$CMD05+ fire_spread2$CMD06 + fire_spread2$CMD07)/5
+fire_spread2$mean_CMD04_CMD05_CMD06_CMD07_CMD08<- (fire_spread2$CMD04 + fire_spread2$CMD05 + fire_spread2$CMD06+ fire_spread2$CMD07 + fire_spread2$CMD08)/5
+fire_spread2$mean_CMD05_CMD06_CMD07_CMD08_CMD09<- (fire_spread2$CMD05 + fire_spread2$CMD06 + fire_spread2$CMD07+ fire_spread2$CMD08 + fire_spread2$CMD09)/5
 
-fire_spread2$mean_RH03_RH04_RH05_RH06_RH07_RH08<- (fire_spread2$RH03 + fire_spread2$RH04 + fire_spread2$RH05 + fire_spread2$RH06 + fire_spread2$RH07+ fire_spread2$RH08)/6
-fire_spread2$mean_RH04_RH05_RH06_RH07_RH08_RH9<- (fire_spread2$RH04 + fire_spread2$RH05 + fire_spread2$RH06 + fire_spread2$RH07+ fire_spread2$RH08 + fire_spread2$RH09)/6
-fire_spread2$mean_RH05_RH06_RH07_RH08_RH09_RH10<- (fire_spread2$RH05 + fire_spread2$RH06 + fire_spread2$RH07+ fire_spread2$RH08 + fire_spread2$RH09 + fire_spread2$RH10)/6
-fire_spread2$mean_RH06_RH07_RH08_RH09_RH10_RH11<- (fire_spread2$RH06 + fire_spread2$RH07+ fire_spread2$RH08 + fire_spread2$RH09 + fire_spread2$RH10 + fire_spread2$RH11)/6
+fire_spread2$mean_CMD03_CMD04_CMD05_CMD06_CMD07_CMD08<- (fire_spread2$CMD03 + fire_spread2$CMD04 + fire_spread2$CMD05 + fire_spread2$CMD06 + fire_spread2$CMD07+ fire_spread2$CMD08)/6
+fire_spread2$mean_CMD04_CMD05_CMD06_CMD07_CMD08_CMD9<- (fire_spread2$CMD04 + fire_spread2$CMD05 + fire_spread2$CMD06 + fire_spread2$CMD07+ fire_spread2$CMD08 + fire_spread2$CMD09)/6
 
-fire_spread2$mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09<- (fire_spread2$RH03 + fire_spread2$RH04 + fire_spread2$RH05 + fire_spread2$RH06 + fire_spread2$RH07+ fire_spread2$RH08 + fire_spread2$RH09)/7
-fire_spread2$mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10<- ( fire_spread2$RH04 + fire_spread2$RH05 + fire_spread2$RH06 + fire_spread2$RH07+ fire_spread2$RH08 + fire_spread2$RH09 + fire_spread2$RH10)/7
-fire_spread2$mean_RH05_RH06_RH07_RH08_RH09_RH10_RH11<- (fire_spread2$RH05 + fire_spread2$RH06 + fire_spread2$RH07+ fire_spread2$RH08 + fire_spread2$RH09 + fire_spread2$RH10 + fire_spread2$RH11)/7
+fire_spread2$mean_CMD03_CMD04_CMD05_CMD06_CMD07_CMD08_CMD09<- (fire_spread2$CMD03 + fire_spread2$CMD04 + fire_spread2$CMD05 + fire_spread2$CMD06 + fire_spread2$CMD07+ fire_spread2$CMD08 + fire_spread2$CMD09)/7
 
-fire_spread2$mean_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11<- (fire_spread2$RH04 + fire_spread2$RH05 + fire_spread2$RH06 + fire_spread2$RH07+ fire_spread2$RH08 + fire_spread2$RH09 + fire_spread2$RH10 + fire_spread2$RH11)/8
-fire_spread2$mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10<- ( fire_spread2$RH03 + fire_spread2$RH04 + fire_spread2$RH05 + fire_spread2$RH06 + fire_spread2$RH07+ fire_spread2$RH08 + fire_spread2$RH09 + fire_spread2$RH10)/8
-
-fire_spread2$mean_RH03_RH04_RH05_RH06_RH07_RH08_RH09_RH10_RH11<- ( fire_spread2$RH03 + fire_spread2$RH04 + fire_spread2$RH05 + fire_spread2$RH06 + fire_spread2$RH07+ fire_spread2$RH08 + fire_spread2$RH09 + fire_spread2$RH10 + fire_spread2$RH11)/9
-
-### MDC
-fire_spread2$mean_MDC_03_MDC_04<- (fire_spread2$MDC_03+ fire_spread2$MDC_04)/2
-fire_spread2$mean_MDC_04_MDC_05<- (fire_spread2$MDC_04+ fire_spread2$MDC_05)/2
-fire_spread2$mean_MDC_05_MDC_06<- (fire_spread2$MDC_05+ fire_spread2$MDC_06)/2
-fire_spread2$mean_MDC_06_MDC_07<- (fire_spread2$MDC_06+ fire_spread2$MDC_07)/2
-fire_spread2$mean_MDC_07_MDC_08<- (fire_spread2$MDC_07+ fire_spread2$MDC_08)/2
-fire_spread2$mean_MDC_08_MDC_09<- (fire_spread2$MDC_08+ fire_spread2$MDC_09)/2
-fire_spread2$mean_MDC_09_MDC_10<- (fire_spread2$MDC_09+ fire_spread2$MDC_10)/2
-fire_spread2$mean_MDC_10_MDC_11<- (fire_spread2$MDC_10+ fire_spread2$MDC_11)/2
-
-fire_spread2$mean_MDC_03_MDC_04_MDC_05<- (fire_spread2$MDC_03+ fire_spread2$MDC_04 + fire_spread2$MDC_05)/3
-fire_spread2$mean_MDC_04_MDC_05_MDC_06<- (fire_spread2$MDC_04+ fire_spread2$MDC_05 + fire_spread2$MDC_06)/3
-fire_spread2$mean_MDC_05_MDC_06_MDC_07<- (fire_spread2$MDC_05+ fire_spread2$MDC_06 + fire_spread2$MDC_07)/3
-fire_spread2$mean_MDC_06_MDC_07_MDC_08<- (fire_spread2$MDC_06+ fire_spread2$MDC_07 + fire_spread2$MDC_08)/3
-fire_spread2$mean_MDC_07_MDC_08_MDC_09<- (fire_spread2$MDC_07+ fire_spread2$MDC_08 + fire_spread2$MDC_09)/3
-fire_spread2$mean_MDC_08_MDC_09_MDC_10<- (fire_spread2$MDC_08+ fire_spread2$MDC_09 + fire_spread2$MDC_10)/3
-fire_spread2$mean_MDC_09_MDC_10_MDC_11<- (fire_spread2$MDC_09+ fire_spread2$MDC_10 + fire_spread2$MDC_11)/3
-
-fire_spread2$mean_MDC_03_MDC_04_MDC_05_MDC_06<- (fire_spread2$MDC_03 + fire_spread2$MDC_04+ fire_spread2$MDC_05 + fire_spread2$MDC_06)/4
-fire_spread2$mean_MDC_04_MDC_05_MDC_06_MDC_07<- (fire_spread2$MDC_04 + fire_spread2$MDC_05+ fire_spread2$MDC_06 + fire_spread2$MDC_07)/4
-fire_spread2$mean_MDC_05_MDC_06_MDC_07_MDC_08<- (fire_spread2$MDC_05 + fire_spread2$MDC_06+ fire_spread2$MDC_07 + fire_spread2$MDC_08)/4
-fire_spread2$mean_MDC_06_MDC_07_MDC_08_MDC_09<- (fire_spread2$MDC_06 + fire_spread2$MDC_07+ fire_spread2$MDC_08 + fire_spread2$MDC_09)/4
-fire_spread2$mean_MDC_07_MDC_08_MDC_09_MDC_10<- (fire_spread2$MDC_07 + fire_spread2$MDC_08+ fire_spread2$MDC_09 + fire_spread2$MDC_10)/4
-fire_spread2$mean_MDC_08_MDC_09_MDC_10_MDC_11<- (fire_spread2$MDC_08 + fire_spread2$MDC_09+ fire_spread2$MDC_10 + fire_spread2$MDC_11)/4
-
-fire_spread2$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07<- (fire_spread2$MDC_03 + fire_spread2$MDC_04 + fire_spread2$MDC_05+ fire_spread2$MDC_06 + fire_spread2$MDC_07)/5
-fire_spread2$mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08<- (fire_spread2$MDC_04 + fire_spread2$MDC_05 + fire_spread2$MDC_06+ fire_spread2$MDC_07 + fire_spread2$MDC_08)/5
-fire_spread2$mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09<- (fire_spread2$MDC_05 + fire_spread2$MDC_06 + fire_spread2$MDC_07+ fire_spread2$MDC_08 + fire_spread2$MDC_09)/5
-fire_spread2$mean_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- ( fire_spread2$MDC_06 + fire_spread2$MDC_07+ fire_spread2$MDC_08 + fire_spread2$MDC_09 + fire_spread2$MDC_10)/5
-fire_spread2$mean_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- ( fire_spread2$MDC_07 + fire_spread2$MDC_08+ fire_spread2$MDC_09 + fire_spread2$MDC_10 + fire_spread2$MDC_11)/5
-
-fire_spread2$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08<- (fire_spread2$MDC_03 + fire_spread2$MDC_04 + fire_spread2$MDC_05 + fire_spread2$MDC_06 + fire_spread2$MDC_07+ fire_spread2$MDC_08)/6
-fire_spread2$mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_9<- (fire_spread2$MDC_04 + fire_spread2$MDC_05 + fire_spread2$MDC_06 + fire_spread2$MDC_07+ fire_spread2$MDC_08 + fire_spread2$MDC_09)/6
-fire_spread2$mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- (fire_spread2$MDC_05 + fire_spread2$MDC_06 + fire_spread2$MDC_07+ fire_spread2$MDC_08 + fire_spread2$MDC_09 + fire_spread2$MDC_10)/6
-fire_spread2$mean_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- (fire_spread2$MDC_06 + fire_spread2$MDC_07+ fire_spread2$MDC_08 + fire_spread2$MDC_09 + fire_spread2$MDC_10 + fire_spread2$MDC_11)/6
-
-fire_spread2$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09<- (fire_spread2$MDC_03 + fire_spread2$MDC_04 + fire_spread2$MDC_05 + fire_spread2$MDC_06 + fire_spread2$MDC_07+ fire_spread2$MDC_08 + fire_spread2$MDC_09)/7
-fire_spread2$mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- ( fire_spread2$MDC_04 + fire_spread2$MDC_05 + fire_spread2$MDC_06 + fire_spread2$MDC_07+ fire_spread2$MDC_08 + fire_spread2$MDC_09 + fire_spread2$MDC_10)/7
-fire_spread2$mean_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- (fire_spread2$MDC_05 + fire_spread2$MDC_06 + fire_spread2$MDC_07+ fire_spread2$MDC_08 + fire_spread2$MDC_09 + fire_spread2$MDC_10 + fire_spread2$MDC_11)/7
-
-fire_spread2$mean_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- (fire_spread2$MDC_04 + fire_spread2$MDC_05 + fire_spread2$MDC_06 + fire_spread2$MDC_07+ fire_spread2$MDC_08 + fire_spread2$MDC_09 + fire_spread2$MDC_10 + fire_spread2$MDC_11)/8
-fire_spread2$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10<- ( fire_spread2$MDC_03 + fire_spread2$MDC_04 + fire_spread2$MDC_05 + fire_spread2$MDC_06 + fire_spread2$MDC_07+ fire_spread2$MDC_08 + fire_spread2$MDC_09 + fire_spread2$MDC_10)/8
-
-fire_spread2$mean_MDC_03_MDC_04_MDC_05_MDC_06_MDC_07_MDC_08_MDC_09_MDC_10_MDC_11<- ( fire_spread2$MDC_03 + fire_spread2$MDC_04 + fire_spread2$MDC_05 + fire_spread2$MDC_06 + fire_spread2$MDC_07+ fire_spread2$MDC_08 + fire_spread2$MDC_09 + fire_spread2$MDC_10 + fire_spread2$MDC_11)/9
-# maybe also try maximum temperature, precipitation, RH and MDC for the season.
-
-### CMI
-
-fire_spread2$mean_CMI03_CMI04<- (fire_spread2$CMI03+ fire_spread2$CMI04)/2
-fire_spread2$mean_CMI04_CMI05<- (fire_spread2$CMI04+ fire_spread2$CMI05)/2
-fire_spread2$mean_CMI05_CMI06<- (fire_spread2$CMI05+ fire_spread2$CMI06)/2
-fire_spread2$mean_CMI06_CMI07<- (fire_spread2$CMI06+ fire_spread2$CMI07)/2
-fire_spread2$mean_CMI07_CMI08<- (fire_spread2$CMI07+ fire_spread2$CMI08)/2
-fire_spread2$mean_CMI08_CMI09<- (fire_spread2$CMI08+ fire_spread2$CMI09)/2
-fire_spread2$mean_CMI09_CMI10<- (fire_spread2$CMI09+ fire_spread2$CMI10)/2
-fire_spread2$mean_CMI10_CMI11<- (fire_spread2$CMI10+ fire_spread2$CMI11)/2
-
-fire_spread2$mean_CMI03_CMI04_CMI05<- (fire_spread2$CMI03+ fire_spread2$CMI04 + fire_spread2$CMI05)/3
-fire_spread2$mean_CMI04_CMI05_CMI06<- (fire_spread2$CMI04+ fire_spread2$CMI05 + fire_spread2$CMI06)/3
-fire_spread2$mean_CMI05_CMI06_CMI07<- (fire_spread2$CMI05+ fire_spread2$CMI06 + fire_spread2$CMI07)/3
-fire_spread2$mean_CMI06_CMI07_CMI08<- (fire_spread2$CMI06+ fire_spread2$CMI07 + fire_spread2$CMI08)/3
-fire_spread2$mean_CMI07_CMI08_CMI09<- (fire_spread2$CMI07+ fire_spread2$CMI08 + fire_spread2$CMI09)/3
-fire_spread2$mean_CMI08_CMI09_CMI10<- (fire_spread2$CMI08+ fire_spread2$CMI09 + fire_spread2$CMI10)/3
-fire_spread2$mean_CMI09_CMI10_CMI11<- (fire_spread2$CMI09+ fire_spread2$CMI10 + fire_spread2$CMI11)/3
-
-fire_spread2$mean_CMI03_CMI04_CMI05_CMI06<- (fire_spread2$CMI03 + fire_spread2$CMI04+ fire_spread2$CMI05 + fire_spread2$CMI06)/4
-fire_spread2$mean_CMI04_CMI05_CMI06_CMI07<- (fire_spread2$CMI04 + fire_spread2$CMI05+ fire_spread2$CMI06 + fire_spread2$CMI07)/4
-fire_spread2$mean_CMI05_CMI06_CMI07_CMI08<- (fire_spread2$CMI05 + fire_spread2$CMI06+ fire_spread2$CMI07 + fire_spread2$CMI08)/4
-fire_spread2$mean_CMI06_CMI07_CMI08_CMI09<- (fire_spread2$CMI06 + fire_spread2$CMI07+ fire_spread2$CMI08 + fire_spread2$CMI09)/4
-fire_spread2$mean_CMI07_CMI08_CMI09_CMI10<- (fire_spread2$CMI07 + fire_spread2$CMI08+ fire_spread2$CMI09 + fire_spread2$CMI10)/4
-fire_spread2$mean_CMI08_CMI09_CMI10_CMI11<- (fire_spread2$CMI08 + fire_spread2$CMI09+ fire_spread2$CMI10 + fire_spread2$CMI11)/4
-
-fire_spread2$mean_CMI03_CMI04_CMI05_CMI06_CMI07<- (fire_spread2$CMI03 + fire_spread2$CMI04 + fire_spread2$CMI05+ fire_spread2$CMI06 + fire_spread2$CMI07)/5
-fire_spread2$mean_CMI04_CMI05_CMI06_CMI07_CMI08<- (fire_spread2$CMI04 + fire_spread2$CMI05 + fire_spread2$CMI06+ fire_spread2$CMI07 + fire_spread2$CMI08)/5
-fire_spread2$mean_CMI05_CMI06_CMI07_CMI08_CMI09<- (fire_spread2$CMI05 + fire_spread2$CMI06 + fire_spread2$CMI07+ fire_spread2$CMI08 + fire_spread2$CMI09)/5
-fire_spread2$mean_CMI06_CMI07_CMI08_CMI09_CMI10<- ( fire_spread2$CMI06 + fire_spread2$CMI07+ fire_spread2$CMI08 + fire_spread2$CMI09 + fire_spread2$CMI10)/5
-fire_spread2$mean_CMI07_CMI08_CMI09_CMI10_CMI11<- ( fire_spread2$CMI07 + fire_spread2$CMI08+ fire_spread2$CMI09 + fire_spread2$CMI10 + fire_spread2$CMI11)/5
-
-fire_spread2$mean_CMI03_CMI04_CMI05_CMI06_CMI07_CMI08<- (fire_spread2$CMI03 + fire_spread2$CMI04 + fire_spread2$CMI05 + fire_spread2$CMI06 + fire_spread2$CMI07+ fire_spread2$CMI08)/6
-fire_spread2$mean_CMI04_CMI05_CMI06_CMI07_CMI08_CMI9<- (fire_spread2$CMI04 + fire_spread2$CMI05 + fire_spread2$CMI06 + fire_spread2$CMI07+ fire_spread2$CMI08 + fire_spread2$CMI09)/6
-fire_spread2$mean_CMI05_CMI06_CMI07_CMI08_CMI09_CMI10<- (fire_spread2$CMI05 + fire_spread2$CMI06 + fire_spread2$CMI07+ fire_spread2$CMI08 + fire_spread2$CMI09 + fire_spread2$CMI10)/6
-fire_spread2$mean_CMI06_CMI07_CMI08_CMI09_CMI10_CMI11<- (fire_spread2$CMI06 + fire_spread2$CMI07+ fire_spread2$CMI08 + fire_spread2$CMI09 + fire_spread2$CMI10 + fire_spread2$CMI11)/6
-
-fire_spread2$mean_CMI03_CMI04_CMI05_CMI06_CMI07_CMI08_CMI09<- (fire_spread2$CMI03 + fire_spread2$CMI04 + fire_spread2$CMI05 + fire_spread2$CMI06 + fire_spread2$CMI07+ fire_spread2$CMI08 + fire_spread2$CMI09)/7
-fire_spread2$mean_CMI04_CMI05_CMI06_CMI07_CMI08_CMI09_CMI10<- ( fire_spread2$CMI04 + fire_spread2$CMI05 + fire_spread2$CMI06 + fire_spread2$CMI07+ fire_spread2$CMI08 + fire_spread2$CMI09 + fire_spread2$CMI10)/7
-fire_spread2$mean_CMI05_CMI06_CMI07_CMI08_CMI09_CMI10_CMI11<- (fire_spread2$CMI05 + fire_spread2$CMI06 + fire_spread2$CMI07+ fire_spread2$CMI08 + fire_spread2$CMI09 + fire_spread2$CMI10 + fire_spread2$CMI11)/7
 
 ```
 
@@ -595,203 +473,223 @@ Create groupings of variables to put into model selection loop.
 
 variables<- c("spring_Tmax",
               "summer_Tmax",
-              #"Tmax03",
-              #"Tmax04",
+              "Tmax03",
+              "Tmax04",
               "Tmax05",
               "Tmax06",
               "Tmax07", 
               "Tmax08", 
-              #"Tmax09",
+              "Tmax09",
               #"Tmax10", 
               #"Tmax11", 
-              #"mean_Tmax03_Tmax04",
-              #"mean_Tmax04_Tmax05",
+              "mean_Tmax03_Tmax04",
+              "mean_Tmax04_Tmax05",
               "mean_Tmax05_Tmax06",
               "mean_Tmax06_Tmax07", 
               "mean_Tmax07_Tmax08", 
-              #"mean_Tmax08_Tmax09",
+              "mean_Tmax08_Tmax09",
               #"mean_Tmax09_Tmax10",
               #"mean_Tmax10_Tmax11", 
-              #"mean_Tmax03_Tmax04_Tmax05",
-              #"mean_Tmax04_Tmax05_Tmax06",
+              "mean_Tmax04_Tmax05_Tmax06",
               "mean_Tmax05_Tmax06_Tmax07", 
-              "mean_Tmax06_Tmax07_Tmax08",
-              #"mean_Tmax07_Tmax08_Tmax09",
+              "mean_Tmax07_Tmax08_Tmax09",
               #"mean_Tmax08_Tmax09_Tmax10",
               #"mean_Tmax09_Tmax10_Tmax11", 
-              #"mean_Tmax03_Tmax04_Tmax05_Tmax06",
-              #"mean_Tmax04_Tmax05_Tmax06_Tmax07",
+              "mean_Tmax03_Tmax04_Tmax05_Tmax06",
+              "mean_Tmax04_Tmax05_Tmax06_Tmax07",
               "mean_Tmax05_Tmax06_Tmax07_Tmax08",
+              "mean_Tmax06_Tmax07_Tmax08_Tmax09",
+              #"mean_Tmax07_Tmax08_Tmax09_Tmax10",
+              #"mean_Tmax08_Tmax09_Tmax10_Tmax11",
+              "mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07",
+              "mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08",
+              "mean_Tmax05_Tmax06_Tmax07_Tmax08_Tmax09",
+              #"mean_Tmax06_Tmax07_Tmax08_Tmax09_Tmax10",
+              #"mean_Tmax07_Tmax08_Tmax09_Tmax10_Tmax11",
+              "mean_Tmax03_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08",
+              "mean_Tmax04_Tmax05_Tmax06_Tmax07_Tmax08_Tmax9",
               
               "spring_Tave",
               "summer_Tave",
-              #"Tave03",
-              #"Tave04",
+              "Tave03",
+              "Tave04",
               "Tave05",
               "Tave06",
               "Tave07", 
               "Tave08", 
-              #"Tave09",
+              "Tave09",
               #"Tave10", 
               #"Tave11", 
-              #"mean_Tave03_Tave04",
-              #"mean_Tave04_Tave05",
+              "mean_Tave03_Tave04",
+              "mean_Tave04_Tave05",
               "mean_Tave05_Tave06",
               "mean_Tave06_Tave07", 
               "mean_Tave07_Tave08", 
-              #"mean_Tave08_Tave09",
+              "mean_Tave08_Tave09",
               #"mean_Tave09_Tave10",
               #"mean_Tave10_Tave11", 
-              #"mean_Tave03_Tave04_Tave05",
-              #"mean_Tave04_Tave05_Tave06",
+              "mean_Tave04_Tave05_Tave06",
               "mean_Tave05_Tave06_Tave07", 
-              "mean_Tave06_Tave07_Tave08",
-              #"mean_Tave07_Tave08_Tave09",
+              "mean_Tave07_Tave08_Tave09",
               #"mean_Tave08_Tave09_Tave10",
               #"mean_Tave09_Tave10_Tave11", 
-              #"mean_Tave03_Tave04_Tave05_Tave06",
-              #"mean_Tave04_Tave05_Tave06_Tave07",
+              "mean_Tave03_Tave04_Tave05_Tave06",
+              "mean_Tave04_Tave05_Tave06_Tave07",
               "mean_Tave05_Tave06_Tave07_Tave08",
+              "mean_Tave06_Tave07_Tave08_Tave09",
+              #"mean_Tave07_Tave08_Tave09_Tave10",
+              #"mean_Tave08_Tave09_Tave10_Tave11",
+              "mean_Tave03_Tave04_Tave05_Tave06_Tave07",
+              "mean_Tave04_Tave05_Tave06_Tave07_Tave08",
+              "mean_Tave05_Tave06_Tave07_Tave08_Tave09",
+              #"mean_Tave06_Tave07_Tave08_Tave09_Tave10",
+              #"mean_Tave07_Tave08_Tave09_Tave10_Tave11",
+              "mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08",
+              "mean_Tave04_Tave05_Tave06_Tave07_Tave08_Tave9",
+              
+              "spring_Tmin",
+              "summer_Tmin",
+              "Tmin03",
+              "Tmin04",
+              "Tmin05",
+              "Tmin06",
+              "Tmin07", 
+              "Tmin08", 
+              "Tmin09",
+              #"Tmin10", 
+              #"Tmin11", 
+              "mean_Tmin03_Tmin04",
+              "mean_Tmin04_Tmin05",
+              "mean_Tmin05_Tmin06",
+              "mean_Tmin06_Tmin07", 
+              "mean_Tmin07_Tmin08", 
+              "mean_Tmin08_Tmin09",
+              #"mean_Tmin09_Tmin10",
+              #"mean_Tmin10_Tmin11", 
+              "mean_Tmin04_Tmin05_Tmin06",
+              "mean_Tmin05_Tmin06_Tmin07", 
+              "mean_Tmin07_Tmin08_Tmin09",
+              #"mean_Tmin08_Tmin09_Tmin10",
+              #"mean_Tmin09_Tmin10_Tmin11", 
+              "mean_Tmin03_Tmin04_Tmin05_Tmin06",
+              "mean_Tmin04_Tmin05_Tmin06_Tmin07",
+              "mean_Tmin05_Tmin06_Tmin07_Tmin08",
+              "mean_Tmin06_Tmin07_Tmin08_Tmin09",
+              #"mean_Tmin07_Tmin08_Tmin09_Tmin10",
+              #"mean_Tmin08_Tmin09_Tmin10_Tmin11",
+              "mean_Tmin03_Tmin04_Tmin05_Tmin06_Tmin07",
+              "mean_Tmin04_Tmin05_Tmin06_Tmin07_Tmin08",
+              "mean_Tmin05_Tmin06_Tmin07_Tmin08_Tmin09",
+              #"mean_Tmin06_Tmin07_Tmin08_Tmin09_Tmin10",
+              #"mean_Tmin07_Tmin08_Tmin09_Tmin10_Tmin11",
+              "mean_Tmin03_Tmin04_Tmin05_Tmin06_Tmin07_Tmin08",
+              "mean_Tmin04_Tmin05_Tmin06_Tmin07_Tmin08_Tmin9",              
+              
               
               "tot_spring_PPT",
               "tot_summer_PPT",
-              #"PPT03",
-              #"PPT04",
+              "PPT03",
+              "PPT04",
               "PPT05",
               "PPT06",
               "PPT07", 
               "PPT08", 
-              #"PPT09",
+              "PPT09",
               #"PPT10", 
               #"PPT11", 
-              #"mean_PPT03_PPT04",
-              #"mean_PPT04_PPT05",
+              "mean_PPT03_PPT04",
+              "mean_PPT04_PPT05",
               "mean_PPT05_PPT06",
               "mean_PPT06_PPT07", 
               "mean_PPT07_PPT08", 
-              #"mean_PPT08_PPT09",
+              "mean_PPT08_PPT09",
               #"mean_PPT09_PPT10",
               #"mean_PPT10_PPT11", 
-              #"mean_PPT03_PPT04_PPT05",
-              #"mean_PPT04_PPT05_PPT06",
+              "mean_PPT04_PPT05_PPT06",
               "mean_PPT05_PPT06_PPT07", 
-              "mean_PPT06_PPT07_PPT08",
-              #"mean_PPT07_PPT08_PPT09",
+              "mean_PPT07_PPT08_PPT09",
               #"mean_PPT08_PPT09_PPT10",
               #"mean_PPT09_PPT10_PPT11", 
-              #"mean_PPT03_PPT04_PPT05_PPT06",
-              #"mean_PPT04_PPT05_PPT06_PPT07",
+              "mean_PPT03_PPT04_PPT05_PPT06",
+              "mean_PPT04_PPT05_PPT06_PPT07",
               "mean_PPT05_PPT06_PPT07_PPT08",
+              "mean_PPT06_PPT07_PPT08_PPT09",
+              #"mean_PPT07_PPT08_PPT09_PPT10",
+              #"mean_PPT08_PPT09_PPT10_PPT11",
+              "mean_PPT03_PPT04_PPT05_PPT06_PPT07",
+              "mean_PPT04_PPT05_PPT06_PPT07_PPT08",
+              "mean_PPT05_PPT06_PPT07_PPT08_PPT09",
+              #"mean_PPT06_PPT07_PPT08_PPT09_PPT10",
+              #"mean_PPT07_PPT08_PPT09_PPT10_PPT11",
+              "mean_PPT03_PPT04_PPT05_PPT06_PPT07_PPT08",
+              "mean_PPT04_PPT05_PPT06_PPT07_PPT08_PPT9",
               
-              "tot_spring_RH",
-              "tot_summer_RH",
-              #"RH03",
-              #"RH04",
-              "RH05",
-              "RH06",
-              "RH07", 
-              "RH08", 
-              #"RH09",
-              #"RH10", 
-              #"RH11", 
-              #"mean_RH03_RH04",
-              #"mean_RH04_RH05",
-              "mean_RH05_RH06",
-              "mean_RH06_RH07", 
-              "mean_RH07_RH08", 
-              #"mean_RH08_RH09",
-              #"mean_RH09_RH10",
-              #"mean_RH10_RH11", 
-              #"mean_RH03_RH04_RH05",
-              #"mean_RH04_RH05_RH06",
-              "mean_RH05_RH06_RH07", 
-              "mean_RH06_RH07_RH08",
-              #"mean_RH07_RH08_RH09",
-              #"mean_RH08_RH09_RH10",
-              #"mean_RH09_RH10_RH11", 
-              #"mean_RH03_RH04_RH05_RH06",
-              #"mean_RH04_RH05_RH06_RH07",
-              "mean_RH05_RH06_RH07_RH08",
-              
-              # "tot_spring_CMI",
-              # "tot_summer_CMI",
-              # "CMI05",
-              # "CMI06",
-              # "CMI07", 
-              # "CMI08", 
-              # "mean_CMI05_CMI06",
-              # "mean_CMI06_CMI07", 
-              # "mean_CMI07_CMI08", 
-              # "mean_CMI05_CMI06_CMI07", 
-              # "mean_CMI06_CMI07_CMI08",
-              # "mean_CMI05_CMI06_CMI07_CMI08",
-              
-              #"MDC_03",
-              #"MDC_04",
-              "MDC_05",
-              "MDC_06",
-              "MDC_07", 
-              "MDC_08", 
-              #"MDC_09",
-              #"MDC_10", 
-              #"MDC_11", 
-              #"mean_MDC_03_MDC_04",
-              #"mean_MDC_04_MDC_05",
-              "mean_MDC_05_MDC_06",
-              "mean_MDC_06_MDC_07", 
-              "mean_MDC_07_MDC_08", 
-              #"mean_MDC_08_MDC_09",
-              #"mean_MDC_09_MDC_10",
-              #"mean_MDC_10_MDC_11", 
-              #"mean_MDC_03_MDC_04_MDC_05",
-              #"mean_MDC_04_MDC_05_MDC_06",
-              "mean_MDC_05_MDC_06_MDC_07", 
-              "mean_MDC_06_MDC_07_MDC_08",
-              #"mean_MDC_07_MDC_08_MDC_09",
-              #"mean_MDC_08_MDC_09_MDC_10",
-              #"mean_MDC_09_MDC_10_MDC_11", 
-              #"mean_MDC_03_MDC_04_MDC_05_MDC_06",
-              #"mean_MDC_04_MDC_05_MDC_06_MDC_07",
-              "mean_MDC_05_MDC_06_MDC_07_MDC_08"
+
+              "tot_spring_CMD",
+              "tot_summer_CMD",
+              "CMD03",
+              "CMD04",
+              "CMD05",
+              "CMD06",
+              "CMD07", 
+              "CMD08", 
+              "CMD09",
+              #"CMD10", 
+              #"CMD11", 
+              "mean_CMD03_CMD04",
+              "mean_CMD04_CMD05",
+              "mean_CMD05_CMD06",
+              "mean_CMD06_CMD07", 
+              "mean_CMD07_CMD08", 
+              "mean_CMD08_CMD09",
+              #"mean_CMD09_CMD10",
+              #"mean_CMD10_CMD11", 
+              "mean_CMD04_CMD05_CMD06",
+              "mean_CMD05_CMD06_CMD07", 
+              "mean_CMD07_CMD08_CMD09",
+              #"mean_CMD08_CMD09_CMD10",
+              #"mean_CMD09_CMD10_CMD11", 
+              "mean_CMD03_CMD04_CMD05_CMD06",
+              "mean_CMD04_CMD05_CMD06_CMD07",
+              "mean_CMD05_CMD06_CMD07_CMD08",
+              "mean_CMD06_CMD07_CMD08_CMD09",
+              #"mean_CMD07_CMD08_CMD09_CMD10",
+              #"mean_CMD08_CMD09_CMD10_CMD11",
+              "mean_CMD03_CMD04_CMD05_CMD06_CMD07",
+              "mean_CMD04_CMD05_CMD06_CMD07_CMD08",
+              "mean_CMD05_CMD06_CMD07_CMD08_CMD09",
+              #"mean_CMD06_CMD07_CMD08_CMD09_CMD10",
+              #"mean_CMD07_CMD08_CMD09_CMD10_CMD11",
+              "mean_CMD03_CMD04_CMD05_CMD06_CMD07_CMD08",
+              "mean_CMD04_CMD05_CMD06_CMD07_CMD08_CMD9"
               )
 
- variables1<-c("spring_Tmax","summer_Tmax",
-               "Tmax05", "Tmax06", "Tmax07", "Tmax08", 
-               "mean_Tmax05_Tmax06", "mean_Tmax06_Tmax07", "mean_Tmax07_Tmax08",
-               "mean_Tmax05_Tmax06_Tmax07",
-               "mean_Tmax06_Tmax07_Tmax08",
-               "mean_Tmax05_Tmax06_Tmax07_Tmax08",
-               
-               "spring_Tave","summer_Tave",
-               "Tave05", "Tave06", "Tave07", "Tave08", 
-               "mean_Tave05_Tave06", "mean_Tave06_Tave07", "mean_Tave07_Tave08",
-               "mean_Tave05_Tave06_Tave07",
-               "mean_Tave06_Tave07_Tave08",
-               "mean_Tave05_Tave06_Tave07_Tave08",
-               
-               "RH05", "RH06", "RH07", "RH08",
-               "mean_RH05_RH06", "mean_RH06_RH07", "mean_RH07_RH08", 
-               "mean_RH05_RH06_RH07", 
-               "mean_RH06_RH07_RH08",
-               "mean_RH05_RH06_RH07_RH08")
+variables1<-c("spring_Tmax","summer_Tmax", "Tmax04","Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09",
+              "mean_Tmax04_Tmax05","mean_Tmax05_Tmax06", "mean_Tmax06_Tmax07", "mean_Tmax07_Tmax08",
+               "mean_Tmax04_Tmax05_Tmax06", "mean_Tmax05_Tmax06_Tmax07", "mean_Tmax04_Tmax05_Tmax06_Tmax07", "mean_Tmax05_Tmax06_Tmax07_Tmax08",
+  
+                          
+               "spring_Tave","summer_Tave","Tave04","Tave05", "Tave06", "Tave07", "Tave08", "Tave09",
+               "mean_Tave04_Tave05","mean_Tave05_Tave06", "mean_Tave06_Tave07", "mean_Tave07_Tave08",
+              "mean_Tave04_Tave05_Tave06", "mean_Tave05_Tave06_Tave07", "mean_Tave04_Tave05_Tave06_Tave07", "mean_Tave05_Tave06_Tave07_Tave08",
+              
+              "spring_Tmin","summer_Tmin","Tmin04","Tmin05", "Tmin06", "Tmin07", "Tmin08", "Tmin09",
+               "mean_Tmin04_Tmin05","mean_Tmin05_Tmin06", "mean_Tmin06_Tmin07", "mean_Tmin07_Tmin08",
+              "mean_Tmin04_Tmin05_Tmin06", "mean_Tmin05_Tmin06_Tmin07", "mean_Tmin04_Tmin05_Tmin06_Tmin07", "mean_Tmin05_Tmin06_Tmin07_Tmin08"
+              )
  
-variables2<-c("tot_spring_PPT","tot_summer_PPT",
-              "PPT05", "PPT06", "PPT07", "PPT08",
-              "mean_PPT05_PPT06", "mean_PPT06_PPT07", "mean_PPT07_PPT08", 
-              "mean_PPT05_PPT06_PPT07",
-              "mean_PPT06_PPT07_PPT08",
-              "mean_PPT05_PPT06_PPT07_PPT08",
+variables2<-c("tot_spring_PPT","tot_summer_PPT","PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09",
+              "mean_PPT04_PPT05","mean_PPT05_PPT06", "mean_PPT06_PPT07", "mean_PPT07_PPT08",
+               "mean_PPT04_PPT05_PPT06", "mean_PPT05_PPT06_PPT07", "mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08",
               
-              "tot_spring_PPT","tot_summer_PPT",
-              "PPT05", "PPT06", "PPT07", "PPT08", 
-              "mean_PPT05_PPT06", "mean_PPT06_PPT07", "mean_PPT07_PPT08",
-              "mean_PPT05_PPT06_PPT07",
-              "mean_PPT06_PPT07_PPT08",
-              "mean_PPT05_PPT06_PPT07_PPT08",
+              "tot_spring_PPT","tot_summer_PPT","PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09",
+              "mean_PPT04_PPT05","mean_PPT05_PPT06", "mean_PPT06_PPT07", "mean_PPT07_PPT08",
+               "mean_PPT04_PPT05_PPT06", "mean_PPT05_PPT06_PPT07", "mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08",
               
-              "PPT05", "PPT06", "PPT07", "PPT08",
-              "mean_PPT05_PPT06", "mean_PPT06_PPT07", "mean_PPT07_PPT08",
-              "mean_PPT05_PPT06_PPT07", "mean_PPT06_PPT07_PPT08", "mean_PPT05_PPT06_PPT07_PPT08") 
+              "tot_spring_PPT","tot_summer_PPT","PPT04","PPT05", "PPT06", "PPT07", "PPT08", "PPT09",
+              "mean_PPT04_PPT05","mean_PPT05_PPT06", "mean_PPT06_PPT07", "mean_PPT07_PPT08",
+               "mean_PPT04_PPT05_PPT06", "mean_PPT05_PPT06_PPT07", "mean_PPT04_PPT05_PPT06_PPT07", "mean_PPT05_PPT06_PPT07_PPT08") 
+
 # precipitation and MDC and temperature and MDC are quite correlated so I'm leaving this combination of variables out. 
 
 ```
@@ -805,6 +703,31 @@ Now that the data is prepped, we are ready to run the logistic regression model 
 
 We have three main options: separate by BEC zone (14), by Natural Disturbance Type (NDT), or by fire regime type (FRT). The initial code, now saved in the "old" folder, assesses by BEC zones independently. Cora did it by NDT and here we will run by fire regime type.
 
+```{r}
+library(lme4)
+fire_spread2$fire_yr<-as.factor(fire_spread2$fire_yr)
+fire_spread2$fire_label<-as.factor(fire_spread2$fire_label)
+
+frt12<-fire_spread2[frt==12,]
+
+m0<-glm (pttype ~ Tmax07,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+m1<-glmer (pttype ~ Tmax07 + (1|fire_yr),
+               data=frt12,
+               family = binomial (link = "logit"))
+
+m2<-glmer (pttype ~ Tmax07 + (1|fire_yr/fire_label),
+               data=frt12,
+               family = binomial (link = "logit"))
+
+LL1 <- logLik(m0)
+LL2 <- logLik(m1)
+D <- as.numeric(-2 * (LL1 - LL2))
+pchisq(D, df = 1, lower = FALSE)[1]
+```
+
 
 ```{r}
 # create loop to do variable selection of climate data
@@ -815,16 +738,16 @@ zones<- c("5", "12", "15", "7", "9", "10", "11", "13", "14")
 
 filenames<-list()
 prop<-0.75
-
 ```
+
 
 
 Model selection for lightning caused fires:
 
 ```{r}
 
-for (g in 1:100){
-   print(paste(g))
+for (g in 1:50){
+   #print(paste(g))
 
 for (h in 1:length(zones)) {
   #print(paste((variables[i]), (zones[h]), sep=" "))
@@ -850,7 +773,7 @@ test_1<-dat_1[-dt_1,]
 dat_train<-rbind(train_0,train_1)
 dat_test<-rbind(test_0,test_1)
 
-model1 <- glm (pttype ~ 1,
+model1 <- glm (pttype ~ 1 ,
                data=dat_train,
                family = binomial (link = "logit"))
 
@@ -873,7 +796,7 @@ for (i in 1: length(variables)){
   dat_test1<-dat_test %>% dplyr::select(pttype, variables[i])
   dat_train1<-dat_train %>% dplyr::select(pttype,variables[i])
   
-  model1 <- glm (pttype ~ . ,
+  model1 <- glm (pttype ~ .,
                  data=dat_train1,
                  family = binomial (link = "logit"))
   
@@ -967,7 +890,33 @@ aic_bec_lightning_summary2
 Save file to local computer:
 
 ```{r}
-write.csv(aic_bec_lightning_summary2, file="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread_climate_AIC_results_FRT.csv")
+write.csv(aic_bec_lightning_summary2, file="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread_climate_AIC_results_FRT_dec23.csv")
+```
+
+
+```{r}
+ignit<-try(
+  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
+    filter(FIRE_YEAR > 2002) %>%
+    filter(FIRE_TYPE == "Fire") %>%
+    collect()
+)
+
+
+ignit<- ignit %>% filter(CURRENT_SIZE>=10)
+
+ignit$ig_mnth<-stringi::stri_sub(ignit$IGNITION_DATE,6,7)
+
+# get frt
+# import FRT from the D drive or Kyle CASTOR (below)
+frt<-getSpatialQuery("SELECT * FROM frt_canada")
+fire.ignt.frt <- st_join(ignit, frt)
+
+fire.ignt.frt100<-fire.ignt.frt %>% filter(CURRENT_SIZE>100)
+
+ggplot(data = fire.ignt.frt100, aes(as.numeric(as.character(ig_mnth)))) +
+  geom_histogram() +
+  facet_wrap(~Cluster, scales="free_y")
 ```
 
 ############### Complete. Now move on to 06_Fire_spread_data_expolration.Rmd wherein the results of these AIC tests will be utilized###########
