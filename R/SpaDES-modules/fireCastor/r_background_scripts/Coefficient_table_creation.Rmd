@@ -34,22 +34,28 @@ for (i in 1:length(file.list1)){
 
 
 ```
+# Check all files have frt in them!!
+
 
 # create and empty table and populate
 ```{r}
-coef_table <- data.frame (matrix (ncol = 20, nrow = 0))
-colnames (coef_table ) <- c ("cause", "frt","coef_climate_1", "coef_climate_2",  "coef_c1", "coef_c2", "coef_c3", "coef_c4","coef_c5", "coef_c7", "coef_d12","coef_m12", "coef_m3",  "coef_N", "coef_o1ab", "coef_s1", "coef_s2", "coef_s3", "coef_road_dist", "coef_log_road_dist")
+coef_table <- data.frame (matrix (ncol = 17, nrow = 0))
+colnames (coef_table ) <- c ("cause", "frt","coef_climate_1", "coef_climate_2", "coef_log_climate_2",   "coef_c1", "coef_c2", "coef_c3", "coef_c4","coef_c5", "coef_c7", "coef_d12","coef_m12", "coef_o1ab", "coef_s1", "coef_road_dist", "coef_log_road_dist")
 
 for (i in 1: length(y1)){
+  print(i)
   
   x<-eval(as.name(y1[i]))
 
 
-coef_table[i,"cause"]<-x$Cause
+coef_table[i,"cause"]<-str_split(y1[i], "_", simplify=T)[,5]
 coef_table[i,"frt"]<-x$FRT
+
 if("coef_climate_1" %in% names(x)){
   coef_table[i, "coef_climate_1"]<-x$coef_climate_1
-} else {
+} else if ("coef_climate1" %in% names(x)){
+  coef_table[i, "coef_climate_1"]<-x$coef_climate1
+  } else {
     coef_table[i, "coef_climate_1"]<-NA}
 
 if("coef_climate_2" %in% names(x)){
@@ -57,80 +63,89 @@ if("coef_climate_2" %in% names(x)){
 } else {
     coef_table[i, "coef_climate_2"]<-NA}
 
-if("coef_FWI_veg_C.1" %in% names(x)){
-  coef_table[i, "coef_c1"]<-x$coef_FWI_veg_C.1
+if("coef_log_climate2" %in% names(x)){
+  coef_table[i, "coef_log_climate_2"]<-x$coef_log_climate2
+} else {
+    coef_table[i, "coef_log_climate_2"]<-NA}
+
+if("coef_fwveg_C.1" %in% names(x)){
+  coef_table[i, "coef_c1"]<-x$coef_fwveg_C.1
 } else {
     coef_table[i, "coef_c1"]<-NA}
 
-if("coef_FWI_veg_C.2" %in% names(x)){
-  coef_table[i, "coef_c2"]<-x$coef_FWI_veg_C.2
-} else {
+if("coef_fwvegC.2" %in% names(x)){
+  coef_table[i, "coef_c2"]<-x$coef_fwvegC.2
+} else if ("coef_fwveg_C.2" %in% names(x)){
+  coef_table[i, "coef_c2"]<-x$coef_fwveg_C.2
+  } else {
     coef_table[i, "coef_c2"]<-NA}
 
-if("coef_FWI_veg_C.3" %in% names(x)){
+if("coef_fwveg_C-3" %in% names(x)){
   coef_table[i, "coef_c3"]<-x$coef_FWI_veg_C.3
-} else {
+} else if ("coef_fwvegC.3" %in% names(x)){
+  coef_table[i, "coef_c3"]<-x$coef_fwvegC.3
+  } else if ("coef_fwveg_C.3" %in% names(x)){
+  coef_table[i, "coef_c3"]<-x$coef_fwveg_C.3
+  } else {
     coef_table[i, "coef_c3"]<-NA}
 
-if("coef_FWI_veg_C.4" %in% names(x)){
+if("coef_fwveg_C-4" %in% names(x)){
   coef_table[i, "coef_c4"]<-x$coef_FWI_veg_C.4
 } else {
     coef_table[i, "coef_c4"]<-NA}
 
-if("coef_FWI_veg_C.5" %in% names(x)){
-  coef_table[i, "coef_c5"]<-x$coef_FWI_veg_C.5
-} else {
+if("coef_fwvegC.5" %in% names(x)){
+  coef_table[i, "coef_c5"]<-x$coef_fwvegC.5
+} else if ("coef_fwveg_C.5" %in% names(x)){
+  coef_table[i, "coef_c5"]<-x$coef_fwveg_C.5
+  } else {
     coef_table[i, "coef_c5"]<-NA}
 
-if("coef_FWI_veg_C.7" %in% names(x)){
-  coef_table[i, "coef_c7"]<-x$coef_FWI_veg_C.7
-} else {
+if("coef_fwvegC.7" %in% names(x)){
+  coef_table[i, "coef_c7"]<-x$coef_fwvegC.7
+} else if ("coef_fwveg_C.7" %in% names(x)){
+  coef_table[i, "coef_c7"]<-x$coef_fwveg_C.7
+  } else {
     coef_table[i, "coef_c7"]<-NA}
 
-if("coef_FWI_veg_D.1.2" %in% names(x)){
-  coef_table[i, "coef_d12"]<-x$coef_FWI_veg_D.1.2
-} else {
+if("coef_fwvegD.1.2" %in% names(x)){
+  coef_table[i, "coef_d12"]<-x$coef_fwvegD.1.2
+} else if ("coef_fwveg_D.1.2" %in% names(x)){
+  coef_table[i, "coef_d12"]<-x$coef_fwveg_D.1.2
+  } else {
     coef_table[i, "coef_d12"]<-NA}
 
-if("coef_FWI_veg_M.1.2" %in% names(x)){
-  coef_table[i, "coef_m12"]<-x$coef_FWI_veg_M.1.2
-} else {
+if("coef_fwvegM.1.2" %in% names(x)){
+  coef_table[i, "coef_m12"]<-x$coef_fwvegM.1.2
+} else if ("coef_fwveg_M.1.2" %in% names(x)){
+  coef_table[i, "coef_m12"]<-x$coef_fwveg_M.1.2
+  } else {
     coef_table[i, "coef_m12"]<-NA}
 
-if("coef_FWI_veg_M.3" %in% names(x)){
-  coef_table[i, "coef_m3"]<-x$coef_FWI_veg_M.3
-} else {
-    coef_table[i, "coef_m3"]<-NA}
-
-if("coef_FWI_veg_N" %in% names(x)){
-  coef_table[i, "coef_N"]<-x$coef_FWI_veg_N
-} else {
-    coef_table[i, "coef_N"]<-NA}
-
-if("coef_FWI_veg_O.1a.b" %in% names(x)){
-  coef_table[i, "coef_o1ab"]<-x$coef_FWI_veg_O.1a.b
-} else {
+if("coef_fwvegO.1a.b" %in% names(x)){
+  coef_table[i, "coef_o1ab"]<-x$coef_fwvegO.1a.b
+} else if ("coef_fwveg_O.1a.b" %in% names(x)){
+  coef_table[i, "coef_o1ab"]<-x$coef_fwveg_O.1a.b
+  } else {
     coef_table[i, "coef_o1ab"]<-NA}
 
-if("coef_FWI_veg_S.1" %in% names(x)){
-  coef_table[i, "coef_s1"]<-x$coef_FWI_veg_S.1
-} else {
+if("coef_fwveg_S.1" %in% names(x)){
+  coef_table[i, "coef_s1"]<-x$coef_fwveg_S.1
+} else if ("coef_fwvegS.1" %in% names(x)){
+  coef_table[i, "coef_s1"]<-x$coef_fwvegS.1
+  } else {
     coef_table[i, "coef_s1"]<-NA}
-
-if("coef_FWI_veg_S.2" %in% names(x)){
-  coef_table[i, "coef_s2"]<-x$coef_FWI_veg_S.2
-} else {
-    coef_table[i, "coef_s2"]<-NA}
-
-if("coef_FWI_veg_S.3" %in% names(x)){
-  coef_table[i, "coef_s3"]<-x$coef_FWI_veg_S.3
-} else {
-    coef_table[i, "coef_s3"]<-NA}
 
 if("coef_road_dist" %in% names(x)){
   coef_table[i, "coef_road_dist"]<-x$coef_road_dist
   } else if ("coef_dist_roads" %in% names(x)){
   coef_table[i, "coef_road_dist"]<-x$coef_dist_roads
+  } else if ("coef_dist_road_m" %in% names(x)){
+  coef_table[i, "coef_road_dist"]<-x$coef_dist_road_m
+  } else if ("coef_road_dist_m " %in% names(x)){
+  coef_table[i, "coef_road_dist"]<-x$coef_road_dist_m 
+  } else if ("coef_roads_m " %in% names(x)){
+  coef_table[i, "coef_road_dist"]<-x$coef_roads_m 
   } else {
     coef_table[i, "coef_road_dist"]<-NA
     }
@@ -139,9 +154,54 @@ if("coef_log_road_dist" %in% names(x)){
   (coef_table[i, "coef_log_road_dist"]<-x$coef_log_road_dist) 
   } else if ("coef_log_road_dist_m" %in% names(x)){
   coef_table[i, "coef_log_road_dist"]<-x$coef_log_road_dist_m
+  } else if ("coef_log_rd_dst" %in% names(x)){
+  coef_table[i, "coef_log_road_dist"]<-x$coef_log_rd_dst
   } else {
     coef_table[i, "coef_log_road_dist"]<-NA
-    }
+  }
+
+# if("coef_dist_infrastructure_m" %in% names(x)){
+#   (coef_table[i, "coef_dist_infr"]<-x$coef_dist_infrastructure_m) 
+#   } else if ("coef_log_road_dist_m" %in% names(x)){
+#   coef_table[i, "coef_dist_infr"]<-x$coef_log_road_dist_m
+#   } else if ("coef_log_rd_dst" %in% names(x)){
+#   coef_table[i, "coef_dist_infr"]<-x$coef_log_rd_dst
+#   } else {
+#     coef_table[i, "coef_dist_infr"]<-NA
+#   }
+# 
+# if("coef_log_infr" %in% names(x)){
+#   (coef_table[i, "coef_log_dist_infr"]<-x$coef_log_infr) 
+#   } else if ("coef_log_dist_infra" %in% names(x)){
+#   coef_table[i, "coef_log_dist_infr"]<-x$coef_log_dist_infra
+#   } else if ("coef_log_dist_infr" %in% names(x)){
+#   coef_table[i, "coef_log_dist_infr"]<-x$coef_log_dist_infr
+#   } else {
+#     coef_table[i, "coef_log_dist_infr"]<-NA
+#   }
+# 
+# if("coef_slope" %in% names(x)){
+#   coef_table[i, "coef_slope"]<-x$coef_slope
+# } else if ("coef_fwvegS.1" %in% names(x)){
+#   coef_table[i, "coef_s1"]<-x$coef_fwvegS.1
+#   } else {
+#     coef_table[i, "coef_slope"]<-NA}
+# 
+# }
+# 
+# if("coef_dm_h_bc" %in% names(x)){
+#   coef_table[i, "coef_dem"]<-x$coef_dm_h_bc
+# } else if ("coef_fwvegS.1" %in% names(x)){
+#   coef_table[i, "coef_s1"]<-x$coef_fwvegS.1
+#   } else {
+#     coef_table[i, "coef_dem"]<-NA}
+# 
+# if("coef_dm_h_bc" %in% names(x)){
+#   coef_table[i, "coef_dem"]<-x$coef_dm_h_bc
+# } else if ("coef_fwvegS.1" %in% names(x)){
+#   coef_table[i, "coef_s1"]<-x$coef_fwvegS.1
+#   } else {
+#     coef_table[i, "coef_dem"]<-NA}
 
 }
 
