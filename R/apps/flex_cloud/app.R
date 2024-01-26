@@ -20,7 +20,7 @@ library(shinyFiles)
 library(shinydashboard)
 library(shinyjs)
 library(future)
-library(future.callr)
+# library(future.callr)
 library(future.apply)
 library(rlist)
 library(fs)
@@ -45,8 +45,9 @@ source(here::here('R/apps/flex_cloud/src/functions.R'))
 
 # plan(sequential)
 # plan(multicore)
-plan(callr)
+# plan(callr)
 # plan(multisession)
+plan(cluster)
 
 # Available scneario Rmd files
 available_scenarios <- list.files('scenarios/')
@@ -177,7 +178,7 @@ ui <- shiny::tagList(
                     min = 1, max = 15, value = 7, step = 1
                   ),
                   textInput(
-                    inputId = 'initial_fisher_pop',  label = "Initial fisher population", 
+                    inputId = 'initial_fisher_pop',  label = "Initial fisher population",
                     value = 9999
                   )
                 )
@@ -210,7 +211,7 @@ ui <- shiny::tagList(
                     div(
                       class = 'form-group',
                       shiny::radioButtons(
-                        inputId = 'report_currency', 
+                        inputId = 'report_currency',
                         label = 'Select simulation',
                         choiceNames = c('Current', 'Previous'),
                         choiceValues = c('current', 'previous'),
@@ -377,7 +378,7 @@ server <- function(input, output, session) {
     progress = NULL,
     sim_params = list()
   )
-  
+
   shinyFileChoose(
     input, "file_scenario",
     roots = c('wd' = '.', 'root' = '/', 'home' = fs::path_home()),
@@ -414,7 +415,7 @@ server <- function(input, output, session) {
   # Droplet size
   # Available sizes
   # required_processes <- reactiveValue({
-  #   input$iterations / 
+  #   input$iterations /
   # })
 
   sizes <- analogsea::sizes(per_page = 200) %>%
@@ -436,18 +437,18 @@ server <- function(input, output, session) {
         processes, ' parallel processes, ',
         scales::dollar(price_per_process, prefix = '', suffix = '¢', accuracy = 0.01, scale = 100), ' per process per hour (',
         scales::dollar(price_hourly, prefix = '', suffix = '¢', accuracy = 0.01, scale = 100), ' hourly, ',
-        memory / 1024, 'GB, ', 
+        memory / 1024, 'GB, ',
         vcpus, ' vCPUs)'
       )
     ) %>%
-    arrange(price_per_process) %>% 
+    arrange(price_per_process) %>%
     dplyr::select(slug, label, processes)
-  
+
   size_choices <- setNames(
     as.character(sizes$slug),
     as.character(sizes$label)
   )
-  
+
   shiny::updateSelectizeInput(
     session = getDefaultReactiveDomain(),
     'droplet_size',
@@ -463,16 +464,16 @@ server <- function(input, output, session) {
       # browser()
       cookies <- glouton::fetch_cookies()
       cores <- as.numeric(cookies$cores)
-      
+
       required_processes <- ceiling(input$iterations / cores)
-      refined_sizes <- sizes %>% 
+      refined_sizes <- sizes %>%
         filter(processes > required_processes)
-      
+
       refined_size_choices <- setNames(
         as.character(refined_sizes$slug),
         as.character(refined_sizes$label)
       )
-      
+
       shiny::updateSelectizeInput(
         session = getDefaultReactiveDomain(),
         'droplet_size',
@@ -507,12 +508,12 @@ server <- function(input, output, session) {
     {
       output$key_selected <- renderPrint({
         cookies <- glouton::fetch_cookies()
-        
+
         ssh_keyfile <- cookies$key_path
         ssh_keyfile_name <- cookies$key_name
-        
+
         cores <- cookies$cores
-        
+
         print(paste("SSH key:", ssh_keyfile))
         print(paste("CPU cores:", cores))
       })
@@ -578,20 +579,20 @@ server <- function(input, output, session) {
 
       # FLEX droplet image ----
       snapshots <- analogsea::snapshots(per_page = 200)
-      snap_image <- snapshots$`flex-cloud-image-20231015`$id
+      snap_image <- snapshots$`flex-cloud-image-20240110`$id
       if (is.null(snap_image)) {
         shinyjs::alert(
-        "Snapshot flex-cloud-image-20231015 does not exist in your Digital Ocean account. Please recreate it using Server Installation guide and restart the app."
+        "Snapshot flex-cloud-image-20240110 does not exist in your Digital Ocean account. Please recreate it using Server Installation guide and restart the app."
         )
         return(NULL)
       }
-      
+
       progressOne <- Progress$new(session, min = 1, max = 10)
       on.exit(progressOne$close())
       progressOne$set(message = 'Creating droplet to host the scenario',
                    detail = 'This will take about a minute.')
-      
-      
+
+
       # SSH config
       ssh_user <- "root"
 
@@ -606,7 +607,7 @@ server <- function(input, output, session) {
       uploader_size = 's-1vcpu-2gb'
 
       progressOne$set(1, detail = 'Creating droplet')
-      
+
       rv$d_uploader <- create_scenario_droplet(
         scenario = selected_scenario,
         ssh_keyfile = ssh_keyfile,
@@ -614,17 +615,18 @@ server <- function(input, output, session) {
         ssh_user = ssh_user,
         progressOne = progressOne
       )
-      # progressOne$close()
 
       if (is.null(rv$d_uploader)) {
-        shinyjs::alert("Error has occrred, please refresh the page and try again.")
+        shinyjs::alert("Error has occurred when uploading the scenario file. Make sure you've set the correct private key in the Settings tab.
+
+Please refresh the page and try again.")
       }
       req(rv$d_uploader)
 
       scenario_droplet_ip <- get_private_ip(rv$d_uploader)
 
       rv$progress <- AsyncProgress$new(message="Overall job progress")
-      
+
       print(paste("Simulation log file ", simulation_logfile))
       print(paste("Simulation debug file ", simulation_debug_file))
 
@@ -702,29 +704,32 @@ server <- function(input, output, session) {
       saveRDS(object = sim_params_df, file = glue::glue("{download_path}/params.rds"))
 
       rv$sim_params$simulation_id <- simulation_id
-      
-      lapply(
-        X = seq(1:sim_sequence),
-        FUN = run_simulation,
-        scenario = selected_scenario,
-        ssh_keyfile = ssh_keyfile,
-        ssh_keyfile_name = ssh_keyfile_name,
-        do_droplet_size = input$droplet_size,
-        scenario_droplet_ip = scenario_droplet_ip,
-        do_region = region,
-        do_image = snap_image,
-        simulation_logfile = simulation_logfile,
-        simulation_logfile_lock = simulation_logfile_lock,
-        progress = rv$progress,
-        total_steps = total_steps,
-        d_uploader = rv$d_uploader,
-        sim_params = rv$sim_params,
-        simulation_id = simulation_id,
-        droplet_sequence = droplet_sequence,
-        simulation_debug_file = simulation_debug_file,
-        simulation_debug_file_lock = simulation_debug_file_lock
-      )
-      
+
+      tryCatch({
+        lapply(
+          X = seq(1:sim_sequence),
+          FUN = run_simulation,
+          scenario = selected_scenario,
+          ssh_keyfile = ssh_keyfile,
+          ssh_keyfile_name = ssh_keyfile_name,
+          do_droplet_size = input$droplet_size,
+          scenario_droplet_ip = scenario_droplet_ip,
+          do_region = region,
+          do_image = snap_image,
+          simulation_logfile = simulation_logfile,
+          simulation_logfile_lock = simulation_logfile_lock,
+          progress = rv$progress,
+          total_steps = total_steps,
+          d_uploader = rv$d_uploader,
+          sim_params = rv$sim_params,
+          simulation_id = simulation_id,
+          droplet_sequence = droplet_sequence,
+          simulation_debug_file = simulation_debug_file,
+          simulation_debug_file_lock = simulation_debug_file_lock
+        )
+      }, error = function(e) {
+      })
+
       # values <- lapply(
       #   X = l,
       #   FUN = function(x) {
@@ -789,53 +794,53 @@ server <- function(input, output, session) {
       if ('iterations' %in% colnames(params)) {
         used_iterations <- params$iterations
       }
-      
-      params_used <- params %>% 
-        dplyr::select(-scenario) %>% 
+
+      params_used <- params %>%
+        dplyr::select(-scenario) %>%
         mutate(
           times = as.numeric(times),
           female_dispersal = as.numeric(female_dispersal),
           initial_fisher_pop = as.numeric(initial_fisher_pop)
         )
-      params_used <- params_used %>% 
-        # tidyr::pivot_longer(cols = colnames(params[,2:14])) %>% 
-        tidyr::pivot_longer(cols = colnames(params_used)) %>% 
+      params_used <- params_used %>%
+        # tidyr::pivot_longer(cols = colnames(params[,2:14])) %>%
+        tidyr::pivot_longer(cols = colnames(params_used)) %>%
         mutate(value = as.character(value))
       output$params_used <- renderTable(params_used)
-      
+
       progressReport <- Progress$new(session, min = 1, max = 10)
       on.exit(progressReport$close())
       progressReport$set(
         message = 'Loading report data',
         detail = 'Fetching CSV files.'
       )
-      
-      lock <- filelock::lock(path = simulation_debug_file_lock, exclusive = TRUE)
+
+      # lock <- filelock::lock(path = simulation_debug_file_lock, exclusive = TRUE)
       wd <- getwd()
-      write(
-        paste(
-          "Local working directory", wd, "\n",
-          "Looking for CSV and TIF files in", dir, "\n",
-          "Folder content:\n"
-        ),
-        file = simulation_debug_file,
-        append = TRUE
-      )
-      write(unlist(list.files(dir)), file = simulation_debug_file, append = TRUE)
-      filelock::unlock(lock)
-      
-      output$debug_output <- renderUI({
-        HTML(
-          paste(
-            readLines(simulation_debug_file),
-            collapse = "<br>"
-          )
-        )
-      })
-      
+      # write(
+      #   paste(
+      #     "Local working directory", wd, "\n",
+      #     "Looking for CSV and TIF files in", dir, "\n",
+      #     "Folder content:\n"
+      #   ),
+      #   file = simulation_debug_file,
+      #   append = TRUE
+      # )
+      # write(unlist(list.files(dir)), file = simulation_debug_file, append = TRUE)
+      # filelock::unlock(lock)
+
+      # output$debug_output <- renderUI({
+      #   HTML(
+      #     paste(
+      #       readLines(simulation_debug_file),
+      #       collapse = "<br>"
+      #     )
+      #   )
+      # })
+
       # csv_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_fisher_agents.csv$')
       csv_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+fisher_agents.csv$')
-  
+
       if (length(csv_files) == 0) {
         shinyjs::alert('No CSV files have been found, cannot produce the scatter plot.')
       } else {
@@ -844,23 +849,26 @@ server <- function(input, output, session) {
         }
 
         data_csv <- future_lapply(
-            csv_files, 
+        # data_csv <- lapply(
+            csv_files,
             function(file, dir) {
               file <- paste0(dir, file)
-              readr::read_csv(file, show_col_types = FALSE) %>% 
-                dplyr::select(timeperiod, n_f_adult)
+              if (file.exists(file)) {
+                readr::read_csv(file, show_col_types = FALSE) %>%
+                  dplyr::select(timeperiod, n_f_adult)
+              }
             },
             dir
           )
-        
-        data <- dplyr::bind_rows(data_csv) %>% 
+
+        data <- dplyr::bind_rows(data_csv) %>%
           dplyr::mutate(timeperiod = as.factor(timeperiod))
-        
+
         progressReport$set(
           value = 2,
           detail = 'Processing CSV data.'
         )
-        
+
         group_data <- data %>%
           dplyr::group_by(timeperiod) %>%
           dplyr::summarize(
@@ -868,22 +876,22 @@ server <- function(input, output, session) {
             lower_ci = mean_val - qt(0.975, n() - 1) * sd(n_f_adult) / sqrt(n()),
             upper_ci = mean_val + qt(0.975, n() - 1) * sd(n_f_adult) / sqrt(n())
           )
-  
+
         progressReport$set(
           value = 3,
           detail = 'Plotting CSV data.'
         )
-        
+
         output$plot_csv <- renderPlot(
           ggplot(
-            data = data %>% 
-              dplyr::mutate(timeperiod = as.factor(timeperiod)), 
+            data = data %>%
+              dplyr::mutate(timeperiod = as.factor(timeperiod)),
             aes(
               x = timeperiod, y = n_f_adult
             )
-          ) + 
-            geom_point(size = 3, 
-                       alpha = 0.2, 
+          ) +
+            geom_point(size = 3,
+                       alpha = 0.2,
                        colour = '#1A5A96') +
             stat_summary(
               fun.data = "mean_cl_normal",
@@ -894,8 +902,8 @@ server <- function(input, output, session) {
               fatten = 2
             ) +
             geom_text(
-              x = as.integer(group_data$timeperiod) + 0.1, 
-              y = group_data$mean_val, 
+              x = as.integer(group_data$timeperiod) + 0.1,
+              y = group_data$mean_val,
               size = 3,
               aes(
                 label = paste0(
@@ -909,19 +917,19 @@ server <- function(input, output, session) {
             ) +
             ggtitle(
               paste0(
-                "Female fishers with established territory at the end of 
+                "Female fishers with established territory at the end of
                 each time interval (", length(csv_files), " iterations)"
               )
-            ) + 
+            ) +
             labs(
-              x = "Time period", 
+              x = "Time period",
               y = "Number of female adults"
-            ) + 
+            ) +
             theme_minimal()
         )
-        
+
         ggsave(file = paste0(dir, "../n_f_adults.png"))
-  
+
         progressReport$set(
           value = 4,
           detail = 'Fetching TIFF files.'
@@ -930,55 +938,63 @@ server <- function(input, output, session) {
 
       tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+test_final_fisher_territories.tif$')
       # tif_files <- list.files(path = dir, pattern = '^d[0-9]+i[0-9]+fisher_territories.tif$')
-        
+
       if (length(tif_files) == 0) {
         shinyjs::alert('No TIFF files have been found, cannot produce the heatmap.')
       } else {
         tic("Overall process")
         tic("Processing other tif files", quiet = TRUE)
-        
+
         if (!is.null(used_iterations)) {
           tif_files <- tif_files[1:used_iterations]
         }
-        
+
+        # browser()
         data_tif <- future_lapply(
         # data_tif <- lapply(
-          tif_files, 
+          tif_files,
           function(file, dir) {
             file <- paste0(dir, file)
   # browser()
             # Read raster file, cast to data frame and bind with all previous rasters
-            tif_data <- as.data.frame(
-              raster(file), xy = TRUE
-            ) 
-            
-            if (nrow(tif_data) > 0) {
-              tif_data <- tif_data %>% 
-                dplyr::filter(hr_0 > 0)
+#             tif_data_raster <- raster::raster(file)
+# print(tif_data_raster)
+# plot(tif_data_raster)
+            if (file.exists(file)) {
+              tif_data_terra <- terra::rast(file)
+
+# print(tif_data_terra)
+# plot(tif_data_terra)
+              tif_data <- as.data.frame(tif_data_terra, xy = TRUE)
+
+              if (nrow(tif_data) > 0) {
+                tif_data <- tif_data %>%
+                  dplyr::filter(hr_0 > 0)
+              }
+
+              if (nrow(tif_data) > 0) {
+                tif_data <- tif_data %>%
+                  dplyr::mutate(hr_0 = round(1 / length(tif_files) * 100, 2))
+              }
+              tif_data
             }
-            
-            if (nrow(tif_data) > 0) {
-              tif_data <- tif_data %>% 
-                dplyr::mutate(hr_0 = round(1 / length(tif_files) * 100, 2))
-            }
-            tif_data
           },
           dir
         )
-       
-        data_tif <- bind_rows(data_tif) %>% 
+
+        data_tif <- bind_rows(data_tif) %>%
           dplyr::group_by(x, y) %>%
           dplyr::summarize(hr_0 = sum(hr_0))
-  
+
         toc()
-  
+
         tic("Visualizing tif files", quiet = TRUE)
-        
+
         progressReport$set(
           value = 7,
           detail = 'Plotting TIFF files.'
         )
-        
+
         g <- ggplot() +
           geom_raster(data = data_tif , aes(x = x, y = y, fill = hr_0)) +
           scale_fill_gradient(
@@ -990,20 +1006,20 @@ server <- function(input, output, session) {
           coord_equal() +
           ggtitle(
             paste0(
-              "Sum of established territories at the end of 
+              "Sum of established territories at the end of
               simulation (", length(tif_files), " iterations)"
             )
-          ) + 
+          ) +
           theme_minimal()
-  
+
         toc() # Visualizing tif files
         toc() # Overall process
-        
+
         output$plot_tif <- renderPlot(g)
-  
+
         rm(data_tif)
         ggsave(file = paste0(dir, "../heatmap.png"))
-        
+
         progressReport$set(
           value = 10,
           message = 'Done',
@@ -1055,12 +1071,12 @@ server <- function(input, output, session) {
 
     if (nrow(data) > 0) {
       if (nrow(data %>% filter(isTruthy(Droplet))) > 0) {
-        non_finished <- data %>% 
+        non_finished <- data %>%
           filter(
             Droplet != '',
             Description != 'PROCESS FINISHED'
           )
-        
+
         print(non_finished)
         if (nrow(non_finished) == 0) {
           rv$progress$close()
@@ -1089,7 +1105,7 @@ server <- function(input, output, session) {
         }
       }
     }
-    
+
     data
   })
 
@@ -1102,8 +1118,8 @@ server <- function(input, output, session) {
     input$refresh_droplets,
     {
       droplets <- analogsea::droplets()
-      droplets_df <- as.data.frame(do.call(rbind, droplets)) 
-      
+      droplets_df <- as.data.frame(do.call(rbind, droplets))
+
       if (nrow(droplets_df) > 0) {
         droplets_df <- droplets_df %>%
           dplyr::select(id, name, memory, vcpus, disk, status, tags, created_at) %>%
@@ -1117,7 +1133,7 @@ server <- function(input, output, session) {
           dplyr::filter(tags == TRUE) %>%
           dplyr::select(-tags)
       }
-      
+
       output$droplets <- renderTable(droplets_df)
     }
   )
@@ -1133,8 +1149,8 @@ server <- function(input, output, session) {
       ssh_user <- "root"
       ssh_keyfile_tbl <- parseFilePaths(volumes, input$key)
       ssh_keyfile <- stringr::str_replace(
-        ssh_keyfile_tbl$datapath, 
-        'NULL/', 
+        ssh_keyfile_tbl$datapath,
+        'NULL/',
         ifelse(
           stringr::str_to_lower(Sys.info()[1]) == 'windows',
           paste0(fs::path_home(), '/'),
@@ -1142,7 +1158,7 @@ server <- function(input, output, session) {
         )
       )
       ssh_keyfile_name <- ssh_keyfile_tbl$name
-      
+
       # Available CPU cores on local machine
       cores <- input$cores
 

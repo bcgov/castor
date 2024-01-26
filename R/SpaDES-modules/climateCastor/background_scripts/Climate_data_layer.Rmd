@@ -1,0 +1,102 @@
+The idea is to make a raster of the province at the 800 x 800m level with each pixel having an id no. Then I sample that ID number from climateCastor and that id no is associated with the lat long values of that pixel in the EPSG:4326 geographic coordinate system in postgres. 
+
+```{r}
+library(raster)
+library(data.table)
+library(rpostgis)
+library(keyring)
+library(climr)
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
+```
+
+
+```{r}
+prism<-raster("D:\\Fire\\fire_data\\raw_data\\Future_climate\\PRISM_historical_19710101-20001231\\tasmax_mClimMean_PRISM_historical_19710101-20001231.nc.nc")
+
+# get the bounding box of BC
+climpts <- data.table(terra::xyFromCell(prism,1:ncell(prism))) #Seems to be faster than rasterTopoints
+colnames(climpts)[colnames(climpts) == "y"] <- "lat"
+colnames(climpts)[colnames(climpts) == "x"] <- "long"
+
+##__________________________________________
+#NOTE I ran the code below to check that the prism layer I got from colin matches that on climr. it does! so dont do this next section
+# get the exact prism layer that climr uses using the bc bbox
+# this takes a while so dont do this again!
+#dbCon <- climr::data_connect()
+#thebb <- get_bb(climpts)
+#normalbc <- normal_input_postgis(dbCon = dbCon, normal = "normal_bc", bbox = thebb, cache = TRUE)  ##get normal data and lapse rates
+##__________________________________________________-
+
+
+#create empty raster that I stream the climateID numbers into
+x <- raster(prism[[1]])
+x[]<-climpts$pixelid_climate
+plot(x)
+
+prov.rast <- raster::raster ( # standardized provincial raster with no data in it
+                              nrows = 15744, ncols = 17216,
+                              xmn = 159587.5, xmx = 1881187.5,
+                              ymn = 173787.5, ymx = 1748187.5,
+                              crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
+                              resolution = c(100, 100),
+                              vals = 0)
+prov.rast<-terra::rast(prov.rast)
+
+# add 3005 projection to x 
+x<-terra::rast(x)
+
+x_new<-terra::project(x, prov.rast, method="near")
+plot(x_new)
+x_new1<-raster(x_new)
+
+```
+
+
+```{r}
+writeRaster(x_new1, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\climate_prism_base_layer.tif", format="GTiff", overwrite=TRUE)
+# 
+# # run this in R:
+ paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_prism_base_layer.tif -t 100x100 rast.climate_prism_base_layer | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/castor')
+
+```
+
+Make the look-up table
+
+```{r}
+# Maybe I need to re-interpolate the elevation raster to the same as prism and extract the elevation values which I then put into the lookup table
+# get elevation data for the lat long coordinates
+DEM <- raster("C:\\Users\\ekleynha\\OneDrive - Government of BC\\Dem_bc_ha\\BCelevComplete.tif")
+plot(DEM)
+
+dem<-terra::rast(DEM)
+dem_new<-terra::project(dem, x, method="bilinear")
+
+y <- data.table(terra::xyFromCell(dem_new,1:ncell(dem_new)))
+dem<-data.table(terra::extract(dem_new, y))
+xyz_table<-cbind(y, dem)
+colnames(xyz_table)[colnames(xyz_table) == "y"] <- "lat"
+colnames(xyz_table)[colnames(xyz_table) == "x"] <- "long"
+colnames(xyz_table)[colnames(xyz_table) == "BCelevComplete"] <- "el"
+colnames(xyz_table)[colnames(xyz_table) == "ID"] <- "pixelid_climate"
+
+#Check
+x <- raster(prism[[1]])
+x[]<-xyz_table$el
+plot(x)
+
+x[]<-xyz_table$pixelid_climate
+plot(x)
+
+
+
+```
+
+
+```{r}
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+
+DBI::dbWriteTable(conn, c("vat", "climate_prism_lat_lon_lookup"), value= xyz_table, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+
+```
+

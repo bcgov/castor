@@ -24,7 +24,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "fireCastor.Rmd"),
-  reqdPkgs = list("here","data.table", "raster", "SpaDES.tools", "tidyr", "climRdev", "pool"),
+  reqdPkgs = list("here","data.table", "raster", "SpaDES.tools", "tidyr", "pool"),
   parameters = rbind(
     
     #defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
@@ -42,8 +42,8 @@ defineModule(sim, list(
     defineParameter("nameBecTable", "character", '99999', NA, NA, "Value attribute table that links to the raster and describes the bec zone and bec subzone information"),
     defineParameter("gcm", "character", '99999', NA, NA, "Global climate model from which to get future climate data e.g. ACCESS-ESM1-5"),
     defineParameter("ssp", "character", '99999', NA, NA, "Climate projection from which to get future climate data e.g. ssp370"),
-    defineParameter("maxRun", "integer", '99999', NA, NA, "Maximum number of model runs to include. A value of 0 is ensembleMean only."),
-    defineParameter("run", "character", '99999', NA, NA, "The run of the climate projection from which to get future climate data e.g. r1i1p1f1"),
+    #defineParameter("maxRun", "integer", '99999', NA, NA, "Maximum number of model runs to include. A value of 0 is ensembleMean only."),
+    #defineParameter("run", "character", '99999', NA, NA, "The run of the climate projection from which to get future climate data e.g. r1i1p1f1"),
     defineParameter("nameForestInventoryRaster", "numeric", NA, NA, NA, "Raster of VRI feature id"),
     defineParameter("nameForestInventoryTable2", "character", "99999", NA, NA, desc = "Name of the veg comp table - the forest inventory"),
     defineParameter("nameForestInventoryKey", "character", "99999", NA, NA, desc = "Name of the veg comp primary key that links the table to the raster"),
@@ -370,460 +370,76 @@ roadDistCalc <- function(sim) {
 
 
 getClimateVariables <- function(sim) {
+   
+   id_vals<-data.table(dbGetQuery(sim$castordb, paste0("SELECT pixelid, pixelid_climate FROM pixels")))
+   
+   #id_vals2<-merge(climate_dat_no1)
+   
+   dat<-data.table(dbGetQuery(sim$castordb, paste0("SELECT * FROM climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), " WHERE period=", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor") , " AND run!= 'ensembleMean'", ";")))
+   
+   clim<-merge(dat, id_vals, by.x = "pixelid_climate", by.y ="pixelid_climate", all.y=TRUE )
+   
+   clim_dat<-merge(clim, sim$frt_id, by.x="pixelid", by.y="pixelid")
+   
+   #create climate 1 and climate 2 for lighting
+   clim_dat[frt==5, climate1lightning:=(Tave05 + Tave06 + Tave07 + Tave08)/4]
+   clim_dat[frt==5, climate2lightning:=(PPT05 + PPT06 + PPT07 + PPT08)/4]
+   clim_dat[frt==7, climate1lightning:=(Tmax03 + Tmax04 + Tmax05 + Tmax06 + Tmax07 + Tmax08)/6]
+   clim_dat[frt==9, climate1lightning:=(Tave04 + Tave05 + Tave06 + Tave07 + Tave08 + Tave09)/6]
+   clim_dat[frt==10, climate1lightning:=(Tave07 + Tave08)/2]
+   clim_dat[frt==10, climate2lightning:=(PPT07 + PPT08)/2]
+   clim_dat[frt==11, climate1lightning:=(Tave03 + Tave04 + Tave05 + Tave06 + Tave07 + Tave08)/6]
+   clim_dat[frt==12, climate1lightning:=(Tmax07 + Tmax08)/2]
+   clim_dat[frt==13, climate1lightning:=Tave07]
+   clim_dat[frt==13, climate2lightning:=PPT07]
+   clim_dat[frt==14, climate1lightning:=CMD07]
+   clim_dat[frt==15, climate1lightning:=(Tave07 + Tave08)/2]
+   clim_dat[frt==15, climate2lightning:=(PPT07 + PPT08)/2]
+   
+   ## person caused fires
+   clim_dat[frt==5, climate1person:=(PPT06 + PPT07)/2]
+   clim_dat[frt==7, climate1person:=(Tmax05 + Tmax06 + Tmax07 + Tmax08)/4]
+   clim_dat[frt==9, climate1person:=(Tave04 + Tave05 + Tave06 + Tave07)/4]
+   clim_dat[frt==9, climate2person:=(PPT04 + PPT05 + PPT06 + PPT07)/4]
+   clim_dat[frt==10, climate1person:=(CMD06 + CMD07 + CMD08 + CMD09)/4]
+   clim_dat[frt==11, climate1person:=(Tmax04 + Tmax05 + Tmax06 + Tmax07)/4]
+   clim_dat[frt==11, climate2person:=(PPT04 + PPT05 + PPT06 + PPT07)/4]
+   clim_dat[frt==12, climate1person:=(Tmax04 + Tmax05 + Tmax06 + Tmax07 + Tmax08)/5]
+   clim_dat[frt==13, climate1person:=(Tmax04 + Tmax05 + Tmax06 + Tmax07 + Tmax08)/5]
+   clim_dat[frt==14, climate1person:=(Tmax04 + Tmax05 + Tmax06 + Tmax07 + Tmax08)/5]
+   clim_dat[frt==15, climate1person:=(Tave06 + Tave07 + Tave08)/3]
+   clim_dat[frt==15, climate2person:=(PPT06 + PPT07 + PPT08)/3]
+   
+   ## escape caused fires
+   clim_dat[frt==5, climate1escape:=(Tmax04+Tmax05)/2]
+   clim_dat[frt==5, climate2escape:=(PPT04+PPT05)/2]
+   clim_dat[frt==7, climate1escape:=CMI04]
+   clim_dat[frt==9, climate1escape:=Tave05]
+   clim_dat[frt==9, climate2escape:=PPT05]
+   clim_dat[frt==10, climate1escape:=(CMD04+CMD05+CMD06)/3]
+   clim_dat[frt==11, climate1escape:=Tave05]
+   clim_dat[frt==11, climate2escape:=PPT05]
+   clim_dat[frt==12, climate1escape:=(Tmax04+Tmax05+Tmax06)/3]
+   clim_dat[frt==12, climate2escape:=(PPT04+PPT05+PPT06)/3]
+   clim_dat[frt==13, climate1escape:=(Tmax07+Tmax08)/2]
+   clim_dat[frt==13, climate2escape:=(PPT07+PPT08)/2]
+   clim_dat[frt==14, climate1escape:=(Tmax04+Tmax05+Tmax06)/3]
+   clim_dat[frt==14, climate2escape:=(PPT04+PPT05+PPT06)/3]
+   clim_dat[frt==15, climate1escape:=(CMD07 +CMD08)/2]
+   
+  sim$climate_data<-clim_dat[ ,c("climate1lightning", "climate2lightning","climate1person","climate2person", "climate1escape", "climate2escape")]
   
-  qry<-paste0("SELECT COUNT(*) as exists_check FROM sqlite_master WHERE type='table' AND name='climate_", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),"_",P(sim, "gcmName", "fireCastor"),"_",P(sim, "ssp", "fireCastor"), "';")
-  
-  if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
-  
-  message(paste0("create empty table of climate variables for year ", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor")))
-  
-  qry<-paste0("CREATE TABLE IF NOT EXISTS climate_", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),"_",P(sim, "gcmName", "fireCastor"),"_",P(sim, "ssp", "fireCastor")," (pixelid integer,  year integer, climate1lightning numeric, climate2lightning numeric, climate1person numeric, climate2person numeric, climate1escape numeric, climate2escape numeric, climate1spread numeric, climate2spread numeric)")
-  
-  dbExecute(sim$castordb, qry)
-  
-  message("extract elevation raster")
-  
-  #We need elevation because climate BC adjusts the climate according to the elevation of the sampling location. 
-  
-  #### get elevation and frt rasters ####
-  sim$ras.elev<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                                      srcRaster= P(sim, "nameElevationRaster", "fireCastor"), 
-                                      clipper=sim$boundaryInfo[1] , 
-                                      geom= sim$boundaryInfo[4] , 
-                                      where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                      conn=NULL))
-  
-  if ((dbGetQuery(sim$castordb, paste0("SELECT MAX(elv) FROM pixels"))) < 2 ) {
-    
-    message("Passing elevation to pixels table as seems to be missing")
-  
-  if(terra::ext(sim$ras) == terra::ext(sim$ras.elev)){
-    elev<-data.table(elv = as.numeric(sim$ras.elev[]))
-    elev[, pixelid := seq_len(.N)][, elv := as.numeric(elv)]
-    elev<-elev[elv > -10, ]
-    
-    #add to the castordb
-    dbBegin(sim$castordb)
-    rs<-dbSendQuery(sim$castordb, "UPDATE pixels set elv = :elv where pixelid = :pixelid", elev)
-    dbClearResult(rs)
-    dbCommit(sim$castordb)
-    gc()
-  }else{
-    stop(paste0("ERROR: extents are not the same check -", P(sim, "nameElevationRaster", "fireCastor")))
+   return(invisible(sim))
+   
   }
-  } else {
-    message("elevation already in pixels table ... extracting")
-    elev<-dbGetQuery(sim$castordb, paste0("SELECT elv, pixelid FROM pixels"))
-    }
-  
-  message("change data format for download of climate data and save sample points")
-    
-    #a<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, crs="+proj=longlat +datum=WGS84")
-    
-    #ras2 <- terra::project(sim$ras, a)
-  #### reproject lat long points ####
-  
-  ras2<-terra::project(sim$ras, "EPSG:4326")
-  lat_lon_pts<-data.table(terra::xyFromCell(ras2,1:length(ras2[])))
-  lat_lon_pts <- lat_lon_pts[, pixelid:= seq_len(.N)]
-  
-  sample.pts<-merge (lat_lon_pts, elev, by = 'pixelid', all.x =TRUE)
-  
-  #rm(ras2, lat_lon_pts)
-  gc()
-  
- colnames(sample.pts)[colnames(sample.pts) == "y"] <- "lat"
- colnames(sample.pts)[colnames(sample.pts) == "x"] <- "long"
- colnames(sample.pts)[colnames(sample.pts) == "elv"] <- "el"
- 
- # I dont think climR works with more than three rows in the data.frame so Im removing the ID column
- sim$samp.pts<-sample.pts[,c("long", "lat", "el")]
-  #} else {
-   # message("climate sample points already extracted")
-   #}
-  
-#  if (!file.exists(paste0(here::here(), "/R/SpaDES-modules/fireCastor/outputs/", scenario$name, time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),'_M.csv'))) {
- 
- #### climR data collection####
-message("Downloading climate data from climateBC ...")  
-
-if (!exists("dbCon")){
-  dbCon <- climRdev::data_connect() ##connect to database
-  } else { message("connection to dbCon already made")}
-
-    thebb <- get_bb(sim$samp.pts) ##get bounding box based on input points
-    #dbCon <- climRdev::data_connect() ##connect to database
-    normal <- normal_input_postgis(dbCon = dbCon, bbox = thebb, cache = TRUE) ##get normal data and lapse rates
-    gcm_ts <- gcm_ts_input(dbCon, bbox = thebb, 
-                           gcm = (P(sim, "gcm", "fireCastor")), 
-                           ssp = (P(sim, "ssp", "fireCastor")),# c("ssp370"), 
-                           years = time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),
-                           max_run = (P(sim, "maxRun", "fireCastor")),
-                           cache = TRUE)
-    
-    lat_lon_pts2<-data.table(terra::xyFromCell(normal[[1]],1:ncell(normal[[1]])))
-    lat_lon_pts2 <- lat_lon_pts2[, pixelid_clim:= seq_len(.N)] # add in the pixelid which streams data in according to the 
-    
-    ras.frt2<-terra::project(sim$ras.frt, normal[[1]], method="near")
-    ras.elev2<-terra::project(sim$ras.elev, normal[[1]])
-    
-    if(terra::ext(normal[[1]]) == terra::ext(ras.elev2)){
-      elev<-data.table(elv = as.numeric(ras.elev2[]))
-      elev[, pixelid_clim := seq_len(.N)][, elv := as.numeric(elv)]
-      
-      frt<-data.table(frt = as.numeric(ras.frt2[]))
-      frt[, pixelid_clim := seq_len(.N)][, frt := as.numeric(frt)]
-      
-      dat<-merge(lat_lon_pts2, elev, by="pixelid_clim")
-      colnames(dat)[colnames(dat) == "y"] <- "lat"
-      colnames(dat)[colnames(dat) == "x"] <- "long"
-      colnames(dat)[colnames(dat) == "elv"] <- "el"
-      #dat2<-dat[el>-10,]
-      dat3<-dat[,c("long","lat", "el")]
-      
-    }
-    
-    message("downscale Tmax")
-    results_Tmax <- downscale(
-      xyz = as.data.frame(dat3),
-      normal = normal,
-      gcm_ts = gcm_ts,
-      vars = sprintf(c("Tmax%02d"),1:11)
-    )
-    
-    message("downscale PPT")
-    results_PPT <- downscale(
-      xyz = as.data.frame(dat3),
-      normal = normal,
-      gcm_ts = gcm_ts,
-      vars = sprintf(c("PPT%02d"),1:11)
-    )
-    
-    message("downscale Tave")
-    results_Tave <-downscale(
-      xyz = as.data.frame(dat3),
-      normal = normal,
-      gcm_ts = gcm_ts,
-      vars = sprintf(c("Tave%02d"),4:10)
-    )
-    
-    message("downscale CMD")
-    results_CMD <-downscale(
-      xyz = as.data.frame(dat3),
-      normal = normal,
-      gcm_ts = gcm_ts,
-      vars = sprintf(c("CMD%02d"),2:10)
-    )
-    
-    #message("downscale RH")
-    # results_RH <-downscale(
-    #   xyz = as.data.frame(dat3),
-    #   normal = normal,
-    #   gcm_ts = gcm_ts,
-    #   vars = sprintf(c("RH%02d"),2:10)
-    # )
    
-    results<-merge(results_Tmax, results_PPT, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
-    results<-merge(results, results_Tave, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
-    #results<-merge(results, results_RH, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
-    results<-merge(results, results_CMD, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
-    
-    # Why do I do the step at results 3 or results 2. DOUBLE CHECK
-    
-    results2<-merge(dat[,c("long","lat", "pixelid_clim", "el")], results, by.x="pixelid_clim", by.y="ID")
-    results4<-merge(results2, frt, by.x="pixelid_clim", by.y="pixelid_clim")
-    
-    results4<-results4[RUN == (P(sim, "run", "fireCastor")),]
-    # 
-    
-  message("... done")
-  message("...calculating MDC and assimilating climate variables by frt")
+#   sim$climate_dat<-data.table(dbGetQuery(sim$castordb, paste0("SELECT * FROM climate_", P(sim, "gcmName", "fireCastor"),"_",P(sim, "ssp", "fireCastor"), " WHERE period>=", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor") , "AND period <=", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor") + sim$updateInterval , "AND run!= ensembleMean", ";")))
   
-  
-  # FOR EACH DATASET CALCULATE THE MONTHLY DROUGHT CODE Following Girardin & Wotton (2009)
-  
-  #_-------------------------------------------#
-  #### Calculate drought code ####
-  #____________________________________________#
-  months<- c("01","02", "03", "04", "05", "06", "07", "08", "09", "10", "11")
-  
-  days_month<- c(27,31, 30, 31, 30, 31, 31, 30, 31, 30) # number of days in each month starting in Jan
  
-  # Daylength adjustment factor (Lf) [Development and Structure of the Canadian Forest Fire Weather Index System pg 15, https://d1ied5g1xfgpx8.cloudfront.net/pdfs/19927.pdf]
-  # Month <- Lf value
-  # LF[1] is the value for March
-  Lf<-c(-1.6,-1.6, 0.9, 3.8, 5.8, 6.4, 5.0, 2.4, 0.4, -1.6)
   
-  ### Calculate drought code for Fire ignition data
-
-    #x2<- climate2 %>% dplyr::filter(Tmax05 != -9999) # there are some locations that did not have climate data, probably because they were over the ocean, so Im removing these here.
-  
-  message("calculate monthly drought code")
-    
-    for (j in 1 : length(Lf)) {
-      
-      
-      results4$MDC_01<-15 # the MDC value for Feb This assumes that the ground is saturated at the start of the season. Maybe not true for all locations... may need to think about this a little more.
-      
-      Em<- days_month[j]*((0.36*results4[[paste0("Tmax",months[j+1])]])+Lf[j])
-      Em2 <- ifelse(Em<0, 0, Em)
-      DC_half<- results4[[paste0("MDC_",months[j])]] + (0.25 * Em2)
-      precip<-results4[[paste0("PPT",months[j+1])]]
-      RMeff<-(0.83 * (results4[[paste0("PPT",months[j+1])]]))
-      Qmr<- (800 * exp((-(DC_half))/400)) + (3.937 * RMeff)
-      Qmr2 <- ifelse(Qmr>800, 800, Qmr)
-      MDC_m <- (400 * log(800/Qmr2)) + 0.25*Em2
-      results4[[paste0("MDC_",months[j+1])]] <- (results4[[paste0("MDC_",months[j])]] + MDC_m)/2
-      results4[[paste0("MDC_",months[j+1])]] <- ifelse(results4[[paste0("MDC_",months[j+1])]] <15, 15, results4[[paste0("MDC_",months[j+1])]])
-    }
-  
-  
-  
-  # Lightning climate variables
-  #climate_variables_lightning<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_lightning_FRT_summary.csv")  
-  
-  results4[frt=="5",climate1_lightning:=(Tave05 + Tave06 + Tave07 + Tave08)/4]
-  results4[frt=="5",climate2_lightning:=(PPT05 + PPT06 + PPT07 + PPT08)/4]
-  results4[frt=="7", climate1_lightning:=(Tmax03 + Tmax04 + Tmax05 + Tmax06 + Tmax07 + Tmax08)/6]
-  results4[frt=="9", climate1_lightning:=(Tave04 + Tave05 + Tave06 +Tave07 +Tave08 + Tave09)/6]
-  results4[frt=="10", climate1_lightning:=(Tave08 + Tave09)/2]
-  results4[frt=="10", climate2_lightning:=(PPT07 + PPT08)/2]
-  results4[frt=="11", climate1_lightning:=(Tave03 + Tave04 + Tave05 + Tave06 + Tave07 + Tave08)/6]
-  results4[frt=="12", climate1_lightning:=(Tmax07 + Tmax08)/2]
-  results4[frt=="13", climate1_lightning:=Tave07]
-  results4[frt=="13", climate2_lightning:=PPT07]
-  results4[frt=="14", climate1_lightning:=CMD07]
-  results4[frt=="15", climate1_lightning:=(Tave07 + Tave08)/2]
-  results4[frt=="15", climate2_lightning:=(PPT07 + PPT08)/2]
-  
-  
-  # Person Climate variables not included in lightning
-  #climate_variables_person<-read.csv("C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/climate_AIC_results_person_FRT_summary.csv")
-  
-  results4[frt==5, climate1_person:=(PPT06+PPT07)/2]
-  results4[frt==7, climate1_person:=(Tmax05+Tmax06+Tmax07+Tmax08)/4]
-  results4[frt==9, climate1_person:=(Tave04+Tave05+Tave06+Tave07)/4]
-  results4[frt==9, climate2_person:=(PPT04+PPT05+PPT06+PPT07)/4]
-  results4[frt==10, climate1_person:=(CMD06 + CMD07 + CMD08 + CMD09)/4]
-  results4[frt==11, climate1_person:=(Tmax04+ Tmax05 + Tmax06+ Tmax07)/4]
-  results4[frt==11, climate2_person:=(PPT04+ PPT05 + PPT06+ PPT07)/4]
-  results4[frt==12, climate1_person:=(Tmax04+ Tmax05 + Tmax06+ Tmax07 + Tmax08 +Tmax09)/6]
-  results4[frt==13, climate1_person:=(Tmax04+ Tmax05 + Tmax06+ Tmax07 + Tmax08 +Tmax09)/6]
-  results4[frt==14, climate1_person:=(Tmax04+ Tmax05 + Tmax06+ Tmax07 + Tmax08 +Tmax09)/6]
-  results4[frt==15, climate1_person:=(Tave06+ Tave07 + Tave08)/3]
-  results4[frt==15, climate2_person:=(PPT06+ PPT07 + PPT08)/3]
-  
-  # escape variables not listed above
-  #climate_escape<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\climate_AIC_results_escape_summary_Oct23.csv")
-  results4<-results4 %>%
-    dplyr::mutate(climate1_escape = dplyr::case_when(
-      frt == "5" ~ as.numeric(PPT05) ,
-      frt == "7" ~ as.numeric(PPT06),
-      frt == "9" ~ Tave05,
-      frt == "10" ~ as.numeric((PPT04 + PPT05 + PPT06)/3),
-      frt == "11" ~ MDC_06,
-      frt == "12" ~ (Tmax07 + Tmax08 + Tmax09)/3,
-      frt == "13" ~ (Tmax07 + Tmax08 + Tmax09)/3,
-      frt == "14" ~ as.numeric((MDC_05 + MDC_06 + MDC_07 + MDC_08)/4),
-      frt == "15" ~ (Tave07 + Tave08 + Tave09)/3 ,
-      TRUE ~ NA_real_))
-  
-  results4<-results4 %>%
-    dplyr::mutate(climate2_escape = dplyr::case_when(
-      frt == "7" ~ Tave06,
-      frt == "12" ~ as.numeric((PPT07 + PPT08 + PPT09)/3) ,
-      frt == "13" ~ as.numeric((PPT07 + PPT08 + PPT09)/3),
-      frt == "15" ~ as.numeric((PPT07 + PPT08 + PPT09)/3),
-      TRUE ~ NA_real_))
-  
-  # spread variables not listed above
-  # climate_spread<-read.csv("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\climate_AIC_results_spread_summary_March2023.csv")
-  results4<-results4 %>%
-    dplyr::mutate(climate1_spread = dplyr::case_when(
-      frt == "5" ~ Tmax07 ,
-      frt == "7" ~ (Tmax07 + Tmax08 + Tmax09)/3,
-      frt == "9" ~ (Tave04 + Tave05 + Tave06)/3,
-      frt == "10" ~ as.numeric((RH05 + RH06 + RH07 + RH08)/4),
-      frt == "11" ~ as.numeric(RH08),
-      frt == "12" ~  (Tave05 + Tave06 + Tave07 +Tave08)/4,
-      frt == "13" ~  (Tave05 + Tave06 + Tave07 +Tave08)/4,
-      frt == "14" ~  (Tave05 + Tave06 + Tave07)/3,
-      frt == "15" ~ Tave05,
-      TRUE ~ NA_real_))
-  
-  #Repeat for climate 2
-  
-  results4<-results4 %>%
-    dplyr::mutate(climate2_spread = dplyr::case_when(
-      frt == "5" ~ as.numeric(PPT07),
-      frt == "7" ~ as.numeric((PPT07 + PPT08 + PPT09)/3),
-      frt == "9" ~ as.numeric((PPT04 + PPT05 + PPT06)/3),
-      frt == "10" ~ as.numeric((PPT05 + PPT06 +PPT07 + PPT08)/4) ,
-      frt == "11" ~ as.numeric(PPT08),
-      frt == "12" ~ as.numeric((PPT05 + PPT06 +PPT07 + PPT08)/4) ,
-      frt == "13" ~ as.numeric((PPT05 + PPT06 +PPT07 + PPT08)/4) ,
-      frt == "14" ~ as.numeric((PPT05 + PPT06 +PPT07)/3) ,
-      frt == "15" ~ as.numeric(PPT05),
-      TRUE ~ NA_real_))
-  
- # climate2[, year:=time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor")]
-  
-  #### change extent of climate variables back ####
-  
-  # extract pixelid values for larger raster and relate it to the pixel values of the 100x 100m landscape. Then I can join fire variable data back to the original data through the pixelid of the larger area raster. I tried to do this but it kept messing up so eventually I gave up. 
-  
-  rast_id<-raster(extent(ext(normal[[1]])[1], ext(normal[[1]])[2], ext(normal[[1]])[3], ext(normal[[1]])[4]), nrow = dim(normal[[1]])[1], ncol = dim(normal[[1]])[2], vals =0)
-  
-  rast_id[]<-results4$climate1_lightning
-  crs(rast_id) <- CRS('+init=EPSG:4326')
-  rast_id<-rast(rast_id)
-  rast_id2<-terra::project(rast_id, "EPSG:3005", method="near")
-  rast_id2<-raster(rast_id2)
-  
- pts<-as.data.frame(sim$pts[,c("x", "y", "pixelid")])
-  sp<-SpatialPointsDataFrame(pts[,c("x","y")], proj4string=rast_id2@crs, pts)
-  
-  #lightning1
-  lightning1<-raster::extract(rast_id2, sp,  method='simple', buffer=NULL, df=TRUE)
-  lightning1$pixelid<-sp$pixelid
-  names(lightning1) <- c('ID','climate1_lightning','pixelid')
-  lightning1<-lightning1[,c('climate1_lightning','pixelid')]
-  
-  rm(rast_id, rast_id2)
-  
-  
-  # lightning2
-  rast_id<-raster(extent(ext(normal[[1]])[1], ext(normal[[1]])[2], ext(normal[[1]])[3], ext(normal[[1]])[4]), nrow = dim(normal[[1]])[1], ncol = dim(normal[[1]])[2], vals =0)
-  
-  rast_id[]<-results4$climate2_lightning
-  crs(rast_id) <- CRS('+init=EPSG:4326')
-  rast_id<-rast(rast_id)
-  rast_id2<-terra::project(rast_id, "EPSG:3005", method="near")
-  rast_id2<-raster(rast_id2)
-  lightning2<-raster::extract(rast_id2, sp,  method='simple', buffer=NULL, df=TRUE)
-  lightning2$pixelid<-sp$pixelid
-  names(lightning2) <- c('ID','climate2_lightning','pixelid')
-  lightning2<-lightning2[,c('climate2_lightning','pixelid')]
-  rm(rast_id, rast_id2)
-  
-  # person1
-  rast_id<-raster(extent(ext(normal[[1]])[1], ext(normal[[1]])[2], ext(normal[[1]])[3], ext(normal[[1]])[4]), nrow = dim(normal[[1]])[1], ncol = dim(normal[[1]])[2], vals =0)
-  
-  rast_id[]<-results4$climate1_person
-  crs(rast_id) <- CRS('+init=EPSG:4326')
-  rast_id<-rast(rast_id)
-  rast_id2<-terra::project(rast_id, "EPSG:3005", method="near")
-  rast_id2<-raster(rast_id2)
-  person1<-raster::extract(rast_id2, sp,  method='simple', buffer=NULL, df=TRUE)
-  person1$pixelid<-sp$pixelid
-  names(person1) <- c('ID','climate1_person','pixelid')
-  person1<-person1[,c('climate1_person','pixelid')]
-  
-  rm(rast_id, rast_id2)
-  
-  # person2
-  rast_id<-raster(extent(ext(normal[[1]])[1], ext(normal[[1]])[2], ext(normal[[1]])[3], ext(normal[[1]])[4]), nrow = dim(normal[[1]])[1], ncol = dim(normal[[1]])[2], vals =0)
-  
-  rast_id[]<-results4$climate2_person
-  crs(rast_id) <- CRS('+init=EPSG:4326')
-  rast_id<-rast(rast_id)
-  rast_id2<-terra::project(rast_id, "EPSG:3005", method="near")
-  rast_id2<-raster(rast_id2)
-  person2<-raster::extract(rast_id2, sp,  method='simple', buffer=NULL, df=TRUE)
-  person2$pixelid<-sp$pixelid
-  names(person2) <- c('ID','climate2_person','pixelid')
-  person2<-person2[,c('climate2_person','pixelid')]
-  rm(rast_id, rast_id2)
-
-  # escape1
-  rast_id<-raster(extent(ext(normal[[1]])[1], ext(normal[[1]])[2], ext(normal[[1]])[3], ext(normal[[1]])[4]), nrow = dim(normal[[1]])[1], ncol = dim(normal[[1]])[2], vals =0)
-  
-  rast_id[]<-results4$climate1_escape
-  crs(rast_id) <- CRS('+init=EPSG:4326')
-  rast_id<-rast(rast_id)
-  rast_id2<-terra::project(rast_id, "EPSG:3005", method="near")
-  rast_id2<-raster(rast_id2)
-  escape1<-raster::extract(rast_id2, sp,  method='simple', buffer=NULL, df=TRUE)
-  escape1$pixelid<-sp$pixelid
-  names(escape1) <- c('ID','climate1_escape','pixelid')
-  escape1<-escape1[,c('climate1_escape','pixelid')]
-  rm(rast_id, rast_id2)
-  
-  # escape2
-  rast_id<-raster(extent(ext(normal[[1]])[1], ext(normal[[1]])[2], ext(normal[[1]])[3], ext(normal[[1]])[4]), nrow = dim(normal[[1]])[1], ncol = dim(normal[[1]])[2], vals =0)
-  
-  rast_id[]<-results4$climate2_escape
-  crs(rast_id) <- CRS('+init=EPSG:4326')
-  rast_id<-rast(rast_id)
-  rast_id2<-terra::project(rast_id, "EPSG:3005", method="near")
-  rast_id2<-raster(rast_id2)
-  escape2<-raster::extract(rast_id2, sp,  method='simple', buffer=NULL, df=TRUE)
-  escape2$pixelid<-sp$pixelid
-  names(escape2) <- c('ID','climate2_escape','pixelid')
-  escape2<-escape2[,c('climate2_escape','pixelid')]
-  rm(rast_id, rast_id2)
-  
-  # spread 1
-  rast_id<-raster(extent(ext(normal[[1]])[1], ext(normal[[1]])[2], ext(normal[[1]])[3], ext(normal[[1]])[4]), nrow = dim(normal[[1]])[1], ncol = dim(normal[[1]])[2], vals =0)
-  
-  rast_id[]<-results4$climate1_spread
-  crs(rast_id) <- CRS('+init=EPSG:4326')
-  rast_id<-rast(rast_id)
-  rast_id2<-terra::project(rast_id, "EPSG:3005", method="near")
-  rast_id2<-raster(rast_id2)
-  spread1<-raster::extract(rast_id2, sp,  method='simple', buffer=NULL, df=TRUE)
-  spread1$pixelid<-sp$pixelid
-  names(spread1) <- c('ID','climate1_spread','pixelid')
-  spread1<-spread1[,c('climate1_spread','pixelid')]
-  rm(rast_id, rast_id2)
-  
-  # spread 2
-  rast_id<-raster(extent(ext(normal[[1]])[1], ext(normal[[1]])[2], ext(normal[[1]])[3], ext(normal[[1]])[4]), nrow = dim(normal[[1]])[1], ncol = dim(normal[[1]])[2], vals =0)
-  
-  rast_id[]<-results4$climate2_spread
-  crs(rast_id) <- CRS('+init=EPSG:4326')
-  rast_id<-rast(rast_id)
-  rast_id2<-terra::project(rast_id, "EPSG:3005", method="near")
-  rast_id2<-raster(rast_id2)
-  spread2<-raster::extract(rast_id2, sp,  method='simple', buffer=NULL, df=TRUE)
-  spread2$pixelid<-sp$pixelid
-  names(spread2) <- c('ID','climate2_spread','pixelid')
-  spread2<-spread2[,c('climate2_spread','pixelid')]
-  
-  #sim$results4<-results4
-  
-  # Merge the dataframes
-  #library(tidyverse)
-  df_list <- list(lightning1, lightning2, person1, person2, escape1, escape2, spread1, spread2)
-  
-  #merge all data frames in list
-  clim_dat<-df_list %>% purrr::reduce(dplyr::full_join, by='pixelid')
-  clim_dat$year<-time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor")
-  
-
-  #CHECK it looks ok
-  # ras.info<-dbGetQuery(mySim$castordb, "Select * from raster_info limit 1;")
-  # clim<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
-  # 
-  # clim[]<-clim_dat$climate1_spread
-  # plot(clim)
-
-  qry<-paste0("INSERT INTO climate_", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),"_",P(sim, "gcmName", "fireCastor"),"_",P(sim, "ssp", "fireCastor"), " (pixelid, year, climate1lightning, climate2lightning, climate1person, climate2person, climate1escape, climate2escape, climate1spread, climate2spread) VALUES (:pixelid, :year, :climate1_lightning, :climate2_lightning, :climate1_person, :climate2_person, :climate1_escape, :climate2_escape, :climate1_spread, :climate2_spread)")
-              
-   dbBegin(sim$castordb)
-   rs<-dbSendQuery(sim$castordb, qry, clim_dat)
-   dbClearResult(rs)
-   dbCommit(sim$castordb)
-   
-  rm(clim_dat, rast_id,rast_id2, days_month, DC_half, Em, Em2, MDC_m, precip, Qmr, Qmr2, RMeff)
-  gc()
-  } else {
-    "climate variable table already exists"}
-  
-  return(invisible(sim))
+ 
   
   #} else {message ("climate data already collected")}
-}
 
 createVegetationTable <- function(sim) {
   
@@ -1476,16 +1092,10 @@ veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_co
 }
 
 calcProbFire<-function(sim){
+ 
+  sim$climate_data
   
-  
- # fwveg<-dbGetQuery(sim$castordb, "SELECT pixelid, fwveg from fueltype")
-  
-  
-  qry<-paste0("SELECT * from climate_", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"),"_",P(sim, "gcmName", "fireCastor"),"_",P(sim, "ssp", "fireCastor"))
-  
-  climate_variables<-dbGetQuery(sim$castordb, qry)
-  
-  dat<-merge(sim$veg3, climate_variables, by.x="pixelid", by.y="pixelid", all.x=TRUE)
+  dat<-merge(sim$veg3, sim$climate_data, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   dat<-merge(dat, sim$road_distance, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   #dat<-merge(dat, sim$elev, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   
@@ -1497,6 +1107,10 @@ calcProbFire<-function(sim){
   sim$coefficients<-as.data.table(getTableQuery(paste0("SELECT * FROM " ,P(sim, "firemodelcoeftbl","fireCastor"), ";")))
  # } else { print("coefficient table already loaded")}
   
+  dat[fwveg=="M-3", fwveg:="M-1/2"]
+  dat[fwveg=="S-2", fwveg:="S-1"]
+  dat[fwveg=="S-3", fwveg:="S-1"]
+  
   # create dummy variables for fwveg
   dat$veg_C1 <- ifelse(dat$fwveg == 'C-1', 1, 0)
   dat$veg_C2 <- ifelse(dat$fwveg == 'C-2', 1, 0)
@@ -1506,13 +1120,11 @@ calcProbFire<-function(sim){
   dat$veg_C7 <- ifelse(dat$fwveg == 'C-7', 1, 0)
   dat$veg_D12 <- ifelse(dat$fwveg == 'D-1/2', 1, 0)
   dat$veg_M12 <- ifelse(dat$fwveg == 'M-1/2', 1, 0)
-  dat$veg_M3 <- ifelse(dat$fwveg == 'M-3', 1, 0)
-  dat$veg_N <- ifelse(dat$fwveg == 'N', 1, 0)
+  #dat$veg_M3 <- ifelse(dat$fwveg == 'M-3', 1, 0)
+  #dat$veg_N <- ifelse(dat$fwveg == 'N', 1, 0)
   dat$veg_O1ab <- ifelse(dat$fwveg == 'O-1a/b', 1, 0)
   dat$veg_S1 <- ifelse(dat$fwveg == 'S-1', 1, 0)
-  dat$veg_S2 <- ifelse(dat$fwveg == 'S-2', 1, 0)
-  dat$veg_S3 <- ifelse(dat$fwveg == 'S-3', 1, 0)
-  dat$veg_W <- ifelse(dat$fwveg == 'W', 1, 0)
+  #dat$veg_W <- ifelse(dat$fwveg == 'W', 1, 0)
   
   dat<-as.data.table(dat)
   
@@ -1535,7 +1147,7 @@ calcProbFire<-function(sim){
   frt5<- dat[frt==5, ]
   head(frt5)
   
-  #NOTE C-2 is the intercept
+  #NOTE C-1 is the intercept
   frt5[fwveg == "C-5", veg_C7 :=1]
   frt5[fwveg == "C-4", veg_C2 :=1]
   frt5[fwveg == "S-1", veg_M12 :=1]
@@ -1544,8 +1156,9 @@ calcProbFire<-function(sim){
   # put coefficients into model formula
   #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
   frt5[, logit_P_lightning := ignitstaticlightning * all + 
-         sim$coefficients[cause == "Lightning" & frt==5,]$coef_climate_2 * climate2lightning + 
-         sim$coefficients[cause == "Lightning" & frt==5,]$coef_c1 * veg_C1 +
+         sim$coefficients[cause == "Lightning" & frt==5,]$coef_climate_1 * climate1lightning + 
+         sim$coefficients[cause == "Lightning" & frt==5,]$coef_climate_2 * climate2lightning +
+         sim$coefficients[cause == "Lightning" & frt==5,]$coef_c2 * veg_C2 +
          sim$coefficients[cause == "Lightning" & frt==5,]$coef_c3 * veg_C3 +
          sim$coefficients[cause == "Lightning" & frt==5,]$coef_c7 * veg_C7 +
          sim$coefficients[cause == "Lightning" & frt==5,]$coef_d12 * veg_D12 +
@@ -1576,11 +1189,11 @@ calcProbFire<-function(sim){
   frt5[fwveg == "M-1/2", veg_M12 := 1]
   
   # change veg categories to ones that we have coefficients
-  frt5[fwveg == "C-5", veg_D12 := 1]
+  frt5[fwveg == "C-5", veg_C3 := 1]
   frt5[fwveg == "C-4", veg_C2 := 1]
-  frt5[fwveg == "C-7", veg_D12 := 1]
-  frt5[fwveg == "S-1", veg_M12 := 1]
-  frt5[fwveg == "S-2", veg_M12 := 1]
+  frt5[fwveg == "C-7", veg_C3 := 1]
+  frt5[fwveg == "S-1", veg_O1ab := 1]
+  frt5[fwveg == "S-2", veg_O1ab := 1]
   
   
   frt5[, logit_P_escape := escapestatic * all + 
@@ -1589,7 +1202,6 @@ calcProbFire<-function(sim){
          sim$coefficients[cause == 'escape' & frt==5,]$coef_c3 * veg_C3 +
          sim$coefficients[cause == 'escape' & frt==5,]$coef_d12 * veg_D12 +
          sim$coefficients[cause == 'escape' & frt==5,]$coef_m12 * veg_M12 +
-         sim$coefficients[cause == 'escape' & frt==5,]$coef_N * veg_N +
          sim$coefficients[cause == 'escape' & frt==5,]$coef_o1ab * veg_O1ab]
        
   frt5[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
@@ -1597,44 +1209,45 @@ calcProbFire<-function(sim){
   # Spread
 #  model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt5_spread.csv")
   
-  # reset the veg categories
-  frt5[, veg_D12 := 0]
-  frt5[fwveg == "D-1/2", veg_D12 := 1]
-  frt5[, veg_C2 := 0]
-  frt5[fwveg == "C-2", veg_C2 := 1]
-  frt5[, veg_M12 := 0]
-  frt5[fwveg == "M-1/2", veg_M12 := 1]
-  
-  # change veg categories to ones that we have coefficients
-  frt5[fwveg == "C-4", veg_C2 := 1]
-  frt5[fwveg == "S-1", veg_M12 := 1]
-  
-  frt5[, logit_P_spread := spreadstatic * all + 
-         sim$coefficients[cause == 'spread' & frt==5,]$coef_climate_2 * climate2spread+
-         sim$coefficients[cause == 'spread' & frt==5,]$coef_c2 * veg_C2 +
-         sim$coefficients[cause == 'spread' & frt==5,]$coef_c3 * veg_C3 +
-         sim$coefficients[cause == 'spread' & frt==5,]$coef_c5 * veg_C5 +
-         sim$coefficients[cause == 'spread' & frt==5,]$coef_c7 * veg_C7 +
-         sim$coefficients[cause == 'spread' & frt==5,]$coef_d12 * veg_D12 +
-         sim$coefficients[cause == 'spread' & frt==5,]$coef_m12 * veg_M12 +
-         sim$coefficients[cause == 'spread' & frt==5,]$coef_m3 * veg_M3 +
-         sim$coefficients[cause == 'spread' & frt==5,]$coef_N * veg_N +
-         sim$coefficients[cause == 'spread' & frt==5,]$coef_o1ab * veg_O1ab +
-         sim$coefficients[cause == 'spread' & frt==5,]$coef_s2 * veg_S2 +
-         sim$coefficients[cause == 'spread' & frt==5,]$coef_road_dist * rds_dist]
-  
-  frt5[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+  # # reset the veg categories
+  # frt5[, veg_D12 := 0]
+  # frt5[fwveg == "D-1/2", veg_D12 := 1]
+  # frt5[, veg_C2 := 0]
+  # frt5[fwveg == "C-2", veg_C2 := 1]
+  # frt5[, veg_M12 := 0]
+  # frt5[fwveg == "M-1/2", veg_M12 := 1]
+  # 
+  # # change veg categories to ones that we have coefficients
+  # frt5[fwveg == "C-4", veg_C2 := 1]
+  # frt5[fwveg == "S-1", veg_M12 := 1]
+  # 
+  # frt5[, logit_P_spread := spreadstatic * all + 
+  #        sim$coefficients[cause == 'spread' & frt==5,]$coef_climate_2 * climate2spread+
+  #        sim$coefficients[cause == 'spread' & frt==5,]$coef_c2 * veg_C2 +
+  #        sim$coefficients[cause == 'spread' & frt==5,]$coef_c3 * veg_C3 +
+  #        sim$coefficients[cause == 'spread' & frt==5,]$coef_c5 * veg_C5 +
+  #        sim$coefficients[cause == 'spread' & frt==5,]$coef_c7 * veg_C7 +
+  #        sim$coefficients[cause == 'spread' & frt==5,]$coef_d12 * veg_D12 +
+  #        sim$coefficients[cause == 'spread' & frt==5,]$coef_m12 * veg_M12 +
+  #        sim$coefficients[cause == 'spread' & frt==5,]$coef_m3 * veg_M3 +
+  #        sim$coefficients[cause == 'spread' & frt==5,]$coef_N * veg_N +
+  #        sim$coefficients[cause == 'spread' & frt==5,]$coef_o1ab * veg_O1ab +
+  #        sim$coefficients[cause == 'spread' & frt==5,]$coef_s2 * veg_S2 +
+  #        sim$coefficients[cause == 'spread' & frt==5,]$coef_road_dist * rds_dist]
+  # 
+  # frt5[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
   
   
   # currently I weight the total probability of ignition by the frequency of each cause.But I calculated this once and assume its static. Probably I should actually calculate this once during the simulation for my AOI and then assume it does not change over time. Or I should use that equation that weights them equally since we dont know whats going to happen inthe future.
   
-  frt5[, prob_tot_ignit := prob_ignition_lightning*0.84 + prob_ignition_person*0.16]
+  frt5[, prob_tot_ignit := prob_ignition_lightning*0.8 + prob_ignition_person*0.2]
+  escape2[fwveg %in% c("C-1","C-2"),]
   
-  frt5[veg_W==1,prog_tot_ignit:=0]
-  frt5[veg_W==1,prob_ignition_lightning:=0]
-  frt5[veg_W==1,prob_ignition_person:=0]
-  frt5[veg_W==1,prob_ignition_escape:=0]
-  frt5[veg_W==1,prob_ignition_spread:=0]
+  frt5[fwveg %in% c("W", "N"), prog_tot_ignit:=0]
+  frt5[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
+  frt5[fwveg %in% c("W", "N"),prob_ignition_person:=0]
+  frt5[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
+  frt5[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
   
   
   frt5<-frt5[, c("pixelid","frt", "prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]
@@ -1656,20 +1269,19 @@ calcProbFire<-function(sim){
   if (nrow(dat[frt==7,])>0) {
   frt7<- dat[frt==7,]
   
-  #NOTE C-2 is the intercept
+  #NOTE C-1 is the intercept
   frt7[fwveg == "C-4", veg_C2 :=1]
-  frt7[fwveg == "C-7", veg_M12:=1]
-  frt7[fwveg == "C-5", veg_M12:=1]
-  frt7[fwveg == "S-1", veg_M12:=1]
-  frt7[fwveg == "S-2", veg_M12:=1]
+  frt7[fwveg == "C-7", veg_C3:=1]
+  frt7[fwveg == "C-5", veg_C3:=1]
+  frt7[fwveg == "S-1", veg_O1ab:=1]
   
   frt7[pixelid>0, all:=1]
   
   #model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt7_lightning.csv")
   
   frt7[, logit_P_lightning := ignitstaticlightning * all + 
-    sim$coefficients[cause=="Lightning" & frt==7,]$coef_climate_1 * climate1lightning + 
-    sim$coefficients[cause=="Lightning" & frt==7,]$coef_c1 * veg_C1 +
+    sim$coefficients[cause=="Lightning" & frt==7,]$coef_climate_1 * climate1lightning +
+    sim$coefficients[cause=="Lightning" & frt==7,]$coef_c2 * veg_C2 +
     sim$coefficients[cause=="Lightning" & frt==7,]$coef_c3 * veg_C3 +
     sim$coefficients[cause=="Lightning" & frt==7,]$coef_d12 * veg_D12 +
     sim$coefficients[cause=="Lightning" & frt==7,]$coef_m12 * veg_M12 +
@@ -1681,26 +1293,18 @@ calcProbFire<-function(sim){
   # Person caused fires
  # model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT7_person.csv")
   
-  frt7[, veg_M12 := 0]
-  frt7[fwveg == "M-1/2", veg_M12 := 1]
-  frt7[, veg_C2 := 0]
-  frt7[fwveg == "C-2", veg_C2 := 1]
-  
-  frt7[fwveg == "C-4", veg_C2 :=1]
-  frt7[fwveg == "C-5", veg_C7:=1]
-  frt7[fwveg == "S-1", veg_M12:=1]
-  frt7[fwveg == "S-2", veg_M12:=1]
+  frt7[,veg_O1ab:= 0]
+  frt7[fwveg == "O-1a/b", veg_O1ab := 1]
+
 
   frt7[, logit_P_human := ignitstatichuman  * all + 
       sim$coefficients[cause == 'person' & frt == 7, ]$coef_climate_1 * climate1person + 
       sim$coefficients[cause == 'person' & frt==7,]$coef_c2*veg_C2 +
       sim$coefficients[cause == 'person' & frt==7,]$coef_c3*veg_C3 +
-      sim$coefficients[cause == 'person' & frt==7,]$coef_c7*veg_C7 +
       sim$coefficients[cause == 'person' & frt==7,]$coef_d12*veg_D12 +
       sim$coefficients[cause == 'person' & frt==7,]$coef_m12*veg_M12 +
-      sim$coefficients[cause == 'person' & frt==7,]$coef_m3*veg_M3 +
-      sim$coefficients[cause == 'person' & frt==7,]$coef_N*veg_N +
       sim$coefficients[cause == 'person' & frt==7,]$coef_o1ab*veg_O1ab +
+      sim$coefficients[cause == 'person' & frt==7,]$coef_s1*veg_S1 +
       sim$coefficients[cause == 'person' & frt==7,]$coef_log_road_dist  * log(rds_dist+1)]
        
        frt7[,prob_ignition_person := exp(logit_P_human)/(1+exp(logit_P_human))]
@@ -1712,26 +1316,26 @@ calcProbFire<-function(sim){
 
   frt7[, veg_C2 := 0]
   frt7[fwveg == "C-2", veg_C2 := 1]
-  frt7[, veg_C7 := 0]
-  frt7[fwveg == "C-7", veg_C7 := 1]
+  frt7[, veg_C3 := 0]
+  frt7[fwveg == "C-3", veg_C3 := 1]
   frt7[, veg_M12 := 0]
   frt7[fwveg == "M-1/2", veg_M12 := 1]
+  frt7[,veg_O1ab:= 0]
+  frt7[fwveg == "O-1a/b", veg_O1ab := 1]
        
   # change veg categories to ones that we have sim$coefficients
   frt7[fwveg == "C-4", veg_C2 := 1]
-  frt7[fwveg == "C-5", veg_D12 := 1]
-  frt7[fwveg == "C-7", veg_D12 := 1]
-  frt7[fwveg == "S-1", veg_M12 := 1]
-  frt7[fwveg == "S-2", veg_M12 := 1]
+  frt7[fwveg == "C-5", veg_C3 := 1]
+  frt7[fwveg == "C-7", veg_C3 := 1]
+  frt7[fwveg == "S-1", veg_O1ab := 1]
        
        
   frt7[, logit_P_escape := escapestatic * all + 
-    sim$coefficients[cause == 'escape' & frt==7,]$coef_climate_2 * climate2escape +
+    sim$coefficients[cause == 'escape' & frt==7,]$coef_climate_1 * climate1escape +
     sim$coefficients[cause == 'escape' & frt==7,]$coef_c1 * veg_C1 +
+    sim$coefficients[cause == 'escape' & frt==7,]$coef_c2 * veg_C2 +
     sim$coefficients[cause == 'escape' & frt==7,]$coef_c3 * veg_C3 +
-    sim$coefficients[cause == 'escape' & frt==7,]$coef_d12 * veg_D12 +
     sim$coefficients[cause == 'escape' & frt==7,]$coef_m12 * veg_M12 +
-    sim$coefficients[cause == 'escape' & frt==7,]$coef_N * veg_N +
     sim$coefficients[cause == 'escape' & frt==7,]$coef_o1ab * veg_O1ab]
        
   frt7[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
@@ -1739,40 +1343,41 @@ calcProbFire<-function(sim){
        # Spread
  #      model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt7_spread.csv")
        
-       # reset the veg categories
-       frt7[, veg_D12 := 0]
-       frt7[fwveg == "D-1/2", veg_D12 := 1]
-       frt7[, veg_C2 := 0]
-       frt7[fwveg == "C-2", veg_C2 := 1]
-       frt7[, veg_M12 := 0]
-       frt7[fwveg == "M-1/2", veg_M12 := 1]
+    #    # reset the veg categories
+    #    frt7[, veg_D12 := 0]
+    #    frt7[fwveg == "D-1/2", veg_D12 := 1]
+    #    frt7[, veg_C2 := 0]
+    #    frt7[fwveg == "C-2", veg_C2 := 1]
+    #    frt7[, veg_M12 := 0]
+    #    frt7[fwveg == "M-1/2", veg_M12 := 1]
+    #    
+    #    # change veg categories to ones that we have sim$coefficients
+    #    frt7[fwveg == "C-5", veg_C7 := 1]
+    #    frt7[fwveg == "M-3", veg_O1ab := 1]
+    #    
+    # frt7[, logit_P_spread := spreadstatic * all + 
+    #   sim$coefficients[cause == 'spread' & frt==7,]$coef_climate_1 * climate1spread+
+    #   sim$coefficients[cause == 'spread' & frt==7,]$coef_climate_2 * climate2spread+
+    #   sim$coefficients[cause == 'spread' & frt==7,]$coef_c2 * veg_C2 +
+    #   sim$coefficients[cause == 'spread' & frt==7,]$coef_c3 * veg_C3 +
+    #   sim$coefficients[cause == 'spread' & frt==7,]$coef_c7 * veg_C7 +
+    #   sim$coefficients[cause == 'spread' & frt==7,]$coef_d12 * veg_D12 +
+    #   sim$coefficients[cause == 'spread' & frt==7,]$coef_m12 * veg_M12 +
+    #   sim$coefficients[cause == 'spread' & frt==7,]$coef_N * veg_N +
+    #   sim$coefficients[cause == 'spread' & frt==7,]$coef_o1ab * veg_O1ab +
+    #   sim$coefficients[cause == 'spread' & frt==7,]$coef_s1 * veg_S1 +
+    #   sim$coefficients[cause == 'spread' & frt==7,]$coef_s2 * veg_S2 +
+    #   sim$coefficients[cause == 'spread' & frt==7,]$coef_log_road_dist * log(rds_dist+1)]
+    #    
+    #    frt7[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
        
-       # change veg categories to ones that we have sim$coefficients
-       frt7[fwveg == "C-5", veg_C7 := 1]
-       frt7[fwveg == "M-3", veg_O1ab := 1]
+       frt7[, prob_tot_ignit := prob_ignition_lightning*0.2 + (prob_ignition_person*0.8)]
        
-    frt7[, logit_P_spread := spreadstatic * all + 
-      sim$coefficients[cause == 'spread' & frt==7,]$coef_climate_1 * climate1spread+
-      sim$coefficients[cause == 'spread' & frt==7,]$coef_climate_2 * climate2spread+
-      sim$coefficients[cause == 'spread' & frt==7,]$coef_c2 * veg_C2 +
-      sim$coefficients[cause == 'spread' & frt==7,]$coef_c3 * veg_C3 +
-      sim$coefficients[cause == 'spread' & frt==7,]$coef_c7 * veg_C7 +
-      sim$coefficients[cause == 'spread' & frt==7,]$coef_d12 * veg_D12 +
-      sim$coefficients[cause == 'spread' & frt==7,]$coef_m12 * veg_M12 +
-      sim$coefficients[cause == 'spread' & frt==7,]$coef_N * veg_N +
-      sim$coefficients[cause == 'spread' & frt==7,]$coef_o1ab * veg_O1ab +
-      sim$coefficients[cause == 'spread' & frt==7,]$coef_s1 * veg_S1 +
-      sim$coefficients[cause == 'spread' & frt==7,]$coef_s2 * veg_S2 +
-      sim$coefficients[cause == 'spread' & frt==7,]$coef_log_road_dist * log(rds_dist+1)]
-       
-       frt7[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
-       
-       frt7[, prob_tot_ignit := prob_ignition_lightning*0.16 + (prob_ignition_person*0.84)]
-       frt7[veg_W==1,prog_tot_ignit:=0]
-       frt7[veg_W==1,prob_ignition_lightning:=0]
-       frt7[veg_W==1,prob_ignition_person:=0]
-       frt7[veg_W==1,prob_ignition_escape:=0]
-       frt7[veg_W==1,prob_ignition_spread:=0]
+       frt7[fwveg %in% c("W", "N"), prog_tot_ignit:=0]
+       frt7[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
+       frt7[fwveg %in% c("W", "N"),prob_ignition_person:=0]
+       frt7[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
+       frt7[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
        
       frt7<-frt7[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]
       
@@ -1788,6 +1393,7 @@ calcProbFire<-function(sim){
                      prob_ignition_spread = as.integer(),
                      prob_tot_ignit = as.integer())
   }
+  
   
   #### FRT9 #### 
   if (nrow(dat[frt==9,])>0) {
@@ -1806,13 +1412,7 @@ calcProbFire<-function(sim){
  #   model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_lightning.csv")
     
   frt9[, logit_P_lightning := ignitstaticlightning * all + 
-    sim$coefficients[cause == "Lightning" & frt==9,]$coef_climate_1*climate1lightning + 
-    sim$coefficients[cause == "Lightning" & frt==9,]$coef_c1 * veg_C1 +
-    sim$coefficients[cause == "Lightning" & frt==9,]$coef_c2 * veg_C2 +
-    sim$coefficients[cause == "Lightning" & frt==9,]$coef_c7 * veg_C7 +
-    sim$coefficients[cause == "Lightning" & frt==9,]$coef_m12 * veg_M12 +
-    sim$coefficients[cause == "Lightning" & frt==9,]$coef_n * veg_N +
-    sim$coefficients[cause == "Lightning" & frt==9,]$coef_o1ab * veg_O1ab]
+    sim$coefficients[cause == "Lightning" & frt==9,]$coef_climate_1*climate1lightning 
     
     # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
     frt9[, prob_ignition_lightning<-exp(logit_P_lightning)/(1+exp(logit_P_lightning))]
@@ -1820,16 +1420,18 @@ calcProbFire<-function(sim){
   # Person caused fires
   # model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT9_person.csv")
   frt9[, logit_P_human := ignitstatichuman  * all + 
-      sim$coefficients[cause == 'person' & frt == 9, ]$coef_climate_1 * climate1person]
+      sim$coefficients[cause == 'person' & frt == 9, ]$coef_climate_1 * climate1person + sim$coefficients[cause == 'person' & frt == 9, ]$coef_climate_2 * climate2person] 
          
          frt9[,prob_ignition_person := exp(logit_P_human)/(1+exp(logit_P_human))]
          
   # Fire Escape
-#  model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_escape.csv")
+#  model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_escape.csv")
+         
+# Note FRT 9 and FRT 11 were combined due to lack of data         
          
   frt9[, logit_P_escape := escapestatic * all + 
-        sim$coefficients[cause == 'escape' & frt==9,]$coef_climate_1 * climate1escape +
-        sim$coefficients[cause == 'escape' & frt==9,]$coef_log_road_dist * log(rds_dist+1)]
+        sim$coefficients[cause == 'escape' & frt==11,]$coef_climate_1 * climate1escape +
+         sim$coefficients[cause == 'escape' & frt==11,]$coef_climate_2 * climate2escape 
          
   frt9[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
          
@@ -1837,40 +1439,39 @@ calcProbFire<-function(sim){
  #  model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_spread.csv")
          
          # reset the veg categories
-    frt9[, veg_C7 := 0]
-    frt9[fwveg == "C-7", veg_C7 := 1]
-    frt9[, veg_C2 := 0]
-    frt9[fwveg == "C-2", veg_C2 := 1]
-    frt9[, veg_M12 := 0]
-    frt9[fwveg == "M-1/2", veg_M12 := 1]
-         
-         # change veg categories to ones that we have sim$coefficients
-    frt9[fwveg == "C-4", veg_C2 := 1]
-    frt9[fwveg == "C-5", veg_C7 := 1]
-    frt9[fwveg == "S-1", veg_M12 := 1]
-         
-    frt9[, logit_P_spread := spreadstatic * all + 
-        sim$coefficients[cause == 'spread' & frt==9,]$coef_climate_1 * climate1spread+
-        sim$coefficients[cause == 'spread' & frt==9,]$coef_climate_2 * climate2spread+
-        sim$coefficients[cause == 'spread' & frt==9,]$coef_c2 * veg_C2 +
-        sim$coefficients[cause == 'spread' & frt==9,]$coef_c3 * veg_C3 +
-        sim$coefficients[cause == 'spread' & frt==9,]$coef_c7 * veg_C7 +
-        sim$coefficients[cause == 'spread' & frt==9,]$coef_d12 * veg_D12 +
-        sim$coefficients[cause == 'spread' & frt==9,]$coef_m12 * veg_M12 +
-        sim$coefficients[cause == 'spread' & frt==9,]$coef_N * veg_N +
-        sim$coefficients[cause == 'spread' & frt==9,]$coef_o1ab * veg_O1ab +
-        sim$coefficients[cause == 'spread' & frt==9,]$coef_log_road_dist * log(rds_dist+1)]
-         
-  frt9[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+  #   frt9[, veg_C7 := 0]
+  #   frt9[fwveg == "C-7", veg_C7 := 1]
+  #   frt9[, veg_C2 := 0]
+  #   frt9[fwveg == "C-2", veg_C2 := 1]
+  #   frt9[, veg_M12 := 0]
+  #   frt9[fwveg == "M-1/2", veg_M12 := 1]
+  #        
+  #        # change veg categories to ones that we have sim$coefficients
+  #   frt9[fwveg == "C-4", veg_C2 := 1]
+  #   frt9[fwveg == "C-5", veg_C7 := 1]
+  #   frt9[fwveg == "S-1", veg_M12 := 1]
+  #        
+  #   frt9[, logit_P_spread := spreadstatic * all + 
+  #       sim$coefficients[cause == 'spread' & frt==9,]$coef_climate_1 * climate1spread+
+  #       sim$coefficients[cause == 'spread' & frt==9,]$coef_climate_2 * climate2spread+
+  #       sim$coefficients[cause == 'spread' & frt==9,]$coef_c2 * veg_C2 +
+  #       sim$coefficients[cause == 'spread' & frt==9,]$coef_c3 * veg_C3 +
+  #       sim$coefficients[cause == 'spread' & frt==9,]$coef_c7 * veg_C7 +
+  #       sim$coefficients[cause == 'spread' & frt==9,]$coef_d12 * veg_D12 +
+  #       sim$coefficients[cause == 'spread' & frt==9,]$coef_m12 * veg_M12 +
+  #       sim$coefficients[cause == 'spread' & frt==9,]$coef_N * veg_N +
+  #       sim$coefficients[cause == 'spread' & frt==9,]$coef_o1ab * veg_O1ab +
+  #       sim$coefficients[cause == 'spread' & frt==9,]$coef_log_road_dist * log(rds_dist+1)]
+  #        
+  # frt9[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
   
   frt9[, prob_tot_ignit := (prob_ignition_lightning*0.7) + (prob_ignition_person*0.3)]
   
-  frt9[veg_W==1,prog_tot_ignit:=0]
-  frt9[veg_W==1,prob_ignition_lightning:=0]
-  frt9[veg_W==1,prob_ignition_person:=0]
-  frt9[veg_W==1,prob_ignition_escape:=0]
-  frt9[veg_W==1,prob_ignition_spread:=0]
-  
+  frt9[fwveg %in% c("W", "N"), prog_tot_ignit:=0]
+  frt9[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
+  frt9[fwveg %in% c("W", "N"),prob_ignition_person:=0]
+  frt9[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
+  frt9[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
   
   
   frt9<-frt9[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]
@@ -1893,26 +1494,13 @@ calcProbFire<-function(sim){
   if (nrow(dat[frt==10,])>0) {
     frt10<- dat[frt==10,]
     
-    #NOTE C-2 is the intercept
-    frt10[fwveg == "C-1", veg_C3 :=1]
-    frt10[fwveg == "C-4", veg_C2:=1]
-    frt10[fwveg == "S-1", veg_M12:=1]
-    frt10[fwveg == "S-2", veg_M12:=1]
-    
     frt10[pixelid>0, all:=1]
     
  #   model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt10_lightning.csv")
     
     frt10[, logit_P_lightning := ignitstaticlightning * all + 
       sim$coefficients[cause == 'Lightning' & frt==10,]$coef_climate_1*climate1lightning + 
-      sim$coefficients[cause == 'Lightning' & frt==10,]$coef_climate_2*climate2lightning + 
-      sim$coefficients[cause == 'Lightning' & frt==10,]$coef_c3 * veg_C3 +
-      sim$coefficients[cause == 'Lightning' & frt==10,]$coef_c5 * veg_C5 +
-      sim$coefficients[cause == 'Lightning' & frt==10,]$coef_c7 * veg_C7 +
-      sim$coefficients[cause == 'Lightning' & frt==10,]$coef_d12 * veg_D12 +
-      sim$coefficients[cause == 'Lightning' & frt==10,]$coef_m12 * veg_M12 +
-      sim$coefficients[cause == 'Lightning' & frt==10,]$coef_N * veg_N +
-      sim$coefficients[cause == 'Lightning' & frt==10,]$coef_o1ab * veg_O1ab]
+      sim$coefficients[cause == 'Lightning' & frt==10,]$coef_climate_2*climate2lightning]
     
     # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
     frt10[, prob_ignition_lightning := exp(logit_P_lightning)/(1+exp(logit_P_lightning))]
@@ -1920,24 +1508,9 @@ calcProbFire<-function(sim){
     # Person caused fires
  #    model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT10_person.csv")
     
-    frt10[, veg_M12 := 0]
-    frt10[fwveg == "M-1/2", veg_M12 := 1]
-    
-    frt10[fwveg == "C-1", veg_C3 :=1]
-    frt10[fwveg == "C-4", veg_C2:=1]
-    frt10[fwveg == "S-1", veg_C4:=1]
-    frt10[fwveg == "S-2", veg_C7:=1]
-    frt10[fwveg == "M-1/2", veg_C5:=1]
-    frt10[fwveg == "O-1a/b", veg_C3:=1]
-    
-    
-    frt10[, logit_P_human := ignitstatichuman  * all + 
+        frt10[, logit_P_human := ignitstatichuman  * all + 
       sim$coefficients[cause == 'person' & frt == 10, ]$coef_climate_1 * climate1person + 
-      sim$coefficients[cause == 'person' & frt == 10, ]$coef_c3 * veg_C3 +
-      sim$coefficients[cause == 'person' & frt == 10, ]$coef_c5 * veg_C5 +
-      sim$coefficients[cause == 'person' & frt == 10, ]$coef_c7 * veg_C7 +
-      sim$coefficients[cause == 'person' & frt == 10, ]$coef_N * veg_N +
-      sim$coefficients[cause == 'person' & frt == 10, ]$coef_log_road_dist * log(rds_dist+1) ]
+      sim$coefficients[cause == 'person' & frt == 10, ]$coef_log_road_dist * log(coef_road_dist + 1)]
          
          frt10[,prob_ignition_person := exp(logit_P_human)/(1+exp(logit_P_human))]
          
@@ -1945,51 +1518,50 @@ calcProbFire<-function(sim){
    #  model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt10_escape.csv")
          
     frt10[, logit_P_escape := escapestatic * all + 
-        sim$coefficients[cause == 'escape' & frt==10,]$coef_climate_1 * climate1escape +
-        sim$coefficients[cause == 'escape' & frt==10,]$coef_road_dist * rds_dist]
+        sim$coefficients[cause == 'escape' & frt==10,]$coef_climate_1 * climate1escape]
          
          frt10[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
          
          # Spread
  #   model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt10_spread.csv")
     
-    frt10[, veg_C3 := 0]
-    frt10[fwveg == "C-3", veg_C3 := 1]
-    frt10[, veg_C4 := 0]
-    frt10[fwveg == "C-4", veg_C4 := 1]
-    frt10[, veg_C5 := 0]
-    frt10[fwveg == "C-5", veg_C5 := 1]
-    
-    
-    frt10[fwveg == "C-4", veg_C2 :=1]
-    frt10[fwveg == "S-2", veg_C7:=1]
-    frt10[fwveg == "M-3", veg_O1ab:=1]
-    
-    
-    frt10[, logit_P_spread := spreadstatic * all + 
-        sim$coefficients[cause == 'spread' & frt==10,]$coef_climate_1 * climate1spread+
-        sim$coefficients[cause == 'spread' & frt==10,]$coef_climate_2 * climate2spread+
-        sim$coefficients[cause == 'spread' & frt==10,]$coef_c2 * veg_C2 +
-        sim$coefficients[cause == 'spread' & frt==10,]$coef_c3 * veg_C3 +
-        sim$coefficients[cause == 'spread' & frt==10,]$coef_c5 * veg_C5 +
-        sim$coefficients[cause == 'spread' & frt==10,]$coef_c7 * veg_C7 +
-        sim$coefficients[cause == 'spread' & frt==10,]$coef_d12 * veg_D12 +
-        sim$coefficients[cause == 'spread' & frt==10,]$coef_m12 * veg_M12 +
-        sim$coefficients[cause == 'spread' & frt==10,]$coef_m3 * veg_M3 +
-        sim$coefficients[cause == 'spread' & frt==10,]$coef_N * veg_N +
-        sim$coefficients[cause == 'spread' & frt==10,]$coef_o1ab * veg_O1ab +
-        sim$coefficients[cause == 'spread' & frt==10,]$coef_s1 * veg_S1]
-         
-    frt10[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+    # frt10[, veg_C3 := 0]
+    # frt10[fwveg == "C-3", veg_C3 := 1]
+    # frt10[, veg_C4 := 0]
+    # frt10[fwveg == "C-4", veg_C4 := 1]
+    # frt10[, veg_C5 := 0]
+    # frt10[fwveg == "C-5", veg_C5 := 1]
+    # 
+    # 
+    # frt10[fwveg == "C-4", veg_C2 :=1]
+    # frt10[fwveg == "S-2", veg_C7:=1]
+    # frt10[fwveg == "M-3", veg_O1ab:=1]
+    # 
+    # 
+    # frt10[, logit_P_spread := spreadstatic * all + 
+    #     sim$coefficients[cause == 'spread' & frt==10,]$coef_climate_1 * climate1spread+
+    #     sim$coefficients[cause == 'spread' & frt==10,]$coef_climate_2 * climate2spread+
+    #     sim$coefficients[cause == 'spread' & frt==10,]$coef_c2 * veg_C2 +
+    #     sim$coefficients[cause == 'spread' & frt==10,]$coef_c3 * veg_C3 +
+    #     sim$coefficients[cause == 'spread' & frt==10,]$coef_c5 * veg_C5 +
+    #     sim$coefficients[cause == 'spread' & frt==10,]$coef_c7 * veg_C7 +
+    #     sim$coefficients[cause == 'spread' & frt==10,]$coef_d12 * veg_D12 +
+    #     sim$coefficients[cause == 'spread' & frt==10,]$coef_m12 * veg_M12 +
+    #     sim$coefficients[cause == 'spread' & frt==10,]$coef_m3 * veg_M3 +
+    #     sim$coefficients[cause == 'spread' & frt==10,]$coef_N * veg_N +
+    #     sim$coefficients[cause == 'spread' & frt==10,]$coef_o1ab * veg_O1ab +
+    #     sim$coefficients[cause == 'spread' & frt==10,]$coef_s1 * veg_S1]
+    #      
+    # frt10[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
     
     
     frt10[, prob_tot_ignit := (prob_ignition_lightning*0.86) + (prob_ignition_person*0.14)]
     
-    frt10[veg_W==1,prog_tot_ignit:=0]
-    frt10[veg_W==1,prob_ignition_lightning:=0]
-    frt10[veg_W==1,prob_ignition_person:=0]
-    frt10[veg_W==1,prob_ignition_escape:=0]
-    frt10[veg_W==1,prob_ignition_spread:=0]
+    frt10[fwveg %in% c("W", "N"), prog_tot_ignit:=0]
+    frt10[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
+    frt10[fwveg %in% c("W", "N"),prob_ignition_person:=0]
+    frt10[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
+    frt10[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
     
 
     
@@ -2025,13 +1597,7 @@ calcProbFire<-function(sim){
    # model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_lightning.csv")
     
     frt11[, logit_P_lightning := ignitstaticlightning * all + 
-      sim$coefficients[cause == 'Lightning' & frt==11,]$coef_climate_1 * climate1lightning + 
-      sim$coefficients[cause == 'Lightning' & frt==11,]$coef_climate_2 * climate2lightning + 
-      sim$coefficients[cause == 'Lightning' & frt==11,]$coef_c1 * veg_C1 +
-      sim$coefficients[cause == 'Lightning' & frt==11,]$coef_c2 * veg_C2 +
-      sim$coefficients[cause == 'Lightning' & frt==11,]$coef_c7 * veg_C7 +
-      sim$coefficients[cause == 'Lightning' & frt==11,]$coef_m12 * veg_M12 +
-      sim$coefficients[cause == 'Lightning' & frt==11,]$coef_N * veg_N]
+      sim$coefficients[cause == 'Lightning' & frt==11,]$coef_climate_1 * climate1lightning]
     
     # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
     frt11[, prob_ignition_lightning<-exp(logit_P_lightning)/(1+exp(logit_P_lightning))]
@@ -2049,45 +1615,46 @@ calcProbFire<-function(sim){
  #   model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_escape.csv")
     
     frt11[, logit_P_escape := escapestatic * all + 
-            sim$coefficients[cause == 'escape' & frt==11,]$coef_climate_1 * climate1escape]
+            sim$coefficients[cause == 'escape' & frt==11,]$coef_climate_1 * climate1escape +
+            sim$coefficients[cause == 'escape' & frt==11,]$coef_climate_2 * climate2escape]
     
     frt11[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
     
     # Spread
 #   model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_spread.csv")
     
-    frt11[, veg_C7 := 0]
-    frt11[fwveg == "C-7", veg_C7 := 1]
-    frt11[, veg_M12 := 0]
-    frt11[fwveg == "M-1/2", veg_M12 := 1]
-    frt11[, veg_C3 := 0]
-    frt11[fwveg == "C-3", veg_C3 := 1]
-
-    frt11[fwveg == "S-1", veg_M12 :=1]
-    frt11[fwveg == "S-2", veg_C7:=1]
-    frt11[fwveg == "S-3", veg_M12:=1]
-    
-  frt11[, logit_P_spread := spreadstatic * all + 
-        sim$coefficients[cause == 'spread' & frt==11,]$coef_climate_2 * climate2spread +
-        sim$coefficients[cause == 'spread' & frt==11,]$coef_c2 * veg_C2 +
-        sim$coefficients[cause == 'spread' & frt==11,]$coef_c3 * veg_C3 +
-        sim$coefficients[cause == 'spread' & frt==11,]$coef_c5 * veg_C5 +
-        sim$coefficients[cause == 'spread' & frt==11,]$coef_c7 * veg_C7 +
-        sim$coefficients[cause == 'spread' & frt==11,]$coef_d12 * veg_D12 +
-        sim$coefficients[cause == 'spread' & frt==11,]$coef_m12 * veg_M12 +
-        sim$coefficients[cause == 'spread' & frt==11,]$coef_N * veg_N +
-        sim$coefficients[cause == 'spread' & frt==11,]$coef_o1ab * veg_O1ab +
-        sim$coefficients[cause == 'spread' & frt==11,]$coef_road_dist * rds_dist]
-    
-  frt11[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+  #   frt11[, veg_C7 := 0]
+  #   frt11[fwveg == "C-7", veg_C7 := 1]
+  #   frt11[, veg_M12 := 0]
+  #   frt11[fwveg == "M-1/2", veg_M12 := 1]
+  #   frt11[, veg_C3 := 0]
+  #   frt11[fwveg == "C-3", veg_C3 := 1]
+  # 
+  #   frt11[fwveg == "S-1", veg_M12 :=1]
+  #   frt11[fwveg == "S-2", veg_C7:=1]
+  #   frt11[fwveg == "S-3", veg_M12:=1]
+  #   
+  # frt11[, logit_P_spread := spreadstatic * all + 
+  #       sim$coefficients[cause == 'spread' & frt==11,]$coef_climate_2 * climate2spread +
+  #       sim$coefficients[cause == 'spread' & frt==11,]$coef_c2 * veg_C2 +
+  #       sim$coefficients[cause == 'spread' & frt==11,]$coef_c3 * veg_C3 +
+  #       sim$coefficients[cause == 'spread' & frt==11,]$coef_c5 * veg_C5 +
+  #       sim$coefficients[cause == 'spread' & frt==11,]$coef_c7 * veg_C7 +
+  #       sim$coefficients[cause == 'spread' & frt==11,]$coef_d12 * veg_D12 +
+  #       sim$coefficients[cause == 'spread' & frt==11,]$coef_m12 * veg_M12 +
+  #       sim$coefficients[cause == 'spread' & frt==11,]$coef_N * veg_N +
+  #       sim$coefficients[cause == 'spread' & frt==11,]$coef_o1ab * veg_O1ab +
+  #       sim$coefficients[cause == 'spread' & frt==11,]$coef_road_dist * rds_dist]
+  #   
+  # frt11[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
   
-  frt11[, prob_tot_ignit := (prob_ignition_lightning*0.42) + (prob_ignition_person*0.58)]
+  frt11[, prob_tot_ignit := (prob_ignition_lightning*0.4) + (prob_ignition_person*0.6)]
   
-  frt11[veg_W==1,prog_tot_ignit:=0]
-  frt11[veg_W==1,prob_ignition_lightning:=0]
-  frt11[veg_W==1,prob_ignition_person:=0]
-  frt11[veg_W==1,prob_ignition_escape:=0]
-  frt11[veg_W==1,prob_ignition_spread:=0]
+  frt11[fwveg %in% c("W", "N"), prog_tot_ignit:=0]
+  frt11[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
+  frt11[fwveg %in% c("W", "N"),prob_ignition_person:=0]
+  frt11[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
+  frt11[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
   
   
   frt11<-frt11[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]  
@@ -2110,26 +1677,20 @@ calcProbFire<-function(sim){
   if (nrow(dat[frt==12,])>0) {
     frt12<- dat[frt==12,]
     
-    frt12[fwveg == "S-3", veg_S1 :=1]
-    
     frt12[pixelid>0, all:=1]
     
 #    model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt12_lightning.csv")
     
     frt12[, logit_P_lightning := ignitstaticlightning * all + 
       sim$coefficients[cause == 'Lightning' & frt==12,]$coef_climate_1 * climate1lightning + 
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_c2 * veg_C2 +
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_c3 * veg_C3 +
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_c4 * veg_C4 +
+      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_c1 * veg_C1 +
+      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_c2 * veg_C2 + #c3 is the intercept
       sim$coefficients[cause == 'Lightning' & frt==12,]$coef_c5 * veg_C5 +
       sim$coefficients[cause == 'Lightning' & frt==12,]$coef_c7 * veg_C7 +
       sim$coefficients[cause == 'Lightning' & frt==12,]$coef_d12 * veg_D12 +
       sim$coefficients[cause == 'Lightning' & frt==12,]$coef_m12 * veg_M12 +
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_m3 * veg_M3 +
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_N * veg_N + 
       sim$coefficients[cause == 'Lightning' & frt==12,]$coef_o1ab * veg_O1ab +
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_s1 * veg_S1 +
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_s2 * veg_S2]
+      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_s1 * veg_S1]
       
     
     # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
@@ -2139,12 +1700,12 @@ calcProbFire<-function(sim){
  #  model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT12_person.csv")
     frt12[, logit_P_human := ignitstatichuman  * all + 
             sim$coefficients[cause == 'person' & frt == 12, ]$coef_climate_1 * climate1person +
-      sim$coefficients[cause == 'person' & frt == 12, ]$coef_c3 * veg_C3 +
+      sim$coefficients[cause == 'person' & frt == 12, ]$coef_c1 * veg_C1 +
+      sim$coefficients[cause == 'person' & frt == 12, ]$coef_c2 * veg_C2 +
       sim$coefficients[cause == 'person' & frt == 12, ]$coef_c5 * veg_C5 +
       sim$coefficients[cause == 'person' & frt == 12, ]$coef_c7 * veg_C7 +
       sim$coefficients[cause == 'person' & frt == 12, ]$coef_d12 * veg_D12 +
       sim$coefficients[cause == 'person' & frt == 12, ]$coef_m12 * veg_M12 +
-      sim$coefficients[cause == 'person' & frt == 12, ]$coef_N * veg_N +
       sim$coefficients[cause == 'person' & frt == 12, ]$coef_o1ab * veg_O1ab +
     sim$coefficients[cause == 'person' & frt == 12, ]$coef_s1 * veg_S1 +
     sim$coefficients[cause == 'person' & frt == 12, ]$coef_log_road_dist * log(rds_dist+1) ]
@@ -2155,26 +1716,19 @@ calcProbFire<-function(sim){
 #   model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt12_escape.csv")
    
   frt12[, veg_S1 := 0]
-  frt12[fwveg == "S-1", veg_S1 :=1]
-  
-  frt12[fwveg == "S-3", veg_S1 :=1]
-  frt12[fwveg == "S-2", veg_C7 :=1]
+
   frt12[fwveg == "C-1", veg_C3 :=1]
   frt12[fwveg == "C-4", veg_C2 :=1]
-  frt12[fwveg == "M-3", veg_O1ab :=1]
     
   frt12[, logit_P_escape := escapestatic * all + 
-      sim$coefficients[cause == 'escape' & frt==12,]$coef_climate_1 * climate1escape + 
       sim$coefficients[cause == 'escape' & frt==12,]$coef_climate_2 * climate2escape +
       sim$coefficients[cause == 'escape' & frt==12,]$coef_c2 * veg_C2 +
       sim$coefficients[cause == 'escape' & frt==12,]$coef_c5 * veg_C5 + 
       sim$coefficients[cause == 'escape' & frt==12,]$coef_c7 * veg_C7 +
       sim$coefficients[cause == 'escape' & frt==12,]$coef_d12 * veg_D12 +
       sim$coefficients[cause == 'escape' & frt==12,]$coef_m12 * veg_M12 +
-      sim$coefficients[cause == 'escape' & frt==12,]$coef_N * veg_N +
       sim$coefficients[cause == 'escape' & frt==12,]$coef_o1ab * veg_O1ab +
-      sim$coefficients[cause == 'escape' & frt==12,]$coef_s1 * veg_S1 +
-      sim$coefficients[cause == 'escape' & frt==12,]$coef_s2 * veg_S2 +
+      sim$coefficients[cause == 'escape' & frt==12,]$coef_o1ab * veg_S1 + # seems like there were no S-1 values in my training dataset so Ill use the coef of o1ab for this category
       sim$coefficients[cause == 'escape' & frt==12,]$coef_road_dist * rds_dist]
     
     frt12[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
@@ -2182,42 +1736,42 @@ calcProbFire<-function(sim){
     # Spread
 #    model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt12_spread.csv")
     
-    frt12[, veg_C7 := 0]
-    frt12[fwveg == "C-7", veg_C7 := 1]
-    frt12[, veg_M12 := 0]
-    frt12[fwveg == "M-1/2", veg_M12 := 1]
-    frt12[, veg_C3 := 0]
-    frt12[fwveg == "C-3", veg_C3 := 1]
+    # frt12[, veg_C7 := 0]
+    # frt12[fwveg == "C-7", veg_C7 := 1]
+    # frt12[, veg_M12 := 0]
+    # frt12[fwveg == "M-1/2", veg_M12 := 1]
+    # frt12[, veg_C3 := 0]
+    # frt12[fwveg == "C-3", veg_C3 := 1]
+    # 
+    # frt12[fwveg == "S-1", veg_M12 :=1]
+    # frt12[fwveg == "S-2", veg_C7:=1]
+    # frt12[fwveg == "S-3", veg_M12:=1]
+    # 
+    # frt12[, logit_P_spread := spreadstatic * all + 
+    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_climate_2 * climate2spread +
+    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_c2 * veg_C2 +
+    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_c3 * veg_C3 +
+    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_c4 * veg_C4 +
+    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_c5 * veg_C5 +
+    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_c7 * veg_C7 +
+    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_d12 * veg_D12 +
+    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_m12 * veg_M12 +
+    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_m3 * veg_M3 +
+    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_N * veg_N +
+    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_o1ab * veg_O1ab +
+    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_s1 * veg_S1 +
+    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_s2 * veg_S2 +
+    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_log_road_dist * log(rds_dist+1)]
+    # 
+    # frt12[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
     
-    frt12[fwveg == "S-1", veg_M12 :=1]
-    frt12[fwveg == "S-2", veg_C7:=1]
-    frt12[fwveg == "S-3", veg_M12:=1]
+    frt12[, prob_tot_ignit := (prob_ignition_lightning*0.5) + (prob_ignition_person*0.5)]
     
-    frt12[, logit_P_spread := spreadstatic * all + 
-            sim$coefficients[cause == 'spread' & frt==12,]$coef_climate_2 * climate2spread +
-            sim$coefficients[cause == 'spread' & frt==12,]$coef_c2 * veg_C2 +
-            sim$coefficients[cause == 'spread' & frt==12,]$coef_c3 * veg_C3 +
-            sim$coefficients[cause == 'spread' & frt==12,]$coef_c4 * veg_C4 +
-            sim$coefficients[cause == 'spread' & frt==12,]$coef_c5 * veg_C5 +
-            sim$coefficients[cause == 'spread' & frt==12,]$coef_c7 * veg_C7 +
-            sim$coefficients[cause == 'spread' & frt==12,]$coef_d12 * veg_D12 +
-            sim$coefficients[cause == 'spread' & frt==12,]$coef_m12 * veg_M12 +
-            sim$coefficients[cause == 'spread' & frt==12,]$coef_m3 * veg_M3 +
-            sim$coefficients[cause == 'spread' & frt==12,]$coef_N * veg_N +
-            sim$coefficients[cause == 'spread' & frt==12,]$coef_o1ab * veg_O1ab +
-            sim$coefficients[cause == 'spread' & frt==12,]$coef_s1 * veg_S1 +
-            sim$coefficients[cause == 'spread' & frt==12,]$coef_s2 * veg_S2 +
-            sim$coefficients[cause == 'spread' & frt==12,]$coef_log_road_dist * log(rds_dist+1)]
-    
-    frt12[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
-    
-    frt12[, prob_tot_ignit := (prob_ignition_lightning*0.48) + (prob_ignition_person*0.52)]
-    
-    frt12[veg_W==1,prog_tot_ignit:=0]
-    frt12[veg_W==1,prob_ignition_lightning:=0]
-    frt12[veg_W==1,prob_ignition_person:=0]
-    frt12[veg_W==1,prob_ignition_escape:=0]
-    frt12[veg_W==1,prob_ignition_spread:=0]
+    frt12[fwveg %in% c("W", "N"), prog_tot_ignit:=0]
+    frt12[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
+    frt12[fwveg %in% c("W", "N"),prob_ignition_person:=0]
+    frt12[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
+    frt12[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
     
     
     frt12<-frt12[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]    
@@ -2241,7 +1795,6 @@ calcProbFire<-function(sim){
     
     frt13[fwveg == "C-4", veg_C2 :=1]
     frt13[fwveg == "C-1", veg_C3 :=1]
-    frt13[fwveg == "M-3", veg_O1ab :=1]
     
     frt13[pixelid>0, all:=1]
     
@@ -2249,17 +1802,14 @@ calcProbFire<-function(sim){
     
     frt13[, logit_P_lightning := ignitstaticlightning * all + 
             sim$coefficients[cause == 'Lightning' & frt==13,]$coef_climate_1 * climate1lightning +
-            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_climate_2 * climate2lightning +
-            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_c3 * veg_C3 +
+            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_log_climate_2 * log(climate2lightning+0.1) +
+            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_c2 * veg_C2 +
             sim$coefficients[cause == 'Lightning' & frt==13,]$coef_c5 * veg_C5 +
             sim$coefficients[cause == 'Lightning' & frt==13,]$coef_c7 * veg_C7 +
             sim$coefficients[cause == 'Lightning' & frt==13,]$coef_d12 * veg_D12 +
             sim$coefficients[cause == 'Lightning' & frt==13,]$coef_m12 * veg_M12 +
-            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_N * veg_N + 
             sim$coefficients[cause == 'Lightning' & frt==13,]$coef_o1ab * veg_O1ab +
-            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_s1 * veg_S1 +
-            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_s2 * veg_S2 +
-            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_s3 * veg_S3]
+            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_s1 * veg_S1]
     
     
     # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
@@ -2269,63 +1819,33 @@ calcProbFire<-function(sim){
     # Person caused fires
 #      model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT13_person.csv")
       
-      frt13[, veg_C7 :=0]
-      frt13[fwveg == "C-7", veg_C7 :=1]
-      frt13[, veg_O1ab := 0]
-      frt13[fwveg == "O-1a/b", veg_O1ab :=1]
-      
-      frt13[fwveg == "C-4", veg_C2 :=1]
-      frt13[fwveg == "C-1", veg_C3 :=1]
-      frt13[fwveg == "S-2", veg_C7 :=1]
       
       
     frt13[, logit_P_human := ignitstatichuman  * all + 
       sim$coefficients[cause == 'person' & frt == 13, ]$coef_climate_1 * climate1person +
-      sim$coefficients[cause == 'person' & frt == 13, ]$coef_climate_2 * climate2person +
       sim$coefficients[cause == 'person' & frt == 13, ]$coef_log_road_dist * log(rds_dist+1) +
-        sim$coefficients[cause == 'person' & frt == 13, ]$coef_c3 * veg_C3 +
+        sim$coefficients[cause == 'person' & frt == 13, ]$coef_c2 * veg_C2 +
         sim$coefficients[cause == 'person' & frt == 13, ]$coef_c5 * veg_C5 +
         sim$coefficients[cause == 'person' & frt == 13, ]$coef_c7 * veg_C7 +
         sim$coefficients[cause == 'person' & frt == 13, ]$coef_d12 * veg_D12 +
         sim$coefficients[cause == 'person' & frt == 13, ]$coef_m12 * veg_M12 +
-        sim$coefficients[cause == 'person' & frt == 13, ]$coef_m3 * veg_M3 +
-        sim$coefficients[cause == 'person' & frt == 13, ]$coef_N * veg_N +
         sim$coefficients[cause == 'person' & frt == 13, ]$coef_o1ab * veg_O1ab +
-        sim$coefficients[cause == 'person' & frt == 13, ]$coef_s1 * veg_S1+
-        sim$coefficients[cause == 'person' & frt == 13, ]$coef_s3 * veg_S3 
-            ]
+        sim$coefficients[cause == 'person' & frt == 13, ]$coef_s1 * veg_S1]
     
     frt13[,prob_ignition_person := exp(logit_P_human)/(1+exp(logit_P_human))]
     
     # Fire Escape
  #  model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt13_escape.csv")
     
-    frt13[, veg_C2 := 0]
-    frt13[fwveg == "C-2", veg_C2 :=1]
-    frt13[, veg_C3 := 0]
-    frt13[fwveg == "C-3", veg_C3 :=1]
-    frt13[, veg_C7 := 0]
-    frt13[fwveg == "C-7", veg_C7 :=1]
-    frt13[, veg_O1ab := 0]
-    frt13[fwveg == "O-1a/b", veg_O1ab :=1]
-    
-    frt13[fwveg == "C-1", veg_C3 :=1]
-    frt13[fwveg == "C-4", veg_C2 :=1]
-    
-    frt13[, logit_P_escape := escapestatic * all + 
-            sim$coefficients[cause == 'escape' & frt==13,]$coef_climate_1 * climate1escape + 
+    frt13[, logit_P_escape := escapestatic * all +  
             sim$coefficients[cause == 'escape' & frt==13,]$coef_climate_2 * climate2escape +
-            sim$coefficients[cause == 'escape' & frt==13,]$coef_c3 * veg_C3 +
+            sim$coefficients[cause == 'escape' & frt==13,]$coef_c2 * veg_C2 +
             sim$coefficients[cause == 'escape' & frt==13,]$coef_c5 * veg_C5 + 
             sim$coefficients[cause == 'escape' & frt==13,]$coef_c7 * veg_C7 +
             sim$coefficients[cause == 'escape' & frt==13,]$coef_d12 * veg_D12 +
             sim$coefficients[cause == 'escape' & frt==13,]$coef_m12 * veg_M12 +
-            sim$coefficients[cause == 'escape' & frt==13,]$coef_m3 * veg_M3 +
-            sim$coefficients[cause == 'escape' & frt==13,]$coef_N * veg_N +
             sim$coefficients[cause == 'escape' & frt==13,]$coef_o1ab * veg_O1ab +
             sim$coefficients[cause == 'escape' & frt==13,]$coef_s1 * veg_S1 +
-            sim$coefficients[cause == 'escape' & frt==13,]$coef_s2 * veg_S2 +
-            sim$coefficients[cause == 'escape' & frt==13,]$coef_s3 * veg_S3 +
             sim$coefficients[cause == 'escape' & frt==13,]$coef_road_dist * rds_dist]
     
     frt13[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
@@ -2333,36 +1853,36 @@ calcProbFire<-function(sim){
     # Spread
  #   model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt13_spread.csv")
     
-    frt13[, veg_C2 := 0]
-    frt13[fwveg == "C-2", veg_C2 := 1]
-    frt13[, veg_C3 := 0]
-    frt13[fwveg == "C-3", veg_C3 := 1]
+    # frt13[, veg_C2 := 0]
+    # frt13[fwveg == "C-2", veg_C2 := 1]
+    # frt13[, veg_C3 := 0]
+    # frt13[fwveg == "C-3", veg_C3 := 1]
+    # 
+    # frt13[fwveg == "C-1", veg_C3 :=1]
+    # 
+    # frt13[, logit_P_spread := spreadstatic * all + 
+    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_climate_2 * climate2spread +
+    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_c3 * veg_C3 +
+    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_c5 * veg_C5 +
+    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_c7 * veg_C7 +
+    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_d12 * veg_D12 +
+    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_m12 * veg_M12 +
+    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_m3 * veg_M3 +
+    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_N * veg_N +
+    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_o1ab * veg_O1ab +
+    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_s1 * veg_S1 +
+    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_s2 * veg_S2 +
+    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_s3 * veg_S3]
+    # 
+    # frt13[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
     
-    frt13[fwveg == "C-1", veg_C3 :=1]
+    frt13[, prob_tot_ignit := (prob_ignition_lightning*0.8) + (prob_ignition_person*0.2)]
     
-    frt13[, logit_P_spread := spreadstatic * all + 
-            sim$coefficients[cause == 'spread' & frt==13,]$coef_climate_2 * climate2spread +
-            sim$coefficients[cause == 'spread' & frt==13,]$coef_c3 * veg_C3 +
-            sim$coefficients[cause == 'spread' & frt==13,]$coef_c5 * veg_C5 +
-            sim$coefficients[cause == 'spread' & frt==13,]$coef_c7 * veg_C7 +
-            sim$coefficients[cause == 'spread' & frt==13,]$coef_d12 * veg_D12 +
-            sim$coefficients[cause == 'spread' & frt==13,]$coef_m12 * veg_M12 +
-            sim$coefficients[cause == 'spread' & frt==13,]$coef_m3 * veg_M3 +
-            sim$coefficients[cause == 'spread' & frt==13,]$coef_N * veg_N +
-            sim$coefficients[cause == 'spread' & frt==13,]$coef_o1ab * veg_O1ab +
-            sim$coefficients[cause == 'spread' & frt==13,]$coef_s1 * veg_S1 +
-            sim$coefficients[cause == 'spread' & frt==13,]$coef_s2 * veg_S2 +
-            sim$coefficients[cause == 'spread' & frt==13,]$coef_s3 * veg_S3]
-    
-    frt13[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
-    
-    frt13[, prob_tot_ignit := (prob_ignition_lightning*0.83) + (prob_ignition_person*0.17)]
-    
-    frt13[veg_W==1,prog_tot_ignit:=0]
-    frt13[veg_W==1,prob_ignition_lightning:=0]
-    frt13[veg_W==1,prob_ignition_person:=0]
-    frt13[veg_W==1,prob_ignition_escape:=0]
-    frt13[veg_W==1,prob_ignition_spread:=0]
+    frt13[fwveg %in% c("W", "N"), prog_tot_ignit:=0]
+    frt13[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
+    frt13[fwveg %in% c("W", "N"),prob_ignition_person:=0]
+    frt13[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
+    frt13[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
     
     
     frt13<-frt13[, c("pixelid", "frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]
@@ -2387,78 +1907,47 @@ calcProbFire<-function(sim){
     frt14<- dat[frt==14,]
     
     frt14[fwveg == "C-4", veg_C2 :=1]
-    frt14[fwveg == "S-2", veg_C7 :=1]
-    frt14[fwveg == "S-3", veg_M12 :=1]
     
     frt14[pixelid>0, all:=1]
     
 # model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt14_lightning.csv")
     
     frt14[, logit_P_lightning := ignitstaticlightning * all + 
-            sim$coefficients[cause == 'Lightning' & frt==14,]$coef_climate_1 * climate1lightning +
-            sim$coefficients[cause == 'Lightning' & frt==14,]$coef_c3 * veg_C3 +
-            sim$coefficients[cause == 'Lightning' & frt==14,]$coef_c5 * veg_C5 +
-            sim$coefficients[cause == 'Lightning' & frt==14,]$coef_c7 * veg_C7 +
-            sim$coefficients[cause == 'Lightning' & frt==14,]$coef_d12 * veg_D12 +
-            sim$coefficients[cause == 'Lightning' & frt==14,]$coef_m12 * veg_M12 +
-            sim$coefficients[cause == 'Lightning' & frt==14,]$coef_m3 * veg_M3 +
-            sim$coefficients[cause == 'Lightning' & frt==14,]$coef_N * veg_N + 
-            sim$coefficients[cause == 'Lightning' & frt==14,]$coef_o1ab * veg_O1ab +
-            sim$coefficients[cause == 'Lightning' & frt==14,]$coef_s1 * veg_S1]
-    
+            sim$coefficients[cause == 'Lightning' & frt==14,]$coef_climate_1 * climate1lightning]
     
     # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
     frt14[, prob_ignition_lightning := exp(logit_P_lightning)/(1+exp(logit_P_lightning))]
     
     # Person caused fires
 #      model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT14_person.csv")
-      
-      frt14[, veg_C7 :=0]
-      frt14[fwveg == "C-7", veg_C7 :=1]
-      frt14[, veg_M12 :=0]
-      frt14[fwveg == "M-1/2", veg_M12 :=1]
-      
-      frt14[fwveg == "M-3", veg_O1ab :=1]
-      frt14[fwveg == "S-3", veg_S1 :=1]
+    
 
     frt14[, logit_P_human := ignitstatichuman  * all + 
             sim$coefficients[cause == 'person' & frt == 14, ]$coef_climate_1 * climate1person +
             sim$coefficients[cause == 'person' & frt == 14, ]$coef_log_road_dist * log(rds_dist+1) +
+            sim$coefficients[cause == 'person' & frt == 14, ]$coef_c2 * veg_C2 + #C7 is the intercept
             sim$coefficients[cause == 'person' & frt == 14, ]$coef_c3 * veg_C3 +
             sim$coefficients[cause == 'person' & frt == 14, ]$coef_c5 * veg_C5 +
-            sim$coefficients[cause == 'person' & frt == 14, ]$coef_c7 * veg_C7 +
             sim$coefficients[cause == 'person' & frt == 14, ]$coef_d12 * veg_D12 +
             sim$coefficients[cause == 'person' & frt == 14, ]$coef_m12 * veg_M12 +
-            sim$coefficients[cause == 'person' & frt == 14, ]$coef_N * veg_N +
             sim$coefficients[cause == 'person' & frt == 14, ]$coef_o1ab * veg_O1ab +
-            sim$coefficients[cause == 'person' & frt == 14, ]$coef_s1 * veg_S1
-    ]
+            sim$coefficients[cause == 'person' & frt == 14, ]$coef_s1 * veg_S1]
     
     frt14[,prob_ignition_person := exp(logit_P_human)/(1+exp(logit_P_human))]
     
     # Fire Escape
 #      model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt14_escape.csv")
       
-  frt14[, veg_O1ab :=0]
-  frt14[fwveg == "O-1a/b", veg_O1ab :=1]
-  frt14[, veg_S1 :=0]
-  frt14[fwveg == "S-1", veg_S1 :=1]
-  frt14[, veg_C2 := 0]
-  frt14[fwveg == "C-2", veg_C2 :=1]
-  
-  frt14[fwveg == "C-2", veg_C3 :=1]
-  frt14[fwveg == "C-4", veg_C3 :=1]
-  frt14[fwveg == "S-1", veg_M12 :=1]
-  frt14[fwveg == "S-2", veg_C7 :=1]
-  frt14[fwveg == "S-3", veg_M12 :=1]
-    
+
    frt14[, logit_P_escape := escapestatic * all + 
       sim$coefficients[cause == 'escape' & frt==14,]$coef_climate_1 * climate1escape +
-      sim$coefficients[cause == 'escape' & frt==14,]$coef_c7 * veg_C7 +
+      sim$coefficients[cause == 'escape' & frt==14,]$coef_climate_2 * climate2escape +
+      sim$coefficients[cause == 'escape' & frt==14,]$coef_c2 * veg_C2 + # C7 is the intercept and C5 is combined with c7 because not enough of c5's to include in model
+      sim$coefficients[cause == 'escape' & frt==14,]$coef_c3 * veg_C3 +
       sim$coefficients[cause == 'escape' & frt==14,]$coef_d12 * veg_D12 +
       sim$coefficients[cause == 'escape' & frt==14,]$coef_m12 * veg_M12 +
-      sim$coefficients[cause == 'escape' & frt==14,]$coef_N * veg_N +
       sim$coefficients[cause == 'escape' & frt==14,]$coef_o1ab * veg_O1ab +
+        sim$coefficients[cause == 'escape' & frt==14,]$coef_m12 * veg_S1 +
       sim$coefficients[cause == 'escape' & frt==14,]$coef_road_dist * rds_dist]
     
     frt14[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
@@ -2466,39 +1955,32 @@ calcProbFire<-function(sim){
     # Spread
 #       model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt14_spread.csv")
        
-       frt14[, veg_C3 :=0]
-       frt14[fwveg == "C-3", veg_C3 :=1]
-       frt14[, veg_C7 :=0]
-       frt14[fwveg == "C-7", veg_C7 :=1]
-       frt14[, veg_M12 := 0]
-       frt14[fwveg == "M-1/2", veg_M12 :=1]
-       
-       frt14[fwveg == "S-2", veg_C7 :=1]
-       frt14[fwveg == "C-4", veg_C2 :=1]
-       frt14[fwveg == "S-3", veg_M12 :=1]
-       
-       
-    frt14[, logit_P_spread := spreadstatic * all + 
-            sim$coefficients[cause == 'spread' & frt==14,]$coef_climate_2 * climate2spread +
-            sim$coefficients[cause == 'spread' & frt==14]$coef_c3 * veg_C3 +
-            sim$coefficients[cause == 'spread' & frt==14,]$coef_c5 * veg_C5 +
-            sim$coefficients[cause == 'spread' & frt==14,]$coef_c7 * veg_C7 +
-            sim$coefficients[cause == 'spread' & frt==14,]$coef_d12 * veg_D12 +
-            sim$coefficients[cause == 'spread' & frt==14,]$coef_m12 * veg_M12 +
-            sim$coefficients[cause == 'spread' & frt==14,]$coef_N * veg_N +
-            sim$coefficients[cause == 'spread' & frt==14,]$coef_o1ab * veg_O1ab +
-            sim$coefficients[cause == 'spread' & frt==14,]$coef_s1 * veg_S1 +
-            sim$coefficients[cause == 'spread' & frt==14,]$coef_road_dist * rds_dist]
+    #    frt14[fwveg == "S-2", veg_C7 :=1]
+    #    frt14[fwveg == "C-4", veg_C2 :=1]
+    #    frt14[fwveg == "S-3", veg_M12 :=1]
+    #    
+    #    
+    # frt14[, logit_P_spread := spreadstatic * all + 
+    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_climate_2 * climate2spread +
+    #         sim$coefficients[cause == 'spread' & frt==14]$coef_c3 * veg_C3 +
+    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_c5 * veg_C5 +
+    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_c7 * veg_C7 +
+    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_d12 * veg_D12 +
+    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_m12 * veg_M12 +
+    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_N * veg_N +
+    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_o1ab * veg_O1ab +
+    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_s1 * veg_S1 +
+    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_road_dist * rds_dist]
+    # 
+    # frt14[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
     
-    frt14[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+    frt14[, prob_tot_ignit := (prob_ignition_lightning*0.4) + (prob_ignition_person*0.6)]
     
-    frt14[, prob_tot_ignit := (prob_ignition_lightning*0.41) + (prob_ignition_person*0.59)]
-    
-    frt14[veg_W==1,prog_tot_ignit:=0]
-    frt14[veg_W==1,prob_ignition_lightning:=0]
-    frt14[veg_W==1,prob_ignition_person:=0]
-    frt14[veg_W==1,prob_ignition_escape:=0]
-    frt14[veg_W==1,prob_ignition_spread:=0]
+    frt14[fwveg %in% c("W", "N"), prog_tot_ignit:=0]
+    frt14[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
+    frt14[fwveg %in% c("W", "N"),prob_ignition_person:=0]
+    frt14[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
+    frt14[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
     
   
     frt14<-frt14[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]
@@ -2521,21 +2003,19 @@ calcProbFire<-function(sim){
   #### FRT15 #### 
   if (nrow(dat[frt==15,])>0) {
     frt15<- dat[frt==15,]
-    
-    frt15[fwveg == "C-2", veg_C3 :=1]
-    frt15[fwveg == "O-1a/b", veg_C3 :=1]  
     frt15[pixelid>0, all:=1]
     
    # model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt15_lightning.csv")
     
     frt15[, logit_P_lightning := ignitstaticlightning * all + 
+            sim$coefficients[cause == 'Lightning' & frt==15,]$coef_climate_1 * climate1lightning +
             sim$coefficients[cause == 'Lightning' & frt==15,]$coef_climate_2 * climate2lightning +
-            sim$coefficients[cause == 'Lightning' & frt==15,]$coef_c5 * veg_C5 +
+            sim$coefficients[cause == 'Lightning' & frt==15,]$coef_c3 * veg_C3 + # C5 is the intercept
             sim$coefficients[cause == 'Lightning' & frt==15,]$coef_c7 * veg_C7 +
             sim$coefficients[cause == 'Lightning' & frt==15,]$coef_d12 * veg_D12 +
             sim$coefficients[cause == 'Lightning' & frt==15,]$coef_m12 * veg_M12 +
-            sim$coefficients[cause == 'Lightning' & frt==15,]$coef_N * veg_N + 
-            sim$coefficients[cause == 'Lightning' & frt==15,]$coef_s3 * veg_S3]
+            sim$coefficients[cause == 'Lightning' & frt==15,]$coef_o1ab * veg_O1ab + 
+            sim$coefficients[cause == 'Lightning' & frt==15,]$coef_s1 * veg_S1]
     
     
     # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
@@ -2544,24 +2024,16 @@ calcProbFire<-function(sim){
     # Person caused fires
 #        model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT15_person.csv")
     
-    
-    frt15[, veg_C3 :=0]
-    frt15[fwveg == "C-3", veg_C3 :=1]
-    
-    frt15[fwveg == "C-2", veg_C3 :=1]
-    frt15[fwveg == "C-7", veg_C5 :=1]
-    frt15[fwveg == "S-1", veg_S3 :=1]
-    
     frt15[, logit_P_human := ignitstatichuman  * all + 
             sim$coefficients[cause == 'person' & frt == 15, ]$coef_climate_1 * climate1person +
             sim$coefficients[cause == 'person' & frt == 15, ]$coef_climate_2 * climate2person +
             sim$coefficients[cause == 'person' & frt == 15, ]$coef_log_road_dist * log(rds_dist+1) +
-            sim$coefficients[cause == 'person' & frt == 15, ]$coef_c5 * veg_C5 +
+            sim$coefficients[cause == 'person' & frt == 15, ]$coef_c3 * veg_C3 +# C5 in the intercept
+            sim$coefficients[cause == 'person' & frt == 15, ]$coef_c7 * veg_C7 +
             sim$coefficients[cause == 'person' & frt == 15, ]$coef_d12 * veg_D12 +
             sim$coefficients[cause == 'person' & frt == 15, ]$coef_m12 * veg_M12 +
-            sim$coefficients[cause == 'person' & frt == 15, ]$coef_N * veg_N +
             sim$coefficients[cause == 'person' & frt == 15, ]$coef_o1ab * veg_O1ab +
-            sim$coefficients[cause == 'person' & frt == 15, ]$coef_s3 * veg_S3
+            sim$coefficients[cause == 'person' & frt == 15, ]$coef_s1 * veg_S1
     ]
     
     frt15[,prob_ignition_person := exp(logit_P_human)/(1+exp(logit_P_human))]
@@ -2569,63 +2041,42 @@ calcProbFire<-function(sim){
     # Fire Escape
 #    model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt15_escape.csv")
     
-    frt15[, veg_C5 :=0]
-    frt15[fwveg == "C-5", veg_C5 :=1]
-    frt15[, veg_S3 :=0]
-    frt15[fwveg == "S-3", veg_S3 :=1]
-    frt15[, veg_C3 := 0]
-    frt15[fwveg == "C-3", veg_C3 :=1]
     
-    frt15[fwveg == "C-2", veg_C3 :=1] 
-    frt15[fwveg == "C-7", veg_C5 :=1]
-    frt15[fwveg == "S-1", veg_S3 :=1]
-    frt15[fwveg == "O-1a/b", veg_C3 :=1]
     
     ## Fix this? It looks like either I have the wrong coefficients table in here or the coefficients for some reason did not get entered into the table correctly. I need to fix this!
     
     frt15[, logit_P_escape := escapestatic * all + 
-            sim$coefficients[cause == 'escape' & frt==15,]$coef_climate_2 * climate2escape +
-            sim$coefficients[cause == 'escape' & frt==15,]$coef_c5 * veg_C5 +
-            sim$coefficients[cause == 'escape' & frt==15,]$coef_d12 * veg_D12 +
-            sim$coefficients[cause == 'escape' & frt==15,]$coef_m12 * veg_M12 +
-            sim$coefficients[cause == 'escape' & frt==15,]$coef_N * veg_N +
-            sim$coefficients[cause == 'escape' & frt==15,]$coef_S3 * veg_S3]
+            sim$coefficients[cause == 'escape' & frt==15,]$coef_climate_1 * climate1escape]
     
     frt15[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
     
     # Spread
 #    model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt15_spread.csv")
     
-    frt15[, veg_C3 :=0]
-    frt15[fwveg == "C-3", veg_C3 :=1]
-    frt15[, veg_C5 :=0]
-    frt15[fwveg == "C-5", veg_C5 :=1]
-    frt15[, veg_S3 := 0]
-    frt15[fwveg == "S-3", veg_S3 :=1]
+# 
+#     frt15[fwveg == "C-2", veg_C3 :=1]
+#     frt15[fwveg == "M-3", veg_O1ab :=1]
+#     
+#     frt15[, logit_P_spread := spreadstatic * all + 
+#             sim$coefficients[cause == 'spread' & frt==15,]$coef_climate_1 * climate1spread +
+#             sim$coefficients[cause == 'spread' & frt==15,]$coef_climate_2 * climate2spread +
+#             sim$coefficients[cause == 'spread' & frt==15]$coef_c5 * veg_C5 +
+#             sim$coefficients[cause == 'spread' & frt==15,]$coef_c7 * veg_C7 +
+#             sim$coefficients[cause == 'spread' & frt==15,]$coef_d12 * veg_D12 +
+#             sim$coefficients[cause == 'spread' & frt==15,]$coef_m12 * veg_M12 +
+#             sim$coefficients[cause == 'spread' & frt==15,]$coef_N * veg_N +
+#             sim$coefficients[cause == 'spread' & frt==15,]$coef_o1ab * veg_O1ab +
+#             sim$coefficients[cause == 'spread' & frt==15,]$coef_s3 * veg_S3]
+#     
+#     frt15[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
     
-    frt15[fwveg == "C-2", veg_C3 :=1]
-    frt15[fwveg == "M-3", veg_O1ab :=1]
+    frt15[, prob_tot_ignit := (prob_ignition_lightning*0.3) + (prob_ignition_person*0.7)]
     
-    frt15[, logit_P_spread := spreadstatic * all + 
-            sim$coefficients[cause == 'spread' & frt==15,]$coef_climate_1 * climate1spread +
-            sim$coefficients[cause == 'spread' & frt==15,]$coef_climate_2 * climate2spread +
-            sim$coefficients[cause == 'spread' & frt==15]$coef_c5 * veg_C5 +
-            sim$coefficients[cause == 'spread' & frt==15,]$coef_c7 * veg_C7 +
-            sim$coefficients[cause == 'spread' & frt==15,]$coef_d12 * veg_D12 +
-            sim$coefficients[cause == 'spread' & frt==15,]$coef_m12 * veg_M12 +
-            sim$coefficients[cause == 'spread' & frt==15,]$coef_N * veg_N +
-            sim$coefficients[cause == 'spread' & frt==15,]$coef_o1ab * veg_O1ab +
-            sim$coefficients[cause == 'spread' & frt==15,]$coef_s3 * veg_S3]
-    
-    frt15[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
-    
-    frt15[, prob_tot_ignit := (prob_ignition_lightning*0.28) + (prob_ignition_person*0.72)]
-    
-    frt15[veg_W==1,prog_tot_ignit:=0]
-    frt15[veg_W==1,prob_ignition_lightning:=0]
-    frt15[veg_W==1,prob_ignition_person:=0]
-    frt15[veg_W==1,prob_ignition_escape:=0]
-    frt15[veg_W==1,prob_ignition_spread:=0]
+    frt15[fwveg %in% c("W", "N"), prog_tot_ignit:=0]
+    frt15[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
+    frt15[fwveg %in% c("W", "N"),prob_ignition_person:=0]
+    frt15[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
+    frt15[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
     
     
     frt15<-frt15[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]    
@@ -2797,7 +2248,7 @@ numberStarts<-function(sim){
   library(bcdata)
   ignit<-try(
     bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
-      dplyr::filter(FIRE_YEAR > 2000) %>%
+      dplyr::filter(FIRE_YEAR > 2002) %>%
       dplyr::filter(FIRE_TYPE == "Fire") %>%
       collect()
   )

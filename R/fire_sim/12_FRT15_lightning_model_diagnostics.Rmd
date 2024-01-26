@@ -71,7 +71,7 @@ dat_lightning<-dat_lightning %>%
                             frt == "11" ~ mean_Tave03_Tave04_Tave05_Tave06_Tave07_Tave08,
                             frt == "12" ~ mean_Tmax07_Tmax08,
                             frt == "13" ~ Tave07,
-                            frt == "14" ~ CMI07,
+                            frt == "14" ~ CMD07,
                             frt == "15" ~ mean_Tave07_Tave08 ,
                             TRUE ~ NA_real_))
 
