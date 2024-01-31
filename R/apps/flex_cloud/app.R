@@ -44,10 +44,9 @@ source(here::here('R/apps/flex_cloud/src/functions.R'))
 # options(shiny.error = browser)
 
 # plan(sequential)
-# plan(multicore)
-# plan(callr)
+plan(callr)
 # plan(multisession)
-plan(cluster)
+# plan(cluster)
 
 # Available scneario Rmd files
 available_scenarios <- list.files('scenarios/')
