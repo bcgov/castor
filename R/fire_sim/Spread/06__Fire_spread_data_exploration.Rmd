@@ -327,7 +327,7 @@ I tried various things including the interaction between climate2 and climate1 i
 # Plot climate data results
 
 # also consider making box plots of these climatic variables to see how they perform
-frt5<-fire_spread2 %>% filter(frt==5 & !fwveg %in% c("N", "W"))
+frt5<-fire_spread %>% filter(frt==5 & !fwveg %in% c("N", "W"))
 
 #frt5[, climate2:=(PPT06+PPT07)/2]
 
@@ -365,7 +365,7 @@ geom_boxplot()
 table(is.na(frt5$win_sum))
 
 # give places with no wind info the mean value
-mean_win<-frt5 %>% drop_na(win_sum) %>% summarize(mean(win_sum))
+mean_win<-frt5 %>% tidyr::drop_na(win_sum) %>% summarize(mean(win_sum))
 frt5[is.na(win_sum), win_sum:=3.018047]
 
 table(is.na(frt5$dem))
@@ -2054,6 +2054,7 @@ ggplot(frt14, aes(x = dem)) +
   facet_grid(pttype ~ .)
 
 frt14$scale_climate2<-(frt14$climate2-mean(frt14$climate2))/sd(frt14$climate2)
+frt14$scale_climate1<-(frt14$climate1-mean(frt14$climate1))/sd(frt14$climate1)
 frt14$scale_dem<-(frt14$dem-mean(frt14$dem))/sd(frt14$dem)
 frt14$scale_slope<-(frt14$slope_ha_bc-mean(frt14$slope_ha_bc))/sd(frt14$slope_ha_bc)
 frt14$log_roads<-log(frt14$dist_roads_m+1)
@@ -2117,20 +2118,16 @@ model3 <- glmer (pttype ~ scale_climate2 + poly(scale_dem,2) + scale_slope + as.
 ss <- getME(model3,c("theta","fixef"))
 m3 <- update(model3,start=ss,control=glmerControl(optCtrl=list(maxfun=2e4))) # BIC 164056.46 
 
-model4 <- glmer (pttype ~ poly(scale(climate1),2) + scale_climate2 + scale_slope + as.factor(fwveg) + log_roads + log_infra + scale_dist_ignit + (1|fire_yr) + (1|fire_yr:fire_label),
+model4 <- glmer (pttype ~ poly(scale_climate1,2) + scale_climate2 + scale_slope + as.factor(fwveg) + log_roads + log_infra + scale_dist_ignit + (1|fire_yr) + (1|fire_yr:fire_label),
                data=frt14,
                family = binomial (link = "logit"))
 
 ss <- getME(model4,c("theta","fixef"))
-m3 <- update(model4,start=ss,control=glmerControl(optCtrl=list(maxfun=2e4))) # BIC 164056.46 
+m4 <- update(model4,start=ss,control=glmerControl(optCtrl=list(maxfun=2e4))) # BIC 164056.46 
+summary(m4)
+car::Anova(m4, type=3)
+visreg(m4)
 
-
-
-summary(model4)
-car::Anova(model4, type=3)
-visreg(model4)
-
-visreg(model3, "scale_climate2")
 
 # model diagnostic plots
 # below model looks way better with log road dist. It had some structure with just road dist
