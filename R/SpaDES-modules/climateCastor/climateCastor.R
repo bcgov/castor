@@ -155,6 +155,9 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
       results<-merge(results, results_Tave, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
       results<-merge(results, results_CMD, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
       
+      message("table of climate results do lat and long exist? mightb be better to merge on lat lon in line below")
+      print(results)
+      
       climate_id_key$ID<-1:length(climate_id_key$pixelid_climate)
       
       climate_dat<-merge(x=climate_id_key, y= results, by.x = c("ID"), by.y = c("ID"), all.y = TRUE) 
