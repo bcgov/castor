@@ -19,6 +19,7 @@ Here Im creating a look up table with the value of the model coefficients i.e. s
 # get coefficient data
 ```{r cars}
 
+library(stringr)
 ###############################
 #Import climate data per ignition and sample location
 ###############################
@@ -142,9 +143,9 @@ if("coef_road_dist" %in% names(x)){
   coef_table[i, "coef_road_dist"]<-x$coef_dist_roads
   } else if ("coef_dist_road_m" %in% names(x)){
   coef_table[i, "coef_road_dist"]<-x$coef_dist_road_m
-  } else if ("coef_road_dist_m " %in% names(x)){
+  } else if ("coef_road_dist_m" %in% names(x)){
   coef_table[i, "coef_road_dist"]<-x$coef_road_dist_m 
-  } else if ("coef_roads_m " %in% names(x)){
+  } else if ("coef_roads_m" %in% names(x)){
   coef_table[i, "coef_road_dist"]<-x$coef_roads_m 
   } else {
     coef_table[i, "coef_road_dist"]<-NA
