@@ -24,7 +24,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "fireCastor.Rmd"),
-  reqdPkgs = list("here","data.table", "raster", "SpaDES.tools", "tidyr", "pool"),
+  reqdPkgs = list("here","data.table", "raster", "SpaDES.tools", "tidyr", "pool", "climr"),
   parameters = rbind(
     
     #defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
@@ -438,7 +438,7 @@ getClimateVariables <- function(sim) {
    clim_dat[frt==5, climate2spread:=(PPT06+PPT07+PPT08)/3]
    
    
-  sim$climate_data<-clim_dat[ ,c("climate1lightning", "climate2lightning","climate1person","climate2person", "climate1escape", "climate2escape", "climate1spread", "climate2spread")]
+  sim$climate_data<-clim_dat[ ,c("pixelid","gcm", "ssp", "run","period","climate1lightning", "climate2lightning","climate1person","climate2person", "climate1escape", "climate2escape", "climate1spread", "climate2spread")]
   
    return(invisible(sim))
    
@@ -489,10 +489,10 @@ createVegetationTable <- function(sim) {
   #----------------------------#
   #----Set forest attributes----
   #----------------------------#
-  if(!P(sim, "nameForestInventoryRaster","dataCastor") == '99999'){
+  if(!P(sim, "nameForestInventoryRaster","fireCastor") == '99999'){
     message("clipping inventory key")
     ras.fid<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                                       srcRaster= P(sim, "nameForestInventoryRaster", "dataCastor"), 
+                                       srcRaster= P(sim, "nameForestInventoryRaster", "fireCastor"), 
                                        clipper=sim$boundaryInfo[[1]], 
                                        geom= sim$boundaryInfo[[4]], 
                                        where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
@@ -504,18 +504,26 @@ createVegetationTable <- function(sim) {
       rm(ras.fid)
       gc()
     }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameForestInventoryRaster", "dataCastor")))
+      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameForestInventoryRaster", "fireCastor")))
     }
     
     
     if(!P(sim, "nameForestInventoryTable2","fireCastor") == '99999'){ #Get the forest inventory variables 
       
-      fuel_attributes_castordb<-c('bclcs_level_1', 'bclcs_level_2', 'bclcs_level_3',  'bclcs_level_5', 'inventory_standard_cd', 'non_productive_cd', 'coast_interior_cd',  'land_cover_class_cd_1', 'earliest_nonlogging_dist_type', 'earliest_nonlogging_dist_date','vri_live_stems_per_ha', 'vri_dead_stems_per_ha','species_cd_1','species_pct_1','species_cd_2', 'species_pct_2', 'species_cd_3', 'species_pct_3','species_cd_4','species_pct_4', 'species_cd_5', 'species_pct_5', 'species_cd_6', 'species_pct_6')
+      fuel_attributes_castordb<-sapply(c('bclcs_level_1', 'bclcs_level_2', 'bclcs_level_3',  'bclcs_level_5', 'inventory_standard_cd', 'non_productive_cd', 'coast_interior_cd',  'land_cover_class_cd_1', 'earliest_nonlogging_dist_type', 'earliest_nonlogging_dist_date','vri_live_stems_per_ha', 'vri_dead_stems_per_ha','species_cd_1','species_pct_1','species_cd_2', 'species_pct_2', 'species_cd_3', 'species_pct_3','species_cd_4','species_pct_4', 'species_cd_5', 'species_pct_5', 'species_cd_6', 'species_pct_6'), function(x){
+        if(!(P(sim, paste0("nameForestInventory", x), "fireCastor") == '99999')){
+          return(paste0(P(sim, paste0("nameForestInventory", x), "fireCastor"), " as ", tolower(x)))
+        }else{
+          message(paste0("WARNING: Missing parameter nameForestInventory", x, " ---Defaulting to NA"))
+        }
+      })
+      
+      fuel_attributes_castordb<-Filter(Negate(is.null), fuel_attributes_castordb) #remove any nulls
       
       if(length(fuel_attributes_castordb) > 0){
         print(paste0("getting inventory attributes to create fuel types: ", paste(fuel_attributes_castordb, collapse = ",")))
         fids<-unique(inv_id[!(is.na(fid)), fid])
-        attrib_inv<-data.table(getTableQuery(paste0("SELECT " , "feature_id", " as fid, ", paste(fuel_attributes_castordb, collapse = ","), " FROM ",P(sim, "nameForestInventoryTable2","fireCastor"), " WHERE ", "feature_id" ," IN (",
+        attrib_inv<-data.table(getTableQuery(paste0("SELECT " , P(sim, "nameForestInventoryKey", "fireCastor"), " as fid, ", paste(fuel_attributes_castordb, collapse = ","), " FROM ",P(sim, "nameForestInventoryTable2","fireCastor"), " WHERE ", P(sim, "nameForestInventoryKey", "fireCastor") ," IN (",
                                                     paste(fids, collapse = ","),");" )))
         
         
@@ -620,6 +628,8 @@ message("getting vegetation data")
  
   veg2[bclcs_level_5 %in% c("GL","LA"), bclcs_level_2 == "W"]
   
+  ### Note I should probably put age into this section below so that if the area gets burned its fuel type will update to one of the burned classes.####
+  
   veg2[bclcs_level_1=="N", fwveg:="N"]
   veg2[bclcs_level_2=="W", fwveg:="W"]
   veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & zone %in% c("CMA", "IMA"), fwveg:="N"]
@@ -690,100 +700,100 @@ message("getting vegetation data")
   ##------------------------------------------------##
   
   ### non-forested bclcs_level_2==N recently burned
-  # note though that instead of using bclcs_level_2==N I will rather use (crown_closure < 10 | bclcs_level_3 == "A" because bclcs_level_2 does not get updated but crown_closure does. bclcs_level_3 also does not get updated but I think at least in the short term we can assume this designation will stay the same. 
+  # note though that instead of using bclcs_level_2==N I will rather use (crownclosure < 10 | bclcs_level_3 == "A" because bclcs_level_2 does not get updated but crownclosure does. bclcs_level_3 also does not get updated but I think at least in the short term we can assume this designation will stay the same. 
   
-  # need to check that (bclcs_level_2 =="N & is.na(crown_closure)) is working as I think it should. i.e. that there are not locations where vegetation has not been designated.
+  # need to check that (bclcs_level_2 =="N & is.na(crownclosure)) is working as I think it should. i.e. that there are not locations where vegetation has not been designated.
   
-  veg2[bclcs_level_1=="V" & (crown_closure < 10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & earliest_nonlogging_dist_type %in% burn & years_since_nonlogging_dist < 2, fwveg:="N"]
+  veg2[bclcs_level_1=="V" & (crownclosure < 10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & earliest_nonlogging_dist_type %in% burn & years_since_nonlogging_dist < 2, fwveg:="N"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist >=2 & years_since_nonlogging_dist<= 3), fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist >=2 & years_since_nonlogging_dist<= 3), fwveg:="D-1/2"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist >=4 & years_since_nonlogging_dist<= 10), fwveg:="O-1a/b"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist >=4 & years_since_nonlogging_dist<= 10), fwveg:="O-1a/b"]
   
   ### logged
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age<=7, fwveg:="S-1"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age<=7, fwveg:="S-1"]
   veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & blockid>0 & age<=7 & species_cd_1 %in% c("P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA"), fwveg:="S-1"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age <=7 & species_cd_1 %in% c("B","BB","BA","BG","BL","S","SB","SE","SS","SW","SX","SXW","SXL","SXS"), fwveg:="S-2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age <=7 & species_cd_1 %in% c("B","BB","BA","BG","BL","S","SB","SE","SS","SW","SX","SXW","SXL","SXS"), fwveg:="S-2"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age<=7 & species_cd_1 %in% c("CW","YC","H","HM","HW","HXM"), fwveg:="S-3"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age<=7 & species_cd_1 %in% c("CW","YC","H","HM","HW","HXM"), fwveg:="S-3"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age<=7 & species_cd_1 == "FD" & zone %in% c("CWH", "ICH"), fwveg:="S-3"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age<=7 & species_cd_1 == "FD" & zone %in% c("CWH", "ICH"), fwveg:="S-3"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age %between% c(8, 24) & zone %in% c("CWH", "MH"), fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age %between% c(8, 24) & zone %in% c("CWH", "MH"), fwveg:="D-1/2"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age %between% c(8, 24) & zone == "ICH" & subzone %in% wet, fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age %between% c(8, 24) & zone == "ICH" & subzone %in% wet, fwveg:="D-1/2"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age %between% c(8, 24), fwveg:="O-1a/b"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age %between% c(8, 24), fwveg:="O-1a/b"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age>=25 & zone %in% c("CMA", "IMA"), fwveg:="N"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age>=25 & zone %in% c("CMA", "IMA"), fwveg:="N"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age >=25 & zone == "BAFA", fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone == "BAFA", fwveg:="D-1/2"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age >=25 & zone == "CWH", fwveg:="M-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone == "CWH", fwveg:="M-1/2"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age >=25 & zone == "CWH" & subzone %in% wet, fwveg:="C-5"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone == "CWH" & subzone %in% wet, fwveg:="C-5"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age >=25 & zone == "BWBS", fwveg:="C-2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone == "BWBS", fwveg:="C-2"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age >=25 & zone=="SWB", fwveg:="M-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone=="SWB", fwveg:="M-1/2"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age >=25 & zone=="SBS", fwveg:="C-3"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone=="SBS", fwveg:="C-3"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age >=25 & zone=="SBPS", fwveg:="C-7"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone=="SBPS", fwveg:="C-7"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & age >=25 & zone %in% c("MS", "ESSF"), fwveg:="C-3"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & age >=25 & zone %in% c("MS", "ESSF"), fwveg:="C-3"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age >=25 & zone %in% c("IDF", "CDF"), fwveg:= "C-7"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone %in% c("IDF", "CDF"), fwveg:= "C-7"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age >=25 & zone=="IDF" & subzone %in% wet, fwveg:="C-3"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone=="IDF" & subzone %in% wet, fwveg:="C-3"]
   
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age >=25 & zone %in% c("PP", "BG"), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age >=25 & zone=="MH", fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age >=25 & zone=="ICH", fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid>0 & age >=25 & zone %in% c("CDF", "ICH") & subzone %in% wet, fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age <=5, fwveg:="S-1"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age %between% c(6, 24), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age %between% c(6, 24) & zone %in% c("CWH", "MH", "ICH"), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone %in% c("CMA", "IMA"), fwveg:="N"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="BAFA", fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="CWH", fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="CWH" & subzone %in% wet, fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="BWBS", fwveg:="C-2"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="SWB", fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="SBS", fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="SBPS", fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="MS", fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="IDF" & subzone %in% wet, fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="IDF", fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone %in% c("PP", "BG"), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="MH", fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone %in% c("ESSF", "CDF"), fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="ICH", fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone %in% c("CDF", "ICH") & subzone %in% wet, fwveg:="C-5"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone %in% c("PP", "BG"), fwveg:="O-1a/b"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone=="MH", fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone=="ICH", fwveg:="C-3"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone %in% c("CDF", "ICH") & subzone %in% wet, fwveg:="C-5"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age <=5, fwveg:="S-1"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age %between% c(6, 24), fwveg:="O-1a/b"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age %between% c(6, 24) & zone %in% c("CWH", "MH", "ICH"), fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone %in% c("CMA", "IMA"), fwveg:="N"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="BAFA", fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="CWH", fwveg:="M-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="CWH" & subzone %in% wet, fwveg:="C-5"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="BWBS", fwveg:="C-2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="SWB", fwveg:="M-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="SBS", fwveg:="C-3"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="SBPS", fwveg:="C-7"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="MS", fwveg:="C-7"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="IDF" & subzone %in% wet, fwveg:="M-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="IDF", fwveg:="C-7"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone %in% c("PP", "BG"), fwveg:="O-1a/b"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="MH", fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone %in% c("ESSF", "CDF"), fwveg:="C-7"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="ICH", fwveg:="M-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone %in% c("CDF", "ICH") & subzone %in% wet, fwveg:="C-5"]
  
   
   #### Unlogged
 
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & !is.na(species_cd_1), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & !is.na(species_cd_1) & zone %in% c("CMA", "IMA"), fwveg:="N"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & !is.na(species_cd_1) & zone %in% c("CWH", "MH", "ICH", "BAFA"), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd %between% c(11, 14) & zone %in% c("CWH", "MH", "ICH"), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd %between% c(10, 14), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd ==35, fwveg:="W"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd ==42, fwveg:="N"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & (non_productive_cd == 60 |non_productive_cd == 62 | non_productive_cd == 63), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" &  zone %in% c("CMA","IMA"), fwveg:="N"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & zone %in% c("CWH","MH", "ICH", "BAFA"), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & is.na(non_productive_cd), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F", fwveg:="N"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1 %in% c("LA", "RE","RL","OC"), fwveg:="W"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1=="HG", fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1 %in% c("BY", "BM","BL"), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & (land_cover_class_cd_1 %in% c("SL", "ST","HE","HF") |is.na(land_cover_class_cd_1)) & zone %in% c("CMA", "IMA"), fwveg:="N"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & (land_cover_class_cd_1 %in% c("SL", "ST","HE","HF") |is.na(land_cover_class_cd_1)) & zone %in% c("CWH", "MH", "ICH"), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & (land_cover_class_cd_1 %in% c("SL", "ST","HE","HF") |is.na(land_cover_class_cd_1)), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crown_closure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crown_closure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1 %in% c("SI", "GL","PN","RO", "BR", "TA", "BI", "MZ", "LB", "EL", "RS", "ES", "LS", "RM", "BE", "LL", "BU", "RZ", "MU", "CB", "MN", "GP", "TZ", "RN", "UR", "AP", "MI", "OT", "LA", "RE", "RI", "OC"), fwveg:="N"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & !is.na(species_cd_1), fwveg:="O-1a/b"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & !is.na(species_cd_1) & zone %in% c("CMA", "IMA"), fwveg:="N"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & !is.na(species_cd_1) & zone %in% c("CWH", "MH", "ICH", "BAFA"), fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd %between% c(11, 14) & zone %in% c("CWH", "MH", "ICH"), fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd %between% c(10, 14), fwveg:="O-1a/b"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd ==35, fwveg:="W"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd ==42, fwveg:="N"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & (non_productive_cd == 60 |non_productive_cd == 62 | non_productive_cd == 63), fwveg:="O-1a/b"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" &  zone %in% c("CMA","IMA"), fwveg:="N"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & zone %in% c("CWH","MH", "ICH", "BAFA"), fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & is.na(non_productive_cd), fwveg:="O-1a/b"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F", fwveg:="N"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1 %in% c("LA", "RE","RL","OC"), fwveg:="W"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1=="HG", fwveg:="O-1a/b"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1 %in% c("BY", "BM","BL"), fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & (land_cover_class_cd_1 %in% c("SL", "ST","HE","HF") |is.na(land_cover_class_cd_1)) & zone %in% c("CMA", "IMA"), fwveg:="N"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & (land_cover_class_cd_1 %in% c("SL", "ST","HE","HF") |is.na(land_cover_class_cd_1)) & zone %in% c("CWH", "MH", "ICH"), fwveg:="D-1/2"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & (land_cover_class_cd_1 %in% c("SL", "ST","HE","HF") |is.na(land_cover_class_cd_1)), fwveg:="O-1a/b"]
+  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1 %in% c("SI", "GL","PN","RO", "BR", "TA", "BI", "MZ", "LB", "EL", "RS", "ES", "LS", "RM", "BE", "LL", "BU", "RZ", "MU", "CB", "MN", "GP", "TZ", "RN", "UR", "AP", "MI", "OT", "LA", "RE", "RI", "OC"), fwveg:="N"]
   
   ##--------------------------------------------##
   ####bclcs_level_1=="V" & bclcs_level_2=="T" ####
@@ -916,7 +926,8 @@ message("getting vegetation data")
   ## conifer cover 41 - 65%
  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & dominant_conifer %in% c("T","TW") & conifer_pct_cover_total %between% c(41, 65), fwveg:="C-5"]
  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 40 & conifer_pct_cover_total<66) & dominant_conifer %in% c("J","JR","JS"), fwveg:="O-1a/b"]
- veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 40 & conifer_pct_cover_total<66) & dominant_conifer %in% c("P","PJ","PF","PL","PLI","PY","PLC","PW","PA","F","FD","FDC","FDI","SE","S","SB","SS","SW","SX","SXW","SXL","SXS","C","CW","Y","YC","H","HM","HW","HXM","B","BB","BA","BG","BL"), fwveg:="M-1/2"]  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_cover_total %between% c(41, 65) & blockid>0 & age<=6, fwveg:="S-1"]
+ veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 40 & conifer_pct_cover_total<66) & dominant_conifer %in% c("P","PJ","PF","PL","PLI","PY","PLC","PW","PA","F","FD","FDC","FDI","SE","S","SB","SS","SW","SX","SXW","SXL","SXS","C","CW","Y","YC","H","HM","HW","HXM","B","BB","BA","BG","BL"), fwveg:="M-1/2"]  
+ veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_cover_total %between% c(41, 65) & blockid>0 & age<=6, fwveg:="S-1"]
   
   
   ## conifer cover 65-80% 
@@ -1180,7 +1191,7 @@ calcProbIgnitEscape<-function(sim){
   dat$veg_S1 <- ifelse(dat$fwveg == 'S-1', 1, 0)
   #dat$veg_W <- ifelse(dat$fwveg == 'W', 1, 0)
   
-  dat<-as.data.table(dat)
+  dat<-data.table(dat)
   
   
   # there aer values in climate that are null values e.g. -9999
@@ -1204,16 +1215,16 @@ calcProbIgnitEscape<-function(sim){
   # put coefficients into model formula
   #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
   frt5[, logit_P_lightning := ignitstaticlightning * all + 
-         sim$coefficients[cause == "Lightning" & frt==5,]$coef_climate_1 * climate1lightning + 
-         sim$coefficients[cause == "Lightning" & frt==5,]$coef_climate_2 * climate2lightning +
-         sim$coefficients[cause == "Lightning" & frt==5,]$coef_c2 * veg_C2 +
-         sim$coefficients[cause == "Lightning" & frt==5,]$coef_c3 * veg_C3 +
-         sim$coefficients[cause == "Lightning" & frt==5,]$coef_c7 * veg_C5 +
-         sim$coefficients[cause == "Lightning" & frt==5,]$coef_c7 * veg_C7 +
-         sim$coefficients[cause == "Lightning" & frt==5,]$coef_d12 * veg_D12 +
-         sim$coefficients[cause == "Lightning" & frt==5,]$coef_m12 * veg_M12 +
-         sim$coefficients[cause == "Lightning" & frt==5,]$coef_o1ab * veg_O1ab + 
-         sim$coefficients[cause == "Lightning" & frt==5,]$coef_o1ab * veg_S1]
+         sim$coefficients[cause == "lightning" & frt==5,]$coef_climate_1 * climate1lightning + 
+         sim$coefficients[cause == "lightning" & frt==5,]$coef_climate_2 * climate2lightning +
+         sim$coefficients[cause == "lightning" & frt==5,]$coef_c2 * veg_C2 +
+         sim$coefficients[cause == "lightning" & frt==5,]$coef_c3 * veg_C3 +
+         sim$coefficients[cause == "lightning" & frt==5,]$coef_c7 * veg_C5 +
+         sim$coefficients[cause == "lightning" & frt==5,]$coef_c7 * veg_C7 +
+         sim$coefficients[cause == "lightning" & frt==5,]$coef_d12 * veg_D12 +
+         sim$coefficients[cause == "lightning" & frt==5,]$coef_m12 * veg_M12 +
+         sim$coefficients[cause == "lightning" & frt==5,]$coef_o1ab * veg_O1ab + 
+         sim$coefficients[cause == "lightning" & frt==5,]$coef_o1ab * veg_S1]
   
   head(frt5)
   # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
@@ -1245,33 +1256,6 @@ calcProbIgnitEscape<-function(sim){
        
   frt5[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
 
-  #### Spread continue working here####
-  
-#  model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt5_spread.csv")
-  
-  frt5[fwveg == "S-1", veg_O1ab:=1]
-  
-  frt5$scale_climate1<-(frt5$climate1 - 20.84863)/1.399736
-  frt5$scale_climate2<-(frt5$climate2-79.15963)/15.56926
-  frt5$scale_dem<-(frt5$dem-675.0221)/201.9468
-  frt5$scale_slope<-(frt5$slope_ha_bc-2.390028)/4.172518
-  frt5$scale_roads<-(frt5$dist_roads_m-916.9191)/1797.046
-  frt5$scale_dist_ignit<-(frt5$rast_ignit_dist-8086.005)/7167.049
-  
-  m5<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt5.rds")
-  frt5$logit_P_spread <- predict(m5,frt5,re.form=NA)
-  frt5[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
-  
-  # what needs to be done:
-  # 1.)scale the variables using the mean and sd from the statistical analysis, 
-  #2.)then pull in the rds and run the model. 
-  #3.) extract the data from some of the static variable rasters.
-  #4.) get distance to ignition point
-  #5. Scale the spread models to get reasonable fire sizes
-  
-  
-  
-#   frt5[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
   
   
   # currently I weight the total probability of ignition by the frequency of each cause.But I calculated this once and assume its static. Probably I should actually calculate this once during the simulation for my AOI and then assume it does not change over time. Or I should use that equation that weights them equally since we dont know whats going to happen inthe future.
@@ -1298,7 +1282,7 @@ calcProbIgnitEscape<-function(sim){
                      prob_ignition_lightning = as.integer(),
                      prob_ignition_person = as.integer(),
                      prob_ignition_escape = as.integer(),
-                     prob_ignition_spread = as.integer(),
+                     #prob_ignition_spread = as.integer(),
                      prob_tot_ignit = as.integer())
   }
   
@@ -1317,12 +1301,12 @@ calcProbIgnitEscape<-function(sim){
   #model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt7_lightning.csv")
   
   frt7[, logit_P_lightning := ignitstaticlightning * all + 
-    sim$coefficients[cause=="Lightning" & frt==7,]$coef_climate_1 * climate1lightning +
-    sim$coefficients[cause=="Lightning" & frt==7,]$coef_c2 * veg_C2 +
-    sim$coefficients[cause=="Lightning" & frt==7,]$coef_c3 * veg_C3 +
-    sim$coefficients[cause=="Lightning" & frt==7,]$coef_d12 * veg_D12 +
-    sim$coefficients[cause=="Lightning" & frt==7,]$coef_m12 * veg_M12 +
-    sim$coefficients[cause=="Lightning" & frt==7,]$coef_o1ab * veg_O1ab]
+    sim$coefficients[cause=="lightning" & frt==7,]$coef_climate_1 * climate1lightning +
+    sim$coefficients[cause=="lightning" & frt==7,]$coef_c2 * veg_C2 +
+    sim$coefficients[cause=="lightning" & frt==7,]$coef_c3 * veg_C3 +
+    sim$coefficients[cause=="lightning" & frt==7,]$coef_d12 * veg_D12 +
+    sim$coefficients[cause=="lightning" & frt==7,]$coef_m12 * veg_M12 +
+    sim$coefficients[cause=="lightning" & frt==7,]$coef_o1ab * veg_O1ab]
 
   # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
   frt7[, prob_ignition_lightning:=exp(logit_P_lightning)/(1+exp(logit_P_lightning))]
@@ -1414,9 +1398,8 @@ calcProbIgnitEscape<-function(sim){
        frt7[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
        frt7[fwveg %in% c("W", "N"),prob_ignition_person:=0]
        frt7[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
-       frt7[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
        
-      frt7<-frt7[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]
+      frt7<-frt7[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_tot_ignit")]
       
   } else {
     
@@ -1427,7 +1410,6 @@ calcProbIgnitEscape<-function(sim){
                      prob_ignition_lightning = as.integer(),
                      prob_ignition_person = as.integer(), 
                      prob_ignition_escape = as.integer(),
-                     prob_ignition_spread = as.integer(),
                      prob_tot_ignit = as.integer())
   }
   
@@ -1449,10 +1431,10 @@ calcProbIgnitEscape<-function(sim){
  #   model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_lightning.csv")
     
   frt9[, logit_P_lightning := ignitstaticlightning * all + 
-    sim$coefficients[cause == "Lightning" & frt==9,]$coef_climate_1*climate1lightning 
+    sim$coefficients[cause == "lightning" & frt==9,]$coef_climate_1*climate1lightning ]
     
     # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
-    frt9[, prob_ignition_lightning<-exp(logit_P_lightning)/(1+exp(logit_P_lightning))]
+    frt9[, prob_ignition_lightning := exp(logit_P_lightning)/(1+exp(logit_P_lightning))]
     
   # Person caused fires
   # model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT9_person.csv")
@@ -1468,7 +1450,7 @@ calcProbIgnitEscape<-function(sim){
          
   frt9[, logit_P_escape := escapestatic * all + 
         sim$coefficients[cause == 'escape' & frt==11,]$coef_climate_1 * climate1escape +
-         sim$coefficients[cause == 'escape' & frt==11,]$coef_climate_2 * climate2escape 
+         sim$coefficients[cause == 'escape' & frt==11,]$coef_climate_2 * climate2escape] 
          
   frt9[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
          
@@ -1508,10 +1490,9 @@ calcProbIgnitEscape<-function(sim){
   frt9[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
   frt9[fwveg %in% c("W", "N"),prob_ignition_person:=0]
   frt9[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
-  frt9[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
   
   
-  frt9<-frt9[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]
+  frt9<-frt9[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_tot_ignit")]
   } else {
     
     print("no data for FRT 9")
@@ -1521,7 +1502,6 @@ calcProbIgnitEscape<-function(sim){
                      prob_ignition_lightning = as.integer(),
                      prob_ignition_person = as.integer(), 
                      prob_ignition_escape = as.integer(),
-                     prob_ignition_spread = as.integer(),
                      prob_tot_ignit = as.integer())
     
       
@@ -1536,8 +1516,8 @@ calcProbIgnitEscape<-function(sim){
  #   model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt10_lightning.csv")
     
     frt10[, logit_P_lightning := ignitstaticlightning * all + 
-      sim$coefficients[cause == 'Lightning' & frt==10,]$coef_climate_1*climate1lightning + 
-      sim$coefficients[cause == 'Lightning' & frt==10,]$coef_climate_2*climate2lightning]
+      sim$coefficients[cause == 'lightning' & frt==10,]$coef_climate_1*climate1lightning + 
+      sim$coefficients[cause == 'lightning' & frt==10,]$coef_climate_2*climate2lightning]
     
     # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
     frt10[, prob_ignition_lightning := exp(logit_P_lightning)/(1+exp(logit_P_lightning))]
@@ -1547,12 +1527,14 @@ calcProbIgnitEscape<-function(sim){
     
         frt10[, logit_P_human := ignitstatichuman  * all + 
       sim$coefficients[cause == 'person' & frt == 10, ]$coef_climate_1 * climate1person + 
-      sim$coefficients[cause == 'person' & frt == 10, ]$coef_log_road_dist * log(coef_road_dist + 1)]
+      sim$coefficients[cause == 'person' & frt == 10, ]$coef_log_road_dist * log(rds_dist + 1)]
          
          frt10[,prob_ignition_person := exp(logit_P_human)/(1+exp(logit_P_human))]
          
          # Fire Escape
    #  model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt10_escape.csv")
+         
+         #### CHECK MY ESCAPE VALUES SEEM VERY LOW
          
     frt10[, logit_P_escape := escapestatic * all + 
         sim$coefficients[cause == 'escape' & frt==10,]$coef_climate_1 * climate1escape]
@@ -1592,17 +1574,16 @@ calcProbIgnitEscape<-function(sim){
     # frt10[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
     
     
-    frt10[, prob_tot_ignit := (prob_ignition_lightning*0.86) + (prob_ignition_person*0.14)]
+    frt10[, prob_tot_ignit := (as.numeric(prob_ignition_lightning)*0.86) + (as.numeric(prob_ignition_person)*0.14)]
     
     frt10[fwveg %in% c("W", "N"), prog_tot_ignit:=0]
     frt10[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
     frt10[fwveg %in% c("W", "N"),prob_ignition_person:=0]
     frt10[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
-    frt10[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
     
 
     
-    frt10<-frt10[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]
+    frt10<-frt10[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_tot_ignit")]
   } else {
     
     print("no data for FRT 10")
@@ -1612,7 +1593,6 @@ calcProbIgnitEscape<-function(sim){
                       prob_ignition_lightning = as.integer(),
                      prob_ignition_person = as.integer(), 
                      prob_ignition_escape = as.integer(),
-                     prob_ignition_spread = as.integer(),
                      prob_tot_ignit = as.integer())
     
     
@@ -1634,7 +1614,7 @@ calcProbIgnitEscape<-function(sim){
    # model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_lightning.csv")
     
     frt11[, logit_P_lightning := ignitstaticlightning * all + 
-      sim$coefficients[cause == 'Lightning' & frt==11,]$coef_climate_1 * climate1lightning]
+      sim$coefficients[cause == 'lightning' & frt==11,]$coef_climate_1 * climate1lightning]
     
     # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
     frt11[, prob_ignition_lightning<-exp(logit_P_lightning)/(1+exp(logit_P_lightning))]
@@ -1691,10 +1671,9 @@ calcProbIgnitEscape<-function(sim){
   frt11[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
   frt11[fwveg %in% c("W", "N"),prob_ignition_person:=0]
   frt11[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
-  frt11[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
   
   
-  frt11<-frt11[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]  
+  frt11<-frt11[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_tot_ignit")]  
   } else {
     
     print("no data for FRT 11")
@@ -1704,7 +1683,6 @@ calcProbIgnitEscape<-function(sim){
                      prob_ignition_lightning = as.integer(),
                      prob_ignition_person = as.integer(), 
                      prob_ignition_escape = as.integer(),
-                     prob_ignition_spread = as.integer(),
                      prob_tot_ignit = as.integer())
     
     
@@ -1719,15 +1697,15 @@ calcProbIgnitEscape<-function(sim){
 #    model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt12_lightning.csv")
     
     frt12[, logit_P_lightning := ignitstaticlightning * all + 
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_climate_1 * climate1lightning + 
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_c1 * veg_C1 +
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_c2 * veg_C2 + #c3 is the intercept
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_c5 * veg_C5 +
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_c7 * veg_C7 +
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_d12 * veg_D12 +
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_m12 * veg_M12 +
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_o1ab * veg_O1ab +
-      sim$coefficients[cause == 'Lightning' & frt==12,]$coef_s1 * veg_S1]
+      sim$coefficients[cause == 'lightning' & frt==12,]$coef_climate_1 * climate1lightning + 
+      sim$coefficients[cause == 'lightning' & frt==12,]$coef_c1 * veg_C1 +
+      sim$coefficients[cause == 'lightning' & frt==12,]$coef_c2 * veg_C2 + #c3 is the intercept
+      sim$coefficients[cause == 'lightning' & frt==12,]$coef_c5 * veg_C5 +
+      sim$coefficients[cause == 'lightning' & frt==12,]$coef_c7 * veg_C7 +
+      sim$coefficients[cause == 'lightning' & frt==12,]$coef_d12 * veg_D12 +
+      sim$coefficients[cause == 'lightning' & frt==12,]$coef_m12 * veg_M12 +
+      sim$coefficients[cause == 'lightning' & frt==12,]$coef_o1ab * veg_O1ab +
+      sim$coefficients[cause == 'lightning' & frt==12,]$coef_s1 * veg_S1]
       
     
     # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
@@ -1767,7 +1745,7 @@ calcProbIgnitEscape<-function(sim){
       sim$coefficients[cause == 'escape' & frt==12,]$coef_o1ab * veg_O1ab +
       sim$coefficients[cause == 'escape' & frt==12,]$coef_o1ab * veg_S1 + # seems like there were no S-1 values in my training dataset so Ill use the coef of o1ab for this category
       sim$coefficients[cause == 'escape' & frt==12,]$coef_road_dist * rds_dist]
-    
+  
     frt12[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
     
     # Spread
@@ -1808,10 +1786,9 @@ calcProbIgnitEscape<-function(sim){
     frt12[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
     frt12[fwveg %in% c("W", "N"),prob_ignition_person:=0]
     frt12[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
-    frt12[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
     
     
-    frt12<-frt12[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]    
+    frt12<-frt12[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_tot_ignit")]    
   } else {
     
     print("no data for FRT 12")
@@ -1821,7 +1798,6 @@ calcProbIgnitEscape<-function(sim){
                       prob_ignition_lightning = as.integer(),
                      prob_ignition_person = as.integer(), 
                      prob_ignition_escape = as.integer(),
-                     prob_ignition_spread = as.integer(),
                      prob_tot_ignit = as.integer())
     
   }
@@ -1838,15 +1814,15 @@ calcProbIgnitEscape<-function(sim){
 #    model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt13_lightning.csv")
     
     frt13[, logit_P_lightning := ignitstaticlightning * all + 
-            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_climate_1 * climate1lightning +
-            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_log_climate_2 * log(climate2lightning+0.1) +
-            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_c2 * veg_C2 +
-            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_c5 * veg_C5 +
-            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_c7 * veg_C7 +
-            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_d12 * veg_D12 +
-            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_m12 * veg_M12 +
-            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_o1ab * veg_O1ab +
-            sim$coefficients[cause == 'Lightning' & frt==13,]$coef_s1 * veg_S1]
+            sim$coefficients[cause == 'lightning' & frt==13,]$coef_climate_1 * climate1lightning +
+            sim$coefficients[cause == 'lightning' & frt==13,]$coef_log_climate_2 * log(climate2lightning+0.1) +
+            sim$coefficients[cause == 'lightning' & frt==13,]$coef_c2 * veg_C2 +
+            sim$coefficients[cause == 'lightning' & frt==13,]$coef_c5 * veg_C5 +
+            sim$coefficients[cause == 'lightning' & frt==13,]$coef_c7 * veg_C7 +
+            sim$coefficients[cause == 'lightning' & frt==13,]$coef_d12 * veg_D12 +
+            sim$coefficients[cause == 'lightning' & frt==13,]$coef_m12 * veg_M12 +
+            sim$coefficients[cause == 'lightning' & frt==13,]$coef_o1ab * veg_O1ab +
+            sim$coefficients[cause == 'lightning' & frt==13,]$coef_s1 * veg_S1]
     
     
     # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
@@ -1919,10 +1895,9 @@ calcProbIgnitEscape<-function(sim){
     frt13[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
     frt13[fwveg %in% c("W", "N"),prob_ignition_person:=0]
     frt13[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
-    frt13[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
     
     
-    frt13<-frt13[, c("pixelid", "frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]
+    frt13<-frt13[, c("pixelid", "frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_tot_ignit")]
     
   } else {
     
@@ -1933,7 +1908,6 @@ calcProbIgnitEscape<-function(sim){
                       prob_ignition_lightning = as.integer(),
                      prob_ignition_person = as.integer(), 
                      prob_ignition_escape = as.integer(),
-                     prob_ignition_spread = as.integer(),
                      prob_tot_ignit = as.integer())
     
     
@@ -1950,7 +1924,7 @@ calcProbIgnitEscape<-function(sim){
 # model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt14_lightning.csv")
     
     frt14[, logit_P_lightning := ignitstaticlightning * all + 
-            sim$coefficients[cause == 'Lightning' & frt==14,]$coef_climate_1 * climate1lightning]
+            sim$coefficients[cause == 'lightning' & frt==14,]$coef_climate_1 * climate1lightning]
     
     # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
     frt14[, prob_ignition_lightning := exp(logit_P_lightning)/(1+exp(logit_P_lightning))]
@@ -2017,10 +1991,9 @@ calcProbIgnitEscape<-function(sim){
     frt14[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
     frt14[fwveg %in% c("W", "N"),prob_ignition_person:=0]
     frt14[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
-    frt14[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
     
   
-    frt14<-frt14[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]
+    frt14<-frt14[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_tot_ignit")]
     
   } else {
     
@@ -2031,7 +2004,6 @@ calcProbIgnitEscape<-function(sim){
                       prob_ignition_lightning = as.integer(),
                      prob_ignition_person = as.integer(), 
                      prob_ignition_escape = as.integer(),
-                     prob_ignition_spread = as.integer(),
                      prob_tot_ignit = as.integer())
     
       
@@ -2045,14 +2017,14 @@ calcProbIgnitEscape<-function(sim){
    # model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt15_lightning.csv")
     
     frt15[, logit_P_lightning := ignitstaticlightning * all + 
-            sim$coefficients[cause == 'Lightning' & frt==15,]$coef_climate_1 * climate1lightning +
-            sim$coefficients[cause == 'Lightning' & frt==15,]$coef_climate_2 * climate2lightning +
-            sim$coefficients[cause == 'Lightning' & frt==15,]$coef_c3 * veg_C3 + # C5 is the intercept
-            sim$coefficients[cause == 'Lightning' & frt==15,]$coef_c7 * veg_C7 +
-            sim$coefficients[cause == 'Lightning' & frt==15,]$coef_d12 * veg_D12 +
-            sim$coefficients[cause == 'Lightning' & frt==15,]$coef_m12 * veg_M12 +
-            sim$coefficients[cause == 'Lightning' & frt==15,]$coef_o1ab * veg_O1ab + 
-            sim$coefficients[cause == 'Lightning' & frt==15,]$coef_s1 * veg_S1]
+            sim$coefficients[cause == 'lightning' & frt==15,]$coef_climate_1 * climate1lightning +
+            sim$coefficients[cause == 'lightning' & frt==15,]$coef_climate_2 * climate2lightning +
+            sim$coefficients[cause == 'lightning' & frt==15,]$coef_c3 * veg_C3 + # C5 is the intercept
+            sim$coefficients[cause == 'lightning' & frt==15,]$coef_c7 * veg_C7 +
+            sim$coefficients[cause == 'lightning' & frt==15,]$coef_d12 * veg_D12 +
+            sim$coefficients[cause == 'lightning' & frt==15,]$coef_m12 * veg_M12 +
+            sim$coefficients[cause == 'lightning' & frt==15,]$coef_o1ab * veg_O1ab + 
+            sim$coefficients[cause == 'lightning' & frt==15,]$coef_s1 * veg_S1]
     
     
     # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
@@ -2113,10 +2085,9 @@ calcProbIgnitEscape<-function(sim){
     frt15[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
     frt15[fwveg %in% c("W", "N"),prob_ignition_person:=0]
     frt15[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
-    frt15[fwveg %in% c("W", "N"),prob_ignition_spread:=0]
     
     
-    frt15<-frt15[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_ignition_spread", "prob_tot_ignit")]    
+    frt15<-frt15[, c("pixelid","frt","prob_ignition_lightning", "prob_ignition_person", "prob_ignition_escape", "prob_tot_ignit")]    
   } else {
     
     print("no data for FRT 15")
@@ -2126,7 +2097,6 @@ calcProbIgnitEscape<-function(sim){
                       prob_ignition_lightning = as.integer(),
                      prob_ignition_person = as.integer(), 
                      prob_ignition_escape = as.integer(),
-                     prob_ignition_spread = as.integer(),
                      prob_tot_ignit = as.integer())
   } 
   
@@ -2138,7 +2108,6 @@ calcProbIgnitEscape<-function(sim){
   sim$probFireRasts<-merge(sim$veg3, probFireRast, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   
   sim$probFireRasts<-data.table(sim$probFireRasts)
-  #sim$probFireRasts[fwveg %in% c("W", "N"),prob_tot_ignit:=0]
   
   print("number of NA values in probFireRasts$prob_ignition_lightning")
   print(table(is.na(sim$probFireRasts$prob_ignition_lightning)))
@@ -2157,16 +2126,16 @@ ignitLocations <- function(sim) {
     
     # create area raster
     ras.info<-dbGetQuery(sim$castordb, "Select * from raster_info limit 1;")
-    area<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
+    sim$area<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
     
     
-    area[]<-sim$probFireRasts$prob_ignition_escape
-    area <- reclassify(area, c(-Inf, 0, 0, 0, 1, 1))
-    print(area)
+    sim$area[]<-sim$probFireRasts$prob_ignition_escape
+    sim$area <- reclassify(sim$area, c(-Inf, 0, 0, 0, 1, 1))
+    print(sim$area)
     
     message("create escape raster")
     escapeRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
-    escapeRas[]<-sim$probFireRasts$prob_ignition_escape
+    escapeRas[] <- sim$probFireRasts$prob_ignition_escape
  # }
     
     
@@ -2201,17 +2170,59 @@ ignitLocations <- function(sim) {
   
   spreadProcess <- function(sim) {   
     
-    
   #create prob spread
   dat<-merge(sim$veg3, sim$climate_data, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   dat<-merge(dat, sim$road_distance, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   #dat<-merge(dat, sim$elev, by.x="pixelid", by.y="pixelid", all.x=TRUE)
+
   
   dat<-merge(dat,sim$fire_static, all.x=TRUE)
   
+  #### Distance to ignition points ####
+  xy_loc_ig<-sim$pts[pixelid %in% sim$sams, c("x", "y")]
+  d<-distanceFromPoints(sim$area, xy_loc_ig)
+  
+  dat<-dat[order(pixelid)]
+  dat1<-cbind(dat, as.data.frame(d))
+  
+  #Test it worked
+  #mySim$area[]<-dat1$layer
+  #plot(mySim$area)
+  #it does :)
+  
+  ###NOW CHANGE THE COLUMN NAME OF LAYER TO IGNIT_DIST ####
   
   
   #### FRT5 ####
+  
+  #### Spread continue working here####
+  
+  #  model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt5_spread.csv")
+  
+  frt5[fwveg == "S-1", veg_O1ab:=1]
+  
+  frt5$scale_climate1<-(frt5$climate1 - 20.84863)/1.399736
+  frt5$scale_climate2<-(frt5$climate2-79.15963)/15.56926
+  frt5$scale_dem<-(frt5$dem-675.0221)/201.9468
+  frt5$scale_slope<-(frt5$slope_ha_bc-2.390028)/4.172518
+  frt5$scale_roads<-(frt5$dist_roads_m-916.9191)/1797.046
+  frt5$scale_dist_ignit<-(frt5$rast_ignit_dist-8086.005)/7167.049
+  
+  m5<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt5.rds")
+  frt5$logit_P_spread <- predict(m5,frt5,re.form=NA)
+  frt5[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+  
+  # what needs to be done:
+  # 1.)scale the variables using the mean and sd from the statistical analysis, 
+  #2.)then pull in the rds and run the model. 
+  #3.) extract the data from some of the static variable rasters.
+  #4.) get distance to ignition point
+  #5. Scale the spread models to get reasonable fire sizes
+  
+  
+  
+  #   frt5[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+  
     
     message("create spread raster")
     spreadRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
@@ -2268,9 +2279,6 @@ ignitLocations <- function(sim) {
     
     sim$fireReport<-rbindlist(list(sim$fireReport,tempfireReport ))
     print(sim$fireReport)
-      
-    
-  }
   
   
   return(invisible(sim))
