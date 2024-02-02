@@ -104,7 +104,7 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
       message("Downloading climate data from climateBC ...")  
       
       if (!exists("dbCon")){
-        dbCon <- climRdev::data_connect() ##connect to database
+        dbCon <- climR::data_connect() ##connect to database
       } else { message("connection to dbCon already made")}
       
       thebb <- get_bb(climate_id_key[,c("long","lat", "el")]) ##get bounding box based on input points
