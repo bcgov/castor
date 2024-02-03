@@ -265,23 +265,23 @@ getStaticVariables<-function(sim){
       }
       
    # spread     
-        ras.spread<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                                                      srcRaster= P(sim, "nameStaticSpreadRaster", "fireCastor"), 
-                                                      clipper=sim$boundaryInfo[1] , 
-                                                      geom= sim$boundaryInfo[4] , 
-                                                      where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                                      conn=NULL))
-        if(terra::ext(sim$ras) == terra::ext(ras.spread)){
-          spread_static<-data.table(spreadstatic = as.numeric(ras.spread[]))
-          spread_static[, pixelid := seq_len(.N)][, spreadstatic := as.numeric(spreadstatic)]
-          spread_static<-spread_static[spreadstatic > -200, ]
-        }else{
-          stop(paste0("ERROR: extents are not the same check -", P(sim, "nameStaticSpreadRaster", "fireCastor")))
-        }
+        # ras.spread<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+        #                                               srcRaster= P(sim, "nameStaticSpreadRaster", "fireCastor"), 
+        #                                               clipper=sim$boundaryInfo[1] , 
+        #                                               geom= sim$boundaryInfo[4] , 
+        #                                               where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+        #                                               conn=NULL))
+        # if(terra::ext(sim$ras) == terra::ext(ras.spread)){
+        #   spread_static<-data.table(spreadstatic = as.numeric(ras.spread[]))
+        #   spread_static[, pixelid := seq_len(.N)][, spreadstatic := as.numeric(spreadstatic)]
+        #   spread_static<-spread_static[spreadstatic > -200, ]
+        # }else{
+        #   stop(paste0("ERROR: extents are not the same check -", P(sim, "nameStaticSpreadRaster", "fireCastor")))
+        # }
         
     fire_static<-merge(ignit_lightning_static,ignit_human_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
     fire_static<-merge(fire_static,escape_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-    fire_static<-merge(fire_static,spread_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
+ #   fire_static<-merge(fire_static,spread_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
     sim$fire_static<-merge(fire_static, sim$frt_id, by.x="pixelid", by.y="pixelid", all.x=TRUE)
     
     #add to the castordb
@@ -2131,7 +2131,6 @@ ignitLocations <- function(sim) {
     
     sim$area[]<-sim$probFireRasts$prob_ignition_escape
     sim$area <- reclassify(sim$area, c(-Inf, 0, 0, 0, 1, 1))
-    print(sim$area)
     
     message("create escape raster")
     escapeRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
@@ -2155,7 +2154,7 @@ ignitLocations <- function(sim) {
     
     fire<-probfire[pixelid %in% starts,]
     fire$randomnumber<-runif(length(fire$pixelid))
-    start<-fire[prob_tot_ignit>randomnumber, ]
+    start<-fire[prob_ignition_escape>randomnumber, ]# change prob_ignition_escape to prob_tot_ignit if want to test ignition locations
     
     sim$sams  <-  sample(start$pixelid, size = no_ignitions)
     #random.starts1<-probfire[pixelid %in% random.starts,]
@@ -2173,26 +2172,41 @@ ignitLocations <- function(sim) {
   #create prob spread
   dat<-merge(sim$veg3, sim$climate_data, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   dat<-merge(dat, sim$road_distance, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-  #dat<-merge(dat, sim$elev, by.x="pixelid", by.y="pixelid", all.x=TRUE)
 
-  
-  dat<-merge(dat,sim$fire_static, all.x=TRUE)
-  
   #### Distance to ignition points ####
   xy_loc_ig<-sim$pts[pixelid %in% sim$sams, c("x", "y")]
   d<-distanceFromPoints(sim$area, xy_loc_ig)
   
   dat<-dat[order(pixelid)]
   dat1<-cbind(dat, as.data.frame(d))
-  
-  #Test it worked
-  #mySim$area[]<-dat1$layer
-  #plot(mySim$area)
-  #it does :)
-  
-  ###NOW CHANGE THE COLUMN NAME OF LAYER TO IGNIT_DIST ####
+  colnames(dat1)[colnames(dat1) == "layer"] <- "rast_ignit_dist"
   
   
+  #### Get elevation data####
+  # check if there is elevation data in the pixels table, if not extract.
+  if(dbGetQuery(sim$castordb, "SELECT MAX(elv) FROM pixels;")>0 {
+    elev<-dbGetQuery(sim$castordb, "SELECT pixelid, elv FROM pixels")
+    } else {
+    elv <- data.table(perm_dist = RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+                                                       srcRaster = P(sim, "nameElevationRaster", "fireCastor"), 
+                                                       clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
+                                                       geom = sim$boundaryInfo[[4]], 
+                                                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                                       conn = NULL)[])
+      elv[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
+      #add to the castordb
+      dbBegin(sim$castordb)
+      rs<-dbSendQuery(sim$castordb, "Update pixels set elv = :elv where pixelid = :pixelid", elv)
+      dbClearResult(rs)
+      dbCommit(sim$castordb)
+      
+      #clean up
+      rm(elv)
+      gc()
+    }
+    
+dat<-merge(dat, elev, by.x="pixelid", by.y="pixelid", all.x=TRUE)
+
   #### FRT5 ####
   
   #### Spread continue working here####
@@ -2201,10 +2215,10 @@ ignitLocations <- function(sim) {
   
   frt5[fwveg == "S-1", veg_O1ab:=1]
   
-  frt5$scale_climate1<-(frt5$climate1 - 20.84863)/1.399736
+  # To get the models to fit properly I had to scale the variables so Ill use the mean and sd that I got when i fitted to models to scale the new variables
+  
   frt5$scale_climate2<-(frt5$climate2-79.15963)/15.56926
   frt5$scale_dem<-(frt5$dem-675.0221)/201.9468
-  frt5$scale_slope<-(frt5$slope_ha_bc-2.390028)/4.172518
   frt5$scale_roads<-(frt5$dist_roads_m-916.9191)/1797.046
   frt5$scale_dist_ignit<-(frt5$rast_ignit_dist-8086.005)/7167.049
   
