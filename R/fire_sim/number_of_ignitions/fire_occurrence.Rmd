@@ -10,121 +10,9 @@ source(here::here("R/functions/R_Postgres.R"))
 library(data.table)
 library(sf)
 library(tidyverse)
-library(rgeos)
-library(rpostgis)
-library(keyring)
-library(bcdata)
 ```
 
-## Data
-```{r, data_capture}
-# Create a grid
-restest = c(10000, 10000)
-prov.rast <- raster::raster ( # standardized provincial raster with no data in it
-  nrows = 15744, ncols = 17216,
-  xmn = 159587.5, xmx = 1881187.5,
-  ymn = 173787.5, ymx = 1748187.5,
-  crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
-  resolution = restest,
-  vals = 0)
-pixel.grid <- data.table(V1 = as.integer(prov.rast[]))[, pixelid := seq_len(.N)]
-setorder(pixel.grid, "pixelid")#sort the pixels table so that pixelid is in order.
-pixel.grid$V1 <- NULL
-prov.rast[]<-pixel.grid$pixelid
-
-#Get veg_comp information using the previous year
-pixel.table<-rbindlist(lapply(as.list(seq(2010,2022,1)), function(x){
-  data.table(FIRE_YEAR =x, flam =rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/flammable_{x-1}_10k.tif"))[], c1 = rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c1_{x-1}_10k.tif"))[],c2 = rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c2_{x-1}_10k.tif"))[], c3=rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c3_{x-1}_10k.tif"))[],c4= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c4_{x-1}_10k.tif"))[],c5= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c5_{x-1}_10k.tif"))[], c7= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c7_{x-1}_10k.tif"))[], dec= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/d_{x-1}_10k.tif"))[], mixed =  rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m_{x-1}_10k.tif"))[], open= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/o_{x-1}_10k.tif"))[], slash= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/s_{x-1}_10k.tif"))[])
-}))
-pixel.table<-cbind(pixel.grid ,pixel.table)
-
-# Get the Fire Regime Types
-frt<-getSpatialQuery("SELECT * FROM frt_canada")
-ras.frt <- fasterize::fasterize (frt, prov.rast, field = "Cluster")
-
-if(terra::ext(prov.rast) == terra::ext(ras.frt)){ # need to check that each of the extents are the same
-  pixel.frt <-cbind(pixel.grid , data.table(frt= as.numeric(ras.frt[])))
-  rm(ras.frt)
-  gc()
-}else{
-  stop(paste0("ERROR: extents are not the same check -"))
-}
-
-#Get the climate data
-bc_grid <- data.table::fread("C:/Data/localApps/Climatebc_v730/bc_dem_frt_Kyle.csv")
-bc_sf <- st_transform(st_as_sf(bc_grid, coords = c("lon", "lat"), crs = 4326, agr = "constant"), crs = 3005)
-bc_dem <- terra::rasterize(bc_sf, prov.rast, field = "el")
-
-climateData<-rbindlist(lapply(seq(2008, 2022, 1), function(x){
-  message(x)
-  data<-data.table::fread(paste0("C:/Data/localApps/Climatebc_v730/test", x, ".csv"))
-  data<-data[, `:=`(CMI = rowMeans(.SD, na.rm=T)), .SDcols=c("CMI05", "CMI06","CMI07","CMI08")]
-  data<-data[, `:=`(TEMP = rowMeans(.SD, na.rm=T)),.SDcols=c("Tmax05","Tmax06","Tmax07","Tmax08") ]
-  data<-data[,c("ID1", "CMI", "TEMP")]
-  data<-merge(data, bc_grid[,c("ID1", "lat", "lon")] , by = "ID1")
-  data_sf <- st_transform(st_as_sf(data, coords = c("lon", "lat"), crs = 4326, agr = "constant"), crs = 3005)
-  data_ras_CMI <- terra::rasterize(data_sf, prov.rast, field = "CMI")
-  data_ras_TEMP <- terra::rasterize(data_sf, prov.rast, field = "TEMP")
-  pixel.data <- data.table(TEMP = data_ras_TEMP [], CMI = data_ras_CMI [])[, pixelid := seq_len(.N)][, year := x]
-  pixel.data
-}))
-
-#Join provincial raster data to the ignition data
-# try extract pixel id's of each fire location and cbind it to the igntion data
-ignit<-try(
-  bcdc_query_geodata("WHSE_LAND_AND_NATURAL_RESOURCE.PROT_HISTORICAL_INCIDENTS_SP") %>%
-    filter(FIRE_YEAR >= 2009) %>%
-    filter(FIRE_TYPE == "Fire") %>%
-    filter(CURRENT_SIZE >= 10) %>%
-    filter(FIRE_CAUSE == "Lightning") %>%
-    collect()
-)
-
-head(ignit)
-ignition2 <- sf::st_transform (ignit, 3005)
-pixelid <- terra::extract(prov.rast, ignition2)
-ignition2<-data.table(cbind(ignition2, pixelid))
-
-ignit_unknown<-rbindlist(lapply(seq(2009,2022,1), function(y){
-  yearx<-st_as_sf(ignition2[FIRE_YEAR == y,])
-  test<-rbindlist(lapply(st_as_text(yearx$geometry), function(x){
-    out<-getTableQuery(glue::glue("select bclcs_level_1 from vri.veg_comp_lyr_r1_poly{y-1} 
-    where st_intersects(st_buffer(st_geomfromtext('{x}', 3005), 50),shape) = TRUE 
-    order by bclcs_level_1 DESC limit 1;"))
-    if(nrow(out) == 0) {
-      out<- rbind(out, data.table(bclcs_level_1 = 'U')) 
-    }
-    out
-    }))
-  yearx$bclcs_level_1<-test$bclcs_level_1
-  yearx
-}))
-
-
-
-# Fire causes
-lightning<-ignit_unknown[FIRE_CAUSE=="Lightning" & bclcs_level_1 != 'U', .(count=.N), by = c("pixelid", "FIRE_YEAR")]
-#human<-ignition2[FIRE_CAUSE=="Person", .(count=.N), by = c("pixelid", "FIRE_YEAR")]
-
-data.lightning<-merge(pixel.table, lightning, by.x = c("pixelid", "FIRE_YEAR"), by.y =c("pixelid", "FIRE_YEAR"), all.x = T)
-data.lightning<-data.lightning[is.na(count), count :=0]
-data.lightning<-merge(data.lightning, pixel.frt, by = "pixelid")
-data.lightning<-data.lightning[!is.na(frt),]
-XYs<-xyFromCell(prov.rast, data.lightning$pixelid)
-data.lightning$x<-XYs[,1]/1000 #make units of kilometers
-data.lightning$y<-XYs[,2]/1000
-
-data.lightning<-merge(data.lightning, climateData, by.x =c("pixelid", "FIRE_YEAR"),  by.y=c("pixelid","year"))
-
-data.lightning<-data.lightning[!is.na(CMI),] # remove the banner voxels
-
-#Rolling average
-data.lightning[, CMI5yr := frollmean(.SD, n=5), by = "pixelid", .SDcols = "CMI"]
-data.lightning[, CMI3yr := frollmean(.SD, n=3), by = "pixelid", .SDcols = "CMI"]
-data.lightning[, CMI2yr := frollmean(.SD, n=2), by = "pixelid", .SDcols = "CMI"]
-saveRDS(data.lightning, "data.lightning.rds")
-```
-
+In this script we model the occurrence of lightning cause wildfires. This includes the number of fires and where they occur. to do this we rely on the historical incidents data reported in the data catalog of BC. The number of fires within a 10 km grid are estimated along with various predictor variables that relate to landcover and climate.The landcover data comes from the VRI using the previous year of the fire as the estimate of the amount of landcover types within the 10 km voxel.
 
 ## Model
 ```{r}
@@ -172,6 +60,10 @@ m3 <- sdmTMB(count ~ 1 + CMI + dCMI3yr + as.factor(coast) + log(dec.layer+1) + l
 
 m4 <- sdmTMB(count ~ 1 + CMI + dCMI3yr + as.factor(coast) + lconif, offset = log(test$flam.layer), family = nbinom2(), time = "FIRE_YEAR", data = test, mesh = spde, spatial = T, spatiotemporal = FALSE)
 
+m5 <- sdmTMB(count ~ 1 + CMI + dCMI3yr + as.factor(ndt) + lconif, offset = log(test$flam.layer), family = nbinom2(), time = "FIRE_YEAR", data = test[!is.na(ndt),], mesh = spde, spatial = T, spatiotemporal = FALSE)
+
+saveRDS(m4, "C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m4.rds")
+
 ```
 
 
@@ -201,11 +93,14 @@ ggplot()+
 
 ggplot(Dat,  aes(x=CMI, y =as.factor(count), colour=type))+geom_boxplot() + facet_grid(~type)
 
-ggplot(test, aes(x, y, col = resids)) +
-  scale_colour_gradient2() +
-  geom_point() +
-  facet_wrap(~FIRE_YEAR) +
-  coord_fixed()
+
+data.count.pred<-predict(m4 )
+data.count.pred$est2<-exp(data.count.pred$est + log(data.count.pred$flam.layer))
+
+number<-data.count.pred[, .(nfires = sum(count)), by = 'FIRE_YEAR']
+test_fo<-merge(data.count.pred[,.(pred = sum(est2)), by = "FIRE_YEAR"], number, by = "FIRE_YEAR")
+
+ggplot2::ggplot(data=test_fo, aes(x = pred, y = nfires)) + geom_point() + geom_smooth(method = "lm", se = T) + geom_abline(slope=1, intercept=0, col = 'black')
 
 nd <- data.frame(
     dCMI3yr = seq(min(test$dCMI3yr), 
@@ -213,16 +108,19 @@ nd <- data.frame(
     lconif = mean(test$lconif), CMI = mean(test$CMI), mixed.layer = mean(test$mixed.layer),
     FIRE_YEAR = 2020, coast =0, flam.layer = 1, x = mean(test$x), y = mean(test$y))
 
-p <- predict(m4, newdata = nd, se_fit = F, re_form = T)
-p$est2<- -15.89-0.07*p$CMI -0.26*p$dCMI3yr -1.79*p$coast +0.22*p$lconif
+p <- predict(m4, newdata = nd, se_fit = T, re_form = T)
+p$est2<- -15.4-0.0738*p$CMI -0.211*p$dCMI3yr -1.11*p$coast +0.228*p$lconif
+
 ggplot(p, aes(dCMI3yr, exp(est), 
               ymin = exp(est - 1.96 * est_se), 
               ymax = exp(est + 1.96 * est_se))) +
     geom_line() + geom_ribbon(alpha = 0.4)
+
+
 ```
 
 
-## GMRF
+#### APPENDIX: Gaussian Markov Random Fields
 ```{r}
 #Some functions to use later
 # Matern correlation
@@ -235,6 +133,8 @@ cMatern <- function(h, nu, kappa) {
 loc <- 0:249 / 25 
 #Calculate the adjacency matrix
 mdist <- as.matrix(dist(loc))
+d <- dim(goshawkNestingHabitat)
+mdist <-as.matrix(dist(matrix(values(goshawkNestingHabitat,), d[1], d[2], byrow=TRUE)))
 
 #parameters to show sensitivity
 nu <- c(0.5, 1, 2.5, 3, 4.5)
@@ -260,12 +160,4 @@ yy <- lapply(1:nrow(params), function(j) {
 })
 
 #Conclusion: the nu parameter adds inflections, the range parameter add smoothness
-```
-
-##Example sample
-```{r}
-vox.pix<-data.table(pixel=seq(1,10,1), prob= runif(10))
-vox.pix[, wt:=sum(prob)][, freq_exp:= prob/wt]
-vox.ex<-table(sample(vox.pix$pixel,10000,prob=vox.pix$prob, replace = T))
-
 ```

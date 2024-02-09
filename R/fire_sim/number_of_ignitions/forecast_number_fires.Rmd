@@ -1,5 +1,5 @@
 ---
-title: "forecast_num_fire_starts"
+title: "forecast_fires"
 author: "Kyle Lochhead"
 date: '2023-11-14'
 output: html_document
@@ -53,7 +53,7 @@ spat.int<-data.table(preds.all)[, c("pixelid", "est_rf")]
 est_rf <- prov.ras
 spat.int<-unique(spat.int)
 est_rf[spat.int$pixelid]<-spat.int$est_rf
-#writeRaster(est_rf, "est_rf.tif")
+writeRaster(est_rf, "est_rf.tif",overwrite=TRUE)
 
 #get the coast indicator for frt==15
 coast<-unique(preds.all[, c("pixelid", "coast")])
@@ -64,7 +64,7 @@ ras.coast[coast$pixelid]<-coast$coast
 ## Dynamic variables in the forecast
 Get the information/covariates to parameterize the model. In this example using the information from 2012
 ```{r}
-dynamic_vars<-preds.all[FIRE_YEAR == 2021, c("pixelid", "lconif", "CMI", "dCMI3yr", "flam.layer")]
+dynamic_vars<-preds.all[FIRE_YEAR == 2017, c("pixelid", "lconif", "CMI", "dCMI3yr", "flam.layer")]
 ras.flam<-prov.ras
 ras.flam[dynamic_vars$pixelid]<-dynamic_vars$flam.layer
 ras.pixelid<-prov.ras
@@ -81,13 +81,13 @@ fire.num <- data.table(pixelid = ras.pixelid[], flam.layer = ras.flam[], coast =
 
 ### Predict the negative binomial mu
 ```{r}
-fire.num[, pred_mu:= exp(-15.88805271 + (-0.07208596*cmi) + (-0.25905605*dcmi3yr) + (-1.79231315*coast) + 0.22471268*lconif + est_rf + log(flam.layer))]
+fire.num[, pred_mu:= exp(-15.8 + (-0.0833*cmi) + (-0.225*dcmi3yr) + (-1.07*coast) + 0.274*lconif + est_rf + log(flam.layer))]
 ```
 
 ### Take random draws as an inhomogenous poisson process
 ```{r}
-set.seed(8883)
-fire.num$sim_fire<-unlist(lapply (fire.num$pred_mu, function (x) { rnbinom(n = 1, size = 0.43, mu =x ) })) # note that the rnbinom follows same parameterization as rbinom2 in sdmTMB. Also, the dispersion parameter is fixed at 0.43 as per the model assumptions. This could change if we use another type of approach via distribution regression or other.
+set.seed(5)
+fire.num$sim_fire<-unlist(lapply (fire.num$pred_mu, function (x) { rnbinom(n = 1, size = 0.38, mu =x ) })) # note that the rnbinom follows same parameterization as rbinom2 in sdmTMB. Also, the dispersion parameter is fixed at 0.45 as per the model assumptions. This could change if we use another type of approach via distribution regression or other.
 
 sum(fire.num$sim_fire, na.rm=T)
 fire.locations<-prov.ras

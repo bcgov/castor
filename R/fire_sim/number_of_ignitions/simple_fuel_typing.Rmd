@@ -7,6 +7,9 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+source(here::here("R/functions/R_Postgres.R"))
+library(data.table)
+library(sf)
 ```
 
 ### A simple fuel type
@@ -24,19 +27,65 @@ prov.rast <- raster( # standardized provincial raster with no data in it
   resolution = restest,
   vals = 0)
 
-lapply(seq(2008, 2022, 1), function(x) {
+lapply(seq(2022, 2022, 1), function(x) {
   year_vri <- x
   geom_column <- 'shape'
   
-  vri<- getSpatialQuery(glue::glue("SELECT 1 as hazard, {geom_column} FROM vri.veg_comp_lyr_r1_poly{year_vri} where proj_height_1 >=4 and crown_closure >= 25 and bclcs_level_4 in ('TM', 'TC');"))
+  vri<- getSpatialQuery(glue::glue("SELECT case 
+                                   when proj_height_1 >=4 and basal_area >= 8 and bclcs_level_4 in ('TC') then 1 when proj_height_1 >=4 and basal_area >= 8 and bclcs_level_4 in ('TM') then 2 when proj_height_1 >=4 and basal_area >= 8 and bclcs_level_4 in ('TB') then 3 when (proj_height_1 < 4 or basal_area < 8 or basal_area is null or proj_height_1 is null) and bclcs_level_4 in ('TC','TM','TB') then 4
+                                  when bclcs_level_4 not in ('TC','TM','TB') then 5
+                                  when bclcs_level_1 <> 'V' then 6
+                                end as hazard, {geom_column} FROM vri.veg_comp_lyr_r1_poly{year_vri} "))
   ras.haz<-fasterize::fasterize(vri, prov.rast, field = "hazard")
   rm(vri)
   gc()
   ras.haz[is.na(ras.haz[])]<-0
-  ras.flame<-terra::crop(terra::aggregate(terra::rast(ras.haz), fact = 100, fun = sum ),prov.rast)
-  writeRaster(ras.flame, glue::glue("hazard_{year_vri}_10k.tif "))
+  
+  ras1<-ras.haz
+  ras1[ras1[] > 1 ]<-0
+  ras.fuel1<-terra::crop(terra::aggregate(ras1, fact = 100, fun = sum ),prov.rast) 
+
+  ras2<-ras.haz
+  ras2[ras2[] != 2 ]<-0
+  ras2[ras2[] == 2 ]<-1
+  ras.fuel2<-terra::crop(terra::aggregate(ras2, fact = 100, fun = sum ),prov.rast)
+  
+  ras3<-ras.haz
+  ras3[ras3[] != 3 ]<-0
+  ras3[ras3[] == 3 ]<-1
+  ras.fuel3<-terra::crop(terra::aggregate(ras3, fact = 100, fun = sum ),prov.rast)
+  
+  ras4<-ras.haz
+  ras2[ras4[] != 4 ]<-0
+  ras2[ras4[] == 4 ]<-1
+  ras.fuel4<-terra::crop(terra::aggregate(ras4, fact = 100, fun = sum ),prov.rast)
+  
+  ras5<-ras.haz
+  ras5[ras5[] != 5 ]<-0
+  ras5[ras5[] == 5 ]<-1
+  ras.fuel5<-terra::crop(terra::aggregate(ras5, fact = 100, fun = sum ),prov.rast)
+  
+  ras6<-ras.haz
+  ras6[ras6[] != 6 ]<-0
+  ras6[ras6[] == 6 ]<-1
+  ras.fuel6<-terra::crop(terra::aggregate(ras6, fact = 100, fun = sum ),prov.rast)
+  
+  out<-data.table(con = ras.fuel1[], mix = ras.fuel2[], dec = ras.fuel3[] , young = ras.fuel4[], veg = ras.fuel5[], noflame = ras.fuel6[] )[,pixelid := seq_len(.N)]
+  write.csv(out, glue::glue("fueltype_{year_vri}.csv"))
+  rm(ras1, ras2, ras3, ras4, ras5, ras6, ras.fuel1, ras.fuel2, ras.fuel3, ras.fuel4, ras.fuel5, ras.fuel6, out)
+  gc()
   x
 })
 
 ```
 
+### Compile
+```{r}
+fuel_type<-rbindlist(
+  lapply(seq(2009, 2022, 1), function(x){
+    data<-data.table(read.csv(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/fueltype_{x}.csv")))
+    data$FIRE_YEAR<-x
+    data
+}))
+write.csv(fuel_type, "fuel_type2009to2022.csv")
+```
