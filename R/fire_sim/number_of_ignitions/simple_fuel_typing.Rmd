@@ -56,8 +56,8 @@ lapply(seq(2022, 2022, 1), function(x) {
   ras.fuel3<-terra::crop(terra::aggregate(ras3, fact = 100, fun = sum ),prov.rast)
   
   ras4<-ras.haz
-  ras2[ras4[] != 4 ]<-0
-  ras2[ras4[] == 4 ]<-1
+  ras4[ras4[] != 4 ]<-0
+  ras4[ras4[] == 4 ]<-1
   ras.fuel4<-terra::crop(terra::aggregate(ras4, fact = 100, fun = sum ),prov.rast)
   
   ras5<-ras.haz
