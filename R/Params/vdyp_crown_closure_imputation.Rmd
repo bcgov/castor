@@ -13,16 +13,17 @@ source(paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 ## Purpose
 
-Natural origin stands do not have a projection of crown closure - VDYP doesn't output crown closure over time. Thus, we will impute its value using the corresponding VRI crown closure estimate within 10 year of the reference time stamp. To do this, a strata based imputation will be used, where only observations with the same leading species group will be used.
+Natural origin stands do not have a projection of crown closure - VDYP doesn't output crown closure over time. Thus, we will impute its value using the corresponding VRI crown closure estimate within 10 years of the reference year time stamp. To do this, a strata based imputation will be used, where only observations with the same leading species group will be used.
 
 ## Imputation parameter selection
 
-Test some of the parameter options for nearest neighbor imputation. This inlcudes the distance metric and number of neighbors, k.
-```{r, ycs}
+Test some of the parameter options for nearest neighbor imputation. This includes the distance metric and number of neighbors, k.
+
+```{r, ycs, echo=T}
 species<-data.table(species = c('Dr', 'E', 'Ac', 'At', 'B', 'Cw','Yc', 'Fd', 'H', 'L', 'Mb', 'P', 'Sb', 'Ss','Se','Sw'), sql=c("('D','DG','DM','DR')","('E','EB','EE','ES','EW','EX','EXP','EXW','EA','EP')","('A','AC','ACB','ACT','AD','AX')","('AT')","('B','BB','BC','BM','BP','BL','BG','BA')", "('C','CW')","('Y','YC')","('F','FD','FDC','FDI')", "('H','HX','HXM', 'HM','HW')", "('L','LD','LS','LW','LA','LT')","('M','MB','ME','MN','MR','MS','MV')","('P','PM','PR','PS','PX', 'PL','PLC','PLI','PY','PW','PJ','PXJ','PF','PA')","('SB')","('SS')","('SE','SXE')","('SW', 'SXW','S','SA','SN','SX','SXB','SXL','SXS','SXX')"))
 strata<-lapply(seq_len(nrow(species)), function(i) species[i])
 
-if(TRUE){
+if(FALSE){
   
 error<-lapply(strata, function(x){
   ref_vri<-data.table(getTableQuery(paste0("SELECT crown_closure, basal_area, proj_age_1 as age, quad_diam_125 as qmd, proj_height_1 as height, vri_live_stems_per_ha as tph, live_stand_volume_125 as tvol, bec_zone_code, species_cd_1  FROM veg_comp_lyr_r1_poly2020 where bclcs_level_2 = 'T' and reference_year >= 2012 and species_cd_1 is not null and crown_closure >= 0 and basal_area >= 0 and  proj_height_1 >= 0 and vri_live_stems_per_ha >= 0 and quad_diam_125 >= 0 and UPPER(species_cd_1) IN ", x$sql ,";")))
@@ -52,10 +53,8 @@ readRDS("cc_imputation_params.rds")
 ```
 
 ## Impute
-
-The resulting leave one out validation suggested the RF distance metric which uses 1 minus the proportion of trees with the target observation is in the same node as the reference.
-
-```{r, imput_cc}
+Preform the imputation into the VDYP yield curves
+```{r, imput_cc, echo=T}
 if(FALSE){
   conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
   
@@ -67,6 +66,7 @@ if(FALSE){
 species_imp<-data.table(species = c("('Dr')", "('E','Ea','Ep')", "('Ac')", "('At')", "('B','Bl','Bg','Ba')", "('Cw')","('Yc')", "('Fd')", "('H', 'Hm', 'Hw')", "('L', 'Lw', 'La', 'Lt')", "('Mb')", "('P', 'Pl', 'Pj', 'Py', 'Pw', 'Pa', 'Pf')", "('Sb')", "('Ss')","('Se')","('Sw', 'S')"), sql=c("('D','DG','DM','DR')","('E','EB','EE','ES','EW','EX','EXP','EXW','EA','EP')","('A','AC','ACB','ACT','AD','AX')","('AT')","('B','BB','BC','BM','BP','BL','BG','BA')", "('C','CW')","('Y','YC')","('F','FD','FDC','FDI')", "('H','HX','HXM', 'HM','HW')", "('L','LD','LS','LW','LA','LT')","('M','MB','ME','MN','MR','MS','MV')","('P','PM','PR','PS','PX', 'PL','PLC','PLI','PY','PW','PJ','PXJ','PF','PA')","('SB')","('SS')","('SE','SXE')","('SW', 'SXW','S','SA','SN','SX','SXB','SXL','SXS','SXX')"))
 strata_imp<-lapply(seq_len(nrow(species_imp)), function(i) species_imp[i])
 
+if(FALSE){
 #Run the imputation by strata
 imp_results<-lapply(strata_imp, function(x){
   ref_vri<-data.table(getTableQuery(paste0("SELECT crown_closure, basal_area as basalarea, proj_age_1 as age, quad_diam_125 as qmd, proj_height_1 as height, vri_live_stems_per_ha as tph, live_stand_volume_125 as tvol, bec_zone_code, species_cd_1  FROM veg_comp_lyr_r1_poly2020 where bclcs_level_2 = 'T' and reference_year >= 2012 and species_cd_1 is not null and crown_closure >= 0 and basal_area >= 0 and  proj_height_1 >= 0 and vri_live_stems_per_ha >= 0 and quad_diam_125 >= 0 and UPPER(species_cd_1) IN ", x$sql)))
@@ -89,37 +89,36 @@ dbWriteTable(conn, "pred_cc_impute", yc_vdyp[,c("ycid", "age", "cc")], append=TR
   
 dbDisconnect(conn)               
 })
-
+}
 ```
 
 ## Set the yc table
 
-Merge the imputed cc with the yield curve table.
-
-```{r, yc_table}
+Merge the imputed cc with the yield curve table using feature_id and age.
+```{r, yc_table, echo=T}
+if(FALSE){
 conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 dbExecute(conn, "UPDATE yc_vdyp_2020_adj
 SET crownclosure = pred_cc_impute.cc
 FROM pred_cc_impute
 WHERE yc_vdyp_2020_adj.ycid = pred_cc_impute.ycid and yc_vdyp_2020_adj.age = pred_cc_impute.age;")
 dbDisconnect(conn) 
+}
 ```
 
 ## Validation
-
-Compare the predicted curves to the 2008-2018 VRI.
-
-```{r, validation}
+Compare the predicted curves to the 2020 VRI.
+```{r, validation, echo=T}
 
 comp_vdyp_vri<-data.table(getTableQuery(paste0("
-SELECT t.feature_id, t.crown_closure,
+SELECT t.feature_id, t.crown_closure, k.crownclosure as upper, y.crownclosure as lower,
     (((k.crownclosure - y.crownclosure *1.0)/10)*(t.age - CAST(t.age/10 AS INT)*10))+ y.crownclosure  as cc
     FROM (SELECT crown_closure, feature_id, proj_age_1 as age FROM vdyp_vri2020 
 		  where reference_year >= 2019 and site_index > 10  limit 10000) as t
     LEFT JOIN yc_vdyp_2020_adj y 
-    ON t.feature_id = y.ycid AND CAST(t.age/10 AS INT)*10 = y.age
+    ON t.feature_id = (-1*y.ycid) AND CAST(t.age/10 AS INT)*10 = y.age
     LEFT JOIN yc_vdyp_2020_adj k 
-    ON t.feature_id = k.ycid AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0 ;")))
+    ON t.feature_id = (-1*k.ycid) AND round(t.age/10+0.5)*10 = k.age WHERE t.age > 0 ;")))
 
 library(RColorBrewer)
 buylrd = c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF",
@@ -127,7 +126,7 @@ buylrd = c("#313695", "#4575B4", "#74ADD1", "#ABD9E9", "#E0F3F8", "#FFFFBF",
 myColRamp = colorRampPalette(c(buylrd))
 
 # smoothed scatterplot
-smoothScatter(x=comp_vdyp_vri$cc, y=comp_vdyp_vri$crown_closure,
+smoothScatter(x=comp_vdyp_vri[!is.na(cc) & !is.na(crown_closure),]$cc, y=comp_vdyp_vri[!is.na(cc) & !is.na(crown_closure),]$crown_closure,
               colramp=myColRamp,
               main="Plot of predicted and observed crown closure",
               xlab="Predicted",
