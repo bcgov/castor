@@ -112,9 +112,9 @@ climateData<-rbindlist(lapply(seq(2005, 2022, 1), function(x){
   pixel.data
 }))
 #Rolling average
-climateData<-climateData[, CMI5yr := frollmean(.SD, n=5), by = "pixelid", .SDcols = "CMI"]
-climateData<-climateData[, CMI3yr := frollmean(.SD, n=3), by = "pixelid", .SDcols = "CMI"]
-climateData<-climateData[, CMI2yr := frollmean(.SD, n=2), by = "pixelid", .SDcols = "CMI"]
+climateData<-climateData[, CMI5yr := frollsum(.SD, n=5), by = "pixelid", .SDcols = "CMI"]
+climateData<-climateData[, CMI3yr := frollsum(.SD, n=3), by = "pixelid", .SDcols = "CMI"]
+climateData<-climateData[, CMI2yr := frollsum(.SD, n=2), by = "pixelid", .SDcols = "CMI"]
 #Join provincial raster data to the ignition data
 # try extract pixel id's of each fire location and cbind it to the igntion data
 ignit<-try(

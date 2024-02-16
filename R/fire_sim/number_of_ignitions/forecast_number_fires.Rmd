@@ -44,10 +44,10 @@ prov.ras <- raster::raster ( # standardized provincial raster with no data in it
   resolution = restest,
   vals = 0)
 
-m4<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m4.rds")
+m5<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m5.rds")
 
 #get the random spatial effect
-preds.all<-predict(m4, newdata = m4$data)
+preds.all<-predict(m5, newdata = m5$data)
 spat.int<-data.table(preds.all)[, c("pixelid", "est_rf")]
 
 est_rf <- prov.ras
@@ -55,39 +55,45 @@ spat.int<-unique(spat.int)
 est_rf[spat.int$pixelid]<-spat.int$est_rf
 writeRaster(est_rf, "est_rf.tif",overwrite=TRUE)
 
-#get the coast indicator for frt==15
-coast<-unique(preds.all[, c("pixelid", "coast")])
-ras.coast<-prov.ras
-ras.coast[coast$pixelid]<-coast$coast
 ```
 
 ## Dynamic variables in the forecast
 Get the information/covariates to parameterize the model. In this example using the information from 2012
 ```{r}
-dynamic_vars<-preds.all[FIRE_YEAR == 2017, c("pixelid", "lconif", "CMI", "dCMI3yr", "flam.layer")]
+dynamic_vars<-preds.all[FIRE_YEAR == 2015, c("pixelid", "con", "young", "veg", "CMI_MIN", "dCMI3yr", "flammable", "frt")]
 ras.flam<-prov.ras
-ras.flam[dynamic_vars$pixelid]<-dynamic_vars$flam.layer
+ras.flam[dynamic_vars$pixelid]<-dynamic_vars$flammable
+ras.frt<-prov.ras
+ras.frt[dynamic_vars$pixelid]<-dynamic_vars$frt
 ras.pixelid<-prov.ras
 ras.pixelid[dynamic_vars$pixelid]<-dynamic_vars$pixelid
-ras.lconif<-prov.ras
-ras.lconif[dynamic_vars$pixelid]<-dynamic_vars$lconif
-ras.cmi<-prov.ras
-ras.cmi[dynamic_vars$pixelid]<-dynamic_vars$CMI
+ras.con<-prov.ras
+ras.con[dynamic_vars$pixelid]<-dynamic_vars$con
+ras.veg<-prov.ras
+ras.veg[dynamic_vars$pixelid]<-dynamic_vars$veg
+ras.young<-prov.ras
+ras.young[dynamic_vars$pixelid]<-dynamic_vars$young
+ras.cmi_min<-prov.ras
+ras.cmi_min[dynamic_vars$pixelid]<-dynamic_vars$CMI_MIN
 ras.dcmi3yr<-prov.ras
 ras.dcmi3yr[dynamic_vars$pixelid]<-dynamic_vars$dCMI3yr
 
-fire.num <- data.table(pixelid = ras.pixelid[], flam.layer = ras.flam[], coast = ras.coast[], lconif = ras.lconif[], cmi = ras.cmi[], dcmi3yr = ras.dcmi3yr[], est_rf = est_rf[] )
+fire.num <- data.table(pixelid = ras.pixelid[], flammable = ras.flam[], frt = ras.frt[], con = ras.con[], veg = ras.veg[],young = ras.young[],CMI_MIN = ras.cmi_min[], dCMI3yr = ras.dcmi3yr[], est_rf = est_rf[] )
 ```
 
 ### Predict the negative binomial mu
 ```{r}
-fire.num[, pred_mu:= exp(-15.8 + (-0.0833*cmi) + (-0.225*dcmi3yr) + (-1.07*coast) + 0.274*lconif + est_rf + log(flam.layer))]
+frt.coef<-data.table(frt = c(5,7,9,10,11,12,13,14,15), frt_coef = c(-1.00, -0.923, -1.69,  -1.53,  -0.932,  -1.14, -1.29,  -0.827,  -2.49))
+fire.num<-merge(fire.num, frt.coef, by = "frt")
+
+fire.num<-fire.num[ ,pred_mu:= exp(-17.6-0.0714*CMI_MIN -0.176*dCMI3yr + 0.47*log(con + 1)+ 0.110*log(young + 1) + frt_coef + est_rf + log(flammable))]
+fire.num<-fire.num[!is.na(pred_mu),]
 ```
 
 ### Take random draws as an inhomogenous poisson process
 ```{r}
-set.seed(5)
-fire.num$sim_fire<-unlist(lapply (fire.num$pred_mu, function (x) { rnbinom(n = 1, size = 0.38, mu =x ) })) # note that the rnbinom follows same parameterization as rbinom2 in sdmTMB. Also, the dispersion parameter is fixed at 0.45 as per the model assumptions. This could change if we use another type of approach via distribution regression or other.
+set.seed(sample(1:1000,1))
+fire.num$sim_fire<-unlist(lapply (fire.num$pred_mu, function (x) { rnbinom(n = 1, size = 0.47, mu =x ) })) # note that the rnbinom follows same parameterization as rbinom2 in sdmTMB. Also, the dispersion parameter is fixed at 0.45 as per the model assumptions. This could change if we use another type of approach via distribution regression or other.
 
 sum(fire.num$sim_fire, na.rm=T)
 fire.locations<-prov.ras
@@ -95,7 +101,7 @@ fire.locations[]<-0
 fire.loc<-fire.num[sim_fire > 0 & pixelid > 0, ]
 fire.locations[fire.loc$pixelid]<-fire.loc$sim_fire
 plot(fire.locations)
-#writeRaster(fire.locations, "rep3_fire_locations.tif")
+#writeRaster(fire.locations, "rep2_fire_locations.tif")
 ```
 
 ### Sample down at the hectare scale

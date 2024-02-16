@@ -27,7 +27,7 @@ prov.rast <- raster( # standardized provincial raster with no data in it
   resolution = restest,
   vals = 0)
 
-lapply(seq(2022, 2022, 1), function(x) {
+lapply(seq(2021, 2022, 1), function(x) {
   year_vri <- x
   geom_column <- 'shape'
   

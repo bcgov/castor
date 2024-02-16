@@ -15,6 +15,9 @@ library(rgeos)
 library(rpostgis)
 library(keyring)
 library(bcdata)
+library(sdmTMB)
+library(raster)
+library(terra)
 ```
 
 ## Supporting information
@@ -31,21 +34,25 @@ data.count<-readRDS("data.lightning.rds")
 number<-data.count[, .(nfires = sum(count)), by = 'FIRE_YEAR']
 data.size<-readRDS("data.lightning.size.rds")
 data.size<-merge(data.size, number, by.x = "FIRE_YEAR", by.y = "FIRE_YEAR", all.x =T )
-data.size<-data.size[!is.na(CURRENT_SIZE),][flam.layer >0,][, coast:=0][frt==15, coast:=1][is.na(dec.layer), dec.layer:=0][is.na(mixed.layer), mixed.layer:=0][is.na(open.layer), open.layer:=0][,conif:=c1.layer + c2.layer + c3.layer+ c4.layer+c5.layer+ c7.layer][,lconif:=log(conif+1)][,dCMI3yr:=CMI - CMI3yr]
+data.size<-data.size[,flammable:=con + mix + dec + young + veg][flammable >0, ][!is.na(CURRENT_SIZE),][flammable >0,][,dCMI3yr:=CMI - CMI3yr]
 
-est_mu<-rast("est_rf.tif")
-random.effect.n<-data.table(est_mu = est_mu[])[, pixelid:=seq_len(.N)]
-data.size<-merge(data.size, random.effect.n, by.x = "pixelid", by.y = "pixelid", all.x = T)
+m4<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m4.rds")
 
-data.size<-data.size[, pred_mu:= exp(-15.83 + -0.0833*CMI + -0.225*dCMI3yr  -1.07*coast + 0.274*lconif + log(flam.layer) + est_mu.layer)]
+#get the random spatial effect
+data.size<-predict(m4, newdata = data.size)
+
+```
+
+## Predict occurence from model
+```{r}
 
 data.size<-data.size[, duration := FIRE_OUT_DATE - IGNITION_DATE]
 data.size[duration<0, duration:=0]
 data.size<-data.size[, ignit_month:= month(IGNITION_DATE)]
 
-model.size <- data.size[!is.na(pred_mu),][, size:= log(CURRENT_SIZE)]
-test.model.size<-model.size[CURRENT_SIZE > 1,c("size", "CURRENT_SIZE", "lconif", "TEMP_MAX", "CMI", "flam.layer", "CMI3yr", "dec.layer","c1.layer","c2.layer", "c3.layer","c4.layer","c5.layer","c7.layer","open.layer","dCMI3yr","CMD", "pred_mu", "frt", "coast", "flam_win.focal_sum", "DD18_sm", "CMD", "PPT_sm", "slash.layer", "nfires", "haz.layer", "FIRE_YEAR", "IGNITION_DATE", "FIRE_CENTRE", "CMI_MIN", "wetland", "duration", "x", "y", "ndt", "CMI05", "CMI06", "CMI07", "CMI08")]
-fit.model.size<-test.model.size[is.na(duration),duration:=0]
+model.size <- data.size[!is.na(est),][, size:= log(CURRENT_SIZE)]
+
+fit.model.size<-model.size[,c("CURRENT_SIZE", "size","IGNITION_DATE", "CMI", "dCMI3yr", "haz.layer", "DD18_sm", "TEMP_MAX", "FIRE_CENTRE", "nfires", "duration", "CMI05","CMI06", "CMI07", "CMI08", "con", "dec", "mix", "young", "veg", "PPT_sm", "est", "frt", "ndt")][size>0, ]
 ```
 
 # Models
@@ -53,6 +60,7 @@ Do the number of fires in a year means higher stress on supression resources and
 
 ## NULL Model
 ```{r}
+
 library(gamlss.nl)
 n0<-gamlss(formula = CURRENT_SIZE ~  1,
            family = PARETO2o(),
@@ -68,9 +76,8 @@ wp(n0)
 
 #Let X be a Pareto rv. The transformation Y = g(X) = ln(X/λ) is a 1–1 transformation from X = {x | x > λ} to Y = {y | y > 0} with inverse X = g−1 (Y ) = λeY . The newly transformed Y variable will be exponentially distributed. Gamma rv are exponentially distributed when the shape parameter alpha =1
 n0<-gamlss(formula = size ~  1,
-           family = WEI3(),
-           data = fit.model.size ,
-           control = gamlss.control(c.crit = 0.05, n.cyc = 500))
+           family = PARETO2o(),
+           data = fit.model.size)
 wp(n0) #Slightly better with the log transformation
 
 #Try a finite mixture model to capture the tails better. Using log transformation as the response scale wasn't fitting well even with over 4 components
@@ -106,9 +113,6 @@ plot(fyWEI~seq(0,13,.01), type="l")
 #### Are the components (latent effects) related to something?
 ###### Estimate the probability of k =1 (class membership) using the posterior probabilities and Bayes theorem
 fit.model.size<-fit.model.size[, pr1:= dWEI3(size, mu = exp(1.779), sigma = exp(1.047))][, pr2:=dWEI3(size, mu = exp(0.702), sigma = exp(0.2331))][, probk1:= (0.367*pr1)/(0.367*pr1 + 0.633*pr2)][probk1 < 0.5, k:=2][probk1 >=0.5, k:=1]
-test<-fit.model.size[,c("k", "IGNITION_DATE", "CMI", "dCMI3yr", "haz.layer", "DD18_sm", "TEMP_MAX", "FIRE_CENTRE", "nfires", "duration")]
-ggplot(data = test, aes(x = as.factor(k), y = duration)) + geom_boxplot()
-###### Seems to be associated with year, the number of fires and the duration of the burns where longer burn duration are associated with component 1 and shorter burn duration are associated with component 2. This is likely linked to fire suppression and fire severity?
 
 #Simulate the finite mixture distribution
 ## Gamma mixture
@@ -154,34 +158,23 @@ lines(exp(x_gamm_lower), (1-(1:n)/n), col="blue", lty = 2)
 lines(exp(x_gamma), (1-(1:n)/n), col="blue" , lwd =2)
 lines(exp(x_gamm_upper), (1-(1:n)/n), col="blue", lty = 2)
 
-
-
-dta_wei <- density(samples_wei$V1, na.rm = TRUE)
-dta_ga <- density(samples_ga$V1, na.rm = TRUE)
-dta_obs <- density(fit.model.size$size, na.rm = TRUE)
-plot(dta_obs, ylim = c(0, max(dta_wei$y,dta_ga$y,dta_obs$y)))
-lines(dta_ga,col="red",lwd=2)
-lines(dta_wei,col="blue",lwd=2, lty = 2)
-abline(0,100)
 ```
 
 ## Alternative model(s)
 ```{r}
-fit.model.size<-fit.model.size[, ind_ndt:= 0]
-fit.model.size<-fit.model.size[ndt ==3 | ndt ==4, ind_ndt:= 1]
-n1_wei<-gamlss(formula = size ~ PPT_sm + CMI05 + CMI06 + CMI07 + CMI08,
+n1_wei<-gamlss(formula = size ~ 1 + CMI05 + CMI06 + CMI07 + CMI08 + as.factor(frt)+ log(young +1) + log(con +1) + est + log(veg +1) + log(dec +1) + log(mix +1)+ PPT_sm + nfires + TEMP_MAX,
            mu.link = "log",
-           sigma.formula = ~ 1 + as.factor(ind_ndt) + CMI05 + CMI06 + CMI07 + CMI08,
+           sigma.formula = ~ 1 + CMI05 + CMI06 + CMI07 + CMI08 + as.factor(frt)+ as.factor(FIRE_CENTRE)+ log(mix +1) + log(young +1) + log(con +1) + est + log(veg +1) + log(dec +1) + PPT_sm + nfires + TEMP_MAX,
            family = WEI3(),
            data = na.omit(fit.model.size),
            control = gamlss.control(c.crit = 0.0001, n.cyc = 5800))
 wp(n1_wei, ylim.all = TRUE) # A number of deviations outsite 95% CI 
 
 library(gamlss.mx)
-set.seed(6)
-nm1_wei<-gamlssMX(formula = size ~  1  + PPT_sm + dec.layer + pred_mu ,
+set.seed(46)
+nm1_wei<-gamlssMX(formula = size ~  1  + as.factor(ndt) + log(young +1) + log(con +1) + est,
            K=2,
-           sigma.formula = ~ 1  ,
+           sigma.formula = ~ 1,
            family = list(WEI3(), WEI3()),
            data = na.omit(fit.model.size))
 
