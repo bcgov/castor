@@ -22,6 +22,7 @@ In this script we model the occurrence of lightning cause wildfires. This includ
 data.lightning<-readRDS("data.lightning.rds")
 occ.model.data<-data.lightning[flam.layer >0,][!is.na(CMI3yr),][,dCMI3yr:=CMI-(CMI3yr/3)][, coast:=0][frt==15, coast:=1][is.na(dec.layer), dec.layer:=0][is.na(mixed.layer), mixed.layer:=0][is.na(open.layer), open.layer:=0][,flammable:=con + mix + dec + young + veg][flammable >0, ][, year:= as.factor(FIRE_YEAR)]
 ```
+
 ## Model
 ```{r}
 
@@ -46,7 +47,7 @@ ggplot(Dat,  aes(x=CMI, y =as.factor(count), colour=type))+geom_boxplot() + face
 
 spde <- make_mesh(occ.model.data[,c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
 
-m0 <- sdmTMB(data = occ.model.data, count ~ 1 + (1|year) , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = FALSE, spatiotemporal = FALSE, reml=T)
+m0 <- sdmTMB(data = occ.model.data, count ~ 1 + (1|year) , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=T)
 
 m1 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN + (1|year) , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = F, spatiotemporal = FALSE, reml=T)
 

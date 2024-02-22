@@ -1,0 +1,88 @@
+---
+title: "simulate_area_burned"
+author: "Kyle Lochhead"
+date: '2024-02-21'
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source(here::here("R/functions/R_Postgres.R"))
+library(data.table)
+library(sf)
+library(tidyverse)
+library(rgeos)
+library(rpostgis)
+library(keyring)
+library(bcdata)
+library(sdmTMB)
+library(raster)
+library(terra)
+library(gamlss.mx)
+```
+
+## Data objects
+The following simulates the annual area burned from two model: fire occurrence and fire size. The fire occurrence model is the outcome of a sdmTMB object which contains the form, data, spde, etc. This object was saved into an .rds object and will be imported during the simulation.The fire size model is a gamlss.mx object and will be directly estimated. 
+
+```{r data_objects, echo=FALSE}
+#The chosen fire occurrence model (see fire_occurrence.rmd)
+m5<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m5.rds")
+
+preds.all<-predict(m5, newdata = m5$data) #get the random spatial effect
+sim.data<-preds.all[, c("FIRE_YEAR", "pixelid", "con", "young", "dec", "mix", "CMI_MIN", "dCMI3yr", "PPT_sm", "TEMP_MAX", "flammable", "frt", "PPT_sm","est_rf", "est_non_rf", "CMI","CMI3yr")][,dCMI3yr:=CMI-(CMI3yr/3)][,frt:=as.factor(frt)][,year:=as.factor(FIRE_YEAR)]
+sim.data<-cbind(sim.data, model.matrix( ~ 0 + frt, data=sim.data )) #add in the indicator structure for frt - homogenous fire regime types
+```
+
+## Fire Occurence Model Parameters
+The following estimates the mu of the negative binomial glmm. Note: that sdmTMB does not include the offset in the prediction. 
+```{r}
+sim.data<-sim.data[ ,est:= -17.63 -0.0714*CMI_MIN -0.176*dCMI3yr + -1.00*frt5 -0.923*frt7 -1.69*frt9  -1.53*frt10  -0.932*frt11  -1.14*frt12 -1.29*frt13  -0.827*frt14  -2.49*frt15+ 0.47*log(con + 1) + 0.110*log(young + 1) +est_rf + log(flammable) ]
+
+```
+
+## Fire Size
+The fire size model has two components or subpopulations. For each component the pdfs are parameterized with a mu and sigma parameter for the weibull distribution.Additionaly, there is a multinomial model for the mixing probabilities which determine component membership.
+```{r}
+sim.data[, mu1:= 0.8897754 -0.0445392*log(mix + 1)+2.4039377*exp(est)-0.0003295*PPT_sm+0.0610171*dCMI3yr][, sigma1:=  0.2633][ , mu2:= 2.14183 + 0.01175*log(mix + 1) -0.75545*exp(est)-0.00141*PPT_sm + 0.02128*dCMI3yr][, sigma2:= 1.22]
+
+sim.data[, pi2:=1/(1+exp(-1*(-2.646679 + -0.3877929*dCMI3yr +1.392928*frt5+1.204091*frt7+3.610426*frt9 + 2.283432*frt10 + 3.124757*frt11 + 1.410092*frt12+1.499066*frt13+0.4269357*frt14  +1.714442*frt15)))][,pi1:=1-pi2]
+```
+
+## Simulate
+The following simulates the two fire regime models indpendantly for each year. Thus, in years where the simulation results in very large fire, the next proceeding year will still use the landcover estimates that actually occured.
+```{r}
+runs<-rbindlist(lapply(1:1000, function(x){
+  rbindlist(lapply(2010:2022, function(i){
+    occ<-sim.data[year == i, ]
+    selected.seed<-sample(1:1000,1)
+    set.seed(selected.seed)
+    occ<-occ[, fire:= rnbinom(n = 1, size = 0.47, mu =exp(est)), by=1:nrow(occ)][fire>0,]
+    occ<-occ[ , k_sim:= sample(1:2,prob=c(pi1, pi2),size=1), by = seq_len(nrow(occ))]
+    occ<-occ[k_sim==1, mu_sim := exp(mu1)][k_sim==1, sigma_sim := exp(sigma1)][k_sim==2, mu_sim := exp(mu2)][k_sim==2, sigma_sim := exp(sigma2)]
+    aab<-0
+    for(f in 1:length(occ$fire)){
+      fires<-rWEI3(occ$fire[f], mu = occ$mu_sim[f], sigma =occ$sigma_sim[f])
+      aab<- aab + sum(exp(fires))
+    }
+    data.table(rep = x, seed = selected.seed, year =i, nfires =sum(occ$fire), aab = aab)
+  }))
+}))
+runs.bounds<-runs[, .(nf_low = quantile(nfires,p =0.025), nf_med = quantile(nfires,p =0.5), nf_up = quantile(nfires,p =0.975), aab_low = quantile(aab,p =0.025), aab_med = quantile(aab,p =0.5), aab_up = quantile(aab,p =0.975)), by = year]
+
+obs.occ<-readRDS("data.lightning.rds")
+obs.occ<-obs.occ[, .(nfires = sum(count)), by = c('FIRE_YEAR')]
+ggplot(data=runs.bounds) + geom_line(aes(x = year, y = nf_med),col = 'blue', lwd =1.5)+ geom_line(aes(x = year, y = nf_low), col = 'blue', linetype = "dashed")+ geom_line(aes(x = year, y = nf_up), col = 'blue', linetype = "dashed") + geom_line(data = obs.occ, aes(x=FIRE_YEAR, y = nfires), color = "red") + xlab("Year") + ylab("Count of Fires (>1 ha)")
+
+obs.aab<-readRDS("data.lightning.size.rds")
+obs.aab<-obs.aab[, .(aab = sum(CURRENT_SIZE, na.rm = T)), by = c('FIRE_YEAR')]
+ggplot(data=runs.bounds) + 
+  geom_line(aes(x = as.integer(year), y = aab_med/1000),col = 'blue', lwd =1.5)+ 
+  geom_line(aes(x = as.integer(year), y = aab_low/1000), col = 'blue', linetype = "dashed")+ 
+  geom_line(aes(x = as.integer(year), y = aab_up/1000), col = 'blue', linetype = "dashed") + 
+  geom_line(data = obs.aab, aes(x=as.integer(FIRE_YEAR), y = aab/1000), color = "red") + 
+  xlab("Year") + 
+  ylab("Area Burned (1000's ha)")+
+  annotate("text", x=2011, y=mean(runs.bounds$aab_up)/1000 + sd(runs.bounds$aab_up/1000), label= paste0("r=", round(cor(runs.bounds$aab_med, obs.aab$aab),2)))+ scale_x_continuous(breaks=seq(2010,2022,2))  
+
+cor.test(runs.bounds$aab_med, obs.aab$aab)
+cor.test(runs.bounds$nf_med, obs.occ$aab)
+```

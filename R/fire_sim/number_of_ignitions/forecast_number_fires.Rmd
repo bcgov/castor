@@ -15,7 +15,7 @@ library(terra)
 ```
 
 ## Fire occurrence model
-The fire occurrence model uses a grid at 10km by 10 km to form voxels which contain the number of fires that occurred within a given year. Also, the various covariates that occur in the given year are calcualted for the voxel. A generalized linear model with a negative binomial distribution was used to predict fire counts. An offset was use to account for fuel aviability in the given year. A spatialy varying parameter was included to account for spatial autocorrelation. The needed variables are:
+The fire occurrence model uses a grid at 10km by 10 km to form voxels which contain the number of fires that occurred within a given year. Also, the various covariates that occur in the given year are calculated for the voxel. A generalized linear model with a negative binomial distribution was used to predict fire counts. An offset was use to account for fuel aviability in the given year. A spatialy varying parameter was included to account for spatial autocorrelation. The needed variables are:
 
 flammability (hectares of flammable fuel within the voxel- this is the sum of fuel types other than N or W; used as an offset)
 coast (indicator varaible 0 or 1 for fire regime type 15)
@@ -60,7 +60,7 @@ writeRaster(est_rf, "est_rf.tif",overwrite=TRUE)
 ## Dynamic variables in the forecast
 Get the information/covariates to parameterize the model. In this example using the information from 2012
 ```{r}
-dynamic_vars<-preds.all[FIRE_YEAR == 2015, c("pixelid", "con", "young", "veg", "CMI_MIN", "dCMI3yr", "flammable", "frt")]
+dynamic_vars<-preds.all[FIRE_YEAR == 2015, c("pixelid", "con", "young", "dec", "CMI_MIN", "dCMI3yr", "PPT_sm", "TEMP_MAX", "flammable", "frt")]
 ras.flam<-prov.ras
 ras.flam[dynamic_vars$pixelid]<-dynamic_vars$flammable
 ras.frt<-prov.ras
