@@ -48,7 +48,7 @@ sim.data[, pi2:=1/(1+exp(-1*(-2.646679 + -0.3877929*dCMI3yr +1.392928*frt5+1.204
 ```
 
 ## Simulate
-The following simulates the two fire regime models indpendantly for each year. Thus, in years where the simulation results in very large fire, the next proceeding year will still use the landcover estimates that actually occured.
+The following simulates the two fire regime models independantly for each year. Thus, in years where the simulation results in very large fire, the next proceeding year will still use the landcover estimates that actually occured.
 ```{r}
 runs<-rbindlist(lapply(1:1000, function(x){
   rbindlist(lapply(2010:2022, function(i){
@@ -69,8 +69,12 @@ runs<-rbindlist(lapply(1:1000, function(x){
 runs.bounds<-runs[, .(nf_low = quantile(nfires,p =0.025), nf_med = quantile(nfires,p =0.5), nf_up = quantile(nfires,p =0.975), aab_low = quantile(aab,p =0.025), aab_med = quantile(aab,p =0.5), aab_up = quantile(aab,p =0.975)), by = year]
 
 obs.occ<-readRDS("data.lightning.rds")
-obs.occ<-obs.occ[, .(nfires = sum(count)), by = c('FIRE_YEAR')]
-ggplot(data=runs.bounds) + geom_line(aes(x = year, y = nf_med),col = 'blue', lwd =1.5)+ geom_line(aes(x = year, y = nf_low), col = 'blue', linetype = "dashed")+ geom_line(aes(x = year, y = nf_up), col = 'blue', linetype = "dashed") + geom_line(data = obs.occ, aes(x=FIRE_YEAR, y = nfires), color = "red") + xlab("Year") + ylab("Count of Fires (>1 ha)")
+obs.occ<-obs.occ[, .(nfires = sum(count)), by = c('FIRE_YEAR', "frt")]
+ggplot(data=runs.bounds) + 
+  geom_line(aes(x = year, y = nf_med),col = 'blue', lwd =1.5)+ 
+  geom_line(aes(x = year, y = nf_low), col = 'blue', linetype = "dashed")+ geom_line(aes(x = year, y = nf_up), col = 'blue', linetype = "dashed") + 
+  geom_line(data = obs.occ, aes(x=FIRE_YEAR, y = nfires), color = "red") + 
+  xlab("Year") + ylab("Count of Fires (>1 ha)")
 
 obs.aab<-readRDS("data.lightning.size.rds")
 obs.aab<-obs.aab[, .(aab = sum(CURRENT_SIZE, na.rm = T)), by = c('FIRE_YEAR')]

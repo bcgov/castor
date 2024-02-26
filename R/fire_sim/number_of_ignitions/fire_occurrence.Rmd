@@ -32,8 +32,8 @@ simulationOutput <- simulateResiduals(fittedModel = l12_nb_3yr)
 plot(simulationOutput)
 
 occ.model.data$pred_mu<-data.table(mu= predict(l12_nb_3yr, newdata = occ.model.data[, c("flam.layer","flammable", "CMI", "CMI3yr")][,FIRE_YEAR := NA][,frt := NA], type="response"))
-ggplot2::ggplot(data=test[ FIRE_YEAR %in% c( 2012, 2016, 2017, 2018, 2020, 2022)], aes(x=x, y=y, color = pred_mu)) + facet_wrap(~FIRE_YEAR) + geom_point()
-test[, sim:= rnbinom(n = 1, size = 0.251, mu =pred_mu )]
+ggplot2::ggplot(data=occ.model.data[ FIRE_YEAR %in% c( 2012, 2016, 2017, 2018, 2020, 2022)], aes(x=x, y=y, color = pred_mu)) + facet_wrap(~FIRE_YEAR) + geom_point()
+occ.model.data[, sim:= rnbinom(n = 1, size = 0.251, mu =pred_mu )]
  
 sim1=simulate(l12_nb_3yr, nsim = 1)
 Simdat=occ.model.data[!is.na(CMI3yr),]
@@ -47,9 +47,14 @@ ggplot(Dat,  aes(x=CMI, y =as.factor(count), colour=type))+geom_boxplot() + face
 
 spde <- make_mesh(occ.model.data[,c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
 
-m0 <- sdmTMB(data = occ.model.data, count ~ 1 + (1|year) , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=T)
+m0 <- sdmTMB(data = occ.model.data, count ~ 1 + (1|year) , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = F, spatiotemporal = FALSE, reml=F)
+testm0<-predict(m0)
+cor(exp(testm0$est), testm0$count/testm0$flammable)
 
-m1 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN + (1|year) , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = F, spatiotemporal = FALSE, reml=T)
+m0_gmrf <- sdmTMB(data = occ.model.data, count ~ 1 + (1|year) , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
+
+m1 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN + (1|year) , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
+
 
 m2 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN  + dCMI3yr + (1|year), offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE)
 
@@ -58,9 +63,10 @@ m3 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN + dCMI3yr + as.factor(fr
 ##Vegetation typing
 m4 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN + dCMI3yr + as.factor(frt) + log(con+1) + log(young+1) + log(veg+1) + log(dec+1) + log(mix+1) + (1|year), offset = log(occ.model.data$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE)
 
-m5 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN + dCMI3yr + as.factor(frt) + log(con+1) + log(young+1) + (1|year), offset = log(occ.model.data$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE)
+m5 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN + dCMI3yr + as.factor(frt) + log(con+1) + log(young+1) + (1|year), offset = log(occ.model.data$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE, reml=T)
 
-m6 <- sdmTMB(data = occ.model.data, count ~ 1 + scale(CMI_MIN) + scale(dCMI3yr)+ scale(log(con+1)), offset = log(occ.model.data$flammable), family = nbinom2_mix(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE)
+
+m6 <- sdmTMB(data = occ.model.data, count ~  1 + CMI_MIN + dCMI3yr + as.factor(frt) + log(con+1) + log(young+1) + (1|year), offset = log(occ.model.data$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = F, spatiotemporal = FALSE)
 
 #test99<-predict(m6)
 #test99<-test99[, estres:=exp(est)]
@@ -103,6 +109,7 @@ data.count.pred$est2<-exp(data.count.pred$est)
 
 number<-data.count.pred[, .(nfires = sum(count)), by = c('FIRE_YEAR', 'frt')]
 test_fo<-merge(data.count.pred[,.(pred = sum(est2)), by = c("FIRE_YEAR", 'frt')], number, by = c("FIRE_YEAR", 'frt'))
+
 
 ggplot2::ggplot(data=test_fo, aes(x = pred, y = nfires)) + geom_point() + geom_smooth(method = "lm", se = T) + geom_abline(slope=1, intercept=0, col = 'black') +
    facet_wrap(~frt, ncol =3, scales = "free")+ ylab("Observed")+ xlab("Predicted")+ theme(legend.position="none")
