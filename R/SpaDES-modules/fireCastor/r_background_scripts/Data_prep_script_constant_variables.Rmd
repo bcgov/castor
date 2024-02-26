@@ -228,6 +228,7 @@ dat<-pixels
 dat<-dat %>% drop_na(DEM)
 ```
 
+
 #Plot to test it worked
 Try plotting some of the layers to check them and to see where the NA's are. Looks like data for vancouver island and Haida Gwaii are missing for dem, slope and aspect. Otherwise the data looks ok. 
 ```{r}
@@ -243,7 +244,8 @@ prov.rast <- raster::raster ( # standardized provincial raster with no data in i
                               vals = 0)
         
 emptyRas<-raster(extent(159587.5, 1881187.5, 173787.5, 1748187.5), nrow = 15744, ncol = 17216, vals =0)
-emptyRas[]<-pixels$springwind
+emptyRas[]<-pixels$distinfrastructure
+
 
 
 plot(emptyRas)
@@ -292,22 +294,22 @@ medianDem<-median(frt5$dem, na.rm=TRUE)
 
 frt5[is.na(dem), dem:=medianDem]
 
-model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt5_lightning.csv")
-
-model_coef_table_lightning
-
-# put coefficients into model formula
-
-frt5$logit_P_lightning_coef<-model_coef_table_lightning$intercept
-
-####################################
-# PErson ignitions
-
-model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT5_person.csv")
-model_coef_table_person
-
-frt5$logit_P_person_coef<- model_coef_table_person$intercept + 
-  model_coef_table_person$coef_log_dist_infrastructure_m*(log(frt5$distinfrastructure+1))
+# model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt5_lightning.csv")
+# 
+# model_coef_table_lightning
+# 
+# # put coefficients into model formula
+# 
+# frt5$logit_P_lightning_coef<-model_coef_table_lightning$intercept
+# 
+# ####################################
+# # PErson ignitions
+# 
+# model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT5_person.csv")
+# model_coef_table_person
+# 
+# frt5$logit_P_person_coef<- model_coef_table_person$intercept + 
+#   model_coef_table_person$coef_log_dist_infrastructure_m*(log(frt5$distinfrastructure+1))
 
 
 ##########################
@@ -360,22 +362,22 @@ gc()
 ```{r}
 frt7<-pixels[frt==7,]
 
-model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt7_lightning.csv")
-
-model_coef_table_lightning
-
-# put coefficients into model formula
-#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
-frt7$logit_P_lightning_coef<- model_coef_table_lightning$intercept
-
-#####################
-# Ignition Person
-model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT7_person.csv")
-
-model_coef_table_person
-
-frt7$logit_P_person_coef<- model_coef_table_person$intercept + 
-  model_coef_table_person$coef_log_dist_infrastructure_m*log(frt7$distinfrastructure+1)
+# model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt7_lightning.csv")
+# 
+# model_coef_table_lightning
+# 
+# # put coefficients into model formula
+# #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+# frt7$logit_P_lightning_coef<- model_coef_table_lightning$intercept
+# 
+# #####################
+# # Ignition Person
+# model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT7_person.csv")
+# 
+# model_coef_table_person
+# 
+# frt7$logit_P_person_coef<- model_coef_table_person$intercept + 
+#   model_coef_table_person$coef_log_dist_infrastructure_m*log(frt7$distinfrastructure+1)
 
 ###################
 # escape
@@ -419,22 +421,22 @@ frt9<- pixels[frt==9,]
 medianDem<-median(frt9$dem, na.rm=TRUE)
 frt9[is.na(dem), dem:=medianDem]
 
-model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_lightning.csv")
-model_coef_table_lightning
-# put coefficients into model formula
-#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
-frt9$logit_P_lightning_coef<- model_coef_table_lightning$intercept
-
-######################################3
-# person caused ignitions
-
-model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_person.csv")
-model_coef_table_person
-
-# put coefficients into model formula
-#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
-frt9$logit_P_person_coef<- model_coef_table_person$intercept +
-  model_coef_table_person$coef_dist_infrastructure_m * frt9$distinfrastructure
+# model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_lightning.csv")
+# model_coef_table_lightning
+# # put coefficients into model formula
+# #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+# frt9$logit_P_lightning_coef<- model_coef_table_lightning$intercept
+# 
+# ######################################3
+# # person caused ignitions
+# 
+# model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt9_person.csv")
+# model_coef_table_person
+# 
+# # put coefficients into model formula
+# #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+# frt9$logit_P_person_coef<- model_coef_table_person$intercept +
+#   model_coef_table_person$coef_dist_infrastructure_m * frt9$distinfrastructure
 
 ##################################
 # escape
@@ -480,20 +482,20 @@ medianDem<-median(frt10$dem, na.rm=TRUE)
 frt10[is.na(dem), dem:=medianDem]
 
 
-model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT10_lightning.csv")
-
-model_coef_table_lightning
-
-frt10$logit_P_lightning_coef<- model_coef_table_lightning$intercept + 
-  model_coef_table_lightning$coef_dm_h_bc * frt10$dem
-
-########################################
-# Person
-
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT10_person.csv")
-model_coef_table
-
-frt10$logit_P_person_coef<- model_coef_table$intercept
+# model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT10_lightning.csv")
+# 
+# model_coef_table_lightning
+# 
+# frt10$logit_P_lightning_coef<- model_coef_table_lightning$intercept + 
+#   model_coef_table_lightning$coef_dm_h_bc * frt10$dem
+# 
+# ########################################
+# # Person
+# 
+# model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT10_person.csv")
+# model_coef_table
+# 
+# frt10$logit_P_person_coef<- model_coef_table$intercept
 
 #################################
 # escape
@@ -505,7 +507,6 @@ frt10$logit_P_escape_coef<- model_coef_table_escape$intercept +
   model_coef_table_escape$coef_slope *frt10$slope +
   model_coef_table_escape$coef_log_infr * log(frt10$distinfrastructure +1)
 
-frt10$logit_P_escape_coef<-logit_P_escape
 
 ###########################
 # Spread
@@ -541,18 +542,18 @@ gc()
 ```{r}
 frt11<- pixels[frt==11,]
 
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT11_lightning.csv")
-model_coef_table
-
-frt11$logit_P_lightning_coef<- model_coef_table$intercept
-
-##########################
-#Person
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_person.csv")
-model_coef_table
-
-frt11$logit_P_person_coef<- model_coef_table$intercept
-
+# model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT11_lightning.csv")
+# model_coef_table
+# 
+# frt11$logit_P_lightning_coef<- model_coef_table$intercept
+# 
+# ##########################
+# #Person
+# model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_person.csv")
+# model_coef_table
+# 
+# frt11$logit_P_person_coef<- model_coef_table$intercept
+# 
 
 ################################
 # Escape
@@ -602,25 +603,25 @@ frt12$summerwind[is.na(frt12$summerwind)] <- mean(frt12$summerwind, na.rm = TRUE
 medianDem<-median(frt12$dem, na.rm=TRUE)
 frt12[is.na(dem), dem:=medianDem]
 
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT12_lightning.csv")
-model_coef_table
-
-frt12$logit_P_lightning_coef<- model_coef_table$intercept + 
-  model_coef_table$coef_dm_h_bc * frt12$dem
-
-
-##########################
-# Person
-
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT12_person.csv")
-model_coef_table
-
-#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
-
-frt12$logit_P_person_coef<- model_coef_table$intercept + 
-  model_coef_table$coef_dm_h_bc *frt12$dem +
-  model_coef_table$coef_log_inf_dist*log(frt12$distinfrastructure+1)
-  
+# model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT12_lightning.csv")
+# model_coef_table
+# 
+# frt12$logit_P_lightning_coef<- model_coef_table$intercept + 
+#   model_coef_table$coef_dm_h_bc * frt12$dem
+# 
+# 
+# ##########################
+# # Person
+# 
+# model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT12_person.csv")
+# model_coef_table
+# 
+# #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+# 
+# frt12$logit_P_person_coef<- model_coef_table$intercept + 
+#   model_coef_table$coef_dm_h_bc *frt12$dem +
+#   model_coef_table$coef_log_inf_dist*log(frt12$distinfrastructure+1)
+#   
 
 ##################################
 #escape
@@ -660,23 +661,23 @@ frt13$summerwind[is.na(frt13$summerwind)] <- mean(frt13$summerwind, na.rm = TRUE
 medianDem<-median(frt13$dem, na.rm=TRUE)
 frt13[is.na(dem), dem:=medianDem]
 
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT13_lightning.csv")
-model_coef_table
-
-#logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
-
-frt13$logit_P_lightning_coef<- model_coef_table$intercept + 
-  model_coef_table$coef_dm_h_bc * frt13$dem
-
-
-#############################
-# person
-
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT13_person.csv")
-model_coef_table
-
-frt13$logit_P_person_coef<- model_coef_table$intercept + 
-  model_coef_table$coef_log_inf_dist * log(frt13$distinfrastructure+1)
+# model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT13_lightning.csv")
+# model_coef_table
+# 
+# #logit(p) = b0+b1X1+b2X2+b3X3….+bkXk
+# 
+# frt13$logit_P_lightning_coef<- model_coef_table$intercept + 
+#   model_coef_table$coef_dm_h_bc * frt13$dem
+# 
+# 
+# #############################
+# # person
+# 
+# model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT13_person.csv")
+# model_coef_table
+# 
+# frt13$logit_P_person_coef<- model_coef_table$intercept + 
+#   model_coef_table$coef_log_inf_dist * log(frt13$distinfrastructure+1)
 
 ################################
 #escape
@@ -690,7 +691,7 @@ frt13$logit_P_escape_coef<- model_coef_table$intercept +
   model_coef_table$coef_aspect_S + frt13$aspect_S +
   model_coef_table$coef_aspect_O + frt13$aspect_O +
   model_coef_table$coef_win_sum + frt13$summerwind + 
-  model_coef_table$coef_log_infr * log(frt13$distinfrastructure+1)
+  model_coef_table$coef_log_infr * log(frt13$distinfrastructure+1) 
 
 
 ##########################
@@ -726,20 +727,20 @@ frt14$summerwind[is.na(frt14$summerwind)] <- round(mean(frt14$summerwind, na.rm 
 medianDem<-median(frt14$dem, na.rm=TRUE)
 frt14[is.na(dem), dem:=medianDem]
 
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT14_lightning.csv")
-model_coef_table
-
-frt14$logit_P_lightning_coef<- model_coef_table$intercept + 
-  model_coef_table$coef_dm_h_bc * frt14$dem
-
-############################
-# person
-
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT14_person.csv")
-model_coef_table
-
-frt14$logit_P_person_coef<- model_coef_table$intercept + 
-  model_coef_table$coef_log_inf_dist*log(frt14$distinfrastructure+1)
+# model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT14_lightning.csv")
+# model_coef_table
+# 
+# frt14$logit_P_lightning_coef<- model_coef_table$intercept + 
+#   model_coef_table$coef_dm_h_bc * frt14$dem
+# 
+# ############################
+# # person
+# 
+# model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT14_person.csv")
+# model_coef_table
+# 
+# frt14$logit_P_person_coef<- model_coef_table$intercept + 
+#   model_coef_table$coef_log_inf_dist*log(frt14$distinfrastructure+1)
 
 ##############################
 #escape  
@@ -749,9 +750,11 @@ model_coef_table
 
 frt14$logit_P_escape_coef<- model_coef_table$intercept + 
   model_coef_table$coef_slope*frt14$slope +
+  model_coef_table$coef_elevation*frt14$dem +
   model_coef_table$coef_aspect_S*frt14$aspect_S +
   model_coef_table$coef_aspect_O*frt14$aspect_O +
-  model_coef_table$coef_dist_infr_m *frt14$distinfrastructure
+  model_coef_table$coef_log_infr *log(frt14$distinfrastructure+1) +
+  model_coef_table$coef_win_sum + frt14$summerwind
   
 
 ################################
@@ -787,21 +790,21 @@ frt15$summerwind[is.na(frt15$summerwind)] <- round(mean(frt15$summerwind, na.rm 
 medianDem<-median(frt15$dem, na.rm=TRUE)
 frt15[is.na(dem), dem:=medianDem]
 
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT15_lightning.csv")
-model_coef_table
-
-frt15$logit_P_lightning_coef<- model_coef_table$intercept + 
-  model_coef_table$coef_dm_h_bc *frt15$dem
-
-################################
-# Person
-
-model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT15_person.csv")
-model_coef_table
-
-frt15$logit_P_person_coef<- model_coef_table$intercept + 
-  model_coef_table$coef_dist_infrastructure_m * frt15$distinfrastructure 
-
+# model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT15_lightning.csv")
+# model_coef_table
+# 
+# frt15$logit_P_lightning_coef<- model_coef_table$intercept + 
+#   model_coef_table$coef_dm_h_bc *frt15$dem
+# 
+# ################################
+# # Person
+# 
+# model_coef_table<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT15_person.csv")
+# model_coef_table
+# 
+# frt15$logit_P_person_coef<- model_coef_table$intercept + 
+#   model_coef_table$coef_dist_infrastructure_m * frt15$distinfrastructure 
+# 
 ################################
 # escape
 
@@ -835,7 +838,7 @@ frt15$logit_P_escape_coef<- model_coef_table$intercept +
 # frt15$logit_P_spread_coef<-logit_P_spread
 # 
 # 
-rm(model_coef_table, pixels, logit_P_escape, logit_P_escape_coef, logit_P_lightning_coef, logit_P_person_coef, logit_P_spread, logit_P_spread_coef, medianDem, emptyRas)
+rm(model_coef_table, logit_P_escape, logit_P_escape_coef, logit_P_lightning_coef, logit_P_person_coef, logit_P_spread, logit_P_spread_coef, medianDem, emptyRas)
 
 gc()
 
@@ -849,9 +852,9 @@ frt_all <- rbindlist(list(frt5, frt7, frt9, frt10, frt11, frt12, frt13, frt14, f
 dim(frt_all)
 
 frt_all<-frt_all %>% 
-  dplyr::select(pixelid,frt, logit_P_lightning_coef:logit_P_escape_coef) %>%
-  rename(logit_P_lightning_coef_const =logit_P_lightning_coef,
-                   logit_P_person_coef_const=logit_P_person_coef, 
+  dplyr::select(pixelid,frt, logit_P_escape_coef) %>%
+  rename(#logit_P_lightning_coef_const =logit_P_lightning_coef,
+                   #logit_P_person_coef_const=logit_P_person_coef, 
                    logit_P_escape_coef_const=logit_P_escape_coef)
 
 
@@ -888,29 +891,29 @@ dim(const_coef_data)
 
 
 ```{r}
-    prov.rast[]<-const_coef_data$logit_P_lightning_coef_const
-    plot(prov.rast)
-    
-# upload const_coef_lighting_raster to postgres
-    
- writeRaster(prov.rast, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\rast_const_coef_lighting.tif", format="GTiff", overwrite=TRUE)
+#     prov.rast[]<-const_coef_data$logit_P_lightning_coef_const
+#     plot(prov.rast)
+#     
+# # upload const_coef_lighting_raster to postgres
+#     
+#  writeRaster(prov.rast, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\rast_const_coef_lighting.tif", format="GTiff", overwrite=TRUE)
+# # 
+# # # run this in R:
+#  paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/rast_const_coef_lighting.tif -t 100x100 rast.const_coef_lightning_ignit | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus')
+# # then copy the output thats between the " " from the above and paste it into the cmd and run that... should show Insert 0  1 lots of times.
 # 
-# # run this in R:
- paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/rast_const_coef_lighting.tif -t 100x100 rast.const_coef_lightning_ignit | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus')
-# then copy the output thats between the " " from the above and paste it into the cmd and run that... should show Insert 0  1 lots of times.
-
-#############################
- #constant coeffieitn values for human caused ignitions
- 
-prov.rast[]<-const_coef_data$logit_P_person_coef_const
- plot(prov.rast)
-    
-# upload const_coef_lighting_raster to postgres
-    
- writeRaster(prov.rast, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\rast_const_coef_person.tif", format="GTiff", overwrite=TRUE)
-# # run this in R:
- paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/rast_const_coef_person.tif -t 100x100 rast.const_coef_person_ignit | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus')
-# then copy the output thats between the " " from the above and paste it into the cmd and run that... should show Insert 0  1 lots of times.
+# #############################
+#  #constant coeffieitn values for human caused ignitions
+#  
+# prov.rast[]<-const_coef_data$logit_P_person_coef_const
+#  plot(prov.rast)
+#     
+# # upload const_coef_lighting_raster to postgres
+#     
+#  writeRaster(prov.rast, file=" C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\rast_const_coef_person.tif", format="GTiff", overwrite=TRUE)
+# # # run this in R:
+#  paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', 'C:/Work/caribou/castor_data/Fire/Fire_sim_data/data/rast_const_coef_person.tif -t 100x100 rast.const_coef_person_ignit | psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus')
+# # then copy the output thats between the " " from the above and paste it into the cmd and run that... should show Insert 0  1 lots of times.
 
  
 #############################

@@ -124,12 +124,12 @@ parameters <- list(
                           nameForestInventoryQMD = "quad_diam_125",
                           nameForestInventorySiteIndex = "site_index"
                     ),
-  blockingCastor = list(blockMethod ='pre', 
-                      patchZone = c('rast.zone_cond_beo'),
-                      patchVariation = 6,
-                      nameCutblockRaster ="rast.cns_cut_bl",
-                      useLandingsArea = FALSE, 
-                      useSpreadProbRas = FALSE),
+  # blockingCastor = list(blockMethod ='pre', 
+  #                     patchZone = c('rast.zone_cond_beo'),
+  #                     patchVariation = 6,
+  #                     nameCutblockRaster ="rast.cns_cut_bl",
+  #                     useLandingsArea = FALSE, 
+  #                     useSpreadProbRas = FALSE),
   forestryCastor = list(harvestBlockPriority = "age DESC", # "dist, age DESC, vol DESC"
                       #harvestZonePriority = "age DESC",
                       #harvestZonePriorityInterval = 1,

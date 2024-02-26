@@ -1,0 +1,241 @@
+<!--
+Copyright 2020 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+---
+title: "Database creation for Comparison Analysis Between STSM and Castor"
+author: "Tyler Muhly"
+date: "20 March 2023"
+output: pdf_document
+---
+
+# Overview
+
+
+
+
+# Usage
+Set parameters for creating the database in the code chunk below.
+
+```{r module_usage}
+library (SpaDES)
+library (SpaDES.core)
+library (data.table)
+library (keyring)
+
+source (here::here("R/functions/R_Postgres.R"))
+
+Sys.setenv(JAVA_HOME = 'C:\\Program Files\\Java\\jdk-14.0.1') #throws an error if pointing to different version of java (i.e., 32 vs 64 bit)
+
+moduleDir <- file.path (paste0 (here::here (), "/R/SpaDES-modules"))
+inputDir <- file.path (paste0 (here::here (), "/R/scenarios/comparison_stsm/inputs")) %>% reproducible::checkPath (create = TRUE)
+outputDir <- file.path (paste0 (here::here (), "/R/scenarios/comparison_stsm/outputs")) %>% reproducible::checkPath (create = TRUE)
+cacheDir <- file.path (paste0 (here::here (), "/R/scenarios/comparison_stsm"))
+
+times <- list(start = 0, end = 0)
+
+parameters <-  list (
+        .progress = list (type = NA, interval = NA),
+        .globals = list (),
+        dataCastor = list(dbName = 'castor',
+                          saveCastorDB = TRUE,
+                          sqlite_dbname = "stsm_compare_noroads_noblocks", 
+                                          # ftnelson_stsmcompare_noroads_noblocks  
+                                          # ftnelson_stsmcompare_noroads_yesblocks
+                          nameBoundaryFile = "castor_stsm_compare.bounds_tsa99", 
+                          nameBoundaryColumn = "tsa_name", 
+                          nameBoundary = "tsa99", 
+                          nameBoundaryGeom = 'wkb_geometry',
+                          nameCompartmentRaster = "castor_stsm_compare.rast_bounds_tsa99", 
+                          nameCompartmentTable = "castor_stsm_compare.vat_bounds_tsa99", 
+                          nameMaskHarvestLandbaseRaster = 'castor_stsm_compare.rast_thlb', 
+                          
+                          nameZoneRasters = "castor_stsm_compare.rast_wildlife_zones",
+                          nameZoneTable = "castor_stsm_compare.constraints", 
+                          
+                          nameYieldsRaster = "castor_stsm_compare.rast_ycid_vdyp", 
+                          nameYieldTable = "castor_stsm_compare.vdyp", 
+                          nameYieldsTransitionRaster = "castor_stsm_compare.rast_ycid_tipsy", 
+                          nameYieldTransitionTable = "castor_stsm_compare.tipsy", 
+                          nameForestInventoryRaster = "castor_stsm_compare.rast_vri_id", 
+                          nameForestInventoryKey = "vri_fid", 
+                          nameForestInventoryTable = "castor_stsm_compare.vri",
+                          nameForestInventoryAge = "proj_age_1",  
+                          nameForestInventoryHeight = "proj_ht_1",
+                          nameForestInventoryCrownClosure = "cr_closure",                             
+                          nameForestInventoryTreed = "bclcs_lv_2",
+                          nameForestInventorySiteIndex = "site_index"
+                          ),
+        roadCastor = list(roadMethod = 'mst', # pre mst
+                  nameCostSurfaceRas = 'rast.rd_cost_surface', 
+                  nameRoads =  'rast.ce_road_2019'),
+  disturbanceCastor = list(calculateInterval =  1, 
+                             criticalHabitatTable = "vat.vat_bc_crithab_and_herd",
+                             criticalHabRaster = "rast.bc_crithab_and_herd",
+                             permDisturbanceRaster = "rast.mine_ag_wind_rail",
+                             recovery = 300), # no road recovery
+  climateCastor = list(calculateInterval = 1,
+                    gcm = c("MPI-ESM1-2-HR"),
+                    gcmname = "ESM1_2_HR", 
+                    ssp = c("ssp370"),
+                    climateYears = c(2020, 2025),
+                    maxRun = 1, 
+                    run = c("r1i1p1f1"),
+                    nameClimateIdnoRast = "rast.climate_prism_base_layer",
+                    nameClimateTable = "vat.climate_prism_lat_lon_lookup"),
+  
+  fireCastor = list(calculateInterval =1,
+                    #calendarStartYear = 2020,
+                    nameFrtRaster = "rast.frt",
+                    nameStaticLightningIgnitRaster = "rast.const_coef_lightning_ignit",
+                    nameStaticHumanIgnitRaster = "rast.const_coef_person_ignit",
+                    nameStaticEscapeRaster = "rast.const_coef_escaped_fires",
+                    nameStaticSpreadRaster = "rast.const_coef_spread_fires",
+                    nameRoadsRast = "rast.ce_road_2019",
+                    #recovery = 300,
+                    nameElevationRaster = "rast.dem",
+                    #nameClimateIdnoRast="rast.climate_prism_base_layer",
+                    #nameClimateTable = "vat.climate_prism_lat_lon_lookup",
+                    simStartYear = 2020,
+                    #gcm = c("MPI-ESM1-2-HR"),
+                    #gcmName=c("mpi_esm1_2_HR"),
+                    #ssp = c("ssp370"),
+                    #maxRun = 2, 
+                    #run = c("r1i1p1f1"),
+                    nameBecRast = "rast.bec_current",
+                    nameBecTable = "vat.bec_zone_vat",
+                    futureClimateProjection = "8GCMs_ensemble_ssp370", #"MPI-ESM1-2-HR"
+                    nameForestInventoryRaster = "rast.vri2020_id",
+                    nameForestInventoryTable2 = "vri.veg_comp_lyr_r1_poly2020",
+                    nameForestInventoryKey = "feature_id",
+                    firemodelcoeftbl = "public.fire_model_coef_tbl",
+                    numberFireReps = 1)
+        # blockingCastor = list(blockMethod='pre', 
+        #                       patchZone = 'rast.zone_cond_beo',
+        #                       patchVariation = 6,
+        #                       nameCutblockRaster = "rast.cns_cut_bl",
+        #                       useLandingsArea = FALSE),
+        # roadCastor = list (roadMethod = 'pre', 
+        #                    nameCostSurfaceRas = 'rast.rd_cost_surface', 
+        #                    nameRoads =  'rast.crds_all'
+        #                    ),
+        # uploadCastor = list(aoiName = 'stsm_compare',
+        #                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"),
+        #                                      keyring::key_get("vmdbuser", keyring="postgreSQL"),
+        #                                      keyring::key_get("vmdbpass", keyring="postgreSQL"), 
+        #                                      keyring::key_get("vmdbname", keyring="postgreSQL")))
+        )
+
+scenario = data.table (name = "load_data_noblocks_noroads", description = "dataCastor with no blocking and no roading")
+
+# scenario = data.table (name = "load_data_yesblocks_noroads", description = "dataCastor with blocking but no roading")
+
+patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
+                                  2,2,2,2,2,2,
+                                  3,3,3,3,3,3,
+                                  4,4,4,4,4,4,
+                                  5,5,5,5,5,5), 
+                           sizeClass = c(40,80,120,160,200,240), 
+                           freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
+                                    0.1,0.02,0.02,0.02,0.02,0.8,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1))
+modules <- list("dataCastor", 
+                # "blockingCastor", no blocking needed
+                # "roadCastor", 
+                "uploadCastor")
+
+objects <- list(patchSizeDist=patchSizeDist, 
+                #rsf_model_coeff=rsf_model_coeff , 
+                scenario = scenario)
+
+paths <- list(cachePath = cacheDir,
+              modulePath = moduleDir,
+              inputPath = inputDir,
+              outputPath = outputDir)
+
+inputs <- list()
+outputs <- list()
+
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects,
+                 paths = paths)
+
+# outputs to keep; these are tables that get used in the uploader
+outputs(mySim) <- data.frame (objectName = c("harvestReport",
+                                             "growingStockReport"
+                                             ))
+
+system.time({
+mysimout<-spades(mySim)
+})
+
+```
+
+## Create 'Blocks' Tables
+Use the script below to replicate the STSM approach of not creating 'blocks' (i.e., each pixel is a block) in the castor db.
+
+```{r, create blocks}
+castordb <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_castordb.sqlite"))
+# update pixels table 
+dbExecute (castordb, "ALTER TABLE pixels ADD COLUMN blockid integer DEFAULT 0")
+dbBegin (castordb)
+rs <- dbSendQuery (castordb, "UPDATE pixels SET blockid = pixelid;")
+dbClearResult (rs)
+dbCommit (castordb)
+
+# create blocks table
+dbExecute (castordb, "CREATE TABLE IF NOT EXISTS blocks ( blockid integer DEFAULT 0, age integer, height numeric, vol numeric, salvage_vol numeric, dist numeric DEFAULT 0, landing integer)")  
+dbExecute (castordb, paste0("UPDATE blocks SET vol = 0 WHERE vol IS NULL")) 
+dbExecute (castordb, paste0("UPDATE blocks SET dist = 0 WHERE dist is NULL"))
+dbExecute (castordb, paste0("INSERT INTO blocks (blockid, age, height,  vol, salvage_vol, dist, landing)  
+                    SELECT blockid, round(AVG(age),0) as age, AVG(height) as height, AVG(vol) as vol, AVG(salvage_vol) as salvage_vol, AVG(dist) as dist, (CASE WHEN min(dist) = dist THEN pixelid ELSE pixelid END) as landing
+                                       FROM pixels WHERE blockid > 0 AND thlb > 0 GROUP BY blockid "))  
+dbExecute (castordb, "CREATE INDEX index_blockid on blocks (blockid)")
+
+# create adjacent blocks table
+ras <- terra::rast (ncol = 5223, nrow = 2947, xmin = 830187.5, 
+			              xmax = 1352488, ymin = 1388088, ymax = 1682788,)  
+terra::crs(ras)  <- "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs +type=crs"  
+edgesAdj <- data.table(SpaDES.tools::adj(returnDT= TRUE, 
+                                         directions = 8, numCol = ncol(ras), numCell=ncol(ras)*nrow(ras),
+                                         cells = 1:as.integer(ncol(ras)*nrow(ras)))) 
+blockids <- data.table (dbGetQuery (castordb, "SELECT blockid, pixelid FROM pixels WHERE blockid > 0"))
+setkey (blockids, pixelid)  
+edgesAdj <- merge (edgesAdj, blockids, by.x = "to", by.y = "pixelid" )  
+edgesAdj <- merge (edgesAdj, blockids, by.x = "from", by.y ="pixelid" )
+edgesAdj <- data.table (edgesAdj[, c ("blockid.x", "blockid.y")])
+edgesAdj <- edgesAdj[blockid.x  != blockid.y]
+edgesAdj <- edgesAdj[blockid.x  > 0 & blockid.y  > 0]
+edgesAdj <- unique (edgesAdj)
+setnames(edgesAdj, c ("blockid", "adjblockid")) 
+  
+dbExecute(castordb, "CREATE TABLE IF NOT EXISTS adjacentBlocks (id integer PRIMARY KEY, adjblockid integer, blockid integer)")  
+dbBegin(castordb)  
+rs <- dbSendQuery (castordb, "INSERT INTO adjacentBlocks (blockid , adjblockid) VALUES (:blockid, :adjblockid)", edgesAdj)  
+dbClearResult(rs)
+dbCommit(castordb) 
+dbExecute(castordb, "CREATE INDEX index_adjblockid on adjacentBlocks (adjblockid)")
+```
+
+
+## Update Stands in THLB with NUll age to age = 0
+
+```{r}
+db <- dbConnect(RSQLite::SQLite(), dbname = paste0(here::here(), "/R/scenarios/comparison_stsm/stsm_compare_noroads_noblocks_castordb_age0.sqlite"))
+
+dbExecute (db, "UPDATE pixels SET age = 0 WHERE age IS NULL AND thlb > 0;") 
+```
+
