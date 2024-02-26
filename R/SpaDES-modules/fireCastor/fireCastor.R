@@ -216,37 +216,37 @@ getStaticVariables<-function(sim){
     stop(paste0("ERROR: extents are not the same check -", P(sim, "nameFrtRaster", "fireCastor")))
   }
   
-  message("get static fire variables")
-  #constant coefficients
-  ras.ignitlightning<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                                     srcRaster= P(sim, "nameStaticLightningIgnitRaster", "fireCastor"), 
-                                     clipper=sim$boundaryInfo[1] , 
-                                     geom= sim$boundaryInfo[4] , 
-                                     where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                     conn=NULL))
-  if(terra::ext(sim$ras) == terra::ext(ras.ignitlightning)){
-    ignit_lightning_static<-data.table(ignitstaticlightning = as.numeric(ras.ignitlightning[]))
-    ignit_lightning_static[, pixelid := seq_len(.N)][, ignitstaticlightning := as.numeric(ignitstaticlightning)]
-    ignit_lightning_static<-ignit_lightning_static[ignitstaticlightning > -200, ]
-    }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameStaticLightningIgnitRaster", "fireCastor")))
-}
-
-    # ignition human    
-    ras.ignithuman<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                                                  srcRaster= P(sim, "nameStaticHumanIgnitRaster", "fireCastor"), 
-                                                  clipper=sim$boundaryInfo[1] , 
-                                                  geom= sim$boundaryInfo[4] , 
-                                                  where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                                  conn=NULL))
-    if(terra::ext(sim$ras) == terra::ext(ras.ignithuman)){
-      ignit_human_static<-data.table(ignitstatichuman = as.numeric(ras.ignithuman[]))
-      ignit_human_static[, pixelid := seq_len(.N)][, ignitstatichuman := as.numeric(ignitstatichuman)]
-      ignit_human_static<-ignit_human_static[ignitstatichuman > -200, ]
-    }else{
-      stop(paste0("ERROR: extents are not the same check -", P(sim, "nameStaticHumanIgnitRaster", "fireCastor")))
-    }
-    
+   message("get static fire variables")
+#   #constant coefficients
+#   ras.ignitlightning<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+#                                      srcRaster= P(sim, "nameStaticLightningIgnitRaster", "fireCastor"), 
+#                                      clipper=sim$boundaryInfo[1] , 
+#                                      geom= sim$boundaryInfo[4] , 
+#                                      where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+#                                      conn=NULL))
+#   if(terra::ext(sim$ras) == terra::ext(ras.ignitlightning)){
+#     ignit_lightning_static<-data.table(ignitstaticlightning = as.numeric(ras.ignitlightning[]))
+#     ignit_lightning_static[, pixelid := seq_len(.N)][, ignitstaticlightning := as.numeric(ignitstaticlightning)]
+#     ignit_lightning_static<-ignit_lightning_static[ignitstaticlightning > -200, ]
+#     }else{
+#       stop(paste0("ERROR: extents are not the same check -", P(sim, "nameStaticLightningIgnitRaster", "fireCastor")))
+# }
+# 
+#     # ignition human    
+#     ras.ignithuman<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+#                                                   srcRaster= P(sim, "nameStaticHumanIgnitRaster", "fireCastor"), 
+#                                                   clipper=sim$boundaryInfo[1] , 
+#                                                   geom= sim$boundaryInfo[4] , 
+#                                                   where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+#                                                   conn=NULL))
+#     if(terra::ext(sim$ras) == terra::ext(ras.ignithuman)){
+#       ignit_human_static<-data.table(ignitstatichuman = as.numeric(ras.ignithuman[]))
+#       ignit_human_static[, pixelid := seq_len(.N)][, ignitstatichuman := as.numeric(ignitstatichuman)]
+#       ignit_human_static<-ignit_human_static[ignitstatichuman > -200, ]
+#     }else{
+#       stop(paste0("ERROR: extents are not the same check -", P(sim, "nameStaticHumanIgnitRaster", "fireCastor")))
+#     }
+#     
     # TO DO : THere must be NA's in the escape and spreaad data e.g. for wind or for slope, aspect and elevation. I know this because escape_static and spread_static are smaller than ignit_human_static or ignit_lightning_static. Go back and give the NA values the average value for that FRT and then re-run the script so that there are no holes!!!
     
     # Escape  
@@ -279,10 +279,10 @@ getStaticVariables<-function(sim){
         #   stop(paste0("ERROR: extents are not the same check -", P(sim, "nameStaticSpreadRaster", "fireCastor")))
         # }
         
-    fire_static<-merge(ignit_lightning_static,ignit_human_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-    fire_static<-merge(fire_static,escape_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
+    # fire_static<-merge(ignit_lightning_static,ignit_human_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
+    # fire_static<-merge(fire_static,escape_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
  #   fire_static<-merge(fire_static,spread_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-    sim$fire_static<-merge(fire_static, sim$frt_id, by.x="pixelid", by.y="pixelid", all.x=TRUE)
+    sim$fire_static<-merge(escape_static, sim$frt_id, by.x="pixelid", by.y="pixelid", all.x=TRUE)
     
     #add to the castordb
     # dbBegin(sim$castordb)
@@ -290,7 +290,7 @@ getStaticVariables<-function(sim){
     # dbClearResult(rs)
     # dbCommit(sim$castordb)
   
-    rm(ras.ignitlightning, ignit_lightning_static, ras.ignithuman, ignit_human_static, ras.escape, escape_static, ras.spread, spread_static)
+    rm(ras.ignitlightning, ignit_lightning_static, ras.ignithuman, ignit_human_static, ras.escape, escape_static)
     gc()
   } else {
     print("using pre-existing fire_static variables")
@@ -440,17 +440,11 @@ getClimateVariables <- function(sim) {
    
   sim$climate_data<-clim_dat[ ,c("pixelid","gcm", "ssp", "run","period","climate1lightning", "climate2lightning","climate1person","climate2person", "climate1escape", "climate2escape", "climate1spread", "climate2spread")]
   
+  
    return(invisible(sim))
    
   }
    
-#   sim$climate_dat<-data.table(dbGetQuery(sim$castordb, paste0("SELECT * FROM climate_", P(sim, "gcmName", "fireCastor"),"_",P(sim, "ssp", "fireCastor"), " WHERE period>=", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor") , "AND period <=", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor") + sim$updateInterval , "AND run!= ensembleMean", ";")))
-  
- 
-  
- 
-  
-  #} else {message ("climate data already collected")}
 
 createVegetationTable <- function(sim) {
   
@@ -510,7 +504,7 @@ createVegetationTable <- function(sim) {
     
     if(!P(sim, "nameForestInventoryTable2","fireCastor") == '99999'){ #Get the forest inventory variables 
       
-      fuel_attributes_castordb<-sapply(c('bclcs_level_1', 'bclcs_level_2', 'bclcs_level_3',  'bclcs_level_5', 'inventory_standard_cd', 'non_productive_cd', 'coast_interior_cd',  'land_cover_class_cd_1', 'earliest_nonlogging_dist_type', 'earliest_nonlogging_dist_date','vri_live_stems_per_ha', 'vri_dead_stems_per_ha','species_cd_1','species_pct_1','species_cd_2', 'species_pct_2', 'species_cd_3', 'species_pct_3','species_cd_4','species_pct_4', 'species_cd_5', 'species_pct_5', 'species_cd_6', 'species_pct_6'), function(x){
+      fuel_attributes_castordb<-sapply(c('bclcs_level_1', 'bclcs_level_4','species_cd_1','species_pct_1','species_cd_2', 'species_pct_2', 'species_cd_3', 'species_pct_3','species_cd_4','species_pct_4', 'species_cd_5', 'species_pct_5', 'species_cd_6', 'species_pct_6'), function(x){
         if(!(P(sim, paste0("nameForestInventory", x), "fireCastor") == '99999')){
           return(paste0(P(sim, paste0("nameForestInventory", x), "fireCastor"), " as ", tolower(x)))
         }else{
@@ -533,11 +527,7 @@ createVegetationTable <- function(sim) {
         
         inv<-merge(x=inv, y=bec, by.x="pixelid", by.y="pixelid", all.x=TRUE)
         
-        inv[, earliest_nonlogging_dist_date := substr(earliest_nonlogging_dist_date,1,4)]
-        inv[, earliest_nonlogging_dist_date := as.integer(earliest_nonlogging_dist_date)]
-      
-      
-        message("calculating % conifer and dominant conifer species")
+        message("calculating % conifer")
         
         conifer<-c("C","CW","Y","YC","F","FD","FDC","FDI","B","BB","BA","BG","BL","H","HM","HW","HXM","J","JR","JS","P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA","S","SB","SE","SS","SW","SX","SXW","SXL","SXS","T","TW","X", "XC","XH", "ZC")
         
@@ -547,23 +537,16 @@ createVegetationTable <- function(sim) {
         inv[, pct4:=0][species_cd_4 %in% conifer, pct4:=species_pct_4]
         inv[, pct5:=0][species_cd_5 %in% conifer, pct5:=species_pct_5]
         inv[, pct6:=0][species_cd_6 %in% conifer, pct6:=species_pct_6]
-        
-        # create dominant conifer column and populate
-        inv[, dominant_conifer:="none"]
-        inv[species_cd_1 %in% conifer, dominant_conifer:=species_cd_1]
-        inv[!(species_cd_1 %in% conifer) & species_cd_2 %in% conifer, dominant_conifer:=species_cd_2]
-        inv[!(species_cd_1 %in% conifer) & !(species_cd_2 %in% conifer) & species_cd_3 %in% conifer, dominant_conifer:=species_cd_3]
-        inv[!(species_cd_1 %in% conifer) & !(species_cd_2 %in% conifer) & !(species_cd_3 %in% conifer) & species_cd_4 %in% conifer, dominant_conifer:=species_cd_4]
-        inv[!(species_cd_1 %in% conifer) & !(species_cd_2 %in% conifer) & !(species_cd_3 %in% conifer) & !(species_cd_4 %in% conifer) & species_cd_5 %in% conifer, dominant_conifer:=species_cd_5]
-        inv[!(species_cd_1 %in% conifer) & !(species_cd_2 %in% conifer) & !(species_cd_3 %in% conifer) & !(species_cd_4 %in% conifer) & !(species_cd_5 %in% conifer) & species_cd_6 %in% conifer, dominant_conifer:=species_cd_6]
-        
+           
         #determing total percent cover of conifer species
         inv[,conifer_pct_cover_total:=pct1+pct2+pct3+pct4+pct5+pct6]
+        inv[!is.na(species_cd_1) & is.na(conifer_pct_cover_total), conifer_pct_cover_total:=0]
         
         # remove extra unneccesary columns
         inv<-inv[, c("species_cd_3", "species_cd_4", "species_cd_5", "species_cd_6", "species_pct_3", "species_pct_4", "species_pct_5", "species_pct_6","pct1", "pct2", "pct3", "pct4", "pct5", "pct6"):=NULL] 
         
         sim$inv<-inv
+        
         rm(inv_id, attrib_inv)
         gc()
     
@@ -587,580 +570,34 @@ createVegetationTable <- function(sim) {
 
 calcFuelTypes<- function(sim) {
   
-  conifer<-c("C","CW","Y","YC","F","FD","FDC","FDI","B","BB","BA","BG","BL","H","HM","HW","HXM","J","JR","JS","P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA","S","SB","SE","SS","SW","SX","SXW","SXL","SXS","T","TW","X", "XC","XH", "ZC")
-  
-  deciduous<-c("L", "LA", "LT", "LW", "D", "DR", "U", "UP", "A", "AC", "ACB", "ACT", "AX", "AT", "R", "RA", "E", "EA", "EXP", "EP", "EW", "K", "KC", "V", "VB", "VV", "VP", "G", "M", "MB", "MV", "Q", "QG", "W", "WB", "WP", "WA", "WD", "WS", "WT", "XH", "ZH")
-  
-  wet<-c("mc", "mcp", "mh", "mk", "mkp", "mks", "mm", "mmp", "mmw", "ms", "mv", "mvp", "mw", "mwp", "mww", "vc", "vcp", "vcw", "vh", "vk", "vks", "vm", "wc", "wcp", "wcw", "wh", "whp", "wk", "wm", "wmp", "wmu", "ws", "wv", "wvp", "ww")
-  
-  burn<-c("B","BE", "BG", "BR", "BW", "NB")
-  
-  ## extract data from BEC instead of pulling it off the vri. I think it will be better!
 message("getting vegetation data")
 
-# if (nrow(sim$inv)<1){
-#   sim$inv<-data.table(dbGetQuery(sim$castordb, "SELECT * FROM fueltype"))
-# }
-
-  veg_attributes<- data.table(dbGetQuery(sim$castordb, "SELECT pixelid, crownclosure, age, vol, height, dec_pcnt, blockid FROM pixels"))
+  veg_attributes<- data.table(dbGetQuery(sim$castordb, "SELECT pixelid, basalarea, age, height,  blockid FROM pixels"))
   
   veg2<-merge(sim$inv, veg_attributes, by.x="pixelid", by.y = "pixelid", all.x=TRUE)
   
+  veg2[height >= 4 & basalarea >= 8 & bclcs_level_4 == "TC", veg_cat:=1]
+  veg2[height >= 4 & basalarea >= 8 & bclcs_level_4 == "TM", veg_cat:=2]
+  veg2[height >= 4 & basalarea >= 8 & bclcs_level_4 == "TB", veg_cat:=3]
+  veg2[((height < 4 | basalarea < 8 | is.na(height ) | is.na(basalarea)) & bclcs_level_4 %in% c("TC", "TM", "TB")), veg_cat:=4]
+  veg2[!bclcs_level_4 %in% c("TC", "TM", "TB"), veg_cat:=5]
+  veg2[bclcs_level_1 != 'V' & (is.na(basalarea) | basalarea < 8), veg_cat:=6]
+  
   rm(veg_attributes)
   gc()
-
-  message("calculating time since disturbance")
   
-  #### CHECK if years_since_nonlogging_dist needs to be updated after a fire####
-  
-
-  veg2[, years_since_nonlogging_dist:=NA_integer_]
-  veg2[, years_since_nonlogging_dist:=(time(sim)*sim$updateInterval) + P(sim, "simStartYear","fireCastor") - earliest_nonlogging_dist_date]
-  
-  message("categorizing data into fuel types")
-  
-  #### Calculate fuel types ####
-  
-  # running the query from least specific to most specific so that I dont overwrite fuel types
-  #veg2[, fwveg:="none"]
-  
-  # limited vegetation information  but has bec designation
- 
-  veg2[bclcs_level_5 %in% c("GL","LA"), bclcs_level_2 == "W"]
-  
-  ### Note I should probably put age into this section below so that if the area gets burned its fuel type will update to one of the burned classes.####
-  
-  veg2[bclcs_level_1=="N", fwveg:="N"]
-  veg2[bclcs_level_2=="W", fwveg:="W"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & zone %in% c("CMA", "IMA"), fwveg:="N"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone == "BAFA", fwveg:="D-1/2"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone=="CWH", fwveg:="M-1/2"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone == "CWH" & subzone %in% wet, fwveg:="C-5"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone == "BWBS", fwveg:="C-2"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone == "SWB", fwveg:="M-1/2"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone == "SBS", fwveg:="C-3"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone == "SBPS", fwveg:="C-7"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone == "MS", fwveg:="C-3"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone == "IDF", fwveg:="C-7"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone=="IDF" & subzone %in% wet, fwveg:="M-1/2"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone == "PP", fwveg:="C-7"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone == "BG", fwveg:="O-1a/b"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone=="MH", fwveg:="C-5"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone=="ESSF", fwveg:="C-3"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone == "CDF", fwveg:="C-7"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone=="CDF" & subzone %in% wet, fwveg:="C-5"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone == "ICH", fwveg:="M-1/2"]
-  veg2[is.na(bclcs_level_1) & is.na(species_cd_1) & is.na(species_cd_2) & zone == "ICH" & subzone %in% wet, fwveg:="C-5"]
-  
-
-  ##--------------------------##
-  #### bclcs_level_1 == "N" ####
-  ##--------------------------##
-    
-  # not logged and not recently burned  & bclcs_level_1 =="N"
-  
-  veg2[bclcs_level_1=="N" & (bclcs_level_2=="L" | is.na(bclcs_level_2)) & !is.na(species_pct_1), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="N" & (bclcs_level_2=="L" | is.na(bclcs_level_2)) & !is.na(species_pct_1) & zone %in% c("CWH", "MH", "ICH"), fwveg:="D-1/2"] 
-  
-  #logged less than 6 yrs before  & bclcs_level_1 =="N"
-  veg2[bclcs_level_1=="N" & blockid>0 & age<= 6 & coast_interior_cd=="C", fwveg:="S-3"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age<= 6 & coast_interior_cd =="I",fwveg:="S-1"]
-  
-  # harvest date 7-24 & bclcs_level_1 =="N"
-  veg2[bclcs_level_1=="N" & blockid>0 & (age %between% c(7,24)), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="N" & blockid>0 & (age %between% c(7,24)) & zone %in% c("CWH","MH","ICH"), fwveg:="D-1/2"]
-       
-  # harvest date > 25 & bclcs_level_1 =="N"
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone %in% c("CMA","IMA"), fwveg:="N"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="BAFA", fwveg:= "D-1/2"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="CWH", fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="CWH" & (subzone %in% wet), fwveg:="C-5"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="BWBS", fwveg:="C-2"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="SWB", fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="SBS", fwveg:="C-3"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="SBPS", fwveg:="C-7"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="MS", fwveg:="C-7"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="IDF" & (subzone %in% wet), fwveg:="C-3"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="IDF" & !(subzone %in% wet), fwveg:="C-7"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone %in% c("PP","BG"), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="MH", fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="ESSF", fwveg:="C-7"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="CDF" & (subzone %in% wet), fwveg:="C-5"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="CDF" & !(subzone %in% wet), fwveg:="C-7"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="ICH" & (subzone %in% wet), fwveg:="C-5"]
-  veg2[bclcs_level_1=="N" & blockid>0 & age>=25 & zone=="ICH" & !(subzone %in% wet), fwveg:="C-3"]
-  
-  # not vegetated, not logged, but burned fairly recently
-  veg2[bclcs_level_1=="N" & earliest_nonlogging_dist_type %in% burn & years_since_nonlogging_dist  <=3, fwveg:="N"]
-  veg2[bclcs_level_1=="N" & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist >=4 & years_since_nonlogging_dist <= 6), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="N" & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist >= 7 & years_since_nonlogging_dist <=10), fwveg:="O-1a/b"]
-      
-  ##------------------------------------------------##
-  #### bclcs_level_1 == "V" & bclcs_level_2 =="N" ####
-  ##------------------------------------------------##
-  
-  ### non-forested bclcs_level_2==N recently burned
-  # note though that instead of using bclcs_level_2==N I will rather use (crownclosure < 10 | bclcs_level_3 == "A" because bclcs_level_2 does not get updated but crownclosure does. bclcs_level_3 also does not get updated but I think at least in the short term we can assume this designation will stay the same. 
-  
-  # need to check that (bclcs_level_2 =="N & is.na(crownclosure)) is working as I think it should. i.e. that there are not locations where vegetation has not been designated.
-  
-  veg2[bclcs_level_1=="V" & (crownclosure < 10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & earliest_nonlogging_dist_type %in% burn & years_since_nonlogging_dist < 2, fwveg:="N"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist >=2 & years_since_nonlogging_dist<= 3), fwveg:="D-1/2"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & earliest_nonlogging_dist_type %in% burn & (years_since_nonlogging_dist >=4 & years_since_nonlogging_dist<= 10), fwveg:="O-1a/b"]
-  
-  ### logged
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age<=7, fwveg:="S-1"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="N" & blockid>0 & age<=7 & species_cd_1 %in% c("P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA"), fwveg:="S-1"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age <=7 & species_cd_1 %in% c("B","BB","BA","BG","BL","S","SB","SE","SS","SW","SX","SXW","SXL","SXS"), fwveg:="S-2"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age<=7 & species_cd_1 %in% c("CW","YC","H","HM","HW","HXM"), fwveg:="S-3"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age<=7 & species_cd_1 == "FD" & zone %in% c("CWH", "ICH"), fwveg:="S-3"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age %between% c(8, 24) & zone %in% c("CWH", "MH"), fwveg:="D-1/2"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age %between% c(8, 24) & zone == "ICH" & subzone %in% wet, fwveg:="D-1/2"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age %between% c(8, 24), fwveg:="O-1a/b"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age>=25 & zone %in% c("CMA", "IMA"), fwveg:="N"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone == "BAFA", fwveg:="D-1/2"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone == "CWH", fwveg:="M-1/2"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone == "CWH" & subzone %in% wet, fwveg:="C-5"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone == "BWBS", fwveg:="C-2"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone=="SWB", fwveg:="M-1/2"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone=="SBS", fwveg:="C-3"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone=="SBPS", fwveg:="C-7"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & age >=25 & zone %in% c("MS", "ESSF"), fwveg:="C-3"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone %in% c("IDF", "CDF"), fwveg:= "C-7"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone=="IDF" & subzone %in% wet, fwveg:="C-3"]
-  
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone %in% c("PP", "BG"), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone=="MH", fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone=="ICH", fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid>0 & age >=25 & zone %in% c("CDF", "ICH") & subzone %in% wet, fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age <=5, fwveg:="S-1"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age %between% c(6, 24), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age %between% c(6, 24) & zone %in% c("CWH", "MH", "ICH"), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone %in% c("CMA", "IMA"), fwveg:="N"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="BAFA", fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="CWH", fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="CWH" & subzone %in% wet, fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="BWBS", fwveg:="C-2"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="SWB", fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="SBS", fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="SBPS", fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="MS", fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="IDF" & subzone %in% wet, fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="IDF", fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone %in% c("PP", "BG"), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="MH", fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone %in% c("ESSF", "CDF"), fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone=="ICH", fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & is.na(species_cd_1) & blockid>0 & age >= 25 & zone %in% c("CDF", "ICH") & subzone %in% wet, fwveg:="C-5"]
- 
-  
-  #### Unlogged
-
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & !is.na(species_cd_1), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & !is.na(species_cd_1) & zone %in% c("CMA", "IMA"), fwveg:="N"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & !is.na(species_cd_1) & zone %in% c("CWH", "MH", "ICH", "BAFA"), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd %between% c(11, 14) & zone %in% c("CWH", "MH", "ICH"), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd %between% c(10, 14), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd ==35, fwveg:="W"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & non_productive_cd ==42, fwveg:="N"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & (non_productive_cd == 60 |non_productive_cd == 62 | non_productive_cd == 63), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" &  zone %in% c("CMA","IMA"), fwveg:="N"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & zone %in% c("CWH","MH", "ICH", "BAFA"), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F" & is.na(non_productive_cd), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd=="F", fwveg:="N"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1 %in% c("LA", "RE","RL","OC"), fwveg:="W"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1=="HG", fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1 %in% c("BY", "BM","BL"), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & (land_cover_class_cd_1 %in% c("SL", "ST","HE","HF") |is.na(land_cover_class_cd_1)) & zone %in% c("CMA", "IMA"), fwveg:="N"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & (land_cover_class_cd_1 %in% c("SL", "ST","HE","HF") |is.na(land_cover_class_cd_1)) & zone %in% c("CWH", "MH", "ICH"), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & (land_cover_class_cd_1 %in% c("SL", "ST","HE","HF") |is.na(land_cover_class_cd_1)), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & (crownclosure <10 | bclcs_level_3 == "A" | (bclcs_level_2=="N" & is.na(crownclosure))) & blockid==0 & is.na(species_cd_1) & inventory_standard_cd %in% c("V", "I") & land_cover_class_cd_1 %in% c("SI", "GL","PN","RO", "BR", "TA", "BI", "MZ", "LB", "EL", "RS", "ES", "LS", "RM", "BE", "LL", "BU", "RZ", "MU", "CB", "MN", "GP", "TZ", "RN", "UR", "AP", "MI", "OT", "LA", "RE", "RI", "OC"), fwveg:="N"]
-  
-  ##--------------------------------------------##
-  ####bclcs_level_1=="V" & bclcs_level_2=="T" ####
-  ##--------------------------------------------##
-  
-  ####Pure lodgepole or jack pine or undefined pine species.#### 
-  
-  #Also I just included unknown conifer species (XC) here because lodgepole and jack and undefined pines are the most common conifer species.
-
-  # put recently burned section at bottom
-  
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC"), fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & bclcs_level_5=="SP" & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC"), fwveg:="C-7"]
-  
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") & bclcs_level_5=="SP" & zone=="ICH" & subzone %in% wet, fwveg:= "D-1/2"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") & bclcs_level_5=="SP" & zone %in% c("CWH", "CDF", "MH"), fwveg:="D-1/2"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 &  bclcs_level_5 %in% c("DE", "OP") & height<=4 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC"), fwveg:="O-1a/b"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & bclcs_level_5 %in% c("DE", "OP") & height %between% c(4, 12) & (vri_live_stems_per_ha+vri_dead_stems_per_ha) > 8000 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC"), fwveg:="C-4"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & bclcs_level_5 %in% c("DE", "OP") & height %between% c(4,12) & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC"), fwveg:="C-3"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & bclcs_level_5 %in% c("DE", "OP") & height >12 & crownclosure <40 & zone %in% c("BG", "PP", "IDF", "MS") & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC"), fwveg:="C-7"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & bclcs_level_5 %in% c("DE", "OP") & height >12 & crownclosure <40 & zone %in% c("CWH", "MH", "ICH") & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC"), fwveg:="C-5"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & bclcs_level_5 %in% c("DE", "OP") & height >12 & crownclosure <40 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC"), fwveg:="C-3"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & earliest_nonlogging_dist_type=="IBM" & years_since_nonlogging_dist <=5 & dec_pcnt >50 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC"), fwveg:="M-3"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & earliest_nonlogging_dist_type=="IBM" & years_since_nonlogging_dist <=5 & dec_pcnt  %between% c(25, 50)  & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC"), fwveg:="C-2"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & earliest_nonlogging_dist_type=="IBM" & years_since_nonlogging_dist <=5 & dec_pcnt < 25 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC"), fwveg:="C-3"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & earliest_nonlogging_dist_type=="IBM" & years_since_nonlogging_dist > 5 & dec_pcnt > 50 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC"), fwveg:="C-2"]
-   # recently logged
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P", "XC") & blockid>0 & age<=7, fwveg:="S-1"]
-  
-  
-  #### Pure ponderosa pine ####
-  
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & height < 4 & fwveg == "none", fwveg:="O-1a/b"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & height %between% c(4, 12) & (vri_live_stems_per_ha+vri_dead_stems_per_ha)>8000 & fwveg == "none", fwveg:="C-4"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & height %between% c(4,12) & (vri_live_stems_per_ha+vri_dead_stems_per_ha) %between% c(3000, 8000) & fwveg == "none", fwveg:="C-3"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 > 79 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & height %between% c(4,12) & ((vri_live_stems_per_ha+vri_dead_stems_per_ha)<3000 | is.na(vri_live_stems_per_ha+vri_dead_stems_per_ha)) & fwveg == "none", fwveg:="C-7"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & height %between% c(12, 17) & fwveg == "none", fwveg:="C-7"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 > 79 & species_cd_1 == "PY" & bclcs_level_5 =="DE" & height %between% c(12, 17) & fwveg == "none", fwveg:="C-3"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & height >17, fwveg:="C-7"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & bclcs_level_5 =="SP", fwveg:="C-7"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & bclcs_level_5 =="SP" & dec_pcnt >=40, fwveg:="O-1a/b"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "PY" & bclcs_level_5 =="SP" & blockid>0 & age<=10, fwveg:="S-1"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1>= 80 & species_cd_1 == "PY" & bclcs_level_5 %in% c("DE","OP") & blockid>0 & age<=10, fwveg:="S-1"]
-   
-  
-  # PA, PF, PW
-  
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PA", "PF", "PW"), fwveg:="C-5"]
-   veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PA", "PF", "PW") & bclcs_level_5 =="DE", fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PA", "PF", "PW") & (vri_live_stems_per_ha+vri_dead_stems_per_ha)>=900, fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("PA", "PF", "PW") & (vri_live_stems_per_ha+vri_dead_stems_per_ha) %between% c(600,900), fwveg:="C-7"]
-  
-  
-  #### Pure douglas fir ####
-
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & height < 4 & (blockid==0 | (blockid>0 & age>6)), fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & zone %in% c("CWH", "MH", "CDF") & height < 4 & (blockid==0 | (blockid>0 & age>6)), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & zone =="ICH" & subzone %in% wet & height < 4 & (blockid==0 | (blockid>0 & age>6)), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 > 79 & dominant_conifer %in% c("F","FD","FDC","FDI") & zone %in% c("CWH", "MH", "CDF") & height %between% c(4, 12) & (blockid==0 | (blockid>0 & age>6)) & crownclosure >= 55, fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & zone =="ICH" & subzone %in% wet & height %between% c(4, 12) & crownclosure > 55  & (blockid==0 | (blockid>0 & age>6)), fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & height %between% c(4,12) & crownclosure > 55 & dec_pcnt > 34  & (blockid==0 | (blockid>0 & age>6)), fwveg:="C-4"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & height %between% c(4,12) & crownclosure > 55  & (blockid==0 | (blockid>0 & age>6)), fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & crownclosure<26, fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & height>12 & crownclosure > 55, fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & zone %in% c("CWH", "MH", "CDF") & height>12 & crownclosure > 55, fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & zone=="ICH" & subzone %in% wet & crownclosure > 55 & height>12, fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & zone %in% c("CWH", "MH", "CDF") & crownclosure %between% c(26,55), fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & zone=="ICH" & subzone %in% wet & crownclosure %between% c(26, 55), fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & crownclosure %between% c(26, 55), fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & zone %in% c("CWH", "MH", "CDF") & crownclosure<26, fwveg:= "D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI") & zone =="ICH" & subzone %in% wet & crownclosure<26, fwveg:="D-1/2"]
-  # recent logging
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI")  & blockid>0 & age<=6, fwveg:="S-1"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI")  & blockid>0 & age<=6 & zone %in% c("CWH", "MH", "CDF"), fwveg:="S-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("F","FD","FDC","FDI")  & blockid>0 & age<=6 & zone=="ICH" & subzone %in% wet, fwveg:="S-3"]
-  
-  
-  # Pure spruce 
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "SE", fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "SE" & bclcs_level_5=="SP", fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "SE" & bclcs_level_5=="DE", fwveg:="C-2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "SE" & blockid>0 & age<=10, fwveg:="S-2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" &  species_pct_1> 79 & species_cd_1 == "SS" & bclcs_level_5=="SP", fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "SS" & bclcs_level_5 %in% c("DE","OP"), fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "SS"  & blockid>0 & age<=6, fwveg:="S-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("SB", "SW"), fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1  %in% c("SB", "SW") & bclcs_level_5 %in% c("DE","OP"), fwveg:="C-2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("SB", "SW") & zone %in% c("BWBS", "SWB"), fwveg:="C-1"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("SB", "SW")  & blockid>0 & age<=10, fwveg:="S-2"]
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS")  & height < 4, fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS")  & height >= 4 & bclcs_level_5 == "OP", fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS") & height >= 4, fwveg:="C-2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS")  &  zone %in% c("BWBS", "SWB") & bclcs_level_5 %in% c("DE", "OP"), fwveg:="C-2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS")  &  zone %in% c("BWBS", "SWB"), fwveg:="C-1"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS")  &  !(zone %in% c("BWBS", "SWB")) & bclcs_level_5 =="SP", fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS")  &  zone %in% c("CWH", "CDF"), fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("S","SX","SXW","SXL","SXS")  & blockid>0 & age<=7, fwveg:="S-2"]
-  
-
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC"),fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5 %in% c("OP","DE"), fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="DE" & age < 60, fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="DE" & age %between% c(60, 99), fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="DE" & height < 4, fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & bclcs_level_5=="DE" & height %between% c(4, 15), fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("H","HM", "HW", "C","CW", "Y", "YC")  & blockid>0 & age<=6, fwveg:="S-3"]
-  
-  # True fir
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "BG", fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 == "BA", fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("B", "BB", "BL"), fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("B", "BB", "BL")  & bclcs_level_5=="SP", fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in%  c("T","TW"), fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% c("J","JR","JS"), fwveg:="O-1a/b"]
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1> 79 & species_cd_1 %in% deciduous, fwveg:="D-1/2"]
-  
-  
-  #### Mixed species stand ####
- 
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 <80 & conifer_pct_cover_total<=20, fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_cover_total %between% c(21, 40), fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & blockid>0 & age<=6 & conifer_pct_cover_total %between% c(21, 80), fwveg:="S-1"]
-  
-  # note for below I made the assumption that  on pg 39 of Perrakis et al. (2018) there were refering to the dominant conifer species  when they listed specific species. That is why only the first occurrence of a conifer gets the specific species  
-  
-  ## conifer cover 41 - 65%
- veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & dominant_conifer %in% c("T","TW") & conifer_pct_cover_total %between% c(41, 65), fwveg:="C-5"]
- veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 40 & conifer_pct_cover_total<66) & dominant_conifer %in% c("J","JR","JS"), fwveg:="O-1a/b"]
- veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & (conifer_pct_cover_total > 40 & conifer_pct_cover_total<66) & dominant_conifer %in% c("P","PJ","PF","PL","PLI","PY","PLC","PW","PA","F","FD","FDC","FDI","SE","S","SB","SS","SW","SX","SXW","SXL","SXS","C","CW","Y","YC","H","HM","HW","HXM","B","BB","BA","BG","BL"), fwveg:="M-1/2"]  
- veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_cover_total %between% c(41, 65) & blockid>0 & age<=6, fwveg:="S-1"]
-  
-  
-  ## conifer cover 65-80% 
- veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_cover_total %between% c(66, 80), fwveg:="M-1/2"] 
- veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_cover_total %between% c(66, 80) & dominant_conifer %in% c("PL", "PLI", "PLC", "PJ", "P"), fwveg:="M-1/2"]
-veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_cover_total %between% c(66, 80) & dominant_conifer =="PY", fwveg:="C-7"]
-veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_cover_total %between% c(66, 80) & dominant_conifer %in% c("PA", "PF", "PW"), fwveg:="C-5"]
-veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_cover_total %between% c(66, 80) & dominant_conifer %in% c("F","FD","FDC"), fwveg:="C-7"]
-veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & zone %in% c("CWH", "CDF") & conifer_pct_cover_total %between% c(66, 80) & dominant_conifer %in% c("F","FD","FDC"), fwveg:="C-5"]
-veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & zone %in% c("ICH") & subzone %in% wet & conifer_pct_cover_total %between% c(66, 80) & dominant_conifer %in% c("F","FD","FDC"), fwveg:="C-5"]
-veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & bclcs_level_5=="DE" & conifer_pct_cover_total %between% c(66, 80) & dominant_conifer %in% c("F","FD","FDC"), fwveg:="M-1/2"]
-veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_cover_total %between% c(66, 80) & dominant_conifer %in% c("SS"), fwveg:="C-5"]
-veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total %between% c(66, 80) & dominant_conifer %in% c("SE","S","SB","SS","SW","SX","SXW","SXL","SXS"), fwveg:="M-1/2"]
-veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_cover_total %between% c(66, 80) & dominant_conifer %in% c("C","CW","Y","YC","H","HM","HW","HXM","T","TW"), fwveg:="C-5"]
-veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_cover_total %between% c(66, 80) & dominant_conifer %in% c("B","BB","BA","BG","BL","J","JR","JS"), fwveg:="C-7"]
-veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1<80 & conifer_pct_cover_total %between% c(66, 80) & blockid>0 & age<=6, fwveg:="S-1"]
-
-  ## conifer cover 81-100 %            
-
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & bclcs_level_5 == "SP" & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P"), fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & bclcs_level_5 == "SP" & zone %in% c("CWH", "CDF", "MH"), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & bclcs_level_5 == "SP" & zone %in% c("ICH") & subzone %in% wet, fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & bclcs_level_5 %in% c("DE", "OP") & height<4, fwveg:="O-1a/b"]
-    
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")  & height %between% c(4, 12) & (vri_live_stems_per_ha+vri_dead_stems_per_ha)>8000, fwveg:="C-4"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS") & height %between% c(4, 12), fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")  & height > 12, fwveg:= "C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS") & height > 12 & crownclosure<40, fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS") & height > 12 & crownclosure<40 & zone %in% c("BG", "PP", "IDF", "MS"), fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS") & height > 12 & crownclosure<40 & zone %in% c("CWH", "MH", "ICH"), fwveg:="C-5"]
-
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")  & height > 12 & earliest_nonlogging_dist_type=="IBM" & years_since_nonlogging_dist<=5 &  dec_pcnt < 25, fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS") & bclcs_level_5=="DE" & height > 12 & earliest_nonlogging_dist_type=="IBM" & years_since_nonlogging_dist<=5 &  dec_pcnt < 25, fwveg:="C-2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS") & height > 12 & earliest_nonlogging_dist_type=="IBM" & years_since_nonlogging_dist<=5 &  dec_pcnt > 50, fwveg:="M-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS") & height > 12 & earliest_nonlogging_dist_type=="IBM" & years_since_nonlogging_dist<=5 &  dec_pcnt %between% c(25, 50), fwveg:="C-2"]
-  
-  # years since IBM attack > 5
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")  & height > 12 & earliest_nonlogging_dist_type=="IBM" & years_since_nonlogging_dist > 5 &  dec_pcnt >50, fwveg:= "C-2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")  & height > 12 & earliest_nonlogging_dist_type=="IBM" & years_since_nonlogging_dist > 5 &  dec_pcnt >= 25 & dec_pcnt <= 50  & bclcs_level_5 == "DE", fwveg:= "C-2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")  & height > 12 & earliest_nonlogging_dist_type=="IBM" & years_since_nonlogging_dist > 5 &  dec_pcnt >= 25 & dec_pcnt <= 50, fwveg:= "C-3"]
-
-  # no IBM
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & !(species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")), fwveg:= "C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P")  & !(species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")) & crownclosure <40 & zone %in% c("IDF", "PP", "BG", "SBPW", "MS"), fwveg:= "C-7"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & !(species_cd_2 %in% c("B","BB","BA","BG","BL","SE","S","SB","SS","SW","SX","SXW","SXL","SXS")) & crownclosure <40 & zone %in% c("CWH", "CDF", "ICH"), fwveg:= "C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PL", "PLI", "PLC", "PJ", "P") & blockid>0 & age<=7, fwveg:="S-1"]
-  
-  
-# sp. 1 py
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 =="PY" & ((blockid > 0 & age>7) | blockid==0) & height < 4, fwveg:= "O-1a/b"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 =="PY" & bclcs_level_5=="DE" & height>=4, fwveg:= "C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 =="PY"  & height>=4 & ((blockid>0 & age>7) | blockid==0) & bclcs_level_5 !="DE", fwveg:= "C-7"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 =="PY" & blockid>0 & age<=7, fwveg:= "S-1"]
-  
-  # Pa, Pf, Pw
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PA", "PF", "PW"), fwveg:= "C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PA", "PF", "PW") & bclcs_level_5=="DE", fwveg:= "C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PA", "PF", "PW") & (vri_live_stems_per_ha+vri_dead_stems_per_ha)>=900, fwveg:= "C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 80 & species_cd_1 %in% c("PA", "PF", "PW") & (vri_live_stems_per_ha+vri_dead_stems_per_ha) %between% c(600, 900), fwveg:= "C-7"]
- 
-
-  #sp. 1 Fd or any F 
- 
-  
-
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & height < 4, fwveg:= "O-1a/b"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & height < 4 & zone %in% c("CWH", "MH", "CDF"), fwveg:= "D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & height < 4 & zone %in% c("ICH") & subzone %in% wet, fwveg:= "D-1/2"]
-
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & height %between% c(4, 12) & crownclosure>55 & zone %in% c("CWH", "MH", "CDF"), fwveg:= "C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & height %between% c(4, 12) & crownclosure>55 & zone %in% c("ICH") & subzone %in% wet, fwveg:= "C-3"]
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & height %between% c(4, 12) & crownclosure>55, fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & species_cd_2=="PY" & height %between% c(4, 12) & crownclosure>55, fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & height %between% c(4, 12) & crownclosure>55 & dec_pcnt >34, fwveg:="C-4"]
-  
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & height >12 & crownclosure>55, fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & height >12 & crownclosure>55 & zone %in% c("CWH", "MH", "CDF"), fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & height >12 & crownclosure>55 & zone %in% c("ICH") & subzone %in% wet, fwveg:= "C-5"]
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & (crownclosure %between% c(26, 55) | is.na(crownclosure)), fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & (crownclosure %between% c(26, 55) | is.na(crownclosure)) & zone %in% c("CWH", "MH", "CDF"), fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & (crownclosure %between% c(26, 55) | is.na(crownclosure)) & zone %in% c("ICH") & subzone %in% wet, fwveg:="C-5"]
-  
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & crownclosure < 26, fwveg:="O-1a/b"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & crownclosure < 26 & zone %in% c("CWH", "MH", "CDF"), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI")  & crownclosure < 26 & zone %in% c("ICH") & subzone %in% wet, fwveg:="D-1/2"]
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & blockid>0 & age<=6, fwveg:= "S-1"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total >20 & species_cd_1 %in% c("F","FD","FDC","FDI") & blockid>0 & age<=6 & zone %in% c("CWH", "MH","CDF"), fwveg:= "S-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("F","FD","FDC","FDI") & blockid>0 & age<=6 & zone %in% c("ICH") & subzone %in% wet, fwveg:= "S-3"]
-  
-  
-  #Sp1 S(any) 
-
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 == "SE" & (blockid>0 & age>6 | blockid == 0), fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 == "SE" & bclcs_level_5=="SP" & (blockid>0 & age>6 | blockid == 0), fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 == "SE" & species_cd_2 %in% c("BL", "B", "PL", "P", "PLI") & bclcs_level_5=="DE" & (blockid>0 & age>6 | blockid == 0), fwveg:="C-2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 == "SE" & species_cd_2 %in% c("BL", "B", "PL", "P", "PLI") & (blockid>0 & age>6 | blockid == 0), fwveg:= "C-3"]
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 == "SE" & (blockid>0 & age>6 | blockid == 0), fwveg:= "C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 == "SE" & species_cd_2 %in% c("HW", "HM", "CW", "YC") & (blockid>0 & age>6 | blockid == 0), fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 == "SE" & species_cd_2 %in% c("HW", "HM", "CW", "YC") & bclcs_level_5=="DE" & (blockid>0 & age>6 | blockid == 0), fwveg:="C-3"]
-  
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 == "SS" & (blockid>0 & age>6 | blockid == 0), fwveg:="C-5"]
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 == "SB" & (blockid>0 & age>6 | blockid == 0), fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 == "SB" & zone=="BWBS" & (blockid>0 & age>6 | blockid == 0), fwveg:="C-1"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 == "SB" & bclcs_level_5 %in% c("DE","OP") & (blockid>0 & age>6 | blockid == 0), fwveg:= "C-2"]
-  
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SW","SX","SXW","SXL","SXS") & zone=="BWBS", fwveg:= "C-1"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SW","SX","SXW","SXL","SXS") & bclcs_level_5 == "OP" & zone=="BWBS", fwveg:= "C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SW","SX","SXW","SXL","SXS") & bclcs_level_5 == "DE" & zone=="BWBS", fwveg:= "C-2"]
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SW","SX","SXW","SXL","SXS") & zone %in% c("CWH","MH","CDF") & species_cd_2 %in% c("BL", "B", "P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA"), fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SW","SX","SXW","SXL","SXS") & zone %in% c("CWH","MH","CDF") & species_cd_2 %in% c("BL", "B", "P","PJ","PF","PL","PR","PLI","PXJ","PY","PLC","PW","PA") & bclcs_level_5=="SP", fwveg:="C-7"]
-  
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SW","SX","SXW","SXL","SXS") & zone %in% c("CWH","MH","CDF"), fwveg:= "C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SW","SX","SXW","SXL","SXS") & coast_interior_cd=="I" & bclcs_level_5=="SP", fwveg:= "C-7"]
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SW","SX","SXW","SXL","SXS") & coast_interior_cd=="I" & bclcs_level_5=="DE" & !(zone %in% c("CWH","MH","CDF", "BWBS")) & (blockid>0 & age>6 | blockid == 0), fwveg:= "C-2"]
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SW","SX","SXW","SXL","SXS") & coast_interior_cd=="I" & dec_pcnt>34 & !(zone %in% c("CWH","MH","CDF", "BWBS")), fwveg:= "C-2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SW","SX","SXW","SXL","SXS") & coast_interior_cd=="I" & species_cd_2 %in% c("PL","PLI","P"), fwveg:= "C-2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & (dec_pcnt<=34 | is.na(dec_pcnt)) & species_cd_1 %in% c("S","SW","SX","SXW","SXL","SXS") & !(species_cd_2 %in% c("PL","PLI","P")), fwveg:= "C-3"]
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & blockid>0 & age<=6, fwveg:= "S-2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & blockid>0 & age<=6 & zone %in% c("CWH", "MH","CDF"), fwveg:="S-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("S","SB","SE","SS","SW","SX","SXW","SXL","SXS") & blockid>0 & age<=6 & zone %in% c("ICH") & subzone %in% wet, fwveg:="S-3"]
-  
-  
-  #H(any), C(any), Y(any) 
-
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM"), fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM") & bclcs_level_5=="DE" & age<60 & height > 15, fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM") & bclcs_level_5=="DE" & age %between% c(60,99) & height > 15, fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM") & !(bclcs_level_5 %in% c("DE", "OP")), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM") & bclcs_level_5=="DE" & height<4, fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM") & bclcs_level_5=="DE" & height %between% c(4, 15), fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("C","CW","Y","YC","H","HM","HW","HXM") & blockid>0 & age<=6, fwveg:="S-3"]
-       
-  # BG, BA, B etc also T and J 
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1=="BG", fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1=="BA", fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1=="BA" & species_cd_2 %in% c("SE", "SW", "S"), fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("B","BB","BL") & coast_interior_cd=="C", fwveg:="M-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("B","BB","BL") & bclcs_level_5=="SP" & coast_interior_cd!="C", fwveg:="C-7"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("B","BB","BL") & coast_interior_cd !="C" & bclcs_level_5 != "SP", fwveg:="C-3"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("B","BB","BL") & coast_interior_cd !="C"& bclcs_level_5=="DE" & species_cd_2 %in% c("SE", "SW", "S"), fwveg:="C-2"]
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("T","TW"), fwveg:="C-5"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & species_pct_1 < 80 & conifer_pct_cover_total > 20 & species_cd_1 %in% c("J","JR","JS"), fwveg:="C-7"]
-  
-  #### Recently burned #####
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crownclosure > 40 & earliest_nonlogging_dist_type %in% "burn" & years_since_nonlogging_dist  < 4, fwveg:="N"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crownclosure > 40 & earliest_nonlogging_dist_type %in% "burn" & (years_since_nonlogging_dist >= 4 & years_since_nonlogging_dist <= 6), fwveg:="D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crownclosure > 40 & earliest_nonlogging_dist_type %in% "burn" & (years_since_nonlogging_dist  >= 7 & years_since_nonlogging_dist <= 10), fwveg:= "C-5"]
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crownclosure <= 40 & earliest_nonlogging_dist_type %in% "burn" & years_since_nonlogging_dist < 2, fwveg:="N"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crownclosure <= 40 & earliest_nonlogging_dist_type %in% "burn" & (years_since_nonlogging_dist  >= 2 & years_since_nonlogging_dist <=6), fwveg:= "D-1/2"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total>=60 & crownclosure <= 40 & earliest_nonlogging_dist_type %in% "burn" & (years_since_nonlogging_dist >= 7 & years_since_nonlogging_dist<= 10), fwveg:="O-1a/b"]
-  
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total<60 &  earliest_nonlogging_dist_type %in% "burn" & years_since_nonlogging_dist  < 2, fwveg:="N"]
-  veg2[bclcs_level_1=="V" & bclcs_level_2=="T" & conifer_pct_cover_total<60 &  earliest_nonlogging_dist_type %in% "burn" & (years_since_nonlogging_dist >=2 & years_since_nonlogging_dist <= 10), fwveg:="D-1/2"]
-  
-  
-  veg2[bclcs_level_5 %in% c("GL","LA"), fwveg := "W"]
-  veg2[bclcs_level_2=="W", fwveg:="W"]
-  
- # veg2[, c("crownclosure", "age", "vol", "height", "dec_pcnt", "blockid", "years_since_nonlogging_dist"):=NULL]
-  
-  sim$veg3<-veg2[,c("pixelid", "fwveg")]
-  
-  rm(veg2)
-  gc()
-  
-
-  #### uploading fueltype layer  ####
-  
- # message("updating fueltype table with fwveg data") 
-  
-  # for some reason updating the fueltype table takes for ever. So Ill drop the fueltype table and add it back. That's faster. Chat to Kyle about this later to find better solution.
-  
-#  dbExecute(sim$castordb, "DROP TABLE fueltype")
-  
-#  dbExecute(sim$castordb, "CREATE TABLE IF NOT EXISTS fueltype (pixelid integer, bclcs_level_1 character, bclcs_level_2 character, bclcs_level_3 character,  bclcs_level_5 character, inventory_standard_cd character, non_productive_cd character, coast_interior_cd character,  land_cover_class_cd_1 character, zone character, subzone character, earliest_nonlogging_dist_type character, earliest_nonlogging_dist_date integer, vri_live_stems_per_ha numeric, vri_dead_stems_per_ha numeric, species_cd_1 character, species_pct_1 numeric, species_cd_2 character, species_pct_2 numeric, dominant_conifer character, conifer_pct_cover_total numeric, fwveg character)")
-  
-#  qry<-paste0('INSERT INTO fueltype (pixelid, bclcs_level_1, bclcs_level_2, bclcs_level_3, bclcs_level_5, inventory_standard_cd, non_productive_cd, coast_interior_cd, land_cover_class_cd_1,  earliest_nonlogging_dist_type, vri_live_stems_per_ha, vri_dead_stems_per_ha, species_cd_1, species_pct_1, species_cd_2, species_pct_2, zone, subzone,earliest_nonlogging_dist_date, dominant_conifer, conifer_pct_cover_total, fwveg) values (:pixelid, :bclcs_level_1, :bclcs_level_2, :bclcs_level_3, :bclcs_level_5, :inventory_standard_cd, :non_productive_cd, :coast_interior_cd, :land_cover_class_cd_1, :earliest_nonlogging_dist_type, :vri_live_stems_per_ha, :vri_dead_stems_per_ha, :species_cd_1, :species_pct_1, :species_cd_2, :species_pct_2,:zone, :subzone, :earliest_nonlogging_dist_date, :dominant_conifer, :conifer_pct_cover_total, :fwveg)')
-  
-  #fueltype table
-  # dbBegin(sim$castordb)
-  # rs<-dbSendQuery(sim$castordb, qry, veg2)
-  # dbClearResult(rs)
-  # dbCommit(sim$castordb)
-  # 
-  # dbExecute(sim$castordb, "CREATE INDEX index_pixelid on fueltype (pixelid)")
-  
-  
-  #older code
-  #  if(dbGetQuery (sim$castordb, "SELECT COUNT(*) as exists_check FROM pragma_table_info('fueltype') WHERE name='fwveg';")$exists_check == 0){
-  # #   # add in the column
-  #  dbExecute (sim$castordb, "ALTER TABLE fueltype ADD COLUMN fwveg character DEFAULT none") }
-  # 
- #    dbExecute(sim$castordb, "CREATE INDEX index_pixelid on fueltype (pixelid)")
-  #    
-  #  dbBegin(sim$castordb)
-  #  rs<-dbSendQuery(sim$castordb, "UPDATE fueltype SET fwveg = :fwveg WHERE pixelid = :pixelid", veg2[, c("pixelid", "fwveg")])
-  #  dbClearResult(rs)
-  #  dbCommit(sim$castordb)
-  # } else {
-  #   dbBegin(sim$castordb)
-  #   rs<-dbSendQuery(sim$castordb, "UPDATE fueltype SET fwveg = :fwveg WHERE pixelid = :pixelid", veg3)
-  #   dbClearResult(rs)
-  #   dbCommit(sim$castordb)
-  #   
-  # }
-  # 
+  sim$veg2<-veg2
 
   return(invisible(sim)) 
   
 }
 
 calcProbIgnitEscape<-function(sim){
+  
+  #### UPDATE FROM HERE ####
  
   
-  dat<-merge(sim$veg3, sim$climate_data, by.x="pixelid", by.y="pixelid", all.x=TRUE)
+  dat<-merge(sim$veg2, sim$climate_data, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   dat<-merge(dat, sim$road_distance, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   #dat<-merge(dat, sim$elev, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   
@@ -1171,25 +608,6 @@ calcProbIgnitEscape<-function(sim){
   #if (!suppliedElsewhere(sim$coefficients)) {
   sim$coefficients<-as.data.table(getTableQuery(paste0("SELECT * FROM " ,P(sim, "firemodelcoeftbl","fireCastor"), ";")))
  # } else { print("coefficient table already loaded")}
-  
-  dat[fwveg=="M-3", fwveg:="M-1/2"]
-  dat[fwveg=="S-2", fwveg:="S-1"]
-  dat[fwveg=="S-3", fwveg:="S-1"]
-  
-  # create dummy variables for fwveg
-  dat$veg_C1 <- ifelse(dat$fwveg == 'C-1', 1, 0)
-  dat$veg_C2 <- ifelse(dat$fwveg == 'C-2', 1, 0)
-  dat$veg_C3 <- ifelse(dat$fwveg == 'C-3', 1, 0)
-  dat$veg_C4 <- ifelse(dat$fwveg == 'C-4', 1, 0)
-  dat$veg_C5 <- ifelse(dat$fwveg == 'C-5', 1, 0)
-  dat$veg_C7 <- ifelse(dat$fwveg == 'C-7', 1, 0)
-  dat$veg_D12 <- ifelse(dat$fwveg == 'D-1/2', 1, 0)
-  dat$veg_M12 <- ifelse(dat$fwveg == 'M-1/2', 1, 0)
-  #dat$veg_M3 <- ifelse(dat$fwveg == 'M-3', 1, 0)
-  #dat$veg_N <- ifelse(dat$fwveg == 'N', 1, 0)
-  dat$veg_O1ab <- ifelse(dat$fwveg == 'O-1a/b', 1, 0)
-  dat$veg_S1 <- ifelse(dat$fwveg == 'S-1', 1, 0)
-  #dat$veg_W <- ifelse(dat$fwveg == 'W', 1, 0)
   
   dat<-data.table(dat)
   
@@ -1204,6 +622,8 @@ calcProbIgnitEscape<-function(sim){
   dat[climate2escape ==-9999, climate2escape:=NA]
   dat[climate1spread ==-9999, climate1spread :=NA]
   dat[climate2spread ==-9999, climate2spread :=NA]
+  
+  browser()
   
   #---------#
   #### FRT 5  ####
@@ -1515,23 +935,23 @@ calcProbIgnitEscape<-function(sim){
     
  #   model_coef_table_lightning<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt10_lightning.csv")
     
-    frt10[, logit_P_lightning := ignitstaticlightning * all + 
-      sim$coefficients[cause == 'lightning' & frt==10,]$coef_climate_1*climate1lightning + 
-      sim$coefficients[cause == 'lightning' & frt==10,]$coef_climate_2*climate2lightning]
-    
-    # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
-    frt10[, prob_ignition_lightning := exp(logit_P_lightning)/(1+exp(logit_P_lightning))]
-    
+    # frt10[, logit_P_lightning := ignitstaticlightning * all + 
+    #   sim$coefficients[cause == 'lightning' & frt==10,]$coef_climate_1*climate1lightning + 
+    #   sim$coefficients[cause == 'lightning' & frt==10,]$coef_climate_2*climate2lightning]
+    # 
+    # # y = e^(b0 + b1*x) / (1 + e^(b0 + b1*x))
+    # frt10[, prob_ignition_lightning := exp(logit_P_lightning)/(1+exp(logit_P_lightning))]
+    # 
     # Person caused fires
  #    model_coef_table_person<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_FRT10_person.csv")
     
-        frt10[, logit_P_human := ignitstatichuman  * all + 
-      sim$coefficients[cause == 'person' & frt == 10, ]$coef_climate_1 * climate1person + 
-      sim$coefficients[cause == 'person' & frt == 10, ]$coef_log_road_dist * log(rds_dist + 1)]
-         
-         frt10[,prob_ignition_person := exp(logit_P_human)/(1+exp(logit_P_human))]
-         
-         # Fire Escape
+      #   frt10[, logit_P_human := ignitstatichuman  * all + 
+      # sim$coefficients[cause == 'person' & frt == 10, ]$coef_climate_1 * climate1person + 
+      # sim$coefficients[cause == 'person' & frt == 10, ]$coef_log_road_dist * log(rds_dist + 1)]
+      #    
+      #    frt10[,prob_ignition_person := exp(logit_P_human)/(1+exp(logit_P_human))]
+      #    
+      #    # Fire Escape
    #  model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt10_escape.csv")
          
          #### CHECK MY ESCAPE VALUES SEEM VERY LOW
@@ -1574,12 +994,12 @@ calcProbIgnitEscape<-function(sim){
     # frt10[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
     
     
-    frt10[, prob_tot_ignit := (as.numeric(prob_ignition_lightning)*0.86) + (as.numeric(prob_ignition_person)*0.14)]
-    
-    frt10[fwveg %in% c("W", "N"), prog_tot_ignit:=0]
-    frt10[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
-    frt10[fwveg %in% c("W", "N"),prob_ignition_person:=0]
-    frt10[fwveg %in% c("W", "N"),prob_ignition_escape:=0]
+    # frt10[, prob_tot_ignit := (as.numeric(prob_ignition_lightning)*0.86) + (as.numeric(prob_ignition_person)*0.14)]
+    # 
+    # frt10[fwveg %in% c("W", "N"), prog_tot_ignit:=0]
+    # frt10[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
+    # frt10[fwveg %in% c("W", "N"),prob_ignition_person:=0]
+    frt10[veg_cat %in% c("0", "6"),prob_ignition_escape:=0]
     
 
     
@@ -2172,22 +1592,23 @@ ignitLocations <- function(sim) {
   #create prob spread
   dat<-merge(sim$veg3, sim$climate_data, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   dat<-merge(dat, sim$road_distance, by.x="pixelid", by.y="pixelid", all.x=TRUE)
+  dat<-merge(dat, mySim$frt_id, by.x="pixelid", by.y="pixelid", all.x=TRUE)
 
   #### Distance to ignition points ####
   xy_loc_ig<-sim$pts[pixelid %in% sim$sams, c("x", "y")]
   d<-distanceFromPoints(sim$area, xy_loc_ig)
   
   dat<-dat[order(pixelid)]
-  dat1<-cbind(dat, as.data.frame(d))
-  colnames(dat1)[colnames(dat1) == "layer"] <- "rast_ignit_dist"
+  dat<-cbind(dat, as.data.frame(d))
+  colnames(dat)[colnames(dat) == "layer"] <- "rast_ignit_dist"
   
   
-  #### Get elevation data####
+  ####elevation data####
   # check if there is elevation data in the pixels table, if not extract.
-  if(dbGetQuery(sim$castordb, "SELECT MAX(elv) FROM pixels;")>0 {
-    elev<-dbGetQuery(sim$castordb, "SELECT pixelid, elv FROM pixels")
+  if(dbGetQuery(sim$castordb, "SELECT MAX(elv) FROM pixels;")[1,1]>0) {
+    elv<-dbGetQuery(sim$castordb, "SELECT pixelid, elv FROM pixels")
     } else {
-    elv <- data.table(perm_dist = RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+    elv <- data.table(elv = RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
                                                        srcRaster = P(sim, "nameElevationRaster", "fireCastor"), 
                                                        clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
                                                        geom = sim$boundaryInfo[[4]], 
@@ -2200,31 +1621,68 @@ ignitLocations <- function(sim) {
       dbClearResult(rs)
       dbCommit(sim$castordb)
       
-      #clean up
-      rm(elv)
-      gc()
+      
     }
     
-dat<-merge(dat, elev, by.x="pixelid", by.y="pixelid", all.x=TRUE)
+dat<-merge(dat, elv, by.x="pixelid", by.y="pixelid", all.x=TRUE)
 
   #### FRT5 ####
   
-  #### Spread continue working here####
-  
-  #  model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt5_spread.csv")
-  
-  frt5[fwveg == "S-1", veg_O1ab:=1]
+if (nrow(dat[frt==5,])>0) {
+frt5<-dat[frt==5,]
+frt5$fwveg<-as.factor(frt5$fwveg)
   
   # To get the models to fit properly I had to scale the variables so Ill use the mean and sd that I got when i fitted to models to scale the new variables
   
-  frt5$scale_climate2<-(frt5$climate2-79.15963)/15.56926
-  frt5$scale_dem<-(frt5$dem-675.0221)/201.9468
-  frt5$scale_roads<-(frt5$dist_roads_m-916.9191)/1797.046
+  frt5$scale_climate2<-(frt5$climate2spread-79.15963)/15.56926
+  frt5$scale_dem<-(frt5$elv-675.0221)/201.9468
+  frt5$scale_roads<-(frt5$rds_dist-916.9191)/1797.046
   frt5$scale_dist_ignit<-(frt5$rast_ignit_dist-8086.005)/7167.049
+  frt5_2<-frt5[!fwveg %in% c("N", "W"),]
+  frt5_2<-frt5_2[, c("gcm", "ssp", "run", "period", "climate1lightning", "climate2lightning", "climate1person", "climate2person", "climate1escape", "climate2escape"):=NULL]
   
   m5<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt5.rds")
-  frt5$logit_P_spread <- predict(m5,frt5,re.form=NA)
-  frt5[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+
+  frt5_2$logit_P_spread <- predict(m5,frt5_2,re.form=NA)
+  frt5_2[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+}
+  else {
+    
+    print("no data for FRT 5")
+    
+    frt5<-data.table(pixelid=as.numeric(),
+                     frt = as.numeric(),
+                     prob_ignition_spread = as.integer())
+  }
+  
+  #### FRT7####
+  
+  if (nrow(dat[frt==7,])>0) {
+    frt7<-dat[frt==7,]
+    frt7$fwveg<-as.factor(frt7$fwveg)
+    
+    # To get the models to fit properly I had to scale the variables so Ill use the mean and sd that I got when i fitted to models to scale the new variables
+    
+    frt7$scale_climate2<-(frt7$climate2spread-79.15963)/15.56926
+    frt7$scale_dem<-(frt7$elv-675.0221)/201.9468
+    frt7$scale_roads<-(frt7$rds_dist-916.9191)/1797.046
+    frt7$scale_dist_ignit<-(frt7$rast_ignit_dist-8086.005)/7167.049
+    frt7_2<-frt7[!fwveg %in% c("N", "W"),]
+    frt7_2<-frt7_2[, c("gcm", "ssp", "run", "period", "climate1lightning", "climate2lightning", "climate1person", "climate2person", "climate1escape", "climate2escape"):=NULL]
+    
+    m5<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt7.rds")
+    
+    frt7_2$logit_P_spread <- predict(m5,frt7_2,re.form=NA)
+    frt7_2[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+  }
+    else {
+      
+      print("no data for FRT 5")
+      
+      frt7<-data.table(pixelid=as.numeric(),
+                       frt = as.numeric(),
+                       prob_ignition_spread = as.integer())
+    }
   
   # what needs to be done:
   # 1.)scale the variables using the mean and sd from the statistical analysis, 
