@@ -101,67 +101,88 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
       climate_id_key<-unique(climate_id[!(is.na(pixelid_climate )), pixelid_climate])
       climate_id_key<-data.table(getTableQuery(paste0("SELECT pixelid_climate, lat, long, el  FROM ",P(sim, "nameClimateTable","climateCastor"), " WHERE pixelid_climate IN (", paste(climate_id_key, collapse = ","),");")))
       
+      setnames(climate_id_key, c("id", "lat", "lon", "elev"))
+      climate_id_key<-climate_id_key[,c("id", "lon", "lat", "elev")]
+      
       message("Downloading climate data from climateBC ...")  
       
-      if (!exists("dbCon")){
-        dbCon <- climR::data_connect() ##connect to database
-      } else { message("connection to dbCon already made")}
+      ds_out <- climr_downscale(
+        xyz = climate_id_key,
+        which_normal = "auto",
+        historic_period = (P(sim, "historicPeriod", "climateCastor")),#"2001_2020",
+        gcm_ts_years = (P(sim, "climateYears", "climateCastor")),
+        gcm_models = (P(sim, "gcm", "climateCastor")),
+        ssp = (P(sim, "ssp", "climateCastor")),# c("ssp370"),
+        max_run = (P(sim, "maxRun", "climateCastor")),
+        return_normal = TRUE, ## to return the 1961-1990 normals period
+        vars = c("PPT04", "PPT05","PPT06","PPT07","PPT08","Tmax03","Tmax04","Tmax05","Tmax06","Tmax07","Tmax08", "Tave03","Tave04","Tave05","Tave06","Tave07","Tave08","Tave09","CMD06", "CMD07","CMD08","CMD09"))
       
-      thebb <- get_bb(climate_id_key[,c("long","lat", "el")]) ##get bounding box based on input points
-      #dbCon <- climRdev::data_connect() ##connect to database
-      normal <- normal_input_postgis(dbCon = dbCon, bbox = thebb, cache = TRUE) ##get normal data and lapse rates
-      gcm_ts <- gcm_ts_input(dbCon, bbox = thebb, 
-                             gcm = (P(sim, "gcm", "climateCastor")), 
-                             ssp = (P(sim, "ssp", "climateCastor")),# c("ssp370"), 
-                             years = (P(sim, "climateYears", "climateCastor")),
-                             max_run = (P(sim, "maxRun", "climateCastor")),
-                             cache = TRUE)
       
-      message("downscale Tmax")
-      results_Tmax <- downscale(
-        xyz = as.data.frame(climate_id_key[,c("long","lat", "el")]),
-        normal = normal,
-        gcm_ts = gcm_ts,
-        vars = sprintf(c("Tmax%02d"),1:12)
-      )
-      
-      message("downscale PPT")
-      results_PPT <- downscale(
-        xyz = as.data.frame(as.data.frame(climate_id_key[,c("long","lat", "el")]),),
-        normal = normal,
-        gcm_ts = gcm_ts,
-        vars = sprintf(c("PPT%02d"),1:12)
-      )
-      
-      message("downscale Tave")
-      results_Tave <-downscale(
-        xyz = as.data.frame(as.data.frame(climate_id_key[,c("long","lat", "el")]),),
-        normal = normal,
-        gcm_ts = gcm_ts,
-        vars = sprintf(c("Tave%02d"),1:12)
-      )
-      
-      message("downscale CMD")
-      results_CMD <-downscale(
-        xyz = as.data.frame(as.data.frame(climate_id_key[,c("long","lat", "el")]),),
-        normal = normal,
-        gcm_ts = gcm_ts,
-        vars = sprintf(c("CMD%02d"),1:12)
-      )
-      
+      # if (!exists("dbCon")){
+      #   dbCon <- climR::data_connect() ##connect to database
+      # } else { message("connection to dbCon already made")}
+      # 
+      # thebb <- get_bb(climate_id_key[,c("long","lat", "el", "pixelid_climate")]) ##get bounding box based on input points
+      # #dbCon <- climRdev::data_connect() ##connect to database
+      # normal <- normal_input_postgis(dbCon = dbCon, bbox = thebb, cache = TRUE) ##get normal data and lapse rates
+      # gcm_ts <- gcm_ts_input(dbCon, bbox = thebb, 
+      #                        gcm = (P(sim, "gcm", "climateCastor")), 
+      #                        ssp = (P(sim, "ssp", "climateCastor")),# c("ssp370"), 
+      #                        years = (P(sim, "climateYears", "climateCastor")),
+      #                        max_run = (P(sim, "maxRun", "climateCastor")),
+      #                        cache = TRUE)
+      # 
+      # message("downscale Tmax")
+      # results_Tmax <- downscale(
+      #   xyz = as.data.frame(climate_id_key[,c("long","lat", "el", "pixelid_climate")]),
+      #   normal = normal,
+      #   gcm_ts = gcm_ts,
+      #   vars = sprintf(c("Tmax%02d"),1:12)
+      # )
+      # 
+      # message("downscale PPT")
+      # results_PPT <- downscale(
+      #   xyz = as.data.frame(as.data.frame(climate_id_key[,c("long","lat", "el", "pixelid_climate")]),),
+      #   normal = normal,
+      #   gcm_ts = gcm_ts,
+      #   vars = sprintf(c("PPT%02d"),1:12)
+      # )
+      # 
+      # message("downscale Tave")
+      # results_Tave <-downscale(
+      #   xyz = as.data.frame(as.data.frame(climate_id_key[,c("long","lat", "el", "pixelid_climate")]),),
+      #   normal = normal,
+      #   gcm_ts = gcm_ts,
+      #   vars = sprintf(c("Tave%02d"),1:12)
+      # )
+      # 
+      # message("downscale CMD")
+      # results_CMD <-downscale(
+      #   xyz = as.data.frame(as.data.frame(climate_id_key[,c("long","lat", "el", "pixelid_climate")]),),
+      #   normal = normal,
+      #   gcm_ts = gcm_ts,
+      #   vars = sprintf(c("CMD%02d"),1:12)
+      # )
+      # 
+      # message("downscale CMI")
+      # results_CMI <-downscale(
+      #   xyz = as.data.frame(as.data.frame(climate_id_key[,c("long","lat", "el", "pixelid_climate")]),),
+      #   normal = normal,
+      #   gcm_ts = gcm_ts,
+      #   vars = sprintf(c("CMI%02d"),1:12)
+      # )
+      # 
       message("join downscaled climate data")
       
-      results<-merge(results_Tmax, results_PPT, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
-      results<-merge(results, results_Tave, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
-      results<-merge(results, results_CMD, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
-      
-      message("table of climate results do lat and long exist? mightb be better to merge on lat lon in line below")
-      print(results)
-      
-      climate_id_key$ID<-1:length(climate_id_key$pixelid_climate)
-      
-      climate_dat<-merge(x=climate_id_key, y= results, by.x = c("ID"), by.y = c("ID"), all.y = TRUE) 
-      
+      # results<-merge(results_Tmax, results_PPT, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
+      # results<-merge(results, results_Tave, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
+      # results<-merge(results, results_CMD, by.x = c("ID", "GCM", "SSP", "RUN", "PERIOD"), by.y=c("ID", "GCM", "SSP", "RUN", "PERIOD"))
+      # 
+      # 
+      # climate_id_key$ID<-1:length(climate_id_key$pixelid_climate)
+      # 
+      # climate_dat<-merge(x=climate_id_key, y= results, by.x = c("ID"), by.y = c("ID"), all.y = TRUE) 
+      # 
       climate_dat<-climate_dat %>% dplyr::rename(gcm=GCM,
                                           ssp = SSP,
                                           run = RUN,
