@@ -36,12 +36,11 @@ prov.rast[]<-pixel.grid$pixelid
 
 #Get veg_comp information using the previous year
 #Note pre 2010 veg comp doesn't not contain information to assign fuel type classification
-pixel.table<-rbindlist(lapply(as.list(seq(2010,2022,1)), function(x){
-  flam.win<-rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/flammable_{x-1}_10k.tif"))
-  flam.win2<-focal(flam.win, 3, fun = 'sum', na.rm =T)
-  data.table(FIRE_YEAR =x, flam =rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/flammable_{x-1}_10k.tif"))[],flam_win =flam.win2[], c1 = rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c1_{x-1}_10k.tif"))[],c2 = rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c2_{x-1}_10k.tif"))[], c3=rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c3_{x-1}_10k.tif"))[],c4= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c4_{x-1}_10k.tif"))[],c5= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c5_{x-1}_10k.tif"))[], c7= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/c7_{x-1}_10k.tif"))[], dec= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/d_{x-1}_10k.tif"))[], mixed =  rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m_{x-1}_10k.tif"))[], open= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/o_{x-1}_10k.tif"))[], slash= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/s_{x-1}_10k.tif"))[], haz= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/hazard_{x-1}_10k.tif"))[])
+pixel.table<-rbindlist(lapply(as.list(seq(2009,2022,1)), function(x){
+  data.table(FIRE_YEAR =x, haz= rast(glue::glue("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/hazard_{x-1}_10k.tif"))[])
 }))
 pixel.table<-cbind(pixel.grid ,pixel.table)
+
 
 # Get the Fire Regime Types
 ndt<-getSpatialQuery("SELECT case when natural_disturbance = 'NDT1' then 1 when natural_disturbance = 'NDT2' then 2 when natural_disturbance = 'NDT3' then 3 when natural_disturbance = 'NDT4' then 4 when natural_disturbance = 'NDT5' then 5 end as ndt, wkb_geometry FROM public.bec_zone")
@@ -97,17 +96,17 @@ climateData<-rbindlist(lapply(seq(2005, 2022, 1), function(x){
   data<-data[,c("ID1", "CMI","CMI_MIN", "CMI05", "CMI06","CMI07","CMI08", "CMD", "CMD_sm", "TEMP_MAX", "DD18_sm", "PPT_sm")]
   data<-merge(data, bc_grid[,c("ID1", "lat", "lon")] , by = "ID1")
   data_sf <- st_transform(st_as_sf(data, coords = c("lon", "lat"), crs = 4326, agr = "constant"), crs = 3005)
-  data_ras_CMI <- terra::rasterize(data_sf, prov.rast, field = "CMI")
-    data_ras_CMI_min <- terra::rasterize(data_sf, prov.rast, field = "CMI_MIN")
-  data_ras_CMD <- terra::rasterize(data_sf, prov.rast, field = "CMD")
-  data_ras_CMI05 <- terra::rasterize(data_sf, prov.rast, field = "CMI05")
- data_ras_CMI06 <- terra::rasterize(data_sf, prov.rast, field = "CMI06")
- data_ras_CMI07 <- terra::rasterize(data_sf, prov.rast, field = "CMI07")
- data_ras_CMI08 <- terra::rasterize(data_sf, prov.rast, field = "CMI08")
-  data_ras_CMD_sm <- terra::rasterize(data_sf, prov.rast, field = "CMD_sm")
-  data_ras_TEMP_MAX <- terra::rasterize(data_sf, prov.rast, field = "TEMP_MAX")
-  data_ras_DD18_sm <- terra::rasterize(data_sf, prov.rast, field = "DD18_sm")
-  data_ras_PPT_sm <- terra::rasterize(data_sf, prov.rast, field = "PPT_sm")
+  data_ras_CMI <- terra::rasterize(data_sf, prov.rast,  fun = mean, field = "CMI")
+    data_ras_CMI_min <- terra::rasterize(data_sf, prov.rast, fun = mean, field = "CMI_MIN")
+  data_ras_CMD <- terra::rasterize(data_sf, prov.rast,  fun = mean, field = "CMD")
+  data_ras_CMI05 <- terra::rasterize(data_sf, prov.rast,  fun = mean, field = "CMI05")
+ data_ras_CMI06 <- terra::rasterize(data_sf, prov.rast,  fun = mean, field = "CMI06")
+ data_ras_CMI07 <- terra::rasterize(data_sf, prov.rast,  fun = mean, field = "CMI07")
+ data_ras_CMI08 <- terra::rasterize(data_sf, prov.rast,  fun = mean, field = "CMI08")
+  data_ras_CMD_sm <- terra::rasterize(data_sf, prov.rast,  fun = mean, field = "CMD_sm")
+  data_ras_TEMP_MAX <- terra::rasterize(data_sf, prov.rast,  fun = mean, field = "TEMP_MAX")
+  data_ras_DD18_sm <- terra::rasterize(data_sf, prov.rast,  fun = mean, field = "DD18_sm")
+  data_ras_PPT_sm <- terra::rasterize(data_sf, prov.rast,  fun = mean, field = "PPT_sm")
   pixel.data <- data.table(TEMP_MAX = data_ras_TEMP_MAX [], CMI = data_ras_CMI [], CMI_MIN = data_ras_CMI_min[],CMI05 = data_ras_CMI05 [], CMI06 = data_ras_CMI06 [],CMI07 = data_ras_CMI07 [],CMI08 = data_ras_CMI08 [],CMD = data_ras_CMD [], CMD_sm = data_ras_CMD_sm [], DD18_sm = data_ras_DD18_sm [], PPT_sm = data_ras_PPT_sm [])[, pixelid := seq_len(.N)][, year := x]
   pixel.data
 }))

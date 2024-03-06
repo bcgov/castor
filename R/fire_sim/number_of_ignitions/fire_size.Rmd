@@ -35,15 +35,19 @@ number<-data.count[, .(nfires = sum(count)), by = 'FIRE_YEAR']
 data.size<-readRDS("data.lightning.size.rds")
 data.size<-merge(data.size, number, by.x = "FIRE_YEAR", by.y = "FIRE_YEAR", all.x =T )
 data.size<-data.size[,flammable:=con + mix + dec + young + veg][flammable >0, ][!is.na(CURRENT_SIZE),][flammable >0,][,dCMI3yr:=CMI-(CMI3yr/3)][,frt:=as.factor(frt)][,year:=as.factor(FIRE_YEAR)][is.na(ndt), ndt:=3]
+threshold<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/avgCMIProv.rds")
+data.size<-merge(data.size, threshold, by = "FIRE_YEAR")
 
-m5<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m5.rds")
+m8<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m8.rds")
 
 #get the random spatial effect
-data.size<-predict(m5, newdata = data.size)
+data.size<-predict(m8, type = "link", newdata = data.size, re_form = NULL)
+data.size<-cbind(data.size, model.matrix( ~ 0 + frt, data=data.size )) 
+data.size<-data.size[ ,est:= exp(-17.0 -0.0576*CMI_MIN-0.124*dCMI3yr-0.363*avgCMIProv  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con + 1) + 0.0606 *log(young + 1) -0.0256 *log(dec + 1) +est_rf  + log(flammable) )]
 
 ```
 
-## Predict occurence from model
+## Adjust some covariates
 ```{r}
 
 data.size[, duration := FIRE_OUT_DATE - IGNITION_DATE]
@@ -52,7 +56,7 @@ data.size[, ignit_month:= month(IGNITION_DATE)]
 
 model.size <- data.size[!is.na(est),][, size:= log(CURRENT_SIZE)]
 
-fit.model.size<-model.size[,c("CURRENT_SIZE", "size","IGNITION_DATE", "CMI", "dCMI3yr", "flammable", "DD18_sm", "TEMP_MAX", "FIRE_CENTRE", "nfires", "duration", "CMI05","CMI06", "CMI07", "CMI08", "CMI_MIN", "con", "dec", "mix", "young", "veg", "PPT_sm", "est", "frt", "ndt", "x", "y", "flam_win.focal_sum")][size>0, ][,est:=est + log(flammable)]
+fit.model.size<-model.size[,c("CURRENT_SIZE", "size","IGNITION_DATE", "CMI", "dCMI3yr", "avgCMIProv", "flammable", "DD18_sm", "TEMP_MAX", "FIRE_CENTRE", "nfires", "duration", "CMI05","CMI06", "CMI07", "CMI08", "CMI_MIN", "con", "dec", "mix", "young", "veg", "PPT_sm", "est", "frt", "ndt", "x", "y")][size>0, ]
 ```
 
 # Models
@@ -88,11 +92,11 @@ nm0_ga<-gamlssMX(formula = size ~  1 ,
            data = fit.model.size)
 wp(nm0_ga , ylim.all = T)
 plot.new() #individual components for gamma
-curve(dgamma(x, shape = exp(1.831), scale = exp(-1.08)), from = 0, to = 13, col = "red")
-curve(dgamma(x, shape = exp(0.799), scale = exp(-0.1739)), from = 0, to = 13, col = "black", add=T)
+curve(dgamma(x, shape = exp(1.789), scale = exp(-1.026)), from = 0, to = 13, col = "red")
+curve(dgamma(x, shape = exp(0.745), scale = exp(-0.178)), from = 0, to = 13, col = "black", add=T)
 
 plot.new() #mixture distribution for gamma
-fyGA<-dMX(y=seq(0,13,0.01), mu=list(exp(1.831),exp(0.799)), sigma=list(exp(-1.08 ), exp(-0.1739)), pi=list(0.283, 0.717 ), family=list("GA","GA") )
+fyGA<-dMX(y=seq(0,13,0.01), mu=list(exp(1.789),exp(0.745)), sigma=list(exp(-1.026 ), exp(-0.178)), pi=list(0.3472833, 0.6528167), family=list("GA","GA") )
 plot(fyGA~seq(0,13,.01), type="l")
 
 nm0_wei<-gamlssMX(formula = size ~  1 ,
@@ -102,27 +106,25 @@ nm0_wei<-gamlssMX(formula = size ~  1 ,
 wp(nm0_wei , ylim.all = T) # two components provide best fit
 AIC(nm0_ga, nm0_wei)
 
-plot.new() #individual components weibull
-curve(dWEI3(x, mu= exp(0.6955), sigma = exp(0.2341)), from = 0, to = 13, col = "red", ylim =c(0,.4))
-curve(dWEI3(x, mu = exp(1.777), sigma = exp(1.043)), from = 0, to = 13, col = "black", add=T)
-
 plot.new() #mixture distribution weibull
-fyWEI<-dMX(y=seq(0,13,0.01), mu=list(exp(0.6955),exp(1.777)), sigma=list(exp(0.2341), exp(1.043)), pi=list(0.6298, 0.37015 ), family=list("WEI3","WEI3") )
-plot(fyWEI~seq(0,13,.01), type="l")
+fyWEI<-dMX(y=seq(0,13,0.01), mu=list(exp(0.6339),exp(1.73)), sigma=list(exp(0.2357), exp(0.9831)), pi=list(0.5821746, 0.4178254 ), family=list("WEI3","WEI3") )
+plot(fyWEI~seq(0,13,.01), type="l", ylab = 'Density', xlab = 'log(Fire Size)')
+curve(0.5821746*dWEI3(x, mu= exp(0.6339), sigma = exp(0.2357)), from = 0, to = 13, col = "orange", ylim =c(0,.4), add=T)
+curve(0.4178254*dWEI3(x, mu = exp(1.73), sigma = exp(0.9831)), from = 0, to = 13, col = "brown", add=T)
 
 #### Are the components (latent effects) related to something?
 ###### Estimate the probability of k =1 (class membership) using the posterior probabilities and Bayes theorem
-fit.model.size<-fit.model.size[, pr1:= dWEI3(size, mu = exp(0.6955), sigma = exp(0.2341))][, pr2:=dWEI3(size, mu = exp(1.777), sigma = exp(1.043))][, probk1:= (0.62985*pr1)/(0.62985*pr1 + 0.3701495*pr2)][probk1 < 0.5, k:=2][probk1 >=0.5, k:=1]
+fit.model.size<-fit.model.size[, pr1:= dWEI3(size, mu = exp(0.6339), sigma = exp(0.2357))][, pr2:=dWEI3(size, mu = exp(1.73), sigma = exp(0.9831))][, probk1:= (0.5821746*pr1)/(0.5821746*pr1 + 0.4178254*pr2)][probk1 < 0.5, k:=2][probk1 >=0.5, k:=1]
 
 #Simulate the finite mixture distribution
 ## Gamma mixture
 
-mus_ga <- c(exp(1.831),exp(0.799))
-sigmas_ga <- c(exp(-1.08), exp(-0.1739))
+mus_ga <- c(exp(1.789),exp(0.745))
+sigmas_ga <- c(exp(-1.026), exp(-0.178))
 n = nrow(fit.model.size)
 
 test<-rbindlist(lapply(1:500, function(x){
-   components_ga <- sample(1:2,prob=c(0.3047, 0.69528),size=n,replace=TRUE)
+   components_ga <- sample(1:2,prob=c(0.3471833, 0.6528167),size=n,replace=TRUE)
   samples_ga<-data.table(rGA(n, mu = mus_ga[components_ga], sigma =sigmas_ga[components_ga] ))$V1
 data.table(rep =x, prop = 1:n/n, ex = sort(samples_ga))
 }))
@@ -130,10 +132,10 @@ sim_ci_gamma<-test[, .(lower = quantile(ex,p =0.025), med = quantile(ex,p =0.5),
 
 
 ## Weibull mixture
-mus_wei <- c(exp(0.6955),exp(01.777))
-sigmas_wei <- c(exp(0.2341), exp(1.043))
+mus_wei <- c(exp(0.6339),exp(1.73))
+sigmas_wei <- c(exp(0.2357), exp(0.9831))
 test_wei<-rbindlist(lapply(1:500, function(x){
-  components <- sample(1:2,prob=c(0.6298505, 0.3701495),size=n,replace=TRUE)
+  components <- sample(1:2,prob=c(0.5821746, 0.4178254),size=n,replace=TRUE)
   data.table(rep =x, prop = 1:n/n, ex = sort(rWEI3(n, mu = mus_wei[components], sigma =sigmas_wei[components] )))
 }))
 sim_ci_wei<-test_wei[, .(lower = quantile(ex,p =0.025), med = quantile(ex,p =0.5), upper = quantile(ex,p =0.975)), by = prop]
@@ -149,7 +151,7 @@ x_wei_upper = sort(sim_ci_wei$upper)
 n = sum(!is.na(x))
 plot(exp(x), (1-(1:n)/n), type = 's', ylim = c(0.00001, 1), xlim = c(0, 250000), 
      xlab = 'Fire Size (ha)', ylab = 'Pr(Fire Size > x)', 
-     main = 'Empirical Cumluative Distribution',log='y')
+     main = '',log='y')
 
 lines(exp(x_wei_lower), (1-(1:n)/n), col="red", lty = 2)
 lines(exp(x_wei), (1-(1:n)/n), col="red", lwd =2)
@@ -162,63 +164,106 @@ lines(exp(x_gamm_upper), (1-(1:n)/n), col="blue", lty = 2)
 
 ## Alternative models
 ```{r}
-n1_wei<-gamlss(formula = size ~ 1 + CMI05 + CMI06 + CMI07 + CMI08 + as.factor(frt)+ log(young +1) + log(con +1) + exp(est) + log(veg +1) + log(dec +1) + log(mix +1)+ PPT_sm + nfires + TEMP_MAX + dCMI3yr,
-           mu.link = "log",
-           sigma.formula = ~ 1 + CMI05 + CMI06 + CMI07 + CMI08 + as.factor(frt)+ as.factor(FIRE_CENTRE)+ log(mix +1) + log(young +1) + log(con +1) + exp(est) + log(veg +1) + log(dec +1) + PPT_sm + nfires + TEMP_MAX + dCMI3yr,
-           family = WEI3(),
-           data = na.omit(fit.model.size),
-           control = gamlss.control(c.crit = 0.0001, n.cyc = 5800))
-wp(n1_wei, ylim.all = TRUE) # A number of deviations outsite 95% CI 
-
 library(gamlss.mx)
-set.seed(2)
-nm1_wei<-gamlssMX(formula = size ~  1 +log(mix +1) +exp(est) + PPT_sm + dCMI3yr,
+MX.control(cc = 0.0004, n.cyc = 200, trace = T, seed = 2, plot = FALSE, sample = F)
+#+ log(young+1) + log(dec+1) + log(mix+1)
+nm1_wei<-gamlssMX(formula = size ~  1 + PPT_sm ,
            K=2,
            sigma.formula = ~ 1,
-           pi.formula = ~dCMI3yr + frt,
+           pi.formula = ~1 ,
+           family = list(WEI3(), WEI3()),
+           data = fit.model.size)
+MX.control(cc = 0.0004, n.cyc = 200, trace = T, seed = 2, plot = FALSE, sample = F)
+nm2_wei<-gamlssMX(formula = size ~  1 + PPT_sm + CMI,
+           K=2,
+           sigma.formula = ~ 1,
+           pi.formula = ~1,
+           family = list(WEI3(), WEI3()),
+           data = fit.model.size)
+
+MX.control(cc = 0.0004, n.cyc = 400, trace = F, seed = 3, plot = FALSE, sample = F)
+nm3_wei<-gamlssMX(formula = size ~  1 + PPT_sm + CMI + est,
+           K=2,
+           sigma.formula = ~ 1,
+           pi.formula = ~1,
+           family = list(WEI3(), WEI3()),
+           data = fit.model.size)
+
+nm4_wei<-gamlssMX(formula = size ~  1 + PPT_sm + CMI + frt + est,
+           K=2,
+           sigma.formula = ~ 1,
+           pi.formula = ~1,
+           family = list(WEI3(), WEI3()),
+           data = fit.model.size)
+
+nm5_wei<-gamlssMX(formula = size ~  1 + PPT_sm + CMI  + est,
+           K=2,
+           sigma.formula = ~ 1,
+           pi.formula = ~1 + frt,
+           family = list(WEI3(), WEI3()),
+           data = fit.model.size)
+
+nm6_wei<-gamlssMX(formula = size ~  1 + PPT_sm + CMI  + est,
+           K=2,
+           sigma.formula = ~ 1,
+           pi.formula = ~1 + frt + avgCMIProv,
+           family = list(WEI3(), WEI3()),
+           data = fit.model.size)
+MX.control(cc = 0.0004, n.cyc = 400, trace = F, seed = 8, plot = FALSE, sample = F)
+nm7_wei<-gamlssMX(formula = size ~  1 + PPT_sm + CMI  + est + log(con+1),
+           K=2,
+           sigma.formula = ~ 1,
+           pi.formula = ~1 + frt + avgCMIProv,
+           family = list(WEI3(), WEI3()),
+           data = fit.model.size)
+
+MX.control(cc = 0.0004, n.cyc = 450, trace = F, seed = 2, plot = FALSE, sample = F)
+nm8_wei<-gamlssMX(formula = size ~  1 + PPT_sm + CMI+ est + log(con+1),
+           K=2,
+           sigma.formula = ~ 1,
+           pi.formula = ~1 + frt + avgCMIProv + TEMP_MAX,
            family = list(WEI3(), WEI3()),
            data = fit.model.size)
 
 wp(nm1_wei, ylim.all = TRUE)
-AIC(n1_wei, nm1_wei)
-test_probs<-data.table(nm1_wei$prob)
-nrow(test_probs[pi2<0.5,])
+AIC(nm0_wei, nm1_wei, nm2_wei, nm3_wei, nm4_wei, nm5_wei, nm6_wei, nm7_wei, nm8_wei)
+
 #nm1_wei_perturb<-gamlssMXfits(n=20, formula = size ~  1 + log(mix+1)  + exp(est) + PPT_sm, K=2,sigma.formula = ~ 1, pi.formula = ~dCMI3yr + frt,family = list(WEI3(), WEI3()),data = fit.model.size) # 1 out of 20 failed to fit
 
-nm1_wei_simulate<-fit.model.size[, mu1:= 0.8897754 -0.0445392*log(mix + 1)+2.4039377*exp(est)-0.0003295*PPT_sm+0.0610171*dCMI3yr][, sigma1:=  0.2633][ , mu2:= 2.14183 + 0.01175*log(mix + 1) -0.75545*exp(est)-0.00141*PPT_sm + 0.02128*dCMI3yr][, sigma2:= 1.22]
+nm8_wei_simulate<-fit.model.size[, mu1:= 2.158738 -0.001108*PPT_sm -0.011496*CMI + -0.719612*est  -0.020594*log(con + 1)][, sigma1:=  1.087][ , mu2:= 2.645616 -0.001222*PPT_sm + 0.049921*CMI +1.918825*est -0.209590*log(con + 1) ][, sigma2:= 0.27]
 
-nm1_wei_simulate<-cbind(nm1_wei_simulate, model.matrix( ~ frt, data=fit.model.size ))
+nm8_wei_simulate<-cbind(nm8_wei_simulate, model.matrix( ~ frt, data=fit.model.size ))
 
-nm1_wei_simulate[, pi2:=1/(1+exp(-1*(-2.646679 + -0.3877929*dCMI3yr +1.392928*frt5+1.204091*frt7+3.610426*frt9 + 2.283432*frt10 + 3.124757*frt11 + 1.410092*frt12+1.499066*frt13+0.4269357*frt14  +1.714442*frt15)))][,pi1:=1-pi2]
+nm8_wei_simulate[, pi2:=1/(1+exp(-1*(-0.1759469+ -1.374135*frt5-0.6081503*frt7-2.698864*frt9 -1.824072*frt10 -3.028758*frt11  -1.234629*frt12-1.540873*frt13-0.842797*frt14  -1.334035*frt15+ 0.6835479*avgCMIProv+0.1055167*TEMP_MAX )))][,pi1:=1-pi2]
 
-nm1_wei_simulate[, pixel_order:=seq_len(.N)][, c("size", "mu1", "sigma1", "mu2", "sigma2", "pixel_order",  "duration", "CMI", "nfires", "IGNITION_DATE", "x", "y", "pi1", "pi2")]
+nm8_wei_simulate[, pixel_order:=seq_len(.N)][, c("size", "mu1", "sigma1", "mu2", "sigma2", "pixel_order",  "duration", "CMI", "nfires", "IGNITION_DATE", "x", "y", "pi1", "pi2")]
 
-nm1_wei_simulate[pi1 < 0.5, k:=2][pi1 >=0.5, k:=1]
+nm8_wei_simulate[pi1 < 0.5, k:=2][pi1 >=0.5, k:=1]
 
-nm1_wei_simulate<-nm1_wei_simulate[k==1,mu_est:= exp(mu1)][k==2,mu_est:= exp(mu2)][k==1,sigma_est:= exp(sigma1)][k==2,sigma_est:= exp(sigma2)]
+nm8_wei_simulate<-nm8_wei_simulate[k==1,mu_est:= exp(mu1)][k==2,mu_est:= exp(mu2)][k==1,sigma_est:= exp(sigma1)][k==2,sigma_est:= exp(sigma2)]
 
 #### assuming known class membership
-ggplot(data = nm1_wei_simulate, aes(x = mu_est, y = size, group = k, col=k)) + geom_point() + geom_smooth() + geom_abline()
+ggplot(data = nm8_wei_simulate, aes(x = mu_est, y = size, group = k, col=k)) + geom_point() + geom_smooth() + geom_abline()
 
 #### map prediction
 #bcbounds<-bcdata::bcdc_get_data("ba9f835f-bc72-4c35-b320-15003898d6dc")
 #ggplot(data = merge(nm1_wei_simulate, number, by = "nfires"), aes(x=x*1000,y=y*1000, color = size))  + geom_sf(data = bcbounds, inherit.aes = FALSE)+ geom_point() + facet_wrap(~FIRE_YEAR)
 
 #Simulate the fire size distribution
-n=nrow( nm1_wei_simulate)
+n=nrow( nm8_wei_simulate)
 test_wei2<-rbindlist(lapply(1:500, function(x){
   set.seed(x)
-  nm1_wei_simulate<-nm1_wei_simulate[ , k_sim:= sample(1:2,prob=c(pi1, pi2),size=1), by = seq_len(nrow(nm1_wei_simulate))]
+  nm8_wei_simulate<-nm8_wei_simulate[ , k_sim:= sample(1:2,prob=c(pi1, pi2),size=1), by = seq_len(nrow(nm8_wei_simulate))]
    #nm1_wei_simulate<-nm1_wei_simulate[ pi1>=0.5, k_sim:=1][pi1<0.5,k_sm:=2]
-  nm1_wei_simulate<-nm1_wei_simulate[k_sim==1, mu_sim := exp(mu1)][k_sim==1, sigma_sim := exp(sigma1)][k_sim==2, mu_sim := exp(mu2)][k_sim==2, sigma_sim := exp(sigma2)]
-  nm1_wei_simulate<-nm1_wei_simulate[, wei_sim:= rWEI3(1, mu = mu_sim, sigma =sigma_sim), by =seq_len(nrow(nm1_wei_simulate)) ]
+  nm8_wei_simulate<-nm8_wei_simulate[k_sim==1, mu_sim := exp(mu1)][k_sim==1, sigma_sim := exp(sigma1)][k_sim==2, mu_sim := exp(mu2)][k_sim==2, sigma_sim := exp(sigma2)]
+  nm8_wei_simulate<-nm8_wei_simulate[, wei_sim:= rWEI3(1, mu = mu_sim, sigma =sigma_sim), by =seq_len(nrow(nm8_wei_simulate)) ]
   
-  out<-data.table(rep =x, ex = sort(nm1_wei_simulate$wei_sim))
+  out<-data.table(rep =x, ex = sort(nm8_wei_simulate$wei_sim))
   out[,pixel_order := 1:n/n]
 }))
 
 sim_ci_wei2<-test_wei2[, .(lower = quantile(ex,p =0.025), med = quantile(ex,p =0.5), upper = quantile(ex,p =0.975)), by = pixel_order]
-sim_ci_wei2$size<- sort(nm1_wei_simulate$size)
+sim_ci_wei2$size<- sort(nm8_wei_simulate$size)
 
 ##predicted cdfs
 x <-sort(sim_ci_wei2$size)
@@ -227,21 +272,41 @@ x_wei_lower = sort(sim_ci_wei2$lower)
 x_wei_upper = sort(sim_ci_wei2$upper)
 
 n = sum(!is.na(x))
-plot(exp(x), (1-(1:n)/n), type = 's', ylim = c(0.001, 1), xlim = c(0, 200000), 
+plot(exp(x), (1-(1:n)/n), type = 's', ylim = c(0.00001, 1), xlim = c(0, 250000), 
      xlab = 'Fire Size (ha)', ylab = 'Pr(Fire Size > x)', 
-     main = 'Empirical Cumluative Distribution',log='y')
+     main = '',log='y')
 
 lines(exp(x_wei_lower), (1-(1:n)/n), col="red", lty = 2)
 lines(exp(x_wei), (1-(1:n)/n), col="red", lwd =2)
 lines(exp(x_wei_upper), (1-(1:n)/n), col="red", lty = 2)
 
 plot.new()
-fnWeismall<-getpdfMX(nm1_wei, observation=68)
-fnWeibig<-getpdfMX(nm1_wei, observation=165)
+fnWeismall<-getpdfMX(nm8_wei, observation=68)
+fnWeibig<-getpdfMX(nm8_wei, observation=165)
 truehist(fit.model.size$size)
 lines(seq(0,14,1) ,fnWeibig(seq(0,14,1)), col ='red')
 points(fit.model.size$size[165], y =0, col = 'red')
 lines(seq(0,14,1) ,fnWeismall(seq(0,14,1)))
 points(fit.model.size$size[68], y =0)
+
+
+#AVERAGE
+avg_effect<-fit.model.size[, .(PPT_sm = mean(PPT_sm), CMI = mean(CMI), est = mean(est), con = mean(con), TEMP_MAX = mean(TEMP_MAX)), by = frt]
+avg_effect[, mu1:= 2.158738 -0.001108*PPT_sm -0.011496*CMI + -0.719612*est  -0.020594*log(con + 1)][, sigma1:=  1.087][ , mu2:= 2.645616 -0.001222*PPT_sm + 0.049921*CMI +1.918825*est -0.209590*log(con + 1) ][, sigma2:= 0.27]
+avg_effect<-cbind(avg_effect, model.matrix( ~ 0+frt, data=avg_effect ))
+
+avg_effect[, pi2:=1/(1+exp(-1*(-0.1759469+ -1.374135*frt5-0.6081503*frt7-2.698864*frt9 -1.824072*frt10 -3.028758*frt11  -1.234629*frt12-1.540873*frt13-0.842797*frt14  -1.334035*frt15+ 0.6835479*-1.71+0.1055167*TEMP_MAX )))][,pi1:=1-pi2]
+
+plot.new() #mixture distribution weibull
+fyWEI<-dMX(y=seq(0,13,0.01), mu=list(exp(1.697769),exp(0.6146151)), sigma=list(exp(1.087), exp(0.27)), pi=list(0.6407482, 0.3592518), family=list("WEI3","WEI3") )
+plot(fyWEI~seq(0,13,.01), type="l", ylab = 'Density', xlab = 'log(Fire Size)')
+curve(0.6407482*dWEI3(x, mu= exp(1.697769), sigma = exp(1.087)), from = 0, to = 13, col = "orange", ylim =c(0,.4), add=T)
+curve(0.3592518*dWEI3(x, mu = exp(0.6146151), sigma = exp(0.27)), from = 0, to = 13, col = "brown", add=T)
+
+plot.new() #mixture distribution weibull
+fyWEI<-dMX(y=seq(0,13,0.01), mu=list(exp(0.5464237),exp(1.754864)), sigma=list(exp(0.2684), exp(1.096)), pi=list(0.2866324, 0.7133676), family=list("WEI3","WEI3") )
+plot(fyWEI~seq(0,13,.01), type="l", ylab = 'Density', xlab = 'log(Fire Size)')
+curve(0.2866324*dWEI3(x, mu= exp(0.5464237), sigma = exp(0.26847)), from = 0, to = 13, col = "orange", ylim =c(0,.4), add=T)
+curve(0.7133676*dWEI3(x, mu = exp(1.754864), sigma = exp(1.096)), from = 0, to = 13, col = "brown", add=T)
 
 ```

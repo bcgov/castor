@@ -20,18 +20,24 @@ In this script we model the occurrence of lightning cause wildfires. This includ
 ## Data
 ```{r}
 data.lightning<-readRDS("data.lightning.rds")
-occ.model.data<-data.lightning[flam.layer >0,][!is.na(CMI3yr),][,dCMI3yr:=CMI-(CMI3yr/3)][, coast:=0][frt==15, coast:=1][is.na(dec.layer), dec.layer:=0][is.na(mixed.layer), mixed.layer:=0][is.na(open.layer), open.layer:=0][,flammable:=con + mix + dec + young + veg][flammable >0, ][, year:= as.factor(FIRE_YEAR)]
+occ.model.data<-data.lightning[!is.na(CMI3yr),][,dCMI3yr:=CMI-(CMI3yr/3)][, coast:=0][frt==15, coast:=1][,flammable:=con + mix + dec + young + veg][flammable >0, ][, year:= as.factor(FIRE_YEAR)]
+
+occ.model.data<-occ.model.data[, avgCMIProv:=sum(CMI)/.N, by = c("FIRE_YEAR")][,dry:=0][avgCMIProv < -0.47, dry :=1]
+
+# Determine threshold
+threshold<-occ.model.data[, .(count = sum(count), avgCMIProv = min(avgCMIProv) ), by = FIRE_YEAR]
+saveRDS(threshold, "avgCMIProv.rds")
 ```
 
 ## Model
 ```{r}
 
-l12_nb_3yr <- glmmTMB(count ~ 1 + CMI + CMI3yr, offset = log(flammable), family = nbinom2(link = "log"), ziformula = ~0, data=occ.model.data)
+l12_nb_3yr <- glmmTMB(count ~ 1 + CMI + CMI3yr +avgCMIProv, offset = log(flammable), family = nbinom2(link = "log"), ziformula = ~0, data=occ.model.data)
 
 simulationOutput <- simulateResiduals(fittedModel = l12_nb_3yr)
 plot(simulationOutput)
 
-occ.model.data$pred_mu<-data.table(mu= predict(l12_nb_3yr, newdata = occ.model.data[, c("flam.layer","flammable", "CMI", "CMI3yr")][,FIRE_YEAR := NA][,frt := NA], type="response"))
+occ.model.data$pred_mu<-data.table(mu= predict(l12_nb_3yr, newdata = occ.model.data[, c("flammable", "CMI", "CMI3yr", "avgCMIProv")][,FIRE_YEAR := NA][,frt := NA], type="response"))
 ggplot2::ggplot(data=occ.model.data[ FIRE_YEAR %in% c( 2012, 2016, 2017, 2018, 2020, 2022)], aes(x=x, y=y, color = pred_mu)) + facet_wrap(~FIRE_YEAR) + geom_point()
 occ.model.data[, sim:= rnbinom(n = 1, size = 0.251, mu =pred_mu )]
  
@@ -47,26 +53,26 @@ ggplot(Dat,  aes(x=CMI, y =as.factor(count), colour=type))+geom_boxplot() + face
 
 spde <- make_mesh(occ.model.data[,c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
 
-m0 <- sdmTMB(data = occ.model.data, count ~ 1 + (1|year) , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = F, spatiotemporal = FALSE, reml=F)
-testm0<-predict(m0)
-cor(exp(testm0$est), testm0$count/testm0$flammable)
+m0 <- sdmTMB(data = occ.model.data, count ~ 1  , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = F, spatiotemporal = FALSE, reml=F)
 
-m0_gmrf <- sdmTMB(data = occ.model.data, count ~ 1 + (1|year) , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
+m0_gmrf <- sdmTMB(data = occ.model.data, count ~ 1  , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
 
-m1 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN + (1|year) , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
+m1 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN, offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
 
+m2 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN  +  dCMI3yr , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE)
 
-m2 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN  + dCMI3yr + (1|year), offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE)
+m3 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN + dCMI3yr + avgCMIProv, offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE)
 
-m3 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN + dCMI3yr + as.factor(frt) + (1|year), offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE)
+m4 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN + dCMI3yr + avgCMIProv + as.factor(frt) , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year",  mesh = spde, spatial = T, spatiotemporal = FALSE)
 
 ##Vegetation typing
-m4 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN + dCMI3yr + as.factor(frt) + log(con+1) + log(young+1) + log(veg+1) + log(dec+1) + log(mix+1) + (1|year), offset = log(occ.model.data$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE)
+m5 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(veg+1) + log(dec+1) + log(mix+1) , offset = log(occ.model.data$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE)
 
-m5 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN + dCMI3yr + as.factor(frt) + log(con+1) + log(young+1) + (1|year), offset = log(occ.model.data$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE, reml=T)
+m6 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN  + dCMI3yr+ avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1), offset = log(occ.model.data$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE, reml=F)
 
+m7 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1), offset = log(occ.model.data$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = F, spatiotemporal = FALSE, reml=F)
 
-m6 <- sdmTMB(data = occ.model.data, count ~  1 + CMI_MIN + dCMI3yr + as.factor(frt) + log(con+1) + log(young+1) + (1|year), offset = log(occ.model.data$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = F, spatiotemporal = FALSE)
+m8 <- sdmTMB(data = occ.model.data, count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1), offset = log(occ.model.data$flammable), family = nbinom2(), time = "year", mesh = spde, spatial = T, spatiotemporal = FALSE, reml=T)
 
 #test99<-predict(m6)
 #test99<-test99[, estres:=exp(est)]
@@ -74,19 +80,20 @@ m6 <- sdmTMB(data = occ.model.data, count ~  1 + CMI_MIN + dCMI3yr + as.factor(f
 #test99<-test99[, mu2:= mu1*(1 + exp(m6$model$par[["log_ratio_mix"]]))]
 #test99<-test99[, est9:= ((1-plogis(m6$model$par[["logit_p_mix"]]))*mu1 + plogis(m6$model$par[["logit_p_mix"]])*mu2)*flammable]
 
-AIC(m0, m1, m2, m3, m4, m5,m6)
-saveRDS(m5, "C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m5.rds")
+AIC(m0, m0_gmrf, m1, m2, m3, m4, m5,m6, m7)
+saveRDS(m8, "C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m8.rds")
 
 ```
 
 
 ## Diagnostics
 ```{r}
-occ.model.data$resids <- residuals(m5) # randomized quantile residuals
+m8<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m8.rds")
+occ.model.data$resids <- residuals(m8) # randomized quantile residuals
 qqnorm(occ.model.data$resids)
 qqline(occ.model.data$resids)
 
-sim1<-simulate(m5, nsim=100, re_form = NULL)
+sim1<-simulate(m8, nsim=100, re_form = NULL)
 #sim1<-simulate(m4, nsim=1000)
 Simdat<-occ.model.data
 simdata<-rbindlist(lapply(seq(1,100,1), function(rep_sim){
@@ -98,32 +105,46 @@ simdata<-rbindlist(lapply(seq(1,100,1), function(rep_sim){
 occ.model.data$type = "observed"  
 Dat=rbind(occ.model.data, simdata) 
 data_sim_ag<-Dat[, sum(count), by = c("FIRE_YEAR", "type", "frt")]
-#data_sim_ag[type != 'observed', type := 'simulated']
+
+
 ggplot()+
   geom_boxplot(data=data_sim_ag[type != 'observed' & frt %in% c(14,15,13,12,11,10)],  aes(x=as.factor(FIRE_YEAR), y =V1)) +
   geom_point(data=data_sim_ag[type == 'observed'& frt %in% c(14,15,13,12,11,10)],  aes(x=as.factor(FIRE_YEAR), y =V1, color = 'red')) +
   facet_wrap(~frt, ncol =2, scales = "free") + ylab("Number of fires (>1 ha)")+ xlab("Year")+ theme(legend.position="none")
 
-data.count.pred<-predict(m5 )
+data.count.pred<-predict(m8, type = "link", re_form = NULL)[, frt:=as.factor(frt)]
+
+data.count.pred<-cbind(data.count.pred, model.matrix( ~ 0 + frt, data=data.count.pred )) 
+#data.count.pred[ ,est_noy:= -17.5 -0.125*CMI_MIN -0.162*dCMI3yr -0.998*frt5 -0.966*frt7 -1.61*frt9  -1.55*frt10  -1.15*frt11  -1.19*frt12 -1.39*frt13  -1.05*frt14  -2.45*frt15 +  0.478*log(con + 1) + 0.0882*log(young + 1) -0.0409*log(dec + 1)+ log(flammable) + est_rf]
+
+#data.count.pred$est2<-exp(data.count.pred$est+log(data.count.pred$flammable))
 data.count.pred$est2<-exp(data.count.pred$est)
+
 
 number<-data.count.pred[, .(nfires = sum(count)), by = c('FIRE_YEAR', 'frt')]
 test_fo<-merge(data.count.pred[,.(pred = sum(est2)), by = c("FIRE_YEAR", 'frt')], number, by = c("FIRE_YEAR", 'frt'))
 
+plot(test_fo[,c("pred", "nfires")])
+abline(1,1)
 
-ggplot2::ggplot(data=test_fo, aes(x = pred, y = nfires)) + geom_point() + geom_smooth(method = "lm", se = T) + geom_abline(slope=1, intercept=0, col = 'black') +
-   facet_wrap(~frt, ncol =3, scales = "free")+ ylab("Observed")+ xlab("Predicted")+ theme(legend.position="none")
+library(dplyr)
+r_label<-test_fo %>%
+  group_by(frt) %>%
+  summarize(COR=cor(pred,nfires))
+r_label<-data.table(r_label)[,label:=paste0('r=',round(COR,3))]
+
+ggplot(data=test_fo, aes(x = pred, y = nfires)) + geom_point()+ geom_abline( slope=1, intercept=0, col = 'black') + geom_smooth(method='lm',se=T) + ylab("Observed")+ xlab("Predicted")+ theme(legend.position="none") + facet_wrap(~frt, scales = "free", ncol =3) + geom_text(data = r_label, aes(Inf, -Inf, label = label), col = "red",  hjust = 1, vjust = -1)
+
 if(FALSE){
   
 nd <- data.frame(
-    dCMI3yr = seq(min(occ.model.data$dCMI3yr), 
-      max(occ.model.data$dCMI3yr), length.out = 100),  
-    con = mean(occ.model.data$con), CMI_MIN = mean(occ.model.data$CMI_MIN), young = mean(occ.model.data$young), frt = 14,
-    year = as.factor(2020), coast =0, flammable = mean(occ.model.data$flammable), x = mean(occ.model.data$x), y = mean(occ.model.data$y))
+    dCMI3yr = mean(occ.model.data$dCMI3yr),  
+    con = mean(occ.model.data$con), dec = mean(occ.model.data$dec), CMI_MIN = mean(occ.model.data$CMI_MIN), young = mean(occ.model.data$young), frt = 14,
+    year = as.factor(2020), avgCMIProv = seq(min(occ.model.data$avgCMIProv), max(occ.model.data$avgCMIProv), length = 100), flammable = mean(occ.model.data$flammable), x = mean(occ.model.data$x), y = mean(occ.model.data$y))
 
-p <- predict(m5, newdata = nd, se_fit = T, re_form = T)
+p <- predict(m8, newdata = nd, se_fit = T, re_form = NA)
 
-ggplot(p, aes(dCMI3yr, exp(est), 
+ggplot(p, aes(avgCMIProv, exp(est), 
               ymin = exp(est - 1.96 * est_se), 
               ymax = exp(est + 1.96 * est_se))) +
     geom_line() + geom_ribbon(alpha = 0.4)
