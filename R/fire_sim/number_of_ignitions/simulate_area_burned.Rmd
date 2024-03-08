@@ -28,7 +28,7 @@ The following simulates the annual area burned from two model: fire occurrence a
 m8<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/m8.rds")
 
 preds.all<-predict(m8, newdata = m8$data) #get the random spatial effect
-sim.data<-preds.all[, c("FIRE_YEAR", "pixelid", "con", "young", "dec", "mix", "CMI_MIN", "dCMI3yr", "avgCMIProv", "PPT_sm", "TEMP_MAX", "flammable", "frt", "PPT_sm","est_rf","est", "est_non_rf", "CMI","CMI3yr")][,frt:=as.factor(frt)]
+sim.data<-preds.all[, c("FIRE_YEAR", "pixelid", "con", "young", "dec", "mix", "CMI_MIN", "dCMI3yr", "avgCMIProv", "PPT_sm", "TEMP_MAX", "flammable", "frt", "fire_centre", "PPT_sm","est_rf","est", "est_non_rf", "CMI","CMI3yr")][,frt:=as.factor(frt)]
 
 sim.data<-cbind(sim.data, model.matrix( ~ 0 + frt, data=sim.data )) #add in the indicator structure for frt - homogenous fire regime types
 ```
@@ -41,7 +41,7 @@ sim.data<-sim.data[ ,est:= exp(-17.0 -0.0576*CMI_MIN-0.124*dCMI3yr-0.363*avgCMIP
 ```
 
 ## Fire Size
-The fire size model has two components or subpopulations. For each component the pdfs are parameterized with a mu and sigma parameter for the weibull distribution.Additionaly, there is a multinomial model for the mixing probabilities which determine component membership.
+The fire size model has two components or subpopulations. For each component the pdfs are parameterized with a mu and sigma parameter for the weibull distribution.Additionally, there is a multinomial (binomial) model for the mixing probabilities which determine component membership.
 ```{r}
 sim.data[, mu1:= 2.158738 -0.001108*PPT_sm -0.011496*CMI + -0.719612*est  -0.020594*log(con + 1)][, sigma1:=  1.087][ , mu2:= 2.645616 -0.001222*PPT_sm + 0.049921*CMI +1.918825*est -0.209590*log(con + 1) ][, sigma2:= 0.27]
 
@@ -52,7 +52,7 @@ sim.data[, pi2:=1/(1+exp(-1*(-0.1759469+ -1.374135*frt5-0.6081503*frt7-2.698864*
 The following simulates the two fire regime models independantly for each year. Thus, in years where the simulation results in very large fire, the next proceeding year will still use the landcover estimates that actually occured.
 ```{r}
 sim.data[,year:=FIRE_YEAR]
-runs<-rbindlist(lapply(1:100, function(x){
+runs<-rbindlist(lapply(1:1000, function(x){
   rbindlist(lapply(2009:2022, function(i){
     occ<-sim.data[year == i, ]
     selected.seed<-sample(1:1000,1)
@@ -60,35 +60,53 @@ runs<-rbindlist(lapply(1:100, function(x){
     occ<-occ[, fire:= rnbinom(n = 1, size = 0.416, mu =est), by=1:nrow(occ)][fire>0,]
     occ<-occ[ , k_sim:= sample(1:2,prob=c(pi1, pi2),size=1), by = seq_len(nrow(occ))]
     occ<-occ[k_sim==1, mu_sim := exp(mu1)][k_sim==1, sigma_sim := exp(sigma1)][k_sim==2, mu_sim := exp(mu2)][k_sim==2, sigma_sim := exp(sigma2)]
-    aab<-0
+    aab<-data.table(aab = as.numeric(), fire_centre = as.integer())
     for(f in 1:length(occ$fire)){
       fires<-rWEI3(occ$fire[f], mu = occ$mu_sim[f], sigma =occ$sigma_sim[f])
-      aab<- aab + sum(exp(fires))
+      aab<- rbindlist(list(aab, data.table(aab = sum(exp(fires)), fire_centre = occ$fire_centre[f])))
     }
-    data.table(rep = x, seed = selected.seed, year =i, nfires =sum(occ$fire), aab = aab)
+    out<-merge(aab[, .(aab=sum(aab)), by = fire_centre], occ[, .(nfires=sum(fire)), by = fire_centre], by= 'fire_centre')
+    out<-out[, rep := x][,seed := selected.seed][, year :=i]
+    out
   }))
 }))
-runs.bounds<-runs[, .(nf_low = quantile(nfires,p =0.025), nf_med = quantile(nfires,p =0.5), nf_up = quantile(nfires,p =0.975), aab_low = quantile(aab,p =0.025), aab_med = quantile(aab,p =0.5), aab_up = quantile(aab,p =0.975)), by = year]
+runs.bounds<-runs[, .(nf_low = quantile(nfires,p =0.25), nf_med = quantile(nfires,p =0.5), nf_up = quantile(nfires,p =0.75), aab_low = quantile(aab,p =0.25), aab_med = quantile(aab,p =0.5), aab_up = quantile(aab,p =0.75)), by = c('year', 'fire_centre')]
+runs.bounds[fire_centre == 1, fc := "Cariboo"][fire_centre == 2, fc := "Coast"][fire_centre == 3, fc := "Kamloops"][fire_centre == 4, fc := "Northwest"][fire_centre == 5, fc := "Prince George"][fire_centre == 6, fc := "Southeast"]
 
 obs.occ<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/data.lightning.rds")
-obs.occ<-obs.occ[, .(nfires = sum(count)), by = c('FIRE_YEAR')]
-ggplot(data=runs.bounds) + 
+obs.occ<-obs.occ[, .(nfires = sum(count)), by = c('FIRE_YEAR', 'fire_centre')][!is.na(fire_centre),]
+
+obs.occ<-merge(obs.occ, data.table(FIRE_YEAR = rep(seq(2009, 2022,1), 6), fire_centre = rep(c(1,2,3,4,5,6), each = 14)), by= c("FIRE_YEAR", "fire_centre"))
+
+
+obs.occ[fire_centre == 1, fc := "Cariboo"][fire_centre == 2, fc := "Coast"][fire_centre == 3, fc := "Kamloops"][fire_centre == 4, fc := "Northwest"][fire_centre == 5, fc := "Prince George"][fire_centre == 6, fc := "Southeast"]
+
+ggplot(data=runs.bounds[!is.na(fire_centre),]) + 
   geom_line(aes(x = year, y = nf_med),col = 'blue', lwd =1.5)+ 
   geom_line(aes(x = year, y = nf_low), col = 'blue', linetype = "dashed")+ geom_line(aes(x = year, y = nf_up), col = 'blue', linetype = "dashed") + 
-  geom_line(data = obs.occ, aes(x=FIRE_YEAR, y = nfires), color = "red") + 
-  xlab("Year") + ylab("Count of Fires (>1 ha)")
+  geom_line(data = obs.occ[!is.na(fire_centre),], aes(x=FIRE_YEAR, y = nfires), color = "red") + 
+  xlab("Year") + ylab("Count of Fires (>1 ha)") + facet_wrap(~fc, scales = 'free', ncol =3)
 
-obs.aab<-readRDS("C:/Users/klochhea/castor/R/fire_sim/number_of_ignitions/data.lightning.size.rds")
-obs.aab<-obs.aab[, .(aab = sum(CURRENT_SIZE, na.rm = T)), by = c('FIRE_YEAR')]
+obs.aab<-data.size
+obs.aab<-obs.aab[, .(aab = sum(CURRENT_SIZE, na.rm = T)), by = c('FIRE_YEAR', 'fire_centre')][aab>0, ]
+#fill in zero aab
+obs.aab<- merge(obs.aab,data.table(FIRE_YEAR = rep(seq(2009, 2022,1), 6), fire_centre = rep(c(1,2,3,4,5,6), each = 14)), by= c("FIRE_YEAR", "fire_centre"), all.y =T)[is.na(aab), aab := 0]
+obs.aab[fire_centre == 1, fc := "Cariboo"][fire_centre == 2, fc := "Coast"][fire_centre == 3, fc := "Kamloops"][fire_centre == 4, fc := "Northwest"][fire_centre == 5, fc := "Prince George"][fire_centre == 6, fc := "Southeast"]
+
 ggplot(data=runs.bounds) + 
-  geom_line(aes(x = as.integer(year), y = aab_med/1000),col = 'blue', lwd =1.5)+ 
-  geom_line(aes(x = as.integer(year), y = aab_low/1000), col = 'blue', linetype = "dashed")+ 
-  geom_line(aes(x = as.integer(year), y = aab_up/1000), col = 'blue', linetype = "dashed") + 
-  geom_line(data = obs.aab, aes(x=as.integer(FIRE_YEAR), y = aab/1000), color = "red") + 
+  geom_line(aes(x = as.integer(year), y = aab_med),col = 'blue', lwd =1.5)+ 
+  geom_line(aes(x = as.integer(year), y = aab_low), col = 'blue', linetype = "dashed")+ 
+  geom_line(aes(x = as.integer(year), y = aab_up), col = 'blue', linetype = "dashed") + 
+  geom_line(data = obs.aab, aes(x=as.integer(FIRE_YEAR), y = aab), color = "red") + 
   xlab("Year") + 
-  ylab("Area Burned (1000's ha)")+
-  annotate("text", x=2011, y=mean(runs.bounds$aab_up)/1000 + sd(runs.bounds$aab_up/1000), label= paste0("r=", round(cor(runs.bounds$aab_med, obs.aab$aab),2)))+ scale_x_continuous(breaks=seq(2010,2022,2)) + ylim(0, 4000)  
+  ylab("Area Burned (ha)")+ facet_wrap(~fc, scales = 'free', ncol =3) 
 
-cor.test(runs.bounds$aab_med, obs.aab$aab)
-cor.test(runs.bounds$nf_med, obs.occ$aab)
+runs.bounds<-runs.bounds[,FIRE_YEAR :=year]
+test.cors<-merge(runs.bounds, obs.occ, by = c('FIRE_YEAR', 'fire_centre'))
+test.cors<-merge(test.cors, obs.aab, by = c('FIRE_YEAR', 'fire_centre'))
+
+cor(test.cors[,c('nf_med', 'nfires')])
+cor.test(test.cors$aab_med, test.cors$aab)
+       
+
 ```
