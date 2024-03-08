@@ -115,7 +115,7 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
         ssp = (P(sim, "ssp", "climateCastor")),# c("ssp370"),
         max_run = (P(sim, "maxRun", "climateCastor")),
         return_normal = TRUE, ## to return the 1961-1990 normals period
-        vars = c("PPT04", "PPT05","PPT06","PPT07","PPT08","Tmax03","Tmax04","Tmax05","Tmax06","Tmax07","Tmax08", "Tave03","Tave04","Tave05","Tave06","Tave07","Tave08","Tave09","CMD06", "CMD07","CMD08","CMD09"))
+        vars = c("PPT01", "PPT02","PPT03","PPT04", "PPT05","PPT06","PPT07","PPT08", "PPT09","PPT10","PPT11","PPT12","Tmax01","Tmax02","Tmax03","Tmax04","Tmax05","Tmax06","Tmax07","Tmax08","Tmax09","Tmax10","Tmax11","Tmax12","Tave01","Tave02", "Tave03","Tave04","Tave05","Tave06","Tave07","Tave08","Tave09","Tave10","Tave11","Tave12","CMD06", "CMD07","CMD08","CMD09", "CMI05", "CMI06", "CMI07", "CMI08", "CMI09")) # also need annual CMI (I think) for ignitions
       
       
       # if (!exists("dbCon")){
@@ -190,7 +190,7 @@ doEvent.climateCastor = function(sim, eventTime, eventType) {
       
       message("upload climate data to sqlitedb")
       
-      climate_dat[,c("ID", "lat", "long", "el"):=NULL]
+      #climate_dat[,c("ID", "lat", "long", "el"):=NULL]
     
       qry<-paste0("CREATE TABLE IF NOT EXISTS climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor")," (pixelid_climate integer,  gcm character, ssp character, run character, period integer, Tmax01 numeric, Tmax02 numeric, Tmax03 numeric, Tmax04 numeric, Tmax05 numeric,  Tmax06 numeric, Tmax07 numeric, Tmax08 numeric, Tmax09 numeric, Tmax10 numeric, Tmax11 numeric, Tmax12 numeric, PPT01 numeric, PPT02 numeric, PPT03 numeric, PPT04 numeric, PPT05 numeric, PPT06 numeric, PPT07 numeric, PPT08 numeric, PPT09 numeric, PPT10 numeric, PPT11 numeric, PPT12 numeric, Tave01 numeric, Tave02 numeric, Tave03 numeric, Tave04 numeric, Tave05 numeric, Tave06 numeric, Tave07 numeric, Tave08 numeric, Tave09 numeric, Tave10 numeric, Tave11 numeric, Tave12 numeric, CMD01 numeric, CMD02 numeric, CMD03 numeric, CMD04 numeric, CMD05 numeric, CMD06 numeric, CMD07 numeric, CMD08 numeric, CMD09 numeric, CMD10 numeric, CMD11 numeric, CMD12 numeric)")
       
