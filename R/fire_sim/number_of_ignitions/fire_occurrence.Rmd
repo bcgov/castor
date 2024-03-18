@@ -20,7 +20,7 @@ In this script we model the occurrence of lightning cause wildfires. This includ
 ## Data
 ```{r}
 data.lightning<-readRDS("data.lightning.rds")
-occ.model.data<-data.lightning[!is.na(CMI3yr),][,dCMI3yr:=CMI-(CMI3yr/3)][, coast:=0][frt==15, coast:=1][,flammable:=con + mix + dec + young + veg][flammable >0, ][, year:= as.factor(FIRE_YEAR)]
+occ.model.data<-data.lightning[!is.na(CMI3yr),][,dCMI3yr:=CMI-(CMI3yr/3)][, coast:=0][frt==15, coast:=1][,flammable:=con + mix + dec + young + veg][flammable >0, ][, year:= as.factor(FIRE_YEAR)][!is.na(fire_centre),]
 
 occ.model.data<-occ.model.data[, avgCMIProv:=sum(CMI)/.N, by = c("FIRE_YEAR")][,dry:=0][avgCMIProv < -0.47, dry :=1]
 
@@ -104,15 +104,15 @@ simdata<-rbindlist(lapply(seq(1,100,1), function(rep_sim){
 
 occ.model.data$type = "observed"  
 Dat=rbind(occ.model.data, simdata) 
-data_sim_ag<-Dat[, sum(count), by = c("FIRE_YEAR", "type", "frt")]
+data_sim_ag<-Dat[, sum(count), by = c("FIRE_YEAR", "type", "fire_centre")]
 
 
 ggplot()+
-  geom_boxplot(data=data_sim_ag[type != 'observed' & frt %in% c(14,15,13,12,11,10)],  aes(x=as.factor(FIRE_YEAR), y =V1)) +
-  geom_point(data=data_sim_ag[type == 'observed'& frt %in% c(14,15,13,12,11,10)],  aes(x=as.factor(FIRE_YEAR), y =V1, color = 'red')) +
-  facet_wrap(~frt, ncol =2, scales = "free") + ylab("Number of fires (>1 ha)")+ xlab("Year")+ theme(legend.position="none")
+  geom_boxplot(data=data_sim_ag[type != 'observed'],  aes(x=as.factor(FIRE_YEAR), y =V1)) +
+  geom_point(data=data_sim_ag[type == 'observed'],  aes(x=as.factor(FIRE_YEAR), y =V1, color = 'red')) +
+  facet_wrap(~fire_centre, ncol =2, scales = "free") + ylab("Number of fires (>1 ha)")+ xlab("Year")+ theme(legend.position="none")
 
-data.count.pred<-predict(m8, type = "link", re_form = NULL)[, frt:=as.factor(frt)]
+data.count.pred<-predict(m6, type = "link", re_form = NULL)[, frt:=as.factor(frt)]
 
 data.count.pred<-cbind(data.count.pred, model.matrix( ~ 0 + frt, data=data.count.pred )) 
 #data.count.pred[ ,est_noy:= -17.5 -0.125*CMI_MIN -0.162*dCMI3yr -0.998*frt5 -0.966*frt7 -1.61*frt9  -1.55*frt10  -1.15*frt11  -1.19*frt12 -1.39*frt13  -1.05*frt14  -2.45*frt15 +  0.478*log(con + 1) + 0.0882*log(young + 1) -0.0409*log(dec + 1)+ log(flammable) + est_rf]
@@ -121,19 +121,22 @@ data.count.pred<-cbind(data.count.pred, model.matrix( ~ 0 + frt, data=data.count
 data.count.pred$est2<-exp(data.count.pred$est)
 
 
-number<-data.count.pred[, .(nfires = sum(count)), by = c('FIRE_YEAR', 'frt')]
-test_fo<-merge(data.count.pred[,.(pred = sum(est2)), by = c("FIRE_YEAR", 'frt')], number, by = c("FIRE_YEAR", 'frt'))
+number<-data.count.pred[, .(nfires = sum(count)), by = c('FIRE_YEAR', 'fire_centre')]
+test_fo<-merge(data.count.pred[,.(pred = sum(est2)), by = c("FIRE_YEAR", 'fire_centre')], number, by = c("FIRE_YEAR", 'fire_centre'))
 
-plot(test_fo[,c("pred", "nfires")])
+numberbc<-data.count.pred[, .(nfires = sum(count)), by = c('FIRE_YEAR')]
+test_bc<-merge(data.count.pred[,.(pred = sum(est2)), by = c("FIRE_YEAR")], numberbc, by = c("FIRE_YEAR"))
+plot(test_bc[,c("pred", "nfires")])
 abline(1,1)
 
 library(dplyr)
+test_fo<-test_fo[fire_centre == 1, fc := "Cariboo"][fire_centre == 2, fc := "Coast"][fire_centre == 3, fc := "Kamloops"][fire_centre == 4, fc := "Northwest"][fire_centre == 5, fc := "Prince George"][fire_centre == 6, fc := "Southeast"]
 r_label<-test_fo %>%
-  group_by(frt) %>%
+  group_by(fc) %>%
   summarize(COR=cor(pred,nfires))
 r_label<-data.table(r_label)[,label:=paste0('r=',round(COR,3))]
 
-ggplot(data=test_fo, aes(x = pred, y = nfires)) + geom_point()+ geom_abline( slope=1, intercept=0, col = 'black') + geom_smooth(method='lm',se=T) + ylab("Observed")+ xlab("Predicted")+ theme(legend.position="none") + facet_wrap(~frt, scales = "free", ncol =3) + geom_text(data = r_label, aes(Inf, -Inf, label = label), col = "red",  hjust = 1, vjust = -1)
+ggplot(data=test_fo, aes(x = pred, y = nfires)) + geom_point()+ geom_abline( slope=1, intercept=0, col = 'black') + geom_smooth(method='lm',se=T) + ylab("Observed")+ xlab("Predicted")+ theme(legend.position="none") + facet_wrap(~fc, scales = "free", ncol =3) + geom_text(data = r_label, aes(Inf, -Inf, label = label), col = "red",  hjust = 1, vjust = -1)
 
 if(FALSE){
   
@@ -163,7 +166,7 @@ cMatern <- function(h, nu, kappa) {
 }
 
 #create some data such that its a single line of 250 points each 1/25 away from each other
-loc <- 0:249 / 25 
+loc <- 1:10 / 10 
 #Calculate the adjacency matrix
 mdist <- as.matrix(dist(loc))
 d <- dim(goshawkNestingHabitat)
@@ -174,6 +177,7 @@ nu <- c(0.5, 1, 2.5, 3, 4.5)
 range <- c(1,2,3,4)
 params <- cbind(nu = rep(nu, length(range)), range = rep(range, each = length(nu)))
 
+params <- data.frame(nu = 0.5, range =1)
 # Sample error five times - white noise gaussian standard normal ~ N(0, 1)
 set.seed(123)
 z <- matrix(rnorm(nrow(mdist) * 5), ncol = 5)
@@ -193,4 +197,34 @@ yy <- lapply(1:nrow(params), function(j) {
 })
 
 #Conclusion: the nu parameter adds inflections, the range parameter add smoothness
+```
+
+
+## sim with a raster
+```{r}
+# Matern correlation
+cMatern <- function(h, nu, kappa) {
+  ifelse(h > 0, besselK(h * kappa, nu) * (h * kappa)^nu / 
+    (gamma(nu) * 2^(nu - 1)), 1)
+}
+
+ras<-rast(nrow =100, ncol =100, xmin = -180, xmax = 180, ymin = -180, ymax = 180)
+d <- dim(ras)
+
+pts<-xyFromCell(ras, 1:(d[1]*d[2]))
+dmat <- as.matrix(dist(pts))
+
+beta0 <- 10
+sigma2e <- 0.3
+sigma2u <- 5
+kappa <- 7
+nu <- 1
+
+mcor <- cMatern(dmat, nu, kappa) 
+mcov <- sigma2e * diag(nrow(mcor)) + sigma2u * mcor
+Rc <- chol(mcov)
+set.seed(234)
+n <- d[1]*d[2]
+y1 <- beta0 + drop(crossprod(Rc, rnorm(d[1]*d[2]))) 
+ras[]<-y1
 ```

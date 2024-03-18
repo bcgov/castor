@@ -49,9 +49,13 @@ ras.ndt <- fasterize::fasterize (ndt, prov.rast, field = "ndt")
 frt<-getSpatialQuery("SELECT * FROM frt_canada")
 ras.frt <- fasterize::fasterize (frt, prov.rast, field = "Cluster")
 
+frcentre<-getSpatialQuery("SELECT * FROM drpmffrcnt_polygon")
+ras.frcentre <- fasterize::fasterize (frcentre, prov.rast, field = "ogc_fid")
+
+
 if(terra::ext(prov.rast) == terra::ext(ras.frt)){ # need to check that each of the extents are the same
-  pixel.frt <-cbind(pixel.grid , data.table(frt= as.numeric(ras.frt[]), ndt = ras.ndt[]))
-  rm(ras.frt)
+  pixel.frt <-cbind(pixel.grid , data.table(frt= as.numeric(ras.frt[]), ndt = ras.ndt[], fire_centre = ras.frcentre[]))
+  rm(ras.frt, ras.frcentre)
   gc()
 }else{
   stop(paste0("ERROR: extents are not the same check -"))
@@ -166,14 +170,14 @@ data.lightning.size<-merge(data.lightning.size, pixel.simple_fueltype, by = c("p
 XYs<-xyFromCell(prov.rast, data.lightning.size$pixelid)
 data.lightning.size$x<-XYs[,1]/1000 #make units of kilometers
 data.lightning.size$y<-XYs[,2]/1000
-
-
 saveRDS(data.lightning.size, "data.lightning.size.rds")
+
 
 #FIRE OCCURENCE
 data.lightning<-merge(pixel.table, lightning, by.x = c("pixelid", "FIRE_YEAR"), by.y =c("pixelid", "FIRE_YEAR"), all.x = T)
 data.lightning<-data.lightning[is.na(count), count :=0]
-data.lightning<-merge(data.lightning, pixel.frt, by = "pixelid")
+
+data.lightning<-merge(data.lightning, pixel.frt, by="pixelid")
 data.lightning<-data.lightning[!is.na(frt),]
 data.lightning<-merge(data.lightning, pixel.wet, by = "pixelid")
 data.lightning<-merge(data.lightning, pixel.simple_fueltype, by = c("pixelid", "FIRE_YEAR"))

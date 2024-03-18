@@ -189,6 +189,7 @@ nm3_wei<-gamlssMX(formula = size ~  1 + PPT_sm + CMI + est,
            family = list(WEI3(), WEI3()),
            data = fit.model.size)
 
+MX.control(cc = 0.001, n.cyc = 450, trace = F, seed = 15, plot = FALSE, sample = F)
 nm4_wei<-gamlssMX(formula = size ~  1 + PPT_sm + CMI + frt + est,
            K=2,
            sigma.formula = ~ 1,
@@ -209,7 +210,8 @@ nm6_wei<-gamlssMX(formula = size ~  1 + PPT_sm + CMI  + est,
            pi.formula = ~1 + frt + avgCMIProv,
            family = list(WEI3(), WEI3()),
            data = fit.model.size)
-MX.control(cc = 0.0004, n.cyc = 400, trace = F, seed = 8, plot = FALSE, sample = F)
+
+MX.control(cc = 0.0004, n.cyc = 400, trace = F, seed = 15, plot = FALSE, sample = F)
 nm7_wei<-gamlssMX(formula = size ~  1 + PPT_sm + CMI  + est + log(con+1),
            K=2,
            sigma.formula = ~ 1,
@@ -217,7 +219,7 @@ nm7_wei<-gamlssMX(formula = size ~  1 + PPT_sm + CMI  + est + log(con+1),
            family = list(WEI3(), WEI3()),
            data = fit.model.size)
 
-MX.control(cc = 0.0004, n.cyc = 450, trace = F, seed = 2, plot = FALSE, sample = F)
+MX.control(cc = 0.001, n.cyc = 450, trace = F, seed = 15, plot = FALSE, sample = F)
 nm8_wei<-gamlssMX(formula = size ~  1 + PPT_sm + CMI+ est + log(con+1),
            K=2,
            sigma.formula = ~ 1,
