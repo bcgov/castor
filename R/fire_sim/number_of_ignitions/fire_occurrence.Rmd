@@ -166,7 +166,7 @@ cMatern <- function(h, nu, kappa) {
 }
 
 #create some data such that its a single line of 250 points each 1/25 away from each other
-loc <- 0:249 / 25 
+loc <- 1:10 / 10 
 #Calculate the adjacency matrix
 mdist <- as.matrix(dist(loc))
 d <- dim(goshawkNestingHabitat)
@@ -177,6 +177,7 @@ nu <- c(0.5, 1, 2.5, 3, 4.5)
 range <- c(1,2,3,4)
 params <- cbind(nu = rep(nu, length(range)), range = rep(range, each = length(nu)))
 
+params <- data.frame(nu = 0.5, range =1)
 # Sample error five times - white noise gaussian standard normal ~ N(0, 1)
 set.seed(123)
 z <- matrix(rnorm(nrow(mdist) * 5), ncol = 5)
@@ -196,4 +197,34 @@ yy <- lapply(1:nrow(params), function(j) {
 })
 
 #Conclusion: the nu parameter adds inflections, the range parameter add smoothness
+```
+
+
+## sim with a raster
+```{r}
+# Matern correlation
+cMatern <- function(h, nu, kappa) {
+  ifelse(h > 0, besselK(h * kappa, nu) * (h * kappa)^nu / 
+    (gamma(nu) * 2^(nu - 1)), 1)
+}
+
+ras<-rast(nrow =100, ncol =100, xmin = -180, xmax = 180, ymin = -180, ymax = 180)
+d <- dim(ras)
+
+pts<-xyFromCell(ras, 1:(d[1]*d[2]))
+dmat <- as.matrix(dist(pts))
+
+beta0 <- 10
+sigma2e <- 0.3
+sigma2u <- 5
+kappa <- 7
+nu <- 1
+
+mcor <- cMatern(dmat, nu, kappa) 
+mcov <- sigma2e * diag(nrow(mcor)) + sigma2u * mcor
+Rc <- chol(mcov)
+set.seed(234)
+n <- d[1]*d[2]
+y1 <- beta0 + drop(crossprod(Rc, rnorm(d[1]*d[2]))) 
+ras[]<-y1
 ```
