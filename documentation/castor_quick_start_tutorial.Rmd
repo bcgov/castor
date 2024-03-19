@@ -304,7 +304,7 @@ mySim <- simInit(times = times,
 
 Now that you've familiarized yourself with *dataCastor* we will use it to create an SQLite database for a harvest simulation. Below we provide an example of the code chunk you can use to run the script, with annotations that describe each parameter. Below we will describe the key parameters need to run *dataCastor* successfully. 
 
-```{r module_usage, message = F, echo = T, eval = F}
+```{r module_usage2, message = F, echo = T, eval = F}
 # R Packages need to run the script
 library (SpaDES) 
 library (SpaDES.core)
