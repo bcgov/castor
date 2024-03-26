@@ -7,7 +7,7 @@ The code in this GitHub is open-source and provides a transparent record of the 
 
 
 ### Getting Help or Reporting an Issue
-We've developed a [Wiki page](https://github.com/bcgov/castor/wiki) to help you with understanding the structure and functions of the Castor model. We are also working on a [tutorial](https://github.com/bcgov/castor/blob/master/documentation/castor_quick_start_tutorial.md) that will describe the steps to get a basic Castor model up and running. 
+We've developed a [Wiki page](https://github.com/bcgov/castor/wiki) to help you with understanding the structure and functions of the Castor model. We are also working on a [tutorial](https://github.com/bcgov/castor/blob/main/documentation/clus_quick_start_tutorial.md) that will describe the steps to get a basic Castor model up and running. 
 
 Once you are familiar with Castor, if you find any errors with the code, please submit them via the GitHub  ["Issues"](https://github.com/bcgov/castor/issues) tab.
 
