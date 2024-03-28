@@ -118,23 +118,22 @@ getClimateDataForAOI <- function(sim) {
         return_normal = FALSE, ## to return the 1961-1990 normals period
         vars = (P(sim, "vars_aoi", "climateCastor"))) # also need annual CMI (I think) for ignitions
       
-      message("join downscaled climate data")
-      
-      climate_dat<-climate_dat %>% dplyr::rename(gcm=GCM,
-                                          ssp = SSP,
-                                          run = RUN,
-                                          period = PERIOD)
+      ds_out<-ds_out[!is.na(RUN),]
+      ds_out<-ds_out[order(GCM, SSP, RUN, id, PERIOD)]
+      ds_out<-ds_out[, `:=`(CMI = rowMeans(.SD, na.rm=T)), .SDcols=c("CMI05", "CMI06","CMI07","CMI08")]
+      ds_out[ ,CMI3yr := frollsum(.SD, n=3), by = "id", .SDcols = "CMI"]
+      ds_out<-ds_out[!PERIOD %in% c(2018, 2019), ]
       
       message("upload climate data to sqlitedb")
       
-      qry<-paste0("CREATE TABLE IF NOT EXISTS climate_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor")," (pixelid_climate integer, gcm character, ssp character, run character, period integer, ", paste(tolower(P(sim,"vars_aoi", "climateCastor")),sep="' '", collapse=" numeric, "), " numeric)")
+      qry<-paste0("CREATE TABLE IF NOT EXISTS climate_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor")," (pixelid_climate integer, gcm character, ssp character, run character, period integer, ", paste(tolower(P(sim,"vars_aoi", "climateCastor")),sep="' '", collapse=" numeric, "), " numeric,", " cmi numeric, cmi3yr numeric)")
       
       dbExecute(sim$castordb, qry)
       
-      qry<-paste0("INSERT INTO climate_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " (pixelid_climate,  gcm, ssp, run, period, ", paste(tolower(P(sim,"vars_aoi", "climateCastor")),sep="' '", collapse=", "),") VALUES (:pixelid_climate, :gcm, :ssp, :run, :period, :", paste( P(sim,"vars_aoi", "climateCastor"),sep="' '", collapse=", :"),")")
+      qry<-paste0("INSERT INTO climate_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " (pixelid_climate,  gcm, ssp, run, period, ", paste(tolower(P(sim,"vars_aoi", "climateCastor")),sep="' '", collapse=", "),"cmi, cmi3yr) VALUES (:id, :GCM, :SSP, :RUN, :PERIOD, :", paste( P(sim,"vars_aoi", "climateCastor"),sep="' '", collapse=", :"),":CMI, :CMI3yr)")
 
       dbBegin(sim$castordb)
-      rs<-dbSendQuery(sim$castordb, qry, climate_dat)
+      rs<-dbSendQuery(sim$castordb, qry, ds_out)
       dbClearResult(rs)
       dbCommit(sim$castordb)
       
@@ -212,7 +211,7 @@ getClimateDataForProvince <- function(sim) {
     setnames(ds_out_prov, old = "id", new="pixelid_climate")
     ds_out_prov[,rowmeanCMI:=(CMI05+CMI06+CMI07+CMI08)/4]
     ds_out_prov[, c("GCM", "SSP","CMI05", "CMI06", "CMI07", "CMI08"):=NULL]
-    ds_out_prov<-ds_out_prov[!is.na(RUN) & RUN!="ensembleMean", ]
+    ds_out_prov<-ds_out_prov[!is.na(RUN), ]
     ds_out<-rbind(ds_out, ds_out_prov)
     
     rm(ds_out_prov)
