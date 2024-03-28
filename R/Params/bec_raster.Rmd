@@ -30,10 +30,6 @@ bec<-try(
     collect()
 )
 
-
-bec<- bec %>% select(ZONE, SUBZONE)
-head(bec)
-
 bec_df<-st_drop_geometry(bec)
 bec.unique<-unique(bec_df[c('ZONE', 'SUBZONE')])
 bec.unique$idkey<-1:length(bec.unique$ZONE)
@@ -89,6 +85,11 @@ writeRaster (ras.bec, file = "bec.tif", format = "GTiff", overwrite = TRUE)
 
 #Upload to PostgreSQL
 system("cmd.exe", input = paste0('raster2pgsql -s 3005 -d -I -C -M -N 2147483648  ', here::here(), '/bec.tif -t 100x100 rast.bec_current |  psql postgres://', keyring::key_get('dbuser', keyring = 'postgreSQL'), ':', keyring::key_get('dbpass', keyring = 'postgreSQL'), '@', keyring::key_get('dbhost', keyring = 'postgreSQL'), ':5432/clus'), show.output.on.console = FALSE, invisible = TRUE)
+
+#upload vector
+#DBI::dbWriteTable (conn, c("public", "bec_zone3"), value = bec, row.names = FALSE, overwrite = TRUE)
+#ogr2ogr -f PostgreSQL PG:"dbname=clus port = 5432 user=postgres password=postgres" C:\Users\klochhea\Downloads\BCGW_7113060B_1711643177122_14632\BEC_BIOGEOCLIMATIC_POLY\BEC_POLY_polygon.shp -overwrite -progress --config PG_USE_COPY YES -nlt PROMOTE_TO_MULTI -lco precision=NO -nln bec_zone
+
 
 ```
 
