@@ -1012,6 +1012,9 @@ randomRaster<-function(extent, clusterLevel){
   model <- RandomFields::RMstable(scale = 300, var = 0.003,  alpha = clusterLevel)
   data.rv<-RandomFields::RFsimulate(model, y = 1:extent[[1]],  x = 1:extent[[2]], grid = TRUE)$variable1
   data.rv<-(data.rv - min(data.rv))/(max(data.rv)- min(data.rv))
+  
+  
+  
   return(terra::setValues(ras, data.rv))
 }
 
