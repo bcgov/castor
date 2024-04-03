@@ -522,7 +522,7 @@ source(here::here("R/functions/R_Postgres.R"))
     ## rgdal: version: 1.6-4, (SVN revision 1196)
     ## Geospatial Data Abstraction Library extensions to R successfully loaded
     ## Loaded GDAL runtime: GDAL 3.4.1, released 2021/12/27
-    ## Path to GDAL shared files: C:/Data/localApps/R/R-4.3.2/library/sf/gdal
+    ## Path to GDAL shared files: C:/Data/localApps/R/R-4.3.2/library/rgdal/gdal
     ## GDAL binary built with GEOS: TRUE 
     ## Loaded PROJ runtime: Rel. 7.2.1, January 1st, 2021, [PJ_VERSION: 721]
     ## Path to PROJ shared files: C:\Program Files\PostgreSQL\14\share\contrib\postgis-3.2\proj
@@ -587,8 +587,8 @@ mySim <- simInit(times = times, params = parameters, modules = modules,
 
     ## Paths set to:
     ##   options(
-    ##     rasterTmpDir = 'C:/Users/klochhea/AppData/Local/Temp/RtmpyU05cS/raster'
-    ##     reproducible.cachePath = 'C:/Users/klochhea/AppData/Local/Temp/RtmpyU05cS/Require/cache'
+    ##     rasterTmpDir = 'C:/Users/klochhea/AppData/Local/Temp/RtmpwpFZcZ/raster'
+    ##     reproducible.cachePath = 'C:/Users/klochhea/AppData/Local/Temp/RtmpwpFZcZ/Require/cache'
     ##     spades.inputPath = 'D:/temp/RtmpInSZns/SpaDES/inputs'
     ##     spades.outputPath = 'C:/Users/klochhea/castor/R/SpaDES-modules/dataCastor'
     ##     spades.modulePath = 'C:/Users/klochhea/castor/R/SpaDES-modules'
@@ -638,7 +638,7 @@ mySim <- simInit(times = times, params = parameters, modules = modules,
 
     ## dataCastor: module code: setZonePrescriptions : <anonymous>: parameter 'x' may not be used
 
-    ## Mar19 16:49:05 simInit: dtCstr Running .inputObjects for dataCastor
+    ## Apr03 09:39:25 simInit: dtCstr Running .inputObjects for dataCastor
 
 ``` r
 system.time({
@@ -646,66 +646,66 @@ mysimout<-spades(mySim)
 })
 ```
 
-    ## Mar19 16:49:07 chckpn total elpsd: 0.0051 secs | 0 checkpoint init 0
+    ## Apr03 09:39:27 chckpn total elpsd: 0.0021 secs | 0 checkpoint init 0
 
-    ## Mar19 16:49:07 save   total elpsd: 0.015 secs | 0 save init 0
+    ## Apr03 09:39:27 save   total elpsd: 0.0062 secs | 0 save init 0
 
-    ## Mar19 16:49:07 prgrss total elpsd: 0.02 secs | 0 progress init 0
+    ## Apr03 09:39:27 prgrss total elpsd: 0.0093 secs | 0 progress init 0
 
-    ## Mar19 16:49:07 load   total elpsd: 0.024 secs | 0 load init 0
+    ## Apr03 09:39:27 load   total elpsd: 0.012 secs | 0 load init 0
 
-    ## Mar19 16:49:07 dtCstr total elpsd: 0.026 secs | 0 dataCastor init 1
+    ## Apr03 09:39:27 dtCstr total elpsd: 0.014 secs | 0 dataCastor init 1
 
-    ## Mar19 16:49:07 dtCstr Build
+    ## Apr03 09:39:27 dtCstr Build
 
-    ## Mar19 16:49:07 dtCstr create castordb
+    ## Apr03 09:39:27 dtCstr create castordb
 
-    ## Mar19 16:49:07 dtCstr ...setting data tables
+    ## Apr03 09:39:27 dtCstr ...setting data tables
 
-    ## Mar19 16:49:07 dtCstr .....compartment ids: default 1
+    ## Apr03 09:39:27 dtCstr .....compartment ids: default 1
 
-    ## Mar19 16:49:07 dtCstr New output format of RFsimulate: S4 object of class 'RFsp';for a bare, but faster array format use 'RFoptions(spConform=FALSE)'.
+    ## Apr03 09:39:28 dtCstr New output format of RFsimulate: S4 object of class 'RFsp';for a bare, but faster array format use 'RFoptions(spConform=FALSE)'.
 
-    ## Mar19 16:49:08 dtCstr .....ownership: default 1
+    ## Apr03 09:39:28 dtCstr .....ownership: default 1
 
-    ## Mar19 16:49:08 dtCstr .....zone ids: randomly created: 1
+    ## Apr03 09:39:28 dtCstr .....zone ids: randomly created: 1
 
-    ## Mar19 16:49:08 dtCstr .....thlb: default 1
+    ## Apr03 09:39:28 dtCstr .....thlb: default 1
 
-    ## Mar19 16:49:08 dtCstr .....yield ids: default 1
+    ## Apr03 09:39:28 dtCstr .....yield ids: default 1
 
-    ## Mar19 16:49:08 dtCstr .....yield trans ids: default 1
+    ## Apr03 09:39:28 dtCstr .....yield trans ids: default 1
 
-    ## Mar19 16:49:08 dtCstr .....treed: default 1
+    ## Apr03 09:39:28 dtCstr .....treed: default 1
 
-    ## Mar19 16:49:08 dtCstr .....crown closure: default 60
+    ## Apr03 09:39:28 dtCstr .....crown closure: default 60
 
-    ## Mar19 16:49:08 dtCstr .....height: default 10
+    ## Apr03 09:39:28 dtCstr .....height: default 10
 
-    ## Mar19 16:49:08 dtCstr .....siteindex: default NA
+    ## Apr03 09:39:28 dtCstr .....siteindex: default NA
 
-    ## Mar19 16:49:08 dtCstr ... setting ZoneConstraints table
+    ## Apr03 09:39:28 dtCstr ... setting ZoneConstraints table
 
-    ## Mar19 16:49:08 dtCstr ... setting ZoneConstraints table using randomLandscapeZoneConstraint
+    ## Apr03 09:39:28 dtCstr ... setting ZoneConstraints table using randomLandscapeZoneConstraint
 
-    ## Mar19 16:49:08 dtCstr ...done
+    ## Apr03 09:39:28 dtCstr ...done
 
-    ## Mar19 16:49:08 dtCstr ...update yields
+    ## Apr03 09:39:28 dtCstr ...update yields
 
-    ## Mar19 16:49:08 dtCstr ...create indexes
+    ## Apr03 09:39:28 dtCstr ...create indexes
 
-    ## Mar19 16:49:09 dtCstr total elpsd: 1.9 secs | 0 dataCastor forestStateN
+    ## Apr03 09:39:29 dtCstr total elpsd: 1.9 secs | 0 dataCastor forestStateN
 
-    ## Mar19 16:49:09 dtCstr total elpsd: 2 secs | 0 dataCastor removeCastorDB
+    ## Apr03 09:39:29 dtCstr total elpsd: 2 secs | 0 dataCastor removeCastorDB
 
-    ## Mar19 16:49:09 dtCstr Saving castordb
+    ## Apr03 09:39:29 dtCstr Saving castordb
 
     ## simList saved in
     ##  SpaDES.core:::.pkgEnv$.sim 
     ## It will be deleted at next spades() call.
 
     ##    user  system elapsed 
-    ##    2.03    0.14    3.28
+    ##    2.02    0.11    3.23
 
 After running the above script a castor SQLite database will be located
 in */R/SpaDES-modules/dataCastor* its name will be
@@ -915,84 +915,25 @@ roadCastor is included, etc
 
 ### 5.2 Creating a Castor SQLite Database from PostgreSQL
 
-So far, a castordb was created using superficial dummy information.
-Operationally, castor models should be specific to actual locations
-where information and data are captured. To do this, we have taken a
-slightly different approach from conducting regional analyses - we have
-opted to develop and maintain a centralized database that houses
-information and data in a form that is ready to go.
+So far, a castordb was created using made-up information. Operationally,
+castor models should be specific to actual planning units. To do this,
+we have opted to develop and maintain a centralized database that houses
+information and data in a form that is ready to go for any location in
+the province of BC. The idea is that we run a .rmd to build the castordb
+then reference this database for use in scenario analysis. This has some
+benefits like: processing and manipulating the information outside of
+the simulation which saves on the simulation side, storage of the data
+and information into a relational database rather than a set of folders,
+dissemination of the information to other users. However, any localized
+postgres relational database will work as long as the your database
+contains the [SQL
+functions](https://github.com/bcgov/castor/blob/main/SQL/FAIB_RASTER_FUNCTIONS.sql)
+used by castor.
 
-We will only be using *dataCastor*, *blockingCastor*, *roadCastor* and
-*uploaderCastor* for the purposes of this tutorial, so you can either
-delete other modules, or use the \# symbol to ‘comment out’ those
-modules.
-
-Beneath the list object of module parameters, you will notice some
-additional data.table objects, including *scenario*, and
-*patchSizeDist*. The *scenario* object provides the *name* and a text
-*description* of the scenario and associated outputs that gets uploaded
-to a PostgreSQL database that contains model outputs (more on that
-later). Since this is the data creation step, the scenario name and
-description is not that important. However, you can label it using
-something similar to the example below. In addition, it is important to
-note that there is a 63 character limit for tables in PostgreSQL, so you
-need to be careful with keeping the name relatively succinct. Consider
-that some of the raster outputs from the simulator modules (we will
-discuss these later) have up to 11 characters as part of their name
-(i.e., “\_contraints”), therefore we recommend a maximum length of 50
-characters for the name.
-
-``` r
-scenario = data.table (name = "tutorial", 
-                       description = "Using dataCastor for tutorial.")
-```
-
-The *patchSizeDist* object describes the size and frequency of harvest
-block sizes for natural disturbance types (NDTs) in British Columbia,
-following the [biodiversity
-guidebook](https://www.for.gov.bc.ca/hfd/library/documents/bib19715.pdf).
-The object gets used within the *blockingCastor* module to create a
-range of pre-defined harvest block sizes that follow the NDT
-distribution. We recommend leaving these as-is unless there is an
-alternative distribution that is more appropriate for your area of
-interest.
-
-You will then notice some more list objects, including *modules* and
-*objects* (see example below). The *modules* list object lists the
-modules that you want to run as part of the code chunk. Here you will
-want to include *dataCastor*, *blockingCastor*, *roadCastor* and
-*uploaderCastor* in the list, and comment out or delete other modules.
-The *objects* list includes any other objects outside of the modules
-that are created within the code chunk. Here we include the
-*patchSizeDist* and *scenario* objects.
-
-``` r
-modules <- list("dataCastor", 
-                "blockingCastor",
-                "roadCastor",
-                "uploaderCastor")
-objects <- list(patchSizeDist = patchSizeDist, 
-                scenario = scenario)
-```
-
-Finally, you will see a *simInit* object called *mySim*. This object
-contains the names of all the objects needed to run the module
-“simulation”. The *simInit* object is what gets used by the SpaDES
-framework to organize the simulation analysis. These must be populated
-for the code chunk to function (see example below).
-
-``` r
-mySim <- simInit(times = times, 
-                 params = parameters, 
-                 modules = modules,
-                 objects = objects)
-```
-
-Now that you’ve familiarized yourself with *dataCastor* we will use it
-to create an SQLite database for a harvest simulation. Below we provide
-an example of the code chunk you can use to run the script, with
-annotations that describe each parameter. Below we will describe the key
-parameters need to run *dataCastor* successfully.
+Below we provide an example of the code chunk you can use to run the
+script, with annotations that describe each parameter. Below we will
+describe the key parameters need to run *dataCastor* for building a
+castordb.
 
 ``` r
 # R Packages need to run the script
@@ -1001,93 +942,12 @@ library (SpaDES.core)
 library (data.table)
 library (keyring)
 source (here::here("R/functions/R_Postgres.R")) # R functions needed to run the script
-Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1') # Location of JAVA program; make sure the version is correct
-setPaths(modulePath = here::here("R/SpaDES-modules")) # location of the SpaDES modules; uses here() function to use relative file paths
-setwd(here::here("R/SpaDES-modules/dataCastor"))
-getPaths () # shows the module paths
-times <- list (start = 0, end = 0) # sets start and end time parameters; here both = 0 since this is a data creation step
-parameters <-  list( # list of all parameters in the model, by module
-  .progress = list(type = NA, interval = NA), # whether to include a progress meter; not needed
-  .globals = list(), # any global parameters; not needed
-  dataCastor = list ( # list of parameters specific to the dataCastor module  
-                         dbName = 'castor', # name of the PostgreSQL database
-                         sqlite_dbname = "tutorial_area", # name of sqlite database that you are outputting
-                         save_castordb = TRUE, # save the SQLite database; make sure = T
-                         nameBoundaryFile = "tsa_aac_bounds", # name of the polygon table in the Postgres database you want to use to define the analysis area
-                         nameBoundaryColumn = "tsa_name", # name of the column in the polygon table for identifying analysis area
-                         nameBoundary = "Revelstoke_TSA", # name of the analysis area within the column and polygon table 
-                         nameBoundaryGeom = 'wkb_geometry', # name of the spatial geometry column of the polygon table 
-                         nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster table in the Postgres database you want to use to define the analysis area; note the inclusion of "rast.", which indicates the data is in the rast schema of the database
-                         nameCompartmentTable = "tsa_aac_bounds_vat", # name of the value attribute table for identifying the associated names of the integer values in the raster table
-                         nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018', # name of the raster table that contains the timber harvest land base (THLB) area; these are the areas available for the model to harvest, and they are periodically defined as part of timber supply reviews
-                         nameZoneRasters = c("rast.zone_cond_beo", 
-                                             "rast.zone_cond_vqo", 
-                                             "rast.zone_cond_wha", 
-                                             "rast.zone_uwr_2021", # "rast.zone_cond_uwr"
-                                             "rast.zone_cond_fsw", 
-                                             "rast.zone_cond_nharv", 
-                                             "rast.zone_cond_cw",
-                                             "rast.raster_test" 
-                          ), 
-                         nameZoneTable = "zone.constraints", 
-                        # nameZonePriorityRaster = "rast.zone_cond_beo",
-                         nameYieldsRaster = "rast.ycid_vdyp", 
-                         nameYieldTable = "yc_vdyp", 
-                         nameYieldsTransitionRaster = "rast.tipsy2018_id", 
-                         nameYieldTransitionTable = "yc_tipsy", 
-                         nameForestInventoryRaster = "rast.vri2019_id", 
-                         nameForestInventoryKey = "feature_id", 
-                         nameForestInventoryTable = "veg_comp_lyr_r1_poly2019", 
-                         nameForestInventoryAge = "proj_age_1", 
-                         nameForestInventoryHeight = "proj_height_1", 
-                         nameForestInventoryCrownClosure = "crown_closure", 
-                         nameForestInventoryTreed = "bclcs_level_2",
-                         nameForestInventorySiteIndex = "site_index"  
-                    ),
-  blockingCastor = list(blockMethod = 'pre', 
-                      patchZone = 'rast.zone_cond_beo', 
-                      patchVariation = 6,
-                      nameCutblockRaster ="rast.cns_cut_bl", 
-                      useLandingsArea = FALSE),
-  roadCastor = list(roadMethod = 'pre',
-                  nameCostSurfaceRas = 'rast.rd_cost_surface', 
-                  nameRoads =  'rast.ce_road_2019'
-                  ),
-  uploaderCastor = list(aoiName = 'tutorial',
-                      dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
-                                     keyring::key_get("vmdbuser", keyring="postgreSQL"), 
-                                     keyring::key_get("vmdbpass", keyring="postgreSQL"),  
-                                     keyring::key_get("vmdbname", keyring="postgreSQL")))
-  )
-scenario = data.table (name = "tutorial", 
-                       description = "Using dataCastor for tutorial.")
-patchSizeDist <- data.table(ndt= c(1,1,1,1,1,1,
-                                  2,2,2,2,2,2,
-                                  3,3,3,3,3,3,
-                                  4,4,4,4,4,4,
-                                  5,5,5,5,5,5), 
-                           sizeClass = c(40,80,120,160,200,240), 
-                           freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
-                                    0.3,0.3,0.1,0.1,0.1, 0.1,
-                                    0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
-                                    0.1,0.02,0.02,0.02,0.02,0.8,
-                                    0.3,0.3,0.1,0.1,0.1, 0.1))
-modules <- list("dataCastor", 
-                "blockingCastor",
-                "roadCastor",
-                "uploaderCastor")
-objects <- list(patchSizeDist = patchSizeDist, 
-                scenario = scenario
-                )
-inputs <- list()
-outputs <- list()
-mySim <- simInit(times = times, 
-                 params = parameters, 
-                 modules = modules,
-                 objects = objects)
-system.time({
-mysimout<-spades(mySim)
-})
+#Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1') # Location of JAVA program; make sure the version is correct
+paths <- list(modulePath = paste0 (here::here (), "/R/SpaDES-modules"),
+              inputPath = paste0 (here::here (), "/R/scenarios/tutorial/inputs"),
+              outputPath = paste0 (here::here (), "/R/scenarios/tutorial/outputs"))
+
+times <- list (start = 0, end = 0) # sets start and end time parameters; here both = 0 since this is a database creation step
 ```
 
 Within the parameters list, the *dataCastor* list contains the
@@ -1161,16 +1021,6 @@ UWRs are spatially defined as *rast.zone_uwr_2021* (NOTE: previous
 version called *rast.zone_cond_uwr*) in the
 [uwr_cond_harvest.Rmd](https://github.com/bcgov/castor/blob/main/R/Params/uwr_cond_harvest.Rmd).
 
-As standard practice we typically include all of these in the
-“business-as-usual” or “base case” forestry simulation scenarios. These
-are existing land use orders that should be incorporated in scenarios
-that are meant to represent current forest management.
-
-In the *nameZoneRasters* list you will also want to include the
-constraint that you created (i.e., *rast.raster_test*, or however you
-named it, with the *rast.* prefix to indicate the schema of the
-PostgreSQL data where it is stored).
-
 The *nameZoneTable* is the table that defines all of the constraints for
 the rasters included in *nameZoneRasters*. You will notice this is a
 single table called *constraints* in the *zone* schema, rather than a
@@ -1217,6 +1067,64 @@ and consist of a *nameYieldTransitionTable* parameter that contains the
 yield model outputs and a *nameYieldsTransitionRaster* parameter, which
 is a raster identifier indicating the location where each unique stand
 model output is applied.
+
+``` r
+parameters <-  list( # list of all parameters in the model, by module
+  .progress = list(type = NA, interval = NA), # whether to include a progress meter; not needed
+  .globals = list(), # any global parameters; not needed
+  dataCastor = list ( # list of parameters specific to the dataCastor module  
+                         dbName = 'castor', # name of the PostgreSQL database
+                         sqlite_dbname = "bulkley", # name of sqlite database that you are outputting
+                         save_castordb = TRUE, # save the SQLite database; make sure = T
+                         nameBoundaryFile = "tsa_aac_bounds", # name of the polygon table in the Postgres database you want to use to define the analysis area
+                         nameBoundaryColumn = "tsa_name", # name of the column in the polygon table for identifying analysis area
+                         nameBoundary = "Bulkley_TSA", # name of the analysis area within the column and polygon table 
+                         nameBoundaryGeom = 'wkb_geometry', # name of the spatial geometry column of the polygon table 
+                         nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster table in the Postgres database you want to use to define the analysis area; note the inclusion of "rast.", which indicates the data is in the rast schema of the database
+                         nameCompartmentTable = "vat.tsa_aac_bounds_vat", # name of the value attribute table for identifying the associated names of the integer values in the raster table
+                         nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2022', # name of the raster table that contains the timber harvest land base (THLB) area; these are the areas available for the model to harvest, and they are periodically defined as part of timber supply reviews
+                         nameZoneRasters = c("rast.zone_cond_nharv",
+                                             "rast.zone_cond_beo", 
+                                             "rast.zone_cond_vqo", 
+                                             "rast.zone_wha_2021", 
+                                             "rast.zone_uwr_2021",  
+                                             "rast.zone_cond_nharv", 
+                                             "rast.zone_cond_fsw", 
+                                             "rast.zone_cond_cw",
+                                             "rast.zone_cond_pri_old_deferral"
+                          ), 
+                          nameZoneTable = "zone.constraints", 
+                          # natural and managed stands yield curves are the same    
+                          nameYieldsRaster = "rast.ycid_vdyp_2020", 
+                          nameYieldTable = "yc_vdyp_2020", 
+                          nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
+                          nameYieldTransitionTable = "tipsy_prov_2020",  
+                          nameForestInventoryRaster = "rast.vri2022_id", 
+                          nameForestInventoryKey = "feature_id", 
+                          nameForestInventoryTable = "vri.veg_comp_lyr_r1_poly2022",
+                          nameForestInventoryAge = "proj_age_1",  
+                          nameForestInventoryHeight = "proj_height_1",
+                          nameForestInventoryCrownClosure = "crown_closure",                                           nameForestInventoryTreed = "bclcs_level_2",
+                          nameForestInventoryBasalArea= "basal_area",
+                          nameForestInventoryQMD = "quad_diam_125",
+                          nameForestInventorySiteIndex = "site_index"  
+                    ),
+  blockingCastor = list(blockMethod = 'pre', 
+                      patchZone = 'rast.zone_cond_beo', 
+                      patchVariation = 6,
+                      nameCutblockRaster ="rast.cns_cutblk_2022", 
+                      useLandingsArea = FALSE),
+  roadCastor = list(roadMethod = 'mst',
+                  nameCostSurfaceRas = 'rast.rd_cost_surface', 
+                  nameRoads =  'rast.ce_road_2022'
+                  ),
+  uploadCastor = list(aoiName = 'tutorial',
+                      dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbuser", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbpass", keyring="postgreSQL"),  
+                                     keyring::key_get("vmdbname", keyring="postgreSQL")))
+  )
+```
 
 In addition to the *dataCastor* module, here we include the
 *blockingCastor*, *roadCastor* and *uploaderCastor* modules so we can
@@ -1268,6 +1176,105 @@ output data to a PostgreSQL database. Here set the *aoiName* to
 PostgreSQL database where the data gets stored. The *dbInfo* parameter
 is a list of keyring parameters that you set-up in step 4.
 
+``` r
+scenario = data.table (name = "tutorial", 
+                       description = "Using dataCastor for tutorial.")
+
+#patchSizeDist <- data.table(ndt= c(1,1,1,1,1,1,
+#                                  2,2,2,2,2,2,
+#                                  3,3,3,3,3,3,
+#                                  4,4,4,4,4,4,
+#                                  5,5,5,5,5,5), 
+#                           sizeClass = c(40,80,120,160,200,240), 
+#                           freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
+#                                    0.3,0.3,0.1,0.1,0.1, 0.1,
+#                                    0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
+#                                    0.1,0.02,0.02,0.02,0.02,0.8,
+#                                    0.3,0.3,0.1,0.1,0.1, 0.1))
+modules <- list("dataCastor", 
+                "blockingCastor",
+                "roadCastor",
+                "uploadCastor")
+objects <- list(#patchSizeDist = patchSizeDist, 
+                scenario = scenario
+                )
+
+inputs <- list()
+outputs <- list()
+
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects,
+                 paths = paths)
+```
+
+    ## Warning in download.file(url, destfile = f, quiet = TRUE): URL
+    ## 'https://cran.r-project.org/CRAN_mirrors.csv': Timeout of 60 seconds was reached
+
+    ## Warning: failed to download mirrors file (cannot open URL
+    ## 'https://cran.r-project.org/CRAN_mirrors.csv'); using local file
+    ## 'C:/Data/localApps/R/R-4.3.2/doc/CRAN_mirrors.csv'
+
+``` r
+mysimout<-spades(mySim)
+```
+
+    ## Warning in download.file(url, destfile = f, quiet = TRUE): URL
+    ## 'https://cran.r-project.org/CRAN_mirrors.csv': Timeout of 60 seconds was reached
+
+    ## Warning in download.file(url, destfile = f, quiet = TRUE): failed to download
+    ## mirrors file (cannot open URL 'https://cran.r-project.org/CRAN_mirrors.csv');
+    ## using local file 'C:/Data/localApps/R/R-4.3.2/doc/CRAN_mirrors.csv'
+
+    ## [1] "clipping inventory key"
+    ## [1] "getting inventory attributes: bclcs_level_2 as treed,proj_age_1 as age,proj_height_1 as height,crown_closure as crownclosure,site_index as siteindex,quad_diam_125 as qmd,basal_area as basalarea"
+    ## [1] "...merging with fid"
+    ##                                                 islands num
+    ##  1:       265668,274687,276945,279169,279195,279196,...   1
+    ##  2:       342346,343471,347975,349064,349110,351388,...   2
+    ##  3:       941741,949629,958652,958653,960920,962043,...   3
+    ##  4: 1268437,1272952,1274077,1293200,1294341,1295466,...   4
+    ##  5: 1289822,1290939,1292066,1293193,1294320,1295447,...   5
+    ##  6: 1349541,1351796,1366455,1376591,1402560,1402562,...   6
+    ##  7: 1502587,1502588,1507193,1509459,1510477,1513858,...   7
+    ##  8: 1577239,1578334,1578360,1579485,1579487,1579488,...   8
+    ##  9:       869812,874366,877738,880021,881128,881148,...   9
+    ## 10: 1074815,1075944,1077115,1080446,1080453,1082705,...  10
+    ## 11: 1169561,1170673,1171808,1186446,1196616,1210113,...  11
+    ## 12: 1639452,1663188,1672159,1678977,1681232,1683487,...  12
+    ## 13: 1415598,1416726,1417852,1421237,1432513,1433639,...  13
+    ## 14: 1744962,1760735,1761858,1761859,1776447,1777606,...  14
+    ## 15: 1103781,1120646,1142104,1151142,1192781,1195031,...  15
+    ## 16:       885404,889908,892165,909071,910175,914691,...  16
+    ## 17:                                             1117420  17
+    ## 18:                             1524268,1541179,1546816  18
+    ## 19: 1304348,1305472,1312252,1314498,1322410,1401272,...  19
+    ## 20: 1412427,1416923,1424830,1431460,1432696,1437198,...  20
+    ## 21: 1605339,1650293,1667206,1676252,1677352,1689774,...  21
+    ## 22:                                              888882  22
+    ## 23: 1305456,1308823,1350445,1386524,1391026,1396660,...  23
+    ## 24:       167589,175403,176593,178812,178848,183318,...  24
+    ## 25:       349045,351311,361447,364828,364836,369347,...  25
+    ## 26:       959846,961007,971152,971153,990322,992570,...  26
+    ## 27: 1117465,1155777,1172683,1174938,1174939,1176065,...  27
+    ## 28:                     1552458,1565979,1794900,1796015  28
+    ## 29: 1469987,1471112,1471114,1472240,1473367,1473368,...  29
+    ## 30: 1560323,1561456,1563715,1563716,1570441,1616630,...  30
+    ## 31:       848345,850585,851712,852838,855110,862999,...  31
+    ## 32: 1076919,1089384,1091579,1092782,1094938,1094939,...  32
+    ## 33: 1217957,1226987,1234875,1236008,1237131,1238254,...  33
+    ## 34:                             1659820,1662072,1807502  34
+    ## 35: 1117290,1117348,1120713,1120721,1121842,1125220,...  35
+    ## 36:       923681,929314,940553,957487,964266,966488,...  36
+    ## 37: 1117410,1117412,1120797,1121939,1121941,1121948,...  37
+    ## 38: 1121878,1137656,1138770,1154577,1157952,1160212,...  38
+    ## 39: 1313428,1326924,1326963,1332519,1333652,1333725,...  39
+    ## 40: 1486785,1488974,1493535,1494594,1496912,1496939,...  40
+    ## 41: 1314413,1329077,1344873,1349348,1358398,1375280,...  41
+    ## 42: 1369326,1373845,1373856,1373867,1373868,1374982,...  42
+    ##                                                 islands num
+
 The remaining parameters within the code chunk include objects that are
 not directly related to a specific module, but are important components
 of the SpaDES software. These were described above, but as a reminder,
@@ -1295,30 +1302,22 @@ that contains the names of the *times*, *params*, *modules* and
 *objects* objects for it to reference during the simulation. These
 should be consistent with the naming within the code chunk.
 
-Finally, you will see a
-[system.time()](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/system.time)
-function that can be used to output the time it took to run the SpaDES
-“simulation” object (mySim).
-
 Now that you’ve parameterized the module, you can run it! Click on the
 green “Play” symbol on the top-right of the code chunk. The script
 should start to run, and you will see output messages as some functions
-of the script are run. The Revelstoke TSA is relatively small, and it
-should take less than an hour to complete the script.
-
-![](images/dataloader_run.jpg)
+of the script are run.
 
 At the end of the analysis, you should see a .sqlite database object
 created in the *dataCastor* folder of your local copy of the Castor code
 (i,e, within Castor/R/SpaDES-modules/dataCastor/). The database will
 have the name of the *nameBoundary* parameter, in this case,
-*Revelstoke_TSA_castordb.sqlite*. You will also notice some raster
-files, including *hu.tif*, *Revelstoke_TSA_pre_0.tif* and *roads_0.tif*.
+*tutorial_castordb.sqlite*. You will also notice some raster files,
+including *hu.tif*, *tutorial_Bulkley_TSA_pre_0.tif* and *roads_0.tif*.
 These are intermediary outputs from the modules (the same data is saved
 in .sqlite database tables), and can be viewed to check for any errors,
 or deleted. The *hu.tif* is the harvest units output from
-*blockingCastor*, and *Revelstoke_TSA_pre_0.tif* and *roads_0.tif* are
-the simulated roads outputs from *roadCastor*.
+*blockingCastor*, and *tutorial_Bulkley_TSA_pre_0.tif* and *roads_0.tif*
+are the simulated roads outputs from *roadCastor*.
 
 Note that if you run *dataCastor* more than once with the same
 *nameBoundary* parameter, you will overwrite previous versions of the
