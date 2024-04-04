@@ -123,7 +123,7 @@ forestryCastor = list(harvestBlockPriority = " age DESC ",
                     vars_aoi=c("PPT04", "PPT05","PPT06","PPT07", "PPT08", "PPT09", "Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09", "Tave04", "Tave05", "Tave06", "Tave07", "Tave08", "Tave09","CMD04", "CMD05", "CMD06", "CMD07", "CMD08", "CMI04", "CMI05", "CMI06", "CMI07", "CMI08", "CMI09"),
                     vars_prov = c("CMI05", "CMI06", "CMI07", "CMI08")),
   fireCastor = list(calculateInterval =1,
-                    ignitionMethod = 'poissonProcess',
+                    ignitionMethod = 'poissonProcess', # options are poissonProcess, historicalDist, static
                     #calendarStartYear = 2020,
                     nameFrtRaster = "rast.frt",
                     nameStaticEscapeRaster = "rast.const_coef_escaped_fires",
