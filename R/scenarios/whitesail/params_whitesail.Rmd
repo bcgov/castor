@@ -1,0 +1,180 @@
+---
+title: "Morice"
+author: "Kyle Lochhead"
+date: "2024-04-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(data.table)
+source("C:/Users/KLOCHHEA/castor/R/functions/R_Postgres.R")
+ProvRast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(getSpatialQuery("select * from bec_zone limit 1;"))$proj4string, resolution = c(100, 100), vals = 0
+)
+```
+
+#Morice Land use plan
+```{r}
+lup<-getSpatialQuery("select feat_obj, atrb1_nm, atrb1_val, wkb_geometry from rmp_lg_pl_polygon where slrp_name like 'Morice%';")
+bec<-getSpatialQuery("SELECT zone, subzone, variant, ST_Intersection(bec_zone.wkb_geometry, t2.wkb_geometry) as geometry
+FROM (select zone, subzone, variant, wkb_geometry from bec_zone where zone in('ESSF', 'SBS', 'MH')) as bec_zone JOIN (select * from tsa_aac_bounds where tsa_name = 'Morice_TSA') as t2 ON ST_Intersects(bec_zone.wkb_geometry, t2.wkb_geometry)")
+treed<-getSpatialQuery("SELECT bclcs_level_2, ST_Intersection(t1.shape, t2.wkb_geometry) as geometry
+FROM (select bclcs_level_2, shape from vri.veg_comp_lyr_r1_poly2023 where bclcs_level_2 = 'T') as t1 JOIN (select * from tsa_aac_bounds where tsa_name = 'Morice_TSA') as t2 ON ST_Intersects(t1.shape, t2.wkb_geometry)")
+morice_lup<-st_intersection(lup, bec)
+treed$treed<-1
+ras.treed<-fasterize::fasterize(st_cast(treed, "MULTIPOLYGON"), ProvRast, "treed")
+ras.treed[is.na(ras.treed[])]<-0
+writeRaster(ras.treed, "morice_treed2023.tif", overwrite =T)
+st_write(morice_lup, "morice_lup.gpkg")
+```
+
+### Assign zoneids
+There is going to be two spatial rasters and tables because the High biodiversity emphasis areas are nested in the general forest areas.
+```{r}
+tab.morice_lup1<-data.table(st_drop_geometry(morice_lup))
+
+#No Harvesting areas
+tab.morice_lup1[feat_obj=='No Timber Harvesting Areas', zoneid:=1]
+
+#General forested area - this includes HBEAs
+tab.morice_lup1[feat_obj %in%  c('High Biodiversity Emphasis Areas','Area Specific Management Zones'), feat_obj:='General Forested Area']
+tab.morice_lup1[feat_obj=='General Forested Area' & zone %in% c('MH','CWH'), zoneid:=2]
+tab.morice_lup1[feat_obj=='General Forested Area' & zone =='ESSF' & subzone %in% c('mc','mv', 'mcw', 'mvp', 'mcp'), zoneid:=3]
+tab.morice_lup1[feat_obj=='General Forested Area' & zone =='ESSF' & subzone %in% c('mk', 'mkp', 'mkw'), zoneid:=4]
+tab.morice_lup1[feat_obj=='General Forested Area' & zone =='SBS' & subzone =='dk', zoneid:=5]
+tab.morice_lup1[feat_obj=='General Forested Area' & zone =='SBS' & subzone %in% c('mc', 'wk'), zoneid:=6]
+morice_lup$zoneid_gen<-tab.morice_lup1$zoneid
+
+morice_lup.gen<-morice_lup[!is.na(morice_lup$zoneid_gen),]
+ras.morice.gen<-fasterize::fasterize(st_cast(morice_lup.gen, "MULTIPOLYGON"), ProvRast, field="zoneid_gen")
+#multiply by forested area
+ras.morice.gen[is.na(ras.morice.gen[])]<-0
+ras.morice.gen<-ras.morice.gen*ras.treed
+writeRaster(ras.morice.gen, "morice_lrmp_gen.tif", overwrite=T)
+zone.constraints.gen<-rbindlist(list(
+  data.table(zoneid =  1, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
+  data.table(zoneid =  2, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 27, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
+  data.table(zoneid =  2, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 64, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
+  data.table(zoneid =  2, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 62, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 38, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 37, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 34, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
+  data.table(zoneid =  4, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 9, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
+  data.table(zoneid =  4, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 83, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
+  data.table(zoneid =  4, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 82, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
+  data.table(zoneid =  5, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 64, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
+  data.table(zoneid =  5, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 10, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
+  data.table(zoneid =  5, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 8, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
+  data.table(zoneid =  6, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 48, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
+  data.table(zoneid =  6, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 20, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
+  data.table(zoneid =  6, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 18, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives')
+  ))
+
+zone.constraints.gen$zoneid<-as.integer(zone.constraints.gen$zoneid)
+zone.constraints.gen$ndt<-as.integer(zone.constraints.gen$ndt)
+zone.constraints.gen$denom<-as.character(zone.constraints.gen$denom)
+zone.constraints.gen$multi_condition<-as.character(zone.constraints.gen$multi_condition)
+zone.constraints.gen$start<-as.integer(zone.constraints.gen$start)
+zone.constraints.gen$stop<-as.integer(zone.constraints.gen$stop)
+
+zone.constraints.gen$label<-NULL
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("zone", "morice_lrmp_gen"), value= zone.constraints.gen, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+
+tab.morice_lup2<-data.table(st_drop_geometry(morice_lup))
+#Area Specific Management
+tab.morice_lup2[feat_obj=='Area Specific Management Zones' & atrb1_val == 'Nadina / Owen', zoneid:=1]
+tab.morice_lup2[feat_obj=='Area Specific Management Zones' & atrb1_val == 'Grease Trail 400m Buffer on 100m NTHA', zoneid:=2]
+tab.morice_lup2[feat_obj=='Area Specific Management Zones' & atrb1_val==  'Lower Nadina River 5m Flood Plain 500m Buffer', zoneid:=3]
+tab.morice_lup2[feat_obj=='Area Specific Management Zones' & atrb1_val==  'Upper Nadina River 5m Flood Plain 500m Buffer', zoneid:=4]
+tab.morice_lup2[feat_obj=='Area Specific Management Zones' & atrb1_val==  'Le Talh Giz / Old Fort Mountain', zoneid:=5]
+
+#High Biodiversity Emphasis
+tab.morice_lup2[feat_obj=='High Biodiversity Emphasis Areas' & atrb1_val == 'Nanika River Buffer' & zone == 'ESSF', zoneid:=6] #only ESSFmc
+tab.morice_lup2[feat_obj=='High Biodiversity Emphasis Areas' & atrb1_val == 'Nanika River Buffer' & zone == 'SBS', zoneid:=7] #Only SBSmc
+tab.morice_lup2[feat_obj=='High Biodiversity Emphasis Areas' & atrb1_val == 'Friday/Nakinilerak/Hautete Lakes' & zone =='ESSF', zoneid:=8] #ESSFmv
+tab.morice_lup2[feat_obj=='High Biodiversity Emphasis Areas' & atrb1_val == 'Friday/Nakinilerak/Hautete Lakes' & zone == 'SBS', zoneid:=9]
+tab.morice_lup2[feat_obj=='High Biodiversity Emphasis Areas' & atrb1_val == 'Morrison Lake', zoneid:=10] #only SBSmc
+tab.morice_lup2[feat_obj=='High Biodiversity Emphasis Areas' & atrb1_val == 'Thautil / Gosnell'  & zone =='ESSF' & subzone %in% c('mc','mv', 'mcw', 'mvp', 'mcp'), zoneid:=11]
+tab.morice_lup2[feat_obj=='High Biodiversity Emphasis Areas' & atrb1_val == 'Thautil / Gosnell'  & zone =='ESSF' & subzone %in% c('mk', 'mkp', 'mkw'), zoneid:=12]
+tab.morice_lup2[feat_obj=='High Biodiversity Emphasis Areas' & atrb1_val == 'Thautil / Gosnell'  & zone =='SBS' , zoneid:=13] #SBSmc
+tab.morice_lup2[feat_obj=='High Biodiversity Emphasis Areas' & atrb1_val == 'Upper Morice River Buffer', zoneid:=14] #Only SBSmc
+tab.morice_lup2[feat_obj=='High Biodiversity Emphasis Areas' & atrb1_val == 'Lower Morice River Buffer' & zone =='ESSF' , zoneid:=15] #ESSFmc
+tab.morice_lup2[feat_obj=='High Biodiversity Emphasis Areas' & atrb1_val == 'Lower Morice River Buffer' & zone =='SBS' & subzone == 'mc', zoneid:=16]
+tab.morice_lup2[feat_obj=='High Biodiversity Emphasis Areas' & atrb1_val == 'Lower Morice River Buffer' & zone =='SBS' & subzone == 'dk', zoneid:=17]
+
+morice_lup$zoneid<-tab.morice_lup2$zoneid
+
+morice_lup.spec<-morice_lup[!is.na(morice_lup$zoneid),]
+ras.morice.spec<-fasterize::fasterize(st_cast(morice_lup.spec, "MULTIPOLYGON"), ProvRast, field="zoneid")
+#multiply by forested area
+ras.morice.spec[is.na(ras.morice.spec[])]<-0
+ras.morice.spec<-ras.morice.spec*ras.treed
+writeRaster(ras.morice.spec, "morice_lrmp_spec.tif", overwrite=T)
+
+zone.constraints.spec<-rbindlist(list(
+  data.table(zoneid =  1, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 70, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  2, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 70, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 50, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  4, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 50, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  5, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 50, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  6, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 28, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+   data.table(zoneid =  6, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 70, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  6, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 42, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  7, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 37, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+   data.table(zoneid =  7, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 70, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  7, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 26, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  8, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 28, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+   data.table(zoneid =  8, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 48, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  8, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 42, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  9, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 37, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+   data.table(zoneid =  9, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 33, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  9, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 26, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+   data.table(zoneid =  10, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 37, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+   data.table(zoneid =  10, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 33, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  10, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 26, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+    data.table(zoneid =  12, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 7, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+   data.table(zoneid =  12, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 86, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  12, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 84, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  13, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 37, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  13, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 33, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  13, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 26, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  14, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 37, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  14, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 70, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  14, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 26, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+   data.table(zoneid =  15, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 28, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  15, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 50, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  15, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 42, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+     data.table(zoneid =  16, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 37, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  16, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 50, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  16, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 26, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+       data.table(zoneid =  17, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 50, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  17, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 50, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives'),
+  data.table(zoneid =  17, reference_zone = 'rast.morice_lrmp_spec', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 16, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'specific_objectives')
+))
+
+zone.constraints.spec$zoneid<-as.integer(zone.constraints.spec$zoneid)
+zone.constraints.spec$ndt<-as.integer(zone.constraints.spec$ndt)
+zone.constraints.spec$denom<-as.character(zone.constraints.spec$denom)
+zone.constraints.spec$multi_condition<-as.character(zone.constraints.spec$multi_condition)
+zone.constraints.spec$start<-as.integer(zone.constraints.spec$start)
+zone.constraints.spec$stop<-as.integer(zone.constraints.spec$stop)
+
+zone.constraints.spec$label<-NULL
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("zone", "morice_lrmp_spec"), value= zone.constraints.spec, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+
+```
+
+## Proposed GWM 4
+```{r}
+wha<-st_read("Proposed_WHA_6-291_single_edit.shp")
+wha.bec<-st_intersection(wha, bec)
+
+st_write(wha.bec.single, "whabec.gpkg")
+```
