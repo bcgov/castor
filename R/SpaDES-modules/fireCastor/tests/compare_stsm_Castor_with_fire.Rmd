@@ -1,5 +1,5 @@
 ---
-title: "Business-as-usual Simulation for Central Group Caribou Recovery Planning"
+title: "Test of fire Castor using a small area in "
 author: ""
 date: "21 July 2022"
 output:
@@ -22,46 +22,15 @@ See the License for the specific language governing permissions and limitations 
 
 ## Overview
 
-This module provides the logic for simulating forestry decisions on the landscape. These decisions currently involve spatializing the harvest flow objectives which include: where, when and how much to harvest. These factors help determine policies related to harvest flows, opening size, seral distrubitions, road densitites, preservation areas, silvicultural systems, etc. More sophistication to these decisions would involve looking at the costs and benefits beyond the current time period; this requires optimization or improved heuristics -- which may be considered in the future. The general overview of forestryCLUS follows.
+This script acts as a test for fire Castor to test how it populates data and interacts with the other Castor modules in a small area of the province so that it runs quickly.
 
-At each time step, harvest units (pixels or blocks) are ranked according to a priority (e.g., oldest first), this constructs a queue. This queue of harvest units are then subject to various constraints meant to meet objectives for the study area. Harvest units are harvested until either a constraint is binding, the queue is exhausted or the harvest flow is met. Next, the age of the forest is advanced to the next time period and the process is repeated. 
-
-During the simulation various reports and information surrounding each pixel can be saved/recorded or used in a summary. Note these outputs are considered expected future outcomes given the inputs developed by the anlayst.For a historical selection of harvesting activities see [cutblockSeqPrepCLUS](https://github.com/bcgov/clus/tree/master/R/SpaDES-modules/cutblockSeqPrepCLUS). Both  cutblockSeqPrepCLUS and forestryCLUS build a list of landing locations through simulation time. One is historical while the other is one possible future realization.
-
-## Central Group Scenarios
-Here we use forestryCLUS to assess the potential impact of a hypothetical land use orders and deferral areas on timber supply within the area-of-interest for central group cariobu (east-central B.C.).
-
-Here we simulate the 'business-as-usual' (BAU) scenario, where we only apply existing legal constraints, caribou or otherwise, including the partnership agreement zones. This scenario is used to establish the current 'baseline' or benchmark to evaluate the potential impact of 'new' actions in caribou habitat.
-
-We identify the non-declining maximum annual harvest volume that can be achieved as the baseline level of forestry that could occur in the region, given existing legal constraints. 
-
-## Model Paramters
-### BAU Zones 
-zone_cond_beo = biodiversity emphasis options 
-zone_cond_vqo = visual quality objectives
-zone_wha_2021 = wildlife habitat areas
-zone_uwr_2021 =  ungulate winter ranges
-zone_cond_fsw = fisheries sensitive watersheds
-zone_cond_nharv = parks and protected areas
-zone_cond_cw = community watersheds
-
-### harvestBlockPriority  
-Closest to disturbance first, oldest second. Thus assumes the priority is to cluster forest harvest to minimize disturbance in caribou range. 
-
-### adjacencyConstraint
-Adjacency was set to 0 metres to allow for maximum clustering of forest harvest.
-
-### partition
-A partition was set as vol > 150 to ensure stands with a minimum of 150m3/ha were harvested, i.e., low productivity stands wouldn't be harvested. 
-
-### harvestFlow
- 1,500,000 m3/year provided a non-declining maximum harvest flow over a 200 year period.
-
-### Road recovery
-No road recovery was simulated (recovery = 300 years). 
 
 ### Fire
-Forest fire can be included in this simulation through fireCastor. Fire ignitions are randomly thrown down on the landscape and then the probability that the fire starts, escapes and spreads is determined from rasters. Fires are spread using a percolation model. The landscape is updated through changes to forestry, roads and climate where the climate data for a specific year is grabbed from climateBC. This module needs multiple simulations over the same time period because starting locations are random i.e. we need monte carlo style simulations to determine average area burned, average impact to harvest and the bounds of all variables (95% CI).
+Forest fire can be included in this simulation through fireCastor. The fire model is climate sensitive i.e. the number of ignitions, probability of escape and spread, and final fire size are all impacted by climate. Climate data is obtained from climateCastor which is basically an interface between climR and Castor i.e. it just gets the neccessary climate data to run the fire simulations.
+
+The process of a wildfire is as follows: 1.) the number of ignitions is statistically estimated, 2.) the location of those ignitons is also statistically determined through an escape raster, 3.) where the fire spreads is determined through a percolation model which weights the probability of spread into each pixel according to fuel type, climate, slope, distance to infrastructure/roads etc. Lastly how big the fire gets is determined through a fire size model. 
+
+In addition the landscape can be updated through changes to forestry,  roads, etc. This module needs multiple simulations over the same time period because starting locations are random i.e. we need monte carlo style simulations to determine average area burned, average impact to harvest and the bounds of all variables (95% CI).
 
 #### Usage
 Set parameters for running the model simulation below and run the code chunk.
@@ -94,9 +63,7 @@ parameters <-  list (
         .globals = list (),
         dataCastor = list(dbName = 'castor',
                           saveCastorDB = TRUE,
-                          sqlite_dbname = "stsm_compare_noroads_noblocks", 
-                                          # ftnelson_stsmcompare_noroads_noblocks  
-                                          # ftnelson_stsmcompare_noroads_yesblocks
+                          sqlite_dbname = "fire_castor_test", 
                           nameBoundaryFile = "castor_stsm_compare.bounds_tsa99", 
                           nameBoundaryColumn = "tsa_name", 
                           nameBoundary = "tsa99", 
@@ -146,43 +113,36 @@ forestryCastor = list(harvestBlockPriority = " age DESC ",
                              permDisturbanceRaster = "rast.mine_ag_wind_rail",
                              recovery = 300), # no road recovery
   climateCastor = list(calculateInterval = 1,
-                    historicPeriod = "2001_2020",
                     gcm = c("MPI-ESM1-2-HR"),
-                    gcmname = "ESM1_2_HR", 
+                    gcmname = c("ESM1_2_HR"), 
                     ssp = c("ssp370"),
-                    climateYears = 2020: 2030,
-                    maxRun = 1, 
-                    #run = c("r1i1p1f1"),
+                    climateYears = 2018: 2030, # note the start year needs to be 2 yrs before your year of interest to calculate CMI3yr
+                    maxRun = 3, 
                     nameClimateIdnoRast = "rast.climate_prism_base_layer",
-                    nameClimateTable = "vat.climate_prism_lat_lon_lookup"),
-  
+                    nameClimateTable = "vat.climate_prism_lat_lon_lookup",
+                    vars_aoi=c("PPT04", "PPT05","PPT06","PPT07", "PPT08", "PPT09", "Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09", "Tave04", "Tave05", "Tave06", "Tave07", "Tave08", "Tave09","CMD04", "CMD05", "CMD06", "CMD07", "CMD08", "CMI04", "CMI05", "CMI06", "CMI07", "CMI08", "CMI09"),
+                    vars_prov = c("CMI05", "CMI06", "CMI07", "CMI08")),
   fireCastor = list(calculateInterval =1,
+                    ignitionMethod = 'poissonProcess', # options are poissonProcess, historicalDist, static
                     #calendarStartYear = 2020,
                     nameFrtRaster = "rast.frt",
-                    nameStaticLightningIgnitRaster = "rast.const_coef_lightning_ignit",
-                    nameStaticHumanIgnitRaster = "rast.const_coef_person_ignit",
                     nameStaticEscapeRaster = "rast.const_coef_escaped_fires",
                     nameStaticSpreadRaster = "rast.const_coef_spread_fires",
                     nameRoadsRast = "rast.ce_road_2019",
                     #recovery = 300,
                     nameElevationRaster = "rast.dem",
-                    #nameClimateIdnoRast="rast.climate_prism_base_layer",
-                    #nameClimateTable = "vat.climate_prism_lat_lon_lookup",
+                    nameClimateIdnoRast="rast.climate_prism_base_layer",
+                    nameClimateTable = "vat.climate_prism_lat_lon_lookup",
                     simStartYear = 2020,
-                    #gcm = c("MPI-ESM1-2-HR"),
-                    #gcmName=c("mpi_esm1_2_HR"),
-                    #ssp = c("ssp370"),
-                    #maxRun = 2, 
-                    #run = c("r1i1p1f1"),
                     nameBecRast = "rast.bec_current",
                     nameBecTable = "vat.bec_zone_vat",
-                    futureClimateProjection = "8GCMs_ensemble_ssp370", #"MPI-ESM1-2-HR"
                     nameForestInventoryRaster = "castor_stsm_compare.rast_vri_id",
                     nameForestInventoryTable2 = "castor_stsm_compare.vri",
                     nameForestInventoryKey = "vri_fid",
                     nameForestInventorybclcs_level_1 = "bclcs_lv_1",
                     nameForestInventorybclcs_level_4 = "bclcs_lv_4",
-                    nameForestInventoryspecies_cd_1="spec_cd_1",
+                    nameForestInventorybec_zone_code = '99999',
+                    nameForestInventoryspecies_cd_1 = "spec_cd_1",
                     nameForestInventoryspecies_pct_1 = "spec_pct_1",
                     nameForestInventoryspecies_cd_2 = "spec_cd_2",
                     nameForestInventoryspecies_pct_2 = "spec_pct_2",
@@ -195,19 +155,9 @@ forestryCastor = list(harvestBlockPriority = " age DESC ",
                     nameForestInventoryspecies_cd_6 = "spec_cd_6",
                     nameForestInventoryspecies_pct_6 = "spec_pct_6",
                     firemodelcoeftbl = "public.fire_model_coef_tbl",
+                    m8_est_rf = "rast.m8_est_rf",
                     numberFireReps = 1)
 )
-  
-  # volumebyareaReportCastor = list (calculateInterval = 1,
-  #                                AreaofInterestRaster = "rast.bc_crithab_and_herd",
-  #                                AreaofInterestTable = "vat.vat_bc_crithab_and_herd"),
-#   uploadCastor = list(aoiName = 'central_group_caribou', 
-#                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
-#                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
-#                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
-#                                      keyring::key_get("vmdbname", keyring="postgreSQL"))
-#                   )
-
 
 modules <- list("dataCastor", 
                 "growingStockCastor", 

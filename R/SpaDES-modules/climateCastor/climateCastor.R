@@ -130,7 +130,7 @@ getClimateDataForAOI <- function(sim) {
       
       dbExecute(sim$castordb, qry)
       
-      qry<-paste0("INSERT INTO climate_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " (pixelid_climate,  gcm, ssp, run, period, ", paste(tolower(P(sim,"vars_aoi", "climateCastor")),sep="' '", collapse=", "),"cmi, cmi3yr) VALUES (:id, :GCM, :SSP, :RUN, :PERIOD, :", paste( P(sim,"vars_aoi", "climateCastor"),sep="' '", collapse=", :"),":CMI, :CMI3yr)")
+      qry<-paste0("INSERT INTO climate_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " (pixelid_climate,  gcm, ssp, run, period, ", paste(tolower(P(sim,"vars_aoi", "climateCastor")),sep="' '", collapse=", "),", cmi, cmi3yr) VALUES (:id, :GCM, :SSP, :RUN, :PERIOD, :", paste( P(sim,"vars_aoi", "climateCastor"),sep="' '", collapse=", :"),", :CMI, :CMI3yr)")
 
       dbBegin(sim$castordb)
       rs<-dbSendQuery(sim$castordb, qry, ds_out)
@@ -159,7 +159,7 @@ getClimateDataForProvince <- function(sim) {
     
     message("extract climate_id values from raster")
   
-  location_table<-getSpatialQuery("SELECT * FROM", P(sim, "nameClimateTable","climateCastor"),"';")
+  location_table<-getSpatialQuery(paste0("SELECT * FROM ", P(sim, "nameClimateTable","climateCastor"),";"))
   setnames(location_table, c("lon", "lat", "id", "elev"))
   location_table<-location_table[,c("id", "lon", "lat", "elev")]
   
@@ -194,7 +194,7 @@ getClimateDataForProvince <- function(sim) {
   inputs <- list(x1, x2, x3, x4, x5, x6,x7,x8, x9, x10, x11, x12, x13, x14, x15)
   ds_out<-list()
   
-  for (i in 6:length(inputs)){
+  for (i in 1:length(inputs)){
     print(i)
     
     ds_out_prov <- climr_downscale(
@@ -231,7 +231,7 @@ getClimateDataForProvince <- function(sim) {
   dbClearResult(rs)
   dbCommit(sim$castordb)
   
-  rm(ds_out,ds_out_summary,xyzTable, x1, x2, x3, x4, x5, x6, x7, x8,x9, x10, x11, x12, x13, x14, x15, inputs)
+  rm(ds_out,ds_out_summary, x1, x2, x3, x4, x5, x6, x7, x8,x9, x10, x11, x12, x13, x14, x15, inputs)
   gc()
   
   } else {
