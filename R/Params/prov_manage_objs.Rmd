@@ -28,7 +28,7 @@ Create a provincial scale forest management objective raster(s) based on two cat
 ```{r table_objs, echo=FALSE}
 library(dplyr)
 library(data.table)
-source("C:/Users/KLOCHHEA/clus/R/functions/R_Postgres.R")
+source("C:/Users/KLOCHHEA/castor/R/functions/R_Postgres.R")
 ProvRast <- raster(
   nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
   crs = st_crs(getSpatialQuery("select * from bec_zone limit 1;"))$proj4string, resolution = c(100, 100), vals = 0
@@ -131,17 +131,17 @@ luid.ras<-fasterize::fasterize(sf= lu, raster = ProvRast , field = "lu_id")
 #Get the bec
 bec<-getSpatialQuery("SELECT  wkb_geometry, zone, subzone, variant, bec_zone.map_label, b.bec_id,
 case
-  WHEN natural_disturbance = 'NDT1' then 1
-  WHEN natural_disturbance = 'NDT2' then 2
-  WHEN natural_disturbance = 'NDT3' then 3
-  WHEN natural_disturbance = 'NDT4' then 4
+  WHEN ntrldstrbn = 'NDT1' then 1
+  WHEN ntrldstrbn = 'NDT2' then 2
+  WHEN ntrldstrbn = 'NDT3' then 3
+  WHEN ntrldstrbn = 'NDT4' then 4
   else 5
 end as ndt from public.bec_zone 
 LEFT JOIN (select ROW_NUMBER() 
 		   OVER(ORDER BY map_label ASC) as bec_id, map_label  
 		   from (select distinct(map_label) as map_label from bec_zone) as a) as b
 on b.map_label = bec_zone.map_label
-where zone in ('CWH','ICH','ESSF','MH','CDF','SBS','SWB','BWBS','SBPS','MS','IDF','PP','BG') and natural_disturbance in ('NDT1','NDT2','NDT3','NDT4');")
+where zone in ('CWH','ICH','ESSF','MH','CDF','SBS','SWB','BWBS','SBPS','MS','IDF','PP','BG') and ntrldstrbn in ('NDT1','NDT2','NDT3','NDT4');")
 
 bec.ras<-fasterize::fasterize(sf= bec, raster = ProvRast , field = "bec_id")
 
@@ -149,7 +149,7 @@ bec.ras<-fasterize::fasterize(sf= bec, raster = ProvRast , field = "bec_id")
 treed<-getSpatialQuery("sELECT  shape, 1 as treed, 
 case when species_cd_1 in ('AX', 'EP', 'ACB', 'EA', 'AC', 'ACT', 'AT', 'E') and bec_zone_code = 'BWBS'
 then 1 else 0 end as dec
-from public.veg_comp_lyr_r1_poly2021 
+from vri.veg_comp_lyr_r1_poly2023 
 where bclcs_level_2 = 'T' 
 and site_index >= 5")
 
@@ -199,12 +199,12 @@ beo.table<-beo.table[zone == 'BWBS' & dec == 0, key_beo:=paste0(lu_name, "_", be
 
 #### CCLUP
 ```{r, cclup}
-beo.table<-beo.table[!is.na(cclup_id), key_beo:=link_key]
+beo.table[!is.na(cclup_id), key_beo:=link_key]
 ```
 
 #### Prince george biodiversity order
 ```{r, pg_bio_order}
-beo.table<-beo.table[!is.na(unit), key_beo:= unit]
+beo.table[!is.na(unit), key_beo:= unit]
 ```
 
 ### Create the spatial zones for the BEO 
@@ -263,7 +263,7 @@ beo.lut.info[key_beo %in% c('D2','D3','D4','D5','D6','D7','E2','E3','E4', 'E5', 
 beo.lut.info[is.na(lu_name) & is.na(analysis_g), c("lu_name", "beo", "ndt", "map_label", "species") := tstrsplit(key_beo, "_", fixed=TRUE)][!is.na(analysis_g), ndt:=substr(NATURAL_DI,4,4)][!is.na(analysis_g), map_label:=ZONE]
 
 bg.beo<-data.table(read.csv("seral_targets_BiodiversityGuidebook.csv", header =T,sep=","))#This is stored in /R/Params/
-setnames(bg.beo, "ï..bec", "bec")
+#setnames(bg.beo, "ï..bec", "bec")
 bg.beo<-bg.beo[species == "", species:=NA][, ndt:=as.character(ndt)]
 
 beo.lut.info<-merge(beo.lut.info, bg.beo, by.x =c("ndt", "beo", "map_label", "species"), by.y =c("ndt", "beo", "bec", "species"), all.x=T)

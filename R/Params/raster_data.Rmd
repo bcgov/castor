@@ -98,6 +98,7 @@ writeRaster(layer.ras, file="thlb2018", format="GTiff", overwrite=TRUE)
 #get 2023 THLB
 layer<-getSpatialQuery(paste("SELECT thlb_fact, shape FROM public.bc_thlb_2022"))
 layer.ras <-fasterize::fasterize(sf= layer, raster = ProvRast , field = "thlb_fact")
+layer.ras[is.na(layer.ras[])]<-0
 writeRaster(layer.ras, file="thlb2022", format="GTiff", overwrite=TRUE)
 
 #Upload to PostgreSQL
