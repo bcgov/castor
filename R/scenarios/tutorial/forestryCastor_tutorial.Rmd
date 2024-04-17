@@ -1,0 +1,155 @@
+---
+title: "forestryCastor in Whitesail"
+author: ""
+date: ""
+output:
+html_document: 
+keep_md: yes
+---
+
+<!--
+Copyright 2024 Province of British Columbia
+ 
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+ 
+http://www.apache.org/licenses/LICENSE-2.0
+ 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.-->
+
+
+
+## Simulation Model
+
+```{r module_usage}
+library (SpaDES.core)
+library (data.table)
+source (paste0(here::here(), "/R/functions/R_Postgres.R"))
+moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
+inputDir <- file.path(paste0(here::here(), "/R/scenarios/tutorial/inputs")) %>% reproducible::checkPath(create = TRUE)
+outputDir <- file.path(paste0(here::here(), "/R/scenarios/tutorial/outputs"))
+cacheDir <- file.path(paste0(here::here(), "/R/scenarios/tutorial/"))
+times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
+parameters <- list(
+  .progress = list(type = NA, interval = NA),
+  .globals = list(),
+  dataCastor = list (  dbName='castor',
+                           saveCastorDB = FALSE,
+                           sqlite_dbname = "bulkley",
+                           useCastorDB = paste0(here::here(), "/R/SpaDES-modules/dataCastor/simple_castordb.sqlite"),
+                           nameBoundaryFile = "tsa_aac_bounds",
+                           nameBoundaryColumn = "tsa_name",
+                           nameBoundary = "Bulkley_TSA",
+                           nameBoundaryGeom = 'wkb_geometry',
+                           nameCompartmentRaster = "rast.tsa_aac_boundary",
+                           nameCompartmentTable = "tsa_aac_bounds_vat",
+                           nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
+                           nameZoneRasters = c("rast.zone_cond_beo", 
+                                             "rast.zone_cond_vqo", 
+                                             "rast.zone_cond_wha", 
+                                             "rast.zone_uwr_2021", # "rast.zone_cond_uwr"
+                                             "rast.zone_cond_fsw", 
+                                             "rast.zone_cond_nharv", 
+                                             "rast.zone_cond_cw"
+                                             # "rast.raster_test"
+                                               ),
+                           nameZoneTable = "zone.constraints",
+                           # nameZonePriorityRaster = "rast.zone_cond_beo",
+                           nameYieldsRaster = "rast.ycid_vdyp",
+                           nameYieldTable = "yc_vdyp",
+                           nameYieldsTransitionRaster = "rast.tipsy2018_id",
+                           nameYieldTransitionTable = "yc_tipsy",
+                           nameForestInventoryRaster = "rast.vri2019_id",
+                           nameForestInventoryKey = "feature_id",
+                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2019",
+                           nameForestInventoryAge = "proj_age_1",
+                           nameForestInventoryHeight = "proj_height_1",
+                           nameForestInventoryTreed = "bclcs_level_2",
+                           nameForestInventoryCrownClosure = "crown_closure",
+                           nameForestInventoryTreed = "bclcs_level_2",
+                           nameForestInventorySiteIndex = "site_index"),
+  blockingCastor = list(blockMethod ='pre', 
+                      patchZone = 'rast.zone_cond_beo',
+                      patchVariation = 6,
+                      nameCutblockRaster ="rast.cns_cut_bl",
+                      useLandingsArea = FALSE, 
+                      useSpreadProbRas = FALSE),
+  forestryCastor = list(harvestBlockPriority = "age DESC", 
+                      #harvestZonePriority = "age DESC",
+                      #harvestZonePriority = 1,
+                      reportHarvestConstraints = TRUE,
+                      adjacencyConstraint = 3),
+  growingStockCastor = list (periodLength = 5),
+  roadCastor = list(roadMethod = 'mst', 
+                  nameCostSurfaceRas = 'rast.rd_cost_surface', 
+                  nameRoads =  'rast.ce_road_2019'),
+  uploaderCastor = list(aoiName = 'tutorial', 
+                      dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbuser", keyring="postgreSQL"), 
+                                     keyring::key_get("vmdbpass", keyring="postgreSQL"),  
+                                     keyring::key_get("vmdbname", keyring="postgreSQL"))
+                  )
+)
+modules <- list("dataCastor", 
+                "growingStockCastor", 
+                "blockingCastor", 
+                "forestryCastor", 
+                "roadCastor",  
+                "uploaderCastor"
+                )
+### SCENARIOS ###
+scenario = data.table (name = "revelstoke_bau", 
+                       description = "Business-as-usual case; sustainable flow = 200,000m^3^/year live, 5000 m^3^/year dead. Adjacency = 3m. Oldest first. 150m3/ha minimum volume.")
+
+harvestFlow <- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
+                                         partition = '  (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', 
+                                         period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
+                                                    1), 
+                                         flow = 1000000, # 200,000m^3^/year
+                                         partition_type = 'live'), 
+                              data.table(compartment ="Revelstoke_TSA",
+                                         partition = ' (salvage_vol > 100 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
+                                         period = rep( seq (from = 1, # run the 
+                                                      to = 40, 
+                                                      by = 1),
+                                                    1), 
+                                         flow = 5000, #10,000m3/yr 
+                                         partition_type = 'dead')
+                              
+patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
+                                  2,2,2,2,2,2,
+                                  3,3,3,3,3,3,
+                                  4,4,4,4,4,4,
+                                  5,5,5,5,5,5), 
+                           sizeClass = c(40,80,120,160,200,240), 
+                           freq = c(0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1,
+                                    0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
+                                    0.1,0.02,0.02,0.02,0.02,0.8,
+                                    0.3,0.3,0.1,0.1,0.1, 0.1))
+objects <- list(harvestFlow = harvestFlow, 
+                patchSizeDist = patchSizeDist, 
+                scenario = scenario)
+paths <- list(cachePath = cacheDir,
+              modulePath = moduleDir,
+              inputPath = inputDir,
+              outputPath = outputDir)
+mySim <- simInit(times = times, 
+                 params = parameters, 
+                 modules = modules,
+                 objects = objects, 
+                 paths = paths)
+# outputs to keep; these are tables that get used in the uploader
+outputs(mySim) <- data.frame (objectName = c("harvestReport",
+                                             "growingStockReport"))
+#Run the model 1 time
+mysimout<-spades(mySim)
+
+```
+
+
