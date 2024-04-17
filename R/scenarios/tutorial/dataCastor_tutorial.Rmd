@@ -44,7 +44,7 @@ parameters <-  list( # list of all parameters in the model, by module
   dataCastor = list ( # list of parameters specific to the dataCastor module  
                          dbName = 'castor', # name of the PostgreSQL database
                          sqlite_dbname = "bulkley", # name of sqlite database that you are outputting
-                         saveCastorDB = TRUE, # save the SQLite database; make sure = T
+                         saveCastorDB = TRUE,
                          nameBoundaryFile = "tsa_aac_bounds", # name of the polygon table in the Postgres database you want to use to define the analysis area
                          nameBoundaryColumn = "tsa_name", # name of the column in the polygon table for identifying analysis area
                          nameBoundary = "Bulkley_TSA", # name of the analysis area within the column and polygon table 
@@ -56,8 +56,7 @@ parameters <-  list( # list of all parameters in the model, by module
                                              "rast.zone_cond_beo", 
                                              "rast.zone_cond_vqo", 
                                              "rast.zone_wha_2021", 
-                                             "rast.zone_uwr_2021",  
-                                             "rast.zone_cond_nharv", 
+                                             "rast.zone_uwr_2021", 
                                              "rast.zone_cond_fsw", 
                                              "rast.zone_cond_cw",
                                              "rast.zone_cond_pri_old_deferral"

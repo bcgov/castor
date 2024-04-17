@@ -25,67 +25,70 @@ See the License for the specific language governing permissions and limitations 
 ## Simulation Model
 
 ```{r module_usage}
+# R Packages need to run the script
+library (SpaDES) 
 library (SpaDES.core)
 library (data.table)
-source (paste0(here::here(), "/R/functions/R_Postgres.R"))
-moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
-inputDir <- file.path(paste0(here::here(), "/R/scenarios/tutorial/inputs")) %>% reproducible::checkPath(create = TRUE)
-outputDir <- file.path(paste0(here::here(), "/R/scenarios/tutorial/outputs"))
-cacheDir <- file.path(paste0(here::here(), "/R/scenarios/tutorial/"))
-times <- list(start = 0, end = 40) # 5 year interval; 200 years = 40 intervals
-parameters <- list(
-  .progress = list(type = NA, interval = NA),
-  .globals = list(),
-  dataCastor = list (  dbName='castor',
-                           saveCastorDB = FALSE,
-                           sqlite_dbname = "bulkley",
-                           useCastorDB = paste0(here::here(), "/R/SpaDES-modules/dataCastor/simple_castordb.sqlite"),
-                           nameBoundaryFile = "tsa_aac_bounds",
-                           nameBoundaryColumn = "tsa_name",
-                           nameBoundary = "Bulkley_TSA",
-                           nameBoundaryGeom = 'wkb_geometry',
-                           nameCompartmentRaster = "rast.tsa_aac_boundary",
-                           nameCompartmentTable = "tsa_aac_bounds_vat",
-                           nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2018',
-                           nameZoneRasters = c("rast.zone_cond_beo", 
+library (keyring)
+source (here::here("R/functions/R_Postgres.R")) # R functions needed to run the script
+#Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1') # Location of JAVA program; make sure the version is correct
+paths <- list(modulePath = paste0 (here::here (), "/R/SpaDES-modules"),
+              inputPath = paste0 (here::here (), "/R/scenarios/tutorial/inputs"),
+              outputPath = paste0 (here::here (), "/R/scenarios/tutorial/outputs"))
+
+times <- list (start = 0, end = 2) # sets start and end time parameters; here both = 0 since this is a database creation step
+parameters <-  list( # list of all parameters in the model, by module
+  .progress = list(type = NA, interval = NA), # whether to include a progress meter; not needed
+  .globals = list(), # any global parameters; not needed
+  dataCastor = list ( # list of parameters specific to the dataCastor module  
+                         dbName = 'castor', # name of the PostgreSQL database
+                         sqlite_dbname = "bulkley", # name of sqlite database that you are outputting
+                         useCastorDB = paste0(here::here(), "/R/scenarios/tutorial/bulkley_castordb.sqlite"),
+                         nameBoundaryFile = "tsa_aac_bounds", # name of the polygon table in the Postgres database you want to use to define the analysis area
+                         nameBoundaryColumn = "tsa_name", # name of the column in the polygon table for identifying analysis area
+                         nameBoundary = "Bulkley_TSA", # name of the analysis area within the column and polygon table 
+                         nameBoundaryGeom = 'wkb_geometry', # name of the spatial geometry column of the polygon table 
+                         nameCompartmentRaster = "rast.tsa_aac_boundary", # name of the raster table in the Postgres database you want to use to define the analysis area; note the inclusion of "rast.", which indicates the data is in the rast schema of the database
+                         nameCompartmentTable = "vat.tsa_aac_bounds_vat", # name of the value attribute table for identifying the associated names of the integer values in the raster table
+                         nameMaskHarvestLandbaseRaster = 'rast.bc_thlb2022', # name of the raster table that contains the timber harvest land base (THLB) area; these are the areas available for the model to harvest, and they are periodically defined as part of timber supply reviews
+                         nameZoneRasters = c("rast.zone_cond_nharv",
+                                             "rast.zone_cond_beo", 
                                              "rast.zone_cond_vqo", 
-                                             "rast.zone_cond_wha", 
-                                             "rast.zone_uwr_2021", # "rast.zone_cond_uwr"
+                                             "rast.zone_wha_2021", 
+                                             "rast.zone_uwr_2021", 
                                              "rast.zone_cond_fsw", 
-                                             "rast.zone_cond_nharv", 
-                                             "rast.zone_cond_cw"
-                                             # "rast.raster_test"
-                                               ),
-                           nameZoneTable = "zone.constraints",
-                           # nameZonePriorityRaster = "rast.zone_cond_beo",
-                           nameYieldsRaster = "rast.ycid_vdyp",
-                           nameYieldTable = "yc_vdyp",
-                           nameYieldsTransitionRaster = "rast.tipsy2018_id",
-                           nameYieldTransitionTable = "yc_tipsy",
-                           nameForestInventoryRaster = "rast.vri2019_id",
-                           nameForestInventoryKey = "feature_id",
-                           nameForestInventoryTable = "veg_comp_lyr_r1_poly2019",
-                           nameForestInventoryAge = "proj_age_1",
-                           nameForestInventoryHeight = "proj_height_1",
-                           nameForestInventoryTreed = "bclcs_level_2",
-                           nameForestInventoryCrownClosure = "crown_closure",
-                           nameForestInventoryTreed = "bclcs_level_2",
-                           nameForestInventorySiteIndex = "site_index"),
-  blockingCastor = list(blockMethod ='pre', 
-                      patchZone = 'rast.zone_cond_beo',
+                                             "rast.zone_cond_cw",
+                                             "rast.zone_cond_pri_old_deferral"
+                          ), 
+                          nameZoneTable = "zone.constraints", 
+                          # natural and managed stands yield curves are the same    
+                          nameYieldsRaster = "rast.ycid_vdyp_2020", 
+                          nameYieldTable = "yc_vdyp_2020", 
+                          nameYieldsTransitionRaster = "rast.ycid_tipsy_prov_2020", 
+                          nameYieldTransitionTable = "tipsy_prov_2020",  
+                          nameForestInventoryRaster = "rast.vri2022_id", 
+                          nameForestInventoryKey = "feature_id", 
+                          nameForestInventoryTable = "vri.veg_comp_lyr_r1_poly2022",
+                          nameForestInventoryAge = "proj_age_1",  
+                          nameForestInventoryHeight = "proj_height_1",
+                          nameForestInventoryCrownClosure = "crown_closure",                                           nameForestInventoryTreed = "bclcs_level_2",
+                          nameForestInventoryBasalArea= "basal_area",
+                          nameForestInventoryQMD = "quad_diam_125",
+                          nameForestInventorySiteIndex = "site_index"  
+                    ),
+  blockingCastor = list(blockMethod = 'pre', 
+                      patchZone = 'rast.zone_cond_beo', 
                       patchVariation = 6,
-                      nameCutblockRaster ="rast.cns_cut_bl",
-                      useLandingsArea = FALSE, 
-                      useSpreadProbRas = FALSE),
-  forestryCastor = list(harvestBlockPriority = "age DESC", 
-                      #harvestZonePriority = "age DESC",
-                      #harvestZonePriority = 1,
-                      reportHarvestConstraints = TRUE,
-                      adjacencyConstraint = 3),
-  growingStockCastor = list (periodLength = 5),
-  roadCastor = list(roadMethod = 'mst', 
+                      nameCutblockRaster ="rast.cns_cutblk_2022"),
+  roadCastor = list(roadMethod = 'mst',
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
-                  nameRoads =  'rast.ce_road_2019'),
+                  nameRoads =  'rast.ce_road_2022'
+                  ),
+  forestryCastor = list(harvestBlockPriority = " age DESC ", 
+                        activeZoneConstraint =c("rast.zone_cond_nharv",
+                                             "rast.zone_wha_2021", 
+                                             "rast.zone_cond_pri_old_deferral")),
+  growingStockCastor = list (periodLength = 10),
   uploaderCastor = list(aoiName = 'tutorial', 
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
@@ -96,31 +99,23 @@ parameters <- list(
 modules <- list("dataCastor", 
                 "growingStockCastor", 
                 "blockingCastor", 
-                "forestryCastor", 
-                "roadCastor",  
-                "uploaderCastor"
+                "forestryCastor" 
+                #"roadCastor",  
+                #"uploaderCastor"
                 )
 ### SCENARIOS ###
-scenario = data.table (name = "revelstoke_bau", 
-                       description = "Business-as-usual case; sustainable flow = 200,000m^3^/year live, 5000 m^3^/year dead. Adjacency = 3m. Oldest first. 150m3/ha minimum volume.")
+scenario = data.table (name = "testing_noadj", 
+                       description = "")
 
-harvestFlow <- rbindlist(list(data.table(compartment ="Revelstoke_TSA",
-                                         partition = '  (vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5) ', 
+harvestFlow <- rbindlist(list(data.table(compartment ="Bulkley_TSA",
+                                         partition = ' vol > 150 ', 
                                          period = rep( seq (from = 1, # run the 
                                                       to = 40, 
                                                       by = 1),
                                                     1), 
-                                         flow = 1000000, # 200,000m^3^/year
-                                         partition_type = 'live'), 
-                              data.table(compartment ="Revelstoke_TSA",
-                                         partition = ' (salvage_vol > 100 and salvage_vol/(vol + salvage_vol) >= 0.5) ', 
-                                         period = rep( seq (from = 1, # run the 
-                                                      to = 40, 
-                                                      by = 1),
-                                                    1), 
-                                         flow = 5000, #10,000m3/yr 
-                                         partition_type = 'dead')
-                              
+                                         flow = 1000000, # 100,000m^3^/year
+                                         partition_type = 'live')))
+
 patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                   2,2,2,2,2,2,
                                   3,3,3,3,3,3,
@@ -135,10 +130,7 @@ patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
 objects <- list(harvestFlow = harvestFlow, 
                 patchSizeDist = patchSizeDist, 
                 scenario = scenario)
-paths <- list(cachePath = cacheDir,
-              modulePath = moduleDir,
-              inputPath = inputDir,
-              outputPath = outputDir)
+
 mySim <- simInit(times = times, 
                  params = parameters, 
                  modules = modules,
@@ -146,7 +138,8 @@ mySim <- simInit(times = times,
                  paths = paths)
 # outputs to keep; these are tables that get used in the uploader
 outputs(mySim) <- data.frame (objectName = c("harvestReport",
-                                             "growingStockReport"))
+                                             "growingStockReport",
+                                             "zoneManagement"))
 #Run the model 1 time
 mysimout<-spades(mySim)
 
