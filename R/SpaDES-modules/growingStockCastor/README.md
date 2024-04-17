@@ -2,16 +2,18 @@
 
 ### What it does
 
-Updates various yield parameters using a linear interpolation and provides maintenance to the castordb. For example, age of the forest is incremented based on the updateInterval. Various indexes are re-created and the database is vacuumed to increase query efficiency. 
+Updates various yield attributes using a linear interpolation of a standardized yield curve. It also schedules maintenance to the castordb. Lastly, it increments the age of the forest. For example, age of the forest is incremented based on the updateInterval. Various indexes are re-created and the database is vacuumed to increase query efficiency. 
 
 #### Management levers
 
-* Growing stock constraint - maintain an amount of forest structure throughout the simulation
+* Link to the growth and yield assumptions
 
 ### Input Parameters
 
-* *updateInterval*. Time period from which to update the yield parameters. e.g., yearly. Default = 1 year
-    
+* *periodLength*. The length of the time period. Ex, 1 year, 5 year. Default is 5 year.
+* *vacuumInterval*. The interval when the database should be vacuumed. Default is 5 year.
+* *maxYieldAge*. Maximum age of the yield curves. Default is 350 years
+
 #### Data Needs
 
 Yield curves that describe the current projection and the transition of that projection following harvesting.

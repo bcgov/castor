@@ -35,7 +35,6 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
     defineParameter("periodLength", "integer", 5, NA, NA, "The length of the time period. Ex, 1 year, 5 year"),
     defineParameter("vacuumInterval", "integer", 5, NA, NA, "The interval when the database should be vacuumed"),
-    defineParameter("growingStockConst", "numeric", 9999, NA, NA, "A percentage of the initial level of growingstock maintaining a minimum amount of growingstock"),
     defineParameter("maxYieldAge", "integer", 350, 0, 500, "Maximum age of the yield curves.")
     ),
   inputObjects = bind_rows(
