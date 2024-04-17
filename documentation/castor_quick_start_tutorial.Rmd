@@ -466,7 +466,7 @@ Similar to the *dataCastor* module, the *growingStockCastor.R* file contains the
 #### growingStockCastor Parameters
 Here we use the *growingStockCastor* module to calculate and update the stand characteristics from the appropriate growth and yield curves. You only need to set one parameter within the module, *periodLength*, which is the length of time, in years, that a time interval is in the simulation. Here we set it to '10', as we are simulating 2 intervals over a 20 year period.
 
-```{r, grwingcastor_parms}
+```{r, grwingcastor_parms, eval =FALSE}
 growingStockCastor = list (periodLength = 10)
 ```
 
@@ -475,7 +475,7 @@ Navigate to the [blockingCastor](https://github.com/bcgov/castor/tree/main/R/Spa
 
 #### blockingCastor Parameters
 Lets set the *blockmethod* to 'pre' which will use the graph based image segmentation approach to form homogeneous harvesting units. We set the *patchZone* to be the spatial zones from which different patch size distributions will be targeted. In this example, lets use the raster that contains the biodiversity guidebook recommendations where a patch size distribution can be defined for each landscape unit and BEC combination. Since we are using the 'pre' *blockMethod* we can assign a *patchVariation* parameter that specifies how similar the harvest units will be. This parameter defaults to 6 which is the distance threshold from which to preform the "cut" of the graph. The distance being used a multivariate distance metric (Mahalanobis Distance) which a smaller number (e.g., 1) would result in more homogeneous harvest units but likely unable to meet the targeted patch sizes, whereas, a larger number (e.g., 10) would result in more heterogeneous harvest units and more likely to meet the targeted patch size distributions.Lastly, we can add in the historic harvest units using the *nameCutblockRaster* parameter -- setting this parameter adjusts the targeted patch size distributions to account for the current practice. 
-```{r, blkingcastor_parms}
+```{r, blkingcastor_parms, eval =FALSE}
 blockingCastor = list(blockMethod ='pre', 
                       patchZone = 'rast.zone_cond_beo',
                       patchVariation = 6,
@@ -490,7 +490,7 @@ Navigate to the [roadCastor](https://github.com/bcgov/castor/tree/main/R/SpaDES-
 The module consists of three parameters: *roadMethod*, *nameCostSurfaceRas* and *nameRoads*. You will notice that these are the same parameter settings used in the *dataCastor_tutorial.Rmd*, with the exception of using the "mst" *roadMethod*. Since we used the 'pre' *roadMethod* in *dataCastor*, the road network to all possible cutblock landings has already been solved in the SQLite database. However, this approach does not account for potential 'future' simulated roads, and therefore is prone to overestimating the amount of roads simulated. Therefore, when running the *forestryCastor* simulation, use the "mst" (minimum spanning tree) method, which will simulate new roads that follows a least-cost path that also efficiently connects multiple landings. When a block is harvested the *roadCastor* module takes the least-cost path and 'converts' the pixels in the path between that blocks' landing and the existing road network. It also sets the 'roadyear' value to the period in the simulation when the road was created and 'roadstatus' to the period in the simulation when the road was used to connect a landing to a permanent road. 
 
 #### roadCastor Parameters
-```{r, blkingcastor_parms}
+```{r, rdcastor_parms, eval =FALSE}
 roadCastor = list(roadMethod = 'mst',
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.ce_road_2022'
@@ -669,10 +669,10 @@ mysimout<-spades(mySim)
 
 ```
 
-Now that your familiar with the elements of the *forestryCastor* module, we will run some simulation scenarios so you can get familiar with its functionality and model outputs. 
+Now that your familiar with the elements of the *forestryCastor* module, run some simulation scenarios so you can get familiar with its functionality and model outputs. 
 
 
-## 8. Checking Scenario Outputs
+## 8. Uploading to the cloud
 As described above, the *uploaderCastor* module is where you define the parameters for where simulation outputs are stored. We currently store this output data in a PostgreSQL database deployed on a virtual machine under a Compute Canada account. You can use the PGAdmin software to connect to the database and navigate to the outputs. You will need to obtain the credentials from the Castor team to make the connection. 
 
 If you can make the connection to the database, navigate to the "tutorial" schema, and open it, then click and open the "Tables". This will open a directory list of the outputs saved by *uploaderCastor*. You will see several tables, including  "growing stock", "harvest", "scenarios", and "state", which are all data tables, and some tables that end with "_constraint", "_cutblocks", and "_roads", which are raster outputs from each scenario, and thus have the scenario name and harvest unit as their prefix (we won't discuss the other tables here).
