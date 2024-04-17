@@ -84,7 +84,7 @@ parameters <-  list( # list of all parameters in the model, by module
                   nameCostSurfaceRas = 'rast.rd_cost_surface', 
                   nameRoads =  'rast.ce_road_2022'
                   ),
-  forestryCastor = list(harvestBlockPriority = " age DESC ", 
+  forestryCastor = list(harvestBlockPriority = " vol/age DESC ", 
                         activeZoneConstraint =c("rast.zone_cond_nharv",
                                              "rast.zone_wha_2021", 
                                              "rast.zone_cond_pri_old_deferral")),
@@ -99,12 +99,12 @@ parameters <-  list( # list of all parameters in the model, by module
 modules <- list("dataCastor", 
                 "growingStockCastor", 
                 "blockingCastor", 
-                "forestryCastor" 
-                #"roadCastor"  
+                "forestryCastor", 
+                "roadCastor"  
                 #"uploaderCastor"
                 )
 ### SCENARIOS ###
-scenario = data.table (name = "testing_noadj", 
+scenario = data.table (name = "testing", 
                        description = "")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Bulkley_TSA",
