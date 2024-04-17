@@ -179,7 +179,7 @@ saveForestry<- function(sim) {
   message("Write rasters")
   #write.csv(sim$harvestReport, "harvestReport.csv")
   terra::writeRaster(sim$harvestBlocks, paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]], "_harvestBlocks.tif"), overwrite=TRUE)#write the blocks to a raster?
-  terra::writeRaster(sim$ras.zoneConstraint, paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]],"_constraints.tif"), overwrite=TRUE)
+  #terra::writeRaster(sim$ras.zoneConstraint, paste0(sim$scenario$name, "_",sim$boundaryInfo[[3]][[1]],"_constraints.tif"), overwrite=TRUE)
   return(invisible(sim))
 }
 
