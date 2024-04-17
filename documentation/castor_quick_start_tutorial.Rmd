@@ -271,9 +271,9 @@ As the level of complexity increase, more modules are added, there will be more 
 
 So far, a castordb was created using made-up information. Operationally, castor models should be specific to actual planning units. To do this, we have opted to develop and maintain a centralized database that houses information and data in a form that is ready to go for any location in the province of BC. The idea is that we run a .rmd to build the castordb then reference this database for use in scenario analysis. This has some benefits like: processing and manipulating the information outside of the simulation which saves on the simulation side, storage of the data and information into a relational database rather than a set of folders, dissemination of the information to other users. However, any localized postgres relational database will work as long as the your database contains the [SQL functions](https://github.com/bcgov/castor/blob/main/SQL/FAIB_RASTER_FUNCTIONS.sql) used by castor.
 
-Below we provide an example of the code chunk you can use to run the script, with annotations that describe each parameter. Below we will describe the key parameters need to run *dataCastor* for building a castordb. 
+Below we provide an example of the code chunk you can use to run the script, with annotations that describe each parameter. Instead of copying code its best navigate to the castor/R/scenarios/tutorial folder and run the dataCastor_tutorial.Rmd. Below we will describe the key parameters need to run *dataCastor* for building a castordb. 
 
-```{r module_usage2, message = F, echo = T, eval = T}
+```{r module_usage2, message = F, echo = T, eval = F}
 # R Packages need to run the script
 library (SpaDES) 
 library (SpaDES.core)
@@ -316,7 +316,7 @@ The next set of *dataCastor* parameters are related to forest inventory and grow
 
 Growth and yield data is obtained from [variable density yield projection (VDYP)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/variable-density-yield-projection-vdyp) and [table interpolation program for stand yields (TIPSY)](https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/forest-inventory/growth-and-yield-modelling/table-interpolation-program-for-stand-yields-tipsy) stand development models. VDYP stand development model outputs are then adapted for Castor in the [vdyp_curves.Rmd](https://github.com/bcgov/castor/blob/main/R/Params/vdyp_curves.Rmd) and consist of a *nameYieldTable* parameter that contains the yield model outputs and a *nameYieldsRaster* parameter, which is a raster identifier indicating the location where each unique stand model output is applied. TIPSY stand development model outputs are adapted for Castor in the [tipsy_curves.Rmd](https://github.com/bcgov/castor/blob/main/R/Params/tipsy_curves.Rmd) and consist of a *nameYieldTransitionTable* parameter that contains the yield model outputs and a *nameYieldsTransitionRaster* parameter, which is a raster identifier indicating the location where each unique stand model output is applied.
 
-```{r, modelusage_pt3, message = F, echo = T, eval = T}
+```{r, modelusage_pt3, message = F, echo = T, eval = F}
 
 parameters <-  list( # list of all parameters in the model, by module
   .progress = list(type = NA, interval = NA), # whether to include a progress meter; not needed
@@ -324,7 +324,7 @@ parameters <-  list( # list of all parameters in the model, by module
   dataCastor = list ( # list of parameters specific to the dataCastor module  
                          dbName = 'castor', # name of the PostgreSQL database
                          sqlite_dbname = "bulkley", # name of sqlite database that you are outputting
-                         save_castordb = TRUE, # save the SQLite database; make sure = T
+                         saveCastorDB = TRUE, # save the SQLite database; make sure = T
                          nameBoundaryFile = "tsa_aac_bounds", # name of the polygon table in the Postgres database you want to use to define the analysis area
                          nameBoundaryColumn = "tsa_name", # name of the column in the polygon table for identifying analysis area
                          nameBoundary = "Bulkley_TSA", # name of the analysis area within the column and polygon table 
@@ -384,7 +384,7 @@ We will use the *roadCastor* module to define a road network to the pre-defined 
  
 Finally, we will use the *uploaderCastor* module to upload some of the output data to a PostgreSQL database. Here set the *aoiName* to 'tutorial'; this sets the name of the schema that gets created in the PostgreSQL database where the data gets stored. The *dbInfo* parameter is a list of keyring parameters that you set-up in step 4.
 
-```{r module_usage4, message = F, echo = T, eval = T}
+```{r module_usage4, message = F, echo = T, eval = F}
 scenario = data.table (name = "tutorial", 
                        description = "Using dataCastor for tutorial.")
 
@@ -401,8 +401,9 @@ scenario = data.table (name = "tutorial",
 #                                    0.3,0.3,0.1,0.1,0.1, 0.1))
 modules <- list("dataCastor", 
                 "blockingCastor",
-                "roadCastor",
-                "uploadCastor")
+                "roadCastor"
+                #"uploadCastor"
+                )
 objects <- list(#patchSizeDist = patchSizeDist, 
                 scenario = scenario
                 )
@@ -423,7 +424,7 @@ The remaining parameters within the code chunk include objects that are not dire
 
 Now that you've parameterized the module, you can run it! Click on the green "Play" symbol on the top-right of the code chunk. The script should start to run, and you will see output messages as some functions of the script are run. 
 
-At the end of the analysis, you should see a .sqlite database object created in the *dataCastor* folder of your local copy of the Castor code (i,e, within Castor/R/SpaDES-modules/dataCastor/). The database will have the name of the *nameBoundary* parameter, in this case, *tutorial_castordb.sqlite*. You will also notice some raster files, including *hu.tif*, *tutorial_Bulkley_TSA_pre_0.tif* and *roads_0.tif*. These are intermediary outputs from the modules (the same data is saved in .sqlite database tables), and can be viewed to check for any errors, or deleted. The *hu.tif* is the harvest units output from *blockingCastor*, and  *tutorial_Bulkley_TSA_pre_0.tif* and *roads_0.tif* are the simulated roads outputs from *roadCastor*. 
+At the end of the analysis, you should see a .sqlite database object created in the working directory. The database will have the name of the *nameBoundary* parameter, in this case, *simple_castordb.sqlite*. You will also notice some raster files, including *hu.tif*, *tutorial_Bulkley_TSA_pre_0.tif* and *roads_0.tif*. These are intermediary outputs from the modules (the same data is saved in .sqlite database tables), and can be viewed to check for any errors, or deleted. The *hu.tif* is the harvest units output from *blockingCastor*, and  *tutorial_Bulkley_TSA_pre_0.tif* and *roads_0.tif* are the simulated roads outputs from *roadCastor*. 
 
 Note that if you run *dataCastor* more than once with the same *nameBoundary* parameter, you will overwrite previous versions of the database. Therefore, to avoid potential issues with overwriting files, we recommend that you delete or move/archive the previous version of the .sqlite database ouput before re-running *dataCastor*.
 
@@ -452,40 +453,54 @@ The *zone* table provides a table of the name of each raster associated with eac
 
 The *zoneConstraints* table provides a table of all of the specific zone constraint definitions that apply to the zone constraint rasters. The *zoneid* column is the specific integer value within each *nameZoneRasters* (i.e., the *reference_zone* and *zone* columns) where a constraint is applied. The constraint consists of a natural disturbance type class (*ndt*), the variable type that is being constrained (*variable*), for example, age or height, the threshold of the variable at which the constraint is applied (*threshold*), for example, 150 years old, the type of threshold (*type*), i.e., greater than or equal to (*ge*) or less than or equal to (*le*), the percentage of the area for which the constraint needs to apply (*percentage*), the SQL script for areas with multiple constraints (*multi_condition*) and the total area (*t_area*) of the zone. Note that we do not use multiple constraints here, but they could be used, for example, if you want to constrain on the age and height of forest stands in the same area. You can view constraints for a specific zone (e.g., the raster zone you created, *rast.raster_test*), by using the WHERE clause in the SQL script. 
 
-```{r, example connect to .sqlite database, message = F, echo = T, eval = F}
-library (DBI)
-# Connect to the castordb.sqlite database for the AOI
-castordb <- dbConnect (RSQLite::SQLite(), dbname = paste0(here::here(), "/R/SpaDES-modules/dataCastor/Revelstoke_TSA_castordb.sqlite")) 
-# To list tables in the database
-dbListTables (castordb)
-# To load a table as an R object
-adjacentBlocks <- dbGetQuery (castordb, "SELECT * from adjacentBlocks")
-blocks <- dbGetQuery (castordb, "SELECT * from blocks")
-pixels <- dbGetQuery (castordb, "SELECT * from pixels")
-roadslist <- dbGetQuery (castordb, "SELECT * from roadslist")
-yields <- dbGetQuery (castordb, "SELECT * from yields")
-zone <- dbGetQuery (castordb, "SELECT * from zone")
-zoneConstraints <- dbGetQuery (castordb, "SELECT * from zoneConstraints")
-
-rm (adjacentBlocks) # To remove R objects from memory
-gc () # 'garbage collection' command; useful command for freeing computer memory after removing an R object
-
-#  To view the constraints of a specific zone
-zoneconstraints<-dbGetQuery(castordb, "SELECT * from zoneConstraints WHERE reference_zone = 'rast.raster_test'") # Note: the reference_zone is the name of the raster in the rast schema. Use the name of the raster you created
-dbDisconnect(castordb) # Disconnect from the database
-```
-
 The forestry simulation essentially queries and updates the tables within the SQlite database, which simplifies the data management process. If you want to take a deep dive into how the data are used and modified by the forestry simulation model, you can open up the [forestryCastor](https://github.com/bcgov/castor/blob/main/R/SpaDES-modules/forestryCastor/forestryCastor.R) module and look at the queries of the SQlite database. 
 
 In the next step we will begin to use the forestry simulator, first, by creating a scenario with a sustained yield forest harvest flow.
 
-## 6. Creating a Sustained Yield Forest Harvest Flow Using forestryCastor
-In the following steps we will learn to use *forestryCastor* to run forest harvest simulations. First, we will provide an overview of the *forestryCastor*. Then we will use the module to create a sustained yield forest harvest flow under current management practice. Finally, we will then add the new constraint you created to the simulation to see if and how the new constraint could impact the harvest flow. 
+## 6. Creating a simulation using several castor modules
+In the following steps we will learn to use *growingstockCastor*, *blockingCastor*, *forestryCastor*, and *roadCastor* to run forest harvest simulations. First, we will provide an overview of the *growingstockCastor* followed by the *blockingCastor*, *roadCastor*and lastly *forestryCastor*. Then we will use these modules to create a forest harvest flow under current management practice. 
+
+### Overview of the growingStockCastor Module
+Similar to the *dataCastor* module, the *growingStockCastor.R* file contains the script with the simulation model functions that pairs with the .Rmd files, where you set the model parameters. We describe these parameters in the [README](https://github.com/bcgov/castor/tree/main/R/SpaDES-modules/growingStockCastor) which can be found in the growingStockCastor file. 
+
+#### growingStockCastor Parameters
+Here we use the *growingStockCastor* module to calculate and update the stand characteristics from the appropriate growth and yield curves. You only need to set one parameter within the module, *periodLength*, which is the length of time, in years, that a time interval is in the simulation. Here we set it to '5', as we are simulating 40 intervals over a 200 year period, which is equivalent to a five year interval. If we changed this to 20 intervals over a 100 year period, for example, it would also be 5. Or, for example, if we changed it to 20 intervals over a 200 year period the *periodLength* should be set to '10'. 
+```{r, grwingcastor_parms}
+growingStockCastor = list (periodLength = 5)
+```
+
+### Overview of the blockingCastor Module
+Navigate to the [blockingCastor](https://github.com/bcgov/castor/tree/main/R/SpaDES-modules/blockingCastor) module.
+
+#### blockingCastor Parameters
+Lets set the *blockmethod* to 'pre' which will use the graph based image segmentation approach to form homogeneous harvesting units. We set the *patchZone* to be the spatial zones from which different patch size distributions will be targeted. In this example, lets use the raster that contains the biodiversity guidebook recommendations where a patch size distribution can be defined for each landscape unit and BEC combination. Since we are using the 'pre' *blockMethod* we can assign a *patchVariation* parameter that specifies how similar the harvest units will be. This parameter defaults to 6 which is the distance threshold from which to preform the "cut" of the graph. The distance being used a multivariate distance metric (Mahalanobis Distance) which a smaller number (e.g., 1) would result in more homogeneous harvest units but likely unable to meet the targeted patch sizes, whereas, a larger number (e.g., 10) would result in more heterogeneous harvest units and more likely to meet the targeted patch size distributions.Lastly, we can add in the historic harvest units using the *nameCutblockRaster* parameter -- setting this parameter adjusts the targeted patch size distributions to account for the current practice. 
+```{r, blkingcastor_parms}
+blockingCastor = list(blockMethod ='pre', 
+                      patchZone = 'rast.zone_cond_beo',
+                      patchVariation = 6,
+                      nameCutblockRaster ="rast.cns_cut_bl")
+```
+
+
+### Overview of the roadCastor Module
+
+Navigate to the [roadCastor](https://github.com/bcgov/castor/tree/main/R/SpaDES-modules/roadCastor) module.
+
+The module consists of three parameters: *roadMethod*, *nameCostSurfaceRas* and *nameRoads*. You will notice that these are the same parameter settings used in the *dataCastor_tutorial.Rmd*, with the exception of using the "mst" *roadMethod*. Since we used the 'pre' *roadMethod* in *dataCastor*, the road network to all possible cutblock landings has already been solved in the SQLite database. However, this approach does not account for potential 'future' simulated roads, and therefore is prone to overestimating the amount of roads simulated. Therefore, when running the *forestryCastor* simulation, use the "mst" (minimum spanning tree) method, which will simulate new roads that follows a least-cost path that also efficiently connects multiple landings. When a block is harvested the *roadCastor* module takes the least-cost path and 'converts' the pixels in the path between that blocks' landing and the existing road network. It also sets the 'roadyear' value to the period in the simulation when the road was created and 'roadstatus' to the period in the simulation when the road was used to connect a landing to a permanent road. 
+
+#### roadCastor Parameters
+```{r, blkingcastor_parms}
+roadCastor = list(roadMethod = 'mst',
+                  nameCostSurfaceRas = 'rast.rd_cost_surface', 
+                  nameRoads =  'rast.ce_road_2022'
+                  )
+```
+
 
 ### Overview of the forestryCastor Module
-Similar to the *dataCastor* module, the *forestryCastor.R* file contains the script with the simulation model functions that pairs with the .Rmd files, where you set the model parameters. We describe those parameters in the following section. 
+Navigate to the [forestryCastor](https://github.com/bcgov/castor/tree/main/R/SpaDES-modules/forestryCastor) module.
 
-#### ForestryCastor Parameters
+#### forestryCastor Parameters
 Below is a copy of the code chunk in the *forestryCastor_tutorial.Rmd*. Here we will review each parameter in some detail. 
 
 First you will notice some [library()](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/library) and [source()](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/source) function calls. Like in *dataCastor*, these load the R packages and functions needed to run a simulation. 
@@ -508,20 +523,16 @@ The *reportHarvestConstraints* parameter in the *forestryCastor* module can be u
 
 The *adjacencyConstraint* parameter in the *forestryCastor* module can be used to simulate a 'green-up' requirement for adjacent harvest blocks. The parameter is the minimum threshold of the height of the stand in the adjacent blocks before a block is allowed to be harvested. Here we set it to '3', which is to say that the adjacent blocks must be minimum 3 m in height before a block is harvested. 
 
-The *salvageRaster* parameter in the *forestryCastor* module can be used to specify the location of dead stand volume in the area of interest. This may be useful when needing to proritize the salvage harvest of dead stands as part of the harvesting strategy. Here we specify the location of a raster created from the forest inventory data on dead volume. This does not need to be specified adn the paramter can be 'commented out' using a # if it is not needed. 
+The *salvageRaster* parameter in the *forestryCastor* module can be used to specify the location of dead stand volume in the area of interest. This may be useful when needing to proritize the salvage harvest of dead stands as part of the harvesting strategy. Here we specify the location of a raster created from the forest inventory data on dead volume. This does not need to be specified and the paramter can be 'commented out' using a # if it is not needed. 
 
-Here we use the *growingStockCastor* module to calculate and update the stand characteristics from the appropriate growth and yield curves. You only need to set one parameter within the module, *periodLength*, which is the length of time, in years, that a time interval is in the simulation. Here we set it to '5', as we are simulating 40 intervals over a 200 year period, which is equivalent to a five year interval. If we changed this to 20 intervals over a 100 year period, for example, it would also be 5. Or, for example, if we changed it to 20 intervals over a 200 year period the *periodLength* should be set to '10'. 
-
-We also use the *roadCastor* module in this example to show how Castor simulates roads. The module consists of three parameters: *roadMethod*, *nameCostSurfaceRas* and *nameRoads*. You will notice that these are the same parameter settings used in the *dataCastor_tutorial.Rmd*, with the exception of using the "mst" *roadMethod*. Since we used the 'pre' *roadMethod* in *dataCastor*, the road network to all possible cutblock landings has already been solved in the SQLite database. However, this approach does not account for potential 'future' simulated roads, and therefore is prone to overestimating the amount of roads simulated. Therefore, when running the *forestryCastor* simulation, use the "mst" (minimum spanning tree) method, which will simulate new roads that follows a least-cost path that also efficiently connects multiple landings. When a block is harvested the *roadCastor* module takes the least-cost path and 'converts' the pixels in the path between that blocks' landing and the existing road network. It also sets the 'roadyear' value to the period in the simulation when the road was created and 'roadstatus' to the period in the simulation when the road was used to connect a landing to a permanent road. 
-
-Finally, we use the *uploaderCastor* module to output the results of the simulation to a PostgreSQL database on a cloud server. Here you need to define the connection to the cloud server (*dbInfo*), which consists of a list of the database host and name, and the username and password. Again we use the ["keyring"](https://cran.r-project.org/web/packages/keyring/keyring.pdf) package to maintain database security. You also need to set the *aoiName* parameter. This parameter is the name of the schema (i.e., a namespace for containing a group of data tables) within the PostgreSQL database where the results of the simulation will be saved. This can be a new schema or a previously created one. Here we will use the 'tutorial' schema. 
+**** OPTIONAL **** Finally, we use the *uploaderCastor* module to output the results of the simulation to a PostgreSQL database on a cloud server. Here you need to define the connection to the cloud server (*dbInfo*), which consists of a list of the database host and name, and the username and password. Again we use the ["keyring"](https://cran.r-project.org/web/packages/keyring/keyring.pdf) package to maintain database security. You also need to set the *aoiName* parameter. This parameter is the name of the schema (i.e., a namespace for containing a group of data tables) within the PostgreSQL database where the results of the simulation will be saved. This can be a new schema or a previously created one. Here we will use the 'tutorial' schema. 
 
 In addition to the list of parameters, there are several objects that need to be created to run the *forestryCastor* simulation. This includes the list of *modules* used in the analysis, a data.table that describes the simulation *scenario*, a list of data.table's that define the harvest flow (*harvestFlow*), a data.table that defines the patch size distribution for cutblocks (*patchSizeDist*), a list of the *objects*, a list of the simulation file paths (*paths*), and the simInit object (*mySim*) that defines all of these things for the SpaDES package to run the simulation. You also define a data.frame object that identifies all of the output 'reports' to save from the simulation analysis (*outputs()*). 
 In the *modules* object, here we list all of the modules described above, including *dataCastor*, *growingStockCastor*, *blockingCastor*, *forestryCastor*, *roadCastor*, and *uploaderCastor.*
 
 In the *scenario* object, we provide two parameters, a *name* and a *description* of the scenario being simulated in a given run of the model. These should be unique to each set of parameters input into the model. For example, if you are testing the effect of changing the harvest priority parameter from oldest first to highest volume first, these scenarios should have a different name and description. A scenario with the same name will get copied over the previous scenario. For the *name*, we suggest including the harvest unit name (e.g., TSA or TFL) and some acronyms describing the scenario. We again note that there is a 63 character limit for tables in PostgreSQL, and some of the table outputs from the scenario incorporate the scenario name, thus we recommended keeping the name as short as possible. For each harvest unit we typically simulate a business-as-usual scenario, which is characterized in the *name* with the acronym 'bau'. The 'bau' is intended to represent a baseline scenario for the harvest unit, essentially including all of the existing legal constraints, forest inventory and growth and yield models as-is, and harvest parameters that are sensible for the harvest unit (i.e., uses parameters similar to what were used in the recent timber supply review analysis for the harvest unit). The BAU scenario also has an even harvest volume flow, i.e., the flow is set at the maximum volume that can be harvested without causing a decline in harvest volume during the 200 year simulation period. An alternative scenario might include a hypothetical constraint, and therefore it would be useful to incorporate the constraint name and perhaps some of the parameters into the scenario *name*, e.g., 'revelstoke_newzone_25p_agele15' might describe a new zone with a constraint threshold of maximum 25 percent of the area of forest stands with an age less than or equal to 15 years old. The *description* parameter can be used to provide much more detail on the scenario. Here you can describe specifics of the parameters used in the analysis. As standard practice, we describe the constraints (e.g., business as usual, or including a hypothetical constraint), the target harvest flow (typically the even-flow harvest rate from the bau scenario), adjacency constraints, the harvest priority criteria, and any other relevant information to the scenario.    
 
-The *harvestFlow* is a list of parameters describing the volume target for the harvest unit. It can be used to set spatial partition targets within multiple compartments in a harvest unit by creating a data.table for each unique compartment. Note that if you are simulating multiple compartments these will need to have been defined in *dataCastor* and thus align with the compartments as defined in the SQLite database. The *compartment* parameter is the name of each harvest unit in the analysis, as defined in the SQLite database, as taken from the spatial harvest unit boundaries defined in *dataCastor*. Here we use "Revelstoke_TSA", as that is the TSA in the *nameBoundaryFile* we used to define the harvest unit. The *partition* parameter is an SQL query that may be used to further specify  forest harvest criteria within the simulation. For example, you can use ' vol > 150 ' to limit harvest to stands that achieve a minimum volume of 150 m^3^/ha. This parameter could also be used to partition harvest according to other information in the 'pixels', for example, to target deciduous stands (' dec_pcnt > 50 '). The *period* parameter is used to define the time period of the simulation. You will remember that we set the *times* parameter as 40 intervals, and with the intent of simulating a 200 year period, that is equivalent to a 5 year interval. The *period* parameter specifies the sequence of years (the *seq()* function) of the analysis, including the year start (the *from* parameter), the end year (the *to* parameter), and the interval (the *by* parameter, which should typically be '1'). The *flow* parameter sets the harvest target for each time interval. The model will harvest up to that amount at each interval. Thus, if the interval is 5 years, it is the 5 year target. You will likely want to consider harvest targets on an annual basis, so make sure you convert the annual target to the appropriate interval (e.g., if the annual target is 200,000m^3^/year, and the interval is 5 years, the *flow* is 1,000,000). Note that the first data.table compartment in the *harvestFlow* list can't have a *flow* of 0, or the model will throw an error. If you don't want the model to harvest in that compartment set it to a very low number instead (e.g., 1). When you need to partition the harvest of dead and live volume, i.e., for salvage harvesting, then you can create two partitions in *harvestFlow* for each *partition_type* of harvest volume, either 'dead' or 'live'. You can do this by creating two data.tables, and specifying one partition in each table. You need to set each partition to either the 'dead' or 'live' type. Here, for the dead volume partition, we set the query to harvest stands where the proportion of dead volume (salvage_vol) is greater than or equal to 50% of the stand volume, and the stand must have a minimum 100 m^3^/ha (i.e., *(salvage_vol > 100 and salvage_vol/(vol + salvage_vol) >= 0.5)*). We set the live volume partition to harvest stands where the proportion of live volume (vol) is greater than 50% of the stand volume, and the stand has a minimum 150 m^3^/ha (i.e., *(vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5)*). Here we set the target for live volume as 210,000 m^3^/ha and dead volume as 10,000 m^3^/ha. 
+The *harvestFlow* is a list of parameters describing the volume target for the harvest unit. It can be used to set spatial partition targets within multiple compartments in a harvest unit by creating a data.table for each unique compartment. Note that if you are simulating multiple compartments these will need to have been defined in *dataCastor* and thus align with the compartments as defined in the SQLite database. The *compartment* parameter is the name of each harvest unit in the analysis, as defined in the SQLite database, as taken from the spatial harvest unit boundaries defined in *dataCastor*. The *partition* parameter is an SQL query that may be used to further specify  forest harvest criteria within the simulation. For example, you can use ' vol > 150 ' to limit harvest to stands that achieve a minimum volume of 150 m^3^/ha. This parameter could also be used to partition harvest according to other information in the 'pixels', for example, to target deciduous stands (' dec_pcnt > 50 '). The *period* parameter is used to define the time period of the simulation. You will remember that we set the *times* parameter as 40 intervals, and with the intent of simulating a 200 year period, that is equivalent to a 5 year interval. The *period* parameter specifies the sequence of years (the *seq()* function) of the analysis, including the year start (the *from* parameter), the end year (the *to* parameter), and the interval (the *by* parameter, which should typically be '1'). The *flow* parameter sets the harvest target for each time interval. The model will harvest up to that amount at each interval. Thus, if the interval is 5 years, it is the 5 year target. You will likely want to consider harvest targets on an annual basis, so make sure you convert the annual target to the appropriate interval (e.g., if the annual target is 200,000m^3^/year, and the interval is 5 years, the *flow* is 1,000,000). Note that the first data.table compartment in the *harvestFlow* list can't have a *flow* of 0, or the model will throw an error. If you don't want the model to harvest in that compartment set it to a very low number instead (e.g., 1). When you need to partition the harvest of dead and live volume, i.e., for salvage harvesting, then you can create two partitions in *harvestFlow* for each *partition_type* of harvest volume, either 'dead' or 'live'. You can do this by creating two data.tables, and specifying one partition in each table. You need to set each partition to either the 'dead' or 'live' type. Here, for the dead volume partition, we set the query to harvest stands where the proportion of dead volume (salvage_vol) is greater than or equal to 50% of the stand volume, and the stand must have a minimum 100 m^3^/ha (i.e., *(salvage_vol > 100 and salvage_vol/(vol + salvage_vol) >= 0.5)*). We set the live volume partition to harvest stands where the proportion of live volume (vol) is greater than 50% of the stand volume, and the stand has a minimum 150 m^3^/ha (i.e., *(vol > 150 and salvage_vol/(vol + salvage_vol) < 0.5)*). Here we set the target for live volume as 210,000 m^3^/ha and dead volume as 10,000 m^3^/ha. 
 
 Note that whenever you have more than one *compartment* or *partition* in the simulation, the *partition* parameter SQL query should be fully bracketed, e.g., *(vol > 150)*. This ensures the partition is read correctly by the model. 
 
@@ -534,8 +545,6 @@ Similarly, the *paths* parameter is necessary for SpaDES to know where the model
 The *mySim* object is another SpaDES object where various parameters and components of the model must be declared for the SpaDES simulation to function. Here you declare the name of the *times*, *params*, *objects* and *paths* objects for the model. 
 
 The *outputs()* function is a SpaDES function for declaring the objects within the simulation that get output to the *outputDir*. These are created in the module .R scripts, for example, the "harvestReport" is created in the forestryCastor.R script and the "growingStockReport" is created in the growingStockCastor.R script. You will need to familiarize yourself with the module scripts to understand what reports can be output, but for now you can use "harvestReport" and "growingStockReport". The "harvestReport" outputs things like the amount of volume harvested at each time interval in a scenario and compartment, and the "growingStockReport" outputs the amount of growing stock at each time interval in a scenario and compartment. 
-
-Finally, you can save the SpaDES simulation (in this case the *mySim* object) run with the *spades()* function. Note that here we embed that function in the *system.time()* function to obtain the total time the model took to finish the simulation. 
 
 ```{r, forestryCastor module example code, message = F, echo = T, eval = F}
 library (SpaDES.core)
@@ -550,9 +559,9 @@ parameters <- list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataCastor = list (  dbName='castor',
-                           save_castordb = FALSE,
+                           saveCastorDB = FALSE,
                            sqlite_dbname = "tutorial_area",
-                           useCastordb = paste0(here::here(), "/R/SpaDES-modules/dataCastor/tutorial_area_castordb.sqlite"),
+                           useCastorDB = paste0(here::here(), "/R/SpaDES-modules/dataCastor/simple_castordb.sqlite"),
                            nameBoundaryFile = "tsa_aac_bounds",
                            nameBoundaryColumn = "tsa_name",
                            nameBoundary = "Revelstoke_TSA",
@@ -661,7 +670,7 @@ mySim <- simInit(times = times,
 outputs(mySim) <- data.frame (objectName = c("harvestReport",
                                              "growingStockReport"))
 #Run the model 1 time
-system.time({mysimout<-spades(mySim)})
+mysimout<-spades(mySim)
 ```
 
 Now that your familiar with the elements of the *forestryCastor* module, we will run some simulation scenarios so you can get familiar with its functionality and model outputs. 
