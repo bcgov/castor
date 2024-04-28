@@ -420,8 +420,13 @@ getClimateVariables <- function(sim) {
    clim_dat[frt==15, climate1escape:=(cmd07 +cmd08)/2]
    
    # spread
-   clim_dat[frt==5, climate1spread:=(tmax06+tmax07+tmax08)/3]
-   clim_dat[frt==5, climate2spread:=(ppt06+ppt07+ppt08)/3]
+   clim_dat[frt %in% c(5,7), climate1spread:=(tmax06+tmax07+tmax08)/3]
+   clim_dat[frt %in% c(5,7), climate2spread:=(ppt06+ppt07+ppt08)/3]
+   clim_dat[frt %in% c(9,11),climate1spread:=(tave03+tave04+tave05+tave06+tave07+tave08)/6]
+   clim_dat[frt %in% c(9,11),climate2spread:=(ppt03+ppt04+ppt05+ppt6+ppt07+ppt08)/6]
+   clim_dat[frt == 10, climate1spread:=tmax06]
+   clim_dat[frt == 10, climate2spread:=ppt06]
+   
    
    
   sim$climate_data<-clim_dat[ ,c("pixelid","gcm", "ssp", "run","period","cmi", "cmi3yr", "climate1escape", "climate2escape", "climate1spread", "climate2spread")]
@@ -612,6 +617,8 @@ calcProbEscape<-function(sim){
   #---------#
   #### FRT 5  ####
   #---------#
+  
+  # doubel check whether I fitted separate models for spread for frt5 and 7 or whether I fitted them together.
   if (nrow(dat[frt %in% c(5,7),])>0) {
   frt57<- dat[frt %in% c(5,7), ]
   head(frt57)
@@ -622,7 +629,7 @@ calcProbEscape<-function(sim){
   # change veg categories to ones that we have coefficients
   
   frt57[, logit_P_escape := -0.3739924 +
-         -0.02523745*climate2 +
+         -0.02523745*climate2escape +
          0.3501348*veg_cat2 +
          0.9389967*veg_cat3 +
          0.5863252*veg_cat4 +
@@ -638,9 +645,48 @@ calcProbEscape<-function(sim){
        
   frt57[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
   frt57[veg_cat==6, prob_ignition_escape:=0]
-
   
-  frt57<-frt57[, c("pixelid","frt","prob_ignition_escape")]
+  #### Fire spread
+  
+  #Scale variables with the data I created the models with
+  #frt57$scale_climate1<-(frt57$climate1-20.97079) / 1.433168
+  frt57$scale_climate2<-(frt57$climate2spread-80.29119) / 12.85758
+  frt57$scale_dem<-(frt57$dem-675.5577)/210.2049
+  frt57$scale_slope<-(frt57$slope_ha_bc-2.530125) / 4.447013
+  frt57$scale_roads<-(frt57$rds_dist-1004.205) / 1985.722
+  #frt57$scale_infr<-(frt57$dist_infr_m-3340.382) / 5622.158
+  frt57$scale_dist_ignit<-(frt57$rast_ignit_dist-8018.723) / 7091.67
+  frt57$scale_pct_conifer<-(frt57$conifer_pct_cover_total-79.19533)/29.11062
+  frt57$scale_age<-(frt57$proj_age_1-95.839)/43.66147
+  frt57$scale_basal_area<-(frt57$basal_area-17.66548)/14.79058
+  
+  dat[,bec_zone_SWB:=0][bec_zone_code=="SWB", bec_zone_SWB:=1]
+  
+  #m5<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt5.rds")
+  
+  frt57[,logit_P_spread:= -0.51288 + 
+           0.35881*scale_dem +
+           0.02666*scale_climate2+
+           -0.17354*veg_cat2+
+           -0.16222*veg_cat3+
+           -0.18666*veg_cat4+
+           -0.59184*veg_cat5+
+           0.15039* scale_roads+
+           -1.01801*scale_dist_ignit+
+           0.12210*scale_age+
+           0.16369*scale_pct_conifer+
+           0.05432*scale_basal_area+
+           -1.79253*bec_zone_SWB+
+           0.05913*scale_dem*scale_climate2+
+           -0.03104*scale_climate2*veg_cat2+
+           -0.30879*scale_climate2*veg_cat3+
+           -0.07977*scale_climate2*veg_cat4+
+           0.12342*scale_climate2*veg_cat5]
+  
+  frt57[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+  frt57[veg_cat==6, prob_ignition_spread:=0]
+  
+  frt57<-frt57[, c("pixelid","frt","prob_ignition_escape", "prob_ignition_spread")]
   
   } else {
     
@@ -648,7 +694,8 @@ calcProbEscape<-function(sim){
     
     frt57<-data.table(pixelid=as.numeric(),
                      frt = as.numeric(),
-                     prob_ignition_escape = as.integer())
+                     prob_ignition_escape = as.integer(),
+                     prob_ignition_spread = as.integer())
   }
   
   
@@ -662,23 +709,82 @@ calcProbEscape<-function(sim){
 # Note FRT 9 and FRT 11 were combined due to lack of data         
   frt9[, logit_P_escape := 
          -4.028508 +
-         -0.07285105*climate1 +
+         -0.07285105*climate1escape +
          0.04077977 * slope +
          0.305426*log(rds_dist+1)+
          5.938547e-05*dist_infra] 
          
   frt9[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
   frt9[veg_cat==6, prob_ignition_escape:=0]
+  
+  #### Fire spread
+  
+  #Scale variables with the data I created the models with
+  frt9$scale_climate1<-(frt9$climate1spread-6.541661) / 1.262691
+  frt9$scale_climate2<-(frt9$climate2spread-33.65742) / 9.92722
+  frt9$scale_dem<-(frt9$dem-906.1805)/251.4938
+  frt9$scale_slope<-(frt9$slope_ha_bc-7.330724) / 7.268391
+  frt9$scale_roads<-(frt9$dist_roads_m-10128.31) / 7970.11
+  frt9$scale_infr<-(frt9$dist_infr_m-27227.51) / 13979.28
+  frt9$scale_dist_ignit<-(frt9$rast_ignit_dist-20163.07) / 15202.81
+  frt9$scale_pct_conifer<-(frt9$conifer_pct_cover_total-90.92838)/19.79545
+  frt9$scale_age<-(frt9$proj_age_1-136.0173)/72.32967
+  frt9$scale_basal_area<-(frt9$basal_area-21.4939)/8.85824
+  
+  frt9[bec_zone_code=="CMA", bec_zone_code:="ICH"]
+  frt9[bec_zone_code=="BAFA", bec_zone_code:="ESSF"]
+  frt9[bec_zone_code=="ICH", bec_zone_code:="SBS"]
+  
+  frt9$dist_infra_categories<-cut(frt9$dist_infr_m/1000,breaks = c(-1, 5, 20, 50, max(frt9$dist_infr_m/1000)+1),labels = c("A", "B", "C", "D"))
+  
+  frt9[,dist_infra_catB:=0][dist_infra_categories=="B", dist_infra_catB:=1]
+  frt9[,dist_infra_catC:=0][dist_infra_categories=="C", dist_infra_catB:=1]
+  frt9[,dist_infra_catD:=0][dist_infra_categories=="D", dist_infra_catB:=1]
+  
+  frt9[,bec_zone_codeESSF:=0][bec_zone_code=="ESSF", bec_zone_codeESSF:=1]
+  frt9[,bec_zone_codeSBS:=0][bec_zone_code=="SBS", bec_zone_codeSBS :=1]
+  frt9[,bec_zone_codeSWB:=0][bec_zone_code=="SWB", bec_zone_codeSWB:=1]
+  
+ # m9<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt9.rds")
+  
+  frt9[, logit_P_spread := 1.37771 +
+         0.27089 * scale_climate1 +
+         -0.06553 * scale_climate2 +
+         -0.38491 * veg_cat2 +
+         -0.75697 * veg_cat3 +
+         -0.28233 * veg_cat4 +
+         0.43881 * veg_cat5 +
+         -0.68908 * dist_infra_catB + 
+         -0.94290 * dist_infra_catC +
+         -0.41263 * dist_infra_catD +
+         0.33701 * scale_age + 
+         0.10440 * scale_slope +
+         -1.63931 * bec_zone_codeESSF + 
+         -2.25293 * bec_zone_codeSBS +
+         -0.36129 * bec_zone_codeSWB + 
+         0.10418 * scale_climate1 * scale_climate2 +
+         -0.06530 * scale_climate1 * veg_cat2 +
+         0.28756 * scale_climate1 * veg_cat3 +
+         -0.04303*scale_climate1 * veg_cat4 +
+         0.01524*scale_climate1 * veg_cat5 +
+         0.04214 * scale_climate2 * veg_cat2 +
+         0.25618 * scale_climate2 * veg_cat3 +
+         -0.05054*scale_climate2 * veg_cat4 +
+         -0.16198*scale_climate2 * veg_cat5]
+         
+       frt9[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+       frt9[veg_cat==6, prob_ignition_spread:=0]
          
 
-  frt9<-frt9[, c("pixelid","frt", "prob_ignition_escape")]
+  frt9<-frt9[, c("pixelid","frt", "prob_ignition_escape", "prob_ignition_spread")]
   } else {
     
     print("no data for FRT 9")
     
     frt9<-data.table(pixelid=as.numeric(),
                      frt = as.numeric(), 
-                     prob_ignition_escape = as.integer())
+                     prob_ignition_escape = as.integer(),
+                     prob_ignition_spread = as.integer())
     
       
   }
@@ -695,12 +801,12 @@ calcProbEscape<-function(sim){
    #  model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt10_escape.csv")
          
     frt10[, logit_P_escape := -3.010075 +
-            0.06581443*climate1 + 
+            0.06581443*climate1escape + 
             1.555569*veg_cat4 + 
             0.9485711*veg_cat5 + 
             7.568074e-05*rds_dist +
-            -0.08912795*veg_cat4*climate1 +
-            -0.0457739*veg_cat5*climate1
+            -0.08912795*veg_cat4*climate1escape +
+            -0.0457739*veg_cat5*climate1escape
           ]
          
          frt10[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
@@ -708,69 +814,66 @@ calcProbEscape<-function(sim){
          
          # Spread
 
-         spread_10<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt10.rds")
-            
-    # frt10[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+         #spread_10<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt10.rds")
+         
+         # scale variables i.e. (x - mean_x)/sd_x)
+         frt10$scale_climate1<-(frt10$Tmax06-16.41084) / 2.562723
+         #frt10$scale_climate2<-(frt10$PPT06-50.22207) / 24.14774
+         #frt10$scale_dem<-(frt10$dem-1174.383)/357.5102
+         frt10$scale_slope<-(frt10$slope_ha_bc-12.81006) / 10.56271
+         #frt10$scale_roads<-(frt10$dist_roads_m-5813.673) / 6569.464
+         #frt10$scale_infr<-(frt10$dist_infr_m-22990.07) / 12996.5
+         frt10$scale_dist_ignit<-(frt10$rast_ignit_dist-13456.93) / 10914.06
+         frt10$scale_pct_conifer<-(frt10$conifer_pct_cover_total-84.82834)/32.49288
+         frt10$scale_age<-(frt10$proj_age_1-136.6008)/80.17633
+         #frt10$scale_basal_area<-(frt10$basal_area-22.1799)/17.27645
+         
+         frt10[, aspect_cardinalO:=0][aspect_cardinal=="O", aspect_cardinalO:=1]
+         frt10[, aspect_cardinalS:=0][aspect_cardinal=="S", aspect_cardinalS:=1]
+         
+         
+         
+         frt10[, logit_P_spread := -1.00105 +
+                 0.23605*scale_climate1 +
+                 0.15385 * veg_cat2 +
+                 0.04909 * veg_cat3 +
+                 -0.33064 * veg_cat4 +
+                 -0.12036 * veg_cat5 +
+                 0.07090 * scale_age +
+                 0.24208 * scale_slope +
+                 0.14863 * aspect_cardinalO + 
+                 0.24673 * aspect_cardinalS +
+                 0.14661 * scale_pct_conifer +
+                 -0.72131* scale_dist_ignit +
+                 -0.12184 * scale_climate1 * veg_cat2 +
+                 -0.14228 * scale_climate1 * veg_cat3 +
+                 0.18566 * scale_climate1 * veg_cat4 +
+                 0.44853 * scale_climate1 * veg_cat5 +
+                 0.08845 * scale_climate1 * scale_dist_ignit]
+         
+     frt10[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+     frt10[veg_cat %in% c("0", "6"),prob_ignition_spread:=0]
     
-    
-    # frt10[, prob_tot_ignit := (as.numeric(prob_ignition_lightning)*0.86) + (as.numeric(prob_ignition_person)*0.14)]
-    # 
-    # frt10[fwveg %in% c("W", "N"), prog_tot_ignit:=0]
-    # frt10[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
-    # frt10[fwveg %in% c("W", "N"),prob_ignition_person:=0]
-    
-  
-    
-    frt10<-frt10[, c("pixelid","frt", "prob_ignition_escape")]
+    frt10<-frt10[, c("pixelid","frt", "prob_ignition_escape", "prob_ignition_spread")]
   } else {
     
     print("no data for FRT 10")
     
     frt10<-data.table(pixelid=as.numeric(),
                       frt = as.numeric(),
-                     prob_ignition_escape = as.integer())
+                     prob_ignition_escape = as.integer(), 
+                     prob_ignition_spread = as.integer())
     
     
   }
 
-  #### FRT11 #### 
-  if (nrow(dat[frt==11,])>0) {
-    frt11<- dat[frt==11,]
-    
-    # Fire Escape
- #   model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_escape.csv")
-    
-    frt11[, logit_P_escape := -4.028508 +
-            -0.07285105 * climate1 +
-            0.04077977 * slope + 
-            0.305426 * log(rds_dist + 1) +
-            5.938547e-05 * dist_infra
-            ]
-    
-    frt11[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
-    
-    frt11[veg_cat %in% c(1,6),prob_ignition_escape:=0 ]
-    
-    # Spread
-#   model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_spread.csv")
-    
-
-  frt11<-frt11[, c("pixelid","frt", "prob_ignition_escape")]  
-  } else {
-    
-    print("no data for FRT 11")
-    
-    frt11<-data.table(pixelid = as.integer(),
-                      frt = as.numeric(),
-                     prob_ignition_escape = as.integer())
-  }
   
   #### FRT12  #### 
   if (nrow(dat[frt==12,])>0) {
     frt12<- dat[frt==12,]
     
     frt12[pixelid>0, all:=1]
-    frt12[veg_cat==3,veg_cat2:=1]
+    frt12[,veg_cat2_escape:=0][veg_cat %in% c(2,3), veg_cat2_escape:=1]
     
 
     # Fire Escape
@@ -778,13 +881,13 @@ calcProbEscape<-function(sim){
    
   frt12[, logit_P_escape := -2.841366 +
           -0.05367503 * climate2 + 
-          -3.693762 * veg_cat2 +
+          -3.693762 * veg_cat2_escape +
           -1.347356 * veg_cat4 +
           -0.6306343 * veg_cat5 +
           0.0006987995 *elevation +
           0.000150056 * rds_dist +
           0.3306912 * log(dist_infra+1) +
-          0.06785558* climate2 * veg_cat2 +
+          0.06785558* climate2 * veg_cat2_escape +
           0.04002989* climate2 * veg_cat4 +
           0.02299421* climate2 * veg_cat5]
   
@@ -792,37 +895,72 @@ calcProbEscape<-function(sim){
     frt12[veg_cat %in% c(0,6), prob_ignition_escape:=0]
     
     # Spread
-#    model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt12_spread.csv")
+#    #spread_12<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt12.rds")
     
-    # 
-    # frt12[, logit_P_spread := spreadstatic * all + 
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_climate_2 * climate2spread +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_c2 * veg_C2 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_c3 * veg_C3 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_c4 * veg_C4 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_c5 * veg_C5 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_c7 * veg_C7 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_d12 * veg_D12 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_m12 * veg_M12 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_m3 * veg_M3 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_N * veg_N +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_o1ab * veg_O1ab +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_s1 * veg_S1 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_s2 * veg_S2 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_log_road_dist * log(rds_dist+1)]
-    # 
-    # frt12[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+    frt12$scale_climate1<-(frt12$climate1-14.18335) / 1.574442
+    frt12$scale_climate2<-(frt12$climate2-28.77313) / 6.913877
+    frt12$scale_dem<-(frt12$dem-1088.504)/188.9186
+    frt12$scale_slope<-(frt12$slope_ha_bc-5.31055) / 5.292232
+    frt12$scale_roads<-(frt12$dist_roads_m-2388.984) / 5282.348
+    frt12$scale_infr<-(frt12$dist_infr_m-16387.01) / 11934.74
+    frt12$scale_dist_ignit<-(frt12$rast_ignit_dist-18792.87) / 13850.23
+    frt12$scale_pct_conifer<-(frt12$conifer_pct_cover_total-86.16816)/29.60282
+    frt12$scale_age<-(frt12$proj_age_1-104.2061)/71.06081
+    frt12$scale_basal_area<-(frt12$basal_area-17.63155)/14.41742
     
-
+    frt12[, aspect_cardinalO:=0][aspect_cardinal=="O", aspect_cardinalO:=1]
+    frt12[, aspect_cardinalS:=0][aspect_cardinal=="S", aspect_cardinalS:=1]
     
-    frt12<-frt12[, c("pixelid","frt", "prob_ignition_escape")]    
+    frt12[, bec_zone_codeBWBS:=0][bec_zone_code=="BWBS", bec_zone_codeBWBS:=1]
+    frt12[, bec_zone_codeCWH:=0][bec_zone_code=="CWH", bec_zone_codeCWH:=1]
+    frt12[, bec_zone_codeESSF:=0][bec_zone_code=="ESSF", bec_zone_codeESSF:=1]
+    frt12[, bec_zone_codeICH:=0][bec_zone_code=="ICH", bec_zone_codeICH:=1]
+    frt12[, bec_zone_codeIDF:=0][bec_zone_code=="IDF", bec_zone_codeIDF:=1]
+    frt12[, bec_zone_codeMH:=0][bec_zone_code=="MH", bec_zone_codeMH:=1]
+    frt12[, bec_zone_codeMS:=0][bec_zone_code=="MS", bec_zone_codeMS:=1]
+    frt12[, bec_zone_codeSBPS:=0][bec_zone_code=="SBPS", bec_zone_codeSBPS:=1]
+    frt12[, bec_zone_codeSBS:=0][bec_zone_code=="SBS", bec_zone_codeSBS:=1]
+    frt12[,  bec_zone_codeSWB :=0][bec_zone_code=="SWB",  bec_zone_codeSWB :=1]
+     
+    
+    frt12[, logit_P_spread := -3.26690 +
+            0.10305 * scale_dem +
+            -0.16968 * scale_dem^2 +
+            -0.69018 * scale_climate2 +
+            -0.69883 * veg_cat2 +
+            -1.18093 * veg_cat3 +
+            -0.07984 * veg_cat4 + 
+            -0.24491 * veg_cat5 +
+            0.12690 * scale_age + 
+            -0.06388 * scale_pct_conifer +
+            0.25611 * scale_slope +
+            0.12995 * aspect_cardinalO+
+            0.09112 * aspect_cardinalS  +
+            0.37446 * log(dist_infra+1) +
+            0.87832 * bec_zone_codeBWBS  +
+            -1.05010 * bec_zone_codeCWH +
+            0.63689 * bec_zone_codeESSF +
+            1.76570 * bec_zone_codeICH + 
+            0.05062 * bec_zone_codeIDF +
+            -2.84100 * bec_zone_codeMH +
+            1.59949 * bec_zone_codeMS +
+            1.69148 * bec_zone_codeSBPS + 
+            0.73241 * bec_zone_codeSBS + 
+            0.56206 * bec_zone_codeSWB]
+            
+    frt12[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+    frt12[veg_cat %in% c(0,6), prob_ignition_spread:=0]
+    
+     
+    frt12<-frt12[, c("pixelid","frt", "prob_ignition_escape", "prob_ignition_spread")]    
   } else {
     
     print("no data for FRT 12")
     
     frt12<-data.table(pixelid = as.numeric(),
                       frt = as.numeric(), 
-                     prob_ignition_escape = as.integer())
+                     prob_ignition_escape = as.integer(),
+                     prob_ignition_spread = as.integer())
     
   }
   
@@ -830,13 +968,15 @@ calcProbEscape<-function(sim){
   if (nrow(dat[frt==13,])>0) {
     frt13<- dat[frt==13,]
     
-    frt13[bec_zone_code=="SBPS", bec_zone_code:="SBS"]
-    frt13[bec_zone_code=="BWBS", bec_zone_code:="IDF"]
-    frt13[bec_zone_code=="BAFA", bec_zone_code:="CMA"]
-    frt13[bec_zone_code=="IMA", bec_zone_code:="CMA"]
-    frt13[bec_zone_code=="MH", bec_zone_code:="CWH"]
+    frt13$bec_zone_code_escape<-frt13$bec_zone_code
     
-    frt13<-cbind(frt13, model.matrix( ~ 0 + bec_zone_code, data=frt13 )) #add in the indicator structure for bec_zone_code
+    frt13[bec_zone_code_escape=="SBPS", bec_zone_code_escape:="SBS"]
+    frt13[bec_zone_code_escape=="BWBS", bec_zone_code_escape:="IDF"]
+    frt13[bec_zone_code_escape=="BAFA", bec_zone_code_escape:="CMA"]
+    frt13[bec_zone_code_escape=="IMA", bec_zone_code_escape:="CMA"]
+    frt13[bec_zone_code_escape=="MH", bec_zone_code_escape:="CWH"]
+    
+    frt13<-cbind(frt13, model.matrix( ~ 0 + bec_zone_code_escape, data=frt13 )) #add in the indicator structure for bec_zone_code
     
     # Fire Escape
  #  model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt13_escape.csv")
@@ -858,33 +998,62 @@ calcProbEscape<-function(sim){
     frt13[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
     frt13[veg_cat %in% c(0,6), prob_ignition_escape:=0]
     
+    
     # Spread
- #   model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt13_spread.csv")
+       spread_13<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt13.rds")
+       frt13[bec_zone_code=="SWB", bec_zone_code:="ESSF"]
+       frt13<-cbind(frt13, model.matrix( ~ 0 + bec_zone_code, data=frt13 ))
+       
+       # scale variables
+       frt13$scale_climate1<-(frt13$climate1-18.63689) / 2.962474
+       frt13$scale_climate2<-(frt13$climate2-37.12834) / 16.30768
+       frt13$scale_dem<-(frt13$dem-1300.345)/381.8039
+       frt13$scale_slope<-(frt13$slope_ha_bc-13.93795) / 10.69801
+       frt13$scale_roads<-(frt13$dist_roads_m-1624.878) / 3420.542
+       frt13$scale_infr<-(frt13$dist_infr_m-12949.65) / 11097.52
+       frt13$scale_dist_ignit<-(frt13$rast_ignit_dist-13298.58) / 14181.51
+       frt13$scale_pct_conifer<-(frt13$conifer_pct_cover_total-86.59616)/28.47786
+       frt13$scale_age<-(frt13$proj_age_1-121.0425)/77.45452
+       frt13$scale_basal_area<-(frt13$basal_area-22.35879)/17.49496
+       
+
+    frt13[, logit_P_spread := -2.94495 +
+            0.18774 * scale_climate1 +
+            0.02180 * scale_climate2 +
+            -0.32095 * veg_cat2 + 
+            -0.30088 * veg_cat3 +
+            -0.20165 * veg_cat4 +
+            -0.42798 * veg_cat5 +
+            0.16071 * scale_slope +
+            0.13988 * aspect_cardinalO +
+            0.24027 * aspect_cardinalS +
+            1.05822 * bec_zone_codeBG +
+            2.37690 * bec_zone_codeBWBS +
+            1.10824 * bec_zone_codeCMA +
+            0.98679 * bec_zone_codeCWH +
+            1.28365 * bec_zone_codeESSF +
+            1.26088 * bec_zone_codeICH +
+            1.58571 * bec_zone_codeIDF +
+            0.48304 * bec_zone_codeIMA +
+            0.65841 * bec_zone_codeMH +
+            1.32925 * bec_zone_codeMS +
+            1.49151 * bec_zone_codePP +
+            0.84479 * bec_zone_codeSBPS +
+            1.35466 * bec_zone_codeSBS +
+            0.18092 * log_infra +
+            0.03793 * scale_climate1 * scale_climate2 +
+            -0.14649 * scale_climate2 * veg_cat2 +
+            0.09134 * scale_climate2 * veg_cat3 +
+            -0.17157 * scale_climate2 * veg_cat4 +
+            -0.10071 * scale_climate2 * veg_cat5 +
+            0.09101 * scale_slope * aspect_cardinalO +
+            0.16996 * scale_slope * aspect_cardinalS
+            ]
     
-    # frt13[, veg_C2 := 0]
-    # frt13[fwveg == "C-2", veg_C2 := 1]
-    # frt13[, veg_C3 := 0]
-    # frt13[fwveg == "C-3", veg_C3 := 1]
-    # 
-    # frt13[fwveg == "C-1", veg_C3 :=1]
-    # 
-    # frt13[, logit_P_spread := spreadstatic * all + 
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_climate_2 * climate2spread +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_c3 * veg_C3 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_c5 * veg_C5 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_c7 * veg_C7 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_d12 * veg_D12 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_m12 * veg_M12 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_m3 * veg_M3 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_N * veg_N +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_o1ab * veg_O1ab +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_s1 * veg_S1 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_s2 * veg_S2 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_s3 * veg_S3]
-    # 
-    # frt13[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+    frt13[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+    frt13[veg_cat %in% c(0,6), prob_ignition_spread:=0]
     
-    frt13<-frt13[, c("pixelid", "frt", "prob_ignition_escape")]
+    frt13<-frt13[, c("pixelid", "frt", "prob_ignition_escape", "prob_ignition_spread")]
     
   } else {
     
@@ -901,10 +1070,11 @@ calcProbEscape<-function(sim){
   if (nrow(dat[frt==14,])>0) {
     frt14<- dat[frt==14,]
     
-    frt14[bec_zone_code=="ESSF", bec_zone_code:="ICH"]
+    frt14[,bec_zone_code_escape:=bec_zone_code] 
+    frt14[bec_zone_code_escape=="ESSF", bec_zone_code_escape:="ICH"]
     escape_frt14[veg_cat=="3", veg_cat2:=1]
     
-    frt14<-cbind(frt14, model.matrix( ~ 0 + bec_zone_code, data=frt14 ))
+    frt14<-cbind(frt14, model.matrix( ~ 0 + bec_zone_code_escape, data=frt14 ))
     
     # Fire Escape
 #      model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt14_escape.csv")
@@ -928,28 +1098,47 @@ calcProbEscape<-function(sim){
     frt14[veg_cat %in% c(0,6), prob_ignition_escape:=0]
     
     # Spread
-#       model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt14_spread.csv")
-       
-    #    frt14[fwveg == "S-2", veg_C7 :=1]
-    #    frt14[fwveg == "C-4", veg_C2 :=1]
-    #    frt14[fwveg == "S-3", veg_M12 :=1]
-    #    
-    #    
-    # frt14[, logit_P_spread := spreadstatic * all + 
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_climate_2 * climate2spread +
-    #         sim$coefficients[cause == 'spread' & frt==14]$coef_c3 * veg_C3 +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_c5 * veg_C5 +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_c7 * veg_C7 +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_d12 * veg_D12 +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_m12 * veg_M12 +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_N * veg_N +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_o1ab * veg_O1ab +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_s1 * veg_S1 +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_road_dist * rds_dist]
-    # 
-    # frt14[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
     
-    frt14<-frt14[, c("pixelid","frt","prob_ignition_escape")]
+    spread_14<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt14.rds")    
+    
+    frt14<-cbind(frt14, model.matrix( ~ 0 + bec_zone_code, data=frt14 ))
+   frt14[, logit_P_spread := -2.94495 +
+           0.18774 * scale_climate1 +
+           0.02180 * scale_climate2 +
+           -0.32095 * veg_cat2 +
+           -0.30088  * veg_cat3 +
+           -0.20165 * veg_cat4 +
+           -0.42798 * veg_cat5 +
+           0.16071 * scale_slope +
+           0.13988 * aspect_cardinalO +
+           0.24027 * aspect_cardinalS +
+           1.05822 * bec_zone_codeBG +
+           2.37690 * bec_zone_codeBWBS +
+           1.10824 * bec_zone_codeCMA +
+           0.98679 * bec_zone_codeCWH +
+           1.28365 * bec_zone_codeESSF +
+           1.26088 * bec_zone_codeICH +
+           1.58571 * bec_zone_codeIDF +
+           0.48304 * bec_zone_codeIMA +
+           0.65841 * bec_zone_codeMH +
+           1.32925 * bec_zone_codeMS +
+           1.49151 * bec_zone_codePP +
+           0.84479 * bec_zone_codeSBPS
+           1.35466 * bec_zone_codeSBS +
+           0.18092 * log_infra +
+           0.03793 * scale_climate1 * scale_climate2 +
+          -0.14649 * scale_climate2 * veg_cat2 +
+             0.09134*scale_climate2 * veg_cat3 +
+             -0.17157 * scale_climate2 * veg_cat4 +
+             -0.10071 * scale_climate2 * veg_cat5 +
+             0.09101  * scale_slope * aspect_cardinalO +
+             0.16996 * scale_slope * aspect_cardinalS
+             ]
+    
+     frt14[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+     frt14[veg_cat %in% c(0,6), prob_ignition_spread:=0]
+    
+    frt14<-frt14[, c("pixelid","frt","prob_ignition_escape", "prob_ignition_spread")]
     
   } else {
     
