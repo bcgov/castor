@@ -42,6 +42,7 @@ parameters <-  list(
   .progress = list(type = NA, interval = NA),
   .globals = list(),
   dataCastor = list(saveCastorDB = TRUE,
+                    sqlite_dbname = 'simple',
                     randomLandscapeZoneNumber = 1,
                     randomLandscape = list(100,100,0, 100, 0, 100),
                     randomLandscapeZoneConstraint = data.table(zoneid = 1,  variable = 'age', threshold = 140, type = 'ge', percentage = 0)

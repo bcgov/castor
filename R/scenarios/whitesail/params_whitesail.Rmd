@@ -31,7 +31,7 @@ writeRaster(ras.treed, "morice_treed2023.tif", overwrite =T)
 st_write(morice_lup, "morice_lup.gpkg")
 ```
 
-### Assign zoneids
+## Morice LRMP
 There is going to be two spatial rasters and tables because the High biodiversity emphasis areas are nested in the general forest areas.
 ```{r}
 tab.morice_lup1<-data.table(st_drop_geometry(morice_lup))
@@ -170,11 +170,176 @@ DBI::dbWriteTable(conn, c("zone", "morice_lrmp_spec"), value= zone.constraints.s
 dbDisconnect(conn)
 
 ```
-
-## Proposed GWM 4
+## GWM 2 - Proposed 20 year cycle
 ```{r}
-wha<-st_read("Proposed_WHA_6-291_single_edit.shp")
-wha.bec<-st_intersection(wha, bec)
+wha_bounds<-st_read("Proposed_WHA_6-291_mzones.shp")
+wha.bec.manage<-st_intersection(wha_bounds, bec)
+wha.bec.manage[is.na(wha.bec.manage$zone), ]$zone <-2
+wha.bec.manage[wha.bec.manage$zone ==0, ]$zone <-3
+wha.bec.manage<-st_make_valid(wha.bec.manage)
+wha.zones <- wha.bec.manage %>% 
+  group_by(zone) %>% 
+  summarize(geometry = st_union(geometry),
+            zone = zone)
+#no harvest in core
+ras.gwm2<-terra::rasterize(wha.zones , rast(ProvRast), field = 'zone')
+ras.gwm2[is.na(ras.gwm2[])]<-0
+writeRaster(ras.gwm2, "morice_wha_gwm2.tif", overwrite=T)
 
-st_write(wha.bec.single, "whabec.gpkg")
+zone.constraints.gwm2<-rbindlist(list(
+  data.table(zoneid =  2, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'no_harvest_core'),
+  data.table(zoneid =  1, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 1*5, stop = 3*5, label = 'no_harvest_south'),
+  data.table(zoneid =  1, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 5*5, stop = 7*5, label = 'no_harvest_south'),
+  data.table(zoneid =  1, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 9*5, stop = 11*5, label = 'no_harvest_south'),
+   data.table(zoneid =  1, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 13*5, stop = 15*5, label = 'no_harvest_south'),
+   data.table(zoneid =  1, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 17*5, stop = 19*5, label = 'no_harvest_south'),
+   data.table(zoneid =  1, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 21*5, stop = 23*5, label = 'no_harvest_south'),
+   data.table(zoneid =  1, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 25*5, stop = 27*5, label = 'no_harvest_south'),
+   data.table(zoneid =  1, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 29*5, stop = 31*5, label = 'no_harvest_south'),
+   data.table(zoneid =  1, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 33*5, stop = 35*5, label = 'no_harvest_south'),
+   data.table(zoneid =  1, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 37*5, stop = 39*5, label = 'no_harvest_south'),
+   data.table(zoneid =  3, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 1*5, stop = 1*5, label = 'no_harvest_north'),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 3*5, stop = 5*5, label = 'no_harvest_north'),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 7*5, stop = 9*5, label = 'no_harvest_north'),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 11*5, stop = 13*5, label = 'no_harvest_north'),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 15*5, stop = 17*5, label = 'no_harvest_north'),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 19*5, stop = 21*5, label = 'no_harvest_north'),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 23*5, stop = 25*5, label = 'no_harvest_south'),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 27*5, stop = 29*5, label = 'no_harvest_south'),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 31*5, stop = 33*5, label = 'no_harvest_south'),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 35*5, stop = 37*5, label = 'no_harvest_south'),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_gwm2', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 39*5, stop = 40*5, label = 'no_harvest_south')
+))
+  
+zone.constraints.gwm2$zoneid<-as.integer(zone.constraints.gwm2$zoneid)
+zone.constraints.gwm2$ndt<-as.integer(zone.constraints.gwm2$ndt)
+zone.constraints.gwm2$denom<-as.character(zone.constraints.gwm2$denom)
+zone.constraints.gwm2$multi_condition<-as.character(zone.constraints.gwm2$multi_condition)
+zone.constraints.gwm2$start<-as.integer(zone.constraints.gwm2$start)
+zone.constraints.gwm2$stop<-as.integer(zone.constraints.gwm2$stop)
+
+zone.constraints.gwm2$label<-NULL
+zone.constraints.gwm2$reference_zone<-'rast.morice_wha_gwm2'
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("zone", "morice_wha_gwm2"), value= zone.constraints.gwm2, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+```
+## GWM zones - Proposed 
+```{r}
+wha_bounds<-st_read("Proposed_WHA_6-291_mzones.shp")
+wha.gwm.type<-data.table(st_drop_geometry(wha_bounds))
+wha.gwm.type<-wha.gwm.type[, zoneid:=0][Type == 'Migration Corridor Management Zone' & zone==0, zoneid :=1][Type == 'Migration Corridor Management Zone' & zone==1, zoneid :=2][Type == 'Southside Management Zone', zoneid :=3][Type == 'Calving Management Zone', zoneid :=4][Type == 'High Elevation Management Zone'& zone ==0, zoneid :=5][Type == 'High Elevation Management Zone' & zone ==1, zoneid :=6]
+wha_bounds$zoneid<-wha.gwm.type$zoneid
+ras.wha_bounds<-terra::rasterize(wha_bounds, ProvRast, field="zoneid", overwrite=T)
+ras.wha_bounds[is.na(ras.wha_bounds[])]<-0
+#multiply by forested area
+ras.treed<-rast("morice_treed2023.tif")
+ras.wha_bounds2<-rast(ras.wha_bounds) * ras.treed
+writeRaster(ras.wha_bounds2, "morice_wha_zones.tif", overwrite=T)
+
+zone.constraints.whazones<-rbindlist(list(
+  data.table(zoneid =  1, reference_zone = 'rast.morice_wha_zones', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 10, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  1, reference_zone = 'rast.morice_wha_zones', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 70, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  2, reference_zone = 'rast.morice_wha_zones', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 10, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  2, reference_zone = 'rast.morice_wha_zones', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 70, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_wha_zones', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 10, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_wha_zones', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 70, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  4, reference_zone = 'rast.morice_wha_zones', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 17, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  5, reference_zone = 'rast.morice_wha_zones', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 9, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  6, reference_zone = 'rast.morice_wha_zones', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 9, multi_condition =NA, denom =NA, start = 0, stop = 250)
+))
+
+zone.constraints.whazones$zoneid<-as.integer(zone.constraints.whazones$zoneid)
+zone.constraints.whazones$ndt<-as.integer(zone.constraints.whazones$ndt)
+zone.constraints.whazones$denom<-as.character(zone.constraints.whazones$denom)
+zone.constraints.whazones$multi_condition<-as.character(zone.constraints.whazones$multi_condition)
+zone.constraints.whazones$start<-as.integer(zone.constraints.whazones$start)
+zone.constraints.whazones$stop<-as.integer(zone.constraints.whazones$stop)
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("zone", "morice_wha_zones"), value= zone.constraints.whazones, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+```
+## GWM 4 - Proposed seral targets
+```{r}
+wha<-st_read("Proposed_WHA_6-291.shp")
+wha.seral<-st_intersection(wha, bec)
+
+#Bec zone level
+wha.seral.table<-data.table(st_drop_geometry(wha.seral))
+wha.seral.table<-wha.seral.table[zone == 'SBS' & subzone == 'mc', zoneid:=1 ][zone == 'ESSF' & subzone %in% c('mcw','mc', 'mcp'), zoneid:=2 ][zone == 'ESSF' & subzone %in% c('mk', 'mkw', 'mkp'), zoneid:=3 ][zone == 'MH', zoneid:=4 ]
+wha.seral$zoneid<-wha.seral.table$zoneid
+zone1<-wha.seral[wha.seral$zoneid == 1,]
+zone2<-wha.seral[wha.seral$zoneid == 2,]
+zone3<-wha.seral[wha.seral$zoneid == 3,]
+zone4<-wha.seral[wha.seral$zoneid == 4,]
+zone1<-st_as_sf(merge(st_cast(st_union(zone1) , 'MULTIPOLYGON'), data.table(zoneid =1)))
+zone2<-st_as_sf(merge(st_cast(st_union(zone2) , 'MULTIPOLYGON'), data.table(zoneid =2)))
+zone3<-st_as_sf(merge(st_cast(st_union(zone3) , 'MULTIPOLYGON'), data.table(zoneid =3)))
+zone4<-st_as_sf(merge(st_cast(st_union(zone4) , 'MULTIPOLYGON'), data.table(zoneid =4)))
+
+wha.seral.zones<-rbind(zone1, zone2, zone3, zone4)
+
+ras.wha.seral<-terra::rasterize(wha.seral.zones, rast(ProvRast), field="zoneid", overwrite=T)
+
+ras.wha.seral[is.na(ras.wha.seral[])]<-0
+ras.treed<-rast("morice_treed2023.tif")
+wha.seral2<-ras.wha.seral * ras.treed
+writeRaster(wha.seral2, "morice_wha_seral.tif", overwrite=T)
+
+zone.constraints.whaseral<-rbindlist(list(
+  data.table(zoneid =  1, reference_zone = 'rast.morice_wha_stev_obs', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 21, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  1, reference_zone = 'rast.morice_wha_stev_obs', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 61, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  1, reference_zone = 'rast.morice_wha_stev_mod', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 28, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  1, reference_zone = 'rast.morice_wha_stev_mod', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 48, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  1, reference_zone = 'rast.morice_wha_hbea', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 37, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  1, reference_zone = 'rast.morice_wha_hbea', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 33, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  1, reference_zone = 'rast.morice_wha_hbea', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 26, multi_condition =NA, denom =NA, start = 0, stop = 250),
+    data.table(zoneid =  1, reference_zone = 'rast.morice_wha_gfa', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 48, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  1, reference_zone = 'rast.morice_wha_gfa', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 20, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  1, reference_zone = 'rast.morice_wha_gfa', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 17, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  2, reference_zone = 'rast.morice_wha_stev_obs', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 6, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  2, reference_zone = 'rast.morice_wha_stev_obs', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 76, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  2, reference_zone = 'rast.morice_wha_stev_mod', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 18, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  2, reference_zone = 'rast.morice_wha_stev_mod', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 64, multi_condition =NA, denom =NA, start = 0, stop = 250),
+    data.table(zoneid =  2, reference_zone = 'rast.morice_wha_hbea', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 28, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  2, reference_zone = 'rast.morice_wha_hbea', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 48, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  2, reference_zone = 'rast.morice_wha_hbea', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 42, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  2, reference_zone = 'rast.morice_wha_gfa', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 38, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  2, reference_zone = 'rast.morice_wha_gfa', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 37, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  2, reference_zone = 'rast.morice_wha_gfa', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 34, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_wha_stev_obs', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 5, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_wha_stev_obs', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 81, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_wha_stev_mod', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 7, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_wha_stev_mod', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 85, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_wha_hbea', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 7, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  3, reference_zone = 'rast.morice_wha_hbea', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 86, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_wha_hbea', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 84, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_wha_gfa', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 9, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_wha_gfa', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 83, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  3, reference_zone = 'rast.morice_wha_gfa', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 82, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  4, reference_zone = 'rast.morice_wha_stev_obs', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 16, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  4, reference_zone = 'rast.morice_wha_stev_obs', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 71, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  4, reference_zone = 'rast.morice_wha_stev_obs', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 71, multi_condition =NA, denom =NA, start = 0, stop = 250),
+    data.table(zoneid =  4, reference_zone = 'rast.morice_wha_stev_mod', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 16, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  4, reference_zone = 'rast.morice_wha_stev_mod', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 71, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  4, reference_zone = 'rast.morice_wha_stev_mod', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 71, multi_condition =NA, denom =NA, start = 0, stop = 250),
+    data.table(zoneid =  4, reference_zone = 'rast.morice_wha_hbea', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 16, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  4, reference_zone = 'rast.morice_wha_hbea', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 71, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  4, reference_zone = 'rast.morice_wha_hbea', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 71, multi_condition =NA, denom =NA, start = 0, stop = 250),
+    data.table(zoneid =  4, reference_zone = 'rast.morice_wha_gfa', ndt =0, variable= 'age', threshold = 40, type = 'le', percentage = 27, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  4, reference_zone = 'rast.morice_wha_gfa', ndt =0, variable= 'age', threshold = 100, type = 'ge', percentage = 64, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  4, reference_zone = 'rast.morice_wha_gfa', ndt =0, variable= 'age', threshold = 140, type = 'ge', percentage = 62, multi_condition =NA, denom =NA, start = 0, stop = 250)
+))
+
+zone.constraints.whaseral$zoneid<-as.integer(zone.constraints.whaseral$zoneid)
+zone.constraints.whaseral$ndt<-as.integer(zone.constraints.whaseral$ndt)
+zone.constraints.whaseral$denom<-as.character(zone.constraints.whaseral$denom)
+zone.constraints.whaseral$multi_condition<-as.character(zone.constraints.whaseral$multi_condition)
+zone.constraints.whaseral$start<-as.integer(zone.constraints.whaseral$start)
+zone.constraints.whaseral$stop<-as.integer(zone.constraints.whaseral$stop)
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("zone", "morice_wha_seral"), value= zone.constraints.whaseral, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
 ```

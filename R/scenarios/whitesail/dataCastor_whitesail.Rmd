@@ -47,7 +47,7 @@ parameters <-  list (
         .globals = list (),
         dataCastor = list(dbName = 'castor',
                          saveCastorDB = TRUE,
-                          sqlite_dbname = "whitesail_20240326", 
+                          sqlite_dbname = "whitesail_20240408", 
                           nameBoundaryFile = "public.tsa_aac_bounds", 
                           nameBoundaryColumn = "tsa_name", 
                           nameBoundary = "Morice_TSA", 
@@ -63,7 +63,13 @@ parameters <-  list (
                                                "rast.zone_cond_fsw", 
                                                "rast.zone_cond_cw",
                                                "rast.morice_lrmp_gen",
-                                               "rast.morice_lrmp_spec"
+                                               "rast.morice_lrmp_spec",
+                                               "rast.morice_wha_gwm2",
+                                               "rast.morice_wha_zones",
+                                               "rast.morice_wha_stev_obs",
+                                               "rast.morice_wha_stev_mod",
+                                               "rast.morice_wha_hbea",
+                                               "rast.morice_wha_gfa"
                                                ),
                           nameZoneTable = "zone.constraints", 
                           # natural and managed stands yield curves are the same    
@@ -95,19 +101,19 @@ parameters <-  list (
                            nameRoads =  'rast.ce_road_2022'
                            ),
    
-        uploadCastor = list(aoiName = 'wolverine',
+        uploadCastor = list(aoiName = 'whitesail_morice',
                               dbInfo  = list(keyring::key_get ("vmdbhost", keyring="postgreSQL"),
                                              keyring::key_get ("vmdbuser", keyring="postgreSQL"),
                                              keyring::key_get ("vmdbpass", keyring="postgreSQL"), 
                                              keyring::key_get ("vmdbname", keyring="postgreSQL")))
         )
 
-scenario = data.table (name = "load_data_Nov2023", description = "dataCastor output")
+scenario = data.table (name = "load_data_April2024", description = "dataCastor output")
 
 modules <- list("dataCastor",
                 "growingStockCastor",
                 "blockingCastor", 
-                #"roadCastor",
+                "roadCastor",
                 #"survivalCastor",
                 #"disturbanceCastor",
                 #"volumebyareaReportCastor",
