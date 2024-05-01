@@ -146,6 +146,7 @@ getClimateDataForAOI <- function(sim) {
 
 getClimateDataForProvince <- function(sim) {
   
+  
   qry<-paste0("SELECT COUNT(*) as exists_check FROM sqlite_master WHERE type='table' AND name='climate_provincial_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), "';")
   
   if(dbGetQuery(sim$castordb, qry)$exists_check==0) {
@@ -156,6 +157,8 @@ getClimateDataForProvince <- function(sim) {
     qry<-paste0("CREATE TABLE IF NOT EXISTS climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor")," (run character, period integer, meanCMI numeric)")
     
     dbExecute(sim$castordb, qry)
+    
+    if(! suppliedElsewhere("ds_out_summary", sim)){
     
     message("extract climate_id values from raster")
   
@@ -220,18 +223,18 @@ getClimateDataForProvince <- function(sim) {
   
   ds_out<-ds_out[!is.na(rowmeanCMI)]
   ds_out[, AveCMI:=mean(rowmeanCMI), by=c("RUN", "PERIOD")]
-  ds_out_summary<-unique(ds_out, by="AveCMI")
-  ds_out_summary[, c("pixelid_climate", "rowmeanCMI"):=NULL]
+  sim$ds_out_summary<-unique(ds_out, by="AveCMI")
+  sim$ds_out_summary[, c("pixelid_climate", "rowmeanCMI"):=NULL]
   
-  
+    }
   qry<-paste0("INSERT INTO climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " (run, period, meanCMI) VALUES (:RUN, :PERIOD, :AveCMI)")
   
   dbBegin(sim$castordb)
-  rs<-dbSendQuery(sim$castordb, qry, ds_out_summary)
+  rs<-dbSendQuery(sim$castordb, qry, sim$ds_out_summary)
   dbClearResult(rs)
   dbCommit(sim$castordb)
   
-  rm(ds_out,ds_out_summary, x1, x2, x3, x4, x5, x6, x7, x8,x9, x10, x11, x12, x13, x14, x15, inputs)
+  rm(ds_out, x1, x2, x3, x4, x5, x6, x7, x8,x9, x10, x11, x12, x13, x14, x15, inputs)
   gc()
   
   } else {
