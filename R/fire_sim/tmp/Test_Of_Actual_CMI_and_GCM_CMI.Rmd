@@ -1,0 +1,96 @@
+---
+title: "Untitled"
+author: "Elizabeth Kleynhans"
+date: "2024-04-04"
+output: html_document
+---
+
+GCM data
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+library(climr)
+library(terra)
+library(data.table)
+library(ggplot2)
+
+```
+
+```{r}
+test_pts<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\escape_clim_2020.csv")
+
+test_pts<-data.table(test_pts)
+
+test_pts[,ID2:=NULL]
+test_pts<-test_pts[,c("ID1", "long", "lat", "el")]
+setnames(test_pts, c("id", "lon", "lat", "elev"))
+test_pts[, id:=1:278]
+
+ds_out <- climr_downscale(xyz = test_pts, which_normal = "auto", 
+                          gcm_models = c("ACCESS-ESM1-5", "MPI-ESM1-2-HR"), 
+                          ssp = c("ssp370","ssp245"), 
+                          #gcm_period = c("2021_2040", "2041_2060","2061_2080"),
+                          gcm_ts_years = 2020,
+                          max_run = 3, # we want 3 individual runs for each model
+                          vars = c("CMI05", "CMI06", "CMI07", "CMI08" ))
+
+ds_out
+
+ds_out2<-ds_out[GCM=="ACCESS-ESM1-5" & SSP=="ssp245",]
+ds_out2[,PERIOD:=NULL]
+
+data_long <- tidyr::gather(ds_out2, condition, measurement, CMI05:CMI08, factor_key=TRUE)
+
+p <- ggplot(data_long, aes(x=condition, y=measurement, fill=RUN)) + 
+  labs(title="climR data",x="CMI", y = "")+
+  geom_boxplot()
+p
+
+
+```
+
+
+```{r}
+fromclimatebc<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\tmp\\test_2020M.csv")
+
+fromclimatebc<-as.data.table(fromclimatebc)
+fromclimatebc2<-fromclimatebc[,c("ID1", "Latitude", "Longitude", "Elevation","CMI05", "CMI06", "CMI07", "CMI08")]
+summary(fromclimatebc2)
+
+data_long <- tidyr::gather(fromclimatebc2, condition, measurement, CMI05:CMI08, factor_key=TRUE)
+
+# Basic box plot
+p <- ggplot(data_long, aes(x=condition, y=measurement)) + 
+  labs(title="ClimateBC data",x="CMI", y = "")+
+  geom_boxplot()
+p
+
+```
+
+Add climate BC and GM data together
+```{r}
+fromclimatebc2$GCM<-"actual"
+fromclimatebc2$SSP<-"."
+fromclimatebc2$RUN<-"observed"
+fromclimatebc2<-fromclimatebc2 %>% rename(id=ID1)
+
+fromclimatebc2<-fromclimatebc2[, c("Latitude", "Longitude", "Elevation"):=NULL]
+
+data<-rbind(ds_out2, fromclimatebc2)
+
+data_long <- tidyr::gather(data, condition, measurement, CMI05:CMI08, factor_key=TRUE)
+
+
+p <- ggplot(data_long, aes(x=condition, y=measurement, fill=RUN)) + 
+  labs(title="climR data",x="CMI", y = "")+
+  geom_boxplot()
+p
+
+
+```
+
+

@@ -30,9 +30,9 @@ defineModule(sim, list(
     #defineParameter("simulationTimeStep", "numeric", 1, NA, NA, "This describes the simulation time step interval"),
     defineParameter("calculateInterval", "numeric", 1, NA, NA, "The simulation time at which disturbance indicators are calculated"),
     defineParameter("nameFrtRaster", "numeric", NA, NA, NA, "Raster of the fire regime types across Canada"),
-    defineParameter("nameStaticLightningIgnitRaster", "numeric", NA, NA, NA, "Raster with the values of the coefficients that are constant (e.g. intercept + b1*elevation) in the lightning ignition model"),
-    defineParameter("nameStaticHumanIgnitRaster", "numeric", NA, NA, NA, "Raster with the values of the coefficients that are constant (e.g. intercept + b1*elevation + b2*distance_to_infrastructure) in the human ignition model"),
-    defineParameter("nameStaticEscapeRaster", "numeric", NA, NA, NA, "Raster with the values of the coefficients that are constant (e.g. intercept + b1*elevation + b2*distance_to_infrastructure) in the fire escape model"),
+    defineParameter("nameAspectRaster", "numeric", NA, NA, NA, "Raster of aspect across BC"),
+    defineParameter("nameSlopeRaster", "numeric", NA, NA, NA, "Raster of slope across BC"),
+    defineParameter("nameDistInfrastructureRaster", "numeric", NA, NA, NA, "Raster of distance from any particular pixel to the closest infrastructure. Infrastructure is rail roads, powerlines, urban, oil (wells, pump sites etc), mines"),
     defineParameter("nameStaticSpreadRaster", "numeric", NA, NA, NA, "Raster with the values of the coefficients that are constant (e.g. intercept + b1*elevation + b2*distance_to_infrastructure + b3*spring_wind) in the spread model"),
     defineParameter("nameRoadsRast", "numeric", NA, NA, NA, "Raster of roads across BC. This is here incase roadsCastor is not run"),
     defineParameter("nameElevationRaster", "numeric", NA, NA, NA, "Digital elevation map of BC This is here incase elevation data is not supplied in another module"),
@@ -73,6 +73,8 @@ defineModule(sim, list(
     createsOutput("fireReport", "data.table", "Summary per simulation period of the fire indicators i.e. total area burned, number of fire starts"),
     createsOutput("ras.frt", "raster", "Raster of fire regime types (maybe not needed)"),
     createsOutput("frt_id", "data.table", "List of fire regime types (maybe not needed)"),
+    createsOutput("downdat", "data.table", "List of fire regime types (maybe not needed)"),
+    
     createsOutput("veg3", "data.table", "Table with pixelid and fuel type category. This table gets passed to calcProbFire"),
     createsOutput("coefficients", "data.table", "Table of coefficient values for variables that vary e.g. climate, fuel type and distance to roads. This table is used to calculate the probability rasters at every simulation time step."),
     createsOutput("fire_static", "data.table", "Table of static values for model parameters and variables that dont change across the simulation. These values are sampled from rasters produced for the whole province with a different value for each pixel according to each model e.g. lightning, person, escape, spread.  e.g. P(person) = intercept + B1*elevation + B2 * distance. "),
@@ -102,8 +104,8 @@ doEvent.fireCastor = function(sim, eventTime, eventType, debug = FALSE){
       sim <- scheduleEvent(sim, time(sim), "fireCastor", "numberOfIgnitions", 14)
       sim <- scheduleEvent(sim, time(sim), "fireCastor", "areaBurned", 15)
       sim <- scheduleEvent(sim, time(sim), "fireCastor", "calculateProbEscapeSpread", 16)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "simulateFireStarts", 5)
-      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "simulateFireSpread", 5)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "ignitionLocations", 5)
+      sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "simulateFireSpread", 6)
       sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor") , "fireCastor", "saveFireRasters", 6)
         },
       
@@ -171,7 +173,7 @@ areaBurned = {
   sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor"), "fireCastor", "areaBurned", 15)
 },
 
-simulateFireStarts = {
+ignitionLocations = {
   sim<-ignitLocations(sim)
   sim <- scheduleEvent(sim, time(sim) + P(sim, "calculateInterval", "fireCastor"), "fireCastor", "simulateFireStarts", 5)
   },
@@ -228,82 +230,107 @@ getStaticVariables<-function(sim){
     stop(paste0("ERROR: extents are not the same check -", P(sim, "nameFrtRaster", "fireCastor")))
   }
   
-   message("get static fire variables")
-#   #constant coefficients
-#   ras.ignitlightning<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-#                                      srcRaster= P(sim, "nameStaticLightningIgnitRaster", "fireCastor"), 
-#                                      clipper=sim$boundaryInfo[1] , 
-#                                      geom= sim$boundaryInfo[4] , 
-#                                      where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-#                                      conn=NULL))
-#   if(terra::ext(sim$ras) == terra::ext(ras.ignitlightning)){
-#     ignit_lightning_static<-data.table(ignitstaticlightning = as.numeric(ras.ignitlightning[]))
-#     ignit_lightning_static[, pixelid := seq_len(.N)][, ignitstaticlightning := as.numeric(ignitstaticlightning)]
-#     ignit_lightning_static<-ignit_lightning_static[ignitstaticlightning > -200, ]
-#     }else{
-#       stop(paste0("ERROR: extents are not the same check -", P(sim, "nameStaticLightningIgnitRaster", "fireCastor")))
-# }
-# 
-#     # ignition human    
-#     ras.ignithuman<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-#                                                   srcRaster= P(sim, "nameStaticHumanIgnitRaster", "fireCastor"), 
-#                                                   clipper=sim$boundaryInfo[1] , 
-#                                                   geom= sim$boundaryInfo[4] , 
-#                                                   where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-#                                                   conn=NULL))
-#     if(terra::ext(sim$ras) == terra::ext(ras.ignithuman)){
-#       ignit_human_static<-data.table(ignitstatichuman = as.numeric(ras.ignithuman[]))
-#       ignit_human_static[, pixelid := seq_len(.N)][, ignitstatichuman := as.numeric(ignitstatichuman)]
-#       ignit_human_static<-ignit_human_static[ignitstatichuman > -200, ]
-#     }else{
-#       stop(paste0("ERROR: extents are not the same check -", P(sim, "nameStaticHumanIgnitRaster", "fireCastor")))
-#     }
-#     
-    # TO DO : THere must be NA's in the escape and spreaad data e.g. for wind or for slope, aspect and elevation. I know this because escape_static and spread_static are smaller than ignit_human_static or ignit_lightning_static. Go back and give the NA values the average value for that FRT and then re-run the script so that there are no holes!!!
-    
-    # Escape  
-      ras.escape<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                                                    srcRaster= P(sim, "nameStaticEscapeRaster", "fireCastor"), 
-                                                    clipper=sim$boundaryInfo[1] , 
-                                                    geom= sim$boundaryInfo[4] , 
-                                                    where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                                    conn=NULL))
-      if(terra::ext(sim$ras) == terra::ext(ras.escape)){
-        escape_static<-data.table(escapestatic = as.numeric(ras.escape[]))
-        escape_static[, pixelid := seq_len(.N)][, escapestatic := as.numeric(escapestatic)]
-        escape_static<-escape_static[escapestatic > -2000, ]
-      }else{
-        stop(paste0("ERROR: extents are not the same check -", P(sim, "nameStaticEscapeRaster", "fireCastor")))
-      }
-      
-   # spread     
-        # ras.spread<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-        #                                               srcRaster= P(sim, "nameStaticSpreadRaster", "fireCastor"), 
-        #                                               clipper=sim$boundaryInfo[1] , 
-        #                                               geom= sim$boundaryInfo[4] , 
-        #                                               where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-        #                                               conn=NULL))
-        # if(terra::ext(sim$ras) == terra::ext(ras.spread)){
-        #   spread_static<-data.table(spreadstatic = as.numeric(ras.spread[]))
-        #   spread_static[, pixelid := seq_len(.N)][, spreadstatic := as.numeric(spreadstatic)]
-        #   spread_static<-spread_static[spreadstatic > -200, ]
-        # }else{
-        #   stop(paste0("ERROR: extents are not the same check -", P(sim, "nameStaticSpreadRaster", "fireCastor")))
-        # }
-        
-    # fire_static<-merge(ignit_lightning_static,ignit_human_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-    # fire_static<-merge(fire_static,escape_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
- #   fire_static<-merge(fire_static,spread_static, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-    sim$fire_static<-merge(escape_static, sim$frt_id, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-    
+   message("get aspect")
+   
+   ras.aspect<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+                                          srcRaster= P(sim, "nameAspectRaster", "fireCastor"), 
+                                          clipper=sim$boundaryInfo[1] , 
+                                          geom= sim$boundaryInfo[4] , 
+                                          where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                          conn=NULL))
+   if(terra::ext(sim$ras) == terra::ext(ras.aspect)){
+     aspect_id<-data.table(aspect = as.numeric(ras.aspect[]))
+     aspect_id[, pixelid := seq_len(.N)][, aspect := as.numeric(aspect)]
+     gc()
+     
+     aspect_id[aspect>315, aspect_cardinal:="N"]
+     aspect_id[aspect<=45, aspect_cardinal:="N"]
+     aspect_id[aspect>45 & aspect<=135, aspect_cardinal:="O"]
+     aspect_id[aspect>135 & aspect<=225, aspect_cardinal:="S"]
+     aspect_id[aspect>225 & aspect<=315, aspect_cardinal:="O"]
+     
+     aspect_id[,aspect:=NULL]
+     
+     
+   }else{
+     stop(paste0("ERROR: extents are not the same check -", P(sim, "nameAspectRaster", "fireCastor")))
+   }
+   
+   
+   
+   message("get slope")
+   ras.slope<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+                                         srcRaster= P(sim, "nameSlopeRaster", "fireCastor"), 
+                                         clipper=sim$boundaryInfo[1] , 
+                                         geom= sim$boundaryInfo[4] , 
+                                         where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                         conn=NULL))
+   if(terra::ext(sim$ras) == terra::ext(ras.slope)){
+     slope_id<-data.table(slope = as.numeric(ras.slope[]))
+     slope_id[, pixelid := seq_len(.N)][, slope := as.numeric(slope)]
+     gc()
+   }else{
+     stop(paste0("ERROR: extents are not the same check -", P(sim, "nameSlopeRaster", "fireCastor")))
+   }
+   
+   message("get distance to infrastructure")
+   
+   ras.infr<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+                                         srcRaster= P(sim, "nameDistInfrastructureRaster", "fireCastor"), 
+                                         clipper=sim$boundaryInfo[1] , 
+                                         geom= sim$boundaryInfo[4] , 
+                                         where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                         conn=NULL))
+   if(terra::ext(sim$ras) == terra::ext(ras.infr)){
+     infra_id<-data.table(dist_infra = as.numeric(ras.infr[]))
+     infra_id[, pixelid := seq_len(.N)][, dist_infra := as.numeric(dist_infra)]
+     gc()
+   }else{
+     stop(paste0("ERROR: extents are not the same check -", P(sim, "nameDistInfrastructureRaster", "fireCastor")))
+   }
+   
+   if(!(P(sim, "nameBecRast", "fireCastor") == "99999")){
+     message("getting BEC information")
+     
+     ras.bec<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)),
+                                        srcRaster= P(sim, "nameBecRast", "fireCastor"),
+                                        clipper=sim$boundaryInfo[1] ,
+                                        geom= sim$boundaryInfo[4] ,
+                                        where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                        conn=NULL))
+     
+     if(terra::ext(sim$ras) == terra::ext(ras.bec)){ #need to check that each of the extents are the same
+       bec_id<-data.table(idkey = as.integer(ras.bec[]))
+       bec_id[, pixelid := seq_len(.N)][, idkey := as.integer(idkey)]
+       rm(ras.bec)
+       gc()
+     }else{
+       stop(paste0("ERROR: extents are not the same check -", P(sim, "nameBecRast", "fireCastor")))
+     }
+     
+     bec_id_key<-unique(bec_id[!(is.na(idkey)), idkey])
+     bec_key<-data.table(getTableQuery(paste0("SELECT idkey, zone, subzone FROM ",P(sim, "nameBecTable","fireCastor"), " WHERE idkey IN (", paste(bec_id_key, collapse = ","),");")))
+     
+     bec<-merge(x=bec_id, y=bec_key, by.x = "idkey", by.y = "idkey", all.x = TRUE)
+     bec<-bec[, idkey:=NULL] # remove the fid key
+   } else {
+     message("BEC info in VRI")
+   }
+   
+   fire_static <- merge(infra_id, slope_id, by="pixelid")
+   fire_static <- merge(fire_static, bec, by="pixelid")
+   sim$fire_static<-merge(fire_static, aspect_id, by="pixelid")
+
     #add to the castordb
     # dbBegin(sim$castordb)
     # rs<-dbSendQuery(sim$castordb, "INSERT INTO firevariables (pixelid, frt, ignitstaticlightning, ignitstatichuman, escapestatic, spreadstatic) values (:pixelid, :frt, :ignitstaticlightning, :ignitstatichuman, :escapestatic, :spreadstatic)", fire_static)
     # dbClearResult(rs)
     # dbCommit(sim$castordb)
   
-    rm(ras.escape, escape_static)
+    rm(infra_id, slope_id, aspect_id, ras.infr, ras.aspect, ras.slope)
     gc()
+    
+    
   } else {
     print("using pre-existing fire_static variables")
   }
@@ -390,12 +417,14 @@ roadDistCalc <- function(sim) {
 getClimateVariables <- function(sim) {
   
   #### TO DO: fix GCM run ####
-  #I need to think about how to incorporate the different GCM runs in here. i.e. each GCM has several runs. What should I do about this.  
+  #I need to think about how to incorporate the different GCM runs in here. i.e. each GCM has several runs. What should I do about this and how should I save the outputs for each run. 
   
    
    id_vals<-data.table(dbGetQuery(sim$castordb, paste0("SELECT pixelid, pixelid_climate FROM pixels")))
    
    #id_vals2<-merge(climate_dat_no1)
+   
+   #### FIX I have listed one run here but I need to run the sim for each run so think about how to do this.####
    
    dat<-data.table(dbGetQuery(sim$castordb, paste0("SELECT * FROM climate_", P(sim, "gcmname", "climateCastor"),"_",P(sim, "ssp", "climateCastor"), " WHERE period=", time(sim)*P(sim, "calculateInterval", "fireCastor") + P(sim, "simStartYear", "fireCastor") , " AND run == 'r10i1p1f1'", ";")))
    #sim$run
@@ -420,8 +449,19 @@ getClimateVariables <- function(sim) {
    clim_dat[frt==15, climate1escape:=(cmd07 +cmd08)/2]
    
    # spread
-   clim_dat[frt==5, climate1spread:=(tmax06+tmax07+tmax08)/3]
-   clim_dat[frt==5, climate2spread:=(ppt06+ppt07+ppt08)/3]
+   clim_dat[frt %in% c(5,7), climate1spread:=(tmax06+tmax07+tmax08)/3]
+   clim_dat[frt %in% c(5,7), climate2spread:=(ppt06+ppt07+ppt08)/3]
+   clim_dat[frt %in% c(9,11),climate1spread:=(tave03+tave04+tave05+tave06+tave07+tave08)/6]
+   clim_dat[frt %in% c(9,11),climate2spread:=(ppt03+ppt04+ppt05+ppt6+ppt07+ppt08)/6]
+   clim_dat[frt == 10, climate1spread:=tmax06]
+   clim_dat[frt == 10, climate2spread:=ppt06]
+   clim_dat[frt == 12, climate1spread:=(tmax04 + tmax05 + tmax06)/3]
+   clim_dat[frt == 12, climate2spread:=(ppt04 + ppt05 + ppt06)/3]
+   clim_dat[frt == 13, climate1spread:=(tmax05 + tmax06 + tmax07 + tmax08 + tmax09)/5]
+   clim_dat[frt == 13, climate2spread:=(ppt05 + ppt06+ ppt07 + ppt08 + ppt09)/5]
+   clim_dat[frt == 14, climate1spread:=(tmin03+tmin04+tmin05 + tmin06 + tmin07 + tmin08)/6]
+   clim_dat[frt == 14, climate2spread:=(ppt03 + ppt04 + ppt05 + ppt06+ ppt07 + ppt08)/6]
+   
    
    
   sim$climate_data<-clim_dat[ ,c("pixelid","gcm", "ssp", "run","period","cmi", "cmi3yr", "climate1escape", "climate2escape", "climate1spread", "climate2spread")]
@@ -437,35 +477,6 @@ createVegetationTable <- function(sim) {
   message("get vegetation data from the VRI")
   
   # Get bec zone and bec subzone if is not in VRI table
-  
-  if(!(P(sim, "nameBecRast", "fireCastor") == "99999")){
-  
-  message("getting BEC information")
-
-  ras.bec<- terra::rast(RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)),
-                                     srcRaster= P(sim, "nameBecRast", "fireCastor"),
-                                     clipper=sim$boundaryInfo[1] ,
-                                     geom= sim$boundaryInfo[4] ,
-                                     where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                     conn=NULL))
-
-  if(terra::ext(sim$ras) == terra::ext(ras.bec)){ #need to check that each of the extents are the same
-    bec_id<-data.table(idkey = as.integer(ras.bec[]))
-    bec_id[, pixelid := seq_len(.N)][, idkey := as.integer(idkey)]
-    rm(ras.bec)
-    gc()
-  }else{
-    stop(paste0("ERROR: extents are not the same check -", P(sim, "nameBecRast", "fireCastor")))
-  }
-
-  bec_id_key<-unique(bec_id[!(is.na(idkey)), idkey])
-  bec_key<-data.table(getTableQuery(paste0("SELECT idkey, zone, subzone FROM ",P(sim, "nameBecTable","fireCastor"), " WHERE idkey IN (", paste(bec_id_key, collapse = ","),");")))
-
-  bec<-merge(x=bec_id, y=bec_key, by.x = "idkey", by.y = "idkey", all.x = TRUE)
-  bec<-bec[, idkey:=NULL] # remove the fid key
-  } else {
-    message("BEC info in VRI")
-  }
 
 
   #**************FOREST INVENTORY - VEGETATION VARIABLES*******************#
@@ -514,7 +525,7 @@ createVegetationTable <- function(sim) {
         inv<-merge(x=inv_id, y=attrib_inv, by.x = "fid", by.y = "fid", all.x = TRUE) 
         inv<-inv[, fid:=NULL] # remove the fid key
         
-        inv<-merge(x=inv, y=bec, by.x="pixelid", by.y="pixelid", all.x=TRUE)
+        #inv<-merge(x=inv, y=bec, by.x="pixelid", by.y="pixelid", all.x=TRUE)
         
         message("calculating % conifer")
         
@@ -581,39 +592,67 @@ message("getting vegetation data")
   
 }
 
-calcProbEscape<-function(sim){
-  
-  
-  #### UPDATE FROM HERE ####
- 
+calcProbEscapeSpread<-function(sim){
   
   dat<-merge(sim$veg2, sim$climate_data, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   dat<-merge(dat, sim$road_distance, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-  #dat<-merge(dat, sim$elev, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-  
   dat<-merge(dat,sim$fire_static, all.x=TRUE)
+  dat<-merge(dat, sim$frt_id, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   
-  message("get coefficient table")
+  #NEED TO UPDATE THIS!
+  # #### Distance to ignition points ####
+  # xy_loc_ig<-sim$pts[pixelid %in% sim$sams, c("x", "y")]
+  # d<-distanceFromPoints(sim$area, xy_loc_ig)
+  # 
+  # dat<-dat[order(pixelid)]
+  # dat<-cbind(dat, as.data.frame(d))
+  # colnames(dat)[colnames(dat) == "layer"] <- "rast_ignit_dist"
+  # 
+  
+  ####elevation data####
+  # check if there is elevation data in the pixels table, if not extract.
+  if(dbGetQuery(sim$castordb, "SELECT MAX(elv) FROM pixels;")[1,1]>0) {
+    elv<-dbGetQuery(sim$castordb, "SELECT pixelid, elv FROM pixels")
+  } else {
+    elv <- data.table(elv = RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
+                                         srcRaster = P(sim, "nameElevationRaster", "fireCastor"), 
+                                         clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
+                                         geom = sim$boundaryInfo[[4]], 
+                                         where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
+                                         conn = NULL)[])
+    elv[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
+    #add to the castordb
+    dbBegin(sim$castordb)
+    rs<-dbSendQuery(sim$castordb, "Update pixels set elv = :elv where pixelid = :pixelid", elv)
+    dbClearResult(rs)
+    dbCommit(sim$castordb)
+  }
+  
+  dat<-merge(dat, elv, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   
   dat<-data.table(dat)
-  
-  sim$dat<-dat
 
   dat[climate1escape ==-9999, climate1escape:=NA]
   dat[climate2escape ==-9999, climate2escape:=NA]
   dat[climate1spread ==-9999, climate1spread :=NA]
   dat[climate2spread ==-9999, climate2spread :=NA]
   
+  #dat<-cbind(dat, model.matrix( ~ 0 + veg_cat, data=dat))
+  
   dat[,veg_cat2:=0][veg_cat==2, veg_cat2:=1]
   dat[,veg_cat3:=0][veg_cat==3, veg_cat3:=1]
   dat[,veg_cat4:=0][veg_cat==4, veg_cat4:=1]
   dat[,veg_cat5:=0][veg_cat==5, veg_cat5:=1]
   
+  sim$dat<-dat
+  
   #---------#
-  #### FRT 5  ####
+  #### FRT 5 and 7  ####
   #---------#
-  if (nrow(dat[frt %in% c(5,7),])>0) {
-  frt57<- dat[frt %in% c(5,7), ]
+  
+  # doubel check whether I fitted separate models for spread for frt5 and 7 or whether I fitted them together.
+  if (nrow(sim$dat[frt %in% c(5,7),])>0) {
+  frt57<- sim$dat[frt %in% c(5,7), ]
   head(frt57)
      
   # Fire Escape
@@ -622,7 +661,7 @@ calcProbEscape<-function(sim){
   # change veg categories to ones that we have coefficients
   
   frt57[, logit_P_escape := -0.3739924 +
-         -0.02523745*climate2 +
+         -0.02523745*climate2escape +
          0.3501348*veg_cat2 +
          0.9389967*veg_cat3 +
          0.5863252*veg_cat4 +
@@ -638,9 +677,48 @@ calcProbEscape<-function(sim){
        
   frt57[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
   frt57[veg_cat==6, prob_ignition_escape:=0]
-
   
-  frt57<-frt57[, c("pixelid","frt","prob_ignition_escape")]
+  #### Fire spread
+  
+  #Scale variables with the data I created the models with
+  #frt57$scale_climate1<-(frt57$climate1-20.97079) / 1.433168
+  frt57$scale_climate2<-(frt57$climate2spread-80.29119) / 12.85758
+  frt57$scale_dem<-(frt57$elv-675.5577)/210.2049
+  frt57$scale_slope<-(frt57$slope-2.530125) / 4.447013
+  frt57$scale_roads<-(frt57$rds_dist-1004.205) / 1985.722
+  #frt57$scale_infr<-(frt57$dist_infr_m-3340.382) / 5622.158
+  frt57$scale_dist_ignit<-(frt57$rast_ignit_dist-8018.723) / 7091.67
+  frt57$scale_pct_conifer<-(frt57$conifer_pct_cover_total-79.19533)/29.11062
+  frt57$scale_age<-(frt57$age-95.839)/43.66147
+  frt57$scale_basal_area<-(frt57$basalarea-17.66548)/14.79058
+  
+  frt57[,bec_zone_SWB:=0][zone=="SWB", bec_zone_SWB:=1]
+  
+  #m5<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt5.rds")
+  
+  frt57[,logit_P_spread:= -0.51288 + 
+           0.35881*scale_dem +
+           0.02666*scale_climate2+
+           -0.17354*veg_cat2+
+           -0.16222*veg_cat3+
+           -0.18666*veg_cat4+
+           -0.59184*veg_cat5+
+           0.15039* scale_roads+
+           -1.01801*scale_dist_ignit+
+           0.12210*scale_age+
+           0.16369*scale_pct_conifer+
+           0.05432*scale_basal_area+
+           -1.79253*bec_zone_SWB+
+           0.05913*scale_dem*scale_climate2+
+           -0.03104*scale_climate2*veg_cat2+
+           -0.30879*scale_climate2*veg_cat3+
+           -0.07977*scale_climate2*veg_cat4+
+           0.12342*scale_climate2*veg_cat5]
+  
+  frt57[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+  frt57[veg_cat==6, prob_ignition_spread:=0]
+  
+  frt57<-frt57[, c("pixelid","frt","prob_ignition_escape", "prob_ignition_spread")]
   
   } else {
     
@@ -648,13 +726,14 @@ calcProbEscape<-function(sim){
     
     frt57<-data.table(pixelid=as.numeric(),
                      frt = as.numeric(),
-                     prob_ignition_escape = as.integer())
+                     prob_ignition_escape = as.integer(),
+                     prob_ignition_spread = as.integer())
   }
   
   
-  #### FRT9 #### 
-  if (nrow(dat[frt %in% c(9,11),])>0) {
-    frt9<- dat[frt %in% c(9,11),]
+  #### FRT 9 and 11 #### 
+  if (nrow(sim$dat[frt %in% c(9,11),])>0) {
+    frt9<- sim$dat[frt %in% c(9,11),]
     
   # Fire Escape
 #  model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_escape.csv")
@@ -662,30 +741,89 @@ calcProbEscape<-function(sim){
 # Note FRT 9 and FRT 11 were combined due to lack of data         
   frt9[, logit_P_escape := 
          -4.028508 +
-         -0.07285105*climate1 +
+         -0.07285105*climate1escape +
          0.04077977 * slope +
          0.305426*log(rds_dist+1)+
          5.938547e-05*dist_infra] 
          
   frt9[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
   frt9[veg_cat==6, prob_ignition_escape:=0]
+  
+  #### Fire spread
+  
+  #Scale variables with the data I created the models with
+  frt9$scale_climate1<-(frt9$climate1spread-6.541661) / 1.262691
+  frt9$scale_climate2<-(frt9$climate2spread-33.65742) / 9.92722
+  frt9$scale_dem<-(frt9$elv-906.1805)/251.4938
+  frt9$scale_slope<-(frt9$slope-7.330724) / 7.268391
+  frt9$scale_roads<-(frt9$rds_dist-10128.31) / 7970.11
+  frt9$scale_infr<-(frt9$dist_infra-27227.51) / 13979.28
+  frt9$scale_dist_ignit<-(frt9$rast_ignit_dist-20163.07) / 15202.81
+  frt9$scale_pct_conifer<-(frt9$conifer_pct_cover_total-90.92838)/19.79545
+  frt9$scale_age<-(frt9$age-136.0173)/72.32967
+  frt9$scale_basal_area<-(frt9$basalarea-21.4939)/8.85824
+  
+  frt9[zone=="CMA", zone:="ICH"]
+  frt9[zone=="BAFA", zone:="ESSF"]
+  frt9[zone=="ICH", zone:="SBS"]
+  
+  frt9$dist_infra_categories<-cut(frt9$dist_infr_m/1000,breaks = c(-1, 5, 20, 50, max(frt9$dist_infr_m/1000)+1),labels = c("A", "B", "C", "D"))
+  
+  frt9[,dist_infra_catB:=0][dist_infra_categories=="B", dist_infra_catB:=1]
+  frt9[,dist_infra_catC:=0][dist_infra_categories=="C", dist_infra_catB:=1]
+  frt9[,dist_infra_catD:=0][dist_infra_categories=="D", dist_infra_catB:=1]
+  
+  frt9[,zoneESSF:=0][zone=="ESSF", zoneESSF:=1]
+  frt9[,zoneSBS:=0][zone=="SBS", zoneSBS :=1]
+  frt9[,zoneSWB:=0][zone=="SWB", zoneSWB:=1]
+  
+ # m9<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt9.rds")
+  
+  frt9[, logit_P_spread := 1.37771 +
+         0.27089 * scale_climate1 +
+         -0.06553 * scale_climate2 +
+         -0.38491 * veg_cat2 +
+         -0.75697 * veg_cat3 +
+         -0.28233 * veg_cat4 +
+         0.43881 * veg_cat5 +
+         -0.68908 * dist_infra_catB + 
+         -0.94290 * dist_infra_catC +
+         -0.41263 * dist_infra_catD +
+         0.33701 * scale_age + 
+         0.10440 * scale_slope +
+         -1.63931 * zoneESSF + 
+         -2.25293 * zoneSBS +
+         -0.36129 * zoneSWB + 
+         0.10418 * scale_climate1 * scale_climate2 +
+         -0.06530 * scale_climate1 * veg_cat2 +
+         0.28756 * scale_climate1 * veg_cat3 +
+         -0.04303*scale_climate1 * veg_cat4 +
+         0.01524*scale_climate1 * veg_cat5 +
+         0.04214 * scale_climate2 * veg_cat2 +
+         0.25618 * scale_climate2 * veg_cat3 +
+         -0.05054*scale_climate2 * veg_cat4 +
+         -0.16198*scale_climate2 * veg_cat5]
+         
+       frt9[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+       frt9[veg_cat==6, prob_ignition_spread:=0]
          
 
-  frt9<-frt9[, c("pixelid","frt", "prob_ignition_escape")]
+  frt9<-frt9[, c("pixelid","frt", "prob_ignition_escape", "prob_ignition_spread")]
   } else {
     
     print("no data for FRT 9")
     
     frt9<-data.table(pixelid=as.numeric(),
                      frt = as.numeric(), 
-                     prob_ignition_escape = as.integer())
+                     prob_ignition_escape = as.integer(),
+                     prob_ignition_spread = as.integer())
     
       
   }
   
   #### FRT10 #### 
-  if (nrow(dat[frt==10,])>0) {
-    frt10<- dat[frt==10,]
+  if (nrow(sim$dat[frt==10,])>0) {
+    frt10<- sim$dat[frt==10,]
     # categorizing all treed areas into the same category because there were no treed area in the categories 2 and 3 in actual data
     #frt10[veg_cat %in% c(2,3), veg_cat:=1]
     
@@ -695,12 +833,12 @@ calcProbEscape<-function(sim){
    #  model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt10_escape.csv")
          
     frt10[, logit_P_escape := -3.010075 +
-            0.06581443*climate1 + 
+            0.06581443*climate1escape + 
             1.555569*veg_cat4 + 
             0.9485711*veg_cat5 + 
             7.568074e-05*rds_dist +
-            -0.08912795*veg_cat4*climate1 +
-            -0.0457739*veg_cat5*climate1
+            -0.08912795*veg_cat4*climate1escape +
+            -0.0457739*veg_cat5*climate1escape
           ]
          
          frt10[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
@@ -708,135 +846,192 @@ calcProbEscape<-function(sim){
          
          # Spread
 
-         spread_10<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt10.rds")
-            
-    # frt10[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+         #spread_10<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt10.rds")
+         
+         # scale variables i.e. (x - mean_x)/sd_x)
+         frt10$scale_climate1<-(frt10$climate1spread-16.41084) / 2.562723
+         #frt10$scale_climate2<-(frt10$PPT06-50.22207) / 24.14774
+         #frt10$scale_dem<-(frt10$dem-1174.383)/357.5102
+         frt10$scale_slope<-(frt10$slope-12.81006) / 10.56271
+         #frt10$scale_roads<-(frt10$dist_roads_m-5813.673) / 6569.464
+         #frt10$scale_infr<-(frt10$dist_infr_m-22990.07) / 12996.5
+         #frt10$scale_dist_ignit<-(frt10$rast_ignit_dist-13456.93) / 10914.06
+         frt10$scale_pct_conifer<-(frt10$conifer_pct_cover_total-84.82834)/32.49288
+         frt10$scale_age<-(frt10$age-136.6008)/80.17633
+         #frt10$scale_basal_area<-(frt10$basal_area-22.1799)/17.27645
+         
+         frt10[, aspect_cardinalO:=0][aspect_cardinal=="O", aspect_cardinalO:=1]
+         frt10[, aspect_cardinalS:=0][aspect_cardinal=="S", aspect_cardinalS:=1]
+         
+         frt10[, zoneBWBS:=0][zone=="BWBS", zoneBWBS:=1]
+         frt10[, zoneCMA:=0][zone=="CMA", zoneCMA:=1]
+         frt10[, zoneCWH:=0][zone=="CWH", zoneCWH:=1]
+         frt10[, zoneESSF:=0][zone=="ESSF", zoneESSF:=1]
+         frt10[, zoneICH:=0][zone=="ICH", zoneICH:=1]
+         frt10[, zoneIDF:=0][zone=="IDF", zoneIDF:=1]
+         frt10[, zoneIMA:=0][zone=="IMA", zoneIMA:=1]
+         frt10[, zoneMH:=0][zone=="MH", zoneMH:=1]
+         frt10[, zoneMS:=0][zone=="MS", zoneMS:=1]
+         frt10[, zoneSBPS:=0][zone=="SBPS", zoneSBPS:=1]
+         frt10[, zoneSBS:=0][zone=="SBS", zoneSBS:=1]
+         frt10[, zoneSWB:=0][zone=="SWB", zoneSWB:=1]
+         
+         
+         frt10[, logit_P_spread := -3.04393 +
+                 0.35363*scale_climate1 +
+                 0.05043 * veg_cat2 +
+                 -0.04811 * veg_cat3 +
+                 -0.28859 * veg_cat4 +
+                 -0.08173 * veg_cat5 +
+                 0.05929 * scale_age +
+                 0.30500 * scale_slope +
+                 0.08964 * aspect_cardinalO + 
+                 0.15215 * aspect_cardinalS +
+                 0.13006 * scale_pct_conifer +
+                 3.57674*zoneBWBS +
+                 2.34655* zoneCMA+
+                 1.97068* zoneCWH +
+                 2.88802 * zoneESSF +
+                 2.25415 *  zoneICH  +
+                 1.85424 * zoneIDF +
+                 3.66345 * zoneIMA +
+                 2.65107 * zoneMH +
+                 2.70320 * zoneMS +
+                 2.33152  * zoneSBPS +
+                 2.37829 * zoneSBS +
+                 3.14976 * zoneSWB +
+                 -0.07111  * scale_climate1 * veg_cat2 +
+                 -0.05765 * scale_climate1 * veg_cat3 +
+                 0.14432 * scale_climate1 * veg_cat4 +
+                 0.28713 * scale_climate1 * veg_cat5]
+         
+     frt10[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+     frt10[veg_cat %in% c("0", "6"),prob_ignition_spread:=0]
     
-    
-    # frt10[, prob_tot_ignit := (as.numeric(prob_ignition_lightning)*0.86) + (as.numeric(prob_ignition_person)*0.14)]
-    # 
-    # frt10[fwveg %in% c("W", "N"), prog_tot_ignit:=0]
-    # frt10[fwveg %in% c("W", "N"),prob_ignition_lightning:=0]
-    # frt10[fwveg %in% c("W", "N"),prob_ignition_person:=0]
-    
-  
-    
-    frt10<-frt10[, c("pixelid","frt", "prob_ignition_escape")]
+    frt10<-frt10[, c("pixelid","frt", "prob_ignition_escape", "prob_ignition_spread")]
   } else {
     
     print("no data for FRT 10")
     
     frt10<-data.table(pixelid=as.numeric(),
                       frt = as.numeric(),
-                     prob_ignition_escape = as.integer())
+                     prob_ignition_escape = as.integer(), 
+                     prob_ignition_spread = as.integer())
     
     
   }
 
-  #### FRT11 #### 
-  if (nrow(dat[frt==11,])>0) {
-    frt11<- dat[frt==11,]
-    
-    # Fire Escape
- #   model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_escape.csv")
-    
-    frt11[, logit_P_escape := -4.028508 +
-            -0.07285105 * climate1 +
-            0.04077977 * slope + 
-            0.305426 * log(rds_dist + 1) +
-            5.938547e-05 * dist_infra
-            ]
-    
-    frt11[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
-    
-    frt11[veg_cat %in% c(1,6),prob_ignition_escape:=0 ]
-    
-    # Spread
-#   model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt11_spread.csv")
-    
-
-  frt11<-frt11[, c("pixelid","frt", "prob_ignition_escape")]  
-  } else {
-    
-    print("no data for FRT 11")
-    
-    frt11<-data.table(pixelid = as.integer(),
-                      frt = as.numeric(),
-                     prob_ignition_escape = as.integer())
-  }
   
   #### FRT12  #### 
-  if (nrow(dat[frt==12,])>0) {
-    frt12<- dat[frt==12,]
+  if (nrow(sim$dat[frt==12,])>0) {
+    frt12<- sim$dat[frt==12,]
     
     frt12[pixelid>0, all:=1]
-    frt12[veg_cat==3,veg_cat2:=1]
+    frt12[,veg_cat2_escape:=0][veg_cat %in% c(2,3), veg_cat2_escape:=1]
     
 
     # Fire Escape
 #   model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt12_escape.csv")
    
   frt12[, logit_P_escape := -2.841366 +
-          -0.05367503 * climate2 + 
-          -3.693762 * veg_cat2 +
+          -0.05367503 * climate2escape + 
+          -3.693762 * veg_cat2_escape +
           -1.347356 * veg_cat4 +
           -0.6306343 * veg_cat5 +
-          0.0006987995 *elevation +
+          0.0006987995 *elv +
           0.000150056 * rds_dist +
           0.3306912 * log(dist_infra+1) +
-          0.06785558* climate2 * veg_cat2 +
-          0.04002989* climate2 * veg_cat4 +
-          0.02299421* climate2 * veg_cat5]
+          0.06785558* climate2escape * veg_cat2_escape +
+          0.04002989* climate2escape * veg_cat4 +
+          0.02299421* climate2escape * veg_cat5]
   
     frt12[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
     frt12[veg_cat %in% c(0,6), prob_ignition_escape:=0]
     
     # Spread
-#    model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt12_spread.csv")
+#    #spread_12<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt12.rds")
     
-    # 
-    # frt12[, logit_P_spread := spreadstatic * all + 
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_climate_2 * climate2spread +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_c2 * veg_C2 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_c3 * veg_C3 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_c4 * veg_C4 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_c5 * veg_C5 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_c7 * veg_C7 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_d12 * veg_D12 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_m12 * veg_M12 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_m3 * veg_M3 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_N * veg_N +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_o1ab * veg_O1ab +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_s1 * veg_S1 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_s2 * veg_S2 +
-    #         sim$coefficients[cause == 'spread' & frt==12,]$coef_log_road_dist * log(rds_dist+1)]
-    # 
-    # frt12[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+    frt12$scale_climate1<-(frt12$climate1spread-14.18335) / 1.574442
+    frt12$scale_climate2<-(frt12$climate2spread-28.77313) / 6.913877
+    frt12$scale_dem<-(frt12$elv-1088.504)/188.9186
+    frt12$scale_slope<-(frt12$slope-5.31055) / 5.292232
+    frt12$scale_roads<-(frt12$rds_dist-2388.984) / 5282.348
+    frt12$scale_infr<-(frt12$dist_infra-16387.01) / 11934.74
+    #frt12$scale_dist_ignit<-(frt12$rast_ignit_dist-18792.87) / 13850.23
+    frt12$scale_pct_conifer<-(frt12$conifer_pct_cover_total-86.16816)/29.60282
+    frt12$scale_age<-(frt12$age-104.2061)/71.06081
+    frt12$scale_basal_area<-(frt12$basalarea-17.63155)/14.41742
     
-
+    frt12[, aspect_cardinalO:=0][aspect_cardinal=="O", aspect_cardinalO:=1]
+    frt12[, aspect_cardinalS:=0][aspect_cardinal=="S", aspect_cardinalS:=1]
     
-    frt12<-frt12[, c("pixelid","frt", "prob_ignition_escape")]    
+    frt12[, zoneBWBS:=0][zone=="BWBS", zoneBWBS:=1]
+    frt12[, zoneCWH:=0][zone=="CWH", zoneCWH:=1]
+    frt12[, zoneESSF:=0][zone=="ESSF", zoneESSF:=1]
+    frt12[, zoneICH:=0][zone=="ICH", zoneICH:=1]
+    frt12[, zoneIDF:=0][zone=="IDF", zoneIDF:=1]
+    frt12[, zoneMH:=0][zone=="MH", zoneMH:=1]
+    frt12[, zoneMS:=0][zone=="MS", zoneMS:=1]
+    frt12[, zoneSBPS:=0][zone=="SBPS", zoneSBPS:=1]
+    frt12[, zoneSBS:=0][zone=="SBS", zoneSBS:=1]
+    frt12[,  zoneSWB :=0][zone=="SWB",  zoneSWB :=1]
+     
+    
+    frt12[, logit_P_spread := -3.26690 +
+            0.10305 * scale_dem +
+            -0.16968 * scale_dem^2 +
+            -0.69018 * scale_climate2 +
+            -0.69883 * veg_cat2 +
+            -1.18093 * veg_cat3 +
+            -0.07984 * veg_cat4 + 
+            -0.24491 * veg_cat5 +
+            0.12690 * scale_age + 
+            -0.06388 * scale_pct_conifer +
+            0.25611 * scale_slope +
+            0.12995 * aspect_cardinalO+
+            0.09112 * aspect_cardinalS  +
+            0.37446 * log(dist_infra+1) +
+            0.87832 * zoneBWBS  +
+            -1.05010 * zoneCWH +
+            0.63689 * zoneESSF +
+            1.76570 * zoneICH + 
+            0.05062 * zoneIDF +
+            -2.84100 * zoneMH +
+            1.59949 * zoneMS +
+            1.69148 * zoneSBPS + 
+            0.73241 * zoneSBS + 
+            0.56206 * zoneSWB]
+            
+    frt12[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+    frt12[veg_cat %in% c(0,6), prob_ignition_spread:=0]
+    
+     
+    frt12<-frt12[, c("pixelid","frt", "prob_ignition_escape", "prob_ignition_spread")]  
+    
   } else {
     
     print("no data for FRT 12")
     
     frt12<-data.table(pixelid = as.numeric(),
                       frt = as.numeric(), 
-                     prob_ignition_escape = as.integer())
+                     prob_ignition_escape = as.integer(),
+                     prob_ignition_spread = as.integer())
     
   }
   
   #### FRT13  #### 
-  if (nrow(dat[frt==13,])>0) {
-    frt13<- dat[frt==13,]
+  if (nrow(sim$dat[frt==13,])>0) {
+    frt13<- sim$dat[frt==13,]
     
-    frt13[bec_zone_code=="SBPS", bec_zone_code:="SBS"]
-    frt13[bec_zone_code=="BWBS", bec_zone_code:="IDF"]
-    frt13[bec_zone_code=="BAFA", bec_zone_code:="CMA"]
-    frt13[bec_zone_code=="IMA", bec_zone_code:="CMA"]
-    frt13[bec_zone_code=="MH", bec_zone_code:="CWH"]
+    frt13$zone_escape<-frt13$zone
     
-    frt13<-cbind(frt13, model.matrix( ~ 0 + bec_zone_code, data=frt13 )) #add in the indicator structure for bec_zone_code
+    frt13[zone_escape=="SBPS", zone_escape:="SBS"]
+    frt13[zone_escape=="BWBS", zone_escape:="IDF"]
+    frt13[zone_escape=="BAFA", zone_escape:="CMA"]
+    frt13[zone_escape=="IMA", zone_escape:="CMA"]
+    frt13[zone_escape=="MH", zone_escape:="CWH"]
+    
+    frt13<-cbind(frt13, model.matrix( ~ 0 + zone_escape, data=frt13 )) #add in the indicator structure for zone
     
     # Fire Escape
  #  model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt13_escape.csv")
@@ -858,33 +1053,62 @@ calcProbEscape<-function(sim){
     frt13[,prob_ignition_escape := exp(logit_P_escape)/(1+exp(logit_P_escape))]
     frt13[veg_cat %in% c(0,6), prob_ignition_escape:=0]
     
+    
     # Spread
- #   model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt13_spread.csv")
+       spread_13<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt13.rds")
+       frt13[zone=="SWB", zone:="ESSF"]
+       frt13<-cbind(frt13, model.matrix( ~ 0 + zone, data=frt13 ))
+       
+       # scale variables
+       frt13$scale_climate1<-(frt13$climate1-18.63689) / 2.962474
+       frt13$scale_climate2<-(frt13$climate2-37.12834) / 16.30768
+       frt13$scale_dem<-(frt13$dem-1300.345)/381.8039
+       frt13$scale_slope<-(frt13$slope_ha_bc-13.93795) / 10.69801
+       frt13$scale_roads<-(frt13$dist_roads_m-1624.878) / 3420.542
+       frt13$scale_infr<-(frt13$dist_infr_m-12949.65) / 11097.52
+       frt13$scale_dist_ignit<-(frt13$rast_ignit_dist-13298.58) / 14181.51
+       frt13$scale_pct_conifer<-(frt13$conifer_pct_cover_total-86.59616)/28.47786
+       frt13$scale_age<-(frt13$proj_age_1-121.0425)/77.45452
+       frt13$scale_basal_area<-(frt13$basal_area-22.35879)/17.49496
+       
+
+    frt13[, logit_P_spread := -2.94495 +
+            0.18774 * scale_climate1 +
+            0.02180 * scale_climate2 +
+            -0.32095 * veg_cat2 + 
+            -0.30088 * veg_cat3 +
+            -0.20165 * veg_cat4 +
+            -0.42798 * veg_cat5 +
+            0.16071 * scale_slope +
+            0.13988 * aspect_cardinalO +
+            0.24027 * aspect_cardinalS +
+            1.05822 * zoneBG +
+            2.37690 * zoneBWBS +
+            1.10824 * zoneCMA +
+            0.98679 * zoneCWH +
+            1.28365 * zoneESSF +
+            1.26088 * zoneICH +
+            1.58571 * zoneIDF +
+            0.48304 * zoneIMA +
+            0.65841 * zoneMH +
+            1.32925 * zoneMS +
+            1.49151 * zonePP +
+            0.84479 * zoneSBPS +
+            1.35466 * zoneSBS +
+            0.18092 * log_infra +
+            0.03793 * scale_climate1 * scale_climate2 +
+            -0.14649 * scale_climate2 * veg_cat2 +
+            0.09134 * scale_climate2 * veg_cat3 +
+            -0.17157 * scale_climate2 * veg_cat4 +
+            -0.10071 * scale_climate2 * veg_cat5 +
+            0.09101 * scale_slope * aspect_cardinalO +
+            0.16996 * scale_slope * aspect_cardinalS
+            ]
     
-    # frt13[, veg_C2 := 0]
-    # frt13[fwveg == "C-2", veg_C2 := 1]
-    # frt13[, veg_C3 := 0]
-    # frt13[fwveg == "C-3", veg_C3 := 1]
-    # 
-    # frt13[fwveg == "C-1", veg_C3 :=1]
-    # 
-    # frt13[, logit_P_spread := spreadstatic * all + 
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_climate_2 * climate2spread +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_c3 * veg_C3 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_c5 * veg_C5 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_c7 * veg_C7 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_d12 * veg_D12 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_m12 * veg_M12 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_m3 * veg_M3 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_N * veg_N +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_o1ab * veg_O1ab +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_s1 * veg_S1 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_s2 * veg_S2 +
-    #         sim$coefficients[cause == 'spread' & frt==13,]$coef_s3 * veg_S3]
-    # 
-    # frt13[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+    frt13[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+    frt13[veg_cat %in% c(0,6), prob_ignition_spread:=0]
     
-    frt13<-frt13[, c("pixelid", "frt", "prob_ignition_escape")]
+    frt13<-frt13[, c("pixelid", "frt", "prob_ignition_escape", "prob_ignition_spread")]
     
   } else {
     
@@ -892,19 +1116,21 @@ calcProbEscape<-function(sim){
     
     frt13<-data.table(pixelid=as.numeric(), 
                       frt = as.numeric(), 
-                     prob_ignition_escape = as.integer())
+                     prob_ignition_escape = as.integer(),
+                     prob_ignition_spread = as.integer())
     
     
   }  
   
   #### FRT14 #### 
-  if (nrow(dat[frt==14,])>0) {
-    frt14<- dat[frt==14,]
+  if (nrow(sim$dat[frt==14,])>0) {
+    frt14<- sim$dat[frt==14,]
     
-    frt14[bec_zone_code=="ESSF", bec_zone_code:="ICH"]
+    frt14[,zone_escape:=zone] 
+    frt14[zone_escape=="ESSF", zone_escape:="ICH"]
     escape_frt14[veg_cat=="3", veg_cat2:=1]
     
-    frt14<-cbind(frt14, model.matrix( ~ 0 + bec_zone_code, data=frt14 ))
+    frt14<-cbind(frt14, model.matrix( ~ 0 + zone_escape, data=frt14 ))
     
     # Fire Escape
 #      model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt14_escape.csv")
@@ -928,28 +1154,47 @@ calcProbEscape<-function(sim){
     frt14[veg_cat %in% c(0,6), prob_ignition_escape:=0]
     
     # Spread
-#       model_coef_table_spread<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt14_spread.csv")
-       
-    #    frt14[fwveg == "S-2", veg_C7 :=1]
-    #    frt14[fwveg == "C-4", veg_C2 :=1]
-    #    frt14[fwveg == "S-3", veg_M12 :=1]
-    #    
-    #    
-    # frt14[, logit_P_spread := spreadstatic * all + 
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_climate_2 * climate2spread +
-    #         sim$coefficients[cause == 'spread' & frt==14]$coef_c3 * veg_C3 +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_c5 * veg_C5 +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_c7 * veg_C7 +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_d12 * veg_D12 +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_m12 * veg_M12 +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_N * veg_N +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_o1ab * veg_O1ab +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_s1 * veg_S1 +
-    #         sim$coefficients[cause == 'spread' & frt==14,]$coef_road_dist * rds_dist]
-    # 
-    # frt14[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
     
-    frt14<-frt14[, c("pixelid","frt","prob_ignition_escape")]
+    spread_14<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt14.rds")    
+    
+    frt14<-cbind(frt14, model.matrix( ~ 0 + zone, data=frt14 ))
+   frt14[, logit_P_spread := -2.94495 +
+           0.18774 * scale_climate1 +
+           0.02180 * scale_climate2 +
+           -0.32095 * veg_cat2 +
+           -0.30088  * veg_cat3 +
+           -0.20165 * veg_cat4 +
+           -0.42798 * veg_cat5 +
+           0.16071 * scale_slope +
+           0.13988 * aspect_cardinalO +
+           0.24027 * aspect_cardinalS +
+           1.05822 * zoneBG +
+           2.37690 * zoneBWBS +
+           1.10824 * zoneCMA +
+           0.98679 * zoneCWH +
+           1.28365 * zoneESSF +
+           1.26088 * zoneICH +
+           1.58571 * zoneIDF +
+           0.48304 * zoneIMA +
+           0.65841 * zoneMH +
+           1.32925 * zoneMS +
+           1.49151 * zonePP +
+           0.84479 * zoneSBPS +
+           1.35466 * zoneSBS +
+           0.18092 * log_infra +
+           0.03793 * scale_climate1 * scale_climate2 +
+          -0.14649 * scale_climate2 * veg_cat2 +
+             0.09134*scale_climate2 * veg_cat3 +
+             -0.17157 * scale_climate2 * veg_cat4 +
+             -0.10071 * scale_climate2 * veg_cat5 +
+             0.09101  * scale_slope * aspect_cardinalO +
+             0.16996 * scale_slope * aspect_cardinalS
+             ]
+    
+     frt14[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+     frt14[veg_cat %in% c(0,6), prob_ignition_spread:=0]
+    
+    frt14<-frt14[, c("pixelid","frt","prob_ignition_escape", "prob_ignition_spread")]
     
   } else {
     
@@ -957,15 +1202,16 @@ calcProbEscape<-function(sim){
     
     frt14<-data.table(pixelid= as.numeric(),
                       frt = as.numeric(), 
-                     prob_ignition_escape = as.integer())
+                     prob_ignition_escape = as.integer(),
+                     prob_ignition_spread = as.integer())
   } 
   
   #### FRT15 #### 
-  if (nrow(dat[frt==15,])>0) {
-    frt15<- dat[frt==15,]
+  if (nrow(sim$dat[frt==15,])>0) {
+    frt15<- sim$dat[frt==15,]
     
     frt15[veg_cat==3, veg_cat2:=1]
-    frt15<-cbind(frt15, model.matrix( ~ 0 + bec_zone_code, data=frt15))
+    frt15<-cbind(frt15, model.matrix( ~ 0 + zone, data=frt15))
     
     # Fire Escape
 #    model_coef_table_escape<-read.csv("C:\\Work\\caribou\\castor\\R\\fire_sim\\Analysis_results\\BC\\Coefficient_tables\\top_mod_table_frt15_escape.csv")
@@ -1017,25 +1263,24 @@ calcProbEscape<-function(sim){
     
     print("no data for FRT 15")
     
-    frt15<-data.table(pixelid = as.numeric(),
-                      frt = as.numeric(),
-                      prob_ignition_lightning = as.integer(),
-                     prob_ignition_person = as.integer(), 
-                     prob_ignition_escape = as.integer(),
-                     prob_tot_ignit = as.integer())
+    frt15<-data.table(pixelid= as.numeric(),
+                      frt = as.numeric(), 
+                      prob_ignition_escape = as.integer(),
+                      prob_ignition_spread = as.integer())
   } 
   
   
   #### rbind frt data ####
   
-  probFireRast<- do.call("rbind", list(frt5, frt7, frt9, frt10, frt11, frt12, frt13, frt14, frt15))
+  sim$probFireRast<- do.call("rbind", list(frt57, frt9, frt10, frt12, frt13, frt14, frt15))
   
-  sim$probFireRasts<-merge(sim$veg3, probFireRast, by.x="pixelid", by.y="pixelid", all.x=TRUE)
+  sim$probFireRast<-merge(sim$veg2["pixelid",], sim$probFireRast, by="pixelid", all.x=TRUE)
   
-  sim$probFireRasts<-data.table(sim$probFireRasts)
   
-  print("number of NA values in probFireRasts$prob_ignition_lightning")
-  print(table(is.na(sim$probFireRasts$prob_ignition_lightning)))
+  sim$probFireRast<-data.table(sim$probFireRast)
+  
+  #print("number of NA values in probFireRast")
+  #print(table(is.na(sim$probFireRasts$prob_ignition_spread)))
   
   
   return(invisible(sim))
@@ -1086,11 +1331,14 @@ downScaleData<-function(sim){
   ras.flam[ras.flam[] %between% c(1,5)]<-1
   ras.flam[ras.flam[] == 6 ]<-0
   ras.flammable<-terra::crop(terra::aggregate(ras.flam, fact = 100, fun = sum ),sim$ras.m8)
+
   
   # Climate
   message("get provincial meanCMI")
   
   Prov_CMI<-data.table(dbGetQuery(sim$castordb, paste0("SELECT * FROM climate_provincial_", tolower(P(sim, "gcmname", "climateCastor")),"_",P(sim, "ssp", "climateCastor"), " WHERE period=", time(sim)*(P(sim, "calculateInterval", "fireCastor")) + P(sim, "simStartYear", "fireCastor") , ";")))
+  
+  print(Prov_CMI)
   
   message("get climate for aoi")
   
@@ -1125,7 +1373,14 @@ downScaleData<-function(sim){
   
   ras.m8<-terra::crop(sim$ras.m8, ras.cmi_min.10km)
   
-  sim$downdat <- data.table(frt = ras.frt.10km [], est_rf = ras.m8 [], CMI = ras.cmi.10km [], CMI_MIN = ras.cmi_min.10km[], CMI3YR = ras.cmi3yr.10km [], PPT_sum = ras.PPT_sm.10km [], TEMP_MAX = ras.TEMP_MAX.10km [], con = ras.fuel1 [], young = ras.fuel4 [], dec = ras.fuel3 [], flammable = ras.flammable [])[, pixelid10km := seq_len(.N)][, year := Prov_CMI$period[1]]
+  sim$ras.downdat<-ras.m8
+  
+  sim$downdat <- data.table(frt = ras.frt.10km [], est_rf = ras.m8 [], CMI = ras.cmi.10km [], CMI_MIN = ras.cmi_min.10km[], CMI3YR = ras.cmi3yr.10km [], PPT_sum = ras.PPT_sm.10km [], TEMP_MAX = ras.TEMP_MAX.10km [], con = ras.fuel1 [], young = ras.fuel4 [], dec = ras.fuel3 [], flammable = ras.flammable [])
+  sim$downdat[, pixelid10km := seq_len(.N)][, year := Prov_CMI$period[1]]
+  
+  sim$ras.downdat[]<-sim$downdat$pixelid10km
+  
+  print(sim$downdat)
   
   sim$downdat[, frt5:=0][frt.layer==5, frt5:=1]
   sim$downdat[, frt7:=0][frt.layer==7, frt7:=1]
@@ -1140,18 +1395,26 @@ downScaleData<-function(sim){
   x<-unique(sim$clim[!is.na(cmi), "run" ])
   CMIrun<-unique(sim$clim$run)
   meanCMI<-Prov_CMI[run==x,"meanCMI"]
-  
   sim$downdat[, avgCMIProv:=meanCMI]
+
+  print(sim$downdat)
+
   
   return(invisible(sim))
 }
   
   poissonProcessModel<-function(sim){
+    
+  #NOTE this is the correct formula but Im messing with it a little to see if I can get ignitions if the CMI values are correct
+ # sim$downdat<-sim$downdat[ ,est:= exp(-17.0 -0.0576*CMI_MIN.lyr.1-0.124*(CMI.lyr.1-CMI3YR.lyr.1/3)-0.363*avgCMIProv  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con.lyr.1 + 1) + 0.0606 *log(young.lyr.1 + 1) -0.0256 *log(dec.lyr.1 + 1) +est_rf.layer  + log(flammable.lyr.1) )]
   
-  sim$downdat<-sim$downdat[ ,est:= exp(-17.0 -0.0576*CMI_MIN.lyr.1-0.124*(CMI.lyr.1-CMI3YR.lyr.1/3)-0.363*avgCMIProv  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con.lyr.1 + 1) + 0.0606 *log(young.lyr.1 + 1) -0.0256 *log(dec.lyr.1 + 1) +est_rf.layer  + log(flammable.lyr.1) )]
+    # I subtracted 65 from all CMI values to try and get the mean closer to zero
+    x<-95
+  sim$downdat<-sim$downdat[ ,est:= exp(-17.0 -0.0576*(CMI_MIN.lyr.1-x)-0.124*((CMI.lyr.1-x)-((CMI3YR.lyr.1/3)-x))-0.363*(avgCMIProv-x)  -0.979*frt5 -0.841*frt7 -1.55*frt9  -1.55*frt10  -1.03*frt11  -1.09*frt12 -1.34*frt13  -0.876*frt14  -2.36*frt15+ 0.495*log(con.lyr.1 + 1) + 0.0606 *log(young.lyr.1 + 1) -0.0256 *log(dec.lyr.1 + 1) +est_rf.layer  + log(flammable.lyr.1) )]
   
   #ras.test<-ras.m8
   #ras.test[]<-dat$est
+
   
   return(invisible(sim))
 }
@@ -1215,17 +1478,18 @@ fireSize <- function(sim) {
     }
     }
   
-  sim$downdat[, mu1:= 2.158738 -0.001108*PPT_sum.lyr.1 -0.011496*CMI.lyr.1 + -0.719612*est  -0.020594*log(con.lyr.1 + 1)][, sigma1:=  1.087][ , mu2:= 2.645616 -0.001222*PPT_sum.lyr.1 + 0.049921*CMI.lyr.1 +1.918825*est -0.209590*log(con.lyr.1 + 1) ][, sigma2:= 0.27]
+  # Note like in the poisson Process model I subtracted 65 from all CMI values. This is not the correct thing to do so remove once the issues with CMI are sorted out with Colin Mahony and Tong Li Wang
+  sim$downdat[, mu1:= 2.158738 -0.001108*PPT_sum.lyr.1 -0.011496*(CMI.lyr.1-65) + -0.719612*est  -0.020594*log(con.lyr.1 + 1)][, sigma1:=  1.087][ , mu2:= 2.645616 -0.001222*PPT_sum.lyr.1 + 0.049921*(CMI.lyr.1-65) +1.918825*est -0.209590*log(con.lyr.1 + 1) ][, sigma2:= 0.27]
   
-  sim$downdat[, pi2:=1/(1+exp(-1*(-0.1759469+ -1.374135*frt5-0.6081503*frt7-2.698864*frt9 -1.824072*frt10 -3.028758*frt11  -1.234629*frt12-1.540873*frt13-0.842797*frt14  -1.334035*frt15+ 0.6835479*avgCMIProv+0.1055167*TEMP_MAX.lyr.1 )))][,pi1:=1-pi2]
+  sim$downdat[, pi2:=1/(1+exp(-1*(-0.1759469+ -1.374135*frt5-0.6081503*frt7-2.698864*frt9 -1.824072*frt10 -3.028758*frt11  -1.234629*frt12-1.540873*frt13-0.842797*frt14  -1.334035*frt15+ 0.6835479*(avgCMIProv-65)+0.1055167*TEMP_MAX.lyr.1 )))][,pi1:=1-pi2]
   
   #selected.seed<-sample(1:1000,1)
   #set.seed(selected.seed)
-  sim$downdat<-sim$downdat[, fire:= rnbinom(n = 1, size = 0.416, mu =est), by=1:nrow(sim$downdat)][fire>0,]
-  sim$downdat<-sim$downdat[ , k_sim:= sample(1:2,prob=c(pi1, pi2),size=1), by = seq_len(nrow(sim$downdat))]
-  sim$downdat<-sim$downdat[k_sim==1, mu_sim := exp(mu1)][k_sim==1, sigma_sim := exp(sigma1)][k_sim==2, mu_sim := exp(mu2)][k_sim==2, sigma_sim := exp(sigma2)]
+  sim$downdat1<-sim$downdat[, fire:= rnbinom(n = 1, size = 0.416, mu =est), by=1:nrow(sim$downdat)][fire>0,]
+  sim$downdat1<-sim$downdat1[ , k_sim:= sample(1:2,prob=c(pi1, pi2),size=1), by = seq_len(nrow(sim$downdat1))]
+  sim$downdat1<-sim$downdat1[k_sim==1, mu_sim := exp(mu1)][k_sim==1, sigma_sim := exp(sigma1)][k_sim==2, mu_sim := exp(mu2)][k_sim==2, sigma_sim := exp(sigma2)]
   
-  browser()
+  #sim$downdat2<-merge(sim$downdat, downdat1, by.x="pixelid10km", by.y="pixelid10km", all.x=TRUE)
 
   # aab<-data.table(aab = as.numeric())
   # for(f in 1:length(occ$fire)){
@@ -1240,8 +1504,8 @@ ignitLocations <- function(sim) {
   
   #if (suppliedElsewhere(sim$probFireRasts)) {
   
-  sim$probFireRasts<-sim$probFireRasts[order(pixelid)]
-    probfire<-as.data.table(na.omit(sim$probFireRasts))
+  sim$probFireRast<-sim$probFireRast[order(pixelid)]
+  probfire<-sim$probFireRast[!is.na(prob_ignition_escape)]
     #print(probfire)
     
     # create area raster
@@ -1249,12 +1513,13 @@ ignitLocations <- function(sim) {
     sim$area<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
     
     
-    sim$area[]<-sim$probFireRasts$prob_ignition_escape
+    sim$area[]<-sim$probFireRast$prob_ignition_escape
     sim$area <- reclassify(sim$area, c(-Inf, 0, 0, 0, 1, 1))
+    
     
     message("create escape raster")
     escapeRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
-    escapeRas[] <- sim$probFireRasts$prob_ignition_escape
+    escapeRas[] <- sim$probFireRast$prob_ignition_escape
  # }
     
     
@@ -1264,13 +1529,13 @@ ignitLocations <- function(sim) {
     # sample more starting locations than needed and then discard extra after testing whether those locations actually ignite comparing its probability of igntion to a random number
     # get starting pixelids
     message("get pixelid of ignition locations")
-    starts<-sample(probfire$pixelid, no_starts_sample, replace=FALSE)
+    starts<-sample(probfire$pixelid, round(sum(sim$downdat$est, na.rm=TRUE))*4, replace=FALSE)
     
     fire<-probfire[pixelid %in% starts,]
     fire$randomnumber<-runif(length(fire$pixelid))
     start<-fire[prob_ignition_escape>randomnumber, ]# change prob_ignition_escape to prob_tot_ignit if want to test ignition locations
     
-    sim$sams  <-  sample(start$pixelid, size = no_ignitions)
+    sim$sams  <-  sample(start$pixelid, size = round(sum(sim$downdat$est, na.rm=TRUE)))
     #random.starts1<-probfire[pixelid %in% random.starts,]
     
     # take top ignition points up to the number of (no_ignitions) discard the rest. 
@@ -1281,132 +1546,39 @@ ignitLocations <- function(sim) {
     return(invisible(sim))
   }
   
-  spreadProcess <- function(sim) {   
+  spreadProcess <- function(sim) {  
     
-  #create prob spread
-  dat<-merge(sim$veg3, sim$climate_data, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-  dat<-merge(dat, sim$road_distance, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-  dat<-merge(dat, mySim$frt_id, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-
-  #### Distance to ignition points ####
-  xy_loc_ig<-sim$pts[pixelid %in% sim$sams, c("x", "y")]
-  d<-distanceFromPoints(sim$area, xy_loc_ig)
-  
-  dat<-dat[order(pixelid)]
-  dat<-cbind(dat, as.data.frame(d))
-  colnames(dat)[colnames(dat) == "layer"] <- "rast_ignit_dist"
-  
-  
-  ####elevation data####
-  # check if there is elevation data in the pixels table, if not extract.
-  if(dbGetQuery(sim$castordb, "SELECT MAX(elv) FROM pixels;")[1,1]>0) {
-    elv<-dbGetQuery(sim$castordb, "SELECT pixelid, elv FROM pixels")
-    } else {
-    elv <- data.table(elv = RASTER_CLIP2(tmpRast = paste0('temp_', sample(1:10000, 1)), 
-                                                       srcRaster = P(sim, "nameElevationRaster", "fireCastor"), 
-                                                       clipper = sim$boundaryInfo[[1]],  # by the area of analysis (e.g., supply block/TSA)
-                                                       geom = sim$boundaryInfo[[4]], 
-                                                       where_clause =  paste0 (sim$boundaryInfo[[2]], " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"),
-                                                       conn = NULL)[])
-      elv[,pixelid:=seq_len(.N)]#make a unique id to ensure it merges correctly
-      #add to the castordb
-      dbBegin(sim$castordb)
-      rs<-dbSendQuery(sim$castordb, "Update pixels set elv = :elv where pixelid = :pixelid", elv)
-      dbClearResult(rs)
-      dbCommit(sim$castordb)
-      
-      
-    }
+    sim$probFireRast<-sim$probFireRast[order(pixelid)]
     
-dat<-merge(dat, elv, by.x="pixelid", by.y="pixelid", all.x=TRUE)
-
-  #### FRT5 ####
   
-if (nrow(dat[frt==5,])>0) {
-frt5<-dat[frt==5,]
-frt5$fwveg<-as.factor(frt5$fwveg)
-  
-  # To get the models to fit properly I had to scale the variables so Ill use the mean and sd that I got when i fitted to models to scale the new variables
-  
-  frt5$scale_climate2<-(frt5$climate2spread-79.15963)/15.56926
-  frt5$scale_dem<-(frt5$elv-675.0221)/201.9468
-  frt5$scale_roads<-(frt5$rds_dist-916.9191)/1797.046
-  frt5$scale_dist_ignit<-(frt5$rast_ignit_dist-8086.005)/7167.049
-  frt5_2<-frt5[!fwveg %in% c("N", "W"),]
-  frt5_2<-frt5_2[, c("gcm", "ssp", "run", "period", "climate1lightning", "climate2lightning", "climate1person", "climate2person", "climate1escape", "climate2escape"):=NULL]
-  
-  m5<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt5.rds")
-
-  frt5_2$logit_P_spread <- predict(m5,frt5_2,re.form=NA)
-  frt5_2[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
-}
-  else {
-    
-    print("no data for FRT 5")
-    
-    frt5<-data.table(pixelid=as.numeric(),
-                     frt = as.numeric(),
-                     prob_ignition_spread = as.integer())
-  }
-  
-  #### FRT7####
-  
-  if (nrow(dat[frt==7,])>0) {
-    frt7<-dat[frt==7,]
-    frt7$fwveg<-as.factor(frt7$fwveg)
-    
-    # To get the models to fit properly I had to scale the variables so Ill use the mean and sd that I got when i fitted to models to scale the new variables
-    
-    frt7$scale_climate2<-(frt7$climate2spread-79.15963)/15.56926
-    frt7$scale_dem<-(frt7$elv-675.0221)/201.9468
-    frt7$scale_roads<-(frt7$rds_dist-916.9191)/1797.046
-    frt7$scale_dist_ignit<-(frt7$rast_ignit_dist-8086.005)/7167.049
-    frt7_2<-frt7[!fwveg %in% c("N", "W"),]
-    frt7_2<-frt7_2[, c("gcm", "ssp", "run", "period", "climate1lightning", "climate2lightning", "climate1person", "climate2person", "climate1escape", "climate2escape"):=NULL]
-    
-    m5<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt7.rds")
-    
-    frt7_2$logit_P_spread <- predict(m5,frt7_2,re.form=NA)
-    frt7_2[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
-  }
-    else {
-      
-      print("no data for FRT 5")
-      
-      frt7<-data.table(pixelid=as.numeric(),
-                       frt = as.numeric(),
-                       prob_ignition_spread = as.integer())
-    }
-  
-  # what needs to be done:
-  # 1.)scale the variables using the mean and sd from the statistical analysis, 
-  #2.)then pull in the rds and run the model. 
-  #3.) extract the data from some of the static variable rasters.
-  #4.) get distance to ignition point
-  #5. Scale the spread models to get reasonable fire sizes
-  
-  
-  
-  #   frt5[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
+  # Distance to ignition points 
+  # xy_loc_ig<-sim$pts[pixelid %in% sim$sams, c("x", "y")]
+  # d<-distanceFromPoints(sim$area, xy_loc_ig)
+  # 
+  # dat<-dat[order(pixelid)]
+  # dat<-cbind(dat, as.data.frame(d))
+  # colnames(dat)[colnames(dat) == "layer"] <- "rast_ignit_dist"
+  # 
   
     
     message("create spread raster")
-    spreadRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
-    spreadRas[]<-sim$probFireRasts$prob_ignition_spread
+    spreadRas<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =1)
+    spreadRas[]<-sim$probFireRast$prob_ignition_spread
     
     message("simulating fire")
+    sim$out <- spread2(sim$area, start = sim$sams, spreadProb =spreadRas, asRaster = FALSE, allowOverlap=FALSE)
     # Iterative calling -- create a function with a high escape probability
-    spreadWithEscape <- function(ras, start, escapeProb, spreadProb) {
-      out <- spread2(ras, start = sams, spreadProb = escapeProb, asRaster = FALSE, allowOverlap=FALSE)
-      while (any(out$state == "sourceActive")) {
-        # pass in previous output as start
-        out <- spread2(ras, start = out, spreadProb = spreadProb,
-                       asRaster = TRUE, skipChecks = TRUE, allowOverlap=FALSE) # skipChecks for speed
-      }
-      out
-    }
+    # spreadWithEscape <- function(ras, start, escapeProb, spreadProb) {
+    #   out <- spread2(ras, start = sams, spreadProb = escapeProb, asRaster = FALSE, allowOverlap=FALSE)
+    #   while (any(out$state == "sourceActive")) {
+    #     # pass in previous output as start
+    #     out <- spread2(ras, start = out, spreadProb = spreadProb,
+    #                    asRaster = TRUE, skipChecks = TRUE, allowOverlap=FALSE) # skipChecks for speed
+    #   }
+    #   out
+    # }
     
-    sim$out  <- spreadWithEscape(area, start = random.starts, escapeProb = escapeRas , spreadProb = spreadRas)
+    #sim$out  <- spreadWithEscape(area, start = random.starts, escapeProb = escapeRas , spreadProb = spreadRas)
   
     
     print(sim$out)
@@ -1421,9 +1593,9 @@ frt5$fwveg<-as.factor(frt5$fwveg)
     
     message("updating vegetation inventory table")
     
-    sim$inv[pixelid %in% sim$out$pixels, earliest_nonlogging_dist_type := "burn"]
-    sim$inv[pixelid %in% sim$out$pixels, earliest_nonlogging_dist_date := time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor")]
-    
+    # sim$inv[pixelid %in% sim$out$pixels, earliest_nonlogging_dist_type := "burn"]
+    # sim$inv[pixelid %in% sim$out$pixels, earliest_nonlogging_dist_date := time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor")]
+    # 
     #qry<-paste0("UPDATE fueltype SET earliest_nonlogging_dist_type = 'burn', earliest_nonlogging_dist_date = ", time(sim)*sim$updateInterval + P(sim, "simStartYear", "fireCastor"), " WHERE pixelid = :pixels")
     #dbBegin(sim$castordb)
     #rs<-dbSendQuery(sim$castordb,qry , sim$out[, "pixels"])

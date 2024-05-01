@@ -8,6 +8,9 @@ editor_options:
   chunk_output_type: console
 ---
 
+THINGS TO CHECK!!
+1.) when I create the following table (table(frt10$fire_label, frt10$pttype)) I get some zeros in the 0 or 1 column. In otherwords there are fires where I either have no land burnt or I have sampled burnt areas but no surrounding unburned areas. This is concerning since I think I tried not to do this. I must check what is going on.!!! 
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -51,7 +54,7 @@ See the License for the specific language governing permissions and limitations 
 
 # Introduction
 
-Here, we are running a glm for each separate fire regime type to develop a predictive equation so that we can extrapolate which cells are likely to burn and which are not into the future. The data that we include in these glms is vegetation, climate date, and human impact. The top climate variable for each fire regime type was determined in the script "05_spread_climate_variable_selection.R". 
+Here, we are running a glmer for each separate fire regime type to develop a predictive equation so that we can extrapolate which cells are likely to burn and which are not into the future. The data that we include in these glms is vegetation, climate date, and human impact. The top climate variable for each fire regime type was determined in the script "05_spread_climate_variable_selection.R". 
 
 Before running these glms I will plot the relationship between the climate variable and probability of spread. I should probably do partial plots because I also included lat and long in these models to try to account for autocorrelation. 
 
@@ -78,34 +81,255 @@ kable (climate_variable,
 
 fire_spread<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\Fire_spread_data_all_veg_dec23.gpkg")
 head(fire_spread)
-fire_spread<-data.table(fire_spread)
+#fire_spread<-data.table(fire_spread)
 
+table(fire_spread$fire_yr)
+
+```
+
+
+# change the vegetation fuel typing to be more like what kyle did
+
+
+```{r}
+restest = c(100, 100)
+prov.rast <- raster( # standardized provincial raster with no data in it
+  nrows = 15744, ncols = 17216,
+  xmn = 159587.5, xmx = 1881187.5,
+  ymn = 173787.5, ymx = 1748187.5,
+  crs = "+proj=aea +lat_0=45 +lon_0=-126 +lat_1=50 +lat_2=58.5 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs",
+  resolution = restest,
+  vals = 0)
+
+#lapply(seq(2009, 2022, 1), function(x) {
+years<-2009:2022
+  for (i in 1:length(years)){ 
+    print(years[i])
+  year_vri <- years[i]
+  geom_column <- 'shape'
+  
+  vri<- getSpatialQuery(glue::glue("SELECT case 
+      when proj_height_1 >=4 and basal_area >= 8 and bclcs_level_4 in ('TC') then 1
+      when proj_height_1 >=4 and basal_area >= 8 and bclcs_level_4 in ('TM') then 2
+      when proj_height_1 >=4 and basal_area >= 8 and bclcs_level_4 in ('TB') then 3
+      when (proj_height_1 < 4 or basal_area < 8 or basal_area is null or proj_height_1 is null) and bclcs_level_4 in ('TC','TM','TB') then 4
+      when bclcs_level_4 not in ('TC','TM','TB') then 5
+      when (bclcs_level_1 <> 'V' and basal_area is null or basal_area < 4) then 6
+                                end as hazard, {geom_column} FROM vri.veg_comp_lyr_r1_poly{year_vri} "))
+  ras.haz<-fasterize::fasterize(vri, prov.rast, field = "hazard")
+  rm(vri)
+  gc()
+  ras.haz[is.na(ras.haz[])]<-0
+  plot(ras.haz)
+  
+  raster::writeRaster (ras.haz, 
+                     filename = paste0( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\","rast_ignit_", years[i], ".tiff", sep=""), 
+                     format = "GTiff", 
+                     datatype = 'INT1U')
+  
+  rm(ras.haz)
+  gc()
+  }
+
+
+```
+
+```{r}
+years<-2009:2022
+  for (i in 1:length(years)){ 
+    print(years[i])
+  year_vri <- years[i]
+  
+  basal_area<- getSpatialQuery(glue::glue("SELECT basal_area, shape FROM vri.veg_comp_lyr_r1_poly{year_vri}"))
+  ras.haz<-fasterize::fasterize(basal_area, prov.rast, field = "basal_area")
+  rm(basal_area)
+  gc()
+  
+  ras.haz2<-terra::rast(ras.haz)
+  
+  terra::writeRaster (ras.haz2, 
+                     filename = paste0( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\","rast_basal_area_", years[i], ".tiff", sep=""), overwrite=TRUE,
+                     datatype = 'INT1U')
+  
+  rm(ras.haz, ras.haz2)
+  gc()
+  }
+
+```
+
+```{r}
+years<-c("2009","2010","2011","2013","2014","2015","2016","2017","2018","2019", "2020", "2021")
+
+dat <- data.frame (matrix (ncol = 156, nrow = 0)) # add 'data' to the points
+  colnames (dat) <- colnames(fire_spread)
+  x<-data.frame(matrix(ncol=1, nrow=0))
+  colnames(x)<- c("basal_area")
+  dat<-cbind(dat, x)
+
+for (i in 1: length(years)) {
+  
+ras<-terra::rast(paste0( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\","rast_basal_area_", years[i], ".tiff", sep=""))
+
+fire_spread_yr<-fire_spread %>% filter(fire_yr == (as.numeric(years[i])+1))
+
+x2<- st_centroid(fire_spread_yr)
+
+x<-st_coordinates(x2)
+test<-cbind(fire_spread_yr, x)
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+#crs(pointCoordinates) #No CRS when a dataframe
+##Extract Wind values from stacked layer
+veg_cat=terra::extract(ras, pointCoordinates)
+val<-cbind(test, veg_cat)
+
+dat<-rbind(dat, val)
+
+}
+  
+#### now extract 2012 separately 
+  ras<-terra::rast(paste0( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\","rast_basal_area_2011", ".tiff", sep=""))
+
+fire_spread_yr<-fire_spread %>% filter(fire_yr == 2013)
+
+x2<- st_centroid(fire_spread_yr)
+
+x<-st_coordinates(x2)
+test<-cbind(fire_spread_yr, x)
+pointCoordinates<-data.frame(test$X, test$Y)
+head(pointCoordinates)
+#crs(pointCoordinates) #No CRS when a dataframe
+##Extract Wind values from stacked layer
+veg_cat=terra::extract(ras, pointCoordinates)
+val<-cbind(test, veg_cat)
+
+dat<-rbind(dat, val)
+########
+
+   
+```
+
+
+# extract the vri data from the tiffs created above except for 2012 which seems to have a slight glitch.
+
+```{r}
+years<-c("2009","2010","2011","2013","2014","2015","2016","2017","2018","2019", "2020", "2021")
+
+dat1 <- data.frame (matrix (ncol = 160, nrow = 0)) # add 'data' to the points
+  colnames (dat1) <- colnames(dat)
+  x<-data.frame(matrix(ncol=1, nrow=0))
+  colnames(x)<- c("veg_cat")
+  dat1<-cbind(dat1, x)
+
+for (i in 1: length(years)) {
+  
+ras<-terra::rast(paste0( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\","rast_ignit_", years[i], ".tiff", sep=""))
+
+fire_spread_yr<-dat %>% filter(fire_yr == (as.numeric(years[i])+1))
+
+pointCoordinates<-data.frame(fire_spread_yr$X, fire_spread_yr$Y)
+head(pointCoordinates)
+#crs(pointCoordinates) #No CRS when a dataframe
+##Extract Wind values from stacked layer
+veg_cat=terra::extract(ras, pointCoordinates)
+colnames(veg_cat)<-c("id", "veg_cat")
+val<-cbind(fire_spread_yr, veg_cat)
+
+
+dat1<-rbind(dat1, val)
+}
+
+  #### now extract 2012 separately 
+  ras<-terra::rast(paste0( "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\tmp\\spread\\","rast_ignit_2011", ".tiff", sep=""))
+
+fire_spread_yr<-dat %>% filter(fire_yr == 2013)
+
+pointCoordinates<-data.frame(fire_spread_yr$X, fire_spread_yr$Y)
+head(pointCoordinates)
+#crs(pointCoordinates) #No CRS when a dataframe
+##Extract Wind values from stacked layer
+veg_cat=terra::extract(ras, pointCoordinates)
+colnames(veg_cat)<-c("id", "veg_cat")
+val<-cbind(fire_spread_yr, veg_cat)
+
+dat1<-rbind(dat1, val)
+########
 
 ```
 
 
 ```{r}
-fire_spread$PPT04<-as.numeric(fire_spread$PPT04)
-fire_spread$PPT05<-as.numeric(fire_spread$PPT05)
-fire_spread$PPT06<-as.numeric(fire_spread$PPT06)
-fire_spread$PPT07<-as.numeric(fire_spread$PPT07)
-fire_spread$PPT08<-as.numeric(fire_spread$PPT08)
-fire_spread$PPT09<-as.numeric(fire_spread$PPT09)
+##Change vegtype to factor
 
-fire_spread[frt==5, climate1:=(Tmax06+Tmax07 + Tmax08)/3]
-fire_spread[frt==5, climate2:=(PPT06+PPT07+PPT08)/3]
-fire_spread[frt==7, climate1:=(CMD05 + CMD06 + CMD07 + CMD08 + CMD09)/5]
-fire_spread[frt==9, climate1:=(Tave03 + Tave04 + Tave05 + Tave06 + Tave07)/5]
-fire_spread[frt==10, climate1:=(Tmax05 + Tmax06 + Tmax07)/3]
-fire_spread[frt==10, climate2:=(PPT05 + PPT06 + PPT07)/3]
-fire_spread[frt==11, climate1:=(Tmin06 + Tmin07)/2]
-fire_spread[frt==11, climate2:=(PPT06 + PPT07)/2]
-fire_spread[frt==12, climate1:=(Tmax04 + Tmax05 + Tmax06)/3]
-fire_spread[frt==12, climate2:=(PPT04 + PPT05 + PPT06)/3]
-fire_spread[frt==13,climate1:=(Tmax05 + Tmax06 + Tmax07+ Tmax08+ Tmax09)/5]
-fire_spread[frt==14, climate1:=(Tmax03 + Tmax04 + Tmax05)/3]
-fire_spread[frt==14, climate2:=(PPT03 + PPT04 + PPT05)/3]
-fire_spread[frt==15, climate1:=(CMD04 + CMD05 + CMD06 + CMD07 + CMD08 +CMD09)/6]
+dat<-data.table(dat)
+dat$fwveg<-as.factor(dat$fwveg)
+dat[fwveg=="C-1", fwveg2:=1]
+dat[fwveg=="C-2", fwveg2:=1]
+dat[fwveg=="C-3", fwveg2:=1]
+dat[fwveg=="C-5", fwveg2:=1]
+dat[fwveg=="C-7", fwveg2:=1]
+dat[fwveg=="D-1/2", fwveg2:=3]
+dat[fwveg=="M-1/2", fwveg2:=2]
+dat[fwveg=="M-3", fwveg2:=2]
+dat[fwveg=="O-1a/b", fwveg2:=5]
+dat[fwveg=="S-1", fwveg2:=4]
+dat[fwveg=="S-2", fwveg2:=4]
+dat[fwveg=="S-3", fwveg2:=4]
+dat[fwveg=="W", fwveg2:=6]
+dat[fwveg=="N", fwveg2:=6]
+
+table(dat$fire_yr,dat$fwveg2, dat$veg_cat)
+
+#create new column
+fire_spread$fire_veg<-paste(fire_spread$pttype, fire_spread$fwveg)
+
+
+table(dat$fire_yr)
+table(fire_spread$fire_yr)
+
+dat2<-merge(dat, fire_bounds, by.x=c("fire_yr", "fire_label"), by.y = c("FIRE_YEAR", "FIRE_LABEL"), all.x = TRUE)
+dat3<-as.data.frame(dat2)
+
+dat1<-dat1 %>% rename(basal_area = layer)
+
+st_write(dat1, "C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\spread_data_11April2024.gpkg", delete_layer=TRUE, driver="GPKG")
+
+dat2<-st_read("C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\spread\\spread_data_11April2024.gpkg")
+
+names(dat2)
+table(dat2$fire_yr)
+
+```
+
+
+```{r}
+dat2<-data.table(dat2)
+#dat<-dat2[FIRE_CAUSE=="Lightning",]
+dat<-dat2
+
+dat$PPT04<-as.numeric(dat$PPT04)
+dat$PPT05<-as.numeric(dat$PPT05)
+dat$PPT06<-as.numeric(dat$PPT06)
+dat$PPT07<-as.numeric(dat$PPT07)
+dat$PPT08<-as.numeric(dat$PPT08)
+dat$PPT09<-as.numeric(dat$PPT09)
+
+
+dat[frt==5, climate1:=(Tmax06+Tmax07 + Tmax08)/3]
+dat[frt==5, climate2:=(PPT06+PPT07+PPT08)/3]
+dat[frt==7, climate1:=(Tmax06+Tmax07 + Tmax08)/3]
+dat[frt==7, climate2:=(PPT06+PPT07+PPT08)/3]
+dat[frt==9, climate1:=(Tave03 + Tave04 + Tave05 + Tave06 + Tave07)/5]
+dat[frt==10, climate1:=Tmax06]
+dat[frt==10, climate2:=PPT06]
+dat[frt==11, climate1:=(Tmin06 + Tmin07)/2]
+dat[frt==11, climate2:=(PPT06 + PPT07)/2]
+dat[frt==12, climate1:=(Tmax04 + Tmax05 + Tmax06)/3]
+dat[frt==12, climate2:=(PPT04 + PPT05 + PPT06)/3]
+dat[frt==13,climate1:=(Tmax05 + Tmax06 + Tmax07+ Tmax08+ Tmax09)/5]
+dat[frt==14, climate1:=(Tmax03 + Tmax04 + Tmax05)/3]
+dat[frt==14, climate2:=(PPT03 + PPT04 + PPT05)/3]
+dat[frt==15, climate1:=(CMD04 + CMD05 + CMD06 + CMD07 + CMD08 +CMD09)/6]
 
 ```
 
@@ -113,55 +337,62 @@ fire_spread[frt==15, climate1:=(CMD04 + CMD05 + CMD06 + CMD07 + CMD08 +CMD09)/6]
 
 ```{r}
 #View top variable
-names(fire_spread)
-unique(fire_spread$frt) # FRT 3 should not be in this list
-table(is.na(fire_spread$frt))
-fire_spread$frt[fire_spread$frt==3]<-5
+names(dat)
 
-fire_spread$frt[is.na(fire_spread$frt) & fire_spread$bec_zone_code =="IDF"]<-14
-fire_spread$frt[is.na(fire_spread$frt)]<-15
+unique(dat$frt) # FRT 3 should not be in this list
+table(is.na(dat$frt))
 
-fire_spread
-
-
-##Change vegtype to factor
-fire_spread$fwveg<-as.factor(fire_spread$fwveg)
-
+dat[is.na(frt) & bec_zone_code=="CWH", frt:=15]
+dat[is.na(frt) & bec_zone_code=="CDF", frt:=15]
+dat[is.na(frt) & bec_zone_code=="CMA", frt:=10]
+dat[is.na(frt) & bec_zone_code=="MH", frt:=15]
+dat[is.na(frt) & bec_zone_code=="ESSF", frt:=13]
+dat[is.na(frt) & bec_zone_code=="MS", frt:=13]
+dat[is.na(frt) & bec_zone_code=="ICH", frt:=13]
+dat[is.na(frt) & bec_zone_code=="IDF", frt:=14]
+dat[is.na(frt) & bec_zone_code=="BG", frt:=14]
+dat[is.na(frt) & bec_zone_code=="PP", frt:=14]
 #create new column
-fire_spread$fire_veg<-paste(fire_spread$pttype, fire_spread$fwveg)
+dat$fire_veg<-paste(dat$pttype, dat$veg_cat)
 
 ```
 
 #Change Aspect to N,S,E,W
 
 ```{r}
-fire_spread[, aspect_cardinal:="O"]
-fire_spread[aspect_ha_bc>315, aspect_cardinal:="N"]
-fire_spread[aspect_ha_bc<=45, aspect_cardinal:="N"]
-fire_spread[aspect_ha_bc>45 & aspect_ha_bc<=135, aspect_cardinal:="O"]
-fire_spread[aspect_ha_bc>135 & aspect_ha_bc<=225, aspect_cardinal:="S"]
-fire_spread[aspect_ha_bc>225 & aspect_ha_bc<=315, aspect_cardinal:="O"]
+dat[, aspect_cardinal:="O"]
+dat[aspect_ha_bc>315, aspect_cardinal:="N"]
+dat[aspect_ha_bc<=45, aspect_cardinal:="N"]
+dat[aspect_ha_bc>45 & aspect_ha_bc<=135, aspect_cardinal:="O"]
+dat[aspect_ha_bc>135 & aspect_ha_bc<=225, aspect_cardinal:="S"]
+dat[aspect_ha_bc>225 & aspect_ha_bc<=315, aspect_cardinal:="O"]
 
-x<-fire_spread %>% filter(pttype==1)
+x<-dat %>% filter(pttype==1)
 hist(x$aspect_ha_bc)
+
+# I think the vegetation categorization is not great! so ill change veg_cat=6  to veg_cat 4 under the following conditions
+dat[veg_cat==6 & bclcs_level_1 =="V" & bclcs_level_4 %in% c("TC", "TB", "TD"), veg_cat:=4]
+dat[veg_cat==6 & bclcs_level_1 =="V", veg_cat:=5]
 ```
 
 #View plots (SLOW)
 
 ```{r}
-
 #  positive association with slope
 
-ggplot(fire_spread, aes(x = slope_ha_bc)) +
+ggplot(dat, aes(x = slope_ha_bc)) +
+  geom_histogram(fill = "white", colour = "black") +
+  facet_grid(pttype ~ .)
+ggplot(dat, aes(x = conifer_pct_cover_total)) +
   geom_histogram(fill = "white", colour = "black") +
   facet_grid(pttype ~ .)
 
-ggplot(fire_spread, aes(x = rast_ignit_dist)) +
+ggplot(dat, aes(x = rast_ignit_dist)) +
   geom_histogram(fill = "white", colour = "black") +
   facet_grid(pttype ~ .)
 
 ##Seeing distribution of ignitions by slope makes me believe that slope is not a big factor for ignitions despite seemingly positive trend prior.
-p <- ggplot(fire_spread, aes(dem, as.numeric(pttype))) +
+p <- ggplot(dat, aes(dem, as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
@@ -170,16 +401,67 @@ p <- ggplot(fire_spread, aes(dem, as.numeric(pttype))) +
   facet_wrap(~frt)
 p # seems like there is probably no relationship with elevation
 
-p <- ggplot(fire_spread, aes(((CMD03 +CMD04 + CMD05 + CMD06 + CMD07 + CMD08)/5), as.numeric(pttype))) +
+p <- ggplot(dat, aes(conifer_pct_cover_total, as.numeric(pttype))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("% conifer") + ylab("Pr (spread)") + 
+  facet_wrap(~frt)
+p
+```
+
+Checking relationship between age and veg categories
+```{r}
+p <- ggplot(dat, aes(proj_age_1, as.numeric(pttype))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("age") + ylab("Pr (spread)") + 
+  facet_wrap(~frt)
+p
+
+p <- ggplot(dat, aes(proj_age_1, as.numeric(pttype))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("age") + ylab("Pr (ignition)") + 
+  facet_wrap(~veg_cat)
+p
+
+### its weird that there are ages in the category 0 and 6. 
+
+p <- ggplot(dat, aes(((CMI03 + CMI04 + CMI05)/3), as.numeric(pttype))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("CMI 03 to 05") + ylab("Pr (ignition)") + 
+  facet_wrap(~frt)
+p
+
+p <- ggplot(dat, aes(((CMI06 + CMI07 + CMI08)/4), as.numeric(pttype))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("CMI 06 to 08") + ylab("Pr (ignition)") + 
+  facet_wrap(~frt)
+p
+
+
+p <- ggplot(dat, aes(((CMD03 +CMD04 + CMD05 + CMD06 + CMD07 + CMD08)/5), as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("CMD_04 to 08") + ylab("Pr (ignition)") + 
   facet_wrap(~frt)
-p # seems like there is probably no relationship with elevation
+p 
 
-p <- ggplot(fire_spread, aes(((CMD03 + CMD04 + CMD05)/3), as.numeric(pttype))) +
+p <- ggplot(dat, aes(((CMD03 + CMD04 + CMD05)/3), as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
@@ -188,7 +470,7 @@ p <- ggplot(fire_spread, aes(((CMD03 + CMD04 + CMD05)/3), as.numeric(pttype))) +
   facet_wrap(~frt)
 p
 
-p <- ggplot(fire_spread, aes(((CMD06 + CMD07 + CMD08)/3), as.numeric(pttype))) +
+p <- ggplot(dat, aes(((CMD06 + CMD07 + CMD08)/3), as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
@@ -197,7 +479,7 @@ p <- ggplot(fire_spread, aes(((CMD06 + CMD07 + CMD08)/3), as.numeric(pttype))) +
   facet_wrap(~frt)
 p
 
-p <- ggplot(fire_spread, aes(((PPT03 + PPT04 + PPT05)/3), as.numeric(pttype))) +
+p <- ggplot(dat, aes(((PPT03 + PPT04 + PPT05)/3), as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
@@ -206,7 +488,7 @@ p <- ggplot(fire_spread, aes(((PPT03 + PPT04 + PPT05)/3), as.numeric(pttype))) +
   facet_wrap(~frt)
 p
 
-p <- ggplot(fire_spread, aes(((PPT06 + PPT07 + PPT08)/3), as.numeric(pttype))) +
+p <- ggplot(dat, aes(((PPT06 + PPT07 + PPT08)/3), as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
@@ -215,7 +497,7 @@ p <- ggplot(fire_spread, aes(((PPT06 + PPT07 + PPT08)/3), as.numeric(pttype))) +
   facet_wrap(~frt)
 p
 
-p <- ggplot(fire_spread, aes(((Tmax03 + Tmax04 + Tmax05)/3), as.numeric(pttype))) +
+p <- ggplot(dat, aes(((Tmax03 + Tmax04 + Tmax05)/3), as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
@@ -224,7 +506,7 @@ p <- ggplot(fire_spread, aes(((Tmax03 + Tmax04 + Tmax05)/3), as.numeric(pttype))
   facet_wrap(~frt)
 p
 
-p <- ggplot(fire_spread, aes(((Tmax06 + Tmax07 + Tmax08)/3), as.numeric(pttype))) +
+p <- ggplot(dat, aes(((Tmax06 + Tmax07 + Tmax08)/3), as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
@@ -233,7 +515,7 @@ p <- ggplot(fire_spread, aes(((Tmax06 + Tmax07 + Tmax08)/3), as.numeric(pttype))
   facet_wrap(~frt)
 p
 
-p <- ggplot(fire_spread, aes(((RH06 + RH07 + RH08)/3), as.numeric(pttype))) +
+p <- ggplot(dat, aes(((RH06 + RH07 + RH08)/3), as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
@@ -242,7 +524,7 @@ p <- ggplot(fire_spread, aes(((RH06 + RH07 + RH08)/3), as.numeric(pttype))) +
   facet_wrap(~frt)
 p
 
-p <- ggplot(fire_spread, aes(dist_roads_m, as.numeric(pttype))) +
+p <- ggplot(dat, aes(dist_roads_m, as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
@@ -251,7 +533,7 @@ p <- ggplot(fire_spread, aes(dist_roads_m, as.numeric(pttype))) +
   facet_wrap(~frt)
 p
 
-p <- ggplot(fire_spread, aes((log(dist_roads_m+1)), as.numeric(pttype))) +
+p <- ggplot(dat, aes((log(dist_roads_m+1)), as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
@@ -260,7 +542,7 @@ p <- ggplot(fire_spread, aes((log(dist_roads_m+1)), as.numeric(pttype))) +
   facet_wrap(~frt)
 p
 
-p <- ggplot(fire_spread, aes((log(dist_infr_m+1)), as.numeric(pttype))) +
+p <- ggplot(dat, aes((log(dist_infr_m+1)), as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
@@ -269,7 +551,7 @@ p <- ggplot(fire_spread, aes((log(dist_infr_m+1)), as.numeric(pttype))) +
   facet_wrap(~frt)
 p
 
-p <- ggplot(fire_spread, aes((dist_infr_m), as.numeric(pttype))) +
+p <- ggplot(dat, aes((dist_infr_m), as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
@@ -278,7 +560,7 @@ p <- ggplot(fire_spread, aes((dist_infr_m), as.numeric(pttype))) +
   facet_wrap(~frt)
 p
 
-p <- ggplot(fire_spread, aes((dem), as.numeric(pttype))) +
+p <- ggplot(dat, aes((dem), as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
@@ -287,7 +569,7 @@ p <- ggplot(fire_spread, aes((dem), as.numeric(pttype))) +
   facet_wrap(~frt)
 p
 
-p <- ggplot(fire_spread, aes((rast_ignit_dist), as.numeric(pttype))) +
+p <- ggplot(dat, aes((rast_ignit_dist), as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
@@ -296,7 +578,7 @@ p <- ggplot(fire_spread, aes((rast_ignit_dist), as.numeric(pttype))) +
   facet_wrap(~frt)
 p
 
-p <- ggplot(fire_spread, aes((slope_ha_bc), as.numeric(pttype))) +
+p <- ggplot(dat, aes((slope_ha_bc), as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
@@ -310,10 +592,10 @@ p
 
 # remove NA values in the columns because the glmer models dont run if there are any na values
 ```{r}
-fire_spread<-fire_spread[!is.na(slope_ha_bc),]
-fire_spread<-fire_spread[!is.na(dem),]
-fire_spread<-fire_spread[!is.na(fwveg),]
-fire_spread<-fire_spread[!is.na(climate1),]
+dat<-dat[!is.na(slope_ha_bc),]
+dat<-dat[!is.na(dem),]
+dat<-dat[!is.na(fwveg),]
+dat<-dat[!is.na(climate1),]
 ```
 
 # Fit models
@@ -327,8 +609,11 @@ I tried various things including the interaction between climate2 and climate1 i
 # Plot climate data results
 
 # also consider making box plots of these climatic variables to see how they perform
-frt5<-fire_spread %>% filter(frt==5 & !fwveg %in% c("N", "W"))
 
+frt5<-dat %>% filter(frt %in% c(5))
+#frt7 <- dat %>% filter(frt == 7 & !veg_cat %in% c(0,6))
+
+#frt5_7<-dat %>% filter(frt %in% c(5,7) & !veg_cat %in% c(0, 6))
 #frt5[, climate2:=(PPT06+PPT07)/2]
 
 ggplot(frt5, aes(x=factor(pttype), y=climate1))+
@@ -341,13 +626,38 @@ ggplot(frt5, aes(x=factor(pttype), y=rast_ignit_dist))+
 geom_boxplot()
 
 
-p <- ggplot(frt5, aes(climate1, as.numeric(pttype))) +
+p <- ggplot(frt5_7, aes((RH03 + RH04 +RH05)/3, as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
               method.args=list(family="binomial"),
               alpha=0.3) +
   geom_point(position=position_jitter(height=0.03, width=0)) +
   xlab("Mean_Tmax06_07") + ylab("Pr (ignition)")
 p
+
+p <- ggplot(frt5, aes((RH03 + RH04 +RH05)/3, as.numeric(pttype))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Mean_Tmax06_07") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(frt5, aes((CMI03 + CMI04 +CMI05)/3, as.numeric(pttype))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Mean_Tmax06_07") + ylab("Pr (ignition)")
+p
+
+p <- ggplot(frt7, aes((CMI03 + CMI04 +CMI05)/3, as.numeric(pttype))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Mean_Tmax06_07") + ylab("Pr (ignition)")
+p
+
 
 p <- ggplot(frt5, aes(climate2, as.numeric(pttype))) +
   geom_smooth(method="glm", formula=y~x,
@@ -360,6 +670,7 @@ p
 ggplot(frt5, aes(x=factor(pttype), y=dem))+
 geom_boxplot()
 
+
 # I dont like tahat fires typically occur at lower Tmax07. I think the reason is becuase Tmax is correlated with dem. But Im not sure how to get around this. The ppt07 data is strongly in the correct direction so maybe that makes it ok. Im not sure.
 
 table(is.na(frt5$win_sum))
@@ -371,24 +682,46 @@ frt5[is.na(win_sum), win_sum:=3.018047]
 table(is.na(frt5$dem))
 table(is.na(frt5$dist_roads))
 table(is.na(frt5$dist_infr_m))
-table(is.na(frt5$win_sum))
+table(is.na(frt5$climate2))
+table(is.na(frt5$veg_cat))
+table(is.na(frt5$rast_ignit_dist))
+table(is.na(frt5$proj_age_1))
+```
 
-cor.test((frt5$climate1), (frt5$dem))
+There seems to be a problem with my veg categories
+```{r}
+frt5[is.na(proj_age_1) & bclcs_level_1=="V", proj_age_1:=0]
+frt5[bclcs_level_4 == "TC" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=1]
+frt5[bclcs_level_4 == "TM" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=2]
+frt5[bclcs_level_4 == "TB" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=3]
+frt5[bclcs_level_4 %in% c("TC", "TM", "TB") & (basal_area < 8 | is.na(basal_area) | proj_height_1 <4 | is.na(proj_height_1)), veg_cat:=4]
+frt5[bclcs_level_1 =="V" & !bclcs_level_4 %in% c("TC", "TM", "TB"), veg_cat:=5]
+frt5[bclcs_level_1 !="V", veg_cat:=6]
+
+table(frt5$veg_cat, frt5$pttype)
+    
+```
+
+
+```{r}
+cor.test((frt5$climate1), (frt5$dem)) # highly negatively correlated
 cor.test((frt5$climate2), (frt5$dem))
 cor.test((frt5$climate1), (frt5$climate2))
-cor.test((frt5$dist_roads_m), (frt5$dist_infr_m))
+cor.test((frt5$dist_roads_m), (frt5$dist_infr_m)) # almost correlated (0.665)
 cor.test((frt5$rast_ignit_dist), (frt5$climate2))
+cor.test((frt5$proj_age_1), (frt5$basal_area))
 
 # Using AIC Ill pick the model that is better with leaving some of these combinations out
 
-table(frt5$fwveg, frt5$pttype)
-frt5$fwveg[frt5$fwveg=="M-3"]<-"M-1/2"
-frt5$fwveg[frt5$fwveg=="S-2"]<-"S-1"
-frt5$fwveg[frt5$fwveg=="S-1"]<-"O-1a/b"
+table(frt5$veg_cat, frt5$pttype)
 
 frt5<-frt5 %>% 
   filter(!bclcs_level_5 %in% c("GL", "LA")) # remove glaciers or lakes. Sometimes these get put into the N veg category so I want to make sure there are not present
-table(frt5$fwveg, frt5$pttype)
+table(frt5$veg_cat, frt5$pttype)
+
+frt5<-frt5[veg_cat != "6",]
+frt5<-frt5[!is.na(proj_age_1),]
+frt5<-frt5[!is.na(basal_area),]
 ```
 
 # Model fit
@@ -396,88 +729,116 @@ table(frt5$fwveg, frt5$pttype)
 ```{r}
 frt5$fire_yr<-as.factor(frt5$fire_yr)
 frt5$fire_label<-as.factor(frt5$fire_label)
+frt5$frt<-as.factor(frt5$frt)
+frt5$aspect_cardinal<-as.factor(frt5$aspect_cardinal)
+frt5$veg_cat<-as.factor(frt5$veg_cat)
 
-frt5$scale_climate1<-(frt5$climate1-mean(frt5$climate1))/sd(frt5$climate1)
-frt5$scale_climate2<-(frt5$climate2-mean(frt5$climate2))/sd(frt5$climate2)
-frt5$scale_dem<-(frt5$dem-mean(frt5$dem))/sd(frt5$dem)
-frt5$scale_slope<-(frt5$slope_ha_bc-mean(frt5$slope_ha_bc))/sd(frt5$slope_ha_bc)
-frt5$scale_roads<-(frt5$dist_roads_m-mean(frt5$dist_roads_m))/sd(frt5$dist_roads_m)
-frt5$scale_dist_ignit<-(frt5$rast_ignit_dist-mean(frt5$rast_ignit_dist))/sd(frt5$rast_ignit_dist)
+frt5$scale_climate1<-(frt5$climate1-mean(frt5$climate1, na.rm=TRUE)) / sd(frt5$climate1, na.rm=TRUE)
+frt5$scale_climate2<-(frt5$climate2-mean(frt5$climate2, na.rm=TRUE)) / sd(frt5$climate2, na.rm=TRUE)
+frt5$scale_dem<-(frt5$dem-mean(frt5$dem, na.rm=TRUE))/sd(frt5$dem, na.rm=TRUE)
+frt5$scale_slope<-(frt5$slope_ha_bc-mean(frt5$slope_ha_bc, na.rm=TRUE)) / sd(frt5$slope_ha_bc, na.rm=TRUE)
+frt5$scale_roads<-(frt5$dist_roads_m-mean(frt5$dist_roads_m, na.rm=TRUE)) / sd(frt5$dist_roads_m, na.rm=TRUE)
+frt5$scale_infr<-(frt5$dist_infr_m-mean(frt5$dist_infr_m, na.rm=TRUE)) / sd(frt5$dist_infr_m, na.rm=TRUE)
+frt5$scale_dist_ignit<-(frt5$rast_ignit_dist-mean(frt5$rast_ignit_dist, na.rm=TRUE)) / sd(frt5$rast_ignit_dist, na.rm=TRUE)
+frt5$scale_pct_conifer<-(frt5$conifer_pct_cover_total-mean(frt5$conifer_pct_cover_total, na.rm=TRUE))/sd(frt5$conifer_pct_cover_total, na.rm=TRUE)
+frt5$scale_age<-(frt5$proj_age_1-mean(frt5$proj_age_1, na.rm=TRUE))/sd(frt5$proj_age_1, na.rm=TRUE)
+frt5$scale_basal_area<-(frt5$basal_area-mean(frt5$basal_area, na.rm=TRUE))/sd(frt5$basal_area, na.rm=TRUE)
+frt5$scale_win_spg<-(frt5$win_spg-mean(frt5$win_spg, na.rm=TRUE))/sd(frt5$win_spg, na.rm=TRUE)
 
+table(frt5$bec_zone_code, frt5$pttype)
+
+frt5[bec_zone_code=="BAFA", bec_zone_code:="SWB"]
+
+frt5<-frt5[!is.na(scale_climate2)]
 
 # climate 1 and dem are correlated 
-model1 <- glmer (pttype ~ scale_climate1 * scale_climate2 + as.factor(fwveg) + scale_roads + scale_slope + scale_dist_ignit + as.factor(aspect_cardinal) + (1|fire_yr) + (1|fire_yr:fire_label),
+model1 <- glmer (pttype ~ scale_climate1 * scale_climate2 + veg_cat + scale_roads + scale_infr + scale_slope + scale_dist_ignit + aspect_cardinal + scale_age + scale_pct_conifer + scale_basal_area + bec_zone_code + (1|fire_label) ,
                data=frt5,
                family = binomial (link = "logit"))
-summary(model1) #BIC = 62063.8 
+summary(model1) #AIC = 64953.8           
 Anova(model1, type=3)
 
 # try dem instead of climate 1
-model1 <- glmer (pttype ~ scale_dem * scale_climate2 + as.factor(fwveg) + scale_roads + scale_slope + scale_dist_ignit + as.factor(aspect_cardinal) + (1|fire_yr) + (1|fire_yr:fire_label),
+model2 <- glmer (pttype ~ scale_dem * scale_climate2 + veg_cat + scale_roads + scale_infr + scale_slope + scale_dist_ignit + aspect_cardinal + scale_age + scale_pct_conifer + scale_basal_area + bec_zone_code + (1|fire_label) ,
                data=frt5,
                family = binomial (link = "logit"))
-summary(model1) #BIC= 62121.0  WORSE so use model above
-
-# remove aspect
-model2 <- glmer (pttype ~ scale_climate1 * scale_climate2 + as.factor(fwveg) + scale_roads + scale_slope + scale_dist_ignit + (1|fire_yr) + (1|fire_yr:fire_label),
-               data=frt5,
-               family = binomial (link = "logit"))
-summary(model2) #BIC = 62043.6  
+summary(model2) #AIC= 64912.6          
 Anova(model2, type=3)
 
-# remove slope
-model3<-glmer (pttype ~ scale_dem * scale_climate2 + as.factor(fwveg) + scale_roads + scale_dist_ignit + (1|fire_yr) + (1|fire_yr:fire_label),
+model3b <- glmer (pttype ~ scale_climate1 * scale_climate2 + veg_cat + scale_roads + scale_dist_ignit + aspect_cardinal + scale_age + scale_pct_conifer + scale_basal_area + bec_zone_code + (1|fire_label) ,
                data=frt5,
                family = binomial (link = "logit"))
-summary(model3) #BIC = 62033.8  
-Anova(model3, type=3)
+Anova(model3b, type=3)
+visreg(model3b)
+visreg(model3b, "scale_climate1", by="scale_climate2")
 
-# test model without fire_yr
-model4<-glmer (pttype ~ scale_climate1 * scale_climate2 + as.factor(fwveg) + scale_roads + scale_dist_ignit + (1|fire_label),
+
+# model 1 is better
+# remove slope and infrastructure
+model3 <- glmer (pttype ~ scale_dem * scale_climate2 + veg_cat + scale_roads + scale_dist_ignit + aspect_cardinal + scale_age + scale_pct_conifer + scale_basal_area + bec_zone_code + (1|fire_label) ,
                data=frt5,
                family = binomial (link = "logit"))
-summary(model4) #BIC = 62046.1  
-anova(model3, model4)
-
-# try quadratic effect of distance to igntion
-model5<-glmer (pttype ~ scale_dem * scale_climate2 + as.factor(fwveg) + scale_roads + scale_dist_ignit + I(scale_dist_ignit^2)+ (1|fire_yr) + (1|fire_yr:fire_label),
-               data=frt5,
-               family = binomial (link = "logit"))
-summary(model5) #BIC = 61220.3   
-Anova(model5, type=3)
-visreg(model5)
-
-# model 3 is best
+summary(model3) #AIC = 64909.0         
 Anova(model3, type=3)
 visreg(model3)
-visreg(model3, "scale_climate2", by="scale_dem", scale="response", breaks=6)
+visreg(model3, "scale_climate2", by="scale_dem")
 
-binnedplot (fitted(model5), 
-            residuals(model5), 
+# remove aspect because although its significant the relationships seem odd and also the classes dont seem very different to one another
+model4 <- glmer (pttype ~ scale_dem * scale_climate2 + veg_cat * scale_climate2 + scale_roads + scale_dist_ignit + scale_age + scale_pct_conifer + scale_basal_area + bec_zone_code + (1|fire_label) ,
+               data=frt5,
+               family = binomial (link = "logit"))
+summary(model4) #AIC = 64909.0         
+Anova(model4, type=3)
+
+visreg(model4)
+visreg(model4, "scale_climate2", by="scale_dem")
+visreg(model4, "scale_climate2", by="veg_cat")
+
+AIC(model3, model4)
+
+# good toknow, including spring wind does not help at all. Model 4 is best
+model5 <- glmer (pttype ~ scale_dem * scale_climate2 + veg_cat * scale_climate2 + scale_roads + scale_dist_ignit + scale_age + scale_pct_conifer + scale_basal_area + bec_zone_code + scale_win_spg + (1|fire_label) ,
+               data=frt5,
+               family = binomial (link = "logit"))
+summary(model5) #AIC = 64909.0         
+Anova(model5, type=3)
+
+frt5_2<-frt5[!is.na(scale_pct_conifer) & !is.na(bec_zone_code),]
+
+binnedplot (fitted(model4), 
+            residuals(model4), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm"))
 
 
-plot(predict(model3),residuals(model3))
+plot(predict(model4),residuals(model4))
 abline(h=0,lty=2,col="grey")
-lines(lowess(predict(model3),residuals(model3)),col="black",lwd=2)
+lines(lowess(predict(model4),residuals(model4)),col="black",lwd=2)
 
-plot(frt5$scale_climate2,residuals(model3))
-lines(lowess(frt5$scale_climate2,residuals(model3)),col="black",lwd=2)
+plot(frt5_2$scale_climate2,residuals(model4))
+lines(lowess(frt5_2$scale_climate2,residuals(model4)),col="black",lwd=2)
 
-plot(frt5$scale_dem,residuals(model3))
-lines(lowess(frt5$scale_dem,residuals(model3)),col="black",lwd=2)
+plot(frt5_2$scale_dem,residuals(model4))
+lines(lowess(frt5_2$scale_dem,residuals(model4)),col="black",lwd=2)
 
-plot(frt5$scale_roads,residuals(model3))
-lines(lowess(frt5$scale_roads,residuals(model3)),col="black",lwd=2)
+plot(frt5_2$scale_roads,residuals(model4))
+lines(lowess(frt5_2$scale_roads,residuals(model4)),col="black",lwd=2)
 
-plot(frt5$scale_dist_ignit,residuals(model3))
-lines(lowess(frt5$scale_dist_ignit,residuals(model3)),col="black",lwd=2)
+plot(frt5_2$scale_dist_ignit,residuals(model4))
+lines(lowess(frt5_2$scale_dist_ignit,residuals(model4)),col="black",lwd=2)
 
+plot(frt5_2$scale_basal_area,residuals(model4))
+lines(lowess(frt5_2$scale_basal_area,residuals(model4)),col="black",lwd=2)
 
-saveRDS(model3, "C:/Work/caribou/castor/R/fire_sim/tmp/frt5.rds")
+plot(frt5_2$scale_age,residuals(model4))
+lines(lowess(frt5_2$scale_age,residuals(model4)),col="black",lwd=2)
+
+plot(frt5_2$scale_pct_conifer,residuals(model4))
+lines(lowess(frt5_2$scale_pct_conifer,residuals(model4)),col="black",lwd=2)
+
+saveRDS(model4, "C:/Work/caribou/castor/R/fire_sim/tmp/frt5.rds")
 
 ```
 
@@ -489,13 +850,52 @@ m5<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt5.rds")
 
 newdat<-expand.grid(scale_dem =c(0, -0.5,-1,1,0.5), 
                     scale_climate2 = c(0.4, 0.3, 1,-0.9, -0.2),
-                    fwveg=c("C-1", "C-3", "D-1/2", "C-2", "C-3"),
+                    veg_cat=c("1", "2", "3", "4", "5"),
                     scale_roads=c(0, 0.3, -1.5, -1,1),
-                    scale_dist_ignit=c(0, -1, -1.2, 0.5,0.1), pttype=0)
+                    scale_dist_ignit=c(0, -1, -1.2, 0.5,0.1), 
+                    scale_age = c(-2.45, -0.72, -0.08,0.0,0.72),
+                    scale_pct_conifer = c(-2.7, -0.32,0.54,0.0, 0.72),
+                    scale_basal_area = c(-1.19, -0.92, -0.25,0,0.84),
+                    bec_zone_code = c("SWB", "BWBS"),
+                    pttype=0)
 
 newdat$pttype <- predict(m5,newdat,re.form=NA)
 
+newdat<-data.table(newdat)
+newdat[, veg_cat2:=0]
+newdat[veg_cat=="2", veg_cat2:=1]
+newdat[, veg_cat3:=0]
+newdat[veg_cat=="3", veg_cat3:=1]
+newdat[, veg_cat4:=0]
+newdat[veg_cat=="4", veg_cat4:=1]
+newdat[, veg_cat5:=0]
+newdat[veg_cat=="5", veg_cat5:=1]
+newdat[, bec_zone_SWB:=0]
+newdat[bec_zone_code=="SWB", bec_zone_SWB:=1]
+
+
+newdat[,manual_predict:= -0.51288 + 
+  0.35881*scale_dem +
+  0.02666*scale_climate2+
+  -0.17354*veg_cat2+
+  -0.16222*veg_cat3+
+  -0.18666*veg_cat4+
+  -0.59184*veg_cat5+
+  0.15039* scale_roads+
+  -1.01801*scale_dist_ignit+
+  0.12210*scale_age+
+  0.16369*scale_pct_conifer+
+  0.05432*scale_basal_area+
+  -1.79253*bec_zone_SWB+
+  0.05913*scale_dem*scale_climate2+
+  -0.03104*scale_climate2*veg_cat2+
+  -0.30879*scale_climate2*veg_cat3+
+  -0.07977*scale_climate2*veg_cat4+
+  0.12342*scale_climate2*veg_cat5]
+  
+
 plot(newdat$scale_dist_ignit, newdat$pttype)
+plot(newdat$scale_climate2, newdat$pttype)
 
 # looks like it works
 
@@ -505,6 +905,8 @@ plot(newdat$scale_dist_ignit, newdat$pttype)
 # FRT 7
 
 Run same models as above for the other FRT's
+
+
 
 ```{r}
 # Plot climate data results
@@ -522,60 +924,227 @@ Run same models as above for the other FRT's
 #  10         187
 
 
+frt7<-dat[frt==7,]
 
-frt7<-fire_spread %>% filter(frt==7 & !fwveg %in% c("N", "W"))
+# CMI is in the wrong direction
+frt7[,climate1:=(CMI03+CMI04+CMI05)/3]
+model1 <- glm (pttype ~ climate1 ,
+               data=frt7,
+               family = binomial (link = "logit"))
 
-frt7[, climate1:=(Tmax06 + Tmax07 + Tmax08)/3]
-#frt7[, climate2:=(PPT05 + PPT06 + PPT07)/3]
+frt7[,climate1:=(CMI03+CMI04+CMI05+CMI06+CMI07+CMI08)/6]
+model2 <- glm (pttype ~ climate1,
+               data=frt7,
+               family = binomial (link = "logit"))
+
+frt7[,climate1:=(CMI06+CMI07+CMI08)/3]
+model3 <- glm (pttype ~ climate1,
+               data=frt7,
+               family = binomial (link = "logit"))
 
 
-model1 <- glmer (pttype ~ scale(climate1) * as.factor(fwveg) + (1|fire_yr) + (1|fire_yr:fire_label),
+frt7[,climate1:=(Tmax03+Tmax04+Tmax05)/3]
+model4 <- glm (pttype ~ climate1,
+               data=frt7,
+               family = binomial (link = "logit"))
+
+frt7[,climate2:=(PPT03+PPT04+PPT05)/3]
+model5 <- glm (pttype ~ climate1,
+               data=frt7,
+               family = binomial (link = "logit"))
+model6 <- glm (pttype ~ climate1+climate2 ,
+               data=frt7,
+               family = binomial (link = "logit"))
+model7 <- glm (pttype ~ climate1*climate2 ,
+               data=frt7,
+               family = binomial (link = "logit"))
+
+frt7[,climate1:=(Tave03+Tave04+Tave05)/3]
+model8 <- glm (pttype ~ climate1 ,
+               data=frt7,
+               family = binomial (link = "logit"))
+model9 <- glm (pttype ~ climate1+climate2 ,
+               data=frt7,
+               family = binomial (link = "logit"))
+model10 <- glm (pttype ~ climate1*climate2 ,
+               data=frt7,
+               family = binomial (link = "logit"))
+
+frt7[,climate1:=(Tmin03+Tmin04+Tmin05)/3]
+model11 <- glm (pttype ~ climate1,
+               data=frt7,
+               family = binomial (link = "logit"))
+model12 <- glm (pttype ~ climate1+climate2,
+               data=frt7,
+               family = binomial (link = "logit"))
+model13 <- glm (pttype ~ climate1*climate2,
+               data=frt7,
+               family = binomial (link = "logit"))
+
+# Tmx in the wrong direction
+frt7[,climate1:=(Tmax06+Tmax07+Tmax08)/3]
+model14 <- glm (pttype ~ climate1,
+               data=frt7,
+               family = binomial (link = "logit"))
+# PPT is in the wrong direction 
+frt7[,climate2:=(PPT06+PPT07+PPT08)/3]
+model15 <- glm (pttype ~ climate2,
+               data=frt7,
+               family = binomial (link = "logit"))
+model16 <- glm (pttype ~ climate1+climate2,
+               data=frt7,
+               family = binomial (link = "logit"))
+model17 <- glm (pttype ~ climate1*climate2,
+               data=frt7,
+               family = binomial (link = "logit"))
+
+frt7[,climate1:=(Tave06+Tave07+Tave08)/3]
+model18 <- glm (pttype ~ climate1,
+               data=frt7,
+               family = binomial (link = "logit"))
+model19 <- glm (pttype ~ climate1+climate2,
+               data=frt7,
+               family = binomial (link = "logit"))
+model20 <- glm (pttype ~ climate1*climate2 ,
+               data=frt7,
+               family = binomial (link = "logit"))
+
+# Tmin is the only one in thecorrect direction
+frt7[,climate1:=(Tmin06+Tmin07+Tmin08)/3]
+model21 <- glm (pttype ~ climate1,
+               data=frt7,
+               family = binomial (link = "logit"))
+model22 <- glm (pttype ~ climate1+climate2,
+               data=frt7,
+               family = binomial (link = "logit"))
+model23 <- glm (pttype ~ climate1*climate2,
+               data=frt7,
+               family = binomial (link = "logit"))
+
+frt7[,climate1:=(Tmax03+Tmax04+Tmax05+Tmax06+Tmax07+Tmax08)/6]
+model24 <- glm (pttype ~ climate1,
+               data=frt7,
+               family = binomial (link = "logit"))
+
+frt7[,climate2:=(PPT03+PPT04+PPT05+PPT06+PPT07+PPT08)/6]
+model25 <- glm (pttype ~ climate2,
+               data=frt7,
+               family = binomial (link = "logit"))
+
+frt7[,climate1:=(Tave03+Tave04+Tave05+Tave06+Tave07+Tave08)/6]
+model26 <- glm (pttype ~ climate1,
+               data=frt7,
+               family = binomial (link = "logit"))
+model27 <- glm (pttype ~ climate1+climate2,
+               data=frt7,
+               family = binomial (link = "logit"))
+model28 <- glm (pttype ~ climate1*climate2,
+               data=frt7,
+               family = binomial (link = "logit"))
+
+# this is in the right direction but summer Tmin was better
+frt7[,climate1:=(Tmin03+Tmin04+Tmin05+Tmin06+Tmin07+Tmin08)/6]
+model29 <- glm (pttype ~ climate1,
+               data=frt7,
+               family = binomial (link = "logit"))
+model30 <- glm (pttype ~ climate1+climate2,
+               data=frt7,
+               family = binomial (link = "logit"))
+model31 <- glm (pttype ~ climate1*climate2,
+               data=frt7,
+               family = binomial (link = "logit"))
+
+frt7[,climate1:=(RH03+RH04+RH05+RH06+RH07+RH08)/6]
+model32 <- glm (pttype ~ climate1,
+               data=frt7,
+               family = binomial (link = "logit"))
+frt7[,climate1:=(CMD03+CMD04+CMD05+CMD06+CMD07+CMD08)/6]
+model33 <- glm (pttype ~ climate1,
+               data=frt7,
+               family = binomial (link = "logit"))
+
+frt7[,climate1:=(RH03+RH04+RH05)/3]
+model34 <- glm (pttype ~ climate1,
+               data=frt7,
+               family = binomial (link = "logit"))
+
+AIC(model1, model2, model3, model4, model5, model6, model7, model8, model9, model10,model11, model12, model13, model14, model15, model16, model17, model18, model19, model20,model21, model22, model23, model24, model25, model26, model27, model28, model29, model30,model31, model32, model33, model34)
+
+# top climate model is model28
+
+
+visreg(model28, "climate1", by="climate2")
+```
+
+
+
+```{r}
+# Tmin seems to be one of the only variables that is happening in the direction I would expect. so ill use it.
+
+p <- ggplot(frt7, aes(((Tmin06 + Tmin07 + Tmin08 )/3), as.numeric(pttype))) +
+  geom_smooth(method="glm", formula=y~x,
+              method.args=list(family="binomial"),
+              alpha=0.3) +
+  geom_point(position=position_jitter(height=0.03, width=0)) +
+  xlab("Mean_Tmin06_07") + ylab("Pr (ignition)")
+
+p 
+
+
+```
+
+There seems to be a problem with my veg categories
+```{r}
+frt7[is.na(proj_age_1) & bclcs_level_1=="V", proj_age_1:=0]
+frt7[bclcs_level_4 == "TC" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=1]
+frt7[bclcs_level_4 == "TM" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=2]
+frt7[bclcs_level_4 == "TB" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=3]
+frt7[bclcs_level_4 %in% c("TC", "TM", "TB") & (basal_area < 8 | is.na(basal_area) | proj_height_1 <4 | is.na(proj_height_1)), veg_cat:=4]
+frt7[bclcs_level_1 =="V" & !bclcs_level_4 %in% c("TC", "TM", "TB"), veg_cat:=5]
+frt7[bclcs_level_1 !="V", veg_cat:=6]
+
+table(frt7$veg_cat, frt7$pttype)
+    
+```
+
+
+```{r}
+frt7[, climate1:=(Tmin05 + Tmin06 +Tmin07)/3]
+
+model1 <- glmer (pttype ~ scale(climate1) * as.factor(veg_cat ) + (1|fire_yr) + (1|fire_yr:fire_label),
                data=frt7,
                family = binomial (link = "logit"))
 summary(model1) #
 Anova(model1)
-visreg(model2, "climate1", by="fwveg", scale="response")
+visreg(model1, "climate1", by="veg_cat", scale="response")
 
-model2 <- glmer (pttype ~ scale(climate1) * as.factor(fwveg) + (1|fire_label),
+model2 <- glmer (pttype ~ scale(climate1) * as.factor(veg_cat) + (1|fire_label),
                data=frt7,
                family = binomial (link = "logit"))
 summary(model2) #
 anova(model1, model2)
 Anova(model2)
 
-visreg(model1, "climate2", by="climate1", breaks=6)
+visreg(model1, "climate1", by="veg_cat")
 
-table(is.na(frt7$win_sum))
-table(is.na(frt7$dem))
-frt7 %>% drop_na(win_sum) %>% summarize(mean(win_sum))
-frt7$win_sum[is.na(frt7$win_sum)]<-3.809258
-
-table(frt7$fwveg, frt7$pttype)
-frt7$fwveg[frt7$fwveg=="S-2"]<-"S-1"
-frt7$fwveg[frt7$fwveg=="M-3"]<-"M-1/2"
-
-frt7<-frt7 %>% 
-  filter(!bclcs_level_5 %in% c("GL", "LA")) # remove glaciers or lakes. Sometimes these get put into the N veg category so I want to make sure there are not present
-table(frt7$fwveg, frt7$pttype)
 
 table(is.na(frt7$dem))
 table(is.na(frt7$dist_roads))
 table(is.na(frt7$dist_infr_m))
 table(is.na(frt7$win_sum))
 table(is.na(frt7$climate1))
-table(is.na(frt7$climate2))
 table(is.na(frt7$slope_ha_bc))
 table(is.na(frt7$aspect_cardinal))
-table(is.na(frt7$scale_dist_ignit))
-table(is.na(frt7$fire_yr))
-table(is.na(frt7$fire_label))
-table(is.na(frt7$fwveg))
+table(is.na(frt7$rast_ignit_dist))
+table(is.na(frt7$conifer_pct_cover_total))
+table(is.na(frt7$basal_area))
+table(is.na(frt7$proj_age_1))
 
 cor.test((frt7$climate1), (frt7$dem))
-cor.test((frt7$climate2), (frt7$dem))
 cor.test((frt7$climate1), (frt7$climate2))
 cor.test((frt7$dist_roads_m), (frt7$dist_infr_m))
-cor.test((frt7$rast_ignit_dist), (frt7$climate2))
+cor.test((frt7$rast_ignit_dist), (frt7$climate1))
+cor.test((frt7$scale_roads), (frt7$scale_infr))
 
 frt7<-frt7[!is.na(dem),]
 frt7<-frt7[!is.na(slope_ha_bc),]
@@ -584,358 +1153,447 @@ frt7$fire_yr<-as.factor(frt7$fire_yr)
 frt7$fire_label<-as.factor(frt7$fire_label)
 
 frt7$scale_climate1<-(frt7$climate1-mean(frt7$climate1))/sd(frt7$climate1)
-frt7$scale_climate2<-(frt7$climate2-mean(frt7$climate2))/sd(frt7$climate2)
 frt7$scale_dem<-(frt7$dem-mean(frt7$dem))/sd(frt7$dem)
 frt7$scale_slope<-(frt7$slope_ha_bc-mean(frt7$slope_ha_bc))/sd(frt7$slope_ha_bc)
-frt7$scale_roads<-(frt7$dist_roads_m-mean(frt7$dist_roads_m))/sd(frt7$dist_roads_m)
-frt7$scale_infr<-(frt7$dist_infr_m-mean(frt7$dist_infr_m))/sd(frt7$dist_infr_m)
-frt7$scale_dist_ignit<-(frt7$rast_ignit_dist-mean(frt7$rast_ignit_dist))/sd(frt7$rast_ignit_dist)
+frt7$scale_roads<-(frt7$dist_roads_m-mean(frt7$dist_roads_m, na.rm=TRUE)) / sd(frt7$dist_roads_m, na.rm=TRUE)
+frt7$scale_infr<-(frt7$dist_infr_m-mean(frt7$dist_infr_m, na.rm=TRUE)) / sd(frt7$dist_infr_m, na.rm=TRUE)
+frt7$scale_dist_ignit<-(frt7$rast_ignit_dist-mean(frt7$rast_ignit_dist, na.rm=TRUE)) / sd(frt7$rast_ignit_dist, na.rm=TRUE)
+frt7$scale_pct_conifer<-(frt7$conifer_pct_cover_total-mean(frt7$conifer_pct_cover_total, na.rm=TRUE))/sd(frt7$conifer_pct_cover_total, na.rm=TRUE)
+frt7$scale_age<-(frt7$proj_age_1-mean(frt7$proj_age_1, na.rm=TRUE))/sd(frt7$proj_age_1, na.rm=TRUE)
+frt7$scale_basal_area<-(frt7$basal_area-mean(frt7$basal_area, na.rm=TRUE))/sd(frt7$basal_area, na.rm=TRUE)
+frt7$scale_win_sum<-(frt7$win_sum-mean(frt7$win_sum, na.rm=TRUE))/sd(frt7$win_sum, na.rm=TRUE)
 
+table(frt7$bec_zone_code, frt7$pttype)
+frt7$veg_cat<-as.factor(frt7$veg_cat)
+frt7<-frt7[!veg_cat %in% c("0","6")]
 
-model1 <- glmer (pttype ~ scale_climate1 * scale_climate2 + as.factor(fwveg) + scale_roads + scale_infr + scale_dist_ignit + scale_slope + as.factor(aspect_cardinal) + (1|fire_yr) + (1|fire_yr:fire_label),
+# climate 1 and dem are correlated 
+model1 <- glmer (pttype ~ scale_climate1 * veg_cat + scale_roads + scale_infr + scale_slope + scale_dist_ignit + aspect_cardinal + scale_age + scale_pct_conifer + scale_basal_area + bec_zone_code + (1|fire_label) + (1|fire_yr),
                data=frt7,
                family = binomial (link = "logit"))
-summary(model1) #26825.4   
 Anova(model1, type=3)
-visreg(model1)
 
-model2 <- glmer (pttype ~ scale_dem * scale_climate2 + as.factor(fwveg) + scale_roads + scale_infr + scale_dist_ignit + scale_slope + as.factor(aspect_cardinal) + (1|fire_yr) + (1|fire_yr:fire_label),
+model2 <- glmer (pttype ~ scale_climate1 * veg_cat + log(dist_roads_m+1) + scale_infr + scale_slope + scale_dist_ignit + aspect_cardinal + scale_age + scale_pct_conifer + scale_basal_area + bec_zone_code + (1|fire_label) + (1|fire_yr),
                data=frt7,
                family = binomial (link = "logit"))
-summary(model2) #26811.0   
 Anova(model2, type=3)
-visreg(model2)
 
-
-model3 <- glmer (pttype ~ scale_dem * scale_climate2 + as.factor(fwveg) + scale_roads + scale_infr + scale_dist_ignit + scale_slope + (1|fire_yr) + (1|fire_yr:fire_label),
+model3 <- glmer (pttype ~ scale_climate1 * veg_cat + log(dist_roads_m+1) + log(dist_infr_m+1) + scale_slope + scale_dist_ignit + aspect_cardinal + scale_age + scale_pct_conifer + scale_basal_area + bec_zone_code + (1|fire_label) + (1|fire_yr),
                data=frt7,
                family = binomial (link = "logit"))
-summary(model3) #26811.0   
 Anova(model3, type=3)
-visreg(model3, response =TRUE)
 
-
-model1a <- glm (pttype ~ climate1 + dem_ha_bc + as.factor(fwveg) + dist_roads_m + dist_infr_m + win_sum + slope_ha_bc,
+model4 <- glmer (pttype ~ scale_climate1 * veg_cat + scale_roads + log(dist_infr_m+1) + scale_slope + scale_dist_ignit + aspect_cardinal + scale_age + scale_pct_conifer + scale_basal_area + bec_zone_code + (1|fire_label) + (1|fire_yr),
                data=frt7,
                family = binomial (link = "logit"))
-Anova(model1a, type=3)
+AIC(model1, model2, model3, model4)
 
-model1b <- glm (pttype ~ climate1 + dem_ha_bc + as.factor(fwveg) + log(dist_roads_m+1) + dist_infr_m + win_sum + slope_ha_bc,
+# model1 is best!
+model5 <- glmer (pttype ~ scale_climate1 * veg_cat + scale_roads + scale_infr + scale_dist_ignit + aspect_cardinal + scale_age + scale_pct_conifer + scale_basal_area + bec_zone_code + (1|fire_label),
                data=frt7,
                family = binomial (link = "logit"))
+Anova(model5, type=3)
+visreg(model5)
+visreg(model5, "scale_climate1", by = "veg_cat")
 
-model1c <- glm (pttype ~ climate1 + dem_ha_bc + as.factor(fwveg) + log(dist_roads_m+1) + log(dist_infr_m+1) + win_sum + slope_ha_bc,
+# I dont really believe the relationship with climate and veg. Trying it without the interaction
+
+model6 <- glmer (pttype ~ scale_climate1 + veg_cat + scale_roads + scale_infr + scale_dist_ignit + aspect_cardinal + scale_age + scale_pct_conifer + scale_basal_area + bec_zone_code + (1|fire_label),
                data=frt7,
                family = binomial (link = "logit"))
+Anova(model6, type=3)
 
-# including dist to roads with log helps but does not seem tohelp for dist to infra
-frt7$log_dist_roads_m<-log(frt7$dist_roads_m+1)
+AIC(model1, model2, model3, model4, model5, model6)
 
-model2<-glm (pttype ~ climate1 + dem_ha_bc + as.factor(fwveg) + log_dist_roads_m + dist_infr_m + win_sum + slope_ha_bc + Latitude + Longitude,
-               data=frt7,
-               family = binomial (link = "logit"))
-AIC(model2)
-summary(model2) #15269.58
-Anova(model2, type=3)
-
-visreg(model2)
-
-model3<-glm (pttype ~ climate1 + dem_ha_bc + as.factor(fwveg) + log_dist_roads_m + dist_infr_m + win_sum + Latitude + Longitude,
-               data=frt7,
-               family = binomial (link = "logit"))
-
-
+frt7_2<-frt7[!is.na(scale_basal_area) & !is.na(scale_age) & !is.na(scale_pct_conifer),]
 
 
 # model diagnostic plots
 # below model looks way better with log road dist. It had some structure with just road dist
-binnedplot (fitted(model3), 
-            residuals(model3), 
+binnedplot (fitted(model5), 
+            residuals(model5), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm"))
 
-```
+plot(predict(model5),residuals(model5))
+abline(h=0,lty=2,col="grey")
+lines(lowess(predict(model5),residuals(model5)),col="black",lwd=2)
 
-```{r}
-#Here, we’ll check the linear relationship between continuous predictor variables and the logit of the outcome. This can be done by visually inspecting the scatter plot between each predictor and the logit values.
+plot(frt7_2$scale_climate1,residuals(model5))
+lines(lowess(frt7_2$scale_climate1,residuals(model5)),col="black",lwd=2)
 
-#Remove qualitative variables from the original data frame and bind the logit values to the data:
+plot(frt7_2$scale_roads,residuals(model5))
+lines(lowess(frt7_2$scale_roads,residuals(model5)),col="black",lwd=2)
 
-# Select only numeric predictors
-str(frt7)
+plot(frt7_2$scale_dist_ignit,residuals(model5))
+lines(lowess(frt7_2$scale_dist_ignit,residuals(model5)),col="black",lwd=2)
 
-dat2_b<-frt7_2 %>% dplyr::select(pttype, summer_Tmax, tot_summer_PPT, dem_ha_bc, dist_roads_m, dist_infr_m )
-probabilities <- predict(model1a, type = "response")
-predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
+plot(frt7_2$scale_basal_area,residuals(model5))
+lines(lowess(frt7_2$scale_basal_area,residuals(model5)),col="black",lwd=2)
 
-mydata <- dat2_b %>%
-  dplyr::select_if(is.numeric) 
-predictors <- colnames(mydata)
+plot(frt7_2$scale_age,residuals(model5))
+lines(lowess(frt7_2$scale_age,residuals(model5)),col="black",lwd=2)
 
-# Bind the logit and tidying the data for plot
-mydata <- mydata %>%
-  mutate(logit = log(probabilities/(1-probabilities))) %>%
-  gather(key = "predictors", value = "predictor.value", -logit)
+plot(frt7_2$scale_pct_conifer,residuals(model5))
+lines(lowess(frt7_2$scale_pct_conifer,residuals(model5)),col="black",lwd=2)
 
-ggplot(mydata, aes(logit, predictor.value))+
-  geom_point(size = 0.5, alpha = 0.5) +
-  geom_smooth(method = "loess") + 
-  theme_bw() + 
-  facet_wrap(~predictors, scales = "free_y")
-
-# all variables should be approximatly linear which is mostly true
-```
-
-Checking assumption of influential values
-see: (http://www.sthda.com/english/articles/36-classification-methods-essentials/148-logistic-regression-assumptions-and-diagnostics-in-r/)
-```{r}
-#Influential values are extreme individual data points that can alter the quality of the logistic regression model.
-#The most extreme values in the data can be examined by visualizing the Cook’s distance values. Here we label the top 3 largest values:
-
-plot(model3, which = 4, id.n = 3)
-
-#Note that, not all outliers are influential observations. To check whether the data contains potential influential observations, the standardized residual error can be inspected. Data points with an absolute standardized residuals above 3 represent possible outliers and may deserve closer attention.
-
-#The following R code computes the standardized residuals (.std.resid) and the Cook’s distance (.cooksd) using the R function augment() [broom package].
-
-# Extract model results
-library(broom)
-
-model.data <- augment(model3) %>% 
-  mutate(index = 1:n()) 
-
-#The data for the top 3 largest values, according to the Cook’s distance, can be displayed as follow:
-model.data %>% 
-  dplyr::select(climate1, dist_infr_m, .std.resid, .cooksd) %>%
-  top_n(5, .cooksd) 
-
-ggplot(model.data, aes(index, .std.resid)) + 
-  geom_point(aes(color = pttype), alpha = .5) +
-  theme_bw()
-
-```
-
-# checking assumption of no multicollinearity
-
-```{r}
-#Multicollinearity corresponds to a situation where the data contain highly correlated predictor variables. Read more in Chapter @ref(multicollinearity).
-
-#Multicollinearity is an important issue in regression analysis and should be fixed by removing the concerned variables. It can be assessed using the R function vif() [car package], which computes the variance inflation factors:
-
-car::vif(model3)
-
-#As a rule of thumb, a VIF value that exceeds 5 or 10 indicates a problematic amount of collinearity. 
-```
-
-
-```{r}
-frt7$fwveg<-as.factor(frt7$fwveg)
-
-model3<-glm (pttype ~ climate1 + dem_ha_bc + as.factor(fwveg) + log_dist_roads_m + dist_infr_m + win_sum + Latitude + Longitude,
-               data=frt7,
-               family = binomial (link = "logit"))
-
-summary(model3)
-
-#Create a new blank table and get AUC too
-top_mod_table_frt7_All <- data.frame (matrix (ncol = 19, nrow = 0))
-colnames (top_mod_table_frt7_All ) <- c ("CAUSE", 
-                                    "FRT",  
-                                    "Model_terms", 
-                                    "intercept", 
-                                    "coef_climate1", 
-                                    "coef_elevation",
-                                    "coef_fwveg_C-2", 
-                                    "coef_fwveg_C-3", 
-                                    "coef_fwveg_C-7",
-                                    "coef_fwveg_D-1/2",
-                                    "coef_fwveg_M-1/2",
-                                    "coef_fwveg_O-1a/b",
-                                    "coef_fwveg_S-1",
-                                    "coef_log_dist_roads",
-                                    "coef_dist_infr",
-                                    "coef_wind_sum",
-                                    "Latitude",
-                                    "Longitude",
-                                    "AUC")
-
-frt7$fire_veg<-paste(frt7$pttype, frt7$fwveg)
-
-frt7<-as.data.frame(frt7)
-```
-
-Let's run it 100 times to get good mean values.
-
-```{r}
-
-for (g in 1:100){
-
-prop<-0.75
-# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(frt7$fire_veg, p = prop,
-                                    list = FALSE,
-                                    times = 1)
-  
-   dat1 <- frt7[ trainIndex,]
-   Valid <- frt7[-trainIndex,]
-   
-#Model   
-mod<-glm (pttype ~ climate1 + dem_ha_bc + as.factor(fwveg) + log_dist_roads_m + dist_infr_m + win_sum + Latitude + Longitude, data=dat1, family=binomial(link="logit"))
-
-mod.valid <- predict.glm(mod, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"pttype"], mod.valid, quiet=TRUE)
-   mod.auc <- auc(roc_obj)
-
-# create model table (only do this once) and add the relevant data
-top_mod_table_frt7_person <- data.frame (matrix (ncol = 19, nrow = 0))
-colnames (top_mod_table_frt7_person ) <- c ("CAUSE", 
-                                    "FRT",  
-                                    "Model_terms", 
-                                    "intercept", 
-                                    "coef_climate1", 
-                                    "coef_elevation",
-                                    "coef_fwveg_C-2", 
-                                    "coef_fwveg_C-3", 
-                                    "coef_fwveg_C-7",
-                                    "coef_fwveg_D-1/2",
-                                    "coef_fwveg_M-1/2",
-                                    "coef_fwveg_O-1a/b",
-                                    "coef_fwveg_S-1",
-                                    "coef_log_dist_roads",
-                                    "coef_dist_infr",
-                                    "coef_wind_sum",
-                                    "Latitude",
-                                    "Longitude",
-                                    "AUC")
-
-##Add data for NDT1
-top_mod_table_frt7_person[1,1]<-"spread"
-top_mod_table_frt7_person[1,2]<-"frt7"
-top_mod_table_frt7_person[1,3]<-"pttype ~ climate1 + dem_ha_bc + fwveg + log_dist_roads_m + dist_infr_m + win_sum + Latitude + Longitude"
-top_mod_table_frt7_person[1,4]<- coef(mod)[1] #Intercept
-top_mod_table_frt7_person[1,5]<- coef(mod)[2] 
-top_mod_table_frt7_person[1,6]<- coef(mod)[3] 
-top_mod_table_frt7_person[1,7]<- coef(mod)[4] 
-top_mod_table_frt7_person[1,8]<- coef(mod)[5] 
-top_mod_table_frt7_person[1,9]<- coef(mod)[6] 
-top_mod_table_frt7_person[1,10]<- coef(mod)[7] 
-top_mod_table_frt7_person[1,11]<- coef(mod)[8] 
-top_mod_table_frt7_person[1,12]<- coef(mod)[9] 
-top_mod_table_frt7_person[1,13]<- coef(mod)[10] 
-top_mod_table_frt7_person[1,14]<- coef(mod)[11] 
-top_mod_table_frt7_person[1,15]<- coef(mod)[12] 
-top_mod_table_frt7_person[1,16]<- coef(mod)[13] 
-top_mod_table_frt7_person[1,17]<- coef(mod)[14] 
-top_mod_table_frt7_person[1,18]<- coef(mod)[15] 
-top_mod_table_frt7_person[1,19]<- mod.auc
-
-top_mod_table_frt7_All<-rbind(top_mod_table_frt7_All, top_mod_table_frt7_person)
-
-}
-
-```
-
-Check.
-```{r}
-head(top_mod_table_frt7_All)
+saveRDS(model5, "C:/Work/caribou/castor/R/fire_sim/tmp/frt7.rds")
 
 ```
 
 
-Get mean values.
-
-```{r}
-names(top_mod_table_frt7_All)
-str(top_mod_table_frt7_All)
-stderror <- function(x) sd(x)/sqrt(length(x))
-
-frt7_summary_table_mean<- top_mod_table_frt7_All %>% summarize_if(is.numeric,mean)
-
-
-```
-
-Save table.
-
-```{r}
-write.csv(frt7_summary_table_mean, file="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt7_spread.csv")
-```
 
 ################################
-#FRT 9
+#FRT 9 and FRT 11
 ################################
 
 ```{r}
 # Plot climate data results
 
-frt9<-fire_spread %>% filter(frt==9 & !fwveg %in% c("N", "W"))
-model1 <- glm (pttype ~ climate1 + climate2 ,
+frt9<-dat %>% filter(frt %in% c(9,11) )
+
+frt9[is.na(proj_age_1) & bclcs_level_1=="V", proj_age_1:=0]
+frt9[bclcs_level_4 == "TC" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=1]
+frt9[bclcs_level_4 == "TM" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=2]
+frt9[bclcs_level_4 == "TB" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=3]
+frt9[bclcs_level_4 %in% c("TC", "TM", "TB") & (basal_area < 8 | is.na(basal_area) | proj_height_1 <4 | is.na(proj_height_1)), veg_cat:=4]
+frt9[bclcs_level_1 =="V" & !bclcs_level_4 %in% c("TC", "TM", "TB"), veg_cat:=5]
+frt9[bclcs_level_1 !="V", veg_cat:=6]
+
+table(frt9$veg_cat, frt9$pttype)
+    
+```
+
+
+Test best climate variable
+```{r}
+frt9[,climate1:=(CMI03+CMI04+CMI05)/3]
+model1 <- glm (pttype ~ climate1 ,
                data=frt9,
                family = binomial (link = "logit"))
-summary(model1)
 
-visreg(model1, scale="response", "climate1")
-visreg(model1, scale="response", "climate2")
+frt9[,climate1:=(CMI03+CMI04+CMI05+CMI06+CMI07+CMI08)/6]
+model2 <- glm (pttype ~ climate1,
+               data=frt9,
+               family = binomial (link = "logit"))
 
-table(is.na(frt9$win_sum))
+frt9[,climate1:=(CMI06+CMI07+CMI08)/3]
+model3 <- glm (pttype ~ climate1,
+               data=frt9,
+               family = binomial (link = "logit"))
 
+frt9[,climate1:=(Tmax03+Tmax04+Tmax05)/3]
+model4 <- glm (pttype ~ climate1,
+               data=frt9,
+               family = binomial (link = "logit"))
+
+frt9[,climate2:=(PPT03+PPT04+PPT05)/3]
+model5 <- glm (pttype ~ climate1,
+               data=frt9,
+               family = binomial (link = "logit"))
+model6 <- glm (pttype ~ climate1+climate2 ,
+               data=frt9,
+               family = binomial (link = "logit"))
+model7 <- glm (pttype ~ climate1*climate2 ,
+               data=frt9,
+               family = binomial (link = "logit"))
+
+frt9[,climate1:=(Tave03+Tave04+Tave05)/3]
+model8 <- glm (pttype ~ climate1 ,
+               data=frt9,
+               family = binomial (link = "logit"))
+model9 <- glm (pttype ~ climate1+climate2 ,
+               data=frt9,
+               family = binomial (link = "logit"))
+model10 <- glm (pttype ~ climate1*climate2 ,
+               data=frt9,
+               family = binomial (link = "logit"))
+
+frt9[,climate1:=(Tmin03+Tmin04+Tmin05)/3]
+model11 <- glm (pttype ~ climate1,
+               data=frt9,
+               family = binomial (link = "logit"))
+model12 <- glm (pttype ~ climate1+climate2,
+               data=frt9,
+               family = binomial (link = "logit"))
+model13 <- glm (pttype ~ climate1*climate2,
+               data=frt9,
+               family = binomial (link = "logit"))
+
+frt9[,climate1:=(Tmax06+Tmax07+Tmax08)/3]
+model14 <- glm (pttype ~ climate1,
+               data=frt9,
+               family = binomial (link = "logit"))
+frt9[,climate2:=(PPT06+PPT07+PPT08)/3]
+model15 <- glm (pttype ~ climate2,
+               data=frt9,
+               family = binomial (link = "logit"))
+model16 <- glm (pttype ~ climate1+climate2,
+               data=frt9,
+               family = binomial (link = "logit"))
+model17 <- glm (pttype ~ climate1*climate2,
+               data=frt9,
+               family = binomial (link = "logit"))
+
+frt9[,climate1:=(Tave06+Tave07+Tave08)/3]
+model18 <- glm (pttype ~ climate1,
+               data=frt9,
+               family = binomial (link = "logit"))
+model19 <- glm (pttype ~ climate1+climate2,
+               data=frt9,
+               family = binomial (link = "logit"))
+model20 <- glm (pttype ~ climate1*climate2 ,
+               data=frt9,
+               family = binomial (link = "logit"))
+
+frt9[,climate1:=(Tmin06+Tmin07+Tmin08)/3]
+model21 <- glm (pttype ~ climate1,
+               data=frt9,
+               family = binomial (link = "logit"))
+model22 <- glm (pttype ~ climate1+climate2,
+               data=frt9,
+               family = binomial (link = "logit"))
+model23 <- glm (pttype ~ climate1*climate2,
+               data=frt9,
+               family = binomial (link = "logit"))
+
+frt9[,climate1:=(Tmax03+Tmax04+Tmax05+Tmax06+Tmax07+Tmax08)/6]
+model24 <- glm (pttype ~ climate1,
+               data=frt9,
+               family = binomial (link = "logit"))
+
+frt9[,climate2:=(PPT03+PPT04+PPT05+PPT06+PPT07+PPT08)/6]
+model25 <- glm (pttype ~ climate2,
+               data=frt9,
+               family = binomial (link = "logit"))
+
+frt9[,climate1:=(Tave03+Tave04+Tave05+Tave06+Tave07+Tave08)/6]
+model26 <- glm (pttype ~ climate1,
+               data=frt9,
+               family = binomial (link = "logit"))
+model27 <- glm (pttype ~ climate1+climate2,
+               data=frt9,
+               family = binomial (link = "logit"))
+model28 <- glm (pttype ~ climate1*climate2,
+               data=frt9,
+               family = binomial (link = "logit"))
+
+frt9[,climate1:=(Tmin03+Tmin04+Tmin05+Tmin06+Tmin07+Tmin08)/6]
+model29 <- glm (pttype ~ climate1,
+               data=frt9,
+               family = binomial (link = "logit"))
+model30 <- glm (pttype ~ climate1+climate2,
+               data=frt9,
+               family = binomial (link = "logit"))
+model31 <- glm (pttype ~ climate1*climate2,
+               data=frt9,
+               family = binomial (link = "logit"))
+
+frt9[,climate1:=(RH03+RH04+RH05+RH06+RH07+RH08)/6]
+model32 <- glm (pttype ~ climate1,
+               data=frt9,
+               family = binomial (link = "logit"))
+frt9[,climate1:=(CMD03+CMD04+CMD05+CMD06+CMD07+CMD08)/6]
+model33 <- glm (pttype ~ climate1,
+               data=frt9,
+               family = binomial (link = "logit"))
+
+AIC(model1, model2, model3, model4, model5, model6, model7, model8, model9, model10,model11, model12, model13, model14, model15, model16, model17, model18, model19, model20,model21, model22, model23, model24, model25, model26, model27, model28, model29, model30,model31, model32, model33)
+
+# top climate model is model28
+
+visreg(model28, "climate1", by="climate2")
+visreg(model28, "climate2", by="climate1")
+```
+
+
+```{r}
+frt9[,climate1:=(Tave03+Tave04+Tave05+Tave06+Tave07+Tave08)/6]
+frt9[,climate2:=(PPT03+PPT04+PPT05+PPT06+PPT07+PPT08)/6]
 #frt9 %>% drop_na(win_sum) %>% summarize(mean(win_sum))
 #frt9$win_sum[is.na(frt9$win_sum)]<-3.898718
 
-table(frt9$fwveg, frt9$pttype)
-cor.test(frt9$climate1, frt9$dem_ha_bc)
-cor.test(frt9$climate2, frt9$dem_ha_bc)
-cor.test(frt9$dist_roads_m, frt9$dist_infr_m) # correlated
-cor.test(frt9$Longitude, frt9$dist_infr_m)
-cor.test(frt9$Longitude, frt9$dist_roads_m)
-cor.test(frt9$Longitude, frt9$climate1)
-cor.test(frt9$Latitude, frt9$climate1)
-cor.test(frt9$Longitude, frt9$dem_ha_bc)
-cor.test(frt9$Latitude, frt9$dem_ha_bc)
+table(frt9$veg_cat, frt9$pttype)
+cor.test(frt9$climate1, frt9$dem) # highly correlated
+cor.test(frt9$climate2, frt9$dem)
+cor.test(frt9$dist_roads_m, frt9$dist_infr_m) 
+
+frt9$fire_yr<-as.factor(frt9$fire_yr)
+frt9$fire_label<-as.factor(frt9$fire_label)
+frt9$frt<-as.factor(frt9$frt)
+frt9$aspect_cardinal<-as.factor(frt9$aspect_cardinal)
+frt9$veg_cat<-as.factor(frt9$veg_cat)
+
+frt9$scale_climate1<-(frt9$climate1-mean(frt9$climate1, na.rm=TRUE)) / sd(frt9$climate1, na.rm=TRUE)
+frt9$scale_climate2<-(frt9$climate2-mean(frt9$climate2, na.rm=TRUE)) / sd(frt9$climate2, na.rm=TRUE)
+frt9$scale_dem<-(frt9$dem-mean(frt9$dem, na.rm=TRUE))/sd(frt9$dem, na.rm=TRUE)
+frt9$scale_slope<-(frt9$slope_ha_bc-mean(frt9$slope_ha_bc, na.rm=TRUE)) / sd(frt9$slope_ha_bc, na.rm=TRUE)
+frt9$scale_roads<-(frt9$dist_roads_m-mean(frt9$dist_roads_m, na.rm=TRUE)) / sd(frt9$dist_roads_m, na.rm=TRUE)
+frt9$scale_infr<-(frt9$dist_infr_m-mean(frt9$dist_infr_m, na.rm=TRUE)) / sd(frt9$dist_infr_m, na.rm=TRUE)
+frt9$scale_dist_ignit<-(frt9$rast_ignit_dist-mean(frt9$rast_ignit_dist, na.rm=TRUE)) / sd(frt9$rast_ignit_dist, na.rm=TRUE)
+frt9$scale_pct_conifer<-(frt9$conifer_pct_cover_total-mean(frt9$conifer_pct_cover_total, na.rm=TRUE))/sd(frt9$conifer_pct_cover_total, na.rm=TRUE)
+frt9$scale_age<-(frt9$proj_age_1-mean(frt9$proj_age_1, na.rm=TRUE))/sd(frt9$proj_age_1, na.rm=TRUE)
+frt9$scale_basal_area<-(frt9$basal_area-mean(frt9$basal_area, na.rm=TRUE))/sd(frt9$basal_area, na.rm=TRUE)
+
+table(frt9$bec_zone_code, frt9$pttype)
+
+frt9[bec_zone_code=="CMA", bec_zone_code:="ICH"]
+frt9[bec_zone_code=="BAFA", bec_zone_code:="ESSF"]
+frt9[bec_zone_code=="ICH", bec_zone_code:="SBS"]
+
+frt9<-frt9[veg_cat != "6",]
 
 
-# note tave_spring and elevation; and dist_road and dist_infra are > 0.7 correlated so must remove one of each of these.
+```
 
-model1 <- glm (pttype ~ climate1 + climate2 + dem_ha_bc + as.factor(fwveg) + dist_roads_m + dist_infr_m + win_sum + slope_ha_bc + as.factor(aspect_cardinal),
+# I tried making this model in both ways i.e. throwing many things into and reducing it or building it up from basics. I chose to go with building it up because adding dist_ignition changes the direction of the relationship of climate2. Which seems odd. But I only could find this from building the models up. Anyway. see below. I think model15a is best
+```{r}
+model1a <- glmer (pttype ~  scale_climate1*scale_climate2 +(1|fire_label) ,
                data=frt9,
                family = binomial (link = "logit"))
-summary(model1) #65912
-Anova(model1, type=3)
-AIC(model1) #21754.66
 
-model1a <- glm (pttype ~ climate1 + climate2 + dem_ha_bc + as.factor(fwveg) + dist_infr_m + win_sum + slope_ha_bc + as.factor(aspect_cardinal),
+summary(model1a)
+
+model2a <- glmer (pttype ~  scale_climate1*scale_climate2 + veg_cat +(1|fire_label) ,
                data=frt9,
                family = binomial (link = "logit"))
-AIC(model1a) #21643.51
-Anova(model1a, type=3)
 
-model1b <- glm (pttype ~ climate1 + climate2 + dem_ha_bc + as.factor(fwveg) + win_sum + slope_ha_bc + as.factor(aspect_cardinal) ,
+summary(model2a)
+
+#Note scale_roads seems to go in the wrong direction i.e. the closer you are to a road the higher the chance of spread. Maybe this 
+model3a <- glmer (pttype ~  scale_climate1*scale_climate2 + veg_cat + scale_roads +(1|fire_label) ,
                data=frt9,
                family = binomial (link = "logit"))
-AIC(model1b) #21643.51
-Anova(model1b, type=3)
-visreg(model1b)
+visreg(model3a, "scale_roads")
+
+model4a <- glmer (pttype ~  scale_climate1*scale_climate2 + veg_cat + scale_infr +(1|fire_label) ,
+               data=frt9,
+               family = binomial (link = "logit"))
+summary(model4a)
+
+model5a <- glmer (pttype ~  scale_climate1*scale_climate2 + veg_cat + scale_infr + aspect_cardinal +(1|fire_label) ,
+               data=frt9,
+               family = binomial (link = "logit"))
+summary(model5a)
+
+# interesting! If I put in distance to ignition then scale_climate2 becomes postive i.e. more rain = more fire. This seems strange so Ill leave out distance to ignition
+
+model6a <- glmer (pttype ~  scale_climate1*scale_climate2 + veg_cat + scale_infr + aspect_cardinal + scale_dist_ignit +(1|fire_label) ,
+               data=frt9,
+               family = binomial (link = "logit"))
+summary(model6a)
+
+model7a<-glmer (pttype ~  scale_climate1*scale_climate2 + veg_cat + scale_infr + aspect_cardinal + scale_age +(1|fire_label) ,
+               data=frt9,
+               family = binomial (link = "logit"))
+summary(model7a)
+Anova(model7a, type=3)
+
+model8a<-glmer (pttype ~  scale_climate1*scale_climate2 + scale_climate1*veg_cat + scale_infr + aspect_cardinal + scale_age +(1|fire_label) ,
+               data=frt9,
+               family = binomial (link = "logit"))
+summary(model8a)
+Anova(model8a, type=3)
+
+# I tested basal area, its not significant and it has lots of NA values so I left it out
+model9a<-glmer (pttype ~  scale_climate1*scale_climate2 + scale_climate1*veg_cat + scale_infr + aspect_cardinal + scale_age + scale_slope +(1|fire_label) ,
+               data=frt9,
+               family = binomial (link = "logit"))
+summary(model9a)
+Anova(model9a, type=3)
+
+model10a<-glmer (pttype ~  scale_climate1*scale_climate2 + scale_climate1*veg_cat + scale_infr + aspect_cardinal + scale_age + scale_slope + bec_zone_code +(1|fire_label) ,
+               data=frt9,
+               family = binomial (link = "logit"))
+summary(model10a)
+Anova(model10a, type=3)
+
+model11a<-glmer (pttype ~  scale_climate1*scale_climate2 + scale_climate1*veg_cat + scale_climate2*veg_cat + scale_infr + aspect_cardinal + scale_age + scale_slope + bec_zone_code +(1|fire_label) ,
+               data=frt9,
+               family = binomial (link = "logit"))
+summary(model11a)
+Anova(model11a, type=3)
+
+model12a<-glmer (pttype ~  scale_climate1*scale_climate2 + scale_climate1*veg_cat + scale_climate2*veg_cat + log(dist_infr_m+1) + aspect_cardinal + scale_age + scale_slope + bec_zone_code +(1|fire_label) ,
+               data=frt9,
+               family = binomial (link = "logit"))
+summary(model12a)
+Anova(model12a, type=3)
+
+#drop aspect
+model12b<-glmer (pttype ~  scale_climate1*scale_climate2 + scale_climate1*veg_cat + scale_climate2*veg_cat + log(dist_infr_m+1) + scale_age + scale_slope + bec_zone_code +(1|fire_label) ,
+               data=frt9,
+               family = binomial (link = "logit"))
+summary(model12b)
+Anova(model12b, type=3)
 
 
 
+frt9$log_infr<-log(frt9$dist_infr_m+1)
+
+model13a<-glmer (pttype ~  scale_climate1*scale_climate2 + scale_climate1*veg_cat + scale_climate2*veg_cat + poly(log_infr,2) + aspect_cardinal + scale_age + scale_slope + bec_zone_code +(1|fire_label) ,
+               data=frt9,
+               family = binomial (link = "logit"))
+summary(model13a)
+Anova(model13a, type=3)
+
+model14a<-glmer (pttype ~  scale_climate1*scale_climate2 + scale_climate1*veg_cat + scale_climate2*veg_cat + poly(log_infr,3) + aspect_cardinal + scale_age + scale_slope + bec_zone_code +(1|fire_label) ,
+               data=frt9,
+               family = binomial (link = "logit"))
+summary(model14a)
+Anova(model14a, type=3)
+
+# Try with cut for log_infr. maybe If I split infrastructure up into categories near, medium, far it will take out the structure.
+frt9$dist_infra_categories<-cut(frt9$dist_infr_m/1000,breaks = c(-1, 5, 20, 50, max(frt9$dist_infr_m/1000)+1),labels = c("A", "B", "C", "D"))
+
+# look at the firesheds paper by WANG 2024 for maybe an idea of how large to make the bins. they say that "The average distance from which fire, when spreading at themaximum simulated rate, could reach the community perimeter was approximately 5, 12 and 18km in 1, 2 and 3days, respectively. So I think my bins are good actually
+
+model15a<-glmer (pttype ~  scale_climate1*scale_climate2 + scale_climate1*veg_cat + scale_climate2*veg_cat + dist_infra_categories + scale_age + scale_slope + bec_zone_code +(1|fire_label) ,
+               data=frt9,
+               family = binomial (link = "logit"))
+summary(model15a)
+Anova(model15a, type=3)
+
+
+frt9$dist_infra_categories<-cut(frt9$dist_infr_m/1000,breaks = c(-1, 1,5, 20,50, max(frt9$dist_infr_m/1000)),labels = c("A", "B", "C", "D", "E"))
+model16a<-glmer (pttype ~  scale_climate1*scale_climate2 + scale_climate1*veg_cat + scale_climate2*veg_cat + dist_infra_categories + scale_age + scale_slope + bec_zone_code +(1|fire_label) ,
+               data=frt9,
+               family = binomial (link = "logit"))
+summary(model16a)
+Anova(model16a, type=3)
+
+# categorizing infrastructure does help but the relationship is again odd. Ie. chance of spread is higher near infrastructure then declines as you move away but then at the furthest distance its back up. maybe i should throw out infrastructure.
+
+AIC(model1a, model2a, model3a, model4a, model5a, model7a, model8a, model9a, model10a, model11a, model12a,model12b, model13a, model14a, model15a, model16a)
+visreg(model15a, "scale_climate1", by="veg_cat")
+visreg(model15a)
+
+saveRDS(model15a, "C:/Work/caribou/castor/R/fire_sim/tmp/frt9.rds")
+
+
+```
+
+
+```{r}
 # model diagnostic plots
 # below model looks way better with log road dist. It had some structure with just road dist
-binnedplot (fitted(model1b), 
-            residuals(model1b), 
+binnedplot (fitted(model15a), 
+            residuals(model15a), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm"))
 
 
-frt9$resids<-resid(model1b)
+frt9$resids<-resid(model15a)
 
-binnedplot (frt9$climate1, 
+binnedplot (frt9$scale_climate1, 
             frt9$resids, 
             nclass = NULL)
 
-binnedplot (frt9$dem_ha_bc                     , 
+binnedplot (frt9$scale_climate2, 
             frt9$resids, 
             nclass = NULL)
 
@@ -943,215 +1601,19 @@ binnedplot (frt9$climate2  ,
             frt9$resids, 
             nclass = NULL)
 
-binnedplot (frt9$slope_ha_bc, 
+binnedplot (frt9$scale_slope, 
             frt9$resids, 
             nclass = NULL)
 
-binnedplot (frt9$win_sum, 
+binnedplot (frt9$scale_age, 
+            frt9$resids, 
+            nclass = NULL)
+binnedplot ((frt9$dist_infr_m), 
             frt9$resids, 
             nclass = NULL)
 
-
 ```
 
-```{r}
-#Here, we’ll check the linear relationship between continuous predictor variables and the logit of the outcome. This can be done by visually inspecting the scatter plot between each predictor and the logit values.
-
-#Remove qualitative variables from the original data frame and bind the logit values to the data:
-
-# Select only numeric predictors
-str(frt9)
-
-dat2_b<-frt9 %>% dplyr::select(pttype, climate1, climate2, Latitude, Longitude, win_sum, dem_ha_bc )
-probabilities <- predict(model1b, type = "response")
-predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
-
-mydata <- dat2_b %>%
-  dplyr::select_if(is.numeric) 
-predictors <- colnames(mydata)
-
-# Bind the logit and tidying the data for plot
-mydata <- mydata %>%
-  mutate(logit = log(probabilities/(1-probabilities))) %>%
-  gather(key = "predictors", value = "predictor.value", -logit)
-
-ggplot(mydata, aes(logit, predictor.value))+
-  geom_point(size = 0.5, alpha = 0.5) +
-  geom_smooth(method = "loess") + 
-  theme_bw() + 
-  facet_wrap(~predictors, scales = "free_y")
-
-# all variables should be approximatly linear which is mostly true
-```
-
-Checking assumption of influential values
-see: (http://www.sthda.com/english/articles/36-classification-methods-essentials/148-logistic-regression-assumptions-and-diagnostics-in-r/)
-```{r}
-#Influential values are extreme individual data points that can alter the quality of the logistic regression model.
-#The most extreme values in the data can be examined by visualizing the Cook’s distance values. Here we label the top 3 largest values:
-
-plot(model3, which = 4, id.n = 3)
-
-#Note that, not all outliers are influential observations. To check whether the data contains potential influential observations, the standardized residual error can be inspected. Data points with an absolute standardized residuals above 3 represent possible outliers and may deserve closer attention.
-
-#The following R code computes the standardized residuals (.std.resid) and the Cook’s distance (.cooksd) using the R function augment() [broom package].
-
-# Extract model results
-library(broom)
-
-model.data <- augment(model1b) %>% 
-  mutate(index = 1:n()) 
-
-#The data for the top 3 largest values, according to the Cook’s distance, can be displayed as follow:
-model.data %>% 
-  dplyr::select(climate1, climate2,.std.resid, .cooksd) %>%
-  top_n(5, .cooksd) 
-
-ggplot(model.data, aes(index, .std.resid)) + 
-  geom_point(aes(color = pttype), alpha = .5) +
-  theme_bw()
-
-```
-
-# checking assumption of no multicollinearity
-
-```{r}
-#Multicollinearity corresponds to a situation where the data contain highly correlated predictor variables. Read more in Chapter @ref(multicollinearity).
-
-#Multicollinearity is an important issue in regression analysis and should be fixed by removing the concerned variables. It can be assessed using the R function vif() [car package], which computes the variance inflation factors:
-
-car::vif(model1b)
-
-#As a rule of thumb, a VIF value that exceeds 5 or 10 indicates a problematic amount of collinearity. 
-```
-
-
-```{r}
-model1 <- glm (pttype ~ climate1 + climate2 + dem_ha_bc + as.factor(fwveg) + win_sum + slope_ha_bc + as.factor(aspect_cardinal),
-               data=frt9,
-               family = binomial (link = "logit"))
-
-summary(model1)
-table(frt9$fwveg)
-
-#Create a new blank table and get AUC too
-top_mod_table_frt9_All <- data.frame (matrix (ncol = 18, nrow = 0))
-colnames (top_mod_table_frt9_All ) <- c ("CAUSE", 
-                                    "FRT",  
-                                    "Model_terms", 
-                                    "intercept", 
-                                    "coef_climate1", 
-                                    "coef_climate2",
-                                    "coef_elevation",
-                                    "coef_fwveg_C-2", 
-                                    "coef_fwveg_C-3",
-                                    "coef_fwveg_C-7",
-                                    "coef_fwveg_D-1/2",
-                                    "coef_fwveg_M-1/2",
-                                    "coef_fwveg_O-1a/b",
-                                    "coef_wind_sum",
-                                    "coef_slope",
-                                    "coef_aspect_O",
-                                    "coef_aspect_S",
-                                    "AUC")
-
-frt9$fire_veg<-paste(frt9$pttype, frt9$fwveg)
-frt9<-as.data.frame(frt9)
-```
-
-Let's run it 100 times to get good mean values.
-
-```{r}
-
-for (g in 1:100){
-
-prop<-0.75
-# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(frt9$fire_veg, p = prop,
-                                    list = FALSE,
-                                    times = 1)
-  
-   dat1 <- frt9[ trainIndex,]
-   Valid <- frt9[-trainIndex,]
-   
-#Model   
-mod<-glm (pttype ~ climate1 + climate2 + dem_ha_bc + as.factor(fwveg) + win_sum + slope_ha_bc + as.factor(aspect_cardinal), data=dat1, family=binomial(link="logit"))
-
-mod.valid <- predict.glm(mod, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"pttype"], mod.valid, quiet=TRUE)
-   mod.auc <- auc(roc_obj)
-
-# create model table (only do this once) and add the relevant data
-top_mod_table_frt9_person <- data.frame (matrix (ncol = 18, nrow = 0))
-colnames (top_mod_table_frt9_person ) <- c ("CAUSE", 
-                                    "FRT",  
-                                    "Model_terms", 
-                                    "intercept", 
-                                    "coef_climate1", 
-                                    "coef_climate2",
-                                    "coef_elevation",
-                                    "coef_fwveg_C-2", 
-                                    "coef_fwveg_C-3",
-                                    "coef_fwveg_C-7",
-                                    "coef_fwveg_D-1/2",
-                                    "coef_fwveg_M-1/2",
-                                    "coef_fwveg_O-1a/b",
-                                    "coef_wind_sum",
-                                    "coef_slope",
-                                    "coef_aspect_O",
-                                    "coef_aspect_S",
-                                    "AUC")
-
-##Add data for NDT1
-top_mod_table_frt9_person[1,1]<-"spread"
-top_mod_table_frt9_person[1,2]<-"frt9"
-top_mod_table_frt9_person[1,3]<-"pttype ~ climate1 + climate2 + dem_ha_bc + fwveg + win_sum + slope_ha_bc + aspect_cardinal"
-top_mod_table_frt9_person[1,4]<- coef(mod)[1] #Intercept
-top_mod_table_frt9_person[1,5]<- coef(mod)[2] 
-top_mod_table_frt9_person[1,6]<- coef(mod)[3] 
-top_mod_table_frt9_person[1,7]<- coef(mod)[4] 
-top_mod_table_frt9_person[1,8]<- coef(mod)[5] 
-top_mod_table_frt9_person[1,9]<- coef(mod)[6] 
-top_mod_table_frt9_person[1,10]<- coef(mod)[7] 
-top_mod_table_frt9_person[1,11]<- coef(mod)[8] 
-top_mod_table_frt9_person[1,12]<- coef(mod)[9] 
-top_mod_table_frt9_person[1,13]<- coef(mod)[10] 
-top_mod_table_frt9_person[1,14]<- coef(mod)[11] 
-top_mod_table_frt9_person[1,15]<- coef(mod)[12] 
-top_mod_table_frt9_person[1,16]<- coef(mod)[13] 
-top_mod_table_frt9_person[1,17]<- coef(mod)[14]
-top_mod_table_frt9_person[1,18]<- mod.auc
-
-top_mod_table_frt9_All<-rbind(top_mod_table_frt9_All, top_mod_table_frt9_person)
-
-}
-
-```
-
-Check.
-```{r}
-head(top_mod_table_frt9_All)
-
-```
-
-
-Get mean values.
-
-```{r}
-names(top_mod_table_frt9_All)
-str(top_mod_table_frt9_All)
-stderror <- function(x) sd(x)/sqrt(length(x))
-
-frt9_summary_table_mean<- top_mod_table_frt9_All %>% summarize_if(is.numeric,mean)
-
-
-```
-
-Save table.
-
-```{r}
-write.csv(frt9_summary_table_mean, file="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt9_spread.csv")
-```
 
 ################################
 #FRT 10
@@ -1160,650 +1622,363 @@ write.csv(frt9_summary_table_mean, file="C:\\Work\\caribou\\castor_data\\Fire\\F
 ```{r}
 # Plot climate data results
 
-frt10<-fire_spread %>% filter(frt==10 & !fwveg %in% c("N", "W"))
-model1 <- glm (pttype ~ climate1 + climate2 ,
-               data=frt10,
-               family = binomial (link = "logit"))
-summary(model1)
-
-visreg(model1, scale="response", "climate1")
-visreg(model1, scale="response", "climate2")
-visreg(model1, "climate1")
+frt10<-dat %>% filter(frt==10)
 
 table(is.na(frt10$win_sum))
 table(is.na(frt10$dem))
+table(is.na(frt10$slope_ha_bc))
+frt10<-frt10[!is.na(slope_ha_bc),]
 
-frt10 %>% drop_na(win_sum) %>% summarize(mean(win_sum))
-frt10$win_sum[is.na(frt10$win_sum)]<-2.857088
+frt10[is.na(proj_age_1) & bclcs_level_1=="V", proj_age_1:=0]
+frt10[bclcs_level_4 == "TC" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=1]
+frt10[bclcs_level_4 == "TM" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=2]
+frt10[bclcs_level_4 == "TB" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=3]
+frt10[bclcs_level_4 %in% c("TC", "TM", "TB") & (basal_area < 8 | is.na(basal_area) | proj_height_1 <4 | is.na(proj_height_1)), veg_cat:=4]
+frt10[bclcs_level_1 =="V" & !bclcs_level_4 %in% c("TC", "TM", "TB"), veg_cat:=5]
+frt10[bclcs_level_1 !="V", veg_cat:=6]
 
-table(frt10$fwveg, frt10$pttype)
-frt10$fwveg[frt10$fwveg=="S-2"]<-"S-1"
-frt10$fwveg[frt10$fwveg=="S-3"]<-"S-1"
-frt10$fwveg[frt10$fwveg=="M-3"]<-"M-1/2"
-table(frt10$fwveg, frt10$pttype)
+table(frt10$veg_cat, frt10$pttype)
+frt10<-frt10[veg_cat!=6,]
 
-cor.test(frt10$dem, frt10$climate2)
-cor.test(frt10$dem, frt10$climate1) # correlated
-cor.test(frt10$climate2, frt10$climate1)
-cor.test(frt10$dist_roads_m, frt10$dist_infr_m)
-
+frt10[veg_cat==5 & is.na(conifer_pct_cover_total), conifer_pct_cover_total:=0]
+frt10[veg_cat==5 & is.na(proj_age_1), proj_age_1:=0]
+frt10[veg_cat==5 & is.na(basal_area), basal_area:=0]
+frt10<-(frt10[!is.na(proj_age_1),])
+frt10[is.na(conifer_pct_cover_total), conifer_pct_cover_total:=0]
 ```
+
+Test best climate variable
+```{r}
+frt10[,climate1:=(CMI03+CMI04+CMI05)/3]
+model1 <- glm (pttype ~ climate1 ,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+frt10[,climate1:=(CMI03+CMI04+CMI05+CMI06+CMI07+CMI08)/6]
+model2 <- glm (pttype ~ climate1,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+frt10[,climate1:=(CMI06+CMI07+CMI08)/3]
+model3 <- glm (pttype ~ climate1,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+frt10[,climate1:=(Tmax03+Tmax04+Tmax05)/3]
+model4 <- glm (pttype ~ climate1,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+frt10[,climate2:=(PPT03+PPT04+PPT05)/3]
+model5 <- glm (pttype ~ climate1,
+               data=frt10,
+               family = binomial (link = "logit"))
+model6 <- glm (pttype ~ climate1+climate2 ,
+               data=frt10,
+               family = binomial (link = "logit"))
+model7 <- glm (pttype ~ climate1*climate2 ,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+frt10[,climate1:=(Tave03+Tave04+Tave05)/3]
+model8 <- glm (pttype ~ climate1 ,
+               data=frt10,
+               family = binomial (link = "logit"))
+model9 <- glm (pttype ~ climate1+climate2 ,
+               data=frt10,
+               family = binomial (link = "logit"))
+model10 <- glm (pttype ~ climate1*climate2 ,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+frt10[,climate1:=(Tmin03+Tmin04+Tmin05)/3]
+model11 <- glm (pttype ~ climate1,
+               data=frt10,
+               family = binomial (link = "logit"))
+model12 <- glm (pttype ~ climate1+climate2,
+               data=frt10,
+               family = binomial (link = "logit"))
+model13 <- glm (pttype ~ climate1*climate2,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+frt10[,climate1:=(Tmax06+Tmax07+Tmax08)/3]
+model14 <- glm (pttype ~ climate1,
+               data=frt10,
+               family = binomial (link = "logit"))
+frt10[,climate2:=(PPT06+PPT07+PPT08)/3]
+model15 <- glm (pttype ~ climate2,
+               data=frt10,
+               family = binomial (link = "logit"))
+model16 <- glm (pttype ~ climate1+climate2,
+               data=frt10,
+               family = binomial (link = "logit"))
+model17 <- glm (pttype ~ climate1*climate2,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+frt10[,climate1:=(Tave06+Tave07+Tave08)/3]
+model18 <- glm (pttype ~ climate1,
+               data=frt10,
+               family = binomial (link = "logit"))
+model19 <- glm (pttype ~ climate1+climate2,
+               data=frt10,
+               family = binomial (link = "logit"))
+model20 <- glm (pttype ~ climate1*climate2 ,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+frt10[,climate1:=(Tmin06+Tmin07+Tmin08)/3]
+model21 <- glm (pttype ~ climate1,
+               data=frt10,
+               family = binomial (link = "logit"))
+model22 <- glm (pttype ~ climate1+climate2,
+               data=frt10,
+               family = binomial (link = "logit"))
+model23 <- glm (pttype ~ climate1*climate2,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+frt10[,climate1:=(Tmax03+Tmax04+Tmax05+Tmax06+Tmax07+Tmax08)/6]
+model24 <- glm (pttype ~ climate1,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+frt10[,climate2:=(PPT03+PPT04+PPT05+PPT06+PPT07+PPT08)/6]
+model25 <- glm (pttype ~ climate2,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+frt10[,climate1:=(Tave03+Tave04+Tave05+Tave06+Tave07+Tave08)/6]
+model26 <- glm (pttype ~ climate1,
+               data=frt10,
+               family = binomial (link = "logit"))
+model27 <- glm (pttype ~ climate1+climate2,
+               data=frt10,
+               family = binomial (link = "logit"))
+model28 <- glm (pttype ~ climate1*climate2,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+frt10[,climate1:=(Tmin03+Tmin04+Tmin05+Tmin06+Tmin07+Tmin08)/6]
+model29 <- glm (pttype ~ climate1,
+               data=frt10,
+               family = binomial (link = "logit"))
+model30 <- glm (pttype ~ climate1+climate2,
+               data=frt10,
+               family = binomial (link = "logit"))
+model31 <- glm (pttype ~ climate1*climate2,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+frt10[,climate1:=(RH03+RH04+RH05+RH06+RH07+RH08)/6]
+model32 <- glm (pttype ~ climate1,
+               data=frt10,
+               family = binomial (link = "logit"))
+frt10[,climate1:=(CMD03+CMD04+CMD05+CMD06+CMD07+CMD08)/6]
+model33 <- glm (pttype ~ climate1,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+model34 <- glm (pttype ~ Tmax06,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+model35 <- glm (pttype ~ PPT06,
+               data=frt10,
+               family = binomial (link = "logit"))
+model36 <- glm (pttype ~ Tmax06 +PPT06,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+model37 <- glm (pttype ~ Tmax06*PPT06,
+               data=frt10,
+               family = binomial (link = "logit"))
+
+AIC(model1, model2, model3, model4, model5, model6, model7, model8, model9, model10,model11, model12, model13, model14, model15, model16, model17, model18, model19, model20,model21, model22, model23, model24, model25, model26, model27, model28, model29, model30,model31, model32, model33,model34,model35,model36,model37)
+
+# top climate model is model37
+visreg(model17, "climate1", by="climate2")
+visreg(model17, "climate2", by="climate1")
+visreg(model37, "Tmax06", by="PPT06")
+visreg(model37, "PPT06", by="Tmax06")
+```
+
+
+```{r}
+frt10$scale_climate1<-(frt10$Tmax06-mean(frt10$Tmax06, na.rm=TRUE)) / sd(frt10$Tmax06, na.rm=TRUE)
+frt10$scale_climate2<-(frt10$PPT06-mean(frt10$PPT06, na.rm=TRUE)) / sd(frt10$PPT06, na.rm=TRUE)
+frt10$scale_dem<-(frt10$dem-mean(frt10$dem, na.rm=TRUE))/sd(frt10$dem, na.rm=TRUE)
+frt10$scale_slope<-(frt10$slope_ha_bc-mean(frt10$slope_ha_bc, na.rm=TRUE)) / sd(frt10$slope_ha_bc, na.rm=TRUE)
+frt10$scale_roads<-(frt10$dist_roads_m-mean(frt10$dist_roads_m, na.rm=TRUE)) / sd(frt10$dist_roads_m, na.rm=TRUE)
+frt10$scale_infr<-(frt10$dist_infr_m-mean(frt10$dist_infr_m, na.rm=TRUE)) / sd(frt10$dist_infr_m, na.rm=TRUE)
+frt10$scale_dist_ignit<-(frt10$rast_ignit_dist-mean(frt10$rast_ignit_dist, na.rm=TRUE)) / sd(frt10$rast_ignit_dist, na.rm=TRUE)
+frt10$scale_pct_conifer<-(frt10$conifer_pct_cover_total-mean(frt10$conifer_pct_cover_total, na.rm=TRUE))/sd(frt10$conifer_pct_cover_total, na.rm=TRUE)
+frt10$scale_age<-(frt10$proj_age_1-mean(frt10$proj_age_1, na.rm=TRUE))/sd(frt10$proj_age_1, na.rm=TRUE)
+frt10$scale_basal_area<-(frt10$basal_area-mean(frt10$basal_area, na.rm=TRUE))/sd(frt10$basal_area, na.rm=TRUE)
+
+cor.test(frt10$scale_dem, frt10$scale_climate2)
+cor.test(frt10$scale_dem, frt10$scale_climate1) 
+cor.test(frt10$Tmax06, frt10$PPT06)
+cor.test(frt10$dem, frt10$Tmax06)
+cor.test(frt10$dist_roads_m, frt10$dist_infr_m)
+cor.test(frt10$scale_climate1, frt10$scale_climate2)
+cor.test(frt10$scale_roads, frt10$scale_infr)
+cor.test(frt10$scale_age, frt10$scale_pct_conifer)
+cor.test(frt10$scale_roads, frt10$scale_dem)
+```
+
 
 # Model fit
 
 ```{r}
-frt10$fire_yr<-as.factor(frt10$fire_yr)
-frt10$fire_label<-as.factor(frt10$fire_label)
+table(frt10$bec_zone_code, frt10$pttype)
 
-frt10$scale_climate1<-(frt10$climate1-mean(frt10$climate1))/sd(frt10$climate1)
-frt10$scale_climate2<-(frt10$climate2-mean(frt10$climate2))/sd(frt10$climate2)
-frt10$scale_dem<-(frt10$dem-mean(frt10$dem))/sd(frt10$dem)
-frt10$scale_slope<-(frt10$slope_ha_bc-mean(frt10$slope_ha_bc))/sd(frt10$slope_ha_bc)
-frt10$scale_roads<-(frt10$dist_roads_m-mean(frt10$dist_roads_m))/sd(frt10$dist_roads_m)
-frt10$scale_dist_ignit<-(frt10$rast_ignit_dist-mean(frt10$rast_ignit_dist))/sd(frt10$rast_ignit_dist)
+frt10<-frt10[veg_cat != "6",]
+frt10$veg_cat<-as.factor(frt10$veg_cat)
 
-
-# climate 1 and dem are correlated 
-model1 <- glmer (pttype ~ scale_climate1 * scale_climate2 + as.factor(fwveg) + scale_roads + scale_slope + scale_dist_ignit + as.factor(aspect_cardinal) + (1|fire_yr) + (1|fire_yr:fire_label),
+model1 <- glmer (pttype ~ scale_climate1 * scale_climate2 + (1|fire_label),
                data=frt10,
                family = binomial (link = "logit"))
-summary(model1) #BIC = 62063.8 
-Anova(model1, type=3)
-visreg(model1, scale="response", "fwveg")
-visreg(model1)
+summary(model1)
 
-
-
-model1 <- glm (pttype ~ climate1 + climate2 + slope_ha_bc + aspect_cardinal + as.factor(fwveg) + dist_roads_m + dist_infr_m + win_sum, data=frt10,
+model2 <- glmer (pttype ~ scale_climate1 * scale_climate2 + veg_cat + (1|fire_label),
+               data=frt10,
                family = binomial (link = "logit"))
-AIC(model1)
+summary(model2)
 
-model1 <- glm(pttype ~  climate2 + dem_ha_bc + slope_ha_bc + aspect_cardinal + as.factor(fwveg) + dist_roads_m + dist_infr_m + win_sum, data=frt10,
+model3 <- glmer (pttype ~ scale_climate1 * scale_climate2 + scale_climate1 * veg_cat + (1|fire_label),
+               data=frt10,
+               family = binomial (link = "logit"))
+summary(model3)
+Anova(model3, type=3)
+
+model4 <- glmer (pttype ~ scale_climate1 + scale_climate2 + scale_climate1 * veg_cat + (1|fire_label),
+               data=frt10,
                family = binomial (link = "logit"))
 
-model1a <- glm (pttype ~climate1 + climate2 + slope_ha_bc + aspect_cardinal + fwveg + dist_infr_m + win_sum + Latitude + Longitude , data=frt10,
+model5 <- glmer (pttype ~ scale_climate1 + scale_climate2 + scale_climate1 * veg_cat + scale_age + (1|fire_label),
+               data=frt10,
                family = binomial (link = "logit"))
-AIC(model1a)
-Anova(model1a, type=3)
-visreg(model1a, scale="response")
 
-model1b <- glm (pttype ~climate1 + climate2 + slope_ha_bc + aspect_cardinal + fwveg + dist_infr_m + win_sum + Latitude, data=frt10,
+model6 <- glmer (pttype ~ scale_climate1 + scale_climate2 + scale_climate1 * veg_cat + scale_age + scale_dem + (1|fire_label),
+               data=frt10,
                family = binomial (link = "logit"))
-AIC(model1b)
-anova(model1a, model1b, test = "Chisq")
 
-# join C-1 with C-3 as they are not different to one another
-frt10[fwveg=="C-1", fwveg:="C-3"]
-
-model1b <- glm (pttype ~ climate1 + climate2 + slope_ha_bc + aspect_cardinal + fwveg + poly(dist_infr_m,2, raw=TRUE)+ poly(Latitude,2,raw=TRUE), data=frt10_2,
+model7 <- glmer (pttype ~ scale_climate1 + scale_climate2 + scale_climate1 * veg_cat + scale_age + scale_dem +scale_slope + (1|fire_label),
+               data=frt10,
                family = binomial (link = "logit"))
-AIC(model1b)
-Anova(model1b)
-visreg(model1b, scale="response")
-summary(model1b)
 
-visreg(model1b, scale="response", "win_sum")
-visreg(model1b, scale="response", "dist_infr_m")
-visreg(model1b, scale="response", "fwveg")
-visreg(model1b, scale="response", "climate2")
-visreg(model1b, scale="response", "climate1")
-visreg(model1b, scale="response", "Latitude")
+model8 <- glmer (pttype ~ scale_climate1 + scale_climate2 + scale_climate1 * veg_cat + scale_age + scale_dem +scale_slope + aspect_cardinal + (1|fire_label),
+               data=frt10,
+               family = binomial (link = "logit"))
 
+model9 <- glmer (pttype ~ scale_climate1 + scale_climate2 + scale_climate1 * veg_cat + scale_age + scale_dem +scale_slope + aspect_cardinal + scale_pct_conifer + (1|fire_label),
+               data=frt10,
+               family = binomial (link = "logit"))
+Anova(model9, type=3)
+
+model10 <- glmer (pttype ~ scale_climate1 + scale_climate2 + scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + (1|fire_label),
+               data=frt10,
+               family = binomial (link = "logit"))
+Anova(model10, type=3)
+
+model11 <- glmer (pttype ~ scale_climate1 + scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + (1|fire_label),
+               data=frt10,
+               family = binomial (link = "logit"))
+Anova(model11, type=3)
+
+model12 <- glmer (pttype ~ scale_climate1 + scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + scale_roads + (1|fire_label),
+               data=frt10,
+               family = binomial (link = "logit"))
+Anova(model12, type=3)
+
+model13 <- glmer (pttype ~ scale_climate1 + scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + scale_roads + scale_dist_ignit + (1|fire_label),
+               data=frt10,
+               family = binomial (link = "logit"))
+Anova(model13, type=3)
+summary(model13)
+
+model14 <- glmer (pttype ~ scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + scale_roads + scale_dist_ignit*scale_climate1 + (1|fire_label),
+               data=frt10,
+               family = binomial (link = "logit"))
+
+model15 <- glmer (pttype ~ scale_climate1 + scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + scale_dist_ignit + (1|fire_label),
+               data=frt10,
+               family = binomial (link = "logit"))
+Anova(model15, type=3)
+summary(model15)
+
+model16 <- glmer (pttype ~ scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + scale_climate1*scale_dist_ignit + (1|fire_label),
+               data=frt10,
+               family = binomial (link = "logit"))
+Anova(model16, type=3)
+summary(model16)
+visreg(model16, "scale_dist_ignit", by="scale_climate1")
+visreg(model16, "scale_climate1", by="veg_cat")
+
+# check that veg_cat is going in the expected direction on model16
+
+AIC(model1, model2, model3, model4, model5, model6, model7, model8, model9, model10, model11, model12, model13, model14, model15, model16)
+
+visreg(model15)
+ss <- getME(model15,c("theta","fixef"))
+m2 <- update(model15,start=ss,control=glmerControl(optCtrl=list(maxfun=2e6)))
+
+
+
+# I think modmodel15# I think model 13 is best but Since roads are going in the wrong direction. maybe I shoudl toss out roads as done in model 15 or model16. I think I should save model16
+visreg(model9, "scale_climate1", by="scale_climate2")
+visreg(model9, "scale_climate1", by="veg_cat")
+visreg(model9, "scale_climate2", by="veg_cat")
+
+```
+
+
+```{r}
 
 # model diagnostic plots
 # below model looks way better with log road dist. It had some structure with just road dist
-binnedplot (fitted(model1b), 
-            residuals(model1b), 
+binnedplot (fitted(model16), 
+            residuals(model16), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm"))
 
-frt10_2 <- frt10 %>% drop_na(slope_ha_bc)
-frt10_2$resids<-resid(model1b)
+plot(predict(model16),residuals(model16))
+abline(h=0,lty=2,col="grey")
+lines(lowess(predict(model16),residuals(model16)),col="black",lwd=2)
 
-plot (as.numeric(frt10_2$climate1), 
-            frt10_2$resids)
+plot(frt10$scale_climate1,residuals(model16))
+lines(lowess(frt10$scale_climate1,residuals(model16)),col="black",lwd=2)
 
-binnedplot (as.numeric(as.character(frt10_2$climate1)), 
-            frt10_2$resids, 
-            nclass = NULL)
+plot(frt10$scale_age,residuals(model16))
+lines(lowess(frt10$scale_age,residuals(model16)),col="black",lwd=2)
 
-binnedplot (frt10_2$climate2  , 
-            frt10_2$resids, 
-            nclass = NULL)
+plot(frt10$scale_pct_conifer,residuals(model16))
+lines(lowess(frt10$scale_pct_conifer,residuals(model16)),col="black",lwd=2)
 
-binnedplot (frt10_2$Latitude, 
-            frt10_2$resids, 
-            nclass = NULL)
+plot(frt10$scale_slope,residuals(model16))
+lines(lowess(frt10$scale_slope,residuals(model16)),col="black",lwd=2)
 
-binnedplot (frt10_2$slope_ha_bc, 
-            frt10_2$resids, 
-            nclass = NULL)
-
-binnedplot (frt10_2$dist_infr_m, 
-            frt10_2$resids, 
-            nclass = NULL)
-
+plot(frt10$scale_dist_ignit,residuals(model16))
+lines(lowess(frt10$scale_dist_ignit,residuals(model16)),col="black",lwd=2)
 
 ```
 
-# check some model assumptions
-```{r}
-#Here, we’ll check the linear relationship between continuous predictor variables and the logit of the outcome. This can be done by visually inspecting the scatter plot between each predictor and the logit values.
-
-#Remove qualitative variables from the original data frame and bind the logit values to the data:
-
-# Select only numeric predictors
-str(frt10)
-
-dat2_b<-frt10_2 %>% dplyr::select(pttype, climate1, climate2,Latitude, Longitude, dem_ha_bc, dist_infr_m )
-probabilities <- predict(model1a, type = "response")
-predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
-
-mydata <- dat2_b %>%
-  dplyr::select_if(is.numeric) 
-predictors <- colnames(mydata)
-
-# Bind the logit and tidying the data for plot
-mydata <- mydata %>%
-  mutate(logit = log(probabilities/(1-probabilities))) %>%
-  gather(key = "predictors", value = "predictor.value", -logit)
-
-ggplot(mydata, aes(logit, predictor.value))+
-  geom_point(size = 0.5, alpha = 0.5) +
-  geom_smooth(method = "loess") + 
-  theme_bw() + 
-  facet_wrap(~predictors, scales = "free_y")
-
-# all variables should be approximatly linear
-```
 
 #Checking assumption of influential values
 
 see: (http://www.sthda.com/english/articles/36-classification-methods-essentials/148-logistic-regression-assumptions-and-diagnostics-in-r/)
-```{r}
-#Influential values are extreme individual data points that can alter the quality of the logistic regression model.
-#The most extreme values in the data can be examined by visualizing the Cook’s distance values. Here we label the top 3 largest values:
 
-plot(model1a, which = 4, id.n = 3)
-
-#Note that, not all outliers are influential observations. To check whether the data contains potential influential observations, the standardized residual error can be inspected. Data points with an absolute standardized residuals above 3 represent possible outliers and may deserve closer attention.
-
-#The following R code computes the standardized residuals (.std.resid) and the Cook’s distance (.cooksd) using the R function augment() [broom package].
-
-# Extract model results
-library(broom)
-
-model.data <- augment(model1a) %>% 
-  mutate(index = 1:n()) 
-
-#The data for the top 3 largest values, according to the Cook’s distance, can be displayed as follow:
-model.data %>% 
-  dplyr::select(climate1, climate2,.std.resid, .cooksd) %>%
-  top_n(5, .cooksd) 
-
-ggplot(model.data, aes(index, .std.resid)) + 
-  geom_point(aes(color = pttype), alpha = .5) +
-  theme_bw()
-
-```
-
-# checking assumption of no multicollinearity
+Save model output
 
 ```{r}
-#Multicollinearity corresponds to a situation where the data contain highly correlated predictor variables. Read more in Chapter @ref(multicollinearity).
-
-#Multicollinearity is an important issue in regression analysis and should be fixed by removing the concerned variables. It can be assessed using the R function vif() [car package], which computes the variance inflation factors:
-
-car::vif(model1a)
-
-#As a rule of thumb, a VIF value that exceeds 5 or 10 indicates a problematic amount of collinearity. 
+saveRDS(m2, "C:/Work/caribou/castor/R/fire_sim/tmp/frt10.rds")
 ```
 
 
-```{r}
-frt10$aspect_cardinal<-as.factor(frt10$aspect_cardinal)
-frt10$fwveg<-as.factor(frt10$fwveg)
-
-model1 <- glm (pttype ~ climate1 + climate2 + slope_ha_bc + aspect_cardinal + fwveg + poly(dist_infr_m,2, raw=TRUE)+poly(Latitude,2,raw=TRUE), data=frt10_2,
-               family = binomial (link = "logit"))
-
-summary(model1)
-table(frt10_2$fwveg)
-
-#Create a new blank table and get AUC too
-top_mod_table_frt10_All <- data.frame (matrix (ncol = 21, nrow = 0))
-colnames (top_mod_table_frt10_All ) <- c ("CAUSE", 
-                                    "FRT",  
-                                    "Model_terms", 
-                                    "intercept", 
-                                    "coef_climate1", 
-                                    "coef_climate2",
-                                    "coef_slope",
-                                    "coef_aspect_O",
-                                    "coef_aspect_S",
-                                    "coef_fwveg_C-3",
-                                    "coef_fwveg_C-5",
-                                    "coef_fwveg_C-7",
-                                    "coef_fwveg_D-1/2",
-                                    "coef_fwveg_M-1/2",
-                                    "coef_fwveg_O-1a/b",
-                                    "coef_fwveg_S-1",
-                                    "coef_dist_infr",
-                                    "coef_dist_infr_sqr",
-                                    "coef_latitude",
-                                    "coef_latitude_sqr",
-                                    "AUC")
-
-frt10_2$fire_veg<-paste(frt10_2$pttype, frt10_2$fwveg)
-frt10_2<-as.data.frame(frt10_2)
-```
-
-Let's run it 100 times to get good mean values.
-
-```{r}
-
-for (g in 1:100){
-
-prop<-0.75
-# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(frt10_2$fire_veg, p = prop,
-                                    list = FALSE,
-                                    times = 1)
-  
-   dat1 <- frt10_2[ trainIndex,]
-   Valid <- frt10_2[-trainIndex,]
-   
-#Model  
-   
-  mod <- glm (pttype ~ climate1 + climate2 + slope_ha_bc + aspect_cardinal + fwveg + poly(dist_infr_m,2, raw=TRUE) + poly(Latitude,2,raw=TRUE), data=dat1, family = binomial (link = "logit"))
-
-mod.valid <- predict.glm(mod, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"pttype"], mod.valid, quiet=TRUE)
-   mod.auc <- auc(roc_obj)
-
-# create model table (only do this once) and add the relevant data
-top_mod_table_frt10_person <- data.frame (matrix (ncol = 21, nrow = 0))
-colnames (top_mod_table_frt10_person ) <- c ("CAUSE", 
-                                    "FRT",  
-                                    "Model_terms", 
-                                    "intercept", 
-                                    "coef_climate1", 
-                                    "coef_climate2",
-                                    "coef_slope",
-                                    "coef_aspect_O",
-                                    "coef_aspect_S",
-                                    "coef_fwveg_C-3",
-                                    "coef_fwveg_C-5",
-                                    "coef_fwveg_C-7",
-                                    "coef_fwveg_D-1/2",
-                                    "coef_fwveg_M-1/2",
-                                    "coef_fwveg_O-1a/b",
-                                    "coef_fwveg_S-1",
-                                    "coef_dist_infr",
-                                    "coef_dist_infr_sqr",
-                                    "coef_latitude",
-                                    "coef_latitude_sqr",
-                                    "AUC")
-
-##Add data for NDT1
-top_mod_table_frt10_person[1,1]<-"spread"
-top_mod_table_frt10_person[1,2]<-"frt10"
-top_mod_table_frt10_person[1,3]<-"climate1 + climate2 + slope_ha_bc + aspect + fwveg + poly(dist_infr_m,2) + poly(latitude,2)"
-top_mod_table_frt10_person[1,4]<- coef(mod)[1] #Intercept
-top_mod_table_frt10_person[1,5]<- coef(mod)[2] 
-top_mod_table_frt10_person[1,6]<- coef(mod)[3] 
-top_mod_table_frt10_person[1,7]<- coef(mod)[4] 
-top_mod_table_frt10_person[1,8]<- coef(mod)[5] 
-top_mod_table_frt10_person[1,9]<- coef(mod)[6] 
-top_mod_table_frt10_person[1,10]<- coef(mod)[7] 
-top_mod_table_frt10_person[1,11]<- coef(mod)[8] 
-top_mod_table_frt10_person[1,12]<- coef(mod)[9] 
-top_mod_table_frt10_person[1,13]<- coef(mod)[10] 
-top_mod_table_frt10_person[1,14]<- coef(mod)[11] 
-top_mod_table_frt10_person[1,15]<- coef(mod)[12] 
-top_mod_table_frt10_person[1,16]<- coef(mod)[13] 
-top_mod_table_frt10_person[1,17]<- coef(mod)[14] 
-top_mod_table_frt10_person[1,18]<- coef(mod)[15] 
-top_mod_table_frt10_person[1,19]<- coef(mod)[16] 
-top_mod_table_frt10_person[1,20]<- coef(mod)[17] 
-top_mod_table_frt10_person[1,21]<- mod.auc
-
-top_mod_table_frt10_All<-rbind(top_mod_table_frt10_All, top_mod_table_frt10_person)
-
-}
-
-```
-
-Check.
-```{r}
-head(top_mod_table_frt10_All)
-
-```
-
-
-Get mean values.
-
-```{r}
-names(top_mod_table_frt10_All)
-str(top_mod_table_frt10_All)
-stderror <- function(x) sd(x)/sqrt(length(x))
-
-frt10_summary_table_mean<- top_mod_table_frt10_All %>% summarize_if(is.numeric,mean)
-
-
-```
-
-Save table.
-
-```{r}
-write.csv(frt10_summary_table_mean, file="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt10_spread.csv")
-```
-
-
-################################
-#FRT 11
-################################
-
-```{r}
-# Plot climate data results
-
-frt11<-fire_spread %>% filter(frt == 11 & !fwveg %in% c("N", "W"))
-
-ggplot(frt11, aes(x=as.factor(pttype), y=climate1, fill=as.factor(frt))) +
-geom_boxplot()
-
-ggplot(frt11, aes(x=as.factor(pttype), y=dist_roads_m, fill=as.factor(frt))) +
-geom_boxplot()
-
-ggplot(frt11, aes(x=as.factor(pttype), y=dist_infr_m, fill=as.factor(frt))) +
-geom_boxplot()
-
-
-model1 <- glm (pttype ~ climate1 ,
-               data=frt11,
-               family = binomial (link = "logit"))
-summary(model1)
-visreg(model1)
-
-table(is.na(frt11$win_sum))
-table(is.na(frt11$dem_ha_bc))
-table(is.na(frt11$slope_ha_bc))
-
-table(frt11$fwveg, frt11$pttype)
-frt11[fwveg=="S-2", fwveg:="S-1"]
-frt11[fwveg=="S-1", fwveg:="O-1a/b"]
-frt11[fwveg=="C-5", fwveg:="C-7"]
-
-cor.test(frt11$climate1, frt11$dem_ha_bc)
-cor.test(frt11$dist_roads_m, frt11$dist_infr_m)
-cor.test(frt11$dist_roads_m, frt11$dem_ha_bc)
-cor.test(frt11$dist_infr_m, frt11$dem_ha_bc)
-cor.test(frt11$dist_infr_m, frt11$win_sum)
-cor.test(frt11$dist_infr_m, frt11$climate1)
-cor.test(frt11$dem_ha_bc, frt11$win_sum)
-
-# Nothing is very correlated 
-
-model1 <- glm (pttype ~ climate1 + dem_ha_bc + slope_ha_bc + aspect_cardinal + fwveg + dist_roads_m + dist_infr_m + win_sum,
-               data=frt11,
-               family = binomial (link = "logit"))
-AIC(model1) #61119.86
-summary(model1) 
-Anova(model1, type=3)
-
-model1 <- glm (pttype ~ climate1 + dem_ha_bc + slope_ha_bc + aspect_cardinal + fwveg + log(dist_roads_m+1) + dist_infr_m + win_sum, data=frt11, family = binomial (link = "logit"))
-AIC(model1)
-
-model1 <- glm (pttype ~ climate1 + dem_ha_bc + slope_ha_bc + aspect_cardinal + fwveg + dist_roads_m + log(dist_infr_m+1) + win_sum, data=frt11, family = binomial (link = "logit"))
-Anova(model1, type = 3)
-AIC(model1) # 61100
-
-frt11$log_dist_infr<-log(frt11$dist_infr_m+1)
-frt11$log_slope<-log(frt11$slope_ha_bc+0.1)
-frt11$log_climate1<-log(frt11$climate1)
-
-model1 <- glm (pttype ~ climate1 + dem_ha_bc + slope_ha_bc + fwveg + dist_roads_m + log_dist_infr + win_sum, data=frt11, family = binomial (link = "logit"))
-Anova(model1, type = 3)
-AIC(model1) # 61084.59
-visreg(model1,scale="response")
-
-model1 <- glm (pttype ~ climate1 + slope_ha_bc + fwveg + dist_roads_m + log_dist_infr + win_sum, data=frt11, family = binomial (link = "logit"))
-Anova(model1, type = 3)
-AIC(model1) # 61088.48
-visreg(model1,scale="response")
-
-model1 <- glm (pttype ~ log(climate1) + slope_ha_bc + fwveg + dist_roads_m +log_dist_infr + win_sum, data=frt11, family = binomial (link = "logit"))
-Anova(model1, type = 3)
-AIC(model1) # 60919.1
-visreg(model1,scale="response")
-visreg(model1,scale="response", "dist_roads_m")
-visreg(model1,scale="response", "climate1")
-
-
-# model diagnostic plots
-# below model looks way better with log road dist. It had some structure with just road dist
-binnedplot (fitted(model1), 
-            residuals(model1), 
-            nclass = NULL, 
-            xlab = "Expected Values", 
-            ylab = "Average residual", 
-            main = paste("Binned Residual Plot - glm"))
-
-frt11_2<-frt11 %>% drop_na(slope_ha_bc)
-frt11_2$resids<-resid(model1)
-
-binnedplot (as.numeric(frt11_2$log_climate1), 
-            frt11_2$resids)
-
-binnedplot (frt11_2$slope_ha_bc, 
-            frt11_2$resids, 
-            nclass = NULL)
-
-binnedplot (log(frt11_2$dist_infr_m+1), 
-            frt11_2$resids, 
-            nclass = NULL)
-
-binnedplot (frt11_2$win_sum, 
-            frt11_2$resids, 
-            nclass = NULL)
-
-```
-
-# check some model assumptions
-```{r}
-#Here, we’ll check the linear relationship between continuous predictor variables and the logit of the outcome. This can be done by visually inspecting the scatter plot between each predictor and the logit values.
-
-#Remove qualitative variables from the original data frame and bind the logit values to the data:
-
-# Select only numeric predictors
-str(frt11_2)
-
-dat2_b<-frt11_2 %>% dplyr::select(pttype, climate1, climate2,Latitude, Longitude, dist_roads_m )
-probabilities <- predict(model3, type = "response")
-predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
-
-mydata <- dat2_b %>%
-  dplyr::select_if(is.numeric) 
-predictors <- colnames(mydata)
-
-# Bind the logit and tidying the data for plot
-mydata <- mydata %>%
-  mutate(logit = log(probabilities/(1-probabilities))) %>%
-  gather(key = "predictors", value = "predictor.value", -logit)
-
-ggplot(mydata, aes(logit, predictor.value))+
-  geom_point(size = 0.5, alpha = 0.5) +
-  geom_smooth(method = "loess") + 
-  theme_bw() + 
-  facet_wrap(~predictors, scales = "free_y")
-
-# all variables should be approximatly linear
-```
-
-#Checking assumption of influential values
-
-see: (http://www.sthda.com/english/articles/36-classification-methods-essentials/148-logistic-regression-assumptions-and-diagnostics-in-r/)
-```{r}
-#Influential values are extreme individual data points that can alter the quality of the logistic regression model.
-#The most extreme values in the data can be examined by visualizing the Cook’s distance values. Here we label the top 3 largest values:
-
-plot(model2, which = 4, id.n = 3)
-
-#Note that, not all outliers are influential observations. To check whether the data contains potential influential observations, the standardized residual error can be inspected. Data points with an absolute standardized residuals above 3 represent possible outliers and may deserve closer attention.
-
-#The following R code computes the standardized residuals (.std.resid) and the Cook’s distance (.cooksd) using the R function augment() [broom package].
-
-# Extract model results
-library(broom)
-
-model.data <- augment(model2) %>% 
-  mutate(index = 1:n()) 
-
-#The data for the top 3 largest values, according to the Cook’s distance, can be displayed as follow:
-model.data %>% 
-  dplyr::select(PPT08,.std.resid, .cooksd) %>%
-  top_n(5, .cooksd) 
-
-ggplot(model.data, aes(index, .std.resid)) + 
-  geom_point(aes(color = pttype), alpha = .5) +
-  theme_bw()
-
-```
-
-# checking assumption of no multicollinearity
-
-```{r}
-#Multicollinearity corresponds to a situation where the data contain highly correlated predictor variables. Read more in Chapter @ref(multicollinearity).
-
-#Multicollinearity is an important issue in regression analysis and should be fixed by removing the concerned variables. It can be assessed using the R function vif() [car package], which computes the variance inflation factors:
-
-car::vif(model2)
-
-#As a rule of thumb, a VIF value that exceeds 5 or 10 indicates a problematic amount of collinearity. 
-```
-
-
-```{r}
-
-frt11_2$fwveg<-as.factor(frt11_2$fwveg)
-
-summary(model1)
-table(frt11_2$fwveg)
-
-#Create a new blank table and get AUC too
-top_mod_table_frt11_All <- data.frame (matrix (ncol = 16, nrow = 0))
-colnames (top_mod_table_frt11_All ) <- c ("CAUSE", 
-                                    "FRT",  
-                                    "Model_terms", 
-                                    "intercept",
-                                    "coef_log_climate1", 
-                                    "coef_slope",
-                                    "coef_fwveg_C-2", 
-                                    "coef_fwveg_C-3",
-                                    "coef_fwveg_C-7",
-                                    "coef_fwveg_D-1/2",
-                                    "coef_fwveg_M-1/2",
-                                    "coef_fwveg_O-1a/b",
-                                    "coef_dist_roads",
-                                    "coef_log_dist_infr",
-                                    "coef_wind_summer",
-                                    "AUC")
-
-frt11_2$fire_veg<-paste(frt11_2$pttype, frt11_2$fwveg)
-frt11_2<-as.data.frame(frt11_2)
-```
-
-Let's run it 100 times to get good mean values.
-
-```{r}
-
-for (g in 1:100){
-
-prop<-0.75
-# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(frt11_2$fire_veg, p = prop,
-                                    list = FALSE,
-                                    times = 1)
-  
-   dat1 <- frt11_2[ trainIndex,]
-   Valid <- frt11_2[-trainIndex,]
-   
-#Model   
-mod<-glm (pttype ~ log_climate1 + slope_ha_bc + fwveg + dist_roads_m + log_dist_infr + win_sum, data=dat1, family=binomial(link="logit"))
-
-mod.valid <- predict.glm(mod, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"pttype"], mod.valid, quiet=TRUE)
-   mod.auc <- auc(roc_obj)
-
-# create model table (only do this once) and add the relevant data
-top_mod_table_frt11_person <- data.frame (matrix (ncol = 16, nrow = 0))
-colnames (top_mod_table_frt11_person ) <- c ("CAUSE", 
-                                    "FRT",  
-                                    "Model_terms", 
-                                    "intercept",
-                                    "coef_log_climate1", 
-                                    "coef_slope",
-                                    "coef_fwveg_C-2", 
-                                    "coef_fwveg_C-3",
-                                    "coef_fwveg_C-7",
-                                    "coef_fwveg_D-1/2",
-                                    "coef_fwveg_M-1/2",
-                                    "coef_fwveg_O-1a/b",
-                                    "coef_dist_roads",
-                                    "coef_log_dist_infr",
-                                    "coef_wind_summer",
-                                    "AUC")
-
-##Add data for NDT1
-top_mod_table_frt11_person[1,1]<-"spread"
-top_mod_table_frt11_person[1,2]<-"frt11"
-top_mod_table_frt11_person[1,3]<-"pttype ~ log_climate1 + slope + fwveg + dist_roads_m + log_dist_infr + win_sum"
-top_mod_table_frt11_person[1,4]<- coef(mod)[1] #Intercept
-top_mod_table_frt11_person[1,5]<- coef(mod)[2] 
-top_mod_table_frt11_person[1,6]<- coef(mod)[3] 
-top_mod_table_frt11_person[1,7]<- coef(mod)[4] 
-top_mod_table_frt11_person[1,8]<- coef(mod)[5] 
-top_mod_table_frt11_person[1,9]<- coef(mod)[6] 
-top_mod_table_frt11_person[1,10]<- coef(mod)[7] 
-top_mod_table_frt11_person[1,11]<- coef(mod)[8] 
-top_mod_table_frt11_person[1,12]<- coef(mod)[9] 
-top_mod_table_frt11_person[1,13]<- coef(mod)[10] 
-top_mod_table_frt11_person[1,14]<- coef(mod)[11] 
-top_mod_table_frt11_person[1,15]<- coef(mod)[12] 
-top_mod_table_frt11_person[1,16]<- mod.auc
-
-top_mod_table_frt11_All<-rbind(top_mod_table_frt11_All, top_mod_table_frt11_person)
-
-}
-
-```
-
-Check.
-```{r}
-head(top_mod_table_frt11_All)
-
-```
-
-
-Get mean values.
-
-```{r}
-names(top_mod_table_frt11_All)
-str(top_mod_table_frt11_All)
-stderror <- function(x) sd(x)/sqrt(length(x))
-
-frt11_summary_table_mean<- top_mod_table_frt11_All %>% summarize_if(is.numeric,mean)
-
-
-```
-
-Save table.
-
-```{r}
-write.csv(frt11_summary_table_mean, file="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt11_spread.csv")
-```
 
 
 ################################
@@ -1811,60 +1986,292 @@ write.csv(frt11_summary_table_mean, file="C:\\Work\\caribou\\castor_data\\Fire\\
 ################################
 
 ```{r}
-# Plot climate data results
+frt12<-dat %>% filter(frt==12)
 
-frt12<-fire_spread %>% filter(frt==12 & !fwveg %in% c("N", "W"))
-
-table(is.na(frt12$win_sum))
+table(is.na(frt12$dem))
 table(is.na(frt12$slope_ha_bc))
+frt12<-frt12[!is.na(slope_ha_bc),]
 
-table(frt12$fwveg, frt12$pttype)
-frt12[fwveg=="S-2", fwveg:="S-1"]
-frt12[fwveg=="S-3", fwveg:="S-1"]
+frt12[is.na(proj_age_1) & bclcs_level_1=="V", proj_age_1:=0]
+frt12[bclcs_level_4 == "TC" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=1]
+frt12[bclcs_level_4 == "TM" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=2]
+frt12[bclcs_level_4 == "TB" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=3]
+frt12[bclcs_level_4 %in% c("TC", "TM", "TB") & (basal_area < 8 | is.na(basal_area) | proj_height_1 <4 | is.na(proj_height_1)), veg_cat:=4]
+frt12[bclcs_level_1 =="V" & !bclcs_level_4 %in% c("TC", "TM", "TB"), veg_cat:=5]
+frt12[bclcs_level_1 !="V", veg_cat:=6]
+
+table(frt12$veg_cat, frt12$pttype)
+frt12<-frt12[veg_cat!=6,]
+
+frt12[veg_cat==5 & is.na(conifer_pct_cover_total), conifer_pct_cover_total:=0]
+frt12[veg_cat==5 & is.na(proj_age_1), proj_age_1:=0]
+frt12[veg_cat==5 & is.na(basal_area), basal_area:=0]
+frt12<-(frt12[!is.na(proj_age_1),])
+frt12[is.na(conifer_pct_cover_total), conifer_pct_cover_total:=0]
+
 
 frt12$log_roads<-log(frt12$dist_roads_m+1)
 frt12$log_infra<-log(frt12$dist_infr_m+1)
+```
 
-cor.test(frt12$climate1, frt12$dem)
+Test best climate variable
+```{r}
+frt12[,climate1:=(CMI03+CMI04+CMI05)/3]
+model1 <- glm (pttype ~ climate1 ,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+frt12[,climate1:=(CMI03+CMI04+CMI05+CMI06+CMI07+CMI08)/6]
+model2 <- glm (pttype ~ climate1,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+frt12[,climate1:=(CMI06+CMI07+CMI08)/3]
+model3 <- glm (pttype ~ climate1,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+frt12[,climate1:=(Tmax03+Tmax04+Tmax05)/3]
+model4 <- glm (pttype ~ climate1,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+frt12[,climate2:=(PPT03+PPT04+PPT05)/3]
+model5 <- glm (pttype ~ climate1,
+               data=frt12,
+               family = binomial (link = "logit"))
+model6 <- glm (pttype ~ climate1+climate2 ,
+               data=frt12,
+               family = binomial (link = "logit"))
+model7 <- glm (pttype ~ climate1*climate2 ,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+frt12[,climate1:=(Tave03+Tave04+Tave05)/3]
+model8 <- glm (pttype ~ climate1 ,
+               data=frt12,
+               family = binomial (link = "logit"))
+model9 <- glm (pttype ~ climate1+climate2 ,
+               data=frt12,
+               family = binomial (link = "logit"))
+model10 <- glm (pttype ~ climate1*climate2 ,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+frt12[,climate1:=(Tmin03+Tmin04+Tmin05)/3]
+model11 <- glm (pttype ~ climate1,
+               data=frt12,
+               family = binomial (link = "logit"))
+model12 <- glm (pttype ~ climate1+climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+model13 <- glm (pttype ~ climate1*climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+frt12[,climate1:=(Tmax06+Tmax07+Tmax08)/3]
+model14 <- glm (pttype ~ climate1,
+               data=frt12,
+               family = binomial (link = "logit"))
+frt12[,climate2:=(PPT06+PPT07+PPT08)/3]
+model15 <- glm (pttype ~ climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+model16 <- glm (pttype ~ climate1+climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+model17 <- glm (pttype ~ climate1*climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+frt12[,climate1:=(Tave06+Tave07+Tave08)/3]
+model18 <- glm (pttype ~ climate1,
+               data=frt12,
+               family = binomial (link = "logit"))
+model19 <- glm (pttype ~ climate1+climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+model20 <- glm (pttype ~ climate1*climate2 ,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+frt12[,climate1:=(Tmin06+Tmin07+Tmin08)/3]
+model21 <- glm (pttype ~ climate1,
+               data=frt12,
+               family = binomial (link = "logit"))
+model22 <- glm (pttype ~ climate1+climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+model23 <- glm (pttype ~ climate1*climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+frt12[,climate1:=(Tmax03+Tmax04+Tmax05+Tmax06+Tmax07+Tmax08)/6]
+model24 <- glm (pttype ~ climate1,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+frt12[,climate2:=(PPT03+PPT04+PPT05+PPT06+PPT07+PPT08)/6]
+model25 <- glm (pttype ~ climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+frt12[,climate1:=(Tave03+Tave04+Tave05+Tave06+Tave07+Tave08)/6]
+model26 <- glm (pttype ~ climate1,
+               data=frt12,
+               family = binomial (link = "logit"))
+model27 <- glm (pttype ~ climate1+climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+model28 <- glm (pttype ~ climate1*climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+frt12[,climate1:=(Tmin03+Tmin04+Tmin05+Tmin06+Tmin07+Tmin08)/6]
+model29 <- glm (pttype ~ climate1,
+               data=frt12,
+               family = binomial (link = "logit"))
+model30 <- glm (pttype ~ climate1+climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+model31 <- glm (pttype ~ climate1*climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+frt12[,climate1:=(RH03+RH04+RH05+RH06+RH07+RH08)/6]
+model32 <- glm (pttype ~ climate1,
+               data=frt12,
+               family = binomial (link = "logit"))
+frt12[,climate1:=(CMD03+CMD04+CMD05+CMD06+CMD07+CMD08)/6]
+model33 <- glm (pttype ~ climate1,
+               data=frt12,
+               family = binomial (link = "logit"))
+frt12[,climate1:=(Tmax04 + Tmax05 + Tmax06)/3]
+frt12[,climate2:=(PPT04 + PPT05 + PPT06)/3]
+model34 <- glm (pttype ~ climate1,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+model35 <- glm (pttype ~ climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+model36 <- glm (pttype ~ climate1 +climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+model37 <- glm (pttype ~ climate1*climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+frt12[,climate1:=(RH04 + RH05 + RH06)/3]
+model38 <- glm (pttype ~ climate1,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+model39 <- glm (pttype ~ dem,
+               data=frt12,
+               family = binomial (link = "logit"))
+model40 <- glm (pttype ~ dem + climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+model41 <- glm (pttype ~ dem*climate2,
+               data=frt12,
+               family = binomial (link = "logit"))
+
+
+
+
+
+AIC(model1, model2, model3, model4, model5, model6, model7, model8, model9, model10,model11, model12, model13, model14, model15, model16, model17, model18, model19, model20,model21, model22, model23, model24, model25, model26, model27, model28, model29, model30,model31, model32, model33,model34,model35,model36,model37, model38, model39, model40, model41)
+
+# top climate model is model17
+frt12[,climate1:=(Tmax04 + Tmax05 + Tmax06)/3]
+frt12[,climate2:=(PPT04 + PPT05 + PPT06)/3]
+visreg(model41, "climate2", by="dem")
+visreg(model36)
+
+
+```
+
+
+```{r}
+frt12<-frt12[!is.na(climate1),]
+require (ggcorrplot)
+dist.cut.corr <- (frt12 [, c("climate1", "climate2", "dem", "slope_ha_bc", "dist_infr_m", "dist_roads_m", "rast_ignit_dist", "proj_age_1", "conifer_pct_cover_total")])
+corr <- round (cor (dist.cut.corr), 3)
+p.mat <- round (cor_pmat (dist.cut.corr), 2)
+ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3)
+
+cor.test(frt12$climate1, frt12$dem) #these two are correlated
 cor.test(frt12$climate2, frt12$dem)
-cor.test(frt12$dist_roads_m, frt12$dist_infr_m)
+cor.test(frt12$dist_roads_m, frt12$dist_infr_m) # correlated
 cor.test(frt12$dem, frt12$slope_ha_bc)
 cor.test(frt12$log_infra, frt12$log_roads)
 
-frt12$fire_yr<-as.factor(frt12$fire_yr)
 frt12$fire_label<-as.factor(frt12$fire_label)
+frt12$veg_cat<-as.factor(frt12$veg_cat)
 
-frt12$scale_climate1<-(frt12$climate1-mean(frt12$climate1))/sd(frt12$climate1)
-frt12$scale_climate2<-(frt12$climate2-mean(frt12$climate2))/sd(frt12$climate2)
-frt12$scale_dem<-(frt12$dem-mean(frt12$dem))/sd(frt12$dem)
-frt12$scale_slope<-(frt12$slope_ha_bc-mean(frt12$slope_ha_bc))/sd(frt12$slope_ha_bc)
-frt12$scale_roads<-(frt12$dist_roads_m-mean(frt12$dist_roads_m))/sd(frt12$dist_roads_m)
-frt12$scale_dist_ignit<-(frt12$rast_ignit_dist-mean(frt12$rast_ignit_dist))/sd(frt12$rast_ignit_dist)
-frt12$scale_infra<-(frt12$dist_infr_m-mean(frt12$dist_infr_m))/sd(frt12$dist_infr_m)
+frt12$scale_climate1<-(frt12$climate1-mean(frt12$climate1, na.rm=TRUE)) / sd(frt12$climate1, na.rm=TRUE)
+frt12$scale_climate2<-(frt12$climate2-mean(frt12$climate2, na.rm=TRUE)) / sd(frt12$climate2, na.rm=TRUE)
+frt12$scale_dem<-(frt12$dem-mean(frt12$dem, na.rm=TRUE))/sd(frt12$dem, na.rm=TRUE)
+frt12$scale_slope<-(frt12$slope_ha_bc-mean(frt12$slope_ha_bc, na.rm=TRUE)) / sd(frt12$slope_ha_bc, na.rm=TRUE)
+frt12$scale_roads<-(frt12$dist_roads_m-mean(frt12$dist_roads_m, na.rm=TRUE)) / sd(frt12$dist_roads_m, na.rm=TRUE)
+frt12$scale_infr<-(frt12$dist_infr_m-mean(frt12$dist_infr_m, na.rm=TRUE)) / sd(frt12$dist_infr_m, na.rm=TRUE)
+frt12$scale_dist_ignit<-(frt12$rast_ignit_dist-mean(frt12$rast_ignit_dist, na.rm=TRUE)) / sd(frt12$rast_ignit_dist, na.rm=TRUE)
+frt12$scale_pct_conifer<-(frt12$conifer_pct_cover_total-mean(frt12$conifer_pct_cover_total, na.rm=TRUE))/sd(frt12$conifer_pct_cover_total, na.rm=TRUE)
+frt12$scale_age<-(frt12$proj_age_1-mean(frt12$proj_age_1, na.rm=TRUE))/sd(frt12$proj_age_1, na.rm=TRUE)
+frt12$scale_basal_area<-(frt12$basal_area-mean(frt12$basal_area, na.rm=TRUE))/sd(frt12$basal_area, na.rm=TRUE)
 
+table(frt12$bec_zone_code, frt12$pttype)
+frt12[bec_zone_code=="CMA", bec_zone_code:="MH"] # looks like MH is the zone right next to CMA
+```
 
-model1 <-  glmer (pttype ~ scale_climate2 + scale_dem  + scale_slope + aspect_cardinal + as.factor(fwveg) + scale_infra + scale_dist_ignit + (1|fire_yr) + (1|fire_yr:fire_label), data=frt12, family = binomial (link = "logit"))
+```{r}
+model1 <-  glmer (pttype ~ scale_dem * scale_climate2+ (1|fire_label), data=frt12, family = binomial (link = "logit"))
+summary(model1)
 
-model2 <-  glmer (pttype ~ scale_climate2 + scale_dem  + scale_slope + aspect_cardinal + as.factor(fwveg) + scale_infra + (1|fire_yr) + (1|fire_yr:fire_label), data=frt12, family = binomial (link = "logit"))
-Anova(model2, type=3)
-AIC(model2) #185360.9
-summary(model2) #185800
+model2 <-  glmer (pttype ~ scale_dem * scale_climate2 + veg_cat + (1|fire_label), data=frt12, family = binomial (link = "logit"))
+summary(model2)
 
-model3 <-  glmer (pttype ~ scale_climate2  + scale_slope + aspect_cardinal + as.factor(fwveg) + scale_infra + (1|fire_yr) + (1|fire_yr:fire_label), data=frt12, family = binomial (link = "logit"))
-Anova(model3, type=3)
-AIC(model3) #185360.9
-summary(model3) #185800
-visreg(model2, scale="response", "fwveg")
+model3 <-  glmer (pttype ~ scale_dem * scale_climate2 + scale_dem*veg_cat + (1|fire_label), data=frt12, family = binomial (link = "logit"))
+summary(model3)
 
-ss <- getME(model3,c("theta","fixef"))
-m2 <- update(model3,start=ss,control=glmerControl(optCtrl=list(maxfun=2e4)))
+model4a <-  glmer (pttype ~ scale_climate2 + scale_dem*veg_cat + (1|fire_label), data=frt12, family = binomial (link = "logit"))
+summary(model4a)
 
+model4b <-  glmer (pttype ~ scale_dem + scale_climate2 + veg_cat + (1|fire_label), data=frt12, family = binomial (link = "logit"))
+summary(model4a)
+
+model4c <-  glmer (pttype ~ poly(scale_dem,2) + scale_climate2 + veg_cat + (1|fire_label), data=frt12, family = binomial (link = "logit"))
+
+model4d <-  glmer (pttype ~ scale_dem + scale_climate2 * veg_cat + (1|fire_label), data=frt12, family = binomial (link = "logit"))
+
+model4 <-  glmer (pttype ~ scale_dem * scale_climate2 + scale_climate2*veg_cat + (1|fire_label), data=frt12, family = binomial (link = "logit"))
+summary(model4)
+
+visreg(model4c)
+visreg(model3,"scale_dem", by="veg_cat")
+
+model5 <-  glmer (pttype ~ poly(scale_dem,2) + scale_climate2 + veg_cat + scale_age + scale_pct_conifer + scale_slope + aspect_cardinal + scale_dist_ignit + bec_zone_code +  (1|fire_label), data=frt12, family = binomial (link = "logit"))
+Anova(model5, type=3)
+
+model6 <-  glmer (pttype ~ poly(scale_dem,2) + scale_climate2 + veg_cat + scale_age + scale_pct_conifer + scale_slope + aspect_cardinal + scale_dist_ignit + log_infra+ bec_zone_code +  (1|fire_label), data=frt12, family = binomial (link = "logit"))
 Anova(m2, type=3)
-summary(m2)
-visreg(m2, scale="response")
+library(optimx)
+# removed distance to ignition
+model7 <-  glmer (pttype ~ scale_dem + I(scale_dem^2) + scale_climate2 + veg_cat + scale_age + scale_pct_conifer + scale_slope + aspect_cardinal + log_infra + bec_zone_code +  (1|fire_label), data=frt12, family = binomial (link = "logit"))
+Anova(model7, type=3)
 
-model4 <-  glmer (pttype ~ scale_climate2  + scale_slope + aspect_cardinal + as.factor(fwveg) + scale_infra + (1|fire_label), data=frt12, family = binomial (link = "logit"))
-anova(m2, model4)
+model8 <-  glmer (pttype ~ scale_dem + scale_climate2 + veg_cat + scale_age + scale_pct_conifer + scale_slope + aspect_cardinal + log_infra + bec_zone_code +  (1|fire_label), data=frt12, family = binomial (link = "logit"))
+Anova(model7, type=3)
+
+
+AIC(model1, model2, model3, model4, model4a, model4b, model4c, model4d, model5, model6, model7, model8)
+Anova(model7, type=3)
+
+visreg(m2)
+ss <- getME(model7,c("theta","fixef"))
+m2 <- update(model7,start=ss,control=glmerControl(optCtrl=list(maxfun=2e4)))
 
 
 # model diagnostic plots
@@ -1876,25 +2283,49 @@ binnedplot (fitted(m2),
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm"))
 
-plot(predict(m2),residuals(m2))
+frt12$resids<-resid(m2)
+
+binnedplot (frt12$scale_climate1, 
+            frt12$resids, 
+            nclass = NULL)
+binnedplot (frt12$scale_climate2, 
+            frt12$resids, 
+            nclass = NULL)
+
+frt12$predictedx<-predict(m2)
+frt12$residsy<-residuals(m2)
+
+plot(frt12$predictedx,frt12$residsy)
 abline(h=0,lty=2,col="grey")
-lines(lowess(predict(m2),residuals(m2)),col="black",lwd=2)
+lines(lowess(frt12$predictedx,frt12$residsy),col="green",lwd=2)
 
 plot(frt12$scale_climate2,residuals(m2))
-lines(lowess(frt12$scale_climate2,residuals(m2)),col="black",lwd=2)
+lines(lowess(frt12$scale_climate2,residuals(m2)),col="red",lwd=2)
 
 plot(frt12$scale_slope,residuals(m2))
-lines(lowess(frt12$scale_slope,residuals(m2)),col="black",lwd=2)
+lines(lowess(frt12$scale_slope,residuals(m2)),col="red",lwd=2)
 
-plot(frt12$scale_infra,residuals(m2))
-lines(lowess(frt12$scale_infra,residuals(m2)),col="black",lwd=2)
+plot(frt12$scale_dem,residuals(m2))
+lines(lowess(frt12$scale_dem,residuals(m2)),col="red",lwd=2)
+
+plot(frt12$scale_age,residuals(m2))
+lines(lowess(frt12$scale_age,residuals(m2)),col="red",lwd=2)
+
+plot(frt12$scale_pct_conifer, residuals(m2))
+lines(lowess(frt12$scale_pct_conifer,residuals(m2)),col="red",lwd=2)
+
+
+# library(DHARMa)
+# simulationOutput <- simulateResiduals(fittedModel = model6)
+# plot(simulationOutput)
+# simulationOutput = recalculateResiduals(simulationOutput , group = frt12$fire_label)
+# testOutliers(simulationOutput, type="bootstrap")
+# testDispersion(simulationOutput) # I dont actually think I have overdispersion
+# plot(simulationOutput)
+
+
 
 ```
-
-
-#Checking assumption of influential values
-
-see: (http://www.sthda.com/english/articles/36-classification-methods-essentials/148-logistic-regression-assumptions-and-diagnostics-in-r/)
 
 
 ```{r}
@@ -1906,119 +2337,350 @@ saveRDS(m2, "C:/Work/caribou/castor/R/fire_sim/tmp/frt12.rds")
 #FRT 13
 ################################
 
+
+
 ```{r}
-# Plot climate data results
+frt13<-dat %>% filter(frt==13)
 
-frt13<-fire_spread %>% filter(frt==13 & !fwveg %in% c("N", "W") )
-frt13[,climate1:=(Tmax05 + Tmax06 + Tmax07+ Tmax08+ Tmax09)/5]
-model1 <- glm (pttype ~ climate1,
-               data=frt13,
-               family = binomial (link = "logit"))
-summary(model1)
-
-visreg(model1, scale="response", "climate1")
-
-model1 <- glm (pttype ~ poly(climate1,2),
-               data=frt13,
-               family = binomial (link = "logit"))
-summary(model1)
-
-visreg(model1, scale="response", "climate1")
-
-model1 <- glm (pttype ~ poly(rast_ignit_dist,2),
-               data=frt13,
-               family = binomial (link = "logit"))
-summary(model1)
-
-visreg(model1)
-
-ggplot(frt13, aes(x = climate1)) +
-  geom_histogram(fill = "white", colour = "black") +
-  facet_grid(pttype ~ .)
-
-ggplot(frt13, aes(x = as.factor(pttype), y=climate1)) +
-  geom_boxplot()
-
-table(is.na(frt13$win_sum))
-table(is.na(frt13$climate1))
-frt13<-frt13[!is.na(climate1),]
-frt13<-frt13[!is.na(aspect_cardinal),]
-frt13<-frt13[!is.na(dem),]
+table(is.na(frt13$dem))
+table(is.na(frt13$slope_ha_bc))
 frt13<-frt13[!is.na(slope_ha_bc),]
-frt13<-frt13[!is.na(dist_infr_m),]
-frt13<-frt13[!is.na(fwveg),]
 
-frt13 %>% drop_na(win_sum) %>% summarize(mean(win_sum))
-frt13$win_sum[is.na(frt13$win_sum)]<-2.625892
+frt13[is.na(proj_age_1) & bclcs_level_1=="V", proj_age_1:=0]
+frt13[bclcs_level_4 == "TC" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=1]
+frt13[bclcs_level_4 == "TM" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=2]
+frt13[bclcs_level_4 == "TB" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=3]
+frt13[bclcs_level_4 %in% c("TC", "TM", "TB") & (basal_area < 8 | is.na(basal_area) | proj_height_1 <4 | is.na(proj_height_1)), veg_cat:=4]
+frt13[bclcs_level_1 =="V" & !bclcs_level_4 %in% c("TC", "TM", "TB"), veg_cat:=5]
+frt13[bclcs_level_1 !="V", veg_cat:=6]
 
-table(frt13$fwveg, frt13$pttype)
-frt13$fwveg[frt13$fwveg=="C-1"]<-"C-3"
-frt13$fwveg[frt13$fwveg=="S-2"]<-"S-1"
-frt13$fwveg[frt13$fwveg=="S-3"]<-"S-1"
+table(frt13$veg_cat, frt13$pttype)
+frt13<-frt13[veg_cat!=6,]
 
-table(frt13$fwveg, frt13$pttype)
+frt13[veg_cat==5 & is.na(conifer_pct_cover_total), conifer_pct_cover_total:=0]
+frt13[veg_cat==5 & is.na(proj_age_1), proj_age_1:=0]
+frt13[veg_cat==5 & is.na(basal_area), basal_area:=0]
+frt13<-(frt13[!is.na(proj_age_1),])
+frt13[is.na(conifer_pct_cover_total), conifer_pct_cover_total:=0]
 
+
+frt13$log_roads<-log(frt13$dist_roads_m+1)
+frt13$log_infra<-log(frt13$dist_infr_m+1)
+```
+
+Test best climate variable
+```{r}
+frt13[,climate1:=(CMI03+CMI04+CMI05)/3]
+model1 <- glm (pttype ~ climate1 ,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+frt13[,climate1:=(CMI03+CMI04+CMI05+CMI06+CMI07+CMI08)/6]
+model2 <- glm (pttype ~ climate1,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+frt13[,climate1:=(CMI06+CMI07+CMI08)/3]
+model3 <- glm (pttype ~ climate1,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+frt13[,climate1:=(Tmax03+Tmax04+Tmax05)/3]
+model4 <- glm (pttype ~ climate1,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+frt13[,climate2:=(PPT03+PPT04+PPT05)/3]
+model5 <- glm (pttype ~ climate1,
+               data=frt13,
+               family = binomial (link = "logit"))
+model6 <- glm (pttype ~ climate1+climate2 ,
+               data=frt13,
+               family = binomial (link = "logit"))
+model7 <- glm (pttype ~ climate1*climate2 ,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+frt13[,climate1:=(Tave03+Tave04+Tave05)/3]
+model8 <- glm (pttype ~ climate1 ,
+               data=frt13,
+               family = binomial (link = "logit"))
+model9 <- glm (pttype ~ climate1+climate2 ,
+               data=frt13,
+               family = binomial (link = "logit"))
+model10 <- glm (pttype ~ climate1*climate2 ,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+frt13[,climate1:=(Tmin03+Tmin04+Tmin05)/3]
+model11 <- glm (pttype ~ climate1,
+               data=frt13,
+               family = binomial (link = "logit"))
+model12 <- glm (pttype ~ climate1+climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+model13 <- glm (pttype ~ climate1*climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+frt13[,climate1:=(Tmax06+Tmax07+Tmax08)/3]
+model14 <- glm (pttype ~ climate1,
+               data=frt13,
+               family = binomial (link = "logit"))
+frt13[,climate2:=(PPT06+PPT07+PPT08)/3]
+model15 <- glm (pttype ~ climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+model16 <- glm (pttype ~ climate1+climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+model17 <- glm (pttype ~ climate1*climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+frt13[,climate1:=(Tave06+Tave07+Tave08)/3]
+model18 <- glm (pttype ~ climate1,
+               data=frt13,
+               family = binomial (link = "logit"))
+model19 <- glm (pttype ~ climate1+climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+model20 <- glm (pttype ~ climate1*climate2 ,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+frt13[,climate1:=(Tmin06+Tmin07+Tmin08)/3]
+model21 <- glm (pttype ~ climate1,
+               data=frt13,
+               family = binomial (link = "logit"))
+model22 <- glm (pttype ~ climate1+climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+model23 <- glm (pttype ~ climate1*climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+frt13[,climate1:=(Tmax03+Tmax04+Tmax05+Tmax06+Tmax07+Tmax08)/6]
+model24 <- glm (pttype ~ climate1,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+frt13[,climate2:=(PPT03+PPT04+PPT05+PPT06+PPT07+PPT08)/6]
+model25 <- glm (pttype ~ climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+frt13[,climate1:=(Tave03+Tave04+Tave05+Tave06+Tave07+Tave08)/6]
+model26 <- glm (pttype ~ climate1,
+               data=frt13,
+               family = binomial (link = "logit"))
+model27 <- glm (pttype ~ climate1+climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+model28 <- glm (pttype ~ climate1*climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+frt13[,climate1:=(Tmin03+Tmin04+Tmin05+Tmin06+Tmin07+Tmin08)/6]
+model29 <- glm (pttype ~ climate1,
+               data=frt13,
+               family = binomial (link = "logit"))
+model30 <- glm (pttype ~ climate1+climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+model31 <- glm (pttype ~ climate1*climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+frt13[,climate1:=(RH03+RH04+RH05+RH06+RH07+RH08)/6]
+model32 <- glm (pttype ~ climate1,
+               data=frt13,
+               family = binomial (link = "logit"))
+frt13[,climate1:=(CMD03+CMD04+CMD05+CMD06+CMD07+CMD08)/6]
+model33 <- glm (pttype ~ climate1,
+               data=frt13,
+               family = binomial (link = "logit"))
+frt13[,climate1:=(Tmax05 + Tmax06 + Tmax07 + Tmax08 + Tmax09)/5]
+frt13[,climate2:=(PPT05 + PPT06 + PPT07 + PPT08 + PPT09)/5]
+model34 <- glm (pttype ~ climate1,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+model35 <- glm (pttype ~ climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+model36 <- glm (pttype ~ climate1 +climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+model37 <- glm (pttype ~ climate1*climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+AIC(model1, model2, model3, model4, model5, model6, model7, model8, model9, model10,model11, model12, model13, model14, model15, model16, model17, model18, model19, model20,model21, model22, model23, model24, model25, model26, model27, model28, model29, model30,model31, model32, model33,model34,model35,model36,model37)
+
+# top climate model is model23
+frt13[,climate1:=(Tmin06+Tmin07+Tmin08)/3]
+frt13[,climate2:=(PPT06+PPT07+PPT08)/3]
+model23 <- glm (pttype ~ climate1*climate2,
+               data=frt13,
+               family = binomial (link = "logit"))
+
+visreg(model23, "climate1", by="climate2", breaks = 6)
+visreg(model37)
+
+```
+
+
+```{r}
+# using the following for climate as the trends make more sense
+frt13[,climate1:=(Tmax05 + Tmax06 + Tmax07 + Tmax08 + Tmax09)/5]
+frt13[,climate2:=(PPT05 + PPT06 + PPT07 + PPT08 + PPT09)/5]
+
+
+frt13<-frt13[!is.na(climate1),]
 require (ggcorrplot)
-dist.cut.corr <- (frt13 [, c("climate1", "dem", "slope_ha_bc", "win_sum", "dist_infr_m", "dist_roads_m", "rast_ignit_dist")])
+dist.cut.corr <- (frt13 [, c("climate1", "climate2", "dem", "slope_ha_bc", "dist_infr_m", "dist_roads_m", "rast_ignit_dist", "proj_age_1", "conifer_pct_cover_total")])
 corr <- round (cor (dist.cut.corr), 3)
 p.mat <- round (cor_pmat (dist.cut.corr), 2)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3)
 
-frt13$scale_climate1<-(frt13$climate1-mean(frt13$climate1))/sd(frt13$climate1)
-frt13$scale_dem<-(frt13$dem-mean(frt13$dem))/sd(frt13$dem)
-frt13$scale_slope<-(frt13$slope_ha_bc-mean(frt13$slope_ha_bc))/sd(frt13$slope_ha_bc)
-frt13$log_roads<-log(frt13$dist_roads_m+1)
-frt13$scale_dist_ignit<-(frt13$rast_ignit_dist-mean(frt13$rast_ignit_dist))/sd(frt13$rast_ignit_dist)
 frt13$log_infra<-log(frt13$dist_infr_m+1)
+frt13$log_roads<-log(frt13$dist_roads_m+1)
+
+frt13$veg_cat<-as.factor(frt13$veg_cat)
+frt13$aspect_cardinal<-as.factor(frt13$aspect_cardinal)
+frt13$bec_zone_code<-as.factor(frt13$bec_zone_code)
+table(frt13$bec_zone_code, frt13$pttype)
+
+# note SWB has no locations that are burned. After consulting https://cfcg.forestry.ubc.ca/resources/cataloguing-in-situ-genetic-resources/swb-zone/
+# I have decided to lump SWB and ESSF together.
+frt13[bec_zone_code=="SWB", bec_zone_code:="ESSF"]
+
+# scale variables
+frt13$scale_climate1<-(frt13$climate1-mean(frt13$climate1, na.rm=TRUE)) / sd(frt13$climate1, na.rm=TRUE)
+frt13$scale_climate2<-(frt13$climate2-mean(frt13$climate2, na.rm=TRUE)) / sd(frt13$climate2, na.rm=TRUE)
+frt13$scale_dem<-(frt13$dem-mean(frt13$dem, na.rm=TRUE))/sd(frt13$dem, na.rm=TRUE)
+frt13$scale_slope<-(frt13$slope_ha_bc-mean(frt13$slope_ha_bc, na.rm=TRUE)) / sd(frt13$slope_ha_bc, na.rm=TRUE)
+frt13$scale_roads<-(frt13$dist_roads_m-mean(frt13$dist_roads_m, na.rm=TRUE)) / sd(frt13$dist_roads_m, na.rm=TRUE)
+frt13$scale_infr<-(frt13$dist_infr_m-mean(frt13$dist_infr_m, na.rm=TRUE)) / sd(frt13$dist_infr_m, na.rm=TRUE)
+frt13$scale_dist_ignit<-(frt13$rast_ignit_dist-mean(frt13$rast_ignit_dist, na.rm=TRUE)) / sd(frt13$rast_ignit_dist, na.rm=TRUE)
+frt13$scale_pct_conifer<-(frt13$conifer_pct_cover_total-mean(frt13$conifer_pct_cover_total, na.rm=TRUE))/sd(frt13$conifer_pct_cover_total, na.rm=TRUE)
+frt13$scale_age<-(frt13$proj_age_1-mean(frt13$proj_age_1, na.rm=TRUE))/sd(frt13$proj_age_1, na.rm=TRUE)
+frt13$scale_basal_area<-(frt13$basal_area-mean(frt13$basal_area, na.rm=TRUE))/sd(frt13$basal_area, na.rm=TRUE)
+```
 
 
-model1 <-  glmer (pttype ~ scale_climate1  + scale_slope + aspect_cardinal + as.factor(fwveg) + log_infra + log_roads + scale_dist_ignit + (1|fire_yr) + (1|fire_yr:fire_label), data=frt13, family = binomial (link = "logit"))
-summary(model1) 
-Anova(model1, type=3)
-AIC(model1) #197424.4
-visreg(model1)
+Try fit glmer
+```{r}
+model1 <-  glmer (pttype ~ scale_climate1 * scale_climate2+ (1|fire_label), data=frt13, family = binomial (link = "logit"))
+summary(model1)
 
-ss <- getME(model1,c("theta","fixef"))
-m1 <- update(model1,start=ss,control=glmerControl(optCtrl=list(maxfun=2e5)))
+model2 <-  glmer (pttype ~ scale_climate1 * scale_climate2 + veg_cat + (1|fire_label), data=frt13, family = binomial (link = "logit"))
+summary(model2)
 
-model2 <-  glmer (pttype ~ scale_climate1  + scale_slope + aspect_cardinal + as.factor(fwveg) + log_infra + scale_dist_ignit + (1|fire_yr) + (1|fire_yr:fire_label), data=frt13, family = binomial (link = "logit"))
-summary(model2) 
-Anova(model2, type=3)
-AIC(model2) #197424.4
-visreg(model1)
+model3 <-  glmer (pttype ~ scale_climate1 * scale_climate2 + scale_climate1*veg_cat + (1|fire_label), data=frt13, family = binomial (link = "logit"))
+summary(model3)
 
-ss <- getME(model2,c("theta","fixef"))
-m2 <- update(model2,start=ss,control=glmerControl(optCtrl=list(maxfun=2e5)))
+model4 <-  glmer (pttype ~ scale_climate1 * scale_climate2 + scale_climate2*veg_cat + (1|fire_label), data=frt13, family = binomial (link = "logit"))
+summary(model4)
+
+model5 <-  glmer (pttype ~ scale_climate1 * scale_climate2 + scale_climate1*veg_cat + scale_climate2*veg_cat + (1|fire_label), data=frt13, family = binomial (link = "logit"))
+Anova(model5, type=3)
+
+model6 <-  glmer (pttype ~ scale_climate1*veg_cat + scale_climate2*veg_cat + (1|fire_label), data=frt13, family = binomial (link = "logit"))
+Anova(model6, type=3)
+
+AIC(model1, model2, model3, model4, model5, model6)
+
+visreg(model4, "scale_climate1", by="scale_climate2")
+visreg(model4, "scale_climate2", by="veg_cat")
+
+
+model7 <-  glmer (pttype ~ scale_climate1 * scale_climate2 + scale_climate2*veg_cat + scale_slope + aspect_cardinal + scale_dist_ignit + scale_age + scale_pct_conifer +bec_zone_code + (1|fire_label), data=frt13, family = binomial (link = "logit"))
+Anova(model7, type=3)
+
+model8 <-  glmer (pttype ~ scale_climate1 * scale_climate2 + scale_climate2*veg_cat + scale_slope + aspect_cardinal + poly(scale_dist_ignit,2) + scale_age + scale_pct_conifer +bec_zone_code + (1|fire_label), data=frt13, family = binomial (link = "logit"))
+Anova(model8, type=3)
+
+model9 <-  glmer (pttype ~ scale_climate1 * scale_climate2 + scale_climate2*veg_cat + scale_slope + aspect_cardinal + poly(scale_dist_ignit,2) + scale_age + scale_pct_conifer +bec_zone_code + log_infra + (1|fire_label), data=frt13, family = binomial (link = "logit"))
+Anova(model9, type=3)
+
+model10 <-  glmer (pttype ~ scale_climate1 * scale_climate2 + scale_climate2*veg_cat + scale_slope+ aspect_cardinal + scale_pct_conifer +bec_zone_code + log_infra + (1|fire_label), data=frt13, family = binomial (link = "logit"))
+Anova(model10, type=3)
+
+model11 <-  glmer (pttype ~ scale_climate1 * scale_climate2 + scale_climate2*veg_cat + scale_slope* aspect_cardinal + scale_pct_conifer +bec_zone_code + log_infra + (1|fire_label), data=frt13, family = binomial (link = "logit"))
+Anova(model11, type=3)
+
+model12 <-  glmer (pttype ~ scale_climate1 * scale_climate2 + scale_climate2*veg_cat + scale_slope* aspect_cardinal +bec_zone_code + log_infra + (1|fire_label), data=frt13, family = binomial (link = "logit"))
+Anova(model12, type=3)
+# I removed percent conifer because it was not very important
+visreg(model12, "scale_climate1", by="scale_climate2")
+visreg(model12, "scale_climate2", by="veg_cat")
+
+AIC(model1, model2, model3, model4, model5, model6, model7, model8, model9, model10, model11, model12)
+# Try to get convergence
+ss <- getME(model12,c("theta","fixef"))
+m1 <- update(model12,start=ss,control=glmerControl(optCtrl=list(maxfun=2e5)))
+
+# look at results
+summary(m1)
+Anova(m1)
+
+# plot to see model fit
+library(DHARMa)
+simulationOutput <- simulateResiduals(fittedModel =model7, plot = F)
+#simulationOutput = recalculateResiduals(simulationOutput , group = frt13$fire_label)
+plot(simulationOutput)
+testOutliers(simulationOutput, type = 'bootstrap')
+plotQQunif(simulationOutput) # left plot in plot.DHARMa()
+plotResiduals(simulationOutput) # right plot in plot.DHARMa()
+plotResiduals(simulationOutput, form =frt13$scale_climate1)
+plotResiduals(simulationOutput, form =frt13$veg_cat ,quantreg = T)
+plotResiduals(simulationOutput, form =frt13$scale_slope,quantreg = T )
+plotResiduals(simulationOutput, form =frt13$aspect_cardinal, quantreg = T )
+plotResiduals(simulationOutput, form =frt13$log_infra,quantreg = T )
+
+testDispersion(simulationOutput) # I dont actually think I have overdispersion
+plot(simulationOutput)
+testZeroInflation(simulationOutput)
 
 # model diagnostic plots
-# below model looks way better with log road dist. It had some structure with just road dist
-plot(predict(m2),residuals(m2))
+
+binnedplot (fitted(m1), 
+            residuals(m1), 
+            nclass = NULL, 
+            xlab = "Expected Values", 
+            ylab = "Average residual", 
+            main = paste("Binned Residual Plot - glm"))
+
+
+
+plot(predict(m1),residuals(m1))
 abline(h=0,lty=2,col="grey")
-lines(lowess(predict(m2),residuals(m2)),col="black",lwd=2)
+lines(lowess(predict(m1),residuals(m1)),col="black",lwd=2)
+#lines(preddat$fit+1.96*preddat$se.fit,residuals(m2) , col=2, lty=2, lwd=2)
+#lines(preddat$fit-1.96*preddat$se.fit ~ preddat$fit, col=2, lty=2, lwd=2)
 
 
-plot(frt13$scale_climate1,residuals(m2))
-lines(lowess(frt13$scale_climate1,residuals(m2)),col="black",lwd=2)
+plot(frt13$scale_climate1,residuals(m1))
+lines(lowess(frt13$scale_climate1,residuals(m1)),col="red",lwd=2)
 
-plot(frt13$scale_slope,residuals(m2))
-lines(lowess(frt13$scale_slope,residuals(m2)),col="black",lwd=2)
+plot(frt13$scale_slope,residuals(m1))
+lines(lowess(frt13$scale_slope,residuals(m1)),col="red",lwd=2)
 
-plot(frt13$scale_dist_ignit,residuals(m2))
-lines(lowess(frt13$scale_dist_ignit,residuals(m2)),col="black",lwd=2)
+plot(frt13$scale_climate2,residuals(m1))
+lines(lowess(frt13$scale_climate2,residuals(m1)),col="red",lwd=2)
 
-plot((log(frt13$dist_infr_m+1)),residuals(m2))
-lines(lowess((log(frt13$dist_infr_m+1)),residuals(m2)),col="black",lwd=2)
-
-plot((log(frt13$dist_roads_m+1)),residuals(m2))
-lines(lowess((log(frt13$dist_roads_m+1)),residuals(m2)),col="black",lwd=2)
-
+plot(frt13$log_infra,residuals(m1))
+lines(lowess(frt13$log_infra,residuals(m1)),col="red",lwd=2) # may have a quadratic effect
 
 
 ```
 
 
 ```{r}
-saveRDS(m2, "C:/Work/caribou/castor/R/fire_sim/tmp/frt13.rds")
+saveRDS(m1, "C:/Work/caribou/castor/R/fire_sim/tmp/frt13.rds")
 ```
 
 
@@ -2027,25 +2689,212 @@ saveRDS(m2, "C:/Work/caribou/castor/R/fire_sim/tmp/frt13.rds")
 #FRT 14
 ################################
 
-This is where I was working. I realized that I needed to include a random effect of fire in the models. I think. Ill come back to this but this is where I am.
-
 
 ```{r}
 # Plot climate data results
-frt14<-fire_spread %>% filter(frt==14 & !fwveg %in% c("N", "W"))
-
-frt14<-frt14[!is.na(climate1),]
+frt14<-dat %>% filter(frt==14)
+table(is.na(frt14$dem))
+table(is.na(frt14$slope_ha_bc))
 frt14<-frt14[!is.na(slope_ha_bc),]
 
+frt14[is.na(proj_age_1) & bclcs_level_1=="V", proj_age_1:=0]
+frt14[bclcs_level_4 == "TC" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=1]
+frt14[bclcs_level_4 == "TM" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=2]
+frt14[bclcs_level_4 == "TB" & basal_area >= 8 & proj_height_1 >=4, veg_cat:=3]
+frt14[bclcs_level_4 %in% c("TC", "TM", "TB") & (basal_area < 8 | is.na(basal_area) | proj_height_1 <4 | is.na(proj_height_1)), veg_cat:=4]
+frt14[bclcs_level_1 =="V" & !bclcs_level_4 %in% c("TC", "TM", "TB"), veg_cat:=5]
+frt14[bclcs_level_1 !="V", veg_cat:=6]
+
+table(frt14$veg_cat, frt14$pttype)
+frt14<-frt14[veg_cat!=6,]
+
+frt14[veg_cat==5 & is.na(conifer_pct_cover_total), conifer_pct_cover_total:=0]
+frt14[veg_cat==5 & is.na(proj_age_1), proj_age_1:=0]
+frt14[veg_cat==5 & is.na(basal_area), basal_area:=0]
+frt14<-(frt14[!is.na(proj_age_1),])
+frt14[is.na(conifer_pct_cover_total), conifer_pct_cover_total:=0]
+
+
+frt14$log_roads<-log(frt14$dist_roads_m+1)
+frt14$log_infra<-log(frt14$dist_infr_m+1)
+```
+
+Test best climate variable
+```{r}
+frt14[,climate1:=(CMI03+CMI04+CMI05)/3]
+model1 <- glm (pttype ~ climate1 ,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+frt14[,climate1:=(CMI03+CMI04+CMI05+CMI06+CMI07+CMI08)/6]
+model2 <- glm (pttype ~ climate1,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+frt14[,climate1:=(CMI06+CMI07+CMI08)/3]
+model3 <- glm (pttype ~ climate1,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+frt14[,climate1:=(Tmax03+Tmax04+Tmax05)/3]
+model4 <- glm (pttype ~ climate1,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+frt14[,climate2:=(PPT03+PPT04+PPT05)/3]
+model5 <- glm (pttype ~ climate1,
+               data=frt14,
+               family = binomial (link = "logit"))
+model6 <- glm (pttype ~ climate1+climate2 ,
+               data=frt14,
+               family = binomial (link = "logit"))
+model7 <- glm (pttype ~ climate1*climate2 ,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+frt14[,climate1:=(Tave03+Tave04+Tave05)/3]
+model8 <- glm (pttype ~ climate1 ,
+               data=frt14,
+               family = binomial (link = "logit"))
+model9 <- glm (pttype ~ climate1+climate2 ,
+               data=frt14,
+               family = binomial (link = "logit"))
+model10 <- glm (pttype ~ climate1*climate2 ,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+frt14[,climate1:=(Tmin03+Tmin04+Tmin05)/3]
+model11 <- glm (pttype ~ climate1,
+               data=frt14,
+               family = binomial (link = "logit"))
+model12 <- glm (pttype ~ climate1+climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+model13 <- glm (pttype ~ climate1*climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+frt14[,climate1:=(Tmax06+Tmax07+Tmax08)/3]
+model14 <- glm (pttype ~ climate1,
+               data=frt14,
+               family = binomial (link = "logit"))
+frt14[,climate2:=(PPT06+PPT07+PPT08)/3]
+model15 <- glm (pttype ~ climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+model16 <- glm (pttype ~ climate1+climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+model17 <- glm (pttype ~ climate1*climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+frt14[,climate1:=(Tave06+Tave07+Tave08)/3]
+model18 <- glm (pttype ~ climate1,
+               data=frt14,
+               family = binomial (link = "logit"))
+model19 <- glm (pttype ~ climate1+climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+model20 <- glm (pttype ~ climate1*climate2 ,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+frt14[,climate1:=(Tmin06+Tmin07+Tmin08)/3]
+model21 <- glm (pttype ~ climate1,
+               data=frt14,
+               family = binomial (link = "logit"))
+model22 <- glm (pttype ~ climate1+climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+model23 <- glm (pttype ~ climate1*climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+frt14[,climate1:=(Tmax03+Tmax04+Tmax05+Tmax06+Tmax07+Tmax08)/6]
+model24 <- glm (pttype ~ climate1,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+frt14[,climate2:=(PPT03+PPT04+PPT05+PPT06+PPT07+PPT08)/6]
+model25 <- glm (pttype ~ climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+frt14[,climate1:=(Tave03+Tave04+Tave05+Tave06+Tave07+Tave08)/6]
+model26 <- glm (pttype ~ climate1,
+               data=frt14,
+               family = binomial (link = "logit"))
+model27 <- glm (pttype ~ climate1+climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+model28 <- glm (pttype ~ climate1*climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+frt14[,climate1:=(Tmin03+Tmin04+Tmin05+Tmin06+Tmin07+Tmin08)/6]
+model29 <- glm (pttype ~ climate1,
+               data=frt14,
+               family = binomial (link = "logit"))
+model30 <- glm (pttype ~ climate1+climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+model31 <- glm (pttype ~ climate1*climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+frt14[,climate1:=(RH03+RH04+RH05+RH06+RH07+RH08)/6]
+model32 <- glm (pttype ~ climate1,
+               data=frt14,
+               family = binomial (link = "logit"))
+frt14[,climate1:=(CMD03+CMD04+CMD05+CMD06+CMD07+CMD08)/6]
+model33 <- glm (pttype ~ climate1,
+               data=frt14,
+               family = binomial (link = "logit"))
+frt14[,climate1:=(Tmax05 + Tmax06 + Tmax07 + Tmax08 + Tmax09)/5]
+frt14[,climate2:=(PPT05 + PPT06 + PPT07 + PPT08 + PPT09)/5]
+model34 <- glm (pttype ~ climate1,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+model35 <- glm (pttype ~ climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+model36 <- glm (pttype ~ climate1 +climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+model37 <- glm (pttype ~ climate1*climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+AIC(model1, model2, model3, model4, model5, model6, model7, model8, model9, model10,model11, model12, model13, model14, model15, model16, model17, model18, model19, model20,model21, model22, model23, model24, model25, model26, model27, model28, model29, model30,model31, model32, model33,model34,model35,model36,model37)
+
+# top climate model is model17
+frt14[,climate1:=(Tmin03+Tmin04+Tmin05 + Tmin06 + Tmin07 + Tmin08)/6]
+frt14[,climate2:=(PPT03+PPT04+PPT05 +PPT06 + PPT07 + PPT08)/6]
+model37 <- glm (pttype ~ climate1*climate2,
+               data=frt14,
+               family = binomial (link = "logit"))
+
+visreg(model37, "climate1", by="climate2")
+
+```
+
+```{r}
+cor.test(frt14$climate1, frt14$dem) #these two are correlated
+cor.test(frt14$climate2, frt14$dem)
+cor.test(frt14$dist_roads_m, frt14$dist_infr_m) # correlated
+cor.test(frt14$dem, frt14$slope_ha_bc)
+cor.test(frt14$log_infra, frt14$log_roads)
+
 require (ggcorrplot)
-dist.cut.corr <- (frt14 [, c("climate1","climate2", "dem", "slope_ha_bc", "win_sum", "dist_roads_m", "dist_infr_m","rast_ignit_dist" )])
+dist.cut.corr <- (frt14 [, c("climate1","climate2", "dem", "slope_ha_bc", "win_sum", "dist_roads_m", "dist_infr_m","rast_ignit_dist", "proj_age_1", "conifer_pct_cover_total" )])
 corr <- round (cor (dist.cut.corr), 3)
 p.mat <- round (cor_pmat (dist.cut.corr), 2)
 ggcorrplot (corr, type = "lower", lab = TRUE, tl.cex = 10,  lab_size = 3)
 
 # note elevation and climate 1 are extremely highly correlated.
-
-
 ggplot(frt14, aes(x = climate1)) +
   geom_boxplot() +
   facet_grid(pttype ~ .)
@@ -2053,77 +2902,143 @@ ggplot(frt14, aes(x = dem)) +
   geom_boxplot() +
   facet_grid(pttype ~ .)
 
-frt14$scale_climate2<-(frt14$climate2-mean(frt14$climate2))/sd(frt14$climate2)
-frt14$scale_climate1<-(frt14$climate1-mean(frt14$climate1))/sd(frt14$climate1)
-frt14$scale_dem<-(frt14$dem-mean(frt14$dem))/sd(frt14$dem)
-frt14$scale_slope<-(frt14$slope_ha_bc-mean(frt14$slope_ha_bc))/sd(frt14$slope_ha_bc)
-frt14$log_roads<-log(frt14$dist_roads_m+1)
-frt14$scale_dist_ignit<-(frt14$rast_ignit_dist-mean(frt14$rast_ignit_dist))/sd(frt14$rast_ignit_dist)
+# scale variables
+frt14$scale_climate1<-(frt14$climate1-mean(frt14$climate1, na.rm=TRUE)) / sd(frt14$climate1, na.rm=TRUE)
+frt14$scale_climate2<-(frt14$climate2-mean(frt14$climate2, na.rm=TRUE)) / sd(frt14$climate2, na.rm=TRUE)
+frt14$scale_dem<-(frt14$dem-mean(frt14$dem, na.rm=TRUE))/sd(frt14$dem, na.rm=TRUE)
+frt14$scale_slope<-(frt14$slope_ha_bc-mean(frt14$slope_ha_bc, na.rm=TRUE)) / sd(frt14$slope_ha_bc, na.rm=TRUE)
+frt14$scale_roads<-(frt14$dist_roads_m-mean(frt14$dist_roads_m, na.rm=TRUE)) / sd(frt14$dist_roads_m, na.rm=TRUE)
+frt14$scale_infr<-(frt14$dist_infr_m-mean(frt14$dist_infr_m, na.rm=TRUE)) / sd(frt14$dist_infr_m, na.rm=TRUE)
+frt14$scale_dist_ignit<-(frt14$rast_ignit_dist-mean(frt14$rast_ignit_dist, na.rm=TRUE)) / sd(frt14$rast_ignit_dist, na.rm=TRUE)
+frt14$scale_pct_conifer<-(frt14$conifer_pct_cover_total-mean(frt14$conifer_pct_cover_total, na.rm=TRUE))/sd(frt14$conifer_pct_cover_total, na.rm=TRUE)
+frt14$scale_age<-(frt14$proj_age_1-mean(frt14$proj_age_1, na.rm=TRUE))/sd(frt14$proj_age_1, na.rm=TRUE)
+frt14$scale_basal_area<-(frt14$basal_area-mean(frt14$basal_area, na.rm=TRUE))/sd(frt14$basal_area, na.rm=TRUE)
+
 frt14$log_infra<-log(frt14$dist_infr_m+1)
 
-table(frt14$fwveg, frt14$pttype)
+table(frt14$bec_zone_code, frt14$pttype)
+frt14$veg_cat<-as.factor(frt14$veg_cat)
+frt14$aspect_cardinal<-as.factor(frt14$aspect_cardinal)
+frt14$bec_zone_code<-as.factor(frt14$bec_zone_code)
 
-frt14[fwveg=="S-3", fwveg:="S-1"]
-frt14[fwveg=="S-2", fwveg:="S-1"]
-frt14[fwveg=="M-3", fwveg:="M-1/2"]
+frt14[bec_zone_code=="MH", bec_zone_code:="CWH"]
+frt14$veg_cat<-as.factor(frt14$veg_cat)
+```
 
-
-model1 <- glmer (pttype ~ scale_climate2 + scale_dem + scale_slope + as.factor(fwveg) + as.factor(aspect_cardinal) + log_roads + log_infra + scale_dist_ignit + (1|fire_yr) + (1|fire_yr:fire_label),
-               data=frt14,
-               family = binomial (link = "logit"))
+## fits models
+```{r}
+model1 <-  glmer (pttype ~ scale_dem * scale_climate2+ (1|fire_label), data=frt14, family = binomial (link = "logit"))
 summary(model1)
-car::Anova(model1, type=3)
-visreg(model1, scale="response")
 
-model2 <- glmer (pttype ~ scale_climate2 + scale_dem + scale_slope + as.factor(fwveg) + log_roads + log_infra + scale_dist_ignit + (1|fire_yr) + (1|fire_yr:fire_label),
-               data=frt14,
-               family = binomial (link = "logit"))
-car::Anova(model2, type=3)
-visreg(model2, scale="response")
+model2 <-  glmer (pttype ~ scale_dem * scale_climate2 + veg_cat + (1|fire_label), data=frt14, family = binomial (link = "logit"))
+summary(model2)
 
-# see if this helps with the optimization warnings
-ss <- getME(model2,c("theta","fixef"))
-m2 <- update(model2,start=ss,control=glmerControl(optCtrl=list(maxfun=2e4))) # BIC 164056.46 
+model3 <-  glmer (pttype ~ scale_dem * scale_climate2 + scale_dem*veg_cat + (1|fire_label), data=frt14, family = binomial (link = "logit"))
+summary(model3)
 
-plot(predict(m2),residuals(m2))
+model4a <-  glmer (pttype ~ scale_climate2 + scale_dem*veg_cat + (1|fire_label), data=frt14, family = binomial (link = "logit"))
+summary(model4a)
+
+model4b <-  glmer (pttype ~ scale_dem + scale_climate2 + veg_cat + (1|fire_label), data=frt14, family = binomial (link = "logit"))
+summary(model4a)
+
+model4c <-  glmer (pttype ~ I(scale_dem^2) + scale_climate2 + veg_cat + (1|fire_label), data=frt14, family = binomial (link = "logit"))
+
+model4d <-  glmer (pttype ~ scale_dem + scale_climate2 * veg_cat + (1|fire_label), data=frt14, family = binomial (link = "logit"))
+
+model4e <-  glmer (pttype ~ I(scale_dem^2) + scale_climate2 * veg_cat + (1|fire_label), data=frt14, family = binomial (link = "logit"))
+
+
+model4 <-  glmer (pttype ~ scale_dem * scale_climate2 + scale_climate2*veg_cat + (1|fire_label), data=frt14, family = binomial (link = "logit"))
+summary(model4)
+
+model5 <-  glmer (pttype ~ poly(scale_dem,2) + scale_climate2 + veg_cat + scale_age + scale_pct_conifer + scale_slope + aspect_cardinal + scale_dist_ignit + bec_zone_code +  (1|fire_label), data=frt14, family = binomial (link = "logit"))
+Anova(model5, type=3)
+
+model6 <-  glmer (pttype ~ poly(scale_dem,2) + scale_climate2 + veg_cat + scale_age + scale_pct_conifer + scale_slope + aspect_cardinal + scale_dist_ignit + log_infra+ bec_zone_code +  (1|fire_label), data=frt14, family = binomial (link = "logit"))
+Anova(m2, type=3)
+
+model7 <-  glmer (pttype ~ scale_dem+ I(scale_dem^2) + scale_climate2 * veg_cat + scale_age + scale_pct_conifer + scale_slope + aspect_cardinal + scale_dist_ignit + log_infra+ bec_zone_code +  (1|fire_label), data=frt14, family = binomial (link = "logit"))
+Anova(model7, type=3)
+
+model8 <-  glmer (pttype ~ scale_dem +  scale_climate2 * veg_cat + scale_age + scale_pct_conifer + scale_slope + aspect_cardinal + scale_dist_ignit + log_infra+ bec_zone_code +  (1|fire_label), data=frt14, family = binomial (link = "logit"))
+Anova(model7, type=3)
+
+model9 <-  glmer (pttype ~ scale_dem+ I(scale_dem^2) + scale_climate2 * veg_cat + scale_age + scale_pct_conifer + scale_slope + aspect_cardinal + log_infra+ bec_zone_code +  (1|fire_label), data=frt14, family = binomial (link = "logit"))
+Anova(model9, type=3)
+
+# my relationship with weather seems wrong. Maybe its because dist_ignit is messing it up. So looking at model9 that does not have distignit to check.
+
+# Im going to try join veg_cat2 and veg_cat3 because the relationship between climate2 and veg_cat3 does not make much sense. Also all the data for veg_cat3 is clustered around high rainfall and does not extend out across the range of rainfalls which is maybe why it has a funny trend
+
+frt14[veg_cat=="3", veg_cat:="2"]
+model10 <-  glmer (pttype ~ scale_dem+ I(scale_dem^2) + scale_climate2 * veg_cat + scale_age + scale_pct_conifer + scale_slope + aspect_cardinal + log_infra+ bec_zone_code +  (1|fire_label), data=frt14, family = binomial (link = "logit"))
+Anova(model10, type=3)
+
+model11 <-  glmer (pttype ~ scale_dem+ I(scale_dem^2) + scale_climate2 * veg_cat + scale_age + scale_pct_conifer + aspect_cardinal + log_infra+ bec_zone_code +  (1|fire_label), data=frt14, family = binomial (link = "logit"))
+Anova(model11, type=3)
+
+model12 <-  glmer (pttype ~ scale_dem+ I(scale_dem^2) + scale_climate2 * veg_cat + scale_age + aspect_cardinal + log_infra+ bec_zone_code +  (1|fire_label), data=frt14, family = binomial (link = "logit"))
+Anova(model12, type=3)
+
+visreg(model12, "scale_climate2", by="veg_cat")
+visreg(model9)
+
+model13 <-  glmer (pttype ~ scale_dem+ I(scale_dem^2) + scale_climate2 * veg_cat + scale_age + aspect_cardinal + bec_zone_code +  (1|fire_label), data=frt14, family = binomial (link = "logit"))
+Anova(model13, type=3)
+visreg(model13)
+
+model14 <-  glmer (pttype ~ scale_dem+ I(scale_dem^2) + scale_climate2 * veg_cat + scale_age + aspect_cardinal + bec_zone_code + scale_basal_area + (1|fire_label), data=frt14, family = binomial (link = "logit"))
+Anova(model14, type=3)
+visreg(model14)
+
+frt14[is.na(scale_basal_area), scale_basal_area:=0]
+
+model15 <-  glmer (pttype ~ scale_dem+ I(scale_dem^2) + scale_climate2 * veg_cat + scale_age + I(scale_dem^2) + aspect_cardinal + bec_zone_code + scale_basal_area + (1|fire_label), data=frt14, family = binomial (link = "logit"))
+
+
+AIC(model1, model2, model3, model4, model4a, model4b, model4c, model4d, model5, model6, model7, model8, model9, model10, model11, model12, model13, model14, model15)
+
+
+library(DHARMa)
+simulationOutput <- simulateResiduals(fittedModel = model16, plot = F)
+plot(simulationOutput)
+testOutliers(simulationOutput, type = 'bootstrap')
+testDispersion(simulationOutput, plot=T)
+plotQQunif(simulationOutput) # left plot in plot.DHARMa()
+plotResiduals(simulationOutput) # right plot in plot.DHARMa()
+plotResiduals(simulationOutput, form =frt14$scale_climate1)
+plotResiduals(simulationOutput, form =frt14$veg_cat ,quantreg = T)
+plotResiduals(simulationOutput, form =frt14$scale_slope,quantreg = T )
+plotResiduals(simulationOutput, form = frt14$aspect_cardinal, quantreg = T )
+plotResiduals(simulationOutput, form =frt14$log_infra,quantreg = T )
+
+#model16 <- glmer (pttype ~ scale_climate2+ veg_cat + veg_cat:scale_pct_conifer + poly(scale_dem,2) + log_roads + poly(scale_dist_ignit,2) + scale_age + scale_pct_conifer + 
+
+plot(predict(model14),residuals(model14))
 abline(h=0,lty=2,col="grey")
-lines(lowess(predict(m2),residuals(m2)),col="black",lwd=2)
+lines(lowess(predict(model14),residuals(model14)),col="black",lwd=2)
 
+plot(frt14$scale_climate2,residuals(model15))
+lines(lowess(frt14$scale_climate2,residuals(model15)),col="black",lwd=2)
 
-plot(frt14$scale_climate2,residuals(m2))
-lines(lowess(frt14$scale_climate2,residuals(m2)),col="black",lwd=2)
+plot(frt14$scale_dem,residuals(model15))
+lines(lowess(frt14$scale_dem,residuals(model15)),col="black",lwd=2)
 
-plot(frt14$scale_dem,residuals(m2))
-lines(lowess(frt14$scale_dem,residuals(m2)),col="black",lwd=2)
+plot(frt14$scale_pct_conifer,residuals(model15))
+lines(lowess(frt14$scale_pct_conifer,residuals(model15)),col="black",lwd=2)
 
-plot(frt14$scale_slope,residuals(m2))
-lines(lowess(frt14$scale_slope,residuals(m2)),col="black",lwd=2)
+plot(frt14$scale_dist_ignit,residuals(model15))
+lines(lowess(frt14$scale_dist_ignit,residuals(model15)),col="black",lwd=2)
 
-plot(frt14$scale_dist_ignit,residuals(m2))
-lines(lowess(frt14$scale_dist_ignit,residuals(m2)),col="black",lwd=2)
+plot(frt14$log_roads,residuals(model15))
+lines(lowess(frt14$log_roads,residuals(model15)),col="black",lwd=2)
 
-plot(frt14$log_roads,residuals(m2))
-lines(lowess(frt14$log_roads,residuals(m2)),col="black",lwd=2)
+plot(frt14$scale_age,residuals(model15))
+lines(lowess(frt14$scale_age,residuals(model15)),col="black",lwd=2)
 
-plot(frt14$log_infra,residuals(m2))
-lines(lowess(frt14$log_infra,residuals(m2)),col="black",lwd=2)
-
-# from the diagnostic plots above it looks like dem should be a polynomial and may dist to infra also
-
-#Try this
-
-model3 <- glmer (pttype ~ scale_climate2 + poly(scale_dem,2) + scale_slope + as.factor(fwveg) + log_roads + log_infra + scale_dist_ignit + (1|fire_yr) + (1|fire_yr:fire_label),
-               data=frt14,
-               family = binomial (link = "logit"))
-ss <- getME(model3,c("theta","fixef"))
-m3 <- update(model3,start=ss,control=glmerControl(optCtrl=list(maxfun=2e4))) # BIC 164056.46 
-
-model4 <- glmer (pttype ~ poly(scale_climate1,2) + scale_climate2 + scale_slope + as.factor(fwveg) + log_roads + log_infra + scale_dist_ignit + (1|fire_yr) + (1|fire_yr:fire_label),
-               data=frt14,
-               family = binomial (link = "logit"))
-
-ss <- getME(model4,c("theta","fixef"))
-m4 <- update(model4,start=ss,control=glmerControl(optCtrl=list(maxfun=2e4))) # BIC 164056.46 
+ss <- getME(model14,c("theta","fixef"))
+m4 <- update(model14,start=ss,control=glmerControl(optCtrl=list(maxfun=2e4))) # BIC 164056.46 
 summary(m4)
 car::Anova(m4, type=3)
 visreg(m4)
@@ -2131,8 +3046,8 @@ visreg(m4)
 
 # model diagnostic plots
 # below model looks way better with log road dist. It had some structure with just road dist
-binnedplot (fitted(model2), 
-            residuals(model2), 
+binnedplot (fitted(model14), 
+            residuals(model14), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
@@ -2141,222 +3056,10 @@ binnedplot (fitted(model2),
 
 ```
 
-# check some model assumptions
-```{r}
-#Here, we’ll check the linear relationship between continuous predictor variables and the logit of the outcome. This can be done by visually inspecting the scatter plot between each predictor and the logit values.
-
-#Remove qualitative variables from the original data frame and bind the logit values to the data:
-
-# Select only numeric predictors
-str(frt14_2)
-
-dat2_b<-frt14_2 %>% dplyr::select(pttype, climate1, climate2, dist_roads_m, dist_infr_m )
-probabilities <- predict(model3, type = "response")
-predicted.classes <- ifelse(probabilities > 0.5, "pos", "neg")
-
-mydata <- dat2_b %>%
-  dplyr::select_if(is.numeric) 
-predictors <- colnames(mydata)
-
-# Bind the logit and tidying the data for plot
-mydata <- mydata %>%
-  mutate(logit = log(probabilities/(1-probabilities))) %>%
-  gather(key = "predictors", value = "predictor.value", -logit)
-
-ggplot(mydata, aes(logit, predictor.value))+
-  geom_point(size = 0.5, alpha = 0.5) +
-  geom_smooth(method = "loess") + 
-  theme_bw() + 
-  facet_wrap(~predictors, scales = "free_y")
-
-# all variables should be approximatly linear
-```
-
-#Checking assumption of influential values
-
-see: (http://www.sthda.com/english/articles/36-classification-methods-essentials/148-logistic-regression-assumptions-and-diagnostics-in-r/)
-```{r}
-#Influential values are extreme individual data points that can alter the quality of the logistic regression model.
-#The most extreme values in the data can be examined by visualizing the Cook’s distance values. Here we label the top 3 largest values:
-
-plot(model5, which = 4, id.n = 3)
-
-#Note that, not all outliers are influential observations. To check whether the data contains potential influential observations, the standardized residual error can be inspected. Data points with an absolute standardized residuals above 3 represent possible outliers and may deserve closer attention.
-
-#The following R code computes the standardized residuals (.std.resid) and the Cook’s distance (.cooksd) using the R function augment() [broom package].
-
-# Extract model results
-library(broom)
-
-model.data <- augment(model5) %>% 
-  mutate(index = 1:n()) 
-
-#The data for the top 3 largest values, according to the Cook’s distance, can be displayed as follow:
-model.data %>% 
-  dplyr::select(dem_ha_bc, climate2,.std.resid, .cooksd) %>%
-  top_n(5, .cooksd) 
-
-ggplot(model.data, aes(index, .std.resid)) + 
-  geom_point(aes(color = pttype), alpha = .5) +
-  theme_bw()
-
-```
-
-# checking assumption of no multicollinearity
 
 ```{r}
-#Multicollinearity corresponds to a situation where the data contain highly correlated predictor variables. Read more in Chapter @ref(multicollinearity).
-
-#Multicollinearity is an important issue in regression analysis and should be fixed by removing the concerned variables. It can be assessed using the R function vif() [car package], which computes the variance inflation factors:
-
-car::vif(model5)
-
-#As a rule of thumb, a VIF value that exceeds 5 or 10 indicates a problematic amount of collinearity. 
+saveRDS(model16, "C:/Work/caribou/castor/R/fire_sim/tmp/frt14.rds")
 ```
-
-
-```{r}
-frt14_2$aspect_cardinal2<-as.factor(frt14_2$aspect_cardinal2)
-frt14_2$fwveg<-as.factor(frt14_2$fwveg)
-
-model1 <- glm (pttype ~ climate2 + dem_ha_bc + slope_ha_bc + as.factor(aspect_cardinal2) + as.factor(fwveg) + dist_roads_m + log(dist_infr_m+1) + win_sum,
-               data=frt14_2,
-               family = binomial (link = "logit"))
-
-summary(model1)
-table(frt14_2$fwveg)
-
-#Create a new blank table and get AUC too
-top_mod_table_frt14_All <- data.frame (matrix (ncol = 22, nrow = 0))
-colnames (top_mod_table_frt14_All ) <- c ("CAUSE", 
-                                    "FRT",  
-                                    "Model_terms", 
-                                    "intercept",
-                                    "coef_climate2",
-                                    "coef_elevation",
-                                    "coef_slope",
-                                    "coef_aspect_N",
-                                    "coef_aspect_S",
-                                    "coef_aspect_W", 
-                                    "coef_fwveg_C-3",
-                                    "coef_fwveg_C-5",
-                                    "coef_fwveg_C-7",
-                                    "coef_fwveg_D-1/2",
-                                    "coef_fwveg_M-1/2",
-                                    "coef_fwveg_N",
-                                    "coef_fwveg_O-1a/b",
-                                    "coef_fwveg_S-1",
-                                    "coef_dist_roads",
-                                    "coef_log_dist_infra",
-                                    "coef_wind_summer",
-                                    "AUC")
-
-frt14_2$fire_veg<-paste(frt14_2$pttype, frt14_2$fwveg)
-```
-
-Let's run it 100 times to get good mean values.
-
-```{r}
-
-for (g in 1:100){
-
-prop<-0.75
-# Creating training and testing datasets so that I can get a measure of how well the model actually predicts the data e.g. AUG
-  trainIndex <- createDataPartition(frt14_2$fire_veg, p = prop,
-                                    list = FALSE,
-                                    times = 1)
-  
-   dat1 <- frt14_2[ trainIndex,]
-   Valid <- frt14_2[-trainIndex,]
-   
-#Model   
-mod<-glm (pttype ~ climate2 + dem_ha_bc + slope_ha_bc + as.factor(aspect_cardinal2) + as.factor(fwveg) + dist_roads_m + log(dist_infr_m+1) + win_sum, data=dat1, family=binomial(link="logit"))
-
-mod.valid <- predict.glm(mod, newdata=Valid, type="response")
-   roc_obj <- roc(Valid[,"pttype"], mod.valid, quiet=TRUE)
-   mod.auc <- auc(roc_obj)
-
-# create model table (only do this once) and add the relevant data
-top_mod_table_frt14_person <- data.frame (matrix (ncol = 23, nrow = 0))
-colnames (top_mod_table_frt14_person ) <- c ("CAUSE", 
-                                    "FRT",  
-                                    "Model_terms", 
-                                    "intercept",
-                                    "coef_climate2",
-                                    "coef_elevation",
-                                    "coef_slope",
-                                    "coef_aspect_N",
-                                    "coef_aspect_S",
-                                    "coef_aspect_W", 
-                                    "coef_fwveg_C-3",
-                                    "coef_fwveg_C-5",
-                                    "coef_fwveg_C-7",
-                                    "coef_fwveg_D-1/2",
-                                    "coef_fwveg_M-1/2",
-                                    "coef_fwveg_N",
-                                    "coef_fwveg_O-1a/b",
-                                    "coef_fwveg_S-1",
-                                    "coef_dist_roads",
-                                    "coef_log_dist_infra",
-                                    "coef_wind_summer",
-                                    "AUC")
-
-##Add data for NDT1
-top_mod_table_frt14_person[1,1]<-"spread"
-top_mod_table_frt14_person[1,2]<-"frt14"
-top_mod_table_frt14_person[1,3]<-"pttype ~ climate2 + dem_ha_bc + slope + aspect_cardinal + fwveg + log(dist_roads_m +1) + log(dist_infr_m+1) + win_sum"
-top_mod_table_frt14_person[1,4]<- coef(mod)[1] #Intercept
-top_mod_table_frt14_person[1,5]<- coef(mod)[2] 
-top_mod_table_frt14_person[1,6]<- coef(mod)[3] 
-top_mod_table_frt14_person[1,7]<- coef(mod)[4] 
-top_mod_table_frt14_person[1,8]<- coef(mod)[5] 
-top_mod_table_frt14_person[1,9]<- coef(mod)[6] 
-top_mod_table_frt14_person[1,10]<- coef(mod)[7] 
-top_mod_table_frt14_person[1,11]<- coef(mod)[8] 
-top_mod_table_frt14_person[1,12]<- coef(mod)[9] 
-top_mod_table_frt14_person[1,13]<- coef(mod)[10] 
-top_mod_table_frt14_person[1,14]<- coef(mod)[11] 
-top_mod_table_frt14_person[1,15]<- coef(mod)[12] 
-top_mod_table_frt14_person[1,16]<- coef(mod)[13] 
-top_mod_table_frt14_person[1,17]<- coef(mod)[14] 
-top_mod_table_frt14_person[1,18]<- coef(mod)[15] 
-top_mod_table_frt14_person[1,19]<- coef(mod)[16] 
-top_mod_table_frt14_person[1,20]<- coef(mod)[17] 
-top_mod_table_frt14_person[1,21]<- coef(mod)[18] 
-top_mod_table_frt14_person[1,22]<- mod.auc
-
-top_mod_table_frt14_All<-rbind(top_mod_table_frt14_All, top_mod_table_frt14_person)
-
-}
-
-```
-
-Check.
-```{r}
-head(top_mod_table_frt14_All)
-top_mod_table_frt14_All<- top_mod_table_frt14_All %>% select (CAUSE:AUC)
-
-```
-
-
-Get mean values.
-
-```{r}
-names(top_mod_table_frt14_All)
-str(top_mod_table_frt14_All)
-stderror <- function(x) sd(x)/sqrt(length(x))
-
-frt14_summary_table_mean<- top_mod_table_frt14_All %>% summarize_if(is.numeric,mean)
-
-
-```
-
-Save table.
-
-```{r}
-write.csv(frt14_summary_table_mean, file="C:\\Work\\caribou\\castor_data\\Fire\\Fire_sim_data\\data\\BC\\top_mod_table_frt14_spread.csv")
-```
-
 
 ################################
 #FRT 15
@@ -2365,7 +3068,7 @@ write.csv(frt14_summary_table_mean, file="C:\\Work\\caribou\\castor_data\\Fire\\
 ```{r}
 # Plot climate data results
 
-frt15<-fire_spread2 %>% filter(frt==15)
+frt15<-dat2 %>% filter(frt==15)
 model1 <- glm (pttype ~ summer_Tave + tot_summer_PPT ,
                data=frt15,
                family = binomial (link = "logit"))

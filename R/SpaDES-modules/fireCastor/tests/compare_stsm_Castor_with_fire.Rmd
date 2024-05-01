@@ -84,8 +84,9 @@ parameters <-  list (
                           nameForestInventoryTable = "castor_stsm_compare.vri",
                           nameForestInventoryAge = "proj_age_1",  
                           nameForestInventoryHeight = "proj_ht_1",
-                          nameForestInventoryCrownClosure = "cr_closure",                             
+                          nameForestInventoryCrownClosure = "cr_closure",    
                           nameForestInventoryTreed = "bclcs_lv_2",
+                          nameForestInventoryBasalArea= "basal_area",
                           nameForestInventorySiteIndex = "site_index"
                           ),
 forestryCastor = list(harvestBlockPriority = " age DESC ", 
@@ -120,14 +121,15 @@ forestryCastor = list(harvestBlockPriority = " age DESC ",
                     maxRun = 3, 
                     nameClimateIdnoRast = "rast.climate_prism_base_layer",
                     nameClimateTable = "vat.climate_prism_lat_lon_lookup",
-                    vars_aoi=c("PPT04", "PPT05","PPT06","PPT07", "PPT08", "PPT09", "Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09", "Tave04", "Tave05", "Tave06", "Tave07", "Tave08", "Tave09","CMD04", "CMD05", "CMD06", "CMD07", "CMD08", "CMI04", "CMI05", "CMI06", "CMI07", "CMI08", "CMI09"),
+                    vars_aoi=c("PPT03","PPT04", "PPT05","PPT06","PPT07", "PPT08", "PPT09","Tmax04", "Tmax05", "Tmax06", "Tmax07", "Tmax08", "Tmax09", "Tave03","Tave04", "Tave05", "Tave06", "Tave07", "Tave08", "Tave09", "Tmin03", "Tmin04", "Tmin05", "Tmin06", "Tmin07", "Tmin08" ,"CMD04", "CMD05", "CMD06", "CMD07", "CMD08", "CMI04", "CMI05", "CMI06", "CMI07", "CMI08", "CMI09"),
                     vars_prov = c("CMI05", "CMI06", "CMI07", "CMI08")),
   fireCastor = list(calculateInterval =1,
                     ignitionMethod = 'poissonProcess', # options are poissonProcess, historicalDist, static
                     #calendarStartYear = 2020,
                     nameFrtRaster = "rast.frt",
-                    nameStaticEscapeRaster = "rast.const_coef_escaped_fires",
-                    nameStaticSpreadRaster = "rast.const_coef_spread_fires",
+                    nameAspectRaster = "rast.bc_ha_aspect",
+                    nameSlopeRaster = "rast.bc_ha_slope",
+                    nameDistInfrastructureRaster = "rast.dist_infrastructure",
                     nameRoadsRast = "rast.ce_road_2019",
                     #recovery = 300,
                     nameElevationRaster = "rast.dem",
@@ -197,10 +199,12 @@ patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                     0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
                                     0.1,0.02,0.02,0.02,0.02,0.8,
                                     0.3,0.3,0.1,0.1,0.1, 0.1))
+ds_out_summary <- data.table(RUN = "r10i1p1f1", PERIOD = 2020:2025, AveCMI = 91)
 
 objects <- list(harvestFlow = harvestFlow, 
                 patchSizeDist = patchSizeDist, 
-                scenario = scenario)
+                scenario = scenario,
+                ds_out_summary = ds_out_summary)
 
 paths <- list(cachePath = cacheDir,
               modulePath = moduleDir,
