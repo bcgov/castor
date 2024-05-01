@@ -29,6 +29,7 @@ ras.treed<-fasterize::fasterize(st_cast(treed, "MULTIPOLYGON"), ProvRast, "treed
 ras.treed[is.na(ras.treed[])]<-0
 writeRaster(ras.treed, "morice_treed2023.tif", overwrite =T)
 st_write(morice_lup, "morice_lup.gpkg")
+ras.treed<-rast("morice_treed2023.tif")
 ```
 
 ## Morice LRMP
@@ -52,7 +53,7 @@ morice_lup.gen<-morice_lup[!is.na(morice_lup$zoneid_gen),]
 ras.morice.gen<-fasterize::fasterize(st_cast(morice_lup.gen, "MULTIPOLYGON"), ProvRast, field="zoneid_gen")
 #multiply by forested area
 ras.morice.gen[is.na(ras.morice.gen[])]<-0
-ras.morice.gen<-ras.morice.gen*ras.treed
+ras.morice.gen<-ras.morice.gen*raster(ras.treed)
 writeRaster(ras.morice.gen, "morice_lrmp_gen.tif", overwrite=T)
 zone.constraints.gen<-rbindlist(list(
   data.table(zoneid =  1, reference_zone = 'rast.morice_lrmp_gen', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 0, stop = 250, label = 'general_objectives'),
@@ -173,6 +174,7 @@ dbDisconnect(conn)
 ## GWM 2 - Proposed 20 year cycle
 ```{r}
 wha_bounds<-st_read("Proposed_WHA_6-291_mzones.shp")
+wha_bounds$typ2<-as.factor(wha_bounds$Type)
 wha.bec.manage<-st_intersection(wha_bounds, bec)
 wha.bec.manage[is.na(wha.bec.manage$zone), ]$zone <-2
 wha.bec.manage[wha.bec.manage$zone ==0, ]$zone <-3

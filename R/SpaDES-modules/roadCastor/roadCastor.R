@@ -390,8 +390,9 @@ setGraph<- function(sim){
     step.two.xy<-data.table (terra::xyFromCell(sim$ras, step.two$pixelid)) #Get the euclidean distance -- maybe this could be a pre-solved road network instead?
     step.two.xy[, id:= seq_len(.N)] # create a label (id) for each record to be able to join back
     
-    sim$roadSourceID<-step.two[order(roadtype)][1]$pixelid #Assign the road source to any one of the perm roads
-    
+    if(!suppliedElsewhere(sim$roadSourceID)){
+      sim$roadSourceID<-step.two[order(roadtype)][1]$pixelid #Assign the road source to any one of the perm roads
+    }
     #Sequential Nearest Neighbour without replacement - find the closest pixel to create the loop
     edges.loop<-rbindlist(lapply(1:nrow(step.two.xy), function(i){
       if(nrow(step.two.xy) == i ){ #The last pixel needed to make the loop
@@ -416,7 +417,9 @@ setGraph<- function(sim){
     rm(bound.line, step.one, step.two.xy, link.cell)#remove unused objects
     gc() #garbage collection
   }else{ #Just pick a permanent road from the db
-    sim$roadSourceID <- dbGetQuery(sim$castordb, "Select pixelid from pixels where roadtype = 0 limit 1")$pixelid
+    if(!suppliedElsewhere(sim$roadSourceID)){
+      sim$roadSourceID <- dbGetQuery(sim$castordb, "Select pixelid from pixels where roadtype = 0 limit 1")$pixelid
+    }
   }
   
   #Take care of perm roads

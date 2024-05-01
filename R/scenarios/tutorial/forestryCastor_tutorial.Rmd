@@ -86,10 +86,9 @@ parameters <-  list( # list of all parameters in the model, by module
                   ),
   forestryCastor = list(harvestBlockPriority = " vol/age DESC ", 
                         activeZoneConstraint =c("rast.zone_cond_nharv",
-                                             "rast.zone_wha_2021", 
-                                             "rast.zone_cond_pri_old_deferral")),
+                                             "rast.zone_wha_2021")),
   growingStockCastor = list (periodLength = 10),
-  uploaderCastor = list(aoiName = 'tutorial', 
+  uploadCastor = list(aoiName = 'tutorial', 
                       dbInfo  = list(keyring::key_get("vmdbhost", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbuser", keyring="postgreSQL"), 
                                      keyring::key_get("vmdbpass", keyring="postgreSQL"),  
@@ -100,15 +99,15 @@ modules <- list("dataCastor",
                 "growingStockCastor", 
                 "blockingCastor", 
                 "forestryCastor", 
-                "roadCastor"  
-                #"uploaderCastor"
+                "roadCastor" , 
+                "uploadCastor"
                 )
 ### SCENARIOS ###
 scenario = data.table (name = "testing", 
                        description = "")
 
 harvestFlow <- rbindlist(list(data.table(compartment ="Bulkley_TSA",
-                                         partition = ' vol > 150 ', 
+                                         partition = ' vol > 150 and age > 60 ', 
                                          period = rep( seq (from = 1, # run the 
                                                       to = 40, 
                                                       by = 1),
