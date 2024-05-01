@@ -309,7 +309,7 @@ check.out.fc3<-merge(number, out.fc3.bounds, by.x = c('fire_centre', 'FIRE_YEAR'
 #Cariboo
   data.fit.fc4 <- occ.model.data[ FIRE_YEAR < 2018 & fire_centre == 4,]
   spde_fc4_loo <- make_mesh(data.fit.fc4[,c("x", "y")], xy_cols = c("x", "y"), cutoff = 10)
-  models.fc4 <- sdmTMB(data = data.fit.fc4 , count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1), offset = log(data.fit.fc4$flammable), family = nbinom2(), time = "year", mesh = spde_fc1_loo , spatial = T, spatiotemporal = FALSE, reml=T)
+  models.fc4 <- sdmTMB(data = data.fit.fc4 , count ~ 1 + CMI_MIN  + dCMI3yr + avgCMIProv + as.factor(frt) + log(con+1) + log(young+1) + log(dec+1), offset = log(data.fit.fc4$flammable), family = nbinom2(), time = "year", mesh = spde_fc4_loo , spatial = T, spatiotemporal = FALSE, reml=T)
 
 saveRDS(models.fc4, "loo_local_fc4_fit.rds")
 
