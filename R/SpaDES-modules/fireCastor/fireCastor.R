@@ -1318,7 +1318,13 @@ downScaleData<-function(sim){
   browser()
   
   ### FRT
-  x<-dbGetQuery(sim$castordb, "SELECT mode(frt) AS frt, mode(veg_cat) AS veg_cat FROM pixels group by pixelid10km;") 
+  x<-dbGetQuery(sim$castordb, "SELECT pixelid10km, mode(frt) AS frt,  
+  sum(case when height >= 4 and basal_area >= 8 and 100-dec_pcnt >= 75 then 1 else 0 end) as con,
+  sum(case when height >= 4 and basal_area >= 8 and dec_pcnt >= 75 then 1 else 0 end) as dec,
+  sum(case when basal_area < 8 then 1 else 0 end) as young,
+  sum(case when height >= 0 and basal_area >= 0 bclcs_level_1 = 'V' then 1 else 0 end) as flammable
+  FROM pixels group by pixelid10km;") 
+  
   
   dbGetQuery(mySim$castordb, "SELECT mode(frt) AS frt, sum(case when veg_cat = 1 then 1 else 0 end) as con FROM pixelsgroup by pixelid10km;") 
   
