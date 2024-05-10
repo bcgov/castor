@@ -1288,6 +1288,8 @@ downScaleData<-function(sim){
                                         geom= sim$boundaryInfo[4] , 
                                         where_clause =  paste0(sim$boundaryInfo[2] , " in (''", paste(sim$boundaryInfo[[3]], sep = "' '", collapse= "'', ''") ,"'')"), conn=NULL))
   
+  browser()
+  
   #if(terra::ext(sim$ras) == terra::ext(ras.pixelid_10km)){
     pixelid_10kmtable<-data.table(pixelid10km = as.numeric(ras.pixelid_10km[]))
     pixelid_10kmtable[, pixelid := seq_len(.N)] 
