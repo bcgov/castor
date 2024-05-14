@@ -26,7 +26,7 @@ This script acts as a test for fire Castor to test how it populates data and int
 
 
 ### Fire
-Forest fire can be included in this simulation through fireCastor. The fire model is climate sensitive i.e. the number of ignitions, probability of escape and spread, and final fire size are all impacted by climate. Climate data is obtained from climateCastor which is basically an interface between climR and Castor i.e. it just gets the neccessary climate data to run the fire simulations.
+Forest fire can be included in this simulation through fireCastor. The fire model is both climate and vegetation sensitive i.e. the number of ignitions, probability of escape and spread, and final fire size are all impacted by climate and vegetation attributes. Climate data is obtained from climateCastor which is basically an interface between climR and Castor i.e. it just gets the neccessary climate data to run the fire simulations. Vegetation data is orignally sampled from the VRI and then gets updated over time through forestryCastor and fireCastor. If an area is harvested or burned its age and volume get set back to zero, otherwise age and volume are incremented according to growth and yield calculations. 
 
 The process of a wildfire is as follows: 1.) the number of ignitions is statistically estimated, 2.) the location of those ignitons is also statistically determined through an escape raster, 3.) where the fire spreads is determined through a percolation model which weights the probability of spread into each pixel according to fuel type, climate, slope, distance to infrastructure/roads etc. Lastly how big the fire gets is determined through a fire size model. 
 
@@ -40,7 +40,6 @@ Set parameters for running the model simulation below and run the code chunk.
 Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1') 
 #library(climRdev)
 #dbCon <- data_connect() ##connect to climate database
-
 
 library (SpaDES.core)
 library (data.table)
@@ -56,6 +55,7 @@ parameters <-  list (
         .globals = list (),
         dataCastor = list(dbName = 'castor',
                           saveCastorDB = TRUE,
+                          #useCastorDB=""
                           sqlite_dbname = "fire_castor_test", 
                           nameBoundaryFile = "castor_stsm_compare.bounds_tsa99", 
                           nameBoundaryColumn = "tsa_name", 
@@ -65,7 +65,7 @@ parameters <-  list (
                           nameCompartmentTable = "castor_stsm_compare.vat_bounds_tsa99", 
                           nameMaskHarvestLandbaseRaster = 'castor_stsm_compare.rast_thlb', 
                           
-                          nameZoneRasters = "castor_stsm_compare.rast_wildlife_zones",
+                          nameZoneRasters = c("castor_stsm_compare.rast_wildlife_zones","rast.zone_cond_beo"),
                           nameZoneTable = "castor_stsm_compare.constraints", 
                           
                           nameYieldsRaster = "castor_stsm_compare.rast_ycid_vdyp", 
@@ -87,7 +87,6 @@ forestryCastor = list(harvestBlockPriority = " age DESC ",
                         activeZoneConstraint = "castor_stsm_compare.rast_zone_test"
                         ),
   blockingCastor = list(blockMethod = 'pre',
-                        patchZone = 'default',
                         patchVariation = 6),
   growingStockCastor = list (periodLength = 1,
                              maxYieldAge = 250),
@@ -149,8 +148,8 @@ forestryCastor = list(harvestBlockPriority = " age DESC ",
                     nameForestInventoryspecies_pct_5 = "spec_pct_5",
                     nameForestInventoryspecies_cd_6 = "spec_cd_6",
                     nameForestInventoryspecies_pct_6 = "spec_pct_6",
-                    firemodelcoeftbl = "public.fire_model_coef_tbl",
-                    m8_est_rf = "rast.m8_est_rf",
+                    pixelid_10kmRast = "rast.pixelId10km",
+                    nameFirepixel10km = "vat.spatially_varying_10km_vat",
                     numberFireReps = 1)
 )
 
