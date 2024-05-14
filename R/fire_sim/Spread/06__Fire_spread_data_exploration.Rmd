@@ -1888,42 +1888,52 @@ model11 <- glmer (pttype ~ scale_climate1 + scale_climate1 * veg_cat + scale_age
                family = binomial (link = "logit"))
 Anova(model11, type=3)
 
-model12 <- glmer (pttype ~ scale_climate1 + scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + scale_roads + (1|fire_label),
+model12 <- glmer (pttype ~ scale_climate1 * scale_climate2 + scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + scale_roads +scale_basal_area + (1|fire_label),
                data=frt10,
                family = binomial (link = "logit"))
 Anova(model12, type=3)
 
-model13 <- glmer (pttype ~ scale_climate1 + scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + scale_roads + scale_dist_ignit + (1|fire_label),
+model13 <- glmer (pttype ~ scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + bec_zone_code + (1|fire_label),
                data=frt10,
                family = binomial (link = "logit"))
 Anova(model13, type=3)
 summary(model13)
+visreg(model13)
 
-model14 <- glmer (pttype ~ scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + scale_roads + scale_dist_ignit*scale_climate1 + (1|fire_label),
-               data=frt10,
-               family = binomial (link = "logit"))
 
-model15 <- glmer (pttype ~ scale_climate1 + scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + scale_dist_ignit + (1|fire_label),
-               data=frt10,
-               family = binomial (link = "logit"))
-Anova(model15, type=3)
-summary(model15)
 
-model16 <- glmer (pttype ~ scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + scale_climate1*scale_dist_ignit + (1|fire_label),
-               data=frt10,
-               family = binomial (link = "logit"))
-Anova(model16, type=3)
-summary(model16)
-visreg(model16, "scale_dist_ignit", by="scale_climate1")
-visreg(model16, "scale_climate1", by="veg_cat")
+# ##############
+# model13 <- glmer (pttype ~ scale_climate1 + scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + scale_roads + scale_dist_ignit + (1|fire_label),
+#                data=frt10,
+#                family = binomial (link = "logit"))
+# Anova(model13, type=3)
+# summary(model13)
+# 
+# model14 <- glmer (pttype ~ scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + scale_roads + scale_dist_ignit*scale_climate1 + (1|fire_label),
+#                data=frt10,
+#                family = binomial (link = "logit"))
+# 
+# model15 <- glmer (pttype ~ scale_climate1 + scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + scale_dist_ignit + (1|fire_label),
+#                data=frt10,
+#                family = binomial (link = "logit"))
+# Anova(model15, type=3)
+# summary(model15)
+# 
+# model16 <- glmer (pttype ~ scale_climate1 * veg_cat + scale_age +scale_slope + aspect_cardinal + scale_pct_conifer + scale_climate1*scale_dist_ignit + (1|fire_label),
+#                data=frt10,
+#                family = binomial (link = "logit"))
+# Anova(model16, type=3)
+# summary(model16)
+# visreg(model16, "scale_dist_ignit", by="scale_climate1")
+# visreg(model16, "scale_climate1", by="veg_cat")
 
 # check that veg_cat is going in the expected direction on model16
 
 AIC(model1, model2, model3, model4, model5, model6, model7, model8, model9, model10, model11, model12, model13, model14, model15, model16)
 
-visreg(model15)
-ss <- getME(model15,c("theta","fixef"))
-m2 <- update(model15,start=ss,control=glmerControl(optCtrl=list(maxfun=2e6)))
+visreg(model13)
+ss <- getME(model13,c("theta","fixef"))
+m2 <- update(model13,start=ss,control=glmerControl(optCtrl=list(maxfun=2e6)))
 
 
 
@@ -1939,16 +1949,16 @@ visreg(model9, "scale_climate2", by="veg_cat")
 
 # model diagnostic plots
 # below model looks way better with log road dist. It had some structure with just road dist
-binnedplot (fitted(model16), 
-            residuals(model16), 
+binnedplot (fitted(model13), 
+            residuals(model13), 
             nclass = NULL, 
             xlab = "Expected Values", 
             ylab = "Average residual", 
             main = paste("Binned Residual Plot - glm"))
 
-plot(predict(model16),residuals(model16))
+plot(predict(model13),residuals(model13))
 abline(h=0,lty=2,col="grey")
-lines(lowess(predict(model16),residuals(model16)),col="black",lwd=2)
+lines(lowess(predict(model13),residuals(model13)),col="black",lwd=2)
 
 plot(frt10$scale_climate1,residuals(model16))
 lines(lowess(frt10$scale_climate1,residuals(model16)),col="black",lwd=2)
@@ -1975,7 +1985,7 @@ see: (http://www.sthda.com/english/articles/36-classification-methods-essentials
 Save model output
 
 ```{r}
-saveRDS(m2, "C:/Work/caribou/castor/R/fire_sim/tmp/frt10.rds")
+saveRDS(model13, "C:/Work/caribou/castor/R/fire_sim/tmp/frt10.rds")
 ```
 
 
