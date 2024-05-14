@@ -31,13 +31,13 @@ plot(pts["initialPixels"])
 poly <- st_convex_hull(pts) 
 plot(poly)
 
-
 #Visualize result
 ras[]<-0
 ras[out$pixels]<-out$initialPixels
 plot(ras)
 plot(poly, col = alpha(c("yellow", "blue", "green"), 0.2), add=T)
 
+#Lets take the overestimate of the convexhull and remove any pixels outside perimeter
 ras.mcp<-terra::rasterize(poly, ras, field = "initialPixels")
 plot(ras.mcp)                 
 
