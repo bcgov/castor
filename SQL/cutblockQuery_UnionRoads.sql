@@ -3,9 +3,9 @@ Create TAble cutseq as
   SELECT a.areaha, a.harvestyr, ST_X(a.point) as X ,ST_Y(a.point) as Y, point FROM (SELECT areaha, harvestyr, ST_PointN(ST_Exteriorring(wkb_geometry) , 1) as point
   FROM cns_cut_bl_polygon) a  
 
-Create TAble cutseq_centroid_2022 as
-  SELECT a.area as areaha, a.harvest_year as harvestyr , ST_X(a.point) as X ,ST_Y(a.point) as Y, point FROM 
-  (SELECT area, harvest_year, ST_Centroid(shape) as point
+Create TAble cutseq_centroid_2023 as
+  SELECT a.area_ha as areaha, a.harvest_year as harvestyr , ST_X(a.point) as X ,ST_Y(a.point) as Y, point FROM 
+  (SELECT area_ha, harvest_year, ST_Centroid(shape) as point
   FROM cut_block_all_bc where data_source <> 'Landsat') a  
   
  SELECT a.areaha, a.harvestyr,  ST_X(a.point) as X ,ST_Y(a.point) as Y, point, herd_name FROM sample_caribou_bound, (SELECT areaha, harvestyr, ST_PointN(ST_Exteriorring(wkb_geometry) , 1) as point
