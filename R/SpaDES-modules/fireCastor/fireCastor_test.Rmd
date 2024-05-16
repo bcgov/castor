@@ -41,15 +41,15 @@ Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jdk-14.0.1')
 #library(climRdev)
 #dbCon <- data_connect() ##connect to climate database
 
-library (SpaDES.core)
 library (data.table)
+library(dplyr)
 source (paste0(here::here(), "/R/functions/R_Postgres.R"))
 
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/fireCastor/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/fireCastor/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/tests"))
-times <- list(start = 0, end = 3) # 5 year interval; 200 years = 40 intervals
+times <- list(start = 0, end = 10) # 5 year interval; 200 years = 40 intervals
 parameters <-  list (
         .progress = list (type = NA, interval = NA),
         .globals = list (),
@@ -86,8 +86,11 @@ forestryCastor = list(harvestBlockPriority = " age DESC ",
                         reportHarvestConstraints = F,
                         activeZoneConstraint = "castor_stsm_compare.rast_zone_test"
                         ),
-  blockingCastor = list(blockMethod = 'pre',
-                        patchVariation = 6),
+  blockingCastor = list(blockMethod='pre', 
+                              patchZone = 'rast.zone_cond_beo',
+                              patchVariation = 6,
+                              nameCutblockRaster = "rast.cns_cut_bl",
+                              useLandingsArea = FALSE),
   growingStockCastor = list (periodLength = 1,
                              maxYieldAge = 250),
   roadCastor = list(roadMethod = 'mst', # pre mst
@@ -109,7 +112,7 @@ forestryCastor = list(harvestBlockPriority = " age DESC ",
                     gcm = c("MPI-ESM1-2-HR"),
                     gcmname = c("ESM1_2_HR"), 
                     ssp = c("ssp370"),
-                    climateYears = 2018: 2030, # note the start year needs to be 2 yrs before your year of interest to calculate CMI3yr
+                    climateYears = 2018: 2040, # note the start year needs to be 2 yrs before your year of interest to calculate CMI3yr
                     maxRun = 3, 
                     nameClimateIdnoRast = "rast.climate_prism_base_layer",
                     nameClimateTable = "vat.climate_prism_lat_lon_lookup",
@@ -155,12 +158,12 @@ forestryCastor = list(harvestBlockPriority = " age DESC ",
 
 modules <- list("dataCastor", 
                 "growingStockCastor", 
-                "blockingCastor", 
-                "forestryCastor", 
-                "roadCastor",  
-                "disturbanceCastor",
-                "climateCastor",
-                "fireCastor"
+                "blockingCastor"
+                #"forestryCastor", 
+                #"roadCastor",  
+                #"disturbanceCastor",
+                #"climateCastor",
+                #"fireCastor"
                 #"uploadCastor",
                 #"volumebyareaReportCastor"
                 )
@@ -191,7 +194,7 @@ patchSizeDist<- data.table(ndt= c(1,1,1,1,1,1,
                                     0.2, 0.3, 0.125, 0.125, 0.125, 0.125,
                                     0.1,0.02,0.02,0.02,0.02,0.8,
                                     0.3,0.3,0.1,0.1,0.1, 0.1))
-ds_out_summary <- data.table(RUN = "r10i1p1f1", PERIOD = 2020:2025, AveCMI = 91)
+ds_out_summary <- data.table(RUN = "r10i1p1f1", PERIOD = 2020:2030, AveCMI = 91)
 
 objects <- list(harvestFlow = harvestFlow, 
                 patchSizeDist = patchSizeDist, 
@@ -203,7 +206,7 @@ paths <- list(cachePath = cacheDir,
               inputPath = inputDir,
               outputPath = outputDir)
 
-mySim <- simInit(times = times, 
+mySim <- SpaDES.core::simInit(times = times, 
                  params = parameters, 
                  modules = modules,
                  objects = objects, 
@@ -211,7 +214,7 @@ mySim <- simInit(times = times,
                  )
 
 # outputs to keep; these are tables that get used in the uploader
-outputs(mySim) <- data.frame (objectName = c("harvestReport",
+SpaDES.core::outputs(mySim) <- data.frame (objectName = c("harvestReport",
                                              "growingStockReport",
                                              "disturbanceReport", 
                                              "firedisturbanceTable", 
@@ -220,7 +223,7 @@ outputs(mySim) <- data.frame (objectName = c("harvestReport",
                                              ))
 
 #Run the model 1 time
-system.time({mysimout<-spades(mySim)})
+system.time({mysimout<-SpaDES.core::spades(mySim)})
 
 #Run the model with experiment
 #sims3 <- experiment(mySim, replicates = 2)
@@ -253,8 +256,8 @@ library(RSQLite)
 sqlite <- dbDriver("SQLite")
 
 
-castordb <- dbConnect(sqlite,"C:/Work/caribou/castor/fire_moriceTsa_test_castordb.sqlite")
-ras.info<-dbGetQuery(castordb, "Select * from raster_info limit 1;")
+castordb <- dbConnect(sqlite,"C:/Work/caribou/castor/fire_castor_test_castordb.sqlite")
+ras.info<-dbGetQuery(mySim$castordb, "Select * from raster_info limit 1;")
 areaBurned<-raster(extent(ras.info$xmin, ras.info$xmax, ras.info$ymin, ras.info$ymax), nrow = ras.info$nrow, ncol = ras.info$ncell/ras.info$nrow, vals =0)
     
 areaBurned[]<-mySim$probFireRasts$prob_ignition_lightning
