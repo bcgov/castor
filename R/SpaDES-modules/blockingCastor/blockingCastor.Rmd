@@ -37,7 +37,6 @@ The module sets and updates the blocks table within `castordb`. It requires - da
 # Usage
 
 ```{r module_usage}
-library(SpaDES.core)
 library(data.table)
 library(dplyr)
 source(here::here("R/functions/R_Postgres.R"))
@@ -54,7 +53,7 @@ parameters <- list(
                      randomLandscape = list(100,100,0,100,0,100),
                      randomLandscapeClusterLevel = 1.2,
                      randomLandscapeZoneConstraint = 
-                       data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20)
+                       data.table(variable = 'age', threshold = 140, type = 'ge', percentage = 20, zoneid =1)
                      ),
   blockingCastor = list(blockMethod='pre', 
                       patchZone = 'default',
@@ -68,12 +67,8 @@ paths <- list(
 )
 
 set.seed(86) # need to set a seed for solving the mst-can have many optimal solutions
-mySim <- simInit(times = times, params = parameters, modules = modules,
+mySim <- SpaDES.core::simInitAndSpades(times = times, params = parameters, modules = modules,
                  objects = objects, paths = paths)
-
-system.time({
-mysimout<-spades(mySim)
-})
 #eventDiagram(mySimOut)
 ```
 

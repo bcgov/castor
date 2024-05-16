@@ -28,8 +28,8 @@ The dataCastor preps the database connectivity and other objects required to run
 ```{r module_usage}
 library(data.table)
 library(dplyr)
+source(here::here("R/functions/R_Postgres.R"))
 
-#source(here::here("R/functions/R_Postgres.R"))
 paths <- list(
   modulePath = paste0(here::here(),"/R/SpaDES-modules"),
   outputPath = paste0(here::here(),"/R/SpaDES-modules/dataCastor")
