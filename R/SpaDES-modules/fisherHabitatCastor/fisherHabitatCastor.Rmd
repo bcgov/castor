@@ -41,7 +41,7 @@ parameters <- list(
   
   # "dummy" landscape method 
   dataCastor = list(saveCastorDB = TRUE, 
-                    randomLandscape = list (500,500,0,500,0,500),
+                    randomLandscape = list (100,100,0,500,0,500),
                     randomLandscapeClusterLevel = 1.8, #1.8 for low; 1.6 for med; 0.1 for high
                     seedRandomLandscape = 123,
                     maxAgeRandomLandscape = 180, #180 for low; 250 for med and high

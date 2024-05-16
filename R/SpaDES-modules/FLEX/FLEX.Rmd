@@ -20,8 +20,6 @@ This is an agent based model (ABM) to simulate fisher life history on a landscap
 ### Usage
 Run the model below
 ```{r module_usage}
-library (SpaDES.core)
-library(SpaDES.experiment)
 library (data.table)
 library (terra)
 library (keyring)
@@ -33,8 +31,7 @@ library (RANN)
 library(sampling)
 library(BalancedSampling)
 library(ggplot2)
-source (paste0 (here::here(), "/R/functions/R_Postgres.R"))
-
+library(DBI)
 moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 paths <- list(
   modulePath = paste0(here::here(),"/R/SpaDES-modules"),
@@ -53,21 +50,21 @@ parameters <- list(FLEX = list (female_max_age = 9,
                                  timeInterval = 5, # should be consistent with the time interval used to model habitat
                                                     # e.g., growingstockLCUS periodLength
                                 # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
-                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/fisherHabitatCastor/low_to_low_habitat.tif")
+                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
 
                 )
 )
 
 modules <- list ("FLEX")
 
-mySim <- simInit(times = times, 
+mySim <- SpaDES.core::simInit(times = times, 
                  params = parameters, 
                  modules = modules,
                  objects = list(scenario = data.table(name = "test")),
                  paths = paths)
 
 #outputs(mySim) <- data.frame (objectName = c("fisherABMReport"))
-mySimOut <- spades(mySim)
+mySimOut <- SpaDES.core::spades(mySim)
 #experiment(mySim, replicates = 2)
 ```
 

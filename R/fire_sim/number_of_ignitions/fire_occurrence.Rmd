@@ -324,7 +324,7 @@ out
 })
 
 out.fc4<-rbindlist(test.fc4)
-out.fc4<-out.fc1[, FIRE_YEAR:= as.integer(as.character(year))]
+out.fc4<-out.fc4[, FIRE_YEAR:= as.integer(as.character(year))]
 out.fc4.bounds<-out.fc4[, .(nf_low = quantile(pred,p =0.025), nf_med = quantile(pred,p =0.5), nf_up = quantile(pred,p =0.975)), by = c('FIRE_YEAR', 'fire_centre')]
 
 check.out.fc4<-merge(number, out.fc4.bounds, by.x = c('fire_centre', 'FIRE_YEAR'), by.y = c('fire_centre', 'FIRE_YEAR'), all.y =T)
@@ -385,7 +385,7 @@ check.out.fc6<-merge(number, out.fc6.bounds, by.x = c('fire_centre', 'FIRE_YEAR'
 ##compare forecasts
 ```{r}
 #locals
-local.fits<-rbindlist(list(check.out.fc1,check.out.fc2,check.out.fc3,check.out.fc4,check.out.fc5,check.out.fc6))[fire_centre == 1, fc := "Cariboo"][fire_centre == 2, fc := "Coast"][fire_centre == 3, fc := "Kamloops"][fire_centre == 4, fc := "Northwest"][fire_centre == 5, fc := "Prince George"][fire_centre == 6, fc := "Southeast"]
+local.fits<-rbindlist(list(check.out.fc1,check.out.fc3,check.out.fc4,check.out.fc5,check.out.fc6))[fire_centre == 1, fc := "Cariboo"][fire_centre == 2, fc := "Coast"][fire_centre == 3, fc := "Kamloops"][fire_centre == 4, fc := "Northwest"][fire_centre == 5, fc := "Prince George"][fire_centre == 6, fc := "Southeast"]
 check.out<-check.out[fire_centre == 1, fc := "Cariboo"][fire_centre == 2, fc := "Coast"][fire_centre == 3, fc := "Kamloops"][fire_centre == 4, fc := "Northwest"][fire_centre == 5, fc := "Prince George"][fire_centre == 6, fc := "Southeast"]
 local.fits[fire_centre==2, nf_up := NA]
 

@@ -31,7 +31,7 @@ library(SpaDES.core)
 library(data.table)
 library(dplyr)
 
-source(here::here("R/functions/R_Postgres.R"))
+#source(here::here("R/functions/R_Postgres.R"))
 paths <- list(
   modulePath = paste0(here::here(),"/R/SpaDES-modules"),
   outputPath = paste0(here::here(),"/R/SpaDES-modules/dataCastor")
@@ -70,12 +70,12 @@ inputs <- list()
 outputs <- list()
 
 
-mySim <- simInit(times = times, params = parameters, modules = modules,
+mySim <- simInitAndSpades(times = times, params = parameters, modules = modules,
                  objects = objects, paths= paths)
 
-system.time({
-mysimout<-spades(mySim)
-})
+#system.time({
+#mysimout<-spades(mySim)
+#})
 ```
 
 # Dependendices

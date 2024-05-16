@@ -1,0 +1,105 @@
+---
+title: "wolverine"
+output: html_document
+date: '2024-04-29'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(sf)
+library(raster)
+prov_rast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = 3005, resolution = c(100, 100), vals = 0
+)
+```
+
+## Wolverine Spatial Boundary
+The spatial boundary for the herd was sourced bc_caribou_herd_boundary_v20220725. The spatial line work for high eleveation and low elevation habitat (These are the current draft Wolverine Caribou High and Low elevation areas as discussed) was sent Mon October 23, 2023 by Tyler using the files: Wolverine_Caribou_HE_Polygon.shp and Wolverine_Caribou_LE_Polygon.shp
+
+### Create an area of interest boundary
+#### Get information 
+```{r}
+setwd(paste0(here::here(), "/R/scenarios/wolverine/"))
+herd<-st_read("spatial/wolverine_herd_boundary.shp")
+low<-st_zm(st_read("spatial/Wolverine_Caribou_LE_Polygon.shp"), drop = TRUE, what = "ZM")
+high<-st_zm(st_read("spatial/Wolverine_Caribou_HE_Polygon.shp"), drop = TRUE, what = "ZM")
+cpa<-st_zm(st_read("data_raw/CPA_All_Shapes_Merged.shp"), drop = TRUE, what = "ZM")
+bma<-st_zm(st_read("data_raw/csfn_tsd_bma_merged_twa_20240426/csfn_tsd_bma_merged_20240426.shp"), drop = TRUE, what = "ZM")
+```
+#### Objective layers
+There are 4 layers that need to be computed that assign no harvest
+1. High elevation core habitat
+2. BMA within CPAs
+3. BMAs within the aoi
+4. CPAs
+5. Low elevation
+
+```{r}
+high$high<-1
+ras.high<-fasterize::fasterize(high, prov_rast, "high")
+ras.high[is.na(ras.high[])]<-0
+writeRaster(ras.high, "high_elev.tif")
+
+low$low<-1
+ras.low<-fasterize::fasterize(low, prov_rast, "low")
+ras.low[is.na(ras.low[])]<-0
+writeRaster(ras.low, "low_elev.tif")
+
+bma$bma<-1
+bmas_in_cpas<-st_intersection(bma, cpa)
+bmas_in_cpas$bma<-1
+bmas_in_cpas<-st_as_sf(st_cast(bmas_in_cpas, "MULTIPOLYGON"))
+ras.bmas_in_cpas<-fasterize::fasterize(bmas_in_cpas, prov_rast, "bma")
+ras.bmas_in_cpas[is.na(ras.bmas_in_cpas[])]<-0
+writeRaster(ras.bmas_in_cpas, "bma_in_cpa.tif")
+
+ras.bmas<-fasterize::fasterize(bma, prov_rast, "bma")
+ras.bmas[is.na(ras.bmas[])]<-0
+writeRaster(ras.bmas, "bma_aoi.tif")
+
+cpa$cpa<-1
+ras.cpa<-fasterize::fasterize(cpa, prov_rast, "cpa")
+ras.cpa[is.na(ras.cpa[])]<-0
+writeRaster(ras.cpa, "cpa.tif")
+```
+
+### Create constraint layer
+```{r}
+library(dplyr)
+library(data.table)
+source("C:/Users/KLOCHHEA/castor/R/functions/R_Postgres.R")
+zone.constraints.gen<-rbindlist(list(
+  data.table(zoneid =  1, reference_zone = 'rast.wolverine_le', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 0, stop = 250),
+  data.table(zoneid =  1, reference_zone = 'rast.wolverine_he', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  1, reference_zone = 'rast.wolverine_bma_aoi', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  1, reference_zone = 'rast.wolverine_bma_in_cpa', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 0, stop = 250),
+   data.table(zoneid =  1, reference_zone = 'rast.wolverine_cpa', ndt =0, variable= 'age', threshold = 0, type = 'nh', percentage = 0, multi_condition =NA, denom =NA, start = 0, stop = 250)
+  
+))
+zone.constraints.gen$zoneid<-as.integer(zone.constraints.gen$zoneid)
+zone.constraints.gen$ndt<-as.integer(zone.constraints.gen$ndt)
+zone.constraints.gen$denom<-as.character(zone.constraints.gen$denom)
+zone.constraints.gen$multi_condition<-as.character(zone.constraints.gen$multi_condition)
+zone.constraints.gen$start<-as.integer(zone.constraints.gen$start)
+zone.constraints.gen$stop<-as.integer(zone.constraints.gen$stop)
+
+conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
+DBI::dbWriteTable(conn, c("zone", "wolverine_twg_2024"), value= zone.constraints.gen, row.names = FALSE, overwrite = TRUE) 
+dbDisconnect(conn)
+```
+
+### Calculate LRSY
+```{r}
+castordb <- dbConnect(RSQLite::SQLite(), dbname ="C:/Users/klochhea/castor/R/scenarios/wolverine/wolverine_castordb.sqlite")
+
+mai<-dbGetQuery(castordb, "select max(tvol/age) as mai, yieldid from yields where yieldid  > 0 group by yieldid ;")
+
+pixels<-dbGetQuery(castordb, "select thlb, yieldid_trans from pixels where thlb > 0 ;")
+
+lrsy<-data.table(merge(pixels, mai, by.x= "yieldid_trans", by.y = "yieldid"), all.x =T)
+lrsy[,mean(mai, na.rm =T)]
+
+dbGetQuery(castordb, "select sum(thlb) from pixels;")
+dbDisconnect(castordb)
+```

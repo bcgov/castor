@@ -26,7 +26,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.md", "FLEX.Rmd"),
-  reqdPkgs = list("sampling", "BalancedSampling", "RANN", "truncnorm"),
+  reqdPkgs = list(),
   parameters = rbind(
     defineParameter("burnInLength", "integer", 5, 1, 100, "The number of iterations to burn in"),
     defineParameter("d2_target", "integer", 7, 1, 15, "The D2 threshold"), 
@@ -142,6 +142,9 @@ Init <- function(sim) {
   sim$fisherABMReport <- data.table (n_f_adult = as.numeric (), # number of adult females
                                      n_f_juv = as.numeric (), # number of juvenile females
                                      n_f_disp  = as.numeric (), # number of kit females
+                                     mort_n_f_adult = as.numeric (), # number of adult female moralities
+                                     mort_n_f_juv = as.numeric (), # number of juvenile females  moralities
+                                     mort_n_f_disp  = as.numeric (), # number of disperser moralities
                                      mean_age_f = as.numeric (), # mean age of females
                                      sd_age_f = as.numeric (), # standard dev age of females
                                      timeperiod = as.integer (), # time step of the simulation
@@ -172,7 +175,7 @@ Init <- function(sim) {
   
   #Use a well balanced sampling design see: https://dickbrus.github.io/SpatialSamplingwithR/BalancedSpreaded.html#LPM 
   #set.seed(1586) #Useful for testing
-  pi <- sampling::inclusionprobabilities(rep(1/nrow(den.pix), nrow(den.pix)), init_n_fisher) #Equal probability
+  pi <- sampling::inclusionprobabilities(rep(1/nrow(den.pix), nrow(den.pix)), init_n_fisher) #Equal probability. TODO: inclusion probabilities can be based on field data
   den.samples <- lpm(pi, cbind(den.pix.coords$x, den.pix.coords$y), h = 5000) #Local pivot method using BalancedSampling
   denning.starts <- den.pix.coords[den.samples, ]
   
@@ -200,7 +203,7 @@ Init <- function(sim) {
   sim$agents [fisher_pop == 3, hr_size_lb := sim$female_hr_table [fisher_pop == 3, hr_mean]- 2*sim$female_hr_table [fisher_pop == 3, hr_sd]]
   sim$agents [fisher_pop == 4, hr_size_lb := sim$female_hr_table [fisher_pop == 4, hr_mean]- 2*sim$female_hr_table [fisher_pop == 4, hr_sd]]
  
-  # create spread probability raster. Note: this is limited to fisher range
+  # create spread probability raster. Note: this is limited to fisher range. Any pixel thats classified as fisher habitat category contains a probability
   sim$table.hab.spread <- table.habitat.init [ras_fisher_pop > 0, 
                                               c ("pixelid", "ras_fisher_denning_init", "ras_fisher_rust_init", "ras_fisher_cavity_init", "ras_fisher_cwd_init", "ras_fisher_movement_init", "ras_fisher_open_init")]
   names (sim$table.hab.spread) <- c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")
@@ -216,12 +219,17 @@ getInitialFisherHR<-function(sim){
                                        spreadProb = as.numeric (sim$spread.rast[]),
                                        exactSize = sim$agents$hr_size, 
                                        allowOverlap = F, asRaster = F, circle = F)
-  
+  #Convert the raster spread process from territory searching into a minimum convex polygon
+  contingentHR.poly<-mcp_spread(sim$spread.rast, contingentHR)
   #Assess territories for occupancy
+  #Check the size of the territories
+  #Update the sim$agents table to relect territory size that has been polygonized
   #---- 1. Size Criteria
-  check_size <- merge(contingentHR[, .(size_achieved = .N), by = initialPixels], sim$agents [, c ("pixelid", "individual_id", "hr_size", "hr_size_lb")],
+  browser()
+  sim$agents <- merge(data.table(st_drop_geometry(contingentHR.poly))[,c("initialPixels", "size_achieved")], sim$agents,
                            by.x = "initialPixels", by.y = "pixelid")
-  remove_fisher <- check_size[size_achieved < hr_size_lb, ]
+  
+  remove_fisher <- sim$agents[size_achieved < hr_size_lb & size_achieved < hr_size, ]
   sim$dispersers<- sim$agents[individual_id %in% remove_fisher$individual_id, ]
   sim$agents <- sim$agents[!(individual_id %in% remove_fisher$individual_id), ]
   contingentHR <- contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
@@ -231,21 +239,22 @@ getInitialFisherHR<-function(sim){
                        by.x = "pixels", by.y = "pixelid", all.x =TRUE)
   
   hab.count <- check_habitat [denning == 1 | rust == 1 | cavity == 1 |cwd == 1 | movement == 1, .(total_hab = .N), by = initialPixels]
-  hab.count <- merge (hab.count, sim$agents [, c ("hr_size", "pixelid", "individual_id")], by.x = "initialPixels", by.y = "pixelid", all.x=T)
+  hab.count <- merge (hab.count, sim$agents [, c ("size_achieved", "initialPixels", "individual_id")], by.x = "initialPixels", by.y = "initialPixels", all.x=T)
   
-  remove_fisher<- hab.count[total_hab/hr_size < 0.15, ]
+  remove_fisher<- hab.count[total_hab/size_achieved < 0.15, ]
   sim$dispersers<- rbindlist(list(sim$dispersers, sim$agents[individual_id %in% remove_fisher$individual_id, ]))
   sim$agents<-sim$agents[!(individual_id %in% remove_fisher$individual_id), ]
   contingentHR<-contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
   check_habitat <- check_habitat[!(initialPixels %in% remove_fisher$initialPixels),]
   
+ 
   #---- 3. Habitat Quality Criteria
   tab.perc <- habitatQual (check_habitat, sim$agents, sim$fisher_d2_cov)
   remove_fisher<- tab.perc[d2 > P(sim, "d2_target", "FLEX") | den_perc < P(sim, "den_target", "FLEX") | cwd_perc < P(sim, "rest_target", "FLEX")| move_perc < P(sim, "move_target", "FLEX"), ]
   sim$dispersers<- rbindlist(list(sim$dispersers, sim$agents[individual_id %in% remove_fisher$individual_id, ]))
   sim$agents<-sim$agents[!(individual_id %in% remove_fisher$individual_id), ]
   contingentHR<-contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
-  
+  browser()
   # Report Outputs
   sim$agents <- merge (sim$agents, tab.perc [, .(individual_id, d2_score = d2)], by = "individual_id")
   
@@ -786,16 +795,20 @@ litterSize <- function (fisherPop, mahalTable, reproTable, reproFishers){
 
 habitatQual <- function (inputTable, agentsTable, d2Table) {
   tab.perc <- Reduce (function (...) merge (..., all = TRUE, by = "initialPixels"), 
-                      list (inputTable [, .(den_perc = ((sum (denning, na.rm = T)) / .N) * 100), by = initialPixels ], 
-                            inputTable [, .(rust_perc = ((sum (rust, na.rm = T)) / .N) * 100), by = initialPixels ], 
-                            inputTable [, .(cav_perc = ((sum (cavity, na.rm = T)) / .N) * 100), by = initialPixels ], 
-                            inputTable [, .(move_perc = ((sum (movement, na.rm = T)) / .N) * 100), by = initialPixels ], 
-                            inputTable [, .(cwd_perc = ((sum (cwd, na.rm = T)) / .N) * 100), by = initialPixels ],
-                            inputTable [, .(open_perc = ((sum (open, na.rm =T)) / .N) * 100), by = initialPixels])
+                      list (inputTable [, .(den_perc = sum (denning, na.rm = T)) , by = initialPixels ], 
+                            inputTable [, .(rust_perc = sum (rust, na.rm = T)) , by = initialPixels ], 
+                            inputTable [, .(cav_perc = sum (cavity, na.rm = T)) , by = initialPixels ], 
+                            inputTable [, .(move_perc = sum (movement, na.rm = T)) , by = initialPixels ], 
+                            inputTable [, .(cwd_perc = sum (cwd, na.rm = T)) , by = initialPixels ],
+                            inputTable [, .(open_perc = sum (open, na.rm =T)) , by = initialPixels])
   )
+ 
   tab.perc <- merge (tab.perc, 
-                     agentsTable [, c ("pixelid", "individual_id", "fisher_pop")], #individual_id was in this list before
-                     by.x = "initialPixels",by.y = "pixelid", all.x = T)
+                     agentsTable [, c ("initialPixels", "individual_id", "fisher_pop", "size_achieved")], #individual_id was in this list before
+                     by.x = "initialPixels",by.y = "initialPixels", all.x = T)
+  #convert raw areas of habitat to percentage of the territory
+  tab.perc[ ,den_perc:=(den_perc/size_achieved)*100][ ,open_perc:=(open_perc/size_achieved)*100][ ,cwd_perc:=(cwd_perc/size_achieved)*100][ ,move_perc:=(move_perc/size_achieved)*100][ ,cav_perc:=(cav_perc/size_achieved)*100][ ,rust_perc:=(rust_perc/size_achieved)*100]
+  
   # log transform the data
   tab.perc [fisher_pop == 2 & den_perc >= 0, den_perc := log (den_perc + 1)][fisher_pop == 2 & cav_perc >= 0, cavity := log (cav_perc + 1)] # sbs-wet
   tab.perc [fisher_pop == 3 & den_perc >= 0, den_perc := log (den_perc + 1)]# sbs-dry
@@ -820,8 +833,33 @@ habitatQual <- function (inputTable, agentsTable, d2Table) {
   return (tab.perc)
 }
 
+mcp_spread<-function(spread_ras, spread_out_table){ #Turn the spreading raster contagion process into a vectorized polygon needed for statistical consistency with d2 calculation 
+  xy<-data.table(cbind(spread_out_table, raster::xyFromCell(spread_ras, spread_out_table$pixels)))
+  border_pixels<-xy[, keep_right:=max(x), by =c("y", "initialPixels") ][, keep_left:=min(x), by = c("y", "initialPixels")][ keep_right == x | keep_left ==x,]
+  border_pts <- st_as_sf(border_pixels, coords = c(4:5), agr ="initialPixels")
+  border_pts<-border_pts %>%
+    group_by(initialPixels) %>% 
+    summarize(geometry = st_union(geometry))
+  border.poly<-st_convex_hull(border_pts)
+  browser()
+  #Lets take the overestimate of the convexhull and remove any pixels outside perimeter
+  ras.mcp<-terra::rasterize( border.poly, spread_ras, field = "initialPixels")
+  dt.mcp<-data.table(initialPixels= ras.mcp[])[,pixelid := seq_len(.N)][!is.na(initialPixels),]
+  #get the x and y of each pixel within each territory
+  dt.mcp<-data.table(cbind(dt.mcp, raster::xyFromCell(ras, dt.mcp$pixelid)))
+  setnames(dt.mcp, c("x", "y"), c("X", "Y")) #rename so its not the same as other layer
+  
+  border_pixels2<-merge(dt.mcp, border_pixels[!is.na(keep_left), c("y", "initialPixels", "keep_left", "keep_right")], 
+               by.x = c("Y", "initialPixels"), by.y = c( "y","initialPixels"), all.x=T, allow.cartesian=TRUE)
+  border_pixels3<-border_pixels2[X>=keep_left & X<=keep_right,]
+  
+  border_pixels4<-merge(border_pixels3, border_pixels[!is.na(keep_below), c("x", "initialPixels", "keep_above", "keep_below")],  by.x = c("X", "initialPixels"), by.y = c( "x","initialPixels"), all.x=T, allow.cartesian=TRUE)
+  border_pixels5<-border_pixels4[Y>=keep_above & Y<=keep_below,]
+  return(border_pixels5)
+}
+
 spreadRast <- function (rasterInput, habitatInput, mask) {
-  #TODO: Net out current maintained territories so that NEW fisher can't spread into established territories
+  #Net out current maintained territories so that NEW fisher can't spread into established territories
   out.rast <- rasterInput
   out.rast [] <- 0
   

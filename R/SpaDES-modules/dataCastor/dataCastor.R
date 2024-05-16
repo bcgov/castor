@@ -24,7 +24,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "dataCastor.Rmd"),
-  reqdPkgs = list("sf", "rpostgis","DBI", "RSQLite", "data.table", "rpostgis", "sqldf"),
+  reqdPkgs = list(),
   parameters = rbind(
     
    defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant"),
