@@ -26,8 +26,6 @@ The dataCastor preps the database connectivity and other objects required to run
 # Usage
 
 ```{r module_usage}
-library(SpaDES)
-library(SpaDES.core)
 library(data.table)
 library(dplyr)
 
@@ -70,7 +68,7 @@ inputs <- list()
 outputs <- list()
 
 
-mySim <- simInitAndSpades(times = times, params = parameters, modules = modules,
+mySim <- SpaDES.core::simInitAndSpades(times = times, params = parameters, modules = modules,
                  objects = objects, paths= paths)
 
 #system.time({
