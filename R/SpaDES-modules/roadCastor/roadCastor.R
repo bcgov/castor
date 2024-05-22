@@ -378,11 +378,11 @@ setGraph<- function(sim){
   #Step 2: create edges between these pixels ---mimick the connection to the rest of the network
   #step 3: Label the edges with the correct vertex name
   if(!is.null(sim$boundaryInfo)){
-    
+    browser()
     bound.line<-getSpatialQuery(paste0("select st_boundary(",sim$boundaryInfo[[4]],") as geom from ",sim$boundaryInfo[[1]]," where 
     ",sim$boundaryInfo[[2]]," in ('",paste(sim$boundaryInfo[[3]], collapse = "', '") ,"')"))
-    #TODO: Need a velox workaround. Testing below
-    step.one<-terra::extract(sim$ras, terra::vect(bound.line), cells=TRUE, xy=FALSE, ID = FALSE)$layer
+    #A velox workaround. Testing below
+    step.one<-terra::extract(sim$ras, terra::vect(bound.line), cells=TRUE, xy=FALSE, ID = FALSE)$lyr.1
     
     step.two<-data.table(dbGetQuery(sim$castordb, paste0("select pixelid, roadtype from pixels where roadtype >= 0 and 
                                                   pixelid in (",paste(step.one, collapse = ', '),")")))
@@ -518,6 +518,7 @@ lcpList<- function(sim){##Get a list of paths from which there is a to and from 
 mstSolve <- function(sim){
   message('mstSolve')
   #------get the edge list between a permanent road and the landing
+  if(!is.null(sim$harvestPixelList)){
   landing.cell <- data.table(landings = sim$harvestPixelList[sim$harvestPixelList[, .I[which.min(dist)], by=blockid]$V1]$pixelid )[!(landings %in% sim$perm.roads$pixelid),][ landings %in% sim$nodes, ]
   #landing.cell <- data.table(landings = cellFromXY(sim$ras,sim$landings))[!(landings %in% sim$perm.roads$pixelid),] #remove landings on permanent roads
   weights.closest.rd <- cppRouting::get_distance_matrix(Graph=sim$g, 
@@ -575,6 +576,7 @@ mstSolve <- function(sim){
     #------Clean up
     rm(landing.cell,weights.closest.rd,edge.list,edges.all,gi.mst,paths.matrix,toRoadSourceID,alreadyRoaded)
     gc()
+  }
   }
   return(invisible(sim)) 
 }
