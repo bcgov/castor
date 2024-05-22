@@ -153,7 +153,8 @@ forestryCastor = list(harvestBlockPriority = " age DESC ",
                     nameForestInventoryspecies_pct_6 = "spec_pct_6",
                     pixelid_10kmRast = "rast.pixelId10km",
                     nameFirepixel10km = "vat.spatially_varying_10km_vat",
-                    numberFireReps = 1)
+                    numberFireReps = 1,
+                    nameRoadsRast =  'rast.ce_road_2019')
 )
 
 modules <- list("dataCastor", 
@@ -285,22 +286,8 @@ area[]<-mySim$probFireRasts$prob_tot_ignit
 plot(area)
 
 par(xpd = FALSE)
-plot(
-  area,
-  legend = FALSE,
-  col = c(
-    "grey",
-    "forestgreen",
-    "tan",
-    "lightgreen",
-    "orange",
-    "coral",
-    "yellow",
-    "pink",
-    "purple",
-    "violet",
-    "royalblue"
-    ),
+plot(ras.climate,
+  col = c("forestgreen", "tan", "grey"),
   xaxt = 'n',
   yaxt = 'n'
 )
