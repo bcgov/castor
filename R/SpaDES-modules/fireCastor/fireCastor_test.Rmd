@@ -90,6 +90,7 @@ forestryCastor = list(harvestBlockPriority = " age DESC ",
                               patchZone = 'rast.zone_cond_beo',
                               patchVariation = 6,
                               nameCutblockRaster = "rast.cns_cut_bl",
+                        
                               useLandingsArea = FALSE),
   growingStockCastor = list (periodLength = 1,
                              maxYieldAge = 250),
@@ -243,7 +244,7 @@ library(DiagrammeR)
 depsEdgeList(mySim, FALSE)
 moduleDiagram(mySim, type="Plot")  
 modDia <- depsGraph(mySim, plot = TRUE)
-plot(modDia, layout=layout_in_circle
+
 
 objectDiagram(mySim)
 eventDiagram(mySim)

@@ -241,23 +241,23 @@ preBlock <- function(sim) {
   edges[from < to, c("from", "to") := .(to, from)] #find the duplicates. Since this is non-directional graph no need for weights in two directions
   edges<-unique(edges)#remove the duplicates
 
-  weight<-data.table(dbGetQuery(sim$castordb, 'SELECT pixelid, crownclosure, height FROM pixels WHERE 
+  weight<-data.table(dbGetQuery(sim$castordb, 'SELECT pixelid, basalarea, height FROM pixels WHERE 
                                 thlb > 0 AND blockid = 0;')) # convert to a data.table - faster for large objects than data.frame
 
-  #scale the crownclosure and height between 0 and 1 to remove bias of distances towards a variable
-  weight[, height:=scale(height)][, crownclosure:=scale(crownclosure)] #scale the variables
+  #scale the basalarea and height between 0 and 1 to remove bias of distances towards a variable
+  weight[, height:=scale(height)][, basalarea:=scale(basalarea)] #scale the variables
 
   #Get the inverse of the covariance-variance matrix or since its standardized correlation matrix
-  covm<-solve(cov(weight[,c("crownclosure", "height")], use= 'complete.obs'))
+  covm<-solve(cov(weight[,c("basalarea", "height")], use= 'complete.obs'))
 
   edges.w1<-merge(x=edges, y=weight, by.x= "from", by.y ="pixelid", all.x= TRUE) #merge in the weights from a cost surface
   setnames(edges.w1, c("from", "to", "w1_cc", "w1_ht"))  #reformat
   edges.w2<-data.table::setDT(merge(x=edges.w1, y=weight, by.x= "to", by.y ="pixelid", all.x= TRUE))#merge in the weights to a cost surface
-  setnames(edges.w2, c("from", "to", "w1_cc", "w1_ht", "w2_cc", "w2_ht")) #reformat
+  setnames(edges.w2, c("from", "to", "w1_ba", "w1_ht", "w2_ba", "w2_ht")) #reformat
   
   #edges.w2$weight<-abs(edges.w2$w2 - edges.w2$w1) #take the absolute cost between the two pixels
-  edges.w2[, weight:= (w1_cc-w2_cc)*((w1_cc-w2_cc)*covm[1,1] + (w1_ht-w2_ht)*covm[1,2]) + 
-  (w1_ht-w2_ht)*((w1_cc-w2_cc)*covm[2,1] + (w1_ht-w2_ht)*covm[2,2]) + runif(nrow(edges.w2), 0, 0.0001)] #take the mahalanobis distance between the two pixels
+  edges.w2[, weight:= (w1_ba-w2_ba)*((w1_ba-w2_ba)*covm[1,1] + (w1_ht-w2_ht)*covm[1,2]) + 
+  (w1_ht-w2_ht)*((w1_ba-w2_ba)*covm[2,1] + (w1_ht-w2_ht)*covm[2,2]) + runif(nrow(edges.w2), 0, 0.0001)] #take the mahalanobis distance between the two pixels
   #Note for the mahalanobis distance sum of d standard normal random variables has Chi-Square distribution with d degrees of freedom
   
   #------get the edges list
@@ -267,14 +267,16 @@ preBlock <- function(sim) {
   #summary(edges.weight$weight)
   #------make the graph
   #g<-graph.lattice(c(nrow(sim$ras), ncol(sim$ras), 1))#instantiate the igraph object
-  g<-graph.edgelist(edges.weight[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
-  E(g)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
+  g.block<-graph.edgelist(edges.weight[,1:2], dir = FALSE) #create the graph using to and from columns. Requires a matrix input
+  E(g.block)$weight<-edges.weight[,3]#assign weights to the graph. Requires a matrix input
   #V(g)$name<-V(g) #assigns the name of the vertex - useful for maintaining link with raster
-  g<-g %>% 
-    igraph::set_vertex_attr("name", value = V(g))
-  g<-igraph::delete_vertices(g, igraph::degree(g) == 0) #not sure this is actually needed for speed gains? The problem here is that it may delete island pixels
-  #test22<<-dbGetQuery(sim$castordb, "select pixelid from pixels where thlb > 0 AND blockid = 0 and zone1 = 22;")
- # stop()
+  g.block<-g.block %>% 
+    igraph::set_vertex_attr("name", value = V(g.block))
+  g.block<-igraph::delete_vertices(g.block, igraph::degree(g.block) == 0) #not sure this is actually needed for speed gains? The problem here is that it may delete island pixels
+  # stop()
+  #conversion between vids and name
+  convert.vids<-data.table(vids = V(g.block), pixelid = V(g.block)$name)
+  
   patchSizeZone<-dbGetQuery(sim$castordb, paste0("SELECT zone_column FROM zone where reference_zone = '",  P(sim, "patchZone", "blockingCastor"),"'"))
   if(nrow(patchSizeZone) == 0){
     stop(paste0("check ", P(sim, "patchZone", "blockingCastor")))
@@ -286,18 +288,20 @@ preBlock <- function(sim) {
   islands<-list() #create an empty list to add pixels that are islands and don't connect to the graph
 
   for(zone in zones){
+    
     message(paste0("loading--", zone))
     vertices<-data.table(dbGetQuery(sim$castordb,
           paste0("SELECT pixelid FROM pixels where thlb > 0 AND blockid = 0 and ", patchSizeZone, " = ", zone, ";")))
     
-    islands_new<-vertices[!(pixelid %in% V(g)$name),] #check to make sure all the verticies are in the graph
+    islands_new<-vertices[!(pixelid %in% V(g.block)$name),] #check to make sure all the verticies are in the graph
     if(nrow(islands_new) > 0){
       vertices<-vertices[!(pixelid %in% unlist(islands_new, use.names = FALSE)),] #grab only the verticies that are in the graph -- this means verticies that are 'islands' are not included. These are added in later in the algorithm
       islands<-append(islands, islands_new)
     }
     
     #get the inputs for the forest_hierarchy java object as a list. This involves induced_subgraph
-    g.sub<-induced_subgraph(g, vids = as.character(vertices$pixelid))
+    vids.sub<-convert.vids[pixelid %in% vertices$pixelid,]
+    g.sub<-induced_subgraph(g.block, vids = vids.sub$vids)
    #browser()
     if(length(V(g.sub)) > 1){
       lut<-data.table(verts = as_ids(V(g.sub)))[, ind := seq_len(.N)]
@@ -337,7 +341,7 @@ preBlock <- function(sim) {
   }
   
   #Run the forest_hierarchy java object in parallel. One for each 'zone'. This will maintain zone boundaries as block boundaries
-  if(length(zones) > 1 && object.size(g) > 10000000000){ #0.1 GB
+  if(length(zones) > 1 && object.size(g.block) > 10000000000){ #0.1 GB
     noCores<-min(parallel::detectCores()-1, length(zones))
     message(paste0("make cluster on:", noCores, " cores"))
     #Set up the clusters
@@ -355,7 +359,7 @@ preBlock <- function(sim) {
     blockids<-lapply(resultset, getBlocksIDs)
   }#blockids is a list of integers representing blockids and the corresponding vertex names (i.e., pixelid)
   
-  rm(resultset, g, covm)
+  rm(resultset, g.block, covm)
   gc()
   
   message("Updating blocks table")

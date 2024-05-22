@@ -32,7 +32,8 @@ defineModule(sim, list(
     defineParameter("endTime", "numeric", end(sim), NA, NA, desc = "Simulation time at which to end"),
    defineParameter("seedRandomLandscape", "integer", 123, 1, 100000, "The seed for building random landscapes"),
    defineParameter("maxAgeRandomLandscape", "integer", 250, 1, 400, "The maximum age for building random landscapes"),
-   defineParameter("dbName", "character", "postgres", NA, NA, "The name of the postgres dataabse"),
+   defineParameter("buffer_aoi", "numeric", 0, 0, 1000000, "Buffer the area of interest in metres"),
+    defineParameter("dbName", "character", "postgres", NA, NA, "The name of the postgres dataabse"),
     defineParameter("dbHost", "character", 'localhost', NA, NA, "The name of the postgres host"),
     defineParameter("dbPort", "character", '5432', NA, NA, "The name of the postgres port"),
     defineParameter("dbUser", "character", 'postgres', NA, NA, "The name of the postgres user"),
@@ -119,7 +120,7 @@ doEvent.dataCastor = function(sim, eventTime, eventType, debug = FALSE) {
         sim <- setZoneConstraints(sim)
         sim <- setZonePrescriptions(sim)
         sim <- setIndexesCastorDB(sim) # creates index to facilitate db querying?
-        sim <- updateGS(sim) # update the forest attributes
+        #sim <- updateGS(sim) # update the forest attribute. Removing this so that blockingCastor can run even though yield curves may not have basal area or height
         sim <- scheduleEvent(sim, eventTime = 0,  "dataCastor", "forestStateNetdown", eventPriority=90)
           
       }else{ #copy existing castordb
@@ -990,8 +991,7 @@ ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age;"))
     dbCommit(sim$castordb)
   }
   
-  message("...create indexes")
-  dbExecute(sim$castordb, "CREATE INDEX index_height on pixels (height);")
+  
   rm(tab1)
   gc()
   return(invisible(sim))
