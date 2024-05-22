@@ -421,9 +421,9 @@ getClimateVariables <- function(sim) {
    clim_dat[frt==15, climate1escape:=(cmd07 +cmd08)/2]
    
    # spread
-   clim_dat[frt %in% c(5,7), climate1spread:=(CMI03 + CMI04)/2]
+   clim_dat[frt %in% c(5,7), climate1spread:=(cmi03 + cmi04)/2]
    clim_dat[frt %in% c(9,11),climate1spread:=(tave03+tave04+tave05+tave06+tave07+tave08)/6]
-   clim_dat[frt %in% c(9,11),climate2spread:=(ppt03+ppt04+ppt05+ppt6+ppt07+ppt08)/6]
+   clim_dat[frt %in% c(9,11),climate2spread:=(ppt03+ppt04+ppt05+ppt06+ppt07+ppt08)/6]
    clim_dat[frt == 10, climate1spread:=tmax06]
    clim_dat[frt == 10, climate2spread:=ppt06]
    clim_dat[frt == 12, climate1spread:=(tmax04 + tmax05 + tmax06)/3]
@@ -520,30 +520,6 @@ createVegetationTable <- function(sim) {
   return(invisible(sim)) 
 }
 
-
-# calcFuelTypes<- function(sim) {
-#   
-# message("getting vegetation data")
-# 
-#   veg_attributes<- data.table(dbGetQuery(sim$castordb, "SELECT pixelid, basalarea, height FROM pixels"))
-#   
-#   veg2<-merge(sim$inv, veg_attributes, by.x="pixelid", by.y = "pixelid", all.x=TRUE)
-#   
-#   veg2[height >= 4 & basalarea >= 8 & bclcs_level_4 == "TC", veg_cat:=1]
-#   veg2[height >= 4 & basalarea >= 8 & bclcs_level_4 == "TM", veg_cat:=2]
-#   veg2[height >= 4 & basalarea >= 8 & bclcs_level_4 == "TB", veg_cat:=3]
-#   veg2[((height < 4 | basalarea < 8 | is.na(height ) | is.na(basalarea)) & bclcs_level_4 %in% c("TC", "TM", "TB")), veg_cat:=4]
-#   veg2[bclcs_level_1 == 'V' & !bclcs_level_4 %in% c("TC", "TM", "TB"), veg_cat:=5]
-#   veg2[bclcs_level_1 != 'V', veg_cat:=6] # & (is.na(basalarea) | basalarea < 8)
-#   
-#   veg2[is.na(veg_cat), veg_cat:=0]
-#   veg2[,c("bclcs_level_1", "bclcs_level_4", "basalarea", "height"):=NULL]
-#   
-#   rm(veg_attributes, veg2)
-#   gc()
-#   
-#   return(invisible(sim)) 
-# }
 
 calcProbEscapeSpread<-function(sim){
   
