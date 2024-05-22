@@ -49,7 +49,7 @@ moduleDir <- file.path(paste0(here::here(), "/R/SpaDES-modules"))
 inputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/fireCastor/inputs")) %>% reproducible::checkPath(create = TRUE)
 outputDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/fireCastor/outputs"))
 cacheDir <- file.path(paste0(here::here(), "/R/SpaDES-modules/tests"))
-times <- list(start = 0, end = 10) # 5 year interval; 200 years = 40 intervals
+times <- list(start = 0, end = 0) # 5 year interval; 200 years = 40 intervals
 parameters <-  list (
         .progress = list (type = NA, interval = NA),
         .globals = list (),
@@ -159,12 +159,13 @@ forestryCastor = list(harvestBlockPriority = " age DESC ",
 
 modules <- list("dataCastor", 
                 "growingStockCastor", 
-                "blockingCastor"
-                #"forestryCastor", 
-                #"roadCastor",  
-                #"disturbanceCastor",
-                #"climateCastor",
-                #"fireCastor"
+                "blockingCastor",
+                "roadCastor",
+                #"forestryCastor" 
+                 
+                "disturbanceCastor",
+                "climateCastor",
+                "fireCastor"
                 #"uploadCastor",
                 #"volumebyareaReportCastor"
                 )
