@@ -421,8 +421,7 @@ getClimateVariables <- function(sim) {
    clim_dat[frt==15, climate1escape:=(cmd07 +cmd08)/2]
    
    # spread
-   clim_dat[frt %in% c(5,7), climate1spread:=(tmax06+tmax07+tmax08)/3]
-   clim_dat[frt %in% c(5,7), climate2spread:=(ppt06+ppt07+ppt08)/3]
+   clim_dat[frt %in% c(5,7), climate1spread:=(CMI03 + CMI04)/2]
    clim_dat[frt %in% c(9,11),climate1spread:=(tave03+tave04+tave05+tave06+tave07+tave08)/6]
    clim_dat[frt %in% c(9,11),climate2spread:=(ppt03+ppt04+ppt05+ppt6+ppt07+ppt08)/6]
    clim_dat[frt == 10, climate1spread:=tmax06]
@@ -562,6 +561,8 @@ end as veg_cat FROM pixels"))
   vegRas[]<-vri$veg_cat
   terra::writeRaster(vegRas, file = paste0 ("veg_", time(sim)*sim$updateInterval, ".tif"),  overwrite=TRUE)
   
+  browser()
+  
   dat<-merge(vri, sim$climate_data, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   dat<-merge(dat, sim$road_distance, by.x="pixelid", by.y="pixelid", all.x=TRUE)
   dat<-merge(dat,sim$fire_static, all.x=TRUE)
@@ -607,7 +608,6 @@ end as veg_cat FROM pixels"))
   #### FRT 5 and 7  ####
   #---------#
   
-  # doubel check whether I fitted separate models for spread for frt5 and 7 or whether I fitted them together.
   if (nrow(sim$dat[frt %in% c(5,7),])>0) {
   frt57<- sim$dat[frt %in% c(5,7), ]
   head(frt57)
@@ -618,7 +618,7 @@ end as veg_cat FROM pixels"))
   # change veg categories to ones that we have coefficients
   
   frt57[, logit_P_escape := -0.3739924 +
-         -0.02523745*climate2escape +
+         -0.02523745*climate1escape +
          0.3501348*veg_cat2 +
          0.9389967*veg_cat3 +
          0.5863252*veg_cat4 +
@@ -639,38 +639,26 @@ end as veg_cat FROM pixels"))
   
   #Scale variables with the data I created the models with
   #frt57$scale_climate1<-(frt57$climate1-20.97079) / 1.433168
-  frt57$scale_climate2<-(frt57$climate2spread-80.29119) / 12.85758
-  frt57$scale_dem<-(frt57$elv-675.5577)/210.2049
-  frt57$scale_slope<-(frt57$slope-2.530125) / 4.447013
-  frt57$scale_roads<-(frt57$rds_dist-1004.205) / 1985.722
-  #frt57$scale_infr<-(frt57$dist_infr_m-3340.382) / 5622.158
-  frt57$scale_dist_ignit<-(frt57$rast_ignit_dist-8018.723) / 7091.67
-  frt57$scale_pct_conifer<-(frt57$conifer_pct_cover_total-79.19533)/29.11062
-  frt57$scale_age<-(frt57$age-95.839)/43.66147
-  frt57$scale_basal_area<-(frt57$basalarea-17.66548)/14.79058
+  frt57$scale_climate1<-(frt57$climate1spread-2.254368) / 1.761621
+  frt57$scale_dem<-(frt57$elv-759.0952)/263.1427
   
-  frt57[,bec_zone_SWB:=0][zone=="SWB", bec_zone_SWB:=1]
+  frt57$scale_pct_conifer<-(frt57$conifer_pct_cover_total-80.13318)/28.90784
+  frt57$scale_age<-(frt57$age-102.9738)/44.00794
+  frt57$scale_basal_area<-(frt57$basalarea-19.89281)/15.43368
   
   #m5<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt5.rds")
   
-  frt57[,logit_P_spread:= -0.51288 + 
-           0.35881*scale_dem +
-           0.02666*scale_climate2+
-           -0.17354*veg_cat2+
-           -0.16222*veg_cat3+
-           -0.18666*veg_cat4+
-           -0.59184*veg_cat5+
-           0.15039* scale_roads+
-           -1.01801*scale_dist_ignit+
-           0.12210*scale_age+
-           0.16369*scale_pct_conifer+
-           0.05432*scale_basal_area+
-           -1.79253*bec_zone_SWB+
-           0.05913*scale_dem*scale_climate2+
-           -0.03104*scale_climate2*veg_cat2+
-           -0.30879*scale_climate2*veg_cat3+
-           -0.07977*scale_climate2*veg_cat4+
-           0.12342*scale_climate2*veg_cat5]
+  frt57[,logit_P_spread:= 0.51426  + 
+          0.19775*scale_dem +
+          -0.20059*scale_climate1+
+          -0.16956*veg_cat2+
+          -0.04948*veg_cat3+
+          -0.12951*veg_cat4+
+          -0.35333*veg_cat5+
+          -0.05089*log(dist_infra+1)+
+          0.11826*scale_age+
+          0.22125*scale_pct_conifer+
+          0.09886*scale_basal_area]
   
   frt57[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
   frt57[veg_cat==6, prob_ignition_spread:=0]
@@ -713,53 +701,38 @@ end as veg_cat FROM pixels"))
   frt9$scale_climate2<-(frt9$climate2spread-33.65742) / 9.92722
   frt9$scale_dem<-(frt9$elv-906.1805)/251.4938
   frt9$scale_slope<-(frt9$slope-7.330724) / 7.268391
-  frt9$scale_roads<-(frt9$rds_dist-10128.31) / 7970.11
-  frt9$scale_infr<-(frt9$dist_infra-27227.51) / 13979.28
-  frt9$scale_dist_ignit<-(frt9$rast_ignit_dist-20163.07) / 15202.81
-  frt9$scale_pct_conifer<-(frt9$conifer_pct_cover_total-90.92838)/19.79545
+  #frt9$scale_roads<-(frt9$rds_dist-10128.31) / 7970.11
+  #frt9$scale_infr<-(frt9$dist_infra-27227.51) / 13979.28
+  #frt9$scale_dist_ignit<-(frt9$rast_ignit_dist-20163.07) / 15202.81
+ # frt9$scale_pct_conifer<-(frt9$conifer_pct_cover_total-90.92838)/19.79545
   frt9$scale_age<-(frt9$age-136.0173)/72.32967
   frt9$scale_basal_area<-(frt9$basalarea-21.4939)/8.85824
-  
-  frt9[zone=="CMA", zone:="ICH"]
-  frt9[zone=="BAFA", zone:="ESSF"]
-  frt9[zone=="ICH", zone:="SBS"]
   
   frt9$dist_infra_categories<-cut(frt9$dist_infr_m/1000,breaks = c(-1, 5, 20, 50, max(frt9$dist_infr_m/1000)+1),labels = c("A", "B", "C", "D"))
   
   frt9[,dist_infra_catB:=0][dist_infra_categories=="B", dist_infra_catB:=1]
-  frt9[,dist_infra_catC:=0][dist_infra_categories=="C", dist_infra_catB:=1]
-  frt9[,dist_infra_catD:=0][dist_infra_categories=="D", dist_infra_catB:=1]
-  
-  frt9[,zoneESSF:=0][zone=="ESSF", zoneESSF:=1]
-  frt9[,zoneSBS:=0][zone=="SBS", zoneSBS :=1]
-  frt9[,zoneSWB:=0][zone=="SWB", zoneSWB:=1]
+  frt9[,dist_infra_catC:=0][dist_infra_categories=="C", dist_infra_catC:=1]
+  frt9[,dist_infra_catD:=0][dist_infra_categories=="D", dist_infra_catD:=1]
   
  # m9<-readRDS("C:/Work/caribou/castor/R/fire_sim/tmp/frt9.rds")
   
-  frt9[, logit_P_spread := 1.37771 +
-         0.27089 * scale_climate1 +
-         -0.06553 * scale_climate2 +
-         -0.38491 * veg_cat2 +
-         -0.75697 * veg_cat3 +
-         -0.28233 * veg_cat4 +
-         0.43881 * veg_cat5 +
-         -0.68908 * dist_infra_catB + 
-         -0.94290 * dist_infra_catC +
-         -0.41263 * dist_infra_catD +
-         0.33701 * scale_age + 
-         0.10440 * scale_slope +
-         -1.63931 * zoneESSF + 
-         -2.25293 * zoneSBS +
-         -0.36129 * zoneSWB + 
-         0.10418 * scale_climate1 * scale_climate2 +
-         -0.06530 * scale_climate1 * veg_cat2 +
-         0.28756 * scale_climate1 * veg_cat3 +
-         -0.04303*scale_climate1 * veg_cat4 +
-         0.01524*scale_climate1 * veg_cat5 +
-         0.04214 * scale_climate2 * veg_cat2 +
-         0.25618 * scale_climate2 * veg_cat3 +
-         -0.05054*scale_climate2 * veg_cat4 +
-         -0.16198*scale_climate2 * veg_cat5]
+  frt9[, logit_P_spread := 1.097943 +
+         0.359071 * scale_climate1 +
+         -0.179080 * scale_climate2 +
+         -0.365034 * veg_cat2 +
+         -0.713033 * veg_cat3 +
+         -0.300743 * veg_cat4 +
+         0.378190 * veg_cat5 +
+         -0.679518 * dist_infra_catB + 
+         -0.954738 * dist_infra_catC +
+         -0.464892 * dist_infra_catD +
+         0.323734 * scale_age + 
+         0.107939 * scale_slope +
+         0.139718 * scale_climate1 * scale_climate2 +
+         -0.107724 * scale_climate1 * veg_cat2 +
+         0.166200 * scale_climate1 * veg_cat3 +
+         -0.005007*scale_climate1 * veg_cat4 +
+         0.027823*scale_climate1 * veg_cat5]
          
        frt9[,prob_ignition_spread := exp(logit_P_spread)/(1+exp(logit_P_spread))]
        frt9[veg_cat==6, prob_ignition_spread:=0]
