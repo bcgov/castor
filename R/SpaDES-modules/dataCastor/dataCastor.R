@@ -119,7 +119,7 @@ doEvent.dataCastor = function(sim, eventTime, eventType, debug = FALSE) {
         sim <- setZoneConstraints(sim)
         sim <- setZonePrescriptions(sim)
         sim <- setIndexesCastorDB(sim) # creates index to facilitate db querying?
-        sim <- updateGS(sim) # update the forest attributes
+        #sim <- updateGS(sim) # update the forest attribute. Removing this so that blockingCastor can run even though yield curves may not have basal area or height
         sim <- scheduleEvent(sim, eventTime = 0,  "dataCastor", "forestStateNetdown", eventPriority=90)
           
       }else{ #copy existing castordb
