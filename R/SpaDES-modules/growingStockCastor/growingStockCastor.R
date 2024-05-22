@@ -138,7 +138,8 @@ ON t.yieldid = k.yieldid AND round(t.age/10+0.5)*10 = k.age;"))
   sim$growingStockReport<-data.table(scenario = sim$scenario$name, timeperiod = time(sim)*P(sim, "periodLength", "growingStockCastor"),  
                                      dbGetQuery(sim$castordb,"SELECT sum(vol) as gs, sum(vol*thlb) as m_gs, sum(vol*thlb*dec_pcnt) as m_dec_gs, compartid as compartment FROM pixels group by compartid;"))
                                      
-  
+  message("...create indexes")
+  dbExecute(sim$castordb, "CREATE INDEX index_height on pixels (height);")
   rm(tab1)
   gc()
   return(invisible(sim))

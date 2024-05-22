@@ -210,12 +210,15 @@ RASTER_CLIP2 <- function(tmpRast, srcRaster, clipper, geom, where_clause, conn=N
   if (is.null(conn)){
     conn<-DBI::dbConnect(dbDriver("PostgreSQL"), host=keyring::key_get('dbhost', keyring = 'postgreSQL'), dbname = keyring::key_get('dbname', keyring = 'postgreSQL'), port='5432' ,user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
   }
-  #--Build the query string to execute the function to generate temporary Raster
-  qry = sprintf("select public.faib_raster_clip2('%s', '%s', '%s', '%s', '%s');", tmpRast, srcRaster, clipper, geom, where_clause)
-  #--Execute the query
-  r<-dbGetQuery(conn, qry)
+ 
+    #--Build the query string to execute the function to generate temporary Raster
+    qry = sprintf("select public.faib_raster_clip2('%s', '%s', '%s', '%s', '%s');", tmpRast, srcRaster, clipper, geom, where_clause)
+    #--Execute the query
+    r<-dbGetQuery(conn, qry)
+
+  
   #--Get Raster Layer object of Raster result
-  rout <- pgGetRast2(conn, tolower(tmpRast), 'rast', 1,returnclass = "raster")
+  rout <- pgGetRast2(conn, tolower(tmpRast), 'rast', 1, returnclass = "raster")
   #--Drop the temporary Raster from the DB
   qry = paste('DROP TABLE IF EXISTS', tmpRast, ' CASCADE;')
   dbGetQuery(conn, qry)
