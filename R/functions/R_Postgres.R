@@ -218,7 +218,7 @@ RASTER_CLIP2 <- function(tmpRast, srcRaster, clipper, geom, where_clause, conn=N
 
   
   #--Get Raster Layer object of Raster result
-  rout <- pgGetRast2(conn, tolower(tmpRast), 'rast', 1, returnclass = "raster")
+  rout <- suppressMessages(pgGetRast2(conn, tolower(tmpRast), 'rast', 1, returnclass = "raster"))
   #--Drop the temporary Raster from the DB
   qry = paste('DROP TABLE IF EXISTS', tmpRast, ' CASCADE;')
   dbGetQuery(conn, qry)
