@@ -50,6 +50,7 @@ defineModule(sim, list(
     expectsInput(objectName = "growingStockReport", objectClass = "data.table", desc = NA, sourceURL = NA),
     expectsInput(objectName = "pts", objectClass = "data.table", desc = "A data.table of X,Y locations - used to find distances", sourceURL = NA),
     expectsInput(objectName = "ras", objectClass = "SpatRaster", desc = "A raster of the study area", sourceURL = NA),
+    expectsInput(objectName = "harvestSchedule", objectClass = "SpatRaster", desc = "A raster of harvest units for each time period", sourceURL = NA),
     expectsInput(objectName = "scenario", objectClass ="data.table", desc = 'The name of the scenario and its description', sourceURL = NA),
     expectsInput(objectName = "updateInterval", objectClass ="numeric", desc = 'The length of the time period. Ex, 1 year, 5 year', sourceURL = NA)
     
@@ -76,8 +77,13 @@ doEvent.forestryCastor = function(sim, eventTime, eventType) {
     eventType,
     init = {
       sim <- Init(sim) #note target flow is a data.table object-- dont need to get it.
-      sim <- scheduleEvent(sim, time(sim)+ 1, "forestryCastor", "schedule", 3)
-      sim <- scheduleEvent(sim, end(sim) , "forestryCastor", "save", 9)
+      if(!is.null(harvestSchedule)){
+        sim <- scheduleEvent(sim, time(sim)+ 1, "forestryCastor", "followSchedule", 3)
+        sim <- scheduleEvent(sim, end(sim) , "forestryCastor", "save", 9)
+      }else{
+        sim <- scheduleEvent(sim, time(sim)+ 1, "forestryCastor", "schedule", 3)
+        sim <- scheduleEvent(sim, end(sim) , "forestryCastor", "save", 9)
+      }
       
       if(P(sim, "harvestZonePriorityInterval", "forestryCastor") > 0){
         sim <- scheduleEvent(sim, time(sim)+ 1 , "forestryCastor", "updateZonePriority", 10)
@@ -87,6 +93,10 @@ doEvent.forestryCastor = function(sim, eventTime, eventType) {
       sim <- setConstraints(sim)
       sim <- getHarvestQueue(sim) # This returns a candidate set of blocks or pixels that could be harvested
       sim <- scheduleEvent(sim, time(sim) + 1, "forestryCastor", "schedule", 3)
+    },
+    followSchedule = {
+      sim <- simHarvestQueue(sim)
+      sim <- scheduleEvent(sim, time(sim) + 1, "forestryCastor", "followSchedule", 3)
     },
     updateZonePriority={
       sim <- updateZonePriorityTable(sim)
@@ -103,12 +113,14 @@ doEvent.forestryCastor = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
-
+  browser()
   #Check to see if a scenario object has been instantiated
   if(nrow(sim$scenario) == 0) { stop('Include a scenario description as a data.table object with columns name and description')}
   
-  sim$compartment_list<-unique(sim$harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
-  #sim$compartment_list<-unique(harvestFlow[, c("compartment", "partition")]) #For looping in partitions
+  if(!is.null(sim$harvestFlow)){
+    sim$compartment_list<-unique(sim$harvestFlow[, compartment]) #Used in a few functions this calling it once here - its currently static throughout the sim
+    #sim$compartment_list<-unique(harvestFlow[, c("compartment", "partition")]) #For looping in partitions
+    }
   sim$harvestReport <- data.table(scenario = character(), timeperiod = integer(), compartment = character(), target = numeric(), area= numeric(), volume = numeric(), age = numeric(), hsize = numeric(), avail_thlb= numeric(), transition_area = numeric(), transition_volume= numeric()) # , harvest_type = character()
  
   #Remove zones as a scenario
@@ -442,6 +454,43 @@ setConstraints<- function(sim) {
   return(invisible(sim))
 }
 
+simHarvestQueue <- function(sim) {
+  #Objects that need appending 
+  sim$harvestPixelList <- data.table()
+  land_pixels <- data.table()
+  
+  dbBegin(sim$castordb)
+  rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans, vol = 0, salvage_vol = 0 WHERE pixelid = :pixelid", out[, "pixelid"])
+  dbClearResult(rs)
+  dbCommit(sim$castordb)
+  
+  temp.harvestBlockList<-out[, list(sum(vol_h), mean(height), mean(elv)), by = c("blockid", "compartid")]
+  setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
+  sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, temp.harvestBlockList))
+  
+  temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = compart, target = harvestTarget[i]/sim$updateInterval , area= sum(out$thlb)/sim$updateInterval , volume = sum(out$vol_h)/sim$updateInterval, age = sum(out$age_h)/sim$updateInterval, hsize = nrow(temp.harvestBlockList),transition_area  = out[yieldid > 0, sum(thlb)]/sim$updateInterval,  transition_volume  = out[yieldid > 0, sum(vol_h)]/sim$updateInterval) #,  harvest_type = 'live'
+  temp_harvest_report<-temp_harvest_report[, age:=age/area][, hsize:=area/hsize][, avail_thlb:=as.numeric(dbGetQuery(sim$castordb, paste0("SELECT sum(thlb) from pixels where zone_const = 0 and ", partition_raw[i] )))]
+  sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report), use.names = TRUE)
+  
+  #Save the harvesting raster
+  sim$harvestBlocks[queue$pixelid]<-time(sim)*sim$updateInterval
+  sim$harvestBlocksVolume[queue$pixelid]<-queue$vol_h
+  
+  #Create landings. pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
+  land_pixels<-rbindlist(list(land_pixels, data.table(dbGetQuery(sim$castordb, paste0("select landing from blocks where blockid in (",
+                                                                                      paste(unique(queue$blockid), collapse = ", "), ");")))))
+  #convert to class SpatialPoints needed for roadCastor
+  if(length(land_pixels) > 0){
+    sim$landings <- land_pixels$landing
+  }else{
+    message("no landings")
+    sim$landings <- NULL
+  }
+  
+  #stop()
+  return(invisible(sim))
+}
+
 getHarvestQueue <- function(sim) {
   #Objects that need appending 
   sim$harvestPixelList <- data.table()
@@ -672,6 +721,13 @@ runCoCela<-function(sim){
 }
 
 .inputObjects <- function(sim) {
+  if(!suppliedElsewhere(harvestSequence)){
+    harvestSequence <- NULL
+  }
+  
+  if(!suppliedElsewhere(harvestFlow)){
+    harvestFlow <- NULL
+  }
   return(invisible(sim))
 }
 
