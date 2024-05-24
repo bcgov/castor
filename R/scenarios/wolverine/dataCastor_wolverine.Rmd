@@ -128,8 +128,8 @@ modules <- list("dataCastor",
                 "roadCastor",
                 "survivalCastor",
                 "disturbanceCastor",
-                "volumebyareaReportCastor",
-                "uploadCastor"
+                "volumebyareaReportCastor"
+                #"uploadCastor"
                 )
 
 objects <- list (scenario = scenario
