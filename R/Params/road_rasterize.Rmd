@@ -97,7 +97,7 @@ dist<-RANN::nn2(mill_sinks[, c('xcoord', 'ycoord')],
 pixels$dist<-dist$nn.dists
 
 out_road[pixels$pixelid]<-pixels$dist
-writeRaster(out_road, "ce_road_dists_2022.tif")
+writeRaster(out_road, "ce_road_dists_2022.tif", overwrite =T)
  
 ```
 
