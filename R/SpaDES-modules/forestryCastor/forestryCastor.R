@@ -113,7 +113,7 @@ doEvent.forestryCastor = function(sim, eventTime, eventType) {
 }
 
 Init <- function(sim) {
-  browser()
+  
   #Check to see if a scenario object has been instantiated
   if(nrow(sim$scenario) == 0) { stop('Include a scenario description as a data.table object with columns name and description')}
   
@@ -459,26 +459,46 @@ simHarvestQueue <- function(sim) {
   sim$harvestPixelList <- data.table()
   land_pixels <- data.table()
   
-  dbBegin(sim$castordb)
-  rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans, vol = 0, salvage_vol = 0 WHERE pixelid = :pixelid", out[, "pixelid"])
-  dbClearResult(rs)
-  dbCommit(sim$castordb)
+  ras.h.blocks<-harvestSchedule[[paste0("hsq_", time(sim)*sim$updateInterval)]]
+  h.blocks<-data.table(blockid = ras.h.blocks[])[, pixelid:=seq_len(.N)]
+  setnames(h.blocks, c("blockid", "pixelid"))
+  h.blocks<-h.blocks[!is.na(blockid),]
   
-  temp.harvestBlockList<-out[, list(sum(vol_h), mean(height), mean(elv)), by = c("blockid", "compartid")]
+  h.blocks.attributes<-merge(h.blocks, data.table(dbGetQuery(sim$castordb, paste0("select compartid, pixelid, vol as vol_h, height, thlb, age, dist, elv from pixels where pixelid in (", paste(unique(h.blocks$pixelid), collapse = ", "), ");"))), by.x = "pixelid", by.y ="pixelid", all.x=T)
+  sim$harvestPixelList <-  rbindlist(list(sim$harvestPixelList, h.blocks.attributes[,c("blockid", "pixelid", "dist", "vol_h")]), use.names = TRUE ) 
+  
+  h.blocks.attributes[ ,tot_thlb:=sum(thlb), by= "compartid"]
+  
+  temp.harvestBlockList<-h.blocks.attributes[, list(sum(vol_h*thlb), mean(height), mean(elv)), by = c("blockid", "compartid")]
   setnames(temp.harvestBlockList, c("V1", "V2", "V3"), c("proj_vol", "proj_height_1", "elv"))
   sim$harvestBlockList<- rbindlist(list(sim$harvestBlockList, temp.harvestBlockList))
   
-  temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = compart, target = harvestTarget[i]/sim$updateInterval , area= sum(out$thlb)/sim$updateInterval , volume = sum(out$vol_h)/sim$updateInterval, age = sum(out$age_h)/sim$updateInterval, hsize = nrow(temp.harvestBlockList),transition_area  = out[yieldid > 0, sum(thlb)]/sim$updateInterval,  transition_volume  = out[yieldid > 0, sum(vol_h)]/sim$updateInterval) #,  harvest_type = 'live'
-  temp_harvest_report<-temp_harvest_report[, age:=age/area][, hsize:=area/hsize][, avail_thlb:=as.numeric(dbGetQuery(sim$castordb, paste0("SELECT sum(thlb) from pixels where zone_const = 0 and ", partition_raw[i] )))]
+  h.blocks.summary<-h.blocks.attributes[, list(sum(thlb, na.rm =T), sum(vol_h*thlb, na.rm =T), sum(age*(thlb/tot_thlb), na.rm =T)), by = "compartid"]
+  temp_harvest_report<-data.table(scenario= sim$scenario$name, timeperiod = time(sim)*sim$updateInterval, compartment = h.blocks.summary$compartid, 
+                                  target = h.blocks.summary$V2/sim$updateInterval , 
+                                  area= h.blocks.summary$V1/sim$updateInterval , 
+                                  volume = h.blocks.summary$V2/sim$updateInterval, 
+                                  age = h.blocks.summary$V3, 
+                                  hsize = nrow(temp.harvestBlockList)/sim$updateInterval,
+                                  transition_area  = NA,  
+                                  transition_volume  = NA,
+                                  avail_thlb = NA) #,  harvest_type = 'live'
+  
   sim$harvestReport<- rbindlist(list(sim$harvestReport, temp_harvest_report), use.names = TRUE)
   
+  
+  dbBegin(sim$castordb)
+  rs<-dbSendQuery(sim$castordb, "UPDATE pixels SET age = 0, yieldid = yieldid_trans, vol = 0, salvage_vol = 0 WHERE pixelid = :pixelid", h.blocks[, "pixelid"])
+  dbClearResult(rs)
+  dbCommit(sim$castordb)
+  
   #Save the harvesting raster
-  sim$harvestBlocks[queue$pixelid]<-time(sim)*sim$updateInterval
-  sim$harvestBlocksVolume[queue$pixelid]<-queue$vol_h
+  sim$harvestBlocks[h.blocks$pixelid]<-time(sim)*sim$updateInterval
+  sim$harvestBlocksVolume[h.blocks$pixelid]<-h.blocks.attributes$vol
   
   #Create landings. pixelid is the cell label that corresponds to pts. To get the landings need a pixel within the blockid so just grab a pixelid for each blockid
   land_pixels<-rbindlist(list(land_pixels, data.table(dbGetQuery(sim$castordb, paste0("select landing from blocks where blockid in (",
-                                                                                      paste(unique(queue$blockid), collapse = ", "), ");")))))
+                                                                                      paste(unique(h.blocks$blockid), collapse = ", "), ");")))))
   #convert to class SpatialPoints needed for roadCastor
   if(length(land_pixels) > 0){
     sim$landings <- land_pixels$landing

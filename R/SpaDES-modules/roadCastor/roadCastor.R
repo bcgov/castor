@@ -547,6 +547,8 @@ mstSolve <- function(sim){
   }else{
     edges.all<-edge.list
   }
+  
+  edges.all<-edges.all[!is.na(weight),]
   gi.mst <- igraph::mst(graph_from_data_frame(edges.all, directed=FALSE))
   paths.matrix <- data.table(get.edgelist(gi.mst, names=TRUE)) #Is this getting the edgelist using the vertex ids -yes!
   #V1 = from, V2 = to...we set the 'to' using roadSourceID on line 506
