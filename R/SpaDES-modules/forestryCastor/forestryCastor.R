@@ -745,7 +745,7 @@ runCoCela<-function(sim){
     harvestSequence <- NULL
   }
   
-  if(!suppliedElsewhere(harvestFlow)){
+  if(!suppliedElsewhere("harvestFlow", sim)){
     harvestFlow <- NULL
   }
   return(invisible(sim))
