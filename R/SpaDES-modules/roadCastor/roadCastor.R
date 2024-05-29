@@ -517,7 +517,7 @@ lcpList<- function(sim){##Get a list of paths from which there is a to and from 
 mstSolve <- function(sim){
   message('mstSolve')
   #------get the edge list between a permanent road and the landing
-  if(!is.null(sim$harvestPixelList)){
+  if(nrow(sim$harvestPixelList)>0){
   landing.cell <- data.table(landings = sim$harvestPixelList[sim$harvestPixelList[, .I[which.min(dist)], by=blockid]$V1]$pixelid )[!(landings %in% sim$perm.roads$pixelid),][ landings %in% sim$nodes, ]
   #landing.cell <- data.table(landings = cellFromXY(sim$ras,sim$landings))[!(landings %in% sim$perm.roads$pixelid),] #remove landings on permanent roads
   weights.closest.rd <- cppRouting::get_distance_matrix(Graph=sim$g, 
