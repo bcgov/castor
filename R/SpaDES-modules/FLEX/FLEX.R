@@ -26,7 +26,7 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.md", "FLEX.Rmd"),
-  reqdPkgs = list(),
+  reqdPkgs = list("sf"),
   parameters = rbind(
     defineParameter("burnInLength", "integer", 5, 1, 100, "The number of iterations to burn in"),
     defineParameter("d2_target", "integer", 7, 1, 15, "The D2 threshold"), 
@@ -212,49 +212,50 @@ Init <- function(sim) {
 
 getInitialFisherHR<-function(sim){
   message ("Establishing fisher territories ...")
-  # convert to raster objects for spread2
-  sim$spread.rast <- spreadRast (raster::raster (sim$pix.rast), sim$table.hab.spread, NULL)
+  # convert to raster objects for spread2 not needed
+  sim$spread.rast <- spreadRast (sim$pix.rast, sim$table.hab.spread, NULL)
+  browser()
   contingentHR <- SpaDES.tools::spread2 (sim$spread.rast, 
                                        start = sim$agents$pixelid, 
-                                       spreadProb = as.numeric (sim$spread.rast[]),
+                                       spreadProb = sim$spread.rast,
                                        exactSize = sim$agents$hr_size, 
                                        allowOverlap = F, asRaster = F, circle = F)
   #Convert the raster spread process from territory searching into a minimum convex polygon
-  contingentHR.poly<-mcp_spread(sim$spread.rast, contingentHR)
+  contingentHR.ras<-mcp_spread(sim$spread.rast, contingentHR)
   #Assess territories for occupancy
   #Check the size of the territories
-  #Update the sim$agents table to relect territory size that has been polygonized
+  #Update the sim$agents table to reflect territory size that has been polygonized
   #---- 1. Size Criteria
-  browser()
-  sim$agents <- merge(data.table(st_drop_geometry(contingentHR.poly))[,c("initialPixels", "size_achieved")], sim$agents,
+  sim$agents <- merge(contingentHR.ras[, .(size_achieved = .N), by = initialPixels], sim$agents,
                            by.x = "initialPixels", by.y = "pixelid")
   
-  remove_fisher <- sim$agents[size_achieved < hr_size_lb & size_achieved < hr_size, ]
-  sim$dispersers<- sim$agents[individual_id %in% remove_fisher$individual_id, ]
-  sim$agents <- sim$agents[!(individual_id %in% remove_fisher$individual_id), ]
-  contingentHR <- contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
+  #Remove fisher -- no longer a process here
+  #remove_fisher <- sim$agents[size_achieved < hr_size_lb & size_achieved < hr_size, ]
+  #sim$dispersers<- sim$agents[individual_id %in% remove_fisher$individual_id, ]
+  #sim$agents <- sim$agents[!(individual_id %in% remove_fisher$individual_id), ]
+  #contingentHR.ras <- contingentHR.ras[!(initialPixels %in% remove_fisher$initialPixels), ]
   
   #---- 2. Absolute amount of habitat
-  check_habitat <- merge(contingentHR, sim$table.hab.spread[, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")],
-                       by.x = "pixels", by.y = "pixelid", all.x =TRUE)
+  check_habitat <- merge(contingentHR.ras, sim$table.hab.spread[, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")],
+                       by.x = "pixelid", by.y = "pixelid", all.x =TRUE)
   
-  hab.count <- check_habitat [denning == 1 | rust == 1 | cavity == 1 |cwd == 1 | movement == 1, .(total_hab = .N), by = initialPixels]
-  hab.count <- merge (hab.count, sim$agents [, c ("size_achieved", "initialPixels", "individual_id")], by.x = "initialPixels", by.y = "initialPixels", all.x=T)
+  #hab.count <- check_habitat [denning == 1 | rust == 1 | cavity == 1 |cwd == 1 | movement == 1, .(total_hab = .N), by = initialPixels]
+  #hab.count <- merge (hab.count, sim$agents [, c ("size_achieved", "initialPixels", "individual_id")], by.x = "initialPixels", by.y = "initialPixels", all.x=T)
   
-  remove_fisher<- hab.count[total_hab/size_achieved < 0.15, ]
-  sim$dispersers<- rbindlist(list(sim$dispersers, sim$agents[individual_id %in% remove_fisher$individual_id, ]))
-  sim$agents<-sim$agents[!(individual_id %in% remove_fisher$individual_id), ]
-  contingentHR<-contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
-  check_habitat <- check_habitat[!(initialPixels %in% remove_fisher$initialPixels),]
+  #remove_fisher<- hab.count[total_hab/size_achieved < 0.15, ]
+  #sim$dispersers<- rbindlist(list(sim$dispersers, sim$agents[individual_id %in% remove_fisher$individual_id, ]))
+  #sim$agents<-sim$agents[!(individual_id %in% remove_fisher$individual_id), ]
+  #contingentHR.ras<-contingentHR.ras[!(initialPixels %in% remove_fisher$initialPixels), ]
+  #check_habitat <- check_habitat[!(initialPixels %in% remove_fisher$initialPixels),]
   
- 
-  #---- 3. Habitat Quality Criteria
+  browser()
+  #---- 3. Habitat Quality Criteria fir adjusting survival rate
   tab.perc <- habitatQual (check_habitat, sim$agents, sim$fisher_d2_cov)
   remove_fisher<- tab.perc[d2 > P(sim, "d2_target", "FLEX") | den_perc < P(sim, "den_target", "FLEX") | cwd_perc < P(sim, "rest_target", "FLEX")| move_perc < P(sim, "move_target", "FLEX"), ]
   sim$dispersers<- rbindlist(list(sim$dispersers, sim$agents[individual_id %in% remove_fisher$individual_id, ]))
   sim$agents<-sim$agents[!(individual_id %in% remove_fisher$individual_id), ]
-  contingentHR<-contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
-  browser()
+  contingentHR.ras<-contingentHR.ras[!(initialPixels %in% remove_fisher$initialPixels), ]
+  
   # Report Outputs
   sim$agents <- merge (sim$agents, tab.perc [, .(individual_id, d2_score = d2)], by = "individual_id")
   
@@ -263,8 +264,8 @@ getInitialFisherHR<-function(sim){
   
   # territories raster set a territory as value = 1 
   # final raster is the number of time periods that a pixel was a territory
-  sim$ras.territories[contingentHR$pixels]<-contingentHR$initialPixels
-  sim$territories<-contingentHR
+  sim$ras.territories[contingentHR.ras$pixels]<-contingentHR.ras$initialPixels
+  sim$territories<-contingentHR.ras
   
   if(is.null(sim$dispersers)){
     sim$dispersers<-sim$agents[sex == 'M', ] #make an empty object
@@ -328,19 +329,21 @@ disperseFisher<- function(sim){
         
         adult.fisher.found.site<-adult.fisher[!is.na(new_pixelid), ]
         adult.fisher.found.site<-adult.fisher.found.site[, pixelid := new_pixelid]
-        sim$spread.rast <- spreadRast (raster::raster (sim$pix.rast), sim$table.hab.spread, sim$territories)
+        sim$spread.rast <- spreadRast (sim$pix.rast, sim$table.hab.spread, sim$territories)
        
         contingentHR <- SpaDES.tools::spread2 (sim$spread.rast, 
                                                start = adult.fisher.found.site$pixelid, 
                                                spreadProb = as.numeric (sim$spread.rast[]),
                                                exactSize = adult.fisher.found.site$hr_size, # try to find same home range size
                                                allowOverlap = F, asRaster = F, circle = F)
+        #Convert the raster spread process from territory searching into a minimum convex polygon
+        contingentHR.ras<-mcp_spread(sim$spread.rast, contingentHR)
         
-        check_size <- merge(contingentHR[, .(size_achieved = .N), by = initialPixels], adult.fisher.found.site [, c ("pixelid", "hr_size", "hr_size_lb")],
+        check_size <- merge(contingentHR.ras[, .(size_achieved = .N), by = initialPixels], adult.fisher.found.site [, c ("pixelid", "hr_size", "hr_size_lb")],
                             by.x = "initialPixels", by.y = "pixelid")
         remove_fisher <- check_size[size_achieved < hr_size_lb, ]
         adult.fisher.found.site  <- adult.fisher.found.site [!(pixelid %in% remove_fisher$initialPixels), ]
-        contingentHR <- contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
+        contingentHR.ras <- contingentHR.ras[!(initialPixels %in% remove_fisher$initialPixels), ]
         
         #Change hr_size in sim$dispersers
         sim$dispersers<-merge(sim$dispersers, check_size[size_achieved > hr_size_lb, c("initialPixels", "size_achieved")],by.x = "pixelid", by.y = "initialPixels", all.x = T)
@@ -349,7 +352,7 @@ disperseFisher<- function(sim){
         
         #---- 2. Absolute amount of habitat
         if(nrow(adult.fisher.found.site) > 0){
-          check_habitat <- merge(contingentHR, sim$table.hab.spread[, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")],
+          check_habitat <- merge(contingentHR.ras, sim$table.hab.spread[, c ("pixelid", "denning", "rust", "cavity", "cwd", "movement", "open")],
                                  by.x = "pixels", by.y = "pixelid", all.x =TRUE)
           
           hab.count <- check_habitat [denning == 1 | rust == 1 | cavity == 1 |cwd == 1 | movement == 1, .(total_hab = .N), by = initialPixels]
@@ -357,7 +360,7 @@ disperseFisher<- function(sim){
           
           remove_fisher<- hab.count[total_hab/hr_size < 0.15, ]
           adult.fisher.found.site <- adult.fisher.found.site [!(pixelid %in% remove_fisher$initialPixels), ]
-          contingentHR <- contingentHR[!(initialPixels %in% remove_fisher$initialPixels), ]
+          contingentHR.ras <- contingentHR.ras[!(initialPixels %in% remove_fisher$initialPixels), ]
           check_habitat <- check_habitat[!(initialPixels %in% remove_fisher$initialPixels),]
           
           #---- 3. Habitat Quality Criteria
@@ -373,9 +376,9 @@ disperseFisher<- function(sim){
               tab.perc<-tab.perc[, d2_score:=d2]
               adult.fisher.found.site <- adult.fisher.found.site[,`:=`(d2_score = NULL)] #remove variables not found in sim$agents
               adult.fisher.found.site<-merge(adult.fisher.found.site, tab.perc[,c("initialPixels", "d2_score")], by.x = "pixelid", by.y = "initialPixels")
-              sim$territories<-rbindlist(list(sim$territories, contingentHR))
+              sim$territories<-rbindlist(list(sim$territories, contingentHR.ras))
               #message(nrow(sim$territories))
-              sim$spread.rast <- spreadRast (raster::raster (sim$pix.rast), sim$table.hab.spread, sim$territories)
+              sim$spread.rast <- spreadRast (sim$pix.rast, sim$table.hab.spread, sim$territories)
               
               #Assign an individual_id to the established juvies
               #juv.fisher.found.site[, new_individual_id := sim$max.id + .I] #add a unique ID
@@ -834,20 +837,31 @@ habitatQual <- function (inputTable, agentsTable, d2Table) {
 }
 
 mcp_spread<-function(spread_ras, spread_out_table){ #Turn the spreading raster contagion process into a vectorized polygon needed for statistical consistency with d2 calculation 
-  xy<-data.table(cbind(spread_out_table, raster::xyFromCell(spread_ras, spread_out_table$pixels)))
-  border_pixels<-xy[, keep_right:=max(x), by =c("y", "initialPixels") ][, keep_left:=min(x), by = c("y", "initialPixels")][ keep_right == x | keep_left ==x,]
-  border_pts <- st_as_sf(border_pixels, coords = c(4:5), agr ="initialPixels")
+  xy<-data.table(cbind(spread_out_table, terra::xyFromCell(spread_ras, spread_out_table$pixels)))
+  border_pixels<-xy[, keep_right:=max(x), by =c("y", "initialPixels") ][, keep_left:=min(x), by = c("y", "initialPixels")][, keep_above:= min(y), by = c("x", "initialPixels")][, keep_below:= max(y), by = c("x", "initialPixels")] [ keep_right == x | keep_left ==x | keep_above ==y | keep_below ==y,]
+  border_pts <- sf::st_as_sf(border_pixels, coords = c(4:5), agr ="initialPixels")
   border_pts<-border_pts %>%
     group_by(initialPixels) %>% 
     summarize(geometry = st_union(geometry))
   border.poly<-st_convex_hull(border_pts)
-  browser()
+  border.poly$ID <- 1:nrow(border.poly) # key for linking to inititalPixels
+  ip_link<-data.table(st_drop_geometry(border.poly))[,c("ID", "initialPixels")]
+  
+  #browser()
+  spread_ras[]<-0
+  spread_ras[]<-1:(nrow(spread_ras)*ncol(spread_ras))
+  ras.mcp<-data.table(terra::extract(spread_ras, border.poly))[pixelid>0,]
+  
   #Lets take the overestimate of the convexhull and remove any pixels outside perimeter
-  ras.mcp<-terra::rasterize( border.poly, spread_ras, field = "initialPixels")
-  dt.mcp<-data.table(initialPixels= ras.mcp[])[,pixelid := seq_len(.N)][!is.na(initialPixels),]
+  #ras.mcp<-terra::rasterize( border.poly, spread_ras, field = "initialPixels")
+  #dt.mcp<-data.table(initialPixels= ras.mcp[])[,pixelid := seq_len(.N)][!is.na(initialPixels),]
   #get the x and y of each pixel within each territory
-  dt.mcp<-data.table(cbind(dt.mcp, raster::xyFromCell(ras, dt.mcp$pixelid)))
-  setnames(dt.mcp, c("x", "y"), c("X", "Y")) #rename so its not the same as other layer
+  #dt.mcp<-data.table(cbind(dt.mcp, raster::xyFromCell(ras.mcp, dt.mcp$pixelid)))
+  #setnames(dt.mcp, c("x", "y"), c("X", "Y")) #rename so its not the same as other layer
+  
+  dt.mcp<-data.table(cbind(ras.mcp, terra::xyFromCell(spread_ras, ras.mcp$pixelid)))
+  setnames(dt.mcp, c("x", "y"), c("X", "Y"))
+  dt.mcp<-data.table(merge(dt.mcp, ip_link, by = "ID"))[initialPixels >0 & pixelid >0,]
   
   border_pixels2<-merge(dt.mcp, border_pixels[!is.na(keep_left), c("y", "initialPixels", "keep_left", "keep_right")], 
                by.x = c("Y", "initialPixels"), by.y = c( "y","initialPixels"), all.x=T, allow.cartesian=TRUE)
@@ -855,14 +869,13 @@ mcp_spread<-function(spread_ras, spread_out_table){ #Turn the spreading raster c
   
   border_pixels4<-merge(border_pixels3, border_pixels[!is.na(keep_below), c("x", "initialPixels", "keep_above", "keep_below")],  by.x = c("X", "initialPixels"), by.y = c( "x","initialPixels"), all.x=T, allow.cartesian=TRUE)
   border_pixels5<-border_pixels4[Y>=keep_above & Y<=keep_below,]
-  return(border_pixels5)
+  return(unique(border_pixels5))
 }
 
 spreadRast <- function (rasterInput, habitatInput, mask) {
   #Net out current maintained territories so that NEW fisher can't spread into established territories
   out.rast <- rasterInput
   out.rast [] <- 0
-  
   # currently uses all denning, rust, cavity, cwd, movement  and 'closed' (not open) habitat as 
   # spreadProb = 1, and non-habitat as spreadProb = 0.10; allows some spread to sub-optimal habitat
   habitatInput [denning == 1 | rust == 1 | cavity == 1 | cwd == 1 | movement == 1 | open == 0, spreadprob := format (round (1.00, 2), nsmall = 2)] 
@@ -870,7 +883,7 @@ spreadRast <- function (rasterInput, habitatInput, mask) {
   # 18% resulted in the mean proportion of home ranges consisting of denning, resting or movement habitat as 55%; 19 was 49%; 17 was 59%; 20 was 47%; 15 was 66%
   # Caution: this parameter may be area-specific and may need to be and need to be 'tuned' for each AOI
   habitatInput [open == 1, spreadprob := format (round (0.09, 2), 2)]
-  out.rast [habitatInput$pixelid] <- habitatInput$spreadprob
+  out.rast [habitatInput$pixelid] <- as.numeric(habitatInput$spreadprob)
   
   if(!is.null(mask)){
     out.rast [mask$pixels] <- 0
@@ -918,6 +931,12 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
                               matrix(c(0.525,	-1.909,	-0.143,	2.826,	-6.891, 3.264, -1.909,	96.766,	-0.715,	-39.021,	69.711, -51.688,	-0.143, -0.715,	0.209,	-0.267,	1.983, -0.176, 2.826,	-39.021,	-0.267,	58.108,	-21.928, 22.234, -6.891,	69.711,	1.983,	-21.928,	180.113, -96.369,	3.264,	-51.688,	-0.176,	22.234,	-96.369,	68.499), ncol = 6, nrow = 6), # 3 sbs-dry
                               matrix(c(2.905,	0.478,	4.04,	1.568, -3.89, 0.478,	0.683,	6.131,	8.055,	-8.04,	4.04,	6.131,	62.64,	73.82,	-62.447,	1.568,	8.055,	73.82,	126.953,	-130.153,	-3.89,	-8.04,	-62.447,	-130.153,	197.783), ncol = 5, nrow = 5) # 4 - Dry
     )
+  }
+  if(!suppliedElsewhere("survival_rate_function", sim)){
+    sim$survival_rate_function <- data.table (fisher_pop = c (1,1,1,2,2,2,30,30,30,3,3,3),
+                  d2 = c ("high", "med", "low"),
+                  Mean = c (0.8, 0.6, 0.2,0.8, 0.6, 0.2, 0.8, 0.6, 0.2, 0.8, 0.6, 0.2 ),
+                  SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
   }
   if(!suppliedElsewhere("survival_rate_table", sim)){
     sim$survival_rate_table <- rbindlist(list(

@@ -56,15 +56,16 @@ parameters <- list(FLEX = list (female_max_age = 9,
 )
 
 modules <- list ("FLEX")
+#female_hr_table <- data.table (fisher_pop = c (1:4),  hr_mean = c (1500, 1500, 2100, 1500),hr_sd = c (500, 500, 500, 500))
 
-mySim <- SpaDES.core::simInit(times = times, 
+mySim <- SpaDES.core::simInitAndSpades(times = times, 
                  params = parameters, 
                  modules = modules,
                  objects = list(scenario = data.table(name = "test")),
                  paths = paths)
 
 #outputs(mySim) <- data.frame (objectName = c("fisherABMReport"))
-mySimOut <- SpaDES.core::spades(mySim)
+#mySimOut <- SpaDES.core::spades(mySim)
 #experiment(mySim, replicates = 2)
 ```
 
