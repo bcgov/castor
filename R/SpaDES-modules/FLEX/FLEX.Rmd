@@ -38,34 +38,42 @@ paths <- list(
   outputPath = paste0(here::here(),"/R/scenarios/test_flex2/outputs")
 )
 
-times <- list (start = 0, end = 4)
+times <- list (start = 0, end = 3)
 
 parameters <- list(FLEX = list (female_max_age = 9,
-                                 den_target = 0.003, 
-                                 rest_target = 0.028,
-                                 move_target = 0.091,
                                  reproductive_age = 2, 
                                  sex_ratio = 0.5,
                                  female_dispersal = 785000,  # ha; radius = 500 pixels = 50km = 7850km2 area
                                  timeInterval = 5, # should be consistent with the time interval used to model habitat
                                                     # e.g., growingstockLCUS periodLength
                                 # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
-                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
+                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/lakes.tif")
 
                 )
 )
 
 modules <- list ("FLEX")
 #female_hr_table <- data.table (fisher_pop = c (1:4),  hr_mean = c (1500, 1500, 2100, 1500),hr_sd = c (500, 500, 500, 500))
-
-mySim <- SpaDES.core::simInitAndSpades(times = times, 
+survival_rate_table<-rbindlist(list(
+      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,30,30,30,30,3,3,3,3),
+                  type = "Established",
+                  cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
+                  Mean = c (0.9, 0.6, 0.9, 0.2,  0.9, 0.6, 0.9, 0.2, 0.9, 0.6, 0.9, 0.2, 0.9, 0.6, 0.9,0.2),
+                  SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1, 0.2,0.1,0.1,0.1,0.1,0.1,0.1)), 
+      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,30,30,30,30,3,3,3,3),
+                  type = "Disperser",
+                  cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
+                  Mean = c (0.8, 0.6, 0.8, 0.2,  0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8, 0.2),
+                  SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1, 0.1,0.1,0.1,0.1,0.1,0.1,0.1))
+                                ))
+mySim <- SpaDES.core::simInit(times = times, 
                  params = parameters, 
                  modules = modules,
-                 objects = list(scenario = data.table(name = "test")),
+                 objects = list(scenario = data.table(name = "test"),survival_rate_table=survival_rate_table),
                  paths = paths)
 
-#outputs(mySim) <- data.frame (objectName = c("fisherABMReport"))
-#mySimOut <- SpaDES.core::spades(mySim)
+SpaDES.core::outputs(mySim) <- data.frame (objectName = c("fisherABMReport"))
+mySimOut <- SpaDES.core::spades(mySim)
 #experiment(mySim, replicates = 2)
 ```
 
