@@ -46,7 +46,7 @@ parameters <- list(FLEX = list (female_max_age = 9,
                                  female_dispersal = 785000,  # ha; radius = 500 pixels = 50km = 7850km2 area
                                  timeInterval = 5, # should be consistent with the time interval used to model habitat
                                                     # e.g., growingstockLCUS periodLength
-                                # rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
+                                #rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
                                 rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/lakes.tif")
 
                 )
@@ -55,21 +55,25 @@ parameters <- list(FLEX = list (female_max_age = 9,
 modules <- list ("FLEX")
 #female_hr_table <- data.table (fisher_pop = c (1:4),  hr_mean = c (1500, 1500, 2100, 1500),hr_sd = c (500, 500, 500, 500))
 survival_rate_table<-rbindlist(list(
-      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,30,30,30,30,3,3,3,3),
+      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4),
                   type = "Established",
                   cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
-                  Mean = c (0.9, 0.6, 0.9, 0.2,  0.9, 0.6, 0.9, 0.2, 0.9, 0.6, 0.9, 0.2, 0.9, 0.6, 0.9,0.2),
-                  SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1, 0.2,0.1,0.1,0.1,0.1,0.1,0.1)), 
-      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,30,30,30,30,3,3,3,3),
+                  Mean = c (0.95, 0.9, 0.95, 0.2,  0.95, 0.9, 0.95, 0.2, 0.95, 0.9, 0.95, 0.2, 0.95, 0.9, 0.95,0.2),
+                  SD = c (0.1,0.1,0.1,0.1,0.01,0.01,0.01,0.01,0.01, 0.0,0.01,0.01,0.1,0.1,0.1,0.1)), 
+      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4),
                   type = "Disperser",
                   cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
-                  Mean = c (0.8, 0.6, 0.8, 0.2,  0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8, 0.2),
-                  SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1, 0.1,0.1,0.1,0.1,0.1,0.1,0.1))
+                  Mean = c (0.95, 0.9, 0.95, 0.2,  0.95, 0.9, 0.95, 0.2, 0.95, 0.9, 0.95, 0.2, 0.95, 0.9, 0.95, 0.2),
+                  SD = c (0.1,0.1,0.1,0.1,0.01,0.01,0.01,0.01,0.01, 0.01,0.01,0.01,0.1,0.1,0.1,0.1))
                                 ))
+
+female_hr_table <- data.table (fisher_pop = c (1:4), 
+                                     hr_mean = c (3000, 3000, 3500, 3000),
+                                     hr_sd = c (500, 500, 500, 500)) 
 mySim <- SpaDES.core::simInit(times = times, 
                  params = parameters, 
                  modules = modules,
-                 objects = list(scenario = data.table(name = "test"),survival_rate_table=survival_rate_table),
+                 objects = list(scenario = data.table(name = "test"),survival_rate_table=survival_rate_table,female_hr_table=female_hr_table),
                  paths = paths)
 
 SpaDES.core::outputs(mySim) <- data.frame (objectName = c("fisherABMReport"))

@@ -253,7 +253,7 @@ getInitialFisherHR<-function(sim){
   dont_have_hr_size<-sim$agents[is.na(size_achieved), ]
   dont_have_hr_size$size_achieved <- NULL
   dont_have_hr_size <- merge(contingentHR.ras[, .(size_achieved = .N), by = initialPixels], dont_have_hr_size,
-                           by.x = "initialPixels", by.y = "initialPixels")
+                           by.x = "initialPixels", by.y = "initialPixels", all.y=T)
   sim$agents<-rbindlist(list(have_hr_size, dont_have_hr_size), use.names=TRUE)
   
   #Remove fisher -- small home ranges can have suitable habitat so need to move them to dispersers table
@@ -287,7 +287,7 @@ getInitialFisherHR<-function(sim){
   sim$agents <- merge (sim$agents, tab.perc [, .(individual_id, d2_score = d2)], by = "individual_id")
   
   # save the largest individual id; need this later for setting id's of kits
-  sim$max.id <- max (sim$agents$individual_id)
+  sim$max.id <- max (sim$agents$individual_id, sim$dispersers$individual_id, na.rm = TRUE)
   
   # territories raster set a territory as value = 1 
   # final raster is the number of time periods that a pixel was a territory
@@ -306,11 +306,13 @@ getInitialFisherHR<-function(sim){
 disperseFisher<- function(sim){
 
   message (paste0("disperseFisher: # dispersing:", nrow(sim$dispersers)))
+  sim$dispersers[, size_achieved:=NA] #reset all the home ranges
+ 
   if (nrow (sim$dispersers) > 0) { # check to make sure there are dispersers
-    # PREVIOUSLY ESTABLISHED--Allow fisher whose territories have been degraded are allowed to change their territory shape
-    est.fisher<-sim$dispersers[!is.na(individual_id),] # fisher who have and individual id had a territory
-    if(nrow(est.fisher) > 0){
-      sim$dispersers[sim$dispersers[,!is.na(individual_id)],id:= .I ] # Need id (an identifier for the adults)
+    # ADULTS PREVIOUSLY ESTABLISHED--Allow fisher whose territories have been degraded are allowed to change their territory shape
+    est.fisher<-sim$dispersers[age > 2,]
+    if(nrow(est.fisher) > 0){ # fisher who have and individual id had a territory
+      sim$dispersers[sim$dispersers[,age > 2],id:= .I ] # Need id (an identifier for the adults)
       #check to find the nearest denning habitat to their current
       den.available <- sim$table.hab.spread[denning == 1 & !(pixelid %in% sim$territories$pixelid),]
       den.available.coords <- data.table(xyFromCell(sim$pix.rast, den.available$pixelid))
@@ -324,12 +326,12 @@ disperseFisher<- function(sim){
       den.rast[] <- 0
       den.rast[den.available$pixelid] <- 1
       den.rast.ag <- aggregate(den.rast, fact=round(sqrt(mean(sim$female_hr_table$hr_mean)),0)) #fact is the number of pixels to expand by -- so 50 = 60 x 60 ha ~ 3600 ha or 25 km2
-      n_fisher <- nrow(den.rast.ag[den.rast.ag[] > 0.01]) #Remove remote areas (i.e., lakes) that have denning sites that have less than 1 percent denning
+      n_fisher <- nrow(den.rast.ag[den.rast.ag[] > 0.008]) #Remove remote areas (i.e., lakes) that have denning sites that have less than 1 percent denning
       
       #Use a well balanced sampling design see: https://dickbrus.github.io/SpatialSamplingwithR/BalancedSpreaded.html#LPM 
       #set.seed(1586) #Useful for testing
       pi <- sampling::inclusionprobabilities(rep(1/nrow(den.available), nrow(den.available)), n_fisher) #Equal probability
-      den.samples <- lpm(pi, cbind(den.available.coords$x, den.available.coords$y), h = 5000) #Local pivot method using BalancedSampling
+      den.samples <- lpm(pi, cbind(den.available.coords$x, den.available.coords$y), h=5000) #Local pivot method using BalancedSampling
       denning.starts <- den.available.coords[den.samples, ] # Location potentials for the juvies
       
       #Allocate adults to denning sites. See which adults are the closest to each of the denning.starts
@@ -369,12 +371,12 @@ disperseFisher<- function(sim){
         }else{
           contingentHR.ras<-contingentHR
         }
-        check_size <- merge(contingentHR.ras[, .(size_achieved = .N), by = initialPixels], adult.fisher.found.site [, c ("initialPixels", "hr_size", "hr_size_lb")],
+        check_size <- merge(contingentHR.ras[, .(size_achieved = .N), by = initialPixels], adult.fisher.found.site [, c ("initialPixels", "individual_id", "hr_size", "hr_size_lb")],
                             by.x = "initialPixels", by.y = "initialPixels", all.y=T)
         remove_fisher <- check_size[size_achieved < hr_size_lb | is.na(size_achieved), ]
-        adult.fisher.found.site  <- adult.fisher.found.site [!(initialPixels %in% remove_fisher$initialPixels), ]
+        adult.fisher.found.site  <- adult.fisher.found.site [!(individual_id %in% remove_fisher$individual_id), ]
         adult.fisher.found.site$size_achieved  <- NULL
-        adult.fisher.found.site<- merge(adult.fisher.found.site, check_size [, c("initialPixels", "size_achieved")],by.x = "initialPixels", by.y = "initialPixels", all.x = T)
+        adult.fisher.found.site<- merge(adult.fisher.found.site, check_size [, c("individual_id", "size_achieved")],by.x = "individual_id", by.y = "individual_id", all.x = T)
         contingentHR.ras <- contingentHR.ras[!(initialPixels %in% remove_fisher$initialPixels), ]
         
         #Change hr_size in sim$dispersers
@@ -382,7 +384,7 @@ disperseFisher<- function(sim){
         dont_have_hr_size<-sim$dispersers[is.na(size_achieved), ]
         dont_have_hr_size$size_achieved <- NULL
         
-        dont_have_hr_size<- merge(dont_have_hr_size, check_size [, c("initialPixels", "size_achieved")],by.x = "initialPixels", by.y = "initialPixels", all.x = T)
+        dont_have_hr_size<- merge(dont_have_hr_size, check_size [size_achieved >=hr_size_lb , c("initialPixels", "size_achieved")],by.x = "initialPixels", by.y = "initialPixels", all.x = T)
         sim$dispersers<-rbindlist(list(have_hr_size, dont_have_hr_size), use.names = TRUE)
         
         #---- 2. Absolute amount of habitat
@@ -410,7 +412,7 @@ disperseFisher<- function(sim){
               message(paste0("disperseFisher: # adults established: ", nrow(adult.fisher.found.site)))
               tab.perc<-tab.perc[, d2_score:=d2]
               adult.fisher.found.site <- adult.fisher.found.site[,`:=`(d2_score = NULL)] #remove variables not found in sim$agents
-              adult.fisher.found.site<-merge(adult.fisher.found.site, tab.perc[,c("initialPixels", "d2_score")], by.x = "initialPixels", by.y = "initialPixels")
+              adult.fisher.found.site<-merge(adult.fisher.found.site, tab.perc[,c("individual_id", "d2_score")], by.x = "individual_id", by.y = "individual_id")
               sim$territories<-rbindlist(list(sim$territories, contingentHR.ras[initialPixels %in% adult.fisher.found.site$initialPixels]))
               #message(nrow(sim$territories))
               sim$spread.rast <- spreadRast (sim$pix.rast, sim$table.hab.spread, sim$territories)
@@ -420,11 +422,11 @@ disperseFisher<- function(sim){
               
               #update sim$dispersers
               sim$dispersers<- sim$dispersers[,`:=`(d2_score = NULL)]
-              sim$dispersers<-merge(sim$dispersers, adult.fisher.found.site[, c("id", "d2_score")], by.x = "id", by.y = "id", all.x =T)
-              keep_dispersers<-sim$dispersers[is.na(d2_score), ]$initialPixels
+              sim$dispersers<-merge(sim$dispersers, adult.fisher.found.site[, c("individual_id", "d2_score")], by.x = "individual_id", by.y = "individual_id", all.x =T)
+              keep_dispersers<-sim$dispersers[is.na(d2_score), ]$individual_id
               sim$dispersers<-sim$dispersers[, `:=`(id = NULL)]
               sim$agents<-rbindlist(list(sim$agents, sim$dispersers[!is.na(d2_score),]), use.names=TRUE) # add the individuals back to the agents table
-              sim$dispersers<-sim$dispersers[initialPixels %in% keep_dispersers, ] #Fisher stay in the dispersers table
+              sim$dispersers<-sim$dispersers[individual_id %in% keep_dispersers, ] #Fisher stay in the dispersers table
               sim$max.id<-max(sim$agents$individual_id, sim$dispersers$individual_id, na.rm=TRUE)
               if(is.null(sim$dispersers)){
                 sim$dispersers<-data.table (individual_id = as.integer(), pixelid = as.integer(), sex = as.character(),age = as.integer(),  fisher_pop = as.integer(), hr_size = as.integer(), hr_size_lb = as.integer(), d2_Score = as.numeric )
@@ -437,15 +439,14 @@ disperseFisher<- function(sim){
       sim$dispersers<-sim$dispersers[, `:=`(id = NULL)]
       sim$dispersers$size_achieved<-NA
     }
-    
+    #browser()
     #---Kits try disperse after the adults (larger sized animals win)
     #check the individual_id post habitatQual calls, assign an individual_id to these establish juvies
-    if(nrow(sim$dispersers[is.na(individual_id) & age >= 1,]) > 0){ #kits that haven't established
+    if(nrow(sim$dispersers[ age >= 1,]) > 0){ #kits and adults that haven't established
       #sim$dispersers[is.na(individual_id) & age > 0, id := .I] # Need id (an identifier for the juvenile)
-      sim$dispersers[sim$dispersers[,is.na(individual_id) & age >= 1],id:= .I ]
+      sim$dispersers[sim$dispersers[, age >= 1],id:= .I ]
       juv.fisher <- sim$dispersers[id > 0, ] 
-      
-      
+ 
       current.location.coords <- data.table(xyFromCell(sim$pix.rast, juv.fisher$initialPixels))
       current.location.coords <- cbind(current.location.coords, juv.fisher)
       
@@ -460,7 +461,7 @@ disperseFisher<- function(sim){
       den.rast[] <- 0
       den.rast[den.available$pixelid] <- 1
       den.rast.ag <- terra::aggregate(den.rast, fact=round(sqrt(mean(sim$female_hr_table$hr_mean)),0)) #fact is the number of pixels to expand by -- so 50 = 60 x 60 ha ~ 3600 ha or 25 km2
-      n_fisher <- nrow(den.rast.ag[den.rast.ag[] > 0.01]) #Remove remote areas (i.e., lakes) that have denning sites that have less than 1 percent denning
+      n_fisher <- nrow(den.rast.ag[den.rast.ag[] > 0.008]) #Remove remote areas (i.e., lakes) that have denning sites that have less than 1 percent denning
   
       #Use a well balanced sampling design see: https://dickbrus.github.io/SpatialSamplingwithR/BalancedSpreaded.html#LPM 
       #set.seed(1586) #Useful for testing
@@ -490,7 +491,7 @@ disperseFisher<- function(sim){
         juv.fisher.found.site<-sim$dispersers[!is.na(new_pixelid), ]
         sim$dispersers$new_pixelid <- NULL
   
-        juv.fisher.found.site<-juv.fisher.found.site[, initialPixels:= new_pixelid]
+        #juv.fisher.found.site<-juv.fisher.found.site[, initialPixels:= new_pixelid]
         sim$spread.rast <- spreadRast (sim$pix.rast, sim$table.hab.spread, sim$territories)
         #---- assign fisher_pop?
         #---- assign an HR size based on population
@@ -505,8 +506,6 @@ disperseFisher<- function(sim){
         juv.fisher.found.site [fisher_pop == 3, hr_size_lb := sim$female_hr_table [fisher_pop == 3, hr_mean]- 2*sim$female_hr_table [fisher_pop == 3, hr_sd]]
         juv.fisher.found.site [fisher_pop == 4, hr_size_lb := sim$female_hr_table [fisher_pop == 4, hr_mean]- 2*sim$female_hr_table [fisher_pop == 4, hr_sd]]
         
-        juv.fisher.found.site<- unique(juv.fisher.found.site, by = "initialPixels")
-   
         contingentHR <- SpaDES.tools::spread2 (sim$spread.rast, 
                                                start = juv.fisher.found.site$initialPixels, 
                                                spreadProb = as.numeric (sim$spread.rast[]),
@@ -520,7 +519,7 @@ disperseFisher<- function(sim){
         }else{
           contingentHR.ras<-contingentHR
         }
-        check_size <- merge(contingentHR.ras[, .(size_achieved = .N), by = initialPixels], juv.fisher.found.site [, c ("initialPixels", "hr_size", "hr_size_lb")],
+        check_size <- merge(contingentHR.ras[, .(size_achieved = .N), by = initialPixels], juv.fisher.found.site [, c ("initialPixels", "id", "individual_id", "hr_size", "hr_size_lb")],
                             by.x = "initialPixels", by.y = "initialPixels", all.y=TRUE)
         remove_fisher <- check_size[size_achieved < hr_size_lb | is.na(size_achieved), ]
        
@@ -533,8 +532,8 @@ disperseFisher<- function(sim){
         have_hr_size<-sim$dispersers[!is.na(size_achieved), ]
         dont_have_hr_size<-sim$dispersers[is.na(size_achieved), ]
         dont_have_hr_size$size_achieved <- NULL
-        
-        dont_have_hr_size<- merge(dont_have_hr_size, check_size [, c("initialPixels", "size_achieved")],by.x = "initialPixels", by.y = "initialPixels", all.x = T)
+        #browser()
+        dont_have_hr_size<- merge(dont_have_hr_size, check_size [, c("individual_id", "size_achieved")],by.x = "individual_id", by.y = "individual_id", all.x = T)
         sim$dispersers<-rbindlist(list(have_hr_size, dont_have_hr_size), use.names = TRUE)
         
         #---- 2. Absolute amount of habitat
@@ -551,24 +550,24 @@ disperseFisher<- function(sim){
           message(paste0("disperseFisher: # juvs established:", nrow(juv.fisher.found.site))) 
           tab.perc<-tab.perc[, d2_score:=d2]
           juv.fisher.found.site <- juv.fisher.found.site[,`:=`(d2_score = NULL)] #remove variables not found in sim$agents
-          juv.fisher.found.site<-merge(juv.fisher.found.site, tab.perc[,c("initialPixels", "d2_score")], by.x = "initialPixels", by.y = "initialPixels")
+          juv.fisher.found.site<-merge(juv.fisher.found.site, tab.perc[,c("individual_id", "d2_score")], by.x = "individual_id", by.y = "individual_id")
           sim$territories<-rbindlist(list(sim$territories, contingentHR.ras))
           #message(nrow(sim$territories))
           sim$spread.rast <- spreadRast (sim$pix.rast, sim$table.hab.spread, sim$territories)
           
           #Assign an individual_id to the established juvies
-          sim$max.id<-max(sim$agents$individual_id, sim$dispersers$individual_id, na.rm=T)
-          juv.fisher.found.site[, new_individual_id := sim$max.id + .I] #add a unique ID
+          #sim$max.id<-max(sim$agents$individual_id, sim$dispersers$individual_id, na.rm=T)
+          #juv.fisher.found.site[, new_individual_id := sim$max.id + .I] #add a unique ID
              
           #update sim$dispersers
           sim$dispersers<- sim$dispersers[,`:=`(d2_score = NULL)]
-          sim$dispersers<-merge(sim$dispersers, juv.fisher.found.site[, c("id", "new_individual_id", "d2_score")], by.x = "id", by.y = "id", all.x =T)
-          sim$dispersers[!is.na(new_individual_id), individual_id := new_individual_id]
-          keep_dispersers<-sim$dispersers[is.na(individual_id), ]$initialPixels
-          sim$dispersers<-sim$dispersers[, `:=`(new_individual_id = NULL, id = NULL)]
-          sim$agents<-rbindlist(list(sim$agents, sim$dispersers[!is.na(individual_id),]), use.names=TRUE) # add the individuals back to the agents table
-          sim$dispersers<-sim$dispersers[initialPixels %in% keep_dispersers, ] #Fisher stay in the dispersers table
-          sim$max.id<-max(sim$agents$individual_id)
+          sim$dispersers<-merge(sim$dispersers, juv.fisher.found.site[, c("individual_id", "d2_score")], by.x = "individual_id", by.y = "individual_id", all.x =T)
+          #sim$dispersers[!is.na(new_individual_id), individual_id := new_individual_id]
+          keep_dispersers<-sim$dispersers[is.na(d2_score), ]$individual_id
+          sim$dispersers<-sim$dispersers[, `:=`(id = NULL)]
+          sim$agents<-rbindlist(list(sim$agents, sim$dispersers[!is.na(d2_score),]), use.names=TRUE) # add the individuals back to the agents table
+          sim$dispersers<-sim$dispersers[individual_id %in% keep_dispersers, ] #Fisher stay in the dispersers table
+          sim$max.id<-max(sim$agents$individual_id, sim$dispersers$individual_id)
           
           if(is.null(sim$dispersers)){
             sim$dispersers<-data.table (individual_id = as.integer(), pixelid = as.integer(), sex = as.character(),age = as.integer(),  fisher_pop = as.integer(), hr_size = as.integer(), hr_size_lb = as.integer(), d2_Score = as.numeric )
@@ -579,9 +578,13 @@ disperseFisher<- function(sim){
       }
       sim$dispersers<-sim$dispersers[, id := 0]
       sim$dispersers<-sim$dispersers[, `:=`(id = NULL)]
+      sim$dispersers$size_achieved<-NA
     }
  
   }else{
+    sim$dispersers<-sim$dispersers[, id := 0]
+    sim$dispersers<-sim$dispersers[, `:=`(id = NULL)]
+    sim$dispersers$size_achieved<-NA
     message("disperseFisher: No Dispersers!")
   }
   
@@ -601,7 +604,8 @@ checkHabitatNeeds <- function(sim){
   #update d2_score in agents table
   tab.perc<-tab.perc[, d2_score:=d2]
   sim$agents <- sim$agents[,`:=`(d2_score = NULL)] #remove variables not found in sim$agents
-  sim$agents<-merge(sim$agents, tab.perc[,c("initialPixels", "d2_score")], by.x = "initialPixels", by.y = "initialPixels")
+  
+  sim$agents<-merge(sim$agents, tab.perc[!is.na(d2_score),c("initialPixels", "d2_score")], by.x = "initialPixels", by.y = "initialPixels", all.x =T)
   
   sim$spread.rast <- spreadRast (sim$pix.rast, sim$table.hab.spread, sim$territories)
   #message (paste0("checkHabitatNeeds: ", n_hab_lost, " lost territories."))
@@ -611,7 +615,6 @@ checkHabitatNeeds <- function(sim){
 
 reproduceFisher<-function(sim){
   # Step 4: Reproduce
-  
   reproFishers <- sim$agents [sex == "F" & age >= P (sim, "reproductive_age", "FLEX"), ] # females of reproductive age in a territory
   message (paste0("reproduceFisher: # reproducing: ", nrow(reproFishers)))
   # A. Assign each female fisher 1 = reproduce or 0 = does not reproduce
@@ -631,11 +634,7 @@ reproduceFisher<-function(sim){
     
     # for those fishers who are reproducing, assign litter size (Poisson distribution)
     # litter size adjusted for habitat quality
-    reproFishers <- litterSize (1, sim$mahal_metric_table, sim$repro_rate_table, reproFishers)
-    reproFishers <- litterSize (2, sim$mahal_metric_table, sim$repro_rate_table, reproFishers)
-    reproFishers <- litterSize (3, sim$mahal_metric_table, sim$repro_rate_table, reproFishers)
-    reproFishers <- litterSize (4, sim$mahal_metric_table, sim$repro_rate_table, reproFishers)
-    
+    reproFishers <- litterSize (sim$mahal_metric_table, sim$repro_rate_table, reproFishers)
     reproFishers <- reproFishers [kits >= 1, ] # remove females with no kits
     
     if (nrow (reproFishers) > 0) {
@@ -656,6 +655,8 @@ reproduceFisher<-function(sim){
       new.agents$reproduce <- NULL
       new.agents$kits <- NULL
       new.agents$individual_id <- NULL
+      sim$max.id<-max(sim$agents$individual_id, sim$dispersers$individual_id, na.rm=T)
+      new.agents[, individual_id := sim$max.id + .I] #add a unique ID
       
       # update the individual id -- this gets done once they disperse
     } else {
@@ -694,7 +695,7 @@ survivalFisher<-function(sim){
   # Step 5. Survive and Age 1 Year
   n_adults<-nrow(sim$agents[age > 0 ,])
   n_dispersers<-nrow(sim$dispersers)
-  #n_juv<-nrow(sim$agents[age <= 1 ,])
+  #browser()
   
   if(n_dispersers > 0 ){
     sim$dispersers[,  cohort:= fcase(age <= 2, "Juvenile", age > 2 & age <= 5, "Adult", age > 5 & age <= 8, "Senior", age >= 9, "Old")]
@@ -710,7 +711,7 @@ survivalFisher<-function(sim){
     sim$agents[,  cohort:= fcase(age <= 2, "Juvenile", age >2 & age <= 5, "Adult", age > 5 & age <= 8, "Senior", age >= 9, "Old")]
     sim$agents<-merge(sim$agents, sim$survival_rate_table[type == "Established", ], by.x = c("fisher_pop", "cohort"), by.y = c("fisher_pop", "cohort") , all.x =T)
     #TO DO: ADJUST SURVIVAL of Established Fisher BELOW
-    sim$agents<-merge(sim$agents, sim$mahal_metric_table[,c("FHE_zone_num", "Max")], by.x = "fisher_pop", by.y = "FHE_zone_num")
+    sim$agents<-merge(sim$agents, sim$mahal_metric_table[,c("FHE_zone_num", "Max")], by.x = "fisher_pop", by.y = "FHE_zone_num", all.x=T)
     sim$agents[d2_score > Max, Mean := Mean*(pchisq(d2_score, df = 4, lower.tail = F)/pchisq(Max, df = 4, lower.tail = F))]
     sim$agents[,  survive := rbinom (n = .N, size = 1, prob = rtruncnorm (1, a = 0, b = 1, mean = Mean, sd = SD))]
     sim$agents <- sim$agents [ survive == 1,]# remove the 'dead' individuals
@@ -746,7 +747,7 @@ recordABMReport<-function(sim, i){
                                  scenario = as.character (sim$scenario$name))
   sim$fisherABMReport <- rbindlist (list (sim$fisherABMReport, new.agents.save), use.names = TRUE)
   #terra::writeRaster(sim$ras.territories, paste0(SpaDES.core::outputPath(sim),"/hr_",time(sim) * P (sim, "timeInterval", "FLEX") + i, ".tif"), overwrite = T)
-  names(sim$ras.territories) <- paste0("hr_", as.integer ( time(sim) * P (sim, "timeInterval", "FLEX") + (i-1)))
+  names(sim$ras.territories) <- paste0("hr_", max(0, as.integer ( time(sim) * P (sim, "timeInterval", "FLEX") - ( P (sim, "timeInterval", "FLEX") - i))))
   if(is.null(sim$ras.territories.stack)){
     sim$ras.territories.stack <- sim$ras.territories
     
@@ -800,22 +801,14 @@ updateHabitat <- function (sim) {
 }
 
 
-litterSize <- function (fisherPop, mahalTable, reproTable, reproFishers){
-  rep.ids <- c (unique (reproFishers$individual_id))
-  for (i in 1:length (rep.ids)) {
-    reproFishers [fisher_pop == fisherPop & d2_score < mahalTable [FHE_zone_num == fisherPop, Mean], 
-                  kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
-                                             lambda = reproTable [Fpop == fisherPop & Param == 'LS', Mean]))]
-    reproFishers [fisher_pop == fisherPop & d2_score > mahalTable [FHE_zone_num == fisherPop, Mean] & d2_score < (mahalTable [FHE_zone_num == fisherPop, Mean] + mahalTable [FHE_zone_num == fisherPop, SD]), 
-                  kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
-                                             lambda = (reproTable [Fpop == fisherPop & Param == 'LS', Mean] * 0.75)))]
-    reproFishers [fisher_pop == fisherPop & d2_score > (mahalTable [FHE_zone_num == fisherPop, Mean] + mahalTable [FHE_zone_num == fisherPop, SD]) & d2_score <+ (mahalTable [FHE_zone_num == fisherPop, Mean] + (2 * mahalTable [FHE_zone_num == fisherPop, SD])), 
-                  kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
-                                             lambda = (reproTable [Fpop == fisherPop & Param == 'LS', Mean] * 0.50)))]
-    reproFishers [fisher_pop == fisherPop & d2_score > (mahalTable [FHE_zone_num == fisherPop, Mean] + (2 * mahalTable [FHE_zone_num == fisherPop, SD])), 
-                  kits := as.integer (rpois (n = 1, # should be a Poisson distribution rpois()
-                                             lambda = (reproTable [Fpop == fisherPop & Param == 'LS', Mean] * 0)))]
-  }
+litterSize <- function (mahalTable, reproTable, reproFishers){
+  
+  reproFishers<-merge(reproFishers, mahalTable, by.x = "fisher_pop", by.y = "FHE_zone_num")
+  reproFishers<-merge(reproFishers, reproTable[Param == 'LS', ], by.x = "fisher_pop", by.y = "Fpop")
+  reproFishers<-reproFishers[d2_score <= Mean.x, lambda:=Mean.y][d2_score > Mean.x & d2_score < (Mean.x + sqrt(Mean.x)), lambda:=Mean.y*0.66][d2_score > (Mean.x + sqrt(Mean.x)) & d2_score <= (Mean.x + 2*sqrt(Mean.x)), lambda:=Mean.y*0.05][d2_score > (Mean.x + 2*sqrt(Mean.x)), lambda:=0]
+  reproFishers<-reproFishers[,kits:=as.integer (rpois (n = 1, lambda = lambda)), by= individual_id ]
+  test<<-reproFishers
+  reproFishers<-reproFishers[, ':='(Mean.x = NULL, Mean.y =NULL, SD.x =NULL, SD.y =NULL, Max= NULL, Param = NULL, lambda=NULL, FHE_zone =NULL)]
   return (reproFishers)
 }
 
@@ -958,12 +951,12 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
 
   if(!suppliedElsewhere("survival_rate_table", sim)){
     sim$survival_rate_table <- rbindlist(list(
-      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,30,30,30,30,3,3,3,3),
+      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4),
                   type = "Established",
                   cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
                   Mean = c (0.8, 0.6, 0.8, 0.2,  0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8, 0.2, 0.8, 0.6, 0.8,0.2),
                   SD = c (0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1, 0.2,0.1,0.1,0.1,0.1,0.1,0.1)), 
-      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,30,30,30,30,3,3,3,3),
+      data.table (fisher_pop = c (1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4),
                   type = "Disperser",
                   cohort = c ("Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old", "Adult", "Juvenile", "Senior", "Old"),
                   Mean = c (0.75, 0.6, 0.75, 0.2,  0.75, 0.6, 0.75, 0.2, 0.75, 0.6, 0.75, 0.2, 0.75, 0.6, 0.75, 0.2),
@@ -972,7 +965,7 @@ getClosestWellSpreadDenningSites<-function(juv.idx,juv.dist){
    
   }
   if(!suppliedElsewhere("repro_rate_table", sim)){
-    sim$repro_rate_table <- data.table (Fpop = c(1,1,2,2,30,30,3,3),
+    sim$repro_rate_table <- data.table (Fpop = c(1,1,2,2,3,3,4,4),
                                       Param = c("DR", "LS","DR", "LS","DR", "LS","DR", "LS"),
                                       Mean = c(0.5,3,0.5,3,0.5,3,0.5,3),
                                       SD = c(0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1))
