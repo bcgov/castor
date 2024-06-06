@@ -815,7 +815,6 @@ litterSize <- function (mahalTable, reproTable, reproFishers){
   reproFishers<-merge(reproFishers, mahalTable, by.x = "fisher_pop", by.y = "FHE_zone_num")
   reproFishers<-merge(reproFishers, reproTable[Param == 'LS', ], by.x = "fisher_pop", by.y = "Fpop")
   reproFishers<-reproFishers[d2_score <= Mean.x, lambda:=Mean.y][d2_score > Mean.x & d2_score < (Mean.x + sqrt(Mean.x)), lambda:=Mean.y*0.66][d2_score > (Mean.x + sqrt(Mean.x)) & d2_score <= (Mean.x + 2*sqrt(Mean.x)), lambda:=Mean.y*0.05][d2_score > (Mean.x + 2*sqrt(Mean.x)), lambda:=0]
-  #browser()
   suppressWarnings(reproFishers[!is.na(lambda), kits:=as.integer (rpois (n = 1, lambda = lambda)), by= individual_id ])
  
   reproFishers<-reproFishers[, ':='(Mean.x = NULL, Mean.y =NULL, SD.x =NULL, SD.y =NULL, Max= NULL, Param = NULL, lambda=NULL, FHE_zone =NULL)]
