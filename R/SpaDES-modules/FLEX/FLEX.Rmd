@@ -43,11 +43,11 @@ times <- list (start = 0, end = 3)
 parameters <- list(FLEX = list (female_max_age = 9,
                                  reproductive_age = 2, 
                                  sex_ratio = 0.5,
-                                 female_dispersal = 785000,  # ha; radius = 500 pixels = 50km = 7850km2 area
+                                 female_dispersal = 5000,  # ha; radius = 500 pixels = 50km = 7850km2 area
                                  timeInterval = 5, # should be consistent with the time interval used to model habitat
                                                     # e.g., growingstockLCUS periodLength
-                                #rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
-                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/lakes.tif")
+                                rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/williston.tif")
+                                #rasterHabitat = paste0 (here::here(), "/R/SpaDES-modules/FLEX/lakes.tif")
 
                 )
 )

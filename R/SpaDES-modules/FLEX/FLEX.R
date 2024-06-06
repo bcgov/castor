@@ -63,6 +63,7 @@ defineModule(sim, list(
     createsOutput (objectName = "spread.rast", objectClass = "RasterLayer", desc = "The raster layer describing how fisher search for habitat." ),
     createsOutput (objectName = "table.hab.spread", objectClass = "data.table", desc = "Fisher habitat categoires table." ),
     createsOutput (objectName = "ras.territories", objectClass = "SpatRaster", desc = "The territories over a sim." ),
+    createsOutput (objectName = "ras.territories.freq", objectClass = "SpatRaster", desc = "Number of times a pixel was used as a territories over a sim." ),
     createsOutput (objectName = "ras.territories.stack", objectClass = "SpatRaster", desc = "The territories over a sim as a stacked raster." ),
     createsOutput (objectName = "max.id", objectClass = "integer", desc = "The maximum territory identifier" ),
     createsOutput (objectName = "fisherABMReport", objectClass = "data.table", desc = "A data.table object. Consists of fisher population numbers in the study area at each time step."),
@@ -154,6 +155,7 @@ Init <- function(sim) {
 
   sim$ras.territories <- sim$pix.rast
   sim$ras.territories [] <- 0
+  sim$ras.territories.freq <- sim$ras.territories
   
   message ("Create fisher agents table and assign values...")
   den.pix <- table.habitat.init [ras_fisher_denning_init == 1, c ("pixelid", "ras_fisher_denning_init")]
@@ -337,7 +339,7 @@ disperseFisher<- function(sim){
       #Allocate adults to denning sites. See which adults are the closest to each of the denning.starts
       den.site.potentials <- RANN::nn2 (data =  denning.starts[,c("x", "y")], 
                                         query = current.location.coords[,c("x", "y")], 
-                                        searchtype = 'radius', radius =  50000, k =min(10, nrow(denning.starts[,c("x", "y")])))
+                                        searchtype = 'radius', radius =  as.integer(P(sim, "female_dispersal", "FLEX")), k =min(10, nrow(denning.starts[,c("x", "y")])))
       
       
       temp_sites<-getClosestWellSpreadDenningSites(den.site.potentials$nn.idx, den.site.potentials$nn.dists) #TODO: test for ties -- same initialPixels
@@ -472,7 +474,7 @@ disperseFisher<- function(sim){
       #Allocate juveniles to denning sites. See which juveniles are the closest to each of the denning.starts
       den.site.potentials <- RANN::nn2 (data =  denning.starts[,c("x", "y")], 
                                         query = current.location.coords[,c("x", "y")], 
-                                        searchtype = 'radius', radius =  50000, k =min(10, nrow(denning.starts[,c("x", "y")])))
+                                        searchtype = 'radius', radius =  as.integer(P(sim, "female_dispersal", "FLEX")), k =min(10, nrow(denning.starts[,c("x", "y")])))
       
       
       temp_sites<-getClosestWellSpreadDenningSites(den.site.potentials$nn.idx, den.site.potentials$nn.dists) #TODO: test for ties -- same initialPixels
@@ -750,9 +752,13 @@ recordABMReport<-function(sim, i){
   names(sim$ras.territories) <- paste0("hr_", max(0, as.integer ( time(sim) * P (sim, "timeInterval", "FLEX") - ( P (sim, "timeInterval", "FLEX") - i))))
   if(is.null(sim$ras.territories.stack)){
     sim$ras.territories.stack <- sim$ras.territories
-    
+    sim$ras.territories.freq <- sim$ras.territories
+    sim$ras.territories.freq[sim$ras.territories.freq[] > 0]<-1
   }else{
     sim$ras.territories.stack <- rast(list(sim$ras.territories.stack,sim$ras.territories))
+    temp.ras.territories.freq<-sim$ras.territories
+    temp.ras.territories.freq[temp.ras.territories.freq[] > 0]<-1
+    sim$ras.territories.freq <- sim$ras.territories.freq + temp.ras.territories.freq 
   }
   
   
@@ -765,6 +771,9 @@ saveFisherReports<-function(sim){
   terra::writeRaster (x = sim$ras.territories.stack,
                        filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_final_fisher_territories.tif"),
                        overwrite = TRUE)
+  terra::writeRaster (x = sim$ras.territories.freq,
+                      filename = paste0 (outputPath (sim), "/", sim$scenario$name, "_freq_fisher_territories.tif"),
+                      overwrite = TRUE)
   return(invisible(sim))
 }
 
@@ -806,8 +815,9 @@ litterSize <- function (mahalTable, reproTable, reproFishers){
   reproFishers<-merge(reproFishers, mahalTable, by.x = "fisher_pop", by.y = "FHE_zone_num")
   reproFishers<-merge(reproFishers, reproTable[Param == 'LS', ], by.x = "fisher_pop", by.y = "Fpop")
   reproFishers<-reproFishers[d2_score <= Mean.x, lambda:=Mean.y][d2_score > Mean.x & d2_score < (Mean.x + sqrt(Mean.x)), lambda:=Mean.y*0.66][d2_score > (Mean.x + sqrt(Mean.x)) & d2_score <= (Mean.x + 2*sqrt(Mean.x)), lambda:=Mean.y*0.05][d2_score > (Mean.x + 2*sqrt(Mean.x)), lambda:=0]
-  reproFishers<-reproFishers[,kits:=as.integer (rpois (n = 1, lambda = lambda)), by= individual_id ]
-  test<<-reproFishers
+  #browser()
+  suppressWarnings(reproFishers[!is.na(lambda), kits:=as.integer (rpois (n = 1, lambda = lambda)), by= individual_id ])
+ 
   reproFishers<-reproFishers[, ':='(Mean.x = NULL, Mean.y =NULL, SD.x =NULL, SD.y =NULL, Max= NULL, Param = NULL, lambda=NULL, FHE_zone =NULL)]
   return (reproFishers)
 }
