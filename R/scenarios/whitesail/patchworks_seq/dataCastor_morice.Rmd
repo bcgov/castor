@@ -84,7 +84,7 @@ parameters <-  list (
                            nameRoads =  'rast.ce_road_2022'
                            ),
         disturbanceCastor = list(calculateInterval =  1, 
-                                 criticalHabitatTable = "vat.criticalhabitat_tweedsmuir_vat",
+                                 criticalHabitatTable = "vat.zone_cond_bc_tweedsmuir_crithab",
                                  criticalHabRaster = "rast.zone_cond_bc_tweedsmuir_crithab",
                                  permDisturbanceRaster = "rast.mine_ag_wind_rail",
                                  recovery = 30), # 30 years road recovery
@@ -137,7 +137,7 @@ mySim <- SpaDES.core::simInitAndSpades(times = times,
 ## Adjust last use date of roads in castordb
 Before running this chuck make sure dataCastor_morice has been run to build the castordb and backCastor_morice has been run to estimates the time since last use.
 ```{r}
-rd.stat<-rast("C:/Users/klochhea/castor/R/scenarios/whitesail/patchworks_seq/est_roadstatus_whitesail.tif")
+rd.stat<-rast("C:/Users/klochhea/castor/R/scenarios/whitesail/patchworks_seq/est_roadstatus_canfor_whitesail.tif")
 update_roadstatus<- data.table(est_rs=rd.stat[])[,pixelid:=seq_len(.N)]
 setnames(update_roadstatus, "est_rs.lyr.1", "est_rs")
 update_roadstatus<-update_roadstatus[!is.na(est_rs),]

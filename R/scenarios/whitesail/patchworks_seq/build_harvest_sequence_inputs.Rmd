@@ -16,7 +16,7 @@ forestryCastor needs a raster stack of harvest units in each time period
 ```{r}
 library(sf)
 library(terra)
-spatial.hsq<-"C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/scenario50yrs/steventon_observed_mod.gpkg"
+spatial.hsq<-"C:/Users/klochhea/castor/R/scenarios/whitesail/data_raw/scenario50yrs/conditional.gpkg"
 setwd('C:/Users/klochhea/castor/R/scenarios/whitesail/patchworks_seq')
 
 harvest<-st_read(spatial.hsq) #the outputs from pathworks
@@ -36,5 +36,5 @@ ras.hseq<-lapply(seq(from = 5, to= 50, by=5), function(x){
 })
 
 out<-rast(ras.hseq)
-writeRaster(out, "steventon_observed_mod_hsq.tif")
+writeRaster(out, "conditional_hsq.tif")
 ```
